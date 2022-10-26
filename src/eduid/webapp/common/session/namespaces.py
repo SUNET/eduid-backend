@@ -14,9 +14,6 @@ from pydantic import BaseModel, Field, ValidationError, validator
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.actions import Action
 from eduid.userdb.credentials import Credential
-
-__author__ = 'ft'
-
 from eduid.userdb.credentials.external import TrustFramework
 from eduid.userdb.credentials.fido import WebauthnAuthenticator
 from eduid.userdb.element import ElementKey
@@ -24,10 +21,12 @@ from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.common.authn.acs_enums import AuthnAcsAction, EidasAcsAction
 from eduid.webapp.idp.other_device.data import OtherDeviceId
 
+__author__ = "ft"
+
 logger = logging.getLogger(__name__)
 
 
-AuthnRequestRef = NewType('AuthnRequestRef', str)
+AuthnRequestRef = NewType("AuthnRequestRef", str)
 OIDCState = NewType('OIDCState', str)
 
 
@@ -36,14 +35,13 @@ class SessionNSBase(BaseModel, ABC):
         return self.dict()
 
     @classmethod
-    def from_dict(cls: Type[SessionNSBase], data) -> TSessionNSSubclass:
+    def from_dict(cls: Type[TSessionNSSubclass], data) -> TSessionNSSubclass:
         _data = cls._from_dict_transform(data)
 
-        # Avoid error: Incompatible return value type (got "SessionNSBase", expected "TSessionNSSubclass")
         try:
-            return cls(**_data)  # type: ignore
+            return cls(**_data)
         except ValidationError:
-            logger.warning(f'Could not parse session namespace:\n{_data}')
+            logger.warning(f"Could not parse session namespace:\n{_data}")
             raise
 
     @classmethod
@@ -52,22 +50,22 @@ class SessionNSBase(BaseModel, ABC):
         return dict(_data)
 
 
-TSessionNSSubclass = TypeVar('TSessionNSSubclass', bound=SessionNSBase)
+TSessionNSSubclass = TypeVar("TSessionNSSubclass", bound=SessionNSBase)
 
 
 @unique
 class LoginApplication(str, Enum):
-    idp = 'idp'
-    authn = 'authn'
-    signup = 'signup'
+    idp = "idp"
+    authn = "authn"
+    signup = "signup"
 
 
 @unique
 class MfaActionError(str, Enum):
-    authn_context_mismatch = 'authn_context_mismatch'
-    authn_too_old = 'authn_too_old'
-    nin_not_matching = 'nin_not_matching'
-    foreign_eid_not_matching = 'foreign_eid_not_matching'
+    authn_context_mismatch = "authn_context_mismatch"
+    authn_too_old = "authn_too_old"
+    nin_not_matching = "nin_not_matching"
+    foreign_eid_not_matching = "foreign_eid_not_matching"
 
 
 class Common(SessionNSBase):
@@ -77,7 +75,7 @@ class Common(SessionNSBase):
     preferred_language: Optional[str] = None
 
 
-WebauthnState = NewType('WebauthnState', Dict[str, Any])
+WebauthnState = NewType("WebauthnState", Dict[str, Any])
 
 
 class MfaAction(SessionNSBase):
@@ -134,6 +132,7 @@ class Signup(TimestampedNS):
     email_verification_code: Optional[str] = None
 
 
+# TODO: Remove Actions, should be unused
 class Actions(TimestampedNS):
     session: Optional[str] = None
     current_plugin: Optional[str] = None
@@ -142,11 +141,11 @@ class Actions(TimestampedNS):
     total_steps: Optional[int] = None
 
 
-RequestRef = NewType('RequestRef', str)
+RequestRef = NewType("RequestRef", str)
 
 
 class OnetimeCredType(str, Enum):
-    external_mfa = 'ext_mfa'
+    external_mfa = "ext_mfa"
 
 
 class OnetimeCredential(Credential):
@@ -193,13 +192,13 @@ class IdP_Namespace(TimestampedNS):
     @classmethod
     def _from_dict_transform(cls: Type[IdP_Namespace], data: Mapping[str, Any]) -> Dict[str, Any]:
         _data = super()._from_dict_transform(data)
-        if 'pending_requests' in _data:
+        if "pending_requests" in _data:
             # pre-parse values into the right subclass if IdP_PendingRequest
-            for k, v in _data['pending_requests'].items():
-                if 'binding' in v:
-                    _data['pending_requests'][k] = IdP_SAMLPendingRequest(**v)
-                elif 'state_id' in v:
-                    _data['pending_requests'][k] = IdP_OtherDevicePendingRequest(**v)
+            for k, v in _data["pending_requests"].items():
+                if "binding" in v:
+                    _data["pending_requests"][k] = IdP_SAMLPendingRequest(**v)
+                elif "state_id" in v:
+                    _data["pending_requests"][k] = IdP_OtherDevicePendingRequest(**v)
         return _data
 
     def log_credential_used(
@@ -212,11 +211,18 @@ class IdP_Namespace(TimestampedNS):
 
 
 class SP_AuthnRequest(BaseModel):
-    redirect_url: str
+    frontend_action: str  # what action frontend is performing, decides the finish URL the user is redirected to
     post_authn_action: Optional[Union[AuthnAcsAction, EidasAcsAction]] = None
     credentials_used: List[ElementKey] = Field(default_factory=list)
     created_ts: datetime = Field(default_factory=utc_now)
     authn_instant: Optional[datetime] = None
+    frontend_state: Optional[str] = None  # opaque data from frontend, returned in /status
+    # proofing_credential_id is the credential being person-proofed, when doing that
+    proofing_credential_id: Optional[ElementKey] = None
+    method: Optional[str] = None  # proofing method that frontend is invoking
+    status: Optional[str] = None  # populated by the SAML2 ACS
+    error: Optional[bool] = None
+    redirect_url: Optional[str]  # Deprecated, use frontend_action to get return URL from config instead
 
 
 class SPAuthnData(BaseModel):
@@ -233,6 +239,7 @@ class SPAuthnData(BaseModel):
 
 class EidasNamespace(SessionNSBase):
 
+    # TODO: Move verify_token_action_credential_id into SP_AuthnRequest
     verify_token_action_credential_id: Optional[ElementKey] = None
     sp: SPAuthnData = Field(default=SPAuthnData())
 

@@ -17,7 +17,7 @@ from eduid.webapp.common.authn.utils import generate_password
 from eduid.webapp.common.session.namespaces import SP_AuthnRequest
 from eduid.webapp.security.app import current_security_app as current_app
 
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
 
 @unique
@@ -28,47 +28,47 @@ class SecurityMsg(TranslatableMsg):
     """
 
     # Too much time passed since re-authn for account termination
-    stale_reauthn = 'security.stale_authn_info'
+    stale_reauthn = "security.stale_authn_info"
     # No reauthn
-    no_reauthn = 'security.no_reauthn'
+    no_reauthn = "security.no_reauthn"
     # removing a verified NIN is not allowed
-    rm_verified = 'nins.verified_no_rm'
+    rm_verified = "nins.verified_no_rm"
     # success removing nin
-    rm_success = 'nins.success_removal'
+    rm_success = "nins.success_removal"
     # the user already has the nin
-    already_exists = 'nins.already_exists'
+    already_exists = "nins.already_exists"
     # success adding a new nin
-    add_success = 'nins.successfully_added'
+    add_success = "nins.successfully_added"
     # The user tried to register more than the allowed number of tokens
-    max_webauthn = 'security.webauthn.max_allowed_tokens'
+    max_webauthn = "security.webauthn.max_allowed_tokens"
     # the account has to have personal data to be able to register webauthn data
-    no_pdata = 'security.webauthn-missing-pdata'
+    no_pdata = "security.webauthn-missing-pdata"
     # success registering webauthn token
-    webauthn_success = 'security.webauthn_register_success'
+    webauthn_success = "security.webauthn_register_success"
     # It is not allowed to remove the last webauthn credential left
-    no_last = 'security.webauthn-noremove-last'
+    no_last = "security.webauthn-noremove-last"
     # Success removing webauthn token
-    rm_webauthn = 'security.webauthn-token-removed'
+    rm_webauthn = "security.webauthn-token-removed"
     # old_password or new_password missing
-    chpass_no_data = 'security.change_password_no_data'
+    chpass_no_data = "security.change_password_no_data"
     # weak password
-    chpass_weak = 'security.change_password_weak'
+    chpass_weak = "security.change_password_weak"
     # wrong old password
-    unrecognized_pw = 'security.change_password_wrong_old_password'
+    unrecognized_pw = "security.change_password_wrong_old_password"
     # new change password
-    change_password_success = 'security.change-password-success'
+    change_password_success = "security.change-password-success"
     # old change password
-    chpass_password_changed2 = 'chpass.password-changed'
+    chpass_password_changed2 = "chpass.password-changed"
     # throttled user update
-    user_update_throttled = 'security.user-update-throttled'
-    user_not_verified = 'security.user-not-verified'
-    navet_data_incomplete = 'security.navet-data-incomplete'
-    user_updated = 'security.user-updated'
-    no_webauthn = 'security.webauthn-token-notfound'
-    invalid_authenticator = 'security.webauthn-invalid-authenticator'
-    missing_registration_state = 'security.webauthn-missing-registration-state'
-    webauthn_attestation_fail = 'security.webauthn-attestation-fail'
-    webauthn_metadata_fail = 'security.webauthn-metadata-fail'
+    user_update_throttled = "security.user-update-throttled"
+    user_not_verified = "security.user-not-verified"
+    navet_data_incomplete = "security.navet-data-incomplete"
+    user_updated = "security.user-updated"
+    no_webauthn = "security.webauthn-token-notfound"
+    invalid_authenticator = "security.webauthn-invalid-authenticator"
+    missing_registration_state = "security.webauthn-missing-registration-state"
+    webauthn_attestation_fail = "security.webauthn-attestation-fail"
+    webauthn_metadata_fail = "security.webauthn-metadata-fail"
 
 
 @dataclass
@@ -92,9 +92,9 @@ def compile_credential_list(security_user: SecurityUser) -> List[CredentialInfo]
         # pick up attributes not present on all types of credentials
         _description: Optional[str] = None
         _is_verified = False
-        if hasattr(cred, 'description'):
+        if hasattr(cred, "description"):
             _description = cred.description  # type: ignore
-        if hasattr(cred, 'is_verified'):
+        if hasattr(cred, "is_verified"):
             _is_verified = cred.is_verified  # type: ignore
         info = CredentialInfo(
             key=cred_key,
@@ -118,9 +118,9 @@ def remove_nin_from_user(security_user: SecurityUser, nin: NinIdentity) -> None:
     # Save user to private db
     current_app.private_userdb.save(security_user, check_sync=False)
     # Ask am to sync user to central db
-    current_app.logger.debug(f'Request sync for user {security_user}')
+    current_app.logger.debug(f"Request sync for user {security_user}")
     result = current_app.am_relay.request_user_sync(security_user)
-    current_app.logger.info(f'Sync result for user {security_user}: {result}')
+    current_app.logger.info(f"Sync result for user {security_user}: {result}")
 
 
 def generate_suggested_password() -> str:
@@ -130,7 +130,7 @@ def generate_suggested_password() -> str:
     password_length = current_app.conf.password_length
 
     password = generate_password(length=password_length)
-    password = ' '.join([password[i * 4 : i * 4 + 4] for i in range(0, int(len(password) / 4))])
+    password = " ".join([password[i * 4 : i * 4 + 4] for i in range(0, int(len(password) / 4))])
 
     return password
 
@@ -142,7 +142,7 @@ def send_termination_mail(user):
 
     Sends a termination mail to all verified mail addresses for the user.
     """
-    subject = _('Terminate account')
+    subject = _("Terminate account")
     text_template = "termination_email.txt.jinja2"
     html_template = "termination_email.html.jinja2"
     to_addresses = [address.email for address in user.mail_addresses.verified]
@@ -153,13 +153,13 @@ def send_termination_mail(user):
 def check_reauthn(authn: Optional[SP_AuthnRequest], max_age: timedelta) -> Optional[FluxData]:
     """Check if a re-authentication has been performed recently enough for this action"""
     if not authn or not authn.authn_instant:
-        current_app.logger.info(f'Action requires re-authentication')
+        current_app.logger.info(f"Action requires re-authentication")
         return error_response(message=SecurityMsg.no_reauthn)
 
     delta = utc_now() - authn.authn_instant
 
     if delta > max_age:
-        current_app.logger.info(f'Re-authentication age {delta} too old')
+        current_app.logger.info(f"Re-authentication age {delta} too old")
         return error_response(message=SecurityMsg.stale_reauthn)
 
     return None
@@ -180,9 +180,9 @@ def update_user_official_name(security_user: SecurityUser, navet_data: NavetData
             official_address=navet_data.person.postal_addresses.official_address,
         )
         proofing_log_entry = NameUpdateProofing(
-            created_by='security',
+            created_by="security",
             eppn=security_user.eppn,
-            proofing_version='2021v1',
+            proofing_version="2021v1",
             nin=security_user.identities.nin.number,
             previous_given_name=security_user.given_name or None,  # default to None for empty string
             previous_surname=security_user.surname or None,  # default to None for empty string
@@ -193,17 +193,17 @@ def update_user_official_name(security_user: SecurityUser, navet_data: NavetData
 
         # Do not save the user if proofing log write fails
         if not current_app.proofing_log.save(proofing_log_entry):
-            current_app.logger.error('Proofing log write failed')
-            current_app.logger.debug(f'proofing_log_entry: {proofing_log_entry}')
+            current_app.logger.error("Proofing log write failed")
+            current_app.logger.debug(f"proofing_log_entry: {proofing_log_entry}")
             return False
 
-        current_app.logger.info(f'Recorded verification in the proofing log')
+        current_app.logger.info(f"Recorded verification in the proofing log")
         # Save user to private db
         current_app.private_userdb.save(security_user)
         # Ask am to sync user to central db
-        current_app.logger.info('Request sync for user')
+        current_app.logger.info("Request sync for user")
         result = current_app.am_relay.request_user_sync(security_user)
-        current_app.logger.info(f'Sync result for user {security_user}: {result}')
-        current_app.stats.count(name='refresh_user_data_name_updated')
+        current_app.logger.info(f"Sync result for user {security_user}: {result}")
+        current_app.stats.count(name="refresh_user_data_name_updated")
 
     return True

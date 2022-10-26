@@ -1,11 +1,11 @@
 from fastapi import Response
 
+from eduid.common.models.scim_base import ListResponse, SCIMResourceType, SearchRequest
 from eduid.scimapi.api_router import APIRouter
 from eduid.scimapi.context_request import ContextRequest, ContextRequestRoute
-from eduid.scimapi.db.eventdb import EventLevel, EventStatus, add_api_event
-from eduid.scimapi.exceptions import BadRequest, ErrorDetail, NotFound, SCIMErrorResponse
+from eduid.scimapi.exceptions import BadRequest, ErrorDetail, NotFound
 from eduid.scimapi.models.group import GroupCreateRequest, GroupResponse, GroupUpdateRequest
-from eduid.scimapi.models.scimbase import ListResponse, SCIMResourceType, SearchRequest
+from eduid.scimapi.routers.utils.events import add_api_event
 from eduid.scimapi.routers.utils.groups import (
     db_group_to_response,
     filter_display_name,
@@ -13,28 +13,29 @@ from eduid.scimapi.routers.utils.groups import (
     filter_lastmodified,
 )
 from eduid.scimapi.search import parse_search_filter
+from eduid.userdb.scimapi import EventLevel, EventStatus
 
 groups_router = APIRouter(
     route_class=ContextRequestRoute,
-    prefix='/Groups',
+    prefix="/Groups",
     responses={
-        400: {'description': 'Bad request', 'model': ErrorDetail},
-        404: {'description': 'Not found', 'model': ErrorDetail},
-        500: {'description': 'Internal server error', 'model': ErrorDetail},
+        400: {"description": "Bad request", "model": ErrorDetail},
+        404: {"description": "Not found", "model": ErrorDetail},
+        500: {"description": "Internal server error", "model": ErrorDetail},
     },
 )
 
 
-@groups_router.get('/', response_model=ListResponse)
+@groups_router.get("/", response_model=ListResponse)
 async def on_get_all(req: ContextRequest) -> ListResponse:
     db_groups = req.context.groupdb.get_groups()
     resources = []
     for db_group in db_groups:
-        resources.append({'id': str(db_group.scim_id), 'displayName': db_group.graph.display_name})
+        resources.append({"id": str(db_group.scim_id), "displayName": db_group.graph.display_name})
     return ListResponse(total_results=len(db_groups), resources=resources)
 
 
-@groups_router.get('/{scim_id}', response_model=GroupResponse, response_model_exclude_none=True)
+@groups_router.get("/{scim_id}", response_model=GroupResponse, response_model_exclude_none=True)
 async def on_get_one(req: ContextRequest, resp: Response, scim_id: str) -> GroupResponse:
     """
     GET /Groups/c3819cbe-c893-4070-824c-fe3d0db8f955  HTTP/1.1
@@ -68,13 +69,13 @@ async def on_get_one(req: ContextRequest, resp: Response, scim_id: str) -> Group
     req.app.context.logger.info(f"Fetching group {scim_id}")
 
     db_group = req.context.groupdb.get_group_by_scim_id(scim_id)
-    req.app.context.logger.debug(f'Found group: {db_group}')
+    req.app.context.logger.debug(f"Found group: {db_group}")
     if not db_group:
         raise NotFound(detail="Group not found")
     return db_group_to_response(req, resp, db_group)
 
 
-@groups_router.put('/{scim_id}', response_model=GroupResponse, response_model_exclude_none=True)
+@groups_router.put("/{scim_id}", response_model=GroupResponse, response_model_exclude_none=True)
 async def on_put(
     req: ContextRequest, resp: Response, scim_id: str, update_request: GroupUpdateRequest
 ) -> GroupResponse:
@@ -127,16 +128,16 @@ async def on_put(
     }
 
     """
-    req.app.context.logger.info('Updating group')
+    req.app.context.logger.info("Updating group")
     req.app.context.logger.debug(update_request)
     if scim_id != str(update_request.id):
-        req.app.context.logger.error(f'Id mismatch')
-        req.app.context.logger.debug(f'{scim_id} != {update_request.id}')
-        raise BadRequest(detail='Id mismatch')
+        req.app.context.logger.error(f"Id mismatch")
+        req.app.context.logger.debug(f"{scim_id} != {update_request.id}")
+        raise BadRequest(detail="Id mismatch")
 
     req.app.context.logger.info(f"Fetching group {scim_id}")
     db_group = req.context.groupdb.get_group_by_scim_id(str(update_request.id))
-    req.app.context.logger.debug(f'Found group: {db_group}')
+    req.app.context.logger.debug(f"Found group: {db_group}")
     if not db_group:
         raise NotFound(detail="Group not found")
 
@@ -145,16 +146,16 @@ async def on_put(
         raise BadRequest(detail="Version mismatch")
 
     # Check that members exists in their respective db
-    req.app.context.logger.info(f'Checking if group and user members exists')
+    req.app.context.logger.info(f"Checking if group and user members exists")
     for member in update_request.members:
         if member.is_group:
             if not req.context.groupdb.group_exists(str(member.value)):
-                req.app.context.logger.error(f'Group {member.value} not found')
-                raise BadRequest(detail=f'Group {member.value} not found')
+                req.app.context.logger.error(f"Group {member.value} not found")
+                raise BadRequest(detail=f"Group {member.value} not found")
         if member.is_user:
             if not req.context.userdb.user_exists(scim_id=str(member.value)):
-                req.app.context.logger.error(f'User {member.value} not found')
-                raise BadRequest(detail=f'User {member.value} not found')
+                req.app.context.logger.error(f"User {member.value} not found")
+                raise BadRequest(detail=f"User {member.value} not found")
 
     updated_group, changed = req.context.groupdb.update_group(update_request=update_request, db_group=db_group)
     # Load the group from the database to ensure results are consistent with subsequent GETs.
@@ -170,13 +171,13 @@ async def on_put(
             resource_type=SCIMResourceType.GROUP,
             level=EventLevel.INFO,
             status=EventStatus.UPDATED,
-            message='Group was updated',
+            message="Group was updated",
         )
 
     return db_group_to_response(req, resp, db_group)
 
 
-@groups_router.post('/', response_model=GroupResponse, response_model_exclude_none=True)
+@groups_router.post("/", response_model=GroupResponse, response_model_exclude_none=True)
 async def on_post(req: ContextRequest, resp: Response, create_request: GroupCreateRequest) -> GroupResponse:
     """
     POST /Groups  HTTP/1.1
@@ -207,7 +208,7 @@ async def on_post(req: ContextRequest, resp: Response, create_request: GroupCrea
         }
     }
     """
-    req.app.context.logger.info('Creating group')
+    req.app.context.logger.info("Creating group")
     req.app.context.logger.debug(create_request)
     created_group = req.context.groupdb.create_group(create_request=create_request)
     # Load the group from the database to ensure results are consistent with subsequent GETs.
@@ -222,7 +223,7 @@ async def on_post(req: ContextRequest, resp: Response, create_request: GroupCrea
         resource_type=SCIMResourceType.GROUP,
         level=EventLevel.INFO,
         status=EventStatus.CREATED,
-        message='Group was created',
+        message="Group was created",
     )
 
     group_response = db_group_to_response(req, resp, db_group)
@@ -231,14 +232,14 @@ async def on_post(req: ContextRequest, resp: Response, create_request: GroupCrea
 
 
 @groups_router.delete(
-    '/{scim_id}',
+    "/{scim_id}",
     status_code=204,
-    responses={204: {'description': 'No Content'}},
+    responses={204: {"description": "No Content"}},
 )
 async def on_delete(req: ContextRequest, scim_id: str) -> None:
-    req.app.context.logger.info(f'Deleting group {scim_id}')
+    req.app.context.logger.info(f"Deleting group {scim_id}")
     db_group = req.context.groupdb.get_group_by_scim_id(scim_id=scim_id)
-    req.app.context.logger.debug(f'Found group: {db_group}')
+    req.app.context.logger.debug(f"Found group: {db_group}")
     if not db_group:
         raise NotFound(detail="Group not found")
 
@@ -255,13 +256,13 @@ async def on_delete(req: ContextRequest, scim_id: str) -> None:
         resource_type=SCIMResourceType.GROUP,
         level=EventLevel.INFO,
         status=EventStatus.DELETED,
-        message='Group was deleted',
+        message="Group was deleted",
     )
 
-    req.app.context.logger.debug(f'Remove group result: {res}')
+    req.app.context.logger.debug(f"Remove group result: {res}")
 
 
-@groups_router.post('/.search', response_model=ListResponse, response_model_exclude_none=True)
+@groups_router.post("/.search", response_model=ListResponse, response_model_exclude_none=True)
 async def search(req: ContextRequest, query: SearchRequest) -> ListResponse:
     """
     POST /Groups/.search
@@ -288,19 +289,19 @@ async def search(req: ContextRequest, query: SearchRequest) -> ListResponse:
         ]
     }
     """
-    req.app.context.logger.info('Searching for group(s)')
+    req.app.context.logger.info("Searching for group(s)")
     _filter = parse_search_filter(query.filter)
 
-    if _filter.attr == 'displayname':
+    if _filter.attr == "displayname":
         groups, total_count = filter_display_name(req, _filter, skip=query.start_index - 1, limit=query.count)
-    elif _filter.attr == 'meta.lastmodified':
+    elif _filter.attr == "meta.lastmodified":
         groups, total_count = filter_lastmodified(req, _filter, skip=query.start_index - 1, limit=query.count)
-    elif _filter.attr.startswith('extensions.data.'):
+    elif _filter.attr.startswith("extensions.data."):
         groups, total_count = filter_extensions_data(req, _filter, skip=query.start_index - 1, limit=query.count)
     else:
-        raise BadRequest(scim_type='invalidFilter', detail=f'Can\'t filter on attribute {_filter.attr}')
+        raise BadRequest(scim_type="invalidFilter", detail=f"Can't filter on attribute {_filter.attr}")
 
     resources = []
     for this in groups:
-        resources.append({'id': str(this.scim_id), 'displayName': this.display_name})
+        resources.append({"id": str(this.scim_id), "displayName": this.display_name})
     return ListResponse(total_results=total_count, resources=resources)

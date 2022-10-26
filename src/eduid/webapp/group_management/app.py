@@ -36,14 +36,14 @@ from flask import current_app
 
 from eduid.common.config.parsers import load_config
 from eduid.common.rpc.mail_relay import MailRelay
-from eduid.scimapi.db.groupdb import ScimApiGroupDB
-from eduid.scimapi.db.userdb import ScimApiUserDB
 from eduid.userdb.group_management import GroupManagementInviteStateDB
+from eduid.userdb.scimapi import ScimApiGroupDB
+from eduid.userdb.scimapi.userdb import ScimApiUserDB
 from eduid.webapp.common.api import translation
 from eduid.webapp.common.authn.middleware import AuthnBaseApp
 from eduid.webapp.group_management.settings.common import GroupManagementConfig
 
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
 
 class GroupManagementApp(AuthnBaseApp):
@@ -55,16 +55,16 @@ class GroupManagementApp(AuthnBaseApp):
         # Init dbs
         self.invite_state_db = GroupManagementInviteStateDB(config.mongo_uri)
         _owner = config.scim_data_owner.replace(
-            '.', '_'
+            ".", "_"
         )  # dot is a name separator in mongodb, so replace dots with underscores
-        self.scimapi_userdb = ScimApiUserDB(db_uri=config.mongo_uri, collection=f'{_owner}__users', setup_indexes=False)
+        self.scimapi_userdb = ScimApiUserDB(db_uri=config.mongo_uri, collection=f"{_owner}__users", setup_indexes=False)
         self.scimapi_groupdb = ScimApiGroupDB(
             neo4j_uri=config.neo4j_uri,
             neo4j_config=config.neo4j_config,
             scope=config.scim_data_owner,
             mongo_uri=config.mongo_uri,
-            mongo_dbname='eduid_scimapi',
-            mongo_collection=f'{_owner}__groups',
+            mongo_dbname="eduid_scimapi",
+            mongo_collection=f"{_owner}__groups",
             setup_indexes=False,
         )
 
@@ -76,7 +76,7 @@ current_group_management_app = cast(GroupManagementApp, current_app)
 
 
 def init_group_management_app(
-    name: str = 'group_management', test_config: Optional[Mapping[str, Any]] = None
+    name: str = "group_management", test_config: Optional[Mapping[str, Any]] = None
 ) -> GroupManagementApp:
     """
     :param name: The name of the instance, it will affect the configuration loaded.
@@ -84,11 +84,11 @@ def init_group_management_app(
 
     :return: the flask app
     """
-    config = load_config(typ=GroupManagementConfig, app_name=name, ns='webapp', test_config=test_config)
+    config = load_config(typ=GroupManagementConfig, app_name=name, ns="webapp", test_config=test_config)
 
     app = GroupManagementApp(config)
 
-    app.logger.info(f'Init {app}...')
+    app.logger.info(f"Init {app}...")
 
     # Register views
     from eduid.webapp.group_management.views.group import group_management_views
@@ -100,5 +100,5 @@ def init_group_management_app(
     # Init translation
     translation.init_babel(app)
 
-    app.logger.info('{!s} initialized'.format(name))
+    app.logger.info("{!s} initialized".format(name))
     return app

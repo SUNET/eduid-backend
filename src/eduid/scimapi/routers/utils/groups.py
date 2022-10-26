@@ -7,15 +7,15 @@ from uuid import UUID
 
 from fastapi import Request, Response
 
+from eduid.common.models.scim_base import Meta, SCIMResourceType, SCIMSchema
 from eduid.scimapi.context_request import ContextRequest
-from eduid.scimapi.db.groupdb import ScimApiGroup
 from eduid.scimapi.exceptions import BadRequest
 from eduid.scimapi.models.group import GroupMember, GroupResponse, NutidGroupExtensionV1
-from eduid.scimapi.models.scimbase import Meta, SCIMResourceType, SCIMSchema
 from eduid.scimapi.search import SearchFilter
 from eduid.scimapi.utils import make_etag
+from eduid.userdb.scimapi import ScimApiGroup
 
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
 
 def get_group_members(req: Request, db_group: ScimApiGroup) -> List[GroupMember]:
@@ -54,13 +54,13 @@ def db_group_to_response(req: ContextRequest, resp: Response, db_group: ScimApiG
         nutid_group_v1=nutid_group_v1,
     )
 
-    resp.headers['Location'] = location
-    resp.headers['ETag'] = make_etag(db_group.version)
+    resp.headers["Location"] = location
+    resp.headers["ETag"] = make_etag(db_group.version)
     # TODO: Needed?
     # if SCIMSchema.NUTID_GROUP_V1 not in group.schemas and SCIMSchema.NUTID_GROUP_V1.value in dumped_group:
     #    # Serialization will always put the NUTID_GROUP_V1 in the dumped_group, even if there was no data
     #    del dumped_group[SCIMSchema.NUTID_GROUP_V1.value]
-    req.app.context.logger.debug(f'Extra debug: Response:\n{group.json(exclude_none=True, indent=2)}')
+    req.app.context.logger.debug(f"Extra debug: Response:\n{group.json(exclude_none=True, indent=2)}")
     return group
 
 
@@ -70,14 +70,14 @@ def filter_display_name(
     skip: Optional[int] = None,
     limit: Optional[int] = None,
 ) -> Tuple[List[ScimApiGroup], int]:
-    if filter.op != 'eq':
-        raise BadRequest(scim_type='invalidFilter', detail='Unsupported operator')
+    if filter.op != "eq":
+        raise BadRequest(scim_type="invalidFilter", detail="Unsupported operator")
     if not isinstance(filter.val, str):
-        raise BadRequest(scim_type='invalidFilter', detail='Invalid displayName')
+        raise BadRequest(scim_type="invalidFilter", detail="Invalid displayName")
 
-    req.app.context.logger.debug(f'Searching for group with display name {repr(filter.val)}')
+    req.app.context.logger.debug(f"Searching for group with display name {repr(filter.val)}")
     groups, count = req.context.groupdb.get_groups_by_property(
-        key='display_name', value=filter.val, skip=skip, limit=limit
+        key="display_name", value=filter.val, skip=skip, limit=limit
     )
 
     if not groups:
@@ -89,14 +89,14 @@ def filter_display_name(
 def filter_lastmodified(
     req: ContextRequest, filter: SearchFilter, skip: Optional[int] = None, limit: Optional[int] = None
 ) -> Tuple[List[ScimApiGroup], int]:
-    if filter.op not in ['gt', 'ge']:
-        raise BadRequest(scim_type='invalidFilter', detail='Unsupported operator')
+    if filter.op not in ["gt", "ge"]:
+        raise BadRequest(scim_type="invalidFilter", detail="Unsupported operator")
     if not isinstance(filter.val, str):
-        raise BadRequest(scim_type='invalidFilter', detail='Invalid datetime')
+        raise BadRequest(scim_type="invalidFilter", detail="Invalid datetime")
     try:
         _parsed = datetime.fromisoformat(filter.val)
     except:
-        raise BadRequest(scim_type='invalidFilter', detail='Invalid datetime')
+        raise BadRequest(scim_type="invalidFilter", detail="Invalid datetime")
     return req.context.groupdb.get_groups_by_last_modified(operator=filter.op, value=_parsed, skip=skip, limit=limit)
 
 
@@ -106,14 +106,14 @@ def filter_extensions_data(
     skip: Optional[int] = None,
     limit: Optional[int] = None,
 ) -> Tuple[List[ScimApiGroup], int]:
-    if filter.op != 'eq':
-        raise BadRequest(scim_type='invalidFilter', detail='Unsupported operator')
+    if filter.op != "eq":
+        raise BadRequest(scim_type="invalidFilter", detail="Unsupported operator")
 
-    match = re.match(r'^extensions\.data\.([a-z_]+)$', filter.attr)
+    match = re.match(r"^extensions\.data\.([a-z_]+)$", filter.attr)
     if not match:
-        raise BadRequest(scim_type='invalidFilter', detail='Unsupported extension search key')
+        raise BadRequest(scim_type="invalidFilter", detail="Unsupported extension search key")
 
-    req.app.context.logger.debug(f'Searching for groups with {filter.attr} {filter.op} {repr(filter.val)}')
+    req.app.context.logger.debug(f"Searching for groups with {filter.attr} {filter.op} {repr(filter.val)}")
     groups, count = req.context.groupdb.get_groups_by_property(
         key=filter.attr, value=filter.val, skip=skip, limit=limit
     )

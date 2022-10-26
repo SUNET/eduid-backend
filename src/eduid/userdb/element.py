@@ -88,7 +88,7 @@ from pydantic.generics import GenericModel
 
 from eduid.userdb.exceptions import EduIDUserDBError, UserDBValueError
 
-__author__ = 'ft'
+__author__ = "ft"
 
 from eduid.userdb.util import utc_now
 
@@ -118,8 +118,8 @@ class PrimaryElementViolation(PrimaryElementError):
     pass
 
 
-TElementSubclass = TypeVar('TElementSubclass', bound='Element')
-ElementKey = NewType('ElementKey', str)
+TElementSubclass = TypeVar("TElementSubclass", bound="Element")
+ElementKey = NewType("ElementKey", str)
 
 
 class Element(BaseModel):
@@ -134,8 +134,8 @@ class Element(BaseModel):
             EventElement
     """
 
-    created_by: Optional[str] = Field(default=None, alias='source')
-    created_ts: datetime = Field(default_factory=utc_now, alias='added_timestamp')
+    created_by: Optional[str] = Field(default=None, alias="source")
+    created_ts: datetime = Field(default_factory=utc_now, alias="added_timestamp")
     modified_ts: datetime = Field(default_factory=utc_now)
     # This is a short-term hack to deploy new dataclass based elements without
     # any changes to data in the production database. Remove after a burn-in period.
@@ -149,7 +149,7 @@ class Element(BaseModel):
         arbitrary_types_allowed = True  # allow ObjectId as type in Event
 
     def __str__(self) -> str:
-        return f'<eduID {self.__class__.__name__}: {self.dict()}>'
+        return f"<eduID {self.__class__.__name__}: {self.dict()}>"
 
     @classmethod
     def from_dict(cls: Type[TElementSubclass], data: Mapping[str, Any]) -> TElementSubclass:
@@ -181,21 +181,21 @@ class Element(BaseModel):
         """
         Transform data received in eduid format into pythonic format.
         """
-        if 'application' in data:
-            data['created_by'] = data.pop('application')
+        if "application" in data:
+            data["created_by"] = data.pop("application")
 
-        if 'added_timestamp' in data:
-            data['created_ts'] = data.pop('added_timestamp')
+        if "added_timestamp" in data:
+            data["created_ts"] = data.pop("added_timestamp")
 
-        if 'created_ts' not in data:
+        if "created_ts" not in data:
             # some really old nin entries in the database have neither created_ts nor modified_ts
-            data['no_created_ts_in_db'] = True
-            data['created_ts'] = datetime.fromisoformat('1900-01-01T00:00:00+00:00')
+            data["no_created_ts_in_db"] = True
+            data["created_ts"] = datetime.fromisoformat("1900-01-01T00:00:00+00:00")
 
-        if 'modified_ts' not in data:
-            data['no_modified_ts_in_db'] = True
+        if "modified_ts" not in data:
+            data["no_modified_ts_in_db"] = True
             # Use created_ts as modified_ts if no explicit modified_ts was found
-            data['modified_ts'] = data['created_ts']
+            data["modified_ts"] = data["created_ts"]
 
         return data
 
@@ -206,12 +206,12 @@ class Element(BaseModel):
         # If there was no modified_ts in the data that was loaded from the database,
         # don't write one back if it matches the implied one of created_ts
         if self.no_modified_ts_in_db is True:
-            if data.get('modified_ts') == data.get('created_ts'):
-                del data['modified_ts']
+            if data.get("modified_ts") == data.get("created_ts"):
+                del data["modified_ts"]
 
         if self.no_created_ts_in_db is True:
-            if 'created_ts' in data:
-                del data['created_ts']
+            if "created_ts" in data:
+                del data["created_ts"]
 
         return data
 
@@ -224,7 +224,7 @@ class Element(BaseModel):
         raise NotImplementedError("'key' not implemented for Element subclass")
 
 
-TVerifiedElementSubclass = TypeVar('TVerifiedElementSubclass', bound='VerifiedElement')
+TVerifiedElementSubclass = TypeVar("TVerifiedElementSubclass", bound="VerifiedElement")
 
 
 class VerifiedElement(Element, ABC):
@@ -232,12 +232,12 @@ class VerifiedElement(Element, ABC):
     Elements that can be verified or not.
     """
 
-    is_verified: bool = Field(default=False, alias='verified')
+    is_verified: bool = Field(default=False, alias="verified")
     verified_by: Optional[str] = None
     verified_ts: Optional[datetime] = None
 
     def __str__(self):
-        return f'<eduID {self.__class__.__name__}(key={repr(self.key)}): verified={self.is_verified}>'
+        return f"<eduID {self.__class__.__name__}(key={repr(self.key)}): verified={self.is_verified}>"
 
     @classmethod
     def _from_dict_transform(cls: Type[TVerifiedElementSubclass], data: Dict[str, Any]) -> Dict[str, Any]:
@@ -246,11 +246,11 @@ class VerifiedElement(Element, ABC):
         """
         data = super()._from_dict_transform(data)
 
-        if 'verified' in data:
-            data['is_verified'] = data.pop('verified')
+        if "verified" in data:
+            data["is_verified"] = data.pop("verified")
 
-        if 'verification_code' in data:
-            del data['verification_code']
+        if "verification_code" in data:
+            del data["verification_code"]
 
         return data
 
@@ -258,15 +258,15 @@ class VerifiedElement(Element, ABC):
         """
         Transform data kept in pythonic format into eduid database format.
         """
-        if 'is_verified' in data:
-            data['verified'] = data.pop('is_verified')
+        if "is_verified" in data:
+            data["verified"] = data.pop("is_verified")
 
         data = super()._to_dict_transform(data)
 
         return data
 
 
-TPrimaryElementSubclass = TypeVar('TPrimaryElementSubclass', bound='PrimaryElement')
+TPrimaryElementSubclass = TypeVar("TPrimaryElementSubclass", bound="PrimaryElement")
 
 
 class PrimaryElement(VerifiedElement, ABC):
@@ -274,37 +274,37 @@ class PrimaryElement(VerifiedElement, ABC):
     Elements that can be either primary or not.
     """
 
-    is_primary: bool = Field(default=False, alias='primary')  # primary is the old name
+    is_primary: bool = Field(default=False, alias="primary")  # primary is the old name
 
     def __setattr__(self, key: str, value: Any):
         """
         raise PrimaryElementViolation when trying to set a primary element as unverified
         """
-        if key == 'is_verified' and value is False and self.is_primary is True:
+        if key == "is_verified" and value is False and self.is_primary is True:
             raise PrimaryElementViolation("Can't remove verified status of primary element")
 
         super().__setattr__(key, value)
 
     def __str__(self):
         return (
-            f'<eduID {self.__class__.__name__}(key={repr(self.key)}): '
-            f'primary={self.is_primary}, verified={self.is_verified}>'
+            f"<eduID {self.__class__.__name__}(key={repr(self.key)}): "
+            f"primary={self.is_primary}, verified={self.is_verified}>"
         )
 
     def _to_dict_transform(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Transform data kept in pythonic format into database format.
         """
-        if 'is_primary' in data:
-            data['primary'] = data.pop('is_primary')
+        if "is_primary" in data:
+            data["primary"] = data.pop("is_primary")
 
         data = super()._to_dict_transform(data)
 
         return data
 
 
-ListElement = TypeVar('ListElement', bound=Element)
-MatchingElement = TypeVar('MatchingElement', bound=Element)
+ListElement = TypeVar("ListElement", bound=Element)
+MatchingElement = TypeVar("MatchingElement", bound=Element)
 
 
 class ElementList(GenericModel, Generic[ListElement], ABC):
@@ -321,9 +321,9 @@ class ElementList(GenericModel, Generic[ListElement], ABC):
         extra = Extra.forbid  # reject unknown data
 
     def __str__(self):
-        return '<eduID {!s}: {!r}>'.format(self.__class__.__name__, getattr(self, 'elements', None))
+        return "<eduID {!s}: {!r}>".format(self.__class__.__name__, getattr(self, "elements", None))
 
-    @validator('elements', pre=True)
+    @validator("elements", pre=True)
     def _validate_element_values(cls, values, field):
         cls._validate_elements(values, field)
         return values
@@ -338,12 +338,12 @@ class ElementList(GenericModel, Generic[ListElement], ABC):
         # Ensure no elements have duplicate keys
         for this in values:
             if not isinstance(this, Element):
-                raise TypeError(f'Value is of type {type(this)} which is not an Element subclass')
+                raise TypeError(f"Value is of type {type(this)} which is not an Element subclass")
             if not isinstance(this, field.type_):
-                raise TypeError(f'Value of type {type(this)} is not an {field.type_}')
+                raise TypeError(f"Value of type {type(this)} is not an {field.type_}")
             same_key = [x for x in values if x.key == this.key]
             if len(same_key) != 1:
-                raise ValueError(f'Duplicate element key: {repr(this.key)}')
+                raise ValueError(f"Duplicate element key: {repr(this.key)}")
         return values
 
     @classmethod
@@ -381,7 +381,7 @@ class ElementList(GenericModel, Generic[ListElement], ABC):
         if not res:
             return None
         if len(res) > 1:
-            raise EduIDUserDBError('More than one element found')
+            raise EduIDUserDBError("More than one element found")
         return res[0]
 
     def add(self, element: ListElement):
@@ -483,12 +483,12 @@ class PrimaryElementList(VerifiedElementList[ListElement], Generic[ListElement],
             return None
 
         if len(_primary) != 1:
-            raise UserDBValueError(f'More than one primary element found ({_primary})')
+            raise UserDBValueError(f"More than one primary element found ({_primary})")
 
         match = _primary[0]
 
         if not isinstance(match, PrimaryElement):
-            raise UserDBValueError(f'Primary element {repr(match)} is not of type PrimaryElement')
+            raise UserDBValueError(f"Primary element {repr(match)} is not of type PrimaryElement")
 
         # mypy figures out the real type of match since isinstance() is used above and complains
         #    error: Incompatible return value type (got "PrimaryElement", expected "Optional[ListElement]")
@@ -510,7 +510,7 @@ class PrimaryElementList(VerifiedElementList[ListElement], Generic[ListElement],
             raise UserDBValueError("Element not found in list, can't set as primary")
 
         if not isinstance(match, PrimaryElement):
-            raise UserDBValueError(f'Primary element {repr(match)} is not of type PrimaryElement')
+            raise UserDBValueError(f"Primary element {repr(match)} is not of type PrimaryElement")
 
         if not match.is_verified:
             raise PrimaryElementViolation("Primary element must be verified")
@@ -520,7 +520,7 @@ class PrimaryElementList(VerifiedElementList[ListElement], Generic[ListElement],
         new = []
         for this in self.elements:
             if not isinstance(this, PrimaryElement):
-                raise UserDBValueError(f'Element {repr(this)} is not of type PrimaryElement')
+                raise UserDBValueError(f"Element {repr(this)} is not of type PrimaryElement")
             this.is_primary = bool(this.key == key)
             new += [this]
         # mypy figures out the real type of `new' since isinstance() is used above and complains
@@ -546,11 +546,11 @@ class PrimaryElementList(VerifiedElementList[ListElement], Generic[ListElement],
 
         if len(res) != 1:
             _name = cls.__class__.__name__
-            raise PrimaryElementViolation(f'{_name} contains {len(res)}/{len(elements)} primary elements')
+            raise PrimaryElementViolation(f"{_name} contains {len(res)}/{len(elements)} primary elements")
 
         primary = res[0]
         if not primary.is_verified:
-            raise PrimaryElementViolation('Primary element is not verified')
+            raise PrimaryElementViolation("Primary element is not verified")
 
         # mypy figures out the real type of `res[0]' since isinstance() is used above and complains
         #    error: Incompatible return value type (got "PrimaryElement", expected "Optional[ListElement]")
@@ -567,7 +567,7 @@ class PrimaryElementList(VerifiedElementList[ListElement], Generic[ListElement],
 
         if isinstance(match, PrimaryElement) and match.is_primary and self.count > 1:
             # This is not allowed since a PrimaryElementList with any entries in it must have a primary
-            raise PrimaryElementViolation('Removing the primary element is not allowed')
+            raise PrimaryElementViolation("Removing the primary element is not allowed")
 
         self.elements = [this for this in self.elements if this != match]
 

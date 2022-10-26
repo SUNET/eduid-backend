@@ -61,7 +61,7 @@ class ResetPasswordConfig(
     Configuration for the reset_password app
     """
 
-    app_name: str = 'reset_password'
+    app_name: str = "reset_password"
 
     # VCCS URL
     vccs_url: str
@@ -80,9 +80,9 @@ class ResetPasswordConfig(
     # throttle resend of mail and sms
     throttle_resend: timedelta = Field(default=timedelta(minutes=5))
     # URL to get the js app that can drive the process to reset the password
-    password_reset_link: str = 'https://www.eduid.se/reset-password/email-code'
-    password_service_url: str = '/services/reset-password/'
+    password_reset_link: str = "https://www.eduid.se/reset-password/email-code"
+    password_service_url: str = "/services/reset-password/"
     # Throttle sending SMSs for extra security resetting passwords
     throttle_sms: timedelta = Field(default=timedelta(minutes=5))
-    eduid_site_url: str = 'https://www.eduid.se'
-    eduid_site_name: str = 'eduID'
+    eduid_site_url: str = "https://www.eduid.se"
+    eduid_site_name: str = "eduID"

@@ -32,7 +32,7 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from typing import Dict, Mapping
 
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
 
 @dataclass

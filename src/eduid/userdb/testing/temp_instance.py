@@ -56,7 +56,7 @@ class EduidTemporaryInstance(ABC):
         self._conn: Optional[Any] = None  # self._conn should be initialised by subclasses in `setup_conn'
         self._tmpdir = tempfile.mkdtemp()
         self._port = random.randint(40000, 65535)
-        self._logfile = open(f'/tmp/{self.__class__.__name__}-{self.port}.log', 'w')
+        self._logfile = open(f"/tmp/{self.__class__.__name__}-{self.port}.log", "w")
 
         start_time = utc_now()
         self._process = subprocess.Popen(self.command, stdout=self._logfile, stderr=subprocess.STDOUT)
@@ -74,12 +74,12 @@ class EduidTemporaryInstance(ABC):
             delta = time_now - start_time
             age = delta.total_seconds()
             if _res:
-                logger.info(f'{self} instance started after {age} seconds (attempt {count})')
+                logger.info(f"{self} instance started after {age} seconds (attempt {count})")
                 break
             if age > max_retry_seconds:
-                logger.error(f'{self} instance failed to start after {age} seconds')
-                logger.error(f'{self} instance output:\n{self.output}')
-                raise RuntimeError(f'{self} instance failed to start after {age} seconds')
+                logger.error(f"{self} instance failed to start after {age} seconds")
+                logger.error(f"{self} instance output:\n{self.output}")
+                raise RuntimeError(f"{self} instance failed to start after {age} seconds")
             if count <= 3:
                 # back off slightly
                 interval += interval
@@ -104,19 +104,19 @@ class EduidTemporaryInstance(ABC):
 
         Return True on success.
         """
-        raise NotImplementedError('All subclasses of EduidTemporaryInstance must implement setup_conn')
+        raise NotImplementedError("All subclasses of EduidTemporaryInstance must implement setup_conn")
 
     @property
     @abstractmethod
     def conn(self) -> Any:
         """Return the initialised _conn instance. No default since it ought to be typed in the subclasses."""
-        raise NotImplementedError('All subclasses of EduidTemporaryInstance should implement the conn property')
+        raise NotImplementedError("All subclasses of EduidTemporaryInstance should implement the conn property")
 
     @property
     @abstractmethod
     def command(self) -> Sequence[str]:
         """This is the shell command to start the temporary instance."""
-        raise NotImplementedError('All subclasses of EduidTemporaryInstance must implement the command property')
+        raise NotImplementedError("All subclasses of EduidTemporaryInstance must implement the command property")
 
     @property
     def port(self) -> int:
@@ -128,15 +128,15 @@ class EduidTemporaryInstance(ABC):
 
     @property
     def output(self) -> str:
-        with open(self._logfile.name, 'r') as fd:
-            _output = ''.join(fd.readlines())
+        with open(self._logfile.name, "r") as fd:
+            _output = "".join(fd.readlines())
         return _output
 
     def shutdown(self):
-        logger.debug(f'{self} output at shutdown:\n{self.output}')
+        logger.debug(f"{self} output at shutdown:\n{self.output}")
         if self._process:
             self._process.terminate()
             self._process.wait()
         self._logfile.close()
-        if 'tmp' in self._tmpdir:
+        if "tmp" in self._tmpdir:
             shutil.rmtree(self._tmpdir, ignore_errors=True)

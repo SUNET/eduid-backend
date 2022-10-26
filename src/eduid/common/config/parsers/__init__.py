@@ -8,7 +8,7 @@ import yaml
 
 from eduid.common.config.base import FlaskConfig, TRootConfigSubclass
 
-__author__ = 'ft'
+__author__ = "ft"
 
 from eduid.common.config.parsers.base import BaseConfigParser
 from eduid.common.config.parsers.exceptions import ParserException
@@ -21,13 +21,13 @@ def load_config(
     test_config: Optional[Mapping[str, Any]] = None,
 ) -> TRootConfigSubclass:
     """Figure out where to load configuration from, and do it."""
-    app_path = os.environ.get('EDUID_CONFIG_NS', f'/eduid/{ns}/{app_name}/')
-    common_path = os.environ.get('EDUID_CONFIG_COMMON_NS', f'/eduid/{ns}/common/')
+    app_path = os.environ.get("EDUID_CONFIG_NS", f"/eduid/{ns}/{app_name}/")
+    common_path = os.environ.get("EDUID_CONFIG_COMMON_NS", f"/eduid/{ns}/common/")
 
     parser = _choose_parser()
 
     if not parser:
-        raise ParserException('Could not find a suitable config parser')
+        raise ParserException("Could not find a suitable config parser")
 
     config: Dict[str, Any]
 
@@ -40,22 +40,22 @@ def load_config(
         config = dict(common_config)
         config.update(app_config)
 
-    if 'secret_key' in config:
+    if "secret_key" in config:
         # Looks like there could be a FlaskConfig mixed into the config
-        config['flask'] = FlaskConfig(**config)
+        config["flask"] = FlaskConfig(**config)
 
-    if 'celery_config' in config and not 'celery' in config:
-        config['celery'] = config['celery_config']
+    if "celery_config" in config and not "celery" in config:
+        config["celery"] = config["celery_config"]
 
-    if 'app_name' not in config:
-        config['app_name'] = app_name
+    if "app_name" not in config:
+        config["app_name"] = app_name
 
     res = typ(**config)
 
     # Save config to a file in /dev/shm for introspection
-    fd_int = os.open(f'/dev/shm/{app_name}_config.yaml', os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-    with open(fd_int, 'w') as fd:
-        fd.write('---\n')
+    fd_int = os.open(f"/dev/shm/{app_name}_config.yaml", os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with open(fd_int, "w") as fd:
+        fd.write("---\n")
         # have to take the detour over json to get things like enums serialised to strings
         yaml.safe_dump(json.loads(res.json()), fd)
 
@@ -72,12 +72,12 @@ def _choose_parser() -> Optional[BaseConfigParser]:
     :return: Config parser instance
     """
     parser: Optional[BaseConfigParser] = None
-    yaml_file = os.environ.get('EDUID_CONFIG_YAML')
+    yaml_file = os.environ.get("EDUID_CONFIG_YAML")
     if yaml_file:
         try:
             from eduid.common.config.parsers.yaml_parser import YamlConfigParser
 
             parser = YamlConfigParser(path=Path(yaml_file))
         except ImportError:
-            raise ParserException('YamlConfigParser could not be imported')
+            raise ParserException("YamlConfigParser could not be imported")
     return parser

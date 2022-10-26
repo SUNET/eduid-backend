@@ -44,7 +44,7 @@ from pydantic import Field, validator
 from eduid.userdb.element import Element, ElementKey, ElementList, ListElement
 from eduid.userdb.exceptions import BadEvent, UserDBValueError
 
-TEventSubclass = TypeVar('TEventSubclass', bound='Event')
+TEventSubclass = TypeVar("TEventSubclass", bound="Event")
 
 
 class Event(Element):
@@ -52,7 +52,7 @@ class Event(Element):
 
     data: Optional[Dict[str, Any]] = None
     event_type: Optional[str] = None
-    event_id: str = Field(default_factory=lambda: str(uuid4()), alias='id')
+    event_id: str = Field(default_factory=lambda: str(uuid4()), alias="id")
     # This is a short-term hack to deploy new dataclass based events without
     # any changes to data in the production database. Remove after a burn-in period.
     no_event_type_in_db: bool = False
@@ -69,11 +69,11 @@ class Event(Element):
         """
         data = super()._from_dict_transform(data)
 
-        if 'event_type' not in data:
-            data['no_event_type_in_db'] = True  # Remove this line when Event.no_event_type_in_db is removed
+        if "event_type" not in data:
+            data["no_event_type_in_db"] = True  # Remove this line when Event.no_event_type_in_db is removed
 
-        if 'id' in data:
-            data['event_id'] = data.pop('id')
+        if "id" in data:
+            data["event_id"] = data.pop("id")
 
         return data
 
@@ -85,10 +85,10 @@ class Event(Element):
 
         # If there was no event_type in the data that was loaded from the database,
         # don't write one back if it matches the implied one of 'tou_event'
-        if 'no_event_type_in_db' in data:
-            if data.pop('no_event_type_in_db') is True:
-                if 'event_type' in data:
-                    del data['event_type']
+        if "no_event_type_in_db" in data:
+            if data.pop("no_event_type_in_db") is True:
+                if "event_type" in data:
+                    del data["event_type"]
 
         return data
 
@@ -110,10 +110,10 @@ def event_from_dict(data: Dict[str, Any]):
 
     :param data: Password parameters from database
     """
-    if 'event_type' not in data:
-        raise UserDBValueError('No event type specified')
-    if data['event_type'] == 'tou_event':
+    if "event_type" not in data:
+        raise UserDBValueError("No event type specified")
+    if data["event_type"] == "tou_event":
         from eduid.userdb.tou import ToUEvent  # avoid cyclic dependency by importing this here
 
         return ToUEvent.from_dict(data=data)
-    raise BadEvent('Unknown event_type in data: {!s}'.format(data['event_type']))
+    raise BadEvent("Unknown event_type in data: {!s}".format(data["event_type"]))

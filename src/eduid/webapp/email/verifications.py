@@ -48,28 +48,28 @@ def new_proofing_state(email: str, user: User):
         if old_state.is_throttled(current_app.conf.throttle_resend_seconds):
             return None
         current_app.proofing_statedb.remove_state(old_state)
-        current_app.logger.info('Removed old proofing state')
-        current_app.logger.debug('Old proofing state: {}'.format(old_state.to_dict()))
+        current_app.logger.info("Removed old proofing state")
+        current_app.logger.debug("Old proofing state: {}".format(old_state.to_dict()))
 
-    verification = EmailProofingElement(email=email, verification_code=get_unique_hash(), created_by='email')
+    verification = EmailProofingElement(email=email, verification_code=get_unique_hash(), created_by="email")
     proofing_state = EmailProofingState(id=None, modified_ts=None, eppn=user.eppn, verification=verification)
     # XXX This should be an atomic transaction together with saving
     # the user and sending the letter.
     current_app.proofing_statedb.save(proofing_state)
 
-    current_app.logger.info('Created new email proofing state')
-    current_app.logger.debug('Proofing state: {!r}.'.format(proofing_state.to_dict()))
+    current_app.logger.info("Created new email proofing state")
+    current_app.logger.debug("Proofing state: {!r}.".format(proofing_state.to_dict()))
 
     return proofing_state
 
 
 def send_verification_code(email: str, user: User) -> bool:
-    subject = _('eduID confirmation email')
+    subject = _("eduID confirmation email")
     state = new_proofing_state(email, user)
     if state is None:
         return False
 
-    link = url_for('email.verify_link', code=state.verification.verification_code, email=email, _external=True)
+    link = url_for("email.verify_link", code=state.verification.verification_code, email=email, _external=True)
     site_name = current_app.conf.eduid_site_name
     site_url = current_app.conf.eduid_site_url
 
@@ -104,7 +104,7 @@ def verify_mail_address(state, proofing_user):
     """
     email = proofing_user.mail_addresses.find(state.verification.email)
     if not email:
-        email = MailAddress(email=state.verification.email, created_by='email', is_verified=True, is_primary=False)
+        email = MailAddress(email=state.verification.email, created_by="email", is_verified=True, is_primary=False)
         proofing_user.mail_addresses.add(email)
         # Adding the phone to the list creates a copy of the element, so we have to 'find' it again
         email = proofing_user.mail_addresses.find(state.verification.email)
@@ -115,14 +115,14 @@ def verify_mail_address(state, proofing_user):
 
     mail_address_proofing = MailAddressProofing(
         eppn=proofing_user.eppn,
-        created_by='email',
+        created_by="email",
         mail_address=email.email,
         reference=state.reference,
-        proofing_version='2013v1',
+        proofing_version="2013v1",
     )
     if current_app.proofing_log.save(mail_address_proofing):
         save_and_sync_user(proofing_user)
-        current_app.logger.info(f'Email address {repr(state.verification.email)} confirmed for user {proofing_user}')
-        current_app.stats.count(name='email_verify_success', value=1)
+        current_app.logger.info(f"Email address {repr(state.verification.email)} confirmed for user {proofing_user}")
+        current_app.stats.count(name="email_verify_success", value=1)
         current_app.proofing_statedb.remove_state(state)
-        current_app.logger.debug(f'Removed proofing state: {state}')
+        current_app.logger.debug(f"Removed proofing state: {state}")

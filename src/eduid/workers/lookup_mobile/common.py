@@ -16,8 +16,8 @@ class MobCelerySingleton:
     and in 'client' mode in the webapp etc. that invokes the task.
     """
 
-    celery = Celery(include=['eduid.workers.lookup_mobile.tasks'])
-    worker_config = MobConfig(app_name='app_name_NOT_SET')
+    celery = Celery(include=["eduid.workers.lookup_mobile.tasks"])
+    worker_config = MobConfig(app_name="app_name_NOT_SET")
 
     @classmethod
     def update_worker_config(cls, config: MobConfig):

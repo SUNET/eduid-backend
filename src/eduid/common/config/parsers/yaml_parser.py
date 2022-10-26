@@ -18,7 +18,7 @@ class YamlConfigParser(BaseConfigParser):
             data = yaml.safe_load(fd)
 
         # traverse the loaded data to the right namespace, discarding everything else
-        for this in path.split('/'):
+        for this in path.split("/"):
             if not this:
                 continue
             data = data[this]

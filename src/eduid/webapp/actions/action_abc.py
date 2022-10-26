@@ -125,7 +125,7 @@ class ActionPlugin(object):
 
     ActionError = ActionError
 
-    PLUGIN_NAME = 'dummy'
+    PLUGIN_NAME = "dummy"
     steps = 1
 
     class ValidationError(Exception):
@@ -174,11 +174,11 @@ class ActionPlugin(object):
         if feature_cookie and feature_cookie in current_app.conf.bundles_feature_version:
             version = current_app.conf.bundles_feature_version[feature_cookie]
         # Default to the right bundle for production
-        bundle_name = f'eduid_action.{self.PLUGIN_NAME}.js'
+        bundle_name = f"eduid_action.{self.PLUGIN_NAME}.js"
         if current_app.conf.environment == EduidEnvironment.dev:
-            bundle_name = f'eduid_action.{self.PLUGIN_NAME}-bundle.dev.js'
+            bundle_name = f"eduid_action.{self.PLUGIN_NAME}-bundle.dev.js"
         elif current_app.conf.environment == EduidEnvironment.staging:
-            bundle_name = f'eduid_action.{self.PLUGIN_NAME}.staging.js'
+            bundle_name = f"eduid_action.{self.PLUGIN_NAME}.staging.js"
         base = urlappend(path, bundle_name)
         return get_static_url_for(base, version=version)
 

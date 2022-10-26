@@ -10,8 +10,8 @@ misc_router = APIRouter()
 @unique
 class Status(str, Enum):
     # STATUS_x_ is less ambiguous when pattern matching than just 'x'
-    OK: str = 'STATUS_OK_'
-    FAIL: str = 'STATUS_FAIL_'
+    OK: str = "STATUS_OK_"
+    FAIL: str = "STATUS_FAIL_"
 
 
 class StatusResponse(BaseModel):
@@ -25,13 +25,13 @@ async def status(request: Request) -> StatusResponse:
     _test_keyhandle = request.app.state.config.add_creds_password_key_handle
     res = StatusResponse(status=Status.OK)
     try:
-        hmac = await request.app.state.hasher.hmac_sha1(key_handle=_test_keyhandle, data=b'\0')
+        hmac = await request.app.state.hasher.hmac_sha1(key_handle=_test_keyhandle, data=b"\0")
         if len(hmac) >= 20:  # length of HMAC-SHA-1
             res.add_creds_hmac = Status.OK
         else:
             res.add_creds_hmac = Status.FAIL
     except Exception:
-        request.app.logger.exception(f'Failed hashing test data with key handle {_test_keyhandle}')
+        request.app.logger.exception(f"Failed hashing test data with key handle {_test_keyhandle}")
         res.add_creds_hmac = Status.FAIL
         res.status = Status.FAIL
 

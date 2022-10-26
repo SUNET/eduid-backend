@@ -6,7 +6,7 @@ from eduid.webapp.common.api.schemas.base import EduidSchema, FluxStandardAction
 from eduid.webapp.common.api.schemas.csrf import CSRFResponseMixin
 from eduid.webapp.common.api.schemas.orcid import OrcidSchema
 
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
 
 class OrcidResponseSchema(FluxStandardAction):

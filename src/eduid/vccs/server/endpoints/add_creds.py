@@ -31,7 +31,7 @@ class AddCredsFormResponse(BaseModel):
 
 @add_creds_router.post("/add_creds", response_model=AddCredsFormResponse)
 async def add_creds_legacy(req: Request, request: str = Form(...)) -> AddCredsFormResponse:
-    req.app.logger.debug(f'Add credentials (using form): {request}')
+    req.app.logger.debug(f"Add credentials (using form): {request}")
 
     class AddCredsInnerRequest(BaseModel):
         """Requests all the way down."""
@@ -41,10 +41,10 @@ async def add_creds_legacy(req: Request, request: str = Form(...)) -> AddCredsFo
     data = json.loads(request)
     inner = AddCredsInnerRequest(**data)
 
-    req.app.logger.debug(f'Inner request: {repr(inner)}')
+    req.app.logger.debug(f"Inner request: {repr(inner)}")
     inner_response = await add_creds(req, inner.add_creds)
     response = AddCredsFormResponse(add_creds_response=inner_response)
-    req.app.logger.debug(f'Add creds (form) response: {repr(response)}')
+    req.app.logger.debug(f"Add creds (form) response: {repr(response)}")
     return response
 
 
@@ -59,12 +59,12 @@ async def add_creds(req: Request, request: AddCredsRequestV1) -> AddCredsRespons
         if factor.type == CredType.PASSWORD:
             this_result = await _add_password_credential(_config, factor, req, request)
         else:
-            req.app.logger.warning(f'Not adding credential with unknown type: {factor}')
+            req.app.logger.warning(f"Not adding credential with unknown type: {factor}")
         results += [this_result]
 
     response = AddCredsResponseV1(version=1, success=all(results))
 
-    req.app.logger.debug(f'Add creds response: {repr(response)}')
+    req.app.logger.debug(f"Add creds response: {repr(response)}")
     return response
 
 
@@ -72,7 +72,7 @@ async def _add_password_credential(_config, factor, req, request):
     _salt = (await req.app.state.hasher.safe_random(_config.add_creds_password_salt_bytes)).hex()
     cred = PasswordCredential(
         credential_id=factor.credential_id,
-        derived_key='',
+        derived_key="",
         iterations=_config.add_creds_password_kdf_iterations,
         kdf=KDF.PBKDF2_HMAC_SHA512,
         key_handle=_config.add_creds_password_key_handle,
@@ -85,5 +85,5 @@ async def _add_password_credential(_config, factor, req, request):
         user_id=request.user_id, H1=factor.H1, cred=cred, hasher=req.app.state.hasher, kdf=req.app.state.kdf
     )
     _res = req.app.state.credstore.add(cred)
-    req.app.logger.info(f'AUDIT: Add credential credential_id={cred.credential_id}, H2[16]={H2[:8]}, res={repr(_res)}')
+    req.app.logger.info(f"AUDIT: Add credential credential_id={cred.credential_id}, H2[16]={H2[:8]}, res={repr(_res)}")
     return _res

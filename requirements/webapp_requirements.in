@@ -3,5 +3,6 @@
 Flask-Mail
 Flask
 flask-babel
+flask-cors
 raven[flask]
 user-agents

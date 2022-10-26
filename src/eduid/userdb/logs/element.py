@@ -12,17 +12,17 @@ from fido_mds.models.fido_mds import Entry as FidoMetadataEntry
 from eduid.common.rpc.msg_relay import DeregistrationInformation, FullPostalAddress
 from eduid.userdb.element import Element
 
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
 from fido_mds.models.webauthn import AttestationFormat
 
 logger = logging.getLogger(__name__)
 
 
-TLogElementSubclass = TypeVar('TLogElementSubclass', bound='LogElement')
-TNinProofingLogElementSubclass = TypeVar('TNinProofingLogElementSubclass', bound='NinProofingLogElement')
+TLogElementSubclass = TypeVar("TLogElementSubclass", bound="LogElement")
+TNinProofingLogElementSubclass = TypeVar("TNinProofingLogElementSubclass", bound="NinProofingLogElement")
 TForeignEidProofingLogElementSubclass = TypeVar(
-    'TForeignEidProofingLogElementSubclass', bound='ForeignEidProofingLogElement'
+    "TForeignEidProofingLogElementSubclass", bound="ForeignEidProofingLogElement"
 )
 
 
@@ -42,8 +42,8 @@ class LogElement(Element):
         """
         data = super()._from_dict_transform(data)
 
-        if 'eduPersonPrincipalName' in data:
-            data['eppn'] = data.pop('eduPersonPrincipalName')
+        if "eduPersonPrincipalName" in data:
+            data["eppn"] = data.pop("eduPersonPrincipalName")
 
         return data
 
@@ -51,8 +51,8 @@ class LogElement(Element):
         """
         Transform data kept in pythonic format into eduid format.
         """
-        if 'eppn' in data:
-            data['eduPersonPrincipalName'] = data.pop('eppn')
+        if "eppn" in data:
+            data["eduPersonPrincipalName"] = data.pop("eppn")
 
         data = super()._to_dict_transform(data)
 
@@ -67,7 +67,7 @@ class ProofingLogElement(LogElement):
     # Proofing method version number
     proofing_version: str
     # Proofing method name
-    proofing_method: str = ''
+    proofing_method: str = ""
 
 
 class NinProofingLogElement(ProofingLogElement):
@@ -104,7 +104,7 @@ class MailAddressProofing(ProofingLogElement):
     # Audit reference to help cross reference audit log and events
     reference: str
     # Proofing method name
-    proofing_method: str = 'e-mail'
+    proofing_method: str = "e-mail"
 
 
 class PhoneNumberProofing(ProofingLogElement):
@@ -125,7 +125,7 @@ class PhoneNumberProofing(ProofingLogElement):
     # Audit reference to help cross reference audit log and events
     reference: str
     # Proofing method name
-    proofing_method: str = 'sms'
+    proofing_method: str = "sms"
 
 
 class TeleAdressProofing(NinProofingLogElement):
@@ -149,9 +149,10 @@ class TeleAdressProofing(NinProofingLogElement):
     # Reason for mobile phone number match to user
     reason: str
     # Proofing method name
-    proofing_method: str = 'TeleAdress'
+    proofing_method: str = "TeleAdress"
 
 
+# DEPRECATED: This proofing is deprecated
 class TeleAdressProofingRelation(TeleAdressProofing):
     """
     {
@@ -181,7 +182,7 @@ class TeleAdressProofingRelation(TeleAdressProofing):
     # Navet response for mobile phone subscriber deregistration information (used if official address is missing)
     registered_deregistration_information: Optional[DeregistrationInformation]
     # Proofing method name
-    proofing_method: str = 'TeleAdress'
+    proofing_method: str = "TeleAdress"
 
 
 class LetterProofing(NinProofingLogElement):
@@ -204,7 +205,7 @@ class LetterProofing(NinProofingLogElement):
     # Letter service transaction id
     transaction_id: str
     # Proofing method name
-    proofing_method: str = 'letter'
+    proofing_method: str = "letter"
 
 
 class SeLegProofing(NinProofingLogElement):
@@ -225,9 +226,9 @@ class SeLegProofing(NinProofingLogElement):
     # Provider transaction id
     transaction_id: str
     # Proofing method name
-    proofing_method: str = 'se-leg'
+    proofing_method: str = "se-leg"
     # Name of the provider who performed the vetting
-    vetting_by: str = ''
+    vetting_by: str = ""
 
 
 class SeLegProofingFrejaEid(SeLegProofing):
@@ -249,7 +250,7 @@ class SeLegProofingFrejaEid(SeLegProofing):
     # Data used to initialize the vetting process
     opaque_data: str
     # Name of the provider who performed the vetting
-    vetting_by: str = 'Freja eID'
+    vetting_by: str = "Freja eID"
 
 
 class OrcidProofing(ProofingLogElement):
@@ -273,7 +274,7 @@ class OrcidProofing(ProofingLogElement):
     # OIDC audience
     audience: List[str]
     # Proofing method name
-    proofing_method: str = 'oidc'
+    proofing_method: str = "oidc"
 
 
 class SwedenConnectProofing(NinProofingLogElement):
@@ -296,7 +297,7 @@ class SwedenConnectProofing(NinProofingLogElement):
     # The authentication context class asserted
     authn_context_class: str
     # Proofing method name
-    proofing_method: str = 'swedenconnect'
+    proofing_method: str = "swedenconnect"
 
 
 class SwedenConnectEIDASProofing(ForeignEidProofingLogElement):
@@ -334,7 +335,7 @@ class SwedenConnectEIDASProofing(ForeignEidProofingLogElement):
     mapped_personal_identity_number: Optional[str]
     personal_identity_number_binding: Optional[str]
     # Proofing method name
-    proofing_method: str = 'swedenconnect'
+    proofing_method: str = "swedenconnect"
 
 
 class MFATokenProofing(SwedenConnectProofing):
@@ -356,7 +357,7 @@ class MFATokenProofing(SwedenConnectProofing):
     # Data used to initialize the vetting process
     key_id: str
     # Proofing method name
-    proofing_method: str = 'swedenconnect'
+    proofing_method: str = "swedenconnect"
 
 
 class MFATokenEIDASProofing(SwedenConnectEIDASProofing):
@@ -382,7 +383,7 @@ class MFATokenEIDASProofing(SwedenConnectEIDASProofing):
     # Data used to initialize the vetting process
     key_id: str
     # Proofing method name
-    proofing_method: str = 'swedenconnect'
+    proofing_method: str = "swedenconnect"
 
 
 class NameUpdateProofing(NinProofingLogElement):
@@ -407,7 +408,7 @@ class NameUpdateProofing(NinProofingLogElement):
     # Previous surname
     previous_surname: Optional[str]
     # Proofing method name
-    proofing_method: str = 'Navet name update'
+    proofing_method: str = "Navet name update"
 
 
 class LadokProofing(ProofingLogElement):
@@ -429,7 +430,7 @@ class LadokProofing(ProofingLogElement):
     external_id: str
     # University name short name in Ladok
     ladok_name: str
-    proofing_method: str = 'eduid_ladok'
+    proofing_method: str = "eduid_ladok"
 
 
 class WebauthnMfaCapabilityProofingLog(ProofingLogElement):

@@ -38,10 +38,10 @@ class PhoneConfig(EduIDBaseAppConfig, MagicCookieMixin, AmConfigMixin, MsgConfig
     Configuration for the phone app
     """
 
-    app_name: str = 'phone'
+    app_name: str = "phone"
 
     # timeout for phone verification token, in seconds
     phone_verification_timeout: int = 7200
     throttle_resend_seconds: int = 300
     # default country code
-    default_country_code: str = '46'
+    default_country_code: str = "46"

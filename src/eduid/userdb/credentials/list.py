@@ -23,18 +23,18 @@ class CredentialList(ElementList[Credential]):
         elements = []
         for this in items:
             if not isinstance(this, dict):
-                raise UserHasUnknownData(f'Unknown credential data (type {type(this)}): {repr(this)}')
+                raise UserHasUnknownData(f"Unknown credential data (type {type(this)}): {repr(this)}")
 
             credential: Optional[Credential] = None
 
-            if 'salt' in this:
+            if "salt" in this:
                 credential = Password.from_dict(this)
-            elif 'keyhandle' in this:
-                if 'public_key' in this:
+            elif "keyhandle" in this:
+                if "public_key" in this:
                     credential = U2F.from_dict(this)
                 else:
                     credential = Webauthn.from_dict(this)
-            elif 'framework' in this:
+            elif "framework" in this:
                 credential = external_credential_from_dict(this)
 
             if credential:

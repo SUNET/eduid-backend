@@ -13,7 +13,7 @@ from typing import Any, Dict, Sequence
 from eduid.common.config.base import LoggingConfigMixin, LoggingFilters
 from eduid.common.config.exceptions import BadConfiguration
 
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
 """
 Adds the following entries to logging context:
@@ -22,31 +22,31 @@ app_name - Flask app name
 eppn - Available if a user session is initiated
 """
 
-DEFAULT_FORMAT = '{asctime} | {levelname:7} | {hostname} | {eppn:11} | {name:35} | {module:10} | {message}'
+DEFAULT_FORMAT = "{asctime} | {levelname:7} | {hostname} | {eppn:11} | {name:35} | {module:10} | {message}"
 
 
 # Default to RFC3339/ISO 8601 with tz
 class EduidFormatter(logging.Formatter):
     def __init__(self, relative_time: bool = False, fmt=None):
-        super().__init__(fmt=fmt, style='{')
+        super().__init__(fmt=fmt, style="{")
         self._relative_time = relative_time
 
     def formatTime(self, record: logging.LogRecord, datefmt=None) -> str:
         if self._relative_time:
             # Relative time makes much more sense than absolute time when running tests for example
             _seconds = record.relativeCreated / 1000
-            return f'{_seconds:.3f}s'
+            return f"{_seconds:.3f}s"
 
         # self.converter seems incorrectly typed as a two-argument method (Callable[[Optional[float]], struct_time])
         ct = self.converter(record.created)  # type: ignore
         if datefmt:
             s = time.strftime(datefmt, ct)
         else:
-            t = time.strftime('%Y-%m-%dT%H:%M:%S', ct)
-            tz = time.strftime('%z', ct)  # Can evaluate to empty string
+            t = time.strftime("%Y-%m-%dT%H:%M:%S", ct)
+            tz = time.strftime("%z", ct)  # Can evaluate to empty string
             if tz:
-                tz = '{0}:{1}'.format(tz[:3], tz[3:])  # Need colon to follow the rfc/iso
-            s = '{}.{:03.0f}{}'.format(t, record.msecs, tz)
+                tz = "{0}:{1}".format(tz[:3], tz[3:])  # Need colon to follow the rfc/iso
+            s = "{}.{:03.0f}{}".format(t, record.msecs, tz)
         return s
 
 
@@ -57,26 +57,26 @@ class AppFilter(logging.Filter):
         super().__init__()
         self.app_name = app_name
         # TODO: I guess it could be argued that these should be put in the LocalContext and not evaluated at runtime.
-        self.hostname = environ.get('HOSTNAME', '')
-        self.system_hostname = environ.get('SYSTEM_HOSTNAME', '')
+        self.hostname = environ.get("HOSTNAME", "")
+        self.system_hostname = environ.get("SYSTEM_HOSTNAME", "")
 
     def filter(self, record: logging.LogRecord) -> bool:
         # use setattr to prevent mypy unhappiness
-        record.__setattr__('app_name', self.app_name)
-        record.__setattr__('hostname', self.hostname)  # Actual hostname or container id
-        record.__setattr__('system_hostname', self.system_hostname)  # Underlying hosts name for containers
+        record.__setattr__("app_name", self.app_name)
+        record.__setattr__("hostname", self.hostname)  # Actual hostname or container id
+        record.__setattr__("system_hostname", self.system_hostname)  # Underlying hosts name for containers
 
-        name = record.__getattribute__('name')
+        name = record.__getattribute__("name")
         if isinstance(name, str):
             shorten = [
-                ('eduid.webapp.common.', 'e.w.c.'),
-                ('eduid.webapp.', 'e.w.'),
-                ('eduid.common.', 'e.c.'),
-                ('eduid.userdb.', 'e.u.'),
+                ("eduid.webapp.common.", "e.w.c."),
+                ("eduid.webapp.", "e.w."),
+                ("eduid.common.", "e.c."),
+                ("eduid.userdb.", "e.u."),
             ]
             for (k, v) in shorten:
                 if name.startswith(k):
-                    record.__setattr__('name', v + name[len(k) :])
+                    record.__setattr__("name", v + name[len(k) :])
                     break
 
         return True
@@ -98,14 +98,14 @@ class UserFilter(logging.Filter):
         # Local import to decouple logging code from flask
         from eduid.webapp.common.session import session
 
-        eppn = ''
+        eppn = ""
         try:
             if session and session.common.eppn:
                 eppn = session.common.eppn
         except AttributeError:  # no session
             pass
 
-        record.__setattr__('eppn', eppn)  # use setattr to prevent mypy unhappiness
+        record.__setattr__("eppn", eppn)  # use setattr to prevent mypy unhappiness
         if record.levelno == logging.DEBUG:
             # If debug_eppns is not empty, we filter debug messages here and only allow them
             # (return True) if the eppn found in the session above is present in the debug_eppns list.
@@ -171,8 +171,8 @@ def init_logging(config: LoggingConfigMixin) -> None:
 
     logging.config.dictConfig(logging_config)
     if config.debug:
-        logging.debug(f'Logging config:\n{pformat(logging_config)}')
-    logging.info('Logging configured')
+        logging.debug(f"Logging config:\n{pformat(logging_config)}")
+    logging.info("Logging configured")
     return None
 
 
@@ -189,7 +189,7 @@ class LocalContext:
 
     def to_dict(self) -> Dict[str, Any]:
         res = asdict(self)
-        res['level'] = logging.getLevelName(self.level)
+        res["level"] = logging.getLevelName(self.level)
         return res
 
 
@@ -206,7 +206,7 @@ def make_local_context(config: LoggingConfigMixin) -> LocalContext:
     log_level = config.log_level
     if config.debug:
         # Flask expects to be able to debug log in debug mode
-        log_level = 'DEBUG'
+        log_level = "DEBUG"
 
     relative_time = config.testing
 
@@ -221,7 +221,7 @@ def make_local_context(config: LoggingConfigMixin) -> LocalContext:
             relative_time=relative_time,
         )
     except (KeyError, AttributeError) as e:
-        raise BadConfiguration(message=f'Could not initialize logging local_context. {type(e).__name__}: {e}')
+        raise BadConfiguration(message=f"Could not initialize logging local_context. {type(e).__name__}: {e}")
     return local_context
 
 
@@ -237,23 +237,23 @@ def make_dictConfig(local_context: LocalContext) -> Dict[str, Any]:
     _available_filters = {
         # A filter that adds various hostname/container name information to the log records
         LoggingFilters.NAMES: {
-            '()': 'eduid.common.logging.AppFilter',
-            'app_name': 'cfg://local_context.app_name',
+            "()": "eduid.common.logging.AppFilter",
+            "app_name": "cfg://local_context.app_name",
         },
         # Only log debug messages if Flask app.debug is False
         LoggingFilters.DEBUG_FALSE: {
-            '()': 'eduid.common.logging.RequireDebugFalse',
-            'app_debug': 'cfg://local_context.app_debug',
+            "()": "eduid.common.logging.RequireDebugFalse",
+            "app_debug": "cfg://local_context.app_debug",
         },
         # Only log debug messages if Flask app.debug is True
         LoggingFilters.DEBUG_TRUE: {
-            '()': 'eduid.common.logging.RequireDebugTrue',
-            'app_debug': 'cfg://local_context.app_debug',
+            "()": "eduid.common.logging.RequireDebugTrue",
+            "app_debug": "cfg://local_context.app_debug",
         },
         # A filter that adds relative time to the log records
         LoggingFilters.SESSION_USER: {
-            '()': 'eduid.common.logging.UserFilter',
-            'debug_eppns': 'cfg://local_context.debug_eppns',
+            "()": "eduid.common.logging.UserFilter",
+            "debug_eppns": "cfg://local_context.debug_eppns",
         },
     }
 
@@ -263,33 +263,33 @@ def make_dictConfig(local_context: LocalContext) -> Dict[str, Any]:
     filters = {k: v for k, v in _available_filters.items() if k in local_context.filters}
 
     base_config = {
-        'version': 1,
-        'disable_existing_loggers': False,
+        "version": 1,
+        "disable_existing_loggers": False,
         # Local variables
-        'local_context': local_context.to_dict(),
+        "local_context": local_context.to_dict(),
         # Formatters
-        'formatters': {
-            'default': {
-                '()': 'eduid.common.logging.EduidFormatter',
-                'relative_time': 'cfg://local_context.relative_time',
-                'fmt': 'cfg://local_context.format',
+        "formatters": {
+            "default": {
+                "()": "eduid.common.logging.EduidFormatter",
+                "relative_time": "cfg://local_context.relative_time",
+                "fmt": "cfg://local_context.format",
             },
         },
         # Filters
-        'filters': filters,
+        "filters": filters,
         # Handlers
-        'handlers': {
-            'console': {
-                'class': 'logging.StreamHandler',
-                'level': 'cfg://local_context.level',
-                'formatter': 'default',
-                'filters': local_context.filters,
+        "handlers": {
+            "console": {
+                "class": "logging.StreamHandler",
+                "level": "cfg://local_context.level",
+                "formatter": "default",
+                "filters": local_context.filters,
             },
         },
         # Loggers
-        'root': {
-            'handlers': ['console'],
-            'level': 'cfg://local_context.level',
+        "root": {
+            "handlers": ["console"],
+            "level": "cfg://local_context.level",
         },
     }
     return base_config

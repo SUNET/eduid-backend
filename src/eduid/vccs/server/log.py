@@ -46,8 +46,8 @@ def init_logging():
 
     loguru_logger.remove()
     fmt = (
-        '<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <7}</level> | <cyan>{module: <11}</cyan>:'
-        '<cyan> {line: <3} </cyan> | <level>{message}</level>'
+        "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <7}</level> | <cyan>{module: <11}</cyan>:"
+        "<cyan> {line: <3} </cyan> | <level>{message}</level>"
     )
     loguru_logger.add(sys.stderr, format=fmt, level="DEBUG")
     return loguru_logger
@@ -62,4 +62,4 @@ def audit_log(msg: str) -> None:
         frame = frame.f_back
         depth += 1
 
-    loguru_logger.opt(depth=depth).info(f'AUDIT: {msg}')
+    loguru_logger.opt(depth=depth).info(f"AUDIT: {msg}")

@@ -57,7 +57,7 @@ def get_current_app() -> AuthnApp:
 current_authn_app = get_current_app()
 
 
-def authn_init_app(name: str = 'authn', test_config: Optional[Mapping[str, Any]] = None) -> AuthnApp:
+def authn_init_app(name: str = "authn", test_config: Optional[Mapping[str, Any]] = None) -> AuthnApp:
     """
     Create an instance of an authentication app.
 
@@ -66,11 +66,11 @@ def authn_init_app(name: str = 'authn', test_config: Optional[Mapping[str, Any]]
     :param test_config: any additional configuration settings. Specially useful
                    in test cases
     """
-    config = load_config(typ=AuthnConfig, app_name=name, ns='webapp', test_config=test_config)
+    config = load_config(typ=AuthnConfig, app_name=name, ns="webapp", test_config=test_config)
 
     app = AuthnApp(config)
 
-    app.logger.info(f'Init {app}...')
+    app.logger.info(f"Init {app}...")
 
     from eduid.webapp.authn.views import authn_views
 

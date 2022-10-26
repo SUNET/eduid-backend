@@ -8,8 +8,8 @@ from eduid.userdb.db import MongoDB
 class TransactionAudit(object):
     enabled = False
     db_uri: Optional[str] = None
-    db_name: str = 'eduid_msg'
-    collection_name: str = 'transaction_audit'
+    db_name: str = "eduid_msg"
+    collection_name: str = "transaction_audit"
 
     def __init__(self):
         self._conn = None
@@ -24,9 +24,9 @@ class TransactionAudit(object):
             if not isclass(ret):  # we can't save class objects in mongodb
                 date = datetime.utcnow()
                 doc = {
-                    'function': f.__name__,
-                    'data': self._filter(f.__name__, ret, *args, **kwargs),
-                    'created_at': date,
+                    "function": f.__name__,
+                    "data": self._filter(f.__name__, ret, *args, **kwargs),
+                    "created_at": date,
                 }
                 if self.collection:
                     self.collection.insert_one(doc)
@@ -56,18 +56,18 @@ class TransactionAudit(object):
     def _filter(func, data, *args, **kwargs):
         if data is False:
             return data
-        if func == '_get_navet_data':
-            return {'identity_number': args[1]}
-        elif func == 'send_message':
+        if func == "_get_navet_data":
+            return {"identity_number": args[1]}
+        elif func == "send_message":
             return {
-                'type': args[1],
-                'recipient': args[4],
-                'transaction_id': data,
-                'audit_reference': args[2],
-                'template': args[5],
+                "type": args[1],
+                "recipient": args[4],
+                "transaction_id": data,
+                "audit_reference": args[2],
+                "template": args[5],
             }
-        elif func == 'sendmail':
-            return {'type': 'mail', 'recipient': args[2], 'send_errors': data, 'audit_reference': args[4]}
-        elif func == 'sendsms':
-            return {'type': 'sms', 'recipient': args[1], 'transaction_id': data, 'audit_reference': args[3]}
+        elif func == "sendmail":
+            return {"type": "mail", "recipient": args[2], "send_errors": data, "audit_reference": args[4]}
+        elif func == "sendsms":
+            return {"type": "sms", "recipient": args[1], "transaction_id": data, "audit_reference": args[3]}
         return data

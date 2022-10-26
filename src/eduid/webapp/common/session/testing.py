@@ -51,23 +51,23 @@ class RedisTemporaryInstance(EduidTemporaryInstance):
     @property
     def command(self) -> Sequence[str]:
         return [
-            'docker',
-            'run',
-            '--rm',
-            '-p',
-            '{!s}:6379'.format(self.port),
-            '-v',
-            '{!s}:/data'.format(self.tmpdir),
-            '-e',
-            'extra_args=--daemonize no --bind 0.0.0.0',
-            'docker.sunet.se/eduid/redis:latest',
+            "docker",
+            "run",
+            "--rm",
+            "-p",
+            "{!s}:6379".format(self.port),
+            "-v",
+            "{!s}:/data".format(self.tmpdir),
+            "-e",
+            "extra_args=--daemonize no --bind 0.0.0.0",
+            "docker.sunet.se/eduid/redis:latest",
         ]
 
     def setup_conn(self) -> bool:
         try:
             host, port, db = self.get_params()
             _conn = redis.Redis(host, port, db)
-            _conn.set('dummy', 'dummy')
+            _conn.set("dummy", "dummy")
             self._conn = _conn
         except redis.exceptions.ConnectionError:
             return False
@@ -76,7 +76,7 @@ class RedisTemporaryInstance(EduidTemporaryInstance):
     @property
     def conn(self) -> redis.Redis:
         if self._conn is None:
-            raise RuntimeError('Missing temporary Redis instance')
+            raise RuntimeError("Missing temporary Redis instance")
         return self._conn
 
     def get_params(self):
@@ -85,4 +85,4 @@ class RedisTemporaryInstance(EduidTemporaryInstance):
 
         :return: Host, port and database
         """
-        return 'localhost', self.port, 0
+        return "localhost", self.port, 0

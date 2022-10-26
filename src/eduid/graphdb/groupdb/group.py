@@ -11,7 +11,7 @@ from eduid.graphdb.exceptions import MultipleGroupsReturned, MultipleUsersReturn
 from eduid.graphdb.groupdb.user import User
 from eduid.graphdb.helpers import neo4j_ts_to_dt
 
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
 
 @dataclass(frozen=True)
@@ -30,7 +30,7 @@ class Group:
         if not res:
             return None
         if len(res) != 1:
-            raise MultipleUsersReturned(f'More than one user with identifier {identifier} found')
+            raise MultipleUsersReturned(f"More than one user with identifier {identifier} found")
         return res[0]
 
     @staticmethod
@@ -39,7 +39,7 @@ class Group:
         if not res:
             return None
         if len(res) != 1:
-            raise MultipleGroupsReturned(f'More than one group with identifier {identifier} found')
+            raise MultipleGroupsReturned(f"More than one group with identifier {identifier} found")
         return res[0]
 
     @property
@@ -79,15 +79,15 @@ class Group:
     @classmethod
     def from_mapping(cls, data: Mapping) -> Group:
         dt = neo4j_ts_to_dt(data)
-        version = data.get('version')
+        version = data.get("version")
         if version is not None:
             version = ObjectId(version)
         return cls(
-            identifier=data['identifier'],
+            identifier=data["identifier"],
             version=version,
-            display_name=data['display_name'],
-            created_ts=dt['created_ts'],
-            modified_ts=dt['modified_ts'],
-            members=set(data.get('members', [])),
-            owners=set(data.get('owners', [])),
+            display_name=data["display_name"],
+            created_ts=dt["created_ts"],
+            modified_ts=dt["modified_ts"],
+            members=set(data.get("members", [])),
+            owners=set(data.get("owners", [])),
         )

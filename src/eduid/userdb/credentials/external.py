@@ -12,21 +12,21 @@ from eduid.userdb.util import objectid_str
 
 
 class TrustFramework(str, Enum):
-    SWECONN = 'SWECONN'
-    EIDAS = 'EIDAS'
+    SWECONN = "SWECONN"
+    EIDAS = "EIDAS"
 
 
 class ExternalCredential(Credential):
-    credential_id: str = Field(alias='id', default_factory=objectid_str)
+    credential_id: str = Field(alias="id", default_factory=objectid_str)
     framework: TrustFramework
 
-    @validator('credential_id', pre=True)
+    @validator("credential_id", pre=True)
     def credential_id_objectid(cls, v):
         """Turn ObjectId into string"""
         if isinstance(v, ObjectId):
             v = str(v)
         if not isinstance(v, str):
-            raise TypeError('must be a string or ObjectId')
+            raise TypeError("must be a string or ObjectId")
         return v
 
     @property
@@ -38,7 +38,7 @@ class ExternalCredential(Credential):
 
     def to_dict(self) -> Dict[str, Any]:
         data = super().to_dict()
-        data['framework'] = self.framework.value
+        data["framework"] = self.framework.value
         return data
 
 
@@ -51,7 +51,18 @@ class SwedenConnectCredential(ExternalCredential):
     level: str  # a value like "loa3", "eidas_sub", ...
 
 
+class EidasCredential(ExternalCredential):
+    framework: TrustFramework = Field(default=TrustFramework.EIDAS, const=True)
+    # To be technology neutral, we don't want to store e.g. the SAML authnContextClassRef in the database,
+    # and mapping a level to an authnContextClassRef really ought to be dependent on configuration matching
+    # the IdP:s expected values at a certain time. Such configuration is better to have in the SP than in
+    # the database layer.
+    level: str  # a value like "loa3", "eidas_sub", ...
+
+
 def external_credential_from_dict(data: Mapping[str, Any]) -> Optional[ExternalCredential]:
-    if data['framework'] == TrustFramework.SWECONN.value:
+    if data["framework"] == TrustFramework.SWECONN.value:
         return SwedenConnectCredential.from_dict(data)
+    if data["framework"] == TrustFramework.EIDAS.value:
+        return EidasCredential.from_dict(data)
     return None

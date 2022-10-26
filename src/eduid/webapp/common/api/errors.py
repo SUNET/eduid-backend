@@ -9,10 +9,10 @@ from eduid.common.misc.timeutil import utc_now
 
 
 class EduidErrorsContext(str, Enum):
-    SAML_RESPONSE_FAIL = 'saml_response_fail'
-    SAML_REQUEST_MISSING_IDP = 'saml_request_missing_idp'
-    SAML_MISSING_ATTRIBUTE = 'saml_missing_attribute'
-    SAML_RESPONSE_UNSOLICITED = 'saml_response_unsolicited'
+    SAML_RESPONSE_FAIL = "saml_response_fail"
+    SAML_REQUEST_MISSING_IDP = "saml_request_missing_idp"
+    SAML_MISSING_ATTRIBUTE = "saml_missing_attribute"
+    SAML_RESPONSE_UNSOLICITED = "saml_response_unsolicited"
 
 
 def goto_errors_response(
@@ -21,9 +21,9 @@ def goto_errors_response(
     if now is None:
         now = utc_now()
     if tid is None:
-        tid = 'ERRORURL_TID'
+        tid = "ERRORURL_TID"
     fmt_url = errors_url.format(
-        ERRORURL_CODE='EDUID_ERROR',
+        ERRORURL_CODE="EDUID_ERROR",
         ERRORURL_RP=rp,
         ERRORURL_CTX=ctx.value,
         ERRORURL_TID=tid,

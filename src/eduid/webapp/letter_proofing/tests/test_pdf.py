@@ -13,7 +13,7 @@ from eduid.webapp.letter_proofing.app import init_letter_proofing_app
 
 # We need to add Navet responses that we fail to handle
 
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
 
 class FormatAddressTest(unittest.TestCase):
@@ -23,15 +23,15 @@ class FormatAddressTest(unittest.TestCase):
             OrderedDict(
                 [
                     (
-                        u'Name',
+                        "Name",
                         OrderedDict(
-                            [(u'GivenNameMarking', u'20'), (u'GivenName', u'Testaren Test'), (u'Surname', u'Testsson')]
+                            [("GivenNameMarking", "20"), ("GivenName", "Testaren Test"), ("Surname", "Testsson")]
                         ),
                     ),
                     (
-                        u'OfficialAddress',
+                        "OfficialAddress",
                         OrderedDict(
-                            [(u'Address2', u'\xd6RGATAN 79 LGH 10'), (u'PostalCode', u'12345'), (u'City', u'LANDET')]
+                            [("Address2", "\xd6RGATAN 79 LGH 10"), ("PostalCode", "12345"), ("City", "LANDET")]
                         ),
                     ),
                 ]
@@ -39,25 +39,25 @@ class FormatAddressTest(unittest.TestCase):
             OrderedDict(
                 [
                     (
-                        u'Name',
+                        "Name",
                         OrderedDict(
                             [
-                                (u'GivenNameMarking', u'20'),
-                                (u'GivenName', u'Testaren Test'),
-                                (u'MiddleName', u'Tester'),
-                                (u'Surname', u'Testsson'),
+                                ("GivenNameMarking", "20"),
+                                ("GivenName", "Testaren Test"),
+                                ("MiddleName", "Tester"),
+                                ("Surname", "Testsson"),
                             ]
                         ),
                     ),
                     (
-                        u'OfficialAddress',
+                        "OfficialAddress",
                         OrderedDict(
                             [
-                                (u'Address2', u'\xd6RGATAN 79 LGH 10'),
-                                (u'Address1', u'LGH 4321'),
-                                (u'CareOf', u'TESTAREN & TESTSSON'),
-                                (u'PostalCode', u'12345'),
-                                (u'City', u'LANDET'),
+                                ("Address2", "\xd6RGATAN 79 LGH 10"),
+                                ("Address1", "LGH 4321"),
+                                ("CareOf", "TESTAREN & TESTSSON"),
+                                ("PostalCode", "12345"),
+                                ("City", "LANDET"),
                             ]
                         ),
                     ),
@@ -79,9 +79,9 @@ class FormatAddressTest(unittest.TestCase):
             OrderedDict(
                 [
                     (
-                        u'OfficialAddress',
+                        "OfficialAddress",
                         OrderedDict(
-                            [(u'Address2', u'\xd6RGATAN 79 LGH 10'), (u'PostalCode', u'12345'), (u'City', u'LANDET')]
+                            [("Address2", "\xd6RGATAN 79 LGH 10"), ("PostalCode", "12345"), ("City", "LANDET")]
                         ),
                     )
                 ]
@@ -89,42 +89,42 @@ class FormatAddressTest(unittest.TestCase):
             OrderedDict(
                 [
                     (
-                        u'Name',
+                        "Name",
                         OrderedDict(
-                            [(u'GivenNameMarking', u'20'), (u'GivenName', u'Testaren Test'), (u'Surname', u'Testsson')]
+                            [("GivenNameMarking", "20"), ("GivenName", "Testaren Test"), ("Surname", "Testsson")]
                         ),
                     ),
                 ]
             ),
             OrderedDict(
                 [
-                    (u'Name', OrderedDict([(u'GivenNameMarking', u'20'), (u'Surname', u'Testsson')])),
+                    ("Name", OrderedDict([("GivenNameMarking", "20"), ("Surname", "Testsson")])),
                     (
-                        u'OfficialAddress',
+                        "OfficialAddress",
                         OrderedDict(
-                            [(u'Address2', u'\xd6RGATAN 79 LGH 10'), (u'PostalCode', u'12345'), (u'City', u'LANDET')]
+                            [("Address2", "\xd6RGATAN 79 LGH 10"), ("PostalCode", "12345"), ("City", "LANDET")]
                         ),
                     ),
                 ]
             ),
             OrderedDict(
                 [
-                    (u'Name', OrderedDict([(u'GivenNameMarking', u'20'), (u'Surname', u'Testsson')])),
-                    (u'OfficialAddress', OrderedDict([(u'Address2', u'\xd6RGATAN 79 LGH 10'), (u'City', u'LANDET')])),
+                    ("Name", OrderedDict([("GivenNameMarking", "20"), ("Surname", "Testsson")])),
+                    ("OfficialAddress", OrderedDict([("Address2", "\xd6RGATAN 79 LGH 10"), ("City", "LANDET")])),
                 ]
             ),
             OrderedDict(
                 [
                     (
-                        u'Name',
+                        "Name",
                         {
-                            u'GivenName': u'Testaren Test',
-                            u'MiddleName': u'Tester',
-                            u'GivenNameMarking': u'20',
-                            u'Surname': u'Testsson',
+                            "GivenName": "Testaren Test",
+                            "MiddleName": "Tester",
+                            "GivenNameMarking": "20",
+                            "Surname": "Testsson",
                         },
                     ),
-                    (u'OfficialAddress', {}),
+                    ("OfficialAddress", {}),
                 ]
             ),
         ]
@@ -139,12 +139,12 @@ class CreatePDFTest(EduidAPITestCase):
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
-        return init_letter_proofing_app('testing', config)
+        return init_letter_proofing_app("testing", config)
 
     def update_config(self, app_config):
         app_config.update(
             {
-                'letter_wait_time_hours': 336,
+                "letter_wait_time_hours": 336,
             }
         )
         return app_config
@@ -155,25 +155,25 @@ class CreatePDFTest(EduidAPITestCase):
             OrderedDict(
                 [
                     (
-                        u'Name',
+                        "Name",
                         OrderedDict(
                             [
-                                (u'GivenNameMarking', u'20'),
-                                (u'GivenName', u'Testaren Test'),
-                                (u'MiddleName', u'Tester'),
-                                (u'Surname', u'Testsson'),
+                                ("GivenNameMarking", "20"),
+                                ("GivenName", "Testaren Test"),
+                                ("MiddleName", "Tester"),
+                                ("Surname", "Testsson"),
                             ]
                         ),
                     ),
                     (
-                        u'OfficialAddress',
+                        "OfficialAddress",
                         OrderedDict(
                             [
-                                (u'Address2', u'\xd6RGATAN 79 LGH 10'),
-                                (u'Address1', u'LGH 4321'),
-                                (u'CareOf', u'TESTAREN & TESTSSON'),
-                                (u'PostalCode', u'12345'),
-                                (u'City', u'LANDET'),
+                                ("Address2", "\xd6RGATAN 79 LGH 10"),
+                                ("Address1", "LGH 4321"),
+                                ("CareOf", "TESTAREN & TESTSSON"),
+                                ("PostalCode", "12345"),
+                                ("City", "LANDET"),
                             ]
                         ),
                     ),
@@ -185,9 +185,9 @@ class CreatePDFTest(EduidAPITestCase):
             with self.app.test_request_context():
                 pdf_document = pdf.create_pdf(
                     recipient,
-                    verification_code='bogus code',
+                    verification_code="bogus code",
                     created_timestamp=datetime.utcnow(),
-                    primary_mail_address='test@example.org',
+                    primary_mail_address="test@example.org",
                     letter_wait_time_hours=336,
                 )
         self.assertIsInstance(pdf_document, (StringIO, BytesIO))

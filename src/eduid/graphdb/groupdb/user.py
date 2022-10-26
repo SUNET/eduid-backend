@@ -8,7 +8,7 @@ from typing import Mapping, Optional
 
 from eduid.graphdb.helpers import neo4j_ts_to_dt
 
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
 
 @dataclass(frozen=True)
@@ -22,8 +22,8 @@ class User:
     def from_mapping(cls, data: Mapping) -> User:
         dt = neo4j_ts_to_dt(data)
         return cls(
-            identifier=data['identifier'],
-            display_name=data['display_name'],
-            created_ts=dt['created_ts'],
-            modified_ts=dt['modified_ts'],
+            identifier=data["identifier"],
+            display_name=data["display_name"],
+            created_ts=dt["created_ts"],
+            modified_ts=dt["modified_ts"],
         )

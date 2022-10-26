@@ -10,7 +10,7 @@ class NavetException(Exception):
         return repr(self)
 
     def __repr__(self):
-        return '{!s}({!s})'.format(self.__class__.__name__, self.message)
+        return "{!s}({!s})".format(self.__class__.__name__, self.message)
 
 
 class NavetAPIException(NavetException):

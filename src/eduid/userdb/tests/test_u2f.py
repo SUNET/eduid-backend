@@ -8,7 +8,7 @@ from pydantic import ValidationError
 
 from eduid.userdb.credentials import U2F, CredentialList, CredentialProofingMethod
 
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
 # {'passwords': {
 #    'id': password_id,
@@ -18,27 +18,27 @@ __author__ = 'lundberg'
 # }}
 
 _one_dict = {
-    'version': 'U2F_V2',
-    'app_id': 'unit test',
-    'keyhandle': 'firstU2FElement',
-    'public_key': 'foo',
+    "version": "U2F_V2",
+    "app_id": "unit test",
+    "keyhandle": "firstU2FElement",
+    "public_key": "foo",
 }
 _two_dict = {
-    'version': 'U2F_V2',
-    'app_id': 'unit test',
-    'keyhandle': 'secondU2FElement',
-    'public_key': 'foo',
+    "version": "U2F_V2",
+    "app_id": "unit test",
+    "keyhandle": "secondU2FElement",
+    "public_key": "foo",
 }
 _three_dict = {
-    'version': 'U2F_V2',
-    'app_id': 'unit test',
-    'keyhandle': 'thirdU2FElement',
-    'public_key': 'foo',
+    "version": "U2F_V2",
+    "app_id": "unit test",
+    "keyhandle": "thirdU2FElement",
+    "public_key": "foo",
 }
 
 
 def _keyid(key):
-    return 'sha256:' + sha256(key['keyhandle'].encode('utf-8') + key['public_key'].encode('utf-8')).hexdigest()
+    return "sha256:" + sha256(key["keyhandle"].encode("utf-8") + key["public_key"].encode("utf-8")).hexdigest()
 
 
 class TestU2F(TestCase):
@@ -57,8 +57,8 @@ class TestU2F(TestCase):
             this.key,
             _keyid(
                 {
-                    'keyhandle': this.keyhandle,
-                    'public_key': this.public_key,
+                    "keyhandle": this.keyhandle,
+                    "public_key": this.public_key,
                 }
             ),
         )
@@ -73,17 +73,17 @@ class TestU2F(TestCase):
 
     def test_unknown_input_data(self):
         one = copy.deepcopy(_one_dict)
-        one['foo'] = 'bar'
+        one["foo"] = "bar"
         with pytest.raises(ValidationError) as exc_info:
             U2F.from_dict(one)
         assert exc_info.value.errors() == [
-            {'loc': ('foo',), 'msg': 'extra fields not permitted', 'type': 'value_error.extra'}
+            {"loc": ("foo",), "msg": "extra fields not permitted", "type": "value_error.extra"}
         ]
 
     def test_created_by(self):
         this = self.three.find(_keyid(_three_dict))
-        this.created_by = 'unit test'
-        self.assertEqual(this.created_by, 'unit test')
+        this.created_by = "unit test"
+        self.assertEqual(this.created_by, "unit test")
 
     def test_created_ts(self):
         this = self.three.find(_keyid(_three_dict))
@@ -100,9 +100,9 @@ class TestU2F(TestCase):
 
     def test_proofing_version(self):
         this = self.three.find(_keyid(_three_dict))
-        this.proofing_version = 'TEST'
-        self.assertEqual(this.proofing_version, 'TEST')
-        this.proofing_version = 'TEST2'
-        self.assertEqual(this.proofing_version, 'TEST2')
+        this.proofing_version = "TEST"
+        self.assertEqual(this.proofing_version, "TEST")
+        this.proofing_version = "TEST2"
+        self.assertEqual(this.proofing_version, "TEST2")
         this.proofing_version = None
         self.assertEqual(this.proofing_version, None)

@@ -62,25 +62,25 @@ def verify_recaptcha(secret_key: str, captcha_response: str, user_ip: str, retri
 
     :return: True|False
     """
-    url = 'https://www.google.com/recaptcha/api/siteverify'
-    params = {'secret': secret_key, 'response': captcha_response, 'remoteip': user_ip}
+    url = "https://www.google.com/recaptcha/api/siteverify"
+    params = {"secret": secret_key, "response": captcha_response, "remoteip": user_ip}
     while retries:
         retries -= 1
         try:
-            current_app.logger.debug('Sending the CAPTCHA response')
+            current_app.logger.debug("Sending the CAPTCHA response")
             verify_rs = requests.get(url, params=params, verify=True)
             verify_rs.raise_for_status()  # raise exception status code in 400 or 500 range
-            current_app.logger.debug(f'CAPTCHA response: {verify_rs}')
-            if verify_rs.json().get('success', False) is True:
-                current_app.logger.info(f'Valid CAPTCHA response from {user_ip}')
+            current_app.logger.debug(f"CAPTCHA response: {verify_rs}")
+            if verify_rs.json().get("success", False) is True:
+                current_app.logger.info(f"Valid CAPTCHA response from {user_ip}")
                 return True
-            _error = verify_rs.json().get('error-codes', 'Unspecified error')
-            current_app.logger.info(f'Invalid CAPTCHA response from {user_ip}: {_error}')
+            _error = verify_rs.json().get("error-codes", "Unspecified error")
+            current_app.logger.info(f"Invalid CAPTCHA response from {user_ip}: {_error}")
         except requests.exceptions.RequestException as e:
             if not retries:
-                current_app.logger.error('Caught RequestException while sending CAPTCHA, giving up.')
+                current_app.logger.error("Caught RequestException while sending CAPTCHA, giving up.")
                 raise e
-            current_app.logger.warning('Caught RequestException while sending CAPTCHA, trying again.')
+            current_app.logger.warning("Caught RequestException while sending CAPTCHA, trying again.")
             current_app.logger.warning(e)
             time.sleep(0.5)
     return False
@@ -94,7 +94,7 @@ def generate_verification_link() -> Tuple[str, str]:
     :rtype: pair of str
     """
     code = str(uuid4())
-    link = '{}code/{}'.format(current_app.conf.signup_url, code)
+    link = "{}code/{}".format(current_app.conf.signup_url, code)
     return link, code
 
 
@@ -109,7 +109,7 @@ def send_verification_mail(email: str) -> None:
 
     signup_user = current_app.private_userdb.get_user_by_pending_mail_address(email)
     if not signup_user:
-        mailaddress = EmailProofingElement(email=email, created_by='signup', is_verified=False, verification_code=code)
+        mailaddress = EmailProofingElement(email=email, created_by="signup", is_verified=False, verification_code=code)
         # TODO: Let User create a user_id if it is None (as default)
         signup_user = SignupUser(user_id=ObjectId(), eppn=generate_eppn())
         signup_user.pending_mail_address = mailaddress
@@ -132,14 +132,14 @@ def send_verification_mail(email: str) -> None:
 
     if current_app.conf.environment == EduidEnvironment.dev:
         # Debug-log the certification link in plain text in development environment
-        current_app.logger.debug(f'Generating verification e-mail with context:\n{context}')
+        current_app.logger.debug(f"Generating verification e-mail with context:\n{context}")
 
     text = render_template("verification_email.txt.jinja2", **context)
     html = render_template("verification_email.html.jinja2", **context)
 
     current_app.mail_relay.sendmail(subject, [email], text, html, reference=signup_user.proofing_reference)
     current_app.logger.info("Sent email address verification mail for user {} to address {}".format(signup_user, email))
-    current_app.stats.count(name='mail_sent')
+    current_app.stats.count(name="mail_sent")
     current_app.private_userdb.save(signup_user)
     current_app.logger.info("Saved user {} to private db".format(signup_user))
 
@@ -178,7 +178,7 @@ def verify_email_code(code: str) -> SignupUser:
         raise CodeDoesNotExist()
 
     if not signup_user.pending_mail_address:
-        current_app.logger.debug('User has no pending e-mails in database')
+        current_app.logger.debug("User has no pending e-mails in database")
         raise CodeDoesNotExist()
 
     email = signup_user.pending_mail_address.email
@@ -200,22 +200,22 @@ def verify_email_code(code: str) -> SignupUser:
 
     mail_address_proofing = MailAddressProofing(
         eppn=signup_user.eppn,
-        created_by='signup',
+        created_by="signup",
         mail_address=mail_address.email,
         reference=signup_user.proofing_reference,
-        proofing_version='2013v1',
+        proofing_version="2013v1",
     )
     if current_app.proofing_log.save(mail_address_proofing):
         mail_address.is_verified = True
         mail_address.verified_ts = datetime.utcnow()
-        mail_address.verified_by = 'signup'
+        mail_address.verified_by = "signup"
         mail_address.is_primary = True
         signup_user.pending_mail_address = None
         signup_user.mail_addresses.add(mail_address)
         result = signup_db.save(signup_user)
         current_app.logger.info("Code {} verified and user {} saved: {!r}".format(code, signup_user, result))
-        current_app.stats.count(name='mail_verified')
+        current_app.stats.count(name="mail_verified")
         return signup_user
     else:
-        current_app.logger.error('Failed to save proofing log, aborting')
+        current_app.logger.error("Failed to save proofing log, aborting")
         raise ProofingLogFailure()

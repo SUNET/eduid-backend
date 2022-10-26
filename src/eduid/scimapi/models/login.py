@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
-from eduid.scimapi.models.scimbase import EduidBaseModel
+from eduid.common.models.scim_base import EduidBaseModel
 
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
 
 class TokenRequest(EduidBaseModel):

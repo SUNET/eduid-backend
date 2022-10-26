@@ -6,7 +6,7 @@ from typing import Dict, Mapping, Optional
 import requests
 from pydantic import AnyHttpUrl, BaseModel, Field, ValidationError
 
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
 from eduid.common.config.base import EduidEnvironment
 from eduid.common.utils import urlappend
@@ -20,7 +20,7 @@ class LadokClientException(Exception):
 
 class Error(BaseModel):
     id: Optional[str]
-    detail: Optional[str] = Field(default=None, alias='details')
+    detail: Optional[str] = Field(default=None, alias="details")
 
 
 class LadokBaseModel(BaseModel):
@@ -29,12 +29,12 @@ class LadokBaseModel(BaseModel):
 
 
 class UniversityName(LadokBaseModel):
-    sv: Optional[str] = Field(default=None, alias='long_name_sv')
-    en: Optional[str] = Field(default=None, alias='long_name_en')
+    sv: Optional[str] = Field(default=None, alias="long_name_sv")
+    en: Optional[str] = Field(default=None, alias="long_name_en")
 
 
 class UniversitiesData(LadokBaseModel):
-    names: Dict[str, UniversityName] = Field(alias='school_names')
+    names: Dict[str, UniversityName] = Field(alias="school_names")
 
 
 class UniversitiesInfoResponse(LadokBaseModel):
@@ -43,10 +43,10 @@ class UniversitiesInfoResponse(LadokBaseModel):
 
 
 class LadokUserInfo(LadokBaseModel):
-    external_id: str = Field(alias='ladok_externt_uid')
+    external_id: str = Field(alias="ladok_externt_uid")
     esi: Optional[str]
     is_student: Optional[bool]
-    student_until: Optional[datetime] = Field(default=None, alias='expire_student')
+    student_until: Optional[datetime] = Field(default=None, alias="expire_student")
 
 
 class LadokUserInfoResponse(LadokBaseModel):
@@ -56,7 +56,7 @@ class LadokUserInfoResponse(LadokBaseModel):
 
 class LadokClientConfig(LadokBaseModel):
     url: AnyHttpUrl
-    version: str = 'v1'
+    version: str = "v1"
     dev_universities: Optional[Dict[str, UniversityName]] = None  # used for local development
 
 
@@ -69,7 +69,7 @@ class LadokClient:
     def __init__(self, config: LadokClientConfig, env: EduidEnvironment):
         self.config = config
         self.env = env
-        self.base_endpoint = urlappend(self.config.url, f'/api/{self.config.version}')
+        self.base_endpoint = urlappend(self.config.url, f"/api/{self.config.version}")
         self.universities = self.load_universities()
 
     def load_universities(self) -> Mapping[str, University]:
@@ -103,17 +103,17 @@ class LadokClient:
           "error": null
         }
         """
-        endpoint = urlappend(self.base_endpoint, 'schoolinfo')
+        endpoint = urlappend(self.base_endpoint, "schoolinfo")
 
         response = requests.get(endpoint)
         if response.status_code != 200:
-            logger.error(f'endpoint {endpoint} returned status code: {response.status_code}')
-            raise LadokClientException('could not load universities')
+            logger.error(f"endpoint {endpoint} returned status code: {response.status_code}")
+            raise LadokClientException("could not load universities")
 
         universities_response = UniversitiesInfoResponse(**response.json())
         if universities_response.error is not None:
-            logger.error(f'endpoint {endpoint} returned error: {universities_response.error}')
-            raise LadokClientException('could not load universities')
+            logger.error(f"endpoint {endpoint} returned error: {universities_response.error}")
+            raise LadokClientException("could not load universities")
         assert universities_response.data is not None  # please mypy
         return universities_response.data
 
@@ -138,27 +138,27 @@ class LadokClient:
         }
         """
         if ladok_name not in self.universities:
-            raise LadokClientException(f'university with Ladok name {ladok_name} not found')
+            raise LadokClientException(f"university with Ladok name {ladok_name} not found")
 
-        service_path = f'{ladok_name}/ladokinfo'
+        service_path = f"{ladok_name}/ladokinfo"
         endpoint = urlappend(self.base_endpoint, service_path)
 
-        response = requests.post(endpoint, json={'data': {'nin': nin}})
+        response = requests.post(endpoint, json={"data": {"nin": nin}})
         if response.status_code != 200:
-            logger.error(f'endpoint {endpoint} returned status code: {response.status_code}')
+            logger.error(f"endpoint {endpoint} returned status code: {response.status_code}")
             return None
 
         try:
             user_response = LadokUserInfoResponse(**response.json())
         except ValidationError as e:
-            logger.error(f'could not validate response from {endpoint}: {e}')
-            logger.debug(f'ladok_name: {ladok_name}, nin: {nin}')
-            logger.debug(f'response.json: {response.json()}')
+            logger.error(f"could not validate response from {endpoint}: {e}")
+            logger.debug(f"ladok_name: {ladok_name}, nin: {nin}")
+            logger.debug(f"response.json: {response.json()}")
             return None
 
         if user_response.error is not None:
-            logger.error(f'endpoint {endpoint} returned error: {user_response.error.id}')
-            logger.debug(f'error detail: {user_response.error.detail}')
+            logger.error(f"endpoint {endpoint} returned error: {user_response.error.id}")
+            logger.debug(f"error detail: {user_response.error.detail}")
             return None
 
         return user_response.data

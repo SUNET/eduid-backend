@@ -1,4 +1,4 @@
-__author__ = 'mathiashedstrom'
+__author__ = "mathiashedstrom"
 
 import re
 from typing import List, Optional, Sequence
@@ -11,7 +11,7 @@ def format_NIN(nin: Optional[str]) -> Optional[str]:
         return None
 
     # Remove all non-digits
-    nin = re.sub(r"\D", '', nin)
+    nin = re.sub(r"\D", "", nin)
     return nin
 
 

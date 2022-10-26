@@ -13,13 +13,13 @@ from eduid.queue.db import QueueDB, QueueItem
 from eduid.queue.exceptions import PayloadNotRegistered
 from eduid.userdb import MongoDB
 
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
 logger = logging.getLogger(__name__)
 
 
 class AsyncQueueDB(QueueDB):
-    def __init__(self, db_uri: str, collection: str, db_name: str = 'eduid_queue', connection_factory=None):
+    def __init__(self, db_uri: str, collection: str, db_name: str = "eduid_queue", connection_factory=None):
         super().__init__(db_uri, collection=collection, db_name=db_name)
 
         # Re-initialize database and collection with connection_factory
@@ -52,19 +52,19 @@ class AsyncQueueDB(QueueDB):
         :param regrab: If True, try to grab an already processed item for reprocessing
         :return: queue item
         """
-        logger.debug(f'Grabbing item for {worker_name}')
+        logger.debug(f"Grabbing item for {worker_name}")
 
         if isinstance(item_id, str):
             item_id = ObjectId(item_id)
 
         spec = {
-            '_id': item_id,
+            "_id": item_id,
         }
 
         if not regrab:
             # Only try to grab previously untouched items
-            spec['processed_by'] = None
-            spec['processed_ts'] = None
+            spec["processed_by"] = None
+            spec["processed_ts"] = None
 
         # Get item
         doc = await self.collection.find_one(spec)
@@ -73,12 +73,12 @@ class AsyncQueueDB(QueueDB):
 
         if regrab:
             # Only replace items that still has the previous worker name and ts
-            spec['processed_by'] = doc['processed_by']
-            spec['processed_ts'] = doc['processed_ts']
+            spec["processed_by"] = doc["processed_by"]
+            spec["processed_ts"] = doc["processed_ts"]
 
         # Update item with current worker name and ts
-        doc['processed_by'] = worker_name
-        doc['processed_ts'] = datetime.now(tz=timezone.utc)
+        doc["processed_by"] = worker_name
+        doc["processed_ts"] = datetime.now(tz=timezone.utc)
 
         try:
             # Try to parse the queue item to only grab items that are registered with the current db
@@ -88,12 +88,12 @@ class AsyncQueueDB(QueueDB):
             return None
 
         update_result: UpdateResult = await self.collection.replace_one(spec, doc)
-        logger.debug(f'result: {update_result.raw_result}')
+        logger.debug(f"result: {update_result.raw_result}")
         if not update_result.acknowledged or update_result.modified_count != 1:
-            logger.debug(f'Grabbing of item failed: {update_result.raw_result}')
+            logger.debug(f"Grabbing of item failed: {update_result.raw_result}")
             return None
 
-        logger.debug(f'Grabbed item: {item}')
+        logger.debug(f"Grabbed item: {item}")
         return item
 
     async def find_items(
@@ -102,23 +102,23 @@ class AsyncQueueDB(QueueDB):
         # TODO: Add registered payload types to spec
         spec: Dict[str, Any] = {}
         if not processed:
-            spec['processed_by'] = None
-            spec['processed_ts'] = None
+            spec["processed_by"] = None
+            spec["processed_ts"] = None
 
         if min_age_in_seconds is not None:
             latest_created = datetime.utcnow() + timedelta(seconds=min_age_in_seconds)
-            spec['created_ts'] = {'$lt': latest_created}
+            spec["created_ts"] = {"$lt": latest_created}
 
         if expired is not None:
             now = datetime.utcnow()
             if expired:
-                spec['expires_at'] = {'$lt': now}
+                spec["expires_at"] = {"$lt": now}
             else:
-                spec['expires_at'] = {'$gt': now}
+                spec["expires_at"] = {"$gt": now}
 
         # to_list needs length, 100 seems like a good start
         # TODO: Investigate if this can be a generator?
-        logger.debug(f'spec: {spec}')
+        logger.debug(f"spec: {spec}")
         return [doc for doc in await self.collection.find(spec).to_list(length=100)]
 
     async def remove_item(self, item_id: Union[str, ObjectId]) -> bool:
@@ -130,20 +130,20 @@ class AsyncQueueDB(QueueDB):
         if isinstance(item_id, str):
             item_id = ObjectId(item_id)
         spec = {
-            '_id': item_id,
+            "_id": item_id,
         }
         result = await self.collection.delete_one(spec)
         return result.acknowledged
 
     async def replace_item(self, old_item: QueueItem, new_item: QueueItem) -> bool:
         if old_item.item_id != new_item.item_id:
-            logger.warning(f'Can not replace items with different item_id')
-            logger.debug(f'old_item: {old_item}')
-            logger.debug(f'new_item: {new_item}')
+            logger.warning(f"Can not replace items with different item_id")
+            logger.debug(f"old_item: {old_item}")
+            logger.debug(f"new_item: {new_item}")
             return False
 
         update_result = await self.collection.replace_one(old_item.to_dict(), new_item.to_dict(), upsert=True)
         if not update_result.acknowledged or update_result.modified_count != 1:
-            logger.debug(f'Saving of item failed: {update_result.raw_result}')
+            logger.debug(f"Saving of item failed: {update_result.raw_result}")
             return False
         return True

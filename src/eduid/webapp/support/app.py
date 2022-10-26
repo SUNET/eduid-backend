@@ -63,29 +63,29 @@ current_support_app: SupportApp = cast(SupportApp, current_app)
 
 
 def register_template_funcs(app: SupportApp) -> None:
-    @app.template_filter('datetimeformat')
-    def datetimeformat(value, format='%Y-%m-%d %H:%M %Z'):
+    @app.template_filter("datetimeformat")
+    def datetimeformat(value, format="%Y-%m-%d %H:%M %Z"):
         if not value:
-            return ''
+            return ""
         return value.strftime(format)
 
-    @app.template_filter('dateformat')
-    def dateformat(value, format='%Y-%m-%d'):
+    @app.template_filter("dateformat")
+    def dateformat(value, format="%Y-%m-%d"):
         if not value:
-            return ''
+            return ""
         return value.strftime(format)
 
-    @app.template_filter('multisort')
+    @app.template_filter("multisort")
     def sort_multi(l, *operators, **kwargs):
         # Don't try to sort on missing keys
         keys = list(operators)  # operators is immutable
         for key in operators:
             for item in l:
                 if key not in item:
-                    app.logger.debug('Removed key {} before sorting.'.format(key))
+                    app.logger.debug("Removed key {} before sorting.".format(key))
                     keys.remove(key)
                     break
-        reverse = kwargs.pop('reverse', False)
+        reverse = kwargs.pop("reverse", False)
         try:
             l.sort(key=operator.itemgetter(*keys), reverse=reverse)
         except UndefinedError:  # attribute did not exist
@@ -95,18 +95,18 @@ def register_template_funcs(app: SupportApp) -> None:
     return None
 
 
-def support_init_app(name: str = 'support', test_config: Optional[Mapping[str, Any]] = None) -> SupportApp:
+def support_init_app(name: str = "support", test_config: Optional[Mapping[str, Any]] = None) -> SupportApp:
     """
     Create an instance of an eduid support app.
 
     :param name: The name of the instance, it will affect the configuration loaded.
     :param test_config: Override config, used in test cases.
     """
-    config = load_config(typ=SupportConfig, app_name=name, ns='webapp', test_config=test_config)
+    config = load_config(typ=SupportConfig, app_name=name, ns="webapp", test_config=test_config)
 
     app = SupportApp(config)
 
-    app.logger.info(f'Init {app}...')
+    app.logger.info(f"Init {app}...")
 
     from eduid.webapp.support.views import support_views
 

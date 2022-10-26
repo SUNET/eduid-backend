@@ -38,7 +38,7 @@ from eduid.userdb.testing import MongoTestCase
 class TestResetPasswordStateDB(MongoTestCase):
     def setUp(self):
         super().setUp()
-        self.resetpw_db = ResetPasswordStateDB(self.tmp_db.uri, 'eduid_reset_password')
+        self.resetpw_db = ResetPasswordStateDB(self.tmp_db.uri, "eduid_reset_password")
 
     def test_email_state(self):
         email_state = ResetPasswordEmailState(
@@ -85,12 +85,12 @@ class TestResetPasswordStateDB(MongoTestCase):
             eppn="hubba-bubba", email_address="johnsmith@example.com", email_code="dummy-code"
         )
 
-        email_state.extra_security = {'phone_numbers': [{'number': '+99999999999', 'primary': True, 'verified': True}]}
+        email_state.extra_security = {"phone_numbers": [{"number": "+99999999999", "primary": True, "verified": True}]}
         self.resetpw_db.save(email_state)
 
         state = self.resetpw_db.get_state_by_eppn("hubba-bubba")
         self.assertEqual(state.email_address, "johnsmith@example.com")
-        self.assertEqual(state.extra_security['phone_numbers'][0]['number'], '+99999999999')
+        self.assertEqual(state.extra_security["phone_numbers"][0]["number"], "+99999999999")
 
     def test_email_and_phone_state(self):
         email_state = ResetPasswordEmailAndPhoneState(

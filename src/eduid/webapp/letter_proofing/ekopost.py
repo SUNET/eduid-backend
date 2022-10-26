@@ -9,7 +9,7 @@ from hammock import Hammock
 
 from eduid.webapp.letter_proofing.settings.common import LetterProofingConfig
 
-__author__ = 'john'
+__author__ = "john"
 
 
 class EkopostException(Exception):
@@ -43,12 +43,12 @@ class Ekopost:
         letter_id = eppn + "+" + output_date
 
         # Create a campaign and the envelope that it should contain
-        campaign = self._create_campaign(letter_id, output_date, 'eduID')
-        color = 'false'
+        campaign = self._create_campaign(letter_id, output_date, "eduID")
+        color = "false"
         if self.config.ekopost_api_color:
-            color = 'true'
+            color = "true"
         envelope = self._create_envelope(
-            campaign_id=campaign['id'],
+            campaign_id=campaign["id"],
             name=letter_id,
             color=color,
             postage=self.config.ekopost_api_postage,
@@ -56,15 +56,15 @@ class Ekopost:
         )
 
         # Include the PDF-document to send
-        self._create_content(campaign['id'], envelope['id'], document.getvalue())
+        self._create_content(campaign["id"], envelope["id"], document.getvalue())
 
         # To mark the letter as ready to be printed and sent:
         # 1. Close the envelope belonging to the campaign.
         # 2. Close the campaign that holds the envelope.
-        self._close_envelope(campaign['id'], envelope['id'])
-        closed_campaign = self._close_campaign(campaign['id'])
+        self._close_envelope(campaign["id"], envelope["id"])
+        closed_campaign = self._close_campaign(campaign["id"])
 
-        return closed_campaign['id']
+        return closed_campaign["id"]
 
     def _create_campaign(self, name, output_date, cost_center):
         """
@@ -75,16 +75,16 @@ class Ekopost:
                             should be printed and distributed.
         :param cost_center: The internal cost center.
         """
-        campaign_data = json.dumps({'name': name, 'output_date': output_date, 'cost_center': cost_center})
+        campaign_data = json.dumps({"name": name, "output_date": output_date, "cost_center": cost_center})
 
-        response = self.ekopost_api.campaigns.POST(data=campaign_data, headers={'Content-Type': 'application/json'})
+        response = self.ekopost_api.campaigns.POST(data=campaign_data, headers={"Content-Type": "application/json"})
 
         if response.status_code == 200:
             return response.json()
 
-        raise EkopostException('Ekopost exception: {!s} {!s}'.format(response.status_code, response.text))
+        raise EkopostException("Ekopost exception: {!s} {!s}".format(response.status_code, response.text))
 
-    def _create_envelope(self, campaign_id, name, postage='priority', plex='simplex', color='false'):
+    def _create_envelope(self, campaign_id, name, postage="priority", plex="simplex", color="false"):
         """
         Create an envelope for a specified campaign
 
@@ -97,18 +97,18 @@ class Ekopost:
                      on both front and back.
         :param color: Print in color (CMYK) or set to false for black and white.
         """
-        envelope_data = json.dumps({'name': name, 'postage': postage, 'plex': plex, 'color': color})
+        envelope_data = json.dumps({"name": name, "postage": postage, "plex": plex, "color": color})
 
         response = self.ekopost_api.campaigns(campaign_id).envelopes.POST(
-            data=envelope_data, headers={'Content-Type': 'application/json'}
+            data=envelope_data, headers={"Content-Type": "application/json"}
         )
 
         if response.status_code == 200:
             return response.json()
 
-        raise EkopostException('Ekopost exception: {!s} {!s}'.format(response.status_code, response.text))
+        raise EkopostException("Ekopost exception: {!s} {!s}".format(response.status_code, response.text))
 
-    def _create_content(self, campaign_id, envelope_id, data, mime='application/pdf', content_type='document'):
+    def _create_content(self, campaign_id, envelope_id, data, mime="application/pdf", content_type="document"):
         """
         Create the content that should be linked to an envelope
 
@@ -120,25 +120,25 @@ class Ekopost:
         """
         content_data = json.dumps(
             {
-                'campaign_id': campaign_id,
-                'envelope_id': envelope_id,
-                'data': base64.b64encode(data).decode('utf-8'),  # Needs to be unicode for json
-                'mime': mime,
-                'length': len(data),
-                'type': content_type,
+                "campaign_id": campaign_id,
+                "envelope_id": envelope_id,
+                "data": base64.b64encode(data).decode("utf-8"),  # Needs to be unicode for json
+                "mime": mime,
+                "length": len(data),
+                "type": content_type,
             }
         )
 
         response = (
             self.ekopost_api.campaigns(campaign_id)
             .envelopes(envelope_id)
-            .content.POST(data=content_data, headers={'Content-Type': 'application/json'})
+            .content.POST(data=content_data, headers={"Content-Type": "application/json"})
         )
 
         if response.status_code == 200:
             return response.json()
 
-        raise EkopostException('Ekopost exception: {!s} {!s}'.format(response.status_code, response.text))
+        raise EkopostException("Ekopost exception: {!s} {!s}".format(response.status_code, response.text))
 
     def _close_envelope(self, campaign_id, envelope_id):
         """
@@ -149,13 +149,13 @@ class Ekopost:
         response = (
             self.ekopost_api.campaigns(campaign_id)
             .envelopes(envelope_id)
-            .close.POST(headers={'Content-Type': 'application/json'})
+            .close.POST(headers={"Content-Type": "application/json"})
         )
 
         if response.status_code == 200:
             return response.json()
 
-        raise EkopostException('Ekopost exception: {!s} {!s}'.format(response.status_code, response.text))
+        raise EkopostException("Ekopost exception: {!s} {!s}".format(response.status_code, response.text))
 
     def _close_campaign(self, campaign_id):
         """
@@ -164,9 +164,9 @@ class Ekopost:
 
         :param campaign_id: Unique id of a campaign that should be closed
         """
-        response = self.ekopost_api.campaigns(campaign_id).close.POST(headers={'Content-Type': 'application/json'})
+        response = self.ekopost_api.campaigns(campaign_id).close.POST(headers={"Content-Type": "application/json"})
 
         if response.status_code == 200:
             return response.json()
 
-        raise EkopostException('Ekopost exception: {!s} {!s}'.format(response.status_code, response.text))
+        raise EkopostException("Ekopost exception: {!s} {!s}".format(response.status_code, response.text))

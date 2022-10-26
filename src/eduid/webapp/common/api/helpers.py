@@ -22,7 +22,7 @@ from eduid.userdb.proofing.state import NinProofingState, OidcProofingState
 from eduid.userdb.user import TUserSubclass, User
 from eduid.webapp.common.api.app import EduIDBaseApp
 
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
 
 def set_user_names_from_official_address(
@@ -38,21 +38,21 @@ def set_user_names_from_official_address(
     user.surname = proofing_log_entry.user_postal_address.name.surname
     if user.given_name is None or user.surname is None:
         # please mypy
-        raise RuntimeError('No given name or surname found in proofing log user postal address')
+        raise RuntimeError("No given name or surname found in proofing log user postal address")
     given_name_marking = proofing_log_entry.user_postal_address.name.given_name_marking
-    user.display_name = f'{user.given_name} {user.surname}'
+    user.display_name = f"{user.given_name} {user.surname}"
     if given_name_marking:
         _name_index = (int(given_name_marking) // 10) - 1  # ex. "20" -> 1 (second GivenName is real given name)
         try:
             _given_name = user.given_name.split()[_name_index]
-            user.display_name = f'{_given_name} {user.surname}'
+            user.display_name = f"{_given_name} {user.surname}"
         except IndexError:
             # At least occasionally, we've seen GivenName 'Jan-Erik Martin' with GivenNameMarking 30
             pass
-    current_app.logger.info(u'User names set from official address')
+    current_app.logger.info("User names set from official address")
     current_app.logger.debug(
-        f'{proofing_log_entry.user_postal_address.name} resulted in given_name: {user.given_name}, '
-        f'surname: {user.surname} and display_name: {user.display_name}'
+        f"{proofing_log_entry.user_postal_address.name} resulted in given_name: {user.given_name}, "
+        f"surname: {user.surname} and display_name: {user.display_name}"
     )
     return user
 
@@ -69,7 +69,7 @@ def set_user_names_from_foreign_eid(
     """
     user.given_name = proofing_log_entry.given_name
     user.surname = proofing_log_entry.surname
-    user.display_name = f'{user.given_name} {user.surname}'
+    user.display_name = f"{user.given_name} {user.surname}"
     if display_name is not None:
         user.display_name = display_name
     return user
@@ -85,14 +85,14 @@ def number_match_proofing(user: User, proofing_state: OidcProofingState, number:
     """
     if proofing_state.nin.number == number:
         return True
-    current_app.logger.error(f'Self asserted NIN does not match for user {user}')
-    current_app.logger.debug(f'Self asserted NIN: {proofing_state.nin.number}. NIN from vetting provider {number}')
+    current_app.logger.error(f"Self asserted NIN does not match for user {user}")
+    current_app.logger.debug(f"Self asserted NIN: {proofing_state.nin.number}. NIN from vetting provider {number}")
     return False
 
 
 # Explain to mypy that if you call add_nin_to_user without a user_type, the return type will be ProofingUser
 # but if you call it with a user_type the return type will be that type
-TProofingUser = TypeVar('TProofingUser', bound=User)
+TProofingUser = TypeVar("TProofingUser", bound=User)
 
 
 @overload
@@ -110,8 +110,8 @@ def add_nin_to_user(user, proofing_state, user_type=ProofingUser):
     proofing_user = user_type.from_user(user, current_app.private_userdb)
     # Add nin to user if not already there
     if not proofing_user.identities.nin:
-        current_app.logger.info(f'Adding NIN for user {user}')
-        current_app.logger.debug(f'Self asserted NIN: {proofing_state.nin.number}')
+        current_app.logger.info(f"Adding NIN for user {user}")
+        current_app.logger.debug(f"Self asserted NIN: {proofing_state.nin.number}")
         nin_identity = NinIdentity(
             created_by=proofing_state.nin.created_by,
             created_ts=proofing_state.nin.created_ts,
@@ -123,9 +123,9 @@ def add_nin_to_user(user, proofing_state, user_type=ProofingUser):
         # Save user to private db
         current_app.private_userdb.save(proofing_user, check_sync=False)
         # Ask am to sync user to central db
-        current_app.logger.info(f'Request sync for user {proofing_user}')
+        current_app.logger.info(f"Request sync for user {proofing_user}")
         result = current_app.am_relay.request_user_sync(proofing_user)
-        current_app.logger.info(f'Sync result for user {proofing_user}: {result}')
+        current_app.logger.info(f"Sync result for user {proofing_user}: {result}")
     return proofing_user
 
 
@@ -151,7 +151,7 @@ def verify_nin_for_user(
         # If user is not a ProofingUser, we create a new ProofingUser instance.
         # This is deprecated usage, since it won't allow the calling function to get
         # the new NIN element without re-loading the user from the central database.
-        warnings.warn('verify_nin_for_user() called with a User, not a ProofingUser', DeprecationWarning)
+        warnings.warn("verify_nin_for_user() called with a User, not a ProofingUser", DeprecationWarning)
         proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
 
     # add an unverified nin identity to the user if it does not exist yet
@@ -163,21 +163,21 @@ def verify_nin_for_user(
 
     # Check if the NIN is already verified
     if proofing_user.identities.nin.is_verified:
-        current_app.logger.info('User already has a verified NIN')
-        current_app.logger.debug(f'NIN: {proofing_user.identities.nin.number}')
+        current_app.logger.info("User already has a verified NIN")
+        current_app.logger.debug(f"NIN: {proofing_user.identities.nin.number}")
         return True
 
     # check if the users current nin is the same as the one just verified
     # if there is no locked nin identity or the locked nin identity matches we can replace the current nin identity
     # with the one just verified
     if proofing_user.identities.nin.number != proofing_state.nin.number:
-        current_app.logger.info('users current nin does not match the nin just verified')
-        current_app.logger.debug(f'{proofing_user.identities.nin.number} != {proofing_state.nin.number}')
+        current_app.logger.info("users current nin does not match the nin just verified")
+        current_app.logger.debug(f"{proofing_user.identities.nin.number} != {proofing_state.nin.number}")
         if (
             proofing_user.locked_identity.nin is not None
             and proofing_user.locked_identity.nin.number != proofing_state.nin.number
         ):
-            raise ValueError('users locked nin does not match verified nin')
+            raise ValueError("users locked nin does not match verified nin")
 
         # user has no locked nin identity or the user has previously verified the nin
         # replace the never verified nin with the one just verified
@@ -188,7 +188,7 @@ def verify_nin_for_user(
             created_by=proofing_state.nin.created_by,
         )
         proofing_user.identities.add(nin_identity)
-        current_app.logger.info('replaced users current nin with the one just verified')
+        current_app.logger.info("replaced users current nin with the one just verified")
 
     # Update users nin identity
     proofing_user.identities.nin.is_verified = True
@@ -203,15 +203,15 @@ def verify_nin_for_user(
     # Send proofing data to the proofing log
     if not current_app.proofing_log.save(proofing_log_entry):
         return False
-    current_app.logger.info(f'Recorded nin identity verification in the proofing log')
+    current_app.logger.info(f"Recorded nin identity verification in the proofing log")
 
     # Save user to private db
     current_app.private_userdb.save(proofing_user)
 
     # Ask am to sync user to central db
-    current_app.logger.info(f'Request sync for user {user}')
+    current_app.logger.info(f"Request sync for user {user}")
     result = current_app.am_relay.request_user_sync(proofing_user)
-    current_app.logger.info(f'Sync result for user {proofing_user}: {result}')
+    current_app.logger.info(f"Sync result for user {proofing_user}: {result}")
 
     return True
 
@@ -245,12 +245,12 @@ def send_mail(
         context = {}
     context.update(default_context)
 
-    app.logger.debug(f'subject: {subject}')
-    app.logger.debug(f'to addresses: {to_addresses}')
+    app.logger.debug(f"subject: {subject}")
+    app.logger.debug(f"to addresses: {to_addresses}")
     text = render_template(text_template, **context)
-    app.logger.debug(f'rendered text: {text}')
+    app.logger.debug(f"rendered text: {text}")
     html = render_template(html_template, **context)
-    app.logger.debug(f'rendered html: {html}')
+    app.logger.debug(f"rendered html: {html}")
     app.mail_relay.sendmail(subject, to_addresses, text, html, reference)
 
 
@@ -267,19 +267,19 @@ def check_magic_cookie(config: MagicCookieMixin) -> bool:
         return False
 
     if not config.magic_cookie or not config.magic_cookie_name:
-        current_app.logger.error(f'Magic cookie parameters not present in configuration for {config.environment}')
+        current_app.logger.error(f"Magic cookie parameters not present in configuration for {config.environment}")
         return False
 
     cookie = request.cookies.get(config.magic_cookie_name)
     if cookie is None:
-        current_app.logger.info(f'Got no magic cookie (named {config.magic_cookie_name})')
+        current_app.logger.info(f"Got no magic cookie (named {config.magic_cookie_name})")
         return False
 
     if cookie == config.magic_cookie:
-        current_app.logger.info('check_magic_cookie check success')
+        current_app.logger.info("check_magic_cookie check success")
         return True
 
-    current_app.logger.info('check_magic_cookie check fail')
+    current_app.logger.info("check_magic_cookie check fail")
     return False
 
 
@@ -297,7 +297,7 @@ def get_proofing_log_navet_data(nin: str) -> ProofingNavetData:
         and navet_data.person.deregistration_information.cause_code is not DeregisteredCauseCode.EMIGRATED
     ):
         raise NoNavetData(
-            f'Person deregistered with code {navet_data.person.deregistration_information.cause_code.value}'
+            f"Person deregistered with code {navet_data.person.deregistration_information.cause_code.value}"
         )
 
     user_postal_address = FullPostalAddress(

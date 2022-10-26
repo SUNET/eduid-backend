@@ -4,7 +4,7 @@ from typing import Any, Callable
 from fastapi import APIRouter as FastAPIRouter
 from fastapi.types import DecoratedCallable
 
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
 # Workaround from https://github.com/tiangolo/fastapi/issues/2060#issuecomment-834868906
 #

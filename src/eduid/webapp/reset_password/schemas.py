@@ -36,7 +36,7 @@ from eduid.webapp.common.api.schemas.base import EduidSchema, FluxStandardAction
 from eduid.webapp.common.api.schemas.csrf import CSRFRequestMixin, CSRFResponseMixin
 from eduid.webapp.common.api.schemas.email import LowercaseEmail
 
-__author__ = 'eperez'
+__author__ = "eperez"
 
 
 class ResetPasswordEmailRequestSchema(EduidSchema, CSRFRequestMixin):
@@ -97,9 +97,9 @@ class ResetPasswordWithPhoneCodeSchema(ResetPasswordWithCodeSchema):
 
 class ResetPasswordWithSecTokenSchema(ResetPasswordWithCodeSchema):
 
-    authenticator_data = fields.String(required=False, data_key='authenticatorData')
-    client_data_json = fields.String(required=False, data_key='clientDataJSON')
-    credential_id = fields.String(required=False, data_key='credentialId')
+    authenticator_data = fields.String(required=False, data_key="authenticatorData")
+    client_data_json = fields.String(required=False, data_key="clientDataJSON")
+    credential_id = fields.String(required=False, data_key="credentialId")
     signature = fields.String(required=True)
 
 
@@ -121,8 +121,8 @@ class NewPasswordSecureTokenRequestSchema(EduidSchema, CSRFRequestMixin):
 
     email_code = fields.String(required=True)
     password = fields.String(required=True)
-    token_response = fields.String(required=False, data_key='tokenResponse')
-    authenticator_data = fields.String(required=False, data_key='authenticatorData')
-    client_data_json = fields.String(required=False, data_key='clientDataJSON')
-    credential_id = fields.String(required=False, data_key='credentialId')
+    token_response = fields.String(required=False, data_key="tokenResponse")
+    authenticator_data = fields.String(required=False, data_key="authenticatorData")
+    client_data_json = fields.String(required=False, data_key="clientDataJSON")
+    credential_id = fields.String(required=False, data_key="credentialId")
     signature = fields.String(required=False)

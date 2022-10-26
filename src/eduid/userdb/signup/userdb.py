@@ -35,15 +35,15 @@ from typing import Any, Mapping, Optional
 from eduid.userdb.signup import SignupUser
 from eduid.userdb.userdb import UserDB
 
-__author__ = 'ft'
+__author__ = "ft"
 
 
 class SignupUserDB(UserDB[SignupUser]):
     def __init__(
         self,
         db_uri: str,
-        db_name: str = 'eduid_signup',
-        collection: str = 'registered',
+        db_name: str = "eduid_signup",
+        collection: str = "registered",
         auto_expire: Optional[timedelta] = None,
     ):
         super().__init__(db_uri, db_name, collection=collection)
@@ -51,9 +51,9 @@ class SignupUserDB(UserDB[SignupUser]):
         if auto_expire is not None:
             # auto expire register data
             indexes = {
-                'auto-discard-modified-ts': {
-                    'key': [('modified_ts', 1)],
-                    'expireAfterSeconds': int(auto_expire.total_seconds()),
+                "auto-discard-modified-ts": {
+                    "key": [("modified_ts", 1)],
+                    "expireAfterSeconds": int(auto_expire.total_seconds()),
                 },
             }
             self.setup_indexes(indexes)
@@ -63,8 +63,8 @@ class SignupUserDB(UserDB[SignupUser]):
         return SignupUser.from_dict(data)
 
     def get_user_by_mail_verification_code(self, code: str) -> Optional[SignupUser]:
-        return self._get_user_by_attr('pending_mail_address.verification_code', code)
+        return self._get_user_by_attr("pending_mail_address.verification_code", code)
 
     def get_user_by_pending_mail_address(self, mail: str) -> Optional[SignupUser]:
         mail = mail.lower()
-        return self._get_user_by_attr('pending_mail_address.email', mail)
+        return self._get_user_by_attr("pending_mail_address.email", mail)

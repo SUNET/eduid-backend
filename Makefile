@@ -8,7 +8,7 @@ test:
 
 reformat:
 	isort --line-width 120 --atomic --project eduid $(SOURCE)
-	black --line-length 120 --target-version py39 --skip-string-normalization $(SOURCE)
+	black --line-length 120 --target-version py39 $(SOURCE)
 
 typecheck:
 	MYPYPATH=$(SRCDIR) mypy --ignore-missing-imports --namespace-packages -p eduid
@@ -43,3 +43,21 @@ update_deps:
 dev_sync_deps:
 	cd requirements && make dev_sync_deps
 
+vscode_hosts:
+	rm -f /dev/shm/hosts
+	sed '/localhost/ s/^#*/#/' /etc/hosts > /dev/shm/hosts
+	echo "$$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.Gateway}}{{end}}' "$$(hostname)") localhost" >> /dev/shm/hosts
+	cat /dev/shm/hosts | sudo tee /etc/hosts
+	rm -f /dev/shm/hosts
+
+vscode_venv:
+	python3 -m venv .venv
+
+vscode_pip: vscode_venv
+	.venv/bin/pip install -r requirements/test_requirements.txt
+
+vscode_packages:
+	sudo apt-get update
+	sudo apt install -y swig xmlsec1 python3-venv docker.io
+
+vscode_update: vscode_packages vscode_pip vscode_hosts

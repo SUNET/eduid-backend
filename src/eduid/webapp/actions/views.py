@@ -50,36 +50,36 @@ from eduid.webapp.common.api.schemas.base import FluxStandardAction
 from eduid.webapp.common.authn.utils import check_previous_identification
 from eduid.webapp.common.session import session
 
-actions_views = Blueprint('actions', __name__, url_prefix='', template_folder='templates')
+actions_views = Blueprint("actions", __name__, url_prefix="", template_folder="templates")
 
 
-@actions_views.route('/', methods=['GET'])
+@actions_views.route("/", methods=["GET"])
 def authn():
     """
     Check that the user was sent here by the IdP.
     """
     eppn = check_previous_identification(session.actions)
     if eppn is None:
-        current_app.logger.error(f'Action authentication failed (eppn: {eppn}')
-        return render_template('error.html')
-    current_app.logger.info(f'Starting pre-login actions for eppn: {eppn}')
-    url = url_for('actions.get_actions')
-    return render_template('index.html', url=url)
+        current_app.logger.error(f"Action authentication failed (eppn: {eppn}")
+        return render_template("error.html")
+    current_app.logger.info(f"Starting pre-login actions for eppn: {eppn}")
+    url = url_for("actions.get_actions")
+    return render_template("index.html", url=url)
 
 
-@actions_views.route('/get-tous', methods=['GET'])
+@actions_views.route("/get-tous", methods=["GET"])
 @MarshalWith(FluxStandardAction)
 def get_tous():
     """
     View to GET the current TOU in all available languages
     """
-    version = request.args.get('version', None)
+    version = request.args.get("version", None)
     if version is None:
         version = current_app.conf.tou_version
     return common_get_tous(version=version, languages=current_app.conf.available_languages.keys())
 
 
-@actions_views.route('/config', methods=['GET'])
+@actions_views.route("/config", methods=["GET"])
 @MarshalWith(FluxStandardAction)
 def get_config():
     action_type = session.actions.current_plugin
@@ -88,46 +88,46 @@ def get_config():
     plugin_obj = current_app.plugins[action_type]()
     try:
         config = plugin_obj.get_config_for_bundle(session.actions.current_action)
-        config['csrf_token'] = session.new_csrf_token()
+        config["csrf_token"] = session.new_csrf_token()
         return config
     except plugin_obj.ActionError as exc:
         return error_response(message=exc.args[0])
 
 
-@actions_views.route('/get-actions', methods=['GET'])
+@actions_views.route("/get-actions", methods=["GET"])
 def get_actions():
     user = current_app.central_userdb.get_user_by_eppn(session.common.eppn)
     actions = get_next_action(user)
-    if not actions['action']:
+    if not actions["action"]:
         return json.dumps(
-            {'action': False, 'url': actions['idp_url'], 'payload': {'csrf_token': session.new_csrf_token()}}
+            {"action": False, "url": actions["idp_url"], "payload": {"csrf_token": session.new_csrf_token()}}
         )
     plugin_obj = current_app.plugins[session.actions.current_plugin]()
     action = session.actions.current_action
     if not action:
         # please mypy
         abort(500)
-    current_app.logger.info(f'Starting pre-login action {action.action_type} for user {user}')
+    current_app.logger.info(f"Starting pre-login action {action.action_type} for user {user}")
     try:
         url = plugin_obj.get_url_for_bundle(action)
-        return json.dumps({'action': True, 'url': url, 'payload': {'csrf_token': session.new_csrf_token()}})
+        return json.dumps({"action": True, "url": url, "payload": {"csrf_token": session.new_csrf_token()}})
     except plugin_obj.ActionError as exc:
         _aborted(action, exc)
         abort(500)
 
 
-@actions_views.route('/post-action', methods=['POST'])
+@actions_views.route("/post-action", methods=["POST"])
 @MarshalWith(PostActionResponseSchema)
 @UnmarshalWith(PostActionRequestSchema)
 def post_action() -> FluxData:
     return _do_action()
 
 
-@actions_views.route('/redirect-action', methods=['GET'])
+@actions_views.route("/redirect-action", methods=["GET"])
 def redirect_action() -> WerkzeugResponse:
     # Setup a redirect url to action app root
     scheme, netloc, path, query_string, fragment = urlsplit(request.url)
-    path = url_for('actions.authn')
+    path = url_for("actions.authn")
     return_url = urlunsplit((scheme, netloc, path, query_string, fragment))
     # TODO: Look in ret to figure out if we need to add a query string with a user message
     _ = _do_action()
@@ -142,36 +142,36 @@ def _do_action() -> FluxData:
     plugin_obj = current_app.plugins[action_type]()
     action = session.actions.current_action
     if not action:
-        raise ValueError('No current action found in session')
+        raise ValueError("No current action found in session")
     try:
         data = plugin_obj.perform_step(action)
     except plugin_obj.ActionError as exc:
         return _aborted(action, exc)
     except plugin_obj.ValidationError as exc:
         errors = exc.args[0]
-        current_app.logger.info(f'Validation error {errors} for step {session.actions.current_step} of action {action}')
+        current_app.logger.info(f"Validation error {errors} for step {session.actions.current_step} of action {action}")
         # TODO: Really decrease current_step here, even though we haven't increased it yet?
         if session.actions.current_step is not None:
             session.actions.current_step -= 1
-        return error_response(payload={'errors': errors}, message=CommonMsg.form_errors)
+        return error_response(payload={"errors": errors}, message=CommonMsg.form_errors)
 
     eppn = session.common.eppn
     if session.actions.total_steps == session.actions.current_step:
-        current_app.logger.info(f'Finished pre-login action {action.action_type} for eppn {eppn}')
+        current_app.logger.info(f"Finished pre-login action {action.action_type} for eppn {eppn}")
         return success_response(payload=dict(data=data), message=ActionsMsg.action_completed)
 
     current_app.logger.info(
-        'Performed step {} for action {} for eppn {}'.format(action.action_type, session.actions.current_step, eppn)
+        "Performed step {} for action {} for eppn {}".format(action.action_type, session.actions.current_step, eppn)
     )
     if session.actions.current_step is not None:
         session.actions.current_step += 1
-    return success_response(payload={'data': data}, message=None)
+    return success_response(payload={"data": data}, message=None)
 
 
 def _aborted(action: Action, exc) -> FluxData:
     eppn = session.common.eppn
-    current_app.logger.info(f'Aborted pre-login action {action.action_type} for eppn {eppn}, reason: {exc.args[0]}')
+    current_app.logger.info(f"Aborted pre-login action {action.action_type} for eppn {eppn}, reason: {exc.args[0]}")
     if exc.remove_action:
-        current_app.logger.info(f'Removing faulty action with id {action.action_id}')
+        current_app.logger.info(f"Removing faulty action with id {action.action_id}")
         current_app.actions_db.remove_action_by_id(action.action_id)
     return error_response(message=exc.args[0])

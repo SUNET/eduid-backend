@@ -65,18 +65,18 @@ class EmailApp(AuthnBaseApp):
 current_email_app: EmailApp = cast(EmailApp, current_app)
 
 
-def email_init_app(name: str = 'email', test_config: Optional[Mapping[str, Any]] = None) -> EmailApp:
+def email_init_app(name: str = "email", test_config: Optional[Mapping[str, Any]] = None) -> EmailApp:
     """
     Create an instance of an eduid email app.
 
     :param name: The name of the instance, it will affect the configuration loaded.
     :param test_config: Override config, used in test cases.
     """
-    config = load_config(typ=EmailConfig, app_name=name, ns='webapp', test_config=test_config)
+    config = load_config(typ=EmailConfig, app_name=name, ns="webapp", test_config=test_config)
 
     app = EmailApp(config)
 
-    app.logger.info(f'Init {app}...')
+    app.logger.info(f"Init {app}...")
 
     from eduid.webapp.email.views import email_views
 

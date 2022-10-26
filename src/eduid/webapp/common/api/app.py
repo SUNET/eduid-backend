@@ -1,34 +1,3 @@
-#
-# Copyright (c) 2016 NORDUnet A/S
-# All rights reserved.
-#
-#   Redistribution and use in source and binary forms, with or
-#   without modification, are permitted provided that the following
-#   conditions are met:
-#
-#     1. Redistributions of source code must retain the above copyright
-#        notice, this list of conditions and the following disclaimer.
-#     2. Redistributions in binary form must reproduce the above
-#        copyright notice, this list of conditions and the following
-#        disclaimer in the documentation and/or other materials provided
-#        with the distribution.
-#     3. Neither the name of the NORDUnet nor the names of its
-#        contributors may be used to endorse or promote products derived
-#        from this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-# FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
-# COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
-# ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
-#
 """
 Define a EduIDApp to create a Flask app and update
 it with all attributes common to all eduID services.
@@ -40,6 +9,7 @@ from typing import Dict, TypeVar
 
 from cookies_samesite_compat import CookiesSameSiteCompatMiddleware
 from flask import Flask
+from flask_cors import CORS
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from eduid.common.config.base import EduIDBaseAppConfig, FlaskConfig
@@ -66,12 +36,12 @@ from eduid.webapp.common.api.utils import init_template_functions
 from eduid.webapp.common.authn.utils import no_authn_views
 from eduid.webapp.common.session.eduid_session import SessionFactory
 
-DEBUG = os.environ.get('EDUID_APP_DEBUG', False)
+DEBUG = os.environ.get("EDUID_APP_DEBUG", False)
 if DEBUG:
-    stderr.writelines('----- WARNING! EDUID_APP_DEBUG is enabled -----\n')
+    stderr.writelines("----- WARNING! EDUID_APP_DEBUG is enabled -----\n")
 
 
-TFlaskConfigSubclass = TypeVar('TFlaskConfigSubclass', bound=FlaskConfig)
+TFlaskConfigSubclass = TypeVar("TFlaskConfigSubclass", bound=FlaskConfig)
 
 
 class EduIDBaseApp(Flask, metaclass=ABCMeta):
@@ -92,9 +62,9 @@ class EduIDBaseApp(Flask, metaclass=ABCMeta):
         self.config.from_mapping(_flask_config)
 
         # Check for required configuration
-        for this in ['SECRET_KEY', 'APPLICATION_ROOT', 'SERVER_NAME']:
+        for this in ["SECRET_KEY", "APPLICATION_ROOT", "SERVER_NAME"]:
             if this not in self.config:
-                raise BadConfiguration(f'Flask configuration variable {this} is missing')
+                raise BadConfiguration(f"Flask configuration variable {this} is missing")
 
         if DEBUG:
             init_app_debug(self)
@@ -110,8 +80,8 @@ class EduIDBaseApp(Flask, metaclass=ABCMeta):
         # Set app url prefix to APPLICATION_ROOT
         self.wsgi_app = PrefixMiddleware(  # type: ignore
             self.wsgi_app,
-            prefix=self.config['APPLICATION_ROOT'],
-            server_name=self.config['SERVER_NAME'],
+            prefix=self.config["APPLICATION_ROOT"],
+            server_name=self.config["SERVER_NAME"],
         )
 
         # Allow legacy samesite cookie support
@@ -123,6 +93,7 @@ class EduIDBaseApp(Flask, metaclass=ABCMeta):
             init_exception_handlers(self)
         init_sentry(self)
         init_template_functions(self)
+        CORS(self)
         self.stats = init_app_stats(config)
         self.session_interface = SessionFactory(config)
 
@@ -150,38 +121,38 @@ class EduIDBaseApp(Flask, metaclass=ABCMeta):
         # MongoDB
         if mongo and not check_mongo():
             res.healthy = False
-            res.reason = 'mongodb check failed'
-            self.logger.warning('mongodb check failed')
+            res.reason = "mongodb check failed"
+            self.logger.warning("mongodb check failed")
         # Redis
         elif redis and not check_redis():
             res.healthy = False
-            res.reason = 'redis check failed'
-            self.logger.warning('redis check failed')
+            res.reason = "redis check failed"
+            self.logger.warning("redis check failed")
         # AM
         elif am and not check_am():
             res.healthy = False
-            res.reason = 'am check failed'
-            self.logger.warning('am check failed')
+            res.reason = "am check failed"
+            self.logger.warning("am check failed")
         # MSG
         elif msg and not check_msg():
             res.healthy = False
-            res.reason = 'msg check failed'
-            self.logger.warning('msg check failed')
+            res.reason = "msg check failed"
+            self.logger.warning("msg check failed")
         # Mail Relay
         elif mail and not check_mail():
             res.healthy = False
-            res.reason = 'mail check failed'
-            self.logger.warning('mail check failed')
+            res.reason = "mail check failed"
+            self.logger.warning("mail check failed")
         # Lookup Mobile Relay
         elif lookup_mobile and not check_lookup_mobile():
             res.healthy = False
-            res.reason = 'lookup_mobile check failed'
-            self.logger.warning('lookup_mobile check failed')
+            res.reason = "lookup_mobile check failed"
+            self.logger.warning("lookup_mobile check failed")
         # VCCS
         elif vccs and not check_vccs():
             res.healthy = False
-            res.reason = 'vccs check failed'
-            self.logger.warning('vccs check failed')
+            res.reason = "vccs check failed"
+            self.logger.warning("vccs check failed")
         return res
 
 
@@ -193,6 +164,6 @@ def init_status_views(app: EduIDBaseApp, config: EduIDBaseAppConfig) -> None:
 
     app.register_blueprint(status_views)
     # Register status paths for unauthorized requests
-    status_paths = ['/status/healthy', '/status/sanity-check']
+    status_paths = ["/status/healthy", "/status/sanity-check"]
     no_authn_views(config, status_paths)
     return None

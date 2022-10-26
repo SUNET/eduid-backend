@@ -4,7 +4,7 @@ from marshmallow import fields
 
 from eduid.webapp.common.api.schemas.base import EduidSchema
 
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
 
 class IdentitySchema(EduidSchema):

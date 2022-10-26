@@ -26,65 +26,65 @@ from eduid.webapp.idp.schemas import NextRequestSchema, NextResponseSchema
 from eduid.webapp.idp.sso_session import SSOSession
 from eduid.webapp.idp.util import get_login_username
 
-next_views = Blueprint('next', __name__, url_prefix='')
+next_views = Blueprint("next", __name__, url_prefix="")
 
 
-@next_views.route('/next', methods=['POST'])
+@next_views.route("/next", methods=["POST"])
 @UnmarshalWith(NextRequestSchema)
 @MarshalWith(NextResponseSchema)
 @require_ticket
 @uses_sso_session
 def next_view(ticket: LoginContext, sso_session: Optional[SSOSession]) -> FluxData:
     """Main state machine for frontend"""
-    current_app.logger.debug('\n\n')
-    current_app.logger.debug(f'--- Next ({ticket.request_ref}) ---')
+    current_app.logger.debug("\n\n")
+    current_app.logger.debug(f"--- Next ({ticket.request_ref}) ---")
 
     if not current_app.conf.login_bundle_url:
         return error_response(message=IdPMsg.not_available)
 
     _next = login_next_step(ticket, sso_session)
-    current_app.logger.debug(f'Login Next: {_next}')
+    current_app.logger.debug(f"Login Next: {_next}")
 
     if _next.message == IdPMsg.unknown_device:
-        return success_response(payload={'action': IdPAction.NEW_DEVICE.value})
+        return success_response(payload={"action": IdPAction.NEW_DEVICE.value})
 
     if _next.message == IdPMsg.aborted:
         if isinstance(ticket, LoginContextSAML):
             saml_params = cancel_saml_request(ticket, current_app.conf)
 
             if saml_params.binding != BINDING_HTTP_POST:
-                current_app.logger.error(f'SAML response does not have binding HTTP_POST')
+                current_app.logger.error(f"SAML response does not have binding HTTP_POST")
                 return error_response(message=IdPMsg.general_failure)
 
             return success_response(
                 message=IdPMsg.finished,
                 payload={
-                    'action': IdPAction.FINISHED.value,
-                    'target': saml_params.url,
-                    'parameters': saml_params.post_params,
+                    "action": IdPAction.FINISHED.value,
+                    "target": saml_params.url,
+                    "parameters": saml_params.post_params,
                 },
             )
         elif isinstance(ticket, LoginContextOtherDevice):
             state = ticket.other_device_req
             if state.state in [OtherDeviceState.NEW, OtherDeviceState.IN_PROGRESS, OtherDeviceState.AUTHENTICATED]:
-                current_app.logger.info('Aborting login using another device')
+                current_app.logger.info("Aborting login using another device")
 
                 _abort_res = current_app.other_device_db.abort(state)
                 if not _abort_res:
-                    current_app.logger.warning(f'Login using other device: Failed aborting state {state}')
+                    current_app.logger.warning(f"Login using other device: Failed aborting state {state}")
                     return error_response(message=IdPMsg.general_failure)
-                current_app.stats.count('login_using_other_device_abort_device2')
+                current_app.stats.count("login_using_other_device_abort_device2")
 
                 return success_response(
                     message=IdPMsg.finished,
                     payload={
-                        'action': IdPAction.FINISHED.value,
-                        'target': url_for('other_device.use_other_2', _external=True),
+                        "action": IdPAction.FINISHED.value,
+                        "target": url_for("other_device.use_other_2", _external=True),
                     },
                 )
             else:
-                current_app.logger.info(f'Not aborting use other device in state {state.state}')
-        current_app.logger.error(f'Don\'t know how to abort login request {ticket}')
+                current_app.logger.info(f"Not aborting use other device in state {state.state}")
+        current_app.logger.error(f"Don't know how to abort login request {ticket}")
         return error_response(message=IdPMsg.general_failure)
 
     required_user = get_required_user(ticket, sso_session)
@@ -93,10 +93,10 @@ def next_view(ticket: LoginContext, sso_session: Optional[SSOSession]) -> FluxDa
 
     if _next.message == IdPMsg.other_device:
         _payload = {
-            'action': IdPAction.OTHER_DEVICE.value,
-            'target': url_for('other_device.use_other_1', _external=True),
-            'authn_options': _get_authn_options(ticket, sso_session, required_user.eppn),
-            'service_info': _get_service_info(ticket),
+            "action": IdPAction.OTHER_DEVICE.value,
+            "target": url_for("other_device.use_other_1", _external=True),
+            "authn_options": _get_authn_options(ticket, sso_session, required_user.eppn),
+            "service_info": _get_service_info(ticket),
         }
 
         return success_response(
@@ -106,10 +106,10 @@ def next_view(ticket: LoginContext, sso_session: Optional[SSOSession]) -> FluxDa
 
     if _next.message == IdPMsg.must_authenticate:
         _payload = {
-            'action': IdPAction.PWAUTH.value,
-            'target': url_for('pw_auth.pw_auth', _external=True),
-            'authn_options': _get_authn_options(ticket, sso_session, required_user.eppn),
-            'service_info': _get_service_info(ticket),
+            "action": IdPAction.PWAUTH.value,
+            "target": url_for("pw_auth.pw_auth", _external=True),
+            "authn_options": _get_authn_options(ticket, sso_session, required_user.eppn),
+            "service_info": _get_service_info(ticket),
         }
 
         return success_response(
@@ -121,17 +121,17 @@ def next_view(ticket: LoginContext, sso_session: Optional[SSOSession]) -> FluxDa
         return success_response(
             message=IdPMsg.mfa_required,
             payload={
-                'action': IdPAction.MFA.value,
-                'target': url_for('mfa_auth.mfa_auth', _external=True),
-                'authn_options': _get_authn_options(ticket, sso_session, required_user.eppn),
-                'service_info': _get_service_info(ticket),
+                "action": IdPAction.MFA.value,
+                "target": url_for("mfa_auth.mfa_auth", _external=True),
+                "authn_options": _get_authn_options(ticket, sso_session, required_user.eppn),
+                "service_info": _get_service_info(ticket),
             },
         )
 
     if _next.message == IdPMsg.tou_required:
         return success_response(
             message=IdPMsg.tou_required,
-            payload={'action': IdPAction.TOU.value, 'target': url_for('tou.tou', _external=True)},
+            payload={"action": IdPAction.TOU.value, "target": url_for("tou.tou", _external=True)},
         )
 
     if _next.message == IdPMsg.user_terminated:
@@ -146,26 +146,26 @@ def next_view(ticket: LoginContext, sso_session: Optional[SSOSession]) -> FluxDa
 
         user = current_app.userdb.lookup_user(sso_session.eppn)
         if not user:
-            current_app.logger.error(f'User with eppn {sso_session.eppn} (from SSO session) not found')
+            current_app.logger.error(f"User with eppn {sso_session.eppn} (from SSO session) not found")
             return error_response(message=IdPMsg.general_failure)
 
         sso = SSO(sso_session=sso_session)
         # please mypy
         if not _next.authn_info or not _next.authn_state:
-            raise RuntimeError(f'Missing expected data in next result: {_next}')
+            raise RuntimeError(f"Missing expected data in next result: {_next}")
 
         try:
             # Logging stats is optional, make sure we never fail a login because of it
             _log_user_agent()
         except:
-            current_app.logger.exception('Producing User-Agent stats failed')
+            current_app.logger.exception("Producing User-Agent stats failed")
 
         if current_app.conf.known_devices_feature_enabled:
             if ticket.known_device and ticket.known_device_info:
                 if ticket.known_device.data.login_counter is None:
                     ticket.known_device.data.login_counter = 0  # for mypy
                 ticket.known_device.data.login_counter += 1
-                current_app.stats.gauge('login_known_device_login_counter', ticket.known_device.data.login_counter)
+                current_app.stats.gauge("login_known_device_login_counter", ticket.known_device.data.login_counter)
                 _update_known_device_data(ticket, user, _next.authn_info)
                 current_app.known_device_db.save(
                     ticket.known_device, from_browser=ticket.known_device_info, ttl=current_app.conf.known_devices_ttl
@@ -176,29 +176,29 @@ def next_view(ticket: LoginContext, sso_session: Optional[SSOSession]) -> FluxDa
                 # Logging stats is optional, make sure we never fail a login because of it
                 _geo_statistics(ticket=ticket, sso_session=sso_session)
             except:
-                current_app.logger.exception('Producing Geo stats failed')
+                current_app.logger.exception("Producing Geo stats failed")
 
         if isinstance(ticket, LoginContextSAML):
             saml_params = sso.get_response_params(_next.authn_info, ticket, user)
             if saml_params.binding != BINDING_HTTP_POST:
-                current_app.logger.error(f'SAML response does not have binding HTTP_POST')
+                current_app.logger.error(f"SAML response does not have binding HTTP_POST")
                 return error_response(message=IdPMsg.general_failure)
             return success_response(
                 message=IdPMsg.finished,
                 payload={
-                    'action': IdPAction.FINISHED.value,
-                    'target': saml_params.url,
-                    'parameters': saml_params.post_params,
+                    "action": IdPAction.FINISHED.value,
+                    "target": saml_params.url,
+                    "parameters": saml_params.post_params,
                 },
             )
         elif isinstance(ticket, LoginContextOtherDevice):
             if not ticket.is_other_device_2:
                 # We shouldn't be able to get here, but this clearly shows where this code runs
-                current_app.logger.warning(f'Ticket is LoginContextOtherDevice, but this is not device #2')
+                current_app.logger.warning(f"Ticket is LoginContextOtherDevice, but this is not device #2")
                 return error_response(message=IdPMsg.general_failure)
 
             return device2_finish(ticket, sso_session, _next.authn_state)
-        current_app.logger.error(f'Don\'t know how to finish login request {ticket}')
+        current_app.logger.error(f"Don't know how to finish login request {ticket}")
         return error_response(message=IdPMsg.general_failure)
 
     return error_response(message=IdPMsg.not_implemented)
@@ -250,7 +250,7 @@ def _get_authn_options(ticket: LoginContext, sso_session: Optional[SSOSession], 
     res.other_device = current_app.conf.allow_other_device_logins
 
     if ticket.is_other_device_2:
-        current_app.logger.debug(f'This is already a request to log in to another device, not allowing other_device')
+        current_app.logger.debug(f"This is already a request to log in to another device, not allowing other_device")
         res.other_device = False
 
     if eppn:
@@ -260,7 +260,7 @@ def _get_authn_options(ticket: LoginContext, sso_session: Optional[SSOSession], 
         # Since the user has a session, logout should be shown (to allow change of user)
         res.has_session = True
 
-    current_app.logger.debug(f'Valid authn options at this time: {res.valid_options}')
+    current_app.logger.debug(f"Valid authn options at this time: {res.valid_options}")
 
     return res.to_dict()
 
@@ -281,26 +281,26 @@ def get_required_user(ticket: LoginContext, sso_session: Optional[SSOSession]) -
 
     if isinstance(ticket, LoginContextSAML) and ticket.service_requested_eppn:
         _eppn = ticket.service_requested_eppn
-        current_app.logger.info(f'SP requests login as {_eppn}')  # TODO: change to debug logging later
+        current_app.logger.info(f"SP requests login as {_eppn}")  # TODO: change to debug logging later
         eppn_set.add(_eppn)
 
     if isinstance(ticket, LoginContextOtherDevice) and ticket.is_other_device_2 and ticket.service_requested_eppn:
         _eppn = ticket.service_requested_eppn
-        current_app.logger.info(f'Other device requests login as {_eppn}')  # TODO: change to debug logging later
+        current_app.logger.info(f"Other device requests login as {_eppn}")  # TODO: change to debug logging later
         eppn_set.add(_eppn)
 
     if ticket.known_device and ticket.known_device.data.eppn:
         _eppn = ticket.known_device.data.eppn
-        current_app.logger.info(f'Device belongs to {_eppn}')  # TODO: change to debug logging later
+        current_app.logger.info(f"Device belongs to {_eppn}")  # TODO: change to debug logging later
         eppn_set.add(_eppn)
 
     if sso_session and sso_session.eppn:
         _eppn = sso_session.eppn
-        current_app.logger.info(f'SSO session belongs to {_eppn}')  # TODO: change to debug logging later
+        current_app.logger.info(f"SSO session belongs to {_eppn}")  # TODO: change to debug logging later
         eppn_set.add(_eppn)
 
     if len(eppn_set) > 1:
-        current_app.logger.warning(f'Contradicting information about who needs to log in: {eppn_set}')
+        current_app.logger.warning(f"Contradicting information about who needs to log in: {eppn_set}")
         return RequiredUserResult(response=error_response(message=IdPMsg.wrong_user))
 
     if eppn_set:
@@ -314,7 +314,7 @@ def _get_service_info(ticket: LoginContext) -> Dict[str, Any]:
         if ticket.service_info is not None:
             return ticket.service_info.to_dict()
     except:
-        current_app.logger.exception('Failed getting service info for SP')
+        current_app.logger.exception("Failed getting service info for SP")
     return {}
 
 
@@ -323,22 +323,22 @@ def _set_user_options(res: AuthnOptions, eppn: str) -> None:
     user = current_app.userdb.lookup_user(eppn)
     if user:
         current_app.logger.debug(
-            f'User logging in (from either known device, other device, SSO session, or SP request): {user}'
+            f"User logging in (from either known device, other device, SSO session, or SP request): {user}"
         )
         if user.credentials.filter(Password):
-            current_app.logger.debug(f'User has a Password credential')
+            current_app.logger.debug(f"User has a Password credential")
             res.password = True
 
         if user.credentials.filter(FidoCredential):
-            current_app.logger.debug(f'User has a FIDO/Webauthn credential')
+            current_app.logger.debug(f"User has a FIDO/Webauthn credential")
             res.webauthn = True
 
         if user.locked_identity.nin:
-            current_app.logger.debug(f'User has a locked NIN -> Freja is possible')
+            current_app.logger.debug(f"User has a locked NIN -> Freja is possible")
             res.freja_eidplus = True
 
         res.forced_username = get_login_username(user)
-        current_app.logger.debug(f'User forced_username: {res.forced_username}')
+        current_app.logger.debug(f"User forced_username: {res.forced_username}")
 
         # TODO: Should ideally distinguish between a _real_ forced username, such as the SP requiring a
         #       specific user to log in, and e.g. a known device where the user might choose to reset
@@ -364,37 +364,37 @@ def _geo_statistics(ticket: LoginContext, sso_session: Optional[SSOSession]) -> 
     if not ua:
         return None
 
-    if ua.parsed.browser.family in ['Python Requests', 'PingdomBot'] or ua.parsed.is_bot:
+    if ua.parsed.browser.family in ["Python Requests", "PingdomBot"] or ua.parsed.is_bot:
         return None
 
-    secret = urlsafe_b64decode(bytes(current_app.conf.geo_statistics_secret_key, 'ascii'))
+    secret = urlsafe_b64decode(bytes(current_app.conf.geo_statistics_secret_key, "ascii"))
 
     user_hash = hmac.HMAC(secret, hashes.SHA256())
-    user_hash.update(bytes(sso_session.eppn, 'utf-8'))
+    user_hash.update(bytes(sso_session.eppn, "utf-8"))
 
     d: Dict[str, Any] = {
-        'data': {
-            'user_id': user_hash.finalize().hex(),
-            'client_ip': request.remote_addr,
-            'known_device': bool(ticket.known_device),
-            'user_agent': {'browser': {}, 'os': {}, 'device': {}, 'sophisticated': {}},
+        "data": {
+            "user_id": user_hash.finalize().hex(),
+            "client_ip": request.remote_addr,
+            "known_device": bool(ticket.known_device),
+            "user_agent": {"browser": {}, "os": {}, "device": {}, "sophisticated": {}},
         }
     }
 
-    data = d['data']
-    data['user_agent']['browser']['family'] = ua.parsed.browser.family
-    data['user_agent']['os']['family'] = ua.parsed.os.family
-    data['user_agent']['device']['family'] = ua.parsed.device.family
-    data['user_agent']['sophisticated']['is_mobile'] = ua.parsed.is_mobile
-    data['user_agent']['sophisticated']['is_pc'] = ua.parsed.is_pc
-    data['user_agent']['sophisticated']['is_tablet'] = ua.parsed.is_tablet
-    data['user_agent']['sophisticated']['is_touch_capable'] = ua.parsed.is_touch_capable
+    data = d["data"]
+    data["user_agent"]["browser"]["family"] = ua.parsed.browser.family
+    data["user_agent"]["os"]["family"] = ua.parsed.os.family
+    data["user_agent"]["device"]["family"] = ua.parsed.device.family
+    data["user_agent"]["sophisticated"]["is_mobile"] = ua.parsed.is_mobile
+    data["user_agent"]["sophisticated"]["is_pc"] = ua.parsed.is_pc
+    data["user_agent"]["sophisticated"]["is_tablet"] = ua.parsed.is_tablet
+    data["user_agent"]["sophisticated"]["is_touch_capable"] = ua.parsed.is_touch_capable
 
     try:
         resp = requests.post(current_app.conf.geo_statistics_url, json=d, timeout=1)
-        current_app.logger.debug(f'response from geo-statistics app: {resp.json}')
+        current_app.logger.debug(f"response from geo-statistics app: {resp.json}")
     except requests.RequestException:
-        current_app.logger.exception('Failed to contact geo-statistics app')
+        current_app.logger.exception("Failed to contact geo-statistics app")
 
 
 def _log_user_agent() -> None:
@@ -403,42 +403,42 @@ def _log_user_agent() -> None:
 
     if ua:
         # TODO: change to debug logging later
-        current_app.logger.info(f'Logging in user with User-Agent {repr(ua.safe_str)}')
+        current_app.logger.info(f"Logging in user with User-Agent {repr(ua.safe_str)}")
 
     if not ua:
-        current_app.stats.count('login_finished_ua_is_none')
+        current_app.stats.count("login_finished_ua_is_none")
         return
 
-    if ua.parsed.browser.family in ['Python Requests', 'PingdomBot']:
+    if ua.parsed.browser.family in ["Python Requests", "PingdomBot"]:
         # Don't want to log further details about the monitoring of the IdPs and apps
-        current_app.stats.count('login_finished_ua_is_monitoring')
+        current_app.stats.count("login_finished_ua_is_monitoring")
         return
 
     if ua.parsed.is_bot:
         # Don't want bots to affect e.g. OS count
-        current_app.stats.count('login_finished_ua_is_bot')
+        current_app.stats.count("login_finished_ua_is_bot")
         return
 
     # log a 'total count' of users to avoid having to sum up potential unknowns, such as browser families
-    current_app.stats.count('login_finished_ua_is_user')
+    current_app.stats.count("login_finished_ua_is_user")
 
     if ua.parsed.is_mobile:
-        current_app.stats.count('login_finished_ua_is_mobile')
+        current_app.stats.count("login_finished_ua_is_mobile")
     elif ua.parsed.is_pc:
-        current_app.stats.count('login_finished_ua_is_pc')
+        current_app.stats.count("login_finished_ua_is_pc")
     elif ua.parsed.is_tablet:
-        current_app.stats.count('login_finished_ua_is_tablet')
+        current_app.stats.count("login_finished_ua_is_tablet")
     else:
-        current_app.stats.count('login_finished_ua_is_unknown')
+        current_app.stats.count("login_finished_ua_is_unknown")
         return
 
     def _safe_stat(prefix: str, value: str) -> None:
-        safe_value = re.sub('[^a-zA-Z0-9.]', '_', value[:20])
-        current_app.stats.count(f'{prefix}_{safe_value}')
+        safe_value = re.sub("[^a-zA-Z0-9.]", "_", value[:20])
+        current_app.stats.count(f"{prefix}_{safe_value}")
 
-    _safe_stat('login_finished_ua_device', ua.parsed.device.family)
-    _safe_stat('login_finished_ua_os_family', ua.parsed.os.family)
-    _safe_stat('login_finished_ua_browser', ua.parsed.browser.family)
+    _safe_stat("login_finished_ua_device", ua.parsed.device.family)
+    _safe_stat("login_finished_ua_os_family", ua.parsed.os.family)
+    _safe_stat("login_finished_ua_browser", ua.parsed.browser.family)
 
     return None
 
@@ -460,24 +460,24 @@ def _update_known_device_data(ticket: LoginContext, user: IdPUser, authn_info: A
         return
 
     if not ticket.known_device.data.eppn:
-        current_app.logger.info('Known device: Recording new eppn')  # TODO: change to debug after burn-in
+        current_app.logger.info("Known device: Recording new eppn")  # TODO: change to debug after burn-in
         ticket.known_device.data.eppn = user.eppn
-        current_app.stats.count('login_new_device_first_login_finished')
+        current_app.stats.count("login_new_device_first_login_finished")
     elif ticket.known_device.data.eppn != user.eppn:
         # We quite possibly want to block this in production, after verifying it "shouldn't happen"
-        current_app.logger.warning(f'Known device: eppn changed from {ticket.known_device.data.eppn} to {user.eppn}')
+        current_app.logger.warning(f"Known device: eppn changed from {ticket.known_device.data.eppn} to {user.eppn}")
         ticket.known_device.data.eppn = user.eppn
-        current_app.stats.count('login_known_device_changed_eppn')
+        current_app.stats.count("login_known_device_changed_eppn")
     else:
-        current_app.logger.info('Known device: Same user logging in')  # TODO: change to debug after burn-in
-        current_app.stats.count('login_known_device_login_finished')
+        current_app.logger.info("Known device: Same user logging in")  # TODO: change to debug after burn-in
+        current_app.stats.count("login_known_device_login_finished")
 
     if ticket.known_device.data.ip_address != request.remote_addr:
         if ticket.known_device.data.ip_address:
-            current_app.stats.count('login_known_device_ip_changed')
-        current_app.logger.info('Known device: Recording new IP address')  # TODO: change to debug after burn-in
-        current_app.logger.debug(f'Known device:   old {ticket.known_device.data.ip_address}')
-        current_app.logger.debug(f'Known device:   new {request.remote_addr}')
+            current_app.stats.count("login_known_device_ip_changed")
+        current_app.logger.info("Known device: Recording new IP address")  # TODO: change to debug after burn-in
+        current_app.logger.debug(f"Known device:   old {ticket.known_device.data.ip_address}")
+        current_app.logger.debug(f"Known device:   new {request.remote_addr}")
         ticket.known_device.data.ip_address = request.remote_addr
 
     _ua = get_user_agent()
@@ -486,16 +486,16 @@ def _update_known_device_data(ticket: LoginContext, user: IdPUser, authn_info: A
         _ua_str = str(_ua.parsed)
     if ticket.known_device.data.user_agent != _ua_str:
         if ticket.known_device.data.user_agent:
-            current_app.stats.count('login_known_device_ua_changed')
-        current_app.logger.info('Known device: Recording new User-Agent')  # TODO: change to debug after burn-in
-        current_app.logger.debug(f'Known device:   old {ticket.known_device.data.user_agent}')
-        current_app.logger.debug(f'Known device:   new {_ua_str}')
+            current_app.stats.count("login_known_device_ua_changed")
+        current_app.logger.info("Known device: Recording new User-Agent")  # TODO: change to debug after burn-in
+        current_app.logger.debug(f"Known device:   old {ticket.known_device.data.user_agent}")
+        current_app.logger.debug(f"Known device:   new {_ua_str}")
         ticket.known_device.data.user_agent = _ua_str
 
     if ticket.known_device.data.last_login:
         age = authn_info.instant - ticket.known_device.data.last_login
         # TODO: change to debug after burn-in
-        current_app.logger.info(f'Known device: Last login from this device was {age} before this one')
-        current_app.logger.debug(f'Known device:   old {ticket.known_device.data.last_login.isoformat()}')
-        current_app.logger.debug(f'Known device:   new {authn_info.instant.isoformat()}')
+        current_app.logger.info(f"Known device: Last login from this device was {age} before this one")
+        current_app.logger.debug(f"Known device:   old {ticket.known_device.data.last_login.isoformat()}")
+        current_app.logger.debug(f"Known device:   new {authn_info.instant.isoformat()}")
     ticket.known_device.data.last_login = authn_info.instant

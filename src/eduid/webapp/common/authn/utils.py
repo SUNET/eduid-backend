@@ -60,11 +60,11 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-def get_saml2_config(module_path: str, name='SAML_CONFIG') -> SPConfig:
+def get_saml2_config(module_path: str, name="SAML_CONFIG") -> SPConfig:
     """Load SAML2 config file, in the form of a Python module."""
-    spec = importlib.util.spec_from_file_location('saml2_settings', module_path)
+    spec = importlib.util.spec_from_file_location("saml2_settings", module_path)
     if spec is None:
-        raise RuntimeError(f'Failed loading saml2_settings module: {module_path}')
+        raise RuntimeError(f"Failed loading saml2_settings module: {module_path}")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)  # type: ignore
 
@@ -73,14 +73,14 @@ def get_saml2_config(module_path: str, name='SAML_CONFIG') -> SPConfig:
     return conf
 
 
-def get_location(http_info):
+def get_location(http_info: Mapping[str, Any]) -> str:
     """Extract the redirect URL from a pysaml2 http_info object"""
-    assert 'headers' in http_info
-    headers = http_info['headers']
+    assert "headers" in http_info
+    headers = http_info["headers"]
 
     assert len(headers) == 1
     header_name, header_value = headers[0]
-    assert header_name == 'Location'
+    assert header_name == "Location"
     return header_value
 
 
@@ -101,12 +101,12 @@ def get_saml_attribute(session_info: SessionInfo, attr_name: str) -> Optional[Li
     :type attr_name: string()
     :rtype: [string()]
     """
-    if 'ava' not in session_info:
-        raise ValueError('SAML attributes (ava) not found in session_info')
+    if "ava" not in session_info:
+        raise ValueError("SAML attributes (ava) not found in session_info")
 
-    attributes = session_info['ava']
+    attributes = session_info["ava"]
 
-    logger.debug('SAML attributes received: %s' % attributes)
+    logger.debug("SAML attributes received: %s" % attributes)
 
     # Look for the canonicalized attribute in the SAML assertion attributes
     for saml_attr, _ in attributes.items():
@@ -122,7 +122,7 @@ def no_authn_views(config: EduIDBaseAppConfig, paths: Sequence[str]) -> None:
     """
     app_root = config.flask.application_root
     for path in paths:
-        no_auth_regex = '^{!s}$'.format(urlappend(app_root, path))
+        no_auth_regex = "^{!s}$".format(urlappend(app_root, path))
         if no_auth_regex not in config.no_authn_urls:
             config.no_authn_urls.append(no_auth_regex)
     return None
@@ -145,7 +145,7 @@ def check_previous_identification(session_ns: TimestampedNS) -> Optional[str]:
     from eduid.webapp.common.session import session
 
     eppn = session.common.eppn
-    logger.debug(f'Trying to authenticate user {eppn} with timestamp {session_ns.ts}')
+    logger.debug(f"Trying to authenticate user {eppn} with timestamp {session_ns.ts}")
     # check that the eppn and timestamp have been set in the session
     if eppn is None or session_ns.ts is None:
         return None
@@ -155,7 +155,7 @@ def check_previous_identification(session_ns: TimestampedNS) -> Optional[str]:
     #       user to continue doing what they are doing. Do something better.
     if (session_ns.ts < now - timedelta(seconds=300)) or (session_ns.ts > now + timedelta(seconds=900)):
         delta = (now - session_ns.ts).total_seconds()
-        logger.error(f'Auth token timestamp {session_ns.ts} out of bounds ({delta} seconds from {now})')
+        logger.error(f"Auth token timestamp {session_ns.ts} out of bounds ({delta} seconds from {now})")
         return None
     return eppn
 

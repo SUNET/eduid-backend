@@ -29,13 +29,16 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+from datetime import timedelta
 
 import bson
 
 from eduid.userdb import User
+from eduid.userdb.exceptions import UserOutOfSync
 from eduid.userdb.fixtures.passwords import signup_password
-from eduid.userdb.fixtures.users import mocked_user_standard
-from eduid.userdb.testing import MongoTestCase, normalised_data
+from eduid.userdb.fixtures.users import mocked_user_standard, mocked_user_standard_2
+from eduid.userdb.testing import MongoTestCase, MongoTestCaseRaw, normalised_data
+from eduid.userdb.util import utc_now
 
 
 class TestUserDB(MongoTestCase):
@@ -54,13 +57,13 @@ class TestUserDB(MongoTestCase):
         res = self.amdb.get_user_by_id(str(bson.ObjectId()))
         assert res is None
 
-        res = self.amdb.get_user_by_id('not-a-valid-object-id')
+        res = self.amdb.get_user_by_id("not-a-valid-object-id")
         assert res is None
 
     def test_get_user_by_nin(self):
         """Test get_user_by_nin"""
         test_user = self.amdb.get_user_by_id(self.user.user_id)
-        test_user.given_name = 'Kalle Anka'
+        test_user.given_name = "Kalle Anka"
         self.amdb.save(test_user)
         res = self.amdb.get_user_by_nin(test_user.identities.nin.number)
         assert test_user.given_name == res.given_name
@@ -85,28 +88,57 @@ class TestUserDB(MongoTestCase):
 
     def test_get_user_by_eppn_not_found(self):
         """Test user lookup using unknown"""
-        assert self.amdb.get_user_by_eppn('abc123') is None
+        assert self.amdb.get_user_by_eppn("abc123") is None
+
+
+class UpdateUser(MongoTestCaseRaw):
+    def setUp(self, *args, **kwargs):
+        self.user = mocked_user_standard
+        super().setUp(am_users=[self.user, mocked_user_standard_2], **kwargs)
+
+    def test_stale_user__meta_version(self):
+        test_user = mocked_user_standard
+        test_user.given_name = "new_given_name"
+        test_user.meta.new_version()
+
+        with self.assertRaises(UserOutOfSync):
+            self.amdb.save(test_user, check_sync=True)
+
+    def test_ok(self):
+        test_user = mocked_user_standard
+        test_user.given_name = "new_given_name"
+
+        old_meta_version = test_user.meta.version
+        old_modified_ts = test_user.modified_ts
+
+        res = self.amdb.save(test_user, check_sync=True)
+        assert res is True
+
+        db_user = self.amdb.get_user_by_id(test_user.user_id)
+        assert db_user.meta.version != old_meta_version
+        assert db_user.modified_ts != old_modified_ts
+        assert db_user.given_name == "new_given_name"
 
 
 class TestUserDB_mail(MongoTestCase):
     def setUp(self, *args, **kwargs):
         super().setUp(*args, **kwargs)
         data1 = {
-            u'_id': bson.ObjectId(),
-            u'eduPersonPrincipalName': u'mail-test1',
-            u'mail': u'test@gmail.com',
-            u'mailAliases': [{u'email': u'test@gmail.com', u'verified': True}],
-            u'passwords': [signup_password.to_dict()],
+            "_id": bson.ObjectId(),
+            "eduPersonPrincipalName": "mail-test1",
+            "mail": "test@gmail.com",
+            "mailAliases": [{"email": "test@gmail.com", "verified": True}],
+            "passwords": [signup_password.to_dict()],
         }
 
         data2 = {
-            u'_id': bson.ObjectId(),
-            u'eduPersonPrincipalName': u'mail-test2',
-            u'mailAliases': [
-                {u'email': u'test2@gmail.com', u'primary': True, u'verified': True},
-                {u'email': u'test@gmail.com', u'verified': False},
+            "_id": bson.ObjectId(),
+            "eduPersonPrincipalName": "mail-test2",
+            "mailAliases": [
+                {"email": "test2@gmail.com", "primary": True, "verified": True},
+                {"email": "test@gmail.com", "verified": False},
             ],
-            u'passwords': [signup_password.to_dict()],
+            "passwords": [signup_password.to_dict()],
         }
 
         self.user1 = User.from_dict(data1)
@@ -122,14 +154,14 @@ class TestUserDB_mail(MongoTestCase):
 
     def test_get_user_by_mail_unknown(self):
         """Test searching for unknown e-mail address"""
-        assert self.amdb.get_user_by_mail('abc123@example.edu') is None
+        assert self.amdb.get_user_by_mail("abc123@example.edu") is None
 
     def test_get_user_by_mail_multiple(self):
-        res = self.amdb.get_users_by_mail('test@gmail.com')
+        res = self.amdb.get_users_by_mail("test@gmail.com")
         ids = [x.user_id for x in res]
         assert ids == [self.user1.user_id]
 
-        res = self.amdb.get_users_by_mail('test@gmail.com', include_unconfirmed=True)
+        res = self.amdb.get_users_by_mail("test@gmail.com", include_unconfirmed=True)
         ids = [x.user_id for x in res]
         assert ids == [self.user1.user_id, self.user2.user_id]
 
@@ -138,25 +170,25 @@ class TestUserDB_phone(MongoTestCase):
     def setUp(self, *args, **kwargs):
         super().setUp(*args, **kwargs)
         data1 = {
-            u'_id': bson.ObjectId(),
-            u'eduPersonPrincipalName': u'phone-test1',
-            u'mail': u'kalle@example.com',
-            u'phone': [
-                {u'number': u'+11111111111', u'primary': True, u'verified': True},
-                {u'number': u'+22222222222', u'primary': False, u'verified': True},
+            "_id": bson.ObjectId(),
+            "eduPersonPrincipalName": "phone-test1",
+            "mail": "kalle@example.com",
+            "phone": [
+                {"number": "+11111111111", "primary": True, "verified": True},
+                {"number": "+22222222222", "primary": False, "verified": True},
             ],
-            u'passwords': [signup_password.to_dict()],
+            "passwords": [signup_password.to_dict()],
         }
         data2 = {
-            u'_id': bson.ObjectId(),
-            u'eduPersonPrincipalName': u'phone-test2',
-            u'mail': u'anka@example.com',
-            u'phone': [
-                {u'number': u'+11111111111', u'primary': True, u'verified': False},
-                {u'number': u'+22222222222', u'primary': False, u'verified': False},
-                {u'number': u'+33333333333', u'primary': False, u'verified': False},
+            "_id": bson.ObjectId(),
+            "eduPersonPrincipalName": "phone-test2",
+            "mail": "anka@example.com",
+            "phone": [
+                {"number": "+11111111111", "primary": True, "verified": False},
+                {"number": "+22222222222", "primary": False, "verified": False},
+                {"number": "+33333333333", "primary": False, "verified": False},
             ],
-            u'passwords': [signup_password.to_dict()],
+            "passwords": [signup_password.to_dict()],
         }
 
         self.user1 = User.from_dict(data1)
@@ -169,24 +201,24 @@ class TestUserDB_phone(MongoTestCase):
         res = self.amdb.get_user_by_phone(test_user.phone_numbers.primary.number)
         assert res.user_id == test_user.user_id
 
-        res = self.amdb.get_user_by_phone('+22222222222')
+        res = self.amdb.get_user_by_phone("+22222222222")
         assert res.user_id == test_user.user_id
 
-        assert self.amdb.get_user_by_phone('+33333333333') is None
+        assert self.amdb.get_user_by_phone("+33333333333") is None
 
-        res = self.amdb.get_users_by_phone('+33333333333', include_unconfirmed=True)
+        res = self.amdb.get_users_by_phone("+33333333333", include_unconfirmed=True)
         assert [x.user_id for x in res] == [self.user2.user_id]
 
     def test_get_user_by_phone_unknown(self):
         """Test searching for unknown e-phone address"""
-        assert self.amdb.get_user_by_phone('abc123@example.edu') is None
+        assert self.amdb.get_user_by_phone("abc123@example.edu") is None
 
     def test_get_user_by_phone_multiple(self):
-        res = self.amdb.get_users_by_phone('+11111111111')
+        res = self.amdb.get_users_by_phone("+11111111111")
         ids = [x.user_id for x in res]
         assert ids == [self.user1.user_id]
 
-        res = self.amdb.get_users_by_phone('+11111111111', include_unconfirmed=True)
+        res = self.amdb.get_users_by_phone("+11111111111", include_unconfirmed=True)
         ids = [x.user_id for x in res]
         assert ids == [self.user1.user_id, self.user2.user_id]
 
@@ -196,32 +228,32 @@ class TestUserDB_nin(MongoTestCase):
     def setUp(self, *args, **kwargs):
         super().setUp(*args, **kwargs)
         data1 = {
-            u'_id': bson.ObjectId(),
-            u'eduPersonPrincipalName': u'nin-test1',
-            u'mail': u'kalle@example.com',
-            u'nins': [
-                {u'number': u'11111111111', u'primary': True, u'verified': True},
+            "_id": bson.ObjectId(),
+            "eduPersonPrincipalName": "nin-test1",
+            "mail": "kalle@example.com",
+            "nins": [
+                {"number": "11111111111", "primary": True, "verified": True},
             ],
-            u'passwords': [signup_password.to_dict()],
+            "passwords": [signup_password.to_dict()],
         }
         data2 = {
-            u'_id': bson.ObjectId(),
-            u'eduPersonPrincipalName': u'nin-test2',
-            u'mail': u'anka@example.com',
-            u'nins': [
-                {u'number': u'22222222222', u'primary': True, u'verified': True},
+            "_id": bson.ObjectId(),
+            "eduPersonPrincipalName": "nin-test2",
+            "mail": "anka@example.com",
+            "nins": [
+                {"number": "22222222222", "primary": True, "verified": True},
             ],
-            u'passwords': [signup_password.to_dict()],
+            "passwords": [signup_password.to_dict()],
         }
 
         data3 = {
-            u'_id': bson.ObjectId(),
-            u'eduPersonPrincipalName': u'nin-test3',
-            u'mail': u'anka@example.com',
-            u'nins': [
-                {u'number': u'33333333333', u'primary': False, u'verified': False},
+            "_id": bson.ObjectId(),
+            "eduPersonPrincipalName": "nin-test3",
+            "mail": "anka@example.com",
+            "nins": [
+                {"number": "33333333333", "primary": False, "verified": False},
             ],
-            u'passwords': [signup_password.to_dict()],
+            "passwords": [signup_password.to_dict()],
         }
 
         self.user1 = User.from_dict(data1)
@@ -235,40 +267,40 @@ class TestUserDB_nin(MongoTestCase):
     def test_get_user_by_nin(self):
         test_user = self.amdb.get_user_by_id(self.user1.user_id)
         res = self.amdb.get_user_by_nin(test_user.identities.nin.number)
-        assert res.user_id == test_user.user_id, 'alpha'
+        assert res.user_id == test_user.user_id, "alpha"
 
-        res = self.amdb.get_user_by_nin('11111111111')
-        assert res.user_id == test_user.user_id, 'beta'
+        res = self.amdb.get_user_by_nin("11111111111")
+        assert res.user_id == test_user.user_id, "beta"
 
-        res = self.amdb.get_user_by_nin('22222222222')
-        assert res.user_id == self.user2.user_id, 'gamma'
+        res = self.amdb.get_user_by_nin("22222222222")
+        assert res.user_id == self.user2.user_id, "gamma"
 
-        assert self.amdb.get_user_by_nin('33333333333') is None, 'delta'
+        assert self.amdb.get_user_by_nin("33333333333") is None, "delta"
 
-        res = self.amdb.get_users_by_nin('33333333333', include_unconfirmed=True)
-        assert [x.user_id for x in res] == [self.user3.user_id], 'epsilon'
+        res = self.amdb.get_users_by_nin("33333333333", include_unconfirmed=True)
+        assert [x.user_id for x in res] == [self.user3.user_id], "epsilon"
 
     def test_get_user_by_nin_unknown(self):
         """Test searching for unknown e-nin address"""
-        assert self.amdb.get_user_by_nin('77777777777') is None
+        assert self.amdb.get_user_by_nin("77777777777") is None
 
     def test_get_user_by_nin_multiple(self):
         # create another user with nin 33333333333, this one verified
         data4 = {
-            '_id': bson.ObjectId(),
-            'eduPersonPrincipalName': u'nin-test4',
-            'mail': u'anka@example.com',
-            'nins': [
-                {u'number': u'33333333333', u'primary': True, u'verified': True},
+            "_id": bson.ObjectId(),
+            "eduPersonPrincipalName": "nin-test4",
+            "mail": "anka@example.com",
+            "nins": [
+                {"number": "33333333333", "primary": True, "verified": True},
             ],
-            'passwords': [signup_password.to_dict()],
+            "passwords": [signup_password.to_dict()],
         }
         user4 = User.from_dict(data4)
         self.amdb.save(user4)
 
-        res = self.amdb.get_users_by_nin('33333333333')
+        res = self.amdb.get_users_by_nin("33333333333")
         ids = [x.user_id for x in res]
         assert ids == [user4.user_id]
 
-        res = self.amdb.get_users_by_nin('33333333333', include_unconfirmed=True)
+        res = self.amdb.get_users_by_nin("33333333333", include_unconfirmed=True)
         assert [x.user_id for x in res] == [self.user3.user_id, user4.user_id]

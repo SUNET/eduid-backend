@@ -12,14 +12,14 @@ from eduid.userdb.userdb import BaseDB
 
 logger = logging.getLogger(__name__)
 
-__author__ = 'eperez'
+__author__ = "eperez"
 
 
 class AuthnCredType(str, Enum):
-    password = 'security.password_credential_type'
-    u2f = 'security.u2f_credential_type'
-    unknown = 'security.unknown_credential_type'
-    webauthn = 'security.webauthn_credential_type'
+    password = "security.password_credential_type"
+    u2f = "security.u2f_credential_type"
+    unknown = "security.unknown_credential_type"
+    webauthn = "security.webauthn_credential_type"
 
 
 @dataclass
@@ -34,7 +34,7 @@ class AuthnInfoDB(BaseDB):
     TODO: We already have a database class to access this collection, in the IdP. Consolidate the two.
     """
 
-    def __init__(self, db_uri, db_name='eduid_idp_authninfo', collection='authn_info'):
+    def __init__(self, db_uri, db_name="eduid_idp_authninfo", collection="authn_info"):
         super(AuthnInfoDB, self).__init__(db_uri, db_name, collection)
 
     def get_authn_info(self, user: User) -> Mapping[ElementKey, AuthnInfoElement]:
@@ -53,10 +53,10 @@ class AuthnInfoDB(BaseDB):
                 data_type = AuthnCredType.webauthn
 
             auth_entry = self._coll.find_one(credential.key)
-            logger.debug(f'get_authn_info {user}: cred id: {credential.key} auth entry: {auth_entry}')
+            logger.debug(f"get_authn_info {user}: cred id: {credential.key} auth entry: {auth_entry}")
             success_ts = None
             if auth_entry:
-                success_ts = auth_entry['success_ts']
+                success_ts = auth_entry["success_ts"]
 
             authninfo[credential.key] = AuthnInfoElement(
                 credential_type=data_type, created_ts=credential.created_ts, success_ts=success_ts

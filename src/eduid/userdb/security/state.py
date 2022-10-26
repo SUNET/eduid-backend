@@ -11,16 +11,16 @@ from pydantic import BaseModel, Extra, Field
 
 from eduid.userdb.security.element import CodeElement
 
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
 from eduid.userdb.util import utc_now
 
-TPasswordResetStateSubclass = TypeVar('TPasswordResetStateSubclass', bound='PasswordResetState')
+TPasswordResetStateSubclass = TypeVar("TPasswordResetStateSubclass", bound="PasswordResetState")
 
 
 class PasswordResetState(BaseModel):
-    eppn: str = Field(alias='eduPersonPrincipalName')
-    state_id: bson.ObjectId = Field(default_factory=lambda: bson.ObjectId(), alias='_id')
+    eppn: str = Field(alias="eduPersonPrincipalName")
+    state_id: bson.ObjectId = Field(default_factory=lambda: bson.ObjectId(), alias="_id")
     created_ts: datetime.datetime = Field(default_factory=lambda: utc_now())
     modified_ts: Optional[datetime.datetime] = None
     extra_security: Optional[Dict[str, Any]] = None
@@ -37,7 +37,7 @@ class PasswordResetState(BaseModel):
     #    self.reference = str(self.id)
 
     def __str__(self):
-        return '<eduID {!s}: {!s}>'.format(self.__class__.__name__, self.eppn)
+        return "<eduID {!s}: {!s}>".format(self.__class__.__name__, self.eppn)
 
     @property
     def reference(self) -> str:
@@ -60,8 +60,8 @@ class PasswordResetState(BaseModel):
         """
         Transform data received in eduid format into pythonic format.
         """
-        if 'reference' in data:
-            data.pop('reference')
+        if "reference" in data:
+            data.pop("reference")
         return data
 
     @classmethod
@@ -69,8 +69,8 @@ class PasswordResetState(BaseModel):
         """
         Transform data kept in pythonic format into eduid format.
         """
-        data['eduPersonPrincipalName'] = data.pop('eppn')
-        data['_id'] = data.pop('state_id')
+        data["eduPersonPrincipalName"] = data.pop("eppn")
+        data["_id"] = data.pop("state_id")
         return data
 
 
@@ -85,9 +85,9 @@ class PasswordResetEmailAndPhoneState(PasswordResetEmailState):
 
     @classmethod
     def from_email_state(
-        cls, email_state: PasswordResetEmailState, phone_number: str, phone_code: str, application='security'
+        cls, email_state: PasswordResetEmailState, phone_number: str, phone_code: str, application="security"
     ) -> PasswordResetEmailAndPhoneState:
         data = email_state.to_dict()
-        data['phone_number'] = phone_number
-        data['phone_code'] = CodeElement(created_by=application, code=phone_code)
+        data["phone_number"] = phone_number
+        data["phone_code"] = CodeElement(created_by=application, code=phone_code)
         return cls.from_dict(data=data)
