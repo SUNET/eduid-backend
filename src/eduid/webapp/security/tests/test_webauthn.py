@@ -592,24 +592,36 @@ class SecurityWebauthnTests(EduidAPITestCase):
     def test_authenticator_information(self, mock_verify_attestation):
         mock_verify_attestation = self._apple_special_verify_attestation
 
-        authenticators = [YUBIKEY_4, YUBIKEY_5_NFC, MICROSOFT_SURFACE_1796, NEXUS_5, IPHONE_12]
+        none_attestation_object = """o2NmbXRkbm9uZWdhdHRTdG10oGhhdXRoRGF0YViYxj7KDbeWdwEtucH8hAuBSeGOZxHTsdSGjUDkRxEY
+        LMJdAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCRvlr2y1QgLxAbJYI1H-HBYDyMcpQECAyYgASFYIGjY1rmhCeHsVeb2o2sNKcJp67MJG785al2g1uAM
+        IVwJIlggsQ4QvdBJpB721HU4hbYknS-JhNtE0kM01_c2FKHm7Lc"""
+        none_client_data = """eyJ0eXBlIjoid2ViYXV0aG4uY3JlYXRlIiwiY2hhbGxlbmdlIjoiMFlJdWs0S0s2YjhCaU1yOFh6dUFFM2c2Z1d
+        ZOWEyd1RkWlpuamhjQXNJTSIsIm9yaWdpbiI6Imh0dHBzOi8vZGFzaGJvYXJkLmRldi5lZHVpZC5zZSJ9"""
+        NONE_ATTESTATION = (none_attestation_object, none_client_data)
+
+        authenticators = [YUBIKEY_4, YUBIKEY_5_NFC, MICROSOFT_SURFACE_1796, NEXUS_5, IPHONE_12, NONE_ATTESTATION]
         for authenticator in authenticators:
             with self.app.test_request_context():
                 authenticator_info = get_authenticator_information(
                     attestation=authenticator[0], client_data=authenticator[1]
                 )
             assert authenticator_info is not None
+            assert authenticator_info.authenticator_id is not None
+            assert authenticator_info.attestation_format is not None
+            assert authenticator_info.user_present is not None
+            assert authenticator_info.user_verified is not None
 
             with self.app.test_request_context():
                 res = is_authenticator_mfa_approved(authenticator_info=authenticator_info)
-                if authenticator is YUBIKEY_4:
+                if authenticator in [YUBIKEY_4, NONE_ATTESTATION]:
                     # Yubikey 4 does not support any user verification we accept
+                    # None attestations cannot be verified to support anything we accept
                     assert res is False
                 else:
                     assert res is True
 
-            if authenticator is not IPHONE_12:
-                # No metadata for Apple devices
+            if authenticator not in [IPHONE_12, NONE_ATTESTATION]:
+                # No metadata for Apple devices or none attestation
                 assert (
                     self.app.fido_metadata_log.exists(
                         authenticator_id=authenticator_info.authenticator_id,
