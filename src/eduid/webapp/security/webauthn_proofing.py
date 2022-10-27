@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date, datetime, time
 from enum import Enum
 from typing import List, Optional, Union
@@ -26,16 +26,16 @@ class OtherAuthenticatorStatus(str, Enum):
 
 @dataclass
 class AuthenticatorInformation:
-    attestation_format: AttestationFormat
     authenticator_id: Union[UUID, str]
-    status: Union[AuthenticatorStatus, OtherAuthenticatorStatus]
-    last_status_change: datetime
-    user_verification_methods: List[str]
-    key_protection: List[str]
+    attestation_format: AttestationFormat
     user_present: bool
     user_verified: bool
-    icon: Optional[str]
-    description: str
+    status: Optional[Union[AuthenticatorStatus, OtherAuthenticatorStatus]] = field(default=None)
+    last_status_change: Optional[datetime] = field(default=None)
+    icon: Optional[str] = field(default=None)
+    description: Optional[str] = field(default=None)
+    key_protection: List[str] = field(default_factory=list)
+    user_verification_methods: List[str] = field(default_factory=list)
 
 
 def get_authenticator_information(attestation: str, client_data: str) -> AuthenticatorInformation:
@@ -45,6 +45,7 @@ def get_authenticator_information(attestation: str, client_data: str) -> Authent
     except ValueError as e:
         current_app.logger.exception("Failed to parse attestation object")
         raise e
+
     user_present = att.auth_data.flags.user_present
     user_verified = att.auth_data.flags.user_verified
     authenticator_id = att.aaguid or att.certificate_key_identifier
@@ -60,6 +61,15 @@ def get_authenticator_information(attestation: str, client_data: str) -> Authent
             key_protection=["magic_cookie"],
             description="Magic cookie backdoor",
             icon=None,
+            user_present=user_present,
+            user_verified=user_verified,
+        )
+
+    # if attestation format is None, we have no attestation and can't do any more checks
+    if att.fmt == AttestationFormat.NONE:
+        return AuthenticatorInformation(
+            attestation_format=att.fmt,
+            authenticator_id=authenticator_id,
             user_present=user_present,
             user_verified=user_verified,
         )
@@ -127,6 +137,10 @@ def is_authenticator_mfa_approved(authenticator_info: AuthenticatorInformation) 
     """
     This is our current policy for determine if a FIDO2 authenticator can do multi-factor authentications.
     """
+    # If there is no attestation we can not trust the authenticator info
+    if authenticator_info.attestation_format == AttestationFormat.NONE:
+        return False
+
     # Our current policy is that Apple is capable of mfa
     if authenticator_info.status is OtherAuthenticatorStatus.APPLE:
         current_app.logger.debug("apple device is mfa capable")
