@@ -38,7 +38,6 @@ from typing import Any, Mapping
 from bson import ObjectId
 from flask import request
 
-from eduid.common.misc.tous import get_tous
 from eduid.userdb.actions import Action
 from eduid.userdb.actions.action import ActionResult
 from eduid.userdb.actions.tou import ToUUser, ToUUserDB
@@ -66,7 +65,8 @@ class Plugin(ActionPlugin):
         app.tou_db = ToUUserDB(app.conf.mongo_uri)
 
     def get_config_for_bundle(self, action: Action) -> Mapping[str, Any]:
-        tous = get_tous(version=action.params["version"], languages=current_app.conf.available_languages.keys())
+        # XXX: There are no longer any tou texts in the backend and the actions app is not used
+        tous = None
         if not tous:
             current_app.logger.error("Could not load any TOUs")
             raise self.ActionError(ActionsMsg.no_tou)

@@ -34,7 +34,6 @@ from typing import Any, Dict, List
 
 from flask import Blueprint
 
-from eduid.common.misc.tous import get_tous
 from eduid.webapp.common.api.decorators import MarshalWith
 from eduid.webapp.common.api.messages import FluxData, success_response
 from eduid.webapp.common.api.schemas.base import FluxStandardAction
@@ -93,9 +92,6 @@ def get_signup_config() -> FluxData:
     """
     config_dict = current_app.conf.jsapps.dict()
     config_dict["csrf_token"] = session.get_csrf_token()
-    config_dict["tous"] = get_tous(
-        version=current_app.conf.tou_version, languages=current_app.conf.jsapps.available_languages.keys()
-    )
 
     # Fixes for frontend
     if current_app.conf.fix_signup_available_languages:
