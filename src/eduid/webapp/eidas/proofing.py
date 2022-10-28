@@ -135,9 +135,11 @@ class ProofingFunctions(ABC, Generic[SessionInfoVar]):
         if user_identity and (user_identity.unique_value == asserted_unique_value and user_identity.is_verified):
             # asserted identity matched verified identity
             mfa_success = True
+            current_app.logger.debug(f"Current identity {user_identity} matched asserted identity")
         elif user_locked_identity and user_locked_identity.unique_value == asserted_unique_value:
             # previously verified identity that the user just showed possession of
             mfa_success = True
+            current_app.logger.debug(f"Locked identity {user_locked_identity} matched asserted identity")
             # and we can verify it again
             proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
             res = self.verify_identity(user=proofing_user)
@@ -148,12 +150,15 @@ class ProofingFunctions(ABC, Generic[SessionInfoVar]):
             # TODO: we _could_ allow the user to give consent to just adding this identity to the user here,
             #       with a request parameter passed from frontend to /mfa-authentication for example.
             mfa_success = False
+            current_app.logger.debug("No identity or locked identity found for user")
         else:
             mfa_success = False
+            current_app.logger.debug("No matching identity found for user")
 
         credential_used = None
         if mfa_success:
             credential_used = _find_or_add_credential(user, proofing_method.framework, proofing_method.required_loa)
+            current_app.logger.debug(f"Found or added credential {credential_used}")
 
         # OLD way - remove as soon as possible
         # update session
@@ -167,7 +172,14 @@ class ProofingFunctions(ABC, Generic[SessionInfoVar]):
 
         if not mfa_success:
             current_app.logger.error("Asserted identity not matching user verified identity")
-            current_app.logger.debug(f"Current identity: {self.get_identity(user)}")
+            current_identity = self.get_identity(user)
+            current_unique_value = None
+            if current_identity:
+                current_unique_value = current_identity.unique_value
+            current_app.logger.debug(f"Current identity: {current_identity}")
+            current_app.logger.debug(
+                f"Current identity unique value: {current_unique_value}. Asserted unique value: {asserted_unique_value}"
+            )
             current_app.logger.debug(f"Asserted attributes: {self.session_info.attributes}")  # type: ignore
 
         return MatchResult(matched=mfa_success, credential_used=credential_used)

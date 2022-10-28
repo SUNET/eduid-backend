@@ -54,6 +54,7 @@ class ProofingMethodFreja(ProofingMethod):
             if magic_cookie_nin is None:
                 logger.error("Bad nin cookie")
                 return SessionInfoParseResult(error=ProofingMsg.malformed_identity)
+            logger.debug(f"Using nin from magic cookie: {magic_cookie_nin}")
             parsed_session_info.attributes.nin = magic_cookie_nin
 
         return SessionInfoParseResult(info=parsed_session_info)

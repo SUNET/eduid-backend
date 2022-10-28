@@ -30,6 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 from datetime import timedelta
+from typing import Any, Dict
 
 import bson
 
@@ -88,6 +89,28 @@ class TestUserDB(MongoTestCase):
     def test_get_user_by_eppn_not_found(self):
         """Test user lookup using unknown"""
         assert self.amdb.get_user_by_eppn("abc123") is None
+
+
+class UserMissingMeta(MongoTestCaseRaw):
+    def setUp(self, *args, **kwargs):
+        self.user = self._raw_user()
+        self.time_now = utc_now()
+        super().setUp(raw_users=[self.user])
+
+    def _raw_user(self) -> Dict[str, Any]:
+        user = mocked_user_standard.to_dict()
+        del user["meta"]
+        return user
+
+    def test_update_user_new(self):
+        db_user = self.amdb.get_user_by_id(self.user["_id"])
+        db_user.given_name = "test"
+        self.amdb.save(user=db_user, check_sync=True)
+
+    def test_update_user_old(self):
+        db_user = self.amdb.get_user_by_id(self.user["_id"])
+        db_user.given_name = "test"
+        self.amdb.old_save(user=db_user, check_sync=True)
 
 
 class UpdateUser(MongoTestCaseRaw):
