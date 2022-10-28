@@ -106,8 +106,7 @@ class UserMissingMeta(MongoTestCaseRaw):
     def test_update_user_new(self):
         db_user = self.amdb.get_user_by_id(self.user["_id"])
         db_user.given_name = "test"
-        with self.assertRaises(KeyError):
-            self.amdb.save(user=db_user, check_sync=True)
+        self.amdb.save(user=db_user, check_sync=True)
 
     def test_update_user_old(self):
         db_user = self.amdb.get_user_by_id(self.user["_id"])

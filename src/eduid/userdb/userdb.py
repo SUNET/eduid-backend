@@ -386,6 +386,10 @@ class AmDB(UserDB[User]):
             user.meta.modified_ts = time_now
             user.meta.new_version()
 
+            if db_user.get("meta", {}).get("version") is None:
+                # if the user has no version, it is a legacy user, and we need to update it
+                check_sync = False
+
             if check_sync:
                 search_filter["meta.version"] = meta_version
             result = self._coll.replace_one(search_filter, user.to_dict(), upsert=(not check_sync))
