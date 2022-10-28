@@ -32,12 +32,12 @@ from eduid.webapp.common.session.namespaces import AuthnRequestRef, MfaActionErr
 from eduid.webapp.eidas.app import current_eidas_app as current_app
 from eduid.webapp.eidas.helpers import (
     EidasMsg,
+    attribute_remap,
     check_credential_to_verify,
     create_authn_request,
     create_metadata,
     is_required_loa,
     is_valid_reauthn,
-    attribute_remap,
 )
 
 __author__ = "lundberg"

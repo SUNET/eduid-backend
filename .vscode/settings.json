@@ -8,8 +8,7 @@
     "python.linting.mypyEnabled": true,
     "python.linting.enabled": true,
     "python.formatting.blackArgs": [
-        "--line-length 120",
-        "--skip-string-normalization"
+        "--line-length", "120",
     ],
     "terminal.integrated.env.linux": {
         "PYTHONPATH": "${workspaceFolder}/src"
@@ -31,5 +30,6 @@
         "userdb",
         "usernamepassword",
         "webauthn"
-    ]
+    ],
+    "python.formatting.provider": "black"
 }
