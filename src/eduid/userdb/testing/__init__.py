@@ -178,9 +178,9 @@ class MongoTestCaseRaw(unittest.TestCase):
             for user in am_users:
                 self._db._coll.save(user.to_dict())
         if raw_users:
-            for user in raw_users:
-                user["modified_ts"] = utc_now()
-                self._db._coll.save(user)
+            for raw_user in raw_users:
+                raw_user["modified_ts"] = utc_now()
+                self._db._coll.save(raw_user)
 
         self._db.close()
 

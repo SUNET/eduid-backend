@@ -408,5 +408,5 @@ class AmDB(UserDB[User]):
             extra_debug_logger.debug(f"Extra debug:\n{extra_debug}")
         return result.acknowledged
 
-    def old_save(self, user: UserVar, check_sync: bool = True) -> bool:
+    def old_save(self, user: User, check_sync: bool = True) -> bool:
         return super().save(user, check_sync)
