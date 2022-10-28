@@ -49,7 +49,8 @@ import pymongo
 from eduid.userdb import User
 from eduid.userdb.db import BaseDB
 from eduid.userdb.testing.temp_instance import EduidTemporaryInstance
-from eduid.userdb.userdb import AmDB, UserDB
+from eduid.userdb.userdb import AmDB
+from eduid.userdb.util import utc_now
 
 logger = logging.getLogger(__name__)
 
@@ -134,7 +135,7 @@ def _normalise_value(data: Any) -> Any:
 
 
 def normalised_data(
-        data: Union[Mapping[str, Any], Sequence[Mapping[str, Any]]]
+    data: Union[Mapping[str, Any], Sequence[Mapping[str, Any]]]
 ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """Utility function for normalising dicts (or list of dicts) before comparisons in test cases."""
     if isinstance(data, list):
@@ -151,7 +152,7 @@ def normalised_data(
 
 
 class MongoTestCaseRaw(unittest.TestCase):
-    def setUp(self, am_users: Optional[List[User]] = None, **kwargs):
+    def setUp(self, raw_users: Optional[List[Dict[str, Any]]] = None, am_users: Optional[List[User]] = None, **kwargs):
         super().setUp()
         self.maxDiff = None
         self._tmp_db = MongoTemporaryInstance.get_instance()
@@ -176,6 +177,10 @@ class MongoTestCaseRaw(unittest.TestCase):
             # Set up test users in the MongoDB.
             for user in am_users:
                 self._db._coll.save(user.to_dict())
+        if raw_users:
+            for user in raw_users:
+                user["modified_ts"] = utc_now()
+                self._db._coll.save(user)
 
         self._db.close()
 

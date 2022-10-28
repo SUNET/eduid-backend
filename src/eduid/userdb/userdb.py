@@ -378,7 +378,6 @@ class AmDB(UserDB[User]):
             extra_debug = pprint.pformat(user.to_dict(), width=120)
             logger.debug(f"Extra debug:\n{extra_debug}")
         else:
-            # modified_ts = user.modified_ts
             meta_version = user.meta.version
 
             time_now = utc_now()
@@ -404,3 +403,6 @@ class AmDB(UserDB[User]):
             extra_debug = pprint.pformat(user.to_dict(), width=120)
             extra_debug_logger.debug(f"Extra debug:\n{extra_debug}")
         return result.acknowledged
+
+    def old_save(self, user: UserVar, check_sync: bool = True) -> bool:
+        return super().save(user, check_sync)
