@@ -2,7 +2,7 @@
 import logging
 from abc import ABC
 from datetime import datetime, timedelta
-from typing import List, Optional, Union, Coroutine, Any
+from typing import Any, Coroutine, List, Optional, Union
 
 from httpx import Request
 from jwcrypto.jwk import JWK
