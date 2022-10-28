@@ -30,7 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 from datetime import timedelta
-from typing import Dict, Any
+from typing import Any, Dict
 
 import bson
 
