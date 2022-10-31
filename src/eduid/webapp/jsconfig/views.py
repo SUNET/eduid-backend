@@ -109,22 +109,22 @@ def get_login_config() -> FluxData:
     Configuration for the login front app
     """
     payload = {
-        "csrf_token": session.get_csrf_token(),
         "base_url": current_app.conf.jsapps.login_base_url,
-        "next_url": current_app.conf.jsapps.login_next_url,
-        "request_other_url": current_app.conf.jsapps.request_other_url,
-        "password_service_url": current_app.conf.jsapps.password_service_url,
-        "password_entropy": current_app.conf.jsapps.password_entropy,
-        "password_length": current_app.conf.jsapps.password_length,
-        "reset_password_url": current_app.conf.jsapps.reset_password_url,
-        "signup_url": current_app.conf.jsapps.signup_url,
+        "csrf_token": session.get_csrf_token(),
+        "dashboard_url": current_app.conf.jsapps.dashboard_url,
         "eduid_site_name": current_app.conf.jsapps.eduid_site_name,
         "eduid_site_url": current_app.conf.jsapps.eduid_site_url,
         "eidas_url": current_app.conf.jsapps.eidas_url,
-        "mfa_auth_idp": current_app.conf.jsapps.token_verify_idp,
-        "sentry_dsn": current_app.conf.jsapps.sentry_dsn,
         "environment": current_app.conf.jsapps.environment.value,
-        "dashboard_url": current_app.conf.jsapps.dashboard_url,
+        "mfa_auth_idp": current_app.conf.jsapps.token_verify_idp,
+        "next_url": current_app.conf.jsapps.login_next_url,
+        "password_entropy": current_app.conf.jsapps.password_entropy,
+        "password_length": current_app.conf.jsapps.password_length,
+        "password_service_url": current_app.conf.jsapps.password_service_url,
+        "request_other_url": current_app.conf.jsapps.request_other_url,
+        "reset_password_url": current_app.conf.jsapps.reset_password_url,
+        "sentry_dsn": current_app.conf.jsapps.sentry_dsn,
+        "signup_url": current_app.conf.jsapps.signup_url,
     }
     return success_response(payload=payload)
 
