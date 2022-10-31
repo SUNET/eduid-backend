@@ -336,6 +336,9 @@ def _set_user_options(res: AuthnOptions, eppn: str) -> None:
         if user.locked_identity.nin:
             current_app.logger.debug(f"User has a locked NIN -> Freja is possible")
             res.freja_eidplus = True
+        else:
+            current_app.logger.debug(f"No locked NIN for user -> Freja NOT possible")
+            res.freja_eidplus = False
 
         res.forced_username = get_login_username(user)
         current_app.logger.debug(f"User forced_username: {res.forced_username}")
