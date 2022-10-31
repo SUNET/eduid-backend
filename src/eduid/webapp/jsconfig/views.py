@@ -125,6 +125,7 @@ def get_login_config() -> FluxData:
         "reset_password_url": current_app.conf.jsapps.reset_password_url,
         "sentry_dsn": current_app.conf.jsapps.sentry_dsn,
         "signup_url": current_app.conf.jsapps.signup_url,
+        "token_service_url": current_app.conf.jsapps.token_service_url,
     }
     return success_response(payload=payload)
 
