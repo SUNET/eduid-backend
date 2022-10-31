@@ -124,6 +124,7 @@ def get_login_config() -> FluxData:
         "mfa_auth_idp": current_app.conf.jsapps.token_verify_idp,
         "sentry_dsn": current_app.conf.jsapps.sentry_dsn,
         "environment": current_app.conf.jsapps.environment.value,
+        "dashboard_url": current_app.conf.jsapps.dashboard_url,
     }
     return success_response(payload=payload)
 
