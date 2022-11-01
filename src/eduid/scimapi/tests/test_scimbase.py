@@ -4,7 +4,7 @@ from unittest import TestCase
 from uuid import uuid4
 
 from eduid.common.models.scim_base import BaseResponse, Meta, SCIMResourceType, SCIMSchema, SubResource, WeakVersion
-from eduid.userdb.testing import normalised_data
+from eduid.common.testing_base import normalised_data
 
 __author__ = "lundberg"
 

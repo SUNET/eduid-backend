@@ -32,7 +32,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Mapping, Optional, Union
+from typing import Any, Dict, List, Mapping, Optional
 from uuid import UUID
 
 from bson import ObjectId
@@ -78,12 +78,12 @@ class _InviteRequired:
     invite_code: str
     inviter_name: str
     send_email: bool
+    expires_at: datetime
 
 
 @dataclass(frozen=True)
 class Invite(_InviteRequired):
     invite_id: ObjectId = field(default_factory=ObjectId)
-    display_name: Optional[str] = field(default=None)
     given_name: Optional[str] = field(default=None)
     surname: Optional[str] = field(default=None)
     mail_addresses: List[InviteMailAddress] = field(default_factory=list)
@@ -92,9 +92,15 @@ class Invite(_InviteRequired):
     preferred_language: str = field(default="sv")
     finish_url: Optional[str] = field(default=None)
     completed_ts: Optional[datetime] = field(default=None)
-    expires_at: Optional[datetime] = field(default=None)
     created_ts: datetime = field(default_factory=datetime.utcnow)
     modified_ts: Optional[datetime] = field(default=None)
+
+    def get_primary_mail_address(self) -> Optional[str]:
+        # there can be only one primary mail address set
+        primary_mail_address = [item.email for item in self.mail_addresses if item.primary is True]
+        if not primary_mail_address:
+            return None
+        return primary_mail_address[0]
 
     def to_dict(self) -> Dict[str, Any]:
         data = asdict(self)
@@ -114,4 +120,7 @@ class Invite(_InviteRequired):
         # Load invite specific data
         if data["invite_type"] is InviteType.SCIM:
             data["invite_reference"] = SCIMReference(**data["invite_reference"])
+        # backwards compatibility
+        if "display_name" in data:
+            del data["display_name"]
         return cls(**data)

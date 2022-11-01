@@ -1,14 +1,36 @@
 # -*- coding: utf-8 -*-
 import logging
-from typing import Union
+from datetime import timedelta
+from typing import Optional, Union
 from uuid import UUID
 
 import httpx
+from jwcrypto.jwk import JWK
 
 from eduid.common.clients.gnap_client import GNAPClient
 from eduid.common.clients.gnap_client.base import GNAPClientAuthData
-from eduid.common.models.scim_base import BaseCreateRequest, BaseUpdateRequest, WeakVersion
-from eduid.common.models.scim_invite import InviteCreateRequest, InviteResponse, InviteUpdateRequest
+from eduid.common.misc.timeutil import utc_now
+from eduid.common.models.gnap_models import Access
+from eduid.common.models.scim_base import (
+    BaseCreateRequest,
+    BaseUpdateRequest,
+    Email,
+    LanguageTag,
+    ListResponse,
+    LowerEmailStr,
+    Name,
+    PhoneNumber,
+    PhoneNumberStr,
+    SCIMSchema,
+    SearchRequest,
+    WeakVersion,
+)
+from eduid.common.models.scim_invite import (
+    InviteCreateRequest,
+    InviteResponse,
+    InviteUpdateRequest,
+    NutidInviteExtensionV1,
+)
 from eduid.common.models.scim_user import UserCreateRequest, UserResponse, UserUpdateRequest
 from eduid.common.utils import urlappend
 
@@ -22,10 +44,10 @@ class SCIMError(Exception):
 
 
 class SCIMClient(GNAPClient):
-    def __init__(self, scim_server_url: str, auth_data=GNAPClientAuthData, **kwargs):
+    def __init__(self, scim_api_url: str, auth_data=GNAPClientAuthData, **kwargs):
         super().__init__(auth_data=auth_data, **kwargs)
         self.event_hooks["request"].append(self._add_accept_header)
-        self.scim_server_url = scim_server_url
+        self.scim_api_url = scim_api_url
 
     @staticmethod
     def raise_on_4xx_5xx(response: httpx.Response) -> None:
@@ -51,11 +73,11 @@ class SCIMClient(GNAPClient):
 
     @property
     def users_endpoint(self) -> str:
-        return urlappend(self.scim_server_url, "Users")
+        return urlappend(self.scim_api_url, "Users")
 
     @property
     def invites_endpoint(self) -> str:
-        return urlappend(self.scim_server_url, "Invites")
+        return urlappend(self.scim_api_url, "Invites")
 
     def _get(self, endpoint: str, obj_id: Union[UUID, str]) -> httpx.Response:
         if isinstance(obj_id, UUID):
@@ -69,6 +91,12 @@ class SCIMClient(GNAPClient):
         headers = self._set_version_header(httpx.Headers(), version)
         return self.put(urlappend(endpoint, str(update_request.id)), content=update_request.json(), headers=headers)
 
+    def _search(self, endpoint: str, _filter: str, start_index: int = 1, count: int = 100) -> ListResponse:
+        search_endpoint = urlappend(endpoint, ".search")
+        search_req = SearchRequest(filter=_filter, start_index=start_index, count=count)
+        ret = self.post(search_endpoint, content=search_req.json())
+        return ListResponse.parse_raw(ret.text)
+
     def get_user(self, user_id: Union[UUID, str]) -> UserResponse:
         ret = self._get(self.users_endpoint, obj_id=user_id)
         return UserResponse.parse_raw(ret.text)
@@ -80,6 +108,18 @@ class SCIMClient(GNAPClient):
     def update_user(self, user: UserUpdateRequest, version: WeakVersion) -> UserResponse:
         ret = self._update(self.users_endpoint, update_request=user, version=version)
         return UserResponse.parse_raw(ret.text)
+
+    def get_user_by_external_id(self, external_id: Optional[str]) -> Optional[UserResponse]:
+        if external_id is None:
+            return None
+
+        _filter = f'externalId eq "{external_id}"'
+        ret = self._search(self.users_endpoint, _filter=_filter)
+        if ret.total_results == 0:
+            return None
+        if ret.total_results > 1:
+            raise SCIMError(f'More than one user with external_id "{external_id}"')
+        return self.get_user(user_id=ret.resources[0]["id"])
 
     def get_invite(self, invite_id: Union[UUID, str]) -> InviteResponse:
         ret = self._get(self.invites_endpoint, obj_id=invite_id)

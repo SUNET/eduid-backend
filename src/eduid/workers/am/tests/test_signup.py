@@ -3,10 +3,10 @@ from copy import deepcopy
 import bson
 from pydantic import ValidationError
 
+from eduid.common.testing_base import normalised_data
 from eduid.userdb.exceptions import UserDoesNotExist
 from eduid.userdb.fixtures.users import mocked_user_standard
 from eduid.userdb.signup import SignupUser
-from eduid.userdb.testing import normalised_data
 from eduid.workers.am.common import AmCelerySingleton
 from eduid.workers.am.testing import USER_DATA, AMTestCase
 
@@ -31,12 +31,20 @@ class AttributeFetcherTests(AMTestCase):
 
         expected_passwords = mocked_user_standard.credentials.to_list_of_dicts()
         expected_emails = mocked_user_standard.mail_addresses.to_list_of_dicts()
+        expected_phones = mocked_user_standard.phone_numbers.to_list_of_dicts()
+        expected_identities = mocked_user_standard.identities.to_list_of_dicts()
 
         expected = {
             "$set": {
-                "eduPersonPrincipalName": "hubba-bubba",
+                "eduPersonPrincipalName": mocked_user_standard.eppn,
                 "mailAliases": expected_emails,
+                "phone": expected_phones,
                 "passwords": expected_passwords,
+                "identities": expected_identities,
+                "givenName": mocked_user_standard.given_name,
+                "surname": mocked_user_standard.surname,
+                "displayName": mocked_user_standard.display_name,
+                "preferredLanguage": mocked_user_standard.language,
             }
         }
 
@@ -93,12 +101,20 @@ class AttributeFetcherTests(AMTestCase):
         ]
 
         expected_emails = [{"verified": True, "primary": True, "email": "john@example.com"}]
+        expected_phones = user.phone_numbers.to_list_of_dicts()
+        expected_identities = user.identities.to_list_of_dicts()
 
         expected = {
             "$set": {
-                "eduPersonPrincipalName": "test-test",
+                "eduPersonPrincipalName": user.eppn,
                 "mailAliases": expected_emails,
                 "passwords": expected_passwords,
+                "phone": expected_phones,
+                "identities": expected_identities,
+                "givenName": user.given_name,
+                "surname": user.surname,
+                "displayName": user.display_name,
+                "preferredLanguage": user.language,
             }
         }
 

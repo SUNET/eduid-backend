@@ -1,12 +1,8 @@
 # -*- coding: utf-8 -*-
-from datetime import timedelta
-from typing import Optional
 
 from flask import jsonify
 
 __author__ = "lundberg"
-
-from pydantic import Field
 
 from eduid.userdb.reset_password import ResetPasswordEmailState
 
@@ -56,6 +52,14 @@ class EduidTooManyRequests(Exception):
 
 
 class EduidForbidden(Exception):
+    pass
+
+
+class VCCSBackendFailure(Exception):
+    pass
+
+
+class ProofingLogFailure(Exception):
     pass
 
 

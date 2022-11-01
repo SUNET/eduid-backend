@@ -31,15 +31,19 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-from typing import Any, Mapping, Optional, cast
+from typing import Any, Dict, Mapping, Optional, cast
 
+from captcha.image import ImageCaptcha
 from flask import current_app
 
+from eduid.common.clients import SCIMClient
+from eduid.common.config.exceptions import BadConfiguration
 from eduid.common.config.parsers import load_config
 from eduid.common.rpc.am_relay import AmRelay
 from eduid.common.rpc.mail_relay import MailRelay
+from eduid.queue.db.message import MessageDB
 from eduid.userdb.logs import ProofingLog
-from eduid.userdb.signup import SignupUserDB
+from eduid.userdb.signup import SignupInviteDB, SignupUserDB
 from eduid.webapp.common.api import translation
 from eduid.webapp.common.api.app import EduIDBaseApp
 from eduid.webapp.signup.settings.common import SignupConfig
@@ -54,8 +58,29 @@ class SignupApp(EduIDBaseApp):
         self.am_relay = AmRelay(config)
         self.mail_relay = MailRelay(config)
 
+        self.captcha_image_generator = ImageCaptcha(
+            height=self.conf.captcha_height,
+            width=self.conf.captcha_width,
+            fonts=self.conf.captcha_fonts,
+            font_sizes=self.conf.captcha_font_size,
+        )
+
+        self.scim_clients: Dict[str, SCIMClient] = {}
+
         self.private_userdb = SignupUserDB(config.mongo_uri, auto_expire=config.private_userdb_auto_expire)
         self.proofing_log = ProofingLog(config.mongo_uri)
+        self.invite_db = SignupInviteDB(config.mongo_uri)
+        self.messagedb = MessageDB(config.mongo_uri)
+
+    def get_scim_client_for(self, data_owner: str) -> SCIMClient:
+        if self.conf.gnap_auth_data is None or self.conf.scim_api_url is None:
+            raise BadConfiguration("No auth server configuration available")
+
+        if data_owner not in self.scim_clients:
+            access_request = [{"type": "scim-api", "scope": data_owner}]
+            client_auth_data = self.conf.gnap_auth_data.copy(update={"access": access_request})
+            self.scim_clients[data_owner] = SCIMClient(scim_api_url=self.conf.scim_api_url, auth_data=client_auth_data)
+        return self.scim_clients[data_owner]
 
 
 current_signup_app: SignupApp = cast(SignupApp, current_app)

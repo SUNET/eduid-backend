@@ -16,6 +16,7 @@ from eduid.common.misc.encoders import EduidJSONEncoder
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb import User
 from eduid.userdb.db import BaseDB
+from eduid.webapp.common.api.utils import make_short_code
 from eduid.webapp.idp.assurance_data import EduidAuthnContextClass, UsedCredential
 from eduid.webapp.idp.idp_saml import ServiceInfo
 from eduid.webapp.idp.mischttp import get_user_agent
@@ -113,12 +114,6 @@ class OtherDevice(BaseModel):
     @classmethod
     def from_dict(cls: Type[OtherDevice], data: Mapping[str, Any]) -> OtherDevice:
         return cls(**data)
-
-
-def make_short_code(digits: int = 6) -> str:
-    """Make a short decimal code, left-padded with zeros to the width specified by `digits'."""
-    code = int.from_bytes(os.urandom(4), byteorder="big") % 1000000
-    return str(code).zfill(digits)
 
 
 class OtherDeviceDB(BaseDB):

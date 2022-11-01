@@ -6,7 +6,6 @@ from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.userdb import User
 from eduid.userdb.element import ElementKey
-from eduid.webapp.authn.views import FALLBACK_FRONTEND_ACTION
 from eduid.webapp.common.api.decorators import require_user
 from eduid.webapp.common.api.messages import FluxData
 from eduid.webapp.common.api.utils import sanitise_redirect_url

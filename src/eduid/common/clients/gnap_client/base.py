@@ -7,7 +7,7 @@ from typing import Any, Coroutine, List, Optional, Union
 from httpx import Request
 from jwcrypto.jwk import JWK
 from jwcrypto.jws import JWS
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, validator
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.models.gnap_models import (
@@ -35,8 +35,14 @@ class GNAPClientAuthData(BaseModel):
     authn_server_url: str
     key_name: str
     client_jwk: JWK
-    access: Optional[List[Union[str, Access]]]
+    access: List[Union[str, Access]] = Field(default_factory=list)
     default_access_token_expires_in: timedelta = timedelta(hours=1)
+
+    @validator("client_jwk")
+    def _validate_client_jwk(cls, v):
+        if not isinstance(v, JWK):
+            return JWK(**v)
+        return v
 
 
 class GNAPBearerTokenMixin(ABC):
