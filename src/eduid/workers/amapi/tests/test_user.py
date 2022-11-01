@@ -3,7 +3,7 @@
 __author__ = "masv"
 
 import json
-from typing import Dict, Optional
+from typing import Dict, Optional, List, Any
 
 import pkg_resources
 from bson import ObjectId
@@ -27,10 +27,13 @@ class TestAMBase(CommonTestCase):
         self.source = "mura"
         self.reason = "mura"
 
-    def _get_config(self) -> Dict:
+    def _get_config(self) -> Dict[str, Any]:
         config = {
             "keystore_path": f"{self.path}/testing_jwks.json",
             "mongo_uri": self.settings["mongo_uri"],
+            "user_restriction": {
+                "test_user": ["/name", "/terminate"],
+            },
         }
         return config
 
@@ -102,7 +105,6 @@ class TestUsers(TestAMBase):
     def test_update_meta(self):
         pass
 
-    # datetime.fromisoformat("2022-09-02T10:23:25")
     def test_update_email(self):
         req = {
             "reason": self.reason,

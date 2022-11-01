@@ -1,6 +1,8 @@
 import json
+import logging
 import re
 
+import fastapi.middleware.cors
 from fastapi import Request, Response
 from jwcrypto import jwt
 from jwcrypto.common import JWException
@@ -12,7 +14,10 @@ from starlette.responses import PlainTextResponse
 from starlette.types import Message
 
 from eduid.common.utils import removeprefix
+from eduid.workers.amapi.config import AMApiConfig
 from eduid.workers.amapi.context_request import ContextRequestMixin
+
+logger = logging.getLogger(__name__)
 
 
 class AccessDenied(Exception):
@@ -41,7 +46,7 @@ class AuthnBearerToken(BaseModel):
 
     @validator("app_name")
     def validate_scopes(cls, v: str) -> str:
-        if v != "amapi":
+        if v != "am_api":
             raise ValueError("Unknown app_name")
         return v
 
@@ -73,6 +78,31 @@ async def get_body(request: Request) -> bytes:
     return body
 
 
+class Mura(BaseHTTPMiddleware, ContextRequestMixin):
+    def __init__(self, app):
+        super().__init__(app)
+        self.app = app
+        self.logger = logger
+
+    async def dispatch(self, req: Request, call_next) -> Response:
+        req = self.make_context_request(request=req)
+        if self._is_no_auth_path(req.url):
+            return await call_next(req)
+        auth = req.headers.get("Authorization")
+
+        if not auth:
+            return return_error_response(status_code=401, detail="No authentication header found")
+        mura = 1
+
+    #        return await call_next(req)
+
+    def _is_no_auth_path(self, url: URL) -> bool:
+        path = removeprefix(url.path, self.config.application_root)
+        if path in self.config.no_authn_urls:
+            return True
+        return False
+
+
 class BaseMiddleware(BaseHTTPMiddleware, ContextRequestMixin):
     def __init__(self, app):
         super().__init__(app)
@@ -85,55 +115,60 @@ class AuthenticationMiddleware(BaseMiddleware):
     def __init__(self, app):
         super().__init__(app)
         self.app = app
-        self.no_authn_urls = app.config.no_authn_urls
-        app.logger.debug("No auth allow urls: {}".format(self.no_authn_urls))
 
-    def _is_no_auth_path(self, url: URL) -> bool:
-        path = url.path
-        # Remove application root from path matching
-        path = removeprefix(path, self.app.config.application_root)
-        for regex in self.no_authn_urls:
-            m = re.match(regex, path)
-            if m is not None:
-                self.app.logger.debug("{} matched allow list".format(path))
-                return True
-        return False
+        self.no_authn_urls = self.app.config.no_authn_urls
 
-    async def dispatch(self, req: Request, call_next) -> Response:
-        req = self.make_context_request(req)
+        mura = 1
 
-        if self._is_no_auth_path(req.url):
-            return await call_next(req)
+    # logger.debug("No auth allow urls: {}".format(self.no_authn_urls))
 
-        auth = req.headers.get("Authorization")
 
-        if not auth:
-            return return_error_response(status_code=401, detail="No authentication header found")
+# def _is_no_auth_path(self, url: URL) -> bool:
+#     path = url.path
+#     # Remove application root from path matching
+#     path = removeprefix(path, self.app.config.application_root)
+#     for regex in self.no_authn_urls:
+#         m = re.match(regex, path)
+#         if m is not None:
+#             logger.debug("{} matched allow list".format(path))
+#             return True
+#     return False
 
-        token = auth[len("Bearer ") :]
-        _jwt = jwt.JWT()
-        try:
-            _jwt.deserialize(token, req.app.jwks)
-            claims = json.loads(_jwt.claims)
-        except (JWException, KeyError, ValueError) as e:
-            self.app.logger.info(f"Bearer token error: {e}")
-            return return_error_response(status_code=401, detail="Bearer token error")
+# async def dispatch(self, req: Request, call_next) -> Response:
+#     req = self.make_context_request(req)
 
-        try:
-            token = AuthnBearerToken(**claims)
-            self.app.logger.debug(f"Bearer token: {token}")
-        except ValidationError:
-            self.app.logger.exception("Authorization Bearer Token error")
-            return return_error_response(status_code=401, detail="Bearer token error")
+#     if self._is_no_auth_path(req.url):
+#         return await call_next(req)
 
-        try:
-            # check if jwt user is allowed, return list of allowed endpoints
-            token.app_name
-            pass
-        except AccessDenied as exc:
-            self.app.logger.error(f"Access denied: {exc}")
-            return return_error_response(status_code=401, detail="Data owner requested in access token denied")
+#     auth = req.headers.get("Authorization")
 
-        self.app.logger.info(f"Bearer token {token}")
+#     if not auth:
+#         return return_error_response(status_code=401, detail="No authentication header found")
 
-        return await call_next(req)
+#     token = auth[len("Bearer ") :]
+#     _jwt = jwt.JWT()
+#     try:
+#         _jwt.deserialize(token, req.app.jwks)
+#         claims = json.loads(_jwt.claims)
+#     except (JWException, KeyError, ValueError) as e:
+#         logger.info(f"Bearer token error: {e}")
+#         return return_error_response(status_code=401, detail="Bearer token error")
+
+#     try:
+#         token = AuthnBearerToken(**claims)
+#         logger.debug(f"Bearer token: {token}")
+#     except ValidationError:
+#         logger.exception("Authorization Bearer Token error")
+#         return return_error_response(status_code=401, detail="Bearer token error")
+
+#     try:
+#         # check if jwt user is allowed, return list of allowed endpoints
+#         token.app_name
+#         pass
+#     except AccessDenied as exc:
+#         logger.error(f"Access denied: {exc}")
+#         return return_error_response(status_code=401, detail="Data owner requested in access token denied")
+
+#     logger.info(f"Bearer token {token}")
+
+#     return await call_next(req)

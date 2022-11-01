@@ -19,6 +19,14 @@ from eduid.workers.amapi.models.user import (
 )
 
 
+def create_user(req: ContextRequest, eppn: str, data: CreateUserRequest) -> UserCreateResponse:
+    # mailAliases
+    # eppn
+    # passwords
+    # tou
+    pass
+
+
 def update_user(
     req: ContextRequest,
     eppn: str,
@@ -69,7 +77,6 @@ def update_user(
     audit_msg = UserChangeLogElement(
         created_by="am_api",
         eppn=eppn,
-        id=None,
         diff=diff,
         reason=data.reason,
         source=data.source,

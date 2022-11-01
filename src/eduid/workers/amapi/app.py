@@ -16,7 +16,7 @@ from eduid.userdb import AmDB, UserDB
 from eduid.userdb.logs.db import UserChangeLog
 from eduid.workers.amapi.config import AMApiConfig
 from eduid.workers.amapi.context_request import ContextRequestRoute
-from eduid.workers.amapi.middleware import AuthenticationMiddleware
+from eduid.workers.amapi.middleware import AuthenticationMiddleware, Mura
 from eduid.workers.amapi.routers.status import status_router
 from eduid.workers.amapi.routers.users import users_router
 from eduid.workers.amapi.utils import load_jwks
@@ -30,7 +30,7 @@ class AMAPI(FastAPI):
         self.db = AmDB(db_uri=self.config.mongo_uri)
         self.name = "am_api"
 
-        self.logger = logging.getLogger(name="am_api")
+        self.logger = logging.getLogger(name=self.name)
         init_logging(config=self.config)
         self.logger.info(f"Starting {name} app")
         self.audit_logger = UserChangeLog(self.config.mongo_uri)
@@ -46,8 +46,12 @@ def init_api(name: str = "am_api", test_config: Optional[Dict] = None) -> AMAPI:
     app.include_router(users_router)
     app.include_router(status_router)
 
+    logger = app.logger
+    config = app.config
+
     # Middleware
-    # app.add_middleware(AuthenticationMiddleware)
+    # app.add_middleware(AuthenticationMiddleware, app=app)
+    app.add_middleware(Mura, c=config)
 
     # Exception handling
     app.add_exception_handler(RequestValidationError, validation_exception_handler)
