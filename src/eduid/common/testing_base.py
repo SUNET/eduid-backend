@@ -73,6 +73,7 @@ class CommonTestCase(MongoTestCase):
         logging.config.dictConfig(logging_config)
 
 
+# This is the normalised_data that should be used
 def normalised_data(
     data: Union[Mapping[str, Any], Sequence[Mapping[str, Any]]], replace_datetime: Any = None
 ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
