@@ -4,7 +4,6 @@ import logging
 import httpx
 
 from eduid.common.clients.gnap_client.base import GNAPBearerTokenMixin, GNAPClientAuthData
-from eduid.common.misc.timeutil import utc_now
 from eduid.common.models.gnap_models import GrantResponse
 
 __author__ = "lundberg"

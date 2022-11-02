@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-from datetime import datetime, timezone
-from uuid import UUID
 
 import respx
 from httpx import Response

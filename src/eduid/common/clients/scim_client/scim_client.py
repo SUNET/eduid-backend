@@ -1,36 +1,14 @@
 # -*- coding: utf-8 -*-
 import logging
-from datetime import timedelta
 from typing import Optional, Union
 from uuid import UUID
 
 import httpx
-from jwcrypto.jwk import JWK
 
 from eduid.common.clients.gnap_client import GNAPClient
 from eduid.common.clients.gnap_client.base import GNAPClientAuthData
-from eduid.common.misc.timeutil import utc_now
-from eduid.common.models.gnap_models import Access
-from eduid.common.models.scim_base import (
-    BaseCreateRequest,
-    BaseUpdateRequest,
-    Email,
-    LanguageTag,
-    ListResponse,
-    LowerEmailStr,
-    Name,
-    PhoneNumber,
-    PhoneNumberStr,
-    SCIMSchema,
-    SearchRequest,
-    WeakVersion,
-)
-from eduid.common.models.scim_invite import (
-    InviteCreateRequest,
-    InviteResponse,
-    InviteUpdateRequest,
-    NutidInviteExtensionV1,
-)
+from eduid.common.models.scim_base import BaseCreateRequest, BaseUpdateRequest, ListResponse, SearchRequest, WeakVersion
+from eduid.common.models.scim_invite import InviteCreateRequest, InviteResponse, InviteUpdateRequest
 from eduid.common.models.scim_user import UserCreateRequest, UserResponse, UserUpdateRequest
 from eduid.common.utils import urlappend
 

@@ -42,7 +42,6 @@ from typing import Any, Dict, List, Mapping, Optional, Type, TypeVar, Union, cas
 import bson
 from pydantic import BaseModel, Extra, Field, root_validator, validator
 
-from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.credentials import CredentialList
 from eduid.userdb.db import BaseDB
 from eduid.userdb.element import UserDBValueError

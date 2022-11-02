@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 from typing import Any, Dict
-from unittest import SkipTest
 from uuid import uuid4
 
 from eduid.common.models.scim_base import SCIMResourceType, SCIMSchema

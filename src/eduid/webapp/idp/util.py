@@ -39,7 +39,6 @@ from enum import Enum
 from typing import Union
 
 from eduid.userdb.idp import IdPUser
-from eduid.webapp.idp.app import current_idp_app as current_app
 
 logger = logging.getLogger(__name__)
 

@@ -29,7 +29,6 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-from datetime import timedelta
 from typing import Any, Dict
 
 import bson
@@ -39,7 +38,7 @@ from eduid.userdb import User
 from eduid.userdb.exceptions import UserOutOfSync
 from eduid.userdb.fixtures.passwords import signup_password
 from eduid.userdb.fixtures.users import mocked_user_standard, mocked_user_standard_2
-from eduid.userdb.testing import MongoTestCase, MongoTestCaseRaw, normalised_data
+from eduid.userdb.testing import MongoTestCase, MongoTestCaseRaw
 from eduid.userdb.util import utc_now
 
 

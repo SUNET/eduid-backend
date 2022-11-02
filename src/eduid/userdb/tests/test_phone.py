@@ -8,7 +8,6 @@ from pydantic import ValidationError
 import eduid.userdb.element
 import eduid.userdb.exceptions
 from eduid.userdb import MailAddress
-from eduid.userdb.element import Element
 from eduid.userdb.phone import PhoneNumber, PhoneNumberList
 
 __author__ = "ft"

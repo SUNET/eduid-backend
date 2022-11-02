@@ -31,7 +31,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 import logging
-from typing import List, Optional, cast
+from typing import Optional, cast
 
 from bson import ObjectId
 
