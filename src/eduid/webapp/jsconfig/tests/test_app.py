@@ -37,11 +37,9 @@ from pathlib import PurePath
 from typing import Any, Dict, Mapping
 
 from eduid.common.config.parsers import load_config
-from eduid.common.misc.tous import get_tous
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.jsconfig.app import JSConfigApp, jsconfig_init_app
 from eduid.webapp.jsconfig.settings.common import JSConfigConfig
-from eduid.webapp.jsconfig.settings.jsapps import JsAppsConfig
 
 
 class JSConfigTests(EduidAPITestCase):
@@ -128,16 +126,9 @@ class JSConfigTests(EduidAPITestCase):
             assert config_data["type"] == "GET_JSCONFIG_SIGNUP_CONFIG_SUCCESS"
             assert config_data["payload"]["dashboard_url"] == "dashboard_url"
             assert config_data["payload"]["static_faq_url"] == "static_faq_url"
-            assert config_data["payload"]["tous"] == get_tous(
-                self.app.conf.tou_version, self.app.conf.available_languages.keys()
-            )
             assert config_data["payload"]["available_languages"] == [["en", "English"], ["sv", "Svenska"]]
-
             assert config_data["payload"]["DASHBOARD_URL"] == "dashboard_url"
             assert config_data["payload"]["STATIC_FAQ_URL"] == "static_faq_url"
-            assert config_data["payload"]["TOUS"] == get_tous(
-                self.app.conf.tou_version, self.app.conf.available_languages.keys()
-            )
             assert config_data["payload"]["AVAILABLE_LANGUAGES"] == [["en", "English"], ["sv", "Svenska"]]
 
     def test_get_login_config(self):

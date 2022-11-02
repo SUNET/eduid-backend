@@ -50,7 +50,7 @@ def scim_request(
         headers = {"content-type": "application/scim+json"}
     if token is not None:
         logger.debug(f"Using Authorization {token}")
-        headers["Authorization"] = token
+        headers["Authorization"] = f"Bearer {token}"
     logger.debug(f"API URL: {url}")
     r = _make_request(func, url, data, headers, verify)
 

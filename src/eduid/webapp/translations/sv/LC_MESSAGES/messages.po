@@ -1,33 +1,33 @@
-# Translations template for eduid-webapp.
-# Copyright (C) 2021 ORGANIZATION
-# This file is distributed under the same license as the eduid-webapp project.
-# FIRST AUTHOR <EMAIL@ADDRESS>, 2021.
+# Translations template for PROJECT.
+# Copyright (C) 2022 ORGANIZATION
+# This file is distributed under the same license as the PROJECT project.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2022.
 # 
 # Translators:
 # Johan Lundberg <lundberg.johan@gmail.com>, 2020
-# Johan Lundberg <lundberg@sunet.se>, 2021
+# Johan Lundberg <lundberg@sunet.se>, 2022
 # 
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: eduid-webapp 0.2.27\n"
+"Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2021-02-18 10:23+0100\n"
+"POT-Creation-Date: 2022-10-26 12:45+0200\n"
 "PO-Revision-Date: 2018-03-27 09:25+0000\n"
-"Last-Translator: Johan Lundberg <lundberg@sunet.se>, 2021\n"
+"Last-Translator: Johan Lundberg <lundberg@sunet.se>, 2022\n"
 "Language-Team: Swedish (https://www.transifex.com/sunet/teams/84844/sv/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.9.0\n"
+"Generated-By: Babel 2.10.3\n"
 "Language: sv\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: src/eduid_webapp/email/verifications.py:70
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/email/verifications.py:67
 msgid "eduID confirmation email"
 msgstr "eduID bekräftelsemejl"
 
-#: src/eduid_webapp/email/templates/verification_email.html.jinja2:5
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/email/templates/verification_email.html.jinja2:5
 #, python-format
 msgid ""
 "\n"
@@ -55,7 +55,7 @@ msgstr ""
 "<p><strong>%(code)s</strong></p>\n"
 "\n"
 
-#: src/eduid_webapp/email/templates/verification_email.txt.jinja2:1
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/email/templates/verification_email.txt.jinja2:1
 #, python-format
 msgid ""
 "\n"
@@ -83,11 +83,45 @@ msgstr ""
 "%(code)s\n"
 "\n"
 
-#: src/eduid_webapp/group_management/helpers.py:239
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/group_management/helpers.py:247
 msgid "Group invitation"
 msgstr "Gruppinbjudan"
 
-#: src/eduid_webapp/group_management/views/templates/group_invite_email.html.jinja2:1
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/group_management/helpers.py:276
+msgid "Group invitation cancelled"
+msgstr "Gruppinbjudan har tagits tillbaka"
+
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/group_management/views/templates/group_delete_invite_email.html.jinja2:1
+#, python-format
+msgid ""
+"\n"
+"    <p>Hi,</p>\n"
+"    <p>Your invite to the group %(group_display_name)s was canceled.</p>\n"
+"    <p>(This is an automated email. Please do not reply.)</p>\n"
+msgstr ""
+"\n"
+"<p>Hej,</p>\n"
+"<p>Din inbjudan till gruppen %(group_display_name)s har tagits tillbaka.</p>\n"
+"<p>(Det här är ett automatiskt mejl och går inte att svar på.) </p>\n"
+
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/group_management/views/templates/group_delete_invite_email.txt.jinja2:1
+#, python-format
+msgid ""
+"\n"
+"Hi,\n"
+"\n"
+"Your invite to the group %(group_display_name)s was canceled.\n"
+"\n"
+"(This is an automated email. Please do not reply.)\n"
+msgstr ""
+"\n"
+"Hej,\n"
+"\n"
+"Din inbjudan till gruppen %(group_display_name)s har tagits tillbaka.\n"
+"\n"
+"(Det här är ett automatiskt mejl och går inte att svar på.) \n"
+
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/group_management/views/templates/group_invite_email.html.jinja2:1
 #, python-format
 msgid ""
 "\n"
@@ -104,7 +138,7 @@ msgstr ""
 "<p>Om du inte redan har ett %(site_name)s-konto så kan du <a href=\"%(site_url)s\">skapa ett</a>.</p>\n"
 "<p>(Detta är ett automatiserat meddelande och går ej att svara på.)</p>\n"
 
-#: src/eduid_webapp/group_management/views/templates/group_invite_email.txt.jinja2:1
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/group_management/views/templates/group_invite_email.txt.jinja2:1
 #, python-format
 msgid ""
 "\n"
@@ -130,15 +164,15 @@ msgstr ""
 "\n"
 "(Detta är ett automatiserat meddelande och går ej att svara på.)\n"
 
-#: src/eduid_webapp/idp/login.py:478
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/idp/login.py:640
 msgid "Incorrect username or password"
 msgstr "Felaktigt användarnamn eller lösenord"
 
-#: src/eduid_webapp/idp/templates/bad_request.jinja2:9
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/idp/templates/bad_request.jinja2:9
 msgid "Bad Request"
 msgstr "Felaktig förfrågan"
 
-#: src/eduid_webapp/idp/templates/bad_request.jinja2:13
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/idp/templates/bad_request.jinja2:13
 msgid ""
 "<p>The login request could not be processed.</p>\n"
 "          <p>Try emptying the browsers cache and re-initiate login.</p>"
@@ -146,46 +180,45 @@ msgstr ""
 "<p>Inloggningsförsöket misslyckades.</p>\n"
 "          <p>Börja med att tömma webbläsarens cache och försök sedan logga in igen.</p>"
 
-#: src/eduid_webapp/idp/templates/base.jinja2:2
-#: src/eduid_webapp/security/views/templates/base.jinja2:2
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/idp/templates/base.jinja2:2
 msgid "en"
 msgstr "one"
 
-#: src/eduid_webapp/idp/templates/base.jinja2:6
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/idp/templates/base.jinja2:6
 msgid "eduID Login"
 msgstr "eduID-inloggning"
 
-#: src/eduid_webapp/idp/templates/base.jinja2:30
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/idp/templates/base.jinja2:30
 msgid "Student"
 msgstr "Student"
 
-#: src/eduid_webapp/idp/templates/base.jinja2:33
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/idp/templates/base.jinja2:33
 msgid "Technicians"
 msgstr "Tekniker"
 
-#: src/eduid_webapp/idp/templates/base.jinja2:36
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/idp/templates/base.jinja2:36
 msgid "Staff"
 msgstr "Anställda"
 
-#: src/eduid_webapp/idp/templates/base.jinja2:39
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/idp/templates/base.jinja2:39
 msgid "FAQ"
 msgstr "Vanliga frågor"
 
-#: src/eduid_webapp/idp/templates/base.jinja2:45
-#: src/eduid_webapp/idp/templates/login.jinja2:56
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/idp/templates/base.jinja2:45
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/idp/templates/login.jinja2:51
 msgid "Sign up"
 msgstr "Skapa konto"
 
-#: src/eduid_webapp/idp/templates/base.jinja2:49
-#: src/eduid_webapp/idp/templates/login.jinja2:53
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/idp/templates/base.jinja2:49
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/idp/templates/login.jinja2:48
 msgid "Sign in"
 msgstr "Logga in"
 
-#: src/eduid_webapp/idp/templates/credential_expired.jinja2:9
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/idp/templates/credential_expired.jinja2:9
 msgid "Credential expired"
 msgstr "Giltighetstiden på lösenordet har gått ut"
 
-#: src/eduid_webapp/idp/templates/credential_expired.jinja2:11
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/idp/templates/credential_expired.jinja2:11
 msgid ""
 "\n"
 "          <p>The password has expired, because it had not been used in 18 months.</p>\n"
@@ -197,20 +230,17 @@ msgstr ""
 "\t  <p>För att kunna logga in igen så måste lösenordet återställas.</p>\n"
 "\t"
 
-#: src/eduid_webapp/idp/templates/credential_expired.jinja2:19
-#: src/eduid_webapp/idp/templates/user_terminated.jinja2:19
-#: src/eduid_webapp/reset_password/helpers.py:209
-#: src/eduid_webapp/security/helpers.py:218
-#: src/eduid_webapp/security/views/reset_password.py:97
-#: src/eduid_webapp/security/views/templates/reset_password.jinja2:28
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/idp/templates/credential_expired.jinja2:19
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/idp/templates/user_terminated.jinja2:19
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/reset_password/helpers.py:233
 msgid "Reset password"
 msgstr "Återställ lösenord"
 
-#: src/eduid_webapp/idp/templates/error.jinja2:9
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/idp/templates/error.jinja2:9
 msgid "Server Error"
 msgstr "Serverfel"
 
-#: src/eduid_webapp/idp/templates/error.jinja2:13
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/idp/templates/error.jinja2:13
 msgid ""
 "<p>Sorry, but the requested page is unavailable due to a server hiccup.</p>\n"
 "          <p>Our engineers have been notified already, so please try again later.</p>"
@@ -218,13 +248,13 @@ msgstr ""
 "<p>Hoppsan, sidan kan inte visas på grund av ett serverfel.</p>\n"
 "          <p>Våra tekniker har meddelats, så försök igen senare.</p>"
 
-#: src/eduid_webapp/idp/templates/forbidden.jinja2:9
-#: src/eduid_webapp/idp/templates/mfa_required.jinja2:9
-#: src/eduid_webapp/idp/templates/swamid_mfa_required.jinja2:9
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/idp/templates/forbidden.jinja2:9
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/idp/templates/mfa_required.jinja2:9
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/idp/templates/swamid_mfa_required.jinja2:9
 msgid "Access denied"
 msgstr "Åtkomst nekad"
 
-#: src/eduid_webapp/idp/templates/forbidden.jinja2:11
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/idp/templates/forbidden.jinja2:11
 msgid ""
 "\n"
 "          <p>Access to the requested service could not be granted.\n"
@@ -234,43 +264,43 @@ msgstr ""
 "            <p>Tillgång till den önskade tjänsten kunde inte ges.\n"
 "                Tjänsten begärde förmodligen en verifierad identitet.</p>"
 
-#: src/eduid_webapp/idp/templates/forbidden.jinja2:15
-#: src/eduid_webapp/idp/templates/mfa_required.jinja2:16
-#: src/eduid_webapp/idp/templates/swamid_mfa_required.jinja2:16
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/idp/templates/forbidden.jinja2:15
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/idp/templates/mfa_required.jinja2:16
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/idp/templates/swamid_mfa_required.jinja2:16
 msgid "Visit the"
 msgstr "Besök"
 
-#: src/eduid_webapp/idp/templates/forbidden.jinja2:16
-#: src/eduid_webapp/idp/templates/mfa_required.jinja2:17
-#: src/eduid_webapp/idp/templates/swamid_mfa_required.jinja2:17
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/idp/templates/forbidden.jinja2:16
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/idp/templates/mfa_required.jinja2:17
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/idp/templates/swamid_mfa_required.jinja2:17
 msgid "eduID dashboard"
 msgstr "eduID dashboard"
 
-#: src/eduid_webapp/idp/templates/forbidden.jinja2:17
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/idp/templates/forbidden.jinja2:17
 msgid "to confirm your identity."
 msgstr "för att verifiera din identitet."
 
-#: src/eduid_webapp/idp/templates/login.jinja2:12
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/idp/templates/login.jinja2:12
 msgid "eduID login"
 msgstr "eduID-inloggning"
 
-#: src/eduid_webapp/idp/templates/login.jinja2:23
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/idp/templates/login.jinja2:18
 msgid "Something failed, or Javascript disabled"
 msgstr "Något gick fel eller så är Javascript avstängt"
 
-#: src/eduid_webapp/idp/templates/login.jinja2:30
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/idp/templates/login.jinja2:25
 msgid "Email:"
 msgstr "E-post:"
 
-#: src/eduid_webapp/idp/templates/login.jinja2:40
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/idp/templates/login.jinja2:35
 msgid "Password:"
 msgstr "Lösenord:"
 
-#: src/eduid_webapp/idp/templates/login.jinja2:47
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/idp/templates/login.jinja2:42
 msgid "Forgot your password?"
 msgstr "Glömt ditt lösenord?"
 
-#: src/eduid_webapp/idp/templates/mfa_required.jinja2:11
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/idp/templates/mfa_required.jinja2:11
 msgid ""
 "\n"
 "          <p>Access to the requested service could not be granted.\n"
@@ -282,23 +312,23 @@ msgstr ""
 "               Tjänsten kräver att Säkerhetsnyckel (MFA) används.\n"
 "            </p>"
 
-#: src/eduid_webapp/idp/templates/mfa_required.jinja2:18
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/idp/templates/mfa_required.jinja2:18
 msgid "to register a Security Key (on the Security tab)."
 msgstr "för att registrera en Säkerhetsnyckel (under Säkerhets-tabben)."
 
-#: src/eduid_webapp/idp/templates/not_found.jinja2:9
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/idp/templates/not_found.jinja2:9
 msgid "Not Found"
 msgstr "Kunde inte hittas"
 
-#: src/eduid_webapp/idp/templates/not_found.jinja2:11
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/idp/templates/not_found.jinja2:11
 msgid "<p>The requested resource could not be found.</p>"
 msgstr "<p>Sidan kunde inte hittas</p>"
 
-#: src/eduid_webapp/idp/templates/session_timeout.jinja2:9
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/idp/templates/session_timeout.jinja2:9
 msgid "Already logged in"
 msgstr "Redan inloggad"
 
-#: src/eduid_webapp/idp/templates/session_timeout.jinja2:11
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/idp/templates/session_timeout.jinja2:11
 msgid ""
 "<p>You are already logged in.</p>\n"
 "          <p>If you got here by pressing 'back' in your browser,\n"
@@ -308,7 +338,7 @@ msgstr ""
 "           <p>Om du kom hit genom att använda 'Tillbaka'-knappen i din webbläsare\n"
 "               så kan du klicka på 'Framåt'-knappen för att komma tillbaka dit du var.</p>"
 
-#: src/eduid_webapp/idp/templates/swamid_mfa_required.jinja2:11
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/idp/templates/swamid_mfa_required.jinja2:11
 msgid ""
 "\n"
 "          <p>Access to the requested service could not be granted.\n"
@@ -320,15 +350,15 @@ msgstr ""
 "               Tjänsten kräver att en verifierad Säkerhetsnyckel (SWAMID MFA/MFA HI) används.\n"
 "            </p>"
 
-#: src/eduid_webapp/idp/templates/swamid_mfa_required.jinja2:18
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/idp/templates/swamid_mfa_required.jinja2:18
 msgid "to confirm your Security Key (on the Security tab)."
 msgstr "för att verifiera din Säkerhetsnyckel (under Säkerhets-tabben)."
 
-#: src/eduid_webapp/idp/templates/toomany.jinja2:9
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/idp/templates/toomany.jinja2:9
 msgid "Too many requests"
 msgstr "För många förfrågningar"
 
-#: src/eduid_webapp/idp/templates/toomany.jinja2:11
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/idp/templates/toomany.jinja2:11
 msgid ""
 "\n"
 "          <p>Access cannot be granted at this time. Please try again later.</p>"
@@ -336,11 +366,11 @@ msgstr ""
 "\n"
 "            <p>Åtkomst kan inte ges för tillfället. Var god försök senare.</p>"
 
-#: src/eduid_webapp/idp/templates/unauthorized.jinja2:9
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/idp/templates/unauthorized.jinja2:9
 msgid "Username or password incorrect"
 msgstr "Användarnamn eller lösenord är felaktigt"
 
-#: src/eduid_webapp/idp/templates/unauthorized.jinja2:11
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/idp/templates/unauthorized.jinja2:11
 msgid ""
 "<p>Please try again.</p>\n"
 "          <p>There is a link (Forgot your password?) on the login page if you do not remember\n"
@@ -350,11 +380,11 @@ msgstr ""
 "          <p>Det finns en länk (Glömt ditt lösenord?) på inloggningssidan om du inte kommer ihåg\n"
 " ditt användarnamn eller lösenord.</p>"
 
-#: src/eduid_webapp/idp/templates/user_terminated.jinja2:9
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/idp/templates/user_terminated.jinja2:9
 msgid "User terminated"
 msgstr "Kontot borttaget"
 
-#: src/eduid_webapp/idp/templates/user_terminated.jinja2:11
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/idp/templates/user_terminated.jinja2:11
 msgid ""
 "\n"
 "          <p>This user account has been terminated.</p>\n"
@@ -366,7 +396,7 @@ msgstr ""
 "\t  <p>För att få tillgång till kontot igen så måste lösenordet återställas.</p>\n"
 "\t"
 
-#: src/eduid_webapp/letter_proofing/templates/letter.jinja2:66
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/letter_proofing/templates/letter.jinja2:66
 #, python-format
 msgid ""
 "\n"
@@ -376,7 +406,7 @@ msgid ""
 "    <div id=\"notice-frame\">\n"
 "        <div style=\"padding-top: 15px; margin-left: 15px;\">\n"
 "            Username: %(recipient_primary_mail_address)s<br/>\n"
-"            Confirmation code: %(recipient_verification_code)s<br/>\n"
+"            Code: %(recipient_verification_code)s<br/>\n"
 "            <strong>The code is valid until %(recipient_validity_period)s.</strong><br/>\n"
 "        </div>\n"
 "    </div>\n"
@@ -388,8 +418,8 @@ msgid ""
 "            password you used when you created your account.\n"
 "        </li>\n"
 "        <li>Open the tab \"Identity\".</li>\n"
-"        <li>Click the card \"BY POST\" below \"Verify your id number\".</li>\n"
-"        <li>Input the confirmation code in the window that opens.</li>\n"
+"        <li>Click \"BY POST\" below \"Swedish personal ID number\".</li>\n"
+"        <li>Click \"PROCEED\" and input the code from this letter.</li>\n"
 "        <li>Click \"OK\".</li>\n"
 "    </ol>\n"
 "    <div style=\"padding-top: 50px;\">\n"
@@ -404,7 +434,7 @@ msgstr ""
 "    <div id=\"notice-frame\">\n"
 "        <div style=\"padding-top: 15px; margin-left: 15px;\">\n"
 "            Användarnamn: %(recipient_primary_mail_address)s<br/>\n"
-"            Bekräftelsekod: %(recipient_verification_code)s<br/>\n"
+"            Kod: %(recipient_verification_code)s<br/>\n"
 "            <strong>Koden är giltig till och med: %(recipient_validity_period)s</strong><br/>\n"
 "        </div>\n"
 "    </div>\n"
@@ -416,8 +446,8 @@ msgstr ""
 "            lösenord som du använde när du skapade ditt konto.\n"
 "        </li>\n"
 "        <li>Öppna fliken \"Identitet\".</li>\n"
-"        <li>Klicka på rutan \"VIA POST\" under \"Bekräfta ditt personnummer\".</li>\n"
-"        <li>Skriv in bekräftelsekoden i rutan som öppnas.</li>\n"
+"        <li>Klicka på rutan \"VIA POST\" under \"Svenskt personnummer\".</li>\n"
+"        <li>Skriv in koden från det här brevet.</li>\n"
 "        <li>Klicka på \"OK\".</li>\n"
 "    </ol>\n"
 "    <div style=\"padding-top: 50px;\">\n"
@@ -425,12 +455,12 @@ msgstr ""
 "    </div>\n"
 "</div>\n"
 
-#: src/eduid_webapp/oidc_proofing/helpers.py:129
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/oidc_proofing/helpers.py:131
 #, python-format
 msgid "%(site_name)s account verification"
 msgstr "%(site_name)skontobekräftning"
 
-#: src/eduid_webapp/oidc_proofing/templates/redo_verification.html.jinja2:5
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/oidc_proofing/templates/redo_verification.html.jinja2:5
 #, python-format
 msgid ""
 "\n"
@@ -442,7 +472,7 @@ msgstr ""
 "<p>Du har försökt bekräfta ditt konto hos<a href=\"%(site_url)s\">%(site_name)s</a>.</p>\n"
 "<p>Tyvärr uppstod ett problem så vi måste be dig att bekräfta ditt konto igen med något av de andra sätten att verifiera din identitet.</p>\n"
 
-#: src/eduid_webapp/oidc_proofing/templates/redo_verification.txt.jinja2:2
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/oidc_proofing/templates/redo_verification.txt.jinja2:2
 #, python-format
 msgid ""
 "\n"
@@ -457,23 +487,21 @@ msgstr ""
 "\n"
 "Tyvärr uppstod ett problem så vi måste be dig att bekräfta ditt konto igen med något av de andra sätten att verifiera din identitet.\n"
 
-#: src/eduid_webapp/phone/templates/phone_verification_sms.jinja2:1
-#: src/eduid_webapp/reset_password/views/templates/reset_password_sms.txt.jinja2:1
-#: src/eduid_webapp/security/views/templates/reset_password_sms.txt.jinja2:1
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/phone/templates/phone_verification_sms.jinja2:1
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/reset_password/views/templates/reset_password_sms.txt.jinja2:1
 #, python-format
 msgid ""
 "\n"
-"This is your one-time phone number verification code for %(site_name)s.\n"
+"This is your code for %(site_name)s.\n"
 "\n"
 "Code: %(verification_code)s\n"
 msgstr ""
 "\n"
-"Det här är din engångskod för att verifiera ditt telefonnummer hos %(site_name)s.\n"
+"Det här är din kod för %(site_name)s.\n"
 "\n"
 "Kod: %(verification_code)s\n"
 
-#: src/eduid_webapp/reset_password/views/templates/reset_password_email.html.jinja2:1
-#: src/eduid_webapp/security/views/templates/reset_password_email.html.jinja2:1
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/reset_password/views/templates/reset_password_email.html.jinja2:1
 #, python-format
 msgid ""
 "\n"
@@ -494,8 +522,7 @@ msgstr ""
 "<p>Länken för återställning av ditt lösenord är giltig i %(password_reset_timeout)s timmar.</p>\n"
 "<p>(Detta är ett automatiserat meddelande och går ej att svara på.)</p>\n"
 
-#: src/eduid_webapp/reset_password/views/templates/reset_password_email.txt.jinja2:1
-#: src/eduid_webapp/security/views/templates/reset_password_email.txt.jinja2:1
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/reset_password/views/templates/reset_password_email.txt.jinja2:1
 #, python-format
 msgid ""
 "\n"
@@ -528,272 +555,11 @@ msgstr ""
 "\n"
 "(Detta är ett automatiserat meddelande och går ej att svara på.)\n"
 
-#: src/eduid_webapp/security/helpers.py:179
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/security/helpers.py:145
 msgid "Terminate account"
 msgstr "Avsluta konto"
 
-#: src/eduid_webapp/security/schemas.py:230
-msgid "Invalid email address"
-msgstr "Ogiltig e-postadress"
-
-#: src/eduid_webapp/security/schemas.py:243
-msgid "Please enter a code"
-msgstr "Ange en kod"
-
-#: src/eduid_webapp/security/schemas.py:259
-msgid "Please enter a password"
-msgstr "Ange ett lösenord"
-
-#: src/eduid_webapp/security/schemas.py:261
-msgid "Please repeat the password"
-msgstr "Repetera lösenordet"
-
-#: src/eduid_webapp/security/schemas.py:263
-msgid "Passwords does not match"
-msgstr "Lösenorden är olika"
-
-#: src/eduid_webapp/security/schemas.py:271
-msgid "Please use a stronger password"
-msgstr "Lösenordet är inte tillräckligt starkt"
-
-#: src/eduid_webapp/security/views/reset_password.py:54
-msgid "404 Not found"
-msgstr "404 Hittades inte"
-
-#: src/eduid_webapp/security/views/reset_password.py:55
-msgid "The requested state can not be found."
-msgstr "Kunde inte ladda sparad status"
-
-#: src/eduid_webapp/security/views/reset_password.py:57
-#: src/eduid_webapp/security/views/reset_password.py:67
-#: src/eduid_webapp/security/views/reset_password.py:145
-#: src/eduid_webapp/security/views/reset_password.py:220
-msgid "Reset your password"
-msgstr "Återställ ditt lösenord"
-
-#: src/eduid_webapp/security/views/reset_password.py:64
-msgid "Link expired"
-msgstr "Länken har gått ut"
-
-#: src/eduid_webapp/security/views/reset_password.py:65
-msgid "The password reset link has expired."
-msgstr "Länken för lösenordsåterställning har gått ut."
-
-#: src/eduid_webapp/security/views/reset_password.py:80
-msgid "SMS code expired"
-msgstr "SMS-koden har gått ut"
-
-#: src/eduid_webapp/security/views/reset_password.py:81
-msgid "The phone verification has expired."
-msgstr "Telefonbekräftelsen har gått ut."
-
-#: src/eduid_webapp/security/views/reset_password.py:83
-#: src/eduid_webapp/security/views/reset_password.py:239
-msgid "Resend code or try another way"
-msgstr "Skicka en ny kod eller byt säkerhetsmetod"
-
-#: src/eduid_webapp/security/views/reset_password.py:98
-msgid "Enter an email address registered to your account below"
-msgstr "Ange en e-postadress som är registrerad på ditt konto"
-
-#: src/eduid_webapp/security/views/reset_password.py:102
-msgid "Reset password message sent. Check your email to continue."
-msgstr ""
-"Ett meddelande om lösenordsåterställning har skickats. Kolla din e-post för "
-"att fortsätta."
-
-#: src/eduid_webapp/security/views/reset_password.py:119
-#: src/eduid_webapp/security/views/reset_password.py:142
-#: src/eduid_webapp/security/views/reset_password.py:193
-#: src/eduid_webapp/security/views/reset_password.py:259
-msgid "Temporary technical problem"
-msgstr "Temporärt tekniskt fel"
-
-#: src/eduid_webapp/security/views/reset_password.py:120
-#: src/eduid_webapp/security/views/reset_password.py:143
-#: src/eduid_webapp/security/views/reset_password.py:194
-#: src/eduid_webapp/security/views/reset_password.py:260
-msgid "Please try again."
-msgstr "Vänligen försök igen."
-
-#: src/eduid_webapp/security/views/reset_password.py:122
-#: src/eduid_webapp/security/views/reset_password.py:198
-#: src/eduid_webapp/security/views/reset_password.py:264
-msgid "Try again"
-msgstr "Försök igen"
-
-#: src/eduid_webapp/security/views/reset_password.py:155
-msgid "Extra security"
-msgstr "Extra säkerhet"
-
-#: src/eduid_webapp/security/views/reset_password.py:156
-msgid "Choose an option to enhance the security"
-msgstr "Välj en metod för att öka säkerheten"
-
-#: src/eduid_webapp/security/views/reset_password.py:167
-msgid "Email address not validated"
-msgstr "E-postadressen kunde inte valideras"
-
-#: src/eduid_webapp/security/views/reset_password.py:168
-msgid "Please use the password reset link that you have in your email."
-msgstr ""
-"Var vänlig och använd återställningslänken som skickats till din "
-"e-postsadress."
-
-#: src/eduid_webapp/security/views/reset_password.py:217
-msgid "Something went wrong"
-msgstr "Något gick fel"
-
-#: src/eduid_webapp/security/views/reset_password.py:218
-msgid "Please restart the password reset procedure."
-msgstr "Var vänlig och börja om lösenordsåterställningen."
-
-#: src/eduid_webapp/security/views/reset_password.py:234
-#: src/eduid_webapp/security/views/templates/reset_password_verify_phone.jinja2:30
-msgid "Verify phone number"
-msgstr "Bekräfta telefonnummer"
-
-#: src/eduid_webapp/security/views/reset_password.py:235
-msgid "Enter the code you received via SMS"
-msgstr "Ange bekräftelsekoden som har skickats med SMS"
-
-#: src/eduid_webapp/security/views/reset_password.py:270
-msgid "Invalid code. Please try again."
-msgstr "Felaktig bekräftelsekod. Vänligen försök igen."
-
-#: src/eduid_webapp/security/views/reset_password.py:280
-msgid "New password"
-msgstr "Nytt lösenord"
-
-#: src/eduid_webapp/security/views/reset_password.py:281
-msgid ""
-"\n"
-"            Please choose a new password for your eduID account. A strong password has been generated for you.\n"
-"            You can accept the generated password by clicking \"Change password\" or you can opt to choose your\n"
-"            own password by clicking \"Custom Password\".\n"
-"        "
-msgstr ""
-"\n"
-"Ändra lösenord för ditt eduID-konto. Ett säkert lösenord\n"
-"har genererats åt dig.\n"
-"Du kan acceptera det med knappen \"Acceptera lösenord\" eller så kan du välja att använda ett eget lösenord om du klickar på fliken \"Eget lösenord\"."
-
-#: src/eduid_webapp/security/views/templates/error.jinja2:3
-msgid "Error"
-msgstr "Fel"
-
-#: src/eduid_webapp/security/views/templates/reset_password.jinja2:3
-msgid "Reset password - Email"
-msgstr "Återställ lösenord - E-post"
-
-#: src/eduid_webapp/security/views/templates/reset_password.jinja2:18
-msgid "Email address"
-msgstr "E-postadress"
-
-#: src/eduid_webapp/security/views/templates/reset_password_extra_security.jinja2:3
-msgid "Reset password - Extra security"
-msgstr "Återställ lösenord - Extra säkerhet"
-
-#: src/eduid_webapp/security/views/templates/reset_password_extra_security.jinja2:26
-msgid "Send SMS to number"
-msgstr "Skicka SMS till nummer"
-
-#: src/eduid_webapp/security/views/templates/reset_password_extra_security.jinja2:40
-msgid ""
-"Continue with no extra security. I understand that I will have to verify my "
-"account again."
-msgstr ""
-"Fortsätt utan extra säkerhet. Jag förstår att det betyder att jag måste "
-"bekräfta mitt konto igen."
-
-#: src/eduid_webapp/security/views/templates/reset_password_new_password.jinja2:28
-msgid "Your generated password is"
-msgstr "Ditt genererade lösenord är"
-
-#: src/eduid_webapp/security/views/templates/reset_password_new_password.jinja2:32
-msgid ""
-"Copy and save the above password somewhere safe and click \"Accept "
-"password\"."
-msgstr ""
-"Kopiera och spara det ovanstående lösenordet på en säker plats och klicka "
-"\"Acceptera lösenord\"."
-
-#: src/eduid_webapp/security/views/templates/reset_password_new_password.jinja2:37
-msgid ""
-"Accept\n"
-"                                        password"
-msgstr "Acceptera lösenord"
-
-#: src/eduid_webapp/security/views/templates/reset_password_new_password.jinja2:46
-msgid ""
-"\n"
-"                            <p><strong>Choose a strong password</strong></p>\n"
-"                            <p>Some tips:</p>\n"
-"                            <ul>\n"
-"                                <li>Use upper- and lowercase characters (preferably not in the beginning or end)</li>\n"
-"                                <li>Add digits somewhere else than at the end of the password</li>\n"
-"                                <li>Add special characters, such as &#64; &#36; &#92; &#43; &#95; &#37;</li>\n"
-"                                <li>Spaces are ignored</li>\n"
-"                            </ul>\n"
-"                        "
-msgstr ""
-"\n"
-"<p><strong>Välj ett säkert lösenord.</strong></p>\n"
-"<p>Några tips:</p>\n"
-"<ul>\n"
-"<li>Använd stora och små bokstäver (inte bara första bokstaven)</li>\n"
-"<li>Lägg till en eller flera siffror någonstans i mitten av lösenordet</li>\n"
-"<li>Använd specialtecken som &#64; &#36; &#92; &#43; &#95; &#37;</li>\n"
-"<li>Blanksteg (mellanslag) ignoreras</li>\n"
-"</ul>\n"
-"                 "
-
-#: src/eduid_webapp/security/views/templates/reset_password_new_password.jinja2:60
-#: src/eduid_webapp/security/views/templates/reset_password_new_password.jinja2:61
-msgid "Password"
-msgstr "Lösenord"
-
-#: src/eduid_webapp/security/views/templates/reset_password_new_password.jinja2:66
-#: src/eduid_webapp/security/views/templates/reset_password_new_password.jinja2:67
-msgid "Repeat password"
-msgstr "Repetera lösenord"
-
-#: src/eduid_webapp/security/views/templates/reset_password_new_password.jinja2:80
-msgid ""
-"Change\n"
-"                                        password"
-msgstr "Ändra lösenord"
-
-#: src/eduid_webapp/security/views/templates/reset_password_new_password.jinja2:91
-#, python-format
-msgid ""
-"\n"
-"                <p>Password has been updated successfully.</p>\n"
-"                <p><a href=\"%(login_url)s\">Return to login page</a></p>\n"
-"            "
-msgstr ""
-"\n"
-"                <p>Lösenordet har ändrats.</p>\n"
-"                <p><a href=\"%(login_url)s\">Tillbaka till inloggningssidan</a></p>\n"
-"            "
-
-#: src/eduid_webapp/security/views/templates/reset_password_new_password.jinja2:103
-msgid "A stronger password is required."
-msgstr "Ett starkare lösenord krävs."
-
-#: src/eduid_webapp/security/views/templates/reset_password_new_password.jinja2:104
-msgid "Type the same password again"
-msgstr "Skriv samma lösenord igen."
-
-#: src/eduid_webapp/security/views/templates/reset_password_verify_phone.jinja2:3
-msgid "Reset password - Verify phone number"
-msgstr "Återställ lösenord - Bekräfta telefonnummer"
-
-#: src/eduid_webapp/security/views/templates/reset_password_verify_phone.jinja2:17
-msgid "SMS code"
-msgstr "SMS-bekräftelsekod"
-
-#: src/eduid_webapp/security/views/templates/termination_email.html.jinja2:5
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/security/views/templates/termination_email.html.jinja2:5
 #, python-format
 msgid ""
 "\n"
@@ -814,7 +580,7 @@ msgstr ""
 "\n"
 "    <p>(Detta är ett automatiserat meddelande och går ej att svara på.)</p>\n"
 
-#: src/eduid_webapp/security/views/templates/termination_email.txt.jinja2:2
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/security/views/templates/termination_email.txt.jinja2:2
 #, python-format
 msgid ""
 "\n"
@@ -835,11 +601,11 @@ msgstr ""
 "\n"
 "    (Detta är ett automatiserat meddelande och går ej att svara på.)\n"
 
-#: src/eduid_webapp/signup/verifications.py:127
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/signup/verifications.py:124
 msgid "eduid-signup verification email"
 msgstr "eduID registrering"
 
-#: src/eduid_webapp/signup/templates/verification_email.html.jinja2:1
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/signup/templates/verification_email.html.jinja2:1
 #, python-format
 msgid ""
 "\n"
@@ -864,7 +630,7 @@ msgstr ""
 "<a href=\"%(verification_link)s\">%(verification_link)s</a>\n"
 "\n"
 
-#: src/eduid_webapp/signup/templates/verification_email.txt.jinja2:1
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/signup/templates/verification_email.txt.jinja2:1
 #, python-format
 msgid ""
 "\n"
