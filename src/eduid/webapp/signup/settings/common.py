@@ -32,10 +32,13 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 from datetime import timedelta
-from typing import Optional
+from pathlib import Path
+from typing import List, Optional
 
-from pydantic import Field
+import pkg_resources
+from pydantic import AnyUrl, Field
 
+from eduid.common.clients.gnap_client.base import GNAPClientAuthData
 from eduid.common.config.base import (
     AmConfigMixin,
     EduIDBaseAppConfig,
@@ -52,17 +55,36 @@ class SignupConfig(EduIDBaseAppConfig, MagicCookieMixin, AmConfigMixin, MailConf
 
     app_name = "signup"
 
-    # The signup app uses this to retrieve the ToU texts from the actions app
-    tou_url: str
     vccs_url: str
     signup_url: str
     dashboard_url: str
+    default_language: str = "en"
 
-    signup_authn_url: str = "/services/authn/signup-authn"
     password_length: int = 10
+    throttle_resend: timedelta = Field(default=timedelta(minutes=5))
+    email_verification_code_length: int = 6
+    email_verification_max_bad_attempts: int = 3
+    email_verification_timeout: timedelta = Field(default=timedelta(minutes=10))
+    email_proofing_version = Field(default="2013v1")
     default_finish_url: str = "https://www.eduid.se/"
-    eduid_site_url: str = "https://www.eduid.se"
+    eduid_site_url: str = "https://www.eduid.se"  # TODO: Backwards compatibility, remove when no longer used
     eduid_site_name: str = "eduID"
     recaptcha_public_key: str = ""
     recaptcha_private_key: str = ""
+    captcha_code_length: int = 6
+    captcha_width: int = 160
+    captcha_height: int = 60
+    captcha_fonts: List[Path] = Field(
+        default=[
+            pkg_resources.resource_filename("eduid", "static/fonts/ProximaNova-Regular.ttf"),
+            pkg_resources.resource_filename("eduid", "static/fonts/ProximaNova-Light.ttf"),
+            pkg_resources.resource_filename("eduid", "static/fonts/ProximaNova-Bold.ttf"),
+        ]
+    )
+    captcha_font_size: List[int] = [42, 50, 56]
+    captcha_max_bad_attempts: int = 100
+    captcha_backdoor_code: str = "123456"
+    scim_api_url: Optional[AnyUrl] = None
+    gnap_auth_data: Optional[GNAPClientAuthData] = None
+    eduid_scope: str = "eduid.se"
     private_userdb_auto_expire: Optional[timedelta] = Field(default=timedelta(days=7))

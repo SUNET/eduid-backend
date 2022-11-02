@@ -31,7 +31,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 import json
-import time
 from datetime import datetime, timedelta
 from typing import Optional
 

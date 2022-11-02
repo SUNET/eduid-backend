@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 
 import logging
+import os
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List, Optional
 from urllib.parse import urlparse
 from uuid import uuid4
@@ -10,9 +11,10 @@ from uuid import uuid4
 import bcrypt
 from flask import Request, current_app
 
+from eduid.common.misc.timeutil import utc_now
 from eduid.common.utils import urlappend
 from eduid.userdb import User, UserDB
-from eduid.userdb.exceptions import MultipleUsersReturned, UserDBValueError, UserDoesNotExist
+from eduid.userdb.exceptions import MultipleUsersReturned, UserDBValueError
 from eduid.webapp.common.api.exceptions import ApiException
 
 logger = logging.getLogger(__name__)
@@ -24,6 +26,12 @@ def get_unique_hash() -> str:
 
 def get_short_hash(entropy=10) -> str:
     return uuid4().hex[:entropy]
+
+
+def make_short_code(digits: int = 6) -> str:
+    """Make a short decimal code, left-padded with zeros to the width specified by `digits'."""
+    code = int.from_bytes(os.urandom(4), byteorder="big") % 1000000
+    return str(code).zfill(digits)
 
 
 def update_modified_ts(user):
@@ -263,3 +271,23 @@ def get_zxcvbn_terms(user: User) -> List[str]:
             user_input.append(item.email.split("@")[0])
 
     return user_input
+
+
+def time_left(ts: datetime, delta: timedelta) -> timedelta:
+    end_time = ts + delta
+    _time_left = end_time - utc_now()
+    if _time_left.total_seconds() <= 0:
+        return timedelta()
+    return _time_left
+
+
+def is_throttled(ts: datetime, min_wait: timedelta) -> bool:
+    throttle_time_left = time_left(ts=ts, delta=min_wait)
+    if int(throttle_time_left.total_seconds()) > 0:
+        logger.info(f"Resend throttled for {throttle_time_left}")
+        return True
+    return False
+
+
+def is_expired(ts: datetime, max_age: timedelta) -> bool:
+    return utc_now() - ts > max_age

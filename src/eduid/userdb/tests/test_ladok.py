@@ -1,10 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from unittest import TestCase
-from uuid import UUID, uuid4
-
-import pytest
-from pydantic import ValidationError
+from uuid import uuid4
 
 from eduid.userdb.ladok import Ladok, University, UniversityName
 

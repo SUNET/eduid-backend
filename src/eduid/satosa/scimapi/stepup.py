@@ -7,7 +7,6 @@ from typing import Callable, Iterable, List, Mapping, Tuple
 from urllib.parse import urlparse
 
 import satosa.util as util
-from saml2.authn_context import requested_authn_context
 from saml2.client import Saml2Client
 from saml2.config import SPConfig
 from saml2.metadata import create_metadata_string

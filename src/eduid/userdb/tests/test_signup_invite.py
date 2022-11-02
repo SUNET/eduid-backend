@@ -12,7 +12,6 @@ class TestSignupInvite(TestCase):
             invite_reference=SCIMReference(data_owner="test_data_owner", scim_id=uuid4()),
             invite_code="test_invite_code",
             inviter_name="Test Inviter",
-            display_name="Testaren Test Testsson",
             given_name="Testaren",
             surname="Testsson",
             mail_addresses=[InviteMailAddress(email="johnsmith@example.com", primary=True)],

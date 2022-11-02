@@ -1,7 +1,7 @@
 from typing import Optional, Sequence
 
 from bson import ObjectId
-from flask import Blueprint, request
+from flask import Blueprint
 
 from eduid.common.config.base import EduidEnvironment
 from eduid.userdb import ToUEvent
@@ -10,14 +10,11 @@ from eduid.userdb.exceptions import UserOutOfSync
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith
 from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response, success_response
 from eduid.webapp.common.api.utils import save_and_sync_user
-from eduid.webapp.common.session.namespaces import RequestRef
 from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.decorators import require_ticket
 from eduid.webapp.idp.helpers import IdPMsg
-from eduid.webapp.idp.login import get_ticket
 from eduid.webapp.idp.login_context import LoginContext
 from eduid.webapp.idp.schemas import TouRequestSchema, TouResponseSchema
-from eduid.webapp.idp.service import SAMLQueryParams
 
 tou_views = Blueprint("tou", __name__, url_prefix="")
 

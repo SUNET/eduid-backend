@@ -3,13 +3,12 @@ import binascii
 import json
 import time
 from collections import OrderedDict
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from jose import jws as jose
 from mock import patch
 
-from eduid.userdb import NinIdentity, User
-from eduid.userdb.proofing import OidcProofingState
+from eduid.userdb import NinIdentity
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.oidc_proofing.app import OIDCProofingApp, init_oidc_proofing_app
 from eduid.webapp.oidc_proofing.helpers import create_proofing_state, handle_freja_eid_userinfo

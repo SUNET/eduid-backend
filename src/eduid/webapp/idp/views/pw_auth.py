@@ -8,16 +8,13 @@ from eduid.webapp.common.api.exceptions import EduidForbidden, EduidTooManyReque
 from eduid.webapp.common.api.messages import FluxData, error_response
 from eduid.webapp.common.api.schemas.models import FluxSuccessResponse
 from eduid.webapp.common.session import session
-from eduid.webapp.common.session.namespaces import RequestRef
 from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.decorators import require_ticket
 from eduid.webapp.idp.helpers import IdPMsg
 from eduid.webapp.idp.idp_authn import AuthnData
-from eduid.webapp.idp.login import get_ticket
 from eduid.webapp.idp.login_context import LoginContext
 from eduid.webapp.idp.mischttp import set_sso_cookie
 from eduid.webapp.idp.schemas import PwAuthRequestSchema, PwAuthResponseSchema
-from eduid.webapp.idp.service import SAMLQueryParams
 from eduid.webapp.idp.sso_session import record_authentication
 
 pw_auth_views = Blueprint("pw_auth", __name__, url_prefix="")
