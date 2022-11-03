@@ -5,6 +5,7 @@ from dataclasses import replace
 from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 from bson import ObjectId
+from httpx import Client
 from neo4j import READ_ACCESS, WRITE_ACCESS, Record, Transaction
 from neo4j.exceptions import ClientError, ConstraintError
 from neo4j.graph import Graph
@@ -40,15 +41,19 @@ class GroupDB(BaseGraphDB):
 
     def db_setup(self):
         with self.db.driver.session(default_access_mode=WRITE_ACCESS) as session:
+            # new index creation syntax in neo4j >=5.0
             statements = [
                 # Constraints for Group nodes
                 "CREATE CONSTRAINT ON (n:Group) ASSERT exists(n.scope)",
                 "CREATE CONSTRAINT ON (n:Group) ASSERT exists(n.identifier)",
                 "CREATE CONSTRAINT ON (n:Group) ASSERT exists(n.version)",
+                # Replaced by CREATE CONSTRAINT [name] FOR (node:Label) REQUIRE node.prop IS NOT NULL.
                 "CREATE CONSTRAINT ON (n:Group) ASSERT (n.scope, n.identifier) IS NODE KEY",
+                # Replaced by CREATE CONSTRAINT [name] FOR (node:Label) REQUIRE (node.prop1,node.prop2) IS NODE KEY.
                 # Constraints for User nodes
                 "CREATE CONSTRAINT ON (n:User) ASSERT exists(n.identifier)",
                 "CREATE CONSTRAINT ON (n:User) ASSERT n.identifier IS UNIQUE",
+                # Replaced by CREATE CONSTRAINT [name] FOR (node:Label) REQUIRE node.prop IS UNIQUE
             ]
             for statment in statements:
                 try:
