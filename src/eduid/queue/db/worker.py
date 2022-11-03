@@ -142,7 +142,7 @@ class AsyncQueueDB(QueueDB):
             logger.debug(f"new_item: {new_item}")
             return False
 
-        update_result = await self.collection.replace_one(old_item.to_dict(), new_item.to_dict(), upsert=True)
+        update_result = await self.collection.replace_one({"_id": old_item.item_id}, new_item.to_dict(), upsert=True)
         if not update_result.acknowledged or update_result.modified_count != 1:
             logger.debug(f"Saving of item failed: {update_result.raw_result}")
             return False
