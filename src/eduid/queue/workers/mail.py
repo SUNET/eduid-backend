@@ -6,7 +6,7 @@ from email.message import EmailMessage
 from gettext import gettext as _
 from typing import Any, Mapping, Optional, Sequence, Type, cast
 
-from aiosmtplib import SMTP
+from aiosmtplib import SMTP, SMTPResponse, SMTPException
 
 from eduid.common.config.base import EduidEnvironment
 from eduid.common.config.parsers import load_config
@@ -50,12 +50,12 @@ class MailQueueWorker(QueueWorker):
                 await self._smtp.login(username=username, password=password)
         return self._smtp
 
-    async def sendmail(self, sender: str, recipients: list, message: str, reference: str) -> Status:
+    async def sendmail(self, sender: str, recipient: str, message: str, reference: str) -> Status:
         """
         Send mail
 
         :param sender: the From of the email
-        :param recipients: the recipients of the email
+        :param recipient: the recipient of the email
         :param message: email.mime.multipart.MIMEMultipart message as a string
         :param reference: Audit reference to help cross-reference audit log and events
         """
@@ -64,22 +64,37 @@ class MailQueueWorker(QueueWorker):
         if self.config.environment == EduidEnvironment.dev:
             logger.info("sendmail task:")
             logger.info(
-                f"\nType: email\nReference: {reference}\nSender: {sender}\nRecipients: {recipients}\n"
+                f"\nType: email\nReference: {reference}\nSender: {sender}\nRecipient: {recipient}\n"
                 f"Message:\n{message}"
             )
             return Status(success=True, message="Devel message printed")
 
-        async with self.smtp as smtp_client:
-            ret = await smtp_client.sendmail(sender, recipients, message)
+        smtp_client = await self.smtp
+        try:
+            errors, response_message = await smtp_client.sendmail(sender, recipient, message)
+        except SMTPException as e:
+            logger.error(f"SMTPException: {e}")
+            return Status(success=False, message=str(e), retry=True)
 
-        return_code = ret.code // 100
+        if not errors:
+            # mail sent successfully
+            logger.debug(f"Mail to {recipient} sent successfully: {response_message}")
+            return Status(success=True, message=response_message)
+
+        # handle errors
+        smtp_response = errors.get(recipient, SMTPResponse(0, "Unknown error"))
+        logger.error(f"Error sending mail to {recipient}: {smtp_response.code} {smtp_response.message}")
+
+        return_code = smtp_response.code // 100
         if return_code == 5:
             # 500, permanent error condition
-            return Status(success=False, retry=False, message=ret.message)
+            return Status(success=False, retry=False, message=smtp_response.message)
         elif return_code == 4:
             # 400, error condition is temporary, and the action may be requested again
-            return Status(success=False, retry=True, message=ret.message)
-        return Status(success=True, message=ret.message)
+            return Status(success=False, retry=True, message=smtp_response.message)
+        else:
+            # unknown error
+            return Status(success=False, retry=False, message=smtp_response.message)
 
     async def handle_new_item(self, queue_item: QueueItem) -> None:
         status = None
@@ -132,7 +147,7 @@ class MailQueueWorker(QueueWorker):
 
         return await self.sendmail(
             sender=self.config.mail_default_from,
-            recipients=[data.email],
+            recipient=data.email,
             message=msg.as_string(),
             reference=data.reference,
         )
@@ -150,7 +165,7 @@ class MailQueueWorker(QueueWorker):
 
         return await self.sendmail(
             sender=self.config.mail_default_from,
-            recipients=[data.email],
+            recipient=data.email,
             message=msg.as_string(),
             reference=data.reference,
         )
@@ -169,7 +184,7 @@ class MailQueueWorker(QueueWorker):
 
         return await self.sendmail(
             sender=self.config.mail_default_from,
-            recipients=[data.email],
+            recipient=data.email,
             message=msg.as_string(),
             reference=data.reference,
         )
