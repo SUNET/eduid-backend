@@ -36,7 +36,9 @@ class MailQueueWorker(QueueWorker):
     @property
     async def smtp(self):
         if self._smtp is None:
+            logger.debug(f"Creating SMTP client for {self.config.mail_host}:{self.config.mail_port}")
             self._smtp = SMTP(hostname=self.config.mail_host, port=self.config.mail_port)
+            await self._smtp.connect()
             if self.config.mail_starttls:
                 keyfile = self.config.mail_keyfile
                 certfile = self.config.mail_certfile
@@ -44,10 +46,16 @@ class MailQueueWorker(QueueWorker):
                     await self._smtp.starttls(client_key=keyfile, client_cert=certfile)
                 else:
                     await self._smtp.starttls()
+            # login
             username = self.config.mail_username
             password = self.config.mail_password
             if username and password:
+                logger.debug(f"Logging in with username: {username}")
                 await self._smtp.login(username=username, password=password)
+        # ensure that the connection is still alive
+        if not self._smtp.is_connected:
+            logger.debug("Reconnecting SMTP client")
+            await self._smtp.connect()
         return self._smtp
 
     async def sendmail(self, sender: str, recipient: str, message: str, reference: str) -> Status:
