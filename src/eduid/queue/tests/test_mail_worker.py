@@ -53,13 +53,15 @@ class TestMailWorker(QueueAsyncioTest):
     async def asyncTearDown(self) -> None:
         await super().asyncTearDown()
 
+    @patch("aiosmtplib.SMTP.connect")
     @patch("aiosmtplib.SMTP.sendmail")
-    async def test_eduid_signup_mail_from_stream(self, mock_sendmail):
+    async def test_eduid_signup_mail_from_stream(self, mock_sendmail, mock_connect):
         """
         Test that saved queue items are handled by the handle_new_item method
         """
         recipient = "test@example.com"
         mock_sendmail.return_value = ({}, "OK")
+        mock_connect.return_value = SMTPResponse(250, "OK")
         expires_at = utc_now() + timedelta(minutes=5)
         discard_at = expires_at + timedelta(minutes=5)
         payload = EduidSignupEmail(
@@ -70,13 +72,15 @@ class TestMailWorker(QueueAsyncioTest):
         self.db.save(queue_item)
         await self._assert_item_gets_processed(queue_item)
 
+    @patch("aiosmtplib.SMTP.connect")
     @patch("aiosmtplib.SMTP.sendmail")
-    async def test_eduid_signup_mail_from_stream_unrecoverable_error(self, mock_sendmail):
+    async def test_eduid_signup_mail_from_stream_unrecoverable_error(self, mock_sendmail, mock_connect):
         """
         Test that saved queue items are handled by the handle_new_item method
         """
         recipient = "test@example.com"
         mock_sendmail.return_value = ({recipient: SMTPResponse(550, "User unknown")}, "Some other message")
+        mock_connect.return_value = SMTPResponse(250, "OK")
         expires_at = utc_now() + timedelta(minutes=5)
         discard_at = expires_at + timedelta(minutes=5)
         payload = EduidSignupEmail(
@@ -87,8 +91,9 @@ class TestMailWorker(QueueAsyncioTest):
         self.db.save(queue_item)
         await self._assert_item_gets_processed(queue_item)
 
+    @patch("aiosmtplib.SMTP.connect")
     @patch("aiosmtplib.SMTP.sendmail")
-    async def test_eduid_signup_mail_from_stream_error_retry(self, mock_sendmail):
+    async def test_eduid_signup_mail_from_stream_error_retry(self, mock_sendmail, mock_connect):
         """
         Test that saved queue items are handled by the handle_new_item method
         """
@@ -97,6 +102,7 @@ class TestMailWorker(QueueAsyncioTest):
             {recipient: SMTPResponse(450, "Requested mail action not taken: mailbox unavailable")},
             "Some other message",
         )
+        mock_connect.return_value = SMTPResponse(250, "OK")
         expires_at = utc_now() + timedelta(minutes=5)
         discard_at = expires_at + timedelta(minutes=5)
         payload = EduidSignupEmail(
