@@ -4,9 +4,10 @@ import logging
 from dataclasses import asdict
 from email.message import EmailMessage
 from gettext import gettext as _
+from ssl import create_default_context
 from typing import Any, Mapping, Optional, Sequence, Type, cast
 
-from aiosmtplib import SMTP, SMTPResponse, SMTPException
+from aiosmtplib import SMTP, SMTPException, SMTPResponse, send
 
 from eduid.common.config.base import EduidEnvironment
 from eduid.common.config.parsers import load_config
@@ -39,13 +40,21 @@ class MailQueueWorker(QueueWorker):
             logger.debug(f"Creating SMTP client for {self.config.mail_host}:{self.config.mail_port}")
             self._smtp = SMTP(hostname=self.config.mail_host, port=self.config.mail_port)
             await self._smtp.connect()
+            # starttls
+            ssl_context = None
+            if self.config.mail_verify_tls is False:
+                logger.warning("Disabling TLS certificate hostname verification")
+                ssl_context = create_default_context()
+                ssl_context.check_hostname = False
             if self.config.mail_starttls:
                 keyfile = self.config.mail_keyfile
                 certfile = self.config.mail_certfile
                 if keyfile and certfile:
-                    await self._smtp.starttls(client_key=keyfile, client_cert=certfile)
+                    logger.debug(f"Starting TLS with keyfile: {keyfile} and certfile: {certfile}")
+                    await self._smtp.starttls(client_key=keyfile, client_cert=certfile, tls_context=ssl_context)
                 else:
-                    await self._smtp.starttls()
+                    logger.debug("Starting TLS")
+                    await self._smtp.starttls(tls_context=ssl_context)
             # login
             username = self.config.mail_username
             password = self.config.mail_password
