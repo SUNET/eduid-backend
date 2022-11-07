@@ -436,9 +436,11 @@ def get_email_code():
     try:
         if check_magic_cookie(current_app.conf):
             email = request.args.get("email")
+            current_app.logger.debug(f"BACKDOOR: requesting code for email: {email}")
             if not email:
-                current_app.logger.error("Missing email")
+                current_app.logger.error("BACKDOOR: Missing email")
                 abort(400)
+            current_app.logger.debug(f"BACKDOOR: email in session: {session.signup.email.address}")
             if session.signup.email.address == email:
                 return session.signup.email.verification_code
     except Exception:
