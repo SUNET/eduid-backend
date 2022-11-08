@@ -129,6 +129,8 @@ class QueueWorker(ABC):
                     tasks.append(asyncio.create_task(self.handle_change(change_event), name="handle_change"))
                     tasks = [task for task in tasks if not task.done()]
                     logger.debug(f"watch_collection: {len(tasks)} running tasks")
+                    # Setting the delay to 0 provides an optimized path to allow other tasks to run.
+                    await asyncio.sleep(0)
         except CancelledError:
             logger.info("watch_collection task was cancelled")
         finally:
