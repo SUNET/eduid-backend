@@ -9,7 +9,7 @@ from asyncio import CancelledError, Task
 from dataclasses import replace
 from datetime import datetime
 from os import environ
-from typing import List, Sequence, Type
+from typing import Sequence, Set, Type
 
 from motor.motor_asyncio import AsyncIOMotorClient
 
@@ -42,6 +42,14 @@ class QueueWorker(ABC):
 
         init_logging(config=config)
         logger.info(f"Starting {self.config.app_name}: {self.worker_name}...")
+
+    @staticmethod
+    def add_task(tasks: Set[Task], task: Task) -> Set[Task]:
+        # To prevent keeping references to finished tasks forever, make each task remove its own reference
+        # from the set after completion.
+        task.add_done_callback(tasks.discard)
+        tasks.add(task)
+        return tasks
 
     async def run(self):
         # Init db in the correct loop
@@ -121,16 +129,18 @@ class QueueWorker(ABC):
 
     async def watch_collection(self):
         change_stream = None
-        tasks = []
+        tasks: Set[Task] = set()
         try:
             async with self.db.collection.watch() as change_stream:
                 async for change in change_stream:
                     change_event = ChangeEvent.from_dict(change)
-                    tasks.append(asyncio.create_task(self.handle_change(change_event), name="handle_change"))
-                    tasks = [task for task in tasks if not task.done()]
-                    logger.debug(f"watch_collection: {len(tasks)} running tasks")
+                    tasks = self.add_task(
+                        tasks,
+                        asyncio.create_task(self.handle_change(change_event), name="handle_change"),
+                    )
                     # Setting the delay to 0 provides an optimized path to allow other tasks to run.
                     await asyncio.sleep(0)
+                    logger.info(f"watch_collection: {len(tasks)} running tasks")
         except CancelledError:
             logger.info("watch_collection task was cancelled")
         finally:
@@ -142,7 +152,7 @@ class QueueWorker(ABC):
                 await asyncio.gather(*tasks)
 
     async def periodic_collection_check(self):
-        tasks = []
+        tasks: Set[Task] = set()
         try:
             while True:
                 logger.debug(f"Running periodic collection check")
@@ -150,7 +160,6 @@ class QueueWorker(ABC):
 
                 # TODO: Implement some kind of retry of failed events here
 
-                tasks = [task for task in tasks if not task.done()]
                 logger.debug(f"periodic_collection_check: {len(tasks)} running tasks")
                 logger.debug(f"periodic_collection_check: sleeping for {self.config.periodic_interval}s")
                 await asyncio.sleep(self.config.periodic_interval)
@@ -161,13 +170,13 @@ class QueueWorker(ABC):
             logger.info("Cleaning up periodic_collection_check task...")
             await asyncio.gather(*tasks)
 
-    async def collect_periodic_tasks(self) -> List[Task]:
+    async def collect_periodic_tasks(self) -> Set[Task]:
         tasks = await self.collect_forgotten_items()
-        tasks += await self.collect_expired_items()
+        tasks.update(await self.collect_expired_items())
         return tasks
 
-    async def collect_forgotten_items(self) -> List[Task]:
-        tasks = []
+    async def collect_forgotten_items(self) -> Set[Task]:
+        tasks: Set[Task] = set()
         # Check for forgotten untouched queue items
         items = await self.db.find_items(
             processed=False, min_age_in_seconds=self.config.periodic_min_retry_wait_in_seconds, expired=False
@@ -176,16 +185,14 @@ class QueueWorker(ABC):
             logger.info(f"{len(items)} item(s) was forgotten or should be retried, processing...")
         for item in items:
             logger.debug(f"item: {item}")
-            tasks.append(
-                asyncio.create_task(
-                    self.process_new_item(document_id=item["_id"]),
-                    name="periodic_process_new_item",
-                )
+            tasks = self.add_task(
+                tasks,
+                asyncio.create_task(self.process_new_item(document_id=item["_id"]), name="periodic_process_new_item"),
             )
         return tasks
 
-    async def collect_expired_items(self) -> List[Task]:
-        tasks = []
+    async def collect_expired_items(self) -> Set[Task]:
+        tasks: Set[Task] = set()
         # Check for expired untouched queue items
         items = await self.db.find_items(
             processed=False, min_age_in_seconds=self.config.periodic_min_retry_wait_in_seconds, expired=True
@@ -195,8 +202,9 @@ class QueueWorker(ABC):
         for item in items:
             queue_item = await self.db.grab_item(item_id=item["_id"], worker_name=self.worker_name)
             if queue_item:
-                tasks.append(
-                    asyncio.create_task(self.handle_expired_item(queue_item), name="periodic_process_expired_item")
+                tasks = self.add_task(
+                    tasks,
+                    asyncio.create_task(self.handle_expired_item(queue_item), name="periodic_process_expired_item"),
                 )
         return tasks
 
