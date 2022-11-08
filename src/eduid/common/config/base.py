@@ -363,6 +363,7 @@ class ProofingConfigMixin(BaseModel):
     # identity proofing
     nin_proofing_version: str = Field(default="2018v1")
     foreign_eid_proofing_version: str = Field(default="2022v1")
+    svipe_id_proofing_version: str = Field(default="2022v1")
 
     # security key proofing
     security_key_proofing_method: CredentialProofingMethod = Field(default=CredentialProofingMethod.SWAMID_AL2_MFA_HI)

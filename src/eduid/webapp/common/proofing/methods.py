@@ -24,11 +24,9 @@ class SessionInfoParseResult:
 
 @dataclass(frozen=True)
 class ProofingMethod(ABC):
-    finish_url: Optional[str]
-    framework: TrustFramework
-    idp: str
     method: str
-    required_loa: List[str]
+    framework: TrustFramework
+    finish_url: str
 
     def parse_session_info(self, session_info: SessionInfo, backdoor: bool) -> SessionInfoParseResult:
         raise NotImplementedError("Subclass must implement parse_session_info")
@@ -39,7 +37,11 @@ class ProofingMethod(ABC):
         return self.finish_url.format(app_name=app_name, authn_id=authn_id)
 
 
+@dataclass(frozen=True)
 class ProofingMethodFreja(ProofingMethod):
+    idp: str
+    required_loa: List[str]
+
     def parse_session_info(self, session_info: SessionInfo, backdoor: bool) -> SessionInfoParseResult:
         try:
             parsed_session_info = NinSessionInfo(**session_info)
@@ -60,7 +62,11 @@ class ProofingMethodFreja(ProofingMethod):
         return SessionInfoParseResult(info=parsed_session_info)
 
 
+@dataclass(frozen=True)
 class ProofingMethodEidas(ProofingMethod):
+    idp: str
+    required_loa: List[str]
+
     def parse_session_info(self, session_info: SessionInfo, backdoor: bool) -> SessionInfoParseResult:
         try:
             parsed_session_info = ForeignEidSessionInfo(**session_info)
@@ -72,12 +78,17 @@ class ProofingMethodEidas(ProofingMethod):
         return SessionInfoParseResult(info=parsed_session_info)
 
 
+@dataclass(frozen=True)
+class ProofingMethodSvipeID(ProofingMethod):
+    pass
+
+
 def get_proofing_method(
     method: Optional[str],
     frontend_action: str,
     config: ProofingConfigMixin,
     fallback_redirect_url: Optional[str] = None,
-) -> Optional[ProofingMethod]:
+) -> Optional[Union[ProofingMethodFreja, ProofingMethodEidas, ProofingMethodSvipeID]]:
     # look up the finish_url here (when receiving the request, rather than in the ACS)
     # to be able to fail fast if frontend requests an action that backend isn't configured for
     finish_url = config.frontend_action_finish_url.get(frontend_action, fallback_redirect_url)
@@ -105,5 +116,11 @@ def get_proofing_method(
             idp=config.foreign_identity_idp,
             method=method,
             required_loa=config.foreign_required_loa,  # TODO: True Required LOA is likely higher here when verifying credentials
+        )
+    if method == "svipe_id":
+        return ProofingMethodSvipeID(
+            method=method,
+            framework=TrustFramework.SVIPEID,
+            finish_url=finish_url,
         )
     return None

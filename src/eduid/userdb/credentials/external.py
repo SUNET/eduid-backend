@@ -14,6 +14,7 @@ from eduid.userdb.util import objectid_str
 class TrustFramework(str, Enum):
     SWECONN = "SWECONN"
     EIDAS = "EIDAS"
+    SVIPEID = "SVIPEID"
 
 
 class ExternalCredential(Credential):

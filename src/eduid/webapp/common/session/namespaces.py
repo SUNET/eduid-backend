@@ -4,12 +4,12 @@ from __future__ import annotations
 import logging
 from abc import ABC
 from copy import deepcopy
-from datetime import datetime, timedelta
+from datetime import datetime
 from enum import Enum, unique
 from typing import Any, Dict, List, Mapping, NewType, Optional, Type, TypeVar, Union
 from uuid import uuid4
 
-from pydantic import BaseModel, Field, ValidationError, validator
+from pydantic import BaseModel, Field, ValidationError
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.actions import Action
@@ -17,17 +17,18 @@ from eduid.userdb.credentials import Credential
 from eduid.userdb.credentials.external import TrustFramework
 from eduid.userdb.credentials.fido import WebauthnAuthenticator
 from eduid.userdb.element import ElementKey
-from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.common.authn.acs_enums import AuthnAcsAction, EidasAcsAction
 from eduid.webapp.idp.other_device.data import OtherDeviceId
+from eduid.webapp.svipe_id.callback_enums import SvipeIDAction
 
 __author__ = "ft"
+
 
 logger = logging.getLogger(__name__)
 
 
 AuthnRequestRef = NewType("AuthnRequestRef", str)
-OIDCState = NewType('OIDCState', str)
+OIDCState = NewType("OIDCState", str)
 
 
 class SessionNSBase(BaseModel, ABC):
@@ -210,18 +211,21 @@ class IdP_Namespace(TimestampedNS):
         self.pending_requests[request_ref].credentials_used[credential.key] = timestamp
 
 
-class SP_AuthnRequest(BaseModel):
+class AuthnRequest(BaseModel):
+    frontend_state: Optional[str] = None  # opaque data from frontend, returned in /status
+    method: Optional[str] = None  # proofing method that frontend is invoking
     frontend_action: str  # what action frontend is performing, decides the finish URL the user is redirected to
-    post_authn_action: Optional[Union[AuthnAcsAction, EidasAcsAction]] = None
-    credentials_used: List[ElementKey] = Field(default_factory=list)
+    post_authn_action: Optional[Union[AuthnAcsAction, EidasAcsAction, SvipeIDAction]] = None
     created_ts: datetime = Field(default_factory=utc_now)
     authn_instant: Optional[datetime] = None
-    frontend_state: Optional[str] = None  # opaque data from frontend, returned in /status
+    status: Optional[str] = None  # populated by the SAML2 ACS/OICD callback action
+    error: Optional[bool] = None
+
+
+class SP_AuthnRequest(AuthnRequest):
+    credentials_used: List[ElementKey] = Field(default_factory=list)
     # proofing_credential_id is the credential being person-proofed, when doing that
     proofing_credential_id: Optional[ElementKey] = None
-    method: Optional[str] = None  # proofing method that frontend is invoking
-    status: Optional[str] = None  # populated by the SAML2 ACS
-    error: Optional[bool] = None
     redirect_url: Optional[str]  # Deprecated, use frontend_action to get return URL from config instead
 
 
@@ -251,20 +255,14 @@ class AuthnNamespace(SessionNSBase):
     next: Optional[str] = None
 
 
-class OIDCResult(BaseModel):
-    message: str
-    error: bool = False
+class RP_AuthnRequest(AuthnRequest):
+    pass
 
 
-class OIDCData(BaseModel):
-    created_ts: datetime = Field(default_factory=utc_now)
-    nonce: Optional[str]
-    result: Optional[OIDCResult]
+class RPAuthnData(BaseModel):
+    authlib_cache: Dict[str, Any] = Field(default_factory=dict)
+    authns: Dict[OIDCState, RP_AuthnRequest] = Field(default_factory=dict)
 
 
 class SvipeIDNamespace(SessionNSBase):
-    oidc_states: Dict[OIDCState, OIDCData] = Field(default_factory=dict)
-
-    @validator('oidc_states')
-    def expire_oidc_states(cls, v: Dict[OIDCState, OIDCData]):
-        return {key: value for key, value in v.items() if (utc_now() - value.created_ts) < timedelta(hours=2)}
+    rp: RPAuthnData = Field(default=RPAuthnData())

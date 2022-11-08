@@ -4,5 +4,6 @@ Flask-Mail
 Flask
 flask-babel
 flask-cors
+authlib
 raven[flask]
 user-agents

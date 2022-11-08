@@ -1,10 +1,18 @@
 # -*- coding: utf-8 -*-
 
+import logging
 from enum import unique
+from typing import Any, Optional
+
+from pydantic import BaseModel, Field
 
 from eduid.webapp.common.api.messages import TranslatableMsg
+from eduid.webapp.common.session import session
 
-__author__ = 'lundberg'
+__author__ = "lundberg"
+
+
+logger = logging.getLogger(__name__)
 
 
 @unique
@@ -14,13 +22,74 @@ class SvipeIDMsg(TranslatableMsg):
     attempted operations on the back end.
     """
 
-    # Authorization error at ORCID
-    authz_error = 'svipe_id.authorization_fail'
-    # proofing state corresponding to response not found
-    no_state = 'svipe_id.unknown_state'
-    # nonce not known
-    unknown_nonce = 'svipe_id.unknown_nonce'
-    # The 'sub' of userinfo does not match 'sub' of ID Token for user
-    sub_mismatch = 'svipe_id.sub_mismatch'
-    # identity proofing data saved for user
-    identity_proofing_success = 'svipe_id.identity_proofing_success'
+    # failed to create authn request
+    authn_request_failed = "svipe_id.authn_request_failed"
+    # Unavailable vetting method requested
+    method_not_available = "svipe_id.method_not_available"
+    # Identity verification success
+    identity_verify_success = "svipe_id.identity_verify_success"
+    # Token response failed
+    token_response_failed = "svipe_id.token_response_failed"
+    # Authorization error at Svipe ID
+    authz_error = "svipe_id.authorization_fail"
+    # Status requested for unknown authn_id
+    not_found = "svipe_id.not_found"
+
+
+class SessionOAuthCache:
+    @staticmethod
+    def get(key: str) -> Any:
+        logger.debug(f"Getting {key} from session.svipe_id.oauth_cache")
+        return session.svipe_id.rp.authlib_cache.get(key)
+
+    @staticmethod
+    def set(key: str, value: Any, expires: int = None) -> None:
+        session.svipe_id.rp.authlib_cache[key] = value
+        logger.debug(f"Set {key}={value} (expires={expires}) in session.svipe_id.oauth_cache")
+
+    @staticmethod
+    def delete(key: str) -> None:
+        del session.svipe_id.rp.authlib_cache[key]
+        logger.debug(f"Deleted {key} from session.svipe_id.oauth_cache")
+
+
+class UserInfoBase(BaseModel):
+    at_hash: str
+    aud: str
+    auth_time: int
+    c_hash: str
+    exp: int
+    iat: int
+    iss: str
+    nbf: int
+    sid: str
+    sub: str
+
+
+class SvipeDocumentUserInfo(UserInfoBase):
+    birthdate: str
+    document_administrative_number: str = Field(alias="com.svipe:document_administrative_number")
+    document_expiry_date: str = Field(alias="com.svipe:document_expiry_date")
+    document_issuing_country: str = Field(alias="com.svipe:document_issuing_country")
+    document_issuing_country_en: str = Field(alias="com.svipe:document_issuing_country_en")
+    document_nationality: str = Field(alias="com.svipe:document_nationality")
+    document_nationality_en: str = Field(alias="com.svipe:document_nationality_en")
+    document_number: str = Field(alias="com.svipe:document_number")
+    document_type: str = Field(alias="com.svipe:document_type")
+    document_type_sdn: str = Field(alias="com.svipe:document_type_sdn")
+    document_type_sdn_en: str = Field(alias="com.svipe:document_type_sdn_en")
+    family_name: str
+    gender: Optional[str]
+    given_name: str
+    name: Optional[str]
+    nonce: str
+    svipeid: str = Field(alias="com.svipe:svipeid")
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    expires_at: int
+    expires_in: int
+    id_token: str
+    token_type: str
+    userinfo: SvipeDocumentUserInfo

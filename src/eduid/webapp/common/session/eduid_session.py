@@ -216,19 +216,19 @@ class EduidSession(SessionMixin, MutableMapping):
     @property
     def eidas(self) -> EidasNamespace:
         if not self._namespaces.eidas:
-(??)            self._namespaces.eidas = Eidas_Namespace.from_dict(self._session.get('eidas', {}))
+            self._namespaces.eidas = EidasNamespace.from_dict(self._session.get("eidas", {}))
         return self._namespaces.eidas
 
     @property
     def authn(self) -> AuthnNamespace:
         if not self._namespaces.authn:
-(??)            self._namespaces.authn = Authn_Namespace.from_dict(self._session.get('authn', {}))
+            self._namespaces.authn = AuthnNamespace.from_dict(self._session.get("authn", {}))
         return self._namespaces.authn
 
     @property
     def svipe_id(self) -> SvipeIDNamespace:
         if not self._namespaces.svipe_id:
-            self._namespaces.svipe_id = SvipeIDNamespace.from_dict(self._session.get('svipe_id', {}))
+            self._namespaces.svipe_id = SvipeIDNamespace.from_dict(self._session.get("svipe_id", {}))
         return self._namespaces.svipe_id
 
     @property

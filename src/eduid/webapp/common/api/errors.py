@@ -13,6 +13,8 @@ class EduidErrorsContext(str, Enum):
     SAML_REQUEST_MISSING_IDP = "saml_request_missing_idp"
     SAML_MISSING_ATTRIBUTE = "saml_missing_attribute"
     SAML_RESPONSE_UNSOLICITED = "saml_response_unsolicited"
+    OIDC_RESPONSE_UNSOLICITED = "oidc_response_unsolicited"
+    OIDC_RESPONSE_FAIL = "oidc_response_fail"
 
 
 def goto_errors_response(
