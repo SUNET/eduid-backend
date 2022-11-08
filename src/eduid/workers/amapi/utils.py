@@ -3,6 +3,7 @@ import logging
 from jwcrypto import jwk
 
 from eduid.common.config.exceptions import BadConfiguration
+from eduid.common.models.jose_models import RegisteredClaims
 from eduid.workers.amapi.config import AMApiConfig
 
 logger = logging.getLogger(__name__)
@@ -41,6 +42,12 @@ logger = logging.getLogger(__name__)
 
 # def get_short_hash(entropy=10):
 #    return uuid4().hex[:entropy]
+class AuthnBearerToken(RegisteredClaims):
+    """
+    Data we recognize from authentication bearer token JWT claims.
+    """
+
+    service_name: str
 
 
 def load_jwks(config: AMApiConfig) -> jwk.JWKSet:

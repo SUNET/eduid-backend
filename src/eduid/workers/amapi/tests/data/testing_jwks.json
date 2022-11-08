@@ -2,7 +2,7 @@
   "keys": [
     {
       "kty": "EC",
-      "kid": "testing-scimapi-2106210000",
+      "kid": "testing-amapi-2106210000",
       "crv": "P-256",
       "x": "YdCwtya47fi43LP6ZmEkUcQ0wWtCOEpcly7T2Ogdn64",
       "y": "J1SmG2leDekXN2U5CqLZIeb7zBaQQO0FGHrbCLu7oGU",

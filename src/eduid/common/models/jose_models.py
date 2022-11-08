@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
-
+import datetime
 from enum import Enum
 from typing import List, Optional, Union
 
 from pydantic import AnyUrl, BaseModel, Field
 
 __author__ = "lundberg"
+
+from eduid.userdb.util import utc_now
 
 
 class KeyType(str, Enum):
@@ -100,3 +102,27 @@ class JOSEHeader(BaseModel):
     typ: Optional[str]
     cty: Optional[str]
     crit: Optional[List]
+
+
+class RegisteredClaims(BaseModel):
+    """
+    https://tools.ietf.org/html/rfc7519#section-4.1
+    """
+
+    iss: Optional[str]  # Issuer
+    sub: Optional[str]  # Subject
+    aud: Optional[str]  # Audience
+    exp: Optional[datetime.timedelta]  # Expiration Time
+    nbf: Optional[datetime.datetime] = Field(default_factory=utc_now)  # Not Before
+    iat: Optional[datetime.datetime] = Field(default_factory=utc_now)  # Issued At
+    jti: Optional[str]  # JWT ID
+
+    def to_rfc7519(self):
+        d = self.dict(exclude_none=True)
+        if self.exp:
+            d["exp"] = int((self.iat + self.exp).timestamp())
+        if self.nbf:
+            d["nbf"] = int(self.nbf.timestamp())
+        if self.iat:
+            d["iat"] = int(self.iat.timestamp())
+        return d

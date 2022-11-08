@@ -33,12 +33,6 @@ async def on_put_name(req: ContextRequest, data: UserUpdateNameRequest, eppn: st
     return update_user(req=req, eppn=eppn, data=data)
 
 
-@users_router.put("/eppn/meta", response_model=UserUpdateResponse)
-async def on_put_meta(req: ContextRequest, data: UserUpdateMetaRequest, eppn: str):
-    req.app.logger.info(f"Update user {eppn} meta")
-    return update_user(req=req, eppn=eppn, data=data)
-
-
 @users_router.put("/{eppn}/email", response_model=UserUpdateResponse)
 async def on_put_email(req: ContextRequest, data: UserUpdateEmailRequest, eppn: str):
     req.app.logger.info(f"Update user {eppn} email")
@@ -55,13 +49,6 @@ async def on_put_language(req: ContextRequest, data: UserUpdateLanguageRequest, 
 async def on_put_phone(req: ContextRequest, data: UserUpdatePhoneRequest, eppn: str):
     req.app.logger.info(f"Update user {eppn} phone")
     return update_user(req=req, eppn=eppn, data=data)
-
-
-## fix create new user
-@users_router.post("/{eppn}", response_model=UserCreateResponse)
-async def on_create_user(req: ContextRequest, data: UserCreateRequest, eppn: str):
-    req.app.logger.info(f"Create user {eppn}")
-    return create_user(req=req, eppn=eppn, data=data)
 
 
 @users_router.delete("/{eppn}", response_model=UserUpdateResponse)

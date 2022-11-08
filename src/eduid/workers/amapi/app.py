@@ -12,11 +12,11 @@ from eduid.common.fastapi.exceptions import (
     validation_exception_handler,
 )
 from eduid.common.logging import init_logging
-from eduid.userdb import AmDB, UserDB
+from eduid.userdb import AmDB
 from eduid.userdb.logs.db import UserChangeLog
 from eduid.workers.amapi.config import AMApiConfig
 from eduid.workers.amapi.context_request import ContextRequestRoute
-from eduid.workers.amapi.middleware import AuthenticationMiddleware, Mura
+from eduid.workers.amapi.middleware import AuthenticationMiddleware
 from eduid.workers.amapi.routers.status import status_router
 from eduid.workers.amapi.routers.users import users_router
 from eduid.workers.amapi.utils import load_jwks
@@ -25,7 +25,7 @@ from eduid.workers.amapi.utils import load_jwks
 class AMAPI(FastAPI):
     def __init__(self, name: str = "am_api", test_config: Optional[Dict] = None):
         self.config = load_config(typ=AMApiConfig, app_name=name, ns="api", test_config=test_config)
-        super().__init__(root_path=self.config.application_root)
+        super().__init__()
 
         self.db = AmDB(db_uri=self.config.mongo_uri)
         self.name = "am_api"
@@ -46,12 +46,9 @@ def init_api(name: str = "am_api", test_config: Optional[Dict] = None) -> AMAPI:
     app.include_router(users_router)
     app.include_router(status_router)
 
-    logger = app.logger
-    config = app.config
-
     # Middleware
     # app.add_middleware(AuthenticationMiddleware, app=app)
-    app.add_middleware(Mura, c=config)
+    app.add_middleware(AuthenticationMiddleware)
 
     # Exception handling
     app.add_exception_handler(RequestValidationError, validation_exception_handler)

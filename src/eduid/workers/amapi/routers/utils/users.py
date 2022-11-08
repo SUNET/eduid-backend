@@ -19,21 +19,12 @@ from eduid.workers.amapi.models.user import (
 )
 
 
-def create_user(req: ContextRequest, eppn: str, data: CreateUserRequest) -> UserCreateResponse:
-    # mailAliases
-    # eppn
-    # passwords
-    # tou
-    pass
-
-
 def update_user(
     req: ContextRequest,
     eppn: str,
     data: Union[
         UserUpdateEmailRequest,
         UserUpdateNameRequest,
-        UserUpdateMetaRequest,
         UserUpdateLanguageRequest,
         UserUpdatePhoneRequest,
         UserUpdateTerminateRequest,
@@ -53,9 +44,6 @@ def update_user(
         user_obj.surname = data.surname
         user_obj.given_name = data.given_name
         user_obj.display_name = data.display_name
-
-    elif isinstance(data, UserUpdateMetaRequest):
-        user_obj.meta = data.meta
 
     elif isinstance(data, UserUpdateEmailRequest):
         user_obj.mail_addresses = MailAddressList(elements=data.mail_addresses)
@@ -77,6 +65,7 @@ def update_user(
     audit_msg = UserChangeLogElement(
         created_by="am_api",
         eppn=eppn,
+        id=None,
         diff=diff,
         reason=data.reason,
         source=data.source,

@@ -108,8 +108,8 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
         return [self.user_from_dict(data=user) for user in users]
 
     def get_uncleaned_verified_users(
-        self, cleaned_type: CleanedType, identity_type: IdentityType, limit: int
-    ) -> List[User]:
+            self, cleaned_type: CleanedType, identity_type: IdentityType, limit: int
+    ) -> List[UserVar]:
         match = {
             "identities": {
                 "$elemMatch": {
@@ -207,7 +207,7 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
         return self._get_user_by_filter(_filter)
 
     def get_users_by_identity(
-        self, identity_type: IdentityType, key: str, value: str, include_unconfirmed: bool = False
+            self, identity_type: IdentityType, key: str, value: str, include_unconfirmed: bool = False
     ):
         match = {"identity_type": identity_type.value, key: value, "verified": True}
         if include_unconfirmed:
