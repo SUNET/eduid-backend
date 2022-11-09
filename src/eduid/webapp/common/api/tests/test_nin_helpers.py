@@ -8,6 +8,7 @@ from pydantic import ValidationError
 from eduid.common.config.base import EduIDBaseAppConfig
 from eduid.common.config.parsers import load_config
 from eduid.common.rpc.msg_relay import FullPostalAddress
+from eduid.common.testing_base import normalised_data
 from eduid.userdb import NinIdentity
 from eduid.userdb.fixtures.users import new_user_example
 from eduid.userdb.logs import ProofingLog
@@ -22,7 +23,7 @@ from eduid.webapp.common.api.helpers import (
     set_user_names_from_official_address,
     verify_nin_for_user,
 )
-from eduid.webapp.common.api.testing import EduidAPITestCase, normalised_data
+from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.common.session.eduid_session import SessionFactory
 
 __author__ = "lundberg"

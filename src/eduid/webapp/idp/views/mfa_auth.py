@@ -20,7 +20,7 @@ from eduid.webapp.common.session.namespaces import (
     RequestRef,
 )
 from eduid.webapp.idp.app import current_idp_app as current_app
-from eduid.webapp.idp.decorators import require_ticket
+from eduid.webapp.idp.decorators import require_ticket, uses_sso_session
 from eduid.webapp.idp.helpers import IdPMsg
 from eduid.webapp.idp.idp_authn import AuthnData, ExternalAuthnData
 from eduid.webapp.idp.login_context import LoginContext
@@ -34,14 +34,16 @@ mfa_auth_views = Blueprint("mfa_auth", __name__, url_prefix="")
 @UnmarshalWith(MfaAuthRequestSchema)
 @MarshalWith(MfaAuthResponseSchema)
 @require_ticket
-def mfa_auth(ticket: LoginContext, webauthn_response: Optional[Mapping[str, str]] = None) -> FluxData:
+@uses_sso_session
+def mfa_auth(
+    ticket: LoginContext, sso_session: Optional[SSOSession], webauthn_response: Optional[Mapping[str, str]] = None
+) -> FluxData:
     current_app.logger.debug("\n\n")
     current_app.logger.debug(f"--- MFA authentication ({ticket.request_ref}) ---")
 
     if not current_app.conf.login_bundle_url:
         return error_response(message=IdPMsg.not_available)
 
-    sso_session = current_app._lookup_sso_session()
     if not sso_session:
         current_app.logger.error(f"MFA auth called without an SSO session")
         return error_response(message=IdPMsg.no_sso_session)

@@ -78,7 +78,6 @@ class TestScimInvite(unittest.TestCase):
             invite_reference=SCIMReference(data_owner="test_data_owner", scim_id=db_invite.scim_id),
             invite_code="abc123",
             inviter_name="Test Inviter Name",
-            display_name=f"{db_invite.name.given_name} {db_invite.name.middle_name} {db_invite.name.family_name}",
             given_name=db_invite.name.given_name,
             surname=db_invite.name.family_name,
             mail_addresses=[
@@ -227,7 +226,6 @@ class TestInviteResource(ScimApiTestCase):
             invite_code=invite_data.get("invite_code", "invite_code not set"),
             invite_type=InviteType.SCIM,
             invite_reference=SCIMReference(data_owner=self.data_owner, scim_id=db_invite.scim_id),
-            display_name=invite_data.get("name", {}).get("formatted"),
             given_name=invite_data.get("name", {}).get("given_name"),
             surname=invite_data.get("name", {}).get("family_name"),
             nin=invite_data.get("national_identity_number"),

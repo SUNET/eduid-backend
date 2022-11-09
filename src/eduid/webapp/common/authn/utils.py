@@ -37,7 +37,6 @@ import importlib.util
 import logging
 import os.path
 import sys
-import time
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any, List, Mapping, Optional, Sequence
 
@@ -128,7 +127,7 @@ def no_authn_views(config: EduIDBaseAppConfig, paths: Sequence[str]) -> None:
     return None
 
 
-def generate_password(length=12):
+def generate_password(length: int = 12) -> str:
     return pwgen(int(length), no_capitalize=True, no_symbols=True)
 
 

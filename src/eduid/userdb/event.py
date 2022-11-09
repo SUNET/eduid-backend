@@ -38,8 +38,7 @@ from abc import ABC
 from typing import Any, Dict, Generic, Optional, Type, TypeVar
 from uuid import uuid4
 
-from bson import ObjectId
-from pydantic import Field, validator
+from pydantic import Field
 
 from eduid.userdb.element import Element, ElementKey, ElementList, ListElement
 from eduid.userdb.exceptions import BadEvent, UserDBValueError

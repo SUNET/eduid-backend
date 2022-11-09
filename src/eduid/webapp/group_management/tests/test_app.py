@@ -38,12 +38,13 @@ import pytest
 from flask import Response
 from mock import patch
 
+from eduid.common.testing_base import normalised_data
 from eduid.graphdb.groupdb import User as GraphUser
 from eduid.graphdb.testing import Neo4jTemporaryInstance
 from eduid.userdb import User
 from eduid.userdb.scimapi import GroupExtensions, ScimApiGroup
 from eduid.userdb.scimapi.userdb import ScimApiUser
-from eduid.webapp.common.api.testing import EduidAPITestCase, normalised_data
+from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.group_management.app import GroupManagementApp, init_group_management_app
 from eduid.webapp.group_management.helpers import GroupManagementMsg
 from eduid.webapp.group_management.schemas import GroupRole

@@ -4,7 +4,7 @@ import logging
 import os
 from asyncio import Task
 from datetime import datetime, timedelta
-from typing import Any, List, Mapping, Optional
+from typing import Any, Mapping, Optional, Set
 
 from eduid.common.config.parsers import load_config
 from eduid.queue.config import QueueWorkerConfig
@@ -47,9 +47,9 @@ class SinkQueueWorker(QueueWorker):
     async def handle_expired_item(self, queue_item: QueueItem) -> None:
         logger.warning(f"Found expired item: {queue_item}")
 
-    async def collect_periodic_tasks(self) -> List[Task]:
+    async def collect_periodic_tasks(self) -> Set[Task]:
         tasks = await super().collect_periodic_tasks()
-        tasks += [asyncio.create_task(self.periodic_stats_publishing(), name="periodic_stats_publishing")]
+        self.add_task(tasks, asyncio.create_task(self.periodic_stats_publishing(), name="periodic_stats_publishing"))
         return tasks
 
     async def periodic_stats_publishing(self) -> None:

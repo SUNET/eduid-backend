@@ -24,6 +24,7 @@ class QueueWorkerConfig(RootConfig, LoggingConfigMixin):
     mail_host: str = "localhost"
     mail_port: int = 25
     mail_starttls: bool = False
+    mail_verify_tls: bool = True
     mail_keyfile: str = ""
     mail_certfile: str = ""
     mail_username: str = ""

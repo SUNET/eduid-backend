@@ -31,7 +31,6 @@
 #
 
 import logging
-from copy import deepcopy
 
 from bson import ObjectId
 

@@ -31,8 +31,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 import logging
-from datetime import datetime
-from typing import Any, Dict, Mapping, Optional, TypeVar, Union
+from typing import Any, Dict, Mapping, Optional, Union
 
 from eduid.userdb.db import BaseDB
 from eduid.userdb.exceptions import DocumentOutOfSync, MultipleDocumentsReturned
@@ -42,7 +41,6 @@ from eduid.userdb.reset_password.state import (
     ResetPasswordState,
 )
 from eduid.userdb.reset_password.user import ResetPasswordUser
-from eduid.userdb.user import User
 from eduid.userdb.userdb import UserDB
 from eduid.userdb.util import utc_now
 

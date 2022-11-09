@@ -9,6 +9,7 @@ from unittest import TestCase
 from urllib.parse import parse_qs, quote_plus, urlparse, urlunparse
 from uuid import uuid4
 
+from fido2.webauthn import AuthenticatorAttachment
 from flask.testing import FlaskClient
 from mock import patch
 
@@ -17,7 +18,7 @@ from eduid.common.rpc.msg_relay import DeregisteredCauseCode, DeregistrationInfo
 from eduid.userdb import NinIdentity
 from eduid.userdb.credentials import U2F, Webauthn
 from eduid.userdb.credentials.external import EidasCredential, ExternalCredential, SwedenConnectCredential
-from eduid.userdb.credentials.fido import FidoCredential, WebauthnAuthenticator
+from eduid.userdb.credentials.fido import FidoCredential
 from eduid.userdb.element import ElementKey
 from eduid.userdb.identity import EIDASIdentity, EIDASLoa, IdentityElement, PridPersistence
 from eduid.webapp.authn.views import FALLBACK_FRONTEND_ACTION
@@ -252,7 +253,7 @@ class EidasTests(EduidAPITestCase):
                 app_id="test",
                 description="test",
                 created_by="test",
-                authenticator=WebauthnAuthenticator.cross_platform,
+                authenticator=AuthenticatorAttachment.CROSS_PLATFORM,
             )
         user.credentials.add(mfa_token)
         self.request_user_sync(user)

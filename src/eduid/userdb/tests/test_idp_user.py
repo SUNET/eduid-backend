@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 from unittest import TestCase
 
+from eduid.common.testing_base import normalised_data
 from eduid.userdb.fixtures.users import mocked_user_standard
 from eduid.userdb.idp.user import _SAML_ATTRIBUTES, IdPUser, SAMLAttributeSettings
-from eduid.userdb.testing import normalised_data
 
 __author__ = "lundberg"
 

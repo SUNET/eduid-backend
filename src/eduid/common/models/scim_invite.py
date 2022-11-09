@@ -37,6 +37,7 @@ class NutidInviteExtensionV1(EduidBaseModel):
     send_email: Optional[bool] = Field(default=None, alias="sendEmail")
     finish_url: Optional[str] = Field(default=None, alias="finishURL")
     invite_url: Optional[str] = Field(default=None, alias="inviteURL")
+    enable_mfa_stepup: Optional[bool] = Field(default=None, alias="enableMfaStepup")
     completed: Optional[datetime] = None
     expires_at: Optional[datetime] = Field(default=None, alias="expiresAt")
 

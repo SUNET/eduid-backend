@@ -1,19 +1,24 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
+import asyncio
+import logging
 import time
 from asyncio import Task
-from datetime import datetime
-from typing import List, Sequence, Type, cast
+from datetime import datetime, timedelta
+from typing import List, Optional, Sequence, Type, cast
 from unittest import IsolatedAsyncioTestCase, TestCase
 
 import pymongo
 from pymongo.errors import NotMasterError
 
+from eduid.common.misc.timeutil import utc_now
 from eduid.queue.db import Payload, QueueDB, QueueItem, SenderInfo
 from eduid.userdb.testing import MongoTemporaryInstance
 
 __author__ = "lundberg"
+
+logger = logging.getLogger(__name__)
 
 
 class MongoTemporaryInstanceReplicaSet(MongoTemporaryInstance):
@@ -114,3 +119,18 @@ class QueueAsyncioTest(EduidQueueTestCase, IsolatedAsyncioTestCase):
             payload_type=payload.get_type(),
             payload=payload,
         )
+
+    async def _assert_item_gets_processed(self, queue_item: QueueItem, retry: bool = False):
+        end_time = utc_now() + timedelta(seconds=10)
+        fetched: Optional[QueueItem] = None
+        while utc_now() < end_time:
+            await asyncio.sleep(0.5)  # Allow worker to run
+            fetched = self.db.get_item_by_id(queue_item.item_id)
+            if not fetched:
+                logger.info(f"Queue item {queue_item.item_id} was processed")
+                break
+            if retry:
+                assert fetched is not None
+                return None
+            logger.info(f"Queue item {queue_item.item_id} not processed yet")
+        assert fetched is None

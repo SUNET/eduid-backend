@@ -1,0 +1,11 @@
+{% trans email=email, verification_code=verification_code, site_name=site_name %}
+
+<h2>Welcome to {{ site_name }},</h2>
+
+<p>You recently used {{ email }} to sign up for {{ site_name }}.</p>
+
+<p>To verify this email address belongs to you, enter the code below on the email verification page:</p>
+
+<p>{{ verification_code }}</p>
+
+{% endtrans %}

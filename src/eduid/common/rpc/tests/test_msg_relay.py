@@ -8,7 +8,7 @@ import pytest
 
 from eduid.common.config.base import CeleryConfig, MsgConfigMixin
 from eduid.common.config.workers import MsgConfig
-from eduid.common.rpc.exceptions import NoAddressFound, NoNavetData, NoRelationsFound
+from eduid.common.rpc.exceptions import NoAddressFound, NoNavetData
 from eduid.common.rpc.msg_relay import FullPostalAddress, MsgRelay, NavetData, RelationType
 from eduid.workers.msg import MsgCelerySingleton
 from eduid.workers.msg.tasks import MessageSender

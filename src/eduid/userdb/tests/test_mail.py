@@ -1,16 +1,14 @@
 import copy
 import datetime
 import unittest
-from typing import List
 from unittest import TestCase
 
 import pytest
-from pydantic import BaseModel, Extra, ValidationError, validator
+from pydantic import ValidationError
 
 import eduid.userdb.element
 import eduid.userdb.exceptions
 from eduid.userdb import PhoneNumber
-from eduid.userdb.element import Element
 from eduid.userdb.mail import MailAddress, MailAddressList
 
 __author__ = "ft"
