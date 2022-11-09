@@ -1,7 +1,6 @@
 import logging
 import typing
 from base64 import b64encode
-from dataclasses import asdict, dataclass
 from hashlib import sha1
 from typing import Any, Dict, List, Mapping, NewType, Optional, Union
 

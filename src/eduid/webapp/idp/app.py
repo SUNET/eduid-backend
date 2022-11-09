@@ -43,13 +43,12 @@ from eduid.userdb.idp import IdPUserDb
 from eduid.webapp.common.api import translation
 from eduid.webapp.common.api.app import EduIDBaseApp
 from eduid.webapp.common.authn.utils import init_pysaml2
-from eduid.webapp.common.session import session
 from eduid.webapp.idp import idp_authn
 from eduid.webapp.idp.known_device import KnownDeviceDB
 from eduid.webapp.idp.other_device.db import OtherDeviceDB
 from eduid.webapp.idp.settings.common import IdPConfig
 from eduid.webapp.idp.sso_cache import SSOSessionCache
-from eduid.webapp.idp.sso_session import SSOSession, SSOSessionId, get_sso_session
+from eduid.webapp.idp.sso_session import SSOSession, get_sso_session
 
 __author__ = "ft"
 

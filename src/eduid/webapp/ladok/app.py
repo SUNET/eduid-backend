@@ -3,7 +3,6 @@ from typing import Any, Mapping, Optional, cast
 
 from flask import current_app
 
-from eduid.common.config.base import EduidEnvironment
 from eduid.common.config.parsers import load_config
 from eduid.common.rpc.am_relay import AmRelay
 from eduid.userdb.logs import ProofingLog

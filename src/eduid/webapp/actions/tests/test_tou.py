@@ -36,6 +36,7 @@ import json
 from datetime import datetime, timedelta
 from typing import Any, Optional
 
+import pytest
 from bson import ObjectId
 from mock import patch
 
@@ -157,6 +158,7 @@ class ToUActionPluginTests(ActionsTestCase):
         self.assertEqual(data["action"], True)
         self.assertEqual("http://example.com/bundles/eduid_action.tou-bundle.dev.js", data["url"])
 
+    @pytest.mark.skip(reason="there is not longer any tous in the config and the actions app is no longer used")
     def test_get_config(self):
         data = self._get_config()
         self.assertEqual(data["payload"]["tous"]["sv"], "test tou svenska")

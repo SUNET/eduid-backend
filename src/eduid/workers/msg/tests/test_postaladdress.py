@@ -5,8 +5,6 @@ import json
 from pathlib import PurePath
 from unittest import TestCase
 
-from mock import MagicMock
-
 from eduid.workers.msg import utils
 
 

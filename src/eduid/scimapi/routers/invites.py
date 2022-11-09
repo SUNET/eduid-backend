@@ -4,7 +4,7 @@ from typing import Optional
 
 from fastapi import Response
 
-from eduid.common.models.scim_base import ListResponse, SCIMResourceType, SCIMSchema, SearchRequest
+from eduid.common.models.scim_base import ListResponse, SCIMResourceType, SearchRequest
 from eduid.common.models.scim_invite import InviteCreateRequest, InviteResponse, InviteUpdateRequest
 from eduid.scimapi.api_router import APIRouter
 from eduid.scimapi.context_request import ContextRequest, ContextRequestRoute
@@ -19,17 +19,8 @@ from eduid.scimapi.routers.utils.invites import (
     save_invite,
     send_invite_mail,
 )
-from eduid.scimapi.routers.utils.users import acceptable_linked_accounts
 from eduid.scimapi.search import parse_search_filter
-from eduid.userdb.scimapi import (
-    EventLevel,
-    EventStatus,
-    ScimApiEmail,
-    ScimApiLinkedAccount,
-    ScimApiName,
-    ScimApiPhoneNumber,
-    ScimApiProfile,
-)
+from eduid.userdb.scimapi import EventLevel, EventStatus, ScimApiEmail, ScimApiName, ScimApiPhoneNumber, ScimApiProfile
 from eduid.userdb.scimapi.invitedb import ScimApiInvite
 
 __author__ = "lundberg"

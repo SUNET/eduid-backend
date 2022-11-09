@@ -41,7 +41,6 @@ from eduid.userdb.element import ElementKey
 from eduid.webapp.common.api.exceptions import ApiException
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.personal_data.app import PersonalDataApp, pd_init_app
-from eduid.webapp.personal_data.helpers import PDataMsg
 
 
 class PersonalDataTests(EduidAPITestCase):

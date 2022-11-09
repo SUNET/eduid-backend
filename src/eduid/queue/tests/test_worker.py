@@ -92,15 +92,3 @@ class TestBaseWorker(QueueAsyncioTest):
         # Start worker after save to fake that the item has expired unhandled in the queue
         self.tasks = [asyncio.create_task(self.worker.run())]
         await self._assert_item_gets_processed(queue_item)
-
-    async def _assert_item_gets_processed(self, queue_item: QueueItem):
-        end_time = utc_now() + timedelta(seconds=10)
-        fetched: Optional[QueueItem] = None
-        while utc_now() < end_time:
-            await asyncio.sleep(0.5)  # Allow worker to run
-            fetched = self.db.get_item_by_id(queue_item.item_id)
-            if not fetched:
-                logger.info(f"Queue item {queue_item.item_id} was processed")
-                break
-            logger.info(f"Queue item {queue_item.item_id} not processed yet")
-        assert fetched is None

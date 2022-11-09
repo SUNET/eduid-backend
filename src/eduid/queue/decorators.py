@@ -1,4 +1,3 @@
-from datetime import datetime
 from inspect import isclass
 
 from eduid.userdb.db import MongoDB

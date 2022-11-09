@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
-from typing import Any, Dict, List, Sequence
+from typing import Any, Dict, Sequence
 
 from flask import Blueprint, render_template, request
 
 from eduid.userdb import User
 from eduid.userdb.exceptions import UserDoesNotExist, UserHasNotCompletedSignup
 from eduid.userdb.support.models import SupportSignupUserFilter, SupportUserFilter
-from eduid.userdb.support.user import SupportUser
 from eduid.webapp.support.app import current_support_app as current_app
 from eduid.webapp.support.helpers import get_credentials_aux_data, require_support_personnel
 

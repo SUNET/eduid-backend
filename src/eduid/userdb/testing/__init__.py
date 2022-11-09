@@ -36,7 +36,6 @@ Code used in unit tests of various eduID applications.
 """
 from __future__ import annotations
 
-import json
 import logging
 import unittest
 import uuid
@@ -51,6 +50,7 @@ from eduid.userdb.db import BaseDB
 from eduid.userdb.testing.temp_instance import EduidTemporaryInstance
 from eduid.userdb.userdb import AmDB, UserDB
 from eduid.userdb.util import utc_now
+
 
 logger = logging.getLogger(__name__)
 

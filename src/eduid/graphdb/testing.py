@@ -16,7 +16,7 @@ __author__ = "lundberg"
 
 
 # Run tests with different Neo4j docker image versions using environment variables
-NEO4J_VERSION = environ.get("NEO4J_VERSION", "enterprise")
+NEO4J_VERSION = environ.get("NEO4J_VERSION", "4.1-enterprise")
 
 logger = logging.getLogger(__name__)
 logger.info(f"NEO4J_VERSION={NEO4J_VERSION}")

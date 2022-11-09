@@ -39,7 +39,6 @@ from urllib.parse import urlsplit, urlunsplit
 from flask import Blueprint, abort, redirect, render_template, request, url_for
 from werkzeug.wrappers import Response as WerkzeugResponse
 
-from eduid.common.misc.tous import get_tous as common_get_tous
 from eduid.userdb.actions import Action
 from eduid.webapp.actions.app import current_actions_app as current_app
 from eduid.webapp.actions.helpers import ActionsMsg, get_next_action
@@ -65,18 +64,6 @@ def authn():
     current_app.logger.info(f"Starting pre-login actions for eppn: {eppn}")
     url = url_for("actions.get_actions")
     return render_template("index.html", url=url)
-
-
-@actions_views.route("/get-tous", methods=["GET"])
-@MarshalWith(FluxStandardAction)
-def get_tous():
-    """
-    View to GET the current TOU in all available languages
-    """
-    version = request.args.get("version", None)
-    if version is None:
-        version = current_app.conf.tou_version
-    return common_get_tous(version=version, languages=current_app.conf.available_languages.keys())
 
 
 @actions_views.route("/config", methods=["GET"])

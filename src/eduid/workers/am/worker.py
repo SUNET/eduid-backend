@@ -2,7 +2,7 @@ import sys
 
 from eduid.common.config.workers import AmConfig
 from eduid.common.rpc.worker import get_worker_config
-from eduid.userdb import AmDB, UserDB
+from eduid.userdb import AmDB
 from eduid.workers.am.common import AmCelerySingleton
 
 # This is the Celery worker's entrypoint module - should not be imported anywhere!

@@ -4,9 +4,10 @@ import logging
 from dataclasses import asdict
 from email.message import EmailMessage
 from gettext import gettext as _
+from ssl import create_default_context
 from typing import Any, Mapping, Optional, Sequence, Type, cast
 
-from aiosmtplib import SMTP
+from aiosmtplib import SMTP, SMTPException, SMTPResponse, send
 
 from eduid.common.config.base import EduidEnvironment
 from eduid.common.config.parsers import load_config
@@ -36,26 +37,42 @@ class MailQueueWorker(QueueWorker):
     @property
     async def smtp(self):
         if self._smtp is None:
+            logger.debug(f"Creating SMTP client for {self.config.mail_host}:{self.config.mail_port}")
             self._smtp = SMTP(hostname=self.config.mail_host, port=self.config.mail_port)
+            await self._smtp.connect()
+            # starttls
+            ssl_context = None
+            if self.config.mail_verify_tls is False:
+                logger.warning("Disabling TLS certificate hostname verification")
+                ssl_context = create_default_context()
+                ssl_context.check_hostname = False
             if self.config.mail_starttls:
                 keyfile = self.config.mail_keyfile
                 certfile = self.config.mail_certfile
                 if keyfile and certfile:
-                    await self._smtp.starttls(client_key=keyfile, client_cert=certfile)
+                    logger.debug(f"Starting TLS with keyfile: {keyfile} and certfile: {certfile}")
+                    await self._smtp.starttls(client_key=keyfile, client_cert=certfile, tls_context=ssl_context)
                 else:
-                    await self._smtp.starttls()
+                    logger.debug("Starting TLS")
+                    await self._smtp.starttls(tls_context=ssl_context)
+            # login
             username = self.config.mail_username
             password = self.config.mail_password
             if username and password:
+                logger.debug(f"Logging in with username: {username}")
                 await self._smtp.login(username=username, password=password)
+        # ensure that the connection is still alive
+        if not self._smtp.is_connected:
+            logger.debug("Reconnecting SMTP client")
+            await self._smtp.connect()
         return self._smtp
 
-    async def sendmail(self, sender: str, recipients: list, message: str, reference: str) -> Status:
+    async def sendmail(self, sender: str, recipient: str, message: str, reference: str) -> Status:
         """
         Send mail
 
         :param sender: the From of the email
-        :param recipients: the recipients of the email
+        :param recipient: the recipient of the email
         :param message: email.mime.multipart.MIMEMultipart message as a string
         :param reference: Audit reference to help cross-reference audit log and events
         """
@@ -64,22 +81,37 @@ class MailQueueWorker(QueueWorker):
         if self.config.environment == EduidEnvironment.dev:
             logger.info("sendmail task:")
             logger.info(
-                f"\nType: email\nReference: {reference}\nSender: {sender}\nRecipients: {recipients}\n"
+                f"\nType: email\nReference: {reference}\nSender: {sender}\nRecipient: {recipient}\n"
                 f"Message:\n{message}"
             )
             return Status(success=True, message="Devel message printed")
 
-        async with self.smtp as smtp_client:
-            ret = await smtp_client.sendmail(sender, recipients, message)
+        smtp_client = await self.smtp
+        try:
+            errors, response_message = await smtp_client.sendmail(sender, recipient, message)
+        except SMTPException as e:
+            logger.error(f"SMTPException: {e}")
+            return Status(success=False, message=str(e), retry=True)
 
-        return_code = ret.code // 100
+        if not errors:
+            # mail sent successfully
+            logger.debug(f"Mail to {recipient} sent successfully: {response_message}")
+            return Status(success=True, message=response_message)
+
+        # handle errors
+        smtp_response = errors.get(recipient, SMTPResponse(0, "Unknown error"))
+        logger.error(f"Error sending mail to {recipient}: {smtp_response.code} {smtp_response.message}")
+
+        return_code = smtp_response.code // 100
         if return_code == 5:
             # 500, permanent error condition
-            return Status(success=False, retry=False, message=ret.message)
+            return Status(success=False, retry=False, message=smtp_response.message)
         elif return_code == 4:
             # 400, error condition is temporary, and the action may be requested again
-            return Status(success=False, retry=True, message=ret.message)
-        return Status(success=True, message=ret.message)
+            return Status(success=False, retry=True, message=smtp_response.message)
+        else:
+            # unknown error
+            return Status(success=False, retry=False, message=smtp_response.message)
 
     async def handle_new_item(self, queue_item: QueueItem) -> None:
         status = None
@@ -132,7 +164,7 @@ class MailQueueWorker(QueueWorker):
 
         return await self.sendmail(
             sender=self.config.mail_default_from,
-            recipients=[data.email],
+            recipient=data.email,
             message=msg.as_string(),
             reference=data.reference,
         )
@@ -150,7 +182,7 @@ class MailQueueWorker(QueueWorker):
 
         return await self.sendmail(
             sender=self.config.mail_default_from,
-            recipients=[data.email],
+            recipient=data.email,
             message=msg.as_string(),
             reference=data.reference,
         )
@@ -169,7 +201,7 @@ class MailQueueWorker(QueueWorker):
 
         return await self.sendmail(
             sender=self.config.mail_default_from,
-            recipients=[data.email],
+            recipient=data.email,
             message=msg.as_string(),
             reference=data.reference,
         )

@@ -12,8 +12,8 @@ from pydantic import ValidationError
 import eduid.userdb.element
 import eduid.userdb.exceptions
 from eduid.userdb import PhoneNumber
-from eduid.userdb.event import Event, EventList
-from eduid.userdb.tou import ToUEvent, ToUList
+from eduid.userdb.event import EventList
+from eduid.userdb.tou import ToUEvent
 
 __author__ = "ft"
 
