@@ -371,6 +371,7 @@ class ProofingConfigMixin(BaseModel):
     security_key_foreign_eid_proofing_version: str = Field(default="2022v1")
 
     frontend_action_finish_url: Dict[str, str] = Field(default={})
+    fallback_redirect_url: str = "https://dashboard.eduid.se"
 
 
 class EduIDBaseAppConfig(RootConfig, LoggingConfigMixin, StatsConfigMixin, RedisConfigMixin):
