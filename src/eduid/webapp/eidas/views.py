@@ -26,7 +26,7 @@ from eduid.webapp.common.authn.acs_enums import EidasAcsAction, is_old_action
 from eduid.webapp.common.authn.acs_registry import ACSArgs, get_action
 from eduid.webapp.common.authn.eduid_saml2 import process_assertion
 from eduid.webapp.common.authn.utils import get_location
-from eduid.webapp.common.proofing.methods import get_proofing_method
+from eduid.webapp.common.proofing.methods import ProofingMethodSAML, get_proofing_method
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.namespaces import AuthnRequestRef, MfaActionError, SP_AuthnRequest
 from eduid.webapp.eidas.app import current_eidas_app as current_app
@@ -177,6 +177,7 @@ def _authn(
         fallback_url = redirect_url
 
     proofing_method = get_proofing_method(method, frontend_action, current_app.conf, fallback_redirect_url=fallback_url)
+    assert isinstance(proofing_method, ProofingMethodSAML)  # please mypy
     current_app.logger.debug(f"Proofing method: {proofing_method}")
     if not proofing_method or not proofing_method.finish_url:
         return AuthnResult(error=EidasMsg.method_not_available)
@@ -265,6 +266,7 @@ def assertion_consumer_service() -> WerkzeugResponse:
         current_app.conf,
         fallback_redirect_url=fallback_url,
     )
+    assert isinstance(proofing_method, ProofingMethodSAML)  # please mypy
     if not proofing_method or not proofing_method.finish_url:
         # We _really_ shouldn't end up here because this same thing would have been done in the
         # starting views above.

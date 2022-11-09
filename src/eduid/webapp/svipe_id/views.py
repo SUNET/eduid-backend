@@ -5,11 +5,9 @@ from urllib.parse import parse_qs, urlparse
 
 from authlib.integrations.base_client import OAuthError
 from flask import Blueprint, make_response, redirect, request, url_for
-from pydantic import ValidationError
 from werkzeug import Response as WerkzeugResponse
 
 from eduid.userdb import User
-from eduid.userdb.proofing import ProofingUser
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, require_user
 from eduid.webapp.common.api.errors import EduidErrorsContext, goto_errors_response
 from eduid.webapp.common.api.helpers import check_magic_cookie
@@ -21,7 +19,7 @@ from eduid.webapp.common.session import session
 from eduid.webapp.common.session.namespaces import OIDCState, RP_AuthnRequest
 from eduid.webapp.svipe_id.app import current_svipe_id_app as current_app
 from eduid.webapp.svipe_id.callback_enums import SvipeIDAction
-from eduid.webapp.svipe_id.helpers import SvipeIDMsg, TokenResponse
+from eduid.webapp.svipe_id.helpers import SvipeIDMsg
 from eduid.webapp.svipe_id.schemas import (
     SvipeIDCommonRequestSchema,
     SvipeIDCommonResponseSchema,
@@ -125,7 +123,7 @@ def authn_callback(user) -> WerkzeugResponse:
     """
     This is the callback endpoint for the Svipe ID OIDC flow.
     """
-    oicd_state = OIDCState(request.args.get("state"))
+    oicd_state = OIDCState(request.args.get("state", ""))
     authn_req = session.svipe_id.rp.authns.get(oicd_state)
     if not authn_req:
         # Perhaps a authn response received out of order - abort without destroying state
@@ -156,9 +154,7 @@ def authn_callback(user) -> WerkzeugResponse:
             rp=url_for("svipe_id.auth_callback", _external=True),
         )
 
-    formatted_finish_url = proofing_method.formatted_finish_url(
-        app_name=current_app.conf.app_name, authn_id=authn_req.authn_req_ref
-    )
+    formatted_finish_url = proofing_method.formatted_finish_url(app_name=current_app.conf.app_name, authn_id=oicd_state)
     assert formatted_finish_url  # please type checking
 
     try:
@@ -166,7 +162,8 @@ def authn_callback(user) -> WerkzeugResponse:
     except OAuthError:
         current_app.logger.exception(f"Failed to get token response from Svipe ID")
         current_app.stats.count(name="token_response_failed")
-        authn_req.error = SvipeIDMsg.token_response_failed
+        authn_req.error = True
+        authn_req.status = SvipeIDMsg.token_response_failed.value
         session.svipe_id.rp.authns[oicd_state] = authn_req
         return redirect(formatted_finish_url)
 
@@ -194,48 +191,14 @@ def authn_callback(user) -> WerkzeugResponse:
     if not result.success:
         current_app.logger.info(f"OIDC callback action failed: {result.message}")
         current_app.stats.count(name="authn_action_failed")
-        authn_req.error = result.message
+        authn_req.error = True
+        if result.message:
+            authn_req.status = result.message.value
         session.svipe_id.rp.authns[oicd_state] = authn_req
         return redirect(formatted_finish_url)
 
     current_app.logger.debug(f"OIDC callback action successful (frontend_action {authn_req.frontend_action})")
     if result.message:
-        authn_req.status = result.message
-        session.svipe_id.rp.authns[oicd_state] = authn_req
+        authn_req.status = result.message.value
+    session.svipe_id.rp.authns[oicd_state] = authn_req
     return redirect(formatted_finish_url)
-
-
-def tmp():
-    current_app.logger.debug(f"Token response: {token_response}")
-    try:
-        svipe_token_response = TokenResponse(**token_response)
-    except ValidationError:
-        current_app.logger.exception("Failed to parse token response")
-        # session.svipe_id.oidc_states[oidc_state].result = OIDCResult(message=SvipeIDMsg.authz_error.value, error=True)
-        # return redirect(f"{urlappend(redirect_url, oidc_state)}")
-
-    # create proofing log and verify users identity
-    current_app.logger.info("Saving data for user")
-    proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
-
-    # if not current_app.proofing_log.save(svipe_id_proofing):
-    #    current_app.logger.error('proofing data NOT saved, failed to save proofing log')
-    #    session.svipe_id.oidc_states[oidc_state].result = OIDCResult(message=CommonMsg.temp_problem.value, error=True)
-    #    return redirect(f'{urlappend(redirect_url, oidc_state)}')
-
-    current_app.logger.info("proofing data saved to log")
-    # proofing_user.orcid = orcid_element
-    # save_and_sync_user(proofing_user)
-    current_app.logger.info("proofing data saved to user")
-    metadata = current_app.oidc_client.svipe.load_server_metadata()
-    current_app.logger.debug(f"metadata: {metadata}")
-    current_app.logger.debug(f"oauth cache: {session.svipe_id.oauth_cache}")
-    current_app.oidc_client.svipe.get(
-        metadata.get("end_session_endpoint"),
-        params={
-            "id_token_hint": svipe_token_response.id_token,
-        },
-    )
-    # session.svipe_id.oidc_states[oidc_state].result = OIDCResult(message=SvipeIDMsg.identity_proofing_success.value)
-    # return redirect(f"{urlappend(redirect_url, oidc_state)}")
-    return svipe_token_response.json()

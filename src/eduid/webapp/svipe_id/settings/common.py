@@ -4,7 +4,13 @@ from typing import List
 
 from pydantic import AnyUrl, BaseModel, Field
 
-from eduid.common.config.base import AmConfigMixin, EduIDBaseAppConfig, ProofingConfigMixin
+from eduid.common.config.base import (
+    AmConfigMixin,
+    EduIDBaseAppConfig,
+    ErrorsConfigMixin,
+    MagicCookieMixin,
+    ProofingConfigMixin,
+)
 
 __author__ = "lundberg"
 
@@ -18,7 +24,7 @@ class AuthlibClientConfig(BaseModel):
     scopes: List[str] = Field(default=["openid"])
 
 
-class SvipeIdConfig(EduIDBaseAppConfig, AmConfigMixin, ProofingConfigMixin):
+class SvipeIdConfig(EduIDBaseAppConfig, AmConfigMixin, ProofingConfigMixin, ErrorsConfigMixin, MagicCookieMixin):
     """
     Configuration for the svipe_id app
     """

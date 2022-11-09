@@ -14,7 +14,7 @@ from eduid.userdb.element import ElementKey
 from eduid.userdb.identity import IdentityType
 from eduid.userdb.logs.element import (
     NinProofingLogElement,
-    TForeignEidProofingLogElementSubclass,
+    TForeignIdProofingLogElementSubclass,
     TNinProofingLogElementSubclass,
 )
 from eduid.userdb.proofing import ProofingUser
@@ -57,8 +57,8 @@ def set_user_names_from_official_address(
     return user
 
 
-def set_user_names_from_foreign_eid(
-    user: TUserSubclass, proofing_log_entry: TForeignEidProofingLogElementSubclass, display_name: Optional[str] = None
+def set_user_names_from_foreign_id(
+    user: TUserSubclass, proofing_log_entry: TForeignIdProofingLogElementSubclass, display_name: Optional[str] = None
 ) -> TUserSubclass:
     """
     :param user: Proofing app private userdb user

@@ -8,11 +8,14 @@ from eduid.webapp.common.authn.acs_enums import EidasAcsAction
 from eduid.webapp.common.authn.acs_registry import ACSArgs, ACSResult, acs_action
 from eduid.webapp.common.proofing.messages import ProofingMsg
 from eduid.webapp.common.session import session
+from eduid.webapp.common.session.namespaces import SP_AuthnRequest
 from eduid.webapp.eidas.app import current_eidas_app as current_app
 from eduid.webapp.eidas.helpers import EidasMsg, authn_ctx_to_loa
 from eduid.webapp.eidas.proofing import get_proofing_functions
 
 __author__ = "lundberg"
+
+from eduid.webapp.eidas.saml_session_info import BaseSessionInfo
 
 
 @acs_action(EidasAcsAction.verify_identity)
@@ -35,7 +38,7 @@ def verify_identity_action(user: User, args: ACSArgs) -> ACSResult:
         return ACSResult(message=parsed.error)
 
     # please type checking
-    assert parsed.info
+    assert isinstance(parsed.info, BaseSessionInfo)
 
     proofing = get_proofing_functions(
         session_info=parsed.info, app_name=current_app.conf.app_name, config=current_app.conf, backdoor=args.backdoor
@@ -68,6 +71,7 @@ def verify_credential_action(user: User, args: ACSArgs) -> ACSResult:
     # please type checking
     if not args.proofing_method:
         return ACSResult(message=EidasMsg.method_not_available)
+    assert isinstance(args.authn_req, SP_AuthnRequest)
 
     credential = user.credentials.find(args.authn_req.proofing_credential_id)
     if not isinstance(credential, FidoCredential):
@@ -85,7 +89,7 @@ def verify_credential_action(user: User, args: ACSArgs) -> ACSResult:
         return ACSResult(message=parsed.error)
 
     # please type checking
-    assert parsed.info
+    assert isinstance(parsed.info, BaseSessionInfo)
 
     proofing = get_proofing_functions(
         session_info=parsed.info, app_name=current_app.conf.app_name, config=current_app.conf, backdoor=args.backdoor
@@ -156,7 +160,7 @@ def mfa_authenticate_action(args: ACSArgs) -> ACSResult:
         return ACSResult(message=parsed.error)
 
     # please type checking
-    assert parsed.info
+    assert isinstance(parsed.info, BaseSessionInfo)
 
     proofing = get_proofing_functions(
         session_info=parsed.info, app_name=current_app.conf.app_name, config=current_app.conf, backdoor=args.backdoor

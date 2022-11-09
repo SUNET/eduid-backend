@@ -3,10 +3,10 @@ from eduid.userdb import User
 from eduid.webapp.common.api.decorators import require_user
 from eduid.webapp.common.authn.acs_registry import ACSArgs, ACSResult, acs_action
 from eduid.webapp.common.proofing.messages import ProofingMsg
-from eduid.webapp.eidas.proofing import get_proofing_functions
 from eduid.webapp.svipe_id.app import current_svipe_id_app as current_app
 from eduid.webapp.svipe_id.callback_enums import SvipeIDAction
-from eduid.webapp.svipe_id.helpers import SvipeIDMsg
+from eduid.webapp.svipe_id.helpers import SvipeDocumentUserInfo, SvipeIDMsg
+from eduid.webapp.svipe_id.proofing import get_proofing_functions
 
 __author__ = "lundberg"
 
@@ -26,7 +26,7 @@ def verify_identity_action(user: User, args: ACSArgs) -> ACSResult:
         return ACSResult(message=parsed.error)
 
     # please type checking
-    assert parsed.info
+    assert isinstance(parsed.info, SvipeDocumentUserInfo)
 
     proofing = get_proofing_functions(
         session_info=parsed.info, app_name=current_app.conf.app_name, config=current_app.conf, backdoor=args.backdoor

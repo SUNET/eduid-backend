@@ -7,7 +7,7 @@ from flask import current_app
 
 from eduid.common.config.parsers import load_config
 from eduid.common.rpc.am_relay import AmRelay
-from eduid.userdb.svipe_id.db import SvipeIdUserDB
+from eduid.userdb.proofing.db import SvideIDProofingUserDB
 from eduid.webapp.common.authn.middleware import AuthnBaseApp
 from eduid.webapp.svipe_id.helpers import SessionOAuthCache
 from eduid.webapp.svipe_id.settings.common import SvipeIdConfig
@@ -21,7 +21,7 @@ class SvipeIdApp(AuthnBaseApp):
 
         self.conf = config
         # Init dbs
-        self.private_userdb = SvipeIdUserDB(self.conf.mongo_uri)
+        self.private_userdb = SvideIDProofingUserDB(self.conf.mongo_uri)
         # Init celery
         self.am_relay = AmRelay(config)
 

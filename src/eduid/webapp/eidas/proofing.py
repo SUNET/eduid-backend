@@ -1,11 +1,9 @@
-from abc import ABC
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Generic, List, Optional, TypeVar, Union
+from typing import Generic, List, Optional, TypeVar
 
 from eduid.common.config.base import ProofingConfigMixin
 from eduid.common.rpc.exceptions import AmTaskFailed, MsgTaskFailed, NoNavetData
-from eduid.common.rpc.msg_relay import FullPostalAddress
 from eduid.userdb import EIDASIdentity, User
 from eduid.userdb.credentials import Credential
 from eduid.userdb.credentials.external import (
@@ -17,114 +15,49 @@ from eduid.userdb.credentials.external import (
 from eduid.userdb.element import ElementKey
 from eduid.userdb.identity import EIDASLoa, IdentityElement, IdentityType, PridPersistence
 from eduid.userdb.logs.element import (
-    ForeignEidProofingLogElement,
+    ForeignIdProofingLogElement,
     MFATokenEIDASProofing,
     MFATokenProofing,
     NinProofingLogElement,
-    ProofingLogElement,
     SwedenConnectEIDASProofing,
     SwedenConnectProofing,
 )
 from eduid.userdb.proofing import NinProofingElement, ProofingUser
 from eduid.userdb.proofing.state import NinProofingState
-from eduid.webapp.common.api.helpers import (
-    ProofingNavetData,
-    get_proofing_log_navet_data,
-    set_user_names_from_foreign_eid,
-    verify_nin_for_user,
+from eduid.webapp.common.api.helpers import set_user_names_from_foreign_id, verify_nin_for_user
+from eduid.webapp.common.api.messages import CommonMsg
+from eduid.webapp.common.proofing.base import (
+    MatchResult,
+    ProofingElementResult,
+    ProofingFunctions,
+    VerifyCredentialResult,
+    VerifyUserResult,
 )
-from eduid.webapp.common.api.messages import CommonMsg, TranslatableMsg
-from eduid.webapp.common.api.utils import save_and_sync_user
-from eduid.webapp.common.proofing.methods import ProofingMethod
+from eduid.webapp.common.proofing.methods import ProofingMethod, ProofingMethodSAML
 from eduid.webapp.common.session import session
 from eduid.webapp.eidas.app import current_eidas_app as current_app
 from eduid.webapp.eidas.helpers import EidasMsg, authn_context_class_to_loa
-from eduid.webapp.eidas.saml_session_info import ForeignEidSessionInfo, NinSessionInfo
+from eduid.webapp.eidas.saml_session_info import BaseSessionInfo, ForeignEidSessionInfo, NinSessionInfo
 
-SessionInfoVar = TypeVar("SessionInfoVar")
-
-
-@dataclass
-class MatchResult:
-    error: Optional[TranslatableMsg] = None
-    matched: bool = False
-    credential_used: Optional[ElementKey] = None
+BaseSessionInfoVar = TypeVar("BaseSessionInfoVar", bound=BaseSessionInfo)
 
 
 @dataclass
-class VerifyUserResult:
-    user: Optional[User] = None
-    error: Optional[TranslatableMsg] = None
-
-
-@dataclass
-class VerifyCredentialResult(VerifyUserResult):
-    credential: Optional[Credential] = None
-
-
-@dataclass
-class ProofingElementResult:
-    data: Optional[ProofingLogElement] = None
-    error: Optional[TranslatableMsg] = None
-
-
-@dataclass()
-class ProofingFunctions(ABC, Generic[SessionInfoVar]):
-
-    session_info: SessionInfoVar
-    app_name: str
-    config: ProofingConfigMixin
-    backdoor: bool
-
+class SwedenConnectProofingFunctions(ProofingFunctions, Generic[BaseSessionInfoVar]):
     def get_identity(self, user: User) -> Optional[IdentityElement]:
         raise NotImplementedError("Subclass must implement get_identity")
 
     def verify_identity(self, user: User) -> VerifyUserResult:
-        raise NotImplementedError("Subclass must implement verify_identity")
-
-    def verify_credential(self, user: User, credential: Credential, loa: Optional[str]) -> VerifyCredentialResult:
-        proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
-
-        mark_result = self.mark_credential_as_verified(credential, loa)
-        if mark_result.error:
-            return mark_result
-        assert mark_result.credential  # please type checking
-        credential = mark_result.credential
-
-        # Create a proofing log
-        proofing_log_entry = self.credential_proofing_element(user=user, credential=credential)
-        if proofing_log_entry.error:
-            return VerifyCredentialResult(error=proofing_log_entry.error)
-
-        # get a reference to the credential on the proofing_user, since that is the one we'll save below
-        _credential = proofing_user.credentials.find(credential.key)
-        # please type checking
-        assert _credential
-        credential = _credential
-
-        # Set token as verified
-        credential.is_verified = True
-        credential.proofing_method = self.config.security_key_proofing_method
-        credential.proofing_version = self.config.security_key_proofing_version
-
-        # Save proofing log entry and save user
-        assert proofing_log_entry.data  # please type checking
-        if current_app.proofing_log.save(proofing_log_entry.data):
-            current_app.logger.info(f"Recorded credential {credential} verification in the proofing log")
-            try:
-                save_and_sync_user(proofing_user)
-            except AmTaskFailed:
-                current_app.logger.exception("Verifying token for user failed")
-                return VerifyCredentialResult(error=CommonMsg.temp_problem)
-            current_app.stats.count(name="fido_token_verified")
-
-        # re-load the user from central db before returning
-        _user = current_app.central_userdb.get_user_by_eppn(proofing_user.eppn)
-        assert _user is not None  # please mypy
-        return VerifyCredentialResult(user=_user)
+        raise NotImplementedError("Subclass must implement get_identity")
 
     def match_identity(self, user: User, proofing_method: ProofingMethod) -> MatchResult:
-        raise NotImplementedError("Subclass must implement match_identity")
+        raise NotImplementedError("Subclass must implement get_identity")
+
+    def credential_proofing_element(self, user: User, credential: Credential) -> ProofingElementResult:
+        raise NotImplementedError("Subclass must implement get_identity")
+
+    def mark_credential_as_verified(self, credential: Credential, loa: Optional[str]) -> VerifyCredentialResult:
+        raise NotImplementedError("Subclass must implement get_identity")
 
     def _match_identity_for_mfa(
         self, user: User, identity_type: IdentityType, asserted_unique_value: str, proofing_method: ProofingMethod
@@ -157,6 +90,7 @@ class ProofingFunctions(ABC, Generic[SessionInfoVar]):
 
         credential_used = None
         if mfa_success:
+            assert isinstance(proofing_method, ProofingMethodSAML)  # please mypy
             credential_used = _find_or_add_credential(user, proofing_method.framework, proofing_method.required_loa)
             current_app.logger.debug(f"Found or added credential {credential_used}")
 
@@ -184,15 +118,9 @@ class ProofingFunctions(ABC, Generic[SessionInfoVar]):
 
         return MatchResult(matched=mfa_success, credential_used=credential_used)
 
-    def credential_proofing_element(self, user: User, credential: Credential) -> ProofingElementResult:
-        raise NotImplementedError("Subclass must implement credential_proofing_element")
 
-    def mark_credential_as_verified(self, credential: Credential, loa: Optional[str]) -> VerifyCredentialResult:
-        raise NotImplementedError("Subclass must implement mark_credential_as_verified")
-
-
-@dataclass()
-class FrejaProofingFunctions(ProofingFunctions[NinSessionInfo]):
+@dataclass
+class FrejaProofingFunctions(SwedenConnectProofingFunctions[NinSessionInfo]):
     def get_identity(self, user: User) -> Optional[IdentityElement]:
         return user.identities.nin
 
@@ -313,25 +241,6 @@ class FrejaProofingFunctions(ProofingFunctions[NinSessionInfo]):
             proofing_method=proofing_method,
         )
 
-    def _get_navet_data(self, nin: str) -> ProofingNavetData:
-        """
-        Fetch data such as official registered address from Navet (Skatteverket).
-        """
-        if self.backdoor:
-            # verify with bogus data and without Navet interaction for integration test
-            user_postal_address = FullPostalAddress(
-                **{
-                    "Name": {"GivenNameMarking": "20", "GivenName": "Magic Cookie", "Surname": "Testsson"},
-                    "OfficialAddress": {"Address2": "MAGIC COOKIE", "PostalCode": "12345", "City": "LANDET"},
-                }
-            )
-            return ProofingNavetData(
-                user_postal_address=user_postal_address,
-                deregistration_information=None,
-            )
-
-        return get_proofing_log_navet_data(nin=nin)
-
     def mark_credential_as_verified(self, credential: Credential, loa: Optional[str]) -> VerifyCredentialResult:
         if loa != "loa3":
             return VerifyCredentialResult(error=EidasMsg.authn_context_mismatch)
@@ -344,7 +253,7 @@ class FrejaProofingFunctions(ProofingFunctions[NinSessionInfo]):
 
 
 @dataclass()
-class EidasProofingFunctions(ProofingFunctions[ForeignEidSessionInfo]):
+class EidasProofingFunctions(SwedenConnectProofingFunctions[ForeignEidSessionInfo]):
     def get_identity(self, user: User) -> Optional[IdentityElement]:
         return user.identities.eidas
 
@@ -387,10 +296,10 @@ class EidasProofingFunctions(ProofingFunctions[ForeignEidSessionInfo]):
         proofing_log_entry = self.identity_proofing_element(user=proofing_user)
         if proofing_log_entry.error:
             return VerifyUserResult(error=proofing_log_entry.error)
-        assert isinstance(proofing_log_entry.data, ForeignEidProofingLogElement)  # please type checking
+        assert isinstance(proofing_log_entry.data, ForeignIdProofingLogElement)  # please type checking
 
         # update the users names from the verified identity
-        proofing_user = set_user_names_from_foreign_eid(proofing_user, proofing_log_entry.data)
+        proofing_user = set_user_names_from_foreign_id(proofing_user, proofing_log_entry.data)
 
         # Verify EIDAS identity for user
         if not current_app.proofing_log.save(proofing_log_entry.data):
@@ -544,7 +453,7 @@ def _find_or_add_credential(
 
 
 def get_proofing_functions(
-    session_info: Union[NinSessionInfo, ForeignEidSessionInfo],
+    session_info: BaseSessionInfo,
     app_name: str,
     config: ProofingConfigMixin,
     backdoor: bool,

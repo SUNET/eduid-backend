@@ -12,14 +12,14 @@ from eduid.common.testing_base import normalised_data
 from eduid.userdb import NinIdentity
 from eduid.userdb.fixtures.users import new_user_example
 from eduid.userdb.logs import ProofingLog
-from eduid.userdb.logs.element import ForeignEidProofingLogElement, NinProofingLogElement
+from eduid.userdb.logs.element import ForeignIdProofingLogElement, NinProofingLogElement
 from eduid.userdb.proofing import LetterProofingStateDB, LetterProofingUserDB, NinProofingElement, ProofingUser
 from eduid.userdb.proofing.state import NinProofingState
 from eduid.userdb.user import User
 from eduid.webapp.common.api.app import EduIDBaseApp
 from eduid.webapp.common.api.helpers import (
     add_nin_to_user,
-    set_user_names_from_foreign_eid,
+    set_user_names_from_foreign_id,
     set_user_names_from_official_address,
     verify_nin_for_user,
 )
@@ -351,7 +351,7 @@ class NinHelpersTest(EduidAPITestCase):
     def test_set_user_names_from_foreign_eid(self):
         userdata = new_user_example.to_dict()
         user = ProofingUser.from_dict(data=userdata)
-        proofing_element = ForeignEidProofingLogElement(
+        proofing_element = ForeignIdProofingLogElement(
             eppn=user.eppn,
             created_by="test",
             given_name="Testaren Test",
@@ -362,7 +362,7 @@ class NinHelpersTest(EduidAPITestCase):
             proofing_version="2018v1",
         )
         with self.app.app_context():
-            user = set_user_names_from_foreign_eid(user, proofing_element)
+            user = set_user_names_from_foreign_id(user, proofing_element)
             assert user.given_name == "Testaren Test"
             assert user.surname == "Testsson"
             assert user.display_name == "Testaren Test Testsson"
@@ -370,7 +370,7 @@ class NinHelpersTest(EduidAPITestCase):
     def test_set_user_names_from_foreign_eid_existing_display_name(self):
         userdata = new_user_example.to_dict()
         user = ProofingUser.from_dict(data=userdata)
-        proofing_element = ForeignEidProofingLogElement(
+        proofing_element = ForeignIdProofingLogElement(
             eppn=user.eppn,
             created_by="test",
             given_name="Testaren Test",
@@ -381,7 +381,7 @@ class NinHelpersTest(EduidAPITestCase):
             proofing_version="2018v1",
         )
         with self.app.app_context():
-            user = set_user_names_from_foreign_eid(user, proofing_element)
+            user = set_user_names_from_foreign_id(user, proofing_element)
             assert user.given_name == "Testaren Test"
             assert user.surname == "Testsson"
             assert user.display_name == "Testaren Test Testsson"
@@ -389,7 +389,7 @@ class NinHelpersTest(EduidAPITestCase):
     def test_set_user_names_from_foreign_eid_custom_display_name(self):
         userdata = new_user_example.to_dict()
         user = ProofingUser.from_dict(data=userdata)
-        proofing_element = ForeignEidProofingLogElement(
+        proofing_element = ForeignIdProofingLogElement(
             eppn=user.eppn,
             created_by="test",
             given_name="Testaren Test",
@@ -400,7 +400,7 @@ class NinHelpersTest(EduidAPITestCase):
             proofing_version="2018v1",
         )
         with self.app.app_context():
-            user = set_user_names_from_foreign_eid(user, proofing_element, display_name="Test Testsson")
+            user = set_user_names_from_foreign_id(user, proofing_element, display_name="Test Testsson")
             assert user.given_name == "Testaren Test"
             assert user.surname == "Testsson"
             assert user.display_name == "Test Testsson"

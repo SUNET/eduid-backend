@@ -182,9 +182,7 @@ def assertion_consumer_service() -> WerkzeugResponse:
     result = action(args)
     current_app.logger.debug(f"ACS action result: {result}")
 
-    # action = get_action(default_action=AuthnAcsAction.login, authndata=assertion.authndata)
-    # return action(assertion.session_info, assertion.user, authndata=assertion.authndata)
-
+    assert isinstance(args.authn_req, SP_AuthnRequest)  # please mypy
     if args.authn_req.frontend_action == FALLBACK_FRONTEND_ACTION:
         # Redirect the user to the view they came from.
         # TODO: This way is deprecated, since it might be abused in redirect attacks. Better have
