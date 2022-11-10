@@ -108,7 +108,7 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
         return [self.user_from_dict(data=user) for user in users]
 
     def get_uncleaned_verified_users(
-            self, cleaned_type: CleanedType, identity_type: IdentityType, limit: int
+        self, cleaned_type: CleanedType, identity_type: IdentityType, limit: int
     ) -> List[UserVar]:
         match = {
             "identities": {
@@ -207,7 +207,7 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
         return self._get_user_by_filter(_filter)
 
     def get_users_by_identity(
-            self, identity_type: IdentityType, key: str, value: str, include_unconfirmed: bool = False
+        self, identity_type: IdentityType, key: str, value: str, include_unconfirmed: bool = False
     ):
         match = {"identity_type": identity_type.value, key: value, "verified": True}
         if include_unconfirmed:
@@ -453,3 +453,63 @@ class AmDB(UserDB[User]):
 
     def old_save(self, user: User, check_sync: bool = True) -> bool:
         return super().save(user, check_sync)
+
+    def unverify_mail_aliases(self, user_id: ObjectId, mail_aliases: Optional[List[Dict[str, Any]]]) -> int:
+        count = 0
+        if mail_aliases is None:
+            logger.debug(f"No mailAliases to check duplicates against for user {user_id}.")
+            return count
+        # Get the verified mail addresses from attributes
+        verified_mail_aliases = [alias["email"] for alias in mail_aliases if alias.get("verified") is True]
+        for email in verified_mail_aliases:
+            try:
+                for user in self.get_users_by_mail(email):
+                    if user.user_id != user_id:
+                        logger.debug(f"Removing mail address {email} from user {user}")
+                        logger.debug(f"Old user mail aliases BEFORE: {user.mail_addresses.to_list()}")
+                        if user.mail_addresses.primary and user.mail_addresses.primary.email == email:
+                            # Promote some other verified e-mail address to primary
+                            for address in user.mail_addresses.to_list():
+                                if address.is_verified and address.email != email:
+                                    user.mail_addresses.set_primary(address.key)
+                                    break
+                        old_user_mail_address = user.mail_addresses.find(email)
+                        if old_user_mail_address is not None:
+                            old_user_mail_address.is_primary = False
+                            old_user_mail_address.is_verified = False
+                        count += 1
+                        logger.debug(f"Old user mail aliases AFTER: {user.mail_addresses.to_list()}")
+                        self.old_save(user)
+            except DocumentDoesNotExist:
+                pass
+        return count
+
+    def unverify_phones(self, user_id: ObjectId, phones: List[Dict[str, Any]]) -> int:
+        count = 0
+        if phones is None:
+            logger.debug(f"No phones to check duplicates against for user {user_id}.")
+            return count
+        # Get the verified phone numbers from attributes
+        verified_phone_numbers = [phone["number"] for phone in phones if phone.get("verified") is True]
+        for number in verified_phone_numbers:
+            try:
+                for user in self.get_users_by_phone(number):
+                    if user.user_id != user_id:
+                        logger.debug(f"Removing phone number {number} from user {user}")
+                        logger.debug(f"Old user phone numbers BEFORE: {user.phone_numbers.to_list()}.")
+                        if user.phone_numbers.primary and user.phone_numbers.primary.number == number:
+                            # Promote some other verified phone number to primary
+                            for phone in user.phone_numbers.verified:
+                                if phone.number != number:
+                                    user.phone_numbers.set_primary(phone.key)
+                                    break
+                        old_user_phone_number = user.phone_numbers.find(number)
+                        if old_user_phone_number is not None:
+                            old_user_phone_number.is_primary = False
+                            old_user_phone_number.is_verified = False
+                        count += 1
+                        logger.debug(f"Old user phone numbers AFTER: {user.phone_numbers.to_list()}.")
+                        self.old_save(user)
+            except DocumentDoesNotExist:
+                pass
+        return count

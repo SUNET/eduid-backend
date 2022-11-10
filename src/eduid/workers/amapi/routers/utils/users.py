@@ -47,10 +47,8 @@ def update_user(
         user_obj.display_name = data.display_name
 
     elif isinstance(data, UserUpdateEmailRequest):
-        mails = []
-        for mail in data.mail_addresses:
-            mails.append(mail.to_dict())
-        unverify_mail_aliases(userdb=req.app.db, user_id=user_obj.user_id, mail_aliases=mails)
+        mails = [mail.to_dict() for mail in data.mail_addresses]
+        req.app.db.unverify_mail_aliases(user_id=user_obj.user_id, mail_aliases=mails)
 
         user_obj.mail_addresses = MailAddressList(elements=data.mail_addresses)
 
@@ -58,10 +56,8 @@ def update_user(
         user_obj.language = data.language
 
     elif isinstance(data, UserUpdatePhoneRequest):
-        phones = []
-        for phone in data.phone_numbers:
-            phones.append(phone.to_dict())
-        unverify_phones(userdb=req.app.db, user_id=user_obj.user_id, phones=phones)
+        phones = [phone.to_dict() for phone in data.phone_numbers]
+        req.app.db.unverify_phones(user_id=user_obj.user_id, phones=phones)
 
         user_obj.phone_numbers = PhoneNumberList(elements=data.phone_numbers)
 
