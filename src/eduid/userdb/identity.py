@@ -252,6 +252,9 @@ class IdentityList(VerifiedElementList[IdentityElement]):
         # EIDAS
         if self.eidas and self.eidas.is_verified:
             return self.eidas.date_of_birth
+        # SVIPE
+        if self.svipe and self.svipe.is_verified:
+            return self.svipe.date_of_birth
         return None
 
     def to_frontend_format(self) -> Dict[str, Any]:
