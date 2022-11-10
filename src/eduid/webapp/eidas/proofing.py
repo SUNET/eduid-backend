@@ -165,7 +165,7 @@ class FrejaProofingFunctions(SwedenConnectProofingFunctions[NinSessionInfo]):
             issuer = "MAGIC COOKIE"
             authn_context = "MAGIC COOKIE"
         else:
-            proofing_version = self.config.security_key_proofing_version
+            proofing_version = self.config.nin_proofing_version
             issuer = self.session_info.issuer
             authn_context = self.session_info.authn_context
 
