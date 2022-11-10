@@ -48,16 +48,16 @@ class SwedenConnectProofingFunctions(ProofingFunctions, Generic[BaseSessionInfoV
         raise NotImplementedError("Subclass must implement get_identity")
 
     def verify_identity(self, user: User) -> VerifyUserResult:
-        raise NotImplementedError("Subclass must implement get_identity")
+        raise NotImplementedError("Subclass must implement verify_identity")
 
     def match_identity(self, user: User, proofing_method: ProofingMethod) -> MatchResult:
-        raise NotImplementedError("Subclass must implement get_identity")
+        raise NotImplementedError("Subclass must implement match_identity")
 
     def credential_proofing_element(self, user: User, credential: Credential) -> ProofingElementResult:
-        raise NotImplementedError("Subclass must implement get_identity")
+        raise NotImplementedError("Subclass must implement credential_proofing_element")
 
     def mark_credential_as_verified(self, credential: Credential, loa: Optional[str]) -> VerifyCredentialResult:
-        raise NotImplementedError("Subclass must implement get_identity")
+        raise NotImplementedError("Subclass must implement mark_credential_as_verified")
 
     def _match_identity_for_mfa(
         self, user: User, identity_type: IdentityType, asserted_unique_value: str, proofing_method: ProofingMethod
