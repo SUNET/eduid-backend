@@ -68,7 +68,6 @@ class AuthenticationMiddleware(BaseHTTPMiddleware, ContextRequestMixin):
 
         if self._access_granted(req, token, method_path):
             return await call_next(req)
-        mura = 1
         return return_error_response(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=f"Account {token.service_name} is not allowed access to {method_path}",

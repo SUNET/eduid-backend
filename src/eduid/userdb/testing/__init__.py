@@ -36,6 +36,7 @@ Code used in unit tests of various eduID applications.
 """
 from __future__ import annotations
 
+import json
 import logging
 import unittest
 import uuid
@@ -50,7 +51,6 @@ from eduid.userdb.db import BaseDB
 from eduid.userdb.testing.temp_instance import EduidTemporaryInstance
 from eduid.userdb.userdb import AmDB, UserDB
 from eduid.userdb.util import utc_now
-
 
 logger = logging.getLogger(__name__)
 
@@ -135,7 +135,7 @@ def _normalise_value(data: Any) -> Any:
 
 
 def normalised_data(
-        data: Union[Mapping[str, Any], Sequence[Mapping[str, Any]]]
+    data: Union[Mapping[str, Any], Sequence[Mapping[str, Any]]]
 ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
     """Utility function for normalising dicts (or list of dicts) before comparisons in test cases."""
     if isinstance(data, list):
