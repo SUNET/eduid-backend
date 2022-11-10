@@ -166,10 +166,6 @@ class SvipeIdentity(IdentityElement, CountryMixin):
     #  A globally unique identifier issued by Svipe to the user. Under normal conditions, a given person will retain
     #  the same Svipe ID even after renewing the underlying identity document.
     svipe_id: str
-    # TODO: decide if we want to add administrative_number or not
-    # The national administrative number assigned to the individual. This could be a TID (Tax Identification Number)
-    # or any other national identifier such as a Swedish personal number.
-    administrative_number: str
     date_of_birth: datetime
     country_code: str  # ISO 3166-1 alpha-3
 

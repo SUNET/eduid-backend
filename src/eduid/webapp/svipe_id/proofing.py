@@ -95,7 +95,6 @@ class SvipeIDProofingFunctions(ProofingFunctions[SvipeDocumentUserInfo]):
             verified_by=current_app.conf.app_name,
             is_verified=True,
             svipe_id=self.session_info.svipe_id,
-            administrative_number=self.session_info.document_administrative_number,
         )
 
         # check if the just verified identity matches the locked identity
