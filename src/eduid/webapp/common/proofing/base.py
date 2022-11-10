@@ -87,14 +87,16 @@ class ProofingFunctions(ABC, Generic[SessionInfoVar]):
 
         # Save proofing log entry and save user
         assert proofing_log_entry.data  # please type checking
-        if current_app.proofing_log.save(proofing_log_entry.data):
-            current_app.logger.info(f"Recorded credential {credential} verification in the proofing log")
-            try:
-                save_and_sync_user(proofing_user)
-            except AmTaskFailed:
-                current_app.logger.exception("Verifying token for user failed")
-                return VerifyCredentialResult(error=CommonMsg.temp_problem)
-            current_app.stats.count(name="fido_token_verified")
+        if not current_app.proofing_log.save(proofing_log_entry.data):
+            current_app.logger.exception("Saving proofing log for user failed")
+            return VerifyCredentialResult(error=CommonMsg.temp_problem)
+        try:
+            save_and_sync_user(proofing_user)
+        except AmTaskFailed:
+            current_app.logger.exception("Verifying token for user failed")
+            return VerifyCredentialResult(error=CommonMsg.temp_problem)
+        current_app.logger.info(f"Recorded credential {credential} verification in the proofing log")
+        current_app.stats.count(name="fido_token_verified")
 
         # re-load the user from central db before returning
         _user = current_app.central_userdb.get_user_by_eppn(proofing_user.eppn)
