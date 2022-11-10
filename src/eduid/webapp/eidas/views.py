@@ -177,10 +177,10 @@ def _authn(
         fallback_url = redirect_url
 
     proofing_method = get_proofing_method(method, frontend_action, current_app.conf, fallback_redirect_url=fallback_url)
-    assert isinstance(proofing_method, ProofingMethodSAML)  # please mypy
     current_app.logger.debug(f"Proofing method: {proofing_method}")
-    if not proofing_method or not proofing_method.finish_url:
+    if not proofing_method:
         return AuthnResult(error=EidasMsg.method_not_available)
+    assert isinstance(proofing_method, ProofingMethodSAML)  # please mypy
 
     idp = proofing_method.idp
     if check_magic_cookie(current_app.conf):
@@ -266,8 +266,7 @@ def assertion_consumer_service() -> WerkzeugResponse:
         current_app.conf,
         fallback_redirect_url=fallback_url,
     )
-    assert isinstance(proofing_method, ProofingMethodSAML)  # please mypy
-    if not proofing_method or not proofing_method.finish_url:
+    if not proofing_method:
         # We _really_ shouldn't end up here because this same thing would have been done in the
         # starting views above.
         current_app.logger.warning(f"No proofing_method for method {assertion.authndata.method}")
@@ -278,6 +277,7 @@ def assertion_consumer_service() -> WerkzeugResponse:
             ctx=EduidErrorsContext.SAML_RESPONSE_FAIL,
             rp=current_app.saml2_config.entityid,
         )
+    assert isinstance(proofing_method, ProofingMethodSAML)  # please mypy
 
     if not is_required_loa(assertion.session_info, proofing_method.required_loa):
         session.mfa_action.error = MfaActionError.authn_context_mismatch  # TODO: Old way, remove after a release cycle

@@ -105,6 +105,10 @@ def _authn(
         return AuthnResult(error=SvipeIDMsg.authn_request_failed)
 
     proofing_method = get_proofing_method(method, frontend_action, current_app.conf)
+    if not proofing_method:
+        current_app.logger.error(f"Unknown method: {method}")
+        return AuthnResult(error=SvipeIDMsg.method_not_available)
+
     session.svipe_id.rp.authns[OIDCState(state)] = RP_AuthnRequest(
         frontend_action=frontend_action,
         frontend_state=frontend_state,
@@ -142,7 +146,7 @@ def authn_callback(user) -> WerkzeugResponse:
     current_app.stats.count(name="authn_response")
 
     proofing_method = get_proofing_method(authn_req.method, authn_req.frontend_action, current_app.conf)
-    if not proofing_method or not proofing_method.finish_url:
+    if not proofing_method:
         # We _really_ shouldn't end up here because this same thing would have been done in the
         # starting views above.
         current_app.logger.warning(f"No proofing_method for method {authn_req.method}")

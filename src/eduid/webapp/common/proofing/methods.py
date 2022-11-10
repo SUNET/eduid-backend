@@ -104,19 +104,18 @@ def get_proofing_method(
     frontend_action: str,
     config: ProofingConfigMixin,
     fallback_redirect_url: Optional[str] = None,
-) -> Union[ProofingMethodFreja, ProofingMethodEidas, ProofingMethodSvipe]:
-    if fallback_redirect_url is None:
-        fallback_redirect_url = config.fallback_redirect_url
+) -> Optional[Union[ProofingMethodFreja, ProofingMethodEidas, ProofingMethodSvipe]]:
     # look up the finish_url here (when receiving the request, rather than in the ACS)
     # to be able to fail fast if frontend requests an action that backend isn't configured for
     finish_url = config.frontend_action_finish_url.get(frontend_action, fallback_redirect_url)
     if not finish_url:
         logger.warning(f"No finish_url for frontend_action {frontend_action} (fallback: {fallback_redirect_url})")
+        return None
 
     if method == "freja":
         if not config.freja_idp:
             logger.warning(f"Missing configuration freja_idp required for proofing method {method}")
-            raise BadConfiguration(f"Missing configuration freja_idp required for proofing method {method}")
+            return None
         return ProofingMethodFreja(
             finish_url=finish_url,
             framework=TrustFramework.SWECONN,
@@ -127,7 +126,7 @@ def get_proofing_method(
     if method == "eidas":
         if not config.foreign_identity_idp:
             logger.warning(f"Missing configuration foreign_identity_idp required for proofing method {method}")
-            raise BadConfiguration(f"Missing configuration foreign_identity_idp required for proofing method {method}")
+            return None
         return ProofingMethodEidas(
             finish_url=finish_url,
             framework=TrustFramework.EIDAS,
@@ -141,4 +140,6 @@ def get_proofing_method(
             framework=TrustFramework.SVIPE,
             finish_url=finish_url,
         )
-    raise NotImplementedError(f"Unknown proofing method {method}")
+
+    logger.warning(f"Unknown proofing method {method}")
+    return None
