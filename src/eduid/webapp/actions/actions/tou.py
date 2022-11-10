@@ -30,7 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-__author__ = 'eperez'
+__author__ = "eperez"
 
 from datetime import datetime
 from typing import Any, Mapping
@@ -38,7 +38,6 @@ from typing import Any, Mapping
 from bson import ObjectId
 from flask import request
 
-from eduid.common.misc.tous import get_tous
 from eduid.userdb.actions import Action
 from eduid.userdb.actions.action import ActionResult
 from eduid.userdb.actions.tou import ToUUser, ToUUserDB
@@ -50,7 +49,7 @@ from eduid.webapp.actions.helpers import ActionsMsg
 
 class Plugin(ActionPlugin):
 
-    PLUGIN_NAME = 'tou'
+    PLUGIN_NAME = "tou"
     steps = 1
 
     def __init__(self):
@@ -66,18 +65,19 @@ class Plugin(ActionPlugin):
         app.tou_db = ToUUserDB(app.conf.mongo_uri)
 
     def get_config_for_bundle(self, action: Action) -> Mapping[str, Any]:
-        tous = get_tous(version=action.params['version'], languages=current_app.conf.available_languages.keys())
+        # XXX: There are no longer any tou texts in the backend and the actions app is not used
+        tous = None
         if not tous:
-            current_app.logger.error('Could not load any TOUs')
+            current_app.logger.error("Could not load any TOUs")
             raise self.ActionError(ActionsMsg.no_tou)
         return {
-            'version': action.params['version'],
-            'tous': tous,
-            'available_languages': current_app.conf.available_languages,
+            "version": action.params["version"],
+            "tous": tous,
+            "available_languages": current_app.conf.available_languages,
         }
 
     def perform_step(self, action: Action) -> ActionResult:
-        if not request.get_json().get('accept', ''):
+        if not request.get_json().get("accept", ""):
             raise self.ActionError(ActionsMsg.must_accept)
 
         eppn = action.eppn
@@ -85,20 +85,20 @@ class Plugin(ActionPlugin):
         if not central_user:
             raise self.ActionError(ActionsMsg.user_not_found)
         user = ToUUser.from_user(central_user, current_app.tou_db)
-        current_app.logger.debug('Loaded ToUUser {} from db'.format(user))
+        current_app.logger.debug("Loaded ToUUser {} from db".format(user))
 
-        version = action.params['version']
+        version = action.params["version"]
 
         existing_tou = user.tou.find(version)
         if existing_tou:
-            current_app.logger.info('ToU version {} reaccepted by user {}'.format(version, user))
+            current_app.logger.info("ToU version {} reaccepted by user {}".format(version, user))
             existing_tou.modified_ts = datetime.utcnow()
         else:
-            current_app.logger.info('ToU version {} accepted by user {}'.format(version, user))
+            current_app.logger.info("ToU version {} accepted by user {}".format(version, user))
             user.tou.add(
                 ToUEvent(
                     version=version,
-                    created_by='eduid_tou_plugin',
+                    created_by="eduid_tou_plugin",
                     created_ts=datetime.utcnow(),
                     modified_ts=datetime.utcnow(),
                     event_id=str(ObjectId()),
@@ -107,12 +107,12 @@ class Plugin(ActionPlugin):
 
         current_app.tou_db.save(user, check_sync=False)
         current_app.logger.debug("Asking for sync of {} by Attribute Manager".format(user))
-        rtask = self._update_attributes.delay('eduid_tou', str(user.user_id))
+        rtask = self._update_attributes.delay("eduid_tou", str(user.user_id))
         try:
             result = rtask.get(timeout=10)
             current_app.logger.debug("Attribute Manager sync result: {!r}".format(result))
             current_app.actions_db.remove_action_by_id(action.action_id)
-            current_app.logger.info('Removed completed action {}'.format(action))
+            current_app.logger.info("Removed completed action {}".format(action))
             return ActionResult(success=True)
         except Exception as e:
             current_app.logger.error("Failed Attribute Manager sync request: " + str(e))

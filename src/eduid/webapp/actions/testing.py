@@ -75,49 +75,49 @@ class TestingActionPlugin(ActionPlugin):
         return 1
 
     def get_url_for_bundle(self, action):
-        if 'action_error' in action.to_dict()['params']:
+        if "action_error" in action.to_dict()["params"]:
             raise self.ActionError(ActionsMsg.test_error)
         return "http://example.com/plugin.js"
 
     def get_config_for_bundle(self, action):
-        if 'action_error' in action.to_dict()['params']:
+        if "action_error" in action.to_dict()["params"]:
             raise self.ActionError(ActionsMsg.test_error)
-        return {'setting1': 'dummy'}
+        return {"setting1": "dummy"}
 
     def perform_step(self, action):
-        if 'action_error' in action.to_dict()['params']:
+        if "action_error" in action.to_dict()["params"]:
             raise self.ActionError(ActionsMsg.test_error)
-        if 'rm_action' in action.to_dict()['params']:
+        if "rm_action" in action.to_dict()["params"]:
             raise self.ActionError(ActionsMsg.test_error, rm=True)
-        if 'validation_error' in action.to_dict()['params']:
-            raise self.ValidationError({'field1': 'field test error'})
-        return {'completed': 'done'}
+        if "validation_error" in action.to_dict()["params"]:
+            raise self.ValidationError({"field1": "field test error"})
+        return {"completed": "done"}
 
 
 DUMMY_ACTION = {
-    '_id': ObjectId('234567890123456789012301'),
-    'eppn': 'hubba-bubba',
-    'action': 'dummy',
-    'preference': 100,
-    'params': {},
+    "_id": ObjectId("234567890123456789012301"),
+    "eppn": "hubba-bubba",
+    "action": "dummy",
+    "preference": 100,
+    "params": {},
 }
 
 TEST_CONFIG = {
-    'available_languages': {'en': 'English', 'sv': 'Svenska'},
-    'dashboard_url': '/profile/',
-    'development': 'DEBUG',
-    'application_root': '/',
-    'log_level': 'DEBUG',
-    'idp_url': 'https://example.com/idp',
-    'internal_signup_url': 'https://example.com/signup',
-    'preserve_context_on_exception': False,
-    'eduid_static_url': 'http://example.com',
-    'bundles_path': '/bundles/',
-    'debug': False,
-    'devel_mode': True,
-    'u2f_app_id': 'foo',
-    'u2f_valid_facets': [],
-    'fido2_rp_id': 'https://test.example.edu',
+    "available_languages": {"en": "English", "sv": "Svenska"},
+    "dashboard_url": "/profile/",
+    "development": "DEBUG",
+    "application_root": "/",
+    "log_level": "DEBUG",
+    "idp_url": "https://example.com/idp",
+    "internal_signup_url": "https://example.com/signup",
+    "preserve_context_on_exception": False,
+    "eduid_static_url": "http://example.com",
+    "bundles_path": "/bundles/",
+    "debug": False,
+    "devel_mode": True,
+    "u2f_app_id": "foo",
+    "u2f_valid_facets": [],
+    "fido2_rp_id": "https://test.example.edu",
 }
 
 
@@ -142,7 +142,7 @@ class ActionsTestCase(EduidAPITestCase):
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
-        return actions_init_app('actions', config)
+        return actions_init_app("actions", config)
 
     def update_actions_config(self, config):
         """
@@ -166,24 +166,24 @@ class ActionsTestCase(EduidAPITestCase):
         total_steps=1,
         current_step=1,
         add_action=True,
-        idp_session='dummy-session',
+        idp_session="dummy-session",
         set_plugin=True,
-        plugin_name='dummy',
+        plugin_name="dummy",
         plugin_class=TestingActionPlugin,
     ):
         if action_dict is None:
             action_dict = deepcopy(DUMMY_ACTION)
         if action_error:
-            action_dict['params']['action_error'] = True
+            action_dict["params"]["action_error"] = True
         if rm_action:
-            action_dict['params']['rm_action'] = True
+            action_dict["params"]["rm_action"] = True
         if validation_error:
-            action_dict['params']['validation_error'] = True
+            action_dict["params"]["validation_error"] = True
         if add_action:
             action = self.app.actions_db.add_action(data=deepcopy(action_dict))
         else:
             action = Action.from_dict(action_dict)
-        action_dict['_id'] = str(action_dict['_id'])
+        action_dict["_id"] = str(action_dict["_id"])
         with client.session_transaction() as sess:
             sess.common.eppn = action.eppn
             sess.actions.current_action = action

@@ -30,7 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-__author__ = 'ft'
+__author__ = "ft"
 
 from typing import Any, Dict, Optional
 
@@ -55,24 +55,24 @@ class SignupUser(User):
 
     @classmethod
     def check_or_use_data(cls, data: Dict[str, Any]) -> Dict[str, Any]:
-        _social_network = data.pop('social_network', None)
-        _social_network_id = data.pop('social_network_id', None)
-        _pending_mail_address = data.pop('pending_mail_address', None)
-        _proofing_reference = data.pop('proofing_reference', None)
+        _social_network = data.pop("social_network", None)
+        _social_network_id = data.pop("social_network_id", None)
+        _pending_mail_address = data.pop("pending_mail_address", None)
+        _proofing_reference = data.pop("proofing_reference", None)
         if _pending_mail_address:
             if isinstance(_pending_mail_address, dict):
                 _pending_mail_address = EmailProofingElement.from_dict(_pending_mail_address)
 
-        data['social_network'] = _social_network
-        data['social_network_id'] = _social_network_id
-        data['pending_mail_address'] = _pending_mail_address
+        data["social_network"] = _social_network
+        data["social_network_id"] = _social_network_id
+        data["pending_mail_address"] = _pending_mail_address
         if _proofing_reference:
-            data['proofing_reference'] = _proofing_reference
+            data["proofing_reference"] = _proofing_reference
 
         return data
 
     def to_dict(self) -> Dict[str, Any]:
         res = User.to_dict(self)
         if self.pending_mail_address is not None:
-            res['pending_mail_address'] = self.pending_mail_address.to_dict()
+            res["pending_mail_address"] = self.pending_mail_address.to_dict()
         return res

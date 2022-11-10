@@ -1,23 +1,22 @@
 from typing import Union
 
+from bson import ObjectId
 from deepdiff import DeepDiff
 
+from eduid.common.fastapi.exceptions import BadRequest
 from eduid.common.misc.timeutil import utc_now
+from eduid.userdb.logs.element import UserChangeLogElement
 from eduid.userdb.mail import MailAddressList
 from eduid.userdb.phone import PhoneNumberList
+from eduid.workers.am.consistency_checks import unverify_mail_aliases, unverify_phones
 from eduid.workers.amapi.context_request import ContextRequest
-from eduid.common.fastapi.exceptions import BadRequest
 from eduid.workers.amapi.models.user import (
     UserUpdateEmailRequest,
-    UserUpdateNameRequest,
     UserUpdateLanguageRequest,
+    UserUpdateNameRequest,
     UserUpdatePhoneRequest,
     UserUpdateResponse,
     UserUpdateTerminateRequest,
-    UserUpdateMetaRequest,
-)
-from eduid.userdb.logs.element import (
-    UserLogElement,
 )
 
 
@@ -27,7 +26,6 @@ def update_user(
     data: Union[
         UserUpdateEmailRequest,
         UserUpdateNameRequest,
-        UserUpdateMetaRequest,
         UserUpdateLanguageRequest,
         UserUpdatePhoneRequest,
         UserUpdateTerminateRequest,
@@ -48,25 +46,22 @@ def update_user(
         user_obj.given_name = data.given_name
         user_obj.display_name = data.display_name
 
-    if isinstance(data, UserUpdateMetaRequest):
-        user_obj.meta = data.meta
+    elif isinstance(data, UserUpdateEmailRequest):
+        mails = [mail.to_dict() for mail in data.mail_addresses]
+        req.app.db.unverify_mail_aliases(user_id=user_obj.user_id, mail_aliases=mails)
 
-    if isinstance(data, UserUpdateEmailRequest):
-        if data is None:
-            raise BadRequest(detail="mail_addresses can't be nil")
-        user_obj.mail_addresses = MailAddressList.from_list(data.mail_addresses)
+        user_obj.mail_addresses = MailAddressList(elements=data.mail_addresses)
 
-    if isinstance(data, UserUpdateLanguageRequest):
-        if data is None:
-            raise BadRequest(detail="language can't be nil")
+    elif isinstance(data, UserUpdateLanguageRequest):
         user_obj.language = data.language
 
-    if isinstance(data, UserUpdatePhoneRequest):
-        if data is None:
-            raise BadRequest(detail="phone_numbers can't be nil")
-        user_obj.phone_numbers = PhoneNumberList.from_list(data.phone_numbers)
+    elif isinstance(data, UserUpdatePhoneRequest):
+        phones = [phone.to_dict() for phone in data.phone_numbers]
+        req.app.db.unverify_phones(user_id=user_obj.user_id, phones=phones)
 
-    if isinstance(data, UserUpdateTerminateRequest):
+        user_obj.phone_numbers = PhoneNumberList(elements=data.phone_numbers)
+
+    elif isinstance(data, UserUpdateTerminateRequest):
         user_obj.terminated = utc_now()
 
     user_obj.meta.new_version()
@@ -74,9 +69,10 @@ def update_user(
 
     diff = DeepDiff(old_user_dict, new_user_dict, ignore_order=True).to_json()
 
-    audit_msg = UserLogElement(
+    audit_msg = UserChangeLogElement(
         created_by="am_api",
         eppn=eppn,
+        id=None,
         diff=diff,
         reason=data.reason,
         source=data.source,

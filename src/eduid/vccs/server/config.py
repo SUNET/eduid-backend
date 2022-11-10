@@ -14,7 +14,7 @@ class VCCSConfig(RootConfig):
     kdf_max_iterations: int = 500000
     kdf_min_iterations: int = 20000
     yhsm_debug: bool = False
-    yhsm_device: str = '/dev/ttyACM0'
+    yhsm_device: str = "/dev/ttyACM0"
     yhsm_unlock_password: Optional[str] = None
 
 

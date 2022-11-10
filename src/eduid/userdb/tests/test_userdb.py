@@ -29,20 +29,24 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+from datetime import timedelta
+from typing import Any, Dict
+
 
 import bson
 
+from eduid.common.testing_base import normalised_data
 from eduid.userdb import User
+from eduid.userdb.exceptions import UserOutOfSync
 from eduid.userdb.fixtures.passwords import signup_password
-from eduid.userdb.fixtures.users import mocked_user_standard, new_user_example
-from eduid.userdb.meta import CleanedType
-from eduid.userdb.testing import MongoTestCase, normalised_data
-
+from eduid.userdb.fixtures.users import mocked_user_standard, mocked_user_standard_2
+from eduid.userdb.testing import MongoTestCase, normalised_data, MongoTestCaseRaw
+from eduid.userdb.util import utc_now
 
 class TestUserDB(MongoTestCase):
     def setUp(self, *args, **kwargs):
         self.user = mocked_user_standard
-        super().setUp(am_users=[self.user, new_user_example], **kwargs)
+        super().setUp(am_users=[self.user], **kwargs)
 
     def test_get_user_by_id(self):
         """Test get_user_by_id"""
@@ -88,10 +92,56 @@ class TestUserDB(MongoTestCase):
         """Test user lookup using unknown"""
         assert self.amdb.get_user_by_eppn("abc123") is None
 
-    def test_get_uncleaned_users(self):
-        docs = self.amdb.get_uncleaned_users(cleaned_type=CleanedType.SKV, limit=10)
-        self.assertEqual(1, len(docs))
-        self.assertEqual("hubba-bubba", docs[0].eppn)
+
+class UserMissingMeta(MongoTestCaseRaw):
+    def setUp(self, *args, **kwargs):
+        self.user = self._raw_user()
+        self.time_now = utc_now()
+        super().setUp(raw_users=[self.user])
+
+    def _raw_user(self) -> Dict[str, Any]:
+        user = mocked_user_standard.to_dict()
+        del user["meta"]
+        return user
+
+    def test_update_user_new(self):
+        db_user = self.amdb.get_user_by_id(self.user["_id"])
+        db_user.given_name = "test"
+        self.amdb.save(user=db_user, check_sync=True)
+
+    def test_update_user_old(self):
+        db_user = self.amdb.get_user_by_id(self.user["_id"])
+        db_user.given_name = "test"
+        self.amdb.old_save(user=db_user, check_sync=True)
+
+
+class UpdateUser(MongoTestCaseRaw):
+    def setUp(self, *args, **kwargs):
+        self.user = mocked_user_standard
+        super().setUp(am_users=[self.user, mocked_user_standard_2], **kwargs)
+
+    def test_stale_user__meta_version(self):
+        test_user = mocked_user_standard
+        test_user.given_name = "new_given_name"
+        test_user.meta.new_version()
+
+        with self.assertRaises(UserOutOfSync):
+            self.amdb.save(test_user, check_sync=True)
+
+    def test_ok(self):
+        test_user = mocked_user_standard
+        test_user.given_name = "new_given_name"
+
+        old_meta_version = test_user.meta.version
+        old_modified_ts = test_user.modified_ts
+
+        res = self.amdb.save(test_user, check_sync=True)
+        assert res is True
+
+        db_user = self.amdb.get_user_by_id(test_user.user_id)
+        assert db_user.meta.version != old_meta_version
+        assert db_user.modified_ts != old_modified_ts
+        assert db_user.given_name == "new_given_name"
 
 
 class TestUserDB_mail(MongoTestCase):

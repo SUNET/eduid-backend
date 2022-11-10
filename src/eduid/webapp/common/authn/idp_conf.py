@@ -16,7 +16,7 @@ except ImportError:
 if get_xmlsec_binary:
     xmlsec_path = get_xmlsec_binary(["/opt/local/bin"])
 else:
-    xmlsec_path = '/usr/bin/xmlsec1'
+    xmlsec_path = "/usr/bin/xmlsec1"
 
 
 BASE = "http://localhost:8088"

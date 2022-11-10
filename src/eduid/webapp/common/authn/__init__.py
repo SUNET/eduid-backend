@@ -43,7 +43,7 @@ def get_vccs_client(vccs_url: str) -> VCCSClient:
     :param vccs_url: VCCS authentication backend URL
     :return: vccs client
     """
-    if TESTING and vccs_url == 'dummy':
+    if TESTING and vccs_url == "dummy":
         global _test_client
         if not _test_client:
             # Avoid circular imports

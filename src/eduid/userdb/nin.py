@@ -37,7 +37,7 @@ from typing import Any, Dict, List, Type
 
 from eduid.userdb.element import ElementKey, PrimaryElement, PrimaryElementList
 
-__author__ = 'ft'
+__author__ = "ft"
 
 
 class Nin(PrimaryElement):

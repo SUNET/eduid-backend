@@ -42,7 +42,7 @@ from eduid.webapp.email.schemas import EmailSchema
 from eduid.webapp.personal_data.validators import validate_language, validate_nonempty
 from eduid.webapp.phone.schemas import PhoneSchema
 
-__author__ = 'eperez'
+__author__ = "eperez"
 
 
 class PersonalDataRequestSchema(EduidSchema, CSRFRequestMixin):
@@ -51,15 +51,15 @@ class PersonalDataRequestSchema(EduidSchema, CSRFRequestMixin):
     surname = fields.String(required=True, validate=[validate_nonempty])
     # TODO: remove display_name when frontend stops sending it
     display_name = fields.String(required=False)
-    language = fields.String(required=True, default='en', validate=validate_language)
+    language = fields.String(required=True, default="en", validate=validate_language)
 
 
 class PersonalDataSchema(EduidSchema):
 
-    given_name = fields.String(required=True, attribute='givenName')
+    given_name = fields.String(required=True, attribute="givenName")
     surname = fields.String(required=True)
-    display_name = fields.String(required=True, attribute='displayName')
-    language = fields.String(required=True, attribute='preferredLanguage')
+    display_name = fields.String(required=True, attribute="displayName")
+    language = fields.String(required=True, attribute="preferredLanguage")
 
 
 class PersonalDataResponseSchema(FluxStandardAction):
@@ -78,17 +78,17 @@ class IdentitiesResponseSchema(FluxStandardAction):
 
 
 class AllDataSchema(EduidSchema):
-    eppn = fields.String(required=True, attribute='eduPersonPrincipalName')
-    given_name = fields.String(required=True, attribute='givenName')
+    eppn = fields.String(required=True, attribute="eduPersonPrincipalName")
+    given_name = fields.String(required=True, attribute="givenName")
     surname = fields.String(required=True)
-    display_name = fields.String(required=True, attribute='displayName')
-    language = fields.String(required=True, attribute='preferredLanguage', validate=validate_language)
+    display_name = fields.String(required=True, attribute="displayName")
+    language = fields.String(required=True, attribute="preferredLanguage", validate=validate_language)
     nins = fields.Nested(NinSchema, many=True)
     identities = fields.Nested(IdentitiesSchema)
-    emails = fields.Nested(EmailSchema, many=True, attribute='mailAliases')
-    phones = fields.Nested(PhoneSchema, many=True, attribute='phone')
-    orcid = fields.Nested(OrcidSchema, attribute='orcid')
-    ladok = fields.Nested(LadokSchema, attribute='ladok')
+    emails = fields.Nested(EmailSchema, many=True, attribute="mailAliases")
+    phones = fields.Nested(PhoneSchema, many=True, attribute="phone")
+    orcid = fields.Nested(OrcidSchema, attribute="orcid")
+    ladok = fields.Nested(LadokSchema, attribute="ladok")
 
 
 class AllDataResponseSchema(FluxStandardAction):

@@ -4,32 +4,33 @@ from typing import Any, Dict, List, Optional, Union
 from fastapi import FastAPI
 
 from eduid.common.config.parsers import load_config
-from eduid.common.logging import init_logging
-from eduid.userdb import UserDB, AmDB
-from eduid.workers.amapi.config import AMApiConfig
-from eduid.workers.amapi.context_request import ContextRequestRoute
 from eduid.common.fastapi.exceptions import (
     HTTPErrorDetail,
-    http_error_detail_handler,  # validation_exception_handler,
+    RequestValidationError,
+    http_error_detail_handler,
     unexpected_error_handler,
+    validation_exception_handler,
 )
-
+from eduid.common.logging import init_logging
+from eduid.userdb import AmDB
+from eduid.userdb.logs.db import UserChangeLog
+from eduid.workers.amapi.config import AMApiConfig
+from eduid.workers.amapi.context_request import ContextRequestRoute
 from eduid.workers.amapi.middleware import AuthenticationMiddleware
 from eduid.workers.amapi.routers.status import status_router
 from eduid.workers.amapi.routers.users import users_router
 from eduid.workers.amapi.utils import load_jwks
-from eduid.userdb.logs.db import UserChangeLog
 
 
 class AMAPI(FastAPI):
     def __init__(self, name: str = "am_api", test_config: Optional[Dict] = None):
         self.config = load_config(typ=AMApiConfig, app_name=name, ns="api", test_config=test_config)
-        super().__init__(root_path=self.config.application_root)
+        super().__init__()
 
         self.db = AmDB(db_uri=self.config.mongo_uri)
         self.name = "am_api"
 
-        self.logger = logging.getLogger(name="am_api")
+        self.logger = logging.getLogger(name=self.name)
         init_logging(config=self.config)
         self.logger.info(f"Starting {name} app")
         self.audit_logger = UserChangeLog(self.config.mongo_uri)
@@ -46,10 +47,11 @@ def init_api(name: str = "am_api", test_config: Optional[Dict] = None) -> AMAPI:
     app.include_router(status_router)
 
     # Middleware
-    # app.add_middleware(AuthenticationMiddleware)
+    # app.add_middleware(AuthenticationMiddleware, app=app)
+    app.add_middleware(AuthenticationMiddleware)
 
     # Exception handling
-    # app.add_exception_handler(RequestValidationError, validation_exception_handler)
+    app.add_exception_handler(RequestValidationError, validation_exception_handler)
     app.add_exception_handler(HTTPErrorDetail, http_error_detail_handler)
     app.add_exception_handler(Exception, unexpected_error_handler)
 

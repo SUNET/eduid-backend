@@ -228,7 +228,7 @@ bearer tokens can be requested without authentication from the /login endpoint.
 ---
   'https://api.eduid.docker/scim':
     'login':      
-      data_owner: 'eduid.se'
+      token: a_bearer_token
     'users':
       'search':
         'externalId':

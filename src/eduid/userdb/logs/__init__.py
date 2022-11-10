@@ -13,4 +13,4 @@ from eduid.userdb.logs.element import (
     TeleAdressProofingRelation,
 )
 
-__author__ = 'lundberg'
+__author__ = "lundberg"

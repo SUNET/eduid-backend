@@ -51,20 +51,20 @@ class PhoneMsg(TranslatableMsg):
     # validation error: duplicated phone
     dupe = "phone.phone_duplicated"
     # successfully saved phone number
-    save_success = 'phones.save-success'
+    save_success = "phones.save-success"
     # cannot set unconfirmed phone number as primary
-    unconfirmed_primary = 'phones.unconfirmed_number_not_primary'
+    unconfirmed_primary = "phones.unconfirmed_number_not_primary"
     # successfully set phone number as primary number
-    primary_success = 'phones.primary-success'
+    primary_success = "phones.primary-success"
     # The received verification code is invalid or has expired
-    code_invalid = 'phones.code_invalid_or_expired'
+    code_invalid = "phones.code_invalid_or_expired"
     # the received phone to be set as primary is unknown
-    unknown_phone = 'phones.unknown_phone'
+    unknown_phone = "phones.unknown_phone"
     # success verifying phone number
-    verify_success = 'phones.verification-success'
+    verify_success = "phones.verification-success"
     # success removing phone number
-    removal_success = 'phones.removal-success'
+    removal_success = "phones.removal-success"
     # the previously sent verification code is still valid
-    still_valid_code = 'still-valid-code'
+    still_valid_code = "still-valid-code"
     # success re-sending a verification code
-    resend_success = 'phones.code-sent'
+    resend_success = "phones.code-sent"

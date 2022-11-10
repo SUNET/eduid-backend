@@ -8,4 +8,4 @@ from eduid.webapp.oidc_proofing.helpers import OIDCMsg
 class MessagesTests(unittest.TestCase):
     def test_messages(self):
         """"""
-        self.assertEqual(OIDCMsg.no_conn.value, 'No connection to authorization endpoint')
+        self.assertEqual(OIDCMsg.no_conn.value, "No connection to authorization endpoint")

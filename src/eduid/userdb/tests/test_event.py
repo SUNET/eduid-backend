@@ -12,36 +12,36 @@ from pydantic import ValidationError
 import eduid.userdb.element
 import eduid.userdb.exceptions
 from eduid.userdb import PhoneNumber
-from eduid.userdb.event import Event, EventList
-from eduid.userdb.tou import ToUEvent, ToUList
+from eduid.userdb.event import EventList
+from eduid.userdb.tou import ToUEvent
 
-__author__ = 'ft'
+__author__ = "ft"
 
 _one_dict = {
-    'id': '111111111111111111111111',  # Keep 'id' instead of event_id to test compatibility code
-    'event_type': 'tou_event',
-    'version': '1',
-    'created_by': 'test',
-    'created_ts': datetime.fromisoformat('2015-09-24T01:01:01.111111+00:00'),
-    'modified_ts': datetime.fromisoformat('2015-09-24T01:01:01.111111+00:00'),
+    "id": "111111111111111111111111",  # Keep 'id' instead of event_id to test compatibility code
+    "event_type": "tou_event",
+    "version": "1",
+    "created_by": "test",
+    "created_ts": datetime.fromisoformat("2015-09-24T01:01:01.111111+00:00"),
+    "modified_ts": datetime.fromisoformat("2015-09-24T01:01:01.111111+00:00"),
 }
 
 _two_dict = {
-    'event_id': '222222222222222222222222',
-    'event_type': 'tou_event',
-    'version': '2',
-    'created_by': 'test',
-    'created_ts': datetime.fromisoformat('2015-09-24T02:02:02.222222+00:00'),
-    'modified_ts': datetime.fromisoformat('2018-09-25T02:02:02.222222+00:00'),
+    "event_id": "222222222222222222222222",
+    "event_type": "tou_event",
+    "version": "2",
+    "created_by": "test",
+    "created_ts": datetime.fromisoformat("2015-09-24T02:02:02.222222+00:00"),
+    "modified_ts": datetime.fromisoformat("2018-09-25T02:02:02.222222+00:00"),
 }
 
 _three_dict = {
-    'event_id': '333333333333333333333333',
-    'event_type': 'tou_event',
-    'version': '3',
-    'created_by': 'test',
-    'created_ts': datetime.fromisoformat('2015-09-24T03:03:03.333333+00:00'),
-    'modified_ts': datetime.fromisoformat('2015-09-24T03:03:03.333333+00:00'),
+    "event_id": "333333333333333333333333",
+    "event_type": "tou_event",
+    "version": "3",
+    "created_by": "test",
+    "created_ts": datetime.fromisoformat("2015-09-24T03:03:03.333333+00:00"),
+    "modified_ts": datetime.fromisoformat("2015-09-24T03:03:03.333333+00:00"),
 }
 
 
@@ -62,9 +62,9 @@ class TestEventList(TestCase):
 
     def test_init_bad_data(self):
         with pytest.raises(ValidationError):
-            SomeEventList(elements='bad input data')
+            SomeEventList(elements="bad input data")
         with pytest.raises(ValidationError):
-            SomeEventList(elements=['bad input data'])
+            SomeEventList(elements=["bad input data"])
 
     def test_to_list(self):
         self.assertEqual([], self.empty.to_list(), list)
@@ -76,13 +76,13 @@ class TestEventList(TestCase):
         self.assertEqual([], self.empty.to_list_of_dicts(), list)
 
         _one_dict_copy = deepcopy(_one_dict)  # Update id to event_id before comparing dicts
-        _one_dict_copy['event_id'] = _one_dict_copy.pop('id')
+        _one_dict_copy["event_id"] = _one_dict_copy.pop("id")
         self.assertEqual([_one_dict_copy], self.one.to_list_of_dicts())
 
     def test_find(self):
         match = self.one.find(self.one.to_list()[0].key)
         self.assertIsInstance(match, ToUEvent)
-        self.assertEqual(match.version, _one_dict['version'])
+        self.assertEqual(match.version, _one_dict["version"])
 
     def test_add(self):
         second = self.two.to_list()[-1]
@@ -91,16 +91,16 @@ class TestEventList(TestCase):
 
     def test_add_duplicate_key(self):
         data = deepcopy(_two_dict)
-        data['version'] = 'other version'
+        data["version"] = "other version"
         dup = ToUEvent.from_dict(data)
         with pytest.raises(ValidationError) as exc_info:
             self.two.add(dup)
 
         assert exc_info.value.errors() == [
             {
-                'loc': ('elements',),
-                'msg': "Duplicate element key: '222222222222222222222222'",
-                'type': 'value_error',
+                "loc": ("elements",),
+                "msg": "Duplicate element key: '222222222222222222222222'",
+                "type": "value_error",
             }
         ]
 
@@ -110,7 +110,7 @@ class TestEventList(TestCase):
         self.assertEqual(this.to_list_of_dicts(), self.three.to_list_of_dicts())
 
     def test_add_wrong_type(self):
-        new = PhoneNumber(number='+4612345678')
+        new = PhoneNumber(number="+4612345678")
         with pytest.raises(ValidationError):
             self.one.add(new)
 
@@ -121,30 +121,30 @@ class TestEventList(TestCase):
 
     def test_remove_unknown(self):
         with self.assertRaises(eduid.userdb.exceptions.UserDBValueError):
-            self.one.remove('+46709999999')
+            self.one.remove("+46709999999")
 
     def test_unknown_event_type(self):
         e1 = {
-            'event_type': 'unknown_event',
-            'id': str(bson.ObjectId()),
+            "event_type": "unknown_event",
+            "id": str(bson.ObjectId()),
         }
 
         with pytest.raises(ValidationError) as exc_info:
             SomeEventList.from_list_of_dicts([e1])
 
         assert exc_info.value.errors() == [
-            {'loc': ('created_by',), 'msg': 'field required', 'type': 'value_error.missing'},
-            {'loc': ('version',), 'msg': 'field required', 'type': 'value_error.missing'},
+            {"loc": ("created_by",), "msg": "field required", "type": "value_error.missing"},
+            {"loc": ("version",), "msg": "field required", "type": "value_error.missing"},
         ]
 
     def test_modified_ts_addition(self):
         _event_no_modified_ts = {
-            'event_type': 'tou_event',
-            'version': '1',
-            'created_by': 'test',
-            'created_ts': datetime(2015, 9, 24, 1, 1, 1, 111111),
+            "event_type": "tou_event",
+            "version": "1",
+            "created_by": "test",
+            "created_ts": datetime(2015, 9, 24, 1, 1, 1, 111111),
         }
-        self.assertNotIn('modified_ts', _event_no_modified_ts)
+        self.assertNotIn("modified_ts", _event_no_modified_ts)
         el = SomeEventList.from_list_of_dicts([_event_no_modified_ts])
         assert el.count == 1
         for event in el.to_list_of_dicts():
@@ -153,22 +153,22 @@ class TestEventList(TestCase):
             # input dict. Written this way to be obvious what needs to change in this test
             # case when _no_modified_ts_in_db is removed from Element.
             if el.to_list()[0].no_modified_ts_in_db:
-                assert 'modified_ts' not in event
+                assert "modified_ts" not in event
             else:
-                self.assertIsInstance(event['modified_ts'], datetime)
-                assert event['modified_ts'] == event['created_ts']
+                self.assertIsInstance(event["modified_ts"], datetime)
+                assert event["modified_ts"] == event["created_ts"]
         for event in el.to_list():
             self.assertIsInstance(event.modified_ts, datetime)
 
     def test_update_modified_ts(self):
         _event_modified_ts = {
-            'event_type': 'tou_event',
-            'version': '1',
-            'created_by': 'test',
-            'created_ts': datetime(2015, 9, 24, 1, 1, 1, 111111),
-            'modified_ts': datetime(2015, 9, 24, 1, 1, 1, 111111),
+            "event_type": "tou_event",
+            "version": "1",
+            "created_by": "test",
+            "created_ts": datetime(2015, 9, 24, 1, 1, 1, 111111),
+            "modified_ts": datetime(2015, 9, 24, 1, 1, 1, 111111),
         }
-        self.assertIn('modified_ts', _event_modified_ts)
+        self.assertIn("modified_ts", _event_modified_ts)
         el = SomeEventList.from_list_of_dicts([_event_modified_ts])
         event = el.to_list()[0]
 

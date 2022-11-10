@@ -36,66 +36,65 @@ from werkzeug.exceptions import BadRequest
 from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith
-from eduid.webapp.common.api.messages import FluxData, error_response, success_response
+from eduid.webapp.common.api.messages import FluxData, success_response
 from eduid.webapp.common.session.namespaces import RequestRef
 from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.decorators import require_ticket
-from eduid.webapp.idp.helpers import IdPMsg
 from eduid.webapp.idp.login import do_verify, get_ticket, show_login_page
 from eduid.webapp.idp.login_context import LoginContext, LoginContextSAML
 
-__author__ = 'ft'
+__author__ = "ft"
 
 from eduid.webapp.idp.mischttp import parse_query_string
 from eduid.webapp.idp.schemas import AbortRequestSchema, AbortResponseSchema
 from eduid.webapp.idp.service import SAMLQueryParams
 
-misc_views = Blueprint('misc', __name__, url_prefix='', template_folder='../templates')
+misc_views = Blueprint("misc", __name__, url_prefix="", template_folder="../templates")
 
 
-@misc_views.route('/', methods=['GET'])
+@misc_views.route("/", methods=["GET"])
 def index() -> WerkzeugResponse:
     return redirect(current_app.conf.eduid_site_url)
 
 
-@misc_views.route('/abort', methods=['POST'])
+@misc_views.route("/abort", methods=["POST"])
 @UnmarshalWith(AbortRequestSchema)
 @MarshalWith(AbortResponseSchema)
 @require_ticket
 def abort(ticket: LoginContext) -> FluxData:
     """Abort the current request"""
-    current_app.logger.debug('\n\n')
-    current_app.logger.debug(f'--- Abort ({ticket.request_ref}) ---')
+    current_app.logger.debug("\n\n")
+    current_app.logger.debug(f"--- Abort ({ticket.request_ref}) ---")
 
     ticket.pending_request.aborted = True
 
-    return success_response(payload={'finished': True})
+    return success_response(payload={"finished": True})
 
 
-@misc_views.route('/verify', methods=['GET', 'POST'])
+@misc_views.route("/verify", methods=["GET", "POST"])
 def verify() -> WerkzeugResponse:
-    current_app.logger.debug('\n\n')
+    current_app.logger.debug("\n\n")
     current_app.logger.debug(f"--- Verify ({request.method}) ---")
 
-    if request.method == 'GET':
+    if request.method == "GET":
         query = parse_query_string()
-        if 'ref' not in query:
-            raise BadRequest(f'Missing parameter - please re-initiate login')
-        _info = SAMLQueryParams(request_ref=RequestRef(query['ref']))
+        if "ref" not in query:
+            raise BadRequest(f"Missing parameter - please re-initiate login")
+        _info = SAMLQueryParams(request_ref=RequestRef(query["ref"]))
         ticket = get_ticket(_info, None)
         if not ticket:
-            raise BadRequest(f'Missing parameter - please re-initiate login')
+            raise BadRequest(f"Missing parameter - please re-initiate login")
 
         # TODO: Remove all this code, we don't use the template IdP anymore.
         if not current_app.conf.enable_legacy_template_mode:
-            raise BadRequest('Template IdP not enabled')
+            raise BadRequest("Template IdP not enabled")
 
         # please mypy with this legacy code
         assert isinstance(ticket, LoginContextSAML)
 
         return show_login_page(ticket)
 
-    if request.method == 'POST':
+    if request.method == "POST":
         return do_verify()
 
     raise BadRequest()

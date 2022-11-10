@@ -34,14 +34,15 @@
 #
 from __future__ import annotations
 
-from enum import Enum, unique
 from hashlib import sha256
 from typing import Any, Dict, Optional, Type, Union
 from uuid import UUID
 
+from fido2.webauthn import AuthenticatorAttachment
+
 from eduid.userdb.credentials import Credential
 
-__author__ = 'ft'
+__author__ = "ft"
 
 from fido_mds.models.webauthn import AttestationFormat
 
@@ -55,7 +56,7 @@ class FidoCredential(Credential):
 
     keyhandle: str
     app_id: str
-    description: str = ''
+    description: str = ""
 
 
 class U2F(FidoCredential):
@@ -72,14 +73,8 @@ class U2F(FidoCredential):
         """
         Return the element that is used as key.
         """
-        _digest = sha256(self.keyhandle.encode('utf-8') + self.public_key.encode('utf-8')).hexdigest()
-        return ElementKey('sha256:' + _digest)
-
-
-@unique
-class WebauthnAuthenticator(str, Enum):
-    cross_platform = 'cross-platform'
-    platform = 'platform'
+        _digest = sha256(self.keyhandle.encode("utf-8") + self.public_key.encode("utf-8")).hexdigest()
+        return ElementKey("sha256:" + _digest)
 
 
 class Webauthn(FidoCredential):
@@ -89,7 +84,7 @@ class Webauthn(FidoCredential):
 
     authenticator_id: Optional[Union[UUID, str]] = None
     credential_data: str
-    authenticator: WebauthnAuthenticator
+    authenticator: AuthenticatorAttachment
     webauthn_proofing_version: Optional[str] = None
     attestation_format: Optional[AttestationFormat] = None
     mfa_approved: bool = False
@@ -99,8 +94,8 @@ class Webauthn(FidoCredential):
         """
         Return the element that is used as key.
         """
-        _digest = sha256(self.keyhandle.encode('utf-8') + self.credential_data.encode('utf-8')).hexdigest()
-        return ElementKey('sha256:' + _digest)
+        _digest = sha256(self.keyhandle.encode("utf-8") + self.credential_data.encode("utf-8")).hexdigest()
+        return ElementKey("sha256:" + _digest)
 
     @classmethod
     def _from_dict_transform(cls: Type[Webauthn], data: Dict[str, Any]) -> Dict[str, Any]:
@@ -110,11 +105,11 @@ class Webauthn(FidoCredential):
         data = super()._from_dict_transform(data)
 
         # Add authenticator if not present.
-        if 'authenticator' not in data:
-            data['authenticator'] = 'cross-platform'
+        if "authenticator" not in data:
+            data["authenticator"] = "cross-platform"
 
         # remove previously set attestation object data
-        if 'attest_obj' in data:
-            del data['attest_obj']
+        if "attest_obj" in data:
+            del data["attest_obj"]
 
         return data

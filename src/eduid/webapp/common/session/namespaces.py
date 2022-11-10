@@ -9,23 +9,23 @@ from enum import Enum, unique
 from typing import Any, Dict, List, Mapping, NewType, Optional, Type, TypeVar, Union
 from uuid import uuid4
 
+from fido2.webauthn import AuthenticatorAttachment
 from pydantic import BaseModel, Field, ValidationError
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.actions import Action
 from eduid.userdb.credentials import Credential
 from eduid.userdb.credentials.external import TrustFramework
-from eduid.userdb.credentials.fido import WebauthnAuthenticator
 from eduid.userdb.element import ElementKey
 from eduid.webapp.common.authn.acs_enums import AuthnAcsAction, EidasAcsAction
 from eduid.webapp.idp.other_device.data import OtherDeviceId
 
-__author__ = 'ft'
+__author__ = "ft"
 
 logger = logging.getLogger(__name__)
 
 
-AuthnRequestRef = NewType('AuthnRequestRef', str)
+AuthnRequestRef = NewType("AuthnRequestRef", str)
 
 
 class SessionNSBase(BaseModel, ABC):
@@ -39,7 +39,7 @@ class SessionNSBase(BaseModel, ABC):
         try:
             return cls(**_data)
         except ValidationError:
-            logger.warning(f'Could not parse session namespace:\n{_data}')
+            logger.warning(f"Could not parse session namespace:\n{_data}")
             raise
 
     @classmethod
@@ -48,22 +48,22 @@ class SessionNSBase(BaseModel, ABC):
         return dict(_data)
 
 
-TSessionNSSubclass = TypeVar('TSessionNSSubclass', bound=SessionNSBase)
+TSessionNSSubclass = TypeVar("TSessionNSSubclass", bound=SessionNSBase)
 
 
 @unique
 class LoginApplication(str, Enum):
-    idp = 'idp'
-    authn = 'authn'
-    signup = 'signup'
+    idp = "idp"
+    authn = "authn"
+    signup = "signup"
 
 
 @unique
 class MfaActionError(str, Enum):
-    authn_context_mismatch = 'authn_context_mismatch'
-    authn_too_old = 'authn_too_old'
-    nin_not_matching = 'nin_not_matching'
-    foreign_eid_not_matching = 'foreign_eid_not_matching'
+    authn_context_mismatch = "authn_context_mismatch"
+    authn_too_old = "authn_too_old"
+    nin_not_matching = "nin_not_matching"
+    foreign_eid_not_matching = "foreign_eid_not_matching"
 
 
 class Common(SessionNSBase):
@@ -73,7 +73,7 @@ class Common(SessionNSBase):
     preferred_language: Optional[str] = None
 
 
-WebauthnState = NewType('WebauthnState', Dict[str, Any])
+WebauthnState = NewType("WebauthnState", Dict[str, Any])
 
 
 class MfaAction(SessionNSBase):
@@ -115,7 +115,7 @@ class ResetPasswordNS(SessionNSBase):
 class WebauthnRegistration(SessionNSBase):
     # Data stored between webauthn register "begin" and "complete"
     webauthn_state: WebauthnState
-    authenticator: WebauthnAuthenticator
+    authenticator: AuthenticatorAttachment
 
 
 class SecurityNS(SessionNSBase):
@@ -126,8 +126,46 @@ class SecurityNS(SessionNSBase):
     webauthn_registration: Optional[WebauthnRegistration] = None
 
 
+class EmailVerification(SessionNSBase):
+    completed: bool = False
+    address: Optional[str] = None
+    verification_code: Optional[str] = None
+    bad_attempts: int = 0
+    sent_at: Optional[datetime] = None
+    reference: Optional[str] = None
+
+
+class Invite(SessionNSBase):
+    completed: bool = False
+    initiated_signup: bool = False
+    invite_code: Optional[str] = None
+    finish_url: Optional[str] = None
+
+
+class Tou(SessionNSBase):
+    completed: bool = False
+    version: Optional[str] = None
+
+
+class Captcha(SessionNSBase):
+    completed: bool = False
+    internal_answer: Optional[str] = None
+    bad_attempts: int = 0
+
+
+class Credentials(SessionNSBase):
+    completed: bool = False
+    password: Optional[str] = None
+    webauthn: Optional[Any] = None  # TODO: implement webauthn signup
+
+
 class Signup(TimestampedNS):
-    email_verification_code: Optional[str] = None
+    user_created: bool = False
+    email: EmailVerification = Field(default_factory=EmailVerification)
+    invite: Invite = Field(default_factory=Invite)
+    tou: Tou = Field(default_factory=Tou)
+    captcha: Captcha = Field(default_factory=Captcha)
+    credentials: Credentials = Field(default_factory=Credentials)
 
 
 # TODO: Remove Actions, should be unused
@@ -139,11 +177,11 @@ class Actions(TimestampedNS):
     total_steps: Optional[int] = None
 
 
-RequestRef = NewType('RequestRef', str)
+RequestRef = NewType("RequestRef", str)
 
 
 class OnetimeCredType(str, Enum):
-    external_mfa = 'ext_mfa'
+    external_mfa = "ext_mfa"
 
 
 class OnetimeCredential(Credential):
@@ -190,13 +228,13 @@ class IdP_Namespace(TimestampedNS):
     @classmethod
     def _from_dict_transform(cls: Type[IdP_Namespace], data: Mapping[str, Any]) -> Dict[str, Any]:
         _data = super()._from_dict_transform(data)
-        if 'pending_requests' in _data:
+        if "pending_requests" in _data:
             # pre-parse values into the right subclass if IdP_PendingRequest
-            for k, v in _data['pending_requests'].items():
-                if 'binding' in v:
-                    _data['pending_requests'][k] = IdP_SAMLPendingRequest(**v)
-                elif 'state_id' in v:
-                    _data['pending_requests'][k] = IdP_OtherDevicePendingRequest(**v)
+            for k, v in _data["pending_requests"].items():
+                if "binding" in v:
+                    _data["pending_requests"][k] = IdP_SAMLPendingRequest(**v)
+                elif "state_id" in v:
+                    _data["pending_requests"][k] = IdP_OtherDevicePendingRequest(**v)
         return _data
 
     def log_credential_used(

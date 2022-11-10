@@ -6,7 +6,7 @@ from eduid.webapp.common.api.schemas.base import EduidSchema, FluxStandardAction
 from eduid.webapp.common.api.schemas.csrf import CSRFRequestMixin, CSRFResponseMixin
 from eduid.webapp.common.api.schemas.validators import validate_nin
 
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
 
 class LookupMobileProofingRequestSchema(EduidSchema, CSRFRequestMixin):

@@ -7,8 +7,7 @@ from typing import List, Optional, Set
 from fastapi import Request, Response
 from jwcrypto import jwt
 from jwcrypto.common import JWException
-from marshmallow import ValidationError
-from pydantic import BaseModel, Field, StrictInt, validator
+from pydantic import BaseModel, Field, StrictInt, ValidationError, validator
 from starlette.datastructures import URL
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import PlainTextResponse
@@ -42,27 +41,27 @@ class AuthnBearerToken(BaseModel):
     scopes: Set[ScopeName] = Field(default=set())
 
     def __str__(self):
-        return f'<{self.__class__.__name__}: scopes={self.scopes}, requested_access={self.requested_access}>'
+        return f"<{self.__class__.__name__}: scopes={self.scopes}, requested_access={self.requested_access}>"
 
-    @validator('version')
+    @validator("version")
     def validate_version(cls, v: int) -> int:
         if v != 1:
-            raise ValueError('Unknown version')
+            raise ValueError("Unknown version")
         return v
 
-    @validator('scopes')
+    @validator("scopes")
     def validate_scopes(cls, v: Set[ScopeName], values) -> Set[ScopeName]:
-        config = values.get('scim_config')
+        config = values.get("scim_config")
         if not config:
-            raise ValueError('Can\'t validate without scim_config')
+            raise ValueError("Can't validate without scim_config")
         canonical_scopes = {config.scope_mapping.get(x, x) for x in v}
         return canonical_scopes
 
-    @validator('requested_access')
+    @validator("requested_access")
     def validate_requested_access(cls, v: List[SudoAccess], values) -> List[SudoAccess]:
-        config = values.get('scim_config')
+        config = values.get("scim_config")
         if not config:
-            raise ValueError('Can\'t validate without scim_config')
+            raise ValueError("Can't validate without scim_config")
         new_access: List[SudoAccess] = []
         for this in v:
             if this.type != config.requested_access_type:
@@ -95,15 +94,15 @@ class AuthnBearerToken(BaseModel):
         """
 
         allowed_scopes = self._get_allowed_scopes(self.scim_config, logger)
-        logger.debug(f'Request {self}, allowed scopes: {allowed_scopes}')
+        logger.debug(f"Request {self}, allowed scopes: {allowed_scopes}")
 
         for this in self.requested_access:
             _allowed = this.scope in allowed_scopes
             _found = self.scim_config.data_owners.get(DataOwnerName(this.scope))
-            logger.debug(f'Requested access to scope {this.scope}, allowed {_allowed}, found: {_found}')
+            logger.debug(f"Requested access to scope {this.scope}, allowed {_allowed}, found: {_found}")
             if not _allowed:
-                _sorted = ', '.join(sorted(list(allowed_scopes)))
-                raise RequestedAccessDenied(f'Requested access to scope {this.scope} not in allow-list: {_sorted}')
+                _sorted = ", ".join(sorted(list(allowed_scopes)))
+                raise RequestedAccessDenied(f"Requested access to scope {this.scope} not in allow-list: {_sorted}")
             if _allowed and _found:
                 return DataOwnerName(this.scope)
 
@@ -114,7 +113,7 @@ class AuthnBearerToken(BaseModel):
             # scope is in allowed_scopes
             _allowed = scope in allowed_scopes
             _found = self.scim_config.data_owners.get(DataOwnerName(scope))
-            logger.debug(f'Trying scope {scope}, allowed {_allowed}, found: {_found}')
+            logger.debug(f"Trying scope {scope}, allowed {_allowed}, found: {_found}")
             if _allowed and _found:
                 return DataOwnerName(scope)
 
@@ -131,7 +130,7 @@ class AuthnBearerToken(BaseModel):
         for this in self.scopes:
             if this in config.scope_sudo:
                 _sudo_scopes = config.scope_sudo[this]
-                logger.debug(f'Request from scope {this}, allowing sudo to scopes {_sudo_scopes}')
+                logger.debug(f"Request from scope {this}, allowing sudo to scopes {_sudo_scopes}")
                 _scopes.update(_sudo_scopes)
         return _scopes
 
@@ -146,7 +145,7 @@ def return_error_response(status_code: int, detail: str):
 # https://github.com/encode/starlette/issues/495#issuecomment-513138055
 async def set_body(request: Request, body: bytes):
     async def receive() -> Message:
-        return {'type': 'http.request', 'body': body}
+        return {"type": "http.request", "body": body}
 
     request._receive = receive
 
@@ -169,7 +168,7 @@ class BaseMiddleware(BaseHTTPMiddleware, ContextRequestMixin):
 class ScimMiddleware(BaseMiddleware):
     async def dispatch(self, req: Request, call_next) -> Response:
         req = self.make_context_request(req)
-        self.context.logger.debug(f'process_request: {req.method} {req.url.path}')
+        self.context.logger.debug(f"process_request: {req.method} {req.url.path}")
         # TODO: fix me? is this needed?
         # if req.method == 'POST':
         #     if req.path == '/login':
@@ -185,7 +184,7 @@ class ScimMiddleware(BaseMiddleware):
         #         raise UnsupportedMediaTypeMalformed(detail=f'{req.content_type} is an unsupported media type')
         resp = await call_next(req)
 
-        self.context.logger.debug(f'process_response: {req.method} {req.url.path}')
+        self.context.logger.debug(f"process_response: {req.method} {req.url.path}")
         # Default to 'application/json' if responding with an error message
         # if req_succeeded and resp.body:
         #     # candidates should be sorted by increasing desirability
@@ -204,7 +203,7 @@ class AuthenticationMiddleware(BaseMiddleware):
     def __init__(self, app, context: Context):
         super().__init__(app, context)
         self.no_authn_urls = self.context.config.no_authn_urls
-        self.context.logger.debug('No auth allow urls: {}'.format(self.no_authn_urls))
+        self.context.logger.debug("No auth allow urls: {}".format(self.no_authn_urls))
 
     def _is_no_auth_path(self, url: URL) -> bool:
         path = url.path
@@ -213,7 +212,7 @@ class AuthenticationMiddleware(BaseMiddleware):
         for regex in self.no_authn_urls:
             m = re.match(regex, path)
             if m is not None:
-                self.context.logger.debug('{} matched allow list'.format(path))
+                self.context.logger.debug("{} matched allow list".format(path))
                 return True
         return False
 
@@ -223,12 +222,12 @@ class AuthenticationMiddleware(BaseMiddleware):
         if self._is_no_auth_path(req.url):
             return await call_next(req)
 
-        auth = req.headers.get('Authorization')
+        auth = req.headers.get("Authorization")
 
-        if not req.app.context.config.authorization_mandatory and (not auth or not auth.startswith('Bearer ')):
+        if not req.app.context.config.authorization_mandatory and (not auth or not auth.startswith("Bearer ")):
             # Authorization is optional
-            self.context.logger.info('No authorization header provided - proceeding anyway')
-            req.context.data_owner = DataOwnerName('eduid.se')
+            self.context.logger.info("No authorization header provided - proceeding anyway")
+            req.context.data_owner = DataOwnerName("eduid.se")
             req.context.userdb = self.context.get_userdb(req.context.data_owner)
             req.context.groupdb = self.context.get_groupdb(req.context.data_owner)
             req.context.invitedb = self.context.get_invitedb(req.context.data_owner)
@@ -236,38 +235,39 @@ class AuthenticationMiddleware(BaseMiddleware):
             return await call_next(req)
 
         if not auth:
-            return return_error_response(status_code=401, detail='No authentication header found')
+            return return_error_response(status_code=401, detail="No authentication header found")
 
-        token = auth[len('Bearer ') :]
+        token = auth[len("Bearer ") :]
         _jwt = jwt.JWT()
         try:
             _jwt.deserialize(token, req.app.context.jwks)
             claims = json.loads(_jwt.claims)
         except (JWException, KeyError, ValueError) as e:
-            self.context.logger.info(f'Bearer token error: {e}')
-            return return_error_response(status_code=401, detail='Bearer token error')
+            self.context.logger.info(f"Bearer token error: {e}")
+            return return_error_response(status_code=401, detail="Bearer token error")
 
-        if 'scim_config' in claims:
-            self.context.logger.warning(f'JWT has scim_config: {claims}')
-            return return_error_response(status_code=401, detail='Bearer token error')
+        if "scim_config" in claims:
+            self.context.logger.warning(f"JWT has scim_config: {claims}")
+            return return_error_response(status_code=401, detail="Bearer token error")
 
         try:
+            self.context.logger.debug(f"Parsing claims: {claims}")
             token = AuthnBearerToken(scim_config=self.context.config, **claims)
-            self.context.logger.debug(f'Bearer token: {token}')
+            self.context.logger.debug(f"Bearer token: {token}")
         except ValidationError:
-            self.context.logger.exception('Authorization Bearer Token error')
-            return return_error_response(status_code=401, detail='Bearer token error')
+            self.context.logger.exception("Authorization Bearer Token error")
+            return return_error_response(status_code=401, detail="Bearer token error")
 
         try:
             data_owner = token.get_data_owner(self.context.logger)
         except RequestedAccessDenied as exc:
-            self.context.logger.error(f'Access denied: {exc}')
-            return return_error_response(status_code=401, detail='Data owner requested in access token denied')
-        self.context.logger.info(f'Bearer token {token}, data owner: {data_owner}')
+            self.context.logger.error(f"Access denied: {exc}")
+            return return_error_response(status_code=401, detail="Data owner requested in access token denied")
+        self.context.logger.info(f"Bearer token {token}, data owner: {data_owner}")
 
         if not data_owner or data_owner not in self.context.config.data_owners:
-            self.context.logger.error(f'Data owner {repr(data_owner)} not configured')
-            return return_error_response(status_code=401, detail='Unknown data_owner')
+            self.context.logger.error(f"Data owner {repr(data_owner)} not configured")
+            return return_error_response(status_code=401, detail="Unknown data_owner")
 
         req.context.data_owner = data_owner
         req.context.userdb = self.context.get_userdb(data_owner)

@@ -13,7 +13,6 @@
 Common code for SSO login/logout requests.
 """
 from abc import ABC
-from html import escape
 from typing import Optional
 
 from flask import request
@@ -29,23 +28,23 @@ from eduid.webapp.idp.sso_session import SSOSession
 class SAMLQueryParams(BaseModel):
     SAMLRequest: Optional[str]
     RelayState: Optional[str]
-    request_ref: Optional[RequestRef] = Field(default=None, alias='ref')
+    request_ref: Optional[RequestRef] = Field(default=None, alias="ref")
 
     class Config:
         # Allow setting request_ref using it's name too - not just the alias (ref)
         allow_population_by_field_name = True
 
-    @validator('SAMLRequest', 'RelayState')
+    @validator("SAMLRequest", "RelayState")
     def validate_query_params(cls, v):
         if not isinstance(v, str) or not v:
-            ValueError('must be a non-empty string')
+            ValueError("must be a non-empty string")
         # TODO: perform extra sanitation?
         return v
 
-    @validator('request_ref')
+    @validator("request_ref")
     def validate_request_ref(cls, v):
         if v is not None and not isinstance(v, str):
-            ValueError('must be a string or None')
+            ValueError("must be a string or None")
         # TODO: perform extra sanitation? Could check that this is an UUID...
         return v
 
@@ -85,9 +84,9 @@ class Service(ABC):
 
         :return: query parameters
         """
-        if request.method == 'GET':
+        if request.method == "GET":
             _data = self.unpack_redirect()
-        elif request.method == 'POST':
+        elif request.method == "POST":
             _data = self.unpack_post()
         else:
             _data = SAMLQueryParams()

@@ -73,7 +73,7 @@ class Sanitizer(object):
             # Test if the untrusted text is percent encoded
             # before running bleach.
             if isinstance(untrusted_text, bytes):
-                untrusted_text = untrusted_text.decode('utf-8')
+                untrusted_text = untrusted_text.decode("utf-8")
             if unquote(untrusted_text) != untrusted_text:
                 use_percent_encoding = True
             else:
@@ -89,9 +89,9 @@ class Sanitizer(object):
 
         except UnicodeDecodeError:
             logger.warning(
-                'A malicious user tried to crash the application by sending non-unicode input in a GET request'
+                "A malicious user tried to crash the application by sending non-unicode input in a GET request"
             )
-            raise SanitationProblem('Non-unicode input')
+            raise SanitationProblem("Non-unicode input")
 
     def _sanitize_input(
         self,
@@ -129,7 +129,7 @@ class Sanitizer(object):
         # 3.1 use percent encoding according to the calling
         #    functions preference or,
         # 3.2 use the default value as set in the function definition.
-        if content_type is None and hasattr(request, 'mimetype'):
+        if content_type is None and hasattr(request, "mimetype"):
             content_type = request.mimetype
 
         if isinstance(content_type, str) and content_type:
@@ -152,11 +152,11 @@ class Sanitizer(object):
             cleaned_text = self._safe_clean(decoded_text, logger, strip_characters)
 
             if decoded_text != cleaned_text:
-                logger.warning('Some potential harmful characters were removed from untrusted user input.')
+                logger.warning("Some potential harmful characters were removed from untrusted user input.")
 
             if decoded_text != untrusted_text:
                 # Note that at least '&' and '=' needs to be unencoded when using PySAML2
-                return quote(cleaned_text, safe='?&=')
+                return quote(cleaned_text, safe="?&=")
 
             return cleaned_text
 
@@ -166,7 +166,7 @@ class Sanitizer(object):
         cleaned_text = self._safe_clean(untrusted_text, logger, strip_characters)
 
         if untrusted_text != cleaned_text:
-            logger.warning('Some potential harmful characters were removed from untrusted user input.')
+            logger.warning("Some potential harmful characters were removed from untrusted user input.")
 
         return cleaned_text
 
@@ -186,8 +186,8 @@ class Sanitizer(object):
             return clean(untrusted_text, strip=strip_characters)
         except KeyError:
             logger.warning(
-                'A malicious user tried to crash the application by '
-                'sending illegal UTF-8 in an URI or other untrusted '
-                'user input.'
+                "A malicious user tried to crash the application by "
+                "sending illegal UTF-8 in an URI or other untrusted "
+                "user input."
             )
-            raise SanitationProblem('Illegal UTF-8')
+            raise SanitationProblem("Illegal UTF-8")

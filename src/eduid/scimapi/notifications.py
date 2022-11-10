@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
 import json
 import logging
 from datetime import datetime, timedelta
 from os import environ
-from typing import Any, Dict, List, NewType, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, List, NewType
 
 from eduid.queue.db import QueueItem, SenderInfo
 from eduid.queue.db.message.payload import EduidSCIMAPINotification
@@ -16,16 +16,16 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-TFormattedMessage = NewType('TFormattedMessage', str)
+TFormattedMessage = NewType("TFormattedMessage", str)
 
 
 class NotificationRelay:
     def __init__(self, config: ScimApiConfig):
         self.config = config
         app_name = config.app_name
-        system_hostname = environ.get('SYSTEM_HOSTNAME', '')  # Underlying hosts name for containers
-        hostname = environ.get('HOSTNAME', '')  # Actual hostname or container id
-        self.sender_info = SenderInfo(hostname=hostname, node_id=f'{app_name}@{system_hostname}')
+        system_hostname = environ.get("SYSTEM_HOSTNAME", "")  # Underlying hosts name for containers
+        hostname = environ.get("HOSTNAME", "")  # Actual hostname or container id
+        self.sender_info = SenderInfo(hostname=hostname, node_id=f"{app_name}@{system_hostname}")
 
     def _urls_for(self, data_owner: DataOwnerName) -> List[str]:
         if data_owner not in self.config.data_owners:
@@ -34,10 +34,10 @@ class NotificationRelay:
 
     def format_message(self, version: int, data: Dict[str, Any]) -> TFormattedMessage:
         if version != 1:
-            raise NotImplementedError(f'version {version} not implemented')
-        return TFormattedMessage(json.dumps({'v': version, 'location': data['location']}))
+            raise NotImplementedError(f"version {version} not implemented")
+        return TFormattedMessage(json.dumps({"v": version, "location": data["location"]}))
 
-    def notify(self, data_owner: DataOwnerName, message: TFormattedMessage, context: 'Context') -> None:
+    def notify(self, data_owner: DataOwnerName, message: TFormattedMessage, context: "Context") -> None:
         """
         Send a request for 'someone else' to POST information about this event to a URL.
         """
@@ -45,7 +45,7 @@ class NotificationRelay:
         discard_at = expires_at + timedelta(days=7)
         _urls = self._urls_for(data_owner)
         if not _urls:
-            context.logger.debug(f'No notification urls for data owner {data_owner}')
+            context.logger.debug(f"No notification urls for data owner {data_owner}")
             return None
         for post_url in _urls:
             payload = EduidSCIMAPINotification(data_owner=data_owner, message=message, post_url=post_url)
@@ -58,4 +58,4 @@ class NotificationRelay:
                 payload=payload,
             )
             context.messagedb.save(item)
-            context.logger.info(f'Saved notification {item.item_id} in message queue')
+            context.logger.info(f"Saved notification {item.item_id} in message queue")

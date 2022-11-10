@@ -4,41 +4,41 @@ from typing import Optional
 
 from fastapi import Response
 
-from eduid.common.fastapi.api_router import APIRouter
+from eduid.common.models.scim_base import SCIMResourceType
+from eduid.scimapi.api_router import APIRouter
 from eduid.scimapi.context_request import ContextRequest, ContextRequestRoute
 from eduid.scimapi.exceptions import BadRequest, ErrorDetail, NotFound
 from eduid.scimapi.models.event import EventCreateRequest, EventResponse
-from eduid.scimapi.models.scimbase import SCIMResourceType
 from eduid.scimapi.routers.utils.events import db_event_to_response, get_scim_referenced
 from eduid.userdb.scimapi import ScimApiEvent, ScimApiEventResource
 from eduid.userdb.util import utc_now
 
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
 
 events_router = APIRouter(
     route_class=ContextRequestRoute,
-    prefix='/Events',
+    prefix="/Events",
     responses={
-        400: {'description': 'Bad request', 'model': ErrorDetail},
-        404: {'description': 'Not found', 'model': ErrorDetail},
-        500: {'description': 'Internal server error', 'model': ErrorDetail},
+        400: {"description": "Bad request", "model": ErrorDetail},
+        404: {"description": "Not found", "model": ErrorDetail},
+        500: {"description": "Internal server error", "model": ErrorDetail},
     },
 )
 
 
-@events_router.get('/{scim_id}', response_model=EventResponse, response_model_exclude_none=True)
+@events_router.get("/{scim_id}", response_model=EventResponse, response_model_exclude_none=True)
 async def on_get(req: ContextRequest, resp: Response, scim_id: Optional[str] = None) -> EventResponse:
     if scim_id is None:
-        raise BadRequest(detail='Not implemented')
-    req.app.context.logger.info(f'Fetching event {scim_id}')
+        raise BadRequest(detail="Not implemented")
+    req.app.context.logger.info(f"Fetching event {scim_id}")
     db_event = req.context.eventdb.get_event_by_scim_id(scim_id)
     if not db_event:
-        raise NotFound(detail='Event not found')
+        raise NotFound(detail="Event not found")
     return db_event_to_response(req, resp, db_event)
 
 
-@events_router.post('/', response_model=EventResponse, response_model_exclude_none=True)
+@events_router.post("/", response_model=EventResponse, response_model_exclude_none=True)
 async def on_post(req: ContextRequest, resp: Response, create_request: EventCreateRequest) -> EventResponse:
     """
     POST /Events  HTTP/1.1
@@ -64,28 +64,28 @@ async def on_post(req: ContextRequest, resp: Response, create_request: EventCrea
             }
     }
     """
-    req.app.context.logger.info(f'Creating event')
+    req.app.context.logger.info(f"Creating event")
     req.app.context.logger.debug(create_request)
 
     # TODO: Instead of checking input here we should use dump_only for the fields in the schema
     if create_request.nutid_event_v1.source:
-        raise BadRequest(detail='source is read-only')
+        raise BadRequest(detail="source is read-only")
     if create_request.nutid_event_v1.expires_at:
-        raise BadRequest(detail='expiresAt is read-only')
+        raise BadRequest(detail="expiresAt is read-only")
     if create_request.nutid_event_v1.resource.external_id:
-        raise BadRequest(detail='resource.externalId is read-only')
+        raise BadRequest(detail="resource.externalId is read-only")
     if create_request.nutid_event_v1.resource.location:
-        raise BadRequest(detail='resource.location is read-only')
+        raise BadRequest(detail="resource.location is read-only")
 
     # TODO: This check should move to schema validation
     if create_request.nutid_event_v1.timestamp:
         earliest_allowed = utc_now() - timedelta(days=1)
         if create_request.nutid_event_v1.timestamp < earliest_allowed:
-            raise BadRequest(detail='timestamp is too old')
+            raise BadRequest(detail="timestamp is too old")
 
     referenced = get_scim_referenced(req, create_request.nutid_event_v1.resource)
     if not referenced:
-        raise BadRequest(detail='referenced object not found')
+        raise BadRequest(detail="referenced object not found")
 
     _timestamp = utc_now()
     if create_request.nutid_event_v1.timestamp:
@@ -110,7 +110,7 @@ async def on_post(req: ContextRequest, resp: Response, create_request: EventCrea
 
     # Send notification
     message = req.app.context.notification_relay.format_message(
-        version=1, data={'location': req.app.context.resource_url(SCIMResourceType.EVENT, event.scim_id)}
+        version=1, data={"location": req.app.context.resource_url(SCIMResourceType.EVENT, event.scim_id)}
     )
 
     req.app.context.notification_relay.notify(

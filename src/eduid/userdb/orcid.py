@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional, Type
 
 from eduid.userdb.element import Element, ElementKey, VerifiedElement
 
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
 
 class OidcIdToken(Element):
@@ -41,7 +41,7 @@ class OidcIdToken(Element):
         """
         :return: Unique identifier
         """
-        return ElementKey(f'{self.iss}{self.sub}')
+        return ElementKey(f"{self.iss}{self.sub}")
 
     @classmethod
     def _from_dict_transform(cls: Type[OidcIdToken], data: Dict[str, Any]) -> Dict[str, Any]:
@@ -51,7 +51,7 @@ class OidcIdToken(Element):
         data = super()._from_dict_transform(data)
 
         # these keys appear in the data sample in the eduid.userdb.tests.test_orcid module
-        for key in ('at_hash', 'family_name', 'given_name', 'jti'):
+        for key in ("at_hash", "family_name", "given_name", "jti"):
             if key in data:
                 del data[key]
 
@@ -82,16 +82,16 @@ class OidcAuthorization(Element):
         data = super()._from_dict_transform(data)
 
         # these keys appear in the data sample in the eduid.userdb.tests.test_orcid module
-        for key in ('name', 'orcid', 'scope'):
+        for key in ("name", "orcid", "scope"):
             if key in data:
                 del data[key]
 
         # Parse ID token
-        _id_token = data.pop('id_token')
+        _id_token = data.pop("id_token")
         if isinstance(_id_token, dict):
-            data['id_token'] = OidcIdToken.from_dict(_id_token)
+            data["id_token"] = OidcIdToken.from_dict(_id_token)
         elif isinstance(_id_token, OidcIdToken):
-            data['id_token'] = _id_token
+            data["id_token"] = _id_token
 
         return data
 
@@ -99,7 +99,7 @@ class OidcAuthorization(Element):
         """ """
         data = super()._to_dict_transform(data)
 
-        data['id_token'] = self.id_token.to_dict()
+        data["id_token"] = self.id_token.to_dict()
         return data
 
 
@@ -124,19 +124,19 @@ class Orcid(VerifiedElement):
         data = super()._from_dict_transform(data)
 
         # Parse ID token
-        _oidc_authz = data.pop('oidc_authz')
+        _oidc_authz = data.pop("oidc_authz")
         if isinstance(_oidc_authz, dict):
-            data['oidc_authz'] = OidcAuthorization.from_dict(_oidc_authz)
+            data["oidc_authz"] = OidcAuthorization.from_dict(_oidc_authz)
         if isinstance(_oidc_authz, OidcAuthorization):
-            data['oidc_authz'] = _oidc_authz
+            data["oidc_authz"] = _oidc_authz
 
         return data
 
     def _to_dict_transform(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """ """
-        data['oidc_authz'] = self.oidc_authz.to_dict()
+        data["oidc_authz"] = self.oidc_authz.to_dict()
 
-        _has_empty_name = 'name' in data and data['name'] is None
+        _has_empty_name = "name" in data and data["name"] is None
 
         data = super()._to_dict_transform(data)
 
@@ -144,6 +144,6 @@ class Orcid(VerifiedElement):
             # Be bug-compatible with earlier code, to be able to release dataclass based
             # elements with confidence that nothing will change in the database. This can
             # be removed after a burn-in period.
-            data['name'] = None
+            data["name"] = None
 
         return data

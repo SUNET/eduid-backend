@@ -42,7 +42,7 @@ import bson
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.reset_password.element import CodeElement
 
-TResetPasswordStateSubclass = TypeVar('TResetPasswordStateSubclass', bound='ResetPasswordState')
+TResetPasswordStateSubclass = TypeVar("TResetPasswordStateSubclass", bound="ResetPasswordState")
 
 logger = logging.getLogger(__name__)
 
@@ -64,20 +64,20 @@ class ResetPasswordState(object):
         self.reference = str(self.id)
 
     def __str__(self):
-        return '<eduID {!s}: {!s}>'.format(self.__class__.__name__, self.eppn)
+        return "<eduID {!s}: {!s}>".format(self.__class__.__name__, self.eppn)
 
     def to_dict(self) -> dict:
         res = asdict(self)
-        res['eduPersonPrincipalName'] = res.pop('eppn')
-        res['_id'] = res.pop('id')
+        res["eduPersonPrincipalName"] = res.pop("eppn")
+        res["_id"] = res.pop("id")
         return res
 
     @classmethod
     def from_dict(cls: Type[TResetPasswordStateSubclass], data: Dict[str, Any]) -> TResetPasswordStateSubclass:
-        data['eppn'] = data.pop('eduPersonPrincipalName')
-        data['id'] = data.pop('_id')
-        if 'reference' in data:
-            data.pop('reference')
+        data["eppn"] = data.pop("eduPersonPrincipalName")
+        data["id"] = data.pop("_id")
+        if "reference" in data:
+            data.pop("reference")
         return cls(**data)
 
     def throttle_time_left(self, min_wait: datetime.timedelta) -> datetime.timedelta:
@@ -89,7 +89,7 @@ class ResetPasswordState(object):
     def is_throttled(self, min_wait: datetime.timedelta) -> bool:
         time_left = self.throttle_time_left(min_wait)
         if int(time_left.total_seconds()) > 0:
-            logger.warning(f'Resend throttled for {time_left}')
+            logger.warning(f"Resend throttled for {time_left}")
             return True
         return False
 
@@ -108,12 +108,12 @@ class ResetPasswordEmailState(ResetPasswordState, _ResetPasswordEmailStateRequir
 
     def __post_init__(self):
         super().__post_init__()
-        self.method = 'email'
-        self.email_code = CodeElement.parse(application='security', code_or_element=self.email_code)
+        self.method = "email"
+        self.email_code = CodeElement.parse(application="security", code_or_element=self.email_code)
 
     def to_dict(self):
         res = super().to_dict()
-        res['email_code'] = self.email_code.to_dict()
+        res["email_code"] = self.email_code.to_dict()
         return res
 
 
@@ -131,8 +131,8 @@ class ResetPasswordEmailAndPhoneState(ResetPasswordEmailState, _ResetPasswordEma
 
     def __post_init__(self):
         super().__post_init__()
-        self.method = 'email_and_phone'
-        self.phone_code = CodeElement.parse(application='security', code_or_element=self.phone_code)
+        self.method = "email_and_phone"
+        self.phone_code = CodeElement.parse(application="security", code_or_element=self.phone_code)
 
     @classmethod
     def from_email_state(
@@ -142,11 +142,11 @@ class ResetPasswordEmailAndPhoneState(ResetPasswordEmailState, _ResetPasswordEma
         phone_code: str,
     ) -> ResetPasswordEmailAndPhoneState:
         data = email_state.to_dict()
-        data['phone_number'] = phone_number
-        data['phone_code'] = phone_code
+        data["phone_number"] = phone_number
+        data["phone_code"] = phone_code
         return cls.from_dict(data=data)
 
     def to_dict(self) -> dict:
         res = super().to_dict()
-        res['phone_code'] = self.phone_code.to_dict()
+        res["phone_code"] = self.phone_code.to_dict()
         return res

@@ -30,15 +30,13 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-import json
 import logging.config
 import pprint
 import sys
 import traceback
 from contextlib import contextmanager
 from copy import deepcopy
-from datetime import datetime
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Union
+from typing import Any, Dict, Iterable, List, Mapping, Optional
 
 from flask import Response
 from flask.testing import FlaskClient
@@ -58,55 +56,53 @@ from eduid.workers.msg.tasks import MessageSender
 
 logger = logging.getLogger(__name__)
 
-
 TEST_CONFIG = {
-    'debug': True,
-    'testing': True,
-    'secret_key': 'mysecretkey',
-    'session_cookie_name': 'sessid',
-    'session_cookie_domain': 'test.localhost',
-    'session_cookie_path': '/',
-    'session_cookie_httponly': False,
-    'session_cookie_secure': False,
-    'permanent_session_lifetime': 60,
-    'server_name': 'test.localhost',
-    'propagate_exceptions': True,
-    'preserve_context_on_exception': True,
-    'trap_http_exceptions': True,
-    'trap_bad_request_errors': True,
-    'preferred_url_scheme': 'http',
-    'json_as_ascii': False,
-    'json_sort_keys': True,
-    'jsonify_prettyprint_regular': True,
-    'mongo_uri': 'mongodb://localhost',
-    'token_service_url': 'http://test.localhost/',
-    'eduid_site_name': 'eduID TESTING',
-    'eduid_static_url': 'https://testing.eduid.se/static/',
-    'celery': {
-        'broker_transport': 'memory',
-        'broker_url': 'memory://',
-        'task_eager_propagates': True,
-        'task_always_eager': True,
-        'result_backend': 'cache',
-        'cache_backend': 'memory',
+    "debug": True,
+    "testing": True,
+    "secret_key": "mysecretkey",
+    "session_cookie_name": "sessid",
+    "session_cookie_domain": "test.localhost",
+    "session_cookie_path": "/",
+    "session_cookie_httponly": False,
+    "session_cookie_secure": False,
+    "permanent_session_lifetime": 60,
+    "server_name": "test.localhost",
+    "propagate_exceptions": True,
+    "preserve_context_on_exception": True,
+    "trap_http_exceptions": True,
+    "trap_bad_request_errors": True,
+    "preferred_url_scheme": "http",
+    "json_as_ascii": False,
+    "json_sort_keys": True,
+    "jsonify_prettyprint_regular": True,
+    "mongo_uri": "mongodb://localhost",
+    "token_service_url": "http://test.localhost/",
+    "eduid_site_name": "eduID TESTING",
+    "eduid_static_url": "https://testing.eduid.se/static/",
+    "celery": {
+        "broker_transport": "memory",
+        "broker_url": "memory://",
+        "task_eager_propagates": True,
+        "task_always_eager": True,
+        "result_backend": "cache",
+        "cache_backend": "memory",
     },
-    'logging_config': {
-        'loggers': {
-            'saml2': {'level': 'WARNING'},
-            'xmlsec': {'level': 'INFO'},
-            'urllib3': {'level': 'INFO'},
-            'eduid.webapp.common.session': {'level': 'INFO'},
-            'eduid.userdb.userdb.extra_debug': {'level': 'INFO'},
-            'eduid.userdb': {'level': 'INFO'},
+    "logging_config": {
+        "loggers": {
+            "saml2": {"level": "WARNING"},
+            "xmlsec": {"level": "INFO"},
+            "urllib3": {"level": "INFO"},
+            "eduid.webapp.common.session": {"level": "INFO"},
+            "eduid.userdb.userdb.extra_debug": {"level": "INFO"},
+            "eduid.userdb": {"level": "INFO"},
         }
     },
 }
 
-
 _standard_test_users = {
-    'hubba-bubba': new_user_example,
-    'hubba-baar': new_unverified_user_example,
-    'hubba-fooo': new_completed_signup_user_example,
+    "hubba-bubba": new_user_example,
+    "hubba-baar": new_unverified_user_example,
+    "hubba-fooo": new_completed_signup_user_example,
 }
 
 
@@ -120,7 +116,7 @@ class EduidAPITestCase(CommonTestCase):
     def setUp(self, *args, users: Optional[List[str]] = None, copy_user_to_private: bool = False, **kwargs):
         # test users
         if users is None:
-            users = ['hubba-bubba']
+            users = ["hubba-bubba"]
 
         # Make a list of User object to be saved to the new temporary mongodb instance
         am_users = [_standard_test_users[x] for x in users]
@@ -137,22 +133,22 @@ class EduidAPITestCase(CommonTestCase):
         # settings
         config = deepcopy(TEST_CONFIG)
         self.settings = self.update_config(config)
-        self.settings['redis_config'] = RedisConfig(host='localhost', port=self.redis_instance.port)
+        self.settings["redis_config"] = RedisConfig(host="localhost", port=self.redis_instance.port)
         assert isinstance(self.tmp_db, MongoTemporaryInstance)  # please mypy
-        self.settings['mongo_uri'] = self.tmp_db.uri
+        self.settings["mongo_uri"] = self.tmp_db.uri
         # self.settings['celery']['mongo_uri'] = self.tmp_db.uri
 
         self.app = self.load_app(self.settings)
-        if not getattr(self, 'browser', False):
+        if not getattr(self, "browser", False):
             self.app.test_client_class = CSRFTestClient
             self.browser = self.app.test_client()
 
         # Helper constants
-        self.content_type_json = 'application/json'
+        self.content_type_json = "application/json"
 
         if copy_user_to_private:
             data = self.test_user.to_dict()
-            logging.info(f'Copying test-user {self.test_user} to private_userdb {self.app.private_userdb}')
+            logging.info(f"Copying test-user {self.test_user} to private_userdb {self.app.private_userdb}")
             self.app.private_userdb.save(self.app.private_userdb.user_from_dict(data=data), check_sync=False)
 
     def tearDown(self):
@@ -179,7 +175,7 @@ class EduidAPITestCase(CommonTestCase):
         before the flask app loads its config from a file.
         """
         raise NotImplementedError(
-            'Classes extending EduidAPITestCase must provide a method where they import the flask app and return it.'
+            "Classes extending EduidAPITestCase must provide a method where they import the flask app and return it."
         )
 
     def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
@@ -193,12 +189,12 @@ class EduidAPITestCase(CommonTestCase):
         :return: the updated configuration
         """
         # For tests, it makes sense to show relative time instead of datetime
-        config['log_format'] = '{asctime} | {levelname:7} | {eppn:11} | {name:35} | {message}'
+        config["log_format"] = "{asctime} | {levelname:7} | {eppn:11} | {name:35} | {message}"
         return config
 
     @contextmanager
     def session_cookie(
-        self, client: Any, eppn: Optional[str], server_name: str = 'localhost', logged_in: bool = True, **kwargs
+        self, client: Any, eppn: Optional[str], server_name: str = "localhost", logged_in: bool = True, **kwargs
     ):
         with client.session_transaction(**kwargs) as sess:
             if eppn is not None:
@@ -208,7 +204,7 @@ class EduidAPITestCase(CommonTestCase):
         yield client
 
     @contextmanager
-    def session_cookie_anon(self, client, server_name='localhost', **kwargs):
+    def session_cookie_anon(self, client, server_name="localhost", **kwargs):
         with self.session_cookie(client=client, eppn=None, server_name=server_name, **kwargs) as _client:
             yield _client
 
@@ -222,9 +218,20 @@ class EduidAPITestCase(CommonTestCase):
         """
         user_id = str(private_user.user_id)
         central_user = self.app.central_userdb.get_user_by_id(user_id)
-        modified_ts = central_user.modified_ts
-        central_user_dict = central_user.to_dict()
         private_user_dict = private_user.to_dict()
+        # fix signup_user data
+        if "proofing_reference" in private_user_dict:
+            del private_user_dict["proofing_reference"]
+
+        if central_user is None:
+            # This is a new user, create a new user in the central db
+            self.app.central_userdb.save(User.from_dict(private_user_dict), check_sync=False)
+            return True
+
+        modified_ts = central_user.modified_ts
+        meta_modified_ts = central_user.meta.modified_ts
+        meta_version = central_user.meta.version
+        central_user_dict = central_user.to_dict()
         central_user_dict.update(private_user_dict)
         # Iterate over all top level keys and remove those missing
         for key in list(central_user_dict.keys()):
@@ -232,6 +239,8 @@ class EduidAPITestCase(CommonTestCase):
                 central_user_dict.pop(key, None)
         user = User.from_dict(data=central_user_dict)
         user.modified_ts = modified_ts
+        user.meta.modified_ts = meta_modified_ts
+        user.meta.version = meta_version
         self.app.central_userdb.save(user)
         return True
 
@@ -270,6 +279,7 @@ class EduidAPITestCase(CommonTestCase):
         message: Optional[TranslatableMsg] = None,
         error: Optional[Mapping[str, Any]] = None,
         payload: Optional[Mapping[str, Any]] = None,
+        assure_not_in_payload: Optional[Iterable[str]] = None,
     ):
         """
         Check data returned from an eduID webapp endpoint.
@@ -299,37 +309,48 @@ class EduidAPITestCase(CommonTestCase):
         :param error: Expected JSON error message
         :param payload: Data expected to be found in the 'payload' of the response
         """
+
+        def _assure_not_in_dict(d: Mapping[str, Any], unwanted_key: str):
+            assert unwanted_key not in d, f"Key {unwanted_key} should not be in payload, but it is: {payload}"
+            for k2, v2 in d.items():
+                if isinstance(v2, dict):
+                    _assure_not_in_dict(v2, unwanted_key)
+
         try:
-            assert status == response.status_code, f'The HTTP response code was {response.status_code} not {status}'
+            assert status == response.status_code, f"The HTTP response code was {response.status_code} not {status}"
             if type_ is not None:
                 assert (
-                    type_ == response.json['type']
+                    type_ == response.json["type"]
                 ), f'Wrong response type. expected: {type_}, actual: {response.json["type"]}'
-            assert 'payload' in response.json, 'JSON body has no "payload" element'
+            assert "payload" in response.json, 'JSON body has no "payload" element'
             if message is not None:
-                assert 'message' in response.json['payload'], 'JSON payload has no "message" element'
-                _message_value = response.json['payload']['message']
+                assert "message" in response.json["payload"], 'JSON payload has no "message" element'
+                _message_value = response.json["payload"]["message"]
                 assert (
                     message.value == _message_value
-                ), f'Wrong message returned. expected: {message.value}, actual: {_message_value}'
+                ), f"Wrong message returned. expected: {message.value}, actual: {_message_value}"
             if error is not None:
-                assert response.json['error'] is True, 'The Flux response was supposed to have error=True'
-                assert 'error' in response.json['payload'], 'JSON payload has no "error" element'
-                _error = response.json['payload']['error']
-                assert error == _error, f'Wrong error returned. expected: {error}, actual: {_error}'
+                assert response.json["error"] is True, "The Flux response was supposed to have error=True"
+                assert "error" in response.json["payload"], 'JSON payload has no "error" element'
+                _error = response.json["payload"]["error"]
+                assert error == _error, f"Wrong error returned. expected: {error}, actual: {_error}"
             if payload is not None:
                 for k, v in payload.items():
-                    assert k in response.json['payload'], f'The Flux response payload does not contain {repr(k)}'
+                    assert k in response.json["payload"], f"The Flux response payload does not contain {repr(k)}"
                     assert (
-                        v == response.json['payload'][k]
-                    ), f'The Flux response payload item {repr(k)} is not {repr(v)}'
+                        v == response.json["payload"][k]
+                    ), f"The Flux response payload item {repr(k)} is not {repr(v)}"
+            if assure_not_in_payload is not None:
+                for key in assure_not_in_payload:
+                    _assure_not_in_dict(response.json["payload"], key)
+
         except (AssertionError, KeyError):
             if response.json:
                 logger.info(
-                    f'Test case got unexpected response ({response.status_code}):\n{pprint.pformat(response.json)}'
+                    f"Test case got unexpected response ({response.status_code}):\n{pprint.pformat(response.json)}"
                 )
             else:
-                logger.info(f'Test case got unexpected response ({response.status_code}):\n{response.data}')
+                logger.info(f"Test case got unexpected response ({response.status_code}):\n{response.data}")
             raise
 
     def _check_nin_verified_ok(
@@ -373,19 +394,19 @@ class CSRFTestClient(FlaskClient):
         This could also be done with updating FlaskClient.environ_base with the below header keys but
         that makes it harder to override per call to post.
         """
-        test_host = '{}://{}'.format(
+        test_host = "{}://{}".format(
             self.application.conf.flask.preferred_url_scheme, self.application.conf.flask.server_name
         )
         csrf_headers = {
-            'X-Requested-With': 'XMLHttpRequest',
-            'Referer': test_host,
-            'X-Forwarded-Host': self.application.conf.flask.server_name,
+            "X-Requested-With": "XMLHttpRequest",
+            "Referer": test_host,
+            "X-Forwarded-Host": self.application.conf.flask.server_name,
         }
-        if kw.pop('custom_csrf_headers', True):
-            if 'headers' in kw:
-                kw['headers'].update(csrf_headers)
+        if kw.pop("custom_csrf_headers", True):
+            if "headers" in kw:
+                kw["headers"].update(csrf_headers)
             else:
-                kw['headers'] = csrf_headers
+                kw["headers"] = csrf_headers
 
         return super(CSRFTestClient, self).post(*args, **kw)
 
@@ -403,42 +424,3 @@ class CSRFTestClient(FlaskClient):
         """
         with super().session_transaction(*args, **kwargs) as sess:  # type: ignore
             yield sess
-
-
-def normalised_data(
-    data: Union[Mapping[str, Any], Sequence[Mapping[str, Any]]]
-) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
-    """Utility function for normalising dicts (or list of dicts) before comparisons in test cases."""
-    if isinstance(data, list):
-        # Recurse into lists of dicts. mypy (correctly) says this recursion can in fact happen
-        # more than once, so the result can be a list of list of dicts or whatever, but the return
-        # type becomes too bloated with that in mind and the code becomes too inelegant when unrolling
-        # this list comprehension into a for-loop checking types for something only intended to be used in test cases.
-        # Hence the type: ignore.
-        return sorted([_normalise_value(x) for x in data], key=_any_key)  # type: ignore
-    elif isinstance(data, dict):
-        # normalise all values found in the dict, returning a new dict (to not modify callers data)
-        return {k: _normalise_value(v) for k, v in data.items()}
-    raise TypeError('normalised_data not called on dict (or list of dicts)')
-
-
-class SortEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, datetime):
-            return str(_normalise_value(obj))
-        return json.JSONEncoder.default(self, obj)
-
-
-def _any_key(value: Any):
-    """Helper function to be able to use sorted with key argument for everything"""
-    if isinstance(value, dict):
-        return json.dumps(value, sort_keys=True, cls=SortEncoder)  # Turn dict in to a string for sorting
-    return value
-
-
-def _normalise_value(data: Any) -> Any:
-    if isinstance(data, dict) or isinstance(data, list):
-        return normalised_data(data)
-    elif isinstance(data, datetime):
-        return data.replace(microsecond=0, tzinfo=None)
-    return data

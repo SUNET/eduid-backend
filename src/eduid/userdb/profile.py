@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Mapping, Type
 
 from eduid.userdb.element import Element, ElementKey, ElementList
 
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
 
 class Profile(Element):

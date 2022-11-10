@@ -4,9 +4,8 @@ from marshmallow import fields
 from eduid.webapp.common.api.schemas.base import EduidSchema, FluxStandardAction
 from eduid.webapp.common.api.schemas.csrf import CSRFRequestMixin, CSRFResponseMixin
 from eduid.webapp.common.api.schemas.ladok import LadokSchema, University
-from eduid.webapp.common.api.schemas.validators import validate_nin
 
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
 
 class UniversityInfoResponseSchema(FluxStandardAction):
@@ -22,6 +21,6 @@ class LinkUserRequest(EduidSchema, CSRFRequestMixin):
 
 class LinkUserResponse(FluxStandardAction):
     class LinkUserPayload(EduidSchema, CSRFResponseMixin):
-        ladok = fields.Nested(LadokSchema, attribute='ladok')
+        ladok = fields.Nested(LadokSchema, attribute="ladok")
 
     payload = fields.Nested(LinkUserPayload)

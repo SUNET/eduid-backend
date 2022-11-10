@@ -29,4 +29,4 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-__author__ = 'ft'
+__author__ = "ft"

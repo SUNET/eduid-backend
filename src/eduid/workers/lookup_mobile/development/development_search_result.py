@@ -1,4 +1,4 @@
-__author__ = 'mathiashedstrom'
+__author__ = "mathiashedstrom"
 
 from eduid.workers.lookup_mobile.development import nin_mobile_db
 

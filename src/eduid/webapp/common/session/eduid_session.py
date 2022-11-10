@@ -115,8 +115,8 @@ class EduidSession(SessionMixin, MutableMapping):
     def __str__(self):
         # Include hex(id(self)) for now to troubleshoot clobbered sessions
         return (
-            f'<{self.__class__.__name__} at {hex(id(self))}: new={self.new}, '
-            f'modified={self.modified}, cookie={self.short_id}>'
+            f"<{self.__class__.__name__} at {hex(id(self))}: new={self.new}, "
+            f"modified={self.modified}, cookie={self.short_id}>"
         )
 
     def __getitem__(self, key):
@@ -125,13 +125,13 @@ class EduidSession(SessionMixin, MutableMapping):
     def __setitem__(self, key: str, value: Any):
         if key not in self._session or self._session[key] != value:
             self._session[key] = value
-            logger.debug(f'SET {self}[{key}] = {value}')
+            logger.debug(f"SET {self}[{key}] = {value}")
             self.modified = True
 
     def __delitem__(self, key):
         if key in self._session:
             del self._session[key]
-            logger.debug(f'DEL {self}[{key}]')
+            logger.debug(f"DEL {self}[{key}]")
             self.modified = True
 
     def __iter__(self):
@@ -146,7 +146,7 @@ class EduidSession(SessionMixin, MutableMapping):
     @property
     def short_id(self) -> str:
         """Short version of the cookie value for use in logging"""
-        return self.meta.cookie_val[:9] + '...'
+        return self.meta.cookie_val[:9] + "..."
 
     @property
     def permanent(self):
@@ -160,13 +160,13 @@ class EduidSession(SessionMixin, MutableMapping):
     @property
     def common(self) -> Common:
         if not self._namespaces.common:
-            self._namespaces.common = Common.from_dict(self._session.get('common', {}))
+            self._namespaces.common = Common.from_dict(self._session.get("common", {}))
         return self._namespaces.common
 
     @property
     def mfa_action(self) -> MfaAction:
         if not self._namespaces.mfa_action:
-            self._namespaces.mfa_action = MfaAction.from_dict(self._session.get('mfa_action', {}))
+            self._namespaces.mfa_action = MfaAction.from_dict(self._session.get("mfa_action", {}))
         return self._namespaces.mfa_action
 
     @mfa_action.deleter
@@ -179,48 +179,53 @@ class EduidSession(SessionMixin, MutableMapping):
 
         When an MFA action is completed, it is removed entirely from the session"""
         self._namespaces.mfa_action = None
-        del self['mfa_action']
+        del self["mfa_action"]
 
     @property
     def signup(self) -> Signup:
         if not self._namespaces.signup:
-            self._namespaces.signup = Signup.from_dict(self._session.get('signup', {}))
+            self._namespaces.signup = Signup.from_dict(self._session.get("signup", {}))
         return self._namespaces.signup
+
+    @signup.deleter
+    def signup(self):
+        self._namespaces.signup = None
+        del self["signup"]
 
     @property
     def actions(self) -> Actions:
         if not self._namespaces.actions:
-            self._namespaces.actions = Actions.from_dict(self._session.get('actions', {}))
+            self._namespaces.actions = Actions.from_dict(self._session.get("actions", {}))
         return self._namespaces.actions
 
     @property
     def reset_password(self) -> ResetPasswordNS:
         if not self._namespaces.reset_password:
-            self._namespaces.reset_password = ResetPasswordNS.from_dict(self._session.get('reset_password', {}))
+            self._namespaces.reset_password = ResetPasswordNS.from_dict(self._session.get("reset_password", {}))
         return self._namespaces.reset_password
 
     @property
     def security(self) -> SecurityNS:
         if not self._namespaces.security:
-            self._namespaces.security = SecurityNS.from_dict(self._session.get('security', {}))
+            self._namespaces.security = SecurityNS.from_dict(self._session.get("security", {}))
         return self._namespaces.security
 
     @property
     def idp(self) -> IdP_Namespace:
         if not self._namespaces.idp:
-            self._namespaces.idp = IdP_Namespace.from_dict(self._session.get('idp', {}))
+            self._namespaces.idp = IdP_Namespace.from_dict(self._session.get("idp", {}))
         return self._namespaces.idp
 
     @property
     def eidas(self) -> Eidas_Namespace:
         if not self._namespaces.eidas:
-            self._namespaces.eidas = Eidas_Namespace.from_dict(self._session.get('eidas', {}))
+            self._namespaces.eidas = Eidas_Namespace.from_dict(self._session.get("eidas", {}))
         return self._namespaces.eidas
 
     @property
     def authn(self) -> Authn_Namespace:
         if not self._namespaces.authn:
-            self._namespaces.authn = Authn_Namespace.from_dict(self._session.get('authn', {}))
+            self._namespaces.authn = Authn_Namespace.from_dict(self._session.get("authn", {}))
         return self._namespaces.authn
 
     @property
@@ -278,13 +283,13 @@ class EduidSession(SessionMixin, MutableMapping):
 
     def new_csrf_token(self) -> str:
         # only produce one csrf token by request
-        if '_csrft_' not in self:
+        if "_csrft_" not in self:
             token = os.urandom(20).hex()
-            self['_csrft_'] = token
-        return self['_csrft_']
+            self["_csrft_"] = token
+        return self["_csrft_"]
 
     def get_csrf_token(self) -> str:
-        token = self.get('_csrft_', None)
+        token = self.get("_csrft_", None)
         if token is None:
             token = self.new_csrf_token()
         return token
@@ -314,20 +319,20 @@ class EduidSession(SessionMixin, MutableMapping):
         the session has already been invalidated at this point.
         """
         if self._invalidated:
-            logger.debug('Not saving invalidated session')
+            logger.debug("Not saving invalidated session")
             return
 
         # Serialize namespace instances back into self._session
         self._serialize_namespaces()
 
         if self.modified:
-            logger.debug(f'Saving session {self}')
+            logger.debug(f"Saving session {self}")
             self._session.commit()
             self.new = False
             self.modified = False
             if self.app.debug or self.app.conf.testing:
                 _saved_data = json.dumps(self._session.to_dict(), indent=4, sort_keys=True, cls=EduidJSONEncoder)
-                logger.debug(f'Saved session {self}:\n{_saved_data}')
+                logger.debug(f"Saved session {self}:\n{_saved_data}")
 
 
 class SessionFactory(SessionInterface):
@@ -340,7 +345,7 @@ class SessionFactory(SessionInterface):
 
     def __init__(self, config: EduIDBaseAppConfig):
         if config.flask.secret_key is None:
-            raise BadConfiguration('flask.secret_key not set in config')
+            raise BadConfiguration("flask.secret_key not set in config")
 
         ttl = 2 * config.flask.permanent_session_lifetime
         self.manager = SessionManager(config.redis_config, ttl=ttl, app_secret=config.flask.secret_key)
@@ -353,7 +358,7 @@ class SessionFactory(SessionInterface):
         # Load token from cookie
         cookie_name = app.conf.flask.session_cookie_name
         cookie_val = request.cookies.get(cookie_name, None)
-        logger.debug(f'Session cookie {cookie_name} == {cookie_val}')
+        logger.debug(f"Session cookie {cookie_name} == {cookie_val}")
 
         _meta = None
         _load_existing = False
@@ -363,33 +368,33 @@ class SessionFactory(SessionInterface):
                 _load_existing = True
             except ValueError as e:
                 # Session cookie loading failed
-                logger.debug(f'Could not load SessionMeta from cookie: {e}')
+                logger.debug(f"Could not load SessionMeta from cookie: {e}")
 
         if _meta is None:
             # No session cookie or cookie loading failed, create a new SessionMeta
             _meta = SessionMeta.new(app_secret=self.manager.secret)
-            logger.debug('New SessionMeta initialized')
+            logger.debug("New SessionMeta initialized")
 
         base_session = None
         if _load_existing:
             # Try and load existing session identified by browser provided cookie
             try:
                 base_session = self.manager.get_session(meta=_meta, new=False)
-                logger.debug(f'Loaded existing session {base_session}')
+                logger.debug(f"Loaded existing session {base_session}")
             except KeyError:
-                logger.debug(f'No session found using cookie {cookie_val}, will create a new one')
+                logger.debug(f"No session found using cookie {cookie_val}, will create a new one")
 
         new = False
         if not base_session:
-            logger.debug(f'Creating new session with cookie {_meta.cookie_val}')
+            logger.debug(f"Creating new session with cookie {_meta.cookie_val}")
             base_session = self.manager.get_session(meta=_meta, new=True)
             new = True
 
         sess = EduidSession(app, _meta, base_session, new=new)
-        logger.debug(f'Created/loaded session {sess} with base_session {base_session}')
+        logger.debug(f"Created/loaded session {sess} with base_session {base_session}")
         if app.debug or app.conf.testing:
             _loaded_data = json.dumps(sess._session.to_dict(), indent=4, sort_keys=True)
-            logger.debug(f'Loaded session {sess}:\n{_loaded_data}')
+            logger.debug(f"Loaded session {sess}:\n{_loaded_data}")
         return sess
 
     def save_session(self, app: EduIDBaseApp, sess: EduidSession, response: FlaskResponse) -> None:
@@ -399,13 +404,13 @@ class SessionFactory(SessionInterface):
         if sess is None:
             # Do not try to save the session and set the cookie if the session is not initialized
             # We have seen this happen...
-            logger.warning(f'Session was not initialized when reaching save_session: sess={sess}')
+            logger.warning(f"Session was not initialized when reaching save_session: sess={sess}")
             return None
         try:
             sess.persist()
         except SessionOutOfSync:
-            app.stats.count('session_out_of_sync_error')
-            logger.error(f'Commit of session {sess} failed because it has been changed by someone else')
+            app.stats.count("session_out_of_sync_error")
+            logger.error(f"Commit of session {sess} failed because it has been changed by someone else")
             diff_c = 0
             # For debugging purposes, load the session from the backend anew and show what was changed
             # by someone else
@@ -417,19 +422,19 @@ class SessionFactory(SessionInterface):
                         my_v = json.loads(json.dumps(v, cls=EduidJSONEncoder))
                         if my_v != session_now[k]:
                             logger.error(
-                                f'Session key {k} changed, mine\n{pprint.pformat(my_v)}\n'
-                                f'in db:\n{pprint.pformat(session_now[k])}'
+                                f"Session key {k} changed, mine\n{pprint.pformat(my_v)}\n"
+                                f"in db:\n{pprint.pformat(session_now[k])}"
                             )
                             diff_c += 1
                     else:
-                        logger.error(f'Session key {k} disappeared, mine {sess[k]}')
+                        logger.error(f"Session key {k} disappeared, mine {sess[k]}")
                         diff_c += 1
                 for k, v in session_now.items():
                     if k not in sess:
-                        logger.error(f'Session key {k} added in db: {session_now[k]}')
+                        logger.error(f"Session key {k} added in db: {session_now[k]}")
                         diff_c += 1
             except KeyError:
-                logger.error('Failed loading session from backend for comparison')
-            logger.error(f'Number of differences: {diff_c}')
+                logger.error("Failed loading session from backend for comparison")
+            logger.error(f"Number of differences: {diff_c}")
             raise
         sess.set_cookie(response)

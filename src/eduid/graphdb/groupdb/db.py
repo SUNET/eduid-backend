@@ -5,6 +5,7 @@ from dataclasses import replace
 from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 from bson import ObjectId
+from httpx import Client
 from neo4j import READ_ACCESS, WRITE_ACCESS, Record, Transaction
 from neo4j.exceptions import ClientError, ConstraintError
 from neo4j.graph import Graph
@@ -14,7 +15,7 @@ from eduid.graphdb.exceptions import EduIDGroupDBError, VersionMismatch
 from eduid.graphdb.groupdb.group import Group
 from eduid.graphdb.groupdb.user import User
 
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
 logger = logging.getLogger(__name__)
 
@@ -22,15 +23,15 @@ logger = logging.getLogger(__name__)
 @enum.unique
 class Label(enum.Enum):
     # Role to relationship type
-    GROUP = 'Group'
-    USER = 'User'
+    GROUP = "Group"
+    USER = "User"
 
 
 @enum.unique
 class Role(enum.Enum):
     # Role to relationship type
-    MEMBER = 'IN'
-    OWNER = 'OWNS'
+    MEMBER = "IN"
+    OWNER = "OWNS"
 
 
 class GroupDB(BaseGraphDB):
@@ -40,25 +41,29 @@ class GroupDB(BaseGraphDB):
 
     def db_setup(self):
         with self.db.driver.session(default_access_mode=WRITE_ACCESS) as session:
+            # new index creation syntax in neo4j >=5.0
             statements = [
                 # Constraints for Group nodes
-                'CREATE CONSTRAINT ON (n:Group) ASSERT exists(n.scope)',
-                'CREATE CONSTRAINT ON (n:Group) ASSERT exists(n.identifier)',
-                'CREATE CONSTRAINT ON (n:Group) ASSERT exists(n.version)',
-                'CREATE CONSTRAINT ON (n:Group) ASSERT (n.scope, n.identifier) IS NODE KEY',
+                "CREATE CONSTRAINT ON (n:Group) ASSERT exists(n.scope)",
+                "CREATE CONSTRAINT ON (n:Group) ASSERT exists(n.identifier)",
+                "CREATE CONSTRAINT ON (n:Group) ASSERT exists(n.version)",
+                # Replaced by CREATE CONSTRAINT [name] FOR (node:Label) REQUIRE node.prop IS NOT NULL.
+                "CREATE CONSTRAINT ON (n:Group) ASSERT (n.scope, n.identifier) IS NODE KEY",
+                # Replaced by CREATE CONSTRAINT [name] FOR (node:Label) REQUIRE (node.prop1,node.prop2) IS NODE KEY.
                 # Constraints for User nodes
-                'CREATE CONSTRAINT ON (n:User) ASSERT exists(n.identifier)',
-                'CREATE CONSTRAINT ON (n:User) ASSERT n.identifier IS UNIQUE',
+                "CREATE CONSTRAINT ON (n:User) ASSERT exists(n.identifier)",
+                "CREATE CONSTRAINT ON (n:User) ASSERT n.identifier IS UNIQUE",
+                # Replaced by CREATE CONSTRAINT [name] FOR (node:Label) REQUIRE node.prop IS UNIQUE
             ]
             for statment in statements:
                 try:
                     session.run(statment)
                 except ClientError as e:
-                    if 'An equivalent constraint already exists' not in e.message:
+                    if "An equivalent constraint already exists" not in e.message:
                         raise e
                     # Constraints already set up
                     pass
-        logger.info(f'{self} setup done.')
+        logger.info(f"{self} setup done.")
 
     @property
     def scope(self):
@@ -86,7 +91,7 @@ class GroupDB(BaseGraphDB):
             display_name=group.display_name,
             new_version=new_version,
         ).single()
-        return self._load_group(res.data()['group'])
+        return self._load_group(res.data()["group"])
 
     def _add_or_update_users_and_groups(
         self, tx: Transaction, group: Group
@@ -117,15 +122,15 @@ class GroupDB(BaseGraphDB):
         members_in_db = tx.run(q, scope=self.scope, identifier=group.identifier)
         for record in members_in_db:
             remove = False
-            if role is Role.MEMBER and group.has_member(record['identifier']) is False:
+            if role is Role.MEMBER and group.has_member(record["identifier"]) is False:
                 remove = True
-            elif role is Role.OWNER and group.has_owner(record['identifier']) is False:
+            elif role is Role.OWNER and group.has_owner(record["identifier"]) is False:
                 remove = True
             if remove:
-                if Label.GROUP.value in record['labels']:
-                    self._remove_group_from_group(tx, group=group, group_identifier=record['identifier'], role=role)
-                elif Label.USER.value in record['labels']:
-                    self._remove_user_from_group(tx, group=group, user_identifier=record['identifier'], role=role)
+                if Label.GROUP.value in record["labels"]:
+                    self._remove_group_from_group(tx, group=group, group_identifier=record["identifier"], role=role)
+                elif Label.USER.value in record["labels"]:
+                    self._remove_user_from_group(tx, group=group, user_identifier=record["identifier"], role=role)
 
     def _remove_group_from_group(self, tx: Transaction, group: Group, group_identifier: str, role: Role):
         q = f"""
@@ -202,10 +207,10 @@ class GroupDB(BaseGraphDB):
             """
         with self.db.driver.session(default_access_mode=READ_ACCESS) as session:
             for record in session.run(q, scope=self.scope, identifier=identifier):
-                labels = record.get('labels', [])
-                if 'User' in labels:
+                labels = record.get("labels", [])
+                if "User" in labels:
                     res.append(User.from_mapping(record.data()))
-                elif 'Group' in labels:
+                elif "Group" in labels:
                     res.append(self._load_group(record.data()))
         return res
 
@@ -240,14 +245,14 @@ class GroupDB(BaseGraphDB):
                 is_owner = rel.type == Role.OWNER.value
                 is_member = rel.type == Role.MEMBER.value
                 # Instantiate and add owners
-                if is_owner and 'Group' in labels:
+                if is_owner and "Group" in labels:
                     group.owners.add(self._load_group(data))
-                if is_owner and 'User' in labels:
+                if is_owner and "User" in labels:
                     group.owners.add(User.from_mapping(data))
                 # Instantiate and add members
-                if is_member and 'Group' in labels:
+                if is_member and "Group" in labels:
                     group.members.add(self._load_group(data))
-                if is_member and 'User' in labels:
+                if is_member and "User" in labels:
                     group.members.add(User.from_mapping(data))
         return group
 
@@ -268,7 +273,7 @@ class GroupDB(BaseGraphDB):
             """
         with self.db.driver.session(default_access_mode=READ_ACCESS) as session:
             for record in session.run(q, scope=self.scope, value=value, skip=skip, limit=limit):
-                res.append(self._load_group(record.data()['group']))
+                res.append(self._load_group(record.data()["group"]))
         return res
 
     def get_groups(self, skip=0, limit=100):
@@ -279,17 +284,17 @@ class GroupDB(BaseGraphDB):
             """
         with self.db.driver.session(default_access_mode=READ_ACCESS) as session:
             for record in session.run(q, scope=self.scope, skip=skip, limit=limit):
-                res.append(self._load_group(record.data()['group']))
+                res.append(self._load_group(record.data()["group"]))
         return res
 
     def _get_groups_for_role(self, label: Label, identifier: str, role: Role):
         res: List[Group] = []
         if label == Label.GROUP:
-            entity_match = '(e:Group {scope: $scope, identifier: $identifier})'
+            entity_match = "(e:Group {scope: $scope, identifier: $identifier})"
         elif label == Label.USER:
-            entity_match = '(e:User {identifier: $identifier})'
+            entity_match = "(e:User {identifier: $identifier})"
         else:
-            raise NotImplementedError(f'Label {label.value} not implemented')
+            raise NotImplementedError(f"Label {label.value} not implemented")
 
         if role is role.OWNER:
             # Return all members only to an owner
@@ -314,15 +319,15 @@ class GroupDB(BaseGraphDB):
                 modified_ts: r.modified_ts, identifier: o.identifier, scope: o.scope}}) as owners
             {ret_statement}
             """
-        logger.debug('Crafted _get_groups_for_role query:')
+        logger.debug("Crafted _get_groups_for_role query:")
         logger.debug(q)
         with self.db.driver.session(default_access_mode=READ_ACCESS) as session:
             for record in session.run(q, identifier=identifier, scope=self.scope):
-                group = self._load_group(record.data()['group'])
-                owners = set([self._load_node(owner) for owner in record.data()['owners'] if owner.get('identifier')])
+                group = self._load_group(record.data()["group"])
+                owners = set([self._load_node(owner) for owner in record.data()["owners"] if owner.get("identifier")])
                 group = replace(group, owners=owners)
                 members = set(
-                    [self._load_node(member) for member in record.data()['members'] if member.get('identifier')]
+                    [self._load_node(member) for member in record.data()["members"] if member.get("identifier")]
                 )
                 group = replace(group, members=members)
                 res.append(group)
@@ -346,12 +351,12 @@ class GroupDB(BaseGraphDB):
             RETURN count(*) as exists LIMIT 1
             """
         with self.db.driver.session(default_access_mode=READ_ACCESS) as session:
-            ret = session.run(q, scope=self.scope, identifier=identifier).single()['exists']
+            ret = session.run(q, scope=self.scope, identifier=identifier).single()["exists"]
         return bool(ret)
 
     def save(self, group: Group) -> Group:
-        logger.info(f'Saving group with scope {self._scope} and identifier {group.identifier}')
-        logger.debug(f'Group: {group}')
+        logger.info(f"Saving group with scope {self._scope} and identifier {group.identifier}")
+        logger.debug(f"Group: {group}")
         with self.db.driver.session(default_access_mode=WRITE_ACCESS) as session:
             try:
                 tx = session.begin_transaction()
@@ -362,21 +367,21 @@ class GroupDB(BaseGraphDB):
                 tx.commit()
             except ConstraintError as e:
                 logger.error(e)
-                raise VersionMismatch('Tried to save a group with wrong version')
+                raise VersionMismatch("Tried to save a group with wrong version")
             except ClientError as e:
                 logger.error(e)
                 raise EduIDGroupDBError(e.message)
             finally:
                 if tx.closed():
-                    logger.info(f'Group save successful')
+                    logger.info(f"Group save successful")
                 else:
-                    logger.error('Group save error: ROLLING BACK')
+                    logger.error("Group save error: ROLLING BACK")
                 tx.close()
         saved_group = replace(saved_group, members=saved_members, owners=saved_owners)
         return saved_group
 
     def _load_node(self, data: Dict) -> Union[User, Group]:
-        if data.get('scope'):
+        if data.get("scope"):
             return self._load_group(data=data)
         return self._load_user(data=data)
 

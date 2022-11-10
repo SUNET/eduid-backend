@@ -49,7 +49,7 @@ from eduid.webapp.idp.app import IdPApp, init_idp_app
 from eduid.webapp.idp.helpers import IdPAction
 from eduid.webapp.idp.sso_session import SSOSession
 
-__author__ = 'ft'
+__author__ = "ft"
 
 
 logger = logging.getLogger(__name__)
@@ -102,9 +102,9 @@ class IdPAPITests(EduidAPITestCase):
         **kwargs,
     ):
         super().setUp(*args, **kwargs)
-        self.idp_entity_id = 'https://unittest-idp.example.edu/idp.xml'
-        self.relay_state = 'test-fest'
-        self.sp_config = get_saml2_config(self.app.conf.pysaml2_config, name='SP_CONFIG')
+        self.idp_entity_id = "https://unittest-idp.example.edu/idp.xml"
+        self.relay_state = "test-fest"
+        self.sp_config = get_saml2_config(self.app.conf.pysaml2_config, name="SP_CONFIG")
         # pysaml2 likes to keep state about ongoing logins, data from login to when you logout etc.
         self._pysaml2_caches: Dict[str, Any] = dict()
         self.pysaml2_state = StateCache(self._pysaml2_caches)  # _saml2_state in _pysaml2_caches
@@ -121,22 +121,22 @@ class IdPAPITests(EduidAPITestCase):
 
     def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
         config = super().update_config(config)
-        fn = PurePath(__file__).with_name('data') / 'test_SSO_conf.py'
+        fn = PurePath(__file__).with_name("data") / "test_SSO_conf.py"
         config.update(
             {
-                'pysaml2_config': str(fn),
-                'fticks_secret_key': 'test test',
-                'eduperson_targeted_id_secret_key': 'eptid_secret',
-                'sso_cookie': {'key': 'test_sso_cookie'},
-                'eduid_site_url': 'https://eduid.docker_dev',
-                'u2f_app_id': 'https://example.com',
-                'u2f_valid_facets': ['https://dashboard.dev.eduid.se', 'https://idp.dev.eduid.se'],
-                'fido2_rp_id': 'idp.example.com',
-                'login_bundle_url': 'https://idp.eduid.docker/test-bundle',
-                'tou_version': '2016-v1',
-                'other_device_secret_key': 'lx0sg0g21QUkiu9JAPfhx4hJ5prJtbk1PPE-OBvpiAk=',
-                'known_devices_secret_key': 'WwemHQgPm1hpx41NYaVBQpRV7BAq0OMtfF3k4H72J7c=',
-                'geo_statistics_secret_key': 'gk5cBWIZ6k-mNHWnA33ZpsgXfgH50Wi_s3mUNI9GF0o=',
+                "pysaml2_config": str(fn),
+                "fticks_secret_key": "test test",
+                "eduperson_targeted_id_secret_key": "eptid_secret",
+                "sso_cookie": {"key": "test_sso_cookie"},
+                "eduid_site_url": "https://eduid.docker_dev",
+                "u2f_app_id": "https://example.com",
+                "u2f_valid_facets": ["https://dashboard.dev.eduid.se", "https://idp.dev.eduid.se"],
+                "fido2_rp_id": "idp.example.com",
+                "login_bundle_url": "https://idp.eduid.docker/test-bundle",
+                "tou_version": "2016-v1",
+                "other_device_secret_key": "lx0sg0g21QUkiu9JAPfhx4hJ5prJtbk1PPE-OBvpiAk=",
+                "known_devices_secret_key": "WwemHQgPm1hpx41NYaVBQpRV7BAq0OMtfF3k4H72J7c=",
+                "geo_statistics_secret_key": "gk5cBWIZ6k-mNHWnA33ZpsgXfgH50Wi_s3mUNI9GF0o=",
             }
         )
         return config
@@ -180,19 +180,19 @@ class IdPAPITests(EduidAPITestCase):
                 return LoginResultAPI(response=resp)
 
             redirect_loc = self._extract_path_from_response(resp)
-            ref = redirect_loc.split('/')[-1]
+            ref = redirect_loc.split("/")[-1]
 
             result = LoginResultAPI(ref=ref, response=resp)
 
             cookie_jar = {}
 
             while True:
-                logger.info(f'Main API test loop, current state: {result}')
+                logger.info(f"Main API test loop, current state: {result}")
 
                 # Call the 'next' endpoint
                 _next = self._call_next(ref)
 
-                _action = IdPAction(_next.payload['action'])
+                _action = IdPAction(_next.payload["action"])
                 if _action not in result.visit_count:
                     result.visit_count[_action] = 0
                 result.visit_count[_action] += 1
@@ -200,7 +200,7 @@ class IdPAPITests(EduidAPITestCase):
 
                 if result.visit_count[_action] > 1:
                     # break on re-visiting a previous state
-                    logger.error(f'Next state {_action} already visited, aborting with result {result}')
+                    logger.error(f"Next state {_action} already visited, aborting with result {result}")
                     return result
 
                 if _action == IdPAction.PWAUTH:
@@ -208,7 +208,7 @@ class IdPAPITests(EduidAPITestCase):
                         logger.error(f"Can't login without username and password, aborting with result {result}")
                         return result
 
-                    result.pwauth_result = self._call_pwauth(_next.payload['target'], ref, username, password)
+                    result.pwauth_result = self._call_pwauth(_next.payload["target"], ref, username, password)
                     result.sso_cookie_val = result.pwauth_result.sso_cookie_val
                     cookie_jar.update(result.pwauth_result.cookies)
 
@@ -218,7 +218,7 @@ class IdPAPITests(EduidAPITestCase):
 
                 if _action == IdPAction.TOU:
                     result.tou_result = self._call_tou(
-                        _next.payload['target'], ref, user_accepts=self.app.conf.tou_version
+                        _next.payload["target"], ref, user_accepts=self.app.conf.tou_version
                     )
 
                 if _action == IdPAction.FINISHED:
@@ -229,26 +229,26 @@ class IdPAPITests(EduidAPITestCase):
         with self.session_cookie_anon(self.browser) as client:
             with self.app.test_request_context():
                 with client.session_transaction() as sess:
-                    data = {'ref': ref, 'csrf_token': sess.get_csrf_token()}
-                response = client.post('/next', data=json.dumps(data), content_type=self.content_type_json)
-        logger.debug(f'Next endpoint returned:\n{json.dumps(response.json, indent=4)}')
-        return NextResult(payload=response.json['payload'])
+                    data = {"ref": ref, "csrf_token": sess.get_csrf_token()}
+                response = client.post("/next", data=json.dumps(data), content_type=self.content_type_json)
+        logger.debug(f"Next endpoint returned:\n{json.dumps(response.json, indent=4)}")
+        return NextResult(payload=response.json["payload"])
 
     def _call_pwauth(self, target: str, ref: str, username: str, password: str) -> PwAuthResult:
         with self.session_cookie_anon(self.browser) as client:
             with self.app.test_request_context():
                 with client.session_transaction() as sess:
-                    data = {'ref': ref, 'username': username, 'password': password, 'csrf_token': sess.get_csrf_token()}
+                    data = {"ref": ref, "username": username, "password": password, "csrf_token": sess.get_csrf_token()}
                 response = client.post(target, data=json.dumps(data), content_type=self.content_type_json)
-        logger.debug(f'PwAuth endpoint returned:\n{json.dumps(response.json, indent=4)}')
+        logger.debug(f"PwAuth endpoint returned:\n{json.dumps(response.json, indent=4)}")
 
-        result = PwAuthResult(payload=response.json['payload'])
-        cookies = response.headers.get('Set-Cookie')
+        result = PwAuthResult(payload=response.json["payload"])
+        cookies = response.headers.get("Set-Cookie")
         if not cookies:
             return result
 
         # Save the SSO cookie value
-        _re = f'.*{self.app.conf.sso_cookie.key}=(.+?);.*'
+        _re = f".*{self.app.conf.sso_cookie.key}=(.+?);.*"
         _sso_cookie_re = re.match(_re, cookies)
         if _sso_cookie_re:
             result.sso_cookie_val = _sso_cookie_re.groups()[0]
@@ -262,38 +262,38 @@ class IdPAPITests(EduidAPITestCase):
         with self.session_cookie_anon(self.browser) as client:
             with self.app.test_request_context():
                 with client.session_transaction() as sess:
-                    data = {'ref': ref, 'csrf_token': sess.get_csrf_token()}
+                    data = {"ref": ref, "csrf_token": sess.get_csrf_token()}
                     if user_accepts:
-                        data['user_accepts'] = user_accepts
+                        data["user_accepts"] = user_accepts
                 response = client.post(target, data=json.dumps(data), content_type=self.content_type_json)
-        logger.debug(f'ToU endpoint returned:\n{json.dumps(response.json, indent=4)}')
-        result = TouResult(payload=response.json['payload'])
+        logger.debug(f"ToU endpoint returned:\n{json.dumps(response.json, indent=4)}")
+        result = TouResult(payload=response.json["payload"])
         return result
 
     @staticmethod
     def _extract_form_inputs(res: str) -> Dict[str, Any]:
         inputs = {}
-        for line in res.split('\n'):
-            if 'input' in line:
+        for line in res.split("\n"):
+            if "input" in line:
                 # YOLO
-                m = re.match('.*<input .* name=[\'"](.+?)[\'"].*value=[\'"](.+?)[\'"]', line)
+                m = re.match(".*<input .* name=['\"](.+?)['\"].*value=['\"](.+?)['\"]", line)
                 if m:
                     name, value = m.groups()
-                    inputs[name] = value.strip('\'"')
+                    inputs[name] = value.strip("'\"")
         return inputs
 
     def _extract_path_from_response(self, response: FlaskResponse) -> str:
-        return self._extract_path_from_info({'headers': response.headers})
+        return self._extract_path_from_info({"headers": response.headers})
 
     def _extract_path_from_info(self, info: Mapping[str, Any]) -> str:
-        _location_headers = [_hdr for _hdr in info['headers'] if _hdr[0] == 'Location']
+        _location_headers = [_hdr for _hdr in info["headers"] if _hdr[0] == "Location"]
         # get first Location URL
         loc = _location_headers[0][1]
         return self._extract_path_from_url(loc)
 
     def _extract_path_from_url(self, url):
         # It is a complete URL, extract the path from it (8 is to skip over slashes in https://)
-        _idx = url[8:].index('/')
+        _idx = url[8:].index("/")
         path = url[8 + _idx :]
         return path
 
@@ -302,8 +302,8 @@ class IdPAPITests(EduidAPITestCase):
     ) -> AuthnResponse:
         _saml2_client = saml2_client if saml2_client is not None else self.saml2_client
 
-        form = self._extract_form_inputs(response.data.decode('utf-8'))
-        xmlstr = bytes(form['SAMLResponse'], 'ascii')
+        form = self._extract_form_inputs(response.data.decode("utf-8"))
+        xmlstr = bytes(form["SAMLResponse"], "ascii")
         outstanding_queries = self.pysaml2_oq.outstanding_queries()
         return _saml2_client.parse_authn_request_response(xmlstr, BINDING_HTTP_POST, outstanding_queries)
 
@@ -318,7 +318,7 @@ class IdPAPITests(EduidAPITestCase):
             version = self.app.conf.tou_version
         tou = ToUEvent(
             version=version,
-            created_by='idp_tests',
+            created_by="idp_tests",
             created_ts=utc_now(),
             modified_ts=utc_now(),
             event_id=str(ObjectId()),

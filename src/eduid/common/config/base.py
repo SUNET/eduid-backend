@@ -36,8 +36,9 @@ Configuration (file) handling for eduID IdP.
 
 from __future__ import annotations
 
+from datetime import timedelta
 from enum import Enum
-from typing import Any, Dict, List, Mapping, Optional, Sequence, TypeVar
+from typing import Any, Dict, List, Mapping, Optional, Pattern, Sequence, TypeVar, Union
 
 from pydantic import BaseModel, Field
 
@@ -50,26 +51,26 @@ class CeleryConfig(BaseModel):
     Celery configuration
     """
 
-    accept_content: List[str] = Field(default=['application/json'])
-    broker_url: str = ''
-    result_backend: str = 'cache'
+    accept_content: List[str] = Field(default=["application/json"])
+    broker_url: str = ""
+    result_backend: str = "cache"
     result_backend_transport_options: dict = Field(default={})
-    cache_backend: str = 'memory'
-    task_serializer: str = 'json'
+    cache_backend: str = "memory"
+    task_serializer: str = "json"
     task_eager_propagates: bool = False
     task_always_eager: bool = False
     # backwards incompatible setting that the documentation says will be the default in the future
-    broker_transport: str = ''
-    broker_transport_options: dict = Field(default={'fanout_prefix': True})
+    broker_transport: str = ""
+    broker_transport_options: dict = Field(default={"fanout_prefix": True})
     task_routes: dict = Field(
         default={
-            'eduid.workers.am.*': {'queue': 'am'},
-            'eduid.workers.msg.*': {'queue': 'msg'},
-            'eduid.workers.lookup_mobile.*': {'queue': 'lookup_mobile'},
+            "eduid.workers.am.*": {"queue": "am"},
+            "eduid.workers.msg.*": {"queue": "msg"},
+            "eduid.workers.lookup_mobile.*": {"queue": "lookup_mobile"},
             # Old task names, still in use
-            'eduid_am.tasks.*': {'queue': 'am'},
-            'eduid_msg.tasks.*': {'queue': 'msg'},
-            'eduid_lookup_mobile.tasks.*': {'queue': 'lookup_mobile'},
+            "eduid_am.tasks.*": {"queue": "am"},
+            "eduid_msg.tasks.*": {"queue": "msg"},
+            "eduid_lookup_mobile.tasks.*": {"queue": "lookup_mobile"},
         }
     )
     mongo_uri: Optional[str] = None
@@ -86,14 +87,14 @@ class RedisConfig(BaseModel):
 class CookieConfig(BaseModel):
     key: str
     domain: Optional[str] = None
-    path: str = '/'
+    path: str = "/"
     secure: bool = True
     httponly: bool = True
     samesite: Optional[str] = None
     max_age_seconds: Optional[int] = None  # None means this is a session cookie
 
 
-TRootConfigSubclass = TypeVar('TRootConfigSubclass', bound='RootConfig')
+TRootConfigSubclass = TypeVar("TRootConfigSubclass", bound="RootConfig")
 
 
 class RootConfig(BaseModel):
@@ -106,22 +107,22 @@ class RootConfig(BaseModel):
 
 
 # EduIDBaseApp is currently Flask apps
-TEduIDBaseAppConfigSubclass = TypeVar('TEduIDBaseAppConfigSubclass', bound='EduIDBaseAppConfig')
+TEduIDBaseAppConfigSubclass = TypeVar("TEduIDBaseAppConfigSubclass", bound="EduIDBaseAppConfig")
 
 
 class EduidEnvironment(str, Enum):
-    dev = 'dev'
-    staging = 'staging'
-    production = 'production'
+    dev = "dev"
+    staging = "staging"
+    production = "production"
 
 
 class LoggingFilters(str, Enum):
     """Identifiers to coherently map elements in LocalContext.filters to filter classes in logging dictConfig."""
 
-    DEBUG_TRUE: str = 'require_debug_true'
-    DEBUG_FALSE: str = 'require_debug_false'
-    NAMES: str = 'app_filter'
-    SESSION_USER: str = 'user_filter'
+    DEBUG_TRUE: str = "require_debug_true"
+    DEBUG_FALSE: str = "require_debug_false"
+    NAMES: str = "app_filter"
+    SESSION_USER: str = "user_filter"
 
 
 class WorkerConfig(RootConfig):
@@ -136,7 +137,32 @@ class WorkerConfig(RootConfig):
     transaction_audit: bool = False
 
 
-class FlaskConfig(BaseModel):
+class CORSMixin(BaseModel):
+    cors_allow_headers: Union[str, List[str]] = "*"
+    cors_always_send: bool = True
+    cors_automatic_options: bool = True
+    cors_expose_headers: Optional[Union[str, List[str]]] = None
+    cors_intercept_exceptions: bool = True
+    cors_max_age: Optional[Union[timedelta, int, str]] = None
+    cors_methods: Union[str, List[str]] = ["GET", "HEAD", "POST", "OPTIONS", "PUT", "PATCH", "DELETE"]
+    # The origin(s) to allow requests from. An origin configured here that matches the value of the Origin header in a
+    # preflight OPTIONS request is returned as the value of the Access-Control-Allow-Origin response header.
+    cors_origins: Union[str, List[str], Pattern] = [r"^eduid.se$", r".*\.eduid\.se$"]
+    # The series of regular expression and (optionally) associated CORS options to be applied to the given resource
+    # path.
+    # If the value is a dictionary, it’s keys must be regular expressions matching resources, and the values must be
+    # another dictionary of configuration options, as described in this section.
+    # If the argument is a list, it is expected to be a list of regular expressions matching resources for which the
+    # app-wide configured options are applied.
+    # If the argument is a string, it is expected to be a regular expression matching resources for which the app-wide
+    # configured options are applied.
+    cors_resources: Union[Dict[Union[str, Pattern], CORSMixin], List[Union[str, Pattern]], Union[str, Pattern]] = r"/*"
+    cors_send_wildcard: bool = False
+    cors_supports_credentials: bool = True
+    cors_vary_header: bool = True
+
+
+class FlaskConfig(CORSMixin):
     """
     These are configuration keys used by Flask (and flask plugins) itself,
     with the default values provided by flask.
@@ -146,7 +172,7 @@ class FlaskConfig(BaseModel):
     # What environment the app is running in.
     # This is set by the FLASK_ENV environment variable and may not
     # behave as expected if set in code
-    env: str = 'production'
+    env: str = "production"
     testing: bool = False
     # explicitly enable or disable the propagation of exceptions.
     # If not set or explicitly set to None this is implicitly true if either
@@ -172,15 +198,15 @@ class FlaskConfig(BaseModel):
     trap_bad_request_errors: Optional[bool] = None
     secret_key: Optional[str] = None
     # the name of the session cookie
-    session_cookie_name: str = 'sessid'
+    session_cookie_name: str = "sessid"
     # Sets a cookie with legacy SameSite=None, the SameSite key and value is omitted
-    cookies_samesite_compat: list = Field(default=[('sessid', 'sessid_samesite_compat')])
+    cookies_samesite_compat: list = Field(default=[("sessid", "sessid_samesite_compat")])
     # the domain for the session cookie. If this is not set, the cookie will
     # be valid for all subdomains of SERVER_NAME.
     session_cookie_domain: Optional[str] = None
     # the path for the session cookie. If this is not set the cookie will be valid
     # for all of APPLICATION_ROOT or if that is not set for '/'.
-    session_cookie_path: str = '/'
+    session_cookie_path: str = "/"
     # controls if the cookie should be set with the httponly flag. Defaults to True
     session_cookie_httponly: bool = False
     # controls if the cookie should be set with the secure flag. Defaults to False
@@ -205,41 +231,24 @@ class FlaskConfig(BaseModel):
     server_name: Optional[str] = None
     # If the application does not occupy a whole domain or subdomain this can be set to the path where the application is
     # configured to live. This is for session cookie as path value. If domains are used, this should be None.
-    application_root: str = '/'
+    application_root: str = "/"
     # The URL scheme that should be used for URL generation if no URL scheme is
     # available. This defaults to http
-    preferred_url_scheme: str = 'http'
+    preferred_url_scheme: str = "http"
     # If set to a value in bytes, Flask will reject incoming requests with a
     # content length greater than this by returning a 413 status code.
     max_content_length: Optional[int] = None
-    # By default Flask serialize object to ascii-encoded JSON. If this is set to
-    # False Flask will not encode to ASCII and output strings as-is and return
-    # unicode strings. jsonfiy will automatically encode it in utf-8 then for
-    # transport for instance.
-    json_as_ascii: bool = True
-    # By default Flask will serialize JSON objects in a way that the keys are
-    # ordered. This is done in order to ensure that independent of the hash seed of
-    # the dictionary the return value will be consistent to not trash external HTTP
-    # caches. You can override the default behavior by changing this variable. This
-    # is not recommended but might give you a performance improvement on the cost of
-    # cachability.
-    json_sort_keys: bool = True
-    # If this is set to True (the default) jsonify responses will be pretty printed
-    # if they are not requested by an XMLHttpRequest object (controlled by the
-    # X-Requested-With header)
-    jsonify_prettyprint_regular: bool = False
-    jsonify_mimetype: str = 'application/json'
     templates_auto_reload: Optional[bool] = None
     explain_template_loading: bool = False
     max_cookie_size: int = 4093
-    babel_translation_directories: str = 'translations'
-    babel_default_locale: str = 'en'
-    babel_default_timezone: str = ''
-    babel_domain: str = ''
+    babel_translation_directories: str = "translations"
+    babel_default_locale: str = "en"
+    babel_default_timezone: str = ""
+    babel_domain: str = ""
     # the name of the logger
-    logger_name: str = ''
-    internal_signup_url: str = ''
-    sentry_dsn: str = ''
+    logger_name: str = ""
+    internal_signup_url: str = ""
+    sentry_dsn: str = ""
 
     def to_mapping(self) -> Mapping[str, Any]:
         return self.dict()
@@ -247,7 +256,7 @@ class FlaskConfig(BaseModel):
 
 class WebauthnConfigMixin2(BaseModel):
     fido2_rp_id: str  # 'eduid.se'
-    fido2_rp_name: str = 'eduID Sweden'
+    fido2_rp_name: str = "eduID Sweden"
 
 
 class MagicCookieMixin(BaseModel):
@@ -269,8 +278,8 @@ class LoggingConfigMixin(BaseModel):
     debug: bool = False
     # If this list contains anything, debug logging will only be performed for these users
     debug_eppns: Sequence[str] = Field(default=[])
-    log_format: str = '{asctime} | {levelname:7} | {hostname} | {eppn:11} | {name:35} | {module:10} | {message}'
-    log_level: str = 'INFO'
+    log_format: str = "{asctime} | {levelname:7} | {hostname} | {eppn:11} | {name:35} | {module:10} | {message}"
+    log_level: str = "INFO"
     log_filters: Sequence[LoggingFilters] = Field(default=[LoggingFilters.NAMES, LoggingFilters.SESSION_USER])
     logging_config: dict = Field(default={})
 
@@ -304,17 +313,17 @@ class AmConfigMixin(CeleryConfigMixin):
 class MailConfigMixin(CeleryConfigMixin):
     """Config used by MailRelay"""
 
-    mail_default_from: str = 'no-reply@eduid.se'
+    mail_default_from: str = "no-reply@eduid.se"
 
 
 class MsgConfigMixin(CeleryConfigMixin):
     """Config used by MsgRelay"""
 
-    eduid_site_name: str = 'eduID'
+    eduid_site_name: str = "eduID"
 
 
 class TouConfigMixin(BaseModel):
-    tou_version: str = '2016-v1'
+    tou_version: str = "2016-v1"
 
 
 class PasswordConfigMixin(BaseModel):
@@ -331,48 +340,48 @@ class Pysaml2SPConfigMixin(BaseModel):
     frontend_action_finish_url: Dict[str, str] = Field(default={})
 
     # Authn algorithms
-    authn_sign_alg: str = 'http://www.w3.org/2001/04/xmldsig-more#rsa-sha256'
-    authn_digest_alg: str = 'http://www.w3.org/2001/04/xmlenc#sha256'
+    authn_sign_alg: str = "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"
+    authn_digest_alg: str = "http://www.w3.org/2001/04/xmlenc#sha256"
 
     saml2_settings_module: str
-    safe_relay_domain: str = 'eduid.se'
+    safe_relay_domain: str = "eduid.se"
 
 
 class ProofingConfigMixin(BaseModel):
     # sweden connect
     trust_framework: TrustFramework = TrustFramework.SWECONN
-    required_loa: List[str] = Field(default=['loa3'])  # one of authentication_context_map below
+    required_loa: List[str] = Field(default=["loa3"])  # one of authentication_context_map below
     freja_idp: Optional[str] = None
 
     # eidas
     foreign_trust_framework: TrustFramework = TrustFramework.EIDAS
     foreign_required_loa: List[str] = Field(
-        default=['eidas-nf-low', 'eidas-nf-sub', 'eidas-nf-high']
+        default=["eidas-nf-low", "eidas-nf-sub", "eidas-nf-high"]
     )  # one of authentication_context_map below
     foreign_identity_idp: Optional[str] = None
 
     # identity proofing
-    nin_proofing_version: str = Field(default='2018v1')
-    foreign_eid_proofing_version: str = Field(default='2022v1')
+    nin_proofing_version: str = Field(default="2018v1")
+    foreign_eid_proofing_version: str = Field(default="2022v1")
 
     # security key proofing
     security_key_proofing_method: CredentialProofingMethod = Field(default=CredentialProofingMethod.SWAMID_AL2_MFA_HI)
-    security_key_proofing_version: str = Field(default='2018v1')
-    security_key_foreign_eid_proofing_version: str = Field(default='2022v1')
+    security_key_proofing_version: str = Field(default="2018v1")
+    security_key_foreign_eid_proofing_version: str = Field(default="2022v1")
 
     frontend_action_finish_url: Dict[str, str] = Field(default={})
 
 
 class EduIDBaseAppConfig(RootConfig, LoggingConfigMixin, StatsConfigMixin, RedisConfigMixin):
-    available_languages: Mapping[str, str] = Field(default={'en': 'English', 'sv': 'Svenska'})
+    available_languages: Mapping[str, str] = Field(default={"en": "English", "sv": "Svenska"})
     environment: EduidEnvironment = EduidEnvironment.production
-    flask: FlaskConfig = Field(default=FlaskConfig())
+    flask: FlaskConfig = Field(default_factory=FlaskConfig)
     mongo_uri: str
     # Allow list of URLs that do not need authentication. Unauthenticated requests
     # for these URLs will be served, rather than redirected to the authn service.
     # The list is a list of regex that are matched against the path of the
     # requested URL ex. ^/test$.
-    no_authn_urls: list = Field(default=['^/status/healthy$', '^/status/sanity-check$'])
+    no_authn_urls: list = Field(default=["^/status/healthy$", "^/status/sanity-check$"])
     status_cache_seconds: int = 10
     # All AuthnBaseApps need this to redirect not-logged-in requests to the authn service
     token_service_url: str

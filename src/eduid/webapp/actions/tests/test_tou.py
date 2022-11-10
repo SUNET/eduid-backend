@@ -36,6 +36,7 @@ import json
 from datetime import datetime, timedelta
 from typing import Any, Optional
 
+import pytest
 from bson import ObjectId
 from mock import patch
 
@@ -45,14 +46,14 @@ from eduid.webapp.actions.actions.tou import Plugin
 from eduid.webapp.actions.testing import ActionsTestCase, MockIdPContext
 from eduid.webapp.common.session import session
 
-__author__ = 'eperez'
+__author__ = "eperez"
 
 TOU_ACTION = {
-    '_id': ObjectId('234567890123456789012301'),
-    'eppn': 'hubba-bubba',
-    'action': 'tou',
-    'preference': 100,
-    'params': {'version': 'test-version'},
+    "_id": ObjectId("234567890123456789012301"),
+    "eppn": "hubba-bubba",
+    "action": "tou",
+    "preference": 100,
+    "params": {"version": "test-version"},
 }
 
 
@@ -67,15 +68,15 @@ def add_actions(idp_app: MockIdPContext, user: User, ticket: Any) -> None:
     stripped down version of eduid_idp.tou_action.add_actions
     """
     version = idp_app.config.tou_version
-    action = idp_app.actions_db.add_action(user.eppn, action_type='tou', preference=100, params={'version': version})
-    session.actions.current_plugin = 'tou'
+    action = idp_app.actions_db.add_action(user.eppn, action_type="tou", preference=100, params={"version": version})
+    session.actions.current_plugin = "tou"
     session.actions.current_action = action
     session.persist()
 
 
 class ToUActionPluginTests(ActionsTestCase):
     def setUp(self):
-        super(ToUActionPluginTests, self).setUp(am_settings={'ACTION_PLUGINS': ['tou']})
+        super(ToUActionPluginTests, self).setUp(am_settings={"ACTION_PLUGINS": ["tou"]})
         self.tou_db = self.app.tou_db
         self.reaccept_interval = 94608000  # seconds (3 years)
 
@@ -84,8 +85,8 @@ class ToUActionPluginTests(ActionsTestCase):
         super(ToUActionPluginTests, self).tearDown()
 
     def update_actions_config(self, config):
-        config['environment'] = 'dev'
-        config['action_plugins'] = ['tou']
+        config["environment"] = "dev"
+        config["action_plugins"] = ["tou"]
         return config
 
     def tou_accepted(self, user, version, created_ts=None, modified_ts=None):
@@ -95,7 +96,7 @@ class ToUActionPluginTests(ActionsTestCase):
         user.tou.add(
             ToUEvent(
                 version=version,
-                created_by='eduid_tou_plugin',
+                created_by="eduid_tou_plugin",
                 created_ts=created_ts,
                 modified_ts=modified_ts,
                 event_id=str(event_id),
@@ -114,26 +115,26 @@ class ToUActionPluginTests(ActionsTestCase):
         """
         Get data on the actions service when there is a ToU action pending.
         """
-        mock_idp_app = MockIdPContext(self.app.actions_db, tou_version='test-version')
-        with self.app.test_request_context('/get-actions'):
+        mock_idp_app = MockIdPContext(self.app.actions_db, tou_version="test-version")
+        with self.app.test_request_context("/get-actions"):
             add_actions(mock_idp_app, self.user, None)
             self.authenticate()
             response = self.app.dispatch_request()
             return json.loads(response)
 
-    def _get_config(self, tou_version: str = 'test-version'):
+    def _get_config(self, tou_version: str = "test-version"):
         """
         Get configuration for the actions front app when there is a pending ToU actions.
 
         :param tou_version: to control which tou version to look for
         """
         mock_idp_app = MockIdPContext(self.app.actions_db, tou_version=tou_version)
-        with self.app.test_request_context('/config'):
+        with self.app.test_request_context("/config"):
             assert self.user
             add_actions(mock_idp_app, self.user, None)
             self.authenticate()
             response = self.app.dispatch_request()
-            return json.loads(response.data.decode('utf-8'))
+            return json.loads(response.data.decode("utf-8"))
 
     def _post_tou_action(self, post_data: Optional[dict] = None):
         """
@@ -142,50 +143,51 @@ class ToUActionPluginTests(ActionsTestCase):
         :param post_data: to control the contents of the POSTed data.
         """
         with self.session_cookie_anon(self.browser) as client:
-            self.prepare(client, Plugin, 'tou', action_dict=TOU_ACTION)
+            self.prepare(client, Plugin, "tou", action_dict=TOU_ACTION)
             with self.app.test_request_context():
                 with client.session_transaction() as sess:
-                    data = {'accept': True, 'csrf_token': sess.get_csrf_token()}
+                    data = {"accept": True, "csrf_token": sess.get_csrf_token()}
                 if post_data is not None:
                     data.update(post_data)
-                return client.post('/post-action', data=json.dumps(data), content_type=self.content_type_json)
+                return client.post("/post-action", data=json.dumps(data), content_type=self.content_type_json)
 
     # actual tests
 
     def test_get_tou_action(self):
         data = self._get_tou_action()
-        self.assertEqual(data['action'], True)
-        self.assertEqual('http://example.com/bundles/eduid_action.tou-bundle.dev.js', data['url'])
+        self.assertEqual(data["action"], True)
+        self.assertEqual("http://example.com/bundles/eduid_action.tou-bundle.dev.js", data["url"])
 
+    @pytest.mark.skip(reason="there is not longer any tous in the config and the actions app is no longer used")
     def test_get_config(self):
         data = self._get_config()
-        self.assertEqual(data['payload']['tous']['sv'], 'test tou svenska')
+        self.assertEqual(data["payload"]["tous"]["sv"], "test tou svenska")
 
     def test_get_config_no_tous(self):
-        data = self._get_config(tou_version='not-existing-version')
-        self.assertEqual(data['payload']['message'], 'tou.no-tou')
+        data = self._get_config(tou_version="not-existing-version")
+        self.assertEqual(data["payload"]["message"], "tou.no-tou")
 
-    @patch('eduid.workers.am.tasks.update_attributes_keep_result.delay')
+    @patch("eduid.workers.am.tasks.update_attributes_keep_result.delay")
     def test_get_accept_tou(self, mock_request_user_sync):
         mock_request_user_sync.side_effect = self.mock_update_attributes
         #  verify the user hasn't previously accepted the test version
         user = self.app.central_userdb.get_user_by_eppn(self.user.eppn)
         self.assertFalse(
-            user.tou.has_accepted(TOU_ACTION['params']['version'], reaccept_interval=self.reaccept_interval)
+            user.tou.has_accepted(TOU_ACTION["params"]["version"], reaccept_interval=self.reaccept_interval)
         )
-        post_data = {'accept': True}
+        post_data = {"accept": True}
         response = self._post_tou_action(post_data)
         self.assertEqual(response.status_code, 200)
         response_data = json.loads(response.data)
-        self.assertEqual(response_data['payload']['message'], 'actions.action-completed')
+        self.assertEqual(response_data["payload"]["message"], "actions.action-completed")
 
         # verify the tou is now accepted in the main database
         user = self.app.central_userdb.get_user_by_eppn(self.user.eppn)
         self.assertTrue(
-            user.tou.has_accepted(TOU_ACTION['params']['version'], reaccept_interval=self.reaccept_interval)
+            user.tou.has_accepted(TOU_ACTION["params"]["version"], reaccept_interval=self.reaccept_interval)
         )
 
-    @patch('eduid.workers.am.tasks.update_attributes_keep_result.delay')
+    @patch("eduid.workers.am.tasks.update_attributes_keep_result.delay")
     def test_reaccept_tou_no_modified_ts(self, mock_request_user_sync):
         mock_request_user_sync.side_effect = self.mock_update_attributes
         #  verify the users previous ToU acceptance has expired
@@ -193,26 +195,26 @@ class ToUActionPluginTests(ActionsTestCase):
         user = self.app.central_userdb.get_user_by_eppn(self.user.eppn)
         four_years = timedelta(days=1460)
         four_years_ago = datetime.utcnow() - four_years
-        self.tou_accepted(user, TOU_ACTION['params']['version'], created_ts=four_years_ago, modified_ts=four_years_ago)
+        self.tou_accepted(user, TOU_ACTION["params"]["version"], created_ts=four_years_ago, modified_ts=four_years_ago)
         user = self.app.central_userdb.get_user_by_eppn(self.user.eppn)
 
         self.assertFalse(
-            user.tou.has_accepted(TOU_ACTION['params']['version'], reaccept_interval=self.reaccept_interval)
+            user.tou.has_accepted(TOU_ACTION["params"]["version"], reaccept_interval=self.reaccept_interval)
         )
 
-        post_data = {'accept': True}
+        post_data = {"accept": True}
         response = self._post_tou_action(post_data)
         self.assertEqual(response.status_code, 200)
         response_data = json.loads(response.data)
-        self.assertEqual(response_data['payload']['message'], 'actions.action-completed')
+        self.assertEqual(response_data["payload"]["message"], "actions.action-completed")
 
         # verify the tou is now accepted in the main database
         user = self.app.central_userdb.get_user_by_eppn(self.user.eppn)
         self.assertTrue(
-            user.tou.has_accepted(TOU_ACTION['params']['version'], reaccept_interval=self.reaccept_interval)
+            user.tou.has_accepted(TOU_ACTION["params"]["version"], reaccept_interval=self.reaccept_interval)
         )
 
-    @patch('eduid.workers.am.tasks.update_attributes_keep_result.delay')
+    @patch("eduid.workers.am.tasks.update_attributes_keep_result.delay")
     def test_reaccept_tou(self, mock_request_user_sync):
         mock_request_user_sync.side_effect = self.mock_update_attributes
         #  verify the users previous ToU acceptance has expired
@@ -221,36 +223,36 @@ class ToUActionPluginTests(ActionsTestCase):
         four_years = timedelta(days=1460)
         self.tou_accepted(
             user,
-            TOU_ACTION['params']['version'],
+            TOU_ACTION["params"]["version"],
             created_ts=datetime.utcnow() - four_years,
             modified_ts=datetime.utcnow() - four_years,
         )
         user = self.app.central_userdb.get_user_by_eppn(self.user.eppn)
 
         self.assertFalse(
-            user.tou.has_accepted(TOU_ACTION['params']['version'], reaccept_interval=self.reaccept_interval)
+            user.tou.has_accepted(TOU_ACTION["params"]["version"], reaccept_interval=self.reaccept_interval)
         )
 
-        post_data = {'accept': True}
+        post_data = {"accept": True}
         response = self._post_tou_action(post_data)
         self.assertEqual(response.status_code, 200)
         response_data = json.loads(response.data)
-        self.assertEqual(response_data['payload']['message'], 'actions.action-completed')
+        self.assertEqual(response_data["payload"]["message"], "actions.action-completed")
 
         # verify the tou is now accepted in the main database
         user = self.app.central_userdb.get_user_by_eppn(self.user.eppn)
         self.assertTrue(
-            user.tou.has_accepted(TOU_ACTION['params']['version'], reaccept_interval=self.reaccept_interval)
+            user.tou.has_accepted(TOU_ACTION["params"]["version"], reaccept_interval=self.reaccept_interval)
         )
 
     def test_get_not_accept_tou(self):
         with self.session_cookie_anon(self.browser) as client:
-            self.prepare(client, Plugin, 'tou', action_dict=TOU_ACTION)
+            self.prepare(client, Plugin, "tou", action_dict=TOU_ACTION)
             with self.app.test_request_context():
                 with client.session_transaction() as sess:
                     csrf_token = sess.get_csrf_token()
-                data = json.dumps({'accept': False, 'csrf_token': csrf_token})
-                response = client.post('/post-action', data=data, content_type=self.content_type_json)
+                data = json.dumps({"accept": False, "csrf_token": csrf_token})
+                response = client.post("/post-action", data=data, content_type=self.content_type_json)
                 self.assertEqual(response.status_code, 200)
                 data = json.loads(response.data)
-                self.assertEqual(data['payload']['message'], 'tou.must-accept')
+                self.assertEqual(data["payload"]["message"], "tou.must-accept")

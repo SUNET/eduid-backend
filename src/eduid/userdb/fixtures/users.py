@@ -46,10 +46,7 @@ from eduid.userdb.fixtures.email_addresses import (
     johnsmith_example_com_old,
     johnsmith_example_org,
 )
-from eduid.userdb.fixtures.identity import (
-    verified_eidas_identity,
-    verified_nin_identity,
-)
+from eduid.userdb.fixtures.identity import verified_eidas_identity, verified_nin_identity
 from eduid.userdb.fixtures.ladok import dashboard_ladok
 from eduid.userdb.fixtures.locked_identities import dashboard_locked_nin
 from eduid.userdb.fixtures.nins import dashboard_primary_nin, dashboard_verified_nin
@@ -67,7 +64,7 @@ from eduid.userdb.fixtures.tous import signup_2016_v1
 from eduid.userdb.identity import IdentityList
 from eduid.userdb.locked_identity import LockedIdentityList
 from eduid.userdb.mail import MailAddressList
-from eduid.userdb.meta import Meta, CleanedType
+from eduid.userdb.meta import CleanedType, Meta
 from eduid.userdb.nin import NinList
 from eduid.userdb.phone import PhoneNumberList
 from eduid.userdb.signup.user import SignupUser
@@ -85,18 +82,10 @@ mocked_user_standard = User(
     language="en",
     entitlements=["urn:mace:eduid.se:role:admin", "urn:mace:eduid.se:role:student"],
     phone_numbers=PhoneNumberList(
-        elements=[
-            dashboard_primary_phone,
-            dashboard_verified_phone,
-            dashboard_unverified_phone,
-        ]
+        elements=[dashboard_primary_phone, dashboard_verified_phone, dashboard_unverified_phone]
     ),
     mail_addresses=MailAddressList(
-        elements=[
-            johnsmith_example_com,
-            johnsmith2_example_com_old,
-            johnsmith3_example_com_unverified,
-        ]
+        elements=[johnsmith_example_com, johnsmith2_example_com_old, johnsmith3_example_com_unverified]
     ),
     credentials=CredentialList(elements=[signup_password]),
     orcid=dashboard_orcid,

@@ -38,7 +38,7 @@ from flask import Blueprint, Response, current_app, jsonify
 
 from eduid.webapp.common.api.checks import CheckResult
 
-status_views = Blueprint('status', __name__, url_prefix='/status')
+status_views = Blueprint("status", __name__, url_prefix="/status")
 
 
 @dataclass
@@ -57,11 +57,11 @@ def cached_json_response(key: str, data: Optional[dict] = None) -> Optional[Resp
         if now < SIMPLE_CACHE[key].expire_time:
             if current_app.debug:
                 current_app.logger.debug(
-                    f'Returned cached response for {key}' f' {now} < {SIMPLE_CACHE[key].expire_time}'
+                    f"Returned cached response for {key}" f" {now} < {SIMPLE_CACHE[key].expire_time}"
                 )
             response = jsonify(SIMPLE_CACHE[key].data)
-            response.headers.add('Expires', SIMPLE_CACHE[key].expire_time.strftime("%a, %d %b %Y %H:%M:%S UTC"))
-            response.headers.add('Cache-Control', f'public,max-age={cache_for_seconds}')
+            response.headers.add("Expires", SIMPLE_CACHE[key].expire_time.strftime("%a, %d %b %Y %H:%M:%S UTC"))
+            response.headers.add("Cache-Control", f"public,max-age={cache_for_seconds}")
             return response
 
     # Allow for the function to be called with no data so we can check for a cached response
@@ -71,35 +71,35 @@ def cached_json_response(key: str, data: Optional[dict] = None) -> Optional[Resp
 
     expires = now + timedelta(seconds=cache_for_seconds)
     response = jsonify(data)
-    response.headers.add('Expires', expires.strftime("%a, %d %b %Y %H:%M:%S UTC"))
-    response.headers.add('Cache-Control', f'public,max-age={cache_for_seconds}')
+    response.headers.add("Expires", expires.strftime("%a, %d %b %Y %H:%M:%S UTC"))
+    response.headers.add("Cache-Control", f"public,max-age={cache_for_seconds}")
     SIMPLE_CACHE[key] = SimpleCacheItem(expire_time=expires, data=data)
     if current_app.debug:
-        current_app.logger.debug(f'Cached response for {key} until {expires}')
+        current_app.logger.debug(f"Cached response for {key} until {expires}")
     return response
 
 
-@status_views.route('/healthy', methods=['GET'])
+@status_views.route("/healthy", methods=["GET"])
 def health_check():
-    response = cached_json_response('health_check')
+    response = cached_json_response("health_check")
     if response:
         return response
 
     res: CheckResult = current_app.run_health_checks()
     # Value of status crafted for grepabilty, trailing underscore intentional
     if res.healthy is True:
-        res.status = f'STATUS_OK_{current_app.name}_'
-        res.reason = 'Databases and task queues tested OK'
+        res.status = f"STATUS_OK_{current_app.name}_"
+        res.reason = "Databases and task queues tested OK"
     else:
-        res.status = f'STATUS_FAIL_{current_app.name}_'
+        res.status = f"STATUS_FAIL_{current_app.name}_"
 
-    return cached_json_response('health_check', asdict(res))
+    return cached_json_response("health_check", asdict(res))
 
 
-@status_views.route('/sanity-check', methods=['GET'])
+@status_views.route("/sanity-check", methods=["GET"])
 def sanity_check():
-    response = cached_json_response('sanity_check')
+    response = cached_json_response("sanity_check")
     if response:
         return response
     # TODO: Do checks here
-    return cached_json_response('sanity_check', {})
+    return cached_json_response("sanity_check", {})

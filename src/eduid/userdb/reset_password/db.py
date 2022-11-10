@@ -31,8 +31,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 import logging
-from datetime import datetime
-from typing import Any, Dict, Mapping, Optional, TypeVar, Union
+from typing import Any, Dict, Mapping, Optional, Union
 
 from eduid.userdb.db import BaseDB
 from eduid.userdb.exceptions import DocumentOutOfSync, MultipleDocumentsReturned
@@ -42,7 +41,6 @@ from eduid.userdb.reset_password.state import (
     ResetPasswordState,
 )
 from eduid.userdb.reset_password.user import ResetPasswordUser
-from eduid.userdb.user import User
 from eduid.userdb.userdb import UserDB
 from eduid.userdb.util import utc_now
 
@@ -50,7 +48,7 @@ logger = logging.getLogger(__name__)
 
 
 class ResetPasswordUserDB(UserDB[ResetPasswordUser]):
-    def __init__(self, db_uri: str, db_name: str = 'eduid_reset_password', collection: str = 'profiles'):
+    def __init__(self, db_uri: str, db_name: str = "eduid_reset_password", collection: str = "profiles"):
         super().__init__(db_uri, db_name, collection=collection)
 
     @classmethod
@@ -59,7 +57,7 @@ class ResetPasswordUserDB(UserDB[ResetPasswordUser]):
 
 
 class ResetPasswordStateDB(BaseDB):
-    def __init__(self, db_uri: str, db_name: str = 'eduid_reset_password', collection: str = 'password_reset_data'):
+    def __init__(self, db_uri: str, db_name: str = "eduid_reset_password", collection: str = "password_reset_data"):
         super(ResetPasswordStateDB, self).__init__(db_uri, db_name, collection=collection)
 
     def get_state_by_email_code(
@@ -76,14 +74,14 @@ class ResetPasswordStateDB(BaseDB):
         :raise self.MultipleDocumentsReturned: More than one document matches
                                                the search criteria
         """
-        spec = {'email_code.code': email_code}
+        spec = {"email_code.code": email_code}
         states = list(self._get_documents_by_filter(spec))
 
         if len(states) == 0:
             return None
 
         if len(states) > 1:
-            raise MultipleDocumentsReturned(f'Multiple matching users for filter {filter}')
+            raise MultipleDocumentsReturned(f"Multiple matching users for filter {filter}")
 
         return self.init_state(states[0])
 
@@ -97,7 +95,7 @@ class ResetPasswordStateDB(BaseDB):
 
         :raise self.MultipleDocumentsReturned: More than one document matches the search criteria
         """
-        state = self._get_document_by_attr('eduPersonPrincipalName', eppn)
+        state = self._get_document_by_attr("eduPersonPrincipalName", eppn)
         if state:
             return self.init_state(state)
         return None
@@ -105,9 +103,9 @@ class ResetPasswordStateDB(BaseDB):
     @staticmethod
     def init_state(state_mapping: Mapping) -> Optional[Union[ResetPasswordEmailState, ResetPasswordEmailAndPhoneState]]:
         state = dict(state_mapping)
-        if state.get('method') == 'email':
+        if state.get("method") == "email":
             return ResetPasswordEmailState.from_dict(data=state)
-        elif state.get('method') == 'email_and_phone':
+        elif state.get("method") == "email_and_phone":
             return ResetPasswordEmailAndPhoneState.from_dict(data=state)
         return None
 
@@ -131,24 +129,24 @@ class ResetPasswordStateDB(BaseDB):
             logging.debug(f"{self} Inserted new state {state} into {self._coll_name}): {result.inserted_id})")
 
         else:
-            test_doc: Dict[str, Any] = {'eduPersonPrincipalName': state.eppn}
+            test_doc: Dict[str, Any] = {"eduPersonPrincipalName": state.eppn}
             if check_sync:
-                test_doc['modified_ts'] = modified
+                test_doc["modified_ts"] = modified
             result = self._coll.replace_one(test_doc, state.to_dict(), upsert=(not check_sync))
             if check_sync and result.matched_count == 0:
                 db_ts = None
-                db_state = self._coll.find_one({'eppn': state.eppn})
+                db_state = self._coll.find_one({"eppn": state.eppn})
                 if db_state:
-                    db_ts = db_state['modified_ts']
+                    db_ts = db_state["modified_ts"]
                 logging.debug(
-                    f'{self} FAILED Updating state {state} (ts {modified}) in {self._coll_name}). ts in db = {db_ts}'
+                    f"{self} FAILED Updating state {state} (ts {modified}) in {self._coll_name}). ts in db = {db_ts}"
                 )
                 raise DocumentOutOfSync("Stale state object can't be saved")
 
-            logging.debug(f'{self} Updated state {state} (ts {modified}) in {self._coll_name}): {result}')
+            logging.debug(f"{self} Updated state {state} (ts {modified}) in {self._coll_name}): {result}")
 
     def remove_state(self, state: ResetPasswordState):
         """
         :param state: ResetPasswordState object
         """
-        self.remove_document({'eduPersonPrincipalName': state.eppn})
+        self.remove_document({"eduPersonPrincipalName": state.eppn})

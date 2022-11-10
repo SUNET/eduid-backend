@@ -9,15 +9,15 @@ from eduid.webapp.common.api.utils import get_user
 from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.schemas import ErrorInfoResponseSchema
 
-error_info_views = Blueprint('error_info', __name__, url_prefix='')
+error_info_views = Blueprint("error_info", __name__, url_prefix="")
 
 
-@error_info_views.route('/error_info', methods=['POST'])
+@error_info_views.route("/error_info", methods=["POST"])
 @UnmarshalWith(EmptyRequest)
 @MarshalWith(ErrorInfoResponseSchema)
 def error_info() -> FluxData:
-    current_app.logger.debug('\n\n')
-    current_app.logger.debug(f'--- Error info ---')
+    current_app.logger.debug("\n\n")
+    current_app.logger.debug(f"--- Error info ---")
 
     try:
         user = get_user()
@@ -25,7 +25,7 @@ def error_info() -> FluxData:
         user = None
 
     if not user:
-        return success_response(payload={'logged_in': False})
+        return success_response(payload={"logged_in": False})
 
     has_locked_nin = bool(user.locked_identity.nin)
     has_verified_nin = bool(user.identities.nin and user.identities.nin.is_verified)
@@ -33,11 +33,11 @@ def error_info() -> FluxData:
     has_mfa = bool(fido_credentials)
 
     payload = {
-        'eppn': user.eppn,
-        'has_locked_nin': has_locked_nin,
-        'has_mfa': has_mfa,
-        'has_verified_nin': has_verified_nin,
-        'logged_in': True,
+        "eppn": user.eppn,
+        "has_locked_nin": has_locked_nin,
+        "has_mfa": has_mfa,
+        "has_verified_nin": has_verified_nin,
+        "logged_in": True,
     }
 
     return success_response(payload=payload)

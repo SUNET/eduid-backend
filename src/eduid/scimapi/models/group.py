@@ -2,7 +2,7 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import Field
 
-from eduid.scimapi.models.scimbase import (
+from eduid.common.models.scim_base import (
     BaseCreateRequest,
     BaseResponse,
     BaseUpdateRequest,
@@ -11,7 +11,7 @@ from eduid.scimapi.models.scimbase import (
     SubResource,
 )
 
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
 
 class NutidGroupExtensionV1(EduidBaseModel):
@@ -23,7 +23,7 @@ class GroupMember(SubResource):
 
 
 class Group(EduidBaseModel):
-    display_name: str = Field(alias='displayName')
+    display_name: str = Field(alias="displayName")
     members: List[GroupMember] = Field(default_factory=list)
     nutid_group_v1: Optional[NutidGroupExtensionV1] = Field(
         default_factory=NutidGroupExtensionV1, alias=SCIMSchema.NUTID_GROUP_V1.value

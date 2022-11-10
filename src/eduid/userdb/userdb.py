@@ -29,23 +29,23 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-from asyncio.constants import SENDFILE_FALLBACK_READBUFFER_SIZE
 import logging
 from abc import ABC
-from typing import Any, Generic, List, Mapping, Optional, TypeVar, Union, Dict
+from typing import Any, Dict, Generic, List, Mapping, Optional, TypeVar, Union
 
 from bson import ObjectId
 from bson.errors import InvalidId
 from pymongo import ReturnDocument
 
-import eduid.userdb.exceptions
 from eduid.userdb.db import BaseDB
 from eduid.userdb.exceptions import (
     DocumentDoesNotExist,
+    EduIDDBError,
     EduIDUserDBError,
     MultipleDocumentsReturned,
     MultipleUsersReturned,
     UserDoesNotExist,
+    UserOutOfSync,
 )
 from eduid.userdb.identity import IdentityType
 from eduid.userdb.meta import CleanedType
@@ -103,16 +103,18 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
                 return None
         return self._get_user_by_attr("_id", user_id)
 
-    def _get_users_by_aggregate(self, match: dict[str, Any], sort: dict[str, Any], limit: int) -> List[User]:
+    def _get_users_by_aggregate(self, match: dict[str, Any], sort: dict[str, Any], limit: int) -> List[UserVar]:
         users = self._get_documents_by_aggregate(match=match, sort=sort, limit=limit)
         return [self.user_from_dict(data=user) for user in users]
 
-    def get_uncleaned_users(self, cleaned_type: CleanedType, limit: int) -> List[User]:
+    def get_uncleaned_verified_users(
+        self, cleaned_type: CleanedType, identity_type: IdentityType, limit: int
+    ) -> List[UserVar]:
         match = {
             "identities": {
                 "$elemMatch": {
                     "verified": True,
-                    "identity_type": IdentityType.NIN.value,
+                    "identity_type": identity_type.value,
                 }
             }
         }
@@ -122,27 +124,17 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
         return self._get_users_by_aggregate(match=match, sort=sort, limit=limit)
 
     def get_verified_users_count(self, identity_type: Optional[IdentityType] = None) -> int:
-        if identity_type is None:
-            return self.db_count(
-                spec={
-                    "identities": {
-                        "$elemMatch": {
-                            "verified": True,
-                        }
-                    }
+        spec: Dict[str, Any]
+        spec = {
+            "identities": {
+                "$elemMatch": {
+                    "verified": True,
                 }
-            )
-        else:
-            return self.db_count(
-                spec={
-                    "identities": {
-                        "$elemMatch": {
-                            "verified": True,
-                            "identity_type": identity_type.value,
-                        }
-                    }
-                }
-            )
+            }
+        }
+        if identity_type is not None:
+            spec["identities"]["$elemMatch"]["identity_type"] = identity_type.value
+        return self.db_count(spec=spec)
 
     def _get_user_by_filter(self, filter: Mapping[str, Any]) -> List[UserVar]:
         """
@@ -172,7 +164,7 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
     def get_users_by_mail(self, email: str, include_unconfirmed: bool = False) -> List[UserVar]:
         """
         Return the user object in the central eduID UserDB having
-        an email address matching `email'. Unless include_unconfirmed=True, the
+        an email address matching 'email'. Unless include_unconfirmed=True, the
         email address has to be confirmed/verified.
 
         :param email: The email address to look for
@@ -199,7 +191,7 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
     def get_users_by_nin(self, nin: str, include_unconfirmed: bool = False) -> List[UserVar]:
         """
         Return the user object in the central eduID UserDB having
-        a NIN matching `nin'. Unless include_unconfirmed=True, the
+        a NIN matching 'nin'. Unless include_unconfirmed=True, the
         NIN has to be confirmed/verified.
 
         :param nin: The nin to look for
@@ -208,22 +200,14 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
         :return: List of User instances
         """
 
-        match = {
-            "identity_type": IdentityType.NIN.value,
-            "number": nin,
-            "verified": True,
-        }
+        match = {"identity_type": IdentityType.NIN.value, "number": nin, "verified": True}
         if include_unconfirmed:
             del match["verified"]
         _filter = {"identities": {"$elemMatch": match}}
         return self._get_user_by_filter(_filter)
 
     def get_users_by_identity(
-        self,
-        identity_type: IdentityType,
-        key: str,
-        value: str,
-        include_unconfirmed: bool = False,
+        self, identity_type: IdentityType, key: str, value: str, include_unconfirmed: bool = False
     ):
         match = {"identity_type": identity_type.value, key: value, "verified": True}
         if include_unconfirmed:
@@ -243,7 +227,7 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
     def get_users_by_phone(self, phone: str, include_unconfirmed: bool = False) -> List[UserVar]:
         """
         Return the user object in the central eduID UserDB having
-        a phone number matching `phone'. Unless include_unconfirmed=True, the
+        a phone number matching 'phone'. Unless include_unconfirmed=True, the
         phone number has to be confirmed/verified.
 
         :param phone: The phone to look for
@@ -338,7 +322,7 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
                 logger.debug(
                     f"{self} FAILED Updating user {user} (ts {modified}) in {self._coll_name}, ts in db = {db_ts}"
                 )
-                raise eduid.userdb.exceptions.UserOutOfSync("Stale user object can't be saved")
+                raise UserOutOfSync("Stale user object can't be saved")
             logger.debug(f"{self} Updated user {user} (ts {modified}) in {self._coll_name}: {result}")
             import pprint
 
@@ -388,23 +372,14 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
             logger.debug(f"Tried to update/insert document: {query_filter} with operations: {operations}")
             error_msg = f"Invalid update operator: {bad_operators}"
             logger.error(error_msg)
-            raise eduid.userdb.exceptions.EduIDDBError(error_msg)
+            raise EduIDDBError(error_msg)
 
         updated_doc = self._coll.find_one_and_update(
-            filter=query_filter,
-            update=operations,
-            return_document=ReturnDocument.AFTER,
-            upsert=True,
+            filter=query_filter, update=operations, return_document=ReturnDocument.AFTER, upsert=True
         )
         logger.debug(f"Updated/inserted document: {updated_doc}")
 
-    def replace_user(
-        self,
-        eppn: str,
-        obj_id: ObjectId,
-        old_version: ObjectId,
-        update_obj: Mapping,
-    ):
+    def replace_user(self, eppn: str, obj_id: ObjectId, old_version: ObjectId, update_obj: Mapping):
         logger.debug(f"replacing user {eppn} in {repr(self._coll_name)}")
         search_filter = {
             "_id": obj_id,
@@ -423,3 +398,118 @@ class AmDB(UserDB[User]):
     @classmethod
     def user_from_dict(cls, data: Mapping[str, Any]) -> User:
         return User.from_dict(data)
+
+    def save(self, user: UserVar, check_sync: bool = True) -> bool:
+        """
+        :param user: User object
+        :param check_sync: Ensure the user hasn't been updated in the database since it was loaded
+        """
+        if not isinstance(user, User):
+            raise EduIDUserDBError(f"user is not a subclass of User")
+
+        if not isinstance(user.user_id, ObjectId):
+            raise AssertionError(f"user.user_id is not of type {ObjectId}")
+
+        search_filter = {"_id": user.user_id}
+        db_user = self._coll.find_one(search_filter)
+
+        if db_user is None:
+            result = self._coll.replace_one(search_filter, user.to_dict(), upsert=True)
+            logger.debug(f"{self} Inserted new user {user} into {self._coll_name}: {repr(result)})")
+            import pprint
+
+            extra_debug = pprint.pformat(user.to_dict(), width=120)
+            logger.debug(f"Extra debug:\n{extra_debug}")
+        else:
+            meta_version = user.meta.version
+
+            time_now = utc_now()
+
+            user.modified_ts = time_now
+            user.meta.modified_ts = time_now
+            user.meta.new_version()
+
+            if db_user.get("meta", {}).get("version") is None:
+                # if the user has no version, it is a legacy user, and we need to update it
+                check_sync = False
+
+            if check_sync:
+                search_filter["meta.version"] = meta_version
+            result = self._coll.replace_one(search_filter, user.to_dict(), upsert=(not check_sync))
+            if check_sync and result.modified_count == 0:
+                db_meta_version = None
+                if "version" in db_user["meta"]:
+                    db_meta_version = db_user["meta"]["version"]
+                logger.debug(
+                    f"{self} FAILED Updating user {user} (meta_version: {meta_version}) in {self._coll_name}, {db_meta_version}"
+                )
+                raise UserOutOfSync("Stale user object can't be saved")
+            logger.debug(f"{self} Updated user {user} (meta_version: {meta_version}) in {self._coll_name}: {result}")
+            import pprint
+
+            extra_debug = pprint.pformat(user.to_dict(), width=120)
+            extra_debug_logger.debug(f"Extra debug:\n{extra_debug}")
+        return result.acknowledged
+
+    def old_save(self, user: User, check_sync: bool = True) -> bool:
+        return super().save(user, check_sync)
+
+    def unverify_mail_aliases(self, user_id: ObjectId, mail_aliases: Optional[List[Dict[str, Any]]]) -> int:
+        count = 0
+        if mail_aliases is None:
+            logger.debug(f"No mailAliases to check duplicates against for user {user_id}.")
+            return count
+        # Get the verified mail addresses from attributes
+        verified_mail_aliases = [alias["email"] for alias in mail_aliases if alias.get("verified") is True]
+        for email in verified_mail_aliases:
+            try:
+                for user in self.get_users_by_mail(email):
+                    if user.user_id != user_id:
+                        logger.debug(f"Removing mail address {email} from user {user}")
+                        logger.debug(f"Old user mail aliases BEFORE: {user.mail_addresses.to_list()}")
+                        if user.mail_addresses.primary and user.mail_addresses.primary.email == email:
+                            # Promote some other verified e-mail address to primary
+                            for address in user.mail_addresses.to_list():
+                                if address.is_verified and address.email != email:
+                                    user.mail_addresses.set_primary(address.key)
+                                    break
+                        old_user_mail_address = user.mail_addresses.find(email)
+                        if old_user_mail_address is not None:
+                            old_user_mail_address.is_primary = False
+                            old_user_mail_address.is_verified = False
+                        count += 1
+                        logger.debug(f"Old user mail aliases AFTER: {user.mail_addresses.to_list()}")
+                        self.old_save(user)
+            except DocumentDoesNotExist:
+                pass
+        return count
+
+    def unverify_phones(self, user_id: ObjectId, phones: List[Dict[str, Any]]) -> int:
+        count = 0
+        if phones is None:
+            logger.debug(f"No phones to check duplicates against for user {user_id}.")
+            return count
+        # Get the verified phone numbers from attributes
+        verified_phone_numbers = [phone["number"] for phone in phones if phone.get("verified") is True]
+        for number in verified_phone_numbers:
+            try:
+                for user in self.get_users_by_phone(number):
+                    if user.user_id != user_id:
+                        logger.debug(f"Removing phone number {number} from user {user}")
+                        logger.debug(f"Old user phone numbers BEFORE: {user.phone_numbers.to_list()}.")
+                        if user.phone_numbers.primary and user.phone_numbers.primary.number == number:
+                            # Promote some other verified phone number to primary
+                            for phone in user.phone_numbers.verified:
+                                if phone.number != number:
+                                    user.phone_numbers.set_primary(phone.key)
+                                    break
+                        old_user_phone_number = user.phone_numbers.find(number)
+                        if old_user_phone_number is not None:
+                            old_user_phone_number.is_primary = False
+                            old_user_phone_number.is_verified = False
+                        count += 1
+                        logger.debug(f"Old user phone numbers AFTER: {user.phone_numbers.to_list()}.")
+                        self.old_save(user)
+            except DocumentDoesNotExist:
+                pass
+        return count

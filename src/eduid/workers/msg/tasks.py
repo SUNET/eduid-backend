@@ -25,8 +25,8 @@ from eduid.workers.msg.utils import (
     navet_get_relations,
 )
 
-TRANSACTION_AUDIT_DB = 'eduid_msg'
-TRANSACTION_AUDIT_COLLECTION = 'transaction_audit'
+TRANSACTION_AUDIT_DB = "eduid_msg"
+TRANSACTION_AUDIT_COLLECTION = "transaction_audit"
 
 
 logger = get_task_logger(__name__)
@@ -79,7 +79,7 @@ class MessageSender(Task):
         db_uri = MsgCelerySingleton.worker_config.mongo_uri
         db_name = MsgCelerySingleton.worker_config.mongo_dbname
         if db_uri is None:
-            raise ValueError('db_uri not supplied')
+            raise ValueError("db_uri not supplied")
 
         global _CACHE
         if cache_name not in _CACHE:
@@ -95,7 +95,7 @@ class MessageSender(Task):
     def on_failure(self, exc, task_id, args, kwargs, einfo):
         # Try to reload the db on connection failures (mongodb has probably switched master)
         if isinstance(exc, ConnectionError):
-            logger.error('Task failed with db exception ConnectionError. Reloading db.')
+            logger.error("Task failed with db exception ConnectionError. Reloading db.")
             self.reload_db()
 
     @TransactionAudit()
@@ -133,21 +133,21 @@ class MessageSender(Task):
                 f"\nType: {message_type}\nReference: {reference}\nRecipient: {recipient}"
                 f"\nLang: {language}\nSubject: {subject}\nMessage:\n {msg}"
             )
-            return 'devel_mode'
+            return "devel_mode"
 
-        if message_type == 'sms':
+        if message_type == "sms":
             logger.debug(f"Sending SMS to {recipient} using template {template} and language {language}")
             try:
-                msg_bytes = msg.encode('utf-8')
+                msg_bytes = msg.encode("utf-8")
                 status = self.sms.send(msg_bytes, MsgCelerySingleton.worker_config.sms_sender, recipient, prio=2)
             except Exception as e:  # XXX: smscom only raises Exception right now
-                logger.error(f'SMS task failed: {e}')
+                logger.error(f"SMS task failed: {e}")
                 raise e
         else:
-            logger.error(f'Unknown message type: {message_type}')
-            raise NotImplementedError(f'message_type {message_type} is not implemented')
+            logger.error(f"Unknown message type: {message_type}")
+            raise NotImplementedError(f"message_type {message_type} is not implemented")
 
-        logger.debug(f'send_message result: {status}')
+        logger.debug(f"send_message result: {status}")
         return status
 
     def get_postal_address(self, identity_number: str) -> Optional[OrderedDict]:
@@ -173,16 +173,12 @@ class MessageSender(Task):
         result = OrderedDict(
             [
                 (
-                    u'Name',
-                    OrderedDict(
-                        [(u'GivenNameMarking', u'20'), (u'GivenName', u'Testaren Test'), (u'Surname', u'Testsson')]
-                    ),
+                    "Name",
+                    OrderedDict([("GivenNameMarking", "20"), ("GivenName", "Testaren Test"), ("Surname", "Testsson")]),
                 ),
                 (
-                    u'OfficialAddress',
-                    OrderedDict(
-                        [(u'Address2', u'\xd6RGATAN 79 LGH 10'), (u'PostalCode', u'12345'), (u'City', u'LANDET')]
-                    ),
+                    "OfficialAddress",
+                    OrderedDict([("Address2", "\xd6RGATAN 79 LGH 10"), ("PostalCode", "12345"), ("City", "LANDET")]),
                 ),
             ]
         )
@@ -211,24 +207,24 @@ class MessageSender(Task):
         result = OrderedDict(
             [
                 (
-                    u'Relations',
+                    "Relations",
                     {
-                        u'Relation': [
+                        "Relation": [
                             {
-                                u'RelationType': u'VF',
-                                u'RelationId': {u'NationalIdentityNumber': u'200202025678'},
-                                u'RelationStartDate': u'20020202',
+                                "RelationType": "VF",
+                                "RelationId": {"NationalIdentityNumber": "200202025678"},
+                                "RelationStartDate": "20020202",
                             },
                             {
-                                u'RelationType': u'VF',
-                                u'RelationId': {u'NationalIdentityNumber': u'200101014567'},
-                                u'RelationStartDate': u'20010101',
+                                "RelationType": "VF",
+                                "RelationId": {"NationalIdentityNumber": "200101014567"},
+                                "RelationStartDate": "20010101",
                             },
-                            {u'RelationType': u'FA', u'RelationId': {u'NationalIdentityNumber': u'194004048989'}},
-                            {u'RelationType': u'MO', u'RelationId': {u'NationalIdentityNumber': u'195010106543'}},
-                            {u'RelationType': u'B', u'RelationId': {u'NationalIdentityNumber': u'200202025678'}},
-                            {u'RelationType': u'B', u'RelationId': {u'NationalIdentityNumber': u'200101014567'}},
-                            {u'RelationType': u'M', u'RelationId': {u'NationalIdentityNumber': u'197512125432'}},
+                            {"RelationType": "FA", "RelationId": {"NationalIdentityNumber": "194004048989"}},
+                            {"RelationType": "MO", "RelationId": {"NationalIdentityNumber": "195010106543"}},
+                            {"RelationType": "B", "RelationId": {"NationalIdentityNumber": "200202025678"}},
+                            {"RelationType": "B", "RelationId": {"NationalIdentityNumber": "200101014567"}},
+                            {"RelationType": "M", "RelationId": {"NationalIdentityNumber": "197512125432"}},
                         ]
                     },
                 )
@@ -251,31 +247,31 @@ class MessageSender(Task):
         """
         result = OrderedDict(
             {
-                'CaseInformation': {'lastChanged': '20170904141659'},
-                'Person': {
-                    'PersonId': {'NationalIdentityNumber': '197609272393'},
-                    'ReferenceNationalIdentityNumber': '',
+                "CaseInformation": {"lastChanged": "20170904141659"},
+                "Person": {
+                    "PersonId": {"NationalIdentityNumber": "197609272393"},
+                    "ReferenceNationalIdentityNumber": "",
                     "DeregistrationInformation": {},
-                    'Name': {'GivenNameMarking': '20', 'GivenName': 'Testaren Test', 'Surname': 'Testsson'},
-                    'PostalAddresses': {
-                        'OfficialAddress': {'Address2': 'ÖRGATAN 79 LGH 10', 'PostalCode': '12345', 'City': 'LANDET'}
+                    "Name": {"GivenNameMarking": "20", "GivenName": "Testaren Test", "Surname": "Testsson"},
+                    "PostalAddresses": {
+                        "OfficialAddress": {"Address2": "ÖRGATAN 79 LGH 10", "PostalCode": "12345", "City": "LANDET"}
                     },
-                    'Relations': [
+                    "Relations": [
                         {
-                            'RelationType': 'VF',
-                            'RelationId': {'NationalIdentityNumber': '200202025678'},
-                            'RelationStartDate': '20020202',
+                            "RelationType": "VF",
+                            "RelationId": {"NationalIdentityNumber": "200202025678"},
+                            "RelationStartDate": "20020202",
                         },
                         {
-                            'RelationType': 'VF',
-                            'RelationId': {'NationalIdentityNumber': '200101014567'},
-                            'RelationStartDate': '20010101',
+                            "RelationType": "VF",
+                            "RelationId": {"NationalIdentityNumber": "200101014567"},
+                            "RelationStartDate": "20010101",
                         },
-                        {'RelationType': 'FA', 'RelationId': {'NationalIdentityNumber': '194004048989'}},
-                        {'RelationType': 'MO', 'RelationId': {'NationalIdentityNumber': '195010106543'}},
-                        {'RelationType': 'B', 'RelationId': {'NationalIdentityNumber': '200202025678'}},
-                        {'RelationType': 'B', 'RelationId': {'NationalIdentityNumber': '200101014567'}},
-                        {'RelationType': 'M', 'RelationId': {'NationalIdentityNumber': '197512125432'}},
+                        {"RelationType": "FA", "RelationId": {"NationalIdentityNumber": "194004048989"}},
+                        {"RelationType": "MO", "RelationId": {"NationalIdentityNumber": "195010106543"}},
+                        {"RelationType": "B", "RelationId": {"NationalIdentityNumber": "200202025678"}},
+                        {"RelationType": "B", "RelationId": {"NationalIdentityNumber": "200101014567"}},
+                        {"RelationType": "M", "RelationId": {"NationalIdentityNumber": "197512125432"}},
                     ],
                 },
             }
@@ -290,33 +286,33 @@ class MessageSender(Task):
         :param identity_number: Swedish national identity number
         :return: Loaded JSON
         """
-        json_data = self.cache('navet_cache').get_cache_item(identity_number)
+        json_data = self.cache("navet_cache").get_cache_item(identity_number)
         if json_data is None:
-            post_data = json.dumps({'identity_number': identity_number})
+            post_data = json.dumps({"identity_number": identity_number})
             response = self.navet_api.personpost.navetnotification.POST(data=post_data)
             if response.status_code != 200:
                 raise NavetAPIException(repr(response))
             json_data = response.json()
-            if not json_data.get('PopulationItems', False):
-                logger.info('No PopulationItems returned')
-                logger.debug(f'for nin: {identity_number}')
+            if not json_data.get("PopulationItems", False):
+                logger.info("No PopulationItems returned")
+                logger.debug(f"for nin: {identity_number}")
                 return None
-            self.cache('navet_cache').add_cache_item(identity_number, json_data)
+            self.cache("navet_cache").add_cache_item(identity_number, json_data)
         return json_data
 
-    @deprecated('This function seems unused')
+    @deprecated("This function seems unused")
     def set_audit_log_postal_address(self, audit_reference: str) -> bool:
         from eduid.userdb import MongoDB
 
         conn = MongoDB(self.MONGODB_URI)
         db = conn.get_database(TRANSACTION_AUDIT_DB)
-        log_entry = db[TRANSACTION_AUDIT_COLLECTION].find_one({'data.audit_reference': audit_reference})
-        if log_entry and log_entry.get('data', {}).get('recipient', None):
-            result = get_postal_address(log_entry['data']['recipient'])
+        log_entry = db[TRANSACTION_AUDIT_COLLECTION].find_one({"data.audit_reference": audit_reference})
+        if log_entry and log_entry.get("data", {}).get("recipient", None):
+            result = get_postal_address(log_entry["data"]["recipient"])
             if result:
                 address_dict = dict(result)
-                log_entry['data']['navet_response'] = address_dict
-                db[TRANSACTION_AUDIT_COLLECTION].update({'_id': log_entry['_id']}, log_entry)
+                log_entry["data"]["navet_response"] = address_dict
+                db[TRANSACTION_AUDIT_COLLECTION].update({"_id": log_entry["_id"]}, log_entry)
                 return True
         return False
 
@@ -340,12 +336,12 @@ class MessageSender(Task):
             or MsgCelerySingleton.worker_config.testing
             or MsgCelerySingleton.worker_config.environment == EduidEnvironment.dev
         ):
-            logger.debug('sendmail task:')
+            logger.debug("sendmail task:")
             logger.debug(
                 f"\nType: email\nReference: {reference}\nSender: {sender}\nRecipients: {recipients}\n"
                 f"Message:\n{message}"
             )
-            return {'devel_mode': True}
+            return {"devel_mode": True}
 
         return self.smtp.sendmail(sender, recipients, message)
 
@@ -366,31 +362,31 @@ class MessageSender(Task):
             MsgCelerySingleton.worker_config.environment is EduidEnvironment.dev
             or MsgCelerySingleton.worker_config.devel_mode is True
         ):
-            logger.debug('sendsms task:')
+            logger.debug("sendsms task:")
             logger.debug(f"\nType: sms\nReference: {reference}\nRecipient: {recipient}\nMessage:\n{message}")
-            return 'devel_mode'
+            return "devel_mode"
 
         #  0701740605-0701740699 is a unused range from PTS
         #  https://www.pts.se/sv/bransch/telefoni/nummer-och-adressering/
         #  telefonnummer-for-anvandning-i-bocker-och-filmer-etc/
-        if recipient.startswith('+467017406') and 5 <= int(removeprefix(recipient, '+467017406')) <= 99:
-            logger.debug('sendsms task:')
+        if recipient.startswith("+467017406") and 5 <= int(removeprefix(recipient, "+467017406")) <= 99:
+            logger.debug("sendsms task:")
             logger.debug(f"\nType: sms\nReference: {reference}\nRecipient: {recipient}\nMessage:\n{message}")
-            return 'no_op_number'
+            return "no_op_number"
 
         return self.sms.send(message, MsgCelerySingleton.worker_config.sms_sender, recipient, prio=2)
 
     def pong(self, app_name: Optional[str]) -> str:
         # Leverage cache to test mongo db health
-        if self.cache('pong', 0).is_healthy():
+        if self.cache("pong", 0).is_healthy():
             if app_name:
-                return f'pong for {app_name}'
+                return f"pong for {app_name}"
             # Old clients don't send app_name, and text-match the response to be exactly 'pong' in the health checks
-            return 'pong'
-        raise ConnectionError('Database not healthy')
+            return "pong"
+        raise ConnectionError("Database not healthy")
 
 
-@app.task(bind=True, base=MessageSender, name='eduid_msg.tasks.sendmail')
+@app.task(bind=True, base=MessageSender, name="eduid_msg.tasks.sendmail")
 def sendmail(
     self: MessageSender,
     sender: str,
@@ -408,13 +404,13 @@ def sendmail(
     try:
         return self.sendmail(sender, recipients, message, reference)
     except Exception as e:
-        logger.error(f'sendmail task error: {e}', exc_info=True)
+        logger.error(f"sendmail task error: {e}", exc_info=True)
         # self.retry raises Retry exception, assert False will not be reached
         self.retry(default_retry_delay=1, max_retries=3, exc=e)
     assert False  # make mypy happy
 
 
-@app.task(bind=True, base=MessageSender, name='eduid_msg.tasks.sendsms')
+@app.task(bind=True, base=MessageSender, name="eduid_msg.tasks.sendsms")
 def sendsms(self: MessageSender, recipient: str, message: str, reference: str) -> str:
     """
     :param self: base class
@@ -425,13 +421,13 @@ def sendsms(self: MessageSender, recipient: str, message: str, reference: str) -
     try:
         return self.sendsms(recipient, message, reference)
     except Exception as e:
-        logger.error(f'sendsms task error: {e}', exc_info=True)
+        logger.error(f"sendsms task error: {e}", exc_info=True)
         # self.retry raises Retry exception, assert False will not be reached
         self.retry(default_retry_delay=1, max_retries=3, exc=e)
     assert False  # make mypy happy
 
 
-@app.task(bind=True, base=MessageSender, name='eduid_msg.tasks.get_all_navet_data')
+@app.task(bind=True, base=MessageSender, name="eduid_msg.tasks.get_all_navet_data")
 def get_all_navet_data(self: MessageSender, identity_number: str) -> Optional[OrderedDict]:
     """
     Retrieve all data about the person from the Swedish population register using a Swedish national
@@ -444,13 +440,13 @@ def get_all_navet_data(self: MessageSender, identity_number: str) -> Optional[Or
     try:
         return self.get_all_navet_data(identity_number)
     except Exception as e:
-        logger.error(f'get_all_navet_data task error: {e}', exc_info=True)
+        logger.error(f"get_all_navet_data task error: {e}", exc_info=True)
         # self.retry raises Retry exception, assert False will not be reached
         self.retry(default_retry_delay=1, max_retries=3, exc=e)
     assert False  # make mypy happy
 
 
-@app.task(bind=True, base=MessageSender, name='eduid_msg.tasks.get_postal_address')
+@app.task(bind=True, base=MessageSender, name="eduid_msg.tasks.get_postal_address")
 def get_postal_address(self: MessageSender, identity_number: str) -> Optional[OrderedDict]:
     """
     Retrieve name and postal address from the Swedish population register using a Swedish national
@@ -463,13 +459,13 @@ def get_postal_address(self: MessageSender, identity_number: str) -> Optional[Or
     try:
         return self.get_postal_address(identity_number)
     except Exception as e:
-        logger.error(f'get_postal_address task error: {e}', exc_info=True)
+        logger.error(f"get_postal_address task error: {e}", exc_info=True)
         # self.retry raises Retry exception, assert False will not be reached
         self.retry(default_retry_delay=1, max_retries=3, exc=e)
     assert False  # make mypy happy
 
 
-@app.task(bind=True, base=MessageSender, name='eduid_msg.tasks.get_relations_to')
+@app.task(bind=True, base=MessageSender, name="eduid_msg.tasks.get_relations_to")
 def get_relations_to(self: MessageSender, identity_number: str, relative_nin: str) -> List[str]:
     """
     Get the relative status between identity_number and relative_nin.
@@ -504,22 +500,22 @@ def get_relations_to(self: MessageSender, identity_number: str, relative_nin: st
         import pprint
 
         logger.debug(
-            f'Looking for relations between {identity_number} and {relative_nin} in: {pprint.pformat(relations)}'
+            f"Looking for relations between {identity_number} and {relative_nin} in: {pprint.pformat(relations)}"
         )
-        for d in relations['Relations']['Relation']:
-            if d.get('RelationId', {}).get("NationalIdentityNumber") == relative_nin:
-                if 'RelationType' in d:
-                    result.append(d['RelationType'])
+        for d in relations["Relations"]["Relation"]:
+            if d.get("RelationId", {}).get("NationalIdentityNumber") == relative_nin:
+                if "RelationType" in d:
+                    result.append(d["RelationType"])
         return result
     except Exception as e:
-        logger.error(f'get_relations_to task error: {e}', exc_info=True)
+        logger.error(f"get_relations_to task error: {e}", exc_info=True)
         # self.retry raises Retry exception, assert False will not be reached
         self.retry(default_retry_delay=1, max_retries=3, exc=e)
     assert False  # make mypy happy
 
 
 @app.task(bind=True, base=MessageSender)
-@deprecated('This task seems unused')
+@deprecated("This task seems unused")
 def set_audit_log_postal_address(self: MessageSender, audit_reference: str) -> bool:
     """
     Looks in the transaction audit collection for the audit reference and make a postal address lookup and adds the
@@ -528,11 +524,11 @@ def set_audit_log_postal_address(self: MessageSender, audit_reference: str) -> b
     try:
         return self.set_audit_log_postal_address(audit_reference)
     except Exception as e:
-        logger.error(f'set_audit_log_postal_address task error: {e}', exc_info=True)
+        logger.error(f"set_audit_log_postal_address task error: {e}", exc_info=True)
         raise e
 
 
-@app.task(bind=True, base=MessageSender, name='eduid_msg.tasks.pong')
+@app.task(bind=True, base=MessageSender, name="eduid_msg.tasks.pong")
 def pong(self: MessageSender, app_name: Optional[str] = None) -> str:
     """
     eduID webapps periodically ping workers as a part of their health assessment.

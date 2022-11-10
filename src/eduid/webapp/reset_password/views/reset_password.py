@@ -120,10 +120,10 @@ from eduid.webapp.reset_password.schemas import (
 SESSION_PREFIX = "eduid_webapp.reset_password.views"
 
 
-reset_password_views = Blueprint('reset_password', __name__, url_prefix='/', template_folder='templates')
+reset_password_views = Blueprint("reset_password", __name__, url_prefix="/", template_folder="templates")
 
 
-@reset_password_views.route('/', methods=['GET'])
+@reset_password_views.route("/", methods=["GET"])
 @MarshalWith(EmptyResponse)
 def init_reset_pw() -> FluxData:
     """
@@ -132,7 +132,7 @@ def init_reset_pw() -> FluxData:
     return success_response()
 
 
-@reset_password_views.route('/', methods=['POST'])
+@reset_password_views.route("/", methods=["POST"])
 @UnmarshalWith(ResetPasswordEmailRequestSchema)
 @MarshalWith(ResetPasswordEmailResponseSchema)
 def start_reset_pw(email: str) -> FluxData:
@@ -151,31 +151,31 @@ def start_reset_pw(email: str) -> FluxData:
     * The e-mail address is not found
     * There is some problem sending the email.
     """
-    current_app.logger.info(f'Trying to send password reset email to {email}')
+    current_app.logger.info(f"Trying to send password reset email to {email}")
     try:
         state = send_password_reset_mail(email)
     except UserDoesNotExist:
-        current_app.logger.error(f'No user with email {email} found')
+        current_app.logger.error(f"No user with email {email} found")
         return error_response(message=ResetPwMsg.user_not_found)
     except ThrottledException as e:
-        current_app.logger.error(f'Email resending throttled for {email}')
+        current_app.logger.error(f"Email resending throttled for {email}")
         return success_response(
             message=ResetPwMsg.email_send_throttled, payload=email_state_to_response_payload(e.state)
         )
     except UserHasNotCompletedSignup:
         # Old bug where incomplete signup users where written to the central db
-        current_app.logger.exception(f'User with email {email} has to complete signup')
+        current_app.logger.exception(f"User with email {email} has to complete signup")
         return error_response(message=ResetPwMsg.invalid_user)
     except MailTaskFailed:
-        current_app.logger.exception(f'Sending password reset email failed')
+        current_app.logger.exception(f"Sending password reset email failed")
         return error_response(message=ResetPwMsg.email_send_failure)
 
-    current_app.stats.count(name='email_sent', value=1)
+    current_app.stats.count(name="email_sent", value=1)
 
     return success_response(message=ResetPwMsg.reset_pw_initialized, payload=email_state_to_response_payload(state))
 
 
-@reset_password_views.route('/verify-email/', methods=['POST'])
+@reset_password_views.route("/verify-email/", methods=["POST"])
 @UnmarshalWith(ResetPasswordEmailCodeRequestSchema)
 @MarshalWith(ResetPasswordVerifyEmailResponseSchema)
 def verify_email(email_code: str) -> FluxData:
@@ -206,7 +206,7 @@ def verify_email(email_code: str) -> FluxData:
     * The code has expired;
     * No valid user corresponds to the eppn stored in the state.
     """
-    current_app.logger.info(f'Configuring password reset form for {email_code}')
+    current_app.logger.info(f"Configuring password reset form for {email_code}")
     try:
         context = get_context(email_code=email_code)
     except StateException as e:
@@ -216,7 +216,7 @@ def verify_email(email_code: str) -> FluxData:
     if session.common.eppn and session.common.eppn != context.user.eppn:
         # Do not allow eppn change in an existing session
         current_app.logger.warning(
-            f'eppn in session {session.common.eppn} not same as in the state {context.user.eppn}. Removing session.'
+            f"eppn in session {session.common.eppn} not same as in the state {context.user.eppn}. Removing session."
         )
         session.invalidate()
         return error_response(message=ResetPwMsg.invalid_session)
@@ -233,23 +233,23 @@ def verify_email(email_code: str) -> FluxData:
     alternatives = get_extra_security_alternatives(context.user)
     context.state.extra_security = alternatives
     current_app.password_reset_state_db.save(context.state)
-    current_app.stats.count(name='email_verified', value=1)
+    current_app.stats.count(name="email_verified", value=1)
     return success_response(
         payload={
-            'suggested_password': new_password,
-            'email_code': context.state.email_code.code,
-            'email_address': context.state.email_address,
-            'extra_security': mask_alternatives(alternatives),
-            'min_zxcvbn_score': current_app.conf.min_zxcvbn_score,
-            'password_entropy': current_app.conf.password_entropy,
-            'password_length': current_app.conf.password_length,
-            'password_service_url': current_app.conf.password_service_url,
-            'zxcvbn_terms': get_zxcvbn_terms(context.user),
+            "suggested_password": new_password,
+            "email_code": context.state.email_code.code,
+            "email_address": context.state.email_address,
+            "extra_security": mask_alternatives(alternatives),
+            "min_zxcvbn_score": current_app.conf.min_zxcvbn_score,
+            "password_entropy": current_app.conf.password_entropy,
+            "password_length": current_app.conf.password_length,
+            "password_service_url": current_app.conf.password_service_url,
+            "zxcvbn_terms": get_zxcvbn_terms(context.user),
         },
     )
 
 
-@reset_password_views.route('/new-password/', methods=['POST'])
+@reset_password_views.route("/new-password/", methods=["POST"])
 @UnmarshalWith(ResetPasswordWithCodeSchema)
 @MarshalWith(ResetPasswordResponseSchema)
 def set_new_pw_no_extra_security(email_code: str, password: str) -> FluxData:
@@ -281,11 +281,11 @@ def set_new_pw_no_extra_security(email_code: str, password: str) -> FluxData:
     except StateException as e:
         return error_response(message=e.msg)
 
-    current_app.logger.info(f'Reset password with state {email_code} using NO extra security for user {context.user}')
+    current_app.logger.info(f"Reset password with state {email_code} using NO extra security for user {context.user}")
     return reset_user_password(user=context.user, state=context.state, password=password)
 
 
-@reset_password_views.route('/extra-security-phone/', methods=['POST'])
+@reset_password_views.route("/extra-security-phone/", methods=["POST"])
 @UnmarshalWith(ResetPasswordExtraSecPhoneSchema)
 @MarshalWith(ResetPasswordResponseSchema)
 def choose_extra_security_phone(email_code: str, phone_index: int) -> FluxData:
@@ -324,36 +324,36 @@ def choose_extra_security_phone(email_code: str, phone_index: int) -> FluxData:
 
     if isinstance(context.state, ResetPasswordEmailAndPhoneState):
         if context.state.is_throttled(current_app.conf.throttle_sms):
-            current_app.logger.error(f'Throttling reset password SMS for: {context.state.eppn}')
+            current_app.logger.error(f"Throttling reset password SMS for: {context.state.eppn}")
             return error_response(message=ResetPwMsg.send_sms_throttled)
 
-    current_app.logger.info(f'Password reset: choose_extra_security for user {context.user}')
+    current_app.logger.info(f"Password reset: choose_extra_security for user {context.user}")
     # Check that the email code has been validated
     if not context.state.email_code.is_verified:
-        current_app.logger.info(f'User with eppn {context.state.eppn} has not verified their email address')
+        current_app.logger.info(f"User with eppn {context.state.eppn} has not verified their email address")
         return error_response(message=ResetPwMsg.email_not_validated)
 
     if context.state.extra_security is None:  # please mypy
-        raise ValueError(f'User {context.user} trying to reset password with extra security without alternatives')
+        raise ValueError(f"User {context.user} trying to reset password with extra security without alternatives")
 
     try:
-        phone_number = context.state.extra_security['phone_numbers'][phone_index]
+        phone_number = context.state.extra_security["phone_numbers"][phone_index]
     except IndexError:
-        current_app.logger.exception(f'Phone number at index {phone_index} does not exist')
+        current_app.logger.exception(f"Phone number at index {phone_index} does not exist")
         return error_response(message=ResetPwMsg.unknown_phone_number)
 
-    current_app.logger.info(f'Trying to send password reset sms to user {context.user}')
+    current_app.logger.info(f"Trying to send password reset sms to user {context.user}")
     try:
         send_verify_phone_code(context.state, phone_number["number"])
     except MsgTaskFailed:
-        current_app.logger.exception(f'Sending sms failed')
+        current_app.logger.exception(f"Sending sms failed")
         return error_response(message=ResetPwMsg.send_sms_failure)
 
-    current_app.stats.count(name='extra_security_phone_sent')
+    current_app.stats.count(name="extra_security_phone_sent")
     return success_response(message=ResetPwMsg.send_sms_success)
 
 
-@reset_password_views.route('/new-password-extra-security-phone/', methods=['POST'])
+@reset_password_views.route("/new-password-extra-security-phone/", methods=["POST"])
 @UnmarshalWith(NewPasswordSecurePhoneRequestSchema)
 @MarshalWith(ResetPasswordResponseSchema)
 def set_new_pw_extra_security_phone(email_code: str, password: str, phone_code: str) -> FluxData:
@@ -391,18 +391,18 @@ def set_new_pw_extra_security_phone(email_code: str, password: str, phone_code: 
 
     if phone_code == context.state.phone_code.code:
         if not verify_phone_number(context.state):
-            current_app.logger.info(f'Could not verify phone code for user {context.user}')
+            current_app.logger.info(f"Could not verify phone code for user {context.user}")
             return error_response(message=ResetPwMsg.phone_invalid)
-        current_app.logger.info(f'Phone code verified for user {context.user}')
-        current_app.stats.count(name='extra_security_phone_success')
+        current_app.logger.info(f"Phone code verified for user {context.user}")
+        current_app.stats.count(name="extra_security_phone_success")
     else:
-        current_app.logger.info(f'Could not verify phone code for user {context.user}')
+        current_app.logger.info(f"Could not verify phone code for user {context.user}")
         return error_response(message=ResetPwMsg.unknown_phone_code)
 
     return reset_user_password(user=context.user, state=context.state, password=password)
 
 
-@reset_password_views.route('/new-password-extra-security-token/', methods=['POST'])
+@reset_password_views.route("/new-password-extra-security-token/", methods=["POST"])
 @UnmarshalWith(NewPasswordSecureTokenRequestSchema)
 @MarshalWith(ResetPasswordResponseSchema)
 def set_new_pw_extra_security_token(
@@ -447,15 +447,15 @@ def set_new_pw_extra_security_token(
     if authenticator_data:
         # CTAP2/Webauthn
         request_dict = {
-            'credentialId': credential_id,
-            'clientDataJSON': client_data_json,
-            'authenticatorData': authenticator_data,
-            'signature': signature,
+            "credentialId": credential_id,
+            "clientDataJSON": client_data_json,
+            "authenticatorData": authenticator_data,
+            "signature": signature,
         }
-        current_app.stats.count(name='extra_security_security_key_webauthn_data_received')
+        current_app.stats.count(name="extra_security_security_key_webauthn_data_received")
         if not session.mfa_action.webauthn_state:
-            current_app.logger.error(f'No webauthn state in session')
-            current_app.stats.count(name='extra_security_security_key_webauthn_missing_session_data')
+            current_app.logger.error(f"No webauthn state in session")
+            current_app.stats.count(name="extra_security_security_key_webauthn_missing_session_data")
             return error_response(message=ResetPwMsg.missing_data)
 
         try:
@@ -468,23 +468,23 @@ def set_new_pw_extra_security_token(
             )
             success = result.success
             if success:
-                current_app.stats.count(name='extra_security_security_key_webauthn_success')
+                current_app.stats.count(name="extra_security_security_key_webauthn_success")
         except fido_tokens.VerificationProblem:
             pass
         finally:
             # reset webauthn_state to avoid challenge reuse
             session.mfa_action.webauthn_state = None
     else:
-        current_app.logger.error(f'No webauthn data in request for {context.user}')
+        current_app.logger.error(f"No webauthn data in request for {context.user}")
 
     if not success:
-        current_app.stats.count(name='extra_security_security_key_webauthn_fail')
+        current_app.stats.count(name="extra_security_security_key_webauthn_fail")
         return error_response(message=ResetPwMsg.fido_token_fail)
 
     return reset_user_password(user=context.user, state=context.state, password=password, mfa_used=success)
 
 
-@reset_password_views.route('/new-password-extra-security-external-mfa/', methods=['POST'])
+@reset_password_views.route("/new-password-extra-security-external-mfa/", methods=["POST"])
 @UnmarshalWith(NewPasswordSecureTokenRequestSchema)
 @MarshalWith(ResetPasswordResponseSchema)
 def set_new_pw_extra_security_external_mfa(
@@ -497,58 +497,58 @@ def set_new_pw_extra_security_external_mfa(
         return error_response(message=e.msg)
 
     if session.mfa_action.success is not True:  # Explicit check that success is the boolean True
-        current_app.stats.count(name='extra_security_external_mfa_fail')
+        current_app.stats.count(name="extra_security_external_mfa_fail")
         return error_response(message=ResetPwMsg.external_mfa_fail)
 
-    current_app.logger.info(f'User used external MFA service {session.mfa_action.issuer} as extra security')
+    current_app.logger.info(f"User used external MFA service {session.mfa_action.issuer} as extra security")
     current_app.logger.info(
-        f'Issued: {session.mfa_action.authn_instant}. Authn context: {session.mfa_action.authn_context}'
+        f"Issued: {session.mfa_action.authn_instant}. Authn context: {session.mfa_action.authn_context}"
     )
     # Clear mfa_action from session
     del session.mfa_action
-    current_app.stats.count(name='extra_security_external_mfa_success')
+    current_app.stats.count(name="extra_security_external_mfa_success")
     return reset_user_password(user=context.user, state=context.state, password=password, mfa_used=True)
 
 
-@reset_password_views.route('/get-email-code', methods=['GET'])
+@reset_password_views.route("/get-email-code", methods=["GET"])
 def get_email_code() -> str:
     """
     Backdoor to get the email verification code in the staging or dev environments
     """
     try:
         if check_magic_cookie(current_app.conf):
-            eppn = request.args.get('eppn')
+            eppn = request.args.get("eppn")
             if not eppn:
-                current_app.logger.info('Missing eppn argument to get_email_code')
+                current_app.logger.info("Missing eppn argument to get_email_code")
                 abort(400)
             state = current_app.password_reset_state_db.get_state_by_eppn(eppn)
             if state and state.email_code:
                 return state.email_code.code
     except Exception:
         current_app.logger.exception(
-            'Someone tried to use the backdoor to get the email verification code for a password reset'
+            "Someone tried to use the backdoor to get the email verification code for a password reset"
         )
 
     abort(400)
 
 
-@reset_password_views.route('/get-phone-code', methods=['GET'])
+@reset_password_views.route("/get-phone-code", methods=["GET"])
 def get_phone_code() -> str:
     """
     Backdoor to get the phone verification code in the staging or dev environments
     """
     try:
         if check_magic_cookie(current_app.conf):
-            eppn = request.args.get('eppn')
+            eppn = request.args.get("eppn")
             if not eppn:
-                current_app.logger.info('Missing eppn argument to get_phone_code')
+                current_app.logger.info("Missing eppn argument to get_phone_code")
                 abort(400)
             state = current_app.password_reset_state_db.get_state_by_eppn(eppn)
             if isinstance(state, ResetPasswordEmailAndPhoneState) and state.phone_code:
                 return state.phone_code.code
     except Exception:
         current_app.logger.exception(
-            'Someone tried to use the backdoor to get the SMS verification code for a password reset'
+            "Someone tried to use the backdoor to get the SMS verification code for a password reset"
         )
 
     abort(400)

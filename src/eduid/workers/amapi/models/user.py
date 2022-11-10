@@ -23,8 +23,8 @@ class Source(str, Enum):
 
 
 class UserBaseRequest(BaseModel):
-    reason: Optional[str] = None
-    source: Optional[str] = None
+    reason: str
+    source: str
 
 
 class UserUpdateResponse(BaseModel):
@@ -43,7 +43,6 @@ class UserUpdateMetaRequest(UserBaseRequest):
 
 
 class UserUpdateEmailRequest(UserBaseRequest):
-    # mail_addresses: Optional[List[MailAddress]] = Field(default_factory=list)
     mail_addresses: List[MailAddress] = Field(default_factory=list)
 
 

@@ -3,7 +3,6 @@ from typing import Any, Mapping, Optional, cast
 
 from flask import current_app
 
-from eduid.common.config.base import EduidEnvironment
 from eduid.common.config.parsers import load_config
 from eduid.common.rpc.am_relay import AmRelay
 from eduid.userdb.logs import ProofingLog
@@ -12,7 +11,7 @@ from eduid.webapp.common.authn.middleware import AuthnBaseApp
 from eduid.webapp.ladok.client import LadokClient
 from eduid.webapp.ladok.settings.common import LadokConfig
 
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
 
 class LadokApp(AuthnBaseApp):
@@ -35,18 +34,18 @@ class LadokApp(AuthnBaseApp):
 current_ladok_app: LadokApp = cast(LadokApp, current_app)
 
 
-def init_ladok_app(name: str = 'ladok', test_config: Optional[Mapping[str, Any]] = None) -> LadokApp:
+def init_ladok_app(name: str = "ladok", test_config: Optional[Mapping[str, Any]] = None) -> LadokApp:
     """
     Create an instance of an ladok app.
 
     :param name: The name of the instance, it will affect the configuration loaded.
     :param test_config: Override config, used in test cases.
     """
-    config = load_config(typ=LadokConfig, app_name=name, ns='webapp', test_config=test_config)
+    config = load_config(typ=LadokConfig, app_name=name, ns="webapp", test_config=test_config)
 
     app = LadokApp(config)
 
-    app.logger.info(f'Init {app}...')
+    app.logger.info(f"Init {app}...")
 
     # Register views
     from eduid.webapp.ladok.views import ladok_views

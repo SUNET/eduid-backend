@@ -31,7 +31,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 import json
-import time
 from datetime import datetime, timedelta
 from typing import Optional
 
@@ -43,7 +42,7 @@ from eduid.webapp.actions.testing import ActionsTestCase
 
 class ActionsTests(ActionsTestCase):
     def update_actions_config(self, config):
-        config['tou_version'] = 'test-version'
+        config["tou_version"] = "test-version"
         return config
 
     # Parameterized test functions
@@ -64,7 +63,7 @@ class ActionsTests(ActionsTestCase):
                     sess.common.eppn = eppn
                     sess.actions.ts = timestamp
                     sess.persist()
-                return client.get('/')
+                return client.get("/")
 
     def _get_config(self, **kwargs):
         """
@@ -74,7 +73,7 @@ class ActionsTests(ActionsTestCase):
         """
         with self.session_cookie_anon(self.browser) as client:
             self.prepare_session(client, **kwargs)
-            return client.get('/config')
+            return client.get("/config")
 
     def _get_actions(self, **kwargs):
         """
@@ -84,8 +83,8 @@ class ActionsTests(ActionsTestCase):
         """
         with self.session_cookie_anon(self.browser) as client:
             self.prepare_session(client, **kwargs)
-            with self.app.test_request_context('/get-actions'):
-                self.authenticate(idp_session='dummy-session')
+            with self.app.test_request_context("/get-actions"):
+                self.authenticate(idp_session="dummy-session")
                 response = self.app.dispatch_request()
                 return json.loads(response)
 
@@ -104,41 +103,41 @@ class ActionsTests(ActionsTestCase):
                 with self.app.test_request_context():
                     if csrf_token is None:
                         csrf_token = sess.get_csrf_token()
-                    token = {'csrf_token': csrf_token}
-            return client.post('/post-action', data=json.dumps(token), content_type=self.content_type_json)
+                    token = {"csrf_token": csrf_token}
+            return client.post("/post-action", data=json.dumps(token), content_type=self.content_type_json)
 
     #  Actual tests
 
     def test_authn_no_data(self):
-        response = self.browser.get('/')
-        self.assertIn(b'Login action error', response.data)
+        response = self.browser.get("/")
+        self.assertIn(b"Login action error", response.data)
 
     def test_authn(self):
         response = self._authn()
-        self.assertIn(b'/get-actions', response.data)
-        self.assertTrue(b'bundle-holder' in response.data)
+        self.assertIn(b"/get-actions", response.data)
+        self.assertTrue(b"bundle-holder" in response.data)
 
     def test_authn_stale(self):
         timestamp = utc_now() - timedelta(days=1)
         response = self._authn(timestamp=timestamp)
-        self.assertIn(b'There was an error servicing your request', response.data)
+        self.assertIn(b"There was an error servicing your request", response.data)
 
     def test_get_config(self):
         response = self._get_config()
         self.assertEqual(response.status_code, 200)
-        data = json.loads(response.data.decode('utf-8'))
-        self.assertEqual(data['payload']['setting1'], 'dummy')
+        data = json.loads(response.data.decode("utf-8"))
+        self.assertEqual(data["payload"]["setting1"], "dummy")
 
     def test_get_config_fails(self):
         response = self._get_config(action_error=True)
         self.assertEqual(response.status_code, 200)
-        data = json.loads(response.data.decode('utf-8'))
-        self.assertEqual(data['payload']['message'], 'test error')
+        data = json.loads(response.data.decode("utf-8"))
+        self.assertEqual(data["payload"]["message"], "test error")
 
     def test_get_actions(self):
         data = self._get_actions()
-        self.assertTrue(data['action'])
-        self.assertEqual(data['url'], "http://example.com/plugin.js")
+        self.assertTrue(data["action"])
+        self.assertEqual(data["url"], "http://example.com/plugin.js")
 
     def test_get_actions_action_error(self):
         with self.assertRaises(InternalServerError):
@@ -146,8 +145,8 @@ class ActionsTests(ActionsTestCase):
 
     def test_get_actions_no_action(self):
         data = self._get_actions(add_action=False)
-        self.assertFalse(data['action'])
-        self.assertEqual(data['url'], 'https://example.com/idp?ref=dummy-session')
+        self.assertFalse(data["action"])
+        self.assertEqual(data["url"], "https://example.com/idp?ref=dummy-session")
 
     def test_get_actions_no_plugin(self):
         with self.assertRaises(InternalServerError):
@@ -155,49 +154,49 @@ class ActionsTests(ActionsTestCase):
 
     def test_post_action(self):
         response = self._post_action()
-        self._check_api_response(response, status=200, type_='POST_ACTIONS_POST_ACTION_SUCCESS')
-        self.assertEqual(response.json['payload']['data']['completed'], 'done')
+        self._check_api_response(response, status=200, type_="POST_ACTIONS_POST_ACTION_SUCCESS")
+        self.assertEqual(response.json["payload"]["data"]["completed"], "done")
 
     def test_post_action_no_csrf(self):
-        response = self._post_action(csrf_token='')
+        response = self._post_action(csrf_token="")
         self._check_error_response(
             response,
-            type_='POST_ACTIONS_POST_ACTION_FAIL',
-            error={'csrf_token': ['CSRF failed to validate']},
+            type_="POST_ACTIONS_POST_ACTION_FAIL",
+            error={"csrf_token": ["CSRF failed to validate"]},
         )
 
     def test_post_action_wrong_csrf(self):
-        response = self._post_action(csrf_token='wrong-token')
+        response = self._post_action(csrf_token="wrong-token")
         self._check_error_response(
             response,
-            type_='POST_ACTIONS_POST_ACTION_FAIL',
-            error={'csrf_token': ['CSRF failed to validate']},
+            type_="POST_ACTIONS_POST_ACTION_FAIL",
+            error={"csrf_token": ["CSRF failed to validate"]},
         )
 
     def test_post_action_action_error(self):
         response = self._post_action(action_error=True)
         data = response.json
-        self.assertEqual(data['type'], 'POST_ACTIONS_POST_ACTION_FAIL')
-        self.assertEqual(data['payload']['message'], 'test error')
+        self.assertEqual(data["type"], "POST_ACTIONS_POST_ACTION_FAIL")
+        self.assertEqual(data["payload"]["message"], "test error")
 
     def test_post_action_validation_error(self):
         response = self._post_action(validation_error=True)
         data = response.json
-        self.assertEqual(data['type'], 'POST_ACTIONS_POST_ACTION_FAIL')
-        self.assertEqual(data['payload']['errors']['field1'], 'field test error')
+        self.assertEqual(data["type"], "POST_ACTIONS_POST_ACTION_FAIL")
+        self.assertEqual(data["payload"]["errors"]["field1"], "field test error")
 
     def test_post_action_rm_action(self):
         response = self._post_action(rm_action=True)
         data = response.json
-        self.assertEqual(data['type'], 'POST_ACTIONS_POST_ACTION_FAIL')
-        self.assertEqual(data['payload']['message'], 'test error')
+        self.assertEqual(data["type"], "POST_ACTIONS_POST_ACTION_FAIL")
+        self.assertEqual(data["payload"]["message"], "test error")
 
     def test_post_action_multi_step(self):
         # First step
         response1 = self._post_action(total_steps=2)
-        self._check_api_response(response1, status=200, type_='POST_ACTIONS_POST_ACTION_SUCCESS')
-        self.assertEqual(response1.json['payload']['data']['completed'], 'done')
+        self._check_api_response(response1, status=200, type_="POST_ACTIONS_POST_ACTION_SUCCESS")
+        self.assertEqual(response1.json["payload"]["data"]["completed"], "done")
         # Second step
-        response2 = self._post_action(add_action=False, csrf_token=response1.json['payload']['csrf_token'])
-        self._check_api_response(response2, status=200, type_='POST_ACTIONS_POST_ACTION_SUCCESS')
-        self.assertEqual(response2.json['payload']['data']['completed'], 'done')
+        response2 = self._post_action(add_action=False, csrf_token=response1.json["payload"]["csrf_token"])
+        self._check_api_response(response2, status=200, type_="POST_ACTIONS_POST_ACTION_SUCCESS")
+        self.assertEqual(response2.json["payload"]["data"]["completed"], "done")

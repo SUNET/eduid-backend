@@ -9,10 +9,10 @@ from datetime import datetime
 from typing import Any, Dict, Mapping, Optional, Type, Union
 from uuid import UUID
 
-from eduid.scimapi.models.scimbase import EmailType, PhoneNumberType, WeakVersion
+from eduid.common.models.scim_base import EmailType, PhoneNumberType, WeakVersion
 from eduid.userdb.util import utc_now
 
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
 
 @dataclass
@@ -36,8 +36,8 @@ class ScimApiProfile:
 
     @classmethod
     def from_dict(cls: Type[ScimApiProfile], data: Mapping[str, Any]) -> ScimApiProfile:
-        _attributes = data.get('attributes', {})
-        _data = data.get('data', {})
+        _attributes = data.get("attributes", {})
+        _data = data.get("data", {})
         return cls(attributes=_attributes, data=_data)
 
 
@@ -52,15 +52,15 @@ class ScimApiLinkedAccount:
 
     @classmethod
     def from_dict(cls: Type[ScimApiLinkedAccount], data: Mapping[str, Any]) -> ScimApiLinkedAccount:
-        _issuer = data.get('issuer')
+        _issuer = data.get("issuer")
         if not isinstance(_issuer, str):
-            raise ValueError('ScimApiLinkedAccount.issuer must be a string')
-        _value = data.get('value')
+            raise ValueError("ScimApiLinkedAccount.issuer must be a string")
+        _value = data.get("value")
         if not isinstance(_value, str):
-            raise ValueError('ScimApiLinkedAccount.value must be a string')
-        _parameters = data.get('parameters')
+            raise ValueError("ScimApiLinkedAccount.value must be a string")
+        _parameters = data.get("parameters")
         if not isinstance(_parameters, dict):
-            raise ValueError('ScimApiLinkedAccount.parameters must be a dict')
+            raise ValueError("ScimApiLinkedAccount.parameters must be a dict")
         return cls(issuer=_issuer, value=_value, parameters=_parameters)
 
 
@@ -91,15 +91,15 @@ class ScimApiEmail:
     def to_dict(self) -> Dict[str, Union[Optional[str], bool]]:
         res = asdict(self)
         if self.type is not None:
-            res['type'] = self.type.value
+            res["type"] = self.type.value
         return res
 
     @classmethod
     def from_dict(cls: Type[ScimApiEmail], data: Mapping[str, Any]) -> ScimApiEmail:
         email_type = None
-        if data.get('type') is not None:
-            email_type = EmailType(data['type'])
-        return cls(value=data['value'], display=data.get('display'), type=email_type, primary=data.get('primary'))
+        if data.get("type") is not None:
+            email_type = EmailType(data["type"])
+        return cls(value=data["value"], display=data.get("display"), type=email_type, primary=data.get("primary"))
 
 
 @dataclass(frozen=True)
@@ -112,12 +112,12 @@ class ScimApiPhoneNumber:
     def to_dict(self) -> Dict[str, Union[Optional[str], bool]]:
         res = asdict(self)
         if self.type is not None:
-            res['type'] = self.type.value
+            res["type"] = self.type.value
         return res
 
     @classmethod
     def from_dict(cls: Type[ScimApiPhoneNumber], data: Mapping[str, Any]) -> ScimApiPhoneNumber:
         number_type = None
-        if data.get('type') is not None:
-            number_type = PhoneNumberType(data['type'])
-        return cls(value=data['value'], display=data.get('display'), type=number_type, primary=data.get('primary'))
+        if data.get("type") is not None:
+            number_type = PhoneNumberType(data["type"])
+        return cls(value=data["value"], display=data.get("display"), type=number_type, primary=data.get("primary"))

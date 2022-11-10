@@ -105,25 +105,25 @@ class AuthnState(object):
                         self.swamid_al2_hi_used = True
             elif isinstance(cred, OnetimeCredential):
                 # OLD way
-                logger.debug(f'External MFA used for this request: {cred}')
+                logger.debug(f"External MFA used for this request: {cred}")
                 self.external_mfa_used = True
                 # TODO: Support more SwedenConnect authn contexts?
-                if cred.authn_context == 'http://id.elegnamnden.se/loa/1.0/loa3':
+                if cred.authn_context == "http://id.elegnamnden.se/loa/1.0/loa3":
                     self.swamid_al2_hi_used = True
             elif isinstance(cred, SwedenConnectCredential):
                 # NEW way
-                logger.debug(f'SwedenConnect MFA used for this request: {cred}')
+                logger.debug(f"SwedenConnect MFA used for this request: {cred}")
                 self.external_mfa_used = True
-                if cred.level == 'loa3':
+                if cred.level == "loa3":
                     self.swamid_al2_hi_used = True
             else:
                 # Warn, but do not fail when the credential isn't found on the user. This can't be a hard failure,
                 # because when a user changes password they will get a new credential and the old is removed from
                 # the user but the old one might still be referenced in the SSO session, or the session.
-                logger.warning(f'Credential with id {this.credential_id} not found on user')
+                logger.warning(f"Credential with id {this.credential_id} not found on user")
                 _creds = user.credentials.to_list()
-                logger.debug(f'User credentials:\n{_creds}')
-                logger.debug(f'Session one-time credentials:\n{ticket.pending_request.onetime_credentials}')
+                logger.debug(f"User credentials:\n{_creds}")
+                logger.debug(f"Session one-time credentials:\n{ticket.pending_request.onetime_credentials}")
 
         if user.identities.is_verified:
             self.is_swamid_al2 = True
@@ -145,24 +145,24 @@ class AuthnState(object):
             else:
                 credential = user.credentials.find(key)
                 if not credential:
-                    logger.warning(f'Could not find credential {key} on user {user}')
+                    logger.warning(f"Could not find credential {key} on user {user}")
                     continue
                 cred = UsedCredential(credential_id=credential.key, ts=ts, source=UsedWhere.REQUEST)
-            logger.debug(f'Adding credential used with this request: {cred}')
+            logger.debug(f"Adding credential used with this request: {cred}")
             _used_credentials[cred.credential_id] = cred
 
         _used_request = [x for x in _used_credentials.values() if x.source == UsedWhere.REQUEST]
-        logger.debug(f'Number of credentials used with this very request: {len(_used_request)}')
+        logger.debug(f"Number of credentials used with this very request: {len(_used_request)}")
 
         if ticket.reauthn_required:
-            logger.debug('Request requires authentication, not even considering credentials from the SSO session')
+            logger.debug("Request requires authentication, not even considering credentials from the SSO session")
             return list(_used_credentials.values())
 
         # Request does not have forceAuthn set, so gather credentials from the SSO session
         for this in sso_session.authn_credentials:
             credential = user.credentials.find(this.cred_id)
             if not credential:
-                logger.warning(f'Could not find credential {this.cred_id} on user {user}')
+                logger.warning(f"Could not find credential {this.cred_id} on user {user}")
                 continue
             # TODO: The authn_timestamp in the SSO session is not necessarily right for all credentials there
             cred = UsedCredential(credential_id=credential.key, ts=sso_session.authn_timestamp, source=UsedWhere.SSO)
@@ -170,18 +170,18 @@ class AuthnState(object):
             if _key in _used_credentials:
                 # If the credential is in _used_credentials, it is because it was used with this very request.
                 continue
-            logger.debug(f'Adding credential used from the SSO session: {cred}')
+            logger.debug(f"Adding credential used from the SSO session: {cred}")
             _used_credentials[_key] = cred
 
         # External mfa check
         if sso_session.external_mfa is not None:
-            logger.debug(f'External MFA (in SSO session) issuer: {sso_session.external_mfa.issuer}')
-            logger.debug(f'External MFA (in SSO session) credential_id: {sso_session.external_mfa.credential_id}')
+            logger.debug(f"External MFA (in SSO session) issuer: {sso_session.external_mfa.issuer}")
+            logger.debug(f"External MFA (in SSO session) credential_id: {sso_session.external_mfa.credential_id}")
 
             # Check if there is an ExternalCredential on the user (the new way), or if we need to mint
             # a temporary OnetimeCredential.
             if not sso_session.external_mfa.credential_id:
-                logger.debug('Creating temporary OnetimeCredential')
+                logger.debug("Creating temporary OnetimeCredential")
                 _otc = OnetimeCredential(
                     authn_context=sso_session.external_mfa.authn_context,
                     issuer=sso_session.external_mfa.issuer,
@@ -190,18 +190,18 @@ class AuthnState(object):
                 )
                 self._onetime_credentials[_otc.key] = _otc
                 cred = UsedCredential(credential_id=_otc.key, ts=sso_session.authn_timestamp, source=UsedWhere.SSO)
-                _used_credentials[ElementKey('SSO_external_MFA')] = cred
+                _used_credentials[ElementKey("SSO_external_MFA")] = cred
 
         _used_sso = [x for x in _used_credentials.values() if x.source == UsedWhere.SSO]
-        logger.debug(f'Number of credentials inherited from the SSO session: {len(_used_sso)}')
+        logger.debug(f"Number of credentials inherited from the SSO session: {len(_used_sso)}")
 
         return list(_used_credentials.values())
 
     def __str__(self) -> str:
         return (
-            f'<AuthnState: creds={len(self._credentials)}, pw={self.password_used}, fido={self.fido_used}, '
-            f'external_mfa={self.external_mfa_used}, nin is al2={self.is_swamid_al2}, '
-            f'mfa is {self.is_multifactor} (al2={self.swamid_al2_used}, al2_hi={self.swamid_al2_hi_used})>'
+            f"<AuthnState: creds={len(self._credentials)}, pw={self.password_used}, fido={self.fido_used}, "
+            f"external_mfa={self.external_mfa_used}, nin is al2={self.is_swamid_al2}, "
+            f"mfa is {self.is_multifactor} (al2={self.swamid_al2_used}, al2_hi={self.swamid_al2_hi_used})>"
         )
 
     @property
@@ -228,13 +228,13 @@ def response_authn(authn: AuthnState, ticket: LoginContext, user: IdPUser, sso_s
     given the RequestedAuthnContext from the SAML request.
     """
     req_authn_ctx = ticket.get_requested_authn_context()
-    logger.info(f'Authn for {user} will be evaluated based on: {authn}')
+    logger.info(f"Authn for {user} will be evaluated based on: {authn}")
 
     attributes = {}
     response_authn = None
 
     if req_authn_ctx == EduidAuthnContextClass.REFEDS_MFA:
-        current_idp_app.stats.count('req_authn_ctx_refeds_mfa')
+        current_idp_app.stats.count("req_authn_ctx_refeds_mfa")
         if not authn.password_used:
             raise MissingPasswordFactor()
         if not authn.is_multifactor:
@@ -244,13 +244,13 @@ def response_authn(authn: AuthnState, ticket: LoginContext, user: IdPUser, sso_s
         response_authn = EduidAuthnContextClass.REFEDS_MFA
 
     elif req_authn_ctx == EduidAuthnContextClass.REFEDS_SFA:
-        current_idp_app.stats.count('req_authn_ctx_refeds_sfa')
+        current_idp_app.stats.count("req_authn_ctx_refeds_sfa")
         if not authn.is_singlefactor:
             raise MissingSingleFactor()
         response_authn = EduidAuthnContextClass.REFEDS_SFA
 
     elif req_authn_ctx == EduidAuthnContextClass.EDUID_MFA:
-        current_idp_app.stats.count('req_authn_ctx_eduid_mfa')
+        current_idp_app.stats.count("req_authn_ctx_eduid_mfa")
         if not authn.password_used:
             raise MissingPasswordFactor()
         if not authn.is_multifactor:
@@ -258,13 +258,13 @@ def response_authn(authn: AuthnState, ticket: LoginContext, user: IdPUser, sso_s
         response_authn = EduidAuthnContextClass.EDUID_MFA
 
     elif req_authn_ctx == EduidAuthnContextClass.FIDO_U2F:
-        current_idp_app.stats.count('req_authn_ctx_fido_u2f')
+        current_idp_app.stats.count("req_authn_ctx_fido_u2f")
         if not authn.password_used and authn.fido_used:
             raise MissingMultiFactor()
         response_authn = EduidAuthnContextClass.FIDO_U2F
 
     elif req_authn_ctx == EduidAuthnContextClass.PASSWORD_PT:
-        current_idp_app.stats.count('req_authn_ctx_password_pt')
+        current_idp_app.stats.count("req_authn_ctx_password_pt")
         if authn.password_used:
             response_authn = EduidAuthnContextClass.PASSWORD_PT
 
@@ -283,20 +283,20 @@ def response_authn(authn: AuthnState, ticket: LoginContext, user: IdPUser, sso_s
             EduidAuthnContextClass.REFEDS_SFA,
             EduidAuthnContextClass.REFEDS_MFA,
         ]:
-            attributes['eduPersonAssurance'] = [item.value for item in current_app.conf.swamid_assurance_profile_3]
+            attributes["eduPersonAssurance"] = [item.value for item in current_app.conf.swamid_assurance_profile_3]
         else:
-            attributes['eduPersonAssurance'] = [item.value for item in current_app.conf.swamid_assurance_profile_2]
+            attributes["eduPersonAssurance"] = [item.value for item in current_app.conf.swamid_assurance_profile_2]
     else:
-        attributes['eduPersonAssurance'] = [item.value for item in current_app.conf.swamid_assurance_profile_1]
+        attributes["eduPersonAssurance"] = [item.value for item in current_app.conf.swamid_assurance_profile_1]
 
-    logger.info(f'Assurances for {user} was evaluated to: {response_authn.name} with attributes {attributes}')
+    logger.info(f"Assurances for {user} was evaluated to: {response_authn.name} with attributes {attributes}")
 
     # From all the credentials we're basing this authentication on, use the earliest one as authn instant.
     _instant = utc_now()
     for this in authn.credentials:
-        logger.debug(f'Credential {this.credential_id} ({this.source.value}) was used {this.ts.isoformat()}')
+        logger.debug(f"Credential {this.credential_id} ({this.source.value}) was used {this.ts.isoformat()}")
         if not _instant or this.ts < _instant:
             _instant = this.ts
 
-    logger.debug(f'Authn instant: {_instant.isoformat()}')
+    logger.debug(f"Authn instant: {_instant.isoformat()}")
     return AuthnInfo(class_ref=response_authn, authn_attributes=attributes, instant=_instant)

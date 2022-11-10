@@ -1,0 +1,11 @@
+{% trans email=email, verification_code=verification_code, site_name=site_name %}
+
+Welcome to {{ site_name }},
+
+You recently used {{ email }} to sign up for {{ site_name }}.
+
+To verify this email address belongs to you, enter the code below on the email verification page:
+
+{{ verification_code }}
+
+{% endtrans %}

@@ -41,23 +41,23 @@ from eduid.webapp.common.api.helpers import check_magic_cookie
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.common.session.eduid_session import SessionFactory
 
-test_views = Blueprint('test', __name__)
+test_views = Blueprint("test", __name__)
 
 
-@test_views.route('/get-code', methods=['GET'])
+@test_views.route("/get-code", methods=["GET"])
 def get_code():
-    current_app.logger.info('Endpoint get_code called')
+    current_app.logger.info("Endpoint get_code called")
     try:
         if check_magic_cookie(current_app.conf):
-            eppn = request.args.get('eppn')
-            result = f'dummy-code-for-{eppn}'
-            current_app.logger.info(f'Endpoint get_code result: {result}')
+            eppn = request.args.get("eppn")
+            result = f"dummy-code-for-{eppn}"
+            current_app.logger.info(f"Endpoint get_code result: {result}")
             return result
     except Exception:
-        current_app.logger.exception('get_code failed')
+        current_app.logger.exception("get_code failed")
         pass
 
-    current_app.logger.info('Endpoint get_code aborting with a HTTP 400 error')
+    current_app.logger.info("Endpoint get_code aborting with a HTTP 400 error")
     abort(400)
 
 
@@ -83,11 +83,11 @@ class BackdoorTests(EduidAPITestCase):
         """
         config.update(
             {
-                'available_languages': {'en': 'English', 'sv': 'Svenska'},
-                'no_authn_urls': [r'/get-code'],
-                'environment': 'dev',
-                'magic_cookie_name': 'magic-cookie',
-                'magic_cookie': 'magic-cookie',
+                "available_languages": {"en": "English", "sv": "Svenska"},
+                "no_authn_urls": [r"/get-code"],
+                "environment": "dev",
+                "magic_cookie_name": "magic-cookie",
+                "magic_cookie": "magic-cookie",
             }
         )
         return config
@@ -96,7 +96,7 @@ class BackdoorTests(EduidAPITestCase):
         """
         Called from the parent class, so we can provide the appropriate flask app for this test case.
         """
-        config = load_config(typ=BackdoorTestConfig, app_name='testing', ns='webapp', test_config=test_config)
+        config = load_config(typ=BackdoorTestConfig, app_name="testing", ns="webapp", test_config=test_config)
         app = BackdoorTestApp(config)
         app.register_blueprint(test_views)
         app.session_interface = SessionFactory(app.conf)
@@ -106,51 +106,51 @@ class BackdoorTests(EduidAPITestCase):
         """"""
         with self.session_cookie_anon(self.browser) as client:
 
-            client.set_cookie('localhost', key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie)
-            response = client.get('/get-code?eppn=pepin-pepon')
-            self.assertEqual(response.data, b'dummy-code-for-pepin-pepon')
+            client.set_cookie("localhost", key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie)
+            response = client.get("/get-code?eppn=pepin-pepon")
+            self.assertEqual(response.data, b"dummy-code-for-pepin-pepon")
 
     def test_no_backdoor_in_pro(self):
         """"""
-        self.app.conf.environment = 'production'
+        self.app.conf.environment = "production"
 
         with self.session_cookie_anon(self.browser) as client:
 
-            client.set_cookie('localhost', key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie)
-            response = client.get('/get-code?eppn=pepin-pepon')
+            client.set_cookie("localhost", key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie)
+            response = client.get("/get-code?eppn=pepin-pepon")
             self.assertEqual(response.status_code, 400)
 
     def test_no_backdoor_without_cookie(self):
         """"""
         with self.session_cookie_anon(self.browser) as client:
 
-            response = client.get('/get-code?eppn=pepin-pepon')
+            response = client.get("/get-code?eppn=pepin-pepon")
             self.assertEqual(response.status_code, 400)
 
     def test_wrong_cookie_no_backdoor(self):
         """"""
         with self.session_cookie_anon(self.browser) as client:
 
-            client.set_cookie('localhost', key=self.app.conf.magic_cookie_name, value='no-magic')
-            response = client.get('/get-code?eppn=pepin-pepon')
+            client.set_cookie("localhost", key=self.app.conf.magic_cookie_name, value="no-magic")
+            response = client.get("/get-code?eppn=pepin-pepon")
             self.assertEqual(response.status_code, 400)
 
     def test_no_magic_cookie_no_backdoor(self):
         """"""
-        self.app.conf.magic_cookie = ''
+        self.app.conf.magic_cookie = ""
 
         with self.session_cookie_anon(self.browser) as client:
 
-            client.set_cookie('localhost', key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie)
-            response = client.get('/get-code?eppn=pepin-pepon')
+            client.set_cookie("localhost", key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie)
+            response = client.get("/get-code?eppn=pepin-pepon")
             self.assertEqual(response.status_code, 400)
 
     def test_no_magic_cookie_name_no_backdoor(self):
         """"""
-        self.app.conf.magic_cookie_name = ''
+        self.app.conf.magic_cookie_name = ""
 
         with self.session_cookie_anon(self.browser) as client:
 
-            client.set_cookie('localhost', key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie)
-            response = client.get('/get-code?eppn=pepin-pepon')
+            client.set_cookie("localhost", key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie)
+            response = client.get("/get-code?eppn=pepin-pepon")
             self.assertEqual(response.status_code, 400)

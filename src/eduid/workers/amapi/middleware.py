@@ -1,18 +1,20 @@
 import json
-import re
+import logging
+from typing import List
 
-from fastapi import Request, Response
+from fastapi import Request, Response, status
 from jwcrypto import jwt
 from jwcrypto.common import JWException
-from marshmallow import ValidationError
-from pydantic import BaseModel, StrictInt, validator
-from starlette.datastructures import URL
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import PlainTextResponse
-from starlette.types import Message
 
-from eduid.common.utils import removeprefix
 from eduid.workers.amapi.context_request import ContextRequestMixin
+
+import fnmatch
+
+from eduid.workers.amapi.utils import AuthnBearerToken
+
+logger = logging.getLogger(__name__)
 
 
 class AccessDenied(Exception):
@@ -21,94 +23,33 @@ class AccessDenied(Exception):
     pass
 
 
-class AuthnBearerToken(BaseModel):
-    """
-    Data we recognize from authentication bearer token JWT claims.
-    """
-
-    version: StrictInt
-    requested_access: str
-    app_name: str
-
-    def __str__(self):
-        return f"<{self.__class__.__name__}: scopes={self.scopes}, requested_access={self.requested_access}>"
-
-    @validator("version")
-    def validate_version(cls, v: int) -> int:
-        if v != 1:
-            raise ValueError("Unknown version")
-        return v
-
-    @validator("app_name")
-    def validate_scopes(cls, v: str) -> str:
-        if v != "amapi":
-            raise ValueError("Unknown app_name")
-        return v
-
-    @validator("requested_access")
-    def validate_requested_access(cls, v: str) -> str:
-        if v != "amapi":
-            raise ValueError("Unknown requested access")
-        return v
-
-
 # middleware needs to return a response
 # some background: https://github.com/tiangolo/fastapi/issues/458
 def return_error_response(status_code: int, detail: str):
     return PlainTextResponse(status_code=status_code, content=detail)
 
 
-# Hack to be able to get request body both now and later
-# https://github.com/encode/starlette/issues/495#issuecomment-513138055
-async def set_body(request: Request, body: bytes):
-    async def receive() -> Message:
-        return {"type": "http.request", "body": body}
-
-    request._receive = receive
-
-
-async def get_body(request: Request) -> bytes:
-    body = await request.body()
-    await set_body(request, body)
-    return body
-
-
-class BaseMiddleware(BaseHTTPMiddleware, ContextRequestMixin):
-    def __init__(self, app):
-        super().__init__(app)
-
+class AuthenticationMiddleware(BaseHTTPMiddleware, ContextRequestMixin):
     async def dispatch(self, req: Request, call_next) -> Response:
-        return await call_next(req)
+        req = self.make_context_request(request=req)
+        path = req.url.path.lstrip(req.app.config.application_root)
+        method_path = f"{req.method.lower()}:{path}"
 
+        if not path:
+            return return_error_response(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Path empty",
+            )
 
-class AuthenticationMiddleware(BaseMiddleware):
-    def __init__(self, app):
-        super().__init__(app)
-        self.app = app
-        self.no_authn_urls = app.config.no_authn_urls
-        app.logger.debug("No auth allow urls: {}".format(self.no_authn_urls))
-
-    def _is_no_auth_path(self, url: URL) -> bool:
-        path = url.path
-        # Remove application root from path matching
-        path = removeprefix(path, self.app.config.application_root)
-        for regex in self.no_authn_urls:
-            m = re.match(regex, path)
-            if m is not None:
-                self.app.logger.debug("{} matched allow list".format(path))
-                return True
-        return False
-
-    async def dispatch(self, req: Request, call_next) -> Response:
-        req = self.make_context_request(req)
-
-        if self._is_no_auth_path(req.url):
+        if self._is_no_auth_path(req, method_path):
             return await call_next(req)
 
         auth = req.headers.get("Authorization")
-
         if not auth:
-            return return_error_response(status_code=401, detail="No authentication header found")
+            return return_error_response(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="No authentication header found",
+            )
 
         token = auth[len("Bearer ") :]
         _jwt = jwt.JWT()
@@ -116,24 +57,34 @@ class AuthenticationMiddleware(BaseMiddleware):
             _jwt.deserialize(token, req.app.jwks)
             claims = json.loads(_jwt.claims)
         except (JWException, KeyError, ValueError) as e:
-            self.app.logger.info(f"Bearer token error: {e}")
-            return return_error_response(status_code=401, detail="Bearer token error")
+            logger.info(f"Bearer token error: {e}")
+            return return_error_response(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Bearer token error",
+            )
 
-        try:
-            token = AuthnBearerToken(**claims)
-            self.app.logger.debug(f"Bearer token: {token}")
-        except ValidationError:
-            self.app.logger.exception("Authorization Bearer Token error")
-            return return_error_response(status_code=401, detail="Bearer token error")
+        token = AuthnBearerToken(**claims)
+        logger.debug(f"Bearer token: {token}")
 
-        try:
-            # check if jwt user is allowed, return list of allowed endpoints
-            token.app_name
-            pass
-        except AccessDenied as exc:
-            self.app.logger.error(f"Access denied: {exc}")
-            return return_error_response(status_code=401, detail="Data owner requested in access token denied")
+        if self._access_granted(req, token, method_path):
+            return await call_next(req)
+        return return_error_response(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Account {token.service_name} is not allowed access to {method_path}",
+        )
 
-        self.app.logger.info(f"Bearer token {token}")
+    @staticmethod
+    def _is_no_auth_path(req: Request, path: str) -> bool:
+        return path in req.app.config.no_authn_urls
 
-        return await call_next(req)
+    def _access_granted(self, req: Request, token: AuthnBearerToken, path: str) -> bool:
+        if token.service_name in req.app.config.user_restriction:
+            return self.glob_match(req.app.config.user_restriction[token.service_name], path)
+        return False
+
+    @staticmethod
+    def glob_match(endpoints: List[str], path: str) -> bool:
+        for endpoint in endpoints:
+            if fnmatch.fnmatch(path, endpoint):
+                return True
+        return False

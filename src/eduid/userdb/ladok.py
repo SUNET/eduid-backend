@@ -1,14 +1,13 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-from typing import Optional
 from uuid import UUID
 
 from pydantic import BaseModel
 
 from eduid.userdb.element import Element, ElementKey, VerifiedElement
 
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
 
 class UniversityName(BaseModel):

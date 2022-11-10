@@ -16,12 +16,12 @@ class TestGroupDB(ScimApiTestCase):
     def setUp(self) -> None:
         super().setUp()
         self.test_config = self._get_config()
-        config = load_config(typ=ScimApiConfig, app_name='scimapi', ns='api', test_config=self.test_config)
+        config = load_config(typ=ScimApiConfig, app_name="scimapi", ns="api", test_config=self.test_config)
         self.context = Context(config=config)
-        self.groupdb = self.context.get_groupdb(DataOwnerName('eduid.se'))
+        self.groupdb = self.context.get_groupdb(DataOwnerName("eduid.se"))
 
         for i in range(9):
-            self.add_group(uuid4(), f'Test Group-{i}')
+            self.add_group(uuid4(), f"Test Group-{i}")
 
     def tearDown(self):
         super().tearDown()
@@ -34,7 +34,7 @@ class TestGroupDB(ScimApiTestCase):
         assert self.groupdb  # mypy doesn't know setUp will be called
         group.graph = GraphGroup(identifier=str(group.scim_id), display_name=display_name)
         self.groupdb.save(group)
-        logger.info(f'TEST saved group {group}')
+        logger.info(f"TEST saved group {group}")
         return group
 
     def test_full_search(self):
@@ -43,7 +43,7 @@ class TestGroupDB(ScimApiTestCase):
 
     def test_documents_and_count_first_page(self):
         groups, count = self.groupdb._get_documents_and_count_by_filter(spec={}, limit=3)
-        [logger.info(f'Group {x}') for x in groups]
+        [logger.info(f"Group {x}") for x in groups]
         self.assertEqual(len(groups), 3)
         self.assertEqual(count, 9)
 

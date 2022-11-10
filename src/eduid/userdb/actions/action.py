@@ -71,13 +71,13 @@ class Action(BaseModel):
     # eppn: User eppn
     eppn: str
     # action_type: What action to perform
-    action_type: str = Field(alias='action')
+    action_type: str = Field(alias="action")
     # action_id: Unique identifier for the action
-    action_id: ObjectId = Field(default_factory=ObjectId, alias='_id')
+    action_id: ObjectId = Field(default_factory=ObjectId, alias="_id")
     # preference: Used to sort actions
     preference: int = 100
     # session: IdP session identifier
-    session: str = ''
+    session: str = ""
     # params: Parameters for action
     params: Dict[str, Any] = Field(default={})
     # result: Result of action (return value to IdP typically)
@@ -89,27 +89,27 @@ class Action(BaseModel):
         # Allow setting action_id using the real name, not just by it's alias (_id)
         allow_population_by_field_name = True
 
-    @validator('action_id', pre=True)
+    @validator("action_id", pre=True)
     def action_id_objectid(cls, v):
         """Make ObjectId from serialised form (string)"""
         if isinstance(v, str):
             v = ObjectId(v)
         if not isinstance(v, ObjectId):
-            raise TypeError('must be a string or ObjectId')
+            raise TypeError("must be a string or ObjectId")
         return v
 
-    @validator('result', pre=True)
+    @validator("result", pre=True)
     def action_result(cls, v):
         """Decode results to the right variant of ActionResult"""
         if isinstance(v, dict):
-            if 'issuer' in v and 'authn_instant' in v:
+            if "issuer" in v and "authn_instant" in v:
                 v = ActionResultThirdPartyMFA(**v)
-            elif 'user_present' in v and 'user_verified' in v:
+            elif "user_present" in v and "user_verified" in v:
                 v = ActionResultMFA(**v)
-            elif 'testing' in v:
+            elif "testing" in v:
                 v = ActionResultTesting(**v)
         if v is not None and not isinstance(v, ActionResult):
-            raise TypeError('must be a dict, None or ActionResult')
+            raise TypeError("must be a dict, None or ActionResult")
         return v
 
     def to_dict(self) -> Dict[str, Any]:
@@ -118,11 +118,11 @@ class Action(BaseModel):
         """
         res = self.dict()
 
-        res['_id'] = res.pop('action_id')
-        res['action'] = res.pop('action_type')
+        res["_id"] = res.pop("action_id")
+        res["action"] = res.pop("action_type")
 
-        if res['session'] == '':
-            del res['session']
+        if res["session"] == "":
+            del res["session"]
 
         return res
 

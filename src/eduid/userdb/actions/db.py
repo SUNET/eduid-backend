@@ -30,12 +30,11 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 import logging
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Union
 
 from bson import ObjectId
 from bson.errors import InvalidId
 from pymongo.cursor import Cursor
-from pymongo.results import DeleteResult
 
 from eduid.userdb.actions import Action
 from eduid.userdb.db import BaseDB
@@ -51,13 +50,13 @@ class ActionDB(BaseDB):
 
     ActionClass = Action
 
-    def __init__(self, db_uri, db_name='eduid_actions', collection='actions'):
+    def __init__(self, db_uri, db_name="eduid_actions", collection="actions"):
         super(ActionDB, self).__init__(db_uri, db_name, collection)
 
         logger.debug("{!s} connected to database".format(self))
 
     def __repr__(self):
-        return '<eduID {!s}: {!s} {!r} (returning {!s})>'.format(
+        return "<eduID {!s}: {!s} {!r} (returning {!s})>".format(
             self.__class__.__name__, self._db.sanitized_uri, self._coll_name, self.ActionClass.__name__
         )
 
@@ -69,14 +68,14 @@ class ActionDB(BaseDB):
         match_no_session: bool = True,
     ) -> Cursor:
         try:
-            query = {'user_oid': ObjectId(str(eppn_or_userid))}
+            query = {"user_oid": ObjectId(str(eppn_or_userid))}
         except InvalidId:
-            query = {'eppn': eppn_or_userid}
+            query = {"eppn": eppn_or_userid}
         if session is not None:
-            query['$or'] = [{'session': {'$exists': False}}, {'session': session}]
+            query["$or"] = [{"session": {"$exists": False}}, {"session": session}]
         if filter_ is not None:
             query.update(filter_)
-        return self._coll.find(query).sort('preference')
+        return self._coll.find(query).sort("preference")
 
     def get_actions(
         self, eppn_or_userid: Union[str, ObjectId], session: Optional[str], action_type: Optional[str] = None
@@ -97,7 +96,7 @@ class ActionDB(BaseDB):
             return [Action.from_dict(this) for this in actions]
         res = []
         for this in actions:
-            if this['action'] == action_type:
+            if this["action"] == action_type:
                 res.append(Action.from_dict(this))
         return res
 
@@ -121,9 +120,9 @@ class ActionDB(BaseDB):
         """
         filter_: Dict[str, Any] = {}
         if action_type is not None:
-            filter_['action'] = action_type
+            filter_["action"] = action_type
         if params is not None:
-            filter_['params'] = params
+            filter_["params"] = params
 
         actions = self._read_actions_from_db(eppn_or_userid, session, filter_)
         return len(list(actions)) > 0
@@ -144,7 +143,7 @@ class ActionDB(BaseDB):
 
         :rtype: eduid.userdb.actions:Action or None
         """
-        filter_ = {'result': None}
+        filter_ = {"result": None}
         actions = self._read_actions_from_db(eppn_or_userid, session, filter_)
         for this in actions:
             # return first element in list
@@ -175,17 +174,17 @@ class ActionDB(BaseDB):
         """
         if data is None:
             data = {
-                'action': action_type,
-                'preference': preference,
+                "action": action_type,
+                "preference": preference,
             }
             if isinstance(eppn_or_userid, ObjectId):
-                data['user_oid'] = eppn_or_userid
+                data["user_oid"] = eppn_or_userid
             else:
-                data['eppn'] = eppn_or_userid
+                data["eppn"] = eppn_or_userid
             if session is not None:
-                data['session'] = session
+                data["session"] = session
             if params is not None:
-                data['params'] = params
+                data["params"] = params
 
         # XXX deal with exceptions here ?
         action = Action.from_dict(data)
@@ -193,7 +192,7 @@ class ActionDB(BaseDB):
         if result.acknowledged:
             return action
         logger.error("Failed inserting action {!r} into db".format(action))
-        raise ActionDBError('Failed inserting action into db')
+        raise ActionDBError("Failed inserting action into db")
 
     def update_action(self, action):
         """
@@ -204,12 +203,12 @@ class ActionDB(BaseDB):
         :type action: Action
         :rtype: None
         """
-        result = self._coll.replace_one({'_id': action.action_id}, action.to_dict())
+        result = self._coll.replace_one({"_id": action.action_id}, action.to_dict())
         if result.modified_count:
-            logger.debug('Updated action {} in the db: {}'.format(action, result))
+            logger.debug("Updated action {} in the db: {}".format(action, result))
             return
-        logger.error('Failed updating action {} in db: {}'.format(action, result))
-        raise ActionDBError('Failed updating action in db')
+        logger.error("Failed updating action {} in db: {}".format(action, result))
+        raise ActionDBError("Failed updating action in db")
 
     def remove_action_by_id(self, action_id: ObjectId) -> bool:
         """
@@ -218,5 +217,5 @@ class ActionDB(BaseDB):
         :param action_id: Action id
         """
         logger.debug("{!s} Removing action with id {!r} from {!r}".format(self, action_id, self._coll_name))
-        result = self._coll.delete_one({'_id': action_id})
+        result = self._coll.delete_one({"_id": action_id})
         return result.acknowledged

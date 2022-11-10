@@ -30,7 +30,6 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-from datetime import timedelta
 from typing import Optional
 
 from flask import Blueprint
@@ -59,10 +58,10 @@ from eduid.webapp.security.schemas import (
     SuggestedPasswordResponseSchema,
 )
 
-change_password_views = Blueprint('change_password', __name__, url_prefix='/change-password')
+change_password_views = Blueprint("change_password", __name__, url_prefix="/change-password")
 
 
-@change_password_views.route('/suggested-password', methods=['GET'])
+@change_password_views.route("/suggested-password", methods=["GET"])
 @MarshalWith(SuggestedPasswordResponseSchema)
 @require_user
 def get_suggested(user) -> FluxData:
@@ -70,18 +69,18 @@ def get_suggested(user) -> FluxData:
     View to get a suggested password for the logged user.
     """
     authn = session.authn.sp.get_authn_for_action(AuthnAcsAction.change_password)
-    current_app.logger.debug(f'change_password called with authn {authn}')
+    current_app.logger.debug(f"change_password called with authn {authn}")
     _need_reauthn = check_reauthn(authn, current_app.conf.chpass_reauthn_timeout)
     if _need_reauthn:
         return _need_reauthn
 
-    current_app.logger.debug(f'Sending new generated password for {user}')
+    current_app.logger.debug(f"Sending new generated password for {user}")
     password = generate_suggested_password()
     session.security.generated_password_hash = hash_password(password)
-    return success_response(payload={'suggested_password': password}, message=None)
+    return success_response(payload={"suggested_password": password}, message=None)
 
 
-@change_password_views.route('/set-password', methods=['POST'])
+@change_password_views.route("/set-password", methods=["POST"])
 @MarshalWith(SecurityResponseSchema)
 @UnmarshalWith(ChangePasswordRequestSchema)
 @require_user
@@ -90,7 +89,7 @@ def change_password_view(user: User, new_password: str, old_password: Optional[s
     View to change the password
     """
     authn = session.authn.sp.get_authn_for_action(AuthnAcsAction.change_password)
-    current_app.logger.debug(f'change_password called with authn {authn}')
+    current_app.logger.debug(f"change_password called with authn {authn}")
     _need_reauthn = check_reauthn(authn, current_app.conf.chpass_reauthn_timeout)
     if _need_reauthn:
         return _need_reauthn
@@ -120,10 +119,10 @@ def change_password_view(user: User, new_password: str, old_password: Optional[s
 
     if check_password_hash(new_password, session.security.generated_password_hash):
         is_generated = True
-        current_app.stats.count(name='change_password_generated_password_used')
+        current_app.stats.count(name="change_password_generated_password_used")
     else:
         is_generated = False
-        current_app.stats.count(name='change_password_custom_password_used')
+        current_app.stats.count(name="change_password_custom_password_used")
 
     security_user = SecurityUser.from_user(user, current_app.private_userdb)
 
@@ -132,23 +131,23 @@ def change_password_view(user: User, new_password: str, old_password: Optional[s
         new_password=new_password,
         old_password=old_password,
         old_password_id=old_password_id,
-        application='security',
+        application="security",
         is_generated=is_generated,
         vccs_url=current_app.conf.vccs_url,
     )
 
     if not added:
-        current_app.logger.error(f'Could not verify the old password')
+        current_app.logger.error(f"Could not verify the old password")
         return error_response(message=SecurityMsg.unrecognized_pw)
     try:
         save_and_sync_user(security_user)
     except UserOutOfSync:
         return error_response(message=CommonMsg.out_of_sync)
 
-    current_app.stats.count(name='security_password_changed')
-    current_app.logger.info(f'Changed password for user')
+    current_app.stats.count(name="security_password_changed")
+    current_app.logger.info(f"Changed password for user")
 
     return success_response(
-        payload={'credentials': compile_credential_list(security_user)},
+        payload={"credentials": compile_credential_list(security_user)},
         message=SecurityMsg.change_password_success,
     )

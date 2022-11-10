@@ -43,14 +43,14 @@ class OrcidMsg(TranslatableMsg):
     """
 
     # ORCID account already connected to eduID account
-    already_connected = 'orc.already_connected'
+    already_connected = "orc.already_connected"
     # Authorization error at ORCID
-    authz_error = 'orc.authorization_fail'
+    authz_error = "orc.authorization_fail"
     # proofing state corresponding to ORCID response not found
-    no_state = 'orc.unknown_state'
+    no_state = "orc.unknown_state"
     # nonce received from ORCID not known
-    unknown_nonce = 'orc.unknown_nonce'
+    unknown_nonce = "orc.unknown_nonce"
     # The 'sub' of userinfo does not match 'sub' of ID Token for user
-    sub_mismatch = 'orc.sub_mismatch'
+    sub_mismatch = "orc.sub_mismatch"
     # ORCID proofing data saved for user
-    authz_success = 'orc.authorization_success'
+    authz_success = "orc.authorization_success"

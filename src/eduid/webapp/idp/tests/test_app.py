@@ -52,16 +52,16 @@ from eduid.webapp.idp.app import IdPApp, init_idp_app
 from eduid.webapp.idp.settings.common import IdPConfig
 from eduid.webapp.idp.sso_session import SSOSession
 
-__author__ = 'ft'
+__author__ = "ft"
 
 
 class LoginState(Enum):
-    S0_REDIRECT = 'redirect'
-    S1_LOGIN_FORM = 'login-form'
-    S2_VERIFY = 'verify'
-    S3_REDIRECT_LOGGED_IN = 'redirect-logged-in'
-    S4_REDIRECT_TO_ACS = 'redirect-to-acs'
-    S5_LOGGED_IN = 'logged-in'
+    S0_REDIRECT = "redirect"
+    S1_LOGIN_FORM = "login-form"
+    S2_VERIFY = "verify"
+    S3_REDIRECT_LOGGED_IN = "redirect-logged-in"
+    S4_REDIRECT_TO_ACS = "redirect-to-acs"
+    S5_LOGGED_IN = "logged-in"
 
 
 @dataclass
@@ -81,9 +81,9 @@ class IdPTests(EduidAPITestCase):
         **kwargs,
     ):
         super().setUp(*args, **kwargs)
-        self.idp_entity_id = 'https://unittest-idp.example.edu/idp.xml'
-        self.relay_state = 'test-fest'
-        self.sp_config = get_saml2_config(self.app.conf.pysaml2_config, name='SP_CONFIG')
+        self.idp_entity_id = "https://unittest-idp.example.edu/idp.xml"
+        self.relay_state = "test-fest"
+        self.sp_config = get_saml2_config(self.app.conf.pysaml2_config, name="SP_CONFIG")
         # pysaml2 likes to keep state about ongoing logins, data from login to when you logout etc.
         self._pysaml2_caches: Dict[str, Any] = dict()
         self.pysaml2_state = StateCache(self._pysaml2_caches)  # _saml2_state in _pysaml2_caches
@@ -100,21 +100,21 @@ class IdPTests(EduidAPITestCase):
 
     def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
         config = super().update_config(config)
-        fn = PurePath(__file__).with_name('data') / 'test_SSO_conf.py'
+        fn = PurePath(__file__).with_name("data") / "test_SSO_conf.py"
         config.update(
             {
-                'pysaml2_config': str(fn),
-                'fticks_secret_key': 'test test',
-                'eduperson_targeted_id_secret_key': 'eptid_secret',
-                'sso_cookie': {'key': 'test_sso_cookie'},
-                'eduid_site_url': 'https://eduid.docker_dev',
-                'tou_version': '2014-v1',  # this version is implicitly accepted on all users
-                'u2f_app_id': 'https://example.com',
-                'u2f_valid_facets': ['https://dashboard.dev.eduid.se', 'https://idp.dev.eduid.se'],
-                'fido2_rp_id': 'idp.example.com',
-                'other_device_secret_key': 'lx0sg0g21QUkiu9JAPfhx4hJ5prJtbk1PPE-OBvpiAk=',
-                'known_devices_secret_key': 'WwemHQgPm1hpx41NYaVBQpRV7BAq0OMtfF3k4H72J7c=',
-                'geo_statistics_secret_key': 'gk5cBWIZ6k-mNHWnA33ZpsgXfgH50Wi_s3mUNI9GF0o=',
+                "pysaml2_config": str(fn),
+                "fticks_secret_key": "test test",
+                "eduperson_targeted_id_secret_key": "eptid_secret",
+                "sso_cookie": {"key": "test_sso_cookie"},
+                "eduid_site_url": "https://eduid.docker_dev",
+                "tou_version": "2014-v1",  # this version is implicitly accepted on all users
+                "u2f_app_id": "https://example.com",
+                "u2f_valid_facets": ["https://dashboard.dev.eduid.se", "https://idp.dev.eduid.se"],
+                "fido2_rp_id": "idp.example.com",
+                "other_device_secret_key": "lx0sg0g21QUkiu9JAPfhx4hJ5prJtbk1PPE-OBvpiAk=",
+                "known_devices_secret_key": "WwemHQgPm1hpx41NYaVBQpRV7BAq0OMtfF3k4H72J7c=",
+                "geo_statistics_secret_key": "gk5cBWIZ6k-mNHWnA33ZpsgXfgH50Wi_s3mUNI9GF0o=",
             }
         )
         return config
@@ -156,49 +156,49 @@ class IdPTests(EduidAPITestCase):
 
             redirect_loc = self._extract_path_from_response(resp)
             # check that we were sent to the login form
-            if not redirect_loc.startswith('/verify?ref='):
+            if not redirect_loc.startswith("/verify?ref="):
                 return LoginResult(url=path, reached_state=LoginState.S0_REDIRECT, response=resp)
 
             resp = self.browser.get(redirect_loc)
             if resp.status_code != 200:
                 return LoginResult(url=redirect_loc, reached_state=LoginState.S1_LOGIN_FORM, response=resp)
 
-            form_data = self._extract_form_inputs(resp.data.decode('utf-8'))
+            form_data = self._extract_form_inputs(resp.data.decode("utf-8"))
             assert self.test_user.mail_addresses.primary  # please mypy
-            form_data['username'] = self.test_user.mail_addresses.primary.email
-            form_data['password'] = 'Jenka'
-            if 'ref' not in form_data:
+            form_data["username"] = self.test_user.mail_addresses.primary.email
+            form_data["password"] = "Jenka"
+            if "ref" not in form_data:
                 return LoginResult(url=path, reached_state=LoginState.S1_LOGIN_FORM, response=resp)
 
-            cookies = resp.headers.get('Set-Cookie')
+            cookies = resp.headers.get("Set-Cookie")
             if not cookies:
                 return LoginResult(url=path, reached_state=LoginState.S1_LOGIN_FORM, response=resp)
 
-            resp = browser.post('/verify', data=form_data, headers={'Cookie': cookies})
+            resp = browser.post("/verify", data=form_data, headers={"Cookie": cookies})
             if resp.status_code != 302:
-                return LoginResult(url='/verify', reached_state=LoginState.S2_VERIFY, response=resp)
+                return LoginResult(url="/verify", reached_state=LoginState.S2_VERIFY, response=resp)
 
         redirect_loc = self._extract_path_from_response(resp)
         # check that we were sent back to the SSO redirect entrypoint
-        if not redirect_loc.startswith('/sso/redirect?ref='):
-            return LoginResult(url='/verify', reached_state=LoginState.S2_VERIFY, response=resp)
+        if not redirect_loc.startswith("/sso/redirect?ref="):
+            return LoginResult(url="/verify", reached_state=LoginState.S2_VERIFY, response=resp)
 
-        cookies = resp.headers.get('Set-Cookie')
+        cookies = resp.headers.get("Set-Cookie")
         if not cookies:
-            return LoginResult(url='/verify', reached_state=LoginState.S2_VERIFY, response=resp)
+            return LoginResult(url="/verify", reached_state=LoginState.S2_VERIFY, response=resp)
 
         # Save the SSO cookie value
         sso_cookie_val = None
-        _re = f'.*{self.app.conf.sso_cookie.key}=(.+?);.*'
+        _re = f".*{self.app.conf.sso_cookie.key}=(.+?);.*"
         _sso_cookie_re = re.match(_re, cookies)
         if _sso_cookie_re:
             sso_cookie_val = _sso_cookie_re.groups()[0]
 
         if not sso_cookie_val:
             # The POST to /verify didn't result in an SSO session, probably incorrect username/password
-            return LoginResult(url='/verify', reached_state=LoginState.S2_VERIFY, response=resp)
+            return LoginResult(url="/verify", reached_state=LoginState.S2_VERIFY, response=resp)
 
-        resp = self.browser.get(redirect_loc, headers={'Cookie': cookies})
+        resp = self.browser.get(redirect_loc, headers={"Cookie": cookies})
         if resp.status_code != 200:
             return LoginResult(
                 url=redirect_loc,
@@ -214,27 +214,27 @@ class IdPTests(EduidAPITestCase):
     @staticmethod
     def _extract_form_inputs(res: str) -> Dict[str, Any]:
         inputs = {}
-        for line in res.split('\n'):
-            if 'input' in line:
+        for line in res.split("\n"):
+            if "input" in line:
                 # YOLO
-                m = re.match('.*<input .* name=[\'"](.+?)[\'"].*value=[\'"](.+?)[\'"]', line)
+                m = re.match(".*<input .* name=['\"](.+?)['\"].*value=['\"](.+?)['\"]", line)
                 if m:
                     name, value = m.groups()
-                    inputs[name] = value.strip('\'"')
+                    inputs[name] = value.strip("'\"")
         return inputs
 
     def _extract_path_from_response(self, response: FlaskResponse) -> str:
-        return self._extract_path_from_info({'headers': response.headers})
+        return self._extract_path_from_info({"headers": response.headers})
 
     def _extract_path_from_info(self, info: Mapping[str, Any]) -> str:
-        _location_headers = [_hdr for _hdr in info['headers'] if _hdr[0] == 'Location']
+        _location_headers = [_hdr for _hdr in info["headers"] if _hdr[0] == "Location"]
         # get first Location URL
         loc = _location_headers[0][1]
         return self._extract_path_from_url(loc)
 
     def _extract_path_from_url(self, url: str) -> str:
         # It is a complete URL, extract the path from it (8 is to skip over slashes in https://)
-        _idx = url[8:].index('/')
+        _idx = url[8:].index("/")
         path = url[8 + _idx :]
         return path
 
@@ -243,8 +243,8 @@ class IdPTests(EduidAPITestCase):
     ) -> AuthnResponse:
         _saml2_client = saml2_client if saml2_client is not None else self.saml2_client
 
-        form = self._extract_form_inputs(response.data.decode('utf-8'))
-        xmlstr = bytes(form['SAMLResponse'], 'ascii')
+        form = self._extract_form_inputs(response.data.decode("utf-8"))
+        xmlstr = bytes(form["SAMLResponse"], "ascii")
         outstanding_queries = self.pysaml2_oq.outstanding_queries()
         return _saml2_client.parse_authn_request_response(xmlstr, BINDING_HTTP_POST, outstanding_queries)
 
@@ -259,7 +259,7 @@ class IdPTests(EduidAPITestCase):
             version = self.app.conf.tou_version
         tou = ToUEvent(
             version=version,
-            created_by='idp_tests',
+            created_by="idp_tests",
             created_ts=utc_now(),
             modified_ts=utc_now(),
             event_id=str(ObjectId()),
@@ -271,19 +271,19 @@ class IdPTests(EduidAPITestCase):
 
 class BasicIdPTests(IdPTests):
     def test_app_starts(self):
-        assert self.app.conf.app_name == 'idp'
+        assert self.app.conf.app_name == "idp"
 
     def test_sso_session_lifetime_config(self):
         config = dict(self.settings)
 
-        config['sso_session_lifetime'] = 10  # expected to be interpreted as 10 minutes
+        config["sso_session_lifetime"] = 10  # expected to be interpreted as 10 minutes
         conf1 = IdPConfig(**config)
         assert conf1.sso_session_lifetime == timedelta(minutes=10)
 
-        config['sso_session_lifetime'] = 'PT5S'
+        config["sso_session_lifetime"] = "PT5S"
         conf2 = IdPConfig(**config)
         assert conf2.sso_session_lifetime == timedelta(seconds=5)
 
-        config['sso_session_lifetime'] = 'P365D'
+        config["sso_session_lifetime"] = "P365D"
         conf3 = IdPConfig(**config)
         assert conf3.sso_session_lifetime == timedelta(days=365)

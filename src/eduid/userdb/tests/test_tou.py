@@ -14,33 +14,33 @@ from eduid.userdb.fixtures.users import new_user_example
 from eduid.userdb.tou import ToUEvent, ToUList
 from eduid.userdb.util import utc_now
 
-__author__ = 'ft'
+__author__ = "ft"
 
 
 _one_dict = {
-    'event_id': str(bson.ObjectId()),
-    'event_type': 'tou_event',
-    'version': '1',
-    'created_by': 'test',
-    'created_ts': datetime.fromisoformat('2015-09-24T01:01:01.111111+00:00'),
+    "event_id": str(bson.ObjectId()),
+    "event_type": "tou_event",
+    "version": "1",
+    "created_by": "test",
+    "created_ts": datetime.fromisoformat("2015-09-24T01:01:01.111111+00:00"),
 }
 
 _two_dict = {
-    'event_id': str(uuid4()),
-    'event_type': 'tou_event',
-    'version': '2',
-    'created_by': 'test',
-    'created_ts': datetime.fromisoformat('2015-09-24T02:02:02.222222+00:00'),
-    'modified_ts': datetime.fromisoformat('2018-09-25T02:02:02.222222+00:00'),
+    "event_id": str(uuid4()),
+    "event_type": "tou_event",
+    "version": "2",
+    "created_by": "test",
+    "created_ts": datetime.fromisoformat("2015-09-24T02:02:02.222222+00:00"),
+    "modified_ts": datetime.fromisoformat("2018-09-25T02:02:02.222222+00:00"),
 }
 
 _three_dict = {
-    'event_id': str(bson.ObjectId()),
-    'event_type': 'tou_event',
-    'version': '3',
-    'created_by': 'test',
-    'created_ts': datetime.fromisoformat('2015-09-24T03:03:03.333333+00:00'),
-    'modified_ts': datetime.fromisoformat('2015-09-24T03:03:03.333333+00:00'),
+    "event_id": str(bson.ObjectId()),
+    "event_type": "tou_event",
+    "version": "3",
+    "created_by": "test",
+    "created_ts": datetime.fromisoformat("2015-09-24T03:03:03.333333+00:00"),
+    "modified_ts": datetime.fromisoformat("2015-09-24T03:03:03.333333+00:00"),
 }
 
 
@@ -68,55 +68,55 @@ class TestToUEvent(TestCase):
             assert new_list.to_list_of_dicts() == this.to_list_of_dicts()
 
     def test_created_by(self):
-        this = Event.from_dict(dict(created_by=None, event_type='test_event'))
-        this.created_by = 'unit test'
-        self.assertEqual(this.created_by, 'unit test')
+        this = Event.from_dict(dict(created_by=None, event_type="test_event"))
+        this.created_by = "unit test"
+        self.assertEqual(this.created_by, "unit test")
 
     def test_event_type(self):
         this = self.one.to_list()[0]
-        self.assertEqual(this.event_type, 'tou_event')
+        self.assertEqual(this.event_type, "tou_event")
 
     def test_reaccept_tou(self):
         three_years = timedelta(days=3 * 365)
         one_day = timedelta(days=1)
         # set modified_ts to both sides of three years ago
-        _two_dict['modified_ts'] = utc_now() - three_years + one_day
-        _three_dict['modified_ts'] = utc_now() - three_years - one_day
-        assert _two_dict['modified_ts'] + three_years > utc_now()
-        assert _three_dict['modified_ts'] + three_years < utc_now()
+        _two_dict["modified_ts"] = utc_now() - three_years + one_day
+        _three_dict["modified_ts"] = utc_now() - three_years - one_day
+        assert _two_dict["modified_ts"] + three_years > utc_now()
+        assert _three_dict["modified_ts"] + three_years < utc_now()
 
         # check if the TOU needs to be accepted with an interval of three years
         tl = ToUList.from_list_of_dicts([_two_dict, _three_dict])
-        self.assertTrue(tl.has_accepted(version='2', reaccept_interval=int(three_years.total_seconds())))
-        self.assertFalse(tl.has_accepted(version='3', reaccept_interval=int(three_years.total_seconds())))
+        self.assertTrue(tl.has_accepted(version="2", reaccept_interval=int(three_years.total_seconds())))
+        self.assertFalse(tl.has_accepted(version="3", reaccept_interval=int(three_years.total_seconds())))
 
 
-USERID = '123467890123456789014567'
-EPPN = 'hubba-bubba'
+USERID = "123467890123456789014567"
+EPPN = "hubba-bubba"
 
 
 class TestTouUser(TestCase):
     def test_proper_user(self):
         userdata = new_user_example.to_dict()
-        userdata['tou'] = [copy.deepcopy(_one_dict)]
+        userdata["tou"] = [copy.deepcopy(_one_dict)]
         user = ToUUser.from_dict(data=userdata)
-        self.assertEqual(user.tou.to_list_of_dicts()[0]['version'], '1')
+        self.assertEqual(user.tou.to_list_of_dicts()[0]["version"], "1")
 
     def test_proper_new_user(self):
         one = copy.deepcopy(_one_dict)
         tou = ToUList.from_list_of_dicts([one])
         userdata = new_user_example.to_dict()
-        userid = userdata.pop('_id')
-        eppn = userdata.pop('eduPersonPrincipalName')
-        passwords = CredentialList.from_list_of_dicts(userdata['passwords'])
+        userid = userdata.pop("_id")
+        eppn = userdata.pop("eduPersonPrincipalName")
+        passwords = CredentialList.from_list_of_dicts(userdata["passwords"])
         user = ToUUser(user_id=userid, eppn=eppn, tou=tou, credentials=passwords)
-        self.assertEqual(user.tou.to_list_of_dicts()[0]['version'], '1')
+        self.assertEqual(user.tou.to_list_of_dicts()[0]["version"], "1")
 
     def test_proper_new_user_no_id(self):
         one = copy.deepcopy(_one_dict)
         tou = ToUList(elements=[ToUEvent.from_dict(one)])
         userdata = new_user_example.to_dict()
-        passwords = CredentialList.from_list_of_dicts(userdata['passwords'])
+        passwords = CredentialList.from_list_of_dicts(userdata["passwords"])
         with self.assertRaises(ValidationError):
             ToUUser(tou=tou, credentials=passwords)
 
@@ -124,8 +124,8 @@ class TestTouUser(TestCase):
         one = copy.deepcopy(_one_dict)
         tou = ToUList.from_list_of_dicts([one])
         userdata = new_user_example.to_dict()
-        userid = userdata.pop('_id')
-        passwords = CredentialList.from_list_of_dicts(userdata['passwords'])
+        userid = userdata.pop("_id")
+        passwords = CredentialList.from_list_of_dicts(userdata["passwords"])
         with self.assertRaises(ValidationError):
             ToUUser(user_id=userid, tou=tou, credentials=passwords)
 

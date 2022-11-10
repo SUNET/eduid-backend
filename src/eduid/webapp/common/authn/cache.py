@@ -24,7 +24,7 @@ from saml2.cache import Cache
 class SessionCacheAdapter(dict):
     """A cache of things that are stored in some backend"""
 
-    key_prefix = '_saml2'
+    key_prefix = "_saml2"
 
     def __init__(self, backend: Dict[str, Any], key_suffix: str):
         self.session = backend
@@ -50,7 +50,7 @@ class OutstandingQueriesCache(object):
     """
 
     def __init__(self, backend):
-        self._db = SessionCacheAdapter(backend, '_outstanding_queries')
+        self._db = SessionCacheAdapter(backend, "_outstanding_queries")
 
     def outstanding_queries(self):
         return self._db._get_objects()
@@ -73,7 +73,7 @@ class IdentityCache(Cache):
     """
 
     def __init__(self, backend):
-        self._db = SessionCacheAdapter(backend, '_identities')
+        self._db = SessionCacheAdapter(backend, "_identities")
         self._sync = True
 
     def delete(self, subject_id):
@@ -90,4 +90,4 @@ class StateCache(SessionCacheAdapter):
     """
 
     def __init__(self, backend):
-        super(StateCache, self).__init__(backend, '_state')
+        super(StateCache, self).__init__(backend, "_state")

@@ -14,7 +14,7 @@ def credential_used_to_authenticate(credential: Credential, max_age: int) -> boo
     """
     Check if a particular credential was used to authenticate (using the eduID IdP and authn).
     """
-    logger.debug(f'Checking if credential {credential} has been used in the last {max_age} seconds')
+    logger.debug(f"Checking if credential {credential} has been used in the last {max_age} seconds")
 
     login = session.authn.sp.get_authn_for_action(AuthnAcsAction.login)
     reauthn = session.authn.sp.get_authn_for_action(AuthnAcsAction.reauthn)

@@ -7,7 +7,7 @@ from typing import Mapping, Optional
 
 from nacl import encoding, exceptions, secret
 
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
 from eduid.common.config.parsers.exceptions import SecretKeyException
 
@@ -27,9 +27,9 @@ def read_secret_key(key_name: str) -> bytes:
     :param key_name: Key file name
     :return: 32 bytes of secret data
     """
-    sanitized_key_name = "".join([c for c in key_name if c.isalpha() or c.isdigit() or c == '_'])
-    fp = '/run/secrets/{}'.format(sanitized_key_name)
-    with open(fp, 'rb') as f:
+    sanitized_key_name = "".join([c for c in key_name if c.isalpha() or c.isdigit() or c == "_"])
+    fp = "/run/secrets/{}".format(sanitized_key_name)
+    with open(fp, "rb") as f:
         return encoding.URLSafeBase64Encoder.decode(f.readline())
 
 
@@ -41,7 +41,7 @@ def init_secret_box(key_name: Optional[str] = None, secret_key: Optional[bytes] 
     """
     if not secret_key:
         if not key_name:
-            raise SecretKeyException('Can not initialize a SecretBox without either key_name or secret_key')
+            raise SecretKeyException("Can not initialize a SecretBox without either key_name or secret_key")
         secret_key = read_secret_key(key_name)
     return secret.SecretBox(secret_key)
 
@@ -54,11 +54,11 @@ def decrypt_config(config_dict: Mapping) -> Mapping:
     boxes: dict = {}
     new_config_dict: dict = {}
     for key, value in config_dict.items():
-        if key.lower().endswith('_encrypted'):
+        if key.lower().endswith("_encrypted"):
             decrypted = False
             for item in value:
-                key_name = item['key_name']
-                encrypted_value = item['value']
+                key_name = item["key_name"]
+                encrypted_value = item["value"]
 
                 if not boxes.get(key_name):
                     try:
@@ -67,9 +67,9 @@ def decrypt_config(config_dict: Mapping) -> Mapping:
                         logging.error(e)
                         continue  # Try next key
                 try:
-                    encrypted_value = bytes(encrypted_value, 'ascii')
+                    encrypted_value = bytes(encrypted_value, "ascii")
                     decrypted_value = (
-                        boxes[key_name].decrypt(encrypted_value, encoder=encoding.URLSafeBase64Encoder).decode('utf-8')
+                        boxes[key_name].decrypt(encrypted_value, encoder=encoding.URLSafeBase64Encoder).decode("utf-8")
                     )
                     new_config_dict[key[:-10]] = decrypted_value
                     decrypted = True
@@ -78,7 +78,7 @@ def decrypt_config(config_dict: Mapping) -> Mapping:
                     logging.error(e)
                     continue  # Try next key
             if not decrypted:
-                logging.error('Failed to decrypt {}:{}'.format(key, value))
+                logging.error("Failed to decrypt {}:{}".format(key, value))
         else:
             new_config_dict[key] = value
     return new_config_dict
@@ -90,7 +90,7 @@ def interpolate(f):
         config_dict = f(*args, **kwargs)
         interpolated_config_dict = interpolate_config(config_dict)
         for key in list(interpolated_config_dict.keys()):
-            if key.lower().startswith('var_'):
+            if key.lower().startswith("var_"):
                 del interpolated_config_dict[key]
         return interpolated_config_dict
 
@@ -107,7 +107,7 @@ def interpolate_list(config_dict: dict, sub_list: list) -> list:
     for i in range(0, len(sub_list)):
         item = sub_list[i]
         # Substitute string items
-        if isinstance(item, str) and '$' in item:
+        if isinstance(item, str) and "$" in item:
             template = Template(item)
             sub_list[i] = template.safe_substitute(config_dict)
         # Call interpolate_config with dict items
@@ -135,7 +135,7 @@ def interpolate_config(config_dict: dict, sub_dict: Optional[dict] = None) -> di
         ci_config_dict[k.upper()] = v
     for key, value in sub_dict.items():
         # Substitute string values
-        if isinstance(value, str) and '$' in value:
+        if isinstance(value, str) and "$" in value:
             template = Template(value)
             sub_dict[key] = template.safe_substitute(ci_config_dict)
 

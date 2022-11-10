@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
 from dataclasses import asdict, dataclass
 from typing import Callable, Optional, Union

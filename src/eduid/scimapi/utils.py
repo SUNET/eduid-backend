@@ -13,17 +13,17 @@ logger = logging.getLogger(__name__)
 
 
 def b64_encode(b: bytes) -> str:
-    return base64.urlsafe_b64encode(b).decode('utf-8').strip('=')
+    return base64.urlsafe_b64encode(b).decode("utf-8").strip("=")
 
 
 def b64_decode(data: AnyStr) -> bytes:
     if isinstance(data, str):
-        _data = data.encode('utf-8')
+        _data = data.encode("utf-8")
     elif isinstance(data, bytes):
         _data = data
     else:
-        raise ValueError('b64_decode needs either str or bytes')
-    _data += b'=' * (len(_data) % 4)
+        raise ValueError("b64_decode needs either str or bytes")
+    _data += b"=" * (len(_data) % 4)
     return base64.urlsafe_b64decode(_data)
 
 
@@ -53,8 +53,8 @@ def get_short_hash(entropy=10):
 
 def load_jwks(config: ScimApiConfig) -> jwk.JWKSet:
     if not config.keystore_path.exists():
-        raise BadConfiguration(f'JWKS path {config.keystore_path} does not exist.')
-    with config.keystore_path.open('r') as f:
+        raise BadConfiguration(f"JWKS path {config.keystore_path} does not exist.")
+    with config.keystore_path.open("r") as f:
         jwks = jwk.JWKSet.from_json(f.read())
-        logger.info(f'jwks loaded from {config.keystore_path}')
+        logger.info(f"jwks loaded from {config.keystore_path}")
     return jwks

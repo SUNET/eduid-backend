@@ -32,9 +32,9 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 from datetime import timedelta
-from enum import Enum
 from typing import List, Optional
 
+from fido2.webauthn import AttestationConveyancePreference
 from fido_mds.models.fido_mds import AuthenticatorStatus
 from pydantic import Field
 
@@ -47,19 +47,6 @@ from eduid.common.config.base import (
     PasswordConfigMixin,
     WebauthnConfigMixin2,
 )
-
-
-class WebauthnAttestation(str, Enum):
-    """
-    Type of attestation to ask from authenticators on registration.
-
-    https://w3c.github.io/webauthn/#attestation-conveyance
-    """
-
-    none = 'none'
-    indirect = 'indirect'
-    direct = 'direct'
-    enterprise = 'enterprise'
 
 
 class SecurityConfig(
@@ -75,7 +62,7 @@ class SecurityConfig(
     Configuration for the security app
     """
 
-    app_name: str = 'security'
+    app_name: str = "security"
 
     vccs_url: str
     dashboard_url: str
@@ -88,25 +75,25 @@ class SecurityConfig(
     chpass_old_password_needed: bool = True
 
     # webauthn
-    webauthn_proofing_method = Field(default='webauthn metadata')
-    webauthn_proofing_version = Field(default='2022v1')
+    webauthn_proofing_method = Field(default="webauthn metadata")
+    webauthn_proofing_version = Field(default="2022v1")
     webauthn_max_allowed_tokens: int = 10
-    webauthn_attestation: Optional[WebauthnAttestation] = None
+    webauthn_attestation: Optional[AttestationConveyancePreference] = None
     webauthn_allowed_user_verification_methods: List[str] = Field(
         default=[
-            'faceprint_internal',
-            'passcode_external',
-            'passcode_internal',
-            'handprint_internal',
-            'pattern_internal',
-            'voiceprint_internal',
-            'fingerprint_internal',
-            'eyeprint_internal',
-            'apple',
+            "faceprint_internal",
+            "passcode_external",
+            "passcode_internal",
+            "handprint_internal",
+            "pattern_internal",
+            "voiceprint_internal",
+            "fingerprint_internal",
+            "eyeprint_internal",
+            "apple",
         ]
     )
     webauthn_allowed_key_protection: List[str] = Field(
-        default=['remote_handle', 'hardware', 'secure_element', 'tee', 'apple']
+        default=["remote_handle", "hardware", "secure_element", "tee", "apple"]
     )
     webauthn_allowed_status: List[AuthenticatorStatus] = Field(
         default=[
@@ -121,8 +108,8 @@ class SecurityConfig(
     )
 
     # for logging out when terminating an account
-    logout_endpoint: str = '/services/authn/logout'
+    logout_endpoint: str = "/services/authn/logout"
     # URL to send the user to after terminating the account
-    termination_redirect_url: str = 'https://eduid.se'
-    eduid_site_url: str = 'https://www.eduid.se'
-    eduid_site_name: str = 'eduID'
+    termination_redirect_url: str = "https://eduid.se"
+    eduid_site_url: str = "https://www.eduid.se"
+    eduid_site_name: str = "eduID"

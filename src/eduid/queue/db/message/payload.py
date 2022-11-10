@@ -34,7 +34,7 @@ from typing import Mapping
 
 from eduid.queue.db import Payload
 
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
 
 @dataclass
@@ -62,14 +62,10 @@ class EduidTestResultPayload(Payload):
 
 
 @dataclass
-class EduidInviteEmail(Payload):
-    email: str
-    reference: str
-    invite_link: str
-    invite_code: str
-    inviter_name: str
-    language: str
-    version: int = 1
+class EduidSCIMAPINotification(Payload):
+    data_owner: str
+    post_url: str
+    message: str
 
     @classmethod
     def from_dict(cls, data: Mapping):
@@ -78,13 +74,35 @@ class EduidInviteEmail(Payload):
 
 
 @dataclass
-class EduidSCIMAPINotification(Payload):
-    data_owner: str
-    post_url: str
-    message: str
-    version: int = 1
+class EmailPayload(Payload):
+    email: str
+    reference: str
+    language: str
 
     @classmethod
     def from_dict(cls, data: Mapping):
         data = dict(data)  # Do not change caller data
         return cls(**data)
+
+
+@dataclass
+class EduidInviteEmail(EmailPayload):
+    invite_link: str
+    invite_code: str
+    inviter_name: str
+    version: int = 1
+
+
+@dataclass
+class EduidSignupEmail(EmailPayload):
+    verification_code: str
+    site_name: str
+    version: int = 1
+
+
+@dataclass
+class OldEduidSignupEmail(EmailPayload):
+    verification_link: str
+    site_name: str
+    site_url: str
+    version: int = 1

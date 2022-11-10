@@ -32,16 +32,16 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Mapping, Optional, Union
+from typing import Any, Dict, List, Mapping, Optional
 from uuid import UUID
 
 from bson import ObjectId
 
-__author__ = 'lundberg'
+__author__ = "lundberg"
 
 
 class InviteType(Enum):
-    SCIM = 'SCIM'
+    SCIM = "SCIM"
 
 
 @dataclass(frozen=True)
@@ -62,7 +62,7 @@ class InviteMailAddress:
 
     def __post_init__(self):
         # Make sure email is lowercase on init as we had trouble with mixed case
-        super().__setattr__('email', self.email.lower())
+        super().__setattr__("email", self.email.lower())
 
 
 @dataclass(frozen=True)
@@ -78,40 +78,49 @@ class _InviteRequired:
     invite_code: str
     inviter_name: str
     send_email: bool
+    expires_at: datetime
 
 
 @dataclass(frozen=True)
 class Invite(_InviteRequired):
     invite_id: ObjectId = field(default_factory=ObjectId)
-    display_name: Optional[str] = field(default=None)
     given_name: Optional[str] = field(default=None)
     surname: Optional[str] = field(default=None)
     mail_addresses: List[InviteMailAddress] = field(default_factory=list)
     phone_numbers: List[InvitePhoneNumber] = field(default_factory=list)
     nin: Optional[str] = field(default=None)
-    preferred_language: str = field(default='sv')
+    preferred_language: str = field(default="sv")
     finish_url: Optional[str] = field(default=None)
     completed_ts: Optional[datetime] = field(default=None)
-    expires_at: Optional[datetime] = field(default=None)
     created_ts: datetime = field(default_factory=datetime.utcnow)
     modified_ts: Optional[datetime] = field(default=None)
 
+    def get_primary_mail_address(self) -> Optional[str]:
+        # there can be only one primary mail address set
+        primary_mail_address = [item.email for item in self.mail_addresses if item.primary is True]
+        if not primary_mail_address:
+            return None
+        return primary_mail_address[0]
+
     def to_dict(self) -> Dict[str, Any]:
         data = asdict(self)
-        data['_id'] = data.pop('invite_id')
-        data['invite_type'] = InviteType(data['invite_type']).value
+        data["_id"] = data.pop("invite_id")
+        data["invite_type"] = InviteType(data["invite_type"]).value
         return data
 
     @classmethod
     def from_dict(cls, data: Mapping) -> Invite:
         data = dict(data)
-        data['invite_id'] = data.pop('_id')
-        data['invite_type'] = InviteType(data['invite_type'])
-        if data.get('mail_addresses'):
-            data['mail_addresses'] = [InviteMailAddress(**address) for address in data['mail_addresses']]
-        if data.get('phone_numbers'):
-            data['phone_numbers'] = [InvitePhoneNumber(**number) for number in data['phone_numbers']]
+        data["invite_id"] = data.pop("_id")
+        data["invite_type"] = InviteType(data["invite_type"])
+        if data.get("mail_addresses"):
+            data["mail_addresses"] = [InviteMailAddress(**address) for address in data["mail_addresses"]]
+        if data.get("phone_numbers"):
+            data["phone_numbers"] = [InvitePhoneNumber(**number) for number in data["phone_numbers"]]
         # Load invite specific data
-        if data['invite_type'] is InviteType.SCIM:
-            data['invite_reference'] = SCIMReference(**data['invite_reference'])
+        if data["invite_type"] is InviteType.SCIM:
+            data["invite_reference"] = SCIMReference(**data["invite_reference"])
+        # backwards compatibility
+        if "display_name" in data:
+            del data["display_name"]
         return cls(**data)

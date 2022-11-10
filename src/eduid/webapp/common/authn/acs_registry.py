@@ -106,7 +106,7 @@ def get_action(default_action: Optional[Enum], authndata: SP_AuthnRequest) -> Ca
     """
     action_value = authndata.post_authn_action
     if action_value is None:
-        current_app.logger.debug(f'No post-authn-action found in the session, using default {default_action}')
+        current_app.logger.debug(f"No post-authn-action found in the session, using default {default_action}")
         if default_action is not None:
             action_value = default_action.value
     try:
@@ -116,7 +116,7 @@ def get_action(default_action: Optional[Enum], authndata: SP_AuthnRequest) -> Ca
     except KeyError:
         error_msg = f'"{action_value}" not found in ACS registry'
         current_app.logger.error(error_msg)
-        current_app.logger.debug(f'Registered ACS actions: {_actions.keys()}')
+        current_app.logger.debug(f"Registered ACS actions: {_actions.keys()}")
         raise UnregisteredAction(error_msg)
 
     return action

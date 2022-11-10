@@ -49,17 +49,17 @@ class FakeVCCSClient(VCCSClient):
             return json.dumps(self.fake_response)
 
         fake_response = {}
-        if _service == 'add_creds':
+        if _service == "add_creds":
             fake_response = {
-                'add_creds_response': {'version': 1, 'success': True},
+                "add_creds_response": {"version": 1, "success": True},
             }
-        elif _service == 'authenticate':
+        elif _service == "authenticate":
             fake_response = {
-                'auth_response': {'version': 1, 'authenticated': True},
+                "auth_response": {"version": 1, "authenticated": True},
             }
-        elif _service == 'revoke_creds':
+        elif _service == "revoke_creds":
             fake_response = {
-                'revoke_creds_response': {'version': 1, 'success': True},
+                "revoke_creds_response": {"version": 1, "success": True},
             }
         return json.dumps(fake_response)
 
@@ -80,33 +80,33 @@ class TestVCCSClient(object):
     def authenticate(self, user_id, factors):
         found = False
         if user_id not in self.factors:
-            logger.debug('User {!r} not found in TestVCCSClient credential store:\n{}'.format(user_id, self.factors))
+            logger.debug("User {!r} not found in TestVCCSClient credential store:\n{}".format(user_id, self.factors))
             return False
         for factor in factors:
             logger.debug(
-                'Trying to authenticate user {} with factor {} (id {})'.format(user_id, factor, factor.credential_id)
+                "Trying to authenticate user {} with factor {} (id {})".format(user_id, factor, factor.credential_id)
             )
-            fdict = factor.to_dict('auth')
+            fdict = factor.to_dict("auth")
             for stored_factor in self.factors[user_id]:
                 if factor.credential_id != stored_factor.credential_id:
                     logger.debug(
-                        'No match for id of stored factor {} (id {})'.format(stored_factor, stored_factor.credential_id)
+                        "No match for id of stored factor {} (id {})".format(stored_factor, stored_factor.credential_id)
                     )
                     continue
-                logger.debug('Found matching credential_id: {}'.format(stored_factor))
+                logger.debug("Found matching credential_id: {}".format(stored_factor))
                 try:
-                    sdict = stored_factor.to_dict('auth')
+                    sdict = stored_factor.to_dict("auth")
                 except (AttributeError, ValueError):
                     # OATH token
                     found = True
                     break
                 else:
                     # H1 hash comparision for password factors
-                    if fdict['H1'] == sdict['H1']:
+                    if fdict["H1"] == sdict["H1"]:
                         found = True
                         break
-                    logger.debug('Hash {} did not match the expected hash {}'.format(fdict['H1'], sdict['H1']))
-        logger.debug('TestVCCSClient authenticate result for user_id {}: {}'.format(user_id, found))
+                    logger.debug("Hash {} did not match the expected hash {}".format(fdict["H1"], sdict["H1"]))
+        logger.debug("TestVCCSClient authenticate result for user_id {}: {}".format(user_id, found))
         return found
 
     def add_credentials(self, user_id, factors):
@@ -119,10 +119,10 @@ class TestVCCSClient(object):
         stored = self.factors.get(user_id, None)
         if stored:  # Nothing stored in test client yet
             for rfactor in revoked:
-                rdict = rfactor.to_dict('revoke_creds')
+                rdict = rfactor.to_dict("revoke_creds")
                 for factor in stored:
-                    fdict = factor.to_dict('revoke_creds')
-                    if rdict['credential_id'] == fdict['credential_id']:
+                    fdict = factor.to_dict("revoke_creds")
+                    if rdict["credential_id"] == fdict["credential_id"]:
                         stored.remove(factor)
                         break
 

@@ -10,4 +10,4 @@ from eduid.userdb.support.db import (
     SupportProofingLogDB,
 )
 
-__author__ = 'lundberg'
+__author__ = "lundberg"

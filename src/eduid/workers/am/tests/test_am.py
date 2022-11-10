@@ -11,7 +11,7 @@ from eduid.workers.am.ams.common import AttributeFetcher
 from eduid.workers.am.common import AmCelerySingleton
 from eduid.workers.am.testing import AMTestCase
 
-__author__ = 'leifj'
+__author__ = "leifj"
 
 
 class AmTestUser(eduid.userdb.User):
@@ -19,7 +19,7 @@ class AmTestUser(eduid.userdb.User):
     User class for the 'test' plugin below.
     """
 
-    uid: str = ''
+    uid: str = ""
 
 
 class AmTestUserDb(eduid.userdb.UserDB[AmTestUser]):
@@ -47,7 +47,7 @@ class FakeAttributeFetcher(AttributeFetcher):
     """
 
     def get_user_db(self, uri):
-        return AmTestUserDb(uri, db_name='eduid_am_test')
+        return AmTestUserDb(uri, db_name="eduid_am_test")
 
     def fetch_attrs(self, user_id):
         user = self.private_db.get_user_by_id(user_id)
@@ -58,9 +58,9 @@ class FakeAttributeFetcher(AttributeFetcher):
         # Transform eduPersonPrincipalName on the way to make it clear that the
         # update was done using this code.
         res = user.to_dict()
-        res['eduPersonPrincipalName'] = f"{user.uid}-{user.uid}"
-        del res['uid']
-        attributes = {'$set': res}
+        res["eduPersonPrincipalName"] = f"{user.uid}-{user.uid}"
+        del res["uid"]
+        attributes = {"$set": res}
         return attributes
 
 
@@ -71,7 +71,7 @@ class BadAttributeFetcher(FakeAttributeFetcher):
 
     def fetch_attrs(self, user_id):
         res = super().fetch_attrs(user_id)
-        res['notanoperator'] = 'test'
+        res["notanoperator"] = "test"
         return res
 
 
@@ -83,15 +83,15 @@ class MessageTest(AMTestCase):
 
     def setUp(self, *args, **kwargs):
         super().setUp(*args, want_mongo_uri=True, **kwargs)
-        self.private_db = AmTestUserDb(db_uri=self.tmp_db.uri, db_name='eduid_am_test')
+        self.private_db = AmTestUserDb(db_uri=self.tmp_db.uri, db_name="eduid_am_test")
         # register fake AMP plugin named 'test'
-        AmConfig(app_name='message_test', mongo_uri=self.tmp_db.uri)
+        AmConfig(app_name="message_test", mongo_uri=self.tmp_db.uri)
         AmCelerySingleton.af_registry.add_fetcher(
-            'test', FakeAttributeFetcher(AmConfig(app_name='message_test', mongo_uri=self.tmp_db.uri))
+            "test", FakeAttributeFetcher(AmConfig(app_name="message_test", mongo_uri=self.tmp_db.uri))
         )
         # register fake AMP plugin named 'bad'
         AmCelerySingleton.af_registry.add_fetcher(
-            'bad', BadAttributeFetcher(AmConfig(app_name='message_test', mongo_uri=self.tmp_db.uri))
+            "bad", BadAttributeFetcher(AmConfig(app_name="message_test", mongo_uri=self.tmp_db.uri))
         )
 
     def test_insert(self):
@@ -104,13 +104,13 @@ class MessageTest(AMTestCase):
         assert not self.amdb.get_user_by_id(_id)
 
         userdoc = {
-            '_id': _id,
-            'eduPersonPrincipalName': 'foooo-baaar',
-            'uid': 'teste',
-            'passwords': [
+            "_id": _id,
+            "eduPersonPrincipalName": "foooo-baaar",
+            "uid": "teste",
+            "passwords": [
                 {
-                    'id': ObjectId('112345678901234567890123'),
-                    'salt': '$NDNv1H1$9c81...545$32$32$',
+                    "id": ObjectId("112345678901234567890123"),
+                    "salt": "$NDNv1H1$9c81...545$32$32$",
                 }
             ],
         }
@@ -118,11 +118,11 @@ class MessageTest(AMTestCase):
         # Save the user in the eduid.workers.am_test database
         self.private_db.save(test_user)
 
-        self.am_relay.request_user_sync(test_user, app_name_override='test')
+        self.am_relay.request_user_sync(test_user, app_name_override="test")
 
         # verify the user has been propagated to the amdb
         am_user = self.amdb.get_user_by_id(_id)
-        self.assertEqual(am_user.eppn, 'teste-teste')
+        self.assertEqual(am_user.eppn, "teste-teste")
 
     def test_update(self):
         """
@@ -133,13 +133,13 @@ class MessageTest(AMTestCase):
         _id = ObjectId()
 
         userdoc = {
-            '_id': _id,
-            'eduPersonPrincipalName': 'foooo-baaar',
-            'uid': 'teste',
-            'passwords': [
+            "_id": _id,
+            "eduPersonPrincipalName": "foooo-baaar",
+            "uid": "teste",
+            "passwords": [
                 {
-                    'id': ObjectId('112345678901234567890123'),
-                    'salt': '$NDNv1H1$9c81...545$32$32$',
+                    "id": ObjectId("112345678901234567890123"),
+                    "salt": "$NDNv1H1$9c81...545$32$32$",
                 }
             ],
         }
@@ -148,30 +148,30 @@ class MessageTest(AMTestCase):
         self.private_db.save(test_user)
         # Save the user in the central database
         user_dict = test_user.to_dict()
-        del user_dict['uid']
+        del user_dict["uid"]
         central_user = eduid.userdb.User.from_dict(user_dict)
         self.amdb.save(central_user, check_sync=False)
 
         am_user = self.amdb.get_user_by_id(_id)
-        self.assertNotEqual(am_user.eppn, 'teste-teste')
+        self.assertNotEqual(am_user.eppn, "teste-teste")
 
-        self.am_relay.request_user_sync(test_user, app_name_override='test')
+        self.am_relay.request_user_sync(test_user, app_name_override="test")
 
         # verify the user has been propagated to the amdb
         am_user = self.amdb.get_user_by_id(_id)
-        self.assertEqual(am_user.eppn, 'teste-teste')
+        self.assertEqual(am_user.eppn, "teste-teste")
 
     def test_bad_operator(self):
         _id = ObjectId()
 
         userdoc = {
-            '_id': _id,
-            'eduPersonPrincipalName': 'foooo-baaar',
-            'uid': 'teste',
-            'passwords': [
+            "_id": _id,
+            "eduPersonPrincipalName": "foooo-baaar",
+            "uid": "teste",
+            "passwords": [
                 {
-                    'id': ObjectId('112345678901234567890123'),
-                    'salt': '$NDNv1H1$9c81...545$32$32$',
+                    "id": ObjectId("112345678901234567890123"),
+                    "salt": "$NDNv1H1$9c81...545$32$32$",
                 }
             ],
         }
@@ -180,12 +180,12 @@ class MessageTest(AMTestCase):
         self.private_db.save(test_user)
         # Save the user in the central database
         user_dict = test_user.to_dict()
-        del user_dict['uid']
+        del user_dict["uid"]
         central_user = eduid.userdb.User.from_dict(user_dict)
         self.amdb.save(central_user, check_sync=False)
 
         am_user = self.amdb.get_user_by_id(_id)
-        self.assertNotEqual(am_user.eppn, 'teste-teste')
+        self.assertNotEqual(am_user.eppn, "teste-teste")
 
         with self.assertRaises(eduid.userdb.exceptions.EduIDDBError):
-            self.am_relay.request_user_sync(test_user, app_name_override='bad')
+            self.am_relay.request_user_sync(test_user, app_name_override="bad")
