@@ -67,7 +67,7 @@ def get_status(authn_id: OIDCState) -> FluxData:
 def verify_identity(user: User, method: str, frontend_action: str, frontend_state: str = None) -> FluxData:
     res = _authn(SvipeIDAction.verify_identity, method, frontend_action, frontend_state)
     if res.error:
-        current_app.logger.error(f"Failed to start Svipe ID proofing: {res.error}")
+        current_app.logger.error(f"Failed to start verify identity: {res.error}")
         return error_response(message=res.error)
     return success_response(payload={"location": res.url})
 
@@ -167,7 +167,7 @@ def authn_callback(user) -> WerkzeugResponse:
         current_app.logger.exception(f"Failed to get token response from Svipe ID")
         current_app.stats.count(name="token_response_failed")
         authn_req.error = True
-        authn_req.status = SvipeIDMsg.token_response_failed.value
+        authn_req.status = SvipeIDMsg.authorization_error.value
         session.svipe_id.rp.authns[oicd_state] = authn_req
         return redirect(formatted_finish_url)
 

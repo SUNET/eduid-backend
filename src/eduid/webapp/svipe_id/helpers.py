@@ -29,10 +29,8 @@ class SvipeIDMsg(TranslatableMsg):
     method_not_available = "svipe_id.method_not_available"
     # Identity verification success
     identity_verify_success = "svipe_id.identity_verify_success"
-    # Token response failed
-    token_response_failed = "svipe_id.token_response_failed"
     # Authorization error at Svipe ID
-    authz_error = "svipe_id.authorization_fail"
+    authorization_error = "svipe_id.authorization_fail"
     # Status requested for unknown authn_id
     not_found = "svipe_id.not_found"
 
