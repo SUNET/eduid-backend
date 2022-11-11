@@ -29,7 +29,8 @@
 #
 
 from typing import Any, Mapping, Optional
-from marshmallow import Schema, fields, ValidationError
+
+from marshmallow import Schema, ValidationError, fields
 
 from eduid.webapp.common.api.schemas.base import EduidSchema, FluxStandardAction
 from eduid.webapp.common.api.schemas.csrf import CSRFRequestMixin, CSRFResponseMixin
@@ -196,6 +197,18 @@ class AbortResponseSchema(FluxStandardAction):
         finished = fields.Bool(required=True)
 
     payload = fields.Nested(AbortResponsePayload)
+
+
+class LogoutRequestSchema(EduidSchema, CSRFRequestMixin):
+    ref = fields.Str(missing=None, required=False)  # frontend tells us this is an ongoing login
+
+
+class LogoutResponseSchema(FluxStandardAction):
+    class LogoutResponsePayload(EduidSchema, CSRFResponseMixin):
+        finished = fields.Bool(required=True)
+        location = fields.Str(required=False)  # ask frontend to redirect the user here please
+
+    payload = fields.Nested(LogoutResponsePayload)
 
 
 class NewDeviceRequestSchema(IdPRequest):
