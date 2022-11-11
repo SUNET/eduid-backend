@@ -1,48 +1,52 @@
+from typing import Optional
+
 from flask import Blueprint, request
 from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.webapp.idp.app import current_idp_app as current_app
+from eduid.webapp.idp.decorators import uses_sso_session
 from eduid.webapp.idp.login import SSO
 from eduid.webapp.idp.logout import SLO
+from eduid.webapp.idp.sso_session import SSOSession
 
 saml_views = Blueprint("saml", __name__, url_prefix="")
 
 
 @saml_views.route("/sso/post", methods=["POST"])
-def sso_post() -> WerkzeugResponse:
+@uses_sso_session
+def sso_post(sso_session: Optional[SSOSession]) -> WerkzeugResponse:
     current_app.logger.debug("\n\n")
     current_app.logger.debug(f"--- SingleSignOn POST: {request.path} ---")
-    sso_session = current_app._lookup_sso_session()
     return SSO(sso_session).post()
 
 
 @saml_views.route("/sso/redirect", methods=["GET"])
-def sso_redirect() -> WerkzeugResponse:
+@uses_sso_session
+def sso_redirect(sso_session: Optional[SSOSession]) -> WerkzeugResponse:
     current_app.logger.debug("\n\n")
     current_app.logger.debug(f"--- SingleSignOn REDIRECT: {request.path} ---")
-    sso_session = current_app._lookup_sso_session()
     return SSO(sso_session).redirect()
 
 
 @saml_views.route("/slo/post", methods=["POST"])
-def slo_post() -> WerkzeugResponse:
+@uses_sso_session
+def slo_post(sso_session: Optional[SSOSession]) -> WerkzeugResponse:
     current_app.logger.debug("\n\n")
     current_app.logger.debug(f"--- SingleLogOut POST: {request.path} ---")
-    sso_session = current_app._lookup_sso_session()
     return SLO(sso_session).post()
 
 
 @saml_views.route("/slo/soap", methods=["POST"])
-def slo_soap() -> WerkzeugResponse:
+@uses_sso_session
+def slo_soap(sso_session: Optional[SSOSession]) -> WerkzeugResponse:
     current_app.logger.debug("\n\n")
     current_app.logger.debug(f"--- SingleLogOut SOAP: {request.path} ---")
-    sso_session = current_app._lookup_sso_session()
     return SLO(sso_session).soap()
 
 
 @saml_views.route("/slo/redirect", methods=["GET"])
-def slo_redirect() -> WerkzeugResponse:
+@uses_sso_session
+def slo_redirect(sso_session: Optional[SSOSession]) -> WerkzeugResponse:
     current_app.logger.debug("\n\n")
     current_app.logger.debug(f"--- SingleLogOut REDIRECT: {request.path} ---")
-    slo_session = current_app._lookup_sso_session()
-    return SLO(slo_session).redirect()
+    return SLO(sso_session).redirect()
