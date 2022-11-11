@@ -30,7 +30,7 @@ from eduid.webapp.svipe_id.schemas import (
 __author__ = "lundberg"
 
 
-svipe_id_views = Blueprint("svipe_id", __name__, url_prefix="", template_folder="templates")
+svipe_id_views = Blueprint("svipe_id", __name__, url_prefix="")
 
 
 @svipe_id_views.route("/", methods=["GET"])
@@ -99,7 +99,8 @@ def _authn(
     auth_url = auth_redirect.headers["Location"]
     auth_url_query = urlparse(auth_url).query
     try:
-        state = parse_qs(auth_url_query)["state"][0]  # I don't know where my IDE gets the type bytes from
+        # Ignore PyCharm warning "Expected type 'bytes' ..." for "state" lookup
+        state = parse_qs(auth_url_query)["state"][0]
     except KeyError:
         current_app.logger.error(f'Failed to parse "state" from authn request: {auth_url_query}')
         return AuthnResult(error=SvipeIDMsg.authn_request_failed)
@@ -127,14 +128,14 @@ def authn_callback(user) -> WerkzeugResponse:
     """
     This is the callback endpoint for the Svipe ID OIDC flow.
     """
-    oicd_state = OIDCState(request.args.get("state", ""))
-    authn_req = session.svipe_id.rp.authns.get(oicd_state)
+    oidc_state = OIDCState(request.args.get("state", ""))
+    authn_req = session.svipe_id.rp.authns.get(oidc_state)
     if not authn_req:
         # Perhaps a authn response received out of order - abort without destroying state
         # (User makes two requests, A and B. Response B arrives, user is happy and proceeds with their work.
         #  Then response A arrives late. Just silently abort, no need to mess up the users' session.)
         current_app.logger.info(
-            f"Response {oicd_state} does not match one in session, redirecting user to eduID Errors page"
+            f"Response {oidc_state} does not match one in session, redirecting user to eduID Errors page"
         )
         if not current_app.conf.errors_url_template:
             return make_response("Unknown authn response", 400)
@@ -158,7 +159,7 @@ def authn_callback(user) -> WerkzeugResponse:
             rp=url_for("svipe_id.auth_callback", _external=True),
         )
 
-    formatted_finish_url = proofing_method.formatted_finish_url(app_name=current_app.conf.app_name, authn_id=oicd_state)
+    formatted_finish_url = proofing_method.formatted_finish_url(app_name=current_app.conf.app_name, authn_id=oidc_state)
     assert formatted_finish_url  # please type checking
 
     try:
@@ -168,7 +169,7 @@ def authn_callback(user) -> WerkzeugResponse:
         current_app.stats.count(name="token_response_failed")
         authn_req.error = True
         authn_req.status = SvipeIDMsg.authorization_error.value
-        session.svipe_id.rp.authns[oicd_state] = authn_req
+        session.svipe_id.rp.authns[oidc_state] = authn_req
         return redirect(formatted_finish_url)
 
     # end session after successful token response
@@ -179,7 +180,7 @@ def authn_callback(user) -> WerkzeugResponse:
         )
     except OAuthError:
         # keep going even if we can't end the session
-        current_app.logger.exception(f"Failed to end session with Svipe ID")
+        current_app.logger.exception(f"Failed to end OIDC session")
 
     action = get_action(default_action=None, authndata=authn_req)
     backdoor = check_magic_cookie(config=current_app.conf)
@@ -198,11 +199,11 @@ def authn_callback(user) -> WerkzeugResponse:
         authn_req.error = True
         if result.message:
             authn_req.status = result.message.value
-        session.svipe_id.rp.authns[oicd_state] = authn_req
+        session.svipe_id.rp.authns[oidc_state] = authn_req
         return redirect(formatted_finish_url)
 
     current_app.logger.debug(f"OIDC callback action successful (frontend_action {authn_req.frontend_action})")
     if result.message:
         authn_req.status = result.message.value
-    session.svipe_id.rp.authns[oicd_state] = authn_req
+    session.svipe_id.rp.authns[oidc_state] = authn_req
     return redirect(formatted_finish_url)

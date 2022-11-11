@@ -210,7 +210,7 @@ class SvipeIDProofingFunctions(ProofingFunctions[SvipeDocumentUserInfo]):
         return ProofingElementResult(data=data)
 
     def match_identity(self, user: User, proofing_method: ProofingMethod) -> MatchResult:
-        pass
+        raise NotImplementedError("No support for mfa")
 
     def credential_proofing_element(self, user: User, credential: Credential) -> ProofingElementResult:
         raise NotImplementedError("No support for credential proofing")

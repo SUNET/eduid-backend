@@ -256,7 +256,7 @@ class AuthnRequest(BaseModel):
     post_authn_action: Optional[Union[AuthnAcsAction, EidasAcsAction, SvipeIDAction]] = None
     created_ts: datetime = Field(default_factory=utc_now)
     authn_instant: Optional[datetime] = None
-    status: Optional[str] = None  # populated by the SAML2 ACS/OICD callback action
+    status: Optional[str] = None  # populated by the SAML2 ACS/OIDC callback action
     error: Optional[bool] = None
 
 
