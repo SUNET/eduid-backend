@@ -72,7 +72,7 @@ def update_user(
     audit_msg = UserChangeLogElement(
         created_by="am_api",
         eppn=eppn,
-        id=None,
+        log_element_id=None,
         diff=diff,
         reason=data.reason,
         source=data.source,
