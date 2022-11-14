@@ -5,9 +5,9 @@ from pydantic import BaseModel, Field
 
 from eduid.userdb import MailAddress, PhoneNumber
 
-__author__ = "masv"
-
 from eduid.userdb.meta import Meta
+
+__author__ = "masv"
 
 
 class Reason(str, Enum):
