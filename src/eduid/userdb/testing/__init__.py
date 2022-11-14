@@ -145,10 +145,6 @@ def normalised_data(
         # this list comprehension into a for-loop checking types for something only intended to be used in test cases.
         # Hence the type: ignore.
         return sorted([_normalise_value(x) for x in data], key=_any_key)  # type: ignore
-    elif isinstance(data, dict):
-        # normalise all values found in the dict, returning a new dict (to not modify callers data)
-        return {k: _normalise_value(v) for k, v in data.items()}
-    raise TypeError("normalised_data not called on dict (or list of dicts)")
 
 
 class MongoTestCaseRaw(unittest.TestCase):
