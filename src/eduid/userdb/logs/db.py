@@ -7,9 +7,9 @@ from uuid import UUID
 
 from eduid.userdb.db import BaseDB
 
-__author__ = "lundberg"
-
 from eduid.userdb.logs.element import LogElement, UserChangeLogElement
+
+__author__ = "lundberg"
 
 logger = logging.getLogger(__name__)
 
