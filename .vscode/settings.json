@@ -15,6 +15,7 @@
     },
     "python.envFile": "${workspaceFolder}/.vscode/.env",
     "cSpell.words": [
+        "csrft",
         "eduid",
         "eidas",
         "eidplus",
@@ -30,7 +31,8 @@
         "Unmarshal",
         "userdb",
         "usernamepassword",
-        "webauthn"
+        "webauthn",
+        "Werkzeug"
     ],
     "python.formatting.provider": "black"
 }

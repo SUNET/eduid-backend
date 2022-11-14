@@ -109,7 +109,8 @@ def get_login_config() -> FluxData:
     Configuration for the login front app
     """
     payload = {
-        "base_url": current_app.conf.jsapps.login_base_url,
+        "base_url": current_app.conf.jsapps.login_base_url,  # OLD - remove when frontend is updated
+        "login_base_url": current_app.conf.jsapps.login_base_url,  # NEW
         "csrf_token": session.get_csrf_token(),
         "dashboard_url": current_app.conf.jsapps.dashboard_url,
         "eduid_site_name": current_app.conf.jsapps.eduid_site_name,
@@ -125,7 +126,6 @@ def get_login_config() -> FluxData:
         "reset_password_url": current_app.conf.jsapps.reset_password_url,
         "sentry_dsn": current_app.conf.jsapps.sentry_dsn,
         "signup_url": current_app.conf.jsapps.signup_url,
-        "token_service_url": current_app.conf.jsapps.token_service_url,
     }
     return success_response(payload=payload)
 
