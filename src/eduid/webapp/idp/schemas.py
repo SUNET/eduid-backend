@@ -101,7 +101,7 @@ class MfaAuthResponseSchema(FluxStandardAction):
 class ToUVersions(fields.Field):
     """Handle list of ToU versions available in the frontend both as comma-separated string (bug) and as list"""
 
-    def _deserialize(self, value: Any, attr: str, data: Any, **kwargs) -> Optional[list[str]]:
+    def _deserialize(self, value: Any, attr: Optional[str], data: Any, **kwargs) -> Optional[list[str]]:
         if value is None:
             return None
         if isinstance(value, str):

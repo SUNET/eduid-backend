@@ -80,7 +80,7 @@ def abort(ticket: LoginContext) -> FluxData:
 @UnmarshalWith(LogoutRequestSchema)
 @MarshalWith(LogoutResponseSchema)
 @uses_sso_session
-def logout(ref: Optional[str], sso_session: Optional[SSOSession]) -> FluxData:
+def logout(ref: Optional[str], sso_session: Optional[SSOSession]) -> WerkzeugResponse:
     """Logout from the current SSO session"""
     current_app.logger.debug("\n\n")
     _session_id = sso_session.session_id if sso_session else None
