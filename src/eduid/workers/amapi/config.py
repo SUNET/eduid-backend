@@ -26,7 +26,6 @@ class AMApiConfig(RootConfig, LoggingConfigMixin):
     mongo_uri: str = ""
     application_root: str = ""
     keystore_path: Path
-    signing_key_id: str
     no_authn_urls: List[str] = Field(default=["get:/status/healthy", "get:/openapi.json"])
     status_cache_seconds: int = 10
     requested_access_type: Optional[str] = "am_api"
