@@ -64,7 +64,7 @@ from eduid.userdb.fixtures.tous import signup_2016_v1
 from eduid.userdb.identity import IdentityList
 from eduid.userdb.locked_identity import LockedIdentityList
 from eduid.userdb.mail import MailAddressList
-from eduid.userdb.meta import CleanedType, Meta
+from eduid.userdb.meta import CleanerType, Meta
 from eduid.userdb.nin import NinList
 from eduid.userdb.phone import PhoneNumberList
 from eduid.userdb.signup.user import SignupUser
@@ -178,7 +178,7 @@ new_user_example = User(
     meta=Meta(
         version=ObjectId("987654321098765432103210"),
         cleaned={
-            CleanedType.SKV: utc_now(),
+            CleanerType.SKV: utc_now(),
         },
     ),
     eppn="hubba-bubba",

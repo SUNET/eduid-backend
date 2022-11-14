@@ -12,7 +12,7 @@ from eduid.common.misc.timeutil import utc_now
 __author__ = "lundberg"
 
 
-class CleanedType(str, Enum):
+class CleanerType(str, Enum):
     SKV = "skv"
     TELE = "tele"
     LADOK = "ladok"
