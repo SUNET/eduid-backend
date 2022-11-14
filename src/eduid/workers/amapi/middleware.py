@@ -8,6 +8,7 @@ from jwcrypto.common import JWException
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import PlainTextResponse
 
+from eduid.workers.amapi.config import EndpointRestriction
 from eduid.workers.amapi.context_request import ContextRequestMixin
 
 import fnmatch
@@ -77,14 +78,14 @@ class AuthenticationMiddleware(BaseHTTPMiddleware, ContextRequestMixin):
     def _is_no_auth_path(req: Request, path: str) -> bool:
         return path in req.app.config.no_authn_urls
 
-    def _access_granted(self, req: Request, token: AuthnBearerToken, path: str) -> bool:
+    def _access_granted(self, req: Request, token: AuthnBearerToken, method_path: str) -> bool:
         if token.service_name in req.app.config.user_restriction:
-            return self.glob_match(req.app.config.user_restriction[token.service_name], path)
+            return self.glob_match(req.app.config.user_restriction[token.service_name], method_path)
         return False
 
     @staticmethod
-    def glob_match(endpoints: List[str], path: str) -> bool:
+    def glob_match(endpoints: List[EndpointRestriction], method_path: str) -> bool:
         for endpoint in endpoints:
-            if fnmatch.fnmatch(path, endpoint):
+            if fnmatch.fnmatch(method_path, endpoint.uri):
                 return True
         return False
