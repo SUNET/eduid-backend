@@ -79,12 +79,20 @@ class AuthenticationMiddleware(BaseHTTPMiddleware, ContextRequestMixin):
         return path in req.app.config.no_authn_urls
 
     def _access_granted(self, req: Request, token: AuthnBearerToken, method_path: str) -> bool:
+        """
+        token.service_name in JWT claim is the key to config.user_restriction, witch is a list of EndpointRestriction
+        that allow access to each listed endpoint (glob)
+        """
         if token.service_name in req.app.config.user_restriction:
             return self.glob_match(req.app.config.user_restriction[token.service_name], method_path)
         return False
 
     @staticmethod
     def glob_match(endpoints: List[EndpointRestriction], method_path: str) -> bool:
+        """
+        fnmatch matches method_path (get:/users/hubba-bubba/name) with glob expression:
+        (get:/users/*/name OR get:/users/hubba-hubba/name).
+        """
         for endpoint in endpoints:
             if fnmatch.fnmatch(method_path, endpoint.uri):
                 return True
