@@ -9,6 +9,7 @@ from eduid.common.config.base import (
     EduIDBaseAppConfig,
     ErrorsConfigMixin,
     MagicCookieMixin,
+    MsgConfigMixin,
     ProofingConfigMixin,
 )
 
@@ -24,7 +25,9 @@ class AuthlibClientConfig(BaseModel):
     scopes: List[str] = Field(default=["openid"])
 
 
-class SvipeIdConfig(EduIDBaseAppConfig, AmConfigMixin, ProofingConfigMixin, ErrorsConfigMixin, MagicCookieMixin):
+class SvipeIdConfig(
+    EduIDBaseAppConfig, AmConfigMixin, MsgConfigMixin, ProofingConfigMixin, ErrorsConfigMixin, MagicCookieMixin
+):
     """
     Configuration for the svipe_id app
     """

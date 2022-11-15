@@ -64,6 +64,10 @@ class UserInfoBase(BaseModel):
     sid: str
     sub: str
 
+    class Config:
+        extra = "allow"
+        allow_population_by_field_name = True
+
 
 class SvipeDocumentUserInfo(UserInfoBase):
     birthdate: date
