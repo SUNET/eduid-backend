@@ -228,7 +228,7 @@ class ScimApiTestUserResourceBase(ScimApiTestCase):
             if SCIMSchema.NUTID_USER_V1.value in req:
                 _schemas += [SCIMSchema.NUTID_USER_V1.value]
             req["schemas"] = _schemas
-        response = self.client.post(url="/Users/", data=self.as_json(req), headers=self.headers)
+        response = self.client.post(url="/Users/", data=req, headers=self.headers)
         if expect_success:
             self._assertResponse(response, status_code=201)
         try:
@@ -255,7 +255,7 @@ class ScimApiTestUserResourceBase(ScimApiTestCase):
         _headers = dict(self.headers)  # copy
         if version:
             _headers["IF-MATCH"] = make_etag(version)
-        response = self.client.put(url=f"/Users/{scim_id}", data=self.as_json(req), headers=_headers)
+        response = self.client.put(url=f"/Users/{scim_id}", data=req, headers=_headers)
         if expect_success:
             self._assertResponse(response)
         try:
@@ -355,7 +355,7 @@ class TestUserResource(ScimApiTestUserResourceBase):
                 "linked_accounts": [],
             },
         }
-        response = self.client.post(url="/Users/", data=self.as_json(req), headers=self.headers)
+        response = self.client.post(url="/Users/", data=req, headers=self.headers)
         self._assertResponse(response, status_code=201)
 
         # Load the created user from the database, ensuring it was in fact created
@@ -376,7 +376,7 @@ class TestUserResource(ScimApiTestUserResourceBase):
                 "profiles": {"test": {"attributes": {"displayName": "Test User 2"}, "data": {"test_key": "test_value"}}}
             },
         }
-        response = self.client.post(url="/Users/", data=self.as_json(req), headers=self.headers)
+        response = self.client.post(url="/Users/", data=req, headers=self.headers)
         self._assertScimError(
             response.json(), schemas=["urn:ietf:params:scim:api:messages:2.0:Error"], detail="externalID must be unique"
         )
@@ -399,7 +399,7 @@ class TestUserResource(ScimApiTestUserResourceBase):
             },
         }
         self.headers["IF-MATCH"] = make_etag(db_user.version)
-        response = self.client.put(url=f"/Users/{db_user.scim_id}", data=self.as_json(req), headers=self.headers)
+        response = self.client.put(url=f"/Users/{db_user.scim_id}", data=req, headers=self.headers)
         self._assertResponse(response)
         db_user = self.userdb.get_user_by_scim_id(response.json()["id"])
         self._assertUserUpdateSuccess(req, response, db_user)
@@ -427,7 +427,7 @@ class TestUserResource(ScimApiTestUserResourceBase):
                 "linked_accounts": [],
             },
         }
-        create_response = self.client.post(url="/Users/", data=self.as_json(req), headers=self.headers)
+        create_response = self.client.post(url="/Users/", data=req, headers=self.headers)
         self._assertResponse(create_response, status_code=201)
 
         # Update the user
@@ -450,9 +450,7 @@ class TestUserResource(ScimApiTestUserResourceBase):
             },
         }
         self.headers["IF-MATCH"] = create_response.headers["etag"]
-        response = self.client.put(
-            url=f'/Users/{create_response.json()["id"]}', data=self.as_json(req), headers=self.headers
-        )
+        response = self.client.put(url=f'/Users/{create_response.json()["id"]}', data=req, headers=self.headers)
         self._assertResponse(response)
 
         db_user = self.userdb.get_user_by_scim_id(response.json()["id"])
@@ -472,7 +470,7 @@ class TestUserResource(ScimApiTestUserResourceBase):
             },
         }
         self.headers["IF-MATCH"] = make_etag(db_user.version)
-        response = self.client.put(url=f"/Users/{db_user.scim_id}", data=self.as_json(req), headers=self.headers)
+        response = self.client.put(url=f"/Users/{db_user.scim_id}", data=req, headers=self.headers)
         self._assertResponse(response)
         db_user = self.userdb.get_user_by_scim_id(response.json()["id"])
         self._assertUserUpdateSuccess(req, response, db_user)
@@ -494,7 +492,7 @@ class TestUserResource(ScimApiTestUserResourceBase):
             },
         }
         self.headers["IF-MATCH"] = make_etag(db_user.version)
-        response = self.client.put(url=f"/Users/{db_user.scim_id}", data=self.as_json(req), headers=self.headers)
+        response = self.client.put(url=f"/Users/{db_user.scim_id}", data=req, headers=self.headers)
         self._assertScimError(
             response.json(), schemas=["urn:ietf:params:scim:api:messages:2.0:Error"], detail="externalID must be unique"
         )
@@ -657,7 +655,7 @@ class TestUserResource(ScimApiTestUserResourceBase):
             "startIndex": start,
             "count": count,
         }
-        response = self.client.post(url="/Users/.search", data=self.as_json(req), headers=self.headers)
+        response = self.client.post(url="/Users/.search", data=req, headers=self.headers)
         logger.info(f"Search parsed_response:\n{response.json}")
         if return_json:
             return response.json

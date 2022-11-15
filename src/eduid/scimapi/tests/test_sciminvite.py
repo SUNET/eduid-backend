@@ -296,7 +296,7 @@ class TestInviteResource(ScimApiTestCase):
             "startIndex": start,
             "count": count,
         }
-        response = self.client.post(url="/Invites/.search", data=self.as_json(req), headers=self.headers)
+        response = self.client.post(url="/Invites/.search", data=req, headers=self.headers)
         logger.info(f"Search parsed_response:\n{response.json()}")
         if return_json:
             return response.json()
@@ -386,7 +386,7 @@ class TestInviteResource(ScimApiTestCase):
             },
         }
 
-        response = self.client.post(url=f"/Invites/", data=self.as_json(req), headers=self.headers)
+        response = self.client.post(url=f"/Invites/", data=req, headers=self.headers)
         self._assertResponse(response, status_code=201)
         db_invite = self.invitedb.get_invite_by_scim_id(response.json().get("id"))
         reference = SCIMReference(data_owner=self.data_owner, scim_id=db_invite.scim_id)
@@ -481,7 +481,7 @@ class TestInviteResource(ScimApiTestCase):
             },
         }
 
-        response = self.client.post(url=f"/Invites/", data=self.as_json(req), headers=self.headers)
+        response = self.client.post(url=f"/Invites/", data=req, headers=self.headers)
         self._assertResponse(response, status_code=201)
         db_invite = self.invitedb.get_invite_by_scim_id(response.json().get("id"))
         reference = SCIMReference(data_owner=self.data_owner, scim_id=db_invite.scim_id)
