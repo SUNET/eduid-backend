@@ -3,19 +3,21 @@ from typing import List
 
 from pydantic import BaseModel
 
+from eduid.workers.amapi.config import EndpointRestriction, SupportedMethod
 from eduid.workers.amapi.middleware import AuthenticationMiddleware
 
 
 class TestStructureMiddleware(BaseModel):
     name: str
-    glob_endpoints: List[str]
+    glob_endpoints: List[EndpointRestriction]
     path: str
     want: bool
 
 
-class TestMiddleware(unittest.TestCase, AuthenticationMiddleware):
+class TestMiddleware(unittest.TestCase):
     def setUp(self, *args, **kwargs):
         super().setUp()
+        self.middleware = AuthenticationMiddleware
 
 
 class TestGlobMatch(TestMiddleware):
@@ -26,19 +28,31 @@ class TestGlobMatch(TestMiddleware):
             TestStructureMiddleware(
                 name="OK",
                 glob_endpoints=[
-                    "delete:users/*/email",
-                    "get:users/*/name",
+                    EndpointRestriction(
+                        endpoint="/users/*/email",
+                        method=SupportedMethod.DELETE,
+                    ),
+                    EndpointRestriction(
+                        endpoint="/users/*/name",
+                        method=SupportedMethod.GET,
+                    ),
                 ],
-                path="get:users/hubba-bubba/name",
+                path="get:/users/hubba-bubba/name",
                 want=True,
             ),
             TestStructureMiddleware(
                 name="Not_OK",
                 glob_endpoints=[
-                    "delete:users/*/email",
-                    "get:users/*/name",
+                    EndpointRestriction(
+                        endpoint="/users/*/email",
+                        method=SupportedMethod.DELETE,
+                    ),
+                    EndpointRestriction(
+                        endpoint="/users/*/name",
+                        method=SupportedMethod.GET,
+                    ),
                 ],
-                path="delete:users/hubba-bubba/name",
+                path="delete:/users/hubba-bubba/name",
                 want=False,
             ),
         ]
@@ -46,4 +60,5 @@ class TestGlobMatch(TestMiddleware):
     def test(self):
         for tt in self.tts:
             with self.subTest(name=tt.name):
-                assert self.glob_match(endpoints=tt.glob_endpoints, path=tt.path) is tt.want
+                # assert self.glob_match(endpoints=tt.glob_endpoints, path=tt.path) is tt.want
+                assert self.middleware.glob_match(endpoints=tt.glob_endpoints, method_path=tt.path) is tt.want
