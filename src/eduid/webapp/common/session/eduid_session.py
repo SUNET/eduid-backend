@@ -42,7 +42,7 @@ if TYPE_CHECKING:
     from eduid.webapp.common.api.app import EduIDBaseApp
 
     # keep pycharm from optimising away the above import
-    assert EduIDBaseApp
+    assert EduIDBaseApp is not None
 
 logger = logging.getLogger(__name__)
 

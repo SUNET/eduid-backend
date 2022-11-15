@@ -232,10 +232,10 @@ class AuthenticationMiddleware(BaseMiddleware):
         if not auth:
             return await http_error_detail_handler(req=req, exc=Unauthorized(detail="No authentication header found"))
 
-        token = auth[len("Bearer ") :]
+        _token = auth[len("Bearer ") :]
         _jwt = jwt.JWT()
         try:
-            _jwt.deserialize(token, req.app.context.jwks)
+            _jwt.deserialize(_token, req.app.context.jwks)
             claims = json.loads(_jwt.claims)
         except (JWException, KeyError, ValueError) as e:
             self.context.logger.info(f"Bearer token error: {e}")
