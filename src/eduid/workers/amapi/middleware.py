@@ -42,7 +42,7 @@ class AuthenticationMiddleware(BaseHTTPMiddleware, ContextRequestMixin):
                 detail="Path empty",
             )
 
-        if self._is_no_auth_path(req, method_path):
+        if self._is_no_auth_path(req, path):
             return await call_next(req)
 
         auth = req.headers.get("Authorization")

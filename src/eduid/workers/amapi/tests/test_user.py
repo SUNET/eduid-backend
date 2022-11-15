@@ -54,7 +54,7 @@ class TestAMBase(CommonTestCase):
                         method="put",
                     ),
                     EndpointRestriction(
-                        endpoint="/users/*/mail",
+                        endpoint="/users/*/email",
                         method="put",
                     ),
                     EndpointRestriction(
