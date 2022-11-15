@@ -6,6 +6,7 @@ from urllib.parse import parse_qs, urlparse
 from authlib.integrations.base_client import OAuthError
 from flask import Blueprint, make_response, redirect, request, url_for
 from werkzeug import Response as WerkzeugResponse
+from werkzeug.exceptions import BadRequestKeyError
 
 from eduid.userdb import User
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, require_user
@@ -164,7 +165,8 @@ def authn_callback(user) -> WerkzeugResponse:
 
     try:
         token_response = current_app.oidc_client.svipe.authorize_access_token()
-    except OAuthError:
+    except (OAuthError, BadRequestKeyError):
+        # catch any exception from the oidc client and also exceptions about missing request arguments
         current_app.logger.exception(f"Failed to get token response from Svipe ID")
         current_app.stats.count(name="token_response_failed")
         authn_req.error = True
