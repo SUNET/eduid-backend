@@ -10,11 +10,6 @@ from eduid.common.config.base import LoggingConfigMixin, RootConfig
 logger = logging.getLogger(__name__)
 
 
-class Endpoint(BaseModel):
-    commit_msg: str
-    allowed: bool
-
-
 class SupportedMethod(str, Enum):
     DELETE = "delete"
     PUT = "put"
