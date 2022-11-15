@@ -65,7 +65,7 @@ def get_status(authn_id: OIDCState) -> FluxData:
 @UnmarshalWith(SvipeIDCommonRequestSchema)
 @MarshalWith(SvipeIDCommonResponseSchema)
 @require_user
-def verify_identity(user: User, method: str, frontend_action: str, frontend_state: str = None) -> FluxData:
+def verify_identity(user: User, method: str, frontend_action: str, frontend_state: Optional[str] = None) -> FluxData:
     res = _authn(SvipeIDAction.verify_identity, method, frontend_action, frontend_state)
     if res.error:
         current_app.logger.error(f"Failed to start verify identity: {res.error}")

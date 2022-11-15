@@ -42,7 +42,7 @@ class SessionOAuthCache:
         return session.svipe_id.rp.authlib_cache.get(key)
 
     @staticmethod
-    def set(key: str, value: Any, expires: int = None) -> None:
+    def set(key: str, value: Any, expires: Optional[int] = None) -> None:
         session.svipe_id.rp.authlib_cache[key] = value
         logger.debug(f"Set {key}={value} (expires={expires}) in session.svipe_id.oauth_cache")
 
