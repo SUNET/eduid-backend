@@ -8,6 +8,7 @@ from pydantic import ValidationError
 
 from eduid.common.config.base import ProofingConfigMixin
 from eduid.common.config.exceptions import BadConfiguration
+from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.credentials.external import TrustFramework
 from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.common.authn.session_info import SessionInfo
@@ -93,8 +94,14 @@ class ProofingMethodSvipe(ProofingMethod):
             parsed_session_info = SvipeTokenResponse(**session_info)
             logger.debug(f"session info: {parsed_session_info}")
         except ValidationError:
-            logger.exception("missing attribute in SAML response")
+            logger.exception("missing claim in userinfo response")
             return SessionInfoParseResult(error=ProofingMsg.attribute_missing)
+
+        # verify session info data
+        # document should not have expired
+        if parsed_session_info.userinfo.document_expiry_date < utc_now().date():
+            logger.error(f"Document has expired {parsed_session_info.userinfo.document_expiry_date}")
+            return SessionInfoParseResult(error=ProofingMsg.session_info_not_valid)
 
         return SessionInfoParseResult(info=parsed_session_info.userinfo)
 
