@@ -34,7 +34,7 @@
 Configuration (file) handling for the eduID idp app.
 """
 from datetime import timedelta
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from pydantic import Field, HttpUrl, validator
 
@@ -170,6 +170,13 @@ class IdPConfig(EduIDBaseAppConfig, TouConfigMixin, WebauthnConfigMixin2, AmConf
             SwamidAssurance.REFEDS_IAP_MEDIUM,
             SwamidAssurance.REFEDS_IAP_HIGH,
         ]
+    )
+    logout_finish_url: Dict[str, HttpUrl] = Field(
+        default={
+            "https://dashboard.eduid.docker/services/authn/saml2-metadata": "https://dashboard.eduid.docker/profile/",
+            "https://dashboard.dev.eduid.se/services/authn/saml2-metadata": "https://dev.eduid.se/",
+            "https://dashboard.eduid.se/services/authn/saml2-metadata": "https://eduid.se/",
+        }
     )
 
     @validator("sso_cookie")
