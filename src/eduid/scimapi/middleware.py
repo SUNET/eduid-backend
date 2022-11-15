@@ -17,7 +17,7 @@ from eduid.common.utils import removeprefix
 from eduid.scimapi.config import DataOwnerName, ScimApiConfig, ScopeName
 from eduid.scimapi.context import Context
 from eduid.scimapi.context_request import ContextRequestMixin
-from eduid.scimapi.exceptions import http_error_detail_handler, Unauthorized
+from eduid.scimapi.exceptions import Unauthorized, http_error_detail_handler
 
 
 class SudoAccess(BaseModel):
