@@ -38,7 +38,7 @@ class AuthenticationMiddleware(BaseHTTPMiddleware, ContextRequestMixin):
 
         if not path:
             return return_error_response(
-                status_code=status.HTTP_401_UNAUTHORIZED,
+                status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Path empty",
             )
 
