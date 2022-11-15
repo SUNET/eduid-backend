@@ -29,7 +29,7 @@ class UserBaseRequest(BaseModel):
 
 class UserUpdateResponse(BaseModel):
     status: bool
-    diff: str
+    diff: Optional[str] = None
 
 
 class UserUpdateNameRequest(UserBaseRequest):

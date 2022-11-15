@@ -60,24 +60,26 @@ def update_user(
     elif isinstance(data, UserUpdateTerminateRequest):
         user_obj.terminated = utc_now()
 
-    user_update_response = UserUpdateResponse()
+    diff = None
 
     user_save_result = req.app.db.save(user=user_obj)
     if user_save_result.success:
-        if user_save_result.user is not None:
-            diff = DeepDiff(old_user_dict, user_save_result.user.to_dict(), ignore_order=True).to_json()
-            user_update_response.diff = diff
-            audit_msg = UserChangeLogElement(
-                created_by="am_api",
-                eppn=eppn,
-                log_element_id=None,
-                diff=diff,
-                reason=data.reason,
-                source=data.source,
-            )
-            if req.app.audit_logger.save(audit_msg):
-                req.app.logger.info(f"Add audit log record for {eppn}")
-            user_update_response.status = True
+        assert user_save_result.user is not None
+        diff = DeepDiff(
+            old_user_dict,
+            user_save_result.user.to_dict(),
+            ignore_order=True,
+            exclude_paths=["root['meta']['modified_ts']", "root['modified_ts']"],  # we do not care about these entries.
+        ).to_json()
+        audit_msg = UserChangeLogElement(
+            created_by="am_api",
+            eppn=eppn,
+            log_element_id=None,
+            diff=diff,
+            reason=data.reason,
+            source=data.source,
+        )
+        if req.app.audit_logger.save(audit_msg):
+            req.app.logger.info(f"Add audit log record for {eppn}")
 
-    user_update_response.status = False
-    return user_update_response
+    return UserUpdateResponse(status=user_save_result.success, diff=diff)
