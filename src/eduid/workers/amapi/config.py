@@ -1,9 +1,9 @@
 import logging
 from enum import Enum
 from pathlib import Path
-from typing import List, Optional, Dict, Any, NewType
+from typing import List, Optional, Dict, NewType, Annotated
 
-from pydantic import Field, BaseModel, validator, root_validator, constr
+from pydantic import Field, BaseModel, validator, constr
 
 from eduid.common.config.base import LoggingConfigMixin, RootConfig
 
@@ -18,20 +18,21 @@ class Endpoint(BaseModel):
 class SupportedMethod(str, Enum):
     DELETE = "delete"
     PUT = "put"
+    GET = "get"
 
 
 ServiceName = NewType("ServiceName", str)
 
 
 class EndpointRestriction(BaseModel):
-    endpoint: constr(to_lower=True, min_length=1)
+    endpoint: str = Field(min_length=1)
     method: SupportedMethod
 
     @validator("endpoint")
     def check_endpoint(cls, v: str) -> str:
         if not v.startswith("/"):
             raise ValueError("endpoint must start with /")
-        return v
+        return v.lower()
 
     @property
     def uri(self) -> str:
