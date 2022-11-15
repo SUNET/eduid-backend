@@ -294,14 +294,12 @@ class TestAuthnUserResource(ScimApiTestUserResourceBase):
     def test_get_user_no_authn(self):
         db_user = self.add_user(identifier=str(uuid4()), external_id="test-id-1", profiles={"test": self.test_profile})
         response = self._get_user_from_api(db_user)
-        self._assertResponse(response, 401)
-        assert response.text == "No authentication header found"
+        self._assertScimError(response.json(), status=401, detail="No authentication header found")
 
     def test_get_user_bogus_token(self):
         db_user = self.add_user(identifier=str(uuid4()), external_id="test-id-1", profiles={"test": self.test_profile})
         response = self._get_user_from_api(db_user, bearer_token="not a jws token")
-        self._assertResponse(response, 401)
-        assert response.text == "Bearer token error"
+        self._assertScimError(response.json(), status=401, detail="Bearer token error")
 
     def test_get_user_untrusted_token(self):
         db_user = self.add_user(identifier=str(uuid4()), external_id="test-id-1", profiles={"test": self.test_profile})
@@ -316,9 +314,7 @@ class TestAuthnUserResource(ScimApiTestUserResourceBase):
             ),
         )
 
-        self._assertResponse(response, 401)
-        assert response.headers["content-type"] == "text/plain; charset=utf-8"
-        assert response.text == "Bearer token error"
+        self._assertScimError(response.json(), status=401, detail="Bearer token error")
 
     def test_get_user_correct_token(self):
         db_user = self.add_user(identifier=str(uuid4()), external_id="test-id-1", profiles={"test": self.test_profile})
