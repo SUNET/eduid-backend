@@ -27,6 +27,7 @@ from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.common.authn.acs_enums import AuthnAcsAction, EidasAcsAction
 from eduid.webapp.common.authn.cache import OutstandingQueriesCache
 from eduid.webapp.common.proofing.messages import ProofingMsg
+from eduid.webapp.common.proofing.testing import ProofingTests
 from eduid.webapp.common.session import EduidSession
 from eduid.webapp.common.session.namespaces import AuthnRequestRef, MfaActionError, SP_AuthnRequest
 from eduid.webapp.eidas.app import EidasApp, init_eidas_app
@@ -41,12 +42,12 @@ logger = logging.getLogger(__name__)
 HERE = os.path.abspath(os.path.dirname(__file__))
 
 
-class EidasTests(EduidAPITestCase):
+class EidasTests(ProofingTests):
     """Base TestCase for those tests that need a full environment setup"""
 
     app: EidasApp
 
-    def setUp(self):
+    def setUp(self, **kwargs):
         self.test_user_eppn = "hubba-bubba"
         self.test_unverified_user_eppn = "hubba-baar"
         self.test_user_nin = NinIdentity(
@@ -365,7 +366,8 @@ class EidasTests(EduidAPITestCase):
             frontend_action=FALLBACK_FRONTEND_ACTION,
         )
 
-    def _get_request_id_from_session(self, session: EduidSession) -> Tuple[str, AuthnRequestRef]:
+    @staticmethod
+    def _get_request_id_from_session(session: EduidSession) -> Tuple[str, AuthnRequestRef]:
         """extract the (probable) SAML request ID from the session"""
         oq_cache = OutstandingQueriesCache(session.eidas.sp.pysaml2_dicts)
         ids = oq_cache.outstanding_queries().keys()
@@ -376,8 +378,8 @@ class EidasTests(EduidAPITestCase):
         req_ref = AuthnRequestRef(oq_cache.outstanding_queries()[saml_req_id])
         return saml_req_id, req_ref
 
+    @staticmethod
     def _verify_finish_url(
-        self,
         finish_url: str,
         expect_msg: TranslatableMsg,
         expect_error: bool,
@@ -406,87 +408,6 @@ class EidasTests(EduidAPITestCase):
             assert qs["msg"] == [f":ERROR:{expect_msg.value}"]
         else:
             assert qs["msg"] == [expect_msg.value]
-
-    def _verify_status(
-        self,
-        finish_url: str,
-        frontend_action: Optional[str],
-        frontend_state: Optional[str],
-        method: str,
-        browser: Optional[FlaskClient] = None,
-        expect_error: bool = False,
-        expect_msg: Optional[TranslatableMsg] = None,
-    ) -> None:
-        assert browser
-
-        with browser.session_transaction() as sess:  # type: ignore
-            csrf_token = sess.get_csrf_token()
-
-        app_name, authn_id = finish_url.split("/")[-2:]
-
-        assert app_name == self.app.conf.app_name
-
-        logger.debug(f"Verifying status for request {authn_id}")
-
-        req = {"authn_id": authn_id, "csrf_token": csrf_token}
-        response = browser.post("/get_status", json=req)
-        expected_payload = {
-            "frontend_action": frontend_action,
-            "frontend_state": frontend_state,
-            "method": method,
-            "error": expect_error,
-        }
-        if expect_msg:
-            expected_payload["status"] = expect_msg.value
-        self._check_success_response(response, type_=None, payload=expected_payload)
-
-    def _verify_user_parameters(
-        self,
-        eppn: str,
-        identity: Optional[IdentityElement] = None,
-        identity_present: bool = True,
-        identity_verified: bool = False,
-        locked_identity: Optional[IdentityElement] = None,
-        num_mfa_tokens: int = 1,
-        num_proofings: int = 0,
-        token_verified: bool = False,
-    ):
-        """This function is used to verify a user's parameters at the start of a test case,
-        and then again at the end to ensure the right set of changes occurred to the user in the database.
-        """
-        user = self.app.central_userdb.get_user_by_eppn(eppn)
-        assert user is not None
-        user_mfa_tokens = user.credentials.filter(FidoCredential)
-
-        # Check token status
-        assert len(user_mfa_tokens) == num_mfa_tokens, "Unexpected number of FidoCredentials on user"
-        if user_mfa_tokens:
-            assert user_mfa_tokens[0].is_verified == token_verified, "User token unexpected is_verified"
-        assert self.app.proofing_log.db_count() == num_proofings, "Unexpected number of proofings in db"
-
-        if identity is not None:
-            # Check parameters of a specific nin
-            user_identity = user.identities.find(identity.identity_type)
-            if not identity_present:
-                assert (
-                    user_identity is None or user_identity.unique_value != identity.unique_value
-                ) is True, f"identity {identity} not expected to be present on user"
-                return None
-            assert user_identity is not None, f"identity {identity} not present on user"
-            assert (
-                user_identity.unique_value == identity.unique_value
-            ), "user_identity.unique_value != identity.unique_value"
-            assert (
-                user_identity.is_verified == identity_verified
-            ), f"{user_identity} was expected to be verified={identity_verified}"
-
-        if locked_identity is not None:
-            # Check parameters of a specific locked nin
-            user_locked_identity = user.locked_identity.find(locked_identity.identity_type)
-            assert user_locked_identity is not None, f"locked identity {locked_identity} not present"
-            assert (
-                user_locked_identity.unique_value == locked_identity.unique_value
-            ), f"locked identity {user_locked_identity.unique_value} not matching {locked_identity.unique_value}"
 
     def reauthn(
         self,
@@ -940,8 +861,10 @@ class EidasTests(EduidAPITestCase):
             eppn=eppn,
             expect_redirect_url="http://test.localhost/profile",
         )
-
-        self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=True, num_proofings=1)
+        user = self.app.central_userdb.get_user_by_eppn(eppn)
+        self._verify_user_parameters(
+            eppn, num_mfa_tokens=0, identity_verified=True, num_proofings=1, locked_identity=user.identities.nin
+        )
 
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
@@ -1028,7 +951,9 @@ class EidasTests(EduidAPITestCase):
             expect_redirect_url="http://idp.test.localhost/mfa-step",
         )
 
-        self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=True, num_proofings=1)
+        self._verify_user_parameters(
+            eppn, num_mfa_tokens=0, identity_verified=True, num_proofings=1, locked_identity=user.identities.nin
+        )
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_foreign_eid_mfa_login(self, mock_request_user_sync):
@@ -1461,7 +1386,15 @@ class EidasTests(EduidAPITestCase):
             frontend_action="verify_identity",
         )
 
-        self._verify_user_parameters(eppn, num_mfa_tokens=0, identity=identity, identity_verified=True, num_proofings=1)
+        user = self.app.central_userdb.get_user_by_eppn(eppn=eppn)
+        self._verify_user_parameters(
+            eppn,
+            num_mfa_tokens=0,
+            identity=identity,
+            identity_verified=True,
+            num_proofings=1,
+            locked_identity=user.identities.eidas,
+        )
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_foreign_identity_verify_existing_prid_persistence_A(self, mock_request_user_sync):
