@@ -6,8 +6,8 @@ from uuid import uuid4
 
 import loguru
 import pytest
+from httpx import Response
 from jwcrypto import jwt
-from requests import Response
 
 from eduid.common.config.parsers import load_config
 from eduid.common.models.scim_base import SCIMSchema

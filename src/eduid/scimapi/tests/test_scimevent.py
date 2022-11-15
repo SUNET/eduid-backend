@@ -3,7 +3,7 @@ from datetime import timedelta
 from typing import Any, Dict, Mapping, Optional
 from uuid import UUID, uuid4
 
-from requests import Response
+from httpx import Response
 
 from eduid.common.models.scim_base import SCIMResourceType, SCIMSchema
 from eduid.common.testing_base import normalised_data

@@ -8,7 +8,7 @@ from uuid import UUID, uuid4
 
 import bson
 from bson import ObjectId
-from requests import Response
+from httpx import Response
 
 from eduid.common.models.scim_base import Email, LanguageTag, Meta, Name, PhoneNumber, SCIMResourceType, SCIMSchema
 from eduid.common.models.scim_user import LinkedAccount, NutidUserExtensionV1, Profile, UserResponse
