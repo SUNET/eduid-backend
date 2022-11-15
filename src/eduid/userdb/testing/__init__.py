@@ -96,13 +96,6 @@ class MongoTemporaryInstance(EduidTemporaryInstance):
         return cast(MongoTemporaryInstance, super().get_instance(max_retry_seconds=max_retry_seconds))
 
 
-def _any_key(value: Any):
-    """Helper function to be able to use sorted with key argument for everything"""
-    if isinstance(value, dict):
-        return json.dumps(value, sort_keys=True, cls=SortEncoder)  # Turn dict in to a string for sorting
-    return value
-
-
 class MongoTestCaseRaw(unittest.TestCase):
     def setUp(self, raw_users: Optional[List[Dict[str, Any]]] = None, am_users: Optional[List[User]] = None, **kwargs):
         super().setUp()
