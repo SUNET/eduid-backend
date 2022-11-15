@@ -488,9 +488,8 @@ class TestGroupResource_DELETE(TestGroupResource):
         db_group1 = self.groupdb.get_group_by_scim_id(str(group.scim_id))
         self.assertIsNotNone(db_group1)
 
-        req = {"schemas": [SCIMSchema.CORE_20_GROUP.value]}
         self.headers["IF-MATCH"] = make_etag(group.version)
-        response = self.client.delete(url=f"/Groups/{group.scim_id}", data=self.as_json(req), headers=self.headers)
+        response = self.client.delete(url=f"/Groups/{group.scim_id}", headers=self.headers)
         self.assertEqual(204, response.status_code)
 
         # Verify the group is no longer in the database
@@ -507,9 +506,8 @@ class TestGroupResource_DELETE(TestGroupResource):
     def test_version_mismatch(self):
         group = self.add_group(uuid4(), "Test Group 1")
 
-        req = {"schemas": [SCIMSchema.CORE_20_GROUP.value]}
         self.headers["IF-MATCH"] = make_etag(ObjectId())
-        response = self.client.delete(url=f"/Groups/{group.scim_id}", data=self.as_json(req), headers=self.headers)
+        response = self.client.delete(url=f"/Groups/{group.scim_id}", headers=self.headers)
         self._assertScimError(response.json(), detail="Version mismatch")
 
     def test_group_not_found(self):
