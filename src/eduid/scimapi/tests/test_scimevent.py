@@ -34,7 +34,7 @@ class TestEventResource(ScimApiTestCase):
             "schemas": [SCIMSchema.NUTID_EVENT_CORE_V1.value, SCIMSchema.NUTID_EVENT_V1.value],
             SCIMSchema.NUTID_EVENT_V1.value: event,
         }
-        response = self.client.post(url="/Events/", data=req, headers=self.headers)
+        response = self.client.post(url="/Events/", json=req, headers=self.headers)
         if expect_success:
             self._assertResponse(response)
         parsed_response = EventResponse.parse_raw(response.text)
