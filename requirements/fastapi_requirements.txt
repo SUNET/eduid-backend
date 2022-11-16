@@ -650,7 +650,7 @@ phonenumbers==8.12.57 \
     # via
     #   -c main.txt
     #   -r main.in
-pillow==9.2.0 \
+pillow==9.3.0 \
     --hash=sha256:0030fdbd926fb85844b8b92e2f9449ba89607231d3dd597a21ae72dc7fe26927 \
     --hash=sha256:030e3460861488e249731c3e7ab59b07c7853838ff3b8e16aac9561bb345da14 \
     --hash=sha256:0ed2c4ef2451de908c90436d6e8092e13a43992f1860275b4d8082667fbb2ffc \
