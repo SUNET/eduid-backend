@@ -361,7 +361,7 @@ class ProofingConfigMixin(BaseModel):
     foreign_identity_idp: Optional[str] = None
 
     # identity proofing
-    nin_proofing_version: str = Field(default="2018v1")
+    freja_proofing_version: str = Field(default="2018v1")
     foreign_eid_proofing_version: str = Field(default="2022v1")
     svipe_id_proofing_version: str = Field(default="2022v1")
 
