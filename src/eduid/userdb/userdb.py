@@ -59,6 +59,12 @@ extra_debug_logger = logger.getChild("extra_debug")
 UserVar = TypeVar("UserVar")
 
 
+@dataclass
+class UserSaveResult:
+    success: bool
+    user: Optional[User] = None
+
+
 class UserDB(BaseDB, Generic[UserVar], ABC):
     """
     Interface class to the central eduID UserDB.
@@ -286,7 +292,7 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
             logger.error("MultipleUsersReturned, {!r} = {!r}".format(attr, value))
             raise MultipleUsersReturned(e.reason)
 
-    def save(self, user: UserVar, check_sync: bool = True) -> bool:
+    def save(self, user: UserVar, check_sync: bool = True) -> UserSaveResult:
         """
         :param user: User object
         :param check_sync: Ensure the user hasn't been updated in the database since it was loaded
@@ -329,7 +335,7 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
 
             extra_debug = pprint.pformat(user.to_dict(), width=120)
             extra_debug_logger.debug(f"Extra debug:\n{extra_debug}")
-        return result.acknowledged
+        return UserSaveResult(success=result.acknowledged, user=None)
 
     def remove_user_by_id(self, user_id: ObjectId) -> bool:
         """
@@ -388,12 +394,6 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
         }
 
         self._coll.replace_one(filter=search_filter, replacement=update_obj)
-
-
-@dataclass
-class UserSaveResult:
-    success: bool
-    user: Optional[User] = None
 
 
 class AmDB(UserDB[User]):
@@ -461,7 +461,7 @@ class AmDB(UserDB[User]):
         return UserSaveResult(success=False, user=None)
 
     def old_save(self, user: User, check_sync: bool = True) -> bool:
-        return super().save(user, check_sync)
+        return super().save(user, check_sync).success
 
     def unverify_mail_aliases(self, user_id: ObjectId, mail_aliases: Optional[List[Dict[str, Any]]]) -> int:
         count = 0
