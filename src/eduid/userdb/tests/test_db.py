@@ -4,6 +4,8 @@ from bson import ObjectId
 
 import eduid.userdb.db as db
 from eduid.userdb.fixtures.users import mocked_user_standard_2, new_unverified_user_example, new_user_example
+from eduid.userdb.identity import IdentityType
+from eduid.userdb.meta import CleanedType
 from eduid.userdb.testing import MongoTestCase
 
 
@@ -100,3 +102,26 @@ class TestDB(MongoTestCase):
     def test_get_documents_by_filter_limit(self):
         docs = self.amdb._get_documents_by_filter(spec={}, limit=1)
         self.assertEqual(1, len(docs))
+
+    def test_get_verified_users_count_NIN(self):
+        count = self.amdb.get_verified_users_count(identity_type=IdentityType.NIN)
+        assert count == 1
+
+    def test_get_verified_users_count_EIDAS(self):
+        count = self.amdb.get_verified_users_count(identity_type=IdentityType.EIDAS)
+        assert count == 1
+
+    def test_get_verified_users_count_SVIPE(self):
+        count = self.amdb.get_verified_users_count(identity_type=IdentityType.SVIPE)
+        assert count == 0
+
+    def test_get_verified_users_count_None(self):
+        count = self.amdb.get_verified_users_count()
+        assert count == 1
+
+    def test_get_documents_by_aggregate(self):
+        match = {
+            "eduPersonPrincipalName": "hubba-bubba",
+        }
+        docs = self.amdb._get_documents_by_aggregate(match=match)
+        assert docs[0]["eduPersonPrincipalName"] == "hubba-bubba"

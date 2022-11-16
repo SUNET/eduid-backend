@@ -7,7 +7,9 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Type, TypeVar, Union
 from uuid import UUID
 
+import bson
 from fido_mds.models.fido_mds import Entry as FidoMetadataEntry
+from pydantic import Field
 
 from eduid.common.rpc.msg_relay import DeregistrationInformation, FullPostalAddress
 from eduid.userdb.element import Element
@@ -17,7 +19,6 @@ __author__ = "lundberg"
 from fido_mds.models.webauthn import AttestationFormat
 
 logger = logging.getLogger(__name__)
-
 
 TLogElementSubclass = TypeVar("TLogElementSubclass", bound="LogElement")
 TNinProofingLogElementSubclass = TypeVar("TNinProofingLogElementSubclass", bound="NinProofingLogElement")
@@ -458,3 +459,11 @@ class FidoMetadataLogElement(LogElement):
     authenticator_id: Union[UUID, str]
     last_status_change: datetime
     metadata_entry: FidoMetadataEntry
+
+
+class UserChangeLogElement(LogElement):
+    eppn: str = Field(alias="eduPersonPrincipalName")
+    diff: str
+    log_element_id: Optional[bson.ObjectId] = Field(alias="_id")
+    reason: str
+    source: str

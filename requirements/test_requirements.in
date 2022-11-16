@@ -4,6 +4,7 @@
 -r main.in
 -r satosa_scim_requirements.in
 -r webapp_requirements.in
+-r worker_requirements.in
 -r typecheck_requirements.in
 black==22.3.0
 isort==5.10.1
