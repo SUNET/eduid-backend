@@ -29,6 +29,7 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+from datetime import timedelta
 from typing import Any, Dict
 
 import bson
@@ -135,7 +136,7 @@ class UpdateUser(MongoTestCaseRaw):
         old_modified_ts = test_user.modified_ts
 
         res = self.amdb.save(test_user, check_sync=True)
-        assert res is True
+        assert res.success is True
 
         db_user = self.amdb.get_user_by_id(test_user.user_id)
         assert db_user.meta.version != old_meta_version

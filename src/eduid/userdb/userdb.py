@@ -29,9 +29,10 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+from dataclasses import dataclass
 import logging
 from abc import ABC
-from typing import Any, Generic, List, Mapping, Optional, TypeVar, Union
+from typing import Any, Dict, Generic, List, Mapping, Optional, TypeVar, Union
 
 from bson import ObjectId
 from bson.errors import InvalidId
@@ -48,6 +49,7 @@ from eduid.userdb.exceptions import (
     UserOutOfSync,
 )
 from eduid.userdb.identity import IdentityType
+from eduid.userdb.meta import CleanedType
 from eduid.userdb.user import User
 from eduid.userdb.util import utc_now
 
@@ -55,6 +57,12 @@ logger = logging.getLogger(__name__)
 extra_debug_logger = logger.getChild("extra_debug")
 
 UserVar = TypeVar("UserVar")
+
+
+@dataclass
+class UserSaveResult:
+    success: bool
+    user: Optional[User] = None
 
 
 class UserDB(BaseDB, Generic[UserVar], ABC):
@@ -101,6 +109,39 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
             except InvalidId:
                 return None
         return self._get_user_by_attr("_id", user_id)
+
+    def _get_users_by_aggregate(self, match: dict[str, Any], sort: dict[str, Any], limit: int) -> List[UserVar]:
+        users = self._get_documents_by_aggregate(match=match, sort=sort, limit=limit)
+        return [self.user_from_dict(data=user) for user in users]
+
+    def get_uncleaned_verified_users(
+        self, cleaned_type: CleanedType, identity_type: IdentityType, limit: int
+    ) -> List[UserVar]:
+        match = {
+            "identities": {
+                "$elemMatch": {
+                    "verified": True,
+                    "identity_type": identity_type.value,
+                }
+            }
+        }
+
+        type_filter = f"meta.cleaned.{cleaned_type.value}"
+        sort = {type_filter: 1}
+        return self._get_users_by_aggregate(match=match, sort=sort, limit=limit)
+
+    def get_verified_users_count(self, identity_type: Optional[IdentityType] = None) -> int:
+        spec: Dict[str, Any]
+        spec = {
+            "identities": {
+                "$elemMatch": {
+                    "verified": True,
+                }
+            }
+        }
+        if identity_type is not None:
+            spec["identities"]["$elemMatch"]["identity_type"] = identity_type.value
+        return self.db_count(spec=spec)
 
     def _get_user_by_filter(self, filter: Mapping[str, Any]) -> List[UserVar]:
         """
@@ -251,7 +292,7 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
             logger.error("MultipleUsersReturned, {!r} = {!r}".format(attr, value))
             raise MultipleUsersReturned(e.reason)
 
-    def save(self, user: UserVar, check_sync: bool = True) -> bool:
+    def save(self, user: UserVar, check_sync: bool = True) -> UserSaveResult:
         """
         :param user: User object
         :param check_sync: Ensure the user hasn't been updated in the database since it was loaded
@@ -294,7 +335,7 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
 
             extra_debug = pprint.pformat(user.to_dict(), width=120)
             extra_debug_logger.debug(f"Extra debug:\n{extra_debug}")
-        return result.acknowledged
+        return UserSaveResult(success=result.acknowledged, user=None)
 
     def remove_user_by_id(self, user_id: ObjectId) -> bool:
         """
@@ -356,7 +397,7 @@ class AmDB(UserDB[User]):
     def user_from_dict(cls, data: Mapping[str, Any]) -> User:
         return User.from_dict(data)
 
-    def save(self, user: UserVar, check_sync: bool = True) -> bool:
+    def save(self, user: UserVar, check_sync: bool = True) -> UserSaveResult:
         """
         :param user: User object
         :param check_sync: Ensure the user hasn't been updated in the database since it was loaded
@@ -406,7 +447,69 @@ class AmDB(UserDB[User]):
 
             extra_debug = pprint.pformat(user.to_dict(), width=120)
             extra_debug_logger.debug(f"Extra debug:\n{extra_debug}")
-        return result.acknowledged
+        if result.acknowledged:
+            return UserSaveResult(success=True, user=user)
+        return UserSaveResult(success=False, user=None)
 
     def old_save(self, user: User, check_sync: bool = True) -> bool:
-        return super().save(user, check_sync)
+        return super().save(user, check_sync).success
+
+    def unverify_mail_aliases(self, user_id: ObjectId, mail_aliases: Optional[List[Dict[str, Any]]]) -> int:
+        count = 0
+        if mail_aliases is None:
+            logger.debug(f"No mailAliases to check duplicates against for user {user_id}.")
+            return count
+        # Get the verified mail addresses from attributes
+        verified_mail_aliases = [alias["email"] for alias in mail_aliases if alias.get("verified") is True]
+        for email in verified_mail_aliases:
+            try:
+                for user in self.get_users_by_mail(email):
+                    if user.user_id != user_id:
+                        logger.debug(f"Removing mail address {email} from user {user}")
+                        logger.debug(f"Old user mail aliases BEFORE: {user.mail_addresses.to_list()}")
+                        if user.mail_addresses.primary and user.mail_addresses.primary.email == email:
+                            # Promote some other verified e-mail address to primary
+                            for address in user.mail_addresses.to_list():
+                                if address.is_verified and address.email != email:
+                                    user.mail_addresses.set_primary(address.key)
+                                    break
+                        old_user_mail_address = user.mail_addresses.find(email)
+                        if old_user_mail_address is not None:
+                            old_user_mail_address.is_primary = False
+                            old_user_mail_address.is_verified = False
+                        count += 1
+                        logger.debug(f"Old user mail aliases AFTER: {user.mail_addresses.to_list()}")
+                        self.old_save(user)
+            except DocumentDoesNotExist:
+                pass
+        return count
+
+    def unverify_phones(self, user_id: ObjectId, phones: List[Dict[str, Any]]) -> int:
+        count = 0
+        if phones is None:
+            logger.debug(f"No phones to check duplicates against for user {user_id}.")
+            return count
+        # Get the verified phone numbers from attributes
+        verified_phone_numbers = [phone["number"] for phone in phones if phone.get("verified") is True]
+        for number in verified_phone_numbers:
+            try:
+                for user in self.get_users_by_phone(number):
+                    if user.user_id != user_id:
+                        logger.debug(f"Removing phone number {number} from user {user}")
+                        logger.debug(f"Old user phone numbers BEFORE: {user.phone_numbers.to_list()}.")
+                        if user.phone_numbers.primary and user.phone_numbers.primary.number == number:
+                            # Promote some other verified phone number to primary
+                            for phone in user.phone_numbers.verified:
+                                if phone.number != number:
+                                    user.phone_numbers.set_primary(phone.key)
+                                    break
+                        old_user_phone_number = user.phone_numbers.find(number)
+                        if old_user_phone_number is not None:
+                            old_user_phone_number.is_primary = False
+                            old_user_phone_number.is_verified = False
+                        count += 1
+                        logger.debug(f"Old user phone numbers AFTER: {user.phone_numbers.to_list()}.")
+                        self.old_save(user)
+            except DocumentDoesNotExist:
+                pass
+        return count

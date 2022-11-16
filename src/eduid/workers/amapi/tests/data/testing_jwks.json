@@ -1,0 +1,20 @@
+{
+  "keys": [
+    {
+      "kty": "EC",
+      "kid": "testing-amapi-2106210000",
+      "crv": "P-256",
+      "x": "YdCwtya47fi43LP6ZmEkUcQ0wWtCOEpcly7T2Ogdn64",
+      "y": "J1SmG2leDekXN2U5CqLZIeb7zBaQQO0FGHrbCLu7oGU",
+      "d": "MNoeEY9LsgI4M6ny-JIMnaXpEH5pICs25aiC4xvTNp0"
+    },
+    {
+      "kty": "EC",
+      "kid": "another_key",
+      "crv": "P-256",
+      "x": "NdEdXVV2W4ExmQR4DhFQZsgUsKUM2E88Zf-ZajgdSpk",
+      "y": "Al9aeHUiyGP6Y7QSb84MaOHEHxavcweRXy1SWGTMk1g",
+      "d": "LH5cB2vOWa-qaJvbDWdPXr0JCDShw6SETPO_UMum388"
+    }
+  ]
+}

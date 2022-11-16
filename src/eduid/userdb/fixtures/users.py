@@ -34,6 +34,7 @@ from datetime import datetime
 
 from bson import ObjectId
 
+from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.credentials import CredentialList
 from eduid.userdb.fixtures.email_addresses import (
     johnsmith2_example_com,
@@ -63,6 +64,7 @@ from eduid.userdb.fixtures.tous import signup_2016_v1
 from eduid.userdb.identity import IdentityList
 from eduid.userdb.locked_identity import LockedIdentityList
 from eduid.userdb.mail import MailAddressList
+from eduid.userdb.meta import CleanedType, Meta
 from eduid.userdb.nin import NinList
 from eduid.userdb.phone import PhoneNumberList
 from eduid.userdb.signup.user import SignupUser
@@ -70,6 +72,7 @@ from eduid.userdb.tou import ToUList
 from eduid.userdb.user import SubjectType, User
 
 mocked_user_standard = User(
+    meta=Meta(version=ObjectId("987654321098765432103210")),
     eppn="hubba-bubba",
     user_id=ObjectId("012345678901234567890123"),
     given_name="John",
@@ -89,8 +92,8 @@ mocked_user_standard = User(
     ladok=dashboard_ladok,
 )
 
-
 mocked_user_standard_2 = User(
+    meta=Meta(version=ObjectId("987654321098765432103210")),
     eppn="babba-labba",
     user_id=ObjectId("901234567890123456789012"),
     given_name="John",
@@ -105,6 +108,7 @@ mocked_user_standard_2 = User(
 )
 
 new_completed_signup_user_example = User(
+    meta=Meta(version=ObjectId("987654321098765432103210")),
     eppn="hubba-fooo",
     user_id=ObjectId("000000000000000000000002"),
     given_name="John",
@@ -123,8 +127,8 @@ new_completed_signup_user_example = User(
     locked_identity=LockedIdentityList(),
 )
 
-
 new_signup_user_example = SignupUser(
+    meta=Meta(version=ObjectId("987654321098765432103210")),
     eppn="hubba-bubba",
     user_id=ObjectId("012345678901234567890123"),
     given_name="John",
@@ -148,8 +152,8 @@ new_signup_user_example = SignupUser(
     pending_mail_address=johnsmith2_example_com_pending,
 )
 
-
 new_unverified_user_example = User(
+    meta=Meta(version=ObjectId("987654321098765432103210")),
     eppn="hubba-baar",
     user_id=ObjectId("000000000000000000000003"),
     given_name="John",
@@ -170,8 +174,13 @@ new_unverified_user_example = User(
     locked_identity=LockedIdentityList(),
 )
 
-
 new_user_example = User(
+    meta=Meta(
+        version=ObjectId("987654321098765432103210"),
+        cleaned={
+            CleanedType.SKV: utc_now(),
+        },
+    ),
     eppn="hubba-bubba",
     user_id=ObjectId("012345678901234567890123"),
     given_name="John",
@@ -193,9 +202,34 @@ new_user_example = User(
     ladok=dashboard_ladok,
 )
 
-
+new_user_example2 = User(
+    meta=Meta(
+        version=ObjectId("987654321098765432103210"),
+        cleaned={"skv": datetime.fromisoformat("2013-09-02T10:23:25")},
+    ),
+    eppn="hubba-biss",
+    user_id=ObjectId("012345678901234567890124"),
+    given_name="John",
+    display_name="John Smith",
+    surname="Smith",
+    subject=SubjectType("physical person"),
+    language="en",
+    modified_ts=datetime.fromisoformat("2013-09-02T10:23:25"),
+    terminated=None,
+    mail_addresses=MailAddressList(elements=[johnsmith_example_com, johnsmith2_example_com]),
+    identities=IdentityList(elements=[verified_nin_identity, verified_eidas_identity]),
+    phone_numbers=PhoneNumberList(elements=[dashboard_primary_phone, dashboard_unverified_phone]),
+    credentials=CredentialList(elements=[signup_password]),
+    entitlements=[
+        "urn:mace:eduid.se:role:admin",
+        "urn:mace:eduid.se:role:student",
+    ],
+    locked_identity=LockedIdentityList(elements=[dashboard_locked_nin]),
+    ladok=dashboard_ladok,
+)
 old_user_example = User.from_dict(
     dict(
+        meta=Meta(version=ObjectId("987654321098765432103210")),
         eduPersonPrincipalName="hubba-bubba",
         _id=ObjectId("012345678901234567890123"),
         givenName="John",

@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
 from datetime import datetime
-from typing import Optional
+from enum import Enum
+from typing import Mapping, Optional
 
 from bson import ObjectId
 from pydantic import BaseModel, Field
@@ -9,6 +10,12 @@ from pydantic import BaseModel, Field
 from eduid.common.misc.timeutil import utc_now
 
 __author__ = "lundberg"
+
+
+class CleanedType(str, Enum):
+    SKV = "skatteverket"
+    TELE = "teleadress"
+    LADOK = "ladok"
 
 
 class Meta(BaseModel):

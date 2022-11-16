@@ -2,12 +2,13 @@
 
 from unittest import TestCase
 
+import bson
 import pytest
 from pydantic import ValidationError
 
 from eduid.common.rpc.msg_relay import DeregisteredCauseCode, DeregistrationInformation, FullPostalAddress, Name
 from eduid.userdb.fixtures.users import mocked_user_standard
-from eduid.userdb.logs.db import ProofingLog
+from eduid.userdb.logs.db import ProofingLog, UserChangeLog
 from eduid.userdb.logs.element import (
     LadokProofing,
     LetterProofing,
@@ -19,6 +20,7 @@ from eduid.userdb.logs.element import (
     SeLegProofingFrejaEid,
     TeleAdressProofing,
     TeleAdressProofingRelation,
+    UserChangeLogElement,
 )
 from eduid.userdb.testing import MongoTemporaryInstance
 from eduid.userdb.user import User
@@ -343,3 +345,58 @@ class TestProofingLog(TestCase):
             "name": {"given_name": "Test", "surname": "Testsson"},
             "official_address": {},
         }
+
+
+class TestUserChangeLog(TestCase):
+    def setUp(self):
+        self.tmp_db = MongoTemporaryInstance.get_instance()
+        self.user_log_db = UserChangeLog(db_uri=self.tmp_db.uri)
+
+    def tearDown(self):
+        self.user_log_db._drop_whole_collection()
+
+    def _insert_log_fixtures(self):
+        data_1 = UserChangeLogElement(
+            eppn="hubba-bubba",
+            created_by="test",
+            diff="diff",
+            reason="test_reason",
+            source="test_source",
+        )
+
+        data_2 = UserChangeLogElement(
+            eppn="hubba-bubba",
+            created_by="test",
+            diff="diff",
+            reason="test_reason",
+            source="test_source",
+        )
+
+        self.user_log_db.save(data_1)
+        self.user_log_db.save(data_2)
+
+        res = list(self.user_log_db._coll.find({}))
+        assert len(res) == 2
+        assert res[0]["eduPersonPrincipalName"] == "hubba-bubba"
+        assert res[1]["eduPersonPrincipalName"] == "hubba-bubba"
+
+    def test_get_by_eppn(self):
+        self._insert_log_fixtures()
+
+        res_1 = self.user_log_db.get_by_eppn("hubba-bubba")
+        assert len(res_1) == 2
+        assert res_1[0].eppn == "hubba-bubba"
+        assert res_1[1].eppn == "hubba-bubba"
+
+        data_3 = UserChangeLogElement(
+            eppn="hubba-biss",
+            created_by="test",
+            diff="diff",
+            reason="test_reason",
+            source="test_source",
+        )
+
+        self.user_log_db.save(data_3)
+
+        res_2 = self.user_log_db.get_by_eppn("hubba-biss")
+        assert len(res_2) == 1

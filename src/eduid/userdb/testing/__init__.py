@@ -49,7 +49,7 @@ import pymongo
 from eduid.userdb import User
 from eduid.userdb.db import BaseDB
 from eduid.userdb.testing.temp_instance import EduidTemporaryInstance
-from eduid.userdb.userdb import AmDB
+from eduid.userdb.userdb import AmDB, UserDB
 from eduid.userdb.util import utc_now
 
 logger = logging.getLogger(__name__)
