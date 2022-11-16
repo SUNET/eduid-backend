@@ -11,10 +11,11 @@ from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith
 from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response, success_response
 from eduid.webapp.common.api.utils import save_and_sync_user
 from eduid.webapp.idp.app import current_idp_app as current_app
-from eduid.webapp.idp.decorators import require_ticket
+from eduid.webapp.idp.decorators import require_ticket, uses_sso_session
 from eduid.webapp.idp.helpers import IdPMsg
 from eduid.webapp.idp.login_context import LoginContext
 from eduid.webapp.idp.schemas import TouRequestSchema, TouResponseSchema
+from eduid.webapp.idp.sso_session import SSOSession
 
 tou_views = Blueprint("tou", __name__, url_prefix="")
 
@@ -23,7 +24,13 @@ tou_views = Blueprint("tou", __name__, url_prefix="")
 @UnmarshalWith(TouRequestSchema)
 @MarshalWith(TouResponseSchema)
 @require_ticket
-def tou(ticket: LoginContext, versions: Optional[Sequence[str]] = None, user_accepts: Optional[str] = None) -> FluxData:
+@uses_sso_session
+def tou(
+    ticket: LoginContext,
+    sso_session: Optional[SSOSession],
+    versions: Optional[Sequence[str]] = None,
+    user_accepts: Optional[str] = None,
+) -> FluxData:
     current_app.logger.debug("\n\n")
     current_app.logger.debug(f"--- Terms of Use ({ticket.request_ref}) ---")
 
@@ -34,7 +41,6 @@ def tou(ticket: LoginContext, versions: Optional[Sequence[str]] = None, user_acc
         if user_accepts != current_app.conf.tou_version:
             return error_response(message=IdPMsg.tou_not_acceptable)
 
-        sso_session = current_app._lookup_sso_session()
         if not sso_session:
             current_app.logger.error(f"TOU called without an SSO session")
             return error_response(message=IdPMsg.general_failure)

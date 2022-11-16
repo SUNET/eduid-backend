@@ -8,6 +8,7 @@ from eduid.common.rpc.msg_relay import FullPostalAddress
 from eduid.userdb import User
 from eduid.userdb.proofing import LetterProofingState, NinProofingElement
 from eduid.userdb.proofing.element import SentLetterElement
+from eduid.webapp.common.api.helpers import check_magic_cookie
 from eduid.webapp.common.api.messages import TranslatableMsg, error_response, success_response
 from eduid.webapp.common.api.utils import get_short_hash
 from eduid.webapp.letter_proofing import pdf
@@ -145,6 +146,15 @@ def get_address(user: User, proofing_state: LetterProofingState) -> FullPostalAd
     """
     current_app.logger.info("Getting address for user {}".format(user))
     current_app.logger.debug("NIN: {!s}".format(proofing_state.nin.number))
+    if check_magic_cookie(current_app.conf):
+        # return bogus data without Navet interaction for integration test
+        current_app.logger.info("Using magic cookie to get address")
+        return FullPostalAddress(
+            **{
+                "Name": {"GivenNameMarking": "20", "GivenName": "Magic Cookie", "Surname": "Testsson"},
+                "OfficialAddress": {"Address2": "MAGIC COOKIE", "PostalCode": "12345", "City": "LANDET"},
+            }
+        )
     # Lookup official address via Navet
     address = current_app.msg_relay.get_postal_address(proofing_state.nin.number)
     current_app.logger.debug("Official address: {!r}".format(address))

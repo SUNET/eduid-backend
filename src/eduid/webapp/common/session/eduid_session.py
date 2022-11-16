@@ -5,6 +5,7 @@ import logging
 import os
 import pprint
 from collections.abc import MutableMapping
+from datetime import datetime
 from time import time
 from typing import TYPE_CHECKING, Any, Optional
 
@@ -12,6 +13,7 @@ from flask import Request as FlaskRequest
 from flask import Response as FlaskResponse
 from flask.sessions import SessionInterface, SessionMixin
 from pydantic import BaseModel
+from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.common.config.base import EduIDBaseAppConfig
 from eduid.common.config.exceptions import BadConfiguration
@@ -102,7 +104,7 @@ class EduidSession(SessionMixin, MutableMapping):
         self.app = app
         self.meta = meta
         self._session = base_session
-        self._created = time()
+        self._created = utc_now()
         self._invalidated = False
 
         # From SessionMixin
@@ -229,7 +231,7 @@ class EduidSession(SessionMixin, MutableMapping):
         return self._namespaces.authn
 
     @property
-    def created(self):
+    def created(self) -> datetime:
         """
         Created timestamp
         """
@@ -247,6 +249,17 @@ class EduidSession(SessionMixin, MutableMapping):
             if renew_backend:
                 self._session.renew_ttl()
 
+    def reset(self, keep_csrf: bool = True):
+        """Used when logging out"""
+        csrf = None if not keep_csrf else self.get_csrf_token()
+        self._namespaces = EduidNamespaces()
+        for key in list(self._session.keys()):
+            del self._session[key]
+        if keep_csrf:
+            self["_csrft_"] = csrf
+        self.modified = True
+        self._serialize_namespaces()
+
     def invalidate(self):
         """
         Invalidate the session. Clear the data from redis,
@@ -256,7 +269,7 @@ class EduidSession(SessionMixin, MutableMapping):
         self._invalidated = True
         self._session.clear()
 
-    def set_cookie(self, response):
+    def set_cookie(self, response: WerkzeugResponse):
         """
         Set the session cookie.
 
@@ -302,8 +315,6 @@ class EduidSession(SessionMixin, MutableMapping):
         for k, value in self._namespaces.dict(exclude_none=True).items():
             this = getattr(self._namespaces, k)
             if isinstance(this, TimestampedNS):
-                if k in self:
-                    _old = self[k]
                 if k in self and self[k] != value:
                     # update timestamp on change
                     this.ts = utc_now()

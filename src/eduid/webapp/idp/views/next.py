@@ -131,7 +131,11 @@ def next_view(ticket: LoginContext, sso_session: Optional[SSOSession]) -> FluxDa
     if _next.message == IdPMsg.tou_required:
         return success_response(
             message=IdPMsg.tou_required,
-            payload={"action": IdPAction.TOU.value, "target": url_for("tou.tou", _external=True)},
+            payload={
+                "action": IdPAction.TOU.value,
+                "target": url_for("tou.tou", _external=True),
+                "authn_options": _get_authn_options(ticket, sso_session, required_user.eppn),
+            },
         )
 
     if _next.message == IdPMsg.user_terminated:
