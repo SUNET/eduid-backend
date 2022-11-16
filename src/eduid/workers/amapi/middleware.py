@@ -52,10 +52,10 @@ class AuthenticationMiddleware(BaseHTTPMiddleware, ContextRequestMixin):
                 detail="No authentication header found",
             )
 
-        token = auth[len("Bearer ") :]
+        _token = auth[len("Bearer ") :]
         _jwt = jwt.JWT()
         try:
-            _jwt.deserialize(token, req.app.jwks)
+            _jwt.deserialize(_token, req.app.jwks)
             claims = json.loads(_jwt.claims)
         except (JWException, KeyError, ValueError) as e:
             logger.info(f"Bearer token error: {e}")
