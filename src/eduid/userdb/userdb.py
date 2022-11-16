@@ -386,15 +386,6 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
         )
         logger.debug(f"Updated/inserted document: {updated_doc}")
 
-    def replace_user(self, eppn: str, obj_id: ObjectId, old_version: ObjectId, update_obj: Mapping):
-        logger.debug(f"replacing user {eppn} in {repr(self._coll_name)}")
-        search_filter = {
-            "_id": obj_id,
-            "meta.version": old_version,
-        }
-
-        self._coll.replace_one(filter=search_filter, replacement=update_obj)
-
 
 class AmDB(UserDB[User]):
     """Central userdb, aka. AM DB"""
