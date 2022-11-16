@@ -249,7 +249,7 @@ class IdP_Namespace(TimestampedNS):
         self.pending_requests[request_ref].credentials_used[credential.key] = timestamp
 
 
-class AuthnRequest(BaseModel):
+class BaseAuthnRequest(BaseModel, ABC):
     frontend_state: Optional[str] = None  # opaque data from frontend, returned in /status
     method: Optional[str] = None  # proofing method that frontend is invoking
     frontend_action: str  # what action frontend is performing, decides the finish URL the user is redirected to
@@ -260,7 +260,7 @@ class AuthnRequest(BaseModel):
     error: Optional[bool] = None
 
 
-class SP_AuthnRequest(AuthnRequest):
+class SP_AuthnRequest(BaseAuthnRequest):
     credentials_used: List[ElementKey] = Field(default_factory=list)
     # proofing_credential_id is the credential being person-proofed, when doing that
     proofing_credential_id: Optional[ElementKey] = None
@@ -293,7 +293,7 @@ class AuthnNamespace(SessionNSBase):
     next: Optional[str] = None
 
 
-class RP_AuthnRequest(AuthnRequest):
+class RP_AuthnRequest(BaseAuthnRequest):
     pass
 
 
