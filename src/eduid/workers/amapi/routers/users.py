@@ -1,12 +1,9 @@
-from typing import Optional
-
 from eduid.common.fastapi.api_router import APIRouter
-from eduid.common.fastapi.exceptions import BadRequest, ErrorDetail
+from eduid.common.fastapi.exceptions import ErrorDetail
 from eduid.workers.amapi.context_request import ContextRequest, ContextRequestRoute
 from eduid.workers.amapi.models.user import (
     UserUpdateEmailRequest,
     UserUpdateLanguageRequest,
-    UserUpdateMetaRequest,
     UserUpdateNameRequest,
     UserUpdatePhoneRequest,
     UserUpdateResponse,
