@@ -129,10 +129,13 @@ def authn_callback(user) -> WerkzeugResponse:
     """
     This is the callback endpoint for the Svipe ID OIDC flow.
     """
-    oidc_state = OIDCState(request.args.get("state", ""))
-    authn_req = session.svipe_id.rp.authns.get(oidc_state)
+    authn_req = None
+    oidc_state = request.args.get("state")
+    if oidc_state is not None:
+        authn_req = session.svipe_id.rp.authns.get(OIDCState(oidc_state))
+
     if not authn_req:
-        # Perhaps a authn response received out of order - abort without destroying state
+        # Perhaps an authn response received out of order - abort without destroying state
         # (User makes two requests, A and B. Response B arrives, user is happy and proceeds with their work.
         #  Then response A arrives late. Just silently abort, no need to mess up the users' session.)
         current_app.logger.info(

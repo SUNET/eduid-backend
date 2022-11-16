@@ -37,6 +37,8 @@ class SvipeIDProofingFunctions(ProofingFunctions[SvipeDocumentUserInfo]):
     def is_swedish_document(self) -> bool:
         issuing_country = countries.get(self.session_info.document_issuing_country)
         sweden = countries.get("SE")
+        if not sweden:
+            raise RuntimeError('Could not find country "SE" in iso3166')
         if issuing_country == sweden:
             return True
         return False
