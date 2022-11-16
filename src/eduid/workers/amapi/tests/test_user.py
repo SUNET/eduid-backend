@@ -112,12 +112,9 @@ class TestUsers(TestAMBase, GNAPBearerTokenMixin):
         )
         return response
 
-    def make_delete_call(
-        self, json_data: dict, oauth_header: Mapping[str, str], endpoint: Optional[str] = None
-    ) -> Response:
+    def make_delete_call(self, oauth_header: Headers[str, str], endpoint: Optional[str] = None) -> Response:
         response = self.client.delete(
             url=self._make_url(endpoint),
-            json=json_data,
             headers=oauth_header,
         )
         return response
@@ -491,7 +488,6 @@ class TestTerminate(TestUsers):
         for tt in self.tts:
             with self.subTest(name=tt.name):
                 got = self.make_delete_call(
-                    json_data=tt.req,
                     oauth_header=tt.oauth_header,
                     endpoint=tt.endpoint,
                 )

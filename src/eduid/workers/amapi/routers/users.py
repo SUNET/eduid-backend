@@ -52,6 +52,8 @@ async def on_put_phone(req: ContextRequest, data: UserUpdatePhoneRequest, eppn: 
 
 
 @users_router.delete("/{eppn}", response_model=UserUpdateResponse)
-async def on_terminate_user(req: ContextRequest, data: UserUpdateTerminateRequest, eppn: str):
+async def on_terminate_user(req: ContextRequest, eppn: str):
     req.app.logger.info(f"Terminate user {eppn} email")
+    # TODO: fix this
+    data = UserUpdateTerminateRequest(reason="mura", source="mura")
     return update_user(req=req, eppn=eppn, data=data)
