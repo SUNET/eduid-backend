@@ -63,8 +63,8 @@ class TestAMBase(CommonTestCase):
                         method="put",
                     ),
                     EndpointRestriction(
-                        endpoint="/users/*",
-                        method="delete",
+                        endpoint="/users/*/terminate",
+                        method="put",
                     ),
                 ],
             },
@@ -109,13 +109,6 @@ class TestUsers(TestAMBase, GNAPBearerTokenMixin):
         response = self.client.put(
             url=self._make_url(endpoint),
             json=json_data,
-            headers=oauth_header,
-        )
-        return response
-
-    def make_delete_call(self, oauth_header: Headers[str, str], endpoint: Optional[str] = None) -> Response:
-        response = self.client.delete(
-            url=self._make_url(endpoint),
             headers=oauth_header,
         )
         return response
@@ -472,6 +465,7 @@ class TestTerminate(TestUsers):
                 req=req,
                 assert_diff=self.assert_diff,
                 oauth_header=self._auth_header(service_name="test-service_name"),
+                endpoint="terminate",
                 access_granted=True,
                 want_response_status=status.HTTP_200_OK,
             ),
@@ -480,6 +474,7 @@ class TestTerminate(TestUsers):
                 req=req,
                 assert_diff=self.assert_diff,
                 oauth_header=self._auth_header(service_name="wrong-service_name"),
+                endpoint="terminate",
                 access_granted=False,
                 want_response_status=status.HTTP_401_UNAUTHORIZED,
             ),
@@ -488,7 +483,7 @@ class TestTerminate(TestUsers):
     def test(self):
         for tt in self.tts:
             with self.subTest(name=tt.name):
-                got = self.make_delete_call(
+                got = self.make_put_call(
                     oauth_header=tt.oauth_header,
                     endpoint=tt.endpoint,
                 )
