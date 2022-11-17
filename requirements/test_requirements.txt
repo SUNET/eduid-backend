@@ -404,10 +404,6 @@ exceptiongroup==1.0.4 \
     --hash=sha256:542adf9dea4055530d6e1279602fa5cb11dab2395fa650b8674eaec35fc4a828 \
     --hash=sha256:bd14967b79cd9bdb54d97323216f8fdf533e278df937aa2a90089e7d6e06e5ec
     # via pytest
-falcon==1.4.1 \
-    --hash=sha256:0a66b33458fab9c1e400a9be1a68056abda178eb02a8cb4b8f795e9df20b053b \
-    --hash=sha256:3981f609c0358a9fcdb25b0e7fab3d9e23019356fb429c635ce4133135ae1bc4
-    # via -r falconapi_requirements.in
 fastapi==0.87.0 \
     --hash=sha256:07032e53df9a57165047b4f38731c38bdcc3be5493220471015e2b4b51b486a4 \
     --hash=sha256:254453a2e22f64e2a1b4e1d8baf67d239e55b6c8165c079d25746a5220c81bb4
@@ -1330,10 +1326,6 @@ python-jose==3.3.0 \
     # via
     #   -c main.txt
     #   -r main.in
-python-mimeparse==1.6.0 \
-    --hash=sha256:76e4b03d700a641fd7761d3cd4fdbbdcd787eade1ebfac43f877016328334f78 \
-    --hash=sha256:a295f03ff20341491bfe4717a39cd0a8cc9afad619ba44b77e86b0ab8a2b8282
-    # via falcon
 python-multipart==0.0.5 \
     --hash=sha256:f7bb5f611fc600d15fa47b3974c8aa16e93724513b49b5f95c81e6624c83fa43
     # via -r fastapi_requirements.in
@@ -1585,7 +1577,6 @@ six==1.16.0 \
     #   bleach
     #   click-repl
     #   ecdsa
-    #   falcon
     #   flask-cors
     #   html5lib
     #   pyconfig
