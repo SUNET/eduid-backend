@@ -485,6 +485,7 @@ class TestTerminate(TestUsers):
         for tt in self.tts:
             with self.subTest(name=tt.name):
                 got = self.make_put_call(
+                    json_data=tt.req,
                     oauth_header=tt.oauth_header,
                     endpoint=tt.endpoint,
                 )
