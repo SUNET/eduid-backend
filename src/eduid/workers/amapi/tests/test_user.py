@@ -85,6 +85,9 @@ class TestStructureUser(BaseModel):
     access_granted: bool
     want_response_status: int
 
+    class Config:
+        arbitrary_types_allowed = True
+
 
 class TestUsers(TestAMBase, GNAPBearerTokenMixin):
     def setUp(self, *args, **kwargs):
