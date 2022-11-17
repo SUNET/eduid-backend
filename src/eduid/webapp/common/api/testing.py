@@ -237,10 +237,23 @@ class EduidAPITestCase(CommonTestCase):
         for key in list(central_user_dict.keys()):
             if key not in private_user_dict:
                 central_user_dict.pop(key, None)
+        # create updated user
         user = User.from_dict(data=central_user_dict)
         user.modified_ts = modified_ts
         user.meta.modified_ts = meta_modified_ts
         user.meta.version = meta_version
+        # add locked identity the same way as done in consistency checks in am
+        for identity in user.identities.to_list():
+            if identity.is_verified is False:
+                # if the identity is not verified then locked identities does not matter
+                continue
+            locked_identity = user.locked_identity.find(identity.identity_type)
+            # add new verified identity to locked identities
+            if locked_identity is None:
+                if identity.created_by is None:
+                    identity.created_by = "test"
+                user.locked_identity.add(identity)
+                continue
         self.app.central_userdb.save(user)
         return True
 

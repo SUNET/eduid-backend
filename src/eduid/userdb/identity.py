@@ -7,6 +7,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional, Type, Union
 
+from iso3166 import Country, countries
 from pydantic import Field
 
 from eduid.userdb.element import ElementKey, VerifiedElement, VerifiedElementList
@@ -60,6 +61,9 @@ class IdentityElement(VerifiedElement, ABC):
         data["identity_type"] = self.identity_type.value
         return data
 
+    def to_frontend_format(self) -> Dict[str, Any]:
+        return super().to_dict()
+
 
 class NinIdentity(IdentityElement):
 
@@ -100,7 +104,15 @@ class EIDASLoa(str, Enum):
     NF_HIGH = "eidas-nf-high"
 
 
-class EIDASIdentity(IdentityElement):
+class CountryMixin:
+    country_code: str  # ISO 3166-1 alpha-2 or ISO 3166-1 alpha-3
+
+    @property
+    def country(self) -> Country:
+        return countries.get(self.country_code)
+
+
+class EIDASIdentity(IdentityElement, CountryMixin):
 
     """
     Element that is used as an EIDAS identity for a user
@@ -109,6 +121,8 @@ class EIDASIdentity(IdentityElement):
 
         prid
         prid_persistence
+        loa
+        country_code
     """
 
     identity_type: IdentityType = Field(default=IdentityType.EIDAS, const=True)
@@ -116,7 +130,7 @@ class EIDASIdentity(IdentityElement):
     prid_persistence: PridPersistence
     loa: EIDASLoa
     date_of_birth: datetime
-    country_code: str
+    country_code: str  # ISO 3166-1 alpha-2
 
     @property
     def unique_key_name(self) -> str:
@@ -131,19 +145,29 @@ class EIDASIdentity(IdentityElement):
         data["prid_persistence"] = self.prid_persistence.value
         return data
 
+    def to_frontend_format(self) -> Dict[str, Any]:
+        data = self.to_dict()
+        data["country"] = dict(self.country._asdict())
+        return data
 
-class SvipeIdentity(IdentityElement):
+
+class SvipeIdentity(IdentityElement, CountryMixin):
     """
     Element that is used as a Svipe identity for a user
 
     Properties of SvipeIdentity:
 
         svipe_id
+        administrative_number
+        country_code
     """
 
     identity_type: IdentityType = Field(default=IdentityType.SVIPE, const=True)
+    #  A globally unique identifier issued by Svipe to the user. Under normal conditions, a given person will retain
+    #  the same Svipe ID even after renewing the underlying identity document.
     svipe_id: str
-    # TODO: attributes are missing
+    date_of_birth: datetime
+    country_code: str  # ISO 3166-1 alpha-3
 
     @property
     def unique_key_name(self) -> str:
@@ -152,6 +176,11 @@ class SvipeIdentity(IdentityElement):
     @property
     def unique_value(self) -> str:
         return self.svipe_id
+
+    def to_frontend_format(self) -> Dict[str, Any]:
+        data = self.to_dict()
+        data["country"] = dict(self.country._asdict())
+        return data
 
 
 class IdentityList(VerifiedElementList[IdentityElement]):
@@ -223,11 +252,14 @@ class IdentityList(VerifiedElementList[IdentityElement]):
         # EIDAS
         if self.eidas and self.eidas.is_verified:
             return self.eidas.date_of_birth
+        # SVIPE
+        if self.svipe and self.svipe.is_verified:
+            return self.svipe.date_of_birth
         return None
 
     def to_frontend_format(self) -> Dict[str, Any]:
         res: Dict[str, Union[bool, Dict[str, Any]]] = {
-            item.identity_type.value: item.to_dict() for item in self.to_list()
+            item.identity_type.value: item.to_frontend_format() for item in self.to_list()
         }
         res["is_verified"] = self.is_verified
         return res

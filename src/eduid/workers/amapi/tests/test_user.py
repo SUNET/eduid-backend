@@ -9,6 +9,7 @@ from typing import Dict, Optional, Any, Mapping, List
 import pkg_resources
 from bson import ObjectId
 from fastapi.testclient import TestClient
+from httpx import Headers
 from jwcrypto import jwt
 from pydantic import BaseModel
 
@@ -79,10 +80,13 @@ class TestStructureUser(BaseModel):
     name: str
     req: dict
     assert_diff: dict
-    oauth_header: Mapping[str, str]
+    oauth_header: Headers
     endpoint: Optional[str] = None
     access_granted: bool
     want_response_status: int
+
+    class Config:
+        arbitrary_types_allowed = True
 
 
 class TestUsers(TestAMBase, GNAPBearerTokenMixin):
@@ -102,9 +106,7 @@ class TestUsers(TestAMBase, GNAPBearerTokenMixin):
         assert audit_logs[0].source == self.source
         assert audit_logs[0].diff == self.as_json(assert_diff)
 
-    def make_put_call(
-        self, json_data: dict, oauth_header: Mapping[str, str], endpoint: Optional[str] = None
-    ) -> Response:
+    def make_put_call(self, json_data: dict, oauth_header: Headers, endpoint: Optional[str] = None) -> Response:
         response = self.client.put(
             url=self._make_url(endpoint),
             json=json_data,
@@ -112,7 +114,7 @@ class TestUsers(TestAMBase, GNAPBearerTokenMixin):
         )
         return response
 
-    def _auth_header(self, service_name: str) -> Mapping[str, str]:
+    def _auth_header(self, service_name: str) -> Headers:
         expire = datetime.timedelta(seconds=3600)
         signing_key = self.api.jwks.get_key(self.test_singing_key)
         claims = AuthnBearerToken(
@@ -125,7 +127,7 @@ class TestUsers(TestAMBase, GNAPBearerTokenMixin):
         token = jwt.JWT(header={"alg": "ES256"}, claims=claims.to_rfc7519())
         token.make_signed_token(signing_key)
         bearer_token = f"Bearer {token.serialize()}"
-        return {"Authorization": bearer_token}
+        return Headers({"Authorization": bearer_token})
 
 
 class TestUpdateName(TestUsers):

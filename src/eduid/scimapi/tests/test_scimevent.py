@@ -3,7 +3,7 @@ from datetime import timedelta
 from typing import Any, Dict, Mapping, Optional
 from uuid import UUID, uuid4
 
-from requests import Response
+from httpx import Response
 
 from eduid.common.models.scim_base import SCIMResourceType, SCIMSchema
 from eduid.common.testing_base import normalised_data
@@ -34,7 +34,7 @@ class TestEventResource(ScimApiTestCase):
             "schemas": [SCIMSchema.NUTID_EVENT_CORE_V1.value, SCIMSchema.NUTID_EVENT_V1.value],
             SCIMSchema.NUTID_EVENT_V1.value: event,
         }
-        response = self.client.post(url="/Events/", data=self.as_json(req), headers=self.headers)
+        response = self.client.post(url="/Events/", json=req, headers=self.headers)
         if expect_success:
             self._assertResponse(response)
         parsed_response = EventResponse.parse_raw(response.text)

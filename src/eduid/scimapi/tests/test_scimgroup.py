@@ -99,7 +99,7 @@ class TestGroupResource(ScimApiTestCase):
             "startIndex": start,
             "count": count,
         }
-        response = self.client.post(url="/Groups/.search", data=self.as_json(req), headers=self.headers)
+        response = self.client.post(url="/Groups/.search", json=req, headers=self.headers)
         logger.info(f"Search parsed_response:\n{response.json}")
         if return_json:
             return response.json()
@@ -219,7 +219,7 @@ class TestGroupResource_POST(TestGroupResource):
             "externalId": "a-group",
             "members": [],
         }
-        response = self.client.post(url="/Groups/", data=self.as_json(req), headers=self.headers)
+        response = self.client.post(url="/Groups/", json=req, headers=self.headers)
 
         # Load the created group from the database, ensuring it was in fact created
         _groups, _count = self.groupdb.get_groups_by_property("display_name", req["displayName"])
@@ -238,7 +238,7 @@ class TestGroupResource_POST(TestGroupResource):
     def test_schema_violation(self):
         # request missing displayName
         req = {"schemas": [SCIMSchema.CORE_20_GROUP.value], "members": []}
-        response = self.client.post(url=f"/Groups/", data=self.as_json(req), headers=self.headers)
+        response = self.client.post(url=f"/Groups/", json=req, headers=self.headers)
         self._assertScimError(
             status=422,
             json=response.json(),
@@ -270,7 +270,7 @@ class TestGroupResource_PUT(TestGroupResource):
             "members": members,
         }
         self.headers["IF-MATCH"] = make_etag(db_group.version)
-        response = self.client.put(url=f"/Groups/{db_group.scim_id}", data=self.as_json(req), headers=self.headers)
+        response = self.client.put(url=f"/Groups/{db_group.scim_id}", json=req, headers=self.headers)
 
         self._assertGroupUpdateSuccess(req, response, db_group)
 
@@ -301,7 +301,7 @@ class TestGroupResource_PUT(TestGroupResource):
             SCIMSchema.NUTID_GROUP_V1.value: {"data": {"test": "updated"}},
         }
         self.headers["IF-MATCH"] = make_etag(db_group.version)
-        response = self.client.put(url=f"/Groups/{db_group.scim_id}", data=self.as_json(req), headers=self.headers)
+        response = self.client.put(url=f"/Groups/{db_group.scim_id}", json=req, headers=self.headers)
 
         self._assertGroupUpdateSuccess(req, response, db_group)
 
@@ -309,7 +309,7 @@ class TestGroupResource_PUT(TestGroupResource):
         members[1]["display"] += " (also updated)"
 
         self.headers["IF-MATCH"] = response.headers["Etag"]
-        response = self.client.put(url=f"/Groups/{db_group.scim_id}", data=self.as_json(req), headers=self.headers)
+        response = self.client.put(url=f"/Groups/{db_group.scim_id}", json=req, headers=self.headers)
         self._assertGroupUpdateSuccess(req, response, db_group)
 
         # check that the action resulted in an event in the database
@@ -336,7 +336,7 @@ class TestGroupResource_PUT(TestGroupResource):
             "members": members,
         }
         self.headers["IF-MATCH"] = make_etag(db_group.version)
-        response = self.client.put(url=f"/Groups/{db_group.scim_id}", data=self.as_json(req), headers=self.headers)
+        response = self.client.put(url=f"/Groups/{db_group.scim_id}", json=req, headers=self.headers)
 
         self._assertGroupUpdateSuccess(req, response, db_group)
 
@@ -352,7 +352,7 @@ class TestGroupResource_PUT(TestGroupResource):
         ]
 
         self.headers["IF-MATCH"] = response.headers["Etag"]
-        response = self.client.put(url=f"/Groups/{db_group.scim_id}", data=self.as_json(req), headers=self.headers)
+        response = self.client.put(url=f"/Groups/{db_group.scim_id}", json=req, headers=self.headers)
         self._assertGroupUpdateSuccess(req, response, db_group)
 
     def test_removing_group_member(self):
@@ -384,7 +384,7 @@ class TestGroupResource_PUT(TestGroupResource):
         }
 
         self.headers["IF-MATCH"] = make_etag(db_group.version)
-        response = self.client.put(url=f"/Groups/{db_group.scim_id}", data=self.as_json(req), headers=self.headers)
+        response = self.client.put(url=f"/Groups/{db_group.scim_id}", json=req, headers=self.headers)
 
         self._assertGroupUpdateSuccess(req, response, db_group)
 
@@ -402,7 +402,7 @@ class TestGroupResource_PUT(TestGroupResource):
             "displayName": "Another display name",
             "members": [],
         }
-        response = self.client.put(url=f"/Groups/{db_group.scim_id}", data=self.as_json(req), headers=self.headers)
+        response = self.client.put(url=f"/Groups/{db_group.scim_id}", json=req, headers=self.headers)
         self._assertScimError(response.json(), detail="Id mismatch")
 
     def test_update_group_not_found(self):
@@ -412,7 +412,7 @@ class TestGroupResource_PUT(TestGroupResource):
             "displayName": "Another display name",
             "members": [],
         }
-        response = self.client.put(url=f'/Groups/{req["id"]}', data=self.as_json(req), headers=self.headers)
+        response = self.client.put(url=f'/Groups/{req["id"]}', json=req, headers=self.headers)
         self._assertScimError(response.json(), status=404, detail="Group not found")
 
     def test_version_mismatch(self):
@@ -423,7 +423,7 @@ class TestGroupResource_PUT(TestGroupResource):
             "displayName": "Another display name",
         }
         self.headers["IF-MATCH"] = make_etag(ObjectId())
-        response = self.client.put(url=f"/Groups/{db_group.scim_id}", data=self.as_json(req), headers=self.headers)
+        response = self.client.put(url=f"/Groups/{db_group.scim_id}", json=req, headers=self.headers)
         self._assertScimError(response.json(), detail="Version mismatch")
 
     def test_update_group_member_does_not_exist(self):
@@ -443,7 +443,7 @@ class TestGroupResource_PUT(TestGroupResource):
             "members": members,
         }
         self.headers["IF-MATCH"] = make_etag(db_group.version)
-        response = self.client.put(url=f"/Groups/{db_group.scim_id}", data=self.as_json(req), headers=self.headers)
+        response = self.client.put(url=f"/Groups/{db_group.scim_id}", json=req, headers=self.headers)
         self._assertScimError(response.json(), detail=f"User {_user_scim_id} not found")
 
     def test_update_group_subgroup_does_not_exist(self):
@@ -463,7 +463,7 @@ class TestGroupResource_PUT(TestGroupResource):
             "members": members,
         }
         self.headers["IF-MATCH"] = make_etag(db_group.version)
-        response = self.client.put(url=f"/Groups/{db_group.scim_id}", data=self.as_json(req), headers=self.headers)
+        response = self.client.put(url=f"/Groups/{db_group.scim_id}", json=req, headers=self.headers)
         self._assertScimError(response.json(), detail=f"Group {_subgroup_scim_id} not found")
 
     def test_schema_violation(self):
@@ -472,7 +472,7 @@ class TestGroupResource_PUT(TestGroupResource):
             "schemas": [SCIMSchema.CORE_20_GROUP.value],
             "id": str(uuid4()),
         }
-        response = self.client.put(url=f"/Groups/{uuid4()}", data=self.as_json(req), headers=self.headers)
+        response = self.client.put(url=f"/Groups/{uuid4()}", json=req, headers=self.headers)
         self._assertScimError(
             status=422,
             json=response.json(),
@@ -488,9 +488,8 @@ class TestGroupResource_DELETE(TestGroupResource):
         db_group1 = self.groupdb.get_group_by_scim_id(str(group.scim_id))
         self.assertIsNotNone(db_group1)
 
-        req = {"schemas": [SCIMSchema.CORE_20_GROUP.value]}
         self.headers["IF-MATCH"] = make_etag(group.version)
-        response = self.client.delete(url=f"/Groups/{group.scim_id}", data=self.as_json(req), headers=self.headers)
+        response = self.client.delete(url=f"/Groups/{group.scim_id}", headers=self.headers)
         self.assertEqual(204, response.status_code)
 
         # Verify the group is no longer in the database
@@ -507,9 +506,8 @@ class TestGroupResource_DELETE(TestGroupResource):
     def test_version_mismatch(self):
         group = self.add_group(uuid4(), "Test Group 1")
 
-        req = {"schemas": [SCIMSchema.CORE_20_GROUP.value]}
         self.headers["IF-MATCH"] = make_etag(ObjectId())
-        response = self.client.delete(url=f"/Groups/{group.scim_id}", data=self.as_json(req), headers=self.headers)
+        response = self.client.delete(url=f"/Groups/{group.scim_id}", headers=self.headers)
         self._assertScimError(response.json(), detail="Version mismatch")
 
     def test_group_not_found(self):
@@ -607,7 +605,7 @@ class TestGroupSearchResource(TestGroupResource):
         req = {
             "schemas": [SCIMSchema.API_MESSAGES_20_SEARCH_REQUEST.value],
         }
-        response = self.client.post(url="/Groups/.search", data=self.as_json(req), headers=self.headers)
+        response = self.client.post(url="/Groups/.search", json=req, headers=self.headers)
         self._assertScimError(
             status=422,
             json=response.json(),
@@ -625,7 +623,7 @@ class TestGroupExtensionData(TestGroupResource):
             "members": [],
             SCIMSchema.NUTID_GROUP_V1.value: nutid_data,
         }
-        post_resp = self.client.post(url="/Groups/", data=self.as_json(req), headers=self.headers)
+        post_resp = self.client.post(url="/Groups/", json=req, headers=self.headers)
 
         # Load the newly created group from the database in order to validate the SCIM parsed_response better
         scim_id = post_resp.json().get("id")
@@ -661,7 +659,7 @@ class TestGroupExtensionData(TestGroupResource):
             SCIMSchema.NUTID_GROUP_V1.value: nutid_data2,
         }
         self.headers["IF-MATCH"] = get_resp.json()["meta"]["version"]
-        put_resp = self.client.put(url=f"/Groups/{scim_id}", data=self.as_json(req), headers=self.headers)
+        put_resp = self.client.put(url=f"/Groups/{scim_id}", json=req, headers=self.headers)
         self._assertScimResponseProperties(put_resp, db_group, expected_schemas=expected_schemas)
 
         # Now fetch the group again and validate the data

@@ -361,8 +361,9 @@ class ProofingConfigMixin(BaseModel):
     foreign_identity_idp: Optional[str] = None
 
     # identity proofing
-    nin_proofing_version: str = Field(default="2018v1")
+    freja_proofing_version: str = Field(default="2018v1")
     foreign_eid_proofing_version: str = Field(default="2022v1")
+    svipe_id_proofing_version: str = Field(default="2022v1")
 
     # security key proofing
     security_key_proofing_method: CredentialProofingMethod = Field(default=CredentialProofingMethod.SWAMID_AL2_MFA_HI)
@@ -370,6 +371,7 @@ class ProofingConfigMixin(BaseModel):
     security_key_foreign_eid_proofing_version: str = Field(default="2022v1")
 
     frontend_action_finish_url: Dict[str, str] = Field(default={})
+    fallback_redirect_url: str = "https://dashboard.eduid.se"
 
 
 class EduIDBaseAppConfig(RootConfig, LoggingConfigMixin, StatsConfigMixin, RedisConfigMixin):

@@ -1,0 +1,105 @@
+# -*- coding: utf-8 -*-
+
+import logging
+from datetime import date
+from enum import unique
+from typing import Any, Optional
+
+from pydantic import BaseModel, Field
+
+from eduid.webapp.common.api.messages import TranslatableMsg
+from eduid.webapp.common.session import session
+
+__author__ = "lundberg"
+
+
+logger = logging.getLogger(__name__)
+
+
+@unique
+class SvipeIDMsg(TranslatableMsg):
+    """
+    Messages sent to the front end with information on the results of the
+    attempted operations on the back end.
+    """
+
+    # failed to create authn request
+    authn_request_failed = "svipe_id.authn_request_failed"
+    # Unavailable vetting method requested
+    method_not_available = "svipe_id.method_not_available"
+    # Identity verification success
+    identity_verify_success = "svipe_id.identity_verify_success"
+    # Authorization error at Svipe ID
+    authorization_error = "svipe_id.authorization_fail"
+    # Status requested for unknown authn_id
+    not_found = "svipe_id.not_found"
+
+
+class SessionOAuthCache:
+    @staticmethod
+    def get(key: str) -> Any:
+        logger.debug(f"Getting {key} from session.svipe_id.oauth_cache")
+        return session.svipe_id.rp.authlib_cache.get(key)
+
+    @staticmethod
+    def set(key: str, value: Any, expires: Optional[int] = None) -> None:
+        session.svipe_id.rp.authlib_cache[key] = value
+        logger.debug(f"Set {key}={value} (expires={expires}) in session.svipe_id.oauth_cache")
+
+    @staticmethod
+    def delete(key: str) -> None:
+        del session.svipe_id.rp.authlib_cache[key]
+        logger.debug(f"Deleted {key} from session.svipe_id.oauth_cache")
+
+
+class UserInfoBase(BaseModel):
+    at_hash: str
+    aud: str
+    auth_time: int
+    c_hash: str
+    exp: int
+    iat: int
+    iss: str
+    nbf: int
+    sid: str
+    sub: str
+
+    class Config:
+        extra = "allow"
+        allow_population_by_field_name = True
+
+
+class SvipeDocumentUserInfo(UserInfoBase):
+    birthdate: date
+    document_administrative_number: str = Field(alias="com.svipe:document_administrative_number")
+    document_expiry_date: date = Field(alias="com.svipe:document_expiry_date")
+    # Issuing Country: SWE
+    document_issuing_country: str = Field(alias="com.svipe:document_issuing_country")
+    # Issuing Country (english): Sweden
+    document_issuing_country_en: str = Field(alias="com.svipe:document_issuing_country_en")
+    # Nationality: SWE
+    document_nationality: str = Field(alias="com.svipe:document_nationality")
+    # Nationality (english): Sweden
+    document_nationality_en: str = Field(alias="com.svipe:document_nationality_en")
+    document_number: str = Field(alias="com.svipe:document_number")
+    # Document Type: P
+    document_type: str = Field(alias="com.svipe:document_type")
+    # Document Type (standardized): PN
+    document_type_sdn: str = Field(alias="com.svipe:document_type_sdn")
+    # Document Type (standardized/english): Passport
+    document_type_sdn_en: str = Field(alias="com.svipe:document_type_sdn_en")
+    family_name: str
+    gender: Optional[str]
+    given_name: str
+    name: Optional[str]
+    nonce: str
+    svipe_id: str = Field(alias="com.svipe:svipeid")
+
+
+class SvipeTokenResponse(BaseModel):
+    access_token: str
+    expires_at: int
+    expires_in: int
+    id_token: str
+    token_type: str
+    userinfo: SvipeDocumentUserInfo

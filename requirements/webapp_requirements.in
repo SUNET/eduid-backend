@@ -7,3 +7,5 @@ flask-cors
 captcha
 raven[flask]
 user-agents
+authlib
+iso3166

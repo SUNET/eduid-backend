@@ -28,7 +28,7 @@ class TestNotifications(ScimApiTestCase):
         assert len(self._get_notifications()) == 0
 
         req = {"schemas": [SCIMSchema.CORE_20_USER.value], "externalId": "test-id-1"}
-        response = self.client.post(url="/Users/", data=self.as_json(req), headers=self.headers)
+        response = self.client.post(url="/Users/", json=req, headers=self.headers)
         self._assertResponse(response, status_code=201)
 
         assert len(self._get_notifications()) == 1
@@ -37,7 +37,7 @@ class TestNotifications(ScimApiTestCase):
         assert len(self._get_notifications()) == 0
 
         req = {"schemas": [SCIMSchema.CORE_20_GROUP.value], "externalId": "test-id-1", "displayName": "Test Group"}
-        response = self.client.post(url="/Groups/", data=self.as_json(req), headers=self.headers)
+        response = self.client.post(url="/Groups/", json=req, headers=self.headers)
         self._assertResponse(response, status_code=201)
 
         assert len(self._get_notifications()) == 1
@@ -58,7 +58,7 @@ class TestNotifications(ScimApiTestCase):
             "data": {"create_test": True},
         }
         req = {"schemas": [SCIMSchema.NUTID_EVENT_V1.value], SCIMSchema.NUTID_EVENT_V1.value: event}
-        result = self.client.post(url="/Events/", data=self.as_json(req), headers=self.headers)
+        result = self.client.post(url="/Events/", json=req, headers=self.headers)
         self._assertResponse(result)
 
         notifications = self._get_notifications()
