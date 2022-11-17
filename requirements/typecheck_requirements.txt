@@ -154,9 +154,9 @@ types-pyopenssl==22.1.0.2 \
     --hash=sha256:54606a6afb203eb261e0fca9b7f75fa6c24d5ff71e13903c162ffb951c2c64c6 \
     --hash=sha256:7a350e29e55bc3ee4571f996b4b1c18c4e4098947db45f7485b016eaa35b44bc
     # via -r typecheck_requirements.in
-types-python-dateutil==2.8.19.3 \
-    --hash=sha256:a313284df5ed3fd078303262edc0efde28998cd08e5061ef1ccc0bb5fef4d2da \
-    --hash=sha256:ce6af1bdf0aca6b7dc8815a664f0e8b55da91ff7851102cf87c87178e7c8e7ec
+types-python-dateutil==2.8.19.4 \
+    --hash=sha256:351a8ca9afd4aea662f87c1724d2e1ae59f9f5f99691be3b3b11d2393cd3aaa1 \
+    --hash=sha256:722a55be8e2eeff749c3e166e7895b0e2f4d29ab4921c0cff27aa6b997d7ee2e
     # via -r typecheck_requirements.in
 types-pyyaml==6.0.12.2 \
     --hash=sha256:1e94e80aafee07a7e798addb2a320e32956a373f376655128ae20637adb2655b \
@@ -166,9 +166,9 @@ types-redis==4.3.21.4 \
     --hash=sha256:3955c5682f926a1aaee13ed5bc0a37521115b0b8ffd6cd457facf517999abe93 \
     --hash=sha256:cf8a94ac9efbeb6459fd1aa05dbb977fc59c1022ebe8f72bc0bae57df136105d
     # via -r typecheck_requirements.in
-types-requests==2.28.11.4 \
-    --hash=sha256:bdb1f9811e53d0642c8347b09137363eb25e1a516819e190da187c29595a1df3 \
-    --hash=sha256:d4f342b0df432262e9e326d17638eeae96a5881e78e7a6aae46d33870d73952e
+types-requests==2.28.11.5 \
+    --hash=sha256:091d4a5a33c1b4f20d8b1b952aa8fa27a6e767c44c3cf65e56580df0b05fd8a9 \
+    --hash=sha256:a7df37cc6fb6187a84097da951f8e21d335448aa2501a6b0a39cbd1d7ca9ee2a
     # via -r typecheck_requirements.in
 types-simplejson==3.18.0.0 \
     --hash=sha256:857adb13190abd65d0d103be965152e79a6842c5663e01e8681bde1895713f52 \
@@ -186,9 +186,9 @@ types-ujson==5.5.0 \
     --hash=sha256:6051e6b80d71382f1f85b0f97b475d84621eae3e2789ed24c5721f784b0846e1 \
     --hash=sha256:74bc0ec76e3caf3682625703aad4aa9999327517e39afae67bb5aa3100a39bb8
     # via -r typecheck_requirements.in
-types-urllib3==1.26.25.3 \
-    --hash=sha256:1807b87b8ee1ae0226813ba2c52330eff20fb2bf6359b1de24df08eb3090e442 \
-    --hash=sha256:a188c24fc61a99658c8c324c8dd7419f5b91a0d89df004e5f576869122c1db55
+types-urllib3==1.26.25.4 \
+    --hash=sha256:ed6b9e8a8be488796f72306889a06a3fc3cb1aa99af02ab8afb50144d7317e49 \
+    --hash=sha256:eec5556428eec862b1ac578fb69aab3877995a99ffec9e5a12cf7fbd0cc9daee
     # via types-requests
 types-werkzeug==1.0.9 \
     --hash=sha256:194bd5715a13c598f05c63e8a739328657590943bce941e8a3619a6b5d4a54ec \
