@@ -375,6 +375,12 @@ importlib-resources==5.10.0 \
     # via
     #   -c main.txt
     #   -r sub_main.in
+iso3166==2.1.1 \
+    --hash=sha256:263660b36f8471c42acd1ff673d28a3715edbce7d24b1550d0cf010f6816c47f \
+    --hash=sha256:fcd551b8dda66b44e9f9e6d6bbbee3a1145a22447c0a556e5d0fb1ad1e491719
+    # via
+    #   -c main.txt
+    #   -r main.in
 jinja2==3.1.2 \
     --hash=sha256:31351a702a408a9e7595a8fc6150fc3f43bb6bf7e319770cbc0db9df9437e852 \
     --hash=sha256:6088930bfe239f0e6710546ab9c19c9ef35e29792895fed6e6e31a023a182a61

@@ -564,7 +564,9 @@ iniconfig==1.1.1 \
 iso3166==2.1.1 \
     --hash=sha256:263660b36f8471c42acd1ff673d28a3715edbce7d24b1550d0cf010f6816c47f \
     --hash=sha256:fcd551b8dda66b44e9f9e6d6bbbee3a1145a22447c0a556e5d0fb1ad1e491719
-    # via -r webapp_requirements.in
+    # via
+    #   -c main.txt
+    #   -r main.in
 isort==5.10.1 \
     --hash=sha256:6f62d78e2f89b4500b080fe3a81690850cd254227f27f75c3a0c491a1f351ba7 \
     --hash=sha256:e8443a5e7a020e9d7f97f1d7d9cd17c88bcb3bc7e218bf9cf5095fe550be2951
@@ -1500,9 +1502,9 @@ s3transfer==0.4.2 \
     # via
     #   -c main.txt
     #   boto3
-satosa==8.1.1 \
-    --hash=sha256:0850d5121b356edce23414dfe8a2635ef8764a333c6076c23d610a12e942f173 \
-    --hash=sha256:91be109319f9092cea08a8871f8e14c19e5184c383b98fcaa0b547803181f36b
+satosa==8.2.0 \
+    --hash=sha256:219d4c807e61e68ce6c1c1ffabee37e9976a45aed28ed78d57c063e9cfaace28 \
+    --hash=sha256:fe215818c338ce82c23eabb20fc2e538c42a61c0a4faf9ae02cbf50b01259a33
     # via -r satosa_scim_requirements.in
 simplejson==3.18.0 \
     --hash=sha256:002f069c7bb9a86826616a78f1214fea5b993435720990eecb0bf10955b9cd0e \
