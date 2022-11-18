@@ -56,7 +56,7 @@ class HTTPErrorDetail(Exception):
     def __init__(
         self,
         status_code: int,
-        detail: str = None,
+        detail: Optional[str] = None,
     ):
 
         self._error_detail = ErrorDetail(detail=detail, status=status_code)

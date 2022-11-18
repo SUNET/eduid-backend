@@ -84,10 +84,6 @@ class MailAddressList(PrimaryElementList[MailAddress]):
     def from_list_of_dicts(cls: Type[MailAddressList], items: List[Dict[str, Any]]) -> MailAddressList:
         return cls(elements=[MailAddress.from_dict(this) for this in items])
 
-    @classmethod
-    def from_list(cls: Type[MailAddressList], items: List[MailAddress]) -> MailAddressList:
-        return cls(elements=items)
-
 
 def address_from_dict(data):
     """

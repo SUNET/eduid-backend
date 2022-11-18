@@ -8,6 +8,7 @@ from jwcrypto.common import JWException
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import PlainTextResponse
 
+from eduid.workers.amapi.config import EndpointRestriction
 from eduid.workers.amapi.context_request import ContextRequestMixin
 
 import fnmatch
@@ -37,11 +38,11 @@ class AuthenticationMiddleware(BaseHTTPMiddleware, ContextRequestMixin):
 
         if not path:
             return return_error_response(
-                status_code=status.HTTP_401_UNAUTHORIZED,
+                status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Path empty",
             )
 
-        if self._is_no_auth_path(req, method_path):
+        if self._is_no_auth_path(req, path):
             return await call_next(req)
 
         auth = req.headers.get("Authorization")
@@ -51,10 +52,10 @@ class AuthenticationMiddleware(BaseHTTPMiddleware, ContextRequestMixin):
                 detail="No authentication header found",
             )
 
-        token = auth[len("Bearer ") :]
+        _token = auth[len("Bearer ") :]
         _jwt = jwt.JWT()
         try:
-            _jwt.deserialize(token, req.app.jwks)
+            _jwt.deserialize(_token, req.app.jwks)
             claims = json.loads(_jwt.claims)
         except (JWException, KeyError, ValueError) as e:
             logger.info(f"Bearer token error: {e}")
@@ -77,14 +78,22 @@ class AuthenticationMiddleware(BaseHTTPMiddleware, ContextRequestMixin):
     def _is_no_auth_path(req: Request, path: str) -> bool:
         return path in req.app.config.no_authn_urls
 
-    def _access_granted(self, req: Request, token: AuthnBearerToken, path: str) -> bool:
+    def _access_granted(self, req: Request, token: AuthnBearerToken, method_path: str) -> bool:
+        """
+        token.service_name in JWT claim is the key to config.user_restriction, witch is a list of EndpointRestriction
+        that allow access to each listed endpoint (glob)
+        """
         if token.service_name in req.app.config.user_restriction:
-            return self.glob_match(req.app.config.user_restriction[token.service_name], path)
+            return self.glob_match(req.app.config.user_restriction[token.service_name], method_path)
         return False
 
     @staticmethod
-    def glob_match(endpoints: List[str], path: str) -> bool:
+    def glob_match(endpoints: List[EndpointRestriction], method_path: str) -> bool:
+        """
+        fnmatch matches method_path (get:/users/hubba-bubba/name) with glob expression:
+        (get:/users/*/name OR get:/users/hubba-hubba/name).
+        """
         for endpoint in endpoints:
-            if fnmatch.fnmatch(path, endpoint):
+            if fnmatch.fnmatch(method_path, endpoint.uri):
                 return True
         return False

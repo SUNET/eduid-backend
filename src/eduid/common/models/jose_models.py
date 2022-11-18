@@ -113,8 +113,8 @@ class RegisteredClaims(BaseModel):
     sub: Optional[str]  # Subject
     aud: Optional[str]  # Audience
     exp: Optional[datetime.timedelta]  # Expiration Time
-    nbf: Optional[datetime.datetime] = Field(default_factory=utc_now)  # Not Before
-    iat: Optional[datetime.datetime] = Field(default_factory=utc_now)  # Issued At
+    nbf: datetime.datetime = Field(default_factory=utc_now)  # Not Before
+    iat: datetime.datetime = Field(default_factory=utc_now)  # Issued At
     jti: Optional[str]  # JWT ID
 
     def to_rfc7519(self):

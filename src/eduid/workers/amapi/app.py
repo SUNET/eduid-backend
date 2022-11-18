@@ -47,7 +47,6 @@ def init_api(name: str = "am_api", test_config: Optional[Dict] = None) -> AMAPI:
     app.include_router(status_router)
 
     # Middleware
-    # app.add_middleware(AuthenticationMiddleware, app=app)
     app.add_middleware(AuthenticationMiddleware)
 
     # Exception handling

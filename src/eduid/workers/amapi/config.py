@@ -1,18 +1,37 @@
 import logging
+from enum import Enum
 from pathlib import Path
-from typing import List, Optional, Mapping, Dict
+from typing import List, Optional, Dict, NewType, Annotated
 
-from pydantic import Field, BaseModel
+from pydantic import Field, BaseModel, validator, constr
 
-from eduid.common.clients.gnap_client.base import GNAPClientAuthData
 from eduid.common.config.base import LoggingConfigMixin, RootConfig
 
 logger = logging.getLogger(__name__)
 
 
-class Endpoint(BaseModel):
-    commit_msg: str
-    allowed: bool
+class SupportedMethod(str, Enum):
+    DELETE = "delete"
+    PUT = "put"
+    GET = "get"
+
+
+ServiceName = NewType("ServiceName", str)
+
+
+class EndpointRestriction(BaseModel):
+    endpoint: str = Field(min_length=1)
+    method: SupportedMethod
+
+    @validator("endpoint")
+    def check_endpoint(cls, v: str) -> str:
+        if not v.startswith("/"):
+            raise ValueError("endpoint must start with /")
+        return v.lower()
+
+    @property
+    def uri(self) -> str:
+        return f"{self.method}:{self.endpoint}"
 
 
 class AMApiConfig(RootConfig, LoggingConfigMixin):
@@ -26,8 +45,7 @@ class AMApiConfig(RootConfig, LoggingConfigMixin):
     mongo_uri: str = ""
     application_root: str = ""
     keystore_path: Path
-    signing_key_id: str
-    no_authn_urls: List[str] = Field(default=["get:/status/healthy", "get:/openapi.json"])
+    no_authn_urls: List[str] = Field(default=["/status/healthy", "/openapi.json"])
     status_cache_seconds: int = 10
     requested_access_type: Optional[str] = "am_api"
-    user_restriction: Dict[str, List[str]]
+    user_restriction: Dict[ServiceName, List[EndpointRestriction]]

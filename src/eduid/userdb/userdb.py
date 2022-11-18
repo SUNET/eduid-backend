@@ -29,6 +29,7 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+from dataclasses import dataclass
 import logging
 from abc import ABC
 from typing import Any, Dict, Generic, List, Mapping, Optional, TypeVar, Union
@@ -56,6 +57,12 @@ logger = logging.getLogger(__name__)
 extra_debug_logger = logger.getChild("extra_debug")
 
 UserVar = TypeVar("UserVar")
+
+
+@dataclass
+class UserSaveResult:
+    success: bool
+    user: Optional[User] = None
 
 
 class UserDB(BaseDB, Generic[UserVar], ABC):
@@ -285,7 +292,7 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
             logger.error("MultipleUsersReturned, {!r} = {!r}".format(attr, value))
             raise MultipleUsersReturned(e.reason)
 
-    def save(self, user: UserVar, check_sync: bool = True) -> bool:
+    def save(self, user: UserVar, check_sync: bool = True) -> UserSaveResult:
         """
         :param user: User object
         :param check_sync: Ensure the user hasn't been updated in the database since it was loaded
@@ -328,7 +335,7 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
 
             extra_debug = pprint.pformat(user.to_dict(), width=120)
             extra_debug_logger.debug(f"Extra debug:\n{extra_debug}")
-        return result.acknowledged
+        return UserSaveResult(success=result.acknowledged, user=None)
 
     def remove_user_by_id(self, user_id: ObjectId) -> bool:
         """
@@ -379,15 +386,6 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
         )
         logger.debug(f"Updated/inserted document: {updated_doc}")
 
-    def replace_user(self, eppn: str, obj_id: ObjectId, old_version: ObjectId, update_obj: Mapping):
-        logger.debug(f"replacing user {eppn} in {repr(self._coll_name)}")
-        search_filter = {
-            "_id": obj_id,
-            "meta.version": old_version,
-        }
-
-        self._coll.replace_one(filter=search_filter, replacement=update_obj)
-
 
 class AmDB(UserDB[User]):
     """Central userdb, aka. AM DB"""
@@ -399,7 +397,7 @@ class AmDB(UserDB[User]):
     def user_from_dict(cls, data: Mapping[str, Any]) -> User:
         return User.from_dict(data)
 
-    def save(self, user: UserVar, check_sync: bool = True) -> bool:
+    def save(self, user: UserVar, check_sync: bool = True) -> UserSaveResult:
         """
         :param user: User object
         :param check_sync: Ensure the user hasn't been updated in the database since it was loaded
@@ -449,10 +447,12 @@ class AmDB(UserDB[User]):
 
             extra_debug = pprint.pformat(user.to_dict(), width=120)
             extra_debug_logger.debug(f"Extra debug:\n{extra_debug}")
-        return result.acknowledged
+        if result.acknowledged:
+            return UserSaveResult(success=True, user=user)
+        return UserSaveResult(success=False, user=None)
 
     def old_save(self, user: User, check_sync: bool = True) -> bool:
-        return super().save(user, check_sync)
+        return super().save(user, check_sync).success
 
     def unverify_mail_aliases(self, user_id: ObjectId, mail_aliases: Optional[List[Dict[str, Any]]]) -> int:
         count = 0

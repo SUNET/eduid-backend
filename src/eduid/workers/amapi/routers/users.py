@@ -1,12 +1,9 @@
-from typing import Optional
-
 from eduid.common.fastapi.api_router import APIRouter
-from eduid.common.fastapi.exceptions import BadRequest, ErrorDetail
+from eduid.common.fastapi.exceptions import ErrorDetail
 from eduid.workers.amapi.context_request import ContextRequest, ContextRequestRoute
-from eduid.workers.amapi.models.user import (
+from eduid.common.models.amapi_user import (
     UserUpdateEmailRequest,
     UserUpdateLanguageRequest,
-    UserUpdateMetaRequest,
     UserUpdateNameRequest,
     UserUpdatePhoneRequest,
     UserUpdateResponse,
@@ -51,7 +48,7 @@ async def on_put_phone(req: ContextRequest, data: UserUpdatePhoneRequest, eppn: 
     return update_user(req=req, eppn=eppn, data=data)
 
 
-@users_router.delete("/{eppn}", response_model=UserUpdateResponse)
+@users_router.put("/{eppn}/terminate", response_model=UserUpdateResponse)
 async def on_terminate_user(req: ContextRequest, data: UserUpdateTerminateRequest, eppn: str):
     req.app.logger.info(f"Terminate user {eppn} email")
     return update_user(req=req, eppn=eppn, data=data)

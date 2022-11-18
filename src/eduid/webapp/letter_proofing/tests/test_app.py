@@ -412,6 +412,25 @@ class LetterProofingTests(EduidAPITestCase):
             payload={"message": "Another nin is already registered for this user"},
         )
 
+    @patch("hammock.Hammock._request")
+    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+    def test_send_letter_backdoor(self, mock_request_user_sync, mock_hammock):
+        self.app.conf.magic_cookie = "magic-cookie"
+        self.app.conf.magic_cookie_name = "magic"
+        self.app.conf.environment = "dev"
+
+        ekopost_response = self.mock_response(json_data={"id": "test"})
+        mock_hammock.return_value = ekopost_response
+        mock_request_user_sync.side_effect = self.request_user_sync
+
+        _state = self.get_state()
+        csrf_token = _state["payload"]["csrf_token"]
+        data = {"nin": self.test_user_nin, "csrf_token": csrf_token}
+        with self.session_cookie(self.browser, self.test_user_eppn) as client:
+            client.set_cookie("localhost", key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie)
+            response = client.post("/proofing", data=json.dumps(data), content_type=self.content_type_json)
+        self._check_success_response(response, type_="POST_LETTER_PROOFING_PROOFING_SUCCESS", msg=LetterMsg.letter_sent)
+
     def test_get_code_backdoor(self):
         self.app.conf.magic_cookie = "magic-cookie"
         self.app.conf.magic_cookie_name = "magic"

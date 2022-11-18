@@ -19,13 +19,16 @@ from eduid.userdb.credentials.external import TrustFramework
 from eduid.userdb.element import ElementKey
 from eduid.webapp.common.authn.acs_enums import AuthnAcsAction, EidasAcsAction
 from eduid.webapp.idp.other_device.data import OtherDeviceId
+from eduid.webapp.svipe_id.callback_enums import SvipeIDAction
 
 __author__ = "ft"
+
 
 logger = logging.getLogger(__name__)
 
 
 AuthnRequestRef = NewType("AuthnRequestRef", str)
+OIDCState = NewType("OIDCState", str)
 
 
 class SessionNSBase(BaseModel, ABC):
@@ -203,8 +206,8 @@ class IdP_PendingRequest(BaseModel, ABC):
     used: Optional[bool] = False  # set to True after the request has been completed (to handle 'back' button presses)
     template_show_msg: Optional[str]  # set when the template version of the idp should show a message to the user
     # Credentials used while authenticating _this SAML request_. Not ones inherited from SSO.
-    credentials_used: Dict[ElementKey, datetime] = Field(default={})
-    onetime_credentials: Dict[ElementKey, OnetimeCredential] = Field(default={})
+    credentials_used: Dict[ElementKey, datetime] = Field(default_factory=dict)
+    onetime_credentials: Dict[ElementKey, OnetimeCredential] = Field(default_factory=dict)
 
 
 class IdP_SAMLPendingRequest(IdP_PendingRequest):
@@ -246,25 +249,28 @@ class IdP_Namespace(TimestampedNS):
         self.pending_requests[request_ref].credentials_used[credential.key] = timestamp
 
 
-class SP_AuthnRequest(BaseModel):
+class BaseAuthnRequest(BaseModel, ABC):
+    frontend_state: Optional[str] = None  # opaque data from frontend, returned in /status
+    method: Optional[str] = None  # proofing method that frontend is invoking
     frontend_action: str  # what action frontend is performing, decides the finish URL the user is redirected to
-    post_authn_action: Optional[Union[AuthnAcsAction, EidasAcsAction]] = None
-    credentials_used: List[ElementKey] = Field(default=[])
+    post_authn_action: Optional[Union[AuthnAcsAction, EidasAcsAction, SvipeIDAction]] = None
     created_ts: datetime = Field(default_factory=utc_now)
     authn_instant: Optional[datetime] = None
-    frontend_state: Optional[str] = None  # opaque data from frontend, returned in /status
+    status: Optional[str] = None  # populated by the SAML2 ACS/OIDC callback action
+    error: Optional[bool] = None
+
+
+class SP_AuthnRequest(BaseAuthnRequest):
+    credentials_used: List[ElementKey] = Field(default_factory=list)
     # proofing_credential_id is the credential being person-proofed, when doing that
     proofing_credential_id: Optional[ElementKey] = None
-    method: Optional[str] = None  # proofing method that frontend is invoking
-    status: Optional[str] = None  # populated by the SAML2 ACS
-    error: Optional[bool] = None
     redirect_url: Optional[str]  # Deprecated, use frontend_action to get return URL from config instead
 
 
 class SPAuthnData(BaseModel):
     post_authn_action: Optional[Union[AuthnAcsAction, EidasAcsAction]] = None
-    pysaml2_dicts: Dict[str, Any] = Field(default={})
-    authns: Dict[AuthnRequestRef, SP_AuthnRequest] = Field(default={})
+    pysaml2_dicts: Dict[str, Any] = Field(default_factory=dict)
+    authns: Dict[AuthnRequestRef, SP_AuthnRequest] = Field(default_factory=dict)
 
     def get_authn_for_action(self, action: Union[AuthnAcsAction, EidasAcsAction]) -> Optional[SP_AuthnRequest]:
         for authn in self.authns.values():
@@ -273,15 +279,28 @@ class SPAuthnData(BaseModel):
         return None
 
 
-class Eidas_Namespace(SessionNSBase):
+class EidasNamespace(SessionNSBase):
 
     # TODO: Move verify_token_action_credential_id into SP_AuthnRequest
     verify_token_action_credential_id: Optional[ElementKey] = None
     sp: SPAuthnData = Field(default=SPAuthnData())
 
 
-class Authn_Namespace(SessionNSBase):
+class AuthnNamespace(SessionNSBase):
 
     sp: SPAuthnData = Field(default=SPAuthnData())
     name_id: Optional[str] = None  # SAML NameID, used in logout
     next: Optional[str] = None
+
+
+class RP_AuthnRequest(BaseAuthnRequest):
+    pass
+
+
+class RPAuthnData(BaseModel):
+    authlib_cache: Dict[str, Any] = Field(default_factory=dict)
+    authns: Dict[OIDCState, RP_AuthnRequest] = Field(default_factory=dict)
+
+
+class SvipeIDNamespace(SessionNSBase):
+    rp: RPAuthnData = Field(default=RPAuthnData())

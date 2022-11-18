@@ -17,6 +17,7 @@ from eduid.common.utils import removeprefix
 from eduid.scimapi.config import DataOwnerName, ScimApiConfig, ScopeName
 from eduid.scimapi.context import Context
 from eduid.scimapi.context_request import ContextRequestMixin
+from eduid.scimapi.exceptions import Unauthorized, http_error_detail_handler
 
 
 class SudoAccess(BaseModel):
@@ -135,12 +136,6 @@ class AuthnBearerToken(BaseModel):
         return _scopes
 
 
-# middleware needs to return a response
-# some background: https://github.com/tiangolo/fastapi/issues/458
-def return_error_response(status_code: int, detail: str):
-    return PlainTextResponse(status_code=status_code, content=detail)
-
-
 # Hack to be able to get request body both now and later
 # https://github.com/encode/starlette/issues/495#issuecomment-513138055
 async def set_body(request: Request, body: bytes):
@@ -235,20 +230,20 @@ class AuthenticationMiddleware(BaseMiddleware):
             return await call_next(req)
 
         if not auth:
-            return return_error_response(status_code=401, detail="No authentication header found")
+            return await http_error_detail_handler(req=req, exc=Unauthorized(detail="No authentication header found"))
 
-        token = auth[len("Bearer ") :]
+        _token = auth[len("Bearer ") :]
         _jwt = jwt.JWT()
         try:
-            _jwt.deserialize(token, req.app.context.jwks)
+            _jwt.deserialize(_token, req.app.context.jwks)
             claims = json.loads(_jwt.claims)
         except (JWException, KeyError, ValueError) as e:
             self.context.logger.info(f"Bearer token error: {e}")
-            return return_error_response(status_code=401, detail="Bearer token error")
+            return await http_error_detail_handler(req=req, exc=Unauthorized(detail="Bearer token error"))
 
         if "scim_config" in claims:
             self.context.logger.warning(f"JWT has scim_config: {claims}")
-            return return_error_response(status_code=401, detail="Bearer token error")
+            return await http_error_detail_handler(req=req, exc=Unauthorized(detail="Bearer token error"))
 
         try:
             self.context.logger.debug(f"Parsing claims: {claims}")
@@ -256,18 +251,20 @@ class AuthenticationMiddleware(BaseMiddleware):
             self.context.logger.debug(f"Bearer token: {token}")
         except ValidationError:
             self.context.logger.exception("Authorization Bearer Token error")
-            return return_error_response(status_code=401, detail="Bearer token error")
+            return await http_error_detail_handler(req=req, exc=Unauthorized(detail="Bearer token error"))
 
         try:
             data_owner = token.get_data_owner(self.context.logger)
         except RequestedAccessDenied as exc:
             self.context.logger.error(f"Access denied: {exc}")
-            return return_error_response(status_code=401, detail="Data owner requested in access token denied")
+            return await http_error_detail_handler(
+                req=req, exc=Unauthorized(detail="Data owner requested in access token denied")
+            )
         self.context.logger.info(f"Bearer token {token}, data owner: {data_owner}")
 
         if not data_owner or data_owner not in self.context.config.data_owners:
             self.context.logger.error(f"Data owner {repr(data_owner)} not configured")
-            return return_error_response(status_code=401, detail="Unknown data_owner")
+            return await http_error_detail_handler(req=req, exc=Unauthorized(detail="Unknown data_owner"))
 
         req.context.data_owner = data_owner
         req.context.userdb = self.context.get_userdb(data_owner)

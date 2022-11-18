@@ -42,7 +42,7 @@ and are called with two positional parameters:
 """
 from dataclasses import dataclass
 from enum import Enum
-from typing import Callable, Dict, Optional
+from typing import Callable, Dict, Optional, Union
 
 from flask import current_app
 from werkzeug.wrappers import Response as WerkzeugResponse
@@ -51,13 +51,13 @@ from eduid.userdb import User
 from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.common.authn.session_info import SessionInfo
 from eduid.webapp.common.proofing.methods import ProofingMethod
-from eduid.webapp.common.session.namespaces import SP_AuthnRequest
+from eduid.webapp.common.session.namespaces import RP_AuthnRequest, SP_AuthnRequest
 
 
 @dataclass
 class ACSArgs:
     session_info: SessionInfo
-    authn_req: SP_AuthnRequest
+    authn_req: Union[SP_AuthnRequest, RP_AuthnRequest]
     proofing_method: Optional[ProofingMethod] = None
     backdoor: bool = False
     user: Optional[User] = None
@@ -98,7 +98,9 @@ def acs_action(action: Enum):
     return outer
 
 
-def get_action(default_action: Optional[Enum], authndata: SP_AuthnRequest) -> Callable[..., ACSResult]:
+def get_action(
+    default_action: Optional[Enum], authndata: Union[SP_AuthnRequest, RP_AuthnRequest]
+) -> Callable[..., ACSResult]:
     """
     Retrieve an action from the registry based on the AcsAction stored in the session.
 

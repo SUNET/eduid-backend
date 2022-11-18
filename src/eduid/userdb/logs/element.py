@@ -22,8 +22,8 @@ logger = logging.getLogger(__name__)
 
 TLogElementSubclass = TypeVar("TLogElementSubclass", bound="LogElement")
 TNinProofingLogElementSubclass = TypeVar("TNinProofingLogElementSubclass", bound="NinProofingLogElement")
-TForeignEidProofingLogElementSubclass = TypeVar(
-    "TForeignEidProofingLogElementSubclass", bound="ForeignEidProofingLogElement"
+TForeignIdProofingLogElementSubclass = TypeVar(
+    "TForeignIdProofingLogElementSubclass", bound="ForeignIdProofingLogElement"
 )
 
 
@@ -80,7 +80,7 @@ class NinProofingLogElement(ProofingLogElement):
     deregistration_information: Optional[DeregistrationInformation]
 
 
-class ForeignEidProofingLogElement(ProofingLogElement):
+class ForeignIdProofingLogElement(ProofingLogElement):
     given_name: str
     surname: str
     date_of_birth: str
@@ -301,7 +301,7 @@ class SwedenConnectProofing(NinProofingLogElement):
     proofing_method: str = "swedenconnect"
 
 
-class SwedenConnectEIDASProofing(ForeignEidProofingLogElement):
+class SwedenConnectEIDASProofing(ForeignIdProofingLogElement):
     """
     {
         'eduPersonPrincipalName': eppn,
@@ -337,6 +337,61 @@ class SwedenConnectEIDASProofing(ForeignEidProofingLogElement):
     personal_identity_number_binding: Optional[str]
     # Proofing method name
     proofing_method: str = "swedenconnect"
+
+
+class SvipeIDNINProofing(NinProofingLogElement):
+    """
+    {
+        'eduPersonPrincipalName': eppn,
+        'created_ts': utc_now(),
+        'created_by': 'application',
+        'proofing_method': 'svipe_id',
+        'proofing_version': '2022v1',
+        'svipe_id': 'unique identifier for the user',
+        'document_type': 'type of document used for identification',
+        'document_number': 'document number',
+        'nin': 'national_identity_number',
+        'user_postal_address': {postal_address_from_navet}
+    }
+    """
+
+    # unique identifier
+    svipe_id: str
+    # document type (standardized english)
+    document_type: str
+    # document number
+    document_number: str
+    # Proofing method name
+    proofing_method: str = "svipe_id"
+
+
+class SvipeIDForeignProofing(ForeignIdProofingLogElement):
+    """
+    {
+        'eduPersonPrincipalName': eppn,
+        'created_ts': utc_now(),
+        'created_by': 'application',
+        'proofing_method': 'svipe_id',
+        'proofing_version': '2022v1',
+        'svipe_id': 'unique identifier for the user',
+        'document_type': 'type of document used for identification',
+        'document_number': 'document number',
+        'issuing_country': 'country of issuance',
+    }
+    """
+
+    # unique identifier
+    svipe_id: str
+    # document administrative number
+    administrative_number: str
+    # document type (standardized english)
+    document_type: str
+    # document number
+    document_number: str
+    # issuing country
+    issuing_country: str
+    # Proofing method name
+    proofing_method: str = "svipe_id"
 
 
 class MFATokenProofing(SwedenConnectProofing):
@@ -464,6 +519,6 @@ class FidoMetadataLogElement(LogElement):
 class UserChangeLogElement(LogElement):
     eppn: str = Field(alias="eduPersonPrincipalName")
     diff: str
-    id: Optional[bson.ObjectId] = Field(alias="_id", exclude=True)
+    log_element_id: Optional[bson.ObjectId] = Field(alias="_id")
     reason: str
     source: str

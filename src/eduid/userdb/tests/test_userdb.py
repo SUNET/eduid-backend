@@ -32,7 +32,6 @@
 from datetime import timedelta
 from typing import Any, Dict
 
-
 import bson
 
 from eduid.common.testing_base import normalised_data
@@ -40,8 +39,9 @@ from eduid.userdb import User
 from eduid.userdb.exceptions import UserOutOfSync
 from eduid.userdb.fixtures.passwords import signup_password
 from eduid.userdb.fixtures.users import mocked_user_standard, mocked_user_standard_2
-from eduid.userdb.testing import MongoTestCase, normalised_data, MongoTestCaseRaw
+from eduid.userdb.testing import MongoTestCase, MongoTestCaseRaw
 from eduid.userdb.util import utc_now
+
 
 class TestUserDB(MongoTestCase):
     def setUp(self, *args, **kwargs):
@@ -136,7 +136,7 @@ class UpdateUser(MongoTestCaseRaw):
         old_modified_ts = test_user.modified_ts
 
         res = self.amdb.save(test_user, check_sync=True)
-        assert res is True
+        assert res.success is True
 
         db_user = self.amdb.get_user_by_id(test_user.user_id)
         assert db_user.meta.version != old_meta_version

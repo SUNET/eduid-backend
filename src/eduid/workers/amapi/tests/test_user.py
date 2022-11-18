@@ -9,6 +9,7 @@ from typing import Dict, Optional, Any, Mapping, List
 import pkg_resources
 from bson import ObjectId
 from fastapi.testclient import TestClient
+from httpx import Headers
 from jwcrypto import jwt
 from pydantic import BaseModel
 
@@ -20,6 +21,7 @@ from eduid.common.clients.gnap_client.base import GNAPBearerTokenMixin
 from eduid.common.testing_base import CommonTestCase
 from eduid.userdb.fixtures.users import new_user_example
 from eduid.workers.amapi.app import init_api
+from eduid.workers.amapi.config import EndpointRestriction
 from eduid.workers.amapi.utils import AuthnBearerToken
 
 
@@ -29,6 +31,7 @@ class TestAMBase(CommonTestCase):
 
         self.path = pkg_resources.resource_filename(__name__, "data")
         self.test_config = self._get_config()
+        self.test_singing_key = "testing-amapi-2106210000"
 
         self.api = init_api(name="test_api", test_config=self.test_config)
         self.client = TestClient(self.api)
@@ -40,15 +43,29 @@ class TestAMBase(CommonTestCase):
     def _get_config(self) -> Dict[str, Any]:
         config = {
             "keystore_path": f"{self.path}/testing_jwks.json",
-            "signing_key_id": "testing-amapi-2106210000",
             "mongo_uri": self.settings["mongo_uri"],
             "user_restriction": {
                 "test-service_name": [
-                    "put:/users/*/name",
-                    "put:/users/*/email",
-                    "put:/users/*/phone",
-                    "put:/users/*/language",
-                    "delete:/users/*",
+                    EndpointRestriction(
+                        endpoint="/users/*/name",
+                        method="put",
+                    ),
+                    EndpointRestriction(
+                        endpoint="/users/*/phone",
+                        method="put",
+                    ),
+                    EndpointRestriction(
+                        endpoint="/users/*/email",
+                        method="put",
+                    ),
+                    EndpointRestriction(
+                        endpoint="/users/*/language",
+                        method="put",
+                    ),
+                    EndpointRestriction(
+                        endpoint="/users/*/terminate",
+                        method="put",
+                    ),
                 ],
             },
         }
@@ -63,10 +80,13 @@ class TestStructureUser(BaseModel):
     name: str
     req: dict
     assert_diff: dict
-    oauth_header: Mapping[str, str]
+    oauth_header: Headers
     endpoint: Optional[str] = None
     access_granted: bool
     want_response_status: int
+
+    class Config:
+        arbitrary_types_allowed = True
 
 
 class TestUsers(TestAMBase, GNAPBearerTokenMixin):
@@ -86,9 +106,7 @@ class TestUsers(TestAMBase, GNAPBearerTokenMixin):
         assert audit_logs[0].source == self.source
         assert audit_logs[0].diff == self.as_json(assert_diff)
 
-    def make_put_call(
-            self, json_data: dict, oauth_header: Mapping[str, str], endpoint: Optional[str] = None
-    ) -> Response:
+    def make_put_call(self, json_data: dict, oauth_header: Headers, endpoint: Optional[str] = None) -> Response:
         response = self.client.put(
             url=self._make_url(endpoint),
             json=json_data,
@@ -96,19 +114,9 @@ class TestUsers(TestAMBase, GNAPBearerTokenMixin):
         )
         return response
 
-    def make_delete_call(
-            self, json_data: dict, oauth_header: Mapping[str, str], endpoint: Optional[str] = None
-    ) -> Response:
-        response = self.client.delete(
-            url=self._make_url(endpoint),
-            json=json_data,
-            headers=oauth_header,
-        )
-        return response
-
-    def _auth_header(self, service_name: str) -> Mapping[str, str]:
+    def _auth_header(self, service_name: str) -> Headers:
         expire = datetime.timedelta(seconds=3600)
-        signing_key = self.api.jwks.get_key(self.api.config.signing_key_id)
+        signing_key = self.api.jwks.get_key(self.test_singing_key)
         claims = AuthnBearerToken(
             iss="test-issuer",
             sub="test-subject",
@@ -119,7 +127,7 @@ class TestUsers(TestAMBase, GNAPBearerTokenMixin):
         token = jwt.JWT(header={"alg": "ES256"}, claims=claims.to_rfc7519())
         token.make_signed_token(signing_key)
         bearer_token = f"Bearer {token.serialize()}"
-        return {"Authorization": bearer_token}
+        return Headers({"Authorization": bearer_token})
 
 
 class TestUpdateName(TestUsers):
@@ -458,6 +466,7 @@ class TestTerminate(TestUsers):
                 req=req,
                 assert_diff=self.assert_diff,
                 oauth_header=self._auth_header(service_name="test-service_name"),
+                endpoint="terminate",
                 access_granted=True,
                 want_response_status=status.HTTP_200_OK,
             ),
@@ -466,6 +475,7 @@ class TestTerminate(TestUsers):
                 req=req,
                 assert_diff=self.assert_diff,
                 oauth_header=self._auth_header(service_name="wrong-service_name"),
+                endpoint="terminate",
                 access_granted=False,
                 want_response_status=status.HTTP_401_UNAUTHORIZED,
             ),
@@ -474,7 +484,7 @@ class TestTerminate(TestUsers):
     def test(self):
         for tt in self.tts:
             with self.subTest(name=tt.name):
-                got = self.make_delete_call(
+                got = self.make_put_call(
                     json_data=tt.req,
                     oauth_header=tt.oauth_header,
                     endpoint=tt.endpoint,

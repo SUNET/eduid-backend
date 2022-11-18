@@ -28,7 +28,9 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from marshmallow import Schema, fields
+from typing import Any, Mapping, Optional
+
+from marshmallow import Schema, ValidationError, fields
 
 from eduid.webapp.common.api.schemas.base import EduidSchema, FluxStandardAction
 from eduid.webapp.common.api.schemas.csrf import CSRFRequestMixin, CSRFResponseMixin
@@ -96,8 +98,28 @@ class MfaAuthResponseSchema(FluxStandardAction):
     payload = fields.Nested(MfaAuthResponsePayload)
 
 
+class ToUVersions(fields.Field):
+    """Handle list of ToU versions available in the frontend both as comma-separated string (bug) and as list"""
+
+    def _deserialize(self, value: Any, attr: Optional[str], data: Any, **kwargs) -> Optional[list[str]]:
+        if value is None:
+            return None
+        if isinstance(value, str):
+            return value.split(",")
+        elif isinstance(value, list):
+            res: list[str] = []
+            for item in value:
+                if isinstance(item, str):
+                    res += [item]
+                else:
+                    raise ValidationError("Field should be str or list")
+            return res
+        else:
+            raise ValidationError("Field should be str or list")
+
+
 class TouRequestSchema(IdPRequest):
-    versions = fields.Str(required=False, many=True)
+    versions = ToUVersions()
     user_accepts = fields.Str(required=False)
 
 
@@ -175,6 +197,18 @@ class AbortResponseSchema(FluxStandardAction):
         finished = fields.Bool(required=True)
 
     payload = fields.Nested(AbortResponsePayload)
+
+
+class LogoutRequestSchema(EduidSchema, CSRFRequestMixin):
+    ref = fields.Str(missing=None, required=False)  # frontend tells us this is an ongoing login
+
+
+class LogoutResponseSchema(FluxStandardAction):
+    class LogoutResponsePayload(EduidSchema, CSRFResponseMixin):
+        finished = fields.Bool(required=True)
+        location = fields.Str(required=False)  # ask frontend to redirect the user here please
+
+    payload = fields.Nested(LogoutResponsePayload)
 
 
 class NewDeviceRequestSchema(IdPRequest):

@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Mapping, Optional, Union
 
 import pkg_resources
 from bson import ObjectId
-from requests import Response
+from httpx import Response
 from simplejson import JSONDecodeError
 from starlette.testclient import TestClient
 
@@ -144,10 +144,6 @@ class ScimApiTestCase(MongoNeoTestCase):
         assert self.userdb
         self.userdb.save(user)
         return self.userdb.get_user_by_scim_id(scim_id=identifier)
-
-    @staticmethod
-    def as_json(data: dict) -> str:
-        return json.dumps(data)
 
     def tearDown(self):
         super().tearDown()

@@ -59,7 +59,7 @@ class HTTPErrorDetail(Exception):
     def __init__(
         self,
         status_code: int,
-        detail: str = None,
+        detail: Optional[str] = None,
         schemas: Optional[List[str]] = None,
         scim_type: Optional[str] = None,
     ):
