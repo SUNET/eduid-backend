@@ -378,6 +378,12 @@ importlib-resources==5.10.0 \
     # via
     #   -c main.txt
     #   -r sub_main.in
+iso3166==2.1.1 \
+    --hash=sha256:263660b36f8471c42acd1ff673d28a3715edbce7d24b1550d0cf010f6816c47f \
+    --hash=sha256:fcd551b8dda66b44e9f9e6d6bbbee3a1145a22447c0a556e5d0fb1ad1e491719
+    # via
+    #   -c main.txt
+    #   -r main.in
 jmespath==0.10.0 \
     --hash=sha256:b85d0567b8666149a93172712e68920734333c0ce7e89b78b3e987f71e5ed4f9 \
     --hash=sha256:cdf6525904cc597730141d61b36f2e4b8ecc257c420fa2f4549bac2c2d0cb72f
@@ -1159,9 +1165,9 @@ s3transfer==0.4.2 \
     # via
     #   -c main.txt
     #   boto3
-satosa==8.1.1 \
-    --hash=sha256:0850d5121b356edce23414dfe8a2635ef8764a333c6076c23d610a12e942f173 \
-    --hash=sha256:91be109319f9092cea08a8871f8e14c19e5184c383b98fcaa0b547803181f36b
+satosa==8.2.0 \
+    --hash=sha256:219d4c807e61e68ce6c1c1ffabee37e9976a45aed28ed78d57c063e9cfaace28 \
+    --hash=sha256:fe215818c338ce82c23eabb20fc2e538c42a61c0a4faf9ae02cbf50b01259a33
     # via -r satosa_scim_requirements.in
 simplejson==3.18.0 \
     --hash=sha256:002f069c7bb9a86826616a78f1214fea5b993435720990eecb0bf10955b9cd0e \

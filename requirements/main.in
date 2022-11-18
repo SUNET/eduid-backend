@@ -45,3 +45,4 @@ xhtml2pdf
 zxcvbn>=4.4.27,<5.0
 jwcrypto
 fido_mds
+iso3166
