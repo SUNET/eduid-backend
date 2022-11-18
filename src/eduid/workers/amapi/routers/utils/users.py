@@ -8,7 +8,7 @@ from eduid.userdb.logs.element import UserChangeLogElement
 from eduid.userdb.mail import MailAddressList
 from eduid.userdb.phone import PhoneNumberList
 from eduid.workers.amapi.context_request import ContextRequest
-from eduid.workers.amapi.models.user import (
+from eduid.common.models.amapi_user import (
     UserUpdateEmailRequest,
     UserUpdateLanguageRequest,
     UserUpdateNameRequest,

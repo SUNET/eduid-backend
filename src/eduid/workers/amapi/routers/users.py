@@ -1,7 +1,7 @@
 from eduid.common.fastapi.api_router import APIRouter
 from eduid.common.fastapi.exceptions import ErrorDetail
 from eduid.workers.amapi.context_request import ContextRequest, ContextRequestRoute
-from eduid.workers.amapi.models.user import (
+from eduid.common.models.amapi_user import (
     UserUpdateEmailRequest,
     UserUpdateLanguageRequest,
     UserUpdateNameRequest,

@@ -8,7 +8,7 @@ from eduid.common.utils import urlappend
 
 __author__ = "masv"
 
-from eduid.workers.amapi.models.user import (
+from eduid.common.models.amapi_user import (
     UserUpdateResponse,
     UserUpdateNameRequest,
     UserUpdateEmailRequest,
