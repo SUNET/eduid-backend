@@ -361,7 +361,7 @@ cssselect2==0.7.0 \
 deepdiff6==6.2.0 \
     --hash=sha256:15fb1d93c1d6b605ffde588a1666fb212f9fb802cb1a499fb0db19b5acdb8426 \
     --hash=sha256:83d8bfcdc12c3d769d3337f0e91f49cf4ba6b040706ab8698112e306f909a102
-    # via -r worker_requirements.in
+    # via -r fastapi_requirements.in
 defusedxml==0.7.1 \
     --hash=sha256:1bb3032db185915b62d7c6209c5a8792be6a32ab2fedacc84e01b52c51aa3e69 \
     --hash=sha256:a352e7e428770286cc899e2542b6cdaedb2b4953ff269a210103ec58f6198a61
