@@ -121,11 +121,11 @@ class MongoTestCaseRaw(unittest.TestCase):
         if am_users:
             # Set up test users in the MongoDB.
             for user in am_users:
-                self._db._coll.save(user.to_dict())
+                self._db.legacy_save(user.to_dict())
         if raw_users:
             for raw_user in raw_users:
                 raw_user["modified_ts"] = utc_now()
-                self._db._coll.save(raw_user)
+                self._db.legacy_save(raw_user)
 
         self._db.close()
 
