@@ -1,6 +1,7 @@
 from typing import Optional
 
 import respx
+
 from eduid.common.clients.gnap_client.testing import MockedSyncAuthAPIMixin
 
 

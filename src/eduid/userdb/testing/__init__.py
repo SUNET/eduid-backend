@@ -36,20 +36,16 @@ Code used in unit tests of various eduID applications.
 """
 from __future__ import annotations
 
-import json
 import logging
 import unittest
-import uuid
-from datetime import datetime, timedelta, timezone
-from enum import Enum
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Type, Union, cast
+from typing import Any, Dict, List, Optional, Sequence, Type, cast
 
 import pymongo
 
 from eduid.userdb import User
 from eduid.userdb.db import BaseDB
 from eduid.userdb.testing.temp_instance import EduidTemporaryInstance
-from eduid.userdb.userdb import AmDB, UserDB
+from eduid.userdb.userdb import AmDB
 from eduid.userdb.util import utc_now
 
 logger = logging.getLogger(__name__)

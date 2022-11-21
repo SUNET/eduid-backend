@@ -2,11 +2,10 @@
 
 import logging
 from datetime import datetime
-from typing import List, Optional, Type, Union
+from typing import Union
 from uuid import UUID
 
 from eduid.userdb.db import BaseDB
-
 from eduid.userdb.logs.element import LogElement, UserChangeLogElement
 
 __author__ = "lundberg"

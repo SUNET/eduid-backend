@@ -1,9 +1,9 @@
 import logging
 from enum import Enum
 from pathlib import Path
-from typing import List, Optional, Dict, NewType, Annotated
+from typing import Dict, List, NewType, Optional
 
-from pydantic import Field, BaseModel, validator, constr
+from pydantic import BaseModel, Field, validator
 
 from eduid.common.config.base import LoggingConfigMixin, RootConfig
 

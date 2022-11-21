@@ -7,12 +7,10 @@ from urllib.parse import parse_qs, urlparse
 
 from flask import url_for
 from iso3166 import Country, countries
-from requests import Response
 
 from eduid.common.misc.timeutil import utc_now
-from eduid.userdb import NinIdentity, SvipeIdentity
+from eduid.userdb import SvipeIdentity
 from eduid.webapp.common.api.messages import CommonMsg
-from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.common.proofing.messages import ProofingMsg
 from eduid.webapp.common.proofing.testing import ProofingTests
 from eduid.webapp.svipe_id.app import svipe_id_init_app

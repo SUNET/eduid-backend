@@ -4,7 +4,6 @@ from typing import List, Optional
 from pydantic import BaseModel, Field
 
 from eduid.userdb import MailAddress, PhoneNumber
-
 from eduid.userdb.meta import Meta
 
 __author__ = "masv"
