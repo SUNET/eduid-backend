@@ -33,11 +33,6 @@ class MongoDB(object):
         _options = self._parsed_uri.get("options")
         if connection_factory is None:
             connection_factory = pymongo.MongoClient
-        elif connection_factory == pymongo.MongoReplicaSetClient:
-            warnings.warn(
-                f"{__name__} initialized with connection_factory {connection_factory} use pymongo.MongoClient instead.",
-                DeprecationWarning,
-            )
         elif connection_factory.__class__.__name__ == "AsyncIOMotorClient":
             from motor import motor_asyncio
 
@@ -357,7 +352,8 @@ class BaseDB(object):
             if name not in current_indexes:
                 key = params.pop("key")
                 params["name"] = name
-                self._coll.ensure_index(key, **params)
+                self._coll.create_index(key, **params)
+
     def legacy_save(self, doc: Dict[str, Any]) -> str:
         """
         Only used in tests and should probably be removed when time allows.

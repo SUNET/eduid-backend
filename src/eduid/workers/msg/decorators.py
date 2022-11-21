@@ -28,7 +28,7 @@ class TransactionAudit(object):
                     "data": self._filter(f.__name__, ret, *args, **kwargs),
                     "created_at": date,
                 }
-                if self.collection:
+                if self.collection is not None:
                     self.collection.insert_one(doc)
             return ret
 

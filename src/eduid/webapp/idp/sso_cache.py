@@ -168,7 +168,7 @@ class SSOSessionCacheError(EduIDDBError):
 
 class SSOSessionCache(BaseDB):
     def __init__(self, db_uri: str, db_name: str = "eduid_idp", collection: str = "sso_sessions"):
-        super().__init__(db_uri, db_name, collection=collection)
+        super().__init__(db_uri, db_name, collection=collection, safe_writes=True)
 
         # Remove messages older than created_ts + ttl
         indexes = {
@@ -182,10 +182,9 @@ class SSOSessionCache(BaseDB):
         Remove entries when SLO is executed.
         :return: False on failure
         """
-        result = self._coll.remove({"_id": session.obj_id}, w="majority")
-        num = result.get("n")  # number of deleted records
-        logger.debug(f"Removed session {session}: num={num}")
-        return bool(num)
+        result = self._coll.delete_one({"_id": session.obj_id})
+        logger.debug(f"Removed session {session}: num={result.deleted_count}")
+        return bool(result.deleted_count)
 
     def save(self, session: SSOSession) -> None:
         """

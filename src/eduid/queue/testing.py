@@ -10,7 +10,7 @@ from typing import List, Optional, Sequence, Type, cast
 from unittest import IsolatedAsyncioTestCase, TestCase
 
 import pymongo
-from pymongo.errors import NotMasterError
+from pymongo.errors import NotPrimaryError
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.queue.db import Payload, QueueDB, QueueItem, SenderInfo
@@ -103,7 +103,7 @@ class EduidQueueTestCase(TestCase):
             try:
                 self.db = QueueDB(db_uri=self.mongo_uri, collection=self.mongo_collection)
                 break
-            except NotMasterError as e:
+            except NotPrimaryError as e:
                 db_init_try += 1
                 time.sleep(db_init_try)
                 if db_init_try >= 10:
