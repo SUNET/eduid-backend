@@ -55,7 +55,12 @@ class MongoDB(object):
         self._db_uri = _format_mongodb_uri(self._parsed_uri)
 
         try:
-            self._connection = connection_factory(host=self._db_uri, tz_aware=True, **kwargs)
+            self._connection = connection_factory(
+                host=self._db_uri,
+                tz_aware=True,
+                uuidRepresentation="standard",
+                **kwargs,
+            )
         except PyMongoError as e:
             raise MongoConnectionError("Error connecting to mongodb {!r}: {}".format(self, e))
 
