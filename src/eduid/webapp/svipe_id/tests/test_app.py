@@ -134,11 +134,6 @@ class SvipeIdTests(ProofingTests):
         )
         return config
 
-    def tearDown(self):
-        super().tearDown()
-        with self.app.app_context():
-            self.app.central_userdb._drop_whole_collection()
-
     @staticmethod
     def get_userinfo(
         issuing_country: Country,

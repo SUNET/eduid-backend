@@ -98,11 +98,6 @@ class ResetPasswordTests(EduidAPITestCase):
         config.update(SAMPLE_WEBAUTHN_APP_CONFIG)
         return config
 
-    def tearDown(self):
-        super(ResetPasswordTests, self).tearDown()
-        with self.app.app_context():
-            self.app.central_userdb._drop_whole_collection()
-
     # Parameterized test methods
 
     @patch("eduid.common.rpc.mail_relay.MailRelay.sendmail")

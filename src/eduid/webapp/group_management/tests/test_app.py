@@ -118,10 +118,6 @@ class GroupManagementTests(EduidAPITestCase):
         super(GroupManagementTests, self).tearDown()
         with self.app.app_context():
             self.neo4j_instance.purge_db()
-            self.app.central_userdb._drop_whole_collection()
-            self.app.scimapi_userdb._drop_whole_collection()
-            self.app.scimapi_groupdb._drop_whole_collection()
-            self.app.invite_state_db._drop_whole_collection()
 
     def _add_scim_user(self, scim_id: UUID, eppn: str) -> ScimApiUser:
         scim_user = ScimApiUser(scim_id=scim_id, external_id=f"{eppn}@eduid.se")
