@@ -1,6 +1,5 @@
 import copy
 import logging
-import warnings
 from typing import Any, Dict, List, Mapping, Optional, Union
 
 import pymongo
@@ -38,6 +37,7 @@ class MongoDB(object):
 
             connection_factory = motor_asyncio.AsyncIOMotorClient
 
+        assert _options is not None  # please mypy
         if "replicaSet" in _options and _options["replicaSet"] is not None:
             kwargs["replicaSet"] = _options["replicaSet"]
 

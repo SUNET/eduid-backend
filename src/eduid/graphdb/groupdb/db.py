@@ -5,10 +5,9 @@ from dataclasses import replace
 from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 from bson import ObjectId
-from httpx import Client
 from neo4j import READ_ACCESS, WRITE_ACCESS, Record, Transaction
 from neo4j.exceptions import ClientError, ConstraintError
-from neo4j.graph import Graph
+from neo4j.graph import Graph, Node
 
 from eduid.graphdb import BaseGraphDB
 from eduid.graphdb.exceptions import EduIDGroupDBError, VersionMismatch
@@ -59,6 +58,7 @@ class GroupDB(BaseGraphDB):
                 try:
                     session.run(statment)
                 except ClientError as e:
+                    assert e.message is not None  # please mypy
                     if "An equivalent constraint already exists" not in e.message:
                         raise e
                     # Constraints already set up
@@ -91,6 +91,7 @@ class GroupDB(BaseGraphDB):
             display_name=group.display_name,
             new_version=new_version,
         ).single()
+        assert res is not None  # please mypy
         return self._load_group(res.data()["group"])
 
     def _add_or_update_users_and_groups(
@@ -227,17 +228,21 @@ class GroupDB(BaseGraphDB):
             # group did not exist
             return None
 
+        group_data: Optional[Node]  # please mypy
         if len(group_graph.relationships) == 0:
             # Just a group with no owners or members
             group_data = [node_data for node_data in group_graph.nodes][0]
+            assert group_data is not None
             return self._load_group(group_data)
         else:
             # Grab the first relationships end node and create the group from that
             group_data = [node_data.end_node for node_data in group_graph.relationships][0]
+            assert group_data is not None
             group = self._load_group(group_data)
 
             # Iterate over relationships and create owners and members
             for rel in group_graph.relationships:
+                assert rel.start_node is not None  # please mypy
                 labels = rel.start_node.labels
                 # Merge node and relationship data
                 data = dict(rel.start_node.items())
@@ -380,17 +385,17 @@ class GroupDB(BaseGraphDB):
         saved_group = replace(saved_group, members=saved_members, owners=saved_owners)
         return saved_group
 
-    def _load_node(self, data: Dict) -> Union[User, Group]:
+    def _load_node(self, data: Union[Dict, Node]) -> Union[User, Group]:
         if data.get("scope"):
             return self._load_group(data=data)
         return self._load_user(data=data)
 
     @staticmethod
-    def _load_group(data: Dict) -> Group:
+    def _load_group(data: Union[Dict, Node]) -> Group:
         """Method meant to be overridden by subclasses wanting to annotate the group."""
         return Group.from_mapping(data)
 
     @staticmethod
-    def _load_user(data: Dict) -> User:
+    def _load_user(data: Union[Dict, Node]) -> User:
         """Method meant to be overridden by subclasses wanting to annotate the user."""
         return User.from_mapping(data)

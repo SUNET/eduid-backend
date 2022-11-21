@@ -71,6 +71,7 @@ def save_user(req: ContextRequest, db_user: ScimApiUser) -> None:
     try:
         req.context.userdb.save(db_user)
     except DuplicateKeyError as e:
+        assert e.details is not None  # please mypy
         if "external-id" in e.details["errmsg"]:
             raise BadRequest(detail="externalID must be unique")
         raise BadRequest(detail="Duplicated key error")
