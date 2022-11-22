@@ -53,7 +53,8 @@ class MongoDB(object):
             self._connection = connection_factory(
                 host=self._db_uri,
                 tz_aware=True,
-                uuidRepresentation="standard",
+                # TODO: switch uuidRepresentation to "standard" when we made sure all UUIDs are stored as strings
+                uuidRepresentation="pythonLegacy",
                 **kwargs,
             )
         except PyMongoError as e:
