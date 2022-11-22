@@ -7,13 +7,13 @@ from queue import Queue
 from typing import List, Optional, Dict, Union, Any
 
 from eduid.common.config.parsers import load_config
+from eduid.common.rpc.msg_relay import MsgRelay
 from eduid.userdb import AmDB, User
 from eduid.userdb.identity import IdentityType
 from eduid.userdb.meta import CleanerType
 from eduid.userdb.user import User
 from eduid.common.logging import init_logging
-from eduid.workers.user_cleaner.utils.skv import consume
-from pydantic import BaseModel
+from eduid.common.clients.amapi_client.amapi_client import AMAPIClient
 
 from eduid.workers.user_cleaner.config import UserCleanerConfig
 
@@ -44,6 +44,12 @@ class WorkerBase(Shutdown):
 
         self.queue = Queue(maxsize=self.user_count)
 
+        self.msg_relay = MsgRelay(self.config)
+
+        self.amapi_client = AMAPIClient(
+            amapi_url=self.config.amapi_url,
+        )
+
         if test_config:
             self._test_worker_runs = test_config["test_runs"]
 
@@ -63,7 +69,9 @@ class SKV(WorkerBase):
         super().__init__(cleaner_type=cleaner_type.SKV, test_config=test_config)
 
     def update_name(self, user: User):
-        print(user.eppn)
+        navet_data = self.msg_relay.get_all_navet_data(nin=user.identities.nin.number)
+        user.given_name = navet_data.person.name.given_name
+        user.surname = navet_data.person.name.surname
 
     def run(self):
         test_runs = 0
