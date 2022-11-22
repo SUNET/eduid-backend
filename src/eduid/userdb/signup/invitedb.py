@@ -3,7 +3,7 @@
 import datetime
 import logging
 from dataclasses import replace
-from typing import Optional
+from typing import Any, Dict, Optional
 
 from eduid.userdb.exceptions import DocumentOutOfSync, MultipleDocumentsReturned
 from eduid.userdb.signup import Invite, SCIMReference
@@ -58,7 +58,7 @@ class SignupInviteDB(BaseDB):
             result = self._coll.insert_one(invite.to_dict())
             logging.debug(f"{self} Inserted new invite {invite} into {self._coll_name}): {result.inserted_id})")
         else:
-            test_doc = {"_id": invite.invite_id}
+            test_doc: Dict[str, Any] = {"_id": invite.invite_id}
             if check_sync:
                 test_doc["modified_ts"] = modified
             result = self._coll.replace_one(test_doc, invite.to_dict(), upsert=(not check_sync))

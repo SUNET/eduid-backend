@@ -5,7 +5,6 @@ from bson import ObjectId
 import eduid.userdb.db as db
 from eduid.userdb.fixtures.users import mocked_user_standard_2, new_unverified_user_example, new_user_example
 from eduid.userdb.identity import IdentityType
-from eduid.userdb.meta import CleanedType
 from eduid.userdb.testing import MongoTestCase
 
 
@@ -77,7 +76,7 @@ class TestMongoDB(TestCase):
     def test_uri_with_options(self):
         uri = "mongodb://john:s3cr3t@db.example.com:27017/?ssl=true&replicaSet=rs9"
         mdb = db.MongoDB(uri, db_name="testdb", connection_factory=DummyConnection)
-        self.assertEqual(mdb.sanitized_uri, "mongodb://john:secret@db.example.com/testdb?replicaset=rs9&ssl=true")
+        self.assertEqual(mdb.sanitized_uri, "mongodb://john:secret@db.example.com/testdb?replicaset=rs9&tls=true")
 
 
 class TestDB(MongoTestCase):

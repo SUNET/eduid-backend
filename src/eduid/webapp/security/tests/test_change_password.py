@@ -51,11 +51,6 @@ class ChangePasswordTests(EduidAPITestCase):
         )
         return config
 
-    def tearDown(self):
-        super(ChangePasswordTests, self).tearDown()
-        with self.app.app_context():
-            self.app.central_userdb._drop_whole_collection()
-
     # parameterized test methods
 
     def _get_suggested(self, reauthn: Optional[int] = 60):

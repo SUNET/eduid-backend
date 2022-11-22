@@ -159,6 +159,7 @@ def save_invite(req: ContextRequest, db_invite: ScimApiInvite, signup_invite: Si
     try:
         req.context.invitedb.save(db_invite)
     except DuplicateKeyError as e:
+        assert e.details is not None  # please mypy
         if "external-id" in e.details["errmsg"]:
             raise BadRequest(detail="externalID must be unique")
         raise BadRequest(detail="Duplicated key error")
@@ -166,6 +167,7 @@ def save_invite(req: ContextRequest, db_invite: ScimApiInvite, signup_invite: Si
     try:
         req.app.context.signup_invitedb.save(signup_invite)
     except DuplicateKeyError as e:
+        assert e.details is not None  # please mypy
         if "invite_code" in e.details["errmsg"]:
             raise BadRequest(detail="invite_code must be unique")
         raise BadRequest(detail="Duplicated key error")

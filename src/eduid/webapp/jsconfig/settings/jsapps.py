@@ -82,6 +82,7 @@ class JsAppsConfig(PasswordConfigMixin):
     reset_passwd_url: Optional[str] = None  # should be replaced by reset_password_url
     reset_password_url: str
     security_url: str
+    svipe_url: Optional[str]  # if not set the frontend component will not show
     token_service_url: Optional[str] = None  # should be replaced by authn_url
     # Dashboard config
     proofing_methods: list = Field(default=["letter", "lookup_mobile", "oidc", "eidas"])

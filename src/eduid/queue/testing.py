@@ -10,7 +10,7 @@ from typing import List, Optional, Sequence, Type, cast
 from unittest import IsolatedAsyncioTestCase, TestCase
 
 import pymongo
-from pymongo.errors import NotMasterError
+from pymongo.errors import NotPrimaryError
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.queue.db import Payload, QueueDB, QueueItem, SenderInfo
@@ -34,9 +34,11 @@ class MongoTemporaryInstanceReplicaSet(MongoTemporaryInstance):
             "run",
             "--rm",
             "-p",
-            f"{self.port}:27017",
+            f"{self.port}:{self.port}",
             "-e",
             "REPLSET=yes",
+            "-e",
+            f"PORT={self.port}",
             "docker.sunet.se/eduid/mongodb:latest",
         ]
 
@@ -44,15 +46,25 @@ class MongoTemporaryInstanceReplicaSet(MongoTemporaryInstance):
         try:
             if not self.rs_initialized:
                 # Just try to initialize replica set once
-                tmp_conn = pymongo.MongoClient("localhost", self.port)
-                # Start replica set
-                tmp_conn.admin.command("replSetInitiate")
+                tmp_conn: pymongo.MongoClient = pymongo.MongoClient(
+                    host="localhost", port=self.port, directConnection=True
+                )
+                # Start replica set and set hostname to localhost
+                config = {
+                    "_id": "rs0",
+                    "members": [{"_id": 0, "host": f"localhost:{self.port}"}],
+                }
+                tmp_conn.admin.command("replSetInitiate", config)
                 tmp_conn.close()
                 self.rs_initialized = True
             self._conn = pymongo.MongoClient(host="localhost", port=self.port, replicaSet="rs0")
         except pymongo.errors.ConnectionFailure as e:
             with self._logfile as f:
-                f.writelines([str(e)])
+                try:
+                    f.writelines([str(e)])
+                except ValueError:
+                    logger.exception(f"Failed to write to logfile {self._logfile}")
+                    logger.error(f"message was: {e}")
             return False
         return True
 
@@ -91,7 +103,7 @@ class EduidQueueTestCase(TestCase):
             try:
                 self.db = QueueDB(db_uri=self.mongo_uri, collection=self.mongo_collection)
                 break
-            except NotMasterError as e:
+            except NotPrimaryError as e:
                 db_init_try += 1
                 time.sleep(db_init_try)
                 if db_init_try >= 10:
