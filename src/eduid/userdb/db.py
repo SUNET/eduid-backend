@@ -362,9 +362,8 @@ class BaseDB(object):
         if "_id" in doc:
             self._coll.replace_one({"_id": doc["_id"]}, doc, upsert=True)
             return doc["_id"]
-        else:
-            res = self._coll.insert_one(doc)
-            return res.inserted_id
+        res = self._coll.insert_one(doc)
+        return res.inserted_id
 
     def close(self):
         self._db.close()
