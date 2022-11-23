@@ -115,6 +115,7 @@ class MFAActionPluginTests(ActionsTestCase):
             add_actions(mock_idp_app, self.user, LoginContext(request_ref=RequestRef("mock-session")))
             self.authenticate(idp_session=idp_session)
             response = self.app.dispatch_request()
+            assert isinstance(response, str)
             return json.loads(response)
 
     def _get_config(self):

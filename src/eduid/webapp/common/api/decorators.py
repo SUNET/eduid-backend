@@ -5,7 +5,7 @@ from __future__ import absolute_import
 import json
 import logging
 from functools import wraps
-from typing import Any, Awaitable, Callable, Dict, Mapping, Optional, Type, Union, cast
+from typing import Any, Awaitable, Callable, Dict, Mapping, Optional, Type, TypeVar, Union, cast
 
 from flask import abort, jsonify, request
 from flask.typing import ResponseReturnValue as FlaskResponseReturnValue
@@ -43,7 +43,7 @@ EduidViewReturnType = Union[
 EduidRouteCallable = Callable[..., EduidViewReturnType]
 
 
-def require_eppn(f: EduidRouteCallable):
+def require_eppn(f: EduidRouteCallable) -> EduidRouteCallable:
     """
     Decorator for views that require a known (but not necessarily logged in) user.
 
@@ -66,17 +66,20 @@ def require_eppn(f: EduidRouteCallable):
     return require_eppn_decorator
 
 
-def require_user(f: EduidRouteCallable):
+TRequireUserResult = TypeVar("TRequireUserResult")
+
+
+def require_user(f: Callable[..., TRequireUserResult]) -> Callable[..., TRequireUserResult]:
     """
-    Decorator for views that require a *logged in* user.
+    Decorator for functions that require a *logged in* user.
 
     Will put the user object in the kwargs dict.
 
-    Because it can return a FluxData, this decorator must come after the MarshalWith decorator.
+    This decorator is not only used by Flask views, so we don't put any restrictions on the return type.
     """
 
     @wraps(f)
-    def require_user_decorator(*args: Any, **kwargs: Any) -> EduidViewReturnType:
+    def require_user_decorator(*args: Any, **kwargs: Any) -> TRequireUserResult:
         user = get_user()
         kwargs["user"] = user
         return f(*args, **kwargs)
@@ -84,7 +87,7 @@ def require_user(f: EduidRouteCallable):
     return require_user_decorator
 
 
-def can_verify_nin(f: EduidRouteCallable):
+def can_verify_nin(f: EduidRouteCallable) -> EduidRouteCallable:
     """
     Decorator to perform some checks before views that can result in a verified NIN.
 

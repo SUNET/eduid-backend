@@ -5,7 +5,7 @@ it with all attributes common to all eduID services.
 import os
 from abc import ABCMeta
 from sys import stderr
-from typing import Dict, TypeVar
+from typing import Any, Dict, Optional, TypeVar
 
 from cookies_samesite_compat import CookiesSameSiteCompatMiddleware
 from flask import Flask
@@ -50,7 +50,11 @@ class EduIDBaseApp(Flask, metaclass=ABCMeta):
     """
 
     def __init__(
-        self, config: EduIDBaseAppConfig, init_central_userdb: bool = True, handle_exceptions: bool = True, **kwargs
+        self,
+        config: EduIDBaseAppConfig,
+        init_central_userdb: bool = True,
+        handle_exceptions: bool = True,
+        **kwargs: Any,
     ):
         """
         :param config: EduID Flask app configuration subclass
@@ -97,12 +101,19 @@ class EduIDBaseApp(Flask, metaclass=ABCMeta):
         self.stats = init_app_stats(config)
         self.session_interface = SessionFactory(config)
 
+        self._central_userdb: Optional[AmDB] = None
         if init_central_userdb:
-            self.central_userdb = AmDB(config.mongo_uri)
+            self._central_userdb = AmDB(config.mongo_uri)
 
         # Set up generic health check views
         self.failure_info: Dict[str, FailCountItem] = dict()
         init_status_views(self, config)
+
+    @property
+    def central_userdb(self) -> AmDB:
+        if not self._central_userdb:
+            raise RuntimeError("Central userdb not initialized")
+        return self._central_userdb
 
     def run_health_checks(
         self,

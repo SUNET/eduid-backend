@@ -104,8 +104,8 @@ def get_actions():
 
 
 @actions_views.route("/post-action", methods=["POST"])
-@MarshalWith(PostActionResponseSchema)
 @UnmarshalWith(PostActionRequestSchema)
+@MarshalWith(PostActionResponseSchema)
 def post_action() -> FluxData:
     return _do_action()
 

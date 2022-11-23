@@ -45,6 +45,7 @@ from eduid.userdb.tou import ToUEvent
 from eduid.webapp.actions.actions.tou import Plugin
 from eduid.webapp.actions.testing import ActionsTestCase, MockIdPContext
 from eduid.webapp.common.session import session
+from werkzeug.wrappers import Response as WerkzeugResponse
 
 __author__ = "eperez"
 
@@ -134,6 +135,7 @@ class ToUActionPluginTests(ActionsTestCase):
             add_actions(mock_idp_app, self.user, None)
             self.authenticate()
             response = self.app.dispatch_request()
+            assert isinstance(response, WerkzeugResponse)
             return json.loads(response.data.decode("utf-8"))
 
     def _post_tou_action(self, post_data: Optional[dict] = None):
