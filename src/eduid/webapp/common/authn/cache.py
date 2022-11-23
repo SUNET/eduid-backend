@@ -14,7 +14,8 @@ class SessionCacheAdapter(MutableMapping[str, VT]):
     def __init__(self, backend: PySAML2Dicts, key_suffix: str):
         self._backend = backend
         self._key = self.key_prefix + key_suffix
-        self._backend[self._key] = {}
+        if self._key not in self._backend:
+            self._backend[self._key] = {}
 
     @property
     def key(self) -> str:
@@ -71,6 +72,7 @@ class IdentityCache(Cache):
 
     def __init__(self, backend: PySAML2Dicts):
         self._db = SessionCacheAdapter[Any](backend, "_identities")
+        self._sync = False
 
 
 class StateCache(SessionCacheAdapter[Any]):
