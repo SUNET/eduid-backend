@@ -95,7 +95,7 @@ def get_authn_request(
     sign_alg: Optional[str] = None,
     digest_alg: Optional[str] = None,
     subject: Optional[Subject] = None,
-):
+) -> Mapping[str, Any]:
     kwargs = {
         "force_authn": str(force_authn).lower(),
     }
@@ -104,6 +104,8 @@ def get_authn_request(
     client = Saml2Client(saml2_config)
 
     try:
+        session_id: str
+        info: Mapping[str, Any]
         (session_id, info) = client.prepare_for_authenticate(
             entityid=selected_idp,
             relay_state=relay_state,

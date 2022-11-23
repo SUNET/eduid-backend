@@ -336,7 +336,7 @@ class EidasTests(ProofingTests):
         session: EduidSession,
         action: EidasAcsAction,
         req_id: Optional[str] = None,
-        relay_state: str = "relay_state",
+        relay_state: AuthnRequestRef = AuthnRequestRef("relay_state"),
         verify_token: Optional[ElementKey] = None,
         credentials_used: Optional[List[ElementKey]] = None,
     ) -> None:

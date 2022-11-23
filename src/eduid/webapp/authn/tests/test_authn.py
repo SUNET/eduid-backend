@@ -101,7 +101,7 @@ class AuthnAPITestBase(EduidAPITestCase):
         """
         return authn_init_app(test_config=test_config)
 
-    def add_outstanding_query(self, came_from: str) -> str:
+    def add_outstanding_query(self, came_from: AuthnRequestRef) -> str:
         """
         Add a SAML2 authentication query to the queries cache.
         To be used before accessing the assertion consumer service.

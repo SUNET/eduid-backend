@@ -49,7 +49,7 @@ def reset_failure_info(key: str) -> None:
     current_app.logger.info(f"Check {key} back to normal. Resetting info {info}")
 
 
-def check_restart(key, restart: int, terminate: int) -> bool:
+def check_restart(key: str, restart: int, terminate: int) -> bool:
     res = False  # default to no restart
     info = current_app.failure_info.get(key)
     if not info:
