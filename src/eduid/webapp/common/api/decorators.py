@@ -130,7 +130,7 @@ class MarshalWith:
 
     def __call__(self, f: EduidRouteCallable):
         @wraps(f)
-        def marshal_decorator(*args: Any, **kwargs: Any) -> EduidViewResult:
+        def marshal_decorator(*args: Any, **kwargs: Any) -> WerkzeugResponse:
             # Call the Flask view, which is expected to return a FluxData instance,
             # or in special cases an WerkzeugResponse (e.g. when a redirect is performed).
             ret = f(*args, **kwargs)
