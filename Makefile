@@ -43,7 +43,13 @@ update_deps:
 dev_sync_deps:
 	cd requirements && make dev_sync_deps
 
+clean:
+	rm -rf .pytest_cache .coverage .mypy_cache .cache .eggs
+	find . -name '*.pyc' -delete
+	find . -name '__pycache__' -delete
+
 vscode_hosts:
+	# tests connect to mongodb etc. on "localhost", so we have to point that name at the docker gateway
 	rm -f /dev/shm/hosts
 	sed '/localhost/ s/^#*/#/' /etc/hosts > /dev/shm/hosts
 	echo "$$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.Gateway}}{{end}}' "$$(hostname)") localhost" >> /dev/shm/hosts
@@ -60,4 +66,6 @@ vscode_packages:
 	sudo apt-get update
 	sudo apt install -y swig xmlsec1 python3-venv docker.io
 
-vscode_update: vscode_packages vscode_pip vscode_hosts
+vscode_devcontainer_happy: vscode_packages vscode_pip vscode_hosts
+
+vscode: vscode_devcontainer_happy
