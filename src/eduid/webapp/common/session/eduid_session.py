@@ -304,16 +304,14 @@ class EduidSession(SessionMixin, MutableMapping):
 
     def new_csrf_token(self) -> str:
         # only produce one csrf token by request
-        if "_csrft_" not in self:
-            token = os.urandom(20).hex()
-            self["_csrft_"] = token
-        return self["_csrft_"]
+        _csrf: Optional[str] = self.get("_csrft_")
+        if not isinstance(_csrf, str):
+            _csrf = os.urandom(20).hex()
+            self["_csrft_"] = _csrf
+        return _csrf
 
     def get_csrf_token(self) -> str:
-        token = self.get("_csrft_", None)
-        if token is None:
-            token = self.new_csrf_token()
-        return token
+        return self.new_csrf_token()
 
     def _serialize_namespaces(self) -> None:
         """Serialise all the namespace instances in self._namespaces.
