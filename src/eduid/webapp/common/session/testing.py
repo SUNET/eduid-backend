@@ -55,11 +55,13 @@ class RedisTemporaryInstance(EduidTemporaryInstance):
             "run",
             "--rm",
             "-p",
-            "{!s}:6379".format(self.port),
+            f"{self.port}:6379",
             "-v",
-            "{!s}:/data".format(self.tmpdir),
+            f"{self.tmpdir}:/data",
             "-e",
             "extra_args=--daemonize no --bind 0.0.0.0",
+            "--name",
+            f"test_redis_{self._port}",
             "docker.sunet.se/eduid/redis:latest",
         ]
 

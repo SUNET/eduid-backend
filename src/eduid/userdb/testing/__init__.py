@@ -60,7 +60,16 @@ class MongoTemporaryInstance(EduidTemporaryInstance):
 
     @property
     def command(self) -> Sequence[str]:
-        return ["docker", "run", "--rm", "-p", f"{self._port!s}:27017", "docker.sunet.se/eduid/mongodb:latest"]
+        return [
+            "docker",
+            "run",
+            "--rm",
+            "-p",
+            f"{self.port}:27017",
+            "--name",
+            f"test_mongodb_{self.port}",
+            "docker.sunet.se/eduid/mongodb:latest",
+        ]
 
     def setup_conn(self) -> bool:
         try:
