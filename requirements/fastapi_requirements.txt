@@ -1028,9 +1028,9 @@ pypdf3==1.0.6 \
     # via
     #   -c main.txt
     #   xhtml2pdf
-pysaml2==7.2.1+sunet \
-    --hash=sha256:2ef220e09ba63a56ec562c55f79b74972ec580b036d723501074dd90bdfa0d4c \
-    --hash=sha256:8e6ad5e5b38f5514c05d8dd408b99d101262725b90e8ee7a63d969f6324a506d
+pysaml2==7.3.0+sunet \
+    --hash=sha256:17762c1280a64e7842bdd2f20143a3c971a7c2450e53c9bd761caeed6fc405c9 \
+    --hash=sha256:d15f7b30247f9b0748d14e6df77e87b9bb54a9b7a338c6d5134c1cc7ac4c137c
     # via
     #   -c main.txt
     #   -r main.in
@@ -1313,7 +1313,6 @@ six==1.16.0 \
     #   html5lib
     #   pyconfig
     #   pyjwkest
-    #   pysaml2
     #   pysmscom
     #   python-bidi
     #   python-dateutil
@@ -1657,4 +1656,3 @@ setuptools==65.6.0 \
     #   -c main.txt
     #   -r sub_main.in
     #   gunicorn
-    #   pysaml2

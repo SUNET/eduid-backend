@@ -22,7 +22,7 @@ from eduid.userdb.proofing import (
     OrcidProofingUserDB,
     PhoneProofingUserDB,
 )
-from eduid.userdb.proofing.db import LadokProofingUserDB
+from eduid.userdb.proofing.db import LadokProofingUserDB, SvideIDProofingUserDB
 from eduid.userdb.reset_password import ResetPasswordUserDB
 from eduid.userdb.security import SecurityUserDB
 from eduid.userdb.signup import SignupUserDB
@@ -224,3 +224,18 @@ class eduid_ladok(AttributeFetcher):
         "ladok",
     ]
     get_user_db = lambda cls, uri: LadokProofingUserDB(uri)
+
+
+class eduid_svipe_id(AttributeFetcher):
+
+    whitelist_set_attrs = [
+        "passwords",
+        "identities",
+        "givenName",
+        "surname",
+        "displayName",
+    ]
+    whitelist_unset_attrs: List[str] = [
+        "identities",
+    ]
+    get_user_db = lambda cls, uri: SvideIDProofingUserDB(uri)
