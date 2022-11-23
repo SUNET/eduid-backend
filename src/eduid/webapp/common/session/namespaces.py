@@ -6,7 +6,7 @@ from abc import ABC
 from copy import deepcopy
 from datetime import datetime
 from enum import Enum, unique
-from typing import Any, Dict, List, Mapping, NewType, Optional, Type, TypeVar, Union
+from typing import Any, Dict, List, Mapping, NewType, Optional, Type, TypeVar, Union, cast
 from uuid import uuid4
 
 from fido2.webauthn import AuthenticatorAttachment
@@ -267,9 +267,12 @@ class SP_AuthnRequest(BaseAuthnRequest):
     redirect_url: Optional[str]  # Deprecated, use frontend_action to get return URL from config instead
 
 
+PySAML2Dicts = NewType("PySAML2Dicts", Dict[str, Dict[str, Any]])
+
+
 class SPAuthnData(BaseModel):
     post_authn_action: Optional[Union[AuthnAcsAction, EidasAcsAction]] = None
-    pysaml2_dicts: Dict[str, Any] = Field(default_factory=dict)
+    pysaml2_dicts: PySAML2Dicts = Field(default=cast(PySAML2Dicts, dict()))
     authns: Dict[AuthnRequestRef, SP_AuthnRequest] = Field(default_factory=dict)
 
     def get_authn_for_action(self, action: Union[AuthnAcsAction, EidasAcsAction]) -> Optional[SP_AuthnRequest]:
