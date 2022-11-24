@@ -109,7 +109,12 @@ class CountryMixin:
 
     @property
     def country(self) -> Country:
-        return countries.get(self.country_code)
+        try:
+            country = countries.get(self.country_code)
+        except KeyError:
+            logger.error(f'Unknown country code "{self.country_code}"')
+            country = Country("Unknown", "XX", "XXX", "000", "Unknown")
+        return country
 
 
 class EIDASIdentity(IdentityElement, CountryMixin):
