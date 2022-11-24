@@ -68,6 +68,8 @@ class SecurityApp(AuthnBaseApp):
         self.proofing_log = ProofingLog(config.mongo_uri)
         self.fido_metadata_log = FidoMetadataLog(config.mongo_uri)
 
+        self.babel = translation.init_babel(self)
+
 
 current_security_app: SecurityApp = cast(SecurityApp, current_app)
 
@@ -92,7 +94,5 @@ def security_init_app(name: str = "security", test_config: Optional[Mapping[str,
     app.register_blueprint(security_views)
     app.register_blueprint(webauthn_views)
     app.register_blueprint(change_password_views)
-
-    translation.init_babel(app)
 
     return app

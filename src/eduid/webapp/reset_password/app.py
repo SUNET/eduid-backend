@@ -64,6 +64,8 @@ class ResetPasswordApp(EduIDBaseApp):
         self.password_reset_state_db = ResetPasswordStateDB(self.conf.mongo_uri)
         self.proofing_log = ProofingLog(self.conf.mongo_uri)
 
+        self.babel = translation.init_babel(self)
+
 
 current_reset_password_app: ResetPasswordApp = cast(ResetPasswordApp, current_app)
 
@@ -85,7 +87,5 @@ def init_reset_password_app(
     from eduid.webapp.reset_password.views.reset_password import reset_password_views
 
     app.register_blueprint(reset_password_views)
-
-    translation.init_babel(app)
 
     return app

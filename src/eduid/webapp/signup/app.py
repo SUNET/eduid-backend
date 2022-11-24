@@ -72,6 +72,8 @@ class SignupApp(EduIDBaseApp):
         self.invite_db = SignupInviteDB(config.mongo_uri)
         self.messagedb = MessageDB(config.mongo_uri)
 
+        self.babel = translation.init_babel(self)
+
     def get_scim_client_for(self, data_owner: str) -> SCIMClient:
         if self.conf.gnap_auth_data is None or self.conf.scim_api_url is None:
             raise BadConfiguration("No auth server configuration available")
@@ -105,7 +107,5 @@ def signup_init_app(name: str = "signup", test_config: Optional[Mapping[str, Any
     from eduid.webapp.signup.views import signup_views
 
     app.register_blueprint(signup_views)
-
-    translation.init_babel(app)
 
     return app
