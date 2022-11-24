@@ -383,7 +383,7 @@ class EduIDBaseAppConfig(RootConfig, LoggingConfigMixin, StatsConfigMixin, Redis
     # for these URLs will be served, rather than redirected to the authn service.
     # The list is a list of regex that are matched against the path of the
     # requested URL ex. ^/test$.
-    no_authn_urls: list = Field(default=["^/status/healthy$", "^/status/sanity-check$"])
+    no_authn_urls: list[str] = Field(default=["^/status/healthy$", "^/status/sanity-check$"])
     status_cache_seconds: int = 10
     # All AuthnBaseApps need this to redirect not-logged-in requests to the authn service
     token_service_url: str

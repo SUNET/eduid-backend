@@ -83,7 +83,7 @@ security_views = Blueprint("security", __name__, url_prefix="", template_folder=
 @security_views.route("/credentials", methods=["GET"])
 @MarshalWith(SecurityResponseSchema)
 @require_user
-def get_credentials(user):
+def get_credentials(user: User):
     """
     View to get credentials for the logged user.
     """
@@ -98,7 +98,7 @@ def get_credentials(user):
 @security_views.route("/suggested-password", methods=["GET"])
 @MarshalWith(SuggestedPasswordResponseSchema)
 @require_user
-def get_suggested(user):
+def get_suggested(user: User):
     """
     View to get a suggested  password for the logged user.
     """
@@ -112,7 +112,7 @@ def get_suggested(user):
 @security_views.route("/change-password", methods=["POST"])
 @MarshalWith(ChpassResponseSchema)
 @require_user
-def change_password(user):
+def change_password(user: User):
     """
     View to change the password
     """
@@ -177,8 +177,8 @@ def change_password(user):
 
 
 @security_views.route("/terminate-account", methods=["POST"])
-@MarshalWith(RedirectResponseSchema)
 @UnmarshalWith(EmptyRequest)
+@MarshalWith(RedirectResponseSchema)
 @require_user
 def delete_account(user: User):
     """
