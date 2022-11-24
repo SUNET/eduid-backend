@@ -97,7 +97,6 @@ def terminate() -> WerkzeugResponse:
     return _authn(AuthnAcsAction.terminate_account, force_authn=True)
 
 
-def _authn(action: AuthnAcsAction, force_authn=False, same_user: bool = True) -> WerkzeugResponse:
 def _authn(action: AuthnAcsAction, force_authn: bool = False, same_user: bool = True) -> WerkzeugResponse:
     # TODO: Stop using the "next" parameter, because it opens up for redirect attacks.
     #       Instead, let frontend say "frontend_action=chpass" and we look up the finish_url
