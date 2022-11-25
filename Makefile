@@ -48,6 +48,10 @@ clean:
 	find . -name '*.pyc' -delete
 	find . -name '__pycache__' -delete
 
+kill_tests:
+	@echo "Stopping all temporary instances started by tests"
+	docker container stop $$(docker container ls -q --filter name=test_*)
+
 vscode_hosts:
 	# tests connect to mongodb etc. on "localhost", so we have to point that name at the docker gateway
 	rm -f /dev/shm/hosts
