@@ -9,6 +9,7 @@ from urllib.parse import urlparse
 from uuid import uuid4
 
 import bcrypt
+from flask import current_app
 from flask.wrappers import Request
 
 from eduid.common.misc.timeutil import utc_now
