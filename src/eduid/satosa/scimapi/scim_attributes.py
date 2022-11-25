@@ -20,8 +20,8 @@ class Config(object):
     mongo_uri: str
     idp_to_data_owner: Mapping[str, str]
     mfa_stepup_issuer_to_entity_id: Mapping[str, str]
-    scope_to_data_owner: Mapping[str, str] = field(default_factory=dict)
     virt_idp_to_data_owner: Mapping[str, str]
+    scope_to_data_owner: Mapping[str, str] = field(default_factory=dict)
 
 
 class ScimAttributes(ResponseMicroService):
@@ -124,7 +124,7 @@ class ScimAttributes(ResponseMicroService):
         # Fallback to issuer. Do we need that?
         if not data_owner:
             issuer = data.auth_info.issuer
-            data_owner: Optional[str] = self.config.idp_to_data_owner.get(issuer)
+            data_owner = self.config.idp_to_data_owner.get(issuer)
 
         if data_owner:
             logger.debug(f"Data owner for issuer {issuer}: {data_owner}")
