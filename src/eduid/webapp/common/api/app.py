@@ -32,7 +32,6 @@ from eduid.webapp.common.api.debug import init_app_debug
 from eduid.webapp.common.api.exceptions import init_exception_handlers, init_sentry
 from eduid.webapp.common.api.middleware import PrefixMiddleware
 from eduid.webapp.common.api.request import Request
-from eduid.webapp.common.api.utils import init_template_functions
 from eduid.webapp.common.authn.utils import no_authn_views
 from eduid.webapp.common.session.eduid_session import SessionFactory
 
@@ -92,7 +91,6 @@ class EduIDBaseApp(Flask, metaclass=ABCMeta):
         if handle_exceptions:
             init_exception_handlers(self)
         init_sentry(self)
-        init_template_functions(self)
         CORS(self)
         self.stats = init_app_stats(config)
         self.session_interface = SessionFactory(config)
