@@ -24,7 +24,7 @@ def get_unique_hash() -> str:
     return str(uuid4())
 
 
-def get_short_hash(entropy=10) -> str:
+def get_short_hash(entropy: int = 10) -> str:
     return uuid4().hex[:entropy]
 
 
@@ -34,7 +34,7 @@ def make_short_code(digits: int = 6) -> str:
     return str(code).zfill(digits)
 
 
-def update_modified_ts(user):
+def update_modified_ts(user: User) -> None:
     """
     When loading a user from the central userdb, the modified_ts has to be
     loaded from the private userdb (since it is not propagated to 'attributes'
@@ -52,13 +52,13 @@ def update_modified_ts(user):
     except UserDBValueError:
         logger.debug(f"User {user} has no id, setting modified_ts to None")
         user.modified_ts = None
-        return
+        return None
 
     private_user = current_app.private_userdb.get_user_by_id(userid)
     if private_user is None:
         logger.debug(f"User {user} not found in {current_app.private_userdb}, setting modified_ts to None")
         user.modified_ts = None
-        return
+        return None
 
     if private_user.modified_ts is None:
         private_user.modified_ts = datetime.utcnow()  # use current time
@@ -217,7 +217,10 @@ def hash_password(password: str) -> str:
     :param password: password as plaintext
     """
     password = "".join(password.split())
-    return bcrypt.hashpw(password, bcrypt.gensalt())
+    ret: Any = bcrypt.hashpw(password, bcrypt.gensalt())
+    if not isinstance(ret, str):
+        raise TypeError("bcrypt.hashpw returned a non-string value")
+    return ret
 
 
 def check_password_hash(password: str, hashed: Optional[str]) -> bool:
@@ -227,7 +230,10 @@ def check_password_hash(password: str, hashed: Optional[str]) -> bool:
     if hashed is None:
         return False
     password = "".join(password.split())
-    return bcrypt.checkpw(password, hashed)
+    ret: Any = bcrypt.checkpw(password, hashed)
+    if not isinstance(ret, bool):
+        raise TypeError(f"bcrypt.checkpw returned {ret} which is not a bool")
+    return ret
 
 
 def get_zxcvbn_terms(user: User) -> List[str]:
@@ -237,7 +243,7 @@ def get_zxcvbn_terms(user: User) -> List[str]:
     :param user: User
     :return: List of user info
     """
-    user_input = []
+    user_input: list[str] = []
     # Personal info
     if user.display_name:
         for part in user.display_name.split():

@@ -49,7 +49,7 @@ def reset_failure_info(key: str) -> None:
     current_app.logger.info(f"Check {key} back to normal. Resetting info {info}")
 
 
-def check_restart(key, restart: int, terminate: int) -> bool:
+def check_restart(key: str, restart: int, terminate: int) -> bool:
     res = False  # default to no restart
     info = current_app.failure_info.get(key)
     if not info:
@@ -100,11 +100,12 @@ def check_redis() -> bool:
 
 
 def check_am() -> bool:
-    if not getattr(current_app, "am_relay", False):
+    am_relay: Optional[AmRelay] = getattr(current_app, "am_relay", None)
+    if not am_relay:
         return True
     try:
-        res = current_app.am_relay.ping()
-        if res == f"pong for {current_app.am_relay.app_name}":
+        res = am_relay.ping()
+        if res == f"pong for {am_relay.app_name}":
             reset_failure_info("check_am")
             return True
     except Exception as exc:
