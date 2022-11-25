@@ -4,10 +4,9 @@ import logging
 from dataclasses import asdict
 from email.message import EmailMessage
 from gettext import gettext as _
-from ssl import create_default_context
 from typing import Any, Mapping, Optional, Sequence, Type, cast
 
-from aiosmtplib import SMTP, SMTPException, SMTPResponse, send
+from aiosmtplib import SMTP, SMTPException, SMTPResponse
 
 from eduid.common.config.base import EduidEnvironment
 from eduid.common.config.parsers import load_config
@@ -38,23 +37,29 @@ class MailQueueWorker(QueueWorker):
     async def smtp(self):
         if self._smtp is None:
             logger.debug(f"Creating SMTP client for {self.config.mail_host}:{self.config.mail_port}")
-            self._smtp = SMTP(hostname=self.config.mail_host, port=self.config.mail_port)
-            await self._smtp.connect()
-            # starttls
-            ssl_context = None
-            if self.config.mail_verify_tls is False:
+            validate_certs = self.config.mail_verify_tls
+            if not validate_certs:
                 logger.warning("Disabling TLS certificate hostname verification")
-                ssl_context = create_default_context()
-                ssl_context.check_hostname = False
+
+            self._smtp = SMTP(
+                hostname=self.config.mail_host,
+                port=self.config.mail_port,
+                start_tls=False,
+                validate_certs=validate_certs,
+            )
+            await self._smtp.connect()
+
+            # starttls
             if self.config.mail_starttls:
                 keyfile = self.config.mail_keyfile
                 certfile = self.config.mail_certfile
                 if keyfile and certfile:
                     logger.debug(f"Starting TLS with keyfile: {keyfile} and certfile: {certfile}")
-                    await self._smtp.starttls(client_key=keyfile, client_cert=certfile, tls_context=ssl_context)
+                    await self._smtp.starttls(client_key=keyfile, client_cert=certfile, validate_certs=validate_certs)
                 else:
                     logger.debug("Starting TLS")
-                    await self._smtp.starttls(tls_context=ssl_context)
+                    await self._smtp.starttls(validate_certs=validate_certs)
+
             # login
             username = self.config.mail_username
             password = self.config.mail_password
@@ -64,7 +69,8 @@ class MailQueueWorker(QueueWorker):
         # ensure that the connection is still alive
         if not self._smtp.is_connected:
             logger.debug("Reconnecting SMTP client")
-            await self._smtp.connect()
+            self._smtp = None
+            return self.smtp
         return self._smtp
 
     async def sendmail(self, sender: str, recipient: str, message: str, reference: str) -> Status:
@@ -214,6 +220,9 @@ def init_mail_worker(name: str = "mail_worker", test_config: Optional[Mapping[st
 
 def start_worker():
     worker = init_mail_worker()
+    if worker.smtp is None:
+        # fail fast if we can't connect to the SMTP server
+        raise RuntimeError("SMTP client not configured correctly")
     exit(asyncio.run(worker.run()))
 
 
