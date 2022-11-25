@@ -127,7 +127,7 @@ def save_and_sync_user(
     :param user: the modified user
     """
     if private_userdb is None:
-        private_userdb = get_from_current_app("private_userdb", UserDB[User])
+        private_userdb = get_from_current_app("private_userdb", UserDB)
     private_userdb.save(user)
     return get_from_current_app("am_relay", AmRelay).request_user_sync(user, app_name_override=app_name_override)
 
