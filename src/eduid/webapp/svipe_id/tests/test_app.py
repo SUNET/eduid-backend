@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import json
 from datetime import date, datetime, timedelta
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 from unittest.mock import patch
 from urllib.parse import parse_qs, urlparse
 
@@ -133,7 +133,7 @@ class SvipeIdTests(ProofingTests):
         return config
 
     @staticmethod
-    def get_userinfo(
+    def get_mock_userinfo(
         issuing_country: Country,
         nationality: Country,
         administrative_number: str = "123456789",
@@ -185,12 +185,14 @@ class SvipeIdTests(ProofingTests):
 
     @patch("authlib.integrations.requests_client.oauth2_session.OAuth2Session.request")
     @patch("authlib.integrations.base_client.sync_openid.OpenIDMixin.parse_id_token")
+    @patch("authlib.integrations.base_client.sync_openid.OpenIDMixin.userinfo")
     @patch("authlib.integrations.base_client.sync_app.OAuth2Mixin.fetch_access_token")
     @patch("authlib.integrations.base_client.sync_app.OAuth2Mixin.load_server_metadata")
     def mock_authorization_callback(
         self,
         mock_metadata,
         mock_fetch_access_token,
+        mock_userinfo,
         mock_parse_id_token,
         mock_end_session,
         state: str,
@@ -227,6 +229,7 @@ class SvipeIdTests(ProofingTests):
         }
 
         mock_parse_id_token.return_value = userinfo.dict()
+        mock_userinfo.return_value = userinfo.dict()
         return self.browser.get(f"{endpoint}?id_token=id_token&state={state}&code=mock_code")
 
     @patch("authlib.integrations.base_client.sync_app.OAuth2Mixin.load_server_metadata")
@@ -260,6 +263,13 @@ class SvipeIdTests(ProofingTests):
         assert response.status_code == 200
         self._check_success_response(response, type_="POST_SVIPE_ID_VERIFY_IDENTITY_SUCCESS")
         assert response.json["payload"]["location"].startswith("https://example.com/op/authorize")
+        query: Dict[str, List[str]] = parse_qs(urlparse(response.json["payload"]["location"]).query)  # type: ignore
+        assert query["response_type"] == ["code"]
+        assert query["client_id"] == ["test_client_id"]
+        assert query["redirect_uri"] == ["http://test.localhost/authn-callback"]
+        assert query["scope"] == ["openid document"]
+        assert query["code_challenge_method"] == ["S256"]
+        assert query["acr_values"] == ["face_present"]
 
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
@@ -276,7 +286,7 @@ class SvipeIdTests(ProofingTests):
         start_auth_response = self._start_auth(endpoint=endpoint, data=self.default_frontend_data, eppn=eppn)
         state, nonce = self._get_state_and_nonce(start_auth_response.json["payload"]["location"])
 
-        userinfo = self.get_userinfo(issuing_country=country, nationality=country)
+        userinfo = self.get_mock_userinfo(issuing_country=country, nationality=country)
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
         assert response.status_code == 302
         self._verify_status(
@@ -304,7 +314,7 @@ class SvipeIdTests(ProofingTests):
 
         start_auth_response = self._start_auth(endpoint=endpoint, data=self.default_frontend_data, eppn=eppn)
         state, nonce = self._get_state_and_nonce(start_auth_response.json["payload"]["location"])
-        userinfo = self.get_userinfo(issuing_country=country, nationality=country)
+        userinfo = self.get_mock_userinfo(issuing_country=country, nationality=country)
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
         assert response.status_code == 302
         self._verify_status(
@@ -334,7 +344,7 @@ class SvipeIdTests(ProofingTests):
 
         start_auth_response = self._start_auth(endpoint=endpoint, data=self.default_frontend_data, eppn=eppn)
         state, nonce = self._get_state_and_nonce(start_auth_response.json["payload"]["location"])
-        userinfo = self.get_userinfo(issuing_country=country, nationality=country)
+        userinfo = self.get_mock_userinfo(issuing_country=country, nationality=country)
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
         assert response.status_code == 302
         self._verify_status(
@@ -356,7 +366,7 @@ class SvipeIdTests(ProofingTests):
 
         # add a verified svipe identity
         user = self.app.central_userdb.get_user_by_eppn(eppn)
-        userinfo = self.get_userinfo(issuing_country=country, nationality=country)
+        userinfo = self.get_mock_userinfo(issuing_country=country, nationality=country)
         user.identities.add(
             SvipeIdentity(
                 svipe_id=userinfo.svipe_id,
@@ -372,7 +382,7 @@ class SvipeIdTests(ProofingTests):
 
         start_auth_response = self._start_auth(endpoint=endpoint, data=self.default_frontend_data, eppn=eppn)
         state, nonce = self._get_state_and_nonce(start_auth_response.json["payload"]["location"])
-        userinfo = self.get_userinfo(issuing_country=country, nationality=country)
+        userinfo = self.get_mock_userinfo(issuing_country=country, nationality=country)
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
         assert response.status_code == 302
         self._verify_status(
@@ -394,7 +404,7 @@ class SvipeIdTests(ProofingTests):
 
         # add a locked svipe identity that will match the new identity
         user = self.app.central_userdb.get_user_by_eppn(eppn)
-        userinfo = self.get_userinfo(issuing_country=country, nationality=country)
+        userinfo = self.get_mock_userinfo(issuing_country=country, nationality=country)
         user.locked_identity.add(
             SvipeIdentity(
                 svipe_id="another_svipe_id",
@@ -454,7 +464,7 @@ class SvipeIdTests(ProofingTests):
 
         start_auth_response = self._start_auth(endpoint=endpoint, data=self.default_frontend_data, eppn=eppn)
         state, nonce = self._get_state_and_nonce(start_auth_response.json["payload"]["location"])
-        userinfo = self.get_userinfo(issuing_country=country, nationality=country)
+        userinfo = self.get_mock_userinfo(issuing_country=country, nationality=country)
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
         assert response.status_code == 302
         self._verify_status(
@@ -483,7 +493,7 @@ class SvipeIdTests(ProofingTests):
 
         start_auth_response = self._start_auth(endpoint=endpoint, data=self.default_frontend_data, eppn=eppn)
         state, nonce = self._get_state_and_nonce(start_auth_response.json["payload"]["location"])
-        userinfo = self.get_userinfo(issuing_country=country, nationality=country)
+        userinfo = self.get_mock_userinfo(issuing_country=country, nationality=country)
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
         assert response.status_code == 302
         self._verify_status(
@@ -516,7 +526,7 @@ class SvipeIdTests(ProofingTests):
         start_auth_response = self._start_auth(endpoint=endpoint, data=self.default_frontend_data, eppn=eppn)
         state, nonce = self._get_state_and_nonce(start_auth_response.json["payload"]["location"])
         yesterday = utc_now() - timedelta(days=1)
-        userinfo = self.get_userinfo(issuing_country=country, nationality=country, document_expires=yesterday)
+        userinfo = self.get_mock_userinfo(issuing_country=country, nationality=country, document_expires=yesterday)
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
         assert response.status_code == 302
         self._verify_status(

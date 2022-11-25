@@ -36,15 +36,15 @@ class SvipeIdApp(AuthnBaseApp):
             client_kwargs["scope"] = " ".join(self.conf.svipe_client.scopes)
         if self.conf.svipe_client.code_challenge_method:
             client_kwargs["code_challenge_method"] = self.conf.svipe_client.code_challenge_method
-        request_token_params = {}
+        authorize_params = {}
         if self.conf.svipe_client.acr_values:
-            request_token_params["acr_values"] = self.conf.svipe_client.acr_values
+            authorize_params["acr_values"] = " ".join(self.conf.svipe_client.acr_values)
         self.oidc_client.register(
             name="svipe",
             client_id=self.conf.svipe_client.client_id,
             client_secret=self.conf.svipe_client.client_secret,
             client_kwargs=client_kwargs,
-            request_token_params=request_token_params,
+            authorize_params=authorize_params,
             server_metadata_url=f"{self.conf.svipe_client.issuer}/.well-known/openid-configuration",
         )
 
