@@ -70,7 +70,7 @@ class MailQueueWorker(QueueWorker):
         if not self._smtp.is_connected:
             logger.debug("Reconnecting SMTP client")
             self._smtp = None
-            return self.smtp
+            return await self.smtp
         return self._smtp
 
     async def sendmail(self, sender: str, recipient: str, message: str, reference: str) -> Status:
