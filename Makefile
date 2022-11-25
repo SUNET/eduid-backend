@@ -43,6 +43,10 @@ update_deps:
 dev_sync_deps:
 	cd requirements && make dev_sync_deps
 
+kill_tests:
+	@echo "Stopping all temporary instances started by tests"
+	docker container stop $$(docker container ls -q --filter name=test_*)
+
 vscode_hosts:
 	rm -f /dev/shm/hosts
 	sed '/localhost/ s/^#*/#/' /etc/hosts > /dev/shm/hosts

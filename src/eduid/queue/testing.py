@@ -39,6 +39,8 @@ class MongoTemporaryInstanceReplicaSet(MongoTemporaryInstance):
             "REPLSET=yes",
             "-e",
             f"PORT={self.port}",
+            "--name",
+            f"test_mongodb_rs_{self.port}",
             "docker.sunet.se/eduid/mongodb:latest",
         ]
 
