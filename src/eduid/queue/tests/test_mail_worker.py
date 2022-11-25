@@ -9,7 +9,8 @@ from unittest import TestResult
 from unittest.mock import patch
 
 from aiosmtplib import SMTPResponse
-from smtpdfix import SMTPDFix, Config as SMTPDFixConfig
+from smtpdfix import Config as SMTPDFixConfig
+from smtpdfix import SMTPDFix
 
 from eduid.common.config.parsers import load_config
 from eduid.queue.config import QueueWorkerConfig
@@ -64,6 +65,7 @@ class TestMailWorker(QueueAsyncioTest):
     def run(self, result: Optional[TestResult] = None) -> Optional[TestResult]:
         datadir = Path(__file__).with_name("data")
         config = SMTPDFixConfig(filename=f"{datadir}/smtpdfix.env", override=True)
+        config.ssl_certs_path = datadir
         with SMTPDFix(config=config) as smtpdfix:
             self.smtpdfix = smtpdfix
             return super().run(result)
