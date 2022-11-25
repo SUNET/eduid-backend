@@ -294,6 +294,12 @@ email-validator==1.3.0 \
     # via
     #   -c main.txt
     #   -r main.in
+exceptiongroup==1.0.4 \
+    --hash=sha256:542adf9dea4055530d6e1279602fa5cb11dab2395fa650b8674eaec35fc4a828 \
+    --hash=sha256:bd14967b79cd9bdb54d97323216f8fdf533e278df937aa2a90089e7d6e06e5ec
+    # via
+    #   -c main.txt
+    #   -r sub_main.in
 fido-mds==2022.9 \
     --hash=sha256:88eb9a7f4b264b2c44fe7211da1d0d87d3ab081ee207a563c378ff175c0b9944 \
     --hash=sha256:a283156bc7d2cb3f9399cc18f4b9a1e8af0483c7dd595ebe697314e7d76a0252
