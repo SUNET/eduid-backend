@@ -32,7 +32,6 @@ from eduid.webapp.common.api.debug import init_app_debug
 from eduid.webapp.common.api.exceptions import init_exception_handlers, init_sentry
 from eduid.webapp.common.api.middleware import PrefixMiddleware
 from eduid.webapp.common.api.request import Request
-from eduid.webapp.common.api.utils import init_template_functions
 from eduid.webapp.common.authn.utils import no_authn_views
 from eduid.webapp.common.session.eduid_session import SessionFactory
 
@@ -84,6 +83,8 @@ class EduIDBaseApp(Flask, metaclass=ABCMeta):
         # Set app url prefix to APPLICATION_ROOT
         self.wsgi_app = PrefixMiddleware(  # type: ignore
             self.wsgi_app,
+            # prefix=self.config["APPLICATION_ROOT"],
+            # server_name=self.config["SERVER_NAME"],
             prefix=config.flask.application_root,
             server_name=config.flask.server_name or "",
         )
@@ -96,7 +97,7 @@ class EduIDBaseApp(Flask, metaclass=ABCMeta):
         if handle_exceptions:
             init_exception_handlers(self)
         init_sentry(self)
-        init_template_functions(self)
+
         CORS(self)
         self.stats = init_app_stats(config)
         self.session_interface = SessionFactory(config)
@@ -109,10 +110,20 @@ class EduIDBaseApp(Flask, metaclass=ABCMeta):
         self.failure_info: Dict[str, FailCountItem] = dict()
         init_status_views(self, config)
 
+    # @property
+    # def conf(self):
+    #     if self._conf is not None:
+    #         return self._conf
+    #     raise RuntimeError("EduIDBaseApp conf not initialised")
+
+    # @conf.setter
+    # def conf(self, value: EduIDBaseAppConfig) -> None:
+    #     self._conf = value
+
     @property
     def central_userdb(self) -> AmDB:
         if not self._central_userdb:
-            raise RuntimeError("Central userdb not initialized")
+            raise RuntimeError("Central userdb not initialised")
         return self._central_userdb
 
     def run_health_checks(

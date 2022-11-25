@@ -67,7 +67,6 @@ class SecurityConfig(
     vccs_url: str
     dashboard_url: str
     token_service_url: str
-    eduid_static_url: str
     throttle_update_user_period: timedelta = Field(default=timedelta(seconds=600))
 
     # change password

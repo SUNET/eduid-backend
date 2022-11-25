@@ -9,10 +9,11 @@ from urllib.parse import urlparse
 from uuid import uuid4
 
 import bcrypt
-from flask import Request, current_app
+from flask.wrappers import Request
+from flask import current_app as flask_current_app
+from eduid.common.config.base import EduIDBaseAppConfig, FlaskConfig, Pysaml2SPConfigMixin
 
 from eduid.common.misc.timeutil import utc_now
-from eduid.common.utils import urlappend
 from eduid.common.rpc.am_relay import AmRelay
 from eduid.userdb import User, UserDB
 from eduid.userdb.exceptions import MultipleUsersReturned, UserDBValueError
@@ -187,24 +188,6 @@ def get_flux_type(req: Request, suffix: str) -> str:
     _elements = [x for x in [method, blueprint, url_rule, suffix] if x]
     flux_type = "_".join(_elements).upper()
     return flux_type
-
-
-def get_static_url_for(f: str, version: Optional[str] = None) -> str:
-    """
-    Get the static url for a file and optionally have a version argument appended for cache busting.
-    """
-    static_url = current_app.conf.eduid_static_url
-    if version is not None:
-        static_url = urlappend(current_app.conf.eduid_static_url, version)
-    return urlappend(static_url, f)
-
-
-def init_template_functions(app):
-    @app.template_global()
-    def static_url_for(f: str, version: Optional[str] = None) -> str:
-        return get_static_url_for(f, version)
-
-    return app
 
 
 def sanitise_redirect_url(redirect_url: Optional[str], safe_default: str = "/") -> str:
