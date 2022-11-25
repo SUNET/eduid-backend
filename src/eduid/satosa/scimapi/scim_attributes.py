@@ -119,8 +119,8 @@ class ScimAttributes(ResponseMicroService):
         self, data: satosa.internal.InternalData, scopes: Set[str], frontend_name: str
     ) -> Optional[ScimApiUser]:
         # Look for explicit information about what data owner to use for this IdP
-        data_owner: Optional[str] = self.config.virt_idp_to_data_owner.get(frontend_name)
         issuer = frontend_name
+        data_owner: Optional[str] = self.config.virt_idp_to_data_owner.get(issuer)
         # Fallback to issuer. Do we need that?
         if not data_owner:
             issuer = data.auth_info.issuer
