@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from datetime import timedelta
+from typing import Optional
 
 from eduid.common.misc.timeutil import utc_now
 
@@ -126,7 +127,7 @@ def logout_response(session_id: str) -> str:
     return saml_logout_response
 
 
-def logout_request(session_id, idp=None):
+def logout_request(session_id: str, idp: Optional[str] = None) -> str:
     """
     Create a SAML logout request from a template.
 

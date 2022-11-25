@@ -84,8 +84,8 @@ class EduIDBaseApp(Flask, metaclass=ABCMeta):
         # Set app url prefix to APPLICATION_ROOT
         self.wsgi_app = PrefixMiddleware(  # type: ignore
             self.wsgi_app,
-            prefix=self.config["APPLICATION_ROOT"],
-            server_name=self.config["SERVER_NAME"],
+            prefix=config.flask.application_root,
+            server_name=config.flask.server_name or "",
         )
 
         # Allow legacy samesite cookie support

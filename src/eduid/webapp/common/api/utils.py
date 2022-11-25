@@ -4,7 +4,7 @@ import logging
 import os
 import re
 from datetime import datetime, timedelta
-from typing import List, Optional
+from typing import TYPE_CHECKING, Any, List, Optional, Type, TypeVar, cast
 from urllib.parse import urlparse
 from uuid import uuid4
 
@@ -13,18 +13,36 @@ from flask import Request, current_app
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.utils import urlappend
+from eduid.common.rpc.am_relay import AmRelay
 from eduid.userdb import User, UserDB
 from eduid.userdb.exceptions import MultipleUsersReturned, UserDBValueError
 from eduid.webapp.common.api.exceptions import ApiException
 
+if TYPE_CHECKING:
+    from eduid.webapp.common.api.app import EduIDBaseApp
+
+    current_app = cast(EduIDBaseApp, flask_current_app)
+else:
+    current_app = flask_current_app
+
 logger = logging.getLogger(__name__)
+
+
+TCurrentAppAttribute = TypeVar("TCurrentAppAttribute")
+
+
+def get_from_current_app(name: str, klass: Type[TCurrentAppAttribute]) -> TCurrentAppAttribute:
+    ret = getattr(current_app, name)
+    if not isinstance(ret, klass):
+        raise TypeError(f"current_app.{name} is not of type {klass}")
+    return ret
 
 
 def get_unique_hash() -> str:
     return str(uuid4())
 
 
-def get_short_hash(entropy=10) -> str:
+def get_short_hash(entropy: int = 10) -> str:
     return uuid4().hex[:entropy]
 
 
@@ -34,7 +52,7 @@ def make_short_code(digits: int = 6) -> str:
     return str(code).zfill(digits)
 
 
-def update_modified_ts(user):
+def update_modified_ts(user: User) -> None:
     """
     When loading a user from the central userdb, the modified_ts has to be
     loaded from the private userdb (since it is not propagated to 'attributes'
@@ -48,22 +66,23 @@ def update_modified_ts(user):
     :return: None
     """
     try:
-        userid = user.user_id
+        user_id = user.user_id
     except UserDBValueError:
         logger.debug(f"User {user} has no id, setting modified_ts to None")
         user.modified_ts = None
-        return
+        return None
 
-    private_user = current_app.private_userdb.get_user_by_id(userid)
+    _private_userdb = get_from_current_app("private_userdb", UserDB[User])
+    private_user = _private_userdb.get_user_by_id(user_id)
     if private_user is None:
-        logger.debug(f"User {user} not found in {current_app.private_userdb}, setting modified_ts to None")
+        logger.debug(f"User {user} not found in {_private_userdb}, setting modified_ts to None")
         user.modified_ts = None
-        return
+        return None
 
     if private_user.modified_ts is None:
         private_user.modified_ts = datetime.utcnow()  # use current time
         logger.debug(f"Updating user {private_user} with new modified_ts: {private_user.modified_ts}")
-        current_app.private_userdb.save(private_user, check_sync=False)
+        _private_userdb.save(private_user, check_sync=False)
 
     user.modified_ts = private_user.modified_ts
     logger.debug(
@@ -97,7 +116,7 @@ def get_user() -> User:
 
 
 def save_and_sync_user(
-    user: User, private_userdb: Optional[UserDB] = None, app_name_override: Optional[str] = None
+    user: User, private_userdb: Optional[UserDB[User]] = None, app_name_override: Optional[str] = None
 ) -> bool:
     """
     Save (new) user object to the private userdb and propagate the changes to the central user db.
@@ -107,9 +126,9 @@ def save_and_sync_user(
     :param user: the modified user
     """
     if private_userdb is None:
-        private_userdb = current_app.private_userdb
+        private_userdb = get_from_current_app("private_userdb", UserDB[User])
     private_userdb.save(user)
-    return current_app.am_relay.request_user_sync(user, app_name_override=app_name_override)
+    return get_from_current_app("am_relay", AmRelay).request_user_sync(user, app_name_override=app_name_override)
 
 
 def get_flux_type(req: Request, suffix: str) -> str:
@@ -154,7 +173,7 @@ def get_flux_type(req: Request, suffix: str) -> str:
     url_rule = req.url_rule.rule
     # Remove APPLICATION_ROOT from request url rule
     # XXX: There must be a better way to get the internal path info
-    app_root = current_app.config["APPLICATION_ROOT"]
+    app_root = get_from_current_app("conf", EduIDBaseAppConfig).flask.application_root
     if app_root is not None and url_rule.startswith(app_root):
         url_rule = url_rule[len(app_root) :]
     # replace slashes and hyphens with spaces
@@ -193,11 +212,6 @@ def sanitise_redirect_url(redirect_url: Optional[str], safe_default: str = "/") 
     Make sure the URL provided in relay_state is safe and does
     not provide an open redirect.
 
-    The reason for the `url_scheme` and `safe_domain`
-    kwargs (rather than directly taking them from the current app and config)
-    is so that this can be used in non-flask apps (specifically, in the
-    IdP cherrypy app). Used within a flask app, these args can be ignored.
-
     :param redirect_url: Next url
     :param safe_default: The default if relay state is found unsafe
 
@@ -208,8 +222,8 @@ def sanitise_redirect_url(redirect_url: Optional[str], safe_default: str = "/") 
         return safe_default
 
     logger.debug(f"Checking if redirect_url {redirect_url} is safe")
-    url_scheme = current_app.config["PREFERRED_URL_SCHEME"]
-    safe_domain = current_app.conf.safe_relay_domain
+    url_scheme = get_from_current_app("conf", EduIDBaseAppConfig).flask.preferred_url_scheme
+    safe_domain = get_from_current_app("conf", Pysaml2SPConfigMixin).safe_relay_domain
     parsed_relay_state = urlparse(redirect_url)
 
     # If relay state is only a path
@@ -235,7 +249,10 @@ def hash_password(password: str) -> str:
     :param password: password as plaintext
     """
     password = "".join(password.split())
-    return bcrypt.hashpw(password, bcrypt.gensalt())
+    ret: Any = bcrypt.hashpw(password, bcrypt.gensalt())
+    if not isinstance(ret, str):
+        raise TypeError("bcrypt.hashpw returned a non-string value")
+    return ret
 
 
 def check_password_hash(password: str, hashed: Optional[str]) -> bool:
@@ -245,7 +262,10 @@ def check_password_hash(password: str, hashed: Optional[str]) -> bool:
     if hashed is None:
         return False
     password = "".join(password.split())
-    return bcrypt.checkpw(password, hashed)
+    ret: Any = bcrypt.checkpw(password, hashed)
+    if not isinstance(ret, bool):
+        raise TypeError(f"bcrypt.checkpw returned {ret} which is not a bool")
+    return ret
 
 
 def get_zxcvbn_terms(user: User) -> List[str]:
@@ -255,7 +275,7 @@ def get_zxcvbn_terms(user: User) -> List[str]:
     :param user: User
     :return: List of user info
     """
-    user_input = []
+    user_input: list[str] = []
     # Personal info
     if user.display_name:
         for part in user.display_name.split():

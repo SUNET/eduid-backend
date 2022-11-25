@@ -22,7 +22,7 @@ class SCIMError(Exception):
 
 
 class SCIMClient(GNAPClient):
-    def __init__(self, scim_api_url: str, auth_data=GNAPClientAuthData, **kwargs):
+    def __init__(self, scim_api_url: str, auth_data: GNAPClientAuthData, **kwargs):
         super().__init__(auth_data=auth_data, **kwargs)
         self.event_hooks["request"].append(self._add_accept_header)
         self.scim_api_url = scim_api_url
