@@ -8,6 +8,7 @@ import satosa.internal
 from saml2.mdstore import MetaData
 from satosa.attribute_mapping import AttributeMapper
 from satosa.micro_services.base import ResponseMicroService
+from satosa.routing import STATE_KEY as ROUTER_STATE_KEY
 
 from eduid.userdb.scimapi.userdb import ScimApiUser, ScimApiUserDB, ScimEduidUserDB
 
@@ -20,6 +21,7 @@ class Config(object):
     idp_to_data_owner: Mapping[str, str]
     mfa_stepup_issuer_to_entity_id: Mapping[str, str]
     scope_to_data_owner: Mapping[str, str] = field(default_factory=dict)
+    virt_idp_to_data_owner: Mapping[str, str]
 
 
 class ScimAttributes(ResponseMicroService):
@@ -67,7 +69,8 @@ class ScimAttributes(ResponseMicroService):
             logger.exception(f"Failed retrieving scopes for entityId {data.auth_info.issuer}")
         logger.debug(f"Scopes in metadata for IdP {data.auth_info.issuer}: {scopes}")
 
-        user = self._get_user(data, scopes)
+        frontend_name = context.state.get(ROUTER_STATE_KEY)
+        user = self._get_user(data, scopes, frontend_name)
         if user:
             # TODO: handle multiple profiles beyond just picking the first one
             profiles = user.profiles.keys()
@@ -112,11 +115,19 @@ class ScimAttributes(ResponseMicroService):
             res.update(_extract_saml_scope(idpsso))
         return res
 
-    def _get_user(self, data: satosa.internal.InternalData, scopes: Set[str]) -> Optional[ScimApiUser]:
+    def _get_user(
+        self, data: satosa.internal.InternalData, scopes: Set[str], frontend_name: str
+    ) -> Optional[ScimApiUser]:
         # Look for explicit information about what data owner to use for this IdP
-        data_owner: Optional[str] = self.config.idp_to_data_owner.get(data.auth_info.issuer)
+        data_owner: Optional[str] = self.config.virt_idp_to_data_owner.get(frontend_name)
+        issuer = frontend_name
+        # Fallback to issuer. Do we need that?
+        if not data_owner:
+            issuer = data.auth_info.issuer
+            data_owner: Optional[str] = self.config.idp_to_data_owner.get(issuer)
+
         if data_owner:
-            logger.debug(f"Data owner for issuer {data.auth_info.issuer}: {data_owner}")
+            logger.debug(f"Data owner for issuer {issuer}: {data_owner}")
         else:
             _sorted_scopes = sorted(list(scopes))
             # Look for a scope in the list 'scopes' that has explicit mapping information in config
@@ -129,7 +140,7 @@ class ScimAttributes(ResponseMicroService):
                 data_owner = _sorted_scopes[0]
                 logger.debug(f"Using first scope as data owner: {_sorted_scopes}")
         if not data_owner:
-            logger.warning(f"No data owner for issuer {data.auth_info.issuer}")
+            logger.warning(f"No data owner for issuer {issuer}")
             return None
 
         logger.info(f"entityId {data.auth_info.issuer}, scope(s) {scopes}, data_owner {data_owner}")
