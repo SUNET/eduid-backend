@@ -23,3 +23,4 @@ src/eduid/scimapi/test-scripts/dev/
 src/eduid/scimapi/test-scripts/staging/
 eduid-backend.code-workspace
 .venv/
+dev-extra-modules.txt

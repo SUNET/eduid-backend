@@ -38,6 +38,8 @@ compile_queue_translations:
 	pybabel compile --directory=$(SOURCE)/queue/translations/ --use-fuzzy
 
 update_deps:
+	@echo "Updating ALL the dependencies"
+	touch requirements/*.in
 	cd requirements && make update_deps
 
 dev_sync_deps:
