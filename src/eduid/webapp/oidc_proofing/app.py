@@ -63,7 +63,7 @@ class OIDCProofingApp(AuthnBaseApp):
         self.mail_relay = MailRelay(config)
 
         # Init babel
-        translation.init_babel(self)
+        self.babel = translation.init_babel(self)
 
         # Initialize db
         self.private_userdb = OidcProofingUserDB(self.conf.mongo_uri)

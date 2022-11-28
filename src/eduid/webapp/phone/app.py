@@ -59,6 +59,8 @@ class PhoneApp(AuthnBaseApp):
         self.proofing_statedb = PhoneProofingStateDB(config.mongo_uri)
         self.proofing_log = ProofingLog(config.mongo_uri)
 
+        self.babel = translation.init_babel(self)
+
 
 current_phone_app: PhoneApp = cast(PhoneApp, current_app)
 
@@ -79,7 +81,5 @@ def phone_init_app(name: str = "phone", test_config: Optional[Mapping[str, Any]]
     from eduid.webapp.phone.views import phone_views
 
     app.register_blueprint(phone_views)
-
-    translation.init_babel(app)
 
     return app

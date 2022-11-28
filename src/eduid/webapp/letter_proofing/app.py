@@ -48,7 +48,7 @@ __author__ = "lundberg"
 
 
 class LetterProofingApp(AuthnBaseApp):
-    def __init__(self, config: LetterProofingConfig, **kwargs):
+    def __init__(self, config: LetterProofingConfig, **kwargs: Any):
         super().__init__(config, **kwargs)
 
         self.conf = config
@@ -61,6 +61,9 @@ class LetterProofingApp(AuthnBaseApp):
         # Init celery
         self.msg_relay = MsgRelay(config)
         self.am_relay = AmRelay(config)
+
+        # Init babel
+        self.babel = translation.init_babel(self)
 
         # Initiate external modules
         self.ekopost = Ekopost(config)
@@ -86,7 +89,5 @@ def init_letter_proofing_app(
     from eduid.webapp.letter_proofing.views import letter_proofing_views
 
     app.register_blueprint(letter_proofing_views)
-
-    translation.init_babel(app)
 
     return app

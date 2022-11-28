@@ -62,7 +62,7 @@ class IdPApp(EduIDBaseApp):
         # Init dbs
         # self.private_userdb = IdPUserDB(self.conf.mongo_uri)
         # Initiate external modules
-        translation.init_babel(self)
+        self.babel = translation.init_babel(self)
 
         # Connecting to MongoDB can take some time if the replica set is not fully working.
         # Log both 'starting' and 'started' messages.
