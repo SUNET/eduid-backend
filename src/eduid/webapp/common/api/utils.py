@@ -9,10 +9,10 @@ from urllib.parse import urlparse
 from uuid import uuid4
 
 import bcrypt
-from flask.wrappers import Request
 from flask import current_app as flask_current_app
-from eduid.common.config.base import EduIDBaseAppConfig, FlaskConfig, Pysaml2SPConfigMixin
+from flask.wrappers import Request
 
+from eduid.common.config.base import EduIDBaseAppConfig, FlaskConfig, Pysaml2SPConfigMixin
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.rpc.am_relay import AmRelay
 from eduid.userdb import User, UserDB

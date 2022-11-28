@@ -9,6 +9,7 @@ import redis
 from flask import current_app
 
 from eduid.common.config.base import VCCSConfigMixin
+from eduid.common.rpc.am_relay import AmRelay
 from eduid.webapp.common.authn.vccs import check_password
 from eduid.webapp.common.session.redis_session import get_redis_pool
 

@@ -39,8 +39,8 @@ from contextlib import contextmanager
 from copy import deepcopy
 from typing import Any, Dict, Iterable, List, Mapping, Optional
 
-from flask.wrappers import Response
 from flask.testing import FlaskClient
+from flask.wrappers import Response
 
 from eduid.common.config.base import RedisConfig
 from eduid.common.rpc.msg_relay import NavetData
@@ -79,7 +79,6 @@ TEST_CONFIG = {
     "mongo_uri": "mongodb://localhost",
     "token_service_url": "http://test.localhost/",
     "eduid_site_name": "eduID TESTING",
-    # "eduid_static_url": "https://testing.eduid.se/static/",
     "celery": {
         "broker_transport": "memory",
         "broker_url": "memory://",

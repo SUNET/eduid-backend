@@ -91,7 +91,7 @@ class ProofingMethodEidas(ProofingMethodSAML):
 class ProofingMethodSvipe(ProofingMethod):
     def parse_session_info(self, session_info: SessionInfo, backdoor: bool) -> SessionInfoParseResult:
         try:
-            parsed_session_info = SvipeTokenResponse(**session_info)
+            parsed_session_info = SvipeDocumentUserInfo(**session_info)
             logger.debug(f"session info: {parsed_session_info}")
         except ValidationError:
             logger.exception("missing claim in userinfo response")
@@ -99,11 +99,11 @@ class ProofingMethodSvipe(ProofingMethod):
 
         # verify session info data
         # document should not have expired
-        if parsed_session_info.userinfo.document_expiry_date < utc_now().date():
-            logger.error(f"Document has expired {parsed_session_info.userinfo.document_expiry_date}")
+        if parsed_session_info.document_expiry_date < utc_now().date():
+            logger.error(f"Document has expired {parsed_session_info.document_expiry_date}")
             return SessionInfoParseResult(error=ProofingMsg.session_info_not_valid)
 
-        return SessionInfoParseResult(info=parsed_session_info.userinfo)
+        return SessionInfoParseResult(info=parsed_session_info)
 
 
 def get_proofing_method(

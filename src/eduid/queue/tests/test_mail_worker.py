@@ -3,14 +3,17 @@ import logging
 import os
 from datetime import timedelta
 from os import environ
+from pathlib import Path
 from typing import Optional
+from unittest import TestResult
 from unittest.mock import patch
 
-from aiosmtplib import SMTP, SMTPResponse
+from aiosmtplib import SMTPResponse
+from smtpdfix import Config as SMTPDFixConfig
+from smtpdfix import SMTPDFix
 
 from eduid.common.config.parsers import load_config
 from eduid.queue.config import QueueWorkerConfig
-from eduid.queue.db import QueueItem, TestPayload
 from eduid.queue.db.message import EduidSignupEmail
 from eduid.queue.testing import QueueAsyncioTest
 from eduid.queue.workers.mail import MailQueueWorker
@@ -34,13 +37,19 @@ class TestMailWorker(QueueAsyncioTest):
             "mongo_uri": self.mongo_uri,
             "mongo_collection": self.mongo_collection,
             "periodic_min_retry_wait_in_seconds": 1,
+            # NOTE: the mail settings need to match the data/smtpdfix.env file
+            "mail_host": "localhost",
+            "mail_port": 8025,
+            "mail_starttls": True,
+            "mail_verify_tls": False,
+            "mail_username": "eduid_mail",
+            "mail_password": "secret",
         }
 
         if "EDUID_CONFIG_YAML" not in os.environ:
             os.environ["EDUID_CONFIG_YAML"] = "YAML_CONFIG_NOT_USED"
 
         self.config = load_config(typ=QueueWorkerConfig, app_name="test", ns="queue", test_config=self.test_config)
-
         self.db.register_handler(EduidSignupEmail)
 
     async def asyncSetUp(self) -> None:
@@ -53,15 +62,19 @@ class TestMailWorker(QueueAsyncioTest):
     async def asyncTearDown(self) -> None:
         await super().asyncTearDown()
 
-    @patch("aiosmtplib.SMTP.connect")
-    @patch("aiosmtplib.SMTP.sendmail")
-    async def test_eduid_signup_mail_from_stream(self, mock_sendmail, mock_connect):
+    def run(self, result: Optional[TestResult] = None) -> Optional[TestResult]:
+        datadir = Path(__file__).with_name("data")
+        config = SMTPDFixConfig(filename=f"{datadir}/smtpdfix.env", override=True)
+        config.ssl_certs_path = datadir
+        with SMTPDFix(config=config) as smtpdfix:
+            self.smtpdfix = smtpdfix
+            return super().run(result)
+
+    async def test_eduid_signup_mail_from_stream(self):
         """
         Test that saved queue items are handled by the handle_new_item method
         """
         recipient = "test@example.com"
-        mock_sendmail.return_value = ({}, "OK")
-        mock_connect.return_value = SMTPResponse(250, "OK")
         expires_at = utc_now() + timedelta(minutes=5)
         discard_at = expires_at + timedelta(minutes=5)
         payload = EduidSignupEmail(
@@ -71,16 +84,15 @@ class TestMailWorker(QueueAsyncioTest):
         # Client saves new queue item
         self.db.save(queue_item)
         await self._assert_item_gets_processed(queue_item)
+        assert len(self.smtpdfix.messages) == 1
 
-    @patch("aiosmtplib.SMTP.connect")
     @patch("aiosmtplib.SMTP.sendmail")
-    async def test_eduid_signup_mail_from_stream_unrecoverable_error(self, mock_sendmail, mock_connect):
+    async def test_eduid_signup_mail_from_stream_unrecoverable_error(self, mock_sendmail):
         """
         Test that saved queue items are handled by the handle_new_item method
         """
         recipient = "test@example.com"
         mock_sendmail.return_value = ({recipient: SMTPResponse(550, "User unknown")}, "Some other message")
-        mock_connect.return_value = SMTPResponse(250, "OK")
         expires_at = utc_now() + timedelta(minutes=5)
         discard_at = expires_at + timedelta(minutes=5)
         payload = EduidSignupEmail(
@@ -91,9 +103,8 @@ class TestMailWorker(QueueAsyncioTest):
         self.db.save(queue_item)
         await self._assert_item_gets_processed(queue_item)
 
-    @patch("aiosmtplib.SMTP.connect")
     @patch("aiosmtplib.SMTP.sendmail")
-    async def test_eduid_signup_mail_from_stream_error_retry(self, mock_sendmail, mock_connect):
+    async def test_eduid_signup_mail_from_stream_error_retry(self, mock_sendmail):
         """
         Test that saved queue items are handled by the handle_new_item method
         """
@@ -102,7 +113,6 @@ class TestMailWorker(QueueAsyncioTest):
             {recipient: SMTPResponse(450, "Requested mail action not taken: mailbox unavailable")},
             "Some other message",
         )
-        mock_connect.return_value = SMTPResponse(250, "OK")
         expires_at = utc_now() + timedelta(minutes=5)
         discard_at = expires_at + timedelta(minutes=5)
         payload = EduidSignupEmail(

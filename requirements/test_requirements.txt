@@ -6,6 +6,10 @@
 #
 --index-url https://pypi.sunet.se/simple
 
+aiosmtpd==1.4.2 \
+    --hash=sha256:314f70b74cb8474882cef396b186fbfad8660c7b52be5c1937f3c31df14232a4 \
+    --hash=sha256:aa891d010d2097274189078c6ce2a59a167f3fb2e974e028b572a61e92e1549c
+    # via smtpdfix
 aiosmtplib==2.0.0 \
     --hash=sha256:188230c5baee6851244a87ebc3390b714815d7c15360953c672caf170acb5474 \
     --hash=sha256:514defa668b13b5c00a98c21c49fd87816e046fb3692e7ac8bbdda2310287fde
@@ -47,10 +51,16 @@ async-timeout==4.0.2 \
     # via
     #   -c main.txt
     #   redis
+atpublic==3.1.1 \
+    --hash=sha256:3098ee12d0107cc5009d61f4e80e5edcfac4cda2bdaa04644af75827cb121b18 \
+    --hash=sha256:37f714748e77b8a7b34d59b7b485fd452a0d5906be52cb1bd28d29a2bd84f295
+    # via aiosmtpd
 attrs==22.1.0 \
     --hash=sha256:29adc2665447e5191d0e7c568fde78b21f9672d344281d0c6e1ab085429b22b6 \
     --hash=sha256:86efa402f67bf2df34f51a335487cf46b1ec130d02b8d39fd248abfd30da551c
-    # via pytest
+    # via
+    #   aiosmtpd
+    #   pytest
 authlib==1.1.0 \
     --hash=sha256:0a270c91409fc2b7b0fbee6996e09f2ee3187358762111a9a4225c874b94e891 \
     --hash=sha256:be4b6a1dea51122336c210a6945b27a105b9ac572baffd15b07bcff4376c1523
@@ -360,6 +370,7 @@ cryptography==38.0.3 \
     #   pyopenssl
     #   pysaml2
     #   pyxmlsecurity
+    #   smtpdfix
 cssselect2==0.7.0 \
     --hash=sha256:1ccd984dab89fc68955043aca4e1b03e0cf29cad9880f6e28e3ba7a74b14aa5a \
     --hash=sha256:fd23a65bfd444595913f02fc71f6b286c29261e354c41d722ca7a261a49b5969
@@ -413,7 +424,10 @@ exceptiongroup==1.0.4 \
     --hash=sha256:542adf9dea4055530d6e1279602fa5cb11dab2395fa650b8674eaec35fc4a828 \
     --hash=sha256:bd14967b79cd9bdb54d97323216f8fdf533e278df937aa2a90089e7d6e06e5ec
     # via
+    #   -c
     #   -c main.txt
+    #   -r sub_main.in
+    #   main.txt
     #   -r sub_main.in
 fastapi==0.87.0 \
     --hash=sha256:07032e53df9a57165047b4f38731c38bdcc3be5493220471015e2b4b51b486a4 \
@@ -826,8 +840,8 @@ ndnkdf==0.3 \
     --hash=sha256:6d99674a4d5d7a9f6115c4f72a5fc1a60a583ecdec569d66f7562bcaabca6db3 \
     --hash=sha256:d1da09e6ea9a4f63b1d7cf001d11cd83f8e187022b046af605450bde7dd38e1c
     # via -r fastapi_requirements.in
-neo4j==5.2.1 \
-    --hash=sha256:6f9941a45624cd81629ef88abd84b15648be1487f7168c2c7774a664ef4cbb1f
+neo4j==5.3.0 \
+    --hash=sha256:0c1c7d8812eed60da0a442d1e0f35edbda248255703e506a081cb70e083b3b5c
     # via
     #   -c main.txt
     #   -r main.in
@@ -1023,14 +1037,12 @@ pycryptodome==3.15.0 \
     --hash=sha256:c77126899c4b9c9827ddf50565e93955cb3996813c18900c16b2ea0474e130e9 \
     --hash=sha256:d2a39a66057ab191e5c27211a7daf8f0737f23acbf6b3562b25a62df65ffcb7b \
     --hash=sha256:e244ab85c422260de91cda6379e8e986405b4f13dc97d2876497178707f87fc1 \
-    --hash=sha256:eb6fce570869e70cc8ebe68eaa1c26bed56d40ad0f93431ee61d400525433c54 \
     --hash=sha256:ecaaef2d21b365d9c5ca8427ffc10cebed9d9102749fd502218c23cb9a05feb5 \
     --hash=sha256:fd2184aae6ee2a944aaa49113e6f5787cdc5e4db1eb8edb1aea914bd75f33a0c \
     --hash=sha256:ff287bcba9fbeb4f1cccc1f2e90a08d691480735a611ee83c80a7d74ad72b9d9 \
     --hash=sha256:ff7ae90e36c1715a54446e7872b76102baa5c63aa980917f4aa45e8c78d1a3ec
     # via pyhsm
 pycryptodomex==3.15.0 \
-    --hash=sha256:04a5d6a17560e987272fc1763e9772a87689a08427b8cbdebe3ca7cba95d6156 \
     --hash=sha256:04cc393045a8f19dd110c975e30f38ed7ab3faf21ede415ea67afebd95a22380 \
     --hash=sha256:0776bfaf2c48154ab54ea45392847c1283d2fcf64e232e85565f858baedfc1fa \
     --hash=sha256:0fadb9f7fa3150577800eef35f62a8a24b9ddf1563ff060d9bd3af22d3952c8c \
@@ -1047,9 +1059,7 @@ pycryptodomex==3.15.0 \
     --hash=sha256:67e1e6a92151023ccdfcfbc0afb3314ad30080793b4c27956ea06ab1fb9bcd8a \
     --hash=sha256:6f5b6ba8aefd624834bc177a2ac292734996bb030f9d1b388e7504103b6fcddf \
     --hash=sha256:7341f1bb2dadb0d1a0047f34c3a58208a92423cdbd3244d998e4b28df5eac0ed \
-    --hash=sha256:781efd04ea6762bb2ef7d4fa632c9c89895433744b6c345bd0c239d5ab058dfc \
     --hash=sha256:78d9621cf0ea35abf2d38fa2ca6d0634eab6c991a78373498ab149953787e5e5 \
-    --hash=sha256:7db44039cc8b449bd08ab338a074e87093bd170f1a1b76d2fcef8a3e2ee11199 \
     --hash=sha256:8eecdf9cdc7343001d047f951b9cc805cd68cb6cd77b20ea46af5bffc5bd3dfb \
     --hash=sha256:94c7b60e1f52e1a87715571327baea0733708ab4723346598beca4a3b6879794 \
     --hash=sha256:996e1ba717077ce1e6d4849af7a1426f38b07b3d173b879e27d5e26d2e958beb \
@@ -1286,6 +1296,7 @@ pytest==7.2.0 \
     # via
     #   -r test_requirements.in
     #   pytest-cov
+    #   smtpdfix
 pytest-cov==4.0.0 \
     --hash=sha256:2feb1b751d66a8bd934e5edfa2e961d11309dc37b73b0eabe73b5945fee20f6b \
     --hash=sha256:996b79efde6433cdbd0088872dbc5fb3ed7fe1578b68cdbba634f14bb8dd0470
@@ -1307,7 +1318,9 @@ python-dateutil==2.8.2 \
 python-dotenv==0.21.0 \
     --hash=sha256:1684eb44636dd462b66c3ee016599815514527ad99965de77f43e0944634a7e5 \
     --hash=sha256:b77d08274639e3d34145dfa6c7008e66df0f04b7be7a75fd0d5292c191d79045
-    # via uvicorn
+    # via
+    #   smtpdfix
+    #   uvicorn
 python-jose==3.3.0 \
     --hash=sha256:55779b5e6ad599c6336191246e95eb2293a9ddebd555f796a65f838f07e5d78a \
     --hash=sha256:9b1376b023f8b298536eedd47ae1089bcdb848f1535ab30555cd92002d78923a
@@ -1581,6 +1594,10 @@ six==1.16.0 \
     #   python-multipart
     #   pytool
     #   pyxmlsecurity
+smtpdfix==0.4.1 \
+    --hash=sha256:07cff3b9d66b3db649b2cdb26ee5b006a4cc4def7853a6576ee158241c69ed42 \
+    --hash=sha256:606f4328d3e564c466c2c7041e3773e6a7fbb80e0ce7ba3545d665224d5491d8
+    # via -r test_requirements.in
 sniffio==1.3.0 \
     --hash=sha256:e60305c5e5d314f5389259b7f22aaa33d8f7dee49763119234af3755c55b9101 \
     --hash=sha256:eecefdce1e5bbfb7ad2eeaabf7c1eeb404d7757c379bd1f7e5cce9d8bf425384
@@ -1621,6 +1638,8 @@ tomli==2.0.1 \
     --hash=sha256:939de3e7a6161af0c887ef91b7d41a53e7c5a1ca976325f429cb46ea9bc30ecc \
     --hash=sha256:de526c12914f0c550d15924c62d72abc48d6fe7364aa87328337a31007fe8a4f
     # via
+    #   -c main.txt
+    #   -r sub_main.in
     #   -c main.txt
     #   -r sub_main.in
 tqdm==4.64.1 \
