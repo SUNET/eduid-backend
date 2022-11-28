@@ -12,3 +12,4 @@ mypy
 pytest
 pytest-cov
 respx
+smtpdfix
