@@ -32,7 +32,6 @@
 from abc import ABCMeta, abstractmethod
 from typing import Any, Mapping
 
-
 from eduid.userdb.actions.action import Action, ActionResult
 
 

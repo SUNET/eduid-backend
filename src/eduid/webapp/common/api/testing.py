@@ -39,8 +39,8 @@ from contextlib import contextmanager
 from copy import deepcopy
 from typing import Any, Dict, Iterable, List, Mapping, Optional
 
-from flask.wrappers import Response
 from flask.testing import FlaskClient
+from flask.wrappers import Response
 
 from eduid.common.config.base import RedisConfig
 from eduid.common.rpc.msg_relay import NavetData

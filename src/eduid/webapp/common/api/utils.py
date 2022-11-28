@@ -4,7 +4,7 @@ import logging
 import os
 import re
 from datetime import datetime, timedelta
-from typing import List, Optional
+from typing import Any, List, Optional
 from urllib.parse import urlparse
 from uuid import uuid4
 
