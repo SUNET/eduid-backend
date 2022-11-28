@@ -112,7 +112,7 @@ class TestDB(MongoTestCase):
 
     def test_get_verified_users_count_SVIPE(self):
         count = self.amdb.get_verified_users_count(identity_type=IdentityType.SVIPE)
-        assert count == 0
+        assert count == 1
 
     def test_get_verified_users_count_None(self):
         count = self.amdb.get_verified_users_count()

@@ -5,7 +5,8 @@ from datetime import date
 from enum import unique
 from typing import Any, Optional
 
-from pydantic import BaseModel, Field
+from iso3166 import countries
+from pydantic import BaseModel, Field, validator
 
 from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.common.session import session
@@ -94,6 +95,15 @@ class SvipeDocumentUserInfo(UserInfoBase):
     name: Optional[str]
     nonce: str
     svipe_id: str = Field(alias="com.svipe:svipeid")
+
+    @validator("document_nationality")
+    def iso_3166_1_alpha_3_to_alpha2(cls, v):
+        # translate ISO 3166-1 alpha-3 to alpha-2 to match the format used in eduid-userdb
+        try:
+            country = countries.get(v)
+        except KeyError:
+            raise ValueError(f"country code {v} not found in iso3166")
+        return country.alpha2
 
 
 class SvipeTokenResponse(BaseModel):
