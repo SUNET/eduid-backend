@@ -5,7 +5,7 @@ it with all attributes common to all eduID services.
 import os
 from abc import ABCMeta
 from sys import stderr
-from typing import Dict, TypeVar
+from typing import Any, Dict, TypeVar
 
 from cookies_samesite_compat import CookiesSameSiteCompatMiddleware
 from flask import Flask
@@ -49,7 +49,11 @@ class EduIDBaseApp(Flask, metaclass=ABCMeta):
     """
 
     def __init__(
-        self, config: EduIDBaseAppConfig, init_central_userdb: bool = True, handle_exceptions: bool = True, **kwargs
+        self,
+        config: EduIDBaseAppConfig,
+        init_central_userdb: bool = True,
+        handle_exceptions: bool = True,
+        **kwargs: Any,
     ):
         """
         :param config: EduID Flask app configuration subclass
