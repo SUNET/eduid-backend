@@ -296,7 +296,9 @@ class AuthnInfoStore:
         # return meaningful data for multi=True, so it is not possible to figure out
         # which entries were actually updated :(
         for this in cred_ids:
-            self.collection.save({"_id": this, "success_ts": ts})
+            self.collection.update_one(
+                filter={"_id": this}, update={"$set": {"_id": this, "success_ts": ts}}, upsert=True
+            )
         return None
 
     def update_user(
@@ -359,10 +361,10 @@ class AuthnInfoStore:
 
     def get_user_authn_info(self, user: IdPUser) -> UserAuthnInfo:
         """Load stored Authn information for user."""
-        data = self.collection.find({"_id": user.user_id})
-        if not data.count():
+        docs = list(self.collection.find({"_id": user.user_id}))
+        if len(docs) == 0:
             return UserAuthnInfo(failures_this_month=0, last_used_credentials=[])
-        return UserAuthnInfo.from_dict(data[0])
+        return UserAuthnInfo.from_dict(docs[0])
 
     def get_credential_last_used(self, cred_id: str) -> Optional[datetime]:
         """Get the timestamp for when a specific credential was last used successfully.
@@ -370,10 +372,10 @@ class AuthnInfoStore:
         :return: Time of last successful use, or None
         """
         # Locate documents written by credential_success() above
-        data = self.collection.find({"_id": cred_id})
-        if not data.count():
+        docs = list(self.collection.find({"_id": cred_id}))
+        if len(docs) == 0:
             return None
-        _success_ts = data[0]["success_ts"]
+        _success_ts = docs[0]["success_ts"]
         if not isinstance(_success_ts, datetime):
             raise ValueError(f"success_ts is not a datetime ({repr(_success_ts)})")
         return _success_ts

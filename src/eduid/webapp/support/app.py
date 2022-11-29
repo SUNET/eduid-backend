@@ -37,6 +37,7 @@ from flask import current_app
 from jinja2.exceptions import UndefinedError
 
 from eduid.common.config.parsers import load_config
+from eduid.common.utils import urlappend
 from eduid.userdb.support import db
 from eduid.webapp.common.authn.middleware import AuthnBaseApp
 from eduid.webapp.support.settings.common import SupportConfig
@@ -91,6 +92,16 @@ def register_template_funcs(app: SupportApp) -> None:
         except UndefinedError:  # attribute did not exist
             l = list()
         return l
+
+    @app.template_global()
+    def static_url_for(f: str, version: Optional[str] = None) -> str:
+        """
+        Get the static url for a file and optionally have a version argument appended for cache busting.
+        """
+        static_url = current_support_app.conf.eduid_static_url
+        if version is not None:
+            static_url = urlappend(static_url, version)
+        return urlappend(static_url, f)
 
     return None
 

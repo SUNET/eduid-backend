@@ -2,20 +2,18 @@
 
 __author__ = "masv"
 
-import json
 import datetime
-from typing import Dict, Optional, Any, Mapping, List
+import json
+from typing import Any, Dict, Optional
 
 import pkg_resources
 from bson import ObjectId
+from fastapi import status
 from fastapi.testclient import TestClient
 from httpx import Headers
 from jwcrypto import jwt
 from pydantic import BaseModel
-
 from requests import Response
-
-from fastapi import status
 
 from eduid.common.clients.gnap_client.base import GNAPBearerTokenMixin
 from eduid.common.testing_base import CommonTestCase

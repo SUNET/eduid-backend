@@ -57,7 +57,7 @@ class AsyncQueueDB(QueueDB):
         if isinstance(item_id, str):
             item_id = ObjectId(item_id)
 
-        spec = {
+        spec: Dict[str, Any] = {
             "_id": item_id,
         }
 

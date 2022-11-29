@@ -1,6 +1,5 @@
 import copy
 import logging
-import warnings
 from typing import Any, Dict, List, Mapping, Optional, Union
 
 import pymongo
@@ -33,16 +32,12 @@ class MongoDB(object):
         _options = self._parsed_uri.get("options")
         if connection_factory is None:
             connection_factory = pymongo.MongoClient
-        elif connection_factory == pymongo.MongoReplicaSetClient:
-            warnings.warn(
-                f"{__name__} initialized with connection_factory {connection_factory} use pymongo.MongoClient instead.",
-                DeprecationWarning,
-            )
         elif connection_factory.__class__.__name__ == "AsyncIOMotorClient":
             from motor import motor_asyncio
 
             connection_factory = motor_asyncio.AsyncIOMotorClient
 
+        assert _options is not None  # please mypy
         if "replicaSet" in _options and _options["replicaSet"] is not None:
             kwargs["replicaSet"] = _options["replicaSet"]
 
@@ -55,7 +50,13 @@ class MongoDB(object):
         self._db_uri = _format_mongodb_uri(self._parsed_uri)
 
         try:
-            self._connection = connection_factory(host=self._db_uri, tz_aware=True, **kwargs)
+            self._connection = connection_factory(
+                host=self._db_uri,
+                tz_aware=True,
+                # TODO: switch uuidRepresentation to "standard" when we made sure all UUIDs are stored as strings
+                uuidRepresentation="pythonLegacy",
+                **kwargs,
+            )
         except PyMongoError as e:
             raise MongoConnectionError("Error connecting to mongodb {!r}: {}".format(self, e))
 
@@ -352,7 +353,18 @@ class BaseDB(object):
             if name not in current_indexes:
                 key = params.pop("key")
                 params["name"] = name
-                self._coll.ensure_index(key, **params)
+                self._coll.create_index(key, **params)
+
+    def legacy_save(self, doc: Dict[str, Any]) -> str:
+        """
+        Only used in tests and should probably be removed when time allows.
+        pymongo removed the save method in version 4.0.
+        """
+        if "_id" in doc:
+            self._coll.replace_one({"_id": doc["_id"]}, doc, upsert=True)
+            return doc["_id"]
+        res = self._coll.insert_one(doc)
+        return res.inserted_id
 
     def close(self):
         self._db.close()

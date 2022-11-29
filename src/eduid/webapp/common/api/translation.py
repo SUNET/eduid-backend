@@ -11,7 +11,7 @@ from eduid.webapp.common.session import session
 __author__ = "lundberg"
 
 
-def init_babel(app: EduIDBaseApp) -> None:
+def init_babel(app: EduIDBaseApp) -> Babel:
     """
     :param app: Flask app
     """
@@ -19,11 +19,11 @@ def init_babel(app: EduIDBaseApp) -> None:
     # Add pkg_resource path to translation directory as the default location does not work
     pkg_translations_dir = pkg_resources.resource_filename("eduid.webapp", "translations")
     app.config["BABEL_TRANSLATION_DIRECTORIES"] = f"{conf_translations_dirs};{pkg_translations_dir}"
-    app.babel = Babel(app)
-    app.logger.info("Translation directories: {}".format([path for path in app.babel.translation_directories]))
-    app.logger.info("Available translations: {}".format(app.babel.list_translations()))
+    babel = Babel(app)
+    app.logger.info("Translation directories: {}".format([path for path in babel.translation_directories]))
+    app.logger.info("Available translations: {}".format(babel.list_translations()))
 
-    @app.babel.localeselector
+    @babel.localeselector
     def get_locale() -> Optional[str]:
         lang: Optional[str]  # mypy 0.910 needs this
         # if a user is logged in, use the locale from the user settings
@@ -37,4 +37,4 @@ def init_babel(app: EduIDBaseApp) -> None:
         app.logger.debug(f"Language (best match) for request: {lang}")
         return lang
 
-    return None
+    return babel

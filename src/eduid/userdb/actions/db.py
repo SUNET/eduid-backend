@@ -67,6 +67,7 @@ class ActionDB(BaseDB):
         filter_: Optional[dict] = None,
         match_no_session: bool = True,
     ) -> Cursor:
+        query: Dict[str, Any]
         try:
             query = {"user_oid": ObjectId(str(eppn_or_userid))}
         except InvalidId:

@@ -98,11 +98,6 @@ class ResetPasswordTests(EduidAPITestCase):
         config.update(SAMPLE_WEBAUTHN_APP_CONFIG)
         return config
 
-    def tearDown(self):
-        super(ResetPasswordTests, self).tearDown()
-        with self.app.app_context():
-            self.app.central_userdb._drop_whole_collection()
-
     # Parameterized test methods
 
     @patch("eduid.common.rpc.mail_relay.MailRelay.sendmail")
@@ -549,7 +544,7 @@ class ResetPasswordTests(EduidAPITestCase):
         verified_phone_numbers = user.phone_numbers.verified
         self.assertEqual(1, len(verified_phone_numbers))
         verified_identities = user.identities.verified
-        self.assertEqual(2, len(verified_identities))
+        self.assertEqual(3, len(verified_identities))
 
     def test_get_zxcvbn_terms(self):
         with self.app.test_request_context():
@@ -823,7 +818,7 @@ class ResetPasswordTests(EduidAPITestCase):
         verified_phone_numbers = user.phone_numbers.verified
         self.assertEqual(len(verified_phone_numbers), 1)
         verified_identities = user.identities.verified
-        self.assertEqual(len(verified_identities), 2)
+        self.assertEqual(len(verified_identities), 3)
 
     def test_post_reset_password_custom(self):
         data2 = {"password": "cust0m-p4ssw0rd"}
@@ -907,7 +902,7 @@ class ResetPasswordTests(EduidAPITestCase):
         verified_phone_numbers = user.phone_numbers.verified
         self.assertEqual(1, len(verified_phone_numbers))
         verified_identities = user.identities.verified
-        self.assertEqual(len(verified_identities), 2)
+        self.assertEqual(len(verified_identities), 3)
 
     @patch("eduid.webapp.reset_password.views.reset_password.verify_phone_number")
     def test_post_reset_password_secure_phone_verify_fail(self, mock_verify: Any):
@@ -962,7 +957,7 @@ class ResetPasswordTests(EduidAPITestCase):
         verified_phone_numbers = user.phone_numbers.verified
         self.assertEqual(1, len(verified_phone_numbers))
         verified_identities = user.identities.verified
-        self.assertEqual(len(verified_identities), 2)
+        self.assertEqual(len(verified_identities), 3)
 
     def test_post_reset_password_secure_token_custom_pw(self):
         response = self._post_reset_password_secure_token(custom_password="T%7j 8/tT a0=b")
@@ -1039,7 +1034,7 @@ class ResetPasswordTests(EduidAPITestCase):
         verified_phone_numbers = user.phone_numbers.verified
         self.assertEqual(1, len(verified_phone_numbers))
         verified_identities = user.identities.verified
-        self.assertEqual(len(verified_identities), 2)
+        self.assertEqual(len(verified_identities), 3)
 
     def test_post_reset_password_secure_external_mfa_no_mfa_auth(self):
         external_mfa_state = {"success": False, "issuer": None}

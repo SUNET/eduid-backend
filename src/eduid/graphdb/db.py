@@ -32,7 +32,7 @@ class Neo4jDB(object):
 
         # Use username and password from uri if auth not in config
         self._username = parse_result.username
-        if "auth" not in config:
+        if "auth" not in config and (self._username and parse_result.password):
             config["auth"] = basic_auth(self._username, parse_result.password)
 
         self._driver = GraphDatabase.driver(self._db_uri, **config)
@@ -40,7 +40,7 @@ class Neo4jDB(object):
     def __repr__(self) -> str:
         return f'<eduID {self.__class__.__name__}: {getattr(self, "_username", None)}@{getattr(self, "_db_uri", None)}>'
 
-    def count_nodes(self, label: Optional[str] = None) -> int:
+    def count_nodes(self, label: Optional[str] = None) -> Optional[int]:
         match_statement = "MATCH ()"
         if label:
             match_statement = f"MATCH(:{label})"
@@ -49,7 +49,10 @@ class Neo4jDB(object):
              RETURN count(*) as count
              """
         with self.driver.session() as session:
-            return session.run(q).single()["count"]
+            record = session.run(q).single()
+            if record:
+                return record["count"]
+        return None
 
     @property
     def db_uri(self) -> str:

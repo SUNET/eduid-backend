@@ -5,7 +5,7 @@ it with all attributes common to all eduID services.
 import os
 from abc import ABCMeta
 from sys import stderr
-from typing import Dict, TypeVar
+from typing import Any, Dict, TypeVar
 
 from cookies_samesite_compat import CookiesSameSiteCompatMiddleware
 from flask import Flask
@@ -32,7 +32,6 @@ from eduid.webapp.common.api.debug import init_app_debug
 from eduid.webapp.common.api.exceptions import init_exception_handlers, init_sentry
 from eduid.webapp.common.api.middleware import PrefixMiddleware
 from eduid.webapp.common.api.request import Request
-from eduid.webapp.common.api.utils import init_template_functions
 from eduid.webapp.common.authn.utils import no_authn_views
 from eduid.webapp.common.session.eduid_session import SessionFactory
 
@@ -50,7 +49,11 @@ class EduIDBaseApp(Flask, metaclass=ABCMeta):
     """
 
     def __init__(
-        self, config: EduIDBaseAppConfig, init_central_userdb: bool = True, handle_exceptions: bool = True, **kwargs
+        self,
+        config: EduIDBaseAppConfig,
+        init_central_userdb: bool = True,
+        handle_exceptions: bool = True,
+        **kwargs: Any,
     ):
         """
         :param config: EduID Flask app configuration subclass
@@ -92,7 +95,6 @@ class EduIDBaseApp(Flask, metaclass=ABCMeta):
         if handle_exceptions:
             init_exception_handlers(self)
         init_sentry(self)
-        init_template_functions(self)
         CORS(self)
         self.stats = init_app_stats(config)
         self.session_interface = SessionFactory(config)

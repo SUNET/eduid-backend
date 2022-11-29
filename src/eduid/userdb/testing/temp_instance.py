@@ -77,9 +77,10 @@ class EduidTemporaryInstance(ABC):
                 logger.info(f"{self} instance started after {age} seconds (attempt {count})")
                 break
             if age > max_retry_seconds:
-                logger.error(f"{self} instance failed to start after {age} seconds")
+                logger.error(f"{self} instance on port {self.port} failed to start after {age} seconds")
                 logger.error(f"{self} instance output:\n{self.output}")
-                raise RuntimeError(f"{self} instance failed to start after {age} seconds")
+                self.shutdown()
+                raise RuntimeError(f"{self} instance on port {self.port} failed to start after {age} seconds")
             if count <= 3:
                 # back off slightly
                 interval += interval
