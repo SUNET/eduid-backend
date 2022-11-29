@@ -46,7 +46,7 @@ from eduid.userdb.fixtures.email_addresses import (
     johnsmith_example_com_old,
     johnsmith_example_org,
 )
-from eduid.userdb.fixtures.identity import verified_eidas_identity, verified_nin_identity
+from eduid.userdb.fixtures.identity import verified_eidas_identity, verified_nin_identity, verified_svipe_identity
 from eduid.userdb.fixtures.ladok import dashboard_ladok
 from eduid.userdb.fixtures.locked_identities import dashboard_locked_nin
 from eduid.userdb.fixtures.nins import dashboard_primary_nin, dashboard_verified_nin
@@ -191,7 +191,7 @@ new_user_example = User(
     modified_ts=datetime.fromisoformat("2013-09-02T10:23:25"),
     terminated=None,
     mail_addresses=MailAddressList(elements=[johnsmith_example_com, johnsmith2_example_com]),
-    identities=IdentityList(elements=[verified_nin_identity, verified_eidas_identity]),
+    identities=IdentityList(elements=[verified_nin_identity, verified_eidas_identity, verified_svipe_identity]),
     phone_numbers=PhoneNumberList(elements=[dashboard_primary_phone, dashboard_unverified_phone]),
     credentials=CredentialList(elements=[signup_password]),
     entitlements=[
@@ -217,7 +217,7 @@ new_user_example2 = User(
     modified_ts=datetime.fromisoformat("2013-09-02T10:23:25"),
     terminated=None,
     mail_addresses=MailAddressList(elements=[johnsmith_example_com, johnsmith2_example_com]),
-    identities=IdentityList(elements=[verified_nin_identity, verified_eidas_identity]),
+    identities=IdentityList(elements=[verified_nin_identity, verified_eidas_identity, verified_svipe_identity]),
     phone_numbers=PhoneNumberList(elements=[dashboard_primary_phone, dashboard_unverified_phone]),
     credentials=CredentialList(elements=[signup_password]),
     entitlements=[

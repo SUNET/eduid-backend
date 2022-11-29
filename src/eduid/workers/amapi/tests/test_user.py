@@ -4,7 +4,7 @@ __author__ = "masv"
 
 import json
 import datetime
-from typing import Dict, Optional, Any
+from typing import Any, Dict, Optional
 
 import pkg_resources
 from bson import ObjectId

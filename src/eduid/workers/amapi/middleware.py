@@ -1,3 +1,4 @@
+import fnmatch
 import json
 import logging
 from typing import List
@@ -10,9 +11,6 @@ from starlette.responses import PlainTextResponse
 
 from eduid.workers.amapi.config import EndpointRestriction
 from eduid.workers.amapi.context_request import ContextRequestMixin
-
-import fnmatch
-
 from eduid.workers.amapi.utils import AuthnBearerToken
 
 logger = logging.getLogger(__name__)

@@ -120,6 +120,7 @@ def _authn(
     current_app.logger.debug(
         f"Stored RP_AuthnRequest[{OIDCState(state)}]: {session.svipe_id.rp.authns[OIDCState(state)]}"
     )
+    current_app.logger.debug(f"returning url: {auth_url}")
     return AuthnResult(authn_id=OIDCState(state), url=auth_url, authn_req=session.svipe_id.rp.authns[OIDCState(state)])
 
 
@@ -129,12 +130,16 @@ def authn_callback(user) -> WerkzeugResponse:
     """
     This is the callback endpoint for the Svipe ID OIDC flow.
     """
+    current_app.logger.debug("authn_callback called")
+    current_app.logger.debug(f"request.args: {request.args}")
     authn_req = None
-    oidc_state = request.args.get("state")
-    if oidc_state is not None:
-        authn_req = session.svipe_id.rp.authns.get(OIDCState(oidc_state))
+    oidc_state = None
+    _oidc_state = request.args.get("state")
+    if _oidc_state is not None:
+        oidc_state = OIDCState(_oidc_state)
+        authn_req = session.svipe_id.rp.authns.get(oidc_state)
 
-    if not authn_req:
+    if not oidc_state or not authn_req:
         # Perhaps an authn response received out of order - abort without destroying state
         # (User makes two requests, A and B. Response B arrives, user is happy and proceeds with their work.
         #  Then response A arrives late. Just silently abort, no need to mess up the users' session.)
@@ -168,6 +173,14 @@ def authn_callback(user) -> WerkzeugResponse:
 
     try:
         token_response = current_app.oidc_client.svipe.authorize_access_token()
+        current_app.logger.debug(f"Got token response: {token_response}")
+        user_response = current_app.oidc_client.svipe.userinfo()
+        current_app.logger.debug(f"Got user response: {user_response}")
+        # TODO: look in to why we are not getting a full userinfo in token response anymore
+        if not token_response.get("userinfo", dict).get("sub") == user_response.get("sub"):  # sub must match
+            raise OAuthError("sub mismatch")
+        user_response.update(token_response.get("userinfo", dict))
+        current_app.logger.debug(f"merged user response and token respose userinfo: {user_response}")
     except (OAuthError, BadRequestKeyError):
         # catch any exception from the oidc client and also exceptions about missing request arguments
         current_app.logger.exception(f"Failed to get token response from Svipe ID")
@@ -190,7 +203,7 @@ def authn_callback(user) -> WerkzeugResponse:
     action = get_action(default_action=None, authndata=authn_req)
     backdoor = check_magic_cookie(config=current_app.conf)
     args = ACSArgs(
-        session_info=token_response,
+        session_info=user_response,
         authn_req=authn_req,
         proofing_method=proofing_method,
         backdoor=backdoor,

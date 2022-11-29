@@ -76,7 +76,7 @@ class TestMongoDB(TestCase):
     def test_uri_with_options(self):
         uri = "mongodb://john:s3cr3t@db.example.com:27017/?ssl=true&replicaSet=rs9"
         mdb = db.MongoDB(uri, db_name="testdb", connection_factory=DummyConnection)
-        self.assertEqual(mdb.sanitized_uri, "mongodb://john:secret@db.example.com/testdb?replicaset=rs9&ssl=true")
+        self.assertEqual(mdb.sanitized_uri, "mongodb://john:secret@db.example.com/testdb?replicaset=rs9&tls=true")
 
 
 class TestDB(MongoTestCase):
@@ -112,7 +112,7 @@ class TestDB(MongoTestCase):
 
     def test_get_verified_users_count_SVIPE(self):
         count = self.amdb.get_verified_users_count(identity_type=IdentityType.SVIPE)
-        assert count == 0
+        assert count == 1
 
     def test_get_verified_users_count_None(self):
         count = self.amdb.get_verified_users_count()

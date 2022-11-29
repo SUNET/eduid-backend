@@ -147,7 +147,7 @@ class CORSMixin(BaseModel):
     cors_methods: Union[str, List[str]] = ["GET", "HEAD", "POST", "OPTIONS", "PUT", "PATCH", "DELETE"]
     # The origin(s) to allow requests from. An origin configured here that matches the value of the Origin header in a
     # preflight OPTIONS request is returned as the value of the Access-Control-Allow-Origin response header.
-    cors_origins: Union[str, List[str], Pattern] = [r"^eduid.se$", r".*\.eduid\.se$"]
+    cors_origins: Union[str, List[str], Pattern] = [r"^eduid\.se$", r".*\.eduid\.se$"]
     # The series of regular expression and (optionally) associated CORS options to be applied to the given resource
     # path.
     # If the value is a dictionary, it’s keys must be regular expressions matching resources, and the values must be
@@ -383,7 +383,7 @@ class EduIDBaseAppConfig(RootConfig, LoggingConfigMixin, StatsConfigMixin, Redis
     # for these URLs will be served, rather than redirected to the authn service.
     # The list is a list of regex that are matched against the path of the
     # requested URL ex. ^/test$.
-    no_authn_urls: list = Field(default=["^/status/healthy$", "^/status/sanity-check$"])
+    no_authn_urls: list[str] = Field(default=["^/status/healthy$", "^/status/sanity-check$"])
     status_cache_seconds: int = 10
     # All AuthnBaseApps need this to redirect not-logged-in requests to the authn service
     token_service_url: str

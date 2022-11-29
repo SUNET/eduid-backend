@@ -29,9 +29,9 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-from dataclasses import dataclass
 import logging
 from abc import ABC
+from dataclasses import dataclass
 from typing import Any, Dict, Generic, List, Mapping, Optional, TypeVar, Union
 
 from bson import ObjectId
@@ -317,7 +317,7 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
             extra_debug = pprint.pformat(user.to_dict(), width=120)
             logger.debug(f"Extra debug:\n{extra_debug}")
         else:
-            test_doc = {"_id": user.user_id}
+            test_doc: Dict[str, Any] = {"_id": user.user_id}
             if check_sync:
                 test_doc["modified_ts"] = modified
             result = self._coll.replace_one(test_doc, user.to_dict(), upsert=(not check_sync))

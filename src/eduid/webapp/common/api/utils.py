@@ -4,15 +4,15 @@ import logging
 import os
 import re
 from datetime import datetime, timedelta
-from typing import List, Optional
+from typing import Any, List, Optional
 from urllib.parse import urlparse
 from uuid import uuid4
 
 import bcrypt
-from flask import Request, current_app
+from flask import current_app
+from flask.wrappers import Request
 
 from eduid.common.misc.timeutil import utc_now
-from eduid.common.utils import urlappend
 from eduid.userdb import User, UserDB
 from eduid.userdb.exceptions import MultipleUsersReturned, UserDBValueError
 from eduid.webapp.common.api.exceptions import ApiException
@@ -24,7 +24,7 @@ def get_unique_hash() -> str:
     return str(uuid4())
 
 
-def get_short_hash(entropy=10) -> str:
+def get_short_hash(entropy: int = 10) -> str:
     return uuid4().hex[:entropy]
 
 
@@ -34,7 +34,7 @@ def make_short_code(digits: int = 6) -> str:
     return str(code).zfill(digits)
 
 
-def update_modified_ts(user):
+def update_modified_ts(user: User) -> None:
     """
     When loading a user from the central userdb, the modified_ts has to be
     loaded from the private userdb (since it is not propagated to 'attributes'
@@ -52,13 +52,13 @@ def update_modified_ts(user):
     except UserDBValueError:
         logger.debug(f"User {user} has no id, setting modified_ts to None")
         user.modified_ts = None
-        return
+        return None
 
     private_user = current_app.private_userdb.get_user_by_id(userid)
     if private_user is None:
         logger.debug(f"User {user} not found in {current_app.private_userdb}, setting modified_ts to None")
         user.modified_ts = None
-        return
+        return None
 
     if private_user.modified_ts is None:
         private_user.modified_ts = datetime.utcnow()  # use current time
@@ -170,24 +170,6 @@ def get_flux_type(req: Request, suffix: str) -> str:
     return flux_type
 
 
-def get_static_url_for(f: str, version: Optional[str] = None) -> str:
-    """
-    Get the static url for a file and optionally have a version argument appended for cache busting.
-    """
-    static_url = current_app.conf.eduid_static_url
-    if version is not None:
-        static_url = urlappend(current_app.conf.eduid_static_url, version)
-    return urlappend(static_url, f)
-
-
-def init_template_functions(app):
-    @app.template_global()
-    def static_url_for(f: str, version: Optional[str] = None) -> str:
-        return get_static_url_for(f, version)
-
-    return app
-
-
 def sanitise_redirect_url(redirect_url: Optional[str], safe_default: str = "/") -> str:
     """
     Make sure the URL provided in relay_state is safe and does
@@ -235,7 +217,10 @@ def hash_password(password: str) -> str:
     :param password: password as plaintext
     """
     password = "".join(password.split())
-    return bcrypt.hashpw(password, bcrypt.gensalt())
+    ret: Any = bcrypt.hashpw(password, bcrypt.gensalt())
+    if not isinstance(ret, str):
+        raise TypeError("bcrypt.hashpw returned a non-string value")
+    return ret
 
 
 def check_password_hash(password: str, hashed: Optional[str]) -> bool:
@@ -245,7 +230,10 @@ def check_password_hash(password: str, hashed: Optional[str]) -> bool:
     if hashed is None:
         return False
     password = "".join(password.split())
-    return bcrypt.checkpw(password, hashed)
+    ret: Any = bcrypt.checkpw(password, hashed)
+    if not isinstance(ret, bool):
+        raise TypeError(f"bcrypt.checkpw returned {ret} which is not a bool")
+    return ret
 
 
 def get_zxcvbn_terms(user: User) -> List[str]:
@@ -255,7 +243,7 @@ def get_zxcvbn_terms(user: User) -> List[str]:
     :param user: User
     :return: List of user info
     """
-    user_input = []
+    user_input: list[str] = []
     # Personal info
     if user.display_name:
         for part in user.display_name.split():

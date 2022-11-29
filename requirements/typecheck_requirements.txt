@@ -162,9 +162,9 @@ types-pyyaml==6.0.12.2 \
     --hash=sha256:1e94e80aafee07a7e798addb2a320e32956a373f376655128ae20637adb2655b \
     --hash=sha256:6840819871c92deebe6a2067fb800c11b8a063632eb4e3e755914e7ab3604e83
     # via -r typecheck_requirements.in
-types-redis==4.3.21.4 \
-    --hash=sha256:3955c5682f926a1aaee13ed5bc0a37521115b0b8ffd6cd457facf517999abe93 \
-    --hash=sha256:cf8a94ac9efbeb6459fd1aa05dbb977fc59c1022ebe8f72bc0bae57df136105d
+types-redis==4.3.21.5 \
+    --hash=sha256:0eb90bb7a20fbc3c2307f71a08179e37feee23d9922f3614daa75fd3a8e7506d \
+    --hash=sha256:4be36676840606c536fa43de0221141699962499318a9fd7c75202506d19e1d2
     # via -r typecheck_requirements.in
 types-requests==2.28.11.5 \
     --hash=sha256:091d4a5a33c1b4f20d8b1b952aa8fa27a6e767c44c3cf65e56580df0b05fd8a9 \
@@ -174,9 +174,9 @@ types-simplejson==3.18.0.0 \
     --hash=sha256:857adb13190abd65d0d103be965152e79a6842c5663e01e8681bde1895713f52 \
     --hash=sha256:f8a8428f753574fa3b7eb290756776f0fb6b4ad9cae72bf8c0c9534eeda6398c
     # via -r typecheck_requirements.in
-types-six==1.16.21.3 \
-    --hash=sha256:0f231cc67813264a733d2aca3b588fa74a2cea827e08ce2532b974a2ddafe5b0 \
-    --hash=sha256:5af96a017d6a4550a1c0efabed2abe7110bedf5afa5feb62aba4a6722ee0c851
+types-six==1.16.21.4 \
+    --hash=sha256:3849354bd07b9274436aaa7d5d834594d8f0aa74581f88c632188c58f2abed23 \
+    --hash=sha256:daaf1b506137d37257fad7a747857c57d5331611919d0d94b8195a06bdbc02af
     # via -r typecheck_requirements.in
 types-toml==0.10.8.1 \
     --hash=sha256:171bdb3163d79a520560f24ba916a9fc9bff81659c5448a9fea89240923722be \

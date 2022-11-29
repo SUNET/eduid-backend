@@ -55,7 +55,7 @@ class EmailApp(AuthnBaseApp):
         self.am_relay = AmRelay(config)
         self.mail_relay = MailRelay(config)
 
-        translation.init_babel(self)
+        self.babel = translation.init_babel(self)
 
         self.private_userdb = EmailProofingUserDB(config.mongo_uri)
         self.proofing_statedb = EmailProofingStateDB(config.mongo_uri)

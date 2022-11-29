@@ -32,13 +32,7 @@
 from abc import ABCMeta, abstractmethod
 from typing import Any, Mapping
 
-from flask import request
-
-from eduid.common.config.base import EduidEnvironment
-from eduid.common.utils import urlappend
 from eduid.userdb.actions.action import Action, ActionResult
-from eduid.webapp.actions.app import current_actions_app as current_app
-from eduid.webapp.common.api.utils import get_static_url_for
 
 
 class ActionError(Exception):
@@ -168,19 +162,7 @@ class ActionPlugin(object):
         :returns: the url
         :raise: ActionPlugin.ActionError
         """
-        path = current_app.conf.bundles_path
-        version = current_app.conf.bundles_version
-        feature_cookie = request.cookies.get(current_app.conf.bundles_feature_cookie)
-        if feature_cookie and feature_cookie in current_app.conf.bundles_feature_version:
-            version = current_app.conf.bundles_feature_version[feature_cookie]
-        # Default to the right bundle for production
-        bundle_name = f"eduid_action.{self.PLUGIN_NAME}.js"
-        if current_app.conf.environment == EduidEnvironment.dev:
-            bundle_name = f"eduid_action.{self.PLUGIN_NAME}-bundle.dev.js"
-        elif current_app.conf.environment == EduidEnvironment.staging:
-            bundle_name = f"eduid_action.{self.PLUGIN_NAME}.staging.js"
-        base = urlappend(path, bundle_name)
-        return get_static_url_for(base, version=version)
+        raise RuntimeError("The actions app is obsolete")
 
     @abstractmethod
     def get_config_for_bundle(self, action: Action) -> Mapping[str, Any]:
