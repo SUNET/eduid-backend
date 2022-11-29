@@ -197,6 +197,7 @@ class TestSSO(SSOIdPTests):
         :return: IdPUser instance
         """
         user = self.app.userdb.lookup_user(eppn)
+        assert user is not None
         user.identities = IdentityList()
         for number in nins:
             this_nin = NinIdentity(
@@ -643,12 +644,12 @@ class TestSSO(SSOIdPTests):
         }
         for value, expected in force_authn.items():
             xmlstr = f"""
-            <ns0:AuthnRequest xmlns:ns0="urn:oasis:names:tc:SAML:2.0:protocol" 
-                  xmlns:ns1="urn:oasis:names:tc:SAML:2.0:assertion" 
-                  AssertionConsumerServiceURL="https://mfa-check.swamid.se/Shibboleth.sso/SAML2/POST" 
+            <ns0:AuthnRequest xmlns:ns0="urn:oasis:names:tc:SAML:2.0:protocol"
+                  xmlns:ns1="urn:oasis:names:tc:SAML:2.0:assertion"
+                  AssertionConsumerServiceURL="https://mfa-check.swamid.se/Shibboleth.sso/SAML2/POST"
                   Destination="https://unittest-idp.example.edu/sso/post" ForceAuthn="{value}"
                   ID="_9f482d6c6ace2867a69c53671fbf09c6"
-                  IssueInstant="2021-05-27T21:53:24Z" ProtocolBinding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" 
+                  IssueInstant="2021-05-27T21:53:24Z" ProtocolBinding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST"
                   Version="2.0">
                 <ns1:Issuer>https://mfa-check.swamid.se/shibboleth</ns1:Issuer>
                 <ns0:NameIDPolicy AllowCreate="1" />

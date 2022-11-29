@@ -34,7 +34,7 @@ from typing import Any, Dict, Mapping
 
 from flask import Blueprint, abort, current_app, request
 
-from eduid.common.config.base import EduIDBaseAppConfig, MagicCookieMixin
+from eduid.common.config.base import EduIDBaseAppConfig, EduidEnvironment, MagicCookieMixin
 from eduid.common.config.parsers import load_config
 from eduid.webapp.common.api.app import EduIDBaseApp
 from eduid.webapp.common.api.helpers import check_magic_cookie
@@ -48,7 +48,10 @@ test_views = Blueprint("test", __name__)
 def get_code():
     current_app.logger.info("Endpoint get_code called")
     try:
-        if check_magic_cookie(current_app.conf):
+        assert isinstance(current_app, EduIDBaseApp)
+        _conf = getattr(current_app, "conf")
+        assert isinstance(_conf, MagicCookieMixin)
+        if check_magic_cookie(_conf):
             eppn = request.args.get("eppn")
             result = f"dummy-code-for-{eppn}"
             current_app.logger.info(f"Endpoint get_code result: {result}")
@@ -72,10 +75,7 @@ class BackdoorTestApp(EduIDBaseApp):
         self.conf = config
 
 
-class BackdoorTests(EduidAPITestCase):
-
-    app: BackdoorTestApp
-
+class BackdoorTests(EduidAPITestCase[BackdoorTestApp]):
     def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
         """
         Called from the parent class, so that we can update the configuration
@@ -92,12 +92,12 @@ class BackdoorTests(EduidAPITestCase):
         )
         return config
 
-    def load_app(self, test_config: Mapping[str, Any]) -> BackdoorTestApp:
+    def load_app(self, config: Mapping[str, Any]) -> BackdoorTestApp:
         """
         Called from the parent class, so we can provide the appropriate flask app for this test case.
         """
-        config = load_config(typ=BackdoorTestConfig, app_name="testing", ns="webapp", test_config=test_config)
-        app = BackdoorTestApp(config)
+        _config = load_config(typ=BackdoorTestConfig, app_name="testing", ns="webapp", test_config=config)
+        app = BackdoorTestApp(_config)
         app.register_blueprint(test_views)
         app.session_interface = SessionFactory(app.conf)
         return app
@@ -106,16 +106,20 @@ class BackdoorTests(EduidAPITestCase):
         """"""
         with self.session_cookie_anon(self.browser) as client:
 
+            assert self.app.conf.magic_cookie_name is not None
+            assert self.app.conf.magic_cookie is not None
             client.set_cookie("localhost", key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie)
             response = client.get("/get-code?eppn=pepin-pepon")
             self.assertEqual(response.data, b"dummy-code-for-pepin-pepon")
 
     def test_no_backdoor_in_pro(self):
         """"""
-        self.app.conf.environment = "production"
+        self.app.conf.environment = EduidEnvironment("production")
 
         with self.session_cookie_anon(self.browser) as client:
 
+            assert self.app.conf.magic_cookie_name is not None
+            assert self.app.conf.magic_cookie is not None
             client.set_cookie("localhost", key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie)
             response = client.get("/get-code?eppn=pepin-pepon")
             self.assertEqual(response.status_code, 400)
@@ -131,6 +135,8 @@ class BackdoorTests(EduidAPITestCase):
         """"""
         with self.session_cookie_anon(self.browser) as client:
 
+            assert self.app.conf.magic_cookie_name is not None
+            assert self.app.conf.magic_cookie is not None
             client.set_cookie("localhost", key=self.app.conf.magic_cookie_name, value="no-magic")
             response = client.get("/get-code?eppn=pepin-pepon")
             self.assertEqual(response.status_code, 400)
@@ -141,6 +147,8 @@ class BackdoorTests(EduidAPITestCase):
 
         with self.session_cookie_anon(self.browser) as client:
 
+            assert self.app.conf.magic_cookie_name is not None
+            assert self.app.conf.magic_cookie is not None
             client.set_cookie("localhost", key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie)
             response = client.get("/get-code?eppn=pepin-pepon")
             self.assertEqual(response.status_code, 400)
@@ -151,6 +159,8 @@ class BackdoorTests(EduidAPITestCase):
 
         with self.session_cookie_anon(self.browser) as client:
 
+            assert self.app.conf.magic_cookie_name is not None
+            assert self.app.conf.magic_cookie is not None
             client.set_cookie("localhost", key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie)
             response = client.get("/get-code?eppn=pepin-pepon")
             self.assertEqual(response.status_code, 400)

@@ -2,6 +2,8 @@
 Define a EduIDApp to create a Flask app and update
 it with all attributes common to all eduID services.
 """
+from __future__ import annotations
+
 import os
 from abc import ABCMeta
 from sys import stderr
@@ -41,6 +43,7 @@ if DEBUG:
 
 
 TFlaskConfigSubclass = TypeVar("TFlaskConfigSubclass", bound=FlaskConfig)
+TEduIDBaseAppSubclass = TypeVar("TEduIDBaseAppSubclass", bound="EduIDBaseApp")
 
 
 class EduIDBaseApp(Flask, metaclass=ABCMeta):

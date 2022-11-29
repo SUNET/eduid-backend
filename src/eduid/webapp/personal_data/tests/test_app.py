@@ -34,7 +34,7 @@
 import json
 from typing import Any, Dict, Mapping, Optional
 
-from flask import Response
+from werkzeug.test import TestResponse
 from mock import patch
 
 from eduid.userdb.element import ElementKey
@@ -81,7 +81,7 @@ class PersonalDataTests(EduidAPITestCase):
 
             return json.loads(response2.data)
 
-    def _get_user_all_data(self, eppn: str) -> Response:
+    def _get_user_all_data(self, eppn: str) -> TestResponse:
         """
         Send a GET request to get all the data of a user
 
@@ -94,7 +94,9 @@ class PersonalDataTests(EduidAPITestCase):
             return client.get("/all-user-data")
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def _post_user(self, mock_request_user_sync: Any, mod_data: Optional[dict] = None, verified_user: bool = True):
+    def _post_user(
+        self, mock_request_user_sync: Any, mod_data: Optional[dict[str, Any]] = None, verified_user: bool = True
+    ):
         """
         POST personal data for the test user
         """

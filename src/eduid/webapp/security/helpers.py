@@ -11,6 +11,7 @@ from eduid.common.rpc.msg_relay import FullPostalAddress, NavetData
 from eduid.userdb import NinIdentity
 from eduid.userdb.logs.element import NameUpdateProofing
 from eduid.userdb.security import SecurityUser
+from eduid.userdb.user import User
 from eduid.webapp.common.api.helpers import send_mail, set_user_names_from_official_address
 from eduid.webapp.common.api.messages import FluxData, TranslatableMsg, error_response
 from eduid.webapp.common.authn.utils import generate_password
@@ -81,21 +82,23 @@ class CredentialInfo:
     description: Optional[str] = None
 
 
-def compile_credential_list(security_user: SecurityUser) -> List[CredentialInfo]:
+def compile_credential_list(user: User) -> List[CredentialInfo]:
     """
     Make a list of a users credentials, with extra information, for returning in API responses.
     """
-    credentials = []
-    authn_info = current_app.authninfo_db.get_authn_info(security_user)
+    credentials: List[CredentialInfo] = []
+    authn_info = current_app.authninfo_db.get_authn_info(user)
     for cred_key, authn in authn_info.items():
-        cred = security_user.credentials.find(cred_key)
+        cred = user.credentials.find(cred_key)
         # pick up attributes not present on all types of credentials
         _description: Optional[str] = None
         _is_verified = False
-        if hasattr(cred, "description"):
-            _description = cred.description  # type: ignore
-        if hasattr(cred, "is_verified"):
-            _is_verified = cred.is_verified  # type: ignore
+        _d = getattr(cred, "description", None)
+        if isinstance(_d, str):
+            _description = _d
+        _is_v = getattr(cred, "is_verified", None)
+        if isinstance(_is_v, bool):
+            _is_verified = _is_v
         info = CredentialInfo(
             key=cred_key,
             credential_type=authn.credential_type.value,

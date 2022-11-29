@@ -30,6 +30,8 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+from __future__ import annotations
+
 import logging
 import logging.config
 import pprint
@@ -37,19 +39,23 @@ import sys
 import traceback
 from contextlib import contextmanager
 from copy import deepcopy
-from typing import Any, Dict, Iterable, List, Mapping, Optional
+from typing import Any, Dict, Generator, Generic, Iterable, List, Mapping, Optional, TypeVar, cast
 
 from flask.testing import FlaskClient
 from flask.wrappers import Response
+from werkzeug.test import TestResponse
 
-from eduid.common.config.base import RedisConfig
+from eduid.common.config.base import EduIDBaseAppConfig, RedisConfig
 from eduid.common.rpc.msg_relay import NavetData
 from eduid.common.testing_base import CommonTestCase
 from eduid.userdb import User
 from eduid.userdb.db import BaseDB
 from eduid.userdb.fixtures.users import new_completed_signup_user_example, new_unverified_user_example, new_user_example
+from eduid.userdb.logs.db import ProofingLog
 from eduid.userdb.proofing.state import NinProofingState
 from eduid.userdb.testing import MongoTemporaryInstance
+from eduid.userdb.userdb import UserDB
+from eduid.webapp.common.api.app import EduIDBaseApp
 from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.common.session import EduidSession
 from eduid.webapp.common.session.testing import RedisTemporaryInstance
@@ -105,15 +111,22 @@ _standard_test_users = {
     "hubba-fooo": new_completed_signup_user_example,
 }
 
+TTestAppVar = TypeVar("TTestAppVar")
 
-class EduidAPITestCase(CommonTestCase):
+
+class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
     """
     Base Test case for eduID APIs.
 
     See the `load_app` and `update_config` methods below before subclassing.
     """
 
-    def setUp(self, *args, users: Optional[List[str]] = None, copy_user_to_private: bool = False, **kwargs):
+    app: TTestAppVar
+    browser: CSRFTestClient
+
+    def setUp(
+        self, *args: Any, users: Optional[List[str]] = None, copy_user_to_private: bool = False, **kwargs: Any
+    ) -> None:
         # test users
         if users is None:
             users = ["hubba-bubba"]
@@ -139,17 +152,19 @@ class EduidAPITestCase(CommonTestCase):
         # self.settings['celery']['mongo_uri'] = self.tmp_db.uri
 
         self.app = self.load_app(self.settings)
-        if not getattr(self, "browser", False):
+        if isinstance(self.app, EduIDBaseApp):
             self.app.test_client_class = CSRFTestClient
-            self.browser = self.app.test_client()
+            self.browser = cast(CSRFTestClient, self.app.test_client())
 
         # Helper constants
         self.content_type_json = "application/json"
 
         if copy_user_to_private:
             data = self.test_user.to_dict()
-            logging.info(f"Copying test-user {self.test_user} to private_userdb {self.app.private_userdb}")
-            self.app.private_userdb.save(self.app.private_userdb.user_from_dict(data=data), check_sync=False)
+            _private_userdb = getattr(self.app, "_private_userdb")
+            assert isinstance(_private_userdb, UserDB)
+            logging.info(f"Copying test-user {self.test_user} to private_userdb {_private_userdb}")
+            _private_userdb.save(_private_userdb.user_from_dict(data=data), check_sync=False)
 
     def tearDown(self):
         try:
@@ -167,7 +182,7 @@ class EduidAPITestCase(CommonTestCase):
         super(CommonTestCase, self).tearDown()
         # XXX reset redis
 
-    def load_app(self, config):
+    def load_app(self, config: Dict[str, Any]) -> TTestAppVar:
         """
         Method that must be implemented by any subclass, where the
         flask app must be imported and returned.
@@ -194,17 +209,27 @@ class EduidAPITestCase(CommonTestCase):
 
     @contextmanager
     def session_cookie(
-        self, client: Any, eppn: Optional[str], server_name: str = "localhost", logged_in: bool = True, **kwargs
-    ):
+        self,
+        client: CSRFTestClient,
+        eppn: Optional[str],
+        server_name: str = "localhost",
+        logged_in: bool = True,
+        **kwargs: Any,
+    ) -> Generator[CSRFTestClient, None, None]:
         with client.session_transaction(**kwargs) as sess:
             if eppn is not None:
                 sess.common.eppn = eppn
                 sess.common.is_logged_in = logged_in
-            client.set_cookie(server_name, key=self.app.conf.flask.session_cookie_name, value=sess.meta.cookie_val)
+            assert isinstance(self.app, EduIDBaseApp)
+            _conf = getattr(self.app, "conf")
+            assert isinstance(_conf, EduIDBaseAppConfig)
+            client.set_cookie(server_name, key=_conf.flask.session_cookie_name, value=sess.meta.cookie_val)
         yield client
 
     @contextmanager
-    def session_cookie_anon(self, client, server_name="localhost", **kwargs):
+    def session_cookie_anon(
+        self, client: CSRFTestClient, server_name: str = "localhost", **kwargs: Any
+    ) -> Generator[CSRFTestClient, None, None]:
         with self.session_cookie(client=client, eppn=None, server_name=server_name, **kwargs) as _client:
             yield _client
 
@@ -216,6 +241,8 @@ class EduidAPITestCase(CommonTestCase):
         :type private_user: Private subclass of eduid_db.user.User
         :return: True
         """
+        assert isinstance(self.app, EduIDBaseApp)
+
         user_id = str(private_user.user_id)
         central_user = self.app.central_userdb.get_user_by_id(user_id)
         private_user_dict = private_user.to_dict()
@@ -263,7 +290,7 @@ class EduidAPITestCase(CommonTestCase):
 
     def _check_error_response(
         self,
-        response: Response,
+        response: TestResponse,
         type_: Optional[str],
         msg: Optional[TranslatableMsg] = None,
         error: Optional[Mapping[str, Any]] = None,
@@ -274,7 +301,7 @@ class EduidAPITestCase(CommonTestCase):
 
     def _check_success_response(
         self,
-        response: Response,
+        response: TestResponse,
         type_: Optional[str],
         msg: Optional[TranslatableMsg] = None,
         payload: Optional[Mapping[str, Any]] = None,
@@ -285,8 +312,22 @@ class EduidAPITestCase(CommonTestCase):
         return self._check_api_response(response, 200, type_=type_, message=msg, payload=payload)
 
     @staticmethod
+    def get_response_payload(response: TestResponse) -> Dict[str, Any]:
+        """
+        Perform some checks to make sure the response is a Flux Standard Action (FSA) response, and return the payload.
+        """
+        assert response.is_json, "Response is not JSON"
+        _json: Optional[Dict[str, Any]] = response.json
+        assert isinstance(_json, dict), "Response has invalid JSON"
+        _type: Optional[str] = _json.get("type")
+        assert _type is not None, "Response has no type (is not an FSA response)"
+        _payload: Optional[Dict[str, Any]] = _json.get("payload", {})
+        assert isinstance(_payload, dict), "Response has invalid payload"
+        return _payload
+
+    @staticmethod
     def _check_api_response(
-        response: Response,
+        response: TestResponse,
         status: int,
         type_: Optional[str],
         message: Optional[TranslatableMsg] = None,
@@ -325,37 +366,36 @@ class EduidAPITestCase(CommonTestCase):
 
         def _assure_not_in_dict(d: Mapping[str, Any], unwanted_key: str):
             assert unwanted_key not in d, f"Key {unwanted_key} should not be in payload, but it is: {payload}"
-            for k2, v2 in d.items():
+            v2: Mapping[str, Any]
+            for _k2, v2 in d.items():
                 if isinstance(v2, dict):
                     _assure_not_in_dict(v2, unwanted_key)
 
         try:
             assert status == response.status_code, f"The HTTP response code was {response.status_code} not {status}"
+            _json = response.json
+            assert _json
             if type_ is not None:
-                assert (
-                    type_ == response.json["type"]
-                ), f'Wrong response type. expected: {type_}, actual: {response.json["type"]}'
-            assert "payload" in response.json, 'JSON body has no "payload" element'
+                assert type_ == _json["type"], f'Wrong response type. expected: {type_}, actual: {_json["type"]}'
+            assert "payload" in _json, 'JSON body has no "payload" element'
             if message is not None:
-                assert "message" in response.json["payload"], 'JSON payload has no "message" element'
-                _message_value = response.json["payload"]["message"]
+                assert "message" in _json["payload"], 'JSON payload has no "message" element'
+                _message_value = _json["payload"]["message"]
                 assert (
                     message.value == _message_value
                 ), f"Wrong message returned. expected: {message.value}, actual: {_message_value}"
             if error is not None:
-                assert response.json["error"] is True, "The Flux response was supposed to have error=True"
-                assert "error" in response.json["payload"], 'JSON payload has no "error" element'
-                _error = response.json["payload"]["error"]
+                assert _json["error"] is True, "The Flux response was supposed to have error=True"
+                assert "error" in _json["payload"], 'JSON payload has no "error" element'
+                _error = _json["payload"]["error"]
                 assert error == _error, f"Wrong error returned. expected: {error}, actual: {_error}"
             if payload is not None:
                 for k, v in payload.items():
-                    assert k in response.json["payload"], f"The Flux response payload does not contain {repr(k)}"
-                    assert (
-                        v == response.json["payload"][k]
-                    ), f"The Flux response payload item {repr(k)} is not {repr(v)}"
+                    assert k in _json["payload"], f"The Flux response payload does not contain {repr(k)}"
+                    assert v == _json["payload"][k], f"The Flux response payload item {repr(k)} is not {repr(v)}"
             if assure_not_in_payload is not None:
                 for key in assure_not_in_payload:
-                    _assure_not_in_dict(response.json["payload"], key)
+                    _assure_not_in_dict(_json["payload"], key)
 
         except (AssertionError, KeyError):
             if response.json:
@@ -383,7 +423,10 @@ class EduidAPITestCase(CommonTestCase):
         assert user.identities.nin.created_by == created_by_str
         assert user.identities.nin.verified_by == proofing_state.nin.created_by
         assert user.identities.nin.is_verified is True
-        assert self.app.proofing_log.db_count() == 1
+
+        _log = getattr(self.app, "proofing_log")
+        assert isinstance(_log, ProofingLog)
+        assert _log.db_count() == 1
 
     def _check_nin_not_verified(self, user: User, number: Optional[str] = None, created_by: Optional[str] = None):
         if number is None and (self.test_user is not None and self.test_user.identities.nin):
@@ -394,46 +437,45 @@ class EduidAPITestCase(CommonTestCase):
         if created_by:
             assert user.identities.nin.created_by == created_by
         assert user.identities.nin.is_verified is False
-        assert self.app.proofing_log.db_count() == 0
+
+        _log = getattr(self.app, "proofing_log")
+        assert isinstance(_log, ProofingLog)
+        assert _log.db_count() == 0
 
 
 class CSRFTestClient(FlaskClient):
 
     # Add the custom csrf headers to every call to post
-    def post(self, *args, **kw):
+    def post(self, *args: Any, **kwargs: Any) -> TestResponse:
         """
         Adds the custom csrf headers as long as not initiated with custom_csrf_headers=False.
 
         This could also be done with updating FlaskClient.environ_base with the below header keys but
         that makes it harder to override per call to post.
         """
-        test_host = "{}://{}".format(
-            self.application.conf.flask.preferred_url_scheme, self.application.conf.flask.server_name
-        )
+        assert isinstance(self.application, EduIDBaseApp)
+        _conf = getattr(self.application, "conf")
+        assert isinstance(_conf, EduIDBaseAppConfig)
+
+        test_host = "{}://{}".format(_conf.flask.preferred_url_scheme, _conf.flask.server_name)
         csrf_headers = {
             "X-Requested-With": "XMLHttpRequest",
             "Referer": test_host,
-            "X-Forwarded-Host": self.application.conf.flask.server_name,
+            "X-Forwarded-Host": _conf.flask.server_name,
         }
-        if kw.pop("custom_csrf_headers", True):
-            if "headers" in kw:
-                kw["headers"].update(csrf_headers)
+        if kwargs.pop("custom_csrf_headers", True):
+            if "headers" in kwargs:
+                kwargs["headers"].update(csrf_headers)
             else:
-                kw["headers"] = csrf_headers
+                kwargs["headers"] = csrf_headers
 
-        return super(CSRFTestClient, self).post(*args, **kw)
+        return super().post(*args, **kwargs)
 
-    #  The return type of a generator function should be "Generator" or one of its supertypes
-    #  Argument 1 to "contextmanager" has incompatible type "Callable[[CSRFTestClient, VarArg(Any), KwArg(Any)],
-    #  EduidSession]"; expected "Callable[..., Iterator[<nothing>]]"
-    #  Return type of "session_transaction" incompatible with supertype "FlaskClient"
-    #  "None" has no attribute "__enter__"
-    #  "None" has no attribute "__exit__"
-    @contextmanager  # type: ignore
-    def session_transaction(self, *args, **kwargs) -> EduidSession:  # type: ignore
+    @contextmanager
+    def session_transaction(self, *args: Any, **kwargs: Any) -> Generator[EduidSession, None, None]:
         """
         Get typed session in tests
-        Use # type: ignore to keep mypy happy
         """
-        with super().session_transaction(*args, **kwargs) as sess:  # type: ignore
+        with super().session_transaction(*args, **kwargs) as sess:
+            assert isinstance(sess, EduidSession)
             yield sess

@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Mapping, Optional
 from unittest.mock import patch
 from uuid import UUID, uuid4
 
-from flask import Response
+from werkzeug.test import TestResponse
 
 from eduid.common.config.base import EduidEnvironment
 from eduid.userdb.ladok import Ladok, University, UniversityName
@@ -73,13 +73,13 @@ class LadokTests(EduidAPITestCase):
         }
         return config
 
-    def _link_user(self, eppn: str, ladok_name: str) -> Response:
+    def _link_user(self, eppn: str, ladok_name: str) -> TestResponse:
         with self.session_cookie(self.browser, eppn) as browser:
             with browser.session_transaction() as sess:
                 csrf_token = sess.get_csrf_token()
             return browser.post("/link-user", json={"csrf_token": csrf_token, "ladok_name": ladok_name})
 
-    def _unlink_user(self, eppn: str) -> Response:
+    def _unlink_user(self, eppn: str) -> TestResponse:
         with self.session_cookie(self.browser, eppn) as browser:
             with browser.session_transaction() as sess:
                 csrf_token = sess.get_csrf_token()

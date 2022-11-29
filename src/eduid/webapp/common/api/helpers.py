@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import warnings
 from dataclasses import dataclass
-from typing import List, Optional, Type, TypeVar, Union, overload
+from typing import Any, List, Optional, Type, TypeVar, Union, overload
 
 from flask import current_app, render_template, request
 
@@ -105,7 +105,7 @@ def add_nin_to_user(user: User, proofing_state: NinProofingState, user_type: Typ
     ...
 
 
-def add_nin_to_user(user, proofing_state, user_type=ProofingUser):
+def add_nin_to_user(user: User, proofing_state: NinProofingState, user_type=ProofingUser):
 
     proofing_user = user_type.from_user(user, current_app.private_userdb)
     # Add nin to user if not already there
@@ -222,7 +222,7 @@ def send_mail(
     text_template: str,
     html_template: str,
     app: EduIDBaseApp,
-    context: Optional[dict] = None,
+    context: Optional[dict[str, Any]] = None,
     reference: Optional[str] = None,
 ):
     """

@@ -50,7 +50,7 @@ logger = logging.getLogger(__name__)
 class CommonTestCase(MongoTestCase):
     """Base Test case for eduID webapps and workers"""
 
-    def setUp(self, *args, **kwargs):
+    def setUp(self, *args: Any, **kwargs: Any) -> None:
         """
         set up tests
         """
@@ -62,7 +62,7 @@ class CommonTestCase(MongoTestCase):
 
         super().setUp(*args, **kwargs)
 
-    def _init_logging(self):
+    def _init_logging(self) -> None:
         local_context = LocalContext(
             app_debug=True,
             app_name="testing",

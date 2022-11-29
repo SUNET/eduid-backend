@@ -1,39 +1,45 @@
 # -*- coding: utf-8 -*-
-from typing import Optional
-
-from flask.testing import FlaskClient
+from typing import Generic, Optional
+from eduid.common.config.base import EduIDBaseAppConfig
 
 from eduid.userdb.credentials import FidoCredential
 from eduid.userdb.identity import IdentityElement
+from eduid.userdb.logs.db import ProofingLog
+from eduid.userdb.user import User
+from eduid.userdb.userdb import AmDB
+from eduid.webapp.common.api.app import EduIDBaseApp
 from eduid.webapp.common.api.messages import TranslatableMsg
-from eduid.webapp.common.api.testing import EduidAPITestCase, logger
+from eduid.webapp.common.api.testing import CSRFTestClient, EduidAPITestCase, TTestAppVar, logger
 
 __author__ = "lundberg"
 
 
-class ProofingTests(EduidAPITestCase):
-    def load_app(self, config):
-        raise NotImplementedError("Subclass must implement this method")
-
+class ProofingTests(EduidAPITestCase[TTestAppVar], Generic[TTestAppVar]):
     def _verify_status(
         self,
         finish_url: str,
         frontend_action: Optional[str],
         frontend_state: Optional[str],
         method: str,
-        browser: Optional[FlaskClient] = None,
+        browser: Optional[CSRFTestClient] = None,
         expect_error: bool = False,
         expect_msg: Optional[TranslatableMsg] = None,
     ) -> None:
         if browser is None:
+            assert isinstance(self.browser, CSRFTestClient)
             browser = self.browser
 
-        with browser.session_transaction() as sess:  # type: ignore
+        assert browser is not None
+
+        with browser.session_transaction() as sess:
             csrf_token = sess.get_csrf_token()
 
         app_name, authn_id = finish_url.split("/")[-2:]
 
-        assert app_name == self.app.conf.app_name
+        assert isinstance(self.app, EduIDBaseApp)
+        _conf = getattr(self.app, "conf")
+        assert isinstance(_conf, EduIDBaseAppConfig)
+        assert app_name == _conf.app_name
 
         logger.debug(f"Verifying status for request {authn_id}")
 
@@ -63,15 +69,20 @@ class ProofingTests(EduidAPITestCase):
         """This function is used to verify a user's parameters at the start of a test case,
         and then again at the end to ensure the right set of changes occurred to the user in the database.
         """
-        user = self.app.central_userdb.get_user_by_eppn(eppn)
-        assert user is not None
+        _am_db = getattr(self.app, "central_userdb")
+        assert isinstance(_am_db, AmDB)
+        user = _am_db.get_user_by_eppn(eppn)
+        assert isinstance(user, User)
         user_mfa_tokens = user.credentials.filter(FidoCredential)
 
         # Check token status
         assert len(user_mfa_tokens) == num_mfa_tokens, "Unexpected number of FidoCredentials on user"
         if user_mfa_tokens:
             assert user_mfa_tokens[0].is_verified == token_verified, "User token unexpected is_verified"
-        assert self.app.proofing_log.db_count() == num_proofings, "Unexpected number of proofings in db"
+
+        _log = getattr(self.app, "proofing_log")
+        assert isinstance(_log, ProofingLog)
+        assert _log.db_count() == num_proofings, "Unexpected number of proofings in db"
 
         if identity is not None:
             # Check parameters of a specific nin

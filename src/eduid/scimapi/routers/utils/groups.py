@@ -97,6 +97,7 @@ def filter_lastmodified(
         _parsed = datetime.fromisoformat(filter.val)
     except:
         raise BadRequest(scim_type="invalidFilter", detail="Invalid datetime")
+    req.app.context.logger.debug(f"Extra debug: Parsed datetime {filter.val} to {_parsed}")
     return req.context.groupdb.get_groups_by_last_modified(operator=filter.op, value=_parsed, skip=skip, limit=limit)
 
 

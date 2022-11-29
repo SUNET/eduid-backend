@@ -46,6 +46,7 @@ from eduid.userdb.fixtures.users import new_user_example
 from eduid.webapp.common.api.app import EduIDBaseApp
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.common.authn.fido_tokens import VerificationProblem, start_token_verification, verify_webauthn
+from eduid.webapp.common.session.namespaces import WebauthnState
 
 
 class MockFidoConfig(EduIDBaseAppConfig, WebauthnConfigMixin2):
@@ -99,10 +100,12 @@ SAMPLE_WEBAUTHN_REQUEST = {
     "signature": "MEUCICVPIQ5fO6gXtu3nXD9ff5ILcmWc54m6AxvK9vcS8IjkAiEAoFAKblpl29UHK6AhnOf6r7hezTZeQdK5lB4J3F-cguY",
 }
 
-SAMPLE_WEBAUTHN_FIDO2STATE = {
-    "challenge": "saoY-78kzDgV6mX5R2ixraC699jEU1cJTu7I9twUfJQ",
-    "user_verification": "preferred",
-}
+SAMPLE_WEBAUTHN_FIDO2STATE = WebauthnState(
+    {
+        "challenge": "saoY-78kzDgV6mX5R2ixraC699jEU1cJTu7I9twUfJQ",
+        "user_verification": "preferred",
+    }
+)
 
 
 SAMPLE_WEBAUTHN_APP_CONFIG = {
@@ -112,23 +115,20 @@ SAMPLE_WEBAUTHN_APP_CONFIG = {
 }
 
 
-class FidoTokensTestCase(EduidAPITestCase):
-
-    app: MockFidoApp
-
+class FidoTokensTestCase(EduidAPITestCase[MockFidoApp]):
     def setUp(self):
         super().setUp()
         self.webauthn_credential = webauthn_credential
         self.u2f_credential = u2f_credential
         self.test_user = User.from_dict(data=new_user_example.to_dict())
 
-    def load_app(self, test_config: Mapping[str, Any]) -> MockFidoApp:
+    def load_app(self, config: Mapping[str, Any]) -> MockFidoApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
-        config = load_config(typ=MockFidoConfig, app_name="testing", ns="webapp", test_config=test_config)
-        app = MockFidoApp(config)
+        _config = load_config(typ=MockFidoConfig, app_name="testing", ns="webapp", test_config=config)
+        app = MockFidoApp(_config)
         app.register_blueprint(views)
         return app
 
@@ -223,10 +223,12 @@ class FidoTokensTestCase(EduidAPITestCase):
         with self.app.test_request_context():
             with self.session_cookie(self.browser, eppn) as client:
                 with client.session_transaction() as sess:
-                    fido2state = {
-                        "challenge": "3h_EAZpY25xDdSJCOMx1ABZEA5Odz3yejUI3AUNTQWc",
-                        "user_verification": "preferred",
-                    }
+                    fido2state = WebauthnState(
+                        {
+                            "challenge": "3h_EAZpY25xDdSJCOMx1ABZEA5Odz3yejUI3AUNTQWc",
+                            "user_verification": "preferred",
+                        }
+                    )
                     sess.mfa_action.webauthn_state = fido2state
                     sess.persist()
                     resp = client.get("/start?webauthn_request=" + json.dumps(SAMPLE_WEBAUTHN_REQUEST))

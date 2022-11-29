@@ -1,19 +1,30 @@
-# -*- coding: utf-8 -*-
+from __future__ import annotations
 import sys
 from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta
 from os import environ
-from typing import Optional
+from typing import TYPE_CHECKING, Optional, cast
 
 import redis
-from flask import current_app
+from flask import current_app as flask_current_app
 
-from eduid.common.config.base import VCCSConfigMixin
+from eduid.common.config.base import EduIDBaseAppConfig, RedisConfigMixin, VCCSConfigMixin
 from eduid.common.rpc.am_relay import AmRelay
 from eduid.webapp.common.authn.vccs import check_password
 from eduid.webapp.common.session.redis_session import get_redis_pool
 
+if TYPE_CHECKING:
+    from eduid.webapp.common.api.app import EduIDBaseApp
+
 __author__ = "lundberg"
+
+
+def get_current_app() -> "EduIDBaseApp":
+    from eduid.webapp.common.api.app import EduIDBaseApp
+
+    _conf = getattr(flask_current_app, "conf")
+    assert isinstance(_conf, EduIDBaseAppConfig)
+    return cast(EduIDBaseApp, flask_current_app)
 
 
 @dataclass
@@ -37,6 +48,8 @@ class FailCountItem:
 
 
 def log_failure_info(key: str, msg: str, exc: Optional[Exception] = None) -> None:
+    current_app = get_current_app()
+
     if key not in current_app.failure_info:
         current_app.failure_info[key] = FailCountItem(first_failure=datetime.utcnow())
     current_app.failure_info[key].count += 1
@@ -44,6 +57,8 @@ def log_failure_info(key: str, msg: str, exc: Optional[Exception] = None) -> Non
 
 
 def reset_failure_info(key: str) -> None:
+    current_app = get_current_app()
+
     if key not in current_app.failure_info:
         return None
     info = current_app.failure_info.pop(key)
@@ -51,6 +66,8 @@ def reset_failure_info(key: str) -> None:
 
 
 def check_restart(key: str, restart: int, terminate: int) -> bool:
+    current_app = get_current_app()
+
     res = False  # default to no restart
     info = current_app.failure_info.get(key)
     if not info:
@@ -72,6 +89,8 @@ def check_restart(key: str, restart: int, terminate: int) -> bool:
 
 
 def check_mongo() -> bool:
+    current_app = get_current_app()
+
     if not hasattr(current_app, "central_userdb"):
         return True
     db = current_app.central_userdb
@@ -86,7 +105,9 @@ def check_mongo() -> bool:
 
 
 def check_redis() -> bool:
-    pool = get_redis_pool(current_app.conf.redis_config)
+    _conf = getattr(flask_current_app, "conf")
+    assert isinstance(_conf, RedisConfigMixin)
+    pool = get_redis_pool(_conf.redis_config)
     client = redis.StrictRedis(connection_pool=pool)
     try:
         pong = client.ping()
@@ -101,6 +122,8 @@ def check_redis() -> bool:
 
 
 def check_am() -> bool:
+    current_app = get_current_app()
+
     am_relay: Optional[AmRelay] = getattr(current_app, "am_relay", None)
     if not am_relay:
         return True
@@ -116,6 +139,8 @@ def check_am() -> bool:
 
 
 def check_msg() -> bool:
+    current_app = get_current_app()
+
     if not getattr(current_app, "msg_relay", False):
         return True
     try:
@@ -131,6 +156,8 @@ def check_msg() -> bool:
 
 
 def check_mail() -> bool:
+    current_app = get_current_app()
+
     if not getattr(current_app, "mail_relay", False):
         return True
     try:
@@ -146,6 +173,8 @@ def check_mail() -> bool:
 
 
 def check_lookup_mobile() -> bool:
+    current_app = get_current_app()
+
     if not getattr(current_app, "lookup_mobile_relay", False):
         return True
     try:
@@ -160,6 +189,8 @@ def check_lookup_mobile() -> bool:
 
 
 def check_vccs() -> bool:
+    current_app = get_current_app()
+
     if not isinstance(current_app.conf, VCCSConfigMixin):
         return True
     # Do not force this check if not configured

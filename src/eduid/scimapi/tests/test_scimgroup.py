@@ -597,7 +597,7 @@ class TestGroupSearchResource(TestGroupResource):
         self._assertScimError(json, detail="Invalid datetime")
 
     def test_search_group_last_modified_invalid_datetime_2(self):
-        json = self._perform_search(filter=f'meta.lastModified ge "2020-05-12_15:36:00+00"', return_json=True)
+        json = self._perform_search(filter=f'meta.lastModified ge "2020-05-12_15:99:00+00:00"', return_json=True)
         self._assertScimError(json, detail="Invalid datetime")
 
     def test_schema_violation(self):

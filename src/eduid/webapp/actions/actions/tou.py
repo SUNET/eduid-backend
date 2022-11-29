@@ -62,7 +62,7 @@ class Plugin(ActionPlugin):
 
     @classmethod
     def includeme(cls, app):
-        app.tou_db = ToUUserDB(app.conf.mongo_uri)
+        app.tou_db = ToUUserDB(app.conf.mongo_uri)  # type: ignore
 
     def get_config_for_bundle(self, action: Action) -> Mapping[str, Any]:
         # XXX: There are no longer any tou texts in the backend and the actions app is not used
@@ -77,14 +77,14 @@ class Plugin(ActionPlugin):
         }
 
     def perform_step(self, action: Action) -> ActionResult:
-        if not request.get_json().get("accept", ""):
+        if not request.get_json().get("accept", ""):  # type: ignore
             raise self.ActionError(ActionsMsg.must_accept)
 
         eppn = action.eppn
         central_user = current_app.central_userdb.get_user_by_eppn(eppn)
         if not central_user:
             raise self.ActionError(ActionsMsg.user_not_found)
-        user = ToUUser.from_user(central_user, current_app.tou_db)
+        user = ToUUser.from_user(central_user, current_app.tou_db)  # type: ignore
         current_app.logger.debug("Loaded ToUUser {} from db".format(user))
 
         version = action.params["version"]
@@ -105,7 +105,7 @@ class Plugin(ActionPlugin):
                 )
             )
 
-        current_app.tou_db.save(user, check_sync=False)
+        current_app.tou_db.save(user, check_sync=False)  # type: ignore
         current_app.logger.debug("Asking for sync of {} by Attribute Manager".format(user))
         rtask = self._update_attributes.delay("eduid_tou", str(user.user_id))
         try:

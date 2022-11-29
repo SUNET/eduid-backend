@@ -32,7 +32,7 @@
 #
 from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta
-from typing import Dict, Mapping, Optional
+from typing import Any, Dict, Mapping, Optional
 
 from flask import Blueprint, Response, current_app, jsonify
 
@@ -50,7 +50,7 @@ class SimpleCacheItem:
 SIMPLE_CACHE: Dict[str, SimpleCacheItem] = dict()
 
 
-def cached_json_response(key: str, data: Optional[dict] = None) -> Optional[Response]:
+def cached_json_response(key: str, data: Optional[dict[str, Any]] = None) -> Optional[Response]:
     cache_for_seconds = current_app.conf.status_cache_seconds
     now = datetime.utcnow()
     if SIMPLE_CACHE.get(key) is not None:

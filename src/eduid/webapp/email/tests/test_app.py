@@ -35,6 +35,7 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, Mapping, Optional
 
 from mock import patch
+from eduid.common.config.base import EduidEnvironment
 
 from eduid.userdb import User
 from eduid.userdb.mail import MailAddress
@@ -43,11 +44,9 @@ from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.email.app import EmailApp, email_init_app
 
 
-class EmailTests(EduidAPITestCase):
-    app: EmailApp
-
-    def setUp(self, **kwargs):
-        super().setUp(copy_user_to_private=True)
+class EmailTests(EduidAPITestCase[EmailApp]):
+    def setUp(self, *args: Any, **kwargs: Any) -> None:
+        super().setUp(*args, **kwargs, copy_user_to_private=True)
 
     def load_app(self, config: Mapping[str, Any]) -> EmailApp:
         """
@@ -76,13 +75,13 @@ class EmailTests(EduidAPITestCase):
         for address in verified:
             user.mail_addresses.remove(address.key)
 
-    def _add_2_emails(self, user):
+    def _add_2_emails(self, user: User) -> None:
         verified = MailAddress(email="verified@example.com", created_by="test", is_verified=True, is_primary=True)
         verified2 = MailAddress(email="verified2@example.com", created_by="test", is_verified=True, is_primary=False)
         user.mail_addresses.add(verified)
         user.mail_addresses.add(verified2)
 
-    def _add_2_emails_1_verified(self, user):
+    def _add_2_emails_1_verified(self, user: User) -> None:
         verified = MailAddress(email="verified@example.com", created_by="test", is_verified=True, is_primary=True)
         verified2 = MailAddress(email="unverified@example.com", created_by="test", is_verified=False, is_primary=False)
         user.mail_addresses.add(verified)
@@ -111,7 +110,7 @@ class EmailTests(EduidAPITestCase):
         mock_code_verification: Any,
         mock_request_user_sync: Any,
         mock_sendmail: Any,
-        data1: Optional[dict] = None,
+        data1: Optional[Dict[str, Any]] = None,
         send_data: bool = True,
     ):
         """
@@ -146,7 +145,7 @@ class EmailTests(EduidAPITestCase):
                 return client.post("/new")
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def _post_primary(self, mock_request_user_sync: Any, data1: Optional[dict] = None):
+    def _post_primary(self, mock_request_user_sync: Any, data1: Optional[dict[str, Any]] = None):
         """
         Choose an email of the test user as primary
 
@@ -171,7 +170,7 @@ class EmailTests(EduidAPITestCase):
                 return client.post("/primary", data=json.dumps(data), content_type=self.content_type_json)
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def _remove(self, mock_request_user_sync: Any, data1: Optional[dict] = None):
+    def _remove(self, mock_request_user_sync: Any, data1: Optional[dict[str, Any]] = None):
         """
         POST to remove an email address form the test user
 
@@ -195,7 +194,7 @@ class EmailTests(EduidAPITestCase):
 
     @patch("eduid.common.rpc.mail_relay.MailRelay.sendmail")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def _resend_code(self, mock_request_user_sync: Any, mock_sendmail: Any, data1: Optional[dict] = None):
+    def _resend_code(self, mock_request_user_sync: Any, mock_sendmail: Any, data1: Optional[dict[str, Any]] = None):
         """
         Trigger resending a new verification code to the email being verified
 
@@ -223,8 +222,8 @@ class EmailTests(EduidAPITestCase):
         mock_code_verification: Any,
         mock_request_user_sync: Any,
         mock_sendmail: Any,
-        data1: Optional[dict] = None,
-        data2: Optional[dict] = None,
+        data1: Optional[dict[str, Any]] = None,
+        data2: Optional[dict[str, Any]] = None,
     ):
         """
         POST a new email address for the test user, and then verify it.
@@ -275,7 +274,7 @@ class EmailTests(EduidAPITestCase):
         mock_request_user_sync: Any,
         mock_sendmail: Any,
         code: str = "432123425",
-        data1: Optional[dict] = None,
+        data1: Optional[dict[str, Any]] = None,
         email: str = "johnsmith3@example.com",
     ):
         """
@@ -316,7 +315,7 @@ class EmailTests(EduidAPITestCase):
         mock_code_verification: Any,
         mock_request_user_sync: Any,
         mock_sendmail: Any,
-        data1: Optional[dict] = None,
+        data1: Optional[dict[str, Any]] = None,
         email: str = "johnsmith3@example.com",
         code: str = "123456",
     ):
@@ -347,6 +346,8 @@ class EmailTests(EduidAPITestCase):
 
             client.post("/new", data=json.dumps(data), content_type=self.content_type_json)
 
+            assert self.app.conf.magic_cookie_name
+            assert self.app.conf.magic_cookie
             client.set_cookie("localhost", key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie)
 
             return client.get(f"/get-code?email={email}&eppn={eppn}")
@@ -758,7 +759,7 @@ class EmailTests(EduidAPITestCase):
     def test_get_code_backdoor(self):
         self.app.conf.magic_cookie = "magic-cookie"
         self.app.conf.magic_cookie_name = "magic"
-        self.app.conf.environment = "dev"
+        self.app.conf.environment = EduidEnvironment("dev")
 
         code = "0123456"
         resp = self._get_code_backdoor(code=code)
@@ -769,7 +770,7 @@ class EmailTests(EduidAPITestCase):
     def test_get_code_no_backdoor_in_pro(self):
         self.app.conf.magic_cookie = "magic-cookie"
         self.app.conf.magic_cookie_name = "magic"
-        self.app.conf.environment = "production"
+        self.app.conf.environment = EduidEnvironment("production")
 
         code = "0123456"
         resp = self._get_code_backdoor(code=code)
@@ -779,7 +780,7 @@ class EmailTests(EduidAPITestCase):
     def test_get_code_no_backdoor_misconfigured1(self):
         self.app.conf.magic_cookie = "magic-cookie"
         self.app.conf.magic_cookie_name = ""
-        self.app.conf.environment = "dev"
+        self.app.conf.environment = EduidEnvironment("dev")
 
         code = "0123456"
         resp = self._get_code_backdoor(code=code)
@@ -789,7 +790,7 @@ class EmailTests(EduidAPITestCase):
     def test_get_code_no_backdoor_misconfigured2(self):
         self.app.conf.magic_cookie = ""
         self.app.conf.magic_cookie_name = "magic"
-        self.app.conf.environment = "dev"
+        self.app.conf.environment = EduidEnvironment("dev")
 
         code = "0123456"
         resp = self._get_code_backdoor(code=code)

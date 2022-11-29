@@ -4,6 +4,7 @@ from typing import Optional
 import pkg_resources
 from flask import request
 from flask_babel import Babel
+from eduid.common.config.base import EduIDBaseAppConfig
 
 from eduid.webapp.common.api.app import EduIDBaseApp
 from eduid.webapp.common.session import session
@@ -15,7 +16,9 @@ def init_babel(app: EduIDBaseApp) -> Babel:
     """
     :param app: Flask app
     """
-    conf_translations_dirs = app.config.get("BABEL_TRANSLATION_DIRECTORIES", "")
+    _conf = getattr(app, "conf")
+    assert isinstance(_conf, EduIDBaseAppConfig)
+    conf_translations_dirs = _conf.flask.babel_translation_directories
     # Add pkg_resource path to translation directory as the default location does not work
     pkg_translations_dir = pkg_resources.resource_filename("eduid.webapp", "translations")
     app.config["BABEL_TRANSLATION_DIRECTORIES"] = f"{conf_translations_dirs};{pkg_translations_dir}"
@@ -33,7 +36,9 @@ def init_babel(app: EduIDBaseApp) -> Babel:
             return lang
         # otherwise try to guess the language from the user accept
         # header the browser transmits. The best match wins.
-        lang = request.accept_languages.best_match(app.conf.available_languages)
+        _conf = getattr(app, "conf")
+        assert isinstance(_conf, EduIDBaseAppConfig)
+        lang = request.accept_languages.best_match(_conf.available_languages)
         app.logger.debug(f"Language (best match) for request: {lang}")
         return lang
 

@@ -85,7 +85,7 @@ class SecurityTests(EduidAPITestCase):
 
     # parameterized test methods
 
-    def _delete_account(self, data1: Optional[dict] = None):
+    def _delete_account(self, data1: Optional[dict[str, Any]] = None):
         """
         Send a POST request to the endpoint to start the process to terminate the account.
         After visiting this endpoint, the user would be sent to re-authenticate before being
@@ -146,7 +146,7 @@ class SecurityTests(EduidAPITestCase):
             return client.get("/account-terminated")
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def _remove_nin(self, mock_request_user_sync: Any, data1: Optional[dict] = None, unverify: bool = False):
+    def _remove_nin(self, mock_request_user_sync: Any, data1: Optional[dict[str, Any]] = None, unverify: bool = False):
         """
         Send a POST request to remove a NIN from the test user, possibly
         unverifying his verified NIN.
@@ -177,7 +177,11 @@ class SecurityTests(EduidAPITestCase):
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def _add_nin(
-        self, mock_request_user_sync: Any, data1: Optional[dict] = None, remove: bool = True, unverify: bool = False
+        self,
+        mock_request_user_sync: Any,
+        data1: Optional[dict[str, Any]] = None,
+        remove: bool = True,
+        unverify: bool = False,
     ):
         """
         Send a POST request to add a NIN to the test user, possibly removing it's primary, verified NIN.
@@ -230,19 +234,20 @@ class SecurityTests(EduidAPITestCase):
         data1 = {"csrf_token": ""}
         response = self._delete_account(data1=data1)
         self.assertEqual(response.json["type"], "POST_SECURITY_TERMINATE_ACCOUNT_FAIL")
-        self.assertEqual(response.json["payload"]["error"]["csrf_token"], ["CSRF failed to validate"])
+        self.assertEqual(self.get_response_payload(response)["error"]["csrf_token"], ["CSRF failed to validate"])
 
     def test_delete_account_wrong_csrf(self):
         data1 = {"csrf_token": "wrong-token"}
         response = self._delete_account(data1=data1)
         self.assertEqual(response.json["type"], "POST_SECURITY_TERMINATE_ACCOUNT_FAIL")
-        self.assertEqual(response.json["payload"]["error"]["csrf_token"], ["CSRF failed to validate"])
+        self.assertEqual(self.get_response_payload(response)["error"]["csrf_token"], ["CSRF failed to validate"])
 
     def test_delete_account(self):
         response = self._delete_account()
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
-            response.json["payload"]["location"], "http://test.localhost/terminate?next=%2Faccount-terminated"
+            self.get_response_payload(response)["location"],
+            "http://test.localhost/terminate?next=%2Faccount-terminated",
         )
         self.assertEqual(response.json["type"], "POST_SECURITY_TERMINATE_ACCOUNT_SUCCESS")
 
@@ -323,13 +328,13 @@ class SecurityTests(EduidAPITestCase):
         mock_remove.side_effect = AmTaskFailed()
         response = self._remove_nin()
 
-        self.assertTrue(response.json["payload"]["message"], "Temporary technical problems")
+        self.assertTrue(self.get_response_payload(response)["message"], "Temporary technical problems")
 
     def test_remove_nin_no_csrf(self):
         data1 = {"csrf_token": ""}
         response = self._remove_nin(data1=data1)
 
-        self.assertTrue(response.json["payload"]["error"])
+        self.assertTrue(self.get_response_payload(response)["error"])
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         assert user.identities.nin is not None
@@ -366,7 +371,7 @@ class SecurityTests(EduidAPITestCase):
     def test_add_existing_nin(self):
         response = self._add_nin(remove=False)
 
-        self.assertEqual(response.json["payload"]["message"], "nins.already_exists")
+        self.assertEqual(self.get_response_payload(response)["message"], "nins.already_exists")
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         assert user.identities.nin is not None
@@ -378,7 +383,7 @@ class SecurityTests(EduidAPITestCase):
         data1 = {"nin": "202201023456"}
         response = self._add_nin(data1=data1, remove=False, unverify=True)
 
-        self.assertEqual(response.json["payload"]["message"], "nins.already_exists")
+        self.assertEqual(self.get_response_payload(response)["message"], "nins.already_exists")
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         assert user.identities.nin is not None
@@ -392,13 +397,13 @@ class SecurityTests(EduidAPITestCase):
         mock_add.side_effect = AmTaskFailed()
         response = self._add_nin()
 
-        self.assertEqual(response.json["payload"]["message"], "Temporary technical problems")
+        self.assertEqual(self.get_response_payload(response)["message"], "Temporary technical problems")
 
     def test_add_nin_bad_csrf(self):
         data1 = {"csrf_token": "bad-token"}
         response = self._add_nin(data1=data1, remove=False)
 
-        self.assertTrue(response.json["payload"]["error"])
+        self.assertTrue(self.get_response_payload(response)["error"])
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         assert user.identities.nin is not None
@@ -407,7 +412,7 @@ class SecurityTests(EduidAPITestCase):
     def test_add_invalid_nin(self):
         data1 = {"nin": "123456789"}
         response = self._add_nin(data1=data1, remove=False)
-        self.assertIsNotNone(response.json["payload"]["error"]["nin"])
+        self.assertIsNotNone(self.get_response_payload(response)["error"]["nin"])
 
         self._check_error_response(
             response,

@@ -133,11 +133,13 @@ def authn_callback(user) -> WerkzeugResponse:
     current_app.logger.debug("authn_callback called")
     current_app.logger.debug(f"request.args: {request.args}")
     authn_req = None
-    oidc_state = request.args.get("state")
+    oidc_state: Optional[OIDCState] = None
+    if "state" in request.args:
+        oidc_state = OIDCState(request.args["state"])
     if oidc_state is not None:
-        authn_req = session.svipe_id.rp.authns.get(OIDCState(oidc_state))
+        authn_req = session.svipe_id.rp.authns.get(oidc_state)
 
-    if not authn_req:
+    if not oidc_state or not authn_req:
         # Perhaps an authn response received out of order - abort without destroying state
         # (User makes two requests, A and B. Response B arrives, user is happy and proceeds with their work.
         #  Then response A arrives late. Just silently abort, no need to mess up the users' session.)

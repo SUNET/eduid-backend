@@ -1,5 +1,5 @@
 import json
-import logging
+import loguru
 import re
 from copy import copy
 from typing import List, Optional, Set
@@ -10,7 +10,6 @@ from jwcrypto.common import JWException
 from pydantic import BaseModel, Field, StrictInt, ValidationError, validator
 from starlette.datastructures import URL
 from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.responses import PlainTextResponse
 from starlette.types import Message
 
 from eduid.common.utils import removeprefix
@@ -72,7 +71,7 @@ class AuthnBearerToken(BaseModel):
             new_access += [this]
         return new_access
 
-    def get_data_owner(self, logger: logging.Logger) -> Optional[DataOwnerName]:
+    def get_data_owner(self, logger: loguru.Logger) -> Optional[DataOwnerName]:
         """
         Get the data owner to use.
 
@@ -120,7 +119,7 @@ class AuthnBearerToken(BaseModel):
 
         return None
 
-    def _get_allowed_scopes(self, config: ScimApiConfig, logger: logging.Logger) -> Set[ScopeName]:
+    def _get_allowed_scopes(self, config: ScimApiConfig, logger: loguru.Logger) -> Set[ScopeName]:
         """
         Make a set of all the allowed scopes for the requester.
 

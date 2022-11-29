@@ -262,8 +262,8 @@ class SvipeIdTests(ProofingTests):
         response = self._start_auth(endpoint=endpoint, data=self.default_frontend_data, eppn=self.test_user.eppn)
         assert response.status_code == 200
         self._check_success_response(response, type_="POST_SVIPE_ID_VERIFY_IDENTITY_SUCCESS")
-        assert response.json["payload"]["location"].startswith("https://example.com/op/authorize")
-        query: Dict[str, List[str]] = parse_qs(urlparse(response.json["payload"]["location"]).query)  # type: ignore
+        assert self.get_response_payload(response)["location"].startswith("https://example.com/op/authorize")
+        query: Dict[str, List[str]] = parse_qs(urlparse(self.get_response_payload(response)["location"]).query)  # type: ignore
         assert query["response_type"] == ["code"]
         assert query["client_id"] == ["test_client_id"]
         assert query["redirect_uri"] == ["http://test.localhost/authn-callback"]
@@ -284,7 +284,7 @@ class SvipeIdTests(ProofingTests):
             endpoint = url_for("svipe_id.verify_identity")
 
         start_auth_response = self._start_auth(endpoint=endpoint, data=self.default_frontend_data, eppn=eppn)
-        state, nonce = self._get_state_and_nonce(start_auth_response.json["payload"]["location"])
+        state, nonce = self._get_state_and_nonce(start_auth_self.get_response_payload(response)["location"])
 
         userinfo = self.get_mock_userinfo(issuing_country=country, nationality=country)
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
@@ -313,7 +313,7 @@ class SvipeIdTests(ProofingTests):
             endpoint = url_for("svipe_id.verify_identity")
 
         start_auth_response = self._start_auth(endpoint=endpoint, data=self.default_frontend_data, eppn=eppn)
-        state, nonce = self._get_state_and_nonce(start_auth_response.json["payload"]["location"])
+        state, nonce = self._get_state_and_nonce(start_auth_self.get_response_payload(response)["location"])
         userinfo = self.get_mock_userinfo(issuing_country=country, nationality=country)
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
         assert response.status_code == 302
@@ -343,7 +343,7 @@ class SvipeIdTests(ProofingTests):
             endpoint = url_for("svipe_id.verify_identity")
 
         start_auth_response = self._start_auth(endpoint=endpoint, data=self.default_frontend_data, eppn=eppn)
-        state, nonce = self._get_state_and_nonce(start_auth_response.json["payload"]["location"])
+        state, nonce = self._get_state_and_nonce(start_auth_self.get_response_payload(response)["location"])
         userinfo = self.get_mock_userinfo(issuing_country=country, nationality=country)
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
         assert response.status_code == 302
@@ -381,7 +381,7 @@ class SvipeIdTests(ProofingTests):
             endpoint = url_for("svipe_id.verify_identity")
 
         start_auth_response = self._start_auth(endpoint=endpoint, data=self.default_frontend_data, eppn=eppn)
-        state, nonce = self._get_state_and_nonce(start_auth_response.json["payload"]["location"])
+        state, nonce = self._get_state_and_nonce(start_auth_self.get_response_payload(response)["location"])
         userinfo = self.get_mock_userinfo(issuing_country=country, nationality=country)
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
         assert response.status_code == 302
@@ -421,7 +421,7 @@ class SvipeIdTests(ProofingTests):
             endpoint = url_for("svipe_id.verify_identity")
 
         start_auth_response = self._start_auth(endpoint=endpoint, data=self.default_frontend_data, eppn=eppn)
-        state, nonce = self._get_state_and_nonce(start_auth_response.json["payload"]["location"])
+        state, nonce = self._get_state_and_nonce(start_auth_self.get_response_payload(response)["location"])
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
         assert response.status_code == 302
         self._verify_status(
@@ -463,7 +463,7 @@ class SvipeIdTests(ProofingTests):
             endpoint = url_for("svipe_id.verify_identity")
 
         start_auth_response = self._start_auth(endpoint=endpoint, data=self.default_frontend_data, eppn=eppn)
-        state, nonce = self._get_state_and_nonce(start_auth_response.json["payload"]["location"])
+        state, nonce = self._get_state_and_nonce(start_auth_self.get_response_payload(response)["location"])
         userinfo = self.get_mock_userinfo(issuing_country=country, nationality=country)
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
         assert response.status_code == 302
@@ -492,7 +492,7 @@ class SvipeIdTests(ProofingTests):
             endpoint = url_for("svipe_id.verify_identity")
 
         start_auth_response = self._start_auth(endpoint=endpoint, data=self.default_frontend_data, eppn=eppn)
-        state, nonce = self._get_state_and_nonce(start_auth_response.json["payload"]["location"])
+        state, nonce = self._get_state_and_nonce(start_auth_self.get_response_payload(response)["location"])
         userinfo = self.get_mock_userinfo(issuing_country=country, nationality=country)
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
         assert response.status_code == 302
@@ -524,7 +524,7 @@ class SvipeIdTests(ProofingTests):
             endpoint = url_for("svipe_id.verify_identity")
 
         start_auth_response = self._start_auth(endpoint=endpoint, data=self.default_frontend_data, eppn=eppn)
-        state, nonce = self._get_state_and_nonce(start_auth_response.json["payload"]["location"])
+        state, nonce = self._get_state_and_nonce(start_auth_self.get_response_payload(response)["location"])
         yesterday = utc_now() - timedelta(days=1)
         userinfo = self.get_mock_userinfo(issuing_country=country, nationality=country, document_expires=yesterday)
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)

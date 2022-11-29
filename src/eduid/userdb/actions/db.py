@@ -64,7 +64,7 @@ class ActionDB(BaseDB):
         self,
         eppn_or_userid: Union[str, ObjectId],
         session: Optional[str],
-        filter_: Optional[dict] = None,
+        filter_: Optional[dict[str, Any]] = None,
         match_no_session: bool = True,
     ) -> Cursor:
         query: Dict[str, Any]
@@ -106,7 +106,7 @@ class ActionDB(BaseDB):
         eppn_or_userid: Union[str, ObjectId],
         session: Optional[str] = None,
         action_type: Optional[str] = None,
-        params: Optional[dict] = None,
+        params: Optional[dict[str, Any]] = None,
     ) -> bool:
         """
         Check in the db (not in the cache) whether there are actions
@@ -157,8 +157,8 @@ class ActionDB(BaseDB):
         action_type: Optional[str] = None,
         preference: int = 100,
         session: Optional[str] = None,
-        params: Optional[dict] = None,
-        data: Optional[dict] = None,
+        params: Optional[dict[str, Any]] = None,
+        data: Optional[dict[str, Any]] = None,
     ) -> Action:
         """
         Add an action to the DB.

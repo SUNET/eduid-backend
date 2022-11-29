@@ -291,7 +291,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
         state: dict,
         existing_legacy_token: bool = False,
         csrf: Optional[str] = None,
-    ):
+    ) -> None:
         """
         Send a request to remove the only webauthn credential from the test user - which should fail.
 

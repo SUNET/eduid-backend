@@ -78,7 +78,7 @@ class ChangePasswordTests(EduidAPITestCase):
     def _change_password(
         self,
         mock_request_user_sync: Any,
-        data1: Optional[dict] = None,
+        data1: Optional[dict[str, Any]] = None,
         reauthn: Optional[int] = 60,
     ):
         """
@@ -115,7 +115,7 @@ class ChangePasswordTests(EduidAPITestCase):
     def _get_suggested_and_change(
         self,
         mock_request_user_sync: Any,
-        data1: Optional[dict] = None,
+        data1: Optional[dict[str, Any]] = None,
         correct_old_password: bool = True,
         reauthn: Optional[int] = 60,
     ):

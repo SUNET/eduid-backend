@@ -35,7 +35,7 @@ from typing import Any, Dict, Mapping, Optional
 from uuid import UUID
 
 import pytest
-from flask import Response
+from werkzeug.test import TestResponse
 from mock import patch
 
 from eduid.common.testing_base import normalised_data
@@ -53,10 +53,9 @@ __author__ = "lundberg"
 
 
 @pytest.mark.skipif(Neo4jTemporaryInstance.get_instance()._conn is None, reason="Neo4j database not available")
-class GroupManagementTests(EduidAPITestCase):
+class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
     """Base TestCase for those tests that need a full environment setup"""
 
-    app: GroupManagementApp
     neo4j_instance: Neo4jTemporaryInstance
     neo4j_uri: str
 
@@ -140,7 +139,7 @@ class GroupManagementTests(EduidAPITestCase):
     @patch("eduid.common.rpc.mail_relay.MailRelay.sendmail")
     def _invite(
         self, mock_sendmail: Any, group_scim_id: str, inviter: User, invite_address: str, role: str
-    ) -> Response:
+    ) -> TestResponse:
         mock_sendmail.return_value = True
         with self.session_cookie(self.browser, inviter.eppn) as client:
             with self.app.test_request_context():
@@ -155,7 +154,7 @@ class GroupManagementTests(EduidAPITestCase):
         self._check_success_response(response, type_="POST_GROUP_INVITE_INVITES_CREATE_SUCCESS")
         return response
 
-    def _accept_invite(self, group_scim_id: str, invitee: User, invite_address: str, role: str) -> Response:
+    def _accept_invite(self, group_scim_id: str, invitee: User, invite_address: str, role: str) -> TestResponse:
         with self.session_cookie(self.browser, invitee.eppn) as client:
             with self.app.test_request_context():
                 with client.session_transaction() as sess:
@@ -169,7 +168,7 @@ class GroupManagementTests(EduidAPITestCase):
         self._check_success_response(response, type_="POST_GROUP_INVITE_INVITES_ACCEPT_SUCCESS")
         return response
 
-    def _decline_invite(self, group_scim_id: str, invitee: User, invite_address: str, role: str) -> Response:
+    def _decline_invite(self, group_scim_id: str, invitee: User, invite_address: str, role: str) -> TestResponse:
         with self.session_cookie(self.browser, invitee.eppn) as client:
             with self.app.test_request_context():
                 with client.session_transaction() as sess:
@@ -186,7 +185,7 @@ class GroupManagementTests(EduidAPITestCase):
     @patch("eduid.common.rpc.mail_relay.MailRelay.sendmail")
     def _delete_invite(
         self, mock_sendmail: Any, group_scim_id: str, inviter: User, invite_address: str, role: str
-    ) -> Response:
+    ) -> TestResponse:
         mock_sendmail.return_value = True
         with self.session_cookie(self.browser, inviter.eppn) as client:
             with self.app.test_request_context():

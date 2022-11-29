@@ -91,7 +91,7 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
     __str__ = __repr__
 
     @classmethod
-    def user_from_dict(cls, data):
+    def user_from_dict(cls, data: Mapping[str, Any]) -> UserVar:
         # must be implemented by subclass to get correct type information
         raise NotImplementedError(f"user_from_dict not implemented in UserDB subclass {cls}")
 

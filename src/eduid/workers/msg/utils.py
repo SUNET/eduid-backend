@@ -5,10 +5,10 @@ This module provides utility functions.
 
 import os
 from collections import OrderedDict
-from typing import Optional
+from typing import Any, Optional
 
 
-def is_deregistered(person: Optional[dict]) -> bool:
+def is_deregistered(person: Optional[dict[str, Any]]) -> bool:
     if person is None:
         return False
     deregistration_information = person["DeregistrationInformation"]
@@ -36,7 +36,7 @@ def load_template(template_dir: str, filename: str, message_dict: dict, lang: st
     raise RuntimeError("template not found")
 
 
-def navet_get_name_and_official_address(navet_data: Optional[dict]) -> Optional[OrderedDict]:
+def navet_get_name_and_official_address(navet_data: Optional[dict[str, Any]]) -> Optional[OrderedDict]:
     """
     :param navet_data:  Loaded JSON response from eduid-navet_service
     :return: Name and official address data objects
@@ -55,7 +55,7 @@ def navet_get_name_and_official_address(navet_data: Optional[dict]) -> Optional[
     return None
 
 
-def navet_get_relations(navet_data: Optional[dict]) -> Optional[OrderedDict]:
+def navet_get_relations(navet_data: Optional[dict[str, Any]]) -> Optional[OrderedDict]:
     """
     :param navet_data:  Loaded JSON response from eduid-navet_service
     :return: Relations data object
@@ -72,7 +72,7 @@ def navet_get_relations(navet_data: Optional[dict]) -> Optional[OrderedDict]:
     return None
 
 
-def navet_get_person(navet_data: Optional[dict]) -> Optional[OrderedDict]:
+def navet_get_person(navet_data: Optional[dict[str, Any]]) -> Optional[OrderedDict]:
     """
     :param navet_data: Loaded JSON response from eduid-navet_service
     :return: Personpost
@@ -112,7 +112,7 @@ def navet_get_person(navet_data: Optional[dict]) -> Optional[OrderedDict]:
     return None
 
 
-def navet_get_all_data(navet_data: Optional[dict]) -> Optional[OrderedDict]:
+def navet_get_all_data(navet_data: Optional[dict[str, Any]]) -> Optional[OrderedDict]:
     """
     :param navet_data: Loaded JSON response from eduid-navet_service
     :return: all available data from Navet

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from typing import List, Mapping, Optional, Tuple
+from typing import Any, List, Mapping, Optional, Tuple
 
 from eduid.userdb.db import BaseDB
 
@@ -10,7 +10,7 @@ class ScimApiBaseDB(BaseDB):
     def _get_documents_and_count_by_filter(
         self,
         spec: dict,
-        fields: Optional[dict] = None,
+        fields: Optional[dict[str, Any]] = None,
         limit: Optional[int] = None,
         skip: Optional[int] = None,
     ) -> Tuple[List[Mapping], int]:

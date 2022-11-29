@@ -41,8 +41,8 @@ def parse_args() -> Args:
 def scim_request(
     func: Callable,
     url: str,
-    data: Optional[dict] = None,
-    headers: Optional[dict] = None,
+    data: Optional[dict[str, Any]] = None,
+    headers: Optional[dict[str, Any]] = None,
     token: Optional[str] = None,
     verify: bool = True,
 ) -> Optional[Dict[str, Any]]:
@@ -65,8 +65,8 @@ def scim_request(
 def _make_request(
     func: Callable,
     url: str,
-    data: Optional[dict] = None,
-    headers: Optional[dict] = None,
+    data: Optional[dict[str, Any]] = None,
+    headers: Optional[dict[str, Any]] = None,
     verify: bool = True,
 ) -> Optional[requests.Response]:
     r = func(url, json=data, headers=headers, verify=verify)

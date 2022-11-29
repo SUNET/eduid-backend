@@ -279,7 +279,7 @@ class BaseDB(object):
     def _get_documents_by_filter(
         self,
         spec: Mapping[str, Any],
-        fields: Optional[dict] = None,
+        fields: Optional[dict[str, Any]] = None,
         skip: Optional[int] = None,
         limit: Optional[int] = None,
     ) -> List[Mapping]:

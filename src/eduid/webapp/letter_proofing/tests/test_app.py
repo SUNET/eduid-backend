@@ -8,6 +8,7 @@ from typing import Any, Optional
 
 from flask import Response
 from mock import Mock, patch
+from eduid.common.config.base import EduidEnvironment
 
 from eduid.userdb import NinIdentity
 from eduid.userdb.identity import IdentityType
@@ -197,7 +198,7 @@ class LetterProofingTests(EduidAPITestCase):
 
     def test_send_letter(self):
         response = self.send_letter(self.test_user_nin)
-        expires = response.json["payload"]["letter_expires"]
+        expires = self.get_response_payload(response)["letter_expires"]
         expires = datetime.fromisoformat(expires)
         self.assertIsInstance(expires, datetime)
         # Check that the user was given until midnight the day the code expires
@@ -210,7 +211,7 @@ class LetterProofingTests(EduidAPITestCase):
 
         # Deliberately test the CSRF token from the send_letter response,
         # instead of always using get_state() to get a token.
-        csrf_token = response.json["payload"]["csrf_token"]
+        csrf_token = self.get_response_payload(response)["csrf_token"]
         response2 = self.send_letter(self.test_user_nin, csrf_token, validate_response=False)
         self._check_success_response(
             response2, type_="POST_LETTER_PROOFING_PROOFING_SUCCESS", msg=LetterMsg.already_sent
@@ -287,7 +288,7 @@ class LetterProofingTests(EduidAPITestCase):
         proofing_state.proofing_letter.sent_ts = datetime.fromisoformat("2020-01-01T01:02:03")
         self.app.proofing_statedb.save(proofing_state)
 
-        csrf_token = response.json["payload"]["csrf_token"]
+        csrf_token = self.get_response_payload(response)["csrf_token"]
         response = self.verify_code(proofing_state.nin.verification_code, csrf_token, validate_response=False)
         self._check_error_response(
             response, type_="POST_LETTER_PROOFING_VERIFY_CODE_FAIL", msg=LetterMsg.letter_expired
@@ -417,7 +418,7 @@ class LetterProofingTests(EduidAPITestCase):
     def test_send_letter_backdoor(self, mock_request_user_sync, mock_hammock):
         self.app.conf.magic_cookie = "magic-cookie"
         self.app.conf.magic_cookie_name = "magic"
-        self.app.conf.environment = "dev"
+        self.app.conf.environment = EduidEnvironment("dev")
 
         ekopost_response = self.mock_response(json_data={"id": "test"})
         mock_hammock.return_value = ekopost_response
@@ -434,7 +435,7 @@ class LetterProofingTests(EduidAPITestCase):
     def test_get_code_backdoor(self):
         self.app.conf.magic_cookie = "magic-cookie"
         self.app.conf.magic_cookie_name = "magic"
-        self.app.conf.environment = "dev"
+        self.app.conf.environment = EduidEnvironment("dev")
 
         response = self.get_code_backdoor()
         state = self.app.proofing_statedb.get_state_by_eppn(self.test_user_eppn)
@@ -444,7 +445,7 @@ class LetterProofingTests(EduidAPITestCase):
     def test_get_code_no_backdoor_in_pro(self):
         self.app.conf.magic_cookie = "magic-cookie"
         self.app.conf.magic_cookie_name = "magic"
-        self.app.conf.environment = "production"
+        self.app.conf.environment = EduidEnvironment("production")
 
         response = self.get_code_backdoor()
 
@@ -453,7 +454,7 @@ class LetterProofingTests(EduidAPITestCase):
     def test_get_code_no_backdoor_without_cookie(self):
         self.app.conf.magic_cookie = "magic-cookie"
         self.app.conf.magic_cookie_name = "magic"
-        self.app.conf.environment = "dev"
+        self.app.conf.environment = EduidEnvironment("dev")
 
         response = self.get_code_backdoor(add_cookie=False)
 
@@ -462,7 +463,7 @@ class LetterProofingTests(EduidAPITestCase):
     def test_get_code_no_backdoor_misconfigured1(self):
         self.app.conf.magic_cookie = "magic-cookie"
         self.app.conf.magic_cookie_name = ""
-        self.app.conf.environment = "dev"
+        self.app.conf.environment = EduidEnvironment("dev")
 
         response = self.get_code_backdoor()
 
@@ -471,7 +472,7 @@ class LetterProofingTests(EduidAPITestCase):
     def test_get_code_no_backdoor_misconfigured2(self):
         self.app.conf.magic_cookie = ""
         self.app.conf.magic_cookie_name = "magic"
-        self.app.conf.environment = "dev"
+        self.app.conf.environment = EduidEnvironment("dev")
 
         response = self.get_code_backdoor()
 
@@ -480,7 +481,7 @@ class LetterProofingTests(EduidAPITestCase):
     def test_get_code_no_backdoor_wrong_value(self):
         self.app.conf.magic_cookie = "magic-cookie"
         self.app.conf.magic_cookie_name = "magic"
-        self.app.conf.environment = "dev"
+        self.app.conf.environment = EduidEnvironment("dev")
 
         response = self.get_code_backdoor(cookie_value="wrong-cookie")
 

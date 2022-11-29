@@ -246,7 +246,7 @@ class AuthnAPITestBase(EduidAPITestCase):
         return dump_cookie(
             self.app.conf.flask.session_cookie_name,
             session_id,
-            max_age=float(self.app.conf.flask.permanent_session_lifetime),
+            max_age=int(self.app.conf.flask.permanent_session_lifetime),
             path=self.app.conf.flask.session_cookie_path,
             domain=self.app.conf.flask.session_cookie_domain,
         )

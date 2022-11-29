@@ -3,7 +3,7 @@
 import json
 import smtplib
 from collections import OrderedDict
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from celery import Task
 from celery.utils.log import get_task_logger
@@ -279,7 +279,7 @@ class MessageSender(Task):
         return result
 
     @TransactionAudit()
-    def _get_navet_data(self, identity_number: str) -> Optional[dict]:
+    def _get_navet_data(self, identity_number: str) -> Optional[dict[str, Any]]:
         """
         Fetch all data about a NIN from Navet.
 

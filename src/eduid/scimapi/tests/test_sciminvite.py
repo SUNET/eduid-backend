@@ -190,7 +190,7 @@ class TestInviteResource(ScimApiTestCase):
             "profiles": {"student": {"attributes": {"displayName": "Test"}, "data": {}}},
         }
 
-    def add_invite(self, data: Optional[dict] = None, update: bool = False) -> ScimApiInvite:
+    def add_invite(self, data: Optional[dict[str, Any]] = None, update: bool = False) -> ScimApiInvite:
         invite_data = self.invite_data
         if data:
             invite_data = data
