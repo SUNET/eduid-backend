@@ -9,13 +9,13 @@ from eduid.common.config.base import EduidEnvironment, MagicCookieMixin
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.rpc.exceptions import NoNavetData
 from eduid.common.rpc.msg_relay import DeregisteredCauseCode, DeregistrationInformation, FullPostalAddress
+from eduid.common.utils import set_user_names_from_official_address
 from eduid.userdb import NinIdentity
 from eduid.userdb.element import ElementKey
 from eduid.userdb.identity import IdentityType
 from eduid.userdb.logs.element import (
     NinProofingLogElement,
     TForeignIdProofingLogElementSubclass,
-    TNinProofingLogElementSubclass,
 )
 from eduid.userdb.proofing import ProofingUser
 from eduid.userdb.proofing.state import NinProofingState, OidcProofingState
@@ -23,38 +23,6 @@ from eduid.userdb.user import TUserSubclass, User
 from eduid.webapp.common.api.app import EduIDBaseApp
 
 __author__ = "lundberg"
-
-
-def set_user_names_from_official_address(
-    user: TUserSubclass, proofing_log_entry: TNinProofingLogElementSubclass
-) -> TUserSubclass:
-    """
-    :param user: Proofing app private userdb user
-    :param proofing_log_entry: Proofing log entry element
-
-    :returns: User object
-    """
-    user.given_name = proofing_log_entry.user_postal_address.name.given_name
-    user.surname = proofing_log_entry.user_postal_address.name.surname
-    if user.given_name is None or user.surname is None:
-        # please mypy
-        raise RuntimeError("No given name or surname found in proofing log user postal address")
-    given_name_marking = proofing_log_entry.user_postal_address.name.given_name_marking
-    user.display_name = f"{user.given_name} {user.surname}"
-    if given_name_marking:
-        _name_index = (int(given_name_marking) // 10) - 1  # ex. "20" -> 1 (second GivenName is real given name)
-        try:
-            _given_name = user.given_name.split()[_name_index]
-            user.display_name = f"{_given_name} {user.surname}"
-        except IndexError:
-            # At least occasionally, we've seen GivenName 'Jan-Erik Martin' with GivenNameMarking 30
-            pass
-    current_app.logger.info("User names set from official address")
-    current_app.logger.debug(
-        f"{proofing_log_entry.user_postal_address.name} resulted in given_name: {user.given_name}, "
-        f"surname: {user.surname} and display_name: {user.display_name}"
-    )
-    return user
 
 
 def set_user_names_from_foreign_id(
@@ -106,7 +74,6 @@ def add_nin_to_user(user: User, proofing_state: NinProofingState, user_type: Typ
 
 
 def add_nin_to_user(user, proofing_state, user_type=ProofingUser):
-
     proofing_user = user_type.from_user(user, current_app.private_userdb)
     # Add nin to user if not already there
     if not proofing_user.identities.nin:
@@ -197,7 +164,7 @@ def verify_nin_for_user(
     proofing_user.identities.nin.verified_by = proofing_state.nin.created_by
 
     # Update users name
-    proofing_user = set_user_names_from_official_address(proofing_user, proofing_log_entry)
+    proofing_user = set_user_names_from_official_address(proofing_user, proofing_log_entry.user_postal_address)
 
     # If user was updated successfully continue with logging the proof and saving the user to central db
     # Send proofing data to the proofing log

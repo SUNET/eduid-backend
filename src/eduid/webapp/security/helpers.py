@@ -11,7 +11,8 @@ from eduid.common.rpc.msg_relay import FullPostalAddress, NavetData
 from eduid.userdb import NinIdentity
 from eduid.userdb.logs.element import NameUpdateProofing
 from eduid.userdb.security import SecurityUser
-from eduid.webapp.common.api.helpers import send_mail, set_user_names_from_official_address
+from eduid.webapp.common.api.helpers import send_mail
+from eduid.common.utils import set_user_names_from_official_address
 from eduid.webapp.common.api.messages import FluxData, TranslatableMsg, error_response
 from eduid.webapp.common.authn.utils import generate_password
 from eduid.webapp.common.session.namespaces import SP_AuthnRequest
@@ -189,7 +190,7 @@ def update_user_official_name(security_user: SecurityUser, navet_data: NavetData
             user_postal_address=user_postal_address,
         )
         # Update user names
-        security_user = set_user_names_from_official_address(security_user, proofing_log_entry)
+        security_user = set_user_names_from_official_address(security_user, proofing_log_entry.user_postal_address)
 
         # Do not save the user if proofing log write fails
         if not current_app.proofing_log.save(proofing_log_entry):

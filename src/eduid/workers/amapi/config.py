@@ -1,11 +1,11 @@
 import logging
 from enum import Enum
 from pathlib import Path
-from typing import List, Optional, Dict, NewType, Annotated
+from typing import List, Optional, Dict, NewType, Annotated, Sequence
 
 from pydantic import Field, BaseModel, validator, constr
 
-from eduid.common.config.base import LoggingConfigMixin, RootConfig
+from eduid.common.config.base import LoggingConfigMixin, RootConfig, LoggingFilters
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +42,7 @@ class AMApiConfig(RootConfig, LoggingConfigMixin):
     protocol: str = "http"
     server_name: str = "localhost:8000"
     log_format: str = "{asctime} | {levelname:7} | {hostname} | {name:35} | {module:10} | {message}"
+    log_filters: Sequence[LoggingFilters] = Field(default=[LoggingFilters.NAMES])
     mongo_uri: str = ""
     application_root: str = ""
     keystore_path: Path

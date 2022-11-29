@@ -18,7 +18,6 @@ class GNAPClient(httpx.Client, GNAPBearerTokenMixin):
 
         super().__init__(**kwargs)
 
-        self.verify = kwargs.get("verify", True)
         self._auth_data = auth_data
 
     @staticmethod
@@ -35,7 +34,7 @@ class GNAPClient(httpx.Client, GNAPBearerTokenMixin):
             url=self.transaction_uri,
             content=data,
             headers={"Content-Type": "application/jose+json"},
-            verify=self.verify,
+            verify=self._auth_data.auth_server_verify,
         )
         resp.raise_for_status()
         return GrantResponse.parse_raw(resp.text)

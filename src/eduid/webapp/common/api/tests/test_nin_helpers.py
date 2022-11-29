@@ -20,9 +20,9 @@ from eduid.webapp.common.api.app import EduIDBaseApp
 from eduid.webapp.common.api.helpers import (
     add_nin_to_user,
     set_user_names_from_foreign_id,
-    set_user_names_from_official_address,
     verify_nin_for_user,
 )
+from eduid.common.utils import set_user_names_from_official_address
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.common.session.eduid_session import SessionFactory
 
@@ -280,7 +280,7 @@ class NinHelpersTest(EduidAPITestCase):
             proofing_version="2018v1",
         )
         with self.app.app_context():
-            user = set_user_names_from_official_address(user, proofing_element)
+            user = set_user_names_from_official_address(user, proofing_element.user_postal_address)
             assert user.given_name == "Testaren Test"
             assert user.surname == "Testsson"
             assert user.display_name == "Test Testsson"
@@ -301,7 +301,7 @@ class NinHelpersTest(EduidAPITestCase):
             proofing_version="2018v1",
         )
         with self.app.app_context():
-            user = set_user_names_from_official_address(user, proofing_element)
+            user = set_user_names_from_official_address(user, proofing_element.user_postal_address)
             assert user.given_name == "Test"
             assert user.surname == "Testsson"
             assert user.display_name == "Test Testsson"
@@ -323,7 +323,7 @@ class NinHelpersTest(EduidAPITestCase):
             proofing_version="2018v1",
         )
         with self.app.app_context():
-            user = set_user_names_from_official_address(user, proofing_element)
+            user = set_user_names_from_official_address(user, proofing_element.user_postal_address)
             assert user.given_name == "Pippilotta Viktualia Rullgardina Krusmynta Efraimsdotter"
             assert user.surname == "Långstrump"
             assert user.display_name == "Rullgardina Långstrump"
@@ -343,7 +343,7 @@ class NinHelpersTest(EduidAPITestCase):
             proofing_version="2018v1",
         )
         with self.app.app_context():
-            user = set_user_names_from_official_address(user, proofing_element)
+            user = set_user_names_from_official_address(user, proofing_element.user_postal_address)
             assert user.given_name == "Testaren Test"
             assert user.surname == "Testsson"
             assert user.display_name == "Testaren Test Testsson"

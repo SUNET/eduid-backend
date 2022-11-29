@@ -1,17 +1,22 @@
-from enum import Enum
-from typing import Dict
+from typing import Sequence
 
-from pydantic import BaseModel
+from pydantic import Field, BaseModel
 
-from eduid.common.config.base import LoggingConfigMixin, RootConfig, MsgConfigMixin
-from eduid.userdb.meta import CleanerType
+from eduid.common.clients.gnap_client.base import GNAPClientAuthData
+from eduid.common.config.base import LoggingConfigMixin, RootConfig, MsgConfigMixin, LoggingFilters
 
 
-class WorkerInfo(BaseModel):
-    user_count: int
+class AmAPIConfig(BaseModel):
+    url: str
+    tls_verify: bool
 
 
 class UserCleanerConfig(RootConfig, LoggingConfigMixin, MsgConfigMixin):
+    log_filters: Sequence[LoggingFilters] = Field(default=[LoggingFilters.NAMES])
+    log_format: str = "{asctime} | {levelname:7} | {hostname} | {name:35} | {module:10} | {message}"
     mongo_uri: str = ""
-    workers: Dict[str, WorkerInfo]
-    amapi_url: str
+    debug: bool
+    user_count: int
+    change_quota: float
+    gnap_auth_data: GNAPClientAuthData
+    amapi: AmAPIConfig

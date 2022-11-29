@@ -32,7 +32,8 @@ class GNAPClientException(Exception):
 
 
 class GNAPClientAuthData(BaseModel):
-    authn_server_url: str
+    auth_server_url: str
+    auth_server_verify: bool = True
     key_name: str
     client_jwk: JWK
     access: List[Union[str, Access]] = Field(default_factory=list)
@@ -52,7 +53,7 @@ class GNAPBearerTokenMixin(ABC):
 
     @property
     def transaction_uri(self) -> str:
-        return urlappend(self._auth_data.authn_server_url, "transaction")
+        return urlappend(self._auth_data.auth_server_url, "transaction")
 
     def _create_grant_request_jws(self) -> str:
         req = GrantRequest(
