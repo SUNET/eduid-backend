@@ -3,11 +3,10 @@ import os
 from unittest.mock import MagicMock, patch
 
 from requests import RequestException
-
-from eduid.userdb import MailAddress
 from saml2 import BINDING_HTTP_REDIRECT
 from saml2.client import Saml2Client
 
+from eduid.userdb import MailAddress
 from eduid.vccs.client import VCCSClient
 from eduid.webapp.common.authn.utils import get_saml2_config
 from eduid.webapp.idp.helpers import IdPAction, IdPMsg
