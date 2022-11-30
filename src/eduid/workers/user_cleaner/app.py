@@ -33,12 +33,11 @@ class WorkerBase(ABC):
 
         self.shutdown_now = False
 
-        self.user_count = self.config.user_count
-
-        self.queue = Queue(maxsize=self.user_count)
+        self.queue = Queue(maxsize=self.config.user_count)
+        self.queue_actual_size = 0
 
         self.made_changes = 0
-        self.max_changes = 0
+        self.max_changes = 0.0
 
         self.msg_relay = MsgRelay(self.config)
 
@@ -56,16 +55,19 @@ class WorkerBase(ABC):
     def _is_quota_reached(self) -> bool:
         if self.made_changes == 0:
             return False
-        return self.made_changes == self.config.change_quota
+        self.logger.debug(f"is_quota_reached:: made_changes: {self.made_changes}, max_changes: {self.max_changes}")
+        return self.made_changes >= self.max_changes
 
     def _add_to_made_changes(self) -> None:
         self.made_changes += 1
 
     def _populate_max_changes(self):
-        self.db.db_count()
+        self.logger.debug(
+            f"populate_max_changes:: queue_actual_size: {self.queue_actual_size}, change_quota: {self.made_changes}"
+        )
+        self.max_changes = self.queue_actual_size * self.config.change_quota
 
     def enqueuing(self, cleaning_type: CleanerType, identity_type: IdentityType, limit: int):
-        self.logger.info("Enquing users")
         users = self.db.get_uncleaned_verified_users(
             cleaned_type=cleaning_type,
             identity_type=identity_type,
@@ -75,5 +77,10 @@ class WorkerBase(ABC):
             self.logger.warning(f"No users where enqueued")
             return
         for user in users:
-            self.logger.info(f"adding: {user.eppn}")
             self.queue.put(user)
+            self.logger.info(f"enqueuing user: {user.eppn}")
+
+        self.queue_actual_size = self.queue.qsize()
+        self._populate_max_changes()
+
+        self.made_changes = 0

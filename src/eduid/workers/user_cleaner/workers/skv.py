@@ -1,3 +1,4 @@
+import time
 from typing import Optional, Dict
 
 from eduid.common.models.amapi_user import UserUpdateNameRequest
@@ -14,18 +15,22 @@ class SKV(WorkerBase):
         super().__init__(cleaner_type=cleaner_type.SKV, test_config=test_config)
 
     def update_name(self, user: User, navet_data: NavetData):
-        self.logger.info(f"eppn: {user.eppn}")
+        self.logger.debug(f"number of changes: {self.made_changes} out of {self.max_changes}, {self.queue_actual_size}")
+
         if navet_data.person.name.given_name is None or navet_data.person.name.surname is None:
-            # self.logger.info(f"No given_name or surname found in navet for eppn: {user.eppn}")
+            self.logger.info(f"No given_name or surname found in navet for eppn: {user.eppn}")
             return
         if user.given_name == navet_data.person.name.given_name and user.surname == navet_data.person.name.surname:
-            # self.logger.info(f"No update for names for eppn: {user.eppn}")
+            self.logger.info(f"No update for names for eppn: {user.eppn}")
             return
 
-        # add to quota
         updated_user = set_user_names_from_official_address(
             user=user, user_postal_address=navet_data.get_full_postal_address()
         )
+
+        self._add_to_made_changes()
+
+        self.logger.debug(f"number of changes: {self.made_changes} out of {self.max_changes}, {self.queue_actual_size}")
 
         self.amapi_client.update_user_name(
             user=user.eppn,
@@ -54,6 +59,8 @@ class SKV(WorkerBase):
             navet_data = self.msg_relay.get_all_navet_data(nin=user.identities.nin.number)
 
             self.update_name(user=user, navet_data=navet_data)
+
+            time.sleep(self.config.job_delay)
 
             self.queue.task_done()
 

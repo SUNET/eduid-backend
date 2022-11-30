@@ -18,5 +18,6 @@ class UserCleanerConfig(RootConfig, LoggingConfigMixin, MsgConfigMixin):
     debug: bool
     user_count: int
     change_quota: float
+    job_delay: float = 1.0
     gnap_auth_data: GNAPClientAuthData
     amapi: AmAPIConfig
