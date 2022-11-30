@@ -47,7 +47,7 @@ from eduid.webapp.idp.assurance import (
     WrongMultiFactor,
 )
 from eduid.webapp.idp.assurance_data import AuthnInfo
-from eduid.webapp.idp.helpers import IdPMsg
+from eduid.webapp.idp.helpers import IdPMsg, SubjectIDRequest
 from eduid.webapp.idp.idp_actions import redirect_to_actions
 from eduid.webapp.idp.idp_authn import AuthnData
 from eduid.webapp.idp.idp_saml import ResponseArgs, SamlResponse
@@ -384,7 +384,11 @@ class SSO(Service):
 
         :return: SAML response (string)
         """
+        sp_identifier = resp_args.get("sp_entity_id", resp_args["destination"])
         sp_entity_categories = ticket.saml_req.sp_entity_attributes.get("http://macedir.org/entity-category", [])
+        sp_subject_id_request = ticket.saml_req.sp_entity_attributes.get(
+            "urn:oasis:names:tc:SAML:profiles:subject-id:req", []
+        )
         saml_attribute_settings = SAMLAttributeSettings(
             default_eppn_scope=current_app.conf.default_eppn_scope,
             default_country=current_app.conf.default_country,
@@ -393,10 +397,21 @@ class SSO(Service):
             esi_ladok_prefix=current_app.conf.esi_ladok_prefix,
         )
         attributes = user.to_saml_attributes(settings=saml_attribute_settings)
+
         # Generate eduPersonTargetedID
         if current_app.conf.eduperson_targeted_id_secret_key:
-            sp_identifier = resp_args.get("sp_entity_id", resp_args["destination"])
+
             attributes["eduPersonTargetedID"] = self._get_eptid(relying_party=sp_identifier, user_eppn=user.eppn)
+
+        # Generate pairwise or subject ID
+        if (
+            SubjectIDRequest.PAIRWISE_ID.value in sp_subject_id_request
+            or SubjectIDRequest.ANY.value in sp_subject_id_request
+        ):
+            if current_app.conf.pairwise_id_secret_key:
+                attributes["pairwise-id"] = self._get_pairwise_id(relying_party=sp_identifier, user_eppn=user.eppn)
+        elif SubjectIDRequest.SUBJECT_ID.value in sp_subject_id_request:
+            attributes["subject-id"] = self._get_subject_id(user_eppn=user.eppn)
 
         # Add a list of credentials used in a private attribute that will only be
         # released to the eduID authn component
@@ -424,7 +439,8 @@ class SSO(Service):
 
         return saml_response
 
-    def _kantara_log_assertion_id(self, saml_response: str, ticket: LoginContext) -> None:
+    @staticmethod
+    def _kantara_log_assertion_id(saml_response: str, ticket: LoginContext) -> None:
         """
         Log the assertion id, which _might_ be required by Kantara.
 
@@ -456,7 +472,8 @@ class SSO(Service):
                 current_app.logger.info(f"{ticket.request_ref}: authn response: {saml_response}")
         return None
 
-    def _fticks_log(self, relying_party: str, authn_method: str, user_id: str) -> None:
+    @staticmethod
+    def _fticks_log(relying_party: str, authn_method: str, user_id: str) -> None:
         """
         Perform SAML F-TICKS logging, for statistics in the SWAMID federation.
 
@@ -482,7 +499,18 @@ class SSO(Service):
         current_app.logger.info(msg)
 
     @staticmethod
-    def _get_eptid(relying_party: str, user_eppn: str) -> List[Dict[str, str]]:
+    def _get_rp_specific_unique_id(relying_party: str, user_eppn: str, secret_key: str) -> str:
+        """
+        Generate a unique id for a user for a specific relying party.
+        """
+        _sp_user_id = f"{relying_party}-{user_eppn}"
+        return hmac.new(
+            bytes(secret_key, "ascii"),
+            msg=bytes(_sp_user_id, "ascii"),
+            digestmod=sha256,
+        ).hexdigest()
+
+    def _get_eptid(self, relying_party: str, user_eppn: str) -> List[Dict[str, str]]:
         """
         Generate eduPersonTargetedID
 
@@ -495,13 +523,11 @@ class SSO(Service):
         :param relying_party: The entity id of the relying party (SP).
         :param user_eppn: Unique user identifier
         """
-        _sp_user_id = f"{relying_party}-{user_eppn}"
-        _anon_sp_userid = hmac.new(
-            bytes(current_app.conf.eduperson_targeted_id_secret_key, "ascii"),
-            msg=bytes(_sp_user_id, "ascii"),
-            digestmod=sha256,
-        ).hexdigest()
-
+        _anon_sp_userid = self._get_rp_specific_unique_id(
+            relying_party=relying_party,
+            user_eppn=user_eppn,
+            secret_key=current_app.conf.eduperson_targeted_id_secret_key,
+        )
         return [
             {
                 "text": _anon_sp_userid,
@@ -510,7 +536,54 @@ class SSO(Service):
             }
         ]
 
-    def _validate_login_request(self, ticket: LoginContextSAML) -> ResponseArgs:
+    def _get_pairwise_id(self, relying_party: str, user_eppn: str) -> str:
+        """
+        Given a particular relying party, a value (the unique ID and scope together) MUST be bound to only one subject,
+        but the same unique ID given a different scope may refer to the same or (far more likely) a different subject.
+        The same value provided to different relying parties MAY refer to different subjects, and indeed that is the
+        primary distinguishing characteristic of this identifier Attribute.
+
+        The value MUST NOT be mappable by a relying party into a non-pairwise identifier for the subject through
+        ordinary effort.
+
+        The value consists of two substrings (termed a “unique ID” and a “scope” in the remainder of this definition)
+        separated by an @ symbol (ASCII 64) as an inline delimiter.
+
+        The unique ID consists of 1 to 127 ASCII characters, each of which is either an alphanumeric ASCII character,
+        an equals sign (ASCII 61), or a hyphen (ASCII 45). The first character MUST be alphanumeric.
+
+        The scope consists of 1 to 127 ASCII characters, each of which is either an alphanumeric ASCII character, a
+        hyphen (ASCII 45), or a period (ASCII 46). The first character MUST be alphanumeric.
+        """
+        _anon_sp_userid = self._get_rp_specific_unique_id(
+            relying_party=relying_party,
+            user_eppn=user_eppn,
+            secret_key=current_app.conf.pairwise_id_secret_key,
+        )
+        return f"{_anon_sp_userid}@{current_app.conf.default_eppn_scope}"
+
+    @staticmethod
+    def _get_subject_id(user_eppn: str) -> str:
+        """
+        A value (the unique ID and scope together) MUST be bound to one and only one subject, but the same unique ID
+        given a different scope may refer to the same or (far more likely) a different subject.
+
+        The relationship between an asserting party and a scope is an arbitrary one and does not reflect any assumed
+        relationship between a scope in the form of a domain name and a domain found in a given SAML entity identifier.
+
+        The value consists of two substrings (termed a “unique ID” and a “scope” in the remainder of this definition)
+        separated by an @ symbol (ASCII 64) as an inline delimiter.
+
+        The unique ID consists of 1 to 127 ASCII characters, each of which is either an alphanumeric ASCII character,
+        an equals sign (ASCII 61), or a hyphen (ASCII 45). The first character MUST be alphanumeric.
+
+        The scope consists of 1 to 127 ASCII characters, each of which is either an alphanumeric ASCII character, a
+        hyphen (ASCII 45), or a period (ASCII 46). The first character MUST be alphanumeric.
+        """
+        return f"{user_eppn}@{current_app.conf.default_eppn_scope}"
+
+    @staticmethod
+    def _validate_login_request(ticket: LoginContextSAML) -> ResponseArgs:
         """
         Validate the validity of the SAML request we are going to answer with
         an assertion.
