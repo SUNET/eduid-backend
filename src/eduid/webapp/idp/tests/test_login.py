@@ -3,6 +3,8 @@ import os
 from unittest.mock import MagicMock, patch
 
 from requests import RequestException
+
+from eduid.userdb import MailAddress
 from saml2 import BINDING_HTTP_REDIRECT
 from saml2.client import Saml2Client
 
@@ -76,7 +78,7 @@ class IdPTestLogin(IdPTests):
         attributes = session_info["ava"]
 
         assert "eduPersonPrincipalName" in attributes
-        assert attributes["eduPersonPrincipalName"] == ["hubba-bubba"]
+        assert attributes["eduPersonPrincipalName"] == [f"hubba-bubba@{self.app.conf.default_eppn_scope}"]
 
     def test_ForceAuthn_with_existing_SSO_session(self):
         # Patch the VCCSClient so we do not need a vccs server
@@ -93,7 +95,7 @@ class IdPTestLogin(IdPTests):
         attributes = session_info["ava"]
 
         assert "eduPersonPrincipalName" in attributes
-        assert attributes["eduPersonPrincipalName"] == ["hubba-bubba"]
+        assert attributes["eduPersonPrincipalName"] == [f"hubba-bubba@{self.app.conf.default_eppn_scope}"]
 
         logger.info(
             "\n\n\n\n" + "#" * 80 + "\n" + 'Logging in again with ForceAuthn="true"\n' + "#" * 80 + "\n" + "\n\n\n\n"
@@ -176,7 +178,7 @@ class IdPTestLogin(IdPTests):
         sp_config = get_saml2_config(self.app.conf.pysaml2_config, name="COCO_SP_CONFIG")
         saml2_client = Saml2Client(config=sp_config)
 
-        # Patch the VCCSClient so we do not need a vccs server
+        # Patch the VCCSClient, so we do not need a vccs server
         with patch.object(VCCSClient, "authenticate"):
             VCCSClient.authenticate.return_value = True
             result = self._try_login(saml2_client=saml2_client)
@@ -210,6 +212,60 @@ class IdPTestLogin(IdPTests):
         assert attributes["schacPersonalUniqueCode"] == [
             f"{self.app.conf.esi_ladok_prefix}{self.test_user.ladok.external_id}"
         ]
+
+    def test_pairwise_id(self):
+        sp_config = get_saml2_config(self.app.conf.pysaml2_config, name="COCO_SP_CONFIG")
+        saml2_client = Saml2Client(config=sp_config)
+
+        # Patch the VCCSClient, so we do not need a vccs server
+        with patch.object(VCCSClient, "authenticate"):
+            VCCSClient.authenticate.return_value = True
+            result = self._try_login(saml2_client=saml2_client)
+
+        assert result.reached_state == LoginState.S5_LOGGED_IN
+
+        authn_response = self.parse_saml_authn_response(result.response, saml2_client=saml2_client)
+        session_info = authn_response.session_info()
+        attributes = session_info["ava"]
+        assert attributes["pairwise-id"] == [
+            "36382d115a9b7d8c27cc9eed94aab0ea6cc16a8becc5a468922e36e5a351f8f9@test.scope"
+        ]
+
+    def test_subject_id(self):
+        sp_config = get_saml2_config(self.app.conf.pysaml2_config, name="SP_CONFIG")
+        saml2_client = Saml2Client(config=sp_config)
+
+        # Patch the VCCSClient, so we do not need a vccs server
+        with patch.object(VCCSClient, "authenticate"):
+            VCCSClient.authenticate.return_value = True
+            result = self._try_login(saml2_client=saml2_client)
+
+        assert result.reached_state == LoginState.S5_LOGGED_IN
+
+        authn_response = self.parse_saml_authn_response(result.response, saml2_client=saml2_client)
+        session_info = authn_response.session_info()
+        attributes = session_info["ava"]
+        assert attributes["subject-id"] == ["hubba-bubba@test.scope"]
+
+    def test_mail_local_address(self):
+        # add another mail address to the test user
+        self.test_user.mail_addresses.add(MailAddress(email="test@example.com", is_verified=True))
+        self.request_user_sync(self.test_user)
+
+        sp_config = get_saml2_config(self.app.conf.pysaml2_config, name="SP_CONFIG")
+        saml2_client = Saml2Client(config=sp_config)
+
+        # Patch the VCCSClient, so we do not need a vccs server
+        with patch.object(VCCSClient, "authenticate"):
+            VCCSClient.authenticate.return_value = True
+            result = self._try_login(saml2_client=saml2_client)
+
+        assert result.reached_state == LoginState.S5_LOGGED_IN
+
+        authn_response = self.parse_saml_authn_response(result.response, saml2_client=saml2_client)
+        session_info = authn_response.session_info()
+        attributes = session_info["ava"]
+        assert attributes["mailLocalAddress"] == ["johnsmith@example.com", "test@example.com"]
 
     def test_successful_authentication_alternative_acs(self):
         # Patch the VCCSClient so we do not need a vccs server
