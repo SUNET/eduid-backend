@@ -109,7 +109,6 @@ class IdPUser(User):
         # is applied by pysaml2 for the current metadata
         attributes = make_scoped_eppn(attributes, settings)
         attributes = add_country_attributes(attributes, settings)
-        attributes = make_eduperson_unique_id(attributes, self, settings)
         attributes = make_schac_personal_unique_code(attributes, self, settings)
         attributes = add_eduperson_assurance(attributes, self)
         attributes = make_name_attributes(attributes, self)
@@ -118,6 +117,7 @@ class IdPUser(User):
         attributes = make_schac_date_of_birth(attributes, self)
         attributes = make_mail(attributes, self)
         attributes = make_eduperson_orcid(attributes, self)
+        attributes = add_mail_local_address(attributes, self)
         logger.info(f"Attributes available for release: {list(attributes.keys())}")
         logger.debug(f"Attributes with values: {attributes}")
         return attributes
@@ -148,21 +148,6 @@ def add_country_attributes(attributes: dict, settings: SAMLAttributeSettings) ->
         attributes["c"] = settings.default_country_code
     if attributes.get("co") is None:
         attributes["co"] = settings.default_country
-    return attributes
-
-
-def make_eduperson_unique_id(attributes: dict, user: IdPUser, settings: SAMLAttributeSettings) -> dict:
-    """
-    eppn@scope (no dash (-) allowed)
-    """
-    eppn = user.eppn
-    scope = settings.default_eppn_scope
-    if not eppn or not scope:
-        return attributes
-
-    if attributes.get("eduPersonUniqueID") is None:
-        unique_id = eppn.replace("-", "")  # hyphen (-) not allowed in eduPersonUniqueID
-        attributes["eduPersonUniqueID"] = f"{unique_id}@{scope}"
     return attributes
 
 
@@ -283,4 +268,12 @@ def make_schac_personal_unique_code(attributes: dict, user: IdPUser, settings: S
 
     if unique_code is not None:
         attributes["schacPersonalUniqueCode"] = unique_code
+    return attributes
+
+
+def add_mail_local_address(attributes: dict, user: IdPUser) -> dict:
+    if attributes.get("mailLocalAddress") is not None:
+        return attributes
+
+    attributes["mailLocalAddress"] = [item.email for item in user.mail_addresses.to_list() if item.is_verified]
     return attributes
