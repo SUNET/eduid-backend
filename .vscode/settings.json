@@ -2,13 +2,13 @@
     "python.testing.pytestArgs": [
         "src"
     ],
-    "python.testing.unittestEnabled": false,
     "python.testing.pytestEnabled": true,
     "python.linting.pylintEnabled": false,
     "python.linting.mypyEnabled": true,
     "python.linting.enabled": true,
     "python.formatting.blackArgs": [
-        "--line-length", "120",
+        "--line-length",
+        "120",
     ],
     "terminal.integrated.env.linux": {
         "PYTHONPATH": "${workspaceFolder}/src"
@@ -84,5 +84,17 @@
         "zxcvbn"
     ],
     "python.formatting.provider": "black",
-    "python.analysis.typeCheckingMode": "strict"
+    "python.analysis.typeCheckingMode": "strict",
+    "[jsonc]": {
+        "editor.defaultFormatter": "vscode.json-language-features",
+        "editor.formatOnSave": true
+    },
+    "[json]": {
+        "editor.defaultFormatter": "vscode.json-language-features",
+        "editor.formatOnSave": true
+    },
+    "[python]": {
+        "editor.defaultFormatter": null,
+        "editor.formatOnSave": true
+    },
 }
