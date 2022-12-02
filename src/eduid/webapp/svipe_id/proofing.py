@@ -6,6 +6,7 @@ from datetime import datetime
 from typing import Optional
 
 from iso3166 import countries
+from pymongo.errors import PyMongoError
 
 from eduid.common.config.base import ProofingConfigMixin
 from eduid.common.rpc.exceptions import AmTaskFailed, MsgTaskFailed, NoNavetData
@@ -75,7 +76,7 @@ class SvipeIDProofingFunctions(ProofingFunctions[SvipeDocumentUserInfo]):
             if not verify_nin_for_user(proofing_user, proofing_state, proofing_log_entry.data):
                 current_app.logger.error(f"Failed verifying NIN for user {proofing_user}")
                 return VerifyUserResult(error=CommonMsg.temp_problem)
-        except AmTaskFailed:
+        except (AmTaskFailed, PyMongoError):
             current_app.logger.exception("Verifying NIN for user failed")
             return VerifyUserResult(error=CommonMsg.temp_problem)
 
