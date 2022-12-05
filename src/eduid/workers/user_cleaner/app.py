@@ -13,6 +13,7 @@ from eduid.userdb import AmDB
 from eduid.userdb.identity import IdentityType
 from eduid.userdb.meta import CleanerType
 from eduid.common.logging import init_logging
+from eduid.common.stats import init_app_stats
 
 from eduid.workers.user_cleaner.config import UserCleanerConfig
 
@@ -26,9 +27,16 @@ class WorkerBase(ABC):
 
         self.config = load_config(typ=UserCleanerConfig, app_name="user_cleaner", ns="worker", test_config=test_config)
         super().__init__()
+
+        # stats
+        self.stats = init_app_stats(self.config)
+        self.stats.count(name="user_cleaner_stats")
+
+        # logging
         self.logger = logging.getLogger(name=self.worker_name)
         init_logging(config=self.config)
         self.logger.info(f"initialize worker {self.worker_name}")
+
         self.db = AmDB(db_uri=self.config.mongo_uri)
 
         self.shutdown_now = False
