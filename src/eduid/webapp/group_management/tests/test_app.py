@@ -35,8 +35,8 @@ from typing import Any, Dict, Mapping, Optional
 from uuid import UUID
 
 import pytest
-from werkzeug.test import TestResponse
 from mock import patch
+from werkzeug.test import TestResponse
 
 from eduid.common.testing_base import normalised_data
 from eduid.graphdb.groupdb import User as GraphUser

@@ -8,8 +8,8 @@ from typing import Any, Optional
 
 from flask import Response
 from mock import Mock, patch
-from eduid.common.config.base import EduidEnvironment
 
+from eduid.common.config.base import EduidEnvironment
 from eduid.userdb import NinIdentity
 from eduid.userdb.identity import IdentityType
 from eduid.webapp.common.api.testing import EduidAPITestCase

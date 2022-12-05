@@ -35,8 +35,8 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, Mapping, Optional
 
 from mock import patch
-from eduid.common.config.base import EduidEnvironment
 
+from eduid.common.config.base import EduidEnvironment
 from eduid.userdb import User
 from eduid.userdb.mail import MailAddress
 from eduid.userdb.proofing import EmailProofingElement, EmailProofingState

@@ -3,6 +3,7 @@ from urllib.parse import urlencode
 
 from flask import Blueprint, redirect, request, url_for
 from oic.oic.message import AuthorizationResponse, Claims, ClaimsRequest
+from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.userdb.logs import OrcidProofing
 from eduid.userdb.orcid import OidcAuthorization, OidcIdToken, Orcid
@@ -15,7 +16,6 @@ from eduid.webapp.common.api.utils import get_unique_hash, save_and_sync_user
 from eduid.webapp.orcid.app import current_orcid_app as current_app
 from eduid.webapp.orcid.helpers import OrcidMsg
 from eduid.webapp.orcid.schemas import OrcidResponseSchema
-from werkzeug.wrappers import Response as WerkzeugResponse
 
 __author__ = "lundberg"
 

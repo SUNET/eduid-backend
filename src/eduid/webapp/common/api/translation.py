@@ -4,8 +4,8 @@ from typing import Optional
 import pkg_resources
 from flask import request
 from flask_babel import Babel
-from eduid.common.config.base import EduIDBaseAppConfig
 
+from eduid.common.config.base import EduIDBaseAppConfig
 from eduid.webapp.common.api.app import EduIDBaseApp
 from eduid.webapp.common.session import session
 

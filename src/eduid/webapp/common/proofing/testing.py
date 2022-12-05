@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from typing import Generic, Optional
-from eduid.common.config.base import EduIDBaseAppConfig
 
+from eduid.common.config.base import EduIDBaseAppConfig
 from eduid.userdb.credentials import FidoCredential
 from eduid.userdb.identity import IdentityElement
 from eduid.userdb.logs.db import ProofingLog

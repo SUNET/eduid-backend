@@ -34,8 +34,8 @@
 import json
 from typing import Any, Dict, Mapping, Optional
 
-from werkzeug.test import TestResponse
 from mock import patch
+from werkzeug.test import TestResponse
 
 from eduid.userdb.element import ElementKey
 from eduid.webapp.common.api.exceptions import ApiException

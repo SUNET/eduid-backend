@@ -47,8 +47,8 @@ of the Flask application::
 import logging
 from typing import Optional
 
-from flask import Request as FlaskRequest
 from flask import abort, current_app
+from flask.wrappers import Request as FlaskRequest
 from werkzeug.datastructures import EnvironHeaders, ImmutableMultiDict, ImmutableTypeConversionDict
 
 from eduid.webapp.common.api.sanitation import SanitationProblem, Sanitizer
@@ -222,17 +222,6 @@ class SanitizedTypeConversionDict(ImmutableTypeConversionDict, SanitationMixin):
         Sanitized items
         """
         return [(v[0], self.sanitize_input(v[1])) for v in super(ImmutableTypeConversionDict, self).items()]
-
-    def pop(self, key: str, default=None):
-        """
-        Sanitized pop
-
-        :param key: the key for the value
-
-        TODO: Remove? An ImmutableDictMixin is immutable, and has no pop - right?
-        """
-        val = super().pop(key, default=default)
-        return self.sanitize_input(val)
 
 
 class SanitizedEnvironHeaders(EnvironHeaders, SanitationMixin):

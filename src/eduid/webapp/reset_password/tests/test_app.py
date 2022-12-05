@@ -36,8 +36,8 @@ from typing import Any, Dict, Mapping, Optional
 from unittest.mock import Mock, patch
 from urllib.parse import quote_plus
 
-from werkzeug.test import TestResponse
 from flask import url_for
+from werkzeug.test import TestResponse
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb import User

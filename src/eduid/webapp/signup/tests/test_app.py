@@ -8,10 +8,10 @@ from enum import Enum
 from typing import Any, Dict, Mapping, Optional, Union
 from uuid import uuid4
 
-from werkzeug.test import TestResponse
 from flask import url_for
 from jwcrypto.jwk import JWK
 from mock import patch
+from werkzeug.test import TestResponse
 
 from eduid.common.clients.scim_client.testing import MockedScimAPIMixin
 from eduid.common.config.base import EduidEnvironment

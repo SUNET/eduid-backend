@@ -4,14 +4,13 @@ import flask
 from flask.wrappers import Response as FlaskResponse
 
 from eduid.common.config.base import EduIDBaseAppConfig
+from eduid.common.config.parsers import load_config
 from eduid.webapp.common.api.app import EduIDBaseApp
-
 from eduid.webapp.common.api.decorators import MarshalWith
 from eduid.webapp.common.api.messages import FluxData, error_response, success_response
 from eduid.webapp.common.api.schemas.base import FluxStandardAction
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.common.api.tests.test_messages import TestsMsg
-from eduid.common.config.parsers import load_config
 from eduid.webapp.common.session.eduid_session import SessionFactory
 
 

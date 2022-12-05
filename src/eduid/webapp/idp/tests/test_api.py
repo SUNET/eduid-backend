@@ -35,10 +35,10 @@ from pathlib import PurePath
 from typing import Any, Dict, List, Mapping, Optional
 
 from bson import ObjectId
-from werkzeug.test import TestResponse
 from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 from saml2.client import Saml2Client
 from saml2.response import AuthnResponse
+from werkzeug.test import TestResponse
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb import ToUEvent

@@ -36,8 +36,8 @@ from typing import Any, Dict, Mapping, Optional
 from urllib.parse import quote_plus
 
 from mock import patch
-from eduid.common.config.base import EduidEnvironment
 
+from eduid.common.config.base import EduidEnvironment
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.phone.app import PhoneApp, phone_init_app
 from eduid.webapp.phone.helpers import PhoneMsg

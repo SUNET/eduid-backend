@@ -252,7 +252,7 @@ class User(BaseModel):
         # We cast here to avoid importing UserDB at the module level thus creating a circular import
         from eduid.userdb import UserDB
 
-        private_userdb = cast(UserDB, private_userdb)
+        private_userdb = cast(UserDB[TUserSubclass], private_userdb)
 
         user_dict = user.to_dict()
         private_user = private_userdb.get_user_by_eppn(user.eppn)
