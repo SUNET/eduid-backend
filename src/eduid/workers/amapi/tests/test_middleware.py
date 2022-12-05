@@ -1,6 +1,5 @@
 import unittest
 from typing import List
-import fnmatch
 
 from pydantic import BaseModel
 
