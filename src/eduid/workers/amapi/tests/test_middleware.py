@@ -1,5 +1,6 @@
 import unittest
 from typing import List
+import fnmatch
 
 from pydantic import BaseModel
 
@@ -60,5 +61,5 @@ class TestGlobMatch(TestMiddleware):
     def test(self):
         for tt in self.tts:
             with self.subTest(name=tt.name):
-                # assert self.glob_match(endpoints=tt.glob_endpoints, path=tt.path) is tt.want
                 assert self.middleware.glob_match(endpoints=tt.glob_endpoints, method_path=tt.path) is tt.want
+
