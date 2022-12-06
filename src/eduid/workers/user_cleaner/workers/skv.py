@@ -51,23 +51,26 @@ class SKV(WorkerBase):
     def run(self):
         while not self.shutdown_now:
             if self._is_quota_reached():
-                self.logger.warning(f"worker skatteverket has reached its change_quota, killing it")
-                break
-            if self.queue.empty():
-                self.enqueuing(
-                    cleaning_type=CleanerType.SKV,
-                    identity_type=IdentityType.NIN,
-                    limit=self.config.user_count,
-                )
-            user = self.queue.get()
+                self.logger.warning(f"worker skatteverket has reached its change_quota, sleep for 20 seconds")
+                self._make_unhealthy()
+                time.sleep(20.0)
+            else:
+                self._make_healthy()
+                if self.queue.empty():
+                    self.enqueuing(
+                        cleaning_type=CleanerType.SKV,
+                        identity_type=IdentityType.NIN,
+                        limit=self.config.user_count,
+                    )
+                user = self.queue.get()
 
-            navet_data = self.msg_relay.get_all_navet_data(nin=user.identities.nin.number)
+                navet_data = self.msg_relay.get_all_navet_data(nin=user.identities.nin.number)
 
-            self.update_name(user=user, navet_data=navet_data)
+                self.update_name(user=user, navet_data=navet_data)
 
-            time.sleep(self.config.job_delay)
+                time.sleep(self.config.job_delay)
 
-            self.queue.task_done()
+                self.queue.task_done()
 
 
 def init_skv_worker(test_config: Optional[Dict] = None) -> SKV:

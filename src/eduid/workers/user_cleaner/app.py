@@ -1,10 +1,13 @@
 import logging
 import signal
+import os
 from abc import ABC
 
 from queue import Queue
 
 from typing import Optional, Dict
+
+from pathlib import Path
 
 from eduid.common.clients.amapi_client.amapi_client import AMAPIClient
 from eduid.common.config.parsers import load_config
@@ -47,6 +50,8 @@ class WorkerBase(ABC):
         self.made_changes = 0
         self.max_changes = 0.0
 
+        self.healthy_path = "/tmp/healthy"
+
         self.msg_relay = MsgRelay(self.config)
 
         self.amapi_client = AMAPIClient(
@@ -54,10 +59,10 @@ class WorkerBase(ABC):
             auth_data=self.config.gnap_auth_data,
         )
 
-        self.logger.info(f"starting worker {cleaner_type.value}")
+        self.logger.info(f"Starting worker {cleaner_type.value}")
 
     def exit_gracefully(self, sig, frame) -> None:
-        self.logger.info(f"Recevied signal: {sig}, shutting down...")
+        self.logger.info(f"Received signal: {sig}, shutting down...")
         self.shutdown_now = True
 
     def _is_quota_reached(self) -> bool:
@@ -75,13 +80,21 @@ class WorkerBase(ABC):
         )
         self.max_changes = self.queue_actual_size * self.config.change_quota
 
+
+    def _make_unhealthy(self) -> None:
+        os.remove(self.healthy_path) if os.path.exists(self.healthy_path) else None
+
+    def _make_healthy(self) -> None:
+        Path(self.healthy_path).touch()
+
+
     def enqueuing(self, cleaning_type: CleanerType, identity_type: IdentityType, limit: int):
         users = self.db.get_uncleaned_verified_users(
             cleaned_type=cleaning_type,
             identity_type=identity_type,
             limit=limit,
         )
-        if len(users) < 1:
+        if len(users) == 0:
             self.logger.warning(f"No users where enqueued")
             return
         for user in users:
