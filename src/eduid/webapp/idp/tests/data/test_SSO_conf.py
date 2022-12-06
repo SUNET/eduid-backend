@@ -50,6 +50,8 @@ CONFIG = {
                     "lifetime": {"minutes": 5},
                     # Restrict to all attributes except norEduPersonNIN and personalIdentityNumber.
                     "attribute_restrictions": {
+                        "pairwise-id": None,
+                        "subject-id": None,
                         "c": None,
                         "cn": None,
                         "co": None,
@@ -61,6 +63,7 @@ CONFIG = {
                         "eduPersonTargetedID": None,
                         "givenName": None,
                         "mail": None,
+                        "mailLocalAddress": None,
                         "preferredLanguage": None,
                         "schacDateOfBirth": None,
                         "schacPersonalUniqueCode": None,

@@ -118,6 +118,7 @@ class IdPConfig(EduIDBaseAppConfig, TouConfigMixin, WebauthnConfigMixin2, AmConf
     # List in order of preference
     supported_signing_algorithms: List[str] = Field(default=["http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"])
     eduperson_targeted_id_secret_key: str = ""
+    pairwise_id_secret_key: str = ""
     eduid_site_url: str
     login_bundle_url: Optional[HttpUrl] = None
     other_device_url: Optional[HttpUrl] = None

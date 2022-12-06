@@ -46,3 +46,11 @@ class IdPAction(str, Enum):
     MFA = "MFA"
     TOU = "TOU"
     FINISHED = "FINISHED"
+
+
+@unique
+class SubjectIDRequest(str, Enum):
+    ANY: str = "any"
+    NONE: str = "none"
+    PAIRWISE_ID: str = "pairwise-id"
+    SUBJECT_ID: str = "subject-id"
