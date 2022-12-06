@@ -182,9 +182,9 @@ types-toml==0.10.8.1 \
     --hash=sha256:171bdb3163d79a520560f24ba916a9fc9bff81659c5448a9fea89240923722be \
     --hash=sha256:b7b5c4977f96ab7b5ac06d8a6590d17c0bf252a96efc03b109c2711fb3e0eafd
     # via -r typecheck_requirements.in
-types-ujson==5.5.0 \
-    --hash=sha256:6051e6b80d71382f1f85b0f97b475d84621eae3e2789ed24c5721f784b0846e1 \
-    --hash=sha256:74bc0ec76e3caf3682625703aad4aa9999327517e39afae67bb5aa3100a39bb8
+types-ujson==5.6.0.0 \
+    --hash=sha256:010b221260c24a915c6e713a83f366b91390766850ec110304de5b20c86b4b11 \
+    --hash=sha256:1a20cf7946772756736582612e0da5656d2dbeccd24be4c1e97d1e66b072b97e
     # via -r typecheck_requirements.in
 types-urllib3==1.26.25.4 \
     --hash=sha256:ed6b9e8a8be488796f72306889a06a3fc3cb1aa99af02ab8afb50144d7317e49 \

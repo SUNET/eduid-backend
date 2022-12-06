@@ -70,14 +70,15 @@ bleach==5.0.1 \
     # via
     #   -c main.txt
     #   -r main.in
-boto3==1.26.19 \
-    --hash=sha256:4b4edf893b01c651007d61534c1d248cd2350d311a4e295039bd23fd60bf899a \
-    --hash=sha256:59aa6c7810a815fb52671f834d10ac4cd80b9c7c01a3cbde670cb41330059464
+boto3==1.26.23 \
+    --hash=sha256:b466dd6e7b71babf145ae8c55b541bbcf5828df49ca022edb24657ae0b861e87 \
+    --hash=sha256:f478dde5a7e600e222c406bbf6cd2927371822d2b95a931c3ccb69eed18af83a
     # via
     #   -c main.txt
     #   -r main.in
-botocore==1.29.19 \
-    --hash=sha256:917807ee4ccca34a2f2848eb4fcf878d9e97a44a911a6965ff556d0830c471fd
+botocore==1.29.23 \
+    --hash=sha256:216400fa6736a335f5b5c643655cc7d69d0bf996eb4d21069373aa5aa84b5c10 \
+    --hash=sha256:5ad03b4bedb5587fc75c7ecd29bf3477929791748cb533c8c57ab5289da84ac3
     # via
     #   -c main.txt
     #   boto3
@@ -431,9 +432,9 @@ importlib-metadata==5.1.0 \
     # via
     #   -c main.txt
     #   -r sub_main.in
-importlib-resources==5.10.0 \
-    --hash=sha256:c01b1b94210d9849f286b86bb51bcea7cd56dde0600d8db721d7b81330711668 \
-    --hash=sha256:ee17ec648f85480d523596ce49eae8ead87d5631ae1551f913c0100b5edd3437
+importlib-resources==5.10.1 \
+    --hash=sha256:32bb095bda29741f6ef0e5278c42df98d135391bee5f932841efc0041f748dc3 \
+    --hash=sha256:c09b067d82e72c66f4f8eb12332f5efbebc9b007c0b6c40818108c9870adc363
     # via
     #   -c main.txt
     #   -r sub_main.in
@@ -660,7 +661,6 @@ packaging==21.3 \
     # via
     #   -c main.txt
     #   marshmallow
-    #   redis
 pbkdf2==1.3 \
     --hash=sha256:ac6397369f128212c43064a2b4878038dab78dab41875364554aaf2a684e6979
     # via ndnkdf
@@ -1147,9 +1147,9 @@ qrcode==7.3.1 \
     #   -c main.txt
     #   -r main.in
     #   pyhanko
-redis==4.3.5 \
-    --hash=sha256:30c07511627a4c5c4d970e060000772f323174f75e745a26938319817ead7a12 \
-    --hash=sha256:46652271dc7525cd5a9667e5b0ca983c848c75b2b8f7425403395bb8379dcf25
+redis==4.4.0 \
+    --hash=sha256:7b8c87d19c45d3f1271b124858d2a5c13160c4e74d4835e28273400fa34d5228 \
+    --hash=sha256:cae3ee5d1f57d8caf534cd8764edf3163c77e073bdd74b6f54a87ffafdc5e7d9
     # via
     #   -c main.txt
     #   -r main.in
@@ -1384,9 +1384,9 @@ typing-inspect==0.8.0 \
     # via
     #   -c main.txt
     #   marshmallow-dataclass
-tzdata==2022.6 \
-    --hash=sha256:04a680bdc5b15750c39c12a448885a51134a27ec9af83667663f0b3a1bf3f342 \
-    --hash=sha256:91f11db4503385928c15598c98573e3af07e7229181bee5375bd30f1695ddcae
+tzdata==2022.7 \
+    --hash=sha256:2b88858b0e3120792a3c0635c23daf36a7d7eeeca657c323da299d2094402a0d \
+    --hash=sha256:fe5f866eddd8b96e9fcba978f8e503c909b19ea7efda11e52e39494bad3a7bfa
     # via
     #   -c main.txt
     #   pytz-deprecation-shim
