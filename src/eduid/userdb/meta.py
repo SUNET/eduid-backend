@@ -14,7 +14,7 @@ __author__ = "lundberg"
 
 class CleanerType(str, Enum):
     SKV = "skatteverket"
-    TELE = "tele"
+    TELE = "teleadress"
     LADOK = "ladok"
 
 
