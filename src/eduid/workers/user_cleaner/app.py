@@ -23,7 +23,7 @@ class WorkerBase(ABC):
         signal.signal(signal.SIGINT, self.exit_gracefully)
         signal.signal(signal.SIGTERM, self.exit_gracefully)
 
-        self.worker_name = str(cleaner_type.value)
+        self.worker_name = str(cleaner_type)
 
         self.config = load_config(typ=UserCleanerConfig, app_name="user_cleaner", ns="worker", test_config=test_config)
         super().__init__()
@@ -86,7 +86,7 @@ class WorkerBase(ABC):
             return
         for user in users:
             self.queue.put(user)
-            self.logger.info(f"enqueuing user: {user.eppn}")
+            self.logger.debug(f"enqueuing user: {user.eppn}")
 
         self.queue_actual_size = self.queue.qsize()
         self._populate_max_changes()

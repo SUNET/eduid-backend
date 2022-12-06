@@ -120,8 +120,10 @@ class User(BaseModel):
 
     @root_validator()
     def update_meta_modified_ts(cls, values: Dict[str, Any]):
-        # as we validate on assignment this will run everytime the User is changed
+        # as we validate on assignment this will run every time the User is changed
         if values.get("modified_ts"):
+            if "meta" not in values:
+                values["meta"] = Meta
             values["meta"].modified_ts = values["modified_ts"]
         return values
 

@@ -15,7 +15,7 @@ class SKV(WorkerBase):
         super().__init__(cleaner_type=cleaner_type.SKV, test_config=test_config)
 
     def update_name(self, user: User, navet_data: NavetData):
-        self.logger.debug(f"number of changes: {self.made_changes} out of {self.max_changes}, {self.queue_actual_size}")
+        self.logger.debug(f"number of changes: {self.made_changes} out of max_changes: {self.max_changes}, queue_actual_size: {self.queue_actual_size}")
 
         if navet_data.person.name.given_name is None or navet_data.person.name.surname is None:
             self.logger.info(f"No given_name or surname found in navet for eppn: {user.eppn}")
@@ -32,16 +32,21 @@ class SKV(WorkerBase):
 
         self.logger.debug(f"number of changes: {self.made_changes} out of {self.max_changes}, {self.queue_actual_size}")
 
-        self.amapi_client.update_user_name(
-            user=user.eppn,
-            body=UserUpdateNameRequest(
-                reason="SKV_NAME_UPDATE",
-                source=CleanerType.SKV.value,
-                given_name=updated_user.given_name,
-                display_name=updated_user.display_name,
-                surname=updated_user.surname,
-            ),
+        amapi_client_body =UserUpdateNameRequest(
+                    reason="SKV_NAME_UPDATE",
+                    source=CleanerType.SKV.value,
+                    given_name=updated_user.given_name,
+                    display_name=updated_user.display_name,
+                    surname=updated_user.surname,
         )
+
+        if self.config.dry_run:
+            self.logger.debug(f"dry_run: eppn: {user.eppn}, amapi_client_body: {amapi_client_body}")
+        else:
+            self.amapi_client.update_user_name(
+                user=user.eppn,
+                body=amapi_client_body,
+            )
 
     def run(self):
         while not self.shutdown_now:
