@@ -7,6 +7,7 @@ from eduid.common.models.amapi_user import (
     UserUpdateNameRequest,
     UserUpdatePhoneRequest,
     UserUpdateResponse,
+    UserUpdateMetaCleanedRequest,
     UserUpdateTerminateRequest,
 )
 from eduid.workers.amapi.routers.utils.users import update_user
@@ -45,6 +46,12 @@ async def on_put_language(req: ContextRequest, data: UserUpdateLanguageRequest, 
 @users_router.put("/{eppn}/phone", response_model=UserUpdateResponse)
 async def on_put_phone(req: ContextRequest, data: UserUpdatePhoneRequest, eppn: str):
     req.app.logger.info(f"Update user {eppn} phone")
+    return update_user(req=req, eppn=eppn, data=data)
+
+
+@users_router.put("/{eppn}/meta/cleaned", response_model=UserUpdateResponse)
+async def on_put_meta_cleaned(req: ContextRequest, data: UserUpdateMetaCleanedRequest, eppn: str):
+    req.app.logger.info(f"Update user {eppn} meta/cleaned")
     return update_user(req=req, eppn=eppn, data=data)
 
 

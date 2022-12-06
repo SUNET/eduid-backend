@@ -14,6 +14,7 @@ from eduid.common.models.amapi_user import (
     UserUpdateNameRequest,
     UserUpdatePhoneRequest,
     UserUpdateResponse,
+    UserUpdateMetaCleanedRequest,
     UserUpdateTerminateRequest,
 )
 
@@ -26,6 +27,7 @@ def update_user(
         UserUpdateNameRequest,
         UserUpdateLanguageRequest,
         UserUpdatePhoneRequest,
+        UserUpdateMetaCleanedRequest,
         UserUpdateTerminateRequest,
     ],
 ) -> UserUpdateResponse:
@@ -56,6 +58,9 @@ def update_user(
         req.app.db.unverify_phones(user_id=user_obj.user_id, phones=phones)
 
         user_obj.phone_numbers = PhoneNumberList(elements=data.phone_numbers)
+    
+    elif isinstance(data, UserUpdateMetaCleanedRequest):
+        user_obj.meta.cleaned.update = {data.type: data.ts}
 
     elif isinstance(data, UserUpdateTerminateRequest):
         user_obj.terminated = utc_now()
@@ -72,7 +77,7 @@ def update_user(
             exclude_paths=["root['meta']['modified_ts']", "root['modified_ts']"],  # we do not care about these entries.
         ).to_json()
         audit_msg = UserChangeLogElement(
-            created_by="am_api",
+            created_by="amapi",
             eppn=eppn,
             log_element_id=None,
             diff=diff,
