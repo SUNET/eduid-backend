@@ -14,6 +14,7 @@ from eduid.common.models.amapi_user import (
     UserUpdateEmailRequest,
     UserUpdateLanguageRequest,
     UserUpdatePhoneRequest,
+    UserUpdateMetaCleanedRequest,
     UserUpdateTerminateRequest,
 )
 
@@ -43,6 +44,10 @@ class AMAPIClient(GNAPClient):
 
     def update_user_phone(self, user: str, body: UserUpdatePhoneRequest) -> UserUpdateResponse:
         ret = self._put(base_path=self._users_base_url(), user=user, endpoint="phone", body=body)
+        return UserUpdateResponse.parse_raw(ret.text)
+ 
+    def update_user_meta_cleaned(self, user: str, body: UserUpdateMetaCleanedRequest) -> UserUpdateResponse:
+        ret = self._put(base_path=self._users_base_url(), user=user, endpoint="meta/cleaned", body=body)
         return UserUpdateResponse.parse_raw(ret.text)
 
     def update_user_terminate(self, user: str, body: UserUpdateTerminateRequest) -> UserUpdateResponse:

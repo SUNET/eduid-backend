@@ -6,8 +6,6 @@ from eduid.common.clients.gnap_client.testing import MockedSyncAuthAPIMixin
 
 
 class MockedAMAPIMixin(MockedSyncAuthAPIMixin):
-    put_user_name_response = {}
-
     def start_mock_amapi(self, access_token_value: Optional[str] = None):
         self.start_mock_auth_api(access_token_value=access_token_value)
 

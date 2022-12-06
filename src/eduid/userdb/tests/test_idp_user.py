@@ -37,7 +37,6 @@ class TestIdpUser(TestCase):
             "preferredLanguage": "en",
             "c": "se",
             "co": "Sweden",
-            "eduPersonUniqueID": "hubbabubba@example.com",
             "eduPersonAssurance": ["http://www.swamid.se/policy/assurance/al2"],
             "cn": "John Smith",
             "sn": "Smith",
@@ -45,6 +44,7 @@ class TestIdpUser(TestCase):
             "personalIdentityNumber": "197801011234",
             "schacDateOfBirth": "19780101",
             "mail": "johnsmith@example.com",
+            "mailLocalAddress": ["johnsmith2@example.com", "johnsmith@example.com"],
             "eduPersonOrcid": "https://op.example.org/user_orcid",
             "schacPersonalUniqueCode": f"{self.saml_attribute_settings.esi_ladok_prefix}{idp_user.ladok.external_id}",
         }

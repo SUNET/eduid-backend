@@ -31,7 +31,7 @@ class EndpointRestriction(BaseModel):
 
     @property
     def uri(self) -> str:
-        return f"{self.method}:{self.endpoint}"
+        return f"{self.method.value}:{self.endpoint}"
 
 
 class AMApiConfig(RootConfig, LoggingConfigMixin):
