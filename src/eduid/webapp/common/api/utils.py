@@ -11,8 +11,9 @@ from uuid import uuid4
 import bcrypt
 from flask import current_app as flask_current_app
 from flask.wrappers import Request
+from mock import MagicMock
 
-from eduid.common.config.base import EduIDBaseAppConfig, FlaskConfig, Pysaml2SPConfigMixin
+from eduid.common.config.base import EduIDBaseAppConfig, Pysaml2SPConfigMixin
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.rpc.am_relay import AmRelay
 from eduid.userdb import User, UserDB
@@ -33,8 +34,14 @@ TCurrentAppAttribute = TypeVar("TCurrentAppAttribute")
 
 
 def get_from_current_app(name: str, klass: Type[TCurrentAppAttribute]) -> TCurrentAppAttribute:
+    """Get a correctly typed attribute from an unknown Flask current app"""
     ret = getattr(current_app, name)
     if not isinstance(ret, klass):
+        # For tests, we may have a mock object here
+        conf = getattr(current_app, "conf")
+        if isinstance(conf, EduIDBaseAppConfig) and conf.testing:
+            if isinstance(ret, MagicMock):
+                return cast(TCurrentAppAttribute, ret)
         raise TypeError(f"current_app.{name} is not of type {klass}")
     return ret
 

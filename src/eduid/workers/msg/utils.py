@@ -5,7 +5,7 @@ This module provides utility functions.
 
 import os
 from collections import OrderedDict
-from typing import Any, Optional
+from typing import Any, Mapping, Optional
 
 
 def is_deregistered(person: Optional[dict[str, Any]]) -> bool:
@@ -18,13 +18,13 @@ def is_deregistered(person: Optional[dict[str, Any]]) -> bool:
     return False
 
 
-def load_template(template_dir: str, filename: str, message_dict: dict, lang: str) -> str:
+def load_template(template_dir: str, filename: str, message_dict: Mapping[str, str], lang: str) -> str:
     """
     This function loads a template file by provided language.
     """
     from jinja2 import Environment, FileSystemLoader
 
-    if isinstance(template_dir, str) and os.path.isdir(template_dir):
+    if os.path.isdir(template_dir):
         try:
             f = ".".join([filename, lang])
             if os.path.exists(os.path.join(template_dir, f)):
@@ -36,7 +36,7 @@ def load_template(template_dir: str, filename: str, message_dict: dict, lang: st
     raise RuntimeError("template not found")
 
 
-def navet_get_name_and_official_address(navet_data: Optional[dict[str, Any]]) -> Optional[OrderedDict]:
+def navet_get_name_and_official_address(navet_data: Optional[dict[str, Any]]) -> Optional[OrderedDict[str, Any]]:
     """
     :param navet_data:  Loaded JSON response from eduid-navet_service
     :return: Name and official address data objects
@@ -55,7 +55,7 @@ def navet_get_name_and_official_address(navet_data: Optional[dict[str, Any]]) ->
     return None
 
 
-def navet_get_relations(navet_data: Optional[dict[str, Any]]) -> Optional[OrderedDict]:
+def navet_get_relations(navet_data: Optional[dict[str, Any]]) -> Optional[OrderedDict[str, Any]]:
     """
     :param navet_data:  Loaded JSON response from eduid-navet_service
     :return: Relations data object
@@ -72,7 +72,7 @@ def navet_get_relations(navet_data: Optional[dict[str, Any]]) -> Optional[Ordere
     return None
 
 
-def navet_get_person(navet_data: Optional[dict[str, Any]]) -> Optional[OrderedDict]:
+def navet_get_person(navet_data: Optional[dict[str, Any]]) -> Optional[OrderedDict[str, Any]]:
     """
     :param navet_data: Loaded JSON response from eduid-navet_service
     :return: Personpost
@@ -112,7 +112,7 @@ def navet_get_person(navet_data: Optional[dict[str, Any]]) -> Optional[OrderedDi
     return None
 
 
-def navet_get_all_data(navet_data: Optional[dict[str, Any]]) -> Optional[OrderedDict]:
+def navet_get_all_data(navet_data: Optional[dict[str, Any]]) -> Optional[OrderedDict[str, Any]]:
     """
     :param navet_data: Loaded JSON response from eduid-navet_service
     :return: all available data from Navet

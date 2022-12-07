@@ -1,25 +1,47 @@
 import copy
 import logging
-from typing import Any, Dict, List, Mapping, Optional, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Mapping, NewType, Optional, Type, TypeVar, Union, cast
 
 import pymongo
-from bson import ObjectId
+import pymongo.collection
+import pymongo.cursor
+import pymongo.errors
+from bson import SON, ObjectId
+from pymongo.database import Database
 from pymongo.errors import PyMongoError
 from pymongo.uri_parser import parse_uri
 
 from eduid.userdb.exceptions import EduIDUserDBError, MongoConnectionError, MultipleDocumentsReturned
 
+if TYPE_CHECKING:
+    from motor import motor_asyncio
+
+TUserDbDocument = NewType("TUserDbDocument", SON[str, Any])
+
+TMongoClient = TypeVar(
+    "TMongoClient",
+    pymongo.MongoClient[TUserDbDocument],
+    "motor_asyncio.AsyncIOMotorClient",
+    "DummyConnection",
+)
+
 
 class MongoDB(object):
     """Simple wrapper to get pymongo real objects from the settings uri"""
 
-    def __init__(self, db_uri, db_name=None, connection_factory=None, **kwargs):
+    def __init__(
+        self,
+        db_uri: str,
+        db_name: Optional[str] = None,
+        connection_factory: Optional[Type[TMongoClient]] = None,
+        **kwargs: Any,
+    ):
         if db_uri is None:
             raise ValueError("db_uri not supplied")
 
-        self._db_uri = db_uri
-        self._database_name = db_name
-        self._sanitized_uri = None
+        self._db_uri: str = db_uri
+        self._database_name: Optional[str] = db_name
+        self._sanitized_uri: Optional[str] = None
 
         self._parsed_uri = parse_uri(db_uri)
 
@@ -50,7 +72,8 @@ class MongoDB(object):
         self._db_uri = _format_mongodb_uri(self._parsed_uri)
 
         try:
-            self._connection = connection_factory(
+            assert connection_factory is not None
+            self._client: pymongo.MongoClient[TUserDbDocument] = connection_factory(
                 host=self._db_uri,
                 tz_aware=True,
                 # TODO: switch uuidRepresentation to "standard" when we made sure all UUIDs are stored as strings
@@ -68,7 +91,7 @@ class MongoDB(object):
     __str__ = __repr__
 
     @property
-    def sanitized_uri(self):
+    def sanitized_uri(self) -> str:
         """
         Return the database URI we're using in a format sensible for logging etc.
 
@@ -82,14 +105,14 @@ class MongoDB(object):
             self._sanitized_uri = _format_mongodb_uri(_parsed)
         return self._sanitized_uri
 
-    def get_connection(self):
+    def get_connection(self) -> pymongo.MongoClient[TUserDbDocument]:
         """
         Get the raw pymongo connection object.
         :return: Pymongo connection object
         """
-        return self._connection
+        return self._client
 
-    def get_database(self, database_name: Optional[str] = None):
+    def get_database(self, database_name: Optional[str] = None) -> Database[TUserDbDocument]:
         """
         Get a pymongo database handle.
 
@@ -100,9 +123,11 @@ class MongoDB(object):
             database_name = self._database_name
         if database_name is None:
             raise ValueError("No database_name supplied, and no default provided to __init__")
-        return self._connection[database_name]
+        return self._client[database_name]
 
-    def get_collection(self, collection, database_name=None):
+    def get_collection(
+        self, collection: str, database_name: Optional[str] = None
+    ) -> pymongo.collection.Collection[TUserDbDocument]:
         """
         Get a pymongo collection handle.
 
@@ -145,7 +170,7 @@ class MongoDB(object):
             return False
 
     def close(self):
-        self._connection.close()
+        self._client.close()
 
 
 def _format_mongodb_uri(parsed_uri: Mapping[str, Any]) -> str:
@@ -160,7 +185,7 @@ def _format_mongodb_uri(parsed_uri: Mapping[str, Any]) -> str:
     if parsed_uri.get("username") and parsed_uri.get("password"):
         user_pass = "{username!s}:{password!s}@".format(**parsed_uri)
 
-    _nodes = []
+    _nodes: list[str] = []
     for host, port in parsed_uri.get("nodelist", []):
         if ":" in host and not host.endswith("]"):
             # IPv6 address without brackets
@@ -171,7 +196,7 @@ def _format_mongodb_uri(parsed_uri: Mapping[str, Any]) -> str:
             _nodes.append("{!s}:{!s}".format(host, port))
     nodelist = ",".join(_nodes)
 
-    _opt_list = []
+    _opt_list: list[str] = []
     for key, value in parsed_uri.get("options", {}).items():
         if isinstance(value, bool):
             value = str(value).lower()
@@ -218,7 +243,7 @@ class BaseDB(object):
         logging.warning("{!s} Dropping collection {!r}".format(self, self._coll_name))
         return self._coll.drop()
 
-    def _get_all_docs(self) -> List[Dict[str, Any]]:
+    def _get_all_docs(self) -> pymongo.cursor.Cursor[TUserDbDocument]:
         """
         Return all the user documents in the database.
 
@@ -228,7 +253,7 @@ class BaseDB(object):
         """
         return self._coll.find({})
 
-    def _get_document_by_attr(self, attr: str, value: str) -> Optional[Dict[str, Any]]:
+    def _get_document_by_attr(self, attr: str, value: str) -> Optional[TUserDbDocument]:
         """
         Return the document in the MongoDB matching field=value
 
@@ -247,7 +272,7 @@ class BaseDB(object):
             raise MultipleDocumentsReturned(f"Multiple matching documents for {attr}={repr(value)}")
         return docs[0]
 
-    def _get_documents_by_attr(self, attr: str, value: str) -> List[Dict[str, Any]]:
+    def _get_documents_by_attr(self, attr: str, value: str) -> List[TUserDbDocument]:
         """
         Return the document in the MongoDB matching field=value
 
@@ -264,7 +289,7 @@ class BaseDB(object):
 
     def _get_documents_by_aggregate(
         self, match: Dict[str, Any], sort: Optional[Dict[str, Any]] = None, limit: Optional[int] = None
-    ) -> List[Dict[str, Any]]:
+    ) -> List[TUserDbDocument]:
 
         pipeline: List[Dict[str, Any]] = [{"$match": match}]
 
@@ -282,7 +307,7 @@ class BaseDB(object):
         fields: Optional[dict[str, Any]] = None,
         skip: Optional[int] = None,
         limit: Optional[int] = None,
-    ) -> List[Mapping]:
+    ) -> List[TUserDbDocument]:
         """
         Locate documents in the db using a custom search filter.
 
@@ -314,22 +339,27 @@ class BaseDB(object):
 
         :return: Document count
         """
-        args: Dict[str, Any] = {"filter": {}}
+        _filter: Mapping[str, Any] = {}
         if spec:
-            args["filter"] = spec
+            _filter = spec
+
+        args: Dict[str, Any] = {}
         if limit:
             args["limit"] = limit
-        return self._coll.count_documents(**args)
+        return self._coll.count_documents(filter=_filter, **args)
 
-    def remove_document(self, spec_or_id: Union[dict, ObjectId]) -> bool:
+    def remove_document(self, spec_or_id: Union[Mapping[str, Any], ObjectId]) -> bool:
         """
         Remove a document in the db given the _id or dict spec.
 
         :param spec_or_id: spec or document id (_id)
         """
+        _filter: Mapping[str, Any] = {}
         if isinstance(spec_or_id, ObjectId):
-            spec_or_id = {"_id": spec_or_id}
-        result = self._coll.delete_one(spec_or_id)
+            _filter = {"_id": spec_or_id}
+        if not _filter:
+            raise RuntimeError("Refusing to remove documents without a spec_or_id")
+        result = self._coll.delete_one(filter=_filter)
         return result.acknowledged
 
     def is_healthy(self) -> bool:
@@ -338,7 +368,7 @@ class BaseDB(object):
         """
         return self._db.is_healthy()
 
-    def setup_indexes(self, indexes: Dict[str, Any]):
+    def setup_indexes(self, indexes: Mapping[str, Any]):
         """
         To update an index add a new item in indexes and remove the previous version.
         """
@@ -363,7 +393,7 @@ class BaseDB(object):
         if "_id" in doc:
             self._coll.replace_one({"_id": doc["_id"]}, doc, upsert=True)
             return doc["_id"]
-        res = self._coll.insert_one(doc)
+        res = self._coll.insert_one(doc)  # type: ignore
         return res.inserted_id
 
     def close(self):

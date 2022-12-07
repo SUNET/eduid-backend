@@ -125,7 +125,11 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
     browser: CSRFTestClient
 
     def setUp(
-        self, *args: Any, users: Optional[List[str]] = None, copy_user_to_private: bool = False, **kwargs: Any
+        self,
+        *args: list[Any],
+        users: Optional[List[str]] = None,
+        copy_user_to_private: bool = False,
+        **kwargs: dict[str, Any],
     ) -> None:
         # test users
         if users is None:
@@ -134,7 +138,7 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
         # Make a list of User object to be saved to the new temporary mongodb instance
         am_users = [_standard_test_users[x] for x in users]
 
-        super().setUp(*args, am_users=am_users, **kwargs)
+        super().setUp(am_users=am_users, *args, **kwargs)
 
         self.user: Optional[User] = None  # type: ignore
         # Initialize some convenience variables on self based on the first user in `users'

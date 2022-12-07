@@ -33,10 +33,11 @@
 
 import json
 from datetime import timedelta
+from tkinter import SE
 from typing import Any, Dict, List, Mapping, Optional
 from uuid import uuid4
 
-from mock import patch
+from mock import MagicMock, patch
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb import User
@@ -50,12 +51,9 @@ from eduid.webapp.security.app import SecurityApp, security_init_app
 from eduid.webapp.security.helpers import SecurityMsg
 
 
-class SecurityTests(EduidAPITestCase):
-
-    app: SecurityApp
-
-    def setUp(self, *args, users: Optional[List[str]] = None, copy_user_to_private: bool = True, **kwargs):
-        super(SecurityTests, self).setUp(*args, **kwargs)
+class SecurityTests(EduidAPITestCase[SecurityApp]):
+    def setUp(self, *args: Any, **kwargs: Any):
+        super().setUp(*args, **kwargs)
 
         self.test_user_eppn = "hubba-bubba"
         self.test_user_nin = "197801011235"
@@ -157,7 +155,6 @@ class SecurityTests(EduidAPITestCase):
         mock_request_user_sync.side_effect = self.request_user_sync
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
-        assert user is not None
         assert user.identities.nin is not None
         assert user.identities.nin.is_verified is True
 
@@ -192,7 +189,6 @@ class SecurityTests(EduidAPITestCase):
         mock_request_user_sync.side_effect = self.request_user_sync
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
-        assert user is not None
         assert user.identities.nin is not None
         assert user.identities.nin.is_verified is True
 
@@ -233,23 +229,28 @@ class SecurityTests(EduidAPITestCase):
     def test_delete_account_no_csrf(self):
         data1 = {"csrf_token": ""}
         response = self._delete_account(data1=data1)
-        self.assertEqual(response.json["type"], "POST_SECURITY_TERMINATE_ACCOUNT_FAIL")
-        self.assertEqual(self.get_response_payload(response)["error"]["csrf_token"], ["CSRF failed to validate"])
+        self._check_error_response(
+            response,
+            type_="POST_SECURITY_TERMINATE_ACCOUNT_FAIL",
+            error={"csrf_token": ["CSRF failed to validate"]},
+        )
 
     def test_delete_account_wrong_csrf(self):
         data1 = {"csrf_token": "wrong-token"}
         response = self._delete_account(data1=data1)
-        self.assertEqual(response.json["type"], "POST_SECURITY_TERMINATE_ACCOUNT_FAIL")
-        self.assertEqual(self.get_response_payload(response)["error"]["csrf_token"], ["CSRF failed to validate"])
+        self._check_error_response(
+            response,
+            type_="POST_SECURITY_TERMINATE_ACCOUNT_FAIL",
+            error={"csrf_token": ["CSRF failed to validate"]},
+        )
 
     def test_delete_account(self):
         response = self._delete_account()
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(
-            self.get_response_payload(response)["location"],
-            "http://test.localhost/terminate?next=%2Faccount-terminated",
+        self._check_success_response(
+            response,
+            type_="POST_SECURITY_TERMINATE_ACCOUNT_SUCCESS",
+            payload={"location": "http://test.localhost/terminate?next=%2Faccount-terminated"},
         )
-        self.assertEqual(response.json["type"], "POST_SECURITY_TERMINATE_ACCOUNT_SUCCESS")
 
     def test_account_terminated_no_authn(self):
         response = self.browser.get("/account-terminated")
@@ -257,12 +258,18 @@ class SecurityTests(EduidAPITestCase):
 
     def test_account_terminated_no_reauthn(self):
         response = self._account_terminated()
-        self._check_error_response(response, type_="GET_SECURITY_ACCOUNT_TERMINATED_FAIL", msg=SecurityMsg.no_reauthn)
+        self._check_error_response(
+            response,
+            type_="GET_SECURITY_ACCOUNT_TERMINATED_FAIL",
+            msg=SecurityMsg.no_reauthn,
+        )
 
     def test_account_terminated_stale(self):
         response = self._account_terminated(reauthn=1200)
         self._check_error_response(
-            response, type_="GET_SECURITY_ACCOUNT_TERMINATED_FAIL", msg=SecurityMsg.stale_reauthn
+            response,
+            type_="GET_SECURITY_ACCOUNT_TERMINATED_FAIL",
+            msg=SecurityMsg.stale_reauthn,
         )
 
     @patch("eduid.webapp.security.views.security.send_termination_mail")
@@ -305,6 +312,7 @@ class SecurityTests(EduidAPITestCase):
 
     def test_remove_not_existing_nin(self):
         response = self._remove_nin(data1={"nin": "202202031234"})
+        assert self.test_user.identities.nin is not None
         self._check_success_response(
             response,
             type_="POST_SECURITY_REMOVE_NIN_SUCCESS",
@@ -379,6 +387,7 @@ class SecurityTests(EduidAPITestCase):
 
     def test_add_other_existing_unverified_nin(self):
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        assert user.identities.nin is not None
         number_before = user.identities.nin.number
         data1 = {"nin": "202201023456"}
         response = self._add_nin(data1=data1, remove=False, unverify=True)
@@ -391,7 +400,7 @@ class SecurityTests(EduidAPITestCase):
         assert user.identities.nin.number == number_before
 
     @patch("eduid.webapp.security.views.security.add_nin_to_user")
-    def test_add_nin_task_failed(self, mock_add):
+    def test_add_nin_task_failed(self, mock_add: MagicMock):
         from eduid.common.rpc.exceptions import AmTaskFailed
 
         mock_add.side_effect = AmTaskFailed()
@@ -596,7 +605,7 @@ class SecurityTests(EduidAPITestCase):
         self._check_error_response(response2, type_="POST_SECURITY_CHANGE_PASSWORD_FAIL", msg=SecurityMsg.stale_reauthn)
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_change_passwd_no_csrf(self, mock_request_user_sync):
+    def test_change_passwd_no_csrf(self, mock_request_user_sync: MagicMock):
         mock_request_user_sync.side_effect = self.request_user_sync
         eppn = self.test_user_data["eduPersonPrincipalName"]
         with self.session_cookie(self.browser, eppn) as client:
@@ -613,7 +622,7 @@ class SecurityTests(EduidAPITestCase):
                 self.assertEqual(sec_data["type"], "POST_SECURITY_CHANGE_PASSWORD_FAIL")
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_change_passwd_wrong_csrf(self, mock_request_user_sync):
+    def test_change_passwd_wrong_csrf(self, mock_request_user_sync: MagicMock):
         mock_request_user_sync.side_effect = self.request_user_sync
         eppn = self.test_user_data["eduPersonPrincipalName"]
         with self.session_cookie(self.browser, eppn) as client:
@@ -628,7 +637,7 @@ class SecurityTests(EduidAPITestCase):
                 self.assertEqual(sec_data["type"], "POST_SECURITY_CHANGE_PASSWORD_FAIL")
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_change_passwd_weak(self, mock_request_user_sync):
+    def test_change_passwd_weak(self, mock_request_user_sync: MagicMock):
         mock_request_user_sync.side_effect = self.request_user_sync
         eppn = self.test_user_data["eduPersonPrincipalName"]
         with self.session_cookie(self.browser, eppn) as client:
@@ -646,7 +655,7 @@ class SecurityTests(EduidAPITestCase):
                 self.assertEqual(sec_data["type"], "POST_SECURITY_CHANGE_PASSWORD_FAIL")
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_change_passwd(self, mock_request_user_sync):
+    def test_change_passwd(self, mock_request_user_sync: MagicMock):
         mock_request_user_sync.side_effect = self.request_user_sync
         eppn = self.test_user_data["eduPersonPrincipalName"]
         with self.session_cookie(self.browser, eppn) as client:

@@ -4,8 +4,9 @@ import base64
 import datetime
 import logging
 import os
-from typing import Any, Dict, List, Mapping, Optional, Tuple, Union, reveal_type
+from typing import Any, Dict, List, Mapping, Optional, Tuple, Union
 from unittest import TestCase
+from unittest.mock import MagicMock
 from urllib.parse import parse_qs, quote_plus, urlparse, urlunparse
 from uuid import uuid4
 
@@ -229,8 +230,6 @@ class EidasTests(ProofingTests[EidasApp]):
 
     def add_token_to_user(self, eppn: str, credential_id: str, token_type: str) -> Union[U2F, Webauthn]:
         user = self.app.central_userdb.get_user_by_eppn(eppn)
-        # please mypy
-        assert user is not None
         mfa_token: Union[U2F, Webauthn]
         if token_type == "u2f":
             mfa_token = U2F(
@@ -257,8 +256,6 @@ class EidasTests(ProofingTests[EidasApp]):
 
     def add_nin_to_user(self, eppn: str, nin: str, verified: bool) -> NinIdentity:
         user = self.app.central_userdb.get_user_by_eppn(eppn)
-        # please mypy
-        assert user is not None
         nin_element = NinIdentity(number=nin, created_by="test", is_verified=verified)
         user.identities.add(nin_element)
         self.request_user_sync(user)
@@ -266,8 +263,6 @@ class EidasTests(ProofingTests[EidasApp]):
 
     def set_eidas_for_user(self, eppn: str, identity: EIDASIdentity, verified: bool) -> None:
         user = self.app.central_userdb.get_user_by_eppn(eppn)
-        # please mypy
-        assert user is not None
         identity.is_verified = verified
         user.identities.replace(element=identity)
         if verified is True:
@@ -337,7 +332,7 @@ class EidasTests(ProofingTests[EidasApp]):
     ) -> None:
         assert isinstance(session, EduidSession)
         if req_id is not None:
-            oq_cache = OutstandingQueriesCache(session.eidas.sp.pysaml2_dicts)
+            oq_cache = OutstandingQueriesCache(backend=session.eidas.sp.pysaml2_dicts)
             oq_cache.set(req_id, relay_state)
         session.eidas.sp.post_authn_action = action
         if verify_token is not None:
@@ -641,7 +636,7 @@ class EidasTests(ProofingTests[EidasApp]):
 
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_u2f_token_verify(self, mock_request_user_sync, mock_get_all_navet_data):
+    def test_u2f_token_verify(self, mock_request_user_sync: MagicMock, mock_get_all_navet_data: MagicMock):
         mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
 
@@ -662,7 +657,7 @@ class EidasTests(ProofingTests[EidasApp]):
 
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_webauthn_token_verify(self, mock_request_user_sync, mock_get_all_navet_data):
+    def test_webauthn_token_verify(self, mock_request_user_sync: MagicMock, mock_get_all_navet_data: MagicMock):
         mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
 
@@ -703,7 +698,9 @@ class EidasTests(ProofingTests[EidasApp]):
 
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_mfa_token_verify_no_verified_nin(self, mock_request_user_sync, mock_get_all_navet_data):
+    def test_mfa_token_verify_no_verified_nin(
+        self, mock_request_user_sync: MagicMock, mock_get_all_navet_data: MagicMock
+    ):
         mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
 
@@ -820,7 +817,7 @@ class EidasTests(ProofingTests[EidasApp]):
         self._verify_user_parameters(eppn)
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_webauthn_token_verify_backdoor(self, mock_request_user_sync):
+    def test_webauthn_token_verify_backdoor(self, mock_request_user_sync: MagicMock):
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_unverified_user_eppn
@@ -846,7 +843,7 @@ class EidasTests(ProofingTests[EidasApp]):
 
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_nin_verify(self, mock_request_user_sync, mock_get_all_navet_data):
+    def test_nin_verify(self, mock_request_user_sync: MagicMock, mock_get_all_navet_data: MagicMock):
         mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
 
@@ -866,7 +863,9 @@ class EidasTests(ProofingTests[EidasApp]):
 
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_nin_verify_no_official_address(self, mock_request_user_sync, mock_get_all_navet_data):
+    def test_nin_verify_no_official_address(
+        self, mock_request_user_sync: MagicMock, mock_get_all_navet_data: MagicMock
+    ):
         mock_get_all_navet_data.return_value = self._get_all_navet_data()
         # add empty official address and deregistration information as for a user that has emigrated
         mock_get_all_navet_data.return_value.person.postal_addresses.official_address = OfficialAddress()
@@ -892,7 +891,7 @@ class EidasTests(ProofingTests[EidasApp]):
         assert doc["deregistration_information"]["cause_code"] == "UV"
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_mfa_login(self, mock_request_user_sync):
+    def test_mfa_login(self, mock_request_user_sync: MagicMock):
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_user.eppn
@@ -927,14 +926,13 @@ class EidasTests(ProofingTests[EidasApp]):
 
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_mfa_login_unverified_nin(self, mock_request_user_sync, mock_get_all_navet_data):
+    def test_mfa_login_unverified_nin(self, mock_request_user_sync: MagicMock, mock_get_all_navet_data: MagicMock):
         mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
         eppn = self.test_unverified_user_eppn
 
         # Add locked nin to user
         user = self.app.central_userdb.get_user_by_eppn(eppn)
-        assert user is not None
         locked_nin = NinIdentity(created_by="test", number=self.test_user_nin.number, is_verified=True)
         user.locked_identity.add(locked_nin)
         self.app.central_userdb.save(user)
@@ -955,7 +953,7 @@ class EidasTests(ProofingTests[EidasApp]):
         )
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_foreign_eid_mfa_login(self, mock_request_user_sync):
+    def test_foreign_eid_mfa_login(self, mock_request_user_sync: MagicMock):
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_user.eppn
@@ -963,7 +961,6 @@ class EidasTests(ProofingTests[EidasApp]):
         self._verify_user_parameters(eppn, num_mfa_tokens=0, identity=self.test_user_eidas, identity_verified=True)
 
         user = self.app.central_userdb.get_user_by_eppn(eppn)
-        assert user is not None
 
         assert user.credentials.filter(ExternalCredential) == []
         credentials_before = user.credentials.to_list()
@@ -986,7 +983,6 @@ class EidasTests(ProofingTests[EidasApp]):
 
         # Verify that an EidasCredential was added
         user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
-        assert user is not None
         assert len(user.credentials.to_list()) == len(credentials_before) + 1
 
         eidas_creds = user.credentials.filter(EidasCredential)
@@ -1016,7 +1012,7 @@ class EidasTests(ProofingTests[EidasApp]):
         self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=False, num_proofings=0)
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_foreign_eid_mfa_login_unverified_identity(self, mock_request_user_sync):
+    def test_foreign_eid_mfa_login_unverified_identity(self, mock_request_user_sync: MagicMock):
         mock_request_user_sync.side_effect = self.request_user_sync
         eppn = self.test_unverified_user_eppn
         identity = self.test_user_eidas
@@ -1047,7 +1043,7 @@ class EidasTests(ProofingTests[EidasApp]):
         )
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_foreign_eid_webauthn_token_verify(self, mock_request_user_sync):
+    def test_foreign_eid_webauthn_token_verify(self, mock_request_user_sync: MagicMock):
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_user.eppn
@@ -1100,7 +1096,7 @@ class EidasTests(ProofingTests[EidasApp]):
         )
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_foreign_eid_mfa_token_verify_no_verified_identity(self, mock_request_user_sync):
+    def test_foreign_eid_mfa_token_verify_no_verified_identity(self, mock_request_user_sync: MagicMock):
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_unverified_user_eppn
@@ -1168,7 +1164,7 @@ class EidasTests(ProofingTests[EidasApp]):
         self._verify_user_parameters(eppn)
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_mfa_login_backdoor(self, mock_request_user_sync):
+    def test_mfa_login_backdoor(self, mock_request_user_sync: MagicMock):
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_unverified_user_eppn
@@ -1220,7 +1216,7 @@ class EidasTests(ProofingTests[EidasApp]):
 
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_nin_verify_no_backdoor_in_pro(self, mock_request_user_sync, mock_get_all_navet_data):
+    def test_nin_verify_no_backdoor_in_pro(self, mock_request_user_sync: MagicMock, mock_get_all_navet_data: MagicMock):
         mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
 
@@ -1250,7 +1246,9 @@ class EidasTests(ProofingTests[EidasApp]):
 
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_nin_verify_no_backdoor_misconfigured(self, mock_request_user_sync, mock_get_all_navet_data):
+    def test_nin_verify_no_backdoor_misconfigured(
+        self, mock_request_user_sync: MagicMock, mock_get_all_navet_data: MagicMock
+    ):
         mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
 
@@ -1284,7 +1282,7 @@ class EidasTests(ProofingTests[EidasApp]):
         self._verify_user_parameters(eppn, num_mfa_tokens=0, identity=nin, identity_verified=True)
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
-        assert user is not None
+        assert user.identities.nin is not None
         assert user.identities.nin.is_verified is True
 
         self.reauthn(
@@ -1296,11 +1294,11 @@ class EidasTests(ProofingTests[EidasApp]):
         )
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_mfa_authentication_verified_user(self, mock_request_user_sync):
+    def test_mfa_authentication_verified_user(self, mock_request_user_sync: MagicMock):
         mock_request_user_sync.side_effect = self.request_user_sync
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
-        assert user is not None
+        assert user.identities.nin is not None
         assert user.identities.nin.is_verified is True, "User was expected to have a verified NIN"
 
         assert user.credentials.filter(SwedenConnectCredential) == []
@@ -1314,7 +1312,6 @@ class EidasTests(ProofingTests[EidasApp]):
 
         # Verify that an ExternalCredential was added
         user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
-        assert user is not None
         assert len(user.credentials.to_list()) == len(credentials_before) + 1
 
         sweconn_creds = user.credentials.filter(SwedenConnectCredential)
@@ -1335,7 +1332,7 @@ class EidasTests(ProofingTests[EidasApp]):
 
     def test_mfa_authentication_wrong_nin(self):
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
-        assert user is not None
+        assert user.identities.nin is not None
         assert user.identities.nin.is_verified is True, "User was expected to have a verified NIN"
 
         self.reauthn(
@@ -1347,7 +1344,7 @@ class EidasTests(ProofingTests[EidasApp]):
 
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_nin_staging_remap_verify(self, mock_request_user_sync, mock_get_all_navet_data):
+    def test_nin_staging_remap_verify(self, mock_request_user_sync: MagicMock, mock_get_all_navet_data: MagicMock):
         mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
 
@@ -1373,7 +1370,7 @@ class EidasTests(ProofingTests[EidasApp]):
         )
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_foreign_identity_verify(self, mock_request_user_sync):
+    def test_foreign_identity_verify(self, mock_request_user_sync: MagicMock):
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_unverified_user_eppn
@@ -1392,7 +1389,6 @@ class EidasTests(ProofingTests[EidasApp]):
         )
 
         user = self.app.central_userdb.get_user_by_eppn(eppn=eppn)
-        assert user is not None
         self._verify_user_parameters(
             eppn,
             num_mfa_tokens=0,
@@ -1403,7 +1399,7 @@ class EidasTests(ProofingTests[EidasApp]):
         )
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_foreign_identity_verify_existing_prid_persistence_A(self, mock_request_user_sync):
+    def test_foreign_identity_verify_existing_prid_persistence_A(self, mock_request_user_sync: MagicMock):
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_unverified_user_eppn
@@ -1413,7 +1409,6 @@ class EidasTests(ProofingTests[EidasApp]):
         locked_identity.prid_persistence = PridPersistence.A
         locked_identity.is_verified = True
         user = self.app.central_userdb.get_user_by_eppn(eppn)
-        assert user is not None
         user.locked_identity.add(locked_identity)
         self.app.central_userdb.save(user)
 
@@ -1436,13 +1431,12 @@ class EidasTests(ProofingTests[EidasApp]):
         )
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_foreign_identity_verify_existing_prid_persistence_B(self, mock_request_user_sync):
+    def test_foreign_identity_verify_existing_prid_persistence_B(self, mock_request_user_sync: MagicMock):
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_unverified_user_eppn
         identity = self.test_user_other_eidas
         user = self.app.central_userdb.get_user_by_eppn(eppn)
-        assert user is not None
         # Add locked identity with prid persistence B and same date of birth to user
         locked_identity = EIDASIdentity(
             prid="XA:some_other_other_prid",

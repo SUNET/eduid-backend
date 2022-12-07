@@ -1,6 +1,7 @@
 # -*- encoding: utf-8 -*-
 
 import json
+import logging
 import smtplib
 from collections import OrderedDict
 from typing import Any, Dict, List, Optional
@@ -29,7 +30,7 @@ TRANSACTION_AUDIT_DB = "eduid_msg"
 TRANSACTION_AUDIT_COLLECTION = "transaction_audit"
 
 
-logger = get_task_logger(__name__)
+logger: logging.Logger = get_task_logger(__name__)
 _CACHE: Dict[str, CacheMDB] = {}
 
 app = MsgCelerySingleton.celery
@@ -150,7 +151,7 @@ class MessageSender(Task):
         logger.debug(f"send_message result: {status}")
         return status
 
-    def get_postal_address(self, identity_number: str) -> Optional[OrderedDict]:
+    def get_postal_address(self, identity_number: str) -> Optional[OrderedDict[str, Any]]:
         """
         Fetch name and postal address from NAVET
 
@@ -166,7 +167,7 @@ class MessageSender(Task):
         return navet_get_name_and_official_address(data)
 
     @staticmethod
-    def get_devel_postal_address() -> OrderedDict:
+    def get_devel_postal_address() -> OrderedDict[str, Any]:
         """
         Return a OrderedDict just as we would get from navet.
         """
@@ -184,7 +185,7 @@ class MessageSender(Task):
         )
         return result
 
-    def get_relations(self, identity_number: str) -> Optional[OrderedDict]:
+    def get_relations(self, identity_number: str) -> Optional[OrderedDict[str, Any]]:
         """
         Fetch information about someones relatives from NAVET
 
@@ -200,7 +201,7 @@ class MessageSender(Task):
         return navet_get_relations(data)
 
     @staticmethod
-    def get_devel_relations() -> OrderedDict:
+    def get_devel_relations() -> OrderedDict[str, Any]:
         """
         Return a OrderedDict just as we would get from navet.
         """
@@ -232,7 +233,7 @@ class MessageSender(Task):
         )
         return result
 
-    def get_all_navet_data(self, identity_number: str) -> Optional[OrderedDict]:
+    def get_all_navet_data(self, identity_number: str) -> Optional[OrderedDict[str, Any]]:
         # Only log the message if devel_mode is enabled
         if MsgCelerySingleton.worker_config.devel_mode is True:
             return self.get_devel_all_navet_data()
@@ -241,7 +242,7 @@ class MessageSender(Task):
         return navet_get_all_data(data)
 
     @staticmethod
-    def get_devel_all_navet_data() -> OrderedDict:
+    def get_devel_all_navet_data() -> OrderedDict[str, Any]:
         """
         Return a dict with devel data
         """
@@ -428,7 +429,7 @@ def sendsms(self: MessageSender, recipient: str, message: str, reference: str) -
 
 
 @app.task(bind=True, base=MessageSender, name="eduid_msg.tasks.get_all_navet_data")
-def get_all_navet_data(self: MessageSender, identity_number: str) -> Optional[OrderedDict]:
+def get_all_navet_data(self: MessageSender, identity_number: str) -> Optional[OrderedDict[str, Any]]:
     """
     Retrieve all data about the person from the Swedish population register using a Swedish national
     identity number.
@@ -447,7 +448,7 @@ def get_all_navet_data(self: MessageSender, identity_number: str) -> Optional[Or
 
 
 @app.task(bind=True, base=MessageSender, name="eduid_msg.tasks.get_postal_address")
-def get_postal_address(self: MessageSender, identity_number: str) -> Optional[OrderedDict]:
+def get_postal_address(self: MessageSender, identity_number: str) -> Optional[OrderedDict[str, Any]]:
     """
     Retrieve name and postal address from the Swedish population register using a Swedish national
     identity number.

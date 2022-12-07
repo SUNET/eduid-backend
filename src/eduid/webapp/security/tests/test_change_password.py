@@ -17,16 +17,14 @@ from eduid.webapp.security.app import SecurityApp, security_init_app
 from eduid.webapp.security.helpers import SecurityMsg
 
 
-class ChangePasswordTests(EduidAPITestCase):
+class ChangePasswordTests(EduidAPITestCase[SecurityApp]):
     """Base TestCase for those tests that need a full environment setup"""
 
-    app: SecurityApp
-
-    def setUp(self, *args, users: Optional[List[str]] = None, copy_user_to_private: bool = False, **kwargs):
+    def setUp(self, *args: Any, **kwargs: Any):
         self.test_user_eppn = "hubba-bubba"
         self.test_user_email = "johnsmith@example.com"
         self.test_user_nin = "197801011235"
-        super(ChangePasswordTests, self).setUp(*args, users=users, copy_user_to_private=True, **kwargs)
+        super().setUp(*args, **kwargs, copy_user_to_private=True)
 
     def load_app(self, config: Mapping[str, Any]) -> SecurityApp:
         """

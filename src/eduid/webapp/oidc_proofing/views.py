@@ -162,7 +162,7 @@ def get_seleg_state(user: User) -> Dict[str, Any]:
 @MarshalWith(schemas.NonceResponseSchema)
 @can_verify_nin
 @require_user
-def seleg_proofing(user, nin):
+def seleg_proofing(user: User, nin: str):
     proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn)
     if not proofing_state:
         current_app.logger.debug("No proofing state found for user {!s}. Initializing new proofing flow.".format(user))

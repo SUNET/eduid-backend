@@ -113,19 +113,9 @@ class EduIDBaseApp(Flask, metaclass=ABCMeta):
         self.failure_info: Dict[str, FailCountItem] = dict()
         init_status_views(self, config)
 
-    # @property
-    # def conf(self):
-    #     if self._conf is not None:
-    #         return self._conf
-    #     raise RuntimeError("EduIDBaseApp conf not initialised")
-
-    # @conf.setter
-    # def conf(self, value: EduIDBaseAppConfig) -> None:
-    #     self._conf = value
-
     @property
     def central_userdb(self) -> AmDB:
-        if not self._central_userdb:
+        if not isinstance(self._central_userdb, AmDB):
             raise RuntimeError("Central userdb not initialised")
         return self._central_userdb
 

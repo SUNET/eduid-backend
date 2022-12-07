@@ -41,9 +41,10 @@ import unittest
 from typing import Any, Dict, List, Optional, Sequence, Type, cast
 
 import pymongo
+import pymongo.errors
 
 from eduid.userdb import User
-from eduid.userdb.db import BaseDB
+from eduid.userdb.db import BaseDB, TUserDbDocument
 from eduid.userdb.testing.temp_instance import EduidTemporaryInstance
 from eduid.userdb.userdb import AmDB
 from eduid.userdb.util import utc_now
@@ -80,7 +81,7 @@ class MongoTemporaryInstance(EduidTemporaryInstance):
         return True
 
     @property
-    def conn(self) -> pymongo.MongoClient:
+    def conn(self) -> pymongo.MongoClient[TUserDbDocument]:
         if self._conn is None:
             raise RuntimeError("Missing temporary MongoDB instance")
         return self._conn
@@ -102,7 +103,12 @@ class MongoTemporaryInstance(EduidTemporaryInstance):
 
 
 class MongoTestCaseRaw(unittest.TestCase):
-    def setUp(self, raw_users: Optional[List[Dict[str, Any]]] = None, am_users: Optional[List[User]] = None, **kwargs):
+    def setUp(
+        self,
+        raw_users: Optional[List[Dict[str, Any]]] = None,
+        am_users: Optional[List[User]] = None,
+        **kwargs: Any,
+    ):
         super().setUp()
         self.maxDiff = None
         self._tmp_db = MongoTemporaryInstance.get_instance()
@@ -158,7 +164,7 @@ class MongoTestCase(unittest.TestCase):
     A test can access the port using the attribute `port`
     """
 
-    def setUp(self, am_users: Optional[List[User]] = None, **kwargs: Any):
+    def setUp(self, *args: list[Any], am_users: Optional[List[User]] = None, **kwargs: dict[str, Any]):
         """
         Test case initialization.
 

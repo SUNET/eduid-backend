@@ -1,33 +1,31 @@
 # -*- coding: utf-8 -*-
-import warnings
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Type, TypeVar, Union, cast, overload
+from typing import Any, Dict, List, Optional, cast
 
 from flask import current_app, render_template, request
 
-from eduid.common.config.base import EduIDBaseAppConfig, EduidEnvironment, MagicCookieMixin, MailConfigMixin
+from eduid.common.config.base import EduidEnvironment, MagicCookieMixin
 from eduid.common.misc.timeutil import utc_now
+from eduid.common.rpc.am_relay import AmRelay
 from eduid.common.rpc.exceptions import NoNavetData
-from eduid.common.rpc.msg_relay import DeregisteredCauseCode, DeregistrationInformation, FullPostalAddress
+from eduid.common.rpc.mail_relay import MailRelay
+from eduid.common.rpc.msg_relay import DeregisteredCauseCode, DeregistrationInformation, FullPostalAddress, MsgRelay
 from eduid.userdb import NinIdentity
 from eduid.userdb.element import ElementKey
 from eduid.userdb.identity import IdentityType
+from eduid.userdb.logs import ProofingLog
 from eduid.userdb.logs.element import (
     NinProofingLogElement,
     TForeignIdProofingLogElementSubclass,
     TNinProofingLogElementSubclass,
 )
-from eduid.userdb.proofing import ProofingUser
 from eduid.userdb.proofing.state import NinProofingState, OidcProofingState
+from eduid.userdb.proofing.user import ProofingUser
 from eduid.userdb.user import TUserSubclass, User
 from eduid.userdb.userdb import UserDB
 from eduid.webapp.common.api.app import EduIDBaseApp
 from eduid.webapp.common.api.utils import get_from_current_app
-from eduid.common.rpc.am_relay import AmRelay
-from eduid.userdb.logs import ProofingLog
-from eduid.common.rpc.mail_relay import MailRelay
 from eduid.webapp.email.settings.common import EmailConfig
-from eduid.common.rpc.msg_relay import MsgRelay
 
 __author__ = "lundberg"
 
@@ -122,7 +120,7 @@ def add_nin_to_user(user: User, proofing_state: NinProofingState) -> None:
 
 
 def verify_nin_for_user(
-    user: User, proofing_state: NinProofingState, proofing_log_entry: NinProofingLogElement
+    user: ProofingUser, proofing_state: NinProofingState, proofing_log_entry: NinProofingLogElement
 ) -> bool:
     """
     Mark a nin on a user as verified, after logging data about the proofing to the proofing log.
@@ -139,7 +137,7 @@ def verify_nin_for_user(
     """
     am_relay = get_from_current_app("am_relay", AmRelay)
     private_userdb = cast(UserDB[User], get_from_current_app("private_userdb", UserDB))
-    proofing_log = get_from_current_app("am_relay", ProofingLog)
+    proofing_log = get_from_current_app("proofing_log", ProofingLog)
 
     # add an unverified nin identity to the user if it does not exist yet
     if user.identities.nin is None:
@@ -254,7 +252,7 @@ def check_magic_cookie(config: MagicCookieMixin) -> bool:
         return False
 
     if not config.magic_cookie or not config.magic_cookie_name:
-        current_app.logger.error(f"Magic cookie parameters not present in configuration for {config.environment}")
+        current_app.logger.info(f"Magic cookie parameters not present in configuration for {config.environment}")
         return False
 
     cookie = request.cookies.get(config.magic_cookie_name)
@@ -277,7 +275,7 @@ class ProofingNavetData:
 
 
 def get_proofing_log_navet_data(nin: str) -> ProofingNavetData:
-    msg_relay = get_from_current_app("msgl_relay", MsgRelay)
+    msg_relay = get_from_current_app("msg_relay", MsgRelay)
 
     navet_data = msg_relay.get_all_navet_data(nin=nin, allow_deregistered=True)
     # the only cause for deregistration we allow is emigration

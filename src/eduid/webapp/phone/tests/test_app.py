@@ -35,7 +35,7 @@ import json
 from typing import Any, Dict, Mapping, Optional
 from urllib.parse import quote_plus
 
-from mock import patch
+from mock import MagicMock, patch
 
 from eduid.common.config.base import EduidEnvironment
 from eduid.webapp.common.api.testing import EduidAPITestCase
@@ -43,11 +43,8 @@ from eduid.webapp.phone.app import PhoneApp, phone_init_app
 from eduid.webapp.phone.helpers import PhoneMsg
 
 
-class PhoneTests(EduidAPITestCase):
-
-    app: PhoneApp
-
-    def setUp(self, *args, **kwargs):
+class PhoneTests(EduidAPITestCase[PhoneApp]):
+    def setUp(self, *args: Any, **kwargs: Any):
         super().setUp(*args, copy_user_to_private=True, **kwargs)
 
     def load_app(self, config: Mapping[str, Any]) -> PhoneApp:
@@ -435,7 +432,9 @@ class PhoneTests(EduidAPITestCase):
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     @patch("eduid.webapp.phone.verifications.get_short_hash")
     @patch("eduid.common.rpc.msg_relay.MsgRelay.sendsms")
-    def test_remove_primary_other_verified(self, mock_phone_validator, mock_code_verification, mock_request_user_sync):
+    def test_remove_primary_other_verified(
+        self, mock_phone_validator: MagicMock, mock_code_verification: MagicMock, mock_request_user_sync: MagicMock
+    ):
         mock_phone_validator.return_value = True
         mock_request_user_sync.side_effect = self.request_user_sync
         mock_code_verification.return_value = "12345"
@@ -535,7 +534,9 @@ class PhoneTests(EduidAPITestCase):
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     @patch("eduid.webapp.phone.verifications.get_short_hash")
     @patch("eduid.common.rpc.msg_relay.MsgRelay.sendsms")
-    def test_verify(self, mock_phone_validator, mock_code_verification, mock_request_user_sync):
+    def test_verify(
+        self, mock_phone_validator: MagicMock, mock_code_verification: MagicMock, mock_request_user_sync: MagicMock
+    ):
         mock_phone_validator.return_value = True
         mock_request_user_sync.side_effect = self.request_user_sync
         mock_code_verification.return_value = "12345"
@@ -574,7 +575,9 @@ class PhoneTests(EduidAPITestCase):
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     @patch("eduid.webapp.phone.verifications.get_short_hash")
     @patch("eduid.common.rpc.msg_relay.MsgRelay.sendsms")
-    def test_verify_fail(self, mock_phone_validator, mock_code_verification, mock_request_user_sync):
+    def test_verify_fail(
+        self, mock_phone_validator: MagicMock, mock_code_verification: MagicMock, mock_request_user_sync: MagicMock
+    ):
         mock_phone_validator.return_value = True
         mock_request_user_sync.side_effect = self.request_user_sync
         mock_code_verification.return_value = "12345"

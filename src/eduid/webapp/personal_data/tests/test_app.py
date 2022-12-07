@@ -106,7 +106,6 @@ class PersonalDataTests(EduidAPITestCase):
         if not verified_user:
             # Remove verified identities from the users
             user = self.app.central_userdb.get_user_by_eppn(eppn)
-            assert user is not None  # please mypy
             for identity in user.identities.verified:
                 user.identities.remove(ElementKey(identity.identity_type.value))
             self.app.central_userdb.save(user)

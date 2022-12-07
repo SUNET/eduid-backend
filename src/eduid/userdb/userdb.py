@@ -152,7 +152,7 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
         :return: List of User instances
         """
         try:
-            users = list(self._get_documents_by_filter(filter))
+            users: List[Mapping[str, Any]] = list(self._get_documents_by_filter(filter))
         except DocumentDoesNotExist:
             logger.debug("{!s} No user found with filter {!r} in {!r}".format(self, filter, self._coll_name))
             raise UserDoesNotExist("No user matching filter {!r}".format(filter))
@@ -253,7 +253,7 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
         filter = {"$or": [old_filter, new_filter]}
         return self._get_user_by_filter(filter)
 
-    def get_user_by_eppn(self, eppn: Optional[str]) -> Optional[UserVar]:
+    def get_user_by_eppn(self, eppn: Optional[str]) -> UserVar:
         """
         Look for a user using the eduPersonPrincipalName.
 
@@ -261,8 +261,11 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
         """
         # allow eppn=None as convenience, to not have to check it everywhere before calling this function
         if eppn is None:
-            return None
-        return self._get_user_by_attr("eduPersonPrincipalName", eppn)
+            raise ValueError("eppn must not be None")
+        res = self._get_user_by_attr("eduPersonPrincipalName", eppn)
+        if not res:
+            raise UserDoesNotExist(f"No user with eppn {repr(eppn)}")
+        return res
 
     def _get_user_by_attr(self, attr: str, value: Any) -> Optional[UserVar]:
         """
@@ -299,9 +302,6 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
         """
         if not isinstance(user, User):
             raise EduIDUserDBError(f"user is not a subclass of User")
-
-        if not isinstance(user.user_id, ObjectId):
-            raise AssertionError(f"user.user_id is not of type {ObjectId}")
 
         # XXX add modified_by info. modified_ts alone is not unique when propagated to eduid.workers.am.
 
@@ -358,7 +358,7 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
         logger.debug("{!s} Removing user with id {!r} from {!r}".format(self, user_id, self._coll_name))
         return self.remove_document(spec_or_id=user_id)
 
-    def update_user(self, obj_id: ObjectId, operations: Mapping) -> None:
+    def update_user(self, obj_id: ObjectId, operations: Mapping[str, Any]) -> None:
         """
         Update (or insert) a user document in mongodb.
 
@@ -397,17 +397,11 @@ class AmDB(UserDB[User]):
     def user_from_dict(cls, data: Mapping[str, Any]) -> User:
         return User.from_dict(data)
 
-    def save(self, user: UserVar, check_sync: bool = True) -> UserSaveResult:
+    def save(self, user: User, check_sync: bool = True) -> UserSaveResult:
         """
         :param user: User object
         :param check_sync: Ensure the user hasn't been updated in the database since it was loaded
         """
-        if not isinstance(user, User):
-            raise EduIDUserDBError(f"user is not a subclass of User")
-
-        if not isinstance(user.user_id, ObjectId):
-            raise AssertionError(f"user.user_id is not of type {ObjectId}")
-
         search_filter = {"_id": user.user_id}
         db_user = self._coll.find_one(search_filter)
 
@@ -427,7 +421,7 @@ class AmDB(UserDB[User]):
             user.meta.modified_ts = time_now
             user.meta.new_version()
 
-            if db_user.get("meta", {}).get("version") is None:
+            if (db_user.get("meta") or {}).get("version") is None:
                 # if the user has no version, it is a legacy user, and we need to update it
                 check_sync = False
 

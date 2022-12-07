@@ -46,7 +46,7 @@ from eduid.userdb.proofing.state import (
     ProofingState,
 )
 from eduid.userdb.proofing.user import ProofingUser
-from eduid.userdb.userdb import UserDB
+from eduid.userdb.userdb import UserDB, UserSaveResult
 from eduid.userdb.util import utc_now
 
 logger = logging.getLogger(__name__)
@@ -59,11 +59,11 @@ ProofingStateVar = TypeVar("ProofingStateVar")
 
 
 class ProofingStateDB(BaseDB, Generic[ProofingStateVar], ABC):
-    def __init__(self, db_uri: str, db_name: str, collection="proofing_data"):
+    def __init__(self, db_uri: str, db_name: str, collection: str = "proofing_data"):
         super().__init__(db_uri, db_name, collection)
 
     @classmethod
-    def state_from_dict(cls, data):
+    def state_from_dict(cls, data: Mapping[str, Any]):
         # must be implemented by subclass to get correct type information
         raise NotImplementedError()
 
@@ -264,8 +264,8 @@ class ProofingUserDB(UserDB[ProofingUser]):
     def __init__(self, db_uri: str, db_name: str, collection: str = "profiles"):
         super().__init__(db_uri, db_name, collection=collection)
 
-    def save(self, user, check_sync=True):
-        super().save(user, check_sync=check_sync)
+    def save(self, user: ProofingUser, check_sync: bool = True) -> UserSaveResult:
+        return super().save(user, check_sync=check_sync)
 
     @classmethod
     def user_from_dict(cls, data: Mapping[str, Any]) -> ProofingUser:

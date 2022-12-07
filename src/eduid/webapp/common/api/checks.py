@@ -11,6 +11,8 @@ from flask import current_app as flask_current_app
 
 from eduid.common.config.base import EduIDBaseAppConfig, RedisConfigMixin, VCCSConfigMixin
 from eduid.common.rpc.am_relay import AmRelay
+from eduid.common.rpc.mail_relay import MailRelay
+from eduid.common.rpc.msg_relay import MsgRelay
 from eduid.webapp.common.authn.vccs import check_password
 from eduid.webapp.common.session.redis_session import get_redis_pool
 
@@ -106,8 +108,8 @@ def check_mongo() -> bool:
 
 
 def check_redis() -> bool:
-    _conf = getattr(flask_current_app, "conf")
-    assert isinstance(_conf, RedisConfigMixin)
+    current_app = get_current_app()
+    assert isinstance(current_app.conf, RedisConfigMixin)
     pool = get_redis_pool(_conf.redis_config)
     client = redis.StrictRedis(connection_pool=pool)
     try:
@@ -142,12 +144,13 @@ def check_am() -> bool:
 def check_msg() -> bool:
     current_app = get_current_app()
 
-    if not getattr(current_app, "msg_relay", False):
+    msg_relay: Optional[MsgRelay] = getattr(current_app, "msg_relay", None)
+    if not msg_relay:
         return True
     try:
-        res = current_app.msg_relay.ping()
+        res = msg_relay.ping()
         # TODO: remove the backwards-compat startswith when all clients and workers are deployed
-        if res == f"pong for {current_app.msg_relay.app_name}" or res.startswith("pong"):
+        if res == f"pong for {msg_relay.app_name}" or res.startswith("pong"):
             reset_failure_info("check_msg")
             return True
     except Exception as exc:
@@ -159,12 +162,13 @@ def check_msg() -> bool:
 def check_mail() -> bool:
     current_app = get_current_app()
 
-    if not getattr(current_app, "mail_relay", False):
+    mail_relay: Optional[MailRelay] = getattr(current_app, "mail_relay", None)
+    if not mail_relay:
         return True
     try:
-        res = current_app.mail_relay.ping()
+        res = mail_relay.ping()
         # TODO: remove the backwards-compat startswith when all clients and workers are deployed
-        if res == f"pong for {current_app.mail_relay.app_name}" or res.startswith("pong"):
+        if res == f"pong for {mail_relay.app_name}" or res.startswith("pong"):
             reset_failure_info("check_mail")
             return True
     except Exception as exc:

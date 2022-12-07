@@ -33,7 +33,7 @@
 import math
 from dataclasses import dataclass
 from enum import unique
-from typing import Any, Dict, Mapping, Optional, Union
+from typing import Any, Dict, Literal, Mapping, Optional, Union
 
 from flask import render_template
 from flask_babel import gettext as _
@@ -358,12 +358,15 @@ def reset_user_password(
     return success_response(message=ResetPwMsg.pw_reset_success)
 
 
-def get_extra_security_alternatives(user: User) -> dict:
+TAlternatives = Dict[Literal["phone_numbers", "external_mfa", "tokens"], Any]
+
+
+def get_extra_security_alternatives(user: User) -> TAlternatives:
     """
     :param user: The user
     :return: Dict of alternatives
     """
-    alternatives: Dict[str, Any] = {}
+    alternatives: TAlternatives = {}
 
     if user.identities.nin is not None and user.identities.nin.is_verified:
         alternatives["external_mfa"] = True
@@ -387,14 +390,14 @@ def get_extra_security_alternatives(user: User) -> dict:
     return alternatives
 
 
-def mask_alternatives(alternatives: dict) -> dict:
+def mask_alternatives(alternatives: TAlternatives) -> TAlternatives:
     """
     :param alternatives: Extra security alternatives collected from user
     :return: Masked extra security alternatives
     """
     if alternatives:
         # Phone numbers
-        masked_phone_numbers = []
+        masked_phone_numbers: list[dict[str, Any]] = []
         for phone_number in alternatives.get("phone_numbers", []):
             number = phone_number["number"]
             masked_number = "{}{}".format("X" * (len(number) - 2), number[len(number) - 2 :])

@@ -10,7 +10,7 @@ from uuid import uuid4
 
 from flask import url_for
 from jwcrypto.jwk import JWK
-from mock import patch
+from mock import MagicMock, patch
 from werkzeug.test import TestResponse
 
 from eduid.common.clients.scim_client.testing import MockedScimAPIMixin
@@ -699,7 +699,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def _complete_invite(
         self,
-        mock_request_user_sync,
+        mock_request_user_sync: MagicMock,
         eppn: Optional[str] = None,
         data1: Optional[dict[str, Any]] = None,
         expect_success: bool = True,
@@ -1106,7 +1106,6 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
                 assert eppn is not None
                 assert sess.signup.credentials.password is None
         user = self.app.central_userdb.get_user_by_eppn(eppn)
-        assert user is not None
         assert user.mail_addresses.to_list()[0].email == email
 
     def test_create_user_eppn_in_session(self):
@@ -1226,7 +1225,6 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
                 assert eppn is not None
 
         user = self.app.central_userdb.get_user_by_eppn(eppn)
-        assert user is not None
         assert user.given_name == invite.given_name
         assert user.surname == invite.surname
         assert user.mail_addresses.to_list()[0].email == invite.get_primary_mail_address()
@@ -1248,14 +1246,12 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
                 assert eppn is not None
 
         user = self.app.central_userdb.get_user_by_eppn(eppn)
-        assert user is not None
         assert user.given_name == previous_given_name
         assert user.surname == previous_surname
         assert user.mail_addresses.to_list()[0].email == invite.get_primary_mail_address()
 
     def test_complete_invite_existing_user_try_new_signup(self):
         user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
-        assert user is not None
         assert user.mail_addresses.primary is not None
         invite = self._create_invite(email=user.mail_addresses.primary.email)
         self._accept_invite(email=invite.get_primary_mail_address(), invite_code=invite.invite_code)
