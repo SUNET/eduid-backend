@@ -29,7 +29,6 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-from datetime import timedelta
 from typing import Any, Dict
 
 import bson
@@ -41,6 +40,8 @@ from eduid.userdb.fixtures.passwords import signup_password
 from eduid.userdb.fixtures.users import mocked_user_standard, mocked_user_standard_2
 from eduid.userdb.testing import MongoTestCase, MongoTestCaseRaw
 from eduid.userdb.util import utc_now
+from eduid.userdb.exceptions import UserDoesNotExist
+import pytest
 
 
 class TestUserDB(MongoTestCase):
@@ -65,9 +66,12 @@ class TestUserDB(MongoTestCase):
     def test_get_user_by_nin(self):
         """Test get_user_by_nin"""
         test_user = self.amdb.get_user_by_id(self.user.user_id)
+        assert test_user is not None
         test_user.given_name = "Kalle Anka"
         self.amdb.save(test_user)
+        assert test_user.identities.nin is not None
         res = self.amdb.get_user_by_nin(test_user.identities.nin.number)
+        assert res is not None
         assert test_user.given_name == res.given_name
 
     def test_remove_user_by_id(self):
@@ -90,14 +94,15 @@ class TestUserDB(MongoTestCase):
 
     def test_get_user_by_eppn_not_found(self):
         """Test user lookup using unknown"""
-        assert self.amdb.get_user_by_eppn("abc123") is None
+        with pytest.raises(UserDoesNotExist):
+            self.amdb.get_user_by_eppn("abc123")
 
 
 class UserMissingMeta(MongoTestCaseRaw):
-    def setUp(self, *args, **kwargs):
+    def setUp(self, *args: Any, **kwargs: Any):
         self.user = self._raw_user()
         self.time_now = utc_now()
-        super().setUp(raw_users=[self.user])
+        super().setUp(*args, **kwargs, raw_users=[self.user])
 
     def _raw_user(self) -> Dict[str, Any]:
         user = mocked_user_standard.to_dict()
