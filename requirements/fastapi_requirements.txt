@@ -53,8 +53,8 @@ babel==2.11.0 \
     # via
     #   -c main.txt
     #   -r main.in
-beaker==1.11.0 \
-    --hash=sha256:ad5d1c05027ee3be3a482ea39f8cb70339b41e5d6ace0cb861382754076d187e
+beaker==1.12.0 \
+    --hash=sha256:2d5f427e3b13259c98c934cab0e428fc1c18a4c4b94acbdae930df7e7f51d1ec
     # via
     #   -c main.txt
     #   oic
@@ -70,15 +70,15 @@ bleach==5.0.1 \
     # via
     #   -c main.txt
     #   -r main.in
-boto3==1.26.23 \
-    --hash=sha256:b466dd6e7b71babf145ae8c55b541bbcf5828df49ca022edb24657ae0b861e87 \
-    --hash=sha256:f478dde5a7e600e222c406bbf6cd2927371822d2b95a931c3ccb69eed18af83a
+boto3==1.26.24 \
+    --hash=sha256:6531198b9d4cd86a1945eaffb2c5d8d75c5447b72870ad2b07c411ea75d6e59c \
+    --hash=sha256:f6117707d140363c58ffe41495400cc88c35c165e0f711c6b62edadbd6f600b5
     # via
     #   -c main.txt
     #   -r main.in
-botocore==1.29.23 \
-    --hash=sha256:216400fa6736a335f5b5c643655cc7d69d0bf996eb4d21069373aa5aa84b5c10 \
-    --hash=sha256:5ad03b4bedb5587fc75c7ecd29bf3477929791748cb533c8c57ab5289da84ac3
+botocore==1.29.24 \
+    --hash=sha256:4f9c92979b29132185f645f61bdf0fecf031ecc26a8dd1a99dbd88d323211325 \
+    --hash=sha256:fb37c63d5e2b7c778f52d096c6c54207d49143cd942b4dc19297086a1385a7cd
     # via
     #   -c main.txt
     #   boto3
@@ -737,9 +737,9 @@ pillow==9.3.0 \
     #   -r main.in
     #   reportlab
     #   xhtml2pdf
-prompt-toolkit==3.0.33 \
-    --hash=sha256:535c29c31216c77302877d5120aef6c94ff573748a5b5ca5b1b1f76f5e700c73 \
-    --hash=sha256:ced598b222f6f4029c0800cefaa6a17373fb580cd093223003475ce32805c35b
+prompt-toolkit==3.0.36 \
+    --hash=sha256:3e163f254bef5a03b146397d7c1963bd3e2812f0964bb9a24e6ec761fd28db63 \
+    --hash=sha256:aa64ad242a462c5ff0363a7b9cfe696c20d55d9fc60c11fd8e632d064804d305
     # via
     #   -c main.txt
     #   click-repl
@@ -1026,8 +1026,8 @@ pypdf3==1.0.6 \
     #   -c main.txt
     #   xhtml2pdf
 pysaml2==7.3.0+sunet \
-    --hash=sha256:0135bda98be4e2143525eb7dda6b4592356fb12adb323215a0f0962db443bdc3 \
-    --hash=sha256:8aed2796853170344baf2f8d23e268eca38d8049480440d30010c95d29963d82
+    --hash=sha256:13c97dcc7a0f858db55e8b62351c29d5936a3c7787cc10a33ad5f5ba2784c4d1 \
+    --hash=sha256:511384b52c111980489dd6649901268f3de865e75909c6dbc8c3a479135cc55e
     # via
     #   -c main.txt
     #   -r main.in
