@@ -36,6 +36,7 @@ jobs:
         run: |
           docker pull docker.sunet.se/eduid/redis:latest
           docker pull docker.sunet.se/eduid/mongodb:latest
+          docker pull docker.sunet.se/eduid/smtpdfix:latest
           docker pull neo4j:$NEO4J_VERSION
 
       - name: Test with pytest
