@@ -66,6 +66,7 @@ class SKV(WorkerBase):
 
                 navet_data = self.msg_relay.get_all_navet_data(nin=user.identities.nin.number)
 
+                # This won't work when more update-functions is added, due to meta.version will change after each save...
                 self.update_name(user=user, navet_data=navet_data)
 
                 time.sleep(self.config.job_delay)
