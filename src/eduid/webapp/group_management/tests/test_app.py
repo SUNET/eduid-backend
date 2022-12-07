@@ -34,7 +34,6 @@ import json
 from typing import Any, Dict, Mapping, Optional
 from uuid import UUID
 
-import pytest
 from mock import patch
 from werkzeug.test import TestResponse
 
@@ -53,7 +52,6 @@ from eduid.webapp.group_management.schemas import GroupRole
 __author__ = "lundberg"
 
 
-@pytest.mark.skipif(Neo4jTemporaryInstance.get_instance()._conn is None, reason="Neo4j database not available")
 class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
     """Base TestCase for those tests that need a full environment setup"""
 

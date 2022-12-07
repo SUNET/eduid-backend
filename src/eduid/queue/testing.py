@@ -6,14 +6,15 @@ import logging
 import time
 from asyncio import Task
 from datetime import datetime, timedelta
-from typing import List, Optional, Sequence, Type, cast
+from typing import Any, List, Optional, Sequence, Type, cast
 from unittest import IsolatedAsyncioTestCase, TestCase
 
 import pymongo
-from pymongo.errors import NotPrimaryError
+import pymongo.errors
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.queue.db import Payload, QueueDB, QueueItem, SenderInfo
+from eduid.userdb.db import TUserDbDocument
 from eduid.userdb.testing import MongoTemporaryInstance
 
 __author__ = "lundberg"
@@ -48,19 +49,19 @@ class MongoTemporaryInstanceReplicaSet(MongoTemporaryInstance):
         try:
             if not self.rs_initialized:
                 # Just try to initialize replica set once
-                tmp_conn: pymongo.MongoClient = pymongo.MongoClient(
-                    host="localhost", port=self.port, directConnection=True
-                )
+                tmp_conn = pymongo.MongoClient[TUserDbDocument](host="localhost", port=self.port, directConnection=True)
                 # Start replica set and set hostname to localhost
                 config = {
                     "_id": "rs0",
                     "members": [{"_id": 0, "host": f"localhost:{self.port}"}],
                 }
-                tmp_conn.admin.command("replSetInitiate", config)
+                res: Any = tmp_conn.admin.command("replSetInitiate", config)
+                logger.debug(f"replSetInitiate result: {res}")
                 tmp_conn.close()
                 self.rs_initialized = True
-            self._conn = pymongo.MongoClient(host="localhost", port=self.port, replicaSet="rs0")
-        except pymongo.errors.ConnectionFailure as e:
+            self._conn = pymongo.MongoClient[TUserDbDocument](host="localhost", port=self.port, replicaSet="rs0")
+        except Exception as e:
+            logger.exception("Failed to initiate replica set, or connect to it")
             with self._logfile as f:
                 try:
                     f.writelines([str(e)])
@@ -105,7 +106,7 @@ class EduidQueueTestCase(TestCase):
             try:
                 self.db = QueueDB(db_uri=self.mongo_uri, collection=self.mongo_collection)
                 break
-            except NotPrimaryError as e:
+            except pymongo.errors.NotPrimaryError as e:
                 db_init_try += 1
                 time.sleep(db_init_try)
                 if db_init_try >= 10:

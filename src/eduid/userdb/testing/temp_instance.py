@@ -57,6 +57,9 @@ class EduidTemporaryInstance(ABC):
         self._tmpdir = tempfile.mkdtemp()
         self._port = random.randint(40000, 65535)
         self._logfile = open(f"/tmp/{self.__class__.__name__}-{self.port}.log", "w")
+        with open(f"/tmp/{self.__class__.__name__}-{self.port}.info", "w") as _logfile:
+            _logfile.write(f"Starting {self.__class__.__name__} on port {self.port} in {self.tmpdir}\n")
+            _logfile.write(f"Command: {self.command}\n\n")
 
         start_time = utc_now()
         self._process = subprocess.Popen(self.command, stdout=self._logfile, stderr=subprocess.STDOUT)
@@ -69,6 +72,7 @@ class EduidTemporaryInstance(ABC):
 
             # Call a function of the subclass of this ABC to see if the instance is operational yet
             _res = self.setup_conn()
+            logger.info(f"{self} instance setup_conn returned {_res} (attempt {count})")
 
             time_now = utc_now()
             delta = time_now - start_time
