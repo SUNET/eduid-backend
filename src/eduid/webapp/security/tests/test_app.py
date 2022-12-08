@@ -303,6 +303,7 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
                 "identities": {
                     "is_verified": True,
                     "eidas": {"verified": True, "country_code": "DE", "date_of_birth": "1978-09-02"},
+                    "svipe": {"verified": True, "country_code": "DE", "date_of_birth": "1978-09-02"},
                 },
             },
         )
@@ -322,6 +323,7 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
                     "is_verified": True,
                     "nin": {"number": self.test_user.identities.nin.number, "verified": True},
                     "eidas": {"verified": True, "country_code": "DE", "date_of_birth": "1978-09-02"},
+                    "svipe": {"verified": True, "country_code": "DE", "date_of_birth": "1978-09-02"},
                 },
             },
         )
@@ -368,6 +370,7 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
                     "is_verified": True,
                     "eidas": {"verified": True, "country_code": "DE", "date_of_birth": "1978-09-02"},
                     "nin": {"number": self.test_user_nin, "verified": False},
+                    "svipe": {"verified": True, "country_code": "DE", "date_of_birth": "1978-09-02"},
                 },
             },
         )

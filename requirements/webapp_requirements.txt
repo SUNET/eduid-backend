@@ -45,9 +45,9 @@ async-timeout==4.0.2 \
     # via
     #   -c main.txt
     #   redis
-authlib==1.1.0 \
-    --hash=sha256:0a270c91409fc2b7b0fbee6996e09f2ee3187358762111a9a4225c874b94e891 \
-    --hash=sha256:be4b6a1dea51122336c210a6945b27a105b9ac572baffd15b07bcff4376c1523
+authlib==1.2.0 \
+    --hash=sha256:4ddf4fd6cfa75c9a460b361d4bd9dac71ffda0be879dbe4292a02e92349ad55a \
+    --hash=sha256:4fa3e80883a5915ef9f5bc28630564bc4ed5b5af39812a3ff130ec76bd631e9d
     # via -r webapp_requirements.in
 babel==2.11.0 \
     --hash=sha256:1ad3eca1c885218f6dce2ab67291178944f810a10a9b5f3cb8382a5a232b64fe \
@@ -56,8 +56,8 @@ babel==2.11.0 \
     #   -c main.txt
     #   -r main.in
     #   flask-babel
-beaker==1.11.0 \
-    --hash=sha256:ad5d1c05027ee3be3a482ea39f8cb70339b41e5d6ace0cb861382754076d187e
+beaker==1.12.0 \
+    --hash=sha256:2d5f427e3b13259c98c934cab0e428fc1c18a4c4b94acbdae930df7e7f51d1ec
     # via
     #   -c main.txt
     #   oic
@@ -79,15 +79,15 @@ blinker==1.5 \
     # via
     #   flask-mail
     #   raven
-boto3==1.26.17 \
-    --hash=sha256:bb40a9788dd2234851cdd1110eec0e3f6b3af6b98280924fa44c25199ced5737 \
-    --hash=sha256:c39b7e87b27b00dcf452b2fc80252d311e275036f3d48464af34d0123077f985
+boto3==1.26.24 \
+    --hash=sha256:6531198b9d4cd86a1945eaffb2c5d8d75c5447b72870ad2b07c411ea75d6e59c \
+    --hash=sha256:f6117707d140363c58ffe41495400cc88c35c165e0f711c6b62edadbd6f600b5
     # via
     #   -c main.txt
     #   -r main.in
-botocore==1.29.17 \
-    --hash=sha256:4be7ca8c581dbc6e8584876c4347dcc4f4bc6aa6e6e8131901fc11816fc8151b \
-    --hash=sha256:d4bab7d42acdb18effa33fee53d137b8b1bdedc2da196428a2d1e04a123778bc
+botocore==1.29.24 \
+    --hash=sha256:4f9c92979b29132185f645f61bdf0fecf031ecc26a8dd1a99dbd88d323211325 \
+    --hash=sha256:fb37c63d5e2b7c778f52d096c6c54207d49143cd942b4dc19297086a1385a7cd
     # via
     #   -c main.txt
     #   boto3
@@ -414,9 +414,9 @@ importlib-metadata==5.1.0 \
     # via
     #   -c main.txt
     #   -r sub_main.in
-importlib-resources==5.10.0 \
-    --hash=sha256:c01b1b94210d9849f286b86bb51bcea7cd56dde0600d8db721d7b81330711668 \
-    --hash=sha256:ee17ec648f85480d523596ce49eae8ead87d5631ae1551f913c0100b5edd3437
+importlib-resources==5.10.1 \
+    --hash=sha256:32bb095bda29741f6ef0e5278c42df98d135391bee5f932841efc0041f748dc3 \
+    --hash=sha256:c09b067d82e72c66f4f8eb12332f5efbebc9b007c0b6c40818108c9870adc363
     # via
     #   -c main.txt
     #   -r sub_main.in
@@ -643,7 +643,6 @@ packaging==21.3 \
     # via
     #   -c main.txt
     #   marshmallow
-    #   redis
 phonenumbers==8.13.1 \
     --hash=sha256:07a95c2f178687fd1c3f722cf792b3d33e3a225ae71577e500c99b28544cd6d0 \
     --hash=sha256:7cadfe900e833857500b7bafa3e5a7eddc3263eb66b66a767870b33e44665f92
@@ -718,9 +717,9 @@ pillow==9.3.0 \
     #   captcha
     #   reportlab
     #   xhtml2pdf
-prompt-toolkit==3.0.33 \
-    --hash=sha256:535c29c31216c77302877d5120aef6c94ff573748a5b5ca5b1b1f76f5e700c73 \
-    --hash=sha256:ced598b222f6f4029c0800cefaa6a17373fb580cd093223003475ce32805c35b
+prompt-toolkit==3.0.36 \
+    --hash=sha256:3e163f254bef5a03b146397d7c1963bd3e2812f0964bb9a24e6ec761fd28db63 \
+    --hash=sha256:aa64ad242a462c5ff0363a7b9cfe696c20d55d9fc60c11fd8e632d064804d305
     # via
     #   -c main.txt
     #   click-repl
@@ -975,8 +974,8 @@ pypdf3==1.0.6 \
     #   -c main.txt
     #   xhtml2pdf
 pysaml2==7.3.0+sunet \
-    --hash=sha256:b18f474b356b66fa246fa72ad1dc3c7a801518488a7d9f16d366d8c3e5c8277c \
-    --hash=sha256:cbeff4b30a8de87071ac6dba7bb0037d8322ac5ad48f3a7d5a97ebbd28e8827a
+    --hash=sha256:13c97dcc7a0f858db55e8b62351c29d5936a3c7787cc10a33ad5f5ba2784c4d1 \
+    --hash=sha256:511384b52c111980489dd6649901268f3de865e75909c6dbc8c3a479135cc55e
     # via
     #   -c main.txt
     #   -r main.in
@@ -1089,9 +1088,9 @@ raven[flask]==6.10.0 \
     --hash=sha256:3fa6de6efa2493a7c827472e984ce9b020797d0da16f1db67197bcc23c8fae54 \
     --hash=sha256:44a13f87670836e153951af9a3c80405d36b43097db869a36e92809673692ce4
     # via -r webapp_requirements.in
-redis==4.3.5 \
-    --hash=sha256:30c07511627a4c5c4d970e060000772f323174f75e745a26938319817ead7a12 \
-    --hash=sha256:46652271dc7525cd5a9667e5b0ca983c848c75b2b8f7425403395bb8379dcf25
+redis==4.4.0 \
+    --hash=sha256:7b8c87d19c45d3f1271b124858d2a5c13160c4e74d4835e28273400fa34d5228 \
+    --hash=sha256:cae3ee5d1f57d8caf534cd8764edf3163c77e073bdd74b6f54a87ffafdc5e7d9
     # via
     #   -c main.txt
     #   -r main.in
@@ -1322,9 +1321,9 @@ typing-inspect==0.8.0 \
     # via
     #   -c main.txt
     #   marshmallow-dataclass
-tzdata==2022.6 \
-    --hash=sha256:04a680bdc5b15750c39c12a448885a51134a27ec9af83667663f0b3a1bf3f342 \
-    --hash=sha256:91f11db4503385928c15598c98573e3af07e7229181bee5375bd30f1695ddcae
+tzdata==2022.7 \
+    --hash=sha256:2b88858b0e3120792a3c0635c23daf36a7d7eeeca657c323da299d2094402a0d \
+    --hash=sha256:fe5f866eddd8b96e9fcba978f8e503c909b19ea7efda11e52e39494bad3a7bfa
     # via
     #   -c main.txt
     #   pytz-deprecation-shim

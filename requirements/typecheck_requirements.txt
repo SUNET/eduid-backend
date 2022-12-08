@@ -98,6 +98,10 @@ pyparsing==3.0.9 \
     --hash=sha256:2b020ecf7d21b687f219b71ecad3631f644a47f01403fa1d1036b0c6416d70fb \
     --hash=sha256:5026bae9a10eeaefb61dab2f09052b9f4307d44aee4eda64b309723d8d206bbc
     # via packaging
+tomli==2.0.1 \
+    --hash=sha256:939de3e7a6161af0c887ef91b7d41a53e7c5a1ca976325f429cb46ea9bc30ecc \
+    --hash=sha256:de526c12914f0c550d15924c62d72abc48d6fe7364aa87328337a31007fe8a4f
+    # via mypy
 types-aiofiles==22.1.0.4 \
     --hash=sha256:3c3d389ceec04c78bd33d13304332dcc46856a418d7d4ebf95e398f1efa3a3b7 \
     --hash=sha256:54465417fdfafc723e6f0fca66de5498866f1cf2595b72c9da35c96d1c3e9fce
@@ -170,9 +174,9 @@ types-toml==0.10.8.1 \
     --hash=sha256:171bdb3163d79a520560f24ba916a9fc9bff81659c5448a9fea89240923722be \
     --hash=sha256:b7b5c4977f96ab7b5ac06d8a6590d17c0bf252a96efc03b109c2711fb3e0eafd
     # via -r typecheck_requirements.in
-types-ujson==5.5.0 \
-    --hash=sha256:6051e6b80d71382f1f85b0f97b475d84621eae3e2789ed24c5721f784b0846e1 \
-    --hash=sha256:74bc0ec76e3caf3682625703aad4aa9999327517e39afae67bb5aa3100a39bb8
+types-ujson==5.6.0.0 \
+    --hash=sha256:010b221260c24a915c6e713a83f366b91390766850ec110304de5b20c86b4b11 \
+    --hash=sha256:1a20cf7946772756736582612e0da5656d2dbeccd24be4c1e97d1e66b072b97e
     # via -r typecheck_requirements.in
 types-urllib3==1.26.25.4 \
     --hash=sha256:ed6b9e8a8be488796f72306889a06a3fc3cb1aa99af02ab8afb50144d7317e49 \

@@ -15,7 +15,7 @@ class NinIdentitySchema(IdentitySchema):
     number = fields.String(required=True)
 
 
-class EidasIdentitySchema(IdentitySchema):
+class ForeignIdentitySchema(IdentitySchema):
     date_of_birth = fields.Date(required=True)
     country_code = fields.String(required=True)
 
@@ -23,7 +23,8 @@ class EidasIdentitySchema(IdentitySchema):
 class IdentitiesSchema(EduidSchema):
     is_verified = fields.Boolean(required=True)
     nin = fields.Nested(NinIdentitySchema)
-    eidas = fields.Nested(EidasIdentitySchema)
+    eidas = fields.Nested(ForeignIdentitySchema)
+    svipe = fields.Nested(ForeignIdentitySchema)
 
 
 # TODO: Remove after frontend uses identities

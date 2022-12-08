@@ -28,6 +28,7 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
 
         self.unverified_test_user = self.app.central_userdb.get_user_by_eppn("hubba-baar")
         assert self.unverified_test_user is not None
+        self._user_setup()
 
         self.default_frontend_data = {
             "method": "svipe_id",
@@ -131,6 +132,14 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
             }
         )
         return config
+
+    def _user_setup(self):
+        # remove any svipe identity that already exists, we want to handle those ourselves
+        for eppn in [self.test_user.eppn, self.unverified_test_user.eppn]:
+            user = self.app.central_userdb.get_user_by_eppn(eppn)
+            if user.identities.svipe:
+                user.identities.remove(user.identities.svipe.key)
+                self.app.central_userdb.save(user, check_sync=False)
 
     @staticmethod
     def get_mock_userinfo(
@@ -373,7 +382,7 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
             SvipeIdentity(
                 svipe_id=userinfo.svipe_id,
                 date_of_birth=datetime.combine(userinfo.birthdate.today(), datetime.min.time()),
-                country_code=country.alpha3,
+                country_code=country.alpha2,
                 is_verified=True,
             )
         )
@@ -411,7 +420,7 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
             SvipeIdentity(
                 svipe_id="another_svipe_id",
                 date_of_birth=datetime.combine(userinfo.birthdate, datetime.min.time()),
-                country_code="DEN",
+                country_code="DK",
                 is_verified=True,
             )
         )
@@ -436,7 +445,7 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
         new_locked_identity = SvipeIdentity(
             svipe_id=userinfo.svipe_id,
             date_of_birth=datetime.combine(userinfo.birthdate.today(), datetime.min.time()),
-            country_code="DEN",
+            country_code="DK",
         )
         self._verify_user_parameters(
             eppn, identity_verified=True, num_proofings=1, num_mfa_tokens=0, locked_identity=new_locked_identity
@@ -455,7 +464,7 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
             SvipeIdentity(
                 svipe_id="another_svipe_id",
                 date_of_birth=datetime.today(),  # not matching the new identity
-                country_code="DEN",
+                country_code="DK",
                 is_verified=True,
             )
         )

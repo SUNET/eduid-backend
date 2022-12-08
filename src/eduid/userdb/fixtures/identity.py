@@ -2,7 +2,7 @@
 from datetime import datetime
 
 from eduid.userdb import EIDASIdentity, NinIdentity
-from eduid.userdb.identity import EIDASLoa, PridPersistence
+from eduid.userdb.identity import EIDASLoa, PridPersistence, SvipeIdentity
 
 __author__ = "lundberg"
 
@@ -40,6 +40,26 @@ unverified_eidas_identity = EIDASIdentity(
     prid="unique/prid/string/2",
     prid_persistence=PridPersistence.B,
     loa=EIDASLoa.NF_LOW,
+    date_of_birth=datetime.fromisoformat("1977-09-02T00:00:00"),
+    country_code="DE",
+    created_ts=datetime.fromisoformat("2022-09-02T10:23:25"),
+    created_by="test",
+)
+
+
+verified_svipe_identity = SvipeIdentity(
+    svipe_id="unique-svipe-id-1",
+    date_of_birth=datetime.fromisoformat("1978-09-02T00:00:00"),
+    country_code="DE",
+    created_ts=datetime.fromisoformat("2022-09-02T10:23:25"),
+    created_by="test",
+    is_verified=True,
+    verified_by="test",
+    verified_ts=datetime.fromisoformat("2022-09-02T10:23:25"),
+)
+
+unverified_svipe_identity = SvipeIdentity(
+    svipe_id="unique-svipe-id-2",
     date_of_birth=datetime.fromisoformat("1977-09-02T00:00:00"),
     country_code="DE",
     created_ts=datetime.fromisoformat("2022-09-02T10:23:25"),

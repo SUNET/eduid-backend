@@ -7,7 +7,6 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional, Type, Union
 
-from iso3166 import Country, countries
 from pydantic import Field
 
 from eduid.userdb.element import ElementKey, VerifiedElement, VerifiedElementList
@@ -92,6 +91,11 @@ class NinIdentity(IdentityElement):
         return {"number": self.number, "verified": self.is_verified, "primary": True}
 
 
+class ForeignIdentityElement(IdentityElement, ABC):
+    country_code: str = Field(max_length=2)  # ISO 3166-1 alpha-2
+    date_of_birth: datetime
+
+
 class PridPersistence(str, Enum):
     A = "A"  # Persistence over time is expected to be comparable or better than a Swedish nin
     B = "B"  # Persistence over time is expected to be relatively stable, but lower than a Swedish nin
@@ -104,20 +108,7 @@ class EIDASLoa(str, Enum):
     NF_HIGH = "eidas-nf-high"
 
 
-class CountryMixin:
-    country_code: str  # ISO 3166-1 alpha-2 or ISO 3166-1 alpha-3
-
-    @property
-    def country(self) -> Country:
-        try:
-            country = countries.get(self.country_code)
-        except KeyError:
-            logger.error(f'Unknown country code "{self.country_code}"')
-            country = Country("Unknown", "XX", "XXX", "000", "Unknown")
-        return country
-
-
-class EIDASIdentity(IdentityElement, CountryMixin):
+class EIDASIdentity(ForeignIdentityElement):
 
     """
     Element that is used as an EIDAS identity for a user
@@ -134,8 +125,6 @@ class EIDASIdentity(IdentityElement, CountryMixin):
     prid: str
     prid_persistence: PridPersistence
     loa: EIDASLoa
-    date_of_birth: datetime
-    country_code: str  # ISO 3166-1 alpha-2
 
     @property
     def unique_key_name(self) -> str:
@@ -150,13 +139,8 @@ class EIDASIdentity(IdentityElement, CountryMixin):
         data["prid_persistence"] = self.prid_persistence.value
         return data
 
-    def to_frontend_format(self) -> Dict[str, Any]:
-        data = self.to_dict()
-        data["country"] = dict(self.country._asdict())
-        return data
 
-
-class SvipeIdentity(IdentityElement, CountryMixin):
+class SvipeIdentity(ForeignIdentityElement):
     """
     Element that is used as a Svipe identity for a user
 
@@ -171,8 +155,6 @@ class SvipeIdentity(IdentityElement, CountryMixin):
     #  A globally unique identifier issued by Svipe to the user. Under normal conditions, a given person will retain
     #  the same Svipe ID even after renewing the underlying identity document.
     svipe_id: str
-    date_of_birth: datetime
-    country_code: str  # ISO 3166-1 alpha-3
 
     @property
     def unique_key_name(self) -> str:
@@ -181,11 +163,6 @@ class SvipeIdentity(IdentityElement, CountryMixin):
     @property
     def unique_value(self) -> str:
         return self.svipe_id
-
-    def to_frontend_format(self) -> Dict[str, Any]:
-        data = self.to_dict()
-        data["country"] = dict(self.country._asdict())
-        return data
 
 
 class IdentityList(VerifiedElementList[IdentityElement]):
