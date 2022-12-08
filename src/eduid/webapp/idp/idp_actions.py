@@ -42,6 +42,7 @@ from eduid.webapp.idp.login_context import LoginContext
 
 
 def redirect_to_actions(user: IdPUser, ticket: LoginContext) -> WerkzeugResponse:
+    raise RuntimeError("This app is being decommissioned")
     actions_uri = current_app.conf.actions_app_uri
     current_app.logger.info(f"Redirecting user {user} to actions app {actions_uri}")
 
