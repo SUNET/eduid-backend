@@ -19,9 +19,9 @@ from eduid.common.config.base import EduIDBaseAppConfig
 from eduid.common.config.exceptions import BadConfiguration
 from eduid.common.misc.encoders import EduidJSONEncoder
 from eduid.common.misc.timeutil import utc_now
+from eduid.webapp.common.api.utils import get_from_current_app
 from eduid.webapp.common.session.meta import SessionMeta
 from eduid.webapp.common.session.namespaces import (
-    Actions,
     AuthnNamespace,
     Common,
     EidasNamespace,
@@ -51,7 +51,6 @@ class EduidNamespaces(BaseModel):
     common: Optional[Common] = None
     mfa_action: Optional[MfaAction] = None
     signup: Optional[Signup] = None
-    actions: Optional[Actions] = None
     reset_password: Optional[ResetPasswordNS] = None
     security: Optional[SecurityNS] = None
     idp: Optional[IdP_Namespace] = None
@@ -195,12 +194,6 @@ class EduidSession(SessionMixin, MutableMapping):
     def signup(self):
         self._namespaces.signup = None
         del self["signup"]
-
-    @property
-    def actions(self) -> Actions:
-        if not self._namespaces.actions:
-            self._namespaces.actions = Actions.from_dict(self._session.get("actions", {}))
-        return self._namespaces.actions
 
     @property
     def reset_password(self) -> ResetPasswordNS:

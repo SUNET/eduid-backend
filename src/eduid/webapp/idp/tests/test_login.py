@@ -158,6 +158,7 @@ class IdPTestLogin(IdPTests):
         # Ensure the pre-existing IdP SSO cookie wasn't touched
         assert self.app.conf.sso_cookie.key not in cookies
 
+    @pytest.mark.skip("Actions app has been removed")
     def test_with_authncontext(self):
         """
         Request REFEDS_MFA, but the test user does not have any MFA credentials.
