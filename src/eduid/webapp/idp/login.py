@@ -385,10 +385,13 @@ class SSO(Service):
         :return: SAML response (string)
         """
         sp_identifier = resp_args.get("sp_entity_id", resp_args["destination"])
+        current_app.logger.debug(f"Creating SAML response for SP {sp_identifier}")
         sp_entity_categories = ticket.saml_req.sp_entity_attributes.get("http://macedir.org/entity-category", [])
+        current_app.logger.debug(f"SP entity categories: {sp_entity_categories}")
         sp_subject_id_request = ticket.saml_req.sp_entity_attributes.get(
             "urn:oasis:names:tc:SAML:profiles:subject-id:req", []
         )
+        current_app.logger.debug(f"SP subject id request: {sp_subject_id_request}")
         saml_attribute_settings = SAMLAttributeSettings(
             default_eppn_scope=current_app.conf.default_eppn_scope,
             default_country=current_app.conf.default_country,
