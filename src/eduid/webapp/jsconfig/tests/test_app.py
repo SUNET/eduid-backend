@@ -53,7 +53,7 @@ class JSConfigTests(EduidAPITestCase[JSConfigApp]):
         app for this test case.
         """
         app = jsconfig_init_app(test_config=config)
-        self.app.test_client_class = CSRFTestClient
+        app.test_client_class = CSRFTestClient
         self.browser = cast(CSRFTestClient, app.test_client(allow_subdomain_redirects=True))
         app.url_map.host_matching = False
         return app

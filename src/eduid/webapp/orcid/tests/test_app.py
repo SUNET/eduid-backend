@@ -190,9 +190,7 @@ class OrcidTests(EduidAPITestCase[OrcidApp]):
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             response = browser.get("/")
-        self.assertEqual(response.status_code, 200)
-        response = json.loads(response.data)
-        self.assertEqual(response["type"], "GET_ORCID_SUCCESS")
+        self._check_success_response(response, type_="GET_ORCID_SUCCESS")
 
         csrf_token = self.get_response_payload(response)["csrf_token"]
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:

@@ -165,7 +165,7 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
 
         if copy_user_to_private:
             data = self.test_user.to_dict()
-            _private_userdb = getattr(self.app, "_private_userdb")
+            _private_userdb = getattr(self.app, "private_userdb")
             assert isinstance(_private_userdb, UserDB)
             logging.info(f"Copying test-user {self.test_user} to private_userdb {_private_userdb}")
             _private_userdb.save(_private_userdb.user_from_dict(data=data), check_sync=False)

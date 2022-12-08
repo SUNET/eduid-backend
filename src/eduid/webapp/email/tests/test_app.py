@@ -346,8 +346,8 @@ class EmailTests(EduidAPITestCase[EmailApp]):
 
             client.post("/new", data=json.dumps(data), content_type=self.content_type_json)
 
-            assert self.app.conf.magic_cookie_name
-            assert self.app.conf.magic_cookie
+            assert self.app.conf.magic_cookie_name is not None
+            assert self.app.conf.magic_cookie is not None
             client.set_cookie("localhost", key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie)
 
             return client.get(f"/get-code?email={email}&eppn={eppn}")

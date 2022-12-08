@@ -109,7 +109,8 @@ def check_mongo() -> bool:
 
 def check_redis() -> bool:
     current_app = get_current_app()
-    assert isinstance(current_app.conf, RedisConfigMixin)
+    _conf = getattr(current_app, "conf")
+    assert isinstance(_conf, RedisConfigMixin)
     pool = get_redis_pool(_conf.redis_config)
     client = redis.StrictRedis(connection_pool=pool)
     try:

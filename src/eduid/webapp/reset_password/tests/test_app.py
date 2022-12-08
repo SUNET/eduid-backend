@@ -659,6 +659,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
 
     def test_post_reset_code(self):
         response = self._post_reset_code()
+        assert response is not None
         self._check_success_response(
             response,
             type_="POST_RESET_PASSWORD_VERIFY_EMAIL_SUCCESS",

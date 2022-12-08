@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional, cast
 
 from flask import current_app, render_template, request
 
-from eduid.common.config.base import EduidEnvironment, MagicCookieMixin
+from eduid.common.config.base import EduidEnvironment, MagicCookieMixin, MailConfigMixin
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.rpc.am_relay import AmRelay
 from eduid.common.rpc.exceptions import NoNavetData
@@ -217,7 +217,7 @@ def send_mail(
     :param reference: Audit reference to help cross-reference audit log and events
     """
     mail_relay = get_from_current_app("mail_relay", MailRelay)
-    conf = get_from_current_app("conf", EmailConfig)
+    conf = get_from_current_app("conf", MailConfigMixin)
 
     site_name = conf.eduid_site_name
     site_url = conf.eduid_site_url

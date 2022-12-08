@@ -4,6 +4,7 @@
 import json
 from collections import OrderedDict
 from datetime import datetime, timedelta
+from types import NoneType
 from typing import Any, AnyStr, Dict, Mapping, Optional
 
 from mock import MagicMock, Mock, patch
@@ -192,8 +193,8 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
                 cookie_value = self.app.conf.magic_cookie
 
             if add_cookie:
-                assert self.app.conf.magic_cookie_name
-                assert cookie_value
+                assert self.app.conf.magic_cookie_name is not None
+                assert cookie_value is not None
                 client.set_cookie("localhost", key=self.app.conf.magic_cookie_name, value=cookie_value)
 
             return client.get("/get-code")

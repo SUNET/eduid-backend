@@ -33,7 +33,7 @@ import base64
 import json
 import logging
 import pprint
-from typing import Any, Dict, Mapping
+from typing import Any, Dict, Mapping, TypedDict
 
 from fido2 import cbor
 from fido2.server import Fido2Server, U2FFido2Server
@@ -84,7 +84,7 @@ def _get_user_credentials_webauthn(user: User) -> Dict[ElementKey, FidoCred]:
     res: Dict[ElementKey, FidoCred] = {}
     for this in user.credentials.filter(Webauthn):
         cred_data = base64.urlsafe_b64decode(this.credential_data.encode("ascii"))
-        credential_data, rest = AttestedCredentialData.unpack_from(cred_data)
+        credential_data, _rest = AttestedCredentialData.unpack_from(cred_data)
         version = "webauthn"
         res[this.key] = FidoCred(
             app_id="",
@@ -108,7 +108,7 @@ def _get_fido2server(credentials: Dict[ElementKey, FidoCred], fido2rp: PublicKey
     # (assume all app-ids are the same - authenticating with a mix of different
     # app-ids isn't supported in current Webauthn)
     app_id = None
-    for k, v in credentials.items():
+    for _k, v in credentials.items():
         if v.app_id:
             app_id = v.app_id
             break
@@ -117,7 +117,11 @@ def _get_fido2server(credentials: Dict[ElementKey, FidoCred], fido2rp: PublicKey
     return Fido2Server(fido2rp)
 
 
-def start_token_verification(user: User, fido2_rp_id: str, fido2_rp_name: str, state: MfaAction) -> Dict[str, Any]:
+class WebauthnChallenge(TypedDict):
+    webauthn_options: str
+
+
+def start_token_verification(user: User, fido2_rp_id: str, fido2_rp_name: str, state: MfaAction) -> WebauthnChallenge:
     """
     Begin authentication process based on the hardware tokens registered by the user.
     """
@@ -130,6 +134,7 @@ def start_token_verification(user: User, fido2_rp_id: str, fido2_rp_name: str, s
 
     fido2rp = PublicKeyCredentialRpEntity(id=fido2_rp_id, name=fido2_rp_name)
     fido2server = _get_fido2server(credential_data, fido2rp)
+    fido2state: WebauthnState
     raw_fido2data, fido2state = fido2server.authenticate_begin(webauthn_credentials)
 
     logger.debug(f"FIDO2 authentication data:\n{pprint.pformat(raw_fido2data)}")
@@ -137,9 +142,9 @@ def start_token_verification(user: User, fido2_rp_id: str, fido2_rp_name: str, s
     fido2data = fido2data.rstrip("=")
 
     logger.debug(f"FIDO2/Webauthn state for user {user}: {fido2state}")
-    state.webauthn_state = WebauthnState(fido2state)
+    state.webauthn_state = fido2state
 
-    return {"webauthn_options": fido2data}
+    return WebauthnChallenge(webauthn_options=fido2data)
 
 
 class WebauthnRequest(BaseModel):

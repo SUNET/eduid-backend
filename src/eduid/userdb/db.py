@@ -357,6 +357,8 @@ class BaseDB(object):
         _filter: Mapping[str, Any] = {}
         if isinstance(spec_or_id, ObjectId):
             _filter = {"_id": spec_or_id}
+        else:
+            _filter = spec_or_id
         if not _filter:
             raise RuntimeError("Refusing to remove documents without a spec_or_id")
         result = self._coll.delete_one(filter=_filter)

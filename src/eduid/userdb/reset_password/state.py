@@ -35,16 +35,29 @@ from __future__ import annotations
 import datetime
 import logging
 from dataclasses import asdict, dataclass, field
-from typing import Any, Dict, Optional, Type, TypeVar
+from typing import Any, Dict, Optional, Type, TypeVar, TypedDict
 
 import bson
 
 from eduid.common.misc.timeutil import utc_now
+from eduid.userdb.element import ElementKey
 from eduid.userdb.reset_password.element import CodeElement
+from eduid.webapp.common.authn import fido_tokens
 
 TResetPasswordStateSubclass = TypeVar("TResetPasswordStateSubclass", bound="ResetPasswordState")
 
 logger = logging.getLogger(__name__)
+
+
+class PhoneItem(TypedDict):
+    number: str
+    index: int
+
+
+class ExtraSecurity(TypedDict):
+    external_mfa: bool
+    phone_numbers: list[PhoneItem]
+    tokens: dict[ElementKey, fido_tokens.FidoCred]
 
 
 @dataclass

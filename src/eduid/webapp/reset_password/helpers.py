@@ -33,7 +33,7 @@
 import math
 from dataclasses import dataclass
 from enum import unique
-from typing import Any, Dict, Literal, Mapping, Optional, Union
+from typing import Any, Dict, List, Literal, Mapping, Optional, TypedDict, Union
 
 from flask import render_template
 from flask_babel import gettext as _
@@ -42,10 +42,12 @@ from eduid.common.config.base import EduidEnvironment
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.rpc.exceptions import MailTaskFailed
 from eduid.common.utils import urlappend
+from eduid.userdb.element import ElementKey
 from eduid.userdb.exceptions import UserDoesNotExist
 from eduid.userdb.logs import MailAddressProofing, PhoneNumberProofing
 from eduid.userdb.reset_password import ResetPasswordEmailAndPhoneState, ResetPasswordEmailState, ResetPasswordUser
 from eduid.userdb.reset_password.element import CodeElement
+from eduid.userdb.reset_password.state import ExtraSecurity, PhoneItem
 from eduid.userdb.user import User
 from eduid.webapp.common.api.exceptions import ThrottledException
 from eduid.webapp.common.api.helpers import send_mail
@@ -358,21 +360,18 @@ def reset_user_password(
     return success_response(message=ResetPwMsg.pw_reset_success)
 
 
-TAlternatives = Dict[Literal["phone_numbers", "external_mfa", "tokens"], Any]
-
-
-def get_extra_security_alternatives(user: User) -> TAlternatives:
+def get_extra_security_alternatives(user: User) -> ExtraSecurity:
     """
     :param user: The user
     :return: Dict of alternatives
     """
-    alternatives: TAlternatives = {}
+    alternatives: ExtraSecurity = {"external_mfa": False, "phone_numbers": [], "tokens": {}}
 
     if user.identities.nin is not None and user.identities.nin.is_verified:
         alternatives["external_mfa"] = True
 
     if user.phone_numbers.verified:
-        verified_phone_numbers = [
+        verified_phone_numbers: List[PhoneItem] = [
             {"number": item.number, "index": n} for n, item in enumerate(user.phone_numbers.verified)
         ]
         alternatives["phone_numbers"] = verified_phone_numbers
@@ -390,14 +389,14 @@ def get_extra_security_alternatives(user: User) -> TAlternatives:
     return alternatives
 
 
-def mask_alternatives(alternatives: TAlternatives) -> TAlternatives:
+def mask_alternatives(alternatives: ExtraSecurity) -> ExtraSecurity:
     """
     :param alternatives: Extra security alternatives collected from user
     :return: Masked extra security alternatives
     """
     if alternatives:
         # Phone numbers
-        masked_phone_numbers: list[dict[str, Any]] = []
+        masked_phone_numbers: list[PhoneItem] = []
         for phone_number in alternatives.get("phone_numbers", []):
             number = phone_number["number"]
             masked_number = "{}{}".format("X" * (len(number) - 2), number[len(number) - 2 :])

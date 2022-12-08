@@ -42,7 +42,7 @@ def get_from_current_app(name: str, klass: Type[TCurrentAppAttribute]) -> TCurre
         if isinstance(conf, EduIDBaseAppConfig) and conf.testing:
             if isinstance(ret, MagicMock):
                 return cast(TCurrentAppAttribute, ret)
-        raise TypeError(f"current_app.{name} is not of type {klass}")
+        raise TypeError(f"current_app.{name} is not of type {klass} (is {type(ret)}")
     return ret
 
 

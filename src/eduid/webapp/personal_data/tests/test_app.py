@@ -38,6 +38,7 @@ from mock import patch
 from werkzeug.test import TestResponse
 
 from eduid.userdb.element import ElementKey
+from eduid.userdb.exceptions import UserDoesNotExist
 from eduid.webapp.common.api.exceptions import ApiException
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.personal_data.app import PersonalDataApp, pd_init_app
@@ -165,7 +166,7 @@ class PersonalDataTests(EduidAPITestCase):
         self.assertIsNone(user_data["payload"].get("passwords"))
 
     def test_get_unknown_user(self):
-        with self.assertRaises(ApiException):
+        with self.assertRaises(UserDoesNotExist):
             self._get_user(eppn="fooo-fooo")
 
     def test_get_user_all_data(self):
@@ -206,7 +207,7 @@ class PersonalDataTests(EduidAPITestCase):
         assert user_data["payload"].get("passwords") is None
 
     def test_get_unknown_user_all_data(self):
-        with self.assertRaises(ApiException):
+        with self.assertRaises(UserDoesNotExist):
             self._get_user_all_data(eppn="fooo-fooo")
 
     def test_post_user(self):
