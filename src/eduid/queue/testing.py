@@ -6,7 +6,7 @@ import logging
 import time
 from asyncio import Task
 from datetime import datetime, timedelta
-from typing import List, Optional, Sequence, Type, cast
+from typing import Any, List, Optional, Sequence, Type, cast
 from unittest import IsolatedAsyncioTestCase, TestCase
 
 import pymongo
@@ -14,7 +14,7 @@ from pymongo.errors import NotPrimaryError
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.queue.db import Payload, QueueDB, QueueItem, SenderInfo
-from eduid.userdb.testing import MongoTemporaryInstance
+from eduid.userdb.testing import EduidTemporaryInstance, MongoTemporaryInstance
 
 __author__ = "lundberg"
 
@@ -79,6 +79,35 @@ class MongoTemporaryInstanceReplicaSet(MongoTemporaryInstance):
     @property
     def uri(self):
         return f"mongodb://localhost:{self.port}"
+
+
+class SMPTDFixTemporaryInstance(EduidTemporaryInstance):
+    def __init__(self, max_retry_seconds: int):
+        super().__init__(max_retry_seconds=max_retry_seconds)
+
+    @property
+    def command(self) -> Sequence[str]:
+        return [
+            "docker",
+            "run",
+            "--rm",
+            "-p",
+            f"{self.port}:8025",
+            "--name",
+            f"test_smtpdfix_{self.port}",
+            "docker.sunet.se/eduid/smtpdfix:latest",
+        ]
+
+    def setup_conn(self) -> bool:
+        return True
+
+    @property
+    def conn(self) -> None:
+        return None
+
+    @classmethod
+    def get_instance(cls: Type[SMPTDFixTemporaryInstance], max_retry_seconds: int = 60) -> SMPTDFixTemporaryInstance:
+        return cast(SMPTDFixTemporaryInstance, super().get_instance(max_retry_seconds=max_retry_seconds))
 
 
 class EduidQueueTestCase(TestCase):
