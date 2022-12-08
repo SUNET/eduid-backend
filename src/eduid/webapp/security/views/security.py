@@ -271,8 +271,9 @@ def add_nin(user: User, nin: str) -> FluxData:
     proofing_state = NinProofingState(id=None, eppn=user.eppn, nin=nin_element, modified_ts=None)
 
     try:
+        # get modified_ts from private userdb
         security_user = SecurityUser.from_user(user, current_app.private_userdb)
-        add_nin_to_user(user, proofing_state)
+        add_nin_to_user(security_user, proofing_state)
     except AmTaskFailed:
         current_app.logger.exception("Adding nin to user failed")
         current_app.logger.debug(f"NIN: {nin}")

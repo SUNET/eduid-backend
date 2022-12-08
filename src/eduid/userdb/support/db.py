@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 
-from typing import Any, Dict, List, Mapping, Type, Union
+from typing import Any, Dict, List, Mapping, Optional, Type, Union
 
 from bson import ObjectId
+from eduid.userdb.exceptions import UserDoesNotExist
 
 from eduid.userdb.proofing import LetterProofingState
 from eduid.userdb.signup import SignupUserDB
@@ -32,15 +33,18 @@ class SupportUserDB(UserDB[SupportUser]):
         :param query: search query, can be a user eppn, nin, mail address or phone number
         :return: A list of user docs
         """
-        results = list()
+        results: List[Optional[SupportUser]] = list()
         # We could do this with a custom filter (and one db call) but it is better to lean on existing methods
         # if the way we find users change in the future
-        results.append(self.get_user_by_eppn(query))
+        try:
+            results.append(self.get_user_by_eppn(query))
+        except UserDoesNotExist:
+            pass
         results.append(self.get_user_by_nin(query))
         results.extend(self.get_users_by_mail(query))
         results.extend(self.get_users_by_phone(query))
         users = [user for user in results if user]
-        return users
+        return [x for x in users if x is not None]
 
 
 class SupportSignupUserDB(SignupUserDB):
