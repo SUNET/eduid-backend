@@ -6,9 +6,10 @@ import copy
 import datetime
 from dataclasses import asdict, dataclass, field, fields
 from enum import Enum, unique
-from typing import Any, Dict, Mapping, Optional
+from typing import Any, Mapping, Optional
 
 import bson
+from eduid.userdb.db import TUserDbDocument
 
 from eduid.userdb.exceptions import UserDBValueError
 
@@ -33,7 +34,7 @@ class GroupInviteState:
     modified_ts: Optional[datetime.datetime] = None
 
     @classmethod
-    def from_dict(cls, data: Mapping) -> GroupInviteState:
+    def from_dict(cls, data: Mapping[str, Any]) -> GroupInviteState:
         _data = copy.deepcopy(dict(data))  # to not modify callers data
         if "_id" in _data:
             _data["id"] = _data.pop("_id")
@@ -54,11 +55,11 @@ class GroupInviteState:
 
         return cls(**_data)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> TUserDbDocument:
         res = asdict(self)
         res["_id"] = res.pop("id")
         res["role"] = res["role"].value
-        return res
+        return TUserDbDocument(res)
 
     def __str__(self) -> str:
         return (

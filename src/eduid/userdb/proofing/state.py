@@ -43,6 +43,7 @@ from typing import Any, Mapping, MutableMapping, Optional, Set
 import bson
 
 from eduid.common.misc.timeutil import utc_now
+from eduid.userdb.db import TUserDbDocument
 from eduid.userdb.exceptions import UserDBValueError
 from eduid.userdb.proofing.element import (
     EmailProofingElement,
@@ -96,13 +97,13 @@ class ProofingState(object):
     def from_dict(cls, data: Mapping[str, Any]):
         raise NotImplementedError(f"from_dict not implemented for class {cls.__name__}")
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> TUserDbDocument:
         res = asdict(self)
         res["_id"] = res.pop("id")
         res["eduPersonPrincipalName"] = res.pop("eppn")
         if res["modified_ts"] is True:
             res["modified_ts"] = datetime.datetime.utcnow()
-        return res
+        return TUserDbDocument(res)
 
     def __str__(self):
         return "<eduID {!s}: eppn={!s}>".format(self.__class__.__name__, self.eppn)
@@ -151,7 +152,7 @@ class NinProofingState(ProofingState):
         _data["nin"] = NinProofingElement.from_dict(_data["nin"])
         return cls._default_from_dict(_data, {"nin"})
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> TUserDbDocument:
         nin_data = self.nin.to_dict()
         res = super().to_dict()
         res["nin"] = nin_data
@@ -170,7 +171,7 @@ class LetterProofingState(NinProofingState):
         _data["proofing_letter"] = SentLetterElement.from_dict(_data["proofing_letter"])
         return cls._default_from_dict(_data, {"nin", "proofing_letter"})
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> TUserDbDocument:
         letter_data = self.proofing_letter.to_dict()
         res = super().to_dict()
         res["proofing_letter"] = letter_data
@@ -213,7 +214,7 @@ class EmailProofingState(ProofingState):
         _data["verification"] = EmailProofingElement.from_dict(_data["verification"])
         return cls._default_from_dict(_data, {"verification"})
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> TUserDbDocument:
         email_data = self.verification.to_dict()
         res = super().to_dict()
         res["verification"] = email_data
@@ -231,7 +232,7 @@ class PhoneProofingState(ProofingState):
         _data["verification"] = PhoneProofingElement.from_dict(_data["verification"])
         return cls._default_from_dict(_data, {"verification"})
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> TUserDbDocument:
         phone_data = self.verification.to_dict()
         res = super().to_dict()
         res["verification"] = phone_data

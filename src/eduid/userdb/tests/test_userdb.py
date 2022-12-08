@@ -32,16 +32,15 @@
 from typing import Any, Dict
 
 import bson
+import pytest
 
 from eduid.common.testing_base import normalised_data
 from eduid.userdb import User
-from eduid.userdb.exceptions import UserOutOfSync
+from eduid.userdb.exceptions import UserDoesNotExist, UserOutOfSync
 from eduid.userdb.fixtures.passwords import signup_password
 from eduid.userdb.fixtures.users import mocked_user_standard, mocked_user_standard_2
 from eduid.userdb.testing import MongoTestCase, MongoTestCaseRaw
 from eduid.userdb.util import utc_now
-from eduid.userdb.exceptions import UserDoesNotExist
-import pytest
 
 
 class TestUserDB(MongoTestCase):
@@ -102,7 +101,8 @@ class UserMissingMeta(MongoTestCaseRaw):
     def setUp(self, *args: Any, **kwargs: Any):
         self.user = self._raw_user()
         self.time_now = utc_now()
-        super().setUp(*args, **kwargs, raw_users=[self.user])
+        kwargs["raw_users"] = [self.user]
+        super().setUp(*args, **kwargs)
 
     def _raw_user(self) -> Dict[str, Any]:
         user = mocked_user_standard.to_dict()

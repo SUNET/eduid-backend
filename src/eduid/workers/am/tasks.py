@@ -19,7 +19,7 @@ class AttributeManager(Task):
 
     abstract = True  # This means Celery won't register this as another task
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._userdb: Optional[AmDB] = None
 
     @property

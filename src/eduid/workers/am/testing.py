@@ -50,10 +50,12 @@ from eduid.common.config.base import AmConfigMixin, EduIDBaseAppConfig
 from eduid.common.config.workers import AmConfig
 from eduid.common.rpc.am_relay import AmRelay
 from eduid.common.testing_base import CommonTestCase
+from eduid.userdb.db import TUserDbDocument
 from eduid.userdb.exceptions import UserDoesNotExist
 from eduid.userdb.identity import IdentityType
 from eduid.userdb.proofing import ProofingUser
 from eduid.userdb.testing import MongoTemporaryInstance
+from eduid.userdb.userdb import UserDB
 from eduid.workers.am.ams import AttributeFetcher
 from eduid.workers.am.common import AmCelerySingleton
 
@@ -133,7 +135,7 @@ class WorkerTestCase(CommonTestCase):
     Base Test case for eduID celery workers
     """
 
-    def setUp(
+    def setUp(  # type: ignore[override]
         self, *args: Any, am_settings: Optional[Dict[str, Any]] = None, want_mongo_uri: bool = True, **kwargs: Any
     ):
         """
@@ -216,8 +218,8 @@ class ProofingTestCase(AMTestCase):
         self.user_data.update({"malicious": "hacker"})
 
         # Write bad entry into database
-        assert self.fetcher.private_db
-        result = self.fetcher.private_db._coll.insert_one(self.user_data)
+        assert isinstance(self.fetcher.private_db, UserDB)
+        result = self.fetcher.private_db._coll.insert_one(TUserDbDocument(self.user_data))
         user_id = result.inserted_id
 
         with self.assertRaises(ValidationError):

@@ -145,7 +145,7 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
     def _try_login(
         self,
         saml2_client: Optional[Saml2Client] = None,
-        authn_context=None,
+        authn_context: Optional[Mapping[str, Any]] = None,
         force_authn: bool = False,
         assertion_consumer_service_url: Optional[str] = None,
         username: Optional[str] = None,

@@ -22,8 +22,8 @@ class DummyConnection(object):
         self.args = args
         self.kwargs = kwargs
 
-    def __getitem__(self, key):
-        return DummyDatabase(key)
+    # def __getitem__(self, key):
+    #     return DummyDatabase(key)
 
 
 class TestMongoDB(TestCase):

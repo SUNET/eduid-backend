@@ -123,8 +123,8 @@ class ProofingStateDB(BaseDB, Generic[ProofingStateVar], ABC):
             test_doc: Dict[str, Any] = {"eduPersonPrincipalName": state.eppn}
             if check_sync:
                 test_doc["modified_ts"] = modified
-            result = self._coll.replace_one(test_doc, state.to_dict(), upsert=(not check_sync))
-            if check_sync and result.matched_count == 0:
+            result2 = self._coll.replace_one(test_doc, state.to_dict(), upsert=(not check_sync))
+            if check_sync and result2.matched_count == 0:
                 db_ts = None
                 db_state = self._coll.find_one({"eduPersonPrincipalName": state.eppn})
                 if db_state:
@@ -135,7 +135,7 @@ class ProofingStateDB(BaseDB, Generic[ProofingStateVar], ABC):
                 raise DocumentOutOfSync("Stale state object can't be saved")
 
             logging.debug(
-                "{!s} Updated state {} (ts {}) in {}): {}".format(self, state, modified, self._coll_name, result)
+                "{!s} Updated state {} (ts {}) in {}): {}".format(self, state, modified, self._coll_name, result2)
             )
 
     def remove_state(self, state: ProofingStateVar) -> None:

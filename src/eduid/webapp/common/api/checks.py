@@ -11,6 +11,7 @@ from flask import current_app as flask_current_app
 
 from eduid.common.config.base import EduIDBaseAppConfig, RedisConfigMixin, VCCSConfigMixin
 from eduid.common.rpc.am_relay import AmRelay
+from eduid.common.rpc.lookup_mobile_relay import LookupMobileRelay
 from eduid.common.rpc.mail_relay import MailRelay
 from eduid.common.rpc.msg_relay import MsgRelay
 from eduid.webapp.common.authn.vccs import check_password
@@ -181,11 +182,12 @@ def check_mail() -> bool:
 def check_lookup_mobile() -> bool:
     current_app = get_current_app()
 
-    if not getattr(current_app, "lookup_mobile_relay", False):
+    _relay: Optional[LookupMobileRelay] = getattr(current_app, "lookup_mobile_relay", None)
+    if not _relay:
         return True
     try:
-        res = current_app.lookup_mobile_relay.ping()
-        if res == f"pong for {current_app.lookup_mobile_relay.app_name}":
+        res = _relay.ping()
+        if res == f"pong for {_relay.app_name}":
             reset_failure_info("check_lookup_mobile")
             return True
     except Exception as exc:
@@ -197,15 +199,16 @@ def check_lookup_mobile() -> bool:
 def check_vccs() -> bool:
     current_app = get_current_app()
 
-    if not isinstance(current_app.conf, VCCSConfigMixin):
+    _conf = getattr(current_app, "conf")
+    if not isinstance(_conf, VCCSConfigMixin):
         return True
     # Do not force this check if not configured
-    if not current_app.conf.vccs_check_eppn:
+    if not _conf.vccs_check_eppn:
         return True
     try:
-        user = current_app.central_userdb.get_user_by_eppn(eppn=current_app.conf.vccs_check_eppn)
-        vccs_url = current_app.conf.vccs_url
-        password = current_app.conf.vccs_check_password
+        user = current_app.central_userdb.get_user_by_eppn(eppn=_conf.vccs_check_eppn)
+        vccs_url = _conf.vccs_url
+        password = _conf.vccs_check_password
         if user and check_password(password=password, user=user, vccs_url=vccs_url):
             return True
     except Exception as exc:

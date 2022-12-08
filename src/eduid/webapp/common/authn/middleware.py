@@ -65,7 +65,7 @@ class AuthnBaseApp(EduIDBaseApp, metaclass=ABCMeta):
 
         ts_url = urlappend(conf.token_service_url, "login")
 
-        params = {"next": next_url}
+        params = {"next": [next_url]}
 
         url_parts = list(urlparse(ts_url))
         query = parse_qs(url_parts[4])

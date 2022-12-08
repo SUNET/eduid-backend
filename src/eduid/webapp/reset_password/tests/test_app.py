@@ -38,8 +38,8 @@ from urllib.parse import quote_plus
 
 from flask import url_for
 from werkzeug.test import TestResponse
-from eduid.common.config.base import EduidEnvironment
 
+from eduid.common.config.base import EduidEnvironment
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb import User
 from eduid.userdb.credentials import Password, Webauthn

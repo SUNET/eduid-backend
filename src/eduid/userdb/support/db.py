@@ -3,8 +3,8 @@
 from typing import Any, Dict, List, Mapping, Optional, Type, Union
 
 from bson import ObjectId
-from eduid.userdb.exceptions import UserDoesNotExist
 
+from eduid.userdb.exceptions import UserDoesNotExist
 from eduid.userdb.proofing import LetterProofingState
 from eduid.userdb.signup import SignupUserDB
 from eduid.userdb.support import models

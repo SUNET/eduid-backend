@@ -1,6 +1,6 @@
 import base64
 import logging
-from typing import AnyStr
+from typing import AnyStr, TypeVar
 from uuid import uuid4
 
 from bson import ObjectId
@@ -27,16 +27,19 @@ def b64_decode(data: AnyStr) -> bytes:
     return base64.urlsafe_b64decode(_data)
 
 
-def filter_none(x):
+Filtered = TypeVar("Filtered")
+
+
+def filter_none(x: Filtered) -> Filtered:
     """
     Recursively removes key, value pairs or items that is None.
     """
     if isinstance(x, dict):
-        return {k: filter_none(v) for k, v in x.items() if v is not None}
+        return {k: filter_none(v) for k, v in x.items() if v is not None}  # type: ignore[return-value]
     elif isinstance(x, list):
-        return [filter_none(i) for i in x if x is not None]
-    else:
-        return x
+        return [filter_none(i) for i in x if x is not None]  # type: ignore[return-value]
+
+    return x
 
 
 def make_etag(version: ObjectId):

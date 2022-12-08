@@ -1,20 +1,21 @@
 # -*- coding: utf-8 -*-
 import pprint
 import sys
+from typing import Any, Callable
 import warnings
 from dataclasses import asdict
 from urllib import parse
 
-from flask import url_for
+from flask import url_for, Flask
 
 __author__ = "lundberg"
 
 
-class LoggingMiddleware(object):
-    def __init__(self, app):
+class LoggingMiddleware:
+    def __init__(self, app: Callable[..., Any]):
         self._app = app
 
-    def __call__(self, environ, resp):
+    def __call__(self, environ: dict[Any, Any], resp: Callable[..., Any]):
         errorlog = environ["wsgi.errors"]
         pprint.pprint(("REQUEST", environ), stream=errorlog)
 
@@ -25,17 +26,17 @@ class LoggingMiddleware(object):
         return self._app(environ, log_response)
 
 
-def log_endpoints(app):
-    output = []
+def log_endpoints(app: Flask):
+    output: list[str] = []
     with app.app_context():
         for rule in app.url_map.iter_rules():
 
             options = {}
-            for arg in rule.arguments:
+            for arg in rule.arguments:  # type: ignore[union-attr]
                 options[arg] = "[{0}]".format(arg)
 
-            methods = ",".join(rule.methods)
-            url = url_for(rule.endpoint, **options)
+            methods = ",".join(rule.methods) if rule.methods else ""
+            url = url_for(rule.endpoint, values=options)
             line = parse.unquote("{:50s} {:20s} {}".format(rule.endpoint, methods, url))
             output.append(line)
 
@@ -43,7 +44,7 @@ def log_endpoints(app):
             pprint.pprint(("ENDPOINT", line), stream=sys.stderr)
 
 
-def dump_config(app):
+def dump_config(app: Flask):
     pprint.pprint(("CONFIGURATION", "app.config"), stream=sys.stderr)
     try:
         config_items = asdict(app.config).items()
@@ -54,8 +55,8 @@ def dump_config(app):
         pprint.pprint((key, value), stream=sys.stderr)
 
 
-def init_app_debug(app):
-    app.wsgi_app = LoggingMiddleware(app.wsgi_app)
+def init_app_debug(app: Flask):
+    app.wsgi_app = LoggingMiddleware(app.wsgi_app)  # type: ignore[assignment]
     dump_config(app)
     log_endpoints(app)
     pprint.pprint(("view_functions", app.view_functions), stream=sys.stderr)

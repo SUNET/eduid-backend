@@ -1,12 +1,13 @@
 import copy
+from enum import Enum
 import logging
-from typing import TYPE_CHECKING, Any, Dict, List, Mapping, NewType, Optional, Type, TypeVar, Union, cast
+from typing import TYPE_CHECKING, Any, Dict, List, Mapping, NewType, Optional, TypeVar, Union
 
 import pymongo
 import pymongo.collection
 import pymongo.cursor
 import pymongo.errors
-from bson import SON, ObjectId
+from bson import ObjectId
 from pymongo.database import Database
 from pymongo.errors import PyMongoError
 from pymongo.uri_parser import parse_uri
@@ -16,14 +17,18 @@ from eduid.userdb.exceptions import EduIDUserDBError, MongoConnectionError, Mult
 if TYPE_CHECKING:
     from motor import motor_asyncio
 
-TUserDbDocument = NewType("TUserDbDocument", SON[str, Any])
+TUserDbDocument = NewType("TUserDbDocument", dict[str, Any])
 
 TMongoClient = TypeVar(
     "TMongoClient",
     pymongo.MongoClient[TUserDbDocument],
     "motor_asyncio.AsyncIOMotorClient",
-    "DummyConnection",
 )
+
+
+class DatabaseDriver(Enum):
+    CLASSIC = "classic"
+    ASYNCIO = "asyncio"
 
 
 class MongoDB(object):
@@ -33,7 +38,7 @@ class MongoDB(object):
         self,
         db_uri: str,
         db_name: Optional[str] = None,
-        connection_factory: Optional[Type[TMongoClient]] = None,
+        driver: Optional[DatabaseDriver] = None,
         **kwargs: Any,
     ):
         if db_uri is None:
@@ -52,14 +57,8 @@ class MongoDB(object):
             del kwargs["replicaSet"]
 
         _options = self._parsed_uri.get("options")
-        if connection_factory is None:
-            connection_factory = pymongo.MongoClient
-        elif connection_factory.__class__.__name__ == "AsyncIOMotorClient":
-            from motor import motor_asyncio
-
-            connection_factory = motor_asyncio.AsyncIOMotorClient
-
         assert _options is not None  # please mypy
+
         if "replicaSet" in _options and _options["replicaSet"] is not None:
             kwargs["replicaSet"] = _options["replicaSet"]
 
@@ -72,14 +71,20 @@ class MongoDB(object):
         self._db_uri = _format_mongodb_uri(self._parsed_uri)
 
         try:
-            assert connection_factory is not None
-            self._client: pymongo.MongoClient[TUserDbDocument] = connection_factory(
+            db_args = dict(
                 host=self._db_uri,
                 tz_aware=True,
                 # TODO: switch uuidRepresentation to "standard" when we made sure all UUIDs are stored as strings
                 uuidRepresentation="pythonLegacy",
                 **kwargs,
             )
+            self._client: pymongo.MongoClient[TUserDbDocument]
+            if driver is None or driver == DatabaseDriver.CLASSIC:
+                self._client = pymongo.MongoClient[TUserDbDocument](**db_args)
+            else:
+                from motor import motor_asyncio
+
+                self._client = motor_asyncio.AsyncIOMotorClient(**db_args)
         except PyMongoError as e:
             raise MongoConnectionError("Error connecting to mongodb {!r}: {}".format(self, e))
 
@@ -221,11 +226,18 @@ def _format_mongodb_uri(parsed_uri: Mapping[str, Any]) -> str:
 class BaseDB(object):
     """Base class for common db operations"""
 
-    def __init__(self, db_uri: str, db_name: str, collection: str, safe_writes: bool = False):
+    def __init__(
+        self,
+        db_uri: str,
+        db_name: str,
+        collection: str,
+        safe_writes: bool = False,
+        driver: Optional[DatabaseDriver] = None,
+    ):
 
         self._db_uri = db_uri
         self._coll_name = collection
-        self._db = MongoDB(db_uri, db_name=db_name)
+        self._db = MongoDB(db_uri, db_name=db_name, driver=driver)
         self._coll = self._db.get_collection(collection)
         if safe_writes:
             self._coll = self._coll.with_options(write_concern=pymongo.WriteConcern(w="majority"))

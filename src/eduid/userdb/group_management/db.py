@@ -94,15 +94,13 @@ class GroupManagementInviteStateDB(BaseDB):
 
         :raise self.DocumentDoesNotExist: No document match the search criteria
         """
-        states = []
+        states: list[GroupInviteState] = []
         for email_address in email_addresses:
             spec = {"email_address": email_address}
-            states.extend(list(self._get_documents_by_filter(spec)))
+            for this in self._get_documents_by_filter(spec):
+                states.append(GroupInviteState.from_dict(this))
 
-        if len(states) == 0:
-            return []
-
-        return [GroupInviteState.from_dict(state) for state in states]
+        return states
 
     def save(self, state: GroupInviteState, check_sync: bool = True) -> None:
         """
@@ -124,8 +122,8 @@ class GroupManagementInviteStateDB(BaseDB):
         }
         if check_sync:
             test_doc["modified_ts"] = modified
-        result = self._coll.replace_one(test_doc, state.to_dict(), upsert=(not check_sync))
-        if check_sync and result.matched_count == 0:
+        result2 = self._coll.replace_one(test_doc, state.to_dict(), upsert=(not check_sync))
+        if check_sync and result2.matched_count == 0:
             db_ts = None
             db_state = self._coll.find_one(
                 {"group_scim_id": state.group_scim_id, "email_address": state.email_address, "role": state.role}
@@ -138,7 +136,7 @@ class GroupManagementInviteStateDB(BaseDB):
             )
             raise DocumentOutOfSync("Stale state object can't be saved")
 
-        logging.debug(f"{self} Updated state {state} (ts {modified}) in {self._coll_name}): {result}")
+        logging.debug(f"{self} Updated state {state} (ts {modified}) in {self._coll_name}): {result2}")
 
     def remove_state(self, state: GroupInviteState) -> None:
         """

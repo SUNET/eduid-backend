@@ -139,8 +139,8 @@ class PasswordResetStateDB(BaseDB):
             test_doc: Dict[str, Any] = {"eduPersonPrincipalName": state.eppn}
             if check_sync:
                 test_doc["modified_ts"] = modified
-            result = self._coll.replace_one(test_doc, data, upsert=(not check_sync))
-            if check_sync and result.matched_count == 0:
+            result2 = self._coll.replace_one(test_doc, data, upsert=(not check_sync))
+            if check_sync and result2.matched_count == 0:
                 db_ts = None
                 db_state = self._coll.find_one({"eduPersonPrincipalName": state.eppn})
                 if db_state:
@@ -154,14 +154,9 @@ class PasswordResetStateDB(BaseDB):
 
             logging.debug(
                 "{!s} Updated state {!r} (ts {!s}) in {!r}): {!r}".format(
-                    self, state, modified, self._coll_name, result
+                    self, state, modified, self._coll_name, result2
                 )
             )
 
-    def remove_state(self, state):
-        """
-        :param state: ProofingStateClass object
-
-        :type state: ProofingStateClass
-        """
+    def remove_state(self, state: PasswordResetState) -> None:
         self.remove_document({"eduPersonPrincipalName": state.eppn})

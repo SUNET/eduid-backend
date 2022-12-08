@@ -2,14 +2,14 @@ from __future__ import annotations
 
 from dataclasses import asdict, field
 from enum import Enum, unique
-from typing import Any, Dict, Mapping, Optional, Type, Union, cast
+from typing import Any, Mapping, Optional, Type, Union, cast
 
 from bson import ObjectId
 from loguru import logger
 from pydantic.dataclasses import dataclass
 from pymongo.errors import DuplicateKeyError
 
-from eduid.userdb.db import BaseDB
+from eduid.userdb.db import BaseDB, TUserDbDocument
 
 
 @unique
@@ -60,7 +60,7 @@ class Credential:
             _data["obj_id"] = _data.pop("_id")
         return cls(**_data)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> TUserDbDocument:
         """
         Convert instance to database format.
 
@@ -91,11 +91,13 @@ class Credential:
         # Extract the _id and revision
         obj_id = data.pop("obj_id")
         revision = data.pop("revision")
-        return {
-            "_id": obj_id,
-            "revision": revision,
-            "credential": data,
-        }
+        return TUserDbDocument(
+            {
+                "_id": obj_id,
+                "revision": revision,
+                "credential": data,
+            }
+        )
 
 
 @dataclass(config=CredentialPydanticConfig)

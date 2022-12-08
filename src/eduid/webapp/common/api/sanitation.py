@@ -30,7 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 import logging
-from typing import Optional
+from typing import AnyStr, Optional
 from urllib.parse import quote, unquote
 
 from bleach import clean
@@ -50,7 +50,7 @@ class Sanitizer(object):
 
     def sanitize_input(
         self,
-        untrusted_text: str,
+        untrusted_text: AnyStr,
         content_type: Optional[str] = None,
         strip_characters: bool = False,
         logger: Optional[logging.Logger] = None,
@@ -70,17 +70,17 @@ class Sanitizer(object):
         if logger is None:
             logger = module_logger
         try:
-            # Test if the untrusted text is percent encoded
-            # before running bleach.
+            # Test if the untrusted text is percent encoded before running bleach.
+            _untrusted_text: str
             if isinstance(untrusted_text, bytes):
-                untrusted_text = untrusted_text.decode("utf-8")
-            if unquote(untrusted_text) != untrusted_text:
-                use_percent_encoding = True
+                _untrusted_text = untrusted_text.decode("utf-8")
             else:
-                use_percent_encoding = False
+                _untrusted_text = untrusted_text
+
+            use_percent_encoding = unquote(untrusted_text) != untrusted_text
 
             return self._sanitize_input(
-                untrusted_text,
+                _untrusted_text,
                 logger,
                 strip_characters=strip_characters,
                 content_type=content_type,
@@ -100,7 +100,7 @@ class Sanitizer(object):
         strip_characters: bool = False,
         content_type: Optional[str] = None,
         percent_encoded: bool = False,
-    ):
+    ) -> str:
         """
         :param untrusted_text: User input to sanitize
         :param strip_characters: Set to True to remove instead of escaping
@@ -114,13 +114,10 @@ class Sanitizer(object):
                                 already defined.
 
         :return: Sanitized user input
-
-        :type untrusted_text: str | unicode
-        :rtype str | unicode
         """
-        if untrusted_text is None:
-            # If we are given None then there's nothing to clean
-            return None
+        # if untrusted_text is None:
+        #     # If we are given None then there's nothing to clean
+        #     return None
 
         # Decide on whether or not to use percent encoding:
         # 1. Check if the content type has been explicitly set
@@ -170,7 +167,7 @@ class Sanitizer(object):
 
         return cleaned_text
 
-    def _safe_clean(self, untrusted_text, logger, strip_characters=False):
+    def _safe_clean(self, untrusted_text: str, logger: logging.Logger, strip_characters: bool = False) -> str:
         """
         Wrapper for the clean function of bleach to be able
         to catch when illegal UTF-8 is processed.
@@ -178,9 +175,6 @@ class Sanitizer(object):
         :param untrusted_text: Text to sanitize
         :param strip_characters: Set to True to remove instead of escaping
         :return: Sanitized text
-
-        :type untrusted_text: str | unicode
-        :rtype: str | unicode
         """
         try:
             return clean(untrusted_text, strip=strip_characters)

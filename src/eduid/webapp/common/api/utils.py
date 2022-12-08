@@ -15,7 +15,6 @@ from mock import MagicMock
 
 from eduid.common.config.base import EduIDBaseAppConfig, Pysaml2SPConfigMixin
 from eduid.common.misc.timeutil import utc_now
-from eduid.common.rpc.am_relay import AmRelay
 from eduid.userdb import User, UserDB
 from eduid.userdb.exceptions import MultipleUsersReturned, UserDBValueError
 from eduid.webapp.common.api.exceptions import ApiException
@@ -136,6 +135,8 @@ def save_and_sync_user(
     if private_userdb is None:
         private_userdb = get_from_current_app("private_userdb", UserDB)
     private_userdb.save(user)
+    from eduid.common.rpc.am_relay import AmRelay
+
     return get_from_current_app("am_relay", AmRelay).request_user_sync(user, app_name_override=app_name_override)
 
 

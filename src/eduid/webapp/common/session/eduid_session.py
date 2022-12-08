@@ -59,7 +59,7 @@ class EduidNamespaces(BaseModel):
     svipe_id: Optional[SvipeIDNamespace] = None
 
 
-class EduidSession(SessionMixin, MutableMapping):
+class EduidSession(SessionMixin, MutableMapping[str, Any]):
     """
     Session implementing the flask.sessions.SessionMixin interface.
 
@@ -277,22 +277,23 @@ class EduidSession(SessionMixin, MutableMapping):
         :param response: the response object to carry the cookie
         :type response: flask.Response
         """
+        _conf = get_from_current_app("conf", EduIDBaseAppConfig)
         if self._invalidated:
             response.delete_cookie(
-                key=self.app.conf.flask.session_cookie_name,
-                path=self.app.conf.flask.session_cookie_path,
-                domain=self.app.conf.flask.session_cookie_domain,
+                key=_conf.flask.session_cookie_name,
+                path=_conf.flask.session_cookie_path,
+                domain=_conf.flask.session_cookie_domain,
             )
             return
         response.set_cookie(
-            key=self.app.conf.flask.session_cookie_name,
+            key=_conf.flask.session_cookie_name,
             value=self.meta.cookie_val,
-            domain=self.app.conf.flask.session_cookie_domain,
-            path=self.app.conf.flask.session_cookie_path,
-            secure=self.app.conf.flask.session_cookie_secure,
-            httponly=self.app.conf.flask.session_cookie_httponly,
-            samesite=self.app.conf.flask.session_cookie_samesite,
-            max_age=self.app.conf.flask.permanent_session_lifetime,
+            domain=_conf.flask.session_cookie_domain,
+            path=_conf.flask.session_cookie_path,
+            secure=_conf.flask.session_cookie_secure,
+            httponly=_conf.flask.session_cookie_httponly,
+            samesite=_conf.flask.session_cookie_samesite,
+            max_age=_conf.flask.permanent_session_lifetime,
         )
 
     def new_csrf_token(self) -> str:
@@ -340,7 +341,8 @@ class EduidSession(SessionMixin, MutableMapping):
             self._session.commit()
             self.new = False
             self.modified = False
-            if self.app.debug or self.app.conf.testing:
+            _conf = getattr(self.app, "conf", None)
+            if self.app.debug or (isinstance(_conf, EduIDBaseAppConfig) and _conf.testing):
                 _saved_data = json.dumps(self._session.to_dict(), indent=4, sort_keys=True, cls=EduidJSONEncoder)
                 logger.debug(f"Saved session {self}:\n{_saved_data}")
 
@@ -360,13 +362,17 @@ class SessionFactory(SessionInterface):
         ttl = 2 * config.flask.permanent_session_lifetime
         self.manager = SessionManager(config.redis_config, ttl=ttl, app_secret=config.flask.secret_key)
 
-    # Return type not specified because 'Return type of "open_session" incompatible with supertype "SessionInterface"'
-    def open_session(self, app: EduIDBaseApp, request: FlaskRequest):  # -> EduidSession:
+    def open_session(  # type: ignore[override]
+        self,
+        app: EduIDBaseApp,
+        request: FlaskRequest,
+    ) -> EduidSession:
         """
         See flask.session.SessionInterface
         """
         # Load token from cookie
-        cookie_name = app.conf.flask.session_cookie_name
+        _conf = get_from_current_app("conf", EduIDBaseAppConfig)
+        cookie_name = _conf.flask.session_cookie_name
         cookie_val = request.cookies.get(cookie_name, None)
         logger.debug(f"Session cookie {cookie_name} == {cookie_val}")
 
@@ -402,12 +408,17 @@ class SessionFactory(SessionInterface):
 
         sess = EduidSession(app, _meta, base_session, new=new)
         logger.debug(f"Created/loaded session {sess} with base_session {base_session}")
-        if app.debug or app.conf.testing:
+        if app.debug or _conf.testing:
             _loaded_data = json.dumps(sess._session.to_dict(), indent=4, sort_keys=True)
             logger.debug(f"Loaded session {sess}:\n{_loaded_data}")
         return sess
 
-    def save_session(self, app: EduIDBaseApp, sess: EduidSession, response: FlaskResponse) -> None:
+    def save_session(  # type: ignore[override]
+        self,
+        app: EduIDBaseApp,
+        sess: EduidSession,
+        response: FlaskResponse,
+    ) -> None:
         """
         See flask.session.SessionInterface
         """

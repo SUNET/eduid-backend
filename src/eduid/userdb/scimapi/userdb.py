@@ -10,6 +10,7 @@ from typing import Any, Dict, List, Mapping, Optional, Tuple, Type
 from bson import ObjectId
 
 from eduid.userdb import User, UserDB
+from eduid.userdb.db import TUserDbDocument
 from eduid.userdb.scimapi.basedb import ScimApiBaseDB
 from eduid.userdb.scimapi.common import (
     ScimApiEmail,
@@ -40,14 +41,14 @@ class ScimApiUser(ScimApiResourceBase):
     def etag(self):
         return f'W/"{self.version}"'
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> TUserDbDocument:
         res = asdict(self)
         res["scim_id"] = str(res["scim_id"])
         res["_id"] = res.pop("user_id")
         res["emails"] = [email.to_dict() for email in self.emails]
         res["phone_numbers"] = [phone_number.to_dict() for phone_number in self.phone_numbers]
         res["linked_accounts"] = [acc.to_dict() for acc in self.linked_accounts]
-        return res
+        return TUserDbDocument(res)
 
     @classmethod
     def from_dict(cls: Type[ScimApiUser], data: Mapping[str, Any]) -> ScimApiUser:
@@ -108,7 +109,7 @@ class ScimApiUserDB(ScimApiBaseDB):
                 logger.debug(f"{self} FAILED Updating user {user} in {self._coll_name}")
                 raise RuntimeError("User out of sync, please retry")
             # Out of sync check did not find any problems, it is a new user - save it.
-            result = self._coll.insert_one(user_dict)
+            _result2 = self._coll.insert_one(user_dict)
         # put the new version number and last_modified in the user object after a successful update
         user.version = user_dict["version"]
         user.last_modified = user_dict["last_modified"]

@@ -5,6 +5,7 @@ from flask import Blueprint
 
 from eduid.common.rpc.exceptions import AmTaskFailed, LookupMobileTaskFailed, MsgTaskFailed, NoNavetData
 from eduid.userdb import User
+from eduid.userdb.proofing.user import ProofingUser
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, can_verify_nin, require_user
 from eduid.webapp.common.api.helpers import add_nin_to_user, verify_nin_for_user
 from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response, success_response
@@ -56,9 +57,11 @@ def proofing(user: User, nin: str) -> FluxData:
         return error_response(message=CommonMsg.navet_error)
 
     if proofing_log_entry:
+        # Verify nin for user
         try:
-            # Verify nin for user
-            if not verify_nin_for_user(user, proofing_state, proofing_log_entry):
+            # load modified_ts from private userdb
+            proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
+            if not verify_nin_for_user(proofing_user, proofing_state, proofing_log_entry):
                 return error_response(message=CommonMsg.temp_problem)
             return success_response(message=MobileMsg.verify_success)
         except AmTaskFailed:

@@ -15,6 +15,7 @@ from eduid.userdb import User
 from eduid.userdb.logs import SeLegProofing, SeLegProofingFrejaEid
 from eduid.userdb.proofing import OidcProofingState, ProofingUser
 from eduid.userdb.proofing.element import NinProofingElement
+from eduid.userdb.proofing.user import ProofingUser
 from eduid.webapp.common.api.helpers import number_match_proofing, verify_nin_for_user
 from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.common.api.utils import get_unique_hash
@@ -226,7 +227,9 @@ def handle_freja_eid_userinfo(user: User, proofing_state: OidcProofingState, use
         proofing_version="2017v1",
         deregistration_information=None,
     )
-    if not verify_nin_for_user(user, proofing_state, proofing_log_entry):
+    # load modified_ts from private userdb
+    proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
+    if not verify_nin_for_user(proofing_user, proofing_state, proofing_log_entry):
         current_app.logger.error(f"Verifying NIN for user {user} failed")
         # TODO: Propagate error to caller
         return None

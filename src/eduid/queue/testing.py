@@ -15,7 +15,6 @@ import pymongo.errors
 from eduid.common.misc.timeutil import utc_now
 from eduid.queue.db import Payload, QueueDB, QueueItem, SenderInfo
 from eduid.userdb.db import TUserDbDocument
-from eduid.userdb.testing import MongoTemporaryInstance
 from eduid.userdb.testing import EduidTemporaryInstance, MongoTemporaryInstance
 
 __author__ = "lundberg"

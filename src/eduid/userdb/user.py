@@ -43,7 +43,7 @@ import bson
 from pydantic import BaseModel, Extra, Field, root_validator, validator
 
 from eduid.userdb.credentials import CredentialList
-from eduid.userdb.db import BaseDB
+from eduid.userdb.db import BaseDB, TUserDbDocument
 from eduid.userdb.element import UserDBValueError
 from eduid.userdb.exceptions import UserDoesNotExist, UserHasNotCompletedSignup, UserIsRevoked
 from eduid.userdb.identity import IdentityList, IdentityType
@@ -120,7 +120,7 @@ class User(BaseModel):
 
     @root_validator()
     def update_meta_modified_ts(cls, values: Dict[str, Any]):
-        # as we validate on assignment this will run everytime the User is changed
+        # as we validate on assignment this will run every time the User is changed
         if values.get("modified_ts"):
             values["meta"].modified_ts = values["modified_ts"]
         return values
@@ -128,7 +128,7 @@ class User(BaseModel):
     def __str__(self):
         return f"<eduID {self.__class__.__name__}: {self.eppn}/{self.user_id}>"
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any):
         if self.__class__ is not other.__class__:
             raise TypeError(f"Trying to compare objects of different class {other.__class__} != {self.__class__}")
         return self.to_dict() == other.to_dict()
@@ -144,15 +144,15 @@ class User(BaseModel):
         data_in = cls._from_dict_transform(data_in)
         return cls(**data_in)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> TUserDbDocument:
         """
         Return user data serialized into a dict that can be stored in MongoDB.
 
         :return: User as dict
         """
-        res = self.dict(by_alias=True, exclude_none=True)  # avoid caller messing up our private _data
+        res = self.dict(by_alias=True, exclude_none=True)
         res = self._to_dict_transform(res)
-        return res
+        return TUserDbDocument(res)
 
     @classmethod
     def _from_dict_transform(cls: Type[TUserSubclass], data: Dict[str, Any]) -> Dict[str, Any]:

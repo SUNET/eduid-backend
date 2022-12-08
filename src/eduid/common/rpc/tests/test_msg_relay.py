@@ -79,7 +79,7 @@ class MsgRelayTests(unittest.TestCase):
 
     @patch("eduid.workers.msg.tasks.get_relations_to.apply_async")
     def test_get_relations_to_empty_response(self, mock_get_relations: MagicMock):
-        mock_conf = {"get.return_value": []}
+        mock_conf: dict[str, Any] = {"get.return_value": []}
         ret = Mock(**mock_conf)
         mock_get_relations.return_value = ret
         res = self.msg_relay.get_relations_to(nin="190102031234", relative_nin="194004048989")

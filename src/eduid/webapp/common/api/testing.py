@@ -124,7 +124,7 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
     app: TTestAppVar
     browser: CSRFTestClient
 
-    def setUp(
+    def setUp(  # type: ignore[override]
         self,
         *args: list[Any],
         users: Optional[List[str]] = None,

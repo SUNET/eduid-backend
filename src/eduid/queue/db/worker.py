@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from lib2to3.pgen2 import driver
 import logging
 from dataclasses import replace
 from datetime import datetime, timedelta, timezone
@@ -12,6 +13,7 @@ from pymongo.results import UpdateResult
 from eduid.queue.db import QueueDB, QueueItem
 from eduid.queue.exceptions import PayloadNotRegistered
 from eduid.userdb import MongoDB
+from eduid.userdb.db import DatabaseDriver
 
 __author__ = "lundberg"
 
@@ -19,12 +21,12 @@ logger = logging.getLogger(__name__)
 
 
 class AsyncQueueDB(QueueDB):
-    def __init__(self, db_uri: str, collection: str, db_name: str = "eduid_queue", connection_factory=None):
-        super().__init__(db_uri, collection=collection, db_name=db_name)
+    def __init__(self, db_uri: str, collection: str, db_name: str = "eduid_queue"):
+        super().__init__(db_uri, collection=collection, db_name=db_name, driver=DatabaseDriver.ASYNCIO)
 
         # Re-initialize database and collection with connection_factory
-        self._db = MongoDB(db_uri, db_name=db_name, connection_factory=connection_factory)
-        self._coll = self._db.get_collection(collection=collection)
+        # self._db = MongoDB(db_uri, db_name=db_name, connection_factory=connection_factory)
+        # self._coll = self._db.get_collection(collection=collection)
 
     @property
     def database(self) -> motor_asyncio.AsyncIOMotorDatabase:

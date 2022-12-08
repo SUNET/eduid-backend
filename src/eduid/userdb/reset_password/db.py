@@ -132,8 +132,8 @@ class ResetPasswordStateDB(BaseDB):
             test_doc: Dict[str, Any] = {"eduPersonPrincipalName": state.eppn}
             if check_sync:
                 test_doc["modified_ts"] = modified
-            result = self._coll.replace_one(test_doc, state.to_dict(), upsert=(not check_sync))
-            if check_sync and result.matched_count == 0:
+            result2 = self._coll.replace_one(test_doc, state.to_dict(), upsert=(not check_sync))
+            if check_sync and result2.matched_count == 0:
                 db_ts = None
                 db_state = self._coll.find_one({"eppn": state.eppn})
                 if db_state:
@@ -143,7 +143,7 @@ class ResetPasswordStateDB(BaseDB):
                 )
                 raise DocumentOutOfSync("Stale state object can't be saved")
 
-            logging.debug(f"{self} Updated state {state} (ts {modified}) in {self._coll_name}): {result}")
+            logging.debug(f"{self} Updated state {state} (ts {modified}) in {self._coll_name}): {result2}")
 
     def remove_state(self, state: ResetPasswordState):
         """

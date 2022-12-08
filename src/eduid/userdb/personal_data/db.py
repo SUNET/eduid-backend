@@ -31,7 +31,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 import logging
-from typing import Any, Mapping
+from typing import Any, Mapping, Type
 
 from eduid.userdb import User
 from eduid.userdb.personal_data.user import PersonalDataUser
@@ -47,5 +47,5 @@ class PersonalDataUserDB(UserDB[PersonalDataUser]):
         super().__init__(db_uri, db_name, collection=collection)
 
     @classmethod
-    def user_from_dict(cls, data: Mapping[str, Any]) -> User:
+    def user_from_dict(cls, data: Mapping[str, Any]) -> PersonalDataUser:
         return PersonalDataUser.from_dict(data)

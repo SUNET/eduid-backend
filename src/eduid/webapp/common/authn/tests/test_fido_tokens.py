@@ -34,6 +34,7 @@ import base64
 import json
 from copy import deepcopy
 from typing import Any, Dict, Mapping
+from unittest.mock import MagicMock
 
 from flask import Blueprint, current_app, request
 from mock import patch
@@ -152,15 +153,13 @@ class FidoTokensTestCase(EduidAPITestCase[MockFidoApp]):
         with self.session_cookie(self.browser, eppn) as client:
             with client.session_transaction() as sess:
                 with self.app.test_request_context():
-                    config = start_token_verification(
+                    challenge = start_token_verification(
                         user=self.test_user,
                         fido2_rp_id=self.app.conf.fido2_rp_id,
                         fido2_rp_name=self.app.conf.fido2_rp_name,
                         state=sess.mfa_action,
                     )
-                    assert "u2fdata" not in config
-                    assert "webauthn_options" in config
-                    s = config["webauthn_options"]
+                    s = challenge.webauthn_options
                     _decoded = base64.urlsafe_b64decode(s + "=" * (-len(s) % 4))
                     # _decoded is still CBOR encoded, so we just check for some known strings
                     assert b"publicKey" in _decoded
@@ -178,15 +177,13 @@ class FidoTokensTestCase(EduidAPITestCase[MockFidoApp]):
         with self.session_cookie(self.browser, eppn) as client:
             with client.session_transaction() as sess:
                 with self.app.test_request_context():
-                    config = start_token_verification(
+                    challenge = start_token_verification(
                         user=self.test_user,
                         fido2_rp_id=self.app.conf.fido2_rp_id,
                         fido2_rp_name=self.app.conf.fido2_rp_name,
                         state=sess.mfa_action,
                     )
-                    assert "u2fdata" not in config
-                    assert "webauthn_options" in config
-                    s = config["webauthn_options"]
+                    s = challenge.webauthn_options
                     _decoded = base64.urlsafe_b64decode(s + "=" * (-len(s) % 4))
                     # _decoded is still CBOR encoded, so we just check for some known strings
                     assert b"publicKey" in _decoded
@@ -195,7 +192,7 @@ class FidoTokensTestCase(EduidAPITestCase[MockFidoApp]):
                     assert sess.mfa_action.webauthn_state is not None
 
     @patch("fido2.cose.ES256.verify")
-    def test_webauthn_verify(self, mock_verify):
+    def test_webauthn_verify(self, mock_verify: MagicMock):
         mock_verify.return_value = True
         # Add a working webauthn credential for this test
         self.test_user.credentials.add(self.webauthn_credential)
