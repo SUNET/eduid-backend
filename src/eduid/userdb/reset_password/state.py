@@ -35,7 +35,8 @@ from __future__ import annotations
 import datetime
 import logging
 from dataclasses import asdict, dataclass, field
-from typing import Any, Dict, Optional, Type, TypeVar, TypedDict
+from types import UnionType
+from typing import Any, Dict, Optional, Type, TypeVar, TypedDict, Union
 
 import bson
 
@@ -43,21 +44,47 @@ from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.element import ElementKey
 from eduid.userdb.reset_password.element import CodeElement
 from eduid.webapp.common.authn import fido_tokens
+from pydantic import BaseModel, Field
 
 TResetPasswordStateSubclass = TypeVar("TResetPasswordStateSubclass", bound="ResetPasswordState")
 
 logger = logging.getLogger(__name__)
 
 
-class PhoneItem(TypedDict):
+class PhoneItem(BaseModel):
     number: str
     index: int
 
 
-class ExtraSecurity(TypedDict):
-    external_mfa: bool
-    phone_numbers: list[PhoneItem]
-    tokens: dict[ElementKey, fido_tokens.FidoCred]
+class ExtraSecurity(BaseModel):
+    external_mfa: bool = False
+    phone_numbers: list[PhoneItem] = Field(default_factory=list)
+    tokens: Optional[fido_tokens.WebauthnChallenge] = None
+
+    def get_phone_number(self, index: int) -> Optional[PhoneItem]:
+        for phone in self.phone_numbers:
+            if phone.index == index:
+                return phone
+        return None
+
+    def to_frontend_format(self) -> Dict[str, Any]:
+        """
+        Mask phone numbers (since the user isn't authenticated when resetting password) before sending them to frontend
+        """
+        res = self.dict(exclude_defaults=True)
+        del res["phone_numbers"]
+
+        # Phone numbers
+        masked_phone_numbers: list[Dict[str, Union[str, int]]] = []
+        for phone_number in self.phone_numbers:
+            number = phone_number.number
+            masked_number = "{}{}".format("X" * (len(number) - 2), number[len(number) - 2 :])
+            masked_phone_numbers.append({"number": masked_number, "index": phone_number.index})
+
+        if masked_phone_numbers:
+            res["phone_numbers"] = masked_phone_numbers
+
+        return res
 
 
 @dataclass
@@ -70,7 +97,7 @@ class ResetPasswordState(object):
     method: Optional[str] = None
     created_ts: datetime.datetime = field(default_factory=utc_now)
     modified_ts: Optional[datetime.datetime] = None
-    extra_security: Optional[Dict[str, Any]] = None
+    extra_security: Optional[ExtraSecurity] = None
     generated_password: bool = False
 
     def __post_init__(self):
@@ -79,10 +106,14 @@ class ResetPasswordState(object):
     def __str__(self):
         return "<eduID {!s}: {!s}>".format(self.__class__.__name__, self.eppn)
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         res = asdict(self)
         res["eduPersonPrincipalName"] = res.pop("eppn")
         res["_id"] = res.pop("id")
+        if self.extra_security:
+            res["extra_security"] = self.extra_security.dict()
+            if self.extra_security.tokens:
+                res["extra_security"]["tokens"] = self.extra_security.tokens.dict()
         return res
 
     @classmethod
@@ -91,6 +122,10 @@ class ResetPasswordState(object):
         data["id"] = data.pop("_id")
         if "reference" in data:
             data.pop("reference")
+        if "extra_security" in data:
+            extra_security = data.pop("extra_security")
+            if extra_security is not None:
+                data["extra_security"] = ExtraSecurity(**extra_security)
         return cls(**data)
 
     def throttle_time_left(self, min_wait: datetime.timedelta) -> datetime.timedelta:

@@ -117,7 +117,7 @@ def _get_fido2server(credentials: Dict[ElementKey, FidoCred], fido2rp: PublicKey
     return Fido2Server(fido2rp)
 
 
-class WebauthnChallenge(TypedDict):
+class WebauthnChallenge(BaseModel):
     webauthn_options: str
 
 

@@ -98,7 +98,6 @@ from eduid.webapp.reset_password.helpers import (
     generate_suggested_password,
     get_context,
     get_extra_security_alternatives,
-    mask_alternatives,
     reset_user_password,
     send_password_reset_mail,
     send_verify_phone_code,
@@ -239,7 +238,7 @@ def verify_email(email_code: str) -> FluxData:
             "suggested_password": new_password,
             "email_code": context.state.email_code.code,
             "email_address": context.state.email_address,
-            "extra_security": mask_alternatives(alternatives),
+            "extra_security": alternatives.to_frontend_format(),
             "min_zxcvbn_score": current_app.conf.min_zxcvbn_score,
             "password_entropy": current_app.conf.password_entropy,
             "password_length": current_app.conf.password_length,
@@ -336,15 +335,14 @@ def choose_extra_security_phone(email_code: str, phone_index: int) -> FluxData:
     if context.state.extra_security is None:  # please mypy
         raise ValueError(f"User {context.user} trying to reset password with extra security without alternatives")
 
-    try:
-        phone_number = context.state.extra_security["phone_numbers"][phone_index]
-    except IndexError:
+    phone_number = context.state.extra_security.get_phone_number(phone_index)
+    if phone_number is None:
         current_app.logger.exception(f"Phone number at index {phone_index} does not exist")
         return error_response(message=ResetPwMsg.unknown_phone_number)
 
     current_app.logger.info(f"Trying to send password reset sms to user {context.user}")
     try:
-        send_verify_phone_code(context.state, phone_number["number"])
+        send_verify_phone_code(context.state, phone_number.number)
     except MsgTaskFailed:
         current_app.logger.exception(f"Sending sms failed")
         return error_response(message=ResetPwMsg.send_sms_failure)

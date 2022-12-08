@@ -38,6 +38,7 @@ from urllib.parse import quote_plus
 
 from flask import url_for
 from werkzeug.test import TestResponse
+from eduid.common.config.base import EduidEnvironment
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb import User
@@ -310,9 +311,9 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         state1.email_code.is_verified = True
         self.app.password_reset_state_db.save(state1)
 
-        phone_number = state1.extra_security["phone_numbers"][0]
+        phone_number = state1.extra_security.phone_numbers[0]
         with self.app.test_request_context():
-            send_verify_phone_code(state1, phone_number["number"])
+            send_verify_phone_code(state1, phone_number.number)
             url = url_for("reset_password.set_new_pw_extra_security_phone", _external=True)
 
         state2 = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)

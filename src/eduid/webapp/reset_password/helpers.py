@@ -365,44 +365,26 @@ def get_extra_security_alternatives(user: User) -> ExtraSecurity:
     :param user: The user
     :return: Dict of alternatives
     """
-    alternatives: ExtraSecurity = {"external_mfa": False, "phone_numbers": [], "tokens": {}}
+    alternatives = ExtraSecurity()
 
     if user.identities.nin is not None and user.identities.nin.is_verified:
-        alternatives["external_mfa"] = True
+        alternatives.external_mfa = True
 
     if user.phone_numbers.verified:
-        verified_phone_numbers: List[PhoneItem] = [
-            {"number": item.number, "index": n} for n, item in enumerate(user.phone_numbers.verified)
+        alternatives.phone_numbers = [
+            PhoneItem(number=item.number, index=n) for n, item in enumerate(user.phone_numbers.verified)
         ]
-        alternatives["phone_numbers"] = verified_phone_numbers
 
     tokens = fido_tokens.get_user_credentials(user)
 
     if tokens:
-        alternatives["tokens"] = fido_tokens.start_token_verification(
+        alternatives.tokens = fido_tokens.start_token_verification(
             user=user,
             fido2_rp_id=current_app.conf.fido2_rp_id,
             fido2_rp_name=current_app.conf.fido2_rp_name,
             state=session.mfa_action,
         )
 
-    return alternatives
-
-
-def mask_alternatives(alternatives: ExtraSecurity) -> ExtraSecurity:
-    """
-    :param alternatives: Extra security alternatives collected from user
-    :return: Masked extra security alternatives
-    """
-    if alternatives:
-        # Phone numbers
-        masked_phone_numbers: list[PhoneItem] = []
-        for phone_number in alternatives.get("phone_numbers", []):
-            number = phone_number["number"]
-            masked_number = "{}{}".format("X" * (len(number) - 2), number[len(number) - 2 :])
-            masked_phone_numbers.append({"number": masked_number, "index": phone_number["index"]})
-
-        alternatives["phone_numbers"] = masked_phone_numbers
     return alternatives
 
 
