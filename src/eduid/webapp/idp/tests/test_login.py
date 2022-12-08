@@ -2,6 +2,7 @@ import logging
 import os
 from unittest.mock import MagicMock, patch
 
+import pytest
 from requests import RequestException
 from saml2 import BINDING_HTTP_REDIRECT
 from saml2.client import Saml2Client

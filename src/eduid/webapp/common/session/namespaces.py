@@ -13,7 +13,6 @@ from fido2.webauthn import AuthenticatorAttachment
 from pydantic import BaseModel, Field, ValidationError
 
 from eduid.common.misc.timeutil import utc_now
-
 from eduid.userdb.credentials import Credential
 from eduid.userdb.credentials.external import TrustFramework
 from eduid.userdb.element import ElementKey
