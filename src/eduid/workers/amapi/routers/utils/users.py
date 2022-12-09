@@ -32,7 +32,6 @@ def update_user(
     ],
 ) -> UserUpdateResponse:
     """General function for updating a user object"""
-
     user_obj = req.app.db.get_user_by_eppn(eppn=eppn)
     if user_obj is None:
         raise BadRequest(detail=f"Can't find {eppn} in database")
@@ -58,9 +57,9 @@ def update_user(
         req.app.db.unverify_phones(user_id=user_obj.user_id, phones=phones)
 
         user_obj.phone_numbers = PhoneNumberList(elements=data.phone_numbers)
-    
+
     elif isinstance(data, UserUpdateMetaCleanedRequest):
-        user_obj.meta.cleaned.update = {data.type: data.ts}
+        user_obj.meta.cleaned.update({data.type: data.ts})
 
     elif isinstance(data, UserUpdateTerminateRequest):
         user_obj.terminated = utc_now()
