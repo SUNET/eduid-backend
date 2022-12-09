@@ -617,9 +617,7 @@ def show_login_page(ticket: LoginContextSAML) -> WerkzeugResponse:
     if _login_subject is not None:
         current_app.logger.debug(f"Login subject: {_login_subject}")
         # Login subject might be set by the idpproxy when requesting the user to do MFA step up
-        if current_app.conf.default_eppn_scope is not None and _login_subject.endswith(
-            current_app.conf.default_eppn_scope
-        ):
+        if _login_subject.endswith(current_app.conf.default_eppn_scope):
             # remove the @scope
             _username = _login_subject[: -(len(current_app.conf.default_eppn_scope) + 1)]
 
