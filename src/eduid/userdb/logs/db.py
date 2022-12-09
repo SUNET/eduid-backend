@@ -5,7 +5,7 @@ from datetime import datetime
 from typing import Union
 from uuid import UUID
 
-from eduid.userdb.db import BaseDB
+from eduid.userdb.db import BaseDB, TUserDbDocument
 from eduid.userdb.logs.element import LogElement, UserChangeLogElement
 
 __author__ = "lundberg"
@@ -14,12 +14,12 @@ logger = logging.getLogger(__name__)
 
 
 class LogDB(BaseDB):
-    def __init__(self, db_uri, collection):
+    def __init__(self, db_uri: str, collection: str):
         db_name = "eduid_logs"
         # Make sure writes reach a majority of replicas
-        BaseDB.__init__(self, db_uri, db_name, collection, safe_writes=True)
+        super().__init__(db_uri, db_name, collection, safe_writes=True)
 
-    def _insert(self, doc):
+    def _insert(self, doc: TUserDbDocument) -> None:
         self._coll.insert_one(doc)
 
     def save(self, log_element: LogElement) -> bool:
@@ -32,13 +32,13 @@ class LogDB(BaseDB):
 
 
 class ProofingLog(LogDB):
-    def __init__(self, db_uri, collection="proofing_log"):
-        LogDB.__init__(self, db_uri, collection)
+    def __init__(self, db_uri: str, collection: str = "proofing_log") -> None:
+        super().__init__(db_uri, collection)
 
 
 class FidoMetadataLog(LogDB):
-    def __init__(self, db_uri, collection="fido_metadata_log"):
-        LogDB.__init__(self, db_uri, collection)
+    def __init__(self, db_uri: str, collection: str = "fido_metadata_log") -> None:
+        super().__init__(db_uri, collection)
         # Create an index so that metadata logs are unique for authenticator id and last status change datetime
         indexes = {
             "unique-id-date": {"key": [("authenticator_id", 1), ("last_status_change", 1)], "unique": True},
@@ -55,8 +55,8 @@ class FidoMetadataLog(LogDB):
 
 
 class UserChangeLog(LogDB):
-    def __init__(self, db_uri, collection="user_change_log"):
-        LogDB.__init__(self, db_uri, collection)
+    def __init__(self, db_uri: str, collection: str = "user_change_log"):
+        super().__init__(db_uri, collection)
 
     def get_by_eppn(self, eppn: str) -> list[UserChangeLogElement]:
         docs = self._get_documents_by_attr("eduPersonPrincipalName", eppn)

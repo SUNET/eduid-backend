@@ -85,6 +85,7 @@ from typing import Any, Dict, Generic, List, Mapping, NewType, Optional, Type, T
 
 from pydantic import BaseModel, Extra, Field, validator
 from pydantic.generics import GenericModel
+from eduid.userdb.db import TUserDbDocument
 
 from eduid.userdb.exceptions import EduIDUserDBError, UserDBValueError
 
@@ -165,7 +166,7 @@ class Element(BaseModel):
 
         return cls(**_data)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> TUserDbDocument:
         """
         Convert Element to a dict in eduid format, that can be used to reconstruct the
         Element later.
@@ -174,7 +175,7 @@ class Element(BaseModel):
 
         data = self._to_dict_transform(data)
 
-        return data
+        return TUserDbDocument(data)
 
     @classmethod
     def _from_dict_transform(cls: Type[TElementSubclass], data: Dict[str, Any]) -> Dict[str, Any]:

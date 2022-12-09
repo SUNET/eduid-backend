@@ -382,7 +382,7 @@ class BaseDB(object):
         """
         return self._db.is_healthy()
 
-    def setup_indexes(self, indexes: Mapping[str, Any]):
+    def setup_indexes(self, indexes: Mapping[str, Any]) -> None:
         """
         To update an index add a new item in indexes and remove the previous version.
         """
