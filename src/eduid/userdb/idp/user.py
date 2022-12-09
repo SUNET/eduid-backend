@@ -38,6 +38,7 @@ User and user database module.
 """
 import logging
 from dataclasses import dataclass
+from enum import Enum, unique
 from typing import Any, Dict, List, Optional
 
 from eduid.userdb import User
@@ -69,11 +70,21 @@ _SAML_ATTRIBUTES = [
 @dataclass
 class SAMLAttributeSettings:
     # Data that needs to come from IdP configuration
-    default_eppn_scope: Optional[str]
+    default_eppn_scope: str
     default_country: str
     default_country_code: str
     sp_entity_categories: List[str]
+    sp_subject_id_request: List[str]
     esi_ladok_prefix: str
+    pairwise_id: Optional[str] = None
+
+
+@unique
+class SubjectIDRequest(str, Enum):
+    ANY: str = "any"
+    NONE: str = "none"
+    PAIRWISE_ID: str = "pairwise-id"
+    SUBJECT_ID: str = "subject-id"
 
 
 class IdPUser(User):
@@ -110,6 +121,7 @@ class IdPUser(User):
         attributes = make_scoped_eppn(attributes, settings)
         attributes = add_country_attributes(attributes, settings)
         attributes = make_schac_personal_unique_code(attributes, self, settings)
+        attributes = add_pairwise_or_subject_id(attributes, self, settings)
         attributes = add_eduperson_assurance(attributes, self)
         attributes = make_name_attributes(attributes, self)
         attributes = make_nor_eduperson_nin(attributes, self)
@@ -118,6 +130,7 @@ class IdPUser(User):
         attributes = make_mail(attributes, self)
         attributes = make_eduperson_orcid(attributes, self)
         attributes = add_mail_local_address(attributes, self)
+
         logger.info(f"Attributes available for release: {list(attributes.keys())}")
         logger.debug(f"Attributes with values: {attributes}")
         return attributes
@@ -276,4 +289,37 @@ def add_mail_local_address(attributes: dict, user: IdPUser) -> dict:
         return attributes
 
     attributes["mailLocalAddress"] = [item.email for item in user.mail_addresses.to_list() if item.is_verified]
+    return attributes
+
+
+def add_pairwise_or_subject_id(attributes: dict, user: IdPUser, settings: SAMLAttributeSettings) -> dict:
+    """
+    Add a pairwise or subject ID attribute to the attributes dict.
+    """
+
+    refeds_access_ec = [
+        "https://refeds.org/category/personalized",
+        "https://refeds.org/category/pseudonymous",
+        "https://refeds.org/category/anonymous",
+    ]
+    # if the SP has any REFEDS access category, add both subject-id and pairwise-id and let pysaml2 sort it out
+    # when filtering attributes for that category
+    if set(settings.sp_entity_categories).intersection(refeds_access_ec):
+        if attributes.get("pairwise-id") is None and settings.pairwise_id is not None:
+            attributes["pairwise-id"] = settings.pairwise_id
+        if attributes.get("subject-id") is None:
+            attributes["subject-id"] = f"{user.eppn}@{settings.default_eppn_scope}"
+        return attributes
+
+    # for any other ec, add the type of id that the SP has requested
+    if (
+        SubjectIDRequest.PAIRWISE_ID.value in settings.sp_subject_id_request
+        or SubjectIDRequest.ANY.value in settings.sp_subject_id_request
+    ):
+        if attributes.get("pairwise-id") is None and settings.pairwise_id is not None:
+            attributes["pairwise-id"] = settings.pairwise_id
+    elif SubjectIDRequest.SUBJECT_ID.value in settings.sp_subject_id_request:
+        if attributes.get("subject-id") is None:
+            attributes["subject-id"] = f"{user.eppn}@{settings.default_eppn_scope}"
+
     return attributes
