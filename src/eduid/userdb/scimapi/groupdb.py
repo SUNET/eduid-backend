@@ -16,6 +16,7 @@ from eduid.graphdb.groupdb import Group as GraphGroup
 from eduid.graphdb.groupdb import GroupDB
 from eduid.graphdb.groupdb import User as GraphUser
 from eduid.scimapi.models.group import GroupCreateRequest, GroupUpdateRequest
+from eduid.userdb.db import TUserDbDocument
 from eduid.userdb.scimapi.basedb import ScimApiBaseDB
 from eduid.userdb.scimapi.common import ScimApiResourceBase
 
@@ -82,12 +83,12 @@ class ScimApiGroup(ScimApiResourceBase, _ScimApiGroupRequired):
     def has_owner(self, identifier: UUID) -> bool:
         return self.graph.has_owner(str(identifier))
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> TUserDbDocument:
         res = asdict(self)
         res["scim_id"] = str(res["scim_id"])
         res["_id"] = res.pop("group_id")
         del res["graph"]
-        return res
+        return TUserDbDocument(res)
 
     @classmethod
     def from_dict(cls: Type[ScimApiGroup], data: Mapping[str, Any]) -> ScimApiGroup:

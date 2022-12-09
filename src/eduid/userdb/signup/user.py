@@ -36,6 +36,7 @@ from typing import Any, Dict, Optional
 
 import bson
 from pydantic import Field
+from eduid.userdb.db import TUserDbDocument
 
 from eduid.userdb.proofing import EmailProofingElement
 from eduid.userdb.user import User
@@ -71,8 +72,8 @@ class SignupUser(User):
 
         return data
 
-    def to_dict(self) -> Dict[str, Any]:
-        res = User.to_dict(self)
+    def to_dict(self) -> TUserDbDocument:
+        res = super().to_dict()
         if self.pending_mail_address is not None:
             res["pending_mail_address"] = self.pending_mail_address.to_dict()
         return res

@@ -61,8 +61,8 @@ class SignupInviteDB(BaseDB):
             test_doc: Dict[str, Any] = {"_id": invite.invite_id}
             if check_sync:
                 test_doc["modified_ts"] = modified
-            result = self._coll.replace_one(test_doc, invite.to_dict(), upsert=(not check_sync))
-            if check_sync and result.matched_count == 0:
+            result2 = self._coll.replace_one(test_doc, invite.to_dict(), upsert=(not check_sync))
+            if check_sync and result2.matched_count == 0:
                 db_ts = None
                 db_state = self._coll.find_one({"_id": invite.invite_id})
                 if db_state:
@@ -74,5 +74,5 @@ class SignupInviteDB(BaseDB):
                 raise DocumentOutOfSync("Stale invite object can't be saved")
 
             logging.debug(
-                "{!s} Updated invite {} (ts {}) in {}): {}".format(self, invite, modified, self._coll_name, result)
+                "{!s} Updated invite {} (ts {}) in {}): {}".format(self, invite, modified, self._coll_name, result2)
             )

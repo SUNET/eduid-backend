@@ -85,6 +85,6 @@ class BaseGraphDB(ABC):
     def db(self):
         return self._db
 
-    def db_setup(self):
+    def db_setup(self) -> None:
         """Use this for setting up indices or constraints"""
         raise NotImplementedError()

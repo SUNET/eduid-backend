@@ -281,7 +281,7 @@ class GroupDB(BaseGraphDB):
                 res.append(self._load_group(record.data()["group"]))
         return res
 
-    def get_groups(self, skip=0, limit=100):
+    def get_groups(self, skip: int = 0, limit: int = 100) -> List[Group]:
         res: List[Group] = []
         q = """
             MATCH (g: Group {scope: $scope})

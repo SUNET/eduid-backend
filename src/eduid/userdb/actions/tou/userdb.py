@@ -39,8 +39,8 @@ from eduid.userdb.userdb import UserDB
 
 
 class ToUUserDB(UserDB[ToUUser]):
-    def __init__(self, db_uri, db_name="eduid_actions", collection="tou"):
-        UserDB.__init__(self, db_uri, db_name, collection)
+    def __init__(self, db_uri: str, db_name: str = "eduid_actions", collection: str = "tou"):
+        super().__init__(db_uri, db_name, collection)
 
     @classmethod
     def user_from_dict(cls, data: Mapping[str, Any]) -> ToUUser:

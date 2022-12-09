@@ -32,10 +32,12 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Mapping, Optional
+from typing import Any, List, Mapping, Optional
 from uuid import UUID
 
 from bson import ObjectId
+
+from eduid.userdb.db import TUserDbDocument
 
 __author__ = "lundberg"
 
@@ -102,14 +104,14 @@ class Invite(_InviteRequired):
             return None
         return primary_mail_address[0]
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> TUserDbDocument:
         data = asdict(self)
         data["_id"] = data.pop("invite_id")
         data["invite_type"] = InviteType(data["invite_type"]).value
-        return data
+        return TUserDbDocument(data)
 
     @classmethod
-    def from_dict(cls, data: Mapping) -> Invite:
+    def from_dict(cls, data: Mapping[str, Any]) -> Invite:
         data = dict(data)
         data["invite_id"] = data.pop("_id")
         data["invite_type"] = InviteType(data["invite_type"])

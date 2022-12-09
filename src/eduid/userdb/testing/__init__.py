@@ -41,9 +41,10 @@ import unittest
 from typing import Any, Dict, List, Optional, Sequence, Type, cast
 
 import pymongo
+import pymongo.errors
 
 from eduid.userdb import User
-from eduid.userdb.db import BaseDB
+from eduid.userdb.db import BaseDB, TUserDbDocument
 from eduid.userdb.testing.temp_instance import EduidTemporaryInstance
 from eduid.userdb.userdb import AmDB
 from eduid.userdb.util import utc_now
@@ -80,7 +81,7 @@ class MongoTemporaryInstance(EduidTemporaryInstance):
         return True
 
     @property
-    def conn(self) -> pymongo.MongoClient:
+    def conn(self) -> pymongo.MongoClient[TUserDbDocument]:
         if self._conn is None:
             raise RuntimeError("Missing temporary MongoDB instance")
         return self._conn

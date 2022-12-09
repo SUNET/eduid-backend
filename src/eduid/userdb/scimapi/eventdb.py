@@ -10,6 +10,7 @@ from uuid import UUID
 from bson import ObjectId
 
 from eduid.common.models.scim_base import SCIMResourceType
+from eduid.userdb.db import TUserDbDocument
 from eduid.userdb.scimapi.basedb import ScimApiBaseDB
 from eduid.userdb.scimapi.common import ScimApiResourceBase
 
@@ -65,13 +66,13 @@ class _ScimApiEventRequired:
 class ScimApiEvent(ScimApiResourceBase, _ScimApiEventRequired):
     db_id: ObjectId = field(default_factory=lambda: ObjectId())  # mongodb document _id
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> TUserDbDocument:
         data = asdict(self)
         data["_id"] = data.pop("db_id")
         data["level"] = self.level.value
         data["scim_id"] = str(self.scim_id)
         data["resource"] = self.resource.to_dict()
-        return data
+        return TUserDbDocument(data)
 
     @classmethod
     def from_dict(cls: Type[ScimApiEvent], data: Mapping[str, Any]) -> ScimApiEvent:
@@ -85,7 +86,7 @@ class ScimApiEvent(ScimApiResourceBase, _ScimApiEventRequired):
 
 
 class ScimApiEventDB(ScimApiBaseDB):
-    def __init__(self, db_uri: str, collection: str, db_name="eduid_scimapi"):
+    def __init__(self, db_uri: str, collection: str, db_name: str = "eduid_scimapi"):
         super().__init__(db_uri, db_name, collection=collection)
         indexes = {
             # Remove messages older than expires_at datetime
