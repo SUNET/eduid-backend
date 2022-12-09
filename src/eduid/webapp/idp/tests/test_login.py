@@ -173,8 +173,6 @@ class IdPTestLogin(IdPTests):
 
         assert result.reached_state == LoginState.S3_REDIRECT_LOGGED_IN
 
-        assert self.app.conf.actions_app_uri in result.response.location
-
     def test_eduperson_targeted_id(self):
         sp_config = get_saml2_config(self.app.conf.pysaml2_config, name="COCO_SP_CONFIG")
         saml2_client = Saml2Client(config=sp_config)
