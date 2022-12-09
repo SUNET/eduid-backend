@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 import fnmatch
 import unittest
 from typing import List

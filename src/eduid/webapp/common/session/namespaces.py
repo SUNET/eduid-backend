@@ -13,7 +13,6 @@ from fido2.webauthn import AuthenticatorAttachment
 from pydantic import BaseModel, Field, ValidationError
 
 from eduid.common.misc.timeutil import utc_now
-from eduid.userdb.actions import Action
 from eduid.userdb.credentials import Credential
 from eduid.userdb.credentials.external import TrustFramework
 from eduid.userdb.element import ElementKey
@@ -169,15 +168,6 @@ class Signup(TimestampedNS):
     tou: Tou = Field(default_factory=Tou)
     captcha: Captcha = Field(default_factory=Captcha)
     credentials: Credentials = Field(default_factory=Credentials)
-
-
-# TODO: Remove Actions, should be unused
-class Actions(TimestampedNS):
-    session: Optional[str] = None
-    current_plugin: Optional[str] = None
-    current_action: Optional[Action] = None
-    current_step: Optional[int] = None
-    total_steps: Optional[int] = None
 
 
 RequestRef = NewType("RequestRef", str)
