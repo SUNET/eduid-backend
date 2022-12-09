@@ -9,8 +9,8 @@ from enum import Enum, unique
 from typing import Any, Mapping, Optional
 
 import bson
-from eduid.userdb.db import TUserDbDocument
 
+from eduid.userdb.db import TUserDbDocument
 from eduid.userdb.exceptions import UserDBValueError
 
 __author__ = "lundberg"

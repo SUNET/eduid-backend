@@ -1,6 +1,6 @@
 import copy
-from enum import Enum
 import logging
+from enum import Enum
 from typing import TYPE_CHECKING, Any, Dict, List, Mapping, NewType, Optional, TypeVar, Union
 
 import pymongo
