@@ -2,6 +2,7 @@ import logging
 import os
 from unittest.mock import MagicMock, patch
 
+import pytest
 from requests import RequestException
 from saml2 import BINDING_HTTP_REDIRECT
 from saml2.client import Saml2Client
@@ -158,6 +159,7 @@ class IdPTestLogin(IdPTests):
         # Ensure the pre-existing IdP SSO cookie wasn't touched
         assert self.app.conf.sso_cookie.key not in cookies
 
+    @pytest.mark.skip("Actions app has been removed")
     def test_with_authncontext(self):
         """
         Request REFEDS_MFA, but the test user does not have any MFA credentials.
@@ -170,8 +172,6 @@ class IdPTestLogin(IdPTests):
             result = self._try_login(authn_context=req_authn_context)
 
         assert result.reached_state == LoginState.S3_REDIRECT_LOGGED_IN
-
-        assert self.app.conf.actions_app_uri in result.response.location
 
     def test_eduperson_targeted_id(self):
         sp_config = get_saml2_config(self.app.conf.pysaml2_config, name="COCO_SP_CONFIG")

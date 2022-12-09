@@ -35,7 +35,6 @@ __author__ = "eperez"
 import logging
 from typing import Optional
 
-from eduid.userdb.actions import Action
 from eduid.userdb.idp import IdPUser
 from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.login_context import LoginContext
@@ -60,24 +59,3 @@ def need_tou_acceptance(user: IdPUser) -> bool:
     logger.info(f"User needs to accepted ToU version {repr(version)} (has accepted: {tous})")
 
     return True
-
-
-def add_tou_action(user: IdPUser, ticket: Optional[LoginContext] = None) -> Optional[Action]:
-    """
-    Add an action requiring the user to accept a new version of the Terms of Use,
-    in case the IdP configuration points to a version the user hasn't accepted.
-
-    This function is called by the IdP when it iterates over all the registered
-    action plugins entry points.
-
-    :param user: the authenticating user
-    :param ticket: the SSO login data
-    """
-    version = current_app.conf.tou_version
-
-    if current_app.actions_db.has_actions(user.eppn, action_type="tou", params={"version": version}):
-        return None
-
-    tous = [x.version for x in user.tou.to_list()]
-    current_app.logger.debug(f"Adding action to require user to accept ToU version {version!r} (has accepted: {tous})")
-    return current_app.actions_db.add_action(user.eppn, action_type="tou", preference=100, params={"version": version})

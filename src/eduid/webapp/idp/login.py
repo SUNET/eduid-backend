@@ -48,16 +48,15 @@ from eduid.webapp.idp.assurance import (
 )
 from eduid.webapp.idp.assurance_data import AuthnInfo
 from eduid.webapp.idp.helpers import IdPMsg, SubjectIDRequest
-from eduid.webapp.idp.idp_actions import redirect_to_actions
 from eduid.webapp.idp.idp_authn import AuthnData
 from eduid.webapp.idp.idp_saml import ResponseArgs, SamlResponse
 from eduid.webapp.idp.login_context import LoginContext, LoginContextOtherDevice, LoginContextSAML
-from eduid.webapp.idp.mfa_action import add_mfa_action, need_security_key, process_mfa_action_results
+from eduid.webapp.idp.mfa_action import need_security_key
 from eduid.webapp.idp.mischttp import HttpArgs, get_default_template_arguments, get_user_agent
 from eduid.webapp.idp.other_device.data import OtherDeviceState
 from eduid.webapp.idp.service import SAMLQueryParams, Service
 from eduid.webapp.idp.sso_session import SSOSession
-from eduid.webapp.idp.tou_action import add_tou_action, need_tou_acceptance
+from eduid.webapp.idp.tou_action import need_tou_acceptance
 
 
 class MustAuthenticate(Exception):
@@ -152,9 +151,6 @@ def login_next_step(ticket: LoginContext, sso_session: Optional[SSOSession], tem
     if user.terminated:
         current_app.logger.info(f"User {user} is terminated")
         return NextResult(message=IdPMsg.user_terminated, error=True)
-
-    if template_mode and current_app.conf.enable_legacy_template_mode:
-        process_mfa_action_results(user, ticket, sso_session)
 
     res = NextResult(message=IdPMsg.assurance_failure, error=True)
 
@@ -277,14 +273,10 @@ class SSO(Service):
             raise BadRequest("WRONG_USER")
 
         if _next.message == IdPMsg.tou_required:
-            assert isinstance(_next.user, IdPUser)  # please mypy
-            add_tou_action(_next.user)
-            return redirect_to_actions(_next.user, ticket)
+            raise BadRequest("Old actions are disabled")
 
         if _next.message == IdPMsg.mfa_required:
-            assert isinstance(_next.user, IdPUser)  # please mypy
-            add_mfa_action(_next.user, ticket)
-            return redirect_to_actions(_next.user, ticket)
+            raise BadRequest("Old actions are disabled")
 
         if _next.message == IdPMsg.proceed:
             assert self.sso_session  # please mypy
