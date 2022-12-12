@@ -35,8 +35,7 @@ from abc import ABC
 from operator import itemgetter
 from typing import Any, Dict, Generic, Mapping, Optional, TypeVar
 
-from eduid.userdb.db import BaseDB
-from eduid.userdb.exceptions import DocumentOutOfSync
+from eduid.userdb.db import BaseDB, SaveResult
 from eduid.userdb.proofing.state import (
     EmailProofingState,
     LetterProofingState,
@@ -47,7 +46,6 @@ from eduid.userdb.proofing.state import (
 )
 from eduid.userdb.proofing.user import ProofingUser
 from eduid.userdb.userdb import UserDB, UserSaveResult
-from eduid.userdb.util import utc_now
 
 logger = logging.getLogger(__name__)
 
@@ -106,37 +104,18 @@ class ProofingStateDB(BaseDB, Generic[ProofingStateVar], ABC):
 
         return self.state_from_dict(docs[0])
 
-    def save(self, state: ProofingStateVar, check_sync: bool = True) -> None:
+    def save(self, state: ProofingStateVar, check_sync: bool = True) -> SaveResult:
         """
-        :param state: ProofingStateClass object
         :param check_sync: Ensure the document hasn't been updated in the database since it was loaded
         """
         if not isinstance(state, ProofingState):
             raise TypeError("State must be a ProofingState subclass")
-        modified = state.modified_ts
-        state.modified_ts = utc_now()  # update to current time
-        if modified is None:
-            # document has never been modified
-            result = self._coll.insert_one(state.to_dict())
-            logging.debug(f"{self} Inserted new state {state} into {self._coll_name}): {result.inserted_id})")
-        else:
-            test_doc: Dict[str, Any] = {"eduPersonPrincipalName": state.eppn}
-            if check_sync:
-                test_doc["modified_ts"] = modified
-            result2 = self._coll.replace_one(test_doc, state.to_dict(), upsert=(not check_sync))
-            if check_sync and result2.matched_count == 0:
-                db_ts = None
-                db_state = self._coll.find_one({"eduPersonPrincipalName": state.eppn})
-                if db_state:
-                    db_ts = db_state["modified_ts"]
-                logging.error(
-                    f"{self} FAILED Updating state {state} (ts {modified}) in {self._coll_name}). ts in db = {db_ts}"
-                )
-                raise DocumentOutOfSync("Stale state object can't be saved")
+        spec: Dict[str, Any] = {"eduPersonPrincipalName": state.eppn}
 
-            logging.debug(
-                "{!s} Updated state {} (ts {}) in {}): {}".format(self, state, modified, self._coll_name, result2)
-            )
+        result = self._save(state.to_dict(), spec, check_sync)
+        state.modified_ts = result.ts
+
+        return result
 
     def remove_state(self, state: ProofingStateVar) -> None:
         """
@@ -189,7 +168,7 @@ class EmailProofingStateDB(ProofingStateDB[EmailProofingState]):
 
 class PhoneProofingStateDB(ProofingStateDB[PhoneProofingState]):
     def __init__(self, db_uri: str, db_name: str = "eduid_phone"):
-        ProofingStateDB.__init__(self, db_uri, db_name)
+        super().__init__(db_uri, db_name)
 
     @classmethod
     def state_from_dict(cls, data: Mapping[str, Any]) -> PhoneProofingState:

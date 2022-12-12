@@ -33,8 +33,8 @@
 import logging
 from typing import Any, Dict, Mapping, Optional, Union
 
-from eduid.userdb.db import BaseDB
-from eduid.userdb.exceptions import DocumentOutOfSync, MultipleDocumentsReturned
+from eduid.userdb.db import BaseDB, SaveResult
+from eduid.userdb.exceptions import MultipleDocumentsReturned
 from eduid.userdb.reset_password.state import (
     ResetPasswordEmailAndPhoneState,
     ResetPasswordEmailState,
@@ -42,7 +42,6 @@ from eduid.userdb.reset_password.state import (
 )
 from eduid.userdb.reset_password.user import ResetPasswordUser
 from eduid.userdb.userdb import UserDB
-from eduid.userdb.util import utc_now
 
 logger = logging.getLogger(__name__)
 
@@ -109,43 +108,24 @@ class ResetPasswordStateDB(BaseDB):
             return ResetPasswordEmailAndPhoneState.from_dict(data=state)
         return None
 
-    def save(self, state: ResetPasswordState, check_sync: bool = True):
+    def save(self, state: ResetPasswordState, check_sync: bool = True) -> SaveResult:
         """
-
-        :param state: ResetPasswordState object
-        :param check_sync: Ensure the document hasn't been updated in the
-                           database since it was loaded
+        :param check_sync: Ensure the document hasn't been updated in the database since it was loaded
         """
-        modified = state.modified_ts
-        state.modified_ts = utc_now()
-        if modified is None:
-            # document has never been modified
+        if state.modified_ts is None:
             # Remove old reset password state
             old_state = self.get_state_by_eppn(state.eppn)
             if old_state:
                 self.remove_state(old_state)
 
-            result = self._coll.insert_one(state.to_dict())
-            logging.debug(f"{self} Inserted new state {state} into {self._coll_name}): {result.inserted_id})")
+        spec: Dict[str, Any] = {"eduPersonPrincipalName": state.eppn}
 
-        else:
-            test_doc: Dict[str, Any] = {"eduPersonPrincipalName": state.eppn}
-            if check_sync:
-                test_doc["modified_ts"] = modified
-            result2 = self._coll.replace_one(test_doc, state.to_dict(), upsert=(not check_sync))
-            if check_sync and result2.matched_count == 0:
-                db_ts = None
-                db_state = self._coll.find_one({"eppn": state.eppn})
-                if db_state:
-                    db_ts = db_state["modified_ts"]
-                logging.debug(
-                    f"{self} FAILED Updating state {state} (ts {modified}) in {self._coll_name}). ts in db = {db_ts}"
-                )
-                raise DocumentOutOfSync("Stale state object can't be saved")
+        result = self._save(state.to_dict(), spec, check_sync)
+        state.modified_ts = result.ts
 
-            logging.debug(f"{self} Updated state {state} (ts {modified}) in {self._coll_name}): {result2}")
+        return result
 
-    def remove_state(self, state: ResetPasswordState):
+    def remove_state(self, state: ResetPasswordState) -> None:
         """
         :param state: ResetPasswordState object
         """

@@ -1,5 +1,8 @@
 import copy
+import json
 import logging
+from dataclasses import dataclass
+from datetime import datetime
 from enum import Enum
 from typing import TYPE_CHECKING, Any, Dict, List, Mapping, NewType, Optional, TypeVar, Union
 
@@ -12,7 +15,12 @@ from pymongo.database import Database
 from pymongo.errors import PyMongoError
 from pymongo.uri_parser import parse_uri
 
-from eduid.userdb.exceptions import EduIDUserDBError, MongoConnectionError, MultipleDocumentsReturned
+from eduid.common.misc.encoders import EduidJSONEncoder
+from eduid.userdb.exceptions import DocumentOutOfSync, EduIDUserDBError, MongoConnectionError, MultipleDocumentsReturned
+from eduid.userdb.util import utc_now
+
+logger = logging.getLogger(__name__)
+extra_logger = logger.getChild("extra")
 
 if TYPE_CHECKING:
     from motor import motor_asyncio
@@ -171,7 +179,7 @@ class MongoDB(object):
             self.get_connection().admin.command("ismaster")
             return True
         except pymongo.errors.ConnectionFailure as e:
-            logging.error("{} not healthy: {}".format(self, e))
+            logger.error("{} not healthy: {}".format(self, e))
             return False
 
     def close(self):
@@ -223,6 +231,25 @@ def _format_mongodb_uri(parsed_uri: Mapping[str, Any]) -> str:
     return res
 
 
+@dataclass
+class SaveResult:
+    """
+    Result of a save operation.
+
+    :param inserted: Number of inserted documents
+    :param updated: Number of updated documents
+    :param doc_id: The _id of the inserted/updated document
+    """
+
+    ts: datetime
+    inserted: int = 0
+    updated: int = 0
+    doc_id: Optional[ObjectId] = None
+
+    def __bool__(self):
+        return bool(self.inserted or self.updated)
+
+
 class BaseDB(object):
     """Base class for common db operations"""
 
@@ -252,7 +279,7 @@ class BaseDB(object):
         Drop the whole collection. Should ONLY be used in testing, obviously.
         :return:
         """
-        logging.warning("{!s} Dropping collection {!r}".format(self, self._coll_name))
+        logger.warning("{!s} Dropping collection {!r}".format(self, self._coll_name))
         return self._coll.drop()
 
     def _get_all_docs(self) -> pymongo.cursor.Cursor[TUserDbDocument]:
@@ -300,7 +327,7 @@ class BaseDB(object):
         return docs
 
     def _get_documents_by_aggregate(
-        self, match: Dict[str, Any], sort: Optional[Dict[str, Any]] = None, limit: Optional[int] = None
+        self, match: Mapping[str, Any], sort: Optional[Mapping[str, Any]] = None, limit: Optional[int] = None
     ) -> List[TUserDbDocument]:
 
         pipeline: List[Dict[str, Any]] = [{"$match": match}]
@@ -316,7 +343,7 @@ class BaseDB(object):
     def _get_documents_by_filter(
         self,
         spec: Mapping[str, Any],
-        fields: Optional[dict[str, Any]] = None,
+        fields: Optional[Mapping[str, Any]] = None,
         skip: Optional[int] = None,
         limit: Optional[int] = None,
     ) -> List[TUserDbDocument]:
@@ -409,6 +436,89 @@ class BaseDB(object):
             return doc["_id"]
         res = self._coll.insert_one(doc)  # type: ignore
         return res.inserted_id
+
+    def _format_dict_for_debug(self, data: Optional[Mapping[str, Any]]) -> Optional[str]:
+        """
+        Format a dict for logging.
+
+        :param data: The dict to format
+        :return: A string
+        """
+        if not data:
+            return None
+        try:
+            return json.dumps(data, indent=4, cls=EduidJSONEncoder)
+        except Exception:
+            extra_logger.exception(f"Failed formatting document for debugging using JSON encoder (UUID in there?)")
+            # We fail on encoding UUIDs used in some places. We want to turn the UUIDs into strings.
+            import pprint
+
+            return pprint.pformat(data, width=120)
+
+    def _save(
+        self,
+        data: TUserDbDocument,
+        spec: Mapping[str, Any],
+        check_sync: bool,
+        previous_version: Optional[ObjectId] = None,
+    ) -> SaveResult:
+        """Save a document in the db."""
+
+        previous_ts = data.get("modified_ts")
+
+        _new_version = data.get("meta", {}).get("version", None)
+        if _new_version:
+            logger.debug(f"Saving document (version {previous_version} -> {_new_version})")
+
+        extra_logger.debug(f"{self} Extra debug: Full document:\n {self._format_dict_for_debug(data)}")
+
+        now = utc_now()
+        data["modified_ts"] = now  # update modified_ts (old) to current time
+        if "meta" in data:
+            data["meta"]["modified_ts"] = now  # update meta.modified_ts (new) to current time
+
+        if previous_ts is None:
+            # This is a new document, insert it
+            logger.debug(f"Inserting new document with modified_ts {now.isoformat()}")
+            insert_result = self._coll.insert_one(data)
+            save_result = SaveResult(inserted=1, doc_id=insert_result.inserted_id, ts=now)
+            logger.debug(f"{self} Inserted new document into {self._coll_name}): {save_result})")
+            return save_result
+
+        replace_spec = dict(spec)
+        if check_sync:
+            replace_spec["modified_ts"] = previous_ts
+            if previous_version is not None:
+                replace_spec["meta.version"] = previous_version
+
+        extra_logger.debug(
+            f"{self} Extra debug: replacing document using spec:\n{self._format_dict_for_debug(replace_spec)}"
+        )
+
+        # TODO: The upsert=(not check_sync) part lets us get away with (test) users having a timestamp
+        #       (from instantiation) even though they are not in the database. Could be improved upon.
+        update_result = self._coll.replace_one(replace_spec, data, upsert=(not check_sync))
+        save_result = SaveResult(updated=update_result.modified_count, doc_id=data["_id"], ts=now)
+
+        if update_result.matched_count == 0:
+            # Log failure and raise DocumentOutOfSync exception if check_sync was True
+            db_doc = {}
+            db_state = self._coll.find_one(spec)
+            if db_state:
+                db_doc["modified_ts"] = db_state.get("modified_ts")
+                db_doc["meta"] = db_state.get("meta")
+
+            logger.error(
+                f"{self} FAILED Updating document\n{self._format_dict_for_debug(replace_spec)}\n"
+                f"with check_sync={check_sync} (in db:\n"
+                f"{self._format_dict_for_debug(db_doc)}\n): {save_result}"
+            )
+
+            if check_sync:
+                raise DocumentOutOfSync("Stale document can't be saved")
+
+        logger.debug(f"{self} Updated document {replace_spec} (ts {now.isoformat()}): {save_result}")
+        return save_result
 
     def close(self):
         self._db.close()

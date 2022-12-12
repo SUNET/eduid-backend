@@ -30,13 +30,11 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-import datetime
 import logging
 from dataclasses import replace
 from typing import Any, Dict, List, Optional
 
-from eduid.userdb.db import BaseDB
-from eduid.userdb.exceptions import DocumentOutOfSync
+from eduid.userdb.db import BaseDB, SaveResult
 from eduid.userdb.group_management.state import GroupInviteState, GroupRole
 
 logger = logging.getLogger(__name__)
@@ -102,41 +100,21 @@ class GroupManagementInviteStateDB(BaseDB):
 
         return states
 
-    def save(self, state: GroupInviteState, check_sync: bool = True) -> None:
+    def save(self, state: GroupInviteState, check_sync: bool = True) -> SaveResult:
         """
         :param state: GroupInviteState object
         :param check_sync: Ensure the document hasn't been updated in the database since it was loaded
         """
-        modified = state.modified_ts
-        state = replace(state, modified_ts=datetime.datetime.utcnow())  # update to current time
-        if modified is None:
-            # document has never been modified
-            result = self._coll.insert_one(state.to_dict())
-            logging.debug(f"{self} Inserted new state {state} into {self._coll_name}): {result.inserted_id})")
-            return None
-
-        test_doc: Dict[str, Any] = {
+        spec: Dict[str, Any] = {
             "group_scim_id": state.group_scim_id,
             "email_address": state.email_address,
             "role": state.role,
         }
-        if check_sync:
-            test_doc["modified_ts"] = modified
-        result2 = self._coll.replace_one(test_doc, state.to_dict(), upsert=(not check_sync))
-        if check_sync and result2.matched_count == 0:
-            db_ts = None
-            db_state = self._coll.find_one(
-                {"group_scim_id": state.group_scim_id, "email_address": state.email_address, "role": state.role}
-            )
-            if db_state:
-                db_ts = db_state["modified_ts"]
-            logging.error(
-                "{} FAILED Updating state {} (ts {}) in {}). "
-                "ts in db = {!s}".format(self, state, modified, self._coll_name, db_ts)
-            )
-            raise DocumentOutOfSync("Stale state object can't be saved")
 
-        logging.debug(f"{self} Updated state {state} (ts {modified}) in {self._coll_name}): {result2}")
+        result = self._save(state.to_dict(), spec, check_sync)
+        state = replace(state, modified_ts=result.ts)  # update to current time
+
+        return result
 
     def remove_state(self, state: GroupInviteState) -> None:
         """

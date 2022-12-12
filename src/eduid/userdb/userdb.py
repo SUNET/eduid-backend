@@ -41,6 +41,7 @@ from pymongo import ReturnDocument
 from eduid.userdb.db import BaseDB
 from eduid.userdb.exceptions import (
     DocumentDoesNotExist,
+    DocumentOutOfSync,
     EduIDDBError,
     EduIDUserDBError,
     MultipleDocumentsReturned,
@@ -51,7 +52,6 @@ from eduid.userdb.exceptions import (
 from eduid.userdb.identity import IdentityType
 from eduid.userdb.meta import CleanedType
 from eduid.userdb.user import User
-from eduid.userdb.util import utc_now
 
 logger = logging.getLogger(__name__)
 extra_debug_logger = logger.getChild("extra_debug")
@@ -300,39 +300,15 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
         if not isinstance(user, User):
             raise EduIDUserDBError(f"user is not a subclass of User")
 
-        # XXX add modified_by info. modified_ts alone is not unique when propagated to eduid.workers.am.
+        spec: Dict[str, Any] = {"_id": user.user_id}
+        try:
+            result = self._save(user.to_dict(), spec, check_sync)
+        except DocumentOutOfSync:
+            raise UserOutOfSync("User out of sync")
 
-        modified = user.modified_ts
-        user.modified_ts = utc_now()
-        if modified is None:
-            # profile has never been modified through the dashboard.
-            # possibly just created in signup.
-            result = self._coll.replace_one({"_id": user.user_id}, user.to_dict(), upsert=True)
-            logger.debug(f"{self} Inserted new user {user} into {self._coll_name}: {repr(result)})")
-            import pprint
+        user.modified_ts = result.ts
 
-            extra_debug = pprint.pformat(user.to_dict(), width=120)
-            logger.debug(f"Extra debug:\n{extra_debug}")
-        else:
-            test_doc: Dict[str, Any] = {"_id": user.user_id}
-            if check_sync:
-                test_doc["modified_ts"] = modified
-            result = self._coll.replace_one(test_doc, user.to_dict(), upsert=(not check_sync))
-            if check_sync and result.modified_count == 0:
-                db_ts = None
-                db_user = self._coll.find_one({"_id": user.user_id})
-                if db_user:
-                    db_ts = db_user["modified_ts"]
-                logger.debug(
-                    f"{self} FAILED Updating user {user} (ts {modified}) in {self._coll_name}, ts in db = {db_ts}"
-                )
-                raise UserOutOfSync("Stale user object can't be saved")
-            logger.debug(f"{self} Updated user {user} (ts {modified}) in {self._coll_name}: {result}")
-            import pprint
-
-            extra_debug = pprint.pformat(user.to_dict(), width=120)
-            extra_debug_logger.debug(f"Extra debug:\n{extra_debug}")
-        return UserSaveResult(success=result.acknowledged, user=None)
+        return UserSaveResult(success=bool(result), user=None)
 
     def remove_user_by_id(self, user_id: ObjectId) -> bool:
         """
@@ -399,48 +375,49 @@ class AmDB(UserDB[User]):
         :param user: User object
         :param check_sync: Ensure the user hasn't been updated in the database since it was loaded
         """
-        search_filter = {"_id": user.user_id}
-        db_user = self._coll.find_one(search_filter)
+        previous_version: Optional[ObjectId] = user.meta.version
+        user.meta.new_version()
 
+        # Since user.meta.version is always initialised, we can't look at it to determine if the user
+        # already exists or not.
+        spec: Dict[str, Any] = {"_id": user.user_id}
+        logger.debug(f"AMDB Save: Looking for existing user with filter {spec}")
+
+        db_user = self._coll.find_one(spec)
+        _db_user_as_dict = None if not db_user else self._format_dict_for_debug(db_user)
+        logger.debug(f"Pre-existing user in database:\n{_db_user_as_dict}")
         if db_user is None:
-            result = self._coll.replace_one(search_filter, user.to_dict(), upsert=True)
-            logger.debug(f"{self} Inserted new user {user} into {self._coll_name}: {repr(result)})")
-            import pprint
-
-            extra_debug = pprint.pformat(user.to_dict(), width=120)
-            logger.debug(f"Extra debug:\n{extra_debug}")
+            # TODO: There's a race condition between the find_one and the actual save operation below.
+            #
+            #         https://en.wikipedia.org/wiki/Time-of-check_to_time-of-use
+            #
+            #       Possible solution is to make meta.version Optional[ObjectId] and set it to None at
+            #       init, and let the call to user.meta.new_version() set it to a new ObjectId.
+            logger.debug(f"No user with id {user.user_id} found in {self._coll_name}, bypassing meta.version logic")
+            previous_version = None
         else:
-            meta_version = user.meta.version
+            if user.modified_ts is None:
+                user.modified_ts = db_user.get("modified_ts", None)
+                if user.modified_ts:
+                    logger.debug(f"Updated document with modified_ts from database: {user.modified_ts.isoformat()}")
+                else:
+                    logger.warning(f"The user in the database does not have a modified_ts")
+            if user.meta.modified_ts is None:
+                user.meta.modified_ts = db_user.get("meta", {}).get("modified_ts", None)
+            _old_version = db_user.get("meta", {}).get("version", None)
+            if not _old_version:
+                # TODO: If meta.version was Optional, we wouldn't need this.
+                logger.warning(f"The user in the database does not have a meta.version, settings previous_version=None")
+                previous_version = None
 
-            time_now = utc_now()
+        try:
+            result = self._save(user.to_dict(), spec, check_sync, previous_version=previous_version)
+        except DocumentOutOfSync:
+            raise UserOutOfSync("User out of sync")
 
-            user.modified_ts = time_now
-            user.meta.modified_ts = time_now
-            user.meta.new_version()
+        user.modified_ts = result.ts
 
-            if (db_user.get("meta") or {}).get("version") is None:
-                # if the user has no version, it is a legacy user, and we need to update it
-                check_sync = False
-
-            if check_sync:
-                search_filter["meta.version"] = meta_version
-            result = self._coll.replace_one(search_filter, user.to_dict(), upsert=(not check_sync))
-            if check_sync and result.modified_count == 0:
-                db_meta_version = None
-                if "version" in db_user["meta"]:
-                    db_meta_version = db_user["meta"]["version"]
-                logger.debug(
-                    f"{self} FAILED Updating user {user} (meta_version: {meta_version}) in {self._coll_name}, {db_meta_version}"
-                )
-                raise UserOutOfSync("Stale user object can't be saved")
-            logger.debug(f"{self} Updated user {user} (meta_version: {meta_version}) in {self._coll_name}: {result}")
-            import pprint
-
-            extra_debug = pprint.pformat(user.to_dict(), width=120)
-            extra_debug_logger.debug(f"Extra debug:\n{extra_debug}")
-        if result.acknowledged:
-            return UserSaveResult(success=True, user=user)
-        return UserSaveResult(success=False, user=None)
+        return UserSaveResult(success=bool(result), user=None)
 
     def old_save(self, user: User, check_sync: bool = True) -> bool:
         return super().save(user, check_sync).success
