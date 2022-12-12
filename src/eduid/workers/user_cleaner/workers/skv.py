@@ -1,7 +1,7 @@
 import time
 from typing import Optional, Dict
 
-from eduid.common.models.amapi_user import UserUpdateNameRequest
+from eduid.common.models.amapi_user import UserUpdateNameRequest, Reason, Source
 from eduid.common.rpc.msg_relay import NavetData
 from eduid.common.utils import set_user_names_from_official_address
 from eduid.userdb import User
@@ -15,7 +15,9 @@ class SKV(WorkerBase):
         super().__init__(cleaner_type=cleaner_type.SKV, test_config=test_config)
 
     def update_name(self, user: User, navet_data: NavetData):
-        self.logger.debug(f"number of changes: {self.made_changes} out of max_changes: {self.max_changes}, queue_actual_size: {self.queue_actual_size}")
+        self.logger.debug(
+            f"number of changes: {self.made_changes} out of max_changes: {self.max_changes}, queue_actual_size: {self.queue_actual_size}"
+        )
 
         if navet_data.person.name.given_name is None or navet_data.person.name.surname is None:
             self.logger.info(f"No given_name or surname found in navet for eppn: {user.eppn}")
@@ -32,12 +34,12 @@ class SKV(WorkerBase):
 
         self.logger.debug(f"number of changes: {self.made_changes} out of {self.max_changes}, {self.queue_actual_size}")
 
-        amapi_client_body =UserUpdateNameRequest(
-                    reason="SKV_NAME_UPDATE",
-                    source=CleanerType.SKV.value,
-                    given_name=updated_user.given_name,
-                    display_name=updated_user.display_name,
-                    surname=updated_user.surname,
+        amapi_client_body = UserUpdateNameRequest(
+            reason=Reason.NAME_CHANGED.value,
+            source=Source.SKV_NAVET_V2.value,
+            given_name=updated_user.given_name,
+            display_name=updated_user.display_name,
+            surname=updated_user.surname,
         )
 
         if self.config.dry_run:
@@ -53,7 +55,7 @@ class SKV(WorkerBase):
             if self._is_quota_reached():
                 self.logger.warning(f"worker skatteverket has reached its change_quota, sleep for 20 seconds")
                 self._make_unhealthy()
-                time.sleep(20.0)
+                self._sleep(sleep_time=20)
             else:
                 self._make_healthy()
                 if self.queue.empty():
@@ -69,7 +71,7 @@ class SKV(WorkerBase):
                 # This won't work when more update-functions is added, due to meta.version will change after each save...
                 self.update_name(user=user, navet_data=navet_data)
 
-                time.sleep(self.config.job_delay)
+                self._sleep(sleep_time=self.config.job_delay)
 
                 self.queue.task_done()
 
