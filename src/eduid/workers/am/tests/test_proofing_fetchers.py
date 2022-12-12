@@ -508,7 +508,13 @@ class AttributeFetcherLadokTests(ProofingTestCase):
             }
         }
 
-        assert normalised_data(fetched) == expected
+        expected = {
+            "$set": {
+                "ladok": self.user_data["ladok"],
+            }
+        }
+
+        assert normalised_data(fetched) == normalised_data(expected)
 
     def test_remove_ladok(self):
         proofing_user = ProofingUser.from_dict(self.user_data)

@@ -39,10 +39,11 @@ import os
 import uuid
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import Any, Dict, List, Mapping, Sequence, Union
+from typing import Any, Dict, List, Mapping, Optional, Sequence, TypeVar, Union
 
 from eduid.common.logging import LocalContext, make_dictConfig
 from eduid.userdb.testing import MongoTestCase
+from bson import ObjectId
 
 logger = logging.getLogger(__name__)
 
@@ -60,56 +61,55 @@ class CommonTestCase(MongoTestCase):
         super().setUp(*args, **kwargs)
 
 
-# This is the normalised_data that should be used
-def normalised_data(
-    data: Union[Mapping[str, Any], Sequence[Mapping[str, Any]]], replace_datetime: Any = None
-) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
-    """Utility function for normalising dicts (or list of dicts) before comparisons in test cases."""
+SomeData = TypeVar("SomeData")
 
-    class SortEncoder(json.JSONEncoder):
-        def default(self, obj):
-            if isinstance(obj, datetime):
-                return str(_normalise_value(obj))
-            if isinstance(obj, Enum):
-                return _normalise_value(obj)
-            if isinstance(obj, uuid.UUID):
-                return str(obj)
-            return json.JSONEncoder.default(self, obj)
 
-    def _any_key(value: Any):
-        """Helper function to be able to use sorted with key argument for everything"""
-        if isinstance(value, dict):
-            return json.dumps(value, sort_keys=True, cls=SortEncoder)  # Turn dict in to a string for sorting
-        return value
+def normalised_data(data: SomeData, replace_datetime: Optional[str] = None) -> SomeData:
+    """Utility function for normalising data before comparisons in test cases."""
 
-    def _normalise_value(data: Any) -> Any:
-        if isinstance(data, dict) or isinstance(data, list):
-            return normalised_data(data, replace_datetime=replace_datetime)
-        elif isinstance(data, datetime):
-            if replace_datetime is not None:
-                return replace_datetime
-            # Check if datetime is timezone aware
-            if data.tzinfo is not None and data.tzinfo.utcoffset(data) is not None:
-                # Raise an exception if the timezone is not equivalent to UTC
-                if data.tzinfo.utcoffset(data) != timedelta(seconds=0):
-                    raise ValueError(f"Non UTC timezone found: {data.tzinfo}")
-            else:
-                logger.warning(f"No timezone found for datetime: {data}")
-            # Make sure all datetimes has the same type of tzinfo object
-            data = data.replace(tzinfo=timezone.utc)
-            return data.replace(microsecond=0)
-        elif isinstance(data, Enum):
-            return f"{repr(data)}"
-        return data
+    class NormaliseEncoder(json.JSONEncoder):
+        def default(self, o: Any) -> Union[str, Any]:
+            if isinstance(o, datetime):
+                if replace_datetime is not None:
+                    return replace_datetime
+                # Check if datetime is timezone aware
+                if o.tzinfo is not None and o.tzinfo.utcoffset(o) is not None:
+                    # Raise an exception if the timezone is not equivalent to UTC
+                    if o.tzinfo.utcoffset(o) != timedelta(seconds=0):
+                        raise ValueError(f"Non UTC timezone found: {o.tzinfo}")
+                else:
+                    logger.warning(f"No timezone found for datetime: {o}")
+                # Make sure all datetimes has the same type of tzinfo object
+                o = o.replace(tzinfo=timezone.utc)
+                o = o.replace(microsecond=0)
+                return o.isoformat()
 
-    if isinstance(data, list):
-        # Recurse into lists of dicts. mypy (correctly) says this recursion can in fact happen
-        # more than once, so the result can be a list of list of dicts or whatever, but the return
-        # type becomes too bloated with that in mind and the code becomes too inelegant when unrolling
-        # this list comprehension into a for-loop checking types for something only intended to be used in test cases.
-        # Hence the type: ignore.
-        return sorted([_normalise_value(x) for x in data], key=_any_key)  # type: ignore
-    elif isinstance(data, dict):
-        # normalise all values found in the dict, returning a new dict (to not modify callers data)
-        return {k: _normalise_value(v) for k, v in data.items()}
-    raise TypeError("normalised_data not called on dict (or list of dicts)")
+            if isinstance(o, (ObjectId, uuid.UUID, Enum)):
+                return str(o)
+
+            return super().default(o)
+
+    class NormaliseDecoder(json.JSONDecoder):
+        def __init__(self, *args: Any, **kwargs: Any):
+            super().__init__(object_hook=self.object_hook, *args, **kwargs)
+
+        def object_hook(self, o: Any) -> dict[str, Any]:
+            """
+            Decode any keys ending in _ts to datetime objects.
+
+            TODO: update all tests to use the ISO format for expected data and remove this decoder,
+                  keeping just the encoder above.
+            """
+            ret: dict[str, Any] = {}
+            for key, value in o.items():
+                if key.endswith("_ts"):
+                    try:
+                        ret[key] = datetime.fromisoformat(value)
+                        continue
+                    except ValueError:
+                        # The timestamp is sometimes normalised to a string that is not a timestamp (e.g. 'ts')
+                        pass
+                ret[key] = value
+            return ret
+
+    return json.loads(json.dumps(data, sort_keys=True, cls=NormaliseEncoder), cls=NormaliseDecoder)
