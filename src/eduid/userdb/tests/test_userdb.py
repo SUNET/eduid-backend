@@ -29,18 +29,20 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-from datetime import timedelta
-from typing import Any, Dict
+import logging
 
 import bson
 
 from eduid.common.testing_base import normalised_data
 from eduid.userdb import User
+from eduid.userdb.db import TUserDbDocument
 from eduid.userdb.exceptions import UserOutOfSync
 from eduid.userdb.fixtures.passwords import signup_password
 from eduid.userdb.fixtures.users import mocked_user_standard, mocked_user_standard_2
-from eduid.userdb.testing import MongoTestCase, MongoTestCaseRaw
-from eduid.userdb.util import utc_now
+from eduid.userdb.testing import MongoTestCase
+from eduid.userdb.util import format_dict_for_debug
+
+logger = logging.getLogger(__name__)
 
 
 class TestUserDB(MongoTestCase):
@@ -93,35 +95,46 @@ class TestUserDB(MongoTestCase):
         assert self.amdb.get_user_by_eppn("abc123") is None
 
 
-class UserMissingMeta(MongoTestCaseRaw):
+class UserMissingMeta(MongoTestCase):
     def setUp(self, *args, **kwargs):
-        self.user = self._raw_user()
-        self.time_now = utc_now()
-        super().setUp(raw_users=[self.user])
+        self.user = mocked_user_standard
+        super().setUp(*args, am_users=[self.user], **kwargs)
 
-    def _raw_user(self) -> Dict[str, Any]:
-        user = mocked_user_standard.to_dict()
-        del user["meta"]
-        return user
+        self._remove_meta_from_user_in_db(mocked_user_standard)
+
+    def _remove_meta_from_user_in_db(self, user: User) -> None:
+        """
+        These tests are meant to test new code with old users in the database.
+
+        Remove the user.meta section from the user in the database.
+        """
+        user_doc: TUserDbDocument = self.amdb._get_document_by_attr("_id", user.user_id)
+        assert user_doc is not None
+        user_doc.pop("meta")
+        self.amdb._coll.replace_one({"_id": user.user_id}, user_doc)
 
     def test_update_user_new(self):
-        db_user = self.amdb.get_user_by_id(self.user["_id"])
+        db_user = self.amdb.get_user_by_id(self.user.user_id)
+        assert db_user is not None
+        logger.debug(f"Loaded user.meta from database:\n{format_dict_for_debug(db_user.meta.dict())}")
+        assert db_user is not None
         db_user.given_name = "test"
         self.amdb.save(user=db_user, check_sync=True)
 
     def test_update_user_old(self):
-        db_user = self.amdb.get_user_by_id(self.user["_id"])
+        db_user = self.amdb.get_user_by_id(self.user.user_id)
         db_user.given_name = "test"
         self.amdb.old_save(user=db_user, check_sync=True)
 
 
-class UpdateUser(MongoTestCaseRaw):
+class UpdateUser(MongoTestCase):
     def setUp(self, *args, **kwargs):
         self.user = mocked_user_standard
         super().setUp(am_users=[self.user, mocked_user_standard_2], **kwargs)
 
     def test_stale_user__meta_version(self):
-        test_user = mocked_user_standard
+        test_user = self.amdb.get_user_by_eppn(mocked_user_standard.eppn)
+        assert test_user is not None
         test_user.given_name = "new_given_name"
         test_user.meta.new_version()
 

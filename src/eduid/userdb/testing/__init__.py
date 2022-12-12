@@ -104,53 +104,6 @@ class MongoTemporaryInstance(EduidTemporaryInstance):
         return cast(MongoTemporaryInstance, super().get_instance(max_retry_seconds=max_retry_seconds))
 
 
-class MongoTestCaseRaw(unittest.TestCase):
-    def setUp(self, raw_users: Optional[List[Dict[str, Any]]] = None, am_users: Optional[List[User]] = None, **kwargs):
-        super().setUp()
-        self.maxDiff = None
-        self._tmp_db = MongoTemporaryInstance.get_instance()
-        assert isinstance(self._tmp_db, MongoTemporaryInstance)  # please mypy
-
-        self.amdb = AmDB(self._tmp_db.uri)
-        self.collection = self.amdb.collection
-
-        self._db = BaseDB(db_uri=self._tmp_db.uri, db_name="eduid_am", collection=self.collection)
-
-        mongo_settings = {
-            "mongo_replicaset": None,
-            "mongo_uri": self._tmp_db.uri,
-        }
-
-        if getattr(self, "settings", None) is None:
-            self.settings = mongo_settings
-        else:
-            self.settings.update(mongo_settings)
-
-        if am_users:
-            # Set up test users in the MongoDB.
-            for user in am_users:
-                self._db.legacy_save(user.to_dict())
-        if raw_users:
-            for raw_user in raw_users:
-                raw_user["modified_ts"] = utc_now()
-                self._db.legacy_save(raw_user)
-
-        self._db.close()
-
-    def tearDown(self):
-        for userdoc in self.amdb._get_all_docs():
-            assert User.from_dict(data=userdoc)
-        # Reset databases for the next test class, but do not shut down the temporary
-        # mongodb instance, for efficiency reasons.
-        for db_name in self._tmp_db.conn.list_database_names():
-            if db_name not in ["local", "admin", "config"]:  # Do not drop mongo internal dbs
-                self._tmp_db.conn.drop_database(db_name)
-        self.amdb._drop_whole_collection()
-        self.amdb.close()
-        self._db.close()  # do we need this?
-        super().tearDown()
-
-
 class MongoTestCase(unittest.TestCase):
     """TestCase with an embedded MongoDB temporary instance.
 
