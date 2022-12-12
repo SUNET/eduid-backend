@@ -81,10 +81,10 @@ class SAMLAttributeSettings:
 
 @unique
 class SubjectIDRequest(str, Enum):
-    ANY: str = "any"
-    NONE: str = "none"
-    PAIRWISE_ID: str = "pairwise-id"
-    SUBJECT_ID: str = "subject-id"
+    ANY = "any"
+    NONE = "none"
+    PAIRWISE_ID = "pairwise-id"
+    SUBJECT_ID = "subject-id"
 
 
 class IdPUser(User):
