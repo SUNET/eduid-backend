@@ -1,3 +1,4 @@
+from eduid.common.models.amapi_user import Reason, Source
 from eduid.common.testing_base import CommonTestCase
 from eduid.workers.amapi.config import EndpointRestriction
 from typing import Dict, Any
@@ -19,8 +20,8 @@ class TestAMBase(CommonTestCase):
         self.client = TestClient(self.api)
 
         self.eppn = "hubba-bubba"
-        self.source = "mura"
-        self.reason = "mura"
+        self.source = Source.Test.value
+        self.reason = Reason.Test.value
 
     def _get_config(self) -> Dict[str, Any]:
         config = {
