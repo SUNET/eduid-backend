@@ -311,7 +311,7 @@ def add_pairwise_or_subject_id(attributes: dict, user: IdPUser, settings: SAMLAt
             attributes["subject-id"] = f"{user.eppn}@{settings.default_eppn_scope}"
         return attributes
 
-    # for any other ec, add the type of id that the SP has requested
+    # for any other entity category, add the type of id that the SP has requested
     if (
         SubjectIDRequest.PAIRWISE_ID.value in settings.sp_subject_id_request
         or SubjectIDRequest.ANY.value in settings.sp_subject_id_request
