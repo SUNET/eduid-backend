@@ -90,7 +90,8 @@ class WorkerBase(ABC):
 
     def _make_unhealthy(self) -> None:
         # make Docker health status to unhealthy
-        os.remove(self.healthy_path) if os.path.exists(self.healthy_path) else None
+        if os.path.exists(self.healthy_path):
+            os.remove(self.healthy_path)
 
     def _make_healthy(self) -> None:
         # make Docker health status to healthy
