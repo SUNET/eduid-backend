@@ -164,7 +164,7 @@ def add_country_attributes(attributes: Dict[str, Any], settings: SAMLAttributeSe
     return attributes
 
 
-def add_eduperson_assurance(attributes: Dict[str, Any][str, Any], user: IdPUser) -> Dict[str, Any]:
+def add_eduperson_assurance(attributes: Dict[str, Any], user: IdPUser) -> Dict[str, Any]:
     """
     Add an eduPersonAssurance attribute indicating the level of id-proofing
     a user has achieved, regardless of current session authentication strength.
@@ -224,7 +224,7 @@ def make_personal_identity_number(attributes: Dict[str, Any], user: IdPUser) -> 
     return attributes
 
 
-def make_schac_date_of_birth(attributes: Dict[str, Any][str, Any], user: IdPUser) -> dict:
+def make_schac_date_of_birth(attributes: Dict[str, Any], user: IdPUser) -> dict:
     """
     Format: YYYYMMDD, only numeric
     """
@@ -236,7 +236,7 @@ def make_schac_date_of_birth(attributes: Dict[str, Any][str, Any], user: IdPUser
     return attributes
 
 
-def make_mail(attributes: Dict[str, Any][str, Any], user: IdPUser) -> dict:
+def make_mail(attributes: Dict[str, Any], user: IdPUser) -> dict:
     if attributes.get("mail") is not None:
         return attributes
 
@@ -246,7 +246,7 @@ def make_mail(attributes: Dict[str, Any][str, Any], user: IdPUser) -> dict:
     return attributes
 
 
-def make_eduperson_orcid(attributes: Dict[str, Any][str, Any], user: IdPUser) -> dict:
+def make_eduperson_orcid(attributes: Dict[str, Any], user: IdPUser) -> dict:
     # TODO: Should the user be AL2 for us to release this?
     #   Should we disallow there to be more than one eduID user with the same orcid?
     if attributes.get("eduPersonOrcid") is not None:
@@ -265,9 +265,7 @@ def _make_user_esi(user: IdPUser, settings: SAMLAttributeSettings) -> Optional[s
     return None
 
 
-def make_schac_personal_unique_code(
-    attributes: Dict[str, Any][str, Any], user: IdPUser, settings: SAMLAttributeSettings
-) -> dict:
+def make_schac_personal_unique_code(attributes: Dict[str, Any], user: IdPUser, settings: SAMLAttributeSettings) -> dict:
     """
     schacPersonalUniqueCode could be something other than ESI, but we have no usecase for anything else
     at the moment
@@ -286,7 +284,7 @@ def make_schac_personal_unique_code(
     return attributes
 
 
-def add_mail_local_address(attributes: Dict[str, Any][str, Any], user: IdPUser) -> dict:
+def add_mail_local_address(attributes: Dict[str, Any], user: IdPUser) -> dict:
     if attributes.get("mailLocalAddress") is not None:
         return attributes
 
@@ -294,9 +292,7 @@ def add_mail_local_address(attributes: Dict[str, Any][str, Any], user: IdPUser) 
     return attributes
 
 
-def add_pairwise_or_subject_id(
-    attributes: Dict[str, Any][str, Any], user: IdPUser, settings: SAMLAttributeSettings
-) -> dict:
+def add_pairwise_or_subject_id(attributes: Dict[str, Any], user: IdPUser, settings: SAMLAttributeSettings) -> dict:
     """
     Add a pairwise or subject ID attribute to the attributes' dict.
     """
