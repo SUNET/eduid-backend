@@ -34,8 +34,13 @@
 __author__ = "ft"
 
 import datetime
+import json
+import logging
+from typing import Any, Mapping, Optional
 
 from bson import ObjectId
+
+logger = logging.getLogger(__name__)
 
 
 class UTC(datetime.tzinfo):
@@ -59,3 +64,27 @@ def utc_now() -> datetime.datetime:
 
 def objectid_str() -> str:
     return str(ObjectId())
+
+
+def format_dict_for_debug(data: Optional[Mapping[str, Any]]) -> Optional[str]:
+    """
+    Format a dict for logging.
+
+    :param data: The dict to format
+    :return: A string
+    """
+    if not data:
+        return None
+    try:
+        from eduid.common.misc.encoders import EduidJSONEncoder
+
+        return json.dumps(data, indent=4, cls=EduidJSONEncoder)
+    except Exception as e:
+        # Don't need the full exception logged here, just the summary (e.g.
+        #   TypeError: Object of type UUID is not JSON serializable
+        # )
+        logger.error(f"Failed formatting document for debugging using JSON encoder: {repr(e)}")
+        # We fail on encoding UUIDs used in some places. We want to turn the UUIDs into strings.
+        import pprint
+
+        return pprint.pformat(data, width=120)

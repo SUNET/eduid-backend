@@ -40,6 +40,7 @@ from celery.utils.log import get_task_logger
 from eduid.common.config.workers import AmConfig
 from eduid.userdb.exceptions import UserDoesNotExist
 from eduid.userdb.userdb import UserDB
+from eduid.userdb.util import format_dict_for_debug
 
 logger = get_task_logger(__name__)
 
@@ -93,8 +94,8 @@ class AttributeFetcher(ABC):
             elif attr in self.whitelist_unset_attrs:
                 attributes_unset[attr] = value
 
-        logger.debug("Will set attributes: {}".format(attributes_set))
-        logger.debug("Will remove attributes: {}".format(attributes_unset))
+        logger.debug(f"Will set attributes:\n{format_dict_for_debug(attributes_set)}")
+        logger.debug(f"Will remove attributes: {attributes_unset}")
 
         if attributes_set:
             attributes["$set"] = attributes_set

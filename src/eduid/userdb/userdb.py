@@ -52,6 +52,7 @@ from eduid.userdb.exceptions import (
 from eduid.userdb.identity import IdentityType
 from eduid.userdb.meta import CleanedType
 from eduid.userdb.user import User
+from eduid.userdb.util import format_dict_for_debug
 
 logger = logging.getLogger(__name__)
 extra_debug_logger = logger.getChild("extra_debug")
@@ -384,7 +385,7 @@ class AmDB(UserDB[User]):
         logger.debug(f"AMDB Save: Looking for existing user with filter {spec}")
 
         db_user = self._coll.find_one(spec)
-        _db_user_as_dict = None if not db_user else self._format_dict_for_debug(db_user)
+        _db_user_as_dict = None if not db_user else format_dict_for_debug(db_user)
         logger.debug(f"Pre-existing user in database:\n{_db_user_as_dict}")
         if db_user is None:
             # TODO: There's a race condition between the find_one and the actual save operation below.

@@ -1,5 +1,4 @@
 import copy
-import json
 import logging
 from dataclasses import dataclass
 from datetime import datetime
@@ -15,9 +14,8 @@ from pymongo.database import Database
 from pymongo.errors import PyMongoError
 from pymongo.uri_parser import parse_uri
 
-from eduid.common.misc.encoders import EduidJSONEncoder
 from eduid.userdb.exceptions import DocumentOutOfSync, EduIDUserDBError, MongoConnectionError, MultipleDocumentsReturned
-from eduid.userdb.util import utc_now
+from eduid.userdb.util import format_dict_for_debug, utc_now
 
 logger = logging.getLogger(__name__)
 extra_logger = logger.getChild("extra")
@@ -437,24 +435,6 @@ class BaseDB(object):
         res = self._coll.insert_one(doc)  # type: ignore
         return res.inserted_id
 
-    def _format_dict_for_debug(self, data: Optional[Mapping[str, Any]]) -> Optional[str]:
-        """
-        Format a dict for logging.
-
-        :param data: The dict to format
-        :return: A string
-        """
-        if not data:
-            return None
-        try:
-            return json.dumps(data, indent=4, cls=EduidJSONEncoder)
-        except Exception:
-            extra_logger.exception(f"Failed formatting document for debugging using JSON encoder (UUID in there?)")
-            # We fail on encoding UUIDs used in some places. We want to turn the UUIDs into strings.
-            import pprint
-
-            return pprint.pformat(data, width=120)
-
     def _save(
         self,
         data: TUserDbDocument,
@@ -468,9 +448,9 @@ class BaseDB(object):
 
         _new_version = data.get("meta", {}).get("version", None)
         if _new_version:
-            logger.debug(f"Saving document (version {previous_version} -> {_new_version})")
+            logger.debug(f"{self} Saving document (version {previous_version} -> {_new_version})")
 
-        extra_logger.debug(f"{self} Extra debug: Full document:\n {self._format_dict_for_debug(data)}")
+        extra_logger.debug(f"{self} Extra debug: Full document:\n {format_dict_for_debug(data)}")
 
         now = utc_now()
         data["modified_ts"] = now  # update modified_ts (old) to current time
@@ -491,9 +471,7 @@ class BaseDB(object):
             if previous_version is not None:
                 replace_spec["meta.version"] = previous_version
 
-        extra_logger.debug(
-            f"{self} Extra debug: replacing document using spec:\n{self._format_dict_for_debug(replace_spec)}"
-        )
+        extra_logger.debug(f"{self} Extra debug: replacing document using spec:\n{format_dict_for_debug(replace_spec)}")
 
         # TODO: The upsert=(not check_sync) part lets us get away with (test) users having a timestamp
         #       (from instantiation) even though they are not in the database. Could be improved upon.
@@ -509,9 +487,9 @@ class BaseDB(object):
                 db_doc["meta"] = db_state.get("meta")
 
             logger.error(
-                f"{self} FAILED Updating document\n{self._format_dict_for_debug(replace_spec)}\n"
+                f"{self} FAILED Updating document\n{format_dict_for_debug(replace_spec)}\n"
                 f"with check_sync={check_sync} (in db:\n"
-                f"{self._format_dict_for_debug(db_doc)}\n): {save_result}"
+                f"{format_dict_for_debug(db_doc)}\n): {save_result}"
             )
 
             if check_sync:
