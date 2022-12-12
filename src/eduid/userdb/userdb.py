@@ -63,7 +63,6 @@ UserVar = TypeVar("UserVar")
 @dataclass
 class UserSaveResult:
     success: bool
-    user: Optional[User] = None
 
 
 class UserDB(BaseDB, Generic[UserVar], ABC):
@@ -418,7 +417,7 @@ class AmDB(UserDB[User]):
 
         user.modified_ts = result.ts
 
-        return UserSaveResult(success=bool(result), user=None)
+        return UserSaveResult(success=bool(result))
 
     def old_save(self, user: User, check_sync: bool = True) -> bool:
         return super().save(user, check_sync).success

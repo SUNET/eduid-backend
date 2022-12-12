@@ -64,10 +64,9 @@ def update_user(
 
     user_save_result = req.app.db.save(user=user_obj)
     if user_save_result.success:
-        assert user_save_result.user is not None
         diff = DeepDiff(
             old_user_dict,
-            user_save_result.user.to_dict(),
+            user_obj.to_dict(),
             ignore_order=True,
             exclude_paths=["root['meta']['modified_ts']", "root['modified_ts']"],  # we do not care about these entries.
         ).to_json()
