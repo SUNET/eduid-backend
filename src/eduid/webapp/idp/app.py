@@ -37,8 +37,9 @@ from flask import current_app
 
 from eduid.common.config.parsers import load_config
 from eduid.common.rpc.am_relay import AmRelay
-from eduid.userdb.actions import ActionDB
-from eduid.userdb.actions.tou import ToUUserDB
+from eduid.userdb.actions.tou.userdb import ToUUserDB
+
+# from eduid.userdb.actions.tou import ToUUserDB
 from eduid.userdb.idp import IdPUserDb
 from eduid.webapp.common.api import translation
 from eduid.webapp.common.api.app import EduIDBaseApp
@@ -76,8 +77,6 @@ class IdPApp(EduIDBaseApp):
         self.sso_sessions = SSOSessionCache(config.mongo_uri)
 
         self.authn_info_db = None
-
-        self.actions_db = ActionDB(config.mongo_uri)
 
         self.userdb = IdPUserDb(db_uri=config.mongo_uri)
         self.authn = idp_authn.IdPAuthn(config=config, userdb=self.userdb)

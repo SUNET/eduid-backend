@@ -7,6 +7,7 @@ slack:
 pre_build_script:
   - "docker pull docker.sunet.se/eduid/redis:latest"
   - "docker pull docker.sunet.se/eduid/mongodb:latest"
+  - "docker pull docker.sunet.se/eduid/smtpdfix:latest"
   - "docker pull neo4j:4.0-enterprise"
   # pillow requires libjpeg
   - "apt-get install -y libjpeg-dev libfreetype6-dev"

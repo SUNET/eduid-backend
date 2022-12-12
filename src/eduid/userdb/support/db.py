@@ -82,28 +82,6 @@ class SupportAuthnInfoDB(BaseDB):
         return self.model(dict(doc))  # Cast to dict to allow mutability
 
 
-class SupportActionsDB(BaseDB):
-
-    model = models.UserActions
-
-    def __init__(self, db_uri: str):
-        db_name = "eduid_actions"
-        collection = "actions"
-        super(SupportActionsDB, self).__init__(db_uri, db_name, collection)
-
-    def get_actions(self, user_id: Union[str, ObjectId]) -> List[Dict[str, Any]]:
-        """
-        :param user_id: User objects user_id property
-        :type user_id: ObjectId | str | unicode
-        :return: A list of dicts
-        :rtype: list
-        """
-        if not isinstance(user_id, ObjectId):
-            user_id = ObjectId(user_id)
-        docs = self._get_documents_by_filter(spec={"user_oid": user_id})
-        return [self.model(dict(doc)) for doc in docs]  # Cast to dict to allow mutability
-
-
 class SupportProofingDB(BaseDB):
 
     model: Type[GenericFilterDict] = GenericFilterDict
