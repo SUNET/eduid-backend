@@ -37,12 +37,14 @@ Code used in unit tests of various eduID applications.
 from __future__ import annotations
 
 import logging
+import logging.config
 import unittest
 from typing import Any, Dict, List, Optional, Sequence, Type, cast
 
 import pymongo
 import pymongo.errors
 
+from eduid.common.logging import LocalContext, make_dictConfig
 from eduid.userdb import User
 from eduid.userdb.db import BaseDB, TUserDbDocument
 from eduid.userdb.testing.temp_instance import EduidTemporaryInstance
@@ -183,6 +185,10 @@ class MongoTestCase(unittest.TestCase):
         """
         super().setUp()
         self.maxDiff = None
+
+        # Set up provisional logging to capture logs from test setup too
+        self._init_logging()
+
         self.tmp_db = MongoTemporaryInstance.get_instance()
         assert isinstance(self.tmp_db, MongoTemporaryInstance)  # please mypy
         self.amdb = AmDB(self.tmp_db.uri)
@@ -201,6 +207,17 @@ class MongoTestCase(unittest.TestCase):
             # Set up test users in the MongoDB.
             for user in am_users:
                 self.amdb.save(user, check_sync=False)
+
+    def _init_logging(self):
+        local_context = LocalContext(
+            app_debug=True,
+            app_name="testing",
+            format="{asctime} | {levelname:7} |             | {name:35} | {message}",
+            level="DEBUG",
+            relative_time=True,
+        )
+        logging_config = make_dictConfig(local_context)
+        logging.config.dictConfig(logging_config)
 
     def tearDown(self):
         for userdoc in self.amdb._get_all_docs():

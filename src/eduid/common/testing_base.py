@@ -54,24 +54,10 @@ class CommonTestCase(MongoTestCase):
         """
         set up tests
         """
-        # Set up provisional logging to capture logs from test setup too
-        self._init_logging()
-
         if "EDUID_CONFIG_YAML" not in os.environ:
             os.environ["EDUID_CONFIG_YAML"] = "YAML_CONFIG_NOT_USED"
 
         super().setUp(*args, **kwargs)
-
-    def _init_logging(self):
-        local_context = LocalContext(
-            app_debug=True,
-            app_name="testing",
-            format="{asctime} | {levelname:7} |             | {name:35} | {message}",
-            level="DEBUG",
-            relative_time=True,
-        )
-        logging_config = make_dictConfig(local_context)
-        logging.config.dictConfig(logging_config)
 
 
 # This is the normalised_data that should be used
