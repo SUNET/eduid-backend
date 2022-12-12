@@ -85,8 +85,8 @@ from typing import Any, Dict, Generic, List, Mapping, NewType, Optional, Type, T
 
 from pydantic import BaseModel, Extra, Field, validator
 from pydantic.generics import GenericModel
-from eduid.userdb.db import TUserDbDocument
 
+from eduid.userdb.db import TUserDbDocument
 from eduid.userdb.exceptions import EduIDUserDBError, UserDBValueError
 
 __author__ = "ft"
