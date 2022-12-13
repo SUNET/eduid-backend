@@ -87,7 +87,7 @@ class IdPConfig(EduIDBaseAppConfig, TouConfigMixin, WebauthnConfigMixin2, AmConf
     default_language: str = "en"
     # The scope to append to any unscoped eduPersonPrincipalName
     # attributes found on users in the userdb.
-    default_eppn_scope: Optional[str] = None
+    default_eppn_scope: str = "eduid.se"
     # Default country code to use in attribute release as c - ISO_COUNTRY_CODE
     default_country_code: str = "se"
     # Default country to use in attribute release as co - ISO_COUNTRY_NAME
