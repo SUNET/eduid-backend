@@ -97,13 +97,13 @@ class WorkerBase(ABC):
         # make Docker health status to healthy
         Path(self.healthy_path).touch()
 
-    def _sleep(self, sleep_time: int) -> None:
+    def _sleep(self, milliseconds: int) -> None:
         # sleeps, but respects self.shutdown_now variable,
         # then we do not need to wait for the sleep to finish in order to kill this app.
-        for i in range(0, sleep_time, 1):
+        for i in range(0, milliseconds, 1):
             if self.shutdown_now:
                 return
-            time.sleep(sleep_time)
+            time.sleep(1 / milliseconds)
 
     def enqueuing(self, cleaning_type: CleanerType, identity_type: IdentityType, limit: int):
         # add User objects to queue for further processing

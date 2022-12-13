@@ -55,7 +55,7 @@ class SKV(WorkerBase):
             if self._is_quota_reached():
                 self.logger.warning(f"worker skatteverket has reached its change_quota, sleep for 20 seconds")
                 self._make_unhealthy()
-                self._sleep(sleep_time=20)
+                self._sleep(milliseconds=20000)
             else:
                 self._make_healthy()
                 if self.queue.empty():
@@ -71,7 +71,7 @@ class SKV(WorkerBase):
                 # This won't work when more update-functions is added, due to meta.version will change after each save...
                 self.update_name(user=user, navet_data=navet_data)
 
-                self._sleep(sleep_time=self.config.job_delay)
+                self._sleep(milliseconds=self.config.job_delay)
 
                 self.queue.task_done()
 
