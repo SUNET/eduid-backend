@@ -343,7 +343,7 @@ class TestUsers(TestAMBase, GNAPBearerTokenMixin):
         assert user_after.meta.cleaned[CleanerType.SKV] != user_before.meta.cleaned[CleanerType.SKV]
         assert_diff = {
             "values_changed": {
-                "root['meta']['cleaned']['CleanerType.SKV']": {
+                "root['meta']['cleaned']['skatteverket']": {
                     "new_value": "2013-09-02T10:23:25+00:00",
                     "old_value": "2017-01-04T16:47:30+00:00",
                 }
