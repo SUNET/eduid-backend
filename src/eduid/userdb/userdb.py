@@ -308,7 +308,7 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
 
         user.modified_ts = result.ts
 
-        return UserSaveResult(success=bool(result), user=None)
+        return UserSaveResult(success=bool(result))
 
     def remove_user_by_id(self, user_id: ObjectId) -> bool:
         """

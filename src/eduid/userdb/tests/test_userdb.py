@@ -108,7 +108,7 @@ class UserMissingMeta(MongoTestCase):
 
         Remove the user.meta section from the user in the database.
         """
-        user_doc: TUserDbDocument = self.amdb._get_document_by_attr("_id", user.user_id)
+        user_doc = self.amdb._get_document_by_attr("_id", user.user_id)
         assert user_doc is not None
         user_doc.pop("meta")
         self.amdb._coll.replace_one({"_id": user.user_id}, user_doc)
