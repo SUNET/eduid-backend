@@ -328,7 +328,7 @@ class TestUsers(TestAMBase, GNAPBearerTokenMixin):
         req = {
             "source": self.source,
             "reason": self.reason,
-            "type": CleanerType.SKV,
+            "type": "skatteverket",
             "ts": "2013-09-02T10:23:25+00:00",
         }
 
@@ -340,7 +340,7 @@ class TestUsers(TestAMBase, GNAPBearerTokenMixin):
         )
         assert got.status_code == status.HTTP_200_OK
         user_after = self.amdb.get_user_by_eppn(self.eppn)
-        assert user_after.meta.cleaned["skatteverket"] != user_before.meta.cleaned["skatteverket"]
+        assert user_after.meta.cleaned[CleanerType.SKV] != user_before.meta.cleaned[CleanerType.SKV]
         assert_diff = {
             "values_changed": {
                 "root['meta']['cleaned']['CleanerType.SKV']": {
