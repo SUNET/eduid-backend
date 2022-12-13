@@ -14,10 +14,9 @@ from eduid.webapp.common.api.messages import CommonMsg
 from eduid.webapp.common.proofing.messages import ProofingMsg
 from eduid.webapp.common.proofing.testing import ProofingTests
 from eduid.webapp.svipe_id.app import svipe_id_init_app
+from eduid.webapp.svipe_id.helpers import SvipeDocumentUserInfo, SvipeIDMsg
 
 __author__ = "lundberg"
-
-from eduid.webapp.svipe_id.helpers import SvipeDocumentUserInfo, SvipeIDMsg
 
 
 class SvipeIdTests(ProofingTests):
@@ -173,16 +172,11 @@ class SvipeIdTests(ProofingTests):
             birthdate=birthdate,
             family_name=family_name,
             given_name=given_name,
-            nonce="test",
             document_administrative_number=administrative_number,
             document_expiry_date=document_expires.date(),
-            document_type="P",
-            document_type_sdn="PN",
             document_type_sdn_en="Passport",
             document_issuing_country=issuing_country.alpha3,
-            document_issuing_country_en=issuing_country.name,
             document_nationality=nationality.alpha3,
-            document_nationality_en=nationality.name,
             document_number="1234567890",
             svipe_id=svipe_id,
         )
