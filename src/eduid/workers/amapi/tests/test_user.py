@@ -16,6 +16,7 @@ from eduid.common.clients.gnap_client.base import GNAPBearerTokenMixin
 from eduid.userdb.fixtures.users import new_user_example
 from eduid.workers.amapi.utils import AuthnBearerToken
 from eduid.workers.amapi.testing import TestAMBase
+from eduid.userdb.meta import CleanerType
 
 
 class TestUsers(TestAMBase, GNAPBearerTokenMixin):
@@ -327,7 +328,7 @@ class TestUsers(TestAMBase, GNAPBearerTokenMixin):
         req = {
             "source": self.source,
             "reason": self.reason,
-            "type": "skatteverket",
+            "type": CleanerType.SKV,
             "ts": "2013-09-02T10:23:25+00:00",
         }
 
@@ -355,7 +356,7 @@ class TestUsers(TestAMBase, GNAPBearerTokenMixin):
         req = {
             "source": self.source,
             "reason": self.reason,
-            "type": "skatteverket",
+            "type": CleanerType.SKV,
         }
 
         user_before = self.amdb.get_user_by_eppn(self.eppn)
