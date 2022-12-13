@@ -361,7 +361,7 @@ class TestUserChangeLog(TestCase):
             eppn="hubba-bubba",
             created_by="test",
             diff="diff",
-            reason=Reason.Test,
+            reason=Reason.TEST,
             source=Source.Test,
         )
 
@@ -369,7 +369,7 @@ class TestUserChangeLog(TestCase):
             eppn="hubba-bubba",
             created_by="test",
             diff="diff",
-            reason=Reason.Test,
+            reason=Reason.TEST,
             source=Source.Test,
         )
 
@@ -393,7 +393,7 @@ class TestUserChangeLog(TestCase):
             eppn="hubba-biss",
             created_by="test",
             diff="diff",
-            reason=Reason.Test,
+            reason=Reason.TEST,
             source=Source.Test,
         )
 

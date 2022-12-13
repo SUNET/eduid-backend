@@ -17,7 +17,7 @@ class Reason(str, Enum):
     NAME_CHANGED = "name_changed"
     CAREGIVER_CHANGED = "caregiver_changed"
     READ_USER = "read_user"
-    Test = "test"
+    TEST = "test"
 
 
 class Source(str, Enum):
