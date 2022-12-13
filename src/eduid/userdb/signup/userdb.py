@@ -30,7 +30,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 from datetime import timedelta
-from typing import Any, Mapping, Optional
+from typing import Optional
+from eduid.userdb.db import TUserDbDocument
 
 from eduid.userdb.signup import SignupUser
 from eduid.userdb.userdb import UserDB
@@ -59,7 +60,7 @@ class SignupUserDB(UserDB[SignupUser]):
             self.setup_indexes(indexes)
 
     @classmethod
-    def user_from_dict(cls, data: Mapping[str, Any]) -> SignupUser:
+    def user_from_dict(cls, data: TUserDbDocument) -> SignupUser:
         return SignupUser.from_dict(data)
 
     def get_user_by_mail_verification_code(self, code: str) -> Optional[SignupUser]:

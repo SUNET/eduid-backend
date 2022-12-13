@@ -35,7 +35,6 @@ import bson
 
 from eduid.common.testing_base import normalised_data
 from eduid.userdb import User
-from eduid.userdb.db import TUserDbDocument
 from eduid.userdb.exceptions import UserOutOfSync
 from eduid.userdb.fixtures.passwords import signup_password
 from eduid.userdb.fixtures.users import mocked_user_standard, mocked_user_standard_2

@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 
-from typing import Any, Dict, List, Mapping, Type, Union
+from typing import Any, Dict, List, Type, Union
 
 from bson import ObjectId
+from eduid.userdb.db import TUserDbDocument
 
 from eduid.userdb.proofing import LetterProofingState
 from eduid.userdb.signup import SignupUserDB
@@ -24,7 +25,7 @@ class SupportUserDB(UserDB[SupportUser]):
         super().__init__(db_uri, db_name, collection=collection)
 
     @classmethod
-    def user_from_dict(cls, data: Mapping[str, Any]) -> SupportUser:
+    def user_from_dict(cls, data: TUserDbDocument) -> SupportUser:
         return SupportUser.from_dict(data)
 
     def search_users(self, query: str) -> List[SupportUser]:

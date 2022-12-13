@@ -1,11 +1,11 @@
 from __future__ import absolute_import
 
-from typing import Any, Mapping
 
 from bson import ObjectId
 
 import eduid.userdb
 from eduid.common.config.workers import AmConfig
+from eduid.userdb.db import TUserDbDocument
 from eduid.userdb.exceptions import UserDoesNotExist
 from eduid.workers.am.ams.common import AttributeFetcher
 from eduid.workers.am.common import AmCelerySingleton
@@ -28,7 +28,7 @@ class AmTestUserDb(eduid.userdb.UserDB[AmTestUser]):
     """
 
     @classmethod
-    def user_from_dict(cls, data: Mapping[str, Any]) -> AmTestUser:
+    def user_from_dict(cls, data: TUserDbDocument) -> AmTestUser:
         return AmTestUser.from_dict(data)
 
 

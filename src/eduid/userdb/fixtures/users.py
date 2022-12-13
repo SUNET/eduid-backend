@@ -36,6 +36,7 @@ from bson import ObjectId
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.credentials import CredentialList
+from eduid.userdb.db import TUserDbDocument
 from eduid.userdb.fixtures.email_addresses import (
     johnsmith2_example_com,
     johnsmith2_example_com_old,
@@ -228,34 +229,36 @@ new_user_example2 = User(
     ladok=dashboard_ladok,
 )
 old_user_example = User.from_dict(
-    dict(
-        meta=Meta(version=ObjectId("987654321098765432103210")),
-        eduPersonPrincipalName="hubba-bubba",
-        _id=ObjectId("012345678901234567890123"),
-        givenName="John",
-        displayName="John Smith",
-        surname="Smith",
-        preferredLanguage="en",
-        modified_ts=datetime.fromisoformat("2013-09-02T10:23:25"),
-        mailAliases=MailAddressList(
-            elements=[
-                johnsmith_example_com_old,
-                johnsmith2_example_com_old,
-                johnsmith3_example_com_unverified,
-            ]
-        ).to_list_of_dicts(),
-        nins=NinList(elements=[dashboard_primary_nin, dashboard_verified_nin]).to_list_of_dicts(),
-        phone=PhoneNumberList(
-            elements=[
-                old_primary_phone,
-                old_unverified_phone,
-            ]
-        ).to_list_of_dicts(),
-        passwords=CredentialList(elements=[old_password]).to_list_of_dicts(),
-        eduPersonEntitlement=[
-            "urn:mace:eduid.se:role:admin",
-            "urn:mace:eduid.se:role:student",
-        ],
-        terminated=None,
+    TUserDbDocument(
+        dict(
+            meta=Meta(version=ObjectId("987654321098765432103210")),
+            eduPersonPrincipalName="hubba-bubba",
+            _id=ObjectId("012345678901234567890123"),
+            givenName="John",
+            displayName="John Smith",
+            surname="Smith",
+            preferredLanguage="en",
+            modified_ts=datetime.fromisoformat("2013-09-02T10:23:25"),
+            mailAliases=MailAddressList(
+                elements=[
+                    johnsmith_example_com_old,
+                    johnsmith2_example_com_old,
+                    johnsmith3_example_com_unverified,
+                ]
+            ).to_list_of_dicts(),
+            nins=NinList(elements=[dashboard_primary_nin, dashboard_verified_nin]).to_list_of_dicts(),
+            phone=PhoneNumberList(
+                elements=[
+                    old_primary_phone,
+                    old_unverified_phone,
+                ]
+            ).to_list_of_dicts(),
+            passwords=CredentialList(elements=[old_password]).to_list_of_dicts(),
+            eduPersonEntitlement=[
+                "urn:mace:eduid.se:role:admin",
+                "urn:mace:eduid.se:role:student",
+            ],
+            terminated=None,
+        )
     )
 )

@@ -37,7 +37,7 @@ import copy
 from datetime import datetime
 from enum import Enum, unique
 from operator import itemgetter
-from typing import Any, Dict, List, Mapping, Optional, Type, TypeVar, Union, cast
+from typing import Any, Dict, List, Optional, Type, TypeVar, Union, cast
 
 import bson
 from pydantic import BaseModel, Extra, Field, root_validator, validator
@@ -134,7 +134,7 @@ class User(BaseModel):
         return self.to_dict() == other.to_dict()
 
     @classmethod
-    def from_dict(cls: Type[TUserSubclass], data: Mapping[str, Any]) -> TUserSubclass:
+    def from_dict(cls: Type[TUserSubclass], data: TUserDbDocument) -> TUserSubclass:
         """
         Construct user from a data dict.
         """

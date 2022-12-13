@@ -38,7 +38,7 @@ from bson import ObjectId
 from bson.errors import InvalidId
 from pymongo import ReturnDocument
 
-from eduid.userdb.db import BaseDB
+from eduid.userdb.db import BaseDB, TUserDbDocument
 from eduid.userdb.exceptions import (
     DocumentDoesNotExist,
     DocumentOutOfSync,
@@ -91,7 +91,7 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
     __str__ = __repr__
 
     @classmethod
-    def user_from_dict(cls, data: Mapping[str, Any]) -> UserVar:
+    def user_from_dict(cls, data: TUserDbDocument) -> UserVar:
         # must be implemented by subclass to get correct type information
         raise NotImplementedError(f"user_from_dict not implemented in UserDB subclass {cls}")
 
@@ -152,7 +152,7 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
         :return: List of User instances
         """
         try:
-            users: List[Mapping[str, Any]] = list(self._get_documents_by_filter(filter))
+            users: List[TUserDbDocument] = list(self._get_documents_by_filter(filter))
         except DocumentDoesNotExist:
             logger.debug("{!s} No user found with filter {!r} in {!r}".format(self, filter, self._coll_name))
             raise UserDoesNotExist("No user matching filter {!r}".format(filter))
@@ -367,7 +367,7 @@ class AmDB(UserDB[User]):
         super().__init__(db_uri, db_name)
 
     @classmethod
-    def user_from_dict(cls, data: Mapping[str, Any]) -> User:
+    def user_from_dict(cls, data: TUserDbDocument) -> User:
         return User.from_dict(data)
 
     def save(self, user: User, check_sync: bool = True) -> UserSaveResult:

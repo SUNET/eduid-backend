@@ -34,7 +34,7 @@ import copy
 import logging
 from typing import Any, Dict, Mapping, Optional, Union
 
-from eduid.userdb.db import BaseDB, SaveResult
+from eduid.userdb.db import BaseDB, SaveResult, TUserDbDocument
 from eduid.userdb.deprecation import deprecated
 from eduid.userdb.exceptions import MultipleDocumentsReturned
 from eduid.userdb.security.state import PasswordResetEmailAndPhoneState, PasswordResetEmailState, PasswordResetState
@@ -51,7 +51,7 @@ class SecurityUserDB(UserDB[SecurityUser]):
         super().__init__(db_uri, db_name, collection=collection)
 
     @classmethod
-    def user_from_dict(cls, data: Mapping[str, Any]) -> SecurityUser:
+    def user_from_dict(cls, data: TUserDbDocument) -> SecurityUser:
         return SecurityUser.from_dict(data)
 
 

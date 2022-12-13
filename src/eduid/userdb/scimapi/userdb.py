@@ -159,5 +159,5 @@ class ScimEduidUserDB(UserDB[User]):
         super().__init__(db_uri, db_name)
 
     @classmethod
-    def user_from_dict(cls, data: Mapping[str, Any]) -> User:
+    def user_from_dict(cls, data: TUserDbDocument) -> User:
         return User.from_dict(data)

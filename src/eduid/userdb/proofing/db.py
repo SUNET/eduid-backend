@@ -35,7 +35,7 @@ from abc import ABC
 from operator import itemgetter
 from typing import Any, Dict, Generic, Mapping, Optional, TypeVar
 
-from eduid.userdb.db import BaseDB, SaveResult
+from eduid.userdb.db import BaseDB, SaveResult, TUserDbDocument
 from eduid.userdb.proofing.state import (
     EmailProofingState,
     LetterProofingState,
@@ -247,7 +247,7 @@ class ProofingUserDB(UserDB[ProofingUser]):
         return super().save(user, check_sync=check_sync)
 
     @classmethod
-    def user_from_dict(cls, data: Mapping[str, Any]) -> ProofingUser:
+    def user_from_dict(cls, data: TUserDbDocument) -> ProofingUser:
         return ProofingUser.from_dict(data)
 
 

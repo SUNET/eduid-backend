@@ -33,7 +33,7 @@
 import logging
 from typing import Any, Dict, Mapping, Optional, Union
 
-from eduid.userdb.db import BaseDB, SaveResult
+from eduid.userdb.db import BaseDB, SaveResult, TUserDbDocument
 from eduid.userdb.exceptions import MultipleDocumentsReturned
 from eduid.userdb.reset_password.state import (
     ResetPasswordEmailAndPhoneState,
@@ -51,7 +51,7 @@ class ResetPasswordUserDB(UserDB[ResetPasswordUser]):
         super().__init__(db_uri, db_name, collection=collection)
 
     @classmethod
-    def user_from_dict(cls, data: Mapping[str, Any]) -> ResetPasswordUser:
+    def user_from_dict(cls, data: TUserDbDocument) -> ResetPasswordUser:
         return ResetPasswordUser.from_dict(data)
 
 
