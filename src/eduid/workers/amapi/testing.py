@@ -20,7 +20,7 @@ class TestAMBase(CommonTestCase):
         self.client = TestClient(self.api)
 
         self.eppn = "hubba-bubba"
-        self.source = Source.Test.value
+        self.source = Source.TEST.value
         self.reason = Reason.TEST.value
 
     def _get_config(self) -> Dict[str, Any]:

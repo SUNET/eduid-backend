@@ -23,7 +23,7 @@ class Reason(str, Enum):
 class Source(str, Enum):
     SKV_NAVET_V2 = "swedish_tax_agency_navet_v2"
     NO_SOURCE = "no_source"
-    Test = "test"
+    TEST = "test"
 
 
 class UserBaseRequest(BaseModel):

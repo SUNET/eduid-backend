@@ -362,7 +362,7 @@ class TestUserChangeLog(TestCase):
             created_by="test",
             diff="diff",
             reason=Reason.TEST,
-            source=Source.Test,
+            source=Source.TEST,
         )
 
         data_2 = UserChangeLogElement(
@@ -370,7 +370,7 @@ class TestUserChangeLog(TestCase):
             created_by="test",
             diff="diff",
             reason=Reason.TEST,
-            source=Source.Test,
+            source=Source.TEST,
         )
 
         self.user_log_db.save(data_1)
@@ -394,7 +394,7 @@ class TestUserChangeLog(TestCase):
             created_by="test",
             diff="diff",
             reason=Reason.TEST,
-            source=Source.Test,
+            source=Source.TEST,
         )
 
         self.user_log_db.save(data_3)
