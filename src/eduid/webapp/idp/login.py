@@ -47,17 +47,16 @@ from eduid.webapp.idp.assurance import (
     WrongMultiFactor,
 )
 from eduid.webapp.idp.assurance_data import AuthnInfo
-from eduid.webapp.idp.helpers import IdPMsg, SubjectIDRequest
-from eduid.webapp.idp.idp_actions import redirect_to_actions
+from eduid.webapp.idp.helpers import IdPMsg
 from eduid.webapp.idp.idp_authn import AuthnData
 from eduid.webapp.idp.idp_saml import ResponseArgs, SamlResponse
 from eduid.webapp.idp.login_context import LoginContext, LoginContextOtherDevice, LoginContextSAML
-from eduid.webapp.idp.mfa_action import add_mfa_action, need_security_key, process_mfa_action_results
+from eduid.webapp.idp.mfa_action import need_security_key
 from eduid.webapp.idp.mischttp import HttpArgs, get_default_template_arguments, get_user_agent
 from eduid.webapp.idp.other_device.data import OtherDeviceState
 from eduid.webapp.idp.service import SAMLQueryParams, Service
 from eduid.webapp.idp.sso_session import SSOSession
-from eduid.webapp.idp.tou_action import add_tou_action, need_tou_acceptance
+from eduid.webapp.idp.tou_action import need_tou_acceptance
 
 
 class MustAuthenticate(Exception):
@@ -152,9 +151,6 @@ def login_next_step(ticket: LoginContext, sso_session: Optional[SSOSession], tem
     if user.terminated:
         current_app.logger.info(f"User {user} is terminated")
         return NextResult(message=IdPMsg.user_terminated, error=True)
-
-    if template_mode and current_app.conf.enable_legacy_template_mode:
-        process_mfa_action_results(user, ticket, sso_session)
 
     res = NextResult(message=IdPMsg.assurance_failure, error=True)
 
@@ -277,14 +273,10 @@ class SSO(Service):
             raise BadRequest("WRONG_USER")
 
         if _next.message == IdPMsg.tou_required:
-            assert isinstance(_next.user, IdPUser)  # please mypy
-            add_tou_action(_next.user)
-            return redirect_to_actions(_next.user, ticket)
+            raise BadRequest("Old actions are disabled")
 
         if _next.message == IdPMsg.mfa_required:
-            assert isinstance(_next.user, IdPUser)  # please mypy
-            add_mfa_action(_next.user, ticket)
-            return redirect_to_actions(_next.user, ticket)
+            raise BadRequest("Old actions are disabled")
 
         if _next.message == IdPMsg.proceed:
             assert self.sso_session  # please mypy
@@ -385,33 +377,27 @@ class SSO(Service):
         :return: SAML response (string)
         """
         sp_identifier = resp_args.get("sp_entity_id", resp_args["destination"])
+        current_app.logger.debug(f"Creating SAML response for SP {sp_identifier}")
         sp_entity_categories = ticket.saml_req.sp_entity_attributes.get("http://macedir.org/entity-category", [])
+        current_app.logger.debug(f"SP entity categories: {sp_entity_categories}")
         sp_subject_id_request = ticket.saml_req.sp_entity_attributes.get(
             "urn:oasis:names:tc:SAML:profiles:subject-id:req", []
         )
+        current_app.logger.debug(f"SP subject id request: {sp_subject_id_request}")
         saml_attribute_settings = SAMLAttributeSettings(
             default_eppn_scope=current_app.conf.default_eppn_scope,
             default_country=current_app.conf.default_country,
             default_country_code=current_app.conf.default_country_code,
             sp_entity_categories=sp_entity_categories,
+            sp_subject_id_request=sp_subject_id_request,
             esi_ladok_prefix=current_app.conf.esi_ladok_prefix,
+            pairwise_id=self._get_pairwise_id(relying_party=sp_identifier, user_eppn=user.eppn),
         )
         attributes = user.to_saml_attributes(settings=saml_attribute_settings)
 
         # Generate eduPersonTargetedID
         if current_app.conf.eduperson_targeted_id_secret_key:
-
             attributes["eduPersonTargetedID"] = self._get_eptid(relying_party=sp_identifier, user_eppn=user.eppn)
-
-        # Generate pairwise or subject ID
-        if (
-            SubjectIDRequest.PAIRWISE_ID.value in sp_subject_id_request
-            or SubjectIDRequest.ANY.value in sp_subject_id_request
-        ):
-            if current_app.conf.pairwise_id_secret_key:
-                attributes["pairwise-id"] = self._get_pairwise_id(relying_party=sp_identifier, user_eppn=user.eppn)
-        elif SubjectIDRequest.SUBJECT_ID.value in sp_subject_id_request:
-            attributes["subject-id"] = self._get_subject_id(user_eppn=user.eppn)
 
         # Add a list of credentials used in a private attribute that will only be
         # released to the eduID authn component
@@ -536,7 +522,7 @@ class SSO(Service):
             }
         ]
 
-    def _get_pairwise_id(self, relying_party: str, user_eppn: str) -> str:
+    def _get_pairwise_id(self, relying_party: str, user_eppn: str) -> Optional[str]:
         """
         Given a particular relying party, a value (the unique ID and scope together) MUST be bound to only one subject,
         but the same unique ID given a different scope may refer to the same or (far more likely) a different subject.
@@ -555,32 +541,14 @@ class SSO(Service):
         The scope consists of 1 to 127 ASCII characters, each of which is either an alphanumeric ASCII character, a
         hyphen (ASCII 45), or a period (ASCII 46). The first character MUST be alphanumeric.
         """
+        if current_app.conf.pairwise_id_secret_key is None:
+            return None
         _anon_sp_userid = self._get_rp_specific_unique_id(
             relying_party=relying_party,
             user_eppn=user_eppn,
             secret_key=current_app.conf.pairwise_id_secret_key,
         )
         return f"{_anon_sp_userid}@{current_app.conf.default_eppn_scope}"
-
-    @staticmethod
-    def _get_subject_id(user_eppn: str) -> str:
-        """
-        A value (the unique ID and scope together) MUST be bound to one and only one subject, but the same unique ID
-        given a different scope may refer to the same or (far more likely) a different subject.
-
-        The relationship between an asserting party and a scope is an arbitrary one and does not reflect any assumed
-        relationship between a scope in the form of a domain name and a domain found in a given SAML entity identifier.
-
-        The value consists of two substrings (termed a “unique ID” and a “scope” in the remainder of this definition)
-        separated by an @ symbol (ASCII 64) as an inline delimiter.
-
-        The unique ID consists of 1 to 127 ASCII characters, each of which is either an alphanumeric ASCII character,
-        an equals sign (ASCII 61), or a hyphen (ASCII 45). The first character MUST be alphanumeric.
-
-        The scope consists of 1 to 127 ASCII characters, each of which is either an alphanumeric ASCII character, a
-        hyphen (ASCII 45), or a period (ASCII 46). The first character MUST be alphanumeric.
-        """
-        return f"{user_eppn}@{current_app.conf.default_eppn_scope}"
 
     @staticmethod
     def _validate_login_request(ticket: LoginContextSAML) -> ResponseArgs:
@@ -622,9 +590,7 @@ def show_login_page(ticket: LoginContextSAML) -> WerkzeugResponse:
     if _login_subject is not None:
         current_app.logger.debug(f"Login subject: {_login_subject}")
         # Login subject might be set by the idpproxy when requesting the user to do MFA step up
-        if current_app.conf.default_eppn_scope is not None and _login_subject.endswith(
-            current_app.conf.default_eppn_scope
-        ):
+        if _login_subject.endswith(current_app.conf.default_eppn_scope):
             # remove the @scope
             _username = _login_subject[: -(len(current_app.conf.default_eppn_scope) + 1)]
 

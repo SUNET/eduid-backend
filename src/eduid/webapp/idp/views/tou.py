@@ -5,7 +5,7 @@ from flask import Blueprint
 
 from eduid.common.config.base import EduidEnvironment
 from eduid.userdb import ToUEvent
-from eduid.userdb.actions.tou import ToUUser
+from eduid.userdb.actions.tou.user import ToUUser
 from eduid.userdb.exceptions import UserOutOfSync
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith
 from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response, success_response
