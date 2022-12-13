@@ -109,7 +109,16 @@ def normalised_data(data: SomeData, replace_datetime: Optional[str] = None) -> S
                     except ValueError:
                         # The timestamp is sometimes normalised to a string that is not a timestamp (e.g. 'ts')
                         pass
+                if isinstance(value, list):
+                    try:
+                        value = sorted(value)
+                    except TypeError:
+                        # Not every list can be sorted, e.g. list of dicts.
+                        #   TypeError: '<' not supported between instances of 'dict' and 'dict'
+                        pass
                 ret[key] = value
             return ret
 
-    return json.loads(json.dumps(data, sort_keys=True, cls=NormaliseEncoder), cls=NormaliseDecoder)
+    _dumped = json.dumps(data, sort_keys=True, cls=NormaliseEncoder)
+    _loaded = json.loads(_dumped, cls=NormaliseDecoder)
+    return _loaded
