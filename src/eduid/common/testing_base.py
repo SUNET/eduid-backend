@@ -39,11 +39,11 @@ import os
 import uuid
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import Any, Dict, List, Mapping, Optional, Sequence, TypeVar, Union
+from typing import Any, Optional, TypeVar, Union
 
-from eduid.common.logging import LocalContext, make_dictConfig
-from eduid.userdb.testing import MongoTestCase
 from bson import ObjectId
+
+from eduid.userdb.testing import MongoTestCase
 
 logger = logging.getLogger(__name__)
 
@@ -115,7 +115,11 @@ def normalised_data(data: SomeData, replace_datetime: Optional[str] = None) -> S
                     except TypeError:
                         # Not every list can be sorted, e.g. list of dicts.
                         #   TypeError: '<' not supported between instances of 'dict' and 'dict'
-                        pass
+                        #
+                        # We really do need stable sorting of lists of dicts though, so we crudely turn anything into
+                        # strings here, and sort those.
+                        _str_values = [json.dumps(x, sort_keys=True, cls=NormaliseEncoder) for x in value]
+                        value = sorted(_str_values)
                 ret[key] = value
             return ret
 
