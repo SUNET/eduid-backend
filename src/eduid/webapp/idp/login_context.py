@@ -196,7 +196,7 @@ class LoginContextSAML(LoginContext):
             res = _login_subject
 
             # Login subject might be set by the idpproxy when requesting the user to do MFA step up
-            if current_app.conf.default_eppn_scope is not None and res.endswith(current_app.conf.default_eppn_scope):
+            if res.endswith(current_app.conf.default_eppn_scope):
                 # remove the @scope
                 res = res[: -(len(current_app.conf.default_eppn_scope) + 1)]
         return res

@@ -98,7 +98,6 @@ wHyaxzYldWmVC5omkgZeAdCGpJ316GQF8Zwg/yDOUzm4cvGeIESf1Q6ZxBwI6zGE
       <ns0:ServiceDescription xml:lang="en">COCO test SP</ns0:ServiceDescription>
       <!-- Require mailLocalAddress and subject-id -->
       <ns0:RequestedAttribute FriendlyName="mailLocalAddress" Name="urn:oid:2.16.840.1.113730.3.1.13" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri" isRequired="true" />
-      <ns0:RequestedAttribute FriendlyName="subject-id" Name="urn:oasis:names:tc:SAML:attribute:subject-id" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri" isRequired="true" />
   </ns0:AttributeConsumingService>
   </ns0:SPSSODescriptor>
   <ns0:Organization>

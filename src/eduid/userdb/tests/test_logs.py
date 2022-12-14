@@ -5,6 +5,7 @@ from unittest import TestCase
 import bson
 import pytest
 from pydantic import ValidationError
+from eduid.common.models.amapi_user import Reason, Source
 
 from eduid.common.rpc.msg_relay import DeregisteredCauseCode, DeregistrationInformation, FullPostalAddress, Name
 from eduid.userdb.fixtures.users import mocked_user_standard
@@ -360,16 +361,16 @@ class TestUserChangeLog(TestCase):
             eppn="hubba-bubba",
             created_by="test",
             diff="diff",
-            reason="test_reason",
-            source="test_source",
+            reason=Reason.TEST,
+            source=Source.TEST,
         )
 
         data_2 = UserChangeLogElement(
             eppn="hubba-bubba",
             created_by="test",
             diff="diff",
-            reason="test_reason",
-            source="test_source",
+            reason=Reason.TEST,
+            source=Source.TEST,
         )
 
         self.user_log_db.save(data_1)
@@ -392,8 +393,8 @@ class TestUserChangeLog(TestCase):
             eppn="hubba-biss",
             created_by="test",
             diff="diff",
-            reason="test_reason",
-            source="test_source",
+            reason=Reason.TEST,
+            source=Source.TEST,
         )
 
         self.user_log_db.save(data_3)
