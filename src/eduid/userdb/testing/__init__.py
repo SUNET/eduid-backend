@@ -39,17 +39,16 @@ from __future__ import annotations
 import logging
 import logging.config
 import unittest
-from typing import Any, Dict, List, Optional, Sequence, Type, cast
+from typing import List, Optional, Sequence, Type, cast
 
 import pymongo
 import pymongo.errors
 
 from eduid.common.logging import LocalContext, make_dictConfig
 from eduid.userdb import User
-from eduid.userdb.db import BaseDB, TUserDbDocument
+from eduid.userdb.db import TUserDbDocument
 from eduid.userdb.testing.temp_instance import EduidTemporaryInstance
 from eduid.userdb.userdb import AmDB
-from eduid.userdb.util import utc_now
 
 logger = logging.getLogger(__name__)
 
@@ -117,23 +116,6 @@ class MongoTestCase(unittest.TestCase):
     def setUp(self, am_users: Optional[List[User]] = None, **kwargs):
         """
         Test case initialization.
-
-        To not get a circular dependency between eduid-userdb and eduid-am, celery
-        and get_attribute_manager needs to be imported in the place where this
-        module is called.
-
-        Usage:
-
-            from eduid.workers.am.celery import celery, get_attribute_manager
-
-            class MyTest(MongoTestCase):
-
-                def setUp(self):
-                    super(MyTest, self).setUp(celery, get_attribute_manager)
-                    ...
-
-        :param init_am: True if the test needs am
-        :param am_settings: Test specific am settings
         :return:
         """
         super().setUp()

@@ -3,8 +3,8 @@
 from typing import Any, Dict, List, Type, Union
 
 from bson import ObjectId
-from eduid.userdb.db import TUserDbDocument
 
+from eduid.userdb.db import TUserDbDocument
 from eduid.userdb.proofing import LetterProofingState
 from eduid.userdb.signup import SignupUserDB
 from eduid.userdb.support import models

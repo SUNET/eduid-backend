@@ -43,6 +43,7 @@ from eduid.webapp.common.api.utils import get_unique_hash, save_and_sync_user
 
 def new_proofing_state(email: str, user: User):
     old_state = current_app.proofing_statedb.get_state_by_eppn_and_email(user.eppn, email)
+    current_app.logger.debug(f"Old proofing state in db: {old_state}")
 
     if old_state is not None:
         if old_state.is_throttled(current_app.conf.throttle_resend_seconds):
