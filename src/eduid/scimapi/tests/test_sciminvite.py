@@ -236,7 +236,7 @@ class TestInviteResource(ScimApiTestCase):
             finish_url=invite_data.get("finish_url"),
             expires_at=datetime.utcnow() + timedelta(seconds=self.context.config.invite_expire),
         )
-        self.signup_invitedb.save(signup_invite)
+        self.signup_invitedb.save(signup_invite, is_in_database=False)
         return db_invite
 
     def _assertUpdateSuccess(self, req: Mapping, response, invite: ScimApiInvite, signup_invite: SignupInvite):

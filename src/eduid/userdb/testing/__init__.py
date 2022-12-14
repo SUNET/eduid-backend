@@ -162,7 +162,8 @@ class MongoTestCase(unittest.TestCase):
         if am_users:
             # Set up test users in the MongoDB.
             for user in am_users:
-                self.amdb.save(user, check_sync=False)
+                logger.debug(f"Adding test user {user} to the database")
+                self.amdb.save(user)
 
     def _init_logging(self):
         local_context = LocalContext(

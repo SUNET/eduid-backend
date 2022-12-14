@@ -11,11 +11,11 @@ from eduid.common.rpc.msg_relay import FullPostalAddress
 from eduid.common.testing_base import normalised_data
 from eduid.userdb import NinIdentity
 from eduid.userdb.fixtures.users import new_user_example
+from eduid.userdb.identity import IdentityList
 from eduid.userdb.logs import ProofingLog
 from eduid.userdb.logs.element import ForeignIdProofingLogElement, NinProofingLogElement
 from eduid.userdb.proofing import LetterProofingStateDB, LetterProofingUserDB, NinProofingElement, ProofingUser
 from eduid.userdb.proofing.state import NinProofingState
-from eduid.userdb.user import User
 from eduid.webapp.common.api.app import EduIDBaseApp
 from eduid.webapp.common.api.helpers import (
     add_nin_to_user,
@@ -65,9 +65,9 @@ class NinHelpersTest(EduidAPITestCase):
         )
 
     def insert_verified_user(self):
-        userdata = new_user_example.to_dict()
-        del userdata["identities"]
-        user = User.from_dict(data=userdata)
+        user = self.app.central_userdb.get_user_by_eppn(new_user_example.eppn)
+        assert user is not None
+        user.identities = IdentityList()
         nin_element = NinIdentity.from_dict(
             dict(
                 number=self.test_user_nin,
@@ -76,13 +76,13 @@ class NinHelpersTest(EduidAPITestCase):
             )
         )
         user.identities.add(nin_element)
-        self.app.central_userdb.save(user, check_sync=False)
+        self.app.central_userdb.save(user)
         return user.eppn
 
     def insert_not_verified_user(self):
-        userdata = new_user_example.to_dict()
-        del userdata["identities"]
-        user = User.from_dict(data=userdata)
+        user = self.app.central_userdb.get_user_by_eppn(new_user_example.eppn)
+        assert user is not None
+        user.identities = IdentityList()
         nin_element = NinIdentity.from_dict(
             dict(
                 number=self.test_user_nin,
@@ -91,15 +91,15 @@ class NinHelpersTest(EduidAPITestCase):
             )
         )
         user.identities.add(nin_element)
-        self.app.central_userdb.save(user, check_sync=False)
+        self.app.central_userdb.save(user)
         return user.eppn
 
     def insert_no_nins_user(self):
         # Replace user with one without previous proofings
-        userdata = new_user_example.to_dict()
-        del userdata["identities"]
-        user = User.from_dict(data=userdata)
-        self.app.central_userdb.save(user, check_sync=False)
+        user = self.app.central_userdb.get_user_by_eppn(new_user_example.eppn)
+        assert user is not None
+        user.identities = IdentityList()
+        self.app.central_userdb.save(user)
         return user.eppn
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")

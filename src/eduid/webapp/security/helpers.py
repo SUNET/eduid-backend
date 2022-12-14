@@ -116,7 +116,7 @@ def remove_nin_from_user(security_user: SecurityUser, nin: NinIdentity) -> None:
     security_user.identities.remove(nin.key)
     security_user.modified_ts = utc_now()
     # Save user to private db
-    current_app.private_userdb.save(security_user, check_sync=False)
+    current_app.private_userdb.save(security_user)
     # Ask am to sync user to central db
     current_app.logger.debug(f"Request sync for user {security_user}")
     result = current_app.am_relay.request_user_sync(security_user)

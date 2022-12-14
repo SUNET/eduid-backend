@@ -63,7 +63,7 @@ def update_modified_ts(user: User) -> None:
     if private_user.modified_ts is None:
         private_user.modified_ts = datetime.utcnow()  # use current time
         logger.debug(f"Updating user {private_user} with new modified_ts: {private_user.modified_ts}")
-        current_app.private_userdb.save(private_user, check_sync=False)
+        current_app.private_userdb.save(private_user)
 
     user.modified_ts = private_user.modified_ts
     logger.debug(

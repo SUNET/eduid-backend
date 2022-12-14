@@ -218,11 +218,11 @@ class TestSSO(SSOIdPTests):
         add_tou: bool = True,
         add_credentials_to_this_request: bool = True,
     ) -> NextResult:
-        if add_tou:
-            self.add_test_user_tou()
-
         if user is None:
             user = self.get_user_set_nins(self.test_user.eppn, [])
+
+        if add_tou:
+            self.add_test_user_tou(user)
 
         sso_session_1 = SSOSession(
             authn_request_id="some-unique-id-1",
@@ -255,7 +255,7 @@ class TestSSO(SSOIdPTests):
             sso_session_1.add_authn_credential(data)
 
         # Need to save any changed credentials to the user
-        self.amdb.save(user, check_sync=False)
+        self.amdb.save(user)
 
         with self.app.test_request_context():
             ticket = self._make_login_ticket(req_class_ref)

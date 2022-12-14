@@ -34,6 +34,7 @@
 from __future__ import annotations
 
 import copy
+import logging
 from datetime import datetime
 from enum import Enum, unique
 from operator import itemgetter
@@ -56,6 +57,8 @@ from eduid.userdb.orcid import Orcid
 from eduid.userdb.phone import PhoneNumberList
 from eduid.userdb.profile import ProfileList
 from eduid.userdb.tou import ToUList
+
+logger = logging.getLogger(__name__)
 
 TUserSubclass = TypeVar("TUserSubclass", bound="User")
 
@@ -126,7 +129,9 @@ class User(BaseModel):
         return values
 
     def __str__(self):
-        return f"<eduID {self.__class__.__name__}: {self.eppn}/{self.user_id}>"
+        if self.meta.is_in_database:
+            return f"<eduID {self.__class__.__name__}: {self.eppn}/v{self.meta.version}>"
+        return f"<eduID {self.__class__.__name__}: {self.eppn}/not in db>"
 
     def __eq__(self, other: Any):
         if self.__class__ is not other.__class__:
@@ -228,7 +233,7 @@ class User(BaseModel):
         for key in list(data.keys()):
             if data[key] in ["", []]:
                 if key in ["passwords", "credentials"]:
-                    # Empty lists are acceptable for these. When the UserHasNotComepletedSignup
+                    # Empty lists are acceptable for these. When the UserHasNotCompletedSignup
                     # exception is removed, this exception to the rule can be removed too.
                     continue
                 del data[key]
@@ -242,25 +247,29 @@ class User(BaseModel):
     @classmethod
     def from_user(cls: Type[TUserSubclass], user: User, private_userdb: BaseDB) -> TUserSubclass:
         """
-        This function is only expected to be used by subclasses of User.
+        This function is only expected to be used with subclasses of User.
 
         :param user: User instance from AM database
         :param private_userdb: Private UserDB to load modified_ts from
 
-        :return: User proper
+        :return: User subclass instance corresponding to the user in the private database
         """
         # We cast here to avoid importing UserDB at the module level thus creating a circular import
         from eduid.userdb import UserDB
 
         private_userdb = cast(UserDB[TUserSubclass], private_userdb)
 
-        user_dict = user.to_dict()
         private_user = private_userdb.get_user_by_eppn(user.eppn)
-        if private_user is None:
-            user_dict.pop("modified_ts", None)
-        else:
-            user_dict["modified_ts"] = private_user.modified_ts
-        return cls.from_dict(data=user_dict)
+        logger.debug(f"{cls}: User in private database: {private_user}")
+
+        new_user = cls.from_dict(data=user.to_dict())
+        if private_user is not None:
+            new_user.modified_ts = private_user.modified_ts
+            new_user.meta.modified_ts = private_user.meta.modified_ts
+            new_user.meta.version = private_user.meta.version
+            new_user.meta.is_in_database = True
+            logger.debug(f"Initialised private user with meta {new_user.meta}")
+        return new_user
 
     @classmethod
     def check_or_use_data(cls, data: Dict[str, Any]) -> Dict[str, Any]:

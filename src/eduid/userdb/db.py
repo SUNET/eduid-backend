@@ -439,7 +439,7 @@ class BaseDB(object):
         self,
         data: TUserDbDocument,
         spec: Mapping[str, Any],
-        check_sync: bool,
+        is_in_database: bool,
         previous_version: Optional[ObjectId] = None,
     ) -> SaveResult:
         """Save a document in the db."""
@@ -447,8 +447,7 @@ class BaseDB(object):
         previous_ts = data.get("modified_ts")
 
         _new_version = data.get("meta", {}).get("version", None)
-        if _new_version:
-            logger.debug(f"{self} Saving document (version {previous_version} -> {_new_version})")
+        logger.debug(f"{self} Saving document (version {previous_version} -> {_new_version})")
 
         extra_logger.debug(f"{self} Extra debug: Full document:\n {format_dict_for_debug(data)}")
 
@@ -457,46 +456,63 @@ class BaseDB(object):
         if "meta" in data:
             data["meta"]["modified_ts"] = now  # update meta.modified_ts (new) to current time
 
-        if previous_ts is None:
+        if not is_in_database:
             # This is a new document, insert it
-            logger.debug(f"Inserting new document with modified_ts {now.isoformat()}")
-            insert_result = self._coll.insert_one(data)
+            logger.debug(
+                f"{self} Inserting new document with modified_ts {now.isoformat()}, meta.version {_new_version}"
+            )
+            try:
+                insert_result = self._coll.insert_one(data)
+            except pymongo.errors.DuplicateKeyError:
+                # Log failure and raise DocumentOutOfSync exception
+                db_doc = self._get_and_format_existing_doc_for_logging(spec)
+                logger.error(
+                    f"{self} FAILED inserting new document.\nLoad with spec:\n{format_dict_for_debug(spec)}\n"
+                    f"In database:\n{db_doc}\n)"
+                )
+                raise
+
             save_result = SaveResult(inserted=1, doc_id=insert_result.inserted_id, ts=now)
             logger.debug(f"{self} Inserted new document into {self._coll_name}): {save_result})")
             return save_result
 
+        #
+        # Update an existing document
+        #
         replace_spec = dict(spec)
-        if check_sync:
+        if previous_ts is not None:
             replace_spec["modified_ts"] = previous_ts
-            if previous_version is not None:
-                replace_spec["meta.version"] = previous_version
+        if previous_version is not None:
+            replace_spec["meta.version"] = previous_version
 
         extra_logger.debug(f"{self} Extra debug: replacing document using spec:\n{format_dict_for_debug(replace_spec)}")
 
-        # TODO: The upsert=(not check_sync) part lets us get away with (test) users having a timestamp
-        #       (from instantiation) even though they are not in the database. Could be improved upon.
-        update_result = self._coll.replace_one(replace_spec, data, upsert=(not check_sync))
+        update_result = self._coll.replace_one(replace_spec, data)
         save_result = SaveResult(updated=update_result.modified_count, doc_id=data["_id"], ts=now)
 
         if update_result.matched_count == 0:
-            # Log failure and raise DocumentOutOfSync exception if check_sync was True
-            db_doc = {}
-            db_state = self._coll.find_one(spec)
-            if db_state:
-                db_doc["modified_ts"] = db_state.get("modified_ts")
-                db_doc["meta"] = db_state.get("meta")
-
+            # Log failure and raise DocumentOutOfSync exception
+            db_doc = self._get_and_format_existing_doc_for_logging(spec)
             logger.error(
-                f"{self} FAILED Updating document\n{format_dict_for_debug(replace_spec)}\n"
-                f"with check_sync={check_sync} (in db:\n"
-                f"{format_dict_for_debug(db_doc)}\n): {save_result}"
+                f"{self} FAILED updating document\n{format_dict_for_debug(replace_spec)}\n"
+                f"with is_in_database={is_in_database}\nLoad with spec\n{format_dict_for_debug(spec)}\n"
+                f"In database:\n{db_doc}\n): {save_result}"
             )
 
-            if check_sync:
-                raise DocumentOutOfSync("Stale document can't be saved")
+            raise DocumentOutOfSync("Stale document can't be saved")
 
         logger.debug(f"{self} Updated document {replace_spec} (ts {now.isoformat()}): {save_result}")
         return save_result
+
+    def _get_and_format_existing_doc_for_logging(self, spec: Mapping[str, Any]) -> Optional[str]:
+        db_doc = {}
+        db_state = self._coll.find_one(spec)
+        if not db_state:
+            return "No document found"
+
+        db_doc["modified_ts"] = db_state.get("modified_ts")
+        db_doc["meta"] = db_state.get("meta")
+        return format_dict_for_debug(db_doc)
 
     def close(self):
         self._db.close()

@@ -76,7 +76,7 @@ def unverify_mail_aliases(userdb: AmDB, user_id: ObjectId, mail_aliases: Optiona
                         old_user_mail_address.is_verified = False
                     count += 1
                     logger.debug("Old user mail aliases AFTER: {}".format(user.mail_addresses.to_list()))
-                    userdb.old_save(user)
+                    userdb.save(user)
         except DocumentDoesNotExist:
             pass
     return count
@@ -114,7 +114,7 @@ def unverify_phones(userdb: AmDB, user_id: ObjectId, phones: List[Dict[str, Any]
                         old_user_phone_number.is_verified = False
                     count += 1
                     logger.debug("Old user phone numbers AFTER: {}.".format(user.phone_numbers.to_list()))
-                    userdb.old_save(user)
+                    userdb.save(user)
         except DocumentDoesNotExist:
             pass
     return count
@@ -149,7 +149,7 @@ def unverify_identities(userdb: AmDB, user_id: ObjectId, identities: List[Dict[s
                         other_identity.is_verified = False
                     count += 1
                     logger.debug(f"Old user identities AFTER: {other_user.identities.to_list()}.")
-                    userdb.old_save(other_user)
+                    userdb.save(other_user)
         except DocumentDoesNotExist:
             pass
     return count

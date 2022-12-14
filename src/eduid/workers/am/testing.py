@@ -200,7 +200,7 @@ class ProofingTestCase(AMTestCase):
             proofing_user = ProofingUser.from_dict(userdoc)
             for fetcher in AmCelerySingleton.af_registry.all_fetchers():
                 assert fetcher.private_db
-                fetcher.private_db.save(proofing_user, check_sync=False)
+                fetcher.private_db.save(proofing_user)
 
     def test_invalid_user(self):
         if self.fetcher is None:

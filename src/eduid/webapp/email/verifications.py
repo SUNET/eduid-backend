@@ -55,7 +55,7 @@ def new_proofing_state(email: str, user: User):
     proofing_state = EmailProofingState(id=None, modified_ts=None, eppn=user.eppn, verification=verification)
     # XXX This should be an atomic transaction together with saving
     # the user and sending the letter.
-    current_app.proofing_statedb.save(proofing_state)
+    current_app.proofing_statedb.save(proofing_state, is_in_database=False)
 
     current_app.logger.info("Created new email proofing state")
     current_app.logger.debug("Proofing state: {!r}.".format(proofing_state.to_dict()))

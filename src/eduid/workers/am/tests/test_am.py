@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-
 from bson import ObjectId
 
 import eduid.userdb
@@ -150,7 +149,7 @@ class MessageTest(AMTestCase):
         user_dict = test_user.to_dict()
         del user_dict["uid"]
         central_user = eduid.userdb.User.from_dict(user_dict)
-        self.amdb.save(central_user, check_sync=False)
+        self.amdb.save(central_user)
 
         am_user = self.amdb.get_user_by_id(_id)
         self.assertNotEqual(am_user.eppn, "teste-teste")
@@ -182,7 +181,7 @@ class MessageTest(AMTestCase):
         user_dict = test_user.to_dict()
         del user_dict["uid"]
         central_user = eduid.userdb.User.from_dict(user_dict)
-        self.amdb.save(central_user, check_sync=False)
+        self.amdb.save(central_user)
 
         am_user = self.amdb.get_user_by_id(_id)
         self.assertNotEqual(am_user.eppn, "teste-teste")

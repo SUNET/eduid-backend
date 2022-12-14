@@ -915,6 +915,10 @@ class TestNewUser(unittest.TestCase):
         assert user_dict2["meta"] == expected
 
     def test_user_meta_version(self):
+        assert self.user1.meta.is_in_database is False
+        assert self.user1.meta.version is None
+        self.user1.meta.new_version()
+        assert self.user1.meta.is_in_database is False
         assert isinstance(self.user1.meta.version, ObjectId) is True
 
     def test_user_meta_modified_ts(self):
