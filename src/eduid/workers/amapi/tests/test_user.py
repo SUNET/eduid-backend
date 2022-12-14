@@ -22,6 +22,7 @@ from eduid.workers.amapi.app import init_api
 from eduid.workers.amapi.config import EndpointRestriction
 from eduid.workers.amapi.utils import AuthnBearerToken
 from eduid.workers.amapi.testing import TestAMBase
+from eduid.userdb.meta import CleanerType
 
 
 class TestUsers(TestAMBase, GNAPBearerTokenMixin):
@@ -345,10 +346,10 @@ class TestUsers(TestAMBase, GNAPBearerTokenMixin):
         )
         assert got.status_code == status.HTTP_200_OK
         user_after = self.amdb.get_user_by_eppn(self.eppn)
-        assert user_after.meta.cleaned["skatteverket"] != user_before.meta.cleaned["skatteverket"]
+        assert user_after.meta.cleaned[CleanerType.SKV] != user_before.meta.cleaned[CleanerType.SKV]
         assert_diff = {
             "values_changed": {
-                "root['meta']['cleaned']['CleanerType.SKV']": {
+                "root['meta']['cleaned']['skatteverket']": {
                     "new_value": "2013-09-02T10:23:25+00:00",
                     "old_value": "2017-01-04T16:47:30+00:00",
                 }
@@ -361,7 +362,7 @@ class TestUsers(TestAMBase, GNAPBearerTokenMixin):
         req = {
             "source": self.source,
             "reason": self.reason,
-            "type": "skatteverket",
+            "type": CleanerType.SKV,
         }
 
         user_before = self.amdb.get_user_by_eppn(self.eppn)

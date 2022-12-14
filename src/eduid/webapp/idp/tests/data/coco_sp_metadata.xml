@@ -70,9 +70,8 @@ wHyaxzYldWmVC5omkgZeAdCGpJ316GQF8Zwg/yDOUzm4cvGeIESf1Q6ZxBwI6zGE
     <ns0:AttributeConsumingService index="0">
         <ns0:ServiceName xml:lang="en">coco-test-SP</ns0:ServiceName>
         <ns0:ServiceDescription xml:lang="en">COCO test SP</ns0:ServiceDescription>
-        <!-- Require eduPersonTargetedID and pairwise-id -->
+        <!-- Require eduPersonTargetedID -->
         <ns0:RequestedAttribute FriendlyName="eduPersonTargetedID" Name="urn:oid:1.3.6.1.4.1.5923.1.1.1.10" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri" isRequired="true" />
-        <ns0:RequestedAttribute FriendlyName="pairwise-id" Name="urn:oasis:names:tc:SAML:attribute:pairwise-id" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri" isRequired="true" />
     </ns0:AttributeConsumingService>
   </ns0:SPSSODescriptor>
   <ns0:Organization>
