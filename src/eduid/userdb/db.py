@@ -18,7 +18,7 @@ from eduid.userdb.exceptions import DocumentOutOfSync, EduIDUserDBError, MongoCo
 from eduid.userdb.util import format_dict_for_debug, utc_now
 
 logger = logging.getLogger(__name__)
-extra_logger = logger.getChild("extra")
+extra_logger = logger.getChild("extra_debug")
 
 if TYPE_CHECKING:
     from motor import motor_asyncio
