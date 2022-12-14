@@ -10,6 +10,7 @@ from uuid import UUID
 import bson
 from fido_mds.models.fido_mds import Entry as FidoMetadataEntry
 from pydantic import Field
+from eduid.common.models.amapi_user import Reason, Source
 
 from eduid.common.rpc.msg_relay import DeregistrationInformation, FullPostalAddress
 from eduid.userdb.element import Element
@@ -520,5 +521,5 @@ class UserChangeLogElement(LogElement):
     eppn: str = Field(alias="eduPersonPrincipalName")
     diff: str
     log_element_id: Optional[bson.ObjectId] = Field(alias="_id")
-    reason: str
-    source: str
+    reason: Reason
+    source: Source

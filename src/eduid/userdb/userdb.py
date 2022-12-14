@@ -50,7 +50,7 @@ from eduid.userdb.exceptions import (
     UserOutOfSync,
 )
 from eduid.userdb.identity import IdentityType
-from eduid.userdb.meta import CleanedType, Meta
+from eduid.userdb.meta import CleanerType, Meta
 from eduid.userdb.user import User
 
 logger = logging.getLogger(__name__)
@@ -133,7 +133,7 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
         return self._users_from_documents(users)
 
     def get_uncleaned_verified_users(
-        self, cleaned_type: CleanedType, identity_type: IdentityType, limit: int
+        self, cleaned_type: CleanerType, identity_type: IdentityType, limit: int
     ) -> List[UserVar]:
         match = {
             "identities": {
