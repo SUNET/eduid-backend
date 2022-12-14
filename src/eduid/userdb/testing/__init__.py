@@ -146,6 +146,9 @@ class MongoTestCase(unittest.TestCase):
         assert isinstance(self.tmp_db, MongoTemporaryInstance)  # please mypy
         self.amdb = AmDB(self.tmp_db.uri)
 
+        logger.info("Resetting all databases for new tests")
+        self._reset_databases()
+
         mongo_settings = {
             "mongo_replicaset": None,
             "mongo_uri": self.tmp_db.uri,
@@ -172,14 +175,22 @@ class MongoTestCase(unittest.TestCase):
         logging_config = make_dictConfig(local_context)
         logging.config.dictConfig(logging_config)
 
-    def tearDown(self):
-        for userdoc in self.amdb._get_all_docs():
-            assert User.from_dict(data=userdoc)
-        # Reset databases for the next test class, but do not shut down the temporary
-        # mongodb instance, for efficiency reasons.
+    def _reset_databases(self):
+        """
+        Reset databases for the next test class.
+
+        We do this both at shutdown (to clean up) and in setUp() to make sure that tests get a clean environment.
+        Particularly vscode doesn't always run tearDown(), when tests fails or the debugger is stopped mid-test.
+        """
         for db_name in self.tmp_db.conn.list_database_names():
             if db_name not in ["local", "admin", "config"]:  # Do not drop mongo internal dbs
                 self.tmp_db.conn.drop_database(db_name)
         self.amdb._drop_whole_collection()
+
+    def tearDown(self):
+        for userdoc in self.amdb._get_all_docs():
+            assert User.from_dict(data=userdoc)
+        self._reset_databases()
+        # Close, but do not shut down the temporary MongoDB instance for performance reasons.
         self.amdb.close()
         super().tearDown()
