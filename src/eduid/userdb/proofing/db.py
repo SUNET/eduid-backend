@@ -104,7 +104,7 @@ class ProofingStateDB(BaseDB, Generic[ProofingStateVar], ABC):
 
         return self.state_from_dict(docs[0])
 
-    def save(self, state: ProofingStateVar, check_sync: bool = True) -> SaveResult:
+    def save(self, state: ProofingStateVar, is_in_database: bool = True) -> SaveResult:
         """
         :param check_sync: Ensure the document hasn't been updated in the database since it was loaded
         """
@@ -112,7 +112,7 @@ class ProofingStateDB(BaseDB, Generic[ProofingStateVar], ABC):
             raise TypeError("State must be a ProofingState subclass")
         spec: Dict[str, Any] = {"eduPersonPrincipalName": state.eppn}
 
-        result = self._save(state.to_dict(), spec, check_sync)
+        result = self._save(state.to_dict(), spec, is_in_database=is_in_database)
         state.modified_ts = result.ts
 
         return result
