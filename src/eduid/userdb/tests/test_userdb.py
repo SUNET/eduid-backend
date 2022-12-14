@@ -123,7 +123,7 @@ class UserMissingMeta(MongoTestCase):
     def test_update_user_old(self):
         db_user = self.amdb.get_user_by_id(self.user.user_id)
         db_user.given_name = "test"
-        self.amdb.old_save(user=db_user, check_sync=True)
+        self.amdb.save(user=db_user)
 
 
 class UpdateUser(MongoTestCase):

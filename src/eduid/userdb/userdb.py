@@ -419,9 +419,6 @@ class AmDB(UserDB[User]):
 
         return UserSaveResult(success=bool(result))
 
-    def old_save(self, user: User, check_sync: bool = True) -> bool:
-        return super().save(user, check_sync).success
-
     def unverify_mail_aliases(self, user_id: ObjectId, mail_aliases: Optional[List[Dict[str, Any]]]) -> int:
         count = 0
         if mail_aliases is None:
@@ -447,7 +444,7 @@ class AmDB(UserDB[User]):
                             old_user_mail_address.is_verified = False
                         count += 1
                         logger.debug(f"Old user mail aliases AFTER: {user.mail_addresses.to_list()}")
-                        self.old_save(user)
+                        self.save(user)
             except DocumentDoesNotExist:
                 pass
         return count
@@ -477,7 +474,7 @@ class AmDB(UserDB[User]):
                             old_user_phone_number.is_verified = False
                         count += 1
                         logger.debug(f"Old user phone numbers AFTER: {user.phone_numbers.to_list()}.")
-                        self.old_save(user)
+                        self.save(user)
             except DocumentDoesNotExist:
                 pass
         return count
