@@ -64,7 +64,7 @@ from eduid.userdb.fixtures.tous import signup_2016_v1
 from eduid.userdb.identity import IdentityList
 from eduid.userdb.locked_identity import LockedIdentityList
 from eduid.userdb.mail import MailAddressList
-from eduid.userdb.meta import CleanedType, Meta
+from eduid.userdb.meta import CleanerType, Meta
 from eduid.userdb.nin import NinList
 from eduid.userdb.phone import PhoneNumberList
 from eduid.userdb.signup.user import SignupUser
@@ -178,7 +178,7 @@ new_user_example = User(
     meta=Meta(
         version=ObjectId("987654321098765432103210"),
         cleaned={
-            CleanedType.SKV: utc_now(),
+            CleanerType.SKV: datetime.fromisoformat("2017-01-04T16:47:30"),
         },
     ),
     eppn="hubba-bubba",
@@ -205,7 +205,7 @@ new_user_example = User(
 new_user_example2 = User(
     meta=Meta(
         version=ObjectId("987654321098765432103210"),
-        cleaned={"skv": datetime.fromisoformat("2013-09-02T10:23:25")},
+        cleaned={CleanerType.SKV: datetime.fromisoformat("2013-09-02T10:23:25")},
     ),
     eppn="hubba-biss",
     user_id=ObjectId("012345678901234567890124"),
