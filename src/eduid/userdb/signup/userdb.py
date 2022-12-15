@@ -31,8 +31,8 @@
 #
 from datetime import timedelta
 from typing import Optional
-from eduid.userdb.db import TUserDbDocument
 
+from eduid.userdb.db import TUserDbDocument
 from eduid.userdb.signup import SignupUser
 from eduid.userdb.userdb import UserDB
 

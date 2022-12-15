@@ -41,9 +41,10 @@ from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Any, Dict, List, Mapping, Optional, Sequence, TypeVar, Union
 
+from bson import ObjectId
+
 from eduid.common.logging import LocalContext, make_dictConfig
 from eduid.userdb.testing import MongoTestCase
-from bson import ObjectId
 
 logger = logging.getLogger(__name__)
 

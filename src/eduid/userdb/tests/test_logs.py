@@ -5,8 +5,8 @@ from unittest import TestCase
 import bson
 import pytest
 from pydantic import ValidationError
-from eduid.common.models.amapi_user import Reason, Source
 
+from eduid.common.models.amapi_user import Reason, Source
 from eduid.common.rpc.msg_relay import DeregisteredCauseCode, DeregistrationInformation, FullPostalAddress, Name
 from eduid.userdb.fixtures.users import mocked_user_standard
 from eduid.userdb.logs.db import ProofingLog, UserChangeLog

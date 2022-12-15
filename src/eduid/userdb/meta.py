@@ -2,7 +2,7 @@
 
 from datetime import datetime
 from enum import Enum
-from typing import Dict, Mapping, Optional
+from typing import Dict, Optional
 
 from bson import ObjectId
 from pydantic import BaseModel, Field

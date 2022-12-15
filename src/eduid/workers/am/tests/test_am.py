@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 
-
 from bson import ObjectId
 
 import eduid.userdb
