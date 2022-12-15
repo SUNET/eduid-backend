@@ -14,9 +14,9 @@ from requests import Response
 
 from eduid.common.clients.gnap_client.base import GNAPBearerTokenMixin
 from eduid.userdb.fixtures.users import new_user_example
-from eduid.workers.amapi.utils import AuthnBearerToken
-from eduid.workers.amapi.testing import TestAMBase
 from eduid.userdb.meta import CleanerType
+from eduid.workers.amapi.testing import TestAMBase
+from eduid.workers.amapi.utils import AuthnBearerToken
 
 
 class TestUsers(TestAMBase, GNAPBearerTokenMixin):

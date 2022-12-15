@@ -4,19 +4,19 @@ from deepdiff import DeepDiff
 
 from eduid.common.fastapi.exceptions import BadRequest
 from eduid.common.misc.timeutil import utc_now
+from eduid.common.models.amapi_user import (
+    UserUpdateEmailRequest,
+    UserUpdateLanguageRequest,
+    UserUpdateMetaCleanedRequest,
+    UserUpdateNameRequest,
+    UserUpdatePhoneRequest,
+    UserUpdateResponse,
+    UserUpdateTerminateRequest,
+)
 from eduid.userdb.logs.element import UserChangeLogElement
 from eduid.userdb.mail import MailAddressList
 from eduid.userdb.phone import PhoneNumberList
 from eduid.workers.amapi.context_request import ContextRequest
-from eduid.common.models.amapi_user import (
-    UserUpdateEmailRequest,
-    UserUpdateLanguageRequest,
-    UserUpdateNameRequest,
-    UserUpdatePhoneRequest,
-    UserUpdateResponse,
-    UserUpdateMetaCleanedRequest,
-    UserUpdateTerminateRequest,
-)
 
 
 def update_user(

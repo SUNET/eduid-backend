@@ -1,11 +1,13 @@
+import json
+from typing import Any, Dict
+
+import pkg_resources
+from fastapi.testclient import TestClient
+
 from eduid.common.models.amapi_user import Reason, Source
 from eduid.common.testing_base import CommonTestCase
-from eduid.workers.amapi.config import EndpointRestriction
-from typing import Dict, Any
-import pkg_resources
 from eduid.workers.amapi.app import init_api
-from fastapi.testclient import TestClient
-import json
+from eduid.workers.amapi.config import EndpointRestriction
 
 
 class TestAMBase(CommonTestCase):
