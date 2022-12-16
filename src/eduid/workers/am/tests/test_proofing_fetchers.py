@@ -182,8 +182,8 @@ class AttributeFetcherNINProofingTests(ProofingTestCase):
             "$unset": {"nins": None},
         }
 
-        assert (
-            normalised_data(fetched3) == expected
+        assert normalised_data(fetched3) == normalised_data(
+            expected
         ), "Fetched letter proofing data with appended attributes has unexpected data"
 
 

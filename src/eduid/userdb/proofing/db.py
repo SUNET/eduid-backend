@@ -243,8 +243,8 @@ class ProofingUserDB(UserDB[ProofingUser]):
     def __init__(self, db_uri: str, db_name: str, collection: str = "profiles"):
         super().__init__(db_uri, db_name, collection=collection)
 
-    def save(self, user: ProofingUser, check_sync: bool = True) -> UserSaveResult:
-        return super().save(user, check_sync=check_sync)
+    def save(self, user: ProofingUser) -> UserSaveResult:
+        return super().save(user)
 
     @classmethod
     def user_from_dict(cls, data: TUserDbDocument) -> ProofingUser:

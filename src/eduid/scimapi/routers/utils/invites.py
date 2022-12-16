@@ -155,7 +155,13 @@ def invites_to_resources_dicts(query: SearchRequest, invites: Sequence[ScimApiIn
     return [{"id": str(invite.scim_id)} for invite in invites]
 
 
-def save_invite(req: ContextRequest, db_invite: ScimApiInvite, signup_invite: SignupInvite) -> None:
+def save_invite(
+    req: ContextRequest,
+    db_invite: ScimApiInvite,
+    signup_invite: SignupInvite,
+    db_invite_is_in_database: bool,
+    signup_invite_is_in_database: bool,
+) -> None:
     try:
         req.context.invitedb.save(db_invite)
     except DuplicateKeyError as e:
@@ -165,7 +171,7 @@ def save_invite(req: ContextRequest, db_invite: ScimApiInvite, signup_invite: Si
         raise BadRequest(detail="Duplicated key error")
 
     try:
-        req.app.context.signup_invitedb.save(signup_invite)
+        req.app.context.signup_invitedb.save(signup_invite, is_in_database=signup_invite_is_in_database)
     except DuplicateKeyError as e:
         assert e.details is not None  # please mypy
         if "invite_code" in e.details["errmsg"]:
