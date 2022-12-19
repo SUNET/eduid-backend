@@ -52,7 +52,6 @@ from eduid.webapp.group_management.schemas import GroupRole
 __author__ = "lundberg"
 
 
-@pytest.mark.skipif(Neo4jTemporaryInstance.get_instance()._conn is None, reason="Neo4j database not available")
 class GroupManagementTests(EduidAPITestCase):
     """Base TestCase for those tests that need a full environment setup"""
 

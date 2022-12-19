@@ -100,7 +100,7 @@ class GroupManagementInviteStateDB(BaseDB):
 
         return states
 
-    def save(self, state: GroupInviteState, check_sync: bool = True) -> SaveResult:
+    def save(self, state: GroupInviteState, is_in_database: bool) -> SaveResult:
         """
         :param state: GroupInviteState object
         :param check_sync: Ensure the document hasn't been updated in the database since it was loaded
@@ -111,7 +111,7 @@ class GroupManagementInviteStateDB(BaseDB):
             "role": state.role,
         }
 
-        result = self._save(state.to_dict(), spec, check_sync)
+        result = self._save(state.to_dict(), spec, is_in_database=is_in_database)
         state = replace(state, modified_ts=result.ts)  # update to current time
 
         return result

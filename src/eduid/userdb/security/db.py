@@ -109,9 +109,10 @@ class PasswordResetStateDB(BaseDB):
             return PasswordResetEmailAndPhoneState.from_dict(_data)
         return None
 
-    def save(self, state: PasswordResetState, check_sync: bool = True) -> SaveResult:
+    def save(self, state: PasswordResetState, is_in_database: bool) -> SaveResult:
         """
         :param check_sync: Ensure the document hasn't been updated in the database since it was loaded
+        :param is_in_database: True if the state is already in the database. TODO: Remove when state have Meta.
         """
 
         data = state.to_dict()
@@ -129,7 +130,7 @@ class PasswordResetStateDB(BaseDB):
 
         spec: Dict[str, Any] = {"eduPersonPrincipalName": state.eppn}
 
-        result = self._save(state.to_dict(), spec, check_sync)
+        result = self._save(state.to_dict(), spec, is_in_database=is_in_database)
         state.modified_ts = result.ts
 
         return result

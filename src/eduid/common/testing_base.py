@@ -39,11 +39,10 @@ import os
 import uuid
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import Any, Dict, List, Mapping, Optional, Sequence, TypeVar, Union
+from typing import Any, Optional, TypeVar, Union
 
 from bson import ObjectId
 
-from eduid.common.logging import LocalContext, make_dictConfig
 from eduid.userdb.testing import MongoTestCase
 
 logger = logging.getLogger(__name__)
@@ -103,14 +102,27 @@ def normalised_data(data: SomeData, replace_datetime: Optional[str] = None) -> S
             """
             ret: dict[str, Any] = {}
             for key, value in o.items():
-                if key.endswith("_ts"):
+                if key.endswith("_ts") and isinstance(value, str):
                     try:
                         ret[key] = datetime.fromisoformat(value)
                         continue
                     except ValueError:
                         # The timestamp is sometimes normalised to a string that is not a timestamp (e.g. 'ts')
                         pass
+                if isinstance(value, list):
+                    try:
+                        value = sorted(value)
+                    except TypeError:
+                        # Not every list can be sorted, e.g. list of dicts.
+                        #   TypeError: '<' not supported between instances of 'dict' and 'dict'
+                        #
+                        # We really do need stable sorting of lists of dicts though, so we crudely turn anything into
+                        # strings here, and sort those.
+                        _str_values = [json.dumps(x, sort_keys=True, cls=NormaliseEncoder) for x in value]
+                        value = sorted(_str_values)
                 ret[key] = value
             return ret
 
-    return json.loads(json.dumps(data, sort_keys=True, cls=NormaliseEncoder), cls=NormaliseDecoder)
+    _dumped = json.dumps(data, sort_keys=True, cls=NormaliseEncoder)
+    _loaded = json.loads(_dumped, cls=NormaliseDecoder)
+    return _loaded

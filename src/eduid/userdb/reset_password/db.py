@@ -108,7 +108,7 @@ class ResetPasswordStateDB(BaseDB):
             return ResetPasswordEmailAndPhoneState.from_dict(data=state)
         return None
 
-    def save(self, state: ResetPasswordState, check_sync: bool = True) -> SaveResult:
+    def save(self, state: ResetPasswordState, is_in_database: bool = True) -> SaveResult:
         """
         :param check_sync: Ensure the document hasn't been updated in the database since it was loaded
         """
@@ -120,7 +120,7 @@ class ResetPasswordStateDB(BaseDB):
 
         spec: Dict[str, Any] = {"eduPersonPrincipalName": state.eppn}
 
-        result = self._save(state.to_dict(), spec, check_sync)
+        result = self._save(state.to_dict(), spec, is_in_database=is_in_database)
         state.modified_ts = result.ts
 
         return result

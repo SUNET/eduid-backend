@@ -177,7 +177,7 @@ def get_pwreset_state(email_code: str) -> Union[ResetPasswordEmailState, ResetPa
         # Revert the state to EmailState to allow the user to choose extra security again
         current_app.password_reset_state_db.remove_state(state)
         state = ResetPasswordEmailState(eppn=state.eppn, email_address=state.email_address, email_code=state.email_code)
-        current_app.password_reset_state_db.save(state)
+        current_app.password_reset_state_db.save(state, is_in_database=False)
         current_app.stats.count(name="phone_code_expired", value=1)
         raise StateException(msg=ResetPwMsg.expired_phone_code)
     return state
@@ -204,6 +204,7 @@ def send_password_reset_mail(email_address: str) -> ResetPasswordEmailState:
 
     # User found, check if a state already exists
     state = current_app.password_reset_state_db.get_state_by_eppn(eppn=user.eppn)
+    _is_in_db = state is not None
     if state and not state.email_code.is_expired(timeout=current_app.conf.email_code_timeout):
         # Let the user only send one mail every throttle_resend time period
         if state.is_throttled(current_app.conf.throttle_resend):
@@ -218,7 +219,8 @@ def send_password_reset_mail(email_address: str) -> ResetPasswordEmailState:
             email_address=email_address,
             email_code=CodeElement(code=get_unique_hash(), created_by=current_app.conf.app_name, is_verified=False),
         )
-    current_app.password_reset_state_db.save(state)
+        _is_in_db = False
+    current_app.password_reset_state_db.save(state, is_in_database=_is_in_db)
 
     # Send email
     text_template = "reset_password_email.txt.jinja2"

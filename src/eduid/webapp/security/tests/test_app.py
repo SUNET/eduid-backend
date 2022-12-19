@@ -163,7 +163,7 @@ class SecurityTests(EduidAPITestCase):
 
         if unverify:
             user.identities.nin.is_verified = False
-            self.app.central_userdb.save(user, check_sync=False)
+            self.app.central_userdb.save(user)
             assert user.identities.nin.is_verified is False
 
         with self.session_cookie(self.browser, self.test_user_eppn) as client:
@@ -194,12 +194,12 @@ class SecurityTests(EduidAPITestCase):
 
         if unverify:
             user.identities.nin.is_verified = False
-            self.app.central_userdb.save(user, check_sync=False)
+            self.app.central_userdb.save(user)
             assert user.identities.nin.is_verified is False
 
         if remove:
             user.identities.remove(ElementKey(IdentityType.NIN.value))
-            self.app.central_userdb.save(user, check_sync=False)
+            self.app.central_userdb.save(user)
             assert user.identities.nin is None
 
         with self.session_cookie(self.browser, self.test_user_eppn) as client:

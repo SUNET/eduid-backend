@@ -50,9 +50,8 @@ from eduid.userdb.exceptions import (
     UserOutOfSync,
 )
 from eduid.userdb.identity import IdentityType
-from eduid.userdb.meta import CleanerType
+from eduid.userdb.meta import CleanerType, Meta
 from eduid.userdb.user import User
-from eduid.userdb.util import format_dict_for_debug
 
 logger = logging.getLogger(__name__)
 extra_debug_logger = logger.getChild("extra_debug")
@@ -90,6 +89,25 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
 
     __str__ = __repr__
 
+    def _users_from_documents(self, documents: List[TUserDbDocument]) -> List[UserVar]:
+        """
+        Covert a list of user documents to a list of User instances.
+
+        NOTE: This method flags the users as being present in the database, so NEVER call it on anything
+              excepts documents just loaded from the database!!! Doing so will wreck saving the User to the database.
+
+        :param documents: List of user documents
+        :return: List of User instances
+        """
+        res: list[UserVar] = []
+        for x in [self.user_from_dict(doc) for doc in documents]:
+            # Flag this user as being present in the database
+            _meta = getattr(x, "meta", None)
+            if isinstance(_meta, Meta):
+                _meta.is_in_database = True
+            res.append(x)
+        return res
+
     @classmethod
     def user_from_dict(cls, data: TUserDbDocument) -> UserVar:
         # must be implemented by subclass to get correct type information
@@ -112,7 +130,7 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
 
     def _get_users_by_aggregate(self, match: dict[str, Any], sort: dict[str, Any], limit: int) -> List[UserVar]:
         users = self._get_documents_by_aggregate(match=match, sort=sort, limit=limit)
-        return [self.user_from_dict(data=user) for user in users]
+        return self._users_from_documents(users)
 
     def get_uncleaned_verified_users(
         self, cleaned_type: CleanerType, identity_type: IdentityType, limit: int
@@ -157,7 +175,7 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
             logger.debug("{!s} No user found with filter {!r} in {!r}".format(self, filter, self._coll_name))
             raise UserDoesNotExist("No user matching filter {!r}".format(filter))
 
-        return [self.user_from_dict(data=user) for user in users]
+        return self._users_from_documents(users)
 
     def get_user_by_mail(self, email: str) -> Optional[UserVar]:
         """Locate a user with a (confirmed) e-mail address"""
@@ -282,7 +300,7 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
             doc = self._get_document_by_attr(attr, value)
             if doc is not None:
                 logger.debug("{!s} Found user with id {!s}".format(self, doc["_id"]))
-                user = self.user_from_dict(data=doc)
+                user = self._users_from_documents([doc])[0]
                 logger.debug("{!s} Returning user {!s}".format(self, user))
             return user
         except DocumentDoesNotExist as e:
@@ -292,21 +310,21 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
             logger.error("MultipleUsersReturned, {!r} = {!r}".format(attr, value))
             raise MultipleUsersReturned(e.reason)
 
-    def save(self, user: UserVar, check_sync: bool = True) -> UserSaveResult:
+    def save(self, user: UserVar) -> UserSaveResult:
         """
         :param user: User object
-        :param check_sync: Ensure the user hasn't been updated in the database since it was loaded
         """
         if not isinstance(user, User):
             raise EduIDUserDBError(f"user is not a subclass of User")
 
         spec: Dict[str, Any] = {"_id": user.user_id}
         try:
-            result = self._save(user.to_dict(), spec, check_sync)
+            result = self._save(user.to_dict(), spec, is_in_database=user.meta.is_in_database)
         except DocumentOutOfSync:
             raise UserOutOfSync("User out of sync")
 
         user.modified_ts = result.ts
+        user.meta.is_in_database = True
 
         return UserSaveResult(success=bool(result))
 
@@ -320,11 +338,7 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
 
         Some other applications might have legitimate reasons to remove users from their
         private userdb collections though (like eduid-signup, at the end of the signup
-        process).
-
-        This method should ideally then only be available on eduid_signup.userdb.SignupUserDB
-        objects, but then eduid-am would have to depend on eduid_signup... Maybe the cleanup
-        could be done by the Signup application itself though.
+        process). And it might be used in tests.
 
         :param user_id: User id
         """
@@ -370,57 +384,25 @@ class AmDB(UserDB[User]):
     def user_from_dict(cls, data: TUserDbDocument) -> User:
         return User.from_dict(data)
 
-    def save(self, user: User, check_sync: bool = True) -> UserSaveResult:
+    def save(self, user: User) -> UserSaveResult:  # type: ignore[override]
         """
-        :param user: User object
-        :param check_sync: Ensure the user hasn't been updated in the database since it was loaded
+        Save a User object to the database.
         """
         previous_version: Optional[ObjectId] = user.meta.version
         user.meta.new_version()
 
-        # Since user.meta.version is always initialised, we can't look at it to determine if the user
-        # already exists or not.
         spec: Dict[str, Any] = {"_id": user.user_id}
-        logger.debug(f"AMDB Save: Looking for existing user with filter {spec}")
-
-        db_user = self._coll.find_one(spec)
-        _db_user_as_dict = None if not db_user else format_dict_for_debug(db_user)
-        logger.debug(f"Pre-existing user in database:\n{_db_user_as_dict}")
-        if db_user is None:
-            # TODO: There's a race condition between the find_one and the actual save operation below.
-            #
-            #         https://en.wikipedia.org/wiki/Time-of-check_to_time-of-use
-            #
-            #       Possible solution is to make meta.version Optional[ObjectId] and set it to None at
-            #       init, and let the call to user.meta.new_version() set it to a new ObjectId.
-            logger.debug(f"No user with id {user.user_id} found in {self._coll_name}, bypassing meta.version logic")
-            previous_version = None
-        else:
-            if user.modified_ts is None:
-                user.modified_ts = db_user.get("modified_ts", None)
-                if user.modified_ts:
-                    logger.debug(f"Updated document with modified_ts from database: {user.modified_ts.isoformat()}")
-                else:
-                    logger.warning(f"The user in the database does not have a modified_ts")
-            if user.meta.modified_ts is None:
-                user.meta.modified_ts = db_user.get("meta", {}).get("modified_ts", None)
-            _old_version = db_user.get("meta", {}).get("version", None)
-            if not _old_version:
-                # TODO: If meta.version was Optional, we wouldn't need this.
-                logger.warning(f"The user in the database does not have a meta.version, settings previous_version=None")
-                previous_version = None
 
         try:
-            result = self._save(user.to_dict(), spec, check_sync, previous_version=previous_version)
+            result = self._save(
+                user.to_dict(), spec, is_in_database=user.meta.is_in_database, previous_version=previous_version
+            )
         except DocumentOutOfSync:
             raise UserOutOfSync("User out of sync")
 
         user.modified_ts = result.ts
 
         return UserSaveResult(success=bool(result))
-
-    def old_save(self, user: User, check_sync: bool = True) -> bool:
-        return super().save(user, check_sync).success
 
     def unverify_mail_aliases(self, user_id: ObjectId, mail_aliases: Optional[List[Dict[str, Any]]]) -> int:
         count = 0
@@ -447,7 +429,7 @@ class AmDB(UserDB[User]):
                             old_user_mail_address.is_verified = False
                         count += 1
                         logger.debug(f"Old user mail aliases AFTER: {user.mail_addresses.to_list()}")
-                        self.old_save(user)
+                        self.save(user)
             except DocumentDoesNotExist:
                 pass
         return count
@@ -477,7 +459,7 @@ class AmDB(UserDB[User]):
                             old_user_phone_number.is_verified = False
                         count += 1
                         logger.debug(f"Old user phone numbers AFTER: {user.phone_numbers.to_list()}.")
-                        self.old_save(user)
+                        self.save(user)
             except DocumentDoesNotExist:
                 pass
         return count

@@ -118,12 +118,12 @@ class UserMissingMeta(MongoTestCase):
         logger.debug(f"Loaded user.meta from database:\n{format_dict_for_debug(db_user.meta.dict())}")
         assert db_user is not None
         db_user.given_name = "test"
-        self.amdb.save(user=db_user, check_sync=True)
+        self.amdb.save(user=db_user)
 
     def test_update_user_old(self):
         db_user = self.amdb.get_user_by_id(self.user.user_id)
         db_user.given_name = "test"
-        self.amdb.old_save(user=db_user, check_sync=True)
+        self.amdb.save(user=db_user)
 
 
 class UpdateUser(MongoTestCase):
@@ -138,16 +138,16 @@ class UpdateUser(MongoTestCase):
         test_user.meta.new_version()
 
         with self.assertRaises(UserOutOfSync):
-            self.amdb.save(test_user, check_sync=True)
+            self.amdb.save(test_user)
 
     def test_ok(self):
-        test_user = mocked_user_standard
+        test_user = self.amdb.get_user_by_id(mocked_user_standard.user_id)
         test_user.given_name = "new_given_name"
 
         old_meta_version = test_user.meta.version
         old_modified_ts = test_user.modified_ts
 
-        res = self.amdb.save(test_user, check_sync=True)
+        res = self.amdb.save(test_user)
         assert res.success is True
 
         db_user = self.amdb.get_user_by_id(test_user.user_id)
@@ -180,8 +180,8 @@ class TestUserDB_mail(MongoTestCase):
         self.user1 = User.from_dict(data1)
         self.user2 = User.from_dict(data2)
 
-        self.amdb.save(self.user1, check_sync=False)
-        self.amdb.save(self.user2, check_sync=False)
+        self.amdb.save(self.user1)
+        self.amdb.save(self.user2)
 
     def test_get_user_by_mail(self):
         test_user = self.amdb.get_user_by_id(self.user1.user_id)

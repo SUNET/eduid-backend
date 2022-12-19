@@ -47,14 +47,14 @@ class SignupInviteDB(BaseDB):
             return Invite.from_dict(docs[0])
         return None
 
-    def save(self, invite: Invite, check_sync: bool = True) -> SaveResult:
+    def save(self, invite: Invite, is_in_database: bool) -> SaveResult:
         """
         :param invite: Invite object
-        :param check_sync: Ensure the document hasn't been updated in the database since it was loaded
+        :param is_in_database: True if the invite is already in the database. TODO: Remove when invites have Meta.
         """
         spec: Dict[str, Any] = {"_id": invite.invite_id}
 
-        result = self._save(invite.to_dict(), spec, check_sync)
+        result = self._save(invite.to_dict(), spec, is_in_database=is_in_database)
         invite = replace(invite, modified_ts=datetime.datetime.utcnow())  # update to current time
 
         return result

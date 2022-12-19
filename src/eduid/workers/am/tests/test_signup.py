@@ -20,7 +20,7 @@ class AttributeFetcherTests(AMTestCase):
 
         for userdoc in self.amdb._get_all_docs():
             signup_user = SignupUser.from_dict(userdoc)
-            self.fetcher.private_db.save(signup_user, check_sync=False)
+            self.fetcher.private_db.save(signup_user)
 
     def test_invalid_user(self):
         with self.assertRaises(UserDoesNotExist):

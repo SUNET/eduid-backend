@@ -182,7 +182,7 @@ def seleg_proofing(user, nin):
 
         # If authentication request went well save user state
         current_app.stats.count(name="seleg.authn_request_success")
-        current_app.proofing_statedb.save(proofing_state)
+        current_app.proofing_statedb.save(proofing_state, is_in_database=False)
         current_app.logger.debug("Proofing state {!s} for user {!s} saved".format(proofing_state.state, user))
     # Add the nin used to initiate the proofing state to the user
     # NOOP if the user already have the nin
@@ -250,7 +250,7 @@ def freja_proofing(user, nin):
 
         # If authentication request went well save user state
         current_app.stats.count(name="freja.authn_request_success")
-        current_app.proofing_statedb.save(proofing_state)
+        current_app.proofing_statedb.save(proofing_state, is_in_database=False)
         current_app.logger.debug("Proofing state {!s} for user {!s} saved".format(proofing_state.state, user))
     # Add the nin used to initiate the proofing state to the user
     # NOOP if the user already have the nin

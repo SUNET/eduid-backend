@@ -94,7 +94,7 @@ mocked_user_standard = User(
 )
 
 mocked_user_standard_2 = User(
-    meta=Meta(version=ObjectId("987654321098765432103210")),
+    meta=Meta(),
     eppn="babba-labba",
     user_id=ObjectId("901234567890123456789012"),
     given_name="John",
@@ -109,7 +109,7 @@ mocked_user_standard_2 = User(
 )
 
 new_completed_signup_user_example = User(
-    meta=Meta(version=ObjectId("987654321098765432103210")),
+    meta=Meta(modified_ts=datetime.fromisoformat("2017-01-04T16:47:30")),
     eppn="hubba-fooo",
     user_id=ObjectId("000000000000000000000002"),
     given_name="John",
@@ -154,7 +154,7 @@ new_signup_user_example = SignupUser(
 )
 
 new_unverified_user_example = User(
-    meta=Meta(version=ObjectId("987654321098765432103210")),
+    meta=Meta(),
     eppn="hubba-baar",
     user_id=ObjectId("000000000000000000000003"),
     given_name="John",
@@ -177,7 +177,6 @@ new_unverified_user_example = User(
 
 new_user_example = User(
     meta=Meta(
-        version=ObjectId("987654321098765432103210"),
         cleaned={
             CleanerType.SKV: datetime.fromisoformat("2017-01-04T16:47:30"),
         },

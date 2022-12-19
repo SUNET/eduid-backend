@@ -32,7 +32,7 @@ def authorize(user):
             proofing_state = OrcidProofingState(
                 id=None, modified_ts=None, eppn=user.eppn, state=get_unique_hash(), nonce=get_unique_hash()
             )
-            current_app.proofing_statedb.save(proofing_state)
+            current_app.proofing_statedb.save(proofing_state, is_in_database=False)
 
         claims_request = ClaimsRequest(userinfo=Claims(id=None))
         oidc_args = {

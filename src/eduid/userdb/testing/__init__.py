@@ -39,17 +39,16 @@ from __future__ import annotations
 import logging
 import logging.config
 import unittest
-from typing import Any, Dict, List, Optional, Sequence, Type, cast
+from typing import List, Optional, Sequence, Type, cast
 
 import pymongo
 import pymongo.errors
 
 from eduid.common.logging import LocalContext, make_dictConfig
 from eduid.userdb import User
-from eduid.userdb.db import BaseDB, TUserDbDocument
+from eduid.userdb.db import TUserDbDocument
 from eduid.userdb.testing.temp_instance import EduidTemporaryInstance
 from eduid.userdb.userdb import AmDB
-from eduid.userdb.util import utc_now
 
 logger = logging.getLogger(__name__)
 
@@ -117,23 +116,6 @@ class MongoTestCase(unittest.TestCase):
     def setUp(self, am_users: Optional[List[User]] = None, **kwargs):
         """
         Test case initialization.
-
-        To not get a circular dependency between eduid-userdb and eduid-am, celery
-        and get_attribute_manager needs to be imported in the place where this
-        module is called.
-
-        Usage:
-
-            from eduid.workers.am.celery import celery, get_attribute_manager
-
-            class MyTest(MongoTestCase):
-
-                def setUp(self):
-                    super(MyTest, self).setUp(celery, get_attribute_manager)
-                    ...
-
-        :param init_am: True if the test needs am
-        :param am_settings: Test specific am settings
         :return:
         """
         super().setUp()
@@ -145,6 +127,9 @@ class MongoTestCase(unittest.TestCase):
         self.tmp_db = MongoTemporaryInstance.get_instance()
         assert isinstance(self.tmp_db, MongoTemporaryInstance)  # please mypy
         self.amdb = AmDB(self.tmp_db.uri)
+
+        logger.info("Resetting all databases for new tests")
+        self._reset_databases()
 
         mongo_settings = {
             "mongo_replicaset": None,
@@ -159,7 +144,8 @@ class MongoTestCase(unittest.TestCase):
         if am_users:
             # Set up test users in the MongoDB.
             for user in am_users:
-                self.amdb.save(user, check_sync=False)
+                logger.debug(f"Adding test user {user} to the database")
+                self.amdb.save(user)
 
     def _init_logging(self):
         local_context = LocalContext(
@@ -172,14 +158,22 @@ class MongoTestCase(unittest.TestCase):
         logging_config = make_dictConfig(local_context)
         logging.config.dictConfig(logging_config)
 
-    def tearDown(self):
-        for userdoc in self.amdb._get_all_docs():
-            assert User.from_dict(data=userdoc)
-        # Reset databases for the next test class, but do not shut down the temporary
-        # mongodb instance, for efficiency reasons.
+    def _reset_databases(self):
+        """
+        Reset databases for the next test class.
+
+        We do this both at shutdown (to clean up) and in setUp() to make sure that tests get a clean environment.
+        Particularly vscode doesn't always run tearDown(), when tests fails or the debugger is stopped mid-test.
+        """
         for db_name in self.tmp_db.conn.list_database_names():
             if db_name not in ["local", "admin", "config"]:  # Do not drop mongo internal dbs
                 self.tmp_db.conn.drop_database(db_name)
         self.amdb._drop_whole_collection()
+
+    def tearDown(self):
+        for userdoc in self.amdb._get_all_docs():
+            assert User.from_dict(data=userdoc)
+        self._reset_databases()
+        # Close, but do not shut down the temporary MongoDB instance for performance reasons.
         self.amdb.close()
         super().tearDown()

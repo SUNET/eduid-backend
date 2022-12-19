@@ -17,7 +17,7 @@ __author__ = "lundberg"
 
 
 @unique
-class GroupRole(Enum):
+class GroupRole(str, Enum):
     OWNER = "owner"
     MEMBER = "member"
 
