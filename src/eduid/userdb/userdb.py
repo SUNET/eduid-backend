@@ -319,12 +319,11 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
 
         spec: Dict[str, Any] = {"_id": user.user_id}
         try:
-            result = self._save(user.to_dict(), spec, is_in_database=user.meta.is_in_database)
+            result = self._save(user.to_dict(), spec, is_in_database=user.meta.is_in_database, meta=user.meta)
         except DocumentOutOfSync:
             raise UserOutOfSync("User out of sync")
 
         user.modified_ts = result.ts
-        user.meta.is_in_database = True
 
         return UserSaveResult(success=bool(result))
 
@@ -388,15 +387,10 @@ class AmDB(UserDB[User]):
         """
         Save a User object to the database.
         """
-        previous_version: Optional[ObjectId] = user.meta.version
-        user.meta.new_version()
-
         spec: Dict[str, Any] = {"_id": user.user_id}
 
         try:
-            result = self._save(
-                user.to_dict(), spec, is_in_database=user.meta.is_in_database, previous_version=previous_version
-            )
+            result = self._save(user.to_dict(), spec, is_in_database=user.meta.is_in_database, meta=user.meta)
         except DocumentOutOfSync:
             raise UserOutOfSync("User out of sync")
 

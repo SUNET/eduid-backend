@@ -16,6 +16,7 @@ from pymongo.uri_parser import parse_uri
 
 from eduid.userdb.exceptions import DocumentOutOfSync, EduIDUserDBError, MongoConnectionError, MultipleDocumentsReturned
 from eduid.userdb.util import format_dict_for_debug, utc_now
+from eduid.userdb.meta import Meta
 
 logger = logging.getLogger(__name__)
 extra_logger = logger.getChild("extra_debug")
@@ -440,7 +441,7 @@ class BaseDB(object):
         data: TUserDbDocument,
         spec: Mapping[str, Any],
         is_in_database: bool,
-        previous_version: Optional[ObjectId] = None,
+        meta: Optional[Meta] = None,
     ) -> SaveResult:
         """
         Save a document in the db.
@@ -450,28 +451,33 @@ class BaseDB(object):
 
         TODO: 1. Add Meta to all objects. This removes the need for is_in_database.
               2. Remove modified_ts from the root of the document.
-              3. Pass in the Meta object to this code and have this code update the Meta object
-                 and then just do data["meta"] = meta.to_dict(). This removes the need for
-                 previous_version too, and while perhaps not being elegant it should be tidy enough.
         """
-
+        previous_version = None
         previous_ts = data.get("modified_ts")
+        now = utc_now()
 
-        _new_version = data.get("meta", {}).get("version", None)
-        logger.debug(f"{self} Saving document (version {previous_version} -> {_new_version})")
+        if meta is not None:
+            previous_version = meta.version
+            is_in_database = meta.is_in_database
+            # Update meta
+            meta.new_version()
+            meta.modified_ts = now
+            data["meta"] = meta.dict()
+
+            logger.debug(f"{self} Saving document (version {previous_version} -> {meta.version})")
+        else:
+            logger.debug(f"{self} Saving document without meta (modified_ts {previous_ts} -> {now.isoformat()})")
 
         extra_logger.debug(f"{self} Extra debug: Full document:\n {format_dict_for_debug(data)}")
 
-        now = utc_now()
         data["modified_ts"] = now  # update modified_ts (old) to current time
-        if "meta" in data:
-            data["meta"]["modified_ts"] = now  # update meta.modified_ts (new) to current time
 
         if not is_in_database:
             # This is a new document, insert it
-            logger.debug(
-                f"{self} Inserting new document with modified_ts {now.isoformat()}, meta.version {_new_version}"
-            )
+            if meta is not None:
+                logger.debug(f"{self} Inserting new document with version {meta.version}")
+            else:
+                logger.debug(f"{self} Inserting new document without meta  (modified_ts {now})")
             try:
                 insert_result = self._coll.insert_one(data)
             except pymongo.errors.DuplicateKeyError:
@@ -485,6 +491,8 @@ class BaseDB(object):
 
             save_result = SaveResult(inserted=1, doc_id=insert_result.inserted_id, ts=now)
             logger.debug(f"{self} Inserted new document into {self._coll_name}): {save_result})")
+            if meta is not None:
+                meta.is_in_database = True
             return save_result
 
         #
