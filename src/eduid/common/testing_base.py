@@ -102,7 +102,7 @@ def normalised_data(data: SomeData, replace_datetime: Optional[str] = None) -> S
             """
             ret: dict[str, Any] = {}
             for key, value in o.items():
-                if key.endswith("_ts"):
+                if key.endswith("_ts") and isinstance(value, str):
                     try:
                         ret[key] = datetime.fromisoformat(value)
                         continue
