@@ -37,7 +37,7 @@ from eduid.common.testing_base import normalised_data
 from eduid.userdb import User
 from eduid.userdb.exceptions import UserOutOfSync
 from eduid.userdb.fixtures.passwords import signup_password
-from eduid.userdb.fixtures.users import mocked_user_standard, mocked_user_standard_2
+from eduid.userdb.fixtures.users import UserFixtures
 from eduid.userdb.testing import MongoTestCase
 from eduid.userdb.util import format_dict_for_debug
 
@@ -46,7 +46,7 @@ logger = logging.getLogger(__name__)
 
 class TestUserDB(MongoTestCase):
     def setUp(self, *args, **kwargs):
-        self.user = mocked_user_standard
+        self.user = UserFixtures().mocked_user_standard
         super().setUp(am_users=[self.user], **kwargs)
 
     def test_get_user_by_id(self):
@@ -95,11 +95,13 @@ class TestUserDB(MongoTestCase):
 
 
 class UserMissingMeta(MongoTestCase):
+    user: User
+
     def setUp(self, *args, **kwargs):
-        self.user = mocked_user_standard
+        self.user = UserFixtures().mocked_user_standard
         super().setUp(*args, am_users=[self.user], **kwargs)
 
-        self._remove_meta_from_user_in_db(mocked_user_standard)
+        self._remove_meta_from_user_in_db(self.user)
 
     def _remove_meta_from_user_in_db(self, user: User) -> None:
         """
@@ -128,11 +130,12 @@ class UserMissingMeta(MongoTestCase):
 
 class UpdateUser(MongoTestCase):
     def setUp(self, *args, **kwargs):
-        self.user = mocked_user_standard
-        super().setUp(am_users=[self.user, mocked_user_standard_2], **kwargs)
+        _users = UserFixtures()
+        self.user = _users.mocked_user_standard
+        super().setUp(am_users=[self.user, _users.mocked_user_standard_2], **kwargs)
 
     def test_stale_user__meta_version(self):
-        test_user = self.amdb.get_user_by_eppn(mocked_user_standard.eppn)
+        test_user = self.amdb.get_user_by_eppn(self.user.eppn)
         assert test_user is not None
         test_user.given_name = "new_given_name"
         test_user.meta.new_version()
@@ -141,7 +144,7 @@ class UpdateUser(MongoTestCase):
             self.amdb.save(test_user)
 
     def test_ok(self):
-        test_user = self.amdb.get_user_by_id(mocked_user_standard.user_id)
+        test_user = self.amdb.get_user_by_id(self.user.user_id)
         test_user.given_name = "new_given_name"
 
         old_meta_version = test_user.meta.version

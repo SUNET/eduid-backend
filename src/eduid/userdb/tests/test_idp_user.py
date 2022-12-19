@@ -2,7 +2,7 @@
 from unittest import TestCase
 
 from eduid.common.testing_base import normalised_data
-from eduid.userdb.fixtures.users import mocked_user_standard
+from eduid.userdb.fixtures.users import UserFixtures
 from eduid.userdb.idp.user import _SAML_ATTRIBUTES, IdPUser, SAMLAttributeSettings
 
 __author__ = "lundberg"
@@ -21,7 +21,7 @@ class TestIdpUser(TestCase):
         )
 
     def test_idp_user_to_attributes_all(self):
-        idp_user = IdPUser.from_dict(mocked_user_standard.to_dict())
+        idp_user = IdPUser.from_dict(UserFixtures().mocked_user_standard.to_dict())
         attributes = idp_user.to_saml_attributes(settings=self.saml_attribute_settings)
 
         for key in _SAML_ATTRIBUTES:

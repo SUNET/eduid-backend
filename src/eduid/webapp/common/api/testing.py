@@ -47,7 +47,7 @@ from eduid.common.rpc.msg_relay import NavetData
 from eduid.common.testing_base import CommonTestCase
 from eduid.userdb import User
 from eduid.userdb.db import BaseDB
-from eduid.userdb.fixtures.users import new_completed_signup_user_example, new_unverified_user_example, new_user_example
+from eduid.userdb.fixtures.users import UserFixtures
 from eduid.userdb.proofing.state import NinProofingState
 from eduid.userdb.testing import MongoTemporaryInstance
 from eduid.webapp.common.api.messages import TranslatableMsg
@@ -100,12 +100,6 @@ TEST_CONFIG = {
     },
 }
 
-_standard_test_users = {
-    "hubba-bubba": new_user_example,
-    "hubba-baar": new_unverified_user_example,
-    "hubba-fooo": new_completed_signup_user_example,
-}
-
 
 class EduidAPITestCase(CommonTestCase):
     """
@@ -118,6 +112,13 @@ class EduidAPITestCase(CommonTestCase):
         # test users
         if users is None:
             users = ["hubba-bubba"]
+
+        _users = UserFixtures()
+        _standard_test_users = {
+            "hubba-bubba": _users.new_user_example,
+            "hubba-baar": _users.new_unverified_user_example,
+            "hubba-fooo": _users.new_completed_signup_user_example,
+        }
 
         # Make a list of User object to be saved to the new temporary mongodb instance
         am_users = [_standard_test_users[x] for x in users]

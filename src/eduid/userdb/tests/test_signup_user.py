@@ -2,34 +2,28 @@ from unittest import TestCase
 
 from pydantic import ValidationError
 
-from eduid.userdb.fixtures.users import new_signup_user_example
+from eduid.userdb.fixtures.users import UserFixtures
 from eduid.userdb.signup.user import SignupUser
 
 
 class TestSignupUser(TestCase):
+    def setUp(self):
+        self.user = UserFixtures().new_signup_user_example
+        self.user_data = self.user.to_dict()
+
     def test_proper_user(self):
-        userdata = new_signup_user_example.to_dict()
-        user = SignupUser.from_dict(data=userdata)
-        self.assertEqual(user.user_id, userdata["_id"])
-        self.assertEqual(user.eppn, userdata["eduPersonPrincipalName"])
+        self.assertEqual(self.user.user_id, self.user_data["_id"])
+        self.assertEqual(self.user.eppn, self.user_data["eduPersonPrincipalName"])
 
     def test_proper_new_user(self):
-        userdata = new_signup_user_example.to_dict()
-        userid = userdata.pop("_id")
-        eppn = userdata.pop("eduPersonPrincipalName")
-        user = SignupUser(user_id=userid, eppn=eppn)
-        self.assertEqual(user.user_id, userid)
-        self.assertEqual(user.eppn, eppn)
+        user = SignupUser(user_id=self.user.user_id, eppn=self.user.eppn)
+        self.assertEqual(user.user_id, self.user.user_id)
+        self.assertEqual(user.eppn, self.user.eppn)
 
     def test_missing_id(self):
-        userdata = new_signup_user_example.to_dict()
-        userid = userdata.pop("_id")
-        eppn = userdata.pop("eduPersonPrincipalName")
-        user = SignupUser(eppn=eppn)
-        self.assertNotEqual(user.user_id, userid)
+        user = SignupUser(eppn=self.user.eppn)
+        self.assertNotEqual(user.user_id, self.user.user_id)
 
     def test_missing_eppn(self):
-        userdata = new_signup_user_example.to_dict()
-        userid = userdata.pop("_id")
         with self.assertRaises(ValidationError):
-            SignupUser(user_id=userid)
+            SignupUser(user_id=self.user.user_id)

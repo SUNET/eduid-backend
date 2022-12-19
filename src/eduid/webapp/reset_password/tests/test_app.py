@@ -45,7 +45,7 @@ from eduid.userdb.credentials import Password, Webauthn
 from eduid.userdb.exceptions import UserHasNotCompletedSignup
 from eduid.userdb.fixtures.fido_credentials import webauthn_credential
 from eduid.userdb.fixtures.fido_credentials import webauthn_credential as sample_credential
-from eduid.userdb.fixtures.users import mocked_user_standard, mocked_user_standard_2
+from eduid.userdb.fixtures.users import UserFixtures
 from eduid.userdb.reset_password import ResetPasswordEmailAndPhoneState, ResetPasswordEmailState
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.common.api.utils import get_zxcvbn_terms, hash_password
@@ -74,7 +74,7 @@ class ResetPasswordTests(EduidAPITestCase):
 
     def setUp(self, *args, **kwargs):
         super().setUp(*args, **kwargs)
-        self.other_test_user = mocked_user_standard_2
+        self.other_test_user = UserFixtures().mocked_user_standard_2
 
     def load_app(self, config: Optional[Mapping[str, Any]]) -> ResetPasswordApp:
         """

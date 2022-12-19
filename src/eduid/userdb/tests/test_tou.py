@@ -10,8 +10,9 @@ from eduid.userdb.actions.tou import ToUUser
 from eduid.userdb.credentials import CredentialList
 from eduid.userdb.event import Event, EventList
 from eduid.userdb.exceptions import UserMissingData
-from eduid.userdb.fixtures.users import new_user_example
+from eduid.userdb.fixtures.users import UserFixtures
 from eduid.userdb.tou import ToUEvent, ToUList
+from eduid.userdb.user import User
 from eduid.userdb.util import utc_now
 
 __author__ = "ft"
@@ -91,13 +92,14 @@ class TestToUEvent(TestCase):
         self.assertFalse(tl.has_accepted(version="3", reaccept_interval=int(three_years.total_seconds())))
 
 
-USERID = "123467890123456789014567"
-EPPN = "hubba-bubba"
-
-
 class TestTouUser(TestCase):
+    user: User
+
+    def setUp(self):
+        self.user = UserFixtures().new_user_example
+
     def test_proper_user(self):
-        userdata = new_user_example.to_dict()
+        userdata = self.user.to_dict()
         userdata["tou"] = [copy.deepcopy(_one_dict)]
         user = ToUUser.from_dict(data=userdata)
         self.assertEqual(user.tou.to_list_of_dicts()[0]["version"], "1")
@@ -105,7 +107,7 @@ class TestTouUser(TestCase):
     def test_proper_new_user(self):
         one = copy.deepcopy(_one_dict)
         tou = ToUList.from_list_of_dicts([one])
-        userdata = new_user_example.to_dict()
+        userdata = self.user.to_dict()
         userid = userdata.pop("_id")
         eppn = userdata.pop("eduPersonPrincipalName")
         passwords = CredentialList.from_list_of_dicts(userdata["passwords"])
@@ -115,7 +117,7 @@ class TestTouUser(TestCase):
     def test_proper_new_user_no_id(self):
         one = copy.deepcopy(_one_dict)
         tou = ToUList(elements=[ToUEvent.from_dict(one)])
-        userdata = new_user_example.to_dict()
+        userdata = self.user.to_dict()
         passwords = CredentialList.from_list_of_dicts(userdata["passwords"])
         with self.assertRaises(ValidationError):
             ToUUser(tou=tou, credentials=passwords)
@@ -123,7 +125,7 @@ class TestTouUser(TestCase):
     def test_proper_new_user_no_eppn(self):
         one = copy.deepcopy(_one_dict)
         tou = ToUList.from_list_of_dicts([one])
-        userdata = new_user_example.to_dict()
+        userdata = self.user.to_dict()
         userid = userdata.pop("_id")
         passwords = CredentialList.from_list_of_dicts(userdata["passwords"])
         with self.assertRaises(ValidationError):
@@ -133,10 +135,10 @@ class TestTouUser(TestCase):
         one = copy.deepcopy(_one_dict)
         tou = ToUList.from_list_of_dicts([one])
         with self.assertRaises(UserMissingData):
-            ToUUser.from_dict(data=dict(tou=tou, userid=USERID))
+            ToUUser.from_dict(data=dict(tou=tou, userid=self.user.user_id))
 
     def test_missing_userid(self):
         one = copy.deepcopy(_one_dict)
         tou = ToUEvent.from_dict(one)
         with self.assertRaises(UserMissingData):
-            ToUUser.from_dict(data=dict(tou=[tou], eppn=EPPN))
+            ToUUser.from_dict(data=dict(tou=[tou], eppn=self.user.eppn))
