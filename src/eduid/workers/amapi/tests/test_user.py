@@ -34,13 +34,13 @@ class TestUsers(TestAMBase, GNAPBearerTokenMixin):
             return f"/users/{self.eppn}"
         return f"/users/{self.eppn}/{endpoint}"
 
-    def _audit_log_tests(self, assert_diff: dict):
+    def _check_audit_log(self, diff: dict[str, Any]) -> None:
         audit_logs = self.api.audit_logger.get_by_eppn(self.eppn)
         assert len(audit_logs) == 1
         assert audit_logs[0].eppn == self.eppn
         assert audit_logs[0].reason == self.reason
         assert audit_logs[0].source == self.source
-        assert audit_logs[0].diff == self.as_json(assert_diff)
+        assert audit_logs[0].diff == self.as_json(diff)
 
     def make_put_call(self, json_data: dict, oauth_header: Headers, endpoint: Optional[str] = None) -> Response:
         response = self.client.put(
@@ -73,7 +73,7 @@ class TestUsers(TestAMBase, GNAPBearerTokenMixin):
             "display_name": "test_display_name",
             "surname": "Smith",
         }
-        assert_diff = {
+        expected_audit_diff = {
             "dictionary_item_removed": ["root['givenName']"],
             "values_changed": {
                 "root['displayName']": {
@@ -94,7 +94,7 @@ class TestUsers(TestAMBase, GNAPBearerTokenMixin):
         assert user_after.surname == "Smith"
         assert user_after.meta.version is not ObjectId("987654321098765432103210")
 
-        self._audit_log_tests(assert_diff=assert_diff)
+        self._check_audit_log(diff=expected_audit_diff)
 
     def test_update_name_not_allowed(self):
         req = {
@@ -129,7 +129,7 @@ class TestUsers(TestAMBase, GNAPBearerTokenMixin):
             ],
         }
 
-        assert_diff = {
+        expected_audit_diff = {
             "values_changed": {
                 "root['mailAliases'][0]": {
                     "new_value": {
@@ -175,7 +175,7 @@ class TestUsers(TestAMBase, GNAPBearerTokenMixin):
         assert user_after.mail_addresses.to_list()[0].email == "test@example.com"
         assert len(user_after.mail_addresses.to_list()) == 1
 
-        self._audit_log_tests(assert_diff=assert_diff)
+        self._check_audit_log(diff=expected_audit_diff)
 
     def test_update_email_not_allowed(self):
         req = {
@@ -208,7 +208,7 @@ class TestUsers(TestAMBase, GNAPBearerTokenMixin):
             "language": "test",
         }
 
-        assert_diff = {
+        expected_audit_diff = {
             "values_changed": {
                 "root['preferredLanguage']": {
                     "new_value": "test",
@@ -226,7 +226,7 @@ class TestUsers(TestAMBase, GNAPBearerTokenMixin):
         user_after = self.amdb.get_user_by_eppn(self.eppn)
         assert user_after.language == "test"
 
-        self._audit_log_tests(assert_diff=assert_diff)
+        self._check_audit_log(diff=expected_audit_diff)
 
     def test_update_language_not_allowed(self):
         req = {
@@ -258,7 +258,7 @@ class TestUsers(TestAMBase, GNAPBearerTokenMixin):
                 }
             ],
         }
-        assert_diff = {
+        expected_audit_diff = {
             "values_changed": {
                 "root['phone'][0]": {
                     "new_value": {
@@ -303,7 +303,7 @@ class TestUsers(TestAMBase, GNAPBearerTokenMixin):
         user_after = self.amdb.get_user_by_eppn(self.eppn)
         assert user_after.phone_numbers.to_list()[0].number == "08197806"
 
-        self._audit_log_tests(assert_diff=assert_diff)
+        self._check_audit_log(diff=expected_audit_diff)
 
     def test_update_phone_not_allowed(self):
         req = {
@@ -347,7 +347,7 @@ class TestUsers(TestAMBase, GNAPBearerTokenMixin):
         assert got.status_code == status.HTTP_200_OK
         user_after = self.amdb.get_user_by_eppn(self.eppn)
         assert user_after.meta.cleaned[CleanerType.SKV] != user_before.meta.cleaned[CleanerType.SKV]
-        assert_diff = {
+        expected_audit_diff = {
             "values_changed": {
                 "root['meta']['cleaned']['skatteverket']": {
                     "new_value": "2013-09-02T10:23:25+00:00",
@@ -356,7 +356,7 @@ class TestUsers(TestAMBase, GNAPBearerTokenMixin):
             }
         }
 
-        self._audit_log_tests(assert_diff=assert_diff)
+        self._check_audit_log(diff=expected_audit_diff)
 
     def test_update_meta_cleaned_auto_ts(self):
         req = {
@@ -394,7 +394,7 @@ class TestUsers(TestAMBase, GNAPBearerTokenMixin):
             "source": self.source,
             "reason": self.reason,
         }
-        assert_diff = {
+        expected_audit_diff = {
             "dictionary_item_added": ["root['terminated']"],
         }
 
@@ -408,7 +408,7 @@ class TestUsers(TestAMBase, GNAPBearerTokenMixin):
         user_after = self.amdb.get_user_by_eppn(self.eppn)
         assert user_after.terminated is not None
 
-        self._audit_log_tests(assert_diff=assert_diff)
+        self._check_audit_log(diff=expected_audit_diff)
 
     def test_update_terminate_not_allowed(self):
         req = {

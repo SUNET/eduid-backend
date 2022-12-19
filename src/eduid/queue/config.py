@@ -30,3 +30,4 @@ class QueueWorkerConfig(RootConfig, LoggingConfigMixin):
     mail_username: str = ""
     mail_password: str = ""
     mail_default_from: str = "no-reply@eduid.se"
+    mail_default_domain: str = "eduid.se"
