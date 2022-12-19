@@ -442,7 +442,18 @@ class BaseDB(object):
         is_in_database: bool,
         previous_version: Optional[ObjectId] = None,
     ) -> SaveResult:
-        """Save a document in the db."""
+        """
+        Save a document in the db.
+
+        BaseDB works with documents, not with userdb objects. This becomes a bit messy since
+        this code updates the document and the calling code has to update the userdb object.
+
+        TODO: 1. Add Meta to all objects. This removes the need for is_in_database.
+              2. Remove modified_ts from the root of the document.
+              3. Pass in the Meta object to this code and have this code update the Meta object
+                 and then just do data["meta"] = meta.to_dict(). This removes the need for
+                 previous_version too, and while perhaps not being elegant it should be tidy enough.
+        """
 
         previous_ts = data.get("modified_ts")
 
