@@ -15,8 +15,8 @@ from pymongo.errors import PyMongoError
 from pymongo.uri_parser import parse_uri
 
 from eduid.userdb.exceptions import DocumentOutOfSync, EduIDUserDBError, MongoConnectionError, MultipleDocumentsReturned
-from eduid.userdb.util import format_dict_for_debug, utc_now
 from eduid.userdb.meta import Meta
+from eduid.userdb.util import format_dict_for_debug, utc_now
 
 logger = logging.getLogger(__name__)
 extra_logger = logger.getChild("extra_debug")
@@ -533,5 +533,5 @@ class BaseDB(object):
         db_doc["meta"] = db_state.get("meta")
         return format_dict_for_debug(db_doc)
 
-    def close(self):
+    def close(self) -> None:
         self._db.close()

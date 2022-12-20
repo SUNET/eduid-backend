@@ -32,7 +32,7 @@
 #
 import copy
 import logging
-from typing import Any, Dict, Mapping, Optional, Union
+from typing import Any, Mapping, Optional, Union
 
 from eduid.userdb.db import BaseDB, SaveResult, TUserDbDocument
 from eduid.userdb.deprecation import deprecated
@@ -111,7 +111,9 @@ class PasswordResetStateDB(BaseDB):
 
     def save(self, state: PasswordResetState, is_in_database: bool) -> SaveResult:
         """
-        :param check_sync: Ensure the document hasn't been updated in the database since it was loaded
+        Save state to the database.
+
+        :param state: The state to save
         :param is_in_database: True if the state is already in the database. TODO: Remove when state have Meta.
         """
 
@@ -128,7 +130,7 @@ class PasswordResetStateDB(BaseDB):
             if old_state:
                 self.remove_state(old_state)
 
-        spec: Dict[str, Any] = {"eduPersonPrincipalName": state.eppn}
+        spec: dict[str, Any] = {"eduPersonPrincipalName": state.eppn}
 
         result = self._save(state.to_dict(), spec, is_in_database=is_in_database)
         state.modified_ts = result.ts

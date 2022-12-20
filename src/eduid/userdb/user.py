@@ -128,12 +128,19 @@ class User(BaseModel):
             values["meta"].modified_ts = values["modified_ts"]
         return values
 
-    def __str__(self):
+    def __str__(self) -> str:
+        """
+        Return a string representation of the user, suitable for logging.
+
+        Includes the current version of the user in the database to signify that "this is version X of the user foo".
+
+        Example: '<eduID User: hubba-bubba/v1234567890987654321>'
+        """
         if self.meta.is_in_database:
             return f"<eduID {self.__class__.__name__}: {self.eppn}/v{self.meta.version}>"
         return f"<eduID {self.__class__.__name__}: {self.eppn}/not in db>"
 
-    def __eq__(self, other: Any):
+    def __eq__(self, other: Any) -> bool:
         if self.__class__ is not other.__class__:
             raise TypeError(f"Trying to compare objects of different class {other.__class__} != {self.__class__}")
         return self.to_dict() == other.to_dict()

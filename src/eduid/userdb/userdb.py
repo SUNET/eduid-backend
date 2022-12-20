@@ -317,7 +317,7 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
         if not isinstance(user, User):
             raise EduIDUserDBError(f"user is not a subclass of User")
 
-        spec: Dict[str, Any] = {"_id": user.user_id}
+        spec: dict[str, Any] = {"_id": user.user_id}
         try:
             result = self._save(user.to_dict(), spec, is_in_database=user.meta.is_in_database, meta=user.meta)
         except DocumentOutOfSync:
@@ -387,7 +387,7 @@ class AmDB(UserDB[User]):
         """
         Save a User object to the database.
         """
-        spec: Dict[str, Any] = {"_id": user.user_id}
+        spec: dict[str, Any] = {"_id": user.user_id}
 
         try:
             result = self._save(user.to_dict(), spec, is_in_database=user.meta.is_in_database, meta=user.meta)

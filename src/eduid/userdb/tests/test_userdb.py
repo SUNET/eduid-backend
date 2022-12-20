@@ -134,7 +134,7 @@ class UpdateUser(MongoTestCase):
         self.user = _users.mocked_user_standard
         super().setUp(am_users=[self.user, _users.mocked_user_standard_2], **kwargs)
 
-    def test_stale_user__meta_version(self):
+    def test_stale_user_meta_version(self):
         test_user = self.amdb.get_user_by_eppn(self.user.eppn)
         assert test_user is not None
         test_user.given_name = "new_given_name"

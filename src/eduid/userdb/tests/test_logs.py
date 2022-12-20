@@ -2,7 +2,6 @@
 
 from unittest import TestCase
 
-import bson
 import pytest
 from pydantic import ValidationError
 

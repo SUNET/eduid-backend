@@ -52,7 +52,7 @@ class SignupInviteDB(BaseDB):
         :param invite: Invite object
         :param is_in_database: True if the invite is already in the database. TODO: Remove when invites have Meta.
         """
-        spec: Dict[str, Any] = {"_id": invite.invite_id}
+        spec: dict[str, Any] = {"_id": invite.invite_id}
 
         result = self._save(invite.to_dict(), spec, is_in_database=is_in_database)
         invite = replace(invite, modified_ts=datetime.datetime.utcnow())  # update to current time

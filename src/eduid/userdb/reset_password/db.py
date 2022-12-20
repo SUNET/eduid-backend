@@ -31,7 +31,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 import logging
-from typing import Any, Dict, Mapping, Optional, Union
+from typing import Any, Mapping, Optional, Union
 
 from eduid.userdb.db import BaseDB, SaveResult, TUserDbDocument
 from eduid.userdb.exceptions import MultipleDocumentsReturned
@@ -110,7 +110,9 @@ class ResetPasswordStateDB(BaseDB):
 
     def save(self, state: ResetPasswordState, is_in_database: bool = True) -> SaveResult:
         """
-        :param check_sync: Ensure the document hasn't been updated in the database since it was loaded
+        Save state to the database.
+
+        :param is_in_database: Whether the state is already in the database or not
         """
         if state.modified_ts is None:
             # Remove old reset password state
@@ -118,7 +120,7 @@ class ResetPasswordStateDB(BaseDB):
             if old_state:
                 self.remove_state(old_state)
 
-        spec: Dict[str, Any] = {"eduPersonPrincipalName": state.eppn}
+        spec: dict[str, Any] = {"eduPersonPrincipalName": state.eppn}
 
         result = self._save(state.to_dict(), spec, is_in_database=is_in_database)
         state.modified_ts = result.ts

@@ -151,7 +151,7 @@ async def on_put(
 
     if invite_changed or profiles_changed:
         save_invite(
-            req,
+            req=req,
             db_invite=db_invite,
             signup_invite=signup_invite,
             db_invite_is_in_database=True,
@@ -235,7 +235,7 @@ async def on_post(req: ContextRequest, resp: Response, create_request: InviteCre
     )
     signup_invite = create_signup_invite(req, create_request, db_invite)
     save_invite(
-        req,
+        req=req,
         db_invite=db_invite,
         signup_invite=signup_invite,
         db_invite_is_in_database=False,

@@ -50,11 +50,7 @@ from eduid.userdb.fixtures.locked_identities import dashboard_locked_nin
 from eduid.userdb.fixtures.orcid import dashboard_orcid
 from eduid.userdb.fixtures.passwords import signup_password, signup_password_2
 from eduid.userdb.fixtures.pending_emails import johnsmith2_example_com_pending
-from eduid.userdb.fixtures.phones import (
-    dashboard_primary_phone,
-    dashboard_unverified_phone,
-    dashboard_verified_phone,
-)
+from eduid.userdb.fixtures.phones import dashboard_primary_phone, dashboard_unverified_phone, dashboard_verified_phone
 from eduid.userdb.fixtures.tous import signup_2016_v1
 from eduid.userdb.identity import IdentityList
 from eduid.userdb.locked_identity import LockedIdentityList

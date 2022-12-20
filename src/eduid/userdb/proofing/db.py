@@ -61,7 +61,7 @@ class ProofingStateDB(BaseDB, Generic[ProofingStateVar], ABC):
         super().__init__(db_uri, db_name, collection)
 
     @classmethod
-    def state_from_dict(cls, data: Mapping[str, Any]):
+    def state_from_dict(cls, data: Mapping[str, Any]) -> ProofingStateVar:
         # must be implemented by subclass to get correct type information
         raise NotImplementedError()
 
