@@ -204,11 +204,3 @@ class UserFixtures:
             mail_addresses=MailAddressList(elements=[johnsmith_example_org, johnsmith2_example_org]),
             credentials=CredentialList(elements=[signup_password]),
         )
-
-
-# _GLOBAL_USERS = UserFixtures()
-
-# mocked_user_standard = _GLOBAL_USERS.mocked_user_standard
-# new_user_example = _GLOBAL_USERS.new_user_example
-# new_unverified_user_example = _GLOBAL_USERS.new_unverified_user_example
-# new_completed_signup_user_example = _GLOBAL_USERS.new_completed_signup_user_example

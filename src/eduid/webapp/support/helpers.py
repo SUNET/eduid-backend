@@ -15,7 +15,6 @@ __author__ = "lundberg"
 def get_credentials_aux_data(user: User) -> List[TUserDbDocument]:
     """
     :param user: User object
-    :type user: eduid.userdb.user.User
     :return: Augmented credentials list
     """
     credentials: list[TUserDbDocument] = []

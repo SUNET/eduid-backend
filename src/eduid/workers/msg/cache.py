@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional, Sequence, Set
+from typing import Any, Dict, Optional, Set
 
 from eduid.userdb.db import BaseDB, TUserDbDocument
 from eduid.userdb.util import utc_now

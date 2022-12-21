@@ -113,7 +113,7 @@ class User(BaseModel):
         return v
 
     @root_validator(pre=True)
-    def check_revoked(cls, values: Dict[str, Any]):
+    def check_revoked(cls, values: dict[str, Any]) -> dict[str, Any]:
         # raise exception if the user is revoked
         if values.get("revoked_ts") is not None:
             raise UserIsRevoked(
@@ -122,7 +122,7 @@ class User(BaseModel):
         return values
 
     @root_validator()
-    def update_meta_modified_ts(cls, values: Dict[str, Any]):
+    def update_meta_modified_ts(cls, values: dict[str, Any]) -> dict[str, Any]:
         # as we validate on assignment this will run every time the User is changed
         if values.get("modified_ts"):
             values["meta"].modified_ts = values["modified_ts"]
