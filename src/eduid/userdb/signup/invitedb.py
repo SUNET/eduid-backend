@@ -5,7 +5,8 @@ import logging
 from dataclasses import replace
 from typing import Any, Dict, Optional
 
-from eduid.userdb.exceptions import DocumentOutOfSync, MultipleDocumentsReturned
+from eduid.userdb.db import SaveResult
+from eduid.userdb.exceptions import MultipleDocumentsReturned
 from eduid.userdb.signup import Invite, SCIMReference
 from eduid.userdb.signup.invite import InviteReference
 from eduid.userdb.userdb import BaseDB
@@ -46,33 +47,14 @@ class SignupInviteDB(BaseDB):
             return Invite.from_dict(docs[0])
         return None
 
-    def save(self, invite: Invite, check_sync: bool = True) -> None:
+    def save(self, invite: Invite, is_in_database: bool) -> SaveResult:
         """
         :param invite: Invite object
-        :param check_sync: Ensure the document hasn't been updated in the database since it was loaded
+        :param is_in_database: True if the invite is already in the database. TODO: Remove when invites have Meta.
         """
-        modified = invite.modified_ts
-        invite = replace(invite, modified_ts=datetime.datetime.utcnow())  # update to current time
-        if modified is None:
-            # document has never been modified
-            result = self._coll.insert_one(invite.to_dict())
-            logging.debug(f"{self} Inserted new invite {invite} into {self._coll_name}): {result.inserted_id})")
-        else:
-            test_doc: Dict[str, Any] = {"_id": invite.invite_id}
-            if check_sync:
-                test_doc["modified_ts"] = modified
-            result = self._coll.replace_one(test_doc, invite.to_dict(), upsert=(not check_sync))
-            if check_sync and result.matched_count == 0:
-                db_ts = None
-                db_state = self._coll.find_one({"_id": invite.invite_id})
-                if db_state:
-                    db_ts = db_state["modified_ts"]
-                logging.error(
-                    "{} FAILED Updating invite {} (ts {}) in {}). "
-                    "ts in db = {!s}".format(self, invite, modified, self._coll_name, db_ts)
-                )
-                raise DocumentOutOfSync("Stale invite object can't be saved")
+        spec: dict[str, Any] = {"_id": invite.invite_id}
 
-            logging.debug(
-                "{!s} Updated invite {} (ts {}) in {}): {}".format(self, invite, modified, self._coll_name, result)
-            )
+        result = self._save(invite.to_dict(), spec, is_in_database=is_in_database)
+        invite = replace(invite, modified_ts=datetime.datetime.utcnow())  # update to current time
+
+        return result

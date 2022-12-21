@@ -9,6 +9,7 @@ from typing import Any, Dict, Mapping, Optional, Type, TypeVar
 import bson
 from pydantic import BaseModel, Extra, Field
 
+from eduid.userdb.db import TUserDbDocument
 from eduid.userdb.security.element import CodeElement
 
 __author__ = "lundberg"
@@ -43,11 +44,11 @@ class PasswordResetState(BaseModel):
     def reference(self) -> str:
         return str(self.state_id)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> TUserDbDocument:
         """Convert state to a dict in eduid format, that can be used to reconstruct the state later."""
         data = self.dict(exclude_none=True)
         data = self._to_dict_transform(data)
-        return data
+        return TUserDbDocument(data)
 
     @classmethod
     def from_dict(cls: Type[TPasswordResetStateSubclass], data: Mapping[str, Any]) -> TPasswordResetStateSubclass:

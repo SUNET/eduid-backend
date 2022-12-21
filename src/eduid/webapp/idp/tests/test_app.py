@@ -45,6 +45,7 @@ from saml2.response import AuthnResponse
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb import ToUEvent
+from eduid.userdb.user import User
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.common.authn.cache import IdentityCache, OutstandingQueriesCache, StateCache
 from eduid.webapp.common.authn.utils import get_saml2_config
@@ -250,7 +251,7 @@ class IdPTests(EduidAPITestCase):
             return None
         return self.app.sso_sessions.get_session(sso_cookie_val)
 
-    def add_test_user_tou(self, version: Optional[str] = None) -> ToUEvent:
+    def add_test_user_tou(self, user: User, version: Optional[str] = None) -> ToUEvent:
         """Utility function to add a valid ToU to the default test user"""
         if version is None:
             version = self.app.conf.tou_version
@@ -261,8 +262,8 @@ class IdPTests(EduidAPITestCase):
             modified_ts=utc_now(),
             event_id=str(ObjectId()),
         )
-        self.test_user.tou.add(tou)
-        self.amdb.save(self.test_user, check_sync=False)
+        user.tou.add(tou)
+        self.amdb.save(user)
         return tou
 
 

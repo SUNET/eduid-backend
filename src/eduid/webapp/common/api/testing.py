@@ -47,7 +47,7 @@ from eduid.common.rpc.msg_relay import NavetData
 from eduid.common.testing_base import CommonTestCase
 from eduid.userdb import User
 from eduid.userdb.db import BaseDB
-from eduid.userdb.fixtures.users import new_completed_signup_user_example, new_unverified_user_example, new_user_example
+from eduid.userdb.fixtures.users import UserFixtures
 from eduid.userdb.proofing.state import NinProofingState
 from eduid.userdb.testing import MongoTemporaryInstance
 from eduid.webapp.common.api.messages import TranslatableMsg
@@ -94,15 +94,10 @@ TEST_CONFIG = {
             "urllib3": {"level": "INFO"},
             "eduid.webapp.common.session": {"level": "INFO"},
             "eduid.userdb.userdb.extra_debug": {"level": "INFO"},
+            "eduid.userdb.db.extra_debug": {"level": "INFO"},
             "eduid.userdb": {"level": "INFO"},
         }
     },
-}
-
-_standard_test_users = {
-    "hubba-bubba": new_user_example,
-    "hubba-baar": new_unverified_user_example,
-    "hubba-fooo": new_completed_signup_user_example,
 }
 
 
@@ -118,15 +113,26 @@ class EduidAPITestCase(CommonTestCase):
         if users is None:
             users = ["hubba-bubba"]
 
+        _users = UserFixtures()
+        _standard_test_users = {
+            "hubba-bubba": _users.new_user_example,
+            "hubba-baar": _users.new_unverified_user_example,
+            "hubba-fooo": _users.new_completed_signup_user_example,
+        }
+
         # Make a list of User object to be saved to the new temporary mongodb instance
         am_users = [_standard_test_users[x] for x in users]
 
         super().setUp(*args, am_users=am_users, **kwargs)
 
         self.user: Optional[User] = None  # type: ignore
+
+        # Load the user from the database so that it can be saved there again in tests
+        _test_user = self.amdb.get_user_by_eppn(users[0])
+        assert _test_user is not None
         # Initialize some convenience variables on self based on the first user in `users'
-        self.test_user_data = _standard_test_users[users[0]].to_dict()
-        self.test_user = User.from_dict(self.test_user_data)
+        self.test_user = _test_user
+        self.test_user_data = self.test_user.to_dict()
 
         # Set up Redis for shared sessions
         self.redis_instance = RedisTemporaryInstance.get_instance()
@@ -136,7 +142,6 @@ class EduidAPITestCase(CommonTestCase):
         self.settings["redis_config"] = RedisConfig(host="localhost", port=self.redis_instance.port)
         assert isinstance(self.tmp_db, MongoTemporaryInstance)  # please mypy
         self.settings["mongo_uri"] = self.tmp_db.uri
-        # self.settings['celery']['mongo_uri'] = self.tmp_db.uri
 
         self.app = self.load_app(self.settings)
         if not getattr(self, "browser", False):
@@ -149,7 +154,7 @@ class EduidAPITestCase(CommonTestCase):
         if copy_user_to_private:
             data = self.test_user.to_dict()
             logging.info(f"Copying test-user {self.test_user} to private_userdb {self.app.private_userdb}")
-            self.app.private_userdb.save(self.app.private_userdb.user_from_dict(data=data), check_sync=False)
+            self.app.private_userdb.save(self.app.private_userdb.user_from_dict(data=data))
 
     def tearDown(self):
         try:
@@ -216,8 +221,9 @@ class EduidAPITestCase(CommonTestCase):
         :type private_user: Private subclass of eduid_db.user.User
         :return: True
         """
-        user_id = str(private_user.user_id)
-        central_user = self.app.central_userdb.get_user_by_id(user_id)
+        logger.info(f"Saving user {private_user} to central userdb using test-request_user_sync() method")
+
+        central_user = self.app.central_userdb.get_user_by_id(private_user.user_id)
         private_user_dict = private_user.to_dict()
         # fix signup_user data
         if "proofing_reference" in private_user_dict:
@@ -225,23 +231,20 @@ class EduidAPITestCase(CommonTestCase):
 
         if central_user is None:
             # This is a new user, create a new user in the central db
-            self.app.central_userdb.save(User.from_dict(private_user_dict), check_sync=False)
+            self.app.central_userdb.save(User.from_dict(private_user_dict))
             return True
 
-        modified_ts = central_user.modified_ts
-        meta_modified_ts = central_user.meta.modified_ts
-        meta_version = central_user.meta.version
         central_user_dict = central_user.to_dict()
         central_user_dict.update(private_user_dict)
+
         # Iterate over all top level keys and remove those missing
         for key in list(central_user_dict.keys()):
             if key not in private_user_dict:
                 central_user_dict.pop(key, None)
+
         # create updated user
         user = User.from_dict(data=central_user_dict)
-        user.modified_ts = modified_ts
-        user.meta.modified_ts = meta_modified_ts
-        user.meta.version = meta_version
+
         # add locked identity the same way as done in consistency checks in am
         for identity in user.identities.to_list():
             if identity.is_verified is False:
@@ -254,6 +257,16 @@ class EduidAPITestCase(CommonTestCase):
                     identity.created_by = "test"
                 user.locked_identity.add(identity)
                 continue
+
+        # Restore metadata that is necessary for the consistency checks in the save() function
+        user.modified_ts = central_user.modified_ts
+        user.meta.modified_ts = central_user.meta.modified_ts
+        user.meta.version = central_user.meta.version
+        user.meta.is_in_database = True
+
+        # Make the new version in AM match the one in the private userdb
+        # user.meta.new_version = lambda: private_user.new_version
+
         self.app.central_userdb.save(user)
         return True
 

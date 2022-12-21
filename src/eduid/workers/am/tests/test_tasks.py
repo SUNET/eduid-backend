@@ -5,38 +5,43 @@ from bson import ObjectId
 import eduid.userdb
 from eduid.userdb import LockedIdentityList, NinIdentity
 from eduid.userdb.exceptions import EduIDUserDBError, MultipleUsersReturned
-from eduid.userdb.fixtures.users import mocked_user_standard, mocked_user_standard_2
+from eduid.userdb.fixtures.users import UserFixtures
 from eduid.userdb.identity import IdentityType
+from eduid.userdb.user import User
 from eduid.workers.am.consistency_checks import check_locked_identity, unverify_duplicates
 from eduid.workers.am.testing import AMTestCase
 
 
 class TestTasks(AMTestCase):
+    user: User
+
     def setUp(self, *args, **kwargs):
-        super().setUp(want_mongo_uri=True, am_users=[mocked_user_standard, mocked_user_standard_2], **kwargs)
+        _users = UserFixtures()
+        self.user = _users.mocked_user_standard
+        super().setUp(want_mongo_uri=True, am_users=[self.user, _users.mocked_user_standard_2], **kwargs)
 
     def test_get_user_by_id(self):
-        user = self.amdb.get_user_by_id(mocked_user_standard.user_id)
-        self.assertEqual(user.mail_addresses.primary.email, mocked_user_standard.mail_addresses.primary.email)
+        user = self.amdb.get_user_by_id(self.user.user_id)
+        self.assertEqual(user.mail_addresses.primary.email, self.user.mail_addresses.primary.email)
         assert not self.amdb.get_user_by_id(b"123456789012")
 
     def test_get_user_by_mail(self):
-        user = self.amdb.get_user_by_mail(mocked_user_standard.mail_addresses.primary.email)
-        self.assertEqual(user.user_id, mocked_user_standard.user_id)
+        user = self.amdb.get_user_by_mail(self.user.mail_addresses.primary.email)
+        self.assertEqual(user.user_id, self.user.user_id)
 
-        _unverified = [x for x in mocked_user_standard.mail_addresses.to_list() if not x.is_verified]
+        _unverified = [x for x in self.user.mail_addresses.to_list() if not x.is_verified]
 
         # Test unverified mail address in mailAliases, should raise UserDoesNotExist
         assert self.amdb.get_user_by_mail(_unverified[0].email) is None
 
     def test_user_duplication_exception(self):
-        user1 = self.amdb.get_user_by_mail(mocked_user_standard.mail_addresses.primary.email)
+        user1 = self.amdb.get_user_by_mail(self.user.mail_addresses.primary.email)
         user2_doc = user1.to_dict()
         user2_doc["_id"] = ObjectId()  # make up a new unique identifier
         del user2_doc["modified_ts"]  # defeat sync-check mechanism
         self.amdb.save(eduid.userdb.User.from_dict(user2_doc))
         with self.assertRaises(MultipleUsersReturned):
-            self.amdb.get_user_by_mail(mocked_user_standard.mail_addresses.primary.email)
+            self.amdb.get_user_by_mail(self.user.mail_addresses.primary.email)
 
     def test_unverify_duplicate_mail(self):
         user_id = ObjectId("901234567890123456789012")  # johnsmith@example.org / babba-labba

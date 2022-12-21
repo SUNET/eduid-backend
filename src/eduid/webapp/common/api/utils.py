@@ -63,7 +63,7 @@ def update_modified_ts(user: User) -> None:
     if private_user.modified_ts is None:
         private_user.modified_ts = datetime.utcnow()  # use current time
         logger.debug(f"Updating user {private_user} with new modified_ts: {private_user.modified_ts}")
-        current_app.private_userdb.save(private_user, check_sync=False)
+        current_app.private_userdb.save(private_user)
 
     user.modified_ts = private_user.modified_ts
     logger.debug(
@@ -108,7 +108,9 @@ def save_and_sync_user(
     """
     if private_userdb is None:
         private_userdb = current_app.private_userdb
+    logger.debug(f"Saving user {user} to private userdb {private_userdb} (is_in_database: {user.meta.is_in_database})")
     private_userdb.save(user)
+    logger.debug(f"Syncing {user} to central userdb {current_app.central_userdb}")
     return current_app.am_relay.request_user_sync(user, app_name_override=app_name_override)
 
 

@@ -40,6 +40,7 @@ from typing import Any, Dict, Optional, Type, TypeVar
 import bson
 
 from eduid.common.misc.timeutil import utc_now
+from eduid.userdb.db import TUserDbDocument
 from eduid.userdb.reset_password.element import CodeElement
 
 TResetPasswordStateSubclass = TypeVar("TResetPasswordStateSubclass", bound="ResetPasswordState")
@@ -66,11 +67,11 @@ class ResetPasswordState(object):
     def __str__(self):
         return "<eduID {!s}: {!s}>".format(self.__class__.__name__, self.eppn)
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> TUserDbDocument:
         res = asdict(self)
         res["eduPersonPrincipalName"] = res.pop("eppn")
         res["_id"] = res.pop("id")
-        return res
+        return TUserDbDocument(res)
 
     @classmethod
     def from_dict(cls: Type[TResetPasswordStateSubclass], data: Dict[str, Any]) -> TResetPasswordStateSubclass:
@@ -146,7 +147,7 @@ class ResetPasswordEmailAndPhoneState(ResetPasswordEmailState, _ResetPasswordEma
         data["phone_code"] = phone_code
         return cls.from_dict(data=data)
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> TUserDbDocument:
         res = super().to_dict()
         res["phone_code"] = self.phone_code.to_dict()
         return res

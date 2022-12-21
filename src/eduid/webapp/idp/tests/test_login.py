@@ -82,7 +82,7 @@ class IdPTestLogin(IdPTests):
 
     def test_ForceAuthn_with_existing_SSO_session(self):
         # Patch the VCCSClient so we do not need a vccs server
-        self.add_test_user_tou()
+        self.add_test_user_tou(self.test_user)
 
         with patch.object(VCCSClient, "authenticate"):
             VCCSClient.authenticate.return_value = True

@@ -40,9 +40,7 @@ from mock import patch
 
 from eduid.common.config.base import EduIDBaseAppConfig, WebauthnConfigMixin2
 from eduid.common.config.parsers import load_config
-from eduid.userdb import User
 from eduid.userdb.fixtures.fido_credentials import u2f_credential, webauthn_credential
-from eduid.userdb.fixtures.users import new_user_example
 from eduid.webapp.common.api.app import EduIDBaseApp
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.common.authn.fido_tokens import VerificationProblem, start_token_verification, verify_webauthn
@@ -120,7 +118,6 @@ class FidoTokensTestCase(EduidAPITestCase):
         super().setUp()
         self.webauthn_credential = webauthn_credential
         self.u2f_credential = u2f_credential
-        self.test_user = User.from_dict(data=new_user_example.to_dict())
 
     def load_app(self, test_config: Mapping[str, Any]) -> MockFidoApp:
         """
@@ -145,7 +142,7 @@ class FidoTokensTestCase(EduidAPITestCase):
     def test_u2f_start_verification(self):
         # Add a working U2F credential for this test
         self.test_user.credentials.add(self.u2f_credential)
-        self.amdb.save(self.test_user, check_sync=False)
+        self.amdb.save(self.test_user)
 
         eppn = self.test_user.eppn
 
@@ -171,7 +168,7 @@ class FidoTokensTestCase(EduidAPITestCase):
     def test_webauthn_start_verification(self):
         # Add a working Webauthn credential for this test
         self.test_user.credentials.add(self.webauthn_credential)
-        self.amdb.save(self.test_user, check_sync=False)
+        self.amdb.save(self.test_user)
 
         eppn = self.test_user.eppn
 
@@ -199,7 +196,7 @@ class FidoTokensTestCase(EduidAPITestCase):
         mock_verify.return_value = True
         # Add a working webauthn credential for this test
         self.test_user.credentials.add(self.webauthn_credential)
-        self.amdb.save(self.test_user, check_sync=False)
+        self.amdb.save(self.test_user)
 
         with self.app.test_request_context():
             with self.session_cookie(self.browser, self.test_user.eppn) as client:
@@ -216,7 +213,7 @@ class FidoTokensTestCase(EduidAPITestCase):
         mock_verify.return_value = True
         # Add a working U2F credential for this test
         self.test_user.credentials.add(self.webauthn_credential)
-        self.amdb.save(self.test_user, check_sync=False)
+        self.amdb.save(self.test_user)
 
         eppn = self.test_user.eppn
 
@@ -238,7 +235,7 @@ class FidoTokensTestCase(EduidAPITestCase):
         mock_verify.return_value = True
         # Add a working U2F credential for this test
         self.test_user.credentials.add(self.webauthn_credential)
-        self.amdb.save(self.test_user, check_sync=False)
+        self.amdb.save(self.test_user)
 
         eppn = self.test_user.eppn
 
@@ -262,7 +259,7 @@ class FidoTokensTestCase(EduidAPITestCase):
         mock_verify.return_value = True
         # Add a working Webauthn credential for this test
         self.test_user.credentials.add(self.webauthn_credential)
-        self.amdb.save(self.test_user, check_sync=False)
+        self.amdb.save(self.test_user)
 
         eppn = self.test_user.eppn
 

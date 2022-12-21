@@ -218,11 +218,11 @@ class TestSSO(SSOIdPTests):
         add_tou: bool = True,
         add_credentials_to_this_request: bool = True,
     ) -> NextResult:
-        if add_tou:
-            self.add_test_user_tou()
-
         if user is None:
             user = self.get_user_set_nins(self.test_user.eppn, [])
+
+        if add_tou:
+            self.add_test_user_tou(user)
 
         sso_session_1 = SSOSession(
             authn_request_id="some-unique-id-1",
@@ -255,7 +255,7 @@ class TestSSO(SSOIdPTests):
             sso_session_1.add_authn_credential(data)
 
         # Need to save any changed credentials to the user
-        self.amdb.save(user, check_sync=False)
+        self.amdb.save(user)
 
         with self.app.test_request_context():
             ticket = self._make_login_ticket(req_class_ref)
@@ -643,12 +643,12 @@ class TestSSO(SSOIdPTests):
         }
         for value, expected in force_authn.items():
             xmlstr = f"""
-            <ns0:AuthnRequest xmlns:ns0="urn:oasis:names:tc:SAML:2.0:protocol" 
-                  xmlns:ns1="urn:oasis:names:tc:SAML:2.0:assertion" 
-                  AssertionConsumerServiceURL="https://mfa-check.swamid.se/Shibboleth.sso/SAML2/POST" 
+            <ns0:AuthnRequest xmlns:ns0="urn:oasis:names:tc:SAML:2.0:protocol"
+                  xmlns:ns1="urn:oasis:names:tc:SAML:2.0:assertion"
+                  AssertionConsumerServiceURL="https://mfa-check.swamid.se/Shibboleth.sso/SAML2/POST"
                   Destination="https://unittest-idp.example.edu/sso/post" ForceAuthn="{value}"
                   ID="_9f482d6c6ace2867a69c53671fbf09c6"
-                  IssueInstant="2021-05-27T21:53:24Z" ProtocolBinding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" 
+                  IssueInstant="2021-05-27T21:53:24Z" ProtocolBinding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST"
                   Version="2.0">
                 <ns1:Issuer>https://mfa-check.swamid.se/shibboleth</ns1:Issuer>
                 <ns0:NameIDPolicy AllowCreate="1" />

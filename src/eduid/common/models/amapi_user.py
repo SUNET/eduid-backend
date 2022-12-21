@@ -3,9 +3,8 @@ from enum import Enum
 from typing import List, Optional
 
 from pydantic import BaseModel, Field
+
 from eduid.common.misc.timeutil import utc_now
-
-
 from eduid.userdb import MailAddress, PhoneNumber
 from eduid.userdb.meta import CleanerType, Meta
 

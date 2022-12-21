@@ -4,19 +4,19 @@ from deepdiff import DeepDiff
 
 from eduid.common.fastapi.exceptions import BadRequest
 from eduid.common.misc.timeutil import utc_now
+from eduid.common.models.amapi_user import (
+    UserUpdateEmailRequest,
+    UserUpdateLanguageRequest,
+    UserUpdateMetaCleanedRequest,
+    UserUpdateNameRequest,
+    UserUpdatePhoneRequest,
+    UserUpdateResponse,
+    UserUpdateTerminateRequest,
+)
 from eduid.userdb.logs.element import UserChangeLogElement
 from eduid.userdb.mail import MailAddressList
 from eduid.userdb.phone import PhoneNumberList
 from eduid.workers.amapi.context_request import ContextRequest
-from eduid.common.models.amapi_user import (
-    UserUpdateEmailRequest,
-    UserUpdateLanguageRequest,
-    UserUpdateNameRequest,
-    UserUpdatePhoneRequest,
-    UserUpdateResponse,
-    UserUpdateMetaCleanedRequest,
-    UserUpdateTerminateRequest,
-)
 
 
 def update_user(
@@ -68,10 +68,9 @@ def update_user(
 
     user_save_result = req.app.db.save(user=user_obj)
     if user_save_result.success:
-        assert user_save_result.user is not None
         diff = DeepDiff(
             old_user_dict,
-            user_save_result.user.to_dict(),
+            user_obj.to_dict(),
             ignore_order=True,
             exclude_paths=["root['meta']['modified_ts']", "root['modified_ts']"],  # we do not care about these entries.
         ).to_json()

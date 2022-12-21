@@ -56,6 +56,8 @@ class RedisTemporaryInstance(EduidTemporaryInstance):
             "--rm",
             "-p",
             "{!s}:6379".format(self.port),
+            "--name",
+            f"test_redis_{self.port}",
             "-v",
             "{!s}:/data".format(self.tmpdir),
             "-e",
