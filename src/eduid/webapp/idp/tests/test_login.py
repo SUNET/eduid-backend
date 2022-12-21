@@ -87,7 +87,7 @@ class IdPTestLogin(IdPTests):
 
     def test_ForceAuthn_with_existing_SSO_session(self) -> None:
         # Patch the VCCSClient so we do not need a vccs server
-        self.add_test_user_tou()
+        self.add_test_user_tou(self.test_user)
 
         with patch.object(VCCSClient, "authenticate") as mock_vccs:
             mock_vccs.return_value = True
@@ -177,8 +177,6 @@ class IdPTestLogin(IdPTests):
             result = self._try_login(authn_context=req_authn_context)
 
         assert result.reached_state == LoginState.S3_REDIRECT_LOGGED_IN
-
-        assert self.app.conf.actions_app_uri in result.response.location
 
     def test_eduperson_targeted_id(self) -> None:
         sp_config = get_saml2_config(self.app.conf.pysaml2_config, name="COCO_SP_CONFIG")

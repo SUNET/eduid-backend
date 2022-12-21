@@ -37,11 +37,6 @@ class ExternalCredential(Credential):
         """
         return ElementKey(self.credential_id)
 
-    def to_dict(self) -> Dict[str, Any]:
-        data = super().to_dict()
-        data["framework"] = self.framework.value
-        return data
-
 
 class SwedenConnectCredential(ExternalCredential):
     framework: TrustFramework = Field(default=TrustFramework.SWECONN, const=True)

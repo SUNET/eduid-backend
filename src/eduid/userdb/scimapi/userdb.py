@@ -84,7 +84,12 @@ class ScimApiUserDB(ScimApiBaseDB):
             }
             self.setup_indexes(indexes)
 
-    def save(self, user: ScimApiUser) -> bool:
+    def save(self, user: ScimApiUser) -> None:
+        """
+        Save a user to the database.
+
+        TODO: Align these users with the standard UserDB users, using user.meta.version instead.
+        """
         user_dict = user.to_dict()
 
         if "profiles" in user_dict:
@@ -119,7 +124,7 @@ class ScimApiUserDB(ScimApiBaseDB):
         extra_debug = pprint.pformat(user_dict, width=120)
         logger.debug(f"Extra debug:\n{extra_debug}")
 
-        return result.acknowledged
+        return None
 
     def remove(self, user: ScimApiUser):
         return self.remove_document(user.user_id)
@@ -159,5 +164,5 @@ class ScimEduidUserDB(UserDB[User]):
         super().__init__(db_uri, db_name)
 
     @classmethod
-    def user_from_dict(cls, data: Mapping[str, Any]) -> User:
+    def user_from_dict(cls, data: TUserDbDocument) -> User:
         return User.from_dict(data)

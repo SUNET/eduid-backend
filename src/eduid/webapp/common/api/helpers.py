@@ -111,7 +111,7 @@ def add_nin_to_user(user: User, proofing_state: NinProofingState) -> None:
         user.identities.add(nin_identity)
         user.modified_ts = utc_now()
         # Save user to private db
-        private_userdb.save(user, check_sync=False)
+        current_app.private_userdb.save(proofing_user)
         # Ask am to sync user to central db
         current_app.logger.info(f"Request sync for user {user}")
         result = am_relay.request_user_sync(user)

@@ -11,13 +11,14 @@ from typing import Any, Mapping, Optional
 import bson
 from eduid.userdb.db import TUserDbDocument
 
+from eduid.userdb.db import TUserDbDocument
 from eduid.userdb.exceptions import UserDBValueError
 
 __author__ = "lundberg"
 
 
 @unique
-class GroupRole(Enum):
+class GroupRole(str, Enum):
     OWNER = "owner"
     MEMBER = "member"
 

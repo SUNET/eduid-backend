@@ -2,7 +2,7 @@
 from unittest import TestCase
 
 from eduid.common.testing_base import normalised_data
-from eduid.userdb.fixtures.users import mocked_user_standard
+from eduid.userdb.fixtures.users import UserFixtures
 from eduid.userdb.idp.user import _SAML_ATTRIBUTES, IdPUser, SAMLAttributeSettings
 
 __author__ = "lundberg"
@@ -16,11 +16,12 @@ class TestIdpUser(TestCase):
             default_country_code="se",
             default_country="Sweden",
             sp_entity_categories=["https://myacademicid.org/entity-categories/esi"],
+            sp_subject_id_request=["subject-id"],
             esi_ladok_prefix="test-prefix",
         )
 
     def test_idp_user_to_attributes_all(self):
-        idp_user = IdPUser.from_dict(mocked_user_standard.to_dict())
+        idp_user = IdPUser.from_dict(UserFixtures().mocked_user_standard.to_dict())
         attributes = idp_user.to_saml_attributes(settings=self.saml_attribute_settings)
 
         for key in _SAML_ATTRIBUTES:
@@ -47,5 +48,6 @@ class TestIdpUser(TestCase):
             "mailLocalAddress": ["johnsmith2@example.com", "johnsmith@example.com"],
             "eduPersonOrcid": "https://op.example.org/user_orcid",
             "schacPersonalUniqueCode": f"{self.saml_attribute_settings.esi_ladok_prefix}{idp_user.ladok.external_id}",
+            "subject-id": f"{idp_user.eppn}@{self.saml_attribute_settings.default_eppn_scope}",
         }
         assert normalised_data(expected) == normalised_data(attributes)

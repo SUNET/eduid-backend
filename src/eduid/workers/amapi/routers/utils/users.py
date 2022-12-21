@@ -4,18 +4,19 @@ from deepdiff import DeepDiff
 
 from eduid.common.fastapi.exceptions import BadRequest
 from eduid.common.misc.timeutil import utc_now
-from eduid.userdb.logs.element import UserChangeLogElement
-from eduid.userdb.mail import MailAddressList
-from eduid.userdb.phone import PhoneNumberList
-from eduid.workers.amapi.context_request import ContextRequest
-from eduid.workers.amapi.models.user import (
+from eduid.common.models.amapi_user import (
     UserUpdateEmailRequest,
     UserUpdateLanguageRequest,
+    UserUpdateMetaCleanedRequest,
     UserUpdateNameRequest,
     UserUpdatePhoneRequest,
     UserUpdateResponse,
     UserUpdateTerminateRequest,
 )
+from eduid.userdb.logs.element import UserChangeLogElement
+from eduid.userdb.mail import MailAddressList
+from eduid.userdb.phone import PhoneNumberList
+from eduid.workers.amapi.context_request import ContextRequest
 
 
 def update_user(
@@ -26,11 +27,11 @@ def update_user(
         UserUpdateNameRequest,
         UserUpdateLanguageRequest,
         UserUpdatePhoneRequest,
+        UserUpdateMetaCleanedRequest,
         UserUpdateTerminateRequest,
     ],
 ) -> UserUpdateResponse:
     """General function for updating a user object"""
-
     user_obj = req.app.db.get_user_by_eppn(eppn=eppn)
     if user_obj is None:
         raise BadRequest(detail=f"Can't find {eppn} in database")
@@ -57,6 +58,9 @@ def update_user(
 
         user_obj.phone_numbers = PhoneNumberList(elements=data.phone_numbers)
 
+    elif isinstance(data, UserUpdateMetaCleanedRequest):
+        user_obj.meta.cleaned.update({data.type: data.ts})
+
     elif isinstance(data, UserUpdateTerminateRequest):
         user_obj.terminated = utc_now()
 
@@ -64,15 +68,14 @@ def update_user(
 
     user_save_result = req.app.db.save(user=user_obj)
     if user_save_result.success:
-        assert user_save_result.user is not None
         diff = DeepDiff(
             old_user_dict,
-            user_save_result.user.to_dict(),
+            user_obj.to_dict(),
             ignore_order=True,
             exclude_paths=["root['meta']['modified_ts']", "root['modified_ts']"],  # we do not care about these entries.
         ).to_json()
         audit_msg = UserChangeLogElement(
-            created_by="am_api",
+            created_by="amapi",
             eppn=eppn,
             log_element_id=None,
             diff=diff,

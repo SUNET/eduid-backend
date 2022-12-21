@@ -1,6 +1,9 @@
 import copy
 from enum import Enum
 import logging
+from dataclasses import dataclass
+from datetime import datetime
+from enum import Enum
 from typing import TYPE_CHECKING, Any, Dict, List, Mapping, NewType, Optional, TypeVar, Union
 
 import pymongo
@@ -12,10 +15,16 @@ from pymongo.database import Database
 from pymongo.errors import PyMongoError
 from pymongo.uri_parser import parse_uri
 
-from eduid.userdb.exceptions import EduIDUserDBError, MongoConnectionError, MultipleDocumentsReturned
+from eduid.userdb.exceptions import DocumentOutOfSync, EduIDUserDBError, MongoConnectionError, MultipleDocumentsReturned
+from eduid.userdb.meta import Meta
+from eduid.userdb.util import format_dict_for_debug, utc_now
+
+logger = logging.getLogger(__name__)
+extra_logger = logger.getChild("extra_debug")
 
 if TYPE_CHECKING:
     from motor import motor_asyncio
+
 
 TUserDbDocument = NewType("TUserDbDocument", dict[str, Any])
 
@@ -171,7 +180,7 @@ class MongoDB(object):
             self.get_connection().admin.command("ismaster")
             return True
         except pymongo.errors.ConnectionFailure as e:
-            logging.error("{} not healthy: {}".format(self, e))
+            logger.error("{} not healthy: {}".format(self, e))
             return False
 
     def close(self):
@@ -223,6 +232,25 @@ def _format_mongodb_uri(parsed_uri: Mapping[str, Any]) -> str:
     return res
 
 
+@dataclass
+class SaveResult:
+    """
+    Result of a save operation.
+
+    :param inserted: Number of inserted documents
+    :param updated: Number of updated documents
+    :param doc_id: The _id of the inserted/updated document
+    """
+
+    ts: datetime
+    inserted: int = 0
+    updated: int = 0
+    doc_id: Optional[ObjectId] = None
+
+    def __bool__(self):
+        return bool(self.inserted or self.updated)
+
+
 class BaseDB(object):
     """Base class for common db operations"""
 
@@ -252,7 +280,7 @@ class BaseDB(object):
         Drop the whole collection. Should ONLY be used in testing, obviously.
         :return:
         """
-        logging.warning("{!s} Dropping collection {!r}".format(self, self._coll_name))
+        logger.warning("{!s} Dropping collection {!r}".format(self, self._coll_name))
         return self._coll.drop()
 
     def _get_all_docs(self) -> pymongo.cursor.Cursor[TUserDbDocument]:
@@ -265,7 +293,7 @@ class BaseDB(object):
         """
         return self._coll.find({})
 
-    def _get_document_by_attr(self, attr: str, value: str) -> Optional[TUserDbDocument]:
+    def _get_document_by_attr(self, attr: str, value: Any) -> Optional[TUserDbDocument]:
         """
         Return the document in the MongoDB matching field=value
 
@@ -300,7 +328,7 @@ class BaseDB(object):
         return docs
 
     def _get_documents_by_aggregate(
-        self, match: Dict[str, Any], sort: Optional[Dict[str, Any]] = None, limit: Optional[int] = None
+        self, match: Mapping[str, Any], sort: Optional[Mapping[str, Any]] = None, limit: Optional[int] = None
     ) -> List[TUserDbDocument]:
 
         pipeline: List[Dict[str, Any]] = [{"$match": match}]
@@ -316,7 +344,7 @@ class BaseDB(object):
     def _get_documents_by_filter(
         self,
         spec: Mapping[str, Any],
-        fields: Optional[dict[str, Any]] = None,
+        fields: Optional[Mapping[str, Any]] = None,
         skip: Optional[int] = None,
         limit: Optional[int] = None,
     ) -> List[TUserDbDocument]:
@@ -382,7 +410,7 @@ class BaseDB(object):
         """
         return self._db.is_healthy()
 
-    def setup_indexes(self, indexes: Mapping[str, Any]):
+    def setup_indexes(self, indexes: Mapping[str, Any]) -> None:
         """
         To update an index add a new item in indexes and remove the previous version.
         """
@@ -410,5 +438,102 @@ class BaseDB(object):
         res = self._coll.insert_one(doc)  # type: ignore
         return res.inserted_id
 
-    def close(self):
+    def _save(
+        self,
+        data: TUserDbDocument,
+        spec: Mapping[str, Any],
+        is_in_database: bool,
+        meta: Optional[Meta] = None,
+    ) -> SaveResult:
+        """
+        Save a document in the db.
+
+        BaseDB works with documents, not with userdb objects. This becomes a bit messy since
+        this code updates the document and the calling code has to update the userdb object.
+
+        TODO: 1. Add Meta to all objects. This removes the need for is_in_database.
+              2. Remove modified_ts from the root of the document.
+        """
+        previous_version = None
+        previous_ts = data.get("modified_ts")
+        now = utc_now()
+
+        if meta is not None:
+            previous_version = meta.version
+            is_in_database = meta.is_in_database
+            # Update meta
+            meta.new_version()
+            meta.modified_ts = now
+            data["meta"] = meta.dict()
+
+            logger.debug(f"{self} Saving document (version {previous_version} -> {meta.version})")
+        else:
+            logger.debug(f"{self} Saving document without meta (modified_ts {previous_ts} -> {now.isoformat()})")
+
+        extra_logger.debug(f"{self} Extra debug: Full document:\n {format_dict_for_debug(data)}")
+
+        data["modified_ts"] = now  # update modified_ts (old) to current time
+
+        if not is_in_database:
+            # This is a new document, insert it
+            if meta is not None:
+                logger.debug(f"{self} Inserting new document with version {meta.version}")
+            else:
+                logger.debug(f"{self} Inserting new document without meta  (modified_ts {now})")
+            try:
+                insert_result = self._coll.insert_one(data)
+            except pymongo.errors.DuplicateKeyError:
+                # Log failure and raise DocumentOutOfSync exception
+                db_doc = self._get_and_format_existing_doc_for_logging(spec)
+                logger.error(
+                    f"{self} FAILED inserting new document.\nLoad with spec:\n{format_dict_for_debug(spec)}\n"
+                    f"In database:\n{db_doc}\n)"
+                )
+                raise
+
+            save_result = SaveResult(inserted=1, doc_id=insert_result.inserted_id, ts=now)
+            logger.debug(f"{self} Inserted new document into {self._coll_name}): {save_result})")
+            if meta is not None:
+                meta.is_in_database = True
+            return save_result
+
+        #
+        # Update an existing document
+        #
+        replace_spec = dict(spec)
+        if previous_ts is not None:
+            replace_spec["modified_ts"] = previous_ts
+        if previous_version is not None:
+            replace_spec["meta.version"] = previous_version
+
+        extra_logger.debug(f"{self} Extra debug: replacing document using spec:\n{format_dict_for_debug(replace_spec)}")
+
+        update_result = self._coll.replace_one(replace_spec, data)
+        save_result = SaveResult(updated=update_result.modified_count, doc_id=data["_id"], ts=now)
+
+        if update_result.matched_count == 0:
+            # Log failure and raise DocumentOutOfSync exception
+            db_doc = self._get_and_format_existing_doc_for_logging(spec)
+            logger.error(
+                f"{self} FAILED updating document\n{format_dict_for_debug(replace_spec)}\n"
+                f"with is_in_database={is_in_database}\nLoad with spec\n{format_dict_for_debug(spec)}\n"
+                f"In database:\n{db_doc}\n): {save_result}"
+            )
+
+            raise DocumentOutOfSync("Stale document can't be saved")
+
+        logger.debug(f"{self} Updated document {replace_spec} (ts {now.isoformat()}): {save_result}")
+        return save_result
+
+    def _get_and_format_existing_doc_for_logging(self, spec: Mapping[str, Any]) -> Optional[str]:
+        db_doc = {}
+        db_state = self._coll.find_one(spec)
+        if not db_state:
+            return "No document found"
+
+        db_doc["modified_ts"] = db_state.get("modified_ts")
+        db_doc["meta"] = db_state.get("meta")
+        return format_dict_for_debug(db_doc)
+
+    def close(self) -> None:
         self._db.close()

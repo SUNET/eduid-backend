@@ -3,7 +3,7 @@ from unittest import TestCase
 from bson import ObjectId
 
 import eduid.userdb.db as db
-from eduid.userdb.fixtures.users import mocked_user_standard_2, new_unverified_user_example, new_user_example
+from eduid.userdb.fixtures.users import UserFixtures
 from eduid.userdb.identity import IdentityType
 from eduid.userdb.testing import MongoTestCase
 
@@ -60,7 +60,8 @@ class TestMongoDB(TestCase):
 
 class TestDB(MongoTestCase):
     def setUp(self):
-        self._am_users = [new_unverified_user_example, mocked_user_standard_2, new_user_example]
+        _users = UserFixtures()
+        self._am_users = [_users.new_unverified_user_example, _users.mocked_user_standard_2, _users.new_user_example]
         super().setUp(am_users=self._am_users)
 
     def test_db_count(self):

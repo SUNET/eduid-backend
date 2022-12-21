@@ -404,7 +404,7 @@ class EmailTests(EduidAPITestCase[EmailApp]):
         verification1 = EmailProofingElement(email=email, verification_code="test_code_1")
         modified_ts = datetime.now(tz=None)
         old_state = EmailProofingState(id=None, eppn=eppn, modified_ts=modified_ts, verification=verification1)
-        self.app.proofing_statedb.save(old_state, check_sync=False)
+        self.app.proofing_statedb.save(old_state, is_in_database=False)
 
         response = self._post_email()
         self.assertEqual(response.status_code, 200)
@@ -420,7 +420,7 @@ class EmailTests(EduidAPITestCase[EmailApp]):
         modified_ts = datetime.now(tz=None)
         verification1 = EmailProofingElement(email=email, verification_code="test_code_1")
         old_state = EmailProofingState(id=None, eppn=eppn, modified_ts=modified_ts, verification=verification1)
-        self.app.proofing_statedb.save(old_state, check_sync=False)
+        self.app.proofing_statedb.save(old_state, is_in_database=False)
 
         response = self._post_email()
         self.assertEqual(response.status_code, 200)
@@ -443,7 +443,7 @@ class EmailTests(EduidAPITestCase[EmailApp]):
         user = self.app.central_userdb.get_user_by_eppn(eppn)
         mail_address = MailAddress(email=email, created_by="email", is_verified=False, is_primary=False)
         user.mail_addresses.add(mail_address)
-        self.app.central_userdb.save(user, check_sync=False)
+        self.app.central_userdb.save(user)
 
         response = self._post_email()
         self.assertEqual(response.status_code, 200)
@@ -763,8 +763,8 @@ class EmailTests(EduidAPITestCase[EmailApp]):
         modified_ts = datetime.now(tz=None) - timedelta(seconds=1)
         state1 = EmailProofingState(id=None, eppn=eppn, modified_ts=modified_ts, verification=verification1)
         state2 = EmailProofingState(id=None, eppn=eppn, modified_ts=None, verification=verification2)
-        self.app.proofing_statedb.save(state1, check_sync=False)
-        self.app.proofing_statedb.save(state2, check_sync=False)
+        self.app.proofing_statedb.save(state1, is_in_database=False)
+        self.app.proofing_statedb.save(state2, is_in_database=False)
         state = self.app.proofing_statedb.get_state_by_eppn_and_email(eppn=eppn, email=email)
         assert state is not None
         self.assertEqual(state.verification.verification_code, "test_code_2")

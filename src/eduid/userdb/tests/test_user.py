@@ -10,7 +10,7 @@ from eduid.userdb import NinIdentity, OidcAuthorization, OidcIdToken, Orcid
 from eduid.userdb.credentials import U2F, CredentialList, CredentialProofingMethod, Password
 from eduid.userdb.exceptions import EduIDUserDBError, UserHasNotCompletedSignup, UserIsRevoked
 from eduid.userdb.fixtures.identity import verified_nin_identity
-from eduid.userdb.fixtures.users import mocked_user_standard
+from eduid.userdb.fixtures.users import UserFixtures
 from eduid.userdb.identity import IdentityList, IdentityType
 from eduid.userdb.mail import MailAddress, MailAddressList
 from eduid.userdb.phone import PhoneNumber, PhoneNumberList
@@ -915,6 +915,10 @@ class TestNewUser(unittest.TestCase):
         assert user_dict2["meta"] == expected
 
     def test_user_meta_version(self):
+        assert self.user1.meta.is_in_database is False
+        assert self.user1.meta.version is None
+        self.user1.meta.new_version()
+        assert self.user1.meta.is_in_database is False
         assert isinstance(self.user1.meta.version, ObjectId) is True
 
     def test_user_meta_modified_ts(self):
@@ -948,13 +952,13 @@ class TestNewUser(unittest.TestCase):
             "verified_by": "eduid-idproofing-letter",
             "verified_ts": datetime(2015, 12, 18, 12, 3, 20),
         }
-        user_dict = mocked_user_standard.to_dict()
+        user_dict = UserFixtures().mocked_user_standard.to_dict()
         user_dict["letter_proofing_data"] = letter_proofing
         user = User.from_dict(user_dict)
         assert user.to_dict()["letter_proofing_data"] == [letter_proofing]
 
     def test_nins_and_identities_on_user(self):
-        user_dict = mocked_user_standard.to_dict()
+        user_dict = UserFixtures().mocked_user_standard.to_dict()
         user = User.from_dict(user_dict)
         user_dict["nins"] = [user.identities.nin.to_old_nin()]
         assert user_dict["identities"] != []
@@ -964,7 +968,7 @@ class TestNewUser(unittest.TestCase):
         assert user_dict.get("identities") is not None
 
     def test_empty_nins_list(self):
-        user_dict = mocked_user_standard.to_dict()
+        user_dict = UserFixtures().mocked_user_standard.to_dict()
         del user_dict["identities"]
         user_dict["nins"] = []
         user = User.from_dict(user_dict)

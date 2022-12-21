@@ -35,15 +35,13 @@ from __future__ import annotations
 import datetime
 import logging
 from dataclasses import asdict, dataclass, field
-from types import UnionType
-from typing import Any, Dict, Optional, Type, TypedDict, TypeVar, Union
+from typing import Any, Dict, Optional, Type, TypeVar, Union
 
 import bson
 from pydantic import BaseModel, Field
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.db import TUserDbDocument
-from eduid.userdb.element import ElementKey
 from eduid.userdb.reset_password.element import CodeElement
 from eduid.webapp.common.authn import fido_tokens
 

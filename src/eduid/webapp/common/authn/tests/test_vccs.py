@@ -33,18 +33,23 @@ from typing import cast
 
 from mock import patch
 
-from eduid.userdb.fixtures.users import new_user_example
+from eduid.userdb.fixtures.users import UserFixtures
 from eduid.userdb.testing import MongoTestCase
+from eduid.userdb.user import User
 from eduid.vccs.client import VCCSClient, VCCSClientHTTPError
 from eduid.webapp.common.authn import vccs as vccs_module
 from eduid.webapp.common.authn.testing import MockVCCSClient
 
 
 class VCCSTestCase(MongoTestCase):
+    user: User
+
     def setUp(self, **kwargs):
-        super().setUp(am_users=[new_user_example], **kwargs)
+        super().setUp(am_users=[UserFixtures().new_user_example], **kwargs)
         self.vccs_client = cast(VCCSClient, MockVCCSClient())
-        self.user = self.amdb.get_user_by_mail("johnsmith@example.com")
+        _user = self.amdb.get_user_by_mail("johnsmith@example.com")
+        assert _user is not None
+        self.user = _user
 
         # Start with no credentials
         for credential in self.user.credentials.to_list():

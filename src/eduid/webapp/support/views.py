@@ -68,7 +68,6 @@ def index(support_user: User):
         # Aux data
         user_data["authn"] = current_app.support_authn_db.get_authn_info(user_id=user.user_id)
         user_data["proofing_log"] = current_app.support_proofing_log_db.get_entries(eppn=user.eppn)
-        user_data["actions"] = current_app.support_actions_db.get_actions(user_id=user.user_id)
         user_data["letter_proofing"] = current_app.support_letter_proofing_db.get_proofing_state(eppn=user.eppn)
         user_data["oidc_proofing"] = current_app.support_oidc_proofing_db.get_proofing_state(eppn=user.eppn)
         user_data["email_proofings"] = current_app.support_email_proofing_db.get_proofing_states(eppn=user.eppn)

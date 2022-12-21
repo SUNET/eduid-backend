@@ -53,7 +53,6 @@ class SupportApp(AuthnBaseApp):
         self.support_authn_db = db.SupportAuthnInfoDB(config.mongo_uri)
         self.support_proofing_log_db = db.SupportProofingLogDB(config.mongo_uri)
         self.support_signup_db = db.SupportSignupUserDB(config.mongo_uri)
-        self.support_actions_db = db.SupportActionsDB(config.mongo_uri)
         self.support_letter_proofing_db = db.SupportLetterProofingDB(config.mongo_uri)
         self.support_oidc_proofing_db = db.SupportOidcProofingDB(config.mongo_uri)
         self.support_email_proofing_db = db.SupportEmailProofingDB(config.mongo_uri)

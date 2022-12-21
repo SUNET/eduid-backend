@@ -37,7 +37,7 @@ def proofing(user: User, nin: str) -> FluxData:
 
     # Add nin as not verified to the user
     proofing_state = create_proofing_state(user, nin)
-    add_nin_to_user(user, proofing_state)
+    proofing_user = add_nin_to_user(user, proofing_state)
 
     # Get list of verified mobile numbers
     verified_mobiles = [item.number for item in user.phone_numbers.to_list() if item.is_verified]
@@ -59,8 +59,7 @@ def proofing(user: User, nin: str) -> FluxData:
     if proofing_log_entry:
         # Verify nin for user
         try:
-            # load modified_ts from private userdb
-            proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
+            # Verify nin for user
             if not verify_nin_for_user(proofing_user, proofing_state, proofing_log_entry):
                 return error_response(message=CommonMsg.temp_problem)
             return success_response(message=MobileMsg.verify_success)

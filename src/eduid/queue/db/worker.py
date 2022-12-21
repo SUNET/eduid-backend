@@ -22,11 +22,12 @@ logger = logging.getLogger(__name__)
 
 class AsyncQueueDB(QueueDB):
     def __init__(self, db_uri: str, collection: str, db_name: str = "eduid_queue"):
-        super().__init__(db_uri, collection=collection, db_name=db_name, driver=DatabaseDriver.ASYNCIO)
+        super().__init__(db_uri, collection=collection, db_name=db_name)
 
-        # Re-initialize database and collection with connection_factory
-        # self._db = MongoDB(db_uri, db_name=db_name, connection_factory=connection_factory)
-        # self._coll = self._db.get_collection(collection=collection)
+        # Re-initialize database and collection with async versions.
+        # TODO: Refactor setup_indexes() to work with async driver too, possibly by creating an AsyncMongoDB class.
+        self._db = MongoDB(db_uri, db_name=db_name, driver=DatabaseDriver.ASYNCIO)
+        self._coll = self._db.get_collection(collection=collection)
 
     @property
     def database(self) -> motor_asyncio.AsyncIOMotorDatabase:

@@ -391,7 +391,7 @@ def complete_and_update_invite(user: User, invite_code: str):
 
     updated_invite = replace(invite, completed_ts=utc_now())
     try:
-        current_app.invite_db.save(invite=updated_invite)
+        current_app.invite_db.save(invite=updated_invite, is_in_database=True)
         save_and_sync_user(signup_user)
     except UserOutOfSync as e:
         current_app.logger.error(f"Failed saving user {signup_user}, data out of sync")

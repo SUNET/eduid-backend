@@ -46,7 +46,7 @@ from eduid.userdb.credentials import Password, Webauthn
 from eduid.userdb.exceptions import UserHasNotCompletedSignup
 from eduid.userdb.fixtures.fido_credentials import webauthn_credential
 from eduid.userdb.fixtures.fido_credentials import webauthn_credential as sample_credential
-from eduid.userdb.fixtures.users import mocked_user_standard, mocked_user_standard_2
+from eduid.userdb.fixtures.users import UserFixtures
 from eduid.userdb.reset_password import ResetPasswordEmailAndPhoneState, ResetPasswordEmailState
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.common.api.utils import get_zxcvbn_terms, hash_password
@@ -72,9 +72,8 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
     """Base TestCase for those tests that need a full environment setup"""
 
     def setUp(self, *args, **kwargs):
-        self.test_user = mocked_user_standard
-        self.other_test_user = mocked_user_standard_2
         super().setUp(*args, **kwargs)
+        self.other_test_user = UserFixtures().mocked_user_standard_2
 
     def load_app(self, config: Optional[Mapping[str, Any]]) -> ResetPasswordApp:
         """
@@ -370,7 +369,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         webauthn_credential = Webauthn.from_dict(credential)
         user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
         user.credentials.add(webauthn_credential)
-        self.app.central_userdb.save(user, check_sync=False)
+        self.app.central_userdb.save(user)
 
         response = self._post_email_address(data1=data1)
         state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
@@ -555,21 +554,21 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
     def test_get_zxcvbn_terms_no_given_name(self):
         with self.app.test_request_context():
             self.test_user.given_name = ""
-            self.app.central_userdb.save(self.test_user, check_sync=False)
+            self.app.central_userdb.save(self.test_user)
             terms = get_zxcvbn_terms(self.test_user)
             self.assertEqual(["John", "Smith", "Smith", "johnsmith", "johnsmith2"], terms)
 
     def test_get_zxcvbn_terms_no_surname(self):
         with self.app.test_request_context():
             self.test_user.surname = ""
-            self.app.central_userdb.save(self.test_user, check_sync=False)
+            self.app.central_userdb.save(self.test_user)
             terms = get_zxcvbn_terms(self.test_user)
             self.assertEqual(["John", "Smith", "John", "johnsmith", "johnsmith2"], terms)
 
     def test_get_zxcvbn_terms_no_display_name(self):
         with self.app.test_request_context():
             self.test_user.display_name = ""
-            self.app.central_userdb.save(self.test_user, check_sync=False)
+            self.app.central_userdb.save(self.test_user)
             terms = get_zxcvbn_terms(self.test_user)
             self.assertEqual(["John", "Smith", "johnsmith", "johnsmith2"], terms)
 

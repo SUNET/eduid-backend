@@ -87,7 +87,7 @@ class IdPConfig(EduIDBaseAppConfig, TouConfigMixin, WebauthnConfigMixin2, AmConf
     default_language: str = "en"
     # The scope to append to any unscoped eduPersonPrincipalName
     # attributes found on users in the userdb.
-    default_eppn_scope: Optional[str] = None
+    default_eppn_scope: str = "eduid.se"
     # Default country code to use in attribute release as c - ISO_COUNTRY_CODE
     default_country_code: str = "se"
     # Default country to use in attribute release as co - ISO_COUNTRY_NAME
@@ -101,10 +101,6 @@ class IdPConfig(EduIDBaseAppConfig, TouConfigMixin, WebauthnConfigMixin2, AmConf
     # localhost that will proxy requests to a currently available backend
     # using TLS.
     vccs_url: str = "http://localhost:8550/"
-    # URI of the actions app.
-    actions_app_uri: str = "https://login.idp.eduid.se/services/actions2/"
-    # The plugins for pre-authentication actions that need to be loaded
-    action_plugins: List[str] = Field(default=[])
     # The interval which a user needs to re-accept an already accepted ToU (in seconds)
     tou_reaccept_interval: timedelta = Field(default=timedelta(days=3 * 365))
     # Legacy parameters for the SSO cookie. Keep in sync with sso_cookie above until removed!

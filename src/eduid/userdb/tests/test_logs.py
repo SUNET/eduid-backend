@@ -2,12 +2,12 @@
 
 from unittest import TestCase
 
-import bson
 import pytest
 from pydantic import ValidationError
 
+from eduid.common.models.amapi_user import Reason, Source
 from eduid.common.rpc.msg_relay import DeregisteredCauseCode, DeregistrationInformation, FullPostalAddress, Name
-from eduid.userdb.fixtures.users import mocked_user_standard
+from eduid.userdb.fixtures.users import UserFixtures
 from eduid.userdb.logs.db import ProofingLog, UserChangeLog
 from eduid.userdb.logs.element import (
     LadokProofing,
@@ -29,10 +29,12 @@ __author__ = "lundberg"
 
 
 class TestProofingLog(TestCase):
+    user: User
+
     def setUp(self):
         self.tmp_db = MongoTemporaryInstance.get_instance()
         self.proofing_log_db = ProofingLog(db_uri=self.tmp_db.uri)
-        self.user = User.from_dict(mocked_user_standard.to_dict())
+        self.user = UserFixtures().mocked_user_standard
 
     def tearDown(self):
         self.proofing_log_db._drop_whole_collection()
@@ -360,16 +362,16 @@ class TestUserChangeLog(TestCase):
             eppn="hubba-bubba",
             created_by="test",
             diff="diff",
-            reason="test_reason",
-            source="test_source",
+            reason=Reason.TEST,
+            source=Source.TEST,
         )
 
         data_2 = UserChangeLogElement(
             eppn="hubba-bubba",
             created_by="test",
             diff="diff",
-            reason="test_reason",
-            source="test_source",
+            reason=Reason.TEST,
+            source=Source.TEST,
         )
 
         self.user_log_db.save(data_1)
@@ -392,8 +394,8 @@ class TestUserChangeLog(TestCase):
             eppn="hubba-biss",
             created_by="test",
             diff="diff",
-            reason="test_reason",
-            source="test_source",
+            reason=Reason.TEST,
+            source=Source.TEST,
         )
 
         self.user_log_db.save(data_3)

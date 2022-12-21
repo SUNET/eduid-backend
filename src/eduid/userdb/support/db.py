@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 
-from typing import Any, Dict, List, Mapping, Optional, Type, Union
+from typing import Any, Dict, List, Optional, Type, Union
 
 from bson import ObjectId
 
+from eduid.userdb.db import TUserDbDocument
 from eduid.userdb.exceptions import UserDoesNotExist
 from eduid.userdb.proofing import LetterProofingState
 from eduid.userdb.signup import SignupUserDB
@@ -25,7 +26,7 @@ class SupportUserDB(UserDB[SupportUser]):
         super().__init__(db_uri, db_name, collection=collection)
 
     @classmethod
-    def user_from_dict(cls, data: Mapping[str, Any]) -> SupportUser:
+    def user_from_dict(cls, data: TUserDbDocument) -> SupportUser:
         return SupportUser.from_dict(data)
 
     def search_users(self, query: str) -> List[SupportUser]:
@@ -84,28 +85,6 @@ class SupportAuthnInfoDB(BaseDB):
         if not doc:
             return dict()
         return self.model(dict(doc))  # Cast to dict to allow mutability
-
-
-class SupportActionsDB(BaseDB):
-
-    model = models.UserActions
-
-    def __init__(self, db_uri: str):
-        db_name = "eduid_actions"
-        collection = "actions"
-        super(SupportActionsDB, self).__init__(db_uri, db_name, collection)
-
-    def get_actions(self, user_id: Union[str, ObjectId]) -> List[Dict[str, Any]]:
-        """
-        :param user_id: User objects user_id property
-        :type user_id: ObjectId | str | unicode
-        :return: A list of dicts
-        :rtype: list
-        """
-        if not isinstance(user_id, ObjectId):
-            user_id = ObjectId(user_id)
-        docs = self._get_documents_by_filter(spec={"user_oid": user_id})
-        return [self.model(dict(doc)) for doc in docs]  # Cast to dict to allow mutability
 
 
 class SupportProofingDB(BaseDB):

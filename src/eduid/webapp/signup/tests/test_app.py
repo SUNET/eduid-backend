@@ -550,7 +550,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
             finish_url="https://example.com/finish",
             expires_at=datetime(1970, 1, 1, 0, 0, 0, 0, timezone.utc),
         )
-        self.app.invite_db.save(invite=invite)
+        self.app.invite_db.save(invite=invite, is_in_database=False)
         return invite
 
     def _get_invite_data(

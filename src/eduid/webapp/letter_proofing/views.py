@@ -55,6 +55,7 @@ def get_state(user) -> FluxData:
 def proofing(user: User, nin: str) -> FluxData:
     current_app.logger.info("Send letter for user {} initiated".format(user))
     proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn)
+    _state_in_db = proofing_state is not None
 
     if not proofing_state:
         # No existing proofing state was found, create a new one
@@ -80,6 +81,7 @@ def proofing(user: User, nin: str) -> FluxData:
         current_app.logger.info(f"Removed {proofing_state}")
         current_app.stats.count("letter_expired")
         proofing_state = create_proofing_state(user.eppn, nin)
+        _state_in_db = False
         current_app.logger.info(f"Created new {proofing_state}")
 
     try:
@@ -94,7 +96,7 @@ def proofing(user: User, nin: str) -> FluxData:
 
     # Set and save official address
     proofing_state.proofing_letter.address = address
-    current_app.proofing_statedb.save(proofing_state)
+    current_app.proofing_statedb.save(proofing_state, is_in_database=_state_in_db)
 
     try:
         campaign_id = send_letter(user, proofing_state)

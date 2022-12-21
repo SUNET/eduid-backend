@@ -49,7 +49,7 @@ class QueueDB(BaseDB):
     def __init__(
         self, db_uri: str, collection: str, db_name: str = "eduid_queue", driver: Optional[DatabaseDriver] = None
     ):
-        super().__init__(db_uri, db_name, collection=collection)
+        super().__init__(db_uri, db_name, collection=collection, driver=driver)
         self.handlers: Dict[str, Type[Payload]] = dict()
 
         # Remove messages older than discard_at datetime

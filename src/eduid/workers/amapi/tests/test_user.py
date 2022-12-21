@@ -3,106 +3,37 @@
 __author__ = "masv"
 
 import datetime
-import json
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
-import pkg_resources
 from bson import ObjectId
 from fastapi import status
-from fastapi.testclient import TestClient
 from httpx import Headers
 from jwcrypto import jwt
-from pydantic import BaseModel
 from requests import Response
 
 from eduid.common.clients.gnap_client.base import GNAPBearerTokenMixin
-from eduid.common.testing_base import CommonTestCase
-from eduid.userdb.fixtures.users import new_user_example
-from eduid.workers.amapi.app import init_api
-from eduid.workers.amapi.config import EndpointRestriction
+from eduid.userdb.fixtures.users import UserFixtures
+from eduid.userdb.meta import CleanerType
+from eduid.workers.amapi.testing import TestAMBase
 from eduid.workers.amapi.utils import AuthnBearerToken
-
-
-class TestAMBase(CommonTestCase):
-    def setUp(self, *args, **kwargs):
-        super().setUp(*args, **kwargs)
-
-        self.path = pkg_resources.resource_filename(__name__, "data")
-        self.test_config = self._get_config()
-        self.test_singing_key = "testing-amapi-2106210000"
-
-        self.api = init_api(name="test_api", test_config=self.test_config)
-        self.client = TestClient(self.api)
-
-        self.eppn = "hubba-bubba"
-        self.source = "mura"
-        self.reason = "mura"
-
-    def _get_config(self) -> Dict[str, Any]:
-        config = {
-            "keystore_path": f"{self.path}/testing_jwks.json",
-            "mongo_uri": self.settings["mongo_uri"],
-            "user_restriction": {
-                "test-service_name": [
-                    EndpointRestriction(
-                        endpoint="/users/*/name",
-                        method="put",
-                    ),
-                    EndpointRestriction(
-                        endpoint="/users/*/phone",
-                        method="put",
-                    ),
-                    EndpointRestriction(
-                        endpoint="/users/*/email",
-                        method="put",
-                    ),
-                    EndpointRestriction(
-                        endpoint="/users/*/language",
-                        method="put",
-                    ),
-                    EndpointRestriction(
-                        endpoint="/users/*/terminate",
-                        method="put",
-                    ),
-                ],
-            },
-        }
-        return config
-
-    @staticmethod
-    def as_json(data: dict) -> str:
-        return json.dumps(data)
-
-
-class TestStructureUser(BaseModel):
-    name: str
-    req: dict
-    assert_diff: dict
-    oauth_header: Headers
-    endpoint: Optional[str] = None
-    access_granted: bool
-    want_response_status: int
-
-    class Config:
-        arbitrary_types_allowed = True
 
 
 class TestUsers(TestAMBase, GNAPBearerTokenMixin):
     def setUp(self, *args, **kwargs):
-        super().setUp(am_users=[new_user_example])
+        super().setUp(am_users=[UserFixtures().new_user_example])
 
     def _make_url(self, endpoint: Optional[str] = None) -> str:
         if endpoint is None:
             return f"/users/{self.eppn}"
         return f"/users/{self.eppn}/{endpoint}"
 
-    def _audit_log_tests(self, assert_diff: dict):
+    def _check_audit_log(self, diff: dict[str, Any]) -> None:
         audit_logs = self.api.audit_logger.get_by_eppn(self.eppn)
         assert len(audit_logs) == 1
         assert audit_logs[0].eppn == self.eppn
         assert audit_logs[0].reason == self.reason
         assert audit_logs[0].source == self.source
-        assert audit_logs[0].diff == self.as_json(assert_diff)
+        assert audit_logs[0].diff == self.as_json(diff)
 
     def make_put_call(self, json_data: dict, oauth_header: Headers, endpoint: Optional[str] = None) -> Response:
         response = self.client.put(
@@ -127,10 +58,7 @@ class TestUsers(TestAMBase, GNAPBearerTokenMixin):
         bearer_token = f"Bearer {token.serialize()}"
         return Headers({"Authorization": bearer_token})
 
-
-class TestUpdateName(TestUsers):
-    def setUp(self, *args, **kwargs):
-        super().setUp()
+    def test_update_name_allowed(self):
         req = {
             "reason": self.reason,
             "source": self.source,
@@ -138,8 +66,7 @@ class TestUpdateName(TestUsers):
             "display_name": "test_display_name",
             "surname": "Smith",
         }
-
-        self.assert_diff = {
+        expected_audit_diff = {
             "dictionary_item_removed": ["root['givenName']"],
             "values_changed": {
                 "root['displayName']": {
@@ -148,53 +75,36 @@ class TestUpdateName(TestUsers):
                 },
             },
         }
+        got = self.make_put_call(
+            json_data=req,
+            oauth_header=self._auth_header("test-service_name"),
+            endpoint="name",
+        )
+        assert got.status_code == status.HTTP_200_OK
+        user_after = self.amdb.get_user_by_eppn(self.eppn)
+        assert user_after.given_name is None
+        assert user_after.display_name == "test_display_name"
+        assert user_after.surname == "Smith"
+        assert user_after.meta.version is not ObjectId("987654321098765432103210")
 
-        self.tts = [
-            TestStructureUser(
-                name="allowed",
-                req=req,
-                assert_diff=self.assert_diff,
-                oauth_header=self._auth_header("test-service_name"),
-                endpoint="name",
-                access_granted=True,
-                want_response_status=status.HTTP_200_OK,
-            ),
-            TestStructureUser(
-                name="not_allowed",
-                req=req,
-                assert_diff=self.assert_diff,
-                oauth_header=self._auth_header(service_name="wrong_service_name"),
-                endpoint="name",
-                access_granted=False,
-                want_response_status=status.HTTP_401_UNAUTHORIZED,
-            ),
-        ]
+        self._check_audit_log(diff=expected_audit_diff)
 
-    def test(self):
-        for tt in self.tts:
-            with self.subTest(name=tt.name):
-                got = self.make_put_call(
-                    json_data=tt.req,
-                    oauth_header=tt.oauth_header,
-                    endpoint=tt.endpoint,
-                )
-                assert got.status_code == tt.want_response_status
+    def test_update_name_not_allowed(self):
+        req = {
+            "reason": self.reason,
+            "source": self.source,
+            "given_name": None,
+            "display_name": "test_display_name",
+            "surname": "Smith",
+        }
+        got = self.make_put_call(
+            json_data=req,
+            oauth_header=self._auth_header("wrong_service_name"),
+            endpoint="name",
+        )
+        assert got.status_code == status.HTTP_401_UNAUTHORIZED
 
-                if tt.access_granted:
-                    user_after = self.amdb.get_user_by_eppn(self.eppn)
-                    assert user_after.given_name is None
-                    assert user_after.display_name == "test_display_name"
-                    assert user_after.surname == "Smith"
-                    assert user_after.meta.version is not ObjectId("987654321098765432103210")
-
-                    self._audit_log_tests(assert_diff=self.assert_diff)
-                else:
-                    pass
-
-
-class TestUpdateEmail(TestUsers):
-    def setUp(self, *args, **kwargs):
-        super().setUp()
+    def test_update_email_allowed(self):
         req = {
             "reason": self.reason,
             "source": self.source,
@@ -212,7 +122,7 @@ class TestUpdateEmail(TestUsers):
             ],
         }
 
-        self.assert_diff = {
+        expected_audit_diff = {
             "values_changed": {
                 "root['mailAliases'][0]": {
                     "new_value": {
@@ -248,58 +158,50 @@ class TestUpdateEmail(TestUsers):
                 },
             },
         }
+        got = self.make_put_call(
+            json_data=req,
+            oauth_header=self._auth_header(service_name="test-service_name"),
+            endpoint="email",
+        )
+        assert got.status_code == status.HTTP_200_OK
+        user_after = self.amdb.get_user_by_eppn(self.eppn)
+        assert user_after.mail_addresses.to_list()[0].email == "test@example.com"
+        assert len(user_after.mail_addresses.to_list()) == 1
 
-        self.tts = [
-            TestStructureUser(
-                name="allowed",
-                req=req,
-                assert_diff=self.assert_diff,
-                oauth_header=self._auth_header(service_name="test-service_name"),
-                endpoint="email",
-                access_granted=True,
-                want_response_status=status.HTTP_200_OK,
-            ),
-            TestStructureUser(
-                name="not_allowed",
-                req=req,
-                assert_diff=self.assert_diff,
-                oauth_header=self._auth_header(service_name="wrong-service_name"),
-                endpoint="email",
-                access_granted=False,
-                want_response_status=status.HTTP_401_UNAUTHORIZED,
-            ),
-        ]
+        self._check_audit_log(diff=expected_audit_diff)
 
-    def test(self):
-        for tt in self.tts:
-            with self.subTest(name=tt.name):
-                got = self.make_put_call(
-                    json_data=tt.req,
-                    oauth_header=tt.oauth_header,
-                    endpoint=tt.endpoint,
-                )
-                assert got.status_code == tt.want_response_status
+    def test_update_email_not_allowed(self):
+        req = {
+            "reason": self.reason,
+            "source": self.source,
+            "mail_addresses": [
+                {
+                    "email": "test@example.com",
+                    "created_by": "signup",
+                    "created_ts": "2013-09-02T10:23:25+00:00",
+                    "is_verified": True,
+                    "verified_by": "signup",
+                    "verified_ts": "2013-09-02T10:23:25+00:00",
+                    "is_primary": True,
+                    "modified_ts": "2013-09-02T10:23:25+00:00",
+                }
+            ],
+        }
+        got = self.make_put_call(
+            json_data=req,
+            oauth_header=self._auth_header(service_name="wrong-service_name"),
+            endpoint="email",
+        )
+        assert got.status_code == status.HTTP_401_UNAUTHORIZED
 
-                if tt.access_granted:
-                    user_after = self.amdb.get_user_by_eppn(self.eppn)
-                    assert user_after.mail_addresses.to_list()[0].email == "test@example.com"
-                    assert len(user_after.mail_addresses.to_list()) == 1
-
-                    self._audit_log_tests(assert_diff=self.assert_diff)
-                else:
-                    pass
-
-
-class TestUpdateLanguage(TestUsers):
-    def setUp(self, *args, **kwargs):
-        super().setUp()
+    def test_update_language_allowed(self):
         req = {
             "reason": self.reason,
             "source": self.source,
             "language": "test",
         }
 
-        self.assert_diff = {
+        expected_audit_diff = {
             "values_changed": {
                 "root['preferredLanguage']": {
                     "new_value": "test",
@@ -308,51 +210,31 @@ class TestUpdateLanguage(TestUsers):
             },
         }
 
-        self.tts = [
-            TestStructureUser(
-                name="allowed",
-                req=req,
-                assert_diff=self.assert_diff,
-                oauth_header=self._auth_header(service_name="test-service_name"),
-                endpoint="language",
-                access_granted=True,
-                want_response_status=status.HTTP_200_OK,
-            ),
-            TestStructureUser(
-                name="not_allowed",
-                req=req,
-                assert_diff=self.assert_diff,
-                oauth_header=self._auth_header(service_name="wrong-service_name"),
-                endpoint="language",
-                access_granted=False,
-                want_response_status=status.HTTP_401_UNAUTHORIZED,
-            ),
-        ]
+        got = self.make_put_call(
+            json_data=req,
+            oauth_header=self._auth_header(service_name="test-service_name"),
+            endpoint="language",
+        )
+        assert got.status_code == status.HTTP_200_OK
+        user_after = self.amdb.get_user_by_eppn(self.eppn)
+        assert user_after.language == "test"
 
-    def test(self):
-        for tt in self.tts:
-            with self.subTest(name=tt.name):
-                got = self.make_put_call(
-                    json_data=tt.req,
-                    oauth_header=tt.oauth_header,
-                    endpoint=tt.endpoint,
-                )
+        self._check_audit_log(diff=expected_audit_diff)
 
-                assert got.status_code == tt.want_response_status
+    def test_update_language_not_allowed(self):
+        req = {
+            "reason": self.reason,
+            "source": self.source,
+            "language": "test",
+        }
+        got = self.make_put_call(
+            json_data=req,
+            oauth_header=self._auth_header(service_name="wrong-service_name"),
+            endpoint="language",
+        )
+        assert got.status_code == status.HTTP_401_UNAUTHORIZED
 
-                if tt.access_granted:
-                    user_after = self.amdb.get_user_by_eppn(self.eppn)
-                    assert user_after.language == "test"
-
-                    self._audit_log_tests(assert_diff=self.assert_diff)
-                else:
-                    pass
-
-
-class TestUpdatePhone(TestUsers):
-    def setUp(self, *args, **kwargs):
-        super().setUp()
-
+    def test_update_phone_allowed(self):
         req = {
             "reason": self.reason,
             "source": self.source,
@@ -369,8 +251,7 @@ class TestUpdatePhone(TestUsers):
                 }
             ],
         }
-
-        self.assert_diff = {
+        expected_audit_diff = {
             "values_changed": {
                 "root['phone'][0]": {
                     "new_value": {
@@ -405,93 +286,132 @@ class TestUpdatePhone(TestUsers):
                 }
             },
         }
+        got = self.make_put_call(
+            json_data=req,
+            oauth_header=self._auth_header(service_name="test-service_name"),
+            endpoint="phone",
+        )
 
-        self.tts = [
-            TestStructureUser(
-                name="allowed",
-                req=req,
-                assert_diff=self.assert_diff,
-                oauth_header=self._auth_header(service_name="test-service_name"),
-                endpoint="phone",
-                access_granted=True,
-                want_response_status=status.HTTP_200_OK,
-            ),
-            TestStructureUser(
-                name="not_allowed",
-                req=req,
-                assert_diff=self.assert_diff,
-                oauth_header=self._auth_header(service_name="wrong-service_name"),
-                endpoint="phone",
-                access_granted=False,
-                want_response_status=status.HTTP_401_UNAUTHORIZED,
-            ),
-        ]
+        assert got.status_code == status.HTTP_200_OK
+        user_after = self.amdb.get_user_by_eppn(self.eppn)
+        assert user_after.phone_numbers.to_list()[0].number == "08197806"
 
-    def test(self):
-        for tt in self.tts:
-            with self.subTest(name=tt.name):
-                got = self.make_put_call(
-                    json_data=tt.req,
-                    oauth_header=tt.oauth_header,
-                    endpoint=tt.endpoint,
-                )
+        self._check_audit_log(diff=expected_audit_diff)
 
-                assert got.status_code == tt.want_response_status
+    def test_update_phone_not_allowed(self):
+        req = {
+            "reason": self.reason,
+            "source": self.source,
+            "phone_numbers": [
+                {
+                    "number": "08197806",
+                    "created_by": "signup",
+                    "created_ts": "2013-09-02T10:23:25",
+                    "is_verified": True,
+                    "verified_by": "signup",
+                    "verified_ts": "2013-09-02T10:23:25",
+                    "is_primary": True,
+                    "modified_ts": "2013-09-02T10:23:25",
+                }
+            ],
+        }
+        got = self.make_put_call(
+            json_data=req,
+            oauth_header=self._auth_header(service_name="wrong-service_name"),
+            endpoint="phone",
+        )
 
-                if tt.access_granted:
-                    user_after = self.amdb.get_user_by_eppn(self.eppn)
-                    assert user_after.phone_numbers.to_list()[0].number == "08197806"
+        assert got.status_code == status.HTTP_401_UNAUTHORIZED
 
-                    self._audit_log_tests(assert_diff=self.assert_diff)
+    def test_update_meta_cleaned_custom_ts(self):
+        req = {
+            "source": self.source,
+            "reason": self.reason,
+            "type": "skatteverket",
+            "ts": "2013-09-02T10:23:25+00:00",
+        }
 
+        user_before = self.amdb.get_user_by_eppn(self.eppn)
+        got = self.make_put_call(
+            json_data=req,
+            oauth_header=self._auth_header(service_name="test-service_name"),
+            endpoint="meta/cleaned",
+        )
+        assert got.status_code == status.HTTP_200_OK
+        user_after = self.amdb.get_user_by_eppn(self.eppn)
+        assert user_after.meta.cleaned[CleanerType.SKV] != user_before.meta.cleaned[CleanerType.SKV]
+        expected_audit_diff = {
+            "values_changed": {
+                "root['meta']['cleaned']['skatteverket']": {
+                    "new_value": "2013-09-02T10:23:25+00:00",
+                    "old_value": "2017-01-04T16:47:30+00:00",
+                }
+            }
+        }
 
-class TestTerminate(TestUsers):
-    def setUp(self, *args, **kwargs):
-        super().setUp()
+        self._check_audit_log(diff=expected_audit_diff)
 
+    def test_update_meta_cleaned_auto_ts(self):
+        req = {
+            "source": self.source,
+            "reason": self.reason,
+            "type": CleanerType.SKV,
+        }
+
+        user_before = self.amdb.get_user_by_eppn(self.eppn)
+        got = self.make_put_call(
+            json_data=req,
+            oauth_header=self._auth_header(service_name="test-service_name"),
+            endpoint="meta/cleaned",
+        )
+        assert got.status_code == status.HTTP_200_OK
+        user_after = self.amdb.get_user_by_eppn(self.eppn)
+        assert user_after.meta.cleaned["skatteverket"] != user_before.meta.cleaned["skatteverket"]
+
+    def test_update_meta_cleaned_not_allowed(self):
+        req = {
+            "source": self.source,
+            "reason": self.reason,
+            "type": "skatteverket",
+        }
+
+        got = self.make_put_call(
+            json_data=req,
+            oauth_header=self._auth_header(service_name="wrong-service_name"),
+            endpoint="meta/cleaned",
+        )
+        assert got.status_code == status.HTTP_401_UNAUTHORIZED
+
+    def test_update_terminate_allowed(self):
         req = {
             "source": self.source,
             "reason": self.reason,
         }
-
-        self.assert_diff = {
+        expected_audit_diff = {
             "dictionary_item_added": ["root['terminated']"],
         }
 
-        self.tts = [
-            TestStructureUser(
-                name="allowed",
-                req=req,
-                assert_diff=self.assert_diff,
-                oauth_header=self._auth_header(service_name="test-service_name"),
-                endpoint="terminate",
-                access_granted=True,
-                want_response_status=status.HTTP_200_OK,
-            ),
-            TestStructureUser(
-                name="not_allowed",
-                req=req,
-                assert_diff=self.assert_diff,
-                oauth_header=self._auth_header(service_name="wrong-service_name"),
-                endpoint="terminate",
-                access_granted=False,
-                want_response_status=status.HTTP_401_UNAUTHORIZED,
-            ),
-        ]
+        got = self.make_put_call(
+            json_data=req,
+            oauth_header=self._auth_header(service_name="test-service_name"),
+            endpoint="terminate",
+        )
 
-    def test(self):
-        for tt in self.tts:
-            with self.subTest(name=tt.name):
-                got = self.make_put_call(
-                    json_data=tt.req,
-                    oauth_header=tt.oauth_header,
-                    endpoint=tt.endpoint,
-                )
+        assert got.status_code == status.HTTP_200_OK
+        user_after = self.amdb.get_user_by_eppn(self.eppn)
+        assert user_after.terminated is not None
 
-                assert got.status_code == tt.want_response_status
+        self._check_audit_log(diff=expected_audit_diff)
 
-            if tt.access_granted:
-                user_after = self.amdb.get_user_by_eppn(self.eppn)
-                assert user_after.terminated is not None
+    def test_update_terminate_not_allowed(self):
+        req = {
+            "source": self.source,
+            "reason": self.reason,
+        }
+        got = self.make_put_call(
+            json_data=req,
+            oauth_header=self._auth_header(service_name="wrong-service_name"),
+            endpoint="terminate",
+        )
 
-                self._audit_log_tests(assert_diff=self.assert_diff)
+        assert got.status_code == status.HTTP_401_UNAUTHORIZED

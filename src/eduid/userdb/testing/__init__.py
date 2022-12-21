@@ -37,17 +37,18 @@ Code used in unit tests of various eduID applications.
 from __future__ import annotations
 
 import logging
+import logging.config
 import unittest
-from typing import Any, Dict, List, Optional, Sequence, Type, cast
+from typing import Any, List, Optional, Sequence, Type, cast
 
 import pymongo
 import pymongo.errors
 
+from eduid.common.logging import LocalContext, make_dictConfig
 from eduid.userdb import User
-from eduid.userdb.db import BaseDB, TUserDbDocument
+from eduid.userdb.db import TUserDbDocument
 from eduid.userdb.testing.temp_instance import EduidTemporaryInstance
 from eduid.userdb.userdb import AmDB
-from eduid.userdb.util import utc_now
 
 logger = logging.getLogger(__name__)
 
@@ -102,58 +103,6 @@ class MongoTemporaryInstance(EduidTemporaryInstance):
         return cast(MongoTemporaryInstance, super().get_instance(max_retry_seconds=max_retry_seconds))
 
 
-class MongoTestCaseRaw(unittest.TestCase):
-    def setUp(
-        self,
-        raw_users: Optional[List[Dict[str, Any]]] = None,
-        am_users: Optional[List[User]] = None,
-        **kwargs: Any,
-    ):
-        super().setUp()
-        self.maxDiff = None
-        self._tmp_db = MongoTemporaryInstance.get_instance()
-        assert isinstance(self._tmp_db, MongoTemporaryInstance)  # please mypy
-
-        self.amdb = AmDB(self._tmp_db.uri)
-        self.collection = self.amdb.collection
-
-        self._db = BaseDB(db_uri=self._tmp_db.uri, db_name="eduid_am", collection=self.collection)
-
-        mongo_settings = {
-            "mongo_replicaset": None,
-            "mongo_uri": self._tmp_db.uri,
-        }
-
-        if getattr(self, "settings", None) is None:
-            self.settings = mongo_settings
-        else:
-            self.settings.update(mongo_settings)
-
-        if am_users:
-            # Set up test users in the MongoDB.
-            for user in am_users:
-                self._db.legacy_save(user.to_dict())
-        if raw_users:
-            for raw_user in raw_users:
-                raw_user["modified_ts"] = utc_now()
-                self._db.legacy_save(raw_user)
-
-        self._db.close()
-
-    def tearDown(self):
-        for userdoc in self.amdb._get_all_docs():
-            assert User.from_dict(data=userdoc)
-        # Reset databases for the next test class, but do not shut down the temporary
-        # mongodb instance, for efficiency reasons.
-        for db_name in self._tmp_db.conn.list_database_names():
-            if db_name not in ["local", "admin", "config"]:  # Do not drop mongo internal dbs
-                self._tmp_db.conn.drop_database(db_name)
-        self.amdb._drop_whole_collection()
-        self.amdb.close()
-        self._db.close()  # do we need this?
-        super().tearDown()
-
-
 class MongoTestCase(unittest.TestCase):
     """TestCase with an embedded MongoDB temporary instance.
 
@@ -167,30 +116,20 @@ class MongoTestCase(unittest.TestCase):
     def setUp(self, *args: list[Any], am_users: Optional[List[User]] = None, **kwargs: dict[str, Any]):
         """
         Test case initialization.
-
-        To not get a circular dependency between eduid-userdb and eduid-am, celery
-        and get_attribute_manager needs to be imported in the place where this
-        module is called.
-
-        Usage:
-
-            from eduid.workers.am.celery import celery, get_attribute_manager
-
-            class MyTest(MongoTestCase):
-
-                def setUp(self):
-                    super(MyTest, self).setUp(celery, get_attribute_manager)
-                    ...
-
-        :param init_am: True if the test needs am
-        :param am_settings: Test specific am settings
         :return:
         """
         super().setUp()
         self.maxDiff = None
+
+        # Set up provisional logging to capture logs from test setup too
+        self._init_logging()
+
         self.tmp_db = MongoTemporaryInstance.get_instance()
         assert isinstance(self.tmp_db, MongoTemporaryInstance)  # please mypy
         self.amdb = AmDB(self.tmp_db.uri)
+
+        logger.info("Resetting all databases for new tests")
+        self._reset_databases()
 
         mongo_settings = {
             "mongo_replicaset": None,
@@ -205,16 +144,36 @@ class MongoTestCase(unittest.TestCase):
         if am_users:
             # Set up test users in the MongoDB.
             for user in am_users:
-                self.amdb.save(user, check_sync=False)
+                logger.debug(f"Adding test user {user} to the database")
+                self.amdb.save(user)
 
-    def tearDown(self):
-        for userdoc in self.amdb._get_all_docs():
-            assert User.from_dict(data=userdoc)
-        # Reset databases for the next test class, but do not shut down the temporary
-        # mongodb instance, for efficiency reasons.
+    def _init_logging(self):
+        local_context = LocalContext(
+            app_debug=True,
+            app_name="testing",
+            format="{asctime} | {levelname:7} |             | {name:35} | {message}",
+            level="DEBUG",
+            relative_time=True,
+        )
+        logging_config = make_dictConfig(local_context)
+        logging.config.dictConfig(logging_config)
+
+    def _reset_databases(self):
+        """
+        Reset databases for the next test class.
+
+        We do this both at shutdown (to clean up) and in setUp() to make sure that tests get a clean environment.
+        Particularly vscode doesn't always run tearDown(), when tests fails or the debugger is stopped mid-test.
+        """
         for db_name in self.tmp_db.conn.list_database_names():
             if db_name not in ["local", "admin", "config"]:  # Do not drop mongo internal dbs
                 self.tmp_db.conn.drop_database(db_name)
         self.amdb._drop_whole_collection()
+
+    def tearDown(self):
+        for userdoc in self.amdb._get_all_docs():
+            assert User.from_dict(data=userdoc)
+        self._reset_databases()
+        # Close, but do not shut down the temporary MongoDB instance for performance reasons.
         self.amdb.close()
         super().tearDown()

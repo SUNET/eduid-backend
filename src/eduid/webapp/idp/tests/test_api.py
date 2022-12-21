@@ -321,5 +321,5 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
             event_id=str(ObjectId()),
         )
         self.test_user.tou.add(tou)
-        self.amdb.save(self.test_user, check_sync=False)
+        self.amdb.save(self.test_user)
         return tou

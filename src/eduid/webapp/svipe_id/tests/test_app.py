@@ -139,7 +139,7 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
             user = self.app.central_userdb.get_user_by_eppn(eppn)
             if user.identities.svipe:
                 user.identities.remove(user.identities.svipe.key)
-                self.app.central_userdb.save(user, check_sync=False)
+                self.app.central_userdb.save(user)
 
     @staticmethod
     def get_mock_userinfo(

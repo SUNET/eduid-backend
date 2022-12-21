@@ -38,6 +38,7 @@ import bson
 from pydantic import Field
 from eduid.userdb.db import TUserDbDocument
 
+from eduid.userdb.db import TUserDbDocument
 from eduid.userdb.proofing import EmailProofingElement
 from eduid.userdb.user import User
 

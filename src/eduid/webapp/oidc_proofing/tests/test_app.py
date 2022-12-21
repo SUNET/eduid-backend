@@ -131,7 +131,7 @@ class OidcProofingTests(EduidAPITestCase):
     def test_get_freja_state(self):
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         proofing_state = create_proofing_state(user, self.test_user_nin)
-        self.app.proofing_statedb.save(proofing_state)
+        self.app.proofing_statedb.save(proofing_state, is_in_database=False)
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             response = json.loads(browser.get("/freja/proofing").data)
         self.assertEqual(response["type"], "GET_OIDC_PROOFING_FREJA_PROOFING_SUCCESS")
@@ -366,7 +366,6 @@ class OidcProofingTests(EduidAPITestCase):
         mock_oidc_call.return_value = True
         mock_get_postal_address.return_value = self.mock_address
         mock_request_user_sync.side_effect = self.request_user_sync
-        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             response = json.loads(browser.get("/freja/proofing").data)
@@ -398,6 +397,8 @@ class OidcProofingTests(EduidAPITestCase):
                 }
             }
         }
+
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         with self.app.app_context():
             handle_freja_eid_userinfo(user, proofing_state, userinfo)
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
@@ -552,8 +553,9 @@ class OidcProofingTests(EduidAPITestCase):
         csrf_token = response["payload"]["csrf_token"]
 
         # User with locked_identity and correct nin
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         user.locked_identity.add(NinIdentity(number=self.test_user_nin, created_by="test", is_verified=True))
-        self.app.central_userdb.save(user, check_sync=False)
+        self.app.central_userdb.save(user)
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             data = {"nin": self.test_user_nin, "csrf_token": csrf_token}
@@ -591,8 +593,9 @@ class OidcProofingTests(EduidAPITestCase):
 
         csrf_token = response["payload"]["csrf_token"]
 
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         user.locked_identity.add(NinIdentity(number=self.test_user_nin, created_by="test", is_verified=True))
-        self.app.central_userdb.save(user, check_sync=False)
+        self.app.central_userdb.save(user)
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             data = {"nin": self.test_user_nin, "csrf_token": csrf_token}

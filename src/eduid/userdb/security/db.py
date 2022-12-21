@@ -32,15 +32,14 @@
 #
 import copy
 import logging
-from typing import Any, Dict, Mapping, Optional, Union
+from typing import Any, Mapping, Optional, Union
 
-from eduid.userdb.db import BaseDB
+from eduid.userdb.db import BaseDB, SaveResult, TUserDbDocument
 from eduid.userdb.deprecation import deprecated
-from eduid.userdb.exceptions import DocumentOutOfSync, MultipleDocumentsReturned
+from eduid.userdb.exceptions import MultipleDocumentsReturned
 from eduid.userdb.security.state import PasswordResetEmailAndPhoneState, PasswordResetEmailState, PasswordResetState
 from eduid.userdb.security.user import SecurityUser
 from eduid.userdb.userdb import UserDB
-from eduid.userdb.util import utc_now
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +51,7 @@ class SecurityUserDB(UserDB[SecurityUser]):
         super().__init__(db_uri, db_name, collection=collection)
 
     @classmethod
-    def user_from_dict(cls, data: Mapping[str, Any]) -> SecurityUser:
+    def user_from_dict(cls, data: TUserDbDocument) -> SecurityUser:
         return SecurityUser.from_dict(data)
 
 
@@ -110,15 +109,13 @@ class PasswordResetStateDB(BaseDB):
             return PasswordResetEmailAndPhoneState.from_dict(_data)
         return None
 
-    def save(self, state: PasswordResetState, check_sync: bool = True) -> None:
+    def save(self, state: PasswordResetState, is_in_database: bool) -> SaveResult:
         """
+        Save state to the database.
 
-        :param state: PasswordResetState object
-        :param check_sync: Ensure the document hasn't been updated in the database since it was loaded
+        :param state: The state to save
+        :param is_in_database: True if the state is already in the database. TODO: Remove when state have Meta.
         """
-
-        modified = state.modified_ts
-        state.modified_ts = utc_now()  # update to current time
 
         data = state.to_dict()
         # Remember what type of state this is, used when loading state above in init_state()
@@ -127,36 +124,18 @@ class PasswordResetStateDB(BaseDB):
         elif isinstance(state, PasswordResetEmailState):
             data["method"] = "email"
 
-        if modified is None:
-            # document has never been modified
+        if state.modified_ts is None:
             # Remove old reset password state
             old_state = self.get_state_by_eppn(state.eppn)
             if old_state:
                 self.remove_state(old_state)
-            result = self._coll.insert_one(data)
-            logging.debug(f"{self} Inserted new state {state} into {self._coll_name}): {result.inserted_id})")
-        else:
-            test_doc: Dict[str, Any] = {"eduPersonPrincipalName": state.eppn}
-            if check_sync:
-                test_doc["modified_ts"] = modified
-            result2 = self._coll.replace_one(test_doc, data, upsert=(not check_sync))
-            if check_sync and result2.matched_count == 0:
-                db_ts = None
-                db_state = self._coll.find_one({"eduPersonPrincipalName": state.eppn})
-                if db_state:
-                    db_ts = db_state["modified_ts"]
-                logging.debug(
-                    "{!s} FAILED Updating state {!r} (ts {!s}) in {!r}). ts in db = {!s}".format(
-                        self, state, modified, self._coll_name, db_ts
-                    )
-                )
-                raise DocumentOutOfSync("Stale state object can't be saved")
 
-            logging.debug(
-                "{!s} Updated state {!r} (ts {!s}) in {!r}): {!r}".format(
-                    self, state, modified, self._coll_name, result2
-                )
-            )
+        spec: dict[str, Any] = {"eduPersonPrincipalName": state.eppn}
+
+        result = self._save(state.to_dict(), spec, is_in_database=is_in_database)
+        state.modified_ts = result.ts
+
+        return result
 
     def remove_state(self, state: PasswordResetState) -> None:
         self.remove_document({"eduPersonPrincipalName": state.eppn})
