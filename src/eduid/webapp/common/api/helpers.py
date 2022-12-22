@@ -266,7 +266,7 @@ def check_magic_cookie(config: MagicCookieMixin) -> bool:
 
 @dataclass
 class ProofingNavetData:
-    user_postal_address: Optional[FullPostalAddress] = None
+    user_postal_address: FullPostalAddress
     deregistration_information: Optional[DeregistrationInformation] = None
 
 
