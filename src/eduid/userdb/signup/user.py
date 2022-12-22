@@ -36,7 +36,6 @@ from typing import Any, Dict, Optional
 
 import bson
 from pydantic import Field
-from eduid.userdb.db import TUserDbDocument
 
 from eduid.userdb.db import TUserDbDocument
 from eduid.userdb.proofing import EmailProofingElement

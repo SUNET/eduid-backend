@@ -4,7 +4,7 @@
 import base64
 import binascii
 from io import BytesIO
-from typing import Any, Dict, Mapping
+from typing import Any, Dict, Mapping, Union
 
 import qrcode
 import qrcode.image.svg
@@ -12,6 +12,7 @@ import requests
 from flask import Blueprint, make_response, request, url_for
 from jose import jws as jose
 from oic.oic.message import AuthorizationResponse, Claims, ClaimsRequest
+from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.common.rpc.exceptions import TaskFailed
 from eduid.userdb import User
@@ -19,7 +20,7 @@ from eduid.userdb.proofing import ProofingUser
 from eduid.userdb.util import UTC
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, can_verify_nin, require_user
 from eduid.webapp.common.api.helpers import add_nin_to_user
-from eduid.webapp.common.api.messages import CommonMsg, error_response
+from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response
 from eduid.webapp.oidc_proofing import helpers, schemas
 from eduid.webapp.oidc_proofing.app import current_oidcp_app as current_app
 from eduid.webapp.oidc_proofing.helpers import OIDCMsg
@@ -162,7 +163,7 @@ def get_seleg_state(user: User) -> Dict[str, Any]:
 @MarshalWith(schemas.NonceResponseSchema)
 @can_verify_nin
 @require_user
-def seleg_proofing(user: User, nin: str):
+def seleg_proofing(user: User, nin: str) -> Union[FluxData, WerkzeugResponse]:
     proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn)
     if not proofing_state:
         current_app.logger.debug("No proofing state found for user {!s}. Initializing new proofing flow.".format(user))
@@ -230,7 +231,7 @@ def get_freja_state(user: User) -> Mapping[str, Any]:
 @MarshalWith(schemas.FrejaResponseSchema)
 @can_verify_nin
 @require_user
-def freja_proofing(user, nin):
+def freja_proofing(user: User, nin: str) -> Union[FluxData, WerkzeugResponse]:
     proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn)
     if not proofing_state:
         current_app.logger.debug("No proofing state found for user {!s}. Initializing new proofing flow.".format(user))

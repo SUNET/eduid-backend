@@ -8,7 +8,6 @@ from typing import Any, Dict, Mapping, Optional, Type, TypeVar
 
 import bson
 from pydantic import BaseModel, Extra, Field
-from eduid.userdb.db import TUserDbDocument
 
 from eduid.userdb.db import TUserDbDocument
 from eduid.userdb.security.element import CodeElement

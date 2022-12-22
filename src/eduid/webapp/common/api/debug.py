@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 import pprint
 import sys
-from typing import Any, Callable
 import warnings
 from dataclasses import asdict
+from typing import Any, Callable
 from urllib import parse
 
-from flask import url_for, Flask
+from flask import Flask, url_for
 
 __author__ = "lundberg"
 

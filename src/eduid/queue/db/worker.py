@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from lib2to3.pgen2 import driver
 import logging
 from dataclasses import replace
 from datetime import datetime, timedelta, timezone

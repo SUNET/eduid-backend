@@ -49,8 +49,8 @@ from eduid.common.rpc.msg_relay import NavetData
 from eduid.common.testing_base import CommonTestCase
 from eduid.userdb import User
 from eduid.userdb.db import BaseDB
-from eduid.userdb.logs.db import ProofingLog
 from eduid.userdb.fixtures.users import UserFixtures
+from eduid.userdb.logs.db import ProofingLog
 from eduid.userdb.proofing.state import NinProofingState
 from eduid.userdb.testing import MongoTemporaryInstance
 from eduid.userdb.userdb import UserDB
@@ -106,7 +106,7 @@ TEST_CONFIG = {
 }
 
 
-TTestAppVar = TypeVar("TTestAppVar")
+TTestAppVar = TypeVar("TTestAppVar", bound=EduIDBaseApp)
 
 
 class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
