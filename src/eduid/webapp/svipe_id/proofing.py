@@ -82,7 +82,6 @@ class SvipeIDProofingFunctions(ProofingFunctions[SvipeDocumentUserInfo]):
         current_app.stats.count(name="nin_verified")
         # re-load the user from central db before returning
         _user = current_app.central_userdb.get_user_by_eppn(proofing_user.eppn)
-        assert _user is not None  # please mypy
         return VerifyUserResult(user=ProofingUser.from_user(_user, current_app.private_userdb))
 
     def _verify_foreign_identity(self, user: User) -> VerifyUserResult:
@@ -144,7 +143,6 @@ class SvipeIDProofingFunctions(ProofingFunctions[SvipeDocumentUserInfo]):
         current_app.stats.count(name="foreign_identity_verified")
         # load the user from central db before returning
         _user = current_app.central_userdb.get_user_by_eppn(proofing_user.eppn)
-        assert _user is not None  # please mypy
         return VerifyUserResult(user=_user)
 
     def _can_replace_identity(self, proofing_user: ProofingUser) -> bool:

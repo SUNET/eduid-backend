@@ -46,7 +46,7 @@ from pydantic import BaseModel, Extra, Field, root_validator, validator
 from eduid.userdb.credentials import CredentialList
 from eduid.userdb.db import BaseDB, TUserDbDocument
 from eduid.userdb.element import UserDBValueError
-from eduid.userdb.exceptions import UserHasNotCompletedSignup, UserIsRevoked
+from eduid.userdb.exceptions import UserDoesNotExist, UserHasNotCompletedSignup, UserIsRevoked
 from eduid.userdb.identity import IdentityList, IdentityType
 from eduid.userdb.ladok import Ladok
 from eduid.userdb.locked_identity import LockedIdentityList
@@ -266,7 +266,10 @@ class User(BaseModel):
 
         private_userdb = cast(UserDB[TUserSubclass], private_userdb)
 
-        private_user = private_userdb.get_user_by_eppn(user.eppn)
+        try:
+            private_user = private_userdb.get_user_by_eppn(user.eppn)
+        except UserDoesNotExist:
+            private_user = None
         logger.debug(f"{cls}: User in private database: {private_user}")
 
         new_user = cls.from_dict(data=user.to_dict())

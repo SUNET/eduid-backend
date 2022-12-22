@@ -10,13 +10,13 @@ from eduid.common.config.parsers import load_config
 from eduid.common.rpc.msg_relay import FullPostalAddress
 from eduid.common.testing_base import normalised_data
 from eduid.userdb import NinIdentity
+from eduid.userdb.exceptions import UserDoesNotExist
 from eduid.userdb.fixtures.users import UserFixtures
 from eduid.userdb.identity import IdentityList
 from eduid.userdb.logs import ProofingLog
 from eduid.userdb.logs.element import ForeignIdProofingLogElement, NinProofingLogElement
 from eduid.userdb.proofing import LetterProofingStateDB, LetterProofingUserDB, NinProofingElement, ProofingUser
 from eduid.userdb.proofing.state import NinProofingState
-from eduid.userdb.user import User
 from eduid.webapp.common.api.app import EduIDBaseApp
 from eduid.webapp.common.api.helpers import (
     add_nin_to_user,
@@ -67,7 +67,6 @@ class NinHelpersTest(EduidAPITestCase):
 
     def insert_verified_user(self):
         user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
-        assert user is not None
         user.identities = IdentityList()
         nin_element = NinIdentity.from_dict(
             dict(
@@ -82,7 +81,6 @@ class NinHelpersTest(EduidAPITestCase):
 
     def insert_not_verified_user(self):
         user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
-        assert user is not None
         user.identities = IdentityList()
         nin_element = NinIdentity.from_dict(
             dict(
@@ -98,7 +96,6 @@ class NinHelpersTest(EduidAPITestCase):
     def insert_no_nins_user(self):
         # Replace user with one without previous proofings
         user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
-        assert user is not None
         user.identities = IdentityList()
         self.app.central_userdb.save(user)
         return user.eppn
@@ -126,7 +123,8 @@ class NinHelpersTest(EduidAPITestCase):
         proofing_state = NinProofingState.from_dict({"eduPersonPrincipalName": eppn, "nin": nin_element.to_dict()})
         with self.app.app_context():
             add_nin_to_user(user, proofing_state)
-        assert self.app.private_userdb.get_user_by_eppn(eppn) is None
+        with pytest.raises(UserDoesNotExist):
+            self.app.private_userdb.get_user_by_eppn(eppn)
 
     def test_add_nin_to_user_existing_verified(self):
         eppn = self.insert_verified_user()
@@ -137,7 +135,8 @@ class NinHelpersTest(EduidAPITestCase):
         proofing_state = NinProofingState.from_dict({"eduPersonPrincipalName": eppn, "nin": nin_element.to_dict()})
         with self.app.app_context():
             add_nin_to_user(user, proofing_state)
-        assert self.app.private_userdb.get_user_by_eppn(eppn) is None
+        with pytest.raises(UserDoesNotExist):
+            self.app.private_userdb.get_user_by_eppn(eppn)
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_verify_nin_for_user(self, mock_user_sync):

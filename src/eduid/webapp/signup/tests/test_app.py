@@ -1101,7 +1101,6 @@ class SignupTests(EduidAPITestCase, MockedScimAPIMixin):
                 assert eppn is not None
                 assert sess.signup.credentials.password is None
         user = self.app.central_userdb.get_user_by_eppn(eppn)
-        assert user is not None
         assert user.mail_addresses.to_list()[0].email == email
 
     def test_create_user_eppn_in_session(self):
@@ -1221,7 +1220,6 @@ class SignupTests(EduidAPITestCase, MockedScimAPIMixin):
                 assert eppn is not None
 
         user = self.app.central_userdb.get_user_by_eppn(eppn)
-        assert user is not None
         assert user.given_name == invite.given_name
         assert user.surname == invite.surname
         assert user.mail_addresses.to_list()[0].email == invite.get_primary_mail_address()
@@ -1243,7 +1241,6 @@ class SignupTests(EduidAPITestCase, MockedScimAPIMixin):
                 assert eppn is not None
 
         user = self.app.central_userdb.get_user_by_eppn(eppn)
-        assert user is not None
         assert user.given_name == previous_given_name
         assert user.surname == previous_surname
         assert user.mail_addresses.to_list()[0].email == invite.get_primary_mail_address()

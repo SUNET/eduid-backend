@@ -27,7 +27,6 @@ class SvipeIdTests(ProofingTests):
         super().setUp(*args, **kwargs, users=["hubba-bubba", "hubba-baar"])
 
         self.unverified_test_user = self.app.central_userdb.get_user_by_eppn("hubba-baar")
-        assert self.unverified_test_user is not None
         self._user_setup()
 
         self.default_frontend_data = {

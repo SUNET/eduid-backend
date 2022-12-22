@@ -157,7 +157,6 @@ class SecurityTests(EduidAPITestCase):
         mock_request_user_sync.side_effect = self.request_user_sync
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
-        assert user is not None
         assert user.identities.nin is not None
         assert user.identities.nin.is_verified is True
 
@@ -188,7 +187,6 @@ class SecurityTests(EduidAPITestCase):
         mock_request_user_sync.side_effect = self.request_user_sync
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
-        assert user is not None
         assert user.identities.nin is not None
         assert user.identities.nin.is_verified is True
 

@@ -145,7 +145,6 @@ class SecurityWebauthnTests(EduidAPITestCase):
             authenticator=AuthenticatorAttachment.CROSS_PLATFORM,
         )
         test_user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
-        assert test_user is not None
         test_user.credentials.add(credential)
         self.app.central_userdb.save(test_user)
         return credential
@@ -309,7 +308,6 @@ class SecurityWebauthnTests(EduidAPITestCase):
         eppn = self.test_user.eppn
 
         test_user = self.app.central_userdb.get_user_by_eppn(eppn)
-        assert test_user is not None
         # Remove all credentials except the password
         test_user.credentials = CredentialList(elements=test_user.credentials.filter(Password))
         self.app.central_userdb.save(test_user)
@@ -322,7 +320,6 @@ class SecurityWebauthnTests(EduidAPITestCase):
 
         # Verify what's in the database now matches our expectations
         test_user = self.app.central_userdb.get_user_by_eppn(eppn)
-        assert test_user is not None
         assert len(test_user.credentials.filter(FidoCredential)) == 1
 
         response = self.browser.post("/webauthn/remove", data={})

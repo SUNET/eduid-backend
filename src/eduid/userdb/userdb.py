@@ -271,7 +271,7 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
         filter = {"$or": [old_filter, new_filter]}
         return self._get_user_by_filter(filter)
 
-    def get_user_by_eppn(self, eppn: Optional[str]) -> Optional[UserVar]:
+    def get_user_by_eppn(self, eppn: Optional[str]) -> UserVar:
         """
         Look for a user using the eduPersonPrincipalName.
 
@@ -279,8 +279,11 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
         """
         # allow eppn=None as convenience, to not have to check it everywhere before calling this function
         if eppn is None:
-            return None
-        return self._get_user_by_attr("eduPersonPrincipalName", eppn)
+            raise ValueError("eppn must not be None")
+        res = self._get_user_by_attr("eduPersonPrincipalName", eppn)
+        if not res:
+            raise UserDoesNotExist(f"No user with eppn {repr(eppn)}")
+        return res
 
     def _get_user_by_attr(self, attr: str, value: Any) -> Optional[UserVar]:
         """
