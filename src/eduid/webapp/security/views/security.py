@@ -273,7 +273,8 @@ def add_nin(user: User, nin: str) -> FluxData:
     try:
         # get modified_ts from private userdb
         security_user = SecurityUser.from_user(user, current_app.private_userdb)
-        add_nin_to_user(security_user, proofing_state)
+        if add_nin_to_user(security_user, proofing_state):
+            save_and_sync_user(security_user)
     except AmTaskFailed:
         current_app.logger.exception("Adding nin to user failed")
         current_app.logger.debug(f"NIN: {nin}")

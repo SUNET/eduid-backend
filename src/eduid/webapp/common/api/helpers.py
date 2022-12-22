@@ -95,28 +95,29 @@ def number_match_proofing(user: User, proofing_state: OidcProofingState, number:
     return False
 
 
-def add_nin_to_user(user: User, proofing_state: NinProofingState) -> None:
-    am_relay = get_from_current_app("am_relay", AmRelay)
-    private_userdb = cast(UserDB[User], get_from_current_app("private_userdb", UserDB))
-    # Add nin to user if not already there
-    if not user.identities.nin:
-        current_app.logger.info(f"Adding NIN for user {user}")
-        current_app.logger.debug(f"Self asserted NIN: {proofing_state.nin.number}")
-        nin_identity = NinIdentity(
-            created_by=proofing_state.nin.created_by,
-            created_ts=proofing_state.nin.created_ts,
-            is_verified=False,  # always add a nin identity as unverified
-            number=proofing_state.nin.number,
-        )
-        user.identities.add(nin_identity)
-        user.modified_ts = utc_now()
-        # Save user to private db
-        current_app.private_userdb.save(proofing_user)
-        # Ask am to sync user to central db
-        current_app.logger.info(f"Request sync for user {user}")
-        result = am_relay.request_user_sync(user)
-        current_app.logger.info(f"Sync result for user {user}: {result}")
-    return None
+def add_nin_to_user(user: User, proofing_state: NinProofingState) -> bool:
+    """
+    Add a NIN from a proofing state to a user, unless the user already has a NIN.
+    """
+    if user.identities.nin:
+        if user.identities.nin.number != proofing_state.nin.number:
+            # TODO: Throw an exception here? Could be indicative of a problem.
+            current_app.logger.warning(f"Not adding NIN to a user that already has one (different)")
+            current_app.logger.debug(f"Existing NIN: {user.identities.nin.number}, new: {proofing_state.nin.number}")
+        else:
+            current_app.logger.debug(f"Not adding NIN to a user that already has one (same)")
+        return False
+
+    current_app.logger.info(f"Adding NIN for user {user}")
+    current_app.logger.debug(f"Self asserted NIN: {proofing_state.nin.number}")
+    nin_identity = NinIdentity(
+        created_by=proofing_state.nin.created_by,
+        created_ts=proofing_state.nin.created_ts,
+        is_verified=False,  # always add a nin identity as unverified
+        number=proofing_state.nin.number,
+    )
+    user.identities.add(nin_identity)
+    return True
 
 
 def verify_nin_for_user(
@@ -125,16 +126,18 @@ def verify_nin_for_user(
     """
     Mark a nin on a user as verified, after logging data about the proofing to the proofing log.
 
-    If this function is given a ProofingUser instance, the instance will be updated accordingly and
-    the calling function won't need to reload the user from the central database to access the updated
-    NIN element.
-
-    :param user: Any kind of User
+    :param user: Any kind of User, but it needs to fit in the current_app.private_userdb
     :param proofing_state: Proofing state for user
     :param proofing_log_entry: Proofing log entry element
 
     :return: Success or not
     """
+    # Check if the user already has a verified NIN
+    if user.identities.nin is not None and user.identities.nin.is_verified:
+        current_app.logger.info("User already has a verified NIN")
+        current_app.logger.debug(f"NIN: {user.identities.nin.number}")
+        return True
+
     am_relay = get_from_current_app("am_relay", AmRelay)
     private_userdb = cast(UserDB[User], get_from_current_app("private_userdb", UserDB))
     proofing_log = get_from_current_app("proofing_log", ProofingLog)
@@ -142,15 +145,8 @@ def verify_nin_for_user(
     # add an unverified nin identity to the user if it does not exist yet
     if user.identities.nin is None:
         add_nin_to_user(user=user, proofing_state=proofing_state)
-
-    # please mypy
-    assert user.identities.nin is not None
-
-    # Check if the NIN is already verified
-    if user.identities.nin.is_verified:
-        current_app.logger.info("User already has a verified NIN")
-        current_app.logger.debug(f"NIN: {user.identities.nin.number}")
-        return True
+        # please type checking
+        assert user.identities.nin is not None
 
     # check if the users current nin is the same as the one just verified
     # if there is no locked nin identity or the locked nin identity matches we can replace the current nin identity

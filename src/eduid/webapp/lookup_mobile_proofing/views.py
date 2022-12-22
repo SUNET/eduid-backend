@@ -10,6 +10,7 @@ from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, can_v
 from eduid.webapp.common.api.helpers import add_nin_to_user, verify_nin_for_user
 from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response, success_response
 from eduid.webapp.common.api.schemas.csrf import EmptyResponse
+from eduid.webapp.common.api.utils import save_and_sync_user
 from eduid.webapp.lookup_mobile_proofing import schemas
 from eduid.webapp.lookup_mobile_proofing.app import current_mobilep_app as current_app
 from eduid.webapp.lookup_mobile_proofing.helpers import MobileMsg, create_proofing_state, match_mobile_to_user
@@ -37,7 +38,9 @@ def proofing(user: User, nin: str) -> FluxData:
 
     # Add nin as not verified to the user
     proofing_state = create_proofing_state(user, nin)
-    proofing_user = add_nin_to_user(user, proofing_state)
+    proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
+    add_nin_to_user(proofing_user, proofing_state)
+    save_and_sync_user(proofing_user)
 
     # Get list of verified mobile numbers
     verified_mobiles = [item.number for item in user.phone_numbers.to_list() if item.is_verified]

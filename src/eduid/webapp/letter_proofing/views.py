@@ -12,6 +12,7 @@ from eduid.userdb.proofing import ProofingUser
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, can_verify_nin, require_user
 from eduid.webapp.common.api.helpers import add_nin_to_user, check_magic_cookie, verify_nin_for_user
 from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response, success_response
+from eduid.webapp.common.api.utils import save_and_sync_user
 from eduid.webapp.letter_proofing import pdf, schemas
 from eduid.webapp.letter_proofing.app import current_letterp_app as current_app
 from eduid.webapp.letter_proofing.ekopost import EkopostException
@@ -64,7 +65,9 @@ def proofing(user: User, nin: str) -> FluxData:
 
     # Add the nin used to initiate the proofing state to the user
     # NOOP if the user already have the nin
-    add_nin_to_user(user, proofing_state)
+    proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
+    if add_nin_to_user(proofing_user, proofing_state):
+        save_and_sync_user(proofing_user)
 
     if proofing_state.proofing_letter.is_sent:
         current_app.logger.info("A letter has already been sent to the user.")

@@ -115,9 +115,10 @@ class NinHelpersTest(EduidAPITestCase[HelpersTestApp]):
         )
         proofing_state = NinProofingState.from_dict({"eduPersonPrincipalName": eppn, "nin": nin_element.to_dict()})
         with self.app.app_context():
-            add_nin_to_user(proofing_user, proofing_state)
-        user = self.app.private_userdb.get_user_by_eppn(eppn)
-        self._check_nin_not_verified(user=user, number=self.test_user_nin, created_by=proofing_state.nin.created_by)
+            assert add_nin_to_user(proofing_user, proofing_state) is True
+        self._check_nin_not_verified(
+            user=proofing_user, number=self.test_user_nin, created_by=proofing_state.nin.created_by
+        )
 
     def test_add_nin_to_user_existing_not_verified(self):
         eppn = self.insert_not_verified_user()
@@ -127,9 +128,7 @@ class NinHelpersTest(EduidAPITestCase[HelpersTestApp]):
         )
         proofing_state = NinProofingState.from_dict({"eduPersonPrincipalName": eppn, "nin": nin_element.to_dict()})
         with self.app.app_context():
-            add_nin_to_user(user, proofing_state)
-        with pytest.raises(UserDoesNotExist):
-            self.app.private_userdb.get_user_by_eppn(eppn)
+            assert add_nin_to_user(user, proofing_state) is False
 
     def test_add_nin_to_user_existing_verified(self):
         eppn = self.insert_verified_user()
@@ -141,9 +140,7 @@ class NinHelpersTest(EduidAPITestCase[HelpersTestApp]):
         # load modified_ts from private_userdb
         proofing_user = ProofingUser.from_user(user, private_userdb=self.app.private_userdb)
         with self.app.app_context():
-            add_nin_to_user(proofing_user, proofing_state)
-        with pytest.raises(UserDoesNotExist):
-            self.app.private_userdb.get_user_by_eppn(eppn)
+            assert add_nin_to_user(proofing_user, proofing_state) is False
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_verify_nin_for_user(self, mock_user_sync: MagicMock):
