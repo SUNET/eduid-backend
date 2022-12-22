@@ -151,9 +151,6 @@ def mfa_authenticate_action(args: ACSArgs) -> ACSResult:
 
     # Get user from central database
     user = current_app.central_userdb.get_user_by_eppn(session.common.eppn)
-    if user is None:
-        # Please mypy
-        raise RuntimeError(f"No user with eppn {session.common.eppn} found")
 
     parsed = args.proofing_method.parse_session_info(args.session_info, backdoor=args.backdoor)
     if parsed.error:

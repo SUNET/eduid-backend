@@ -2,7 +2,6 @@ from typing import Union
 
 from deepdiff import DeepDiff
 
-from eduid.common.fastapi.exceptions import BadRequest
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.models.amapi_user import (
     UserUpdateEmailRequest,
@@ -33,8 +32,6 @@ def update_user(
 ) -> UserUpdateResponse:
     """General function for updating a user object"""
     user_obj = req.app.db.get_user_by_eppn(eppn=eppn)
-    if user_obj is None:
-        raise BadRequest(detail=f"Can't find {eppn} in database")
 
     old_user_dict = user_obj.to_dict()
 

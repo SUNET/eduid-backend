@@ -129,7 +129,6 @@ class EduidAPITestCase(CommonTestCase):
 
         # Load the user from the database so that it can be saved there again in tests
         _test_user = self.amdb.get_user_by_eppn(users[0])
-        assert _test_user is not None
         # Initialize some convenience variables on self based on the first user in `users'
         self.test_user = _test_user
         self.test_user_data = self.test_user.to_dict()

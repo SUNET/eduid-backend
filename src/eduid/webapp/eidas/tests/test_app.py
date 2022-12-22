@@ -18,12 +18,10 @@ from eduid.common.rpc.msg_relay import DeregisteredCauseCode, DeregistrationInfo
 from eduid.userdb import NinIdentity
 from eduid.userdb.credentials import U2F, Webauthn
 from eduid.userdb.credentials.external import EidasCredential, ExternalCredential, SwedenConnectCredential
-from eduid.userdb.credentials.fido import FidoCredential
 from eduid.userdb.element import ElementKey
-from eduid.userdb.identity import EIDASIdentity, EIDASLoa, IdentityElement, PridPersistence
+from eduid.userdb.identity import EIDASIdentity, EIDASLoa, PridPersistence
 from eduid.webapp.authn.views import FALLBACK_FRONTEND_ACTION
 from eduid.webapp.common.api.messages import CommonMsg, TranslatableMsg, redirect_with_msg
-from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.common.authn.acs_enums import AuthnAcsAction, EidasAcsAction
 from eduid.webapp.common.authn.cache import OutstandingQueriesCache
 from eduid.webapp.common.proofing.messages import ProofingMsg
@@ -234,8 +232,6 @@ class EidasTests(ProofingTests):
 
     def add_token_to_user(self, eppn: str, credential_id: str, token_type) -> Union[U2F, Webauthn]:
         user = self.app.central_userdb.get_user_by_eppn(eppn)
-        # please mypy
-        assert user is not None
         mfa_token: Union[U2F, Webauthn]
         if token_type == "u2f":
             mfa_token = U2F(
@@ -262,8 +258,6 @@ class EidasTests(ProofingTests):
 
     def add_nin_to_user(self, eppn: str, nin: str, verified: bool) -> NinIdentity:
         user = self.app.central_userdb.get_user_by_eppn(eppn)
-        # please mypy
-        assert user is not None
         nin_element = NinIdentity(number=nin, created_by="test", is_verified=verified)
         user.identities.add(nin_element)
         self.request_user_sync(user)
@@ -271,8 +265,6 @@ class EidasTests(ProofingTests):
 
     def set_eidas_for_user(self, eppn: str, identity: EIDASIdentity, verified: bool) -> None:
         user = self.app.central_userdb.get_user_by_eppn(eppn)
-        # please mypy
-        assert user is not None
         identity.is_verified = verified
         user.identities.replace(element=identity)
         if verified is True:

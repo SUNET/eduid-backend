@@ -32,10 +32,11 @@
 import logging
 
 import bson
+import pytest
 
 from eduid.common.testing_base import normalised_data
 from eduid.userdb import User
-from eduid.userdb.exceptions import UserOutOfSync
+from eduid.userdb.exceptions import UserDoesNotExist, UserOutOfSync
 from eduid.userdb.fixtures.passwords import signup_password
 from eduid.userdb.fixtures.users import UserFixtures
 from eduid.userdb.testing import MongoTestCase
@@ -91,7 +92,8 @@ class TestUserDB(MongoTestCase):
 
     def test_get_user_by_eppn_not_found(self):
         """Test user lookup using unknown"""
-        assert self.amdb.get_user_by_eppn("abc123") is None
+        with pytest.raises(UserDoesNotExist):
+            self.amdb.get_user_by_eppn("abc123")
 
 
 class UserMissingMeta(MongoTestCase):
@@ -136,7 +138,6 @@ class UpdateUser(MongoTestCase):
 
     def test_stale_user_meta_version(self):
         test_user = self.amdb.get_user_by_eppn(self.user.eppn)
-        assert test_user is not None
         test_user.given_name = "new_given_name"
         test_user.meta.new_version()
 

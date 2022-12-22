@@ -52,7 +52,6 @@ class LadokTests(EduidAPITestCase):
 
         # remove Ladok data from test user
         user = self.app.central_userdb.get_user_by_eppn(eppn=self.test_user_eppn)
-        assert user is not None
         user.ladok = None
         self.app.central_userdb.save(user)
 
