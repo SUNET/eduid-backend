@@ -120,7 +120,7 @@ class RawDb(object):
                 db_res = self._client[raw.db][raw.collection].replace_one({"_id": raw.doc["_id"]}, raw.doc)
                 res = f"UPDATE {db_res}"
             else:
-                db_res = self._client[raw.db][raw.collection].remove({"_id": raw.before["_id"]})
+                db_res = self._client[raw.db][raw.collection].delete_one({"_id": raw.before["_id"]})
                 res = "REMOVE {}".format(db_res)
 
         # Write changes.txt after saving, so it will also indicate a successful save
