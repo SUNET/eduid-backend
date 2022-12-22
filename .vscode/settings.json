@@ -21,6 +21,7 @@
         "authns",
         "baar",
         "backchannel",
+        "backupdir",
         "checkpw",
         "chpass",
         "csrft",
