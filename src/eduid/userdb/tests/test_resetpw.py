@@ -32,6 +32,7 @@
 from datetime import timedelta
 
 from eduid.userdb.reset_password import ResetPasswordEmailAndPhoneState, ResetPasswordEmailState, ResetPasswordStateDB
+from eduid.userdb.reset_password.state import ExtraSecurity, PhoneItem
 from eduid.userdb.testing import MongoTestCase
 
 
@@ -85,12 +86,15 @@ class TestResetPasswordStateDB(MongoTestCase):
             eppn="hubba-bubba", email_address="johnsmith@example.com", email_code="dummy-code"
         )
 
-        email_state.extra_security = {"phone_numbers": [{"number": "+99999999999", "primary": True, "verified": True}]}
+        email_state.extra_security = ExtraSecurity(phone_numbers=[PhoneItem(number="+99999999999", index=0)])
         self.resetpw_db.save(email_state, is_in_database=False)
 
         state = self.resetpw_db.get_state_by_eppn("hubba-bubba")
-        self.assertEqual(state.email_address, "johnsmith@example.com")
-        self.assertEqual(state.extra_security["phone_numbers"][0]["number"], "+99999999999")
+        assert state is not None
+        assert state.email_address == "johnsmith@example.com"
+        assert state.extra_security is not None
+        assert len(state.extra_security.phone_numbers) == 1
+        self.assertEqual(state.extra_security.phone_numbers[0].number, "+99999999999")
 
     def test_email_and_phone_state(self):
         email_state = ResetPasswordEmailAndPhoneState(
