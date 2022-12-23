@@ -334,10 +334,6 @@ def get_invite(invite_code: str):
 
     if session.common.is_logged_in:
         user = current_app.central_userdb.get_user_by_eppn(eppn=session.common.eppn)
-        if user is None:
-            current_app.logger.error("User not found but logged in?")
-            current_app.logger.error(f"invite_code: {invite_code}")
-            raise RuntimeError("User not found but logged in?")
         assert user.mail_addresses.primary is not None  # please mypy
         invite_data["user"] = {
             "given_name": user.given_name,
@@ -386,8 +382,6 @@ def complete_invite() -> FluxData:
         return success_response(payload={"state": session.signup.to_dict()})
 
     user = current_app.central_userdb.get_user_by_eppn(eppn=session.common.eppn)
-    if user is None:
-        return error_response(message=CommonMsg.temp_problem)
 
     assert session.signup.invite.invite_code is not None  # please mypy
     try:

@@ -141,7 +141,6 @@ class UpdateUser(MongoTestCase):
 
     def test_stale_user_meta_version(self):
         test_user = self.amdb.get_user_by_eppn(self.user.eppn)
-        assert test_user is not None
         test_user.given_name = "new_given_name"
         test_user.meta.new_version()
 

@@ -16,7 +16,7 @@ from mock import MagicMock
 from eduid.common.config.base import EduIDBaseAppConfig, Pysaml2SPConfigMixin
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb import User, UserDB
-from eduid.userdb.exceptions import MultipleUsersReturned, UserDBValueError
+from eduid.userdb.exceptions import MultipleUsersReturned, UserDBValueError, UserDoesNotExist
 from eduid.webapp.common.api.exceptions import ApiException
 
 if TYPE_CHECKING:
@@ -111,14 +111,14 @@ def get_user() -> User:
         raise ApiException("Not authorized", status_code=401)
     try:
         # Get user from central database
-        user = current_app.central_userdb.get_user_by_eppn(session.common.eppn)
-        if user:
-            return user
-        logger.error(f"Could not find user {session.common.eppn} in central database.")
-        raise ApiException("Not authorized", status_code=401)
+        return current_app.central_userdb.get_user_by_eppn(session.common.eppn)
 
     except MultipleUsersReturned:
         logger.exception(f"Found multiple users in central database for eppn {session.common.eppn}.")
+        raise ApiException("Not authorized", status_code=401)
+
+    except UserDoesNotExist:
+        logger.error(f"Could not find user {session.common.eppn} in central database.")
         raise ApiException("Not authorized", status_code=401)
 
 

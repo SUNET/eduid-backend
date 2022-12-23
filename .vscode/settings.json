@@ -24,6 +24,7 @@
         "backchannel",
         "bson",
         "CBOR",
+        "backupdir",
         "checkpw",
         "chpass",
         "csrft",

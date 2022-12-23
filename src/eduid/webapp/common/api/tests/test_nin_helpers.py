@@ -17,7 +17,6 @@ from eduid.userdb.logs import ProofingLog
 from eduid.userdb.logs.element import ForeignIdProofingLogElement, NinProofingLogElement
 from eduid.userdb.proofing import LetterProofingStateDB, LetterProofingUserDB, NinProofingElement, ProofingUser
 from eduid.userdb.proofing.state import NinProofingState
-from eduid.userdb.user import User
 from eduid.webapp.common.api.app import EduIDBaseApp
 from eduid.webapp.common.api.helpers import (
     add_nin_to_user,
@@ -68,7 +67,6 @@ class NinHelpersTest(EduidAPITestCase[HelpersTestApp]):
 
     def insert_verified_user(self):
         user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
-        assert user is not None
         user.identities = IdentityList()
         nin_element = NinIdentity.from_dict(
             dict(
@@ -83,7 +81,6 @@ class NinHelpersTest(EduidAPITestCase[HelpersTestApp]):
 
     def insert_not_verified_user(self):
         user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
-        assert user is not None
         user.identities = IdentityList()
         nin_element = NinIdentity.from_dict(
             dict(
@@ -99,7 +96,6 @@ class NinHelpersTest(EduidAPITestCase[HelpersTestApp]):
     def insert_no_nins_user(self):
         # Replace user with one without previous proofings
         user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
-        assert user is not None
         user.identities = IdentityList()
         self.app.central_userdb.save(user)
         return user.eppn

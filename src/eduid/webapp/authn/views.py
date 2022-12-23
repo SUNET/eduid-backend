@@ -42,7 +42,7 @@ from saml2.saml import NAMEID_FORMAT_UNSPECIFIED, NameID, Subject
 from werkzeug.exceptions import Forbidden
 from werkzeug.wrappers import Response as WerkzeugResponse
 
-from eduid.userdb.exceptions import MultipleUsersReturned
+from eduid.userdb.exceptions import MultipleUsersReturned, UserDoesNotExist
 from eduid.webapp.authn import acs_actions  # acs_action needs to be imported to be loaded
 from eduid.webapp.authn.app import current_authn_app as current_app
 from eduid.webapp.common.api.errors import EduidErrorsContext, goto_errors_response
@@ -250,8 +250,9 @@ def logout() -> WerkzeugResponse:
         current_app.logger.info("Session cookie has expired, no logout action needed")
         return redirect(location)
 
-    user = current_app.central_userdb.get_user_by_eppn(eppn)
-    if not user:
+    try:
+        user = current_app.central_userdb.get_user_by_eppn(eppn)
+    except UserDoesNotExist:
         current_app.logger.error(f"User {eppn} not found, no logout action needed")
         return redirect(location)
 
@@ -331,8 +332,7 @@ def signup_authn() -> WerkzeugResponse:
         except MultipleUsersReturned:
             current_app.logger.error(f"There are more than one user with eduPersonPrincipalName = {eppn}")
             return redirect(location_on_fail)
-
-        if not user:
+        except UserDoesNotExist:
             current_app.logger.error(f"No user with eduPersonPrincipalName = {eppn} found")
             return redirect(location_on_fail)
 
