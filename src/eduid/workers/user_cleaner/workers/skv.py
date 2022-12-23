@@ -1,5 +1,5 @@
 import time
-from typing import Optional, Dict
+from typing import Any, Optional, Dict
 
 from eduid.common.models.amapi_user import UserUpdateNameRequest, Reason, Source
 from eduid.common.rpc.msg_relay import NavetData
@@ -11,23 +11,37 @@ from eduid.workers.user_cleaner.app import WorkerBase
 
 
 class SKV(WorkerBase):
-    def __init__(self, cleaner_type: CleanerType, test_config: Optional[Dict] = None):
-        super().__init__(cleaner_type=cleaner_type.SKV, test_config=test_config)
+    """Worker class for Skatteverket"""
 
-    def update_name(self, user: User, navet_data: NavetData):
+    def __init__(self, test_config: Optional[Dict] = None):
+        super().__init__(cleaner_type=CleanerType.SKV, identity_type=IdentityType.NIN, test_config=test_config)
+
+    def update_name(self, queue_user: dict[str, Any], navet_data: NavetData) -> None:
+        """
+        Update-function for updating "given name" and "surname" from skatteverket, and creates new "display name" if needed.
+        """
+
+        db_user = self.db.get_user_by_eppn(eppn=queue_user["eppn"])
+        if db_user is None:
+            return
+
         self.logger.debug(
             f"number of changes: {self.made_changes} out of max_changes: {self.max_changes}, queue_actual_size: {self.queue_actual_size}"
         )
 
         if navet_data.person.name.given_name is None or navet_data.person.name.surname is None:
-            self.logger.info(f"No given_name or surname found in navet for eppn: {user.eppn}")
+            self.logger.info(f"No given_name or surname found in navet for eppn: {db_user.eppn}")
             return
-        if user.given_name == navet_data.person.name.given_name and user.surname == navet_data.person.name.surname:
-            self.logger.info(f"No update for names for eppn: {user.eppn}")
+
+        if (
+            db_user.given_name == navet_data.person.name.given_name
+            and db_user.surname == navet_data.person.name.surname
+        ):
+            self.logger.info(f"No update for names for eppn: {db_user.eppn}")
             return
 
         updated_user = set_user_names_from_official_address(
-            user=user, user_postal_address=navet_data.get_full_postal_address()
+            user=db_user, user_postal_address=navet_data.get_full_postal_address()
         )
 
         self._add_to_made_changes()
@@ -43,45 +57,43 @@ class SKV(WorkerBase):
         )
 
         if self.config.dry_run:
-            self.logger.debug(f"dry_run: eppn: {user.eppn}, amapi_client_body: {amapi_client_body}")
+            self.logger.debug(f"dry_run: eppn: {db_user.eppn}, amapi_client_body: {amapi_client_body}")
         else:
             self.amapi_client.update_user_name(
-                user=user.eppn,
+                user=db_user.eppn,
                 body=amapi_client_body,
             )
 
     def run(self):
+        """skatteverket worker entry point"""
         while not self.shutdown_now:
             if self._is_quota_reached():
                 self.logger.warning(f"worker skatteverket has reached its change_quota, sleep for 20 seconds")
                 self._make_unhealthy()
                 self._sleep(milliseconds=20000)
-            else:
-                self._make_healthy()
-                if self.queue.empty():
-                    self.enqueuing(
-                        cleaning_type=CleanerType.SKV,
-                        identity_type=IdentityType.NIN,
-                        limit=self.config.user_count,
-                    )
-                user = self.queue.get()
 
-                navet_data = self.msg_relay.get_all_navet_data(nin=user.identities.nin.number)
+            self._make_healthy()
+            if self.queue.empty():
+                self.enqueuing()
+            queue_user = self.queue.get()
 
-                # This won't work when more update-functions is added, due to meta.version will change after each save...
-                self.update_name(user=user, navet_data=navet_data)
+            navet_data = self.msg_relay.get_all_navet_data(nin=queue_user["nin"])
 
-                self._sleep(milliseconds=self.config.job_delay)
+            self.update_name(queue_user=queue_user, navet_data=navet_data)
 
-                self.queue.task_done()
+            self.queue.task_done()
+
+            self._sleep(milliseconds=self.execution_delay)
 
 
-def init_skv_worker(test_config: Optional[Dict] = None) -> SKV:
-    worker = SKV(cleaner_type=CleanerType.SKV, test_config=test_config)
+def init_skv_worker(test_config: Optional[dict[str, Any]] = None) -> SKV:
+    """Initialize skv (skatteverket) worker"""
+    worker = SKV(test_config=test_config)
     return worker
 
 
 def start_worker():
+    """Start skv (skatteverket) worker"""
     worker = init_skv_worker()
     worker.run()
 

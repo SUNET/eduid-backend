@@ -17,13 +17,14 @@ class UserCleanerConfig(RootConfig, LoggingConfigMixin, MsgConfigMixin, StatsCon
     mongo_uri: str = ""
     dry_run: bool = True
     debug: bool
-    user_count: int
 
-    # within
-    cleaning_periodicity: int
     change_quota: float
 
-    # in milliseconds
-    job_delay: int = 1000
+    # amount of time to clean dataset, value in milliseconds
+    time_to_clean_dataset: int = 2592000000
+
+    # minimum time to delay each execution in milliseconds
+    minimum_delay: int = 1000
+
     gnap_auth_data: GNAPClientAuthData
     amapi: AmAPIConfig
