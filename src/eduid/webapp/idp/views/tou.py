@@ -66,7 +66,11 @@ def tou(
         tou_user.tou.add(ToUEvent(version=user_accepts, created_by="eduid_login", event_id=str(ObjectId())))
 
         try:
-            res = save_and_sync_user(tou_user, private_userdb=current_app.tou_db, app_name_override="eduid_tou")
+            res = save_and_sync_user(
+                tou_user,
+                private_userdb=current_app.tou_db,  # type: ignore[arg-type]
+                app_name_override="eduid_tou",
+            )
         except UserOutOfSync:
             current_app.logger.debug(f"Couldn't save ToU {user_accepts} for user {tou_user}, data out of sync")
             return error_response(message=CommonMsg.out_of_sync)

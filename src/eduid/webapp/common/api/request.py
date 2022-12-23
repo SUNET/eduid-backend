@@ -45,10 +45,10 @@ of the Flask application::
     >>> app.request_class =  Request
 """
 import logging
-from typing import Optional
+from typing import Any, AnyStr, Optional
 
-from flask import Request as FlaskRequest
 from flask import abort, current_app
+from flask.wrappers import Request as FlaskRequest
 from werkzeug.datastructures import EnvironHeaders, ImmutableMultiDict, ImmutableTypeConversionDict
 
 from eduid.webapp.common.api.sanitation import SanitationProblem, Sanitizer
@@ -62,7 +62,7 @@ class SanitationMixin(Sanitizer):
 
     def sanitize_input(
         self,
-        untrusted_text: str,
+        untrusted_text: AnyStr,
         content_type: Optional[str] = None,
         strip_characters: bool = False,
         logger: Optional[logging.Logger] = None,
@@ -223,30 +223,19 @@ class SanitizedTypeConversionDict(ImmutableTypeConversionDict, SanitationMixin):
         """
         return [(v[0], self.sanitize_input(v[1])) for v in super(ImmutableTypeConversionDict, self).items()]
 
-    def pop(self, key: str, default=None):
-        """
-        Sanitized pop
-
-        :param key: the key for the value
-
-        TODO: Remove? An ImmutableDictMixin is immutable, and has no pop - right?
-        """
-        val = super().pop(key, default=default)
-        return self.sanitize_input(val)
-
 
 class SanitizedEnvironHeaders(EnvironHeaders, SanitationMixin):
     """
     Sanitized and read only version of the headers from a WSGI environment.
     """
 
-    def __init__(self, environ):
+    def __init__(self, environ: dict[str, Any]):
         # set content type from environ at init so we don't get in to an infinite recursion
         # when sanitize_input tries to look it up later
         self.content_type = environ.get("CONTENT_TYPE")
         super().__init__(environ=environ)
 
-    def __getitem__(self, key: str, _get_mode: bool = False) -> str:
+    def __getitem__(self, key: str, _get_mode: bool = False) -> str:  # type: ignore[override]
         """
         Sanitized __getitem__
 
@@ -254,7 +243,7 @@ class SanitizedEnvironHeaders(EnvironHeaders, SanitationMixin):
         :param _get_mode: is a no-op for this class as there is no index but
                           used because get() calls it.
         """
-        val = EnvironHeaders.__getitem__(self, key)
+        val = super().__getitem__(key)
         return self.sanitize_input(val, content_type=self.content_type)
 
     def __iter__(self):
@@ -271,13 +260,13 @@ class Request(FlaskRequest, SanitationMixin):
     """
 
     parameter_storage_class = SanitizedImmutableMultiDict
-    dict_storage_class = SanitizedTypeConversionDict
+    dict_storage_class = SanitizedTypeConversionDict  # type: ignore[assignment]
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
         self.headers = SanitizedEnvironHeaders(environ=self.environ)
 
-    def get_data(self, *args, **kwargs):
+    def get_data(self, *args: Any, **kwargs: Any):
         text = super().get_data(*args, **kwargs)
         if text:
             text = self.sanitize_input(text)

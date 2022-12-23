@@ -33,7 +33,7 @@
 
 import json
 from datetime import timedelta
-from typing import Dict
+from typing import Dict, List
 from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
 from flask import Blueprint, redirect, request, url_for
@@ -83,7 +83,7 @@ security_views = Blueprint("security", __name__, url_prefix="", template_folder=
 @security_views.route("/credentials", methods=["GET"])
 @MarshalWith(SecurityResponseSchema)
 @require_user
-def get_credentials(user):
+def get_credentials(user: User):
     """
     View to get credentials for the logged user.
     """
@@ -98,7 +98,7 @@ def get_credentials(user):
 @security_views.route("/suggested-password", methods=["GET"])
 @MarshalWith(SuggestedPasswordResponseSchema)
 @require_user
-def get_suggested(user):
+def get_suggested(user: User):
     """
     View to get a suggested  password for the logged user.
     """
@@ -112,7 +112,7 @@ def get_suggested(user):
 @security_views.route("/change-password", methods=["POST"])
 @MarshalWith(ChpassResponseSchema)
 @require_user
-def change_password(user):
+def change_password(user: User):
     """
     View to change the password
     """
@@ -177,8 +177,8 @@ def change_password(user):
 
 
 @security_views.route("/terminate-account", methods=["POST"])
-@MarshalWith(RedirectResponseSchema)
 @UnmarshalWith(EmptyRequest)
+@MarshalWith(RedirectResponseSchema)
 @require_user
 def delete_account(user: User):
     """
@@ -271,14 +271,14 @@ def add_nin(user: User, nin: str) -> FluxData:
     proofing_state = NinProofingState(id=None, eppn=user.eppn, nin=nin_element, modified_ts=None)
 
     try:
-        security_user = add_nin_to_user(user, proofing_state, user_type=SecurityUser)
+        security_user: SecurityUser = add_nin_to_user(user, proofing_state, user_type=SecurityUser)
     except AmTaskFailed:
         current_app.logger.exception("Adding nin to user failed")
         current_app.logger.debug(f"NIN: {nin}")
         return error_response(message=CommonMsg.temp_problem)
 
     # TODO: remove nins after frontend stops using it
-    nins = []
+    nins: List[Dict[str, str | bool]] = []
     if security_user.identities.nin is not None:
         nins.append(security_user.identities.nin.to_old_nin())
 

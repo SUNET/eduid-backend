@@ -217,6 +217,8 @@ def captcha_response(recaptcha_response: Optional[str] = None, internal_response
     # common path with no backdoor
     if recaptcha_response and not captcha_verified:
         remote_ip = request.remote_addr
+        if not remote_ip:
+            raise RuntimeError("No remote IP address found")
         if current_app.conf.recaptcha_public_key and current_app.conf.recaptcha_private_key:
             captcha_verified = verify_recaptcha(current_app.conf.recaptcha_private_key, recaptcha_response, remote_ip)
         else:
@@ -467,7 +469,8 @@ def trycaptcha(email: str, recaptcha_response: str, tou_accepted: bool) -> FluxD
     # common path with no backdoor
     if not recaptcha_verified:
         remote_ip = request.remote_addr
-
+        if not remote_ip:
+            raise RuntimeError("No remote IP address found")
         if current_app.conf.recaptcha_public_key and current_app.conf.recaptcha_private_key:
             recaptcha_verified = verify_recaptcha(current_app.conf.recaptcha_private_key, recaptcha_response, remote_ip)
         else:

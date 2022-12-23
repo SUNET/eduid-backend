@@ -35,19 +35,20 @@ from pathlib import PurePath
 from typing import Any, Dict, List, Mapping, Optional
 
 from bson import ObjectId
-from flask import Response as FlaskResponse
 from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 from saml2.client import Saml2Client
 from saml2.response import AuthnResponse
+from werkzeug.test import TestResponse
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb import ToUEvent
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.common.authn.cache import IdentityCache, OutstandingQueriesCache, StateCache
 from eduid.webapp.common.authn.utils import get_saml2_config
+from eduid.webapp.common.session.namespaces import PySAML2Dicts
 from eduid.webapp.idp.app import IdPApp, init_idp_app
 from eduid.webapp.idp.helpers import IdPAction
-from eduid.webapp.idp.sso_session import SSOSession
+from eduid.webapp.idp.sso_session import SSOSession, SSOSessionId
 
 __author__ = "ft"
 
@@ -83,7 +84,7 @@ class FinishedResultAPI(GenericResult):
 
 @dataclass
 class LoginResultAPI:
-    response: FlaskResponse
+    response: TestResponse
     ref: Optional[str] = None
     sso_cookie_val: Optional[str] = None
     visit_count: Dict[str, int] = field(default_factory=dict)
@@ -93,7 +94,7 @@ class LoginResultAPI:
     finished_result: Optional[FinishedResultAPI] = None
 
 
-class IdPAPITests(EduidAPITestCase):
+class IdPAPITests(EduidAPITestCase[IdPApp]):
     """Base TestCase for those tests that need a full environment setup"""
 
     def setUp(
@@ -106,7 +107,7 @@ class IdPAPITests(EduidAPITestCase):
         self.relay_state = "test-fest"
         self.sp_config = get_saml2_config(self.app.conf.pysaml2_config, name="SP_CONFIG")
         # pysaml2 likes to keep state about ongoing logins, data from login to when you logout etc.
-        self._pysaml2_caches: Dict[str, Any] = dict()
+        self._pysaml2_caches = PySAML2Dicts({})
         self.pysaml2_state = StateCache(self._pysaml2_caches)  # _saml2_state in _pysaml2_caches
         self.pysaml2_identity = IdentityCache(self._pysaml2_caches)  # _saml2_identities in _pysaml2_caches
         self.pysaml2_oq = OutstandingQueriesCache(self._pysaml2_caches)  # _saml2_outstanding_queries in _pysaml2_caches
@@ -144,7 +145,7 @@ class IdPAPITests(EduidAPITestCase):
     def _try_login(
         self,
         saml2_client: Optional[Saml2Client] = None,
-        authn_context=None,
+        authn_context: Optional[Mapping[str, Any]] = None,
         force_authn: bool = False,
         assertion_consumer_service_url: Optional[str] = None,
         username: Optional[str] = None,
@@ -157,6 +158,8 @@ class IdPAPITests(EduidAPITestCase):
         """
         _saml2_client = saml2_client if saml2_client is not None else self.saml2_client
 
+        session_id: str
+        info: Mapping[str, Any]
         (session_id, info) = _saml2_client.prepare_for_authenticate(
             entityid=self.idp_entity_id,
             relay_state=self.relay_state,
@@ -227,7 +230,7 @@ class IdPAPITests(EduidAPITestCase):
                     data = {"ref": ref, "csrf_token": sess.get_csrf_token()}
                 response = client.post("/next", data=json.dumps(data), content_type=self.content_type_json)
         logger.debug(f"Next endpoint returned:\n{json.dumps(response.json, indent=4)}")
-        return NextResult(payload=response.json["payload"])
+        return NextResult(payload=self.get_response_payload(response))
 
     def _call_pwauth(self, target: str, ref: str, username: str, password: str) -> PwAuthResult:
         with self.session_cookie_anon(self.browser) as client:
@@ -236,8 +239,7 @@ class IdPAPITests(EduidAPITestCase):
                     data = {"ref": ref, "username": username, "password": password, "csrf_token": sess.get_csrf_token()}
                 response = client.post(target, data=json.dumps(data), content_type=self.content_type_json)
         logger.debug(f"PwAuth endpoint returned:\n{json.dumps(response.json, indent=4)}")
-
-        result = PwAuthResult(payload=response.json["payload"])
+        result = PwAuthResult(payload=self.get_response_payload(response))
         cookies = response.headers.get("Set-Cookie")
         if not cookies:
             return result
@@ -253,7 +255,7 @@ class IdPAPITests(EduidAPITestCase):
 
         return result
 
-    def _call_tou(self, target: str, ref: str, user_accepts=Optional[str]) -> TouResult:
+    def _call_tou(self, target: str, ref: str, user_accepts: Optional[str]) -> TouResult:
         with self.session_cookie_anon(self.browser) as client:
             with self.app.test_request_context():
                 with client.session_transaction() as sess:
@@ -262,7 +264,7 @@ class IdPAPITests(EduidAPITestCase):
                         data["user_accepts"] = user_accepts
                 response = client.post(target, data=json.dumps(data), content_type=self.content_type_json)
         logger.debug(f"ToU endpoint returned:\n{json.dumps(response.json, indent=4)}")
-        result = TouResult(payload=response.json["payload"])
+        result = TouResult(payload=self.get_response_payload(response))
         return result
 
     @staticmethod
@@ -277,7 +279,7 @@ class IdPAPITests(EduidAPITestCase):
                     inputs[name] = value.strip("'\"")
         return inputs
 
-    def _extract_path_from_response(self, response: FlaskResponse) -> str:
+    def _extract_path_from_response(self, response: TestResponse) -> str:
         return self._extract_path_from_info({"headers": response.headers})
 
     def _extract_path_from_info(self, info: Mapping[str, Any]) -> str:
@@ -293,7 +295,7 @@ class IdPAPITests(EduidAPITestCase):
         return path
 
     def parse_saml_authn_response(
-        self, response: FlaskResponse, saml2_client: Optional[Saml2Client] = None
+        self, response: TestResponse, saml2_client: Optional[Saml2Client] = None
     ) -> AuthnResponse:
         _saml2_client = saml2_client if saml2_client is not None else self.saml2_client
 
@@ -305,7 +307,7 @@ class IdPAPITests(EduidAPITestCase):
     def get_sso_session(self, sso_cookie_val: str) -> Optional[SSOSession]:
         if sso_cookie_val is None:
             return None
-        return self.app.sso_sessions.get_session(sso_cookie_val)
+        return self.app.sso_sessions.get_session(SSOSessionId(sso_cookie_val))
 
     def add_test_user_tou(self, version: Optional[str] = None) -> ToUEvent:
         """Utility function to add a valid ToU to the default test user"""

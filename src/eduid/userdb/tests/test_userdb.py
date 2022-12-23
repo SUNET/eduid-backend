@@ -67,9 +67,12 @@ class TestUserDB(MongoTestCase):
     def test_get_user_by_nin(self):
         """Test get_user_by_nin"""
         test_user = self.amdb.get_user_by_id(self.user.user_id)
+        assert test_user is not None
         test_user.given_name = "Kalle Anka"
         self.amdb.save(test_user)
+        assert test_user.identities.nin is not None
         res = self.amdb.get_user_by_nin(test_user.identities.nin.number)
+        assert res is not None
         assert test_user.given_name == res.given_name
 
     def test_remove_user_by_id(self):

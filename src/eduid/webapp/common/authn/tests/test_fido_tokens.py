@@ -34,6 +34,7 @@ import base64
 import json
 from copy import deepcopy
 from typing import Any, Dict, Mapping
+from unittest.mock import MagicMock
 
 from flask import Blueprint, current_app, request
 from mock import patch
@@ -44,6 +45,7 @@ from eduid.userdb.fixtures.fido_credentials import u2f_credential, webauthn_cred
 from eduid.webapp.common.api.app import EduIDBaseApp
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.common.authn.fido_tokens import VerificationProblem, start_token_verification, verify_webauthn
+from eduid.webapp.common.session.namespaces import WebauthnState
 
 
 class MockFidoConfig(EduIDBaseAppConfig, WebauthnConfigMixin2):
@@ -97,10 +99,12 @@ SAMPLE_WEBAUTHN_REQUEST = {
     "signature": "MEUCICVPIQ5fO6gXtu3nXD9ff5ILcmWc54m6AxvK9vcS8IjkAiEAoFAKblpl29UHK6AhnOf6r7hezTZeQdK5lB4J3F-cguY",
 }
 
-SAMPLE_WEBAUTHN_FIDO2STATE = {
-    "challenge": "saoY-78kzDgV6mX5R2ixraC699jEU1cJTu7I9twUfJQ",
-    "user_verification": "preferred",
-}
+SAMPLE_WEBAUTHN_FIDO2STATE = WebauthnState(
+    {
+        "challenge": "saoY-78kzDgV6mX5R2ixraC699jEU1cJTu7I9twUfJQ",
+        "user_verification": "preferred",
+    }
+)
 
 
 SAMPLE_WEBAUTHN_APP_CONFIG = {
@@ -149,15 +153,13 @@ class FidoTokensTestCase(EduidAPITestCase):
         with self.session_cookie(self.browser, eppn) as client:
             with client.session_transaction() as sess:
                 with self.app.test_request_context():
-                    config = start_token_verification(
+                    challenge = start_token_verification(
                         user=self.test_user,
                         fido2_rp_id=self.app.conf.fido2_rp_id,
                         fido2_rp_name=self.app.conf.fido2_rp_name,
                         state=sess.mfa_action,
                     )
-                    assert "u2fdata" not in config
-                    assert "webauthn_options" in config
-                    s = config["webauthn_options"]
+                    s = challenge.webauthn_options
                     _decoded = base64.urlsafe_b64decode(s + "=" * (-len(s) % 4))
                     # _decoded is still CBOR encoded, so we just check for some known strings
                     assert b"publicKey" in _decoded
@@ -175,15 +177,13 @@ class FidoTokensTestCase(EduidAPITestCase):
         with self.session_cookie(self.browser, eppn) as client:
             with client.session_transaction() as sess:
                 with self.app.test_request_context():
-                    config = start_token_verification(
+                    challenge = start_token_verification(
                         user=self.test_user,
                         fido2_rp_id=self.app.conf.fido2_rp_id,
                         fido2_rp_name=self.app.conf.fido2_rp_name,
                         state=sess.mfa_action,
                     )
-                    assert "u2fdata" not in config
-                    assert "webauthn_options" in config
-                    s = config["webauthn_options"]
+                    s = challenge.webauthn_options
                     _decoded = base64.urlsafe_b64decode(s + "=" * (-len(s) % 4))
                     # _decoded is still CBOR encoded, so we just check for some known strings
                     assert b"publicKey" in _decoded
@@ -192,7 +192,7 @@ class FidoTokensTestCase(EduidAPITestCase):
                     assert sess.mfa_action.webauthn_state is not None
 
     @patch("fido2.cose.ES256.verify")
-    def test_webauthn_verify(self, mock_verify):
+    def test_webauthn_verify(self, mock_verify: MagicMock):
         mock_verify.return_value = True
         # Add a working webauthn credential for this test
         self.test_user.credentials.add(self.webauthn_credential)
@@ -220,10 +220,12 @@ class FidoTokensTestCase(EduidAPITestCase):
         with self.app.test_request_context():
             with self.session_cookie(self.browser, eppn) as client:
                 with client.session_transaction() as sess:
-                    fido2state = {
-                        "challenge": "3h_EAZpY25xDdSJCOMx1ABZEA5Odz3yejUI3AUNTQWc",
-                        "user_verification": "preferred",
-                    }
+                    fido2state = WebauthnState(
+                        {
+                            "challenge": "3h_EAZpY25xDdSJCOMx1ABZEA5Odz3yejUI3AUNTQWc",
+                            "user_verification": "preferred",
+                        }
+                    )
                     sess.mfa_action.webauthn_state = fido2state
                     sess.persist()
                     resp = client.get("/start?webauthn_request=" + json.dumps(SAMPLE_WEBAUTHN_REQUEST))

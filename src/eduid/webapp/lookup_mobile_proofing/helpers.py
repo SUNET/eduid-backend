@@ -64,7 +64,10 @@ def match_mobile_to_user(
     user: User, self_asserted_nin: str, verified_mobile_numbers: List[str]
 ) -> Optional[TeleAdressProofing]:
     """
-    :param user: Central userdb user
+    Lookup the user's phone number in the TeleAdress external database. If the phone number comes
+    back registered to the self asserted NIN of the user, create a proofing log entry and return it.
+
+    :param user: Any User instance
     :param self_asserted_nin: Self asserted national identity number
     :param verified_mobile_numbers: Verified mobile numbers
 
@@ -88,6 +91,7 @@ def match_mobile_to_user(
             mobile_number="dummy phone",
             user_postal_address=user_postal_address,
             proofing_version="2014v1",
+            deregistration_information=None,
         )
         current_app.stats.count("validate_nin_by_mobile_magic_cookie")
         return proofing_log_entry

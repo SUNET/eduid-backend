@@ -32,53 +32,41 @@
 import unittest
 
 from eduid.webapp.common.authn.cache import IdentityCache, OutstandingQueriesCache, SessionCacheAdapter
+from eduid.webapp.common.session.namespaces import AuthnRequestRef, PySAML2Dicts
 
 
 class SessionCacheAdapterTests(unittest.TestCase):
     def test_init(self):
-        fake_session_dict = {
-            "user": "someone@example.com",
-        }
-        psca = SessionCacheAdapter(fake_session_dict, "saml2")
+        backend = PySAML2Dicts({"unrelated": {"foo": "bar"}})
+        psca = SessionCacheAdapter[str](backend, "saml2")
 
-        self.assertEqual(psca.session, fake_session_dict)
-        self.assertEqual(psca.key, psca.key_prefix + "saml2")
+        assert psca._backend == backend
+        assert psca.key == psca.key_prefix + "saml2"
 
     def test_get_objects(self):
-        fake_session_dict = {
-            "user": "someone@example.com",
-        }
-        psca = SessionCacheAdapter(fake_session_dict, "saml2")
+        backend = PySAML2Dicts({"unrelated": {"foo": "bar"}})
+        psca = SessionCacheAdapter[str](backend, "saml2")
 
-        self.assertEqual(psca._get_objects(), {})
+        assert dict(psca.items()) == {}
 
     def test_set_objects(self):
-        fake_session_dict = {
-            "user": "someone@example.com",
-        }
-        psca = SessionCacheAdapter(fake_session_dict, "saml2")
+        backend = PySAML2Dicts({"unrelated": {"foo": "bar"}})
+        psca = SessionCacheAdapter[str](backend, "saml2")
 
-        psca._set_objects(
-            {
-                "onekey": "onevalue",
-            }
-        )
+        psca.update({"onekey": "onevalue"})
 
-        self.assertEqual(psca._get_objects(), {"onekey": "onevalue"})
+        assert dict(psca.items()) == {"onekey": "onevalue"}
 
     def test_sync(self):
-        fake_session_dict = {
-            "user": "someone@example.com",
-        }
-        psca = SessionCacheAdapter(fake_session_dict, "saml2")
+        backend = PySAML2Dicts({"unrelated": {"foo": "bar"}})
+        psca = SessionCacheAdapter[str](backend, "saml2")
 
-        psca.sync()
-        self.assertEqual(psca._get_objects(), {})
+        assert dict(psca.items()) == {}
 
         psca["onekey"] = "onevalue"
 
-        psca.sync()
-        self.assertEqual(psca._get_objects(), {"onekey": "onevalue"})
+        assert dict(psca.items()) == {"onekey": "onevalue"}
+        assert psca["onekey"] == "onevalue"
 
 
 class OutstandingQueriesCacheTests(unittest.TestCase):
@@ -92,31 +80,30 @@ class OutstandingQueriesCacheTests(unittest.TestCase):
 
     def test_outstanding_queries(self):
 
-        oqc = OutstandingQueriesCache({})
-        oqc._db["user"] = "someone@example.com"
-        oqc._db.sync()
+        oqc = OutstandingQueriesCache(PySAML2Dicts({}))
+        oqc._db["user"] = AuthnRequestRef("someone@example.com")
 
-        self.assertEqual(oqc.outstanding_queries(), {"user": "someone@example.com"})
+        assert oqc.outstanding_queries() == {"user": "someone@example.com"}
 
     def test_set(self):
-        oqc = OutstandingQueriesCache({})
-        oqc.set("session_id", "/next")
+        oqc = OutstandingQueriesCache(PySAML2Dicts({}))
+        oqc.set("session_id", AuthnRequestRef("/next"))
 
-        self.assertEqual(oqc.outstanding_queries(), {"session_id": "/next"})
+        assert oqc.outstanding_queries() == {"session_id": "/next"}
 
     def test_delete(self):
-        oqc = OutstandingQueriesCache({})
-        oqc.set("session_id", "/next")
-        self.assertEqual(oqc.outstanding_queries(), {"session_id": "/next"})
+        oqc = OutstandingQueriesCache(PySAML2Dicts({}))
+        oqc.set("session_id", AuthnRequestRef("/next"))
+        assert oqc.outstanding_queries() == {"session_id": "/next"}
 
         oqc.delete("session_id")
 
-        self.assertEqual(oqc.outstanding_queries(), {})
+        assert oqc.outstanding_queries() == {}
 
 
 class IdentityCacheTests(unittest.TestCase):
     def test_init(self):
-        ic = IdentityCache({})
+        ic = IdentityCache(PySAML2Dicts({}))
 
-        self.assertIsInstance(ic._db, SessionCacheAdapter)
-        self.assertTrue(ic._sync, True)
+        assert isinstance(ic._db, SessionCacheAdapter)
+        assert ic._sync == False

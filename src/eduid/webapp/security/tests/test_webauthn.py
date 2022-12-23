@@ -151,7 +151,6 @@ class SecurityWebauthnTests(EduidAPITestCase):
 
     def _add_u2f_token_to_user(self, eppn: str) -> U2F:
         user = self.app.central_userdb.get_user_by_eppn(eppn)
-        assert user is not None
         u2f_token = U2F(
             version="version",
             keyhandle="keyHandle",
@@ -295,7 +294,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
         state: dict,
         existing_legacy_token: bool = False,
         csrf: Optional[str] = None,
-    ):
+    ) -> None:
         """
         Send a request to remove the only webauthn credential from the test user - which should fail.
 

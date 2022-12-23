@@ -59,7 +59,7 @@ class RedisTemporaryInstance(EduidTemporaryInstance):
             "--name",
             f"test_redis_{self.port}",
             "-v",
-            "{!s}:/data".format(self.tmpdir),
+            f"{self.tmpdir}:/data",
             "-e",
             "extra_args=--daemonize no --bind 0.0.0.0",
             "docker.sunet.se/eduid/redis:latest",

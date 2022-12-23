@@ -9,6 +9,7 @@ from mock import patch
 from saml2 import BINDING_HTTP_REDIRECT, BINDING_SOAP
 from saml2.mdstore import destinations
 from saml2.response import AuthnResponse, LogoutResponse
+from werkzeug.test import TestResponse
 
 from eduid.vccs.client import VCCSClient
 from eduid.webapp.idp.sso_session import SSOSession
@@ -103,7 +104,7 @@ class IdPTestLogout(IdPTests):
             logout_response = self.parse_saml_logout_response(response, BINDING_HTTP_REDIRECT)
             assert logout_response.response.status.status_code.value == "urn:oasis:names:tc:SAML:2.0:status:Success"
 
-    def parse_saml_logout_response(self, response: FlaskResponse, binding: str) -> LogoutResponse:
+    def parse_saml_logout_response(self, response: TestResponse, binding: str) -> LogoutResponse:
         if binding == BINDING_SOAP:
             xmlstr = response.data
         elif binding == BINDING_HTTP_REDIRECT:
@@ -116,7 +117,7 @@ class IdPTestLogout(IdPTests):
             raise RuntimeError(f"Unknown binding {binding}")
         return self.saml2_client.parse_logout_request_response(xmlstr, binding)
 
-    def _try_logout(self, authn_response: AuthnResponse, binding: str) -> Tuple[LogoutState, FlaskResponse]:
+    def _try_logout(self, authn_response: AuthnResponse, binding: str) -> Tuple[LogoutState, TestResponse]:
         """
         Try logging out using the IdP.
 

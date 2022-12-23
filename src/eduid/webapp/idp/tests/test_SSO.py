@@ -197,6 +197,7 @@ class TestSSO(SSOIdPTests):
         :return: IdPUser instance
         """
         user = self.app.userdb.lookup_user(eppn)
+        assert user is not None
         user.identities = IdentityList()
         for number in nins:
             this_nin = NinIdentity(

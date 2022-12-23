@@ -149,6 +149,9 @@ class OtherDeviceDB(BaseDB):
         if ua:
             user_agent = str(ua.parsed)
 
+        if not request.remote_addr:
+            raise RuntimeError("No remote address in request")
+
         authn_ref = ticket.get_requested_authn_context()
         state = OtherDevice.from_parameters(
             ticket=ticket,
