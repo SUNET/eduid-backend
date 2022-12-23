@@ -117,11 +117,11 @@ class RawDb(object):
             res = "DRY_RUN"
         else:
             if len(raw.doc):
-                db_res = self._client[raw.db][raw.collection].replace_one({"_id": raw.doc["_id"]}, raw.doc)
-                res = f"UPDATE {db_res}"
+                replace_res = self._client[raw.db][raw.collection].replace_one({"_id": raw.doc["_id"]}, raw.doc)
+                res = f"UPDATE {replace_res}"
             else:
-                db_res = self._client[raw.db][raw.collection].delete_one({"_id": raw.before["_id"]})
-                res = "REMOVE {}".format(db_res)
+                delete_res = self._client[raw.db][raw.collection].delete_one({"_id": raw.before["_id"]})
+                res = "REMOVE {}".format(delete_res)
 
         # Write changes.txt after saving, so it will also indicate a successful save
         return self._write_changes(raw, backup_dir, res)
