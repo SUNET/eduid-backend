@@ -93,10 +93,9 @@ class TestResetPasswordStateDB(MongoTestCase):
 
         state = self.resetpw_db.get_state_by_eppn("hubba-bubba")
         assert state is not None
-        assert state.email_address == "johnsmith@example.com"
         assert state.extra_security is not None
-        assert len(state.extra_security.phone_numbers) == 1
-        self.assertEqual(state.extra_security.phone_numbers[0].number, "+99999999999")
+        self.assertEqual(state.email_address, "johnsmith@example.com")
+        self.assertEqual(state.extra_security["phone_numbers"][0]["number"], "+99999999999")
 
     def test_email_and_phone_state(self):
         email_state = ResetPasswordEmailAndPhoneState(
