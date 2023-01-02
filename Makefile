@@ -72,6 +72,4 @@ vscode_packages:
 	sudo apt-get update
 	sudo apt install -y swig xmlsec1 python3-venv docker.io
 
-vscode_devcontainer_happy: vscode_packages vscode_pip vscode_hosts
-
-vscode: vscode_devcontainer_happy
+vscode: vscode_packages vscode_pip vscode_hosts
