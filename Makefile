@@ -67,6 +67,7 @@ vscode_venv:
 
 vscode_pip: vscode_venv
 	.venv/bin/pip install -r requirements/test_requirements.txt
+	.venv/bin/mypy --install-types
 
 vscode_packages:
 	sudo apt-get update
