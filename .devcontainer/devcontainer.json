@@ -35,6 +35,7 @@
 		"ms-python.python",
 		"ms-python.vscode-pylance",
 		"GitHub.copilot",
+		"GitHub.vscode-pull-request-github",
 		"streetsidesoftware.code-spell-checker",
 		"streetsidesoftware.code-spell-checker-swedish"
 	],
