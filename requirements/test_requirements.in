@@ -9,6 +9,7 @@ black
 isort
 mock
 mypy
+pip-tools
 pytest
 pytest-cov
 respx

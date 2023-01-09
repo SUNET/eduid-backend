@@ -66,6 +66,7 @@ vscode_venv:
 	python3 -m venv .venv
 
 vscode_pip: vscode_venv
+	pip3 install --upgrade pip
 	.venv/bin/pip install -r requirements/test_requirements.txt
 
 vscode_packages:
