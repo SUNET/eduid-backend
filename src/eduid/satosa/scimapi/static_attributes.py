@@ -36,7 +36,7 @@ class AddStaticAttributesForVirtualIdp(ResponseMicroService):
         super().__init__(*args, **kwargs)
         self.static_attributes = config["static_attributes_for_virtual_idp"]
 
-    def _build_static(self, attributes, requester, vidp):
+    def _build_static(self, requester, vidp):
         static_attributes = dict()
 
         recipes = get_dict_defaults(self.static_attributes, requester, vidp)
@@ -49,5 +49,5 @@ class AddStaticAttributesForVirtualIdp(ResponseMicroService):
 
     def process(self, context, data):
         virtual_idp = context.state.get(ROUTER_STATE_KEY)
-        data.attributes.update(self._build_static(data.attributes, data.requester, virtual_idp))
+        data.attributes.update(self._build_static(data.requester, virtual_idp))
         return super().process(context, data)
