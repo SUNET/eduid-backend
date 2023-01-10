@@ -4,6 +4,8 @@ from saml2.cache import Cache
 
 from eduid.webapp.common.session.namespaces import AuthnRequestRef, PySAML2Dicts
 
+# VT symbolizes the type of the values in the cache. SessionCacheAdapter is a
+# generic class that contains element of this unknown type.
 VT = TypeVar("VT")
 
 
