@@ -33,7 +33,7 @@ import base64
 import json
 import logging
 import pprint
-from typing import Any, Dict, Mapping, TypedDict
+from typing import Any, Dict, Mapping
 
 from fido2 import cbor
 from fido2.server import Fido2Server, U2FFido2Server
