@@ -1,8 +1,7 @@
 import base64
 import binascii
 from io import BytesIO
-from typing import Any, Dict, Union
-from collections.abc import Mapping
+from typing import Any, Mapping, Union
 
 import qrcode
 import qrcode.image.svg
@@ -20,7 +19,6 @@ from eduid.userdb.util import UTC
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, can_verify_nin, require_user
 from eduid.webapp.common.api.helpers import add_nin_to_user
 from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response
-from eduid.webapp.common.api.utils import save_and_sync_user
 from eduid.webapp.oidc_proofing import helpers, schemas
 from eduid.webapp.oidc_proofing.app import current_oidcp_app as current_app
 from eduid.webapp.oidc_proofing.helpers import OIDCMsg
@@ -58,16 +56,12 @@ def authorization_response():
         current_app.logger.error(msg)
         current_app.stats.count(name="authn_response_proofing_state_missing")
         return make_response("OK", 200)
-    current_app.logger.debug(
-        f"Proofing state {proofing_state.state!s} for user {proofing_state.eppn!s} found"
-    )
+    current_app.logger.debug(f"Proofing state {proofing_state.state!s} for user {proofing_state.eppn!s} found")
 
     # Check if the token from the authn response matches the token we created when making the auth request
     authorization_header = request.headers.get("Authorization")
     if authorization_header != f"Bearer {proofing_state.token}":
-        current_app.logger.error(
-            f"The authorization token ({authorization_header!s}) did not match the expected"
-        )
+        current_app.logger.error(f"The authorization token ({authorization_header!s}) did not match the expected")
         current_app.stats.count(name="authn_response_authn_failure")
         return make_response("FORBIDDEN", 403)
 

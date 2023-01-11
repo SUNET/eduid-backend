@@ -4,8 +4,7 @@ import copy
 import datetime
 from dataclasses import asdict, dataclass, field, fields
 from enum import Enum, unique
-from typing import Any, Optional
-from collections.abc import Mapping
+from typing import Any, Mapping, Optional
 
 import bson
 

@@ -2,10 +2,10 @@ import logging
 import os
 from enum import Enum
 from typing import Tuple
+from unittest.mock import patch
 from urllib.parse import unquote
 
 from flask import Response as FlaskResponse
-from unittest.mock import patch
 from saml2 import BINDING_HTTP_REDIRECT, BINDING_SOAP
 from saml2.mdstore import destinations
 from saml2.response import AuthnResponse, LogoutResponse

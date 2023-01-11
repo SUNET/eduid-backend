@@ -42,7 +42,7 @@ and are called with two positional parameters:
 """
 from dataclasses import dataclass
 from enum import Enum
-from typing import Callable, Dict, Optional, Union
+from typing import Callable, Optional, Union
 
 from flask import current_app
 from werkzeug.wrappers import Response as WerkzeugResponse

@@ -31,8 +31,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, List, Optional
-from collections.abc import Mapping
+from typing import Any, Mapping, Optional
 from uuid import UUID
 
 from bson import ObjectId

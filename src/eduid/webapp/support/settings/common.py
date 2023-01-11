@@ -32,8 +32,6 @@
 #
 
 
-from typing import List
-
 from pydantic import Field
 
 from eduid.common.config.base import EduIDBaseAppConfig

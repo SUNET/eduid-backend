@@ -10,9 +10,7 @@ from eduid.workers.msg import utils
 class TestPostalAddress(TestCase):
     def setUp(self):
         self.navet_data = json.load(open(PurePath(__file__).with_name("data") / "navet.json"))
-        self.navet_data_unregistered = json.load(
-            open(PurePath(__file__).with_name("data") / "navet_unregistered.json")
-        )
+        self.navet_data_unregistered = json.load(open(PurePath(__file__).with_name("data") / "navet_unregistered.json"))
 
     def test_get_all_data_dict(self):
         result = utils.navet_get_all_data(self.navet_data)

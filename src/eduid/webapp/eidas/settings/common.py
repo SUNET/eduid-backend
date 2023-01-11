@@ -34,8 +34,7 @@
 Configuration (file) handling for the eduID eidas app.
 """
 
-from typing import Dict, Optional
-from collections.abc import Mapping
+from typing import Mapping, Optional
 
 from pydantic import Field
 

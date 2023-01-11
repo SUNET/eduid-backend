@@ -31,8 +31,7 @@ import logging
 import re
 from dataclasses import dataclass, field
 from pathlib import PurePath
-from typing import Any, Dict, List, Optional
-from collections.abc import Mapping
+from typing import Any, Mapping, Optional
 
 from bson import ObjectId
 from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT

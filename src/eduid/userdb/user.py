@@ -38,7 +38,7 @@ import logging
 from datetime import datetime
 from enum import Enum, unique
 from operator import itemgetter
-from typing import Any, Dict, List, Optional, Type, TypeVar, Union, cast
+from typing import Any, Optional, TypeVar, Union, cast
 
 import bson
 from pydantic import BaseModel, Extra, Field, root_validator, validator

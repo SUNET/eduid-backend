@@ -3,8 +3,7 @@
 import functools
 import json
 import logging
-from typing import Callable, List, Tuple
-from collections.abc import Iterable, Mapping
+from typing import Callable, Iterable, Mapping
 from urllib.parse import urlparse
 
 import satosa.util as util

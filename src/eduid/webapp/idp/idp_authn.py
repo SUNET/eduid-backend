@@ -41,8 +41,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Type
-from collections.abc import Mapping, Sequence
+from typing import Any, Mapping, Optional, Sequence
 
 from bson import ObjectId
 from pydantic import BaseModel, Field
@@ -165,9 +164,7 @@ class IdPAuthn:
             last_creds = authn_info.last_used_credentials
             sorted_creds = sorted(pw_credentials, key=lambda x: x.credential_id not in last_creds)
             if sorted_creds != pw_credentials:
-                logger.debug(
-                    f"Re-sorted list of credentials into\n{sorted_creds}\nbased on last-used {last_creds!r}"
-                )
+                logger.debug(f"Re-sorted list of credentials into\n{sorted_creds}\nbased on last-used {last_creds!r}")
                 pw_credentials = sorted_creds
 
         return self._authn_passwords(user, password, pw_credentials)

@@ -1,9 +1,9 @@
 import logging
+from collections import OrderedDict
 from datetime import datetime, timedelta
 from io import BytesIO, StringIO
 from pathlib import Path
-from collections import OrderedDict
-from collections.abc import Mapping
+from typing import Mapping
 
 from xhtml2pdf import pisa
 

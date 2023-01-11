@@ -30,8 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from typing import Any, Optional, cast
-from collections.abc import Mapping
+from typing import Any, Mapping, Optional, cast
 
 from flask import current_app
 

@@ -32,7 +32,7 @@
 
 __author__ = "ft"
 
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 import bson
 from pydantic import Field

@@ -1,10 +1,9 @@
 import base64
 import json
-from typing import Any, Dict, Optional
-from collections.abc import Mapping
+from typing import Any, Mapping, Optional
+from unittest.mock import patch
 
 from fido2.webauthn import AttestationObject, AuthenticatorAttachment, CollectedClientData
-from unittest.mock import patch
 from werkzeug.http import dump_cookie
 
 from eduid.common.config.base import EduidEnvironment

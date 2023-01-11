@@ -1,7 +1,5 @@
 import json
-from typing import Any, Dict
-from collections.abc import Mapping
-
+from typing import Any, Mapping
 from unittest.mock import MagicMock, patch
 
 from eduid.userdb.orcid import OidcAuthorization, OidcIdToken, Orcid

@@ -32,8 +32,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import Any, Dict, Type, Union
-from collections.abc import Mapping
+from typing import Any, Mapping, Union
 
 from eduid.userdb.element import Element, ElementKey
 from eduid.userdb.util import utc_now

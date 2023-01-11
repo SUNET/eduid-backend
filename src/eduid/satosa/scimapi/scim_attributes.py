@@ -1,8 +1,7 @@
 import logging
 import pprint
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Set
-from collections.abc import Mapping
+from typing import Any, Mapping, Optional
 
 import satosa.context
 import satosa.internal

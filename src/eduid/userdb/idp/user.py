@@ -39,7 +39,7 @@ User and user database module.
 import logging
 from dataclasses import dataclass
 from enum import Enum, unique
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from eduid.userdb import User
 

@@ -32,7 +32,7 @@
 import logging
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from typing import List, Optional
+from typing import Optional
 
 import eduid.workers.msg
 from eduid.common.config.base import MailConfigMixin

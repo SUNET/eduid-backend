@@ -2,14 +2,14 @@ import logging
 import os
 import re
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any, List, Optional, Type, TypeVar, cast
+from typing import TYPE_CHECKING, Any, Optional, TypeVar, cast
+from unittest.mock import MagicMock
 from urllib.parse import urlparse
 from uuid import uuid4
 
 import bcrypt
 from flask import current_app as flask_current_app
 from flask.wrappers import Request
-from unittest.mock import MagicMock
 
 from eduid.common.config.base import EduIDBaseAppConfig, Pysaml2SPConfigMixin
 from eduid.common.misc.timeutil import utc_now

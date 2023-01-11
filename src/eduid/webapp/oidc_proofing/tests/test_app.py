@@ -2,10 +2,10 @@ import binascii
 import json
 import time
 from collections import OrderedDict
-from typing import Any, Dict
+from typing import Any
+from unittest.mock import MagicMock, patch
 
 from jose import jws as jose
-from unittest.mock import MagicMock, patch
 
 from eduid.userdb import NinIdentity
 from eduid.webapp.common.api.testing import EduidAPITestCase

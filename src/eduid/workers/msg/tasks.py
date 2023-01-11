@@ -2,7 +2,7 @@ import json
 import logging
 import smtplib
 from collections import OrderedDict
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from celery import Task
 from celery.utils.log import get_task_logger

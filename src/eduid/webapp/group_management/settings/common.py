@@ -33,7 +33,7 @@
 Configuration (file) handling for the eduID group_management app.
 """
 
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from eduid.common.config.base import EduIDBaseAppConfig, MailConfigMixin
 

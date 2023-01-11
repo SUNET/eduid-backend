@@ -1,6 +1,7 @@
+from unittest.mock import MagicMock, call, patch
+
 import pytest
 from celery.exceptions import Retry
-from unittest.mock import MagicMock, call, patch
 
 from eduid.workers.msg.testing import MsgMongoTestCase
 

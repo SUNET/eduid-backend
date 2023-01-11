@@ -32,7 +32,6 @@
 
 import json
 from datetime import timedelta
-from typing import Dict, List
 from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
 from flask import Blueprint, redirect, request, url_for

@@ -1,7 +1,7 @@
 import re
 from base64 import urlsafe_b64decode
 from dataclasses import asdict, dataclass
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Optional
 
 import requests
 from cryptography.hazmat.primitives import hashes, hmac

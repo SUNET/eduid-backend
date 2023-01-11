@@ -1,7 +1,6 @@
 import logging
 from datetime import datetime
-from typing import Dict, Optional
-from collections.abc import Mapping
+from typing import Mapping, Optional
 
 import requests
 from pydantic import AnyHttpUrl, BaseModel, Field, ValidationError

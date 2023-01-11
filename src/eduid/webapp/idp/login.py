@@ -17,8 +17,7 @@ import time
 from base64 import b64encode
 from dataclasses import dataclass
 from hashlib import sha256
-from typing import Dict, List, Optional, Union
-from collections.abc import Mapping
+from typing import Mapping, Optional, Union
 from uuid import uuid4
 
 from defusedxml import ElementTree as DefusedElementTree

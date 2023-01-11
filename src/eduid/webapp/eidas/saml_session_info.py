@@ -1,6 +1,6 @@
 import logging
 from datetime import date, datetime
-from typing import Dict, List, Optional, Tuple
+from typing import Optional
 
 from dateutil.parser import parse as dt_parse
 from pydantic import BaseModel, Field, root_validator

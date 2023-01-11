@@ -33,8 +33,7 @@
 import logging
 import pprint
 from dataclasses import dataclass
-from typing import Any, Optional, Tuple, Union
-from collections.abc import Mapping
+from typing import Any, Mapping, Optional, Union
 from xml.etree.ElementTree import ParseError
 
 from dateutil.parser import parse as dt_parse

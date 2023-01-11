@@ -2,8 +2,7 @@ import logging
 import os
 from dataclasses import asdict
 from pathlib import PurePath
-from typing import Any, Dict, Optional
-from collections.abc import Mapping
+from typing import Any, Mapping, Optional
 from uuid import uuid4
 
 import pytest

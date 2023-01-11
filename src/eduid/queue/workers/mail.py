@@ -4,8 +4,7 @@ from dataclasses import asdict
 from email.message import EmailMessage
 from email.utils import formatdate, make_msgid
 from gettext import gettext as _
-from typing import Any, Optional, Type, cast
-from collections.abc import Mapping, Sequence
+from typing import Any, Mapping, Optional, Sequence, cast
 
 from aiosmtplib import SMTP, SMTPException, SMTPResponse
 

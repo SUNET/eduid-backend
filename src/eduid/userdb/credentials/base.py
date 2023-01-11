@@ -35,7 +35,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from eduid.userdb.element import VerifiedElement
 

@@ -29,8 +29,7 @@
 # LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-from typing import Any, Dict
-from collections.abc import Mapping
+from typing import Any, Mapping
 
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.support.app import SupportApp, support_init_app

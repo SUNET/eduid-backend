@@ -36,8 +36,7 @@ import logging
 import os
 import uuid
 from dataclasses import dataclass
-from typing import Any, Dict, Tuple
-from collections.abc import Mapping
+from typing import Any, Mapping
 from urllib.parse import quote_plus
 
 from flask import Blueprint

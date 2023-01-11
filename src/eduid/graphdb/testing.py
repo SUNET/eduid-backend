@@ -4,8 +4,7 @@ import logging
 import random
 import unittest
 from os import environ
-from typing import Optional, Type, cast
-from collections.abc import Sequence
+from typing import Optional, Sequence, cast
 
 from neo4j.exceptions import ServiceUnavailable
 

@@ -30,8 +30,7 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-from typing import Any, Optional
-from collections.abc import Mapping
+from typing import Any, Mapping, Optional
 
 from flask import current_app
 

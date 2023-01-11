@@ -1,7 +1,6 @@
 import logging
 from datetime import datetime
-from typing import Any, Dict
-from collections.abc import Mapping
+from typing import Any, Mapping
 
 from flask import request, url_for
 

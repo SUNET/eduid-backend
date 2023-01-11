@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Any, Dict, Optional
-from collections.abc import Mapping
+from typing import Any, Mapping, Optional
 
 from bson import ObjectId
 from pydantic import Field, validator

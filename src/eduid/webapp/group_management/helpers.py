@@ -1,6 +1,6 @@
 from dataclasses import asdict, dataclass
 from enum import unique
-from typing import Any, Dict, List, Optional, Set, Union
+from typing import Any, Optional, Union
 from uuid import UUID
 
 from flask_babel import gettext as _

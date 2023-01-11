@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from datetime import date, datetime, time
 from enum import Enum
-from typing import List, Optional, Union
+from typing import Optional, Union
 from uuid import UUID
 
 from fido2.utils import websafe_decode

@@ -76,11 +76,10 @@ in an NCName.
 """
 from __future__ import annotations
 
-import collections.abc
 import json
 import logging
-from typing import Any, Dict, List, Optional, Union
-from collections.abc import Mapping
+import typing
+from typing import Any, Mapping, Optional, Union
 
 import nacl.encoding
 import nacl.secret
@@ -188,7 +187,7 @@ class SessionOutOfSync(Exception):
     pass
 
 
-class RedisEncryptedSession(collections.abc.MutableMapping):
+class RedisEncryptedSession(typing.MutableMapping):
     """
     Session objects that keep their data in a redis db.
     """

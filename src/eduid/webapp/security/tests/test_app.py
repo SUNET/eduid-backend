@@ -32,11 +32,9 @@
 
 import json
 from datetime import timedelta
-from typing import Any, Dict, List, Optional
-from collections.abc import Mapping
-from uuid import uuid4
-
+from typing import Any, Mapping, Optional
 from unittest.mock import MagicMock, patch
+from uuid import uuid4
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb import User

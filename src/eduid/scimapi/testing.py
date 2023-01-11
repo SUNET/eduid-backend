@@ -1,10 +1,8 @@
-import json
 import os
 import unittest
 import uuid
 from dataclasses import asdict
-from typing import Any, Dict, List, Optional, Union
-from collections.abc import Mapping
+from typing import Any, Mapping, Optional, Union
 
 import pkg_resources
 from bson import ObjectId

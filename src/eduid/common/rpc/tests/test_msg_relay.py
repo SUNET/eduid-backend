@@ -1,9 +1,8 @@
 import unittest
-from typing import Any, Dict, List
-from collections.abc import Mapping
+from typing import Any, Mapping
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
-from unittest.mock import MagicMock, Mock, patch
 
 from eduid.common.config.base import CeleryConfig, MsgConfigMixin
 from eduid.common.config.workers import MsgConfig

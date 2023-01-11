@@ -31,7 +31,7 @@
 #
 import logging
 from dataclasses import replace
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from eduid.userdb.db import BaseDB, SaveResult
 from eduid.userdb.group_management.state import GroupInviteState, GroupRole

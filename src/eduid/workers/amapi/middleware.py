@@ -1,7 +1,6 @@
 import fnmatch
 import json
 import logging
-from typing import List
 
 from fastapi import Request, Response, status
 from jwcrypto import jwt

@@ -2,8 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, List, Optional, Union
-from collections.abc import Mapping
+from typing import Any, Mapping, Optional, Union
 
 __author__ = "lundberg"
 

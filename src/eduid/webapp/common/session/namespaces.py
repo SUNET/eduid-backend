@@ -5,8 +5,7 @@ from abc import ABC
 from copy import deepcopy
 from datetime import datetime
 from enum import Enum, unique
-from typing import Any, Dict, List, NewType, Optional, Type, TypeVar, Union, cast
-from collections.abc import Mapping
+from typing import Any, Mapping, NewType, Optional, TypeVar, Union, cast
 from uuid import uuid4
 
 from fido2.webauthn import AuthenticatorAttachment

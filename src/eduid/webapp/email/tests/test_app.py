@@ -31,9 +31,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 import json
 from datetime import datetime, timedelta
-from typing import Any, Dict, Optional
-from collections.abc import Mapping
-
+from typing import Any, Mapping, Optional
 from unittest.mock import MagicMock, patch
 
 from eduid.common.config.base import EduidEnvironment

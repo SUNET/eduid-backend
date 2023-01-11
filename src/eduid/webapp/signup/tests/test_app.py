@@ -3,13 +3,12 @@ import logging
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import Any, Dict, Optional, Union
-from collections.abc import Mapping
+from typing import Any, Mapping, Optional, Union
+from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 from flask import url_for
 from jwcrypto.jwk import JWK
-from unittest.mock import MagicMock, patch
 from werkzeug.test import TestResponse
 
 from eduid.common.clients.scim_client.testing import MockedScimAPIMixin

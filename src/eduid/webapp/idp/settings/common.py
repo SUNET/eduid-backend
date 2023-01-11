@@ -33,7 +33,7 @@
 Configuration (file) handling for the eduID idp app.
 """
 from datetime import timedelta
-from typing import Dict, List, Optional
+from typing import Optional
 
 from pydantic import Field, HttpUrl, validator
 

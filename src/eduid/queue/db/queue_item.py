@@ -29,8 +29,7 @@
 
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from typing import Any, Optional
-from collections.abc import Mapping
+from typing import Any, Mapping, Optional
 
 from bson import ObjectId
 

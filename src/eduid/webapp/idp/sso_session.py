@@ -37,8 +37,7 @@ import logging
 import typing
 import uuid
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, NewType, Optional, Type
-from collections.abc import Mapping
+from typing import Any, Mapping, NewType, Optional
 
 from bson import ObjectId
 from pydantic import BaseModel, Field

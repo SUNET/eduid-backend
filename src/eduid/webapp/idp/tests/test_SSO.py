@@ -35,8 +35,7 @@
 
 import datetime
 import logging
-from typing import List, Optional, Union
-from collections.abc import Mapping, Sequence
+from typing import Mapping, Optional, Sequence, Union
 from uuid import uuid4
 
 import saml2.server

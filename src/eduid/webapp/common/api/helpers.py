@@ -1,12 +1,11 @@
 import warnings
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Type, TypeVar, Union, cast, overload
+from typing import Any, Optional, TypeVar, Union, cast, overload
 
 from flask import current_app, render_template, request
 
 from eduid.common.config.base import EduidEnvironment, MagicCookieMixin, MailConfigMixin
 from eduid.common.misc.timeutil import utc_now
-from eduid.common.rpc.am_relay import AmRelay
 from eduid.common.rpc.exceptions import NoNavetData
 from eduid.common.rpc.mail_relay import MailRelay
 from eduid.common.rpc.msg_relay import DeregisteredCauseCode, DeregistrationInformation, FullPostalAddress, MsgRelay

@@ -3,8 +3,7 @@ import logging
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Dict, List, NewType, Optional, TypeVar, Union
-from collections.abc import Mapping
+from typing import TYPE_CHECKING, Any, Mapping, NewType, Optional, TypeVar, Union
 
 import pymongo
 import pymongo.collection

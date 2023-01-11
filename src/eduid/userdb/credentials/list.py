@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Type
+from typing import Any, Optional
 
 from eduid.userdb.credentials.base import Credential
 from eduid.userdb.credentials.external import external_credential_from_dict

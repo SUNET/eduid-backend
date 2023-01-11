@@ -1,6 +1,6 @@
 from datetime import datetime
 from enum import unique
-from typing import List, Optional
+from typing import Optional
 
 from eduid.common.rpc.exceptions import LookupMobileTaskFailed
 from eduid.common.rpc.msg_relay import FullPostalAddress

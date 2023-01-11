@@ -31,8 +31,7 @@
 #
 import datetime
 import json
-from typing import Any, Dict, Optional
-from collections.abc import Mapping
+from typing import Any, Mapping, Optional
 from unittest.mock import Mock, patch
 from urllib.parse import quote_plus
 
@@ -41,7 +40,6 @@ from werkzeug.test import TestResponse
 
 from eduid.common.config.base import EduidEnvironment
 from eduid.common.misc.timeutil import utc_now
-from eduid.userdb import User
 from eduid.userdb.credentials import Password, Webauthn
 from eduid.userdb.exceptions import UserHasNotCompletedSignup
 from eduid.userdb.fixtures.fido_credentials import webauthn_credential

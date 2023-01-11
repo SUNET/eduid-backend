@@ -38,9 +38,8 @@ from __future__ import annotations
 
 from datetime import timedelta
 from enum import Enum
-from typing import Any, Dict, List, Optional, TypeVar, Union
-from collections.abc import Mapping, Sequence
 from re import Pattern
+from typing import Any, Mapping, Optional, Sequence, TypeVar, Union
 
 from pydantic import BaseModel, Field
 

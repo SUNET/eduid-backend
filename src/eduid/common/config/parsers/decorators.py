@@ -1,8 +1,7 @@
 import logging
 from functools import wraps
 from string import Template
-from typing import Any, Optional
-from collections.abc import Mapping
+from typing import Any, Mapping, Optional
 
 from nacl import encoding, exceptions, secret
 

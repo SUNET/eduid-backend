@@ -6,8 +6,7 @@ import time
 from dataclasses import asdict, dataclass, field
 from os import environ
 from pprint import pformat
-from typing import Any, Dict
-from collections.abc import Sequence
+from typing import Any, Sequence
 
 from eduid.common.config.base import LoggingConfigMixin, LoggingFilters
 from eduid.common.config.exceptions import BadConfiguration

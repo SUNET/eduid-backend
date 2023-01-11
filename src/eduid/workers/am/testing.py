@@ -39,7 +39,7 @@ __author__ = "leifj"
 import logging
 from copy import deepcopy
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 from uuid import UUID
 
 import bson

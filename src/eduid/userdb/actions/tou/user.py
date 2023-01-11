@@ -32,7 +32,7 @@
 
 __author__ = "eperez"
 
-from typing import Any, Dict
+from typing import Any
 
 from eduid.userdb.exceptions import UserMissingData
 from eduid.userdb.user import User

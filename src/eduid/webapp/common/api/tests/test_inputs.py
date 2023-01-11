@@ -31,8 +31,7 @@
 #
 
 import logging
-from typing import Any, Dict
-from collections.abc import Mapping
+from typing import Any, Mapping
 from urllib.parse import unquote
 
 from flask import Blueprint, make_response, request

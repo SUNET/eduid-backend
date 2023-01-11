@@ -1,5 +1,5 @@
 from os import environ
-from collections.abc import Mapping
+from typing import Mapping
 
 from fastapi import Response
 

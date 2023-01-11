@@ -1,5 +1,5 @@
 from dataclasses import replace
-from typing import Dict, Union
+from typing import Union
 
 from bson import ObjectId
 from neo4j import basic_auth

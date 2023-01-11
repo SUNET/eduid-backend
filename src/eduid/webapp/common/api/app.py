@@ -7,7 +7,7 @@ from __future__ import annotations
 import os
 from abc import ABCMeta
 from sys import stderr
-from typing import Any, Dict, Optional, TypeVar
+from typing import Any, Optional, TypeVar
 
 from cookies_samesite_compat import CookiesSameSiteCompatMiddleware
 from flask import Flask

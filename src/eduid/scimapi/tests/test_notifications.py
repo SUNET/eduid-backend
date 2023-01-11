@@ -1,4 +1,4 @@
-from typing import Any, Dict
+from typing import Any
 from uuid import uuid4
 
 from eduid.common.models.scim_base import SCIMResourceType, SCIMSchema

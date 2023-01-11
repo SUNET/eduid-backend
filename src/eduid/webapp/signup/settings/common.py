@@ -32,7 +32,7 @@
 #
 from datetime import timedelta
 from pathlib import Path
-from typing import List, Optional
+from typing import Optional
 
 import pkg_resources
 from pydantic import AnyUrl, Field

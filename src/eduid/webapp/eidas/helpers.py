@@ -1,7 +1,7 @@
 import logging
 from dataclasses import dataclass
 from enum import unique
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from flask import abort, make_response, request, url_for
 from saml2 import BINDING_HTTP_REDIRECT

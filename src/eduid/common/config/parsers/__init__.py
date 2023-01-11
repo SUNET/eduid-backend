@@ -1,8 +1,7 @@
 import json
 import os
 from pathlib import Path
-from typing import Any, Dict, Optional, Type
-from collections.abc import Mapping
+from typing import Any, Mapping, Optional
 
 import yaml
 

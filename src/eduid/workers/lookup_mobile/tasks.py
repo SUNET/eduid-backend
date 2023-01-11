@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Optional
 
 from celery import Task
 from celery.utils.log import get_task_logger

@@ -35,7 +35,7 @@
 from __future__ import annotations
 
 import datetime
-from typing import Any, Dict, List, Type
+from typing import Any
 
 from bson import ObjectId
 from pydantic import validator

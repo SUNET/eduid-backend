@@ -32,8 +32,7 @@
 import math
 from dataclasses import dataclass
 from enum import unique
-from typing import Any, Dict, List, Literal, Optional, TypedDict, Union
-from collections.abc import Mapping
+from typing import Any, Mapping, Optional, Union
 
 from flask import render_template
 from flask_babel import gettext as _
@@ -42,7 +41,6 @@ from eduid.common.config.base import EduidEnvironment
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.rpc.exceptions import MailTaskFailed
 from eduid.common.utils import urlappend
-from eduid.userdb.element import ElementKey
 from eduid.userdb.exceptions import UserDoesNotExist
 from eduid.userdb.logs import MailAddressProofing, PhoneNumberProofing
 from eduid.userdb.reset_password import ResetPasswordEmailAndPhoneState, ResetPasswordEmailState, ResetPasswordUser

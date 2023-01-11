@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Type
+from typing import Any, Optional
 
 from eduid.userdb.element import Element, ElementKey, VerifiedElement
 

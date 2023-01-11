@@ -1,4 +1,4 @@
-from typing import List, Union
+from typing import Union
 
 from flask import Blueprint, jsonify, request
 from werkzeug.wrappers import Response as WerkzeugResponse

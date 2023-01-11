@@ -1,7 +1,6 @@
 __author__ = "lundberg"
 
 import json
-from typing import Dict
 from uuid import uuid4
 
 from eduid.scimapi.testing import ScimApiTestCase

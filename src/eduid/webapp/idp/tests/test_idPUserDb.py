@@ -35,9 +35,9 @@
 
 import datetime
 import logging
+from unittest.mock import patch
 
 from bson import ObjectId
-from unittest.mock import patch
 
 import eduid.userdb
 import eduid.webapp.common.authn

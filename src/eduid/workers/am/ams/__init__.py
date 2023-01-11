@@ -6,7 +6,6 @@ See the file LICENSE.txt for full license statement.
 """
 __author__ = "eperez"
 
-from typing import List
 
 from bson import ObjectId
 from celery.utils.log import get_task_logger

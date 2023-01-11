@@ -29,8 +29,7 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-from typing import Any, Dict
-from collections.abc import Mapping
+from typing import Any, Mapping
 
 from flask import Blueprint, abort, current_app, request
 

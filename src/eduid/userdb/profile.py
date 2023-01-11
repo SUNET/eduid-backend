@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Type
-from collections.abc import Mapping
+from typing import Any, Mapping
 
 from eduid.userdb.element import Element, ElementKey, ElementList
 

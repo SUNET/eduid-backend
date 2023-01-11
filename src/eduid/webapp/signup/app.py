@@ -30,8 +30,7 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-from typing import Any, Dict, Optional, cast
-from collections.abc import Mapping
+from typing import Any, Mapping, Optional, cast
 
 from captcha.image import ImageCaptcha
 from flask import current_app

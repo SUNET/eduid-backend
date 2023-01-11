@@ -1,5 +1,3 @@
-from typing import List
-
 from pydantic import AnyUrl, BaseModel, Field
 
 from eduid.common.config.base import (

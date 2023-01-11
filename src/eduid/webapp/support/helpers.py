@@ -1,5 +1,5 @@
 from functools import wraps
-from typing import Any, Callable, List, TypeVar
+from typing import Any, Callable, TypeVar
 
 from flask import abort
 

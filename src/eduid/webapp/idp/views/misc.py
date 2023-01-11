@@ -30,7 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from flask import Blueprint, jsonify, redirect, request
 from werkzeug.exceptions import BadRequest

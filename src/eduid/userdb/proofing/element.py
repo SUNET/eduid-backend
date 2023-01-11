@@ -32,7 +32,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Dict, Optional, Type, TypeVar
+from typing import Any, Optional, TypeVar
 
 from pydantic import validator
 

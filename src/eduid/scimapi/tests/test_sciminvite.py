@@ -4,8 +4,7 @@ import unittest
 from copy import copy
 from dataclasses import asdict
 from datetime import datetime, timedelta
-from typing import Any, Dict, Optional
-from collections.abc import Mapping
+from typing import Any, Mapping, Optional
 
 from bson import ObjectId
 

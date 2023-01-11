@@ -32,12 +32,10 @@
 import base64
 import json
 from copy import deepcopy
-from typing import Any, Dict
-from collections.abc import Mapping
-from unittest.mock import MagicMock
+from typing import Any, Mapping
+from unittest.mock import MagicMock, patch
 
 from flask import Blueprint, current_app, request
-from unittest.mock import patch
 
 from eduid.common.config.base import EduIDBaseAppConfig, WebauthnConfigMixin2
 from eduid.common.config.parsers import load_config

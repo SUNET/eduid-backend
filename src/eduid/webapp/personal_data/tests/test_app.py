@@ -31,14 +31,12 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 import json
-from typing import Any, Dict, Optional
-from collections.abc import Mapping
-
+from typing import Any, Mapping, Optional
 from unittest.mock import patch
+
 from werkzeug.test import TestResponse
 
 from eduid.userdb.element import ElementKey
-from eduid.userdb.exceptions import UserDoesNotExist
 from eduid.webapp.common.api.exceptions import ApiException
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.personal_data.app import PersonalDataApp, pd_init_app

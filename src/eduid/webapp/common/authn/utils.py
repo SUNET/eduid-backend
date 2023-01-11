@@ -36,8 +36,7 @@ import logging
 import os.path
 import sys
 from datetime import timedelta
-from typing import TYPE_CHECKING, Any, List, Optional
-from collections.abc import Mapping, Sequence
+from typing import TYPE_CHECKING, Any, Mapping, Optional, Sequence
 
 from pwgen import pwgen
 from saml2 import server

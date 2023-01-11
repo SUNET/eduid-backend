@@ -32,8 +32,7 @@
 import logging
 from abc import ABC
 from operator import itemgetter
-from typing import Any, Dict, Generic, Optional, TypeVar
-from collections.abc import Mapping
+from typing import Any, Generic, Mapping, Optional, TypeVar
 
 from eduid.userdb.db import BaseDB, SaveResult, TUserDbDocument
 from eduid.userdb.proofing.state import (

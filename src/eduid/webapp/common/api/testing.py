@@ -39,8 +39,7 @@ import sys
 import traceback
 from contextlib import contextmanager
 from copy import deepcopy
-from typing import Any, Dict, Generic, List, Optional, TypeVar, cast
-from collections.abc import Generator, Iterable, Mapping
+from typing import Any, Generator, Generic, Iterable, Mapping, Optional, TypeVar, cast
 
 from flask.testing import FlaskClient
 from werkzeug.test import TestResponse

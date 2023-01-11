@@ -17,8 +17,7 @@ from __future__ import annotations
 import logging
 import pprint
 from dataclasses import dataclass
-from typing import Any, Dict, Optional, Tuple, Type
-from collections.abc import Mapping, Sequence
+from typing import Any, Mapping, Optional, Sequence
 
 import user_agents
 from bleach import clean

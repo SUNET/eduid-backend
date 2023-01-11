@@ -1,4 +1,4 @@
-from typing import Dict, Union
+from typing import Union
 from unittest import TestCase
 
 from eduid.graphdb.groupdb import Group, User

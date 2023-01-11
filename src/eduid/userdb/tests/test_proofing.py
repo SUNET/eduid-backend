@@ -1,6 +1,5 @@
 from collections import OrderedDict
 from datetime import datetime
-from typing import List
 from unittest import TestCase
 
 from eduid.common.rpc.msg_relay import FullPostalAddress

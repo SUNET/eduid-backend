@@ -11,8 +11,8 @@
 """
 Code handling Single Log Out requests.
 """
-from typing import List
-from collections.abc import Sequence
+
+from typing import Sequence
 
 import saml2
 from flask import request

@@ -115,15 +115,11 @@ def post_primary(user: User, email: str) -> FluxData:
 
     mail = proofing_user.mail_addresses.find(email)
     if not mail:
-        current_app.logger.debug(
-            f"Couldnt save email {email!r} as primary for user {proofing_user}, data out of sync"
-        )
+        current_app.logger.debug(f"Couldnt save email {email!r} as primary for user {proofing_user}, data out of sync")
         return error_response(message=CommonMsg.out_of_sync)
 
     if not mail.is_verified:
-        current_app.logger.debug(
-            f"Couldnt save email {email!r} as primary for user {proofing_user}, email unconfirmed"
-        )
+        current_app.logger.debug(f"Couldnt save email {email!r} as primary for user {proofing_user}, email unconfirmed")
         return error_response(message=EmailMsg.unconfirmed_not_primary)
 
     proofing_user.mail_addresses.set_primary(mail.key)

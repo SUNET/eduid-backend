@@ -83,15 +83,11 @@ class TestVCCSClient:
             logger.debug(f"User {user_id!r} not found in TestVCCSClient credential store:\n{self.factors}")
             return False
         for factor in factors:
-            logger.debug(
-                f"Trying to authenticate user {user_id} with factor {factor} (id {factor.credential_id})"
-            )
+            logger.debug(f"Trying to authenticate user {user_id} with factor {factor} (id {factor.credential_id})")
             fdict = factor.to_dict("auth")
             for stored_factor in self.factors[user_id]:
                 if factor.credential_id != stored_factor.credential_id:
-                    logger.debug(
-                        f"No match for id of stored factor {stored_factor} (id {stored_factor.credential_id})"
-                    )
+                    logger.debug(f"No match for id of stored factor {stored_factor} (id {stored_factor.credential_id})")
                     continue
                 logger.debug(f"Found matching credential_id: {stored_factor}")
                 try:

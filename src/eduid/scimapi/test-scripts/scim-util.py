@@ -6,8 +6,7 @@ import logging
 import sys
 from dataclasses import dataclass
 from pprint import pformat
-from typing import Any, Callable, Dict, NewType, Optional, cast
-from collections.abc import Mapping
+from typing import Any, Callable, Mapping, NewType, Optional, cast
 
 import requests
 import yaml

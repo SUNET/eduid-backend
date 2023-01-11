@@ -1,5 +1,5 @@
 from binascii import unhexlify
-from typing import List, Union
+from typing import Union
 
 from ndnkdf import NDNKDF
 

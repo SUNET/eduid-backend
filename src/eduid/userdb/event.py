@@ -35,7 +35,7 @@
 from __future__ import annotations
 
 from abc import ABC
-from typing import Any, Dict, Generic, Optional, Type, TypeVar
+from typing import Any, Generic, Optional, TypeVar
 from uuid import uuid4
 
 from pydantic import Field

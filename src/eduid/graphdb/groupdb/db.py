@@ -1,7 +1,7 @@
 import enum
 import logging
 from dataclasses import replace
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Optional, Union
 
 from bson import ObjectId
 from neo4j import READ_ACCESS, WRITE_ACCESS, Record, Transaction
@@ -330,9 +330,7 @@ class GroupDB(BaseGraphDB):
                 group = self._load_group(record.data()["group"])
                 owners = {self._load_node(owner) for owner in record.data()["owners"] if owner.get("identifier")}
                 group = replace(group, owners=owners)
-                members = {
-                    self._load_node(member) for member in record.data()["members"] if member.get("identifier")
-                }
+                members = {self._load_node(member) for member in record.data()["members"] if member.get("identifier")}
                 group = replace(group, members=members)
                 res.append(group)
         return res

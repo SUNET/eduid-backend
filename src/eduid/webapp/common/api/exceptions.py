@@ -1,5 +1,4 @@
-from typing import TYPE_CHECKING, Any, Optional
-from collections.abc import Mapping
+from typing import TYPE_CHECKING, Any, Mapping, Optional
 
 from flask import jsonify
 

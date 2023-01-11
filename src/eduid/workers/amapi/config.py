@@ -1,7 +1,7 @@
 import logging
 from enum import Enum
 from pathlib import Path
-from typing import Dict, List, NewType, Optional
+from typing import NewType, Optional
 
 from pydantic import BaseModel, Field, validator
 

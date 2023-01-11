@@ -5,8 +5,7 @@ import logging
 import time
 from asyncio import Task
 from datetime import datetime, timedelta
-from typing import Any, List, Optional, Type, cast
-from collections.abc import Sequence
+from typing import Any, Optional, Sequence, cast
 from unittest import IsolatedAsyncioTestCase, TestCase
 
 import pymongo

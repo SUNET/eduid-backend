@@ -5,8 +5,7 @@ import logging
 import typing
 import uuid
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Type
-from collections.abc import Mapping
+from typing import Any, Mapping, Optional
 
 from bson import ObjectId
 from flask import request

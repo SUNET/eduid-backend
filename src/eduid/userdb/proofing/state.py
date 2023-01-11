@@ -37,8 +37,7 @@ import copy
 import datetime
 import logging
 from dataclasses import asdict, dataclass
-from typing import Any, Optional, Set
-from collections.abc import Mapping
+from typing import Any, Mapping, Optional
 
 import bson
 

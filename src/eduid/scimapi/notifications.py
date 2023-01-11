@@ -4,7 +4,7 @@ import json
 import logging
 from datetime import datetime, timedelta
 from os import environ
-from typing import TYPE_CHECKING, Any, Dict, List, NewType
+from typing import TYPE_CHECKING, Any, NewType
 
 from eduid.queue.db import QueueItem, SenderInfo
 from eduid.queue.db.message.payload import EduidSCIMAPINotification

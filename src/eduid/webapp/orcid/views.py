@@ -27,9 +27,7 @@ def authorize(user: User) -> WerkzeugResponse:
     if user.orcid is None:
         proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn)
         if not proofing_state:
-            current_app.logger.debug(
-                f"No proofing state found for user {user!s}. Initializing new proofing state."
-            )
+            current_app.logger.debug(f"No proofing state found for user {user!s}. Initializing new proofing state.")
             proofing_state = OrcidProofingState(
                 id=None, modified_ts=None, eppn=user.eppn, state=get_unique_hash(), nonce=get_unique_hash()
             )

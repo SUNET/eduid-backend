@@ -31,11 +31,9 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 import json
-from typing import Any, Dict, Optional
-from collections.abc import Mapping
-from urllib.parse import quote_plus
-
+from typing import Any, Mapping, Optional
 from unittest.mock import MagicMock, patch
+from urllib.parse import quote_plus
 
 from eduid.common.config.base import EduidEnvironment
 from eduid.webapp.common.api.testing import EduidAPITestCase

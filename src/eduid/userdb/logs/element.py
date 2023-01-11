@@ -3,7 +3,7 @@
 #
 import logging
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Type, TypeVar, Union
+from typing import Any, Optional, TypeVar, Union
 from uuid import UUID
 
 import bson

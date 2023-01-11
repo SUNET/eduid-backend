@@ -14,8 +14,7 @@ import time
 import warnings
 from collections import deque
 from threading import Lock
-from typing import Any, Deque, Dict, List, Optional, Tuple, cast
-from collections.abc import Mapping
+from typing import Any, Deque, Mapping, Optional, cast
 
 from eduid.userdb.db import BaseDB
 from eduid.userdb.exceptions import EduIDDBError

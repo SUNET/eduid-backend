@@ -1,9 +1,8 @@
 import json
-from typing import Any, Dict, List, Optional
-from collections.abc import Mapping
+from typing import Any, Mapping
+from unittest.mock import MagicMock, patch
 from uuid import UUID, uuid4
 
-from unittest.mock import MagicMock, patch
 from werkzeug.test import TestResponse
 
 from eduid.common.config.base import EduidEnvironment

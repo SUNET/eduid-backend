@@ -33,7 +33,6 @@
 # Author : Fredrik Thulin <fredrik@thulin.net>
 #
 import logging
-from typing import Dict, List
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.credentials import CredentialProofingMethod, FidoCredential, Password

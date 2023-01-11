@@ -1,10 +1,9 @@
 import json
 from collections import OrderedDict
 from datetime import datetime, timedelta
-from typing import Any, AnyStr, Dict, Optional
-from collections.abc import Mapping
-
+from typing import Any, AnyStr, Mapping, Optional
 from unittest.mock import MagicMock, Mock, patch
+
 from werkzeug.test import TestResponse
 
 from eduid.common.config.base import EduidEnvironment

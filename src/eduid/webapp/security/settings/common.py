@@ -31,7 +31,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 from datetime import timedelta
-from typing import List, Optional
+from typing import Optional
 
 from fido2.webauthn import AttestationConveyancePreference
 from fido_mds.models.fido_mds import AuthenticatorStatus

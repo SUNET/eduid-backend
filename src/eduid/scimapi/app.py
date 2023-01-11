@@ -1,4 +1,4 @@
-from typing import Dict, Optional
+from typing import Optional
 
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError

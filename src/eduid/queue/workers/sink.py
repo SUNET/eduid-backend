@@ -4,8 +4,7 @@ import logging
 import os
 from asyncio import Task
 from datetime import datetime, timedelta
-from typing import Any, Optional, Set
-from collections.abc import Mapping
+from typing import Any, Mapping, Optional
 
 from eduid.common.config.parsers import load_config
 from eduid.queue.config import QueueWorkerConfig

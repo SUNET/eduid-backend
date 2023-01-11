@@ -1,5 +1,4 @@
-from typing import Any, Dict, List
-from collections.abc import Sequence
+from typing import Any, Sequence
 
 from flask import Blueprint, render_template, request
 

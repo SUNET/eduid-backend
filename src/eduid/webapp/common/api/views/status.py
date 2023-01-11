@@ -32,8 +32,7 @@
 import logging
 from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any, Dict, Literal, Optional, cast, overload
-from collections.abc import Mapping
+from typing import TYPE_CHECKING, Any, Literal, Mapping, Optional, cast, overload
 
 from flask import Blueprint
 from flask import current_app as flask_current_app

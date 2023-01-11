@@ -1,5 +1,5 @@
 from copy import deepcopy
-from typing import List, Optional
+from typing import Optional
 
 __author__ = "lundberg"
 

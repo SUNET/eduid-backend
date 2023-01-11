@@ -32,13 +32,12 @@
 __author__ = "eperez"
 
 from abc import ABC, abstractmethod
-from typing import Any, List, Optional
+from typing import Any, Optional
 
 import bson
 from celery.utils.log import get_task_logger
 
 from eduid.common.config.workers import AmConfig
-from eduid.userdb.db import TUserDbDocument
 from eduid.userdb.exceptions import UserDoesNotExist
 from eduid.userdb.user import User
 from eduid.userdb.userdb import UserDB

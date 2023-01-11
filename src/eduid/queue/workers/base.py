@@ -7,10 +7,7 @@ from asyncio import CancelledError, Task
 from dataclasses import replace
 from datetime import datetime
 from os import environ
-from typing import Set, Type
-from collections.abc import Sequence
-
-from motor.motor_asyncio import AsyncIOMotorClient
+from typing import Sequence
 
 from eduid.common.logging import init_logging
 from eduid.queue.config import QueueWorkerConfig

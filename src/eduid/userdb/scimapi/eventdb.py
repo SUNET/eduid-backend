@@ -4,8 +4,7 @@ import logging
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional, Type
-from collections.abc import Mapping
+from typing import Any, Mapping, Optional
 from uuid import UUID
 
 from bson import ObjectId

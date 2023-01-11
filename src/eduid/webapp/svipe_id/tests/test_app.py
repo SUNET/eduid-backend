@@ -1,11 +1,11 @@
 import json
 from datetime import date, datetime, timedelta
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
+from unittest.mock import MagicMock, patch
 from urllib.parse import parse_qs, urlparse
 
 from flask import url_for
 from iso3166 import Country, countries
-from unittest.mock import MagicMock, patch
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb import SvipeIdentity

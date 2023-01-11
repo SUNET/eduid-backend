@@ -32,8 +32,7 @@
 from copy import copy
 from dataclasses import dataclass
 from enum import Enum, unique
-from typing import Any, Dict, Optional, Union
-from collections.abc import Mapping
+from typing import Any, Mapping, Optional, Union
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from flask import redirect

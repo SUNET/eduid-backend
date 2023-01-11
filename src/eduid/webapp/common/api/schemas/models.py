@@ -1,5 +1,5 @@
 from enum import Enum, unique
-from typing import Any, Dict
+from typing import Any
 
 from eduid.webapp.common.api.utils import get_flux_type
 

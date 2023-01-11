@@ -2,8 +2,7 @@ import logging
 import typing
 from base64 import b64encode
 from hashlib import sha1
-from typing import Any, Dict, List, NewType, Optional, Union
-from collections.abc import Mapping
+from typing import Any, Mapping, NewType, Optional, Union
 
 import saml2.server
 from pydantic import BaseModel

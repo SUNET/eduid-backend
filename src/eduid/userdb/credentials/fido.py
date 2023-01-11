@@ -34,7 +34,7 @@
 from __future__ import annotations
 
 from hashlib import sha256
-from typing import Any, Dict, Optional, Type, Union
+from typing import Any, Optional, Union
 from uuid import UUID
 
 from fido2.webauthn import AuthenticatorAttachment

@@ -1,5 +1,3 @@
-from typing import List
-
 from eduid.common.config.base import AmConfigMixin, EduIDBaseAppConfig, MagicCookieMixin
 from eduid.webapp.ladok.client import LadokClientConfig
 

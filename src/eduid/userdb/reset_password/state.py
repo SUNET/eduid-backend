@@ -34,7 +34,7 @@ from __future__ import annotations
 import datetime
 import logging
 from dataclasses import asdict, dataclass, field
-from typing import Any, Dict, Optional, Type, TypeVar
+from typing import Any, Optional, TypeVar
 
 import bson
 

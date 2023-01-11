@@ -30,12 +30,10 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 import json
-from typing import Any, Dict, Optional
-from collections.abc import Mapping
+from typing import Any, Mapping, Optional
+from unittest.mock import patch
 from uuid import UUID
 
-import pytest
-from unittest.mock import patch
 from werkzeug.test import TestResponse
 
 from eduid.common.testing_base import normalised_data

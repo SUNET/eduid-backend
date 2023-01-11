@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import unique
-from typing import List, Optional
+from typing import Optional
 
 from flask_babel import gettext as _
 

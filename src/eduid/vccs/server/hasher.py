@@ -38,8 +38,7 @@ import stat
 from abc import ABC
 from binascii import unhexlify
 from hashlib import sha1
-from typing import Any, Dict, Optional
-from collections.abc import Mapping
+from typing import Any, Mapping, Optional
 
 import pyhsm
 import yaml

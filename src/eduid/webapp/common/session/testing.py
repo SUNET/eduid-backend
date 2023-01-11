@@ -31,7 +31,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 import logging
-from collections.abc import Sequence
+from typing import Sequence
 
 import redis
 

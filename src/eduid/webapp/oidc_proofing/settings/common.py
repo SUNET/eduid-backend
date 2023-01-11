@@ -31,8 +31,6 @@
 #
 
 
-from typing import Dict
-
 from pydantic import Field
 
 from eduid.common.config.base import AmConfigMixin, EduIDBaseAppConfig, MailConfigMixin, MsgConfigMixin

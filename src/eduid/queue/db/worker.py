@@ -1,8 +1,7 @@
 import logging
 from dataclasses import replace
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional, Union
-from collections.abc import Mapping
+from typing import Any, Mapping, Optional, Union
 
 from bson import ObjectId
 from motor import motor_asyncio

@@ -30,7 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from typing import Dict, Optional
+from typing import Optional
 
 from pydantic import AnyUrl, Field, HttpUrl
 

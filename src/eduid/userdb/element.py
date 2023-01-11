@@ -81,8 +81,7 @@ from __future__ import annotations
 import copy
 from abc import ABC
 from datetime import datetime
-from typing import Any, Dict, Generic, List, NewType, Optional, Type, TypeVar, Union
-from collections.abc import Mapping
+from typing import Any, Generic, Mapping, NewType, Optional, TypeVar, Union
 
 from pydantic import BaseModel, Extra, Field, validator
 from pydantic.generics import GenericModel

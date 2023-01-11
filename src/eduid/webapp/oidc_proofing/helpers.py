@@ -1,8 +1,7 @@
 import json
 from datetime import datetime, timedelta
 from enum import unique
-from typing import Any
-from collections.abc import Mapping
+from typing import Any, Mapping
 
 import requests
 from flask import render_template
@@ -118,9 +117,7 @@ def do_authn_request(proofing_state: OidcProofingState, claims_request: ClaimsRe
             )
         )
         return True
-    current_app.logger.error(
-        f"Bad response from OP: {response.status_code!s} {response.reason!s} {response.content!s}"
-    )
+    current_app.logger.error(f"Bad response from OP: {response.status_code!s} {response.reason!s} {response.content!s}")
     return False
 
 

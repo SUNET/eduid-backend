@@ -33,8 +33,7 @@
 import json
 import os
 from pathlib import PurePath
-from typing import Any, Dict, cast
-from collections.abc import Mapping
+from typing import Any, Mapping, cast
 
 from eduid.common.config.parsers import load_config
 from eduid.webapp.common.api.testing import CSRFTestClient, EduidAPITestCase

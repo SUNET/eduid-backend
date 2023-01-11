@@ -1,7 +1,6 @@
 import json
 from datetime import timedelta
-from typing import Any, Dict, List, Optional
-from collections.abc import Mapping
+from typing import Any, Mapping, Optional
 from unittest.mock import patch
 from uuid import uuid4
 

@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Generic, List, Optional, TypeVar
+from typing import Generic, Optional, TypeVar
 
 from eduid.common.config.base import ProofingConfigMixin
 from eduid.common.rpc.exceptions import AmTaskFailed, MsgTaskFailed, NoNavetData

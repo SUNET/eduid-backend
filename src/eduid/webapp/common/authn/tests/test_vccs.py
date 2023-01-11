@@ -30,7 +30,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 from typing import cast
-
 from unittest.mock import patch
 
 from eduid.userdb.fixtures.users import UserFixtures

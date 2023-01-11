@@ -1,7 +1,6 @@
 import logging
 from abc import ABC
-from typing import List, Optional, TypeVar
-from collections.abc import Sequence
+from typing import Optional, Sequence, TypeVar
 from urllib.parse import urlencode
 
 from pydantic import BaseModel

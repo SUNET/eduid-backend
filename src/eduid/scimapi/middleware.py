@@ -2,8 +2,7 @@ import json
 import logging
 import re
 from copy import copy
-from typing import Any, List, Optional, Set
-from collections.abc import Mapping
+from typing import Any, Mapping, Optional
 
 from fastapi import Request, Response
 from jwcrypto import jwt

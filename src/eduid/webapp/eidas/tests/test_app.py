@@ -2,15 +2,13 @@ import base64
 import datetime
 import logging
 import os
-from typing import Any, Dict, List, Optional, Tuple, Union
-from collections.abc import Mapping
+from typing import Any, Mapping, Optional, Union
 from unittest import TestCase
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 from urllib.parse import parse_qs, quote_plus, urlparse, urlunparse
 from uuid import uuid4
 
 from fido2.webauthn import AuthenticatorAttachment
-from unittest.mock import patch
 
 from eduid.common.config.base import EduidEnvironment
 from eduid.common.misc.timeutil import utc_now

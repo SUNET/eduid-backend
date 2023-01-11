@@ -76,8 +76,7 @@ Revoke a credential (irreversible!) :
 """
 
 import os
-from typing import Any, Dict, Optional, Tuple
-from collections.abc import Sequence
+from typing import Any, Optional, Sequence
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
@@ -203,7 +202,7 @@ class VCCSPasswordFactor(VCCSFactor):
         """
         _, version, salt, desired_key_length, rounds, _ = salt.split("$")
         if version == "NDNv1H1":
-            salt_bytes = b''.fromhex(salt)
+            salt_bytes = b"".fromhex(salt)
             return salt_bytes, int(desired_key_length), int(rounds)
         raise NotImplementedError("Unknown hashing scheme")
 
