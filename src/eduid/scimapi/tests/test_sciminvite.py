@@ -190,7 +190,7 @@ class TestInviteResource(ScimApiTestCase):
             "profiles": {"student": {"attributes": {"displayName": "Test"}, "data": {}}},
         }
 
-    def add_invite(self, data: Optional[dict] = None, update: bool = False) -> ScimApiInvite:
+    def add_invite(self, data: Optional[dict[str, Any]] = None, update: bool = False) -> ScimApiInvite:
         invite_data = self.invite_data
         if data:
             invite_data = data
@@ -236,7 +236,7 @@ class TestInviteResource(ScimApiTestCase):
             finish_url=invite_data.get("finish_url"),
             expires_at=datetime.utcnow() + timedelta(seconds=self.context.config.invite_expire),
         )
-        self.signup_invitedb.save(signup_invite)
+        self.signup_invitedb.save(signup_invite, is_in_database=False)
         return db_invite
 
     def _assertUpdateSuccess(self, req: Mapping, response, invite: ScimApiInvite, signup_invite: SignupInvite):

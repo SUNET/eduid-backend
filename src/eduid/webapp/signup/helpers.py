@@ -23,7 +23,7 @@ from eduid.queue.db import QueueItem, SenderInfo
 from eduid.queue.db.message import EduidSignupEmail
 from eduid.queue.db.message.payload import OldEduidSignupEmail
 from eduid.userdb import MailAddress, NinIdentity, PhoneNumber, Profile, User
-from eduid.userdb.exceptions import UserHasNotCompletedSignup, UserOutOfSync
+from eduid.userdb.exceptions import UserDoesNotExist, UserHasNotCompletedSignup, UserOutOfSync
 from eduid.userdb.logs import MailAddressProofing
 from eduid.userdb.signup import Invite, InviteType, SCIMReference, SignupUser
 from eduid.userdb.tou import ToUEvent
@@ -120,9 +120,10 @@ def generate_eppn() -> str:
     """
     for _ in range(10):
         eppn_int = struct.unpack("I", os.urandom(4))[0]
-        eppn = proquint.uint2quint(eppn_int)
-        user = current_app.central_userdb.get_user_by_eppn(eppn)
-        if not user:
+        eppn: str = proquint.uint2quint(eppn_int)
+        try:
+            current_app.central_userdb.get_user_by_eppn(eppn)
+        except UserDoesNotExist:
             return eppn
     current_app.logger.critical("generate_eppn finished without finding a new unique eppn")
     abort(500)
@@ -390,7 +391,7 @@ def complete_and_update_invite(user: User, invite_code: str):
 
     updated_invite = replace(invite, completed_ts=utc_now())
     try:
-        current_app.invite_db.save(invite=updated_invite)
+        current_app.invite_db.save(invite=updated_invite, is_in_database=True)
         save_and_sync_user(signup_user)
     except UserOutOfSync as e:
         current_app.logger.error(f"Failed saving user {signup_user}, data out of sync")

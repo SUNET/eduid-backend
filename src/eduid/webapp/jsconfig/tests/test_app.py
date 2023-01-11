@@ -34,18 +34,15 @@
 import json
 import os
 from pathlib import PurePath
-from typing import Any, Dict, Mapping
+from typing import Any, Dict, Mapping, cast
 
 from eduid.common.config.parsers import load_config
-from eduid.webapp.common.api.testing import EduidAPITestCase
+from eduid.webapp.common.api.testing import CSRFTestClient, EduidAPITestCase
 from eduid.webapp.jsconfig.app import JSConfigApp, jsconfig_init_app
 from eduid.webapp.jsconfig.settings.common import JSConfigConfig
 
 
-class JSConfigTests(EduidAPITestCase):
-
-    app: JSConfigApp
-
+class JSConfigTests(EduidAPITestCase[JSConfigApp]):
     def setUp(self):
         self.data_dir = str(PurePath(__file__).with_name("data"))
         super(JSConfigTests, self).setUp(copy_user_to_private=False)
@@ -56,7 +53,8 @@ class JSConfigTests(EduidAPITestCase):
         app for this test case.
         """
         app = jsconfig_init_app(test_config=config)
-        self.browser = app.test_client(allow_subdomain_redirects=True)
+        app.test_client_class = CSRFTestClient
+        self.browser = cast(CSRFTestClient, app.test_client(allow_subdomain_redirects=True))
         app.url_map.host_matching = False
         return app
 

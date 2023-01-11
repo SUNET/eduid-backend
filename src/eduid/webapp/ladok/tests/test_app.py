@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 import json
 from typing import Any, Dict, List, Mapping, Optional
-from unittest.mock import patch
 from uuid import UUID, uuid4
 
-from flask import Response
+from mock import MagicMock, patch
+from werkzeug.test import TestResponse
 
 from eduid.common.config.base import EduidEnvironment
 from eduid.userdb.ladok import Ladok, University, UniversityName
@@ -18,7 +18,7 @@ from eduid.webapp.ladok.helpers import LadokMsg
 
 
 class MockResponse(object):
-    def __init__(self, status_code: int, data: Mapping):
+    def __init__(self, status_code: int, data: Mapping[str, Any]):
         self._data = data
         self.status_code = status_code
         self.text = json.dumps(self._data)
@@ -27,11 +27,8 @@ class MockResponse(object):
         return self._data
 
 
-class LadokTests(EduidAPITestCase):
-
-    app: LadokApp
-
-    def setUp(self, *args, users: Optional[List[str]] = None, copy_user_to_private: bool = False, **kwargs):
+class LadokTests(EduidAPITestCase[LadokApp]):
+    def setUp(self, *args: Any, **kwargs: Any):
         self.test_user_eppn = "hubba-bubba"
         self.test_unverified_user_eppn = "hubba-baar"
         self.ladok_user_external_id = uuid4()
@@ -52,7 +49,6 @@ class LadokTests(EduidAPITestCase):
 
         # remove Ladok data from test user
         user = self.app.central_userdb.get_user_by_eppn(eppn=self.test_user_eppn)
-        assert user is not None
         user.ladok = None
         self.app.central_userdb.save(user)
 
@@ -73,13 +69,13 @@ class LadokTests(EduidAPITestCase):
         }
         return config
 
-    def _link_user(self, eppn: str, ladok_name: str) -> Response:
+    def _link_user(self, eppn: str, ladok_name: str) -> TestResponse:
         with self.session_cookie(self.browser, eppn) as browser:
             with browser.session_transaction() as sess:
                 csrf_token = sess.get_csrf_token()
             return browser.post("/link-user", json={"csrf_token": csrf_token, "ladok_name": ladok_name})
 
-    def _unlink_user(self, eppn: str) -> Response:
+    def _unlink_user(self, eppn: str) -> TestResponse:
         with self.session_cookie(self.browser, eppn) as browser:
             with browser.session_transaction() as sess:
                 csrf_token = sess.get_csrf_token()
@@ -105,19 +101,21 @@ class LadokTests(EduidAPITestCase):
 
     @patch("requests.post")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_link_user(self, mock_request_user_sync, mock_response):
+    def test_link_user(self, mock_request_user_sync: MagicMock, mock_response: MagicMock):
         mock_request_user_sync.side_effect = self.request_user_sync
 
         ladok_user_external_id_str = str(self.ladok_user_external_id)
         user_info = LadokUserInfo(
             external_id=ladok_user_external_id_str,
             esi=f"urn:schac:personalUniqueCode:int:esi:ladok.se:externtstudentuid-{ladok_user_external_id_str}",
+            is_student=None,
         )
         mock_response.return_value = MockResponse(
             status_code=200, data=LadokUserInfoResponse(error=None, data=user_info).dict(by_alias=True)
         )
 
         user = self.app.central_userdb.get_user_by_eppn(eppn=self.test_user_eppn)
+        assert user.identities.nin is not None
         assert user.identities.nin.is_verified is True
 
         ladok_name = "ab"
@@ -125,6 +123,7 @@ class LadokTests(EduidAPITestCase):
         self._check_success_response(response, type_="POST_LADOK_LINK_USER_SUCCESS")
 
         user = self.app.central_userdb.get_user_by_eppn(eppn=self.test_user_eppn)
+        assert user.ladok is not None
         assert user.ladok.external_id == self.ladok_user_external_id
         assert user.ladok.university.ladok_name == ladok_name
         assert user.ladok.university.name.sv == self.app.ladok_client.universities[ladok_name].name.sv
@@ -134,7 +133,7 @@ class LadokTests(EduidAPITestCase):
         assert 1 == len(log_docs)
 
     @patch("requests.post")
-    def test_link_user_error_response_from_worker(self, mock_response):
+    def test_link_user_error_response_from_worker(self, mock_response: MagicMock):
         error = Error(id="internal_server_error", details="some longer error message")
         mock_response.return_value = MockResponse(
             status_code=200, data=LadokUserInfoResponse(error=error, data=None).dict(by_alias=True)
@@ -167,7 +166,7 @@ class LadokTests(EduidAPITestCase):
         assert 0 == len(log_docs)
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_unlink_user(self, mock_request_user_sync):
+    def test_unlink_user(self, mock_request_user_sync: MagicMock):
         mock_request_user_sync.side_effect = self.request_user_sync
 
         # set ladok data for user
@@ -178,6 +177,7 @@ class LadokTests(EduidAPITestCase):
         self.app.central_userdb.save(user)
 
         user = self.app.central_userdb.get_user_by_eppn(eppn=self.test_user_eppn)
+        assert user.ladok is not None
         assert user.ladok.external_id == self.ladok_user_external_id
         assert user.ladok.university.ladok_name == university.ladok_name
 
@@ -199,11 +199,8 @@ class LadokTests(EduidAPITestCase):
         assert user.ladok is None
 
 
-class LadokDevTests(EduidAPITestCase):
-
-    app: LadokApp
-
-    def setUp(self, *args, users: Optional[List[str]] = None, copy_user_to_private: bool = False, **kwargs):
+class LadokDevTests(EduidAPITestCase[LadokApp]):
+    def setUp(self, *args: Any, **kwargs: Any):
         self.test_user_eppn = "hubba-bubba"
         self.test_unverified_user_eppn = "hubba-baar"
         self.ladok_user_external_id = uuid4()
@@ -230,11 +227,12 @@ class LadokDevTests(EduidAPITestCase):
         return config
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_link_user_backdoor(self, mock_request_user_sync):
+    def test_link_user_backdoor(self, mock_request_user_sync: MagicMock):
         mock_request_user_sync.side_effect = self.request_user_sync
 
         ladok_name = "DEV"
         with self.session_cookie(self.browser, self.test_user.eppn) as browser:
+            assert self.app.conf.magic_cookie is not None
             browser.set_cookie("localhost", key="magic-cookie", value=self.app.conf.magic_cookie)
             with browser.session_transaction() as sess:
                 csrf_token = sess.get_csrf_token()
@@ -242,6 +240,7 @@ class LadokDevTests(EduidAPITestCase):
         self._check_success_response(response, type_="POST_LADOK_LINK_USER_SUCCESS")
 
         user = self.app.central_userdb.get_user_by_eppn(eppn=self.test_user_eppn)
+        assert user.ladok is not None
         assert user.ladok.external_id == UUID("00000000-1111-2222-3333-444444444444")
         assert user.ladok.university.ladok_name == ladok_name
         assert user.ladok.university.name.sv == self.app.ladok_client.universities[ladok_name].name.sv

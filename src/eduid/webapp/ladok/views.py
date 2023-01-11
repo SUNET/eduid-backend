@@ -39,8 +39,8 @@ def get_university_info(user: User) -> FluxData:
 
 
 @ladok_views.route("/link-user", methods=["POST"])
-@MarshalWith(LinkUserResponse)
 @UnmarshalWith(LinkUserRequest)
+@MarshalWith(LinkUserResponse)
 @require_user
 def link_user(user: User, ladok_name: str) -> FluxData:
     if user.identities.nin is None or user.identities.nin.is_verified is False:

@@ -1,10 +1,10 @@
 from datetime import datetime
 from enum import Enum
-from typing import Dict, List, Optional
+from typing import List, Optional
 
 from pydantic import BaseModel, Field
-from eduid.common.misc.timeutil import utc_now
 
+from eduid.common.misc.timeutil import utc_now
 from eduid.userdb import MailAddress, PhoneNumber
 from eduid.userdb.meta import CleanerType, Meta
 
@@ -56,9 +56,11 @@ class UserUpdatePhoneRequest(UserBaseRequest):
 class UserUpdateLanguageRequest(UserBaseRequest):
     language: Optional[str] = None
 
+
 class UserUpdateMetaCleanedRequest(UserBaseRequest):
     type: CleanerType
     ts: datetime = Field(default_factory=utc_now)
+
 
 class UserUpdateTerminateRequest(UserBaseRequest):
     pass

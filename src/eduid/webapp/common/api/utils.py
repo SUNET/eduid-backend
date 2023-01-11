@@ -4,20 +4,45 @@ import logging
 import os
 import re
 from datetime import datetime, timedelta
-from typing import Any, List, Optional
+from typing import TYPE_CHECKING, Any, List, Optional, Type, TypeVar, cast
 from urllib.parse import urlparse
 from uuid import uuid4
 
 import bcrypt
-from flask import current_app
+from flask import current_app as flask_current_app
 from flask.wrappers import Request
+from mock import MagicMock
 
+from eduid.common.config.base import EduIDBaseAppConfig, Pysaml2SPConfigMixin
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb import User, UserDB
-from eduid.userdb.exceptions import MultipleUsersReturned, UserDBValueError
+from eduid.userdb.exceptions import MultipleUsersReturned, UserDBValueError, UserDoesNotExist
 from eduid.webapp.common.api.exceptions import ApiException
 
+if TYPE_CHECKING:
+    from eduid.webapp.common.api.app import EduIDBaseApp
+
+    current_app = cast(EduIDBaseApp, flask_current_app)
+else:
+    current_app = flask_current_app
+
 logger = logging.getLogger(__name__)
+
+
+TCurrentAppAttribute = TypeVar("TCurrentAppAttribute")
+
+
+def get_from_current_app(name: str, klass: Type[TCurrentAppAttribute]) -> TCurrentAppAttribute:
+    """Get a correctly typed attribute from an unknown Flask current app"""
+    ret = getattr(current_app, name)
+    if not isinstance(ret, klass):
+        # For tests, we may have a mock object here
+        conf = getattr(current_app, "conf")
+        if isinstance(conf, EduIDBaseAppConfig) and conf.testing:
+            if isinstance(ret, MagicMock):
+                return cast(TCurrentAppAttribute, ret)
+        raise TypeError(f"current_app.{name} is not of type {klass} (is {type(ret)}")
+    return ret
 
 
 def get_unique_hash() -> str:
@@ -48,22 +73,23 @@ def update_modified_ts(user: User) -> None:
     :return: None
     """
     try:
-        userid = user.user_id
+        user_id = user.user_id
     except UserDBValueError:
         logger.debug(f"User {user} has no id, setting modified_ts to None")
         user.modified_ts = None
         return None
 
-    private_user = current_app.private_userdb.get_user_by_id(userid)
+    _private_userdb = get_from_current_app("private_userdb", UserDB[User])
+    private_user = _private_userdb.get_user_by_id(user_id)
     if private_user is None:
-        logger.debug(f"User {user} not found in {current_app.private_userdb}, setting modified_ts to None")
+        logger.debug(f"User {user} not found in {_private_userdb}, setting modified_ts to None")
         user.modified_ts = None
         return None
 
     if private_user.modified_ts is None:
         private_user.modified_ts = datetime.utcnow()  # use current time
         logger.debug(f"Updating user {private_user} with new modified_ts: {private_user.modified_ts}")
-        current_app.private_userdb.save(private_user, check_sync=False)
+        _private_userdb.save(private_user)
 
     user.modified_ts = private_user.modified_ts
     logger.debug(
@@ -85,19 +111,19 @@ def get_user() -> User:
         raise ApiException("Not authorized", status_code=401)
     try:
         # Get user from central database
-        user = current_app.central_userdb.get_user_by_eppn(session.common.eppn)
-        if user:
-            return user
-        logger.error(f"Could not find user {session.common.eppn} in central database.")
-        raise ApiException("Not authorized", status_code=401)
+        return current_app.central_userdb.get_user_by_eppn(session.common.eppn)
 
     except MultipleUsersReturned:
         logger.exception(f"Found multiple users in central database for eppn {session.common.eppn}.")
         raise ApiException("Not authorized", status_code=401)
 
+    except UserDoesNotExist:
+        logger.error(f"Could not find user {session.common.eppn} in central database.")
+        raise ApiException("Not authorized", status_code=401)
+
 
 def save_and_sync_user(
-    user: User, private_userdb: Optional[UserDB] = None, app_name_override: Optional[str] = None
+    user: User, private_userdb: Optional[UserDB[User]] = None, app_name_override: Optional[str] = None
 ) -> bool:
     """
     Save (new) user object to the private userdb and propagate the changes to the central user db.
@@ -107,9 +133,13 @@ def save_and_sync_user(
     :param user: the modified user
     """
     if private_userdb is None:
-        private_userdb = current_app.private_userdb
+        private_userdb = get_from_current_app("private_userdb", UserDB)
+    logger.debug(f"Saving user {user} to private userdb {private_userdb} (is_in_database: {user.meta.is_in_database})")
     private_userdb.save(user)
-    return current_app.am_relay.request_user_sync(user, app_name_override=app_name_override)
+    from eduid.common.rpc.am_relay import AmRelay
+
+    logger.debug(f"Syncing {user} to central userdb {current_app.central_userdb}")
+    return get_from_current_app("am_relay", AmRelay).request_user_sync(user, app_name_override=app_name_override)
 
 
 def get_flux_type(req: Request, suffix: str) -> str:
@@ -154,7 +184,7 @@ def get_flux_type(req: Request, suffix: str) -> str:
     url_rule = req.url_rule.rule
     # Remove APPLICATION_ROOT from request url rule
     # XXX: There must be a better way to get the internal path info
-    app_root = current_app.config["APPLICATION_ROOT"]
+    app_root = get_from_current_app("conf", EduIDBaseAppConfig).flask.application_root
     if app_root is not None and url_rule.startswith(app_root):
         url_rule = url_rule[len(app_root) :]
     # replace slashes and hyphens with spaces
@@ -175,11 +205,6 @@ def sanitise_redirect_url(redirect_url: Optional[str], safe_default: str = "/") 
     Make sure the URL provided in relay_state is safe and does
     not provide an open redirect.
 
-    The reason for the `url_scheme` and `safe_domain`
-    kwargs (rather than directly taking them from the current app and config)
-    is so that this can be used in non-flask apps (specifically, in the
-    IdP cherrypy app). Used within a flask app, these args can be ignored.
-
     :param redirect_url: Next url
     :param safe_default: The default if relay state is found unsafe
 
@@ -190,8 +215,8 @@ def sanitise_redirect_url(redirect_url: Optional[str], safe_default: str = "/") 
         return safe_default
 
     logger.debug(f"Checking if redirect_url {redirect_url} is safe")
-    url_scheme = current_app.config["PREFERRED_URL_SCHEME"]
-    safe_domain = current_app.conf.safe_relay_domain
+    url_scheme = get_from_current_app("conf", EduIDBaseAppConfig).flask.preferred_url_scheme
+    safe_domain = get_from_current_app("conf", Pysaml2SPConfigMixin).safe_relay_domain
     parsed_relay_state = urlparse(redirect_url)
 
     # If relay state is only a path

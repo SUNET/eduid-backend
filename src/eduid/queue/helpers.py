@@ -47,5 +47,5 @@ class Jinja2Env:
         neg_lang = babel.negotiate_locale(preferred=[lang], available=self.translations.keys())
         translation = self.translations.get(neg_lang, self.translations["en"])
         # install_gettext_translations is available when instantiating env with extension jinja2.ext.i18n
-        self.env.install_gettext_translations(translation, newstyle=True)
+        self.env.install_gettext_translations(translation, newstyle=True)  # type: ignore[attr-defined]
         yield self.env

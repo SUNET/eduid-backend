@@ -1,6 +1,6 @@
 from typing import Any, Dict, Optional, Set
 
-from eduid.userdb.db import BaseDB
+from eduid.userdb.db import BaseDB, TUserDbDocument
 from eduid.userdb.util import utc_now
 
 
@@ -21,7 +21,7 @@ class CacheMDB(BaseDB):
     def add_cache_item(self, identifier: str, data: Dict[str, Any]):
         date = utc_now()
         doc = {"identifier": identifier, "data": data, "created_at": date}
-        self._coll.insert_one(doc)
+        self._coll.insert_one(TUserDbDocument(doc))
         return True
 
     def get_cache_item(self, identifier: str) -> Optional[Dict[str, Any]]:
@@ -31,9 +31,9 @@ class CacheMDB(BaseDB):
             return result["data"]
         return result
 
-    def get_cached_items_by_query(self, query):
+    def get_cached_items_by_query(self, query: dict[str, Any]) -> list[TUserDbDocument]:
         result = self._coll.find(query)
-        return result
+        return list(result)
 
     def update_cache_item(self, identifier: str, data: Dict[str, Any]):
         date = utc_now()

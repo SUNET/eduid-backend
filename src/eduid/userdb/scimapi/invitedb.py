@@ -11,6 +11,7 @@ from uuid import UUID
 from bson import ObjectId
 
 from eduid.scimapi.utils import filter_none
+from eduid.userdb.db import TUserDbDocument
 from eduid.userdb.scimapi.basedb import ScimApiBaseDB
 from eduid.userdb.scimapi.common import (
     ScimApiEmail,
@@ -38,7 +39,7 @@ class ScimApiInvite(ScimApiResourceBase):
     completed: Optional[datetime] = field(default=None)
     profiles: Dict[str, ScimApiProfile] = field(default_factory=lambda: {})
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> TUserDbDocument:
         res = asdict(self)
         res = filter_none(res)
         res["scim_id"] = str(res["scim_id"])
@@ -46,7 +47,7 @@ class ScimApiInvite(ScimApiResourceBase):
         res["emails"] = [email.to_dict() for email in self.emails]
         res["phone_numbers"] = [phone_number.to_dict() for phone_number in self.phone_numbers]
         res["groups"] = [str(group_id) for group_id in self.groups]
-        return res
+        return TUserDbDocument(res)
 
     @classmethod
     def from_dict(cls: Type[ScimApiInvite], data: Mapping[str, Any]) -> ScimApiInvite:
@@ -68,7 +69,7 @@ class ScimApiInvite(ScimApiResourceBase):
 
 
 class ScimApiInviteDB(ScimApiBaseDB):
-    def __init__(self, db_uri: str, collection: str, db_name="eduid_scimapi"):
+    def __init__(self, db_uri: str, collection: str, db_name: str = "eduid_scimapi"):
         super().__init__(db_uri, db_name, collection=collection)
         # Create an index so that scim_id is unique per data owner
         indexes = {

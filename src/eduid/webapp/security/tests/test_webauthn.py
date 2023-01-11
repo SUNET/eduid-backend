@@ -11,6 +11,9 @@ from werkzeug.http import dump_cookie
 
 from eduid.common.config.base import EduidEnvironment
 from eduid.userdb.credentials import U2F, Webauthn
+from eduid.userdb.credentials.fido import FidoCredential
+from eduid.userdb.credentials.list import CredentialList
+from eduid.userdb.credentials.password import Password
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.common.session import EduidSession
 from eduid.webapp.common.session.namespaces import WebauthnRegistration, WebauthnState
@@ -141,13 +144,13 @@ class SecurityWebauthnTests(EduidAPITestCase):
             created_by="test_security",
             authenticator=AuthenticatorAttachment.CROSS_PLATFORM,
         )
-        self.test_user.credentials.add(credential)
-        self.app.central_userdb.save(self.test_user, check_sync=False)
+        test_user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
+        test_user.credentials.add(credential)
+        self.app.central_userdb.save(test_user)
         return credential
 
     def _add_u2f_token_to_user(self, eppn: str) -> U2F:
         user = self.app.central_userdb.get_user_by_eppn(eppn)
-        assert user is not None
         u2f_token = U2F(
             version="version",
             keyhandle="keyHandle",
@@ -291,7 +294,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
         state: dict,
         existing_legacy_token: bool = False,
         csrf: Optional[str] = None,
-    ):
+    ) -> None:
         """
         Send a request to remove the only webauthn credential from the test user - which should fail.
 
@@ -301,12 +304,22 @@ class SecurityWebauthnTests(EduidAPITestCase):
         :param existing_legacy_token: whether to add a legacy U2F credential to the test user
         :param csrf: to control the CSRF token to send
         """
-        eppn = self.test_user_data["eduPersonPrincipalName"]
+        eppn = self.test_user.eppn
 
+        test_user = self.app.central_userdb.get_user_by_eppn(eppn)
+        # Remove all credentials except the password
+        test_user.credentials = CredentialList(elements=test_user.credentials.filter(Password))
+        self.app.central_userdb.save(test_user)
+
+        user_token: FidoCredential
         if existing_legacy_token:
-            self._add_u2f_token_to_user(eppn)
+            user_token = self._add_u2f_token_to_user(eppn)
+        else:
+            user_token = self._add_token_to_user(client_data=client_data, attestation=attestation, state=state)
 
-        user_token = self._add_token_to_user(client_data=client_data, attestation=attestation, state=state)
+        # Verify what's in the database now matches our expectations
+        test_user = self.app.central_userdb.get_user_by_eppn(eppn)
+        assert len(test_user.credentials.filter(FidoCredential)) == 1
 
         response = self.browser.post("/webauthn/remove", data={})
         self.assertEqual(response.status_code, 302)  # Redirect to token service

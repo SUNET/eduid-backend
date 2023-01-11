@@ -313,6 +313,9 @@ class AmConfigMixin(CeleryConfigMixin):
 class MailConfigMixin(CeleryConfigMixin):
     """Config used by MailRelay"""
 
+    eduid_site_name: str = "eduID"
+    eduid_site_url: str = "https://eduid.se"
+
     mail_default_from: str = "no-reply@eduid.se"
 
 

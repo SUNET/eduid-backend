@@ -50,9 +50,6 @@ class EmailConfig(EduIDBaseAppConfig, MagicCookieMixin, AmConfigMixin, MailConfi
     Configuration for the email app
     """
 
-    eduid_site_name: str
-    eduid_site_url: str
-
     app_name: str = "email"
 
     email_verification_timeout: int = 86400  # seconds

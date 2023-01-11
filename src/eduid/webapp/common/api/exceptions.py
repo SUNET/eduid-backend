@@ -1,24 +1,28 @@
 # -*- coding: utf-8 -*-
 
+from typing import TYPE_CHECKING, Any, Mapping, Optional
+
 from flask import jsonify
 
 __author__ = "lundberg"
 
-from eduid.userdb.reset_password import ResetPasswordEmailState
+if TYPE_CHECKING:
+    from eduid.userdb.reset_password import ResetPasswordEmailState
 
 
 class ApiException(Exception):
     status_code = 500
 
-    def __init__(self, message="ApiException", status_code=None, payload=None):
+    def __init__(
+        self,
+        message: str = "ApiException",
+        status_code: Optional[int] = None,
+        payload: Optional[Mapping[str, Any]] = None,
+    ):
         """
         :param message: Error message
         :param status_code: Http status code
         :param payload: Data in dict structure
-
-        :type message: str|unicode
-        :type status_code: int
-        :type payload: dict
         """
         Exception.__init__(self)
         self.message = message
@@ -39,8 +43,8 @@ class ApiException(Exception):
             return "{!s} with message {!s} and payload {!r}".format(self.status_code, self.message, self.payload)
         return "{!s} with message {!s}".format(self.status_code, self.message)
 
-    def to_dict(self):
-        rv = dict()
+    def to_dict(self) -> dict[str, Any]:
+        rv: dict[str, Any] = dict()
         rv["message"] = self.message
         if self.payload:
             rv["payload"] = self.payload
@@ -65,9 +69,9 @@ class ProofingLogFailure(Exception):
 
 class ThrottledException(Exception):
 
-    state: ResetPasswordEmailState
+    state: "ResetPasswordEmailState"
 
-    def __init__(self, state: ResetPasswordEmailState):
+    def __init__(self, state: "ResetPasswordEmailState"):
         Exception.__init__(self)
         self.state = state
 

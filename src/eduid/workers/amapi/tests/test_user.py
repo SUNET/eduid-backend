@@ -3,31 +3,24 @@
 __author__ = "masv"
 
 import datetime
-import json
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
-import pkg_resources
 from bson import ObjectId
 from fastapi import status
-from fastapi.testclient import TestClient
 from httpx import Headers
 from jwcrypto import jwt
-from pydantic import BaseModel
 from requests import Response
 
 from eduid.common.clients.gnap_client.base import GNAPBearerTokenMixin
-from eduid.common.testing_base import CommonTestCase
-from eduid.userdb.fixtures.users import new_user_example
-from eduid.workers.amapi.app import init_api
-from eduid.workers.amapi.config import EndpointRestriction
-from eduid.workers.amapi.utils import AuthnBearerToken
-from eduid.workers.amapi.testing import TestAMBase
+from eduid.userdb.fixtures.users import UserFixtures
 from eduid.userdb.meta import CleanerType
+from eduid.workers.amapi.testing import TestAMBase
+from eduid.workers.amapi.utils import AuthnBearerToken
 
 
 class TestUsers(TestAMBase, GNAPBearerTokenMixin):
     def setUp(self, *args, **kwargs):
-        super().setUp(am_users=[new_user_example])
+        super().setUp(am_users=[UserFixtures().new_user_example])
 
     def _make_url(self, endpoint: Optional[str] = None) -> str:
         if endpoint is None:

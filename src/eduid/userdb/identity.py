@@ -55,11 +55,6 @@ class IdentityElement(VerifiedElement, ABC):
         """
         raise NotImplementedError("Sub-class must implement unique_value")
 
-    def to_dict(self) -> Dict[str, Any]:
-        data = super().to_dict()
-        data["identity_type"] = self.identity_type.value
-        return data
-
     def to_frontend_format(self) -> Dict[str, Any]:
         return super().to_dict()
 
@@ -133,11 +128,6 @@ class EIDASIdentity(ForeignIdentityElement):
     @property
     def unique_value(self) -> str:
         return self.prid
-
-    def to_dict(self) -> Dict[str, Any]:
-        data = super().to_dict()
-        data["prid_persistence"] = self.prid_persistence.value
-        return data
 
 
 class SvipeIdentity(ForeignIdentityElement):

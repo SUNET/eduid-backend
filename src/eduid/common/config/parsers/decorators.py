@@ -3,7 +3,7 @@
 import logging
 from functools import wraps
 from string import Template
-from typing import Mapping, Optional
+from typing import Any, Mapping, Optional
 
 from nacl import encoding, exceptions, secret
 
@@ -46,7 +46,7 @@ def init_secret_box(key_name: Optional[str] = None, secret_key: Optional[bytes] 
     return secret.SecretBox(secret_key)
 
 
-def decrypt_config(config_dict: Mapping) -> Mapping:
+def decrypt_config(config_dict: Mapping[str, Any]) -> Mapping[str, Any]:
     """
     :param config_dict: Configuration dictionary
     :return: Configuration dictionary
@@ -97,7 +97,7 @@ def interpolate(f):
     return interpolation_decorator
 
 
-def interpolate_list(config_dict: dict, sub_list: list) -> list:
+def interpolate_list(config_dict: dict[str, Any], sub_list: list) -> list:
     """
     :param config_dict: Configuration dictionary
     :param sub_list: Sub configuration list
@@ -119,7 +119,7 @@ def interpolate_list(config_dict: dict, sub_list: list) -> list:
     return sub_list
 
 
-def interpolate_config(config_dict: dict, sub_dict: Optional[dict] = None) -> dict:
+def interpolate_config(config_dict: dict[str, Any], sub_dict: Optional[dict[str, Any]] = None) -> dict[str, Any]:
     """
     :param config_dict: Configuration dictionary
     :param sub_dict: Sub configuration dictionary

@@ -2,7 +2,7 @@ import json
 import logging
 import re
 from copy import copy
-from typing import List, Optional, Set
+from typing import Any, List, Mapping, Optional, Set
 
 from fastapi import Request, Response
 from jwcrypto import jwt
@@ -10,7 +10,6 @@ from jwcrypto.common import JWException
 from pydantic import BaseModel, Field, StrictInt, ValidationError, validator
 from starlette.datastructures import URL
 from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.responses import PlainTextResponse
 from starlette.types import Message
 
 from eduid.common.utils import removeprefix
@@ -51,7 +50,7 @@ class AuthnBearerToken(BaseModel):
         return v
 
     @validator("scopes")
-    def validate_scopes(cls, v: Set[ScopeName], values) -> Set[ScopeName]:
+    def validate_scopes(cls, v: Set[ScopeName], values: Mapping[str, Any]) -> Set[ScopeName]:
         config = values.get("scim_config")
         if not config:
             raise ValueError("Can't validate without scim_config")
@@ -59,7 +58,7 @@ class AuthnBearerToken(BaseModel):
         return canonical_scopes
 
     @validator("requested_access")
-    def validate_requested_access(cls, v: List[SudoAccess], values) -> List[SudoAccess]:
+    def validate_requested_access(cls, v: List[SudoAccess], values: Mapping[str, Any]) -> List[SudoAccess]:
         config = values.get("scim_config")
         if not config:
             raise ValueError("Can't validate without scim_config")

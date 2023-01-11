@@ -32,14 +32,17 @@
 __author__ = "eperez"
 
 from abc import ABC, abstractmethod
-from typing import List, Optional
+from typing import Any, List, Optional
 
 import bson
 from celery.utils.log import get_task_logger
 
 from eduid.common.config.workers import AmConfig
+from eduid.userdb.db import TUserDbDocument
 from eduid.userdb.exceptions import UserDoesNotExist
+from eduid.userdb.user import User
 from eduid.userdb.userdb import UserDB
+from eduid.userdb.util import format_dict_for_debug
 
 logger = get_task_logger(__name__)
 
@@ -53,7 +56,7 @@ class AttributeFetcher(ABC):
         if not isinstance(worker_config, AmConfig):
             raise TypeError("AttributeFetcher config should be AmConfig")
         self.conf = worker_config
-        self.private_db: Optional[UserDB] = None
+        self.private_db: Optional[UserDB[User]] = None
         if worker_config.mongo_uri:
             self.private_db = self.get_user_db(worker_config.mongo_uri)
 
@@ -65,14 +68,14 @@ class AttributeFetcher(ABC):
         corresponding to the database holding the data to be fetched.
         """
 
-    def fetch_attrs(self, user_id: bson.ObjectId) -> dict:
+    def fetch_attrs(self, user_id: bson.ObjectId) -> dict[str, Any]:
         """
         Read a user from the Dashboard private private_db and return an update
         dict to let the Attribute Manager update the use in the central
         eduid user database.
         """
 
-        attributes = {}
+        attributes: dict[str, Any] = {}
         logger.debug(f"Trying to get user with _id: {user_id} from {self.private_db}.")
         if not self.private_db:
             raise RuntimeError("No database initialised")
@@ -93,8 +96,8 @@ class AttributeFetcher(ABC):
             elif attr in self.whitelist_unset_attrs:
                 attributes_unset[attr] = value
 
-        logger.debug("Will set attributes: {}".format(attributes_set))
-        logger.debug("Will remove attributes: {}".format(attributes_unset))
+        logger.debug(f"Will set attributes:\n{format_dict_for_debug(attributes_set)}")
+        logger.debug(f"Will remove attributes: {attributes_unset}")
 
         if attributes_set:
             attributes["$set"] = attributes_set

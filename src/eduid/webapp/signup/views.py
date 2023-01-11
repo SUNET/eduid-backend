@@ -217,6 +217,8 @@ def captcha_response(recaptcha_response: Optional[str] = None, internal_response
     # common path with no backdoor
     if recaptcha_response and not captcha_verified:
         remote_ip = request.remote_addr
+        if not remote_ip:
+            raise RuntimeError("No remote IP address found")
         if current_app.conf.recaptcha_public_key and current_app.conf.recaptcha_private_key:
             captcha_verified = verify_recaptcha(current_app.conf.recaptcha_private_key, recaptcha_response, remote_ip)
         else:
@@ -332,10 +334,6 @@ def get_invite(invite_code: str):
 
     if session.common.is_logged_in:
         user = current_app.central_userdb.get_user_by_eppn(eppn=session.common.eppn)
-        if user is None:
-            current_app.logger.error("User not found but logged in?")
-            current_app.logger.error(f"invite_code: {invite_code}")
-            raise RuntimeError("User not found but logged in?")
         assert user.mail_addresses.primary is not None  # please mypy
         invite_data["user"] = {
             "given_name": user.given_name,
@@ -384,8 +382,6 @@ def complete_invite() -> FluxData:
         return success_response(payload={"state": session.signup.to_dict()})
 
     user = current_app.central_userdb.get_user_by_eppn(eppn=session.common.eppn)
-    if user is None:
-        return error_response(message=CommonMsg.temp_problem)
 
     assert session.signup.invite.invite_code is not None  # please mypy
     try:
@@ -473,7 +469,8 @@ def trycaptcha(email: str, recaptcha_response: str, tou_accepted: bool) -> FluxD
     # common path with no backdoor
     if not recaptcha_verified:
         remote_ip = request.remote_addr
-
+        if not remote_ip:
+            raise RuntimeError("No remote IP address found")
         if current_app.conf.recaptcha_public_key and current_app.conf.recaptcha_private_key:
             recaptcha_verified = verify_recaptcha(current_app.conf.recaptcha_private_key, recaptcha_response, remote_ip)
         else:

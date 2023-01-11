@@ -43,7 +43,7 @@ BaseSessionInfoVar = TypeVar("BaseSessionInfoVar", bound=BaseSessionInfo)
 
 
 @dataclass
-class SwedenConnectProofingFunctions(ProofingFunctions, Generic[BaseSessionInfoVar]):
+class SwedenConnectProofingFunctions(ProofingFunctions[BaseSessionInfoVar], Generic[BaseSessionInfoVar]):
     def get_identity(self, user: User) -> Optional[IdentityElement]:
         raise NotImplementedError("Subclass must implement get_identity")
 
@@ -149,7 +149,6 @@ class FrejaProofingFunctions(SwedenConnectProofingFunctions[NinSessionInfo]):
         current_app.stats.count(name="nin_verified")
         # re-load the user from central db before returning
         _user = current_app.central_userdb.get_user_by_eppn(proofing_user.eppn)
-        assert _user is not None  # please mypy
         return VerifyUserResult(user=ProofingUser.from_user(_user, current_app.private_userdb))
 
     def identity_proofing_element(self, user: User) -> ProofingElementResult:
@@ -319,7 +318,6 @@ class EidasProofingFunctions(SwedenConnectProofingFunctions[ForeignEidSessionInf
         current_app.stats.count(name="eidas_verified")
         # load the user from central db before returning
         _user = current_app.central_userdb.get_user_by_eppn(proofing_user.eppn)
-        assert _user is not None  # please mypy
         return VerifyUserResult(user=_user)
 
     def identity_proofing_element(self, user: User) -> ProofingElementResult:
@@ -431,9 +429,6 @@ def _find_or_add_credential(
 
     # Reload the user from the central database, to not overwrite any earlier NIN proofings
     _user = current_app.central_userdb.get_user_by_eppn(user.eppn)
-    if _user is None:
-        # Please mypy
-        raise RuntimeError(f"Could not reload user {user}")
 
     proofing_user = ProofingUser.from_user(_user, current_app.private_userdb)
 

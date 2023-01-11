@@ -4,7 +4,7 @@
 import base64
 import binascii
 from io import BytesIO
-from typing import Any, Dict, Mapping
+from typing import Any, Dict, Mapping, Union
 
 import qrcode
 import qrcode.image.svg
@@ -12,14 +12,17 @@ import requests
 from flask import Blueprint, make_response, request, url_for
 from jose import jws as jose
 from oic.oic.message import AuthorizationResponse, Claims, ClaimsRequest
+from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.common.rpc.exceptions import TaskFailed
 from eduid.userdb import User
+from eduid.userdb.exceptions import UserDoesNotExist
 from eduid.userdb.proofing import ProofingUser
 from eduid.userdb.util import UTC
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, can_verify_nin, require_user
 from eduid.webapp.common.api.helpers import add_nin_to_user
-from eduid.webapp.common.api.messages import CommonMsg, error_response
+from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response
+from eduid.webapp.common.api.utils import save_and_sync_user
 from eduid.webapp.oidc_proofing import helpers, schemas
 from eduid.webapp.oidc_proofing.app import current_oidcp_app as current_app
 from eduid.webapp.oidc_proofing.helpers import OIDCMsg
@@ -104,24 +107,25 @@ def authorization_response():
     # TODO: Break out in parts to be able to continue the proofing process after a successful authorization response
     #       even if the token request, userinfo request or something internal fails
     user = None
-    am_user = current_app.central_userdb.get_user_by_eppn(proofing_state.eppn)
-    if am_user:
+    try:
+        am_user = current_app.central_userdb.get_user_by_eppn(proofing_state.eppn)
         user = ProofingUser.from_user(am_user, current_app.private_userdb)
+    except UserDoesNotExist:
+        current_app.logger.error(f"Failed to handle userinfo for unknown user {proofing_state.eppn}")
+        current_app.stats.count(name="authn_response_unknown_user")
+        current_app.proofing_statedb.remove_state(proofing_state)
+        return make_response("OK", 200)
 
     try:
-        if user:
-            # Handle userinfo differently depending on data in userinfo
-            if userinfo.get("identity"):
-                current_app.logger.info("Handling userinfo as generic seleg vetting for user {}".format(user))
-                current_app.stats.count(name="seleg.authn_response_received")
-                helpers.handle_seleg_userinfo(user, proofing_state, userinfo)
-            elif userinfo.get("results"):
-                current_app.logger.info("Handling userinfo as freja vetting for user {}".format(user))
-                current_app.stats.count(name="freja.authn_response_received")
-                helpers.handle_freja_eid_userinfo(user, proofing_state, userinfo)
-        else:
-            current_app.logger.error(f"Failed to handle userinfo for unknown user {proofing_state.eppn}")
-            current_app.stats.count(name="authn_response_unknown_user")
+        # Handle userinfo differently depending on data in userinfo
+        if userinfo.get("identity"):
+            current_app.logger.info("Handling userinfo as generic seleg vetting for user {}".format(user))
+            current_app.stats.count(name="seleg.authn_response_received")
+            helpers.handle_seleg_userinfo(user, proofing_state, userinfo)
+        elif userinfo.get("results"):
+            current_app.logger.info("Handling userinfo as freja vetting for user {}".format(user))
+            current_app.stats.count(name="freja.authn_response_received")
+            helpers.handle_freja_eid_userinfo(user, proofing_state, userinfo)
     except (TaskFailed, KeyError):
         current_app.logger.exception(f"Failed to handle userinfo for user {user}")
         current_app.stats.count(name="authn_response_handling_failure")
@@ -162,7 +166,7 @@ def get_seleg_state(user: User) -> Dict[str, Any]:
 @MarshalWith(schemas.NonceResponseSchema)
 @can_verify_nin
 @require_user
-def seleg_proofing(user, nin):
+def seleg_proofing(user: User, nin: str) -> Union[FluxData, WerkzeugResponse]:
     proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn)
     if not proofing_state:
         current_app.logger.debug("No proofing state found for user {!s}. Initializing new proofing flow.".format(user))
@@ -182,7 +186,7 @@ def seleg_proofing(user, nin):
 
         # If authentication request went well save user state
         current_app.stats.count(name="seleg.authn_request_success")
-        current_app.proofing_statedb.save(proofing_state)
+        current_app.proofing_statedb.save(proofing_state, is_in_database=False)
         current_app.logger.debug("Proofing state {!s} for user {!s} saved".format(proofing_state.state, user))
     # Add the nin used to initiate the proofing state to the user
     # NOOP if the user already have the nin
@@ -230,7 +234,7 @@ def get_freja_state(user: User) -> Mapping[str, Any]:
 @MarshalWith(schemas.FrejaResponseSchema)
 @can_verify_nin
 @require_user
-def freja_proofing(user, nin):
+def freja_proofing(user: User, nin: str) -> Union[FluxData, WerkzeugResponse]:
     proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn)
     if not proofing_state:
         current_app.logger.debug("No proofing state found for user {!s}. Initializing new proofing flow.".format(user))
@@ -250,7 +254,7 @@ def freja_proofing(user, nin):
 
         # If authentication request went well save user state
         current_app.stats.count(name="freja.authn_request_success")
-        current_app.proofing_statedb.save(proofing_state)
+        current_app.proofing_statedb.save(proofing_state, is_in_database=False)
         current_app.logger.debug("Proofing state {!s} for user {!s} saved".format(proofing_state.state, user))
     # Add the nin used to initiate the proofing state to the user
     # NOOP if the user already have the nin

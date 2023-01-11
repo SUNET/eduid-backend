@@ -3,12 +3,14 @@ from urllib.parse import urlencode
 
 from flask import Blueprint, redirect, request, url_for
 from oic.oic.message import AuthorizationResponse, Claims, ClaimsRequest
+from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.userdb.logs import OrcidProofing
 from eduid.userdb.orcid import OidcAuthorization, OidcIdToken, Orcid
 from eduid.userdb.proofing import OrcidProofingState, ProofingUser
+from eduid.userdb.user import User
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, require_user
-from eduid.webapp.common.api.messages import CommonMsg, TranslatableMsg, redirect_with_msg
+from eduid.webapp.common.api.messages import CommonMsg, FluxData, TranslatableMsg, redirect_with_msg, success_response
 from eduid.webapp.common.api.schemas.csrf import EmptyRequest
 from eduid.webapp.common.api.utils import get_unique_hash, save_and_sync_user
 from eduid.webapp.orcid.app import current_orcid_app as current_app
@@ -22,7 +24,7 @@ orcid_views = Blueprint("orcid", __name__, url_prefix="", template_folder="templ
 
 @orcid_views.route("/authorize", methods=["GET"])
 @require_user
-def authorize(user):
+def authorize(user: User) -> WerkzeugResponse:
     if user.orcid is None:
         proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn)
         if not proofing_state:
@@ -32,7 +34,7 @@ def authorize(user):
             proofing_state = OrcidProofingState(
                 id=None, modified_ts=None, eppn=user.eppn, state=get_unique_hash(), nonce=get_unique_hash()
             )
-            current_app.proofing_statedb.save(proofing_state)
+            current_app.proofing_statedb.save(proofing_state, is_in_database=False)
 
         claims_request = ClaimsRequest(userinfo=Claims(id=None))
         oidc_args = {
@@ -55,7 +57,7 @@ def authorize(user):
 
 @orcid_views.route("/authorization-response", methods=["GET"])
 @require_user
-def authorization_response(user):
+def authorization_response(user: User) -> WerkzeugResponse:
     # Redirect url for user feedback
     redirect_url = current_app.conf.orcid_verify_redirect_url
 
@@ -173,18 +175,18 @@ def authorization_response(user):
 @orcid_views.route("/", methods=["GET"])
 @MarshalWith(OrcidResponseSchema)
 @require_user
-def get_orcid(user):
-    return user.to_dict()
+def get_orcid(user: User) -> FluxData:
+    return success_response(payload=user.to_dict())
 
 
 @orcid_views.route("/remove", methods=["POST"])
 @UnmarshalWith(EmptyRequest)
 @MarshalWith(OrcidResponseSchema)
 @require_user
-def remove_orcid(user):
+def remove_orcid(user: User) -> FluxData:
     current_app.logger.info("Removing ORCID data for user")
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
     proofing_user.orcid = None
     save_and_sync_user(proofing_user)
     current_app.logger.info("ORCID data removed for user")
-    return proofing_user.to_dict()
+    return success_response(payload=proofing_user.to_dict())

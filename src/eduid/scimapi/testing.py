@@ -41,7 +41,7 @@ class BaseDBTestCase(unittest.TestCase):
         cls.mongodb_instance = MongoTemporaryInstance.get_instance()
         cls.mongo_uri = cls.mongodb_instance.uri
 
-    def _get_config(self) -> dict:
+    def _get_config(self) -> dict[str, Any]:
         config = {
             "debug": True,
             "testing": True,

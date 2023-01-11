@@ -17,9 +17,9 @@ jobs:
       NEO4J_VERSION: 4.0-enterprise
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -46,19 +46,19 @@ jobs:
   typecheck:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Set up Python 3.x
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: 3.x
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements/typecheck_requirements.txt
+          pip install -r requirements/test_requirements.txt
 
       - name: Run mypy to check types
         run: |
           mypy --version
-          make typecheck
+          make MYPY_ARGS="--install-types --non-interactive" typecheck

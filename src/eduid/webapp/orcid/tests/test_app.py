@@ -4,22 +4,21 @@
 import json
 from typing import Any, Dict, Mapping
 
-from mock import patch
+from mock import MagicMock, patch
 
 from eduid.userdb.orcid import OidcAuthorization, OidcIdToken, Orcid
 from eduid.userdb.proofing import ProofingUser
+from eduid.userdb.proofing.state import OrcidProofingState
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.orcid.app import OrcidApp, init_orcid_app
 
 __author__ = "lundberg"
 
 
-class OrcidTests(EduidAPITestCase):
+class OrcidTests(EduidAPITestCase[OrcidApp]):
     """Base TestCase for those tests that need a full environment setup"""
 
-    app: OrcidApp
-
-    def setUp(self, *args, **kwargs):
+    def setUp(self, *args: Any, **kwargs: Any):
         self.test_user_eppn = "hubba-bubba"
         self.oidc_provider_config = {
             "token_endpoint_auth_signing_alg_values_supported": ["RS256"],
@@ -38,7 +37,7 @@ class OrcidTests(EduidAPITestCase):
         }
 
         class MockResponse(object):
-            def __init__(self, status_code, text):
+            def __init__(self, status_code: int, text: str):
                 self.status_code = status_code
                 self.text = text
 
@@ -92,7 +91,12 @@ class OrcidTests(EduidAPITestCase):
     @patch("oic.oic.Client.do_user_info_request")
     @patch("oic.oic.Client.do_access_token_request")
     def mock_authorization_response(
-        self, proofing_state, userinfo, mock_token_request, mock_userinfo_request, mock_auth_response
+        self,
+        proofing_state: OrcidProofingState,
+        userinfo: Dict[str, Any],
+        mock_token_request: MagicMock,
+        mock_userinfo_request: MagicMock,
+        mock_auth_response: MagicMock,
     ):
         mock_auth_response.return_value = {
             "id_token": "id_token",
@@ -132,7 +136,7 @@ class OrcidTests(EduidAPITestCase):
         self.assertTrue(response.location.startswith(self.app.conf.provider_configuration_info["issuer"]))
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_oidc_flow(self, mock_request_user_sync):
+    def test_oidc_flow(self, mock_request_user_sync: MagicMock):
         mock_request_user_sync.side_effect = self.request_user_sync
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
@@ -141,6 +145,7 @@ class OrcidTests(EduidAPITestCase):
 
         # Fake callback from OP
         proofing_state = self.app.proofing_statedb.get_state_by_eppn(self.test_user_eppn)
+        assert proofing_state is not None
         userinfo = {
             "id": "https://sandbox.orcid.org/0000-0000-0000-0000",
             "name": None,
@@ -150,6 +155,7 @@ class OrcidTests(EduidAPITestCase):
         self.mock_authorization_response(proofing_state, userinfo)
 
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
+        assert user.orcid is not None
         self.assertEqual(user.orcid.id, userinfo["id"])
         self.assertEqual(user.orcid.name, userinfo["name"])
         self.assertEqual(user.orcid.given_name, userinfo["given_name"])
@@ -164,15 +170,17 @@ class OrcidTests(EduidAPITestCase):
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             response = browser.get("/")
-        self.assertEqual(response.status_code, 200)
-        response = json.loads(response.data)
-        self.assertEqual(response["type"], "GET_ORCID_SUCCESS")
-        self.assertEqual(response["payload"]["orcid"]["id"], self.orcid_element.id)
-        self.assertEqual(response["payload"]["orcid"]["given_name"], self.orcid_element.given_name)
-        self.assertEqual(response["payload"]["orcid"]["family_name"], self.orcid_element.family_name)
+        expected_payload = {
+            "orcid": {
+                "id": self.orcid_element.id,
+                "given_name": self.orcid_element.given_name,
+                "family_name": self.orcid_element.family_name,
+            }
+        }
+        self._check_success_response(response, type_="GET_ORCID_SUCCESS", payload=expected_payload)
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_remove_orcid(self, mock_request_user_sync):
+    def test_remove_orcid(self, mock_request_user_sync: MagicMock):
         mock_request_user_sync.side_effect = self.request_user_sync
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
@@ -182,18 +190,14 @@ class OrcidTests(EduidAPITestCase):
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             response = browser.get("/")
-        self.assertEqual(response.status_code, 200)
-        response = json.loads(response.data)
-        self.assertEqual(response["type"], "GET_ORCID_SUCCESS")
+        self._check_success_response(response, type_="GET_ORCID_SUCCESS")
 
-        csrf_token = response["payload"]["csrf_token"]
+        csrf_token = self.get_response_payload(response)["csrf_token"]
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             response = browser.post(
                 "/remove", data=json.dumps({"csrf_token": csrf_token}), content_type=self.content_type_json
             )
-        self.assertEqual(response.status_code, 200)
-        response = json.loads(response.data)
-        self.assertEqual(response["type"], "POST_ORCID_REMOVE_SUCCESS")
+        self._check_success_response(response, type_="POST_ORCID_REMOVE_SUCCESS")
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         self.assertEqual(user.orcid, None)

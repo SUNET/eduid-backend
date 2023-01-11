@@ -1,25 +1,59 @@
 import copy
 import logging
-from typing import Any, Dict, List, Mapping, Optional, Union
+from dataclasses import dataclass
+from datetime import datetime
+from enum import Enum
+from typing import TYPE_CHECKING, Any, Dict, List, Mapping, NewType, Optional, TypeVar, Union
 
 import pymongo
+import pymongo.collection
+import pymongo.cursor
+import pymongo.errors
 from bson import ObjectId
+from pymongo.database import Database
 from pymongo.errors import PyMongoError
 from pymongo.uri_parser import parse_uri
 
-from eduid.userdb.exceptions import EduIDUserDBError, MongoConnectionError, MultipleDocumentsReturned
+from eduid.userdb.exceptions import DocumentOutOfSync, EduIDUserDBError, MongoConnectionError, MultipleDocumentsReturned
+from eduid.userdb.meta import Meta
+from eduid.userdb.util import format_dict_for_debug, utc_now
+
+logger = logging.getLogger(__name__)
+extra_logger = logger.getChild("extra_debug")
+
+if TYPE_CHECKING:
+    from motor import motor_asyncio
+
+TUserDbDocument = NewType("TUserDbDocument", dict[str, Any])
+
+TMongoClient = TypeVar(
+    "TMongoClient",
+    pymongo.MongoClient[TUserDbDocument],
+    "motor_asyncio.AsyncIOMotorClient",
+)
+
+
+class DatabaseDriver(Enum):
+    CLASSIC = "classic"
+    ASYNCIO = "asyncio"
 
 
 class MongoDB(object):
     """Simple wrapper to get pymongo real objects from the settings uri"""
 
-    def __init__(self, db_uri, db_name=None, connection_factory=None, **kwargs):
+    def __init__(
+        self,
+        db_uri: str,
+        db_name: Optional[str] = None,
+        driver: Optional[DatabaseDriver] = None,
+        **kwargs: Any,
+    ):
         if db_uri is None:
             raise ValueError("db_uri not supplied")
 
-        self._db_uri = db_uri
-        self._database_name = db_name
-        self._sanitized_uri = None
+        self._db_uri: str = db_uri
+        self._database_name: Optional[str] = db_name
+        self._sanitized_uri: Optional[str] = None
 
         self._parsed_uri = parse_uri(db_uri)
 
@@ -30,14 +64,8 @@ class MongoDB(object):
             del kwargs["replicaSet"]
 
         _options = self._parsed_uri.get("options")
-        if connection_factory is None:
-            connection_factory = pymongo.MongoClient
-        elif connection_factory.__class__.__name__ == "AsyncIOMotorClient":
-            from motor import motor_asyncio
-
-            connection_factory = motor_asyncio.AsyncIOMotorClient
-
         assert _options is not None  # please mypy
+
         if "replicaSet" in _options and _options["replicaSet"] is not None:
             kwargs["replicaSet"] = _options["replicaSet"]
 
@@ -50,13 +78,20 @@ class MongoDB(object):
         self._db_uri = _format_mongodb_uri(self._parsed_uri)
 
         try:
-            self._connection = connection_factory(
+            db_args = dict(
                 host=self._db_uri,
                 tz_aware=True,
                 # TODO: switch uuidRepresentation to "standard" when we made sure all UUIDs are stored as strings
                 uuidRepresentation="pythonLegacy",
                 **kwargs,
             )
+            self._client: pymongo.MongoClient[TUserDbDocument]
+            if driver is None or driver == DatabaseDriver.CLASSIC:
+                self._client = pymongo.MongoClient[TUserDbDocument](**db_args)
+            else:
+                from motor import motor_asyncio
+
+                self._client = motor_asyncio.AsyncIOMotorClient(**db_args)
         except PyMongoError as e:
             raise MongoConnectionError("Error connecting to mongodb {!r}: {}".format(self, e))
 
@@ -68,7 +103,7 @@ class MongoDB(object):
     __str__ = __repr__
 
     @property
-    def sanitized_uri(self):
+    def sanitized_uri(self) -> str:
         """
         Return the database URI we're using in a format sensible for logging etc.
 
@@ -82,14 +117,14 @@ class MongoDB(object):
             self._sanitized_uri = _format_mongodb_uri(_parsed)
         return self._sanitized_uri
 
-    def get_connection(self):
+    def get_connection(self) -> pymongo.MongoClient[TUserDbDocument]:
         """
         Get the raw pymongo connection object.
         :return: Pymongo connection object
         """
-        return self._connection
+        return self._client
 
-    def get_database(self, database_name: Optional[str] = None):
+    def get_database(self, database_name: Optional[str] = None) -> Database[TUserDbDocument]:
         """
         Get a pymongo database handle.
 
@@ -100,9 +135,11 @@ class MongoDB(object):
             database_name = self._database_name
         if database_name is None:
             raise ValueError("No database_name supplied, and no default provided to __init__")
-        return self._connection[database_name]
+        return self._client[database_name]
 
-    def get_collection(self, collection, database_name=None):
+    def get_collection(
+        self, collection: str, database_name: Optional[str] = None
+    ) -> pymongo.collection.Collection[TUserDbDocument]:
         """
         Get a pymongo collection handle.
 
@@ -141,11 +178,11 @@ class MongoDB(object):
             self.get_connection().admin.command("ismaster")
             return True
         except pymongo.errors.ConnectionFailure as e:
-            logging.error("{} not healthy: {}".format(self, e))
+            logger.error("{} not healthy: {}".format(self, e))
             return False
 
     def close(self):
-        self._connection.close()
+        self._client.close()
 
 
 def _format_mongodb_uri(parsed_uri: Mapping[str, Any]) -> str:
@@ -160,7 +197,7 @@ def _format_mongodb_uri(parsed_uri: Mapping[str, Any]) -> str:
     if parsed_uri.get("username") and parsed_uri.get("password"):
         user_pass = "{username!s}:{password!s}@".format(**parsed_uri)
 
-    _nodes = []
+    _nodes: list[str] = []
     for host, port in parsed_uri.get("nodelist", []):
         if ":" in host and not host.endswith("]"):
             # IPv6 address without brackets
@@ -171,7 +208,7 @@ def _format_mongodb_uri(parsed_uri: Mapping[str, Any]) -> str:
             _nodes.append("{!s}:{!s}".format(host, port))
     nodelist = ",".join(_nodes)
 
-    _opt_list = []
+    _opt_list: list[str] = []
     for key, value in parsed_uri.get("options", {}).items():
         if isinstance(value, bool):
             value = str(value).lower()
@@ -193,14 +230,40 @@ def _format_mongodb_uri(parsed_uri: Mapping[str, Any]) -> str:
     return res
 
 
+@dataclass
+class SaveResult:
+    """
+    Result of a save operation.
+
+    :param inserted: Number of inserted documents
+    :param updated: Number of updated documents
+    :param doc_id: The _id of the inserted/updated document
+    """
+
+    ts: datetime
+    inserted: int = 0
+    updated: int = 0
+    doc_id: Optional[ObjectId] = None
+
+    def __bool__(self):
+        return bool(self.inserted or self.updated)
+
+
 class BaseDB(object):
     """Base class for common db operations"""
 
-    def __init__(self, db_uri: str, db_name: str, collection: str, safe_writes: bool = False):
+    def __init__(
+        self,
+        db_uri: str,
+        db_name: str,
+        collection: str,
+        safe_writes: bool = False,
+        driver: Optional[DatabaseDriver] = None,
+    ):
 
         self._db_uri = db_uri
         self._coll_name = collection
-        self._db = MongoDB(db_uri, db_name=db_name)
+        self._db = MongoDB(db_uri, db_name=db_name, driver=driver)
         self._coll = self._db.get_collection(collection)
         if safe_writes:
             self._coll = self._coll.with_options(write_concern=pymongo.WriteConcern(w="majority"))
@@ -215,10 +278,10 @@ class BaseDB(object):
         Drop the whole collection. Should ONLY be used in testing, obviously.
         :return:
         """
-        logging.warning("{!s} Dropping collection {!r}".format(self, self._coll_name))
+        logger.warning("{!s} Dropping collection {!r}".format(self, self._coll_name))
         return self._coll.drop()
 
-    def _get_all_docs(self) -> List[Dict[str, Any]]:
+    def _get_all_docs(self) -> pymongo.cursor.Cursor[TUserDbDocument]:
         """
         Return all the user documents in the database.
 
@@ -228,7 +291,7 @@ class BaseDB(object):
         """
         return self._coll.find({})
 
-    def _get_document_by_attr(self, attr: str, value: str) -> Optional[Dict[str, Any]]:
+    def _get_document_by_attr(self, attr: str, value: Any) -> Optional[TUserDbDocument]:
         """
         Return the document in the MongoDB matching field=value
 
@@ -247,7 +310,7 @@ class BaseDB(object):
             raise MultipleDocumentsReturned(f"Multiple matching documents for {attr}={repr(value)}")
         return docs[0]
 
-    def _get_documents_by_attr(self, attr: str, value: str) -> List[Dict[str, Any]]:
+    def _get_documents_by_attr(self, attr: str, value: str) -> List[TUserDbDocument]:
         """
         Return the document in the MongoDB matching field=value
 
@@ -263,8 +326,8 @@ class BaseDB(object):
         return docs
 
     def _get_documents_by_aggregate(
-        self, match: Dict[str, Any], sort: Optional[Dict[str, Any]] = None, limit: Optional[int] = None
-    ) -> List[Dict[str, Any]]:
+        self, match: Mapping[str, Any], sort: Optional[Mapping[str, Any]] = None, limit: Optional[int] = None
+    ) -> List[TUserDbDocument]:
 
         pipeline: List[Dict[str, Any]] = [{"$match": match}]
 
@@ -279,10 +342,10 @@ class BaseDB(object):
     def _get_documents_by_filter(
         self,
         spec: Mapping[str, Any],
-        fields: Optional[dict] = None,
+        fields: Optional[Mapping[str, Any]] = None,
         skip: Optional[int] = None,
         limit: Optional[int] = None,
-    ) -> List[Mapping]:
+    ) -> List[TUserDbDocument]:
         """
         Locate documents in the db using a custom search filter.
 
@@ -314,22 +377,29 @@ class BaseDB(object):
 
         :return: Document count
         """
-        args: Dict[str, Any] = {"filter": {}}
+        _filter: Mapping[str, Any] = {}
         if spec:
-            args["filter"] = spec
+            _filter = spec
+
+        args: Dict[str, Any] = {}
         if limit:
             args["limit"] = limit
-        return self._coll.count_documents(**args)
+        return self._coll.count_documents(filter=_filter, **args)
 
-    def remove_document(self, spec_or_id: Union[dict, ObjectId]) -> bool:
+    def remove_document(self, spec_or_id: Union[Mapping[str, Any], ObjectId]) -> bool:
         """
         Remove a document in the db given the _id or dict spec.
 
         :param spec_or_id: spec or document id (_id)
         """
+        _filter: Mapping[str, Any] = {}
         if isinstance(spec_or_id, ObjectId):
-            spec_or_id = {"_id": spec_or_id}
-        result = self._coll.delete_one(spec_or_id)
+            _filter = {"_id": spec_or_id}
+        else:
+            _filter = spec_or_id
+        if not _filter:
+            raise RuntimeError("Refusing to remove documents without a spec_or_id")
+        result = self._coll.delete_one(filter=_filter)
         return result.acknowledged
 
     def is_healthy(self) -> bool:
@@ -338,7 +408,7 @@ class BaseDB(object):
         """
         return self._db.is_healthy()
 
-    def setup_indexes(self, indexes: Dict[str, Any]):
+    def setup_indexes(self, indexes: Mapping[str, Any]) -> None:
         """
         To update an index add a new item in indexes and remove the previous version.
         """
@@ -363,8 +433,105 @@ class BaseDB(object):
         if "_id" in doc:
             self._coll.replace_one({"_id": doc["_id"]}, doc, upsert=True)
             return doc["_id"]
-        res = self._coll.insert_one(doc)
+        res = self._coll.insert_one(doc)  # type: ignore
         return res.inserted_id
 
-    def close(self):
+    def _save(
+        self,
+        data: TUserDbDocument,
+        spec: Mapping[str, Any],
+        is_in_database: bool,
+        meta: Optional[Meta] = None,
+    ) -> SaveResult:
+        """
+        Save a document in the db.
+
+        BaseDB works with documents, not with userdb objects. This becomes a bit messy since
+        this code updates the document and the calling code has to update the userdb object.
+
+        TODO: 1. Add Meta to all objects. This removes the need for is_in_database.
+              2. Remove modified_ts from the root of the document.
+        """
+        previous_version = None
+        previous_ts = data.get("modified_ts")
+        now = utc_now()
+
+        if meta is not None:
+            previous_version = meta.version
+            is_in_database = meta.is_in_database
+            # Update meta
+            meta.new_version()
+            meta.modified_ts = now
+            data["meta"] = meta.dict()
+
+            logger.debug(f"{self} Saving document (version {previous_version} -> {meta.version})")
+        else:
+            logger.debug(f"{self} Saving document without meta (modified_ts {previous_ts} -> {now.isoformat()})")
+
+        extra_logger.debug(f"{self} Extra debug: Full document:\n {format_dict_for_debug(data)}")
+
+        data["modified_ts"] = now  # update modified_ts (old) to current time
+
+        if not is_in_database:
+            # This is a new document, insert it
+            if meta is not None:
+                logger.debug(f"{self} Inserting new document with version {meta.version}")
+            else:
+                logger.debug(f"{self} Inserting new document without meta  (modified_ts {now})")
+            try:
+                insert_result = self._coll.insert_one(data)
+            except pymongo.errors.DuplicateKeyError:
+                # Log failure and raise DocumentOutOfSync exception
+                db_doc = self._get_and_format_existing_doc_for_logging(spec)
+                logger.error(
+                    f"{self} FAILED inserting new document.\nLoad with spec:\n{format_dict_for_debug(spec)}\n"
+                    f"In database:\n{db_doc}\n)"
+                )
+                raise
+
+            save_result = SaveResult(inserted=1, doc_id=insert_result.inserted_id, ts=now)
+            logger.debug(f"{self} Inserted new document into {self._coll_name}): {save_result})")
+            if meta is not None:
+                meta.is_in_database = True
+            return save_result
+
+        #
+        # Update an existing document
+        #
+        replace_spec = dict(spec)
+        if previous_ts is not None:
+            replace_spec["modified_ts"] = previous_ts
+        if previous_version is not None:
+            replace_spec["meta.version"] = previous_version
+
+        extra_logger.debug(f"{self} Extra debug: replacing document using spec:\n{format_dict_for_debug(replace_spec)}")
+
+        update_result = self._coll.replace_one(replace_spec, data)
+        save_result = SaveResult(updated=update_result.modified_count, doc_id=data["_id"], ts=now)
+
+        if update_result.matched_count == 0:
+            # Log failure and raise DocumentOutOfSync exception
+            db_doc = self._get_and_format_existing_doc_for_logging(spec)
+            logger.error(
+                f"{self} FAILED updating document\n{format_dict_for_debug(replace_spec)}\n"
+                f"with is_in_database={is_in_database}\nLoad with spec\n{format_dict_for_debug(spec)}\n"
+                f"In database:\n{db_doc}\n): {save_result}"
+            )
+
+            raise DocumentOutOfSync("Stale document can't be saved")
+
+        logger.debug(f"{self} Updated document {replace_spec} (ts {now.isoformat()}): {save_result}")
+        return save_result
+
+    def _get_and_format_existing_doc_for_logging(self, spec: Mapping[str, Any]) -> Optional[str]:
+        db_doc = {}
+        db_state = self._coll.find_one(spec)
+        if not db_state:
+            return "No document found"
+
+        db_doc["modified_ts"] = db_state.get("modified_ts")
+        db_doc["meta"] = db_state.get("meta")
+        return format_dict_for_debug(db_doc)
+
+    def close(self) -> None:
         self._db.close()

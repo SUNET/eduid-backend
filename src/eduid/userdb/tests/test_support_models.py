@@ -1,38 +1,29 @@
 from unittest import TestCase
 
-from eduid.userdb.fixtures.users import (
-    new_completed_signup_user_example,
-    new_signup_user_example,
-    new_user_example,
-    old_user_example,
-)
+from eduid.userdb.fixtures.users import UserFixtures
 from eduid.userdb.support import models
 
 
 class TestSupportUsers(TestCase):
-    def test_old_support_user(self):
-        user = models.SupportUserFilter(old_user_example.to_dict())
-        self.assertNotIn("_id", user)
-        self.assertNotIn("letter_proofing_data", user)
-        for password in user["passwords"]:
-            self.assertNotIn("salt", password)
+    def setUp(self):
+        self.users = UserFixtures()
 
     def test_support_user(self):
-        user = models.SupportUserFilter(new_user_example.to_dict())
+        user = models.SupportUserFilter(self.users.new_user_example.to_dict())
         self.assertNotIn("_id", user)
         self.assertNotIn("letter_proofing_data", user)
         for password in user["passwords"]:
             self.assertNotIn("salt", password)
 
     def test_support_signup_user(self):
-        user = models.SupportSignupUserFilter(new_signup_user_example.to_dict())
+        user = models.SupportSignupUserFilter(self.users.new_signup_user_example.to_dict())
         self.assertNotIn("_id", user)
         self.assertNotIn("letter_proofing_data", user)
         for password in user["passwords"]:
             self.assertNotIn("salt", password)
 
     def test_support_completed_signup_user(self):
-        user = models.SupportSignupUserFilter(new_completed_signup_user_example.to_dict())
+        user = models.SupportSignupUserFilter(self.users.new_completed_signup_user_example.to_dict())
         self.assertNotIn("_id", user)
         self.assertNotIn("letter_proofing_data", user)
 

@@ -53,9 +53,7 @@ class QueueWorker(ABC):
 
     async def run(self):
         # Init db in the correct loop
-        self.db = AsyncQueueDB(
-            db_uri=self.config.mongo_uri, collection=self.config.mongo_collection, connection_factory=AsyncIOMotorClient
-        )
+        self.db = AsyncQueueDB(db_uri=self.config.mongo_uri, collection=self.config.mongo_collection)
         # Register payloads to handle
         for payload in self.payloads:
             self.db.register_handler(payload)
@@ -118,7 +116,7 @@ class QueueWorker(ABC):
             except Exception as e:
                 logger.exception(f"QueueItem processing failed with: {repr(e)}")
 
-    async def handle_change(self, change: ChangeEvent):
+    async def handle_change(self, change: ChangeEvent) -> None:
         """
         Dispatch item for processing depending on change operation
         """
@@ -127,7 +125,7 @@ class QueueWorker(ABC):
         else:
             logger.debug(f"{change.operation_type.value}: {change}")
 
-    async def watch_collection(self):
+    async def watch_collection(self) -> None:
         change_stream = None
         tasks: Set[Task] = set()
         try:
@@ -151,7 +149,7 @@ class QueueWorker(ABC):
                 logger.info("Cleaning up watch_collection task...")
                 await asyncio.gather(*tasks)
 
-    async def periodic_collection_check(self):
+    async def periodic_collection_check(self) -> None:
         tasks: Set[Task] = set()
         try:
             while True:

@@ -44,10 +44,9 @@ class TestIdPNamespace(EduidAPITestCase):
         session._serialize_namespaces()
         out = session._session.to_dict()
 
-        now = utc_now()
-        assert normalised_data(out, replace_datetime=now) == {
+        assert normalised_data(out, replace_datetime="now") == {
             "signup": {
-                "ts": now,
+                "ts": "now",
                 "user_created": False,
                 "email": {"completed": False, "verification_code": "test", "bad_attempts": 0},
                 "invite": {"initiated_signup": False, "completed": False},
@@ -55,7 +54,7 @@ class TestIdPNamespace(EduidAPITestCase):
                 "captcha": {"bad_attempts": 0, "completed": False},
                 "credentials": {"completed": False},
             },
-            "idp": {"ts": now, "sso_cookie_val": "abc", "pending_requests": {}},
+            "idp": {"ts": "now", "sso_cookie_val": "abc", "pending_requests": {}},
         }
 
         session.persist()

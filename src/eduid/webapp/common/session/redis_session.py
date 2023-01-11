@@ -232,7 +232,7 @@ class RedisEncryptedSession(collections.abc.MutableMapping):
 
         self.secret_box = nacl.secret.SecretBox(encryption_key)
 
-        self._data: dict = {}
+        self._data: dict[str, Any] = {}
 
     def __str__(self):
         # Include hex(id(self)) for now to troubleshoot clobbered sessions
@@ -356,5 +356,5 @@ class RedisEncryptedSession(collections.abc.MutableMapping):
         """
         self.conn.expire(self.db_key, self.ttl)
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         return dict(self._data)
