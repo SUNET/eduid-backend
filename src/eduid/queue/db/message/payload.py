@@ -29,7 +29,7 @@
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Mapping
+from collections.abc import Mapping
 
 from eduid.queue.db import Payload
 

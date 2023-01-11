@@ -1,7 +1,8 @@
 from dataclasses import asdict
 from datetime import datetime, timedelta
 from os import environ
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Optional, Tuple
+from collections.abc import Sequence
 
 from fastapi import Request, Response
 from pymongo.errors import DuplicateKeyError
@@ -148,7 +149,7 @@ def send_invite_mail(req: ContextRequest, signup_invite: SignupInvite):
     return True
 
 
-def invites_to_resources_dicts(query: SearchRequest, invites: Sequence[ScimApiInvite]) -> List[Dict[str, Any]]:
+def invites_to_resources_dicts(query: SearchRequest, invites: Sequence[ScimApiInvite]) -> list[dict[str, Any]]:
     _attributes = query.attributes
     # TODO: include the requested attributes, not just id
     return [{"id": str(invite.scim_id)} for invite in invites]
@@ -180,7 +181,7 @@ def save_invite(
 
 def filter_lastmodified(
     req: ContextRequest, filter: SearchFilter, skip: Optional[int] = None, limit: Optional[int] = None
-) -> Tuple[List[ScimApiInvite], int]:
+) -> tuple[list[ScimApiInvite], int]:
     if filter.op not in ["gt", "ge"]:
         raise BadRequest(scim_type="invalidFilter", detail="Unsupported operator")
     if not isinstance(filter.val, str):

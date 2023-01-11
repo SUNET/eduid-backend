@@ -7,7 +7,7 @@ from eduid.common.config.workers import WorkerConfig
 TWorkerConfigSubclass = TypeVar("TWorkerConfigSubclass", bound=WorkerConfig)
 
 
-def get_worker_config(name: str, config_class: Type[TWorkerConfigSubclass]) -> TWorkerConfigSubclass:
+def get_worker_config(name: str, config_class: type[TWorkerConfigSubclass]) -> TWorkerConfigSubclass:
     """
     Load configuration for a worker.
 

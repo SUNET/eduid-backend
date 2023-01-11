@@ -79,19 +79,19 @@ def create_authn_request(
     authn_ref: AuthnRequestRef,
     framework: TrustFramework,
     selected_idp: str,
-    required_loa: List[str],
+    required_loa: list[str],
     force_authn: bool = False,
 ) -> AuthnRequest:
 
     if framework not in [TrustFramework.SWECONN, TrustFramework.EIDAS]:
         raise ValueError(f"Unrecognised trust framework: {framework}")
 
-    kwargs: Dict[str, Any] = {
+    kwargs: dict[str, Any] = {
         "force_authn": str(force_authn).lower(),
     }
 
     # LOA
-    logger.debug("Requesting AuthnContext {}".format(required_loa))
+    logger.debug(f"Requesting AuthnContext {required_loa}")
     loa_uris = [current_app.conf.authentication_context_map[loa] for loa in required_loa]
     kwargs["requested_authn_context"] = {"authn_context_class_ref": loa_uris, "comparison": "exact"}
 
@@ -114,7 +114,7 @@ def create_authn_request(
     return info
 
 
-def is_required_loa(session_info: SessionInfo, required_loa: List[str]) -> bool:
+def is_required_loa(session_info: SessionInfo, required_loa: list[str]) -> bool:
     parsed_session_info = BaseSessionInfo(**session_info)
     if not required_loa:
         logger.debug(f"No LOA required, allowing {parsed_session_info.authn_context}")

@@ -13,7 +13,7 @@ revoke_creds_router = APIRouter()
 
 
 class RevokeCredsRequestV1(BaseModel):
-    factors: List[RevokeFactor]
+    factors: list[RevokeFactor]
     user_id: str
     version: int
 
@@ -54,7 +54,7 @@ async def revoke_creds(req: Request, request: RevokeCredsRequestV1) -> RevokeCre
     _config = req.app.state.config
     assert isinstance(_config, VCCSConfig)
 
-    results: List[bool] = []
+    results: list[bool] = []
     for factor in request.factors:
         this_result = False
         cred = req.app.state.credstore.get_credential(factor.credential_id)

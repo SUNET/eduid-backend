@@ -29,7 +29,8 @@
 from abc import ABC
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from typing import Any, Mapping, Type, TypeVar
+from typing import Any, Type, TypeVar
+from collections.abc import Mapping
 
 __author__ = "lundberg"
 
@@ -42,7 +43,7 @@ class Payload(ABC):
         return asdict(self)
 
     @classmethod
-    def from_dict(cls: Type[TPayload], data: Mapping[str, Any]) -> TPayload:
+    def from_dict(cls: type[TPayload], data: Mapping[str, Any]) -> TPayload:
         raise NotImplementedError()
 
     @classmethod

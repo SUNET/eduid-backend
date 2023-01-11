@@ -1,4 +1,3 @@
-#  -*- encoding: utf-8 -*-
 #
 # Copyright (c) 2020 SUNET
 # All rights reserved.
@@ -30,7 +29,8 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-from typing import Any, Dict, Mapping
+from typing import Any, Dict
+from collections.abc import Mapping
 
 from flask import Blueprint, abort, current_app, request
 
@@ -73,7 +73,7 @@ class BackdoorTestApp(EduIDBaseApp):
 
 
 class BackdoorTests(EduidAPITestCase[BackdoorTestApp]):
-    def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
+    def update_config(self, config: dict[str, Any]) -> dict[str, Any]:
         """
         Called from the parent class, so that we can update the configuration
         according to the needs of this test case.

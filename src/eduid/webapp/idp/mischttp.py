@@ -17,7 +17,8 @@ from __future__ import annotations
 import logging
 import pprint
 from dataclasses import dataclass
-from typing import Any, Dict, Mapping, Optional, Sequence, Tuple, Type
+from typing import Any, Dict, Optional, Tuple, Type
+from collections.abc import Mapping, Sequence
 
 import user_agents
 from bleach import clean
@@ -40,11 +41,11 @@ class HttpArgs:
 
     method: str
     url: str
-    headers: Sequence[Tuple[str, str]]
+    headers: Sequence[tuple[str, str]]
     body: Optional[str]
 
     @classmethod
-    def from_pysaml2_dict(cls: Type[HttpArgs], http_args: Dict[str, Any]) -> HttpArgs:
+    def from_pysaml2_dict(cls: type[HttpArgs], http_args: dict[str, Any]) -> HttpArgs:
         # Parse the parts of http_args we know how to parse, and then warn about any remains.
         if "status" in http_args and http_args["status"] != 200:
             logger.warning(f'Ignoring status in http_args: {http_args["status"]}')
@@ -112,7 +113,7 @@ def create_html_response(binding: str, http_args: HttpArgs) -> WerkzeugResponse:
     return response
 
 
-def get_post() -> Dict[str, Any]:
+def get_post() -> dict[str, Any]:
     """
     Return the parsed query string equivalent from a HTML POST request.
 
@@ -123,7 +124,7 @@ def get_post() -> Dict[str, Any]:
     return _sanitise_items(request.form)
 
 
-def _sanitise_items(data: Mapping[str, Any]) -> Dict[str, str]:
+def _sanitise_items(data: Mapping[str, Any]) -> dict[str, str]:
     res = dict()
     san = Sanitizer()
     for k, v in data.items():
@@ -179,7 +180,7 @@ def set_sso_cookie(sso_cookie: CookieConfig, value: str, response: WerkzeugRespo
     return response
 
 
-def parse_query_string() -> Dict[str, str]:
+def parse_query_string() -> dict[str, str]:
     """
     Parse HTML request query string into a dict like
 
@@ -201,7 +202,7 @@ def parse_query_string() -> Dict[str, str]:
     return res
 
 
-def get_default_template_arguments(config: IdPConfig) -> Dict[str, str]:
+def get_default_template_arguments(config: IdPConfig) -> dict[str, str]:
     """
     :return: header links
     """

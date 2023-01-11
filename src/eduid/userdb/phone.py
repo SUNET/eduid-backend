@@ -53,7 +53,7 @@ class PhoneNumber(PrimaryElement):
         return ElementKey(self.number)
 
     @classmethod
-    def _from_dict_transform(cls: Type[PhoneNumber], data: Dict[str, Any]) -> Dict[str, Any]:
+    def _from_dict_transform(cls: type[PhoneNumber], data: dict[str, Any]) -> dict[str, Any]:
         """
         Transform data received in eduid format into pythonic format.
         """
@@ -81,5 +81,5 @@ class PhoneNumberList(PrimaryElementList[PhoneNumber]):
     """
 
     @classmethod
-    def from_list_of_dicts(cls: Type[PhoneNumberList], items: List[Dict[str, Any]]) -> PhoneNumberList:
+    def from_list_of_dicts(cls: type[PhoneNumberList], items: list[dict[str, Any]]) -> PhoneNumberList:
         return cls(elements=[PhoneNumber.from_dict(this) for this in items])

@@ -1,8 +1,9 @@
 import unittest
-from typing import Any, Dict, List, Mapping
+from typing import Any, Dict, List
+from collections.abc import Mapping
 
 import pytest
-from mock import MagicMock, Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 from eduid.common.config.base import CeleryConfig, MsgConfigMixin
 from eduid.common.config.workers import MsgConfig
@@ -23,8 +24,8 @@ class MsgRelayTests(unittest.TestCase):
         self.message_sender = MessageSender()
 
     @staticmethod
-    def _fix_relations_to(relative_nin: str, relations: Mapping[str, Any]) -> List[Dict[str, Any]]:
-        result: List[Dict[str, Any]] = []
+    def _fix_relations_to(relative_nin: str, relations: Mapping[str, Any]) -> list[dict[str, Any]]:
+        result: list[dict[str, Any]] = []
         for d in relations["Relations"]["Relation"]:
             if d.get("RelationId", {}).get("NationalIdentityNumber") == relative_nin:
                 if "RelationType" in d:

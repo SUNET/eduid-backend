@@ -4,7 +4,8 @@ import logging
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Mapping, Optional, Type
+from typing import Any, Dict, List, Optional, Type
+from collections.abc import Mapping
 from uuid import UUID
 
 from bson import ObjectId
@@ -25,14 +26,14 @@ class ScimApiEventResource:
     version: ObjectId
     last_modified: datetime
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         data = asdict(self)
         data["scim_id"] = str(self.scim_id)
         data["resource_type"] = self.resource_type.value
         return data
 
     @classmethod
-    def from_dict(cls: Type[ScimApiEventResource], data: Mapping[str, Any]) -> ScimApiEventResource:
+    def from_dict(cls: type[ScimApiEventResource], data: Mapping[str, Any]) -> ScimApiEventResource:
         _data = dict(data)
         _data["resource_type"] = SCIMResourceType(_data["resource_type"])
         _data["scim_id"] = UUID(_data["scim_id"])
@@ -57,7 +58,7 @@ class _ScimApiEventRequired:
     resource: ScimApiEventResource
     level: EventLevel
     source: str
-    data: Dict[str, Any]
+    data: dict[str, Any]
     expires_at: datetime
     timestamp: datetime
 
@@ -75,7 +76,7 @@ class ScimApiEvent(ScimApiResourceBase, _ScimApiEventRequired):
         return TUserDbDocument(data)
 
     @classmethod
-    def from_dict(cls: Type[ScimApiEvent], data: Mapping[str, Any]) -> ScimApiEvent:
+    def from_dict(cls: type[ScimApiEvent], data: Mapping[str, Any]) -> ScimApiEvent:
         _data = dict(data)
         if "_id" in _data:
             _data["db_id"] = _data.pop("_id")
@@ -111,7 +112,7 @@ class ScimApiEventDB(ScimApiBaseDB):
 
     def get_events_by_resource(
         self, resource_type: SCIMResourceType, scim_id: Optional[UUID] = None, external_id: Optional[str] = None
-    ) -> List[ScimApiEvent]:
+    ) -> list[ScimApiEvent]:
         filter = {
             "resource.resource_type": resource_type.value,
         }

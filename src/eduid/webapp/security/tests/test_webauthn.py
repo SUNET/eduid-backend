@@ -1,9 +1,10 @@
 import base64
 import json
-from typing import Any, Dict, Mapping, Optional
+from typing import Any, Dict, Optional
+from collections.abc import Mapping
 
 from fido2.webauthn import AttestationObject, AuthenticatorAttachment, CollectedClientData
-from mock import patch
+from unittest.mock import patch
 from werkzeug.http import dump_cookie
 
 from eduid.common.config.base import EduidEnvironment
@@ -108,7 +109,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
         """
         return security_init_app("testing", config)
 
-    def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
+    def update_config(self, config: dict[str, Any]) -> dict[str, Any]:
         config.update(
             {
                 "available_languages": {"en": "English", "sv": "Svenska"},

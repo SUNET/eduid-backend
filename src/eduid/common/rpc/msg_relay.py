@@ -115,7 +115,7 @@ class Person(NavetModelConfig):
     deregistration_information: DeregistrationInformation = Field(alias="DeregistrationInformation")
     reference_national_identity_number: Optional[str] = Field(default=None, alias="ReferenceNationalIdentityNumber")
     postal_addresses: PostalAddresses = Field(alias="PostalAddresses")
-    relations: List[Relation] = Field(default_factory=list, alias="Relations")
+    relations: list[Relation] = Field(default_factory=list, alias="Relations")
 
     def is_deregistered(self) -> bool:
         return bool(self.deregistration_information.cause_code or self.deregistration_information.date)
@@ -132,7 +132,7 @@ class FullPostalAddress(NavetModelConfig):
     official_address: OfficialAddress = Field(default_factory=OfficialAddress, alias="OfficialAddress")
 
 
-class MsgRelay(object):
+class MsgRelay:
     """
     This is the interface to the RPC task to fetch data from NAVET, and to send SMSs.
     """
@@ -219,7 +219,7 @@ class MsgRelay(object):
             logger.exception("Missing data in postal address returned from Navet")
             raise NoAddressFound("Missing data in postal address returned from Navet")
 
-    def get_relations_to(self, nin: str, relative_nin: str, timeout: int = 25) -> List[RelationType]:
+    def get_relations_to(self, nin: str, relative_nin: str, timeout: int = 25) -> list[RelationType]:
         """
         Get a list of the NAVET 'Relations' type codes between a NIN and a relatives NIN.
 

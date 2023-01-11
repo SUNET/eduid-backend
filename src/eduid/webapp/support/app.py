@@ -30,7 +30,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 import operator
-from typing import Any, Mapping, Optional, cast
+from typing import Any, Optional, cast
+from collections.abc import Mapping
 
 from flask import current_app
 from jinja2.exceptions import UndefinedError
@@ -81,7 +82,7 @@ def register_template_funcs(app: SupportApp) -> None:
         for key in operators:
             for item in l:
                 if key not in item:
-                    app.logger.debug("Removed key {} before sorting.".format(key))
+                    app.logger.debug(f"Removed key {key} before sorting.")
                     keys.remove(key)
                     break
         reverse = kwargs.pop("reverse", False)

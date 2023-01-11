@@ -73,7 +73,7 @@ class ACSResult:
 # This is the list of ACS actions loaded. It is populated by decorating functions with the @acs_action.
 # The keys are the AcsAction (subclass) enum values, since get_action() doesn't know which subclass of
 # AcsActions that could be used to turn the string value stored in the session back into an Enum.
-_actions: Dict[str, Callable[[ACSArgs], ACSResult]] = {}
+_actions: dict[str, Callable[[ACSArgs], ACSResult]] = {}
 
 
 class UnregisteredAction(Exception):

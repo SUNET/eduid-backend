@@ -1,4 +1,5 @@
-from typing import Any, Mapping, Optional, cast
+from typing import Any, Optional, cast
+from collections.abc import Mapping
 
 from flask import current_app
 

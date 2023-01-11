@@ -11,7 +11,7 @@ from inspect import isclass
 from eduid.userdb.db import MongoDB
 
 
-class TransactionAudit(object):
+class TransactionAudit:
     enabled = True
     db_uri = None
 

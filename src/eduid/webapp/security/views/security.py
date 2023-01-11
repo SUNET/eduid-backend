@@ -163,7 +163,7 @@ def change_password(user: User):
     # del session['reauthn-for-chpass']
 
     current_app.stats.count(name="security_password_changed", value=1)
-    current_app.logger.info("Changed password for user {}".format(security_user.eppn))
+    current_app.logger.info(f"Changed password for user {security_user.eppn}")
 
     next_url = current_app.conf.dashboard_url
     credentials = {
@@ -195,7 +195,7 @@ def delete_account(user: User):
     params = {"next": next_url}
 
     url_parts = list(urlparse(terminate_url))
-    query: Dict = parse_qs(url_parts[4])
+    query: dict = parse_qs(url_parts[4])
     query.update(params)
 
     url_parts[4] = urlencode(query)
@@ -260,7 +260,7 @@ def account_terminated(user: User):
 @require_user
 def add_nin(user: User, nin: str) -> FluxData:
     current_app.logger.info("Adding NIN to user")
-    current_app.logger.debug("NIN: {}".format(nin))
+    current_app.logger.debug(f"NIN: {nin}")
 
     if user.identities.nin is not None:
         current_app.logger.info("NIN already added.")
@@ -277,7 +277,7 @@ def add_nin(user: User, nin: str) -> FluxData:
         return error_response(message=CommonMsg.temp_problem)
 
     # TODO: remove nins after frontend stops using it
-    nins: List[Dict[str, str | bool]] = []
+    nins: list[dict[str, str | bool]] = []
     if security_user.identities.nin is not None:
         nins.append(security_user.identities.nin.to_old_nin())
 
@@ -294,7 +294,7 @@ def add_nin(user: User, nin: str) -> FluxData:
 def remove_nin(user: User, nin: str) -> FluxData:
     security_user = SecurityUser.from_user(user, current_app.private_userdb)
     current_app.logger.info("Removing NIN from user")
-    current_app.logger.debug("NIN: {}".format(nin))
+    current_app.logger.debug(f"NIN: {nin}")
 
     if user.identities.nin is not None:
         if user.identities.nin.number != nin:

@@ -5,7 +5,7 @@ from collections import OrderedDict
 from typing import Any, Dict
 
 from jose import jws as jose
-from mock import MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 from eduid.userdb import NinIdentity
 from eduid.webapp.common.api.testing import EduidAPITestCase
@@ -54,7 +54,7 @@ class OidcProofingTests(EduidAPITestCase):
             "userinfo_endpoint": "https://example.com/op/userinfo",
         }
 
-        class MockResponse(object):
+        class MockResponse:
             def __init__(self, status_code, text):
                 self.status_code = status_code
                 self.text = text
@@ -72,7 +72,7 @@ class OidcProofingTests(EduidAPITestCase):
             mock_response.return_value = self.oidc_provider_config_response
             return init_oidc_proofing_app("testing", config)
 
-    def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
+    def update_config(self, config: dict[str, Any]) -> dict[str, Any]:
         config.update(
             {
                 "provider_configuration_info": {"issuer": "https://example.com/op/"},
@@ -107,7 +107,7 @@ class OidcProofingTests(EduidAPITestCase):
         mock_userinfo_request.return_value = userinfo
         headers = {"Authorization": "Bearer {}".format(qrdata["token"])}
         return self.browser.get(
-            "/authorization-response?id_token=id_token&state={}".format(proofing_state.state), headers=headers
+            f"/authorization-response?id_token=id_token&state={proofing_state.state}", headers=headers
         )
 
     def test_authenticate(self):

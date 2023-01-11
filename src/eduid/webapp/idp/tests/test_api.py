@@ -31,7 +31,8 @@ import logging
 import re
 from dataclasses import dataclass, field
 from pathlib import PurePath
-from typing import Any, Dict, List, Mapping, Optional
+from typing import Any, Dict, List, Optional
+from collections.abc import Mapping
 
 from bson import ObjectId
 from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
@@ -57,7 +58,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class GenericResult:
-    payload: Dict[str, Any]
+    payload: dict[str, Any]
 
 
 @dataclass
@@ -68,7 +69,7 @@ class NextResult(GenericResult):
 @dataclass
 class PwAuthResult(GenericResult):
     sso_cookie_val: Optional[str] = None
-    cookies: Dict[str, Any] = field(default_factory=dict)
+    cookies: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -86,8 +87,8 @@ class LoginResultAPI:
     response: TestResponse
     ref: Optional[str] = None
     sso_cookie_val: Optional[str] = None
-    visit_count: Dict[str, int] = field(default_factory=dict)
-    visit_order: List[IdPAction] = field(default_factory=list)
+    visit_count: dict[str, int] = field(default_factory=dict)
+    visit_order: list[IdPAction] = field(default_factory=list)
     pwauth_result: Optional[PwAuthResult] = None
     tou_result: Optional[TouResult] = None
     finished_result: Optional[FinishedResultAPI] = None
@@ -119,7 +120,7 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
         """
         return init_idp_app(test_config=config)
 
-    def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
+    def update_config(self, config: dict[str, Any]) -> dict[str, Any]:
         config = super().update_config(config)
         fn = PurePath(__file__).with_name("data") / "test_SSO_conf.py"
         config.update(
@@ -267,7 +268,7 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
         return result
 
     @staticmethod
-    def _extract_form_inputs(res: str) -> Dict[str, Any]:
+    def _extract_form_inputs(res: str) -> dict[str, Any]:
         inputs = {}
         for line in res.split("\n"):
             if "input" in line:

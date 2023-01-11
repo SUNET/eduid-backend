@@ -81,11 +81,11 @@ class CredentialInfo:
     description: Optional[str] = None
 
 
-def compile_credential_list(user: User) -> List[CredentialInfo]:
+def compile_credential_list(user: User) -> list[CredentialInfo]:
     """
     Make a list of a users credentials, with extra information, for returning in API responses.
     """
-    credentials: List[CredentialInfo] = []
+    credentials: list[CredentialInfo] = []
     authn_info = current_app.authninfo_db.get_authn_info(user)
     for cred_key, authn in authn_info.items():
         cred = user.credentials.find(cred_key)

@@ -2,14 +2,15 @@ import base64
 import datetime
 import logging
 import os
-from typing import Any, Dict, List, Mapping, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
+from collections.abc import Mapping
 from unittest import TestCase
 from unittest.mock import MagicMock
 from urllib.parse import parse_qs, quote_plus, urlparse, urlunparse
 from uuid import uuid4
 
 from fido2.webauthn import AuthenticatorAttachment
-from mock import patch
+from unittest.mock import patch
 
 from eduid.common.config.base import EduidEnvironment
 from eduid.common.misc.timeutil import utc_now
@@ -200,7 +201,7 @@ class EidasTests(ProofingTests[EidasApp]):
         """
         return init_eidas_app("testing", config)
 
-    def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
+    def update_config(self, config: dict[str, Any]) -> dict[str, Any]:
         saml_config = os.path.join(HERE, "saml2_settings.py")
         config.update(
             {
@@ -274,7 +275,7 @@ class EidasTests(ProofingTests[EidasApp]):
         asserted_identity: str,
         date_of_birth: Optional[datetime.datetime] = None,
         age: int = 10,
-        credentials_used: Optional[List[ElementKey]] = None,
+        credentials_used: Optional[list[ElementKey]] = None,
     ) -> bytes:
         """
         Generates a fresh signed authentication response
@@ -326,7 +327,7 @@ class EidasTests(ProofingTests[EidasApp]):
         req_id: Optional[str] = None,
         relay_state: AuthnRequestRef = AuthnRequestRef("relay_state"),
         verify_token: Optional[ElementKey] = None,
-        credentials_used: Optional[List[ElementKey]] = None,
+        credentials_used: Optional[list[ElementKey]] = None,
     ) -> None:
         assert isinstance(session, EduidSession)
         if req_id is not None:
@@ -340,7 +341,7 @@ class EidasTests(ProofingTests[EidasApp]):
             self._setup_faked_login(session=session, credentials_used=credentials_used)
 
     def _setup_faked_login(
-        self, session: EduidSession, credentials_used: List[ElementKey], redirect_url: Optional[str] = None
+        self, session: EduidSession, credentials_used: list[ElementKey], redirect_url: Optional[str] = None
     ) -> None:
         logger.debug(f"Test setting credentials used for login in session {session}: {credentials_used}")
         _authn_id = AuthnRequestRef(str(uuid4()))
@@ -355,7 +356,7 @@ class EidasTests(ProofingTests[EidasApp]):
         )
 
     @staticmethod
-    def _get_request_id_from_session(session: EduidSession) -> Tuple[str, AuthnRequestRef]:
+    def _get_request_id_from_session(session: EduidSession) -> tuple[str, AuthnRequestRef]:
         """extract the (probable) SAML request ID from the session"""
         oq_cache = OutstandingQueriesCache(session.eidas.sp.pysaml2_dicts)
         ids = oq_cache.outstanding_queries().keys()
@@ -437,7 +438,7 @@ class EidasTests(ProofingTests[EidasApp]):
         expect_msg: TranslatableMsg,
         age: int = 10,
         browser: Optional[CSRFTestClient] = None,
-        credentials_used: Optional[List[ElementKey]] = None,
+        credentials_used: Optional[list[ElementKey]] = None,
         eppn: Optional[str] = None,
         expect_error: bool = False,
         expect_redirect_url: Optional[str] = None,
@@ -516,7 +517,7 @@ class EidasTests(ProofingTests[EidasApp]):
         expect_msg: TranslatableMsg,
         age: int = 10,
         browser: Optional[CSRFTestClient] = None,
-        credentials_used: Optional[List[ElementKey]] = None,
+        credentials_used: Optional[list[ElementKey]] = None,
         expect_error: bool = False,
         expect_mfa_action_error: Optional[MfaActionError] = None,
         expect_redirect_url: Optional[str] = None,
@@ -729,7 +730,7 @@ class EidasTests(ProofingTests[EidasApp]):
         self._verify_user_parameters(eppn)
 
         with self.session_cookie(self.browser, eppn) as browser:
-            response = browser.get("/verify-token/{}?idp={}".format(credential.key, self.test_idp))
+            response = browser.get(f"/verify-token/{credential.key}?idp={self.test_idp}")
             assert response.status_code == 302
             assert response.location == (
                 "http://test.localhost/reauthn?next="

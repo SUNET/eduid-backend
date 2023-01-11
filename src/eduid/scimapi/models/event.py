@@ -34,7 +34,7 @@ class NutidEventExtensionV1(EduidBaseModel):
 
     resource: NutidEventResource
     level: EventLevel = Field(default=EventLevel.INFO)
-    data: Dict[str, Any] = Field(default_factory=dict)
+    data: dict[str, Any] = Field(default_factory=dict)
     expires_at: Optional[datetime] = Field(default=None, alias="expiresAt")
     timestamp: Optional[datetime] = None
     source: Optional[str] = None

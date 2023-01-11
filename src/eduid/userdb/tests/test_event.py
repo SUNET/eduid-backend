@@ -49,7 +49,7 @@ class SomeEventList(EventList[ToUEvent]):
     """EventList is an ABC, so make a subclass of it just for tests in this module."""
 
     @classmethod
-    def from_list_of_dicts(cls: Type[SomeEventList], items: List[Dict[str, Any]]) -> SomeEventList:
+    def from_list_of_dicts(cls: type[SomeEventList], items: list[dict[str, Any]]) -> SomeEventList:
         return cls(elements=[ToUEvent.from_dict(this) for this in items])
 
 

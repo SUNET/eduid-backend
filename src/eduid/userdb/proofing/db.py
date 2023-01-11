@@ -32,7 +32,8 @@
 import logging
 from abc import ABC
 from operator import itemgetter
-from typing import Any, Dict, Generic, Mapping, Optional, TypeVar
+from typing import Any, Dict, Generic, Optional, TypeVar
+from collections.abc import Mapping
 
 from eduid.userdb.db import BaseDB, SaveResult, TUserDbDocument
 from eduid.userdb.proofing.state import (
@@ -109,7 +110,7 @@ class ProofingStateDB(BaseDB, Generic[ProofingStateVar], ABC):
         """
         if not isinstance(state, ProofingState):
             raise TypeError("State must be a ProofingState subclass")
-        spec: Dict[str, Any] = {"eduPersonPrincipalName": state.eppn}
+        spec: dict[str, Any] = {"eduPersonPrincipalName": state.eppn}
 
         result = self._save(state.to_dict(), spec, is_in_database=is_in_database)
         state.modified_ts = result.ts

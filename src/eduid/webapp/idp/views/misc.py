@@ -120,7 +120,7 @@ def logout(ref: Optional[str], sso_session: Optional[SSOSession]) -> WerkzeugRes
             request=old_saml_req.request, binding=old_saml_req.binding, relay_state=old_saml_req.relay_state
         )
 
-    payload: Dict[str, Any] = {"finished": True}
+    payload: dict[str, Any] = {"finished": True}
     if location:
         payload["location"] = location
 

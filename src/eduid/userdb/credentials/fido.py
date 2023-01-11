@@ -97,7 +97,7 @@ class Webauthn(FidoCredential):
         return ElementKey("sha256:" + _digest)
 
     @classmethod
-    def _from_dict_transform(cls: Type[Webauthn], data: Dict[str, Any]) -> Dict[str, Any]:
+    def _from_dict_transform(cls: type[Webauthn], data: dict[str, Any]) -> dict[str, Any]:
         """
         Transform data from eduid database format into pythonic format.
         """

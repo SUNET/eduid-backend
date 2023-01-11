@@ -44,7 +44,7 @@ class SupportedHTTPMethods(str, Enum):
 class JWK(BaseModel):
     kty: KeyType
     use: Optional[KeyUse]
-    key_opts: Optional[List[KeyOptions]]
+    key_opts: Optional[list[KeyOptions]]
     alg: Optional[str]
     kid: Optional[str]
     x5u: Optional[str]
@@ -81,7 +81,7 @@ class SymmetricJWK(JWK):
 
 
 class JWKS(BaseModel):
-    keys: List[Union[ECJWK, RSAJWK, SymmetricJWK]]
+    keys: list[Union[ECJWK, RSAJWK, SymmetricJWK]]
 
 
 class SupportedJWSType(str, Enum):
@@ -100,7 +100,7 @@ class JOSEHeader(BaseModel):
     x5tS256: Optional[str] = Field(default=None, alias="x5t#S256")
     typ: Optional[str]
     cty: Optional[str]
-    crit: Optional[List]
+    crit: Optional[list]
 
 
 class RegisteredClaims(BaseModel):

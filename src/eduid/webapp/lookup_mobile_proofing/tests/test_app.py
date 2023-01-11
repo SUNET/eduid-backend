@@ -1,8 +1,9 @@
 import json
 from datetime import datetime, timedelta
-from typing import Any, Dict, Mapping, Optional
+from typing import Any, Dict, Optional
+from collections.abc import Mapping
 
-from mock import MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 from eduid.common.config.base import EduidEnvironment
 from eduid.common.rpc.exceptions import LookupMobileTaskFailed
@@ -21,7 +22,7 @@ class LookupMobileProofingTests(EduidAPITestCase[MobileProofingApp]):
         self.test_user_eppn = "hubba-baar"
         self.test_user_nin = "199001023456"
         fifteen_years_ago = datetime.now() - timedelta(days=15 * 365)
-        self.test_user_nin_underage = "{}01023456".format(fifteen_years_ago.year)
+        self.test_user_nin_underage = f"{fifteen_years_ago.year}01023456"
 
         super().setUp(users=["hubba-baar"])
 
@@ -32,7 +33,7 @@ class LookupMobileProofingTests(EduidAPITestCase[MobileProofingApp]):
         """
         return init_lookup_mobile_proofing_app("testing", config)
 
-    def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
+    def update_config(self, config: dict[str, Any]) -> dict[str, Any]:
         config.update(
             {
                 "environment": "dev",

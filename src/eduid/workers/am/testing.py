@@ -138,7 +138,7 @@ class WorkerTestCase(CommonTestCase):
     """
 
     def setUp(  # type: ignore[override]
-        self, *args: Any, am_settings: Optional[Dict[str, Any]] = None, want_mongo_uri: bool = True, **kwargs: Any
+        self, *args: Any, am_settings: Optional[dict[str, Any]] = None, want_mongo_uri: bool = True, **kwargs: Any
     ):
         """
         set up tests

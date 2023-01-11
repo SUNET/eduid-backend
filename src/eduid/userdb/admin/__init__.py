@@ -8,7 +8,8 @@ import pprint
 import sys
 import time
 from copy import deepcopy
-from typing import Any, Generator, Optional
+from typing import Any, Optional
+from collections.abc import Generator
 
 import bson
 import bson.json_util
@@ -28,7 +29,7 @@ volunteers = {
 usual_suspects = volunteers.values()
 
 
-class RawDb(object):
+class RawDb:
     """
     Kind-of raw access to mongodb documents, for use in database fix/migration scripts.
 
@@ -103,10 +104,10 @@ class RawDb(object):
                     )
                     sys.exit(1)
 
-        db_coll = "{}.{}".format(raw.db, raw.collection)
+        db_coll = f"{raw.db}.{raw.collection}"
 
         if raw.before == raw.doc:
-            sys.stderr.write("Document in {} with id {} not changed, aborting save_with_backup\n".format(db_coll, _id))
+            sys.stderr.write(f"Document in {db_coll} with id {_id} not changed, aborting save_with_backup\n")
             return
 
         self._file_num = 0
@@ -121,7 +122,7 @@ class RawDb(object):
                 res = f"UPDATE {replace_res}"
             else:
                 delete_res = self._client[raw.db][raw.collection].delete_one({"_id": raw.before["_id"]})
-                res = "REMOVE {}".format(delete_res)
+                res = f"REMOVE {delete_res}"
 
         # Write changes.txt after saving, so it will also indicate a successful save
         return self._write_changes(raw, backup_dir, res)
@@ -136,15 +137,15 @@ class RawDb(object):
             try:
                 return bson.json_util.dumps({k2: v2})
             except:
-                sys.stderr.write("Failed encoding key {!r}: {!r}\n\n".format(k2, v2))
+                sys.stderr.write(f"Failed encoding key {k2!r}: {v2!r}\n\n")
                 raise
 
         filename = self._get_backup_filename(backup_dir, "changes", "txt")
         with open(filename, "w") as fd:
             for k in sorted(set(raw.doc) - set(raw.before)):
-                fd.write("ADD: {}\n".format(safe_encode(k, raw.doc[k])))
+                fd.write(f"ADD: {safe_encode(k, raw.doc[k])}\n")
             for k in sorted(set(raw.before) - set(raw.doc)):
-                fd.write("DEL: {}\n".format(safe_encode(k, raw.before[k])))
+                fd.write(f"DEL: {safe_encode(k, raw.before[k])}\n")
             for k in sorted(raw.doc.keys()):
                 if k not in raw.before:
                     continue
@@ -156,7 +157,7 @@ class RawDb(object):
                         )
                     )
 
-            fd.write("DB_RESULT: {}\n".format(res))
+            fd.write(f"DB_RESULT: {res}\n")
         return res
 
     def _write_before_and_after(self, raw: RawData, backup_dir: str):
@@ -180,7 +181,7 @@ class RawDb(object):
             if self._file_num == 0:
                 fn = filename + "." + ext
             else:
-                fn = "{}_{}.{}".format(filename, self._file_num, ext)
+                fn = f"{filename}_{self._file_num}.{ext}"
             full_fn = os.path.join(dirname, fn)
             if os.path.isfile(full_fn):
                 self._file_num += 1
@@ -216,7 +217,7 @@ class RawDb(object):
         return os.path.join(self._backupbase, self._myname, self._start_time)
 
 
-class RawData(object):
+class RawData:
     """
     Holder of raw data read from the database.
 
@@ -267,11 +268,11 @@ class RawData(object):
             if isinstance(value, str):
                 res.extend(["  {!s:>25}: {!s}".format(key, value.encode("utf-8"))])
             elif isinstance(value, datetime.datetime):
-                res.extend(["  {!s:>25}: {!s}".format(key, value.isoformat())])
+                res.extend([f"  {key!s:>25}: {value.isoformat()!s}"])
             else:
                 # pprint.pformat unknown data, and increase the indentation
                 pretty = pprint.pformat(value).replace("\n  ", "\n" + (" " * 29))
-                print("  {!s:>25}: {}".format(key, pretty))
+                print(f"  {key!s:>25}: {pretty}")
         return res
 
 

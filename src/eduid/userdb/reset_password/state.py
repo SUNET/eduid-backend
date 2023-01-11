@@ -49,7 +49,7 @@ logger = logging.getLogger(__name__)
 
 
 @dataclass
-class ResetPasswordState(object):
+class ResetPasswordState:
     """ """
 
     eppn: str
@@ -58,14 +58,14 @@ class ResetPasswordState(object):
     method: Optional[str] = None
     created_ts: datetime.datetime = field(default_factory=utc_now)
     modified_ts: Optional[datetime.datetime] = None
-    extra_security: Optional[Dict[str, Any]] = None
+    extra_security: Optional[dict[str, Any]] = None
     generated_password: bool = False
 
     def __post_init__(self):
         self.reference = str(self.id)
 
     def __str__(self):
-        return "<eduID {!s}: {!s}>".format(self.__class__.__name__, self.eppn)
+        return f"<eduID {self.__class__.__name__!s}: {self.eppn!s}>"
 
     def to_dict(self) -> TUserDbDocument:
         res = asdict(self)
@@ -78,7 +78,7 @@ class ResetPasswordState(object):
         return TUserDbDocument(res)
 
     @classmethod
-    def from_dict(cls: Type[TResetPasswordStateSubclass], data: Dict[str, Any]) -> TResetPasswordStateSubclass:
+    def from_dict(cls: type[TResetPasswordStateSubclass], data: dict[str, Any]) -> TResetPasswordStateSubclass:
         data["eppn"] = data.pop("eduPersonPrincipalName")
         data["id"] = data.pop("_id")
         if "reference" in data:
@@ -141,7 +141,7 @@ class ResetPasswordEmailAndPhoneState(ResetPasswordEmailState, _ResetPasswordEma
 
     @classmethod
     def from_email_state(
-        cls: Type[ResetPasswordEmailAndPhoneState],
+        cls: type[ResetPasswordEmailAndPhoneState],
         email_state: ResetPasswordEmailState,
         phone_number: str,
         phone_code: str,

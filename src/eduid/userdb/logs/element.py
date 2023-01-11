@@ -37,7 +37,7 @@ class LogElement(Element):
         min_anystr_length = 1  # No empty strings allowed in log records
 
     @classmethod
-    def _from_dict_transform(cls: Type[TLogElementSubclass], data: Dict[str, Any]) -> Dict[str, Any]:
+    def _from_dict_transform(cls: type[TLogElementSubclass], data: dict[str, Any]) -> dict[str, Any]:
         """
         Transform data received in eduid format into pythonic format.
         """
@@ -48,7 +48,7 @@ class LogElement(Element):
 
         return data
 
-    def _to_dict_transform(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def _to_dict_transform(self, data: dict[str, Any]) -> dict[str, Any]:
         """
         Transform data kept in pythonic format into eduid format.
         """
@@ -177,7 +177,7 @@ class TeleAdressProofingRelation(TeleAdressProofing):
     # NIN of registered user of mobile phone subscription
     mobile_number_registered_to: str
     # Relation of mobile phone subscriber to User
-    registered_relation: List[str]
+    registered_relation: list[str]
     # Navet response for mobile phone subscriber
     registered_postal_address: FullPostalAddress
     # Navet response for mobile phone subscriber deregistration information (used if official address is missing)
@@ -202,7 +202,7 @@ class LetterProofing(NinProofingLogElement):
     """
 
     # Name and address the letter was sent to
-    letter_sent_to: Dict[str, Any]
+    letter_sent_to: dict[str, Any]
     # Letter service transaction id
     transaction_id: str
     # Proofing method name
@@ -273,7 +273,7 @@ class OrcidProofing(ProofingLogElement):
     # OIDC issuer
     issuer: str
     # OIDC audience
-    audience: List[str]
+    audience: list[str]
     # Proofing method name
     proofing_method: str = "oidc"
 
@@ -506,8 +506,8 @@ class WebauthnMfaCapabilityProofingLog(ProofingLogElement):
 
     authenticator_id: Union[UUID, str]
     attestation_format: AttestationFormat
-    user_verification_methods: List[str]
-    key_protection: List[str]
+    user_verification_methods: list[str]
+    key_protection: list[str]
 
 
 class FidoMetadataLogElement(LogElement):

@@ -49,4 +49,4 @@ class SupportConfig(EduIDBaseAppConfig):
 
     app_name = "support"
 
-    support_personnel: List[str] = Field(default=[])
+    support_personnel: list[str] = Field(default=[])

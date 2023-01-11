@@ -106,9 +106,9 @@ def add_password(
 
     # Add the new password
     if not vccs.add_credentials(str(user.user_id), [new_factor]):
-        logger.error("Failed adding password credential {} for user {}".format(new_factor.credential_id, user))
+        logger.error(f"Failed adding password credential {new_factor.credential_id} for user {user}")
         return False  # something failed
-    logger.info("Added password credential {} for user {}".format(new_factor.credential_id, user))
+    logger.info(f"Added password credential {new_factor.credential_id} for user {user}")
 
     # Add new password to user
     _password = Password(
@@ -149,9 +149,9 @@ def reset_password(
 
     # Add the new password
     if not vccs.add_credentials(str(user.user_id), [new_factor]):
-        logger.error("Failed adding password credential {} for user {}".format(new_factor.credential_id, user))
+        logger.error(f"Failed adding password credential {new_factor.credential_id} for user {user}")
         return False  # something failed
-    logger.info("Added password credential {} for user {}".format(new_factor.credential_id, user))
+    logger.info(f"Added password credential {new_factor.credential_id} for user {user}")
 
     # Add new password to user
     _password = Password(
@@ -268,15 +268,15 @@ def add_credentials(
             return False
 
     if not vccs.add_credentials(str(user.user_id), [new_factor]):
-        logger.warning("Failed adding password credential {!r} for user {!r}".format(new_factor.credential_id, user))
+        logger.warning(f"Failed adding password credential {new_factor.credential_id!r} for user {user!r}")
         return False  # something failed
-    logger.debug("Added password credential {!s} for user {!s}".format(new_factor.credential_id, user))
+    logger.debug(f"Added password credential {new_factor.credential_id!s} for user {user!s}")
 
     if checked_password:
         old_factor = VCCSRevokeFactor(str(checked_password.credential_id), "changing password", reference=source)
         vccs.revoke_credentials(str(user.user_id), [old_factor])
         user.credentials.remove(checked_password.key)
-        logger.debug("Revoked old credential {!s} (user {!s})".format(old_factor.credential_id, user))
+        logger.debug(f"Revoked old credential {old_factor.credential_id!s} (user {user!s})")
 
     if not old_password_supplied:
         # XXX: Revoke all current credentials on password reset for now
@@ -380,7 +380,7 @@ def revoke_all_credentials(
     for password in user.credentials.filter(Password):
         credential_id = password.credential_id
         factor = VCCSRevokeFactor(credential_id, "subscriber requested termination", reference=source)
-        logger.debug("Revoked old credential (account termination) {!s} (user {!s})".format(credential_id, user))
+        logger.debug(f"Revoked old credential (account termination) {credential_id!s} (user {user!s})")
         to_revoke.append(factor)
     userid = str(user.user_id)
     vccs.revoke_credentials(userid, to_revoke)

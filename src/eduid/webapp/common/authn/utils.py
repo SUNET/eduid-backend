@@ -30,14 +30,14 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from __future__ import absolute_import
 
 import importlib.util
 import logging
 import os.path
 import sys
 from datetime import timedelta
-from typing import TYPE_CHECKING, Any, List, Mapping, Optional, Sequence
+from typing import TYPE_CHECKING, Any, List, Optional
+from collections.abc import Mapping, Sequence
 
 from pwgen import pwgen
 from saml2 import server
@@ -82,7 +82,7 @@ def get_location(http_info: Mapping[str, Any]) -> str:
     return header_value
 
 
-def get_saml_attribute(session_info: SessionInfo, attr_name: str) -> Optional[List[str]]:
+def get_saml_attribute(session_info: SessionInfo, attr_name: str) -> Optional[list[str]]:
     """
     Get value from a SAML attribute received from the SAML IdP.
 
@@ -120,7 +120,7 @@ def no_authn_views(config: EduIDBaseAppConfig, paths: Sequence[str]) -> None:
     """
     app_root = config.flask.application_root
     for path in paths:
-        no_auth_regex = "^{!s}$".format(urlappend(app_root, path))
+        no_auth_regex = f"^{urlappend(app_root, path)!s}$"
         if no_auth_regex not in config.no_authn_urls:
             config.no_authn_urls.append(no_auth_regex)
     return None

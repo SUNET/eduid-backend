@@ -44,8 +44,8 @@ class UserGroup:
     display_name: str
     is_owner: bool
     is_member: bool
-    owners: Set[Union[GraphUser, GraphGroup]]
-    members: Set[Union[GraphUser, GraphGroup]]
+    owners: set[Union[GraphUser, GraphGroup]]
+    members: set[Union[GraphUser, GraphGroup]]
 
     @classmethod
     def from_scimapigroup(cls, group: ScimApiGroup, is_owner: bool = False, is_member: bool = False):
@@ -75,7 +75,7 @@ def get_or_create_scim_user_by_eppn(eppn: str) -> ScimApiUser:
     return scim_user
 
 
-def merge_group_lists(owner_groups: List[ScimApiGroup], member_groups: List[ScimApiGroup]) -> List[UserGroup]:
+def merge_group_lists(owner_groups: list[ScimApiGroup], member_groups: list[ScimApiGroup]) -> list[UserGroup]:
     """
     :param owner_groups: Groups the user is owner to
     :param member_groups: Groups the user is member of
@@ -95,7 +95,7 @@ def merge_group_lists(owner_groups: List[ScimApiGroup], member_groups: List[Scim
     return list(combined_groups.values())
 
 
-def list_of_group_data(group_list: List[UserGroup]) -> List[Dict]:
+def list_of_group_data(group_list: list[UserGroup]) -> list[dict]:
     ret = []
     for group in group_list:
         members = [{"identifier": member.identifier, "display_name": member.display_name} for member in group.members]
@@ -108,7 +108,7 @@ def list_of_group_data(group_list: List[UserGroup]) -> List[Dict]:
     return ret
 
 
-def get_all_group_data(scim_user: ScimApiUser) -> Dict[str, Any]:
+def get_all_group_data(scim_user: ScimApiUser) -> dict[str, Any]:
     member_groups = current_app.scimapi_groupdb.get_groups_for_user_identifer(scim_user.scim_id)
     owner_groups = current_app.scimapi_groupdb.get_groups_owned_by_user_identifier(scim_user.scim_id)
     combined_groups = merge_group_lists(owner_groups=owner_groups, member_groups=member_groups)
@@ -174,11 +174,11 @@ def remove_user_from_group(scim_user: ScimApiUser, scim_group: ScimApiGroup, rol
     return None
 
 
-def get_outgoing_invites(user: User) -> List[Dict[str, Any]]:
+def get_outgoing_invites(user: User) -> list[dict[str, Any]]:
     """
     Return all outgoing invites to groups that the user is owner of.
     """
-    invites: List[Dict[str, Any]] = []
+    invites: list[dict[str, Any]] = []
     scim_user = get_scim_user_by_eppn(user.eppn)
     if not scim_user:
         return invites
@@ -205,7 +205,7 @@ def get_outgoing_invites(user: User) -> List[Dict[str, Any]]:
     return invites
 
 
-def get_incoming_invites(user: User) -> List[Dict[str, Any]]:
+def get_incoming_invites(user: User) -> list[dict[str, Any]]:
     """
     Return all incoming invites to groups for the user
     """

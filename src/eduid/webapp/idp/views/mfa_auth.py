@@ -1,6 +1,7 @@
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import Any, Dict, Mapping, Optional
+from typing import Any, Dict, Optional
+from collections.abc import Mapping
 
 from flask import Blueprint
 
@@ -72,7 +73,7 @@ def mfa_auth(
     if not result:
         # If no external MFA was used, and no webauthn credential either, we respond with a not-finished
         # response containing a webauthn challenge if applicable.
-        payload: Dict[str, Any] = {"finished": False}
+        payload: dict[str, Any] = {"finished": False}
 
         candidates = user.credentials.filter(FidoCredential)
         if candidates:

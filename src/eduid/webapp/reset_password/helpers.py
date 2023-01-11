@@ -32,7 +32,8 @@
 import math
 from dataclasses import dataclass
 from enum import unique
-from typing import Any, Dict, List, Literal, Mapping, Optional, TypedDict, Union
+from typing import Any, Dict, List, Literal, Optional, TypedDict, Union
+from collections.abc import Mapping
 
 from flask import render_template
 from flask_babel import gettext as _
@@ -365,7 +366,7 @@ def get_extra_security_alternatives(user: User) -> dict:
     :param user: The user
     :return: Dict of alternatives
     """
-    alternatives: Dict[str, Any] = {}
+    alternatives: dict[str, Any] = {}
 
     if user.identities.nin is not None and user.identities.nin.is_verified:
         alternatives["external_mfa"] = True
@@ -493,7 +494,7 @@ def verify_phone_number(state: ResetPasswordEmailAndPhoneState) -> bool:
     return False
 
 
-def email_state_to_response_payload(state: ResetPasswordEmailState) -> Dict[str, Any]:
+def email_state_to_response_payload(state: ResetPasswordEmailState) -> dict[str, Any]:
     _throttled = int(state.throttle_time_left(current_app.conf.throttle_resend).total_seconds())
     if _throttled < 0:
         _throttled = 0

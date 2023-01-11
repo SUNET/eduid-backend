@@ -29,7 +29,8 @@
 # LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-from typing import Any, Dict, Mapping
+from typing import Any, Dict
+from collections.abc import Mapping
 
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.support.app import SupportApp, support_init_app
@@ -43,7 +44,7 @@ class SupportAppTests(EduidAPITestCase):
     app: SupportApp
 
     def setUp(self):
-        super(SupportAppTests, self).setUp()
+        super().setUp()
 
         self.test_user_eppn = "hubba-bubba"
         self.client = self.app.test_client()
@@ -55,7 +56,7 @@ class SupportAppTests(EduidAPITestCase):
         """
         return support_init_app("testing", config)
 
-    def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
+    def update_config(self, config: dict[str, Any]) -> dict[str, Any]:
         config.update(
             {
                 "support_personnel": ["hubba-bubba"],

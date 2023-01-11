@@ -3,7 +3,8 @@ from __future__ import annotations
 import json
 import logging
 from datetime import datetime, timedelta
-from typing import Any, Dict, Mapping, NewType, Optional, Type
+from typing import Any, Dict, NewType, Optional, Type
+from collections.abc import Mapping
 from uuid import uuid4
 
 import nacl
@@ -35,7 +36,7 @@ class BrowserDeviceInfo(BaseModel):
         return f"<{self.__class__.__name__}: public[8]={repr(self.shared[:8])}, state_id[8]={repr(self.state_id[:8])}>"
 
     @classmethod
-    def from_public(cls: Type[BrowserDeviceInfo], shared: str, app_secret_box: SecretBox) -> BrowserDeviceInfo:
+    def from_public(cls: type[BrowserDeviceInfo], shared: str, app_secret_box: SecretBox) -> BrowserDeviceInfo:
         _data: bytes = app_secret_box.decrypt(shared.encode(), encoder=nacl.encoding.URLSafeBase64Encoder)
         if not _data.startswith(b"1|"):
             raise ValueError("Unhandled browser device info")
@@ -47,7 +48,7 @@ class BrowserDeviceInfo(BaseModel):
         return cls(shared=shared, state_id=state_id, secret_box=secret_box)
 
     @classmethod
-    def new(cls: Type[BrowserDeviceInfo], app_secret_box: SecretBox) -> BrowserDeviceInfo:
+    def new(cls: type[BrowserDeviceInfo], app_secret_box: SecretBox) -> BrowserDeviceInfo:
         state_id = str(uuid4())
         private_key_bytes = nacl.utils.random(nacl.secret.SecretBox.KEY_SIZE)
         secret_box = SecretBox(private_key_bytes)
@@ -79,14 +80,14 @@ class KnownDevice(BaseModel):
         # Don't reject ObjectId and SecretBox
         arbitrary_types_allowed = True
 
-    def to_dict(self, from_browser: BrowserDeviceInfo) -> Dict[str, Any]:
+    def to_dict(self, from_browser: BrowserDeviceInfo) -> dict[str, Any]:
         res = self.dict()
         res["_id"] = res.pop("obj_id")
         res["data"] = from_browser.secret_box.encrypt(self.data.to_json().encode(), encoder=nacl.encoding.Base64Encoder)
         return res
 
     @classmethod
-    def from_dict(cls: Type[KnownDevice], data: Mapping[str, Any], from_browser: BrowserDeviceInfo) -> KnownDevice:
+    def from_dict(cls: type[KnownDevice], data: Mapping[str, Any], from_browser: BrowserDeviceInfo) -> KnownDevice:
         _data = dict(data)  # don't modify callers data
         _data["data"] = json.loads(from_browser.secret_box.decrypt(_data["data"], encoder=nacl.encoding.Base64Encoder))
         return cls(**_data)

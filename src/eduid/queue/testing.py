@@ -5,7 +5,8 @@ import logging
 import time
 from asyncio import Task
 from datetime import datetime, timedelta
-from typing import Any, List, Optional, Sequence, Type, cast
+from typing import Any, List, Optional, Type, cast
+from collections.abc import Sequence
 from unittest import IsolatedAsyncioTestCase, TestCase
 
 import pymongo
@@ -72,7 +73,7 @@ class MongoTemporaryInstanceReplicaSet(MongoTemporaryInstance):
 
     @classmethod
     def get_instance(
-        cls: Type[MongoTemporaryInstanceReplicaSet], max_retry_seconds: int = 60
+        cls: type[MongoTemporaryInstanceReplicaSet], max_retry_seconds: int = 60
     ) -> MongoTemporaryInstanceReplicaSet:
         return cast(MongoTemporaryInstanceReplicaSet, super().get_instance(max_retry_seconds=max_retry_seconds))
 
@@ -106,7 +107,7 @@ class SMPTDFixTemporaryInstance(EduidTemporaryInstance):
         return None
 
     @classmethod
-    def get_instance(cls: Type[SMPTDFixTemporaryInstance], max_retry_seconds: int = 60) -> SMPTDFixTemporaryInstance:
+    def get_instance(cls: type[SMPTDFixTemporaryInstance], max_retry_seconds: int = 60) -> SMPTDFixTemporaryInstance:
         return cast(SMPTDFixTemporaryInstance, super().get_instance(max_retry_seconds=max_retry_seconds))
 
 
@@ -144,7 +145,7 @@ class EduidQueueTestCase(TestCase):
 
 class QueueAsyncioTest(EduidQueueTestCase, IsolatedAsyncioTestCase):
     async def asyncSetUp(self) -> None:
-        self.tasks: List[Task] = []
+        self.tasks: list[Task] = []
 
     async def asyncTearDown(self) -> None:
         for task in self.tasks:

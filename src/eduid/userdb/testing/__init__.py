@@ -39,7 +39,8 @@ from __future__ import annotations
 import logging
 import logging.config
 import unittest
-from typing import Any, List, Optional, Sequence, Type, cast
+from typing import Any, List, Optional, Type, cast
+from collections.abc import Sequence
 
 import pymongo
 import pymongo.errors
@@ -99,7 +100,7 @@ class MongoTemporaryInstance(EduidTemporaryInstance):
         super().shutdown()
 
     @classmethod
-    def get_instance(cls: Type[MongoTemporaryInstance], max_retry_seconds: int = 20) -> MongoTemporaryInstance:
+    def get_instance(cls: type[MongoTemporaryInstance], max_retry_seconds: int = 20) -> MongoTemporaryInstance:
         return cast(MongoTemporaryInstance, super().get_instance(max_retry_seconds=max_retry_seconds))
 
 
@@ -113,7 +114,7 @@ class MongoTestCase(unittest.TestCase):
     A test can access the port using the attribute `port`
     """
 
-    def setUp(self, *args: list[Any], am_users: Optional[List[User]] = None, **kwargs: dict[str, Any]):
+    def setUp(self, *args: list[Any], am_users: Optional[list[User]] = None, **kwargs: dict[str, Any]):
         """
         Test case initialization.
         :return:

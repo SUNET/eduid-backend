@@ -14,7 +14,7 @@ authenticate_router = APIRouter()
 
 
 class AuthenticateRequestV1(BaseModel):
-    factors: List[RequestFactor]
+    factors: list[RequestFactor]
     user_id: str
     version: int
 
@@ -73,7 +73,7 @@ async def authenticate(req: Request, request: AuthenticateRequestV1) -> Authenti
     _config = req.app.state.config
     assert isinstance(_config, VCCSConfig)
 
-    results: List[bool] = []
+    results: list[bool] = []
     # TODO: Make sure to respond False if request.factors is empty.
     for factor in request.factors:
         this_result = False

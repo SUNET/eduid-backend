@@ -17,7 +17,7 @@ class TestNotifications(ScimApiTestCase):
     def _get_notifications(self):
         return [QueueItem.from_dict(x) for x in self.messagedb._get_all_docs()]
 
-    def _get_config(self) -> Dict[str, Any]:
+    def _get_config(self) -> dict[str, Any]:
         config = super()._get_config()
         config["data_owners"]["eduid.se"]["notify"] = ["https://example.org/notify"]
         return config

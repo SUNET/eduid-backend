@@ -2,7 +2,8 @@ import logging
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import Mapping, Optional
+from typing import Optional
+from collections.abc import Mapping
 
 from eduid.userdb import User
 from eduid.userdb.credentials import U2F, Password, Webauthn
@@ -34,7 +35,7 @@ class AuthnInfoDB(BaseDB):
     """
 
     def __init__(self, db_uri, db_name="eduid_idp_authninfo", collection="authn_info"):
-        super(AuthnInfoDB, self).__init__(db_uri, db_name, collection)
+        super().__init__(db_uri, db_name, collection)
 
     def get_authn_info(self, user: User) -> Mapping[ElementKey, AuthnInfoElement]:
         """

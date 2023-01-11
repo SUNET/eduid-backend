@@ -10,7 +10,7 @@ from eduid.workers.lookup_mobile.development.development_search_result import _g
 from eduid.workers.lookup_mobile.utilities import format_mobile_number, format_NIN
 
 
-class MobileLookupClient(object):
+class MobileLookupClient:
     def __init__(self, logger, config: MobConfig) -> None:
         self.conf = config
 
@@ -34,7 +34,7 @@ class MobileLookupClient(object):
 
     @TransactionAudit()
     @deprecated("This task seems unused")
-    def find_mobiles_by_NIN(self, national_identity_number: str, number_region=None) -> List[str]:
+    def find_mobiles_by_NIN(self, national_identity_number: str, number_region=None) -> list[str]:
         formatted_nin = format_NIN(national_identity_number)
         if not formatted_nin:
             self.logger.error(f"Invalid NIN input: {national_identity_number}")
@@ -80,7 +80,7 @@ class MobileLookupClient(object):
         return result.record_list[0].record
 
     @deprecated("This function seems unused")
-    def _search_by_SSNo(self, national_identity_number: str) -> List[str]:
+    def _search_by_SSNo(self, national_identity_number: str) -> list[str]:
         person_search = self._get_find_person()
 
         # Set the eduid user id and password

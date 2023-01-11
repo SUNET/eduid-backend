@@ -3,7 +3,8 @@ import logging
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Dict, List, Mapping, NewType, Optional, TypeVar, Union
+from typing import TYPE_CHECKING, Any, Dict, List, NewType, Optional, TypeVar, Union
+from collections.abc import Mapping
 
 import pymongo
 import pymongo.collection
@@ -38,7 +39,7 @@ class DatabaseDriver(Enum):
     ASYNCIO = "asyncio"
 
 
-class MongoDB(object):
+class MongoDB:
     """Simple wrapper to get pymongo real objects from the settings uri"""
 
     def __init__(
@@ -93,7 +94,7 @@ class MongoDB(object):
 
                 self._client = motor_asyncio.AsyncIOMotorClient(**db_args)
         except PyMongoError as e:
-            raise MongoConnectionError("Error connecting to mongodb {!r}: {}".format(self, e))
+            raise MongoConnectionError(f"Error connecting to mongodb {self!r}: {e}")
 
     def __repr__(self):
         return "<eduID {!s}: {!s} {!s}>".format(
@@ -178,7 +179,7 @@ class MongoDB(object):
             self.get_connection().admin.command("ismaster")
             return True
         except pymongo.errors.ConnectionFailure as e:
-            logger.error("{} not healthy: {}".format(self, e))
+            logger.error(f"{self} not healthy: {e}")
             return False
 
     def close(self):
@@ -201,18 +202,18 @@ def _format_mongodb_uri(parsed_uri: Mapping[str, Any]) -> str:
     for host, port in parsed_uri.get("nodelist", []):
         if ":" in host and not host.endswith("]"):
             # IPv6 address without brackets
-            host = "[{!s}]".format(host)
+            host = f"[{host!s}]"
         if port == 27017:
             _nodes.append(host)
         else:
-            _nodes.append("{!s}:{!s}".format(host, port))
+            _nodes.append(f"{host!s}:{port!s}")
     nodelist = ",".join(_nodes)
 
     _opt_list: list[str] = []
     for key, value in parsed_uri.get("options", {}).items():
         if isinstance(value, bool):
             value = str(value).lower()
-        _opt_list.append("{!s}={!s}".format(key, value))
+        _opt_list.append(f"{key!s}={value!s}")
 
     options = ""
     if _opt_list:
@@ -249,7 +250,7 @@ class SaveResult:
         return bool(self.inserted or self.updated)
 
 
-class BaseDB(object):
+class BaseDB:
     """Base class for common db operations"""
 
     def __init__(
@@ -269,7 +270,7 @@ class BaseDB(object):
             self._coll = self._coll.with_options(write_concern=pymongo.WriteConcern(w="majority"))
 
     def __repr__(self):
-        return "<eduID {!s}: {!s} {!r}>".format(self.__class__.__name__, self._db.sanitized_uri, self._coll_name)
+        return f"<eduID {self.__class__.__name__!s}: {self._db.sanitized_uri!s} {self._coll_name!r}>"
 
     __str__ = __repr__
 
@@ -278,7 +279,7 @@ class BaseDB(object):
         Drop the whole collection. Should ONLY be used in testing, obviously.
         :return:
         """
-        logger.warning("{!s} Dropping collection {!r}".format(self, self._coll_name))
+        logger.warning(f"{self!s} Dropping collection {self._coll_name!r}")
         return self._coll.drop()
 
     def _get_all_docs(self) -> pymongo.cursor.Cursor[TUserDbDocument]:
@@ -310,7 +311,7 @@ class BaseDB(object):
             raise MultipleDocumentsReturned(f"Multiple matching documents for {attr}={repr(value)}")
         return docs[0]
 
-    def _get_documents_by_attr(self, attr: str, value: str) -> List[TUserDbDocument]:
+    def _get_documents_by_attr(self, attr: str, value: str) -> list[TUserDbDocument]:
         """
         Return the document in the MongoDB matching field=value
 
@@ -327,9 +328,9 @@ class BaseDB(object):
 
     def _get_documents_by_aggregate(
         self, match: Mapping[str, Any], sort: Optional[Mapping[str, Any]] = None, limit: Optional[int] = None
-    ) -> List[TUserDbDocument]:
+    ) -> list[TUserDbDocument]:
 
-        pipeline: List[Dict[str, Any]] = [{"$match": match}]
+        pipeline: list[dict[str, Any]] = [{"$match": match}]
 
         if sort is not None:
             pipeline.append({"$sort": sort})
@@ -345,7 +346,7 @@ class BaseDB(object):
         fields: Optional[Mapping[str, Any]] = None,
         skip: Optional[int] = None,
         limit: Optional[int] = None,
-    ) -> List[TUserDbDocument]:
+    ) -> list[TUserDbDocument]:
         """
         Locate documents in the db using a custom search filter.
 
@@ -381,7 +382,7 @@ class BaseDB(object):
         if spec:
             _filter = spec
 
-        args: Dict[str, Any] = {}
+        args: dict[str, Any] = {}
         if limit:
             args["limit"] = limit
         return self._coll.count_documents(filter=_filter, **args)
@@ -425,7 +426,7 @@ class BaseDB(object):
                 params["name"] = name
                 self._coll.create_index(key, **params)
 
-    def legacy_save(self, doc: Dict[str, Any]) -> str:
+    def legacy_save(self, doc: dict[str, Any]) -> str:
         """
         Only used in tests and should probably be removed when time allows.
         pymongo removed the save method in version 4.0.

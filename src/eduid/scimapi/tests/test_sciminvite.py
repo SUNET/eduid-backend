@@ -4,7 +4,8 @@ import unittest
 from copy import copy
 from dataclasses import asdict
 from datetime import datetime, timedelta
-from typing import Any, Dict, Mapping, Optional
+from typing import Any, Dict, Optional
+from collections.abc import Mapping
 
 from bson import ObjectId
 
@@ -163,7 +164,7 @@ class TestScimInvite(unittest.TestCase):
 class TestInviteResource(ScimApiTestCase):
     def setUp(self) -> None:
         super().setUp()
-        self.invite_data: Dict[str, Any] = {
+        self.invite_data: dict[str, Any] = {
             "invite_code": "test_invite_code",
             "name": {
                 "family_name": "Testsson",

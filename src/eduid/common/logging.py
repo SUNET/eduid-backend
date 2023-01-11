@@ -6,7 +6,8 @@ import time
 from dataclasses import asdict, dataclass, field
 from os import environ
 from pprint import pformat
-from typing import Any, Dict, Sequence
+from typing import Any, Dict
+from collections.abc import Sequence
 
 from eduid.common.config.base import LoggingConfigMixin, LoggingFilters
 from eduid.common.config.exceptions import BadConfiguration
@@ -43,8 +44,8 @@ class EduidFormatter(logging.Formatter):
             t = time.strftime("%Y-%m-%dT%H:%M:%S", ct)
             tz = time.strftime("%z", ct)  # Can evaluate to empty string
             if tz:
-                tz = "{0}:{1}".format(tz[:3], tz[3:])  # Need colon to follow the rfc/iso
-            s = "{}.{:03.0f}{}".format(t, record.msecs, tz)
+                tz = f"{tz[:3]}:{tz[3:]}"  # Need colon to follow the rfc/iso
+            s = f"{t}.{record.msecs:03.0f}{tz}"
         return s
 
 
@@ -135,7 +136,7 @@ class RequireDebugFalse(logging.Filter):
         return not self.app_debug
 
 
-def merge_config(base_config: Dict[str, Any], new_config: Dict[str, Any]) -> Dict[str, Any]:
+def merge_config(base_config: dict[str, Any], new_config: dict[str, Any]) -> dict[str, Any]:
     """Recursively merge two dictConfig dicts."""
 
     def merge(node, key, value):
@@ -185,7 +186,7 @@ class LocalContext:
     filters: Sequence[LoggingFilters] = field(default_factory=list)  # filters to activate
     relative_time: bool = False  # use relative time as {asctime}
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         res = asdict(self)
         res["level"] = logging.getLevelName(self.level)
         return res
@@ -223,7 +224,7 @@ def make_local_context(config: LoggingConfigMixin) -> LocalContext:
     return local_context
 
 
-def make_dictConfig(local_context: LocalContext) -> Dict[str, Any]:
+def make_dictConfig(local_context: LocalContext) -> dict[str, Any]:
     """
     Create configuration for logging.dictConfig.
 

@@ -33,7 +33,8 @@
 import logging
 import pprint
 from dataclasses import dataclass
-from typing import Any, Mapping, Optional, Tuple, Union
+from typing import Any, Optional, Tuple, Union
+from collections.abc import Mapping
 from xml.etree.ElementTree import ParseError
 
 from dateutil.parser import parse as dt_parse
@@ -126,7 +127,7 @@ def get_authn_request(
 
 def get_authn_response(
     saml2_config: SPConfig, sp_data: SPAuthnData, session: EduidSession, raw_response: str
-) -> Tuple[AuthnResponse, AuthnRequestRef]:
+) -> tuple[AuthnResponse, AuthnRequestRef]:
     """
     Check a SAML response and return the response.
 

@@ -30,7 +30,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 from contextlib import contextmanager
-from typing import Any, Mapping
+from typing import Any
+from collections.abc import Mapping
 
 from werkzeug.exceptions import NotFound
 

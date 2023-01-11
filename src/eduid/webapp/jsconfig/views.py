@@ -42,12 +42,12 @@ from eduid.webapp.jsconfig.app import current_jsconfig_app as current_app
 jsconfig_views = Blueprint("jsconfig", __name__, url_prefix="")
 
 
-def _fix_available_languages(available_languages: Dict[str, str]) -> List[List[str]]:
+def _fix_available_languages(available_languages: dict[str, str]) -> list[list[str]]:
     # TODO: our frontend code should accept available_languages as map instead of list of lists
     return [[key, value] for key, value in available_languages.items()]
 
 
-def _fix_uppercase_config(config: Dict[str, Any]):
+def _fix_uppercase_config(config: dict[str, Any]):
     # XXX the front app consumes some settings as upper case and some as lower
     #   case. We'll provide them all in both upper and lower case, to
     #   facilitate migration of the front app to lower case.

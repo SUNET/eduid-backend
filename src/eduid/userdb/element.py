@@ -81,7 +81,8 @@ from __future__ import annotations
 import copy
 from abc import ABC
 from datetime import datetime
-from typing import Any, Dict, Generic, List, Mapping, NewType, Optional, Type, TypeVar, Union
+from typing import Any, Dict, Generic, List, NewType, Optional, Type, TypeVar, Union
+from collections.abc import Mapping
 
 from pydantic import BaseModel, Extra, Field, validator
 from pydantic.generics import GenericModel
@@ -153,7 +154,7 @@ class Element(BaseModel):
         return f"<eduID {self.__class__.__name__}: {self.dict()}>"
 
     @classmethod
-    def from_dict(cls: Type[TElementSubclass], data: Mapping[str, Any]) -> TElementSubclass:
+    def from_dict(cls: type[TElementSubclass], data: Mapping[str, Any]) -> TElementSubclass:
         """
         Construct element from a data dict in eduid format.
         """
@@ -178,7 +179,7 @@ class Element(BaseModel):
         return TUserDbDocument(data)
 
     @classmethod
-    def _from_dict_transform(cls: Type[TElementSubclass], data: Dict[str, Any]) -> Dict[str, Any]:
+    def _from_dict_transform(cls: type[TElementSubclass], data: dict[str, Any]) -> dict[str, Any]:
         """
         Transform data received in eduid format into pythonic format.
         """
@@ -200,7 +201,7 @@ class Element(BaseModel):
 
         return data
 
-    def _to_dict_transform(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def _to_dict_transform(self, data: dict[str, Any]) -> dict[str, Any]:
         """
         Transform data kept in pythonic format into eduid format.
         """
@@ -241,7 +242,7 @@ class VerifiedElement(Element, ABC):
         return f"<eduID {self.__class__.__name__}(key={repr(self.key)}): verified={self.is_verified}>"
 
     @classmethod
-    def _from_dict_transform(cls: Type[TVerifiedElementSubclass], data: Dict[str, Any]) -> Dict[str, Any]:
+    def _from_dict_transform(cls: type[TVerifiedElementSubclass], data: dict[str, Any]) -> dict[str, Any]:
         """
         Transform data from eduid database format into pythonic format.
         """
@@ -255,7 +256,7 @@ class VerifiedElement(Element, ABC):
 
         return data
 
-    def _to_dict_transform(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def _to_dict_transform(self, data: dict[str, Any]) -> dict[str, Any]:
         """
         Transform data kept in pythonic format into eduid database format.
         """
@@ -292,7 +293,7 @@ class PrimaryElement(VerifiedElement, ABC):
             f"primary={self.is_primary}, verified={self.is_verified}>"
         )
 
-    def _to_dict_transform(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def _to_dict_transform(self, data: dict[str, Any]) -> dict[str, Any]:
         """
         Transform data kept in pythonic format into database format.
         """
@@ -315,7 +316,7 @@ class ElementList(GenericModel, Generic[ListElement], ABC):
     Provide methods to find, add and remove elements from the list.
     """
 
-    elements: List[ListElement] = Field(default=[])
+    elements: list[ListElement] = Field(default=[])
 
     class Config:
         validate_assignment = True  # validate data when updated, not just when initialised
@@ -352,7 +353,7 @@ class ElementList(GenericModel, Generic[ListElement], ABC):
         # must be implemented by subclass to get correct type information
         raise NotImplementedError()
 
-    def to_list(self) -> List[ListElement]:
+    def to_list(self) -> list[ListElement]:
         """
         Return the list of elements as a list.
 
@@ -360,7 +361,7 @@ class ElementList(GenericModel, Generic[ListElement], ABC):
         """
         return self.elements
 
-    def to_list_of_dicts(self) -> List[Dict[str, Any]]:
+    def to_list_of_dicts(self) -> list[dict[str, Any]]:
         """
         Get the elements in a serialized format that can be stored in MongoDB.
 
@@ -410,7 +411,7 @@ class ElementList(GenericModel, Generic[ListElement], ABC):
 
         return None
 
-    def filter(self, cls: Type[MatchingElement]) -> List[MatchingElement]:
+    def filter(self, cls: type[MatchingElement]) -> list[MatchingElement]:
         """
         Return a new ElementList with the elements that were instances of cls.
 
@@ -435,7 +436,7 @@ class VerifiedElementList(ElementList[ListElement], Generic[ListElement], ABC):
     """
 
     @property
-    def verified(self) -> List[ListElement]:
+    def verified(self) -> list[ListElement]:
         """
         Get all the verified elements in the ElementList.
 
@@ -530,7 +531,7 @@ class PrimaryElementList(VerifiedElementList[ListElement], Generic[ListElement],
         self.elements = new  # type: ignore
 
     @classmethod
-    def _get_primary(cls, elements: List[ListElement]) -> Optional[ListElement]:
+    def _get_primary(cls, elements: list[ListElement]) -> Optional[ListElement]:
         """
         Find the primary element in a list, and ensure there is exactly one (unless
         there are no confirmed elements, in which case, ensure there are exactly zero).

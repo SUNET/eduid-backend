@@ -13,7 +13,7 @@ add_creds_router = APIRouter()
 
 
 class AddCredsRequestV1(BaseModel):
-    factors: List[RequestFactor]
+    factors: list[RequestFactor]
     user_id: str
     version: int
 

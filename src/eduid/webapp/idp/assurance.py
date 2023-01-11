@@ -78,7 +78,7 @@ class MissingAuthentication(AssuranceException):
     pass
 
 
-class AuthnState(object):
+class AuthnState:
     def __init__(self, user: IdPUser, sso_session: SSOSession, ticket: LoginContext):
         self.password_used = False
         self.is_swamid_al2 = False
@@ -86,7 +86,7 @@ class AuthnState(object):
         self.external_mfa_used = False
         self.swamid_al2_used = False
         self.swamid_al2_hi_used = False
-        self._onetime_credentials: Dict[ElementKey, OnetimeCredential] = {}
+        self._onetime_credentials: dict[ElementKey, OnetimeCredential] = {}
         self._credentials = self._gather_credentials(sso_session, ticket, user)
 
         for this in self._credentials:
@@ -128,14 +128,14 @@ class AuthnState(object):
         if user.identities.is_verified:
             self.is_swamid_al2 = True
 
-    def _gather_credentials(self, sso_session: SSOSession, ticket: LoginContext, user: IdPUser) -> List[UsedCredential]:
+    def _gather_credentials(self, sso_session: SSOSession, ticket: LoginContext, user: IdPUser) -> list[UsedCredential]:
         """
         Gather credentials used for authentication.
 
         Add all credentials used with this very request and then, unless the request has forceAuthn set,
         add credentials from the SSO session.
         """
-        _used_credentials: Dict[ElementKey, UsedCredential] = {}
+        _used_credentials: dict[ElementKey, UsedCredential] = {}
 
         # Add all credentials used while the IdP processed this very request
         for key, ts in ticket.pending_request.credentials_used.items():
@@ -217,7 +217,7 @@ class AuthnState(object):
         return self.swamid_al2_used or self.swamid_al2_hi_used
 
     @property
-    def credentials(self) -> List[UsedCredential]:
+    def credentials(self) -> list[UsedCredential]:
         # property to make the credentials read-only
         return self._credentials
 

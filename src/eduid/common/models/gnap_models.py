@@ -43,7 +43,7 @@ class Key(GnapBaseModel):
     cert_S256: Optional[str] = Field(default=None, alias="cert#S256")
 
     @validator("proof", pre=True)
-    def expand_proof(cls, v: Union[str, Dict[str, Any]]) -> Dict[str, Any]:
+    def expand_proof(cls, v: Union[str, dict[str, Any]]) -> dict[str, Any]:
         # If additional parameters are not required or used for a specific method,
         # the method MAY be passed as a string instead of an object.
         if isinstance(v, str):
@@ -69,14 +69,14 @@ class Access(GnapBaseModel):
     # The types of actions the client instance will take at the RS as an
     # array of strings.  For example, a client instance asking for a
     # combination of "read" and "write" access.
-    actions: Optional[List[str]]
+    actions: Optional[list[str]]
     # The location of the RS as an array of strings. These strings are
     # typically URIs identifying the location of the RS.
-    locations: Optional[List[str]]
+    locations: Optional[list[str]]
     # The kinds of data available to the client instance at the RS's API
     # as an array of strings.  For example, a client instance asking for
     # access to raw "image" data and "metadata" at a photograph API.
-    datatypes: Optional[List[str]]
+    datatypes: Optional[list[str]]
     # A string identifier indicating a specific resource at the RS. For
     # example, a patient identifier for a medical API or a bank account
     # number for a financial API.
@@ -84,16 +84,16 @@ class Access(GnapBaseModel):
     # The types or levels of privilege being requested at the resource.
     # For example, a client instance asking for administrative level
     # access, or access when the resource owner is no longer online.
-    privileges: Optional[List[str]]
+    privileges: Optional[list[str]]
     # Sunet addition for requesting access to a specified scope
     scope: Optional[str]
 
 
 class AccessTokenRequest(GnapBaseModel):
-    access: Optional[List[Union[str, Access]]]
+    access: Optional[list[Union[str, Access]]]
     # TODO: label is REQUIRED if used as part of a multiple access token request
     label: Optional[str]
-    flags: Optional[List[AccessTokenFlags]]
+    flags: Optional[list[AccessTokenFlags]]
 
 
 class Client(GnapBaseModel):
@@ -101,7 +101,7 @@ class Client(GnapBaseModel):
 
 
 class GrantRequest(GnapBaseModel):
-    access_token: Union[AccessTokenRequest, List[AccessTokenRequest]]
+    access_token: Union[AccessTokenRequest, list[AccessTokenRequest]]
     client: Union[str, Client]
 
 
@@ -109,10 +109,10 @@ class AccessTokenResponse(GnapBaseModel):
     value: str
     label: Optional[str]
     manage: Optional[AnyUrl]
-    access: Optional[List[Union[str, Access]]]
+    access: Optional[list[Union[str, Access]]]
     expires_in: Optional[int] = Field(default=None, description="seconds until expiry")
     key: Optional[Union[str, Key]]
-    flags: Optional[List[AccessTokenFlags]]
+    flags: Optional[list[AccessTokenFlags]]
 
 
 class GrantResponse(GnapBaseModel):

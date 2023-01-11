@@ -17,7 +17,7 @@ class OidcIdToken(Element):
     # Subject identifier
     sub: str
     # Audience(s)
-    aud: List[str]
+    aud: list[str]
     # Expiration time
     exp: int
     # Time at which the JWT was issued. Its value is a JSON number representing
@@ -30,7 +30,7 @@ class OidcIdToken(Element):
     # Authentication Context Class Reference
     acr: Optional[str] = None
     # Authentication Methods References
-    amr: Optional[List[str]] = None
+    amr: Optional[list[str]] = None
     # Authorized party
     azp: Optional[str] = None
 
@@ -42,7 +42,7 @@ class OidcIdToken(Element):
         return ElementKey(f"{self.iss}{self.sub}")
 
     @classmethod
-    def _from_dict_transform(cls: Type[OidcIdToken], data: Dict[str, Any]) -> Dict[str, Any]:
+    def _from_dict_transform(cls: type[OidcIdToken], data: dict[str, Any]) -> dict[str, Any]:
         """
         Transform data received in eduid format into pythonic format.
         """
@@ -75,7 +75,7 @@ class OidcAuthorization(Element):
         return self.id_token.key
 
     @classmethod
-    def _from_dict_transform(cls: Type[OidcAuthorization], data: Dict[str, Any]) -> Dict[str, Any]:
+    def _from_dict_transform(cls: type[OidcAuthorization], data: dict[str, Any]) -> dict[str, Any]:
         """ """
         data = super()._from_dict_transform(data)
 
@@ -93,7 +93,7 @@ class OidcAuthorization(Element):
 
         return data
 
-    def _to_dict_transform(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def _to_dict_transform(self, data: dict[str, Any]) -> dict[str, Any]:
         """ """
         data = super()._to_dict_transform(data)
 
@@ -117,7 +117,7 @@ class Orcid(VerifiedElement):
         return ElementKey(self.id)
 
     @classmethod
-    def _from_dict_transform(cls: Type[Orcid], data: Dict[str, Any]) -> Dict[str, Any]:
+    def _from_dict_transform(cls: type[Orcid], data: dict[str, Any]) -> dict[str, Any]:
         """ """
         data = super()._from_dict_transform(data)
 
@@ -130,7 +130,7 @@ class Orcid(VerifiedElement):
 
         return data
 
-    def _to_dict_transform(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def _to_dict_transform(self, data: dict[str, Any]) -> dict[str, Any]:
         """ """
         data["oidc_authz"] = self.oidc_authz.to_dict()
 

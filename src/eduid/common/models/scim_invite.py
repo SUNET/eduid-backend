@@ -23,15 +23,15 @@ __author__ = "lundberg"
 
 class NutidInviteExtensionV1(EduidBaseModel):
     name: Name = Field(default_factory=Name)
-    emails: List[Email] = Field(default_factory=list)
-    phone_numbers: List[PhoneNumber] = Field(default_factory=list, alias="phoneNumbers")
+    emails: list[Email] = Field(default_factory=list)
+    phone_numbers: list[PhoneNumber] = Field(default_factory=list, alias="phoneNumbers")
     national_identity_number: Optional[str] = Field(
         default=None,
         alias="nationalIdentityNumber",
         regex=nin_re_str,
     )
     preferred_language: Optional[LanguageTag] = Field(default=None, alias="preferredLanguage")
-    groups: List[UUID] = Field(default_factory=list)
+    groups: list[UUID] = Field(default_factory=list)
     inviter_name: Optional[str] = Field(default=None, alias="inviterName")
     send_email: Optional[bool] = Field(default=None, alias="sendEmail")
     finish_url: Optional[str] = Field(default=None, alias="finishURL")
@@ -41,7 +41,7 @@ class NutidInviteExtensionV1(EduidBaseModel):
     expires_at: Optional[datetime] = Field(default=None, alias="expiresAt")
 
     @root_validator
-    def validate_schema(cls, values: Dict[str, Any]) -> Dict:
+    def validate_schema(cls, values: dict[str, Any]) -> dict:
         # Validate that at least one email address were provided if an invite email should be sent
         if values.get("send_email") is True and len(values.get("emails", [])) == 0:
             raise ValueError("There must be an email address to be able to send an invite mail.")

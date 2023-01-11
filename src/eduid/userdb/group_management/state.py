@@ -4,7 +4,8 @@ import copy
 import datetime
 from dataclasses import asdict, dataclass, field, fields
 from enum import Enum, unique
-from typing import Any, Mapping, Optional
+from typing import Any, Optional
+from collections.abc import Mapping
 
 import bson
 
@@ -46,7 +47,7 @@ class GroupInviteState:
         if not _data.get("modified_ts"):
             _data["modified_ts"] = None
 
-        field_names = set(f.name for f in fields(cls))
+        field_names = {f.name for f in fields(cls)}
         _leftovers = [x for x in _data.keys() if x not in field_names]
         if _leftovers:
             raise UserDBValueError(f"{cls}.from_dict() unknown data: {_leftovers}")

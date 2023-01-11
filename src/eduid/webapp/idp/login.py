@@ -17,7 +17,8 @@ import time
 from base64 import b64encode
 from dataclasses import dataclass
 from hashlib import sha256
-from typing import Dict, List, Mapping, Optional, Union
+from typing import Dict, List, Optional, Union
+from collections.abc import Mapping
 from uuid import uuid4
 
 from defusedxml import ElementTree as DefusedElementTree
@@ -496,7 +497,7 @@ class SSO(Service):
             digestmod=sha256,
         ).hexdigest()
 
-    def _get_eptid(self, relying_party: str, user_eppn: str) -> List[Dict[str, str]]:
+    def _get_eptid(self, relying_party: str, user_eppn: str) -> list[dict[str, str]]:
         """
         Generate eduPersonTargetedID
 
@@ -682,7 +683,7 @@ def do_verify() -> WerkzeugResponse:
 
     # Create SSO session
     current_app.logger.debug(f"User {pwauth.user} authenticated OK (SAML id {repr(_ticket.saml_req.request_id)})")
-    _authn_credentials: List[AuthnData] = []
+    _authn_credentials: list[AuthnData] = []
     if pwauth.authndata:
         _authn_credentials = [pwauth.authndata]
     _sso_session = SSOSession(

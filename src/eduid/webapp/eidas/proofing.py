@@ -395,7 +395,7 @@ class EidasProofingFunctions(SwedenConnectProofingFunctions[ForeignEidSessionInf
 
 
 def _find_or_add_credential(
-    user: User, framework: Optional[TrustFramework], required_loa: List[str]
+    user: User, framework: Optional[TrustFramework], required_loa: list[str]
 ) -> Optional[ElementKey]:
     if not required_loa:
         # mainly keep mypy calm

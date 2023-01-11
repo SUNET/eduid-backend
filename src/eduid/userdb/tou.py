@@ -62,7 +62,7 @@ class ToUEvent(Event):
         return v
 
     @classmethod
-    def _from_dict_transform(cls: Type[ToUEvent], data: Dict[str, Any]) -> Dict[str, Any]:
+    def _from_dict_transform(cls: type[ToUEvent], data: dict[str, Any]) -> dict[str, Any]:
         """ """
         data = super()._from_dict_transform(data)
 
@@ -98,7 +98,7 @@ class ToUList(EventList[ToUEvent]):
     """
 
     @classmethod
-    def from_list_of_dicts(cls: Type[ToUList], items: List[Dict[str, Any]]) -> ToUList:
+    def from_list_of_dicts(cls: type[ToUList], items: list[dict[str, Any]]) -> ToUList:
         return cls(elements=[ToUEvent.from_dict(this) for this in items])
 
     def has_accepted(self, version: str, reaccept_interval: int) -> bool:

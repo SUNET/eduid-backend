@@ -73,8 +73,8 @@ class SAMLAttributeSettings:
     default_eppn_scope: str
     default_country: str
     default_country_code: str
-    sp_entity_categories: List[str]
-    sp_subject_id_request: List[str]
+    sp_entity_categories: list[str]
+    sp_subject_id_request: list[str]
     esi_ladok_prefix: str
     pairwise_id: Optional[str] = None
 
@@ -95,8 +95,8 @@ class IdPUser(User):
     def to_saml_attributes(
         self,
         settings: SAMLAttributeSettings,
-        filter_attributes: Optional[List[str]] = None,
-    ) -> Dict[str, Any]:
+        filter_attributes: Optional[list[str]] = None,
+    ) -> dict[str, Any]:
         """
         Return a dict of SAML attributes for a user.
 
@@ -136,7 +136,7 @@ class IdPUser(User):
         return attributes
 
 
-def make_scoped_eppn(attributes: Dict[str, Any], settings: SAMLAttributeSettings) -> Dict[str, Any]:
+def make_scoped_eppn(attributes: dict[str, Any], settings: SAMLAttributeSettings) -> dict[str, Any]:
     """
     Add scope to unscoped eduPersonPrincipalName attributes before releasing them.
 
@@ -156,7 +156,7 @@ def make_scoped_eppn(attributes: Dict[str, Any], settings: SAMLAttributeSettings
     return attributes
 
 
-def add_country_attributes(attributes: Dict[str, Any], settings: SAMLAttributeSettings) -> Dict[str, Any]:
+def add_country_attributes(attributes: dict[str, Any], settings: SAMLAttributeSettings) -> dict[str, Any]:
     if attributes.get("c") is None:
         attributes["c"] = settings.default_country_code
     if attributes.get("co") is None:
@@ -164,7 +164,7 @@ def add_country_attributes(attributes: Dict[str, Any], settings: SAMLAttributeSe
     return attributes
 
 
-def add_eduperson_assurance(attributes: Dict[str, Any], user: IdPUser) -> Dict[str, Any]:
+def add_eduperson_assurance(attributes: dict[str, Any], user: IdPUser) -> dict[str, Any]:
     """
     Add an eduPersonAssurance attribute indicating the level of id-proofing
     a user has achieved, regardless of current session authentication strength.
@@ -180,7 +180,7 @@ def add_eduperson_assurance(attributes: Dict[str, Any], user: IdPUser) -> Dict[s
     return attributes
 
 
-def make_name_attributes(attributes: Dict[str, Any], user: IdPUser) -> Dict[str, Any]:
+def make_name_attributes(attributes: dict[str, Any], user: IdPUser) -> dict[str, Any]:
     # displayName
     if attributes.get("displayName") is None and user.display_name:
         attributes["displayName"] = user.display_name
@@ -196,7 +196,7 @@ def make_name_attributes(attributes: Dict[str, Any], user: IdPUser) -> Dict[str,
     return attributes
 
 
-def make_nor_eduperson_nin(attributes: Dict[str, Any], user: IdPUser) -> Dict[str, Any]:
+def make_nor_eduperson_nin(attributes: dict[str, Any], user: IdPUser) -> dict[str, Any]:
     """
     eppn@scope (no dash (-) allowed)
     """
@@ -210,7 +210,7 @@ def make_nor_eduperson_nin(attributes: Dict[str, Any], user: IdPUser) -> Dict[st
     return attributes
 
 
-def make_personal_identity_number(attributes: Dict[str, Any], user: IdPUser) -> Dict[str, Any]:
+def make_personal_identity_number(attributes: dict[str, Any], user: IdPUser) -> dict[str, Any]:
     """
     Only "personnummer" or "samordningsnummer" is allowed as personalIdentityNumber.
     """
@@ -224,7 +224,7 @@ def make_personal_identity_number(attributes: Dict[str, Any], user: IdPUser) -> 
     return attributes
 
 
-def make_schac_date_of_birth(attributes: Dict[str, Any], user: IdPUser) -> Dict[str, Any]:
+def make_schac_date_of_birth(attributes: dict[str, Any], user: IdPUser) -> dict[str, Any]:
     """
     Format: YYYYMMDD, only numeric
     """
@@ -236,7 +236,7 @@ def make_schac_date_of_birth(attributes: Dict[str, Any], user: IdPUser) -> Dict[
     return attributes
 
 
-def make_mail(attributes: Dict[str, Any], user: IdPUser) -> Dict[str, Any]:
+def make_mail(attributes: dict[str, Any], user: IdPUser) -> dict[str, Any]:
     if attributes.get("mail") is not None:
         return attributes
 
@@ -246,7 +246,7 @@ def make_mail(attributes: Dict[str, Any], user: IdPUser) -> Dict[str, Any]:
     return attributes
 
 
-def make_eduperson_orcid(attributes: Dict[str, Any], user: IdPUser) -> Dict[str, Any]:
+def make_eduperson_orcid(attributes: dict[str, Any], user: IdPUser) -> dict[str, Any]:
     # TODO: Should the user be AL2 for us to release this?
     #   Should we disallow there to be more than one eduID user with the same orcid?
     if attributes.get("eduPersonOrcid") is not None:
@@ -266,8 +266,8 @@ def _make_user_esi(user: IdPUser, settings: SAMLAttributeSettings) -> Optional[s
 
 
 def make_schac_personal_unique_code(
-    attributes: Dict[str, Any], user: IdPUser, settings: SAMLAttributeSettings
-) -> Dict[str, Any]:
+    attributes: dict[str, Any], user: IdPUser, settings: SAMLAttributeSettings
+) -> dict[str, Any]:
     """
     schacPersonalUniqueCode could be something other than ESI, but we have no usecase for anything else
     at the moment
@@ -286,7 +286,7 @@ def make_schac_personal_unique_code(
     return attributes
 
 
-def add_mail_local_address(attributes: Dict[str, Any], user: IdPUser) -> Dict[str, Any]:
+def add_mail_local_address(attributes: dict[str, Any], user: IdPUser) -> dict[str, Any]:
     if attributes.get("mailLocalAddress") is not None:
         return attributes
 
@@ -295,8 +295,8 @@ def add_mail_local_address(attributes: Dict[str, Any], user: IdPUser) -> Dict[st
 
 
 def add_pairwise_or_subject_id(
-    attributes: Dict[str, Any], user: IdPUser, settings: SAMLAttributeSettings
-) -> Dict[str, Any]:
+    attributes: dict[str, Any], user: IdPUser, settings: SAMLAttributeSettings
+) -> dict[str, Any]:
     """
     Add a pairwise or subject ID attribute to the attributes' dict.
     """

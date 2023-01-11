@@ -5,7 +5,8 @@ import logging
 import uuid
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from typing import Any, Dict, List, Mapping, Optional, Tuple, Type
+from typing import Any, Dict, List, Optional, Tuple, Type
+from collections.abc import Mapping
 from uuid import UUID
 
 from bson import ObjectId
@@ -31,13 +32,13 @@ logger = logging.getLogger(__name__)
 class ScimApiInvite(ScimApiResourceBase):
     invite_id: ObjectId = field(default_factory=lambda: ObjectId())
     name: ScimApiName = field(default_factory=lambda: ScimApiName())
-    emails: List[ScimApiEmail] = field(default_factory=list)
-    phone_numbers: List[ScimApiPhoneNumber] = field(default_factory=list)
-    groups: List[UUID] = field(default_factory=list)
+    emails: list[ScimApiEmail] = field(default_factory=list)
+    phone_numbers: list[ScimApiPhoneNumber] = field(default_factory=list)
+    groups: list[UUID] = field(default_factory=list)
     nin: Optional[str] = field(default=None)
     preferred_language: Optional[str] = field(default=None)
     completed: Optional[datetime] = field(default=None)
-    profiles: Dict[str, ScimApiProfile] = field(default_factory=lambda: {})
+    profiles: dict[str, ScimApiProfile] = field(default_factory=lambda: {})
 
     def to_dict(self) -> TUserDbDocument:
         res = asdict(self)
@@ -50,7 +51,7 @@ class ScimApiInvite(ScimApiResourceBase):
         return TUserDbDocument(res)
 
     @classmethod
-    def from_dict(cls: Type[ScimApiInvite], data: Mapping[str, Any]) -> ScimApiInvite:
+    def from_dict(cls: type[ScimApiInvite], data: Mapping[str, Any]) -> ScimApiInvite:
         this = dict(copy.copy(data))  # to not modify callers data
         this["scim_id"] = uuid.UUID(this["scim_id"])
         this["invite_id"] = this.pop("_id")
@@ -117,7 +118,7 @@ class ScimApiInviteDB(ScimApiBaseDB):
 
     def get_invites_by_last_modified(
         self, operator: str, value: datetime, limit: Optional[int] = None, skip: Optional[int] = None
-    ) -> Tuple[List[ScimApiInvite], int]:
+    ) -> tuple[list[ScimApiInvite], int]:
         # map SCIM filter operators to mongodb filter
         mongo_operator = {"gt": "$gt", "ge": "$gte"}.get(operator)
         if not mongo_operator:

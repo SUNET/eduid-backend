@@ -79,7 +79,8 @@ from __future__ import annotations
 import collections.abc
 import json
 import logging
-from typing import Any, Dict, List, Mapping, Optional, Union
+from typing import Any, Dict, List, Optional, Union
+from collections.abc import Mapping
 
 import nacl.encoding
 import nacl.secret
@@ -96,7 +97,7 @@ from eduid.webapp.common.session.meta import SessionMeta
 logger = logging.getLogger(__name__)
 
 
-class SessionManager(object):
+class SessionManager:
     """
     Factory objects that hold some configuration data and provide
     session objects.
@@ -107,7 +108,7 @@ class SessionManager(object):
         redis_config: RedisConfig,
         app_secret: str,
         ttl: int = 600,
-        whitelist: Optional[List[str]] = None,
+        whitelist: Optional[list[str]] = None,
         raise_on_unknown: bool = False,
     ):
         """
@@ -198,7 +199,7 @@ class RedisEncryptedSession(collections.abc.MutableMapping):
         db_key: str,
         encryption_key: bytes,
         ttl: int,
-        whitelist: Optional[List[str]] = None,
+        whitelist: Optional[list[str]] = None,
         raise_on_unknown: bool = False,
     ):
         """
@@ -326,7 +327,7 @@ class RedisEncryptedSession(collections.abc.MutableMapping):
         }
         return bytes(json.dumps(versioned), "ascii")
 
-    def decrypt_data(self, data_str: str) -> Dict[str, Any]:
+    def decrypt_data(self, data_str: str) -> dict[str, Any]:
         """
         Decrypt and verify session data read from Redis.
 

@@ -42,13 +42,13 @@ class NoOpStats(AppStats):
     def count(self, name: str, value: int = 1) -> None:
         if self.logger:
             if self.prefix:
-                name = "{!s}.{!s}".format(self.prefix, name)
-            self.logger.info("No-op stats count: {!r} {!r}".format(name, value))
+                name = f"{self.prefix!s}.{name!s}"
+            self.logger.info(f"No-op stats count: {name!r} {value!r}")
 
     def gauge(self, name: str, value: int, rate=1, delta=False):
         if self.logger:
             if self.prefix:
-                name = "{!s}.{!s}".format(self.prefix, name)
+                name = f"{self.prefix!s}.{name!s}"
             self.logger.info(f"No-op stats gauge: {name} {value}")
 
 

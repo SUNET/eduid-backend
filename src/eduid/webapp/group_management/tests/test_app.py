@@ -30,11 +30,12 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 import json
-from typing import Any, Dict, Mapping, Optional
+from typing import Any, Dict, Optional
+from collections.abc import Mapping
 from uuid import UUID
 
 import pytest
-from mock import patch
+from unittest.mock import patch
 from werkzeug.test import TestResponse
 
 from eduid.common.testing_base import normalised_data
@@ -103,7 +104,7 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
         """
         return init_group_management_app(test_config=config)
 
-    def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
+    def update_config(self, config: dict[str, Any]) -> dict[str, Any]:
         config.update(
             {
                 "eduid_site_url": "https://test.eduid.se/",
@@ -114,7 +115,7 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
         return config
 
     def tearDown(self):
-        super(GroupManagementTests, self).tearDown()
+        super().tearDown()
         with self.app.app_context():
             self.neo4j_instance.purge_db()
 

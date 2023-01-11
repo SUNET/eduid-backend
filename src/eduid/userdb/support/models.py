@@ -7,8 +7,8 @@ __author__ = "lundberg"
 # Models for filtering out unneeded or unwanted data from eduID database objects
 class GenericFilterDict(dict):
 
-    add_keys: Optional[List[str]] = None
-    remove_keys: Optional[List[str]] = None
+    add_keys: Optional[list[str]] = None
+    remove_keys: Optional[list[str]] = None
 
     def __init__(self, data):
         """
@@ -18,7 +18,7 @@ class GenericFilterDict(dict):
         :type data: dict
         """
         _data = deepcopy(data)
-        super(GenericFilterDict, self).__init__()
+        super().__init__()
 
         if _data is None:
             pass
@@ -42,7 +42,7 @@ class SupportUserFilter(GenericFilterDict):
 
     def __init__(self, data):
         _data = deepcopy(data)
-        super(SupportUserFilter, self).__init__(_data)
+        super().__init__(_data)
 
         self["mailAliases"] = [MailAlias(alias) for alias in self.get("mailAliases", [])]
         self["passwords"] = [Credential(password) for password in self.get("passwords", [])]
@@ -55,7 +55,7 @@ class SupportSignupUserFilter(GenericFilterDict):
 
     def __init__(self, data):
         _data = deepcopy(data)
-        super(SupportSignupUserFilter, self).__init__(_data)
+        super().__init__(_data)
 
         self["mailAliases"] = [MailAlias(alias) for alias in self.get("mailAliases", [])]
         self["passwords"] = [Credential(password) for password in self.get("passwords", [])]
@@ -83,7 +83,7 @@ class Credential(GenericFilterDict):
             _data["type"] = "Password"
         elif "keyhandle" in _data:
             _data["type"] = "U2F"
-        super(Credential, self).__init__(_data)
+        super().__init__(_data)
 
 
 class ToU(GenericFilterDict):
@@ -102,7 +102,7 @@ class UserAuthnInfo(GenericFilterDict):
             for key, value in data.get(attrib, {}).items():
                 if value == 0:
                     del _data[attrib][key]
-        super(UserAuthnInfo, self).__init__(_data)
+        super().__init__(_data)
 
 
 class UserVerifications(GenericFilterDict):
@@ -126,7 +126,7 @@ class ProofingLogEntry(GenericFilterDict):
         for name in verified_data_names:
             if name in _data:
                 _data["verified_data"] = _data[name]
-        super(ProofingLogEntry, self).__init__(_data)
+        super().__init__(_data)
 
 
 class UserLetterProofing(GenericFilterDict):
@@ -141,7 +141,7 @@ class UserLetterProofing(GenericFilterDict):
 
     def __init__(self, data):
         _data = deepcopy(data)
-        super(UserLetterProofing, self).__init__(_data)
+        super().__init__(_data)
         self["nin"] = self.Nin(self["nin"])
         self["proofing_letter"] = self.ProofingLetter(self["proofing_letter"])
 
@@ -155,7 +155,7 @@ class UserOidcProofing(GenericFilterDict):
 
     def __init__(self, data):
         _data = deepcopy(data)
-        super(UserOidcProofing, self).__init__(_data)
+        super().__init__(_data)
         self["nin"] = self.Nin(self["nin"])
 
 
@@ -168,7 +168,7 @@ class UserEmailProofing(GenericFilterDict):
 
     def __init__(self, data):
         _data = deepcopy(data)
-        super(UserEmailProofing, self).__init__(_data)
+        super().__init__(_data)
         self["verification"] = self.Verification(self["verification"])
 
 
@@ -181,5 +181,5 @@ class UserPhoneProofing(GenericFilterDict):
 
     def __init__(self, data):
         _data = deepcopy(data)
-        super(UserPhoneProofing, self).__init__(_data)
+        super().__init__(_data)
         self["verification"] = self.Verification(self["verification"])

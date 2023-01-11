@@ -27,7 +27,7 @@ ADDRESS = FullPostalAddress.parse_obj(
 
 
 class ProofingStateTest(TestCase):
-    def _test_create_letterproofingstate(self, state: LetterProofingState, nin_expected_keys: List[str]):
+    def _test_create_letterproofingstate(self, state: LetterProofingState, nin_expected_keys: list[str]):
         """
         {
              'eppn': 'foob-arra',

@@ -1,4 +1,5 @@
-from typing import Any, Mapping, Optional, cast
+from typing import Any, Optional, cast
+from collections.abc import Mapping
 
 from authlib.integrations.flask_client import OAuth
 from flask import current_app
@@ -75,5 +76,5 @@ def svipe_id_init_app(name: str = "svipe_id", test_config: Optional[Mapping[str,
 
     app.register_blueprint(svipe_id_views)
 
-    app.logger.info("{!s} initialized".format(name))
+    app.logger.info(f"{name!s} initialized")
     return app

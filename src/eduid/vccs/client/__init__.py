@@ -1,4 +1,3 @@
-# -*- encoding: utf-8 -*-
 #
 # Copyright (c) 2013, 2014, 2017 NORDUnet A/S
 # All rights reserved.
@@ -77,7 +76,8 @@ Revoke a credential (irreversible!) :
 """
 
 import os
-from typing import Any, Dict, Optional, Sequence, Tuple
+from typing import Any, Dict, Optional, Tuple
+from collections.abc import Sequence
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
@@ -116,7 +116,7 @@ class VCCSClientHTTPError(VCCSClientException):
         )
 
 
-class VCCSFactor(object):
+class VCCSFactor:
     """
     Base class for authentication factors. Do not use directly.
     """
@@ -124,7 +124,7 @@ class VCCSFactor(object):
     def __init__(self):
         pass
 
-    def to_dict(self, _action: str) -> Dict[str, Any]:
+    def to_dict(self, _action: str) -> dict[str, Any]:
         """
         Return factor as a dict that can be serialized for sending to the
         authentication backend.
@@ -155,7 +155,7 @@ class VCCSPasswordFactor(VCCSFactor):
             raise ValueError("Invalid salt (not NDNv1H1)")
         self.salt = salt
         if not isinstance(credential_id, str):
-            raise ValueError("Non-string credential id: {!r}".format(credential_id))
+            raise ValueError(f"Non-string credential id: {credential_id!r}")
         self.credential_id = credential_id
         (
             salt_bytes,
@@ -167,7 +167,7 @@ class VCCSPasswordFactor(VCCSFactor):
         if strip_whitespace:
             password = "".join(password.split())
         password_bytes = bytes(password, "utf-8")
-        T1 = "{!s}{!s}{!s}".format(len(cid_str), cid_str, len(password_bytes))
+        T1 = f"{len(cid_str)!s}{cid_str!s}{len(password_bytes)!s}"
         T1_bytes = bytes(T1, "utf-8") + password_bytes
 
         # password = '4471120passwordåäöхэж' (T1 as hex:'3434373131323070617373776f7264c3a5c3a4c3b6d185d18dd0b6')
@@ -195,15 +195,15 @@ class VCCSPasswordFactor(VCCSFactor):
         random = self._get_random_bytes(salt_length)
         random_str = random.hex()
 
-        return "$NDNv1H1${!s}${!r}${!r}$".format(random_str, desired_key_length, rounds)
+        return f"$NDNv1H1${random_str!s}${desired_key_length!r}${rounds!r}$"
 
-    def _decode_parameters(self, salt: str) -> Tuple[bytes, int, int]:
+    def _decode_parameters(self, salt: str) -> tuple[bytes, int, int]:
         """
         Internal function to decode a NDNv1H1 salt.
         """
         _, version, salt, desired_key_length, rounds, _ = salt.split("$")
         if version == "NDNv1H1":
-            salt_bytes = bytes().fromhex(salt)
+            salt_bytes = b''.fromhex(salt)
             return salt_bytes, int(desired_key_length), int(rounds)
         raise NotImplementedError("Unknown hashing scheme")
 
@@ -260,7 +260,7 @@ class VCCSOathFactor(VCCSFactor):
         self.oath_counter = oath_counter
         VCCSFactor.__init__(self)
 
-    def to_dict(self, action: str) -> Dict[str, Any]:
+    def to_dict(self, action: str) -> dict[str, Any]:
         """
         Return factor as dictionary, transmittable to authentiation backends.
         :param action: 'auth', 'add_creds' or 'revoke_creds'
@@ -293,7 +293,7 @@ class VCCSOathFactor(VCCSFactor):
             raise ValueError("Unknown 'action' value (not auth or add_creds)")
         for (k, v) in res.items():
             if v is None:
-                raise ValueError("{!r} property {!r} not provided".format(action, k))
+                raise ValueError(f"{action!r} property {k!r} not provided")
         return res
 
 
@@ -309,18 +309,18 @@ class VCCSRevokeFactor(VCCSFactor):
         :param reference: optional data to identify this event in logs on frontend
         """
         if not isinstance(credential_id, str):
-            raise TypeError("Non-string credential id: {!r}".format(credential_id))
+            raise TypeError(f"Non-string credential id: {credential_id!r}")
         if not isinstance(reason, str):
-            raise TypeError("Revocation reason value type error : {!r}".format(reason))
+            raise TypeError(f"Revocation reason value type error : {reason!r}")
         if not isinstance(reference, str):
-            raise TypeError("Revocation reference value type error : {!r}".format(reference))
+            raise TypeError(f"Revocation reference value type error : {reference!r}")
 
         self.credential_id = credential_id
         self.reason = reason
         self.reference = reference
         VCCSFactor.__init__(self)
 
-    def to_dict(self, _action: str) -> Dict[str, Any]:
+    def to_dict(self, _action: str) -> dict[str, Any]:
         """
         Return factor as dictionary, transmittable to authentication backends.
         :param _action: string, 'auth' or 'add_creds'
@@ -333,7 +333,7 @@ class VCCSRevokeFactor(VCCSFactor):
         return res
 
 
-class VCCSClient(object):
+class VCCSClient:
     """
     Connection class for handling a connection to a VCCS authentication backend server.
 
@@ -363,7 +363,7 @@ class VCCSClient(object):
         response = self._execute(auth_req, "auth_response")
         resp_auth = response["authenticated"]
         if type(resp_auth) != bool:
-            raise TypeError("Authenticated value type error : {!r}".format(resp_auth))
+            raise TypeError(f"Authenticated value type error : {resp_auth!r}")
         return resp_auth is True
 
     def add_credentials(self, user_id: str, factors: Sequence[VCCSFactor]) -> bool:
@@ -380,7 +380,7 @@ class VCCSClient(object):
         response = self._execute(add_creds_req, "add_creds_response")
         success = response["success"]
         if type(success) != bool:
-            raise TypeError("Operation success value type error : {!r}".format(success))
+            raise TypeError(f"Operation success value type error : {success!r}")
         return success is True
 
     def revoke_credentials(self, user_id: str, factors: Sequence[VCCSRevokeFactor]) -> bool:
@@ -398,7 +398,7 @@ class VCCSClient(object):
         response = self._execute(revoke_creds_req, "revoke_creds_response")
         success = response["success"]
         if type(success) != bool:
-            raise TypeError("Operation success value type error : {!r}".format(success))
+            raise TypeError(f"Operation success value type error : {success!r}")
         return success is True
 
     def _execute(self, data, response_label: str):
@@ -417,17 +417,17 @@ class VCCSClient(object):
         elif response_label == "revoke_creds_response":
             service = "revoke_creds"
         else:
-            raise ValueError("Unknown response_label {!r}".format(response_label))
+            raise ValueError(f"Unknown response_label {response_label!r}")
         values = {"request": data}
         body = self._execute_request_response(service, values)
 
         # parse the response
         resp = json.loads(body)
         if response_label not in resp:
-            raise ValueError("Expected {!r} not found in parsed response".format(response_label))
+            raise ValueError(f"Expected {response_label!r} not found in parsed response")
         resp_ver = resp[response_label]["version"]
         if resp_ver != 1:
-            raise AssertionError("Received response of unknown version {!r}".format(resp_ver))
+            raise AssertionError(f"Received response of unknown version {resp_ver!r}")
         return resp[response_label]
 
     def _execute_request_response(self, service: str, values):
@@ -455,6 +455,6 @@ class VCCSClient(object):
         :returns: request as string (JSON)
         """
         if action not in ["auth", "add_creds", "revoke_creds"]:
-            raise ValueError("Unknown action {!r}".format(action))
+            raise ValueError(f"Unknown action {action!r}")
         a = {action: {"version": 1, "user_id": user_id, "factors": [x.to_dict(action) for x in factors]}}
         return json.dumps(a, sort_keys=True, indent=4)

@@ -31,7 +31,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from typing import Any, Mapping, Optional, cast
+from typing import Any, Optional, cast
+from collections.abc import Mapping
 
 from fido_mds import FidoMetadataStore
 from flask import current_app

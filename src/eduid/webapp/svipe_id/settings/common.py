@@ -19,8 +19,8 @@ class AuthlibClientConfig(BaseModel):
     client_secret: str
     issuer: AnyUrl
     code_challenge_method: str = Field(default="S256")
-    acr_values: List[str] = Field(default_factory=list)
-    scopes: List[str] = Field(default=["openid"])
+    acr_values: list[str] = Field(default_factory=list)
+    scopes: list[str] = Field(default=["openid"])
 
 
 class SvipeIdConfig(

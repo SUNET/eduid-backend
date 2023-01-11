@@ -111,18 +111,18 @@ def post_email(user: User, email: str, verified, primary) -> FluxData:
 @require_user
 def post_primary(user: User, email: str) -> FluxData:
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
-    current_app.logger.debug("Trying to set email address {!r} as primary for user {}".format(email, proofing_user))
+    current_app.logger.debug(f"Trying to set email address {email!r} as primary for user {proofing_user}")
 
     mail = proofing_user.mail_addresses.find(email)
     if not mail:
         current_app.logger.debug(
-            "Couldnt save email {!r} as primary for user {}, data out of sync".format(email, proofing_user)
+            f"Couldnt save email {email!r} as primary for user {proofing_user}, data out of sync"
         )
         return error_response(message=CommonMsg.out_of_sync)
 
     if not mail.is_verified:
         current_app.logger.debug(
-            "Couldnt save email {!r} as primary for user {}, email unconfirmed".format(email, proofing_user)
+            f"Couldnt save email {email!r} as primary for user {proofing_user}, email unconfirmed"
         )
         return error_response(message=EmailMsg.unconfirmed_not_primary)
 
@@ -149,7 +149,7 @@ def post_primary(user: User, email: str) -> FluxData:
 def verify(user: User, code: str, email: str) -> FluxData:
     """"""
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
-    current_app.logger.debug("Trying to save email address {} as verified".format(email))
+    current_app.logger.debug(f"Trying to save email address {email} as verified")
 
     db = current_app.proofing_statedb
     state = db.get_state_by_eppn_and_email(proofing_user.eppn, email)
@@ -166,7 +166,7 @@ def verify(user: User, code: str, email: str) -> FluxData:
         try:
             verify_mail_address(state, proofing_user)
             current_app.logger.info("Email successfully verified")
-            current_app.logger.debug("Email address: {}".format(email))
+            current_app.logger.debug(f"Email address: {email}")
             emails = {
                 "emails": proofing_user.mail_addresses.to_list_of_dicts(),
             }
@@ -174,10 +174,10 @@ def verify(user: User, code: str, email: str) -> FluxData:
             return success_response(payload=email_list, message=EmailMsg.verify_success)
         except UserOutOfSync:
             current_app.logger.info("Could not confirm email, data out of sync")
-            current_app.logger.debug("Mail address: {}".format(email))
+            current_app.logger.debug(f"Mail address: {email}")
             return error_response(message=CommonMsg.out_of_sync)
     current_app.logger.info("Invalid verification code")
-    current_app.logger.debug("Email address: {}".format(state.verification.email))
+    current_app.logger.debug(f"Email address: {state.verification.email}")
     return error_response(message=EmailMsg.invalid_code)
 
 
@@ -242,13 +242,13 @@ def post_remove(user, email):
 
     # Do not let the user remove all mail addresses
     if proofing_user.mail_addresses.count == 1:
-        current_app.logger.debug("Cannot remove the last address: {}".format(email))
+        current_app.logger.debug(f"Cannot remove the last address: {email}")
         return error_response(message=EmailMsg.cannot_remove_last)
 
     # Do not let the user remove all verified mail addresses
     verified_emails = proofing_user.mail_addresses.verified
     if len(verified_emails) == 1 and verified_emails[0].email == email:
-        current_app.logger.debug("Cannot remove last verified address: {}".format(email))
+        current_app.logger.debug(f"Cannot remove last verified address: {email}")
         return error_response(message=EmailMsg.cannot_remove_last_verified)
 
     proofing_user.mail_addresses.remove_handling_primary(email)
@@ -256,10 +256,10 @@ def post_remove(user, email):
     try:
         save_and_sync_user(proofing_user)
     except UserOutOfSync:
-        current_app.logger.debug("Could not remove email {} for user, data out of sync".format(email))
+        current_app.logger.debug(f"Could not remove email {email} for user, data out of sync")
         return error_response(message=CommonMsg.out_of_sync)
 
-    current_app.logger.info("Email address {} removed".format(email))
+    current_app.logger.info(f"Email address {email} removed")
     current_app.stats.count(name="email_remove_success", value=1)
 
     _emails = {"emails": proofing_user.mail_addresses.to_list_of_dicts()}

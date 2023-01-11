@@ -1,7 +1,8 @@
 import json
-from typing import Any, Dict, Mapping
+from typing import Any, Dict
+from collections.abc import Mapping
 
-from mock import MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 from eduid.userdb.orcid import OidcAuthorization, OidcIdToken, Orcid
 from eduid.userdb.proofing import ProofingUser
@@ -33,7 +34,7 @@ class OrcidTests(EduidAPITestCase[OrcidApp]):
             "issuer": "https://example.com/op/",
         }
 
-        class MockResponse(object):
+        class MockResponse:
             def __init__(self, status_code: int, text: str):
                 self.status_code = status_code
                 self.text = text
@@ -73,7 +74,7 @@ class OrcidTests(EduidAPITestCase[OrcidApp]):
             mock_response.return_value = self.oidc_provider_config_response
             return init_orcid_app("testing", config)
 
-    def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
+    def update_config(self, config: dict[str, Any]) -> dict[str, Any]:
         config.update(
             {
                 "provider_configuration_info": {"issuer": "https://example.com/op/"},
@@ -90,7 +91,7 @@ class OrcidTests(EduidAPITestCase[OrcidApp]):
     def mock_authorization_response(
         self,
         proofing_state: OrcidProofingState,
-        userinfo: Dict[str, Any],
+        userinfo: dict[str, Any],
         mock_token_request: MagicMock,
         mock_userinfo_request: MagicMock,
         mock_auth_response: MagicMock,
@@ -121,7 +122,7 @@ class OrcidTests(EduidAPITestCase[OrcidApp]):
         }
         userinfo["sub"] = "sub"
         mock_userinfo_request.return_value = userinfo
-        return self.browser.get("/authorization-response?id_token=id_token&state={}".format(proofing_state.state))
+        return self.browser.get(f"/authorization-response?id_token=id_token&state={proofing_state.state}")
 
     def test_authenticate(self):
         response = self.browser.get("/authorize")

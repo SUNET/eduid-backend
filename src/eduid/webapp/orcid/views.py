@@ -28,7 +28,7 @@ def authorize(user: User) -> WerkzeugResponse:
         proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn)
         if not proofing_state:
             current_app.logger.debug(
-                "No proofing state found for user {!s}. Initializing new proofing state.".format(user)
+                f"No proofing state found for user {user!s}. Initializing new proofing state."
             )
             proofing_state = OrcidProofingState(
                 id=None, modified_ts=None, eppn=user.eppn, state=get_unique_hash(), nonce=get_unique_hash()
@@ -45,8 +45,8 @@ def authorize(user: User) -> WerkzeugResponse:
             "state": proofing_state.state,
             "nonce": proofing_state.nonce,
         }
-        authorization_url = "{}?{}".format(current_app.oidc_client.authorization_endpoint, urlencode(oidc_args))
-        current_app.logger.debug("Authorization url: {!s}".format(authorization_url))
+        authorization_url = f"{current_app.oidc_client.authorization_endpoint}?{urlencode(oidc_args)}"
+        current_app.logger.debug(f"Authorization url: {authorization_url!s}")
         current_app.stats.count(name="authn_request")
         return redirect(authorization_url)
     # Orcid already connected to user
@@ -64,10 +64,10 @@ def authorization_response(user: User) -> WerkzeugResponse:
 
     # parse authentication response
     query_string = request.query_string.decode("utf-8")
-    current_app.logger.debug("query_string: {!s}".format(query_string))
+    current_app.logger.debug(f"query_string: {query_string!s}")
 
     authn_resp = current_app.oidc_client.parse_response(AuthorizationResponse, info=query_string, sformat="urlencoded")
-    current_app.logger.debug("Authorization response received: {!s}".format(authn_resp))
+    current_app.logger.debug(f"Authorization response received: {authn_resp!s}")
 
     if authn_resp.get("error"):
         current_app.logger.error(
@@ -80,7 +80,7 @@ def authorization_response(user: User) -> WerkzeugResponse:
     user_oidc_state = authn_resp["state"]
     proofing_state = current_app.proofing_statedb.get_state_by_oidc_state(user_oidc_state)
     if not proofing_state:
-        current_app.logger.error("The 'state' parameter ({!s}) does not match a user state.".format(user_oidc_state))
+        current_app.logger.error(f"The 'state' parameter ({user_oidc_state!s}) does not match a user state.")
         return redirect_with_msg(redirect_url, OrcidMsg.no_state)
 
     # do token request
@@ -88,11 +88,11 @@ def authorization_response(user: User) -> WerkzeugResponse:
         "code": authn_resp["code"],
         "redirect_uri": url_for("orcid.authorization_response", _external=True),
     }
-    current_app.logger.debug("Trying to do token request: {!s}".format(args))
+    current_app.logger.debug(f"Trying to do token request: {args!s}")
     token_resp = current_app.oidc_client.do_access_token_request(
         scope="openid", state=authn_resp["state"], request_args=args, authn_method="client_secret_basic"
     )
-    current_app.logger.debug("token response received: {!s}".format(token_resp))
+    current_app.logger.debug(f"token response received: {token_resp!s}")
     id_token = token_resp["id_token"]
     if id_token["nonce"] != proofing_state.nonce:
         current_app.logger.error("The 'nonce' parameter does not match for user")
@@ -105,10 +105,10 @@ def authorization_response(user: User) -> WerkzeugResponse:
     userinfo = current_app.oidc_client.do_user_info_request(
         method=current_app.conf.userinfo_endpoint_method, state=authn_resp["state"]
     )
-    current_app.logger.debug("userinfo received: {!s}".format(userinfo))
+    current_app.logger.debug(f"userinfo received: {userinfo!s}")
     if userinfo["sub"] != id_token["sub"]:
         current_app.logger.error(
-            "The 'sub' of userinfo does not match 'sub' of ID Token for user {!s}.".format(proofing_state.eppn)
+            f"The 'sub' of userinfo does not match 'sub' of ID Token for user {proofing_state.eppn!s}."
         )
         return redirect_with_msg(redirect_url, OrcidMsg.sub_mismatch)
 

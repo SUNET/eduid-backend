@@ -31,9 +31,10 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 import json
-from typing import Any, Dict, Mapping, Optional
+from typing import Any, Dict, Optional
+from collections.abc import Mapping
 
-from mock import patch
+from unittest.mock import patch
 from werkzeug.test import TestResponse
 
 from eduid.userdb.element import ElementKey
@@ -54,7 +55,7 @@ class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
         """
         return pd_init_app("testing", config)
 
-    def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
+    def update_config(self, config: dict[str, Any]) -> dict[str, Any]:
         config.update(
             {
                 "available_languages": {"en": "English", "sv": "Svenska"},

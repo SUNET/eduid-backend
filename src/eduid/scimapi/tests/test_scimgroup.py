@@ -2,7 +2,8 @@ __author__ = "lundberg"
 
 import logging
 from datetime import datetime
-from typing import Any, List, Mapping, Optional, Set, Union
+from typing import Any, List, Optional, Set, Union
+from collections.abc import Mapping
 from uuid import UUID, uuid4
 
 from bson import ObjectId
@@ -679,8 +680,8 @@ class TestGroupExtensionData(TestGroupResource):
         self.assertNotEqual(meta["version"], prev_meta["version"], "meta.version not updated")
 
 
-def _members_to_set(members: List[Mapping[str, Any]]) -> Set[GroupMember]:
-    res: Set[GroupMember] = set()
+def _members_to_set(members: list[Mapping[str, Any]]) -> set[GroupMember]:
+    res: set[GroupMember] = set()
     for this in members:
         res.add(GroupMember.from_mapping(this))
     return res

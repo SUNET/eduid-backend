@@ -1,6 +1,7 @@
 import logging
 from datetime import datetime
-from typing import Any, Mapping
+from typing import Any
+from collections.abc import Mapping
 
 from eduid.common.config.parsers import load_config
 from eduid.common.misc.timeutil import utc_now

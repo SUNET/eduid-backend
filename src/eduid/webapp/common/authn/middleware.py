@@ -18,7 +18,7 @@ from eduid.webapp.common.session.redis_session import NoSessionDataFoundExceptio
 no_context_logger = logging.getLogger(__name__)
 
 
-THeaders = List[Tuple[str, str]]
+THeaders = list[tuple[str, str]]
 TStartResponse = Callable[[str, THeaders], None]
 
 

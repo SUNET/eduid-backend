@@ -23,11 +23,11 @@ letter_proofing_views = Blueprint("letter_proofing", __name__, url_prefix="", te
 @MarshalWith(schemas.LetterProofingResponseSchema)
 @require_user
 def get_state(user) -> FluxData:
-    current_app.logger.info("Getting proofing state for user {}".format(user))
+    current_app.logger.info(f"Getting proofing state for user {user}")
     proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn)
 
     if proofing_state:
-        current_app.logger.info("Found proofing state for user {}".format(user))
+        current_app.logger.info(f"Found proofing state for user {user}")
         result = check_state(proofing_state)
         if result.is_expired and current_app.conf.backwards_compat_remove_expired_state:
             current_app.logger.info(f"Backwards-compat removing expired state for user {user}")
@@ -50,14 +50,14 @@ def get_state(user) -> FluxData:
 @can_verify_nin
 @require_user
 def proofing(user: User, nin: str) -> FluxData:
-    current_app.logger.info("Send letter for user {} initiated".format(user))
+    current_app.logger.info(f"Send letter for user {user} initiated")
     proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn)
     _state_in_db = proofing_state is not None
 
     if not proofing_state:
         # No existing proofing state was found, create a new one
         proofing_state = create_proofing_state(user.eppn, nin)
-        current_app.logger.info("Created proofing state for user {}".format(user))
+        current_app.logger.info(f"Created proofing state for user {user}")
 
     # Add the nin used to initiate the proofing state to the user
     # NOOP if the user already have the nin
@@ -65,7 +65,7 @@ def proofing(user: User, nin: str) -> FluxData:
 
     if proofing_state.proofing_letter.is_sent:
         current_app.logger.info("A letter has already been sent to the user.")
-        current_app.logger.debug("Proofing state: {}".format(proofing_state.to_dict()))
+        current_app.logger.debug(f"Proofing state: {proofing_state.to_dict()}")
         result = check_state(proofing_state)
         if result.error:
             # error message
@@ -128,7 +128,7 @@ def proofing(user: User, nin: str) -> FluxData:
 @MarshalWith(schemas.VerifyCodeResponseSchema)
 @require_user
 def verify_code(user: User, code: str) -> FluxData:
-    current_app.logger.info("Verifying code for user {}".format(user))
+    current_app.logger.info(f"Verifying code for user {user}")
     proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn)
 
     if not proofing_state:
@@ -136,7 +136,7 @@ def verify_code(user: User, code: str) -> FluxData:
 
     # Check if provided code matches the one in the letter
     if not code == proofing_state.nin.verification_code:
-        current_app.logger.error("Verification code for user {} does not match".format(user))
+        current_app.logger.error(f"Verification code for user {user} does not match")
         # TODO: Throttling to discourage an adversary to try brute force
         return error_response(message=LetterMsg.wrong_code)
 

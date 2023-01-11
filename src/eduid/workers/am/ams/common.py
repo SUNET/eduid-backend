@@ -49,8 +49,8 @@ logger = get_task_logger(__name__)
 
 class AttributeFetcher(ABC):
 
-    whitelist_set_attrs: List[str]
-    whitelist_unset_attrs: List[str]
+    whitelist_set_attrs: list[str]
+    whitelist_unset_attrs: list[str]
 
     def __init__(self, worker_config: AmConfig):
         if not isinstance(worker_config, AmConfig):

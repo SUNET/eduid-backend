@@ -4,7 +4,8 @@ from dataclasses import asdict
 from email.message import EmailMessage
 from email.utils import formatdate, make_msgid
 from gettext import gettext as _
-from typing import Any, Mapping, Optional, Sequence, Type, cast
+from typing import Any, Optional, Type, cast
+from collections.abc import Mapping, Sequence
 
 from aiosmtplib import SMTP, SMTPException, SMTPResponse
 
@@ -27,7 +28,7 @@ __author__ = "lundberg"
 class MailQueueWorker(QueueWorker):
     def __init__(self, config: QueueWorkerConfig):
         # Register which queue items this worker should try to grab
-        payloads: Sequence[Type[Payload]] = [EduidInviteEmail, EduidSignupEmail, OldEduidSignupEmail]
+        payloads: Sequence[type[Payload]] = [EduidInviteEmail, EduidSignupEmail, OldEduidSignupEmail]
         super().__init__(config=config, handle_payloads=payloads)
 
         self._smtp: Optional[SMTP] = None

@@ -5,7 +5,7 @@ from typing import Optional
 from eduid.userdb.db import MongoDB
 
 
-class TransactionAudit(object):
+class TransactionAudit:
     enabled = False
     db_uri: Optional[str] = None
     db_name: str = "eduid_msg"

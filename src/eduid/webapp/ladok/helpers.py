@@ -63,7 +63,7 @@ def link_user_BACKDOOR(user: User, ladok_name: str) -> FluxData:
             save_and_sync_user(proofing_user)
         except AmTaskFailed as e:
             current_app.logger.error("BACKDOOR: Linking to Ladok failed")
-            current_app.logger.error("BACKDOOR: {}".format(e))
+            current_app.logger.error(f"BACKDOOR: {e}")
             return error_response(message=CommonMsg.temp_problem)
         current_app.stats.count(name="ladok_linked")
 

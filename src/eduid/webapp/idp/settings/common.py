@@ -70,7 +70,7 @@ class IdPConfig(EduIDBaseAppConfig, TouConfigMixin, WebauthnConfigMixin2, AmConf
     verify_request_signatures: bool = False
     # Get list of usernames valid for use with the /status URL.
     # If this list is ['*'], all usernames are allowed for /status.
-    status_test_usernames: List[str] = Field(default=[])
+    status_test_usernames: list[str] = Field(default=[])
     # URL (string) for use in simple templating of login.html.
     signup_link: str = "#"
     # URL (string) for use in simple templating of forbidden.html.
@@ -109,9 +109,9 @@ class IdPConfig(EduIDBaseAppConfig, TouConfigMixin, WebauthnConfigMixin2, AmConf
     # Must be specified after sso_cookie_name and sso_cookie_domain while those are present.
     sso_cookie: CookieConfig = Field(default_factory=lambda: CookieConfig(key="idpauthn"))
     # List in order of preference
-    supported_digest_algorithms: List[str] = Field(default=["http://www.w3.org/2001/04/xmlenc#sha256"])
+    supported_digest_algorithms: list[str] = Field(default=["http://www.w3.org/2001/04/xmlenc#sha256"])
     # List in order of preference
-    supported_signing_algorithms: List[str] = Field(default=["http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"])
+    supported_signing_algorithms: list[str] = Field(default=["http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"])
     eduperson_targeted_id_secret_key: str = ""
     pairwise_id_secret_key: str = ""
     eduid_site_url: str
@@ -124,7 +124,7 @@ class IdPConfig(EduIDBaseAppConfig, TouConfigMixin, WebauthnConfigMixin2, AmConf
     other_device_max_code_attempts: int = 3
     other_device_secret_key: str  # secretbox key for protecting the login-with-other-device shared ID
     # SPs that are allowed to request a login for a particular user (idpproxy for stepup, dashboard for chpass, ...)
-    request_subject_allowed_entity_ids: List[str] = Field(default=[])
+    request_subject_allowed_entity_ids: list[str] = Field(default=[])
     known_devices_secret_key: str  # secretbox key for decrypting the data stored in the browser local storage
     known_devices_new_ttl: timedelta = Field(default=timedelta(minutes=30))
     known_devices_ttl: timedelta = Field(default=timedelta(days=90))
@@ -133,7 +133,7 @@ class IdPConfig(EduIDBaseAppConfig, TouConfigMixin, WebauthnConfigMixin2, AmConf
     geo_statistics_secret_key: Optional[str] = None
     geo_statistics_feature_enabled: bool = False
     geo_statistics_url: Optional[HttpUrl] = None
-    swamid_assurance_profile_1: List[SwamidAssurance] = Field(
+    swamid_assurance_profile_1: list[SwamidAssurance] = Field(
         default=[
             SwamidAssurance.SWAMID_AL1,
             SwamidAssurance.REFEDS_ASSURANCE,
@@ -142,7 +142,7 @@ class IdPConfig(EduIDBaseAppConfig, TouConfigMixin, WebauthnConfigMixin2, AmConf
             SwamidAssurance.REFEDS_IAP_LOW,
         ]
     )
-    swamid_assurance_profile_2: List[SwamidAssurance] = Field(
+    swamid_assurance_profile_2: list[SwamidAssurance] = Field(
         default=[
             SwamidAssurance.SWAMID_AL1,
             SwamidAssurance.SWAMID_AL2,
@@ -153,7 +153,7 @@ class IdPConfig(EduIDBaseAppConfig, TouConfigMixin, WebauthnConfigMixin2, AmConf
             SwamidAssurance.REFEDS_IAP_MEDIUM,
         ]
     )
-    swamid_assurance_profile_3: List[SwamidAssurance] = Field(
+    swamid_assurance_profile_3: list[SwamidAssurance] = Field(
         default=[
             SwamidAssurance.SWAMID_AL1,
             SwamidAssurance.SWAMID_AL2,
@@ -167,7 +167,7 @@ class IdPConfig(EduIDBaseAppConfig, TouConfigMixin, WebauthnConfigMixin2, AmConf
             SwamidAssurance.REFEDS_IAP_HIGH,
         ]
     )
-    logout_finish_url: Dict[str, HttpUrl] = Field(
+    logout_finish_url: dict[str, HttpUrl] = Field(
         default={
             "https://dashboard.eduid.docker/services/authn/saml2-metadata": "https://dashboard.eduid.docker/profile/",
             "https://dashboard.dev.eduid.se/services/authn/saml2-metadata": "https://dev.eduid.se/",

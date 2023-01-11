@@ -1,6 +1,4 @@
-from __future__ import absolute_import
-
-from mock import MagicMock
+from unittest.mock import MagicMock
 
 
 def mock_get_attribute_manager(celery):

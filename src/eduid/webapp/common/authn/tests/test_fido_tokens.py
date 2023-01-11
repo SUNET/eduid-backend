@@ -32,11 +32,12 @@
 import base64
 import json
 from copy import deepcopy
-from typing import Any, Dict, Mapping
+from typing import Any, Dict
+from collections.abc import Mapping
 from unittest.mock import MagicMock
 
 from flask import Blueprint, current_app, request
-from mock import patch
+from unittest.mock import patch
 
 from eduid.common.config.base import EduIDBaseAppConfig, WebauthnConfigMixin2
 from eduid.common.config.parsers import load_config
@@ -132,7 +133,7 @@ class FidoTokensTestCase(EduidAPITestCase):
         app.register_blueprint(views)
         return app
 
-    def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
+    def update_config(self, config: dict[str, Any]) -> dict[str, Any]:
         config.update(
             {
                 "app_name": "testing",

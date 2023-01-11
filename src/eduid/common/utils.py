@@ -22,8 +22,8 @@ def urlappend(base: str, path: str) -> str:
     """
     path = path.lstrip("/")
     if not base.endswith("/"):
-        base = "{!s}/".format(base)
-    return "{!s}{!s}".format(base, path)
+        base = f"{base!s}/"
+    return f"{base!s}{path!s}"
 
 
 # TODO: removeprefix and removesuffix be a part of str in python 3.9

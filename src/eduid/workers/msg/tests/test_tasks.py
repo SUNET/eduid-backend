@@ -1,6 +1,6 @@
 import pytest
 from celery.exceptions import Retry
-from mock import MagicMock, call, patch
+from unittest.mock import MagicMock, call, patch
 
 from eduid.workers.msg.testing import MsgMongoTestCase
 
@@ -11,7 +11,7 @@ class MockException(Exception):
 
 class TestTasks(MsgMongoTestCase):
     def setUp(self, init_msg=True):
-        super(TestTasks, self).setUp(init_msg=init_msg)
+        super().setUp(init_msg=init_msg)
         self.msg_dict = {"name": "Godiskungen", "admin": "Testadmin"}
 
         class APIResponse(MagicMock):

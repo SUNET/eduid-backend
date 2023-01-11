@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import json
 import logging
 from functools import wraps
@@ -67,7 +65,7 @@ def can_verify_nin(f):
     return verify_identity_decorator
 
 
-class MarshalWith(object):
+class MarshalWith:
     """
     Decorator to format the data returned from a Flask view and ensure it conforms to a marshmallow schema.
 
@@ -118,7 +116,7 @@ class MarshalWith(object):
         return marshal_decorator
 
 
-class UnmarshalWith(object):
+class UnmarshalWith:
     def __init__(self, schema):
         self.schema = schema
 

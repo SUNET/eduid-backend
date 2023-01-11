@@ -1,4 +1,3 @@
-#  -*- encoding: utf-8 -*-
 #
 # Copyright (c) 2016 NORDUnet A/S
 # All rights reserved.
@@ -32,7 +31,8 @@
 #
 
 import logging
-from typing import Any, Dict, Mapping
+from typing import Any, Dict
+from collections.abc import Mapping
 from urllib.parse import unquote
 
 from flask import Blueprint, make_response, request
@@ -54,7 +54,7 @@ __author__ = "lundberg"
 
 
 def dont_validate(value):
-    raise ValidationError("Problem with {!r}".format(value))
+    raise ValidationError(f"Problem with {value!r}")
 
 
 class NonValidatingSchema(EduidSchema, CSRFRequestMixin):
@@ -68,7 +68,7 @@ test_views = Blueprint("test", __name__)
 
 
 def _make_response(data):
-    html = "<html><body>{}</body></html>".format(data)
+    html = f"<html><body>{data}</body></html>"
     response = make_response(html, 200)
     response.headers["Content-Type"] = "text/html; charset=utf8"
     return response
@@ -127,7 +127,7 @@ class InputsTestApp(EduIDBaseApp):
 
 
 class InputsTests(EduidAPITestCase):
-    def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
+    def update_config(self, config: dict[str, Any]) -> dict[str, Any]:
         """
         Called from the parent class, so that we can update the configuration
         according to the needs of this test case.

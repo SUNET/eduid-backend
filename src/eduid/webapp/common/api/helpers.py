@@ -105,7 +105,7 @@ def add_nin_to_user(user: User, proofing_state: NinProofingState) -> ProofingUse
 
 
 @overload
-def add_nin_to_user(user: User, proofing_state: NinProofingState, user_type: Type[TProofingUser]) -> TProofingUser:
+def add_nin_to_user(user: User, proofing_state: NinProofingState, user_type: type[TProofingUser]) -> TProofingUser:
     ...
 
 
@@ -215,7 +215,7 @@ def verify_nin_for_user(
 
 def send_mail(
     subject: str,
-    to_addresses: List[str],
+    to_addresses: list[str],
     text_template: str,
     html_template: str,
     app: EduIDBaseApp,
@@ -237,7 +237,7 @@ def send_mail(
     site_name = conf.eduid_site_name
     site_url = conf.eduid_site_url
 
-    default_context: Dict[str, str] = {
+    default_context: dict[str, str] = {
         "site_url": site_url,
         "site_name": site_name,
     }

@@ -30,7 +30,8 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-from typing import Any, Dict, Mapping, Optional, cast
+from typing import Any, Dict, Optional, cast
+from collections.abc import Mapping
 
 from captcha.image import ImageCaptcha
 from flask import current_app
@@ -64,7 +65,7 @@ class SignupApp(EduIDBaseApp):
             font_sizes=self.conf.captcha_font_size,
         )
 
-        self.scim_clients: Dict[str, SCIMClient] = {}
+        self.scim_clients: dict[str, SCIMClient] = {}
 
         self.private_userdb = SignupUserDB(config.mongo_uri, auto_expire=config.private_userdb_auto_expire)
         self.proofing_log = ProofingLog(config.mongo_uri)

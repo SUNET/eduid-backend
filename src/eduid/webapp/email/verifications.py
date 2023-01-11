@@ -50,7 +50,7 @@ def new_proofing_state(email: str, user: User):
             return None
         current_app.proofing_statedb.remove_state(old_state)
         current_app.logger.info("Removed old proofing state")
-        current_app.logger.debug("Old proofing state: {}".format(old_state.to_dict()))
+        current_app.logger.debug(f"Old proofing state: {old_state.to_dict()}")
 
     verification = EmailProofingElement(email=email, verification_code=get_unique_hash(), created_by="email")
     proofing_state = EmailProofingState(id=None, modified_ts=None, eppn=user.eppn, verification=verification)
@@ -59,7 +59,7 @@ def new_proofing_state(email: str, user: User):
     current_app.proofing_statedb.save(proofing_state, is_in_database=False)
 
     current_app.logger.info("Created new email proofing state")
-    current_app.logger.debug("Proofing state: {!r}.".format(proofing_state.to_dict()))
+    current_app.logger.debug(f"Proofing state: {proofing_state.to_dict()!r}.")
 
     return proofing_state
 

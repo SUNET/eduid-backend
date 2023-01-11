@@ -5,7 +5,8 @@ import logging
 import uuid
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from typing import Any, Dict, List, Mapping, Optional, Tuple, Type
+from typing import Any, Dict, List, Optional, Tuple, Type
+from collections.abc import Mapping
 
 from bson import ObjectId
 
@@ -31,11 +32,11 @@ logger = logging.getLogger(__name__)
 class ScimApiUser(ScimApiResourceBase):
     user_id: ObjectId = field(default_factory=lambda: ObjectId())
     name: ScimApiName = field(default_factory=lambda: ScimApiName())
-    emails: List[ScimApiEmail] = field(default_factory=list)
-    phone_numbers: List[ScimApiPhoneNumber] = field(default_factory=list)
+    emails: list[ScimApiEmail] = field(default_factory=list)
+    phone_numbers: list[ScimApiPhoneNumber] = field(default_factory=list)
     preferred_language: Optional[str] = None
-    profiles: Dict[str, ScimApiProfile] = field(default_factory=dict)
-    linked_accounts: List[ScimApiLinkedAccount] = field(default_factory=list)
+    profiles: dict[str, ScimApiProfile] = field(default_factory=dict)
+    linked_accounts: list[ScimApiLinkedAccount] = field(default_factory=list)
 
     @property
     def etag(self):
@@ -51,7 +52,7 @@ class ScimApiUser(ScimApiResourceBase):
         return TUserDbDocument(res)
 
     @classmethod
-    def from_dict(cls: Type[ScimApiUser], data: Mapping[str, Any]) -> ScimApiUser:
+    def from_dict(cls: type[ScimApiUser], data: Mapping[str, Any]) -> ScimApiUser:
         this = dict(copy.copy(data))  # to not modify callers data
         this["scim_id"] = uuid.UUID(this["scim_id"])
         this["user_id"] = this.pop("_id")
@@ -143,7 +144,7 @@ class ScimApiUserDB(ScimApiBaseDB):
 
     def get_users_by_last_modified(
         self, operator: str, value: datetime, limit: Optional[int] = None, skip: Optional[int] = None
-    ) -> Tuple[List[ScimApiUser], int]:
+    ) -> tuple[list[ScimApiUser], int]:
         # map SCIM filter operators to mongodb filter
         mongo_operator = {"gt": "$gt", "ge": "$gte"}.get(operator)
         if not mongo_operator:

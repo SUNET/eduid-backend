@@ -1,10 +1,11 @@
 import logging
 import os
 from datetime import datetime
-from typing import Any, Mapping
+from typing import Any
+from collections.abc import Mapping
 
 import pytest
-from mock import MagicMock, patch
+from unittest.mock import MagicMock, patch
 from pydantic import HttpUrl, parse_obj_as
 from requests import RequestException
 from saml2 import BINDING_HTTP_REDIRECT

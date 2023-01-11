@@ -32,7 +32,8 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import Any, Dict, Mapping, Type, Union
+from typing import Any, Dict, Type, Union
+from collections.abc import Mapping
 
 from eduid.userdb.element import Element, ElementKey
 from eduid.userdb.util import utc_now
@@ -50,7 +51,7 @@ class CodeElement(Element):
         return ElementKey(self.code)
 
     @classmethod
-    def _from_dict_transform(cls: Type[CodeElement], data: Dict[str, Any]) -> Dict[str, Any]:
+    def _from_dict_transform(cls: type[CodeElement], data: dict[str, Any]) -> dict[str, Any]:
         """
         Transform data received in eduid format into pythonic format.
         """
@@ -61,7 +62,7 @@ class CodeElement(Element):
 
         return data
 
-    def _to_dict_transform(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def _to_dict_transform(self, data: dict[str, Any]) -> dict[str, Any]:
         """
         Transform data kept in pythonic format into eduid format.
         """
@@ -84,7 +85,7 @@ class CodeElement(Element):
 
     @classmethod
     def parse(
-        cls: Type[CodeElement], code_or_element: Union[Mapping, CodeElement, str], application: str
+        cls: type[CodeElement], code_or_element: Union[Mapping, CodeElement, str], application: str
     ) -> CodeElement:
         if isinstance(code_or_element, str):
             return cls(created_by=application, code=code_or_element, is_verified=False)

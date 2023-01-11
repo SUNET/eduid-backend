@@ -32,10 +32,11 @@
 
 import json
 from datetime import timedelta
-from typing import Any, Dict, List, Mapping, Optional
+from typing import Any, Dict, List, Optional
+from collections.abc import Mapping
 from uuid import uuid4
 
-from mock import MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb import User
@@ -63,7 +64,7 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
         """
         return security_init_app("testing", config)
 
-    def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
+    def update_config(self, config: dict[str, Any]) -> dict[str, Any]:
         config.update(
             {
                 "available_languages": {"en": "English", "sv": "Svenska"},

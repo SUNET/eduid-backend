@@ -16,7 +16,7 @@ TOKEN_PREFIX = "a"
 
 
 @dataclass(frozen=True)
-class SessionMeta(object):
+class SessionMeta:
     cookie_val: str  # the value to store as a cookie in the user's browser (basically session_id + signature)
     session_id: str  # the lookup key used to locate the session in the session store
     signature: bytes = field(repr=False)  # cryptographic signature of session_id
@@ -57,7 +57,7 @@ class SessionMeta(object):
         return TOKEN_PREFIX + combined.decode("utf-8")
 
     @staticmethod
-    def _decode_cookie(cookie_val: str) -> Tuple[bytes, bytes]:
+    def _decode_cookie(cookie_val: str) -> tuple[bytes, bytes]:
         """
         Decode a token (token is what is stored in a cookie) into it's components.
 
@@ -69,7 +69,7 @@ class SessionMeta(object):
         # valid NCName so pysaml2 doesn't complain when it uses the token as
         # session id.
         if not cookie_val.startswith(TOKEN_PREFIX):
-            raise ValueError("Invalid token string {!r}".format(cookie_val))
+            raise ValueError(f"Invalid token string {cookie_val!r}")
         val = cookie_val[len(TOKEN_PREFIX) :]
         # Split the token into it's two parts - the session_id and the HMAC signature of it
         # (the last byte is ignored - it is padding to make b32encode not put an = at the end)

@@ -1,10 +1,9 @@
-from __future__ import absolute_import
-
 from abc import ABC
 
 __author__ = "lundberg"
 
-from typing import Any, Mapping
+from typing import Any
+from collections.abc import Mapping
 
 
 class BaseConfigParser(ABC):

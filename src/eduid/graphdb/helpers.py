@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
-from typing import Mapping, Optional
+from typing import Optional
+from collections.abc import Mapping
 
 __author__ = "lundberg"
 

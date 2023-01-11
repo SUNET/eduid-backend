@@ -1,7 +1,8 @@
 import asyncio
 import json
 import logging
-from typing import Any, Mapping, Optional, cast
+from typing import Any, Optional, cast
+from collections.abc import Mapping
 
 import httpx
 

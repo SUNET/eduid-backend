@@ -43,7 +43,7 @@ class ProofingMethod(ABC):
 @dataclass(frozen=True)
 class ProofingMethodSAML(ProofingMethod):
     idp: str
-    required_loa: List[str]
+    required_loa: list[str]
 
     def parse_session_info(self, session_info: SessionInfo, backdoor: bool) -> SessionInfoParseResult:
         raise NotImplementedError("Subclass must implement parse_session_info")
@@ -52,7 +52,7 @@ class ProofingMethodSAML(ProofingMethod):
 @dataclass(frozen=True)
 class ProofingMethodFreja(ProofingMethodSAML):
     idp: str
-    required_loa: List[str]
+    required_loa: list[str]
 
     def parse_session_info(self, session_info: SessionInfo, backdoor: bool) -> SessionInfoParseResult:
         try:

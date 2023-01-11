@@ -31,9 +31,10 @@
 # POSSIBILITY OF SUCH DAMAGE.
 import json
 from datetime import datetime, timedelta
-from typing import Any, Dict, Mapping, Optional
+from typing import Any, Dict, Optional
+from collections.abc import Mapping
 
-from mock import MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 from eduid.common.config.base import EduidEnvironment
 from eduid.userdb import User
@@ -54,7 +55,7 @@ class EmailTests(EduidAPITestCase[EmailApp]):
         """
         return email_init_app("emails", config)
 
-    def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
+    def update_config(self, config: dict[str, Any]) -> dict[str, Any]:
         config.update(
             {
                 "available_languages": {"en": "English", "sv": "Svenska"},
@@ -109,7 +110,7 @@ class EmailTests(EduidAPITestCase[EmailApp]):
         mock_code_verification: Any,
         mock_request_user_sync: Any,
         mock_sendmail: Any,
-        data1: Optional[Dict[str, Any]] = None,
+        data1: Optional[dict[str, Any]] = None,
         send_data: bool = True,
     ):
         """
@@ -304,7 +305,7 @@ class EmailTests(EduidAPITestCase[EmailApp]):
                     data.update(data1)
 
             client.post("/new", data=json.dumps(data), content_type=self.content_type_json)
-            return client.get("/verify?code={}&email={}".format(code, email))
+            return client.get(f"/verify?code={code}&email={email}")
 
     @patch("eduid.common.rpc.mail_relay.MailRelay.sendmail")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")

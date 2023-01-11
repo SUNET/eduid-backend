@@ -31,7 +31,7 @@
 #
 from typing import cast
 
-from mock import patch
+from unittest.mock import patch
 
 from eduid.userdb.fixtures.users import UserFixtures
 from eduid.userdb.testing import MongoTestCase
@@ -58,7 +58,7 @@ class VCCSTestCase(MongoTestCase):
 
     def tearDown(self):
         vccs_module.revoke_passwords(self.user, reason="testing", application="test", vccs=self.vccs_client)
-        super(VCCSTestCase, self).tearDown()
+        super().tearDown()
 
     def _check_credentials(self, creds):
         return vccs_module.check_password(creds, self.user, vccs=self.vccs_client)

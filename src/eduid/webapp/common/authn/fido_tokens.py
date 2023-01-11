@@ -33,7 +33,8 @@ import base64
 import json
 import logging
 import pprint
-from typing import Any, Dict, Mapping
+from typing import Any, Dict
+from collections.abc import Mapping
 
 from fido2 import cbor
 from fido2.server import Fido2Server, U2FFido2Server
@@ -56,17 +57,17 @@ class VerificationProblem(Exception):
 
 class FidoCred(BaseModel):
     app_id: str
-    u2f: Dict[str, Any]  # TODO: This can probably be removed
+    u2f: dict[str, Any]  # TODO: This can probably be removed
     # pydantic (1.8.2) bugs out if webauthn is typed as 'AttestedCredentialData' :/
     # (saying Expected bytes, got AttestedCredentialData (type=type_error))
     webauthn: Any
 
 
-def _get_user_credentials_u2f(user: User) -> Dict[ElementKey, FidoCred]:
+def _get_user_credentials_u2f(user: User) -> dict[ElementKey, FidoCred]:
     """
     Get the U2F credentials for the user
     """
-    res: Dict[ElementKey, FidoCred] = {}
+    res: dict[ElementKey, FidoCred] = {}
     for this in user.credentials.filter(U2F):
         acd = AttestedCredentialData.from_ctap1(websafe_decode(this.keyhandle), websafe_decode(this.public_key))
         res[this.key] = FidoCred(
@@ -77,11 +78,11 @@ def _get_user_credentials_u2f(user: User) -> Dict[ElementKey, FidoCred]:
     return res
 
 
-def _get_user_credentials_webauthn(user: User) -> Dict[ElementKey, FidoCred]:
+def _get_user_credentials_webauthn(user: User) -> dict[ElementKey, FidoCred]:
     """
     Get the Webauthn credentials for the user
     """
-    res: Dict[ElementKey, FidoCred] = {}
+    res: dict[ElementKey, FidoCred] = {}
     for this in user.credentials.filter(Webauthn):
         cred_data = base64.urlsafe_b64decode(this.credential_data.encode("ascii"))
         credential_data, _rest = AttestedCredentialData.unpack_from(cred_data)
@@ -94,7 +95,7 @@ def _get_user_credentials_webauthn(user: User) -> Dict[ElementKey, FidoCred]:
     return res
 
 
-def get_user_credentials(user: User) -> Dict[ElementKey, FidoCred]:
+def get_user_credentials(user: User) -> dict[ElementKey, FidoCred]:
     """
     Get U2F and Webauthn credentials for the user
     """
@@ -103,7 +104,7 @@ def get_user_credentials(user: User) -> Dict[ElementKey, FidoCred]:
     return res
 
 
-def _get_fido2server(credentials: Dict[ElementKey, FidoCred], fido2rp: PublicKeyCredentialRpEntity) -> Fido2Server:
+def _get_fido2server(credentials: dict[ElementKey, FidoCred], fido2rp: PublicKeyCredentialRpEntity) -> Fido2Server:
     # See if any of the credentials is a legacy U2F credential with an app-id
     # (assume all app-ids are the same - authenticating with a mix of different
     # app-ids isn't supported in current Webauthn)

@@ -1,7 +1,8 @@
 import logging
 from abc import ABC
 from datetime import datetime, timedelta
-from typing import Any, Coroutine, List, Optional, Union
+from typing import Any, List, Optional, Union
+from collections.abc import Coroutine
 
 from httpx import Request
 from jwcrypto.jwk import JWK
@@ -34,7 +35,7 @@ class GNAPClientAuthData(BaseModel):
     authn_server_url: str
     key_name: str
     client_jwk: JWK
-    access: List[Union[str, Access]] = Field(default_factory=list)
+    access: list[Union[str, Access]] = Field(default_factory=list)
     default_access_token_expires_in: timedelta = timedelta(hours=1)
 
     @validator("client_jwk")

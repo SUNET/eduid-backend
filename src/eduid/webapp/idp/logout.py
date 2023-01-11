@@ -11,7 +11,8 @@
 """
 Code handling Single Log Out requests.
 """
-from typing import List, Sequence
+from typing import List
+from collections.abc import Sequence
 
 import saml2
 from flask import request
@@ -110,7 +111,7 @@ class SLO(Service):
         _name_id = req_info.message.name_id
         _session_id = get_sso_session_id()
         _username = None
-        sessions: List[SSOSession] = []
+        sessions: list[SSOSession] = []
         if _session_id:
             # If the binding is REDIRECT, we can get the SSO session to log out from the
             # client using the SSO cookie

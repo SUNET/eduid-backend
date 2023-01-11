@@ -16,18 +16,18 @@ class TestGroupDB(Neo4jTestCase):
     def setUp(self) -> None:
         self.db_config = {"encrypted": False, "auth": basic_auth("neo4j", "testing")}
         self.group_db = GroupDB(db_uri=self.neo4jdb.db_uri, scope="__testing__", config=self.db_config)
-        self.group1: Dict[str, Union[str, list, None]] = {
+        self.group1: dict[str, Union[str, list, None]] = {
             "identifier": "test1",
             "version": None,
             "display_name": "Test Group 1",
         }
-        self.group2: Dict[str, Union[str, list, None]] = {
+        self.group2: dict[str, Union[str, list, None]] = {
             "identifier": "test2",
             "version": None,
             "display_name": "Test Group 2",
         }
-        self.user1: Dict[str, str] = {"identifier": "user1", "display_name": "Test Testsson"}
-        self.user2: Dict[str, str] = {"identifier": "user2", "display_name": "Namn Namnsson"}
+        self.user1: dict[str, str] = {"identifier": "user1", "display_name": "Test Testsson"}
+        self.user2: dict[str, str] = {"identifier": "user2", "display_name": "Namn Namnsson"}
 
     @staticmethod
     def _assert_group(expected: Group, testing: Group, modified=False):

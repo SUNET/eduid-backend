@@ -53,7 +53,7 @@ def pw_auth(ticket: LoginContext, username: str, password: str) -> Union[FluxDat
     # Create/update SSO session
     current_app.logger.debug(f"User {pwauth.user} authenticated OK ({type(ticket)} request id {ticket.request_id})")
     _sso_session = current_app._lookup_sso_session()
-    _authn_credentials: List[AuthnData] = []
+    _authn_credentials: list[AuthnData] = []
     if pwauth.authndata:
         _authn_credentials = [pwauth.authndata]
     _sso_session = record_authentication(

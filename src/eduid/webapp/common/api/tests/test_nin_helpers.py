@@ -1,7 +1,8 @@
-from typing import Any, Mapping
+from typing import Any
+from collections.abc import Mapping
 
 import pytest
-from mock import MagicMock, patch
+from unittest.mock import MagicMock, patch
 from pydantic import ValidationError
 
 from eduid.common.config.base import EduIDBaseAppConfig

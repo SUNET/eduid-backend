@@ -1,4 +1,5 @@
-from typing import Any, Mapping, cast
+from typing import Any, cast
+from collections.abc import Mapping
 
 import flask
 from flask.wrappers import Response as FlaskResponse

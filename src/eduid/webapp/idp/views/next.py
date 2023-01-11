@@ -238,16 +238,16 @@ class AuthnOptions:
     # Can an unknown user log in using a webauthn credential? No, not at this time (might be doable).
     webauthn: bool = False
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 
     @property
-    def valid_options(self) -> List[str]:
+    def valid_options(self) -> list[str]:
         _data = self.to_dict()
         return [x for x in _data.keys() if _data[x]]
 
 
-def _get_authn_options(ticket: LoginContext, sso_session: Optional[SSOSession], eppn: Optional[str]) -> Dict[str, Any]:
+def _get_authn_options(ticket: LoginContext, sso_session: Optional[SSOSession], eppn: Optional[str]) -> dict[str, Any]:
     res = AuthnOptions(is_reauthn=ticket.reauthn_required)
 
     # Availability of "login using another device" is controlled by configuration for now.
@@ -281,7 +281,7 @@ def get_required_user(ticket: LoginContext, sso_session: Optional[SSOSession]) -
 
     The requirement can come from quite a few places, so try to check it using a uniform and extendable method.
     """
-    eppn_set: Set[str] = set()
+    eppn_set: set[str] = set()
 
     if isinstance(ticket, LoginContextSAML) and ticket.service_requested_eppn:
         _eppn = ticket.service_requested_eppn
@@ -313,7 +313,7 @@ def get_required_user(ticket: LoginContext, sso_session: Optional[SSOSession]) -
     return RequiredUserResult(eppn=None)
 
 
-def _get_service_info(ticket: LoginContext) -> Dict[str, Any]:
+def _get_service_info(ticket: LoginContext) -> dict[str, Any]:
     try:
         if ticket.service_info is not None:
             return ticket.service_info.to_dict()
@@ -379,7 +379,7 @@ def _geo_statistics(ticket: LoginContext, sso_session: Optional[SSOSession]) -> 
     user_hash = hmac.HMAC(secret, hashes.SHA256())
     user_hash.update(bytes(sso_session.eppn, "utf-8"))
 
-    d: Dict[str, Any] = {
+    d: dict[str, Any] = {
         "data": {
             "user_id": user_hash.finalize().hex(),
             "client_ip": request.remote_addr,

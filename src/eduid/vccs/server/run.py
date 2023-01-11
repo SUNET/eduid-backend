@@ -1,6 +1,7 @@
 from asyncio import Lock
 from binascii import unhexlify
-from typing import Any, Mapping, Optional
+from typing import Any, Optional
+from collections.abc import Mapping
 
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError

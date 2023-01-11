@@ -44,7 +44,7 @@ def normalize_to_e_164(number):
         raise ValidationError("phone.e164_format")
     if number.startswith("0"):
         country_code = current_app.conf.default_country_code
-        number = "+{}{}".format(country_code, number[1:])
+        number = f"+{country_code}{number[1:]}"
     return number
 
 

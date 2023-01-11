@@ -44,7 +44,7 @@ class LetterMsg(TranslatableMsg):
 
 
 @dataclass
-class StateExpireInfo(object):
+class StateExpireInfo:
     sent: datetime
     expires: datetime
     is_expired: bool
@@ -82,15 +82,15 @@ def check_state(state: LetterProofingState) -> StateExpireInfo:
     :return: Information about the users current letter proofing state,
              such as when it was created, when it expires etc.
     """
-    current_app.logger.info("Checking state for user with eppn {!s}".format(state.eppn))
+    current_app.logger.info(f"Checking state for user with eppn {state.eppn!s}")
     if not state.proofing_letter.is_sent:
-        current_app.logger.info("Unfinished state for user with eppn {!s}".format(state.eppn))
-        current_app.logger.debug("Proofing state: {}".format(state.to_dict()))
+        current_app.logger.info(f"Unfinished state for user with eppn {state.eppn!s}")
+        current_app.logger.debug(f"Proofing state: {state.to_dict()}")
         # need a datetime for typing, but sent/expires/is_expired are not included in error responses
         _fake_dt = datetime.fromtimestamp(0)
         return StateExpireInfo(sent=_fake_dt, expires=_fake_dt, is_expired=True, error=True, message=LetterMsg.not_sent)
 
-    current_app.logger.info("Letter is sent for user with eppn {!s}".format(state.eppn))
+    current_app.logger.info(f"Letter is sent for user with eppn {state.eppn!s}")
     # Check how long ago the letter was sent
     sent_dt = state.proofing_letter.sent_ts
     if not isinstance(sent_dt, datetime):
@@ -109,7 +109,7 @@ def check_state(state: LetterProofingState) -> StateExpireInfo:
             sent=sent_dt, expires=expires_at, is_expired=False, error=False, message=LetterMsg.already_sent
         )
     else:
-        current_app.logger.info("Letter expired for user with eppn {!s}.".format(state.eppn))
+        current_app.logger.info(f"Letter expired for user with eppn {state.eppn!s}.")
         return StateExpireInfo(
             sent=sent_dt, expires=expires_at, is_expired=True, error=False, message=LetterMsg.letter_expired
         )
@@ -143,8 +143,8 @@ def get_address(user: User, proofing_state: LetterProofingState) -> FullPostalAd
 
     :return: Users official postal address
     """
-    current_app.logger.info("Getting address for user {}".format(user))
-    current_app.logger.debug("NIN: {!s}".format(proofing_state.nin.number))
+    current_app.logger.info(f"Getting address for user {user}")
+    current_app.logger.debug(f"NIN: {proofing_state.nin.number!s}")
     if check_magic_cookie(current_app.conf):
         # return bogus data without Navet interaction for integration test
         current_app.logger.info("Using magic cookie to get address")
@@ -156,7 +156,7 @@ def get_address(user: User, proofing_state: LetterProofingState) -> FullPostalAd
         )
     # Lookup official address via Navet
     address = current_app.msg_relay.get_postal_address(proofing_state.nin.number)
-    current_app.logger.debug("Official address: {!r}".format(address))
+    current_app.logger.debug(f"Official address: {address!r}")
     return address
 
 

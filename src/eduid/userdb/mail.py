@@ -59,7 +59,7 @@ class MailAddress(PrimaryElement):
         return ElementKey(self.email)
 
     @classmethod
-    def _from_dict_transform(cls: Type[MailAddress], data: Dict[str, Any]) -> Dict[str, Any]:
+    def _from_dict_transform(cls: type[MailAddress], data: dict[str, Any]) -> dict[str, Any]:
         """
         Transform data received in eduid format into pythonic format.
         """
@@ -81,7 +81,7 @@ class MailAddressList(PrimaryElementList[MailAddress]):
     """
 
     @classmethod
-    def from_list_of_dicts(cls: Type[MailAddressList], items: List[Dict[str, Any]]) -> MailAddressList:
+    def from_list_of_dicts(cls: type[MailAddressList], items: list[dict[str, Any]]) -> MailAddressList:
         return cls(elements=[MailAddress.from_dict(this) for this in items])
 
 

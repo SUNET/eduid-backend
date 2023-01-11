@@ -48,7 +48,7 @@ class eduid_signup(AttributeFetcher):
         "phone",
         "identities",
     ]
-    whitelist_unset_attrs: List[str] = []
+    whitelist_unset_attrs: list[str] = []
 
     def fetch_attrs(self, user_id: ObjectId):
         attributes = AttributeFetcher.fetch_attrs(self, user_id)
@@ -201,7 +201,7 @@ class eduid_eidas(AttributeFetcher):
         "surname",
         "displayName",
     ]
-    whitelist_unset_attrs: List[str] = [
+    whitelist_unset_attrs: list[str] = [
         "identities",
         "nins",  # Old format
     ]
@@ -211,7 +211,7 @@ class eduid_eidas(AttributeFetcher):
 class eduid_tou(AttributeFetcher):
 
     whitelist_set_attrs = ["tou"]
-    whitelist_unset_attrs: List[str] = []
+    whitelist_unset_attrs: list[str] = []
     get_user_db = lambda cls, uri: ToUUserDB(uri)
 
 
@@ -235,7 +235,7 @@ class eduid_svipe_id(AttributeFetcher):
         "surname",
         "displayName",
     ]
-    whitelist_unset_attrs: List[str] = [
+    whitelist_unset_attrs: list[str] = [
         "identities",
     ]
     get_user_db = lambda cls, uri: SvideIDProofingUserDB(uri)

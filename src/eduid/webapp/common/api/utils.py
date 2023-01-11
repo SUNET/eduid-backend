@@ -9,7 +9,7 @@ from uuid import uuid4
 import bcrypt
 from flask import current_app as flask_current_app
 from flask.wrappers import Request
-from mock import MagicMock
+from unittest.mock import MagicMock
 
 from eduid.common.config.base import EduIDBaseAppConfig, Pysaml2SPConfigMixin
 from eduid.common.misc.timeutil import utc_now
@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 TCurrentAppAttribute = TypeVar("TCurrentAppAttribute")
 
 
-def get_from_current_app(name: str, klass: Type[TCurrentAppAttribute]) -> TCurrentAppAttribute:
+def get_from_current_app(name: str, klass: type[TCurrentAppAttribute]) -> TCurrentAppAttribute:
     """Get a correctly typed attribute from an unknown Flask current app"""
     ret = getattr(current_app, name)
     if not isinstance(ret, klass):
@@ -259,7 +259,7 @@ def check_password_hash(password: str, hashed: Optional[str]) -> bool:
     return ret
 
 
-def get_zxcvbn_terms(user: User) -> List[str]:
+def get_zxcvbn_terms(user: User) -> list[str]:
     """
     Combine known data that is bad for a password to a list for zxcvbn.
 

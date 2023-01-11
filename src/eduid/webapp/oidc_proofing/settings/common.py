@@ -49,10 +49,10 @@ class OIDCProofingConfig(EduIDBaseAppConfig, MsgConfigMixin, AmConfigMixin, Mail
     eduid_site_url: str
 
     # OIDC
-    client_registration_info: Dict[str, str] = Field(
+    client_registration_info: dict[str, str] = Field(
         default={"client_id": "can_not_be_empty_string", "client_secret": ""}
     )
-    provider_configuration_info: Dict[str, str] = Field(
+    provider_configuration_info: dict[str, str] = Field(
         default={
             "issuer": "can_not_be_empty_string",
             "authorization_endpoint": "",

@@ -34,7 +34,8 @@ from dataclasses import dataclass
 from datetime import timedelta
 from enum import Enum
 from pathlib import PurePath
-from typing import Any, Dict, Mapping, Optional
+from typing import Any, Dict, Optional
+from collections.abc import Mapping
 
 from bson import ObjectId
 from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
@@ -95,7 +96,7 @@ class IdPTests(EduidAPITestCase[IdPApp]):
         """
         return init_idp_app(test_config=config)
 
-    def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
+    def update_config(self, config: dict[str, Any]) -> dict[str, Any]:
         config = super().update_config(config)
         fn = PurePath(__file__).with_name("data") / "test_SSO_conf.py"
         config.update(
@@ -121,7 +122,7 @@ class IdPTests(EduidAPITestCase[IdPApp]):
     def _try_login(
         self,
         saml2_client: Optional[Saml2Client] = None,
-        authn_context: Optional[Dict[str, Any]] = None,
+        authn_context: Optional[dict[str, Any]] = None,
         force_authn: bool = False,
         assertion_consumer_service_url: Optional[str] = None,
     ) -> LoginResult:
@@ -208,8 +209,8 @@ class IdPTests(EduidAPITestCase[IdPApp]):
         )
 
     @staticmethod
-    def _extract_form_inputs(res: str) -> Dict[str, Any]:
-        inputs: Dict[str, Any] = {}
+    def _extract_form_inputs(res: str) -> dict[str, Any]:
+        inputs: dict[str, Any] = {}
         for line in res.split("\n"):
             if "input" in line:
                 # YOLO

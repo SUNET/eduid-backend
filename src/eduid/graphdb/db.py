@@ -9,10 +9,10 @@ from neo4j import Driver, GraphDatabase, basic_auth
 __author__ = "lundberg"
 
 
-class Neo4jDB(object):
+class Neo4jDB:
     """Simple wrapper to allow us to define the api"""
 
-    def __init__(self, db_uri: str, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, db_uri: str, config: Optional[dict[str, Any]] = None):
         if not db_uri:
             raise ValueError("db_uri not supplied")
 
@@ -72,7 +72,7 @@ class Neo4jDB(object):
 class BaseGraphDB(ABC):
     """Base class for common db operations"""
 
-    def __init__(self, db_uri: str, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, db_uri: str, config: Optional[dict[str, Any]] = None):
         self._db_uri = db_uri
         self._db = Neo4jDB(db_uri=self._db_uri, config=config)
         self.db_setup()

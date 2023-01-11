@@ -1,11 +1,11 @@
-# -*- encoding: utf-8 -*-
 """
 This module provides utility functions.
 """
 
 import os
 from collections import OrderedDict
-from typing import Any, Mapping, Optional
+from typing import Any, Optional
+from collections.abc import Mapping
 
 
 def is_deregistered(person: Optional[dict[str, Any]]) -> bool:

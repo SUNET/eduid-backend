@@ -44,7 +44,7 @@ class ToUUser(User):
     """
 
     @classmethod
-    def check_or_use_data(cls, data: Dict[str, Any]) -> Dict[str, Any]:
+    def check_or_use_data(cls, data: dict[str, Any]) -> dict[str, Any]:
         """
         Check that the provided data dict contains all needed keys.
         """

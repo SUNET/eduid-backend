@@ -78,7 +78,7 @@ class Credential(VerifiedElement):
         else:
             return f"<eduID {self.__class__.__name__}(key={repr(shortkey)}): verified=False>"
 
-    def _to_dict_transform(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def _to_dict_transform(self, data: dict[str, Any]) -> dict[str, Any]:
         """
         Make sure we never store proofing info for un-verified credentials
         """

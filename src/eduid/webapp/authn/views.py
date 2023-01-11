@@ -256,7 +256,7 @@ def logout() -> WerkzeugResponse:
         current_app.logger.error(f"User {eppn} not found, no logout action needed")
         return redirect(location)
 
-    current_app.logger.debug("Logout process started for user {}".format(user))
+    current_app.logger.debug(f"Logout process started for user {user}")
 
     return saml_logout(current_app.saml2_config, user, location)
 

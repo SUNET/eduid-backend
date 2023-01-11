@@ -41,7 +41,7 @@ logger = logging.getLogger(__name__)
 
 class GroupManagementInviteStateDB(BaseDB):
     def __init__(self, db_uri: str, db_name: str = "eduid_group_management", collection: str = "group_invite_data"):
-        super(GroupManagementInviteStateDB, self).__init__(db_uri, db_name, collection=collection)
+        super().__init__(db_uri, db_name, collection=collection)
         # Create an index so that invites for group_scim_id, email_address and role is unique
         indexes = {
             "unique-group-email-role": {
@@ -63,7 +63,7 @@ class GroupManagementInviteStateDB(BaseDB):
             return GroupInviteState.from_dict(docs[0])
         return None
 
-    def get_states_by_group_scim_id(self, group_scim_id: str) -> List[GroupInviteState]:
+    def get_states_by_group_scim_id(self, group_scim_id: str) -> list[GroupInviteState]:
         """
         Locate a state in the db given the state's group identifier.
 
@@ -81,7 +81,7 @@ class GroupManagementInviteStateDB(BaseDB):
 
         return [GroupInviteState.from_dict(state) for state in states]
 
-    def get_states_by_email_addresses(self, email_addresses: List[str]) -> List[GroupInviteState]:
+    def get_states_by_email_addresses(self, email_addresses: list[str]) -> list[GroupInviteState]:
         """
         Locate a state in the db given the state's group identifier.
 
@@ -104,7 +104,7 @@ class GroupManagementInviteStateDB(BaseDB):
         :param state: GroupInviteState object
         :param check_sync: Ensure the document hasn't been updated in the database since it was loaded
         """
-        spec: Dict[str, Any] = {
+        spec: dict[str, Any] = {
             "group_scim_id": state.group_scim_id,
             "email_address": state.email_address,
             "role": state.role,

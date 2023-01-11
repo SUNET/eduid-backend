@@ -26,12 +26,12 @@ class NotificationRelay:
         hostname = environ.get("HOSTNAME", "")  # Actual hostname or container id
         self.sender_info = SenderInfo(hostname=hostname, node_id=f"{app_name}@{system_hostname}")
 
-    def _urls_for(self, data_owner: DataOwnerName) -> List[str]:
+    def _urls_for(self, data_owner: DataOwnerName) -> list[str]:
         if data_owner not in self.config.data_owners:
             return []
         return self.config.data_owners[data_owner].notify
 
-    def format_message(self, version: int, data: Dict[str, Any]) -> TFormattedMessage:
+    def format_message(self, version: int, data: dict[str, Any]) -> TFormattedMessage:
         if version != 1:
             raise NotImplementedError(f"version {version} not implemented")
         return TFormattedMessage(json.dumps({"v": version, "location": data["location"]}))

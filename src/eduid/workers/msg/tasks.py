@@ -1,5 +1,3 @@
-# -*- encoding: utf-8 -*-
-
 import json
 import logging
 import smtplib
@@ -31,7 +29,7 @@ TRANSACTION_AUDIT_COLLECTION = "transaction_audit"
 
 
 logger: logging.Logger = get_task_logger(__name__)
-_CACHE: Dict[str, CacheMDB] = {}
+_CACHE: dict[str, CacheMDB] = {}
 
 app = MsgCelerySingleton.celery
 
@@ -467,7 +465,7 @@ def get_postal_address(self: MessageSender, identity_number: str) -> Optional[Or
 
 
 @app.task(bind=True, base=MessageSender, name="eduid_msg.tasks.get_relations_to")
-def get_relations_to(self: MessageSender, identity_number: str, relative_nin: str) -> List[str]:
+def get_relations_to(self: MessageSender, identity_number: str, relative_nin: str) -> list[str]:
     """
     Get the relative status between identity_number and relative_nin.
 

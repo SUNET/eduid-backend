@@ -41,7 +41,8 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Type
+from typing import Any, Dict, List, Optional, Type
+from collections.abc import Mapping, Sequence
 
 from bson import ObjectId
 from pydantic import BaseModel, Field
@@ -81,12 +82,12 @@ class AuthnData(BaseModel):
     class Config:
         allow_population_by_field_name = True  # allow setting timestamp using it's name, not just the alias
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Return the object in dict format (serialized for storing in MongoDB)."""
         return self.dict()
 
     @classmethod
-    def from_dict(cls: Type[AuthnData], data: Mapping[str, Any]) -> AuthnData:
+    def from_dict(cls: type[AuthnData], data: Mapping[str, Any]) -> AuthnData:
         """Construct element from a data dict in database format."""
         return cls(**data)
 
@@ -104,7 +105,7 @@ class PasswordAuthnResponse:
         return AuthnData(cred_id=self.credential.key, timestamp=self.timestamp)
 
 
-class IdPAuthn(object):
+class IdPAuthn:
     """
     :param config: IdP configuration data
     """
@@ -165,7 +166,7 @@ class IdPAuthn(object):
             sorted_creds = sorted(pw_credentials, key=lambda x: x.credential_id not in last_creds)
             if sorted_creds != pw_credentials:
                 logger.debug(
-                    "Re-sorted list of credentials into\n{}\nbased on last-used {!r}".format(sorted_creds, last_creds)
+                    f"Re-sorted list of credentials into\n{sorted_creds}\nbased on last-used {last_creds!r}"
                 )
                 pw_credentials = sorted_creds
 
@@ -218,7 +219,7 @@ class IdPAuthn(object):
         last_used = self.authn_store.get_credential_last_used(cred.credential_id)
         if last_used is None:
             # Can't disallow this while there is a short-path from signup to dashboard unforch...
-            logger.debug("Allowing never-used credential {!r}".format(cred))
+            logger.debug(f"Allowing never-used credential {cred!r}")
             return False
         now = utc_now()
         delta = now - last_used
@@ -388,10 +389,10 @@ class UserAuthnInfo:
     """
 
     failures_this_month: int
-    last_used_credentials: List[str]
+    last_used_credentials: list[str]
 
     @classmethod
-    def from_dict(cls: Type[UserAuthnInfo], data: Dict[str, Any], ts: Optional[datetime] = None) -> UserAuthnInfo:
+    def from_dict(cls: type[UserAuthnInfo], data: dict[str, Any], ts: Optional[datetime] = None) -> UserAuthnInfo:
         """Construct element from a data dict in database format."""
         data = dict(data)  # to not modify callers data
 

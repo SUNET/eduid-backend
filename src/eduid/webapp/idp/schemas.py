@@ -27,7 +27,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from typing import Any, Mapping, Optional
+from typing import Any, Optional
+from collections.abc import Mapping
 
 from marshmallow import Schema, ValidationError, fields
 
