@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from dataclasses import dataclass, field
 from datetime import date, datetime, time
 from enum import Enum

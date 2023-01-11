@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from typing import Type, TypeVar
 
 from eduid.common.config.exceptions import BadConfiguration

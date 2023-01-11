@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import logging
 from abc import ABC
 from datetime import datetime, timedelta

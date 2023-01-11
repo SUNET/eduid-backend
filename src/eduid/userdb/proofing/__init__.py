@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from eduid.userdb.proofing.db import (
     EidasProofingUserDB,
     EmailProofingStateDB,

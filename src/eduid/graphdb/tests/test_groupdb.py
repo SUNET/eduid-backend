@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from dataclasses import replace
 from typing import Dict, Union
 

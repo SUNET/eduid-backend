@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from dataclasses import asdict, dataclass
 from enum import unique
 from typing import Any, Dict, List, Optional, Set, Union

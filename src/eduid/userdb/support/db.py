@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from typing import Any, Dict, List, Optional, Type, Union
 
 from bson import ObjectId

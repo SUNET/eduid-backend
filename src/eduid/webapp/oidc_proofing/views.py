@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 import base64
 import binascii
 from io import BytesIO

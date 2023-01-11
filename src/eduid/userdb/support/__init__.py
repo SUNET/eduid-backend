@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from eduid.userdb.support.db import (
     SupportAuthnInfoDB,
     SupportEmailProofingDB,

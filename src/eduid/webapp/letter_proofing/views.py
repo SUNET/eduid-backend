@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 from flask import Blueprint, abort
 from requests.exceptions import ConnectionError
 

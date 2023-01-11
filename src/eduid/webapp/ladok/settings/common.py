@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from typing import List
 
 from eduid.common.config.base import AmConfigMixin, EduIDBaseAppConfig, MagicCookieMixin

@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 from flask import Blueprint
 
 from eduid.common.rpc.exceptions import AmTaskFailed, LookupMobileTaskFailed, MsgTaskFailed, NoNavetData

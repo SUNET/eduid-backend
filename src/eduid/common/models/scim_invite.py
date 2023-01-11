@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 from uuid import UUID

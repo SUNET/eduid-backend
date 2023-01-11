@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from enum import unique
 from uuid import UUID
 

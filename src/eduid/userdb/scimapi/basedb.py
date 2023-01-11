@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from typing import Any, List, Mapping, Optional, Tuple
 
 from eduid.userdb.db import BaseDB, TUserDbDocument

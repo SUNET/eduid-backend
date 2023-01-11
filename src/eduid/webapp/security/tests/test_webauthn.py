@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 import base64
 import json
 from typing import Any, Dict, Mapping, Optional

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from marshmallow import RAISE, Schema, fields
 
 __author__ = "lundberg"

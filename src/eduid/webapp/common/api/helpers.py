@@ -1,7 +1,6 @@
-# -*- coding: utf-8 -*-
+import warnings
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Type, TypeVar, Union, cast, overload
-import warnings
 
 from flask import current_app, render_template, request
 

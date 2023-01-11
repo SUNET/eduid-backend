@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import respx
 from httpx import Response
 

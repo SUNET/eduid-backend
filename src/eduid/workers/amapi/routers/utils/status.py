@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import sys
 from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta

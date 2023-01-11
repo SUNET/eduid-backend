@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2017 NORDUnet A/S
 # All rights reserved.

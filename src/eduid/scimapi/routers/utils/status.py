@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import sys
 from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta
@@ -113,7 +112,7 @@ def check_neo4j(req: ContextRequest, default_data_owner: str):
         # TODO: Implement is_healthy
         # db.is_healthy()
         q = """
-            MATCH (n)             
+            MATCH (n)
             RETURN count(*) as exists LIMIT 1
             """
         with group_db.graphdb.db.driver.session() as session:

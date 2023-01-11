@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from unittest import TestCase
 
 from eduid.common.testing_base import normalised_data

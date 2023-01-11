@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from typing import Any, Mapping, Optional, cast
 
 from authlib.integrations.flask_client import OAuth

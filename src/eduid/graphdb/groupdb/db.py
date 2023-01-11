@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import enum
 import logging
 from dataclasses import replace

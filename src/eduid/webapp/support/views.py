@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from typing import Any, Dict, List, Sequence
 
 from flask import Blueprint, render_template, request
