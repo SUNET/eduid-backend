@@ -48,6 +48,7 @@ class TestResetPasswordStateDB(MongoTestCase):
         self.resetpw_db.save(email_state, is_in_database=False)
 
         state = self.resetpw_db.get_state_by_eppn("hubba-bubba")
+        assert state is not None
         self.assertEqual(state.email_address, "johnsmith@example.com")
         self.assertEqual(state.email_code.code, "dummy-code")
         self.assertEqual(state.method, "email")
@@ -63,6 +64,7 @@ class TestResetPasswordStateDB(MongoTestCase):
         self.resetpw_db.save(email_state, is_in_database=False)
 
         state = self.resetpw_db.get_state_by_email_code("dummy-code")
+        assert state is not None
         self.assertEqual(state.email_address, "johnsmith@example.com")
         self.assertEqual(state.method, "email")
         self.assertEqual(state.eppn, "hubba-bubba")
@@ -77,6 +79,7 @@ class TestResetPasswordStateDB(MongoTestCase):
         self.resetpw_db.save(email_state, is_in_database=False)
 
         state = self.resetpw_db.get_state_by_eppn("hubba-bubba")
+        assert state is not None
         self.assertEqual(state.email_address, "johnsmith@example.com")
         self.assertEqual(state.generated_password, True)
 
@@ -89,6 +92,8 @@ class TestResetPasswordStateDB(MongoTestCase):
         self.resetpw_db.save(email_state, is_in_database=False)
 
         state = self.resetpw_db.get_state_by_eppn("hubba-bubba")
+        assert state is not None
+        assert state.extra_security is not None
         self.assertEqual(state.email_address, "johnsmith@example.com")
         self.assertEqual(state.extra_security["phone_numbers"][0]["number"], "+99999999999")
 
@@ -104,6 +109,7 @@ class TestResetPasswordStateDB(MongoTestCase):
         self.resetpw_db.save(email_state, is_in_database=False)
 
         state = self.resetpw_db.get_state_by_eppn("hubba-bubba")
+        assert state is not None
         self.assertEqual(state.email_address, "johnsmith@example.com")
         self.assertEqual(state.email_code.code, "dummy-code")
         self.assertEqual(state.phone_number, "+99999999999")

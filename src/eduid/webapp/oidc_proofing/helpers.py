@@ -9,12 +9,13 @@ from typing import Any, Mapping
 import requests
 from flask import render_template
 from flask_babel import gettext as _
-from oic.oic import ClaimsRequest
+from oic.oic.message import ClaimsRequest
 
 from eduid.userdb import User
 from eduid.userdb.logs import SeLegProofing, SeLegProofingFrejaEid
 from eduid.userdb.proofing import OidcProofingState, ProofingUser
 from eduid.userdb.proofing.element import NinProofingElement
+from eduid.userdb.proofing.user import ProofingUser
 from eduid.webapp.common.api.helpers import number_match_proofing, verify_nin_for_user
 from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.common.api.utils import get_unique_hash
@@ -34,7 +35,7 @@ class OIDCMsg(TranslatableMsg):
     no_conn = "No connection to authorization endpoint"
 
 
-def create_proofing_state(user: ProofingUser, nin: str) -> OidcProofingState:
+def create_proofing_state(user: User, nin: str) -> OidcProofingState:
     """
     :param user: Proofing user
     :param nin: National Identity Number
@@ -224,6 +225,7 @@ def handle_freja_eid_userinfo(user: User, proofing_state: OidcProofingState, use
         opaque_data=opaque,
         user_postal_address=address,
         proofing_version="2017v1",
+        deregistration_information=None,
     )
     if not verify_nin_for_user(user, proofing_state, proofing_log_entry):
         current_app.logger.error(f"Verifying NIN for user {user} failed")

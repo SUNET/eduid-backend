@@ -288,7 +288,6 @@ def logout_service() -> WerkzeugResponse:
     if "SAMLResponse" in request.form:  # we started the logout
         current_app.logger.debug("Receiving a logout response from the IdP")
         response = client.parse_logout_request_response(request.form["SAMLResponse"], BINDING_HTTP_REDIRECT)
-        state.sync()
         if response and response.status_ok():
             session.clear()
             return redirect(next_page)
@@ -310,7 +309,6 @@ def logout_service() -> WerkzeugResponse:
         http_info = client.handle_logout_request(
             request.form["SAMLRequest"], subject_id, BINDING_HTTP_REDIRECT, relay_state=request.form["RelayState"]
         )
-        state.sync()
         session.clear()
         location = get_location(http_info)
         # location comes from federation metadata and must be considered trusted, no need to sanitise

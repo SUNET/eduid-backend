@@ -8,12 +8,13 @@ from enum import Enum
 from typing import Any, Dict, Mapping, Optional, Union
 from uuid import uuid4
 
-from flask import Response as FlaskResponse
 from flask import url_for
 from jwcrypto.jwk import JWK
-from mock import patch
+from mock import MagicMock, patch
+from werkzeug.test import TestResponse
 
 from eduid.common.clients.scim_client.testing import MockedScimAPIMixin
+from eduid.common.config.base import EduidEnvironment
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.exceptions import UserOutOfSync
 from eduid.userdb.signup import Invite, InviteMailAddress, InviteType, SignupUser
@@ -50,13 +51,10 @@ class OldSignupState(Enum):
 class SignupResult:
     url: str
     reached_state: Union[SignupState, OldSignupState]
-    response: FlaskResponse
+    response: TestResponse
 
 
-class SignupTests(EduidAPITestCase, MockedScimAPIMixin):
-
-    app: SignupApp
-
+class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
     def setUp(self, *args, **kwargs):
         super().setUp(*args, **kwargs, copy_user_to_private=True)
 
@@ -107,7 +105,7 @@ class SignupTests(EduidAPITestCase, MockedScimAPIMixin):
             status=200,
             type_="POST_SIGNUP_GET_CAPTCHA_SUCCESS",
         )
-        assert response.json["payload"]["captcha_img"].startswith("data:image/png;base64,")
+        assert self.get_response_payload(response)["captcha_img"].startswith("data:image/png;base64,")
         return SignupResult(url=endpoint, reached_state=SignupState.S9_GENERATE_CAPTCHA, response=response)
 
     # parameterized test methods
@@ -140,6 +138,7 @@ class SignupTests(EduidAPITestCase, MockedScimAPIMixin):
                 elif generate_internal_captcha:
                     self._get_captcha()
                     with client.session_transaction() as sess:
+                        assert sess.signup.captcha.internal_answer
                         data = {
                             "csrf_token": sess.get_csrf_token(),
                             "internal_response": sess.signup.captcha.internal_answer,
@@ -155,6 +154,8 @@ class SignupTests(EduidAPITestCase, MockedScimAPIMixin):
                     data = {k: v for k, v in data.items() if v is not None}
 
                 if add_magic_cookie:
+                    assert self.app.conf.magic_cookie_name is not None
+                    assert self.app.conf.magic_cookie is not None
                     client.set_cookie(
                         "localhost", key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie
                     )
@@ -169,7 +170,7 @@ class SignupTests(EduidAPITestCase, MockedScimAPIMixin):
 
                 if expect_success:
                     if not expected_payload:
-                        assert response.json["payload"]["state"]["captcha"]["completed"] is True
+                        assert self.get_response_payload(response)["state"]["captcha"]["completed"] is True
 
                     self._check_api_response(
                         response,
@@ -195,7 +196,7 @@ class SignupTests(EduidAPITestCase, MockedScimAPIMixin):
 
     def _register_email(
         self,
-        data1: Optional[dict] = None,
+        data1: Optional[dict[str, Any]] = None,
         email: str = "dummy@example.com",
         expect_success: bool = True,
         expected_message: Optional[TranslatableMsg] = None,
@@ -226,13 +227,13 @@ class SignupTests(EduidAPITestCase, MockedScimAPIMixin):
 
             if expect_success:
                 if not expected_payload:
-                    assert response.json["payload"]["state"]["already_signed_up"] is False
-                    assert response.json["payload"]["state"]["captcha"]["completed"] is True
-                    assert response.json["payload"]["state"]["email"]["address"] == email.lower()
-                    assert response.json["payload"]["state"]["email"]["completed"] is False
-                    if "throttle_time_left" in response.json["payload"]["state"]["email"]:
-                        assert response.json["payload"]["state"]["email"]["throttle_time_left"] > 0
-                    assert response.json["payload"]["state"]["email"]["expires_time_left"] > 0
+                    assert self.get_response_payload(response)["state"]["already_signed_up"] is False
+                    assert self.get_response_payload(response)["state"]["captcha"]["completed"] is True
+                    assert self.get_response_payload(response)["state"]["email"]["address"] == email.lower()
+                    assert self.get_response_payload(response)["state"]["email"]["completed"] is False
+                    if "throttle_time_left" in self.get_response_payload(response)["state"]["email"]:
+                        assert self.get_response_payload(response)["state"]["email"]["throttle_time_left"] > 0
+                    assert self.get_response_payload(response)["state"]["email"]["expires_time_left"] > 0
 
                 self._check_api_response(
                     response,
@@ -258,7 +259,7 @@ class SignupTests(EduidAPITestCase, MockedScimAPIMixin):
 
     def _verify_email(
         self,
-        data1: Optional[dict] = None,
+        data1: Optional[dict[str, Any]] = None,
         expect_success: bool = True,
         expected_message: Optional[TranslatableMsg] = None,
         expected_payload: Optional[Mapping[str, Any]] = None,
@@ -290,13 +291,13 @@ class SignupTests(EduidAPITestCase, MockedScimAPIMixin):
 
             if expect_success:
                 if not expected_payload:
-                    assert response.json["payload"]["state"]["already_signed_up"] is False
-                    assert response.json["payload"]["state"]["captcha"]["completed"] is True
+                    assert self.get_response_payload(response)["state"]["already_signed_up"] is False
+                    assert self.get_response_payload(response)["state"]["captcha"]["completed"] is True
                     assert (
-                        response.json["payload"]["state"]["email"]["address"]
-                        == response.json["payload"]["state"]["email"]["address"].lower()
+                        self.get_response_payload(response)["state"]["email"]["address"]
+                        == self.get_response_payload(response)["state"]["email"]["address"].lower()
                     )
-                    assert response.json["payload"]["state"]["email"]["completed"] is True
+                    assert self.get_response_payload(response)["state"]["email"]["completed"] is True
 
                 self._check_api_response(
                     response,
@@ -322,7 +323,7 @@ class SignupTests(EduidAPITestCase, MockedScimAPIMixin):
 
     def _accept_tou(
         self,
-        data1: Optional[dict] = None,
+        data1: Optional[dict[str, Any]] = None,
         accept_tou: bool = True,
         tou_version: Optional[str] = None,
         expect_success: bool = True,
@@ -360,8 +361,8 @@ class SignupTests(EduidAPITestCase, MockedScimAPIMixin):
 
             if expect_success:
                 if not expected_payload:
-                    assert response.json["payload"]["state"]["tou"]["version"] == tou_version
-                    assert response.json["payload"]["state"]["tou"]["completed"] is True
+                    assert self.get_response_payload(response)["state"]["tou"]["version"] == tou_version
+                    assert self.get_response_payload(response)["state"]["tou"]["completed"] is True
 
                 self._check_api_response(
                     response,
@@ -387,7 +388,7 @@ class SignupTests(EduidAPITestCase, MockedScimAPIMixin):
 
     def _generate_password(
         self,
-        data1: Optional[dict] = None,
+        data1: Optional[dict[str, Any]] = None,
         expect_success: bool = True,
         expected_message: Optional[TranslatableMsg] = None,
         expected_payload: Optional[Mapping[str, Any]] = None,
@@ -417,7 +418,7 @@ class SignupTests(EduidAPITestCase, MockedScimAPIMixin):
 
             if expect_success:
                 if not expected_payload:
-                    assert response.json["payload"]["state"]["credentials"]["password"] is not None
+                    assert self.get_response_payload(response)["state"]["credentials"]["password"] is not None
 
                 self._check_api_response(
                     response,
@@ -465,7 +466,7 @@ class SignupTests(EduidAPITestCase, MockedScimAPIMixin):
         self,
         mock_add_credentials: Any,
         mock_request_user_sync: Any,
-        data1: Optional[dict] = None,
+        data1: Optional[dict[str, Any]] = None,
         expect_success: bool = True,
         expected_message: Optional[TranslatableMsg] = None,
         expected_payload: Optional[Mapping[str, Any]] = None,
@@ -497,13 +498,13 @@ class SignupTests(EduidAPITestCase, MockedScimAPIMixin):
 
             if expect_success:
                 if not expected_payload:
-                    assert response.json["payload"]["state"]["already_signed_up"] is True
-                    assert response.json["payload"]["state"]["tou"]["completed"] is True
-                    assert response.json["payload"]["state"]["captcha"]["completed"] is True
-                    assert response.json["payload"]["state"]["email"]["completed"] is True
-                    assert response.json["payload"]["state"]["credentials"]["completed"] is True
-                    assert response.json["payload"]["state"]["credentials"]["password"] is not None
-                    assert response.json["payload"]["state"]["user_created"] is True
+                    assert self.get_response_payload(response)["state"]["already_signed_up"] is True
+                    assert self.get_response_payload(response)["state"]["tou"]["completed"] is True
+                    assert self.get_response_payload(response)["state"]["captcha"]["completed"] is True
+                    assert self.get_response_payload(response)["state"]["email"]["completed"] is True
+                    assert self.get_response_payload(response)["state"]["credentials"]["completed"] is True
+                    assert self.get_response_payload(response)["state"]["credentials"]["password"] is not None
+                    assert self.get_response_payload(response)["state"]["user_created"] is True
                     with client.session_transaction() as sess:
                         assert sess.common.eppn is not None
 
@@ -557,7 +558,7 @@ class SignupTests(EduidAPITestCase, MockedScimAPIMixin):
         email: str,
         invite_code: str,
         eppn: Optional[str] = None,
-        data1: Optional[dict] = None,
+        data1: Optional[dict[str, Any]] = None,
         expect_success: bool = True,
         expected_message: Optional[TranslatableMsg] = None,
         expected_payload: Optional[Mapping[str, Any]] = None,
@@ -597,20 +598,20 @@ class SignupTests(EduidAPITestCase, MockedScimAPIMixin):
 
         if expect_success:
             if not expected_payload:
-                assert response.json["payload"]["email"] == email
-                assert response.json["payload"]["invite_type"] == InviteType.SCIM.value
-                assert response.json["payload"]["inviter_name"] == "Test Inviter"
-                assert response.json["payload"]["given_name"] == "Invite"
-                assert response.json["payload"]["surname"] == "Invitesson"
-                assert response.json["payload"]["inviter_name"] == "Test Inviter"
-                assert response.json["payload"]["expires_at"] == "1970-01-01T00:00:00+00:00"
-                assert response.json["payload"]["finish_url"] == "https://example.com/finish"
-                assert response.json["payload"]["preferred_language"] == "sv"
+                assert self.get_response_payload(response)["email"] == email
+                assert self.get_response_payload(response)["invite_type"] == InviteType.SCIM.value
+                assert self.get_response_payload(response)["inviter_name"] == "Test Inviter"
+                assert self.get_response_payload(response)["given_name"] == "Invite"
+                assert self.get_response_payload(response)["surname"] == "Invitesson"
+                assert self.get_response_payload(response)["inviter_name"] == "Test Inviter"
+                assert self.get_response_payload(response)["expires_at"] == "1970-01-01T00:00:00+00:00"
+                assert self.get_response_payload(response)["finish_url"] == "https://example.com/finish"
+                assert self.get_response_payload(response)["preferred_language"] == "sv"
                 if eppn is not None:
-                    assert response.json["payload"]["is_logged_in"] is True
-                    assert response.json["payload"]["user"]["given_name"] == "John"
-                    assert response.json["payload"]["user"]["surname"] == "Smith"
-                    assert response.json["payload"]["user"]["email"] == "johnsmith@example.com"
+                    assert self.get_response_payload(response)["is_logged_in"] is True
+                    assert self.get_response_payload(response)["user"]["given_name"] == "John"
+                    assert self.get_response_payload(response)["user"]["surname"] == "Smith"
+                    assert self.get_response_payload(response)["user"]["email"] == "johnsmith@example.com"
 
             self._check_api_response(
                 response,
@@ -639,7 +640,7 @@ class SignupTests(EduidAPITestCase, MockedScimAPIMixin):
         email: str,
         invite_code: str,
         email_verified: bool = True,
-        data1: Optional[dict] = None,
+        data1: Optional[dict[str, Any]] = None,
         expect_success: bool = True,
         expected_message: Optional[TranslatableMsg] = None,
         expected_payload: Optional[Mapping[str, Any]] = None,
@@ -665,11 +666,11 @@ class SignupTests(EduidAPITestCase, MockedScimAPIMixin):
 
             if expect_success:
                 if not expected_payload:
-                    assert response.json["payload"]["state"]["tou"]["completed"] is False
-                    assert response.json["payload"]["state"]["captcha"]["completed"] is False
-                    assert response.json["payload"]["state"]["email"]["address"] == email
-                    assert response.json["payload"]["state"]["email"]["completed"] is email_verified
-                    assert response.json["payload"]["state"]["user_created"] is False
+                    assert self.get_response_payload(response)["state"]["tou"]["completed"] is False
+                    assert self.get_response_payload(response)["state"]["captcha"]["completed"] is False
+                    assert self.get_response_payload(response)["state"]["email"]["address"] == email
+                    assert self.get_response_payload(response)["state"]["email"]["completed"] is email_verified
+                    assert self.get_response_payload(response)["state"]["user_created"] is False
                     with client.session_transaction() as sess:
                         assert sess.signup.invite.invite_code == invite_code
 
@@ -698,9 +699,9 @@ class SignupTests(EduidAPITestCase, MockedScimAPIMixin):
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def _complete_invite(
         self,
-        mock_request_user_sync,
+        mock_request_user_sync: MagicMock,
         eppn: Optional[str] = None,
-        data1: Optional[dict] = None,
+        data1: Optional[dict[str, Any]] = None,
         expect_success: bool = True,
         expected_message: Optional[TranslatableMsg] = None,
         expected_payload: Optional[Mapping[str, Any]] = None,
@@ -741,9 +742,11 @@ class SignupTests(EduidAPITestCase, MockedScimAPIMixin):
 
         if expect_success:
             if not expected_payload:
-                assert response.json["payload"]["state"]["invite"]["initiated_signup"] is True
-                assert response.json["payload"]["state"]["invite"]["completed"] is True
-                assert response.json["payload"]["state"]["invite"]["finish_url"] == "https://example.com/finish"
+                assert self.get_response_payload(response)["state"]["invite"]["initiated_signup"] is True
+                assert self.get_response_payload(response)["state"]["invite"]["completed"] is True
+                assert (
+                    self.get_response_payload(response)["state"]["invite"]["finish_url"] == "https://example.com/finish"
+                )
 
             self._check_api_response(
                 response,
@@ -777,6 +780,8 @@ class SignupTests(EduidAPITestCase, MockedScimAPIMixin):
         with self.session_cookie_anon(self.browser) as client:
             with client.session_transaction():
                 with self.app.test_request_context():
+                    assert self.app.conf.magic_cookie is not None
+                    assert self.app.conf.magic_cookie_name is not None
                     client.set_cookie(
                         "localhost", key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie
                     )
@@ -804,7 +809,7 @@ class SignupTests(EduidAPITestCase, MockedScimAPIMixin):
         data1 = {"csrf_token": "bad-csrf-token"}
         res = self._accept_tou(data1=data1, expect_success=False, expected_message=None)
         assert res.reached_state == SignupState.S2_ACCEPT_TOU
-        assert res.response.json["payload"]["error"] == {"csrf_token": ["CSRF failed to validate"]}
+        assert self.get_response_payload(res.response)["error"] == {"csrf_token": ["CSRF failed to validate"]}
 
     def test_get_password(self):
         res = self._generate_password()
@@ -814,7 +819,7 @@ class SignupTests(EduidAPITestCase, MockedScimAPIMixin):
         data1 = {"csrf_token": "bad-csrf-token"}
         res = self._generate_password(data1=data1, expect_success=False, expected_message=None)
         assert res.reached_state == SignupState.S8_GENERATE_PASSWORD
-        assert res.response.json["payload"]["error"] == {"csrf_token": ["CSRF failed to validate"]}
+        assert self.get_response_payload(res.response)["error"] == {"csrf_token": ["CSRF failed to validate"]}
 
     def test_captcha(self):
         res = self._captcha()
@@ -832,7 +837,7 @@ class SignupTests(EduidAPITestCase, MockedScimAPIMixin):
     def test_captcha_new_wrong_csrf(self):
         data = {"csrf_token": "wrong-token"}
         res = self._captcha(captcha_data=data, expect_success=False, expected_message=None)
-        assert res.response.json["payload"]["error"] == {"csrf_token": ["CSRF failed to validate"]}
+        assert self.get_response_payload(res.response)["error"] == {"csrf_token": ["CSRF failed to validate"]}
 
     def test_captcha_fail(self):
         res = self._captcha(
@@ -887,7 +892,7 @@ class SignupTests(EduidAPITestCase, MockedScimAPIMixin):
     def test_captcha_backdoor(self):
         self.app.conf.magic_cookie = "magic-cookie"
         self.app.conf.magic_cookie_name = "magic"
-        self.app.conf.environment = "dev"
+        self.app.conf.environment = EduidEnvironment("dev")
 
         res = self._captcha(
             recaptcha_return_value=False,
@@ -899,7 +904,7 @@ class SignupTests(EduidAPITestCase, MockedScimAPIMixin):
     def test_captcha_backdoor_right_code(self):
         self.app.conf.magic_cookie = "magic-cookie"
         self.app.conf.magic_cookie_name = "magic"
-        self.app.conf.environment = "dev"
+        self.app.conf.environment = EduidEnvironment("dev")
 
         res = self._captcha(
             internal_captcha=True,
@@ -912,7 +917,7 @@ class SignupTests(EduidAPITestCase, MockedScimAPIMixin):
     def test_captcha_backdoor_wrong_code(self):
         self.app.conf.magic_cookie = "magic-cookie"
         self.app.conf.magic_cookie_name = "magic"
-        self.app.conf.environment = "dev"
+        self.app.conf.environment = EduidEnvironment("dev")
 
         res = self._captcha(
             internal_captcha=True,
@@ -926,7 +931,7 @@ class SignupTests(EduidAPITestCase, MockedScimAPIMixin):
     def test_captcha_no_backdoor_in_pro(self):
         self.app.conf.magic_cookie = "magic-cookie"
         self.app.conf.magic_cookie_name = "magic"
-        self.app.conf.environment = "production"
+        self.app.conf.environment = EduidEnvironment("production")
         res = self._captcha(
             recaptcha_return_value=False,
             add_magic_cookie=True,
@@ -938,7 +943,7 @@ class SignupTests(EduidAPITestCase, MockedScimAPIMixin):
     def test_captcha_no_backdoor_misconfigured1(self):
         self.app.conf.magic_cookie = "magic-cookie"
         self.app.conf.magic_cookie_name = ""
-        self.app.conf.environment = "dev"
+        self.app.conf.environment = EduidEnvironment("dev")
         res = self._captcha(
             recaptcha_return_value=False,
             add_magic_cookie=True,
@@ -950,7 +955,7 @@ class SignupTests(EduidAPITestCase, MockedScimAPIMixin):
     def test_captcha_no_backdoor_misconfigured2(self):
         self.app.conf.magic_cookie = ""
         self.app.conf.magic_cookie_name = "magic"
-        self.app.conf.environment = "dev"
+        self.app.conf.environment = EduidEnvironment("dev")
         res = self._captcha(
             recaptcha_return_value=False,
             add_magic_cookie=True,
@@ -1074,8 +1079,8 @@ class SignupTests(EduidAPITestCase, MockedScimAPIMixin):
         response = self._verify_email(
             data1=data, expect_success=False, expected_message=SignupMsg.email_verification_too_many_tries
         )
-        assert response.response.json["payload"]["state"]["email"]["bad_attempts"] == 3
-        assert response.response.json["payload"]["state"]["captcha"]["completed"] is False
+        assert self.get_response_payload(response.response)["state"]["email"]["bad_attempts"] == 3
+        assert self.get_response_payload(response.response)["state"]["captcha"]["completed"] is False
         assert response.reached_state == SignupState.S5_VERIFY_EMAIL
 
     def test_verify_email_mixed_case(self):
@@ -1142,7 +1147,7 @@ class SignupTests(EduidAPITestCase, MockedScimAPIMixin):
             expect_success=False,
             expected_message=None,
         )
-        assert res.response.json["payload"]["error"] == {"csrf_token": ["CSRF failed to validate"]}
+        assert self.get_response_payload(res.response)["error"] == {"csrf_token": ["CSRF failed to validate"]}
 
     def test_create_user_no_captcha(self):
         self._prepare_for_create_user(captcha_completed=False)
@@ -1202,7 +1207,7 @@ class SignupTests(EduidAPITestCase, MockedScimAPIMixin):
             expect_success=False,
             expected_message=None,
         )
-        assert res.response.json["payload"]["error"] == {"csrf_token": ["CSRF failed to validate"]}
+        assert self.get_response_payload(res.response)["error"] == {"csrf_token": ["CSRF failed to validate"]}
 
     def test_complete_invite_new_user(self):
         self.start_mocked_scim_api()
@@ -1247,6 +1252,7 @@ class SignupTests(EduidAPITestCase, MockedScimAPIMixin):
 
     def test_complete_invite_existing_user_try_new_signup(self):
         user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
+        assert user.mail_addresses.primary is not None
         invite = self._create_invite(email=user.mail_addresses.primary.email)
         self._accept_invite(email=invite.get_primary_mail_address(), invite_code=invite.invite_code)
         self._prepare_for_create_user(email=invite.get_primary_mail_address())
@@ -1256,7 +1262,7 @@ class SignupTests(EduidAPITestCase, MockedScimAPIMixin):
     def test_get_code_backdoor(self):
         self.app.conf.magic_cookie = "magic-cookie"
         self.app.conf.magic_cookie_name = "magic"
-        self.app.conf.environment = "dev"
+        self.app.conf.environment = EduidEnvironment("dev")
 
         email = "johnsmith4@example.com"
         self._captcha(add_magic_cookie=True)
@@ -1270,7 +1276,7 @@ class SignupTests(EduidAPITestCase, MockedScimAPIMixin):
     def test_get_code_no_backdoor_in_pro(self):
         self.app.conf.magic_cookie = "magic-cookie"
         self.app.conf.magic_cookie_name = "magic"
-        self.app.conf.environment = "production"
+        self.app.conf.environment = EduidEnvironment("production")
 
         email = "johnsmith4@example.com"
         resp = self._get_code_backdoor(email=email)
@@ -1280,7 +1286,7 @@ class SignupTests(EduidAPITestCase, MockedScimAPIMixin):
     def test_get_code_no_backdoor_misconfigured1(self):
         self.app.conf.magic_cookie = "magic-cookie"
         self.app.conf.magic_cookie_name = ""
-        self.app.conf.environment = "dev"
+        self.app.conf.environment = EduidEnvironment("dev")
 
         email = "johnsmith4@example.com"
         resp = self._get_code_backdoor(email=email)
@@ -1290,7 +1296,7 @@ class SignupTests(EduidAPITestCase, MockedScimAPIMixin):
     def test_get_code_no_backdoor_misconfigured2(self):
         self.app.conf.magic_cookie = ""
         self.app.conf.magic_cookie_name = "magic"
-        self.app.conf.environment = "dev"
+        self.app.conf.environment = EduidEnvironment("dev")
 
         email = "johnsmith4@example.com"
         resp = self._get_code_backdoor(email=email)
@@ -1338,6 +1344,8 @@ class OldSignupTests(SignupTests):
                     data.update(captcha_data)
 
                 if add_magic_cookie:
+                    assert self.app.conf.magic_cookie is not None
+                    assert self.app.conf.magic_cookie_name is not None
                     client.set_cookie(
                         "localhost", key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie
                     )
@@ -1377,7 +1385,9 @@ class OldSignupTests(SignupTests):
                 return SignupResult(url=_trycaptcha, reached_state=OldSignupState.S5_CAPTCHA, response=response)
 
     @patch("eduid.webapp.signup.views.verify_recaptcha")
-    def _resend_email(self, mock_recaptcha: Any, data1: Optional[dict] = None, email: str = "dummy@example.com"):
+    def _resend_email(
+        self, mock_recaptcha: Any, data1: Optional[dict[str, Any]] = None, email: str = "dummy@example.com"
+    ):
         """
         Trigger re-sending an email with a verification code.
         :param data1: to control the data POSTed to the resend-verification endpoint
@@ -1431,7 +1441,7 @@ class OldSignupTests(SignupTests):
         self,
         mock_add_credentials: Any,
         mock_request_user_sync: Any,
-        data1: Optional[dict] = None,
+        data1: Optional[dict[str, Any]] = None,
         email: str = "dummy@example.com",
         captcha_expect_success: bool = True,
         captcha_expected_message: TranslatableMsg = SignupMsg.reg_new,
@@ -1481,8 +1491,8 @@ class OldSignupTests(SignupTests):
                     payload=verify_expected_payload,
                 )
 
-                assert "password" in response2.json["payload"]
-                _pw_no_spaces = "".join(response2.json["payload"]["password"].split())
+                assert "password" in self.get_response_payload(response2)
+                _pw_no_spaces = "".join(self.get_response_payload(response2)["password"].split())
                 assert len(_pw_no_spaces) == self.app.conf.password_length
 
             else:
@@ -1507,6 +1517,8 @@ class OldSignupTests(SignupTests):
                 with self.app.test_request_context():
                     self._captcha_new(email=email)
 
+                    assert self.app.conf.magic_cookie_name is not None
+                    assert self.app.conf.magic_cookie is not None
                     client.set_cookie(
                         "localhost", key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie
                     )
@@ -1515,7 +1527,7 @@ class OldSignupTests(SignupTests):
     def test_get_code_backdoor(self):
         self.app.conf.magic_cookie = "magic-cookie"
         self.app.conf.magic_cookie_name = "magic"
-        self.app.conf.environment = "dev"
+        self.app.conf.environment = EduidEnvironment("dev")
 
         email = "johnsmith4@example.com"
         resp = self._get_code_backdoor(email=email)
@@ -1528,7 +1540,7 @@ class OldSignupTests(SignupTests):
     def test_get_code_no_backdoor_in_pro(self):
         self.app.conf.magic_cookie = "magic-cookie"
         self.app.conf.magic_cookie_name = "magic"
-        self.app.conf.environment = "production"
+        self.app.conf.environment = EduidEnvironment("production")
 
         email = "johnsmith4@example.com"
         resp = self._get_code_backdoor(email=email)
@@ -1538,7 +1550,7 @@ class OldSignupTests(SignupTests):
     def test_get_code_no_backdoor_misconfigured1(self):
         self.app.conf.magic_cookie = "magic-cookie"
         self.app.conf.magic_cookie_name = ""
-        self.app.conf.environment = "dev"
+        self.app.conf.environment = EduidEnvironment("dev")
 
         email = "johnsmith4@example.com"
         resp = self._get_code_backdoor(email=email)
@@ -1548,7 +1560,7 @@ class OldSignupTests(SignupTests):
     def test_get_code_no_backdoor_misconfigured2(self):
         self.app.conf.magic_cookie = ""
         self.app.conf.magic_cookie_name = "magic"
-        self.app.conf.environment = "dev"
+        self.app.conf.environment = EduidEnvironment("dev")
 
         email = "johnsmith4@example.com"
         resp = self._get_code_backdoor(email=email)
@@ -1580,7 +1592,7 @@ class OldSignupTests(SignupTests):
     def test_captcha_new_wrong_csrf(self):
         data = {"csrf_token": "wrong-token"}
         res = self._captcha_new(captcha_data=data, expect_success=False, expected_message=None)
-        assert res.response.json["payload"]["error"] == {"csrf_token": ["CSRF failed to validate"]}
+        assert self.get_response_payload(res.response)["error"] == {"csrf_token": ["CSRF failed to validate"]}
 
     def test_captcha_existing_user(self):
         res = self._captcha_new(
@@ -1616,7 +1628,7 @@ class OldSignupTests(SignupTests):
     def test_captcha_backdoor(self):
         self.app.conf.magic_cookie = "magic-cookie"
         self.app.conf.magic_cookie_name = "magic"
-        self.app.conf.environment = "dev"
+        self.app.conf.environment = EduidEnvironment("dev")
 
         res = self._captcha_new(
             recaptcha_return_value=False,
@@ -1629,7 +1641,7 @@ class OldSignupTests(SignupTests):
     def test_captcha_no_backdoor_in_pro(self):
         self.app.conf.magic_cookie = "magic-cookie"
         self.app.conf.magic_cookie_name = "magic"
-        self.app.conf.environment = "production"
+        self.app.conf.environment = EduidEnvironment("production")
         res = self._captcha_new(
             recaptcha_return_value=False,
             add_magic_cookie=True,
@@ -1641,7 +1653,7 @@ class OldSignupTests(SignupTests):
     def test_captcha_no_backdoor_misconfigured1(self):
         self.app.conf.magic_cookie = "magic-cookie"
         self.app.conf.magic_cookie_name = ""
-        self.app.conf.environment = "dev"
+        self.app.conf.environment = EduidEnvironment("dev")
         res = self._captcha_new(
             recaptcha_return_value=False,
             add_magic_cookie=True,
@@ -1653,7 +1665,7 @@ class OldSignupTests(SignupTests):
     def test_captcha_no_backdoor_misconfigured2(self):
         self.app.conf.magic_cookie = ""
         self.app.conf.magic_cookie_name = "magic"
-        self.app.conf.environment = "dev"
+        self.app.conf.environment = EduidEnvironment("dev")
         res = self._captcha_new(
             recaptcha_return_value=False,
             add_magic_cookie=True,
@@ -1680,14 +1692,18 @@ class OldSignupTests(SignupTests):
         self.assertEqual(data["type"], "GET_SIGNUP_VERIFY_LINK_SUCCESS")
         self.assertEqual(data["payload"]["status"], "verified")
 
-    def test_verify_code_mixed_case(self):
+    def test_verify_code_mixed_case(self) -> None:
         response = self._verify_code(email="MixedCase@Example.com")
         data = json.loads(response.data)
         self.assertEqual(data["type"], "GET_SIGNUP_VERIFY_LINK_SUCCESS")
         self.assertEqual(data["payload"]["status"], "verified")
-        mixed_user: SignupUser = self.app.private_userdb.get_user_by_mail("MixedCase@Example.com")
-        lower_user: SignupUser = self.app.private_userdb.get_user_by_mail("mixedcase@example.com")
+        mixed_user: Optional[SignupUser] = self.app.private_userdb.get_user_by_mail("MixedCase@Example.com")
+        lower_user: Optional[SignupUser] = self.app.private_userdb.get_user_by_mail("mixedcase@example.com")
+        assert mixed_user is not None
+        assert lower_user is not None
         assert mixed_user.eppn == lower_user.eppn
+        assert mixed_user.mail_addresses.primary is not None
+        assert lower_user.mail_addresses.primary is not None
         assert mixed_user.mail_addresses.primary.email == lower_user.mail_addresses.primary.email
 
     def test_verify_code_unsynced(self):
@@ -1742,7 +1758,7 @@ class OldSignupTests(SignupTests):
             captcha_expect_success=False,
             captcha_expected_message=None,
         )
-        assert res.response.json["payload"]["error"] == {"csrf_token": ["CSRF failed to validate"]}
+        assert self.get_response_payload(res.response)["error"] == {"csrf_token": ["CSRF failed to validate"]}
 
     def test_verify_code_after_captcha_dont_accept_tou(self):
         data1 = {"tou_accepted": False}

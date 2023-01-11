@@ -43,7 +43,7 @@ class Neo4jTemporaryInstance(EduidTemporaryInstance):
         self._http_port = random.randint(40000, 43000)
         self._https_port = random.randint(44000, 46000)
         self._bolt_port = random.randint(47000, 50000)
-        self._docker_name = "neo4j-{!s}".format(self.bolt_port)
+        self._docker_name = f"test_neo4j_{self.bolt_port}"
         self._neo4j_version = neo4j_version
         self._host = "localhost"
 
@@ -67,8 +67,6 @@ class Neo4jTemporaryInstance(EduidTemporaryInstance):
             f"NEO4J_AUTH={self.DEFAULT_USERNAME}/{self.DEFAULT_PASSWORD}",
             "-e",
             "NEO4J_ACCEPT_LICENSE_AGREEMENT=yes",
-            "--name",
-            f"test_neo4j_{self.bolt_port}",
             f"neo4j:{self._neo4j_version}",
         ]
 

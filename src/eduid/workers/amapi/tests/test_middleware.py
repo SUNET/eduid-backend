@@ -1,6 +1,5 @@
 import fnmatch
 import unittest
-from typing import List
 
 from eduid.workers.amapi.config import EndpointRestriction, SupportedMethod
 from eduid.workers.amapi.middleware import AuthenticationMiddleware

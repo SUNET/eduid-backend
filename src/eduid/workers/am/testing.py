@@ -137,13 +137,15 @@ class WorkerTestCase(CommonTestCase):
     Base Test case for eduID celery workers
     """
 
-    def setUp(self, *args, am_settings: Optional[Dict[str, Any]] = None, want_mongo_uri: bool = True, **kwargs):
+    def setUp(  # type: ignore[override]
+        self, *args: Any, am_settings: Optional[Dict[str, Any]] = None, want_mongo_uri: bool = True, **kwargs: Any
+    ):
         """
         set up tests
         """
         super().setUp(*args, **kwargs)
 
-        settings = {
+        settings: dict[str, Any] = {
             "app_name": "testing",
             "celery": {
                 "broker_transport": "memory",
@@ -186,8 +188,8 @@ class ProofingTestCase(AMTestCase):
     fetcher_name: Optional[str] = None
     fetcher: Optional[AttributeFetcher] = None
 
-    def setUp(self, **kwargs):
-        super().setUp(**kwargs)
+    def setUp(self, *args: Any, **kwargs: Any):
+        super().setUp(*args, **kwargs)
 
         if self.fetcher_name:
             self.fetcher = AmCelerySingleton.af_registry.get_fetcher(self.fetcher_name)

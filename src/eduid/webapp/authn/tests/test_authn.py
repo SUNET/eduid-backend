@@ -101,7 +101,7 @@ class AuthnAPITestBase(EduidAPITestCase):
         """
         return authn_init_app(test_config=test_config)
 
-    def add_outstanding_query(self, came_from: str) -> str:
+    def add_outstanding_query(self, came_from: AuthnRequestRef) -> str:
         """
         Add a SAML2 authentication query to the queries cache.
         To be used before accessing the assertion consumer service.
@@ -192,7 +192,7 @@ class AuthnAPITestBase(EduidAPITestCase):
         oq_cache = OutstandingQueriesCache(session.authn.sp.pysaml2_dicts)
         ids = oq_cache.outstanding_queries().keys()
         if len(ids) != 1:
-            raise RuntimeError("More or less than one authn request in the session")
+            raise RuntimeError(f"More or less than one ({len(ids)}) authn request in the session")
         saml_req_id = list(ids)[0]
         req_ref = AuthnRequestRef(oq_cache.outstanding_queries()[saml_req_id])
         return saml_req_id, req_ref
@@ -246,7 +246,7 @@ class AuthnAPITestBase(EduidAPITestCase):
         return dump_cookie(
             self.app.conf.flask.session_cookie_name,
             session_id,
-            max_age=float(self.app.conf.flask.permanent_session_lifetime),
+            max_age=int(self.app.conf.flask.permanent_session_lifetime),
             path=self.app.conf.flask.session_cookie_path,
             domain=self.app.conf.flask.session_cookie_domain,
         )

@@ -31,7 +31,7 @@ __author__ = "lundberg"
 
 
 class HelpersTestApp(EduIDBaseApp):
-    def __init__(self, name: str, test_config: Mapping[str, Any], **kwargs):
+    def __init__(self, name: str, test_config: Mapping[str, Any], **kwargs: Any):
         self.conf = load_config(typ=EduIDBaseAppConfig, app_name=name, ns="webapp", test_config=test_config)
         super().__init__(self.conf, **kwargs)
         self.session_interface = SessionFactory(self.conf)
@@ -43,7 +43,7 @@ class HelpersTestApp(EduIDBaseApp):
         self.am_relay = MagicMock()
 
 
-class NinHelpersTest(EduidAPITestCase):
+class NinHelpersTest(EduidAPITestCase[HelpersTestApp]):
     def load_app(self, config: Mapping[str, Any]) -> HelpersTestApp:
         """
         Called from the parent class, so we can provide the appropriate flask
@@ -54,8 +54,8 @@ class NinHelpersTest(EduidAPITestCase):
 
         return app
 
-    def setUp(self):
-        super().setUp()
+    def setUp(self, *args: Any, **kwargs: Any):
+        super().setUp(*args, **kwargs)
         self.test_user_nin = "200001023456"
         self.wrong_test_user_nin = "199909096789"
 
@@ -101,7 +101,7 @@ class NinHelpersTest(EduidAPITestCase):
         return user.eppn
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_add_nin_to_user(self, mock_user_sync):
+    def test_add_nin_to_user(self, mock_user_sync: MagicMock):
         mock_user_sync.return_value = True
         eppn = self.insert_no_nins_user()
         user = self.app.central_userdb.get_user_by_eppn(eppn)
@@ -139,7 +139,7 @@ class NinHelpersTest(EduidAPITestCase):
             self.app.private_userdb.get_user_by_eppn(eppn)
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_verify_nin_for_user(self, mock_user_sync):
+    def test_verify_nin_for_user(self, mock_user_sync: MagicMock):
         """Test happy-case when calling verify_nin_for_user with a User instance (deprecated)"""
         mock_user_sync.return_value = True
         eppn = self.insert_no_nins_user()
@@ -148,6 +148,7 @@ class NinHelpersTest(EduidAPITestCase):
             dict(number=self.test_user_nin, created_by="NinHelpersTest", verified=False)
         )
         proofing_state = NinProofingState.from_dict({"eduPersonPrincipalName": eppn, "nin": nin_element.to_dict()})
+        assert proofing_state.nin.created_by is not None
         proofing_log_entry = NinProofingLogElement(
             eppn=user.eppn,
             created_by=proofing_state.nin.created_by,
@@ -155,6 +156,7 @@ class NinHelpersTest(EduidAPITestCase):
             user_postal_address=self.navet_response(),
             proofing_method="test",
             proofing_version="2017",
+            deregistration_information=None,
         )
         with self.app.app_context():
             assert verify_nin_for_user(user, proofing_state, proofing_log_entry) is True
@@ -173,6 +175,7 @@ class NinHelpersTest(EduidAPITestCase):
             dict(number=self.test_user_nin, created_by="NinHelpersTest", verified=False)
         )
         proofing_state = NinProofingState.from_dict({"eduPersonPrincipalName": eppn, "nin": nin_element.to_dict()})
+        assert proofing_state.nin.created_by is not None
         proofing_log_entry = NinProofingLogElement(
             eppn=user.eppn,
             created_by=proofing_state.nin.created_by,
@@ -180,6 +183,7 @@ class NinHelpersTest(EduidAPITestCase):
             user_postal_address=self.navet_response(),
             proofing_method="test",
             proofing_version="2017",
+            deregistration_information=None,
         )
         proofing_user = ProofingUser.from_user(user, self.app.private_userdb)
         # check that there is no NIN on the proofing_user before calling verify_nin_for_user
@@ -199,7 +203,7 @@ class NinHelpersTest(EduidAPITestCase):
         self._check_nin_verified_ok(user=user, proofing_state=proofing_state, number=self.test_user_nin)
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_verify_nin_for_user_existing_not_verified(self, mock_user_sync):
+    def test_verify_nin_for_user_existing_not_verified(self, mock_user_sync: MagicMock):
         mock_user_sync.return_value = True
         eppn = self.insert_not_verified_user()
         user = self.app.central_userdb.get_user_by_eppn(eppn)
@@ -207,6 +211,7 @@ class NinHelpersTest(EduidAPITestCase):
             dict(number=self.test_user_nin, created_by="NinHelpersTest", verified=False)
         )
         proofing_state = NinProofingState.from_dict({"eduPersonPrincipalName": eppn, "nin": nin_element.to_dict()})
+        assert proofing_state.nin.created_by is not None
         proofing_log_entry = NinProofingLogElement(
             eppn=user.eppn,
             created_by=proofing_state.nin.created_by,
@@ -214,6 +219,7 @@ class NinHelpersTest(EduidAPITestCase):
             user_postal_address=self.navet_response(),
             proofing_method="test",
             proofing_version="2017",
+            deregistration_information=None,
         )
         with self.app.app_context():
             assert verify_nin_for_user(user, proofing_state, proofing_log_entry) is True
@@ -230,6 +236,7 @@ class NinHelpersTest(EduidAPITestCase):
             dict(number=self.test_user_nin, created_by="NinHelpersTest", verified=False)
         )
         proofing_state = NinProofingState.from_dict({"eduPersonPrincipalName": eppn, "nin": nin_element.to_dict()})
+        assert proofing_state.nin.created_by is not None
         proofing_log_entry = NinProofingLogElement(
             eppn=user.eppn,
             created_by=proofing_state.nin.created_by,
@@ -237,6 +244,7 @@ class NinHelpersTest(EduidAPITestCase):
             proofing_method="test",
             proofing_version="2017",
             user_postal_address=self.navet_response(),
+            deregistration_information=None,
         )
         with self.app.app_context():
             assert verify_nin_for_user(user, proofing_state, proofing_log_entry) is True
@@ -257,6 +265,7 @@ class NinHelpersTest(EduidAPITestCase):
                 user_postal_address=self.navet_response(),
                 proofing_method="test",
                 proofing_version="2017",
+                deregistration_information=None,
             )
         assert exc_info.value.errors() == [
             {
@@ -278,6 +287,7 @@ class NinHelpersTest(EduidAPITestCase):
             user_postal_address=self.navet_response(),
             proofing_method="test",
             proofing_version="2018v1",
+            deregistration_information=None,
         )
         with self.app.app_context():
             user = set_user_names_from_official_address(user, proofing_element)
@@ -299,6 +309,7 @@ class NinHelpersTest(EduidAPITestCase):
             user_postal_address=navet_response,
             proofing_method="test",
             proofing_version="2018v1",
+            deregistration_information=None,
         )
         with self.app.app_context():
             user = set_user_names_from_official_address(user, proofing_element)
@@ -321,6 +332,7 @@ class NinHelpersTest(EduidAPITestCase):
             user_postal_address=navet_response,
             proofing_method="test",
             proofing_version="2018v1",
+            deregistration_information=None,
         )
         with self.app.app_context():
             user = set_user_names_from_official_address(user, proofing_element)
@@ -341,6 +353,7 @@ class NinHelpersTest(EduidAPITestCase):
             user_postal_address=navet_data,
             proofing_method="test",
             proofing_version="2018v1",
+            deregistration_information=None,
         )
         with self.app.app_context():
             user = set_user_names_from_official_address(user, proofing_element)

@@ -43,7 +43,7 @@ BaseSessionInfoVar = TypeVar("BaseSessionInfoVar", bound=BaseSessionInfo)
 
 
 @dataclass
-class SwedenConnectProofingFunctions(ProofingFunctions, Generic[BaseSessionInfoVar]):
+class SwedenConnectProofingFunctions(ProofingFunctions[BaseSessionInfoVar], Generic[BaseSessionInfoVar]):
     def get_identity(self, user: User) -> Optional[IdentityElement]:
         raise NotImplementedError("Subclass must implement get_identity")
 

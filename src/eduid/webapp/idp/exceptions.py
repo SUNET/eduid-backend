@@ -11,15 +11,14 @@ if TYPE_CHECKING:
 
 
 def init_exception_handlers(app: "IdPApp") -> "IdPApp":
-
-    # Init error handler for raised exceptions
-    @app.errorhandler(HTTPException)
     def _handle_flask_http_exception(error: HTTPException) -> WerkzeugResponse:
         app.logger.error(f"IdP HTTPException {request}: {error}")
         app.logger.debug(f"Exception handler invoked on request from {request.remote_addr}: {request}")
         if app.debug or app.testing:
             app.logger.exception(f"Got exception in IdP")
-        response = error.get_response()
+        # It looks to me like this function get_response() returns a WerkzeugResponse, but it's
+        # declared to return a sans io Response (which doesn't have a body). Don't know why.
+        response: WerkzeugResponse = error.get_response()  # type: ignore[assignment]
 
         context = get_default_template_arguments(app.conf)
         context["error_code"] = str(error.code)
@@ -47,6 +46,9 @@ def init_exception_handlers(app: "IdPApp") -> "IdPApp":
             )
 
         return response
+
+    # Init error handler for raised exceptions
+    app.register_error_handler(HTTPException, _handle_flask_http_exception)
 
     return app
 

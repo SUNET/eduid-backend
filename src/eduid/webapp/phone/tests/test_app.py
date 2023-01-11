@@ -35,18 +35,16 @@ import json
 from typing import Any, Dict, Mapping, Optional
 from urllib.parse import quote_plus
 
-from mock import patch
+from mock import MagicMock, patch
 
+from eduid.common.config.base import EduidEnvironment
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.phone.app import PhoneApp, phone_init_app
 from eduid.webapp.phone.helpers import PhoneMsg
 
 
-class PhoneTests(EduidAPITestCase):
-
-    app: PhoneApp
-
-    def setUp(self, *args, **kwargs):
+class PhoneTests(EduidAPITestCase[PhoneApp]):
+    def setUp(self, *args: Any, **kwargs: Any):
         super().setUp(*args, copy_user_to_private=True, **kwargs)
 
     def load_app(self, config: Mapping[str, Any]) -> PhoneApp:
@@ -92,7 +90,7 @@ class PhoneTests(EduidAPITestCase):
         mock_phone_validator: Any,
         mock_code_verification: Any,
         mock_request_user_sync: Any,
-        mod_data: Optional[dict] = None,
+        mod_data: Optional[dict[str, Any]] = None,
         send_data: bool = True,
     ):
         """
@@ -125,7 +123,7 @@ class PhoneTests(EduidAPITestCase):
                 return client.post("/new")
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def _post_primary(self, mock_request_user_sync: Any, mod_data: Optional[dict] = None):
+    def _post_primary(self, mock_request_user_sync: Any, mod_data: Optional[dict[str, Any]] = None):
         """
         Set phone number as the primary number for the test user
 
@@ -148,7 +146,7 @@ class PhoneTests(EduidAPITestCase):
             return client.post("/primary", data=json.dumps(data), content_type=self.content_type_json)
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def _remove(self, mock_request_user_sync: Any, mod_data: Optional[dict] = None):
+    def _remove(self, mock_request_user_sync: Any, mod_data: Optional[dict[str, Any]] = None):
         """
         Remove phone number from the test user
 
@@ -178,7 +176,7 @@ class PhoneTests(EduidAPITestCase):
         mock_phone_validator: Any,
         mock_request_user_sync: Any,
         mock_code_verification: Any,
-        mod_data: Optional[dict] = None,
+        mod_data: Optional[dict[str, Any]] = None,
     ):
         """
         Send a POST request to trigger re-sending a verification code for an unverified phone number in the test user.
@@ -208,7 +206,7 @@ class PhoneTests(EduidAPITestCase):
         mock_phone_validator: Any,
         mock_code_verification: Any,
         mock_request_user_sync: Any,
-        mod_data: Optional[dict] = None,
+        mod_data: Optional[Dict[str, Any]] = None,
         phone: str = "+34670123456",
         code: str = "5250f9a4",
     ):
@@ -229,7 +227,7 @@ class PhoneTests(EduidAPITestCase):
         with self.session_cookie(self.browser, eppn) as client:
             with self.app.test_request_context():
                 with client.session_transaction() as sess:
-                    data = {
+                    data: Dict[str, Any] = {
                         "number": phone,
                         "verified": False,
                         "primary": False,
@@ -240,6 +238,8 @@ class PhoneTests(EduidAPITestCase):
 
                 client.post("/new", data=json.dumps(data), content_type=self.content_type_json)
 
+                assert self.app.conf.magic_cookie_name is not None
+                assert self.app.conf.magic_cookie is not None
                 client.set_cookie("localhost", key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie)
 
                 phone = quote_plus(phone)
@@ -432,7 +432,9 @@ class PhoneTests(EduidAPITestCase):
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     @patch("eduid.webapp.phone.verifications.get_short_hash")
     @patch("eduid.common.rpc.msg_relay.MsgRelay.sendsms")
-    def test_remove_primary_other_verified(self, mock_phone_validator, mock_code_verification, mock_request_user_sync):
+    def test_remove_primary_other_verified(
+        self, mock_phone_validator: MagicMock, mock_code_verification: MagicMock, mock_request_user_sync: MagicMock
+    ):
         mock_phone_validator.return_value = True
         mock_request_user_sync.side_effect = self.request_user_sync
         mock_code_verification.return_value = "12345"
@@ -532,7 +534,9 @@ class PhoneTests(EduidAPITestCase):
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     @patch("eduid.webapp.phone.verifications.get_short_hash")
     @patch("eduid.common.rpc.msg_relay.MsgRelay.sendsms")
-    def test_verify(self, mock_phone_validator, mock_code_verification, mock_request_user_sync):
+    def test_verify(
+        self, mock_phone_validator: MagicMock, mock_code_verification: MagicMock, mock_request_user_sync: MagicMock
+    ):
         mock_phone_validator.return_value = True
         mock_request_user_sync.side_effect = self.request_user_sync
         mock_code_verification.return_value = "12345"
@@ -571,7 +575,9 @@ class PhoneTests(EduidAPITestCase):
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     @patch("eduid.webapp.phone.verifications.get_short_hash")
     @patch("eduid.common.rpc.msg_relay.MsgRelay.sendsms")
-    def test_verify_fail(self, mock_phone_validator, mock_code_verification, mock_request_user_sync):
+    def test_verify_fail(
+        self, mock_phone_validator: MagicMock, mock_code_verification: MagicMock, mock_request_user_sync: MagicMock
+    ):
         mock_phone_validator.return_value = True
         mock_request_user_sync.side_effect = self.request_user_sync
         mock_code_verification.return_value = "12345"
@@ -687,7 +693,7 @@ class PhoneTests(EduidAPITestCase):
     def test_get_code_backdoor(self):
         self.app.conf.magic_cookie = "magic-cookie"
         self.app.conf.magic_cookie_name = "magic"
-        self.app.conf.environment = "dev"
+        self.app.conf.environment = EduidEnvironment("dev")
 
         code = "0123456"
         resp = self._get_code_backdoor(code=code)
@@ -698,7 +704,7 @@ class PhoneTests(EduidAPITestCase):
     def test_get_code_no_backdoor_in_pro(self):
         self.app.conf.magic_cookie = "magic-cookie"
         self.app.conf.magic_cookie_name = "magic"
-        self.app.conf.environment = "production"
+        self.app.conf.environment = EduidEnvironment("production")
 
         code = "0123456"
         resp = self._get_code_backdoor(code=code)
@@ -708,7 +714,7 @@ class PhoneTests(EduidAPITestCase):
     def test_get_code_no_backdoor_misconfigured1(self):
         self.app.conf.magic_cookie = "magic-cookie"
         self.app.conf.magic_cookie_name = ""
-        self.app.conf.environment = "dev"
+        self.app.conf.environment = EduidEnvironment("dev")
 
         code = "0123456"
         resp = self._get_code_backdoor(code=code)
@@ -718,7 +724,7 @@ class PhoneTests(EduidAPITestCase):
     def test_get_code_no_backdoor_misconfigured2(self):
         self.app.conf.magic_cookie = ""
         self.app.conf.magic_cookie_name = "magic"
-        self.app.conf.environment = "dev"
+        self.app.conf.environment = EduidEnvironment("dev")
 
         code = "0123456"
         resp = self._get_code_backdoor(code=code)

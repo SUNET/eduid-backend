@@ -42,6 +42,7 @@ import bson
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.db import TUserDbDocument
 from eduid.userdb.reset_password.element import CodeElement
+from eduid.webapp.common.authn.fido_tokens import WebauthnChallenge
 
 TResetPasswordStateSubclass = TypeVar("TResetPasswordStateSubclass", bound="ResetPasswordState")
 
@@ -71,6 +72,10 @@ class ResetPasswordState(object):
         res = asdict(self)
         res["eduPersonPrincipalName"] = res.pop("eppn")
         res["_id"] = res.pop("id")
+        if res.get("extra_security"):
+            _tokens = res["extra_security"].get("tokens")
+            if isinstance(_tokens, WebauthnChallenge):
+                res["extra_security"]["tokens"] = _tokens.dict()
         return TUserDbDocument(res)
 
     @classmethod

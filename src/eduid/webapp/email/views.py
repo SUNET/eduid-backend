@@ -294,7 +294,7 @@ def resend_code(user: User, email: str) -> FluxData:
 
 @email_views.route("/get-code", methods=["GET"])
 @require_user
-def get_code(user: User) -> Optional[str]:
+def get_code(user: User) -> str:
     """
     Backdoor to get the verification code in the staging or dev environments
     """
@@ -310,7 +310,7 @@ def get_code(user: User) -> Optional[str]:
             if not state:
                 current_app.logger.error(f"No state found for eppn {eppn} and email {email}")
                 abort(400)
-            return state.verification.verification_code
+            return str(state.verification.verification_code)
     except Exception:
         current_app.logger.exception(f"{user} tried to use the backdoor to get the verification code for an email")
 

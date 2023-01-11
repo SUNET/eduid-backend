@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from functools import wraps
-from typing import List
+from typing import Any, Callable, List, TypeVar
 
 from flask import abort
 
@@ -28,9 +28,14 @@ def get_credentials_aux_data(user: User) -> List[TUserDbDocument]:
     return credentials
 
 
-def require_support_personnel(f):
+TRequireSupportPersonnelResult = TypeVar("TRequireSupportPersonnelResult")
+
+
+def require_support_personnel(
+    f: Callable[..., TRequireSupportPersonnelResult]
+) -> Callable[..., TRequireSupportPersonnelResult]:
     @wraps(f)
-    def require_support_decorator(*args, **kwargs):
+    def require_support_decorator(*args: Any, **kwargs: Any):
         user = get_user()
         # If the logged in user is whitelisted then we
         # pass on the request to the decorated view

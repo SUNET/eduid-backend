@@ -46,9 +46,6 @@ class GroupManagementConfig(EduIDBaseAppConfig, MailConfigMixin):
 
     app_name: str = "group_management"
 
-    eduid_site_name: str = "eduID"
-    eduid_site_url: str
-
     group_invite_template_html: str = "group_invite_email.html.jinja2"
     group_invite_template_txt: str = "group_invite_email.txt.jinja2"
     group_delete_invite_template_html: str = "group_delete_invite_email.html.jinja2"

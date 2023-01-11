@@ -46,7 +46,7 @@ from eduid.webapp.email.settings.common import EmailConfig
 
 
 class EmailApp(AuthnBaseApp):
-    def __init__(self, config: EmailConfig, **kwargs):
+    def __init__(self, config: EmailConfig, **kwargs: Any):
         super().__init__(config, **kwargs)
 
         self.conf = config
