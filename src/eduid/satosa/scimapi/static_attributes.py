@@ -46,7 +46,7 @@ class AddStaticAttributesForVirtualIdp(ResponseMicroService):
         for attr_name, fmt in recipes.items():
             logger.debug(f"Adding static attribut {attr_name}: {fmt} for {vidp}")
 
-            static_attributes[attr_name] = [fmt]
+            static_attributes[attr_name] = fmt
 
         return static_attributes
 
