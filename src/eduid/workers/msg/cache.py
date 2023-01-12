@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional, Set
+from typing import Any, Optional
 
 from eduid.userdb.db import BaseDB, TUserDbDocument
 from eduid.userdb.util import utc_now
@@ -6,7 +6,7 @@ from eduid.userdb.util import utc_now
 
 class CacheMDB(BaseDB):
 
-    _init_collections: Set[str] = set()
+    _init_collections: set[str] = set()
 
     def __init__(self, db_uri: str, db_name: str, collection: str, ttl: int):
         super().__init__(db_uri=db_uri, db_name=db_name, collection=collection)
@@ -18,13 +18,13 @@ class CacheMDB(BaseDB):
         }
         self.setup_indexes(indexes)
 
-    def add_cache_item(self, identifier: str, data: Dict[str, Any]):
+    def add_cache_item(self, identifier: str, data: dict[str, Any]):
         date = utc_now()
         doc = {"identifier": identifier, "data": data, "created_at": date}
         self._coll.insert_one(TUserDbDocument(doc))
         return True
 
-    def get_cache_item(self, identifier: str) -> Optional[Dict[str, Any]]:
+    def get_cache_item(self, identifier: str) -> Optional[dict[str, Any]]:
         query = {"identifier": identifier}
         result = self._coll.find_one(query)
         if result is not None:
@@ -35,7 +35,7 @@ class CacheMDB(BaseDB):
         result = self._coll.find(query)
         return list(result)
 
-    def update_cache_item(self, identifier: str, data: Dict[str, Any]):
+    def update_cache_item(self, identifier: str, data: dict[str, Any]):
         date = utc_now()
         return self._coll.update(
             {"identifier": identifier}, {"$set": {"data": data, "updated_at": date}}, w=1, getLastError=True

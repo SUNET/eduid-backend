@@ -1,16 +1,14 @@
-# -*- coding: utf-8 -*-
-
 import json
 import logging
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import Any, Dict, Mapping, Optional, Union
+from typing import Any, Mapping, Optional, Union
+from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 from flask import url_for
 from jwcrypto.jwk import JWK
-from mock import MagicMock, patch
 from werkzeug.test import TestResponse
 
 from eduid.common.clients.scim_client.testing import MockedScimAPIMixin
@@ -65,7 +63,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         """
         return signup_init_app(name="signup", test_config=config)
 
-    def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
+    def update_config(self, config: dict[str, Any]) -> dict[str, Any]:
         config.update(
             {
                 "available_languages": {"en": "English", "sv": "Svenska"},

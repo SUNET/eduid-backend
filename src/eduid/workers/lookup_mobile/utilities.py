@@ -1,7 +1,7 @@
 __author__ = "mathiashedstrom"
 
 import re
-from typing import List, Optional, Sequence
+from typing import Optional, Sequence
 
 import phonenumbers
 
@@ -15,7 +15,7 @@ def format_NIN(nin: Optional[str]) -> Optional[str]:
     return nin
 
 
-def format_mobile_number(numbers: Sequence[str], region: Optional[str]) -> List[str]:
+def format_mobile_number(numbers: Sequence[str], region: Optional[str]) -> list[str]:
     """
     Format a list of numbers to E.164 standard
     :param numbers: a list of phone numbers

@@ -1,8 +1,7 @@
-# -*- coding: utf-8 -*-
 import sys
 from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta
-from typing import Any, Dict, Mapping, Optional
+from typing import Any, Mapping, Optional
 
 from fastapi import Response
 
@@ -29,8 +28,8 @@ class FailCountItem:
         return f"(first_failure: {self.first_failure.isoformat()}, fail count: {self.count})"
 
 
-SIMPLE_CACHE: Dict[str, SimpleCacheItem] = dict()
-FAILURE_INFO: Dict[str, FailCountItem] = dict()
+SIMPLE_CACHE: dict[str, SimpleCacheItem] = dict()
+FAILURE_INFO: dict[str, FailCountItem] = dict()
 
 
 def log_failure_info(ctx: ContextRequest, key: str, msg: str, exc: Optional[Exception] = None) -> None:

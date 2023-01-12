@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from typing import Optional
 
 import pkg_resources
@@ -23,8 +22,8 @@ def init_babel(app: EduIDBaseApp) -> Babel:
     pkg_translations_dir = pkg_resources.resource_filename("eduid.webapp", "translations")
     app.config["BABEL_TRANSLATION_DIRECTORIES"] = f"{conf_translations_dirs};{pkg_translations_dir}"
     babel = Babel(app)
-    app.logger.info("Translation directories: {}".format([path for path in babel.translation_directories]))
-    app.logger.info("Available translations: {}".format(babel.list_translations()))
+    app.logger.info(f"Translation directories: {[path for path in babel.translation_directories]}")
+    app.logger.info(f"Available translations: {babel.list_translations()}")
 
     @babel.localeselector
     def get_locale() -> Optional[str]:

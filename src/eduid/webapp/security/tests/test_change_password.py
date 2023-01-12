@@ -1,7 +1,6 @@
-# -*- coding: utf-8 -*-
 import json
 from datetime import timedelta
-from typing import Any, Dict, List, Mapping, Optional
+from typing import Any, Mapping, Optional
 from unittest.mock import patch
 from uuid import uuid4
 
@@ -33,7 +32,7 @@ class ChangePasswordTests(EduidAPITestCase[SecurityApp]):
         """
         return security_init_app("testing", config)
 
-    def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
+    def update_config(self, config: dict[str, Any]) -> dict[str, Any]:
         config.update(
             {
                 "available_languages": {"en": "English", "sv": "Svenska"},

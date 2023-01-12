@@ -1,20 +1,19 @@
 import logging
 from abc import ABC
 from dataclasses import dataclass
-from typing import List, Optional, Union
+from typing import Optional, Union
 
 from flask import request
 from pydantic import ValidationError
 
 from eduid.common.config.base import ProofingConfigMixin
-from eduid.common.config.exceptions import BadConfiguration
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.credentials.external import TrustFramework
 from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.common.authn.session_info import SessionInfo
 from eduid.webapp.common.proofing.messages import ProofingMsg
 from eduid.webapp.eidas.saml_session_info import ForeignEidSessionInfo, NinSessionInfo
-from eduid.webapp.svipe_id.helpers import SvipeDocumentUserInfo, SvipeTokenResponse
+from eduid.webapp.svipe_id.helpers import SvipeDocumentUserInfo
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +42,7 @@ class ProofingMethod(ABC):
 @dataclass(frozen=True)
 class ProofingMethodSAML(ProofingMethod):
     idp: str
-    required_loa: List[str]
+    required_loa: list[str]
 
     def parse_session_info(self, session_info: SessionInfo, backdoor: bool) -> SessionInfoParseResult:
         raise NotImplementedError("Subclass must implement parse_session_info")
@@ -52,7 +51,7 @@ class ProofingMethodSAML(ProofingMethod):
 @dataclass(frozen=True)
 class ProofingMethodFreja(ProofingMethodSAML):
     idp: str
-    required_loa: List[str]
+    required_loa: list[str]
 
     def parse_session_info(self, session_info: SessionInfo, backdoor: bool) -> SessionInfoParseResult:
         try:

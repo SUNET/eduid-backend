@@ -7,7 +7,7 @@ from __future__ import annotations
 import os
 from abc import ABCMeta
 from sys import stderr
-from typing import Any, Dict, Optional, TypeVar
+from typing import Any, Optional, TypeVar
 
 from cookies_samesite_compat import CookiesSameSiteCompatMiddleware
 from flask import Flask
@@ -107,7 +107,7 @@ class EduIDBaseApp(Flask, metaclass=ABCMeta):
             self._central_userdb = AmDB(config.mongo_uri)
 
         # Set up generic health check views
-        self.failure_info: Dict[str, FailCountItem] = dict()
+        self.failure_info: dict[str, FailCountItem] = dict()
         init_status_views(self, config)
 
     @property

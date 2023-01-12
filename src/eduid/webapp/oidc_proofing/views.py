@@ -1,10 +1,7 @@
-# -*- coding: utf-8 -*-
-
-
 import base64
 import binascii
 from io import BytesIO
-from typing import Any, Dict, Mapping, Union
+from typing import Any, Mapping, Union
 
 import qrcode
 import qrcode.image.svg
@@ -22,7 +19,6 @@ from eduid.userdb.util import UTC
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, can_verify_nin, require_user
 from eduid.webapp.common.api.helpers import add_nin_to_user
 from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response
-from eduid.webapp.common.api.utils import save_and_sync_user
 from eduid.webapp.oidc_proofing import helpers, schemas
 from eduid.webapp.oidc_proofing.app import current_oidcp_app as current_app
 from eduid.webapp.oidc_proofing.helpers import OIDCMsg
@@ -40,9 +36,9 @@ oidc_proofing_views = Blueprint("oidc_proofing", __name__, url_prefix="", templa
 def authorization_response():
     # parse authentication response
     query_string = request.query_string.decode("utf-8")
-    current_app.logger.debug("query_string: {!s}".format(query_string))
+    current_app.logger.debug(f"query_string: {query_string!s}")
     authn_resp = current_app.oidc_client.parse_response(AuthorizationResponse, info=query_string, sformat="urlencoded")
-    current_app.logger.debug("Authorization response received: {!s}".format(authn_resp))
+    current_app.logger.debug(f"Authorization response received: {authn_resp!s}")
 
     if authn_resp.get("error"):
         current_app.logger.error(
@@ -56,35 +52,31 @@ def authorization_response():
     user_oidc_state = authn_resp["state"]
     proofing_state = current_app.proofing_statedb.get_state_by_oidc_state(user_oidc_state)
     if not proofing_state:
-        msg = "The 'state' parameter ({!s}) does not match a user state.".format(user_oidc_state)
+        msg = f"The 'state' parameter ({user_oidc_state!s}) does not match a user state."
         current_app.logger.error(msg)
         current_app.stats.count(name="authn_response_proofing_state_missing")
         return make_response("OK", 200)
-    current_app.logger.debug(
-        "Proofing state {!s} for user {!s} found".format(proofing_state.state, proofing_state.eppn)
-    )
+    current_app.logger.debug(f"Proofing state {proofing_state.state!s} for user {proofing_state.eppn!s} found")
 
     # Check if the token from the authn response matches the token we created when making the auth request
     authorization_header = request.headers.get("Authorization")
-    if authorization_header != "Bearer {}".format(proofing_state.token):
-        current_app.logger.error(
-            "The authorization token ({!s}) did not match the expected".format(authorization_header)
-        )
+    if authorization_header != f"Bearer {proofing_state.token}":
+        current_app.logger.error(f"The authorization token ({authorization_header!s}) did not match the expected")
         current_app.stats.count(name="authn_response_authn_failure")
         return make_response("FORBIDDEN", 403)
 
     # TODO: We should save the auth response code to the proofing state to be able to continue a failed attempt
     # do token request
     args = {"code": authn_resp["code"], "redirect_uri": url_for("oidc_proofing.authorization_response", _external=True)}
-    current_app.logger.debug("Trying to do token request: {!s}".format(args))
+    current_app.logger.debug(f"Trying to do token request: {args!s}")
     # TODO: What should be saved from the token response and where?
     token_resp = current_app.oidc_client.do_access_token_request(
         scope="openid", state=authn_resp["state"], request_args=args, authn_method="client_secret_basic"
     )
-    current_app.logger.debug("token response received: {!s}".format(token_resp))
+    current_app.logger.debug(f"token response received: {token_resp!s}")
     id_token = token_resp["id_token"]
     if id_token["nonce"] != proofing_state.nonce:
-        current_app.logger.error("The 'nonce' parameter does not match for user {!s}.".format(proofing_state.eppn))
+        current_app.logger.error(f"The 'nonce' parameter does not match for user {proofing_state.eppn!s}.")
         current_app.stats.count(name="authn_response_token_request_failure")
         return make_response("OK", 200)
     current_app.stats.count(name="authn_response_token_request_success")
@@ -95,10 +87,10 @@ def authorization_response():
     userinfo = current_app.oidc_client.do_user_info_request(
         method=current_app.conf.userinfo_endpoint_method, state=authn_resp["state"]
     )
-    current_app.logger.debug("userinfo received: {!s}".format(userinfo))
+    current_app.logger.debug(f"userinfo received: {userinfo!s}")
     if userinfo["sub"] != id_token["sub"]:
         current_app.logger.error(
-            "The 'sub' of userinfo does not match 'sub' of ID Token for user {!s}.".format(proofing_state.eppn)
+            f"The 'sub' of userinfo does not match 'sub' of ID Token for user {proofing_state.eppn!s}."
         )
         current_app.stats.count(name="authn_response_userinfo_request_failure")
         return make_response("OK", 200)
@@ -119,11 +111,11 @@ def authorization_response():
     try:
         # Handle userinfo differently depending on data in userinfo
         if userinfo.get("identity"):
-            current_app.logger.info("Handling userinfo as generic seleg vetting for user {}".format(user))
+            current_app.logger.info(f"Handling userinfo as generic seleg vetting for user {user}")
             current_app.stats.count(name="seleg.authn_response_received")
             helpers.handle_seleg_userinfo(user, proofing_state, userinfo)
         elif userinfo.get("results"):
-            current_app.logger.info("Handling userinfo as freja vetting for user {}".format(user))
+            current_app.logger.info(f"Handling userinfo as freja vetting for user {user}")
             current_app.stats.count(name="freja.authn_response_received")
             helpers.handle_freja_eid_userinfo(user, proofing_state, userinfo)
     except (TaskFailed, KeyError):
@@ -138,7 +130,7 @@ def authorization_response():
 @oidc_proofing_views.route("/proofing", methods=["GET"])
 @MarshalWith(schemas.NonceResponseSchema)
 @require_user
-def get_seleg_state(user: User) -> Dict[str, Any]:
+def get_seleg_state(user: User) -> dict[str, Any]:
     current_app.logger.debug(f"Getting state for user {user}.")
     proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn)
     if not proofing_state:
@@ -149,7 +141,7 @@ def get_seleg_state(user: User) -> Dict[str, Any]:
         current_app.stats.count(name="seleg.proofing_state_expired")
         return {}
     # Return nonce and nonce as qr code
-    current_app.logger.debug("Returning nonce for user {!s}".format(user))
+    current_app.logger.debug(f"Returning nonce for user {user!s}")
     current_app.stats.count(name="seleg.proofing_state_returned")
     buf = BytesIO()
     qr_code = helpers.create_opaque_data(proofing_state.nonce, proofing_state.token)
@@ -157,7 +149,7 @@ def get_seleg_state(user: User) -> Dict[str, Any]:
     qr_b64 = base64.b64encode(buf.getvalue())
     return {
         "qr_code": qr_code,
-        "qr_img": "data:image/png;base64, {!s}".format(qr_b64),
+        "qr_img": f"data:image/png;base64, {qr_b64!s}",
     }
 
 
@@ -169,7 +161,7 @@ def get_seleg_state(user: User) -> Dict[str, Any]:
 def seleg_proofing(user: User, nin: str) -> Union[FluxData, WerkzeugResponse]:
     proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn)
     if not proofing_state:
-        current_app.logger.debug("No proofing state found for user {!s}. Initializing new proofing flow.".format(user))
+        current_app.logger.debug(f"No proofing state found for user {user!s}. Initializing new proofing flow.")
         proofing_state = helpers.create_proofing_state(user, nin)
 
         # Initiate authn request
@@ -181,13 +173,13 @@ def seleg_proofing(user: User, nin: str) -> Union[FluxData, WerkzeugResponse]:
                 current_app.stats.count(name="seleg.authn_request_op_error")
                 return error_response(message=CommonMsg.temp_problem)
         except requests.exceptions.ConnectionError as e:
-            current_app.logger.error("No connection to authorization endpoint: {!s}".format(e))
+            current_app.logger.error(f"No connection to authorization endpoint: {e!s}")
             return error_response(message=OIDCMsg.no_conn)
 
         # If authentication request went well save user state
         current_app.stats.count(name="seleg.authn_request_success")
         current_app.proofing_statedb.save(proofing_state, is_in_database=False)
-        current_app.logger.debug("Proofing state {!s} for user {!s} saved".format(proofing_state.state, user))
+        current_app.logger.debug(f"Proofing state {proofing_state.state!s} for user {user!s} saved")
     # Add the nin used to initiate the proofing state to the user
     # NOOP if the user already have the nin
     add_nin_to_user(user, proofing_state)
@@ -199,7 +191,7 @@ def seleg_proofing(user: User, nin: str) -> Union[FluxData, WerkzeugResponse]:
 @MarshalWith(schemas.FrejaResponseSchema)
 @require_user
 def get_freja_state(user: User) -> Mapping[str, Any]:
-    current_app.logger.debug("Getting state for user {!s}.".format(user))
+    current_app.logger.debug(f"Getting state for user {user!s}.")
     proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn)
     if not proofing_state:
         return {}
@@ -209,7 +201,7 @@ def get_freja_state(user: User) -> Mapping[str, Any]:
         current_app.stats.count(name="freja.proofing_state_expired")
         return {}
     # Return request data
-    current_app.logger.debug("Returning request data for user {!s}".format(user))
+    current_app.logger.debug(f"Returning request data for user {user!s}")
     current_app.stats.count(name="freja.proofing_state_returned")
     opaque_data = helpers.create_opaque_data(proofing_state.nonce, proofing_state.token)
     valid_until = helpers.get_proofing_state_valid_until(proofing_state, expire_time)
@@ -237,7 +229,7 @@ def get_freja_state(user: User) -> Mapping[str, Any]:
 def freja_proofing(user: User, nin: str) -> Union[FluxData, WerkzeugResponse]:
     proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn)
     if not proofing_state:
-        current_app.logger.debug("No proofing state found for user {!s}. Initializing new proofing flow.".format(user))
+        current_app.logger.debug(f"No proofing state found for user {user!s}. Initializing new proofing flow.")
         proofing_state = helpers.create_proofing_state(user, nin)
 
         # Initiate authn request
@@ -249,13 +241,13 @@ def freja_proofing(user: User, nin: str) -> Union[FluxData, WerkzeugResponse]:
                 current_app.stats.count(name="freja.authn_request_op_error")
                 return error_response(message=CommonMsg.temp_problem)
         except requests.exceptions.ConnectionError as e:
-            current_app.logger.error("No connection to authorization endpoint: {!s}".format(e))
+            current_app.logger.error(f"No connection to authorization endpoint: {e!s}")
             return error_response(message=OIDCMsg.no_conn)
 
         # If authentication request went well save user state
         current_app.stats.count(name="freja.authn_request_success")
         current_app.proofing_statedb.save(proofing_state, is_in_database=False)
-        current_app.logger.debug("Proofing state {!s} for user {!s} saved".format(proofing_state.state, user))
+        current_app.logger.debug(f"Proofing state {proofing_state.state!s} for user {user!s} saved")
     # Add the nin used to initiate the proofing state to the user
     # NOOP if the user already have the nin
     add_nin_to_user(user, proofing_state)

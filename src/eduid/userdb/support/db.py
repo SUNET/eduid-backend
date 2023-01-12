@@ -1,6 +1,4 @@
-# -*- coding: utf-8 -*-
-
-from typing import Any, Dict, List, Optional, Type, Union
+from typing import Any, Optional, Union
 
 from bson import ObjectId
 
@@ -29,12 +27,12 @@ class SupportUserDB(UserDB[SupportUser]):
     def user_from_dict(cls, data: TUserDbDocument) -> SupportUser:
         return SupportUser.from_dict(data)
 
-    def search_users(self, query: str) -> List[SupportUser]:
+    def search_users(self, query: str) -> list[SupportUser]:
         """
         :param query: search query, can be a user eppn, nin, mail address or phone number
         :return: A list of user docs
         """
-        results: List[Optional[SupportUser]] = list()
+        results: list[Optional[SupportUser]] = list()
         # We could do this with a custom filter (and one db call) but it is better to lean on existing methods
         # if the way we find users change in the future
         try:
@@ -62,7 +60,7 @@ class SupportAuthnInfoDB(BaseDB):
         collection = "authn_info"
         super().__init__(db_uri, db_name, collection)
 
-    def get_authn_info(self, user_id: Union[str, ObjectId]) -> Dict[str, Any]:
+    def get_authn_info(self, user_id: Union[str, ObjectId]) -> dict[str, Any]:
         """
         :param user_id: User objects user_id property
         :type user_id: ObjectId | str | unicode
@@ -76,7 +74,7 @@ class SupportAuthnInfoDB(BaseDB):
             return dict()
         return self.model(dict(docs[0]))  # Cast to dict to allow mutability
 
-    def get_credential_info(self, credential_id: str) -> Dict[str, Any]:
+    def get_credential_info(self, credential_id: str) -> dict[str, Any]:
         """
         :param credential_id: Credential id
         :return: A document dict
@@ -89,12 +87,12 @@ class SupportAuthnInfoDB(BaseDB):
 
 class SupportProofingDB(BaseDB):
 
-    model: Type[GenericFilterDict] = GenericFilterDict
+    model: type[GenericFilterDict] = GenericFilterDict
 
     def __init__(self, db_uri: str, db_name: str, collection: str):
         super().__init__(db_uri, db_name, collection)
 
-    def get_proofing_state(self, eppn: str) -> Dict[str, Any]:
+    def get_proofing_state(self, eppn: str) -> dict[str, Any]:
         """
         :param eppn: User objects eduPersonPrincipalName property
         :return: A document dict
@@ -104,7 +102,7 @@ class SupportProofingDB(BaseDB):
             return dict()
         return self.model(dict(doc))  # Cast to dict to allow mutability
 
-    def get_proofing_states(self, eppn: str) -> List[Dict[str, Any]]:
+    def get_proofing_states(self, eppn: str) -> list[dict[str, Any]]:
         """
         :param eppn: User objects eduPersonPrincipalName property
         :return: A list of document dicts
@@ -122,7 +120,7 @@ class SupportLetterProofingDB(SupportProofingDB):
         collection = "proofing_data"
         super().__init__(db_uri, db_name, collection)
 
-    def get_proofing_state(self, eppn: str) -> Dict[str, Any]:
+    def get_proofing_state(self, eppn: str) -> dict[str, Any]:
         """
         :param eppn: User objects eduPersonPrincipalName property
         :return: A document dict
@@ -173,7 +171,7 @@ class SupportProofingLogDB(BaseDB):
         collection = "proofing_log"
         super().__init__(db_uri, db_name, collection)
 
-    def get_entries(self, eppn: str) -> List[Dict[str, Any]]:
+    def get_entries(self, eppn: str) -> list[dict[str, Any]]:
         """
         :param eppn: User objects eduPersonPrincipalName property
         :return: A list of dicts

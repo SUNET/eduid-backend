@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from __future__ import annotations
 
 import copy
@@ -7,7 +6,7 @@ import pprint
 import uuid
 from dataclasses import asdict, dataclass, field, replace
 from datetime import datetime
-from typing import Any, Dict, Iterable, List, Mapping, Optional, Set, Tuple, Type, Union
+from typing import Any, Iterable, Mapping, Optional, Union
 from uuid import UUID
 
 from bson import ObjectId
@@ -26,14 +25,14 @@ logger = logging.getLogger(__name__)
 
 
 @dataclass
-class GroupExtensions(object):
-    data: Dict[str, Any] = field(default_factory=dict)  # arbitrary third party data
+class GroupExtensions:
+    data: dict[str, Any] = field(default_factory=dict)  # arbitrary third party data
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 
     @classmethod
-    def from_mapping(cls: Type[GroupExtensions], data: Mapping) -> GroupExtensions:
+    def from_mapping(cls: type[GroupExtensions], data: Mapping) -> GroupExtensions:
         return cls(
             data=data.get("data", {}),
         )
@@ -54,7 +53,7 @@ class ScimApiGroup(ScimApiResourceBase, _ScimApiGroupRequired):
         self.graph = GraphGroup(identifier=str(self.scim_id), display_name=self.display_name)
 
     @property
-    def members(self) -> Set[Union[GraphGroup, GraphUser]]:
+    def members(self) -> set[Union[GraphGroup, GraphUser]]:
         return self.graph.members
 
     @members.setter
@@ -66,7 +65,7 @@ class ScimApiGroup(ScimApiResourceBase, _ScimApiGroupRequired):
         self.graph.members.add(member)
 
     @property
-    def owners(self) -> Set[Union[GraphGroup, GraphUser]]:
+    def owners(self) -> set[Union[GraphGroup, GraphUser]]:
         return self.graph.owners
 
     @owners.setter
@@ -91,7 +90,7 @@ class ScimApiGroup(ScimApiResourceBase, _ScimApiGroupRequired):
         return TUserDbDocument(res)
 
     @classmethod
-    def from_dict(cls: Type[ScimApiGroup], data: Mapping[str, Any]) -> ScimApiGroup:
+    def from_dict(cls: type[ScimApiGroup], data: Mapping[str, Any]) -> ScimApiGroup:
         this = dict(copy.copy(data))  # to not modify callers data
         this["scim_id"] = uuid.UUID(this["scim_id"])
         this["group_id"] = this.pop("_id")
@@ -107,7 +106,7 @@ class ScimApiGroupDB(ScimApiBaseDB):
         mongo_uri: str,
         mongo_dbname: str,
         mongo_collection: str,
-        neo4j_config: Optional[Dict[str, Any]] = None,
+        neo4j_config: Optional[dict[str, Any]] = None,
         setup_indexes: bool = True,
     ):
         super().__init__(mongo_uri, mongo_dbname, collection=mongo_collection)
@@ -173,7 +172,7 @@ class ScimApiGroupDB(ScimApiBaseDB):
             raise RuntimeError("Group creation failed")
         return group
 
-    def update_group(self, update_request: GroupUpdateRequest, db_group: ScimApiGroup) -> Tuple[ScimApiGroup, bool]:
+    def update_group(self, update_request: GroupUpdateRequest, db_group: ScimApiGroup) -> tuple[ScimApiGroup, bool]:
         changed = False
         updated_members = set()
         logger.info(f"Updating group {str(db_group.scim_id)}")
@@ -242,9 +241,9 @@ class ScimApiGroupDB(ScimApiBaseDB):
 
         return db_group, changed
 
-    def get_groups(self) -> List[ScimApiGroup]:
+    def get_groups(self) -> list[ScimApiGroup]:
         docs = self._get_documents_by_filter({})
-        res: List[ScimApiGroup] = []
+        res: list[ScimApiGroup] = []
         for doc in docs:
             group = ScimApiGroup.from_dict(doc)
             group.graph = self._get_graph_group(str(group.scim_id))
@@ -261,20 +260,20 @@ class ScimApiGroupDB(ScimApiBaseDB):
 
     def get_groups_by_property(
         self, key: str, value: Union[str, int], skip=0, limit=100
-    ) -> Tuple[List[ScimApiGroup], int]:
+    ) -> tuple[list[ScimApiGroup], int]:
         docs, count = self._get_documents_and_count_by_filter({key: value}, skip=skip, limit=limit)
         if not docs:
             return [], 0
-        res: List[ScimApiGroup] = []
+        res: list[ScimApiGroup] = []
         for this in docs:
             group = ScimApiGroup.from_dict(this)
             group.graph = self._get_graph_group(str(group.scim_id))
             res += [group]
         return res, count
 
-    def get_groups_for_user_identifer(self, member_identifier: UUID) -> List[ScimApiGroup]:
+    def get_groups_for_user_identifer(self, member_identifier: UUID) -> list[ScimApiGroup]:
         groups = self.graphdb.get_groups_for_user_identifer(str(member_identifier))
-        res: List[ScimApiGroup] = []
+        res: list[ScimApiGroup] = []
         for graph in groups:
             group = self.get_group_by_scim_id(graph.identifier)
             if not group:
@@ -283,9 +282,9 @@ class ScimApiGroupDB(ScimApiBaseDB):
             res += [group]
         return res
 
-    def get_groups_owned_by_user_identifier(self, owner_identifier: UUID) -> List[ScimApiGroup]:
+    def get_groups_owned_by_user_identifier(self, owner_identifier: UUID) -> list[ScimApiGroup]:
         groups = self.graphdb.get_groups_owned_by_user_identifier(str(owner_identifier))
-        res: List[ScimApiGroup] = []
+        res: list[ScimApiGroup] = []
         for graph in groups:
             group = self.get_group_by_scim_id(graph.identifier)
             if not group:
@@ -296,7 +295,7 @@ class ScimApiGroupDB(ScimApiBaseDB):
 
     def get_groups_by_last_modified(
         self, operator: str, value: datetime, limit: Optional[int] = None, skip: Optional[int] = None
-    ) -> Tuple[List[ScimApiGroup], int]:
+    ) -> tuple[list[ScimApiGroup], int]:
         # map SCIM filter operators to mongodb filter
         mongo_operator = {"gt": "$gt", "ge": "$gte"}.get(operator)
         if not mongo_operator:

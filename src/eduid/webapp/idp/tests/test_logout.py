@@ -2,10 +2,10 @@ import logging
 import os
 from enum import Enum
 from typing import Tuple
+from unittest.mock import patch
 from urllib.parse import unquote
 
 from flask import Response as FlaskResponse
-from mock import patch
 from saml2 import BINDING_HTTP_REDIRECT, BINDING_SOAP
 from saml2.mdstore import destinations
 from saml2.response import AuthnResponse, LogoutResponse
@@ -117,7 +117,7 @@ class IdPTestLogout(IdPTests):
             raise RuntimeError(f"Unknown binding {binding}")
         return self.saml2_client.parse_logout_request_response(xmlstr, binding)
 
-    def _try_logout(self, authn_response: AuthnResponse, binding: str) -> Tuple[LogoutState, TestResponse]:
+    def _try_logout(self, authn_response: AuthnResponse, binding: str) -> tuple[LogoutState, TestResponse]:
         """
         Try logging out using the IdP.
 

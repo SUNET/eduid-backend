@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 __author__ = "lundberg"
 
 
-def get_current_app() -> "EduIDBaseApp":
+def get_current_app() -> EduIDBaseApp:
     from eduid.webapp.common.api.app import EduIDBaseApp
 
     _conf = getattr(flask_current_app, "conf")

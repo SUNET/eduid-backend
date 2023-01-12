@@ -1,10 +1,8 @@
-# -*- coding: utf-8 -*-
-
 __author__ = "lundberg"
 
 
 # Copied from https://stackoverflow.com/questions/18967441/add-a-prefix-to-all-flask-routes/36033627#36033627
-class PrefixMiddleware(object):
+class PrefixMiddleware:
     def __init__(self, app, prefix="", server_name=""):
         self.app = app
         if prefix is None:
@@ -26,4 +24,4 @@ class PrefixMiddleware(object):
             return self.app(environ, start_response)
         else:
             start_response("404", [("Content-Type", "text/plain")])
-            return ["Not found.".encode()]
+            return [b"Not found."]

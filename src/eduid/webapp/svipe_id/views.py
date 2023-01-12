@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from dataclasses import dataclass
 from typing import Optional
 from urllib.parse import parse_qs, urlparse

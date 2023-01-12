@@ -2,9 +2,9 @@ import logging
 import os
 from datetime import datetime
 from typing import Any, Mapping
+from unittest.mock import MagicMock, patch
 
 import pytest
-from mock import MagicMock, patch
 from pydantic import HttpUrl, parse_obj_as
 from requests import RequestException
 from saml2 import BINDING_HTTP_REDIRECT

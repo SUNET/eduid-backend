@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 import json
 from datetime import datetime, timedelta
 from enum import unique
@@ -120,9 +117,7 @@ def do_authn_request(proofing_state: OidcProofingState, claims_request: ClaimsRe
             )
         )
         return True
-    current_app.logger.error(
-        "Bad response from OP: {!s} {!s} {!s}".format(response.status_code, response.reason, response.content)
-    )
+    current_app.logger.error(f"Bad response from OP: {response.status_code!s} {response.reason!s} {response.content!s}")
     return False
 
 
@@ -146,7 +141,7 @@ def send_new_verification_method_mail(user: User) -> None:
     html = render_template("redo_verification.html.jinja2", **context)
 
     current_app.mail_relay.sendmail(subject, [email_address], text, html)
-    current_app.logger.info("Sent email to user {} requesting another vetting method".format(user))
+    current_app.logger.info(f"Sent email to user {user} requesting another vetting method")
 
 
 def handle_seleg_userinfo(user: ProofingUser, proofing_state: OidcProofingState, userinfo: Mapping[str, Any]) -> None:
@@ -157,7 +152,7 @@ def handle_seleg_userinfo(user: ProofingUser, proofing_state: OidcProofingState,
 
     :return: None
     """
-    current_app.logger.info("Verifying NIN from seleg for user {}".format(user))
+    current_app.logger.info(f"Verifying NIN from seleg for user {user}")
     number = userinfo["identity"]
     metadata = userinfo.get("metadata", {})
     if metadata.get("score", 0) == 100:
@@ -166,7 +161,7 @@ def handle_seleg_userinfo(user: ProofingUser, proofing_state: OidcProofingState,
                 "Proofing state number did not match number in userinfo. Using number from userinfo."
             )
             proofing_state.nin.number = number
-        current_app.logger.info("Getting address for user {}".format(user))
+        current_app.logger.info(f"Getting address for user {user}")
         # Lookup official address via Navet
         address = current_app.msg_relay.get_postal_address(proofing_state.nin.number, timeout=15)
         # Transaction id is the same data as used for the QR code
@@ -202,7 +197,7 @@ def handle_freja_eid_userinfo(user: User, proofing_state: OidcProofingState, use
     :param proofing_state: Proofing state for user
     :param userinfo: userinfo from OP
     """
-    current_app.logger.info("Verifying NIN from Freja eID for user {}".format(user))
+    current_app.logger.info(f"Verifying NIN from Freja eID for user {user}")
     number = userinfo["results"]["freja_eid"]["ssn"]
     opaque = userinfo["results"]["freja_eid"]["opaque"]
     transaction_id = userinfo["results"]["freja_eid"]["ref"]
@@ -212,7 +207,7 @@ def handle_freja_eid_userinfo(user: User, proofing_state: OidcProofingState, use
         )
         proofing_state.nin.number = number
 
-    current_app.logger.info("Getting address for user {}".format(user))
+    current_app.logger.info(f"Getting address for user {user}")
     # Lookup official address via Navet
     address = current_app.msg_relay.get_postal_address(proofing_state.nin.number, timeout=15)
     _created_by = proofing_state.nin.created_by

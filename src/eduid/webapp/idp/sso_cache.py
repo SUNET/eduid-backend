@@ -14,7 +14,7 @@ import time
 import warnings
 from collections import deque
 from threading import Lock
-from typing import Any, Deque, Dict, List, Mapping, Optional, Tuple, cast
+from typing import Any, Deque, Mapping, Optional, cast
 
 from eduid.userdb.db import BaseDB
 from eduid.userdb.exceptions import EduIDDBError
@@ -23,7 +23,7 @@ from eduid.webapp.idp.sso_session import SSOSession, SSOSessionId
 logger = logging.getLogger(__name__)
 
 
-class NoOpLock(object):
+class NoOpLock:
     """
     A No-op lock class, to avoid a lot of "if self.lock:" in code using locks.
     """
@@ -66,8 +66,8 @@ class ExpiringCacheMem:
         self.logger = logger
         self.ttl = ttl
         self.name = name
-        self._data: Dict[SSOSessionId, Any] = {}
-        self._ages: Deque[Tuple[float, SSOSessionId]] = deque()
+        self._data: dict[SSOSessionId, Any] = {}
+        self._ages: Deque[tuple[float, SSOSessionId]] = deque()
         self.lock = lock
         if self.lock is None:
             self.lock = cast(Lock, NoOpLock())  # intentionally lie to mypy
@@ -152,7 +152,7 @@ class ExpiringCacheMem:
             del self._data[key]
             return True
         except KeyError:
-            logger.debug("Failed deleting key {!r} from {!s} cache (entry did not exist)".format(key, self.name))
+            logger.debug(f"Failed deleting key {key!r} from {self.name!s} cache (entry did not exist)")
         return False
 
     def items(self) -> Any:
@@ -216,7 +216,7 @@ class SSOSessionCache(BaseDB):
         session = SSOSession.from_dict(res)
         return session
 
-    def get_sessions_for_user(self, eppn: str) -> List[SSOSession]:
+    def get_sessions_for_user(self, eppn: str) -> list[SSOSession]:
         """
         Lookup all SSO session ids for a given user. Used in SLO with SOAP binding.
 

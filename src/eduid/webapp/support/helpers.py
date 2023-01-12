@@ -1,6 +1,5 @@
-# -*- coding: utf-8 -*-
 from functools import wraps
-from typing import Any, Callable, List, TypeVar
+from typing import Any, Callable, TypeVar
 
 from flask import abort
 
@@ -12,7 +11,7 @@ from eduid.webapp.support.app import current_support_app as current_app
 __author__ = "lundberg"
 
 
-def get_credentials_aux_data(user: User) -> List[TUserDbDocument]:
+def get_credentials_aux_data(user: User) -> list[TUserDbDocument]:
     """
     :param user: User object
     :return: Augmented credentials list

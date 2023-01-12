@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2020 SUNET
 # All rights reserved.
@@ -31,7 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from flask import Blueprint, jsonify, redirect, request
 from werkzeug.exceptions import BadRequest
@@ -121,7 +120,7 @@ def logout(ref: Optional[str], sso_session: Optional[SSOSession]) -> WerkzeugRes
             request=old_saml_req.request, binding=old_saml_req.binding, relay_state=old_saml_req.relay_state
         )
 
-    payload: Dict[str, Any] = {"finished": True}
+    payload: dict[str, Any] = {"finished": True}
     if location:
         payload["location"] = location
 

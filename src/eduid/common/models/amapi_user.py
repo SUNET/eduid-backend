@@ -1,6 +1,6 @@
 from datetime import datetime
 from enum import Enum
-from typing import List, Optional
+from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -46,11 +46,11 @@ class UserUpdateMetaRequest(UserBaseRequest):
 
 
 class UserUpdateEmailRequest(UserBaseRequest):
-    mail_addresses: List[MailAddress] = Field(default_factory=list)
+    mail_addresses: list[MailAddress] = Field(default_factory=list)
 
 
 class UserUpdatePhoneRequest(UserBaseRequest):
-    phone_numbers: List[PhoneNumber] = Field(default_factory=list)
+    phone_numbers: list[PhoneNumber] = Field(default_factory=list)
 
 
 class UserUpdateLanguageRequest(UserBaseRequest):

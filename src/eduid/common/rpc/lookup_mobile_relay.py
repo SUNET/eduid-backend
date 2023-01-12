@@ -8,7 +8,7 @@ from eduid.common.decorators import deprecated
 from eduid.common.rpc.exceptions import LookupMobileTaskFailed
 
 
-class LookupMobileRelay(object):
+class LookupMobileRelay:
     def __init__(self, config: CeleryConfigMixin):
         self.app_name = config.app_name
         eduid.workers.lookup_mobile.init_app(config.celery)
@@ -25,7 +25,7 @@ class LookupMobileRelay(object):
             result = result.get(timeout=10)  # Lower timeout than standard gunicorn worker timeout (25)
             return result
         except Exception as e:
-            raise LookupMobileTaskFailed("find_nin_by_mobile task failed: {}".format(e))
+            raise LookupMobileTaskFailed(f"find_nin_by_mobile task failed: {e}")
 
     @deprecated("This task seems unused")
     def find_mobiles_by_nin(self, nin: str):
@@ -34,7 +34,7 @@ class LookupMobileRelay(object):
             result = result.get(timeout=10)  # Lower timeout than standard gunicorn worker timeout (25)
             return result
         except Exception as e:
-            raise LookupMobileTaskFailed("find_mobiles_by_nin task failed: {}".format(e))
+            raise LookupMobileTaskFailed(f"find_mobiles_by_nin task failed: {e}")
 
     def ping(self, timeout: int = 1) -> str:
         """

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from eduid.userdb import User
 from eduid.userdb.credentials.fido import FidoCredential
 from eduid.webapp.authn.helpers import credential_used_to_authenticate

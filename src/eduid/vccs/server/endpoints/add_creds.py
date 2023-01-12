@@ -1,5 +1,4 @@
 import json
-from typing import List
 
 from fastapi import APIRouter, Form, Request
 from pydantic.main import BaseModel
@@ -13,7 +12,7 @@ add_creds_router = APIRouter()
 
 
 class AddCredsRequestV1(BaseModel):
-    factors: List[RequestFactor]
+    factors: list[RequestFactor]
     user_id: str
     version: int
 

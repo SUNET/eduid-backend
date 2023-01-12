@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import logging
 import pprint
 from logging.config import dictConfig

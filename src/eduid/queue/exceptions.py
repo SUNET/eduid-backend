@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from eduid.userdb.exceptions import EduIDDBError
 
 __author__ = "lundberg"

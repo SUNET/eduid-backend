@@ -17,7 +17,7 @@ from eduid.userdb.scimapi.userdb import ScimApiUser, ScimApiUserDB
 from eduid.userdb.signup.invitedb import SignupInviteDB
 
 
-class Context(object):
+class Context:
     def __init__(self, config: ScimApiConfig):
         self.name = config.app_name
         self.config = config

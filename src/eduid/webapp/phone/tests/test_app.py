@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2016 NORDUnet A/S
 # Copyright (c) 2018 SUNET
@@ -32,10 +31,9 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 import json
-from typing import Any, Dict, Mapping, Optional
+from typing import Any, Mapping, Optional
+from unittest.mock import MagicMock, patch
 from urllib.parse import quote_plus
-
-from mock import MagicMock, patch
 
 from eduid.common.config.base import EduidEnvironment
 from eduid.webapp.common.api.testing import EduidAPITestCase
@@ -54,7 +52,7 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
         """
         return phone_init_app("testing", config)
 
-    def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
+    def update_config(self, config: dict[str, Any]) -> dict[str, Any]:
         config.update(
             {
                 "available_languages": {"en": "English", "sv": "Svenska"},
@@ -206,7 +204,7 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
         mock_phone_validator: Any,
         mock_code_verification: Any,
         mock_request_user_sync: Any,
-        mod_data: Optional[Dict[str, Any]] = None,
+        mod_data: Optional[dict[str, Any]] = None,
         phone: str = "+34670123456",
         code: str = "5250f9a4",
     ):
@@ -227,7 +225,7 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
         with self.session_cookie(self.browser, eppn) as client:
             with self.app.test_request_context():
                 with client.session_transaction() as sess:
-                    data: Dict[str, Any] = {
+                    data: dict[str, Any] = {
                         "number": phone,
                         "verified": False,
                         "primary": False,

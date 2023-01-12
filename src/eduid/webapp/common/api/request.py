@@ -92,7 +92,7 @@ class SanitizedImmutableMultiDict(ImmutableMultiDict, SanitationMixin):  # type:
         :param key: The key to be looked up.
         :raise KeyError: if the key does not exist.
         """
-        value = super(SanitizedImmutableMultiDict, self).__getitem__(key)
+        value = super().__getitem__(key)
         return self.sanitize_input(value)
 
     def getlist(self, key, type=None):
@@ -108,7 +108,7 @@ class SanitizedImmutableMultiDict(ImmutableMultiDict, SanitationMixin):  # type:
                      by this callable the value will be removed from the list.
         :return: a :class:`list` of all the values for the key.
         """
-        value_list = super(SanitizedImmutableMultiDict, self).getlist(key, type=type)
+        value_list = super().getlist(key, type=type)
         return [self.sanitize_input(v) for v in value_list]
 
     def items(self, multi=False):

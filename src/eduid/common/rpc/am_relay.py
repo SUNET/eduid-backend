@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import logging
 from typing import Optional
 
@@ -14,7 +12,7 @@ __author__ = "lundberg"
 logger = logging.getLogger(__name__)
 
 
-class AmRelay(object):
+class AmRelay:
     """
     This is the interface to the RPC task to save users to the central userdb.
     """

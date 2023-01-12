@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import uuid
-from typing import Dict, List, Optional, Union
+from typing import Optional, Union
 
 from fastapi import Request, status
 from fastapi.exception_handlers import http_exception_handler
@@ -18,8 +18,8 @@ logger = logging.getLogger(__name__)
 
 class ErrorDetail(BaseModel):
     scimType: Optional[str] = None
-    schemas: List[str] = [SCIMSchema.ERROR.value]
-    detail: Optional[Union[str, Dict, List]] = None
+    schemas: list[str] = [SCIMSchema.ERROR.value]
+    detail: Optional[Union[str, dict, list]] = None
     status: Optional[int] = None
 
 
@@ -60,25 +60,25 @@ class HTTPErrorDetail(Exception):
         self,
         status_code: int,
         detail: Optional[str] = None,
-        schemas: Optional[List[str]] = None,
+        schemas: Optional[list[str]] = None,
         scim_type: Optional[str] = None,
     ):
         if schemas is None:
             schemas = [SCIMSchema.ERROR.value]
 
         self._error_detail = ErrorDetail(scimType=scim_type, schemas=schemas, detail=detail, status=status_code)
-        self._extra_headers: Optional[Dict] = None
+        self._extra_headers: Optional[dict] = None
 
     @property
     def error_detail(self) -> ErrorDetail:
         return self._error_detail
 
     @property
-    def extra_headers(self) -> Optional[Dict]:
+    def extra_headers(self) -> Optional[dict]:
         return self._extra_headers
 
     @extra_headers.setter
-    def extra_headers(self, headers: Dict):
+    def extra_headers(self, headers: dict):
         self._extra_headers = headers
 
 

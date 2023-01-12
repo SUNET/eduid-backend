@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from neo4j import basic_auth
 
 from eduid.graphdb.db import BaseGraphDB

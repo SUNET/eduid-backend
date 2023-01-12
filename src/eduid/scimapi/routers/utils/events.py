@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from datetime import timedelta
 from typing import TYPE_CHECKING, Optional
 from uuid import uuid4

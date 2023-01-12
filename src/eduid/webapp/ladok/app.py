@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from typing import Any, Mapping, Optional, cast
 
 from flask import current_app

@@ -32,7 +32,7 @@
 import logging
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from typing import List, Optional
+from typing import Optional
 
 import eduid.workers.msg
 from eduid.common.config.base import MailConfigMixin
@@ -41,7 +41,7 @@ from eduid.common.rpc.exceptions import MailTaskFailed
 logger = logging.getLogger(__name__)
 
 
-class MailRelay(object):
+class MailRelay:
     """
     This is the interface to the RPC task to send e-mail.
     """
@@ -59,7 +59,7 @@ class MailRelay(object):
     def sendmail(
         self,
         subject: str,
-        recipients: List[str],
+        recipients: list[str],
         text: Optional[str] = None,
         html: Optional[str] = None,
         reference: Optional[str] = None,

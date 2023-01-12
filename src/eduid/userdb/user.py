@@ -38,7 +38,7 @@ import logging
 from datetime import datetime
 from enum import Enum, unique
 from operator import itemgetter
-from typing import Any, Dict, List, Optional, Type, TypeVar, Union, cast
+from typing import Any, Optional, TypeVar, Union, cast
 
 import bson
 from pydantic import BaseModel, Extra, Field, root_validator, validator
@@ -86,7 +86,7 @@ class User(BaseModel):
     credentials: CredentialList = Field(default_factory=CredentialList, alias="passwords")
     identities: IdentityList = Field(default_factory=IdentityList)
     modified_ts: Optional[datetime] = None  # TODO: remove after meta.modified_ts is used
-    entitlements: List[str] = Field(default_factory=list, alias="eduPersonEntitlement")
+    entitlements: list[str] = Field(default_factory=list, alias="eduPersonEntitlement")
     tou: ToUList = Field(default_factory=ToUList)
     terminated: Optional[datetime] = None
     locked_identity: LockedIdentityList = Field(default_factory=LockedIdentityList)
@@ -146,7 +146,7 @@ class User(BaseModel):
         return self.to_dict() == other.to_dict()
 
     @classmethod
-    def from_dict(cls: Type[TUserSubclass], data: TUserDbDocument) -> TUserSubclass:
+    def from_dict(cls: type[TUserSubclass], data: TUserDbDocument) -> TUserSubclass:
         """
         Construct user from a data dict.
         """
@@ -167,7 +167,7 @@ class User(BaseModel):
         return TUserDbDocument(res)
 
     @classmethod
-    def _from_dict_transform(cls: Type[TUserSubclass], data: Dict[str, Any]) -> Dict[str, Any]:
+    def _from_dict_transform(cls: type[TUserSubclass], data: dict[str, Any]) -> dict[str, Any]:
         # clean up sn
         if "sn" in data:
             _sn = data.pop("sn")
@@ -221,7 +221,7 @@ class User(BaseModel):
 
         return data
 
-    def _to_dict_transform(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def _to_dict_transform(self, data: dict[str, Any]) -> dict[str, Any]:
         # serialize complex data
         data["mailAliases"] = self.mail_addresses.to_list_of_dicts()
         data["phone"] = self.phone_numbers.to_list_of_dicts()
@@ -252,7 +252,7 @@ class User(BaseModel):
         return data
 
     @classmethod
-    def from_user(cls: Type[TUserSubclass], user: User, private_userdb: BaseDB) -> TUserSubclass:
+    def from_user(cls: type[TUserSubclass], user: User, private_userdb: BaseDB) -> TUserSubclass:
         """
         This function is only expected to be used with subclasses of User.
 
@@ -282,7 +282,7 @@ class User(BaseModel):
         return new_user
 
     @classmethod
-    def check_or_use_data(cls, data: Dict[str, Any]) -> Dict[str, Any]:
+    def check_or_use_data(cls, data: dict[str, Any]) -> dict[str, Any]:
         """
         Derived classes can override this method to check that the provided data
         is enough for their purposes, or to deal specially with particular bits of it.
@@ -298,7 +298,7 @@ class User(BaseModel):
         return data
 
     @classmethod
-    def _parse_mail_addresses(cls, data: Dict[str, Any]) -> MailAddressList:
+    def _parse_mail_addresses(cls, data: dict[str, Any]) -> MailAddressList:
         """
         Part of __init__().
 
@@ -333,7 +333,7 @@ class User(BaseModel):
         return MailAddressList.from_list_of_dicts(_mail_addresses)
 
     @classmethod
-    def _parse_phone_numbers(cls, data: Dict[str, Any]) -> PhoneNumberList:
+    def _parse_phone_numbers(cls, data: dict[str, Any]) -> PhoneNumberList:
         """
         Parse all the different formats of mobile/phone attributes in the database.
         """
@@ -364,7 +364,7 @@ class User(BaseModel):
         return PhoneNumberList.from_list_of_dicts(_phones)
 
     @classmethod
-    def _parse_identities(cls, data: Dict[str, Any]) -> IdentityList:
+    def _parse_identities(cls, data: dict[str, Any]) -> IdentityList:
         """
         Parse identity elements into an IdentityList
         """
@@ -372,7 +372,7 @@ class User(BaseModel):
         return IdentityList.from_list_of_dicts(items=_identities)
 
     @classmethod
-    def _parse_tous(cls, data: Dict[str, Any]) -> ToUList:
+    def _parse_tous(cls, data: dict[str, Any]) -> ToUList:
         """
         Parse the ToU acceptance events.
         """
@@ -380,7 +380,7 @@ class User(BaseModel):
         return ToUList.from_list_of_dicts(_tou)
 
     @classmethod
-    def _parse_locked_identity(cls, data: Dict[str, Any]) -> LockedIdentityList:
+    def _parse_locked_identity(cls, data: dict[str, Any]) -> LockedIdentityList:
         """
         Parse the LockedIdentity elements.
         """
@@ -388,7 +388,7 @@ class User(BaseModel):
         return LockedIdentityList.from_list_of_dicts(_locked_identity)
 
     @classmethod
-    def _parse_orcid(cls, data: Dict[str, Any]) -> Optional[Orcid]:
+    def _parse_orcid(cls, data: dict[str, Any]) -> Optional[Orcid]:
         """
         Parse the Orcid element.
         """
@@ -398,7 +398,7 @@ class User(BaseModel):
         return None
 
     @classmethod
-    def _parse_ladok(cls, data: Dict[str, Any]) -> Optional[Ladok]:
+    def _parse_ladok(cls, data: dict[str, Any]) -> Optional[Ladok]:
         """
         Parse the Ladok element.
         """
@@ -412,7 +412,7 @@ class User(BaseModel):
         return None
 
     @classmethod
-    def _parse_profiles(cls, data: Dict[str, Any]) -> ProfileList:
+    def _parse_profiles(cls, data: dict[str, Any]) -> ProfileList:
         """
         Parse the Profile elements.
         """

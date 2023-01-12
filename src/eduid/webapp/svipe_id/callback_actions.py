@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from eduid.userdb import User
 from eduid.webapp.common.api.decorators import require_user
 from eduid.webapp.common.authn.acs_registry import ACSArgs, ACSResult, acs_action

@@ -2,7 +2,7 @@ import logging
 import os
 from dataclasses import asdict
 from pathlib import PurePath
-from typing import Any, Dict, Mapping, Optional
+from typing import Any, Mapping, Optional
 from uuid import uuid4
 
 import pytest
@@ -281,7 +281,7 @@ class TestAuthnUserResource(ScimApiTestUserResourceBase):
         super().setUp()
         self.test_profile = ScimApiProfile(attributes={"displayName": "Test User 1"}, data={"test_key": "test_value"})
 
-    def _get_config(self) -> Dict:
+    def _get_config(self) -> dict:
         config = super()._get_config()
         config["keystore_path"] = f"{self.datadir}/testing_jwks.json"
         config["signing_key_id"] = "testing-scimapi-2106210000"

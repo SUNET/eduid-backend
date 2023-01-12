@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from bson import ObjectId
 
 import eduid.userdb
@@ -51,7 +49,7 @@ class FakeAttributeFetcher(AttributeFetcher):
     def fetch_attrs(self, user_id):
         user = self.private_db.get_user_by_id(user_id)
         if user is None:
-            raise UserDoesNotExist("No user matching _id={!r}".format(user_id))
+            raise UserDoesNotExist(f"No user matching _id={user_id!r}")
 
         # Transfer all attributes except `uid' from the test plugins database.
         # Transform eduPersonPrincipalName on the way to make it clear that the

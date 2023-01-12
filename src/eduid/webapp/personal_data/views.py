@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2016 NORDUnet A/S
 # All rights reserved.
@@ -79,7 +78,7 @@ def get_user(user: User) -> FluxData:
 def post_user(user: User, given_name: str, surname: str, language: str, display_name: Optional[str] = None) -> FluxData:
     # TODO: Remove display_name when frontend stops sending it
     personal_data_user = PersonalDataUser.from_user(user, current_app.private_userdb)
-    current_app.logger.debug("Trying to save user {}".format(user))
+    current_app.logger.debug(f"Trying to save user {user}")
 
     # disallow change of first name, surname and display name if the user is verified
     if not user.identities.is_verified:
@@ -92,7 +91,7 @@ def post_user(user: User, given_name: str, surname: str, language: str, display_
     except UserOutOfSync:
         return error_response(message=CommonMsg.out_of_sync)
     current_app.stats.count(name="personal_data_saved", value=1)
-    current_app.logger.info("Saved personal data for user {}".format(personal_data_user))
+    current_app.logger.info(f"Saved personal data for user {personal_data_user}")
 
     personal_data = personal_data_user.to_dict()
     return success_response(payload=personal_data, message=PDataMsg.save_success)

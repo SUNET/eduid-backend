@@ -39,7 +39,7 @@ import sys
 import traceback
 from contextlib import contextmanager
 from copy import deepcopy
-from typing import Any, Dict, Generator, Generic, Iterable, List, Mapping, Optional, TypeVar, cast
+from typing import Any, Generator, Generic, Iterable, Mapping, Optional, TypeVar, cast
 
 from flask.testing import FlaskClient
 from werkzeug.test import TestResponse
@@ -122,7 +122,7 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
     def setUp(  # type: ignore[override]
         self,
         *args: list[Any],
-        users: Optional[List[str]] = None,
+        users: Optional[list[str]] = None,
         copy_user_to_private: bool = False,
         **kwargs: dict[str, Any],
     ) -> None:
@@ -184,13 +184,13 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
                     this._drop_whole_collection()
                     this.close()
         except Exception as exc:
-            sys.stderr.write("Exception in tearDown: {!s}\n{!r}\n".format(exc, exc))
+            sys.stderr.write(f"Exception in tearDown: {exc!s}\n{exc!r}\n")
             traceback.print_exc()
             # time.sleep(5)
         super(CommonTestCase, self).tearDown()
         # XXX reset redis
 
-    def load_app(self, config: Dict[str, Any]) -> TTestAppVar:
+    def load_app(self, config: dict[str, Any]) -> TTestAppVar:
         """
         Method that must be implemented by any subclass, where the
         flask app must be imported and returned.
@@ -201,7 +201,7 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
             "Classes extending EduidAPITestCase must provide a method where they import the flask app and return it."
         )
 
-    def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
+    def update_config(self, config: dict[str, Any]) -> dict[str, Any]:
         """
         Method that can be overridden by any subclass,
         where it can add configuration specific for that API
@@ -326,16 +326,16 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
         return self._check_api_response(response, 200, type_=type_, message=msg, payload=payload)
 
     @staticmethod
-    def get_response_payload(response: TestResponse) -> Dict[str, Any]:
+    def get_response_payload(response: TestResponse) -> dict[str, Any]:
         """
         Perform some checks to make sure the response is a Flux Standard Action (FSA) response, and return the payload.
         """
         assert response.is_json, "Response is not JSON"
-        _json: Optional[Dict[str, Any]] = response.json
+        _json: Optional[dict[str, Any]] = response.json
         assert isinstance(_json, dict), "Response has invalid JSON"
         _type: Optional[str] = _json.get("type")
         assert _type is not None, "Response has no type (is not an FSA response)"
-        _payload: Optional[Dict[str, Any]] = _json.get("payload", {})
+        _payload: Optional[dict[str, Any]] = _json.get("payload", {})
         assert isinstance(_payload, dict), "Response has invalid payload"
         return _payload
 
@@ -471,7 +471,7 @@ class CSRFTestClient(FlaskClient):
         _conf = getattr(self.application, "conf")
         assert isinstance(_conf, EduIDBaseAppConfig)
 
-        test_host = "{}://{}".format(_conf.flask.preferred_url_scheme, _conf.flask.server_name)
+        test_host = f"{_conf.flask.preferred_url_scheme}://{_conf.flask.server_name}"
         csrf_headers = {
             "X-Requested-With": "XMLHttpRequest",
             "Referer": test_host,

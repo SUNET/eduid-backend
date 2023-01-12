@@ -32,7 +32,7 @@
 
 __author__ = "ft"
 
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 import bson
 from pydantic import Field
@@ -55,7 +55,7 @@ class SignupUser(User):
     proofing_reference: str = Field(default_factory=lambda: str(bson.ObjectId()))
 
     @classmethod
-    def check_or_use_data(cls, data: Dict[str, Any]) -> Dict[str, Any]:
+    def check_or_use_data(cls, data: dict[str, Any]) -> dict[str, Any]:
         _social_network = data.pop("social_network", None)
         _social_network_id = data.pop("social_network_id", None)
         _pending_mail_address = data.pop("pending_mail_address", None)

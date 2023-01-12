@@ -1,8 +1,7 @@
-# -*- coding: utf-8 -*-
 from typing import Any, Mapping
+from unittest.mock import MagicMock, patch
 
 import pytest
-from mock import MagicMock, patch
 from pydantic import ValidationError
 
 from eduid.common.config.base import EduIDBaseAppConfig

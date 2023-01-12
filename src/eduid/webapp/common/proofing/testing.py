@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from typing import Generic, Optional
 
 from eduid.common.config.base import EduIDBaseAppConfig

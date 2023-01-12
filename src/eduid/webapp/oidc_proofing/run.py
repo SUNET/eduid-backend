@@ -38,5 +38,5 @@ app = init_oidc_proofing_app(name, {})
 
 
 if __name__ == "__main__":
-    app.logger.info("Starting {} app...".format(name))
+    app.logger.info(f"Starting {name} app...")
     app.run()

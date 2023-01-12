@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 __author__ = "lundberg"
 
 from eduid.userdb.scimapi.common import (

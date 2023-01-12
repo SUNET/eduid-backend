@@ -1,8 +1,6 @@
-# -*- coding: utf-8 -*-
-
 from __future__ import annotations
 
-from typing import Any, Dict, List, Mapping, Type
+from typing import Any, Mapping
 
 from eduid.userdb.element import Element, ElementKey, ElementList
 
@@ -30,5 +28,5 @@ class ProfileList(ElementList[Profile]):
     """
 
     @classmethod
-    def from_list_of_dicts(cls: Type[ProfileList], items: List[Dict[str, Any]]) -> ProfileList:
+    def from_list_of_dicts(cls: type[ProfileList], items: list[dict[str, Any]]) -> ProfileList:
         return cls(elements=[Profile.from_dict(this) for this in items])

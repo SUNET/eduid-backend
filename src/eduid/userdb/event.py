@@ -35,7 +35,7 @@
 from __future__ import annotations
 
 from abc import ABC
-from typing import Any, Dict, Generic, Optional, Type, TypeVar
+from typing import Any, Generic, Optional, TypeVar
 from uuid import uuid4
 
 from pydantic import Field
@@ -49,7 +49,7 @@ TEventSubclass = TypeVar("TEventSubclass", bound="Event")
 class Event(Element):
     """ """
 
-    data: Optional[Dict[str, Any]] = None
+    data: Optional[dict[str, Any]] = None
     event_type: Optional[str] = None
     event_id: str = Field(default_factory=lambda: str(uuid4()), alias="id")
     # This is a short-term hack to deploy new dataclass based events without
@@ -62,7 +62,7 @@ class Event(Element):
         return ElementKey(self.event_id)
 
     @classmethod
-    def _from_dict_transform(cls: Type[TEventSubclass], data: Dict[str, Any]) -> Dict[str, Any]:
+    def _from_dict_transform(cls: type[TEventSubclass], data: dict[str, Any]) -> dict[str, Any]:
         """
         Transform data received in eduid format into pythonic format.
         """
@@ -76,7 +76,7 @@ class Event(Element):
 
         return data
 
-    def _to_dict_transform(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def _to_dict_transform(self, data: dict[str, Any]) -> dict[str, Any]:
         """
         Transform data kept in pythonic format into eduid format.
         """
@@ -103,7 +103,7 @@ class EventList(ElementList[ListElement], Generic[ListElement], ABC):
     pass
 
 
-def event_from_dict(data: Dict[str, Any]):
+def event_from_dict(data: dict[str, Any]):
     """
     Create an Event instance (probably really a subclass of Event) from a dict.
 

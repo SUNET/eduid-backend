@@ -4,7 +4,8 @@ The eduID Attribute Manager package.
 Copyright (c) 2013, 2014, 2015, 2019 SUNET. All rights reserved.
 See the file LICENSE.txt for full license statement.
 """
-from typing import Dict, Iterable
+
+from typing import Iterable
 
 import eduid.workers.am.ams
 from eduid.workers.am.ams import AttributeFetcher
@@ -19,7 +20,7 @@ class AFRegistry:
     """
 
     def __init__(self):
-        self._fetchers: Dict[str, AttributeFetcher] = {}
+        self._fetchers: dict[str, AttributeFetcher] = {}
 
     def get_fetcher(self, key: str) -> AttributeFetcher:
         if key not in self._fetchers:

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2020 Sunet
 # All rights reserved.
@@ -30,7 +29,7 @@
 
 import logging
 from dataclasses import replace
-from typing import Dict, Optional, Type, Union
+from typing import Optional, Union
 
 from bson import ObjectId
 
@@ -50,7 +49,7 @@ class QueueDB(BaseDB):
         self, db_uri: str, collection: str, db_name: str = "eduid_queue", driver: Optional[DatabaseDriver] = None
     ):
         super().__init__(db_uri, db_name, collection=collection, driver=driver)
-        self.handlers: Dict[str, Type[Payload]] = dict()
+        self.handlers: dict[str, type[Payload]] = dict()
 
         # Remove messages older than discard_at datetime
         indexes = {
@@ -58,7 +57,7 @@ class QueueDB(BaseDB):
         }
         self.setup_indexes(indexes)
 
-    def register_handler(self, payload: Type[Payload]):
+    def register_handler(self, payload: type[Payload]):
         payload_type = payload.get_type()
         if payload_type in self.handlers:
             raise KeyError(f"Payload type '{payload_type}' already registered with {self}")

@@ -1,12 +1,10 @@
-# -*- coding: utf-8 -*-
-
 from __future__ import annotations
 
 import uuid
 from abc import ABC
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from typing import Any, Dict, Mapping, Optional, Type, Union
+from typing import Any, Mapping, Optional, Type, Union
 from uuid import UUID
 
 from eduid.common.models.scim_base import EmailType, PhoneNumberType, WeakVersion
@@ -28,10 +26,10 @@ class ScimApiResourceBase(ABC):
 
 @dataclass(frozen=True)
 class ScimApiProfile:
-    attributes: Dict[str, Any] = field(default_factory=dict)
-    data: Dict[str, Any] = field(default_factory=dict)
+    attributes: dict[str, Any] = field(default_factory=dict)
+    data: dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 
     @classmethod
@@ -45,9 +43,9 @@ class ScimApiProfile:
 class ScimApiLinkedAccount:
     issuer: str
     value: str
-    parameters: Dict[str, Any] = field(default_factory=dict)
+    parameters: dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 
     @classmethod
@@ -73,7 +71,7 @@ class ScimApiName:
     honorific_prefix: Optional[str] = None
     honorific_suffix: Optional[str] = None
 
-    def to_dict(self) -> Dict[str, Optional[str]]:
+    def to_dict(self) -> dict[str, Optional[str]]:
         return asdict(self)
 
     @classmethod
@@ -88,7 +86,7 @@ class ScimApiEmail:
     type: Optional[EmailType] = None
     primary: Optional[bool] = None
 
-    def to_dict(self) -> Dict[str, Union[Optional[str], bool]]:
+    def to_dict(self) -> dict[str, Union[Optional[str], bool]]:
         res = asdict(self)
         if self.type is not None:
             res["type"] = self.type.value
@@ -109,7 +107,7 @@ class ScimApiPhoneNumber:
     type: Optional[PhoneNumberType] = None
     primary: Optional[bool] = None
 
-    def to_dict(self) -> Dict[str, Union[Optional[str], bool]]:
+    def to_dict(self) -> dict[str, Union[Optional[str], bool]]:
         res = asdict(self)
         if self.type is not None:
             res["type"] = self.type.value

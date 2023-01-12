@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 import os
 import struct
 import time
@@ -146,11 +143,11 @@ def check_email_status(email: str) -> EmailStatus:
         current_app.logger.debug(f"No user found with email {email} in central userdb")
     except UserHasNotCompletedSignup:
         # TODO: What is the implication of getting here? Should we just let the user signup again?
-        current_app.logger.warning("Incomplete user found with email {} in central userdb".format(email))
+        current_app.logger.warning(f"Incomplete user found with email {email} in central userdb")
 
     # new signup
     if session.signup.email.address is None:
-        current_app.logger.debug("Registering new user with email {}".format(email))
+        current_app.logger.debug(f"Registering new user with email {email}")
         current_app.stats.count(name="signup_started")
         return EmailStatus.NEW
 
@@ -320,7 +317,7 @@ def record_email_address(signup_user: SignupUser, email: str) -> None:
     """
     user = current_app.central_userdb.get_user_by_mail(email)
     if user is not None:
-        current_app.logger.debug("Email {} already present in central db".format(email))
+        current_app.logger.debug(f"Email {email} already present in central db")
         raise EmailAlreadyVerifiedException()
 
     mail_address = MailAddress(
@@ -496,7 +493,7 @@ def remove_users_with_mail_address(email: str) -> None:
     # and continue like this was a completely new signup.
     completed_users = signup_db.get_users_by_mail(email)
     for user in completed_users:
-        current_app.logger.warning("Removing old user {} with e-mail {} from signup_db".format(user, email))
+        current_app.logger.warning(f"Removing old user {user} with e-mail {email} from signup_db")
         signup_db.remove_user_by_id(user.user_id)
 
 

@@ -1,9 +1,7 @@
-# -*- coding: utf-8 -*-
-
 import logging
 from dataclasses import replace
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Mapping, Optional, Union
+from typing import Any, Mapping, Optional, Union
 
 from bson import ObjectId
 from motor import motor_asyncio
@@ -59,7 +57,7 @@ class AsyncQueueDB(QueueDB):
         if isinstance(item_id, str):
             item_id = ObjectId(item_id)
 
-        spec: Dict[str, Any] = {
+        spec: dict[str, Any] = {
             "_id": item_id,
         }
 
@@ -100,9 +98,9 @@ class AsyncQueueDB(QueueDB):
 
     async def find_items(
         self, processed: bool, min_age_in_seconds: Optional[int] = None, expired: Optional[bool] = None
-    ) -> List:
+    ) -> list:
         # TODO: Add registered payload types to spec
-        spec: Dict[str, Any] = {}
+        spec: dict[str, Any] = {}
         if not processed:
             spec["processed_by"] = None
             spec["processed_ts"] = None

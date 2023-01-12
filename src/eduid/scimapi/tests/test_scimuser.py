@@ -3,7 +3,7 @@ import logging
 import unittest
 from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta
-from typing import Any, Dict, Mapping, Optional
+from typing import Any, Mapping, Optional
 from uuid import UUID, uuid4
 
 import bson
@@ -222,7 +222,7 @@ class ScimApiTestUserResourceBase(ScimApiTestCase):
         elif SCIMSchema.NUTID_USER_V1.value in response.json:
             self.fail(f"Unexpected {SCIMSchema.NUTID_USER_V1.value} in the parsed_response")
 
-    def _create_user(self, req: Dict[str, Any], expect_success: bool = True) -> UserApiResult:
+    def _create_user(self, req: dict[str, Any], expect_success: bool = True) -> UserApiResult:
         if "schemas" not in req:
             _schemas = [SCIMSchema.CORE_20_USER.value]
             if SCIMSchema.NUTID_USER_V1.value in req:
@@ -243,7 +243,7 @@ class ScimApiTestUserResourceBase(ScimApiTestCase):
         return UserApiResult(request=req, nutid_user=nutid_user, response=response, parsed_response=user_response)
 
     def _update_user(
-        self, req: Dict[str, Any], scim_id: UUID, version: Optional[ObjectId], expect_success: bool = True
+        self, req: dict[str, Any], scim_id: UUID, version: Optional[ObjectId], expect_success: bool = True
     ) -> UserApiResult:
         if "schemas" not in req:
             _schemas = [SCIMSchema.CORE_20_USER.value]

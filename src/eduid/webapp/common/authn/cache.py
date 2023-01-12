@@ -1,4 +1,4 @@
-from typing import Any, Dict, Iterator, MutableMapping, TypeVar
+from typing import Any, Iterator, MutableMapping, TypeVar
 
 from saml2.cache import Cache
 
@@ -24,7 +24,7 @@ class SessionCacheAdapter(MutableMapping[str, VT]):
         return self._key
 
     @property
-    def data(self) -> Dict[str, VT]:
+    def data(self) -> dict[str, VT]:
         return self._backend[self._key]
 
     def __contains__(self, key: Any) -> bool:
@@ -48,13 +48,13 @@ class SessionCacheAdapter(MutableMapping[str, VT]):
         self.data[key] = value
 
 
-class OutstandingQueriesCache(object):
+class OutstandingQueriesCache:
     """Handles the queries that have been sent to the IdP and have not been replied yet."""
 
     def __init__(self, backend: PySAML2Dicts):
         self._db = SessionCacheAdapter[AuthnRequestRef](backend, "_outstanding_queries")
 
-    def outstanding_queries(self) -> Dict[str, AuthnRequestRef]:
+    def outstanding_queries(self) -> dict[str, AuthnRequestRef]:
         return dict(self._db.items() or {})
 
     def set(self, saml2_session_id: str, came_from: AuthnRequestRef) -> None:

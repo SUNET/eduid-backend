@@ -1,8 +1,7 @@
-# -*- coding: utf-8 -*-
 import enum
 import logging
 from dataclasses import replace
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Optional, Union
 
 from bson import ObjectId
 from neo4j import READ_ACCESS, WRITE_ACCESS, Record, Transaction
@@ -34,7 +33,7 @@ class Role(enum.Enum):
 
 
 class GroupDB(BaseGraphDB):
-    def __init__(self, db_uri: str, scope: str, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, db_uri: str, scope: str, config: Optional[dict[str, Any]] = None):
         super().__init__(db_uri=db_uri, config=config)
         self._scope = scope
 
@@ -96,9 +95,9 @@ class GroupDB(BaseGraphDB):
 
     def _add_or_update_users_and_groups(
         self, tx: Transaction, group: Group
-    ) -> Tuple[Set[Union[User, Group]], Set[Union[User, Group]]]:
-        members: Set[Union[User, Group]] = set()
-        owners: Set[Union[User, Group]] = set()
+    ) -> tuple[set[Union[User, Group]], set[Union[User, Group]]]:
+        members: set[Union[User, Group]] = set()
+        owners: set[Union[User, Group]] = set()
 
         for user_member in group.member_users:
             res = self._add_user_to_group(tx, group=group, member=user_member, role=Role.MEMBER)
@@ -199,8 +198,8 @@ class GroupDB(BaseGraphDB):
             display_name=member.display_name,
         ).single()
 
-    def get_users_and_groups_by_role(self, identifier: str, role: Role) -> List[Union[User, Group]]:
-        res: List[Union[User, Group]] = []
+    def get_users_and_groups_by_role(self, identifier: str, role: Role) -> list[Union[User, Group]]:
+        res: list[Union[User, Group]] = []
         q = f"""
             MATCH (g: Group {{scope: $scope, identifier: $identifier}})<-[r:{role.value}]-(m)
             RETURN r.display_name as display_name, r.created_ts as created_ts, r.modified_ts as modified_ts,
@@ -270,7 +269,7 @@ class GroupDB(BaseGraphDB):
             session.run(q, scope=self.scope, identifier=identifier)
 
     def get_groups_by_property(self, key: str, value: str, skip=0, limit=100):
-        res: List[Group] = []
+        res: list[Group] = []
         q = f"""
             MATCH (g: Group {{scope: $scope}})
             WHERE g.{key} = $value
@@ -281,8 +280,8 @@ class GroupDB(BaseGraphDB):
                 res.append(self._load_group(record.data()["group"]))
         return res
 
-    def get_groups(self, skip: int = 0, limit: int = 100) -> List[Group]:
-        res: List[Group] = []
+    def get_groups(self, skip: int = 0, limit: int = 100) -> list[Group]:
+        res: list[Group] = []
         q = """
             MATCH (g: Group {scope: $scope})
             RETURN g as group SKIP $skip LIMIT $limit
@@ -293,7 +292,7 @@ class GroupDB(BaseGraphDB):
         return res
 
     def _get_groups_for_role(self, label: Label, identifier: str, role: Role):
-        res: List[Group] = []
+        res: list[Group] = []
         if label == Label.GROUP:
             entity_match = "(e:Group {scope: $scope, identifier: $identifier})"
         elif label == Label.USER:
@@ -329,25 +328,23 @@ class GroupDB(BaseGraphDB):
         with self.db.driver.session(default_access_mode=READ_ACCESS) as session:
             for record in session.run(q, identifier=identifier, scope=self.scope):
                 group = self._load_group(record.data()["group"])
-                owners = set([self._load_node(owner) for owner in record.data()["owners"] if owner.get("identifier")])
+                owners = {self._load_node(owner) for owner in record.data()["owners"] if owner.get("identifier")}
                 group = replace(group, owners=owners)
-                members = set(
-                    [self._load_node(member) for member in record.data()["members"] if member.get("identifier")]
-                )
+                members = {self._load_node(member) for member in record.data()["members"] if member.get("identifier")}
                 group = replace(group, members=members)
                 res.append(group)
         return res
 
-    def get_groups_for_user_identifer(self, identifier: str) -> List[Group]:
+    def get_groups_for_user_identifer(self, identifier: str) -> list[Group]:
         return self._get_groups_for_role(Label.USER, identifier, role=Role.MEMBER)
 
-    def get_groups_for_group_identifier(self, identifier: str) -> List[Group]:
+    def get_groups_for_group_identifier(self, identifier: str) -> list[Group]:
         return self._get_groups_for_role(Label.GROUP, identifier, role=Role.MEMBER)
 
-    def get_groups_owned_by_user_identifier(self, identifier: str) -> List[Group]:
+    def get_groups_owned_by_user_identifier(self, identifier: str) -> list[Group]:
         return self._get_groups_for_role(Label.USER, identifier, role=Role.OWNER)
 
-    def get_groups_owned_by_group_identifier(self, identifier: str) -> List[Group]:
+    def get_groups_owned_by_group_identifier(self, identifier: str) -> list[Group]:
         return self._get_groups_for_role(Label.GROUP, identifier, role=Role.OWNER)
 
     def group_exists(self, identifier: str) -> bool:
@@ -385,17 +382,17 @@ class GroupDB(BaseGraphDB):
         saved_group = replace(saved_group, members=saved_members, owners=saved_owners)
         return saved_group
 
-    def _load_node(self, data: Union[Dict, Node]) -> Union[User, Group]:
+    def _load_node(self, data: Union[dict, Node]) -> Union[User, Group]:
         if data.get("scope"):
             return self._load_group(data=data)
         return self._load_user(data=data)
 
     @staticmethod
-    def _load_group(data: Union[Dict, Node]) -> Group:
+    def _load_group(data: Union[dict, Node]) -> Group:
         """Method meant to be overridden by subclasses wanting to annotate the group."""
         return Group.from_mapping(data)
 
     @staticmethod
-    def _load_user(data: Union[Dict, Node]) -> User:
+    def _load_user(data: Union[dict, Node]) -> User:
         """Method meant to be overridden by subclasses wanting to annotate the user."""
         return User.from_mapping(data)

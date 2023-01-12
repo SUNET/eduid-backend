@@ -32,13 +32,12 @@
 __author__ = "eperez"
 
 from abc import ABC, abstractmethod
-from typing import Any, List, Optional
+from typing import Any, Optional
 
 import bson
 from celery.utils.log import get_task_logger
 
 from eduid.common.config.workers import AmConfig
-from eduid.userdb.db import TUserDbDocument
 from eduid.userdb.exceptions import UserDoesNotExist
 from eduid.userdb.user import User
 from eduid.userdb.userdb import UserDB
@@ -49,8 +48,8 @@ logger = get_task_logger(__name__)
 
 class AttributeFetcher(ABC):
 
-    whitelist_set_attrs: List[str]
-    whitelist_unset_attrs: List[str]
+    whitelist_set_attrs: list[str]
+    whitelist_unset_attrs: list[str]
 
     def __init__(self, worker_config: AmConfig):
         if not isinstance(worker_config, AmConfig):

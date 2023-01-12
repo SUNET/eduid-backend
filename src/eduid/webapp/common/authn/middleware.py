@@ -1,7 +1,7 @@
 import logging
 import re
 from abc import ABCMeta
-from typing import Any, Callable, List, Tuple, Union
+from typing import Any, Callable, Union
 from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
 from flask import current_app
@@ -11,14 +11,13 @@ from werkzeug.wsgi import get_current_url
 from eduid.common.config.base import EduIDBaseAppConfig
 from eduid.common.utils import urlappend
 from eduid.webapp.common.api.app import EduIDBaseApp
-from eduid.webapp.common.api.utils import get_from_current_app
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.redis_session import NoSessionDataFoundException
 
 no_context_logger = logging.getLogger(__name__)
 
 
-THeaders = List[Tuple[str, str]]
+THeaders = list[tuple[str, str]]
 TStartResponse = Callable[[str, THeaders], None]
 
 

@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Generic, List, Optional, TypeVar
+from typing import Generic, Optional, TypeVar
 
 from eduid.common.config.base import ProofingConfigMixin
 from eduid.common.rpc.exceptions import AmTaskFailed, MsgTaskFailed, NoNavetData
@@ -395,7 +395,7 @@ class EidasProofingFunctions(SwedenConnectProofingFunctions[ForeignEidSessionInf
 
 
 def _find_or_add_credential(
-    user: User, framework: Optional[TrustFramework], required_loa: List[str]
+    user: User, framework: Optional[TrustFramework], required_loa: list[str]
 ) -> Optional[ElementKey]:
     if not required_loa:
         # mainly keep mypy calm

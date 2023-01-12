@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import logging
 from functools import wraps
 from string import Template
@@ -28,7 +26,7 @@ def read_secret_key(key_name: str) -> bytes:
     :return: 32 bytes of secret data
     """
     sanitized_key_name = "".join([c for c in key_name if c.isalpha() or c.isdigit() or c == "_"])
-    fp = "/run/secrets/{}".format(sanitized_key_name)
+    fp = f"/run/secrets/{sanitized_key_name}"
     with open(fp, "rb") as f:
         return encoding.URLSafeBase64Encoder.decode(f.readline())
 
@@ -63,7 +61,7 @@ def decrypt_config(config_dict: Mapping[str, Any]) -> Mapping[str, Any]:
                 if not boxes.get(key_name):
                     try:
                         boxes[key_name] = init_secret_box(key_name=key_name)
-                    except IOError as e:
+                    except OSError as e:
                         logging.error(e)
                         continue  # Try next key
                 try:
@@ -78,7 +76,7 @@ def decrypt_config(config_dict: Mapping[str, Any]) -> Mapping[str, Any]:
                     logging.error(e)
                     continue  # Try next key
             if not decrypted:
-                logging.error("Failed to decrypt {}:{}".format(key, value))
+                logging.error(f"Failed to decrypt {key}:{value}")
         else:
             new_config_dict[key] = value
     return new_config_dict

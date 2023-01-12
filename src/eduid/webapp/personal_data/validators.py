@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2016 NORDUnet A/S
 # All rights reserved.
@@ -40,7 +39,7 @@ from eduid.webapp.personal_data.helpers import PDataMsg
 def validate_language(lang: str):
     available_langs = current_app.conf.available_languages
     if lang not in available_langs:
-        raise ValidationError("Language {!r} is not available".format(lang))
+        raise ValidationError(f"Language {lang!r} is not available")
 
 
 def validate_nonempty(value: str):

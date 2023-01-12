@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict, List, Optional, Union
+from typing import Optional
 
 from fastapi import FastAPI
 
@@ -23,7 +23,7 @@ from eduid.workers.amapi.utils import load_jwks
 
 
 class AMAPI(FastAPI):
-    def __init__(self, name: str = "am_api", test_config: Optional[Dict] = None):
+    def __init__(self, name: str = "am_api", test_config: Optional[dict] = None):
         self.config = load_config(typ=AMApiConfig, app_name=name, ns="api", test_config=test_config)
         super().__init__()
 
@@ -38,7 +38,7 @@ class AMAPI(FastAPI):
         self.jwks = load_jwks(self.config)
 
 
-def init_api(name: str = "am_api", test_config: Optional[Dict] = None) -> AMAPI:
+def init_api(name: str = "am_api", test_config: Optional[dict] = None) -> AMAPI:
     app = AMAPI(name=name, test_config=test_config)
     app.router.route_class = ContextRequestRoute
 

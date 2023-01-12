@@ -1,12 +1,9 @@
-# -*- coding: utf-8 -*-
-
-
 import json
 from collections import OrderedDict
 from datetime import datetime, timedelta
-from typing import Any, AnyStr, Dict, Mapping, Optional
+from typing import Any, AnyStr, Mapping, Optional
+from unittest.mock import MagicMock, Mock, patch
 
-from mock import MagicMock, Mock, patch
 from werkzeug.test import TestResponse
 
 from eduid.common.config.base import EduidEnvironment
@@ -38,7 +35,7 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
                 ),
             ]
         )
-        super(LetterProofingTests, self).setUp(users=["hubba-baar"])
+        super().setUp(users=["hubba-baar"])
 
     @staticmethod
     def mock_response(
@@ -71,14 +68,14 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
             mock_resp.json = Mock(return_value=json_data)
         return mock_resp
 
-    def load_app(self, config: Dict[str, Any]) -> LetterProofingApp:
+    def load_app(self, config: dict[str, Any]) -> LetterProofingApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
         return init_letter_proofing_app("testing", config)
 
-    def update_config(self, config: Dict[str, Any]):
+    def update_config(self, config: dict[str, Any]):
         config.update(
             {
                 # 'ekopost_debug_pdf': devnull,

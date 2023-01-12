@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2020 Sunet
 # All rights reserved.
@@ -32,7 +31,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, List, Mapping, Optional
+from typing import Any, Mapping, Optional
 from uuid import UUID
 
 from bson import ObjectId
@@ -88,8 +87,8 @@ class Invite(_InviteRequired):
     invite_id: ObjectId = field(default_factory=ObjectId)
     given_name: Optional[str] = field(default=None)
     surname: Optional[str] = field(default=None)
-    mail_addresses: List[InviteMailAddress] = field(default_factory=list)
-    phone_numbers: List[InvitePhoneNumber] = field(default_factory=list)
+    mail_addresses: list[InviteMailAddress] = field(default_factory=list)
+    phone_numbers: list[InvitePhoneNumber] = field(default_factory=list)
     nin: Optional[str] = field(default=None)
     preferred_language: str = field(default="sv")
     finish_url: Optional[str] = field(default=None)

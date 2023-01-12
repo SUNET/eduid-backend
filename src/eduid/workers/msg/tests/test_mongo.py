@@ -3,7 +3,7 @@ from eduid.workers.msg.testing import MsgMongoTestCase
 
 class MessageTest(MsgMongoTestCase):
     def setUp(self):
-        super(MessageTest, self).setUp()
+        super().setUp()
 
     def test_mongo(self):
         db = self.tmp_db.conn["test"]

@@ -35,7 +35,7 @@
 
 import datetime
 import logging
-from typing import List, Mapping, Optional, Sequence, Union
+from typing import Mapping, Optional, Sequence, Union
 from uuid import uuid4
 
 import saml2.server
@@ -214,7 +214,7 @@ class TestSSO(SSOIdPTests):
     def _get_login_response_authn(
         self,
         req_class_ref: Union[EduidAuthnContextClass, str],
-        credentials: List[Union[str, Credential, AuthnData, ExternalMfaData]],
+        credentials: list[Union[str, Credential, AuthnData, ExternalMfaData]],
         user: Optional[IdPUser] = None,
         add_tou: bool = True,
         add_credentials_to_this_request: bool = True,
