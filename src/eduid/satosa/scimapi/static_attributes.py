@@ -1,5 +1,8 @@
 import logging
+from typing import Any, Dict, Mapping
 
+import satosa.context
+import satosa.internal
 from satosa.micro_services.base import ResponseMicroService
 from satosa.routing import STATE_KEY as ROUTER_STATE_KEY
 from satosa.util import get_dict_defaults
@@ -32,14 +35,14 @@ class AddStaticAttributesForVirtualIdp(ResponseMicroService):
     override existing attributes if present.
     """
 
-    def __init__(self, config, *args, **kwargs):
+    def __init__(self, config: Mapping[str, Any], *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.static_attributes = config["static_attributes_for_virtual_idp"]
+        self.static_attributes: dict = config["static_attributes_for_virtual_idp"]
 
-    def _build_static(self, requester, vidp):
-        static_attributes = dict()
+    def _build_static(self, requester: str, vidp: str):
+        static_attributes: Dict[str, list] = dict()
 
-        recipes = get_dict_defaults(self.static_attributes, requester, vidp)
+        recipes: Mapping[str, str] = get_dict_defaults(self.static_attributes, requester, vidp)
         for attr_name, fmt in recipes.items():
             logger.debug(f"Adding static attribut {attr_name}: {fmt} for {vidp}")
 
@@ -47,7 +50,7 @@ class AddStaticAttributesForVirtualIdp(ResponseMicroService):
 
         return static_attributes
 
-    def process(self, context, data):
-        virtual_idp = context.state.get(ROUTER_STATE_KEY)
+    def process(self, context: satosa.context.Context, data: satosa.internal.InternalData):
+        virtual_idp: str = context.state.get(ROUTER_STATE_KEY)
         data.attributes.update(self._build_static(data.requester, virtual_idp))
         return super().process(context, data)
