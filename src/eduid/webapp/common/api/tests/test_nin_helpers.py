@@ -228,6 +228,21 @@ class NinHelpersTest(EduidAPITestCase[HelpersTestApp]):
             user=user, proofing_state=proofing_state, number=self.test_user_nin, created_by="AlreadyAddedNinHelpersTest"
         )
 
+    def test_verify_wrong_nin_for_user_existing_not_verified(self):
+        eppn = self.insert_not_verified_user()
+        user = self.app.central_userdb.get_user_by_eppn(eppn)
+        nin_element = NinProofingElement.from_dict(
+            dict(number=self.wrong_test_user_nin, created_by="NinHelpersTest", verified=False)
+        )
+        proofing_state = NinProofingState.from_dict({"eduPersonPrincipalName": eppn, "nin": nin_element.to_dict()})
+        assert proofing_state.nin.created_by is not None
+        proofing_log_entry = self._get_nin_proofing_log_entry(
+            user=user, created_by=nin_element.created_by, nin=nin_element.number
+        )
+        with self.app.app_context():
+            with pytest.raises(LockedIdentityViolation):
+                verify_nin_for_user(user, proofing_state, proofing_log_entry)
+
     def test_verify_nin_for_user_existing_verified(self):
         eppn = self.insert_verified_user()
         user = self.app.central_userdb.get_user_by_eppn(eppn)
