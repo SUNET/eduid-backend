@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC
-from typing import Any, Optional
+from typing import Any, Mapping, Optional
 from urllib.parse import urlparse
 
 from neo4j import Driver, GraphDatabase, basic_auth
@@ -12,7 +12,7 @@ __author__ = "lundberg"
 class Neo4jDB:
     """Simple wrapper to allow us to define the api"""
 
-    def __init__(self, db_uri: str, config: Optional[dict[str, Any]] = None):
+    def __init__(self, db_uri: str, config: Optional[Mapping[str, Any]] = None):
         if not db_uri:
             raise ValueError("db_uri not supplied")
 
@@ -29,12 +29,15 @@ class Neo4jDB:
         if self._routing_context:
             self._db_uri += f"?{self._routing_context}"
 
+        # Make a copy of config to not modify the callers' data
+        _config = dict(config)
+
         # Use username and password from uri if auth not in config
         self._username = parse_result.username
         if "auth" not in config and (self._username and parse_result.password):
-            config["auth"] = basic_auth(self._username, parse_result.password)
+            _config["auth"] = basic_auth(self._username, parse_result.password)
 
-        self._driver = GraphDatabase.driver(self._db_uri, **config)
+        self._driver = GraphDatabase.driver(self._db_uri, **_config)
 
     def __repr__(self) -> str:
         return f'<eduID {self.__class__.__name__}: {getattr(self, "_username", None)}@{getattr(self, "_db_uri", None)}>'
