@@ -13,6 +13,7 @@ from eduid.userdb.credentials.external import (
     TrustFramework,
 )
 from eduid.userdb.element import ElementKey
+from eduid.userdb.exceptions import LockedIdentityViolation
 from eduid.userdb.identity import EIDASLoa, IdentityElement, IdentityType, PridPersistence
 from eduid.userdb.logs.element import (
     ForeignIdProofingLogElement,
@@ -134,17 +135,20 @@ class FrejaProofingFunctions(SwedenConnectProofingFunctions[NinSessionInfo]):
         assert isinstance(proofing_log_entry.data, NinProofingLogElement)  # please type checking
 
         # Verify NIN for user
+        nin_element = NinProofingElement(
+            number=self.session_info.attributes.nin, created_by=current_app.conf.app_name, is_verified=False
+        )
+        proofing_state = NinProofingState(id=None, modified_ts=None, eppn=proofing_user.eppn, nin=nin_element)
         try:
-            nin_element = NinProofingElement(
-                number=self.session_info.attributes.nin, created_by=current_app.conf.app_name, is_verified=False
-            )
-            proofing_state = NinProofingState(id=None, modified_ts=None, eppn=proofing_user.eppn, nin=nin_element)
             if not verify_nin_for_user(proofing_user, proofing_state, proofing_log_entry.data):
                 current_app.logger.error(f"Failed verifying NIN for user {proofing_user}")
                 return VerifyUserResult(error=CommonMsg.temp_problem)
         except AmTaskFailed:
             current_app.logger.exception("Verifying NIN for user failed")
             return VerifyUserResult(error=CommonMsg.temp_problem)
+        except LockedIdentityViolation:
+            current_app.logger.exception("Verifying NIN for user failed")
+            return VerifyUserResult(error=CommonMsg.locked_identity_not_matching)
 
         current_app.stats.count(name="nin_verified")
         # re-load the user from central db before returning
