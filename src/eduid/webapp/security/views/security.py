@@ -32,6 +32,7 @@
 
 import json
 from datetime import timedelta
+from typing import Union
 from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
 from flask import Blueprint, redirect, request, url_for
@@ -276,7 +277,7 @@ def add_nin(user: User, nin: str) -> FluxData:
         return error_response(message=CommonMsg.temp_problem)
 
     # TODO: remove nins after frontend stops using it
-    nins: list[dict[str, str | bool]] = []
+    nins: list[dict[str, Union[str, bool]]] = []
     if security_user.identities.nin is not None:
         nins.append(security_user.identities.nin.to_old_nin())
 
