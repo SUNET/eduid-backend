@@ -1,4 +1,4 @@
-from typing import Any, Mapping
+from typing import Any, Mapping, Optional
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -8,8 +8,8 @@ from eduid.common.config.base import EduIDBaseAppConfig
 from eduid.common.config.parsers import load_config
 from eduid.common.rpc.msg_relay import FullPostalAddress
 from eduid.common.testing_base import normalised_data
-from eduid.userdb import NinIdentity
-from eduid.userdb.exceptions import UserDoesNotExist
+from eduid.userdb import NinIdentity, User
+from eduid.userdb.exceptions import LockedIdentityViolation, UserDoesNotExist
 from eduid.userdb.fixtures.users import UserFixtures
 from eduid.userdb.identity import IdentityList
 from eduid.userdb.logs import ProofingLog
@@ -99,6 +99,34 @@ class NinHelpersTest(EduidAPITestCase[HelpersTestApp]):
         self.app.central_userdb.save(user)
         return user.eppn
 
+    def _get_nin_proofing_log_entry(
+        self, user: User, nin: str, created_by: Optional[str], navet_data: Optional[FullPostalAddress] = None
+    ) -> NinProofingLogElement:
+        if navet_data is None:
+            navet_data = self.navet_response()
+        return NinProofingLogElement(
+            eppn=user.eppn,
+            created_by=created_by,
+            nin=nin,
+            user_postal_address=navet_data,
+            proofing_method="test",
+            proofing_version="2017",
+            deregistration_information=None,
+        )
+
+    @staticmethod
+    def _get_foreign_proofing_log_entry(user: User) -> ForeignIdProofingLogElement:
+        return ForeignIdProofingLogElement(
+            eppn=user.eppn,
+            created_by="test",
+            given_name="Testaren Test",
+            surname="Testsson",
+            date_of_birth="1901-02-03",
+            country_code="DE",
+            proofing_method="test",
+            proofing_version="2018v1",
+        )
+
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_add_nin_to_user(self, mock_user_sync: MagicMock):
         mock_user_sync.return_value = True
@@ -148,14 +176,8 @@ class NinHelpersTest(EduidAPITestCase[HelpersTestApp]):
         )
         proofing_state = NinProofingState.from_dict({"eduPersonPrincipalName": eppn, "nin": nin_element.to_dict()})
         assert proofing_state.nin.created_by is not None
-        proofing_log_entry = NinProofingLogElement(
-            eppn=user.eppn,
-            created_by=proofing_state.nin.created_by,
-            nin=proofing_state.nin.number,
-            user_postal_address=self.navet_response(),
-            proofing_method="test",
-            proofing_version="2017",
-            deregistration_information=None,
+        proofing_log_entry = self._get_nin_proofing_log_entry(
+            user=user, created_by=nin_element.created_by, nin=nin_element.number
         )
         with self.app.app_context():
             assert verify_nin_for_user(user, proofing_state, proofing_log_entry) is True
@@ -175,14 +197,8 @@ class NinHelpersTest(EduidAPITestCase[HelpersTestApp]):
         )
         proofing_state = NinProofingState.from_dict({"eduPersonPrincipalName": eppn, "nin": nin_element.to_dict()})
         assert proofing_state.nin.created_by is not None
-        proofing_log_entry = NinProofingLogElement(
-            eppn=user.eppn,
-            created_by=proofing_state.nin.created_by,
-            nin=proofing_state.nin.number,
-            user_postal_address=self.navet_response(),
-            proofing_method="test",
-            proofing_version="2017",
-            deregistration_information=None,
+        proofing_log_entry = self._get_nin_proofing_log_entry(
+            user=user, created_by=nin_element.created_by, nin=nin_element.number
         )
         proofing_user = ProofingUser.from_user(user, self.app.private_userdb)
         # check that there is no NIN on the proofing_user before calling verify_nin_for_user
@@ -211,14 +227,8 @@ class NinHelpersTest(EduidAPITestCase[HelpersTestApp]):
         )
         proofing_state = NinProofingState.from_dict({"eduPersonPrincipalName": eppn, "nin": nin_element.to_dict()})
         assert proofing_state.nin.created_by is not None
-        proofing_log_entry = NinProofingLogElement(
-            eppn=user.eppn,
-            created_by=proofing_state.nin.created_by,
-            nin=proofing_state.nin.number,
-            user_postal_address=self.navet_response(),
-            proofing_method="test",
-            proofing_version="2017",
-            deregistration_information=None,
+        proofing_log_entry = self._get_nin_proofing_log_entry(
+            user=user, created_by=nin_element.created_by, nin=nin_element.number
         )
         with self.app.app_context():
             assert verify_nin_for_user(user, proofing_state, proofing_log_entry) is True
@@ -228,6 +238,21 @@ class NinHelpersTest(EduidAPITestCase[HelpersTestApp]):
             user=user, proofing_state=proofing_state, number=self.test_user_nin, created_by="AlreadyAddedNinHelpersTest"
         )
 
+    def test_verify_wrong_nin_for_user_existing_not_verified(self):
+        eppn = self.insert_not_verified_user()
+        user = self.app.central_userdb.get_user_by_eppn(eppn)
+        nin_element = NinProofingElement.from_dict(
+            dict(number=self.wrong_test_user_nin, created_by="NinHelpersTest", verified=False)
+        )
+        proofing_state = NinProofingState.from_dict({"eduPersonPrincipalName": eppn, "nin": nin_element.to_dict()})
+        assert proofing_state.nin.created_by is not None
+        proofing_log_entry = self._get_nin_proofing_log_entry(
+            user=user, created_by=nin_element.created_by, nin=nin_element.number
+        )
+        with self.app.app_context():
+            with pytest.raises(LockedIdentityViolation):
+                verify_nin_for_user(user, proofing_state, proofing_log_entry)
+
     def test_verify_nin_for_user_existing_verified(self):
         eppn = self.insert_verified_user()
         user = self.app.central_userdb.get_user_by_eppn(eppn)
@@ -236,14 +261,8 @@ class NinHelpersTest(EduidAPITestCase[HelpersTestApp]):
         )
         proofing_state = NinProofingState.from_dict({"eduPersonPrincipalName": eppn, "nin": nin_element.to_dict()})
         assert proofing_state.nin.created_by is not None
-        proofing_log_entry = NinProofingLogElement(
-            eppn=user.eppn,
-            created_by=proofing_state.nin.created_by,
-            nin=nin_element.number,
-            proofing_method="test",
-            proofing_version="2017",
-            user_postal_address=self.navet_response(),
-            deregistration_information=None,
+        proofing_log_entry = self._get_nin_proofing_log_entry(
+            user=user, created_by=nin_element.created_by, nin=nin_element.number
         )
         with self.app.app_context():
             assert verify_nin_for_user(user, proofing_state, proofing_log_entry) is True
@@ -254,18 +273,9 @@ class NinHelpersTest(EduidAPITestCase[HelpersTestApp]):
         nin_element = NinProofingElement.from_dict(
             dict(number=self.test_user_nin, created_by="NinHelpersTest", verified=False)
         )
-        proofing_state = NinProofingState.from_dict({"eduPersonPrincipalName": eppn, "nin": nin_element.to_dict()})
         # Create a ProofingLogElement with an empty created_by, which should be rejected
         with pytest.raises(ValidationError) as exc_info:
-            NinProofingLogElement(
-                eppn=user.eppn,
-                created_by="",
-                nin=proofing_state.nin.number,
-                user_postal_address=self.navet_response(),
-                proofing_method="test",
-                proofing_version="2017",
-                deregistration_information=None,
-            )
+            self._get_nin_proofing_log_entry(user=user, created_by="", nin=nin_element.number)
         assert exc_info.value.errors() == [
             {
                 "ctx": {"limit_value": 1},
@@ -279,14 +289,10 @@ class NinHelpersTest(EduidAPITestCase[HelpersTestApp]):
         userdata = self.test_user.to_dict()
         del userdata["displayName"]
         user = ProofingUser.from_dict(data=userdata)
-        proofing_element = NinProofingLogElement(
-            eppn=user.eppn,
+        proofing_element = self._get_nin_proofing_log_entry(
+            user=user,
             created_by="test",
             nin="190102031234",
-            user_postal_address=self.navet_response(),
-            proofing_method="test",
-            proofing_version="2018v1",
-            deregistration_information=None,
         )
         with self.app.app_context():
             user = set_user_names_from_official_address(user, proofing_element)
@@ -301,14 +307,11 @@ class NinHelpersTest(EduidAPITestCase[HelpersTestApp]):
         navet_response = self.navet_response()
         navet_response.name.given_name = "Test"
         navet_response.name.given_name_marking = "10"
-        proofing_element = NinProofingLogElement(
-            eppn=user.eppn,
+        proofing_element = self._get_nin_proofing_log_entry(
+            user=user,
             created_by="test",
             nin="190102031234",
-            user_postal_address=navet_response,
-            proofing_method="test",
-            proofing_version="2018v1",
-            deregistration_information=None,
+            navet_data=navet_response,
         )
         with self.app.app_context():
             user = set_user_names_from_official_address(user, proofing_element)
@@ -324,14 +327,11 @@ class NinHelpersTest(EduidAPITestCase[HelpersTestApp]):
         navet_response.name.given_name = "Pippilotta Viktualia Rullgardina Krusmynta Efraimsdotter"
         navet_response.name.surname = "L\xe5ngstrump"
         navet_response.name.given_name_marking = "30"
-        proofing_element = NinProofingLogElement(
-            eppn=user.eppn,
+        proofing_element = self._get_nin_proofing_log_entry(
+            user=user,
             created_by="test",
             nin="190102031234",
-            user_postal_address=navet_response,
-            proofing_method="test",
-            proofing_version="2018v1",
-            deregistration_information=None,
+            navet_data=navet_response,
         )
         with self.app.app_context():
             user = set_user_names_from_official_address(user, proofing_element)
@@ -343,16 +343,13 @@ class NinHelpersTest(EduidAPITestCase[HelpersTestApp]):
         _user = UserFixtures().new_user_example
         _user.display_name = None
         user = ProofingUser.from_dict(data=_user.to_dict())
-        navet_data = self.navet_response()
-        navet_data.name.given_name_marking = None
-        proofing_element = NinProofingLogElement(
-            eppn=user.eppn,
+        navet_response = self.navet_response()
+        navet_response.name.given_name_marking = None
+        proofing_element = self._get_nin_proofing_log_entry(
+            user=user,
             created_by="test",
             nin="190102031234",
-            user_postal_address=navet_data,
-            proofing_method="test",
-            proofing_version="2018v1",
-            deregistration_information=None,
+            navet_data=navet_response,
         )
         with self.app.app_context():
             user = set_user_names_from_official_address(user, proofing_element)
@@ -363,16 +360,7 @@ class NinHelpersTest(EduidAPITestCase[HelpersTestApp]):
     def test_set_user_names_from_foreign_eid(self):
         userdata = UserFixtures().new_user_example.to_dict()
         user = ProofingUser.from_dict(data=userdata)
-        proofing_element = ForeignIdProofingLogElement(
-            eppn=user.eppn,
-            created_by="test",
-            given_name="Testaren Test",
-            surname="Testsson",
-            date_of_birth="1901-02-03",
-            country_code="DE",
-            proofing_method="test",
-            proofing_version="2018v1",
-        )
+        proofing_element = self._get_foreign_proofing_log_entry(user=user)
         with self.app.app_context():
             user = set_user_names_from_foreign_id(user, proofing_element)
             assert user.given_name == "Testaren Test"
@@ -382,16 +370,7 @@ class NinHelpersTest(EduidAPITestCase[HelpersTestApp]):
     def test_set_user_names_from_foreign_eid_existing_display_name(self):
         userdata = UserFixtures().new_user_example.to_dict()
         user = ProofingUser.from_dict(data=userdata)
-        proofing_element = ForeignIdProofingLogElement(
-            eppn=user.eppn,
-            created_by="test",
-            given_name="Testaren Test",
-            surname="Testsson",
-            date_of_birth="1901-02-03",
-            country_code="DE",
-            proofing_method="test",
-            proofing_version="2018v1",
-        )
+        proofing_element = self._get_foreign_proofing_log_entry(user=user)
         with self.app.app_context():
             user = set_user_names_from_foreign_id(user, proofing_element)
             assert user.given_name == "Testaren Test"
@@ -401,16 +380,7 @@ class NinHelpersTest(EduidAPITestCase[HelpersTestApp]):
     def test_set_user_names_from_foreign_eid_custom_display_name(self):
         userdata = UserFixtures().new_user_example.to_dict()
         user = ProofingUser.from_dict(data=userdata)
-        proofing_element = ForeignIdProofingLogElement(
-            eppn=user.eppn,
-            created_by="test",
-            given_name="Testaren Test",
-            surname="Testsson",
-            date_of_birth="1901-02-03",
-            country_code="DE",
-            proofing_method="test",
-            proofing_version="2018v1",
-        )
+        proofing_element = self._get_foreign_proofing_log_entry(user=user)
         with self.app.app_context():
             user = set_user_names_from_foreign_id(user, proofing_element, display_name="Test Testsson")
             assert user.given_name == "Testaren Test"

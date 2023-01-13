@@ -4,6 +4,7 @@ from requests.exceptions import ConnectionError
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.rpc.exceptions import AmTaskFailed, MsgTaskFailed, NoAddressFound
 from eduid.userdb import User
+from eduid.userdb.exceptions import LockedIdentityViolation
 from eduid.userdb.logs import LetterProofing
 from eduid.userdb.proofing import ProofingUser
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, can_verify_nin, require_user
@@ -167,29 +168,33 @@ def verify_code(user: User, code: str) -> FluxData:
         user_postal_address=official_address,
         proofing_version="2016v1",
     )
+    # Verify nin for user
+    proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
     try:
-        # Verify nin for user
-        proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
         if not verify_nin_for_user(proofing_user, proofing_state, proofing_log_entry):
-            current_app.logger.error(f"Failed verifying NIN for user {user}")
+            current_app.logger.error(f"Failed verifying NIN for user {proofing_user}")
             return error_response(message=CommonMsg.temp_problem)
-        current_app.logger.info(f"Verified code for user {user}")
-        # Remove proofing state
-        current_app.proofing_statedb.remove_state(proofing_state)
-        current_app.stats.count(name="nin_verified")
-
-        # TODO: remove nins after frontend stops using it
-        nins = []
-        if proofing_user.identities.nin is not None:
-            nins.append(proofing_user.identities.nin.to_old_nin())
-
-        return success_response(
-            payload=dict(identities=proofing_user.identities.to_frontend_format(), nins=nins),
-            message=LetterMsg.verify_success,
-        )
     except AmTaskFailed:
-        current_app.logger.exception(f"Verifying nin for user {user} failed")
+        current_app.logger.exception("Verifying NIN for user failed")
         return error_response(message=CommonMsg.temp_problem)
+    except LockedIdentityViolation:
+        current_app.logger.exception("Verifying NIN for user failed")
+        return error_response(message=CommonMsg.locked_identity_not_matching)
+
+    current_app.logger.info(f"Verified code for user {user}")
+    # Remove proofing state
+    current_app.proofing_statedb.remove_state(proofing_state)
+    current_app.stats.count(name="nin_verified")
+
+    # TODO: remove nins after frontend stops using it
+    nins = []
+    if proofing_user.identities.nin is not None:
+        nins.append(proofing_user.identities.nin.to_old_nin())
+
+    return success_response(
+        payload=dict(identities=proofing_user.identities.to_frontend_format(), nins=nins),
+        message=LetterMsg.verify_success,
+    )
 
 
 @letter_proofing_views.route("/get-code", methods=["GET"])

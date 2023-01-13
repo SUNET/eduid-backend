@@ -11,6 +11,7 @@ from eduid.common.rpc.mail_relay import MailRelay
 from eduid.common.rpc.msg_relay import DeregisteredCauseCode, DeregistrationInformation, FullPostalAddress, MsgRelay
 from eduid.userdb import NinIdentity
 from eduid.userdb.element import ElementKey
+from eduid.userdb.exceptions import LockedIdentityViolation
 from eduid.userdb.identity import IdentityType
 from eduid.userdb.logs import ProofingLog
 from eduid.userdb.logs.element import (
@@ -179,7 +180,7 @@ def verify_nin_for_user(
             proofing_user.locked_identity.nin is not None
             and proofing_user.locked_identity.nin.number != proofing_state.nin.number
         ):
-            raise ValueError("users locked nin does not match verified nin")
+            raise LockedIdentityViolation("users locked nin does not match verified nin")
 
         # user has no locked nin identity or the user has previously verified the nin
         # replace the never verified nin with the one just verified
