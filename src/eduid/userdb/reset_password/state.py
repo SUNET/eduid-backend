@@ -39,9 +39,9 @@ from typing import Any, Optional, TypeVar
 import bson
 
 from eduid.common.misc.timeutil import utc_now
+from eduid.common.models.webauthn import WebauthnChallenge
 from eduid.userdb.db import TUserDbDocument
 from eduid.userdb.reset_password.element import CodeElement
-from eduid.webapp.common.authn.fido_tokens import WebauthnChallenge
 
 TResetPasswordStateSubclass = TypeVar("TResetPasswordStateSubclass", bound="ResetPasswordState")
 

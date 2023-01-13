@@ -40,6 +40,7 @@ from fido2.server import Fido2Server, U2FFido2Server
 from fido2.utils import websafe_decode
 from fido2.webauthn import AttestedCredentialData, AuthenticatorData, CollectedClientData, PublicKeyCredentialRpEntity
 from pydantic import BaseModel
+from eduid.common.models.webauthn import WebauthnChallenge
 
 from eduid.userdb.credentials import U2F, Webauthn
 from eduid.userdb.element import ElementKey
@@ -115,10 +116,6 @@ def _get_fido2server(credentials: dict[ElementKey, FidoCred], fido2rp: PublicKey
     if app_id:
         return U2FFido2Server(app_id, fido2rp)
     return Fido2Server(fido2rp)
-
-
-class WebauthnChallenge(BaseModel):
-    webauthn_options: str
 
 
 def start_token_verification(user: User, fido2_rp_id: str, fido2_rp_name: str, state: MfaAction) -> WebauthnChallenge:
