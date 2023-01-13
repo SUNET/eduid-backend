@@ -2,6 +2,7 @@ TOPDIR:=	$(abspath .)
 SRCDIR=		$(TOPDIR)/src
 SOURCE=		$(SRCDIR)/eduid
 PIPCOMPILE=	pip-compile -v --generate-hashes --index-url https://pypi.sunet.se/simple
+MYPY_ARGS=	--install-types --non-interactive --pretty --ignore-missing-imports
 
 test:
 	PYTHONPATH=$(SRCDIR) pytest -vvv -ra --log-cli-level DEBUG
@@ -11,9 +12,9 @@ reformat:
 	black --line-length 120 --target-version py39 $(SOURCE)
 
 typecheck:
-	MYPYPATH=$(SRCDIR) mypy $(MYPY_ARGS) --pretty --ignore-missing-imports --namespace-packages -p eduid
+	MYPYPATH=$(SRCDIR) mypy $(MYPY_ARGS) --namespace-packages -p eduid
         # a second pass with --check-untyped-defs, excluding test files
-	MYPYPATH=$(SRCDIR) mypy $(MYPY_ARGS) --pretty --ignore-missing-imports --namespace-packages -p eduid --check-untyped-defs --exclude '/test_.*\.py$$'
+	MYPYPATH=$(SRCDIR) mypy $(MYPY_ARGS) --namespace-packages -p eduid --check-untyped-defs --exclude '/test_.*\.py$$'
 
 update_webapp_translations:
 	pybabel extract -k _ -k gettext -k ngettext --mapping=babel.cfg --width=120 --output=$(SOURCE)/webapp/translations/messages.pot $(SOURCE)/webapp/
