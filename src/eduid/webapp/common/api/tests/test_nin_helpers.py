@@ -100,7 +100,7 @@ class NinHelpersTest(EduidAPITestCase[HelpersTestApp]):
         return user.eppn
 
     def _get_nin_proofing_log_entry(
-        self, user: User, nin: str, created_by: Optional[str], navet_data: Optional[FullPostalAddress] = None
+        self, user: User, nin: str, created_by: str, navet_data: Optional[FullPostalAddress] = None
     ) -> NinProofingLogElement:
         if navet_data is None:
             navet_data = self.navet_response()
@@ -175,7 +175,7 @@ class NinHelpersTest(EduidAPITestCase[HelpersTestApp]):
             dict(number=self.test_user_nin, created_by="NinHelpersTest", verified=False)
         )
         proofing_state = NinProofingState.from_dict({"eduPersonPrincipalName": eppn, "nin": nin_element.to_dict()})
-        assert proofing_state.nin.created_by is not None
+        assert nin_element.created_by is not None
         proofing_log_entry = self._get_nin_proofing_log_entry(
             user=user, created_by=nin_element.created_by, nin=nin_element.number
         )
@@ -226,7 +226,7 @@ class NinHelpersTest(EduidAPITestCase[HelpersTestApp]):
             dict(number=self.test_user_nin, created_by="NinHelpersTest", verified=False)
         )
         proofing_state = NinProofingState.from_dict({"eduPersonPrincipalName": eppn, "nin": nin_element.to_dict()})
-        assert proofing_state.nin.created_by is not None
+        assert nin_element.created_by is not None
         proofing_log_entry = self._get_nin_proofing_log_entry(
             user=user, created_by=nin_element.created_by, nin=nin_element.number
         )
