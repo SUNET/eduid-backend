@@ -24,12 +24,15 @@ class AddStaticAttributesForVirtualIdp(ResponseMicroService):
         static_attributes_for_virtual_idp:
             requester1:
                 virtual_idp_1:
-                    schachomeorganization: foo
+                    schachomeorganization:
+                      - foo
             default:
                 virtual_idp_1:
-                    schachomeorganization: bar
+                    schachomeorganization:
+                      - bar
                 virtual_idp_2:
-                    schachomeorganization: fax
+                    schachomeorganization:
+                      - fax
     ```
     The use of "" and 'default' is synonymous. Attribute rules are not overloaded
     or inherited. For instance a response for "requester1" from virtual_idp_1 in
