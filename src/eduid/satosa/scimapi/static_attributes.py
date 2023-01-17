@@ -29,7 +29,7 @@ class AddStaticAttributesForVirtualIdp(ResponseMicroService):
                 virtual_idp_1:
                     schachomeorganization: bar
                 virtual_idp_2:
-                    schachomehrganization: fax
+                    schachomeorganization: fax
     ```
     The use of "" and 'default' is synonymous. Attribute rules are not overloaded
     or inherited. For instance a response for "requester1" from virtual_idp_1 in
