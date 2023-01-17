@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict, Mapping
+from typing import Any, Mapping
 
 import satosa.context
 import satosa.internal
@@ -9,6 +9,8 @@ from satosa.util import get_dict_defaults
 
 logger = logging.getLogger(__name__)
 
+# Type describing this microservice's configuration data
+StaticAttributesConfig = dict[str, list[dict[str, str]]]
 
 class AddStaticAttributesForVirtualIdp(ResponseMicroService):
     """
@@ -35,12 +37,12 @@ class AddStaticAttributesForVirtualIdp(ResponseMicroService):
     override existing attributes if present.
     """
 
-    def __init__(self, config: Mapping[str, Any], *args, **kwargs):
+    def __init__(self, config: Mapping[str, Any], *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
-        self.static_attributes: dict = config["static_attributes_for_virtual_idp"]
+        self.static_attributes: StaticAttributesConfig = config["static_attributes_for_virtual_idp"]
 
     def _build_static(self, requester: str, vidp: str):
-        static_attributes: Dict[str, list] = dict()
+        static_attributes: dict[str, list] = dict()
 
         recipes: Mapping[str, list] = get_dict_defaults(self.static_attributes, requester, vidp)
         for attr_name, fmt in recipes.items():
