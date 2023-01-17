@@ -342,7 +342,7 @@ flask-cors==3.0.10 \
 flask-mail==0.9.1 \
     --hash=sha256:22e5eb9a940bf407bcf30410ecc3708f3c56cc44b29c34e1726fe85006935f41
     # via -r webapp_requirements.in
-future==0.18.2 \
+future==0.18.3 \
     --hash=sha256:b1bead90b70cf6ec3f0710ae53a525360fa360d306a86583adc6bf83a4db537d
     # via
     #   -c main.txt
