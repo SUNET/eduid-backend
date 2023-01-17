@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 # Type describing this microservice's configuration data
 StaticAttributesConfig = dict[str, list[dict[str, str]]]
 
+
 class AddStaticAttributesForVirtualIdp(ResponseMicroService):
     """
     A class that add static attributes to a response set.
@@ -52,7 +53,10 @@ class AddStaticAttributesForVirtualIdp(ResponseMicroService):
 
         return static_attributes
 
-    def process(self, context: satosa.context.Context, data: satosa.internal.InternalData):
-        virtual_idp: str = context.state.get(ROUTER_STATE_KEY)
-        data.attributes.update(self._build_static(data.requester, virtual_idp))
+    def process(
+        self, context: satosa.context.Context, data: satosa.internal.InternalData
+    ) -> satosa.internal.InternalData:
+        if context.state is not None and isinstance(data.requester, str) and data.attributes is not None:
+            virtual_idp: str = context.state.get(ROUTER_STATE_KEY)
+            data.attributes.update(self._build_static(data.requester, virtual_idp))
         return super().process(context, data)
