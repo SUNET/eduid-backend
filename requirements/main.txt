@@ -250,7 +250,7 @@ fido2==1.1.0 \
     # via
     #   -r main.in
     #   fido-mds
-future==0.18.2 \
+future==0.18.3 \
     --hash=sha256:b1bead90b70cf6ec3f0710ae53a525360fa360d306a86583adc6bf83a4db537d
     # via
     #   arabic-reshaper
