@@ -95,9 +95,12 @@ def check_restart(key: str, restart: int, terminate: int) -> bool:
 def check_mongo() -> bool:
     current_app = get_current_app()
 
-    if not hasattr(current_app, "central_userdb"):
+    try:
+        db = current_app.central_userdb
+    except RuntimeError:
+        # app does not have a central_userdb
         return True
-    db = current_app.central_userdb
+
     try:
         db.is_healthy()
         reset_failure_info("check_mongo")
