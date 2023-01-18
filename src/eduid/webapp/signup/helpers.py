@@ -26,6 +26,7 @@ from eduid.userdb.signup import Invite, InviteType, SCIMReference, SignupUser
 from eduid.userdb.tou import ToUEvent
 from eduid.webapp.common.api.exceptions import ProofingLogFailure, VCCSBackendFailure
 from eduid.webapp.common.api.messages import TranslatableMsg
+from eduid.webapp.common.api.translation import get_user_locale
 from eduid.webapp.common.api.utils import is_throttled, save_and_sync_user, time_left
 from eduid.webapp.common.authn.vccs import add_password, revoke_passwords
 from eduid.webapp.common.session import session
@@ -226,7 +227,7 @@ def send_signup_mail(email: str, verification_code: str, reference: str, use_ema
             verification_link=verfication_link,
             site_name=current_app.conf.eduid_site_name,
             site_url=current_app.conf.eduid_site_url,
-            language=current_app.babel.locale_selector_func() or current_app.conf.default_language,
+            language=get_user_locale() or current_app.conf.default_language,
             reference=reference,
         )
     else:
@@ -234,7 +235,7 @@ def send_signup_mail(email: str, verification_code: str, reference: str, use_ema
             email=email,
             verification_code=verification_code,
             site_name=current_app.conf.eduid_site_name,
-            language=current_app.babel.locale_selector_func() or current_app.conf.default_language,
+            language=get_user_locale() or current_app.conf.default_language,
             reference=reference,
         )
     app_name = current_app.conf.app_name
