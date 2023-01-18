@@ -242,7 +242,7 @@ class FlaskConfig(CORSMixin):
     templates_auto_reload: Optional[bool] = None
     explain_template_loading: bool = False
     max_cookie_size: int = 4093
-    babel_translation_directories: str = "translations"
+    babel_translation_directories: list[str] = ["translations"]
     babel_default_locale: str = "en"
     babel_default_timezone: str = ""
     babel_domain: str = ""
