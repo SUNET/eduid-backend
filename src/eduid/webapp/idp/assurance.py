@@ -69,10 +69,6 @@ class MissingMultiFactor(AssuranceException):
     pass
 
 
-class WrongMultiFactor(AssuranceException):
-    pass
-
-
 class MissingAuthentication(AssuranceException):
     pass
 
@@ -238,8 +234,6 @@ def response_authn(authn: AuthnState, ticket: LoginContext, user: IdPUser, sso_s
             raise MissingPasswordFactor()
         if not authn.is_multifactor:
             raise MissingMultiFactor()
-        if not authn.is_swamid_al2_mfa:
-            raise WrongMultiFactor()
         response_authn = EduidAuthnContextClass.REFEDS_MFA
 
     elif req_authn_ctx == EduidAuthnContextClass.REFEDS_SFA:

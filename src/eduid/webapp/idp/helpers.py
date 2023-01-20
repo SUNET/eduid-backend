@@ -25,7 +25,6 @@ class IdPMsg(str, TranslatableMsg):
     proceed = "login.proceed"  # Shouldn't actually be returned to the frontend
     state_not_found = "login.state_not_found"
     state_already_used = "login.state_already_used"
-    swamid_mfa_required = "login.swamid_mfa_required"
     tou_not_acceptable = "login.tou_not_acceptable"
     tou_required = "login.tou_required"
     user_temporary_locked = "login.user_temporary_locked"

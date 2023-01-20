@@ -141,9 +141,6 @@ def next_view(ticket: LoginContext, sso_session: Optional[SSOSession]) -> FluxDa
     if _next.message == IdPMsg.user_terminated:
         return error_response(message=IdPMsg.user_terminated)
 
-    if _next.message == IdPMsg.swamid_mfa_required:
-        return error_response(message=IdPMsg.swamid_mfa_required)
-
     if _next.message == IdPMsg.proceed:
         if not sso_session:
             return error_response(message=IdPMsg.no_sso_session)
