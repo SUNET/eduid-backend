@@ -116,7 +116,6 @@ def remove_nin_from_user(security_user: SecurityUser, nin: NinIdentity) -> None:
     :param nin: NIN to remove
     """
     security_user.identities.remove(nin.key)
-    security_user.modified_ts = utc_now()
     # Save user to private db
     current_app.private_userdb.save(security_user)
     # Ask am to sync user to central db

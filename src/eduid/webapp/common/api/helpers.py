@@ -123,8 +123,6 @@ def add_nin_to_user(user, proofing_state, user_type=ProofingUser):
             number=proofing_state.nin.number,
         )
         proofing_user.identities.add(nin_identity)
-        proofing_user.modified_ts = utc_now()
-
         save_and_sync_user(proofing_user)
     return proofing_user
 
