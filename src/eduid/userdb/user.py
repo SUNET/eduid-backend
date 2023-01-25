@@ -276,6 +276,7 @@ class User(BaseModel):
         if private_user is not None:
             new_user.modified_ts = private_user.modified_ts
             new_user.meta.modified_ts = private_user.meta.modified_ts
+            new_user.meta.created_ts = private_user.meta.created_ts
             new_user.meta.version = private_user.meta.version
             new_user.meta.is_in_database = True
             logger.debug(f"Initialised private user with meta {new_user.meta}")
