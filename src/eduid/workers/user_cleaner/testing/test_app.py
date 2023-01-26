@@ -1,6 +1,6 @@
 from typing import Any
 from eduid.common.testing_base import CommonTestCase
-from eduid.userdb.fixtures.users import new_user_example, new_user_example2, new_unverified_user_example
+from eduid.userdb.fixtures.users import UserFixtures
 from eduid.workers.user_cleaner.app import init_worker_base
 from eduid.userdb.identity import IdentityType
 from eduid.userdb.meta import CleanerType
@@ -8,7 +8,12 @@ from eduid.userdb.meta import CleanerType
 
 class AppTest(CommonTestCase):
     def setUp(self, *args, **kwargs):
-        super().setUp(am_users=[new_user_example, new_user_example2, new_unverified_user_example])
+        super().setUp(
+            am_users=[
+                UserFixtures().new_user_example,
+                UserFixtures().new_unverified_user_example,
+            ]
+        )
 
         self.app = init_worker_base(
             cleaner_type=CleanerType.SKV, identity_type=IdentityType.NIN, test_config=self._get_config()
@@ -37,15 +42,17 @@ class AppTest(CommonTestCase):
         }
 
     def test_populate_queue(self):
-        users = [new_user_example, new_user_example2, new_unverified_user_example]
+        users = [UserFixtures().mocked_user_standard, UserFixtures().new_user_example]
         self.app._populate_queue(users=users)
         got_user1 = self.app.queue.get()
-        assert got_user1["eppn"] == new_user_example.eppn
-        assert got_user1["nin"] == new_user_example.identities.nin.number
+        assert got_user1["eppn"] == UserFixtures().mocked_user_standard.eppn
+        assert got_user1["nin"] == UserFixtures().mocked_user_standard.identities.nin.number
 
         got_user2 = self.app.queue.get()
-        assert got_user2["eppn"] == new_user_example2.eppn
-        assert got_user2["nin"] == new_user_example2.identities.nin.number
+        assert got_user2["eppn"] == UserFixtures().new_user_example.eppn  # new_user_example2.eppn
+        assert (
+            got_user2["nin"] == UserFixtures().new_user_example.identities.nin.number
+        )  # new_user_example2.identities.nin.number
 
     def test_get_delay_time(self):
         got = self.app.get_delay_time()

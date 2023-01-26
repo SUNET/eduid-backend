@@ -1,4 +1,5 @@
 from dataclasses import Field
+from datetime import datetime
 import logging
 import signal
 import os
@@ -7,8 +8,7 @@ from abc import ABC
 from queue import Queue
 import time
 
-from typing import Any, List, Optional, Dict
-from pydantic import BaseModel
+from typing import Any, Mapping, Optional, Union
 
 from pathlib import Path
 
@@ -22,17 +22,20 @@ from eduid.common.logging import init_logging
 from eduid.common.stats import init_app_stats
 
 from eduid.workers.user_cleaner.config import UserCleanerConfig
-from eduid.userdb.user import User
+from eduid.userdb.user_cleaner.cachedb import CacheDB
+from eduid.userdb.user_cleaner.cache import CacheUser
+from eduid.userdb.user_cleaner.metadb import MetaDB
+from eduid.userdb.user_cleaner.meta import Meta
 
 
 class WorkerBase(ABC):
-    """
-    All workers base class, for collective functionality
-    """
+    """All workers base class, for collective functionality"""
 
-    def __init__(self, cleaner_type: CleanerType, identity_type: IdentityType, test_config: Optional[Dict] = None):
-        signal.signal(signal.SIGINT, self.exit_gracefully)
-        signal.signal(signal.SIGTERM, self.exit_gracefully)
+    def __init__(
+        self, cleaner_type: CleanerType, identity_type: IdentityType, test_config: Optional[Mapping[str, Any]] = None
+    ):
+        signal.signal(signal.SIGINT, self._exit_gracefully)
+        signal.signal(signal.SIGTERM, self._exit_gracefully)
 
         self.config = load_config(typ=UserCleanerConfig, app_name="user_cleaner", ns="worker", test_config=test_config)
         super().__init__()
@@ -50,16 +53,16 @@ class WorkerBase(ABC):
         self.logger.info(f"initialize worker {self.cleaner_type}")
 
         self.db = AmDB(db_uri=self.config.mongo_uri)
+        self.db_cache: CacheDB
+        self.db_meta: MetaDB
 
         self.shutdown_now = False
 
-        self.queue: "Queue[dict[str, Any]]" = Queue(maxsize=0)
+        self.worker_queue: "Queue[dict[str, Union[str,int]]]" = Queue(maxsize=0)
         self.queue_actual_size = 0
 
         self.made_changes = 0
         self.max_changes = 0.0
-
-        self.healthy_path = "/tmp/healthy"
 
         self.msg_relay = MsgRelay(self.config)
 
@@ -67,11 +70,10 @@ class WorkerBase(ABC):
             amapi_url=self.config.amapi.url,
             auth_data=self.config.gnap_auth_data,
         )
-        self.execution_delay = self.get_delay_time()
 
         self.logger.info(f"Starting worker {cleaner_type}")
 
-    def exit_gracefully(self, sig, frame) -> None:
+    def _exit_gracefully(self, sig, frame) -> None:
         """
         Set variable shutdown_now to True when SIGTERM or SIGINT is triggered
         """
@@ -104,71 +106,58 @@ class WorkerBase(ABC):
         self.max_changes = self.queue_actual_size * self.config.change_quota
 
     def _make_unhealthy(self) -> None:
-        """
-        Make Docker health status to unhealthy
-        """
-        if os.path.exists(self.healthy_path):
-            os.remove(self.healthy_path)
+        """Make Docker health status to unhealthy"""
+
+        if os.path.exists(self.config.healthy_path):
+            os.remove(self.config.healthy_path)
 
     def _make_healthy(self) -> None:
-        """
-        Make Docker health status to healthy
-        """
-        Path(self.healthy_path).touch()
+        """Make Docker health status to healthy"""
 
-    def _sleep(self, milliseconds: int) -> None:
-        """
-        Sleep with an eye on self.shutdown_now variable,
-        then we do not need to wait for the complete sleep duration to finish in order to kill this app.
-        """
-        self.logger.debug(f"Entering sleep cycle {milliseconds}")
-        index = 0
-        while index != milliseconds:
-            index += 1
+        Path(self.config.healthy_path).touch()
+
+    def _sleep(self, seconds: int) -> None:
+        """Sleep with an eye on shutdown_now"""
+        count = 0
+        while count < seconds * 1000:
+            count += 1
             if self.shutdown_now:
+                self.logger.debug("Shutdown now, exiting sleep")
                 return
             time.sleep(0.001)
 
-    def get_delay_time(self) -> int:
-        """
-        Since a given dataset will differ in size and execution time, a calculated delay time has to be made.
-        example: time_to_clean_dataset = 10000 milliseconds, user_count = 10, minimum_delay = 1 milliseconds
-        --> 10000 / (10*1) => 1000 milliseconds/user document
-        each user document have to sleep for 1000 milliseconds to be done with in time (10000 milliseconds).
-        """
-        user_count = self.db.get_verified_users_count(identity_type=self.identity_type)
-        time_per_user = self.config.time_to_clean_dataset / (user_count * (self.config.minimum_delay + 1))
-        if time_per_user < self.config.minimum_delay:
-            self.logger.warning(f"execution will be faster then minimum execution time: {self.config.minimum_delay}")
-        return int(time_per_user)
+    def _wait(self, user: CacheUser) -> bool:
+        """Wait for user to run at next_run_ts with an eye on shutdown_now"""
+        if user.next_run_ts is None:
+            self.logger.debug(f"User {user.eppn} has no next_run_ts, skipping wait")
+            return False
+        self.logger.debug(f"Waiting for user {user.eppn} to run at {user.next_run_ts_iso8601()}")
+        while user.next_run_ts > int(time.time()) and not self.shutdown_now:
+            if self.shutdown_now:
+                return False
+            if user.next_run_ts < int(time.time()):
+                return True
+            time.sleep(0.01)
+        return False
 
-    def _populate_queue(self, users: List[User]) -> None:
-        """Populate queue with user representation"""
+    def task_done(self, eppn: str) -> None:
+        """Mark a task as done"""
+        self.worker_queue.task_done()
+        self.db_cache.delete(eppn=eppn)
+
+    def _enqueuing_to_worker_queue(self) -> None:
+        """Populate worker queue with cached users"""
+
+        users = self.db_cache.get_all()
+        if len(users) == 0:
+            self.logger.warning(f"No users where found in cache!")
+            return
 
         for user in users:
-            queue_object = {
-                "eppn": user.eppn,
-                "nin": None,
-            }
-            if user.identities.nin is not None:
-                queue_object["nin"] = user.identities.nin.number
-            self.queue.put(queue_object)
+            self.worker_queue.put(user.to_dict())
             self.logger.debug(f"enqueuing user: {user.eppn}")
 
-    def enqueuing(self) -> None:
-        """Add users to queue for further processing"""
-
-        users = self.db.get_uncleaned_verified_users(
-            cleaned_type=self.cleaner_type,
-            identity_type=self.identity_type,
-            limit=10000000,
-        )
-        if len(users) == 0:
-            self.logger.warning(f"No users where enqueued")
-            return
-        self._populate_queue(users=users)
-
-        self.queue_actual_size = self.queue.qsize()
+        self.queue_actual_size = self.worker_queue.qsize()
         self._populate_max_changes()
 
         self.made_changes = 0

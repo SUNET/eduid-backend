@@ -1,6 +1,6 @@
 from typing import Any, Dict
 from eduid.common.testing_base import CommonTestCase
-from eduid.userdb.fixtures.users import new_user_example, new_user_example2, new_unverified_user_example
+from eduid.userdb.fixtures.users import UserFixtures
 from eduid.workers.user_cleaner.workers.skv import init_skv_worker
 from eduid.userdb.identity import IdentityType
 from eduid.userdb.meta import CleanerType
@@ -9,7 +9,12 @@ from eduid.common.rpc.msg_relay import Name, NavetData, OfficialAddress, Person,
 
 class WorkerTest(CommonTestCase):
     def setUp(self, *args, **kwargs):
-        super().setUp(am_users=[new_user_example, new_user_example2, new_unverified_user_example])
+        super().setUp(
+            am_users=[
+                UserFixtures().new_user_example,
+                UserFixtures().new_unverified_user_example,
+            ]
+        )
 
         self.skv = init_skv_worker(test_config=self._get_config())
 
