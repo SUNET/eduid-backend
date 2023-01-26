@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import Any, Dict, Mapping, Optional
+from typing import Any, Mapping, Optional
 from uuid import UUID, uuid4
 
 from httpx import Response
@@ -29,7 +29,7 @@ class TestEventResource(ScimApiTestCase):
         super().tearDown()
         self.eventdb._drop_whole_collection()
 
-    def _create_event(self, event: Dict[str, Any], expect_success: bool = True) -> EventApiResult:
+    def _create_event(self, event: dict[str, Any], expect_success: bool = True) -> EventApiResult:
         req = {
             "schemas": [SCIMSchema.NUTID_EVENT_CORE_V1.value, SCIMSchema.NUTID_EVENT_V1.value],
             SCIMSchema.NUTID_EVENT_V1.value: event,

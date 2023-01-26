@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Type
+from typing import Any, Optional
 
 from eduid.userdb.credentials.base import Credential
 from eduid.userdb.credentials.external import external_credential_from_dict
@@ -19,7 +19,7 @@ class CredentialList(ElementList[Credential]):
     """
 
     @classmethod
-    def from_list_of_dicts(cls: Type[CredentialList], items: List[Dict[str, Any]]) -> CredentialList:
+    def from_list_of_dicts(cls: type[CredentialList], items: list[dict[str, Any]]) -> CredentialList:
         elements = []
         for this in items:
             if not isinstance(this, dict):

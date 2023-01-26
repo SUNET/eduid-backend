@@ -1,7 +1,3 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import absolute_import
-
 from abc import ABC
 
 __author__ = "lundberg"

@@ -43,7 +43,7 @@ class SanitationProblem(Exception):
     pass
 
 
-class Sanitizer(object):
+class Sanitizer:
     """
     Sanitize user inputs.
     """

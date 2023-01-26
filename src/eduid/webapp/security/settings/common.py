@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2016 NORDUnet A/S
 # Copyright (c) 2019 SUNET
@@ -32,7 +31,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 from datetime import timedelta
-from typing import List, Optional
+from typing import Optional
 
 from fido2.webauthn import AttestationConveyancePreference
 from fido_mds.models.fido_mds import AuthenticatorStatus
@@ -78,7 +77,7 @@ class SecurityConfig(
     webauthn_proofing_version = Field(default="2022v1")
     webauthn_max_allowed_tokens: int = 10
     webauthn_attestation: Optional[AttestationConveyancePreference] = None
-    webauthn_allowed_user_verification_methods: List[str] = Field(
+    webauthn_allowed_user_verification_methods: list[str] = Field(
         default=[
             "faceprint_internal",
             "passcode_external",
@@ -91,10 +90,10 @@ class SecurityConfig(
             "apple",
         ]
     )
-    webauthn_allowed_key_protection: List[str] = Field(
+    webauthn_allowed_key_protection: list[str] = Field(
         default=["remote_handle", "hardware", "secure_element", "tee", "apple"]
     )
-    webauthn_allowed_status: List[AuthenticatorStatus] = Field(
+    webauthn_allowed_status: list[AuthenticatorStatus] = Field(
         default=[
             AuthenticatorStatus.FIDO_CERTIFIED,
             AuthenticatorStatus.FIDO_CERTIFIED_L1,

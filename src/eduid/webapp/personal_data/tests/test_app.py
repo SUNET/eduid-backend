@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2016 NORDUnet A/S
 # Copyright (c) 2018 SUNET
@@ -32,13 +31,12 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 import json
-from typing import Any, Dict, Mapping, Optional
+from typing import Any, Mapping, Optional
+from unittest.mock import patch
 
-from mock import patch
 from werkzeug.test import TestResponse
 
 from eduid.userdb.element import ElementKey
-from eduid.userdb.exceptions import UserDoesNotExist
 from eduid.webapp.common.api.exceptions import ApiException
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.personal_data.app import PersonalDataApp, pd_init_app
@@ -55,7 +53,7 @@ class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
         """
         return pd_init_app("testing", config)
 
-    def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
+    def update_config(self, config: dict[str, Any]) -> dict[str, Any]:
         config.update(
             {
                 "available_languages": {"en": "English", "sv": "Svenska"},

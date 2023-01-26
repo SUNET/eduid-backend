@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2013-2016 NORDUnet A/S
 # Copyright (c) 2019 SUNET
@@ -35,7 +34,7 @@
 Configuration (file) handling for the eduID eidas app.
 """
 
-from typing import Dict, Mapping, Optional
+from typing import Mapping, Optional
 
 from pydantic import Field
 
@@ -71,7 +70,7 @@ class EidasConfig(
     identity_verify_redirect_url: str  # TODO: remove when old views are gone
 
     # Federation config
-    authentication_context_map: Dict[str, str] = Field(
+    authentication_context_map: dict[str, str] = Field(
         default={
             "loa1": "http://id.elegnamnden.se/loa/1.0/loa1",
             "loa2": "http://id.elegnamnden.se/loa/1.0/loa2",

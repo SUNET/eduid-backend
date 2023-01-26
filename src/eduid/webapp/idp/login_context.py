@@ -1,6 +1,6 @@
 import logging
 from abc import ABC
-from typing import List, Optional, Sequence, TypeVar
+from typing import Optional, Sequence, TypeVar
 from urllib.parse import urlencode
 
 from pydantic import BaseModel
@@ -60,7 +60,7 @@ class LoginContext(ABC, BaseModel):
         raise NotImplementedError("Subclass must implement request_id")
 
     @property
-    def authn_contexts(self) -> List[str]:
+    def authn_contexts(self) -> list[str]:
         raise NotImplementedError("Subclass must implement authn_contexts")
 
     @property
@@ -172,7 +172,7 @@ class LoginContextSAML(LoginContext):
         return self.saml_req.request_id
 
     @property
-    def authn_contexts(self) -> List[str]:
+    def authn_contexts(self) -> list[str]:
         return self.saml_req.get_requested_authn_contexts()
 
     @property
@@ -267,7 +267,7 @@ class LoginContextOtherDevice(LoginContext):
         return self.other_device_req.device1.request_id
 
     @property
-    def authn_contexts(self) -> List[str]:
+    def authn_contexts(self) -> list[str]:
         if not self.other_device_req.device1.authn_context:
             return []
         return [str(self.other_device_req.device1.authn_context)]

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2016 NORDUnet A/S
 # Copyright (c) 2019 SUNET
@@ -33,8 +32,6 @@
 #
 
 
-from typing import List
-
 from pydantic import Field
 
 from eduid.common.config.base import EduIDBaseAppConfig
@@ -50,4 +47,4 @@ class SupportConfig(EduIDBaseAppConfig):
 
     app_name = "support"
 
-    support_personnel: List[str] = Field(default=[])
+    support_personnel: list[str] = Field(default=[])

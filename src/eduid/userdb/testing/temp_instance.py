@@ -36,7 +36,7 @@ import subprocess
 import tempfile
 import time
 from abc import ABC, abstractmethod
-from typing import Any, Optional, Sequence, Type
+from typing import Any, Optional, Sequence
 
 from eduid.userdb.util import utc_now
 
@@ -86,7 +86,7 @@ class EduidTemporaryInstance(ABC):
                 interval += interval
 
     @classmethod
-    def get_instance(cls: Type[EduidTemporaryInstance], max_retry_seconds: int = 60) -> EduidTemporaryInstance:
+    def get_instance(cls: type[EduidTemporaryInstance], max_retry_seconds: int = 60) -> EduidTemporaryInstance:
         """
         Start a new temporary instance, or retrieve an already started one.
 
@@ -129,7 +129,7 @@ class EduidTemporaryInstance(ABC):
 
     @property
     def output(self) -> str:
-        with open(self._logfile.name, "r") as fd:
+        with open(self._logfile.name) as fd:
             _output = "".join(fd.readlines())
         return _output
 

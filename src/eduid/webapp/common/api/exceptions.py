@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from typing import TYPE_CHECKING, Any, Mapping, Optional
 
 from flask import jsonify
@@ -40,8 +38,8 @@ class ApiException(Exception):
 
     def __str__(self):
         if self.payload:
-            return "{!s} with message {!s} and payload {!r}".format(self.status_code, self.message, self.payload)
-        return "{!s} with message {!s}".format(self.status_code, self.message)
+            return f"{self.status_code!s} with message {self.message!s} and payload {self.payload!r}"
+        return f"{self.status_code!s} with message {self.message!s}"
 
     def to_dict(self) -> dict[str, Any]:
         rv: dict[str, Any] = dict()
@@ -81,7 +79,7 @@ def init_exception_handlers(app):
     # Init error handler for raised exceptions
     @app.errorhandler(400)
     def _handle_flask_http_exception(error):
-        app.logger.error("HttpException {!s}".format(error))
+        app.logger.error(f"HttpException {error!s}")
         e = ApiException(error.name, error.code)
         if app.config.get("DEBUG"):
             e.payload = {"description": error.description}

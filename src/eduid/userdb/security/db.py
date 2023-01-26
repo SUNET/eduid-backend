@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2017 NORDUnet A/S
 # All rights reserved.
@@ -59,7 +58,7 @@ class SecurityUserDB(UserDB[SecurityUser]):
 class PasswordResetStateDB(BaseDB):
     @deprecated("Remove once the password reset views are served from their own webapp")
     def __init__(self, db_uri, db_name="eduid_security", collection="password_reset_data"):
-        super(PasswordResetStateDB, self).__init__(db_uri, db_name, collection=collection)
+        super().__init__(db_uri, db_name, collection=collection)
 
     def get_state_by_email_code(self, email_code: str) -> Optional[PasswordResetState]:
         """
@@ -78,7 +77,7 @@ class PasswordResetStateDB(BaseDB):
             return None
 
         if len(states) > 1:
-            raise MultipleDocumentsReturned("Multiple matching users for filter {!r}".format(filter))
+            raise MultipleDocumentsReturned(f"Multiple matching users for filter {filter!r}")
 
         return self.init_state(states[0])
 

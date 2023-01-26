@@ -1,12 +1,11 @@
-# -*- coding: utf-8 -*-
 import json
 from datetime import date, datetime, timedelta
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
+from unittest.mock import MagicMock, patch
 from urllib.parse import parse_qs, urlparse
 
 from flask import url_for
 from iso3166 import Country, countries
-from mock import MagicMock, patch
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb import SvipeIdentity
@@ -108,14 +107,14 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
             "acr_values_supported": ["face_present", "document_present", "face_and_document_present"],
         }
 
-    def load_app(self, config: Dict[str, Any]) -> SvipeIdApp:
+    def load_app(self, config: dict[str, Any]) -> SvipeIdApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
         return svipe_id_init_app("testing", config)
 
-    def update_config(self, config: Dict[str, Any]):
+    def update_config(self, config: dict[str, Any]):
         config.update(
             {
                 "svipe_client": {
@@ -187,7 +186,7 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
         )
 
     @staticmethod
-    def _get_state_and_nonce(auth_url: str) -> Tuple[str, str]:
+    def _get_state_and_nonce(auth_url: str) -> tuple[str, str]:
         auth_url_query = urlparse(auth_url).query
         return parse_qs(auth_url_query)["state"][0], parse_qs(auth_url_query)["nonce"][0]
 
@@ -241,7 +240,7 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
         return self.browser.get(f"{endpoint}?id_token=id_token&state={state}&code=mock_code")
 
     @patch("authlib.integrations.base_client.sync_app.OAuth2Mixin.load_server_metadata")
-    def _start_auth(self, mock_metadata: MagicMock, endpoint: str, data: Dict[str, Any], eppn: str):
+    def _start_auth(self, mock_metadata: MagicMock, endpoint: str, data: dict[str, Any], eppn: str):
         mock_metadata.return_value = self.oidc_provider_config
 
         with self.session_cookie(self.browser, eppn) as client:
@@ -271,7 +270,7 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
         assert response.status_code == 200
         self._check_success_response(response, type_="POST_SVIPE_ID_VERIFY_IDENTITY_SUCCESS")
         assert self.get_response_payload(response)["location"].startswith("https://example.com/op/authorize")
-        query: Dict[str, List[str]] = parse_qs(urlparse(self.get_response_payload(response)["location"]).query)  # type: ignore
+        query: dict[str, list[str]] = parse_qs(urlparse(self.get_response_payload(response)["location"]).query)  # type: ignore
         assert query["response_type"] == ["code"]
         assert query["client_id"] == ["test_client_id"]
         assert query["redirect_uri"] == ["http://test.localhost/authn-callback"]

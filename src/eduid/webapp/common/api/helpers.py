@@ -1,18 +1,17 @@
-# -*- coding: utf-8 -*-
-from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Type, TypeVar, Union, cast, overload
 import warnings
+from dataclasses import dataclass
+from typing import Any, Optional, TypeVar, Union, cast, overload
 
 from flask import current_app, render_template, request
 
 from eduid.common.config.base import EduidEnvironment, MagicCookieMixin, MailConfigMixin
 from eduid.common.misc.timeutil import utc_now
-from eduid.common.rpc.am_relay import AmRelay
 from eduid.common.rpc.exceptions import NoNavetData
 from eduid.common.rpc.mail_relay import MailRelay
 from eduid.common.rpc.msg_relay import DeregisteredCauseCode, DeregistrationInformation, FullPostalAddress, MsgRelay
 from eduid.userdb import NinIdentity
 from eduid.userdb.element import ElementKey
+from eduid.userdb.exceptions import LockedIdentityViolation
 from eduid.userdb.identity import IdentityType
 from eduid.userdb.logs import ProofingLog
 from eduid.userdb.logs.element import (
@@ -106,7 +105,7 @@ def add_nin_to_user(user: User, proofing_state: NinProofingState) -> ProofingUse
 
 
 @overload
-def add_nin_to_user(user: User, proofing_state: NinProofingState, user_type: Type[TProofingUser]) -> TProofingUser:
+def add_nin_to_user(user: User, proofing_state: NinProofingState, user_type: type[TProofingUser]) -> TProofingUser:
     ...
 
 
@@ -124,8 +123,6 @@ def add_nin_to_user(user, proofing_state, user_type=ProofingUser):
             number=proofing_state.nin.number,
         )
         proofing_user.identities.add(nin_identity)
-        proofing_user.modified_ts = utc_now()
-
         save_and_sync_user(proofing_user)
     return proofing_user
 
@@ -181,7 +178,7 @@ def verify_nin_for_user(
             proofing_user.locked_identity.nin is not None
             and proofing_user.locked_identity.nin.number != proofing_state.nin.number
         ):
-            raise ValueError("users locked nin does not match verified nin")
+            raise LockedIdentityViolation("users locked nin does not match verified nin")
 
         # user has no locked nin identity or the user has previously verified the nin
         # replace the never verified nin with the one just verified
@@ -216,7 +213,7 @@ def verify_nin_for_user(
 
 def send_mail(
     subject: str,
-    to_addresses: List[str],
+    to_addresses: list[str],
     text_template: str,
     html_template: str,
     app: EduIDBaseApp,
@@ -238,7 +235,7 @@ def send_mail(
     site_name = conf.eduid_site_name
     site_url = conf.eduid_site_url
 
-    default_context: Dict[str, str] = {
+    default_context: dict[str, str] = {
         "site_url": site_url,
         "site_name": site_name,
     }

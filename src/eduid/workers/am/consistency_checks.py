@@ -1,7 +1,4 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import
-
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from bson import ObjectId
 from celery.utils.log import get_task_logger
@@ -16,7 +13,7 @@ __author__ = "lundberg"
 logger = get_task_logger(__name__)
 
 
-def unverify_duplicates(userdb: AmDB, user_id: ObjectId, attributes: Dict) -> Dict[str, int]:
+def unverify_duplicates(userdb: AmDB, user_id: ObjectId, attributes: dict) -> dict[str, int]:
     """
     Checks supplied attributes for keys that should have only one user with that
     element verified.
@@ -43,7 +40,7 @@ def unverify_duplicates(userdb: AmDB, user_id: ObjectId, attributes: Dict) -> Di
     return {"mail_count": mail_count, "phone_count": phone_count, "nin_count": nin_count}
 
 
-def unverify_mail_aliases(userdb: AmDB, user_id: ObjectId, mail_aliases: Optional[List[Dict[str, Any]]]) -> int:
+def unverify_mail_aliases(userdb: AmDB, user_id: ObjectId, mail_aliases: Optional[list[dict[str, Any]]]) -> int:
     """
     :param userdb: Central userdb
     :param user_id: User document _id
@@ -54,7 +51,7 @@ def unverify_mail_aliases(userdb: AmDB, user_id: ObjectId, mail_aliases: Optiona
     """
     count = 0
     if mail_aliases is None:
-        logger.debug("No mailAliases to check duplicates against for user {}.".format(user_id))
+        logger.debug(f"No mailAliases to check duplicates against for user {user_id}.")
         return count
     # Get the verified mail addresses from attributes
     verified_mail_aliases = [alias["email"] for alias in mail_aliases if alias.get("verified") is True]
@@ -62,8 +59,8 @@ def unverify_mail_aliases(userdb: AmDB, user_id: ObjectId, mail_aliases: Optiona
         try:
             for user in userdb.get_users_by_mail(email):
                 if user.user_id != user_id:
-                    logger.debug("Removing mail address {} from user {}".format(email, user))
-                    logger.debug("Old user mail aliases BEFORE: {}".format(user.mail_addresses.to_list()))
+                    logger.debug(f"Removing mail address {email} from user {user}")
+                    logger.debug(f"Old user mail aliases BEFORE: {user.mail_addresses.to_list()}")
                     if user.mail_addresses.primary and user.mail_addresses.primary.email == email:
                         # Promote some other verified e-mail address to primary
                         for address in user.mail_addresses.to_list():
@@ -75,14 +72,14 @@ def unverify_mail_aliases(userdb: AmDB, user_id: ObjectId, mail_aliases: Optiona
                         old_user_mail_address.is_primary = False
                         old_user_mail_address.is_verified = False
                     count += 1
-                    logger.debug("Old user mail aliases AFTER: {}".format(user.mail_addresses.to_list()))
+                    logger.debug(f"Old user mail aliases AFTER: {user.mail_addresses.to_list()}")
                     userdb.save(user)
         except DocumentDoesNotExist:
             pass
     return count
 
 
-def unverify_phones(userdb: AmDB, user_id: ObjectId, phones: List[Dict[str, Any]]) -> int:
+def unverify_phones(userdb: AmDB, user_id: ObjectId, phones: list[dict[str, Any]]) -> int:
     """
     :param userdb: Central userdb
     :param user_id: User document _id
@@ -92,7 +89,7 @@ def unverify_phones(userdb: AmDB, user_id: ObjectId, phones: List[Dict[str, Any]
     """
     count = 0
     if phones is None:
-        logger.debug("No phones to check duplicates against for user {}.".format(user_id))
+        logger.debug(f"No phones to check duplicates against for user {user_id}.")
         return count
     # Get the verified phone numbers from attributes
     verified_phone_numbers = [phone["number"] for phone in phones if phone.get("verified") is True]
@@ -100,8 +97,8 @@ def unverify_phones(userdb: AmDB, user_id: ObjectId, phones: List[Dict[str, Any]
         try:
             for user in userdb.get_users_by_phone(number):
                 if user.user_id != user_id:
-                    logger.debug("Removing phone number {} from user {}".format(number, user))
-                    logger.debug("Old user phone numbers BEFORE: {}.".format(user.phone_numbers.to_list()))
+                    logger.debug(f"Removing phone number {number} from user {user}")
+                    logger.debug(f"Old user phone numbers BEFORE: {user.phone_numbers.to_list()}.")
                     if user.phone_numbers.primary and user.phone_numbers.primary.number == number:
                         # Promote some other verified phone number to primary
                         for phone in user.phone_numbers.verified:
@@ -113,14 +110,14 @@ def unverify_phones(userdb: AmDB, user_id: ObjectId, phones: List[Dict[str, Any]
                         old_user_phone_number.is_primary = False
                         old_user_phone_number.is_verified = False
                     count += 1
-                    logger.debug("Old user phone numbers AFTER: {}.".format(user.phone_numbers.to_list()))
+                    logger.debug(f"Old user phone numbers AFTER: {user.phone_numbers.to_list()}.")
                     userdb.save(user)
         except DocumentDoesNotExist:
             pass
     return count
 
 
-def unverify_identities(userdb: AmDB, user_id: ObjectId, identities: List[Dict[str, Any]]) -> int:
+def unverify_identities(userdb: AmDB, user_id: ObjectId, identities: list[dict[str, Any]]) -> int:
     """
     :param userdb: Central userdb
     :param user_id: User document _id
@@ -130,7 +127,7 @@ def unverify_identities(userdb: AmDB, user_id: ObjectId, identities: List[Dict[s
     """
     count = 0
     if identities is None:
-        logger.debug("No identities to check duplicates against for user {!s}.".format(user_id))
+        logger.debug(f"No identities to check duplicates against for user {user_id!s}.")
         return count
     identity_list = IdentityList.from_list_of_dicts(identities)
     for identity in identity_list.to_list():
@@ -155,7 +152,7 @@ def unverify_identities(userdb: AmDB, user_id: ObjectId, identities: List[Dict[s
     return count
 
 
-def check_locked_identity(userdb: AmDB, user_id: ObjectId, attributes: Dict, app_name: str) -> Dict:
+def check_locked_identity(userdb: AmDB, user_id: ObjectId, attributes: dict, app_name: str) -> dict:
     """
     :param userdb: Central userdb
     :param user_id: User document _id

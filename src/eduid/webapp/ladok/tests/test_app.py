@@ -1,9 +1,8 @@
-# -*- coding: utf-8 -*-
 import json
-from typing import Any, Dict, List, Mapping, Optional
+from typing import Any, Mapping
+from unittest.mock import MagicMock, patch
 from uuid import UUID, uuid4
 
-from mock import MagicMock, patch
 from werkzeug.test import TestResponse
 
 from eduid.common.config.base import EduidEnvironment
@@ -17,7 +16,7 @@ from eduid.webapp.ladok.client import Error, LadokUserInfo, LadokUserInfoRespons
 from eduid.webapp.ladok.helpers import LadokMsg
 
 
-class MockResponse(object):
+class MockResponse:
     def __init__(self, status_code: int, data: Mapping[str, Any]):
         self._data = data
         self.status_code = status_code
@@ -61,7 +60,7 @@ class LadokTests(EduidAPITestCase[LadokApp]):
             mock_response.return_value = self.universities_response
             return init_ladok_app("testing", config)
 
-    def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
+    def update_config(self, config: dict[str, Any]) -> dict[str, Any]:
         config = super().update_config(config=config)
         config["ladok_client"] = {
             "url": "http://localhost",
@@ -214,7 +213,7 @@ class LadokDevTests(EduidAPITestCase[LadokApp]):
         """
         return init_ladok_app("testing", config)
 
-    def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
+    def update_config(self, config: dict[str, Any]) -> dict[str, Any]:
         config = super().update_config(config=config)
         config["environment"] = EduidEnvironment.dev.value
         config["ladok_client"] = {

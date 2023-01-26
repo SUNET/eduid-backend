@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2016 NORDUnet A/S
 # All rights reserved.
@@ -33,7 +32,7 @@
 import logging
 from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any, Dict, Literal, Mapping, Optional, cast, overload
+from typing import TYPE_CHECKING, Any, Literal, Mapping, Optional, cast, overload
 
 from flask import Blueprint
 from flask import current_app as flask_current_app
@@ -62,7 +61,7 @@ class SimpleCacheItem:
     data: Mapping[str, Any]
 
 
-SIMPLE_CACHE: Dict[str, SimpleCacheItem] = dict()
+SIMPLE_CACHE: dict[str, SimpleCacheItem] = dict()
 
 
 @overload

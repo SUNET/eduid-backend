@@ -1,12 +1,10 @@
-# -*- coding: utf-8 -*-
-
-
 from flask import Blueprint, abort
 from requests.exceptions import ConnectionError
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.rpc.exceptions import AmTaskFailed, MsgTaskFailed, NoAddressFound
 from eduid.userdb import User
+from eduid.userdb.exceptions import LockedIdentityViolation
 from eduid.userdb.logs import LetterProofing
 from eduid.userdb.proofing import ProofingUser
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, can_verify_nin, require_user
@@ -26,11 +24,11 @@ letter_proofing_views = Blueprint("letter_proofing", __name__, url_prefix="", te
 @MarshalWith(schemas.LetterProofingResponseSchema)
 @require_user
 def get_state(user) -> FluxData:
-    current_app.logger.info("Getting proofing state for user {}".format(user))
+    current_app.logger.info(f"Getting proofing state for user {user}")
     proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn)
 
     if proofing_state:
-        current_app.logger.info("Found proofing state for user {}".format(user))
+        current_app.logger.info(f"Found proofing state for user {user}")
         result = check_state(proofing_state)
         if result.is_expired and current_app.conf.backwards_compat_remove_expired_state:
             current_app.logger.info(f"Backwards-compat removing expired state for user {user}")
@@ -53,14 +51,14 @@ def get_state(user) -> FluxData:
 @can_verify_nin
 @require_user
 def proofing(user: User, nin: str) -> FluxData:
-    current_app.logger.info("Send letter for user {} initiated".format(user))
+    current_app.logger.info(f"Send letter for user {user} initiated")
     proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn)
     _state_in_db = proofing_state is not None
 
     if not proofing_state:
         # No existing proofing state was found, create a new one
         proofing_state = create_proofing_state(user.eppn, nin)
-        current_app.logger.info("Created proofing state for user {}".format(user))
+        current_app.logger.info(f"Created proofing state for user {user}")
 
     # Add the nin used to initiate the proofing state to the user
     # NOOP if the user already have the nin
@@ -68,7 +66,7 @@ def proofing(user: User, nin: str) -> FluxData:
 
     if proofing_state.proofing_letter.is_sent:
         current_app.logger.info("A letter has already been sent to the user.")
-        current_app.logger.debug("Proofing state: {}".format(proofing_state.to_dict()))
+        current_app.logger.debug(f"Proofing state: {proofing_state.to_dict()}")
         result = check_state(proofing_state)
         if result.error:
             # error message
@@ -131,7 +129,7 @@ def proofing(user: User, nin: str) -> FluxData:
 @MarshalWith(schemas.VerifyCodeResponseSchema)
 @require_user
 def verify_code(user: User, code: str) -> FluxData:
-    current_app.logger.info("Verifying code for user {}".format(user))
+    current_app.logger.info(f"Verifying code for user {user}")
     proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn)
 
     if not proofing_state:
@@ -139,7 +137,7 @@ def verify_code(user: User, code: str) -> FluxData:
 
     # Check if provided code matches the one in the letter
     if not code == proofing_state.nin.verification_code:
-        current_app.logger.error("Verification code for user {} does not match".format(user))
+        current_app.logger.error(f"Verification code for user {user} does not match")
         # TODO: Throttling to discourage an adversary to try brute force
         return error_response(message=LetterMsg.wrong_code)
 
@@ -170,29 +168,33 @@ def verify_code(user: User, code: str) -> FluxData:
         user_postal_address=official_address,
         proofing_version="2016v1",
     )
+    # Verify nin for user
+    proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
     try:
-        # Verify nin for user
-        proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
         if not verify_nin_for_user(proofing_user, proofing_state, proofing_log_entry):
-            current_app.logger.error(f"Failed verifying NIN for user {user}")
+            current_app.logger.error(f"Failed verifying NIN for user {proofing_user}")
             return error_response(message=CommonMsg.temp_problem)
-        current_app.logger.info(f"Verified code for user {user}")
-        # Remove proofing state
-        current_app.proofing_statedb.remove_state(proofing_state)
-        current_app.stats.count(name="nin_verified")
-
-        # TODO: remove nins after frontend stops using it
-        nins = []
-        if proofing_user.identities.nin is not None:
-            nins.append(proofing_user.identities.nin.to_old_nin())
-
-        return success_response(
-            payload=dict(identities=proofing_user.identities.to_frontend_format(), nins=nins),
-            message=LetterMsg.verify_success,
-        )
     except AmTaskFailed:
-        current_app.logger.exception(f"Verifying nin for user {user} failed")
+        current_app.logger.exception("Verifying NIN for user failed")
         return error_response(message=CommonMsg.temp_problem)
+    except LockedIdentityViolation:
+        current_app.logger.exception("Verifying NIN for user failed")
+        return error_response(message=CommonMsg.locked_identity_not_matching)
+
+    current_app.logger.info(f"Verified code for user {user}")
+    # Remove proofing state
+    current_app.proofing_statedb.remove_state(proofing_state)
+    current_app.stats.count(name="nin_verified")
+
+    # TODO: remove nins after frontend stops using it
+    nins = []
+    if proofing_user.identities.nin is not None:
+        nins.append(proofing_user.identities.nin.to_old_nin())
+
+    return success_response(
+        payload=dict(identities=proofing_user.identities.to_frontend_format(), nins=nins),
+        message=LetterMsg.verify_success,
+    )
 
 
 @letter_proofing_views.route("/get-code", methods=["GET"])

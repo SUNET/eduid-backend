@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2016 NORDUnet A/S
 # Copyright (c) 2019 SUNET
@@ -34,7 +33,7 @@
 import json
 import os
 from pathlib import PurePath
-from typing import Any, Dict, Mapping, cast
+from typing import Any, Mapping, cast
 
 from eduid.common.config.parsers import load_config
 from eduid.webapp.common.api.testing import CSRFTestClient, EduidAPITestCase
@@ -45,7 +44,7 @@ from eduid.webapp.jsconfig.settings.common import JSConfigConfig
 class JSConfigTests(EduidAPITestCase[JSConfigApp]):
     def setUp(self):
         self.data_dir = str(PurePath(__file__).with_name("data"))
-        super(JSConfigTests, self).setUp(copy_user_to_private=False)
+        super().setUp(copy_user_to_private=False)
 
     def load_app(self, config: Mapping[str, Any]) -> JSConfigApp:
         """
@@ -58,7 +57,7 @@ class JSConfigTests(EduidAPITestCase[JSConfigApp]):
         app.url_map.host_matching = False
         return app
 
-    def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
+    def update_config(self, config: dict[str, Any]) -> dict[str, Any]:
         config.update(
             {
                 "server_name": "example.com",

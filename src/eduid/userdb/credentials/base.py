@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2018 SUNET
 # All rights reserved.
@@ -36,7 +35,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from eduid.userdb.element import VerifiedElement
 
@@ -79,7 +78,7 @@ class Credential(VerifiedElement):
         else:
             return f"<eduID {self.__class__.__name__}(key={repr(shortkey)}): verified=False>"
 
-    def _to_dict_transform(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def _to_dict_transform(self, data: dict[str, Any]) -> dict[str, Any]:
         """
         Make sure we never store proofing info for un-verified credentials
         """

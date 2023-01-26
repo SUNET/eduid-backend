@@ -6,7 +6,7 @@ from eduid.userdb.db import MongoDB
 from eduid.userdb.util import utc_now
 
 
-class TransactionAudit(object):
+class TransactionAudit:
     enabled = False
 
     def __init__(self, db_uri, db_name="eduid_queue", collection_name="transaction_audit"):

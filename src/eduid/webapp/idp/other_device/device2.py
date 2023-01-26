@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime
-from typing import Any, Dict, Mapping
+from typing import Any, Mapping
 
 from flask import request, url_for
 
@@ -78,7 +78,7 @@ def device2_state_to_flux_payload(state: OtherDevice, now: datetime) -> Mapping[
         "proximity": _proximity.value,
         "service_info": state.device1.service_info,
     }
-    payload: Dict[str, Any] = {
+    payload: dict[str, Any] = {
         "device1_info": device_info,
         "display_name": display_name,
         "expires_in": expires_in,

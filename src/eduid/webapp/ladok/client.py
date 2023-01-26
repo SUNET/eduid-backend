@@ -1,7 +1,6 @@
-# -*- coding: utf-8 -*-
 import logging
 from datetime import datetime
-from typing import Dict, Mapping, Optional
+from typing import Mapping, Optional
 
 import requests
 from pydantic import AnyHttpUrl, BaseModel, Field, ValidationError
@@ -34,7 +33,7 @@ class UniversityName(LadokBaseModel):
 
 
 class UniversitiesData(LadokBaseModel):
-    names: Dict[str, UniversityName] = Field(alias="school_names")
+    names: dict[str, UniversityName] = Field(alias="school_names")
 
 
 class UniversitiesInfoResponse(LadokBaseModel):
@@ -57,7 +56,7 @@ class LadokUserInfoResponse(LadokBaseModel):
 class LadokClientConfig(LadokBaseModel):
     url: AnyHttpUrl
     version: str = "v1"
-    dev_universities: Optional[Dict[str, UniversityName]] = None  # used for local development
+    dev_universities: Optional[dict[str, UniversityName]] = None  # used for local development
 
 
 class University(BaseModel):

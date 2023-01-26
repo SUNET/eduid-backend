@@ -1,6 +1,6 @@
 from dataclasses import asdict
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Optional, Sequence
 
 from fastapi import Response
 from pymongo.errors import DuplicateKeyError
@@ -14,7 +14,7 @@ from eduid.scimapi.utils import make_etag
 from eduid.userdb.scimapi.userdb import ScimApiUser
 
 
-def get_user_groups(req: ContextRequest, db_user: ScimApiUser) -> List[Group]:
+def get_user_groups(req: ContextRequest, db_user: ScimApiUser) -> list[Group]:
     """Return the groups for a user formatted as SCIM search sub-resources"""
     user_groups = req.context.groupdb.get_groups_for_user_identifer(db_user.scim_id)
     groups = []
@@ -77,7 +77,7 @@ def save_user(req: ContextRequest, db_user: ScimApiUser) -> None:
         raise BadRequest(detail="Duplicated key error")
 
 
-def acceptable_linked_accounts(value: List[LinkedAccount]):
+def acceptable_linked_accounts(value: list[LinkedAccount]):
     """
     Setting linked_accounts through SCIM might very well be forbidden in the future,
     but for now we allow setting a very limited value, to try out MFA step up using this.
@@ -95,13 +95,13 @@ def acceptable_linked_accounts(value: List[LinkedAccount]):
     return True
 
 
-def users_to_resources_dicts(query: SearchRequest, users: Sequence[ScimApiUser]) -> List[Dict[str, Any]]:
+def users_to_resources_dicts(query: SearchRequest, users: Sequence[ScimApiUser]) -> list[dict[str, Any]]:
     _attributes = query.attributes
     # TODO: include the requested attributes, not just id
     return [{"id": str(user.scim_id)} for user in users]
 
 
-def filter_externalid(req: ContextRequest, filter: SearchFilter) -> List[ScimApiUser]:
+def filter_externalid(req: ContextRequest, filter: SearchFilter) -> list[ScimApiUser]:
     if filter.op != "eq":
         raise BadRequest(scim_type="invalidFilter", detail="Unsupported operator")
     if not isinstance(filter.val, str):
@@ -117,7 +117,7 @@ def filter_externalid(req: ContextRequest, filter: SearchFilter) -> List[ScimApi
 
 def filter_lastmodified(
     req: ContextRequest, filter: SearchFilter, skip: Optional[int] = None, limit: Optional[int] = None
-) -> Tuple[List[ScimApiUser], int]:
+) -> tuple[list[ScimApiUser], int]:
     if filter.op not in ["gt", "ge"]:
         raise BadRequest(scim_type="invalidFilter", detail="Unsupported operator")
     if not isinstance(filter.val, str):

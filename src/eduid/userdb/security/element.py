@@ -1,8 +1,7 @@
-# -*- coding: utf-8 -*-
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import Any, Dict
+from typing import Any
 
 from pydantic import Field
 
@@ -20,7 +19,7 @@ class CodeElement(Element):
         """Get element key."""
         return ElementKey(self.code)
 
-    def _to_dict_transform(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def _to_dict_transform(self, data: dict[str, Any]) -> dict[str, Any]:
         """
         Transform data kept in pythonic format into eduid format.
         """

@@ -1,4 +1,4 @@
-from typing import Dict, Optional
+from typing import Optional
 
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
@@ -23,14 +23,14 @@ from eduid.scimapi.routers.users import users_router
 
 
 class ScimAPI(FastAPI):
-    def __init__(self, name: str = "scimapi", test_config: Optional[Dict] = None):
+    def __init__(self, name: str = "scimapi", test_config: Optional[dict] = None):
         self.config = load_config(typ=ScimApiConfig, app_name=name, ns="api", test_config=test_config)
         super().__init__(root_path=self.config.application_root)
         self.context = Context(config=self.config)
         self.context.logger.info(f"Starting {name} app")
 
 
-def init_api(name: str = "scimapi", test_config: Optional[Dict] = None) -> ScimAPI:
+def init_api(name: str = "scimapi", test_config: Optional[dict] = None) -> ScimAPI:
     app = ScimAPI(name=name, test_config=test_config)
     app.router.route_class = ContextRequestRoute
 

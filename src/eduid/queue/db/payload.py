@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2020 Sunet
 # All rights reserved.
@@ -30,7 +29,7 @@
 from abc import ABC
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from typing import Any, Mapping, Type, TypeVar
+from typing import Any, Mapping, TypeVar
 
 __author__ = "lundberg"
 
@@ -43,7 +42,7 @@ class Payload(ABC):
         return asdict(self)
 
     @classmethod
-    def from_dict(cls: Type[TPayload], data: Mapping[str, Any]) -> TPayload:
+    def from_dict(cls: type[TPayload], data: Mapping[str, Any]) -> TPayload:
         raise NotImplementedError()
 
     @classmethod

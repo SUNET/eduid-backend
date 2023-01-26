@@ -1,6 +1,3 @@
-# -*- encoding: utf-8 -*-
-
-
 import base64
 import json
 from datetime import datetime
@@ -82,7 +79,7 @@ class Ekopost:
         if response.status_code == 200:
             return response.json()
 
-        raise EkopostException("Ekopost exception: {!s} {!s}".format(response.status_code, response.text))
+        raise EkopostException(f"Ekopost exception: {response.status_code!s} {response.text!s}")
 
     def _create_envelope(self, campaign_id, name, postage="priority", plex="simplex", color="false"):
         """
@@ -106,7 +103,7 @@ class Ekopost:
         if response.status_code == 200:
             return response.json()
 
-        raise EkopostException("Ekopost exception: {!s} {!s}".format(response.status_code, response.text))
+        raise EkopostException(f"Ekopost exception: {response.status_code!s} {response.text!s}")
 
     def _create_content(self, campaign_id, envelope_id, data, mime="application/pdf", content_type="document"):
         """
@@ -138,7 +135,7 @@ class Ekopost:
         if response.status_code == 200:
             return response.json()
 
-        raise EkopostException("Ekopost exception: {!s} {!s}".format(response.status_code, response.text))
+        raise EkopostException(f"Ekopost exception: {response.status_code!s} {response.text!s}")
 
     def _close_envelope(self, campaign_id, envelope_id):
         """
@@ -155,7 +152,7 @@ class Ekopost:
         if response.status_code == 200:
             return response.json()
 
-        raise EkopostException("Ekopost exception: {!s} {!s}".format(response.status_code, response.text))
+        raise EkopostException(f"Ekopost exception: {response.status_code!s} {response.text!s}")
 
     def _close_campaign(self, campaign_id):
         """
@@ -169,4 +166,4 @@ class Ekopost:
         if response.status_code == 200:
             return response.json()
 
-        raise EkopostException("Ekopost exception: {!s} {!s}".format(response.status_code, response.text))
+        raise EkopostException(f"Ekopost exception: {response.status_code!s} {response.text!s}")

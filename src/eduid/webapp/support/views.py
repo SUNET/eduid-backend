@@ -1,5 +1,4 @@
-# -*- coding: utf-8 -*-
-from typing import Any, Dict, List, Sequence
+from typing import Any, Sequence
 
 from flask import Blueprint, render_template, request
 
@@ -28,7 +27,7 @@ def index(support_user: User):
     except UserHasNotCompletedSignup:
         # Old bug where incomplete signup users where written to central db
         pass
-    users: List[Dict[str, Any]] = list()
+    users: list[dict[str, Any]] = list()
 
     if len(lookup_users) == 0:
         # If no users where found in the central database look in signup database
@@ -50,7 +49,7 @@ def index(support_user: User):
 
     current_app.logger.info(f"Support personnel {support_user.eppn} searched for {repr(search_query)}")
     for user in lookup_users:
-        user_data: Dict[str, Any] = dict()
+        user_data: dict[str, Any] = dict()
         user_dict = user.to_dict()
         # Extend credentials with last used timestamp
         user_dict["passwords"] = get_credentials_aux_data(user)

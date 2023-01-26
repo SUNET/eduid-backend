@@ -1,11 +1,11 @@
 import logging
 from enum import Enum
 from pathlib import Path
-from typing import List, Optional, Dict, NewType, Annotated, Sequence
+from typing import NewType, Optional
 
-from pydantic import Field, BaseModel, validator, constr
+from pydantic import BaseModel, Field, validator
 
-from eduid.common.config.base import LoggingConfigMixin, RootConfig, LoggingFilters
+from eduid.common.config.base import LoggingConfigMixin, RootConfig
 
 logger = logging.getLogger(__name__)
 
@@ -42,11 +42,10 @@ class AMApiConfig(RootConfig, LoggingConfigMixin):
     protocol: str = "http"
     server_name: str = "localhost:8000"
     log_format: str = "{asctime} | {levelname:7} | {hostname} | {name:35} | {module:10} | {message}"
-    log_filters: Sequence[LoggingFilters] = Field(default=[LoggingFilters.NAMES])
     mongo_uri: str = ""
     application_root: str = ""
     keystore_path: Path
-    no_authn_urls: List[str] = Field(default=["/status/healthy", "/openapi.json"])
+    no_authn_urls: list[str] = Field(default=["/status/healthy", "/openapi.json"])
     status_cache_seconds: int = 10
     requested_access_type: Optional[str] = "am_api"
-    user_restriction: Dict[ServiceName, List[EndpointRestriction]]
+    user_restriction: dict[ServiceName, list[EndpointRestriction]]

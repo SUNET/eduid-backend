@@ -36,7 +36,7 @@ import logging
 import os
 import uuid
 from dataclasses import dataclass
-from typing import Any, Dict, Mapping, Tuple
+from typing import Any, Mapping
 from urllib.parse import quote_plus
 
 from flask import Blueprint
@@ -75,7 +75,7 @@ class AuthnAPITestBase(EduidAPITestCase):
 
     app: AuthnApp
 
-    def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
+    def update_config(self, config: dict[str, Any]) -> dict[str, Any]:
         """
         Called from the parent class, so that we can update the configuration
         according to the needs of this test case.
@@ -187,7 +187,7 @@ class AuthnAPITestBase(EduidAPITestCase):
             # When the next_url isn't accepted as safe to use, a redirect to '/' is done instead
             assert authn.redirect_url == "/"
 
-    def _get_request_id_from_session(self, session: EduidSession) -> Tuple[str, AuthnRequestRef]:
+    def _get_request_id_from_session(self, session: EduidSession) -> tuple[str, AuthnRequestRef]:
         """extract the (probable) SAML request ID from the session"""
         oq_cache = OutstandingQueriesCache(session.authn.sp.pysaml2_dicts)
         ids = oq_cache.outstanding_queries().keys()
@@ -353,7 +353,7 @@ class UnAuthnAPITestCase(EduidAPITestCase):
 
     app: AuthnTestApp
 
-    def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
+    def update_config(self, config: dict[str, Any]) -> dict[str, Any]:
         """
         Called from the parent class, so that we can update the configuration
         according to the needs of this test case.
@@ -398,7 +398,7 @@ class NoAuthnAPITestCase(EduidAPITestCase):
     app: AuthnTestApp
 
     def setUp(self):
-        super(NoAuthnAPITestCase, self).setUp()
+        super().setUp()
         test_views = Blueprint("testing", __name__)
 
         @test_views.route("/test")
@@ -415,7 +415,7 @@ class NoAuthnAPITestCase(EduidAPITestCase):
 
         self.app.register_blueprint(test_views)
 
-    def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
+    def update_config(self, config: dict[str, Any]) -> dict[str, Any]:
         """
         Called from the parent class, so that we can update the configuration
         according to the needs of this test case.
@@ -456,7 +456,7 @@ class NoAuthnAPITestCase(EduidAPITestCase):
         no_authn_urls_before = [path for path in self.app.conf.no_authn_urls]
         no_authn_path = "/test3"
         no_authn_views(self.app.conf, [no_authn_path])
-        self.assertEqual(no_authn_urls_before + ["^{!s}$".format(no_authn_path)], self.app.conf.no_authn_urls)
+        self.assertEqual(no_authn_urls_before + [f"^{no_authn_path!s}$"], self.app.conf.no_authn_urls)
 
         with self.app.test_client() as c:
             resp = c.get("/test3")

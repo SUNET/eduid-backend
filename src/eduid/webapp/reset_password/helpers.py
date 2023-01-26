@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2019 SUNET
 # All rights reserved.
@@ -33,7 +32,7 @@
 import math
 from dataclasses import dataclass
 from enum import unique
-from typing import Any, Dict, List, Literal, Mapping, Optional, TypedDict, Union
+from typing import Any, Mapping, Optional, Union
 
 from flask import render_template
 from flask_babel import gettext as _
@@ -42,7 +41,6 @@ from eduid.common.config.base import EduidEnvironment
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.rpc.exceptions import MailTaskFailed
 from eduid.common.utils import urlappend
-from eduid.userdb.element import ElementKey
 from eduid.userdb.exceptions import UserDoesNotExist
 from eduid.userdb.logs import MailAddressProofing, PhoneNumberProofing
 from eduid.userdb.reset_password import ResetPasswordEmailAndPhoneState, ResetPasswordEmailState, ResetPasswordUser
@@ -366,7 +364,7 @@ def get_extra_security_alternatives(user: User) -> dict:
     :param user: The user
     :return: Dict of alternatives
     """
-    alternatives: Dict[str, Any] = {}
+    alternatives: dict[str, Any] = {}
 
     if user.identities.nin is not None and user.identities.nin.is_verified:
         alternatives["external_mfa"] = True
@@ -494,7 +492,7 @@ def verify_phone_number(state: ResetPasswordEmailAndPhoneState) -> bool:
     return False
 
 
-def email_state_to_response_payload(state: ResetPasswordEmailState) -> Dict[str, Any]:
+def email_state_to_response_payload(state: ResetPasswordEmailState) -> dict[str, Any]:
     _throttled = int(state.throttle_time_left(current_app.conf.throttle_resend).total_seconds())
     if _throttled < 0:
         _throttled = 0

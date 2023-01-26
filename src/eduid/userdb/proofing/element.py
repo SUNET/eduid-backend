@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2015 NORDUnet A/S
 # All rights reserved.
@@ -33,7 +32,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Dict, Optional, Type, TypeVar
+from typing import Any, Optional, TypeVar
 
 from pydantic import validator
 
@@ -64,7 +63,7 @@ class ProofingElement(VerifiedElement):
     verification_code: Optional[str] = None
 
     @classmethod
-    def _from_dict_transform(cls: Type[TProofingElementSubclass], data: Dict[str, Any]) -> Dict[str, Any]:
+    def _from_dict_transform(cls: type[TProofingElementSubclass], data: dict[str, Any]) -> dict[str, Any]:
         """
         Transform data received in eduid format into pythonic format.
         """

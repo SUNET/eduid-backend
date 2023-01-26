@@ -1,5 +1,4 @@
-# -*- coding: utf-8 -*-
-from typing import Any, List, Mapping, Optional, Tuple
+from typing import Any, Mapping, Optional
 
 from eduid.userdb.db import BaseDB, TUserDbDocument
 
@@ -13,7 +12,7 @@ class ScimApiBaseDB(BaseDB):
         fields: Optional[dict[str, Any]] = None,
         limit: Optional[int] = None,
         skip: Optional[int] = None,
-    ) -> Tuple[List[TUserDbDocument], int]:
+    ) -> tuple[list[TUserDbDocument], int]:
         """
         Locate and count documents in the db using a custom search filter.
 

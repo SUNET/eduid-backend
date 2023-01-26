@@ -38,7 +38,8 @@ from __future__ import annotations
 
 from datetime import timedelta
 from enum import Enum
-from typing import Any, Dict, List, Mapping, Optional, Pattern, Sequence, TypeVar, Union
+from re import Pattern
+from typing import Any, Mapping, Optional, Sequence, TypeVar, Union
 
 from pydantic import BaseModel, Field
 
@@ -51,7 +52,7 @@ class CeleryConfig(BaseModel):
     Celery configuration
     """
 
-    accept_content: List[str] = Field(default=["application/json"])
+    accept_content: list[str] = Field(default=["application/json"])
     broker_url: str = ""
     result_backend: str = "cache"
     result_backend_transport_options: dict = Field(default={})
@@ -138,16 +139,16 @@ class WorkerConfig(RootConfig):
 
 
 class CORSMixin(BaseModel):
-    cors_allow_headers: Union[str, List[str]] = "*"
+    cors_allow_headers: Union[str, list[str]] = "*"
     cors_always_send: bool = True
     cors_automatic_options: bool = True
-    cors_expose_headers: Optional[Union[str, List[str]]] = None
+    cors_expose_headers: Optional[Union[str, list[str]]] = None
     cors_intercept_exceptions: bool = True
     cors_max_age: Optional[Union[timedelta, int, str]] = None
-    cors_methods: Union[str, List[str]] = ["GET", "HEAD", "POST", "OPTIONS", "PUT", "PATCH", "DELETE"]
+    cors_methods: Union[str, list[str]] = ["GET", "HEAD", "POST", "OPTIONS", "PUT", "PATCH", "DELETE"]
     # The origin(s) to allow requests from. An origin configured here that matches the value of the Origin header in a
     # preflight OPTIONS request is returned as the value of the Access-Control-Allow-Origin response header.
-    cors_origins: Union[str, List[str], Pattern] = [r"^eduid\.se$", r".*\.eduid\.se$"]
+    cors_origins: Union[str, list[str], Pattern] = [r"^eduid\.se$", r".*\.eduid\.se$"]
     # The series of regular expression and (optionally) associated CORS options to be applied to the given resource
     # path.
     # If the value is a dictionary, it’s keys must be regular expressions matching resources, and the values must be
@@ -156,7 +157,7 @@ class CORSMixin(BaseModel):
     # app-wide configured options are applied.
     # If the argument is a string, it is expected to be a regular expression matching resources for which the app-wide
     # configured options are applied.
-    cors_resources: Union[Dict[Union[str, Pattern], CORSMixin], List[Union[str, Pattern]], Union[str, Pattern]] = r"/*"
+    cors_resources: Union[dict[Union[str, Pattern], CORSMixin], list[Union[str, Pattern]], Union[str, Pattern]] = r"/*"
     cors_send_wildcard: bool = False
     cors_supports_credentials: bool = True
     cors_vary_header: bool = True
@@ -241,7 +242,7 @@ class FlaskConfig(CORSMixin):
     templates_auto_reload: Optional[bool] = None
     explain_template_loading: bool = False
     max_cookie_size: int = 4093
-    babel_translation_directories: str = "translations"
+    babel_translation_directories: list[str] = ["translations"]
     babel_default_locale: str = "en"
     babel_default_timezone: str = ""
     babel_domain: str = ""
@@ -340,7 +341,7 @@ class ErrorsConfigMixin(BaseModel):
 
 
 class Pysaml2SPConfigMixin(BaseModel):
-    frontend_action_finish_url: Dict[str, str] = Field(default={})
+    frontend_action_finish_url: dict[str, str] = Field(default={})
 
     # Authn algorithms
     authn_sign_alg: str = "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"
@@ -353,12 +354,12 @@ class Pysaml2SPConfigMixin(BaseModel):
 class ProofingConfigMixin(BaseModel):
     # sweden connect
     trust_framework: TrustFramework = TrustFramework.SWECONN
-    required_loa: List[str] = Field(default=["loa3"])  # one of authentication_context_map below
+    required_loa: list[str] = Field(default=["loa3"])  # one of authentication_context_map below
     freja_idp: Optional[str] = None
 
     # eidas
     foreign_trust_framework: TrustFramework = TrustFramework.EIDAS
-    foreign_required_loa: List[str] = Field(
+    foreign_required_loa: list[str] = Field(
         default=["eidas-nf-low", "eidas-nf-sub", "eidas-nf-high"]
     )  # one of authentication_context_map below
     foreign_identity_idp: Optional[str] = None
@@ -373,7 +374,7 @@ class ProofingConfigMixin(BaseModel):
     security_key_proofing_version: str = Field(default="2018v1")
     security_key_foreign_eid_proofing_version: str = Field(default="2022v1")
 
-    frontend_action_finish_url: Dict[str, str] = Field(default={})
+    frontend_action_finish_url: dict[str, str] = Field(default={})
     fallback_redirect_url: str = "https://dashboard.eduid.se"
 
 

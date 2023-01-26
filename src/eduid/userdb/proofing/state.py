@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2015 NORDUnet A/S
 # Copyright (c) 2018 SUNET
@@ -38,7 +37,7 @@ import copy
 import datetime
 import logging
 from dataclasses import asdict, dataclass
-from typing import Any, Mapping, Optional, Set
+from typing import Any, Mapping, Optional
 
 import bson
 
@@ -58,7 +57,7 @@ logger = logging.getLogger(__name__)
 
 
 @dataclass()
-class ProofingState(object):
+class ProofingState:
 
     # __post_init__ will mint a new ObjectId if `id' is None
     id: Optional[bson.ObjectId]
@@ -72,7 +71,7 @@ class ProofingState(object):
             self.id = bson.ObjectId()
 
     @classmethod
-    def _default_from_dict(cls, data: Mapping[str, Any], fields: Set[str]):
+    def _default_from_dict(cls, data: Mapping[str, Any], fields: set[str]):
         _data = copy.deepcopy(dict(data))  # to not modify callers data
         if "eduPersonPrincipalName" in _data:
             _data["eppn"] = _data.pop("eduPersonPrincipalName")
@@ -106,7 +105,7 @@ class ProofingState(object):
         return TUserDbDocument(res)
 
     def __str__(self):
-        return "<eduID {!s}: eppn={!s}>".format(self.__class__.__name__, self.eppn)
+        return f"<eduID {self.__class__.__name__!s}: eppn={self.eppn!s}>"
 
     @property
     def reference(self) -> str:

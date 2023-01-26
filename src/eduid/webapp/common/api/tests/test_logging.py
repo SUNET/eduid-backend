@@ -1,6 +1,4 @@
-# -*- coding: utf-8 -*-
-
-from typing import Any, Dict, Mapping
+from typing import Any, Mapping
 
 from eduid.common.config.base import EduIDBaseAppConfig
 from eduid.common.logging import merge_config
@@ -28,7 +26,7 @@ class LoggingTest(EduidAPITestCase):
         config = load_config(typ=EduIDBaseAppConfig, app_name="test_app", ns="webapp", test_config=test_config)
         return LoggingTestApp(config)
 
-    def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
+    def update_config(self, config: dict[str, Any]) -> dict[str, Any]:
         return config
 
     def tearDown(self):

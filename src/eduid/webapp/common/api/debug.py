@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import pprint
 import sys
 import warnings
@@ -33,11 +32,11 @@ def log_endpoints(app: Flask):
 
             options = {}
             for arg in rule.arguments:  # type: ignore[union-attr]
-                options[arg] = "[{0}]".format(arg)
+                options[arg] = f"[{arg}]"
 
             methods = ",".join(rule.methods) if rule.methods else ""
             url = url_for(rule.endpoint, values=options)
-            line = parse.unquote("{:50s} {:20s} {}".format(rule.endpoint, methods, url))
+            line = parse.unquote(f"{rule.endpoint:50s} {methods:20s} {url}")
             output.append(line)
 
         for line in sorted(output):

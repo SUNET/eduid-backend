@@ -1,7 +1,6 @@
 import fnmatch
 import json
 import logging
-from typing import List
 
 from fastapi import Request, Response, status
 from jwcrypto import jwt
@@ -86,7 +85,7 @@ class AuthenticationMiddleware(BaseHTTPMiddleware, ContextRequestMixin):
         return False
 
     @staticmethod
-    def glob_match(endpoints: List[EndpointRestriction], method_path: str) -> bool:
+    def glob_match(endpoints: list[EndpointRestriction], method_path: str) -> bool:
         """
         fnmatch matches method_path (get:/users/hubba-bubba/name) with glob expression:
         (get:/users/*/name OR get:/users/hubba-hubba/name).

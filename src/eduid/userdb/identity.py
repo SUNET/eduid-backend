@@ -1,11 +1,10 @@
-# -*- coding: utf-8 -*-
 from __future__ import annotations
 
 import logging
 from abc import ABC
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional, Type, Union
+from typing import Any, Optional, Union
 
 from pydantic import Field
 
@@ -55,7 +54,7 @@ class IdentityElement(VerifiedElement, ABC):
         """
         raise NotImplementedError("Sub-class must implement unique_value")
 
-    def to_frontend_format(self) -> Dict[str, Any]:
+    def to_frontend_format(self) -> dict[str, Any]:
         return super().to_dict()
 
 
@@ -81,7 +80,7 @@ class NinIdentity(IdentityElement):
     def unique_value(self) -> str:
         return self.number
 
-    def to_old_nin(self) -> Dict[str, Union[str, bool]]:
+    def to_old_nin(self) -> dict[str, Union[str, bool]]:
         # TODO: remove nins after frontend stops using it
         return {"number": self.number, "verified": self.is_verified, "primary": True}
 
@@ -161,8 +160,8 @@ class IdentityList(VerifiedElementList[IdentityElement]):
     """
 
     @classmethod
-    def from_list_of_dicts(cls: Type[IdentityList], items: List[Dict[str, Any]]) -> IdentityList:
-        elements: List[IdentityElement] = []
+    def from_list_of_dicts(cls: type[IdentityList], items: list[dict[str, Any]]) -> IdentityList:
+        elements: list[IdentityElement] = []
         for item in items:
             _type = item["identity_type"]
             if _type == IdentityType.NIN.value:
@@ -229,8 +228,8 @@ class IdentityList(VerifiedElementList[IdentityElement]):
             return self.svipe.date_of_birth
         return None
 
-    def to_frontend_format(self) -> Dict[str, Any]:
-        res: Dict[str, Union[bool, Dict[str, Any]]] = {
+    def to_frontend_format(self) -> dict[str, Any]:
+        res: dict[str, Union[bool, dict[str, Any]]] = {
             item.identity_type.value: item.to_frontend_format() for item in self.to_list()
         }
         res["is_verified"] = self.is_verified

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from eduid.userdb.logs.db import ProofingLog
 from eduid.userdb.logs.element import (
     LetterProofing,

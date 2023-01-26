@@ -2,7 +2,7 @@ import json
 import logging
 import re
 from copy import copy
-from typing import Any, List, Mapping, Optional, Set
+from typing import Any, Mapping, Optional
 
 from fastapi import Request, Response
 from jwcrypto import jwt
@@ -37,8 +37,8 @@ class AuthnBearerToken(BaseModel):
 
     scim_config: ScimApiConfig  # must be listed first, used in validators
     version: StrictInt
-    requested_access: List[SudoAccess] = Field(default=[])
-    scopes: Set[ScopeName] = Field(default=set())
+    requested_access: list[SudoAccess] = Field(default=[])
+    scopes: set[ScopeName] = Field(default=set())
 
     def __str__(self):
         return f"<{self.__class__.__name__}: scopes={self.scopes}, requested_access={self.requested_access}>"
@@ -50,7 +50,7 @@ class AuthnBearerToken(BaseModel):
         return v
 
     @validator("scopes")
-    def validate_scopes(cls, v: Set[ScopeName], values: Mapping[str, Any]) -> Set[ScopeName]:
+    def validate_scopes(cls, v: set[ScopeName], values: Mapping[str, Any]) -> set[ScopeName]:
         config = values.get("scim_config")
         if not config:
             raise ValueError("Can't validate without scim_config")
@@ -58,11 +58,11 @@ class AuthnBearerToken(BaseModel):
         return canonical_scopes
 
     @validator("requested_access")
-    def validate_requested_access(cls, v: List[SudoAccess], values: Mapping[str, Any]) -> List[SudoAccess]:
+    def validate_requested_access(cls, v: list[SudoAccess], values: Mapping[str, Any]) -> list[SudoAccess]:
         config = values.get("scim_config")
         if not config:
             raise ValueError("Can't validate without scim_config")
-        new_access: List[SudoAccess] = []
+        new_access: list[SudoAccess] = []
         for this in v:
             if this.type != config.requested_access_type:
                 # not meant for us
@@ -119,7 +119,7 @@ class AuthnBearerToken(BaseModel):
 
         return None
 
-    def _get_allowed_scopes(self, config: ScimApiConfig, logger: logging.Logger) -> Set[ScopeName]:
+    def _get_allowed_scopes(self, config: ScimApiConfig, logger: logging.Logger) -> set[ScopeName]:
         """
         Make a set of all the allowed scopes for the requester.
 
@@ -197,7 +197,7 @@ class AuthenticationMiddleware(BaseMiddleware):
     def __init__(self, app, context: Context):
         super().__init__(app, context)
         self.no_authn_urls = self.context.config.no_authn_urls
-        self.context.logger.debug("No auth allow urls: {}".format(self.no_authn_urls))
+        self.context.logger.debug(f"No auth allow urls: {self.no_authn_urls}")
 
     def _is_no_auth_path(self, url: URL) -> bool:
         path = url.path
@@ -206,7 +206,7 @@ class AuthenticationMiddleware(BaseMiddleware):
         for regex in self.no_authn_urls:
             m = re.match(regex, path)
             if m is not None:
-                self.context.logger.debug("{} matched allow list".format(path))
+                self.context.logger.debug(f"{path} matched allow list")
                 return True
         return False
 

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import logging
 from enum import Enum
-from typing import List, Optional
+from typing import Optional
 
 from pydantic import BaseModel, Field, ValidationError
 
@@ -12,6 +12,7 @@ from eduid.common.rpc.exceptions import MsgTaskFailed, NoAddressFound, NoNavetDa
 __author__ = "lundberg"
 
 logger = logging.getLogger(__name__)
+
 
 TEMPLATES_RELATION = {
     "mobile-validator": "mobile-confirm",
@@ -115,10 +116,15 @@ class Person(NavetModelConfig):
     deregistration_information: DeregistrationInformation = Field(alias="DeregistrationInformation")
     reference_national_identity_number: Optional[str] = Field(default=None, alias="ReferenceNationalIdentityNumber")
     postal_addresses: PostalAddresses = Field(alias="PostalAddresses")
-    relations: List[Relation] = Field(default_factory=list, alias="Relations")
+    relations: list[Relation] = Field(default_factory=list, alias="Relations")
 
     def is_deregistered(self) -> bool:
         return bool(self.deregistration_information.cause_code or self.deregistration_information.date)
+
+
+class NavetData(NavetModelConfig):
+    case_information: CaseInformation = Field(alias="CaseInformation")
+    person: Person = Field(alias="Person")
 
 
 # Used to parse data from get_postal_address
@@ -127,15 +133,7 @@ class FullPostalAddress(NavetModelConfig):
     official_address: OfficialAddress = Field(default_factory=OfficialAddress, alias="OfficialAddress")
 
 
-class NavetData(NavetModelConfig):
-    case_information: CaseInformation = Field(alias="CaseInformation")
-    person: Person = Field(alias="Person")
-
-    def get_full_postal_address(self) -> FullPostalAddress:
-        return FullPostalAddress(name=self.person.name, official_address=self.person.postal_addresses)
-
-
-class MsgRelay(object):
+class MsgRelay:
     """
     This is the interface to the RPC task to fetch data from NAVET, and to send SMSs.
     """
@@ -222,7 +220,7 @@ class MsgRelay(object):
             logger.exception("Missing data in postal address returned from Navet")
             raise NoAddressFound("Missing data in postal address returned from Navet")
 
-    def get_relations_to(self, nin: str, relative_nin: str, timeout: int = 25) -> List[RelationType]:
+    def get_relations_to(self, nin: str, relative_nin: str, timeout: int = 25) -> list[RelationType]:
         """
         Get a list of the NAVET 'Relations' type codes between a NIN and a relatives NIN.
 

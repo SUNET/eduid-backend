@@ -1,10 +1,9 @@
-# -*- coding: utf-8 -*-
-
 import logging
+from collections import OrderedDict
 from datetime import datetime, timedelta
 from io import BytesIO, StringIO
 from pathlib import Path
-from typing import Mapping, OrderedDict
+from typing import Mapping
 
 from xhtml2pdf import pisa
 
@@ -29,7 +28,7 @@ def format_address(recipient: Mapping):
         given_name = recipient.get("Name", {})["GivenName"]  # Mandatory
         middle_name = recipient.get("Name", {}).get("MiddleName", "")  # Optional
         surname = recipient.get("Name", {})["Surname"]  # Mandatory
-        name = "{!s} {!s} {!s}".format(given_name, middle_name, surname)
+        name = f"{given_name!s} {middle_name!s} {surname!s}"
         # TODO: Take eventual CareOf and Address1(?) in to account
         care_of = recipient.get("OfficialAddress", {}).get("CareOf", "")  # Optional
         address = recipient.get("OfficialAddress", {})["Address2"]  # Mandatory
@@ -72,7 +71,7 @@ def create_pdf(
             recipient.dict(exclude_none=True, by_alias=True)
         )
     except AddressFormatException as e:
-        logger.error("Postal address formatting failed: {!r}".format(e))
+        logger.error(f"Postal address formatting failed: {e!r}")
         raise e
 
     # Calculate the validity period of the verification

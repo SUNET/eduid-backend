@@ -1,11 +1,10 @@
-# -*- coding: utf-8 -*-
 import asyncio
 import logging
 from dataclasses import asdict
 from email.message import EmailMessage
 from email.utils import formatdate, make_msgid
 from gettext import gettext as _
-from typing import Any, Mapping, Optional, Sequence, Type, cast
+from typing import Any, Mapping, Optional, Sequence, cast
 
 from aiosmtplib import SMTP, SMTPException, SMTPResponse
 
@@ -28,7 +27,7 @@ __author__ = "lundberg"
 class MailQueueWorker(QueueWorker):
     def __init__(self, config: QueueWorkerConfig):
         # Register which queue items this worker should try to grab
-        payloads: Sequence[Type[Payload]] = [EduidInviteEmail, EduidSignupEmail, OldEduidSignupEmail]
+        payloads: Sequence[type[Payload]] = [EduidInviteEmail, EduidSignupEmail, OldEduidSignupEmail]
         super().__init__(config=config, handle_payloads=payloads)
 
         self._smtp: Optional[SMTP] = None
@@ -158,15 +157,16 @@ class MailQueueWorker(QueueWorker):
     async def handle_expired_item(self, queue_item: QueueItem) -> None:
         logger.warning(f"Found expired item: {queue_item}")
 
-    async def _create_base_message(self) -> EmailMessage:
+    def _create_base_message(self, recipient: str) -> EmailMessage:
         msg = EmailMessage()
         msg["From"] = self.config.mail_default_from
         msg["Date"] = formatdate()
         msg["Message-ID"] = make_msgid(domain=self.config.mail_default_domain)
+        msg["To"] = recipient
         return msg
 
     async def send_eduid_invite_mail(self, data: EduidInviteEmail) -> Status:
-        msg = await self._create_base_message()
+        msg = self._create_base_message(recipient=data.email)
         with self._jinja2.select_language(data.language) as env:
             msg["Subject"] = _("eduID invitation")
             txt = env.get_template("eduid_invite_mail_txt.jinja2").render(**asdict(data))
@@ -184,7 +184,7 @@ class MailQueueWorker(QueueWorker):
         )
 
     async def send_eduid_signup_mail(self, data: EduidSignupEmail) -> Status:
-        msg = await self._create_base_message()
+        msg = self._create_base_message(recipient=data.email)
         with self._jinja2.select_language(data.language) as env:
             msg["Subject"] = _("eduID registration")
             txt = env.get_template("eduid_signup_email.txt.jinja2").render(**asdict(data))
@@ -203,7 +203,7 @@ class MailQueueWorker(QueueWorker):
 
     # TODO: Remove this when we no longer need to send old signup emails
     async def send_old_eduid_signup_mail(self, data: OldEduidSignupEmail) -> Status:
-        msg = await self._create_base_message()
+        msg = self._create_base_message(recipient=data.email)
         with self._jinja2.select_language(data.language) as env:
             msg["Subject"] = _("eduID registration")
             txt = env.get_template("old_eduid_signup_email.txt.jinja2").render(**asdict(data))

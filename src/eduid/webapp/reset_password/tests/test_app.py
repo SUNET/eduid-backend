@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2019 SUNET
 # All rights reserved.
@@ -32,7 +31,7 @@
 #
 import datetime
 import json
-from typing import Any, Dict, Mapping, Optional
+from typing import Any, Mapping, Optional
 from unittest.mock import Mock, patch
 from urllib.parse import quote_plus
 
@@ -41,7 +40,6 @@ from werkzeug.test import TestResponse
 
 from eduid.common.config.base import EduidEnvironment
 from eduid.common.misc.timeutil import utc_now
-from eduid.userdb import User
 from eduid.userdb.credentials import Password, Webauthn
 from eduid.userdb.exceptions import UserHasNotCompletedSignup
 from eduid.userdb.fixtures.fido_credentials import webauthn_credential
@@ -82,7 +80,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         """
         return init_reset_password_app(test_config=config)
 
-    def update_config(self, config: Dict[str, Any]):
+    def update_config(self, config: dict[str, Any]):
         config.update(
             {
                 "available_languages": {"en": "English", "sv": "Svenska"},
@@ -102,7 +100,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
     def _post_email_address(
         self,
         mock_sendmail: Any,
-        data1: Optional[Dict[str, Any]] = None,
+        data1: Optional[dict[str, Any]] = None,
         sendmail_return: bool = True,
         sendmail_side_effect: Any = None,
     ):
@@ -133,7 +131,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
             return response
 
     def _post_reset_code(
-        self, data1: Optional[Dict[str, Any]] = None, data2: Optional[Dict[str, Any]] = None
+        self, data1: Optional[dict[str, Any]] = None, data2: Optional[dict[str, Any]] = None
     ) -> Optional[TestResponse]:
         """
         Create a password rest state for the test user, grab the created verification code from the db,
@@ -165,8 +163,8 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         self,
         mock_request_user_sync: Any,
         mock_get_vccs_client: Any,
-        data1: Optional[Dict[str, Any]] = None,
-        data2: Optional[Dict[str, Any]] = None,
+        data1: Optional[dict[str, Any]] = None,
+        data2: Optional[dict[str, Any]] = None,
     ):
         """
         Test sending data from the reset password form, without extra security.
@@ -220,9 +218,9 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         mock_request_user_sync: Any,
         mock_get_vccs_client: Any,
         sendsms_side_effect: Any = None,
-        data1: Optional[Dict[str, Any]] = None,
-        data2: Optional[Dict[str, Any]] = None,
-        data3: Optional[Dict[str, Any]] = None,
+        data1: Optional[dict[str, Any]] = None,
+        data2: Optional[dict[str, Any]] = None,
+        data3: Optional[dict[str, Any]] = None,
         repeat: bool = False,
     ):
         """
@@ -283,8 +281,8 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         mock_sendsms: Any,
         mock_request_user_sync: Any,
         mock_get_vccs_client: Any,
-        data1: Optional[Dict[str, Any]] = None,
-        data2: Optional[Dict[str, Any]] = None,
+        data1: Optional[dict[str, Any]] = None,
+        data2: Optional[dict[str, Any]] = None,
     ):
         """
         Test fully resetting the password with extra security via a verification code sent by SMS.
@@ -341,9 +339,9 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         mock_verify: Any,
         mock_request_user_sync: Any,
         mock_get_vccs_client: Any,
-        data1: Optional[Dict[str, Any]] = None,
-        credential_data: Optional[Dict[str, Any]] = None,
-        data2: Optional[Dict[str, Any]] = None,
+        data1: Optional[dict[str, Any]] = None,
+        credential_data: Optional[dict[str, Any]] = None,
+        data2: Optional[dict[str, Any]] = None,
         fido2state: Optional[WebauthnState] = None,
         custom_password: Optional[str] = None,
     ):
@@ -410,9 +408,9 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         self,
         mock_request_user_sync: Any,
         mock_get_vccs_client: Any,
-        data1: Optional[Dict[str, Any]] = None,
-        data2: Optional[Dict[str, Any]] = None,
-        external_mfa_state: Optional[Dict[str, Any]] = None,
+        data1: Optional[dict[str, Any]] = None,
+        data2: Optional[dict[str, Any]] = None,
+        external_mfa_state: Optional[dict[str, Any]] = None,
         custom_password: Optional[str] = None,
     ):
         """
@@ -466,7 +464,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
 
         return c.post(url, data=json.dumps(data), content_type=self.content_type_json)
 
-    def _get_email_code_backdoor(self, data1: Optional[Dict[str, Any]] = None):
+    def _get_email_code_backdoor(self, data1: Optional[dict[str, Any]] = None):
         """
         Create a password rest state for the test user, grab the created verification code from the db,
         and use it to get configuration for the reset form.

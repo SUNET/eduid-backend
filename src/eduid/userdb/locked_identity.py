@@ -1,7 +1,6 @@
-# -*- coding: utf-8 -*-
 from __future__ import annotations
 
-from typing import Any, Dict, List, Type
+from typing import Any
 
 from pydantic import validator
 
@@ -17,7 +16,7 @@ class LockedIdentityList(IdentityList):
     """
 
     @validator("elements")
-    def validate_is_verified(cls, v: List[IdentityElement]):
+    def validate_is_verified(cls, v: list[IdentityElement]):
         # If using a validator with a subclass that references a List type field on a parent class, using
         # each_item=True will cause the validator not to run; instead, the list must be iterated over programmatically.
         if not all([item.is_verified for item in v]):
@@ -25,7 +24,7 @@ class LockedIdentityList(IdentityList):
         return v
 
     @classmethod
-    def from_list_of_dicts(cls: Type[LockedIdentityList], items: List[Dict[str, Any]]) -> LockedIdentityList:
+    def from_list_of_dicts(cls: type[LockedIdentityList], items: list[dict[str, Any]]) -> LockedIdentityList:
         obj = super().from_list_of_dicts(items=items)
         return cls(elements=obj.elements)
 

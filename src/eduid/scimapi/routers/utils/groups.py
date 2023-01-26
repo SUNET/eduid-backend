@@ -1,8 +1,6 @@
-# -*- coding: utf-8 -*-
-
 import re
 from datetime import datetime
-from typing import List, Optional, Tuple
+from typing import Optional
 from uuid import UUID
 
 from fastapi import Request, Response
@@ -18,7 +16,7 @@ from eduid.userdb.scimapi import ScimApiGroup
 __author__ = "lundberg"
 
 
-def get_group_members(req: Request, db_group: ScimApiGroup) -> List[GroupMember]:
+def get_group_members(req: Request, db_group: ScimApiGroup) -> list[GroupMember]:
     members = []
     for user_member in db_group.graph.member_users:
         ref = req.app.context.url_for("Users", user_member.identifier)
@@ -69,7 +67,7 @@ def filter_display_name(
     filter: SearchFilter,
     skip: Optional[int] = None,
     limit: Optional[int] = None,
-) -> Tuple[List[ScimApiGroup], int]:
+) -> tuple[list[ScimApiGroup], int]:
     if filter.op != "eq":
         raise BadRequest(scim_type="invalidFilter", detail="Unsupported operator")
     if not isinstance(filter.val, str):
@@ -88,7 +86,7 @@ def filter_display_name(
 
 def filter_lastmodified(
     req: ContextRequest, filter: SearchFilter, skip: Optional[int] = None, limit: Optional[int] = None
-) -> Tuple[List[ScimApiGroup], int]:
+) -> tuple[list[ScimApiGroup], int]:
     if filter.op not in ["gt", "ge"]:
         raise BadRequest(scim_type="invalidFilter", detail="Unsupported operator")
     if not isinstance(filter.val, str):
@@ -105,7 +103,7 @@ def filter_extensions_data(
     filter: SearchFilter,
     skip: Optional[int] = None,
     limit: Optional[int] = None,
-) -> Tuple[List[ScimApiGroup], int]:
+) -> tuple[list[ScimApiGroup], int]:
     if filter.op != "eq":
         raise BadRequest(scim_type="invalidFilter", detail="Unsupported operator")
 

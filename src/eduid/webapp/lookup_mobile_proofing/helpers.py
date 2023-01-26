@@ -1,8 +1,6 @@
-# -*- coding: utf-8 -*-
-
 from datetime import datetime
 from enum import unique
-from typing import List, Optional
+from typing import Optional
 
 from eduid.common.rpc.exceptions import LookupMobileTaskFailed
 from eduid.common.rpc.msg_relay import FullPostalAddress
@@ -61,7 +59,7 @@ def create_proofing_state(user: User, nin: str) -> NinProofingState:
 
 
 def match_mobile_to_user(
-    user: User, self_asserted_nin: str, verified_mobile_numbers: List[str]
+    user: User, self_asserted_nin: str, verified_mobile_numbers: list[str]
 ) -> Optional[TeleAdressProofing]:
     """
     Lookup the user's phone number in the TeleAdress external database. If the phone number comes

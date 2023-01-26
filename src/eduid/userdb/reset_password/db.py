@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2019 SUNET
 # All rights reserved.
@@ -57,7 +56,7 @@ class ResetPasswordUserDB(UserDB[ResetPasswordUser]):
 
 class ResetPasswordStateDB(BaseDB):
     def __init__(self, db_uri: str, db_name: str = "eduid_reset_password", collection: str = "password_reset_data"):
-        super(ResetPasswordStateDB, self).__init__(db_uri, db_name, collection=collection)
+        super().__init__(db_uri, db_name, collection=collection)
 
     def get_state_by_email_code(
         self, email_code: str

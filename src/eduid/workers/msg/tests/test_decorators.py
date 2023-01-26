@@ -1,11 +1,10 @@
-# -*- encoding: utf-8 -*-
 from eduid.workers.msg.decorators import TransactionAudit
 from eduid.workers.msg.testing import MsgMongoTestCase
 
 
 class TestTransactionAudit(MsgMongoTestCase):
     def setUp(self, init_msg=True):
-        super(TestTransactionAudit, self).setUp(init_msg=init_msg)
+        super().setUp(init_msg=init_msg)
         TransactionAudit.enable(self.msg_settings.mongo_uri, db_name="test")
 
     def test_transaction_audit(self):

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import uuid
-from typing import Dict, List, Optional, Union
+from typing import Optional, Union
 
 from fastapi import Request, status
 from fastapi.exception_handlers import http_exception_handler
@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 class ErrorDetail(BaseModel):
-    detail: Optional[Union[str, Dict, List]] = None
+    detail: Optional[Union[str, dict, list]] = None
     status: Optional[int] = None
 
 
@@ -60,18 +60,18 @@ class HTTPErrorDetail(Exception):
     ):
 
         self._error_detail = ErrorDetail(detail=detail, status=status_code)
-        self._extra_headers: Optional[Dict] = None
+        self._extra_headers: Optional[dict] = None
 
     @property
     def error_detail(self) -> ErrorDetail:
         return self._error_detail
 
     @property
-    def extra_headers(self) -> Optional[Dict]:
+    def extra_headers(self) -> Optional[dict]:
         return self._extra_headers
 
     @extra_headers.setter
-    def extra_headers(self, headers: Dict):
+    def extra_headers(self, headers: dict):
         self._extra_headers = headers
 
 

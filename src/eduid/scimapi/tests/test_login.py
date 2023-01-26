@@ -1,10 +1,6 @@
-# -*- coding: utf-8 -*-
-
-
 __author__ = "lundberg"
 
 import json
-from typing import Dict
 from uuid import uuid4
 
 from eduid.scimapi.testing import ScimApiTestCase
@@ -14,7 +10,7 @@ class TestLoginResource(ScimApiTestCase):
     def setUp(self) -> None:
         super().setUp()
 
-    def _get_config(self) -> Dict:
+    def _get_config(self) -> dict:
         config = super()._get_config()
         config["login_enabled"] = True
         return config

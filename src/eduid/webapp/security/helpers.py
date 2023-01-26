@@ -1,8 +1,7 @@
-# -*- coding: utf-8 -*-
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import unique
-from typing import List, Optional
+from typing import Optional
 
 from flask_babel import gettext as _
 
@@ -82,11 +81,11 @@ class CredentialInfo:
     description: Optional[str] = None
 
 
-def compile_credential_list(user: User) -> List[CredentialInfo]:
+def compile_credential_list(user: User) -> list[CredentialInfo]:
     """
     Make a list of a users credentials, with extra information, for returning in API responses.
     """
-    credentials: List[CredentialInfo] = []
+    credentials: list[CredentialInfo] = []
     authn_info = current_app.authninfo_db.get_authn_info(user)
     for cred_key, authn in authn_info.items():
         cred = user.credentials.find(cred_key)
@@ -117,7 +116,6 @@ def remove_nin_from_user(security_user: SecurityUser, nin: NinIdentity) -> None:
     :param nin: NIN to remove
     """
     security_user.identities.remove(nin.key)
-    security_user.modified_ts = utc_now()
     # Save user to private db
     current_app.private_userdb.save(security_user)
     # Ask am to sync user to central db

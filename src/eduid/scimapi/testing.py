@@ -1,10 +1,8 @@
-# -*- coding: utf-8 -*-
-import json
 import os
 import unittest
 import uuid
 from dataclasses import asdict
-from typing import Any, Dict, List, Mapping, Optional, Union
+from typing import Any, Mapping, Optional, Union
 
 import pkg_resources
 from bson import ObjectId
@@ -121,7 +119,7 @@ class ScimApiTestCase(MongoNeoTestCase):
             "Accept": "application/scim+json",
         }
 
-    def _get_config(self) -> Dict:
+    def _get_config(self) -> dict:
         config = super()._get_config()
         config["keystore_path"] = f"{self.datadir}/testing_jwks.json"
         config["signing_key_id"] = "testing-scimapi-2106210000"
@@ -132,8 +130,8 @@ class ScimApiTestCase(MongoNeoTestCase):
         self,
         identifier: str,
         external_id: Optional[str] = None,
-        profiles: Optional[Dict[str, ScimApiProfile]] = None,
-        linked_accounts: Optional[List[ScimApiLinkedAccount]] = None,
+        profiles: Optional[dict[str, ScimApiProfile]] = None,
+        linked_accounts: Optional[list[ScimApiLinkedAccount]] = None,
     ) -> Optional[ScimApiUser]:
         user = ScimApiUser(user_id=ObjectId(), scim_id=uuid.UUID(identifier), external_id=external_id)
         if profiles:
@@ -161,7 +159,7 @@ class ScimApiTestCase(MongoNeoTestCase):
     def _assertScimError(
         self,
         json: Mapping[str, Any],
-        schemas: Optional[List[str]] = None,
+        schemas: Optional[list[str]] = None,
         status: int = 400,
         scim_type: Optional[str] = None,
         detail: Optional[Any] = None,
@@ -179,7 +177,7 @@ class ScimApiTestCase(MongoNeoTestCase):
         self,
         response: Response,
         resource: Union[ScimApiGroup, ScimApiUser, ScimApiInvite, ScimApiEvent],
-        expected_schemas: List[str],
+        expected_schemas: list[str],
     ):
         if SCIMSchema.NUTID_USER_V1.value in response.json():
             # The API can always add this extension to the parsed_response, even if it was not in the request
@@ -237,7 +235,7 @@ class ScimApiTestCase(MongoNeoTestCase):
         )
 
     @staticmethod
-    def _assertName(db_name: ScimApiName, response_name: Dict[str, str]):
+    def _assertName(db_name: ScimApiName, response_name: dict[str, str]):
         name_map = [
             ("family_name", "familyName"),
             ("given_name", "givenName"),

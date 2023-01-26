@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2020 SUNET
 # All rights reserved.
@@ -33,7 +32,7 @@
 from copy import copy
 from dataclasses import dataclass
 from enum import Enum, unique
-from typing import Any, Dict, Mapping, Optional, Union
+from typing import Any, Mapping, Optional, Union
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from flask import redirect
@@ -126,7 +125,7 @@ def error_response(
 def _make_payload(
     payload: Optional[Mapping[str, Any]], message: Optional[Union[TranslatableMsg, str]], success: bool
 ) -> Mapping[str, Any]:
-    res: Dict[str, Any] = {}
+    res: dict[str, Any] = {}
     if payload is not None:
         res = copy(dict(payload))  # to not mess with callers data
 

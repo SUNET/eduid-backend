@@ -1,5 +1,5 @@
 import json
-from typing import Any, Dict
+from typing import Any
 
 import pkg_resources
 from fastapi.testclient import TestClient
@@ -25,7 +25,7 @@ class TestAMBase(CommonTestCase):
         self.source = Source.TEST.value
         self.reason = Reason.TEST.value
 
-    def _get_config(self) -> Dict[str, Any]:
+    def _get_config(self) -> dict[str, Any]:
         config = {
             "keystore_path": f"{self.path}/testing_jwks.json",
             "mongo_uri": self.settings["mongo_uri"],

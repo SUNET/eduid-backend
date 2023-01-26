@@ -32,7 +32,7 @@
 import logging
 from abc import ABC
 from dataclasses import dataclass
-from typing import Any, Dict, Generic, List, Mapping, Optional, TypeVar, Union
+from typing import Any, Generic, Mapping, Optional, TypeVar, Union
 
 from bson import ObjectId
 from bson.errors import InvalidId
@@ -89,7 +89,7 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
 
     __str__ = __repr__
 
-    def _users_from_documents(self, documents: List[TUserDbDocument]) -> List[UserVar]:
+    def _users_from_documents(self, documents: list[TUserDbDocument]) -> list[UserVar]:
         """
         Covert a list of user documents to a list of User instances.
 
@@ -128,13 +128,13 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
                 return None
         return self._get_user_by_attr("_id", user_id)
 
-    def _get_users_by_aggregate(self, match: dict[str, Any], sort: dict[str, Any], limit: int) -> List[UserVar]:
+    def _get_users_by_aggregate(self, match: dict[str, Any], sort: dict[str, Any], limit: int) -> list[UserVar]:
         users = self._get_documents_by_aggregate(match=match, sort=sort, limit=limit)
         return self._users_from_documents(users)
 
     def get_uncleaned_verified_users(
         self, cleaned_type: CleanerType, identity_type: IdentityType, limit: int
-    ) -> List[UserVar]:
+    ) -> list[UserVar]:
         match = {
             "identities": {
                 "$elemMatch": {
@@ -149,7 +149,7 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
         return self._get_users_by_aggregate(match=match, sort=sort, limit=limit)
 
     def get_verified_users_count(self, identity_type: Optional[IdentityType] = None) -> int:
-        spec: Dict[str, Any]
+        spec: dict[str, Any]
         spec = {
             "identities": {
                 "$elemMatch": {
@@ -161,7 +161,7 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
             spec["identities"]["$elemMatch"]["identity_type"] = identity_type.value
         return self.db_count(spec=spec)
 
-    def _get_user_by_filter(self, filter: Mapping[str, Any]) -> List[UserVar]:
+    def _get_user_by_filter(self, filter: Mapping[str, Any]) -> list[UserVar]:
         """
         return the user matching the provided filter.
 
@@ -170,10 +170,10 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
         :return: List of User instances
         """
         try:
-            users: List[TUserDbDocument] = list(self._get_documents_by_filter(filter))
+            users: list[TUserDbDocument] = list(self._get_documents_by_filter(filter))
         except DocumentDoesNotExist:
-            logger.debug("{!s} No user found with filter {!r} in {!r}".format(self, filter, self._coll_name))
-            raise UserDoesNotExist("No user matching filter {!r}".format(filter))
+            logger.debug(f"{self!s} No user found with filter {filter!r} in {self._coll_name!r}")
+            raise UserDoesNotExist(f"No user matching filter {filter!r}")
 
         return self._users_from_documents(users)
 
@@ -186,7 +186,7 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
             raise MultipleUsersReturned(f"Multiple matching users for email {repr(email)}")
         return res[0]
 
-    def get_users_by_mail(self, email: str, include_unconfirmed: bool = False) -> List[UserVar]:
+    def get_users_by_mail(self, email: str, include_unconfirmed: bool = False) -> list[UserVar]:
         """
         Return the user object in the central eduID UserDB having
         an email address matching 'email'. Unless include_unconfirmed=True, the
@@ -213,7 +213,7 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
             raise MultipleUsersReturned(f"Multiple matching users for NIN {repr(nin)}")
         return res[0]
 
-    def get_users_by_nin(self, nin: str, include_unconfirmed: bool = False) -> List[UserVar]:
+    def get_users_by_nin(self, nin: str, include_unconfirmed: bool = False) -> list[UserVar]:
         """
         Return the user object in the central eduID UserDB having
         a NIN matching 'nin'. Unless include_unconfirmed=True, the
@@ -249,7 +249,7 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
             raise MultipleUsersReturned(f"Multiple matching users for phone {repr(phone)}")
         return res[0]
 
-    def get_users_by_phone(self, phone: str, include_unconfirmed: bool = False) -> List[UserVar]:
+    def get_users_by_phone(self, phone: str, include_unconfirmed: bool = False) -> list[UserVar]:
         """
         Return the user object in the central eduID UserDB having
         a phone number matching 'phone'. Unless include_unconfirmed=True, the
@@ -298,19 +298,19 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
         :raise self.MultipleUsersReturned: More than one user matches the search criteria
         """
         user = None
-        logger.debug("{!s} Looking in {!r} for user with {!r} = {!r}".format(self, self._coll_name, attr, value))
+        logger.debug(f"{self!s} Looking in {self._coll_name!r} for user with {attr!r} = {value!r}")
         try:
             doc = self._get_document_by_attr(attr, value)
             if doc is not None:
                 logger.debug("{!s} Found user with id {!s}".format(self, doc["_id"]))
                 user = self._users_from_documents([doc])[0]
-                logger.debug("{!s} Returning user {!s}".format(self, user))
+                logger.debug(f"{self!s} Returning user {user!s}")
             return user
         except DocumentDoesNotExist as e:
-            logger.debug("UserDoesNotExist, {!r} = {!r}".format(attr, value))
+            logger.debug(f"UserDoesNotExist, {attr!r} = {value!r}")
             raise UserDoesNotExist(e.reason)
         except MultipleDocumentsReturned as e:
-            logger.error("MultipleUsersReturned, {!r} = {!r}".format(attr, value))
+            logger.error(f"MultipleUsersReturned, {attr!r} = {value!r}")
             raise MultipleUsersReturned(e.reason)
 
     def save(self, user: UserVar) -> UserSaveResult:
@@ -344,7 +344,7 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
 
         :param user_id: User id
         """
-        logger.debug("{!s} Removing user with id {!r} from {!r}".format(self, user_id, self._coll_name))
+        logger.debug(f"{self!s} Removing user with id {user_id!r} from {self._coll_name!r}")
         return self.remove_document(spec_or_id=user_id)
 
     def update_user(self, obj_id: ObjectId, operations: Mapping[str, Any]) -> None:
@@ -401,7 +401,7 @@ class AmDB(UserDB[User]):
 
         return UserSaveResult(success=bool(result))
 
-    def unverify_mail_aliases(self, user_id: ObjectId, mail_aliases: Optional[List[Dict[str, Any]]]) -> int:
+    def unverify_mail_aliases(self, user_id: ObjectId, mail_aliases: Optional[list[dict[str, Any]]]) -> int:
         count = 0
         if mail_aliases is None:
             logger.debug(f"No mailAliases to check duplicates against for user {user_id}.")
@@ -431,7 +431,7 @@ class AmDB(UserDB[User]):
                 pass
         return count
 
-    def unverify_phones(self, user_id: ObjectId, phones: List[Dict[str, Any]]) -> int:
+    def unverify_phones(self, user_id: ObjectId, phones: list[dict[str, Any]]) -> int:
         count = 0
         if phones is None:
             logger.debug(f"No phones to check duplicates against for user {user_id}.")

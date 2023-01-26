@@ -1,8 +1,5 @@
-# -*- coding: utf-8 -*-
-
 from collections import OrderedDict
 from datetime import datetime
-from typing import List
 from unittest import TestCase
 
 from eduid.common.rpc.msg_relay import FullPostalAddress
@@ -29,7 +26,7 @@ ADDRESS = FullPostalAddress.parse_obj(
 
 
 class ProofingStateTest(TestCase):
-    def _test_create_letterproofingstate(self, state: LetterProofingState, nin_expected_keys: List[str]):
+    def _test_create_letterproofingstate(self, state: LetterProofingState, nin_expected_keys: list[str]):
         """
         {
              'eppn': 'foob-arra',

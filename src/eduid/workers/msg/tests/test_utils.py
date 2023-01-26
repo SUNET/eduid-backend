@@ -15,4 +15,4 @@ class TestUtils(TestCase):
 
     def test_load_and_render_template(self):
         message = load_template(self.template_dir, "test.tmpl", self.msg_dict, "sv_SE")
-        self.assertEqual(message, "Sender is %s, recipient is %s" % (self.msg_dict["admin"], self.msg_dict["name"]))
+        self.assertEqual(message, "Sender is {}, recipient is {}".format(self.msg_dict["admin"], self.msg_dict["name"]))

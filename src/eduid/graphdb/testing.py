@@ -1,11 +1,10 @@
-# -*- coding: utf-8 -*-
 from __future__ import annotations
 
 import logging
 import random
 import unittest
 from os import environ
-from typing import Optional, Sequence, Type, cast
+from typing import Optional, Sequence, cast
 
 from neo4j.exceptions import ServiceUnavailable
 
@@ -118,7 +117,7 @@ class Neo4jTemporaryInstance(EduidTemporaryInstance):
                 s.run(f'DROP INDEX {index["name"]}')
 
     @classmethod
-    def get_instance(cls: Type[Neo4jTemporaryInstance], max_retry_seconds: int = 60) -> Neo4jTemporaryInstance:
+    def get_instance(cls: type[Neo4jTemporaryInstance], max_retry_seconds: int = 60) -> Neo4jTemporaryInstance:
         return cast(Neo4jTemporaryInstance, super().get_instance(max_retry_seconds=max_retry_seconds))
 
 

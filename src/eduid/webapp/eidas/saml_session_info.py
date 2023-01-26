@@ -1,8 +1,6 @@
-# -*- coding: utf-8 -*-
-
 import logging
 from datetime import date, datetime
-from typing import Dict, List, Optional, Tuple
+from typing import Optional
 
 from dateutil.parser import parse as dt_parse
 from pydantic import BaseModel, Field, root_validator
@@ -17,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 class BaseSessionInfo(BaseModel):
     issuer: str
-    authn_info: List[Tuple[str, List[str], str]]
+    authn_info: list[tuple[str, list[str], str]]
 
     @property
     def authn_context(self) -> Optional[str]:
@@ -35,7 +33,7 @@ class SAMLAttributes(BaseModel):
     # pysaml returns attributes in lists, we never used anything other than index 0
     # so lets just do that for everything on load
     @root_validator(pre=True)
-    def unwind_value(cls, values: Dict[str, List[str]]) -> Dict[str, str]:
+    def unwind_value(cls, values: dict[str, list[str]]) -> dict[str, str]:
         # log if we get any attributes values with more than one entry
         for key, value in values.items():
             if not isinstance(value, list):
@@ -43,7 +41,7 @@ class SAMLAttributes(BaseModel):
             if len(value) > 1:
                 logger.warning(f"got attributes with {key} that has more than one value")
                 logger.debug(f"attributes: {values}")
-        return dict([(key, value[0]) for key, value in values.items() if value])
+        return {key: value[0] for key, value in values.items() if value}
 
 
 class NinAttributes(SAMLAttributes):

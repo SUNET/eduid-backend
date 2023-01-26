@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from base64 import b64encode
 from io import BytesIO
 from re import findall
@@ -483,7 +482,7 @@ def trycaptcha(email: str, recaptcha_response: str, tou_accepted: bool) -> FluxD
         signup_user = current_app.private_userdb.get_user_by_pending_mail_address(email)
         if signup_user is not None:
             assert signup_user.pending_mail_address is not None  # please mypy
-            current_app.logger.debug("Found user {} with pending email {} in signup db".format(signup_user, email))
+            current_app.logger.debug(f"Found user {signup_user} with pending email {email} in signup db")
             session.signup.email.address = signup_user.pending_mail_address.email
             session.signup.email.verification_code = signup_user.pending_mail_address.verification_code
             session.signup.email.sent_at = signup_user.pending_mail_address.modified_ts
