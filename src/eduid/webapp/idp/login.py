@@ -44,7 +44,6 @@ from eduid.webapp.idp.assurance import (
     MissingAuthentication,
     MissingMultiFactor,
     MissingPasswordFactor,
-    WrongMultiFactor,
 )
 from eduid.webapp.idp.assurance_data import AuthnInfo
 from eduid.webapp.idp.helpers import IdPMsg
@@ -164,9 +163,6 @@ def login_next_step(ticket: LoginContext, sso_session: Optional[SSOSession], tem
         res = NextResult(message=IdPMsg.mfa_required, user=user if template_mode else None)
     except MissingAuthentication:
         res = NextResult(message=IdPMsg.must_authenticate)
-    except WrongMultiFactor as exc:
-        current_app.logger.info(f"Assurance not possible: {repr(exc)}")
-        res = NextResult(message=IdPMsg.swamid_mfa_required, error=True)
     except AssuranceException as exc:
         current_app.logger.info(f"Assurance not possible: {repr(exc)}")
         res = NextResult(message=IdPMsg.assurance_not_possible, error=True)
@@ -267,8 +263,6 @@ class SSO(Service):
 
         if _next.message == IdPMsg.user_terminated:
             raise Forbidden("USER_TERMINATED")
-        if _next.message == IdPMsg.swamid_mfa_required:
-            raise Forbidden("SWAMID_MFA_REQUIRED")
         if _next.message == IdPMsg.wrong_user:
             raise BadRequest("WRONG_USER")
 

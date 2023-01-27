@@ -23,7 +23,9 @@ class SwamidAssurance(str, Enum):
     SWAMID_AL1 = "http://www.swamid.se/policy/assurance/al1"
     SWAMID_AL2 = "http://www.swamid.se/policy/assurance/al2"
     SWAMID_AL3 = "http://www.swamid.se/policy/assurance/al3"
-    SWAMID_AL2_MFA_HIGH = "http://www.swamid.se/policy/authentication/swamid-al2-mfa-hi"
+    SWAMID_AL2_MFA_HIGH = (
+        "http://www.swamid.se/policy/authentication/swamid-al2-mfa-hi"  # deprecated but keep around for a while
+    )
     REFEDS_ASSURANCE = "https://refeds.org/assurance"
     REFEDS_IAP_HIGH = "https://refeds.org/assurance/IAP/high"
     REFEDS_IAP_LOW = "https://refeds.org/assurance/IAP/low"

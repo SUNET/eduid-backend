@@ -40,8 +40,8 @@ from fido2.server import Fido2Server, U2FFido2Server
 from fido2.utils import websafe_decode
 from fido2.webauthn import AttestedCredentialData, AuthenticatorData, CollectedClientData, PublicKeyCredentialRpEntity
 from pydantic import BaseModel
-from eduid.common.models.webauthn import WebauthnChallenge
 
+from eduid.common.models.webauthn import WebauthnChallenge
 from eduid.userdb.credentials import U2F, Webauthn
 from eduid.userdb.element import ElementKey
 from eduid.userdb.user import User

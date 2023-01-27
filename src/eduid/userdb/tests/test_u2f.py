@@ -6,7 +6,7 @@ from unittest import TestCase
 import pytest
 from pydantic import ValidationError
 
-from eduid.userdb.credentials import U2F, CredentialList, CredentialProofingMethod
+from eduid.userdb.credentials import U2F, Credential, CredentialList, CredentialProofingMethod
 
 __author__ = "lundberg"
 
@@ -95,6 +95,8 @@ class TestU2F(TestCase):
         self.assertEqual(this.proofing_method, CredentialProofingMethod.SWAMID_AL2_MFA)
         this.proofing_method = CredentialProofingMethod.SWAMID_AL2_MFA_HI
         self.assertEqual(this.proofing_method, CredentialProofingMethod.SWAMID_AL2_MFA_HI)
+        this.proofing_method = CredentialProofingMethod.SWAMID_AL3_MFA
+        self.assertEqual(this.proofing_method, CredentialProofingMethod.SWAMID_AL3_MFA)
         this.proofing_method = None
         self.assertEqual(this.proofing_method, None)
 
@@ -106,3 +108,11 @@ class TestU2F(TestCase):
         self.assertEqual(this.proofing_version, "TEST2")
         this.proofing_version = None
         self.assertEqual(this.proofing_version, None)
+
+    def test_swamid_al2_hi_to_swamid_al3_migration(self):
+        this = self.three.find(_keyid(_three_dict))
+        this.proofing_method = CredentialProofingMethod.SWAMID_AL2_MFA_HI
+        this.is_verified = True
+        load_save_cred_list = CredentialList.from_list_of_dicts([this.to_dict()])
+        load_save_cred = load_save_cred_list.find(_keyid(_three_dict))
+        self.assertEqual(load_save_cred.proofing_method, CredentialProofingMethod.SWAMID_AL3_MFA)

@@ -35,7 +35,7 @@
 import logging
 
 from eduid.common.misc.timeutil import utc_now
-from eduid.userdb.credentials import CredentialProofingMethod, FidoCredential, Password
+from eduid.userdb.credentials import CredentialProofingMethod, FidoCredential, Password, Webauthn
 from eduid.userdb.credentials.external import SwedenConnectCredential
 from eduid.userdb.element import ElementKey
 from eduid.userdb.idp import IdPUser
@@ -69,10 +69,6 @@ class MissingMultiFactor(AssuranceException):
     pass
 
 
-class WrongMultiFactor(AssuranceException):
-    pass
-
-
 class MissingAuthentication(AssuranceException):
     pass
 
@@ -84,7 +80,7 @@ class AuthnState:
         self.fido_used = False
         self.external_mfa_used = False
         self.swamid_al2_used = False
-        self.swamid_al2_hi_used = False
+        self.swamid_al3_used = False
         self._onetime_credentials: dict[ElementKey, OnetimeCredential] = {}
         self._credentials = self._gather_credentials(sso_session, ticket, user)
 
@@ -100,21 +96,21 @@ class AuthnState:
                 if cred.is_verified:
                     if cred.proofing_method == CredentialProofingMethod.SWAMID_AL2_MFA:
                         self.swamid_al2_used = True
-                    elif cred.proofing_method == CredentialProofingMethod.SWAMID_AL2_MFA_HI:
-                        self.swamid_al2_hi_used = True
+                    elif cred.proofing_method == CredentialProofingMethod.SWAMID_AL3_MFA:
+                        self.swamid_al3_used = True
             elif isinstance(cred, OnetimeCredential):
                 # OLD way
                 logger.debug(f"External MFA used for this request: {cred}")
                 self.external_mfa_used = True
                 # TODO: Support more SwedenConnect authn contexts?
                 if cred.authn_context == "http://id.elegnamnden.se/loa/1.0/loa3":
-                    self.swamid_al2_hi_used = True
+                    self.swamid_al3_used = True
             elif isinstance(cred, SwedenConnectCredential):
                 # NEW way
                 logger.debug(f"SwedenConnect MFA used for this request: {cred}")
                 self.external_mfa_used = True
                 if cred.level == "loa3":
-                    self.swamid_al2_hi_used = True
+                    self.swamid_al3_used = True
             else:
                 # Warn, but do not fail when the credential isn't found on the user. This can't be a hard failure,
                 # because when a user changes password they will get a new credential and the old is removed from
@@ -200,7 +196,7 @@ class AuthnState:
         return (
             f"<AuthnState: creds={len(self._credentials)}, pw={self.password_used}, fido={self.fido_used}, "
             f"external_mfa={self.external_mfa_used}, nin is al2={self.is_swamid_al2}, "
-            f"mfa is {self.is_multifactor} (al2={self.swamid_al2_used}, al2_hi={self.swamid_al2_hi_used})>"
+            f"mfa is {self.is_multifactor} (al2={self.swamid_al2_used}, al3={self.swamid_al3_used})>"
         )
 
     @property
@@ -210,10 +206,6 @@ class AuthnState:
     @property
     def is_multifactor(self) -> bool:
         return self.password_used and (self.fido_used or self.external_mfa_used)
-
-    @property
-    def is_swamid_al2_mfa(self) -> bool:
-        return self.swamid_al2_used or self.swamid_al2_hi_used
 
     @property
     def credentials(self) -> list[UsedCredential]:
@@ -238,8 +230,6 @@ def response_authn(authn: AuthnState, ticket: LoginContext, user: IdPUser, sso_s
             raise MissingPasswordFactor()
         if not authn.is_multifactor:
             raise MissingMultiFactor()
-        if not authn.is_swamid_al2_mfa:
-            raise WrongMultiFactor()
         response_authn = EduidAuthnContextClass.REFEDS_MFA
 
     elif req_authn_ctx == EduidAuthnContextClass.REFEDS_SFA:
@@ -278,8 +268,7 @@ def response_authn(authn: AuthnState, ticket: LoginContext, user: IdPUser, sso_s
         raise MissingAuthentication()
 
     if authn.is_swamid_al2:
-        if authn.swamid_al2_hi_used and req_authn_ctx in [
-            EduidAuthnContextClass.REFEDS_SFA,
+        if authn.swamid_al3_used and req_authn_ctx in [
             EduidAuthnContextClass.REFEDS_MFA,
         ]:
             attributes["eduPersonAssurance"] = [item.value for item in current_app.conf.swamid_assurance_profile_3]
