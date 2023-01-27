@@ -158,7 +158,7 @@ class IdPConfig(EduIDBaseAppConfig, TouConfigMixin, WebauthnConfigMixin2, AmConf
             SwamidAssurance.SWAMID_AL1,
             SwamidAssurance.SWAMID_AL2,
             SwamidAssurance.SWAMID_AL3,
-            SwamidAssurance.SWAMID_AL2_MFA_HIGH,
+            SwamidAssurance.SWAMID_AL2_MFA_HIGH,  # deprecated but keep around for a while
             SwamidAssurance.REFEDS_ASSURANCE,
             SwamidAssurance.REFEDS_ID_UNIQUE,
             SwamidAssurance.REFEDS_EPPN_UNIQUE,

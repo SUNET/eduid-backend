@@ -417,7 +417,7 @@ def _find_or_add_credential(
         cred = SwedenConnectCredential(level=required_loa[0])
         cred.created_by = current_app.conf.app_name
         if cred.level == "loa3":
-            # TODO: proof token as SWAMID_AL2_MFA_HI?
+            # TODO: proof token as SWAMID_AL3_MFA?
             pass
     elif framework == TrustFramework.EIDAS:
         for this in user.credentials.filter(EidasCredential):
