@@ -34,12 +34,9 @@ extra_jobs:
     script:
       - "python3.9 -m venv venv"
       - ". venv/bin/activate"
-      - "pip install -U pip setuptools wheel pip-tools"
+      - "pip install -U pip setuptools wheel pip-tools mypy"
       - "touch requirements/*in"
       - "make update_deps"
-      - "python3.9 -m venv venv"
-      - ". venv/bin/activate"
-      - "pip install -U pip setuptools wheel mypy"
       - "pip install --index-url https://pypi.sunet.se -r requirements/test_requirements.txt"
       - "pip freeze"
       - "make test"
