@@ -37,7 +37,7 @@ from __future__ import annotations
 from enum import Enum
 from typing import Any, Optional
 
-from eduid.userdb.element import VerifiedElement, TVerifiedElementSubclass
+from eduid.userdb.element import TVerifiedElementSubclass, VerifiedElement
 
 __author__ = "ft"
 

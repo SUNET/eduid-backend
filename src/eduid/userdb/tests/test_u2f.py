@@ -6,7 +6,7 @@ from unittest import TestCase
 import pytest
 from pydantic import ValidationError
 
-from eduid.userdb.credentials import U2F, CredentialList, CredentialProofingMethod, Credential
+from eduid.userdb.credentials import U2F, Credential, CredentialList, CredentialProofingMethod
 
 __author__ = "lundberg"
 
