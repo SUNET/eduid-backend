@@ -81,7 +81,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
                 "environment": "dev",
                 "scim_api_url": "http://localhost/scim/",
                 "gnap_auth_data": {
-                    "authn_server_url": "http://localhost/auth/",
+                    "auth_server_url": "http://localhost/auth/",
                     "key_name": "app_name",
                     "client_jwk": JWK.generate(kid="testkey", kty="EC", size=256).export(as_dict=True),
                 },

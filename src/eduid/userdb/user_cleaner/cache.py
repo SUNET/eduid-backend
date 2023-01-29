@@ -36,7 +36,7 @@ class CacheUser(BaseModel):
 
     def from_user(self, data: User) -> "CacheUser":
         """
-        Convert a User object to a QueueUser object.
+        Convert a User object to a CacheUser object.
         """
         queue_user = CacheUser(
             eppn=data.eppn,
