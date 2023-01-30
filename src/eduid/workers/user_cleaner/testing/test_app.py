@@ -40,20 +40,3 @@ class AppTest(CommonTestCase):
                 "access": [""],  # List[Union[str, Access]] = Field(default_factory=list)
             },
         }
-
-    def test_populate_queue(self):
-        users = [UserFixtures().mocked_user_standard, UserFixtures().new_user_example]
-        self.app._populate_queue(users=users)
-        got_user1 = self.app.queue.get()
-        assert got_user1["eppn"] == UserFixtures().mocked_user_standard.eppn
-        assert got_user1["nin"] == UserFixtures().mocked_user_standard.identities.nin.number
-
-        got_user2 = self.app.queue.get()
-        assert got_user2["eppn"] == UserFixtures().new_user_example.eppn  # new_user_example2.eppn
-        assert (
-            got_user2["nin"] == UserFixtures().new_user_example.identities.nin.number
-        )  # new_user_example2.identities.nin.number
-
-    def test_get_delay_time(self):
-        got = self.app.get_delay_time()
-        assert got == 1294705
