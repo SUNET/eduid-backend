@@ -147,6 +147,7 @@ class SvipeIdTests(ProofingTests):
         administrative_number: str = "123456789",
         birthdate: date = date(year=1901, month=2, day=3),
         svipe_id: str = "unique_svipe_id",
+        transaction_id: str = "unique_transaction_id",
         given_name: str = "Test",
         family_name: str = "Testsson",
         now: datetime = utc_now(),
@@ -179,6 +180,7 @@ class SvipeIdTests(ProofingTests):
             document_nationality=nationality.alpha3,
             document_number="1234567890",
             svipe_id=svipe_id,
+            transaction_id=transaction_id,
         )
 
     @staticmethod

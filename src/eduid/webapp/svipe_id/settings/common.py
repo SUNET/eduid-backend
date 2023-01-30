@@ -37,6 +37,7 @@ class SvipeClientConfig(AuthlibClientConfig):
             "com.svipe:document_nationality",
             "com.svipe:document_number",
             "com.svipe:document_type_sdn_en",
+            "com.svipe:meta_transaction_id",
             "com.svipe:svipeid",
             "family_name",
             "given_name",

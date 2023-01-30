@@ -357,6 +357,8 @@ class SvipeIDNINProofing(NinProofingLogElement):
 
     # unique identifier
     svipe_id: str
+    # transaction id
+    transaction_id: str
     # document type (standardized english)
     document_type: str
     # document number
@@ -382,6 +384,8 @@ class SvipeIDForeignProofing(ForeignIdProofingLogElement):
 
     # unique identifier
     svipe_id: str
+    # transaction id
+    transaction_id: str
     # document administrative number
     administrative_number: str
     # document type (standardized english)

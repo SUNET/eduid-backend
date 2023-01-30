@@ -85,6 +85,7 @@ class SvipeDocumentUserInfo(UserInfoBase):
     given_name: str
     name: Optional[str]
     svipe_id: str = Field(alias="com.svipe:svipeid")
+    transaction_id: str = Field(alias="com.svipe:meta_transaction_id")
 
     @validator("document_nationality")
     def iso_3166_1_alpha_3_to_alpha2(cls, v):

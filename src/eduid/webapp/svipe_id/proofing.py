@@ -190,6 +190,7 @@ class SvipeIDProofingFunctions(ProofingFunctions[SvipeDocumentUserInfo]):
             eppn=user.eppn,
             nin=_nin,
             svipe_id=self.session_info.svipe_id,
+            transaction_id=self.session_info.transaction_id,
             document_type=self.session_info.document_type_sdn_en,  # standardised name in English (e.g. "Passport")
             document_number=self.session_info.document_number,
             proofing_version=current_app.conf.svipe_id_proofing_version,
@@ -202,6 +203,7 @@ class SvipeIDProofingFunctions(ProofingFunctions[SvipeDocumentUserInfo]):
             created_by=current_app.conf.app_name,
             eppn=user.eppn,
             svipe_id=self.session_info.svipe_id,
+            transaction_id=self.session_info.transaction_id,
             document_type=self.session_info.document_type_sdn_en,  # standardised name in English (e.g. "Passport")
             document_number=self.session_info.document_number,
             proofing_version=current_app.conf.svipe_id_proofing_version,
