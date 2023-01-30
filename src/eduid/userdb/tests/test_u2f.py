@@ -91,8 +91,6 @@ class TestU2F(TestCase):
 
     def test_proofing_method(self):
         this = self.three.find(_keyid(_three_dict))
-        this.proofing_method = CredentialProofingMethod.SWAMID_AL2_MFA
-        self.assertEqual(this.proofing_method, CredentialProofingMethod.SWAMID_AL2_MFA)
         this.proofing_method = CredentialProofingMethod.SWAMID_AL2_MFA_HI
         self.assertEqual(this.proofing_method, CredentialProofingMethod.SWAMID_AL2_MFA_HI)
         this.proofing_method = CredentialProofingMethod.SWAMID_AL3_MFA

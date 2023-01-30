@@ -44,7 +44,6 @@ __author__ = "ft"
 
 # well-known proofing methods
 class CredentialProofingMethod(str, Enum):
-    SWAMID_AL2_MFA = "SWAMID_AL2_MFA"
     SWAMID_AL2_MFA_HI = "SWAMID_AL2_MFA_HI"  # deprecated and replaced by SWAMID_AL3_MFA
     SWAMID_AL3_MFA = "SWAMID_AL3_MFA"
 
