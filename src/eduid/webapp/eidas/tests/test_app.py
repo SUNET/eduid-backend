@@ -17,7 +17,7 @@ from eduid.userdb import NinIdentity
 from eduid.userdb.credentials import U2F, Webauthn
 from eduid.userdb.credentials.external import EidasCredential, ExternalCredential, SwedenConnectCredential
 from eduid.userdb.element import ElementKey
-from eduid.userdb.identity import EIDASIdentity, EIDASLoa, PridPersistence
+from eduid.userdb.identity import EIDASIdentity, EIDASLoa, IdentityProofingMethod, PridPersistence
 from eduid.webapp.authn.views import FALLBACK_FRONTEND_ACTION
 from eduid.webapp.common.api.messages import CommonMsg, TranslatableMsg, redirect_with_msg
 from eduid.webapp.common.api.testing import CSRFTestClient
@@ -855,7 +855,13 @@ class EidasTests(ProofingTests[EidasApp]):
         )
         user = self.app.central_userdb.get_user_by_eppn(eppn)
         self._verify_user_parameters(
-            eppn, num_mfa_tokens=0, identity_verified=True, num_proofings=1, locked_identity=user.identities.nin
+            eppn,
+            num_mfa_tokens=0,
+            identity_verified=True,
+            num_proofings=1,
+            locked_identity=user.identities.nin,
+            proofing_method=IdentityProofingMethod.SWEDEN_CONNECT,
+            proofing_version=self.app.conf.freja_proofing_version,
         )
 
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
@@ -1393,6 +1399,8 @@ class EidasTests(ProofingTests[EidasApp]):
             identity_verified=True,
             num_proofings=1,
             locked_identity=user.identities.eidas,
+            proofing_method=IdentityProofingMethod.SWEDEN_CONNECT,
+            proofing_version=self.app.conf.foreign_eid_proofing_version,
         )
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")

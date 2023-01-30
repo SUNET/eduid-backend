@@ -9,6 +9,7 @@ from iso3166 import Country, countries
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb import SvipeIdentity
+from eduid.userdb.identity import IdentityProofingMethod
 from eduid.webapp.common.api.messages import CommonMsg
 from eduid.webapp.common.proofing.messages import ProofingMsg
 from eduid.webapp.common.proofing.testing import ProofingTests
@@ -302,7 +303,13 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
 
         user = self.app.central_userdb.get_user_by_eppn(eppn)
         self._verify_user_parameters(
-            eppn, identity_verified=True, num_proofings=1, num_mfa_tokens=0, locked_identity=user.identities.nin
+            eppn,
+            identity_verified=True,
+            num_proofings=1,
+            num_mfa_tokens=0,
+            locked_identity=user.identities.nin,
+            proofing_method=IdentityProofingMethod.SVIPE_ID,
+            proofing_version=self.app.conf.svipe_id_proofing_version,
         )
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
@@ -330,7 +337,13 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
 
         user = self.app.central_userdb.get_user_by_eppn(eppn)
         self._verify_user_parameters(
-            eppn, identity_verified=True, num_proofings=1, num_mfa_tokens=0, locked_identity=user.identities.svipe
+            eppn,
+            identity_verified=True,
+            num_proofings=1,
+            num_mfa_tokens=0,
+            locked_identity=user.identities.svipe,
+            proofing_method=IdentityProofingMethod.SVIPE_ID,
+            proofing_version=self.app.conf.svipe_id_proofing_version,
         )
 
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")

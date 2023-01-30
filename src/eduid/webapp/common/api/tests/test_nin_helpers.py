@@ -109,8 +109,8 @@ class NinHelpersTest(EduidAPITestCase[HelpersTestApp]):
             created_by=created_by,
             nin=nin,
             user_postal_address=navet_data,
-            proofing_method="test",
-            proofing_version="2017",
+            proofing_method="letter",
+            proofing_version="2017v1",
             deregistration_information=None,
         )
 

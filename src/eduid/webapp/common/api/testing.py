@@ -437,6 +437,8 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
         assert user.identities.nin.created_by == created_by_str
         assert user.identities.nin.verified_by == proofing_state.nin.created_by
         assert user.identities.nin.is_verified is True
+        assert user.identities.nin.proofing_method is not None
+        assert user.identities.nin.proofing_version is not None
 
         _log = getattr(self.app, "proofing_log")
         assert isinstance(_log, ProofingLog)
