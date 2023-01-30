@@ -63,7 +63,6 @@ class Credential(VerifiedElement):
     """
 
     proofing_method: Optional[CredentialProofingMethod] = None
-    proofing_version: Optional[str] = None
 
     def __str__(self):
         if len(self.key) == 24:

@@ -81,6 +81,7 @@ from __future__ import annotations
 import copy
 from abc import ABC
 from datetime import datetime
+from enum import Enum
 from typing import Any, Generic, Mapping, NewType, Optional, TypeVar, Union
 
 from pydantic import BaseModel, Extra, Field, validator
@@ -236,6 +237,8 @@ class VerifiedElement(Element, ABC):
     is_verified: bool = Field(default=False, alias="verified")
     verified_by: Optional[str] = None
     verified_ts: Optional[datetime] = None
+    proofing_method: Optional[Enum] = None
+    proofing_version: Optional[str] = None
 
     def __str__(self):
         return f"<eduID {self.__class__.__name__}(key={repr(self.key)}): verified={self.is_verified}>"
