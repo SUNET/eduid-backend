@@ -264,9 +264,7 @@ def response_authn(authn: AuthnState, ticket: LoginContext, user: IdPUser, sso_s
         raise MissingAuthentication()
 
     if authn.is_swamid_al2:
-        if authn.swamid_al3_used and req_authn_ctx in [
-            EduidAuthnContextClass.REFEDS_MFA,
-        ]:
+        if authn.swamid_al3_used:
             attributes["eduPersonAssurance"] = [item.value for item in current_app.conf.swamid_assurance_profile_3]
         else:
             attributes["eduPersonAssurance"] = [item.value for item in current_app.conf.swamid_assurance_profile_2]
