@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from datetime import datetime, timezone
 from uuid import UUID
 
@@ -182,8 +181,8 @@ class AttributeFetcherNINProofingTests(ProofingTestCase):
             "$unset": {"nins": None},
         }
 
-        assert (
-            normalised_data(fetched3) == expected
+        assert normalised_data(fetched3) == normalised_data(
+            expected
         ), "Fetched letter proofing data with appended attributes has unexpected data"
 
 
@@ -508,7 +507,13 @@ class AttributeFetcherLadokTests(ProofingTestCase):
             }
         }
 
-        assert normalised_data(fetched) == expected
+        expected = {
+            "$set": {
+                "ladok": self.user_data["ladok"],
+            }
+        }
+
+        assert normalised_data(fetched) == normalised_data(expected)
 
     def test_remove_ladok(self):
         proofing_user = ProofingUser.from_dict(self.user_data)

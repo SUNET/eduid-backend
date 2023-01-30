@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from __future__ import annotations
 
 import logging
@@ -6,7 +5,7 @@ from abc import ABC
 from copy import deepcopy
 from datetime import datetime
 from enum import Enum, unique
-from typing import Any, Dict, List, Mapping, NewType, Optional, Type, TypeVar, Union
+from typing import Any, Mapping, NewType, Optional, TypeVar, Union, cast
 from uuid import uuid4
 
 from fido2.webauthn import AuthenticatorAttachment
@@ -31,11 +30,11 @@ OIDCState = NewType("OIDCState", str)
 
 
 class SessionNSBase(BaseModel, ABC):
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return self.dict()
 
     @classmethod
-    def from_dict(cls: Type[TSessionNSSubclass], data) -> TSessionNSSubclass:
+    def from_dict(cls: type[TSessionNSSubclass], data: Mapping[str, Any]) -> TSessionNSSubclass:
         _data = cls._from_dict_transform(data)
 
         try:
@@ -45,7 +44,7 @@ class SessionNSBase(BaseModel, ABC):
             raise
 
     @classmethod
-    def _from_dict_transform(cls: Type[SessionNSBase], data: Mapping[str, Any]) -> Dict[str, Any]:
+    def _from_dict_transform(cls: type[SessionNSBase], data: Mapping[str, Any]) -> dict[str, Any]:
         _data = deepcopy(data)  # do not modify callers data
         return dict(_data)
 
@@ -75,7 +74,7 @@ class Common(SessionNSBase):
     preferred_language: Optional[str] = None
 
 
-WebauthnState = NewType("WebauthnState", Dict[str, Any])
+WebauthnState = NewType("WebauthnState", dict[str, Any])
 
 
 class MfaAction(SessionNSBase):
@@ -86,7 +85,7 @@ class MfaAction(SessionNSBase):
     credential_used: Optional[ElementKey] = None
     # Third-party MFA parameters
     framework: Optional[TrustFramework] = None
-    required_loa: List[str] = Field(default_factory=list)
+    required_loa: list[str] = Field(default_factory=list)
     issuer: Optional[str] = None
     authn_instant: Optional[str] = None
     authn_context: Optional[str] = None
@@ -196,8 +195,8 @@ class IdP_PendingRequest(BaseModel, ABC):
     used: Optional[bool] = False  # set to True after the request has been completed (to handle 'back' button presses)
     template_show_msg: Optional[str]  # set when the template version of the idp should show a message to the user
     # Credentials used while authenticating _this SAML request_. Not ones inherited from SSO.
-    credentials_used: Dict[ElementKey, datetime] = Field(default_factory=dict)
-    onetime_credentials: Dict[ElementKey, OnetimeCredential] = Field(default_factory=dict)
+    credentials_used: dict[ElementKey, datetime] = Field(default_factory=dict)
+    onetime_credentials: dict[ElementKey, OnetimeCredential] = Field(default_factory=dict)
 
 
 class IdP_SAMLPendingRequest(IdP_PendingRequest):
@@ -216,10 +215,10 @@ class IdP_Namespace(TimestampedNS):
     # The SSO cookie value last set by the IdP. Used to debug issues with browsers not
     # honoring Set-Cookie in redirects, or something.
     sso_cookie_val: Optional[str] = None
-    pending_requests: Dict[RequestRef, IdP_PendingRequest] = Field(default={})
+    pending_requests: dict[RequestRef, IdP_PendingRequest] = Field(default={})
 
     @classmethod
-    def _from_dict_transform(cls: Type[IdP_Namespace], data: Mapping[str, Any]) -> Dict[str, Any]:
+    def _from_dict_transform(cls: type[IdP_Namespace], data: Mapping[str, Any]) -> dict[str, Any]:
         _data = super()._from_dict_transform(data)
         if "pending_requests" in _data:
             # pre-parse values into the right subclass if IdP_PendingRequest
@@ -251,16 +250,19 @@ class BaseAuthnRequest(BaseModel, ABC):
 
 
 class SP_AuthnRequest(BaseAuthnRequest):
-    credentials_used: List[ElementKey] = Field(default_factory=list)
+    credentials_used: list[ElementKey] = Field(default_factory=list)
     # proofing_credential_id is the credential being person-proofed, when doing that
     proofing_credential_id: Optional[ElementKey] = None
     redirect_url: Optional[str]  # Deprecated, use frontend_action to get return URL from config instead
 
 
+PySAML2Dicts = NewType("PySAML2Dicts", dict[str, dict[str, Any]])
+
+
 class SPAuthnData(BaseModel):
     post_authn_action: Optional[Union[AuthnAcsAction, EidasAcsAction]] = None
-    pysaml2_dicts: Dict[str, Any] = Field(default_factory=dict)
-    authns: Dict[AuthnRequestRef, SP_AuthnRequest] = Field(default_factory=dict)
+    pysaml2_dicts: PySAML2Dicts = Field(default=cast(PySAML2Dicts, dict()))
+    authns: dict[AuthnRequestRef, SP_AuthnRequest] = Field(default_factory=dict)
 
     def get_authn_for_action(self, action: Union[AuthnAcsAction, EidasAcsAction]) -> Optional[SP_AuthnRequest]:
         for authn in self.authns.values():
@@ -288,8 +290,8 @@ class RP_AuthnRequest(BaseAuthnRequest):
 
 
 class RPAuthnData(BaseModel):
-    authlib_cache: Dict[str, Any] = Field(default_factory=dict)
-    authns: Dict[OIDCState, RP_AuthnRequest] = Field(default_factory=dict)
+    authlib_cache: dict[str, Any] = Field(default_factory=dict)
+    authns: dict[OIDCState, RP_AuthnRequest] = Field(default_factory=dict)
 
 
 class SvipeIDNamespace(SessionNSBase):

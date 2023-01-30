@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 __author__ = "lundberg"
 
 import unittest
@@ -10,7 +9,7 @@ from eduid.workers.am.testing import AMTestCase
 @unittest.skip("Not working yet")
 class TestIndexes(AMTestCase):
     def setUp(self):
-        super(TestIndexes, self).setUp()
+        super().setUp()
 
     def test_index_setup(self):
         indexes = {

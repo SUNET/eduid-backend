@@ -1,7 +1,7 @@
 import logging
 import pprint
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Mapping, Optional, Set
+from typing import Any, Mapping, Optional
 
 import satosa.context
 import satosa.internal
@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 @dataclass
-class Config(object):
+class Config:
     mongo_uri: str
     idp_to_data_owner: Mapping[str, str]
     mfa_stepup_issuer_to_entity_id: Mapping[str, str]
@@ -29,13 +29,13 @@ class ScimAttributes(ResponseMicroService):
     Add attributes from the scim db to the responses.
     """
 
-    def __init__(self, config: Mapping[str, Any], internal_attributes: Dict[str, Any], *args, **kwargs):
+    def __init__(self, config: Mapping[str, Any], internal_attributes: dict[str, Any], *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.config = Config(**config)
         # Setup databases
         self.eduid_userdb = ScimEduidUserDB(db_uri=self.config.mongo_uri)
         logger.info(f"Connected to eduid db: {self.eduid_userdb}")
-        self._userdbs: Dict[str, ScimApiUserDB] = {}
+        self._userdbs: dict[str, ScimApiUserDB] = {}
         self.converter = AttributeMapper(internal_attributes)
         # Get the internal attribute name for the eduPersonPrincipalName that will be
         # used to find users in the SCIM database
@@ -62,7 +62,7 @@ class ScimAttributes(ResponseMicroService):
     ) -> satosa.internal.InternalData:
         logger.debug(f"Data as dict:\n{pprint.pformat(data.to_dict())}")
 
-        scopes: Set[str] = set()
+        scopes: set[str] = set()
         try:
             scopes = self._get_scopes_for_idp(context, data.auth_info.issuer)
         except Exception:
@@ -100,7 +100,7 @@ class ScimAttributes(ResponseMicroService):
 
         return super().process(context, data)
 
-    def _get_scopes_for_idp(self, context: satosa.context.Context, entity_id: str) -> Set[str]:
+    def _get_scopes_for_idp(self, context: satosa.context.Context, entity_id: str) -> set[str]:
         res = set()
         logger.debug(f"Looking for metadata scope for entityId {entity_id}")
         for _md_name, _metadata in context.internal_data[context.KEY_METADATA_STORE].metadata.items():
@@ -116,7 +116,7 @@ class ScimAttributes(ResponseMicroService):
         return res
 
     def _get_user(
-        self, data: satosa.internal.InternalData, scopes: Set[str], frontend_name: str
+        self, data: satosa.internal.InternalData, scopes: set[str], frontend_name: str
     ) -> Optional[ScimApiUser]:
         # Look for explicit information about what data owner to use for this IdP
         issuer = frontend_name
@@ -161,7 +161,7 @@ class ScimAttributes(ResponseMicroService):
         return user
 
 
-def _extract_saml_scope(idpsso: List[Mapping[str, Any]]) -> Set[str]:
+def _extract_saml_scope(idpsso: list[Mapping[str, Any]]) -> set[str]:
     """
     Extract scopes from SAML extension data that looks something like this:
 

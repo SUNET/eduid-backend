@@ -1,9 +1,7 @@
-# -*- coding: utf-8 -*-
-
 import logging
 from functools import wraps
 from string import Template
-from typing import Mapping, Optional
+from typing import Any, Mapping, Optional
 
 from nacl import encoding, exceptions, secret
 
@@ -28,7 +26,7 @@ def read_secret_key(key_name: str) -> bytes:
     :return: 32 bytes of secret data
     """
     sanitized_key_name = "".join([c for c in key_name if c.isalpha() or c.isdigit() or c == "_"])
-    fp = "/run/secrets/{}".format(sanitized_key_name)
+    fp = f"/run/secrets/{sanitized_key_name}"
     with open(fp, "rb") as f:
         return encoding.URLSafeBase64Encoder.decode(f.readline())
 
@@ -46,7 +44,7 @@ def init_secret_box(key_name: Optional[str] = None, secret_key: Optional[bytes] 
     return secret.SecretBox(secret_key)
 
 
-def decrypt_config(config_dict: Mapping) -> Mapping:
+def decrypt_config(config_dict: Mapping[str, Any]) -> Mapping[str, Any]:
     """
     :param config_dict: Configuration dictionary
     :return: Configuration dictionary
@@ -63,7 +61,7 @@ def decrypt_config(config_dict: Mapping) -> Mapping:
                 if not boxes.get(key_name):
                     try:
                         boxes[key_name] = init_secret_box(key_name=key_name)
-                    except IOError as e:
+                    except OSError as e:
                         logging.error(e)
                         continue  # Try next key
                 try:
@@ -78,7 +76,7 @@ def decrypt_config(config_dict: Mapping) -> Mapping:
                     logging.error(e)
                     continue  # Try next key
             if not decrypted:
-                logging.error("Failed to decrypt {}:{}".format(key, value))
+                logging.error(f"Failed to decrypt {key}:{value}")
         else:
             new_config_dict[key] = value
     return new_config_dict
@@ -97,7 +95,7 @@ def interpolate(f):
     return interpolation_decorator
 
 
-def interpolate_list(config_dict: dict, sub_list: list) -> list:
+def interpolate_list(config_dict: dict[str, Any], sub_list: list) -> list:
     """
     :param config_dict: Configuration dictionary
     :param sub_list: Sub configuration list
@@ -119,7 +117,7 @@ def interpolate_list(config_dict: dict, sub_list: list) -> list:
     return sub_list
 
 
-def interpolate_config(config_dict: dict, sub_dict: Optional[dict] = None) -> dict:
+def interpolate_config(config_dict: dict[str, Any], sub_dict: Optional[dict[str, Any]] = None) -> dict[str, Any]:
     """
     :param config_dict: Configuration dictionary
     :param sub_dict: Sub configuration dictionary

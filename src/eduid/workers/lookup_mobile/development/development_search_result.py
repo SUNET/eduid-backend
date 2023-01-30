@@ -3,13 +3,13 @@ __author__ = "mathiashedstrom"
 from eduid.workers.lookup_mobile.development import nin_mobile_db
 
 
-class DevelopResult(object):
-    class Record(object):
+class DevelopResult:
+    class Record:
         def __init__(self, nin, mobile):
             self.SSNo = nin
             self.Mobiles = mobile
 
-    class RecordList(object):
+    class RecordList:
         def __init__(self):
             self._num_records = 0
             self.record = []

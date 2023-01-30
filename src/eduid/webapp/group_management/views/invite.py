@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2020 SUNET
 # All rights reserved.
@@ -122,7 +121,7 @@ def create_invite(user: User, group_identifier: UUID, email_address: str, role: 
         return outgoing_invites()
 
     try:
-        current_app.invite_state_db.save(invite_state)
+        current_app.invite_state_db.save(invite_state, is_in_database=False)
     except DuplicateKeyError:
         current_app.logger.info(
             f"Invite for email address {invite_state.email_address} to group {invite_state.group_scim_id} "

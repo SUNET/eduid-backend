@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2019 SUNET
 # All rights reserved.
@@ -30,7 +29,7 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-from typing import Dict
+
 
 from pydantic import Field
 
@@ -47,8 +46,8 @@ class OrcidConfig(EduIDBaseAppConfig, AmConfigMixin, ErrorsConfigMixin):
     token_service_url: str
 
     # OIDC
-    client_registration_info: Dict[str, str] = Field(default={"client_id": "", "client_secret": ""})
-    provider_configuration_info: Dict[str, str] = Field(
+    client_registration_info: dict[str, str] = Field(default={"client_id": "", "client_secret": ""})
+    provider_configuration_info: dict[str, str] = Field(
         default={
             "issuer": "",
         }

@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 from typing import Any, Mapping, Optional, cast
 
 from flask import current_app
@@ -18,7 +15,7 @@ __author__ = "lundberg"
 
 
 class EidasApp(AuthnBaseApp):
-    def __init__(self, config: EidasConfig, **kwargs):
+    def __init__(self, config: EidasConfig, **kwargs: Any):
         super().__init__(config, **kwargs)
 
         self.conf = config

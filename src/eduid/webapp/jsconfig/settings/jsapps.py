@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2019 SUNET
 # All rights reserved.
@@ -31,7 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from typing import Dict, Optional
+from typing import Optional
 
 from pydantic import AnyUrl, Field, HttpUrl
 
@@ -48,7 +47,7 @@ class JsAppsConfig(PasswordConfigMixin):
     debug: bool = False
     environment: EduidEnvironment = EduidEnvironment.production
     csrf_token: Optional[str] = None
-    available_languages: Dict[str, str] = Field(default={"en": "English", "sv": "Svenska"})
+    available_languages: dict[str, str] = Field(default={"en": "English", "sv": "Svenska"})
     eduid_site_name: str = "eduID"
     eduid_site_url: str = "https://eduid.se"
     dashboard_url: str
@@ -89,5 +88,5 @@ class JsAppsConfig(PasswordConfigMixin):
     default_country_code: int = 46
     token_verify_idp: str
     # Signup config
-    tous: Optional[Dict[str, str]] = None
+    tous: Optional[dict[str, str]] = None
     recaptcha_public_key: Optional[str] = None

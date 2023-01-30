@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2016 NORDUnet A/S
 # All rights reserved.
@@ -61,7 +60,7 @@ def get_new_proofing_state(user: User, phone: str) -> PhoneProofingState:
     verification = PhoneProofingElement(number=phone, verification_code=get_short_hash(), created_by="phone")
     proofing_state = PhoneProofingState(id=None, modified_ts=None, eppn=user.eppn, verification=verification)
     # XXX This should be an atomic transaction together with saving the user and sending the sms.
-    current_app.proofing_statedb.save(proofing_state)
+    current_app.proofing_statedb.save(proofing_state, is_in_database=False)
     current_app.logger.info("Created phone number verification state")
     current_app.logger.debug(f"Proofing state: {proofing_state.to_dict()}")
     return proofing_state

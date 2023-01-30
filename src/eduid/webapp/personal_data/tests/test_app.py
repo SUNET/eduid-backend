@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2016 NORDUnet A/S
 # Copyright (c) 2018 SUNET
@@ -32,10 +31,10 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 import json
-from typing import Any, Dict, Mapping, Optional
+from typing import Any, Mapping, Optional
+from unittest.mock import patch
 
-from flask import Response
-from mock import patch
+from werkzeug.test import TestResponse
 
 from eduid.userdb.element import ElementKey
 from eduid.webapp.common.api.exceptions import ApiException
@@ -43,9 +42,7 @@ from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.personal_data.app import PersonalDataApp, pd_init_app
 
 
-class PersonalDataTests(EduidAPITestCase):
-    app: PersonalDataApp
-
+class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
     def setUp(self, *args, **kwargs):
         super().setUp(*args, copy_user_to_private=True, **kwargs)
 
@@ -56,7 +53,7 @@ class PersonalDataTests(EduidAPITestCase):
         """
         return pd_init_app("testing", config)
 
-    def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
+    def update_config(self, config: dict[str, Any]) -> dict[str, Any]:
         config.update(
             {
                 "available_languages": {"en": "English", "sv": "Svenska"},
@@ -81,7 +78,7 @@ class PersonalDataTests(EduidAPITestCase):
 
             return json.loads(response2.data)
 
-    def _get_user_all_data(self, eppn: str) -> Response:
+    def _get_user_all_data(self, eppn: str) -> TestResponse:
         """
         Send a GET request to get all the data of a user
 
@@ -94,7 +91,9 @@ class PersonalDataTests(EduidAPITestCase):
             return client.get("/all-user-data")
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def _post_user(self, mock_request_user_sync: Any, mod_data: Optional[dict] = None, verified_user: bool = True):
+    def _post_user(
+        self, mock_request_user_sync: Any, mod_data: Optional[dict[str, Any]] = None, verified_user: bool = True
+    ):
         """
         POST personal data for the test user
         """
@@ -104,7 +103,6 @@ class PersonalDataTests(EduidAPITestCase):
         if not verified_user:
             # Remove verified identities from the users
             user = self.app.central_userdb.get_user_by_eppn(eppn)
-            assert user is not None  # please mypy
             for identity in user.identities.verified:
                 user.identities.remove(ElementKey(identity.identity_type.value))
             self.app.central_userdb.save(user)

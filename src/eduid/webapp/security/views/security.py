@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2016 NORDUnet A/S
 # All rights reserved.
@@ -33,7 +32,7 @@
 
 import json
 from datetime import timedelta
-from typing import Dict
+from typing import Union
 from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
 from flask import Blueprint, redirect, request, url_for
@@ -83,7 +82,7 @@ security_views = Blueprint("security", __name__, url_prefix="", template_folder=
 @security_views.route("/credentials", methods=["GET"])
 @MarshalWith(SecurityResponseSchema)
 @require_user
-def get_credentials(user):
+def get_credentials(user: User):
     """
     View to get credentials for the logged user.
     """
@@ -98,7 +97,7 @@ def get_credentials(user):
 @security_views.route("/suggested-password", methods=["GET"])
 @MarshalWith(SuggestedPasswordResponseSchema)
 @require_user
-def get_suggested(user):
+def get_suggested(user: User):
     """
     View to get a suggested  password for the logged user.
     """
@@ -112,7 +111,7 @@ def get_suggested(user):
 @security_views.route("/change-password", methods=["POST"])
 @MarshalWith(ChpassResponseSchema)
 @require_user
-def change_password(user):
+def change_password(user: User):
     """
     View to change the password
     """
@@ -164,7 +163,7 @@ def change_password(user):
     # del session['reauthn-for-chpass']
 
     current_app.stats.count(name="security_password_changed", value=1)
-    current_app.logger.info("Changed password for user {}".format(security_user.eppn))
+    current_app.logger.info(f"Changed password for user {security_user.eppn}")
 
     next_url = current_app.conf.dashboard_url
     credentials = {
@@ -177,8 +176,8 @@ def change_password(user):
 
 
 @security_views.route("/terminate-account", methods=["POST"])
-@MarshalWith(RedirectResponseSchema)
 @UnmarshalWith(EmptyRequest)
+@MarshalWith(RedirectResponseSchema)
 @require_user
 def delete_account(user: User):
     """
@@ -196,7 +195,7 @@ def delete_account(user: User):
     params = {"next": next_url}
 
     url_parts = list(urlparse(terminate_url))
-    query: Dict = parse_qs(url_parts[4])
+    query: dict = parse_qs(url_parts[4])
     query.update(params)
 
     url_parts[4] = urlencode(query)
@@ -261,7 +260,7 @@ def account_terminated(user: User):
 @require_user
 def add_nin(user: User, nin: str) -> FluxData:
     current_app.logger.info("Adding NIN to user")
-    current_app.logger.debug("NIN: {}".format(nin))
+    current_app.logger.debug(f"NIN: {nin}")
 
     if user.identities.nin is not None:
         current_app.logger.info("NIN already added.")
@@ -271,14 +270,14 @@ def add_nin(user: User, nin: str) -> FluxData:
     proofing_state = NinProofingState(id=None, eppn=user.eppn, nin=nin_element, modified_ts=None)
 
     try:
-        security_user = add_nin_to_user(user, proofing_state, user_type=SecurityUser)
+        security_user: SecurityUser = add_nin_to_user(user, proofing_state, user_type=SecurityUser)
     except AmTaskFailed:
         current_app.logger.exception("Adding nin to user failed")
         current_app.logger.debug(f"NIN: {nin}")
         return error_response(message=CommonMsg.temp_problem)
 
     # TODO: remove nins after frontend stops using it
-    nins = []
+    nins: list[dict[str, Union[str, bool]]] = []
     if security_user.identities.nin is not None:
         nins.append(security_user.identities.nin.to_old_nin())
 
@@ -295,7 +294,7 @@ def add_nin(user: User, nin: str) -> FluxData:
 def remove_nin(user: User, nin: str) -> FluxData:
     security_user = SecurityUser.from_user(user, current_app.private_userdb)
     current_app.logger.info("Removing NIN from user")
-    current_app.logger.debug("NIN: {}".format(nin))
+    current_app.logger.debug(f"NIN: {nin}")
 
     if user.identities.nin is not None:
         if user.identities.nin.number != nin:

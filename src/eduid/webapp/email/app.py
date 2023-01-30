@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2016 NORDUnet A/S
 # Copyright (c) 2020 SUNET
@@ -46,7 +45,7 @@ from eduid.webapp.email.settings.common import EmailConfig
 
 
 class EmailApp(AuthnBaseApp):
-    def __init__(self, config: EmailConfig, **kwargs):
+    def __init__(self, config: EmailConfig, **kwargs: Any):
         super().__init__(config, **kwargs)
 
         self.conf = config

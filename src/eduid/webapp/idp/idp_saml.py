@@ -2,7 +2,7 @@ import logging
 import typing
 from base64 import b64encode
 from hashlib import sha1
-from typing import Any, Dict, List, Mapping, NewType, Optional, Union
+from typing import Any, Mapping, NewType, Optional, Union
 
 import saml2.server
 from pydantic import BaseModel
@@ -21,7 +21,7 @@ if typing.TYPE_CHECKING:
     from eduid.webapp.idp.login import SAMLResponseParams
     from eduid.webapp.idp.login_context import LoginContextSAML
 
-ResponseArgs = NewType("ResponseArgs", Dict[str, Any])
+ResponseArgs = NewType("ResponseArgs", dict[str, Any])
 
 logger = logging.getLogger(__name__)
 
@@ -56,13 +56,13 @@ SamlResponse = NewType("SamlResponse", str)
 class ServiceInfo(BaseModel):
     """Info about the service (SAML SP) where the user is logging in"""
 
-    display_name: Dict[str, str]  # locale ('sv', 'en', ...) to display_name
+    display_name: dict[str, str]  # locale ('sv', 'en', ...) to display_name
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return self.dict()
 
 
-class IdP_SAMLRequest(object):
+class IdP_SAMLRequest:
     def __init__(
         self,
         request: str,
@@ -74,7 +74,7 @@ class IdP_SAMLRequest(object):
         self._binding = binding
         self._idp = idp
         self._debug = debug
-        self._service_info: Optional[Dict[str, Any]] = None
+        self._service_info: Optional[dict[str, Any]] = None
 
         try:
             self._req_info = idp.parse_authn_request(request, binding)
@@ -116,7 +116,7 @@ class IdP_SAMLRequest(object):
                 break
         if not verified_ok:
             _key = gen_key(info["SAMLRequest"])
-            logger.info("{!s}: SAML request signature verification failure".format(_key))
+            logger.info(f"{_key!s}: SAML request signature verification failure")
         return verified_ok
 
     @property
@@ -128,7 +128,7 @@ class IdP_SAMLRequest(object):
     def raw_requested_authn_context(self) -> Optional[RequestedAuthnContext]:
         return self._req_info.message.requested_authn_context
 
-    def get_requested_authn_contexts(self) -> List[str]:
+    def get_requested_authn_contexts(self) -> list[str]:
         """SAML requested authn context."""
         if self.raw_requested_authn_context:
             res = [x.text for x in self.raw_requested_authn_context.authn_context_class_ref]
@@ -201,7 +201,7 @@ class IdP_SAMLRequest(object):
     @property
     def sp_entity_attributes(self) -> Mapping[str, Any]:
         """Return the entity attributes for the SP that made the request from the metadata."""
-        res: Dict[str, Any] = {}
+        res: dict[str, Any] = {}
         try:
             _attrs = self._idp.metadata.entity_attributes(self.sp_entity_id)
             for k, v in _attrs.items():
@@ -213,10 +213,10 @@ class IdP_SAMLRequest(object):
         return res
 
     @property
-    def service_info(self) -> Optional[Dict[str, Any]]:
+    def service_info(self) -> Optional[dict[str, Any]]:
         """Information about the service where the user is logging in"""
         if self._service_info is None:
-            res: Dict[str, Any] = {}
+            res: dict[str, Any] = {}
             logger.debug(f"Looking up MDUI info in metadata for entity id {self.sp_entity_id}")
             for uiinfo in self._idp.metadata.mdui_uiinfo(self.sp_entity_id):
                 if "display_name" in uiinfo:
@@ -230,9 +230,9 @@ class IdP_SAMLRequest(object):
         return self._service_info
 
     @property
-    def sp_digest_algs(self) -> List[str]:
+    def sp_digest_algs(self) -> list[str]:
         """Return the best signing algorithm that both the IdP and SP supports"""
-        res: List[str] = []
+        res: list[str] = []
         try:
             _algs = self._idp.metadata.supported_algorithms(self.sp_entity_id)["digest_methods"]
             for this in _algs:
@@ -244,9 +244,9 @@ class IdP_SAMLRequest(object):
         return res
 
     @property
-    def sp_sign_algs(self) -> List[str]:
+    def sp_sign_algs(self) -> list[str]:
         """Return the best signing algorithm that both the IdP and SP supports"""
-        res: List[str] = []
+        res: list[str] = []
         try:
             _algs = self._idp.metadata.supported_algorithms(self.sp_entity_id)["signing_methods"]
             for this in _algs:

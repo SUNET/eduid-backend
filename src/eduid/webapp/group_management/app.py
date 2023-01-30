@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2020 SUNET
 # All rights reserved.
@@ -100,5 +99,5 @@ def init_group_management_app(
     # Init translation
     translation.init_babel(app)
 
-    app.logger.info("{!s} initialized".format(name))
+    app.logger.info(f"{name!s} initialized")
     return app

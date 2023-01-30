@@ -2,10 +2,12 @@
 Define a EduIDApp to create a Flask app and update
 it with all attributes common to all eduID services.
 """
+from __future__ import annotations
+
 import os
 from abc import ABCMeta
 from sys import stderr
-from typing import Any, Dict, TypeVar
+from typing import Any, Optional, TypeVar
 
 from cookies_samesite_compat import CookiesSameSiteCompatMiddleware
 from flask import Flask
@@ -41,6 +43,7 @@ if DEBUG:
 
 
 TFlaskConfigSubclass = TypeVar("TFlaskConfigSubclass", bound=FlaskConfig)
+TEduIDBaseAppSubclass = TypeVar("TEduIDBaseAppSubclass", bound="EduIDBaseApp")
 
 
 class EduIDBaseApp(Flask, metaclass=ABCMeta):
@@ -83,8 +86,8 @@ class EduIDBaseApp(Flask, metaclass=ABCMeta):
         # Set app url prefix to APPLICATION_ROOT
         self.wsgi_app = PrefixMiddleware(  # type: ignore
             self.wsgi_app,
-            prefix=self.config["APPLICATION_ROOT"],
-            server_name=self.config["SERVER_NAME"],
+            prefix=config.flask.application_root,
+            server_name=config.flask.server_name or "",
         )
 
         # Allow legacy samesite cookie support
@@ -99,12 +102,19 @@ class EduIDBaseApp(Flask, metaclass=ABCMeta):
         self.stats = init_app_stats(config)
         self.session_interface = SessionFactory(config)
 
+        self._central_userdb: Optional[AmDB] = None
         if init_central_userdb:
-            self.central_userdb = AmDB(config.mongo_uri)
+            self._central_userdb = AmDB(config.mongo_uri)
 
         # Set up generic health check views
-        self.failure_info: Dict[str, FailCountItem] = dict()
+        self.failure_info: dict[str, FailCountItem] = dict()
         init_status_views(self, config)
+
+    @property
+    def central_userdb(self) -> AmDB:
+        if not isinstance(self._central_userdb, AmDB):
+            raise RuntimeError("Central userdb not initialised")
+        return self._central_userdb
 
     def run_health_checks(
         self,

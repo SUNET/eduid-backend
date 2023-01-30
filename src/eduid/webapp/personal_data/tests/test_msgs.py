@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import unittest
 
 from eduid.webapp.personal_data.helpers import PDataMsg

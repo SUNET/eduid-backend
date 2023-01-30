@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 __author__ = "lundberg"
 
 from eduid.common.config.workers import MsgConfig

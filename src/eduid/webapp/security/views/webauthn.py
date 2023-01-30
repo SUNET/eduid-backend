@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
-
 import base64
-from typing import List, Optional, Sequence
+from typing import Optional, Sequence
 
 from fido2 import cbor
 from fido2.server import Fido2Server, PublicKeyCredentialRpEntity
@@ -53,7 +51,7 @@ def get_webauthn_server(
     return Fido2Server(rp, attestation=attestation)
 
 
-def make_credentials(creds: Sequence[FidoCredential]) -> List[AttestedCredentialData]:
+def make_credentials(creds: Sequence[FidoCredential]) -> list[AttestedCredentialData]:
     credentials = []
     for cred in creds:
         if isinstance(cred, Webauthn):
@@ -87,7 +85,7 @@ def registration_begin(user: User, authenticator: str) -> FluxData:
     user_webauthn_tokens = user.credentials.filter(FidoCredential)
     if len(user_webauthn_tokens) >= current_app.conf.webauthn_max_allowed_tokens:
         current_app.logger.error(
-            "User tried to register more than {} tokens.".format(current_app.conf.webauthn_max_allowed_tokens)
+            f"User tried to register more than {current_app.conf.webauthn_max_allowed_tokens} tokens."
         )
         return error_response(message=SecurityMsg.max_webauthn)
 
@@ -110,8 +108,8 @@ def registration_begin(user: User, authenticator: str) -> FluxData:
     )
     session.security.webauthn_registration = WebauthnRegistration(webauthn_state=state, authenticator=_auth_enum)
 
-    current_app.logger.info("User {} has started registration of a webauthn token".format(user))
-    current_app.logger.debug("Webauthn Registration data: {}.".format(registration_data))
+    current_app.logger.info(f"User {user} has started registration of a webauthn token")
+    current_app.logger.debug(f"Webauthn Registration data: {registration_data}.")
 
     if not check_magic_cookie(current_app.conf):  # no stats for automatic tests
         current_app.stats.count(name="webauthn_register_begin")

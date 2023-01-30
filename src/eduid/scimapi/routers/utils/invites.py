@@ -1,8 +1,7 @@
-# -*- coding: utf-8 -*-
 from dataclasses import asdict
 from datetime import datetime, timedelta
 from os import environ
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Optional, Sequence
 
 from fastapi import Request, Response
 from pymongo.errors import DuplicateKeyError
@@ -149,13 +148,19 @@ def send_invite_mail(req: ContextRequest, signup_invite: SignupInvite):
     return True
 
 
-def invites_to_resources_dicts(query: SearchRequest, invites: Sequence[ScimApiInvite]) -> List[Dict[str, Any]]:
+def invites_to_resources_dicts(query: SearchRequest, invites: Sequence[ScimApiInvite]) -> list[dict[str, Any]]:
     _attributes = query.attributes
     # TODO: include the requested attributes, not just id
     return [{"id": str(invite.scim_id)} for invite in invites]
 
 
-def save_invite(req: ContextRequest, db_invite: ScimApiInvite, signup_invite: SignupInvite) -> None:
+def save_invite(
+    req: ContextRequest,
+    db_invite: ScimApiInvite,
+    signup_invite: SignupInvite,
+    db_invite_is_in_database: bool,
+    signup_invite_is_in_database: bool,
+) -> None:
     try:
         req.context.invitedb.save(db_invite)
     except DuplicateKeyError as e:
@@ -165,7 +170,7 @@ def save_invite(req: ContextRequest, db_invite: ScimApiInvite, signup_invite: Si
         raise BadRequest(detail="Duplicated key error")
 
     try:
-        req.app.context.signup_invitedb.save(signup_invite)
+        req.app.context.signup_invitedb.save(signup_invite, is_in_database=signup_invite_is_in_database)
     except DuplicateKeyError as e:
         assert e.details is not None  # please mypy
         if "invite_code" in e.details["errmsg"]:
@@ -175,7 +180,7 @@ def save_invite(req: ContextRequest, db_invite: ScimApiInvite, signup_invite: Si
 
 def filter_lastmodified(
     req: ContextRequest, filter: SearchFilter, skip: Optional[int] = None, limit: Optional[int] = None
-) -> Tuple[List[ScimApiInvite], int]:
+) -> tuple[list[ScimApiInvite], int]:
     if filter.op not in ["gt", "ge"]:
         raise BadRequest(scim_type="invalidFilter", detail="Unsupported operator")
     if not isinstance(filter.val, str):

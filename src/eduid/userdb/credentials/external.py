@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Any, Dict, Mapping, Optional
+from typing import Any, Mapping, Optional
 
 from bson import ObjectId
 from pydantic import Field, validator
@@ -36,11 +36,6 @@ class ExternalCredential(Credential):
         Return the element that is used as key.
         """
         return ElementKey(self.credential_id)
-
-    def to_dict(self) -> Dict[str, Any]:
-        data = super().to_dict()
-        data["framework"] = self.framework.value
-        return data
 
 
 class SwedenConnectCredential(ExternalCredential):

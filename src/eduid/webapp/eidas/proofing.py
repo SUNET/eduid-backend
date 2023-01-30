@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Generic, List, Optional, TypeVar
+from typing import Generic, Optional, TypeVar
 
 from eduid.common.config.base import ProofingConfigMixin
 from eduid.common.rpc.exceptions import AmTaskFailed, MsgTaskFailed, NoNavetData
@@ -13,6 +13,7 @@ from eduid.userdb.credentials.external import (
     TrustFramework,
 )
 from eduid.userdb.element import ElementKey
+from eduid.userdb.exceptions import LockedIdentityViolation
 from eduid.userdb.identity import EIDASLoa, IdentityElement, IdentityType, PridPersistence
 from eduid.userdb.logs.element import (
     ForeignIdProofingLogElement,
@@ -43,7 +44,7 @@ BaseSessionInfoVar = TypeVar("BaseSessionInfoVar", bound=BaseSessionInfo)
 
 
 @dataclass
-class SwedenConnectProofingFunctions(ProofingFunctions, Generic[BaseSessionInfoVar]):
+class SwedenConnectProofingFunctions(ProofingFunctions[BaseSessionInfoVar], Generic[BaseSessionInfoVar]):
     def get_identity(self, user: User) -> Optional[IdentityElement]:
         raise NotImplementedError("Subclass must implement get_identity")
 
@@ -134,22 +135,24 @@ class FrejaProofingFunctions(SwedenConnectProofingFunctions[NinSessionInfo]):
         assert isinstance(proofing_log_entry.data, NinProofingLogElement)  # please type checking
 
         # Verify NIN for user
+        nin_element = NinProofingElement(
+            number=self.session_info.attributes.nin, created_by=current_app.conf.app_name, is_verified=False
+        )
+        proofing_state = NinProofingState(id=None, modified_ts=None, eppn=proofing_user.eppn, nin=nin_element)
         try:
-            nin_element = NinProofingElement(
-                number=self.session_info.attributes.nin, created_by=current_app.conf.app_name, is_verified=False
-            )
-            proofing_state = NinProofingState(id=None, modified_ts=None, eppn=proofing_user.eppn, nin=nin_element)
             if not verify_nin_for_user(proofing_user, proofing_state, proofing_log_entry.data):
                 current_app.logger.error(f"Failed verifying NIN for user {proofing_user}")
                 return VerifyUserResult(error=CommonMsg.temp_problem)
         except AmTaskFailed:
             current_app.logger.exception("Verifying NIN for user failed")
             return VerifyUserResult(error=CommonMsg.temp_problem)
+        except LockedIdentityViolation:
+            current_app.logger.exception("Verifying NIN for user failed")
+            return VerifyUserResult(error=CommonMsg.locked_identity_not_matching)
 
         current_app.stats.count(name="nin_verified")
         # re-load the user from central db before returning
         _user = current_app.central_userdb.get_user_by_eppn(proofing_user.eppn)
-        assert _user is not None  # please mypy
         return VerifyUserResult(user=ProofingUser.from_user(_user, current_app.private_userdb))
 
     def identity_proofing_element(self, user: User) -> ProofingElementResult:
@@ -319,7 +322,6 @@ class EidasProofingFunctions(SwedenConnectProofingFunctions[ForeignEidSessionInf
         current_app.stats.count(name="eidas_verified")
         # load the user from central db before returning
         _user = current_app.central_userdb.get_user_by_eppn(proofing_user.eppn)
-        assert _user is not None  # please mypy
         return VerifyUserResult(user=_user)
 
     def identity_proofing_element(self, user: User) -> ProofingElementResult:
@@ -397,7 +399,7 @@ class EidasProofingFunctions(SwedenConnectProofingFunctions[ForeignEidSessionInf
 
 
 def _find_or_add_credential(
-    user: User, framework: Optional[TrustFramework], required_loa: List[str]
+    user: User, framework: Optional[TrustFramework], required_loa: list[str]
 ) -> Optional[ElementKey]:
     if not required_loa:
         # mainly keep mypy calm
@@ -415,7 +417,7 @@ def _find_or_add_credential(
         cred = SwedenConnectCredential(level=required_loa[0])
         cred.created_by = current_app.conf.app_name
         if cred.level == "loa3":
-            # TODO: proof token as SWAMID_AL2_MFA_HI?
+            # TODO: proof token as SWAMID_AL3_MFA?
             pass
     elif framework == TrustFramework.EIDAS:
         for this in user.credentials.filter(EidasCredential):
@@ -431,9 +433,6 @@ def _find_or_add_credential(
 
     # Reload the user from the central database, to not overwrite any earlier NIN proofings
     _user = current_app.central_userdb.get_user_by_eppn(user.eppn)
-    if _user is None:
-        # Please mypy
-        raise RuntimeError(f"Could not reload user {user}")
 
     proofing_user = ProofingUser.from_user(_user, current_app.private_userdb)
 

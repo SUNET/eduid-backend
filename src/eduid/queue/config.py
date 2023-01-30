@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from typing import Sequence
 
 from eduid.common.config.base import EduidEnvironment, LoggingConfigMixin, LoggingFilters, RootConfig
@@ -30,3 +29,4 @@ class QueueWorkerConfig(RootConfig, LoggingConfigMixin):
     mail_username: str = ""
     mail_password: str = ""
     mail_default_from: str = "no-reply@eduid.se"
+    mail_default_domain: str = "eduid.se"

@@ -32,7 +32,7 @@
 
 __author__ = "eperez"
 
-from typing import Any, Dict
+from typing import Any
 
 from eduid.userdb.exceptions import UserMissingData
 from eduid.userdb.user import User
@@ -44,7 +44,7 @@ class ToUUser(User):
     """
 
     @classmethod
-    def check_or_use_data(cls, data: Dict[str, Any]) -> Dict[str, Any]:
+    def check_or_use_data(cls, data: dict[str, Any]) -> dict[str, Any]:
         """
         Check that the provided data dict contains all needed keys.
         """

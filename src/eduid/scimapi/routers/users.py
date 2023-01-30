@@ -76,8 +76,8 @@ async def on_put(req: ContextRequest, resp: Response, update_request: UserUpdate
     core_changed = False
     if SCIMSchema.CORE_20_USER in update_request.schemas:
         name_in = ScimApiName(**update_request.name.dict(exclude_none=True))
-        emails_in = set(ScimApiEmail(**email.dict()) for email in update_request.emails)
-        phone_numbers_in = set(ScimApiPhoneNumber(**number.dict()) for number in update_request.phone_numbers)
+        emails_in = {ScimApiEmail(**email.dict()) for email in update_request.emails}
+        phone_numbers_in = {ScimApiPhoneNumber(**number.dict()) for number in update_request.phone_numbers}
         # external_id
         if update_request.external_id != db_user.external_id:
             db_user = replace(db_user, external_id=update_request.external_id)
@@ -195,7 +195,7 @@ async def on_post(req: ContextRequest, resp: Response, create_request: UserCreat
         "lastModified":"2011-08-01T21:32:44.882Z",
         "location":
     "https://example.com/v2/Users/2819c223-7f76-453a-919d-413861904646",
-        "version":"W\/\"e180ee84f0671b1\""
+        "version":"W\\/\"e180ee84f0671b1\""
       },
       "name":{
         "formatted":"Ms. Barbara J Jensen III",

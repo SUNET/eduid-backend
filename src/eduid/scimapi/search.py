@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 @dataclass
-class SearchFilter(object):
+class SearchFilter:
     attr: str
     op: str
     val: Union[str, int]

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from dataclasses import replace
 from typing import Optional
 
@@ -150,7 +149,13 @@ async def on_put(
     #             db_invite.profiles[profile_name] = db_profile
 
     if invite_changed or profiles_changed:
-        save_invite(req, db_invite=db_invite, signup_invite=signup_invite)
+        save_invite(
+            req=req,
+            db_invite=db_invite,
+            signup_invite=signup_invite,
+            db_invite_is_in_database=True,
+            signup_invite_is_in_database=True,
+        )
         add_api_event(
             context=req.app.context,
             data_owner=req.context.data_owner,
@@ -228,7 +233,13 @@ async def on_post(req: ContextRequest, resp: Response, create_request: InviteCre
         profiles=profiles,
     )
     signup_invite = create_signup_invite(req, create_request, db_invite)
-    save_invite(req, db_invite=db_invite, signup_invite=signup_invite)
+    save_invite(
+        req=req,
+        db_invite=db_invite,
+        signup_invite=signup_invite,
+        db_invite_is_in_database=False,
+        signup_invite_is_in_database=False,
+    )
     if signup_invite.send_email:
         send_invite_mail(req, signup_invite)
 

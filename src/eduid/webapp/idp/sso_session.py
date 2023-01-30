@@ -37,7 +37,7 @@ import logging
 import typing
 import uuid
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Mapping, NewType, Optional, Type
+from typing import Any, Mapping, NewType, Optional
 
 from bson import ObjectId
 from pydantic import BaseModel, Field
@@ -92,7 +92,7 @@ class SSOSession(BaseModel):
     """
 
     eppn: str
-    authn_credentials: List[AuthnData]
+    authn_credentials: list[AuthnData]
     authn_request_id: str = ""  # This should be obsolete now - used to be used to 'break' forceAuthn looping
     authn_timestamp: datetime = Field(default_factory=utc_now)  # TODO: probably obsolete
     created_ts: datetime = Field(default_factory=utc_now)
@@ -116,14 +116,14 @@ class SSOSession(BaseModel):
             f"expires_at={self.expires_at.isoformat()}, age={self.age}>"
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Return the object in dict format (serialized for storing in MongoDB)."""
         res = self.dict()
         res["_id"] = res.pop("obj_id")
         return res
 
     @classmethod
-    def from_dict(cls: Type[SSOSession], data: Mapping[str, Any]) -> SSOSession:
+    def from_dict(cls: type[SSOSession], data: Mapping[str, Any]) -> SSOSession:
         """Construct element from a data dict in database format."""
         return cls(**data)
 
@@ -146,7 +146,7 @@ class SSOSession(BaseModel):
             raise ValueError(f"data should be AuthnData (not {type(authn)})")
 
         # Store only the latest use of a particular credential.
-        _creds: Dict[ElementKey, AuthnData] = {x.cred_id: x for x in self.authn_credentials}
+        _creds: dict[ElementKey, AuthnData] = {x.cred_id: x for x in self.authn_credentials}
         _existing = _creds.get(authn.cred_id)
         # only replace if newer
         if not _existing or authn.timestamp > _existing.timestamp:
@@ -161,7 +161,7 @@ def record_authentication(
     ticket: LoginContext,
     eppn: str,
     sso_session: Optional[SSOSession],
-    credentials: List[AuthnData],
+    credentials: list[AuthnData],
     sso_session_lifetime: timedelta,
 ) -> SSOSession:
     if not sso_session:
@@ -203,7 +203,7 @@ def get_sso_session() -> Optional[SSOSession]:
     return session
 
 
-def _lookup_sso_session(sso_sessions: "SSOSessionCache") -> Optional[SSOSession]:
+def _lookup_sso_session(sso_sessions: SSOSessionCache) -> Optional[SSOSession]:
     """
     See if a SSO session exists for this request, and return the data about
     the currently logged in user from the session store.

@@ -5,11 +5,12 @@ import logging
 import uuid
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from typing import Any, Dict, List, Mapping, Optional, Tuple, Type
+from typing import Any, Mapping, Optional
 
 from bson import ObjectId
 
 from eduid.userdb import User, UserDB
+from eduid.userdb.db import TUserDbDocument
 from eduid.userdb.scimapi.basedb import ScimApiBaseDB
 from eduid.userdb.scimapi.common import (
     ScimApiEmail,
@@ -30,27 +31,27 @@ logger = logging.getLogger(__name__)
 class ScimApiUser(ScimApiResourceBase):
     user_id: ObjectId = field(default_factory=lambda: ObjectId())
     name: ScimApiName = field(default_factory=lambda: ScimApiName())
-    emails: List[ScimApiEmail] = field(default_factory=list)
-    phone_numbers: List[ScimApiPhoneNumber] = field(default_factory=list)
+    emails: list[ScimApiEmail] = field(default_factory=list)
+    phone_numbers: list[ScimApiPhoneNumber] = field(default_factory=list)
     preferred_language: Optional[str] = None
-    profiles: Dict[str, ScimApiProfile] = field(default_factory=dict)
-    linked_accounts: List[ScimApiLinkedAccount] = field(default_factory=list)
+    profiles: dict[str, ScimApiProfile] = field(default_factory=dict)
+    linked_accounts: list[ScimApiLinkedAccount] = field(default_factory=list)
 
     @property
     def etag(self):
         return f'W/"{self.version}"'
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> TUserDbDocument:
         res = asdict(self)
         res["scim_id"] = str(res["scim_id"])
         res["_id"] = res.pop("user_id")
         res["emails"] = [email.to_dict() for email in self.emails]
         res["phone_numbers"] = [phone_number.to_dict() for phone_number in self.phone_numbers]
         res["linked_accounts"] = [acc.to_dict() for acc in self.linked_accounts]
-        return res
+        return TUserDbDocument(res)
 
     @classmethod
-    def from_dict(cls: Type[ScimApiUser], data: Mapping[str, Any]) -> ScimApiUser:
+    def from_dict(cls: type[ScimApiUser], data: Mapping[str, Any]) -> ScimApiUser:
         this = dict(copy.copy(data))  # to not modify callers data
         this["scim_id"] = uuid.UUID(this["scim_id"])
         this["user_id"] = this.pop("_id")
@@ -83,7 +84,12 @@ class ScimApiUserDB(ScimApiBaseDB):
             }
             self.setup_indexes(indexes)
 
-    def save(self, user: ScimApiUser) -> bool:
+    def save(self, user: ScimApiUser) -> None:
+        """
+        Save a user to the database.
+
+        TODO: Align these users with the standard UserDB users, using user.meta.version instead.
+        """
         user_dict = user.to_dict()
 
         if "profiles" in user_dict:
@@ -108,7 +114,7 @@ class ScimApiUserDB(ScimApiBaseDB):
                 logger.debug(f"{self} FAILED Updating user {user} in {self._coll_name}")
                 raise RuntimeError("User out of sync, please retry")
             # Out of sync check did not find any problems, it is a new user - save it.
-            result = self._coll.insert_one(user_dict)
+            _result2 = self._coll.insert_one(user_dict)
         # put the new version number and last_modified in the user object after a successful update
         user.version = user_dict["version"]
         user.last_modified = user_dict["last_modified"]
@@ -118,7 +124,7 @@ class ScimApiUserDB(ScimApiBaseDB):
         extra_debug = pprint.pformat(user_dict, width=120)
         logger.debug(f"Extra debug:\n{extra_debug}")
 
-        return result.acknowledged
+        return None
 
     def remove(self, user: ScimApiUser):
         return self.remove_document(user.user_id)
@@ -137,7 +143,7 @@ class ScimApiUserDB(ScimApiBaseDB):
 
     def get_users_by_last_modified(
         self, operator: str, value: datetime, limit: Optional[int] = None, skip: Optional[int] = None
-    ) -> Tuple[List[ScimApiUser], int]:
+    ) -> tuple[list[ScimApiUser], int]:
         # map SCIM filter operators to mongodb filter
         mongo_operator = {"gt": "$gt", "ge": "$gte"}.get(operator)
         if not mongo_operator:
@@ -158,5 +164,5 @@ class ScimEduidUserDB(UserDB[User]):
         super().__init__(db_uri, db_name)
 
     @classmethod
-    def user_from_dict(cls, data: Mapping[str, Any]) -> User:
+    def user_from_dict(cls, data: TUserDbDocument) -> User:
         return User.from_dict(data)

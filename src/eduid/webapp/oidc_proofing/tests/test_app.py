@@ -1,12 +1,11 @@
-# -*- coding: utf-8 -*-
 import binascii
 import json
 import time
 from collections import OrderedDict
-from typing import Any, Dict
+from typing import Any
+from unittest.mock import MagicMock, patch
 
 from jose import jws as jose
-from mock import patch
 
 from eduid.userdb import NinIdentity
 from eduid.webapp.common.api.testing import EduidAPITestCase
@@ -55,7 +54,7 @@ class OidcProofingTests(EduidAPITestCase):
             "userinfo_endpoint": "https://example.com/op/userinfo",
         }
 
-        class MockResponse(object):
+        class MockResponse:
             def __init__(self, status_code, text):
                 self.status_code = status_code
                 self.text = text
@@ -73,7 +72,7 @@ class OidcProofingTests(EduidAPITestCase):
             mock_response.return_value = self.oidc_provider_config_response
             return init_oidc_proofing_app("testing", config)
 
-    def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
+    def update_config(self, config: dict[str, Any]) -> dict[str, Any]:
         config.update(
             {
                 "provider_configuration_info": {"issuer": "https://example.com/op/"},
@@ -108,7 +107,7 @@ class OidcProofingTests(EduidAPITestCase):
         mock_userinfo_request.return_value = userinfo
         headers = {"Authorization": "Bearer {}".format(qrdata["token"])}
         return self.browser.get(
-            "/authorization-response?id_token=id_token&state={}".format(proofing_state.state), headers=headers
+            f"/authorization-response?id_token=id_token&state={proofing_state.state}", headers=headers
         )
 
     def test_authenticate(self):
@@ -131,7 +130,7 @@ class OidcProofingTests(EduidAPITestCase):
     def test_get_freja_state(self):
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         proofing_state = create_proofing_state(user, self.test_user_nin)
-        self.app.proofing_statedb.save(proofing_state)
+        self.app.proofing_statedb.save(proofing_state, is_in_database=False)
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             response = json.loads(browser.get("/freja/proofing").data)
         self.assertEqual(response["type"], "GET_OIDC_PROOFING_FREJA_PROOFING_SUCCESS")
@@ -168,7 +167,9 @@ class OidcProofingTests(EduidAPITestCase):
     @patch("eduid.webapp.oidc_proofing.helpers.do_authn_request")
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_postal_address")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_seleg_flow(self, mock_request_user_sync, mock_get_postal_address, mock_oidc_call):
+    def test_seleg_flow(
+        self, mock_request_user_sync: MagicMock, mock_get_postal_address: MagicMock, mock_oidc_call: MagicMock
+    ):
         mock_oidc_call.return_value = True
         mock_get_postal_address.return_value = self.mock_address
         mock_request_user_sync.side_effect = self.request_user_sync
@@ -193,6 +194,7 @@ class OidcProofingTests(EduidAPITestCase):
         # Fake callback from OP
         qrdata = json.loads(response["payload"]["qr_code"][1:])
         proofing_state = self.app.proofing_statedb.get_state_by_eppn(self.test_user_eppn)
+        assert proofing_state is not None
         userinfo = {
             "identity": self.test_user_nin,
             "metadata": {
@@ -210,7 +212,13 @@ class OidcProofingTests(EduidAPITestCase):
     @patch("eduid.webapp.oidc_proofing.helpers.do_authn_request")
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_postal_address")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_seleg_flow_low_score(self, mock_request_user_sync, mock_get_postal_address, mock_oidc_call, mock_sendmail):
+    def test_seleg_flow_low_score(
+        self,
+        mock_request_user_sync: MagicMock,
+        mock_get_postal_address: MagicMock,
+        mock_oidc_call: MagicMock,
+        mock_sendmail: MagicMock,
+    ):
         mock_sendmail.return_value = True
         mock_oidc_call.return_value = True
         mock_get_postal_address.return_value = self.mock_address
@@ -236,6 +244,7 @@ class OidcProofingTests(EduidAPITestCase):
         # Fake callback from OP
         qrdata = json.loads(response["payload"]["qr_code"][1:])
         proofing_state = self.app.proofing_statedb.get_state_by_eppn(self.test_user_eppn)
+        assert proofing_state is not None
         userinfo = {
             "identity": self.test_user_nin,
             "metadata": {
@@ -252,7 +261,9 @@ class OidcProofingTests(EduidAPITestCase):
     @patch("eduid.webapp.oidc_proofing.helpers.do_authn_request")
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_postal_address")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_seleg_flow_previously_added_nin(self, mock_request_user_sync, mock_get_postal_address, mock_oidc_call):
+    def test_seleg_flow_previously_added_nin(
+        self, mock_request_user_sync: MagicMock, mock_get_postal_address: MagicMock, mock_oidc_call: MagicMock
+    ):
         mock_oidc_call.return_value = True
         mock_get_postal_address.return_value = self.mock_address
         mock_request_user_sync.side_effect = self.request_user_sync
@@ -281,6 +292,7 @@ class OidcProofingTests(EduidAPITestCase):
         # Fake callback from OP
         qrdata = json.loads(response["payload"]["qr_code"][1:])
         proofing_state = self.app.proofing_statedb.get_state_by_eppn(self.test_user_eppn)
+        assert proofing_state is not None
         userinfo = {
             "identity": self.test_user_nin,
             "metadata": {
@@ -300,7 +312,7 @@ class OidcProofingTests(EduidAPITestCase):
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_postal_address")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_seleg_flow_previously_added_wrong_nin(
-        self, mock_request_user_sync, mock_get_postal_address, mock_oidc_call
+        self, mock_request_user_sync: MagicMock, mock_get_postal_address: MagicMock, mock_oidc_call: MagicMock
     ):
         mock_oidc_call.return_value = True
         mock_get_postal_address.return_value = self.mock_address
@@ -330,6 +342,7 @@ class OidcProofingTests(EduidAPITestCase):
         # Fake callback from OP
         qrdata = json.loads(response["payload"]["qr_code"][1:])
         proofing_state = self.app.proofing_statedb.get_state_by_eppn(self.test_user_eppn)
+        assert proofing_state is not None
         userinfo = {
             "identity": self.test_user_nin,
             "metadata": {
@@ -346,11 +359,12 @@ class OidcProofingTests(EduidAPITestCase):
     @patch("eduid.webapp.oidc_proofing.helpers.do_authn_request")
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_postal_address")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_freja_flow(self, mock_request_user_sync, mock_get_postal_address, mock_oidc_call):
+    def test_freja_flow(
+        self, mock_request_user_sync: MagicMock, mock_get_postal_address: MagicMock, mock_oidc_call: MagicMock
+    ):
         mock_oidc_call.return_value = True
         mock_get_postal_address.return_value = self.mock_address
         mock_request_user_sync.side_effect = self.request_user_sync
-        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             response = json.loads(browser.get("/freja/proofing").data)
@@ -370,6 +384,7 @@ class OidcProofingTests(EduidAPITestCase):
 
         # No actual oidc flow tested here
         proofing_state = self.app.proofing_statedb.get_state_by_eppn(self.test_user_eppn)
+        assert proofing_state is not None
         userinfo = {
             "results": {
                 "freja_eid": {
@@ -381,6 +396,8 @@ class OidcProofingTests(EduidAPITestCase):
                 }
             }
         }
+
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         with self.app.app_context():
             handle_freja_eid_userinfo(user, proofing_state, userinfo)
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
@@ -389,7 +406,9 @@ class OidcProofingTests(EduidAPITestCase):
     @patch("eduid.webapp.oidc_proofing.helpers.do_authn_request")
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_postal_address")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_freja_flow_previously_added_nin(self, mock_request_user_sync, mock_get_postal_address, mock_oidc_call):
+    def test_freja_flow_previously_added_nin(
+        self, mock_request_user_sync: MagicMock, mock_get_postal_address: MagicMock, mock_oidc_call: MagicMock
+    ):
         mock_oidc_call.return_value = True
         mock_get_postal_address.return_value = self.mock_address
         mock_request_user_sync.side_effect = self.request_user_sync
@@ -413,6 +432,7 @@ class OidcProofingTests(EduidAPITestCase):
 
         # No actual oidc flow tested here
         proofing_state = self.app.proofing_statedb.get_state_by_eppn(self.test_user_eppn)
+        assert proofing_state is not None
         userinfo = {
             "results": {
                 "freja_eid": {
@@ -435,7 +455,7 @@ class OidcProofingTests(EduidAPITestCase):
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_postal_address")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_freja_flow_previously_added_wrong_nin(
-        self, mock_request_user_sync, mock_get_postal_address, mock_oidc_call
+        self, mock_request_user_sync: MagicMock, mock_get_postal_address: MagicMock, mock_oidc_call: MagicMock
     ):
         mock_oidc_call.return_value = True
         mock_get_postal_address.return_value = self.mock_address
@@ -460,6 +480,7 @@ class OidcProofingTests(EduidAPITestCase):
 
         # No actual oidc flow tested here
         proofing_state = self.app.proofing_statedb.get_state_by_eppn(self.test_user_eppn)
+        assert proofing_state is not None
         userinfo = {
             "results": {
                 "freja_eid": {
@@ -479,7 +500,9 @@ class OidcProofingTests(EduidAPITestCase):
     @patch("eduid.webapp.oidc_proofing.helpers.do_authn_request")
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_postal_address")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_freja_flow_expired_state(self, mock_request_user_sync, mock_get_postal_address, mock_oidc_call):
+    def test_freja_flow_expired_state(
+        self, mock_request_user_sync: MagicMock, mock_get_postal_address: MagicMock, mock_oidc_call: MagicMock
+    ):
         mock_oidc_call.return_value = True
         mock_get_postal_address.return_value = self.mock_address
         mock_request_user_sync.side_effect = self.request_user_sync
@@ -508,7 +531,7 @@ class OidcProofingTests(EduidAPITestCase):
 
     @patch("eduid.webapp.oidc_proofing.helpers.do_authn_request")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_seleg_locked_identity(self, mock_request_user_sync, mock_oidc_call):
+    def test_seleg_locked_identity(self, mock_request_user_sync: MagicMock, mock_oidc_call: MagicMock):
         mock_oidc_call.return_value = True
         mock_request_user_sync.side_effect = self.request_user_sync
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
@@ -529,8 +552,9 @@ class OidcProofingTests(EduidAPITestCase):
         csrf_token = response["payload"]["csrf_token"]
 
         # User with locked_identity and correct nin
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         user.locked_identity.add(NinIdentity(number=self.test_user_nin, created_by="test", is_verified=True))
-        self.app.central_userdb.save(user, check_sync=False)
+        self.app.central_userdb.save(user)
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             data = {"nin": self.test_user_nin, "csrf_token": csrf_token}
@@ -549,7 +573,7 @@ class OidcProofingTests(EduidAPITestCase):
 
     @patch("eduid.webapp.oidc_proofing.helpers.do_authn_request")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_freja_locked_identity(self, mock_request_user_sync, mock_oidc_call):
+    def test_freja_locked_identity(self, mock_request_user_sync: MagicMock, mock_oidc_call: MagicMock):
         mock_oidc_call.return_value = True
         mock_request_user_sync.side_effect = self.request_user_sync
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
@@ -568,8 +592,9 @@ class OidcProofingTests(EduidAPITestCase):
 
         csrf_token = response["payload"]["csrf_token"]
 
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         user.locked_identity.add(NinIdentity(number=self.test_user_nin, created_by="test", is_verified=True))
-        self.app.central_userdb.save(user, check_sync=False)
+        self.app.central_userdb.save(user)
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             data = {"nin": self.test_user_nin, "csrf_token": csrf_token}

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from marshmallow.fields import Email
 
 __author__ = "lundberg"

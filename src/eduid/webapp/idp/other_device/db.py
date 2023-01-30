@@ -5,7 +5,7 @@ import logging
 import typing
 import uuid
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Mapping, Optional, Type
+from typing import Any, Mapping, Optional
 
 from bson import ObjectId
 from flask import request
@@ -34,7 +34,7 @@ class Device1Data(BaseModel):
     reauthn_required: bool  # if reauthn is required for the login on device 1
     ip_address: str  # the IP address of device 1, to be used by the user on device 2 to assess the request
     user_agent: Optional[str]  # the user agent of device 1, to be used by the user on device 2 to assess the request
-    service_info: Optional["ServiceInfo"]  # information about the service (SP) where the user is logging in
+    service_info: Optional[ServiceInfo]  # information about the service (SP) where the user is logging in
     is_known_device: bool  # device 1 is a device that has previously logged in as state.eppn
 
 
@@ -42,7 +42,7 @@ class Device2Data(BaseModel):
     ref: Optional[str] = None  # the pending_request 'ref' on device 2
     response_code: Optional[str] = None  # code from login event (using device 2) that has to be entered on device 1
     # TODO: doesn't work with onetime_credentials
-    credentials_used: List[UsedCredential] = Field(default=[])
+    credentials_used: list[UsedCredential] = Field(default=[])
 
 
 class OtherDevice(BaseModel):
@@ -63,8 +63,8 @@ class OtherDevice(BaseModel):
 
     @classmethod
     def from_parameters(
-        cls: Type[OtherDevice],
-        ticket: "LoginContext",
+        cls: type[OtherDevice],
+        ticket: LoginContext,
         eppn: Optional[str],
         authn_context: Optional[EduidAuthnContextClass],
         ip_address: str,
@@ -100,7 +100,7 @@ class OtherDevice(BaseModel):
             expires_at=now + ttl,
         )
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         return self.dict()
 
     def to_json(self):
@@ -111,7 +111,7 @@ class OtherDevice(BaseModel):
         return json.dumps(data, indent=4, cls=EduidJSONEncoder)
 
     @classmethod
-    def from_dict(cls: Type[OtherDevice], data: Mapping[str, Any]) -> OtherDevice:
+    def from_dict(cls: type[OtherDevice], data: Mapping[str, Any]) -> OtherDevice:
         return cls(**data)
 
 
@@ -143,11 +143,14 @@ class OtherDeviceDB(BaseDB):
             return None
         return OtherDevice.from_dict(state)
 
-    def add_new_state(self, ticket: "LoginContext", user: Optional[User], ttl: timedelta) -> OtherDevice:
+    def add_new_state(self, ticket: LoginContext, user: Optional[User], ttl: timedelta) -> OtherDevice:
         user_agent = None
         ua = get_user_agent()
         if ua:
             user_agent = str(ua.parsed)
+
+        if not request.remote_addr:
+            raise RuntimeError("No remote address in request")
 
         authn_ref = ticket.get_requested_authn_context()
         state = OtherDevice.from_parameters(
@@ -210,7 +213,7 @@ class OtherDeviceDB(BaseDB):
             return None
         return state
 
-    def logged_in(self, state: OtherDevice, eppn: str, credentials_used: List[UsedCredential]) -> Optional[OtherDevice]:
+    def logged_in(self, state: OtherDevice, eppn: str, credentials_used: list[UsedCredential]) -> Optional[OtherDevice]:
         """
         Finish a state, on device 2.
         """

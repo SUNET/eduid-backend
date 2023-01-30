@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2016 NORDUnet A/S
 # All rights reserved.
@@ -31,7 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from flask import current_app, render_template, url_for
+from flask import render_template, url_for
 from flask_babel import gettext as _
 
 from eduid.userdb import User
@@ -39,26 +38,28 @@ from eduid.userdb.logs import MailAddressProofing
 from eduid.userdb.mail import MailAddress
 from eduid.userdb.proofing import EmailProofingElement, EmailProofingState
 from eduid.webapp.common.api.utils import get_unique_hash, save_and_sync_user
+from eduid.webapp.email.app import current_email_app as current_app
 
 
 def new_proofing_state(email: str, user: User):
     old_state = current_app.proofing_statedb.get_state_by_eppn_and_email(user.eppn, email)
+    current_app.logger.debug(f"Old proofing state in db: {old_state}")
 
     if old_state is not None:
         if old_state.is_throttled(current_app.conf.throttle_resend_seconds):
             return None
         current_app.proofing_statedb.remove_state(old_state)
         current_app.logger.info("Removed old proofing state")
-        current_app.logger.debug("Old proofing state: {}".format(old_state.to_dict()))
+        current_app.logger.debug(f"Old proofing state: {old_state.to_dict()}")
 
     verification = EmailProofingElement(email=email, verification_code=get_unique_hash(), created_by="email")
     proofing_state = EmailProofingState(id=None, modified_ts=None, eppn=user.eppn, verification=verification)
     # XXX This should be an atomic transaction together with saving
     # the user and sending the letter.
-    current_app.proofing_statedb.save(proofing_state)
+    current_app.proofing_statedb.save(proofing_state, is_in_database=False)
 
     current_app.logger.info("Created new email proofing state")
-    current_app.logger.debug("Proofing state: {!r}.".format(proofing_state.to_dict()))
+    current_app.logger.debug(f"Proofing state: {proofing_state.to_dict()!r}.")
 
     return proofing_state
 

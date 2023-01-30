@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from typing import Optional, Union
 
 from flask import Blueprint, redirect, request
@@ -24,7 +23,7 @@ old_eidas_views = Blueprint("old_eidas", __name__, url_prefix="", template_folde
 # TODO: Make frontend use POST /verify-credential instead of this endpoint
 @old_eidas_views.route("/verify-token/<credential_id>", methods=["GET"])
 @require_user
-def verify_token(user: User, credential_id: ElementKey) -> Union[FluxData, WerkzeugResponse]:
+def verify_token(user: User, credential_id: ElementKey) -> WerkzeugResponse:
     current_app.logger.debug(f"verify-token called with credential_id: {credential_id}")
 
     # verify that the user has the credential and that it was used for login recently

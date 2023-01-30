@@ -38,7 +38,7 @@ import stat
 from abc import ABC
 from binascii import unhexlify
 from hashlib import sha1
-from typing import Any, Dict, Mapping, Optional
+from typing import Any, Mapping, Optional
 
 import pyhsm
 import yaml
@@ -132,7 +132,7 @@ class VCCSSoftHasher(VCCSHasher):
         super().__init__(lock)
         self.debug = debug
         # Covert keys from strings to bytes when loading
-        self.keys: Dict[int, bytes] = {}
+        self.keys: dict[int, bytes] = {}
         self._temp_key: Optional[bytes] = None
         for k, v in keys.items():
             self.keys[k] = unhexlify(v)

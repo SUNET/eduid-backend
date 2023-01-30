@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional
@@ -13,6 +10,7 @@ from eduid.common.rpc.exceptions import AmTaskFailed, MsgTaskFailed, NoNavetData
 from eduid.userdb import User
 from eduid.userdb.credentials import Credential
 from eduid.userdb.element import ElementKey
+from eduid.userdb.exceptions import LockedIdentityViolation
 from eduid.userdb.identity import IdentityElement, IdentityType, SvipeIdentity
 from eduid.userdb.logs.element import NinProofingLogElement, SvipeIDForeignProofing, SvipeIDNINProofing
 from eduid.userdb.proofing import NinProofingElement, ProofingUser
@@ -79,11 +77,13 @@ class SvipeIDProofingFunctions(ProofingFunctions[SvipeDocumentUserInfo]):
         except (AmTaskFailed, PyMongoError):
             current_app.logger.exception("Verifying NIN for user failed")
             return VerifyUserResult(error=CommonMsg.temp_problem)
+        except LockedIdentityViolation:
+            current_app.logger.exception("Verifying NIN for user failed")
+            return VerifyUserResult(error=CommonMsg.locked_identity_not_matching)
 
         current_app.stats.count(name="nin_verified")
         # re-load the user from central db before returning
         _user = current_app.central_userdb.get_user_by_eppn(proofing_user.eppn)
-        assert _user is not None  # please mypy
         return VerifyUserResult(user=ProofingUser.from_user(_user, current_app.private_userdb))
 
     def _verify_foreign_identity(self, user: User) -> VerifyUserResult:
@@ -145,7 +145,6 @@ class SvipeIDProofingFunctions(ProofingFunctions[SvipeDocumentUserInfo]):
         current_app.stats.count(name="foreign_identity_verified")
         # load the user from central db before returning
         _user = current_app.central_userdb.get_user_by_eppn(proofing_user.eppn)
-        assert _user is not None  # please mypy
         return VerifyUserResult(user=_user)
 
     def _can_replace_identity(self, proofing_user: ProofingUser) -> bool:

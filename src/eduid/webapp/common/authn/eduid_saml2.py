@@ -33,7 +33,7 @@
 import logging
 import pprint
 from dataclasses import dataclass
-from typing import Any, Mapping, Optional, Tuple, Union
+from typing import Any, Mapping, Optional, Union
 from xml.etree.ElementTree import ParseError
 
 from dateutil.parser import parse as dt_parse
@@ -95,7 +95,7 @@ def get_authn_request(
     sign_alg: Optional[str] = None,
     digest_alg: Optional[str] = None,
     subject: Optional[Subject] = None,
-):
+) -> Mapping[str, Any]:
     kwargs = {
         "force_authn": str(force_authn).lower(),
     }
@@ -104,6 +104,8 @@ def get_authn_request(
     client = Saml2Client(saml2_config)
 
     try:
+        session_id: str
+        info: Mapping[str, Any]
         (session_id, info) = client.prepare_for_authenticate(
             entityid=selected_idp,
             relay_state=relay_state,
@@ -124,7 +126,7 @@ def get_authn_request(
 
 def get_authn_response(
     saml2_config: SPConfig, sp_data: SPAuthnData, session: EduidSession, raw_response: str
-) -> Tuple[AuthnResponse, AuthnRequestRef]:
+) -> tuple[AuthnResponse, AuthnRequestRef]:
     """
     Check a SAML response and return the response.
 

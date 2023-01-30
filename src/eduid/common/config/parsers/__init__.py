@@ -1,8 +1,7 @@
-# -*- coding: utf-8 -*-
 import json
 import os
 from pathlib import Path
-from typing import Any, Dict, Mapping, Optional, Type
+from typing import Any, Mapping, Optional
 
 import yaml
 
@@ -15,7 +14,7 @@ from eduid.common.config.parsers.exceptions import ParserException
 
 
 def load_config(
-    typ: Type[TRootConfigSubclass],
+    typ: type[TRootConfigSubclass],
     ns: str,
     app_name: str,
     test_config: Optional[Mapping[str, Any]] = None,
@@ -29,7 +28,7 @@ def load_config(
     if not parser:
         raise ParserException("Could not find a suitable config parser")
 
-    config: Dict[str, Any]
+    config: dict[str, Any]
 
     if test_config:
         config = dict(test_config)

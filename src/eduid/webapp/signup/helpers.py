@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 import os
 import struct
 import time
@@ -23,12 +20,13 @@ from eduid.queue.db import QueueItem, SenderInfo
 from eduid.queue.db.message import EduidSignupEmail
 from eduid.queue.db.message.payload import OldEduidSignupEmail
 from eduid.userdb import MailAddress, NinIdentity, PhoneNumber, Profile, User
-from eduid.userdb.exceptions import UserHasNotCompletedSignup, UserOutOfSync
+from eduid.userdb.exceptions import UserDoesNotExist, UserHasNotCompletedSignup, UserOutOfSync
 from eduid.userdb.logs import MailAddressProofing
 from eduid.userdb.signup import Invite, InviteType, SCIMReference, SignupUser
 from eduid.userdb.tou import ToUEvent
 from eduid.webapp.common.api.exceptions import ProofingLogFailure, VCCSBackendFailure
 from eduid.webapp.common.api.messages import TranslatableMsg
+from eduid.webapp.common.api.translation import get_user_locale
 from eduid.webapp.common.api.utils import is_throttled, save_and_sync_user, time_left
 from eduid.webapp.common.authn.vccs import add_password, revoke_passwords
 from eduid.webapp.common.session import session
@@ -120,9 +118,10 @@ def generate_eppn() -> str:
     """
     for _ in range(10):
         eppn_int = struct.unpack("I", os.urandom(4))[0]
-        eppn = proquint.uint2quint(eppn_int)
-        user = current_app.central_userdb.get_user_by_eppn(eppn)
-        if not user:
+        eppn: str = proquint.uint2quint(eppn_int)
+        try:
+            current_app.central_userdb.get_user_by_eppn(eppn)
+        except UserDoesNotExist:
             return eppn
     current_app.logger.critical("generate_eppn finished without finding a new unique eppn")
     abort(500)
@@ -145,11 +144,11 @@ def check_email_status(email: str) -> EmailStatus:
         current_app.logger.debug(f"No user found with email {email} in central userdb")
     except UserHasNotCompletedSignup:
         # TODO: What is the implication of getting here? Should we just let the user signup again?
-        current_app.logger.warning("Incomplete user found with email {} in central userdb".format(email))
+        current_app.logger.warning(f"Incomplete user found with email {email} in central userdb")
 
     # new signup
     if session.signup.email.address is None:
-        current_app.logger.debug("Registering new user with email {}".format(email))
+        current_app.logger.debug(f"Registering new user with email {email}")
         current_app.stats.count(name="signup_started")
         return EmailStatus.NEW
 
@@ -228,7 +227,7 @@ def send_signup_mail(email: str, verification_code: str, reference: str, use_ema
             verification_link=verfication_link,
             site_name=current_app.conf.eduid_site_name,
             site_url=current_app.conf.eduid_site_url,
-            language=current_app.babel.locale_selector_func() or current_app.conf.default_language,
+            language=get_user_locale() or current_app.conf.default_language,
             reference=reference,
         )
     else:
@@ -236,7 +235,7 @@ def send_signup_mail(email: str, verification_code: str, reference: str, use_ema
             email=email,
             verification_code=verification_code,
             site_name=current_app.conf.eduid_site_name,
-            language=current_app.babel.locale_selector_func() or current_app.conf.default_language,
+            language=get_user_locale() or current_app.conf.default_language,
             reference=reference,
         )
     app_name = current_app.conf.app_name
@@ -319,7 +318,7 @@ def record_email_address(signup_user: SignupUser, email: str) -> None:
     """
     user = current_app.central_userdb.get_user_by_mail(email)
     if user is not None:
-        current_app.logger.debug("Email {} already present in central db".format(email))
+        current_app.logger.debug(f"Email {email} already present in central db")
         raise EmailAlreadyVerifiedException()
 
     mail_address = MailAddress(
@@ -390,7 +389,7 @@ def complete_and_update_invite(user: User, invite_code: str):
 
     updated_invite = replace(invite, completed_ts=utc_now())
     try:
-        current_app.invite_db.save(invite=updated_invite)
+        current_app.invite_db.save(invite=updated_invite, is_in_database=True)
         save_and_sync_user(signup_user)
     except UserOutOfSync as e:
         current_app.logger.error(f"Failed saving user {signup_user}, data out of sync")
@@ -495,7 +494,7 @@ def remove_users_with_mail_address(email: str) -> None:
     # and continue like this was a completely new signup.
     completed_users = signup_db.get_users_by_mail(email)
     for user in completed_users:
-        current_app.logger.warning("Removing old user {} with e-mail {} from signup_db".format(user, email))
+        current_app.logger.warning(f"Removing old user {user} with e-mail {email} from signup_db")
         signup_db.remove_user_by_id(user.user_id)
 
 

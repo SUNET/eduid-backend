@@ -64,8 +64,8 @@ SAML_CONFIG = {
     # set to 1 to output debugging information
     "debug": 1,
     # certificate
-    "key_file": path.join("%s%s" % (SAML2DIR, "/certs"), "server.key"),  # private part
-    "cert_file": path.join("%s%s" % (SAML2DIR, "/certs"), "server.crt"),  # public part
+    "key_file": path.join("{}{}".format(SAML2DIR, "/certs"), "server.key"),  # private part
+    "cert_file": path.join("{}{}".format(SAML2DIR, "/certs"), "server.crt"),  # public part
     # own metadata settings
     "contact_person": [
         {

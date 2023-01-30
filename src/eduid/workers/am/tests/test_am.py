@@ -1,11 +1,8 @@
-from __future__ import absolute_import
-
-from typing import Any, Mapping
-
 from bson import ObjectId
 
 import eduid.userdb
 from eduid.common.config.workers import AmConfig
+from eduid.userdb.db import TUserDbDocument
 from eduid.userdb.exceptions import UserDoesNotExist
 from eduid.workers.am.ams.common import AttributeFetcher
 from eduid.workers.am.common import AmCelerySingleton
@@ -28,7 +25,7 @@ class AmTestUserDb(eduid.userdb.UserDB[AmTestUser]):
     """
 
     @classmethod
-    def user_from_dict(cls, data: Mapping[str, Any]) -> AmTestUser:
+    def user_from_dict(cls, data: TUserDbDocument) -> AmTestUser:
         return AmTestUser.from_dict(data)
 
 
@@ -52,7 +49,7 @@ class FakeAttributeFetcher(AttributeFetcher):
     def fetch_attrs(self, user_id):
         user = self.private_db.get_user_by_id(user_id)
         if user is None:
-            raise UserDoesNotExist("No user matching _id={!r}".format(user_id))
+            raise UserDoesNotExist(f"No user matching _id={user_id!r}")
 
         # Transfer all attributes except `uid' from the test plugins database.
         # Transform eduPersonPrincipalName on the way to make it clear that the
@@ -150,7 +147,7 @@ class MessageTest(AMTestCase):
         user_dict = test_user.to_dict()
         del user_dict["uid"]
         central_user = eduid.userdb.User.from_dict(user_dict)
-        self.amdb.save(central_user, check_sync=False)
+        self.amdb.save(central_user)
 
         am_user = self.amdb.get_user_by_id(_id)
         self.assertNotEqual(am_user.eppn, "teste-teste")
@@ -182,7 +179,7 @@ class MessageTest(AMTestCase):
         user_dict = test_user.to_dict()
         del user_dict["uid"]
         central_user = eduid.userdb.User.from_dict(user_dict)
-        self.amdb.save(central_user, check_sync=False)
+        self.amdb.save(central_user)
 
         am_user = self.amdb.get_user_by_id(_id)
         self.assertNotEqual(am_user.eppn, "teste-teste")

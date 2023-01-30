@@ -34,18 +34,19 @@
 from __future__ import annotations
 
 import copy
+import logging
 from datetime import datetime
 from enum import Enum, unique
 from operator import itemgetter
-from typing import Any, Dict, List, Mapping, Optional, Type, TypeVar, Union, cast
+from typing import Any, Optional, TypeVar, Union, cast
 
 import bson
 from pydantic import BaseModel, Extra, Field, root_validator, validator
 
 from eduid.userdb.credentials import CredentialList
-from eduid.userdb.db import BaseDB
+from eduid.userdb.db import BaseDB, TUserDbDocument
 from eduid.userdb.element import UserDBValueError
-from eduid.userdb.exceptions import UserHasNotCompletedSignup, UserIsRevoked
+from eduid.userdb.exceptions import UserDoesNotExist, UserHasNotCompletedSignup, UserIsRevoked
 from eduid.userdb.identity import IdentityList, IdentityType
 from eduid.userdb.ladok import Ladok
 from eduid.userdb.locked_identity import LockedIdentityList
@@ -56,6 +57,8 @@ from eduid.userdb.orcid import Orcid
 from eduid.userdb.phone import PhoneNumberList
 from eduid.userdb.profile import ProfileList
 from eduid.userdb.tou import ToUList
+
+logger = logging.getLogger(__name__)
 
 TUserSubclass = TypeVar("TUserSubclass", bound="User")
 
@@ -83,7 +86,7 @@ class User(BaseModel):
     credentials: CredentialList = Field(default_factory=CredentialList, alias="passwords")
     identities: IdentityList = Field(default_factory=IdentityList)
     modified_ts: Optional[datetime] = None  # TODO: remove after meta.modified_ts is used
-    entitlements: List[str] = Field(default_factory=list, alias="eduPersonEntitlement")
+    entitlements: list[str] = Field(default_factory=list, alias="eduPersonEntitlement")
     tou: ToUList = Field(default_factory=ToUList)
     terminated: Optional[datetime] = None
     locked_identity: LockedIdentityList = Field(default_factory=LockedIdentityList)
@@ -110,7 +113,7 @@ class User(BaseModel):
         return v
 
     @root_validator(pre=True)
-    def check_revoked(cls, values: Dict[str, Any]):
+    def check_revoked(cls, values: dict[str, Any]) -> dict[str, Any]:
         # raise exception if the user is revoked
         if values.get("revoked_ts") is not None:
             raise UserIsRevoked(
@@ -119,22 +122,31 @@ class User(BaseModel):
         return values
 
     @root_validator()
-    def update_meta_modified_ts(cls, values: Dict[str, Any]):
-        # as we validate on assignment this will run everytime the User is changed
+    def update_meta_modified_ts(cls, values: dict[str, Any]) -> dict[str, Any]:
+        # as we validate on assignment this will run every time the User is changed
         if values.get("modified_ts"):
             values["meta"].modified_ts = values["modified_ts"]
         return values
 
-    def __str__(self):
-        return f"<eduID {self.__class__.__name__}: {self.eppn}/{self.user_id}>"
+    def __str__(self) -> str:
+        """
+        Return a string representation of the user, suitable for logging.
 
-    def __eq__(self, other):
+        Includes the current version of the user in the database to signify that "this is version X of the user foo".
+
+        Example: '<eduID User: hubba-bubba/v1234567890987654321>'
+        """
+        if self.meta.is_in_database:
+            return f"<eduID {self.__class__.__name__}: {self.eppn}/v{self.meta.version}>"
+        return f"<eduID {self.__class__.__name__}: {self.eppn}/not in db>"
+
+    def __eq__(self, other: Any) -> bool:
         if self.__class__ is not other.__class__:
             raise TypeError(f"Trying to compare objects of different class {other.__class__} != {self.__class__}")
         return self.to_dict() == other.to_dict()
 
     @classmethod
-    def from_dict(cls: Type[TUserSubclass], data: Mapping[str, Any]) -> TUserSubclass:
+    def from_dict(cls: type[TUserSubclass], data: TUserDbDocument) -> TUserSubclass:
         """
         Construct user from a data dict.
         """
@@ -144,18 +156,18 @@ class User(BaseModel):
         data_in = cls._from_dict_transform(data_in)
         return cls(**data_in)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> TUserDbDocument:
         """
         Return user data serialized into a dict that can be stored in MongoDB.
 
         :return: User as dict
         """
-        res = self.dict(by_alias=True, exclude_none=True)  # avoid caller messing up our private _data
+        res = self.dict(by_alias=True, exclude_none=True)
         res = self._to_dict_transform(res)
-        return res
+        return TUserDbDocument(res)
 
     @classmethod
-    def _from_dict_transform(cls: Type[TUserSubclass], data: Dict[str, Any]) -> Dict[str, Any]:
+    def _from_dict_transform(cls: type[TUserSubclass], data: dict[str, Any]) -> dict[str, Any]:
         # clean up sn
         if "sn" in data:
             _sn = data.pop("sn")
@@ -209,7 +221,7 @@ class User(BaseModel):
 
         return data
 
-    def _to_dict_transform(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def _to_dict_transform(self, data: dict[str, Any]) -> dict[str, Any]:
         # serialize complex data
         data["mailAliases"] = self.mail_addresses.to_list_of_dicts()
         data["phone"] = self.phone_numbers.to_list_of_dicts()
@@ -228,7 +240,7 @@ class User(BaseModel):
         for key in list(data.keys()):
             if data[key] in ["", []]:
                 if key in ["passwords", "credentials"]:
-                    # Empty lists are acceptable for these. When the UserHasNotComepletedSignup
+                    # Empty lists are acceptable for these. When the UserHasNotCompletedSignup
                     # exception is removed, this exception to the rule can be removed too.
                     continue
                 del data[key]
@@ -240,30 +252,38 @@ class User(BaseModel):
         return data
 
     @classmethod
-    def from_user(cls: Type[TUserSubclass], user: User, private_userdb: BaseDB) -> TUserSubclass:
+    def from_user(cls: type[TUserSubclass], user: User, private_userdb: BaseDB) -> TUserSubclass:
         """
-        This function is only expected to be used by subclasses of User.
+        This function is only expected to be used with subclasses of User.
 
         :param user: User instance from AM database
         :param private_userdb: Private UserDB to load modified_ts from
 
-        :return: User proper
+        :return: User subclass instance corresponding to the user in the private database
         """
         # We cast here to avoid importing UserDB at the module level thus creating a circular import
         from eduid.userdb import UserDB
 
-        private_userdb = cast(UserDB, private_userdb)
+        private_userdb = cast(UserDB[TUserSubclass], private_userdb)
 
-        user_dict = user.to_dict()
-        private_user = private_userdb.get_user_by_eppn(user.eppn)
-        if private_user is None:
-            user_dict.pop("modified_ts", None)
-        else:
-            user_dict["modified_ts"] = private_user.modified_ts
-        return cls.from_dict(data=user_dict)
+        try:
+            private_user = private_userdb.get_user_by_eppn(user.eppn)
+        except UserDoesNotExist:
+            private_user = None
+        logger.debug(f"{cls}: User in private database: {private_user}")
+
+        new_user = cls.from_dict(data=user.to_dict())
+        if private_user is not None:
+            new_user.modified_ts = private_user.modified_ts
+            new_user.meta.modified_ts = private_user.meta.modified_ts
+            new_user.meta.created_ts = private_user.meta.created_ts
+            new_user.meta.version = private_user.meta.version
+            new_user.meta.is_in_database = True
+            logger.debug(f"Initialised private user with meta {new_user.meta}")
+        return new_user
 
     @classmethod
-    def check_or_use_data(cls, data: Dict[str, Any]) -> Dict[str, Any]:
+    def check_or_use_data(cls, data: dict[str, Any]) -> dict[str, Any]:
         """
         Derived classes can override this method to check that the provided data
         is enough for their purposes, or to deal specially with particular bits of it.
@@ -279,7 +299,7 @@ class User(BaseModel):
         return data
 
     @classmethod
-    def _parse_mail_addresses(cls, data: Dict[str, Any]) -> MailAddressList:
+    def _parse_mail_addresses(cls, data: dict[str, Any]) -> MailAddressList:
         """
         Part of __init__().
 
@@ -314,7 +334,7 @@ class User(BaseModel):
         return MailAddressList.from_list_of_dicts(_mail_addresses)
 
     @classmethod
-    def _parse_phone_numbers(cls, data: Dict[str, Any]) -> PhoneNumberList:
+    def _parse_phone_numbers(cls, data: dict[str, Any]) -> PhoneNumberList:
         """
         Parse all the different formats of mobile/phone attributes in the database.
         """
@@ -345,7 +365,7 @@ class User(BaseModel):
         return PhoneNumberList.from_list_of_dicts(_phones)
 
     @classmethod
-    def _parse_identities(cls, data: Dict[str, Any]) -> IdentityList:
+    def _parse_identities(cls, data: dict[str, Any]) -> IdentityList:
         """
         Parse identity elements into an IdentityList
         """
@@ -353,7 +373,7 @@ class User(BaseModel):
         return IdentityList.from_list_of_dicts(items=_identities)
 
     @classmethod
-    def _parse_tous(cls, data: Dict[str, Any]) -> ToUList:
+    def _parse_tous(cls, data: dict[str, Any]) -> ToUList:
         """
         Parse the ToU acceptance events.
         """
@@ -361,7 +381,7 @@ class User(BaseModel):
         return ToUList.from_list_of_dicts(_tou)
 
     @classmethod
-    def _parse_locked_identity(cls, data: Dict[str, Any]) -> LockedIdentityList:
+    def _parse_locked_identity(cls, data: dict[str, Any]) -> LockedIdentityList:
         """
         Parse the LockedIdentity elements.
         """
@@ -369,7 +389,7 @@ class User(BaseModel):
         return LockedIdentityList.from_list_of_dicts(_locked_identity)
 
     @classmethod
-    def _parse_orcid(cls, data: Dict[str, Any]) -> Optional[Orcid]:
+    def _parse_orcid(cls, data: dict[str, Any]) -> Optional[Orcid]:
         """
         Parse the Orcid element.
         """
@@ -379,7 +399,7 @@ class User(BaseModel):
         return None
 
     @classmethod
-    def _parse_ladok(cls, data: Dict[str, Any]) -> Optional[Ladok]:
+    def _parse_ladok(cls, data: dict[str, Any]) -> Optional[Ladok]:
         """
         Parse the Ladok element.
         """
@@ -393,7 +413,7 @@ class User(BaseModel):
         return None
 
     @classmethod
-    def _parse_profiles(cls, data: Dict[str, Any]) -> ProfileList:
+    def _parse_profiles(cls, data: dict[str, Any]) -> ProfileList:
         """
         Parse the Profile elements.
         """

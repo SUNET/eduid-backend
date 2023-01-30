@@ -1,6 +1,4 @@
-# -*- coding: utf-8 -*-
-
-from typing import Any, Dict, Mapping
+from typing import Any, Mapping
 
 from eduid.common.config.base import EduIDBaseAppConfig
 from eduid.common.config.parsers import load_config
@@ -91,7 +89,7 @@ class EduidSessionTests(EduidAPITestCase):
         """
         return session_init_app("testing", config)
 
-    def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
+    def update_config(self, config: dict[str, Any]) -> dict[str, Any]:
         config.update(
             {
                 "debug": True,

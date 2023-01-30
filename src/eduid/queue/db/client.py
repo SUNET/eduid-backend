@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2020 Sunet
 # All rights reserved.
@@ -30,14 +29,14 @@
 
 import logging
 from dataclasses import replace
-from typing import Dict, Optional, Type, Union
+from typing import Optional, Union
 
 from bson import ObjectId
 
 from eduid.queue.db.payload import Payload
 from eduid.queue.db.queue_item import QueueItem
 from eduid.queue.exceptions import PayloadNotRegistered
-from eduid.userdb.db import BaseDB
+from eduid.userdb.db import BaseDB, DatabaseDriver
 from eduid.userdb.exceptions import MultipleDocumentsReturned
 
 logger = logging.getLogger(__name__)
@@ -46,9 +45,11 @@ __author__ = "lundberg"
 
 
 class QueueDB(BaseDB):
-    def __init__(self, db_uri: str, collection: str, db_name: str = "eduid_queue"):
-        super().__init__(db_uri, db_name, collection=collection)
-        self.handlers: Dict[str, Type[Payload]] = dict()
+    def __init__(
+        self, db_uri: str, collection: str, db_name: str = "eduid_queue", driver: Optional[DatabaseDriver] = None
+    ):
+        super().__init__(db_uri, db_name, collection=collection, driver=driver)
+        self.handlers: dict[str, type[Payload]] = dict()
 
         # Remove messages older than discard_at datetime
         indexes = {
@@ -56,7 +57,7 @@ class QueueDB(BaseDB):
         }
         self.setup_indexes(indexes)
 
-    def register_handler(self, payload: Type[Payload]):
+    def register_handler(self, payload: type[Payload]):
         payload_type = payload.get_type()
         if payload_type in self.handlers:
             raise KeyError(f"Payload type '{payload_type}' already registered with {self}")
@@ -70,7 +71,7 @@ class QueueDB(BaseDB):
             raise PayloadNotRegistered(f"Payload type '{item.payload_type}' not registered with {self}")
         return payload_cls.from_dict(item.payload.to_dict())
 
-    def get_item_by_id(self, message_id: Union[str, ObjectId], parse_payload=True) -> Optional[QueueItem]:
+    def get_item_by_id(self, message_id: Union[str, ObjectId], parse_payload: bool = True) -> Optional[QueueItem]:
         if isinstance(message_id, str):
             message_id = ObjectId(message_id)
 

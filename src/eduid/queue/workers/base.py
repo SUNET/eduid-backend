@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import asyncio
 import functools
 import logging
@@ -9,9 +7,7 @@ from asyncio import CancelledError, Task
 from dataclasses import replace
 from datetime import datetime
 from os import environ
-from typing import Sequence, Set, Type
-
-from motor.motor_asyncio import AsyncIOMotorClient
+from typing import Sequence
 
 from eduid.common.logging import init_logging
 from eduid.queue.config import QueueWorkerConfig
@@ -31,7 +27,7 @@ def cancel_task(signame, task):
 
 
 class QueueWorker(ABC):
-    def __init__(self, config: QueueWorkerConfig, handle_payloads: Sequence[Type[Payload]]):
+    def __init__(self, config: QueueWorkerConfig, handle_payloads: Sequence[type[Payload]]):
         worker_name = environ.get("WORKER_NAME", None)
         if worker_name is None:
             raise RuntimeError("Environment variable WORKER_NAME needs to be set")
@@ -44,7 +40,7 @@ class QueueWorker(ABC):
         logger.info(f"Starting {self.config.app_name}: {self.worker_name}...")
 
     @staticmethod
-    def add_task(tasks: Set[Task], task: Task) -> Set[Task]:
+    def add_task(tasks: set[Task], task: Task) -> set[Task]:
         # To prevent keeping references to finished tasks forever, make each task remove its own reference
         # from the set after completion.
         task.add_done_callback(tasks.discard)
@@ -53,9 +49,7 @@ class QueueWorker(ABC):
 
     async def run(self):
         # Init db in the correct loop
-        self.db = AsyncQueueDB(
-            db_uri=self.config.mongo_uri, collection=self.config.mongo_collection, connection_factory=AsyncIOMotorClient
-        )
+        self.db = AsyncQueueDB(db_uri=self.config.mongo_uri, collection=self.config.mongo_collection)
         # Register payloads to handle
         for payload in self.payloads:
             self.db.register_handler(payload)
@@ -118,7 +112,7 @@ class QueueWorker(ABC):
             except Exception as e:
                 logger.exception(f"QueueItem processing failed with: {repr(e)}")
 
-    async def handle_change(self, change: ChangeEvent):
+    async def handle_change(self, change: ChangeEvent) -> None:
         """
         Dispatch item for processing depending on change operation
         """
@@ -127,9 +121,9 @@ class QueueWorker(ABC):
         else:
             logger.debug(f"{change.operation_type.value}: {change}")
 
-    async def watch_collection(self):
+    async def watch_collection(self) -> None:
         change_stream = None
-        tasks: Set[Task] = set()
+        tasks: set[Task] = set()
         try:
             async with self.db.collection.watch() as change_stream:
                 async for change in change_stream:
@@ -151,8 +145,8 @@ class QueueWorker(ABC):
                 logger.info("Cleaning up watch_collection task...")
                 await asyncio.gather(*tasks)
 
-    async def periodic_collection_check(self):
-        tasks: Set[Task] = set()
+    async def periodic_collection_check(self) -> None:
+        tasks: set[Task] = set()
         try:
             while True:
                 logger.debug(f"Running periodic collection check")
@@ -170,13 +164,13 @@ class QueueWorker(ABC):
             logger.info("Cleaning up periodic_collection_check task...")
             await asyncio.gather(*tasks)
 
-    async def collect_periodic_tasks(self) -> Set[Task]:
+    async def collect_periodic_tasks(self) -> set[Task]:
         tasks = await self.collect_forgotten_items()
         tasks.update(await self.collect_expired_items())
         return tasks
 
-    async def collect_forgotten_items(self) -> Set[Task]:
-        tasks: Set[Task] = set()
+    async def collect_forgotten_items(self) -> set[Task]:
+        tasks: set[Task] = set()
         # Check for forgotten untouched queue items
         items = await self.db.find_items(
             processed=False, min_age_in_seconds=self.config.periodic_min_retry_wait_in_seconds, expired=False
@@ -191,8 +185,8 @@ class QueueWorker(ABC):
             )
         return tasks
 
-    async def collect_expired_items(self) -> Set[Task]:
-        tasks: Set[Task] = set()
+    async def collect_expired_items(self) -> set[Task]:
+        tasks: set[Task] = set()
         # Check for expired untouched queue items
         items = await self.db.find_items(
             processed=False, min_age_in_seconds=self.config.periodic_min_retry_wait_in_seconds, expired=True

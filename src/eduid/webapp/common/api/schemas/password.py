@@ -1,5 +1,4 @@
-# -*- coding: utf-8 -*-
-from typing import List, Optional
+from typing import Optional
 
 from marshmallow import Schema, ValidationError
 
@@ -10,7 +9,7 @@ from eduid.webapp.common.api.validation import is_valid_password
 
 class PasswordSchema(Schema):
     class Meta:
-        zxcvbn_terms: Optional[List[str]] = None
+        zxcvbn_terms: Optional[list[str]] = None
         min_entropy: Optional[int] = None
         min_score: Optional[int] = None
 
@@ -18,7 +17,7 @@ class PasswordSchema(Schema):
         self.Meta.zxcvbn_terms = kwargs.pop("zxcvbn_terms", [])
         self.Meta.min_entropy = kwargs.pop("min_entropy")
         self.Meta.min_score = kwargs.pop("min_score")
-        super(PasswordSchema, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def validate_password(self, password: str, **kwargs):
         """

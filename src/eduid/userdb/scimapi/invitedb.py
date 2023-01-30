@@ -5,12 +5,13 @@ import logging
 import uuid
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from typing import Any, Dict, List, Mapping, Optional, Tuple, Type
+from typing import Any, Mapping, Optional
 from uuid import UUID
 
 from bson import ObjectId
 
 from eduid.scimapi.utils import filter_none
+from eduid.userdb.db import TUserDbDocument
 from eduid.userdb.scimapi.basedb import ScimApiBaseDB
 from eduid.userdb.scimapi.common import (
     ScimApiEmail,
@@ -30,15 +31,15 @@ logger = logging.getLogger(__name__)
 class ScimApiInvite(ScimApiResourceBase):
     invite_id: ObjectId = field(default_factory=lambda: ObjectId())
     name: ScimApiName = field(default_factory=lambda: ScimApiName())
-    emails: List[ScimApiEmail] = field(default_factory=list)
-    phone_numbers: List[ScimApiPhoneNumber] = field(default_factory=list)
-    groups: List[UUID] = field(default_factory=list)
+    emails: list[ScimApiEmail] = field(default_factory=list)
+    phone_numbers: list[ScimApiPhoneNumber] = field(default_factory=list)
+    groups: list[UUID] = field(default_factory=list)
     nin: Optional[str] = field(default=None)
     preferred_language: Optional[str] = field(default=None)
     completed: Optional[datetime] = field(default=None)
-    profiles: Dict[str, ScimApiProfile] = field(default_factory=lambda: {})
+    profiles: dict[str, ScimApiProfile] = field(default_factory=lambda: {})
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> TUserDbDocument:
         res = asdict(self)
         res = filter_none(res)
         res["scim_id"] = str(res["scim_id"])
@@ -46,10 +47,10 @@ class ScimApiInvite(ScimApiResourceBase):
         res["emails"] = [email.to_dict() for email in self.emails]
         res["phone_numbers"] = [phone_number.to_dict() for phone_number in self.phone_numbers]
         res["groups"] = [str(group_id) for group_id in self.groups]
-        return res
+        return TUserDbDocument(res)
 
     @classmethod
-    def from_dict(cls: Type[ScimApiInvite], data: Mapping[str, Any]) -> ScimApiInvite:
+    def from_dict(cls: type[ScimApiInvite], data: Mapping[str, Any]) -> ScimApiInvite:
         this = dict(copy.copy(data))  # to not modify callers data
         this["scim_id"] = uuid.UUID(this["scim_id"])
         this["invite_id"] = this.pop("_id")
@@ -68,7 +69,7 @@ class ScimApiInvite(ScimApiResourceBase):
 
 
 class ScimApiInviteDB(ScimApiBaseDB):
-    def __init__(self, db_uri: str, collection: str, db_name="eduid_scimapi"):
+    def __init__(self, db_uri: str, collection: str, db_name: str = "eduid_scimapi"):
         super().__init__(db_uri, db_name, collection=collection)
         # Create an index so that scim_id is unique per data owner
         indexes = {
@@ -116,7 +117,7 @@ class ScimApiInviteDB(ScimApiBaseDB):
 
     def get_invites_by_last_modified(
         self, operator: str, value: datetime, limit: Optional[int] = None, skip: Optional[int] = None
-    ) -> Tuple[List[ScimApiInvite], int]:
+    ) -> tuple[list[ScimApiInvite], int]:
         # map SCIM filter operators to mongodb filter
         mongo_operator = {"gt": "$gt", "ge": "$gte"}.get(operator)
         if not mongo_operator:

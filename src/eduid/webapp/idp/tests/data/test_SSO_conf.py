@@ -14,7 +14,7 @@ else:
     xmlsec_path = "/usr/bin/xmlsec1"
 
 _hostname = "unittest-idp.example.edu"
-IDP_BASE = "https://{!s}".format(_hostname)
+IDP_BASE = f"https://{_hostname!s}"
 
 here = os.path.dirname(__file__)
 key_path = os.path.join(here, "idp-public-snakeoil.key")

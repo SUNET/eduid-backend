@@ -1,10 +1,8 @@
-# -*- coding: utf-8 -*-
-
 from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, List, Mapping, Optional, Union
+from typing import Any, Mapping, Optional, Union
 
 __author__ = "lundberg"
 
@@ -39,8 +37,8 @@ class DocumentKey:
 
 @dataclass
 class UpdateDescription:
-    updated_fields: Optional[Dict[str, Any]]
-    removed_fields: Optional[List[str]]
+    updated_fields: Optional[dict[str, Any]]
+    removed_fields: Optional[list[str]]
 
 
 @dataclass(frozen=True)
@@ -53,7 +51,7 @@ class ChangeEvent:
     operation_type: OperationType
     ns: NS
     document_key: DocumentKey
-    full_document: Optional[Dict[str, Any]] = None
+    full_document: Optional[dict[str, Any]] = None
     to: Optional[NS] = None
     update_description: Optional[UpdateDescription] = None
     # Available in MongoDB >=4

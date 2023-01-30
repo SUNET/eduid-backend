@@ -3,7 +3,7 @@
 import functools
 import json
 import logging
-from typing import Callable, Iterable, List, Mapping, Tuple
+from typing import Callable, Iterable, Mapping
 from urllib.parse import urlparse
 
 import satosa.util as util
@@ -428,7 +428,7 @@ class StepUp(ResponseMicroService):
         return Response(metadata_string, content="text/xml")
 
     def register_endpoints(self):
-        url_map: List[Tuple[str, Callable]] = []
+        url_map: list[tuple[str, Callable]] = []
 
         # acs endpoints
         sp_endpoints = self.sp.config.getattr("endpoints", "sp")
@@ -436,7 +436,7 @@ class StepUp(ResponseMicroService):
             parsed_endp = urlparse(endp)
             url_map.append(
                 (
-                    "^{endpoint}$".format(endpoint=parsed_endp.path[1:]),
+                    f"^{parsed_endp.path[1:]}$",
                     functools.partial(self._handle_authn_response, binding=binding),
                 )
             )
@@ -445,7 +445,7 @@ class StepUp(ResponseMicroService):
         parsed_entity_id = urlparse(self.sp.config.entityid)
         url_map.append(
             (
-                "^{endpoint}".format(endpoint=parsed_entity_id.path[1:]),
+                f"^{parsed_entity_id.path[1:]}",
                 self._metadata_endpoint,
             )
         )

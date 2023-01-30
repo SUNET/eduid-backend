@@ -1,8 +1,7 @@
-# -*- coding: utf-8 -*-
 import re
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional, Union
 from uuid import UUID
 
 from bson import ObjectId
@@ -235,30 +234,30 @@ class BaseResponse(EduidBaseModel):
 
     id: UUID
     meta: Meta
-    schemas: List[SCIMSchema] = Field(min_items=1)
+    schemas: list[SCIMSchema] = Field(min_items=1)
     external_id: Optional[str] = Field(default=None, alias="externalId")
 
 
 class BaseCreateRequest(EduidBaseModel):
-    schemas: List[SCIMSchema] = Field(min_items=1)
+    schemas: list[SCIMSchema] = Field(min_items=1)
     external_id: Optional[str] = Field(default=None, alias="externalId")
 
 
 class BaseUpdateRequest(EduidBaseModel):
     id: UUID
-    schemas: List[SCIMSchema] = Field(min_items=1)
+    schemas: list[SCIMSchema] = Field(min_items=1)
     external_id: Optional[str] = Field(default=None, alias="externalId")
 
 
 class SearchRequest(EduidBaseModel):
-    schemas: List[SCIMSchema] = Field(min_items=1, default=[SCIMSchema.API_MESSAGES_20_SEARCH_REQUEST])
+    schemas: list[SCIMSchema] = Field(min_items=1, default=[SCIMSchema.API_MESSAGES_20_SEARCH_REQUEST])
     filter: str
     start_index: int = Field(default=1, alias="startIndex", ge=1)  # Greater or equal to 1
     count: int = Field(default=100, ge=1)  # Greater or equal to 1
-    attributes: Optional[List[str]] = None
+    attributes: Optional[list[str]] = None
 
 
 class ListResponse(EduidBaseModel):
-    schemas: List[SCIMSchema] = Field(min_items=1, default=[SCIMSchema.API_MESSAGES_20_LIST_RESPONSE])
-    resources: List[Dict[Any, Any]] = Field(default_factory=list, alias="Resources")
+    schemas: list[SCIMSchema] = Field(min_items=1, default=[SCIMSchema.API_MESSAGES_20_LIST_RESPONSE])
+    resources: list[dict[Any, Any]] = Field(default_factory=list, alias="Resources")
     total_results: int = Field(default=0, alias="totalResults")

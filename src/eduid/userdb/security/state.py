@@ -1,14 +1,13 @@
-# -*- coding: utf-8 -*-
-
 from __future__ import annotations
 
 import copy
 import datetime
-from typing import Any, Dict, Mapping, Optional, Type, TypeVar
+from typing import Any, Mapping, Optional, TypeVar
 
 import bson
 from pydantic import BaseModel, Extra, Field
 
+from eduid.userdb.db import TUserDbDocument
 from eduid.userdb.security.element import CodeElement
 
 __author__ = "lundberg"
@@ -23,7 +22,7 @@ class PasswordResetState(BaseModel):
     state_id: bson.ObjectId = Field(default_factory=lambda: bson.ObjectId(), alias="_id")
     created_ts: datetime.datetime = Field(default_factory=lambda: utc_now())
     modified_ts: Optional[datetime.datetime] = None
-    extra_security: Optional[Dict[str, Any]] = None
+    extra_security: Optional[dict[str, Any]] = None
     generated_password: Optional[str] = None
 
     class Config:
@@ -37,26 +36,26 @@ class PasswordResetState(BaseModel):
     #    self.reference = str(self.id)
 
     def __str__(self):
-        return "<eduID {!s}: {!s}>".format(self.__class__.__name__, self.eppn)
+        return f"<eduID {self.__class__.__name__!s}: {self.eppn!s}>"
 
     @property
     def reference(self) -> str:
         return str(self.state_id)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> TUserDbDocument:
         """Convert state to a dict in eduid format, that can be used to reconstruct the state later."""
         data = self.dict(exclude_none=True)
         data = self._to_dict_transform(data)
-        return data
+        return TUserDbDocument(data)
 
     @classmethod
-    def from_dict(cls: Type[TPasswordResetStateSubclass], data: Mapping[str, Any]) -> TPasswordResetStateSubclass:
+    def from_dict(cls: type[TPasswordResetStateSubclass], data: Mapping[str, Any]) -> TPasswordResetStateSubclass:
         _data = dict(copy.deepcopy(data))  # to not modify callers data
         _data = cls._from_dict_transform(_data)
         return cls(**_data)
 
     @classmethod
-    def _from_dict_transform(cls: Type[TPasswordResetStateSubclass], data: Dict[str, Any]) -> Dict[str, Any]:
+    def _from_dict_transform(cls: type[TPasswordResetStateSubclass], data: dict[str, Any]) -> dict[str, Any]:
         """
         Transform data received in eduid format into pythonic format.
         """
@@ -65,7 +64,7 @@ class PasswordResetState(BaseModel):
         return data
 
     @classmethod
-    def _to_dict_transform(cls, data: Dict[str, Any]) -> Dict[str, Any]:
+    def _to_dict_transform(cls, data: dict[str, Any]) -> dict[str, Any]:
         """
         Transform data kept in pythonic format into eduid format.
         """

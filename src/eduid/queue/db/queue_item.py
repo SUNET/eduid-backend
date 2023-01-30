@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2020 Sunet
 # All rights reserved.
@@ -30,11 +29,12 @@
 
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from typing import Dict, Mapping, Optional
+from typing import Any, Mapping, Optional
 
 from bson import ObjectId
 
 from eduid.queue.db.payload import Payload, RawPayload
+from eduid.userdb.db import TUserDbDocument
 
 __author__ = "lundberg"
 
@@ -52,7 +52,7 @@ class SenderInfo:
     node_id: str  # Should be something like application@system_hostname ex. scimapi@apps-lla-3
 
     @classmethod
-    def from_dict(cls, data: Mapping):
+    def from_dict(cls, data: Mapping[str, Any]):
         data = dict(data)
         return cls(**data)
 
@@ -71,14 +71,14 @@ class QueueItem:
     processed_ts: Optional[datetime] = None
     retries: int = 0
 
-    def to_dict(self) -> Dict:
+    def to_dict(self) -> TUserDbDocument:
         res = asdict(self)
         res["_id"] = res.pop("item_id")
         res["payload"] = self.payload.to_dict()
-        return res
+        return TUserDbDocument(res)
 
     @classmethod
-    def from_dict(cls, data: Mapping):
+    def from_dict(cls, data: Mapping[str, Any]):
         data = dict(data)
         item_id = data.pop("_id")
         processed_by = data.pop("processed_by", None)

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2020 Sunet
 # All rights reserved.
@@ -32,10 +31,12 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Mapping, Optional
+from typing import Any, Mapping, Optional
 from uuid import UUID
 
 from bson import ObjectId
+
+from eduid.userdb.db import TUserDbDocument
 
 __author__ = "lundberg"
 
@@ -86,8 +87,8 @@ class Invite(_InviteRequired):
     invite_id: ObjectId = field(default_factory=ObjectId)
     given_name: Optional[str] = field(default=None)
     surname: Optional[str] = field(default=None)
-    mail_addresses: List[InviteMailAddress] = field(default_factory=list)
-    phone_numbers: List[InvitePhoneNumber] = field(default_factory=list)
+    mail_addresses: list[InviteMailAddress] = field(default_factory=list)
+    phone_numbers: list[InvitePhoneNumber] = field(default_factory=list)
     nin: Optional[str] = field(default=None)
     preferred_language: str = field(default="sv")
     finish_url: Optional[str] = field(default=None)
@@ -102,14 +103,14 @@ class Invite(_InviteRequired):
             return None
         return primary_mail_address[0]
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> TUserDbDocument:
         data = asdict(self)
         data["_id"] = data.pop("invite_id")
         data["invite_type"] = InviteType(data["invite_type"]).value
-        return data
+        return TUserDbDocument(data)
 
     @classmethod
-    def from_dict(cls, data: Mapping) -> Invite:
+    def from_dict(cls, data: Mapping[str, Any]) -> Invite:
         data = dict(data)
         data["invite_id"] = data.pop("_id")
         data["invite_type"] = InviteType(data["invite_type"])

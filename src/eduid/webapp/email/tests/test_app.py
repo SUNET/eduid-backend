@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2016 NORDUnet A/S
 # Copyright (c) 2018 SUNET
@@ -32,10 +31,10 @@
 # POSSIBILITY OF SUCH DAMAGE.
 import json
 from datetime import datetime, timedelta
-from typing import Any, Dict, Mapping, Optional
+from typing import Any, Mapping, Optional
+from unittest.mock import MagicMock, patch
 
-from mock import patch
-
+from eduid.common.config.base import EduidEnvironment
 from eduid.userdb import User
 from eduid.userdb.mail import MailAddress
 from eduid.userdb.proofing import EmailProofingElement, EmailProofingState
@@ -43,11 +42,9 @@ from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.email.app import EmailApp, email_init_app
 
 
-class EmailTests(EduidAPITestCase):
-    app: EmailApp
-
-    def setUp(self, **kwargs):
-        super().setUp(copy_user_to_private=True)
+class EmailTests(EduidAPITestCase[EmailApp]):
+    def setUp(self, *args: Any, **kwargs: Any) -> None:
+        super().setUp(*args, **kwargs, copy_user_to_private=True)
 
     def load_app(self, config: Mapping[str, Any]) -> EmailApp:
         """
@@ -56,7 +53,7 @@ class EmailTests(EduidAPITestCase):
         """
         return email_init_app("emails", config)
 
-    def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
+    def update_config(self, config: dict[str, Any]) -> dict[str, Any]:
         config.update(
             {
                 "available_languages": {"en": "English", "sv": "Svenska"},
@@ -76,13 +73,13 @@ class EmailTests(EduidAPITestCase):
         for address in verified:
             user.mail_addresses.remove(address.key)
 
-    def _add_2_emails(self, user):
+    def _add_2_emails(self, user: User) -> None:
         verified = MailAddress(email="verified@example.com", created_by="test", is_verified=True, is_primary=True)
         verified2 = MailAddress(email="verified2@example.com", created_by="test", is_verified=True, is_primary=False)
         user.mail_addresses.add(verified)
         user.mail_addresses.add(verified2)
 
-    def _add_2_emails_1_verified(self, user):
+    def _add_2_emails_1_verified(self, user: User) -> None:
         verified = MailAddress(email="verified@example.com", created_by="test", is_verified=True, is_primary=True)
         verified2 = MailAddress(email="unverified@example.com", created_by="test", is_verified=False, is_primary=False)
         user.mail_addresses.add(verified)
@@ -111,7 +108,7 @@ class EmailTests(EduidAPITestCase):
         mock_code_verification: Any,
         mock_request_user_sync: Any,
         mock_sendmail: Any,
-        data1: Optional[dict] = None,
+        data1: Optional[dict[str, Any]] = None,
         send_data: bool = True,
     ):
         """
@@ -146,7 +143,7 @@ class EmailTests(EduidAPITestCase):
                 return client.post("/new")
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def _post_primary(self, mock_request_user_sync: Any, data1: Optional[dict] = None):
+    def _post_primary(self, mock_request_user_sync: Any, data1: Optional[dict[str, Any]] = None):
         """
         Choose an email of the test user as primary
 
@@ -171,7 +168,7 @@ class EmailTests(EduidAPITestCase):
                 return client.post("/primary", data=json.dumps(data), content_type=self.content_type_json)
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def _remove(self, mock_request_user_sync: Any, data1: Optional[dict] = None):
+    def _remove(self, mock_request_user_sync: Any, data1: Optional[dict[str, Any]] = None):
         """
         POST to remove an email address form the test user
 
@@ -195,7 +192,7 @@ class EmailTests(EduidAPITestCase):
 
     @patch("eduid.common.rpc.mail_relay.MailRelay.sendmail")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def _resend_code(self, mock_request_user_sync: Any, mock_sendmail: Any, data1: Optional[dict] = None):
+    def _resend_code(self, mock_request_user_sync: Any, mock_sendmail: Any, data1: Optional[dict[str, Any]] = None):
         """
         Trigger resending a new verification code to the email being verified
 
@@ -223,8 +220,8 @@ class EmailTests(EduidAPITestCase):
         mock_code_verification: Any,
         mock_request_user_sync: Any,
         mock_sendmail: Any,
-        data1: Optional[dict] = None,
-        data2: Optional[dict] = None,
+        data1: Optional[dict[str, Any]] = None,
+        data2: Optional[dict[str, Any]] = None,
     ):
         """
         POST a new email address for the test user, and then verify it.
@@ -275,7 +272,7 @@ class EmailTests(EduidAPITestCase):
         mock_request_user_sync: Any,
         mock_sendmail: Any,
         code: str = "432123425",
-        data1: Optional[dict] = None,
+        data1: Optional[dict[str, Any]] = None,
         email: str = "johnsmith3@example.com",
     ):
         """
@@ -306,7 +303,7 @@ class EmailTests(EduidAPITestCase):
                     data.update(data1)
 
             client.post("/new", data=json.dumps(data), content_type=self.content_type_json)
-            return client.get("/verify?code={}&email={}".format(code, email))
+            return client.get(f"/verify?code={code}&email={email}")
 
     @patch("eduid.common.rpc.mail_relay.MailRelay.sendmail")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
@@ -316,7 +313,7 @@ class EmailTests(EduidAPITestCase):
         mock_code_verification: Any,
         mock_request_user_sync: Any,
         mock_sendmail: Any,
-        data1: Optional[dict] = None,
+        data1: Optional[dict[str, Any]] = None,
         email: str = "johnsmith3@example.com",
         code: str = "123456",
     ):
@@ -347,6 +344,8 @@ class EmailTests(EduidAPITestCase):
 
             client.post("/new", data=json.dumps(data), content_type=self.content_type_json)
 
+            assert self.app.conf.magic_cookie_name is not None
+            assert self.app.conf.magic_cookie is not None
             client.set_cookie("localhost", key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie)
 
             return client.get(f"/get-code?email={email}&eppn={eppn}")
@@ -403,7 +402,7 @@ class EmailTests(EduidAPITestCase):
         verification1 = EmailProofingElement(email=email, verification_code="test_code_1")
         modified_ts = datetime.now(tz=None)
         old_state = EmailProofingState(id=None, eppn=eppn, modified_ts=modified_ts, verification=verification1)
-        self.app.proofing_statedb.save(old_state, check_sync=False)
+        self.app.proofing_statedb.save(old_state, is_in_database=False)
 
         response = self._post_email()
         self.assertEqual(response.status_code, 200)
@@ -419,7 +418,7 @@ class EmailTests(EduidAPITestCase):
         modified_ts = datetime.now(tz=None)
         verification1 = EmailProofingElement(email=email, verification_code="test_code_1")
         old_state = EmailProofingState(id=None, eppn=eppn, modified_ts=modified_ts, verification=verification1)
-        self.app.proofing_statedb.save(old_state, check_sync=False)
+        self.app.proofing_statedb.save(old_state, is_in_database=False)
 
         response = self._post_email()
         self.assertEqual(response.status_code, 200)
@@ -442,7 +441,7 @@ class EmailTests(EduidAPITestCase):
         user = self.app.central_userdb.get_user_by_eppn(eppn)
         mail_address = MailAddress(email=email, created_by="email", is_verified=False, is_primary=False)
         user.mail_addresses.add(mail_address)
-        self.app.central_userdb.save(user, check_sync=False)
+        self.app.central_userdb.save(user)
 
         response = self._post_email()
         self.assertEqual(response.status_code, 200)
@@ -462,7 +461,7 @@ class EmailTests(EduidAPITestCase):
         self.assertEqual(new_email_data["payload"]["error"]["csrf_token"], ["CSRF failed to validate"])
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_post_primary(self, mock_request_user_sync):
+    def test_post_primary(self, mock_request_user_sync: MagicMock):
         data1 = {"email": "johnsmith@example.com"}
         response = self._post_primary(data1=data1)
 
@@ -473,7 +472,7 @@ class EmailTests(EduidAPITestCase):
         self.assertEqual(new_email_data["type"], "POST_EMAIL_PRIMARY_SUCCESS")
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_post_unknown_primary(self, mock_request_user_sync):
+    def test_post_unknown_primary(self, mock_request_user_sync: MagicMock):
         data1 = {"email": "susansmith@example.com"}
         response = self._post_primary(data1=data1)
 
@@ -517,7 +516,7 @@ class EmailTests(EduidAPITestCase):
         self.assertEqual(delete_email_data["payload"]["emails"][0].get("email"), "johnsmith@example.com")
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_remove_primary(self, mock_request_user_sync):
+    def test_remove_primary(self, mock_request_user_sync: MagicMock):
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_user_data["eduPersonPrincipalName"]
@@ -540,12 +539,14 @@ class EmailTests(EduidAPITestCase):
         self.assertEqual(delete_email_data["payload"]["emails"][0].get("email"), "verified2@example.com")
 
         user = self.app.central_userdb.get_user_by_eppn(eppn)
+        assert user.mail_addresses.primary is not None
+
         self.assertEqual(user.mail_addresses.count, 1)
         self.assertEqual(len(user.mail_addresses.verified), 1)
         self.assertEqual(user.mail_addresses.primary.email, "verified2@example.com")
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_remove_last_verified(self, mock_request_user_sync):
+    def test_remove_last_verified(self, mock_request_user_sync: MagicMock):
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_user_data["eduPersonPrincipalName"]
@@ -567,6 +568,8 @@ class EmailTests(EduidAPITestCase):
         self.assertEqual(delete_email_data["type"], "POST_EMAIL_REMOVE_FAIL")
 
         user = self.app.central_userdb.get_user_by_eppn(eppn)
+        assert user.mail_addresses.primary is not None
+
         self.assertEqual(user.mail_addresses.count, 2)
         self.assertEqual(len(user.mail_addresses.verified), 1)
         self.assertEqual(user.mail_addresses.primary.email, "verified@example.com")
@@ -613,7 +616,7 @@ class EmailTests(EduidAPITestCase):
         self.assertIsNotNone(resend_code_email_data["payload"]["csrf_token"])
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_resend_code_fails(self, mock_request_user_sync):
+    def test_resend_code_fails(self, mock_request_user_sync: MagicMock):
         data1 = {"email": "johnsmith3@example.com"}
         response = self._resend_code(data1=data1)
 
@@ -661,7 +664,9 @@ class EmailTests(EduidAPITestCase):
     @patch("eduid.common.rpc.mail_relay.MailRelay.sendmail")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     @patch("eduid.webapp.email.verifications.get_unique_hash")
-    def test_verify_code_timeout(self, mock_code_verification, mock_request_user_sync, mock_sendmail):
+    def test_verify_code_timeout(
+        self, mock_code_verification: MagicMock, mock_request_user_sync: MagicMock, mock_sendmail: MagicMock
+    ):
         self.app.conf.email_verification_timeout = 0
         response = self._verify()
 
@@ -672,7 +677,9 @@ class EmailTests(EduidAPITestCase):
     @patch("eduid.common.rpc.mail_relay.MailRelay.sendmail")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     @patch("eduid.webapp.email.verifications.get_unique_hash")
-    def test_verify_fail(self, mock_code_verification, mock_request_user_sync, mock_sendmail):
+    def test_verify_fail(
+        self, mock_code_verification: MagicMock, mock_request_user_sync: MagicMock, mock_sendmail: MagicMock
+    ):
         response = self._verify(data2={"code": "wrong-code"})
 
         verify_email_data = json.loads(response.data)
@@ -683,7 +690,9 @@ class EmailTests(EduidAPITestCase):
     @patch("eduid.common.rpc.mail_relay.MailRelay.sendmail")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     @patch("eduid.webapp.email.verifications.get_unique_hash")
-    def test_verify_email_link(self, mock_code_verification, mock_request_user_sync, mock_sendmail):
+    def test_verify_email_link(
+        self, mock_code_verification: MagicMock, mock_request_user_sync: MagicMock, mock_sendmail: MagicMock
+    ):
         response = self._verify_email_link()
         email = "johnsmith3@example.com"
         eppn = self.test_user_data["eduPersonPrincipalName"]
@@ -693,12 +702,12 @@ class EmailTests(EduidAPITestCase):
 
         user = self.app.private_userdb.get_user_by_eppn(eppn)
         mail_address_element = user.mail_addresses.find(email)
-        self.assertTrue(mail_address_element)
+        assert mail_address_element is not None
 
-        self.assertEqual(mail_address_element.email, email)
-        self.assertEqual(mail_address_element.is_verified, True)
-        self.assertEqual(mail_address_element.is_primary, False)
-        self.assertEqual(self.app.proofing_log.db_count(), 1)
+        assert mail_address_element.email == email
+        assert mail_address_element.is_verified == True
+        assert mail_address_element.is_primary == False
+        assert self.app.proofing_log.db_count() == 1
 
     def test_verify_email_link_uppercase(self):
         email = "UPPERCASE@example.com"
@@ -710,17 +719,19 @@ class EmailTests(EduidAPITestCase):
 
         user = self.app.private_userdb.get_user_by_eppn(eppn)
         mail_address_element = user.mail_addresses.find(email.lower())
-        self.assertTrue(mail_address_element)
+        assert mail_address_element is not None
 
-        self.assertEqual(mail_address_element.email, email.lower())
-        self.assertEqual(mail_address_element.is_verified, True)
-        self.assertEqual(mail_address_element.is_primary, False)
-        self.assertEqual(self.app.proofing_log.db_count(), 1)
+        assert mail_address_element.email, email.lower()
+        assert mail_address_element.is_verified == True
+        assert mail_address_element.is_primary == False
+        assert self.app.proofing_log.db_count() == 1
 
     @patch("eduid.common.rpc.mail_relay.MailRelay.sendmail")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     @patch("eduid.webapp.email.verifications.get_unique_hash")
-    def test_verify_email_link_wrong_code(self, mock_code_verification, mock_request_user_sync, mock_sendmail):
+    def test_verify_email_link_wrong_code(
+        self, mock_code_verification: MagicMock, mock_request_user_sync: MagicMock, mock_sendmail: MagicMock
+    ):
         response = self._verify_email_link(code="wrong-code")
         email = "johnsmith3@example.com"
         eppn = self.test_user_data["eduPersonPrincipalName"]
@@ -735,12 +746,12 @@ class EmailTests(EduidAPITestCase):
 
         user = self.app.private_userdb.get_user_by_eppn(eppn)
         mail_address_element = user.mail_addresses.find(email)
-        self.assertTrue(mail_address_element)
+        assert mail_address_element is not None
 
-        self.assertEqual(mail_address_element.email, email)
-        self.assertEqual(mail_address_element.is_verified, False)
-        self.assertEqual(mail_address_element.is_primary, False)
-        self.assertEqual(self.app.proofing_log.db_count(), 0)
+        assert mail_address_element.email == email
+        assert mail_address_element.is_verified == False
+        assert mail_address_element.is_primary == False
+        assert self.app.proofing_log.db_count() == 0
 
     def test_handle_multiple_email_proofings(self):
         eppn = self.test_user_data["eduPersonPrincipalName"]
@@ -750,15 +761,16 @@ class EmailTests(EduidAPITestCase):
         modified_ts = datetime.now(tz=None) - timedelta(seconds=1)
         state1 = EmailProofingState(id=None, eppn=eppn, modified_ts=modified_ts, verification=verification1)
         state2 = EmailProofingState(id=None, eppn=eppn, modified_ts=None, verification=verification2)
-        self.app.proofing_statedb.save(state1, check_sync=False)
-        self.app.proofing_statedb.save(state2, check_sync=False)
+        self.app.proofing_statedb.save(state1, is_in_database=False)
+        self.app.proofing_statedb.save(state2, is_in_database=False)
         state = self.app.proofing_statedb.get_state_by_eppn_and_email(eppn=eppn, email=email)
+        assert state is not None
         self.assertEqual(state.verification.verification_code, "test_code_2")
 
     def test_get_code_backdoor(self):
         self.app.conf.magic_cookie = "magic-cookie"
         self.app.conf.magic_cookie_name = "magic"
-        self.app.conf.environment = "dev"
+        self.app.conf.environment = EduidEnvironment("dev")
 
         code = "0123456"
         resp = self._get_code_backdoor(code=code)
@@ -769,7 +781,7 @@ class EmailTests(EduidAPITestCase):
     def test_get_code_no_backdoor_in_pro(self):
         self.app.conf.magic_cookie = "magic-cookie"
         self.app.conf.magic_cookie_name = "magic"
-        self.app.conf.environment = "production"
+        self.app.conf.environment = EduidEnvironment("production")
 
         code = "0123456"
         resp = self._get_code_backdoor(code=code)
@@ -779,7 +791,7 @@ class EmailTests(EduidAPITestCase):
     def test_get_code_no_backdoor_misconfigured1(self):
         self.app.conf.magic_cookie = "magic-cookie"
         self.app.conf.magic_cookie_name = ""
-        self.app.conf.environment = "dev"
+        self.app.conf.environment = EduidEnvironment("dev")
 
         code = "0123456"
         resp = self._get_code_backdoor(code=code)
@@ -789,7 +801,7 @@ class EmailTests(EduidAPITestCase):
     def test_get_code_no_backdoor_misconfigured2(self):
         self.app.conf.magic_cookie = ""
         self.app.conf.magic_cookie_name = "magic"
-        self.app.conf.environment = "dev"
+        self.app.conf.environment = EduidEnvironment("dev")
 
         code = "0123456"
         resp = self._get_code_backdoor(code=code)

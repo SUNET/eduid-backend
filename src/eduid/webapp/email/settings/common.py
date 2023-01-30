@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2013-2016 NORDUnet A/S
 # Copyright (c) 2019 SUNET
@@ -49,9 +48,6 @@ class EmailConfig(EduIDBaseAppConfig, MagicCookieMixin, AmConfigMixin, MailConfi
     """
     Configuration for the email app
     """
-
-    eduid_site_name: str
-    eduid_site_url: str
 
     app_name: str = "email"
 

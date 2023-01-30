@@ -76,10 +76,10 @@ in an NCName.
 """
 from __future__ import annotations
 
-import collections.abc
 import json
 import logging
-from typing import Any, Dict, List, Mapping, Optional, Union
+import typing
+from typing import Any, Mapping, Optional, Union
 
 import nacl.encoding
 import nacl.secret
@@ -96,7 +96,7 @@ from eduid.webapp.common.session.meta import SessionMeta
 logger = logging.getLogger(__name__)
 
 
-class SessionManager(object):
+class SessionManager:
     """
     Factory objects that hold some configuration data and provide
     session objects.
@@ -107,7 +107,7 @@ class SessionManager(object):
         redis_config: RedisConfig,
         app_secret: str,
         ttl: int = 600,
-        whitelist: Optional[List[str]] = None,
+        whitelist: Optional[list[str]] = None,
         raise_on_unknown: bool = False,
     ):
         """
@@ -187,7 +187,7 @@ class SessionOutOfSync(Exception):
     pass
 
 
-class RedisEncryptedSession(collections.abc.MutableMapping):
+class RedisEncryptedSession(typing.MutableMapping):
     """
     Session objects that keep their data in a redis db.
     """
@@ -198,7 +198,7 @@ class RedisEncryptedSession(collections.abc.MutableMapping):
         db_key: str,
         encryption_key: bytes,
         ttl: int,
-        whitelist: Optional[List[str]] = None,
+        whitelist: Optional[list[str]] = None,
         raise_on_unknown: bool = False,
     ):
         """
@@ -232,7 +232,7 @@ class RedisEncryptedSession(collections.abc.MutableMapping):
 
         self.secret_box = nacl.secret.SecretBox(encryption_key)
 
-        self._data: dict = {}
+        self._data: dict[str, Any] = {}
 
     def __str__(self):
         # Include hex(id(self)) for now to troubleshoot clobbered sessions
@@ -326,7 +326,7 @@ class RedisEncryptedSession(collections.abc.MutableMapping):
         }
         return bytes(json.dumps(versioned), "ascii")
 
-    def decrypt_data(self, data_str: str) -> Dict[str, Any]:
+    def decrypt_data(self, data_str: str) -> dict[str, Any]:
         """
         Decrypt and verify session data read from Redis.
 
@@ -356,5 +356,5 @@ class RedisEncryptedSession(collections.abc.MutableMapping):
         """
         self.conn.expire(self.db_key, self.ttl)
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         return dict(self._data)

@@ -1,9 +1,7 @@
-# -*- coding: utf-8 -*-
-
 from dataclasses import dataclass, field
 from datetime import date, datetime, time
 from enum import Enum
-from typing import List, Optional, Union
+from typing import Optional, Union
 from uuid import UUID
 
 from fido2.utils import websafe_decode
@@ -34,8 +32,8 @@ class AuthenticatorInformation:
     last_status_change: Optional[datetime] = field(default=None)
     icon: Optional[str] = field(default=None)
     description: Optional[str] = field(default=None)
-    key_protection: List[str] = field(default_factory=list)
-    user_verification_methods: List[str] = field(default_factory=list)
+    key_protection: list[str] = field(default_factory=list)
+    user_verification_methods: list[str] = field(default_factory=list)
 
 
 def get_authenticator_information(attestation: str, client_data: str) -> AuthenticatorInformation:

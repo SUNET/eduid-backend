@@ -1,10 +1,9 @@
-# -*- coding: utf-8 -*-
 import json
 from datetime import datetime, timedelta
-from typing import Any, Dict, Mapping, Optional
+from typing import Any, Mapping, Optional
+from unittest.mock import MagicMock, patch
 
-from mock import patch
-
+from eduid.common.config.base import EduidEnvironment
 from eduid.common.rpc.exceptions import LookupMobileTaskFailed
 from eduid.userdb import User
 from eduid.webapp.common.api.testing import EduidAPITestCase
@@ -14,18 +13,16 @@ from eduid.webapp.lookup_mobile_proofing.helpers import MobileMsg
 __author__ = "lundberg"
 
 
-class LookupMobileProofingTests(EduidAPITestCase):
+class LookupMobileProofingTests(EduidAPITestCase[MobileProofingApp]):
     """Base TestCase for those tests that need a full environment setup"""
-
-    app: MobileProofingApp
 
     def setUp(self):
         self.test_user_eppn = "hubba-baar"
         self.test_user_nin = "199001023456"
         fifteen_years_ago = datetime.now() - timedelta(days=15 * 365)
-        self.test_user_nin_underage = "{}01023456".format(fifteen_years_ago.year)
+        self.test_user_nin_underage = f"{fifteen_years_ago.year}01023456"
 
-        super(LookupMobileProofingTests, self).setUp(users=["hubba-baar"])
+        super().setUp(users=["hubba-baar"])
 
     def load_app(self, config: Mapping[str, Any]):
         """
@@ -34,7 +31,7 @@ class LookupMobileProofingTests(EduidAPITestCase):
         """
         return init_lookup_mobile_proofing_app("testing", config)
 
-    def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
+    def update_config(self, config: dict[str, Any]) -> dict[str, Any]:
         config.update(
             {
                 "environment": "dev",
@@ -71,7 +68,9 @@ class LookupMobileProofingTests(EduidAPITestCase):
     @patch("eduid.common.rpc.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile")
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_proofing_flow(self, mock_request_user_sync, mock_get_all_navet_data, mock_find_nin_by_mobile):
+    def test_proofing_flow(
+        self, mock_request_user_sync: MagicMock, mock_get_all_navet_data: MagicMock, mock_find_nin_by_mobile: MagicMock
+    ):
         mock_find_nin_by_mobile.return_value = self.test_user_nin
         mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
@@ -95,7 +94,9 @@ class LookupMobileProofingTests(EduidAPITestCase):
     @patch("eduid.common.rpc.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile")
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_proofing_flow_underage(self, mock_request_user_sync, mock_get_all_navet_data, mock_find_nin_by_mobile):
+    def test_proofing_flow_underage(
+        self, mock_request_user_sync: MagicMock, mock_get_all_navet_data: MagicMock, mock_find_nin_by_mobile: MagicMock
+    ):
         mock_find_nin_by_mobile.return_value = self.test_user_nin_underage
         mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
@@ -119,7 +120,9 @@ class LookupMobileProofingTests(EduidAPITestCase):
     @patch("eduid.common.rpc.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile")
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_proofing_flow_no_match(self, mock_request_user_sync, mock_get_all_navet_data, mock_find_nin_by_mobile):
+    def test_proofing_flow_no_match(
+        self, mock_request_user_sync: MagicMock, mock_get_all_navet_data: MagicMock, mock_find_nin_by_mobile: MagicMock
+    ):
         mock_find_nin_by_mobile.return_value = None
         mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
@@ -143,7 +146,7 @@ class LookupMobileProofingTests(EduidAPITestCase):
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_proofing_flow_LookupMobileTaskFailed(
-        self, mock_request_user_sync, mock_get_all_navet_data, mock_find_nin_by_mobile
+        self, mock_request_user_sync: MagicMock, mock_get_all_navet_data: MagicMock, mock_find_nin_by_mobile: MagicMock
     ):
         mock_find_nin_by_mobile.side_effect = LookupMobileTaskFailed("Test Exception")
         mock_get_all_navet_data.return_value = self._get_all_navet_data()
@@ -169,7 +172,7 @@ class LookupMobileProofingTests(EduidAPITestCase):
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_postal_address")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_proofing_flow_no_match_backdoor(
-        self, mock_request_user_sync, mock_get_postal_address, mock_find_nin_by_mobile
+        self, mock_request_user_sync: MagicMock, mock_get_postal_address: MagicMock, mock_find_nin_by_mobile: MagicMock
     ):
         mock_find_nin_by_mobile.return_value = None
         mock_get_postal_address.return_value = None
@@ -201,13 +204,13 @@ class LookupMobileProofingTests(EduidAPITestCase):
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_postal_address")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_proofing_flow_no_match_backdoor_code_in_pro(
-        self, mock_request_user_sync, mock_get_postal_address, mock_find_nin_by_mobile
+        self, mock_request_user_sync: MagicMock, mock_get_postal_address: MagicMock, mock_find_nin_by_mobile: MagicMock
     ):
         mock_find_nin_by_mobile.return_value = None
         mock_get_postal_address.return_value = None
         mock_request_user_sync.side_effect = self.request_user_sync
 
-        self.app.conf.environment = "production"
+        self.app.conf.environment = EduidEnvironment("production")
         self.app.conf.magic_cookie = "magic-cookie"
         self.app.conf.magic_cookie_name = "magic-cookie"
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
@@ -234,7 +237,7 @@ class LookupMobileProofingTests(EduidAPITestCase):
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_postal_address")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_proofing_flow_no_match_backdoor_code_unconfigured(
-        self, mock_request_user_sync, mock_get_postal_address, mock_find_nin_by_mobile
+        self, mock_request_user_sync: MagicMock, mock_get_postal_address: MagicMock, mock_find_nin_by_mobile: MagicMock
     ):
         mock_find_nin_by_mobile.return_value = None
         mock_get_postal_address.return_value = None
@@ -267,7 +270,11 @@ class LookupMobileProofingTests(EduidAPITestCase):
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_proofing_flow_relation(
-        self, mock_request_user_sync, mock_get_all_navet_data, mock_find_nin_by_mobile, mock_get_relations_to
+        self,
+        mock_request_user_sync: MagicMock,
+        mock_get_all_navet_data: MagicMock,
+        mock_find_nin_by_mobile: MagicMock,
+        mock_get_relations_to: MagicMock,
     ):
         mock_get_relations_to.return_value = ["MO"]
         mock_find_nin_by_mobile.return_value = "197001021234"
@@ -295,7 +302,11 @@ class LookupMobileProofingTests(EduidAPITestCase):
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_proofing_flow_relation_no_match(
-        self, mock_request_user_sync, mock_get_all_navet_data, mock_find_nin_by_mobile, mock_get_relations_to
+        self,
+        mock_request_user_sync: MagicMock,
+        mock_get_all_navet_data: MagicMock,
+        mock_find_nin_by_mobile: MagicMock,
+        mock_get_relations_to: MagicMock,
     ):
         mock_get_relations_to.return_value = []
         mock_find_nin_by_mobile.return_value = "197001021234"

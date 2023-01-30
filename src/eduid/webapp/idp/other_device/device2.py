@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime
-from typing import Any, Dict, Mapping
+from typing import Any, Mapping
 
 from flask import request, url_for
 
@@ -13,7 +13,7 @@ from eduid.webapp.idp.login_context import LoginContextOtherDevice
 from eduid.webapp.idp.other_device.data import OtherDeviceState
 from eduid.webapp.idp.other_device.db import OtherDevice
 from eduid.webapp.idp.sso_session import SSOSession
-from eduid.webapp.idp.util import get_ip_proximity, get_login_username
+from eduid.webapp.idp.util import IPProximity, get_ip_proximity, get_login_username
 
 logger = logging.getLogger(__name__)
 
@@ -67,14 +67,18 @@ def device2_state_to_flux_payload(state: OtherDevice, now: datetime) -> Mapping[
             display_name = user.display_name or user.given_name or state.eppn
             username = get_login_username(user)
 
+    _proximity = IPProximity.FAR
+    if request.remote_addr:
+        _proximity = get_ip_proximity(state.device1.ip_address, request.remote_addr)
+
     device_info = {
         "addr": state.device1.ip_address,
         "description": state.device1.user_agent,
         "is_known_device": state.device1.is_known_device,
-        "proximity": get_ip_proximity(state.device1.ip_address, request.remote_addr).value,
+        "proximity": _proximity.value,
         "service_info": state.device1.service_info,
     }
-    payload: Dict[str, Any] = {
+    payload: dict[str, Any] = {
         "device1_info": device_info,
         "display_name": display_name,
         "expires_in": expires_in,

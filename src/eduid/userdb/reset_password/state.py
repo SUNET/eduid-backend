@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2019 SUNET
 # All rights reserved.
@@ -35,11 +34,13 @@ from __future__ import annotations
 import datetime
 import logging
 from dataclasses import asdict, dataclass, field
-from typing import Any, Dict, Optional, Type, TypeVar
+from typing import Any, Optional, TypeVar
 
 import bson
 
 from eduid.common.misc.timeutil import utc_now
+from eduid.common.models.webauthn import WebauthnChallenge
+from eduid.userdb.db import TUserDbDocument
 from eduid.userdb.reset_password.element import CodeElement
 
 TResetPasswordStateSubclass = TypeVar("TResetPasswordStateSubclass", bound="ResetPasswordState")
@@ -48,7 +49,7 @@ logger = logging.getLogger(__name__)
 
 
 @dataclass
-class ResetPasswordState(object):
+class ResetPasswordState:
     """ """
 
     eppn: str
@@ -57,23 +58,27 @@ class ResetPasswordState(object):
     method: Optional[str] = None
     created_ts: datetime.datetime = field(default_factory=utc_now)
     modified_ts: Optional[datetime.datetime] = None
-    extra_security: Optional[Dict[str, Any]] = None
+    extra_security: Optional[dict[str, Any]] = None
     generated_password: bool = False
 
     def __post_init__(self):
         self.reference = str(self.id)
 
     def __str__(self):
-        return "<eduID {!s}: {!s}>".format(self.__class__.__name__, self.eppn)
+        return f"<eduID {self.__class__.__name__!s}: {self.eppn!s}>"
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> TUserDbDocument:
         res = asdict(self)
         res["eduPersonPrincipalName"] = res.pop("eppn")
         res["_id"] = res.pop("id")
-        return res
+        if res.get("extra_security"):
+            _tokens = res["extra_security"].get("tokens")
+            if isinstance(_tokens, WebauthnChallenge):
+                res["extra_security"]["tokens"] = _tokens.dict()
+        return TUserDbDocument(res)
 
     @classmethod
-    def from_dict(cls: Type[TResetPasswordStateSubclass], data: Dict[str, Any]) -> TResetPasswordStateSubclass:
+    def from_dict(cls: type[TResetPasswordStateSubclass], data: dict[str, Any]) -> TResetPasswordStateSubclass:
         data["eppn"] = data.pop("eduPersonPrincipalName")
         data["id"] = data.pop("_id")
         if "reference" in data:
@@ -136,7 +141,7 @@ class ResetPasswordEmailAndPhoneState(ResetPasswordEmailState, _ResetPasswordEma
 
     @classmethod
     def from_email_state(
-        cls: Type[ResetPasswordEmailAndPhoneState],
+        cls: type[ResetPasswordEmailAndPhoneState],
         email_state: ResetPasswordEmailState,
         phone_number: str,
         phone_code: str,
@@ -146,7 +151,7 @@ class ResetPasswordEmailAndPhoneState(ResetPasswordEmailState, _ResetPasswordEma
         data["phone_code"] = phone_code
         return cls.from_dict(data=data)
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> TUserDbDocument:
         res = super().to_dict()
         res["phone_code"] = self.phone_code.to_dict()
         return res

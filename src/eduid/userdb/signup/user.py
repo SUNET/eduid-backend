@@ -32,11 +32,12 @@
 
 __author__ = "ft"
 
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 import bson
 from pydantic import Field
 
+from eduid.userdb.db import TUserDbDocument
 from eduid.userdb.proofing import EmailProofingElement
 from eduid.userdb.user import User
 
@@ -54,7 +55,7 @@ class SignupUser(User):
     proofing_reference: str = Field(default_factory=lambda: str(bson.ObjectId()))
 
     @classmethod
-    def check_or_use_data(cls, data: Dict[str, Any]) -> Dict[str, Any]:
+    def check_or_use_data(cls, data: dict[str, Any]) -> dict[str, Any]:
         _social_network = data.pop("social_network", None)
         _social_network_id = data.pop("social_network_id", None)
         _pending_mail_address = data.pop("pending_mail_address", None)
@@ -71,8 +72,8 @@ class SignupUser(User):
 
         return data
 
-    def to_dict(self) -> Dict[str, Any]:
-        res = User.to_dict(self)
+    def to_dict(self) -> TUserDbDocument:
+        res = super().to_dict()
         if self.pending_mail_address is not None:
             res["pending_mail_address"] = self.pending_mail_address.to_dict()
         return res

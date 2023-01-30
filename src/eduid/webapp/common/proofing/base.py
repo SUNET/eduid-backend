@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from abc import ABC
 from dataclasses import dataclass
 from typing import Generic, Optional, TypeVar
@@ -100,7 +98,6 @@ class ProofingFunctions(ABC, Generic[SessionInfoVar]):
 
         # re-load the user from central db before returning
         _user = current_app.central_userdb.get_user_by_eppn(proofing_user.eppn)
-        assert _user is not None  # please mypy
         return VerifyCredentialResult(user=_user)
 
     def match_identity(self, user: User, proofing_method: ProofingMethod) -> MatchResult:

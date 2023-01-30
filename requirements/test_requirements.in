@@ -4,11 +4,12 @@
 -r satosa_scim_requirements.in
 -r webapp_requirements.in
 -r worker_requirements.in
--r typecheck_requirements.in
 black
 isort
 mock
 mypy
+pip-tools
 pytest
 pytest-cov
 respx
+pip-tools

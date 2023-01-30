@@ -17,7 +17,7 @@ import time
 from base64 import b64encode
 from dataclasses import dataclass
 from hashlib import sha256
-from typing import Dict, List, Mapping, Optional, Union
+from typing import Mapping, Optional, Union
 from uuid import uuid4
 
 from defusedxml import ElementTree as DefusedElementTree
@@ -44,7 +44,6 @@ from eduid.webapp.idp.assurance import (
     MissingAuthentication,
     MissingMultiFactor,
     MissingPasswordFactor,
-    WrongMultiFactor,
 )
 from eduid.webapp.idp.assurance_data import AuthnInfo
 from eduid.webapp.idp.helpers import IdPMsg
@@ -164,9 +163,6 @@ def login_next_step(ticket: LoginContext, sso_session: Optional[SSOSession], tem
         res = NextResult(message=IdPMsg.mfa_required, user=user if template_mode else None)
     except MissingAuthentication:
         res = NextResult(message=IdPMsg.must_authenticate)
-    except WrongMultiFactor as exc:
-        current_app.logger.info(f"Assurance not possible: {repr(exc)}")
-        res = NextResult(message=IdPMsg.swamid_mfa_required, error=True)
     except AssuranceException as exc:
         current_app.logger.info(f"Assurance not possible: {repr(exc)}")
         res = NextResult(message=IdPMsg.assurance_not_possible, error=True)
@@ -267,8 +263,6 @@ class SSO(Service):
 
         if _next.message == IdPMsg.user_terminated:
             raise Forbidden("USER_TERMINATED")
-        if _next.message == IdPMsg.swamid_mfa_required:
-            raise Forbidden("SWAMID_MFA_REQUIRED")
         if _next.message == IdPMsg.wrong_user:
             raise BadRequest("WRONG_USER")
 
@@ -496,7 +490,7 @@ class SSO(Service):
             digestmod=sha256,
         ).hexdigest()
 
-    def _get_eptid(self, relying_party: str, user_eppn: str) -> List[Dict[str, str]]:
+    def _get_eptid(self, relying_party: str, user_eppn: str) -> list[dict[str, str]]:
         """
         Generate eduPersonTargetedID
 
@@ -682,7 +676,7 @@ def do_verify() -> WerkzeugResponse:
 
     # Create SSO session
     current_app.logger.debug(f"User {pwauth.user} authenticated OK (SAML id {repr(_ticket.saml_req.request_id)})")
-    _authn_credentials: List[AuthnData] = []
+    _authn_credentials: list[AuthnData] = []
     if pwauth.authndata:
         _authn_credentials = [pwauth.authndata]
     _sso_session = SSOSession(

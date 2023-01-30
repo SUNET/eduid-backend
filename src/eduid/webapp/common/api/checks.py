@@ -1,19 +1,34 @@
-# -*- coding: utf-8 -*-
+from __future__ import annotations
+
 import sys
 from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta
 from os import environ
-from typing import Optional
+from typing import TYPE_CHECKING, Optional, cast
 
 import redis
-from flask import current_app
+from flask import current_app as flask_current_app
 
-from eduid.common.config.base import VCCSConfigMixin
+from eduid.common.config.base import EduIDBaseAppConfig, RedisConfigMixin, VCCSConfigMixin
 from eduid.common.rpc.am_relay import AmRelay
+from eduid.common.rpc.lookup_mobile_relay import LookupMobileRelay
+from eduid.common.rpc.mail_relay import MailRelay
+from eduid.common.rpc.msg_relay import MsgRelay
 from eduid.webapp.common.authn.vccs import check_password
 from eduid.webapp.common.session.redis_session import get_redis_pool
 
+if TYPE_CHECKING:
+    from eduid.webapp.common.api.app import EduIDBaseApp
+
 __author__ = "lundberg"
+
+
+def get_current_app() -> EduIDBaseApp:
+    from eduid.webapp.common.api.app import EduIDBaseApp
+
+    _conf = getattr(flask_current_app, "conf")
+    assert isinstance(_conf, EduIDBaseAppConfig)
+    return cast(EduIDBaseApp, flask_current_app)
 
 
 @dataclass
@@ -37,6 +52,8 @@ class FailCountItem:
 
 
 def log_failure_info(key: str, msg: str, exc: Optional[Exception] = None) -> None:
+    current_app = get_current_app()
+
     if key not in current_app.failure_info:
         current_app.failure_info[key] = FailCountItem(first_failure=datetime.utcnow())
     current_app.failure_info[key].count += 1
@@ -44,6 +61,8 @@ def log_failure_info(key: str, msg: str, exc: Optional[Exception] = None) -> Non
 
 
 def reset_failure_info(key: str) -> None:
+    current_app = get_current_app()
+
     if key not in current_app.failure_info:
         return None
     info = current_app.failure_info.pop(key)
@@ -51,6 +70,8 @@ def reset_failure_info(key: str) -> None:
 
 
 def check_restart(key: str, restart: int, terminate: int) -> bool:
+    current_app = get_current_app()
+
     res = False  # default to no restart
     info = current_app.failure_info.get(key)
     if not info:
@@ -72,9 +93,14 @@ def check_restart(key: str, restart: int, terminate: int) -> bool:
 
 
 def check_mongo() -> bool:
-    if not hasattr(current_app, "central_userdb"):
+    current_app = get_current_app()
+
+    try:
+        db = current_app.central_userdb
+    except RuntimeError:
+        # app does not have a central_userdb
         return True
-    db = current_app.central_userdb
+
     try:
         db.is_healthy()
         reset_failure_info("check_mongo")
@@ -86,7 +112,10 @@ def check_mongo() -> bool:
 
 
 def check_redis() -> bool:
-    pool = get_redis_pool(current_app.conf.redis_config)
+    current_app = get_current_app()
+    _conf = getattr(current_app, "conf")
+    assert isinstance(_conf, RedisConfigMixin)
+    pool = get_redis_pool(_conf.redis_config)
     client = redis.StrictRedis(connection_pool=pool)
     try:
         pong = client.ping()
@@ -101,6 +130,8 @@ def check_redis() -> bool:
 
 
 def check_am() -> bool:
+    current_app = get_current_app()
+
     am_relay: Optional[AmRelay] = getattr(current_app, "am_relay", None)
     if not am_relay:
         return True
@@ -116,12 +147,15 @@ def check_am() -> bool:
 
 
 def check_msg() -> bool:
-    if not getattr(current_app, "msg_relay", False):
+    current_app = get_current_app()
+
+    msg_relay: Optional[MsgRelay] = getattr(current_app, "msg_relay", None)
+    if not msg_relay:
         return True
     try:
-        res = current_app.msg_relay.ping()
+        res = msg_relay.ping()
         # TODO: remove the backwards-compat startswith when all clients and workers are deployed
-        if res == f"pong for {current_app.msg_relay.app_name}" or res.startswith("pong"):
+        if res == f"pong for {msg_relay.app_name}" or res.startswith("pong"):
             reset_failure_info("check_msg")
             return True
     except Exception as exc:
@@ -131,12 +165,15 @@ def check_msg() -> bool:
 
 
 def check_mail() -> bool:
-    if not getattr(current_app, "mail_relay", False):
+    current_app = get_current_app()
+
+    mail_relay: Optional[MailRelay] = getattr(current_app, "mail_relay", None)
+    if not mail_relay:
         return True
     try:
-        res = current_app.mail_relay.ping()
+        res = mail_relay.ping()
         # TODO: remove the backwards-compat startswith when all clients and workers are deployed
-        if res == f"pong for {current_app.mail_relay.app_name}" or res.startswith("pong"):
+        if res == f"pong for {mail_relay.app_name}" or res.startswith("pong"):
             reset_failure_info("check_mail")
             return True
     except Exception as exc:
@@ -146,11 +183,14 @@ def check_mail() -> bool:
 
 
 def check_lookup_mobile() -> bool:
-    if not getattr(current_app, "lookup_mobile_relay", False):
+    current_app = get_current_app()
+
+    _relay: Optional[LookupMobileRelay] = getattr(current_app, "lookup_mobile_relay", None)
+    if not _relay:
         return True
     try:
-        res = current_app.lookup_mobile_relay.ping()
-        if res == f"pong for {current_app.lookup_mobile_relay.app_name}":
+        res = _relay.ping()
+        if res == f"pong for {_relay.app_name}":
             reset_failure_info("check_lookup_mobile")
             return True
     except Exception as exc:
@@ -160,15 +200,18 @@ def check_lookup_mobile() -> bool:
 
 
 def check_vccs() -> bool:
-    if not isinstance(current_app.conf, VCCSConfigMixin):
+    current_app = get_current_app()
+
+    _conf = getattr(current_app, "conf")
+    if not isinstance(_conf, VCCSConfigMixin):
         return True
     # Do not force this check if not configured
-    if not current_app.conf.vccs_check_eppn:
+    if not _conf.vccs_check_eppn:
         return True
     try:
-        user = current_app.central_userdb.get_user_by_eppn(eppn=current_app.conf.vccs_check_eppn)
-        vccs_url = current_app.conf.vccs_url
-        password = current_app.conf.vccs_check_password
+        user = current_app.central_userdb.get_user_by_eppn(eppn=_conf.vccs_check_eppn)
+        vccs_url = _conf.vccs_url
+        password = _conf.vccs_check_password
         if user and check_password(password=password, user=user, vccs_url=vccs_url):
             return True
     except Exception as exc:

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2016 NORDUnet A/S
 # Copyright (c) 2019 SUNET
@@ -33,7 +32,7 @@
 #
 from datetime import timedelta
 from pathlib import Path
-from typing import List, Optional
+from typing import Optional
 
 import pkg_resources
 from pydantic import AnyUrl, Field
@@ -74,14 +73,14 @@ class SignupConfig(EduIDBaseAppConfig, MagicCookieMixin, AmConfigMixin, MailConf
     captcha_code_length: int = 6
     captcha_width: int = 160
     captcha_height: int = 60
-    captcha_fonts: List[Path] = Field(
+    captcha_fonts: list[Path] = Field(
         default=[
             pkg_resources.resource_filename("eduid", "static/fonts/ProximaNova-Regular.ttf"),
             pkg_resources.resource_filename("eduid", "static/fonts/ProximaNova-Light.ttf"),
             pkg_resources.resource_filename("eduid", "static/fonts/ProximaNova-Bold.ttf"),
         ]
     )
-    captcha_font_size: List[int] = [42, 50, 56]
+    captcha_font_size: list[int] = [42, 50, 56]
     captcha_max_bad_attempts: int = 100
     captcha_backdoor_code: str = "123456"
     scim_api_url: Optional[AnyUrl] = None

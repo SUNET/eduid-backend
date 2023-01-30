@@ -1,10 +1,8 @@
-# -*- coding: utf-8 -*-
-
 __author__ = "lundberg"
 
 import logging
 from datetime import datetime
-from typing import Any, List, Mapping, Optional, Set, Union
+from typing import Any, Mapping, Optional, Union
 from uuid import UUID, uuid4
 
 from bson import ObjectId
@@ -597,7 +595,7 @@ class TestGroupSearchResource(TestGroupResource):
         self._assertScimError(json, detail="Invalid datetime")
 
     def test_search_group_last_modified_invalid_datetime_2(self):
-        json = self._perform_search(filter=f'meta.lastModified ge "2020-05-12_15:36:00+00"', return_json=True)
+        json = self._perform_search(filter=f'meta.lastModified ge "2020-05-12_15:36:99+00:00"', return_json=True)
         self._assertScimError(json, detail="Invalid datetime")
 
     def test_schema_violation(self):
@@ -681,8 +679,8 @@ class TestGroupExtensionData(TestGroupResource):
         self.assertNotEqual(meta["version"], prev_meta["version"], "meta.version not updated")
 
 
-def _members_to_set(members: List[Mapping[str, Any]]) -> Set[GroupMember]:
-    res: Set[GroupMember] = set()
+def _members_to_set(members: list[Mapping[str, Any]]) -> set[GroupMember]:
+    res: set[GroupMember] = set()
     for this in members:
         res.add(GroupMember.from_mapping(this))
     return res

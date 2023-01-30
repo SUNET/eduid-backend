@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 __author__ = "masv"
 
 from dataclasses import asdict, dataclass

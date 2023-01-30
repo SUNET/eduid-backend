@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2019 SUNET
 # All rights reserved.
@@ -33,7 +32,7 @@
 import math
 from dataclasses import dataclass
 from enum import unique
-from typing import Any, Dict, Mapping, Optional, Union
+from typing import Any, Mapping, Optional, Union
 
 from flask import render_template
 from flask_babel import gettext as _
@@ -177,7 +176,7 @@ def get_pwreset_state(email_code: str) -> Union[ResetPasswordEmailState, ResetPa
         # Revert the state to EmailState to allow the user to choose extra security again
         current_app.password_reset_state_db.remove_state(state)
         state = ResetPasswordEmailState(eppn=state.eppn, email_address=state.email_address, email_code=state.email_code)
-        current_app.password_reset_state_db.save(state)
+        current_app.password_reset_state_db.save(state, is_in_database=False)
         current_app.stats.count(name="phone_code_expired", value=1)
         raise StateException(msg=ResetPwMsg.expired_phone_code)
     return state
@@ -204,6 +203,7 @@ def send_password_reset_mail(email_address: str) -> ResetPasswordEmailState:
 
     # User found, check if a state already exists
     state = current_app.password_reset_state_db.get_state_by_eppn(eppn=user.eppn)
+    _is_in_db = state is not None
     if state and not state.email_code.is_expired(timeout=current_app.conf.email_code_timeout):
         # Let the user only send one mail every throttle_resend time period
         if state.is_throttled(current_app.conf.throttle_resend):
@@ -218,7 +218,8 @@ def send_password_reset_mail(email_address: str) -> ResetPasswordEmailState:
             email_address=email_address,
             email_code=CodeElement(code=get_unique_hash(), created_by=current_app.conf.app_name, is_verified=False),
         )
-    current_app.password_reset_state_db.save(state)
+        _is_in_db = False
+    current_app.password_reset_state_db.save(state, is_in_database=_is_in_db)
 
     # Send email
     text_template = "reset_password_email.txt.jinja2"
@@ -363,7 +364,7 @@ def get_extra_security_alternatives(user: User) -> dict:
     :param user: The user
     :return: Dict of alternatives
     """
-    alternatives: Dict[str, Any] = {}
+    alternatives: dict[str, Any] = {}
 
     if user.identities.nin is not None and user.identities.nin.is_verified:
         alternatives["external_mfa"] = True
@@ -382,7 +383,7 @@ def get_extra_security_alternatives(user: User) -> dict:
             fido2_rp_id=current_app.conf.fido2_rp_id,
             fido2_rp_name=current_app.conf.fido2_rp_name,
             state=session.mfa_action,
-        )
+        ).dict()
 
     return alternatives
 
@@ -491,7 +492,7 @@ def verify_phone_number(state: ResetPasswordEmailAndPhoneState) -> bool:
     return False
 
 
-def email_state_to_response_payload(state: ResetPasswordEmailState) -> Dict[str, Any]:
+def email_state_to_response_payload(state: ResetPasswordEmailState) -> dict[str, Any]:
     _throttled = int(state.throttle_time_left(current_app.conf.throttle_resend).total_seconds())
     if _throttled < 0:
         _throttled = 0

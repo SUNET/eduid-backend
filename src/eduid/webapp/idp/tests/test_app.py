@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2020 SUNET
 # All rights reserved.
@@ -35,22 +34,24 @@ from dataclasses import dataclass
 from datetime import timedelta
 from enum import Enum
 from pathlib import PurePath
-from typing import Any, Dict, Mapping, Optional
+from typing import Any, Mapping, Optional
 
 from bson import ObjectId
-from flask import Response as FlaskResponse
 from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 from saml2.client import Saml2Client
 from saml2.response import AuthnResponse
+from werkzeug.test import TestResponse
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb import ToUEvent
+from eduid.userdb.user import User
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.common.authn.cache import IdentityCache, OutstandingQueriesCache, StateCache
 from eduid.webapp.common.authn.utils import get_saml2_config
+from eduid.webapp.common.session.namespaces import AuthnRequestRef, PySAML2Dicts
 from eduid.webapp.idp.app import IdPApp, init_idp_app
 from eduid.webapp.idp.settings.common import IdPConfig
-from eduid.webapp.idp.sso_session import SSOSession
+from eduid.webapp.idp.sso_session import SSOSession, SSOSessionId
 
 __author__ = "ft"
 
@@ -68,24 +69,20 @@ class LoginState(Enum):
 class LoginResult:
     url: str
     reached_state: LoginState
-    response: FlaskResponse
+    response: TestResponse
     sso_cookie_val: Optional[str] = None
 
 
-class IdPTests(EduidAPITestCase):
+class IdPTests(EduidAPITestCase[IdPApp]):
     """Base TestCase for those tests that need a full environment setup"""
 
-    def setUp(
-        self,
-        *args,
-        **kwargs,
-    ):
+    def setUp(self, *args: Any, **kwargs: Any) -> None:
         super().setUp(*args, **kwargs)
         self.idp_entity_id = "https://unittest-idp.example.edu/idp.xml"
-        self.relay_state = "test-fest"
+        self.relay_state = AuthnRequestRef("test-fest")
         self.sp_config = get_saml2_config(self.app.conf.pysaml2_config, name="SP_CONFIG")
         # pysaml2 likes to keep state about ongoing logins, data from login to when you logout etc.
-        self._pysaml2_caches: Dict[str, Any] = dict()
+        self._pysaml2_caches = PySAML2Dicts({})
         self.pysaml2_state = StateCache(self._pysaml2_caches)  # _saml2_state in _pysaml2_caches
         self.pysaml2_identity = IdentityCache(self._pysaml2_caches)  # _saml2_identities in _pysaml2_caches
         self.pysaml2_oq = OutstandingQueriesCache(self._pysaml2_caches)  # _saml2_outstanding_queries in _pysaml2_caches
@@ -98,7 +95,7 @@ class IdPTests(EduidAPITestCase):
         """
         return init_idp_app(test_config=config)
 
-    def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
+    def update_config(self, config: dict[str, Any]) -> dict[str, Any]:
         config = super().update_config(config)
         fn = PurePath(__file__).with_name("data") / "test_SSO_conf.py"
         config.update(
@@ -124,7 +121,7 @@ class IdPTests(EduidAPITestCase):
     def _try_login(
         self,
         saml2_client: Optional[Saml2Client] = None,
-        authn_context: Optional[Dict[str, Any]] = None,
+        authn_context: Optional[dict[str, Any]] = None,
         force_authn: bool = False,
         assertion_consumer_service_url: Optional[str] = None,
     ) -> LoginResult:
@@ -135,6 +132,8 @@ class IdPTests(EduidAPITestCase):
         """
         _saml2_client = saml2_client if saml2_client is not None else self.saml2_client
 
+        session_id: str
+        info: Mapping[str, Any]
         (session_id, info) = _saml2_client.prepare_for_authenticate(
             entityid=self.idp_entity_id,
             relay_state=self.relay_state,
@@ -209,8 +208,8 @@ class IdPTests(EduidAPITestCase):
         )
 
     @staticmethod
-    def _extract_form_inputs(res: str) -> Dict[str, Any]:
-        inputs = {}
+    def _extract_form_inputs(res: str) -> dict[str, Any]:
+        inputs: dict[str, Any] = {}
         for line in res.split("\n"):
             if "input" in line:
                 # YOLO
@@ -220,7 +219,7 @@ class IdPTests(EduidAPITestCase):
                     inputs[name] = value.strip("'\"")
         return inputs
 
-    def _extract_path_from_response(self, response: FlaskResponse) -> str:
+    def _extract_path_from_response(self, response: TestResponse) -> str:
         return self._extract_path_from_info({"headers": response.headers})
 
     def _extract_path_from_info(self, info: Mapping[str, Any]) -> str:
@@ -236,7 +235,7 @@ class IdPTests(EduidAPITestCase):
         return path
 
     def parse_saml_authn_response(
-        self, response: FlaskResponse, saml2_client: Optional[Saml2Client] = None
+        self, response: TestResponse, saml2_client: Optional[Saml2Client] = None
     ) -> AuthnResponse:
         _saml2_client = saml2_client if saml2_client is not None else self.saml2_client
 
@@ -245,12 +244,12 @@ class IdPTests(EduidAPITestCase):
         outstanding_queries = self.pysaml2_oq.outstanding_queries()
         return _saml2_client.parse_authn_request_response(xmlstr, BINDING_HTTP_POST, outstanding_queries)
 
-    def get_sso_session(self, sso_cookie_val: str) -> Optional[SSOSession]:
+    def get_sso_session(self, sso_cookie_val: SSOSessionId) -> Optional[SSOSession]:
         if sso_cookie_val is None:
             return None
         return self.app.sso_sessions.get_session(sso_cookie_val)
 
-    def add_test_user_tou(self, version: Optional[str] = None) -> ToUEvent:
+    def add_test_user_tou(self, user: User, version: Optional[str] = None) -> ToUEvent:
         """Utility function to add a valid ToU to the default test user"""
         if version is None:
             version = self.app.conf.tou_version
@@ -261,8 +260,8 @@ class IdPTests(EduidAPITestCase):
             modified_ts=utc_now(),
             event_id=str(ObjectId()),
         )
-        self.test_user.tou.add(tou)
-        self.amdb.save(self.test_user, check_sync=False)
+        user.tou.add(tou)
+        self.amdb.save(user)
         return tou
 
 

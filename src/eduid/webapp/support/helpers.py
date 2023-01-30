@@ -1,24 +1,22 @@
-# -*- coding: utf-8 -*-
 from functools import wraps
-from typing import Any, Dict, List
+from typing import Any, Callable, TypeVar
 
 from flask import abort
 
 from eduid.userdb import User
+from eduid.userdb.db import TUserDbDocument
 from eduid.webapp.common.api.utils import get_user
 from eduid.webapp.support.app import current_support_app as current_app
 
 __author__ = "lundberg"
 
 
-def get_credentials_aux_data(user: User) -> List[Dict[str, Any]]:
+def get_credentials_aux_data(user: User) -> list[TUserDbDocument]:
     """
     :param user: User object
-    :type user: eduid.userdb.user.User
     :return: Augmented credentials list
-    :rtype: list
     """
-    credentials = []
+    credentials: list[TUserDbDocument] = []
     for credential in user.credentials.to_list():
         credential_dict = credential.to_dict()
         credential_info = current_app.support_authn_db.get_credential_info(credential.key)
@@ -29,9 +27,14 @@ def get_credentials_aux_data(user: User) -> List[Dict[str, Any]]:
     return credentials
 
 
-def require_support_personnel(f):
+TRequireSupportPersonnelResult = TypeVar("TRequireSupportPersonnelResult")
+
+
+def require_support_personnel(
+    f: Callable[..., TRequireSupportPersonnelResult]
+) -> Callable[..., TRequireSupportPersonnelResult]:
     @wraps(f)
-    def require_support_decorator(*args, **kwargs):
+    def require_support_decorator(*args: Any, **kwargs: Any):
         user = get_user()
         # If the logged in user is whitelisted then we
         # pass on the request to the decorated view

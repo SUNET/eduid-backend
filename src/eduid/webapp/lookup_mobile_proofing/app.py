@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2020 SUNET
 # All rights reserved.
@@ -47,7 +46,7 @@ __author__ = "lundberg"
 
 
 class MobileProofingApp(AuthnBaseApp):
-    def __init__(self, config: MobileProofingConfig, **kwargs):
+    def __init__(self, config: MobileProofingConfig, **kwargs: Any):
         super().__init__(config, **kwargs)
 
         self.conf = config

@@ -2,7 +2,7 @@ import base64
 import logging
 from datetime import datetime
 from io import BytesIO
-from typing import Any, Dict, List, Mapping, Optional, Union
+from typing import Any, Mapping, Optional, Union
 
 import nacl
 import nacl.encoding
@@ -91,7 +91,7 @@ def device1_login_user_from_device2(
     # added to the SSO session updated/created below, and request credentials (meaning ones actually
     # used during this authn, albeit on the other device, device #2) should also get added to the
     # pending request here on device #1.
-    _sso_credentials_used: List[AuthnData] = []
+    _sso_credentials_used: list[AuthnData] = []
     _request_count = 0
     for this in state.device2.credentials_used:
         authn = AuthnData(cred_id=this.credential_id, timestamp=this.ts)
@@ -123,7 +123,7 @@ def device1_state_to_flux_payload(state: OtherDevice, now: datetime) -> Mapping[
         state.state_id.encode(), encoder=nacl.encoding.URLSafeBase64Encoder
     ).decode()
 
-    payload: Dict[str, Any] = {}
+    payload: dict[str, Any] = {}
     if state.state in [OtherDeviceState.NEW, OtherDeviceState.IN_PROGRESS, OtherDeviceState.AUTHENTICATED]:
         # Only add QR code when it will actually be displayed
         buf = BytesIO()

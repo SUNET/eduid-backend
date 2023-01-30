@@ -1,5 +1,4 @@
-# -*- coding: utf-8 -*-
-from typing import Dict, Union
+from typing import Union
 from unittest import TestCase
 
 from eduid.graphdb.groupdb import Group, User
@@ -9,16 +8,16 @@ __author__ = "lundberg"
 
 class TestGroup(TestCase):
     def setUp(self) -> None:
-        self.group1: Dict[str, Union[str, list]] = {
+        self.group1: dict[str, Union[str, list]] = {
             "identifier": "test1",
             "display_name": "Test Group 1",
         }
-        self.group2: Dict[str, Union[str, list]] = {
+        self.group2: dict[str, Union[str, list]] = {
             "identifier": "test2",
             "display_name": "Test Group 2",
         }
-        self.user1: Dict[str, str] = {"identifier": "user1", "display_name": "Test Testsson"}
-        self.user2: Dict[str, str] = {"identifier": "user2", "display_name": "Namn Namnsson"}
+        self.user1: dict[str, str] = {"identifier": "user1", "display_name": "Test Testsson"}
+        self.user2: dict[str, str] = {"identifier": "user2", "display_name": "Namn Namnsson"}
 
     def test_init_group(self):
         group = Group(**self.group1)

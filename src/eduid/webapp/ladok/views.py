@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from flask import Blueprint
 
 from eduid.common.config.base import EduidEnvironment
@@ -39,8 +37,8 @@ def get_university_info(user: User) -> FluxData:
 
 
 @ladok_views.route("/link-user", methods=["POST"])
-@MarshalWith(LinkUserResponse)
 @UnmarshalWith(LinkUserRequest)
+@MarshalWith(LinkUserResponse)
 @require_user
 def link_user(user: User, ladok_name: str) -> FluxData:
     if user.identities.nin is None or user.identities.nin.is_verified is False:
@@ -89,7 +87,7 @@ def link_user(user: User, ladok_name: str) -> FluxData:
             save_and_sync_user(proofing_user)
         except AmTaskFailed as e:
             current_app.logger.error("Linking to Ladok failed")
-            current_app.logger.error("{}".format(e))
+            current_app.logger.error(f"{e}")
             return error_response(message=CommonMsg.temp_problem)
         current_app.stats.count(name="ladok_linked")
 
@@ -110,7 +108,7 @@ def unlink_user(user: User) -> FluxData:
         save_and_sync_user(proofing_user)
     except AmTaskFailed as e:
         current_app.logger.error("Unlinking from Ladok failed")
-        current_app.logger.error("{}".format(e))
+        current_app.logger.error(f"{e}")
         return error_response(message=CommonMsg.temp_problem)
     current_app.stats.count(name="ladok_unlinked")
     current_app.logger.info("Ladok unlinked successfully")

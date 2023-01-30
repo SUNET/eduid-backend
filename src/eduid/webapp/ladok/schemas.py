@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from marshmallow import fields
 
 from eduid.webapp.common.api.schemas.base import EduidSchema, FluxStandardAction

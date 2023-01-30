@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2019 SUNET
 # All rights reserved.
@@ -82,7 +81,7 @@ def register_template_funcs(app: SupportApp) -> None:
         for key in operators:
             for item in l:
                 if key not in item:
-                    app.logger.debug("Removed key {} before sorting.".format(key))
+                    app.logger.debug(f"Removed key {key} before sorting.")
                     keys.remove(key)
                     break
         reverse = kwargs.pop("reverse", False)

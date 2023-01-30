@@ -1,22 +1,21 @@
-# -*- coding: utf-8 -*-
-
 from __future__ import annotations
 
 import copy
 import datetime
 from dataclasses import asdict, dataclass, field, fields
 from enum import Enum, unique
-from typing import Any, Dict, Mapping, Optional
+from typing import Any, Mapping, Optional
 
 import bson
 
+from eduid.userdb.db import TUserDbDocument
 from eduid.userdb.exceptions import UserDBValueError
 
 __author__ = "lundberg"
 
 
 @unique
-class GroupRole(Enum):
+class GroupRole(str, Enum):
     OWNER = "owner"
     MEMBER = "member"
 
@@ -33,7 +32,7 @@ class GroupInviteState:
     modified_ts: Optional[datetime.datetime] = None
 
     @classmethod
-    def from_dict(cls, data: Mapping) -> GroupInviteState:
+    def from_dict(cls, data: Mapping[str, Any]) -> GroupInviteState:
         _data = copy.deepcopy(dict(data))  # to not modify callers data
         if "_id" in _data:
             _data["id"] = _data.pop("_id")
@@ -47,18 +46,18 @@ class GroupInviteState:
         if not _data.get("modified_ts"):
             _data["modified_ts"] = None
 
-        field_names = set(f.name for f in fields(cls))
+        field_names = {f.name for f in fields(cls)}
         _leftovers = [x for x in _data.keys() if x not in field_names]
         if _leftovers:
             raise UserDBValueError(f"{cls}.from_dict() unknown data: {_leftovers}")
 
         return cls(**_data)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> TUserDbDocument:
         res = asdict(self)
         res["_id"] = res.pop("id")
         res["role"] = res["role"].value
-        return res
+        return TUserDbDocument(res)
 
     def __str__(self) -> str:
         return (

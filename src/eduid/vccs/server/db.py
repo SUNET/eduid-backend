@@ -2,14 +2,14 @@ from __future__ import annotations
 
 from dataclasses import asdict, field
 from enum import Enum, unique
-from typing import Any, Dict, Mapping, Optional, Type, Union, cast
+from typing import Any, Mapping, Optional, Union, cast
 
 from bson import ObjectId
 from loguru import logger
 from pydantic.dataclasses import dataclass
 from pymongo.errors import DuplicateKeyError
 
-from eduid.userdb.db import BaseDB
+from eduid.userdb.db import BaseDB, TUserDbDocument
 
 
 @unique
@@ -47,7 +47,7 @@ class Credential:
     obj_id: ObjectId = field(default_factory=ObjectId)
 
     @classmethod
-    def _from_dict(cls: Type[Credential], data: Mapping[str, Any]) -> Credential:
+    def _from_dict(cls: type[Credential], data: Mapping[str, Any]) -> Credential:
         """Construct element from a data dict in database format."""
 
         _data = dict(data)  # to not modify callers data
@@ -60,7 +60,7 @@ class Credential:
             _data["obj_id"] = _data.pop("_id")
         return cls(**_data)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> TUserDbDocument:
         """
         Convert instance to database format.
 
@@ -91,11 +91,13 @@ class Credential:
         # Extract the _id and revision
         obj_id = data.pop("obj_id")
         revision = data.pop("revision")
-        return {
-            "_id": obj_id,
-            "revision": revision,
-            "credential": data,
-        }
+        return TUserDbDocument(
+            {
+                "_id": obj_id,
+                "revision": revision,
+                "credential": data,
+            }
+        )
 
 
 @dataclass(config=CredentialPydanticConfig)
@@ -111,7 +113,7 @@ class _PasswordCredentialRequired:
 @dataclass(config=CredentialPydanticConfig)
 class PasswordCredential(Credential, _PasswordCredentialRequired):
     @classmethod
-    def from_dict(cls: Type[PasswordCredential], data: Mapping[str, Any]) -> PasswordCredential:
+    def from_dict(cls: type[PasswordCredential], data: Mapping[str, Any]) -> PasswordCredential:
         # This indirection provides the correct return type for this subclass
         return cast(PasswordCredential, cls._from_dict(data))
 
@@ -125,12 +127,12 @@ class _RevokedCredentialRequired:
 @dataclass(config=CredentialPydanticConfig)
 class RevokedCredential(Credential, _RevokedCredentialRequired):
     @classmethod
-    def from_dict(cls: Type[RevokedCredential], data: Mapping[str, Any]) -> RevokedCredential:
+    def from_dict(cls: type[RevokedCredential], data: Mapping[str, Any]) -> RevokedCredential:
         # This indirection provides the correct return type for this subclass
         return cast(RevokedCredential, cls._from_dict(data))
 
     @classmethod
-    def from_dict_backwards_compat(cls: Type[RevokedCredential], data: Mapping[str, Any]) -> RevokedCredential:
+    def from_dict_backwards_compat(cls: type[RevokedCredential], data: Mapping[str, Any]) -> RevokedCredential:
         """The old VCCS backend stored revoked credentials like this:
 
         {

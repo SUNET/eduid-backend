@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2017 NORDUnet A/S
 # All rights reserved.
@@ -35,7 +34,7 @@
 from __future__ import annotations
 
 from hashlib import sha256
-from typing import Any, Dict, Optional, Type, Union
+from typing import Any, Optional, Union
 from uuid import UUID
 
 from fido2.webauthn import AuthenticatorAttachment
@@ -98,7 +97,7 @@ class Webauthn(FidoCredential):
         return ElementKey("sha256:" + _digest)
 
     @classmethod
-    def _from_dict_transform(cls: Type[Webauthn], data: Dict[str, Any]) -> Dict[str, Any]:
+    def _from_dict_transform(cls: type[Webauthn], data: dict[str, Any]) -> dict[str, Any]:
         """
         Transform data from eduid database format into pythonic format.
         """

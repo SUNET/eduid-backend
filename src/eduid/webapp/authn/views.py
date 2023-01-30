@@ -42,7 +42,7 @@ from saml2.saml import NAMEID_FORMAT_UNSPECIFIED, NameID, Subject
 from werkzeug.exceptions import Forbidden
 from werkzeug.wrappers import Response as WerkzeugResponse
 
-from eduid.userdb.exceptions import MultipleUsersReturned
+from eduid.userdb.exceptions import MultipleUsersReturned, UserDoesNotExist
 from eduid.webapp.authn import acs_actions  # acs_action needs to be imported to be loaded
 from eduid.webapp.authn.app import current_authn_app as current_app
 from eduid.webapp.common.api.errors import EduidErrorsContext, goto_errors_response
@@ -250,12 +250,13 @@ def logout() -> WerkzeugResponse:
         current_app.logger.info("Session cookie has expired, no logout action needed")
         return redirect(location)
 
-    user = current_app.central_userdb.get_user_by_eppn(eppn)
-    if not user:
+    try:
+        user = current_app.central_userdb.get_user_by_eppn(eppn)
+    except UserDoesNotExist:
         current_app.logger.error(f"User {eppn} not found, no logout action needed")
         return redirect(location)
 
-    current_app.logger.debug("Logout process started for user {}".format(user))
+    current_app.logger.debug(f"Logout process started for user {user}")
 
     return saml_logout(current_app.saml2_config, user, location)
 
@@ -287,7 +288,6 @@ def logout_service() -> WerkzeugResponse:
     if "SAMLResponse" in request.form:  # we started the logout
         current_app.logger.debug("Receiving a logout response from the IdP")
         response = client.parse_logout_request_response(request.form["SAMLResponse"], BINDING_HTTP_REDIRECT)
-        state.sync()
         if response and response.status_ok():
             session.clear()
             return redirect(next_page)
@@ -309,7 +309,6 @@ def logout_service() -> WerkzeugResponse:
         http_info = client.handle_logout_request(
             request.form["SAMLRequest"], subject_id, BINDING_HTTP_REDIRECT, relay_state=request.form["RelayState"]
         )
-        state.sync()
         session.clear()
         location = get_location(http_info)
         # location comes from federation metadata and must be considered trusted, no need to sanitise
@@ -333,8 +332,7 @@ def signup_authn() -> WerkzeugResponse:
         except MultipleUsersReturned:
             current_app.logger.error(f"There are more than one user with eduPersonPrincipalName = {eppn}")
             return redirect(location_on_fail)
-
-        if not user:
+        except UserDoesNotExist:
             current_app.logger.error(f"No user with eduPersonPrincipalName = {eppn} found")
             return redirect(location_on_fail)
 

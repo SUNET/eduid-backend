@@ -1,10 +1,8 @@
-# -*- coding: utf-8 -*-
-
-
 from flask import Blueprint
 
 from eduid.common.rpc.exceptions import AmTaskFailed, LookupMobileTaskFailed, MsgTaskFailed, NoNavetData
 from eduid.userdb import User
+from eduid.userdb.exceptions import LockedIdentityViolation
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, can_verify_nin, require_user
 from eduid.webapp.common.api.helpers import add_nin_to_user, verify_nin_for_user
 from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response, success_response
@@ -36,7 +34,7 @@ def proofing(user: User, nin: str) -> FluxData:
 
     # Add nin as not verified to the user
     proofing_state = create_proofing_state(user, nin)
-    add_nin_to_user(user, proofing_state)
+    proofing_user = add_nin_to_user(user, proofing_state)
 
     # Get list of verified mobile numbers
     verified_mobiles = [item.number for item in user.phone_numbers.to_list() if item.is_verified]
@@ -58,11 +56,14 @@ def proofing(user: User, nin: str) -> FluxData:
     if proofing_log_entry:
         try:
             # Verify nin for user
-            if not verify_nin_for_user(user, proofing_state, proofing_log_entry):
+            if not verify_nin_for_user(proofing_user, proofing_state, proofing_log_entry):
                 return error_response(message=CommonMsg.temp_problem)
             return success_response(message=MobileMsg.verify_success)
         except AmTaskFailed:
-            current_app.logger.exception(f"Verifying nin for user {user} failed")
+            current_app.logger.exception(f"Verifying nin for user failed")
             return error_response(message=CommonMsg.temp_problem)
+        except LockedIdentityViolation:
+            current_app.logger.exception("Verifying NIN for user failed")
+            return error_response(message=CommonMsg.locked_identity_not_matching)
 
     return error_response(message=MobileMsg.no_match)

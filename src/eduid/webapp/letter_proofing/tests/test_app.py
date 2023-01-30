@@ -1,24 +1,22 @@
-# -*- coding: utf-8 -*-
-
-
 import json
 from collections import OrderedDict
 from datetime import datetime, timedelta
-from typing import Any, Optional
+from typing import Any, AnyStr, Mapping, Optional
+from unittest.mock import MagicMock, Mock, patch
 
-from flask import Response
-from mock import Mock, patch
+from werkzeug.test import TestResponse
 
+from eduid.common.config.base import EduidEnvironment
 from eduid.userdb import NinIdentity
 from eduid.userdb.identity import IdentityType
 from eduid.webapp.common.api.testing import EduidAPITestCase
-from eduid.webapp.letter_proofing.app import init_letter_proofing_app
+from eduid.webapp.letter_proofing.app import LetterProofingApp, init_letter_proofing_app
 from eduid.webapp.letter_proofing.helpers import LetterMsg
 
 __author__ = "lundberg"
 
 
-class LetterProofingTests(EduidAPITestCase):
+class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
     """Base TestCase for those tests that need a full environment setup"""
 
     def setUp(self):
@@ -37,10 +35,16 @@ class LetterProofingTests(EduidAPITestCase):
                 ),
             ]
         )
-        super(LetterProofingTests, self).setUp(users=["hubba-baar"])
+        super().setUp(users=["hubba-baar"])
 
     @staticmethod
-    def mock_response(status_code=200, content=None, json_data=None, headers=None, raise_for_status=None):
+    def mock_response(
+        status_code: int = 200,
+        content: Optional[AnyStr] = None,
+        json_data: Optional[Mapping[str, Any]] = None,
+        headers: Optional[Mapping[str, Any]] = None,
+        raise_for_status: Any = None,
+    ) -> Mock:
         """
         since we typically test a bunch of different
         requests calls for a service, we are going to do
@@ -64,15 +68,15 @@ class LetterProofingTests(EduidAPITestCase):
             mock_resp.json = Mock(return_value=json_data)
         return mock_resp
 
-    def load_app(self, config):
+    def load_app(self, config: dict[str, Any]) -> LetterProofingApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
         return init_letter_proofing_app("testing", config)
 
-    def update_config(self, app_config):
-        app_config.update(
+    def update_config(self, config: dict[str, Any]):
+        config.update(
             {
                 # 'ekopost_debug_pdf': devnull,
                 "ekopost_api_uri": "http://localhost",
@@ -81,7 +85,7 @@ class LetterProofingTests(EduidAPITestCase):
                 "letter_wait_time_hours": 336,
             }
         )
-        return app_config
+        return config
 
     # Helper methods
     def get_state(self):
@@ -90,13 +94,13 @@ class LetterProofingTests(EduidAPITestCase):
         self.assertEqual(response.status_code, 200)
         return json.loads(response.data)
 
-    def send_letter(self, nin: str, csrf_token: Optional[str] = None, validate_response=True) -> Response:
+    def send_letter(self, nin: str, csrf_token: Optional[str] = None, validate_response: bool = True) -> TestResponse:
         """
         Invoke the POST /proofing endpoint, check that the HTTP response code is 200 and return the response.
 
         To be used with the data validation functions _check_success_response and _check_error_response.
         """
-        response = self._send_letter2(nin, csrf_token)
+        response = self._send_letter2(nin, csrf_token)  # type: ignore
         if validate_response:
             self._check_success_response(
                 response, type_="POST_LETTER_PROOFING_PROOFING_SUCCESS", msg=LetterMsg.letter_sent
@@ -107,7 +111,12 @@ class LetterProofingTests(EduidAPITestCase):
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_postal_address")
     def _send_letter2(
-        self, nin: str, csrf_token: Optional[str], mock_get_postal_address, mock_request_user_sync, mock_hammock
+        self,
+        nin: str,
+        csrf_token: Optional[str],
+        mock_get_postal_address: MagicMock,
+        mock_request_user_sync: MagicMock,
+        mock_hammock: MagicMock,
     ):
         if csrf_token is None:
             _state = self.get_state()
@@ -122,7 +131,7 @@ class LetterProofingTests(EduidAPITestCase):
             response = client.post("/proofing", data=json.dumps(data), content_type=self.content_type_json)
         return response
 
-    def verify_code(self, code: str, csrf_token: Optional[str] = None, validate_response=True) -> Response:
+    def verify_code(self, code: str, csrf_token: Optional[str] = None, validate_response: bool = True) -> TestResponse:
         """
         Invoke the POST /verify-code endpoint, check that the HTTP response code is 200 and return the response.
 
@@ -137,7 +146,9 @@ class LetterProofingTests(EduidAPITestCase):
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_postal_address")
-    def _verify_code2(self, code: str, csrf_token: Optional[str], mock_get_postal_address, mock_request_user_sync):
+    def _verify_code2(
+        self, code: str, csrf_token: Optional[str], mock_get_postal_address, mock_request_user_sync: MagicMock
+    ):
         if csrf_token is None:
             _state = self.get_state()
             csrf_token = _state["payload"]["csrf_token"]
@@ -178,6 +189,8 @@ class LetterProofingTests(EduidAPITestCase):
                 cookie_value = self.app.conf.magic_cookie
 
             if add_cookie:
+                assert self.app.conf.magic_cookie_name is not None
+                assert cookie_value is not None
                 client.set_cookie("localhost", key=self.app.conf.magic_cookie_name, value=cookie_value)
 
             return client.get("/get-code")
@@ -197,7 +210,7 @@ class LetterProofingTests(EduidAPITestCase):
 
     def test_send_letter(self):
         response = self.send_letter(self.test_user_nin)
-        expires = response.json["payload"]["letter_expires"]
+        expires = self.get_response_payload(response)["letter_expires"]
         expires = datetime.fromisoformat(expires)
         self.assertIsInstance(expires, datetime)
         # Check that the user was given until midnight the day the code expires
@@ -210,13 +223,13 @@ class LetterProofingTests(EduidAPITestCase):
 
         # Deliberately test the CSRF token from the send_letter response,
         # instead of always using get_state() to get a token.
-        csrf_token = response.json["payload"]["csrf_token"]
+        csrf_token = self.get_response_payload(response)["csrf_token"]
         response2 = self.send_letter(self.test_user_nin, csrf_token, validate_response=False)
         self._check_success_response(
             response2, type_="POST_LETTER_PROOFING_PROOFING_SUCCESS", msg=LetterMsg.already_sent
         )
 
-        expires = response2.json["payload"]["letter_expires"]
+        expires = self.get_response_payload(response2)["letter_expires"]
         expires = datetime.fromisoformat(expires)
         self.assertIsInstance(expires, datetime)
         expires = expires.strftime("%Y-%m-%d")
@@ -242,7 +255,10 @@ class LetterProofingTests(EduidAPITestCase):
         proofing_state = self.app.proofing_statedb.get_state_by_eppn(self.test_user_eppn)
         # Deliberately test the CSRF token from the send_letter response,
         # instead of always using get_state() to get a token.
-        csrf_token = response1.json["payload"]["csrf_token"]
+        csrf_token = self.get_response_payload(response1)["csrf_token"]
+        assert proofing_state is not None
+        assert proofing_state.nin is not None
+        assert proofing_state.nin.verification_code is not None
         response2 = self.verify_code(proofing_state.nin.verification_code, csrf_token)
         self._check_success_response(
             response2,
@@ -270,6 +286,9 @@ class LetterProofingTests(EduidAPITestCase):
     def test_verify_letter_code_bad_csrf(self):
         self.send_letter(self.test_user_nin)
         proofing_state = self.app.proofing_statedb.get_state_by_eppn(self.test_user_eppn)
+        assert proofing_state is not None
+        assert proofing_state.nin is not None
+        assert proofing_state.nin.verification_code is not None
         response = self.verify_code(proofing_state.nin.verification_code, "bad_csrf", validate_response=False)
         self._check_error_response(
             response, type_="POST_LETTER_PROOFING_VERIFY_CODE_FAIL", error={"csrf_token": ["CSRF failed to validate"]}
@@ -284,10 +303,13 @@ class LetterProofingTests(EduidAPITestCase):
         response = self.send_letter(self.test_user_nin)
         # move the proofing state back in time so that it is expired by now
         proofing_state = self.app.proofing_statedb.get_state_by_eppn(self.test_user_eppn)
+        assert proofing_state is not None
+        assert proofing_state.nin is not None
+        assert proofing_state.nin.verification_code is not None
         proofing_state.proofing_letter.sent_ts = datetime.fromisoformat("2020-01-01T01:02:03")
         self.app.proofing_statedb.save(proofing_state)
 
-        csrf_token = response.json["payload"]["csrf_token"]
+        csrf_token = self.get_response_payload(response)["csrf_token"]
         response = self.verify_code(proofing_state.nin.verification_code, csrf_token, validate_response=False)
         self._check_error_response(
             response, type_="POST_LETTER_PROOFING_VERIFY_CODE_FAIL", msg=LetterMsg.letter_expired
@@ -297,6 +319,9 @@ class LetterProofingTests(EduidAPITestCase):
         self.send_letter(self.test_user_nin)
         self.get_state()
         proofing_state = self.app.proofing_statedb.get_state_by_eppn(self.test_user_eppn)
+        assert proofing_state is not None
+        assert proofing_state.nin is not None
+        assert proofing_state.nin.verification_code is not None
         self.verify_code(proofing_state.nin.verification_code, None)
 
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
@@ -310,6 +335,9 @@ class LetterProofingTests(EduidAPITestCase):
 
         self.send_letter(self.test_user_nin)
         proofing_state = self.app.proofing_statedb.get_state_by_eppn(user.eppn)
+        assert proofing_state is not None
+        assert proofing_state.nin is not None
+        assert proofing_state.nin.verification_code is not None
         self.verify_code(proofing_state.nin.verification_code, None)
 
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
@@ -330,6 +358,9 @@ class LetterProofingTests(EduidAPITestCase):
 
         # Time passes, user gets code in the mail. Enters code.
         proofing_state = self.app.proofing_statedb.get_state_by_eppn(user.eppn)
+        assert proofing_state is not None
+        assert proofing_state.nin is not None
+        assert proofing_state.nin.verification_code is not None
         self.verify_code(proofing_state.nin.verification_code, None)
 
         # Now check that the (now verified) NIN on the user is back to the one used to request the letter
@@ -357,7 +388,7 @@ class LetterProofingTests(EduidAPITestCase):
         self.assertIsNotNone(json_data["payload"]["letter_sent"])
 
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_postal_address")
-    def test_unmarshal_error(self, mock_get_postal_address):
+    def test_unmarshal_error(self, mock_get_postal_address: MagicMock):
         mock_get_postal_address.return_value = self.mock_address
 
         response = self.send_letter("not a nin", validate_response=False)
@@ -370,7 +401,9 @@ class LetterProofingTests(EduidAPITestCase):
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_postal_address")
-    def test_locked_identity_no_locked_identity(self, mock_get_postal_address, mock_request_user_sync):
+    def test_locked_identity_no_locked_identity(
+        self, mock_get_postal_address: MagicMock, mock_request_user_sync: MagicMock
+    ):
         mock_get_postal_address.return_value = self.mock_address
         mock_request_user_sync.side_effect = self.request_user_sync
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
@@ -382,26 +415,26 @@ class LetterProofingTests(EduidAPITestCase):
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_postal_address")
-    def test_locked_identity_correct_nin(self, mock_get_postal_address, mock_request_user_sync):
+    def test_locked_identity_correct_nin(self, mock_get_postal_address: MagicMock, mock_request_user_sync: MagicMock):
         mock_get_postal_address.return_value = self.mock_address
         mock_request_user_sync.side_effect = self.request_user_sync
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
 
         # User with locked_identity and correct nin
         user.locked_identity.add(NinIdentity(number=self.test_user_nin, created_by="test", is_verified=True))
-        self.app.central_userdb.save(user, check_sync=False)
+        self.app.central_userdb.save(user)
         with self.session_cookie(self.browser, self.test_user_eppn):
             response = self.send_letter(self.test_user_nin)
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_postal_address")
-    def test_locked_identity_incorrect_nin(self, mock_get_postal_address, mock_request_user_sync):
+    def test_locked_identity_incorrect_nin(self, mock_get_postal_address: MagicMock, mock_request_user_sync: MagicMock):
         mock_get_postal_address.return_value = self.mock_address
         mock_request_user_sync.side_effect = self.request_user_sync
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
 
         user.locked_identity.add(NinIdentity(number=self.test_user_nin, created_by="test", is_verified=True))
-        self.app.central_userdb.save(user, check_sync=False)
+        self.app.central_userdb.save(user)
 
         # User with locked_identity and incorrect nin
         with self.session_cookie(self.browser, self.test_user_eppn):
@@ -414,10 +447,10 @@ class LetterProofingTests(EduidAPITestCase):
 
     @patch("hammock.Hammock._request")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_send_letter_backdoor(self, mock_request_user_sync, mock_hammock):
+    def test_send_letter_backdoor(self, mock_request_user_sync: MagicMock, mock_hammock: MagicMock):
         self.app.conf.magic_cookie = "magic-cookie"
         self.app.conf.magic_cookie_name = "magic"
-        self.app.conf.environment = "dev"
+        self.app.conf.environment = EduidEnvironment("dev")
 
         ekopost_response = self.mock_response(json_data={"id": "test"})
         mock_hammock.return_value = ekopost_response
@@ -434,17 +467,17 @@ class LetterProofingTests(EduidAPITestCase):
     def test_get_code_backdoor(self):
         self.app.conf.magic_cookie = "magic-cookie"
         self.app.conf.magic_cookie_name = "magic"
-        self.app.conf.environment = "dev"
+        self.app.conf.environment = EduidEnvironment("dev")
 
         response = self.get_code_backdoor()
         state = self.app.proofing_statedb.get_state_by_eppn(self.test_user_eppn)
-
+        assert state is not None
         self.assertEqual(response.data.decode("ascii"), state.nin.verification_code)
 
     def test_get_code_no_backdoor_in_pro(self):
         self.app.conf.magic_cookie = "magic-cookie"
         self.app.conf.magic_cookie_name = "magic"
-        self.app.conf.environment = "production"
+        self.app.conf.environment = EduidEnvironment("production")
 
         response = self.get_code_backdoor()
 
@@ -453,7 +486,7 @@ class LetterProofingTests(EduidAPITestCase):
     def test_get_code_no_backdoor_without_cookie(self):
         self.app.conf.magic_cookie = "magic-cookie"
         self.app.conf.magic_cookie_name = "magic"
-        self.app.conf.environment = "dev"
+        self.app.conf.environment = EduidEnvironment("dev")
 
         response = self.get_code_backdoor(add_cookie=False)
 
@@ -462,7 +495,7 @@ class LetterProofingTests(EduidAPITestCase):
     def test_get_code_no_backdoor_misconfigured1(self):
         self.app.conf.magic_cookie = "magic-cookie"
         self.app.conf.magic_cookie_name = ""
-        self.app.conf.environment = "dev"
+        self.app.conf.environment = EduidEnvironment("dev")
 
         response = self.get_code_backdoor()
 
@@ -471,7 +504,7 @@ class LetterProofingTests(EduidAPITestCase):
     def test_get_code_no_backdoor_misconfigured2(self):
         self.app.conf.magic_cookie = ""
         self.app.conf.magic_cookie_name = "magic"
-        self.app.conf.environment = "dev"
+        self.app.conf.environment = EduidEnvironment("dev")
 
         response = self.get_code_backdoor()
 
@@ -480,7 +513,7 @@ class LetterProofingTests(EduidAPITestCase):
     def test_get_code_no_backdoor_wrong_value(self):
         self.app.conf.magic_cookie = "magic-cookie"
         self.app.conf.magic_cookie_name = "magic"
-        self.app.conf.environment = "dev"
+        self.app.conf.environment = EduidEnvironment("dev")
 
         response = self.get_code_backdoor(cookie_value="wrong-cookie")
 
@@ -497,6 +530,9 @@ class LetterProofingTests(EduidAPITestCase):
         assert json_data["payload"]["message"] == LetterMsg.already_sent.value
 
         proofing_state = self.app.proofing_statedb.get_state_by_eppn(self.test_user_eppn)
+        assert proofing_state is not None
+        assert proofing_state.proofing_letter is not None
+        assert proofing_state.proofing_letter.sent_ts is not None
 
         # move back the 'letter sent' value to the last second of yesterday
         new_ts = proofing_state.proofing_letter.sent_ts - timedelta(days=1)

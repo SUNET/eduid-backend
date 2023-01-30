@@ -33,7 +33,7 @@
 #
 from __future__ import annotations
 
-from typing import Any, Dict, List, Type
+from typing import Any
 
 from eduid.userdb.element import ElementKey, PrimaryElement, PrimaryElementList
 
@@ -63,11 +63,11 @@ class NinList(PrimaryElementList[Nin]):
     """
 
     @classmethod
-    def from_list_of_dicts(cls: Type[NinList], items: List[Dict[str, Any]]) -> NinList:
+    def from_list_of_dicts(cls: type[NinList], items: list[dict[str, Any]]) -> NinList:
         return cls(elements=[Nin.from_dict(this) for this in items])
 
 
-def nin_from_dict(data: Dict[str, Any]) -> Nin:
+def nin_from_dict(data: dict[str, Any]) -> Nin:
     """
     Create a Nin instance from a dict.
     """

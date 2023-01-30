@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
-
 from enum import Enum, unique
-from typing import Any, Dict
+from typing import Any
 
 from eduid.webapp.common.api.utils import get_flux_type
 
@@ -14,7 +12,7 @@ class FluxResponseStatus(Enum):
     ERROR = "error"
 
 
-class FluxResponse(object):
+class FluxResponse:
     """
     Class representing a Flux Standard Action (https://github.com/redux-utilities/flux-standard-action).
 
@@ -50,15 +48,15 @@ class FluxResponse(object):
         self.error = error
 
     def __repr__(self):
-        return "<{!s} ({!r})>".format(self.__class__.__name__, self.to_dict())
+        return f"<{self.__class__.__name__!s} ({self.to_dict()!r})>"
 
     def __unicode__(self):
         return self.__str__()
 
     def __str__(self):
-        return "{!s} ({!r})".format(self.__class__.__name__, self.to_dict())
+        return f"{self.__class__.__name__!s} ({self.to_dict()!r})"
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         rv = dict()
         # A Flux Standard Action MUST have a type
         rv["type"] = self.flux_type

@@ -1,11 +1,10 @@
-# -*- coding: utf-8 -*-
 from __future__ import annotations
 
 import logging
 import random
 import unittest
 from os import environ
-from typing import Optional, Sequence, Type, cast
+from typing import Optional, Sequence, cast
 
 from neo4j.exceptions import ServiceUnavailable
 
@@ -43,7 +42,7 @@ class Neo4jTemporaryInstance(EduidTemporaryInstance):
         self._http_port = random.randint(40000, 43000)
         self._https_port = random.randint(44000, 46000)
         self._bolt_port = random.randint(47000, 50000)
-        self._docker_name = "neo4j-{!s}".format(self.bolt_port)
+        self._docker_name = f"test_neo4j_{self.bolt_port}"
         self._neo4j_version = neo4j_version
         self._host = "localhost"
 
@@ -67,8 +66,6 @@ class Neo4jTemporaryInstance(EduidTemporaryInstance):
             f"NEO4J_AUTH={self.DEFAULT_USERNAME}/{self.DEFAULT_PASSWORD}",
             "-e",
             "NEO4J_ACCEPT_LICENSE_AGREEMENT=yes",
-            "--name",
-            f"test_neo4j_{self.bolt_port}",
             f"neo4j:{self._neo4j_version}",
         ]
 
@@ -120,7 +117,7 @@ class Neo4jTemporaryInstance(EduidTemporaryInstance):
                 s.run(f'DROP INDEX {index["name"]}')
 
     @classmethod
-    def get_instance(cls: Type[Neo4jTemporaryInstance], max_retry_seconds: int = 60) -> Neo4jTemporaryInstance:
+    def get_instance(cls: type[Neo4jTemporaryInstance], max_retry_seconds: int = 60) -> Neo4jTemporaryInstance:
         return cast(Neo4jTemporaryInstance, super().get_instance(max_retry_seconds=max_retry_seconds))
 
 

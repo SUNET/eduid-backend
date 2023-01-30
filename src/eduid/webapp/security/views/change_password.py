@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2019 SUNET
 # All rights reserved.
@@ -81,8 +80,8 @@ def get_suggested(user) -> FluxData:
 
 
 @change_password_views.route("/set-password", methods=["POST"])
-@MarshalWith(SecurityResponseSchema)
 @UnmarshalWith(ChangePasswordRequestSchema)
+@MarshalWith(SecurityResponseSchema)
 @require_user
 def change_password_view(user: User, new_password: str, old_password: Optional[str] = None) -> FluxData:
     """

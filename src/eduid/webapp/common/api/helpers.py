@@ -1,17 +1,19 @@
-# -*- coding: utf-8 -*-
 import warnings
 from dataclasses import dataclass
-from typing import List, Optional, Type, TypeVar, Union, overload
+from typing import Any, Optional, TypeVar, Union, cast, overload
 
 from flask import current_app, render_template, request
 
-from eduid.common.config.base import EduidEnvironment, MagicCookieMixin
+from eduid.common.config.base import EduidEnvironment, MagicCookieMixin, MailConfigMixin
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.rpc.exceptions import NoNavetData
-from eduid.common.rpc.msg_relay import DeregisteredCauseCode, DeregistrationInformation, FullPostalAddress
+from eduid.common.rpc.mail_relay import MailRelay
+from eduid.common.rpc.msg_relay import DeregisteredCauseCode, DeregistrationInformation, FullPostalAddress, MsgRelay
 from eduid.userdb import NinIdentity
 from eduid.userdb.element import ElementKey
+from eduid.userdb.exceptions import LockedIdentityViolation
 from eduid.userdb.identity import IdentityType
+from eduid.userdb.logs import ProofingLog
 from eduid.userdb.logs.element import (
     NinProofingLogElement,
     TForeignIdProofingLogElementSubclass,
@@ -20,7 +22,9 @@ from eduid.userdb.logs.element import (
 from eduid.userdb.proofing import ProofingUser
 from eduid.userdb.proofing.state import NinProofingState, OidcProofingState
 from eduid.userdb.user import TUserSubclass, User
+from eduid.userdb.userdb import UserDB
 from eduid.webapp.common.api.app import EduIDBaseApp
+from eduid.webapp.common.api.utils import get_from_current_app, save_and_sync_user
 
 __author__ = "lundberg"
 
@@ -101,13 +105,13 @@ def add_nin_to_user(user: User, proofing_state: NinProofingState) -> ProofingUse
 
 
 @overload
-def add_nin_to_user(user: User, proofing_state: NinProofingState, user_type: Type[TProofingUser]) -> TProofingUser:
+def add_nin_to_user(user: User, proofing_state: NinProofingState, user_type: type[TProofingUser]) -> TProofingUser:
     ...
 
 
 def add_nin_to_user(user, proofing_state, user_type=ProofingUser):
-
-    proofing_user = user_type.from_user(user, current_app.private_userdb)
+    private_userdb = cast(UserDB[User], get_from_current_app("private_userdb", UserDB))
+    proofing_user = user_type.from_user(user, private_userdb)
     # Add nin to user if not already there
     if not proofing_user.identities.nin:
         current_app.logger.info(f"Adding NIN for user {user}")
@@ -119,13 +123,7 @@ def add_nin_to_user(user, proofing_state, user_type=ProofingUser):
             number=proofing_state.nin.number,
         )
         proofing_user.identities.add(nin_identity)
-        proofing_user.modified_ts = utc_now()
-        # Save user to private db
-        current_app.private_userdb.save(proofing_user, check_sync=False)
-        # Ask am to sync user to central db
-        current_app.logger.info(f"Request sync for user {proofing_user}")
-        result = current_app.am_relay.request_user_sync(proofing_user)
-        current_app.logger.info(f"Sync result for user {proofing_user}: {result}")
+        save_and_sync_user(proofing_user)
     return proofing_user
 
 
@@ -145,6 +143,9 @@ def verify_nin_for_user(
 
     :return: Success or not
     """
+    proofing_log = get_from_current_app("proofing_log", ProofingLog)
+    private_userdb = cast(UserDB[User], get_from_current_app("private_userdb", UserDB))
+
     if isinstance(user, ProofingUser):
         proofing_user = user
     else:
@@ -152,7 +153,7 @@ def verify_nin_for_user(
         # This is deprecated usage, since it won't allow the calling function to get
         # the new NIN element without re-loading the user from the central database.
         warnings.warn("verify_nin_for_user() called with a User, not a ProofingUser", DeprecationWarning)
-        proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
+        proofing_user = ProofingUser.from_user(user, private_userdb)
 
     # add an unverified nin identity to the user if it does not exist yet
     if proofing_user.identities.nin is None:
@@ -177,7 +178,7 @@ def verify_nin_for_user(
             proofing_user.locked_identity.nin is not None
             and proofing_user.locked_identity.nin.number != proofing_state.nin.number
         ):
-            raise ValueError("users locked nin does not match verified nin")
+            raise LockedIdentityViolation("users locked nin does not match verified nin")
 
         # user has no locked nin identity or the user has previously verified the nin
         # replace the never verified nin with the one just verified
@@ -201,28 +202,22 @@ def verify_nin_for_user(
 
     # If user was updated successfully continue with logging the proof and saving the user to central db
     # Send proofing data to the proofing log
-    if not current_app.proofing_log.save(proofing_log_entry):
+    if not proofing_log.save(proofing_log_entry):
         return False
     current_app.logger.info(f"Recorded nin identity verification in the proofing log")
 
-    # Save user to private db
-    current_app.private_userdb.save(proofing_user)
-
-    # Ask am to sync user to central db
-    current_app.logger.info(f"Request sync for user {user}")
-    result = current_app.am_relay.request_user_sync(proofing_user)
-    current_app.logger.info(f"Sync result for user {proofing_user}: {result}")
+    save_and_sync_user(proofing_user)
 
     return True
 
 
 def send_mail(
     subject: str,
-    to_addresses: List[str],
+    to_addresses: list[str],
     text_template: str,
     html_template: str,
     app: EduIDBaseApp,
-    context: Optional[dict] = None,
+    context: Optional[dict[str, Any]] = None,
     reference: Optional[str] = None,
 ):
     """
@@ -234,10 +229,13 @@ def send_mail(
     :param context: template context
     :param reference: Audit reference to help cross-reference audit log and events
     """
-    site_name = app.conf.eduid_site_name  # type: ignore
-    site_url = app.conf.eduid_site_url  # type: ignore
+    mail_relay = get_from_current_app("mail_relay", MailRelay)
+    conf = get_from_current_app("conf", MailConfigMixin)
 
-    default_context = {
+    site_name = conf.eduid_site_name
+    site_url = conf.eduid_site_url
+
+    default_context: dict[str, str] = {
         "site_url": site_url,
         "site_name": site_name,
     }
@@ -251,7 +249,7 @@ def send_mail(
     app.logger.debug(f"rendered text: {text}")
     html = render_template(html_template, **context)
     app.logger.debug(f"rendered html: {html}")
-    app.mail_relay.sendmail(subject, to_addresses, text, html, reference)
+    mail_relay.sendmail(subject, to_addresses, text, html, reference)
 
 
 def check_magic_cookie(config: MagicCookieMixin) -> bool:
@@ -267,7 +265,7 @@ def check_magic_cookie(config: MagicCookieMixin) -> bool:
         return False
 
     if not config.magic_cookie or not config.magic_cookie_name:
-        current_app.logger.error(f"Magic cookie parameters not present in configuration for {config.environment}")
+        current_app.logger.info(f"Magic cookie parameters not present in configuration for {config.environment}")
         return False
 
     cookie = request.cookies.get(config.magic_cookie_name)
@@ -285,17 +283,21 @@ def check_magic_cookie(config: MagicCookieMixin) -> bool:
 
 @dataclass
 class ProofingNavetData:
-    user_postal_address: Optional[FullPostalAddress] = None
+    user_postal_address: FullPostalAddress
     deregistration_information: Optional[DeregistrationInformation] = None
 
 
 def get_proofing_log_navet_data(nin: str) -> ProofingNavetData:
-    navet_data = current_app.msg_relay.get_all_navet_data(nin=nin, allow_deregistered=True)
+    msg_relay = get_from_current_app("msg_relay", MsgRelay)
+
+    navet_data = msg_relay.get_all_navet_data(nin=nin, allow_deregistered=True)
     # the only cause for deregistration we allow is emigration
     if (
         navet_data.person.is_deregistered()
         and navet_data.person.deregistration_information.cause_code is not DeregisteredCauseCode.EMIGRATED
     ):
+        # please type checking
+        assert navet_data.person.deregistration_information.cause_code is not None
         raise NoNavetData(
             f"Person deregistered with code {navet_data.person.deregistration_information.cause_code.value}"
         )

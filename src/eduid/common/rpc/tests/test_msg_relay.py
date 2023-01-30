@@ -1,8 +1,6 @@
-# -*- coding: utf-8 -*-
-
 import unittest
-from typing import Any, List, Mapping
-from unittest.mock import Mock, patch
+from typing import Any, Mapping
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
@@ -25,8 +23,8 @@ class MsgRelayTests(unittest.TestCase):
         self.message_sender = MessageSender()
 
     @staticmethod
-    def _fix_relations_to(relative_nin: str, relations: Mapping[str, Any]) -> List[Mapping[str, Any]]:
-        result = []
+    def _fix_relations_to(relative_nin: str, relations: Mapping[str, Any]) -> list[dict[str, Any]]:
+        result: list[dict[str, Any]] = []
         for d in relations["Relations"]["Relation"]:
             if d.get("RelationId", {}).get("NationalIdentityNumber") == relative_nin:
                 if "RelationType" in d:
@@ -34,7 +32,7 @@ class MsgRelayTests(unittest.TestCase):
         return result
 
     @patch("eduid.workers.msg.tasks.get_all_navet_data.apply_async")
-    def test_get_all_navet_data(self, mock_get_all_navet_data):
+    def test_get_all_navet_data(self, mock_get_all_navet_data: MagicMock):
         mock_conf = {"get.return_value": self.message_sender.get_devel_all_navet_data()}
         ret = Mock(**mock_conf)
         mock_get_all_navet_data.return_value = ret
@@ -42,7 +40,7 @@ class MsgRelayTests(unittest.TestCase):
         assert res == NavetData(**self.message_sender.get_devel_all_navet_data())
 
     @patch("eduid.workers.msg.tasks.get_all_navet_data.apply_async")
-    def test_get_all_navet_data_none_response(self, mock_get_all_navet_data):
+    def test_get_all_navet_data_none_response(self, mock_get_all_navet_data: MagicMock):
         mock_conf = {"get.return_value": None}
         ret = Mock(**mock_conf)
         mock_get_all_navet_data.return_value = ret
@@ -50,7 +48,7 @@ class MsgRelayTests(unittest.TestCase):
             self.msg_relay.get_all_navet_data(nin="190102031234")
 
     @patch("eduid.workers.msg.tasks.get_postal_address.apply_async")
-    def test_get_postal_address(self, mock_get_postal_address):
+    def test_get_postal_address(self, mock_get_postal_address: MagicMock):
         mock_conf = {"get.return_value": self.message_sender.get_devel_postal_address()}
         ret = Mock(**mock_conf)
         mock_get_postal_address.return_value = ret
@@ -58,7 +56,7 @@ class MsgRelayTests(unittest.TestCase):
         assert res == FullPostalAddress(**self.message_sender.get_devel_postal_address())
 
     @patch("eduid.workers.msg.tasks.get_postal_address.apply_async")
-    def test_get_postal_address_none_response(self, mock_get_postal_address):
+    def test_get_postal_address_none_response(self, mock_get_postal_address: MagicMock):
         mock_conf = {"get.return_value": None}
         ret = Mock(**mock_conf)
         mock_get_postal_address.return_value = ret
@@ -66,7 +64,7 @@ class MsgRelayTests(unittest.TestCase):
             self.msg_relay.get_postal_address(nin="190102031234")
 
     @patch("eduid.workers.msg.tasks.get_relations_to.apply_async")
-    def test_get_relations_to(self, mock_get_relations):
+    def test_get_relations_to(self, mock_get_relations: MagicMock):
         relations_to = self._fix_relations_to(
             relative_nin="194004048989", relations=self.message_sender.get_devel_relations()
         )
@@ -78,8 +76,8 @@ class MsgRelayTests(unittest.TestCase):
         assert res == [RelationType(item) for item in relations_to]
 
     @patch("eduid.workers.msg.tasks.get_relations_to.apply_async")
-    def test_get_relations_to_empty_response(self, mock_get_relations):
-        mock_conf = {"get.return_value": []}
+    def test_get_relations_to_empty_response(self, mock_get_relations: MagicMock):
+        mock_conf: dict[str, Any] = {"get.return_value": []}
         ret = Mock(**mock_conf)
         mock_get_relations.return_value = ret
         res = self.msg_relay.get_relations_to(nin="190102031234", relative_nin="194004048989")

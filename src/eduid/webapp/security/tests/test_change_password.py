@@ -1,7 +1,6 @@
-# -*- coding: utf-8 -*-
 import json
 from datetime import timedelta
-from typing import Any, Dict, List, Mapping, Optional
+from typing import Any, Mapping, Optional
 from unittest.mock import patch
 from uuid import uuid4
 
@@ -17,16 +16,14 @@ from eduid.webapp.security.app import SecurityApp, security_init_app
 from eduid.webapp.security.helpers import SecurityMsg
 
 
-class ChangePasswordTests(EduidAPITestCase):
+class ChangePasswordTests(EduidAPITestCase[SecurityApp]):
     """Base TestCase for those tests that need a full environment setup"""
 
-    app: SecurityApp
-
-    def setUp(self, *args, users: Optional[List[str]] = None, copy_user_to_private: bool = False, **kwargs):
+    def setUp(self, *args: Any, **kwargs: Any):
         self.test_user_eppn = "hubba-bubba"
         self.test_user_email = "johnsmith@example.com"
         self.test_user_nin = "197801011235"
-        super(ChangePasswordTests, self).setUp(*args, users=users, copy_user_to_private=True, **kwargs)
+        super().setUp(*args, **kwargs, copy_user_to_private=True)
 
     def load_app(self, config: Mapping[str, Any]) -> SecurityApp:
         """
@@ -35,7 +32,7 @@ class ChangePasswordTests(EduidAPITestCase):
         """
         return security_init_app("testing", config)
 
-    def update_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
+    def update_config(self, config: dict[str, Any]) -> dict[str, Any]:
         config.update(
             {
                 "available_languages": {"en": "English", "sv": "Svenska"},
@@ -78,7 +75,7 @@ class ChangePasswordTests(EduidAPITestCase):
     def _change_password(
         self,
         mock_request_user_sync: Any,
-        data1: Optional[dict] = None,
+        data1: Optional[dict[str, Any]] = None,
         reauthn: Optional[int] = 60,
     ):
         """
@@ -115,7 +112,7 @@ class ChangePasswordTests(EduidAPITestCase):
     def _get_suggested_and_change(
         self,
         mock_request_user_sync: Any,
-        data1: Optional[dict] = None,
+        data1: Optional[dict[str, Any]] = None,
         correct_old_password: bool = True,
         reauthn: Optional[int] = 60,
     ):

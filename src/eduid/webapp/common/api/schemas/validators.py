@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from marshmallow import ValidationError
 
 from eduid.webapp.common.api.validation import is_valid_email, is_valid_nin

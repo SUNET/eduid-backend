@@ -1,9 +1,7 @@
-# -*- coding: utf-8 -*-
-
 import logging
 from dataclasses import replace
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Mapping, Optional, Union
+from typing import Any, Mapping, Optional, Union
 
 from bson import ObjectId
 from motor import motor_asyncio
@@ -12,6 +10,7 @@ from pymongo.results import UpdateResult
 from eduid.queue.db import QueueDB, QueueItem
 from eduid.queue.exceptions import PayloadNotRegistered
 from eduid.userdb import MongoDB
+from eduid.userdb.db import DatabaseDriver
 
 __author__ = "lundberg"
 
@@ -19,11 +18,12 @@ logger = logging.getLogger(__name__)
 
 
 class AsyncQueueDB(QueueDB):
-    def __init__(self, db_uri: str, collection: str, db_name: str = "eduid_queue", connection_factory=None):
+    def __init__(self, db_uri: str, collection: str, db_name: str = "eduid_queue"):
         super().__init__(db_uri, collection=collection, db_name=db_name)
 
-        # Re-initialize database and collection with connection_factory
-        self._db = MongoDB(db_uri, db_name=db_name, connection_factory=connection_factory)
+        # Re-initialize database and collection with async versions.
+        # TODO: Refactor setup_indexes() to work with async driver too, possibly by creating an AsyncMongoDB class.
+        self._db = MongoDB(db_uri, db_name=db_name, driver=DatabaseDriver.ASYNCIO)
         self._coll = self._db.get_collection(collection=collection)
 
     @property
@@ -57,7 +57,7 @@ class AsyncQueueDB(QueueDB):
         if isinstance(item_id, str):
             item_id = ObjectId(item_id)
 
-        spec: Dict[str, Any] = {
+        spec: dict[str, Any] = {
             "_id": item_id,
         }
 
@@ -98,9 +98,9 @@ class AsyncQueueDB(QueueDB):
 
     async def find_items(
         self, processed: bool, min_age_in_seconds: Optional[int] = None, expired: Optional[bool] = None
-    ) -> List:
+    ) -> list:
         # TODO: Add registered payload types to spec
-        spec: Dict[str, Any] = {}
+        spec: dict[str, Any] = {}
         if not processed:
             spec["processed_by"] = None
             spec["processed_ts"] = None
