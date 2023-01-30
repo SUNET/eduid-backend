@@ -11,7 +11,7 @@ from eduid.userdb import User
 from eduid.userdb.credentials import Credential
 from eduid.userdb.element import ElementKey
 from eduid.userdb.exceptions import LockedIdentityViolation
-from eduid.userdb.identity import IdentityElement, IdentityType, SvipeIdentity
+from eduid.userdb.identity import IdentityElement, IdentityProofingMethod, IdentityType, SvipeIdentity
 from eduid.userdb.logs.element import NinProofingLogElement, SvipeIDForeignProofing, SvipeIDNINProofing
 from eduid.userdb.proofing import NinProofingElement, ProofingUser
 from eduid.userdb.proofing.state import NinProofingState
@@ -100,6 +100,8 @@ class SvipeIDProofingFunctions(ProofingFunctions[SvipeDocumentUserInfo]):
             verified_by=current_app.conf.app_name,
             is_verified=True,
             svipe_id=self.session_info.svipe_id,
+            proofing_method=IdentityProofingMethod.SVIPE_ID,
+            proofing_version=current_app.conf.svipe_id_proofing_version,
         )
 
         # check if the just verified identity matches the locked identity
