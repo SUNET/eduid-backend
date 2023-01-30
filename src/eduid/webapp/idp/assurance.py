@@ -79,7 +79,6 @@ class AuthnState:
         self.is_swamid_al2 = False
         self.fido_used = False
         self.external_mfa_used = False
-        self.swamid_al2_used = False
         self.swamid_al3_used = False
         self._onetime_credentials: dict[ElementKey, OnetimeCredential] = {}
         self._credentials = self._gather_credentials(sso_session, ticket, user)
@@ -93,11 +92,8 @@ class AuthnState:
                 self.password_used = True
             elif isinstance(cred, FidoCredential):
                 self.fido_used = True
-                if cred.is_verified:
-                    if cred.proofing_method == CredentialProofingMethod.SWAMID_AL2_MFA:
-                        self.swamid_al2_used = True
-                    elif cred.proofing_method == CredentialProofingMethod.SWAMID_AL3_MFA:
-                        self.swamid_al3_used = True
+                if cred.is_verified and cred.proofing_method == CredentialProofingMethod.SWAMID_AL3_MFA:
+                    self.swamid_al3_used = True
             elif isinstance(cred, OnetimeCredential):
                 # OLD way
                 logger.debug(f"External MFA used for this request: {cred}")
@@ -196,7 +192,7 @@ class AuthnState:
         return (
             f"<AuthnState: creds={len(self._credentials)}, pw={self.password_used}, fido={self.fido_used}, "
             f"external_mfa={self.external_mfa_used}, nin is al2={self.is_swamid_al2}, "
-            f"mfa is {self.is_multifactor} (al2={self.swamid_al2_used}, al3={self.swamid_al3_used})>"
+            f"mfa is {self.is_multifactor} (al3={self.swamid_al3_used})>"
         )
 
     @property

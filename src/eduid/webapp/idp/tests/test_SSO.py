@@ -63,16 +63,6 @@ from eduid.webapp.idp.util import b64encode
 
 _U2F = U2F(version="U2F_V2", app_id="unit test", keyhandle="firstU2FElement", public_key="foo")
 
-_U2F_SWAMID_AL2 = U2F(
-    version="U2F_V2",
-    app_id="unit test",
-    keyhandle="U2F SWAMID AL2",
-    public_key="foo",
-    is_verified=True,
-    proofing_method=CredentialProofingMethod.SWAMID_AL2_MFA,
-    proofing_version="testing",
-)
-
 _U2F_SWAMID_AL3 = U2F(
     version="U2F_V2",
     app_id="unit test",
@@ -586,11 +576,11 @@ class TestSSO(SSOIdPTests):
         Expect the response Authn to be EDUID_MFA, eduPersonAssurance AL1,Al2
         """
         user = self.get_user_set_nins(self.test_user.eppn, ["190101011234"])
-        user.credentials.add(_U2F_SWAMID_AL2)
+        # user.credentials.add(_U2F_SWAMID_AL2)
         out = self._get_login_response_authn(
             user=user,
             req_class_ref=EduidAuthnContextClass.EDUID_MFA,
-            credentials=["pw", _U2F_SWAMID_AL2],
+            credentials=["pw", "u2f"],
         )
         assert out.message == IdPMsg.proceed
         assert out.authn_info
