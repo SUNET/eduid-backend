@@ -146,7 +146,7 @@ class WorkerBase(ABC):
         self.db_cache.delete(eppn=eppn)
 
     def _enqueuing_to_worker_queue(self) -> None:
-        """Populate worker queue with cached users"""
+        """Populate worker queue with users from db_cache."""
 
         users = self.db_cache.get_all()
         if len(users) == 0:
