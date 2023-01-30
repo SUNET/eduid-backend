@@ -938,8 +938,7 @@ pypdf3==1.0.6 \
     #   -c main.txt
     #   xhtml2pdf
 pysaml2==7.3.0+sunet \
-    --hash=sha256:39f20da33aa4bbef93da8fafc6fb41e7be0c672bed79306b4b9ce9e351945bf8 \
-    --hash=sha256:dba81a938dfcd1ef52106f26bff00dde9195d3cb208949045d8f001d7dffd39d
+    --hash=sha256:9fd4119d5b1125751695b3f15579deb15a02b82db247d38bd5c08f923db68c9b
     # via
     #   -c main.txt
     #   -r main.in

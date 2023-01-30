@@ -784,8 +784,7 @@ pypdf3==1.0.6 \
     --hash=sha256:c946f3273419e37258e35e72273f49904ab15723d87a761c1115ef99799f8c5f
     # via xhtml2pdf
 pysaml2==7.3.0+sunet \
-    --hash=sha256:39f20da33aa4bbef93da8fafc6fb41e7be0c672bed79306b4b9ce9e351945bf8 \
-    --hash=sha256:dba81a938dfcd1ef52106f26bff00dde9195d3cb208949045d8f001d7dffd39d
+    --hash=sha256:9fd4119d5b1125751695b3f15579deb15a02b82db247d38bd5c08f923db68c9b
     # via -r main.in
 pysmscom==0.9 \
     --hash=sha256:0e45dacf73dedf379f1f8e17b976dc950b2c0d91c9e7d9b82d3a59b2c27b4ed1 \
