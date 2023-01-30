@@ -122,15 +122,18 @@ class Person(NavetModelConfig):
         return bool(self.deregistration_information.cause_code or self.deregistration_information.date)
 
 
-class NavetData(NavetModelConfig):
-    case_information: CaseInformation = Field(alias="CaseInformation")
-    person: Person = Field(alias="Person")
-
-
 # Used to parse data from get_postal_address
 class FullPostalAddress(NavetModelConfig):
     name: Name = Field(default_factory=Name, alias="Name")
     official_address: OfficialAddress = Field(default_factory=OfficialAddress, alias="OfficialAddress")
+
+
+class NavetData(NavetModelConfig):
+    case_information: CaseInformation = Field(alias="CaseInformation")
+    person: Person = Field(alias="Person")
+
+    def get_full_postal_address(self) -> FullPostalAddress:
+        return FullPostalAddress(name=self.person.name, official_address=self.person.postal_addresses)
 
 
 class MsgRelay:
