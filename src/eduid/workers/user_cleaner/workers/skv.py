@@ -72,17 +72,17 @@ class SKV(WorkerBase):
     def run(self):
         """skatteverket worker entry point"""
         if not self.db_meta.exist(cleaner_type=self.cleaner_type):
-            # if self.db_meta.get(self.cleaner_type) is None:
             meta = Meta(
                 periodicity=self.config.periodicity,
                 cleaner_type=self.cleaner_type,
             )
             self.db_meta.save(doc=meta)
 
-        meta = self.db_meta.get(self.cleaner_type)
-        if meta.periodicity != self.config.periodicity:
-            meta.periodicity = self.config.periodicity
-            self.db_meta.save(doc=meta)
+        meta_new = self.db_meta.get(cleaner_type=self.cleaner_type)
+        assert meta_new is not None
+        if meta_new.periodicity != self.config.periodicity:
+            meta_new.periodicity = self.config.periodicity
+            self.db_meta.save(doc=meta_new)
 
             self.db_cache.delete_all()
 
