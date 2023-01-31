@@ -104,19 +104,19 @@ class SKV(WorkerBase):
 
             if self.worker_queue.empty():
                 self._enqueuing_to_worker_queue()
-            queue_user = CacheUser.from_dict(self.worker_queue.get())
+            cache_user = CacheUser.from_dict(self.worker_queue.get())
 
-            if self._wait(user=queue_user):
-                db_user = self.db.get_user_by_eppn(eppn=queue_user.eppn)
+            if self._wait(user=cache_user):
+                db_user = self.db.get_user_by_eppn(eppn=cache_user.eppn)
                 if db_user.identities.nin is not None and db_user.identities.nin.is_verified:
                     navet_data = self.msg_relay.get_all_navet_data(nin=db_user.identities.nin.number)
 
                     # update name if needed against navet.
-                    self.update_name(queue_user=queue_user, navet_data=navet_data)
+                    self.update_name(queue_user=cache_user, navet_data=navet_data)
 
-                self.task_done(eppn=queue_user.eppn)
+                self.task_done(eppn=cache_user.eppn)
             else:
-                self.worker_queue.put(queue_user.to_dict())
+                self.worker_queue.put(cache_user.to_dict())
 
 
 def init_skv_worker(test_config: Optional[Mapping[str, Any]] = None) -> SKV:
