@@ -121,8 +121,6 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
                     "client_id": "test_client_id",
                     "client_secret": "test_client_secret",
                     "issuer": "https://issuer.example.com",
-                    "acr_values": ["face_present"],
-                    "scopes": ["openid", "document"],
                 },
                 "frontend_action_finish_url": {
                     "svipeidVerifyIdentity": "https://dashboard.example.com/profile/ext-return/{app_name}/{authn_id}",
@@ -271,9 +269,10 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
         assert query["response_type"] == ["code"]
         assert query["client_id"] == ["test_client_id"]
         assert query["redirect_uri"] == ["http://test.localhost/authn-callback"]
-        assert query["scope"] == ["openid document"]
+        assert query["scope"] == ["openid"]
         assert query["code_challenge_method"] == ["S256"]
         assert query["acr_values"] == ["face_present"]
+        assert query["claims"] == [json.dumps({"userinfo": self.app.conf.svipe_client.claims_request})]
 
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
