@@ -13,6 +13,7 @@ from pydantic import Field
 from eduid.common.models.amapi_user import Reason, Source
 from eduid.common.rpc.msg_relay import DeregistrationInformation, FullPostalAddress
 from eduid.userdb.element import Element
+from eduid.userdb.identity import IdentityProofingMethod
 
 __author__ = "lundberg"
 
@@ -150,7 +151,7 @@ class TeleAdressProofing(NinProofingLogElement):
     # Reason for mobile phone number match to user
     reason: str
     # Proofing method name
-    proofing_method: str = "TeleAdress"
+    proofing_method: str = IdentityProofingMethod.TELEADRESS.value
 
 
 # DEPRECATED: This proofing is deprecated
@@ -183,7 +184,7 @@ class TeleAdressProofingRelation(TeleAdressProofing):
     # Navet response for mobile phone subscriber deregistration information (used if official address is missing)
     registered_deregistration_information: Optional[DeregistrationInformation]
     # Proofing method name
-    proofing_method: str = "TeleAdress"
+    proofing_method: str = IdentityProofingMethod.TELEADRESS.value
 
 
 class LetterProofing(NinProofingLogElement):
@@ -206,7 +207,7 @@ class LetterProofing(NinProofingLogElement):
     # Letter service transaction id
     transaction_id: str
     # Proofing method name
-    proofing_method: str = "letter"
+    proofing_method: str = IdentityProofingMethod.LETTER.value
 
 
 class SeLegProofing(NinProofingLogElement):
@@ -227,7 +228,7 @@ class SeLegProofing(NinProofingLogElement):
     # Provider transaction id
     transaction_id: str
     # Proofing method name
-    proofing_method: str = "se-leg"
+    proofing_method: str = IdentityProofingMethod.SE_LEG.value
     # Name of the provider who performed the vetting
     vetting_by: str = ""
 
@@ -298,7 +299,7 @@ class SwedenConnectProofing(NinProofingLogElement):
     # The authentication context class asserted
     authn_context_class: str
     # Proofing method name
-    proofing_method: str = "swedenconnect"
+    proofing_method: str = IdentityProofingMethod.SWEDEN_CONNECT.value
 
 
 class SwedenConnectEIDASProofing(ForeignIdProofingLogElement):
@@ -336,7 +337,7 @@ class SwedenConnectEIDASProofing(ForeignIdProofingLogElement):
     mapped_personal_identity_number: Optional[str]
     personal_identity_number_binding: Optional[str]
     # Proofing method name
-    proofing_method: str = "swedenconnect"
+    proofing_method: str = IdentityProofingMethod.SWEDEN_CONNECT.value
 
 
 class SvipeIDNINProofing(NinProofingLogElement):
@@ -357,12 +358,14 @@ class SvipeIDNINProofing(NinProofingLogElement):
 
     # unique identifier
     svipe_id: str
+    # transaction id
+    transaction_id: str
     # document type (standardized english)
     document_type: str
     # document number
     document_number: str
     # Proofing method name
-    proofing_method: str = "svipe_id"
+    proofing_method: str = IdentityProofingMethod.SVIPE_ID.value
 
 
 class SvipeIDForeignProofing(ForeignIdProofingLogElement):
@@ -382,6 +385,8 @@ class SvipeIDForeignProofing(ForeignIdProofingLogElement):
 
     # unique identifier
     svipe_id: str
+    # transaction id
+    transaction_id: str
     # document administrative number
     administrative_number: str
     # document type (standardized english)
@@ -391,7 +396,7 @@ class SvipeIDForeignProofing(ForeignIdProofingLogElement):
     # issuing country
     issuing_country: str
     # Proofing method name
-    proofing_method: str = "svipe_id"
+    proofing_method: str = IdentityProofingMethod.SVIPE_ID.value
 
 
 class MFATokenProofing(SwedenConnectProofing):

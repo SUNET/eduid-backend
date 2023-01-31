@@ -1,3 +1,4 @@
+import logging
 import warnings
 from dataclasses import dataclass
 from typing import Any, Optional, TypeVar, Union, cast, overload
@@ -5,14 +6,13 @@ from typing import Any, Optional, TypeVar, Union, cast, overload
 from flask import current_app, render_template, request
 
 from eduid.common.config.base import EduidEnvironment, MagicCookieMixin, MailConfigMixin
-from eduid.common.misc.timeutil import utc_now
 from eduid.common.rpc.exceptions import NoNavetData
 from eduid.common.rpc.mail_relay import MailRelay
 from eduid.common.rpc.msg_relay import DeregisteredCauseCode, DeregistrationInformation, FullPostalAddress, MsgRelay
 from eduid.userdb import NinIdentity
 from eduid.userdb.element import ElementKey
 from eduid.userdb.exceptions import LockedIdentityViolation
-from eduid.userdb.identity import IdentityType
+from eduid.userdb.identity import IdentityProofingMethod, IdentityType
 from eduid.userdb.logs import ProofingLog
 from eduid.userdb.logs.element import (
     NinProofingLogElement,
@@ -196,6 +196,9 @@ def verify_nin_for_user(
     # Ensure matching timestamp in verification log entry, and NIN element on user
     proofing_user.identities.nin.verified_ts = proofing_log_entry.created_ts
     proofing_user.identities.nin.verified_by = proofing_state.nin.created_by
+    proofing_method = IdentityProofingMethod(proofing_log_entry.proofing_method)
+    proofing_user.identities.nin.proofing_method = proofing_method
+    proofing_user.identities.nin.proofing_version = proofing_log_entry.proofing_version
 
     # Update users name
     proofing_user = set_user_names_from_official_address(proofing_user, proofing_log_entry)

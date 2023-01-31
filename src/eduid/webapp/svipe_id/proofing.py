@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import Optional
 
 from iso3166 import countries
+from pymongo.errors import PyMongoError
 
 from eduid.common.config.base import ProofingConfigMixin
 from eduid.common.rpc.exceptions import AmTaskFailed, MsgTaskFailed, NoNavetData
@@ -10,7 +11,7 @@ from eduid.userdb import User
 from eduid.userdb.credentials import Credential
 from eduid.userdb.element import ElementKey
 from eduid.userdb.exceptions import LockedIdentityViolation
-from eduid.userdb.identity import IdentityElement, IdentityType, SvipeIdentity
+from eduid.userdb.identity import IdentityElement, IdentityProofingMethod, IdentityType, SvipeIdentity
 from eduid.userdb.logs.element import NinProofingLogElement, SvipeIDForeignProofing, SvipeIDNINProofing
 from eduid.userdb.proofing import NinProofingElement, ProofingUser
 from eduid.userdb.proofing.state import NinProofingState
@@ -73,7 +74,7 @@ class SvipeIDProofingFunctions(ProofingFunctions[SvipeDocumentUserInfo]):
             if not verify_nin_for_user(proofing_user, proofing_state, proofing_log_entry.data):
                 current_app.logger.error(f"Failed verifying NIN for user {proofing_user}")
                 return VerifyUserResult(error=CommonMsg.temp_problem)
-        except AmTaskFailed:
+        except (AmTaskFailed, PyMongoError):
             current_app.logger.exception("Verifying NIN for user failed")
             return VerifyUserResult(error=CommonMsg.temp_problem)
         except LockedIdentityViolation:
@@ -99,6 +100,8 @@ class SvipeIDProofingFunctions(ProofingFunctions[SvipeDocumentUserInfo]):
             verified_by=current_app.conf.app_name,
             is_verified=True,
             svipe_id=self.session_info.svipe_id,
+            proofing_method=IdentityProofingMethod.SVIPE_ID,
+            proofing_version=current_app.conf.svipe_id_proofing_version,
         )
 
         # check if the just verified identity matches the locked identity
@@ -188,6 +191,7 @@ class SvipeIDProofingFunctions(ProofingFunctions[SvipeDocumentUserInfo]):
             eppn=user.eppn,
             nin=_nin,
             svipe_id=self.session_info.svipe_id,
+            transaction_id=self.session_info.transaction_id,
             document_type=self.session_info.document_type_sdn_en,  # standardised name in English (e.g. "Passport")
             document_number=self.session_info.document_number,
             proofing_version=current_app.conf.svipe_id_proofing_version,
@@ -200,6 +204,7 @@ class SvipeIDProofingFunctions(ProofingFunctions[SvipeDocumentUserInfo]):
             created_by=current_app.conf.app_name,
             eppn=user.eppn,
             svipe_id=self.session_info.svipe_id,
+            transaction_id=self.session_info.transaction_id,
             document_type=self.session_info.document_type_sdn_en,  # standardised name in English (e.g. "Passport")
             document_number=self.session_info.document_number,
             proofing_version=current_app.conf.svipe_id_proofing_version,

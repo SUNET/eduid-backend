@@ -21,6 +21,27 @@ class AuthlibClientConfig(BaseModel):
     scopes: list[str] = Field(default=["openid"])
 
 
+class SvipeClientConfig(AuthlibClientConfig):
+    acr_values: list[str] = Field(default=["face_present"])
+    scopes: list[str] = Field(
+        default=[
+            "openid",
+            "birthdate",
+            "com.svipe:document_administrative_number",
+            "com.svipe:document_expiry_date",
+            "com.svipe:document_issuing_country",
+            "com.svipe:document_nationality",
+            "com.svipe:document_number",
+            "com.svipe:document_type_sdn_en",
+            "com.svipe:meta_transaction_id",
+            "com.svipe:svipeid",
+            "family_name",
+            "given_name",
+            "name",
+        ]
+    )
+
+
 class SvipeIdConfig(
     EduIDBaseAppConfig, AmConfigMixin, MsgConfigMixin, ProofingConfigMixin, ErrorsConfigMixin, MagicCookieMixin
 ):
@@ -29,4 +50,4 @@ class SvipeIdConfig(
     """
 
     app_name: str = "svipe_id"
-    svipe_client: AuthlibClientConfig
+    svipe_client: SvipeClientConfig

@@ -14,7 +14,7 @@ from eduid.userdb.credentials.external import (
 )
 from eduid.userdb.element import ElementKey
 from eduid.userdb.exceptions import LockedIdentityViolation
-from eduid.userdb.identity import EIDASLoa, IdentityElement, IdentityType, PridPersistence
+from eduid.userdb.identity import EIDASLoa, IdentityElement, IdentityProofingMethod, IdentityType, PridPersistence
 from eduid.userdb.logs.element import (
     ForeignIdProofingLogElement,
     MFATokenEIDASProofing,
@@ -277,6 +277,8 @@ class EidasProofingFunctions(SwedenConnectProofingFunctions[ForeignEidSessionInf
             country_code=self.session_info.attributes.country_code,
             verified_by=current_app.conf.app_name,
             is_verified=True,
+            proofing_method=IdentityProofingMethod.SWEDEN_CONNECT,
+            proofing_version=self.config.foreign_eid_proofing_version,
         )
 
         # check if the just verified identity matches the locked identity

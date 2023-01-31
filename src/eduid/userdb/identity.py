@@ -21,6 +21,15 @@ class IdentityType(str, Enum):
     SVIPE = "svipe"
 
 
+class IdentityProofingMethod(str, Enum):
+    # difference in capitalization/underscore/hyphen is intentional as to follow existing proofing log entries
+    SVIPE_ID = "svipe_id"
+    LETTER = "letter"
+    SE_LEG = "se-leg"
+    SWEDEN_CONNECT = "swedenconnect"
+    TELEADRESS = "TeleAdress"
+
+
 class IdentityElement(VerifiedElement, ABC):
 
     """
@@ -32,6 +41,7 @@ class IdentityElement(VerifiedElement, ABC):
     """
 
     identity_type: IdentityType
+    proofing_method: Optional[IdentityProofingMethod] = None
 
     @property
     def key(self) -> ElementKey:
