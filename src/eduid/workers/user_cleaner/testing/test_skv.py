@@ -65,14 +65,12 @@ class WorkerTest(CommonTestCase, MockedAMAPIMixin):
         assert got.given_name == "Testaren Test"
         assert got.surname == "Testsson"
 
-    @pytest.mark.skip(reason="Not implemented yet")
     def test_populate_queue(self):
-        self.skv.db_cache.populate(
-            am_users=[UserFixtures().mocked_user_standard, UserFixtures().new_user_example], periodicity=1
-        )
+        uf = UserFixtures()
+        self.skv.db_cache.populate(am_users=[uf.new_user_example, uf.new_unverified_user_example], periodicity=1)
         self.skv._enqueuing_to_worker_queue()
         got_user1 = self.skv.worker_queue.get()
-        assert got_user1["eppn"] == UserFixtures().mocked_user_standard.eppn
+        assert got_user1["eppn"] == uf.new_user_example.eppn
 
         got_user2 = self.skv.worker_queue.get()
-        assert got_user2["eppn"] == UserFixtures().new_user_example.eppn  # new_user_example2.eppn
+        assert got_user2["eppn"] == uf.new_unverified_user_example.eppn
