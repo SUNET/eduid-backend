@@ -401,13 +401,14 @@ class AmDB(UserDB[User]):
 
         return UserSaveResult(success=bool(result))
 
-    def unverify_mail_aliases(self, user_id: ObjectId, mail_aliases: Optional[list[dict[str, Any]]]) -> int:
+    def unverify_mail_aliases(self, user_id: ObjectId, mail_aliases: Optional[list[TUserDbDocument]]) -> int:
+
         count = 0
         if mail_aliases is None:
             logger.debug(f"No mailAliases to check duplicates against for user {user_id}.")
             return count
         # Get the verified mail addresses from attributes
-        verified_mail_aliases = [alias["email"] for alias in mail_aliases if alias.get("verified") is True]
+        verified_mail_aliases = [alias["email"] for alias in mail_aliases if alias["verified"] is True]
         for email in verified_mail_aliases:
             try:
                 for user in self.get_users_by_mail(email):
@@ -431,7 +432,7 @@ class AmDB(UserDB[User]):
                 pass
         return count
 
-    def unverify_phones(self, user_id: ObjectId, phones: list[dict[str, Any]]) -> int:
+    def unverify_phones(self, user_id: ObjectId, phones: Optional[list[TUserDbDocument]]) -> int:
         count = 0
         if phones is None:
             logger.debug(f"No phones to check duplicates against for user {user_id}.")
