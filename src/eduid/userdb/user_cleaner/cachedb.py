@@ -27,7 +27,7 @@ class CacheDB(BaseDB):
 
     def exists(self, eppn: str) -> bool:
         """Check if a user exists in the cache."""
-        return self._coll.count_documents({"eppn": eppn}) > 0
+        return self.db_count(spec={"eppn": eppn}, limit=1) > 0
 
     def get_all(self) -> list[CacheUser]:
         """Get all users from the cache."""
