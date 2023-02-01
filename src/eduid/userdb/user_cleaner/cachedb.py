@@ -18,7 +18,7 @@ class CacheDB(BaseDB):
         self.setup_indexes(indexes)
 
     def save(self, cache_user: CacheUser) -> bool:
-        """Save a CacheUser object to the database."""
+        """Save a CacheUser object to cache db."""
         if self.exists(cache_user.eppn):
             logger.debug(f"User {cache_user.eppn} already exists in the cache.")
             return False
@@ -26,12 +26,12 @@ class CacheDB(BaseDB):
         return True
 
     def exists(self, eppn: str) -> bool:
-        """Check if a user exists in the cache."""
+        """Check if a user exists in the cache db."""
         return self.db_count(spec={"eppn": eppn}, limit=1) > 0
 
     def get_all(self) -> list[CacheUser]:
-        """Get all users from the cache."""
-        res = self._coll.find({})
+        """Get all users from the cache db."""
+        res = self._get_all_docs()
         return [CacheUser.from_dict(data=doc) for doc in res]
 
     def count(self) -> int:
@@ -39,11 +39,11 @@ class CacheDB(BaseDB):
         return self._coll.count_documents({})
 
     def delete(self, eppn: str) -> None:
-        """delete one user from the cache."""
+        """delete one user from the cache db."""
         self._coll.delete_one({"eppn": eppn})
 
     def delete_all(self) -> None:
-        """Delete all users from the cache."""
+        """Delete all users from the cache db."""
         self._coll.delete_many({})
 
     def populate(
