@@ -1,3 +1,4 @@
+from datetime import timedelta
 from typing import Sequence
 
 from pydantic import Field, BaseModel
@@ -22,10 +23,10 @@ class UserCleanerConfig(RootConfig, LoggingConfigMixin, MsgConfigMixin, StatsCon
     change_quota: float
 
     # amount of time to clean dataset, value in days
-    periodicity: int = 30
+    periodicity: timedelta = timedelta(days=30)
 
     # minimum time to delay each execution in seconds
-    minimum_delay: int = 1
+    minimum_delay: timedelta = timedelta(seconds=1)
 
     gnap_auth_data: GNAPClientAuthData
     amapi: AmAPIConfig

@@ -1,3 +1,4 @@
+from datetime import timedelta
 from typing import Any, Dict
 from unittest.mock import MagicMock, patch
 from eduid.common.clients.amapi_client.testing import MockedAMAPIMixin
@@ -67,7 +68,11 @@ class WorkerTest(CommonTestCase, MockedAMAPIMixin):
 
     def test_populate_queue(self):
         uf = UserFixtures()
-        self.skv.db_cache.populate(am_users=[uf.new_user_example, uf.new_unverified_user_example], periodicity=1)
+        self.skv.db_cache.populate(
+            am_users=[uf.new_user_example, uf.new_unverified_user_example],
+            periodicity=timedelta(seconds=10),
+            minimum_delay=timedelta(seconds=1),
+        )
         self.skv._enqueuing_to_worker_queue()
         got_user1 = self.skv.worker_queue.get()
         assert got_user1["eppn"] == uf.new_user_example.eppn

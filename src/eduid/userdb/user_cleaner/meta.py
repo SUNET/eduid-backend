@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from typing import Any, Mapping
-from datetime import datetime
+from datetime import datetime, timedelta
 from pydantic import BaseModel, Field
 
 from eduid.common.misc.timeutil import utc_now
@@ -10,7 +10,7 @@ from eduid.userdb.meta import CleanerType
 
 
 class Meta(BaseModel):
-    periodicity: int
+    periodicity: timedelta
     cleaner_type: CleanerType
     created_ts: datetime = Field(default_factory=utc_now)
 

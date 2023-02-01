@@ -12,7 +12,7 @@ from eduid.userdb.user import User
 class CacheUser(BaseModel):
     eppn: str
     created_ts: datetime = Field(default_factory=utc_now)
-    next_run_ts: Optional[int] = None
+    next_run_ts: Optional[datetime] = None
 
     def to_dict(self) -> TUserDbDocument:
         """
@@ -27,14 +27,6 @@ class CacheUser(BaseModel):
     def from_dict(cls, data: Mapping[str, Any]) -> CacheUser:
         """Convert a dict to a Element object."""
         return cls(**data)
-
-    def next_run_ts_iso8601(self) -> str:
-        """
-        Convert the next_run_ts to ISO8601 format.
-        """
-        if self.next_run_ts is None:
-            return ""
-        return datetime.utcfromtimestamp(self.next_run_ts).isoformat()
 
     def from_user(self, data: User) -> CacheUser:
         """

@@ -1,6 +1,8 @@
 from abc import ABC
+from datetime import timedelta
 from time import time
 import logging
+from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.db import BaseDB, TUserDbDocument
 from eduid.userdb.user import User
 from eduid.userdb.user_cleaner.cache import CacheUser
@@ -49,16 +51,22 @@ class CacheDB(BaseDB):
     def populate(
         self,
         am_users: list[User],
-        periodicity: int,
+        periodicity: timedelta,
+        minimum_delay: timedelta,
     ) -> None:
         """Populate cache db with the user from AMDB."""
 
-        cache_size = len(am_users)
+        number_of_users = len(am_users)
 
-        periodicity_in_seconds = 22 * 60 * 60 * periodicity  # strip 2 hours of each day in order to give us some slack
-        time_constant = int(periodicity_in_seconds / cache_size)
+        # strip 2 hours of each day in order to give us some slack
+        time_constant = timedelta(
+            (periodicity - timedelta(hours=2)).total_seconds() / (number_of_users * minimum_delay.total_seconds())
+        )
 
-        next_run_ts = int(time()) + (60 * 60)  # first process window starts in 1 hour, then the population is done
+        # first process window starts in 1 hour, then the population is done
+        next_run_ts = utc_now() + timedelta(hours=1)
+
+        # next_run_ts = int(time()) + (60 * 60)  # first process window starts in 1 hour, then the population is done
         for am_user in am_users:
             next_run_ts += time_constant
             cache_user = CacheUser(

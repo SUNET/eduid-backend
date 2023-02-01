@@ -11,6 +11,7 @@ import time
 from typing import Any, Mapping, Optional, Union
 
 from pathlib import Path
+from eduid.common.misc.timeutil import utc_now
 
 from eduid.common.clients.amapi_client.amapi_client import AMAPIClient
 from eduid.common.config.parsers import load_config
@@ -125,11 +126,11 @@ class WorkerBase(ABC):
         if user.next_run_ts is None:
             self.logger.debug(f"User {user.eppn} has no next_run_ts, skipping wait")
             return False
-        self.logger.debug(f"Waiting for user {user.eppn} to run at {user.next_run_ts_iso8601()}")
-        while user.next_run_ts > int(time.time()) and not self.shutdown_now:
+        self.logger.debug(f"Waiting for user {user.eppn} to run at {user.next_run_ts}")
+        while user.next_run_ts > utc_now() and not self.shutdown_now:
             if self.shutdown_now:
                 return False
-            if user.next_run_ts < int(time.time()):
+            if user.next_run_ts < utc_now():
                 return True
             time.sleep(0.01)
         return False

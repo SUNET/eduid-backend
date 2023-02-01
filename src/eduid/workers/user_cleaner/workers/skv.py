@@ -100,7 +100,9 @@ class SKV(WorkerBase):
                     identity_type=self.identity_type,
                     limit=10000000,
                 )
-                self.db_cache.populate(am_users=users, periodicity=self.config.periodicity)
+                self.db_cache.populate(
+                    am_users=users, periodicity=self.config.periodicity, minimum_delay=self.config.minimum_delay
+                )
 
             if self.worker_queue.empty():
                 self._enqueuing_to_worker_queue()
