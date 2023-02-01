@@ -21,20 +21,20 @@ class MockedAMAPIMixin(MockedSyncAuthAPIMixin):
     def start_mock_amapi(self, central_user_db: Optional[AmDB] = None, access_token_value: Optional[str] = None):
         self.start_mock_auth_api(access_token_value=access_token_value)
         self.central_user_db = central_user_db
-        self.mocked_users = respx.mock(base_url="http://localhost/amapi", assert_all_called=False)
+        mocked_users = respx.mock(base_url="http://localhost/amapi", assert_all_called=False)
 
-        self.mocked_users.put(url="/users/hubba-bubba/name", name="200_put_name").mock(
+        mocked_users.put(url="/users/hubba-bubba/name", name="200_put_name").mock(
             side_effect=self._side_effect_update_name
         )
-        self.mocked_users.put(url="/users/hubba-bubba/email", name="200_put_email").mock(
+        mocked_users.put(url="/users/hubba-bubba/email", name="200_put_email").mock(
             side_effect=self._side_effect_update_email
         )
-        self.mocked_users.put(url="/users/hubba-bubba/language", name="200_put_language").mock(
+        mocked_users.put(url="/users/hubba-bubba/language", name="200_put_language").mock(
             side_effect=self._side_effect_update_language
         )
 
-        self.mocked_users.start()
-        self.addCleanup(self.mocked_users.stop)  # type: ignore
+        mocked_users.start()
+        self.addCleanup(mocked_users.stop)  # type: ignore
 
     def _side_effect_update(self, func_name: str) -> User:
         if self.central_user_db is None:
