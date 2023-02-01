@@ -40,7 +40,7 @@ class CacheUser(BaseModel):
         """
         Convert a User object to a CacheUser object.
         """
-        queue_user = CacheUser(
+        cache_user = CacheUser(
             eppn=data.eppn,
         )
-        return queue_user
+        return cache_user

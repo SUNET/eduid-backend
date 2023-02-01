@@ -17,12 +17,12 @@ class CacheDB(BaseDB):
 
         self.setup_indexes(indexes)
 
-    def save(self, queue_user: CacheUser) -> bool:
+    def save(self, cache_user: CacheUser) -> bool:
         """Save a CacheUser object to the database."""
-        if self.exists(queue_user.eppn):
-            logger.debug(f"User {queue_user.eppn} already exists in the queue")
+        if self.exists(cache_user.eppn):
+            logger.debug(f"User {cache_user.eppn} already exists in the cache.")
             return False
-        self._coll.insert_one(queue_user.to_dict())
+        self._coll.insert_one(cache_user.to_dict())
         return True
 
     def exists(self, eppn: str) -> bool:
@@ -35,7 +35,7 @@ class CacheDB(BaseDB):
         return [CacheUser.from_dict(data=doc) for doc in res]
 
     def count(self) -> int:
-        """Count the number of users in the queue."""
+        """Count the number of users in the cache."""
         return self._coll.count_documents({})
 
     def delete(self, eppn: str) -> None:
@@ -61,12 +61,12 @@ class CacheDB(BaseDB):
         next_run_ts = int(time()) + (60 * 60)  # first process window starts in 1 hour, then the population is done
         for am_user in am_users:
             next_run_ts += time_constant
-            queue_user = CacheUser(
+            cache_user = CacheUser(
                 eppn=am_user.eppn,
                 next_run_ts=next_run_ts,
             )
 
-            self.save(queue_user)
+            self.save(cache_user)
 
     def is_empty(self) -> bool:
         """Check if the cache is empty."""
