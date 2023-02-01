@@ -44,7 +44,7 @@ class CacheDB(BaseDB):
 
     def delete_all(self) -> None:
         """Delete all users from the cache db."""
-        self._coll.delete_many({})
+        self._drop_whole_collection()
 
     def populate(
         self,
