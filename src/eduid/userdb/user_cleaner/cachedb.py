@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 class CacheDB(BaseDB):
-    """Database class for the user cleaning database cache."""
+    """Database class for the user cleaning cache db."""
 
     def __init__(self, db_uri: str, collection: str, db_name: str = "eduid_user_cleaner"):
         super().__init__(db_uri, db_name, collection)
@@ -35,7 +35,7 @@ class CacheDB(BaseDB):
         return [CacheUser.from_dict(data=doc) for doc in res]
 
     def count(self) -> int:
-        """Count the number of users in the cache."""
+        """Count the number of users in the cache db."""
         return self._coll.count_documents({})
 
     def delete(self, eppn: str) -> None:
@@ -51,7 +51,7 @@ class CacheDB(BaseDB):
         am_users: list[User],
         periodicity: int,
     ) -> None:
-        """Populate cache database with the user from AMDB."""
+        """Populate cache db with the user from AMDB."""
 
         cache_size = len(am_users)
 
@@ -69,5 +69,5 @@ class CacheDB(BaseDB):
             self.save(cache_user)
 
     def is_empty(self) -> bool:
-        """Check if the cache is empty."""
-        return self.count() == 0
+        """Check if the cache db is empty."""
+        return self.db_count(spec={}) == 0
