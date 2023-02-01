@@ -58,7 +58,7 @@ class WorkerBase(ABC):
 
         self.shutdown_now = False
 
-        self.worker_queue: "Queue[dict[str, Union[str,int]]]" = Queue(maxsize=0)
+        self.worker_queue: Queue[dict[str, Union[str, int]]] = Queue(maxsize=0)
         self.queue_actual_size = 0
 
         self.made_changes = 0
