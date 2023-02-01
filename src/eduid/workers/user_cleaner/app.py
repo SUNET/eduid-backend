@@ -90,12 +90,6 @@ class WorkerBase(ABC):
         self.logger.debug(f"is_quota_reached:: made_changes: {self.made_changes}, max_changes: {self.max_changes}")
         return self.made_changes >= self.max_changes
 
-    def _add_to_made_changes(self) -> None:
-        """
-        Helper to add to made_changes after a change.
-        """
-        self.made_changes += 1
-
     def _populate_max_changes(self) -> None:
         """
         Helper to calculate the maximum allowed changes

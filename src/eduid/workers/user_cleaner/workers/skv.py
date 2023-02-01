@@ -49,7 +49,7 @@ class SKV(WorkerBase):
             user=db_user, user_postal_address=navet_data.get_full_postal_address()
         )
 
-        self._add_to_made_changes()
+        self.made_changes += 1
 
         self.logger.debug(f"number of changes: {self.made_changes} out of {self.max_changes}, {self.queue_actual_size}")
 
