@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Any, Mapping, Optional
 from pydantic import BaseModel, Field
 from datetime import datetime
@@ -22,7 +24,7 @@ class CacheUser(BaseModel):
         return TUserDbDocument(data)
 
     @classmethod
-    def from_dict(cls, data: Mapping[str, Any]) -> "CacheUser":
+    def from_dict(cls, data: Mapping[str, Any]) -> CacheUser:
         """Convert a dict to a Element object."""
         return cls(**data)
 
@@ -34,7 +36,7 @@ class CacheUser(BaseModel):
             return ""
         return datetime.utcfromtimestamp(self.next_run_ts).strftime("%Y-%m-%d %H:%M:%S")
 
-    def from_user(self, data: User) -> "CacheUser":
+    def from_user(self, data: User) -> CacheUser:
         """
         Convert a User object to a CacheUser object.
         """

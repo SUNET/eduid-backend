@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Any, Mapping
 from datetime import datetime
 from pydantic import BaseModel, Field
@@ -22,6 +24,6 @@ class Meta(BaseModel):
         return TUserDbDocument(data)
 
     @classmethod
-    def from_dict(cls, data: Mapping[str, Any]) -> "Meta":
+    def from_dict(cls, data: Mapping[str, Any]) -> Meta:
         """Convert a dict to a Element object."""
         return cls(**data)
