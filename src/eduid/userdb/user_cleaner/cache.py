@@ -34,7 +34,7 @@ class CacheUser(BaseModel):
         """
         if self.next_run_ts is None:
             return ""
-        return datetime.utcfromtimestamp(self.next_run_ts).strftime("%Y-%m-%d %H:%M:%S")
+        return datetime.utcfromtimestamp(self.next_run_ts).isoformat()
 
     def from_user(self, data: User) -> CacheUser:
         """
