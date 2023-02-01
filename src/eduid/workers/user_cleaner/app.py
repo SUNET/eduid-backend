@@ -144,6 +144,7 @@ class WorkerBase(ABC):
         """Mark a task as done"""
         self.worker_queue.task_done()
         self.db_cache.delete(eppn=eppn)
+        self.stats.count(name="user_cleaner_task_done")
 
     def _enqueuing_to_worker_queue(self) -> None:
         """Populate worker queue with users from db_cache."""
