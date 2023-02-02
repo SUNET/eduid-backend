@@ -1,3 +1,4 @@
+import json
 from dataclasses import dataclass
 from typing import Optional
 from urllib.parse import parse_qs, urlparse
@@ -90,7 +91,9 @@ def _authn(
 
     try:
         auth_redirect = current_app.oidc_client.svipe.authorize_redirect(
-            redirect_uri=url_for("svipe_id.authn_callback", _external=True)
+            redirect_uri=url_for("svipe_id.authn_callback", _external=True),
+            # TODO: id_token instead of userinfo would be preferred but I can't get it to work
+            claims=json.dumps({"userinfo": current_app.conf.svipe_client.claims_request}),
         )
     except OAuthError:
         current_app.logger.exception("Failed to create authorization request")
