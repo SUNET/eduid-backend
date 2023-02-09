@@ -306,7 +306,7 @@ cookies-samesite-compat==0.0.1 \
     # via
     #   -c main.txt
     #   -r main.in
-cryptography==39.0.0 \
+cryptography==39.0.1 \
     --hash=sha256:1a6915075c6d3a5e1215eab5d99bcec0da26036ff2102a1038401d6ef5bef25b \
     --hash=sha256:1ee1fd0de9851ff32dbbb9362a4d833b579b4a6cc96883e8e6d2ff2a6bc7104f \
     --hash=sha256:407cec680e811b4fc829de966f88a7c62a596faa250fc1a4b520a0355b9bc190 \
