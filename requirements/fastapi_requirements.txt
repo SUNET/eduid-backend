@@ -293,7 +293,7 @@ cookies-samesite-compat==0.0.1 \
     # via
     #   -c main.txt
     #   -r main.in
-cryptography==39.0.0 \
+cryptography==39.0.1 \
     --hash=sha256:1a6915075c6d3a5e1215eab5d99bcec0da26036ff2102a1038401d6ef5bef25b \
     --hash=sha256:1ee1fd0de9851ff32dbbb9362a4d833b579b4a6cc96883e8e6d2ff2a6bc7104f \
     --hash=sha256:407cec680e811b4fc829de966f88a7c62a596faa250fc1a4b520a0355b9bc190 \
@@ -1450,7 +1450,7 @@ sniffio==1.3.0 \
     #   anyio
     #   httpcore
     #   httpx
-starlette==0.22.0 \
+starlette==0.25.0 \
     --hash=sha256:b092cbc365bea34dd6840b42861bdabb2f507f8671e642e8272d2442e08ea4ff \
     --hash=sha256:b5eda991ad5f0ee5d8ce4c4540202a573bb6691ecd0c712262d0bc85cf8f2c50
     # via fastapi
