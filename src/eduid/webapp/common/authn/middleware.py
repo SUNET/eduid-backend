@@ -67,7 +67,7 @@ class AuthnBaseApp(EduIDBaseApp, metaclass=ABCMeta):
         params = {"next": next_url}
 
         url_parts = list(urlparse(ts_url))
-        query = parse_qs(url_parts[4], strict_parsing=True)
+        query = parse_qs(url_parts[4])
         # Set the 'next' query parameter. parse_qs says it returns a list of values for each key,
         # but if we add [next_url], the result will be actually "...&next=%5B...%5D" which is not what we want."
         # Don't know why that is, but url_parts[4] is probably empty (unless there are query parameters in
