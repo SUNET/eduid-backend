@@ -64,11 +64,15 @@ class AuthnBaseApp(EduIDBaseApp, metaclass=ABCMeta):
 
         ts_url = urlappend(conf.token_service_url, "login")
 
-        params = {"next": [next_url]}
+        params = {"next": next_url}
 
         url_parts = list(urlparse(ts_url))
-        query = parse_qs(url_parts[4])
-        query.update(params)
+        query = parse_qs(url_parts[4], strict_parsing=True)
+        # Set the 'next' query parameter. parse_qs says it returns a list of values for each key,
+        # but if we add [next_url], the result will be actually "...&next=%5B...%5D" which is not what we want."
+        # Don't know why that is, but url_parts[4] is probably empty (unless there are query parameters in
+        # conf.token_service_url) so let's just ignore the type error for now.
+        query.update(params)  # type: ignore
 
         url_parts[4] = urlencode(query)
         location = urlunparse(url_parts)
