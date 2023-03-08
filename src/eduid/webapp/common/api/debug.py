@@ -31,7 +31,7 @@ def log_endpoints(app: Flask):
         for rule in app.url_map.iter_rules():
 
             options = {}
-            for arg in rule.arguments:  # type: ignore[union-attr]
+            for arg in rule.arguments:
                 options[arg] = f"[{arg}]"
 
             methods = ",".join(rule.methods) if rule.methods else ""

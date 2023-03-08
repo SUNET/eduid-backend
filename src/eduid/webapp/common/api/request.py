@@ -77,7 +77,7 @@ class SanitationMixin(Sanitizer):
             abort(400)
 
 
-class SanitizedImmutableMultiDict(ImmutableMultiDict, SanitationMixin):  # type: ignore
+class SanitizedImmutableMultiDict(ImmutableMultiDict, SanitationMixin):
     """
     See `werkzeug.datastructures.ImmutableMultiDict`.
     This class is an extension that overrides all access methods to
@@ -174,7 +174,7 @@ class SanitizedImmutableMultiDict(ImmutableMultiDict, SanitationMixin):  # type:
         return dict(self.lists())
 
 
-class SanitizedTypeConversionDict(ImmutableTypeConversionDict, SanitationMixin):  # type: ignore
+class SanitizedTypeConversionDict(ImmutableTypeConversionDict, SanitationMixin):
     """
     See `werkzeug.datastructures.TypeConversionDict`.
     This class is an extension that overrides all access methods to

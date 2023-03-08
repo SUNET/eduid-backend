@@ -87,10 +87,10 @@ def acs_action(action: Enum):
     :param action: the AcsAction for the decorated function
     """
 
-    def outer(func):
+    def outer(func: Callable[[ACSArgs], ACSResult]) -> Callable[[ACSArgs], ACSResult]:
         _actions[action.value] = func
 
-        def inner(*args, **kwargs):
+        def inner(*args, **kwargs) -> ACSResult:
             return func(*args, **kwargs)
 
         return inner

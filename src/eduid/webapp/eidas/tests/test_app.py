@@ -382,7 +382,7 @@ class EidasTests(ProofingTests[EidasApp]):
 
         ps = urlparse(finish_url)
         # Check the base part of the URL (everything except the query string)
-        _ps = ps._replace(query="")  # type: ignore
+        _ps = ps._replace(query="")
         if expect_redirect_url is not None:
             redirect_url_no_params = urlunparse(_ps)
             assert redirect_url_no_params == expect_redirect_url

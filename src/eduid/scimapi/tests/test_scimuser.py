@@ -236,8 +236,8 @@ class ScimApiTestUserResourceBase(ScimApiTestCase):
             nutid_user = user_response.nutid_user_v1
         except Exception:
             if not expect_success:
-                user_response = None  # type: ignore
-                nutid_user = None  # type: ignore
+                user_response = None
+                nutid_user = None
             else:
                 raise
         return UserApiResult(request=req, nutid_user=nutid_user, response=response, parsed_response=user_response)
@@ -263,8 +263,8 @@ class ScimApiTestUserResourceBase(ScimApiTestCase):
             nutid_user = user_response.nutid_user_v1
         except Exception:
             if not expect_success:
-                user_response = None  # type: ignore
-                nutid_user = None  # type: ignore
+                user_response = None
+                nutid_user = None
             else:
                 raise
         return UserApiResult(request=req, nutid_user=nutid_user, response=response, parsed_response=user_response)

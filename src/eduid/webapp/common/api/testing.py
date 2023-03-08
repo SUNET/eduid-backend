@@ -142,7 +142,7 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
 
         super().setUp(am_users=am_users, *args, **kwargs)
 
-        self.user: Optional[User] = None  # type: ignore
+        self.user: Optional[User] = None
 
         # Load the user from the database so that it can be saved there again in tests
         _test_user = self.amdb.get_user_by_eppn(users[0])
