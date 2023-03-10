@@ -36,7 +36,7 @@ class EduidFormatter(logging.Formatter):
             return f"{_seconds:.3f}s"
 
         # self.converter seems incorrectly typed as a two-argument method (Callable[[Optional[float]], struct_time])
-        ct = self.converter(record.created)  # type: ignore
+        ct = self.converter(record.created)
         if datefmt:
             s = time.strftime(datefmt, ct)
         else:
