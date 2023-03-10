@@ -100,9 +100,9 @@ class SwedenConnectProofingFunctions(ProofingFunctions[BaseSessionInfoVar], Gene
         session.mfa_action.success = mfa_success
         if mfa_success is True:
             # add metadata if the authentication was a success
-            session.mfa_action.issuer = self.session_info.issuer  # type: ignore
-            session.mfa_action.authn_instant = self.session_info.authn_instant.isoformat()  # type: ignore
-            session.mfa_action.authn_context = self.session_info.authn_context  # type: ignore
+            session.mfa_action.issuer = self.session_info.issuer
+            session.mfa_action.authn_instant = self.session_info.authn_instant.isoformat()
+            session.mfa_action.authn_context = self.session_info.authn_context
             session.mfa_action.credential_used = credential_used
 
         if not mfa_success:

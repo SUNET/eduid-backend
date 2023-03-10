@@ -1,6 +1,6 @@
 from datetime import datetime
 from inspect import isclass
-from typing import Optional
+from typing import Any, Callable, Optional
 
 from eduid.userdb.db import MongoDB
 
@@ -15,7 +15,7 @@ class TransactionAudit:
         self._conn = None
         self.collection = None
 
-    def __call__(self, f):
+    def __call__(self, f: Callable[..., Any]) -> Callable[..., Any]:
         if not self.enabled:
             return f
 

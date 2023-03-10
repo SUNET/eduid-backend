@@ -232,5 +232,5 @@ def get_proofing_functions(
     app_name: str,
     config: ProofingConfigMixin,
     backdoor: bool,
-) -> ProofingFunctions:
+) -> ProofingFunctions[SvipeDocumentUserInfo]:
     return SvipeIDProofingFunctions(session_info=session_info, app_name=app_name, config=config, backdoor=backdoor)

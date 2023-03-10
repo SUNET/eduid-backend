@@ -100,7 +100,7 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
 
         To be used with the data validation functions _check_success_response and _check_error_response.
         """
-        response = self._send_letter2(nin, csrf_token)  # type: ignore
+        response = self._send_letter2(nin, csrf_token)
         if validate_response:
             self._check_success_response(
                 response, type_="POST_LETTER_PROOFING_PROOFING_SUCCESS", msg=LetterMsg.letter_sent

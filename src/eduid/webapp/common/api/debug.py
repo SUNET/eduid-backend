@@ -31,7 +31,7 @@ def log_endpoints(app: Flask):
         for rule in app.url_map.iter_rules():
 
             options = {}
-            for arg in rule.arguments:  # type: ignore[union-attr]
+            for arg in rule.arguments:
                 options[arg] = f"[{arg}]"
 
             methods = ",".join(rule.methods) if rule.methods else ""
@@ -46,7 +46,7 @@ def log_endpoints(app: Flask):
 def dump_config(app: Flask):
     pprint.pprint(("CONFIGURATION", "app.config"), stream=sys.stderr)
     try:
-        config_items = asdict(app.config).items()
+        config_items = asdict(app.config).items()  # type: ignore[call-overload]
     except TypeError:
         config_items = app.config.items()
         warnings.warn(f"{app.name} is using old dict config", DeprecationWarning)

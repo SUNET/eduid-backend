@@ -215,7 +215,7 @@ def _authn(
     )
     current_app.logger.debug(f"Stored SP_AuthnRequest[{ref}]: {session.eidas.sp.authns[ref]}")
 
-    url = get_location(authn_request)  # type: ignore
+    url = get_location(authn_request)
     if not url:
         current_app.logger.error(f"Couldn't extract Location from {authn_request}")
         return AuthnResult(error=EidasMsg.method_not_available)

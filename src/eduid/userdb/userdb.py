@@ -386,7 +386,7 @@ class AmDB(UserDB[User]):
     def user_from_dict(cls, data: TUserDbDocument) -> User:
         return User.from_dict(data)
 
-    def save(self, user: User) -> UserSaveResult:  # type: ignore[override]
+    def save(self, user: User) -> UserSaveResult:
         """
         Save a User object to the database.
         """
