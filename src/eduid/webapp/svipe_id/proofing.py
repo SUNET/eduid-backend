@@ -94,14 +94,15 @@ class SvipeIDProofingFunctions(ProofingFunctions[SvipeDocumentUserInfo]):
 
         date_of_birth = self.session_info.birthdate
         new_identity = SvipeIdentity(
+            administrative_number=self.session_info.document_administrative_number,
+            country_code=self.session_info.document_nationality,
             created_by=current_app.conf.app_name,
             date_of_birth=datetime(year=date_of_birth.year, month=date_of_birth.month, day=date_of_birth.day),
-            country_code=self.session_info.document_nationality,
-            verified_by=current_app.conf.app_name,
             is_verified=True,
-            svipe_id=self.session_info.svipe_id,
             proofing_method=IdentityProofingMethod.SVIPE_ID,
             proofing_version=current_app.conf.svipe_id_proofing_version,
+            svipe_id=self.session_info.svipe_id,
+            verified_by=current_app.conf.app_name,
         )
 
         # check if the just verified identity matches the locked identity

@@ -48,6 +48,7 @@ unverified_eidas_identity = EIDASIdentity(
 
 verified_svipe_identity = SvipeIdentity(
     svipe_id="unique-svipe-id-1",
+    administrative_number="1234567890",
     date_of_birth=datetime.fromisoformat("1978-09-02T00:00:00"),
     country_code="DE",
     created_ts=datetime.fromisoformat("2022-09-02T10:23:25"),
@@ -59,6 +60,7 @@ verified_svipe_identity = SvipeIdentity(
 
 unverified_svipe_identity = SvipeIdentity(
     svipe_id="unique-svipe-id-2",
+    administrative_number="0123456789",
     date_of_birth=datetime.fromisoformat("1977-09-02T00:00:00"),
     country_code="DE",
     created_ts=datetime.fromisoformat("2022-09-02T10:23:25"),
