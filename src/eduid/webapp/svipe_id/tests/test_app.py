@@ -15,6 +15,7 @@ from eduid.webapp.common.proofing.messages import ProofingMsg
 from eduid.webapp.common.proofing.testing import ProofingTests
 from eduid.webapp.svipe_id.app import SvipeIdApp, svipe_id_init_app
 from eduid.webapp.svipe_id.helpers import SvipeDocumentUserInfo, SvipeIDMsg
+from eduid.webapp.svipe_id.settings.common import SvipeClientConfig
 
 __author__ = "lundberg"
 
@@ -249,6 +250,31 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
 
     def test_app_starts(self):
         assert self.app.conf.app_name == "testing"
+
+    def test_client_claims_config(self):
+        data = {
+            "svipe_client": {
+                "client_id": "x",
+                "client_secret": "y",
+                "issuer": "https://issuer.example.edu/",
+                "claims_request": {
+                    "com.svipe:document_administrative_number": {"essential": True},
+                    "com.svipe:document_expiry_date": {"essential": True},
+                    "com.svipe:document_issuing_country": {"essential": True},
+                    "com.svipe:document_nationality": {"essential": True},
+                    "com.svipe:document_number": {"essential": True},
+                    "birthdate": {"essential": True},
+                    "com.svipe:document_type_sdn_en": {"essential": True},
+                    "com.svipe:meta_transaction_id": {"essential": True},
+                    "com.svipe:svipeid": {"essential": True},
+                    "family_name": {"essential": True},
+                    "given_name": {"essential": True},
+                    "name": None,
+                },
+            },
+        }
+        cfg = SvipeClientConfig.parse_obj(data["svipe_client"])
+        assert cfg.claims_request == data["svipe_client"]["claims_request"]
 
     def test_authenticate(self):
         response = self.browser.get("/")
