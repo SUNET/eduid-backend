@@ -1,14 +1,13 @@
 import logging
 import os
 from enum import Enum
-from typing import Tuple
 from unittest.mock import patch
 from urllib.parse import unquote
 
-from flask import Response as FlaskResponse
 from saml2 import BINDING_HTTP_REDIRECT, BINDING_SOAP
 from saml2.mdstore import destinations
 from saml2.response import AuthnResponse, LogoutResponse
+from saml2.typing import SAMLBinding
 from werkzeug.test import TestResponse
 
 from eduid.vccs.client import VCCSClient
@@ -104,7 +103,7 @@ class IdPTestLogout(IdPTests):
             logout_response = self.parse_saml_logout_response(response, BINDING_HTTP_REDIRECT)
             assert logout_response.response.status.status_code.value == "urn:oasis:names:tc:SAML:2.0:status:Success"
 
-    def parse_saml_logout_response(self, response: TestResponse, binding: str) -> LogoutResponse:
+    def parse_saml_logout_response(self, response: TestResponse, binding: SAMLBinding) -> LogoutResponse:
         if binding == BINDING_SOAP:
             xmlstr = response.data
         elif binding == BINDING_HTTP_REDIRECT:
@@ -115,9 +114,11 @@ class IdPTestLogout(IdPTests):
             xmlstr = saml_response
         else:
             raise RuntimeError(f"Unknown binding {binding}")
-        return self.saml2_client.parse_logout_request_response(xmlstr, binding)
+        res = self.saml2_client.parse_logout_request_response(xmlstr, binding)
+        assert res
+        return res
 
-    def _try_logout(self, authn_response: AuthnResponse, binding: str) -> tuple[LogoutState, TestResponse]:
+    def _try_logout(self, authn_response: AuthnResponse, binding: SAMLBinding) -> tuple[LogoutState, TestResponse]:
         """
         Try logging out using the IdP.
 

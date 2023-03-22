@@ -11,6 +11,7 @@ from saml2.s_utils import UnknownPrincipal, UnknownSystemEntity, UnravelError, U
 from saml2.saml import Issuer
 from saml2.samlp import RequestedAuthnContext
 from saml2.sigver import verify_redirect_signature
+from saml2.typing import SAMLBinding
 from werkzeug.exceptions import BadRequest
 
 from eduid.webapp.idp.assurance_data import AuthnInfo
@@ -315,9 +316,11 @@ class IdP_SAMLRequest:
         """Create the Javascript self-posting form that will take the user back to the SP with a SAMLResponse."""
         binding = resp_args.get("binding")
         destination = resp_args.get("destination")
+        if not binding or not destination:
+            raise ValueError(f"Invalid binding or destination: {binding}, {destination}")
         logger.debug(f"Applying binding {binding}, destination {destination}, relay_state {relay_state}")
         _args = self._idp.apply_binding(
-            binding=binding,
+            binding=SAMLBinding(binding),
             msg_str=str(saml_response),
             destination=destination,
             relay_state=relay_state,

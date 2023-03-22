@@ -242,7 +242,9 @@ class IdPTests(EduidAPITestCase[IdPApp]):
         form = self._extract_form_inputs(response.data.decode("utf-8"))
         xmlstr = bytes(form["SAMLResponse"], "ascii")
         outstanding_queries = self.pysaml2_oq.outstanding_queries()
-        return _saml2_client.parse_authn_request_response(xmlstr, BINDING_HTTP_POST, outstanding_queries)
+        res = _saml2_client.parse_authn_request_response(xmlstr, BINDING_HTTP_POST, outstanding_queries)
+        assert res
+        return res
 
     def get_sso_session(self, sso_cookie_val: SSOSessionId) -> Optional[SSOSession]:
         if sso_cookie_val is None:

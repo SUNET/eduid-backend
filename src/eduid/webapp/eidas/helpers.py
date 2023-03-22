@@ -7,7 +7,7 @@ from flask import abort, make_response, request, url_for
 from saml2 import BINDING_HTTP_REDIRECT
 from saml2.client import Saml2Client
 from saml2.metadata import entity_descriptor
-from saml2.request import AuthnRequest
+from saml2.typing import SAMLHttpArgs
 from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.common.misc.timeutil import utc_now
@@ -75,13 +75,13 @@ class EidasMsg(TranslatableMsg):
     old_nin_verify_success = "eidas.nin_verify_success"
 
 
-def create_authn_request(
+def create_authn_info(
     authn_ref: AuthnRequestRef,
     framework: TrustFramework,
     selected_idp: str,
     required_loa: list[str],
     force_authn: bool = False,
-) -> AuthnRequest:
+) -> SAMLHttpArgs:
 
     if framework not in [TrustFramework.SWECONN, TrustFramework.EIDAS]:
         raise ValueError(f"Unrecognised trust framework: {framework}")
