@@ -3,13 +3,14 @@
 import functools
 import json
 import logging
-from typing import Any, Callable, Iterable, Mapping, NewType, Optional, Union, cast
+from typing import Any, Mapping, NewType, Optional
 from urllib.parse import urlparse
 from pydantic import BaseModel, ValidationError, validator
 
 import satosa.util as util
 import satosa.context
 import satosa.internal
+import satosa.response
 from saml2.client import Saml2Client
 from saml2.config import SPConfig
 from saml2.metadata import create_metadata_string
@@ -19,8 +20,14 @@ from satosa.attribute_mapping import AttributeMapper
 from satosa.context import Context
 from satosa.exception import SATOSAAuthenticationError, SATOSAError
 from satosa.internal import InternalData
-from satosa.micro_services.base import RequestMicroService, ResponseMicroService
-from satosa.response import Response, SeeOther
+from satosa.micro_services.base import (
+    RequestMicroService,
+    ResponseMicroService,
+    ProcessReturnType,
+    CallbackReturnType,
+    CallbackCallSignature,
+)
+from satosa.response import Response
 from satosa.saml_util import make_saml_response
 
 logger = logging.getLogger(__name__)
@@ -70,7 +77,7 @@ class AuthnContext(RequestMicroService):
         self,
         context: satosa.context.Context,
         data: satosa.internal.InternalData,
-    ) -> satosa.internal.InternalData:
+    ) -> ProcessReturnType:
         assert context.state is not None  # please type checking
         context.state[self.name] = {
             **context.state.get(self.name, {}),
@@ -169,19 +176,22 @@ class StepUp(ResponseMicroService):
         logger.info("StepUp Authentication is active")
 
     def _get_params(self, context: satosa.context.Context, data: satosa.internal.InternalData) -> StepupParams:
+        _loa_settings: Optional[LoaSettings] = None
+        if data.requester is not None and data.requester in self.mfa:
+            _loa_settings = self.mfa[EntityId(data.requester)]
         return StepupParams(
             issuer=data.auth_info.issuer,
             requester=data.requester,
             issuer_loa=data.auth_info.auth_class_ref,
             requester_loas=context.state.get(self.name, {}).get(KEY_REQ_AUTHNCLASSREF, []),
-            loa_settings=self.mfa.get(data.requester),
+            loa_settings=_loa_settings,
         )
 
     def process(
         self,
         context: satosa.context.Context,
         data: satosa.internal.InternalData,
-    ) -> Union[satosa.internal.InternalData, Response, SeeOther]:
+    ) -> ProcessReturnType:
         mfa_stepup_accounts = getattr(data, "mfa_stepup_accounts", [])
         linked_account: Mapping[str, str] = next(iter(mfa_stepup_accounts), {})
         stepup_provider = linked_account.get("entity_id")
@@ -302,10 +312,10 @@ class StepUp(ResponseMicroService):
         logger.info("Sending StepUp Authentication")
         return make_saml_response(binding, ht_args)
 
-    def _handle_authn_response(
-        self, context: satosa.context.Context, binding: SAMLBinding
-    ) -> satosa.internal.InternalData:
-        internal_data_dict: Mapping[str, Any] = context.state.get(self.name, {}).get("internal_data")
+    def _handle_authn_response(self, context: satosa.context.Context, binding: SAMLBinding) -> CallbackReturnType:
+        internal_data_dict: dict[str, Any] = {}
+        if "internal_data" in context.state:
+            internal_data_dict = context.state["internal_data"]
         data = InternalData.from_dict(internal_data_dict)
 
         params = self._get_params(context, data)
@@ -345,7 +355,9 @@ class StepUp(ResponseMicroService):
                 raise SATOSAAuthenticationError(context.state, _error_context)
             self.outstanding_queries.pop(req_id)
 
-        stepup_issuer = authn_response.response.issuer.text if authn_response.response else None
+        stepup_issuer = (
+            authn_response.response.issuer.text if authn_response.response and authn_response.response.issuer else None
+        )
         is_stepup_provider = bool(stepup_issuer == stepup_provider)
 
         # Verify the subject identified in the AuthnRequest
@@ -414,17 +426,22 @@ class StepUp(ResponseMicroService):
         ]
 
         data.auth_info.auth_class_ref = next(iter(params.requester_loas), stepup_loa)
-        return super().process(context, data)
+        res = super().process(context, data)
+        if not isinstance(res, Response):
+            # process() is a chain of calls to microservices. The last one in the chain will always return a Response,
+            # but the call signature have to allow the InternalData to be returned as well.
+            raise RuntimeError("Unexpected response type")
+        return res
 
-    def _metadata_endpoint(self, context: satosa.context.Context) -> Response:
+    def _metadata_endpoint(self, context: satosa.context.Context, extra: Any) -> CallbackReturnType:
         metadata_string = create_metadata_string(None, self.sp.config, 4, None, None, None, None, None).decode("utf-8")
         return Response(metadata_string, content="text/xml")
 
-    def register_endpoints(self) -> list[tuple[str, Callable[..., Response]]]:
-        url_map: list[tuple[str, Callable[..., Response]]] = []
+    def register_endpoints(self) -> list[tuple[str, CallbackCallSignature]]:
+        url_map: list[tuple[str, CallbackCallSignature]] = []
 
         # acs endpoints
-        sp_endpoints = self.sp.config.getattr("endpoints", "sp")
+        sp_endpoints: dict[str, list[tuple[str, str]]] = self.sp.config.getattr("endpoints", "sp")
         for endp, binding in sp_endpoints["assertion_consumer_service"]:
             parsed_endp = urlparse(endp)
             url_map.append(
@@ -439,7 +456,7 @@ class StepUp(ResponseMicroService):
         url_map.append(
             (
                 f"^{parsed_entity_id.path[1:]}",
-                self._metadata_endpoint,
+                functools.partial(self._metadata_endpoint, extra=None),
             )
         )
 
