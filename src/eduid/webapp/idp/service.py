@@ -13,7 +13,7 @@
 Common code for SSO login/logout requests.
 """
 from abc import ABC
-from typing import Optional
+from typing import Any, Optional
 
 from flask import request
 from pydantic import BaseModel, Field, validator
@@ -35,16 +35,18 @@ class SAMLQueryParams(BaseModel):
         allow_population_by_field_name = True
 
     @validator("SAMLRequest", "RelayState")
-    def validate_query_params(cls, v):
+    def validate_query_params(cls, v: Any):
         if not isinstance(v, str) or not v:
-            ValueError("must be a non-empty string")
+            raise ValueError("must be a non-empty string")
         # TODO: perform extra sanitation?
         return v
 
     @validator("request_ref")
-    def validate_request_ref(cls, v):
-        if v is not None and not isinstance(v, str):
-            ValueError("must be a string or None")
+    def validate_request_ref(cls, v: Any):
+        if v is None:
+            return None
+        if not isinstance(v, str):
+            raise ValueError("must be a string or None")
         # TODO: perform extra sanitation? Could check that this is an UUID...
         return v
 
