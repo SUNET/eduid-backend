@@ -3,9 +3,11 @@
 import functools
 import json
 import logging
+from os import link
 from typing import Any, Mapping, NewType, Optional
 from urllib.parse import urlparse
 from pydantic import BaseModel, ValidationError, validator
+from eduid.satosa.scimapi.common import fetch_mfa_stepup_accounts, get_internal_attribute_name
 
 import satosa.util as util
 import satosa.context
@@ -173,6 +175,8 @@ class StepUp(ResponseMicroService):
         self.outstanding_queries: dict[str, SAMLHttpArgs] = {}
         self.attribute_profile = "saml"
 
+        self.converter = AttributeMapper(internal_attributes)
+
         logger.info("StepUp Authentication is active")
 
     def _get_params(self, context: satosa.context.Context, data: satosa.internal.InternalData) -> StepupParams:
@@ -192,62 +196,46 @@ class StepUp(ResponseMicroService):
         context: satosa.context.Context,
         data: satosa.internal.InternalData,
     ) -> ProcessReturnType:
-        mfa_stepup_accounts = getattr(data, "mfa_stepup_accounts", [])
-        linked_account: Mapping[str, str] = next(iter(mfa_stepup_accounts), {})
-        stepup_provider = linked_account.get("entity_id")
-        nameid_value = linked_account.get("identifier")
+        linked_accounts = fetch_mfa_stepup_accounts(data)
+        if not linked_accounts:
+            logger.info("No linked accounts for this user")
+            return super().process(context, data)
+
+        linked_account = linked_accounts[0]
+
+        if not linked_account.entity_id:
+            logger.info("No stepup provider for this account")
+            return super().process(context, data)
+
+        if not linked_account.identifier:
+            logger.info("No account identifier for this account")
+            return super().process(context, data)
 
         params = self._get_params(context, data)
 
-        # no stepup provider for this account
-        is_account_stepup_provider_set = bool(stepup_provider)
-        # no account identifier
-        is_account_identifier_set = bool(nameid_value)
         # requester did not ask for a specific LoA
         is_requester_expecting_loa = bool(params.requester_loas)
+        if not is_requester_expecting_loa:
+            logger.info("Requester did not ask for a specific LoA")
+            return super().process(context, data)
+
         # requester is not configured
         is_requester_configured = bool(params.loa_settings and params.loa_settings.required)
+        if not is_requester_configured:
+            logger.info("Requester is not configured")
+            return super().process(context, data)
+
         # no need to step-up - required LoA is already met
         is_mfa_satisfied = params.loa_settings and is_loa_requirements_satisfied(
             params.loa_settings.accepted, params.issuer_loa
         )
-
-        # should stepup proceed
-        is_stepup_skipped = (
-            is_mfa_satisfied
-            or not is_account_stepup_provider_set
-            or not is_account_identifier_set
-            or not is_requester_expecting_loa
-            or not is_requester_configured
-        )
-
-        # XXX is_stepup_skipped vs is_mfa_satisfied
-        # should we skip stepup if not is_mfa_satisfied?
-        # maybe we should check if not is_mfa_satisfied and raise an error
-        # else, if is_stepup_skipped, skip
-        # else, continue
-
-        logger.info(
-            {
-                "msg": "Starting StepUp Authentication",
-                "params": params,
-                "linked_account": linked_account,
-                "is_account_stepup_provider_set": is_account_stepup_provider_set,
-                "is_account_identifier_set": is_account_identifier_set,
-                "is_requester_expecting_loa": is_requester_expecting_loa,
-                "is_requester_configured": is_requester_configured,
-                "is_mfa_satisfied": is_mfa_satisfied,
-                "is_stepup_skipped": is_stepup_skipped,
-            }
-        )
-
-        if is_stepup_skipped:
+        if is_mfa_satisfied:
+            logger.info("No need to step-up - required LoA is already met")
             return super().process(context, data)
 
         assert params.loa_settings  # please mypy, already checked above since we return if is_stepup_skipped
-        assert stepup_provider  # please mypy, already checked above since we return if is_stepup_skipped
 
-        name_id = NameID(format=NAMEID_FORMAT_UNSPECIFIED, text=nameid_value)
+        name_id = NameID(format=NAMEID_FORMAT_UNSPECIFIED, text=linked_account.identifier)
         subject = Subject(name_id=name_id)
         authn_context = {"authn_context_class_ref": [params.loa_settings.required], "comparison": "exact"}
         relay_state = util.rndstr()
@@ -255,7 +243,7 @@ class StepUp(ResponseMicroService):
         logger.debug(
             {
                 "msg": "Requiring StepUp Authentication",
-                "nameid_value": nameid_value,
+                "nameid_value": linked_account.identifier,
                 "authn_context_class_ref": params.loa_settings.required,
             }
         )
@@ -264,12 +252,12 @@ class StepUp(ResponseMicroService):
             binding, _destination = self.sp.pick_binding(
                 service="single_sign_on_service",
                 descr_type="idpsso",
-                entity_id=stepup_provider,
+                entity_id=linked_account.entity_id,
             )
         except Exception as e:
             error_context = {
                 "message": "Failed to pick binding for the AuthnRequest",
-                "entity_id": stepup_provider,
+                "entity_id": linked_account.entity_id,
             }
             raise StepUpError(error_context) from e
 
@@ -277,7 +265,7 @@ class StepUp(ResponseMicroService):
             req_id: str
             ht_args: Mapping[str, Any]
             req_id, ht_args = self.sp.prepare_for_authenticate(
-                entityid=stepup_provider,
+                entityid=linked_account.entity_id,
                 binding=binding,
                 response_binding=binding,
                 relay_state=relay_state,
@@ -287,10 +275,10 @@ class StepUp(ResponseMicroService):
         except Exception as e:
             _error_context2: Mapping[str, Any] = {
                 "message": "Failed to construct the AuthnRequest",
-                "entityid": stepup_provider,
+                "entityid": linked_account.entity_id,
                 "binding": binding,
                 "response_binding": binding,
-                "nameid_value": nameid_value,
+                "nameid_value": linked_account.identifier,
                 "authn_context_class_ref": params.loa_settings.required,
             }
             raise StepUpError(_error_context2) from e
@@ -318,13 +306,20 @@ class StepUp(ResponseMicroService):
             internal_data_dict = context.state["internal_data"]
         data = InternalData.from_dict(internal_data_dict)
 
+        linked_accounts = fetch_mfa_stepup_accounts(data)
+        if not linked_accounts:
+            logger.info("No linked accounts for this user")
+            raise StepUpError("No linked accounts for this user")
+
+        linked_account = linked_accounts[0]
+
         params = self._get_params(context, data)
 
-        mfa_stepup_accounts = getattr(data, "mfa_stepup_accounts", [])
-        linked_account: Mapping[str, str] = next(iter(mfa_stepup_accounts), {})
-        stepup_provider = linked_account["entity_id"]
-        user_identifier = linked_account["identifier"]
-        user_identifier_attribute = linked_account["attribute"]
+        # mfa_stepup_accounts = getattr(data, "mfa_stepup_accounts", [])
+        # linked_account: Mapping[str, str] = next(iter(mfa_stepup_accounts), {})
+        # stepup_provider = linked_account["entity_id"]
+        # user_identifier = linked_account["identifier"]
+        # user_identifier_attribute = linked_account["attribute"]
 
         try:
             _response: str = context.request["SAMLResponse"]
@@ -358,13 +353,13 @@ class StepUp(ResponseMicroService):
         stepup_issuer = (
             authn_response.response.issuer.text if authn_response.response and authn_response.response.issuer else None
         )
-        is_stepup_provider = bool(stepup_issuer == stepup_provider)
+        is_stepup_provider = bool(stepup_issuer == linked_account.entity_id)
 
         # Verify the subject identified in the AuthnRequest
         # is returned in the expected attribute of the AuthnResponse
         is_subject_identified = False
-        stepup_user_identifier = authn_response.ava.get(user_identifier_attribute, []) if authn_response.ava else []
-        is_subject_identified = user_identifier in stepup_user_identifier
+        stepup_user_identifier = authn_response.ava.get(linked_account.attribute, []) if authn_response.ava else []
+        is_subject_identified = linked_account.identifier in stepup_user_identifier
 
         assert params.loa_settings  # please mypy
         stepup_loa = next(iter(authn_response.authn_info()), [None])[0]
@@ -377,7 +372,7 @@ class StepUp(ResponseMicroService):
             {
                 "msg": "Received StepUp Response",
                 "params": params,
-                "stepup_provider": stepup_provider,
+                "linked_account": linked_account,
                 "stepup_loa": stepup_loa,
                 "is_stepup_provider": is_stepup_provider,
                 "is_stepup_loa_exact": is_stepup_loa_exact,
@@ -389,7 +384,7 @@ class StepUp(ResponseMicroService):
 
         logger.debug(
             {
-                "user_identifier": user_identifier,
+                "user_identifier": linked_account.identifier,
                 "stepup_user_identifier": stepup_user_identifier,
             }
         )
@@ -397,13 +392,8 @@ class StepUp(ResponseMicroService):
         if not is_stepup_successful:
             error_context = {
                 "message": "StepUp authentication failed",
-                "issuer": params.issuer,
-                "requester": params.requester,
-                "stepup_provider": stepup_provider,
-                "issuer_loa": params.issuer_loa,
-                "requester_loas": params.requester_loas,
-                "accepted_loas": params.loa_settings.accepted,
-                "required_loa": params.loa_settings.required,
+                "params": params,
+                "linked_account": linked_account,
                 "stepup_loa": stepup_loa,
                 "is_stepup_provider": is_stepup_provider,
                 "is_stepup_loa_exact": is_stepup_loa_exact,
@@ -413,13 +403,11 @@ class StepUp(ResponseMicroService):
             }
             raise StepUpError(error_context)
 
-        # the internal attribute that holds the assurances
-        # XXX TODO make this configurable
-        int_assurance_attribute_name = "edupersonassurance"
         # the SAML attribute that holds the assurances for this step-up provider/issuer
-        stepup_assurance_attribute_name = linked_account.get("assurance", "eduPersonAssurance")
-        # get the new assurances and add them
-        stepup_assurances = authn_response.ava.get(stepup_assurance_attribute_name, []) if authn_response.ava else []
+        stepup_assurances = authn_response.ava.get(linked_account.assurance, []) if authn_response.ava else []
+        # the internal attribute that holds the assurances
+        int_assurance_attribute_name = get_internal_attribute_name(self.converter, linked_account.assurance)
+        # add the new assurances
         data.attributes[int_assurance_attribute_name] = [
             *data.attributes.get(int_assurance_attribute_name, []),
             *stepup_assurances,

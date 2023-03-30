@@ -2,6 +2,12 @@ import logging
 import pprint
 from dataclasses import dataclass, field
 from typing import Any, Mapping, Optional
+from eduid.satosa.scimapi.common import (
+    MfaStepupAccount,
+    get_internal_attribute_name,
+    get_metadata,
+    store_mfa_stepup_accounts,
+)
 
 import satosa.context
 import satosa.internal
@@ -29,7 +35,7 @@ class ScimAttributes(ResponseMicroService):
     Add attributes from the scim db to the responses.
     """
 
-    def __init__(self, config: Mapping[str, Any], internal_attributes: dict[str, Any], *args, **kwargs):
+    def __init__(self, config: Mapping[str, Any], internal_attributes: dict[str, Any], *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
         self.config = Config(**config)
         # Setup databases
@@ -39,8 +45,7 @@ class ScimAttributes(ResponseMicroService):
         self.converter = AttributeMapper(internal_attributes)
         # Get the internal attribute name for the eduPersonPrincipalName that will be
         # used to find users in the SCIM database
-        _int = self.converter.to_internal("saml", {"eduPersonPrincipalName": "something"})
-        self.ext_id_attr = list(_int.keys())[0]
+        self.ext_id_attr = get_internal_attribute_name(self.converter, "eduPersonPrincipalName")
         logger.debug(f"SCIM externalId internal attribute name: {self.ext_id_attr}")
 
     def get_userdb_for_data_owner(self, data_owner: str) -> ScimApiUserDB:
@@ -87,28 +92,28 @@ class ScimAttributes(ResponseMicroService):
                         logger.debug(f"Changing attribute {_name} from {repr(_old)} to {repr(_new)}")
                         data.attributes[_name] = _new
             # Look for a linked account suitable for use for MFA stepup (in the stepup plugin that runs after this one)
-            _stepup_accounts = []
+            _stepup_accounts: list[MfaStepupAccount] = []
             for acc in user.linked_accounts:
                 logger.debug(f"Linked account: {acc}")
                 _entity_id = self.config.mfa_stepup_issuer_to_entity_id.get(acc.issuer)
                 if _entity_id and acc.parameters.get("mfa_stepup") is True:
                     _stepup_accounts += [
-                        {"entity_id": _entity_id, "identifier": acc.value, "attribute": "eduPersonPrincipalName"}
+                        MfaStepupAccount(
+                            entity_id=_entity_id,
+                            identifier=acc.value,
+                        )
                     ]
-            data.mfa_stepup_accounts = _stepup_accounts
-            logger.debug(f"MFA stepup accounts: {data.mfa_stepup_accounts}")
+            store_mfa_stepup_accounts(data, _stepup_accounts)
+            logger.debug(f"MFA stepup accounts: {_stepup_accounts}")
 
         return super().process(context, data)
 
     def _get_scopes_for_idp(self, context: satosa.context.Context, entity_id: str) -> set[str]:
         res = set()
         logger.debug(f"Looking for metadata scope for entityId {entity_id}")
-        for _md_name, _metadata in context.internal_data[context.KEY_METADATA_STORE].metadata.items():
-            if not isinstance(_metadata, MetaData):
-                logger.debug(f"Element {_metadata} was not MetaData")
-                continue
+        for _metadata in get_metadata(context):
             if entity_id not in _metadata:
-                logger.debug(f"entityId {entity_id} not present in this metadata ({_md_name})")
+                logger.debug(f"entityId {entity_id} not present in this metadata")
                 continue
             idpsso = _metadata[entity_id].get("idpsso_descriptor", {})
 
