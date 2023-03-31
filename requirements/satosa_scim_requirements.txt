@@ -1160,7 +1160,7 @@ qrcode==7.4.2 \
     #   -c main.txt
     #   -r main.in
     #   pyhanko
-redis==4.5.1 \
+redis==4.5.4 \
     --hash=sha256:1eec3741cda408d3a5f84b78d089c8b8d895f21b3b050988351e925faf202864 \
     --hash=sha256:5deb072d26e67d2be1712603bfb7947ec3431fb0eec9c578994052e33035af6d
     # via
