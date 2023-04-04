@@ -388,7 +388,7 @@ class SvipeIDForeignProofing(ForeignIdProofingLogElement):
     # transaction id
     transaction_id: str
     # document administrative number
-    administrative_number: str
+    administrative_number: Optional[str]
     # document type (standardized english)
     document_type: str
     # document number
