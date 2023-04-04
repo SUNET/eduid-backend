@@ -175,6 +175,8 @@ class SvipeIDProofingFunctions(ProofingFunctions[SvipeDocumentUserInfo]):
 
     def _nin_identity_proofing_element(self, user: User) -> ProofingElementResult:
         _nin = self.session_info.document_administrative_number
+        if not _nin:
+            return ProofingElementResult(error=CommonMsg.nin_invalid)
 
         try:
             navet_proofing_data = self._get_navet_data(nin=_nin)
