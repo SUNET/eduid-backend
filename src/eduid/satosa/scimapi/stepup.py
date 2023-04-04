@@ -7,7 +7,7 @@ from os import link
 from typing import Any, Mapping, NewType, Optional
 from urllib.parse import urlparse
 from pydantic import BaseModel, ValidationError, validator
-from eduid.satosa.scimapi.common import fetch_mfa_stepup_accounts, get_internal_attribute_name
+from eduid.satosa.scimapi.common import fetch_mfa_stepup_accounts, get_internal_attribute_name, get_metadata
 
 import satosa.util as util
 import satosa.context
@@ -36,31 +36,26 @@ logger = logging.getLogger(__name__)
 KEY_REQ_AUTHNCLASSREF = "requester-authn-class-ref"
 
 
-def is_loa_requirements_satisfied(accepted_loas: list[str], loa: Optional[str]) -> bool:
-    satisfied = loa in accepted_loas
-    return satisfied
-
-
 class StepUpError(SATOSAError):
     """Generic error for this plugin."""
 
 
 class LoaSettings(BaseModel):
-    required: str  # LoA that the StepUp-provider understands
-    accepted: list[str]  # (aliased) LoAs that satisfy the requester
-
-    @validator("required")
-    def required_loa_must_be_in_accepted(cls, v: str, values: Mapping[str, Any]) -> str:
-        if v not in values["accepted"]:
-            raise ValueError("required LoA must be in accepted LoAs")
-        return v
+    requested: list[str]  # LoA that the StepUp-provider understands
+    extra_accepted: list[str]  # (aliased) LoAs that satisfy the requester
 
 
 EntityId = NewType("EntityId", str)
+EntityCategory = NewType("EntityCategory", str)
+
+
+class MfaConfig(BaseModel):
+    by_entity_id: Mapping[EntityId, LoaSettings]
+    by_entity_category: Mapping[EntityCategory, LoaSettings]
 
 
 class PluginConfig(BaseModel):
-    mfa: Mapping[EntityId, LoaSettings]
+    mfa: MfaConfig
     sp_config: Mapping[str, Any]
     sign_alg: str
     digest_alg: str
@@ -71,7 +66,7 @@ class StepupParams(BaseModel):
     issuer_loa: Optional[str]  # LoA that the IdP released - as requested through the acr_mapping configuration
     requester: EntityId
     requester_loas: list[str]  # (original) LoAs required by the requester
-    loa_settings: Optional[LoaSettings]  # LoA settings for the requester
+    loa_settings: Optional[LoaSettings]  # LoA settings for the linked accounts IdP
 
 
 class AuthnContext(RequestMicroService):
@@ -88,6 +83,13 @@ class AuthnContext(RequestMicroService):
         return super().process(context, data)
 
 
+def is_loa_requirements_satisfied(settings: Optional[LoaSettings], loa: Optional[str]) -> bool:
+    if not settings:
+        return False
+    satisfied = loa in settings.requested or loa in settings.extra_accepted
+    return satisfied
+
+
 class StepUp(ResponseMicroService):
     """
     A micro-SP just to handle the communication towards the StepUp Service for SFO.
@@ -102,18 +104,30 @@ class StepUp(ResponseMicroService):
       name: stepup
       config:
         # a mapping between SP entity-ids and LoA settings
-        # the required LoA will be requested from the StepUp service
-        # the accepted LoAs are all the LoAs that satisfy the SP requirements
+        # the requested LoA will be requested from the StepUp service
+        # the requested, and any extra_accepted LoAs are all the LoAs that satisfy the SP requirements
+        # the returned LoA is the LoA that the SP will receive from the proxy
         mfa:
-          some-service-entityid:
-            required: some-loa-2
-            accepted:
-              - some-loa-2
-              - some-loa-3
-          https://sp.satosa.docker/sp.xml:
-            required: urn:oasis:names:tc:SAML:2.0:ac:classes:mfa
-            accepted:
-              - urn:oasis:names:tc:SAML:2.0:ac:classes:mfa
+          by_entity_id:
+            https://login.idp.eduid.se/idp.xml:
+              requested:
+                - https://refeds.org/profile/mfa
+              returned: https://refeds.org/profile/mfa
+          by_entity_category:
+              https://fidus.skolverket.se/authentication/e-leg:
+                requested:
+                  - http://id.elegnamnden.se/loa/1.0/loa2
+                  - http://id.elegnamnden.se/loa/1.0/loa3
+                  - http://id.elegnamnden.se/loa/1.0/loa4
+                  - http://id.swedenconnect.se/loa/1.0/uncertified-loa2
+                  - http://id.swedenconnect.se/loa/1.0/uncertified-loa3
+                  - http://id.swedenconnect.se/loa/1.0/loa2-nonresident
+                  - http://id.swedenconnect.se/loa/1.0/loa3-nonresident
+                  - http://id.swedenconnect.se/loa/1.0/loa4-nonresident
+                  - http://id.elegnamnden.se/loa/1.0/nf-low
+                  - http://id.elegnamnden.se/loa/1.0/nf-sub
+                  - http://id.elegnamnden.se/loa/1.0/nf-high
+                returned: https://refeds.org/profile/mfa
 
         sp_config:
           organization:
@@ -181,8 +195,22 @@ class StepUp(ResponseMicroService):
 
     def _get_params(self, context: satosa.context.Context, data: satosa.internal.InternalData) -> StepupParams:
         _loa_settings: Optional[LoaSettings] = None
-        if data.requester is not None and data.requester in self.mfa:
-            _loa_settings = self.mfa[EntityId(data.requester)]
+        if data.requester is not None and data.requester in self.mfa.by_entity_id:
+            logger.debug(f"Loaded LoA settings based on requester entity id {data.requester}")
+            _loa_settings = self.mfa.by_entity_id[EntityId(data.requester)]
+        if not _loa_settings:
+            for _metadata in get_metadata(context):
+                _ecs: list[EntityCategory] = _metadata.entity_categories(data.requester)
+                if _ecs:
+                    for _ec in _ecs:
+                        if _ec in self.mfa.by_entity_category:
+                            logger.debug(f"Loaded LoA settings based on requester entity category {_ec}")
+                            _loa_settings = self.mfa.by_entity_category[_ec]
+                            break
+        if not _loa_settings:
+            # TODO: If MFA was requested, but the linked accounts issuer was not found in the config, we should
+            #       fall back to eduID.
+            pass
         return StepupParams(
             issuer=data.auth_info.issuer,
             requester=data.requester,
@@ -220,15 +248,13 @@ class StepUp(ResponseMicroService):
             return super().process(context, data)
 
         # requester is not configured
-        is_requester_configured = bool(params.loa_settings and params.loa_settings.required)
+        is_requester_configured = bool(params.loa_settings and params.loa_settings.requested)
         if not is_requester_configured:
             logger.info("Requester is not configured")
             return super().process(context, data)
 
         # no need to step-up - required LoA is already met
-        is_mfa_satisfied = params.loa_settings and is_loa_requirements_satisfied(
-            params.loa_settings.accepted, params.issuer_loa
-        )
+        is_mfa_satisfied = is_loa_requirements_satisfied(params.loa_settings, params.issuer_loa)
         if is_mfa_satisfied:
             logger.info("No need to step-up - required LoA is already met")
             return super().process(context, data)
@@ -237,14 +263,14 @@ class StepUp(ResponseMicroService):
 
         name_id = NameID(format=NAMEID_FORMAT_UNSPECIFIED, text=linked_account.identifier)
         subject = Subject(name_id=name_id)
-        authn_context = {"authn_context_class_ref": [params.loa_settings.required], "comparison": "exact"}
+        authn_context = {"authn_context_class_ref": params.loa_settings.requested, "comparison": "exact"}
         relay_state = util.rndstr()
 
         logger.debug(
             {
                 "msg": "Requiring StepUp Authentication",
                 "nameid_value": linked_account.identifier,
-                "authn_context_class_ref": params.loa_settings.required,
+                "authn_context_class_ref": params.loa_settings.requested,
             }
         )
 
@@ -279,7 +305,7 @@ class StepUp(ResponseMicroService):
                 "binding": binding,
                 "response_binding": binding,
                 "nameid_value": linked_account.identifier,
-                "authn_context_class_ref": params.loa_settings.required,
+                "authn_context_class_ref": params.loa_settings.requested,
             }
             raise StepUpError(_error_context2) from e
 
@@ -301,6 +327,9 @@ class StepUp(ResponseMicroService):
         return make_saml_response(binding, ht_args)
 
     def _handle_authn_response(self, context: satosa.context.Context, binding: SAMLBinding) -> CallbackReturnType:
+        """
+        This is where the user returns after completing a login at the stepup provider.
+        """
         internal_data_dict: dict[str, Any] = {}
         if "internal_data" in context.state:
             internal_data_dict = context.state["internal_data"]
@@ -314,12 +343,6 @@ class StepUp(ResponseMicroService):
         linked_account = linked_accounts[0]
 
         params = self._get_params(context, data)
-
-        # mfa_stepup_accounts = getattr(data, "mfa_stepup_accounts", [])
-        # linked_account: Mapping[str, str] = next(iter(mfa_stepup_accounts), {})
-        # stepup_provider = linked_account["entity_id"]
-        # user_identifier = linked_account["identifier"]
-        # user_identifier_attribute = linked_account["attribute"]
 
         try:
             _response: str = context.request["SAMLResponse"]
@@ -340,7 +363,7 @@ class StepUp(ResponseMicroService):
         if not authn_response:
             raise StepUpError("Failed to parse SAML Response")
 
-        if self.sp.config.getattr("allow_unsolicited", "sp") is False:
+        if not self.sp.config.getattr("allow_unsolicited", "sp") is True:
             req_id = authn_response.in_response_to
             if not req_id or req_id not in self.outstanding_queries:
                 _error_context = {
@@ -363,8 +386,8 @@ class StepUp(ResponseMicroService):
 
         assert params.loa_settings  # please mypy
         stepup_loa = next(iter(authn_response.authn_info()), [None])[0]
-        is_stepup_loa_exact = bool(stepup_loa and stepup_loa == params.loa_settings.required)
-        is_mfa_satisfied = is_loa_requirements_satisfied(params.loa_settings.accepted, stepup_loa)
+        is_stepup_loa_exact = bool(stepup_loa and stepup_loa in params.loa_settings.requested)
+        is_mfa_satisfied = is_loa_requirements_satisfied(params.loa_settings, stepup_loa)
 
         is_stepup_successful = is_stepup_provider and is_subject_identified and is_stepup_loa_exact and is_mfa_satisfied
 
@@ -435,7 +458,7 @@ class StepUp(ResponseMicroService):
             url_map.append(
                 (
                     f"^{parsed_endp.path[1:]}$",
-                    functools.partial(self._handle_authn_response, binding=binding),
+                    functools.partial(self._handle_authn_response, binding=SAMLBinding(binding)),
                 )
             )
 
