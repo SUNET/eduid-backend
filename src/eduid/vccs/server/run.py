@@ -1,4 +1,5 @@
 from asyncio import Lock
+import sys
 from binascii import unhexlify
 from typing import Any, Mapping, Optional
 
@@ -21,6 +22,7 @@ from eduid.vccs.server.log import InterceptHandler, init_logging
 
 class VCCS_API(FastAPI):
     def __init__(self, test_config: Optional[Mapping[str, Any]] = None):
+        print("vccs_api is starting", file=sys.stderr)
         super().__init__()
 
         self.state.config = init_config(ns="api", app_name="vccs", test_config=test_config)
