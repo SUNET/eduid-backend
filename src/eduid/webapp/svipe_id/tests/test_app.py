@@ -142,7 +142,7 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
     def get_mock_userinfo(
         issuing_country: Country,
         nationality: Country,
-        administrative_number: str = "123456789",
+        administrative_number: Optional[str] = "123456789",
         birthdate: date = date(year=1901, month=2, day=3),
         svipe_id: str = "unique_svipe_id",
         transaction_id: str = "unique_transaction_id",
@@ -361,6 +361,45 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
         )
 
         user = self.app.central_userdb.get_user_by_eppn(eppn)
+        self._verify_user_parameters(
+            eppn,
+            identity_verified=True,
+            num_proofings=1,
+            num_mfa_tokens=0,
+            locked_identity=user.identities.svipe,
+            proofing_method=IdentityProofingMethod.SVIPE_ID,
+            proofing_version=self.app.conf.svipe_id_proofing_version,
+        )
+
+    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+    def test_verify_foreign_identity_no_admin_number(self, mock_request_user_sync: MagicMock):
+        """Not all countries have something like a Swedish NIN, so administrative_number may be None"""
+        mock_request_user_sync.side_effect = self.request_user_sync
+
+        eppn = self.unverified_test_user.eppn
+        country = countries.get("Denmark")
+
+        with self.app.test_request_context():
+            endpoint = url_for("svipe_id.verify_identity")
+
+        start_auth_response = self._start_auth(endpoint=endpoint, data=self.default_frontend_data, eppn=eppn)
+        state, nonce = self._get_state_and_nonce(self.get_response_payload(start_auth_response)["location"])
+        userinfo = self.get_mock_userinfo(issuing_country=country, nationality=country, administrative_number=None)
+        response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
+        assert response.status_code == 302
+        self._verify_status(
+            finish_url=response.headers["Location"],
+            frontend_action=self.default_frontend_data["frontend_action"],
+            frontend_state=self.default_frontend_data["frontend_state"],
+            method=self.default_frontend_data["method"],
+            expect_msg=SvipeIDMsg.identity_verify_success,
+        )
+
+        user = self.app.central_userdb.get_user_by_eppn(eppn)
+
+        assert user.identities.svipe is not None
+        assert user.identities.svipe.administrative_number is None
+
         self._verify_user_parameters(
             eppn,
             identity_verified=True,

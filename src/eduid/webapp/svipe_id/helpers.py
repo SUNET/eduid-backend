@@ -70,7 +70,7 @@ class UserInfoBase(BaseModel):
 
 class SvipeDocumentUserInfo(UserInfoBase):
     birthdate: date
-    document_administrative_number: str = Field(alias="com.svipe:document_administrative_number")
+    document_administrative_number: Optional[str] = Field(alias="com.svipe:document_administrative_number")
     document_expiry_date: date = Field(alias="com.svipe:document_expiry_date")
     # Issuing Country: SWE
     document_issuing_country: str = Field(alias="com.svipe:document_issuing_country")

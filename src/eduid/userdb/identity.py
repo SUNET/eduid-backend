@@ -154,7 +154,7 @@ class SvipeIdentity(ForeignIdentityElement):
     #  A globally unique identifier issued by Svipe to the user. Under normal conditions, a given person will retain
     #  the same Svipe ID even after renewing the underlying identity document.
     svipe_id: str
-    administrative_number: str
+    administrative_number: Optional[str]
 
     @property
     def unique_key_name(self) -> str:

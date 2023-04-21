@@ -175,6 +175,8 @@ class SvipeIDProofingFunctions(ProofingFunctions[SvipeDocumentUserInfo]):
 
     def _nin_identity_proofing_element(self, user: User) -> ProofingElementResult:
         _nin = self.session_info.document_administrative_number
+        if not _nin:
+            return ProofingElementResult(error=CommonMsg.nin_invalid)
 
         try:
             navet_proofing_data = self._get_navet_data(nin=_nin)
@@ -201,6 +203,8 @@ class SvipeIDProofingFunctions(ProofingFunctions[SvipeDocumentUserInfo]):
         return ProofingElementResult(data=data)
 
     def _foreign_identity_proofing_element(self, user: User) -> ProofingElementResult:
+        # The top-level LogElement class won't allow empty strings (and not None either)
+        _non_empty_admin_number = self.session_info.document_administrative_number or "svipe_no_admin_number_provided"
         data = SvipeIDForeignProofing(
             created_by=current_app.conf.app_name,
             eppn=user.eppn,
@@ -213,7 +217,7 @@ class SvipeIDProofingFunctions(ProofingFunctions[SvipeDocumentUserInfo]):
             surname=self.session_info.family_name,
             date_of_birth=self.session_info.birthdate.isoformat(),
             country_code=self.session_info.document_nationality,
-            administrative_number=self.session_info.document_administrative_number,
+            administrative_number=_non_empty_admin_number,
             issuing_country=self.session_info.document_issuing_country,
         )
         return ProofingElementResult(data=data)
