@@ -7,6 +7,7 @@ import satosa.context
 import satosa.internal
 from saml2.mdstore import MetaData
 from satosa.attribute_mapping import AttributeMapper
+from satosa.exception import SATOSAAuthenticationError
 from satosa.micro_services.base import ResponseMicroService
 from satosa.routing import STATE_KEY as ROUTER_STATE_KEY
 
@@ -97,6 +98,8 @@ class ScimAttributes(ResponseMicroService):
                     ]
             data.mfa_stepup_accounts = _stepup_accounts
             logger.debug(f"MFA stepup accounts: {data.mfa_stepup_accounts}")
+        else:
+            raise SATOSAAuthenticationError(context.state, "User not found in database")
 
         return super().process(context, data)
 
