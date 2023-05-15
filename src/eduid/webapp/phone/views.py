@@ -334,18 +334,14 @@ def captcha_response(recaptcha_response: Optional[str] = None, internal_response
             captcha_verified = False
 
     # common path with no backdoor
-    # if recaptcha_response and not captcha_verified:
-    #     remote_ip = request.remote_addr
-    #     if not remote_ip:
-    #         raise RuntimeError("No remote IP address found")
-    #     if current_app.conf.recaptcha_public_key and current_app.conf.recaptcha_private_key:
-    #         captcha_verified = verify_recaptcha(current_app.conf.recaptcha_private_key, recaptcha_response, remote_ip)
-    #     else:
-    #         current_app.logger.info("Missing configuration for reCaptcha!")
-    # elif internal_response and not captcha_verified:
-    #     if session.signup.captcha.internal_answer is None:
-    #         return error_response(message=SignupMsg.captcha_not_requested)
-    #     captcha_verified = internal_response == session.signup.captcha.internal_answer
+    if captcha_verified:
+        remote_ip = request.remote_addr
+        if not remote_ip:
+            raise RuntimeError("No remote IP address found")
+    elif internal_response and not captcha_verified:
+        if session.phone.captcha.internal_answer is None:
+            return error_response(message=PhoneMsg.captcha_not_requested)
+        captcha_verified = internal_response == session.phone.captcha.internal_answer
 
     if not captcha_verified:
         current_app.logger.info("Captcha failed")
