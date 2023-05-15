@@ -29,6 +29,7 @@ from eduid.webapp.common.session.namespaces import (
     ResetPasswordNS,
     SecurityNS,
     Signup,
+    Phone,
     SvipeIDNamespace,
     TimestampedNS,
 )
@@ -50,6 +51,7 @@ class EduidNamespaces(BaseModel):
     common: Optional[Common] = None
     mfa_action: Optional[MfaAction] = None
     signup: Optional[Signup] = None
+    phone: Optional[Phone] = None
     reset_password: Optional[ResetPasswordNS] = None
     security: Optional[SecurityNS] = None
     idp: Optional[IdP_Namespace] = None
@@ -193,6 +195,12 @@ class EduidSession(SessionMixin, MutableMapping[str, Any]):
     def signup(self):
         self._namespaces.signup = None
         del self["signup"]
+
+    @property
+    def phone(self) -> Phone:
+        if not self._namespaces.phone:
+            self._namespaces.phone = Phone.from_dict(self._session.get("phone", {}))
+        return self._namespaces.phone
 
     @property
     def reset_password(self) -> ResetPasswordNS:

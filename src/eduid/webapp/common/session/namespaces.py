@@ -168,6 +168,9 @@ class Signup(TimestampedNS):
     captcha: Captcha = Field(default_factory=Captcha)
     credentials: Credentials = Field(default_factory=Credentials)
 
+class Phone(TimestampedNS):
+    captcha: Captcha = Field(default_factory=Captcha)
+
 
 RequestRef = NewType("RequestRef", str)
 

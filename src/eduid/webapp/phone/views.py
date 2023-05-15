@@ -30,6 +30,9 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
+from base64 import b64encode
+from io import BytesIO
+from typing import Optional
 
 from flask import Blueprint, abort, request
 
@@ -42,10 +45,20 @@ from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, requi
 from eduid.webapp.common.api.helpers import check_magic_cookie
 from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response, success_response
 from eduid.webapp.common.api.utils import save_and_sync_user
+from eduid.webapp.common.session import session
 from eduid.webapp.phone.app import current_phone_app as current_app
 from eduid.webapp.phone.helpers import PhoneMsg
-from eduid.webapp.phone.schemas import PhoneResponseSchema, PhoneSchema, SimplePhoneSchema, VerificationCodeSchema
+from eduid.webapp.phone.schemas import (
+    CaptchaCompleteRequest,
+    CaptchaResponse,
+    PhoneResponseSchema,
+    PhoneSchema,
+    SimplePhoneSchema,
+    VerificationCodeSchema,
+)
 from eduid.webapp.phone.verifications import SMSThrottleException, send_verification_code, verify_phone_number
+from eduid.webapp.common.api.schemas.csrf import EmptyRequest
+from eduid.webapp.common.api.utils import make_short_code
 
 phone_views = Blueprint("phone", __name__, url_prefix="", template_folder="templates")
 
@@ -149,9 +162,15 @@ def verify(user: User, code: str, number: str) -> FluxData:
 
     Returns a listing of  all phones for the logged in user.
     """
+
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
     current_app.logger.info("Trying to save phone number as verified")
     current_app.logger.debug(f"Phone number: {number}")
+
+    if not session.phone.captcha.completed:
+        # don't allow verification without captcha completion
+        # this is so that a malicious user can't send a lot of SMS.
+        return error_response(message=PhoneMsg.captcha_not_completed)
 
     db = current_app.proofing_statedb
     state = db.get_state_by_eppn_and_mobile(proofing_user.eppn, number)
@@ -269,3 +288,70 @@ def get_code() -> str:
         current_app.logger.exception("Someone tried to use the backdoor to get the verification code for a phone")
 
     abort(400)
+
+
+@phone_views.route("/get-captcha", methods=["POST"])
+@UnmarshalWith(EmptyRequest)
+@MarshalWith(CaptchaResponse)
+def captcha_request() -> FluxData:
+    if session.phone.captcha.completed:
+        return error_response(message=PhoneMsg.captcha_already_completed)
+
+    session.phone.captcha.internal_answer = make_short_code(digits=current_app.conf.captcha_code_length)
+    session.phone.captcha.bad_attempts = 0
+    data = current_app.captcha_image_generator.generate_image(chars=session.signup.captcha.internal_answer)
+    with BytesIO() as f:
+        data.save(fp=f, format="PNG", optimize=True)
+        return success_response(
+            payload={"captcha_img": f"data:image/png;base64,{b64encode(f.getvalue()).decode('utf-8')}"},
+        )
+
+
+@phone_views.route("/captcha", methods=["POST"])
+@UnmarshalWith(CaptchaCompleteRequest)
+@MarshalWith(PhoneResponseSchema)
+def captcha_response(recaptcha_response: Optional[str] = None, internal_response: Optional[str] = None) -> FluxData:
+    """
+    Check for humanness.
+    """
+    current_app.logger.info("Checking captcha")
+
+    captcha_verified = False
+
+    if session.phone.captcha.bad_attempts >= current_app.conf.captcha_max_bad_attempts:
+        current_app.logger.info("Too many incorrect captcha attempts")
+        # bad attempts is reset when a new captcha is generated
+        return error_response(message=PhoneMsg.captcha_failed)
+
+    # add a backdoor to bypass recaptcha checks for humanness,
+    # to be used in testing environments for automated integration tests.
+    if check_magic_cookie(current_app.conf):
+        current_app.logger.info("Using BACKDOOR to verify captcha during phone verification!")
+        captcha_verified = True
+        if internal_response is not None and internal_response != current_app.conf.captcha_backdoor_code:
+            # used for testing failed captcha attempts
+            current_app.logger.info("Incorrect captcha backdoor code")
+            captcha_verified = False
+
+    # common path with no backdoor
+    # if recaptcha_response and not captcha_verified:
+    #     remote_ip = request.remote_addr
+    #     if not remote_ip:
+    #         raise RuntimeError("No remote IP address found")
+    #     if current_app.conf.recaptcha_public_key and current_app.conf.recaptcha_private_key:
+    #         captcha_verified = verify_recaptcha(current_app.conf.recaptcha_private_key, recaptcha_response, remote_ip)
+    #     else:
+    #         current_app.logger.info("Missing configuration for reCaptcha!")
+    # elif internal_response and not captcha_verified:
+    #     if session.signup.captcha.internal_answer is None:
+    #         return error_response(message=SignupMsg.captcha_not_requested)
+    #     captcha_verified = internal_response == session.signup.captcha.internal_answer
+
+    if not captcha_verified:
+        current_app.logger.info("Captcha failed")
+        session.phone.captcha.bad_attempts += 1
+        return error_response(message=PhoneMsg.captcha_failed)
+
+    current_app.logger.info("Captcha completed")
+    session.phone.captcha.completed = True
+    return success_response(payload={"state": session.phone.to_dict()})
