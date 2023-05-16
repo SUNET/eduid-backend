@@ -167,10 +167,10 @@ def verify(user: User, code: str, number: str) -> FluxData:
     current_app.logger.info("Trying to save phone number as verified")
     current_app.logger.debug(f"Phone number: {number}")
 
-    if not session.phone.captcha.completed:
-        # don't allow verification without captcha completion
-        # this is so that a malicious user can't send a lot of SMS.
+    if session.phone.captcha.completed == False:
+        current_app.logger.info("Captcha not completed")
         return error_response(message=PhoneMsg.captcha_not_completed)
+    session.phone.captcha.completed = False
 
     db = current_app.proofing_statedb
     state = db.get_state_by_eppn_and_mobile(proofing_user.eppn, number)
@@ -299,7 +299,7 @@ def captcha_request() -> FluxData:
 
     session.phone.captcha.internal_answer = make_short_code(digits=current_app.conf.captcha_code_length)
     session.phone.captcha.bad_attempts = 0
-    data = current_app.captcha_image_generator.generate_image(chars=session.signup.captcha.internal_answer)
+    data = current_app.captcha_image_generator.generate_image(chars=session.phone.captcha.internal_answer)
     with BytesIO() as f:
         data.save(fp=f, format="PNG", optimize=True)
         return success_response(
@@ -310,7 +310,7 @@ def captcha_request() -> FluxData:
 @phone_views.route("/captcha", methods=["POST"])
 @UnmarshalWith(CaptchaCompleteRequest)
 @MarshalWith(PhoneResponseSchema)
-def captcha_response(recaptcha_response: Optional[str] = None, internal_response: Optional[str] = None) -> FluxData:
+def captcha_response(internal_response: Optional[str] = None) -> FluxData:
     """
     Check for humanness.
     """
