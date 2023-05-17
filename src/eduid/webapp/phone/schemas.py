@@ -66,6 +66,7 @@ class PhoneListPayload(EduidSchema, CSRFRequestMixin, CSRFResponseMixin):
 class PhoneResponseSchema(FluxStandardAction):
 
     payload = fields.Nested(PhoneListPayload)
+
     class Captcha(EduidSchema):
         completed = fields.Boolean(required=True)
 
@@ -73,6 +74,7 @@ class PhoneResponseSchema(FluxStandardAction):
 class SimplePhoneSchema(EduidSchema, CSRFRequestMixin):
 
     number = fields.String(required=True)
+
 
 class CaptchaResponse(FluxStandardAction):
     class CaptchaResponseSchema(EduidSchema, CSRFResponseMixin):
@@ -83,5 +85,4 @@ class CaptchaResponse(FluxStandardAction):
 
 
 class CaptchaCompleteRequest(EduidSchema, CSRFRequestMixin):
-    recaptcha_response = fields.String(required=False)
     internal_response = fields.String(required=False)
