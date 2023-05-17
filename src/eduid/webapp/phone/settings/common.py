@@ -31,6 +31,10 @@
 #
 from eduid.common.config.base import AmConfigMixin, EduIDBaseAppConfig, MagicCookieMixin, MsgConfigMixin
 
+from pathlib import Path
+import pkg_resources
+from pydantic import Field
+
 
 class PhoneConfig(EduIDBaseAppConfig, MagicCookieMixin, AmConfigMixin, MsgConfigMixin):
     """
@@ -44,3 +48,17 @@ class PhoneConfig(EduIDBaseAppConfig, MagicCookieMixin, AmConfigMixin, MsgConfig
     throttle_resend_seconds: int = 300
     # default country code
     default_country_code: str = "46"
+    # captcha
+    captcha_code_length: int = 6
+    captcha_width: int = 160
+    captcha_height: int = 60
+    captcha_fonts: list[Path] = Field(
+        default=[
+            pkg_resources.resource_filename("eduid", "static/fonts/ProximaNova-Regular.ttf"),
+            pkg_resources.resource_filename("eduid", "static/fonts/ProximaNova-Light.ttf"),
+            pkg_resources.resource_filename("eduid", "static/fonts/ProximaNova-Bold.ttf"),
+        ]
+    )
+    captcha_font_size: list[int] = [42, 50, 56]
+    captcha_max_bad_attempts: int = 100
+    captcha_backdoor_code: str = "123456"
