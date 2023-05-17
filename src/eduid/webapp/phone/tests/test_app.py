@@ -458,6 +458,7 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
         with self.app.test_request_context():
             with client.session_transaction() as sess:
                 data = {"number": "+34609123321", "code": "12345", "csrf_token": sess.get_csrf_token()}
+                sess.phone.captcha.completed = True
 
         response2 = client.post("/verify", data=json.dumps(data), content_type=self.content_type_json)
         verify_phone_data = json.loads(response2.data)
