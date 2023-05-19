@@ -239,12 +239,12 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
                 with client.session_transaction() as sess:
                     sess.phone.captcha.completed = True
                     sess.persist()
-                    data: dict[str, Any] = {
+                    data2: dict[str, Any] = {
                         "number": phone,
                         "csrf_token": sess.get_csrf_token(),
                     }
 
-                    client.post("/send-code", data=json.dumps(data), content_type=self.content_type_json)
+                    client.post("/send-code", data=json.dumps(data2), content_type=self.content_type_json)
 
                 assert self.app.conf.magic_cookie_name is not None
                 assert self.app.conf.magic_cookie is not None
@@ -469,12 +469,12 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
                 with client.session_transaction() as sess:
                     sess.phone.captcha.completed = True
                     sess.persist()
-                    data: dict[str, Any] = {
+                    data2: dict[str, Any] = {
                         "number": phone,
                         "csrf_token": sess.get_csrf_token(),
                     }
 
-                client.post("/send-code", data=json.dumps(data), content_type=self.content_type_json)
+                client.post("/send-code", data=json.dumps(data2), content_type=self.content_type_json)
 
                 with client.session_transaction() as sess:
                     data = {"number": phone, "code": "12345", "csrf_token": sess.get_csrf_token()}
@@ -581,17 +581,17 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
                 with client.session_transaction() as sess:
                     sess.phone.captcha.completed = True
                     sess.persist()
-                    data: dict[str, Any] = {
+                    data2: dict[str, Any] = {
                         "number": phone,
                         "csrf_token": sess.get_csrf_token(),
                     }
 
-                client.post("/send-code", data=json.dumps(data), content_type=self.content_type_json)
+                client.post("/send-code", data=json.dumps(data2), content_type=self.content_type_json)
 
                 with client.session_transaction() as sess:
-                    data = {"number": phone, "code": "12345", "csrf_token": sess.get_csrf_token()}
+                    data3 = {"number": phone, "code": "12345", "csrf_token": sess.get_csrf_token()}
 
-            response2 = client.post("/verify", data=json.dumps(data), content_type=self.content_type_json)
+                response2 = client.post("/verify", data=json.dumps(data3), content_type=self.content_type_json)
 
             verify_phone_data = json.loads(response2.data)
             self.assertEqual("POST_PHONE_VERIFY_SUCCESS", verify_phone_data["type"])
@@ -631,17 +631,17 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
                 with client.session_transaction() as sess:
                     sess.phone.captcha.completed = True
                     sess.persist()
-                    data: dict[str, Any] = {
+                    data2: dict[str, Any] = {
                         "number": phone,
                         "csrf_token": sess.get_csrf_token(),
                     }
 
-                client.post("/send-code", data=json.dumps(data), content_type=self.content_type_json)
+                client.post("/send-code", data=json.dumps(data2), content_type=self.content_type_json)
 
                 with client.session_transaction() as sess:
-                    data = {"number": phone, "code": "wrong_code", "csrf_token": sess.get_csrf_token()}
+                    data3 = {"number": phone, "code": "wrong_code", "csrf_token": sess.get_csrf_token()}
 
-                response2 = client.post("/verify", data=json.dumps(data), content_type=self.content_type_json)
+                response2 = client.post("/verify", data=json.dumps(data3), content_type=self.content_type_json)
 
                 verify_phone_data = json.loads(response2.data)
                 self.assertEqual(verify_phone_data["type"], "POST_PHONE_VERIFY_FAIL")
