@@ -75,4 +75,4 @@ class PhoneMsg(TranslatableMsg):
     # the previously sent verification code is still valid
     still_valid_code = "still-valid-code"
     # success re-sending a verification code
-    resend_success = "phones.code-sent"
+    send_code_success = "phones.code-sent"

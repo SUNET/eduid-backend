@@ -236,6 +236,16 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
 
                 client.post("/new", data=json.dumps(data), content_type=self.content_type_json)
 
+                with client.session_transaction() as sess:
+                    sess.phone.captcha.completed = True
+                    sess.persist()
+                    data: dict[str, Any] = {
+                        "number": phone,
+                        "csrf_token": sess.get_csrf_token(),
+                    }
+
+                    client.post("/send-code", data=json.dumps(data), content_type=self.content_type_json)
+
                 assert self.app.conf.magic_cookie_name is not None
                 assert self.app.conf.magic_cookie is not None
                 client.set_cookie("localhost", key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie)
@@ -441,24 +451,33 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
         self.assertEqual(response.status_code, 302)  # Redirect to token service
 
         eppn = self.test_user_data["eduPersonPrincipalName"]
+        phone = "+34609123321"
 
         with self.session_cookie(self.browser, eppn) as client:
 
             with self.app.test_request_context():
                 with client.session_transaction() as sess:
                     data = {
-                        "number": "+34609123321",
+                        "number": phone,
                         "verified": False,
                         "primary": False,
                         "csrf_token": sess.get_csrf_token(),
                     }
 
-            client.post("/new", data=json.dumps(data), content_type=self.content_type_json)
+                client.post("/new", data=json.dumps(data), content_type=self.content_type_json)
 
-        with self.app.test_request_context():
-            with client.session_transaction() as sess:
-                data = {"number": "+34609123321", "code": "12345", "csrf_token": sess.get_csrf_token()}
-                sess.phone.captcha.completed = True
+                with client.session_transaction() as sess:
+                    sess.phone.captcha.completed = True
+                    sess.persist()
+                    data: dict[str, Any] = {
+                        "number": phone,
+                        "csrf_token": sess.get_csrf_token(),
+                    }
+
+                client.post("/send-code", data=json.dumps(data), content_type=self.content_type_json)
+
+                with client.session_transaction() as sess:
+                    data = {"number": phone, "code": "12345", "csrf_token": sess.get_csrf_token()}
 
         response2 = client.post("/verify", data=json.dumps(data), content_type=self.content_type_json)
         verify_phone_data = json.loads(response2.data)
@@ -544,30 +563,39 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
         self.assertEqual(response.status_code, 302)  # Redirect to token service
 
         eppn = self.test_user_data["eduPersonPrincipalName"]
+        phone = "+34609123321"
 
         with self.session_cookie(self.browser, eppn) as client:
 
             with self.app.test_request_context():
                 with client.session_transaction() as sess:
                     data = {
-                        "number": "+34609123321",
+                        "number": phone,
                         "verified": False,
                         "primary": False,
                         "csrf_token": sess.get_csrf_token(),
                     }
 
-            client.post("/new", data=json.dumps(data), content_type=self.content_type_json)
+                client.post("/new", data=json.dumps(data), content_type=self.content_type_json)
 
-            with self.app.test_request_context():
                 with client.session_transaction() as sess:
-                    data = {"number": "+34609123321", "code": "12345", "csrf_token": sess.get_csrf_token()}
                     sess.phone.captcha.completed = True
+                    sess.persist()
+                    data: dict[str, Any] = {
+                        "number": phone,
+                        "csrf_token": sess.get_csrf_token(),
+                    }
+
+                client.post("/send-code", data=json.dumps(data), content_type=self.content_type_json)
+
+                with client.session_transaction() as sess:
+                    data = {"number": phone, "code": "12345", "csrf_token": sess.get_csrf_token()}
 
             response2 = client.post("/verify", data=json.dumps(data), content_type=self.content_type_json)
 
             verify_phone_data = json.loads(response2.data)
             self.assertEqual("POST_PHONE_VERIFY_SUCCESS", verify_phone_data["type"])
-            self.assertEqual("+34609123321", verify_phone_data["payload"]["phones"][2]["number"])
+            self.assertEqual(phone, verify_phone_data["payload"]["phones"][2]["number"])
             self.assertEqual(True, verify_phone_data["payload"]["phones"][2]["verified"])
             self.assertEqual(False, verify_phone_data["payload"]["phones"][2]["primary"])
             self.assertEqual(self.app.proofing_log.db_count(), 1)
@@ -586,12 +614,13 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
         self.assertEqual(response.status_code, 302)  # Redirect to token service
 
         eppn = self.test_user_data["eduPersonPrincipalName"]
+        phone = "+34609123321"
 
         with self.session_cookie(self.browser, eppn) as client:
             with self.app.test_request_context():
                 with client.session_transaction() as sess:
                     data = {
-                        "number": "+34609123321",
+                        "number": phone,
                         "verified": False,
                         "primary": False,
                         "csrf_token": sess.get_csrf_token(),
@@ -599,10 +628,18 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
 
                 client.post("/new", data=json.dumps(data), content_type=self.content_type_json)
 
-            with self.app.test_request_context():
                 with client.session_transaction() as sess:
-                    data = {"number": "+34609123321", "code": "wrong_code", "csrf_token": sess.get_csrf_token()}
                     sess.phone.captcha.completed = True
+                    sess.persist()
+                    data: dict[str, Any] = {
+                        "number": phone,
+                        "csrf_token": sess.get_csrf_token(),
+                    }
+
+                client.post("/send-code", data=json.dumps(data), content_type=self.content_type_json)
+
+                with client.session_transaction() as sess:
+                    data = {"number": phone, "code": "wrong_code", "csrf_token": sess.get_csrf_token()}
 
                 response2 = client.post("/verify", data=json.dumps(data), content_type=self.content_type_json)
 
