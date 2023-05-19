@@ -3,11 +3,15 @@
 import functools
 import json
 import logging
-from os import link
-from typing import Any, Mapping, NewType, Optional
+from typing import Any, Iterable, Mapping, NewType, Optional, TYPE_CHECKING
 from urllib.parse import urlparse
-from pydantic import BaseModel, ValidationError, validator
-from eduid.satosa.scimapi.common import fetch_mfa_stepup_accounts, get_internal_attribute_name, get_metadata
+from pydantic import BaseModel, Field, ValidationError
+
+
+try:
+    from common import fetch_mfa_stepup_accounts, get_internal_attribute_name, get_metadata
+except ImportError:
+    from eduid.satosa.scimapi.common import fetch_mfa_stepup_accounts, get_internal_attribute_name, get_metadata
 
 import satosa.util as util
 import satosa.context
@@ -17,7 +21,6 @@ from saml2.client import Saml2Client
 from saml2.config import SPConfig
 from saml2.metadata import create_metadata_string
 from saml2.saml import NAMEID_FORMAT_UNSPECIFIED, NameID, Subject
-from saml2.typing import SAMLBinding, SAMLHttpArgs
 from satosa.attribute_mapping import AttributeMapper
 from satosa.context import Context
 from satosa.exception import SATOSAAuthenticationError, SATOSAError
@@ -29,11 +32,23 @@ from satosa.micro_services.base import (
     CallbackReturnType,
     CallbackCallSignature,
 )
+from satosa.backends.saml2 import SAMLBackend
+from saml2.mdstore import MetaData
+
 from satosa.response import Response
 from satosa.saml_util import make_saml_response
 
+try:
+    # Available in a future version of pysaml2
+    from saml2.typing import SAMLBinding, SAMLHttpArgs
+except ImportError:
+    SAMLBinding = str
+    SAMlHttpArgs = dict
+
 logger = logging.getLogger(__name__)
-KEY_REQ_AUTHNCLASSREF = "requester-authn-class-ref"
+
+REFEDS_MFA = "https://refeds.org/profile/mfa"
+STEPUP_NAME = "stepup"
 
 
 class StepUpError(SATOSAError):
@@ -42,23 +57,33 @@ class StepUpError(SATOSAError):
 
 class LoaSettings(BaseModel):
     requested: list[str]  # LoA that the StepUp-provider understands
-    extra_accepted: list[str]  # (aliased) LoAs that satisfy the requester
+    extra_accepted: list[str] = Field(default=[])  # (aliased) LoAs that satisfy the requester
+    returned: Optional[
+        str
+    ]  # LoA that should be returned to the requester, if we get any of the requested + extra_accepted
 
 
 EntityId = NewType("EntityId", str)
 EntityCategory = NewType("EntityCategory", str)
+AssuranceCertification = NewType("AssuranceCertification", str)
 
 
 class MfaConfig(BaseModel):
-    by_entity_id: Mapping[EntityId, LoaSettings]
-    by_entity_category: Mapping[EntityCategory, LoaSettings]
+    by_entity_id: Mapping[EntityId, LoaSettings] = Field(default={})
+    by_entity_category: Mapping[EntityCategory, LoaSettings] = Field(default={})
+    by_assurance_certification: Mapping[AssuranceCertification, LoaSettings] = Field(default={})
 
 
-class PluginConfig(BaseModel):
+# The MFA Stepup plugin loads configuration and puts it here for use in other micro-services
+# (and the StepupSamlBackend) in order to not have to repeat the configuration for each micro-service.
+_GLOBAL_MFA_CONFIG: Optional[MfaConfig] = None
+
+
+class StepupPluginConfig(BaseModel):
     mfa: MfaConfig
     sp_config: Mapping[str, Any]
-    sign_alg: str
-    digest_alg: str
+    sign_alg: Optional[str]
+    digest_alg: Optional[str]
 
 
 class StepupParams(BaseModel):
@@ -66,20 +91,165 @@ class StepupParams(BaseModel):
     issuer_loa: Optional[str]  # LoA that the IdP released - as requested through the acr_mapping configuration
     requester: EntityId
     requester_loas: list[str]  # (original) LoAs required by the requester
-    loa_settings: Optional[LoaSettings]  # LoA settings for the linked accounts IdP
+    loa_settings: LoaSettings  # LoA settings to use. Either from the configuration or derived using entity attributes in the metadata.
+
+
+class AuthnContextPluginConfig(BaseModel):
+    mfa: MfaConfig
 
 
 class AuthnContext(RequestMicroService):
+    """
+    A micro-service that runs when the authnRequest is first received from the SP.
+
+    It saves the original requested authn context class reference (accr) in the state.
+    """
+
+    STATE_KEY = "requester-authn-class-ref"
+
     def process(
         self,
         context: satosa.context.Context,
         data: satosa.internal.InternalData,
     ) -> ProcessReturnType:
+        logger.warning("REQUEST AUTHNCONTEXT PROCESS BEGIN")
         assert context.state is not None  # please type checking
-        context.state[self.name] = {
-            **context.state.get(self.name, {}),
-            KEY_REQ_AUTHNCLASSREF: context.get_decoration(Context.KEY_AUTHN_CONTEXT_CLASS_REF),
+        self.save_accr_to_state(context, STEPUP_NAME, context.get_decoration(Context.KEY_AUTHN_CONTEXT_CLASS_REF))
+        return super().process(context, data)
+
+    @staticmethod
+    def save_accr_to_state(context: Context, name: str, accr: list[str]) -> None:
+        logger.debug(f"Saving original request authnContextClassRef: {accr} (name: {name})")
+        context.state[name] = {
+            **context.state.get(name, {}),
+            AuthnContext.STATE_KEY: accr,
         }
+
+    @staticmethod
+    def get_accr_from_state(context: Context, name: str) -> list[str]:
+        _accr = context.state.get(name, {}).get(AuthnContext.STATE_KEY, [])
+        logger.debug(f"Retrieved original request authnContextClassRef: {_accr} (name: {name})")
+        return _accr
+
+    @staticmethod
+    def sp_wants_mfa(context: Context, name: str) -> bool:
+        res = REFEDS_MFA in AuthnContext.get_accr_from_state(context, STEPUP_NAME)
+        logger.debug(f"Requesting service provider wants REFEDS MFA: {res}")
+        return res
+
+
+def get_loa_settings_for_entity_id(
+    entity_id: Optional[EntityId], metadata: Iterable[MetaData], mfa: MfaConfig
+) -> Optional[LoaSettings]:
+    logger.debug(f"Looking for LoA settings based on entity id {entity_id}")
+    if entity_id is None:
+        return None
+    if entity_id in mfa.by_entity_id:
+        logger.debug(f"Loaded LoA settings from configuration based on entity id {entity_id}")
+        return mfa.by_entity_id[entity_id]
+    for _this_md in metadata:
+        logger.debug(f"LOOKING IN METADATA TYPE {type(_this_md)}")
+        logger.debug(f"LOOKING IN METADATA {repr(_this_md)}")
+        try:
+            logger.debug(f"LOOKING IN METADATA WITH URL {_this_md.url}")
+        except:
+            pass
+        if not _this_md:
+            continue
+        _ecs: list[EntityCategory]
+        try:
+            _ecs = _this_md.entity_categories(entity_id)
+        except KeyError:
+            _ecs = []
+        logger.debug(f"Entity categories for {entity_id}: {_ecs}")
+        for _ec in _ecs:
+            if _ec in mfa.by_entity_category:
+                logger.debug(f"Loaded LoA settings based on entity category {_ec}")
+                return mfa.by_entity_category[_ec]
+        try:
+            _assurances = list(_this_md.assurance_certifications(entity_id))
+        except Exception:
+            _assurances = []
+        logger.debug(f"Assurance certifications for {entity_id}: {_assurances}")
+        for _ac in _assurances:
+            if _ac in mfa.by_assurance_certification:
+                logger.debug(f"Loaded LoA settings based on assurance certification {_ac}")
+                return mfa.by_assurance_certification[_ac]
+
+    return None
+
+
+class StepupSAMLBackend(SAMLBackend):
+    """
+    A SAML backend to request custom authn context class references from IdP:s with certain entity attributes.
+    """
+
+    def authn_request(self, context: satosa.context.Context, entity_id: str):
+        logger.info(f"IN CUSTOM AUTHN REQUEST FUNCTION, ENTITY ID {repr(entity_id)}")
+        if _GLOBAL_MFA_CONFIG and AuthnContext.sp_wants_mfa(context, self.name):
+            logger.debug(f"SP METADATA AT REQUEST IS TYPE {type(self.sp.metadata)}")
+            logger.debug(f"SP METADATA AT REQUEST IS {repr(self.sp.metadata)}")
+            # logger.debug(f"SP METADATA IS {list(self.sp.metadata)}")
+            loa_settings = get_loa_settings_for_entity_id(EntityId(entity_id), [self.sp.metadata], _GLOBAL_MFA_CONFIG)
+            logger.debug(f"LoA settings for {entity_id}: {loa_settings}")
+            if loa_settings:
+                logger.debug(f"Requesting authnContextClassRef {loa_settings.requested} from {entity_id}")
+                context.state[Context.KEY_TARGET_AUTHN_CONTEXT_CLASS_REF] = loa_settings.requested
+
+        target_accr = context.state.get(Context.KEY_TARGET_AUTHN_CONTEXT_CLASS_REF)
+        logger.info(f"PROCEEDING WITH ACCR {target_accr}")
+
+        return super().authn_request(context, entity_id)
+
+
+class RewriteAuthnContextClass(ResponseMicroService):
+    """
+    When we receive a response from an IdP, we check if we have configuration specifying
+    'normalisation' of the authn context class reference in our MFA configuration.
+    """
+
+    def process(
+        self,
+        context: satosa.context.Context,
+        data: satosa.internal.InternalData,
+    ) -> ProcessReturnType:
+        logger.warning("REWRITE AUTHN CONTEXT CLASS PROCESS BEGIN")
+        logger.debug(f"Data: {data}")
+
+        global _GLOBAL_MFA_CONFIG
+
+        if _GLOBAL_MFA_CONFIG and AuthnContext.sp_wants_mfa(context, self.name):
+            # _requester: Optional[EntityId] = EntityId(data.requester) if isinstance(data.requester, str) else None
+            _issuer = data.auth_info.issuer if data.auth_info else None
+            _loa_settings = None
+            _params = fetch_params(data)
+            if _params:
+                _loa_settings = _params.loa_settings
+            if not _loa_settings:
+                logger.debug(
+                    f"REWRITE METADATA IN CONTEXT {repr(context.internal_data.get(Context.KEY_METADATA_STORE))}"
+                )
+                # _loa_settings = get_loa_settings_for_entity_id(_issuer, [self.sp.metadata], _GLOBAL_MFA_CONFIG)
+                _loa_settings = get_loa_settings_for_entity_id(
+                    _issuer, [context.internal_data.get(Context.KEY_METADATA_STORE)], _GLOBAL_MFA_CONFIG
+                )
+
+            logger.debug(f"LoA settings for {_issuer}: {_loa_settings}")
+            if _loa_settings and _loa_settings.returned:
+                _asserted_loa: Optional[str] = data.auth_info.auth_class_ref
+                if _loa_settings.returned != _asserted_loa:
+                    if _asserted_loa in _loa_settings.requested or _asserted_loa in _loa_settings.extra_accepted:
+                        logger.info(
+                            "Rewriting authnContextClassRef in response from "
+                            f"{_asserted_loa} to {_loa_settings.returned}"
+                        )
+                        data.auth_info.auth_class_ref = _loa_settings.returned
+                    else:
+                        logger.info(f"AuthnContextClassRef {_asserted_loa} not accepted")
+                        raise StepUpError(f"AuthnContextClassRef {_asserted_loa} not accepted")
+                else:
+                    logger.debug(f"AuthnContextClassRef {_loa_settings.returned} already set")
+
         return super().process(context, data)
 
 
@@ -88,6 +258,19 @@ def is_loa_requirements_satisfied(settings: Optional[LoaSettings], loa: Optional
         return False
     satisfied = loa in settings.requested or loa in settings.extra_accepted
     return satisfied
+
+
+def store_params(data: satosa.internal.InternalData, params: StepupParams) -> None:
+    """Store the LoA settings in the internal data"""
+    # `data` needs to be JSON serialisable
+    data.stepup_params = params.dict()
+
+
+def fetch_params(data: satosa.internal.InternalData) -> Optional[StepupParams]:
+    """Retrieve the LoA settings from the internal data"""
+    if not hasattr(data, "stepup_params") or not isinstance(data.stepup_params, dict):
+        return None
+    return StepupParams.parse_obj(data.stepup_params)
 
 
 class StepUp(ResponseMicroService):
@@ -113,7 +296,9 @@ class StepUp(ResponseMicroService):
               requested:
                 - https://refeds.org/profile/mfa
               returned: https://refeds.org/profile/mfa
-          by_entity_category:
+
+          by_assurance_certification:
+
               https://fidus.skolverket.se/authentication/e-leg:
                 requested:
                   - http://id.elegnamnden.se/loa/1.0/loa2
@@ -128,6 +313,8 @@ class StepUp(ResponseMicroService):
                   - http://id.elegnamnden.se/loa/1.0/nf-sub
                   - http://id.elegnamnden.se/loa/1.0/nf-high
                 returned: https://refeds.org/profile/mfa
+
+          by_entity_category: {}
 
         sp_config:
           organization:
@@ -171,21 +358,27 @@ class StepUp(ResponseMicroService):
 
     def __init__(self, config: Mapping[str, Any], internal_attributes: dict[str, Any], *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
+        logger.warning(f"INIT MFA STEPUP")
 
         # 'mfa' should be a mapping between entity_id and loa_settings
         try:
-            parsed_config = PluginConfig.parse_obj(config)
+            parsed_config = StepupPluginConfig.parse_obj(config)
         except ValidationError as e:
             raise StepUpError(f"The configuration for this plugin is not valid: {e}")
 
         self.mfa = parsed_config.mfa
+
+        # Share the config with the custom StepupSAMLBackend without having to duplicate it in the actual
+        # config files
+        global _GLOBAL_MFA_CONFIG
+        _GLOBAL_MFA_CONFIG = self.mfa
+
         sp_config = json.loads(
             json.dumps(parsed_config.sp_config).replace("<base_url>", self.base_url).replace("<name>", self.name)
         )
         sp_conf = SPConfig().load(sp_config)
         self.sp = Saml2Client(config=sp_conf)
         self.converter = AttributeMapper(internal_attributes)
-        # self.encryption_keys = []
         self.outstanding_queries: dict[str, SAMLHttpArgs] = {}
         self.attribute_profile = "saml"
 
@@ -194,28 +387,17 @@ class StepUp(ResponseMicroService):
         logger.info("StepUp Authentication is active")
 
     def _get_params(self, context: satosa.context.Context, data: satosa.internal.InternalData) -> StepupParams:
-        _loa_settings: Optional[LoaSettings] = None
-        if data.requester is not None and data.requester in self.mfa.by_entity_id:
-            logger.debug(f"Loaded LoA settings based on requester entity id {data.requester}")
-            _loa_settings = self.mfa.by_entity_id[EntityId(data.requester)]
+        _requester: Optional[EntityId] = EntityId(data.requester) if isinstance(data.requester, str) else None
+        _loa_settings = get_loa_settings_for_entity_id(_requester, get_metadata(context), self.mfa)
         if not _loa_settings:
-            for _metadata in get_metadata(context):
-                _ecs: list[EntityCategory] = _metadata.entity_categories(data.requester)
-                if _ecs:
-                    for _ec in _ecs:
-                        if _ec in self.mfa.by_entity_category:
-                            logger.debug(f"Loaded LoA settings based on requester entity category {_ec}")
-                            _loa_settings = self.mfa.by_entity_category[_ec]
-                            break
-        if not _loa_settings:
-            # TODO: If MFA was requested, but the linked accounts issuer was not found in the config, we should
-            #       fall back to eduID.
-            pass
+            sp_requested = AuthnContext.get_accr_from_state(context, STEPUP_NAME)
+            returned = sp_requested[0] if sp_requested else None
+            _loa_settings = LoaSettings(requested=sp_requested, returned=returned)
         return StepupParams(
-            issuer=data.auth_info.issuer,
-            requester=data.requester,
-            issuer_loa=data.auth_info.auth_class_ref,
-            requester_loas=context.state.get(self.name, {}).get(KEY_REQ_AUTHNCLASSREF, []),
+            issuer=data.auth_info.issuer if data.auth_info else None,
+            requester=_requester,
+            issuer_loa=data.auth_info.auth_class_ref if data.auth_info else None,
+            requester_loas=AuthnContext.get_accr_from_state(context, self.name),
             loa_settings=_loa_settings,
         )
 
@@ -224,10 +406,15 @@ class StepUp(ResponseMicroService):
         context: satosa.context.Context,
         data: satosa.internal.InternalData,
     ) -> ProcessReturnType:
+        logger.warning("STEPUP PROCESS BEGIN NEW")
+        logger.debug(f"Data: {data}")
         linked_accounts = fetch_mfa_stepup_accounts(data)
         if not linked_accounts:
             logger.info("No linked accounts for this user")
             return super().process(context, data)
+
+        logger.warning(f"LINKED ACCOUNTS: {linked_accounts}")
+        # return super().process(context, data)
 
         linked_account = linked_accounts[0]
 
@@ -239,19 +426,22 @@ class StepUp(ResponseMicroService):
             logger.info("No account identifier for this account")
             return super().process(context, data)
 
+        if not AuthnContext.sp_wants_mfa(context, self.name):
+            logger.info("Requesting SP did not ask for MFA")
+            return super().process(context, data)
+
         params = self._get_params(context, data)
+        logger.warning(f"PARAMS: {params}")
 
         # requester did not ask for a specific LoA
-        is_requester_expecting_loa = bool(params.requester_loas)
-        if not is_requester_expecting_loa:
-            logger.info("Requester did not ask for a specific LoA")
+        if not params.requester_loas:
+            logger.info(f"Requester {params.requester} did not ask for a specific LoA")
             return super().process(context, data)
 
-        # requester is not configured
-        is_requester_configured = bool(params.loa_settings and params.loa_settings.requested)
-        if not is_requester_configured:
-            logger.info("Requester is not configured")
-            return super().process(context, data)
+        # # requester is not configured
+        # if not (params.loa_settings and params.loa_settings.requested):
+        #     logger.info(f"Requester {params.requester} is not configured")
+        #     return super().process(context, data)
 
         # no need to step-up - required LoA is already met
         is_mfa_satisfied = is_loa_requirements_satisfied(params.loa_settings, params.issuer_loa)
@@ -259,7 +449,11 @@ class StepUp(ResponseMicroService):
             logger.info("No need to step-up - required LoA is already met")
             return super().process(context, data)
 
-        assert params.loa_settings  # please mypy, already checked above since we return if is_stepup_skipped
+        logger.debug("AFTER ALL THE CHECKS")
+
+        store_params(data, params)
+
+        # assert params.loa_settings  # please mypy, already checked above since we return if is_stepup_skipped
 
         name_id = NameID(format=NAMEID_FORMAT_UNSPECIFIED, text=linked_account.identifier)
         subject = Subject(name_id=name_id)
@@ -324,16 +518,22 @@ class StepUp(ResponseMicroService):
             "internal_data": data.to_dict(),
         }
         logger.info("Sending StepUp Authentication")
-        return make_saml_response(binding, ht_args)
+        logger.debug(f"Binding {binding}, ht_args {ht_args}")
+        _response = make_saml_response(binding, ht_args)
+        logger.debug(f"Response: {_response}")
+        return _response
 
-    def _handle_authn_response(self, context: satosa.context.Context, binding: SAMLBinding) -> CallbackReturnType:
+    def _handle_authn_response(self, context: satosa.context.Context, binding: "SAMLBinding") -> CallbackReturnType:
         """
         This is where the user returns after completing a login at the stepup provider.
         """
-        internal_data_dict: dict[str, Any] = {}
-        if "internal_data" in context.state:
-            internal_data_dict = context.state["internal_data"]
-        data = InternalData.from_dict(internal_data_dict)
+        logger.info("Returning from StepUp Authentication")
+
+        logger.debug(f"CONTEXT STATE {context.state}")
+        _my_state: dict[str, Any] = context.state.get(self.name, {})
+        logger.debug(f"My state: {_my_state}")
+        data = InternalData.from_dict(_my_state.get("internal_data", {}))
+        logger.debug(f"Data: {data}")
 
         linked_accounts = fetch_mfa_stepup_accounts(data)
         if not linked_accounts:
@@ -342,7 +542,14 @@ class StepUp(ResponseMicroService):
 
         linked_account = linked_accounts[0]
 
-        params = self._get_params(context, data)
+        # SATOSA won't have decorated the context with the metadata when this endpoint is called,
+        # so we need to store it in internal_data (in process() above) and fetch it here.
+        params = fetch_params(data)
+        if not params:
+            logger.info("No params retrieved from internal data")
+            raise StepUpError("No params available")
+
+        logger.debug(f"Stepup parameters: {params}")
 
         try:
             _response: str = context.request["SAMLResponse"]
@@ -384,7 +591,7 @@ class StepUp(ResponseMicroService):
         stepup_user_identifier = authn_response.ava.get(linked_account.attribute, []) if authn_response.ava else []
         is_subject_identified = linked_account.identifier in stepup_user_identifier
 
-        assert params.loa_settings  # please mypy
+        # assert params.loa_settings  # please mypy
         stepup_loa = next(iter(authn_response.authn_info()), [None])[0]
         is_stepup_loa_exact = bool(stepup_loa and stepup_loa in params.loa_settings.requested)
         is_mfa_satisfied = is_loa_requirements_satisfied(params.loa_settings, stepup_loa)
@@ -394,7 +601,6 @@ class StepUp(ResponseMicroService):
         logger.info(
             {
                 "msg": "Received StepUp Response",
-                "params": params,
                 "linked_account": linked_account,
                 "stepup_loa": stepup_loa,
                 "is_stepup_provider": is_stepup_provider,
@@ -466,9 +672,11 @@ class StepUp(ResponseMicroService):
         parsed_entity_id = urlparse(self.sp.config.entityid)
         url_map.append(
             (
-                f"^{parsed_entity_id.path[1:]}",
+                f"^{parsed_entity_id.path[1:]}$",
                 functools.partial(self._metadata_endpoint, extra=None),
             )
         )
+
+        logger.debug(f"Registering endpoints: {url_map}")
 
         return url_map

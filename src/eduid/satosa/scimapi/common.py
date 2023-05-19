@@ -1,7 +1,5 @@
 import logging
-import pprint
-from dataclasses import dataclass, field
-from typing import Any, Generator, Mapping, Optional
+from typing import Generator
 
 from pydantic import BaseModel
 
@@ -9,10 +7,7 @@ import satosa.context
 import satosa.internal
 from saml2.mdstore import MetaData
 from satosa.attribute_mapping import AttributeMapper
-from satosa.micro_services.base import ResponseMicroService
-from satosa.routing import STATE_KEY as ROUTER_STATE_KEY
 
-from eduid.userdb.scimapi.userdb import ScimApiUser, ScimApiUserDB, ScimEduidUserDB
 
 logger = logging.getLogger(__name__)
 
@@ -25,13 +20,16 @@ class MfaStepupAccount(BaseModel):
 
 
 def store_mfa_stepup_accounts(data: satosa.internal.InternalData, accounts: list[MfaStepupAccount]) -> None:
-    data.mfa_stepup_accounts = accounts
+    """Store the MFA stepup accounts in the internal data"""
+    # `data` needs to be JSON serialisable
+    data.mfa_stepup_accounts = [x.dict() for x in accounts]
 
 
 def fetch_mfa_stepup_accounts(data: satosa.internal.InternalData) -> list[MfaStepupAccount]:
-    if not hasattr(data, "mfa_stepup_accounts"):
+    """Retrieve the MFA stepup accounts from the internal data"""
+    if not hasattr(data, "mfa_stepup_accounts") or not isinstance(data.mfa_stepup_accounts, list):
         return []
-    return data.mfa_stepup_accounts
+    return [MfaStepupAccount.parse_obj(x) for x in data.mfa_stepup_accounts]
 
 
 def get_metadata(context: satosa.context.Context) -> Generator[MetaData, None, None]:
