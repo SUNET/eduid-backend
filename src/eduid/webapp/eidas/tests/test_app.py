@@ -825,8 +825,8 @@ class EidasTests(ProofingTests[EidasApp]):
 
         self.app.conf.magic_cookie = "magic-cookie"
         with self.session_cookie(self.browser, eppn) as browser:
-            browser.set_cookie("localhost", key="magic-cookie", value=self.app.conf.magic_cookie)
-            browser.set_cookie("localhost", key="nin", value=nin.number)
+            browser.set_cookie(domain="localhost", key="magic-cookie", value=self.app.conf.magic_cookie)
+            browser.set_cookie(domain="localhost", key="nin", value=nin.number)
             self.verify_token(
                 endpoint=f"/verify-token/{credential.key}",
                 eppn=eppn,
@@ -1180,8 +1180,8 @@ class EidasTests(ProofingTests[EidasApp]):
 
         self.app.conf.magic_cookie = "magic-cookie"
         with self.session_cookie(self.browser, eppn) as browser:
-            browser.set_cookie("localhost", key="magic-cookie", value=self.app.conf.magic_cookie)
-            browser.set_cookie("localhost", key="nin", value=nin.number)
+            browser.set_cookie(domain="localhost", key="magic-cookie", value=self.app.conf.magic_cookie)
+            browser.set_cookie(domain="localhost", key="nin", value=nin.number)
             self.reauthn(
                 "/mfa-authentication",
                 expect_msg=EidasMsg.action_completed,
@@ -1205,8 +1205,8 @@ class EidasTests(ProofingTests[EidasApp]):
         self.app.conf.magic_cookie = "magic-cookie"
 
         with self.session_cookie(self.browser, eppn) as browser:
-            browser.set_cookie("localhost", key="magic-cookie", value=self.app.conf.magic_cookie)
-            browser.set_cookie("localhost", key="nin", value=nin.number)
+            browser.set_cookie(domain="localhost", key="magic-cookie", value=self.app.conf.magic_cookie)
+            browser.set_cookie(domain="localhost", key="nin", value=nin.number)
             self.reauthn(
                 "/verify-nin",
                 expect_msg=EidasMsg.old_nin_verify_success,
@@ -1232,8 +1232,8 @@ class EidasTests(ProofingTests[EidasApp]):
         self.app.conf.environment = EduidEnvironment.production
 
         with self.session_cookie(self.browser, eppn) as browser:
-            browser.set_cookie("localhost", key="magic-cookie", value=self.app.conf.magic_cookie)
-            browser.set_cookie("localhost", key="nin", value=nin.number)
+            browser.set_cookie(domain="localhost", key="magic-cookie", value=self.app.conf.magic_cookie)
+            browser.set_cookie(domain="localhost", key="nin", value=nin.number)
             self.reauthn(
                 "/verify-nin",
                 expect_msg=EidasMsg.old_nin_verify_success,
@@ -1263,8 +1263,8 @@ class EidasTests(ProofingTests[EidasApp]):
         self.app.conf.magic_cookie = "magic-cookie"
 
         with self.session_cookie(self.browser, eppn) as browser:
-            browser.set_cookie("localhost", key="magic-cookie", value="NOT-the-magic-cookie")
-            browser.set_cookie("localhost", key="nin", value=nin.number)
+            browser.set_cookie(domain="localhost", key="magic-cookie", value="NOT-the-magic-cookie")
+            browser.set_cookie(domain="localhost", key="nin", value=nin.number)
             self.reauthn(
                 "/verify-nin",
                 expect_msg=EidasMsg.old_nin_verify_success,

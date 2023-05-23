@@ -232,7 +232,7 @@ class LadokDevTests(EduidAPITestCase[LadokApp]):
         ladok_name = "DEV"
         with self.session_cookie(self.browser, self.test_user.eppn) as browser:
             assert self.app.conf.magic_cookie is not None
-            browser.set_cookie("localhost", key="magic-cookie", value=self.app.conf.magic_cookie)
+            browser.set_cookie(domain="localhost", key="magic-cookie", value=self.app.conf.magic_cookie)
             with browser.session_transaction() as sess:
                 csrf_token = sess.get_csrf_token()
             response = browser.post("/link-user", json={"csrf_token": csrf_token, "ladok_name": ladok_name})

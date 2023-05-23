@@ -155,7 +155,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
                     assert self.app.conf.magic_cookie_name is not None
                     assert self.app.conf.magic_cookie is not None
                     client.set_cookie(
-                        "localhost", key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie
+                        domain="localhost", key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie
                     )
 
                 logger.info(f"Making request to {endpoint} with data:\n{data}")
@@ -781,7 +781,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
                     assert self.app.conf.magic_cookie is not None
                     assert self.app.conf.magic_cookie_name is not None
                     client.set_cookie(
-                        "localhost", key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie
+                        domain="localhost", key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie
                     )
                     return client.get(f"/get-code?email={email}")
 
@@ -1345,7 +1345,7 @@ class OldSignupTests(SignupTests):
                     assert self.app.conf.magic_cookie is not None
                     assert self.app.conf.magic_cookie_name is not None
                     client.set_cookie(
-                        "localhost", key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie
+                        domain="localhost", key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie
                     )
 
                 _trycaptcha = "/trycaptcha"
@@ -1518,7 +1518,7 @@ class OldSignupTests(SignupTests):
                     assert self.app.conf.magic_cookie_name is not None
                     assert self.app.conf.magic_cookie is not None
                     client.set_cookie(
-                        "localhost", key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie
+                        domain="localhost", key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie
                     )
                     return client.get(f"/get-code?email={email}")
 

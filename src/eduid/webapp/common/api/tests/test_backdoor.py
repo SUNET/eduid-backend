@@ -104,7 +104,7 @@ class BackdoorTests(EduidAPITestCase[BackdoorTestApp]):
 
             assert self.app.conf.magic_cookie_name is not None
             assert self.app.conf.magic_cookie is not None
-            client.set_cookie("localhost", key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie)
+            client.set_cookie(domain="localhost", key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie)
             response = client.get("/get-code?eppn=pepin-pepon")
             self.assertEqual(response.data, b"dummy-code-for-pepin-pepon")
 
@@ -116,7 +116,7 @@ class BackdoorTests(EduidAPITestCase[BackdoorTestApp]):
 
             assert self.app.conf.magic_cookie_name is not None
             assert self.app.conf.magic_cookie is not None
-            client.set_cookie("localhost", key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie)
+            client.set_cookie(domain="localhost", key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie)
             response = client.get("/get-code?eppn=pepin-pepon")
             self.assertEqual(response.status_code, 400)
 
@@ -133,7 +133,7 @@ class BackdoorTests(EduidAPITestCase[BackdoorTestApp]):
 
             assert self.app.conf.magic_cookie_name is not None
             assert self.app.conf.magic_cookie is not None
-            client.set_cookie("localhost", key=self.app.conf.magic_cookie_name, value="no-magic")
+            client.set_cookie(domain="localhost", key=self.app.conf.magic_cookie_name, value="no-magic")
             response = client.get("/get-code?eppn=pepin-pepon")
             self.assertEqual(response.status_code, 400)
 
@@ -145,7 +145,7 @@ class BackdoorTests(EduidAPITestCase[BackdoorTestApp]):
 
             assert self.app.conf.magic_cookie_name is not None
             assert self.app.conf.magic_cookie is not None
-            client.set_cookie("localhost", key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie)
+            client.set_cookie(domain="localhost", key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie)
             response = client.get("/get-code?eppn=pepin-pepon")
             self.assertEqual(response.status_code, 400)
 
@@ -157,6 +157,6 @@ class BackdoorTests(EduidAPITestCase[BackdoorTestApp]):
 
             assert self.app.conf.magic_cookie_name is not None
             assert self.app.conf.magic_cookie is not None
-            client.set_cookie("localhost", key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie)
+            client.set_cookie(domain="localhost", key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie)
             response = client.get("/get-code?eppn=pepin-pepon")
             self.assertEqual(response.status_code, 400)
