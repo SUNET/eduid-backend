@@ -3,7 +3,7 @@
 import functools
 import json
 import logging
-from typing import Any, Iterable, Mapping, NewType, Optional, TYPE_CHECKING
+from typing import Any, Iterable, Mapping, NewType, Optional
 from urllib.parse import urlparse
 from pydantic import BaseModel, Field, ValidationError
 
@@ -74,11 +74,6 @@ class MfaConfig(BaseModel):
     by_assurance_certification: Mapping[AssuranceCertification, LoaSettings] = Field(default={})
 
 
-# The MFA Stepup plugin loads configuration and puts it here for use in other micro-services
-# (and the StepupSamlBackend) in order to not have to repeat the configuration for each micro-service.
-_GLOBAL_MFA_CONFIG: Optional[MfaConfig] = None
-
-
 class StepupPluginConfig(BaseModel):
     mfa: MfaConfig
     sp_config: Mapping[str, Any]
@@ -112,7 +107,6 @@ class AuthnContext(RequestMicroService):
         context: satosa.context.Context,
         data: satosa.internal.InternalData,
     ) -> ProcessReturnType:
-        logger.warning("REQUEST AUTHNCONTEXT PROCESS BEGIN")
         assert context.state is not None  # please type checking
         self.save_accr_to_state(context, STEPUP_NAME, context.get_decoration(Context.KEY_AUTHN_CONTEXT_CLASS_REF))
         return super().process(context, data)
@@ -139,21 +133,18 @@ class AuthnContext(RequestMicroService):
 
 
 def get_loa_settings_for_entity_id(
-    entity_id: Optional[EntityId], metadata: Iterable[MetaData], mfa: MfaConfig
+    entity_id: Optional[EntityId], metadata: Iterable[MetaData], mfa: Optional[MfaConfig]
 ) -> Optional[LoaSettings]:
     logger.debug(f"Looking for LoA settings based on entity id {entity_id}")
     if entity_id is None:
+        return None
+    if mfa is None:
+        logger.debug("No MFA config present")
         return None
     if entity_id in mfa.by_entity_id:
         logger.debug(f"Loaded LoA settings from configuration based on entity id {entity_id}")
         return mfa.by_entity_id[entity_id]
     for _this_md in metadata:
-        logger.debug(f"LOOKING IN METADATA TYPE {type(_this_md)}")
-        logger.debug(f"LOOKING IN METADATA {repr(_this_md)}")
-        try:
-            logger.debug(f"LOOKING IN METADATA WITH URL {_this_md.url}")
-        except:
-            pass
         if not _this_md:
             continue
         _ecs: list[EntityCategory]
@@ -185,19 +176,16 @@ class StepupSAMLBackend(SAMLBackend):
     """
 
     def authn_request(self, context: satosa.context.Context, entity_id: str):
-        logger.info(f"IN CUSTOM AUTHN REQUEST FUNCTION, ENTITY ID {repr(entity_id)}")
-        if _GLOBAL_MFA_CONFIG and AuthnContext.sp_wants_mfa(context, self.name):
-            logger.debug(f"SP METADATA AT REQUEST IS TYPE {type(self.sp.metadata)}")
-            logger.debug(f"SP METADATA AT REQUEST IS {repr(self.sp.metadata)}")
-            # logger.debug(f"SP METADATA IS {list(self.sp.metadata)}")
-            loa_settings = get_loa_settings_for_entity_id(EntityId(entity_id), [self.sp.metadata], _GLOBAL_MFA_CONFIG)
+        logger.debug(f"Processing AuthnRequest with entity id {repr(entity_id)}")
+        if StepUp.mfa and AuthnContext.sp_wants_mfa(context, self.name):
+            loa_settings = get_loa_settings_for_entity_id(EntityId(entity_id), [self.sp.metadata], StepUp.mfa)
             logger.debug(f"LoA settings for {entity_id}: {loa_settings}")
             if loa_settings:
                 logger.debug(f"Requesting authnContextClassRef {loa_settings.requested} from {entity_id}")
                 context.state[Context.KEY_TARGET_AUTHN_CONTEXT_CLASS_REF] = loa_settings.requested
 
         target_accr = context.state.get(Context.KEY_TARGET_AUTHN_CONTEXT_CLASS_REF)
-        logger.info(f"PROCEEDING WITH ACCR {target_accr}")
+        logger.debug(f"Proceeding with ACCR {target_accr}")
 
         return super().authn_request(context, entity_id)
 
@@ -213,25 +201,15 @@ class RewriteAuthnContextClass(ResponseMicroService):
         context: satosa.context.Context,
         data: satosa.internal.InternalData,
     ) -> ProcessReturnType:
-        logger.warning("REWRITE AUTHN CONTEXT CLASS PROCESS BEGIN")
-        logger.debug(f"Data: {data}")
-
-        global _GLOBAL_MFA_CONFIG
-
-        if _GLOBAL_MFA_CONFIG and AuthnContext.sp_wants_mfa(context, self.name):
-            # _requester: Optional[EntityId] = EntityId(data.requester) if isinstance(data.requester, str) else None
+        if StepUp.mfa and AuthnContext.sp_wants_mfa(context, self.name):
             _issuer = data.auth_info.issuer if data.auth_info else None
             _loa_settings = None
             _params = fetch_params(data)
             if _params:
                 _loa_settings = _params.loa_settings
             if not _loa_settings:
-                logger.debug(
-                    f"REWRITE METADATA IN CONTEXT {repr(context.internal_data.get(Context.KEY_METADATA_STORE))}"
-                )
-                # _loa_settings = get_loa_settings_for_entity_id(_issuer, [self.sp.metadata], _GLOBAL_MFA_CONFIG)
                 _loa_settings = get_loa_settings_for_entity_id(
-                    _issuer, [context.internal_data.get(Context.KEY_METADATA_STORE)], _GLOBAL_MFA_CONFIG
+                    _issuer, [context.internal_data.get(Context.KEY_METADATA_STORE)], StepUp.mfa
                 )
 
             logger.debug(f"LoA settings for {_issuer}: {_loa_settings}")
@@ -356,22 +334,19 @@ class StepUp(ResponseMicroService):
                 - [<base_url>/<name>/acs/redirect, 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect']
     """
 
+    mfa: Optional[MfaConfig] = None
+
     def __init__(self, config: Mapping[str, Any], internal_attributes: dict[str, Any], *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
-        logger.warning(f"INIT MFA STEPUP")
 
-        # 'mfa' should be a mapping between entity_id and loa_settings
         try:
             parsed_config = StepupPluginConfig.parse_obj(config)
         except ValidationError as e:
             raise StepUpError(f"The configuration for this plugin is not valid: {e}")
 
+        # Store MFA stepup configuration in a class variable so that it will be accessible by other
+        # micro-services (in order to not have to duplicate the config for each micro-service)
         self.mfa = parsed_config.mfa
-
-        # Share the config with the custom StepupSAMLBackend without having to duplicate it in the actual
-        # config files
-        global _GLOBAL_MFA_CONFIG
-        _GLOBAL_MFA_CONFIG = self.mfa
 
         sp_config = json.loads(
             json.dumps(parsed_config.sp_config).replace("<base_url>", self.base_url).replace("<name>", self.name)
@@ -406,16 +381,12 @@ class StepUp(ResponseMicroService):
         context: satosa.context.Context,
         data: satosa.internal.InternalData,
     ) -> ProcessReturnType:
-        logger.warning("STEPUP PROCESS BEGIN NEW")
-        logger.debug(f"Data: {data}")
         linked_accounts = fetch_mfa_stepup_accounts(data)
         if not linked_accounts:
             logger.info("No linked accounts for this user")
             return super().process(context, data)
 
-        logger.warning(f"LINKED ACCOUNTS: {linked_accounts}")
-        # return super().process(context, data)
-
+        logger.debug(f"Linked accounts: {linked_accounts}")
         linked_account = linked_accounts[0]
 
         if not linked_account.entity_id:
@@ -431,25 +402,16 @@ class StepUp(ResponseMicroService):
             return super().process(context, data)
 
         params = self._get_params(context, data)
-        logger.warning(f"PARAMS: {params}")
+        logger.debug(f"StepUp params: {params}")
 
         # requester did not ask for a specific LoA
         if not params.requester_loas:
             logger.info(f"Requester {params.requester} did not ask for a specific LoA")
             return super().process(context, data)
 
-        # # requester is not configured
-        # if not (params.loa_settings and params.loa_settings.requested):
-        #     logger.info(f"Requester {params.requester} is not configured")
-        #     return super().process(context, data)
-
-        # no need to step-up - required LoA is already met
-        is_mfa_satisfied = is_loa_requirements_satisfied(params.loa_settings, params.issuer_loa)
-        if is_mfa_satisfied:
+        if is_loa_requirements_satisfied(params.loa_settings, params.issuer_loa):
             logger.info("No need to step-up - required LoA is already met")
             return super().process(context, data)
-
-        logger.debug("AFTER ALL THE CHECKS")
 
         store_params(data, params)
 
@@ -523,7 +485,7 @@ class StepUp(ResponseMicroService):
         logger.debug(f"Response: {_response}")
         return _response
 
-    def _handle_authn_response(self, context: satosa.context.Context, binding: "SAMLBinding") -> CallbackReturnType:
+    def _handle_authn_response(self, context: satosa.context.Context, binding: SAMLBinding) -> CallbackReturnType:
         """
         This is where the user returns after completing a login at the stepup provider.
         """
