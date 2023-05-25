@@ -415,8 +415,6 @@ class StepUp(ResponseMicroService):
 
         store_params(data, params)
 
-        # assert params.loa_settings  # please mypy, already checked above since we return if is_stepup_skipped
-
         name_id = NameID(format=NAMEID_FORMAT_UNSPECIFIED, text=linked_account.identifier)
         subject = Subject(name_id=name_id)
         authn_context = {"authn_context_class_ref": params.loa_settings.requested, "comparison": "exact"}
@@ -499,7 +497,7 @@ class StepUp(ResponseMicroService):
 
         linked_accounts = fetch_mfa_stepup_accounts(data)
         if not linked_accounts:
-            logger.info("No linked accounts for this user")
+            # We really shouldn't get here. Did the linked account disappear while the user was logging in?
             raise StepUpError("No linked accounts for this user")
 
         linked_account = linked_accounts[0]
@@ -532,7 +530,7 @@ class StepUp(ResponseMicroService):
         if not authn_response:
             raise StepUpError("Failed to parse SAML Response")
 
-        if not self.sp.config.getattr("allow_unsolicited", "sp") is True:
+        if self.sp.config.getattr("allow_unsolicited", "sp") is not True:
             req_id = authn_response.in_response_to
             if not req_id or req_id not in self.outstanding_queries:
                 _error_context = {
@@ -553,7 +551,6 @@ class StepUp(ResponseMicroService):
         stepup_user_identifier = authn_response.ava.get(linked_account.attribute, []) if authn_response.ava else []
         is_subject_identified = linked_account.identifier in stepup_user_identifier
 
-        # assert params.loa_settings  # please mypy
         stepup_loa = next(iter(authn_response.authn_info()), [None])[0]
         is_stepup_loa_exact = bool(stepup_loa and stepup_loa in params.loa_settings.requested)
         is_mfa_satisfied = is_loa_requirements_satisfied(params.loa_settings, stepup_loa)
