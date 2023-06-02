@@ -258,6 +258,9 @@ class SP_AuthnRequest(BaseAuthnRequest):
     # proofing_credential_id is the credential being person-proofed, when doing that
     proofing_credential_id: Optional[ElementKey] = None
     redirect_url: Optional[str]  # Deprecated, use frontend_action to get return URL from config instead
+    force_authn: bool = False  # a new authentication was required
+    same_user: bool = False  # the same user was required to log in, such as when entering the security center
+    consumed: bool = False  # an operation that requires a new authentication has used this one already
 
 
 PySAML2Dicts = NewType("PySAML2Dicts", dict[str, dict[str, Any]])

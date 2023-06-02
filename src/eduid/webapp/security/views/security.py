@@ -107,7 +107,7 @@ def get_suggested(user: User):
     return suggested
 
 
-# TODO: Remove this when frontend for new change password view exist
+# TODO: Remove this when frontend for new change password view exist (new endpoint is /change-password/set-password)
 @security_views.route("/change-password", methods=["POST"])
 @MarshalWith(ChpassResponseSchema)
 @require_user

@@ -1,8 +1,10 @@
+from enum import unique
 import logging
 from typing import Optional
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.credentials import Credential
+from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.common.authn.acs_enums import AuthnAcsAction
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.namespaces import SP_AuthnRequest
@@ -31,3 +33,14 @@ def _credential_recently_used(credential: Credential, action: Optional[SP_AuthnR
             if 0 < age < max_age:
                 return True
     return False
+
+
+@unique
+class AuthnMsg(TranslatableMsg):
+    """
+    Messages sent to the front end with information on the results of the
+    attempted operations on the back end.
+    """
+
+    # Status requested for unknown authn_id
+    not_found = "authn.not_found"

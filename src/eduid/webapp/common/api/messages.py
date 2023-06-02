@@ -30,7 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 from copy import copy
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from enum import Enum, unique
 from typing import Any, Mapping, Optional, Union
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
@@ -84,6 +84,9 @@ class CommonMsg(TranslatableMsg):
 class FluxData:
     status: FluxResponseStatus
     payload: Mapping[str, Any]
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
 
 
 def success_response(

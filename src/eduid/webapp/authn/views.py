@@ -30,6 +30,7 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+from dataclasses import dataclass
 import uuid
 from typing import Optional
 
@@ -39,14 +40,30 @@ from saml2.client import Saml2Client
 from saml2.ident import decode
 from saml2.metadata import entity_descriptor
 from saml2.saml import NAMEID_FORMAT_UNSPECIFIED, NameID, Subject
+from saml2.request import AuthnRequest
 from werkzeug.exceptions import Forbidden
 from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.userdb.exceptions import MultipleUsersReturned, UserDoesNotExist
 from eduid.webapp.authn import acs_actions  # acs_action needs to be imported to be loaded
 from eduid.webapp.authn.app import current_authn_app as current_app
+from eduid.webapp.authn.helpers import AuthnMsg
+from eduid.webapp.authn.schemas import (
+    AuthnAuthenticateRequestSchema,
+    AuthnCommonResponseSchema,
+    AuthnStatusRequestSchema,
+    AuthnStatusResponseSchema,
+)
+from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith
 from eduid.webapp.common.api.errors import EduidErrorsContext, goto_errors_response
-from eduid.webapp.common.api.messages import CommonMsg, redirect_with_msg
+from eduid.webapp.common.api.messages import (
+    CommonMsg,
+    FluxData,
+    TranslatableMsg,
+    error_response,
+    redirect_with_msg,
+    success_response,
+)
 from eduid.webapp.common.api.utils import sanitise_redirect_url
 from eduid.webapp.common.authn.acs_enums import AuthnAcsAction
 from eduid.webapp.common.authn.acs_registry import ACSArgs, get_action
@@ -69,7 +86,7 @@ def login() -> WerkzeugResponse:
     """
     login view, redirects to SAML2 IdP
     """
-    return _authn(AuthnAcsAction.login, same_user=False)
+    return _old_authn(AuthnAcsAction.login, same_user=False)
 
 
 @authn_views.route("/reauthn")
@@ -78,7 +95,7 @@ def reauthn() -> WerkzeugResponse:
     login view with force authn, redirects to SAML2 IdP
     """
     session.common.is_logged_in = False
-    return _authn(AuthnAcsAction.reauthn, force_authn=True)
+    return _old_authn(AuthnAcsAction.reauthn, force_authn=True)
 
 
 @authn_views.route("/chpass")
@@ -86,7 +103,7 @@ def chpass() -> WerkzeugResponse:
     """
     Reauthn view, sends a SAML2 reauthn request to the IdP.
     """
-    return _authn(AuthnAcsAction.change_password, force_authn=True)
+    return _old_authn(AuthnAcsAction.change_password, force_authn=True)
 
 
 @authn_views.route("/terminate")
@@ -94,16 +111,65 @@ def terminate() -> WerkzeugResponse:
     """
     Reauthn view, sends a SAML2 reauthn request to the IdP.
     """
-    return _authn(AuthnAcsAction.terminate_account, force_authn=True)
+    return _old_authn(AuthnAcsAction.terminate_account, force_authn=True)
 
 
-def _authn(action: AuthnAcsAction, force_authn: bool = False, same_user: bool = True) -> WerkzeugResponse:
-    # TODO: Stop using the "next" parameter, because it opens up for redirect attacks.
-    #       Instead, let frontend say "frontend_action=chpass" and we look up the finish_url
-    #       for "chpass" in configuration.
-    redirect_url = sanitise_redirect_url(request.args.get("next"), current_app.conf.saml2_login_redirect_url)
-    frontend_action = request.args.get("frontend_action", FALLBACK_FRONTEND_ACTION)
+@authn_views.route("/authenticate", methods=["POST"])
+@UnmarshalWith(AuthnAuthenticateRequestSchema)
+@MarshalWith(AuthnCommonResponseSchema)
+def authenticate(
+    method: str,
+    frontend_action: str,
+    frontend_state: Optional[str] = None,
+    same_user: Optional[bool] = None,
+    force_authn: Optional[bool] = None,
+) -> FluxData:
+    current_app.logger.debug(f"authenticate called with frontend_action: {frontend_action}")
 
+    # TODO: One idea would be for the backend to enforce the parameters needed for a certain frontend operation
+    #       (such as re-authn before password change) here, instead of leaving it up to the frontend to know what
+    #       the requirements will actually be for a certain operation, and fail to present an authentication that
+    #       meets those requirements later.
+
+    sp_authn = SP_AuthnRequest(
+        post_authn_action=AuthnAcsAction.login,
+        redirect_url=None,
+        frontend_action=frontend_action,
+        frontend_state=frontend_state,
+        method=method,
+    )
+
+    result = _authn(sp_authn, force_authn=bool(force_authn), same_user=bool(same_user), idp=_get_idp())
+
+    if result.error:
+        return error_response(message=result.error)
+
+    return success_response(payload={"location": result.url})
+
+
+# get_status to not get tangled up in /status/healthy and the like
+@authn_views.route("/get_status", methods=["POST"])
+@UnmarshalWith(AuthnStatusRequestSchema)
+@MarshalWith(AuthnStatusResponseSchema)
+def get_status(authn_id: AuthnRequestRef) -> FluxData:
+    authn = session.authn.sp.authns.get(authn_id)
+    if not authn:
+        return error_response(message=AuthnMsg.not_found)
+
+    payload = {
+        "authn_id": authn_id,
+        "frontend_action": authn.frontend_action,
+        "frontend_state": authn.frontend_state,
+        "method": authn.method,
+        "error": bool(authn.error),
+    }
+    if authn.status is not None:
+        payload["status"] = authn.status
+
+    return success_response(payload=payload)
+
+
+def _get_idp() -> str:
     # In the future, we might want to support choosing the IdP somehow but for now
     # the only supported configuration is one (1) IdP.
     _configured_idps = current_app.saml2_config.getattr("idp")
@@ -113,6 +179,19 @@ def _authn(action: AuthnAcsAction, force_authn: bool = False, same_user: bool = 
         raise RuntimeError("Unknown SAML2 idp config")
     # For now, we will only ever use the single configured IdP
     idp = list(_configured_idps.keys())[0]
+    assert isinstance(idp, str)
+    return idp
+
+
+def _old_authn(action: AuthnAcsAction, force_authn: bool = False, same_user: bool = True) -> WerkzeugResponse:
+    # TODO: Stop using the "next" parameter, because it opens up for redirect attacks.
+    #       Instead, let frontend say "frontend_action=chpass" and we look up the finish_url
+    #       for "chpass" in configuration.
+    redirect_url = sanitise_redirect_url(request.args.get("next"), current_app.conf.saml2_login_redirect_url)
+    frontend_action = request.args.get("frontend_action", FALLBACK_FRONTEND_ACTION)
+
+    idp = _get_idp()
+
     # Be somewhat backwards compatible and check the provided IdP parameter
     _requested_idp = request.args.get("idp")
     if _requested_idp and _requested_idp != idp:
@@ -120,20 +199,32 @@ def _authn(action: AuthnAcsAction, force_authn: bool = False, same_user: bool = 
         # TODO: use goto_errors_response()
         raise Forbidden("Requested IdP not allowed")
 
-    # finish_url = current_app.conf.frontend_action_finish_url.get(frontend_action)
-    # if not finish_url:
-    #    current_app.logger.warning(f'No finish_url for frontend_action {frontend_action}')
-    #    # TODO: use goto_errors_response()
-    #    raise Forbidden('Unknown frontend_action')
+    sp_authn = SP_AuthnRequest(post_authn_action=action, redirect_url=redirect_url, frontend_action=frontend_action)
 
+    result = _authn(sp_authn, force_authn, same_user, idp)
+    if not result.url:
+        raise RuntimeError("No redirect URL returned from _authn")
+
+    current_app.logger.debug(f"Redirecting user to the IdP: {result.url}")
+    return redirect(result.url)
+
+
+@dataclass
+class AuthnResult:
+    authn_id: Optional[AuthnRequestRef] = None
+    error: Optional[TranslatableMsg] = None
+    url: Optional[str] = None
+
+
+def _authn(sp_authn: SP_AuthnRequest, force_authn: bool, same_user: bool, idp: str) -> AuthnResult:
     _authn_id = AuthnRequestRef(str(uuid.uuid4()))
     # Filter out any previous authns with the same post_authn_action, both to keep the size of the session
     # below an upper bound, and because we currently need to use the post_authn_action value to find the
     # authn data for a specific action.
-    session.authn.sp.authns = {k: v for k, v in session.authn.sp.authns.items() if v.post_authn_action != action}
-    session.authn.sp.authns[_authn_id] = SP_AuthnRequest(
-        post_authn_action=action, redirect_url=redirect_url, frontend_action=frontend_action
-    )
+    session.authn.sp.authns = {
+        k: v for k, v in session.authn.sp.authns.items() if v.post_authn_action != sp_authn.post_authn_action
+    }
+    session.authn.sp.authns[_authn_id] = sp_authn
 
     subject = None
     if same_user:
@@ -152,11 +243,10 @@ def _authn(action: AuthnAcsAction, force_authn: bool = False, same_user: bool = 
         digest_alg=current_app.conf.authn_digest_alg,
         subject=subject,
     )
-    current_app.logger.info(f"Redirecting the user to the IdP for {action} (frontend_action {frontend_action})")
+    current_app.logger.info(f"Redirecting the user to the IdP for {sp_authn}")
     current_app.logger.debug(f"Stored SP_AuthnRequest[{_authn_id}]: {session.authn.sp.authns[_authn_id]}")
     _idp_redirect_url = get_location(authn_request)
-    current_app.logger.debug(f"Redirecting user to the IdP: {_idp_redirect_url}")
-    return redirect(_idp_redirect_url)
+    return AuthnResult(authn_id=_authn_id, url=_idp_redirect_url)
 
 
 @authn_views.route("/saml2-acs", methods=["POST"])
@@ -204,13 +294,15 @@ def assertion_consumer_service() -> WerkzeugResponse:
             rp=current_app.saml2_config.entityid,
         )
 
+    formatted_finish_url = finish_url.format(app_name=current_app.conf.app_name, authn_id=assertion.authn_req_ref)
+
     if not result.success:
         current_app.logger.info(f"SAML ACS action failed: {result.message}")
         # update session so this error can be retrieved from the /status endpoint
         _msg = result.message or CommonMsg.temp_problem
         args.authn_req.error = _msg.value
         # Including the error in the redirect URL is deprecated and should be removed once frontend stops using it
-        return redirect_with_msg(finish_url, _msg, error=True)
+        return redirect_with_msg(formatted_finish_url, _msg, error=True)
 
     current_app.logger.debug(f"SAML ACS action successful")
 
@@ -218,7 +310,7 @@ def assertion_consumer_service() -> WerkzeugResponse:
         current_app.logger.debug(f"SAML ACS action returned a response")
         return result.response
 
-    return redirect(finish_url)
+    return redirect(formatted_finish_url)
 
 
 def _get_authn_name_id(session: EduidSession) -> Optional[NameID]:

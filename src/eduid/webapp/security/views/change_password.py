@@ -44,6 +44,7 @@ from eduid.webapp.common.api.validation import is_valid_password
 from eduid.webapp.common.authn.acs_enums import AuthnAcsAction
 from eduid.webapp.common.authn.vccs import change_password
 from eduid.webapp.common.session import session
+from eduid.webapp.common.session.namespaces import AuthnRequestRef
 from eduid.webapp.security.app import current_security_app as current_app
 from eduid.webapp.security.helpers import (
     SecurityMsg,
@@ -63,7 +64,7 @@ change_password_views = Blueprint("change_password", __name__, url_prefix="/chan
 @change_password_views.route("/suggested-password", methods=["GET"])
 @MarshalWith(SuggestedPasswordResponseSchema)
 @require_user
-def get_suggested(user) -> FluxData:
+def get_suggested(user: User) -> FluxData:
     """
     View to get a suggested password for the logged user.
     """
@@ -83,15 +84,28 @@ def get_suggested(user) -> FluxData:
 @UnmarshalWith(ChangePasswordRequestSchema)
 @MarshalWith(SecurityResponseSchema)
 @require_user
-def change_password_view(user: User, new_password: str, old_password: Optional[str] = None) -> FluxData:
+def change_password_view(
+    user: User, new_password: str, old_password: Optional[str] = None, authn_id: Optional[str] = None
+) -> FluxData:
     """
     View to change the password
     """
-    authn = session.authn.sp.get_authn_for_action(AuthnAcsAction.change_password)
+    current_app.logger.debug(f"Set password called with authn_id {authn_id}")
+    authn = None
+    if authn_id:
+        authn = session.authn.sp.authns.get(AuthnRequestRef(authn_id))
+
+    if not authn_id:
+        # TODO: Remove this after a release of the new frontend to production.
+        authn = session.authn.sp.get_authn_for_action(AuthnAcsAction.change_password)
+
     current_app.logger.debug(f"change_password called with authn {authn}")
+
     _need_reauthn = check_reauthn(authn, current_app.conf.chpass_reauthn_timeout)
     if _need_reauthn:
         return _need_reauthn
+
+    assert authn is not None  # please mypy (if authn was None we would have returned with _need_reauthn above)
 
     if not new_password or (current_app.conf.chpass_old_password_needed and not old_password):
         return error_response(message=SecurityMsg.chpass_no_data)
@@ -100,7 +114,6 @@ def change_password_view(user: User, new_password: str, old_password: Optional[s
     if old_password is None:
         # Try to find the password credential that the user used for reauthn. That one should be revoked.
         # If we do not find it we will revoke all of the users passwords.
-        assert authn is not None  # please mypy (if authn was None we would have returned with _need_reauthn above)
         for cred_id in authn.credentials_used:
             credential = user.credentials.find(cred_id)
             if isinstance(credential, Password):
@@ -145,6 +158,8 @@ def change_password_view(user: User, new_password: str, old_password: Optional[s
 
     current_app.stats.count(name="security_password_changed")
     current_app.logger.info(f"Changed password for user")
+
+    authn.consumed = True
 
     return success_response(
         payload={"credentials": compile_credential_list(security_user)},

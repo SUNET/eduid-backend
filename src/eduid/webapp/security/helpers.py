@@ -157,6 +157,10 @@ def check_reauthn(authn: Optional[SP_AuthnRequest], max_age: timedelta) -> Optio
         current_app.logger.info(f"Action requires re-authentication")
         return error_response(message=SecurityMsg.no_reauthn)
 
+    if authn.consumed:
+        current_app.logger.info(f"The authentication presented has already been consumed")
+        return error_response(message=SecurityMsg.no_reauthn)
+
     delta = utc_now() - authn.authn_instant
 
     if delta > max_age:
