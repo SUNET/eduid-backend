@@ -1510,7 +1510,7 @@ redis==4.5.1 \
     #   -c main.txt
     #   -r main.in
     #   celery
-reportlab==3.6.12 \
+reportlab==3.6.13 \
     --hash=sha256:07fdd968df7941c2bfb67b9bb4532f424992dfafc71b72a4e4b291ff707e6b0e \
     --hash=sha256:090ea99ff829d918f7b6140594373b1340a34e1e6876eddae5aa06662ec10d64 \
     --hash=sha256:109009b02fc225882ea766a5ed8be0ef473fa1356e252a3f651a6aa89b4a195f \
