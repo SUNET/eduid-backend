@@ -31,6 +31,7 @@ class EidasStatusRequestSchema(EduidSchema, CSRFRequestMixin):
 
 class EidasStatusResponseSchema(EduidSchema, CSRFResponseMixin):
     class StatusResponsePayload(EduidSchema, CSRFResponseMixin):
+        authn_id = fields.String(required=False)
         frontend_action = fields.String(required=True)
         frontend_state = fields.String(required=False)
         method = fields.String(required=True)

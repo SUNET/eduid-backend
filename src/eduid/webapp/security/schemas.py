@@ -67,6 +67,7 @@ class ChpassResponseSchema(SecurityResponseSchema):
 
 class ChangePasswordRequestSchema(EduidSchema, CSRFRequestMixin):
 
+    authn_id = fields.String(required=False)
     old_password = fields.String(required=False)
     new_password = fields.String(required=True)
 
@@ -91,6 +92,7 @@ class ChangePasswordSchema(PasswordSchema):
     csrf_token = fields.String(required=True)
     old_password = fields.String(required=True)
     new_password = fields.String(required=True)
+    authn_id = fields.String(required=False)
 
     @validates("new_password")
     def validate_custom_password(self, value, **kwargs):

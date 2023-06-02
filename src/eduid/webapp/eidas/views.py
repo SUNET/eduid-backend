@@ -69,6 +69,7 @@ def get_status(authn_id: AuthnRequestRef) -> FluxData:
         return error_response(message=EidasMsg.not_found)
 
     payload = {
+        "authn_id": authn_id,
         "frontend_action": authn.frontend_action,
         "frontend_state": authn.frontend_state,
         "method": authn.method,

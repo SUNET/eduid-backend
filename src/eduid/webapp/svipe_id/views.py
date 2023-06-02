@@ -50,6 +50,7 @@ def get_status(authn_id: OIDCState) -> FluxData:
         return error_response(message=SvipeIDMsg.not_found)
 
     payload = {
+        "authn_id": str(authn_id),
         "frontend_action": authn.frontend_action,
         "frontend_state": authn.frontend_state,
         "method": authn.method,
