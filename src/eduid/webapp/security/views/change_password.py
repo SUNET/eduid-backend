@@ -107,6 +107,16 @@ def change_password_view(
 
     assert authn is not None  # please mypy (if authn was None we would have returned with _need_reauthn above)
 
+    if (
+        not authn.params.force_authn
+        or not authn.params.same_user
+        or not (authn.params.force_mfa or authn.params.high_security)
+    ):
+        # The current policy for changing the password is to require a re-authentication,
+        # and require at least opportunistic MFA to have been requested.
+        current_app.logger.info(f"Change password authentication policy not met: {authn.params}")
+        return error_response(message=SecurityMsg.no_reauthn)
+
     if not new_password or (current_app.conf.chpass_old_password_needed and not old_password):
         return error_response(message=SecurityMsg.chpass_no_data)
 

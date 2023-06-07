@@ -5,7 +5,7 @@ from abc import ABC
 from copy import deepcopy
 from datetime import datetime
 from enum import Enum, unique
-from typing import Any, Mapping, NewType, Optional, TypeVar, Union, cast
+from typing import Any, List, Mapping, NewType, Optional, TypeVar, Union, cast
 from uuid import uuid4
 
 from fido2.webauthn import AuthenticatorAttachment
@@ -242,6 +242,13 @@ class IdP_Namespace(TimestampedNS):
         self.pending_requests[request_ref].credentials_used[credential.key] = timestamp
 
 
+class AuthnParameters(BaseModel):
+    force_authn: bool = False  # a new authentication was required
+    force_mfa: bool = False  # require MFA even if the user has no token (use Freja or other)
+    high_security: bool = False  # opportunistic MFA, request it if the user has a token
+    same_user: bool = False  # the same user was required to log in, such as when entering the security center
+
+
 class BaseAuthnRequest(BaseModel, ABC):
     frontend_state: Optional[str] = None  # opaque data from frontend, returned in /status
     method: Optional[str] = None  # proofing method that frontend is invoking
@@ -258,9 +265,9 @@ class SP_AuthnRequest(BaseAuthnRequest):
     # proofing_credential_id is the credential being person-proofed, when doing that
     proofing_credential_id: Optional[ElementKey] = None
     redirect_url: Optional[str]  # Deprecated, use frontend_action to get return URL from config instead
-    force_authn: bool = False  # a new authentication was required
-    same_user: bool = False  # the same user was required to log in, such as when entering the security center
     consumed: bool = False  # an operation that requires a new authentication has used this one already
+    req_authn_ctx: List[str] = []  # the authentication contexts requested for this authentication
+    params: AuthnParameters = Field(default_factory=AuthnParameters)
 
 
 PySAML2Dicts = NewType("PySAML2Dicts", dict[str, dict[str, Any]])

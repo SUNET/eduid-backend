@@ -43,6 +43,7 @@ from saml2.saml import NAMEID_FORMAT_UNSPECIFIED, NameID, Subject
 from saml2.request import AuthnRequest
 from werkzeug.exceptions import Forbidden
 from werkzeug.wrappers import Response as WerkzeugResponse
+from eduid.userdb.credentials.fido import FidoCredential
 
 from eduid.userdb.exceptions import MultipleUsersReturned, UserDoesNotExist
 from eduid.webapp.authn import acs_actions  # acs_action needs to be imported to be loaded
@@ -71,7 +72,7 @@ from eduid.webapp.common.authn.cache import IdentityCache, StateCache
 from eduid.webapp.common.authn.eduid_saml2 import get_authn_request, process_assertion, saml_logout
 from eduid.webapp.common.authn.utils import check_previous_identification, get_location
 from eduid.webapp.common.session import EduidSession, session
-from eduid.webapp.common.session.namespaces import AuthnRequestRef, LoginApplication, SP_AuthnRequest
+from eduid.webapp.common.session.namespaces import AuthnParameters, AuthnRequestRef, LoginApplication, SP_AuthnRequest
 
 assert acs_actions  # make sure nothing optimises away the import of this, as it is needed to execute @acs_actions
 
@@ -79,6 +80,8 @@ authn_views = Blueprint("authn", __name__, url_prefix="")
 
 # use this as frontend_action to fall back to the old mechanism using redirect_url
 FALLBACK_FRONTEND_ACTION = "fallback-redirect-url"
+
+REFEDS_MFA = "https://refeds.org/profile/mfa"
 
 
 @authn_views.route("/login")
@@ -123,6 +126,8 @@ def authenticate(
     frontend_state: Optional[str] = None,
     same_user: Optional[bool] = None,
     force_authn: Optional[bool] = None,
+    high_security: Optional[bool] = None,
+    force_mfa: Optional[bool] = None,
 ) -> FluxData:
     current_app.logger.debug(f"authenticate called with frontend_action: {frontend_action}")
 
@@ -131,15 +136,37 @@ def authenticate(
     #       the requirements will actually be for a certain operation, and fail to present an authentication that
     #       meets those requirements later.
 
+    req_authn_ctx = []
+    _request_mfa = False
+    if high_security:
+        user = None
+        if session.common.eppn:
+            user = current_app.central_userdb.get_user_by_eppn(session.common.eppn)
+            if user.credentials.filter(FidoCredential):
+                _request_mfa = True
+        current_app.logger.debug(
+            f"High security authentication for user user {session.common.eppn} requested, available: {_request_mfa}"
+        )
+
+    if force_mfa or _request_mfa:
+        req_authn_ctx = [REFEDS_MFA]
+
     sp_authn = SP_AuthnRequest(
         post_authn_action=AuthnAcsAction.login,
         redirect_url=None,
         frontend_action=frontend_action,
         frontend_state=frontend_state,
         method=method,
+        req_authn_ctx=req_authn_ctx,
+        params=AuthnParameters(
+            force_authn=bool(force_authn),
+            force_mfa=bool(force_mfa),
+            high_security=bool(high_security),
+            same_user=bool(same_user),
+        ),
     )
 
-    result = _authn(sp_authn, force_authn=bool(force_authn), same_user=bool(same_user), idp=_get_idp())
+    result = _authn(sp_authn, idp=_get_idp())
 
     if result.error:
         return error_response(message=result.error)
@@ -199,9 +226,17 @@ def _old_authn(action: AuthnAcsAction, force_authn: bool = False, same_user: boo
         # TODO: use goto_errors_response()
         raise Forbidden("Requested IdP not allowed")
 
-    sp_authn = SP_AuthnRequest(post_authn_action=action, redirect_url=redirect_url, frontend_action=frontend_action)
+    sp_authn = SP_AuthnRequest(
+        post_authn_action=action,
+        redirect_url=redirect_url,
+        frontend_action=frontend_action,
+        params=AuthnParameters(
+            force_authn=bool(force_authn),
+            same_user=bool(same_user),
+        ),
+    )
 
-    result = _authn(sp_authn, force_authn, same_user, idp)
+    result = _authn(sp_authn, idp)
     if not result.url:
         raise RuntimeError("No redirect URL returned from _authn")
 
@@ -216,7 +251,7 @@ class AuthnResult:
     url: Optional[str] = None
 
 
-def _authn(sp_authn: SP_AuthnRequest, force_authn: bool, same_user: bool, idp: str) -> AuthnResult:
+def _authn(sp_authn: SP_AuthnRequest, idp: str) -> AuthnResult:
     _authn_id = AuthnRequestRef(str(uuid.uuid4()))
     # Filter out any previous authns with the same post_authn_action, both to keep the size of the session
     # below an upper bound, and because we currently need to use the post_authn_action value to find the
@@ -227,7 +262,7 @@ def _authn(sp_authn: SP_AuthnRequest, force_authn: bool, same_user: bool, idp: s
     session.authn.sp.authns[_authn_id] = sp_authn
 
     subject = None
-    if same_user:
+    if sp_authn.params.same_user:
         name_id = NameID(format=NAMEID_FORMAT_UNSPECIFIED, text=session.common.eppn)
         subject = Subject(name_id=name_id)
         current_app.logger.debug(f"Requesting re-login by the same user with {subject}")
@@ -238,7 +273,7 @@ def _authn(sp_authn: SP_AuthnRequest, force_authn: bool, same_user: bool, idp: s
         relay_state="",
         authn_id=_authn_id,
         selected_idp=idp,
-        force_authn=force_authn,
+        force_authn=sp_authn.params.force_authn,
         sign_alg=current_app.conf.authn_sign_alg,
         digest_alg=current_app.conf.authn_digest_alg,
         subject=subject,

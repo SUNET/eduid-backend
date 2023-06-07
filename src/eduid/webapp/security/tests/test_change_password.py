@@ -11,7 +11,7 @@ from eduid.webapp.authn.views import FALLBACK_FRONTEND_ACTION
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.common.api.utils import hash_password
 from eduid.webapp.common.authn.acs_enums import AuthnAcsAction
-from eduid.webapp.common.session.namespaces import AuthnRequestRef, SP_AuthnRequest
+from eduid.webapp.common.session.namespaces import AuthnParameters, AuthnRequestRef, SP_AuthnRequest
 from eduid.webapp.security.app import SecurityApp, security_init_app
 from eduid.webapp.security.helpers import SecurityMsg
 
@@ -97,6 +97,7 @@ class ChangePasswordTests(EduidAPITestCase[SecurityApp]):
                             redirect_url="/test",
                             authn_instant=utc_now() - timedelta(seconds=reauthn),
                             frontend_action=FALLBACK_FRONTEND_ACTION,
+                            params=AuthnParameters(force_authn=True, same_user=True, high_security=True),
                         )
                     data = {"new_password": "0ieT/(.edW76", "old_password": "5678", "csrf_token": sess.get_csrf_token()}
                     if data1 == {}:
@@ -143,6 +144,7 @@ class ChangePasswordTests(EduidAPITestCase[SecurityApp]):
                                         authn_instant=utc_now() - timedelta(seconds=reauthn),
                                         credentials_used=[ElementKey("112345678901234567890123")],
                                         frontend_action=FALLBACK_FRONTEND_ACTION,
+                                        params=AuthnParameters(force_authn=True, same_user=True, high_security=True),
                                     )
                             response2 = client.get("/change-password/suggested-password")
                             passwd = json.loads(response2.data)
