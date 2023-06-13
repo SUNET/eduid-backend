@@ -102,10 +102,11 @@ class ScimAttributes(ResponseMicroService):
         else:
             allow_users_not_in_database = self.config.allow_users_not_in_database
             if allow_users_not_in_database:
-                logger.info(f"User not found in database but letting through since 'allow_users_not_in_database' is set to {allow_users_not_in_database}")
+                logger.info(
+                    f"User not found in database but letting through since 'allow_users_not_in_database' is set to {allow_users_not_in_database}"
+                )
             else:
                 raise SATOSAAuthenticationError(context.state, f"User not found in database")
-
 
         return super().process(context, data)
 
