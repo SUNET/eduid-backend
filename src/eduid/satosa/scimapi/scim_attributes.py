@@ -23,7 +23,7 @@ class Config(object):
     mfa_stepup_issuer_to_entity_id: Mapping[str, str]
     virt_idp_to_data_owner: Mapping[str, str]
     scope_to_data_owner: Mapping[str, str] = field(default_factory=dict)
-    allow_users_not_in_database: Optional[bool] = False
+    allow_users_not_in_database: bool = False
 
 
 class ScimAttributes(ResponseMicroService):
