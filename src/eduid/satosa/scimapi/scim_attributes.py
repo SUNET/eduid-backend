@@ -20,9 +20,9 @@ logger = logging.getLogger(__name__)
 class Config(object):
     mongo_uri: str
     idp_to_data_owner: Mapping[str, str]
-    mfa_stepup_issuer_to_entity_id: Mapping[str, str]
     virt_idp_to_data_owner: Mapping[str, str]
     scope_to_data_owner: Mapping[str, str] = field(default_factory=dict)
+    mfa_stepup_issuer_to_entity_id: Mapping[str, str] = field(default_factory=dict)
     allow_users_not_in_database: bool = False
 
 
