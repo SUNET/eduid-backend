@@ -131,7 +131,7 @@ class ScimAttributes(ResponseMicroService):
         # Look for explicit information about what data owner to use for this IdP
         issuer = frontend_name
         data_owner: Optional[str] = self.config.virt_idp_to_data_owner.get(issuer)
-        # Fallback to issuer. Do we need that?
+        # Fallback to issuer. E.g Skolverkets idpproxy
         if not data_owner:
             issuer = data.auth_info.issuer
             data_owner = self.config.idp_to_data_owner.get(issuer)
