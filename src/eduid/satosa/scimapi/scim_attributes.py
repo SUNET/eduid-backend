@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class Config(object):
+    allow_users_not_in_database: Optional[bool] = False
     mongo_uri: str
     idp_to_data_owner: Mapping[str, str]
     mfa_stepup_issuer_to_entity_id: Mapping[str, str]
@@ -99,7 +100,12 @@ class ScimAttributes(ResponseMicroService):
             data.mfa_stepup_accounts = _stepup_accounts
             logger.debug(f"MFA stepup accounts: {data.mfa_stepup_accounts}")
         else:
-            raise SATOSAAuthenticationError(context.state, "User not found in database")
+            allow_users_not_in_database = self.config.allow_users_not_in_database
+            if allow_users_not_in_database:
+                logger.info(f"User not found in database but letting through since 'allow_users_not_in_database' is set to {allow_users_not_in_database}")
+            else:
+                raise SATOSAAuthenticationError(context.state, f"User not found in database")
+
 
         return super().process(context, data)
 
