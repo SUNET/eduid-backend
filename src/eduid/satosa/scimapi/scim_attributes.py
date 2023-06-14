@@ -101,10 +101,9 @@ class ScimAttributes(ResponseMicroService):
             data.mfa_stepup_accounts = _stepup_accounts
             logger.debug(f"MFA stepup accounts: {data.mfa_stepup_accounts}")
         else:
-            allow_users_not_in_database = self.config.allow_users_not_in_database
-            if allow_users_not_in_database:
+            if self.config.allow_users_not_in_database:
                 logger.info(
-                    f"User not found in database but letting through since 'allow_users_not_in_database' is set to {allow_users_not_in_database}"
+                    "User not found in database but letting through since 'allow_users_not_in_database' is set to False"
                 )
             else:
                 raise SATOSAAuthenticationError(context.state, f"User not found in database")
