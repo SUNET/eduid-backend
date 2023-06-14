@@ -19,8 +19,8 @@ logger = logging.getLogger(__name__)
 @dataclass
 class Config(object):
     mongo_uri: str
-    idp_to_data_owner: Mapping[str, str]
-    virt_idp_to_data_owner: Mapping[str, str]
+    idp_to_data_owner: Mapping[str, str] = field(default_factory=dict)
+    virt_idp_to_data_owner: Mapping[str, str] = field(default_factory=dict)
     fallback_data_owner: Optional[str] = None
     scope_to_data_owner: Mapping[str, str] = field(default_factory=dict)
     mfa_stepup_issuer_to_entity_id: Mapping[str, str] = field(default_factory=dict)
