@@ -1025,7 +1025,7 @@ pyparsing==3.0.9 \
     # via
     #   -c main.txt
     #   httplib2
-pypdf==3.5.1 \
+pypdf==3.9.0 \
     --hash=sha256:5cd99bdae4815842fb0d3b96220839d669f86c1fb57f46f0af1bb2994dfabfcb \
     --hash=sha256:d1bf57178cb8b75b6681c5ad786f9f1a8cd25899e8f79db6f537e215e16a27b2
     # via
