@@ -263,57 +263,67 @@ class AuthnAPITestCase(AuthnAPITestBase):
         super().setUp(users=["hubba-bubba", "hubba-fooo"])
 
     def test_login_authn(self):
-        self.authn("/login")
+        with self.app.test_request_context():
+            self.authn("/login")
 
     def test_login_authn_good_relay_state(self):
-        self.authn("/login", next_url="http://test.localhost/profile/")
+        with self.app.test_request_context():
+            self.authn("/login", next_url="http://test.localhost/profile/")
 
     def test_login_authn_bad_relay_state(self):
-        self.authn("/login", next_url="http://bad.localhost/evil/", expect_url_allowed=False)
+        with self.app.test_request_context():
+            self.authn("/login", next_url="http://bad.localhost/evil/", expect_url_allowed=False)
 
     def test_chpass_authn(self):
-        self.authn("/chpass", force_authn=True)
+        with self.app.test_request_context():
+            self.authn("/chpass", force_authn=True)
 
     def test_terminate_authn(self):
-        self.authn("/terminate", force_authn=True)
+        with self.app.test_request_context():
+            self.authn("/terminate", force_authn=True)
 
     def test_login_assertion_consumer_service(self):
-        eppn = "hubba-bubba"
+        with self.app.test_request_context():
+            eppn = "hubba-bubba"
 
-        res = self.acs("/login", eppn)
-        assert res.session.common.eppn == "hubba-bubba"
+            res = self.acs("/login", eppn)
+            assert res.session.common.eppn == "hubba-bubba"
 
     def test_login_assertion_consumer_service_good_relay_state(self):
-        eppn = "hubba-bubba"
+        with self.app.test_request_context():
+            eppn = "hubba-bubba"
 
-        res = self.acs("/login", eppn, next_url="/profile/")
-        assert res.session.common.eppn == "hubba-bubba"
+            res = self.acs("/login", eppn, next_url="/profile/")
+            assert res.session.common.eppn == "hubba-bubba"
 
     def test_login_assertion_consumer_service_bad_relay_state(self):
-        eppn = "hubba-bubba"
+        with self.app.test_request_context():
+            eppn = "hubba-bubba"
 
-        self.acs("/login", eppn, next_url="http://bad.localhost/evil/", expect_url_allowed=False)
+            self.acs("/login", eppn, next_url="http://bad.localhost/evil/", expect_url_allowed=False)
 
     def test_chpass_assertion_consumer_service(self):
-        res = self.acs("/chpass", self.test_user.eppn)
-        assert "reauthn-for-chpass" not in res.session  # this was the old method
-        assert res.session.common.eppn == self.test_user.eppn
-        assert res.session.common.is_logged_in is True
-        authn = res.session.authn.sp.authns[res.authn_ref]
-        assert authn.post_authn_action == AuthnAcsAction.change_password
-        assert authn.authn_instant is not None
-        age = utc_now() - authn.authn_instant
-        assert 10 < age.total_seconds() < 15
+        with self.app.test_request_context():
+            res = self.acs("/chpass", self.test_user.eppn)
+            assert "reauthn-for-chpass" not in res.session  # this was the old method
+            assert res.session.common.eppn == self.test_user.eppn
+            assert res.session.common.is_logged_in is True
+            authn = res.session.authn.sp.authns[res.authn_ref]
+            assert authn.post_authn_action == AuthnAcsAction.change_password
+            assert authn.authn_instant is not None
+            age = utc_now() - authn.authn_instant
+            assert 10 < age.total_seconds() < 15
 
     def test_terminate_assertion_consumer_service(self):
-        res = self.acs("/terminate", self.test_user.eppn)
-        assert res.session.common.eppn == self.test_user.eppn
-        assert res.session.common.is_logged_in == True
-        authn = res.session.authn.sp.authns[res.authn_ref]
-        assert authn.post_authn_action == AuthnAcsAction.terminate_account
-        assert authn.authn_instant is not None
-        age = utc_now() - authn.authn_instant
-        assert 10 < age.total_seconds() < 15
+        with self.app.test_request_context():
+            res = self.acs("/terminate", self.test_user.eppn)
+            assert res.session.common.eppn == self.test_user.eppn
+            assert res.session.common.is_logged_in == True
+            authn = res.session.authn.sp.authns[res.authn_ref]
+            assert authn.post_authn_action == AuthnAcsAction.terminate_account
+            assert authn.authn_instant is not None
+            age = utc_now() - authn.authn_instant
+            assert 10 < age.total_seconds() < 15
 
     def _signup_authn_user(self, eppn):
         timestamp = utc_now()
@@ -321,7 +331,9 @@ class AuthnAPITestCase(AuthnAPITestBase):
         with self.app.test_client() as c:
             with self.app.test_request_context("/signup-authn"):
                 c.set_cookie(
-                    "test.localhost", key=self.app.conf.flask.session_cookie_name, value=session.meta.cookie_val[16:]
+                    domain="test.localhost",
+                    key=self.app.conf.flask.session_cookie_name,
+                    value=session.meta.cookie_val[16:],
                 )
                 session.common.eppn = eppn
                 session.signup.ts = timestamp
@@ -385,11 +397,12 @@ class UnAuthnAPITestCase(EduidAPITestCase):
             self.assertTrue(resp.location.startswith(self.app.conf.token_service_url))
 
     def test_cookie(self):
-        sessid = "fb1f42420b0109020203325d750185673df252de388932a3957f522a6c43a" "a47"
-        self.redis_instance.conn.set(sessid, json.dumps({"v1": {"id": "0"}}))
+        with self.app.test_request_context():
+            sessid = "fb1f42420b0109020203325d750185673df252de388932a3957f522a6c43a" "a47"
+            self.redis_instance.conn.set(sessid, json.dumps({"v1": {"id": "0"}}))
 
-        with self.session_cookie(self.browser, self.test_user.eppn) as c:
-            self.assertRaises(NotFound, c.get, "/")
+            with self.session_cookie(self.browser, self.test_user.eppn) as c:
+                self.assertRaises(NotFound, c.get, "/")
 
 
 class NoAuthnAPITestCase(EduidAPITestCase):
@@ -479,18 +492,18 @@ class LogoutRequestTests(AuthnAPITestBase):
             self.assertIn(self.app.conf.saml2_logout_redirect_url, response.headers["Location"])
 
     def test_logout_loggedin(self):
-        cookie = self.login(eppn=self.test_user.eppn, came_from="/afterlogin/")
+        with self.app.test_request_context():
+            cookie = self.login(eppn=self.test_user.eppn, came_from="/afterlogin/")
 
-        with self.app.test_request_context("/logout", method="GET", headers={"Cookie": cookie}):
-            response = self.app.dispatch_request()
-            logger.debug(f"Test called /logout, response {response}")
-            self.assertEqual(response.status, "302 FOUND")
-            self.assertIn(
-                "https://idp.example.com/simplesaml/saml2/idp/SingleLogoutService.php", response.headers["location"]
-            )
+            with self.app.test_request_context("/logout", method="GET", headers={"Cookie": cookie}):
+                response = self.app.dispatch_request()
+                logger.debug(f"Test called /logout, response {response}")
+                self.assertEqual(response.status, "302 FOUND")
+                self.assertIn(
+                    "https://idp.example.com/simplesaml/saml2/idp/SingleLogoutService.php", response.headers["location"]
+                )
 
     def test_logout_service_startingSP(self):
-
         came_from = "/afterlogin/"
         session_id = self.add_outstanding_query(came_from)
         cookie = self.dump_session_cookie(session_id)
@@ -510,7 +523,6 @@ class LogoutRequestTests(AuthnAPITestBase):
             self.assertIn("testing-relay-state", response.location)
 
     def test_logout_service_startingSP_already_logout(self):
-
         came_from = "/afterlogin/"
         session_id = self.add_outstanding_query(came_from)
 
@@ -528,29 +540,28 @@ class LogoutRequestTests(AuthnAPITestBase):
             self.assertIn("testing-relay-state", response.location)
 
     def test_logout_service_startingIDP(self):
+        with self.app.test_request_context():
+            res = self.acs("/login", eppn=self.test_user.eppn, next_url="/afterlogin/")
+            cookie = self.dump_session_cookie(res.session.meta.cookie_val)
 
-        res = self.acs("/login", eppn=self.test_user.eppn, next_url="/afterlogin/")
-        cookie = self.dump_session_cookie(res.session.meta.cookie_val)
+            with self.app.test_request_context(
+                "/saml2-ls",
+                method="POST",
+                headers={"Cookie": cookie},
+                data={
+                    "SAMLRequest": deflate_and_base64_encode(logout_request("SESSION_ID")),
+                    "RelayState": "/testing-relay-state",
+                },
+            ):
+                response = self.app.dispatch_request()
 
-        with self.app.test_request_context(
-            "/saml2-ls",
-            method="POST",
-            headers={"Cookie": cookie},
-            data={
-                "SAMLRequest": deflate_and_base64_encode(logout_request("SESSION_ID")),
-                "RelayState": "/testing-relay-state",
-            },
-        ):
-            response = self.app.dispatch_request()
-
-            self.assertEqual(response.status, "302 FOUND")
-            assert (
-                "https://idp.example.com/simplesaml/saml2/idp/SingleLogoutService.php?SAMLResponse="
-                in response.location
-            )
+                self.assertEqual(response.status, "302 FOUND")
+                assert (
+                    "https://idp.example.com/simplesaml/saml2/idp/SingleLogoutService.php?SAMLResponse="
+                    in response.location
+                )
 
     def test_logout_service_startingIDP_no_subject_id(self):
-
         eppn = "hubba-bubba"
         came_from = "/afterlogin/"
         session_id = self.add_outstanding_query(came_from)

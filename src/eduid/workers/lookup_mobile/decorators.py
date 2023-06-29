@@ -21,7 +21,6 @@ class TransactionAudit:
         self.collection = None
 
     def __call__(self, f):
-
         if not self.enabled:
             return f
 

@@ -6,7 +6,6 @@ __author__ = "lundberg"
 
 # Models for filtering out unneeded or unwanted data from eduID database objects
 class GenericFilterDict(dict):
-
     add_keys: Optional[list[str]] = None
     remove_keys: Optional[list[str]] = None
 
@@ -37,7 +36,6 @@ class GenericFilterDict(dict):
 
 
 class SupportUserFilter(GenericFilterDict):
-
     remove_keys = ["_id", "letter_proofing_data"]
 
     def __init__(self, data):
@@ -50,7 +48,6 @@ class SupportUserFilter(GenericFilterDict):
 
 
 class SupportSignupUserFilter(GenericFilterDict):
-
     remove_keys = ["_id", "letter_proofing_data"]
 
     def __init__(self, data):
@@ -64,7 +61,6 @@ class SupportSignupUserFilter(GenericFilterDict):
 
 
 class MailAlias(GenericFilterDict):
-
     remove_keys = ["verification_code"]
 
 
@@ -73,7 +69,6 @@ class PendingMailAddress(MailAlias):
 
 
 class Credential(GenericFilterDict):
-
     add_keys = ["_id", "created_by", "created_ts", "type", "success_ts"]
 
     def __init__(self, data):
@@ -87,12 +82,10 @@ class Credential(GenericFilterDict):
 
 
 class ToU(GenericFilterDict):
-
     remove_keys = ["id"]
 
 
 class UserAuthnInfo(GenericFilterDict):
-
     add_keys = ["success_ts", "fail_count", "success_count"]
 
     def __init__(self, data):
@@ -106,17 +99,14 @@ class UserAuthnInfo(GenericFilterDict):
 
 
 class UserVerifications(GenericFilterDict):
-
     add_keys = ["verified", "obj_id", "timestamp", "model_name", "verified_timestamp"]
 
 
 class UserActions(GenericFilterDict):
-
     add_keys = ["action", "params"]
 
 
 class ProofingLogEntry(GenericFilterDict):
-
     add_keys = ["verified_data", "created_ts", "proofing_method", "proofing_version", "created_by", "vetting_by"]
 
     def __init__(self, data):
@@ -130,7 +120,6 @@ class ProofingLogEntry(GenericFilterDict):
 
 
 class UserLetterProofing(GenericFilterDict):
-
     add_keys = ["nin", "proofing_letter"]
 
     class Nin(GenericFilterDict):
@@ -147,7 +136,6 @@ class UserLetterProofing(GenericFilterDict):
 
 
 class UserOidcProofing(GenericFilterDict):
-
     add_keys = ["nin", "modified_ts", "state"]
 
     class Nin(GenericFilterDict):
@@ -160,7 +148,6 @@ class UserOidcProofing(GenericFilterDict):
 
 
 class UserEmailProofing(GenericFilterDict):
-
     add_keys = ["verification", "modified_ts"]
 
     class Verification(GenericFilterDict):
@@ -173,7 +160,6 @@ class UserEmailProofing(GenericFilterDict):
 
 
 class UserPhoneProofing(GenericFilterDict):
-
     add_keys = ["verification", "modified_ts"]
 
     class Verification(GenericFilterDict):

@@ -31,7 +31,6 @@ logger = get_task_logger(__name__)
 
 
 class eduid_signup(AttributeFetcher):
-
     whitelist_set_attrs = [
         "mail",
         "mailAliases",
@@ -60,7 +59,6 @@ class eduid_signup(AttributeFetcher):
 
 
 class eduid_oidc_proofing(AttributeFetcher):
-
     whitelist_set_attrs = [
         # TODO: Arrays must use put or pop, not set, but need more deep refacts
         "nins",  # Old format
@@ -77,7 +75,6 @@ class eduid_oidc_proofing(AttributeFetcher):
 
 
 class eduid_letter_proofing(AttributeFetcher):
-
     whitelist_set_attrs = [
         "nins",  # Old format
         "identities",  # New format
@@ -94,7 +91,6 @@ class eduid_letter_proofing(AttributeFetcher):
 
 
 class eduid_lookup_mobile_proofing(AttributeFetcher):
-
     whitelist_set_attrs = [
         "nins",  # Old format
         "identities",  # New format
@@ -110,7 +106,6 @@ class eduid_lookup_mobile_proofing(AttributeFetcher):
 
 
 class eduid_email(AttributeFetcher):
-
     whitelist_set_attrs = ["mailAliases"]
     whitelist_unset_attrs = [
         "mailAliases",
@@ -119,7 +114,6 @@ class eduid_email(AttributeFetcher):
 
 
 class eduid_phone(AttributeFetcher):
-
     whitelist_set_attrs = ["phone"]
     whitelist_unset_attrs = [
         "phone",
@@ -128,7 +122,6 @@ class eduid_phone(AttributeFetcher):
 
 
 class eduid_personal_data(AttributeFetcher):
-
     whitelist_set_attrs = [
         "givenName",
         "surname",
@@ -139,7 +132,6 @@ class eduid_personal_data(AttributeFetcher):
 
 
 class eduid_security(AttributeFetcher):
-
     whitelist_set_attrs = [
         "passwords",
         "terminated",
@@ -161,7 +153,6 @@ class eduid_security(AttributeFetcher):
 
 
 class eduid_reset_password(AttributeFetcher):
-
     whitelist_set_attrs = [
         "passwords",
         "terminated",  # For revoking termination status
@@ -180,7 +171,6 @@ class eduid_reset_password(AttributeFetcher):
 
 
 class eduid_orcid(AttributeFetcher):
-
     whitelist_set_attrs = [
         "orcid",
     ]
@@ -191,7 +181,6 @@ class eduid_orcid(AttributeFetcher):
 
 
 class eduid_eidas(AttributeFetcher):
-
     whitelist_set_attrs = [
         "passwords",
         "nins",  # Old format
@@ -208,14 +197,12 @@ class eduid_eidas(AttributeFetcher):
 
 
 class eduid_tou(AttributeFetcher):
-
     whitelist_set_attrs = ["tou"]
     whitelist_unset_attrs: list[str] = []
     get_user_db = lambda cls, uri: ToUUserDB(uri)
 
 
 class eduid_ladok(AttributeFetcher):
-
     whitelist_set_attrs = [
         "ladok",
     ]
@@ -226,7 +213,6 @@ class eduid_ladok(AttributeFetcher):
 
 
 class eduid_svipe_id(AttributeFetcher):
-
     whitelist_set_attrs = [
         "passwords",
         "identities",

@@ -66,6 +66,10 @@ kill_tests:
 	@echo "Stopping all temporary instances started by tests"
 	docker container stop $$(docker container ls -q --filter name=test_*)
 
+collect_tests:
+	@echo "Collecting all tests"
+	pytest --collect-only
+
 vscode_hosts:
 	# tests connect to mongodb etc. on "localhost", so we have to point that name at the docker gateway
 	rm -f /dev/shm/hosts
@@ -81,6 +85,7 @@ vscode_venv:
 vscode_pip: vscode_venv
 	$(info Installing pip packages in devcontainer)
 	pip3 install --upgrade pip
+	pip3 install pip-tools
 	.venv/bin/pip install -r requirements/test_requirements.txt
 	.venv/bin/mypy --install-types
 
@@ -90,4 +95,4 @@ vscode_packages:
 	sudo apt install -y swig xmlsec1 python3-venv docker.io
 
 # This target is used by the devcontainer.json to configure the devcontainer
-vscode: vscode_packages vscode_pip vscode_hosts
+vscode: vscode_packages vscode_pip vscode_hosts dev_sync_deps

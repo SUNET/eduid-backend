@@ -12,7 +12,6 @@ logger = logging.getLogger(__name__)
 
 
 class CSRFRequestMixin(Schema):
-
     csrf_token = fields.String(required=True)
 
     @validates("csrf_token")
@@ -38,7 +37,6 @@ class CSRFRequestMixin(Schema):
 
 
 class CSRFResponseMixin(Schema):
-
     csrf_token = fields.String(required=True)
 
     @pre_dump

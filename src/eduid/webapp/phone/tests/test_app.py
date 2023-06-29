@@ -248,7 +248,7 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
 
                 assert self.app.conf.magic_cookie_name is not None
                 assert self.app.conf.magic_cookie is not None
-                client.set_cookie("localhost", key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie)
+                client.set_cookie(domain="localhost", key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie)
 
                 phone = quote_plus(phone)
                 eppn = quote_plus(eppn)
@@ -454,7 +454,6 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
         phone = "+34609123321"
 
         with self.session_cookie(self.browser, eppn) as client:
-
             with self.app.test_request_context():
                 with client.session_transaction() as sess:
                     data = {
@@ -566,7 +565,6 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
         phone = "+34609123321"
 
         with self.session_cookie(self.browser, eppn) as client:
-
             with self.app.test_request_context():
                 with client.session_transaction() as sess:
                     data = {

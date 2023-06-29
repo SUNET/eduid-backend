@@ -478,7 +478,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         with self.session_cookie_anon(self.browser) as client:
             assert self.app.conf.magic_cookie_name is not None
             assert self.app.conf.magic_cookie is not None
-            client.set_cookie("localhost", key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie)
+            client.set_cookie(domain="localhost", key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie)
             eppn = quote_plus(self.test_user.eppn)
             return client.get(f"/get-email-code?eppn={eppn}")
 
@@ -529,7 +529,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
 
             assert self.app.conf.magic_cookie_name is not None
             assert self.app.conf.magic_cookie is not None
-            client.set_cookie("localhost", key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie)
+            client.set_cookie(domain="localhost", key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie)
 
             eppn = quote_plus(self.test_user.eppn)
 
@@ -574,600 +574,674 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         self.assertEqual("reset_password", self.app.conf.app_name)
 
     def test_post_email_address(self):
-        response = self._post_email_address()
-        self._check_success_response(response, msg=ResetPwMsg.reset_pw_initialized, type_="POST_RESET_PASSWORD_SUCCESS")
-        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
-        self.assertEqual(state.email_address, "johnsmith@example.com")
+        with self.app.test_request_context():
+            response = self._post_email_address()
+            self._check_success_response(
+                response, msg=ResetPwMsg.reset_pw_initialized, type_="POST_RESET_PASSWORD_SUCCESS"
+            )
+            state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+            self.assertEqual(state.email_address, "johnsmith@example.com")
 
     def test_post_email_address_throttled(self):
-        response1 = self._post_email_address()
-        self._check_success_response(
-            response1, msg=ResetPwMsg.reset_pw_initialized, type_="POST_RESET_PASSWORD_SUCCESS"
-        )
-        response2 = self._post_email_address()
-        self._check_success_response(
-            response2,
-            msg=ResetPwMsg.email_send_throttled,
-            type_="POST_RESET_PASSWORD_SUCCESS",
-            payload={"throttled_max": 300},
-        )
+        with self.app.test_request_context():
+            response1 = self._post_email_address()
+            self._check_success_response(
+                response1, msg=ResetPwMsg.reset_pw_initialized, type_="POST_RESET_PASSWORD_SUCCESS"
+            )
+            response2 = self._post_email_address()
+            self._check_success_response(
+                response2,
+                msg=ResetPwMsg.email_send_throttled,
+                type_="POST_RESET_PASSWORD_SUCCESS",
+                payload={"throttled_max": 300},
+            )
 
     def test_do_not_overwrite_email_state(self):
         # Avoid getting throttled
-        self.app.conf.throttle_resend = datetime.timedelta()
-        response1 = self._post_email_address()
-        self._check_success_response(
-            response1, msg=ResetPwMsg.reset_pw_initialized, type_="POST_RESET_PASSWORD_SUCCESS"
-        )
-        state1 = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
-        self.assertEqual(state1.email_address, "johnsmith@example.com")
-        self.assertIsNotNone(state1.email_code.code)
+        with self.app.test_request_context():
+            self.app.conf.throttle_resend = datetime.timedelta()
+            response1 = self._post_email_address()
+            self._check_success_response(
+                response1, msg=ResetPwMsg.reset_pw_initialized, type_="POST_RESET_PASSWORD_SUCCESS"
+            )
+            state1 = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+            self.assertEqual(state1.email_address, "johnsmith@example.com")
+            self.assertIsNotNone(state1.email_code.code)
 
-        response2 = self._post_email_address()
-        self._check_success_response(
-            response2, msg=ResetPwMsg.reset_pw_initialized, type_="POST_RESET_PASSWORD_SUCCESS"
-        )
-        state2 = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
-        self.assertEqual(state1.email_code.code, state2.email_code.code)
+            response2 = self._post_email_address()
+            self._check_success_response(
+                response2, msg=ResetPwMsg.reset_pw_initialized, type_="POST_RESET_PASSWORD_SUCCESS"
+            )
+            state2 = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+            self.assertEqual(state1.email_code.code, state2.email_code.code)
 
     def test_overwrite_expired_email_state(self):
-        response1 = self._post_email_address()
-        self._check_success_response(
-            response1, msg=ResetPwMsg.reset_pw_initialized, type_="POST_RESET_PASSWORD_SUCCESS"
-        )
-        state1 = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
-        # Set created time 5 minutes before email_code_timeout
-        state1.email_code.created_ts = datetime.datetime.utcnow() - (
-            self.app.conf.email_code_timeout + datetime.timedelta(minutes=5)
-        )
-        self.app.password_reset_state_db.save(state1)
+        with self.app.test_request_context():
+            response1 = self._post_email_address()
+            self._check_success_response(
+                response1, msg=ResetPwMsg.reset_pw_initialized, type_="POST_RESET_PASSWORD_SUCCESS"
+            )
+            state1 = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+            # Set created time 5 minutes before email_code_timeout
+            state1.email_code.created_ts = datetime.datetime.utcnow() - (
+                self.app.conf.email_code_timeout + datetime.timedelta(minutes=5)
+            )
+            self.app.password_reset_state_db.save(state1)
 
-        response2 = self._post_email_address()
-        self._check_success_response(
-            response2, msg=ResetPwMsg.reset_pw_initialized, type_="POST_RESET_PASSWORD_SUCCESS"
-        )
-        state2 = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
-        self.assertNotEqual(state1.email_code.code, state2.email_code.code)
+            response2 = self._post_email_address()
+            self._check_success_response(
+                response2, msg=ResetPwMsg.reset_pw_initialized, type_="POST_RESET_PASSWORD_SUCCESS"
+            )
+            state2 = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+            self.assertNotEqual(state1.email_code.code, state2.email_code.code)
 
     def test_post_email_address_sendmail_fail(self):
-        from eduid.common.rpc.exceptions import MailTaskFailed
+        with self.app.test_request_context():
+            from eduid.common.rpc.exceptions import MailTaskFailed
 
-        response = self._post_email_address(sendmail_return=False, sendmail_side_effect=MailTaskFailed)
-        self._check_error_response(response, msg=ResetPwMsg.email_send_failure, type_="POST_RESET_PASSWORD_FAIL")
+            response = self._post_email_address(sendmail_return=False, sendmail_side_effect=MailTaskFailed)
+            self._check_error_response(response, msg=ResetPwMsg.email_send_failure, type_="POST_RESET_PASSWORD_FAIL")
 
     @patch("eduid.userdb.userdb.UserDB.get_user_by_mail")
     def test_post_email_uncomplete_signup(self, mock_get_user: Mock):
-        mock_get_user.side_effect = UserHasNotCompletedSignup("incomplete signup")
-        response = self._post_email_address()
-        self._check_error_response(response, msg=ResetPwMsg.invalid_user, type_="POST_RESET_PASSWORD_FAIL")
+        with self.app.test_request_context():
+            mock_get_user.side_effect = UserHasNotCompletedSignup("incomplete signup")
+            response = self._post_email_address()
+            self._check_error_response(response, msg=ResetPwMsg.invalid_user, type_="POST_RESET_PASSWORD_FAIL")
 
     def test_post_unknown_email_address(self):
-        data = {"email": "unknown@unplaced.un"}
-        response = self._post_email_address(data1=data)
-        self._check_error_response(response, msg=ResetPwMsg.user_not_found, type_="POST_RESET_PASSWORD_FAIL")
+        with self.app.test_request_context():
+            data = {"email": "unknown@unplaced.un"}
+            response = self._post_email_address(data1=data)
+            self._check_error_response(response, msg=ResetPwMsg.user_not_found, type_="POST_RESET_PASSWORD_FAIL")
 
     def test_post_invalid_email_address(self):
-        data = {"email": "invalid-address"}
-        response = self._post_email_address(data1=data)
-        self._check_error_response(
-            response,
-            type_="POST_RESET_PASSWORD_FAIL",
-            payload={"error": {"email": ["Not a valid email address."]}},
-        )
+        with self.app.test_request_context():
+            data = {"email": "invalid-address"}
+            response = self._post_email_address(data1=data)
+            self._check_error_response(
+                response,
+                type_="POST_RESET_PASSWORD_FAIL",
+                payload={"error": {"email": ["Not a valid email address."]}},
+            )
 
     def test_post_reset_code(self):
-        response = self._post_reset_code()
-        assert response is not None
-        self._check_success_response(
-            response,
-            type_="POST_RESET_PASSWORD_VERIFY_EMAIL_SUCCESS",
-            payload={
-                "email_address": "johnsmith@example.com",
-                "extra_security": {"external_mfa": True, "phone_numbers": [{"index": 0, "number": "XXXXXXXXXX09"}]},
-                "success": True,
-                "zxcvbn_terms": ["John", "Smith", "John", "Smith", "johnsmith", "johnsmith2"],
-            },
-        )
+        with self.app.test_request_context():
+            response = self._post_reset_code()
+            assert response is not None
+            self._check_success_response(
+                response,
+                type_="POST_RESET_PASSWORD_VERIFY_EMAIL_SUCCESS",
+                payload={
+                    "email_address": "johnsmith@example.com",
+                    "extra_security": {"external_mfa": True, "phone_numbers": [{"index": 0, "number": "XXXXXXXXXX09"}]},
+                    "success": True,
+                    "zxcvbn_terms": ["John", "Smith", "John", "Smith", "johnsmith", "johnsmith2"],
+                },
+            )
 
     def test_post_reset_code_unknown_email(self):
-        data1 = {"email": "unknown@unknown.com"}
-        assert not self._post_reset_code(data1=data1)
+        with self.app.test_request_context():
+            data1 = {"email": "unknown@unknown.com"}
+            assert not self._post_reset_code(data1=data1)
 
     def test_post_reset_code_no_extra_sec(self):
-        user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
-        # Remove all verified phone numbers
-        for number in user.phone_numbers.verified:
-            user.phone_numbers.remove_handling_primary(number.key)
-        # Remove all verified identities
-        for identity in user.identities.verified:
-            user.identities.remove(identity.key)
-        self.app.central_userdb.save(user)
-        response = self._post_reset_code()
-        assert response is not None
-        self._check_success_response(
-            response,
-            type_="POST_RESET_PASSWORD_VERIFY_EMAIL_SUCCESS",
-            payload={
-                "email_address": "johnsmith@example.com",
-                "extra_security": {},
-                "success": True,
-                "zxcvbn_terms": ["John", "Smith", "John", "Smith", "johnsmith", "johnsmith2"],
-            },
-        )
+        with self.app.test_request_context():
+            user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
+            # Remove all verified phone numbers
+            for number in user.phone_numbers.verified:
+                user.phone_numbers.remove_handling_primary(number.key)
+            # Remove all verified identities
+            for identity in user.identities.verified:
+                user.identities.remove(identity.key)
+            self.app.central_userdb.save(user)
+            response = self._post_reset_code()
+            assert response is not None
+            self._check_success_response(
+                response,
+                type_="POST_RESET_PASSWORD_VERIFY_EMAIL_SUCCESS",
+                payload={
+                    "email_address": "johnsmith@example.com",
+                    "extra_security": {},
+                    "success": True,
+                    "zxcvbn_terms": ["John", "Smith", "John", "Smith", "johnsmith", "johnsmith2"],
+                },
+            )
 
     def test_post_reset_code_extra_security_alternatives_security_key(self):
-        user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
-        # add security key to user
-        user.credentials.add(webauthn_credential)
-        self.app.central_userdb.save(user)
-        response = self._post_reset_code()
-        assert response is not None
-        self._check_success_response(
-            response,
-            type_="POST_RESET_PASSWORD_VERIFY_EMAIL_SUCCESS",
-            payload={
-                "email_address": "johnsmith@example.com",
-                "success": True,
-                "zxcvbn_terms": ["John", "Smith", "John", "Smith", "johnsmith", "johnsmith2"],
-            },
-        )
-        # cant compare extra_security with _check_success_response as the value of webauthn_options is different per run
-        assert "tokens" in self.get_response_payload(response)["extra_security"]
-        assert "webauthn_options" in self.get_response_payload(response)["extra_security"]["tokens"]
+        with self.app.test_request_context():
+            user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
+            # add security key to user
+            user.credentials.add(webauthn_credential)
+            self.app.central_userdb.save(user)
+            response = self._post_reset_code()
+            assert response is not None
+            self._check_success_response(
+                response,
+                type_="POST_RESET_PASSWORD_VERIFY_EMAIL_SUCCESS",
+                payload={
+                    "email_address": "johnsmith@example.com",
+                    "success": True,
+                    "zxcvbn_terms": ["John", "Smith", "John", "Smith", "johnsmith", "johnsmith2"],
+                },
+            )
+            # cant compare extra_security with _check_success_response as the value of webauthn_options is different per run
+            assert "tokens" in self.get_response_payload(response)["extra_security"]
+            assert "webauthn_options" in self.get_response_payload(response)["extra_security"]["tokens"]
 
     def test_post_reset_wrong_code(self):
-        data2 = {"email_code": "wrong-code"}
-        response = self._post_reset_code(data2=data2)
-        assert response is not None
-        self._check_error_response(
-            response, type_="POST_RESET_PASSWORD_VERIFY_EMAIL_FAIL", msg=ResetPwMsg.state_not_found
-        )
+        with self.app.test_request_context():
+            data2 = {"email_code": "wrong-code"}
+            response = self._post_reset_code(data2=data2)
+            assert response is not None
+            self._check_error_response(
+                response, type_="POST_RESET_PASSWORD_VERIFY_EMAIL_FAIL", msg=ResetPwMsg.state_not_found
+            )
 
     def test_post_reset_wrong_csrf(self):
-        data2 = {"csrf_token": "wrong-code"}
-        response = self._post_reset_code(data2=data2)
-        assert response is not None
-        self._check_error_response(
-            response,
-            type_="POST_RESET_PASSWORD_VERIFY_EMAIL_FAIL",
-            error={"csrf_token": ["CSRF failed to validate"]},
-        )
+        with self.app.test_request_context():
+            data2 = {"csrf_token": "wrong-code"}
+            response = self._post_reset_code(data2=data2)
+            assert response is not None
+            self._check_error_response(
+                response,
+                type_="POST_RESET_PASSWORD_VERIFY_EMAIL_FAIL",
+                error={"csrf_token": ["CSRF failed to validate"]},
+            )
 
     @patch("eduid.common.rpc.mail_relay.MailRelay.sendmail")
     def test_post_reset_invalid_session_eppn(self, mock_sendmail):
-        mock_sendmail.return_value = True
-        if self.test_user.mail_addresses.primary is None:
-            raise RuntimeError(f"user {self.test_user} has no primary email address")
-
-        # Request reset password email for test_user using other_test_user session
         with self.app.test_request_context():
-            request_url = url_for("reset_password.start_reset_pw", _external=True)
-        with self.session_cookie(self.browser, eppn=self.other_test_user.eppn) as c:
-            response = c.get("/", content_type=self.content_type_json)
-            data = {
-                "email": self.test_user.mail_addresses.primary.email,
-                "csrf_token": self.get_response_payload(response)["csrf_token"],
-            }
-            response = c.post(request_url, data=json.dumps(data), content_type=self.content_type_json)
+            mock_sendmail.return_value = True
+            if self.test_user.mail_addresses.primary is None:
+                raise RuntimeError(f"user {self.test_user} has no primary email address")
 
-        # Try to verify email code for test_user using other_test_user session
-        with self.app.test_request_context():
+            # Request reset password email for test_user using other_test_user session
+            with self.app.test_request_context():
+                request_url = url_for("reset_password.start_reset_pw", _external=True)
+            with self.session_cookie(self.browser, eppn=self.other_test_user.eppn) as c:
+                response = c.get("/", content_type=self.content_type_json)
+                data = {
+                    "email": self.test_user.mail_addresses.primary.email,
+                    "csrf_token": self.get_response_payload(response)["csrf_token"],
+                }
+                response = c.post(request_url, data=json.dumps(data), content_type=self.content_type_json)
+
+            # Try to verify email code for test_user using other_test_user session
             verify_url = url_for("reset_password.verify_email", _external=True)
-        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
-        with self.session_cookie(self.browser, eppn=self.other_test_user.eppn) as c:
-            data = {
-                "email_code": state.email_code.code,
-                "csrf_token": self.get_response_payload(response)["csrf_token"],
-            }
-            response = c.post(verify_url, data=json.dumps(data), content_type=self.content_type_json)
+            state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+            with self.session_cookie(self.browser, eppn=self.other_test_user.eppn) as c:
+                data = {
+                    "email_code": state.email_code.code,
+                    "csrf_token": self.get_response_payload(response)["csrf_token"],
+                }
+                response = c.post(verify_url, data=json.dumps(data), content_type=self.content_type_json)
 
-        self._check_error_response(
-            response=response, type_="POST_RESET_PASSWORD_VERIFY_EMAIL_FAIL", msg=ResetPwMsg.invalid_session
-        )
+            self._check_error_response(
+                response=response, type_="POST_RESET_PASSWORD_VERIFY_EMAIL_FAIL", msg=ResetPwMsg.invalid_session
+            )
 
     def test_post_reset_password(self):
-        response = self._post_reset_password()
-        self._check_success_response(
-            response, type_="POST_RESET_PASSWORD_NEW_PASSWORD_SUCCESS", msg=ResetPwMsg.pw_reset_success
-        )
+        with self.app.test_request_context():
+            response = self._post_reset_password()
+            self._check_success_response(
+                response, type_="POST_RESET_PASSWORD_NEW_PASSWORD_SUCCESS", msg=ResetPwMsg.pw_reset_success
+            )
 
-        # check that the user no longer has verified data
-        user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
-        verified_phone_numbers = user.phone_numbers.verified
-        self.assertEqual(len(verified_phone_numbers), 0)
-        verified_identities = user.identities.verified
-        self.assertEqual(len(verified_identities), 0)
+            # check that the user no longer has verified data
+            user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
+            verified_phone_numbers = user.phone_numbers.verified
+            self.assertEqual(len(verified_phone_numbers), 0)
+            verified_identities = user.identities.verified
+            self.assertEqual(len(verified_identities), 0)
 
-        # check that the password is marked as generated
-        self.assertTrue(user.credentials.to_list()[0].is_generated)
+            # check that the password is marked as generated
+            self.assertTrue(user.credentials.to_list()[0].is_generated)
 
     def test_post_reset_password_no_data(self):
-        response = self._post_reset_password(data2={})
-        self._check_error_response(
-            response,
-            type_="POST_RESET_PASSWORD_NEW_PASSWORD_FAIL",
-            error={
-                "email_code": ["Missing data for required field."],
-                "csrf_token": ["Missing data for required field."],
-                "password": ["Missing data for required field."],
-            },
-        )
+        with self.app.test_request_context():
+            response = self._post_reset_password(data2={})
+            self._check_error_response(
+                response,
+                type_="POST_RESET_PASSWORD_NEW_PASSWORD_FAIL",
+                error={
+                    "email_code": ["Missing data for required field."],
+                    "csrf_token": ["Missing data for required field."],
+                    "password": ["Missing data for required field."],
+                },
+            )
 
     def test_post_reset_password_weak(self):
-        data2 = {"password": "pw"}
-        response = self._post_reset_password(data2=data2)
-        self._check_error_response(response, type_="POST_RESET_PASSWORD_NEW_PASSWORD_FAIL", msg=ResetPwMsg.resetpw_weak)
+        with self.app.test_request_context():
+            data2 = {"password": "pw"}
+            response = self._post_reset_password(data2=data2)
+            self._check_error_response(
+                response, type_="POST_RESET_PASSWORD_NEW_PASSWORD_FAIL", msg=ResetPwMsg.resetpw_weak
+            )
 
     def test_post_reset_password_no_csrf(self):
-        data2 = {"csrf_token": ""}
-        response = self._post_reset_password(data2=data2)
-        self._check_error_response(
-            response,
-            type_="POST_RESET_PASSWORD_NEW_PASSWORD_FAIL",
-            error={
-                "csrf_token": ["CSRF failed to validate"],
-            },
-        )
+        with self.app.test_request_context():
+            data2 = {"csrf_token": ""}
+            response = self._post_reset_password(data2=data2)
+            self._check_error_response(
+                response,
+                type_="POST_RESET_PASSWORD_NEW_PASSWORD_FAIL",
+                error={
+                    "csrf_token": ["CSRF failed to validate"],
+                },
+            )
 
     def test_post_reset_password_wrong_code(self):
-        data2 = {"email_code": "wrong-code"}
-        response = self._post_reset_password(data2=data2)
-        self._check_error_response(
-            response, type_="POST_RESET_PASSWORD_NEW_PASSWORD_FAIL", msg=ResetPwMsg.state_not_found
-        )
+        with self.app.test_request_context():
+            data2 = {"email_code": "wrong-code"}
+            response = self._post_reset_password(data2=data2)
+            self._check_error_response(
+                response, type_="POST_RESET_PASSWORD_NEW_PASSWORD_FAIL", msg=ResetPwMsg.state_not_found
+            )
 
-        # check that the user still has verified data
-        user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
-        verified_phone_numbers = user.phone_numbers.verified
-        self.assertEqual(len(verified_phone_numbers), 1)
-        verified_identities = user.identities.verified
-        self.assertEqual(len(verified_identities), 3)
+            # check that the user still has verified data
+            user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
+            verified_phone_numbers = user.phone_numbers.verified
+            self.assertEqual(len(verified_phone_numbers), 1)
+            verified_identities = user.identities.verified
+            self.assertEqual(len(verified_identities), 3)
 
     def test_post_reset_password_custom(self):
-        data2 = {"password": "cust0m-p4ssw0rd"}
-        response = self._post_reset_password(data2=data2)
-        self._check_success_response(
-            response, type_="POST_RESET_PASSWORD_NEW_PASSWORD_SUCCESS", msg=ResetPwMsg.pw_reset_success
-        )
+        with self.app.test_request_context():
+            data2 = {"password": "cust0m-p4ssw0rd"}
+            response = self._post_reset_password(data2=data2)
+            self._check_success_response(
+                response, type_="POST_RESET_PASSWORD_NEW_PASSWORD_SUCCESS", msg=ResetPwMsg.pw_reset_success
+            )
 
-        user = self.app.private_userdb.get_user_by_eppn(self.test_user.eppn)
-        self.assertFalse(user.credentials.to_list()[0].is_generated)
+            user = self.app.private_userdb.get_user_by_eppn(self.test_user.eppn)
+            self.assertFalse(user.credentials.to_list()[0].is_generated)
 
     def test_post_choose_extra_sec(self):
-        response = self._post_choose_extra_sec()
-        self._check_success_response(
-            response, type_="POST_RESET_PASSWORD_EXTRA_SECURITY_PHONE_SUCCESS", msg=ResetPwMsg.send_sms_success
-        )
+        with self.app.test_request_context():
+            response = self._post_choose_extra_sec()
+            self._check_success_response(
+                response, type_="POST_RESET_PASSWORD_EXTRA_SECURITY_PHONE_SUCCESS", msg=ResetPwMsg.send_sms_success
+            )
 
     def test_post_choose_extra_sec_sms_fail(self):
-        self.app.conf.throttle_sms = 300
-        from eduid.common.rpc.exceptions import MsgTaskFailed
+        with self.app.test_request_context():
+            self.app.conf.throttle_sms = 300
+            from eduid.common.rpc.exceptions import MsgTaskFailed
 
-        response = self._post_choose_extra_sec(sendsms_side_effect=MsgTaskFailed())
-        self._check_error_response(
-            response, type_="POST_RESET_PASSWORD_EXTRA_SECURITY_PHONE_FAIL", msg=ResetPwMsg.send_sms_failure
-        )
+            response = self._post_choose_extra_sec(sendsms_side_effect=MsgTaskFailed())
+            self._check_error_response(
+                response, type_="POST_RESET_PASSWORD_EXTRA_SECURITY_PHONE_FAIL", msg=ResetPwMsg.send_sms_failure
+            )
 
     def test_post_choose_extra_sec_throttled(self):
-        self.app.conf.throttle_sms = datetime.timedelta(minutes=5)
-        response = self._post_choose_extra_sec(repeat=True)
-        self._check_error_response(
-            response, type_="POST_RESET_PASSWORD_EXTRA_SECURITY_PHONE_FAIL", msg=ResetPwMsg.send_sms_throttled
-        )
+        with self.app.test_request_context():
+            self.app.conf.throttle_sms = datetime.timedelta(minutes=5)
+            response = self._post_choose_extra_sec(repeat=True)
+            self._check_error_response(
+                response, type_="POST_RESET_PASSWORD_EXTRA_SECURITY_PHONE_FAIL", msg=ResetPwMsg.send_sms_throttled
+            )
 
     def test_post_choose_extra_sec_not_throttled(self):
-        self.app.conf.throttle_sms = 0
-        response = self._post_choose_extra_sec(repeat=True)
-        self._check_success_response(
-            response, type_="POST_RESET_PASSWORD_EXTRA_SECURITY_PHONE_SUCCESS", msg=ResetPwMsg.send_sms_success
-        )
+        with self.app.test_request_context():
+            self.app.conf.throttle_sms = 0
+            response = self._post_choose_extra_sec(repeat=True)
+            self._check_success_response(
+                response, type_="POST_RESET_PASSWORD_EXTRA_SECURITY_PHONE_SUCCESS", msg=ResetPwMsg.send_sms_success
+            )
 
     def test_post_choose_extra_sec_wrong_code(self):
-        data2 = {"email_code": "wrong-code"}
-        response = self._post_choose_extra_sec(data2=data2)
-        self._check_error_response(
-            response, type_="POST_RESET_PASSWORD_EXTRA_SECURITY_PHONE_FAIL", msg=ResetPwMsg.email_not_validated
-        )
+        with self.app.test_request_context():
+            data2 = {"email_code": "wrong-code"}
+            response = self._post_choose_extra_sec(data2=data2)
+            self._check_error_response(
+                response, type_="POST_RESET_PASSWORD_EXTRA_SECURITY_PHONE_FAIL", msg=ResetPwMsg.email_not_validated
+            )
 
     def test_post_choose_extra_sec_bad_phone_index(self):
-        data3 = {"phone_index": "3"}
-        response = self._post_choose_extra_sec(data3=data3)
-        self._check_error_response(
-            response, type_="POST_RESET_PASSWORD_EXTRA_SECURITY_PHONE_FAIL", msg=ResetPwMsg.unknown_phone_number
-        )
+        with self.app.test_request_context():
+            data3 = {"phone_index": "3"}
+            response = self._post_choose_extra_sec(data3=data3)
+            self._check_error_response(
+                response, type_="POST_RESET_PASSWORD_EXTRA_SECURITY_PHONE_FAIL", msg=ResetPwMsg.unknown_phone_number
+            )
 
     def test_post_choose_extra_sec_wrong_csrf_token(self):
-        data3 = {"csrf_token": "wrong-token"}
-        response = self._post_choose_extra_sec(data3=data3)
-        self._check_error_response(
-            response,
-            type_="POST_RESET_PASSWORD_EXTRA_SECURITY_PHONE_FAIL",
-            error={"csrf_token": ["CSRF failed to validate"]},
-        )
+        with self.app.test_request_context():
+            data3 = {"csrf_token": "wrong-token"}
+            response = self._post_choose_extra_sec(data3=data3)
+            self._check_error_response(
+                response,
+                type_="POST_RESET_PASSWORD_EXTRA_SECURITY_PHONE_FAIL",
+                error={"csrf_token": ["CSRF failed to validate"]},
+            )
 
     def test_post_choose_extra_sec_wrong_final_code(self):
-        data3 = {"email_code": "wrong-code"}
-        response = self._post_choose_extra_sec(data3=data3)
-        self._check_error_response(
-            response, type_="POST_RESET_PASSWORD_EXTRA_SECURITY_PHONE_FAIL", msg=ResetPwMsg.state_not_found
-        )
+        with self.app.test_request_context():
+            data3 = {"email_code": "wrong-code"}
+            response = self._post_choose_extra_sec(data3=data3)
+            self._check_error_response(
+                response, type_="POST_RESET_PASSWORD_EXTRA_SECURITY_PHONE_FAIL", msg=ResetPwMsg.state_not_found
+            )
 
     def test_post_reset_password_secure_phone(self):
-        response = self._post_reset_password_secure_phone()
-        self._check_success_response(
-            response,
-            type_="POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_PHONE_SUCCESS",
-            msg=ResetPwMsg.pw_reset_success,
-        )
+        with self.app.test_request_context():
+            response = self._post_reset_password_secure_phone()
+            self._check_success_response(
+                response,
+                type_="POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_PHONE_SUCCESS",
+                msg=ResetPwMsg.pw_reset_success,
+            )
 
-        # check that the user still has verified data
-        user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
-        verified_phone_numbers = user.phone_numbers.verified
-        self.assertEqual(1, len(verified_phone_numbers))
-        verified_identities = user.identities.verified
-        self.assertEqual(len(verified_identities), 3)
+            # check that the user still has verified data
+            user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
+            verified_phone_numbers = user.phone_numbers.verified
+            self.assertEqual(1, len(verified_phone_numbers))
+            verified_identities = user.identities.verified
+            self.assertEqual(len(verified_identities), 3)
 
     @patch("eduid.webapp.reset_password.views.reset_password.verify_phone_number")
     def test_post_reset_password_secure_phone_verify_fail(self, mock_verify: Any):
-        mock_verify.return_value = False
-        response = self._post_reset_password_secure_phone()
-        self._check_error_response(
-            response, type_="POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_PHONE_FAIL", msg=ResetPwMsg.phone_invalid
-        )
+        with self.app.test_request_context():
+            mock_verify.return_value = False
+            response = self._post_reset_password_secure_phone()
+            self._check_error_response(
+                response,
+                type_="POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_PHONE_FAIL",
+                msg=ResetPwMsg.phone_invalid,
+            )
 
     def test_post_reset_password_secure_phone_wrong_csrf_token(self):
-        data2 = {"csrf_token": "wrong-code"}
-        response = self._post_reset_password_secure_phone(data2=data2)
-        self._check_error_response(
-            response,
-            type_="POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_PHONE_FAIL",
-            error={"csrf_token": ["CSRF failed to validate"]},
-        )
+        with self.app.test_request_context():
+            data2 = {"csrf_token": "wrong-code"}
+            response = self._post_reset_password_secure_phone(data2=data2)
+            self._check_error_response(
+                response,
+                type_="POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_PHONE_FAIL",
+                error={"csrf_token": ["CSRF failed to validate"]},
+            )
 
     def test_post_reset_password_secure_phone_wrong_email_code(self):
-        data2 = {"email_code": "wrong-code"}
-        response = self._post_reset_password_secure_phone(data2=data2)
-        self._check_error_response(
-            response, type_="POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_PHONE_FAIL", msg=ResetPwMsg.state_not_found
-        )
+        with self.app.test_request_context():
+            data2 = {"email_code": "wrong-code"}
+            response = self._post_reset_password_secure_phone(data2=data2)
+            self._check_error_response(
+                response,
+                type_="POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_PHONE_FAIL",
+                msg=ResetPwMsg.state_not_found,
+            )
 
     def test_post_reset_password_secure_phone_wrong_sms_code(self):
-        data2 = {"phone_code": "wrong-code"}
-        response = self._post_reset_password_secure_phone(data2=data2)
-        self._check_error_response(
-            response,
-            type_="POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_PHONE_FAIL",
-            msg=ResetPwMsg.unknown_phone_code,
-        )
+        with self.app.test_request_context():
+            data2 = {"phone_code": "wrong-code"}
+            response = self._post_reset_password_secure_phone(data2=data2)
+            self._check_error_response(
+                response,
+                type_="POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_PHONE_FAIL",
+                msg=ResetPwMsg.unknown_phone_code,
+            )
 
     def test_post_reset_password_secure_phone_weak_password(self):
-        data2 = {"password": "pw"}
-        response = self._post_reset_password_secure_phone(data2=data2)
-        self._check_error_response(
-            response, type_="POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_PHONE_FAIL", msg=ResetPwMsg.resetpw_weak
-        )
+        with self.app.test_request_context():
+            data2 = {"password": "pw"}
+            response = self._post_reset_password_secure_phone(data2=data2)
+            self._check_error_response(
+                response,
+                type_="POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_PHONE_FAIL",
+                msg=ResetPwMsg.resetpw_weak,
+            )
 
     def test_post_reset_password_secure_token(self):
-        response = self._post_reset_password_secure_token()
-        self._check_success_response(
-            response,
-            type_="POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_TOKEN_SUCCESS",
-            msg=ResetPwMsg.pw_reset_success,
-        )
+        with self.app.test_request_context():
+            response = self._post_reset_password_secure_token()
+            self._check_success_response(
+                response,
+                type_="POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_TOKEN_SUCCESS",
+                msg=ResetPwMsg.pw_reset_success,
+            )
 
-        # check that the user still has verified data
-        user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
-        verified_phone_numbers = user.phone_numbers.verified
-        self.assertEqual(1, len(verified_phone_numbers))
-        verified_identities = user.identities.verified
-        self.assertEqual(len(verified_identities), 3)
+            # check that the user still has verified data
+            user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
+            verified_phone_numbers = user.phone_numbers.verified
+            self.assertEqual(1, len(verified_phone_numbers))
+            verified_identities = user.identities.verified
+            self.assertEqual(len(verified_identities), 3)
 
     def test_post_reset_password_secure_token_custom_pw(self):
-        response = self._post_reset_password_secure_token(custom_password="T%7j 8/tT a0=b")
-        self._check_success_response(
-            response,
-            type_="POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_TOKEN_SUCCESS",
-            msg=ResetPwMsg.pw_reset_success,
-        )
-        user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
-        for cred in user.credentials.filter(Password):
-            self.assertFalse(cred.is_generated)
+        with self.app.test_request_context():
+            response = self._post_reset_password_secure_token(custom_password="T%7j 8/tT a0=b")
+            self._check_success_response(
+                response,
+                type_="POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_TOKEN_SUCCESS",
+                msg=ResetPwMsg.pw_reset_success,
+            )
+            user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
+            for cred in user.credentials.filter(Password):
+                self.assertFalse(cred.is_generated)
 
     def test_post_reset_password_secure_token_no_data(self):
-        response = self._post_reset_password_secure_token(data2={})
-        self._check_error_response(
-            response,
-            type_="POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_TOKEN_FAIL",
-            error={
-                "email_code": ["Missing data for required field."],
-                "csrf_token": ["Missing data for required field."],
-                "password": ["Missing data for required field."],
-            },
-        )
+        with self.app.test_request_context():
+            response = self._post_reset_password_secure_token(data2={})
+            self._check_error_response(
+                response,
+                type_="POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_TOKEN_FAIL",
+                error={
+                    "email_code": ["Missing data for required field."],
+                    "csrf_token": ["Missing data for required field."],
+                    "password": ["Missing data for required field."],
+                },
+            )
 
     def test_post_reset_password_secure_token_wrong_credential(self):
-        credential_data = {
-            "credential_data": "AAAAAAAAAAAAAAAAAAAAAABAi3KjBT0t5TPm693T0O0f4zyiwvdu9cY8BegCjiVvq_FS-ZmPcvXipFvHvD5CH6ZVRR3nsVsOla0Cad3fbtUA_aUBAgMmIAEhWCCiwDYGxl1LnRMqooWm0aRR9YbBG2LZ84BMNh_4rHkA9yJYIIujMrUOpGekbXjgMQ8M13ZsBD_cROSPB79eGz2Nw1ZE"
-        }
-        response = self._post_reset_password_secure_token(credential_data=credential_data)
-        self._check_error_response(
-            response, type_="POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_TOKEN_FAIL", msg=ResetPwMsg.fido_token_fail
-        )
+        with self.app.test_request_context():
+            credential_data = {
+                "credential_data": "AAAAAAAAAAAAAAAAAAAAAABAi3KjBT0t5TPm693T0O0f4zyiwvdu9cY8BegCjiVvq_FS-ZmPcvXipFvHvD5CH6ZVRR3nsVsOla0Cad3fbtUA_aUBAgMmIAEhWCCiwDYGxl1LnRMqooWm0aRR9YbBG2LZ84BMNh_4rHkA9yJYIIujMrUOpGekbXjgMQ8M13ZsBD_cROSPB79eGz2Nw1ZE"
+            }
+            response = self._post_reset_password_secure_token(credential_data=credential_data)
+            self._check_error_response(
+                response,
+                type_="POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_TOKEN_FAIL",
+                msg=ResetPwMsg.fido_token_fail,
+            )
 
     def test_post_reset_password_secure_token_wrong_request(self):
-        data2 = {"authenticatorData": "Wrong-authenticatorData----UMmBLDxB7n3apMPQAAAAAAA"}
-        response = self._post_reset_password_secure_token(data2=data2)
-        self._check_error_response(
-            response, type_="POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_TOKEN_FAIL", msg=ResetPwMsg.fido_token_fail
-        )
+        with self.app.test_request_context():
+            data2 = {"authenticatorData": "Wrong-authenticatorData----UMmBLDxB7n3apMPQAAAAAAA"}
+            response = self._post_reset_password_secure_token(data2=data2)
+            self._check_error_response(
+                response,
+                type_="POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_TOKEN_FAIL",
+                msg=ResetPwMsg.fido_token_fail,
+            )
 
     def test_post_reset_password_secure_token_wrong_csrf(self):
-        data2 = {"csrf_token": "wrong-code"}
-        response = self._post_reset_password_secure_token(data2=data2)
-        self._check_error_response(
-            response,
-            type_="POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_TOKEN_FAIL",
-            error={"csrf_token": ["CSRF failed to validate"]},
-        )
+        with self.app.test_request_context():
+            data2 = {"csrf_token": "wrong-code"}
+            response = self._post_reset_password_secure_token(data2=data2)
+            self._check_error_response(
+                response,
+                type_="POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_TOKEN_FAIL",
+                error={"csrf_token": ["CSRF failed to validate"]},
+            )
 
     def test_post_reset_password_secure_token_wrong_code(self):
-        data2 = {"email_code": "wrong-code"}
-        response = self._post_reset_password_secure_token(data2=data2)
-        self._check_error_response(
-            response, type_="POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_TOKEN_FAIL", msg=ResetPwMsg.state_not_found
-        )
+        with self.app.test_request_context():
+            data2 = {"email_code": "wrong-code"}
+            response = self._post_reset_password_secure_token(data2=data2)
+            self._check_error_response(
+                response,
+                type_="POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_TOKEN_FAIL",
+                msg=ResetPwMsg.state_not_found,
+            )
 
     def test_post_reset_password_secure_token_weak_password(self):
-        data2 = {"password": "pw"}
-        response = self._post_reset_password_secure_token(data2=data2)
-        self._check_error_response(
-            response, type_="POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_TOKEN_FAIL", msg=ResetPwMsg.resetpw_weak
-        )
+        with self.app.test_request_context():
+            data2 = {"password": "pw"}
+            response = self._post_reset_password_secure_token(data2=data2)
+            self._check_error_response(
+                response,
+                type_="POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_TOKEN_FAIL",
+                msg=ResetPwMsg.resetpw_weak,
+            )
 
     def test_post_reset_password_secure_external_mfa(self):
-        response = self._post_reset_password_secure_external_mfa()
-        self._check_success_response(
-            response,
-            type_="POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_EXTERNAL_MFA_SUCCESS",
-            msg=ResetPwMsg.pw_reset_success,
-        )
+        with self.app.test_request_context():
+            response = self._post_reset_password_secure_external_mfa()
+            self._check_success_response(
+                response,
+                type_="POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_EXTERNAL_MFA_SUCCESS",
+                msg=ResetPwMsg.pw_reset_success,
+            )
 
-        # check that the user still has verified data
-        user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
-        verified_phone_numbers = user.phone_numbers.verified
-        self.assertEqual(1, len(verified_phone_numbers))
-        verified_identities = user.identities.verified
-        self.assertEqual(len(verified_identities), 3)
+            # check that the user still has verified data
+            user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
+            verified_phone_numbers = user.phone_numbers.verified
+            self.assertEqual(1, len(verified_phone_numbers))
+            verified_identities = user.identities.verified
+            self.assertEqual(len(verified_identities), 3)
 
     def test_post_reset_password_secure_external_mfa_no_mfa_auth(self):
-        external_mfa_state = {"success": False, "issuer": None}
-        response = self._post_reset_password_secure_external_mfa(external_mfa_state=external_mfa_state)
-        self._check_error_response(
-            response,
-            type_="POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_EXTERNAL_MFA_FAIL",
-            msg=ResetPwMsg.external_mfa_fail,
-        )
+        with self.app.test_request_context():
+            external_mfa_state = {"success": False, "issuer": None}
+            response = self._post_reset_password_secure_external_mfa(external_mfa_state=external_mfa_state)
+            self._check_error_response(
+                response,
+                type_="POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_EXTERNAL_MFA_FAIL",
+                msg=ResetPwMsg.external_mfa_fail,
+            )
 
     def test_post_reset_password_secure_email_timeout(self):
-        self.app.conf.email_code_timeout = 0
-        response = self._post_reset_password_secure_phone()
-        self._check_error_response(
-            response,
-            type_="POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_PHONE_FAIL",
-            msg=ResetPwMsg.expired_email_code,
-        )
+        with self.app.test_request_context():
+            self.app.conf.email_code_timeout = 0
+            response = self._post_reset_password_secure_phone()
+            self._check_error_response(
+                response,
+                type_="POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_PHONE_FAIL",
+                msg=ResetPwMsg.expired_email_code,
+            )
 
     def test_post_reset_password_secure_phone_timeout(self):
-        self.app.conf.phone_code_timeout = 0
-        response = self._post_reset_password_secure_phone()
-        self._check_error_response(
-            response,
-            type_="POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_PHONE_FAIL",
-            msg=ResetPwMsg.expired_phone_code,
-        )
+        with self.app.test_request_context():
+            self.app.conf.phone_code_timeout = 0
+            response = self._post_reset_password_secure_phone()
+            self._check_error_response(
+                response,
+                type_="POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_PHONE_FAIL",
+                msg=ResetPwMsg.expired_phone_code,
+            )
 
     def test_post_reset_password_secure_phone_custom(self):
-        data2 = {"password": "other-password"}
-        response = self._post_reset_password_secure_phone(data2=data2)
-        self._check_success_response(
-            response,
-            type_="POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_PHONE_SUCCESS",
-            msg=ResetPwMsg.pw_reset_success,
-        )
+        with self.app.test_request_context():
+            data2 = {"password": "other-password"}
+            response = self._post_reset_password_secure_phone(data2=data2)
+            self._check_success_response(
+                response,
+                type_="POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_PHONE_SUCCESS",
+                msg=ResetPwMsg.pw_reset_success,
+            )
 
-        # check that the password is marked as generated
-        user = self.app.private_userdb.get_user_by_eppn(self.test_user.eppn)
-        self.assertFalse(user.credentials.to_list()[0].is_generated)
+            # check that the password is marked as generated
+            user = self.app.private_userdb.get_user_by_eppn(self.test_user.eppn)
+            self.assertFalse(user.credentials.to_list()[0].is_generated)
 
     def test_revoke_termination_on_password_reset(self):
         # mark user as terminated
-        user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
-        user.terminated = utc_now()
-        self.app.central_userdb.save(user)
+        with self.app.test_request_context():
+            user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
+            user.terminated = utc_now()
+            self.app.central_userdb.save(user)
 
-        response = self._post_reset_password()
-        self._check_success_response(
-            response, type_="POST_RESET_PASSWORD_NEW_PASSWORD_SUCCESS", msg=ResetPwMsg.pw_reset_success
-        )
+            response = self._post_reset_password()
+            self._check_success_response(
+                response, type_="POST_RESET_PASSWORD_NEW_PASSWORD_SUCCESS", msg=ResetPwMsg.pw_reset_success
+            )
 
-        # check that the user no longer has verified data
-        user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
-        assert user.terminated is None
+            # check that the user no longer has verified data
+            user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
+            assert user.terminated is None
 
     def test_get_code_backdoor(self):
-        self.app.conf.magic_cookie = "magic-cookie"
-        self.app.conf.magic_cookie_name = "magic"
-        self.app.conf.environment = EduidEnvironment("dev")
+        with self.app.test_request_context():
+            self.app.conf.magic_cookie = "magic-cookie"
+            self.app.conf.magic_cookie_name = "magic"
+            self.app.conf.environment = EduidEnvironment("dev")
 
-        resp = self._get_email_code_backdoor()
+            resp = self._get_email_code_backdoor()
 
-        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+            state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
 
-        self.assertEqual(resp.status_code, 200)
-        self.assertEqual(resp.data, state.email_code.code.encode("ascii"))
+            self.assertEqual(resp.status_code, 200)
+            self.assertEqual(resp.data, state.email_code.code.encode("ascii"))
 
     def test_get_code_no_backdoor_in_pro(self):
-        self.app.conf.magic_cookie = "magic-cookie"
-        self.app.conf.magic_cookie_name = "magic"
-        self.app.conf.environment = EduidEnvironment("production")
+        with self.app.test_request_context():
+            self.app.conf.magic_cookie = "magic-cookie"
+            self.app.conf.magic_cookie_name = "magic"
+            self.app.conf.environment = EduidEnvironment("production")
 
-        resp = self._get_email_code_backdoor()
+            resp = self._get_email_code_backdoor()
 
-        self.assertEqual(resp.status_code, 400)
+            self.assertEqual(resp.status_code, 400)
 
     def test_get_code_no_backdoor_misconfigured1(self):
-        self.app.conf.magic_cookie = "magic-cookie"
-        self.app.conf.magic_cookie_name = ""
-        self.app.conf.environment = EduidEnvironment("dev")
+        with self.app.test_request_context():
+            self.app.conf.magic_cookie = "magic-cookie"
+            self.app.conf.magic_cookie_name = ""
+            self.app.conf.environment = EduidEnvironment("dev")
 
-        resp = self._get_email_code_backdoor()
+            resp = self._get_email_code_backdoor()
 
-        self.assertEqual(resp.status_code, 400)
+            self.assertEqual(resp.status_code, 400)
 
     def test_get_code_no_backdoor_misconfigured2(self):
-        self.app.conf.magic_cookie = ""
-        self.app.conf.magic_cookie_name = "magic"
-        self.app.conf.environment = EduidEnvironment("dev")
+        with self.app.test_request_context():
+            self.app.conf.magic_cookie = ""
+            self.app.conf.magic_cookie_name = "magic"
+            self.app.conf.environment = EduidEnvironment("dev")
 
-        resp = self._get_email_code_backdoor()
+            resp = self._get_email_code_backdoor()
 
-        self.assertEqual(resp.status_code, 400)
+            self.assertEqual(resp.status_code, 400)
 
     def test_get_phone_code_backdoor(self):
-        self.app.conf.magic_cookie = "magic-cookie"
-        self.app.conf.magic_cookie_name = "magic"
-        self.app.conf.environment = EduidEnvironment("dev")
+        with self.app.test_request_context():
+            self.app.conf.magic_cookie = "magic-cookie"
+            self.app.conf.magic_cookie_name = "magic"
+            self.app.conf.environment = EduidEnvironment("dev")
 
-        resp = self._get_phone_code_backdoor()
+            resp = self._get_phone_code_backdoor()
 
-        state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+            state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
 
-        self.assertEqual(resp.status_code, 200)
-        self.assertEqual(resp.data, state.phone_code.code.encode("ascii"))
+            self.assertEqual(resp.status_code, 200)
+            self.assertEqual(resp.data, state.phone_code.code.encode("ascii"))
 
     def test_get_phone_code_no_backdoor_in_pro(self):
-        self.app.conf.magic_cookie = "magic-cookie"
-        self.app.conf.magic_cookie_name = "magic"
-        self.app.conf.environment = EduidEnvironment("production")
+        with self.app.test_request_context():
+            self.app.conf.magic_cookie = "magic-cookie"
+            self.app.conf.magic_cookie_name = "magic"
+            self.app.conf.environment = EduidEnvironment("production")
 
-        resp = self._get_phone_code_backdoor()
+            resp = self._get_phone_code_backdoor()
 
-        self.assertEqual(resp.status_code, 400)
+            self.assertEqual(resp.status_code, 400)
 
     def test_get_phone_code_no_backdoor_misconfigured1(self):
-        self.app.conf.magic_cookie = "magic-cookie"
-        self.app.conf.magic_cookie_name = ""
-        self.app.conf.environment = EduidEnvironment("dev")
+        with self.app.test_request_context():
+            self.app.conf.magic_cookie = "magic-cookie"
+            self.app.conf.magic_cookie_name = ""
+            self.app.conf.environment = EduidEnvironment("dev")
 
-        resp = self._get_phone_code_backdoor()
+            resp = self._get_phone_code_backdoor()
 
-        self.assertEqual(resp.status_code, 400)
+            self.assertEqual(resp.status_code, 400)
 
     def test_get_phone_code_no_backdoor_misconfigured2(self):
-        self.app.conf.magic_cookie = ""
-        self.app.conf.magic_cookie_name = "magic"
-        self.app.conf.environment = EduidEnvironment("dev")
+        with self.app.test_request_context():
+            self.app.conf.magic_cookie = ""
+            self.app.conf.magic_cookie_name = "magic"
+            self.app.conf.environment = EduidEnvironment("dev")
 
-        resp = self._get_phone_code_backdoor()
+            resp = self._get_phone_code_backdoor()
 
-        self.assertEqual(resp.status_code, 400)
+            self.assertEqual(resp.status_code, 400)

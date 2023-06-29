@@ -34,7 +34,6 @@ token_response = {
 
 
 class TestOrcid(unittest.TestCase):
-
     maxDiff = None
 
     def test_id_token(self):

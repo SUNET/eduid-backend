@@ -46,7 +46,6 @@ class ProofingElementResult:
 
 @dataclass()
 class ProofingFunctions(ABC, Generic[SessionInfoVar]):
-
     session_info: SessionInfoVar
     app_name: str
     config: ProofingConfigMixin

@@ -191,7 +191,7 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
             if add_cookie:
                 assert self.app.conf.magic_cookie_name is not None
                 assert cookie_value is not None
-                client.set_cookie("localhost", key=self.app.conf.magic_cookie_name, value=cookie_value)
+                client.set_cookie(domain="localhost", key=self.app.conf.magic_cookie_name, value=cookie_value)
 
             return client.get("/get-code")
 
@@ -460,7 +460,7 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
         csrf_token = _state["payload"]["csrf_token"]
         data = {"nin": self.test_user_nin, "csrf_token": csrf_token}
         with self.session_cookie(self.browser, self.test_user_eppn) as client:
-            client.set_cookie("localhost", key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie)
+            client.set_cookie(domain="localhost", key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie)
             response = client.post("/proofing", data=json.dumps(data), content_type=self.content_type_json)
         self._check_success_response(response, type_="POST_LETTER_PROOFING_PROOFING_SUCCESS", msg=LetterMsg.letter_sent)
 

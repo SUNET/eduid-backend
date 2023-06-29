@@ -98,7 +98,6 @@ CREDENTIAL_ID_2 = (
 
 
 class SecurityWebauthnTests(EduidAPITestCase):
-
     app: SecurityApp
 
     def load_app(self, config: Mapping[str, Any]) -> SecurityApp:
@@ -415,188 +414,219 @@ class SecurityWebauthnTests(EduidAPITestCase):
     # actual tests
 
     def test_begin_register_first_key(self):
-        data = self._begin_register_key()
-        self._check_registration_begun(data)
+        with self.app.test_request_context():
+            data = self._begin_register_key()
+            self._check_registration_begun(data)
 
     def test_begin_register_first_key_with_legacy_token(self):
-        data = self._begin_register_key(existing_legacy_token=True)
-        self._check_registration_begun(data)
+        with self.app.test_request_context():
+            data = self._begin_register_key(existing_legacy_token=True)
+            self._check_registration_begun(data)
 
     def test_begin_register_2nd_key_ater_ctap1(self):
-        data = self._begin_register_key(other="ctap1")
-        self._check_registration_begun(data)
+        with self.app.test_request_context():
+            data = self._begin_register_key(other="ctap1")
+            self._check_registration_begun(data)
 
     def test_begin_register_2nd_key_ater_ctap1_with_legacy_token(self):
-        data = self._begin_register_key(other="ctap1", existing_legacy_token=True)
-        self._check_registration_begun(data)
+        with self.app.test_request_context():
+            data = self._begin_register_key(other="ctap1", existing_legacy_token=True)
+            self._check_registration_begun(data)
 
     def test_begin_register_2nd_key_ater_ctap2(self):
-        data = self._begin_register_key(other="ctap2")
-        self._check_registration_begun(data)
+        with self.app.test_request_context():
+            data = self._begin_register_key(other="ctap2")
+            self._check_registration_begun(data)
 
     def test_begin_register_2nd_key_ater_ctap2_with_legacy_token(self):
-        data = self._begin_register_key(other="ctap2", existing_legacy_token=True)
-        self._check_registration_begun(data)
+        with self.app.test_request_context():
+            data = self._begin_register_key(other="ctap2", existing_legacy_token=True)
+            self._check_registration_begun(data)
 
     def test_begin_register_first_device(self):
-        data = self._begin_register_key(authenticator="platform")
-        self._check_registration_begun(data)
+        with self.app.test_request_context():
+            data = self._begin_register_key(authenticator="platform")
+            self._check_registration_begun(data)
 
     def test_begin_register_first_device_with_legacy_token(self):
-        data = self._begin_register_key(authenticator="platform", existing_legacy_token=True)
-        self._check_registration_begun(data)
+        with self.app.test_request_context():
+            data = self._begin_register_key(authenticator="platform", existing_legacy_token=True)
+            self._check_registration_begun(data)
 
     def test_begin_register_2nd_device_ater_ctap1(self):
-        data = self._begin_register_key(other="ctap1", authenticator="platform")
-        self._check_registration_begun(data)
+        with self.app.test_request_context():
+            data = self._begin_register_key(other="ctap1", authenticator="platform")
+            self._check_registration_begun(data)
 
     def test_begin_register_2nd_device_ater_ctap1_with_legacy_token(self):
-        data = self._begin_register_key(other="ctap1", authenticator="platform", existing_legacy_token=True)
-        self._check_registration_begun(data)
+        with self.app.test_request_context():
+            data = self._begin_register_key(other="ctap1", authenticator="platform", existing_legacy_token=True)
+            self._check_registration_begun(data)
 
     def test_begin_register_2nd_device_ater_ctap2(self):
-        data = self._begin_register_key(other="ctap2", authenticator="platform")
-        self._check_registration_begun(data)
+        with self.app.test_request_context():
+            data = self._begin_register_key(other="ctap2", authenticator="platform")
+            self._check_registration_begun(data)
 
     def test_begin_register_2nd_device_ater_ctap2_with_legacy_token(self):
-        data = self._begin_register_key(other="ctap2", authenticator="platform", existing_legacy_token=True)
-        self._check_registration_begun(data)
+        with self.app.test_request_context():
+            data = self._begin_register_key(other="ctap2", authenticator="platform", existing_legacy_token=True)
+            self._check_registration_begun(data)
 
     def test_begin_register_wrong_csrf_token(self):
-        data = self._begin_register_key(csrf="wrong-token", check_session=False)
-        self.assertEqual(data["type"], "POST_WEBAUTHN_WEBAUTHN_REGISTER_BEGIN_FAIL")
-        self.assertEqual(data["payload"]["error"]["csrf_token"], ["CSRF failed to validate"])
+        with self.app.test_request_context():
+            data = self._begin_register_key(csrf="wrong-token", check_session=False)
+            self.assertEqual(data["type"], "POST_WEBAUTHN_WEBAUTHN_REGISTER_BEGIN_FAIL")
+            self.assertEqual(data["payload"]["error"]["csrf_token"], ["CSRF failed to validate"])
 
     def test_finish_register_ctap1(self):
-        data = self._finish_register_key(
-            client_data=CLIENT_DATA_JSON, attestation=ATTESTATION_OBJECT, state=STATE, cred_id=CREDENTIAL_ID
-        )
-        self._check_registration_complete(data)
-        # check that a proofing element was not written as the token is not mfa capable
-        assert self.app.proofing_log.db_count() == 0
+        with self.app.test_request_context():
+            data = self._finish_register_key(
+                client_data=CLIENT_DATA_JSON, attestation=ATTESTATION_OBJECT, state=STATE, cred_id=CREDENTIAL_ID
+            )
+            self._check_registration_complete(data)
+            # check that a proofing element was not written as the token is not mfa capable
+            assert self.app.proofing_log.db_count() == 0
 
     def test_finish_register_ctap1_with_legacy_token(self):
-        data = self._finish_register_key(
-            client_data=CLIENT_DATA_JSON,
-            attestation=ATTESTATION_OBJECT,
-            state=STATE,
-            cred_id=CREDENTIAL_ID,
-            existing_legacy_token=True,
-        )
-        self._check_registration_complete(data)
-        # check that a proofing element was not written as the token is not mfa capable
-        assert self.app.proofing_log.db_count() == 0
+        with self.app.test_request_context():
+            data = self._finish_register_key(
+                client_data=CLIENT_DATA_JSON,
+                attestation=ATTESTATION_OBJECT,
+                state=STATE,
+                cred_id=CREDENTIAL_ID,
+                existing_legacy_token=True,
+            )
+            self._check_registration_complete(data)
+            # check that a proofing element was not written as the token is not mfa capable
+            assert self.app.proofing_log.db_count() == 0
 
     def test_finish_register_ctap2(self):
-        data = self._finish_register_key(
-            client_data=CLIENT_DATA_JSON_2, attestation=ATTESTATION_OBJECT_2, state=STATE_2, cred_id=CREDENTIAL_ID_2
-        )
-        self._check_registration_complete(data)
-        # check that a proofing element was written as the token is mfa capable
-        assert self.app.proofing_log.db_count() == 1
+        with self.app.test_request_context():
+            data = self._finish_register_key(
+                client_data=CLIENT_DATA_JSON_2, attestation=ATTESTATION_OBJECT_2, state=STATE_2, cred_id=CREDENTIAL_ID_2
+            )
+            self._check_registration_complete(data)
+            # check that a proofing element was written as the token is mfa capable
+            assert self.app.proofing_log.db_count() == 1
 
     def test_finish_register_ctap2_with_legacy_token(self):
-        data = self._finish_register_key(
-            client_data=CLIENT_DATA_JSON_2,
-            attestation=ATTESTATION_OBJECT_2,
-            state=STATE_2,
-            cred_id=CREDENTIAL_ID_2,
-            existing_legacy_token=True,
-        )
-        self._check_registration_complete(data)
-        # check that a proofing element was written as the token is mfa capable
-        assert self.app.proofing_log.db_count() == 1
+        with self.app.test_request_context():
+            data = self._finish_register_key(
+                client_data=CLIENT_DATA_JSON_2,
+                attestation=ATTESTATION_OBJECT_2,
+                state=STATE_2,
+                cred_id=CREDENTIAL_ID_2,
+                existing_legacy_token=True,
+            )
+            self._check_registration_complete(data)
+            # check that a proofing element was written as the token is mfa capable
+            assert self.app.proofing_log.db_count() == 1
 
     def test_finish_register_wrong_csrf(self):
-        data = self._finish_register_key(
-            client_data=CLIENT_DATA_JSON,
-            attestation=ATTESTATION_OBJECT,
-            state=STATE,
-            cred_id=CREDENTIAL_ID,
-            csrf="wrong-token",
-        )
-        self.assertEqual(data["type"], "POST_WEBAUTHN_WEBAUTHN_REGISTER_COMPLETE_FAIL")
-        self.assertEqual(data["payload"]["error"]["csrf_token"], ["CSRF failed to validate"])
+        with self.app.test_request_context():
+            data = self._finish_register_key(
+                client_data=CLIENT_DATA_JSON,
+                attestation=ATTESTATION_OBJECT,
+                state=STATE,
+                cred_id=CREDENTIAL_ID,
+                csrf="wrong-token",
+            )
+            self.assertEqual(data["type"], "POST_WEBAUTHN_WEBAUTHN_REGISTER_COMPLETE_FAIL")
+            self.assertEqual(data["payload"]["error"]["csrf_token"], ["CSRF failed to validate"])
 
     def test_dont_remove_last_ctap1(self):
-        self._dont_remove_last(client_data=CLIENT_DATA_JSON, attestation=ATTESTATION_OBJECT, state=STATE)
+        with self.app.test_request_context():
+            self._dont_remove_last(client_data=CLIENT_DATA_JSON, attestation=ATTESTATION_OBJECT, state=STATE)
 
     def test_dont_remove_last_ctap1_with_legacy_token(self):
-        self._dont_remove_last(
-            client_data=CLIENT_DATA_JSON, attestation=ATTESTATION_OBJECT, state=STATE, existing_legacy_token=True
-        )
+        with self.app.test_request_context():
+            self._dont_remove_last(
+                client_data=CLIENT_DATA_JSON, attestation=ATTESTATION_OBJECT, state=STATE, existing_legacy_token=True
+            )
 
     def test_dont_remove_last_ctap2(self):
-        self._dont_remove_last(client_data=CLIENT_DATA_JSON_2, attestation=ATTESTATION_OBJECT_2, state=STATE_2)
+        with self.app.test_request_context():
+            self._dont_remove_last(client_data=CLIENT_DATA_JSON_2, attestation=ATTESTATION_OBJECT_2, state=STATE_2)
 
     def test_dont_remove_last_ctap2_with_legacy_token(self):
-        self._dont_remove_last(
-            client_data=CLIENT_DATA_JSON_2, attestation=ATTESTATION_OBJECT_2, state=STATE_2, existing_legacy_token=True
-        )
+        with self.app.test_request_context():
+            self._dont_remove_last(
+                client_data=CLIENT_DATA_JSON_2,
+                attestation=ATTESTATION_OBJECT_2,
+                state=STATE_2,
+                existing_legacy_token=True,
+            )
 
     def test_dont_remove_last_wrong_csrf(self):
-        self._dont_remove_last(
-            client_data=CLIENT_DATA_JSON, attestation=ATTESTATION_OBJECT, state=STATE, csrf="wrong-token"
-        )
+        with self.app.test_request_context():
+            self._dont_remove_last(
+                client_data=CLIENT_DATA_JSON, attestation=ATTESTATION_OBJECT, state=STATE, csrf="wrong-token"
+            )
 
     def test_remove_ctap1(self):
-        user_token, data = self._remove(
-            client_data=CLIENT_DATA_JSON,
-            attestation=ATTESTATION_OBJECT,
-            state=STATE,
-            client_data_2=CLIENT_DATA_JSON_2,
-            attestation_2=ATTESTATION_OBJECT_2,
-            state_2=STATE_2,
-        )
-        self._check_removal(data, user_token)
+        with self.app.test_request_context():
+            user_token, data = self._remove(
+                client_data=CLIENT_DATA_JSON,
+                attestation=ATTESTATION_OBJECT,
+                state=STATE,
+                client_data_2=CLIENT_DATA_JSON_2,
+                attestation_2=ATTESTATION_OBJECT_2,
+                state_2=STATE_2,
+            )
+            self._check_removal(data, user_token)
 
     def test_remove_ctap1_with_legacy_token(self):
-        user_token, data = self._remove(
-            client_data=CLIENT_DATA_JSON,
-            attestation=ATTESTATION_OBJECT,
-            state=STATE,
-            client_data_2=CLIENT_DATA_JSON_2,
-            attestation_2=ATTESTATION_OBJECT_2,
-            state_2=STATE_2,
-            existing_legacy_token=True,
-        )
-        self._check_removal(data, user_token)
+        with self.app.test_request_context():
+            user_token, data = self._remove(
+                client_data=CLIENT_DATA_JSON,
+                attestation=ATTESTATION_OBJECT,
+                state=STATE,
+                client_data_2=CLIENT_DATA_JSON_2,
+                attestation_2=ATTESTATION_OBJECT_2,
+                state_2=STATE_2,
+                existing_legacy_token=True,
+            )
+            self._check_removal(data, user_token)
 
     def test_remove_ctap2(self):
-        user_token, data = self._remove(
-            client_data=CLIENT_DATA_JSON_2,
-            attestation=ATTESTATION_OBJECT_2,
-            state=STATE_2,
-            client_data_2=CLIENT_DATA_JSON,
-            attestation_2=ATTESTATION_OBJECT,
-            state_2=STATE,
-        )
-        self._check_removal(data, user_token)
+        with self.app.test_request_context():
+            user_token, data = self._remove(
+                client_data=CLIENT_DATA_JSON_2,
+                attestation=ATTESTATION_OBJECT_2,
+                state=STATE_2,
+                client_data_2=CLIENT_DATA_JSON,
+                attestation_2=ATTESTATION_OBJECT,
+                state_2=STATE,
+            )
+            self._check_removal(data, user_token)
 
     def test_remove_ctap2_legacy_token(self):
-        user_token, data = self._remove(
-            client_data=CLIENT_DATA_JSON_2,
-            attestation=ATTESTATION_OBJECT_2,
-            state=STATE_2,
-            client_data_2=CLIENT_DATA_JSON,
-            attestation_2=ATTESTATION_OBJECT,
-            state_2=STATE,
-            existing_legacy_token=True,
-        )
-        self._check_removal(data, user_token)
+        with self.app.test_request_context():
+            user_token, data = self._remove(
+                client_data=CLIENT_DATA_JSON_2,
+                attestation=ATTESTATION_OBJECT_2,
+                state=STATE_2,
+                client_data_2=CLIENT_DATA_JSON,
+                attestation_2=ATTESTATION_OBJECT,
+                state_2=STATE,
+                existing_legacy_token=True,
+            )
+            self._check_removal(data, user_token)
 
     def test_remove_wrong_csrf(self):
-        user_token, data = self._remove(
-            client_data=CLIENT_DATA_JSON,
-            attestation=ATTESTATION_OBJECT,
-            state=STATE,
-            client_data_2=CLIENT_DATA_JSON_2,
-            attestation_2=ATTESTATION_OBJECT_2,
-            state_2=STATE_2,
-            csrf="wrong-csrf",
-        )
-        self.assertEqual(data["type"], "POST_WEBAUTHN_WEBAUTHN_REMOVE_FAIL")
-        self.assertEqual(data["payload"]["error"]["csrf_token"], ["CSRF failed to validate"])
+        with self.app.test_request_context():
+            user_token, data = self._remove(
+                client_data=CLIENT_DATA_JSON,
+                attestation=ATTESTATION_OBJECT,
+                state=STATE,
+                client_data_2=CLIENT_DATA_JSON_2,
+                attestation_2=ATTESTATION_OBJECT_2,
+                state_2=STATE_2,
+                csrf="wrong-csrf",
+            )
+            self.assertEqual(data["type"], "POST_WEBAUTHN_WEBAUTHN_REMOVE_FAIL")
+            self.assertEqual(data["payload"]["error"]["csrf_token"], ["CSRF failed to validate"])
 
     @patch("fido_mds.FidoMetadataStore.verify_attestation")
     def test_authenticator_information(self, mock_verify_attestation):

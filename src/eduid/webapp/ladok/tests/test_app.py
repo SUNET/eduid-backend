@@ -187,7 +187,6 @@ class LadokTests(EduidAPITestCase[LadokApp]):
         assert user.ladok is None
 
     def test_unlink_user_no_op(self):
-
         user = self.app.central_userdb.get_user_by_eppn(eppn=self.test_user_eppn)
         assert user.ladok is None
 
@@ -232,7 +231,7 @@ class LadokDevTests(EduidAPITestCase[LadokApp]):
         ladok_name = "DEV"
         with self.session_cookie(self.browser, self.test_user.eppn) as browser:
             assert self.app.conf.magic_cookie is not None
-            browser.set_cookie("localhost", key="magic-cookie", value=self.app.conf.magic_cookie)
+            browser.set_cookie(domain="localhost", key="magic-cookie", value=self.app.conf.magic_cookie)
             with browser.session_transaction() as sess:
                 csrf_token = sess.get_csrf_token()
             response = browser.post("/link-user", json={"csrf_token": csrf_token, "ladok_name": ladok_name})

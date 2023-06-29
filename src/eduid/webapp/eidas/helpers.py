@@ -82,7 +82,6 @@ def create_authn_request(
     required_loa: list[str],
     force_authn: bool = False,
 ) -> AuthnRequest:
-
     if framework not in [TrustFramework.SWECONN, TrustFramework.EIDAS]:
         raise ValueError(f"Unrecognised trust framework: {framework}")
 

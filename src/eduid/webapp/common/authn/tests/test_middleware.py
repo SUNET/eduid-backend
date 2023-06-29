@@ -69,12 +69,13 @@ class AuthnTests(EduidAPITestCase):
         return config
 
     def test_get_view(self):
-        response = self.browser.get("/some/path")
-        self.assertEqual(response.status_code, 302)
+        with self.app.test_request_context():
+            response = self.browser.get("/some/path")
+            self.assertEqual(response.status_code, 302)
 
-        with self.session_cookie(self.browser, "hubba-bubba") as client:
-            with self.assertRaises(NotFound):
-                client.get("/some/path")
+            with self.session_cookie(self.browser, "hubba-bubba") as client:
+                with self.assertRaises(NotFound):
+                    client.get("/some/path")
 
 
 class UnAuthnTests(EduidAPITestCase):
@@ -100,7 +101,9 @@ class UnAuthnTests(EduidAPITestCase):
     def session_cookie(self, client, server_name="localhost"):
         with client.session_transaction() as sess:
             sess.persist()
-        client.set_cookie(server_name, key=self.app.config.session_cookie_name, value=sess._session.token.cookie_val)
+        client.set_cookie(
+            domain=server_name, key=self.app.config.session_cookie_name, value=sess._session.token.cookie_val
+        )
         yield client
 
     def test_get_view(self):

@@ -85,7 +85,6 @@ import nacl.encoding
 import nacl.secret
 import nacl.utils
 import redis
-
 from redis import sentinel
 
 from eduid.common.config.base import RedisConfig

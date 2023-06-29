@@ -29,7 +29,6 @@ def log_endpoints(app: Flask):
     output: list[str] = []
     with app.app_context():
         for rule in app.url_map.iter_rules():
-
             options = {}
             for arg in rule.arguments:
                 options[arg] = f"[{arg}]"

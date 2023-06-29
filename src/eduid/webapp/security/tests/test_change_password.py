@@ -174,17 +174,19 @@ class ChangePasswordTests(EduidAPITestCase[SecurityApp]):
         self.assertFalse(user.credentials.to_list()[-1].is_generated)
 
     def test_app_starts(self):
-        self.assertEqual(self.app.conf.app_name, "testing")
-        response1 = self.browser.get("/change-password/suggested-password")
-        assert response1.status_code == 302  # redirect to the login page
-        with self.session_cookie(self.browser, self.test_user_eppn) as client:
-            response2 = client.get("/change-password/suggested-password")
-            assert response2.status_code == 200  # authenticated response
+        with self.app.test_request_context():
+            self.assertEqual(self.app.conf.app_name, "testing")
+            response1 = self.browser.get("/change-password/suggested-password")
+            assert response1.status_code == 302  # redirect to the login page
+            with self.session_cookie(self.browser, self.test_user_eppn) as client:
+                response2 = client.get("/change-password/suggested-password")
+                assert response2.status_code == 200  # authenticated response
 
     def test_get_suggested(self):
-        response = self._get_suggested()
-        passwd = json.loads(response.data)
-        self.assertEqual(passwd["type"], "GET_CHANGE_PASSWORD_CHANGE_PASSWORD_SUGGESTED_PASSWORD_SUCCESS")
+        with self.app.test_request_context():
+            response = self._get_suggested()
+            passwd = json.loads(response.data)
+            self.assertEqual(passwd["type"], "GET_CHANGE_PASSWORD_CHANGE_PASSWORD_SUGGESTED_PASSWORD_SUCCESS")
 
     @patch("eduid.webapp.security.views.change_password.change_password")
     def test_change_passwd(self, mock_change_password):

@@ -52,27 +52,22 @@ class VerificationCodeSchema(NoCSRFVerificationCodeSchema, CSRFRequestMixin):
 
 
 class EmailSchema(EduidSchema, CSRFRequestMixin):
-
     email = LowercaseEmail(required=True, validate=validate_email)
     verified = fields.Boolean(attribute="verified")
     primary = fields.Boolean(attribute="primary")
 
 
 class AddEmailSchema(EmailSchema):
-
     email = LowercaseEmail(required=True, validate=[validate_email, email_does_not_exist])
 
 
 class ChangeEmailSchema(EduidSchema, CSRFRequestMixin):
-
     email = LowercaseEmail(required=True, validate=[validate_email, email_exists])
 
 
 class EmailListPayload(EduidSchema, CSRFRequestMixin, CSRFResponseMixin):
-
     emails = fields.Nested(EmailSchema, many=True)
 
 
 class EmailResponseSchema(FluxStandardAction):
-
     payload = fields.Nested(EmailListPayload)
