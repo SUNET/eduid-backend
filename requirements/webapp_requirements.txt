@@ -293,7 +293,7 @@ cookies-samesite-compat==0.0.1 \
     # via
     #   -c main.txt
     #   -r main.in
-cryptography==39.0.2 \
+cryptography==41.0.2 \
     --hash=sha256:103e8f7155f3ce2ffa0049fe60169878d47a4364b277906386f8de21c9234aa1 \
     --hash=sha256:23df8ca3f24699167daf3e23e51f7ba7334d504af63a94af468f468b975b7dd7 \
     --hash=sha256:2725672bb53bb92dc7b4150d233cd4b8c59615cd8288d495eaa86db00d4e5c06 \
