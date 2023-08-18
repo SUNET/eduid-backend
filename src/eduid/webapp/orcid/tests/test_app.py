@@ -123,40 +123,42 @@ class OrcidTests(EduidAPITestCase[OrcidApp]):
         return self.browser.get(f"/authorization-response?id_token=id_token&state={proofing_state.state}")
 
     def test_authenticate(self):
-        response = self.browser.get("/authorize")
-        self.assertEqual(response.status_code, 302)  # Redirect to token service
-        self.assertTrue(response.location.startswith(self.app.conf.token_service_url))
-        with self.session_cookie(self.browser, self.test_user_eppn) as browser:
-            response = browser.get("/authorize")
-        self.assertEqual(response.status_code, 302)  # Authenticated request redirected to OP
-        self.assertTrue(response.location.startswith(self.app.conf.provider_configuration_info["issuer"]))
+        with self.app.test_request_context():
+            response = self.browser.get("/authorize")
+            self.assertEqual(response.status_code, 302)  # Redirect to token service
+            self.assertTrue(response.location.startswith(self.app.conf.token_service_url))
+            with self.session_cookie(self.browser, self.test_user_eppn) as browser:
+                response = browser.get("/authorize")
+            self.assertEqual(response.status_code, 302)  # Authenticated request redirected to OP
+            self.assertTrue(response.location.startswith(self.app.conf.provider_configuration_info["issuer"]))
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_oidc_flow(self, mock_request_user_sync: MagicMock):
         mock_request_user_sync.side_effect = self.request_user_sync
 
-        with self.session_cookie(self.browser, self.test_user_eppn) as browser:
-            response = browser.get("/authorize")
-        self.assertEqual(response.status_code, 302)  # Authenticated request redirected to OP
+        with self.app.test_request_context():
+            with self.session_cookie(self.browser, self.test_user_eppn) as browser:
+                response = browser.get("/authorize")
+            self.assertEqual(response.status_code, 302)  # Authenticated request redirected to OP
 
-        # Fake callback from OP
-        proofing_state = self.app.proofing_statedb.get_state_by_eppn(self.test_user_eppn)
-        assert proofing_state is not None
-        userinfo = {
-            "id": "https://sandbox.orcid.org/0000-0000-0000-0000",
-            "name": None,
-            "given_name": "Test",
-            "family_name": "Testsson",
-        }
-        self.mock_authorization_response(proofing_state, userinfo)
+            # Fake callback from OP
+            proofing_state = self.app.proofing_statedb.get_state_by_eppn(self.test_user_eppn)
+            assert proofing_state is not None
+            userinfo = {
+                "id": "https://sandbox.orcid.org/0000-0000-0000-0000",
+                "name": None,
+                "given_name": "Test",
+                "family_name": "Testsson",
+            }
+            self.mock_authorization_response(proofing_state, userinfo)
 
-        user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
-        assert user.orcid is not None
-        self.assertEqual(user.orcid.id, userinfo["id"])
-        self.assertEqual(user.orcid.name, userinfo["name"])
-        self.assertEqual(user.orcid.given_name, userinfo["given_name"])
-        self.assertEqual(user.orcid.family_name, userinfo["family_name"])
-        self.assertEqual(self.app.proofing_log.db_count(), 1)
+            user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
+            assert user.orcid is not None
+            self.assertEqual(user.orcid.id, userinfo["id"])
+            self.assertEqual(user.orcid.name, userinfo["name"])
+            self.assertEqual(user.orcid.given_name, userinfo["given_name"])
+            self.assertEqual(user.orcid.family_name, userinfo["family_name"])
+            self.assertEqual(self.app.proofing_log.db_count(), 1)
 
     def test_get_orcid(self):
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
@@ -164,16 +166,17 @@ class OrcidTests(EduidAPITestCase[OrcidApp]):
         proofing_user.orcid = self.orcid_element
         self.request_user_sync(proofing_user)
 
-        with self.session_cookie(self.browser, self.test_user_eppn) as browser:
-            response = browser.get("/")
-        expected_payload = {
-            "orcid": {
-                "id": self.orcid_element.id,
-                "given_name": self.orcid_element.given_name,
-                "family_name": self.orcid_element.family_name,
+        with self.app.test_request_context():
+            with self.session_cookie(self.browser, self.test_user_eppn) as browser:
+                response = browser.get("/")
+            expected_payload = {
+                "orcid": {
+                    "id": self.orcid_element.id,
+                    "given_name": self.orcid_element.given_name,
+                    "family_name": self.orcid_element.family_name,
+                }
             }
-        }
-        self._check_success_response(response, type_="GET_ORCID_SUCCESS", payload=expected_payload)
+            self._check_success_response(response, type_="GET_ORCID_SUCCESS", payload=expected_payload)
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_remove_orcid(self, mock_request_user_sync: MagicMock):
@@ -184,16 +187,17 @@ class OrcidTests(EduidAPITestCase[OrcidApp]):
         proofing_user.orcid = self.orcid_element
         self.request_user_sync(proofing_user)
 
-        with self.session_cookie(self.browser, self.test_user_eppn) as browser:
-            response = browser.get("/")
-        self._check_success_response(response, type_="GET_ORCID_SUCCESS")
+        with self.app.test_request_context():
+            with self.session_cookie(self.browser, self.test_user_eppn) as browser:
+                response = browser.get("/")
+            self._check_success_response(response, type_="GET_ORCID_SUCCESS")
 
-        csrf_token = self.get_response_payload(response)["csrf_token"]
-        with self.session_cookie(self.browser, self.test_user_eppn) as browser:
-            response = browser.post(
-                "/remove", data=json.dumps({"csrf_token": csrf_token}), content_type=self.content_type_json
-            )
-        self._check_success_response(response, type_="POST_ORCID_REMOVE_SUCCESS")
+            csrf_token = self.get_response_payload(response)["csrf_token"]
+            with self.session_cookie(self.browser, self.test_user_eppn) as browser:
+                response = browser.post(
+                    "/remove", data=json.dumps({"csrf_token": csrf_token}), content_type=self.content_type_json
+                )
+            self._check_success_response(response, type_="POST_ORCID_REMOVE_SUCCESS")
 
-        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
-        self.assertEqual(user.orcid, None)
+            user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+            self.assertEqual(user.orcid, None)

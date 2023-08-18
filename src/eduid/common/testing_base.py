@@ -57,7 +57,6 @@ class CommonTestCase(MongoTestCase):
         """
         if "EDUID_CONFIG_YAML" not in os.environ:
             os.environ["EDUID_CONFIG_YAML"] = "YAML_CONFIG_NOT_USED"
-
         super().setUp(*args, **kwargs)
 
 

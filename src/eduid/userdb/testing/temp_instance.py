@@ -57,7 +57,6 @@ class EduidTemporaryInstance(ABC):
         self._tmpdir = tempfile.mkdtemp()
         self._port = random.randint(40000, 65535)
         self._logfile = open(f"/tmp/{self.__class__.__name__}-{self.port}.log", "w")
-
         start_time = utc_now()
         self._process = subprocess.Popen(self.command, stdout=self._logfile, stderr=subprocess.STDOUT)
 

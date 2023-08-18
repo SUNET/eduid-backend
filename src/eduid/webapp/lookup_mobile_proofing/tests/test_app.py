@@ -59,11 +59,12 @@ class LookupMobileProofingTests(EduidAPITestCase[MobileProofingApp]):
         assert self.app.proofing_log.db_count() == 0
 
     def test_authenticate(self):
-        response = self.browser.get("/proofing")
-        self.assertEqual(response.status_code, 302)  # Redirect to token service
-        with self.session_cookie(self.browser, self.test_user_eppn) as browser:
-            response = browser.get("/proofing")
-        self.assertEqual(response.status_code, 200)  # Authenticated request
+        with self.app.test_request_context():
+            response = self.browser.get("/proofing")
+            self.assertEqual(response.status_code, 302)  # Redirect to token service
+            with self.session_cookie(self.browser, self.test_user_eppn) as browser:
+                response = browser.get("/proofing")
+            self.assertEqual(response.status_code, 200)  # Authenticated request
 
     @patch("eduid.common.rpc.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile")
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
@@ -71,25 +72,26 @@ class LookupMobileProofingTests(EduidAPITestCase[MobileProofingApp]):
     def test_proofing_flow(
         self, mock_request_user_sync: MagicMock, mock_get_all_navet_data: MagicMock, mock_find_nin_by_mobile: MagicMock
     ):
-        mock_find_nin_by_mobile.return_value = self.test_user_nin
-        mock_get_all_navet_data.return_value = self._get_all_navet_data()
-        mock_request_user_sync.side_effect = self.request_user_sync
+        with self.app.test_request_context():
+            mock_find_nin_by_mobile.return_value = self.test_user_nin
+            mock_get_all_navet_data.return_value = self._get_all_navet_data()
+            mock_request_user_sync.side_effect = self.request_user_sync
 
-        with self.session_cookie(self.browser, self.test_user_eppn) as browser:
-            response = json.loads(browser.get("/proofing").data)
-        self.assertEqual(response["type"], "GET_LOOKUP_MOBILE_PROOFING_PROOFING_SUCCESS")
+            with self.session_cookie(self.browser, self.test_user_eppn) as browser:
+                response = json.loads(browser.get("/proofing").data)
+            self.assertEqual(response["type"], "GET_LOOKUP_MOBILE_PROOFING_PROOFING_SUCCESS")
 
-        csrf_token = response["payload"]["csrf_token"]
+            csrf_token = response["payload"]["csrf_token"]
 
-        with self.session_cookie(self.browser, self.test_user_eppn) as browser:
-            data = {"nin": self.test_user_nin, "csrf_token": csrf_token}
-            response = browser.post("/proofing", data=json.dumps(data), content_type=self.content_type_json)
-            response = json.loads(response.data)
-        self.assertEqual(response["type"], "POST_LOOKUP_MOBILE_PROOFING_PROOFING_SUCCESS")
-        self.assertEqual(response["payload"]["success"], True)
+            with self.session_cookie(self.browser, self.test_user_eppn) as browser:
+                data = {"nin": self.test_user_nin, "csrf_token": csrf_token}
+                response = browser.post("/proofing", data=json.dumps(data), content_type=self.content_type_json)
+                response = json.loads(response.data)
+            self.assertEqual(response["type"], "POST_LOOKUP_MOBILE_PROOFING_PROOFING_SUCCESS")
+            self.assertEqual(response["payload"]["success"], True)
 
-        user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
-        self._check_nin_verified_ok_no_proofing_state(user=user)
+            user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
+            self._check_nin_verified_ok_no_proofing_state(user=user)
 
     @patch("eduid.common.rpc.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile")
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
@@ -97,25 +99,26 @@ class LookupMobileProofingTests(EduidAPITestCase[MobileProofingApp]):
     def test_proofing_flow_underage(
         self, mock_request_user_sync: MagicMock, mock_get_all_navet_data: MagicMock, mock_find_nin_by_mobile: MagicMock
     ):
-        mock_find_nin_by_mobile.return_value = self.test_user_nin_underage
-        mock_get_all_navet_data.return_value = self._get_all_navet_data()
-        mock_request_user_sync.side_effect = self.request_user_sync
+        with self.app.test_request_context():
+            mock_find_nin_by_mobile.return_value = self.test_user_nin_underage
+            mock_get_all_navet_data.return_value = self._get_all_navet_data()
+            mock_request_user_sync.side_effect = self.request_user_sync
 
-        with self.session_cookie(self.browser, self.test_user_eppn) as browser:
-            response = json.loads(browser.get("/proofing").data)
-        self.assertEqual(response["type"], "GET_LOOKUP_MOBILE_PROOFING_PROOFING_SUCCESS")
+            with self.session_cookie(self.browser, self.test_user_eppn) as browser:
+                response = json.loads(browser.get("/proofing").data)
+            self.assertEqual(response["type"], "GET_LOOKUP_MOBILE_PROOFING_PROOFING_SUCCESS")
 
-        csrf_token = response["payload"]["csrf_token"]
+            csrf_token = response["payload"]["csrf_token"]
 
-        with self.session_cookie(self.browser, self.test_user_eppn) as browser:
-            data = {"nin": self.test_user_nin_underage, "csrf_token": csrf_token}
-            response = browser.post("/proofing", data=json.dumps(data), content_type=self.content_type_json)
-            response = json.loads(response.data)
-        self.assertEqual(response["type"], "POST_LOOKUP_MOBILE_PROOFING_PROOFING_SUCCESS")
-        self.assertEqual(response["payload"]["success"], True)
+            with self.session_cookie(self.browser, self.test_user_eppn) as browser:
+                data = {"nin": self.test_user_nin_underage, "csrf_token": csrf_token}
+                response = browser.post("/proofing", data=json.dumps(data), content_type=self.content_type_json)
+                response = json.loads(response.data)
+            self.assertEqual(response["type"], "POST_LOOKUP_MOBILE_PROOFING_PROOFING_SUCCESS")
+            self.assertEqual(response["payload"]["success"], True)
 
-        user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
-        self._check_nin_verified_ok_no_proofing_state(user=user, number=self.test_user_nin_underage)
+            user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
+            self._check_nin_verified_ok_no_proofing_state(user=user, number=self.test_user_nin_underage)
 
     @patch("eduid.common.rpc.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile")
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
@@ -123,24 +126,25 @@ class LookupMobileProofingTests(EduidAPITestCase[MobileProofingApp]):
     def test_proofing_flow_no_match(
         self, mock_request_user_sync: MagicMock, mock_get_all_navet_data: MagicMock, mock_find_nin_by_mobile: MagicMock
     ):
-        mock_find_nin_by_mobile.return_value = None
-        mock_get_all_navet_data.return_value = self._get_all_navet_data()
-        mock_request_user_sync.side_effect = self.request_user_sync
+        with self.app.test_request_context():
+            mock_find_nin_by_mobile.return_value = None
+            mock_get_all_navet_data.return_value = self._get_all_navet_data()
+            mock_request_user_sync.side_effect = self.request_user_sync
 
-        with self.session_cookie(self.browser, self.test_user_eppn) as browser:
-            response = json.loads(browser.get("/proofing").data)
-        self.assertEqual(response["type"], "GET_LOOKUP_MOBILE_PROOFING_PROOFING_SUCCESS")
+            with self.session_cookie(self.browser, self.test_user_eppn) as browser:
+                response = json.loads(browser.get("/proofing").data)
+            self.assertEqual(response["type"], "GET_LOOKUP_MOBILE_PROOFING_PROOFING_SUCCESS")
 
-        csrf_token = response["payload"]["csrf_token"]
+            csrf_token = response["payload"]["csrf_token"]
 
-        with self.session_cookie(self.browser, self.test_user_eppn) as browser:
-            data = {"nin": self.test_user_nin, "csrf_token": csrf_token}
-            response = browser.post("/proofing", data=json.dumps(data), content_type=self.content_type_json)
-            response = json.loads(response.data)
-        self.assertEqual(response["type"], "POST_LOOKUP_MOBILE_PROOFING_PROOFING_FAIL")
+            with self.session_cookie(self.browser, self.test_user_eppn) as browser:
+                data = {"nin": self.test_user_nin, "csrf_token": csrf_token}
+                response = browser.post("/proofing", data=json.dumps(data), content_type=self.content_type_json)
+                response = json.loads(response.data)
+            self.assertEqual(response["type"], "POST_LOOKUP_MOBILE_PROOFING_PROOFING_FAIL")
 
-        user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
-        self._check_nin_not_verified_no_proofing_state(user=user)
+            user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
+            self._check_nin_not_verified_no_proofing_state(user=user)
 
     @patch("eduid.common.rpc.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile")
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
@@ -148,25 +152,26 @@ class LookupMobileProofingTests(EduidAPITestCase[MobileProofingApp]):
     def test_proofing_flow_LookupMobileTaskFailed(
         self, mock_request_user_sync: MagicMock, mock_get_all_navet_data: MagicMock, mock_find_nin_by_mobile: MagicMock
     ):
-        mock_find_nin_by_mobile.side_effect = LookupMobileTaskFailed("Test Exception")
-        mock_get_all_navet_data.return_value = self._get_all_navet_data()
-        mock_request_user_sync.side_effect = self.request_user_sync
+        with self.app.test_request_context():
+            mock_find_nin_by_mobile.side_effect = LookupMobileTaskFailed("Test Exception")
+            mock_get_all_navet_data.return_value = self._get_all_navet_data()
+            mock_request_user_sync.side_effect = self.request_user_sync
 
-        with self.session_cookie(self.browser, self.test_user_eppn) as browser:
-            response = json.loads(browser.get("/proofing").data)
-        self.assertEqual(response["type"], "GET_LOOKUP_MOBILE_PROOFING_PROOFING_SUCCESS")
+            with self.session_cookie(self.browser, self.test_user_eppn) as browser:
+                response = json.loads(browser.get("/proofing").data)
+            self.assertEqual(response["type"], "GET_LOOKUP_MOBILE_PROOFING_PROOFING_SUCCESS")
 
-        csrf_token = response["payload"]["csrf_token"]
+            csrf_token = response["payload"]["csrf_token"]
 
-        with self.session_cookie(self.browser, self.test_user_eppn) as browser:
-            data = {"nin": self.test_user_nin, "csrf_token": csrf_token}
-            response = browser.post("/proofing", data=json.dumps(data), content_type=self.content_type_json)
-            response = json.loads(response.data)
-        self.assertEqual("POST_LOOKUP_MOBILE_PROOFING_PROOFING_FAIL", response["type"])
-        self.assertEqual(MobileMsg.lookup_error.value, response["payload"]["message"])
+            with self.session_cookie(self.browser, self.test_user_eppn) as browser:
+                data = {"nin": self.test_user_nin, "csrf_token": csrf_token}
+                response = browser.post("/proofing", data=json.dumps(data), content_type=self.content_type_json)
+                response = json.loads(response.data)
+            self.assertEqual("POST_LOOKUP_MOBILE_PROOFING_PROOFING_FAIL", response["type"])
+            self.assertEqual(MobileMsg.lookup_error.value, response["payload"]["message"])
 
-        user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
-        self._check_nin_not_verified_no_proofing_state(user=user)
+            user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
+            self._check_nin_not_verified_no_proofing_state(user=user)
 
     @patch("eduid.common.rpc.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile")
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_postal_address")
@@ -174,30 +179,31 @@ class LookupMobileProofingTests(EduidAPITestCase[MobileProofingApp]):
     def test_proofing_flow_no_match_backdoor(
         self, mock_request_user_sync: MagicMock, mock_get_postal_address: MagicMock, mock_find_nin_by_mobile: MagicMock
     ):
-        mock_find_nin_by_mobile.return_value = None
-        mock_get_postal_address.return_value = None
-        mock_request_user_sync.side_effect = self.request_user_sync
+        with self.app.test_request_context():
+            mock_find_nin_by_mobile.return_value = None
+            mock_get_postal_address.return_value = None
+            mock_request_user_sync.side_effect = self.request_user_sync
 
-        self.app.conf.magic_cookie = "magic-cookie"
-        self.app.conf.magic_cookie_name = "magic-cookie"
+            self.app.conf.magic_cookie = "magic-cookie"
+            self.app.conf.magic_cookie_name = "magic-cookie"
 
-        with self.session_cookie(self.browser, self.test_user_eppn) as browser:
-            response = json.loads(browser.get("/proofing").data)
-        self.assertEqual(response["type"], "GET_LOOKUP_MOBILE_PROOFING_PROOFING_SUCCESS")
+            with self.session_cookie(self.browser, self.test_user_eppn) as browser:
+                response = json.loads(browser.get("/proofing").data)
+            self.assertEqual(response["type"], "GET_LOOKUP_MOBILE_PROOFING_PROOFING_SUCCESS")
 
-        csrf_token = response["payload"]["csrf_token"]
+            csrf_token = response["payload"]["csrf_token"]
 
-        with self.session_cookie(self.browser, self.test_user_eppn) as browser:
-            browser.set_cookie(domain="localhost", key="magic-cookie", value="magic-cookie")
+            with self.session_cookie(self.browser, self.test_user_eppn) as browser:
+                browser.set_cookie(domain="localhost", key="magic-cookie", value="magic-cookie")
 
-            data = {"nin": self.test_user_nin_underage, "csrf_token": csrf_token}
-            response = browser.post("/proofing", data=json.dumps(data), content_type=self.content_type_json)
-            response = json.loads(response.data)
-        self.assertEqual(response["type"], "POST_LOOKUP_MOBILE_PROOFING_PROOFING_SUCCESS")
-        self.assertEqual(response["payload"]["success"], True)
+                data = {"nin": self.test_user_nin_underage, "csrf_token": csrf_token}
+                response = browser.post("/proofing", data=json.dumps(data), content_type=self.content_type_json)
+                response = json.loads(response.data)
+            self.assertEqual(response["type"], "POST_LOOKUP_MOBILE_PROOFING_PROOFING_SUCCESS")
+            self.assertEqual(response["payload"]["success"], True)
 
-        user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
-        self._check_nin_verified_ok_no_proofing_state(user=user, number=self.test_user_nin_underage)
+            user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
+            self._check_nin_verified_ok_no_proofing_state(user=user, number=self.test_user_nin_underage)
 
     @patch("eduid.common.rpc.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile")
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_postal_address")
@@ -205,31 +211,32 @@ class LookupMobileProofingTests(EduidAPITestCase[MobileProofingApp]):
     def test_proofing_flow_no_match_backdoor_code_in_pro(
         self, mock_request_user_sync: MagicMock, mock_get_postal_address: MagicMock, mock_find_nin_by_mobile: MagicMock
     ):
-        mock_find_nin_by_mobile.return_value = None
-        mock_get_postal_address.return_value = None
-        mock_request_user_sync.side_effect = self.request_user_sync
+        with self.app.test_request_context():
+            mock_find_nin_by_mobile.return_value = None
+            mock_get_postal_address.return_value = None
+            mock_request_user_sync.side_effect = self.request_user_sync
 
-        self.app.conf.environment = EduidEnvironment("production")
-        self.app.conf.magic_cookie = "magic-cookie"
-        self.app.conf.magic_cookie_name = "magic-cookie"
-        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+            self.app.conf.environment = EduidEnvironment("production")
+            self.app.conf.magic_cookie = "magic-cookie"
+            self.app.conf.magic_cookie_name = "magic-cookie"
+            user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
 
-        with self.session_cookie(self.browser, self.test_user_eppn) as browser:
-            response = json.loads(browser.get("/proofing").data)
-        self.assertEqual(response["type"], "GET_LOOKUP_MOBILE_PROOFING_PROOFING_SUCCESS")
+            with self.session_cookie(self.browser, self.test_user_eppn) as browser:
+                response = json.loads(browser.get("/proofing").data)
+            self.assertEqual(response["type"], "GET_LOOKUP_MOBILE_PROOFING_PROOFING_SUCCESS")
 
-        csrf_token = response["payload"]["csrf_token"]
+            csrf_token = response["payload"]["csrf_token"]
 
-        with self.session_cookie(self.browser, self.test_user_eppn) as browser:
-            browser.set_cookie(domain="localhost", key="magic-cookie", value="magic-cookie")
+            with self.session_cookie(self.browser, self.test_user_eppn) as browser:
+                browser.set_cookie(domain="localhost", key="magic-cookie", value="magic-cookie")
 
-            data = {"nin": self.test_user_nin, "csrf_token": csrf_token}
-            response = browser.post("/proofing", data=json.dumps(data), content_type=self.content_type_json)
-            response = json.loads(response.data)
-        self.assertEqual(response["type"], "POST_LOOKUP_MOBILE_PROOFING_PROOFING_FAIL")
+                data = {"nin": self.test_user_nin, "csrf_token": csrf_token}
+                response = browser.post("/proofing", data=json.dumps(data), content_type=self.content_type_json)
+                response = json.loads(response.data)
+            self.assertEqual(response["type"], "POST_LOOKUP_MOBILE_PROOFING_PROOFING_FAIL")
 
-        user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
-        self._check_nin_not_verified_no_proofing_state(user=user)
+            user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
+            self._check_nin_not_verified_no_proofing_state(user=user)
 
     @patch("eduid.common.rpc.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile")
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_postal_address")
@@ -237,30 +244,31 @@ class LookupMobileProofingTests(EduidAPITestCase[MobileProofingApp]):
     def test_proofing_flow_no_match_backdoor_code_unconfigured(
         self, mock_request_user_sync: MagicMock, mock_get_postal_address: MagicMock, mock_find_nin_by_mobile: MagicMock
     ):
-        mock_find_nin_by_mobile.return_value = None
-        mock_get_postal_address.return_value = None
-        mock_request_user_sync.side_effect = self.request_user_sync
+        with self.app.test_request_context():
+            mock_find_nin_by_mobile.return_value = None
+            mock_get_postal_address.return_value = None
+            mock_request_user_sync.side_effect = self.request_user_sync
 
-        self.app.conf.magic_cookie = ""
-        self.app.conf.magic_cookie_name = "magic-cookie"
-        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+            self.app.conf.magic_cookie = ""
+            self.app.conf.magic_cookie_name = "magic-cookie"
+            user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
 
-        with self.session_cookie(self.browser, self.test_user_eppn) as browser:
-            response = json.loads(browser.get("/proofing").data)
-        self.assertEqual(response["type"], "GET_LOOKUP_MOBILE_PROOFING_PROOFING_SUCCESS")
+            with self.session_cookie(self.browser, self.test_user_eppn) as browser:
+                response = json.loads(browser.get("/proofing").data)
+            self.assertEqual(response["type"], "GET_LOOKUP_MOBILE_PROOFING_PROOFING_SUCCESS")
 
-        csrf_token = response["payload"]["csrf_token"]
+            csrf_token = response["payload"]["csrf_token"]
 
-        with self.session_cookie(self.browser, self.test_user_eppn) as browser:
-            browser.set_cookie(domain="localhost", key="magic-cookie", value="magic-cookie")
+            with self.session_cookie(self.browser, self.test_user_eppn) as browser:
+                browser.set_cookie(domain="localhost", key="magic-cookie", value="magic-cookie")
 
-            data = {"nin": self.test_user_nin, "csrf_token": csrf_token}
-            response = browser.post("/proofing", data=json.dumps(data), content_type=self.content_type_json)
-            response = json.loads(response.data)
-        self.assertEqual(response["type"], "POST_LOOKUP_MOBILE_PROOFING_PROOFING_FAIL")
+                data = {"nin": self.test_user_nin, "csrf_token": csrf_token}
+                response = browser.post("/proofing", data=json.dumps(data), content_type=self.content_type_json)
+                response = json.loads(response.data)
+            self.assertEqual(response["type"], "POST_LOOKUP_MOBILE_PROOFING_PROOFING_FAIL")
 
-        user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
-        self._check_nin_not_verified_no_proofing_state(user=user)
+            user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
+            self._check_nin_not_verified_no_proofing_state(user=user)
 
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_relations_to")
     @patch("eduid.common.rpc.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile")
@@ -273,26 +281,27 @@ class LookupMobileProofingTests(EduidAPITestCase[MobileProofingApp]):
         mock_find_nin_by_mobile: MagicMock,
         mock_get_relations_to: MagicMock,
     ):
-        mock_get_relations_to.return_value = ["MO"]
-        mock_find_nin_by_mobile.return_value = "197001021234"
-        mock_get_all_navet_data.return_value = self._get_all_navet_data()
-        mock_request_user_sync.side_effect = self.request_user_sync
+        with self.app.test_request_context():
+            mock_get_relations_to.return_value = ["MO"]
+            mock_find_nin_by_mobile.return_value = "197001021234"
+            mock_get_all_navet_data.return_value = self._get_all_navet_data()
+            mock_request_user_sync.side_effect = self.request_user_sync
 
-        with self.session_cookie(self.browser, self.test_user_eppn) as browser:
-            response = json.loads(browser.get("/proofing").data)
-        self.assertEqual(response["type"], "GET_LOOKUP_MOBILE_PROOFING_PROOFING_SUCCESS")
+            with self.session_cookie(self.browser, self.test_user_eppn) as browser:
+                response = json.loads(browser.get("/proofing").data)
+            self.assertEqual(response["type"], "GET_LOOKUP_MOBILE_PROOFING_PROOFING_SUCCESS")
 
-        csrf_token = response["payload"]["csrf_token"]
+            csrf_token = response["payload"]["csrf_token"]
 
-        with self.session_cookie(self.browser, self.test_user_eppn) as browser:
-            data = {"nin": self.test_user_nin_underage, "csrf_token": csrf_token}
-            response = browser.post("/proofing", data=json.dumps(data), content_type=self.content_type_json)
-            response = json.loads(response.data)
-        assert response["type"] == "POST_LOOKUP_MOBILE_PROOFING_PROOFING_FAIL"
-        assert response["payload"]["message"] == MobileMsg.no_match.value
+            with self.session_cookie(self.browser, self.test_user_eppn) as browser:
+                data = {"nin": self.test_user_nin_underage, "csrf_token": csrf_token}
+                response = browser.post("/proofing", data=json.dumps(data), content_type=self.content_type_json)
+                response = json.loads(response.data)
+            assert response["type"] == "POST_LOOKUP_MOBILE_PROOFING_PROOFING_FAIL"
+            assert response["payload"]["message"] == MobileMsg.no_match.value
 
-        user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
-        self._check_nin_not_verified_no_proofing_state(user=user, number=self.test_user_nin_underage)
+            user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
+            self._check_nin_not_verified_no_proofing_state(user=user, number=self.test_user_nin_underage)
 
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_relations_to")
     @patch("eduid.common.rpc.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile")
@@ -305,22 +314,23 @@ class LookupMobileProofingTests(EduidAPITestCase[MobileProofingApp]):
         mock_find_nin_by_mobile: MagicMock,
         mock_get_relations_to: MagicMock,
     ):
-        mock_get_relations_to.return_value = []
-        mock_find_nin_by_mobile.return_value = "197001021234"
-        mock_get_all_navet_data.return_value = self._get_all_navet_data()
-        mock_request_user_sync.side_effect = self.request_user_sync
+        with self.app.test_request_context():
+            mock_get_relations_to.return_value = []
+            mock_find_nin_by_mobile.return_value = "197001021234"
+            mock_get_all_navet_data.return_value = self._get_all_navet_data()
+            mock_request_user_sync.side_effect = self.request_user_sync
 
-        with self.session_cookie(self.browser, self.test_user_eppn) as browser:
-            response = json.loads(browser.get("/proofing").data)
-        self.assertEqual(response["type"], "GET_LOOKUP_MOBILE_PROOFING_PROOFING_SUCCESS")
+            with self.session_cookie(self.browser, self.test_user_eppn) as browser:
+                response = json.loads(browser.get("/proofing").data)
+            self.assertEqual(response["type"], "GET_LOOKUP_MOBILE_PROOFING_PROOFING_SUCCESS")
 
-        csrf_token = response["payload"]["csrf_token"]
+            csrf_token = response["payload"]["csrf_token"]
 
-        with self.session_cookie(self.browser, self.test_user_eppn) as browser:
-            data = {"nin": self.test_user_nin_underage, "csrf_token": csrf_token}
-            response = browser.post("/proofing", data=json.dumps(data), content_type=self.content_type_json)
-            response = json.loads(response.data)
-        self.assertEqual(response["type"], "POST_LOOKUP_MOBILE_PROOFING_PROOFING_FAIL")
+            with self.session_cookie(self.browser, self.test_user_eppn) as browser:
+                data = {"nin": self.test_user_nin_underage, "csrf_token": csrf_token}
+                response = browser.post("/proofing", data=json.dumps(data), content_type=self.content_type_json)
+                response = json.loads(response.data)
+            self.assertEqual(response["type"], "POST_LOOKUP_MOBILE_PROOFING_PROOFING_FAIL")
 
-        user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
-        self._check_nin_not_verified_no_proofing_state(user=user, number=self.test_user_nin_underage)
+            user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
+            self._check_nin_not_verified_no_proofing_state(user=user, number=self.test_user_nin_underage)
