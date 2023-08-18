@@ -92,55 +92,57 @@ class JSConfigTests(EduidAPITestCase[JSConfigApp]):
         return config
 
     def test_get_dashboard_config(self):
-        eppn = self.test_user_data["eduPersonPrincipalName"]
-        with self.session_cookie(self.browser, eppn, server_name="example.com", subdomain="dashboard") as client:
-            response = client.get("http://dashboard.example.com/config")
+        with self.app.test_request_context():
+            eppn = self.test_user_data["eduPersonPrincipalName"]
+            with self.session_cookie(self.browser, eppn, server_name="example.com", subdomain="dashboard") as client:
+                response = client.get("http://dashboard.example.com/config")
 
-            self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.status_code, 200)
 
-            config_data = json.loads(response.data)
+                config_data = json.loads(response.data)
 
-            assert config_data["type"] == "GET_JSCONFIG_CONFIG_SUCCESS"
-            assert config_data["payload"]["dashboard_url"] == "dashboard_url"
-            assert config_data["payload"]["personal_data_url"] == "personal_data_url"
-            assert config_data["payload"]["static_faq_url"] == "static_faq_url"
-            assert config_data["payload"]["available_languages"] == [["en", "English"], ["sv", "Svenska"]]
+                assert config_data["type"] == "GET_JSCONFIG_CONFIG_SUCCESS"
+                assert config_data["payload"]["dashboard_url"] == "dashboard_url"
+                assert config_data["payload"]["personal_data_url"] == "personal_data_url"
+                assert config_data["payload"]["static_faq_url"] == "static_faq_url"
+                assert config_data["payload"]["available_languages"] == [["en", "English"], ["sv", "Svenska"]]
 
-            assert config_data["payload"]["DASHBOARD_URL"] == "dashboard_url"
-            assert config_data["payload"]["PERSONAL_DATA_URL"] == "personal_data_url"
-            assert config_data["payload"]["STATIC_FAQ_URL"] == "static_faq_url"
-            assert config_data["payload"]["AVAILABLE_LANGUAGES"] == [["en", "English"], ["sv", "Svenska"]]
+                assert config_data["payload"]["DASHBOARD_URL"] == "dashboard_url"
+                assert config_data["payload"]["PERSONAL_DATA_URL"] == "personal_data_url"
+                assert config_data["payload"]["STATIC_FAQ_URL"] == "static_faq_url"
+                assert config_data["payload"]["AVAILABLE_LANGUAGES"] == [["en", "English"], ["sv", "Svenska"]]
 
     def test_get_signup_config(self):
-        eppn = self.test_user_data["eduPersonPrincipalName"]
-        with self.session_cookie(self.browser, eppn, server_name="example.com", subdomain="signup") as client:
-            response = client.get("http://signup.example.com/signup/config")
+        with self.app.test_request_context():
+            eppn = self.test_user_data["eduPersonPrincipalName"]
+            with self.session_cookie(self.browser, eppn, server_name="example.com", subdomain="signup") as client:
+                response = client.get("http://signup.example.com/signup/config")
 
-            self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.status_code, 200)
 
-            config_data = json.loads(response.data)
+                config_data = json.loads(response.data)
 
-            assert config_data["type"] == "GET_JSCONFIG_SIGNUP_CONFIG_SUCCESS"
-            assert config_data["payload"]["dashboard_url"] == "dashboard_url"
-            assert config_data["payload"]["static_faq_url"] == "static_faq_url"
-            assert config_data["payload"]["available_languages"] == [["en", "English"], ["sv", "Svenska"]]
-            assert config_data["payload"]["DASHBOARD_URL"] == "dashboard_url"
-            assert config_data["payload"]["STATIC_FAQ_URL"] == "static_faq_url"
-            assert config_data["payload"]["AVAILABLE_LANGUAGES"] == [["en", "English"], ["sv", "Svenska"]]
+                assert config_data["type"] == "GET_JSCONFIG_SIGNUP_CONFIG_SUCCESS"
+                assert config_data["payload"]["dashboard_url"] == "dashboard_url"
+                assert config_data["payload"]["static_faq_url"] == "static_faq_url"
+                assert config_data["payload"]["available_languages"] == [["en", "English"], ["sv", "Svenska"]]
+                assert config_data["payload"]["DASHBOARD_URL"] == "dashboard_url"
+                assert config_data["payload"]["STATIC_FAQ_URL"] == "static_faq_url"
+                assert config_data["payload"]["AVAILABLE_LANGUAGES"] == [["en", "English"], ["sv", "Svenska"]]
 
     def test_get_login_config(self):
+        with self.app.test_request_context():
+            eppn = self.test_user_data["eduPersonPrincipalName"]
+            with self.session_cookie(self.browser, eppn, server_name="example.com", subdomain="login") as client:
+                response = client.get("http://login.example.com/login/config")
 
-        eppn = self.test_user_data["eduPersonPrincipalName"]
-        with self.session_cookie(self.browser, eppn, server_name="example.com", subdomain="login") as client:
-            response = client.get("http://login.example.com/login/config")
+                self.assertEqual(response.status_code, 200)
 
-            self.assertEqual(response.status_code, 200)
+                config_data = json.loads(response.data)
 
-            config_data = json.loads(response.data)
-
-            assert config_data["type"] == "GET_JSCONFIG_LOGIN_CONFIG_SUCCESS"
-            assert config_data["payload"]["password_entropy"] == 12
-            assert config_data["payload"]["password_length"] == 10
+                assert config_data["type"] == "GET_JSCONFIG_LOGIN_CONFIG_SUCCESS"
+                assert config_data["payload"]["password_entropy"] == 12
+                assert config_data["payload"]["password_length"] == 10
 
     def test_jsapps_config_from_yaml(self):
         os.environ["EDUID_CONFIG_YAML"] = f"{self.data_dir}/config.yaml"

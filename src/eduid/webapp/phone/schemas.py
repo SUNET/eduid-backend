@@ -40,13 +40,11 @@ __author__ = "eperez"
 
 
 class VerificationCodeSchema(EduidSchema, CSRFRequestMixin):
-
     code = fields.String(required=True)
     number = fields.String(required=True, validate=validate_format_phone)
 
 
 class PhoneSchema(EduidSchema, CSRFRequestMixin):
-
     number = fields.String(required=True, validate=validate_phone)
     verified = fields.Boolean(attribute="verified")
     primary = fields.Boolean(attribute="primary")
@@ -59,12 +57,10 @@ class PhoneSchema(EduidSchema, CSRFRequestMixin):
 
 
 class PhoneListPayload(EduidSchema, CSRFRequestMixin, CSRFResponseMixin):
-
     phones = fields.Nested(PhoneSchema, many=True)
 
 
 class PhoneResponseSchema(FluxStandardAction):
-
     payload = fields.Nested(PhoneListPayload)
 
     class Captcha(EduidSchema):
@@ -72,7 +68,6 @@ class PhoneResponseSchema(FluxStandardAction):
 
 
 class SimplePhoneSchema(EduidSchema, CSRFRequestMixin):
-
     number = fields.String(required=True)
 
 

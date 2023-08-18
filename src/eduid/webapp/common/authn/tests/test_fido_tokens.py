@@ -113,7 +113,6 @@ SAMPLE_WEBAUTHN_APP_CONFIG = {
 
 
 class FidoTokensTestCase(EduidAPITestCase):
-
     app: MockFidoApp
 
     def setUp(self):
@@ -143,14 +142,14 @@ class FidoTokensTestCase(EduidAPITestCase):
 
     def test_u2f_start_verification(self):
         # Add a working U2F credential for this test
-        self.test_user.credentials.add(self.u2f_credential)
-        self.amdb.save(self.test_user)
+        with self.app.test_request_context():
+            self.test_user.credentials.add(self.u2f_credential)
+            self.amdb.save(self.test_user)
 
-        eppn = self.test_user.eppn
+            eppn = self.test_user.eppn
 
-        with self.session_cookie(self.browser, eppn) as client:
-            with client.session_transaction() as sess:
-                with self.app.test_request_context():
+            with self.session_cookie(self.browser, eppn) as client:
+                with client.session_transaction() as sess:
                     challenge = start_token_verification(
                         user=self.test_user,
                         fido2_rp_id=self.app.conf.fido2_rp_id,
@@ -167,14 +166,14 @@ class FidoTokensTestCase(EduidAPITestCase):
 
     def test_webauthn_start_verification(self):
         # Add a working Webauthn credential for this test
-        self.test_user.credentials.add(self.webauthn_credential)
-        self.amdb.save(self.test_user)
+        with self.app.test_request_context():
+            self.test_user.credentials.add(self.webauthn_credential)
+            self.amdb.save(self.test_user)
 
-        eppn = self.test_user.eppn
+            eppn = self.test_user.eppn
 
-        with self.session_cookie(self.browser, eppn) as client:
-            with client.session_transaction() as sess:
-                with self.app.test_request_context():
+            with self.session_cookie(self.browser, eppn) as client:
+                with client.session_transaction() as sess:
                     challenge = start_token_verification(
                         user=self.test_user,
                         fido2_rp_id=self.app.conf.fido2_rp_id,

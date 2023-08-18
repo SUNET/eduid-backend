@@ -277,402 +277,412 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
         assert cfg.claims_request == data["svipe_client"]["claims_request"]
 
     def test_authenticate(self):
-        response = self.browser.get("/")
-        self.assertEqual(response.status_code, 302)  # Redirect to token service
-        with self.session_cookie(self.browser, self.test_user.eppn) as browser:
-            response = browser.get("/")
-        self._check_success_response(response, type_="GET_SVIPE_ID_SUCCESS")
+        with self.app.test_request_context():
+            response = self.browser.get("/")
+            self.assertEqual(response.status_code, 302)  # Redirect to token service
+            with self.session_cookie(self.browser, self.test_user.eppn) as browser:
+                response = browser.get("/")
+            self._check_success_response(response, type_="GET_SVIPE_ID_SUCCESS")
 
     def test_verify_identity_request(self):
         with self.app.test_request_context():
             endpoint = url_for("svipe_id.verify_identity")
 
-        response = self._start_auth(endpoint=endpoint, data=self.default_frontend_data, eppn=self.test_user.eppn)
-        assert response.status_code == 200
-        self._check_success_response(response, type_="POST_SVIPE_ID_VERIFY_IDENTITY_SUCCESS")
-        assert self.get_response_payload(response)["location"].startswith("https://example.com/op/authorize")
-        query: dict[str, list[str]] = parse_qs(urlparse(self.get_response_payload(response)["location"]).query)  # type: ignore
-        assert query["response_type"] == ["code"]
-        assert query["client_id"] == ["test_client_id"]
-        assert query["redirect_uri"] == ["http://test.localhost/authn-callback"]
-        assert query["scope"] == ["openid"]
-        assert query["code_challenge_method"] == ["S256"]
-        assert query["acr_values"] == ["face_present"]
-        assert query["claims"] == [json.dumps({"userinfo": self.app.conf.svipe_client.claims_request})]
+            response = self._start_auth(endpoint=endpoint, data=self.default_frontend_data, eppn=self.test_user.eppn)
+            assert response.status_code == 200
+            self._check_success_response(response, type_="POST_SVIPE_ID_VERIFY_IDENTITY_SUCCESS")
+            assert self.get_response_payload(response)["location"].startswith("https://example.com/op/authorize")
+            query: dict[str, list[str]] = parse_qs(urlparse(self.get_response_payload(response)["location"]).query)  # type: ignore
+            assert query["response_type"] == ["code"]
+            assert query["client_id"] == ["test_client_id"]
+            assert query["redirect_uri"] == ["http://test.localhost/authn-callback"]
+            assert query["scope"] == ["openid"]
+            assert query["code_challenge_method"] == ["S256"]
+            assert query["acr_values"] == ["face_present"]
+            assert query["claims"] == [json.dumps({"userinfo": self.app.conf.svipe_client.claims_request})]
 
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_verify_nin_identity(self, mock_request_user_sync: MagicMock, mock_get_all_navet_data: MagicMock):
-        mock_get_all_navet_data.return_value = self._get_all_navet_data()
-        mock_request_user_sync.side_effect = self.request_user_sync
-
-        eppn = self.unverified_test_user.eppn
-        country = countries.get("Sweden")
-
         with self.app.test_request_context():
+            mock_get_all_navet_data.return_value = self._get_all_navet_data()
+            mock_request_user_sync.side_effect = self.request_user_sync
+
+            eppn = self.unverified_test_user.eppn
+            country = countries.get("Sweden")
+
             endpoint = url_for("svipe_id.verify_identity")
 
-        start_auth_response = self._start_auth(endpoint=endpoint, data=self.default_frontend_data, eppn=eppn)
-        state, nonce = self._get_state_and_nonce(self.get_response_payload(start_auth_response)["location"])
+            start_auth_response = self._start_auth(endpoint=endpoint, data=self.default_frontend_data, eppn=eppn)
+            state, nonce = self._get_state_and_nonce(self.get_response_payload(start_auth_response)["location"])
 
-        userinfo = self.get_mock_userinfo(issuing_country=country, nationality=country)
-        response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
-        assert response.status_code == 302
-        self._verify_status(
-            finish_url=response.headers["Location"],
-            frontend_action=self.default_frontend_data["frontend_action"],
-            frontend_state=self.default_frontend_data["frontend_state"],
-            method=self.default_frontend_data["method"],
-            expect_msg=SvipeIDMsg.identity_verify_success,
-        )
+            userinfo = self.get_mock_userinfo(issuing_country=country, nationality=country)
+            response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
+            assert response.status_code == 302
+            self._verify_status(
+                finish_url=response.headers["Location"],
+                frontend_action=self.default_frontend_data["frontend_action"],
+                frontend_state=self.default_frontend_data["frontend_state"],
+                method=self.default_frontend_data["method"],
+                expect_msg=SvipeIDMsg.identity_verify_success,
+            )
 
-        user = self.app.central_userdb.get_user_by_eppn(eppn)
-        self._verify_user_parameters(
-            eppn,
-            identity_verified=True,
-            num_proofings=1,
-            num_mfa_tokens=0,
-            locked_identity=user.identities.nin,
-            proofing_method=IdentityProofingMethod.SVIPE_ID,
-            proofing_version=self.app.conf.svipe_id_proofing_version,
-        )
+            user = self.app.central_userdb.get_user_by_eppn(eppn)
+            self._verify_user_parameters(
+                eppn,
+                identity_verified=True,
+                num_proofings=1,
+                num_mfa_tokens=0,
+                locked_identity=user.identities.nin,
+                proofing_method=IdentityProofingMethod.SVIPE_ID,
+                proofing_version=self.app.conf.svipe_id_proofing_version,
+            )
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_verify_foreign_identity(self, mock_request_user_sync: MagicMock):
-        mock_request_user_sync.side_effect = self.request_user_sync
-
-        eppn = self.unverified_test_user.eppn
-        country = countries.get("Denmark")
-
         with self.app.test_request_context():
+            mock_request_user_sync.side_effect = self.request_user_sync
+
+            eppn = self.unverified_test_user.eppn
+            country = countries.get("Denmark")
+
             endpoint = url_for("svipe_id.verify_identity")
 
-        start_auth_response = self._start_auth(endpoint=endpoint, data=self.default_frontend_data, eppn=eppn)
-        state, nonce = self._get_state_and_nonce(self.get_response_payload(start_auth_response)["location"])
-        userinfo = self.get_mock_userinfo(issuing_country=country, nationality=country)
-        response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
-        assert response.status_code == 302
-        self._verify_status(
-            finish_url=response.headers["Location"],
-            frontend_action=self.default_frontend_data["frontend_action"],
-            frontend_state=self.default_frontend_data["frontend_state"],
-            method=self.default_frontend_data["method"],
-            expect_msg=SvipeIDMsg.identity_verify_success,
-        )
+            start_auth_response = self._start_auth(endpoint=endpoint, data=self.default_frontend_data, eppn=eppn)
+            state, nonce = self._get_state_and_nonce(self.get_response_payload(start_auth_response)["location"])
+            userinfo = self.get_mock_userinfo(issuing_country=country, nationality=country)
+            response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
+            assert response.status_code == 302
+            self._verify_status(
+                finish_url=response.headers["Location"],
+                frontend_action=self.default_frontend_data["frontend_action"],
+                frontend_state=self.default_frontend_data["frontend_state"],
+                method=self.default_frontend_data["method"],
+                expect_msg=SvipeIDMsg.identity_verify_success,
+            )
 
-        user = self.app.central_userdb.get_user_by_eppn(eppn)
-        self._verify_user_parameters(
-            eppn,
-            identity_verified=True,
-            num_proofings=1,
-            num_mfa_tokens=0,
-            locked_identity=user.identities.svipe,
-            proofing_method=IdentityProofingMethod.SVIPE_ID,
-            proofing_version=self.app.conf.svipe_id_proofing_version,
-        )
+            user = self.app.central_userdb.get_user_by_eppn(eppn)
+            self._verify_user_parameters(
+                eppn,
+                identity_verified=True,
+                num_proofings=1,
+                num_mfa_tokens=0,
+                locked_identity=user.identities.svipe,
+                proofing_method=IdentityProofingMethod.SVIPE_ID,
+                proofing_version=self.app.conf.svipe_id_proofing_version,
+            )
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_verify_foreign_identity_no_admin_number(self, mock_request_user_sync: MagicMock):
         """Not all countries have something like a Swedish NIN, so administrative_number may be None"""
-        mock_request_user_sync.side_effect = self.request_user_sync
-
-        eppn = self.unverified_test_user.eppn
-        country = countries.get("Denmark")
-
         with self.app.test_request_context():
+            mock_request_user_sync.side_effect = self.request_user_sync
+
+            eppn = self.unverified_test_user.eppn
+            country = countries.get("Denmark")
+
             endpoint = url_for("svipe_id.verify_identity")
 
-        start_auth_response = self._start_auth(endpoint=endpoint, data=self.default_frontend_data, eppn=eppn)
-        state, nonce = self._get_state_and_nonce(self.get_response_payload(start_auth_response)["location"])
-        userinfo = self.get_mock_userinfo(issuing_country=country, nationality=country, administrative_number=None)
-        response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
-        assert response.status_code == 302
-        self._verify_status(
-            finish_url=response.headers["Location"],
-            frontend_action=self.default_frontend_data["frontend_action"],
-            frontend_state=self.default_frontend_data["frontend_state"],
-            method=self.default_frontend_data["method"],
-            expect_msg=SvipeIDMsg.identity_verify_success,
-        )
+            start_auth_response = self._start_auth(endpoint=endpoint, data=self.default_frontend_data, eppn=eppn)
+            state, nonce = self._get_state_and_nonce(self.get_response_payload(start_auth_response)["location"])
+            userinfo = self.get_mock_userinfo(issuing_country=country, nationality=country, administrative_number=None)
+            response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
+            assert response.status_code == 302
+            self._verify_status(
+                finish_url=response.headers["Location"],
+                frontend_action=self.default_frontend_data["frontend_action"],
+                frontend_state=self.default_frontend_data["frontend_state"],
+                method=self.default_frontend_data["method"],
+                expect_msg=SvipeIDMsg.identity_verify_success,
+            )
 
-        user = self.app.central_userdb.get_user_by_eppn(eppn)
+            user = self.app.central_userdb.get_user_by_eppn(eppn)
 
-        assert user.identities.svipe is not None
-        assert user.identities.svipe.administrative_number is None
+            assert user.identities.svipe is not None
+            assert user.identities.svipe.administrative_number is None
 
-        self._verify_user_parameters(
-            eppn,
-            identity_verified=True,
-            num_proofings=1,
-            num_mfa_tokens=0,
-            locked_identity=user.identities.svipe,
-            proofing_method=IdentityProofingMethod.SVIPE_ID,
-            proofing_version=self.app.conf.svipe_id_proofing_version,
-        )
+            self._verify_user_parameters(
+                eppn,
+                identity_verified=True,
+                num_proofings=1,
+                num_mfa_tokens=0,
+                locked_identity=user.identities.svipe,
+                proofing_method=IdentityProofingMethod.SVIPE_ID,
+                proofing_version=self.app.conf.svipe_id_proofing_version,
+            )
 
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_verify_nin_identity_already_verified(
         self, mock_request_user_sync: MagicMock, mock_get_all_navet_data: MagicMock
     ):
-        mock_get_all_navet_data.return_value = self._get_all_navet_data()
-        mock_request_user_sync.side_effect = self.request_user_sync
-
-        eppn = self.test_user.eppn
-        country = countries.get("Sweden")
-
         with self.app.test_request_context():
+            mock_get_all_navet_data.return_value = self._get_all_navet_data()
+            mock_request_user_sync.side_effect = self.request_user_sync
+
+            eppn = self.test_user.eppn
+            country = countries.get("Sweden")
+
             endpoint = url_for("svipe_id.verify_identity")
 
-        start_auth_response = self._start_auth(endpoint=endpoint, data=self.default_frontend_data, eppn=eppn)
-        state, nonce = self._get_state_and_nonce(self.get_response_payload(start_auth_response)["location"])
-        userinfo = self.get_mock_userinfo(issuing_country=country, nationality=country)
-        response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
-        assert response.status_code == 302
-        self._verify_status(
-            finish_url=response.headers["Location"],
-            frontend_action=self.default_frontend_data["frontend_action"],
-            frontend_state=self.default_frontend_data["frontend_state"],
-            method=self.default_frontend_data["method"],
-            expect_error=True,
-            expect_msg=ProofingMsg.identity_already_verified,
-        )
-        self._verify_user_parameters(eppn, identity_verified=True, num_proofings=0, num_mfa_tokens=0)
+            start_auth_response = self._start_auth(endpoint=endpoint, data=self.default_frontend_data, eppn=eppn)
+            state, nonce = self._get_state_and_nonce(self.get_response_payload(start_auth_response)["location"])
+            userinfo = self.get_mock_userinfo(issuing_country=country, nationality=country)
+            response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
+            assert response.status_code == 302
+            self._verify_status(
+                finish_url=response.headers["Location"],
+                frontend_action=self.default_frontend_data["frontend_action"],
+                frontend_state=self.default_frontend_data["frontend_state"],
+                method=self.default_frontend_data["method"],
+                expect_error=True,
+                expect_msg=ProofingMsg.identity_already_verified,
+            )
+            self._verify_user_parameters(eppn, identity_verified=True, num_proofings=0, num_mfa_tokens=0)
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_verify_foreign_identity_already_verified(self, mock_request_user_sync: MagicMock):
-        mock_request_user_sync.side_effect = self.request_user_sync
-
-        eppn = self.test_user.eppn
-        country = countries.get("Denmark")
-
-        # add a verified svipe identity
-        user = self.app.central_userdb.get_user_by_eppn(eppn)
-        userinfo = self.get_mock_userinfo(issuing_country=country, nationality=country)
-        user.identities.add(
-            SvipeIdentity(
-                administrative_number=userinfo.document_administrative_number,
-                country_code=country.alpha2,
-                date_of_birth=datetime.combine(userinfo.birthdate.today(), datetime.min.time()),
-                is_verified=True,
-                svipe_id=userinfo.svipe_id,
-            )
-        )
-        self.request_user_sync(user)
-
         with self.app.test_request_context():
+            mock_request_user_sync.side_effect = self.request_user_sync
+
+            eppn = self.test_user.eppn
+            country = countries.get("Denmark")
+
+            # add a verified svipe identity
+            user = self.app.central_userdb.get_user_by_eppn(eppn)
+            userinfo = self.get_mock_userinfo(issuing_country=country, nationality=country)
+            user.identities.add(
+                SvipeIdentity(
+                    administrative_number=userinfo.document_administrative_number,
+                    country_code=country.alpha2,
+                    date_of_birth=datetime.combine(userinfo.birthdate.today(), datetime.min.time()),
+                    is_verified=True,
+                    svipe_id=userinfo.svipe_id,
+                )
+            )
+            self.request_user_sync(user)
+
             endpoint = url_for("svipe_id.verify_identity")
 
-        start_auth_response = self._start_auth(endpoint=endpoint, data=self.default_frontend_data, eppn=eppn)
-        state, nonce = self._get_state_and_nonce(self.get_response_payload(start_auth_response)["location"])
-        userinfo = self.get_mock_userinfo(issuing_country=country, nationality=country)
-        response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
-        assert response.status_code == 302
-        self._verify_status(
-            finish_url=response.headers["Location"],
-            frontend_action=self.default_frontend_data["frontend_action"],
-            frontend_state=self.default_frontend_data["frontend_state"],
-            method=self.default_frontend_data["method"],
-            expect_error=True,
-            expect_msg=ProofingMsg.identity_already_verified,
-        )
-        self._verify_user_parameters(eppn, identity_verified=True, num_proofings=0, num_mfa_tokens=0)
+            start_auth_response = self._start_auth(endpoint=endpoint, data=self.default_frontend_data, eppn=eppn)
+            state, nonce = self._get_state_and_nonce(self.get_response_payload(start_auth_response)["location"])
+            userinfo = self.get_mock_userinfo(issuing_country=country, nationality=country)
+            response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
+            assert response.status_code == 302
+            self._verify_status(
+                finish_url=response.headers["Location"],
+                frontend_action=self.default_frontend_data["frontend_action"],
+                frontend_state=self.default_frontend_data["frontend_state"],
+                method=self.default_frontend_data["method"],
+                expect_error=True,
+                expect_msg=ProofingMsg.identity_already_verified,
+            )
+            self._verify_user_parameters(eppn, identity_verified=True, num_proofings=0, num_mfa_tokens=0)
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_verify_foreign_identity_replace_locked_identity(self, mock_request_user_sync: MagicMock):
-        mock_request_user_sync.side_effect = self.request_user_sync
+        with self.app.test_request_context():
+            mock_request_user_sync.side_effect = self.request_user_sync
 
-        eppn = self.test_user.eppn
-        country = countries.get("Denmark")
+            eppn = self.test_user.eppn
+            country = countries.get("Denmark")
 
-        # add a locked svipe identity that will match the new identity
-        user = self.app.central_userdb.get_user_by_eppn(eppn)
-        userinfo = self.get_mock_userinfo(issuing_country=country, nationality=country)
-        user.locked_identity.add(
-            SvipeIdentity(
+            # add a locked svipe identity that will match the new identity
+            user = self.app.central_userdb.get_user_by_eppn(eppn)
+            userinfo = self.get_mock_userinfo(issuing_country=country, nationality=country)
+            user.locked_identity.add(
+                SvipeIdentity(
+                    administrative_number=userinfo.document_administrative_number,
+                    country_code="DK",
+                    date_of_birth=datetime.combine(userinfo.birthdate, datetime.min.time()),
+                    is_verified=True,
+                    svipe_id="another_svipe_id",
+                )
+            )
+            user.given_name = userinfo.given_name
+            user.surname = userinfo.family_name
+            self.app.central_userdb.save(user)
+
+            with self.app.test_request_context():
+                endpoint = url_for("svipe_id.verify_identity")
+
+            start_auth_response = self._start_auth(endpoint=endpoint, data=self.default_frontend_data, eppn=eppn)
+            state, nonce = self._get_state_and_nonce(self.get_response_payload(start_auth_response)["location"])
+            response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
+            assert response.status_code == 302
+            self._verify_status(
+                finish_url=response.headers["Location"],
+                frontend_action=self.default_frontend_data["frontend_action"],
+                frontend_state=self.default_frontend_data["frontend_state"],
+                method=self.default_frontend_data["method"],
+                expect_msg=SvipeIDMsg.identity_verify_success,
+            )
+            new_locked_identity = SvipeIdentity(
                 administrative_number=userinfo.document_administrative_number,
                 country_code="DK",
-                date_of_birth=datetime.combine(userinfo.birthdate, datetime.min.time()),
-                is_verified=True,
-                svipe_id="another_svipe_id",
+                date_of_birth=datetime.combine(userinfo.birthdate.today(), datetime.min.time()),
+                svipe_id=userinfo.svipe_id,
             )
-        )
-        user.given_name = userinfo.given_name
-        user.surname = userinfo.family_name
-        self.app.central_userdb.save(user)
-
-        with self.app.test_request_context():
-            endpoint = url_for("svipe_id.verify_identity")
-
-        start_auth_response = self._start_auth(endpoint=endpoint, data=self.default_frontend_data, eppn=eppn)
-        state, nonce = self._get_state_and_nonce(self.get_response_payload(start_auth_response)["location"])
-        response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
-        assert response.status_code == 302
-        self._verify_status(
-            finish_url=response.headers["Location"],
-            frontend_action=self.default_frontend_data["frontend_action"],
-            frontend_state=self.default_frontend_data["frontend_state"],
-            method=self.default_frontend_data["method"],
-            expect_msg=SvipeIDMsg.identity_verify_success,
-        )
-        new_locked_identity = SvipeIdentity(
-            administrative_number=userinfo.document_administrative_number,
-            country_code="DK",
-            date_of_birth=datetime.combine(userinfo.birthdate.today(), datetime.min.time()),
-            svipe_id=userinfo.svipe_id,
-        )
-        self._verify_user_parameters(
-            eppn, identity_verified=True, num_proofings=1, num_mfa_tokens=0, locked_identity=new_locked_identity
-        )
+            self._verify_user_parameters(
+                eppn, identity_verified=True, num_proofings=1, num_mfa_tokens=0, locked_identity=new_locked_identity
+            )
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_verify_foreign_identity_replace_locked_identity_fail(self, mock_request_user_sync: MagicMock):
-        mock_request_user_sync.side_effect = self.request_user_sync
-
-        eppn = self.unverified_test_user.eppn
-        country = countries.get("Denmark")
-
-        userinfo = self.get_mock_userinfo(issuing_country=country, nationality=country)
-
-        # add a locked svipe identity that will NOT match the new identity
-        user = self.app.central_userdb.get_user_by_eppn(eppn)
-        user.locked_identity.add(
-            SvipeIdentity(
-                administrative_number=userinfo.document_administrative_number,
-                country_code=userinfo.document_nationality,
-                date_of_birth=datetime.today(),  # not matching the new identity
-                is_verified=True,
-                svipe_id="another_svipe_id",
-            )
-        )
-        self.app.central_userdb.save(user)
-
         with self.app.test_request_context():
+            mock_request_user_sync.side_effect = self.request_user_sync
+
+            eppn = self.unverified_test_user.eppn
+            country = countries.get("Denmark")
+
+            userinfo = self.get_mock_userinfo(issuing_country=country, nationality=country)
+
+            # add a locked svipe identity that will NOT match the new identity
+            user = self.app.central_userdb.get_user_by_eppn(eppn)
+            user.locked_identity.add(
+                SvipeIdentity(
+                    administrative_number=userinfo.document_administrative_number,
+                    country_code=userinfo.document_nationality,
+                    date_of_birth=datetime.today(),  # not matching the new identity
+                    is_verified=True,
+                    svipe_id="another_svipe_id",
+                )
+            )
+            self.app.central_userdb.save(user)
+
             endpoint = url_for("svipe_id.verify_identity")
 
-        start_auth_response = self._start_auth(endpoint=endpoint, data=self.default_frontend_data, eppn=eppn)
-        state, nonce = self._get_state_and_nonce(self.get_response_payload(start_auth_response)["location"])
-        userinfo = self.get_mock_userinfo(issuing_country=country, nationality=country)
-        response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
-        assert response.status_code == 302
-        self._verify_status(
-            finish_url=response.headers["Location"],
-            frontend_action=self.default_frontend_data["frontend_action"],
-            frontend_state=self.default_frontend_data["frontend_state"],
-            method=self.default_frontend_data["method"],
-            expect_error=True,
-            expect_msg=CommonMsg.locked_identity_not_matching,
-        )
-        self._verify_user_parameters(
-            eppn, identity_verified=False, num_proofings=0, num_mfa_tokens=0, locked_identity=user.locked_identity.svipe
-        )
+            start_auth_response = self._start_auth(endpoint=endpoint, data=self.default_frontend_data, eppn=eppn)
+            state, nonce = self._get_state_and_nonce(self.get_response_payload(start_auth_response)["location"])
+            userinfo = self.get_mock_userinfo(issuing_country=country, nationality=country)
+            response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
+            assert response.status_code == 302
+            self._verify_status(
+                finish_url=response.headers["Location"],
+                frontend_action=self.default_frontend_data["frontend_action"],
+                frontend_state=self.default_frontend_data["frontend_state"],
+                method=self.default_frontend_data["method"],
+                expect_error=True,
+                expect_msg=CommonMsg.locked_identity_not_matching,
+            )
+            self._verify_user_parameters(
+                eppn,
+                identity_verified=False,
+                num_proofings=0,
+                num_mfa_tokens=0,
+                locked_identity=user.locked_identity.svipe,
+            )
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_verify_foreign_identity_replace_locked_identity_fail_admin_number(self, mock_request_user_sync: MagicMock):
-        mock_request_user_sync.side_effect = self.request_user_sync
-
-        eppn = self.unverified_test_user.eppn
-        country = countries.get("Denmark")
-        admin_number = "1234567890"
-        other_admin_number = "0987654321"
-
-        userinfo = self.get_mock_userinfo(
-            issuing_country=country, nationality=country, administrative_number=admin_number
-        )
-
-        # add a locked svipe identity that will NOT match the new identity
-        user = self.app.central_userdb.get_user_by_eppn(eppn)
-        user.locked_identity.add(
-            SvipeIdentity(
-                administrative_number=other_admin_number,  # not matching the new identity
-                country_code=userinfo.document_nationality,
-                date_of_birth=datetime.combine(userinfo.birthdate.today(), datetime.min.time()),
-                is_verified=True,
-                svipe_id="another_svipe_id",
-            )
-        )
-        self.app.central_userdb.save(user)
-
         with self.app.test_request_context():
+            mock_request_user_sync.side_effect = self.request_user_sync
+
+            eppn = self.unverified_test_user.eppn
+            country = countries.get("Denmark")
+            admin_number = "1234567890"
+            other_admin_number = "0987654321"
+
+            userinfo = self.get_mock_userinfo(
+                issuing_country=country, nationality=country, administrative_number=admin_number
+            )
+
+            # add a locked svipe identity that will NOT match the new identity
+            user = self.app.central_userdb.get_user_by_eppn(eppn)
+            user.locked_identity.add(
+                SvipeIdentity(
+                    administrative_number=other_admin_number,  # not matching the new identity
+                    country_code=userinfo.document_nationality,
+                    date_of_birth=datetime.combine(userinfo.birthdate.today(), datetime.min.time()),
+                    is_verified=True,
+                    svipe_id="another_svipe_id",
+                )
+            )
+            self.app.central_userdb.save(user)
+
             endpoint = url_for("svipe_id.verify_identity")
 
-        start_auth_response = self._start_auth(endpoint=endpoint, data=self.default_frontend_data, eppn=eppn)
-        state, nonce = self._get_state_and_nonce(self.get_response_payload(start_auth_response)["location"])
-        userinfo = self.get_mock_userinfo(issuing_country=country, nationality=country)
-        response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
-        assert response.status_code == 302
-        self._verify_status(
-            finish_url=response.headers["Location"],
-            frontend_action=self.default_frontend_data["frontend_action"],
-            frontend_state=self.default_frontend_data["frontend_state"],
-            method=self.default_frontend_data["method"],
-            expect_error=True,
-            expect_msg=CommonMsg.locked_identity_not_matching,
-        )
-        self._verify_user_parameters(
-            eppn, identity_verified=False, num_proofings=0, num_mfa_tokens=0, locked_identity=user.locked_identity.svipe
-        )
+            start_auth_response = self._start_auth(endpoint=endpoint, data=self.default_frontend_data, eppn=eppn)
+            state, nonce = self._get_state_and_nonce(self.get_response_payload(start_auth_response)["location"])
+            userinfo = self.get_mock_userinfo(issuing_country=country, nationality=country)
+            response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
+            assert response.status_code == 302
+            self._verify_status(
+                finish_url=response.headers["Location"],
+                frontend_action=self.default_frontend_data["frontend_action"],
+                frontend_state=self.default_frontend_data["frontend_state"],
+                method=self.default_frontend_data["method"],
+                expect_error=True,
+                expect_msg=CommonMsg.locked_identity_not_matching,
+            )
+            self._verify_user_parameters(
+                eppn,
+                identity_verified=False,
+                num_proofings=0,
+                num_mfa_tokens=0,
+                locked_identity=user.locked_identity.svipe,
+            )
 
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_verify_foreign_identity_already_verified_nin(
         self, mock_request_user_sync: MagicMock, mock_get_all_navet_data: MagicMock
     ):
-        mock_get_all_navet_data.return_value = self._get_all_navet_data()
-        mock_request_user_sync.side_effect = self.request_user_sync
-
-        eppn = self.test_user.eppn
-        country = countries.get("Denmark")
-
         with self.app.test_request_context():
+            mock_get_all_navet_data.return_value = self._get_all_navet_data()
+            mock_request_user_sync.side_effect = self.request_user_sync
+
+            eppn = self.test_user.eppn
+            country = countries.get("Denmark")
+
             endpoint = url_for("svipe_id.verify_identity")
 
-        start_auth_response = self._start_auth(endpoint=endpoint, data=self.default_frontend_data, eppn=eppn)
-        state, nonce = self._get_state_and_nonce(self.get_response_payload(start_auth_response)["location"])
-        userinfo = self.get_mock_userinfo(issuing_country=country, nationality=country)
-        response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
-        assert response.status_code == 302
-        self._verify_status(
-            finish_url=response.headers["Location"],
-            frontend_action=self.default_frontend_data["frontend_action"],
-            frontend_state=self.default_frontend_data["frontend_state"],
-            method=self.default_frontend_data["method"],
-            expect_msg=SvipeIDMsg.identity_verify_success,
-        )
-        user = self.app.central_userdb.get_user_by_eppn(eppn)
-        self._verify_user_parameters(
-            eppn, identity_verified=True, num_proofings=1, num_mfa_tokens=0, locked_identity=user.identities.svipe
-        )
-        self._verify_user_parameters(
-            eppn, identity_verified=True, num_proofings=1, num_mfa_tokens=0, locked_identity=user.identities.nin
-        )
+            start_auth_response = self._start_auth(endpoint=endpoint, data=self.default_frontend_data, eppn=eppn)
+            state, nonce = self._get_state_and_nonce(self.get_response_payload(start_auth_response)["location"])
+            userinfo = self.get_mock_userinfo(issuing_country=country, nationality=country)
+            response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
+            assert response.status_code == 302
+            self._verify_status(
+                finish_url=response.headers["Location"],
+                frontend_action=self.default_frontend_data["frontend_action"],
+                frontend_state=self.default_frontend_data["frontend_state"],
+                method=self.default_frontend_data["method"],
+                expect_msg=SvipeIDMsg.identity_verify_success,
+            )
+            user = self.app.central_userdb.get_user_by_eppn(eppn)
+            self._verify_user_parameters(
+                eppn, identity_verified=True, num_proofings=1, num_mfa_tokens=0, locked_identity=user.identities.svipe
+            )
+            self._verify_user_parameters(
+                eppn, identity_verified=True, num_proofings=1, num_mfa_tokens=0, locked_identity=user.identities.nin
+            )
 
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_verify_identity_expired_document(
         self, mock_request_user_sync: MagicMock, mock_get_all_navet_data: MagicMock
     ):
-        mock_get_all_navet_data.return_value = self._get_all_navet_data()
-        mock_request_user_sync.side_effect = self.request_user_sync
-
-        eppn = self.unverified_test_user.eppn
-        country = countries.get("Sweden")
-
         with self.app.test_request_context():
+            mock_get_all_navet_data.return_value = self._get_all_navet_data()
+            mock_request_user_sync.side_effect = self.request_user_sync
+
+            eppn = self.unverified_test_user.eppn
+            country = countries.get("Sweden")
+
             endpoint = url_for("svipe_id.verify_identity")
 
-        start_auth_response = self._start_auth(endpoint=endpoint, data=self.default_frontend_data, eppn=eppn)
-        state, nonce = self._get_state_and_nonce(self.get_response_payload(start_auth_response)["location"])
-        yesterday = utc_now() - timedelta(days=1)
-        userinfo = self.get_mock_userinfo(issuing_country=country, nationality=country, document_expires=yesterday)
-        response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
-        assert response.status_code == 302
-        self._verify_status(
-            finish_url=response.headers["Location"],
-            frontend_action=self.default_frontend_data["frontend_action"],
-            frontend_state=self.default_frontend_data["frontend_state"],
-            method=self.default_frontend_data["method"],
-            expect_error=True,
-            expect_msg=ProofingMsg.session_info_not_valid,
-        )
-        self._verify_user_parameters(eppn, identity_verified=False, num_proofings=0, num_mfa_tokens=0)
+            start_auth_response = self._start_auth(endpoint=endpoint, data=self.default_frontend_data, eppn=eppn)
+            state, nonce = self._get_state_and_nonce(self.get_response_payload(start_auth_response)["location"])
+            yesterday = utc_now() - timedelta(days=1)
+            userinfo = self.get_mock_userinfo(issuing_country=country, nationality=country, document_expires=yesterday)
+            response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
+            assert response.status_code == 302
+            self._verify_status(
+                finish_url=response.headers["Location"],
+                frontend_action=self.default_frontend_data["frontend_action"],
+                frontend_state=self.default_frontend_data["frontend_state"],
+                method=self.default_frontend_data["method"],
+                expect_error=True,
+                expect_msg=ProofingMsg.session_info_not_valid,
+            )
+            self._verify_user_parameters(eppn, identity_verified=False, num_proofings=0, num_mfa_tokens=0)

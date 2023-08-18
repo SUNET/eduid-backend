@@ -15,7 +15,6 @@ __author__ = "lundberg"
 
 class FormatAddressTest(unittest.TestCase):
     def test_successful_format(self):
-
         navet_responses = [
             OrderedDict(
                 [
@@ -71,7 +70,6 @@ class FormatAddressTest(unittest.TestCase):
             self.assertIsNotNone(city)
 
     def test_failing_format(self):
-
         failing_navet_responses = [
             OrderedDict(
                 [
@@ -147,7 +145,6 @@ class CreatePDFTest(EduidAPITestCase):
         return app_config
 
     def test_create_pdf(self):
-
         recipient = FullPostalAddress.parse_obj(
             OrderedDict(
                 [

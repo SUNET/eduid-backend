@@ -248,7 +248,9 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
 
                 assert self.app.conf.magic_cookie_name is not None
                 assert self.app.conf.magic_cookie is not None
-                client.set_cookie("localhost", key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie)
+                client.set_cookie(
+                    domain="localhost", key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie
+                )
 
                 phone = quote_plus(phone)
                 eppn = quote_plus(eppn)
@@ -258,184 +260,201 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
     # actual tests
 
     def test_get_all_phone(self):
-        phone_data = self._get_all_phone()
+        with self.app.test_request_context():
+            phone_data = self._get_all_phone()
 
-        self.assertEqual("GET_PHONE_ALL_SUCCESS", phone_data["type"])
-        self.assertIsNotNone(phone_data["payload"]["csrf_token"])
-        self.assertEqual("+34609609609", phone_data["payload"]["phones"][0].get("number"))
-        self.assertEqual(True, phone_data["payload"]["phones"][0].get("primary"))
-        self.assertEqual("+34 6096096096", phone_data["payload"]["phones"][1].get("number"))
-        self.assertEqual(False, phone_data["payload"]["phones"][1].get("primary"))
+            self.assertEqual("GET_PHONE_ALL_SUCCESS", phone_data["type"])
+            self.assertIsNotNone(phone_data["payload"]["csrf_token"])
+            self.assertEqual("+34609609609", phone_data["payload"]["phones"][0].get("number"))
+            self.assertEqual(True, phone_data["payload"]["phones"][0].get("primary"))
+            self.assertEqual("+34 6096096096", phone_data["payload"]["phones"][1].get("number"))
+            self.assertEqual(False, phone_data["payload"]["phones"][1].get("primary"))
 
     def test_post_phone_error_no_data(self):
-        response = self._post_phone(send_data=False)
-        new_phone_data = json.loads(response.data)
-        self.assertEqual("POST_PHONE_NEW_FAIL", new_phone_data["type"])
+        with self.app.test_request_context():
+            response = self._post_phone(send_data=False)
+            new_phone_data = json.loads(response.data)
+            self.assertEqual("POST_PHONE_NEW_FAIL", new_phone_data["type"])
 
     def test_post_phone_country_code(self):
-        response = self.browser.post("/new")
-        self.assertEqual(response.status_code, 302)  # Redirect to token service
+        with self.app.test_request_context():
+            response = self.browser.post("/new")
+            self.assertEqual(response.status_code, 302)  # Redirect to token service
 
-        response = self._post_phone()
+            response = self._post_phone()
 
-        self.assertEqual(response.status_code, 200)
-        new_phone_data = json.loads(response.data)
+            self.assertEqual(response.status_code, 200)
+            new_phone_data = json.loads(response.data)
 
-        self.assertEqual("POST_PHONE_NEW_SUCCESS", new_phone_data["type"])
-        self.assertEqual("+34670123456", new_phone_data["payload"]["phones"][2].get("number"))
-        self.assertEqual(False, new_phone_data["payload"]["phones"][2].get("verified"))
+            self.assertEqual("POST_PHONE_NEW_SUCCESS", new_phone_data["type"])
+            self.assertEqual("+34670123456", new_phone_data["payload"]["phones"][2].get("number"))
+            self.assertEqual(False, new_phone_data["payload"]["phones"][2].get("verified"))
 
     def test_post_phone_no_country_code(self):
-        data = {"number": "0701234565"}
-        response = self._post_phone(mod_data=data)
+        with self.app.test_request_context():
+            data = {"number": "0701234565"}
+            response = self._post_phone(mod_data=data)
 
-        self.assertEqual(response.status_code, 200)
-        new_phone_data = json.loads(response.data)
+            self.assertEqual(response.status_code, 200)
+            new_phone_data = json.loads(response.data)
 
-        self.assertEqual("POST_PHONE_NEW_SUCCESS", new_phone_data["type"])
-        self.assertEqual("+46701234565", new_phone_data["payload"]["phones"][2].get("number"))
-        self.assertEqual(False, new_phone_data["payload"]["phones"][2].get("verified"))
+            self.assertEqual("POST_PHONE_NEW_SUCCESS", new_phone_data["type"])
+            self.assertEqual("+46701234565", new_phone_data["payload"]["phones"][2].get("number"))
+            self.assertEqual(False, new_phone_data["payload"]["phones"][2].get("verified"))
 
     def test_post_phone_wrong_csrf(self):
-        data = {"csrf_token": "wrong-token"}
-        response = self._post_phone(mod_data=data)
+        with self.app.test_request_context():
+            data = {"csrf_token": "wrong-token"}
+            response = self._post_phone(mod_data=data)
 
-        self.assertEqual(response.status_code, 200)
-        new_phone_data = json.loads(response.data)
+            self.assertEqual(response.status_code, 200)
+            new_phone_data = json.loads(response.data)
 
-        self.assertEqual("POST_PHONE_NEW_FAIL", new_phone_data["type"])
-        self.assertEqual(["CSRF failed to validate"], new_phone_data["payload"]["error"]["csrf_token"])
+            self.assertEqual("POST_PHONE_NEW_FAIL", new_phone_data["type"])
+            self.assertEqual(["CSRF failed to validate"], new_phone_data["payload"]["error"]["csrf_token"])
 
     def test_post_phone_invalid(self):
-        data = {"number": "0"}
-        response = self._post_phone(mod_data=data)
+        with self.app.test_request_context():
+            data = {"number": "0"}
+            response = self._post_phone(mod_data=data)
 
-        self.assertEqual(response.status_code, 200)
-        new_phone_data = json.loads(response.data)
+            self.assertEqual(response.status_code, 200)
+            new_phone_data = json.loads(response.data)
 
-        self.assertEqual("POST_PHONE_NEW_FAIL", new_phone_data["type"])
-        self.assertEqual(["phone.phone_format"], new_phone_data["payload"]["error"]["number"])
+            self.assertEqual("POST_PHONE_NEW_FAIL", new_phone_data["type"])
+            self.assertEqual(["phone.phone_format"], new_phone_data["payload"]["error"]["number"])
 
     def test_post_phone_as_verified(self):
-        data = {"verified": True}
-        response = self._post_phone(mod_data=data)
+        with self.app.test_request_context():
+            data = {"verified": True}
+            response = self._post_phone(mod_data=data)
 
-        self.assertEqual(response.status_code, 200)
-        new_phone_data = json.loads(response.data)
+            self.assertEqual(response.status_code, 200)
+            new_phone_data = json.loads(response.data)
 
-        self.assertEqual("POST_PHONE_NEW_SUCCESS", new_phone_data["type"])
-        self.assertEqual("+34670123456", new_phone_data["payload"]["phones"][2].get("number"))
-        self.assertFalse(new_phone_data["payload"]["phones"][2].get("verified"))
-        self.assertFalse(new_phone_data["payload"]["phones"][2].get("primary"))
+            self.assertEqual("POST_PHONE_NEW_SUCCESS", new_phone_data["type"])
+            self.assertEqual("+34670123456", new_phone_data["payload"]["phones"][2].get("number"))
+            self.assertFalse(new_phone_data["payload"]["phones"][2].get("verified"))
+            self.assertFalse(new_phone_data["payload"]["phones"][2].get("primary"))
 
     def test_post_phone_as_primary(self):
-        data = {"primary": True}
-        response = self._post_phone(mod_data=data)
+        with self.app.test_request_context():
+            data = {"primary": True}
+            response = self._post_phone(mod_data=data)
 
-        self.assertEqual(response.status_code, 200)
-        new_phone_data = json.loads(response.data)
+            self.assertEqual(response.status_code, 200)
+            new_phone_data = json.loads(response.data)
 
-        self.assertEqual("POST_PHONE_NEW_SUCCESS", new_phone_data["type"])
-        self.assertEqual("+34670123456", new_phone_data["payload"]["phones"][2].get("number"))
-        self.assertFalse(new_phone_data["payload"]["phones"][2].get("verified"))
-        self.assertFalse(new_phone_data["payload"]["phones"][2].get("primary"))
+            self.assertEqual("POST_PHONE_NEW_SUCCESS", new_phone_data["type"])
+            self.assertEqual("+34670123456", new_phone_data["payload"]["phones"][2].get("number"))
+            self.assertFalse(new_phone_data["payload"]["phones"][2].get("verified"))
+            self.assertFalse(new_phone_data["payload"]["phones"][2].get("primary"))
 
     def test_post_phone_bad_swedish_mobile(self):
-        data = {"number": "0711234565"}
-        response = self._post_phone(mod_data=data)
+        with self.app.test_request_context():
+            data = {"number": "0711234565"}
+            response = self._post_phone(mod_data=data)
 
-        self.assertEqual(response.status_code, 200)
-        new_phone_data = json.loads(response.data)
+            self.assertEqual(response.status_code, 200)
+            new_phone_data = json.loads(response.data)
 
-        self.assertEqual("POST_PHONE_NEW_FAIL", new_phone_data["type"])
-        self.assertEqual(["phone.swedish_mobile_format"], new_phone_data["payload"]["error"].get("number"))
+            self.assertEqual("POST_PHONE_NEW_FAIL", new_phone_data["type"])
+            self.assertEqual(["phone.swedish_mobile_format"], new_phone_data["payload"]["error"].get("number"))
 
     def test_post_phone_bad_country_code(self):
-        data = {"number": "00711234565"}
-        response = self._post_phone(mod_data=data)
+        with self.app.test_request_context():
+            data = {"number": "00711234565"}
+            response = self._post_phone(mod_data=data)
 
-        self.assertEqual(response.status_code, 200)
-        new_phone_data = json.loads(response.data)
+            self.assertEqual(response.status_code, 200)
+            new_phone_data = json.loads(response.data)
 
-        self.assertEqual("POST_PHONE_NEW_FAIL", new_phone_data["type"])
-        self.assertEqual(["phone.e164_format"], new_phone_data["payload"]["error"].get("_schema"))
+            self.assertEqual("POST_PHONE_NEW_FAIL", new_phone_data["type"])
+            self.assertEqual(["phone.e164_format"], new_phone_data["payload"]["error"].get("_schema"))
 
     def test_post_primary(self):
-        response = self._post_primary()
+        with self.app.test_request_context():
+            response = self._post_primary()
 
-        self.assertEqual(response.status_code, 200)
-        new_phone_data = json.loads(response.data)
+            self.assertEqual(response.status_code, 200)
+            new_phone_data = json.loads(response.data)
 
-        self.assertEqual("POST_PHONE_PRIMARY_SUCCESS", new_phone_data["type"])
-        self.assertEqual(True, new_phone_data["payload"]["phones"][0]["verified"])
-        self.assertEqual(True, new_phone_data["payload"]["phones"][0]["primary"])
-        self.assertEqual("+34609609609", new_phone_data["payload"]["phones"][0]["number"])
-        self.assertEqual(False, new_phone_data["payload"]["phones"][1]["verified"])
-        self.assertEqual(False, new_phone_data["payload"]["phones"][1]["primary"])
-        self.assertEqual("+34 6096096096", new_phone_data["payload"]["phones"][1]["number"])
+            self.assertEqual("POST_PHONE_PRIMARY_SUCCESS", new_phone_data["type"])
+            self.assertEqual(True, new_phone_data["payload"]["phones"][0]["verified"])
+            self.assertEqual(True, new_phone_data["payload"]["phones"][0]["primary"])
+            self.assertEqual("+34609609609", new_phone_data["payload"]["phones"][0]["number"])
+            self.assertEqual(False, new_phone_data["payload"]["phones"][1]["verified"])
+            self.assertEqual(False, new_phone_data["payload"]["phones"][1]["primary"])
+            self.assertEqual("+34 6096096096", new_phone_data["payload"]["phones"][1]["number"])
 
     def test_post_primary_no_csrf(self):
-        data = {"csrf_token": ""}
-        response = self._post_primary(mod_data=data)
+        with self.app.test_request_context():
+            data = {"csrf_token": ""}
+            response = self._post_primary(mod_data=data)
 
-        self.assertEqual(response.status_code, 200)
-        new_phone_data = json.loads(response.data)
+            self.assertEqual(response.status_code, 200)
+            new_phone_data = json.loads(response.data)
 
-        self.assertEqual("POST_PHONE_PRIMARY_FAIL", new_phone_data["type"])
-        self.assertEqual(["CSRF failed to validate"], new_phone_data["payload"]["error"]["csrf_token"])
+            self.assertEqual("POST_PHONE_PRIMARY_FAIL", new_phone_data["type"])
+            self.assertEqual(["CSRF failed to validate"], new_phone_data["payload"]["error"]["csrf_token"])
 
     def test_post_primary_unknown(self):
-        data = {"number": "+66666666666"}
-        response = self._post_primary(mod_data=data)
+        with self.app.test_request_context():
+            data = {"number": "+66666666666"}
+            response = self._post_primary(mod_data=data)
 
-        self.assertEqual(response.status_code, 200)
-        new_phone_data = json.loads(response.data)
+            self.assertEqual(response.status_code, 200)
+            new_phone_data = json.loads(response.data)
 
-        self.assertEqual("POST_PHONE_PRIMARY_FAIL", new_phone_data["type"])
-        self.assertEqual(PhoneMsg.unknown_phone.value, new_phone_data["payload"]["message"])
+            self.assertEqual("POST_PHONE_PRIMARY_FAIL", new_phone_data["type"])
+            self.assertEqual(PhoneMsg.unknown_phone.value, new_phone_data["payload"]["message"])
 
     def test_remove(self):
-        response = self._remove()
+        with self.app.test_request_context():
+            response = self._remove()
 
-        self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.status_code, 200)
 
-        delete_phone_data = json.loads(response.data)
+            delete_phone_data = json.loads(response.data)
 
-        self.assertEqual("POST_PHONE_REMOVE_SUCCESS", delete_phone_data["type"])
-        self.assertEqual("+34 6096096096", delete_phone_data["payload"]["phones"][0].get("number"))
+            self.assertEqual("POST_PHONE_REMOVE_SUCCESS", delete_phone_data["type"])
+            self.assertEqual("+34 6096096096", delete_phone_data["payload"]["phones"][0].get("number"))
 
     def test_remove_primary_other_unverified(self):
-        data = {"number": "+34 6096096096"}
-        response = self._remove(mod_data=data)
+        with self.app.test_request_context():
+            data = {"number": "+34 6096096096"}
+            response = self._remove(mod_data=data)
 
-        self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.status_code, 200)
 
-        delete_phone_data = json.loads(response.data)
+            delete_phone_data = json.loads(response.data)
 
-        self.assertEqual("POST_PHONE_REMOVE_SUCCESS", delete_phone_data["type"])
-        self.assertEqual("+34609609609", delete_phone_data["payload"]["phones"][0].get("number"))
+            self.assertEqual("POST_PHONE_REMOVE_SUCCESS", delete_phone_data["type"])
+            self.assertEqual("+34609609609", delete_phone_data["payload"]["phones"][0].get("number"))
 
     def test_remove_no_csrf(self):
-        data = {"csrf_token": ""}
-        response = self._remove(mod_data=data)
+        with self.app.test_request_context():
+            data = {"csrf_token": ""}
+            response = self._remove(mod_data=data)
 
-        self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.status_code, 200)
 
-        delete_phone_data = json.loads(response.data)
+            delete_phone_data = json.loads(response.data)
 
-        self.assertEqual("POST_PHONE_REMOVE_FAIL", delete_phone_data["type"])
-        self.assertEqual(["CSRF failed to validate"], delete_phone_data["payload"]["error"]["csrf_token"])
+            self.assertEqual("POST_PHONE_REMOVE_FAIL", delete_phone_data["type"])
+            self.assertEqual(["CSRF failed to validate"], delete_phone_data["payload"]["error"]["csrf_token"])
 
     def test_remove_unknown(self):
-        data = {"number": "+33333333333"}
-        response = self._remove(mod_data=data)
+        with self.app.test_request_context():
+            data = {"number": "+33333333333"}
+            response = self._remove(mod_data=data)
 
-        self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.status_code, 200)
 
-        delete_phone_data = json.loads(response.data)
+            delete_phone_data = json.loads(response.data)
 
-        self.assertEqual("POST_PHONE_REMOVE_FAIL", delete_phone_data["type"])
-        self.assertEqual("phones.unknown_phone", delete_phone_data["payload"]["message"])
+            self.assertEqual("POST_PHONE_REMOVE_FAIL", delete_phone_data["type"])
+            self.assertEqual("phones.unknown_phone", delete_phone_data["payload"]["message"])
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     @patch("eduid.webapp.phone.verifications.get_short_hash")
@@ -447,107 +466,110 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
         mock_request_user_sync.side_effect = self.request_user_sync
         mock_code_verification.return_value = "12345"
 
-        response = self.browser.post("/remove")
-        self.assertEqual(response.status_code, 302)  # Redirect to token service
-
-        eppn = self.test_user_data["eduPersonPrincipalName"]
-        phone = "+34609123321"
-
-        with self.session_cookie(self.browser, eppn) as client:
-
-            with self.app.test_request_context():
-                with client.session_transaction() as sess:
-                    data = {
-                        "number": phone,
-                        "verified": False,
-                        "primary": False,
-                        "csrf_token": sess.get_csrf_token(),
-                    }
-
-                client.post("/new", data=json.dumps(data), content_type=self.content_type_json)
-
-                with client.session_transaction() as sess:
-                    sess.phone.captcha.completed = True
-                    sess.persist()
-                    data2: dict[str, Any] = {
-                        "number": phone,
-                        "csrf_token": sess.get_csrf_token(),
-                    }
-
-                client.post("/send-code", data=json.dumps(data2), content_type=self.content_type_json)
-
-                with client.session_transaction() as sess:
-                    data = {"number": phone, "code": "12345", "csrf_token": sess.get_csrf_token()}
-
-        response2 = client.post("/verify", data=json.dumps(data), content_type=self.content_type_json)
-        verify_phone_data = json.loads(response2.data)
-        self.assertEqual("POST_PHONE_VERIFY_SUCCESS", verify_phone_data["type"])
-
         with self.app.test_request_context():
+            response = self.browser.post("/remove")
+            self.assertEqual(response.status_code, 302)  # Redirect to token service
+
+            eppn = self.test_user_data["eduPersonPrincipalName"]
+            phone = "+34609123321"
+
+            with self.session_cookie(self.browser, eppn) as client:
+                with self.app.test_request_context():
+                    with client.session_transaction() as sess:
+                        data = {
+                            "number": phone,
+                            "verified": False,
+                            "primary": False,
+                            "csrf_token": sess.get_csrf_token(),
+                        }
+
+                    client.post("/new", data=json.dumps(data), content_type=self.content_type_json)
+
+                    with client.session_transaction() as sess:
+                        sess.phone.captcha.completed = True
+                        sess.persist()
+                        data2: dict[str, Any] = {
+                            "number": phone,
+                            "csrf_token": sess.get_csrf_token(),
+                        }
+
+                    client.post("/send-code", data=json.dumps(data2), content_type=self.content_type_json)
+
+                    with client.session_transaction() as sess:
+                        data = {"number": phone, "code": "12345", "csrf_token": sess.get_csrf_token()}
+
+            response2 = client.post("/verify", data=json.dumps(data), content_type=self.content_type_json)
+            verify_phone_data = json.loads(response2.data)
+            self.assertEqual("POST_PHONE_VERIFY_SUCCESS", verify_phone_data["type"])
+
             with client.session_transaction() as sess:
                 data = {"number": "+34609609609", "csrf_token": sess.get_csrf_token()}
 
-        response2 = client.post("/remove", data=json.dumps(data), content_type=self.content_type_json)
+            response2 = client.post("/remove", data=json.dumps(data), content_type=self.content_type_json)
 
-        self.assertEqual(response2.status_code, 200)
+            self.assertEqual(response2.status_code, 200)
 
-        delete_phone_data = json.loads(response2.data)
+            delete_phone_data = json.loads(response2.data)
 
-        self.assertEqual("POST_PHONE_REMOVE_SUCCESS", delete_phone_data["type"])
-        self.assertEqual("+34 6096096096", delete_phone_data["payload"]["phones"][0].get("number"))
+            self.assertEqual("POST_PHONE_REMOVE_SUCCESS", delete_phone_data["type"])
+            self.assertEqual("+34 6096096096", delete_phone_data["payload"]["phones"][0].get("number"))
 
     def test_resend_code(self):
-        response = self.browser.post("/resend-code")
-        self.assertEqual(response.status_code, 302)  # Redirect to token service
+        with self.app.test_request_context():
+            response = self.browser.post("/resend-code")
+            self.assertEqual(response.status_code, 302)  # Redirect to token service
 
-        response = self._resend_code()
+            response = self._resend_code()
 
-        self.assertEqual(response.status_code, 200)
-        phone_data = json.loads(response.data)
+            self.assertEqual(response.status_code, 200)
+            phone_data = json.loads(response.data)
 
-        self.assertEqual("POST_PHONE_RESEND_CODE_SUCCESS", phone_data["type"])
-        self.assertEqual("+34609609609", phone_data["payload"]["phones"][0].get("number"))
-        self.assertEqual("+34 6096096096", phone_data["payload"]["phones"][1].get("number"))
+            self.assertEqual("POST_PHONE_RESEND_CODE_SUCCESS", phone_data["type"])
+            self.assertEqual("+34609609609", phone_data["payload"]["phones"][0].get("number"))
+            self.assertEqual("+34 6096096096", phone_data["payload"]["phones"][1].get("number"))
 
     def test_resend_code_no_csrf(self):
-        data = {"csrf_token": "wrong-token"}
-        response = self._resend_code(mod_data=data)
+        with self.app.test_request_context():
+            data = {"csrf_token": "wrong-token"}
+            response = self._resend_code(mod_data=data)
 
-        self.assertEqual(response.status_code, 200)
-        phone_data = json.loads(response.data)
+            self.assertEqual(response.status_code, 200)
+            phone_data = json.loads(response.data)
 
-        self.assertEqual("POST_PHONE_RESEND_CODE_FAIL", phone_data["type"])
-        self.assertEqual(["CSRF failed to validate"], phone_data["payload"]["error"]["csrf_token"])
+            self.assertEqual("POST_PHONE_RESEND_CODE_FAIL", phone_data["type"])
+            self.assertEqual(["CSRF failed to validate"], phone_data["payload"]["error"]["csrf_token"])
 
     def test_resend_code_unknown(self):
-        data = {"number": "+66666666666"}
-        response = self._resend_code(mod_data=data)
+        with self.app.test_request_context():
+            data = {"number": "+66666666666"}
+            response = self._resend_code(mod_data=data)
 
-        self.assertEqual(response.status_code, 200)
-        phone_data = json.loads(response.data)
+            self.assertEqual(response.status_code, 200)
+            phone_data = json.loads(response.data)
 
-        self.assertEqual("POST_PHONE_RESEND_CODE_FAIL", phone_data["type"])
-        self.assertEqual("user-out-of-sync", phone_data["payload"]["message"])
+            self.assertEqual("POST_PHONE_RESEND_CODE_FAIL", phone_data["type"])
+            self.assertEqual("user-out-of-sync", phone_data["payload"]["message"])
 
     def test_resend_code_throttle(self):
-        response = self._resend_code()
+        with self.app.test_request_context():
+            response = self._resend_code()
 
-        self.assertEqual(response.status_code, 200)
-        phone_data = json.loads(response.data)
+            self.assertEqual(response.status_code, 200)
+            phone_data = json.loads(response.data)
 
-        self.assertEqual("POST_PHONE_RESEND_CODE_SUCCESS", phone_data["type"])
-        self.assertEqual("+34609609609", phone_data["payload"]["phones"][0].get("number"))
-        self.assertEqual("+34 6096096096", phone_data["payload"]["phones"][1].get("number"))
+            self.assertEqual("POST_PHONE_RESEND_CODE_SUCCESS", phone_data["type"])
+            self.assertEqual("+34609609609", phone_data["payload"]["phones"][0].get("number"))
+            self.assertEqual("+34 6096096096", phone_data["payload"]["phones"][1].get("number"))
 
-        response = self._resend_code()
+            response = self._resend_code()
 
-        self.assertEqual(response.status_code, 200)
-        phone_data = json.loads(response.data)
+            self.assertEqual(response.status_code, 200)
+            phone_data = json.loads(response.data)
 
-        self.assertEqual("POST_PHONE_RESEND_CODE_FAIL", phone_data["type"])
-        self.assertEqual(phone_data["error"], True)
-        self.assertEqual(phone_data["payload"]["message"], "still-valid-code")
-        self.assertIsNotNone(phone_data["payload"]["csrf_token"])
+            self.assertEqual("POST_PHONE_RESEND_CODE_FAIL", phone_data["type"])
+            self.assertEqual(phone_data["error"], True)
+            self.assertEqual(phone_data["payload"]["message"], "still-valid-code")
+            self.assertIsNotNone(phone_data["payload"]["csrf_token"])
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     @patch("eduid.webapp.phone.verifications.get_short_hash")
@@ -555,19 +577,18 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
     def test_verify(
         self, mock_phone_validator: MagicMock, mock_code_verification: MagicMock, mock_request_user_sync: MagicMock
     ):
-        mock_phone_validator.return_value = True
-        mock_request_user_sync.side_effect = self.request_user_sync
-        mock_code_verification.return_value = "12345"
+        with self.app.test_request_context():
+            mock_phone_validator.return_value = True
+            mock_request_user_sync.side_effect = self.request_user_sync
+            mock_code_verification.return_value = "12345"
 
-        response = self.browser.post("/verify")
-        self.assertEqual(response.status_code, 302)  # Redirect to token service
+            response = self.browser.post("/verify")
+            self.assertEqual(response.status_code, 302)  # Redirect to token service
 
-        eppn = self.test_user_data["eduPersonPrincipalName"]
-        phone = "+34609123321"
+            eppn = self.test_user_data["eduPersonPrincipalName"]
+            phone = "+34609123321"
 
-        with self.session_cookie(self.browser, eppn) as client:
-
-            with self.app.test_request_context():
+            with self.session_cookie(self.browser, eppn) as client:
                 with client.session_transaction() as sess:
                     data = {
                         "number": phone,
@@ -606,18 +627,19 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
     def test_verify_fail(
         self, mock_phone_validator: MagicMock, mock_code_verification: MagicMock, mock_request_user_sync: MagicMock
     ):
-        mock_phone_validator.return_value = True
-        mock_request_user_sync.side_effect = self.request_user_sync
-        mock_code_verification.return_value = "12345"
+        with self.app.test_request_context():
+            mock_phone_validator.return_value = True
+            mock_request_user_sync.side_effect = self.request_user_sync
+            mock_code_verification.return_value = "12345"
 
-        response = self.browser.post("/verify")
-        self.assertEqual(response.status_code, 302)  # Redirect to token service
+            response = self.browser.post("/verify")
+            self.assertEqual(response.status_code, 302)  # Redirect to token service
 
-        eppn = self.test_user_data["eduPersonPrincipalName"]
-        phone = "+34609123321"
+            eppn = self.test_user_data["eduPersonPrincipalName"]
+            phone = "+34609123321"
 
-        with self.session_cookie(self.browser, eppn) as client:
-            with self.app.test_request_context():
+            with self.session_cookie(self.browser, eppn) as client:
+                #        with self.app.test_request_context():
                 with client.session_transaction() as sess:
                     data = {
                         "number": phone,
@@ -649,122 +671,129 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
                 self.assertEqual(self.app.proofing_log.db_count(), 0)
 
     def test_post_phone_duplicated_number(self):
-        data = {"number": "0701234565"}
-        response1 = self._post_phone(mod_data=data)
+        with self.app.test_request_context():
+            data = {"number": "0701234565"}
+            response1 = self._post_phone(mod_data=data)
 
-        self.assertEqual(response1.status_code, 200)
-        new_phone_data = json.loads(response1.data)
+            self.assertEqual(response1.status_code, 200)
+            new_phone_data = json.loads(response1.data)
 
-        self.assertEqual("POST_PHONE_NEW_SUCCESS", new_phone_data["type"])
-        self.assertEqual("+46701234565", new_phone_data["payload"]["phones"][2].get("number"))
-        self.assertEqual(False, new_phone_data["payload"]["phones"][2].get("verified"))
+            self.assertEqual("POST_PHONE_NEW_SUCCESS", new_phone_data["type"])
+            self.assertEqual("+46701234565", new_phone_data["payload"]["phones"][2].get("number"))
+            self.assertEqual(False, new_phone_data["payload"]["phones"][2].get("verified"))
 
-        eppn = self.test_user_data["eduPersonPrincipalName"]
+            eppn = self.test_user_data["eduPersonPrincipalName"]
 
-        # Save above phone number for user in central db
-        user = self.app.private_userdb.get_user_by_eppn(eppn)
-        self.request_user_sync(user)
+            # Save above phone number for user in central db
+            user = self.app.private_userdb.get_user_by_eppn(eppn)
+            self.request_user_sync(user)
 
-        response2 = self._post_phone(mod_data=data)
+            response2 = self._post_phone(mod_data=data)
 
-        self.assertEqual(response2.status_code, 200)
+            self.assertEqual(response2.status_code, 200)
 
-        new_phone_data2 = json.loads(response2.data)
+            new_phone_data2 = json.loads(response2.data)
 
-        self.assertEqual("POST_PHONE_NEW_FAIL", new_phone_data2["type"])
-        self.assertEqual(["phone.phone_duplicated"], new_phone_data2["payload"]["error"].get("number"))
+            self.assertEqual("POST_PHONE_NEW_FAIL", new_phone_data2["type"])
+            self.assertEqual(["phone.phone_duplicated"], new_phone_data2["payload"]["error"].get("number"))
 
     def test_post_phone_duplicated_number_e_164(self):
-        data = {"number": "+46701234565"}  # e164 format
-        response1 = self._post_phone(mod_data=data)
+        with self.app.test_request_context():
+            data = {"number": "+46701234565"}  # e164 format
+            response1 = self._post_phone(mod_data=data)
 
-        self.assertEqual(response1.status_code, 200)
-        new_phone_data = json.loads(response1.data)
+            self.assertEqual(response1.status_code, 200)
+            new_phone_data = json.loads(response1.data)
 
-        self.assertEqual("POST_PHONE_NEW_SUCCESS", new_phone_data["type"])
-        self.assertEqual("+46701234565", new_phone_data["payload"]["phones"][2].get("number"))
-        self.assertEqual(False, new_phone_data["payload"]["phones"][2].get("verified"))
+            self.assertEqual("POST_PHONE_NEW_SUCCESS", new_phone_data["type"])
+            self.assertEqual("+46701234565", new_phone_data["payload"]["phones"][2].get("number"))
+            self.assertEqual(False, new_phone_data["payload"]["phones"][2].get("verified"))
 
-        eppn = self.test_user_data["eduPersonPrincipalName"]
+            eppn = self.test_user_data["eduPersonPrincipalName"]
 
-        # Save above phone number for user in central db
-        user = self.app.private_userdb.get_user_by_eppn(eppn)
-        self.request_user_sync(user)
+            # Save above phone number for user in central db
+            user = self.app.private_userdb.get_user_by_eppn(eppn)
+            self.request_user_sync(user)
 
-        data = {"number": "0701234565"}  # National format
-        response2 = self._post_phone(mod_data=data)
+            data = {"number": "0701234565"}  # National format
+            response2 = self._post_phone(mod_data=data)
 
-        self.assertEqual(response2.status_code, 200)
+            self.assertEqual(response2.status_code, 200)
 
-        new_phone_data2 = json.loads(response2.data)
+            new_phone_data2 = json.loads(response2.data)
 
-        self.assertEqual("POST_PHONE_NEW_FAIL", new_phone_data2["type"])
-        self.assertEqual(["phone.phone_duplicated"], new_phone_data2["payload"]["error"].get("number"))
+            self.assertEqual("POST_PHONE_NEW_FAIL", new_phone_data2["type"])
+            self.assertEqual(["phone.phone_duplicated"], new_phone_data2["payload"]["error"].get("number"))
 
     def test_post_phone_duplicated_number_e_164_2(self):
-        data = {"number": "0701234565"}  # e164 format
-        response1 = self._post_phone(mod_data=data)
+        with self.app.test_request_context():
+            data = {"number": "0701234565"}  # e164 format
+            response1 = self._post_phone(mod_data=data)
 
-        self.assertEqual(response1.status_code, 200)
-        new_phone_data = json.loads(response1.data)
+            self.assertEqual(response1.status_code, 200)
+            new_phone_data = json.loads(response1.data)
 
-        self.assertEqual("POST_PHONE_NEW_SUCCESS", new_phone_data["type"])
-        self.assertEqual("+46701234565", new_phone_data["payload"]["phones"][2].get("number"))
-        self.assertEqual(False, new_phone_data["payload"]["phones"][2].get("verified"))
+            self.assertEqual("POST_PHONE_NEW_SUCCESS", new_phone_data["type"])
+            self.assertEqual("+46701234565", new_phone_data["payload"]["phones"][2].get("number"))
+            self.assertEqual(False, new_phone_data["payload"]["phones"][2].get("verified"))
 
-        eppn = self.test_user_data["eduPersonPrincipalName"]
+            eppn = self.test_user_data["eduPersonPrincipalName"]
 
-        # Save above phone number for user in central db
-        user = self.app.private_userdb.get_user_by_eppn(eppn)
-        self.request_user_sync(user)
+            # Save above phone number for user in central db
+            user = self.app.private_userdb.get_user_by_eppn(eppn)
+            self.request_user_sync(user)
 
-        data = {"number": "+46701234565"}  # National format
-        response2 = self._post_phone(mod_data=data)
+            data = {"number": "+46701234565"}  # National format
+            response2 = self._post_phone(mod_data=data)
 
-        self.assertEqual(response2.status_code, 200)
+            self.assertEqual(response2.status_code, 200)
 
-        new_phone_data2 = json.loads(response2.data)
+            new_phone_data2 = json.loads(response2.data)
 
-        self.assertEqual("POST_PHONE_NEW_FAIL", new_phone_data2["type"])
-        self.assertEqual(["phone.phone_duplicated"], new_phone_data2["payload"]["error"].get("number"))
+            self.assertEqual("POST_PHONE_NEW_FAIL", new_phone_data2["type"])
+            self.assertEqual(["phone.phone_duplicated"], new_phone_data2["payload"]["error"].get("number"))
 
     def test_get_code_backdoor(self):
-        self.app.conf.magic_cookie = "magic-cookie"
-        self.app.conf.magic_cookie_name = "magic"
-        self.app.conf.environment = EduidEnvironment("dev")
+        with self.app.test_request_context():
+            self.app.conf.magic_cookie = "magic-cookie"
+            self.app.conf.magic_cookie_name = "magic"
+            self.app.conf.environment = EduidEnvironment("dev")
 
-        code = "0123456"
-        resp = self._get_code_backdoor(code=code)
+            code = "0123456"
+            resp = self._get_code_backdoor(code=code)
 
-        self.assertEqual(resp.status_code, 200)
-        self.assertEqual(resp.data, code.encode("ascii"))
+            self.assertEqual(resp.status_code, 200)
+            self.assertEqual(resp.data, code.encode("ascii"))
 
     def test_get_code_no_backdoor_in_pro(self):
-        self.app.conf.magic_cookie = "magic-cookie"
-        self.app.conf.magic_cookie_name = "magic"
-        self.app.conf.environment = EduidEnvironment("production")
+        with self.app.test_request_context():
+            self.app.conf.magic_cookie = "magic-cookie"
+            self.app.conf.magic_cookie_name = "magic"
+            self.app.conf.environment = EduidEnvironment("production")
 
-        code = "0123456"
-        resp = self._get_code_backdoor(code=code)
+            code = "0123456"
+            resp = self._get_code_backdoor(code=code)
 
-        self.assertEqual(resp.status_code, 400)
+            self.assertEqual(resp.status_code, 400)
 
     def test_get_code_no_backdoor_misconfigured1(self):
-        self.app.conf.magic_cookie = "magic-cookie"
-        self.app.conf.magic_cookie_name = ""
-        self.app.conf.environment = EduidEnvironment("dev")
+        with self.app.test_request_context():
+            self.app.conf.magic_cookie = "magic-cookie"
+            self.app.conf.magic_cookie_name = ""
+            self.app.conf.environment = EduidEnvironment("dev")
 
-        code = "0123456"
-        resp = self._get_code_backdoor(code=code)
+            code = "0123456"
+            resp = self._get_code_backdoor(code=code)
 
-        self.assertEqual(resp.status_code, 400)
+            self.assertEqual(resp.status_code, 400)
 
     def test_get_code_no_backdoor_misconfigured2(self):
-        self.app.conf.magic_cookie = ""
-        self.app.conf.magic_cookie_name = "magic"
-        self.app.conf.environment = EduidEnvironment("dev")
+        with self.app.test_request_context():
+            self.app.conf.magic_cookie = ""
+            self.app.conf.magic_cookie_name = "magic"
+            self.app.conf.environment = EduidEnvironment("dev")
 
-        code = "0123456"
-        resp = self._get_code_backdoor(code=code)
+            code = "0123456"
+            resp = self._get_code_backdoor(code=code)
 
-        self.assertEqual(resp.status_code, 400)
+            self.assertEqual(resp.status_code, 400)

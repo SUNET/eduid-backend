@@ -1,6 +1,7 @@
 import logging
 import os
 from enum import Enum
+import sys
 from typing import Tuple
 from unittest.mock import patch
 from urllib.parse import unquote
@@ -37,20 +38,21 @@ class IdPTestLogout(IdPTests):
 
     def test_basic_logout(self):
         """This logs in, then out - but it calls the SOAP binding with the SSO cookie present"""
-        with self.browser.session_transaction() as sess:
-            # Patch the VCCSClient so we do not need a vccs server
-            with patch.object(VCCSClient, "authenticate"):
-                VCCSClient.authenticate.return_value = True
-                login_result = self._try_login()
-                assert login_result.reached_state == LoginState.S5_LOGGED_IN
+        with self.app.test_request_context():
+            with self.browser.session_transaction() as sess:
+                # Patch the VCCSClient so we do not need a vccs server
+                with patch.object(VCCSClient, "authenticate"):
+                    VCCSClient.authenticate.return_value = True
+                    login_result = self._try_login()
+                    assert login_result.reached_state == LoginState.S5_LOGGED_IN
 
-            authn_response = self.parse_saml_authn_response(login_result.response)
+                authn_response = self.parse_saml_authn_response(login_result.response)
 
-            reached_state, response = self._try_logout(authn_response, BINDING_SOAP)
-            assert reached_state == LogoutState.S1_LOGGED_OUT
+                reached_state, response = self._try_logout(authn_response, BINDING_SOAP)
+                assert reached_state == LogoutState.S1_LOGGED_OUT
 
-            logout_response = self.parse_saml_logout_response(response, BINDING_SOAP)
-            assert logout_response.response.status.status_code.value == "urn:oasis:names:tc:SAML:2.0:status:Success"
+                logout_response = self.parse_saml_logout_response(response, BINDING_SOAP)
+                assert logout_response.response.status.status_code.value == "urn:oasis:names:tc:SAML:2.0:status:Success"
 
     def test_basic_logout_soap(self):
         """
@@ -58,39 +60,7 @@ class IdPTestLogout(IdPTests):
         and then an SP logging the user out using SOAP with no SSO cookie.
         """
         # Patch the VCCSClient so we do not need a vccs server
-        with patch.object(VCCSClient, "authenticate"):
-            VCCSClient.authenticate.return_value = True
-            login_result = self._try_login()
-            assert login_result.reached_state == LoginState.S5_LOGGED_IN
-
-        authn_response = self.parse_saml_authn_response(login_result.response)
-
-        # Locate the SSO session
-        sso_session1 = self.app.sso_sessions.get_session(login_result.sso_cookie_val)
-        assert isinstance(sso_session1, SSOSession)
-        assert sso_session1.eppn == self.test_user.eppn
-
-        # Make sure it is the only SSO session for this user
-        user_sso_sessions = self.app.sso_sessions.get_sessions_for_user(self.test_user.eppn)
-        assert user_sso_sessions == [sso_session1]
-
-        # Remove all cookies, simulating a SOAP request from an SP rather than from the clients browser
-        self.browser.cookie_jar.clear()
-
-        reached_state, response = self._try_logout(authn_response, BINDING_SOAP)
-        assert reached_state == LogoutState.S1_LOGGED_OUT
-
-        logout_response = self.parse_saml_logout_response(response, BINDING_SOAP)
-        assert logout_response.response.status.status_code.value == "urn:oasis:names:tc:SAML:2.0:status:Success"
-
-        # Make sure the logout removed the SSO session from the database
-        sso_session2 = self.app.sso_sessions.get_session(login_result.sso_cookie_val)
-        assert sso_session2 is None
-        assert self.app.sso_sessions.get_sessions_for_user(self.test_user.eppn) == []
-
-    def test_basic_logout_redirect(self):
-        with self.browser.session_transaction() as sess:
-            # Patch the VCCSClient so we do not need a vccs server
+        with self.app.test_request_context():
             with patch.object(VCCSClient, "authenticate"):
                 VCCSClient.authenticate.return_value = True
                 login_result = self._try_login()
@@ -98,11 +68,46 @@ class IdPTestLogout(IdPTests):
 
             authn_response = self.parse_saml_authn_response(login_result.response)
 
-            reached_state, response = self._try_logout(authn_response, BINDING_HTTP_REDIRECT)
+            # Locate the SSO session
+            sso_session1 = self.app.sso_sessions.get_session(login_result.sso_cookie_val)
+            assert isinstance(sso_session1, SSOSession)
+            assert sso_session1.eppn == self.test_user.eppn
+
+            # Make sure it is the only SSO session for this user
+            user_sso_sessions = self.app.sso_sessions.get_sessions_for_user(self.test_user.eppn)
+            assert user_sso_sessions == [sso_session1]
+
+            # Remove all cookies, simulating a SOAP request from an SP rather than from the clients browser
+            self.browser._cookies.clear()
+            assert len(self.browser.cookie_jar) == 0
+
+            reached_state, response = self._try_logout(authn_response, BINDING_SOAP)
             assert reached_state == LogoutState.S1_LOGGED_OUT
 
-            logout_response = self.parse_saml_logout_response(response, BINDING_HTTP_REDIRECT)
+            logout_response = self.parse_saml_logout_response(response, BINDING_SOAP)
             assert logout_response.response.status.status_code.value == "urn:oasis:names:tc:SAML:2.0:status:Success"
+
+            # Make sure the logout removed the SSO session from the database
+            sso_session2 = self.app.sso_sessions.get_session(login_result.sso_cookie_val)
+            assert sso_session2 is None
+            assert self.app.sso_sessions.get_sessions_for_user(self.test_user.eppn) == []
+
+    def test_basic_logout_redirect(self):
+        with self.app.test_request_context():
+            with self.browser.session_transaction() as sess:
+                # Patch the VCCSClient so we do not need a vccs server
+                with patch.object(VCCSClient, "authenticate"):
+                    VCCSClient.authenticate.return_value = True
+                    login_result = self._try_login()
+                    assert login_result.reached_state == LoginState.S5_LOGGED_IN
+
+                authn_response = self.parse_saml_authn_response(login_result.response)
+
+                reached_state, response = self._try_logout(authn_response, BINDING_HTTP_REDIRECT)
+                assert reached_state == LogoutState.S1_LOGGED_OUT
+
+                logout_response = self.parse_saml_logout_response(response, BINDING_HTTP_REDIRECT)
+                assert logout_response.response.status.status_code.value == "urn:oasis:names:tc:SAML:2.0:status:Success"
 
     def parse_saml_logout_response(self, response: TestResponse, binding: str) -> LogoutResponse:
         if binding == BINDING_SOAP:

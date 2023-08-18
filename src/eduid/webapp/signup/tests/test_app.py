@@ -155,7 +155,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
                     assert self.app.conf.magic_cookie_name is not None
                     assert self.app.conf.magic_cookie is not None
                     client.set_cookie(
-                        "localhost", key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie
+                        domain="localhost", key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie
                     )
 
                 logger.info(f"Making request to {endpoint} with data:\n{data}")
@@ -768,10 +768,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
 
         return SignupResult(url=endpoint, reached_state=SignupState.S7_COMPLETE_INVITE, response=response)
 
-    def _get_code_backdoor(
-        self,
-        email: str,
-    ):
+    def _get_code_backdoor(self, email: str):
         """
         Test getting the generated verification code through the backdoor
         """
@@ -781,532 +778,591 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
                     assert self.app.conf.magic_cookie is not None
                     assert self.app.conf.magic_cookie_name is not None
                     client.set_cookie(
-                        "localhost", key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie
+                        domain="localhost", key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie
                     )
+                    r = client.get(f"/get-code?email={email}")
                     return client.get(f"/get-code?email={email}")
 
     # actual tests
     def test_accept_tou(self):
-        res = self._accept_tou()
-        assert res.reached_state == SignupState.S2_ACCEPT_TOU
+        with self.app.test_request_context():
+            self.app.conf.magic_cookie_name
+            res = self._accept_tou()
+            assert res.reached_state == SignupState.S2_ACCEPT_TOU
 
     def test_not_accept_tou(self):
-        res = self._accept_tou(accept_tou=False, expect_success=False, expected_message=SignupMsg.tou_not_completed)
-        assert res.reached_state == SignupState.S2_ACCEPT_TOU
+        with self.app.test_request_context():
+            res = self._accept_tou(accept_tou=False, expect_success=False, expected_message=SignupMsg.tou_not_completed)
+            assert res.reached_state == SignupState.S2_ACCEPT_TOU
 
     def test_accept_tou_wrong_version(self):
-        res = self._accept_tou(
-            accept_tou=True,
-            tou_version="bad_version",
-            expect_success=False,
-            expected_message=SignupMsg.tou_wrong_version,
-        )
-        assert res.reached_state == SignupState.S2_ACCEPT_TOU
+        with self.app.test_request_context():
+            res = self._accept_tou(
+                accept_tou=True,
+                tou_version="bad_version",
+                expect_success=False,
+                expected_message=SignupMsg.tou_wrong_version,
+            )
+            assert res.reached_state == SignupState.S2_ACCEPT_TOU
 
     def test_accept_tou_bad_csrf(self):
-        data1 = {"csrf_token": "bad-csrf-token"}
-        res = self._accept_tou(data1=data1, expect_success=False, expected_message=None)
-        assert res.reached_state == SignupState.S2_ACCEPT_TOU
-        assert self.get_response_payload(res.response)["error"] == {"csrf_token": ["CSRF failed to validate"]}
+        with self.app.test_request_context():
+            data1 = {"csrf_token": "bad-csrf-token"}
+            res = self._accept_tou(data1=data1, expect_success=False, expected_message=None)
+            assert res.reached_state == SignupState.S2_ACCEPT_TOU
+            assert self.get_response_payload(res.response)["error"] == {"csrf_token": ["CSRF failed to validate"]}
 
     def test_get_password(self):
-        res = self._generate_password()
-        assert res.reached_state == SignupState.S8_GENERATE_PASSWORD
+        with self.app.test_request_context():
+            res = self._generate_password()
+            assert res.reached_state == SignupState.S8_GENERATE_PASSWORD
 
     def test_get_password_bad_csrf(self):
-        data1 = {"csrf_token": "bad-csrf-token"}
-        res = self._generate_password(data1=data1, expect_success=False, expected_message=None)
-        assert res.reached_state == SignupState.S8_GENERATE_PASSWORD
-        assert self.get_response_payload(res.response)["error"] == {"csrf_token": ["CSRF failed to validate"]}
+        with self.app.test_request_context():
+            data1 = {"csrf_token": "bad-csrf-token"}
+            res = self._generate_password(data1=data1, expect_success=False, expected_message=None)
+            assert res.reached_state == SignupState.S8_GENERATE_PASSWORD
+            assert self.get_response_payload(res.response)["error"] == {"csrf_token": ["CSRF failed to validate"]}
 
     def test_captcha(self):
-        res = self._captcha()
-        assert res.reached_state == SignupState.S3_COMPLETE_CAPTCHA
+        with self.app.test_request_context():
+            res = self._captcha()
+            assert res.reached_state == SignupState.S3_COMPLETE_CAPTCHA
 
     def test_captcha_internal(self):
-        res = self._captcha(internal_captcha=True)
-        assert res.reached_state == SignupState.S3_COMPLETE_CAPTCHA
+        with self.app.test_request_context():
+            res = self._captcha(internal_captcha=True)
+            assert res.reached_state == SignupState.S3_COMPLETE_CAPTCHA
 
     def test_recaptcha_new_no_key(self):
-        self.app.conf.recaptcha_public_key = ""
-        res = self._captcha(expect_success=False, expected_message=SignupMsg.captcha_failed)
-        assert res.reached_state == SignupState.S3_COMPLETE_CAPTCHA
+        with self.app.test_request_context():
+            self.app.conf.recaptcha_public_key = ""
+            res = self._captcha(expect_success=False, expected_message=SignupMsg.captcha_failed)
+            assert res.reached_state == SignupState.S3_COMPLETE_CAPTCHA
 
     def test_captcha_new_wrong_csrf(self):
-        data = {"csrf_token": "wrong-token"}
-        res = self._captcha(captcha_data=data, expect_success=False, expected_message=None)
-        assert self.get_response_payload(res.response)["error"] == {"csrf_token": ["CSRF failed to validate"]}
+        with self.app.test_request_context():
+            data = {"csrf_token": "wrong-token"}
+            res = self._captcha(captcha_data=data, expect_success=False, expected_message=None)
+            assert self.get_response_payload(res.response)["error"] == {"csrf_token": ["CSRF failed to validate"]}
 
     def test_captcha_fail(self):
-        res = self._captcha(
-            recaptcha_return_value=False, expect_success=False, expected_message=SignupMsg.captcha_failed
-        )
-        assert res.reached_state == SignupState.S3_COMPLETE_CAPTCHA
+        with self.app.test_request_context():
+            res = self._captcha(
+                recaptcha_return_value=False, expect_success=False, expected_message=SignupMsg.captcha_failed
+            )
+            assert res.reached_state == SignupState.S3_COMPLETE_CAPTCHA
 
     def test_captcha_internal_fail(self):
-        res = self._captcha(
-            internal_captcha=True,
-            captcha_data={"internal_response": "wrong"},
-            expect_success=False,
-            expected_message=SignupMsg.captcha_failed,
-        )
-        assert res.reached_state == SignupState.S3_COMPLETE_CAPTCHA
-
-    def test_captcha_internal_fail_to_many_attempts(self):
-        # run once to generate captcha
-        self._captcha(
-            internal_captcha=True,
-            generate_internal_captcha=True,
-            captcha_data={"internal_response": "wrong"},
-            expect_success=False,
-            expected_message=SignupMsg.captcha_failed,
-        )
-        for _ in range(self.app.conf.captcha_max_bad_attempts):
-            # make x bad attempts to get over the limit
-            self._captcha(
+        with self.app.test_request_context():
+            res = self._captcha(
                 internal_captcha=True,
-                generate_internal_captcha=False,
                 captcha_data={"internal_response": "wrong"},
                 expect_success=False,
                 expected_message=SignupMsg.captcha_failed,
             )
-        # try one more time, should fail even as we use the correct code
-        res = self._captcha(
-            internal_captcha=True,
-            generate_internal_captcha=False,
-            expect_success=False,
-            expected_message=SignupMsg.captcha_failed,
-        )
-        assert res.reached_state == SignupState.S3_COMPLETE_CAPTCHA
+            assert res.reached_state == SignupState.S3_COMPLETE_CAPTCHA
+
+    def test_captcha_internal_fail_to_many_attempts(self):
+        with self.app.test_request_context():
+            # run once to generate captcha
+            self._captcha(
+                internal_captcha=True,
+                generate_internal_captcha=True,
+                captcha_data={"internal_response": "wrong"},
+                expect_success=False,
+                expected_message=SignupMsg.captcha_failed,
+            )
+            for _ in range(self.app.conf.captcha_max_bad_attempts):
+                # make x bad attempts to get over the limit
+                self._captcha(
+                    internal_captcha=True,
+                    generate_internal_captcha=False,
+                    captcha_data={"internal_response": "wrong"},
+                    expect_success=False,
+                    expected_message=SignupMsg.captcha_failed,
+                )
+            # try one more time, should fail even as we use the correct code
+            res = self._captcha(
+                internal_captcha=True,
+                generate_internal_captcha=False,
+                expect_success=False,
+                expected_message=SignupMsg.captcha_failed,
+            )
+            assert res.reached_state == SignupState.S3_COMPLETE_CAPTCHA
 
     def test_captcha_internal_not_requested(self):
-        res = self._captcha(
-            captcha_data={"internal_response": "not-requested", "recaptcha_response": None},
-            expect_success=False,
-            expected_message=SignupMsg.captcha_not_requested,
-        )
-        assert res.reached_state == SignupState.S3_COMPLETE_CAPTCHA
+        with self.app.test_request_context():
+            res = self._captcha(
+                captcha_data={"internal_response": "not-requested", "recaptcha_response": None},
+                expect_success=False,
+                expected_message=SignupMsg.captcha_not_requested,
+            )
+            assert res.reached_state == SignupState.S3_COMPLETE_CAPTCHA
 
     def test_captcha_backdoor(self):
-        self.app.conf.magic_cookie = "magic-cookie"
-        self.app.conf.magic_cookie_name = "magic"
-        self.app.conf.environment = EduidEnvironment("dev")
+        with self.app.test_request_context():
+            self.app.conf.magic_cookie = "magic-cookie"
+            self.app.conf.magic_cookie_name = "magic"
+            self.app.conf.environment = EduidEnvironment("dev")
 
-        res = self._captcha(
-            recaptcha_return_value=False,
-            add_magic_cookie=True,
-            expect_success=True,
-        )
-        assert res.reached_state == SignupState.S3_COMPLETE_CAPTCHA
+            res = self._captcha(
+                recaptcha_return_value=False,
+                add_magic_cookie=True,
+                expect_success=True,
+            )
+            assert res.reached_state == SignupState.S3_COMPLETE_CAPTCHA
 
     def test_captcha_backdoor_right_code(self):
-        self.app.conf.magic_cookie = "magic-cookie"
-        self.app.conf.magic_cookie_name = "magic"
-        self.app.conf.environment = EduidEnvironment("dev")
+        with self.app.test_request_context():
+            self.app.conf.magic_cookie = "magic-cookie"
+            self.app.conf.magic_cookie_name = "magic"
+            self.app.conf.environment = EduidEnvironment("dev")
 
-        res = self._captcha(
-            internal_captcha=True,
-            add_magic_cookie=True,
-            captcha_data={"internal_response": self.app.conf.captcha_backdoor_code},
-            expect_success=True,
-        )
-        assert res.reached_state == SignupState.S3_COMPLETE_CAPTCHA
+            res = self._captcha(
+                internal_captcha=True,
+                add_magic_cookie=True,
+                captcha_data={"internal_response": self.app.conf.captcha_backdoor_code},
+                expect_success=True,
+            )
+            assert res.reached_state == SignupState.S3_COMPLETE_CAPTCHA
 
     def test_captcha_backdoor_wrong_code(self):
-        self.app.conf.magic_cookie = "magic-cookie"
-        self.app.conf.magic_cookie_name = "magic"
-        self.app.conf.environment = EduidEnvironment("dev")
+        with self.app.test_request_context():
+            self.app.conf.magic_cookie = "magic-cookie"
+            self.app.conf.magic_cookie_name = "magic"
+            self.app.conf.environment = EduidEnvironment("dev")
 
-        res = self._captcha(
-            internal_captcha=True,
-            add_magic_cookie=True,
-            captcha_data={"internal_response": "wrong"},
-            expect_success=False,
-            expected_message=SignupMsg.captcha_failed,
-        )
-        assert res.reached_state == SignupState.S3_COMPLETE_CAPTCHA
+            res = self._captcha(
+                internal_captcha=True,
+                add_magic_cookie=True,
+                captcha_data={"internal_response": "wrong"},
+                expect_success=False,
+                expected_message=SignupMsg.captcha_failed,
+            )
+            assert res.reached_state == SignupState.S3_COMPLETE_CAPTCHA
 
     def test_captcha_no_backdoor_in_pro(self):
-        self.app.conf.magic_cookie = "magic-cookie"
-        self.app.conf.magic_cookie_name = "magic"
-        self.app.conf.environment = EduidEnvironment("production")
-        res = self._captcha(
-            recaptcha_return_value=False,
-            add_magic_cookie=True,
-            expect_success=False,
-            expected_message=SignupMsg.captcha_failed,
-        )
-        assert res.reached_state == SignupState.S3_COMPLETE_CAPTCHA
+        with self.app.test_request_context():
+            self.app.conf.magic_cookie = "magic-cookie"
+            self.app.conf.magic_cookie_name = "magic"
+            self.app.conf.environment = EduidEnvironment("production")
+            res = self._captcha(
+                recaptcha_return_value=False,
+                add_magic_cookie=True,
+                expect_success=False,
+                expected_message=SignupMsg.captcha_failed,
+            )
+            assert res.reached_state == SignupState.S3_COMPLETE_CAPTCHA
 
     def test_captcha_no_backdoor_misconfigured1(self):
-        self.app.conf.magic_cookie = "magic-cookie"
-        self.app.conf.magic_cookie_name = ""
-        self.app.conf.environment = EduidEnvironment("dev")
-        res = self._captcha(
-            recaptcha_return_value=False,
-            add_magic_cookie=True,
-            expect_success=False,
-            expected_message=SignupMsg.captcha_failed,
-        )
-        assert res.reached_state == SignupState.S3_COMPLETE_CAPTCHA
+        with self.app.test_request_context():
+            self.app.conf.magic_cookie = "magic-cookie"
+            self.app.conf.magic_cookie_name = ""
+            self.app.conf.environment = EduidEnvironment("dev")
+            res = self._captcha(
+                recaptcha_return_value=False,
+                add_magic_cookie=True,
+                expect_success=False,
+                expected_message=SignupMsg.captcha_failed,
+            )
+            assert res.reached_state == SignupState.S3_COMPLETE_CAPTCHA
 
     def test_captcha_no_backdoor_misconfigured2(self):
-        self.app.conf.magic_cookie = ""
-        self.app.conf.magic_cookie_name = "magic"
-        self.app.conf.environment = EduidEnvironment("dev")
-        res = self._captcha(
-            recaptcha_return_value=False,
-            add_magic_cookie=True,
-            expect_success=False,
-            expected_message=SignupMsg.captcha_failed,
-        )
-        assert res.reached_state == SignupState.S3_COMPLETE_CAPTCHA
+        with self.app.test_request_context():
+            self.app.conf.magic_cookie = ""
+            self.app.conf.magic_cookie_name = "magic"
+            self.app.conf.environment = EduidEnvironment("dev")
+            res = self._captcha(
+                recaptcha_return_value=False,
+                add_magic_cookie=True,
+                expect_success=False,
+                expected_message=SignupMsg.captcha_failed,
+            )
+            assert res.reached_state == SignupState.S3_COMPLETE_CAPTCHA
 
     def test_captcha_no_data_fail(self):
-        with self.session_cookie_anon(self.browser) as client:
-            response = client.post("/captcha")
-            self.assertEqual(response.status_code, 200)
-            data = json.loads(response.data)
-            self.assertEqual(data["error"], True)
-            self.assertEqual(data["type"], "POST_SIGNUP_CAPTCHA_FAIL")
-            self.assertIn("csrf_token", data["payload"]["error"])
+        with self.app.test_request_context():
+            with self.session_cookie_anon(self.browser) as client:
+                response = client.post("/captcha")
+                self.assertEqual(response.status_code, 200)
+                data = json.loads(response.data)
+                self.assertEqual(data["error"], True)
+                self.assertEqual(data["type"], "POST_SIGNUP_CAPTCHA_FAIL")
+                self.assertIn("csrf_token", data["payload"]["error"])
 
     def test_register_new_user(self):
-        self._captcha()
-        res = self._register_email(expect_success=True, expected_message=None)
-        assert res.reached_state == SignupState.S4_REGISTER_EMAIL
-        assert self.app.messagedb.db_count() == 1
+        with self.app.test_request_context():
+            self._captcha()
+            res = self._register_email(expect_success=True, expected_message=None)
+            assert res.reached_state == SignupState.S4_REGISTER_EMAIL
+            assert self.app.messagedb.db_count() == 1
 
     def test_register_new_user_mixed_case(self):
-        self._captcha()
-        mixed_case_email = "MixedCase@example.com"
-        res = self._register_email(email=mixed_case_email)
-        assert res.reached_state == SignupState.S4_REGISTER_EMAIL
+        with self.app.test_request_context():
+            self._captcha()
+            mixed_case_email = "MixedCase@example.com"
+            res = self._register_email(email=mixed_case_email)
+            assert res.reached_state == SignupState.S4_REGISTER_EMAIL
 
-        with self.session_cookie_anon(self.browser) as client:
-            with client.session_transaction() as sess:
-                assert sess.signup.email.address == mixed_case_email.lower()
+            with self.session_cookie_anon(self.browser) as client:
+                with client.session_transaction() as sess:
+                    assert sess.signup.email.address == mixed_case_email.lower()
 
     def test_register_existing_user(self):
-        self._captcha()
-        res = self._register_email(
-            email="johnsmith@example.com", expect_success=False, expected_message=SignupMsg.email_used
-        )
-        assert res.reached_state == SignupState.S4_REGISTER_EMAIL
+        with self.app.test_request_context():
+            self._captcha()
+            res = self._register_email(
+                email="johnsmith@example.com", expect_success=False, expected_message=SignupMsg.email_used
+            )
+            assert res.reached_state == SignupState.S4_REGISTER_EMAIL
 
     def test_register_existing_user_mixed_case(self):
-        self._captcha()
-        res = self._register_email(
-            email="JohnSmith@Example.com", expect_success=False, expected_message=SignupMsg.email_used
-        )
-        assert res.reached_state == SignupState.S4_REGISTER_EMAIL
+        with self.app.test_request_context():
+            self._captcha()
+            res = self._register_email(
+                email="JohnSmith@Example.com", expect_success=False, expected_message=SignupMsg.email_used
+            )
+            assert res.reached_state == SignupState.S4_REGISTER_EMAIL
 
     def test_register_existing_signup_user(self):
-        # TODO: for backwards compatibility, remove when compatibility code in view is removed
-        self._captcha()
-        res = self._register_email(email="johnsmith2@example.com")
-        assert res.reached_state == SignupState.S4_REGISTER_EMAIL
+        with self.app.test_request_context():
+            # TODO: for backwards compatibility, remove when compatibility code in view is removed
+            self._captcha()
+            res = self._register_email(email="johnsmith2@example.com")
+            assert res.reached_state == SignupState.S4_REGISTER_EMAIL
 
     def test_register_existing_signup_user_mixed_case(self):
-        # TODO: for backwards compatibility, remove when compatibility code in view is removed
-        mixed_case_email = "JohnSmith2@Example.com"
-        self._captcha()
-        res = self._register_email(email=mixed_case_email)
-        assert res.reached_state == SignupState.S4_REGISTER_EMAIL
+        with self.app.test_request_context():
+            # TODO: for backwards compatibility, remove when compatibility code in view is removed
+            mixed_case_email = "JohnSmith2@Example.com"
+            self._captcha()
+            res = self._register_email(email=mixed_case_email)
+            assert res.reached_state == SignupState.S4_REGISTER_EMAIL
 
-        with self.session_cookie_anon(self.browser) as client:
-            with client.session_transaction() as sess:
-                assert sess.signup.email.address == mixed_case_email.lower()
+            with self.session_cookie_anon(self.browser) as client:
+                with client.session_transaction() as sess:
+                    assert sess.signup.email.address == mixed_case_email.lower()
 
     def test_register_user_resend(self):
-        self._captcha()
-        self._register_email(expect_success=True, expected_message=None)
-        with self.session_cookie_anon(self.browser) as client:
-            with client.session_transaction() as sess:
-                sess.signup.email.sent_at = utc_now() - timedelta(minutes=6)
-                verification_code = sess.signup.email.verification_code
-        res = self._register_email(expect_success=True, expected_payload=None)
-        with self.session_cookie_anon(self.browser) as client:
-            with client.session_transaction() as sess:
-                assert verification_code == sess.signup.email.verification_code
-        assert res.reached_state == SignupState.S4_REGISTER_EMAIL
-        assert self.app.messagedb.db_count() == 2
+        with self.app.test_request_context():
+            self._captcha()
+            self._register_email(expect_success=True, expected_message=None)
+            with self.session_cookie_anon(self.browser) as client:
+                with client.session_transaction() as sess:
+                    sess.signup.email.sent_at = utc_now() - timedelta(minutes=6)
+                    verification_code = sess.signup.email.verification_code
+            res = self._register_email(expect_success=True, expected_payload=None)
+            with self.session_cookie_anon(self.browser) as client:
+                with client.session_transaction() as sess:
+                    assert verification_code == sess.signup.email.verification_code
+            assert res.reached_state == SignupState.S4_REGISTER_EMAIL
+            assert self.app.messagedb.db_count() == 2
 
     def test_register_user_resend_email_throttled(self):
-        self._captcha()
-        self._register_email(expect_success=True, expected_message=None)
-        res = self._register_email(expect_success=False, expected_message=SignupMsg.email_throttled)
-        assert res.reached_state == SignupState.S4_REGISTER_EMAIL
-        assert self.app.messagedb.db_count() == 1
+        with self.app.test_request_context():
+            self._captcha()
+            self._register_email(expect_success=True, expected_message=None)
+            res = self._register_email(expect_success=False, expected_message=SignupMsg.email_throttled)
+            assert res.reached_state == SignupState.S4_REGISTER_EMAIL
+            assert self.app.messagedb.db_count() == 1
 
     def test_register_user_resend_mail_expired(self):
-        self._captcha()
-        self._register_email(expect_success=True, expected_message=None)
-        with self.session_cookie_anon(self.browser) as client:
-            with client.session_transaction() as sess:
-                sess.signup.email.sent_at = utc_now() - timedelta(hours=25)
-                verification_code = sess.signup.email.verification_code
-        res = self._register_email(expect_success=True, expected_payload=None)
-        with self.session_cookie_anon(self.browser) as client:
-            with client.session_transaction() as sess:
-                assert verification_code != sess.signup.email.verification_code
-        assert res.reached_state == SignupState.S4_REGISTER_EMAIL
-        assert self.app.messagedb.db_count() == 2
+        with self.app.test_request_context():
+            self._captcha()
+            self._register_email(expect_success=True, expected_message=None)
+            with self.session_cookie_anon(self.browser) as client:
+                with client.session_transaction() as sess:
+                    sess.signup.email.sent_at = utc_now() - timedelta(hours=25)
+                    verification_code = sess.signup.email.verification_code
+            res = self._register_email(expect_success=True, expected_payload=None)
+            with self.session_cookie_anon(self.browser) as client:
+                with client.session_transaction() as sess:
+                    assert verification_code != sess.signup.email.verification_code
+            assert res.reached_state == SignupState.S4_REGISTER_EMAIL
+            assert self.app.messagedb.db_count() == 2
 
     def test_verify_email(self):
-        self._captcha()
-        self._register_email()
-        response = self._verify_email()
-        assert response.reached_state == SignupState.S5_VERIFY_EMAIL
+        with self.app.test_request_context():
+            self._captcha()
+            self._register_email()
+            response = self._verify_email()
+            assert response.reached_state == SignupState.S5_VERIFY_EMAIL
 
     def test_verify_email_wrong_code(self):
-        self._captcha()
-        self._register_email()
-        data = {"verification_code": "wrong"}
-        response = self._verify_email(
-            data1=data, expect_success=False, expected_message=SignupMsg.email_verification_failed
-        )
-        assert response.reached_state == SignupState.S5_VERIFY_EMAIL
+        with self.app.test_request_context():
+            self._captcha()
+            self._register_email()
+            data = {"verification_code": "wrong"}
+            response = self._verify_email(
+                data1=data, expect_success=False, expected_message=SignupMsg.email_verification_failed
+            )
+            assert response.reached_state == SignupState.S5_VERIFY_EMAIL
 
     def test_verify_email_wrong_code_to_many_attempts(self):
-        self._captcha()
-        self._register_email()
-        data = {"verification_code": "wrong"}
-        for _ in range(self.app.conf.email_verification_max_bad_attempts - 1):
-            self._verify_email(data1=data, expect_success=False, expected_message=SignupMsg.email_verification_failed)
-        response = self._verify_email(
-            data1=data, expect_success=False, expected_message=SignupMsg.email_verification_too_many_tries
-        )
-        assert self.get_response_payload(response.response)["state"]["email"]["bad_attempts"] == 3
-        assert self.get_response_payload(response.response)["state"]["captcha"]["completed"] is False
-        assert response.reached_state == SignupState.S5_VERIFY_EMAIL
+        with self.app.test_request_context():
+            self._captcha()
+            self._register_email()
+            data = {"verification_code": "wrong"}
+            for _ in range(self.app.conf.email_verification_max_bad_attempts - 1):
+                self._verify_email(
+                    data1=data, expect_success=False, expected_message=SignupMsg.email_verification_failed
+                )
+            response = self._verify_email(
+                data1=data, expect_success=False, expected_message=SignupMsg.email_verification_too_many_tries
+            )
+            assert self.get_response_payload(response.response)["state"]["email"]["bad_attempts"] == 3
+            assert self.get_response_payload(response.response)["state"]["captcha"]["completed"] is False
+            assert response.reached_state == SignupState.S5_VERIFY_EMAIL
 
     def test_verify_email_mixed_case(self):
-        mixed_case_email = "MixedCase@Example.com"
-        self._captcha()
-        self._register_email(email=mixed_case_email)
-        response = self._verify_email()
-        assert response.reached_state == SignupState.S5_VERIFY_EMAIL
+        with self.app.test_request_context():
+            mixed_case_email = "MixedCase@Example.com"
+            self._captcha()
+            self._register_email(email=mixed_case_email)
+            response = self._verify_email()
+            assert response.reached_state == SignupState.S5_VERIFY_EMAIL
 
-        with self.session_cookie_anon(self.browser) as client:
-            with client.session_transaction() as sess:
-                assert sess.signup.email.address == mixed_case_email.lower()
+            with self.session_cookie_anon(self.browser) as client:
+                with self.app.test_request_context():
+                    with client.session_transaction() as sess:
+                        assert sess.signup.email.address == mixed_case_email.lower()
 
     def test_create_user(self):
-        email = "test@example.com"
-        self._prepare_for_create_user(email=email)
-        response = self._create_user(expect_success=True)
-        assert response.reached_state == SignupState.S6_CREATE_USER
-
-        with self.session_cookie_anon(self.browser) as client:
-            with client.session_transaction() as sess:
-                eppn = sess.common.eppn
-                assert eppn is not None
-                assert sess.signup.credentials.password is None
-        user = self.app.central_userdb.get_user_by_eppn(eppn)
-        assert user.mail_addresses.to_list()[0].email == email
-
-    def test_create_user_eppn_in_session(self):
-        email = "test@example.com"
-        self._prepare_for_create_user(email=email)
-        with self.session_cookie_anon(self.browser) as client:
-            with client.session_transaction() as sess:
-                sess.common.eppn = "some-eppn"
-        response = self._create_user(expect_success=False, expected_message=SignupMsg.user_already_exists)
-        assert response.reached_state == SignupState.S6_CREATE_USER
-
-    def test_create_user_out_of_sync(self):
-        self._prepare_for_create_user()
-        with patch("eduid.webapp.signup.helpers.save_and_sync_user") as mock_save:
-            mock_save.side_effect = UserOutOfSync("unsync")
-            response = self._create_user(expect_success=False, expected_message=CommonMsg.out_of_sync)
+        with self.app.test_request_context():
+            email = "test@example.com"
+            self._prepare_for_create_user(email=email)
+            response = self._create_user(expect_success=True)
             assert response.reached_state == SignupState.S6_CREATE_USER
 
+            with self.session_cookie_anon(self.browser) as client:
+                with client.session_transaction() as sess:
+                    eppn = sess.common.eppn
+                    assert eppn is not None
+                    assert sess.signup.credentials.password is None
+            user = self.app.central_userdb.get_user_by_eppn(eppn)
+            assert user.mail_addresses.to_list()[0].email == email
+
+    def test_create_user_eppn_in_session(self):
+        with self.app.test_request_context():
+            email = "test@example.com"
+            self._prepare_for_create_user(email=email)
+            with self.session_cookie_anon(self.browser) as client:
+                with client.session_transaction() as sess:
+                    sess.common.eppn = "some-eppn"
+            response = self._create_user(expect_success=False, expected_message=SignupMsg.user_already_exists)
+            assert response.reached_state == SignupState.S6_CREATE_USER
+
+    def test_create_user_out_of_sync(self):
+        with self.app.test_request_context():
+            self._prepare_for_create_user()
+            with patch("eduid.webapp.signup.helpers.save_and_sync_user") as mock_save:
+                mock_save.side_effect = UserOutOfSync("unsync")
+                response = self._create_user(expect_success=False, expected_message=CommonMsg.out_of_sync)
+                assert response.reached_state == SignupState.S6_CREATE_USER
+
     def test_create_user_existing_email(self):
-        self._prepare_for_create_user(email="johnsmith@example.com")
-        response = self._create_user(expect_success=False, expected_message=SignupMsg.email_used)
-        assert response.reached_state == SignupState.S6_CREATE_USER
+        with self.app.test_request_context():
+            self._prepare_for_create_user(email="johnsmith@example.com")
+            response = self._create_user(expect_success=False, expected_message=SignupMsg.email_used)
+            assert response.reached_state == SignupState.S6_CREATE_USER
 
     def test_create_user_proofing_log_error(self):
-        self._prepare_for_create_user()
-        with patch("eduid.webapp.signup.helpers.record_email_address") as mock_verify:
-            mock_verify.side_effect = ProofingLogFailure("fail")
-            res = self._create_user(
-                expect_success=False,
-                expected_message=CommonMsg.temp_problem,
-            )
-        assert res.reached_state == SignupState.S6_CREATE_USER
+        with self.app.test_request_context():
+            self._prepare_for_create_user()
+            with patch("eduid.webapp.signup.helpers.record_email_address") as mock_verify:
+                mock_verify.side_effect = ProofingLogFailure("fail")
+                res = self._create_user(
+                    expect_success=False,
+                    expected_message=CommonMsg.temp_problem,
+                )
+            assert res.reached_state == SignupState.S6_CREATE_USER
 
     def test_create_user_no_csrf(self):
-        self._prepare_for_create_user()
-        data1 = {"csrf_token": "wrong"}
-        res = self._create_user(
-            data1=data1,
-            expect_success=False,
-            expected_message=None,
-        )
-        assert self.get_response_payload(res.response)["error"] == {"csrf_token": ["CSRF failed to validate"]}
+        with self.app.test_request_context():
+            self._prepare_for_create_user()
+            data1 = {"csrf_token": "wrong"}
+            res = self._create_user(
+                data1=data1,
+                expect_success=False,
+                expected_message=None,
+            )
+            assert self.get_response_payload(res.response)["error"] == {"csrf_token": ["CSRF failed to validate"]}
 
     def test_create_user_no_captcha(self):
-        self._prepare_for_create_user(captcha_completed=False)
-        res = self._create_user(
-            expect_success=False,
-            expected_message=SignupMsg.captcha_not_completed,
-        )
-        assert res.reached_state == SignupState.S6_CREATE_USER
+        with self.app.test_request_context():
+            self._prepare_for_create_user(captcha_completed=False)
+            res = self._create_user(
+                expect_success=False,
+                expected_message=SignupMsg.captcha_not_completed,
+            )
+            assert res.reached_state == SignupState.S6_CREATE_USER
 
     def test_create_user_dont_accept_tou(self):
-        self._prepare_for_create_user(tou_accepted=False)
-        res = self._create_user(
-            expect_success=False,
-            expected_message=SignupMsg.tou_not_completed,
-        )
-        assert res.reached_state == SignupState.S6_CREATE_USER
+        with self.app.test_request_context():
+            self._prepare_for_create_user(tou_accepted=False)
+            res = self._create_user(
+                expect_success=False,
+                expected_message=SignupMsg.tou_not_completed,
+            )
+            assert res.reached_state == SignupState.S6_CREATE_USER
 
     def test_create_user_no_password(self):
-        self._prepare_for_create_user(generated_password=None)
-        res = self._create_user(
-            expect_success=False,
-            expected_message=SignupMsg.password_not_generated,
-        )
-        assert res.reached_state == SignupState.S6_CREATE_USER
+        with self.app.test_request_context():
+            self._prepare_for_create_user(generated_password=None)
+            res = self._create_user(
+                expect_success=False,
+                expected_message=SignupMsg.password_not_generated,
+            )
+            assert res.reached_state == SignupState.S6_CREATE_USER
 
     def test_get_invite_data(self):
-        invite = self._create_invite()
-        res = self._get_invite_data(email=invite.get_primary_mail_address(), invite_code=invite.invite_code)
-        assert res.reached_state == SignupState.S0_GET_INVITE_DATA
+        with self.app.test_request_context():
+            invite = self._create_invite()
+            res = self._get_invite_data(email=invite.get_primary_mail_address(), invite_code=invite.invite_code)
+            assert res.reached_state == SignupState.S0_GET_INVITE_DATA
 
     def test_get_invite_data_already_logged_in(self):
-        invite = self._create_invite()
-        res = self._get_invite_data(
-            email=invite.get_primary_mail_address(), invite_code=invite.invite_code, eppn=self.test_user.eppn
-        )
-        assert res.reached_state == SignupState.S0_GET_INVITE_DATA
+        with self.app.test_request_context():
+            invite = self._create_invite()
+            res = self._get_invite_data(
+                email=invite.get_primary_mail_address(), invite_code=invite.invite_code, eppn=self.test_user.eppn
+            )
+            assert res.reached_state == SignupState.S0_GET_INVITE_DATA
 
     def test_accept_invite_via_email(self):
-        invite = self._create_invite()
-        res = self._accept_invite(email=invite.get_primary_mail_address(), invite_code=invite.invite_code)
-        assert res.reached_state == SignupState.S1_ACCEPT_INVITE
+        with self.app.test_request_context():
+            invite = self._create_invite()
+            res = self._accept_invite(email=invite.get_primary_mail_address(), invite_code=invite.invite_code)
+            assert res.reached_state == SignupState.S1_ACCEPT_INVITE
 
     def test_accept_invite_via_other(self):
-        invite = self._create_invite(send_email=False)
-        res = self._accept_invite(
-            email=invite.get_primary_mail_address(), invite_code=invite.invite_code, email_verified=False
-        )
-        assert res.reached_state == SignupState.S1_ACCEPT_INVITE
+        with self.app.test_request_context():
+            invite = self._create_invite(send_email=False)
+            res = self._accept_invite(
+                email=invite.get_primary_mail_address(), invite_code=invite.invite_code, email_verified=False
+            )
+            assert res.reached_state == SignupState.S1_ACCEPT_INVITE
 
     def test_accept_invite_no_csrf(self):
-        invite = self._create_invite()
-        data1 = {"csrf_token": "wrong"}
-        res = self._accept_invite(
-            email=invite.get_primary_mail_address(),
-            invite_code=invite.invite_code,
-            data1=data1,
-            expect_success=False,
-            expected_message=None,
-        )
-        assert self.get_response_payload(res.response)["error"] == {"csrf_token": ["CSRF failed to validate"]}
+        with self.app.test_request_context():
+            invite = self._create_invite()
+            data1 = {"csrf_token": "wrong"}
+            res = self._accept_invite(
+                email=invite.get_primary_mail_address(),
+                invite_code=invite.invite_code,
+                data1=data1,
+                expect_success=False,
+                expected_message=None,
+            )
+            assert self.get_response_payload(res.response)["error"] == {"csrf_token": ["CSRF failed to validate"]}
 
     def test_complete_invite_new_user(self):
-        self.start_mocked_scim_api()
+        with self.app.test_request_context():
+            self.start_mocked_scim_api()
 
-        invite = self._create_invite()
-        self._accept_invite(email=invite.get_primary_mail_address(), invite_code=invite.invite_code)
-        self._prepare_for_create_user(email=invite.get_primary_mail_address())
-        self._create_user(expect_success=True)
-        res = self._complete_invite()
-        assert res.reached_state == SignupState.S7_COMPLETE_INVITE
+            invite = self._create_invite()
+            self._accept_invite(email=invite.get_primary_mail_address(), invite_code=invite.invite_code)
+            self._prepare_for_create_user(email=invite.get_primary_mail_address())
+            self._create_user(expect_success=True)
+            res = self._complete_invite()
+            assert res.reached_state == SignupState.S7_COMPLETE_INVITE
 
-        with self.session_cookie_anon(self.browser) as client:
-            with client.session_transaction() as sess:
-                eppn = sess.common.eppn
-                assert eppn is not None
+            with self.session_cookie_anon(self.browser) as client:
+                with client.session_transaction() as sess:
+                    eppn = sess.common.eppn
+                    assert eppn is not None
 
-        user = self.app.central_userdb.get_user_by_eppn(eppn)
-        assert user.given_name == invite.given_name
-        assert user.surname == invite.surname
-        assert user.mail_addresses.to_list()[0].email == invite.get_primary_mail_address()
+            user = self.app.central_userdb.get_user_by_eppn(eppn)
+            assert user.given_name == invite.given_name
+            assert user.surname == invite.surname
+            assert user.mail_addresses.to_list()[0].email == invite.get_primary_mail_address()
 
     def test_complete_invite_existing_user(self):
-        self.start_mocked_scim_api()
+        with self.app.test_request_context():
+            self.start_mocked_scim_api()
 
-        user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
-        previous_given_name = user.given_name
-        previous_surname = user.surname
-        invite = self._create_invite(email=user.mail_addresses.primary.email)
-        self._accept_invite(email=invite.get_primary_mail_address(), invite_code=invite.invite_code)
-        res = self._complete_invite(eppn=user.eppn)
-        assert res.reached_state == SignupState.S7_COMPLETE_INVITE
+            user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
+            previous_given_name = user.given_name
+            previous_surname = user.surname
+            invite = self._create_invite(email=user.mail_addresses.primary.email)
+            self._accept_invite(email=invite.get_primary_mail_address(), invite_code=invite.invite_code)
+            res = self._complete_invite(eppn=user.eppn)
+            assert res.reached_state == SignupState.S7_COMPLETE_INVITE
 
-        with self.session_cookie(self.browser, eppn=user.eppn) as client:
-            with client.session_transaction() as sess:
-                eppn = sess.common.eppn
-                assert eppn is not None
+            with self.session_cookie(self.browser, eppn=user.eppn) as client:
+                with client.session_transaction() as sess:
+                    eppn = sess.common.eppn
+                    assert eppn is not None
 
-        user = self.app.central_userdb.get_user_by_eppn(eppn)
-        assert user.given_name == previous_given_name
-        assert user.surname == previous_surname
-        assert user.mail_addresses.to_list()[0].email == invite.get_primary_mail_address()
+            user = self.app.central_userdb.get_user_by_eppn(eppn)
+            assert user.given_name == previous_given_name
+            assert user.surname == previous_surname
+            assert user.mail_addresses.to_list()[0].email == invite.get_primary_mail_address()
 
     def test_complete_invite_existing_user_try_new_signup(self):
-        user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
-        assert user.mail_addresses.primary is not None
-        invite = self._create_invite(email=user.mail_addresses.primary.email)
-        self._accept_invite(email=invite.get_primary_mail_address(), invite_code=invite.invite_code)
-        self._prepare_for_create_user(email=invite.get_primary_mail_address())
-        res = self._create_user(expect_success=False, expected_message=SignupMsg.email_used)
-        assert res.reached_state == SignupState.S6_CREATE_USER
+        with self.app.test_request_context():
+            user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
+            assert user.mail_addresses.primary is not None
+            invite = self._create_invite(email=user.mail_addresses.primary.email)
+            self._accept_invite(email=invite.get_primary_mail_address(), invite_code=invite.invite_code)
+            self._prepare_for_create_user(email=invite.get_primary_mail_address())
+            res = self._create_user(expect_success=False, expected_message=SignupMsg.email_used)
+            assert res.reached_state == SignupState.S6_CREATE_USER
 
     def test_get_code_backdoor(self):
-        self.app.conf.magic_cookie = "magic-cookie"
-        self.app.conf.magic_cookie_name = "magic"
-        self.app.conf.environment = EduidEnvironment("dev")
+        with self.app.test_request_context():
+            self.app.conf.magic_cookie = "magic-cookie"
+            self.app.conf.magic_cookie_name = "magic"
+            self.app.conf.environment = EduidEnvironment("dev")
 
-        email = "johnsmith4@example.com"
-        self._captcha(add_magic_cookie=True)
-        self._register_email(email=email)
-        response = self._get_code_backdoor(email=email)
+            email = "johnsmith4@example.com"
+            self._captcha(add_magic_cookie=True)
+            self._register_email(email=email)
+            response = self._get_code_backdoor(email=email)
 
-        with self.session_cookie_anon(self.browser) as client:
-            with client.session_transaction() as sess:
-                assert response.text == sess.signup.email.verification_code
+            with self.session_cookie_anon(self.browser) as client:
+                with client.session_transaction() as sess:
+                    assert response.text == sess.signup.email.verification_code
 
     def test_get_code_no_backdoor_in_pro(self):
-        self.app.conf.magic_cookie = "magic-cookie"
-        self.app.conf.magic_cookie_name = "magic"
-        self.app.conf.environment = EduidEnvironment("production")
+        with self.app.test_request_context():
+            self.app.conf.magic_cookie = "magic-cookie"
+            self.app.conf.magic_cookie_name = "magic"
+            self.app.conf.environment = EduidEnvironment("production")
 
-        email = "johnsmith4@example.com"
-        resp = self._get_code_backdoor(email=email)
+            email = "johnsmith4@example.com"
+            resp = self._get_code_backdoor(email=email)
 
-        self.assertEqual(resp.status_code, 400)
+            self.assertEqual(resp.status_code, 400)
 
     def test_get_code_no_backdoor_misconfigured1(self):
-        self.app.conf.magic_cookie = "magic-cookie"
-        self.app.conf.magic_cookie_name = ""
-        self.app.conf.environment = EduidEnvironment("dev")
+        with self.app.test_request_context():
+            self.app.conf.magic_cookie = "magic-cookie"
+            self.app.conf.magic_cookie_name = ""
+            self.app.conf.environment = EduidEnvironment("dev")
 
-        email = "johnsmith4@example.com"
-        resp = self._get_code_backdoor(email=email)
+            email = "johnsmith4@example.com"
+            resp = self._get_code_backdoor(email=email)
 
-        self.assertEqual(resp.status_code, 400)
+            self.assertEqual(resp.status_code, 400)
 
     def test_get_code_no_backdoor_misconfigured2(self):
-        self.app.conf.magic_cookie = ""
-        self.app.conf.magic_cookie_name = "magic"
-        self.app.conf.environment = EduidEnvironment("dev")
+        with self.app.test_request_context():
+            self.app.conf.magic_cookie = ""
+            self.app.conf.magic_cookie_name = "magic"
+            self.app.conf.environment = EduidEnvironment("dev")
 
-        email = "johnsmith4@example.com"
-        resp = self._get_code_backdoor(email=email)
+            email = "johnsmith4@example.com"
+            resp = self._get_code_backdoor(email=email)
 
-        self.assertEqual(resp.status_code, 400)
+            self.assertEqual(resp.status_code, 400)
 
 
 # backwards compatibility
 
 
 class OldSignupTests(SignupTests):
-
     # parameterized test methods
 
     @patch("eduid.webapp.signup.views.verify_recaptcha")
@@ -1345,7 +1401,7 @@ class OldSignupTests(SignupTests):
                     assert self.app.conf.magic_cookie is not None
                     assert self.app.conf.magic_cookie_name is not None
                     client.set_cookie(
-                        "localhost", key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie
+                        domain="localhost", key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie
                     )
 
                 _trycaptcha = "/trycaptcha"
@@ -1456,7 +1512,6 @@ class OldSignupTests(SignupTests):
         mock_request_user_sync.return_value = True
 
         with self.session_cookie_anon(self.browser) as client:
-
             captcha_res = self._captcha_new(
                 email=email,
                 captcha_data=data1,
@@ -1501,16 +1556,13 @@ class OldSignupTests(SignupTests):
             return SignupResult(url=_verify_link_url, reached_state=OldSignupState.S7_VERIFY_LINK, response=response2)
 
     @patch("eduid.webapp.signup.views.verify_recaptcha")
-    def _get_code_backdoor(
-        self,
-        mock_recaptcha: Any,
-        email: str,
-    ):
+    def _get_code_backdoor(self, mock_recaptcha: Any, email: str):
         """
         Test getting the generated verification code through the backdoor
         """
         mock_recaptcha.return_value = True
         with self.session_cookie_anon(self.browser) as client:
+            c = client
             with client.session_transaction():
                 with self.app.test_request_context():
                     self._captcha_new(email=email)
@@ -1518,249 +1570,280 @@ class OldSignupTests(SignupTests):
                     assert self.app.conf.magic_cookie_name is not None
                     assert self.app.conf.magic_cookie is not None
                     client.set_cookie(
-                        "localhost", key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie
+                        domain="localhost", key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie
                     )
+                    r = client.get(f"/get-code?email={email}")
+                    mura = 0
                     return client.get(f"/get-code?email={email}")
 
     def test_get_code_backdoor(self):
-        self.app.conf.magic_cookie = "magic-cookie"
-        self.app.conf.magic_cookie_name = "magic"
-        self.app.conf.environment = EduidEnvironment("dev")
+        with self.app.test_request_context():
+            self.app.conf.magic_cookie = "magic-cookie"
+            self.app.conf.magic_cookie_name = "magic"
+            self.app.conf.environment = EduidEnvironment("dev")
 
-        email = "johnsmith4@example.com"
-        resp = self._get_code_backdoor(email=email)
+            email = "johnsmith4@example.com"
+            resp = self._get_code_backdoor(email=email)
 
-        with self.session_cookie_anon(self.browser) as client:
-            with client.session_transaction() as sess:
-                assert sess.signup.email.address == email
-                assert sess.signup.email.verification_code == resp.data.decode("ascii")
+            with self.session_cookie_anon(self.browser) as client:
+                with client.session_transaction() as sess:
+                    k = sess
+                    assert sess.signup.email.address == email
+                    assert sess.signup.email.verification_code == resp.data.decode("ascii")
 
     def test_get_code_no_backdoor_in_pro(self):
-        self.app.conf.magic_cookie = "magic-cookie"
-        self.app.conf.magic_cookie_name = "magic"
-        self.app.conf.environment = EduidEnvironment("production")
+        with self.app.test_request_context():
+            self.app.conf.magic_cookie = "magic-cookie"
+            self.app.conf.magic_cookie_name = "magic"
+            self.app.conf.environment = EduidEnvironment("production")
 
-        email = "johnsmith4@example.com"
-        resp = self._get_code_backdoor(email=email)
+            email = "johnsmith4@example.com"
+            resp = self._get_code_backdoor(email=email)
 
-        self.assertEqual(resp.status_code, 400)
+            self.assertEqual(resp.status_code, 400)
 
     def test_get_code_no_backdoor_misconfigured1(self):
-        self.app.conf.magic_cookie = "magic-cookie"
-        self.app.conf.magic_cookie_name = ""
-        self.app.conf.environment = EduidEnvironment("dev")
+        with self.app.test_request_context():
+            self.app.conf.magic_cookie = "magic-cookie"
+            self.app.conf.magic_cookie_name = ""
+            self.app.conf.environment = EduidEnvironment("dev")
 
-        email = "johnsmith4@example.com"
-        resp = self._get_code_backdoor(email=email)
+            email = "johnsmith4@example.com"
+            resp = self._get_code_backdoor(email=email)
 
-        self.assertEqual(resp.status_code, 400)
+            self.assertEqual(resp.status_code, 400)
 
     def test_get_code_no_backdoor_misconfigured2(self):
-        self.app.conf.magic_cookie = ""
-        self.app.conf.magic_cookie_name = "magic"
-        self.app.conf.environment = EduidEnvironment("dev")
+        with self.app.test_request_context():
+            self.app.conf.magic_cookie = ""
+            self.app.conf.magic_cookie_name = "magic"
+            self.app.conf.environment = EduidEnvironment("dev")
 
-        email = "johnsmith4@example.com"
-        resp = self._get_code_backdoor(email=email)
+            email = "johnsmith4@example.com"
+            resp = self._get_code_backdoor(email=email)
 
-        self.assertEqual(resp.status_code, 400)
+            self.assertEqual(resp.status_code, 400)
 
     # actual tests
 
     def test_captcha_new_user(self):
-        res = self._captcha_new()
-        assert res.reached_state == OldSignupState.S5_CAPTCHA
+        with self.app.test_request_context():
+            res = self._captcha_new()
+            assert res.reached_state == OldSignupState.S5_CAPTCHA
 
     def test_captcha_new_user_mixed_case(self):
-        mixed_case_email = "MixedCase@example.com"
-        res = self._captcha_new(email=mixed_case_email)
-        assert res.reached_state == OldSignupState.S5_CAPTCHA
+        with self.app.test_request_context():
+            mixed_case_email = "MixedCase@example.com"
+            res = self._captcha_new(email=mixed_case_email)
+            assert res.reached_state == OldSignupState.S5_CAPTCHA
 
-        with self.session_cookie_anon(self.browser) as client:
-            with client.session_transaction() as sess:
-                assert sess.signup.email.address == mixed_case_email.lower()
+            with self.session_cookie_anon(self.browser) as client:
+                with client.session_transaction() as sess:
+                    assert sess.signup.email.address == mixed_case_email.lower()
 
     def test_captcha_new_no_key(self):
-        self.app.conf.recaptcha_public_key = ""
-        res = self._captcha_new(
-            email="JohnSmith@Example.com", expect_success=False, expected_message=SignupMsg.no_recaptcha
-        )
-        assert res.reached_state == OldSignupState.S5_CAPTCHA
+        with self.app.test_request_context():
+            self.app.conf.recaptcha_public_key = ""
+            res = self._captcha_new(
+                email="JohnSmith@Example.com", expect_success=False, expected_message=SignupMsg.no_recaptcha
+            )
+            assert res.reached_state == OldSignupState.S5_CAPTCHA
 
     def test_captcha_new_wrong_csrf(self):
-        data = {"csrf_token": "wrong-token"}
-        res = self._captcha_new(captcha_data=data, expect_success=False, expected_message=None)
-        assert self.get_response_payload(res.response)["error"] == {"csrf_token": ["CSRF failed to validate"]}
+        with self.app.test_request_context():
+            data = {"csrf_token": "wrong-token"}
+            res = self._captcha_new(captcha_data=data, expect_success=False, expected_message=None)
+            assert self.get_response_payload(res.response)["error"] == {"csrf_token": ["CSRF failed to validate"]}
 
     def test_captcha_existing_user(self):
-        res = self._captcha_new(
-            email="johnsmith@example.com", expect_success=False, expected_message=SignupMsg.old_email_used
-        )
-        assert res.reached_state == OldSignupState.S5_CAPTCHA
+        with self.app.test_request_context():
+            res = self._captcha_new(
+                email="johnsmith@example.com", expect_success=False, expected_message=SignupMsg.old_email_used
+            )
+            assert res.reached_state == OldSignupState.S5_CAPTCHA
 
     def test_captcha_existing_user_mixed_case(self):
-        res = self._captcha_new(
-            email="JohnSmith@Example.com", expect_success=False, expected_message=SignupMsg.old_email_used
-        )
-        assert res.reached_state == OldSignupState.S5_CAPTCHA
+        with self.app.test_request_context():
+            res = self._captcha_new(
+                email="JohnSmith@Example.com", expect_success=False, expected_message=SignupMsg.old_email_used
+            )
+            assert res.reached_state == OldSignupState.S5_CAPTCHA
 
     def test_captcha_remove_existing_signup_user(self):
-        res = self._captcha_new(email="johnsmith2@example.com", expected_message=SignupMsg.reg_new)
-        assert res.reached_state == OldSignupState.S5_CAPTCHA
+        with self.app.test_request_context():
+            res = self._captcha_new(email="johnsmith2@example.com", expected_message=SignupMsg.reg_new)
+            assert res.reached_state == OldSignupState.S5_CAPTCHA
 
     def test_captcha_remove_existing_signup_user_mixed_case(self):
-        mixed_case_email = "JohnSmith2@Example.com"
-        res = self._captcha_new(email=mixed_case_email, expected_message=SignupMsg.reg_new)
-        assert res.reached_state == OldSignupState.S5_CAPTCHA
+        with self.app.test_request_context():
+            mixed_case_email = "JohnSmith2@Example.com"
+            res = self._captcha_new(email=mixed_case_email, expected_message=SignupMsg.reg_new)
+            assert res.reached_state == OldSignupState.S5_CAPTCHA
 
-        with self.session_cookie_anon(self.browser) as client:
-            with client.session_transaction() as sess:
-                assert sess.signup.email.address == mixed_case_email.lower()
+            with self.session_cookie_anon(self.browser) as client:
+                with client.session_transaction() as sess:
+                    assert sess.signup.email.address == mixed_case_email.lower()
 
     def test_captcha_fail(self):
-        res = self._captcha_new(
-            recaptcha_return_value=False, expect_success=False, expected_message=SignupMsg.no_recaptcha
-        )
-        assert res.reached_state == OldSignupState.S5_CAPTCHA
+        with self.app.test_request_context():
+            res = self._captcha_new(
+                recaptcha_return_value=False, expect_success=False, expected_message=SignupMsg.no_recaptcha
+            )
+            assert res.reached_state == OldSignupState.S5_CAPTCHA
 
     def test_captcha_backdoor(self):
-        self.app.conf.magic_cookie = "magic-cookie"
-        self.app.conf.magic_cookie_name = "magic"
-        self.app.conf.environment = EduidEnvironment("dev")
+        with self.app.test_request_context():
+            self.app.conf.magic_cookie = "magic-cookie"
+            self.app.conf.magic_cookie_name = "magic"
+            self.app.conf.environment = EduidEnvironment("dev")
 
-        res = self._captcha_new(
-            recaptcha_return_value=False,
-            add_magic_cookie=True,
-            expect_success=True,
-            expected_message=SignupMsg.reg_new,
-        )
-        assert res.reached_state == OldSignupState.S5_CAPTCHA
+            res = self._captcha_new(
+                recaptcha_return_value=False,
+                add_magic_cookie=True,
+                expect_success=True,
+                expected_message=SignupMsg.reg_new,
+            )
+            assert res.reached_state == OldSignupState.S5_CAPTCHA
 
     def test_captcha_no_backdoor_in_pro(self):
-        self.app.conf.magic_cookie = "magic-cookie"
-        self.app.conf.magic_cookie_name = "magic"
-        self.app.conf.environment = EduidEnvironment("production")
-        res = self._captcha_new(
-            recaptcha_return_value=False,
-            add_magic_cookie=True,
-            expect_success=False,
-            expected_message=SignupMsg.no_recaptcha,
-        )
-        assert res.reached_state == OldSignupState.S5_CAPTCHA
+        with self.app.test_request_context():
+            self.app.conf.magic_cookie = "magic-cookie"
+            self.app.conf.magic_cookie_name = "magic"
+            self.app.conf.environment = EduidEnvironment("production")
+            res = self._captcha_new(
+                recaptcha_return_value=False,
+                add_magic_cookie=True,
+                expect_success=False,
+                expected_message=SignupMsg.no_recaptcha,
+            )
+            assert res.reached_state == OldSignupState.S5_CAPTCHA
 
     def test_captcha_no_backdoor_misconfigured1(self):
-        self.app.conf.magic_cookie = "magic-cookie"
-        self.app.conf.magic_cookie_name = ""
-        self.app.conf.environment = EduidEnvironment("dev")
-        res = self._captcha_new(
-            recaptcha_return_value=False,
-            add_magic_cookie=True,
-            expect_success=False,
-            expected_message=SignupMsg.no_recaptcha,
-        )
-        assert res.reached_state == OldSignupState.S5_CAPTCHA
+        with self.app.test_request_context():
+            self.app.conf.magic_cookie = "magic-cookie"
+            self.app.conf.magic_cookie_name = ""
+            self.app.conf.environment = EduidEnvironment("dev")
+            res = self._captcha_new(
+                recaptcha_return_value=False,
+                add_magic_cookie=True,
+                expect_success=False,
+                expected_message=SignupMsg.no_recaptcha,
+            )
+            assert res.reached_state == OldSignupState.S5_CAPTCHA
 
     def test_captcha_no_backdoor_misconfigured2(self):
-        self.app.conf.magic_cookie = ""
-        self.app.conf.magic_cookie_name = "magic"
-        self.app.conf.environment = EduidEnvironment("dev")
-        res = self._captcha_new(
-            recaptcha_return_value=False,
-            add_magic_cookie=True,
-            expect_success=False,
-            expected_message=SignupMsg.no_recaptcha,
-        )
-        assert res.reached_state == OldSignupState.S5_CAPTCHA
+        with self.app.test_request_context():
+            self.app.conf.magic_cookie = ""
+            self.app.conf.magic_cookie_name = "magic"
+            self.app.conf.environment = EduidEnvironment("dev")
+            res = self._captcha_new(
+                recaptcha_return_value=False,
+                add_magic_cookie=True,
+                expect_success=False,
+                expected_message=SignupMsg.no_recaptcha,
+            )
+            assert res.reached_state == OldSignupState.S5_CAPTCHA
 
     def test_captcha_no_data_fail(self):
-        with self.session_cookie_anon(self.browser) as client:
-            response = client.post("/trycaptcha")
-            self.assertEqual(response.status_code, 200)
-            data = json.loads(response.data)
-            self.assertEqual(data["error"], True)
-            self.assertEqual(data["type"], "POST_SIGNUP_TRYCAPTCHA_FAIL")
-            self.assertIn("email", data["payload"]["error"])
-            self.assertIn("csrf_token", data["payload"]["error"])
-            self.assertIn("recaptcha_response", data["payload"]["error"])
+        with self.app.test_request_context():
+            with self.session_cookie_anon(self.browser) as client:
+                response = client.post("/trycaptcha")
+                self.assertEqual(response.status_code, 200)
+                data = json.loads(response.data)
+                self.assertEqual(data["error"], True)
+                self.assertEqual(data["type"], "POST_SIGNUP_TRYCAPTCHA_FAIL")
+                self.assertIn("email", data["payload"]["error"])
+                self.assertIn("csrf_token", data["payload"]["error"])
+                self.assertIn("recaptcha_response", data["payload"]["error"])
 
     def test_verify_code(self):
-        response = self._verify_code()
+        with self.app.test_request_context():
+            response = self._verify_code()
 
-        data = json.loads(response.data)
-        self.assertEqual(data["type"], "GET_SIGNUP_VERIFY_LINK_SUCCESS")
-        self.assertEqual(data["payload"]["status"], "verified")
+            data = json.loads(response.data)
+            self.assertEqual(data["type"], "GET_SIGNUP_VERIFY_LINK_SUCCESS")
+            self.assertEqual(data["payload"]["status"], "verified")
 
     def test_verify_code_mixed_case(self) -> None:
-        response = self._verify_code(email="MixedCase@Example.com")
-        data = json.loads(response.data)
-        self.assertEqual(data["type"], "GET_SIGNUP_VERIFY_LINK_SUCCESS")
-        self.assertEqual(data["payload"]["status"], "verified")
-        mixed_user: Optional[SignupUser] = self.app.private_userdb.get_user_by_mail("MixedCase@Example.com")
-        lower_user: Optional[SignupUser] = self.app.private_userdb.get_user_by_mail("mixedcase@example.com")
-        assert mixed_user is not None
-        assert lower_user is not None
-        assert mixed_user.eppn == lower_user.eppn
-        assert mixed_user.mail_addresses.primary is not None
-        assert lower_user.mail_addresses.primary is not None
-        assert mixed_user.mail_addresses.primary.email == lower_user.mail_addresses.primary.email
+        with self.app.test_request_context():
+            response = self._verify_code(email="MixedCase@Example.com")
+            data = json.loads(response.data)
+            self.assertEqual(data["type"], "GET_SIGNUP_VERIFY_LINK_SUCCESS")
+            self.assertEqual(data["payload"]["status"], "verified")
+            mixed_user: Optional[SignupUser] = self.app.private_userdb.get_user_by_mail("MixedCase@Example.com")
+            lower_user: Optional[SignupUser] = self.app.private_userdb.get_user_by_mail("mixedcase@example.com")
+            assert mixed_user is not None
+            assert lower_user is not None
+            assert mixed_user.eppn == lower_user.eppn
+            assert mixed_user.mail_addresses.primary is not None
+            assert lower_user.mail_addresses.primary is not None
+            assert mixed_user.mail_addresses.primary.email == lower_user.mail_addresses.primary.email
 
     def test_verify_code_unsynced(self):
-        with patch("eduid.webapp.signup.helpers.save_and_sync_user") as mock_save:
-            mock_save.side_effect = UserOutOfSync("unsync")
-            response = self._verify_code()
-            data = json.loads(response.data)
-            self.assertEqual(data["type"], "GET_SIGNUP_VERIFY_LINK_FAIL")
-            self.assertEqual(data["payload"]["message"], "user-out-of-sync")
+        with self.app.test_request_context():
+            with patch("eduid.webapp.signup.helpers.save_and_sync_user") as mock_save:
+                mock_save.side_effect = UserOutOfSync("unsync")
+                response = self._verify_code()
+                data = json.loads(response.data)
+                self.assertEqual(data["type"], "GET_SIGNUP_VERIFY_LINK_FAIL")
+                self.assertEqual(data["payload"]["message"], "user-out-of-sync")
 
     def test_verify_existing_email(self):
-        response = self._verify_code(email="johnsmith@example.com")
+        with self.app.test_request_context():
+            response = self._verify_code(email="johnsmith@example.com")
 
-        data = json.loads(response.data)
-        self.assertEqual(data["type"], "GET_SIGNUP_VERIFY_LINK_FAIL")
-        self.assertEqual(data["payload"]["status"], "already-verified")
+            data = json.loads(response.data)
+            self.assertEqual(data["type"], "GET_SIGNUP_VERIFY_LINK_FAIL")
+            self.assertEqual(data["payload"]["status"], "already-verified")
 
     def test_verify_existing_email_mixed_case(self):
-        response = self._verify_code(email="JohnSmith@example.com")
+        with self.app.test_request_context():
+            response = self._verify_code(email="JohnSmith@example.com")
 
-        data = json.loads(response.data)
-        self.assertEqual(data["type"], "GET_SIGNUP_VERIFY_LINK_FAIL")
-        self.assertEqual(data["payload"]["status"], "already-verified")
+            data = json.loads(response.data)
+            self.assertEqual(data["type"], "GET_SIGNUP_VERIFY_LINK_FAIL")
+            self.assertEqual(data["payload"]["status"], "already-verified")
 
     def test_verify_code_after_captcha(self):
-        res = self._verify_code_after_captcha()
-        assert res.reached_state == OldSignupState.S7_VERIFY_LINK
+        with self.app.test_request_context():
+            res = self._verify_code_after_captcha()
+            assert res.reached_state == OldSignupState.S7_VERIFY_LINK
 
     def test_verify_code_after_captcha_mixed_case(self):
-        res = self._verify_code_after_captcha(
-            email="MixedCase@Example.com",
-            captcha_expected_message=SignupMsg.reg_new,
-            verify_expect_success=True,
-            verify_expected_message=None,
-        )
-        assert res.reached_state == OldSignupState.S7_VERIFY_LINK
+        with self.app.test_request_context():
+            res = self._verify_code_after_captcha(
+                email="MixedCase@Example.com",
+                captcha_expected_message=SignupMsg.reg_new,
+                verify_expect_success=True,
+                verify_expected_message=None,
+            )
+            assert res.reached_state == OldSignupState.S7_VERIFY_LINK
 
     def test_verify_code_after_captcha_proofing_log_error(self):
-        with patch("eduid.webapp.signup.helpers.record_email_address") as mock_verify:
-            mock_verify.side_effect = ProofingLogFailure("fail")
-            res = self._verify_code_after_captcha(
-                captcha_expected_message=SignupMsg.reg_new,
-                verify_expect_success=False,
-                verify_expected_message=CommonMsg.temp_problem,
-            )
-        assert res.reached_state == OldSignupState.S7_VERIFY_LINK
+        with self.app.test_request_context():
+            with patch("eduid.webapp.signup.helpers.record_email_address") as mock_verify:
+                mock_verify.side_effect = ProofingLogFailure("fail")
+                res = self._verify_code_after_captcha(
+                    captcha_expected_message=SignupMsg.reg_new,
+                    verify_expect_success=False,
+                    verify_expected_message=CommonMsg.temp_problem,
+                )
+            assert res.reached_state == OldSignupState.S7_VERIFY_LINK
 
     def test_verify_code_after_captcha_wrong_csrf(self):
-        data1 = {"csrf_token": "wrong-token"}
-        res = self._verify_code_after_captcha(
-            data1=data1,
-            captcha_expect_success=False,
-            captcha_expected_message=None,
-        )
-        assert self.get_response_payload(res.response)["error"] == {"csrf_token": ["CSRF failed to validate"]}
+        with self.app.test_request_context():
+            data1 = {"csrf_token": "wrong-token"}
+            res = self._verify_code_after_captcha(
+                data1=data1,
+                captcha_expect_success=False,
+                captcha_expected_message=None,
+            )
+            assert self.get_response_payload(res.response)["error"] == {"csrf_token": ["CSRF failed to validate"]}
 
     def test_verify_code_after_captcha_dont_accept_tou(self):
-        data1 = {"tou_accepted": False}
-        res = self._verify_code_after_captcha(
-            data1=data1, captcha_expect_success=False, captcha_expected_message=SignupMsg.tou_not_accepted
-        )
-        assert res.reached_state == OldSignupState.S5_CAPTCHA
+        with self.app.test_request_context():
+            data1 = {"tou_accepted": False}
+            res = self._verify_code_after_captcha(
+                data1=data1, captcha_expect_success=False, captcha_expected_message=SignupMsg.tou_not_accepted
+            )
+            assert res.reached_state == OldSignupState.S5_CAPTCHA

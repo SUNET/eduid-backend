@@ -348,7 +348,6 @@ class TestInviteResource(ScimApiTestCase):
     #    self.assertEqual(self.userdb.db_count(), len(resources))
 
     def test_create_invite(self):
-
         req = {
             "schemas": [
                 SCIMSchema.NUTID_INVITE_CORE_V1.value,
@@ -400,7 +399,6 @@ class TestInviteResource(ScimApiTestCase):
         assert event.data["status"] == EventStatus.CREATED.value
 
     def test_create_invite_missing_mandatory_attributes(self):
-
         req = {
             "schemas": [
                 SCIMSchema.NUTID_INVITE_CORE_V1.value,
@@ -444,7 +442,6 @@ class TestInviteResource(ScimApiTestCase):
         )
 
     def test_create_invite_do_not_send_email(self):
-
         req = {
             "schemas": [
                 SCIMSchema.NUTID_INVITE_CORE_V1.value,

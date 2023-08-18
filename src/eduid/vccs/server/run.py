@@ -1,5 +1,5 @@
-from asyncio import Lock
 import sys
+from asyncio import Lock
 from binascii import unhexlify
 from typing import Any, Mapping, Optional
 

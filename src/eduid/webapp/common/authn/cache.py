@@ -10,7 +10,6 @@ VT = TypeVar("VT")
 
 
 class SessionCacheAdapter(MutableMapping[str, VT]):
-
     key_prefix = "_saml2"
 
     def __init__(self, backend: PySAML2Dicts, key_suffix: str):

@@ -260,7 +260,6 @@ class BaseDB:
         safe_writes: bool = False,
         driver: Optional[DatabaseDriver] = None,
     ):
-
         self._db_uri = db_uri
         self._coll_name = collection
         self._db = MongoDB(db_uri, db_name=db_name, driver=driver)
@@ -328,7 +327,6 @@ class BaseDB:
     def _get_documents_by_aggregate(
         self, match: Mapping[str, Any], sort: Optional[Mapping[str, Any]] = None, limit: Optional[int] = None
     ) -> list[TUserDbDocument]:
-
         pipeline: list[dict[str, Any]] = [{"$match": match}]
 
         if sort is not None:

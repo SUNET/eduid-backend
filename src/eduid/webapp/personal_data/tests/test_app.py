@@ -151,70 +151,75 @@ class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
     # actual test methods
 
     def test_get_user(self):
-        user_data = self._get_user()
-        self.assertEqual(user_data["type"], "GET_PERSONAL_DATA_USER_SUCCESS")
-        self.assertEqual(user_data["payload"]["given_name"], "John")
-        self.assertEqual(user_data["payload"]["surname"], "Smith")
-        self.assertEqual(user_data["payload"]["display_name"], "John Smith")
-        self.assertEqual(user_data["payload"]["language"], "en")
-        # Check that unwanted data is not serialized
-        self.assertIsNotNone(self.test_user.to_dict().get("passwords"))
-        self.assertIsNone(user_data["payload"].get("passwords"))
+        with self.app.test_request_context():
+            user_data = self._get_user()
+            self.assertEqual(user_data["type"], "GET_PERSONAL_DATA_USER_SUCCESS")
+            self.assertEqual(user_data["payload"]["given_name"], "John")
+            self.assertEqual(user_data["payload"]["surname"], "Smith")
+            self.assertEqual(user_data["payload"]["display_name"], "John Smith")
+            self.assertEqual(user_data["payload"]["language"], "en")
+            # Check that unwanted data is not serialized
+            self.assertIsNotNone(self.test_user.to_dict().get("passwords"))
+            self.assertIsNone(user_data["payload"].get("passwords"))
 
     def test_get_unknown_user(self):
-        with self.assertRaises(ApiException):
-            self._get_user(eppn="fooo-fooo")
+        with self.app.test_request_context():
+            with self.assertRaises(ApiException):
+                self._get_user(eppn="fooo-fooo")
 
     def test_get_user_all_data(self):
-        response = self._get_user_all_data(eppn="hubba-bubba")
-        expected_payload = {
-            "display_name": "John Smith",
-            "emails": [
-                {"email": "johnsmith@example.com", "primary": True, "verified": True},
-                {"email": "johnsmith2@example.com", "primary": False, "verified": False},
-            ],
-            "eppn": "hubba-bubba",
-            "given_name": "John",
-            "ladok": {
-                "external_id": "00000000-1111-2222-3333-444444444444",
-                "university": {"ladok_name": "DEV", "name": {"en": "Test University", "sv": "Testlärosäte"}},
-            },
-            "language": "en",
-            "nins": [{"number": "197801011234", "primary": True, "verified": True}],
-            "identities": {
-                "is_verified": True,
-                "nin": {"number": "197801011234", "verified": True},
-                "eidas": {"verified": True, "country_code": "DE", "date_of_birth": "1978-09-02"},
-                "svipe": {"verified": True, "country_code": "DE", "date_of_birth": "1978-09-02"},
-            },
-            "phones": [
-                {"number": "+34609609609", "primary": True, "verified": True},
-                {"number": "+34 6096096096", "primary": False, "verified": False},
-            ],
-            "surname": "Smith",
-        }
+        with self.app.test_request_context():
+            response = self._get_user_all_data(eppn="hubba-bubba")
+            expected_payload = {
+                "display_name": "John Smith",
+                "emails": [
+                    {"email": "johnsmith@example.com", "primary": True, "verified": True},
+                    {"email": "johnsmith2@example.com", "primary": False, "verified": False},
+                ],
+                "eppn": "hubba-bubba",
+                "given_name": "John",
+                "ladok": {
+                    "external_id": "00000000-1111-2222-3333-444444444444",
+                    "university": {"ladok_name": "DEV", "name": {"en": "Test University", "sv": "Testlärosäte"}},
+                },
+                "language": "en",
+                "nins": [{"number": "197801011234", "primary": True, "verified": True}],
+                "identities": {
+                    "is_verified": True,
+                    "nin": {"number": "197801011234", "verified": True},
+                    "eidas": {"verified": True, "country_code": "DE", "date_of_birth": "1978-09-02"},
+                    "svipe": {"verified": True, "country_code": "DE", "date_of_birth": "1978-09-02"},
+                },
+                "phones": [
+                    {"number": "+34609609609", "primary": True, "verified": True},
+                    {"number": "+34 6096096096", "primary": False, "verified": False},
+                ],
+                "surname": "Smith",
+            }
 
-        self._check_success_response(
-            response=response, type_="GET_PERSONAL_DATA_ALL_USER_DATA_SUCCESS", payload=expected_payload
-        )
+            self._check_success_response(
+                response=response, type_="GET_PERSONAL_DATA_ALL_USER_DATA_SUCCESS", payload=expected_payload
+            )
 
-        # Check that unwanted data is not serialized
-        user_data = json.loads(response.data)
-        assert self.test_user.to_dict().get("passwords") is not None
-        assert user_data["payload"].get("passwords") is None
+            # Check that unwanted data is not serialized
+            user_data = json.loads(response.data)
+            assert self.test_user.to_dict().get("passwords") is not None
+            assert user_data["payload"].get("passwords") is None
 
     def test_get_unknown_user_all_data(self):
-        with self.assertRaises(ApiException):
-            self._get_user_all_data(eppn="fooo-fooo")
+        with self.app.test_request_context():
+            with self.assertRaises(ApiException):
+                self._get_user_all_data(eppn="fooo-fooo")
 
     def test_post_user(self):
-        response = self._post_user(verified_user=False)
-        expected_payload = {
-            "surname": "Johnson",
-            "given_name": "Peter",
-            "language": "en",
-        }
-        self._check_success_response(response, type_="POST_PERSONAL_DATA_USER_SUCCESS", payload=expected_payload)
+        with self.app.test_request_context():
+            response = self._post_user(verified_user=False)
+            expected_payload = {
+                "surname": "Johnson",
+                "given_name": "Peter",
+                "language": "en",
+            }
+            self._check_success_response(response, type_="POST_PERSONAL_DATA_USER_SUCCESS", payload=expected_payload)
 
     def test_set_display_name_and_language_verified_user(self):
         expected_payload = {
@@ -223,8 +228,9 @@ class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
             "display_name": "John Smith",
             "language": "sv",
         }
-        response = self._post_user(mod_data=expected_payload)
-        self._check_success_response(response, type_="POST_PERSONAL_DATA_USER_SUCCESS", payload=expected_payload)
+        with self.app.test_request_context():
+            response = self._post_user(mod_data=expected_payload)
+            self._check_success_response(response, type_="POST_PERSONAL_DATA_USER_SUCCESS", payload=expected_payload)
 
     def test_set_given_name_and_surname_verified_user(self):
         mod_data = {
@@ -238,77 +244,90 @@ class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
             "display_name": "John Smith",
             "language": "sv",
         }
-        response = self._post_user(mod_data=mod_data)
-        self._check_success_response(response, type_="POST_PERSONAL_DATA_USER_SUCCESS", payload=expected_payload)
+        with self.app.test_request_context():
+            response = self._post_user(mod_data=mod_data)
+            self._check_success_response(response, type_="POST_PERSONAL_DATA_USER_SUCCESS", payload=expected_payload)
 
     def test_post_user_bad_csrf(self):
-        response = self._post_user(mod_data={"csrf_token": "wrong-token"})
-        expected_payload = {"error": {"csrf_token": ["CSRF failed to validate"]}}
-        self._check_error_response(response, type_="POST_PERSONAL_DATA_USER_FAIL", payload=expected_payload)
+        with self.app.test_request_context():
+            response = self._post_user(mod_data={"csrf_token": "wrong-token"})
+            expected_payload = {"error": {"csrf_token": ["CSRF failed to validate"]}}
+            self._check_error_response(response, type_="POST_PERSONAL_DATA_USER_FAIL", payload=expected_payload)
 
     def test_post_user_no_given_name(self):
-        response = self._post_user(mod_data={"given_name": ""})
-        expected_payload = {"error": {"given_name": ["pdata.field_required"]}}
-        self._check_error_response(response, type_="POST_PERSONAL_DATA_USER_FAIL", payload=expected_payload)
+        with self.app.test_request_context():
+            response = self._post_user(mod_data={"given_name": ""})
+            expected_payload = {"error": {"given_name": ["pdata.field_required"]}}
+            self._check_error_response(response, type_="POST_PERSONAL_DATA_USER_FAIL", payload=expected_payload)
 
     def test_post_user_blank_given_name(self):
-        response = self._post_user(mod_data={"given_name": " "})
-        expected_payload = {"error": {"given_name": ["pdata.field_required"]}}
-        self._check_error_response(response, type_="POST_PERSONAL_DATA_USER_FAIL", payload=expected_payload)
+        with self.app.test_request_context():
+            response = self._post_user(mod_data={"given_name": " "})
+            expected_payload = {"error": {"given_name": ["pdata.field_required"]}}
+            self._check_error_response(response, type_="POST_PERSONAL_DATA_USER_FAIL", payload=expected_payload)
 
     def test_post_user_no_surname(self):
-        response = self._post_user(mod_data={"surname": ""})
-        expected_payload = {"error": {"surname": ["pdata.field_required"]}}
-        self._check_error_response(response, type_="POST_PERSONAL_DATA_USER_FAIL", payload=expected_payload)
+        with self.app.test_request_context():
+            response = self._post_user(mod_data={"surname": ""})
+            expected_payload = {"error": {"surname": ["pdata.field_required"]}}
+            self._check_error_response(response, type_="POST_PERSONAL_DATA_USER_FAIL", payload=expected_payload)
 
     def test_post_user_blank_surname(self):
-        response = self._post_user(mod_data={"surname": " "})
-        expected_payload = {"error": {"surname": ["pdata.field_required"]}}
-        self._check_error_response(response, type_="POST_PERSONAL_DATA_USER_FAIL", payload=expected_payload)
+        with self.app.test_request_context():
+            response = self._post_user(mod_data={"surname": " "})
+            expected_payload = {"error": {"surname": ["pdata.field_required"]}}
+            self._check_error_response(response, type_="POST_PERSONAL_DATA_USER_FAIL", payload=expected_payload)
 
     def test_post_user_with_display_name(self):
-        # verify that display_name is ignored
-        response = self._post_user(mod_data={"display_name": "Not Peter Johnson"}, verified_user=False)
-        expected_payload = {
-            "surname": "Johnson",
-            "given_name": "Peter",
-            "display_name": "Peter Johnson",
-            "language": "en",
-        }
-        self._check_success_response(response, type_="POST_PERSONAL_DATA_USER_SUCCESS", payload=expected_payload)
+        with self.app.test_request_context():
+            # verify that display_name is ignored
+            response = self._post_user(mod_data={"display_name": "Not Peter Johnson"}, verified_user=False)
+            expected_payload = {
+                "surname": "Johnson",
+                "given_name": "Peter",
+                "display_name": "Peter Johnson",
+                "language": "en",
+            }
+            self._check_success_response(response, type_="POST_PERSONAL_DATA_USER_SUCCESS", payload=expected_payload)
 
     def test_post_user_no_language(self):
-        response = self._post_user(mod_data={"language": ""})
-        expected_payload = {"error": {"language": ["Language '' is not available"]}}
-        self._check_error_response(response, type_="POST_PERSONAL_DATA_USER_FAIL", payload=expected_payload)
+        with self.app.test_request_context():
+            response = self._post_user(mod_data={"language": ""})
+            expected_payload = {"error": {"language": ["Language '' is not available"]}}
+            self._check_error_response(response, type_="POST_PERSONAL_DATA_USER_FAIL", payload=expected_payload)
 
     def test_post_user_unknown_language(self):
-        response = self._post_user(mod_data={"language": "es"})
-        expected_payload = {"error": {"language": ["Language 'es' is not available"]}}
-        self._check_error_response(response, type_="POST_PERSONAL_DATA_USER_FAIL", payload=expected_payload)
+        with self.app.test_request_context():
+            response = self._post_user(mod_data={"language": "es"})
+            expected_payload = {"error": {"language": ["Language 'es' is not available"]}}
+            self._check_error_response(response, type_="POST_PERSONAL_DATA_USER_FAIL", payload=expected_payload)
 
     def test_get_user_nins(self):
-        response = self._get_user_nins()
-        expected_payload = {
-            "nins": [{"number": "197801011234", "primary": True, "verified": True}],
-            "identities": {
-                "is_verified": True,
-                "nin": {"number": "197801011234", "verified": True},
-                "eidas": {"verified": True, "country_code": "DE", "date_of_birth": "1978-09-02"},
-                "svipe": {"verified": True, "country_code": "DE", "date_of_birth": "1978-09-02"},
-            },
-        }
-        self._check_success_response(response, type_="GET_PERSONAL_DATA_NINS_SUCCESS", payload=expected_payload)
+        with self.app.test_request_context():
+            response = self._get_user_nins()
+            expected_payload = {
+                "nins": [{"number": "197801011234", "primary": True, "verified": True}],
+                "identities": {
+                    "is_verified": True,
+                    "nin": {"number": "197801011234", "verified": True},
+                    "eidas": {"verified": True, "country_code": "DE", "date_of_birth": "1978-09-02"},
+                    "svipe": {"verified": True, "country_code": "DE", "date_of_birth": "1978-09-02"},
+                },
+            }
+            self._check_success_response(response, type_="GET_PERSONAL_DATA_NINS_SUCCESS", payload=expected_payload)
 
     def test_get_user_identities(self):
-        response = self._get_user_identities()
-        expected_payload = {
-            "nins": [{"number": "197801011234", "primary": True, "verified": True}],
-            "identities": {
-                "is_verified": True,
-                "nin": {"number": "197801011234", "verified": True},
-                "eidas": {"verified": True, "country_code": "DE", "date_of_birth": "1978-09-02"},
-                "svipe": {"verified": True, "country_code": "DE", "date_of_birth": "1978-09-02"},
-            },
-        }
-        self._check_success_response(response, type_="GET_PERSONAL_DATA_IDENTITIES_SUCCESS", payload=expected_payload)
+        with self.app.test_request_context():
+            response = self._get_user_identities()
+            expected_payload = {
+                "nins": [{"number": "197801011234", "primary": True, "verified": True}],
+                "identities": {
+                    "is_verified": True,
+                    "nin": {"number": "197801011234", "verified": True},
+                    "eidas": {"verified": True, "country_code": "DE", "date_of_birth": "1978-09-02"},
+                    "svipe": {"verified": True, "country_code": "DE", "date_of_birth": "1978-09-02"},
+                },
+            }
+            self._check_success_response(
+                response, type_="GET_PERSONAL_DATA_IDENTITIES_SUCCESS", payload=expected_payload
+            )

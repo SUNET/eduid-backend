@@ -81,121 +81,127 @@ class LadokTests(EduidAPITestCase[LadokApp]):
             return browser.post("/unlink-user", json={"csrf_token": csrf_token})
 
     def test_authenticate(self):
-        response = self.browser.get("/")
-        self.assertEqual(response.status_code, 302)  # Redirect to token service
-        with self.session_cookie(self.browser, self.test_user.eppn) as browser:
-            response = browser.get("/")
-        self._check_success_response(response, type_="GET_LADOK_SUCCESS")
+        with self.app.test_request_context():
+            response = self.browser.get("/")
+            self.assertEqual(response.status_code, 302)  # Redirect to token service
+            with self.session_cookie(self.browser, self.test_user.eppn) as browser:
+                response = browser.get("/")
+            self._check_success_response(response, type_="GET_LADOK_SUCCESS")
 
     def test_get_universities(self):
-        with self.session_cookie(self.browser, self.test_user.eppn) as browser:
-            response = browser.get("/universities")
-        expected_payload = {
-            "universities": {
-                "ab": {"ladok_name": "ab", "name": {"en": "University Name", "sv": "Lärosätesnamn"}},
-                "cd": {"ladok_name": "cd", "name": {"en": "Another University Name", "sv": "Annat Lärosätesnamn"}},
+        with self.app.test_request_context():
+            with self.session_cookie(self.browser, self.test_user.eppn) as browser:
+                response = browser.get("/universities")
+            expected_payload = {
+                "universities": {
+                    "ab": {"ladok_name": "ab", "name": {"en": "University Name", "sv": "Lärosätesnamn"}},
+                    "cd": {"ladok_name": "cd", "name": {"en": "Another University Name", "sv": "Annat Lärosätesnamn"}},
+                }
             }
-        }
-        self._check_success_response(response, type_="GET_LADOK_UNIVERSITIES_SUCCESS", payload=expected_payload)
+            self._check_success_response(response, type_="GET_LADOK_UNIVERSITIES_SUCCESS", payload=expected_payload)
 
     @patch("requests.post")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_link_user(self, mock_request_user_sync: MagicMock, mock_response: MagicMock):
-        mock_request_user_sync.side_effect = self.request_user_sync
+        with self.app.test_request_context():
+            mock_request_user_sync.side_effect = self.request_user_sync
 
-        ladok_user_external_id_str = str(self.ladok_user_external_id)
-        user_info = LadokUserInfo(
-            external_id=ladok_user_external_id_str,
-            esi=f"urn:schac:personalUniqueCode:int:esi:ladok.se:externtstudentuid-{ladok_user_external_id_str}",
-            is_student=None,
-        )
-        mock_response.return_value = MockResponse(
-            status_code=200, data=LadokUserInfoResponse(error=None, data=user_info).dict(by_alias=True)
-        )
+            ladok_user_external_id_str = str(self.ladok_user_external_id)
+            user_info = LadokUserInfo(
+                external_id=ladok_user_external_id_str,
+                esi=f"urn:schac:personalUniqueCode:int:esi:ladok.se:externtstudentuid-{ladok_user_external_id_str}",
+                is_student=None,
+            )
+            mock_response.return_value = MockResponse(
+                status_code=200, data=LadokUserInfoResponse(error=None, data=user_info).dict(by_alias=True)
+            )
 
-        user = self.app.central_userdb.get_user_by_eppn(eppn=self.test_user_eppn)
-        assert user.identities.nin is not None
-        assert user.identities.nin.is_verified is True
+            user = self.app.central_userdb.get_user_by_eppn(eppn=self.test_user_eppn)
+            assert user.identities.nin is not None
+            assert user.identities.nin.is_verified is True
 
-        ladok_name = "ab"
-        response = self._link_user(eppn=self.test_user_eppn, ladok_name=ladok_name)
-        self._check_success_response(response, type_="POST_LADOK_LINK_USER_SUCCESS")
+            ladok_name = "ab"
+            response = self._link_user(eppn=self.test_user_eppn, ladok_name=ladok_name)
+            self._check_success_response(response, type_="POST_LADOK_LINK_USER_SUCCESS")
 
-        user = self.app.central_userdb.get_user_by_eppn(eppn=self.test_user_eppn)
-        assert user.ladok is not None
-        assert user.ladok.external_id == self.ladok_user_external_id
-        assert user.ladok.university.ladok_name == ladok_name
-        assert user.ladok.university.name.sv == self.app.ladok_client.universities[ladok_name].name.sv
-        assert user.ladok.university.name.en == self.app.ladok_client.universities[ladok_name].name.en
+            user = self.app.central_userdb.get_user_by_eppn(eppn=self.test_user_eppn)
+            assert user.ladok is not None
+            assert user.ladok.external_id == self.ladok_user_external_id
+            assert user.ladok.university.ladok_name == ladok_name
+            assert user.ladok.university.name.sv == self.app.ladok_client.universities[ladok_name].name.sv
+            assert user.ladok.university.name.en == self.app.ladok_client.universities[ladok_name].name.en
 
-        log_docs = self.app.proofing_log._get_documents_by_attr("eduPersonPrincipalName", self.test_user_eppn)
-        assert 1 == len(log_docs)
+            log_docs = self.app.proofing_log._get_documents_by_attr("eduPersonPrincipalName", self.test_user_eppn)
+            assert 1 == len(log_docs)
 
     @patch("requests.post")
     def test_link_user_error_response_from_worker(self, mock_response: MagicMock):
-        error = Error(id="internal_server_error", details="some longer error message")
-        mock_response.return_value = MockResponse(
-            status_code=200, data=LadokUserInfoResponse(error=error, data=None).dict(by_alias=True)
-        )
+        with self.app.test_request_context():
+            error = Error(id="internal_server_error", details="some longer error message")
+            mock_response.return_value = MockResponse(
+                status_code=200, data=LadokUserInfoResponse(error=error, data=None).dict(by_alias=True)
+            )
 
-        ladok_name = "ab"
-        response = self._link_user(eppn=self.test_user_eppn, ladok_name=ladok_name)
-        self._check_success_response(response, type_="POST_LADOK_LINK_USER_FAIL", msg=LadokMsg.no_ladok_data)
+            ladok_name = "ab"
+            response = self._link_user(eppn=self.test_user_eppn, ladok_name=ladok_name)
+            self._check_success_response(response, type_="POST_LADOK_LINK_USER_FAIL", msg=LadokMsg.no_ladok_data)
 
-        user = self.app.central_userdb.get_user_by_eppn(eppn=self.test_user_eppn)
-        assert user.ladok is None
+            user = self.app.central_userdb.get_user_by_eppn(eppn=self.test_user_eppn)
+            assert user.ladok is None
 
-        log_docs = self.app.proofing_log._get_documents_by_attr("eduPersonPrincipalName", self.test_user_eppn)
-        assert 0 == len(log_docs)
+            log_docs = self.app.proofing_log._get_documents_by_attr("eduPersonPrincipalName", self.test_user_eppn)
+            assert 0 == len(log_docs)
 
     def test_link_user_no_nin(self):
-        user = self.app.central_userdb.get_user_by_eppn(eppn=self.test_unverified_user_eppn)
-        assert user.identities.nin is None
+        with self.app.test_request_context():
+            user = self.app.central_userdb.get_user_by_eppn(eppn=self.test_unverified_user_eppn)
+            assert user.identities.nin is None
 
-        ladok_name = "ab"
-        response = self._link_user(eppn=self.test_unverified_user_eppn, ladok_name=ladok_name)
-        self._check_success_response(response, type_="POST_LADOK_LINK_USER_FAIL", msg=LadokMsg.no_verified_nin)
+            ladok_name = "ab"
+            response = self._link_user(eppn=self.test_unverified_user_eppn, ladok_name=ladok_name)
+            self._check_success_response(response, type_="POST_LADOK_LINK_USER_FAIL", msg=LadokMsg.no_verified_nin)
 
-        user = self.app.central_userdb.get_user_by_eppn(eppn=self.test_unverified_user_eppn)
-        assert user.ladok is None
+            user = self.app.central_userdb.get_user_by_eppn(eppn=self.test_unverified_user_eppn)
+            assert user.ladok is None
 
-        log_docs = self.app.proofing_log._get_documents_by_attr(
-            "eduPersonPrincipalName", self.test_unverified_user_eppn
-        )
-        assert 0 == len(log_docs)
+            log_docs = self.app.proofing_log._get_documents_by_attr(
+                "eduPersonPrincipalName", self.test_unverified_user_eppn
+            )
+            assert 0 == len(log_docs)
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_unlink_user(self, mock_request_user_sync: MagicMock):
-        mock_request_user_sync.side_effect = self.request_user_sync
+        with self.app.test_request_context():
+            mock_request_user_sync.side_effect = self.request_user_sync
 
-        # set ladok data for user
-        university = University(ladok_name="ab", name=UniversityName(sv="namn", en="name"))
-        ladok = Ladok(external_id=self.ladok_user_external_id, university=university)
-        user = self.app.central_userdb.get_user_by_eppn(eppn=self.test_user_eppn)
-        user.ladok = ladok
-        self.app.central_userdb.save(user)
+            # set ladok data for user
+            university = University(ladok_name="ab", name=UniversityName(sv="namn", en="name"))
+            ladok = Ladok(external_id=self.ladok_user_external_id, university=university)
+            user = self.app.central_userdb.get_user_by_eppn(eppn=self.test_user_eppn)
+            user.ladok = ladok
+            self.app.central_userdb.save(user)
 
-        user = self.app.central_userdb.get_user_by_eppn(eppn=self.test_user_eppn)
-        assert user.ladok is not None
-        assert user.ladok.external_id == self.ladok_user_external_id
-        assert user.ladok.university.ladok_name == university.ladok_name
+            user = self.app.central_userdb.get_user_by_eppn(eppn=self.test_user_eppn)
+            assert user.ladok is not None
+            assert user.ladok.external_id == self.ladok_user_external_id
+            assert user.ladok.university.ladok_name == university.ladok_name
 
-        response = self._unlink_user(eppn=self.test_user_eppn)
-        self._check_success_response(response, type_="POST_LADOK_UNLINK_USER_SUCCESS", msg=LadokMsg.user_unlinked)
+            response = self._unlink_user(eppn=self.test_user_eppn)
+            self._check_success_response(response, type_="POST_LADOK_UNLINK_USER_SUCCESS", msg=LadokMsg.user_unlinked)
 
-        user = self.app.central_userdb.get_user_by_eppn(eppn=self.test_user_eppn)
-        assert user.ladok is None
+            user = self.app.central_userdb.get_user_by_eppn(eppn=self.test_user_eppn)
+            assert user.ladok is None
 
     def test_unlink_user_no_op(self):
+        with self.app.test_request_context():
+            user = self.app.central_userdb.get_user_by_eppn(eppn=self.test_user_eppn)
+            assert user.ladok is None
 
-        user = self.app.central_userdb.get_user_by_eppn(eppn=self.test_user_eppn)
-        assert user.ladok is None
+            response = self._unlink_user(eppn=self.test_user_eppn)
+            self._check_success_response(response, type_="POST_LADOK_UNLINK_USER_SUCCESS", msg=LadokMsg.user_unlinked)
 
-        response = self._unlink_user(eppn=self.test_user_eppn)
-        self._check_success_response(response, type_="POST_LADOK_UNLINK_USER_SUCCESS", msg=LadokMsg.user_unlinked)
-
-        user = self.app.central_userdb.get_user_by_eppn(eppn=self.test_user_eppn)
-        assert user.ladok is None
+            user = self.app.central_userdb.get_user_by_eppn(eppn=self.test_user_eppn)
+            assert user.ladok is None
 
 
 class LadokDevTests(EduidAPITestCase[LadokApp]):
@@ -227,23 +233,24 @@ class LadokDevTests(EduidAPITestCase[LadokApp]):
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_link_user_backdoor(self, mock_request_user_sync: MagicMock):
-        mock_request_user_sync.side_effect = self.request_user_sync
+        with self.app.test_request_context():
+            mock_request_user_sync.side_effect = self.request_user_sync
 
-        ladok_name = "DEV"
-        with self.session_cookie(self.browser, self.test_user.eppn) as browser:
-            assert self.app.conf.magic_cookie is not None
-            browser.set_cookie("localhost", key="magic-cookie", value=self.app.conf.magic_cookie)
-            with browser.session_transaction() as sess:
-                csrf_token = sess.get_csrf_token()
-            response = browser.post("/link-user", json={"csrf_token": csrf_token, "ladok_name": ladok_name})
-        self._check_success_response(response, type_="POST_LADOK_LINK_USER_SUCCESS")
+            ladok_name = "DEV"
+            with self.session_cookie(self.browser, self.test_user.eppn) as browser:
+                assert self.app.conf.magic_cookie is not None
+                browser.set_cookie(domain="localhost", key="magic-cookie", value=self.app.conf.magic_cookie)
+                with browser.session_transaction() as sess:
+                    csrf_token = sess.get_csrf_token()
+                response = browser.post("/link-user", json={"csrf_token": csrf_token, "ladok_name": ladok_name})
+            self._check_success_response(response, type_="POST_LADOK_LINK_USER_SUCCESS")
 
-        user = self.app.central_userdb.get_user_by_eppn(eppn=self.test_user_eppn)
-        assert user.ladok is not None
-        assert user.ladok.external_id == UUID("00000000-1111-2222-3333-444444444444")
-        assert user.ladok.university.ladok_name == ladok_name
-        assert user.ladok.university.name.sv == self.app.ladok_client.universities[ladok_name].name.sv
-        assert user.ladok.university.name.en == self.app.ladok_client.universities[ladok_name].name.en
+            user = self.app.central_userdb.get_user_by_eppn(eppn=self.test_user_eppn)
+            assert user.ladok is not None
+            assert user.ladok.external_id == UUID("00000000-1111-2222-3333-444444444444")
+            assert user.ladok.university.ladok_name == ladok_name
+            assert user.ladok.university.name.sv == self.app.ladok_client.universities[ladok_name].name.sv
+            assert user.ladok.university.name.en == self.app.ladok_client.universities[ladok_name].name.en
 
-        log_docs = self.app.proofing_log._get_documents_by_attr("eduPersonPrincipalName", self.test_user_eppn)
-        assert 1 == len(log_docs)
+            log_docs = self.app.proofing_log._get_documents_by_attr("eduPersonPrincipalName", self.test_user_eppn)
+            assert 1 == len(log_docs)
