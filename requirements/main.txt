@@ -891,9 +891,9 @@ pypng==0.20220715.0 \
     --hash=sha256:4a43e969b8f5aaafb2a415536c1a8ec7e341cd6a3f957fd5b5f32a4cfeed902c \
     --hash=sha256:739c433ba96f078315de54c0db975aee537cbc3e1d0ae4ed9aab0ca1e427e2c1
     # via qrcode
-pysaml2==7.3.0+sunet2 \
-    --hash=sha256:12f62352e048c5302889048d3555b854b09ee4b07d3a7f30ed72c1e65f9eff15 \
-    --hash=sha256:b79d0bfeb2af69f38ef0e72949c54db0f2cd3cdc81f25e423a0bf2f6a7015c7b
+pysaml2==7.4.1+sunet3 \
+    --hash=sha256:55772e8a497c8bb2757027f8d2b9980c2df8b46c5e85b95c2e779c4222bcbde6 \
+    --hash=sha256:7425ca65ed772417838329fbcc891a653abb069f8d803924602de78900471c47
     # via -r main.in
 pysmscom==0.9 \
     --hash=sha256:0e45dacf73dedf379f1f8e17b976dc950b2c0d91c9e7d9b82d3a59b2c27b4ed1 \
