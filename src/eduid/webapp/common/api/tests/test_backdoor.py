@@ -110,7 +110,7 @@ class BackdoorTests(EduidAPITestCase[BackdoorTestApp]):
                 response = client.get("/get-code?eppn=pepin-pepon")
                 self.assertEqual(response.data, b"dummy-code-for-pepin-pepon")
 
-    def test_no_backdoor_in_pro(self):
+    def test_no_backdoor_in_prod(self):
         """"""
         with self.app.test_request_context():
             self.app.conf.environment = EduidEnvironment("production")
