@@ -718,7 +718,9 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
                             "new_password": "j7/E >pO9 ,$Sr O0;&",
                             "old_password": "5678",
                         }
-                    response2 = client.post("/change-password", data=json.dumps(data), content_type=self.content_type_json)
+                    response2 = client.post(
+                        "/change-password", data=json.dumps(data), content_type=self.content_type_json
+                    )
             self._check_success_response(
                 response2, type_="POST_SECURITY_CHANGE_PASSWORD_SUCCESS", msg=SecurityMsg.chpass_password_changed2
             )

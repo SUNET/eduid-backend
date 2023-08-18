@@ -249,7 +249,10 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
                 assert self.app.conf.magic_cookie_name is not None
                 assert self.app.conf.magic_cookie is not None
                 client.set_cookie(
-                    domain="localhost", key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie
+                    server_name="localhost",
+                    domain="localhost",
+                    key=self.app.conf.magic_cookie_name,
+                    value=self.app.conf.magic_cookie,
                 )
 
                 phone = quote_plus(phone)

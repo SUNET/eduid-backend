@@ -1,7 +1,7 @@
 import logging
 import os
-from enum import Enum
 import sys
+from enum import Enum
 from typing import Tuple
 from unittest.mock import patch
 from urllib.parse import unquote

@@ -478,7 +478,12 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         with self.session_cookie_anon(self.browser) as client:
             assert self.app.conf.magic_cookie_name is not None
             assert self.app.conf.magic_cookie is not None
-            client.set_cookie(domain="localhost", key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie)
+            client.set_cookie(
+                server_name="localhost",
+                domain="localhost",
+                key=self.app.conf.magic_cookie_name,
+                value=self.app.conf.magic_cookie,
+            )
             eppn = quote_plus(self.test_user.eppn)
             return client.get(f"/get-email-code?eppn={eppn}")
 
@@ -529,7 +534,12 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
 
             assert self.app.conf.magic_cookie_name is not None
             assert self.app.conf.magic_cookie is not None
-            client.set_cookie(domain="localhost", key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie)
+            client.set_cookie(
+                server_name="localhost",
+                domain="localhost",
+                key=self.app.conf.magic_cookie_name,
+                value=self.app.conf.magic_cookie,
+            )
 
             eppn = quote_plus(self.test_user.eppn)
 

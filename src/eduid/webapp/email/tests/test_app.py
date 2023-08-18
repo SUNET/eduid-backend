@@ -346,7 +346,12 @@ class EmailTests(EduidAPITestCase[EmailApp]):
 
             assert self.app.conf.magic_cookie_name is not None
             assert self.app.conf.magic_cookie is not None
-            client.set_cookie(domain="localhost", key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie)
+            client.set_cookie(
+                server_name="localhost",
+                domain="localhost",
+                key=self.app.conf.magic_cookie_name,
+                value=self.app.conf.magic_cookie,
+            )
 
             return client.get(f"/get-code?email={email}&eppn={eppn}")
 

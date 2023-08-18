@@ -1195,14 +1195,20 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
                         "is_member": True,
                         "is_owner": True,
                         "members": [
-                            {"display_name": "johnsmith@example.com", "identifier": "00000000-0000-0000-0000-000000000000"},
+                            {
+                                "display_name": "johnsmith@example.com",
+                                "identifier": "00000000-0000-0000-0000-000000000000",
+                            },
                             {
                                 "display_name": "johnsmith2@example.com",
                                 "identifier": "00000000-0000-0000-0000-000000000001",
                             },
                         ],
                         "owners": [
-                            {"display_name": "johnsmith@example.com", "identifier": "00000000-0000-0000-0000-000000000000"}
+                            {
+                                "display_name": "johnsmith@example.com",
+                                "identifier": "00000000-0000-0000-0000-000000000000",
+                            }
                         ],
                     }
                 ]
@@ -1234,10 +1240,16 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
                         "is_member": True,
                         "is_owner": False,
                         "members": [
-                            {"display_name": "johnsmith2@example.com", "identifier": "00000000-0000-0000-0000-000000000001"}
+                            {
+                                "display_name": "johnsmith2@example.com",
+                                "identifier": "00000000-0000-0000-0000-000000000001",
+                            }
                         ],
                         "owners": [
-                            {"display_name": "johnsmith@example.com", "identifier": "00000000-0000-0000-0000-000000000000"}
+                            {
+                                "display_name": "johnsmith@example.com",
+                                "identifier": "00000000-0000-0000-0000-000000000000",
+                            }
                         ],
                     }
                 ]
@@ -1252,7 +1264,10 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
                         "email_address": "johnsmith2@example.com",
                         "group_identifier": "00000000-0000-0000-0000-000000000002",
                         "owners": [
-                            {"display_name": "johnsmith@example.com", "identifier": "00000000-0000-0000-0000-000000000000"}
+                            {
+                                "display_name": "johnsmith@example.com",
+                                "identifier": "00000000-0000-0000-0000-000000000000",
+                            }
                         ],
                         "role": "owner",
                     }

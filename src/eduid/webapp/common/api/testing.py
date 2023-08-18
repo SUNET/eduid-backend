@@ -231,7 +231,12 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
             assert isinstance(self.app, EduIDBaseApp)
             _conf = getattr(self.app, "conf")
             assert isinstance(_conf, EduIDBaseAppConfig)
-            client.set_cookie(domain=server_name, key=_conf.flask.session_cookie_name, value=sess.meta.cookie_val)
+            client.set_cookie(
+                server_name="localhost",
+                domain=server_name,
+                key=_conf.flask.session_cookie_name,
+                value=sess.meta.cookie_val,
+            )
         yield client
 
     @contextmanager
