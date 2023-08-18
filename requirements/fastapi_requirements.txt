@@ -1141,9 +1141,9 @@ pypng==0.20220715.0 \
     # via
     #   -c main.txt
     #   qrcode
-pysaml2==7.3.0+sunet2 \
-    --hash=sha256:12f62352e048c5302889048d3555b854b09ee4b07d3a7f30ed72c1e65f9eff15 \
-    --hash=sha256:b79d0bfeb2af69f38ef0e72949c54db0f2cd3cdc81f25e423a0bf2f6a7015c7b
+pysaml2==7.4.1+sunet3 \
+    --hash=sha256:55772e8a497c8bb2757027f8d2b9980c2df8b46c5e85b95c2e779c4222bcbde6 \
+    --hash=sha256:7425ca65ed772417838329fbcc891a653abb069f8d803924602de78900471c47
     # via
     #   -c main.txt
     #   -r main.in
