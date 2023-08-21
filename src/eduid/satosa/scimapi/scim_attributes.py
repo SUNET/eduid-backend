@@ -13,6 +13,7 @@ import satosa.context
 import satosa.internal
 from saml2.mdstore import MetaData
 from satosa.attribute_mapping import AttributeMapper
+from satosa.exception import SATOSAAuthenticationError
 from satosa.micro_services.base import ResponseMicroService
 from satosa.routing import STATE_KEY as ROUTER_STATE_KEY
 
@@ -24,10 +25,12 @@ logger = logging.getLogger(__name__)
 @dataclass
 class Config:
     mongo_uri: str
-    idp_to_data_owner: Mapping[str, str]
-    mfa_stepup_issuer_to_entity_id: Mapping[str, str]
-    virt_idp_to_data_owner: Mapping[str, str]
+    allow_users_not_in_database: bool = False
+    fallback_data_owner: Optional[str] = None
+    idp_to_data_owner: Mapping[str, str] = field(default_factory=dict)
+    mfa_stepup_issuer_to_entity_id: Mapping[str, str] = field(default_factory=dict)
     scope_to_data_owner: Mapping[str, str] = field(default_factory=dict)
+    virt_idp_to_data_owner: Mapping[str, str] = field(default_factory=dict)
 
 
 class ScimAttributes(ResponseMicroService):
@@ -45,7 +48,8 @@ class ScimAttributes(ResponseMicroService):
         self.converter = AttributeMapper(internal_attributes)
         # Get the internal attribute name for the eduPersonPrincipalName that will be
         # used to find users in the SCIM database
-        self.ext_id_attr = get_internal_attribute_name(self.converter, "eduPersonPrincipalName")
+        _int = self.converter.to_internal("saml", {"eduPersonPrincipalName": "something"})
+        self.ext_id_attr = list(_int.keys())[0]
         logger.debug(f"SCIM externalId internal attribute name: {self.ext_id_attr}")
 
     def get_userdb_for_data_owner(self, data_owner: str) -> ScimApiUserDB:
@@ -103,17 +107,27 @@ class ScimAttributes(ResponseMicroService):
                             identifier=acc.value,
                         )
                     ]
-            store_mfa_stepup_accounts(data, _stepup_accounts)
-            logger.debug(f"MFA stepup accounts: {_stepup_accounts}")
+            data.mfa_stepup_accounts = _stepup_accounts
+            logger.debug(f"MFA stepup accounts: {data.mfa_stepup_accounts}")
+        else:
+            if self.config.allow_users_not_in_database:
+                logger.info(
+                    "User not found in database but letting through since 'allow_users_not_in_database' is set to True"
+                )
+            else:
+                raise SATOSAAuthenticationError(context.state, f"User not found in database")
 
         return super().process(context, data)
 
     def _get_scopes_for_idp(self, context: satosa.context.Context, entity_id: str) -> set[str]:
         res = set()
         logger.debug(f"Looking for metadata scope for entityId {entity_id}")
-        for _metadata in get_metadata(context):
+        for _md_name, _metadata in context.internal_data[context.KEY_METADATA_STORE].metadata.items():
+            if not isinstance(_metadata, MetaData):
+                logger.debug(f"Element {_metadata} was not MetaData")
+                continue
             if entity_id not in _metadata:
-                logger.debug(f"entityId {entity_id} not present in this metadata")
+                logger.debug(f"entityId {entity_id} not present in this metadata ({_md_name})")
                 continue
             idpsso = _metadata[entity_id].get("idpsso_descriptor", {})
 
@@ -126,7 +140,7 @@ class ScimAttributes(ResponseMicroService):
         # Look for explicit information about what data owner to use for this IdP
         issuer = frontend_name
         data_owner: Optional[str] = self.config.virt_idp_to_data_owner.get(issuer)
-        # Fallback to issuer. Do we need that?
+        # Fallback to issuer. E.g Skolverkets idpproxy
         if not data_owner:
             issuer = data.auth_info.issuer
             data_owner = self.config.idp_to_data_owner.get(issuer)
@@ -134,16 +148,19 @@ class ScimAttributes(ResponseMicroService):
         if data_owner:
             logger.debug(f"Data owner for issuer {issuer}: {data_owner}")
         else:
-            _sorted_scopes = sorted(list(scopes))
-            # Look for a scope in the list 'scopes' that has explicit mapping information in config
-            for _scope in _sorted_scopes:
-                if _scope in self.config.scope_to_data_owner:
-                    data_owner = self.config.scope_to_data_owner[_scope]
-                    logger.debug(f"Data owner for scope {_scope}: {data_owner}")
-                    break
-            if not data_owner and _sorted_scopes:
-                data_owner = _sorted_scopes[0]
-                logger.debug(f"Using first scope as data owner: {_sorted_scopes}")
+            fallback_data_owner = self.config.fallback_data_owner
+            if fallback_data_owner is not None:
+                data_owner = fallback_data_owner
+                logger.debug(f"Using fallback data owner {data_owner} for {issuer}")
+            else:
+                _sorted_scopes = sorted(list(scopes))
+                # Look for a scope in the list 'scopes' that has explicit mapping information in config
+                for _scope in _sorted_scopes:
+                    if _scope in self.config.scope_to_data_owner:
+                        data_owner = self.config.scope_to_data_owner[_scope]
+                        logger.debug(f"Data owner for scope {_scope}: {data_owner}")
+                        break
+
         if not data_owner:
             logger.warning(f"No data owner for issuer {issuer}")
             return None

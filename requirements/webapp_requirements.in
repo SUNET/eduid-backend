@@ -1,11 +1,10 @@
 -r main.in
 -c main.txt
 Flask-Mail
-Flask<2.3.0
+Flask
 flask-babel
 flask-cors
 captcha
 raven[flask]
 user-agents
 authlib
-werkzeug<2.3.0

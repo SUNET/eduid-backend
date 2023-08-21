@@ -114,9 +114,9 @@ class EmailProofingElement(ProofingElement):
     email: str
 
     @validator("email", pre=True)
-    def validate_email(cls, v):
+    def validate_email(cls, v: Any):
         if not isinstance(v, str):
-            ValueError("must be a string")
+            raise ValueError("must be a string")
         return v.lower()
 
 
