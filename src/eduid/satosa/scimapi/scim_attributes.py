@@ -2,6 +2,12 @@ import logging
 import pprint
 from dataclasses import dataclass, field
 from typing import Any, Mapping, Optional
+from eduid.satosa.scimapi.common import (
+    MfaStepupAccount,
+    get_internal_attribute_name,
+    get_metadata,
+    store_mfa_stepup_accounts,
+)
 
 import satosa.context
 import satosa.internal
@@ -32,7 +38,7 @@ class ScimAttributes(ResponseMicroService):
     Add attributes from the scim db to the responses.
     """
 
-    def __init__(self, config: Mapping[str, Any], internal_attributes: dict[str, Any], *args, **kwargs):
+    def __init__(self, config: Mapping[str, Any], internal_attributes: dict[str, Any], *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
         self.config = Config(**config)
         # Setup databases
@@ -90,13 +96,16 @@ class ScimAttributes(ResponseMicroService):
                         logger.debug(f"Changing attribute {_name} from {repr(_old)} to {repr(_new)}")
                         data.attributes[_name] = _new
             # Look for a linked account suitable for use for MFA stepup (in the stepup plugin that runs after this one)
-            _stepup_accounts = []
+            _stepup_accounts: list[MfaStepupAccount] = []
             for acc in user.linked_accounts:
                 logger.debug(f"Linked account: {acc}")
                 _entity_id = self.config.mfa_stepup_issuer_to_entity_id.get(acc.issuer)
                 if _entity_id and acc.parameters.get("mfa_stepup") is True:
                     _stepup_accounts += [
-                        {"entity_id": _entity_id, "identifier": acc.value, "attribute": "eduPersonPrincipalName"}
+                        MfaStepupAccount(
+                            entity_id=_entity_id,
+                            identifier=acc.value,
+                        )
                     ]
             data.mfa_stepup_accounts = _stepup_accounts
             logger.debug(f"MFA stepup accounts: {data.mfa_stepup_accounts}")
