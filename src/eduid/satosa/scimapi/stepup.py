@@ -221,7 +221,6 @@ class StepUp(ResponseMicroService):
         context: satosa.context.Context,
         data: satosa.internal.InternalData,
     ) -> ProcessReturnType:
-        # if REFEDS_MFA not in data.auth_info.auth_class_ref:
         linked_accounts = fetch_mfa_stepup_accounts(data)
         if not linked_accounts:
             logger.info("No linked accounts for this user")
