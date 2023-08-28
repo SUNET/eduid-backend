@@ -16,6 +16,7 @@
     },
     "python.envFile": "${workspaceFolder}/.vscode/.env",
     "cSpell.words": [
+        "accr",
         "amapi",
         "authlib",
         "authns",
@@ -51,7 +52,9 @@
         "PWAUTH",
         "pysaml2",
         "reauthn",
+        "REFEDS",
         "replicaset",
+        "satosa",
         "scim",
         "SCIMAPI",
         "sess",
