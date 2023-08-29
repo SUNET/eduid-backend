@@ -631,15 +631,18 @@ class RewriteAuthnContextClass(ResponseMicroService):
             logger.debug(f"LoA settings for {_issuer}: {_loa_settings}")
             if _loa_settings and _loa_settings.returned:
                 _asserted_loa: Optional[str] = data.auth_info.auth_class_ref
-                if _asserted_loa in _loa_settings.requested or _asserted_loa in _loa_settings.extra_accepted:
-                    logger.info(
-                        "Rewriting authnContextClassRef in response from "
-                        f"{_asserted_loa} to {_loa_settings.returned}"
-                    )
-                    data.auth_info.auth_class_ref = _loa_settings.returned
+                if _loa_settings.returned != _asserted_loa:
+                    if _asserted_loa in _loa_settings.requested or _asserted_loa in _loa_settings.extra_accepted:
+                        logger.info(
+                            "Rewriting authnContextClassRef in response from "
+                            f"{_asserted_loa} to {_loa_settings.returned}"
+                        )
+                        data.auth_info.auth_class_ref = _loa_settings.returned
+                    else:
+                        logger.info(f"AuthnContextClassRef {_asserted_loa} not accepted")
+                        raise StepUpError(f"AuthnContextClassRef {_asserted_loa} not accepted")
                 else:
-                    logger.info(f"AuthnContextClassRef {_asserted_loa} not accepted")
-                    raise StepUpError(f"AuthnContextClassRef {_asserted_loa} not accepted")
+                    logger.debug(f"AuthnContextClassRef {_loa_settings.returned} already set")
 
         return super().process(context, data)
 
