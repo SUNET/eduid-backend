@@ -565,18 +565,20 @@ def get_loa_settings_for_entity_id(
             _ecs = []
         logger.debug(f"Entity categories for {entity_id}: {_ecs}")
         for _ec in _ecs:
-            if _ec in mfa.by_entity_category:
-                logger.debug(f"Loaded LoA settings based on entity category {_ec}")
-                return mfa.by_entity_category[_ec]
+            if mfa.by_entity_category:
+                if _ec in mfa.by_entity_category:
+                    logger.debug(f"Loaded LoA settings based on entity category {_ec}")
+                    return mfa.by_entity_category[_ec]
         try:
             _assurances = list(_this_md.assurance_certifications(entity_id))
         except Exception:
             _assurances = []
         logger.debug(f"Assurance certifications for {entity_id}: {_assurances}")
         for _ac in _assurances:
-            if _ac in mfa.by_assurance_certification:
-                logger.debug(f"Loaded LoA settings based on assurance certification {_ac}")
-                return mfa.by_assurance_certification[_ac]
+            if mfa.by_assurance_certification:
+                if _ac in mfa.by_assurance_certification:
+                    logger.debug(f"Loaded LoA settings based on assurance certification {_ac}")
+                    return mfa.by_assurance_certification[_ac]
 
     return None
 
@@ -633,7 +635,7 @@ class RewriteAuthnContextClass(ResponseMicroService):
         context: satosa.context.Context,
         data: satosa.internal.InternalData,
     ) -> ProcessReturnType:
-        if self.mfa and (AuthnContext.sp_wants_mfa(context, self.name) or True):
+        if self.mfa and AuthnContext.sp_wants_mfa(context, self.name):
             _issuer = data.auth_info.issuer if data.auth_info else None
             _loa_settings = None
             _params = fetch_params(data)
