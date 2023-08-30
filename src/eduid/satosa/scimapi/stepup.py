@@ -617,7 +617,9 @@ class RewriteAuthnContextClass(ResponseMicroService):
         context: satosa.context.Context,
         data: satosa.internal.InternalData,
     ) -> ProcessReturnType:
-        if self.mfa and AuthnContext.sp_wants_mfa(context, self.name):
+        if self.mfa and (
+            AuthnContext.sp_wants_mfa(context, self.name) or True
+        ):  # TODO: remove True and fix valid logic
             _issuer = data.auth_info.issuer if data.auth_info else None
             _loa_settings = None
             _params = fetch_params(data)
