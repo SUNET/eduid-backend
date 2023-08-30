@@ -225,7 +225,6 @@ class StepUp(ResponseMicroService):
             logger.info("No linked accounts for this user")
             if REFEDS_MFA not in data.auth_info.auth_class_ref and AuthnContext.sp_wants_mfa(context, self.name):
                 logger.info("Requesting SP did ask for MFA but and user has no linked accounts")
-                # raise StepUpError("Requesting SP did ask for MFA but didn't get it and the user has no linked account")
                 raise SATOSAAuthenticationError(
                     context.state, f"Requesting SP did ask for MFA but didn't get it and the user has no linked account"
                 )
@@ -486,10 +485,6 @@ class StepUp(ResponseMicroService):
         return url_map
 
 
-# class AuthnContextPluginConfig(BaseModel):
-#    mfa: MfaConfig
-
-
 # applied to incoming request from SP
 class AuthnContext(RequestMicroService):
     """
@@ -638,9 +633,7 @@ class RewriteAuthnContextClass(ResponseMicroService):
         context: satosa.context.Context,
         data: satosa.internal.InternalData,
     ) -> ProcessReturnType:
-        if self.mfa and (
-            AuthnContext.sp_wants_mfa(context, self.name) or True
-        ):  # TODO: remove True and fix valid logic
+        if self.mfa and (AuthnContext.sp_wants_mfa(context, self.name) or True):
             _issuer = data.auth_info.issuer if data.auth_info else None
             _loa_settings = None
             _params = fetch_params(data)
