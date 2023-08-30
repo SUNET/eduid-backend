@@ -70,8 +70,8 @@ AssuranceCertification = NewType("AssuranceCertification", str)
 
 class MfaConfig(BaseModel):
     by_entity_id: Mapping[EntityId, LoaSettings] = Field(default={})
-    by_entity_category: Mapping[EntityCategory, LoaSettings] = Field(default={})
-    by_assurance_certification: Mapping[AssuranceCertification, LoaSettings] = Field(default={})
+    by_entity_category: Optional[Mapping[EntityCategory, LoaSettings]] = Field(default={})
+    by_assurance_certification: Optional[Mapping[AssuranceCertification, LoaSettings]] = Field(default={})
 
 
 class MFA(BaseModel):
@@ -93,6 +93,7 @@ class StepupParams(BaseModel):
     loa_settings: LoaSettings  # LoA settings to use. Either from the configuration or derived using entity attributes in the metadata.
 
 
+# Applied to response from IDP
 class StepUp(ResponseMicroService):
     """
     A micro-SP just to handle the communication towards the StepUp Service for SFO.
@@ -184,8 +185,6 @@ class StepUp(ResponseMicroService):
         except ValidationError as e:
             raise StepUpError(f"The configuration for this plugin is not valid: {e}")
 
-        # Store MFA stepup configuration in a class variable so that it will be accessible by other
-        # micro-services (in order to not have to duplicate the config for each micro-service)
         self.mfa = parsed_config.mfa
 
         sp_config = json.loads(
@@ -226,7 +225,9 @@ class StepUp(ResponseMicroService):
             logger.info("No linked accounts for this user")
             if REFEDS_MFA not in data.auth_info.auth_class_ref and AuthnContext.sp_wants_mfa(context, self.name):
                 logger.info("Requesting SP did ask for MFA but and user has no linked accounts")
-                raise StepUpError("Requesting SP did ask for MFA but and user has no linked accounts")
+                raise SATOSAAuthenticationError(
+                    context.state, f"Requesting SP did ask for MFA but didn't get it and the user has no linked account"
+                )
             return super().process(context, data)
 
         logger.debug(f"Linked accounts: {linked_accounts}")
@@ -484,10 +485,7 @@ class StepUp(ResponseMicroService):
         return url_map
 
 
-class AuthnContextPluginConfig(BaseModel):
-    mfa: MfaConfig
-
-
+# applied to incoming request from SP
 class AuthnContext(RequestMicroService):
     """
     A micro-service that runs when the authnRequest is first received from the SP.
@@ -497,13 +495,31 @@ class AuthnContext(RequestMicroService):
 
     STATE_KEY = "requester-authn-class-ref"
 
+    def __init__(self, config: Mapping[str, Any], internal_attributes: dict[str, Any], *args: Any, **kwargs: Any):
+        super().__init__(*args, **kwargs)
+
+        try:
+            parsed_config = MFA.parse_obj(config)
+        except ValidationError as e:
+            raise StepUpError(f"The configuration for this plugin is not valid: {e}")
+
+        self.mfa = parsed_config.mfa
+
     def process(
         self,
         context: satosa.context.Context,
         data: satosa.internal.InternalData,
     ) -> ProcessReturnType:
         assert context.state is not None  # please type checking
-        self.save_accr_to_state(context, STEPUP_NAME, context.get_decoration(Context.KEY_AUTHN_CONTEXT_CLASS_REF))
+        loa_settings = get_loa_settings_for_entity_id(
+            EntityId(data.requester), [context.internal_data.get(Context.KEY_METADATA_STORE)], self.mfa
+        )
+        if loa_settings:
+            logger.debug(f"Requesting authnContextClassRef {loa_settings.requested} from {data.requester}")
+            self.save_accr_to_state(context, STEPUP_NAME, loa_settings.requested)
+        else:
+            self.save_accr_to_state(context, STEPUP_NAME, context.get_decoration(Context.KEY_AUTHN_CONTEXT_CLASS_REF))
+
         return super().process(context, data)
 
     @staticmethod
@@ -549,18 +565,20 @@ def get_loa_settings_for_entity_id(
             _ecs = []
         logger.debug(f"Entity categories for {entity_id}: {_ecs}")
         for _ec in _ecs:
-            if _ec in mfa.by_entity_category:
-                logger.debug(f"Loaded LoA settings based on entity category {_ec}")
-                return mfa.by_entity_category[_ec]
+            if mfa.by_entity_category:
+                if _ec in mfa.by_entity_category:
+                    logger.debug(f"Loaded LoA settings based on entity category {_ec}")
+                    return mfa.by_entity_category[_ec]
         try:
             _assurances = list(_this_md.assurance_certifications(entity_id))
         except Exception:
             _assurances = []
         logger.debug(f"Assurance certifications for {entity_id}: {_assurances}")
         for _ac in _assurances:
-            if _ac in mfa.by_assurance_certification:
-                logger.debug(f"Loaded LoA settings based on assurance certification {_ac}")
-                return mfa.by_assurance_certification[_ac]
+            if mfa.by_assurance_certification:
+                if _ac in mfa.by_assurance_certification:
+                    logger.debug(f"Loaded LoA settings based on assurance certification {_ac}")
+                    return mfa.by_assurance_certification[_ac]
 
     return None
 
