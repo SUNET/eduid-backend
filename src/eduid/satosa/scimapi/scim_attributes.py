@@ -107,7 +107,7 @@ class ScimAttributes(ResponseMicroService):
                             identifier=acc.value,
                         )
                     ]
-            data.mfa_stepup_accounts = _stepup_accounts
+            store_mfa_stepup_accounts(data=data, accounts=_stepup_accounts)
             logger.debug(f"MFA stepup accounts: {data.mfa_stepup_accounts}")
         else:
             if self.config.allow_users_not_in_database:
@@ -122,12 +122,9 @@ class ScimAttributes(ResponseMicroService):
     def _get_scopes_for_idp(self, context: satosa.context.Context, entity_id: str) -> set[str]:
         res = set()
         logger.debug(f"Looking for metadata scope for entityId {entity_id}")
-        for _md_name, _metadata in context.internal_data[context.KEY_METADATA_STORE].metadata.items():
-            if not isinstance(_metadata, MetaData):
-                logger.debug(f"Element {_metadata} was not MetaData")
-                continue
+        for _metadata in get_metadata(context):
             if entity_id not in _metadata:
-                logger.debug(f"entityId {entity_id} not present in this metadata ({_md_name})")
+                logger.debug(f"entityId {entity_id} not present in this metadata")
                 continue
             idpsso = _metadata[entity_id].get("idpsso_descriptor", {})
 
