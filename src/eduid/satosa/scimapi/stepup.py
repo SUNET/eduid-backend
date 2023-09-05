@@ -48,7 +48,11 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 REFEDS_MFA = "https://refeds.org/profile/mfa"
-STEPUP_NAME = "stepup"
+IDP_SENT_LOA = "idp_sent_loa"
+
+CONTEXT_NAME = "stepup"
+STATE_KEY_LOA = "returned-authn-class"
+STATE_KEY_MFA = "requester-authn-class-ref"
 
 
 class StepUpError(SATOSAError):
@@ -204,14 +208,14 @@ class StepUp(ResponseMicroService):
         _requester: Optional[EntityId] = EntityId(data.requester) if isinstance(data.requester, str) else None
         _loa_settings = get_loa_settings_for_entity_id(_requester, get_metadata(context), self.mfa)
         if not _loa_settings:
-            sp_requested = AuthnContext.get_accr_from_state(context, STEPUP_NAME)
+            sp_requested = AuthnContext.get_from_state(context=context, state_key=STATE_KEY_MFA)
             returned = sp_requested[0] if sp_requested else None
             _loa_settings = LoaSettings(requested=sp_requested, returned=returned)
         return StepupParams(
             issuer=data.auth_info.issuer if data.auth_info else None,
             requester=_requester,
             issuer_loa=data.auth_info.auth_class_ref if data.auth_info else None,
-            requester_loas=AuthnContext.get_accr_from_state(context, self.name),
+            requester_loas=AuthnContext.get_from_state(context=context, state_key=STATE_KEY_MFA),
             loa_settings=_loa_settings,
         )
 
@@ -223,7 +227,7 @@ class StepUp(ResponseMicroService):
         linked_accounts = fetch_mfa_stepup_accounts(data)
         if not linked_accounts:
             logger.info("No linked accounts for this user")
-            if REFEDS_MFA not in data.auth_info.auth_class_ref and AuthnContext.sp_wants_mfa(context, self.name):
+            if not AuthnContext.idp_sent_loa(context):
                 logger.info("Requesting SP did ask for MFA but and user has no linked accounts")
                 raise SATOSAAuthenticationError(
                     context.state, f"Requesting SP did ask for MFA but didn't get it and the user has no linked account"
@@ -241,7 +245,7 @@ class StepUp(ResponseMicroService):
             logger.info("No account identifier for this account")
             return super().process(context, data)
 
-        if not AuthnContext.sp_wants_mfa(context, self.name):
+        if not AuthnContext.sp_wants_mfa(context):
             logger.info("Requesting SP did not ask for MFA")
             return super().process(context, data)
 
@@ -253,8 +257,8 @@ class StepUp(ResponseMicroService):
             logger.info(f"Requester {params.requester} did not ask for a specific LoA")
             return super().process(context, data)
 
-        if is_loa_requirements_satisfied(params.loa_settings, params.issuer_loa):
-            logger.info("No need to step-up - required LoA is already met")
+        if AuthnContext.idp_sent_loa(context):
+            logger.info("IDP already sent a LoA")
             return super().process(context, data)
 
         store_params(data, params)
@@ -493,8 +497,6 @@ class AuthnContext(RequestMicroService):
     It saves the original requested authn context class reference (accr) in the state.
     """
 
-    STATE_KEY = "requester-authn-class-ref"
-
     def __init__(self, config: Mapping[str, Any], internal_attributes: dict[str, Any], *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
 
@@ -516,36 +518,51 @@ class AuthnContext(RequestMicroService):
         )
         if loa_settings:
             logger.debug(f"Requesting authnContextClassRef {loa_settings.requested} from {data.requester}")
-            self.save_accr_to_state(context, STEPUP_NAME, loa_settings.requested)
+            self.save_to_state(context=context, state_key=STATE_KEY_MFA, data=loa_settings.requested)
         else:
-            self.save_accr_to_state(context, STEPUP_NAME, context.get_decoration(Context.KEY_AUTHN_CONTEXT_CLASS_REF))
+            self.save_to_state(
+                context=context,
+                state_key=STATE_KEY_MFA,
+                data=context.get_decoration(Context.KEY_AUTHN_CONTEXT_CLASS_REF),
+            )
 
         return super().process(context, data)
 
     @staticmethod
-    def save_accr_to_state(context: Context, name: str, accr: list[str]) -> None:
-        logger.debug(f"Saving original request authnContextClassRef: {accr} (name: {name})")
-        context.state[name] = {
-            **context.state.get(name, {}),
-            AuthnContext.STATE_KEY: accr,
+    def save_to_state(context: Context, state_key: str, data: list[str]) -> None:
+        logger.debug(f"Saving to state to context {CONTEXT_NAME}, {data} (state_key: {state_key})")
+        context.state[CONTEXT_NAME] = {
+            **context.state.get(CONTEXT_NAME, {}),
+            state_key: data,
         }
 
     @staticmethod
-    def get_accr_from_state(context: Context, name: str) -> list[str]:
-        _accr = context.state.get(name, {}).get(AuthnContext.STATE_KEY, [])
-        logger.debug(f"Retrieved original request authnContextClassRef: {_accr} (name: {name})")
-        return _accr
+    def get_from_state(context: Context, state_key: str) -> list[str]:
+        _res = context.state.get(CONTEXT_NAME, {}).get(state_key, [])
+        logger.debug(f"Retrieved state from context {CONTEXT_NAME}: {_res} (state_key: {state_key})")
+        return _res
 
     @staticmethod
-    def sp_wants_mfa(context: Context, name: str) -> bool:
-        res = REFEDS_MFA in AuthnContext.get_accr_from_state(context, STEPUP_NAME)
+    def sp_wants_mfa(context: Context, state_key: str = STATE_KEY_MFA) -> bool:
+        res = REFEDS_MFA in AuthnContext.get_from_state(context, state_key)
         logger.debug(f"Requesting service provider wants REFEDS MFA: {res}")
+        return res
+
+    @staticmethod
+    def idp_sent_loa(context: Context, state_key: str = STATE_KEY_LOA) -> bool:
+        res = IDP_SENT_LOA in AuthnContext.get_from_state(context, state_key)
+        logger.debug(f"IdP sent loa: {res}")
         return res
 
 
 def get_loa_settings_for_entity_id(
     entity_id: Optional[EntityId], metadata: Iterable[MetaData], mfa: Optional[MfaConfig]
 ) -> Optional[LoaSettings]:
+    """
+    SP: Return setting from by_entity_id or by_entity_category.
+    IDP: Return settings from by_entity_id or by_assurance_certification.
+    """
+
     logger.debug(f"Looking for LoA settings based on entity id {entity_id}")
     if entity_id is None:
         return None
@@ -601,7 +618,7 @@ class StepupSAMLBackend(SAMLBackend):
     def authn_request(self, context: satosa.context.Context, entity_id: str):
         logger.debug(f"Processing AuthnRequest with entity id {repr(entity_id)}")
 
-        if self.mfa and AuthnContext.sp_wants_mfa(context, self.name):
+        if self.mfa and AuthnContext.sp_wants_mfa(context=context):
             loa_settings = get_loa_settings_for_entity_id(EntityId(entity_id), [self.sp.metadata], self.mfa)
             logger.debug(f"LoA settings for {entity_id}: {loa_settings}")
             if loa_settings:
@@ -635,7 +652,7 @@ class RewriteAuthnContextClass(ResponseMicroService):
         context: satosa.context.Context,
         data: satosa.internal.InternalData,
     ) -> ProcessReturnType:
-        if self.mfa and AuthnContext.sp_wants_mfa(context, self.name):
+        if self.mfa and AuthnContext.sp_wants_mfa(context):
             _issuer = data.auth_info.issuer if data.auth_info else None
             _loa_settings = None
             _params = fetch_params(data)
@@ -655,6 +672,7 @@ class RewriteAuthnContextClass(ResponseMicroService):
                         f"{_asserted_loa} to {_loa_settings.returned}"
                     )
                     data.auth_info.auth_class_ref = _loa_settings.returned
+                    AuthnContext.save_to_state(context=context, state_key=STATE_KEY_LOA, data=[IDP_SENT_LOA])
                 else:
                     logger.info(f"AuthnContextClassRef {_asserted_loa} not accepted")
                     raise StepUpError(f"AuthnContextClassRef {_asserted_loa} not accepted")
