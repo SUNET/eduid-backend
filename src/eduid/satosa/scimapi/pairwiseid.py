@@ -37,7 +37,7 @@ class GeneratePairwiseId(ResponseMicroService):
     ):
         super().__init__(*args, **kwargs)
         self.config = Config(**config)
-        logger.info(f"Loaded pairwise-id generator")
+        logger.info("Loaded pairwise-id generator")
 
     def process(
         self,
