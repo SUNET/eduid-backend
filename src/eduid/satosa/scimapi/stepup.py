@@ -227,7 +227,7 @@ class StepUp(ResponseMicroService):
         linked_accounts = fetch_mfa_stepup_accounts(data)
         if not linked_accounts:
             logger.info("No linked accounts for this user")
-            if not AuthnContext.idp_sent_loa(context):
+            if AuthnContext.sp_wants_mfa(context=context) and not AuthnContext.idp_sent_loa(context=context):
                 logger.info("Requesting SP did ask for MFA but and user has no linked accounts")
                 raise SATOSAAuthenticationError(
                     context.state, f"Requesting SP did ask for MFA but didn't get it and the user has no linked account"
