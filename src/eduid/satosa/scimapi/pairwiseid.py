@@ -17,6 +17,18 @@ class Config:
 
 
 class GeneratePairwiseId(ResponseMicroService):
+    """
+    MicroService go generate pairwise-id based on subject-id
+
+    Example configuration:
+
+	module: eduid.satosa.scimapi.pairwiseid.GeneratePairwiseId
+	plugin: GeneratePairwiseId
+	name: GeneratePairwiseId
+	config:
+  		pairwise_salt: chatroom-chemo-rethink-scarecrow-embark-truck
+
+    """
     def __init__(
         self,
         config: Mapping[str, Any],
