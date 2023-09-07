@@ -5,7 +5,6 @@ from eduid.userdb.util import utc_now
 
 
 class CacheMDB(BaseDB):
-
     _init_collections: set[str] = set()
 
     def __init__(self, db_uri: str, db_name: str, collection: str, ttl: int):

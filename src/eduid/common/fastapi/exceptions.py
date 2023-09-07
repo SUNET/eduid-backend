@@ -58,7 +58,6 @@ class HTTPErrorDetail(Exception):
         status_code: int,
         detail: Optional[str] = None,
     ):
-
         self._error_detail = ErrorDetail(detail=detail, status=status_code)
         self._extra_headers: Optional[dict] = None
 

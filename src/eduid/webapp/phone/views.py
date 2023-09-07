@@ -44,7 +44,8 @@ from eduid.userdb.proofing import ProofingUser
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, require_user
 from eduid.webapp.common.api.helpers import check_magic_cookie
 from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response, success_response
-from eduid.webapp.common.api.utils import save_and_sync_user
+from eduid.webapp.common.api.schemas.csrf import EmptyRequest
+from eduid.webapp.common.api.utils import make_short_code, save_and_sync_user
 from eduid.webapp.common.session import session
 from eduid.webapp.phone.app import current_phone_app as current_app
 from eduid.webapp.phone.helpers import PhoneMsg
@@ -57,8 +58,6 @@ from eduid.webapp.phone.schemas import (
     VerificationCodeSchema,
 )
 from eduid.webapp.phone.verifications import SMSThrottleException, send_verification_code, verify_phone_number
-from eduid.webapp.common.api.schemas.csrf import EmptyRequest
-from eduid.webapp.common.api.utils import make_short_code
 
 phone_views = Blueprint("phone", __name__, url_prefix="", template_folder="templates")
 

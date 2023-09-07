@@ -167,18 +167,15 @@ class InviteCompletedResponse(FluxStandardAction):
 
 
 class RegisterEmailSchema(EmailSchema):
-
     recaptcha_response = fields.String(required=True)
     tou_accepted = fields.Boolean(required=True)
 
 
 class AccountCreatedSchema(EduidSchema, CSRFResponseMixin):
-
     next = fields.String(required=True)
 
 
 class AccountCreatedResponse(FluxStandardAction):
-
     payload = fields.Nested(AccountCreatedSchema)
 
 

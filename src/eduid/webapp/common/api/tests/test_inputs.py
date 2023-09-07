@@ -147,7 +147,6 @@ class InputsTests(EduidAPITestCase):
         """"""
         url = "/test-get-param?test-param=test-param"
         with self.app.test_request_context(url, method="GET"):
-
             response = self.app.dispatch_request()
             self.assertIn(b"test-param", response.data)
 
@@ -155,21 +154,18 @@ class InputsTests(EduidAPITestCase):
         """"""
         url = '/test-get-param?test-param=<script>alert("ho")</script>'
         with self.app.test_request_context(url, method="GET"):
-
             response = self.app.dispatch_request()
             self.assertNotIn(b"<script>", response.data)
 
     def test_get_param_script_percent_encoded(self):
         url = "/test-get-param?test-param=%3Cscript%3Ealert%28%22ho%22%29%3C%2Fscript%3E"
         with self.app.test_request_context(url, method="GET"):
-
             response = self.app.dispatch_request()
             self.assertNotIn(b"<script>", response.data)
 
     def test_get_param_script_percent_encoded_twice(self):
         url = "/test-get-param?test-param=%253Cscript%253Ealert%2528%2522ho%2522%2529%253C%252Fscript%253E"
         with self.app.test_request_context(url, method="GET"):
-
             response = self.app.dispatch_request()
             unquoted_response = unquote(response.data.decode("utf8"))
             self.assertNotIn(b"<script>", response.data)
@@ -178,7 +174,6 @@ class InputsTests(EduidAPITestCase):
     def test_get_param_unicode(self):
         url = "/test-get-param?test-param=åäöхэжこんにちわ"
         with self.app.test_request_context(url, method="GET"):
-
             response = self.app.dispatch_request()
             self.assertIn("åäöхэжこんにちわ", response.data.decode("utf8"))
 
@@ -188,7 +183,6 @@ class InputsTests(EduidAPITestCase):
             "%C3%A5%C3%A4%C3%B6%D1%85%D1%8D%D0%B6%E3%81%93%E3%82%93%E3%81%AB%E3%81%A1%E3%82%8F"
         )
         with self.app.test_request_context(url, method="GET"):
-
             response = self.app.dispatch_request()
             self.assertIn("åäöхэжこんにちわ", response.data.decode("utf8"))
 
@@ -196,7 +190,6 @@ class InputsTests(EduidAPITestCase):
         """"""
         url = "/test-post-param"
         with self.app.test_request_context(url, method="POST", data={"test-param": '<script>alert("ho")</script>'}):
-
             response = self.app.dispatch_request()
             self.assertNotIn(b"<script>", response.data)
 
@@ -205,7 +198,6 @@ class InputsTests(EduidAPITestCase):
         with self.app.test_request_context(
             url, method="POST", data={"test-param": "%3Cscript%3Ealert%28%22ho%22%29%3C%2Fscript%3E"}
         ):
-
             response = self.app.dispatch_request()
             self.assertNotIn(b"<script>", response.data)
 
@@ -214,7 +206,6 @@ class InputsTests(EduidAPITestCase):
         with self.app.test_request_context(
             url, method="POST", data={"test-param": b"%253Cscript%253Ealert%2528%2522ho%2522%2529%253C%252Fscript%253E"}
         ):
-
             response = self.app.dispatch_request()
             unquoted_response = unquote(response.data.decode("ascii"))
             self.assertNotIn(b"<script>", response.data)
@@ -234,7 +225,6 @@ class InputsTests(EduidAPITestCase):
             },
             data='{"test_data": "<script>alert(42)</script>", "csrf_token": "failing-token"}',
         ):
-
             response = self.app.dispatch_request()
             self.assertNotIn(b"<script>", response.data)
 
@@ -243,7 +233,6 @@ class InputsTests(EduidAPITestCase):
         url = "/test-cookie"
         cookie = dump_cookie("test-cookie", '<script>alert("ho")</script>')
         with self.app.test_request_context(url, method="GET", headers={"Cookie": cookie}):
-
             response = self.app.dispatch_request()
             self.assertNotIn(b"<script>", response.data)
 
@@ -252,7 +241,6 @@ class InputsTests(EduidAPITestCase):
         url = "/test-header"
         script = '<script>alert("ho")</script>'
         with self.app.test_request_context(url, method="GET", headers={"X-TEST": script}):
-
             response = self.app.dispatch_request()
             self.assertNotIn(b"<script>", response.data)
 
@@ -260,7 +248,6 @@ class InputsTests(EduidAPITestCase):
         """"""
         url = "/test-values?test-param=test-param"
         with self.app.test_request_context(url, method="GET"):
-
             response = self.app.dispatch_request()
             self.assertNotIn(b"<script>", response.data)
 
@@ -268,7 +255,6 @@ class InputsTests(EduidAPITestCase):
         """"""
         url = "/test-values"
         with self.app.test_request_context(url, method="POST", data={"test-param": '<script>alert("ho")</script>'}):
-
             response = self.app.dispatch_request()
             self.assertNotIn(b"<script>", response.data)
 
@@ -277,7 +263,6 @@ class InputsTests(EduidAPITestCase):
         url = "/test-empty-session"
         cookie = dump_cookie("sessid", "")
         with self.app.test_request_context(url, method="GET", headers={"Cookie": cookie}):
-
             # This is a regression test for the bug that would crash the
             # application before when someone sent an empty sessid cookie.
             # This state should be treated in the same way as no session

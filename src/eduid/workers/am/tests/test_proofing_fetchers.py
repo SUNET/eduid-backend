@@ -13,7 +13,6 @@ from eduid.workers.am.testing import ProofingTestCase
 
 
 class AttributeFetcherNINProofingTests(ProofingTestCase):
-
     fetcher_name = "eduid_letter_proofing"
 
     def test_append_attributes_letter_proofing_data(self):
@@ -187,11 +186,9 @@ class AttributeFetcherNINProofingTests(ProofingTestCase):
 
 
 class AttributeFetcherEmailProofingTests(ProofingTestCase):
-
     fetcher_name = "eduid_email"
 
     def test_existing_user(self):
-
         proofing_user = ProofingUser.from_dict(self.user_data)
         self.fetcher.private_db.save(proofing_user)
 
@@ -240,7 +237,6 @@ class AttributeFetcherEmailProofingTests(ProofingTestCase):
 
 
 class AttributeFetcherPhoneProofingTests(ProofingTestCase):
-
     fetcher_name = "eduid_phone"
 
     def test_existing_user(self):
@@ -256,7 +252,6 @@ class AttributeFetcherPhoneProofingTests(ProofingTestCase):
 
 
 class AttributeFetcherPersonalDataTests(ProofingTestCase):
-
     fetcher_name = "eduid_personal_data"
 
     def test_existing_user(self):
@@ -294,7 +289,6 @@ class AttributeFetcherPersonalDataTests(ProofingTestCase):
 
 
 class AttributeFetcherSecurityTests(ProofingTestCase):
-
     fetcher_name = "eduid_security"
 
     def test_existing_user(self):
@@ -365,7 +359,6 @@ class AttributeFetcherSecurityTests(ProofingTestCase):
 
 
 class AttributeFetcherResetPasswordTests(ProofingTestCase):
-
     fetcher_name = "eduid_reset_password"
 
     def test_existing_user(self):
@@ -433,7 +426,6 @@ class AttributeFetcherResetPasswordTests(ProofingTestCase):
 
 
 class AttributeFetcherOrcidTests(ProofingTestCase):
-
     fetcher_name = "eduid_orcid"
 
     def test_existing_user(self):
@@ -481,7 +473,6 @@ class AttributeFetcherOrcidTests(ProofingTestCase):
 
 
 class AttributeFetcherLadokTests(ProofingTestCase):
-
     fetcher_name = "eduid_ladok"
 
     def test_existing_user(self):

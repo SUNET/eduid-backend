@@ -8,7 +8,6 @@ __author__ = "lundberg"
 
 
 class LookupMobileProofingRequestSchema(EduidSchema, CSRFRequestMixin):
-
     nin = fields.String(required=True, validate=validate_nin)
 
 

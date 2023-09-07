@@ -5,36 +5,35 @@ import json
 import logging
 from typing import Any, Iterable, Mapping, NewType, Optional
 from urllib.parse import urlparse
-from pydantic import BaseModel, Field, ValidationError
 
+from pydantic import BaseModel, Field, ValidationError
 
 try:
     from common import fetch_mfa_stepup_accounts, get_internal_attribute_name, get_metadata
 except ImportError:
     from eduid.satosa.scimapi.common import fetch_mfa_stepup_accounts, get_internal_attribute_name, get_metadata
 
-import satosa.util as util
 import satosa.context
 import satosa.internal
 import satosa.response
+import satosa.util as util
 from saml2.client import Saml2Client
 from saml2.config import SPConfig
+from saml2.mdstore import MetaData
 from saml2.metadata import create_metadata_string
 from saml2.saml import NAMEID_FORMAT_UNSPECIFIED, NameID, Subject
 from satosa.attribute_mapping import AttributeMapper
+from satosa.backends.saml2 import SAMLBackend
 from satosa.context import Context
 from satosa.exception import SATOSAAuthenticationError, SATOSAError
 from satosa.internal import InternalData
 from satosa.micro_services.base import (
+    CallbackCallSignature,
+    CallbackReturnType,
+    ProcessReturnType,
     RequestMicroService,
     ResponseMicroService,
-    ProcessReturnType,
-    CallbackReturnType,
-    CallbackCallSignature,
 )
-from satosa.backends.saml2 import SAMLBackend
-from saml2.mdstore import MetaData
-
 from satosa.response import Response
 from satosa.saml_util import make_saml_response
 

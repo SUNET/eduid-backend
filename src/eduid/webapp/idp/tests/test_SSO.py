@@ -138,7 +138,6 @@ class SSOIdPTests(IdPTests):
         debug: bool = False,
         verify_request_signatures=True,
     ) -> IdP_SAMLRequest:
-
         """
         Parse a SAMLRequest query parameter (base64 encoded) into an AuthnRequest
         instance.
@@ -176,7 +175,6 @@ class SSOIdPTests(IdPTests):
 
 
 class TestSSO(SSOIdPTests):
-
     # ------------------------------------------------------------------------
     def get_user_set_nins(self, eppn: str, nins: Sequence[str]) -> IdPUser:
         """

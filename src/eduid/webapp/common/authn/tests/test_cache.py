@@ -79,7 +79,6 @@ class OutstandingQueriesCacheTests(unittest.TestCase):
         self.assertIsInstance(oqc._db, SessionCacheAdapter)
 
     def test_outstanding_queries(self):
-
         oqc = OutstandingQueriesCache(PySAML2Dicts({}))
         oqc._db["user"] = AuthnRequestRef("someone@example.com")
 

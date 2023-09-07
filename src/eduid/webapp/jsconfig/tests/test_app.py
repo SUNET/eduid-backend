@@ -129,7 +129,6 @@ class JSConfigTests(EduidAPITestCase[JSConfigApp]):
             assert config_data["payload"]["AVAILABLE_LANGUAGES"] == [["en", "English"], ["sv", "Svenska"]]
 
     def test_get_login_config(self):
-
         eppn = self.test_user_data["eduPersonPrincipalName"]
         with self.session_cookie(self.browser, eppn, server_name="example.com", subdomain="login") as client:
             response = client.get("http://login.example.com/login/config")

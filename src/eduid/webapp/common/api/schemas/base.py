@@ -4,7 +4,6 @@ __author__ = "lundberg"
 
 
 class EduidSchema(Schema):
-
     message = fields.String(required=False)
 
     class Meta:
@@ -12,7 +11,6 @@ class EduidSchema(Schema):
 
 
 class FluxStandardAction(EduidSchema):
-
     type = fields.String(required=True)
     payload = fields.Field(required=False)
     error = fields.Boolean(required=False)

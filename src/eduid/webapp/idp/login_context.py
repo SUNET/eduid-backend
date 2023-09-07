@@ -122,7 +122,6 @@ TLoginContextSubclass = TypeVar("TLoginContextSubclass", bound="LoginContext")
 
 
 class LoginContextSAML(LoginContext):
-
     _saml_req: Optional["IdP_SAMLRequest"] = None
 
     @property
@@ -259,7 +258,6 @@ class LoginContextSAML(LoginContext):
 
 
 class LoginContextOtherDevice(LoginContext):
-
     other_device_req: OtherDevice
 
     @property

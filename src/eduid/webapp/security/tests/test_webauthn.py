@@ -98,7 +98,6 @@ CREDENTIAL_ID_2 = (
 
 
 class SecurityWebauthnTests(EduidAPITestCase):
-
     app: SecurityApp
 
     def load_app(self, config: Mapping[str, Any]) -> SecurityApp:

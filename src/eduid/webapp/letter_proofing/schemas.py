@@ -9,12 +9,10 @@ __author__ = "lundberg"
 
 
 class LetterProofingRequestSchema(EduidSchema, CSRFRequestMixin):
-
     nin = fields.String(required=True, validate=validate_nin)
 
 
 class VerifyCodeRequestSchema(EduidSchema, CSRFRequestMixin):
-
     code = fields.String(required=True)
 
 

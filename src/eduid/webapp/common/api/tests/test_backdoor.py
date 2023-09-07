@@ -101,7 +101,6 @@ class BackdoorTests(EduidAPITestCase[BackdoorTestApp]):
     def test_backdoor_get_code(self):
         """"""
         with self.session_cookie_anon(self.browser) as client:
-
             assert self.app.conf.magic_cookie_name is not None
             assert self.app.conf.magic_cookie is not None
             client.set_cookie("localhost", key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie)
@@ -113,7 +112,6 @@ class BackdoorTests(EduidAPITestCase[BackdoorTestApp]):
         self.app.conf.environment = EduidEnvironment("production")
 
         with self.session_cookie_anon(self.browser) as client:
-
             assert self.app.conf.magic_cookie_name is not None
             assert self.app.conf.magic_cookie is not None
             client.set_cookie("localhost", key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie)
@@ -123,14 +121,12 @@ class BackdoorTests(EduidAPITestCase[BackdoorTestApp]):
     def test_no_backdoor_without_cookie(self):
         """"""
         with self.session_cookie_anon(self.browser) as client:
-
             response = client.get("/get-code?eppn=pepin-pepon")
             self.assertEqual(response.status_code, 400)
 
     def test_wrong_cookie_no_backdoor(self):
         """"""
         with self.session_cookie_anon(self.browser) as client:
-
             assert self.app.conf.magic_cookie_name is not None
             assert self.app.conf.magic_cookie is not None
             client.set_cookie("localhost", key=self.app.conf.magic_cookie_name, value="no-magic")
@@ -142,7 +138,6 @@ class BackdoorTests(EduidAPITestCase[BackdoorTestApp]):
         self.app.conf.magic_cookie = ""
 
         with self.session_cookie_anon(self.browser) as client:
-
             assert self.app.conf.magic_cookie_name is not None
             assert self.app.conf.magic_cookie is not None
             client.set_cookie("localhost", key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie)
@@ -154,7 +149,6 @@ class BackdoorTests(EduidAPITestCase[BackdoorTestApp]):
         self.app.conf.magic_cookie_name = ""
 
         with self.session_cookie_anon(self.browser) as client:
-
             assert self.app.conf.magic_cookie_name is not None
             assert self.app.conf.magic_cookie is not None
             client.set_cookie("localhost", key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie)

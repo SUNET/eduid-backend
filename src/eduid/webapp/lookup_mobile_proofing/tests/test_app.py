@@ -188,7 +188,6 @@ class LookupMobileProofingTests(EduidAPITestCase[MobileProofingApp]):
         csrf_token = response["payload"]["csrf_token"]
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
-
             browser.set_cookie("localhost", key="magic-cookie", value="magic-cookie")
 
             data = {"nin": self.test_user_nin_underage, "csrf_token": csrf_token}
@@ -222,7 +221,6 @@ class LookupMobileProofingTests(EduidAPITestCase[MobileProofingApp]):
         csrf_token = response["payload"]["csrf_token"]
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
-
             browser.set_cookie("localhost", key="magic-cookie", value="magic-cookie")
 
             data = {"nin": self.test_user_nin, "csrf_token": csrf_token}
@@ -254,7 +252,6 @@ class LookupMobileProofingTests(EduidAPITestCase[MobileProofingApp]):
         csrf_token = response["payload"]["csrf_token"]
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
-
             browser.set_cookie("localhost", key="magic-cookie", value="magic-cookie")
 
             data = {"nin": self.test_user_nin, "csrf_token": csrf_token}

@@ -490,7 +490,6 @@ class LogoutRequestTests(AuthnAPITestBase):
             )
 
     def test_logout_service_startingSP(self):
-
         came_from = "/afterlogin/"
         session_id = self.add_outstanding_query(came_from)
         cookie = self.dump_session_cookie(session_id)
@@ -510,7 +509,6 @@ class LogoutRequestTests(AuthnAPITestBase):
             self.assertIn("testing-relay-state", response.location)
 
     def test_logout_service_startingSP_already_logout(self):
-
         came_from = "/afterlogin/"
         session_id = self.add_outstanding_query(came_from)
 
@@ -528,7 +526,6 @@ class LogoutRequestTests(AuthnAPITestBase):
             self.assertIn("testing-relay-state", response.location)
 
     def test_logout_service_startingIDP(self):
-
         res = self.acs("/login", eppn=self.test_user.eppn, next_url="/afterlogin/")
         cookie = self.dump_session_cookie(res.session.meta.cookie_val)
 
@@ -550,7 +547,6 @@ class LogoutRequestTests(AuthnAPITestBase):
             )
 
     def test_logout_service_startingIDP_no_subject_id(self):
-
         eppn = "hubba-bubba"
         came_from = "/afterlogin/"
         session_id = self.add_outstanding_query(came_from)

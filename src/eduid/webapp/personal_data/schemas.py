@@ -45,7 +45,6 @@ __author__ = "eperez"
 
 
 class PersonalDataRequestSchema(EduidSchema, CSRFRequestMixin):
-
     given_name = fields.String(required=True, validate=[validate_nonempty])
     surname = fields.String(required=True, validate=[validate_nonempty])
     # TODO: remove display_name when frontend stops sending it
@@ -54,7 +53,6 @@ class PersonalDataRequestSchema(EduidSchema, CSRFRequestMixin):
 
 
 class PersonalDataSchema(EduidSchema):
-
     given_name = fields.String(required=True, attribute="givenName")
     surname = fields.String(required=True)
     display_name = fields.String(required=True, attribute="displayName")
