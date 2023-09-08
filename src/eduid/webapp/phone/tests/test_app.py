@@ -553,6 +553,28 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
         self.assertEqual(phone_data["payload"]["message"], "still-valid-code")
         self.assertIsNotNone(phone_data["payload"]["csrf_token"])
 
+    def test_resend_code_with_expired_state(self):
+        response = self._send_code()
+        self.assertEqual(response.status_code, 200)
+        phone_data = json.loads(response.data)
+
+        self.assertEqual("POST_PHONE_SEND_CODE_SUCCESS", phone_data["type"])
+        self.assertEqual(self.test_number, phone_data["payload"]["phones"][0].get("number"))
+        self.assertEqual("+34 6096096096", phone_data["payload"]["phones"][1].get("number"))
+
+        # expire the just created state
+        state = self.app.proofing_statedb.get_state_by_eppn_and_mobile(self.test_user.eppn, self.test_number)
+        state.modified_ts = state.modified_ts - timedelta(seconds=self.app.conf.phone_verification_timeout)
+        self.app.proofing_statedb._coll.replace_one({"_id": state.id}, state.to_dict())
+
+        response = self._send_code()
+        self.assertEqual(response.status_code, 200)
+        phone_data = json.loads(response.data)
+
+        self.assertEqual("POST_PHONE_SEND_CODE_SUCCESS", phone_data["type"])
+        self.assertEqual(self.test_number, phone_data["payload"]["phones"][0].get("number"))
+        self.assertEqual("+34 6096096096", phone_data["payload"]["phones"][1].get("number"))
+
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     @patch("eduid.webapp.phone.verifications.get_short_hash")
     @patch("eduid.common.rpc.msg_relay.MsgRelay.sendsms")
