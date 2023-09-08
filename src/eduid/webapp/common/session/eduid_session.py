@@ -26,10 +26,10 @@ from eduid.webapp.common.session.namespaces import (
     EidasNamespace,
     IdP_Namespace,
     MfaAction,
+    Phone,
     ResetPasswordNS,
     SecurityNS,
     Signup,
-    Phone,
     SvipeIDNamespace,
     TimestampedNS,
 )

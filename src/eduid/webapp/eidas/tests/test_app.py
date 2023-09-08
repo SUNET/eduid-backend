@@ -528,7 +528,6 @@ class EidasTests(ProofingTests[EidasApp]):
         verify_credential: Optional[ElementKey] = None,
         frontend_state: Optional[str] = "This is a unit test",
     ) -> None:
-
         if eppn is None:
             eppn = self.test_user_eppn
 

@@ -535,7 +535,6 @@ def trycaptcha(email: str, recaptcha_response: str, tou_accepted: bool) -> FluxD
 @signup_views.route("/verify-link/<code>", methods=["GET"])
 @MarshalWith(FluxStandardAction)
 def verify_link(code: str) -> FluxData:
-
     # ignore verification attempts if there has been to many wrong attempts
     if session.signup.email.bad_attempts >= current_app.conf.email_verification_max_bad_attempts:
         current_app.logger.info("Too many wrong verification attempts")

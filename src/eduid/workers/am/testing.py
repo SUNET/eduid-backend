@@ -184,7 +184,6 @@ class AMTestCase(WorkerTestCase):
 
 
 class ProofingTestCase(AMTestCase):
-
     fetcher_name: Optional[str] = None
     fetcher: Optional[AttributeFetcher] = None
 

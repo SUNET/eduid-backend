@@ -164,7 +164,6 @@ class SvipeIDProofingFunctions(ProofingFunctions[SvipeDocumentUserInfo]):
         return False
 
     def identity_proofing_element(self, user: User) -> ProofingElementResult:
-
         if self.backdoor:
             # TODO: implement backdoor support?
             pass

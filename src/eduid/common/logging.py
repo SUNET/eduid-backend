@@ -72,7 +72,7 @@ class AppFilter(logging.Filter):
                 ("eduid.common.", "e.c."),
                 ("eduid.userdb.", "e.u."),
             ]
-            for (k, v) in shorten:
+            for k, v in shorten:
                 if name.startswith(k):
                     record.__setattr__("name", v + name[len(k) :])
                     break

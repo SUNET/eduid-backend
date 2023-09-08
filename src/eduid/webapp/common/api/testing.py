@@ -460,7 +460,6 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
 
 
 class CSRFTestClient(FlaskClient):
-
     # Add the custom csrf headers to every call to post
     def post(self, *args: Any, **kwargs: Any) -> TestResponse:
         """

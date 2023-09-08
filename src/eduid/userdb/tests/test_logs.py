@@ -38,7 +38,6 @@ class TestProofingLog(TestCase):
         self.proofing_log_db._drop_whole_collection()
 
     def test_id_proofing_data(self):
-
         proofing_element = ProofingLogElement(
             eppn=self.user.eppn, created_by="test", proofing_method="test", proofing_version="test"
         )
@@ -323,7 +322,6 @@ class TestProofingLog(TestCase):
         self.assertTrue(self.proofing_log_db.save(proofing_element))
 
     def test_deregistered_proofing_data(self):
-
         proofing_element = NinProofingLogElement(
             eppn=self.user.eppn,
             created_by="test",

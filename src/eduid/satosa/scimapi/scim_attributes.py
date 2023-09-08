@@ -2,12 +2,6 @@ import logging
 import pprint
 from dataclasses import dataclass, field
 from typing import Any, Mapping, Optional
-from eduid.satosa.scimapi.common import (
-    MfaStepupAccount,
-    get_internal_attribute_name,
-    get_metadata,
-    store_mfa_stepup_accounts,
-)
 
 import satosa.context
 import satosa.internal
@@ -17,6 +11,12 @@ from satosa.exception import SATOSAAuthenticationError
 from satosa.micro_services.base import ResponseMicroService
 from satosa.routing import STATE_KEY as ROUTER_STATE_KEY
 
+from eduid.satosa.scimapi.common import (
+    MfaStepupAccount,
+    get_internal_attribute_name,
+    get_metadata,
+    store_mfa_stepup_accounts,
+)
 from eduid.userdb.scimapi.userdb import ScimApiUser, ScimApiUserDB, ScimEduidUserDB
 
 logger = logging.getLogger(__name__)

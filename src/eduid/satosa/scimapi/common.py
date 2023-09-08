@@ -1,13 +1,11 @@
 import logging
 from typing import Generator
 
-from pydantic import BaseModel
-
 import satosa.context
 import satosa.internal
+from pydantic import BaseModel
 from saml2.mdstore import MetaData
 from satosa.attribute_mapping import AttributeMapper
-
 
 logger = logging.getLogger(__name__)
 

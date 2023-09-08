@@ -15,7 +15,6 @@ class LoggingTestApp(EduIDBaseApp):
 
 
 class LoggingTest(EduidAPITestCase):
-
     app: LoggingTestApp
 
     def load_app(self, test_config: Mapping[str, Any]) -> LoggingTestApp:

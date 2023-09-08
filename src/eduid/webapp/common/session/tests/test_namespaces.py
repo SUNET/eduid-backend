@@ -16,7 +16,6 @@ logger.setLevel(logging.DEBUG)
 
 
 class TestIdPNamespace(EduidAPITestCase):
-
     app: SessionTestApp
 
     def load_app(self, test_config: Mapping[str, Any]) -> SessionTestApp:

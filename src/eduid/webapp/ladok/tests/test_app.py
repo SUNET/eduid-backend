@@ -187,7 +187,6 @@ class LadokTests(EduidAPITestCase[LadokApp]):
         assert user.ladok is None
 
     def test_unlink_user_no_op(self):
-
         user = self.app.central_userdb.get_user_by_eppn(eppn=self.test_user_eppn)
         assert user.ladok is None
 

@@ -47,7 +47,6 @@ logger = get_task_logger(__name__)
 
 
 class AttributeFetcher(ABC):
-
     whitelist_set_attrs: list[str]
     whitelist_unset_attrs: list[str]
 

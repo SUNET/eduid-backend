@@ -44,7 +44,8 @@ from eduid.userdb.proofing import ProofingUser
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, require_user
 from eduid.webapp.common.api.helpers import check_magic_cookie
 from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response, success_response
-from eduid.webapp.common.api.utils import save_and_sync_user
+from eduid.webapp.common.api.schemas.csrf import EmptyRequest
+from eduid.webapp.common.api.utils import make_short_code, save_and_sync_user
 from eduid.webapp.common.session import session
 from eduid.webapp.phone.app import current_phone_app as current_app
 from eduid.webapp.phone.helpers import PhoneMsg
@@ -57,8 +58,6 @@ from eduid.webapp.phone.schemas import (
     VerificationCodeSchema,
 )
 from eduid.webapp.phone.verifications import SMSThrottleException, send_verification_code, verify_phone_number
-from eduid.webapp.common.api.schemas.csrf import EmptyRequest
-from eduid.webapp.common.api.utils import make_short_code
 
 phone_views = Blueprint("phone", __name__, url_prefix="", template_folder="templates")
 
@@ -159,17 +158,14 @@ def send_code(user: User, number: str) -> FluxData:
         return error_response(message=PhoneMsg.captcha_not_completed)
     session.phone.captcha.completed = False
 
+    resend_code = False
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
-    db = current_app.proofing_statedb
-    state = db.get_state_by_eppn_and_mobile(proofing_user.eppn, number)
-    if state:
-        timeout = current_app.conf.phone_verification_timeout
-        if not state.is_expired(timeout):
-            current_app.logger.info("Proofing state found for user, and it is not expired. Throttling.")
-            raise SMSThrottleException()
+    state = current_app.proofing_statedb.get_state_by_eppn_and_mobile(proofing_user.eppn, number)
+    if state and state.is_expired(current_app.conf.phone_verification_timeout):
         current_app.logger.info("Proofing state is expired. Removing the state.")
         current_app.logger.debug(f"Proofing state: {state}")
         current_app.proofing_statedb.remove_state(state)
+        resend_code = True
 
     try:
         send_verification_code(user, number)
@@ -178,9 +174,13 @@ def send_code(user: User, number: str) -> FluxData:
     except MsgTaskFailed:
         return error_response(message=CommonMsg.temp_problem)
 
-    current_app.stats.count(name="mobile_send_verification_code", value=1)
+    if resend_code:
+        current_app.stats.count(name="mobile_resend_code", value=1)
+    else:
+        current_app.stats.count(name="mobile_send_verification_code", value=1)
 
-    return success_response(message=PhoneMsg.send_code_success)
+    phones = {"phones": user.phone_numbers.to_list_of_dicts()}
+    return success_response(payload=phones, message=PhoneMsg.send_code_success)
 
 
 @phone_views.route("/verify", methods=["POST"])
@@ -261,38 +261,6 @@ def post_remove(user: User, number: str) -> FluxData:
 
     phones = {"phones": proofing_user.phone_numbers.to_list_of_dicts()}
     return success_response(payload=phones, message=PhoneMsg.removal_success)
-
-
-@phone_views.route("/resend-code", methods=["POST"])
-@UnmarshalWith(SimplePhoneSchema)
-@MarshalWith(PhoneResponseSchema)
-@require_user
-def resend_code(user: User, number: str) -> FluxData:
-    """
-    view to resend a new verification code for one of the (unverified)
-    phone numbers of the logged in user.
-
-    Returns a listing of  all phones for the logged in user.
-    """
-    current_app.logger.info("Trying to send new verification code")
-    current_app.logger.debug(f"Phone number: {number}")
-
-    if not user.phone_numbers.find(number):
-        current_app.logger.error("Unknown phone number used for resend code")
-        return error_response(message=CommonMsg.out_of_sync)
-
-    try:
-        send_verification_code(user, number)
-    except SMSThrottleException:
-        return error_response(message=PhoneMsg.still_valid_code)
-    except MsgTaskFailed:
-        return error_response(message=CommonMsg.temp_problem)
-
-    current_app.logger.info("New verification code sent")
-    current_app.stats.count(name="mobile_resend_code", value=1)
-
-    phones = {"phones": user.phone_numbers.to_list_of_dicts()}
-    return success_response(payload=phones, message=PhoneMsg.send_code_success)
 
 
 @phone_views.route("/get-code", methods=["GET"])
