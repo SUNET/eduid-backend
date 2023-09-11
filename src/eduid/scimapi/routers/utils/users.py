@@ -79,13 +79,13 @@ def save_user(req: ContextRequest, db_user: ScimApiUser) -> None:
 
 def acceptable_linked_accounts(value: list[LinkedAccount]):
     """
-    Setting linked_accounts through SCIM might very well be forbidden in the future,
-    but for now we allow setting a very limited value, to try out MFA step up using this.
+    Setting linked_accounts through SCIM with limited issuer and value. If we need to support
+    stepup with someone other than eduID this needs to change.
     """
     for this in value:
         if this.issuer not in ["eduid.se", "dev.eduid.se"]:
             return False
-        if not this.value.endswith("@dev.eduid.se"):
+        if not this.value.endswith("eduid.se"):
             return False
         for param in this.parameters:
             if param not in ["mfa_stepup"]:
