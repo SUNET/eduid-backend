@@ -90,12 +90,15 @@ class AuthnBearerToken(BaseModel):
 
         Example 'sudo':
 
-          {'version': 1, 'scopes': 'sudoer.example.org', requested_access: {'type': 'scim-api', 'scope': 'example.edu'}}
+          {'version': 1, 'scopes': 'sudoer.example.org',
+           requested_access: [{'type': 'scim-api', 'scope': 'example.edu'}]}
         """
 
         allowed_scopes = self._get_allowed_scopes(self.scim_config, logger)
         logger.debug(f"Request {self}, allowed scopes: {allowed_scopes}")
 
+        # only support one requested access at a time for now and do not fall back to simple scope check if
+        # requested access is used
         for this in self.requested_access:
             _allowed = this.scope in allowed_scopes
             _found = self.scim_config.data_owners.get(DataOwnerName(this.scope))
@@ -103,6 +106,8 @@ class AuthnBearerToken(BaseModel):
             if not _allowed:
                 _sorted = ", ".join(sorted(list(allowed_scopes)))
                 raise RequestedAccessDenied(f"Requested access to scope {this.scope} not in allow-list: {_sorted}")
+            if not _found:
+                raise RequestedAccessDenied(f"Requested access to scope {this.scope} but no data owner found")
             if _allowed and _found:
                 return DataOwnerName(this.scope)
 
@@ -111,6 +116,8 @@ class AuthnBearerToken(BaseModel):
             # checking allowed_scopes here might seem superfluous, but some client with multiple
             # scopes can request a specific one using the requested_access, and then only that one
             # scope is in allowed_scopes
+            # TODO: the above comment is not true but it would be nice if it was
+            #   allowed_scopes comes from config and will never be the requested_access scope
             _allowed = scope in allowed_scopes
             _found = self.scim_config.data_owners.get(DataOwnerName(scope))
             logger.debug(f"Trying scope {scope}, allowed {_allowed}, found: {_found}")
