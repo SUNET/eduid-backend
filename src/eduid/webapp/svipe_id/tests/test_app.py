@@ -337,6 +337,14 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
             proofing_version=self.app.conf.svipe_id_proofing_version,
         )
 
+        # check names
+        assert user.given_name == userinfo.given_name
+        assert user.surname == userinfo.family_name
+        # check proofing log
+        doc = self.app.proofing_log._get_documents_by_attr(attr="eduPersonPrincipalName", value=eppn)[0]
+        assert doc["given_name"] == userinfo.given_name
+        assert doc["surname"] == userinfo.family_name
+
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_verify_foreign_identity(self, mock_request_user_sync: MagicMock):
         mock_request_user_sync.side_effect = self.request_user_sync

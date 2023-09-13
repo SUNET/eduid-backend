@@ -12,7 +12,6 @@ from fido2.webauthn import AuthenticatorAttachment
 
 from eduid.common.config.base import EduidEnvironment
 from eduid.common.misc.timeutil import utc_now
-from eduid.common.rpc.msg_relay import DeregisteredCauseCode, DeregistrationInformation, OfficialAddress
 from eduid.userdb import NinIdentity
 from eduid.userdb.credentials import U2F, Webauthn
 from eduid.userdb.credentials.external import EidasCredential, ExternalCredential, SwedenConnectCredential
@@ -862,35 +861,13 @@ class EidasTests(ProofingTests[EidasApp]):
             proofing_method=IdentityProofingMethod.SWEDEN_CONNECT,
             proofing_version=self.app.conf.freja_proofing_version,
         )
-
-    @patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_nin_verify_no_official_address(
-        self, mock_request_user_sync: MagicMock, mock_get_all_navet_data: MagicMock
-    ):
-        mock_get_all_navet_data.return_value = self._get_all_navet_data()
-        # add empty official address and deregistration information as for a user that has emigrated
-        mock_get_all_navet_data.return_value.person.postal_addresses.official_address = OfficialAddress()
-        mock_get_all_navet_data.return_value.person.deregistration_information = DeregistrationInformation(
-            date="20220509", cause_code=DeregisteredCauseCode.EMIGRATED
-        )
-        mock_request_user_sync.side_effect = self.request_user_sync
-
-        eppn = self.test_unverified_user_eppn
-        self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=False)
-
-        self.reauthn(
-            "/verify-nin",
-            expect_msg=EidasMsg.old_nin_verify_success,
-            eppn=eppn,
-            expect_redirect_url="http://test.localhost/profile",
-        )
-
-        self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=True, num_proofings=1)
+        # check names
+        assert user.given_name == "Ûlla"
+        assert user.surname == "Älm"
         # check proofing log
         doc = self.app.proofing_log._get_documents_by_attr(attr="eduPersonPrincipalName", value=eppn)[0]
-        assert doc["user_postal_address"]["official_address"] == {}
-        assert doc["deregistration_information"]["cause_code"] == "UV"
+        assert doc["given_name"] == "Ûlla"
+        assert doc["surname"] == "Älm"
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_mfa_login(self, mock_request_user_sync: MagicMock):

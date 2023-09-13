@@ -1,5 +1,4 @@
-from typing import Any, Optional, Union
-from xmlrpc.client import Boolean
+from typing import Union
 
 from pydantic import AnyUrl, BaseModel, Field
 
@@ -8,7 +7,6 @@ from eduid.common.config.base import (
     EduIDBaseAppConfig,
     ErrorsConfigMixin,
     MagicCookieMixin,
-    MsgConfigMixin,
     ProofingConfigMixin,
 )
 
@@ -45,9 +43,7 @@ class SvipeClientConfig(AuthlibClientConfig):
     )
 
 
-class SvipeIdConfig(
-    EduIDBaseAppConfig, AmConfigMixin, MsgConfigMixin, ProofingConfigMixin, ErrorsConfigMixin, MagicCookieMixin
-):
+class SvipeIdConfig(EduIDBaseAppConfig, AmConfigMixin, ProofingConfigMixin, ErrorsConfigMixin, MagicCookieMixin):
     """
     Configuration for the svipe_id app
     """
