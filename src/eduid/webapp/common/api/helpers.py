@@ -1,4 +1,3 @@
-import logging
 import warnings
 from dataclasses import dataclass
 from typing import Any, Optional, TypeVar, Union, cast, overload
@@ -15,8 +14,12 @@ from eduid.userdb.exceptions import LockedIdentityViolation
 from eduid.userdb.identity import IdentityProofingMethod, IdentityType
 from eduid.userdb.logs import ProofingLog
 from eduid.userdb.logs.element import (
+    NinEIDProofingLogElement,
+    NinNavetProofingLogElement,
     NinProofingLogElement,
     TForeignIdProofingLogElementSubclass,
+    TNinEIDProofingLogElementSubclass,
+    TNinNavetProofingLogElementSubclass,
     TNinProofingLogElementSubclass,
 )
 from eduid.userdb.proofing import ProofingUser
@@ -29,8 +32,21 @@ from eduid.webapp.common.api.utils import get_from_current_app, save_and_sync_us
 __author__ = "lundberg"
 
 
+def set_user_names_from_nin_proofing(
+    user: TUserSubclass,
+    proofing_log_entry: TNinProofingLogElementSubclass,
+) -> TUserSubclass:
+    if isinstance(proofing_log_entry, NinNavetProofingLogElement):
+        user = set_user_names_from_official_address(user, proofing_log_entry)
+    elif isinstance(proofing_log_entry, NinEIDProofingLogElement):
+        user = set_user_names_from_nin_eid_proofing(user, proofing_log_entry)
+    else:
+        raise RuntimeError("No given name, surname or user postal address found in proofing log entry")
+    return user
+
+
 def set_user_names_from_official_address(
-    user: TUserSubclass, proofing_log_entry: TNinProofingLogElementSubclass
+    user: TUserSubclass, proofing_log_entry: TNinNavetProofingLogElementSubclass
 ) -> TUserSubclass:
     """
     :param user: Proofing app private userdb user
@@ -40,9 +56,11 @@ def set_user_names_from_official_address(
     """
     user.given_name = proofing_log_entry.user_postal_address.name.given_name
     user.surname = proofing_log_entry.user_postal_address.name.surname
+
     if user.given_name is None or user.surname is None:
         # please mypy
         raise RuntimeError("No given name or surname found in proofing log user postal address")
+
     given_name_marking = proofing_log_entry.user_postal_address.name.given_name_marking
     user.display_name = f"{user.given_name} {user.surname}"
     if given_name_marking:
@@ -58,6 +76,15 @@ def set_user_names_from_official_address(
         f"{proofing_log_entry.user_postal_address.name} resulted in given_name: {user.given_name}, "
         f"surname: {user.surname} and display_name: {user.display_name}"
     )
+    return user
+
+
+def set_user_names_from_nin_eid_proofing(
+    user: TUserSubclass, proofing_log_entry: TNinEIDProofingLogElementSubclass
+) -> TUserSubclass:
+    user.given_name = proofing_log_entry.given_name
+    user.surname = proofing_log_entry.surname
+    user.display_name = f"{user.given_name} {user.surname}"
     return user
 
 
@@ -201,7 +228,7 @@ def verify_nin_for_user(
     proofing_user.identities.nin.proofing_version = proofing_log_entry.proofing_version
 
     # Update users name
-    proofing_user = set_user_names_from_official_address(proofing_user, proofing_log_entry)
+    proofing_user = set_user_names_from_nin_proofing(user=proofing_user, proofing_log_entry=proofing_log_entry)
 
     # If user was updated successfully continue with logging the proof and saving the user to central db
     # Send proofing data to the proofing log

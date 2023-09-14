@@ -365,13 +365,13 @@ class ProofingConfigMixin(BaseModel):
     foreign_identity_idp: Optional[str] = None
 
     # identity proofing
-    freja_proofing_version: str = Field(default="2018v1")
+    freja_proofing_version: str = Field(default="2023v1")
     foreign_eid_proofing_version: str = Field(default="2022v1")
-    svipe_id_proofing_version: str = Field(default="2023v1")
+    svipe_id_proofing_version: str = Field(default="2023v2")
 
     # security key proofing
     security_key_proofing_method: CredentialProofingMethod = Field(default=CredentialProofingMethod.SWAMID_AL3_MFA)
-    security_key_proofing_version: str = Field(default="2018v1")
+    security_key_proofing_version: str = Field(default="2023v1")
     security_key_foreign_eid_proofing_version: str = Field(default="2022v1")
 
     frontend_action_finish_url: dict[str, str] = Field(default={})

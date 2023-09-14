@@ -22,13 +22,14 @@ class GeneratePairwiseId(ResponseMicroService):
 
     Example configuration:
 
-	module: eduid.satosa.scimapi.pairwiseid.GeneratePairwiseId
-	plugin: GeneratePairwiseId
-	name: GeneratePairwiseId
-	config:
-  		pairwise_salt: chatroom-chemo-rethink-scarecrow-embark-truck
+        module: eduid.satosa.scimapi.pairwiseid.GeneratePairwiseId
+        plugin: GeneratePairwiseId
+        name: GeneratePairwiseId
+        config:
+                pairwise_salt: chatroom-chemo-rethink-scarecrow-embark-truck
 
     """
+
     def __init__(
         self,
         config: Mapping[str, Any],
