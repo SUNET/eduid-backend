@@ -208,7 +208,7 @@ class TestAuthnBearerToken(BaseDBTestCase):
         config.requested_access_type = "api-test"
         claims = {
             "version": 1,
-            "scopes": {sudoer},
+            "scopes": [sudoer],
             "requested_access": [{"type": config.requested_access_type, "scope": domain}],
         }
         token = AuthnBearerToken(scim_config=config, **claims)
@@ -234,6 +234,25 @@ class TestAuthnBearerToken(BaseDBTestCase):
         assert str(exc_info.value) == (
             "Requested access to scope eduid.se not in allow-list: other-domain.example.org, sudoer.example.org"
         )
+
+    def test_sudo_unknown_scope(self) -> None:
+        """Test attempting to sudo, but the target scope (other-domain.example.org)
+        has no data owner in the configuration."""
+        domain = ScopeName("other-domain.example.org")
+        sudoer = ScopeName("sudoer.example.org")
+        config: ScimApiConfig = self.config.copy()
+        config.scope_sudo = {sudoer: {ScopeName("other-domain.example.org")}}
+        config.requested_access_type = "api-test"
+        claims = {
+            "version": 1,
+            "scopes": [sudoer],
+            "requested_access": [{"type": config.requested_access_type, "scope": domain}],
+        }
+        token = AuthnBearerToken(scim_config=config, **claims)
+
+        with pytest.raises(RequestedAccessDenied) as exc_info:
+            assert token.get_data_owner(logger=logger) == None
+        assert str(exc_info.value) == ("Requested access to scope other-domain.example.org but no data owner found")
 
     def test_sudo_takes_precedence(self) -> None:
         """
