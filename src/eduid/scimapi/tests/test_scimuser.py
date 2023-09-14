@@ -592,9 +592,20 @@ class TestUserResource(ScimApiTestUserResourceBase):
         # Verify the updated account made it into the database
         assert db_user.linked_accounts == [_db_account]
 
-    def test_create_user_with_invalid_linked_accounts(self):
-        """Test that creating a user and then updating it without changes only results in one event"""
+    def test_create_user_with_invalid_linked_accounts_issuer(self):
+        """Test that creating a user with an invalid issuer and valid value fails"""
         account = LinkedAccount(issuer="NOT-eduid.se", value="test@dev.eduid.se")
+        req = {
+            "externalId": "test-id-9",
+            "name": {"familyName": "Testsson", "givenName": "Test", "middleName": "Testaren"},
+            SCIMSchema.NUTID_USER_V1.value: {"profiles": {}, "linked_accounts": [account.dict(exclude_none=True)]},
+        }
+        result1 = self._create_user(req, expect_success=False)
+        self._assertScimError(json=result1.response.json(), detail="Invalid nutid linked_accounts")
+
+    def test_create_user_with_invalid_linked_accounts_value(self):
+        """Test that creating a user with valid issuer and invalid value fails"""
+        account = LinkedAccount(issuer="eduid.se", value="test@eduid.com")
         req = {
             "externalId": "test-id-9",
             "name": {"familyName": "Testsson", "givenName": "Test", "middleName": "Testaren"},
@@ -605,7 +616,7 @@ class TestUserResource(ScimApiTestUserResourceBase):
 
     def test_update_user_set_linked_accounts(self):
         db_account1 = ScimApiLinkedAccount(issuer="eduid.se", value="test1@dev.eduid.se")
-        account2 = LinkedAccount(issuer="eduid.se", value="test2@dev.eduid.se", parameters={"mfa_stepup": True})
+        account2 = LinkedAccount(issuer="eduid.se", value="test2@eduid.se", parameters={"mfa_stepup": True})
         db_user = self.add_user(identifier=str(uuid4()), linked_accounts=[db_account1])
         req = {
             "schemas": [SCIMSchema.CORE_20_USER.value, SCIMSchema.NUTID_USER_V1.value],
@@ -620,7 +631,7 @@ class TestUserResource(ScimApiTestUserResourceBase):
         """Test updating linked accounts sorted 'wrong'"""
         db_account1 = ScimApiLinkedAccount(issuer="eduid.se", value="test1@dev.eduid.se")
         account1 = LinkedAccount(issuer=db_account1.issuer, value=db_account1.value)
-        account2 = LinkedAccount(issuer="eduid.se", value="test2@dev.eduid.se", parameters={"mfa_stepup": True})
+        account2 = LinkedAccount(issuer="eduid.se", value="test2@eduid.se", parameters={"mfa_stepup": True})
         db_user = self.add_user(identifier=str(uuid4()), linked_accounts=[db_account1])
         req = {
             "schemas": [SCIMSchema.CORE_20_USER.value, SCIMSchema.NUTID_USER_V1.value],
