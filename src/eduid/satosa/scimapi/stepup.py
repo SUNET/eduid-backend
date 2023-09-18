@@ -3,7 +3,7 @@
 import functools
 import json
 import logging
-from typing import Any, Iterable, Mapping, NewType, Optional
+from typing import Any, Iterable, Mapping, NewType, Optional, Callable, Union
 from urllib.parse import urlparse
 
 from pydantic import BaseModel, Field, ValidationError
@@ -28,14 +28,16 @@ from satosa.context import Context
 from satosa.exception import SATOSAAuthenticationError, SATOSAError
 from satosa.internal import InternalData
 from satosa.micro_services.base import (
-    CallbackCallSignature,
-    CallbackReturnType,
-    ProcessReturnType,
+    # TODO: Enable when https://github.com/IdentityPython/SATOSA/pull/435 has been accepted
+    # CallbackCallSignature,
+    # CallbackReturnType,
+    # ProcessReturnType,
     RequestMicroService,
     ResponseMicroService,
 )
 from satosa.response import Response
 from satosa.saml_util import make_saml_response
+
 
 try:
     # Available in a future version of pysaml2
@@ -45,6 +47,12 @@ except ImportError:
     SAMlHttpArgs = dict
 
 logger = logging.getLogger(__name__)
+
+# TODO: Remove when https://github.com/IdentityPython/SATOSA/pull/435 has been accepted
+ProcessReturnType = Union[satosa.internal.InternalData, satosa.response.Response]
+CallbackReturnType = satosa.response.Response
+CallbackCallSignature = Callable[[satosa.context.Context, Any], CallbackReturnType]
+# end todo
 
 REFEDS_MFA = "https://refeds.org/profile/mfa"
 IDP_SENT_LOA = "idp_sent_loa"
