@@ -3,6 +3,8 @@ from collections import OrderedDict
 from datetime import datetime
 from io import BytesIO, StringIO
 
+from pypdf import PdfReader
+
 from eduid.common.rpc.msg_relay import FullPostalAddress
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.letter_proofing import pdf
@@ -153,7 +155,7 @@ class CreatePDFTest(EduidAPITestCase):
                         OrderedDict(
                             [
                                 ("GivenNameMarking", "20"),
-                                ("GivenName", "Testaren Test"),
+                                ("GivenName", "Testaren Test Adam Bertil Cesar David"),
                                 ("MiddleName", "Tester"),
                                 ("Surname", "Testsson"),
                             ]
@@ -185,3 +187,12 @@ class CreatePDFTest(EduidAPITestCase):
                     letter_wait_time_hours=336,
                 )
         self.assertIsInstance(pdf_document, (StringIO, BytesIO))
+
+        pdf_text = PdfReader(pdf_document).pages[0].extract_text()
+        assert (
+            """Test Tester Testsson
+C/O TESTAREN & TESTSSON
+\xd6RGATAN 79 LGH 10 LGH 4321
+12345 LANDET"""
+            in pdf_text
+        )

@@ -24,6 +24,7 @@ from eduid.userdb.proofing.state import NinProofingState
 from eduid.webapp.common.api.app import EduIDBaseApp
 from eduid.webapp.common.api.helpers import (
     add_nin_to_user,
+    get_marked_given_name,
     set_user_names_from_foreign_id,
     set_user_names_from_nin_proofing,
     verify_nin_for_user,
@@ -441,3 +442,12 @@ class NinHelpersTest(EduidAPITestCase[HelpersTestApp]):
             assert user.given_name == "Testaren Test"
             assert user.surname == "Testsson"
             assert user.display_name == "Test Testsson"
+
+    def test_get_given_name_from_marking(self):
+        assert get_marked_given_name("Jan-Erik Martin", "30") == "Martin"
+        assert get_marked_given_name("Eva Mia", "20") == "Mia"
+        assert get_marked_given_name("Kjell Olof", "12") == "Kjell Olof"
+        assert get_marked_given_name("Hedvig Britt-Marie", "23") == "Britt-Marie"
+
+        assert get_marked_given_name("Jan-Erik Martin", "00") == "Jan-Erik Martin"
+        assert get_marked_given_name("Jan-Erik Martin", None) == "Jan-Erik Martin"
