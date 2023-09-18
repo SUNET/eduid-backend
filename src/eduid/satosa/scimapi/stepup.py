@@ -3,7 +3,7 @@
 import functools
 import json
 import logging
-from typing import Any, Iterable, Mapping, NewType, Optional, Callable, Union
+from typing import Any, Iterable, Mapping, NewType, Optional, Callable, Union, TypeAlias
 from urllib.parse import urlparse
 
 from pydantic import BaseModel, Field, ValidationError
@@ -50,7 +50,7 @@ logger = logging.getLogger(__name__)
 
 # TODO: Remove when https://github.com/IdentityPython/SATOSA/pull/435 has been accepted
 ProcessReturnType = Union[satosa.internal.InternalData, satosa.response.Response]
-CallbackReturnType = satosa.response.Response
+CallbackReturnType: TypeAlias = satosa.response.Response
 CallbackCallSignature = Callable[[satosa.context.Context, Any], CallbackReturnType]
 # end todo
 
