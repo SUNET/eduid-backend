@@ -1,6 +1,6 @@
 import warnings
 from dataclasses import dataclass
-from typing import Any, Optional, TypeVar, Union, cast, overload
+from typing import Any, Iterable, List, Optional, TypeVar, Union, cast, overload
 
 from flask import current_app, render_template, request
 
@@ -32,7 +32,7 @@ from eduid.webapp.common.api.utils import get_from_current_app, save_and_sync_us
 __author__ = "lundberg"
 
 
-def get_marked_given_name(given_name: str, given_name_marking: str) -> str:
+def get_marked_given_name(given_name: str, given_name_marking: Optional[str]) -> str:
     """
     Given name marking denotes up to two given names, and is used to determine
     which of the given names are to be primarily used in addressing a person.
@@ -54,19 +54,19 @@ def get_marked_given_name(given_name: str, given_name_marking: str) -> str:
         return given_name
 
     # cheating with indexing
-    _given_names = [None]
+    _given_names: List[Optional[str]] = [None]
     for name in given_name.split():
         _given_names.append(name)
         if "-" in name:
             # hyphenated names are counted separately
             _given_names.append(None)
-    _marked_names = []
+    _optional_marked_names: List[Optional[str]] = []
     for i in given_name_marking:
-        _marked_names.append(_given_names[int(i)])
+        _optional_marked_names.append(_given_names[int(i)])
     # remove None values
     # i.e. 0 index and hyphenated names second part placeholder
-    _marked_names = [name for name in _marked_names if name is not None]
-    return " ".join(_marked_names)
+    _marked_names: List[str] = [name for name in _optional_marked_names if name is not None]
+    return " ".join(list(_marked_names))
 
 
 def set_user_names_from_nin_proofing(
