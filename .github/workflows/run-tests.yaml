@@ -25,7 +25,10 @@ jobs:
 
       - name: Install packages
         run: |
-          sudo apt install xmlsec1  # pysaml2 needs to find an xmlsec1 binary
+          sudo apt update
+          # pysaml2 needs to find an xmlsec1 binary
+          # PIL/EpsImagePlugin.py needs to find a ghostscript binary
+          sudo apt install xmlsec1 ghostscript
 
       - name: Install dependencies
         run: |
