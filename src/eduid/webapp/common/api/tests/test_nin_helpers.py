@@ -449,5 +449,8 @@ class NinHelpersTest(EduidAPITestCase[HelpersTestApp]):
         assert get_marked_given_name("Kjell Olof", "12") == "Kjell Olof"
         assert get_marked_given_name("Hedvig Britt-Marie", "23") == "Britt-Marie"
 
+        # From Skatteverket test data
+        assert get_marked_given_name("Svante Hans-Emil", "12") == "Svante Hans"
+
         assert get_marked_given_name("Jan-Erik Martin", "00") == "Jan-Erik Martin"
         assert get_marked_given_name("Jan-Erik Martin", None) == "Jan-Erik Martin"

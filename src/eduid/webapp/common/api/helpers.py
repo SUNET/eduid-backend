@@ -40,7 +40,7 @@ def get_marked_given_name(given_name: str, given_name_marking: Optional[str]) ->
         indexing starting at 1
         the second can be 0 for only one mark
         hyphenated names are counted separately (i.e. Jan-Erik are two separate names)
-            assuming they are always marked together as per example in documentation
+            If they are both marked they should be re-hyphenated
 
     current version of documentation:
     https://www.skatteverket.se/download/18.2cf1b5cd163796a5c8bf20e/1530691773712/AllmanBeskrivning.pdf
@@ -56,17 +56,22 @@ def get_marked_given_name(given_name: str, given_name_marking: Optional[str]) ->
     # cheating with indexing
     _given_names: List[Optional[str]] = [None]
     for name in given_name.split():
-        _given_names.append(name)
         if "-" in name:
             # hyphenated names are counted separately
-            _given_names.append(None)
+            _given_names.extend(name.split('-'))
+        else:
+            _given_names.append(name)
+            
     _optional_marked_names: List[Optional[str]] = []
     for i in given_name_marking:
         _optional_marked_names.append(_given_names[int(i)])
     # remove None values
     # i.e. 0 index and hyphenated names second part placeholder
     _marked_names: List[str] = [name for name in _optional_marked_names if name is not None]
-    return " ".join(list(_marked_names))
+    if "-".join(_marked_names) in given_name:
+        return "-".join(_marked_names)
+    else:
+        return " ".join(_marked_names)
 
 
 def set_user_names_from_nin_proofing(
