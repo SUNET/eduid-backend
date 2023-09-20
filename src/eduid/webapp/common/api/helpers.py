@@ -58,10 +58,10 @@ def get_marked_given_name(given_name: str, given_name_marking: Optional[str]) ->
     for name in given_name.split():
         if "-" in name:
             # hyphenated names are counted separately
-            _given_names.extend(name.split('-'))
+            _given_names.extend(name.split("-"))
         else:
             _given_names.append(name)
-            
+
     _optional_marked_names: List[Optional[str]] = []
     for i in given_name_marking:
         _optional_marked_names.append(_given_names[int(i)])

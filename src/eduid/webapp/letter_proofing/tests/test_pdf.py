@@ -158,6 +158,7 @@ class CreatePDFTest(EduidAPITestCase):
                                 ("GivenName", "Testaren Test Adam Bertil Cesar David"),
                                 ("MiddleName", "Tester"),
                                 ("Surname", "Testsson"),
+                                ("NotificationName", "Tester Testsson, T Test A B C D"),
                             ]
                         ),
                     ),
@@ -190,7 +191,7 @@ class CreatePDFTest(EduidAPITestCase):
 
         pdf_text = PdfReader(pdf_document).pages[0].extract_text()
         assert (
-            """Test Tester Testsson
+            """Tester Testsson, T Test A B C D
 C/O TESTAREN & TESTSSON
 \xd6RGATAN 79 LGH 10 LGH 4321
 12345 LANDET"""
