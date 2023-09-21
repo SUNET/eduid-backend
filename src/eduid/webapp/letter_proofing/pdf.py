@@ -25,13 +25,16 @@ def format_address(recipient: Mapping):
     :rtype: tuple
     """
     try:
-        # TODO: Take GivenNameMarking in to account
-        _given_name_marking = recipient.get("Name", {}).get("GivenNameMarking", None)  # Optional
-        _given_name = recipient.get("Name", {})["GivenName"]  # Mandatory
-        given_name = get_marked_given_name(_given_name, _given_name_marking)
-        middle_name = recipient.get("Name", {}).get("MiddleName", "")  # Optional
-        surname = recipient.get("Name", {})["Surname"]  # Mandatory
-        name = f"{given_name!s} {middle_name!s} {surname!s}"
+        _notification_name = recipient.get("Name", {}).get("NotificationName", None)  # Optional
+        if _notification_name:
+            name = _notification_name
+        else:
+            _given_name_marking = recipient.get("Name", {}).get("GivenNameMarking", None)  # Optional
+            _given_name = recipient.get("Name", {})["GivenName"]  # Mandatory
+            given_name = get_marked_given_name(_given_name, _given_name_marking)
+            middle_name = recipient.get("Name", {}).get("MiddleName", "")  # Optional
+            surname = recipient.get("Name", {})["Surname"]  # Mandatory
+            name = f"{given_name!s} {middle_name!s} {surname!s}"
         # TODO: Take eventual CareOf and Address1(?) in to account
         care_of = recipient.get("OfficialAddress", {}).get("CareOf", "")  # Optional
         address = recipient.get("OfficialAddress", {})["Address2"]  # Mandatory
