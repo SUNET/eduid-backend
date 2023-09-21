@@ -74,7 +74,7 @@ class IdPTestLogout(IdPTests):
         assert user_sso_sessions == [sso_session1]
 
         # Remove all cookies, simulating a SOAP request from an SP rather than from the clients browser
-        self.browser.cookie_jar.clear()
+        self.browser._cookies.clear()
 
         reached_state, response = self._try_logout(authn_response, BINDING_SOAP)
         assert reached_state == LogoutState.S1_LOGGED_OUT

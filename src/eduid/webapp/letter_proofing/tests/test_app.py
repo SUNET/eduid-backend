@@ -155,6 +155,7 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
         mock_get_postal_address: Any,
         mock_request_user_sync: Any,
         mock_hammock: Any,
+        cookie_name: Optional[str] = None,
         cookie_value: Optional[str] = None,
         add_cookie: bool = True,
     ):
@@ -168,18 +169,17 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
         csrf_token = json_data["payload"]["csrf_token"]
         data = {"nin": nin, "csrf_token": csrf_token}
 
-        with self.session_cookie(self.browser, self.test_user_eppn) as client:
+        if add_cookie is False:
+            with self.session_cookie(self.browser, self.test_user_eppn) as client:
+                response = client.post("/proofing", data=json.dumps(data), content_type=self.content_type_json)
+                self.assertEqual(response.status_code, 200)
+                return client.get("/get-code")
+
+        with self.session_cookie_and_magic_cookie(
+            self.browser, self.test_user_eppn, magic_cookie_name=cookie_name, magic_cookie_value=cookie_value
+        ) as client:
             response = client.post("/proofing", data=json.dumps(data), content_type=self.content_type_json)
             self.assertEqual(response.status_code, 200)
-
-            if cookie_value is None:
-                cookie_value = self.app.conf.magic_cookie
-
-            if add_cookie:
-                assert self.app.conf.magic_cookie_name is not None
-                assert cookie_value is not None
-                client.set_cookie("localhost", key=self.app.conf.magic_cookie_name, value=cookie_value)
-
             return client.get("/get-code")
 
     # End helper methods
@@ -446,8 +446,7 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
         _state = self.get_state()
         csrf_token = _state["payload"]["csrf_token"]
         data = {"nin": self.test_user_nin, "csrf_token": csrf_token}
-        with self.session_cookie(self.browser, self.test_user_eppn) as client:
-            client.set_cookie("localhost", key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie)
+        with self.session_cookie_and_magic_cookie(self.browser, eppn=self.test_user_eppn) as client:
             response = client.post("/proofing", data=json.dumps(data), content_type=self.content_type_json)
         self._check_success_response(response, type_="POST_LETTER_PROOFING_PROOFING_SUCCESS", msg=LetterMsg.letter_sent)
 
@@ -484,7 +483,7 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
         self.app.conf.magic_cookie_name = ""
         self.app.conf.environment = EduidEnvironment("dev")
 
-        response = self.get_code_backdoor()
+        response = self.get_code_backdoor(cookie_name="wrong_name")
 
         self.assertEqual(response.status_code, 400)
 

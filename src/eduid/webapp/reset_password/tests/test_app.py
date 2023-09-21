@@ -464,7 +464,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
 
         return c.post(url, data=json.dumps(data), content_type=self.content_type_json)
 
-    def _get_email_code_backdoor(self, data1: Optional[dict[str, Any]] = None):
+    def _get_email_code_backdoor(self, data1: Optional[dict[str, Any]] = None, magic_cookie_name: Optional[str] = None):
         """
         Create a password rest state for the test user, grab the created verification code from the db,
         and use it to get configuration for the reset form.
@@ -475,10 +475,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
         assert isinstance(state, ResetPasswordEmailState)
 
-        with self.session_cookie_anon(self.browser) as client:
-            assert self.app.conf.magic_cookie_name is not None
-            assert self.app.conf.magic_cookie is not None
-            client.set_cookie("localhost", key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie)
+        with self.session_cookie_and_magic_cookie_anon(self.browser, magic_cookie_name=magic_cookie_name) as client:
             eppn = quote_plus(self.test_user.eppn)
             return client.get(f"/get-email-code?eppn={eppn}")
 
@@ -491,6 +488,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         mock_request_user_sync: Any,
         mock_get_vccs_client: Any,
         sendsms_side_effect: Any = None,
+        magic_cookie_name: Optional[str] = None,
     ):
         """
         Test choosing extra security via a confirmed phone number to reset the password,
@@ -518,7 +516,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
             response = client.post(config_url, data=json.dumps(data), content_type=self.content_type_json)
             self.assertEqual(200, response.status_code)
 
-        with self.session_cookie_anon(self.browser) as client:
+        with self.session_cookie_and_magic_cookie_anon(self.browser, magic_cookie_name=magic_cookie_name) as client:
             data = {
                 "csrf_token": self.get_response_payload(response)["csrf_token"],
                 "email_code": state.email_code.code,
@@ -526,10 +524,6 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
             }
             response = client.post(extra_security_phone_url, data=json.dumps(data), content_type=self.content_type_json)
             self.assertEqual(200, response.status_code)
-
-            assert self.app.conf.magic_cookie_name is not None
-            assert self.app.conf.magic_cookie is not None
-            client.set_cookie("localhost", key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie)
 
             eppn = quote_plus(self.test_user.eppn)
 
@@ -1120,7 +1114,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         self.app.conf.magic_cookie_name = ""
         self.app.conf.environment = EduidEnvironment("dev")
 
-        resp = self._get_email_code_backdoor()
+        resp = self._get_email_code_backdoor(magic_cookie_name="wrong_name")
 
         self.assertEqual(resp.status_code, 400)
 
@@ -1159,7 +1153,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         self.app.conf.magic_cookie_name = ""
         self.app.conf.environment = EduidEnvironment("dev")
 
-        resp = self._get_phone_code_backdoor()
+        resp = self._get_phone_code_backdoor(magic_cookie_name="wrong_name")
 
         self.assertEqual(resp.status_code, 400)
 
