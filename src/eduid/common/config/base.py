@@ -38,9 +38,11 @@ from __future__ import annotations
 
 from datetime import timedelta
 from enum import Enum
+from pathlib import Path
 from re import Pattern
 from typing import Any, Mapping, Optional, Sequence, TypeVar, Union
 
+import pkg_resources
 from pydantic import BaseModel, Field
 
 from eduid.userdb.credentials import CredentialProofingMethod
@@ -303,6 +305,22 @@ class VCCSConfigMixin(BaseModel):
     # vccs health check credentials
     vccs_check_eppn: str
     vccs_check_password: str
+
+
+class CaptchaConfigMixin(BaseModel):
+    captcha_code_length: int = 6
+    captcha_width: int = 160
+    captcha_height: int = 60
+    captcha_fonts: list[Path] = Field(
+        default=[
+            pkg_resources.resource_filename("eduid", "static/fonts/ProximaNova-Regular.ttf"),
+            pkg_resources.resource_filename("eduid", "static/fonts/ProximaNova-Light.ttf"),
+            pkg_resources.resource_filename("eduid", "static/fonts/ProximaNova-Bold.ttf"),
+        ]
+    )
+    captcha_font_size: tuple[int, int, int] = (42, 50, 56)
+    captcha_max_bad_attempts: int = 100
+    captcha_backdoor_code: str = "123456"
 
 
 class AmConfigMixin(CeleryConfigMixin):

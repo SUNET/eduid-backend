@@ -64,8 +64,9 @@ class PhoneApp(AuthnBaseApp):
         self.captcha_image_generator = ImageCaptcha(
             height=self.conf.captcha_height,
             width=self.conf.captcha_width,
-            fonts=self.conf.captcha_fonts,
-            font_sizes=self.conf.captcha_font_size,
+            fonts=[str(path) for path in self.conf.captcha_fonts],  # please mypy
+            # underlying module lies in argument type hint
+            font_sizes=self.conf.captcha_font_size,  # type: ignore[arg-type]
         )
 
 
