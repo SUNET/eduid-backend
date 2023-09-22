@@ -3,7 +3,6 @@ import logging
 import os
 from datetime import timedelta
 from os import environ
-from typing import Optional
 
 from eduid.common.config.parsers import load_config
 from eduid.queue.config import QueueWorkerConfig
@@ -50,11 +49,11 @@ class TestBaseWorker(QueueAsyncioTest):
             os.environ["EDUID_CONFIG_YAML"] = "YAML_CONFIG_NOT_USED"
 
         self.config = load_config(typ=QueueWorkerConfig, app_name="test", ns="queue", test_config=self.test_config)
-
-        self.db.register_handler(TestPayload)
+        self.client_db.register_handler(TestPayload)
 
     async def asyncSetUp(self) -> None:
         await super().asyncSetUp()
+        self.worker_db.register_handler(TestPayload)
         await asyncio.sleep(0.5)  # wait for db
         self.worker = QueueTestWorker(config=self.config, handle_payloads=[TestPayload])
         self.tasks = [asyncio.create_task(self.worker.run())]
@@ -72,7 +71,7 @@ class TestBaseWorker(QueueAsyncioTest):
         payload = TestPayload(message="New item")
         queue_item = self.create_queue_item(expires_at, discard_at, payload)
         # Client saves new queue item
-        self.db.save(queue_item)
+        self.client_db.save(queue_item)
         await self._assert_item_gets_processed(queue_item)
 
     async def test_worker_expired_item(self):
@@ -87,7 +86,7 @@ class TestBaseWorker(QueueAsyncioTest):
         payload = TestPayload(message="Expired item")
         queue_item = self.create_queue_item(expires_at, discard_at, payload)
         # Fake that a client have saved queue item in the past
-        self.db.save(queue_item)
+        self.client_db.save(queue_item)
         # Start worker after save to fake that the item has expired unhandled in the queue
         self.tasks = [asyncio.create_task(self.worker.run())]
         await self._assert_item_gets_processed(queue_item)

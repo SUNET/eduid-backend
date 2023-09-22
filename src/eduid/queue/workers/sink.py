@@ -79,7 +79,7 @@ class SinkQueueWorker(QueueWorker):
                 payload=payload,
             )
             logger.info(f"Test results this period: {payload}")
-            self.db.save(qitem)
+            await self.db.save(qitem)
 
         self._receiving = False
 
