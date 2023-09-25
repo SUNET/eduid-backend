@@ -265,8 +265,8 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
             assert _conf.magic_cookie is not None
             magic_cookie_value = _conf.magic_cookie
         with self.session_cookie(client=client, eppn=eppn, domain=domain, logged_in=logged_in, **kwargs) as _client:
-            client.set_cookie(domain=domain, key=magic_cookie_name, value=magic_cookie_value)
-            yield client
+            _client.set_cookie(domain=domain, key=magic_cookie_name, value=magic_cookie_value)
+            yield _client
 
     @contextmanager
     def session_cookie_and_magic_cookie_anon(
