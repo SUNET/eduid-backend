@@ -213,6 +213,7 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
         mod_data: Optional[dict[str, Any]] = None,
         phone: str = "+34670123456",
         code: str = "5250f9a4",
+        magic_cookie_name: Optional[str] = None,
     ):
         """
         POST phone data to generate a verification state,
@@ -228,7 +229,9 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
 
         eppn = self.test_user_data["eduPersonPrincipalName"]
 
-        with self.session_cookie(self.browser, eppn) as client:
+        with self.session_cookie_and_magic_cookie(
+            self.browser, eppn=eppn, magic_cookie_name=magic_cookie_name
+        ) as client:
             with self.app.test_request_context():
                 with client.session_transaction() as sess:
                     data: dict[str, Any] = {
@@ -251,10 +254,6 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
                     }
 
                     client.post("/send-code", data=json.dumps(data2), content_type=self.content_type_json)
-
-                assert self.app.conf.magic_cookie_name is not None
-                assert self.app.conf.magic_cookie is not None
-                client.set_cookie("localhost", key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie)
 
                 phone = quote_plus(phone)
                 eppn = quote_plus(eppn)
@@ -780,7 +779,7 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
         self.app.conf.environment = EduidEnvironment("dev")
 
         code = "0123456"
-        resp = self._get_code_backdoor(code=code)
+        resp = self._get_code_backdoor(code=code, magic_cookie_name="wrong_name")
 
         self.assertEqual(resp.status_code, 400)
 

@@ -93,7 +93,7 @@ class JSConfigTests(EduidAPITestCase[JSConfigApp]):
 
     def test_get_dashboard_config(self):
         eppn = self.test_user_data["eduPersonPrincipalName"]
-        with self.session_cookie(self.browser, eppn, server_name="example.com", subdomain="dashboard") as client:
+        with self.session_cookie(self.browser, eppn, subdomain="dashboard") as client:
             response = client.get("http://dashboard.example.com/config")
 
             self.assertEqual(response.status_code, 200)
@@ -113,7 +113,7 @@ class JSConfigTests(EduidAPITestCase[JSConfigApp]):
 
     def test_get_signup_config(self):
         eppn = self.test_user_data["eduPersonPrincipalName"]
-        with self.session_cookie(self.browser, eppn, server_name="example.com", subdomain="signup") as client:
+        with self.session_cookie(self.browser, eppn, subdomain="signup") as client:
             response = client.get("http://signup.example.com/signup/config")
 
             self.assertEqual(response.status_code, 200)
@@ -130,7 +130,7 @@ class JSConfigTests(EduidAPITestCase[JSConfigApp]):
 
     def test_get_login_config(self):
         eppn = self.test_user_data["eduPersonPrincipalName"]
-        with self.session_cookie(self.browser, eppn, server_name="example.com", subdomain="login") as client:
+        with self.session_cookie(self.browser, eppn, subdomain="login") as client:
             response = client.get("http://login.example.com/login/config")
 
             self.assertEqual(response.status_code, 200)

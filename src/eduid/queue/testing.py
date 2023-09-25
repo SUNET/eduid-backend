@@ -13,6 +13,7 @@ import pymongo.errors
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.queue.db import Payload, QueueDB, QueueItem, SenderInfo
+from eduid.queue.db.worker import AsyncQueueDB
 from eduid.userdb.db import TUserDbDocument
 from eduid.userdb.testing import EduidTemporaryInstance, MongoTemporaryInstance
 
@@ -114,7 +115,7 @@ class EduidQueueTestCase(TestCase):
     mongo_instance: MongoTemporaryInstanceReplicaSet
     mongo_uri: str
     mongo_collection: str
-    db: QueueDB
+    client_db: QueueDB
 
     @classmethod
     def setUpClass(cls) -> None:
@@ -126,13 +127,13 @@ class EduidQueueTestCase(TestCase):
         self._init_db()
 
     def tearDown(self) -> None:
-        self.db._drop_whole_collection()
+        self.client_db._drop_whole_collection()
 
     def _init_db(self):
         db_init_try = 0
         while True:
             try:
-                self.db = QueueDB(db_uri=self.mongo_uri, collection=self.mongo_collection)
+                self.client_db = QueueDB(db_uri=self.mongo_uri, collection=self.mongo_collection)
                 break
             except pymongo.errors.NotPrimaryError as e:
                 db_init_try += 1
@@ -143,13 +144,29 @@ class EduidQueueTestCase(TestCase):
 
 
 class QueueAsyncioTest(EduidQueueTestCase, IsolatedAsyncioTestCase):
+    worker_db: AsyncQueueDB
+
     async def asyncSetUp(self) -> None:
         self.tasks: list[Task] = []
+        await self._init_async_db()
 
     async def asyncTearDown(self) -> None:
         for task in self.tasks:
             if not task.done():
                 task.cancel()
+
+    async def _init_async_db(self):
+        db_init_try = 0
+        while True:
+            try:
+                self.worker_db = await AsyncQueueDB.create(db_uri=self.mongo_uri, collection=self.mongo_collection)
+                break
+            except pymongo.errors.NotPrimaryError as e:
+                db_init_try += 1
+                time.sleep(db_init_try)
+                if db_init_try >= 10:
+                    raise e
+                continue
 
     @staticmethod
     def create_queue_item(expires_at: datetime, discard_at: datetime, payload: Payload):
@@ -168,7 +185,7 @@ class QueueAsyncioTest(EduidQueueTestCase, IsolatedAsyncioTestCase):
         fetched: Optional[QueueItem] = None
         while utc_now() < end_time:
             await asyncio.sleep(0.5)  # Allow worker to run
-            fetched = self.db.get_item_by_id(queue_item.item_id)
+            fetched = self.client_db.get_item_by_id(queue_item.item_id)
             if not fetched:
                 logger.info(f"Queue item {queue_item.item_id} was processed")
                 break

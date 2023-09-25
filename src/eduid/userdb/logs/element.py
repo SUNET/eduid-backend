@@ -7,13 +7,13 @@ from typing import Any, Optional, TypeVar, Union
 from uuid import UUID
 
 import bson
+from fido_mds.models.fido_mds import Entry as FidoMetadataEntry
 from pydantic import Field
 
 from eduid.common.models.amapi_user import Reason, Source
 from eduid.common.rpc.msg_relay import DeregistrationInformation, FullPostalAddress
 from eduid.userdb.element import Element
 from eduid.userdb.identity import IdentityProofingMethod
-from fido_mds.models.fido_mds import Entry as FidoMetadataEntry
 
 __author__ = "lundberg"
 

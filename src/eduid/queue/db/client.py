@@ -36,7 +36,7 @@ from bson import ObjectId
 from eduid.queue.db.payload import Payload
 from eduid.queue.db.queue_item import QueueItem
 from eduid.queue.exceptions import PayloadNotRegistered
-from eduid.userdb.db import BaseDB, DatabaseDriver
+from eduid.userdb.db import BaseDB
 from eduid.userdb.exceptions import MultipleDocumentsReturned
 
 logger = logging.getLogger(__name__)
@@ -44,18 +44,9 @@ logger = logging.getLogger(__name__)
 __author__ = "lundberg"
 
 
-class QueueDB(BaseDB):
-    def __init__(
-        self, db_uri: str, collection: str, db_name: str = "eduid_queue", driver: Optional[DatabaseDriver] = None
-    ):
-        super().__init__(db_uri, db_name, collection=collection, driver=driver)
+class QueuePayloadMixin:
+    def __init__(self, *args, **kwargs):
         self.handlers: dict[str, type[Payload]] = dict()
-
-        # Remove messages older than discard_at datetime
-        indexes = {
-            "auto-discard": {"key": [("discard_at", 1)], "expireAfterSeconds": 0},
-        }
-        self.setup_indexes(indexes)
 
     def register_handler(self, payload: type[Payload]):
         payload_type = payload.get_type()
@@ -70,6 +61,19 @@ class QueueDB(BaseDB):
         except KeyError:
             raise PayloadNotRegistered(f"Payload type '{item.payload_type}' not registered with {self}")
         return payload_cls.from_dict(item.payload.to_dict())
+
+
+class QueueDB(BaseDB, QueuePayloadMixin):
+    def __init__(self, db_uri: str, collection: str, db_name: str = "eduid_queue"):
+        super().__init__(db_uri=db_uri, db_name=db_name, collection=collection)
+
+        self.handlers: dict[str, type[Payload]] = dict()
+
+        # Remove messages older than discard_at datetime
+        indexes = {
+            "auto-discard": {"key": [("discard_at", 1)], "expireAfterSeconds": 0},
+        }
+        self.setup_indexes(indexes)
 
     def get_item_by_id(self, message_id: Union[str, ObjectId], parse_payload: bool = True) -> Optional[QueueItem]:
         if isinstance(message_id, str):

@@ -116,6 +116,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         internal_captcha: bool = False,
         generate_internal_captcha: bool = True,
         add_magic_cookie: bool = False,
+        magic_cookie_name: Optional[str] = None,
         expect_success: bool = True,
         expected_message: Optional[TranslatableMsg] = None,
         expected_payload: Optional[Mapping[str, Any]] = None,
@@ -154,9 +155,9 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
                 if add_magic_cookie:
                     assert self.app.conf.magic_cookie_name is not None
                     assert self.app.conf.magic_cookie is not None
-                    client.set_cookie(
-                        "localhost", key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie
-                    )
+                    if magic_cookie_name is None:
+                        magic_cookie_name = self.app.conf.magic_cookie_name
+                    client.set_cookie(domain=self.test_domain, key=magic_cookie_name, value=self.app.conf.magic_cookie)
 
                 logger.info(f"Making request to {endpoint} with data:\n{data}")
                 response = client.post(f"{endpoint}", data=json.dumps(data), content_type=self.content_type_json)
@@ -768,21 +769,13 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
 
         return SignupResult(url=endpoint, reached_state=SignupState.S7_COMPLETE_INVITE, response=response)
 
-    def _get_code_backdoor(
-        self,
-        email: str,
-    ):
+    def _get_code_backdoor(self, email: str, magic_cookie_name: Optional[str] = None):
         """
         Test getting the generated verification code through the backdoor
         """
-        with self.session_cookie_anon(self.browser) as client:
+        with self.session_cookie_and_magic_cookie_anon(self.browser, magic_cookie_name=magic_cookie_name) as client:
             with client.session_transaction():
                 with self.app.test_request_context():
-                    assert self.app.conf.magic_cookie is not None
-                    assert self.app.conf.magic_cookie_name is not None
-                    client.set_cookie(
-                        "localhost", key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie
-                    )
                     return client.get(f"/get-code?email={email}")
 
     # actual tests
@@ -947,6 +940,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
             add_magic_cookie=True,
             expect_success=False,
             expected_message=SignupMsg.captcha_failed,
+            magic_cookie_name="wrong_name",
         )
         assert res.reached_state == SignupState.S3_COMPLETE_CAPTCHA
 
@@ -1287,7 +1281,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         self.app.conf.environment = EduidEnvironment("dev")
 
         email = "johnsmith4@example.com"
-        resp = self._get_code_backdoor(email=email)
+        resp = self._get_code_backdoor(email=email, magic_cookie_name="wrong_name")
 
         self.assertEqual(resp.status_code, 400)
 
@@ -1316,6 +1310,7 @@ class OldSignupTests(SignupTests):
         email: str = "dummy@example.com",
         recaptcha_return_value: bool = True,
         add_magic_cookie: bool = False,
+        magic_cookie_name: Optional[str] = None,
         expect_success: bool = True,
         expected_message: TranslatableMsg = SignupMsg.reg_new,
         expected_payload: Optional[Mapping[str, Any]] = None,
@@ -1343,9 +1338,9 @@ class OldSignupTests(SignupTests):
                 if add_magic_cookie:
                     assert self.app.conf.magic_cookie is not None
                     assert self.app.conf.magic_cookie_name is not None
-                    client.set_cookie(
-                        "localhost", key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie
-                    )
+                    if magic_cookie_name is None:
+                        magic_cookie_name = self.app.conf.magic_cookie_name
+                    client.set_cookie(domain=self.test_domain, key=magic_cookie_name, value=self.app.conf.magic_cookie)
 
                 _trycaptcha = "/trycaptcha"
 
@@ -1499,25 +1494,15 @@ class OldSignupTests(SignupTests):
             return SignupResult(url=_verify_link_url, reached_state=OldSignupState.S7_VERIFY_LINK, response=response2)
 
     @patch("eduid.webapp.signup.views.verify_recaptcha")
-    def _get_code_backdoor(
-        self,
-        mock_recaptcha: Any,
-        email: str,
-    ):
+    def _get_code_backdoor(self, mock_recaptcha: Any, email: str, magic_cookie_name: Optional[str] = None):
         """
         Test getting the generated verification code through the backdoor
         """
         mock_recaptcha.return_value = True
-        with self.session_cookie_anon(self.browser) as client:
+        with self.session_cookie_and_magic_cookie_anon(self.browser, magic_cookie_name=magic_cookie_name) as client:
             with client.session_transaction():
                 with self.app.test_request_context():
                     self._captcha_new(email=email)
-
-                    assert self.app.conf.magic_cookie_name is not None
-                    assert self.app.conf.magic_cookie is not None
-                    client.set_cookie(
-                        "localhost", key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie
-                    )
                     return client.get(f"/get-code?email={email}")
 
     def test_get_code_backdoor(self):
@@ -1549,7 +1534,7 @@ class OldSignupTests(SignupTests):
         self.app.conf.environment = EduidEnvironment("dev")
 
         email = "johnsmith4@example.com"
-        resp = self._get_code_backdoor(email=email)
+        resp = self._get_code_backdoor(email=email, magic_cookie_name="wrong_name")
 
         self.assertEqual(resp.status_code, 400)
 
@@ -1653,6 +1638,7 @@ class OldSignupTests(SignupTests):
         res = self._captcha_new(
             recaptcha_return_value=False,
             add_magic_cookie=True,
+            magic_cookie_name="wrong_name",
             expect_success=False,
             expected_message=SignupMsg.no_recaptcha,
         )
