@@ -234,45 +234,16 @@ class SSO(Service):
             current_app.logger.info(f"Redirecting user without a SAML request to {current_app.conf.eduid_site_url}")
             return redirect(current_app.conf.eduid_site_url)
 
-        if current_app.conf.login_bundle_url:
-            if info.SAMLRequest:
-                # redirect user to the Login javascript bundle
-                loc = urlappend(current_app.conf.login_bundle_url, ticket.request_ref)
-                current_app.logger.info(f"Redirecting user to login bundle {loc}")
-                return redirect(loc)
-            else:
-                raise BadRequest("No SAMLRequest, and login_bundle_url is set")
+        if not current_app.conf.login_bundle_url:
+            raise BadRequest("No login_bundle_url configured")
 
-    def perform_login(self, ticket: LoginContextSAML, authn_info: AuthnInfo) -> WerkzeugResponse:
-        """
-        Validate request, and then proceed with creating an AuthnResponse and
-        invoking the 'outgoing' SAML2 binding.
-
-        :param ticket: Login process state
-        :return: Response
-        """
-        current_app.logger.debug("\n\n---\n\n")
-        current_app.logger.debug("--- In SSO.perform_login() ---")
-
-        if not isinstance(self.sso_session, SSOSession):
-            raise RuntimeError(f"self.sso_session is not of type {SSOSession} ({type(self.sso_session)})")
-
-        user = current_app.userdb.lookup_user(self.sso_session.eppn)
-        if not user:
-            current_app.logger.error(f"User with eppn {self.sso_session.eppn} (from SSO session) not found")
-            raise Forbidden("User in SSO session not found")
-
-        params = self.get_response_params(authn_info, ticket, user)
-
-        if session.common.eppn and session.common.eppn != user.eppn:
-            current_app.logger.warning(f"Refusing to change eppn in session from {session.common.eppn} to {user.eppn}")
-            raise BadRequest("WRONG_USER")
-        session.common.eppn = user.eppn
-
-        # We're done with this SAML request. Remove it from the session.
-        del session.idp.pending_requests[ticket.request_ref]
-
-        return mischttp.create_html_response(params.binding, params.http_args)
+        if info.SAMLRequest:
+            # redirect user to the Login javascript bundle
+            loc = urlappend(current_app.conf.login_bundle_url, ticket.request_ref)
+            current_app.logger.info(f"Redirecting user to login bundle {loc}")
+            return redirect(loc)
+        else:
+            raise BadRequest("No SAMLRequest, and login_bundle_url is set")
 
     def get_response_params(self, authn_info: AuthnInfo, ticket: LoginContextSAML, user: IdPUser) -> SAMLResponseParams:
         resp_args = self._validate_login_request(ticket)
@@ -531,41 +502,6 @@ class SSO(Service):
         current_app.logger.debug(f"Validate login request :\n{ticket}")
         current_app.logger.debug(f"AuthnRequest from ticket: {ticket.saml_req!r}")
         return ticket.saml_req.get_response_args(ticket.request_ref, current_app.conf)
-
-
-# -----------------------------------------------------------------------------
-# === Authentication ====
-# -----------------------------------------------------------------------------
-
-
-def do_verify() -> WerkzeugResponse:
-    """
-    Perform authentication of user based on user provided credentials.
-
-    What kind of authentication to perform was chosen by SSO._not_authn() when
-    the login web page was to be rendered. It is passed to this function through
-    an HTTP POST parameter (authn_reference).
-
-    This function should not be thought of as a "was login successful" or not.
-    It will figure out what authentication level to assert based on the authncontext
-    requested, and the actual authentication that succeeded.
-
-    :return: Does not return
-    :raise eduid_idp.mischttp.Redirect: On successful authentication, redirect to redirect_uri.
-    """
-    query = mischttp.get_post()
-    # extract password to keep it away from as much code as possible
-    password = query.pop("password", None)
-    if password:
-        query["password"] = "<redacted>"
-    current_app.logger.debug(f"do_verify parsed query :\n{pprint.pformat(query)}")
-
-    if "ref" not in query:
-        raise BadRequest(f"Missing parameter - please re-initiate login")
-    _info = SAMLQueryParams(request_ref=query["ref"])
-    _ticket = get_ticket(_info, None)
-    if not _ticket:
-        raise BadRequest(f"Missing parameter - please re-initiate login")
 
 
 # ----------------------------------------------------------------------------
