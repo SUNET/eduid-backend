@@ -1,21 +1,13 @@
 import logging
 import os
-from datetime import datetime
-from typing import Any, Mapping
 from unittest.mock import MagicMock, patch
 
-import pytest
 from pydantic import HttpUrl, parse_obj_as
 from requests import RequestException
-from saml2 import BINDING_HTTP_REDIRECT
-from saml2.client import Saml2Client
 
-from eduid.userdb import MailAddress
 from eduid.vccs.client import VCCSClient
-from eduid.webapp.common.authn.utils import get_saml2_config
 from eduid.webapp.idp.helpers import IdPAction, IdPMsg
 from eduid.webapp.idp.tests.test_api import IdPAPITests
-from eduid.webapp.idp.tests.test_app import IdPTests, LoginState
 from eduid.workers.am import AmCelerySingleton
 
 logger = logging.getLogger(__name__)

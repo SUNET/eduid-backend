@@ -33,7 +33,6 @@
 from typing import Any, Optional
 
 from flask import Blueprint, jsonify, redirect, request
-from werkzeug.exceptions import BadRequest
 from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith
@@ -49,7 +48,6 @@ from eduid.webapp.idp.sso_session import SSOSession, session
 
 __author__ = "ft"
 
-from eduid.webapp.idp.mischttp import parse_query_string
 from eduid.webapp.idp.schemas import AbortRequestSchema, AbortResponseSchema, LogoutRequestSchema, LogoutResponseSchema
 from eduid.webapp.idp.service import SAMLQueryParams
 

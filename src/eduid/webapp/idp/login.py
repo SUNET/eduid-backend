@@ -25,7 +25,7 @@ from flask import redirect
 from flask_babel import gettext as _
 from pydantic import BaseModel
 from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
-from werkzeug.exceptions import BadRequest, Forbidden
+from werkzeug.exceptions import BadRequest
 from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.common.misc.timeutil import utc_now
@@ -33,10 +33,9 @@ from eduid.common.utils import urlappend
 from eduid.userdb import User
 from eduid.userdb.idp import IdPUser
 from eduid.userdb.idp.user import SAMLAttributeSettings
-from eduid.webapp.common.api import exceptions
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.namespaces import IdP_OtherDevicePendingRequest, IdP_SAMLPendingRequest, RequestRef
-from eduid.webapp.idp import assurance, mischttp
+from eduid.webapp.idp import assurance
 from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.assurance import (
     AssuranceException,
@@ -47,11 +46,10 @@ from eduid.webapp.idp.assurance import (
 )
 from eduid.webapp.idp.assurance_data import AuthnInfo
 from eduid.webapp.idp.helpers import IdPMsg
-from eduid.webapp.idp.idp_authn import AuthnData
 from eduid.webapp.idp.idp_saml import ResponseArgs, SamlResponse
 from eduid.webapp.idp.login_context import LoginContext, LoginContextOtherDevice, LoginContextSAML
 from eduid.webapp.idp.mfa_action import need_security_key
-from eduid.webapp.idp.mischttp import HttpArgs, get_default_template_arguments, get_user_agent
+from eduid.webapp.idp.mischttp import HttpArgs, get_user_agent
 from eduid.webapp.idp.other_device.data import OtherDeviceState
 from eduid.webapp.idp.service import SAMLQueryParams, Service
 from eduid.webapp.idp.sso_session import SSOSession
