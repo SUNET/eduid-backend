@@ -42,7 +42,7 @@ from eduid.webapp.common.api.schemas.models import FluxSuccessResponse
 from eduid.webapp.common.session.namespaces import IdP_SAMLPendingRequest, RequestRef
 from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.decorators import require_ticket, uses_sso_session
-from eduid.webapp.idp.login import do_verify, get_ticket, show_login_page
+from eduid.webapp.idp.login import do_verify, get_ticket
 from eduid.webapp.idp.login_context import LoginContext, LoginContextSAML
 from eduid.webapp.idp.service import SAMLQueryParams
 from eduid.webapp.idp.sso_session import SSOSession, session
@@ -154,15 +154,6 @@ def verify() -> WerkzeugResponse:
         ticket = get_ticket(_info, None)
         if not ticket:
             raise BadRequest(f"Missing parameter - please re-initiate login")
-
-        # TODO: Remove all this code, we don't use the template IdP anymore.
-        if not current_app.conf.enable_legacy_template_mode:
-            raise BadRequest("Template IdP not enabled")
-
-        # please mypy with this legacy code
-        assert isinstance(ticket, LoginContextSAML)
-
-        return show_login_page(ticket)
 
     if request.method == "POST":
         return do_verify()
