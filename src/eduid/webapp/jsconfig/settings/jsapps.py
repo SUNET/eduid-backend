@@ -49,7 +49,7 @@ class JsAppsConfig(PasswordConfigMixin):
     dashboard_link: HttpUrl
     dashboard_url: Optional[str]  # deprecated
     debug: bool = False
-    eduid_site_link: HttpUrl = "https://eduid.se"
+    eduid_site_link: HttpUrl = Field(default=HttpUrl(scheme="https", url="eduid.se"))
     eduid_site_name: str = "eduID"
     eduid_site_url: Optional[str] = "https://eduid.se"  # deprecated
     environment: EduidEnvironment = EduidEnvironment.production
