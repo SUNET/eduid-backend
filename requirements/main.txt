@@ -726,7 +726,7 @@ pycryptodomex==3.19.0 \
     # via
     #   oic
     #   pyjwkest
-pydantic==1.10.12 \
+pydantic==2.4.0 \
     --hash=sha256:0fe8a415cea8f340e7a9af9c54fc71a649b43e8ca3cc732986116b3cb135d303 \
     --hash=sha256:1289c180abd4bd4555bb927c42ee42abc3aee02b0fb2d1223fb7c6e5bef87dbe \
     --hash=sha256:1eb2085c13bce1612da8537b2d90f549c8cbb05c67e8f22854e201bde5d98a47 \
