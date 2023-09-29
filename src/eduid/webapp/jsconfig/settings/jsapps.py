@@ -44,49 +44,61 @@ class JsAppsConfig(PasswordConfigMixin):
     This is sent to the client, so care must be taken to avoid setting secrets here.
     """
 
-    debug: bool = False
-    environment: EduidEnvironment = EduidEnvironment.production
-    csrf_token: Optional[str] = None
     available_languages: dict[str, str] = Field(default={"en": "English", "sv": "Svenska"})
+    csrf_token: Optional[str] = None
+    dashboard_link: HttpUrl
+    dashboard_url: Optional[str]  # deprecated
+    debug: bool = False
+    eduid_site_link: HttpUrl = "https://eduid.se"
     eduid_site_name: str = "eduID"
-    eduid_site_url: str = "https://eduid.se"
-    dashboard_url: str
-    signup_url: str
-    reset_password_link: str  # used for directing a user to the reset password app
-    static_faq_url: str
+    eduid_site_url: Optional[str] = "https://eduid.se"  # deprecated
+    environment: EduidEnvironment = EduidEnvironment.production
+    faq_link: HttpUrl
+    reset_password_link: HttpUrl  # used for directing a user to the reset password app
     sentry_dsn: Optional[str] = None
+    signup_link: HttpUrl
+    signup_url: Optional[str]  # deprecated
+    static_faq_url: Optional[str]  # deprecated
     # backend endpoint urls
-    authn_url: str
-    eidas_url: str
-    emails_url: str
-    group_mgmt_url: str
-    ladok_url: str
-    letter_proofing_url: str
-    login_base_url: AnyUrl
-    login_next_url: HttpUrl  # Needs to be a full URL since the backend is on the idp, not on https://eduid.se
-    request_other_url: Optional[
-        HttpUrl
-    ] = None  # Needs to be a full URL since the backend is on the idp, not on https://eduid.se
+    authn_service_url: HttpUrl
+    authn_url: Optional[str]  # deprecated
+    eidas_service_url: HttpUrl
+    eidas_url: Optional[str]  # deprecated
+    emails_service_url: HttpUrl
+    emails_url: Optional[str]  # deprecated
     error_info_url: Optional[
         HttpUrl
     ] = None  # Needs to be a full URL since the backend is on the idp, not on https://eduid.se
-    lookup_mobile_proofing_url: str
-    mobile_url: Optional[str] = None  # should be replaced by phone_url
-    oidc_proofing_freja_url: str
-    oidc_proofing_url: str
-    orcid_url: str
-    password_service_url: Optional[str] = None  # should be replaced by reset_password_url
-    personal_data_url: str
-    phone_url: str
-    reset_passwd_url: Optional[str] = None  # should be replaced by reset_password_url
-    reset_password_url: str
-    security_url: str
-    svipe_url: Optional[str]  # if not set the frontend component will not show
-    token_service_url: Optional[str] = None  # should be replaced by authn_url
+    group_mgmt_service_url: HttpUrl
+    group_mgmt_url: Optional[str]  # deprecated
+    ladok_service_url: HttpUrl
+    ladok_url: Optional[str]  # deprecated
+    letter_proofing_service_url: HttpUrl
+    letter_proofing_url: Optional[str]  # deprecated
+    login_base_url: Optional[AnyUrl]  # deprecated
+    login_next_url: HttpUrl  # Needs to be a full URL since the backend is on the idp, not on https://eduid.se
+    login_request_other_url: Optional[
+        HttpUrl
+    ] = None  # Needs to be a full URL since the backend is on the idp, not on https://eduid.se
+    login_service_url: HttpUrl
+    lookup_mobile_proofing_service_url: HttpUrl
+    lookup_mobile_proofing_url: Optional[str]  # deprecated
+    orcid_service_url: HttpUrl
+    orcid_url: Optional[str]  # deprecated
+    personal_data_service_url: HttpUrl
+    personal_data_url: Optional[str]  # deprecated
+    phone_service_url: HttpUrl
+    phone_url: Optional[str]  # deprecated
+    reset_password_service_url: HttpUrl
+    reset_password_url: Optional[str]  # deprecated
+    security_service_url: HttpUrl
+    security_url: Optional[str]  # deprecated
+    svipe_service_url: Optional[HttpUrl]  # if not set the frontend component will not show
+    svipe_url: Optional[str]  # deprecated
     # Dashboard config
-    proofing_methods: list = Field(default=["letter", "lookup_mobile", "oidc", "eidas"])
     default_country_code: int = 46
-    token_verify_idp: str
+    proofing_methods: list = Field(default=["letter", "lookup_mobile", "oidc", "eidas"])
+    token_verify_idp: HttpUrl
     # Signup config
-    tous: Optional[dict[str, str]] = None
     recaptcha_public_key: Optional[str] = None
+    tous: Optional[dict[str, str]] = None
