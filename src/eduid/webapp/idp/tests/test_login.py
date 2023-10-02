@@ -12,7 +12,7 @@ from eduid.userdb import MailAddress
 from eduid.vccs.client import VCCSClient
 from eduid.webapp.common.authn.utils import get_saml2_config
 from eduid.webapp.idp.helpers import IdPAction, IdPMsg
-from eduid.webapp.idp.tests.test_api import IdPAPITests
+from eduid.webapp.idp.tests.test_api import IdPAPITests, TestUser
 from eduid.workers.am import AmCelerySingleton
 
 logger = logging.getLogger(__name__)
@@ -22,12 +22,12 @@ HERE = os.path.abspath(os.path.dirname(__file__))
 
 class IdPTestLoginAPI(IdPAPITests):
     def test_login_start(self) -> None:
-        result = self._try_login()
+        result = self._try_login(test_user=TestUser(eppn=None, password=None))
         assert result.visit_order == [IdPAction.PWAUTH]
         assert result.sso_cookie_val is None
 
     def test_login_pwauth_wrong_password(self) -> None:
-        result = self._try_login(username=self.test_user.eppn, password="bar")
+        result = self._try_login()
         assert result.visit_order == [IdPAction.PWAUTH, IdPAction.PWAUTH]
         assert result.sso_cookie_val is None
         assert result.pwauth_result is not None
@@ -40,7 +40,7 @@ class IdPTestLoginAPI(IdPAPITests):
         # Patch the VCCSClient so we do not need a vccs server
         with patch.object(VCCSClient, "authenticate") as mock_vccs:
             mock_vccs.return_value = True
-            result = self._try_login(username=self.test_user.eppn, password="bar")
+            result = self._try_login()
 
         assert result.visit_order == [IdPAction.PWAUTH, IdPAction.FINISHED]
         assert result.sso_cookie_val is not None
@@ -63,7 +63,7 @@ class IdPTestLoginAPI(IdPAPITests):
         # Patch the VCCSClient so we do not need a vccs server
         with patch.object(VCCSClient, "authenticate") as mock_vccs:
             mock_vccs.return_value = True
-            result = self._try_login(username=self.test_user.eppn, password="bar")
+            result = self._try_login()
 
         assert result.visit_order == [IdPAction.PWAUTH, IdPAction.TOU, IdPAction.FINISHED]
         assert result.sso_cookie_val is not None
@@ -86,7 +86,7 @@ class IdPTestLoginAPI(IdPAPITests):
         # Patch the VCCSClient so we do not need a vccs server
         with patch.object(VCCSClient, "authenticate") as mock_vccs:
             mock_vccs.return_value = True
-            result = self._try_login(username=self.test_user.eppn, password="bar")
+            result = self._try_login()
 
         assert result.finished_result is not None
         authn_response = self.parse_saml_authn_response(result.finished_result)
@@ -100,7 +100,7 @@ class IdPTestLoginAPI(IdPAPITests):
         # Patch the VCCSClient so we do not need a vccs server
         with patch.object(VCCSClient, "authenticate") as mock_vccs:
             mock_vccs.return_value = True
-            result2 = self._try_login(username=self.test_user.eppn, password="bar", force_authn=True)
+            result2 = self._try_login(force_authn=True)
 
         assert result2.finished_result is not None
         authn_response2 = self.parse_saml_authn_response(result2.finished_result)
@@ -115,7 +115,7 @@ class IdPTestLoginAPI(IdPAPITests):
         # Patch the VCCSClient so we do not need a vccs server
         with patch.object(VCCSClient, "authenticate") as mock_vccs:
             mock_vccs.return_value = True
-            result = self._try_login(username=self.test_user.eppn, password="bar")
+            result = self._try_login()
         assert result.visit_order == [IdPAction.PWAUTH]
         assert result.error is not None
         payload = result.error.get("payload")
@@ -132,7 +132,7 @@ class IdPTestLoginAPI(IdPAPITests):
         # Patch the VCCSClient so we do not need a vccs server
         with patch.object(VCCSClient, "authenticate") as mock_vccs:
             mock_vccs.return_value = True
-            result = self._try_login(username=self.test_user.eppn, password="bar", saml2_client=saml2_client)
+            result = self._try_login(saml2_client=saml2_client)
 
         assert result.visit_order == [IdPAction.PWAUTH]
         assert result.error is not None
@@ -147,7 +147,7 @@ class IdPTestLoginAPI(IdPAPITests):
         # Patch the VCCSClient so we do not need a vccs server
         with patch.object(VCCSClient, "authenticate") as mock_vccs:
             mock_vccs.return_value = True
-            result = self._try_login(username=self.test_user.eppn, password="bar")
+            result = self._try_login()
 
         assert result.visit_order == [IdPAction.PWAUTH, IdPAction.FINISHED]
 
@@ -172,7 +172,7 @@ class IdPTestLoginAPI(IdPAPITests):
         # Patch the VCCSClient so we do not need a vccs server
         with patch.object(VCCSClient, "authenticate") as mock_vccs:
             mock_vccs.return_value = True
-            result = self._try_login(username=self.test_user.eppn, password="bar", saml2_client=saml2_client)
+            result = self._try_login(saml2_client=saml2_client)
 
         assert result.visit_order == [IdPAction.PWAUTH, IdPAction.FINISHED]
 
@@ -195,7 +195,7 @@ class IdPTestLoginAPI(IdPAPITests):
         # Patch the VCCSClient so we do not need a vccs server
         with patch.object(VCCSClient, "authenticate") as mock_vccs:
             mock_vccs.return_value = True
-            result = self._try_login(username=self.test_user.eppn, password="bar", saml2_client=saml2_client)
+            result = self._try_login(saml2_client=saml2_client)
 
         assert result.visit_order == [IdPAction.PWAUTH, IdPAction.FINISHED]
 
@@ -222,7 +222,7 @@ class IdPTestLoginAPI(IdPAPITests):
         # Patch the VCCSClient, so we do not need a vccs server
         with patch.object(VCCSClient, "authenticate") as mock_vccs:
             mock_vccs.return_value = True
-            result = self._try_login(username=self.test_user.eppn, password="bar", saml2_client=saml2_client)
+            result = self._try_login(saml2_client=saml2_client)
 
         assert result.visit_order == [IdPAction.PWAUTH, IdPAction.FINISHED]
 
@@ -244,7 +244,7 @@ class IdPTestLoginAPI(IdPAPITests):
         # Patch the VCCSClient, so we do not need a vccs server
         with patch.object(VCCSClient, "authenticate") as mock_vccs:
             mock_vccs.return_value = True
-            result = self._try_login(username=self.test_user.eppn, password="bar", saml2_client=saml2_client)
+            result = self._try_login(saml2_client=saml2_client)
 
         assert result.visit_order == [IdPAction.PWAUTH, IdPAction.FINISHED]
 
@@ -267,7 +267,7 @@ class IdPTestLoginAPI(IdPAPITests):
         # Patch the VCCSClient, so we do not need a vccs server
         with patch.object(VCCSClient, "authenticate") as mock_vccs:
             mock_vccs.return_value = True
-            result = self._try_login(username=self.test_user.eppn, password="bar", saml2_client=saml2_client)
+            result = self._try_login(saml2_client=saml2_client)
 
         assert result.visit_order == [IdPAction.PWAUTH, IdPAction.FINISHED]
 
@@ -284,11 +284,7 @@ class IdPTestLoginAPI(IdPAPITests):
         # Patch the VCCSClient so we do not need a vccs server
         with patch.object(VCCSClient, "authenticate") as mock_vccs:
             mock_vccs.return_value = True
-            result = self._try_login(
-                username=self.test_user.eppn,
-                password="bar",
-                assertion_consumer_service_url="https://localhost:8080/acs/",
-            )
+            result = self._try_login(assertion_consumer_service_url="https://localhost:8080/acs/")
 
         assert result.visit_order == [IdPAction.PWAUTH, IdPAction.FINISHED]
         assert result.finished_result is not None
@@ -306,7 +302,7 @@ class IdPTestLoginAPI(IdPAPITests):
         with patch.object(VCCSClient, "authenticate") as mock_vccs:
             mock_vccs.return_value = True
             with patch("requests.post", new_callable=MagicMock) as mock_post:
-                result = self._try_login(username=self.test_user.eppn, password="bar")
+                result = self._try_login()
                 assert mock_post.call_count == 1
                 assert mock_post.call_args.kwargs.get("json") == {
                     "data": {
@@ -343,7 +339,7 @@ class IdPTestLoginAPI(IdPAPITests):
             mock_vccs.return_value = True
             with patch("requests.post", new_callable=MagicMock) as mock_post:
                 mock_post.side_effect = RequestException("Test Exception")
-                result = self._try_login(username=self.test_user.eppn, password="bar")
+                result = self._try_login()
                 assert mock_post.call_count == 1
 
         assert result.finished_result is not None

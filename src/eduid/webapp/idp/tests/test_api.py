@@ -83,6 +83,12 @@ class FinishedResultAPI(GenericResult):
 
 
 @dataclass
+class TestUser:
+    eppn: Optional[str]
+    password: Optional[str]
+
+
+@dataclass
 class LoginResultAPI:
     response: TestResponse
     ref: Optional[str] = None
@@ -97,6 +103,8 @@ class LoginResultAPI:
 
 class IdPAPITests(EduidAPITestCase[IdPApp]):
     """Base TestCase for those tests that need a full environment setup"""
+
+    default_user: TestUser
 
     def setUp(
         self,
@@ -113,6 +121,7 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
         self.pysaml2_identity = IdentityCache(self._pysaml2_caches)  # _saml2_identities in _pysaml2_caches
         self.pysaml2_oq = OutstandingQueriesCache(self._pysaml2_caches)  # _saml2_outstanding_queries in _pysaml2_caches
         self.saml2_client = Saml2Client(config=self.sp_config, identity_cache=self.pysaml2_identity)
+        self.default_user = TestUser(eppn=self.test_user.eppn, password="bar")
 
     def load_app(self, config: Optional[Mapping[str, Any]]) -> IdPApp:
         """
@@ -151,8 +160,7 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
         authn_context: Optional[Mapping[str, Any]] = None,
         force_authn: bool = False,
         assertion_consumer_service_url: Optional[str] = None,
-        username: Optional[str] = None,
-        password: Optional[str] = None,
+        test_user: Optional[TestUser] = None,
     ) -> LoginResultAPI:
         """
         Try logging in to the IdP.
@@ -174,6 +182,9 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
         self.pysaml2_oq.set(session_id, self.relay_state)
 
         path = self._extract_path_from_info(info)
+
+        user: TestUser = test_user if test_user is not None else self.default_user
+
         with self.session_cookie_anon(self.browser) as browser:
             # Send SAML request to SAML endpoint, expect a redirect to the login bundle back
             resp = browser.get(path)
@@ -209,11 +220,11 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
                     return result
 
                 if _action == IdPAction.PWAUTH:
-                    if not username or not password:
+                    if not user.eppn or not user.password:
                         logger.error(f"Can't login without username and password, aborting with result {result}")
                         return result
 
-                    result.pwauth_result = self._call_pwauth(_next.payload["target"], ref, username, password)
+                    result.pwauth_result = self._call_pwauth(_next.payload["target"], ref, user.eppn, user.password)
                     result.sso_cookie_val = result.pwauth_result.sso_cookie_val
                     cookie_jar.update(result.pwauth_result.cookies)
 
@@ -243,7 +254,7 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
                 return NextResult(payload=self.get_response_payload(response), error=response.json)
         if response._status_code != 200 and response._status_code != 302:
             _page_text = response.data.decode("UTF-8")
-            _re = r"<p>([^<]*error:[^<]*)</p>"
+            _re = r"<p>(.*?error:.*?)</p>"
             _re_match = re.search(_re, _page_text)
             assert _re_match is not None
             _error_message = _re_match.group(1)
