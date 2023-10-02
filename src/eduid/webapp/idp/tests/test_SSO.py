@@ -58,7 +58,7 @@ from eduid.webapp.idp.idp_saml import IdP_SAMLRequest, ServiceInfo
 from eduid.webapp.idp.login import NextResult, login_next_step
 from eduid.webapp.idp.login_context import LoginContext, LoginContextSAML
 from eduid.webapp.idp.sso_session import SSOSession
-from eduid.webapp.idp.tests.test_app import IdPTests
+from eduid.webapp.idp.tests.test_api import IdPAPITests
 from eduid.webapp.idp.util import b64encode
 
 _U2F = U2F(version="U2F_V2", app_id="unit test", keyhandle="firstU2FElement", public_key="foo")
@@ -108,7 +108,7 @@ def _transport_encode(data):
     return b64encode("".join(data.split("\n")))
 
 
-class SSOIdPTests(IdPTests):
+class SSOIdPTests(IdPAPITests):
     def _make_login_ticket(
         self, req_class_ref: Union[EduidAuthnContextClass, str], request_ref: Optional[RequestRef] = None
     ) -> LoginContext:

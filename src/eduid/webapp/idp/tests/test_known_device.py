@@ -11,7 +11,7 @@ from nacl.secret import SecretBox
 from eduid.userdb.util import utc_now
 from eduid.webapp.idp.app import IdPApp
 from eduid.webapp.idp.known_device import BrowserDeviceInfo, KnownDevice, KnownDeviceData, KnownDeviceId
-from eduid.webapp.idp.tests.test_app import IdPTests
+from eduid.webapp.idp.tests.test_api import IdPAPITests
 
 
 class TestBrowserDeviceInfo(unittest.TestCase):
@@ -115,7 +115,7 @@ class TestKnownDevice(unittest.TestCase):
         assert first_dict != first.to_dict(from_browser=browser_info)
 
 
-class TestIdPUserDb(IdPTests):
+class TestIdPUserDb(IdPAPITests):
     def test_adding_new_known_device(self):
         assert isinstance(self.app, IdPApp)
         browser_info = self.app.known_device_db.create_new_state()

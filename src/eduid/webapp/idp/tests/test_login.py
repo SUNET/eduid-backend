@@ -35,7 +35,7 @@ class IdPTestLoginAPI(IdPAPITests):
 
     def test_login_pwauth_right_password(self) -> None:
         # pre-accept ToU for this test
-        self.add_test_user_tou(self.app.conf.tou_version)
+        self.add_test_user_tou()
 
         # Patch the VCCSClient so we do not need a vccs server
         with patch.object(VCCSClient, "authenticate") as mock_vccs:
@@ -49,9 +49,7 @@ class IdPTestLoginAPI(IdPAPITests):
         assert result.finished_result.payload["target"] == "https://sp.example.edu/saml2/acs/"
         assert result.finished_result.payload["parameters"]["RelayState"] == self.relay_state
 
-        authn_response = self.parse_saml_authn_response(result.finished_result)
-        session_info = authn_response.session_info()
-        attributes: dict[str, list[Any]] = session_info["ava"]
+        attributes = self.get_attributes(result)
 
         assert "eduPersonPrincipalName" in attributes
         assert attributes["eduPersonPrincipalName"] == [f"hubba-bubba@{self.app.conf.default_eppn_scope}"]
@@ -72,16 +70,14 @@ class IdPTestLoginAPI(IdPAPITests):
         assert result.finished_result.payload["target"] == "https://sp.example.edu/saml2/acs/"
         assert result.finished_result.payload["parameters"]["RelayState"] == self.relay_state
 
-        authn_response = self.parse_saml_authn_response(result.finished_result)
-        session_info = authn_response.session_info()
-        attributes: dict[str, list[Any]] = session_info["ava"]
+        attributes = self.get_attributes(result)
 
         assert "eduPersonPrincipalName" in attributes
         assert attributes["eduPersonPrincipalName"] == [f"hubba-bubba@{self.app.conf.default_eppn_scope}"]
 
     def test_ForceAuthn_with_existing_SSO_session(self) -> None:
         # pre-accept ToU for this test
-        self.add_test_user_tou(self.app.conf.tou_version)
+        self.add_test_user_tou()
 
         # Patch the VCCSClient so we do not need a vccs server
         with patch.object(VCCSClient, "authenticate") as mock_vccs:
@@ -127,7 +123,7 @@ class IdPTestLoginAPI(IdPAPITests):
         saml2_client = Saml2Client(config=sp_config)
 
         # pre-accept ToU for this test
-        self.add_test_user_tou(self.app.conf.tou_version)
+        self.add_test_user_tou()
 
         # Patch the VCCSClient so we do not need a vccs server
         with patch.object(VCCSClient, "authenticate") as mock_vccs:
@@ -142,7 +138,7 @@ class IdPTestLoginAPI(IdPAPITests):
 
     def test_sso_to_unknown_sp(self) -> None:
         # pre-accept ToU for this test
-        self.add_test_user_tou(self.app.conf.tou_version)
+        self.add_test_user_tou()
 
         # Patch the VCCSClient so we do not need a vccs server
         with patch.object(VCCSClient, "authenticate") as mock_vccs:
@@ -167,7 +163,7 @@ class IdPTestLoginAPI(IdPAPITests):
         saml2_client = Saml2Client(config=sp_config)
 
         # pre-accept ToU for this test
-        self.add_test_user_tou(self.app.conf.tou_version)
+        self.add_test_user_tou()
 
         # Patch the VCCSClient so we do not need a vccs server
         with patch.object(VCCSClient, "authenticate") as mock_vccs:
@@ -177,9 +173,7 @@ class IdPTestLoginAPI(IdPAPITests):
         assert result.visit_order == [IdPAction.PWAUTH, IdPAction.FINISHED]
 
         assert result.finished_result is not None
-        authn_response = self.parse_saml_authn_response(result.finished_result, saml2_client=saml2_client)
-        session_info = authn_response.session_info()
-        attributes: dict[str, list[Any]] = session_info["ava"]
+        attributes = self.get_attributes(result, saml2_client=saml2_client)
 
         assert result.visit_order == [IdPAction.PWAUTH, IdPAction.FINISHED]
         assert "eduPersonTargetedID" in attributes
@@ -190,7 +184,7 @@ class IdPTestLoginAPI(IdPAPITests):
         saml2_client = Saml2Client(config=sp_config)
 
         # pre-accept ToU for this test
-        self.add_test_user_tou(self.app.conf.tou_version)
+        self.add_test_user_tou()
 
         # Patch the VCCSClient so we do not need a vccs server
         with patch.object(VCCSClient, "authenticate") as mock_vccs:
@@ -199,10 +193,8 @@ class IdPTestLoginAPI(IdPAPITests):
 
         assert result.visit_order == [IdPAction.PWAUTH, IdPAction.FINISHED]
 
-        assert result.finished_result is not None
-        authn_response = self.parse_saml_authn_response(result.finished_result, saml2_client=saml2_client)
-        session_info = authn_response.session_info()
-        attributes: dict[str, list[Any]] = session_info["ava"]
+        attributes = self.get_attributes(result, saml2_client=saml2_client)
+
         requested_attributes = ["schacPersonalUniqueCode", "eduPersonTargetedID"]
         # make sure we only release the two requested attributes
         assert [attr for attr in attributes if attr not in requested_attributes] == []
@@ -217,7 +209,7 @@ class IdPTestLoginAPI(IdPAPITests):
         saml2_client = Saml2Client(config=sp_config)
 
         # pre-accept ToU for this test
-        self.add_test_user_tou(self.app.conf.tou_version)
+        self.add_test_user_tou()
 
         # Patch the VCCSClient, so we do not need a vccs server
         with patch.object(VCCSClient, "authenticate") as mock_vccs:
@@ -227,9 +219,9 @@ class IdPTestLoginAPI(IdPAPITests):
         assert result.visit_order == [IdPAction.PWAUTH, IdPAction.FINISHED]
 
         assert result.finished_result is not None
-        authn_response = self.parse_saml_authn_response(result.finished_result, saml2_client=saml2_client)
-        session_info = authn_response.session_info()
-        attributes: dict[str, list[Any]] = session_info["ava"]
+
+        attributes = self.get_attributes(result, saml2_client=saml2_client)
+
         assert attributes["pairwise-id"] == [
             "36382d115a9b7d8c27cc9eed94aab0ea6cc16a8becc5a468922e36e5a351f8f9@test.scope"
         ]
@@ -239,7 +231,7 @@ class IdPTestLoginAPI(IdPAPITests):
         saml2_client = Saml2Client(config=sp_config)
 
         # pre-accept ToU for this test
-        self.add_test_user_tou(self.app.conf.tou_version)
+        self.add_test_user_tou()
 
         # Patch the VCCSClient, so we do not need a vccs server
         with patch.object(VCCSClient, "authenticate") as mock_vccs:
@@ -248,10 +240,7 @@ class IdPTestLoginAPI(IdPAPITests):
 
         assert result.visit_order == [IdPAction.PWAUTH, IdPAction.FINISHED]
 
-        assert result.finished_result is not None
-        authn_response = self.parse_saml_authn_response(result.finished_result, saml2_client=saml2_client)
-        session_info = authn_response.session_info()
-        attributes: dict[str, list[Any]] = session_info["ava"]
+        attributes = self.get_attributes(result, saml2_client=saml2_client)
         assert attributes["subject-id"] == ["hubba-bubba@test.scope"]
 
     def test_mail_local_address(self) -> None:
@@ -262,7 +251,7 @@ class IdPTestLoginAPI(IdPAPITests):
         self.add_test_user_mail_address(MailAddress(email="test@example.com", is_verified=True))
 
         # pre-accept ToU for this test
-        self.add_test_user_tou(self.app.conf.tou_version)
+        self.add_test_user_tou()
 
         # Patch the VCCSClient, so we do not need a vccs server
         with patch.object(VCCSClient, "authenticate") as mock_vccs:
@@ -271,15 +260,13 @@ class IdPTestLoginAPI(IdPAPITests):
 
         assert result.visit_order == [IdPAction.PWAUTH, IdPAction.FINISHED]
 
-        assert result.finished_result is not None
-        authn_response = self.parse_saml_authn_response(result.finished_result, saml2_client=saml2_client)
-        session_info = authn_response.session_info()
-        attributes: dict[str, list[Any]] = session_info["ava"]
+        attributes = self.get_attributes(result, saml2_client=saml2_client)
+
         assert attributes["mailLocalAddress"] == ["johnsmith@example.com", "test@example.com"]
 
     def test_successful_authentication_alternative_acs(self) -> None:
         # pre-accept ToU for this test
-        self.add_test_user_tou(self.app.conf.tou_version)
+        self.add_test_user_tou()
 
         # Patch the VCCSClient so we do not need a vccs server
         with patch.object(VCCSClient, "authenticate") as mock_vccs:
@@ -292,7 +279,7 @@ class IdPTestLoginAPI(IdPAPITests):
 
     def test_geo_statistics_success(self) -> None:
         # pre-accept ToU for this test
-        self.add_test_user_tou(self.app.conf.tou_version)
+        self.add_test_user_tou()
 
         # enable geo statistics
         self.app.conf.geo_statistics_feature_enabled = True
@@ -328,7 +315,7 @@ class IdPTestLoginAPI(IdPAPITests):
 
     def test_geo_statistics_fail(self) -> None:
         # pre-accept ToU for this test
-        self.add_test_user_tou(self.app.conf.tou_version)
+        self.add_test_user_tou()
 
         # enable geo statistics
         self.app.conf.geo_statistics_feature_enabled = True

@@ -42,6 +42,7 @@ from werkzeug.test import TestResponse
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb import ToUEvent
 from eduid.userdb.mail import MailAddress
+from eduid.userdb.user import User
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.common.authn.cache import IdentityCache, OutstandingQueriesCache, StateCache
 from eduid.webapp.common.authn.utils import get_saml2_config
@@ -342,10 +343,12 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
             return None
         return self.app.sso_sessions.get_session(SSOSessionId(sso_cookie_val))
 
-    def add_test_user_tou(self, version: Optional[str] = None) -> ToUEvent:
+    def add_test_user_tou(self, user: Optional[User] = None, version: Optional[str] = None) -> ToUEvent:
         """Utility function to add a valid ToU to the default test user"""
         if version is None:
             version = self.app.conf.tou_version
+        if user is None:
+            user = self.test_user
         tou = ToUEvent(
             version=version,
             created_by="idp_tests",
@@ -353,11 +356,18 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
             modified_ts=utc_now(),
             event_id=str(ObjectId()),
         )
-        self.test_user.tou.add(tou)
-        self.amdb.save(self.test_user)
+        user.tou.add(tou)
+        self.amdb.save(user)
         return tou
 
     def add_test_user_mail_address(self, mail_address: MailAddress) -> None:
         """Utility function to add a mail address to the default test user"""
         self.test_user.mail_addresses.add(mail_address)
         self.amdb.save(self.test_user)
+
+    def get_attributes(self, result, saml2_client: Optional[Saml2Client] = None):
+        assert result.finished_result is not None
+        authn_response = self.parse_saml_authn_response(result.finished_result, saml2_client=saml2_client)
+        session_info = authn_response.session_info()
+        attributes: dict[str, list[Any]] = session_info["ava"]
+        return attributes
