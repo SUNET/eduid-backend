@@ -1,11 +1,16 @@
 import logging
 import os
+from datetime import datetime
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 from pydantic import HttpUrl, parse_obj_as
 from requests import RequestException
+from saml2.client import Saml2Client
 
+from eduid.userdb import MailAddress
 from eduid.vccs.client import VCCSClient
+from eduid.webapp.common.authn.utils import get_saml2_config
 from eduid.webapp.idp.helpers import IdPAction, IdPMsg
 from eduid.webapp.idp.tests.test_api import IdPAPITests
 from eduid.workers.am import AmCelerySingleton
@@ -43,7 +48,13 @@ class IdPTestLoginAPI(IdPAPITests):
         assert result.finished_result.payload["message"] == IdPMsg.finished.value
         assert result.finished_result.payload["target"] == "https://sp.example.edu/saml2/acs/"
         assert result.finished_result.payload["parameters"]["RelayState"] == self.relay_state
-        # TODO: test parsing the SAML response
+
+        authn_response = self.parse_saml_authn_response(result.finished_result)
+        session_info = authn_response.session_info()
+        attributes: dict[str, list[Any]] = session_info["ava"]
+
+        assert "eduPersonPrincipalName" in attributes
+        assert attributes["eduPersonPrincipalName"] == [f"hubba-bubba@{self.app.conf.default_eppn_scope}"]
 
     def test_login_pwauth_right_password_and_tou_acceptance(self) -> None:
         # Enable AM sync of user to central db for this particular test
@@ -60,7 +71,228 @@ class IdPTestLoginAPI(IdPAPITests):
         assert result.finished_result.payload["message"] == IdPMsg.finished.value
         assert result.finished_result.payload["target"] == "https://sp.example.edu/saml2/acs/"
         assert result.finished_result.payload["parameters"]["RelayState"] == self.relay_state
-        # TODO: test parsing the SAML response
+
+        authn_response = self.parse_saml_authn_response(result.finished_result)
+        session_info = authn_response.session_info()
+        attributes: dict[str, list[Any]] = session_info["ava"]
+
+        assert "eduPersonPrincipalName" in attributes
+        assert attributes["eduPersonPrincipalName"] == [f"hubba-bubba@{self.app.conf.default_eppn_scope}"]
+
+    def test_ForceAuthn_with_existing_SSO_session(self) -> None:
+        # pre-accept ToU for this test
+        self.add_test_user_tou(self.app.conf.tou_version)
+
+        # Patch the VCCSClient so we do not need a vccs server
+        with patch.object(VCCSClient, "authenticate") as mock_vccs:
+            mock_vccs.return_value = True
+            result = self._try_login(username=self.test_user.eppn, password="bar")
+
+        assert result.finished_result is not None
+        authn_response = self.parse_saml_authn_response(result.finished_result)
+        session_info = authn_response.session_info()
+        attributes: dict[str, list[Any]] = session_info["ava"]
+
+        assert "eduPersonPrincipalName" in attributes
+        assert attributes["eduPersonPrincipalName"] == [f"hubba-bubba@{self.app.conf.default_eppn_scope}"]
+
+        # Log in again, with ForceAuthn="true"
+        # Patch the VCCSClient so we do not need a vccs server
+        with patch.object(VCCSClient, "authenticate") as mock_vccs:
+            mock_vccs.return_value = True
+            result2 = self._try_login(username=self.test_user.eppn, password="bar", force_authn=True)
+
+        assert result2.finished_result is not None
+        authn_response2 = self.parse_saml_authn_response(result2.finished_result)
+        # Make sure the second response isn't referring to the first login request
+        assert authn_response.in_response_to != authn_response2.in_response_to
+
+    def test_terminated_user(self) -> None:
+        user = self.amdb.get_user_by_eppn(self.test_user.eppn)
+        user.terminated = datetime.fromisoformat("2020-02-25T15:52:59.745")
+        self.amdb.save(user)
+
+        # Patch the VCCSClient so we do not need a vccs server
+        with patch.object(VCCSClient, "authenticate") as mock_vccs:
+            mock_vccs.return_value = True
+            result = self._try_login(username=self.test_user.eppn, password="bar")
+        assert result.visit_order == [IdPAction.PWAUTH]
+        assert result.error is not None
+        payload = result.error.get("payload")
+        assert payload is not None
+        assert payload.get("message") == IdPMsg.user_terminated.value
+
+    def test_with_unknown_sp(self) -> None:
+        sp_config = get_saml2_config(self.app.conf.pysaml2_config, name="UNKNOWN_SP_CONFIG")
+        saml2_client = Saml2Client(config=sp_config)
+
+        # pre-accept ToU for this test
+        self.add_test_user_tou(self.app.conf.tou_version)
+
+        # Patch the VCCSClient so we do not need a vccs server
+        with patch.object(VCCSClient, "authenticate") as mock_vccs:
+            mock_vccs.return_value = True
+            result = self._try_login(username=self.test_user.eppn, password="bar", saml2_client=saml2_client)
+
+        assert result.visit_order == [IdPAction.PWAUTH]
+        assert result.error is not None
+        assert result.error.get("status_code") == 400
+        assert result.error.get("status") == "400 BAD REQUEST"
+        assert result.error.get("message") == "SAML error: Unknown Service Provider"
+
+    def test_sso_to_unknown_sp(self) -> None:
+        # pre-accept ToU for this test
+        self.add_test_user_tou(self.app.conf.tou_version)
+
+        # Patch the VCCSClient so we do not need a vccs server
+        with patch.object(VCCSClient, "authenticate") as mock_vccs:
+            mock_vccs.return_value = True
+            result = self._try_login(username=self.test_user.eppn, password="bar")
+
+        assert result.visit_order == [IdPAction.PWAUTH, IdPAction.FINISHED]
+
+        sp_config = get_saml2_config(self.app.conf.pysaml2_config, name="UNKNOWN_SP_CONFIG")
+        saml2_client = Saml2Client(config=sp_config)
+
+        # Don't patch VCCS here to ensure a SSO is done, not a password authentication
+        result2 = self._try_login(saml2_client=saml2_client)
+        assert result2.visit_order == []
+        assert result2.error is not None
+        assert result2.error.get("status_code") == 400
+        assert result2.error.get("status") == "400 BAD REQUEST"
+        assert result2.error.get("message") == "SAML error: Unknown Service Provider"
+
+    def test_eduperson_targeted_id(self) -> None:
+        sp_config = get_saml2_config(self.app.conf.pysaml2_config, name="COCO_SP_CONFIG")
+        saml2_client = Saml2Client(config=sp_config)
+
+        # pre-accept ToU for this test
+        self.add_test_user_tou(self.app.conf.tou_version)
+
+        # Patch the VCCSClient so we do not need a vccs server
+        with patch.object(VCCSClient, "authenticate") as mock_vccs:
+            mock_vccs.return_value = True
+            result = self._try_login(username=self.test_user.eppn, password="bar", saml2_client=saml2_client)
+
+        assert result.visit_order == [IdPAction.PWAUTH, IdPAction.FINISHED]
+
+        assert result.finished_result is not None
+        authn_response = self.parse_saml_authn_response(result.finished_result, saml2_client=saml2_client)
+        session_info = authn_response.session_info()
+        attributes: dict[str, list[Any]] = session_info["ava"]
+
+        assert result.visit_order == [IdPAction.PWAUTH, IdPAction.FINISHED]
+        assert "eduPersonTargetedID" in attributes
+        assert attributes["eduPersonTargetedID"] == ["71a13b105e83aa69c31f41b08ea83694e0fae5f368d17ef18ba59e0f9e407ec9"]
+
+    def test_schac_personal_unique_code_esi(self) -> None:
+        sp_config = get_saml2_config(self.app.conf.pysaml2_config, name="ESI_COCO_SP_CONFIG")
+        saml2_client = Saml2Client(config=sp_config)
+
+        # pre-accept ToU for this test
+        self.add_test_user_tou(self.app.conf.tou_version)
+
+        # Patch the VCCSClient so we do not need a vccs server
+        with patch.object(VCCSClient, "authenticate") as mock_vccs:
+            mock_vccs.return_value = True
+            result = self._try_login(username=self.test_user.eppn, password="bar", saml2_client=saml2_client)
+
+        assert result.visit_order == [IdPAction.PWAUTH, IdPAction.FINISHED]
+
+        assert result.finished_result is not None
+        authn_response = self.parse_saml_authn_response(result.finished_result, saml2_client=saml2_client)
+        session_info = authn_response.session_info()
+        attributes: dict[str, list[Any]] = session_info["ava"]
+        requested_attributes = ["schacPersonalUniqueCode", "eduPersonTargetedID"]
+        # make sure we only release the two requested attributes
+        assert [attr for attr in attributes if attr not in requested_attributes] == []
+        assert attributes["eduPersonTargetedID"] == ["75fae1234b2e3304bfd069c1296ccd7af97f2cc95855e2e0ce3577d1f70a0088"]
+        assert self.test_user.ladok is not None
+        assert attributes["schacPersonalUniqueCode"] == [
+            f"{self.app.conf.esi_ladok_prefix}{self.test_user.ladok.external_id}"
+        ]
+
+    def test_pairwise_id(self) -> None:
+        sp_config = get_saml2_config(self.app.conf.pysaml2_config, name="COCO_SP_CONFIG")
+        saml2_client = Saml2Client(config=sp_config)
+
+        # pre-accept ToU for this test
+        self.add_test_user_tou(self.app.conf.tou_version)
+
+        # Patch the VCCSClient, so we do not need a vccs server
+        with patch.object(VCCSClient, "authenticate") as mock_vccs:
+            mock_vccs.return_value = True
+            result = self._try_login(username=self.test_user.eppn, password="bar", saml2_client=saml2_client)
+
+        assert result.visit_order == [IdPAction.PWAUTH, IdPAction.FINISHED]
+
+        assert result.finished_result is not None
+        authn_response = self.parse_saml_authn_response(result.finished_result, saml2_client=saml2_client)
+        session_info = authn_response.session_info()
+        attributes: dict[str, list[Any]] = session_info["ava"]
+        assert attributes["pairwise-id"] == [
+            "36382d115a9b7d8c27cc9eed94aab0ea6cc16a8becc5a468922e36e5a351f8f9@test.scope"
+        ]
+
+    def test_subject_id(self) -> None:
+        sp_config = get_saml2_config(self.app.conf.pysaml2_config, name="SP_CONFIG")
+        saml2_client = Saml2Client(config=sp_config)
+
+        # pre-accept ToU for this test
+        self.add_test_user_tou(self.app.conf.tou_version)
+
+        # Patch the VCCSClient, so we do not need a vccs server
+        with patch.object(VCCSClient, "authenticate") as mock_vccs:
+            mock_vccs.return_value = True
+            result = self._try_login(username=self.test_user.eppn, password="bar", saml2_client=saml2_client)
+
+        assert result.visit_order == [IdPAction.PWAUTH, IdPAction.FINISHED]
+
+        assert result.finished_result is not None
+        authn_response = self.parse_saml_authn_response(result.finished_result, saml2_client=saml2_client)
+        session_info = authn_response.session_info()
+        attributes: dict[str, list[Any]] = session_info["ava"]
+        assert attributes["subject-id"] == ["hubba-bubba@test.scope"]
+
+    def test_mail_local_address(self) -> None:
+        sp_config = get_saml2_config(self.app.conf.pysaml2_config, name="SP_CONFIG")
+        saml2_client = Saml2Client(config=sp_config)
+
+        # add another mail address to the test user
+        self.add_test_user_mail_address(MailAddress(email="test@example.com", is_verified=True))
+
+        # pre-accept ToU for this test
+        self.add_test_user_tou(self.app.conf.tou_version)
+
+        # Patch the VCCSClient, so we do not need a vccs server
+        with patch.object(VCCSClient, "authenticate") as mock_vccs:
+            mock_vccs.return_value = True
+            result = self._try_login(username=self.test_user.eppn, password="bar", saml2_client=saml2_client)
+
+        assert result.visit_order == [IdPAction.PWAUTH, IdPAction.FINISHED]
+
+        assert result.finished_result is not None
+        authn_response = self.parse_saml_authn_response(result.finished_result, saml2_client=saml2_client)
+        session_info = authn_response.session_info()
+        attributes: dict[str, list[Any]] = session_info["ava"]
+        assert attributes["mailLocalAddress"] == ["johnsmith@example.com", "test@example.com"]
+
+    def test_successful_authentication_alternative_acs(self) -> None:
+        # pre-accept ToU for this test
+        self.add_test_user_tou(self.app.conf.tou_version)
+
+        # Patch the VCCSClient so we do not need a vccs server
+        with patch.object(VCCSClient, "authenticate") as mock_vccs:
+            mock_vccs.return_value = True
+            result = self._try_login(
+                username=self.test_user.eppn,
+                password="bar",
+                assertion_consumer_service_url="https://localhost:8080/acs/",
+            )
+
+        assert result.visit_order == [IdPAction.PWAUTH, IdPAction.FINISHED]
+        assert result.finished_result is not None
+        assert result.finished_result.payload["target"] == "https://localhost:8080/acs/"
 
     def test_geo_statistics_success(self) -> None:
         # pre-accept ToU for this test
