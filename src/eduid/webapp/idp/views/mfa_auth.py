@@ -115,7 +115,6 @@ class CheckResult:
 def _check_external_mfa(
     mfa_action: MfaAction, session: EduidSession, user: User, ref: RequestRef, sso_session: SSOSession
 ) -> Optional[CheckResult]:
-
     # Third party service MFA
     if mfa_action.success is True:  # Explicit check that success is the boolean True
         if mfa_action.login_ref:

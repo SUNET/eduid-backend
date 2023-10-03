@@ -41,7 +41,6 @@ from eduid.webapp.jsconfig.settings.common import JSConfigConfig
 
 class JSConfigApp(EduIDBaseApp):
     def __init__(self, config: JSConfigConfig, **kwargs):
-
         kwargs["init_central_userdb"] = False
         kwargs["static_folder"] = None
 

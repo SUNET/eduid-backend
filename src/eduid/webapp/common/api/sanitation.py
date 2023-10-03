@@ -127,7 +127,6 @@ class Sanitizer:
             content_type = request.mimetype
 
         if isinstance(content_type, str) and content_type:
-
             if content_type == "application/x-www-form-urlencoded":
                 use_percent_encoding = True
             else:

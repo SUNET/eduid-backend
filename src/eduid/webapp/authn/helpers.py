@@ -1,5 +1,5 @@
-from enum import unique
 import logging
+from enum import unique
 from typing import Optional
 
 from eduid.common.misc.timeutil import utc_now

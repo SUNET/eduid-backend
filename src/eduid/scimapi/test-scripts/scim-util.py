@@ -220,7 +220,6 @@ def post_event(
     level: str = "info",
     data: Optional[dict[str, Any]] = None,
 ) -> None:
-
     if resource_type == "User":
         resource = get_user_resource(api=api, scim_id=resource_scim_id)
     elif resource_type == "Group":

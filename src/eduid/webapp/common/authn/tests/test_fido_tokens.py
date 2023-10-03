@@ -113,7 +113,6 @@ SAMPLE_WEBAUTHN_APP_CONFIG = {
 
 
 class FidoTokensTestCase(EduidAPITestCase):
-
     app: MockFidoApp
 
     def setUp(self):

@@ -454,7 +454,6 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
         phone = "+34609123321"
 
         with self.session_cookie(self.browser, eppn) as client:
-
             with self.app.test_request_context():
                 with client.session_transaction() as sess:
                     data = {
@@ -566,7 +565,6 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
         phone = "+34609123321"
 
         with self.session_cookie(self.browser, eppn) as client:
-
             with self.app.test_request_context():
                 with client.session_transaction() as sess:
                     data = {

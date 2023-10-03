@@ -1306,7 +1306,6 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
 
 
 class OldSignupTests(SignupTests):
-
     # parameterized test methods
 
     @patch("eduid.webapp.signup.views.verify_recaptcha")
@@ -1456,7 +1455,6 @@ class OldSignupTests(SignupTests):
         mock_request_user_sync.return_value = True
 
         with self.session_cookie_anon(self.browser) as client:
-
             captcha_res = self._captcha_new(
                 email=email,
                 captcha_data=data1,

@@ -75,7 +75,6 @@ def session_init_app(name, test_config: Mapping[str, Any]) -> SessionTestApp:
 
 
 class EduidSessionTests(EduidAPITestCase):
-
     app: SessionTestApp
 
     def setUp(self, **kwargs):

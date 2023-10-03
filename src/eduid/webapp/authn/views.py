@@ -30,8 +30,8 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-from dataclasses import dataclass
 import uuid
+from dataclasses import dataclass
 from typing import Optional
 
 from flask import Blueprint, abort, make_response, redirect, request
@@ -39,12 +39,12 @@ from saml2 import BINDING_HTTP_REDIRECT
 from saml2.client import Saml2Client
 from saml2.ident import decode
 from saml2.metadata import entity_descriptor
-from saml2.saml import NAMEID_FORMAT_UNSPECIFIED, NameID, Subject
 from saml2.request import AuthnRequest
+from saml2.saml import NAMEID_FORMAT_UNSPECIFIED, NameID, Subject
 from werkzeug.exceptions import Forbidden
 from werkzeug.wrappers import Response as WerkzeugResponse
-from eduid.userdb.credentials.fido import FidoCredential
 
+from eduid.userdb.credentials.fido import FidoCredential
 from eduid.userdb.exceptions import MultipleUsersReturned, UserDoesNotExist
 from eduid.webapp.authn import acs_actions  # acs_action needs to be imported to be loaded
 from eduid.webapp.authn.app import current_authn_app as current_app

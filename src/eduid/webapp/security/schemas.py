@@ -66,7 +66,6 @@ class ChpassResponseSchema(SecurityResponseSchema):
 
 
 class ChangePasswordRequestSchema(EduidSchema, CSRFRequestMixin):
-
     authn_id = fields.String(required=False)
     old_password = fields.String(required=False)
     new_password = fields.String(required=True)
@@ -88,7 +87,6 @@ class SuggestedPasswordResponseSchema(FluxStandardAction):
 
 # TODO: Remove this when frontend for new change password view exist
 class ChangePasswordSchema(PasswordSchema):
-
     csrf_token = fields.String(required=True)
     old_password = fields.String(required=True)
     new_password = fields.String(required=True)
@@ -116,12 +114,10 @@ class WebauthnOptionsResponseSchema(FluxStandardAction):
 
 
 class WebauthnRegisterBeginSchema(EduidSchema, CSRFRequestMixin):
-
     authenticator = fields.String(required=True)
 
 
 class WebauthnRegisterRequestSchema(EduidSchema, CSRFRequestMixin):
-
     credential_id = fields.String(required=True, data_key="credentialId")
     attestation_object = fields.String(required=True, data_key="attestationObject")
     client_data = fields.String(required=True, data_key="clientDataJSON")
@@ -129,7 +125,6 @@ class WebauthnRegisterRequestSchema(EduidSchema, CSRFRequestMixin):
 
 
 class RemoveWebauthnTokenRequestSchema(EduidSchema, CSRFRequestMixin):
-
     credential_key = fields.String(required=True)
 
 
@@ -150,7 +145,6 @@ class VerifyWithWebauthnTokenResponseSchema(FluxStandardAction):
 
 # NIN schemas
 class NINRequestSchema(EduidSchema, CSRFRequestMixin):
-
     nin = fields.String(required=True, validate=validate_nin)
 
 
