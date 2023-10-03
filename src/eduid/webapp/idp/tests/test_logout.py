@@ -1,19 +1,19 @@
 import logging
 import os
 from enum import Enum
-from typing import Tuple
 from unittest.mock import patch
 from urllib.parse import unquote
 
-from flask import Response as FlaskResponse
 from saml2 import BINDING_HTTP_REDIRECT, BINDING_SOAP
 from saml2.mdstore import destinations
 from saml2.response import AuthnResponse, LogoutResponse
+from saml2.typing import SAMLBinding
 from werkzeug.test import TestResponse
 
 from eduid.vccs.client import VCCSClient
+from eduid.webapp.idp.helpers import IdPAction
 from eduid.webapp.idp.sso_session import SSOSession
-from eduid.webapp.idp.tests.test_app import IdPTests, LoginState
+from eduid.webapp.idp.tests.test_api import IdPAPITests
 
 logger = logging.getLogger(__name__)
 
@@ -25,26 +25,21 @@ class LogoutState(Enum):
     S1_LOGGED_OUT = "logged_out"
 
 
-class IdPTestLogout(IdPTests):
-    def update_config(self, config):
-        config = super().update_config(config)
-        config.update(
-            {
-                "enable_legacy_template_mode": True,
-            }
-        )
-        return config
-
+class IdPTestLogoutAPI(IdPAPITests):
     def test_basic_logout(self):
         """This logs in, then out - but it calls the SOAP binding with the SSO cookie present"""
+
+        # pre-accept ToU for this test
+        self.add_test_user_tou()
+
         with self.browser.session_transaction() as sess:
             # Patch the VCCSClient so we do not need a vccs server
             with patch.object(VCCSClient, "authenticate"):
                 VCCSClient.authenticate.return_value = True
                 login_result = self._try_login()
-                assert login_result.reached_state == LoginState.S5_LOGGED_IN
+                assert login_result.visit_order == [IdPAction.PWAUTH, IdPAction.FINISHED]
 
-            authn_response = self.parse_saml_authn_response(login_result.response)
+            authn_response = self.parse_saml_authn_response(login_result.finished_result)
 
             reached_state, response = self._try_logout(authn_response, BINDING_SOAP)
             assert reached_state == LogoutState.S1_LOGGED_OUT
@@ -57,13 +52,17 @@ class IdPTestLogout(IdPTests):
         Simulate a user logging in using one browser,
         and then an SP logging the user out using SOAP with no SSO cookie.
         """
+
+        # pre-accept ToU for this test
+        self.add_test_user_tou()
+
         # Patch the VCCSClient so we do not need a vccs server
         with patch.object(VCCSClient, "authenticate"):
             VCCSClient.authenticate.return_value = True
             login_result = self._try_login()
-            assert login_result.reached_state == LoginState.S5_LOGGED_IN
+            assert login_result.visit_order == [IdPAction.PWAUTH, IdPAction.FINISHED]
 
-        authn_response = self.parse_saml_authn_response(login_result.response)
+        authn_response = self.parse_saml_authn_response(login_result.finished_result)
 
         # Locate the SSO session
         sso_session1 = self.app.sso_sessions.get_session(login_result.sso_cookie_val)
@@ -75,7 +74,7 @@ class IdPTestLogout(IdPTests):
         assert user_sso_sessions == [sso_session1]
 
         # Remove all cookies, simulating a SOAP request from an SP rather than from the clients browser
-        self.browser.cookie_jar.clear()
+        self.browser._cookies.clear()
 
         reached_state, response = self._try_logout(authn_response, BINDING_SOAP)
         assert reached_state == LogoutState.S1_LOGGED_OUT
@@ -89,14 +88,17 @@ class IdPTestLogout(IdPTests):
         assert self.app.sso_sessions.get_sessions_for_user(self.test_user.eppn) == []
 
     def test_basic_logout_redirect(self):
+        # pre-accept ToU for this test
+        self.add_test_user_tou()
+
         with self.browser.session_transaction() as sess:
             # Patch the VCCSClient so we do not need a vccs server
             with patch.object(VCCSClient, "authenticate"):
                 VCCSClient.authenticate.return_value = True
                 login_result = self._try_login()
-                assert login_result.reached_state == LoginState.S5_LOGGED_IN
+                assert login_result.visit_order == [IdPAction.PWAUTH, IdPAction.FINISHED]
 
-            authn_response = self.parse_saml_authn_response(login_result.response)
+            authn_response = self.parse_saml_authn_response(login_result.finished_result)
 
             reached_state, response = self._try_logout(authn_response, BINDING_HTTP_REDIRECT)
             assert reached_state == LogoutState.S1_LOGGED_OUT
@@ -104,7 +106,7 @@ class IdPTestLogout(IdPTests):
             logout_response = self.parse_saml_logout_response(response, BINDING_HTTP_REDIRECT)
             assert logout_response.response.status.status_code.value == "urn:oasis:names:tc:SAML:2.0:status:Success"
 
-    def parse_saml_logout_response(self, response: TestResponse, binding: str) -> LogoutResponse:
+    def parse_saml_logout_response(self, response: TestResponse, binding: SAMLBinding) -> LogoutResponse:
         if binding == BINDING_SOAP:
             xmlstr = response.data
         elif binding == BINDING_HTTP_REDIRECT:
@@ -115,9 +117,11 @@ class IdPTestLogout(IdPTests):
             xmlstr = saml_response
         else:
             raise RuntimeError(f"Unknown binding {binding}")
-        return self.saml2_client.parse_logout_request_response(xmlstr, binding)
+        res = self.saml2_client.parse_logout_request_response(xmlstr, binding)
+        assert res
+        return res
 
-    def _try_logout(self, authn_response: AuthnResponse, binding: str) -> tuple[LogoutState, TestResponse]:
+    def _try_logout(self, authn_response: AuthnResponse, binding: SAMLBinding) -> tuple[LogoutState, TestResponse]:
         """
         Try logging out using the IdP.
 

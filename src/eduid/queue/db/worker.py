@@ -4,39 +4,33 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Mapping, Optional, Union
 
 from bson import ObjectId
-from motor import motor_asyncio
 from pymongo.results import UpdateResult
 
-from eduid.queue.db import QueueDB, QueueItem
+from eduid.queue.db import Payload, QueueItem
+from eduid.queue.db.client import QueuePayloadMixin
 from eduid.queue.exceptions import PayloadNotRegistered
-from eduid.userdb import MongoDB
-from eduid.userdb.db import DatabaseDriver
+from eduid.userdb.db.async_db import AsyncBaseDB
 
 __author__ = "lundberg"
 
 logger = logging.getLogger(__name__)
 
 
-class AsyncQueueDB(QueueDB):
+class AsyncQueueDB(AsyncBaseDB, QueuePayloadMixin):
     def __init__(self, db_uri: str, collection: str, db_name: str = "eduid_queue"):
         super().__init__(db_uri, collection=collection, db_name=db_name)
 
-        # Re-initialize database and collection with async versions.
-        # TODO: Refactor setup_indexes() to work with async driver too, possibly by creating an AsyncMongoDB class.
-        self._db = MongoDB(db_uri, db_name=db_name, driver=DatabaseDriver.ASYNCIO)
-        self._coll = self._db.get_collection(collection=collection)
+        self.handlers: dict[str, type[Payload]] = dict()
 
-    @property
-    def database(self) -> motor_asyncio.AsyncIOMotorDatabase:
-        return self._db.get_database()
-
-    @property
-    def collection(self) -> motor_asyncio.AsyncIOMotorCollection:
-        return self._coll
-
-    @property
-    def connection(self) -> motor_asyncio.AsyncIOMotorClient:
-        return self._db.get_connection()
+    @classmethod
+    async def create(cls, db_uri: str, collection: str, db_name: str = "eduid_queue") -> "AsyncQueueDB":
+        # Remove messages older than discard_at datetime
+        indexes = {
+            "auto-discard": {"key": [("discard_at", 1)], "expireAfterSeconds": 0},
+        }
+        instance = cls(db_uri=db_uri, collection=collection, db_name=db_name)
+        await instance.setup_indexes(indexes)
+        return instance
 
     def parse_queue_item(self, doc: Mapping, parse_payload: bool = True):
         item = QueueItem.from_dict(doc)
@@ -77,17 +71,18 @@ class AsyncQueueDB(QueueDB):
             spec["processed_ts"] = doc["processed_ts"]
 
         # Update item with current worker name and ts
-        doc["processed_by"] = worker_name
-        doc["processed_ts"] = datetime.now(tz=timezone.utc)
+        mutable_doc = dict(doc)
+        mutable_doc["processed_by"] = worker_name
+        mutable_doc["processed_ts"] = datetime.now(tz=timezone.utc)
 
         try:
             # Try to parse the queue item to only grab items that are registered with the current db
-            item = self.parse_queue_item(doc, parse_payload=True)
+            item = self.parse_queue_item(mutable_doc, parse_payload=True)
         except PayloadNotRegistered as e:
             logger.debug(e)
             return None
 
-        update_result: UpdateResult = await self.collection.replace_one(spec, doc)
+        update_result: UpdateResult = await self.collection.replace_one(spec, mutable_doc)
         logger.debug(f"result: {update_result.raw_result}")
         if not update_result.acknowledged or update_result.modified_count != 1:
             logger.debug(f"Grabbing of item failed: {update_result.raw_result}")
@@ -137,7 +132,7 @@ class AsyncQueueDB(QueueDB):
 
     async def replace_item(self, old_item: QueueItem, new_item: QueueItem) -> bool:
         if old_item.item_id != new_item.item_id:
-            logger.warning(f"Can not replace items with different item_id")
+            logger.warning("Can not replace items with different item_id")
             logger.debug(f"old_item: {old_item}")
             logger.debug(f"new_item: {new_item}")
             return False
@@ -147,3 +142,8 @@ class AsyncQueueDB(QueueDB):
             logger.debug(f"Saving of item failed: {update_result.raw_result}")
             return False
         return True
+
+    async def save(self, item: QueueItem) -> bool:
+        test_doc = {"_id": item.item_id}
+        res = await self._coll.replace_one(test_doc, item.to_dict(), upsert=True)
+        return res.acknowledged

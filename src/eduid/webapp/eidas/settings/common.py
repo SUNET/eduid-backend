@@ -43,7 +43,6 @@ from eduid.common.config.base import (
     EduIDBaseAppConfig,
     ErrorsConfigMixin,
     MagicCookieMixin,
-    MsgConfigMixin,
     ProofingConfigMixin,
     Pysaml2SPConfigMixin,
 )
@@ -53,7 +52,6 @@ class EidasConfig(
     EduIDBaseAppConfig,
     MagicCookieMixin,
     AmConfigMixin,
-    MsgConfigMixin,
     ErrorsConfigMixin,
     ProofingConfigMixin,
     Pysaml2SPConfigMixin,

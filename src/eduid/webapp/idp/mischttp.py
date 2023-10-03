@@ -128,12 +128,12 @@ def _sanitise_items(data: Mapping[str, Any]) -> dict[str, str]:
     san = Sanitizer()
     for k, v in data.items():
         try:
-            safe_k = san.sanitize_input(k, content_type="text/plain", logger=logger)
+            safe_k = san.sanitize_input(k, content_type="text/plain")
             if safe_k != k:
                 raise BadRequest()
-            safe_v = san.sanitize_input(v, content_type="text/plain", logger=logger)
+            safe_v = san.sanitize_input(v, content_type="text/plain")
         except SanitationProblem:
-            logger.exception(f"There was a problem sanitizing inputs")
+            logger.exception("There was a problem sanitizing inputs")
             raise BadRequest()
         res[str(safe_k)] = str(safe_v)
     return res

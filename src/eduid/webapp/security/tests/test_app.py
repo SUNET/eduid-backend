@@ -37,6 +37,7 @@ from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 from eduid.common.misc.timeutil import utc_now
+from eduid.common.rpc.msg_relay import DeregisteredCauseCode, DeregistrationInformation, OfficialAddress
 from eduid.userdb import User
 from eduid.userdb.element import ElementKey
 from eduid.userdb.identity import IdentityType
@@ -210,9 +211,18 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
 
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def _refresh_user_data(self, mock_request_user_sync: Any, mock_get_all_navet_data: Any, user: User):
+    def _refresh_user_data(
+        self,
+        mock_request_user_sync: Any,
+        mock_get_all_navet_data: Any,
+        user: User,
+        navet_return_value: Optional[Any] = None,
+    ):
         mock_request_user_sync.side_effect = self.request_user_sync
-        mock_get_all_navet_data.return_value = self._get_all_navet_data()
+        if navet_return_value is None:
+            mock_get_all_navet_data.return_value = self._get_all_navet_data()
+        else:
+            mock_get_all_navet_data.return_value = navet_return_value
 
         with self.session_cookie(self.browser, user.eppn) as client:
             with client.session_transaction() as sess:
@@ -517,6 +527,30 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
         assert user.display_name == "Test Testsson"
         self._check_success_response(
             response, type_="POST_SECURITY_REFRESH_OFFICIAL_USER_DATA_SUCCESS", msg=SecurityMsg.user_updated
+        )
+
+    def test_refresh_user_official_name_deregistered(self):
+        mock_get_all_navet_data = self._get_all_navet_data()
+        # add empty official address and deregistration information as for a user that has emigrated
+        mock_get_all_navet_data.person.postal_addresses.official_address = OfficialAddress()
+        mock_get_all_navet_data.person.deregistration_information = DeregistrationInformation(
+            date="20220509", cause_code=DeregisteredCauseCode.EMIGRATED
+        )
+
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        assert user.given_name == "John"
+        assert user.surname == "Smith"
+        assert user.display_name == "John Smith"
+
+        response = self._refresh_user_data(user=user, navet_return_value=mock_get_all_navet_data)
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        assert user.given_name == "Testaren Test"
+        assert user.surname == "Testsson"
+        assert user.display_name == "Test Testsson"
+        self._check_success_response(
+            response,
+            type_="POST_SECURITY_REFRESH_OFFICIAL_USER_DATA_SUCCESS",
+            msg=SecurityMsg.user_updated,
         )
 
     def _get_credentials(self):

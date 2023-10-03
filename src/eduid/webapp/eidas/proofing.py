@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Generic, Optional, TypeVar
 
 from eduid.common.config.base import ProofingConfigMixin
-from eduid.common.rpc.exceptions import AmTaskFailed, MsgTaskFailed, NoNavetData
+from eduid.common.rpc.exceptions import AmTaskFailed
 from eduid.userdb import EIDASIdentity, User
 from eduid.userdb.credentials import Credential
 from eduid.userdb.credentials.external import (
@@ -173,25 +173,16 @@ class FrejaProofingFunctions(SwedenConnectProofingFunctions[NinSessionInfo]):
             authn_context = self.session_info.authn_context
 
         _nin = self.session_info.attributes.nin
-        try:
-            navet_proofing_data = self._get_navet_data(nin=_nin)
-        except NoNavetData:
-            current_app.logger.exception("No data returned from Navet")
-            return ProofingElementResult(error=CommonMsg.no_navet_data)
-        except MsgTaskFailed:
-            current_app.logger.exception("Navet lookup failed")
-            current_app.stats.count("navet_error")
-            return ProofingElementResult(error=CommonMsg.navet_error)
 
         data = SwedenConnectProofing(
             authn_context_class=authn_context,
             created_by=current_app.conf.app_name,
-            deregistration_information=navet_proofing_data.deregistration_information,
             eppn=user.eppn,
             issuer=issuer,
             nin=_nin,
+            given_name=self.session_info.attributes.given_name,
+            surname=self.session_info.attributes.surname,
             proofing_version=proofing_version,
-            user_postal_address=navet_proofing_data.user_postal_address,
         )
         return ProofingElementResult(data=data)
 
@@ -211,26 +202,16 @@ class FrejaProofingFunctions(SwedenConnectProofingFunctions[NinSessionInfo]):
         # please type checking
         assert user.identities.nin
 
-        try:
-            navet_proofing_data = self._get_navet_data(nin=user.identities.nin.number)
-        except NoNavetData:
-            current_app.logger.exception("No data returned from Navet")
-            return ProofingElementResult(error=CommonMsg.no_navet_data)
-        except MsgTaskFailed:
-            current_app.logger.exception("Navet lookup failed")
-            current_app.stats.count("navet_error")
-            return ProofingElementResult(error=CommonMsg.navet_error)
-
         data = MFATokenProofing(
             authn_context_class=authn_context,
             created_by=self.app_name,
-            deregistration_information=navet_proofing_data.deregistration_information,
             eppn=user.eppn,
             issuer=issuer,
             key_id=credential.key,
             nin=user.identities.nin.number,
+            given_name=self.session_info.attributes.given_name,
+            surname=self.session_info.attributes.surname,
             proofing_version=proofing_version,
-            user_postal_address=navet_proofing_data.user_postal_address,
         )
         return ProofingElementResult(data=data)
 

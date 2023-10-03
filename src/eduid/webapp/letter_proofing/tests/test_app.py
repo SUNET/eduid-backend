@@ -1,5 +1,4 @@
 import json
-from collections import OrderedDict
 from datetime import datetime, timedelta
 from typing import Any, AnyStr, Mapping, Optional
 from unittest.mock import MagicMock, Mock, patch
@@ -23,18 +22,6 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
         self.test_user_eppn = "hubba-baar"
         self.test_user_nin = "200001023456"
         self.test_user_wrong_nin = "190001021234"
-        self.mock_address = OrderedDict(
-            [
-                (
-                    "Name",
-                    OrderedDict([("GivenNameMarking", "20"), ("GivenName", "Testaren Test"), ("Surname", "Testsson")]),
-                ),
-                (
-                    "OfficialAddress",
-                    OrderedDict([("Address2", "\xd6RGATAN 79 LGH 10"), ("PostalCode", "12345"), ("City", "LANDET")]),
-                ),
-            ]
-        )
         super().setUp(users=["hubba-baar"])
 
     @staticmethod
@@ -125,7 +112,7 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
         ekopost_response = self.mock_response(json_data={"id": "test"})
         mock_hammock.return_value = ekopost_response
         mock_request_user_sync.side_effect = self.request_user_sync
-        mock_get_postal_address.return_value = self.mock_address
+        mock_get_postal_address.return_value = self._get_full_postal_address()
         data = {"nin": nin, "csrf_token": csrf_token}
         with self.session_cookie(self.browser, self.test_user_eppn) as client:
             response = client.post("/proofing", data=json.dumps(data), content_type=self.content_type_json)
@@ -154,7 +141,7 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
             csrf_token = _state["payload"]["csrf_token"]
 
         mock_request_user_sync.side_effect = self.request_user_sync
-        mock_get_postal_address.return_value = self.mock_address
+        mock_get_postal_address.return_value = self._get_full_postal_address()
         data = {"code": code, "csrf_token": csrf_token}
         with self.session_cookie(self.browser, self.test_user_eppn) as client:
             response = client.post("/verify-code", data=json.dumps(data), content_type=self.content_type_json)
@@ -168,31 +155,31 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
         mock_get_postal_address: Any,
         mock_request_user_sync: Any,
         mock_hammock: Any,
+        cookie_name: Optional[str] = None,
         cookie_value: Optional[str] = None,
         add_cookie: bool = True,
     ):
         ekopost_response = self.mock_response(json_data={"id": "test"})
         mock_hammock.return_value = ekopost_response
         mock_request_user_sync.side_effect = self.request_user_sync
-        mock_get_postal_address.return_value = self.mock_address
+        mock_get_postal_address.return_value = self._get_full_postal_address()
 
         nin = self.test_user_nin
         json_data = self.get_state()
         csrf_token = json_data["payload"]["csrf_token"]
         data = {"nin": nin, "csrf_token": csrf_token}
 
-        with self.session_cookie(self.browser, self.test_user_eppn) as client:
+        if add_cookie is False:
+            with self.session_cookie(self.browser, self.test_user_eppn) as client:
+                response = client.post("/proofing", data=json.dumps(data), content_type=self.content_type_json)
+                self.assertEqual(response.status_code, 200)
+                return client.get("/get-code")
+
+        with self.session_cookie_and_magic_cookie(
+            self.browser, self.test_user_eppn, magic_cookie_name=cookie_name, magic_cookie_value=cookie_value
+        ) as client:
             response = client.post("/proofing", data=json.dumps(data), content_type=self.content_type_json)
             self.assertEqual(response.status_code, 200)
-
-            if cookie_value is None:
-                cookie_value = self.app.conf.magic_cookie
-
-            if add_cookie:
-                assert self.app.conf.magic_cookie_name is not None
-                assert cookie_value is not None
-                client.set_cookie("localhost", key=self.app.conf.magic_cookie_name, value=cookie_value)
-
             return client.get("/get-code")
 
     # End helper methods
@@ -389,7 +376,7 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
 
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_postal_address")
     def test_unmarshal_error(self, mock_get_postal_address: MagicMock):
-        mock_get_postal_address.return_value = self.mock_address
+        mock_get_postal_address.return_value = self._get_full_postal_address()
 
         response = self.send_letter("not a nin", validate_response=False)
 
@@ -404,7 +391,7 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
     def test_locked_identity_no_locked_identity(
         self, mock_get_postal_address: MagicMock, mock_request_user_sync: MagicMock
     ):
-        mock_get_postal_address.return_value = self.mock_address
+        mock_get_postal_address.return_value = self._get_full_postal_address()
         mock_request_user_sync.side_effect = self.request_user_sync
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         self.assertEqual(user.locked_identity.count, 0)
@@ -416,7 +403,7 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_postal_address")
     def test_locked_identity_correct_nin(self, mock_get_postal_address: MagicMock, mock_request_user_sync: MagicMock):
-        mock_get_postal_address.return_value = self.mock_address
+        mock_get_postal_address.return_value = self._get_full_postal_address()
         mock_request_user_sync.side_effect = self.request_user_sync
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
 
@@ -429,7 +416,7 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_postal_address")
     def test_locked_identity_incorrect_nin(self, mock_get_postal_address: MagicMock, mock_request_user_sync: MagicMock):
-        mock_get_postal_address.return_value = self.mock_address
+        mock_get_postal_address.return_value = self._get_full_postal_address()
         mock_request_user_sync.side_effect = self.request_user_sync
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
 
@@ -459,8 +446,7 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
         _state = self.get_state()
         csrf_token = _state["payload"]["csrf_token"]
         data = {"nin": self.test_user_nin, "csrf_token": csrf_token}
-        with self.session_cookie(self.browser, self.test_user_eppn) as client:
-            client.set_cookie("localhost", key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie)
+        with self.session_cookie_and_magic_cookie(self.browser, eppn=self.test_user_eppn) as client:
             response = client.post("/proofing", data=json.dumps(data), content_type=self.content_type_json)
         self._check_success_response(response, type_="POST_LETTER_PROOFING_PROOFING_SUCCESS", msg=LetterMsg.letter_sent)
 
@@ -497,7 +483,7 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
         self.app.conf.magic_cookie_name = ""
         self.app.conf.environment = EduidEnvironment("dev")
 
-        response = self.get_code_backdoor()
+        response = self.get_code_backdoor(cookie_name="wrong_name")
 
         self.assertEqual(response.status_code, 400)
 

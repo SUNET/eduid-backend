@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.9]
+        python-version: ["3.10"]
     env:
       PIP_INDEX_URL: https://pypi.sunet.se/simple/
       NEO4J_VERSION: 4.0-enterprise
@@ -25,7 +25,10 @@ jobs:
 
       - name: Install packages
         run: |
-          sudo apt install xmlsec1  # pysaml2 needs to find an xmlsec1 binary
+          sudo apt update
+          # pysaml2 needs to find an xmlsec1 binary
+          # PIL/EpsImagePlugin.py needs to find a ghostscript binary
+          sudo apt install xmlsec1 ghostscript
 
       - name: Install dependencies
         run: |

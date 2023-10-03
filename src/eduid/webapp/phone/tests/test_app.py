@@ -31,6 +31,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 import json
+from datetime import timedelta
 from typing import Any, Mapping, Optional
 from unittest.mock import MagicMock, patch
 from urllib.parse import quote_plus
@@ -44,6 +45,8 @@ from eduid.webapp.phone.helpers import PhoneMsg
 class PhoneTests(EduidAPITestCase[PhoneApp]):
     def setUp(self, *args: Any, **kwargs: Any):
         super().setUp(*args, copy_user_to_private=True, **kwargs)
+
+        self.test_number = "+34609609609"
 
     def load_app(self, config: Mapping[str, Any]) -> PhoneApp:
         """
@@ -137,7 +140,7 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
         with self.session_cookie(self.browser, eppn) as client:
             with self.app.test_request_context():
                 with client.session_transaction() as sess:
-                    data = {"number": "+34609609609", "csrf_token": sess.get_csrf_token()}
+                    data = {"number": self.test_number, "csrf_token": sess.get_csrf_token()}
                 if mod_data:
                     data.update(mod_data)
 
@@ -160,7 +163,7 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
         with self.session_cookie(self.browser, eppn) as client:
             with self.app.test_request_context():
                 with client.session_transaction() as sess:
-                    data = {"number": "+34609609609", "csrf_token": sess.get_csrf_token()}
+                    data = {"number": self.test_number, "csrf_token": sess.get_csrf_token()}
                 if mod_data:
                     data.update(mod_data)
 
@@ -169,12 +172,13 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
     @patch("eduid.webapp.phone.verifications.get_short_hash")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     @patch("eduid.common.rpc.msg_relay.MsgRelay.sendsms")
-    def _resend_code(
+    def _send_code(
         self,
         mock_phone_validator: Any,
         mock_request_user_sync: Any,
-        mock_code_verification: Any,
+        mock_verification_code: Any,
         mod_data: Optional[dict[str, Any]] = None,
+        captcha_completed: bool = True,
     ):
         """
         Send a POST request to trigger re-sending a verification code for an unverified phone number in the test user.
@@ -183,18 +187,20 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
         """
         mock_phone_validator.return_value = True
         mock_request_user_sync.side_effect = self.request_user_sync
-        mock_code_verification.return_value = "5250f9a4"
+        mock_verification_code.return_value = "5250f9a4"
 
         eppn = self.test_user_data["eduPersonPrincipalName"]
 
         with self.session_cookie(self.browser, eppn) as client:
             with self.app.test_request_context():
                 with client.session_transaction() as sess:
-                    data = {"number": "+34609609609", "csrf_token": sess.get_csrf_token()}
+                    data = {"number": self.test_number, "csrf_token": sess.get_csrf_token()}
+                    if captcha_completed:
+                        sess.phone.captcha.completed = True
                 if mod_data:
                     data.update(mod_data)
 
-            return client.post("/resend-code", data=json.dumps(data), content_type=self.content_type_json)
+            return client.post("/send-code", data=json.dumps(data), content_type=self.content_type_json)
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     @patch("eduid.webapp.phone.verifications.get_short_hash")
@@ -207,6 +213,7 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
         mod_data: Optional[dict[str, Any]] = None,
         phone: str = "+34670123456",
         code: str = "5250f9a4",
+        magic_cookie_name: Optional[str] = None,
     ):
         """
         POST phone data to generate a verification state,
@@ -222,7 +229,9 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
 
         eppn = self.test_user_data["eduPersonPrincipalName"]
 
-        with self.session_cookie(self.browser, eppn) as client:
+        with self.session_cookie_and_magic_cookie(
+            self.browser, eppn=eppn, magic_cookie_name=magic_cookie_name
+        ) as client:
             with self.app.test_request_context():
                 with client.session_transaction() as sess:
                     data: dict[str, Any] = {
@@ -246,10 +255,6 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
 
                     client.post("/send-code", data=json.dumps(data2), content_type=self.content_type_json)
 
-                assert self.app.conf.magic_cookie_name is not None
-                assert self.app.conf.magic_cookie is not None
-                client.set_cookie("localhost", key=self.app.conf.magic_cookie_name, value=self.app.conf.magic_cookie)
-
                 phone = quote_plus(phone)
                 eppn = quote_plus(eppn)
 
@@ -262,7 +267,7 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
 
         self.assertEqual("GET_PHONE_ALL_SUCCESS", phone_data["type"])
         self.assertIsNotNone(phone_data["payload"]["csrf_token"])
-        self.assertEqual("+34609609609", phone_data["payload"]["phones"][0].get("number"))
+        self.assertEqual(self.test_number, phone_data["payload"]["phones"][0].get("number"))
         self.assertEqual(True, phone_data["payload"]["phones"][0].get("primary"))
         self.assertEqual("+34 6096096096", phone_data["payload"]["phones"][1].get("number"))
         self.assertEqual(False, phone_data["payload"]["phones"][1].get("primary"))
@@ -369,7 +374,7 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
         self.assertEqual("POST_PHONE_PRIMARY_SUCCESS", new_phone_data["type"])
         self.assertEqual(True, new_phone_data["payload"]["phones"][0]["verified"])
         self.assertEqual(True, new_phone_data["payload"]["phones"][0]["primary"])
-        self.assertEqual("+34609609609", new_phone_data["payload"]["phones"][0]["number"])
+        self.assertEqual(self.test_number, new_phone_data["payload"]["phones"][0]["number"])
         self.assertEqual(False, new_phone_data["payload"]["phones"][1]["verified"])
         self.assertEqual(False, new_phone_data["payload"]["phones"][1]["primary"])
         self.assertEqual("+34 6096096096", new_phone_data["payload"]["phones"][1]["number"])
@@ -413,7 +418,7 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
         delete_phone_data = json.loads(response.data)
 
         self.assertEqual("POST_PHONE_REMOVE_SUCCESS", delete_phone_data["type"])
-        self.assertEqual("+34609609609", delete_phone_data["payload"]["phones"][0].get("number"))
+        self.assertEqual(self.test_number, delete_phone_data["payload"]["phones"][0].get("number"))
 
     def test_remove_no_csrf(self):
         data = {"csrf_token": ""}
@@ -484,7 +489,7 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
 
         with self.app.test_request_context():
             with client.session_transaction() as sess:
-                data = {"number": "+34609609609", "csrf_token": sess.get_csrf_token()}
+                data = {"number": self.test_number, "csrf_token": sess.get_csrf_token()}
 
         response2 = client.post("/remove", data=json.dumps(data), content_type=self.content_type_json)
 
@@ -495,58 +500,79 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
         self.assertEqual("POST_PHONE_REMOVE_SUCCESS", delete_phone_data["type"])
         self.assertEqual("+34 6096096096", delete_phone_data["payload"]["phones"][0].get("number"))
 
-    def test_resend_code(self):
-        response = self.browser.post("/resend-code")
+    def test_send_code(self):
+        response = self.browser.post("/send-code")
         self.assertEqual(response.status_code, 302)  # Redirect to token service
 
-        response = self._resend_code()
+        response = self._send_code()
 
         self.assertEqual(response.status_code, 200)
         phone_data = json.loads(response.data)
 
-        self.assertEqual("POST_PHONE_RESEND_CODE_SUCCESS", phone_data["type"])
-        self.assertEqual("+34609609609", phone_data["payload"]["phones"][0].get("number"))
+        self.assertEqual("POST_PHONE_SEND_CODE_SUCCESS", phone_data["type"])
+        self.assertEqual(self.test_number, phone_data["payload"]["phones"][0].get("number"))
         self.assertEqual("+34 6096096096", phone_data["payload"]["phones"][1].get("number"))
 
-    def test_resend_code_no_csrf(self):
+    def test_send_code_no_csrf(self):
         data = {"csrf_token": "wrong-token"}
-        response = self._resend_code(mod_data=data)
+        response = self._send_code(mod_data=data)
 
         self.assertEqual(response.status_code, 200)
         phone_data = json.loads(response.data)
 
-        self.assertEqual("POST_PHONE_RESEND_CODE_FAIL", phone_data["type"])
+        self.assertEqual("POST_PHONE_SEND_CODE_FAIL", phone_data["type"])
         self.assertEqual(["CSRF failed to validate"], phone_data["payload"]["error"]["csrf_token"])
 
-    def test_resend_code_unknown(self):
-        data = {"number": "+66666666666"}
-        response = self._resend_code(mod_data=data)
+    def test_send_code_no_captcha(self):
+        response = self._send_code(captcha_completed=False)
 
         self.assertEqual(response.status_code, 200)
         phone_data = json.loads(response.data)
 
-        self.assertEqual("POST_PHONE_RESEND_CODE_FAIL", phone_data["type"])
-        self.assertEqual("user-out-of-sync", phone_data["payload"]["message"])
+        self.assertEqual("POST_PHONE_SEND_CODE_FAIL", phone_data["type"])
+        self.assertEqual("phone.captcha-not-completed", phone_data["payload"]["message"])
 
     def test_resend_code_throttle(self):
-        response = self._resend_code()
+        response = self._send_code()
 
         self.assertEqual(response.status_code, 200)
         phone_data = json.loads(response.data)
 
-        self.assertEqual("POST_PHONE_RESEND_CODE_SUCCESS", phone_data["type"])
-        self.assertEqual("+34609609609", phone_data["payload"]["phones"][0].get("number"))
+        self.assertEqual("POST_PHONE_SEND_CODE_SUCCESS", phone_data["type"])
+        self.assertEqual(self.test_number, phone_data["payload"]["phones"][0].get("number"))
         self.assertEqual("+34 6096096096", phone_data["payload"]["phones"][1].get("number"))
 
-        response = self._resend_code()
+        response = self._send_code()
 
         self.assertEqual(response.status_code, 200)
         phone_data = json.loads(response.data)
 
-        self.assertEqual("POST_PHONE_RESEND_CODE_FAIL", phone_data["type"])
+        self.assertEqual("POST_PHONE_SEND_CODE_FAIL", phone_data["type"])
         self.assertEqual(phone_data["error"], True)
         self.assertEqual(phone_data["payload"]["message"], "still-valid-code")
         self.assertIsNotNone(phone_data["payload"]["csrf_token"])
+
+    def test_resend_code_with_expired_state(self):
+        response = self._send_code()
+        self.assertEqual(response.status_code, 200)
+        phone_data = json.loads(response.data)
+
+        self.assertEqual("POST_PHONE_SEND_CODE_SUCCESS", phone_data["type"])
+        self.assertEqual(self.test_number, phone_data["payload"]["phones"][0].get("number"))
+        self.assertEqual("+34 6096096096", phone_data["payload"]["phones"][1].get("number"))
+
+        # expire the just created state
+        state = self.app.proofing_statedb.get_state_by_eppn_and_mobile(self.test_user.eppn, self.test_number)
+        state.modified_ts = state.modified_ts - timedelta(seconds=self.app.conf.phone_verification_timeout)
+        self.app.proofing_statedb._coll.replace_one({"_id": state.id}, state.to_dict())
+
+        response = self._send_code()
+        self.assertEqual(response.status_code, 200)
+        phone_data = json.loads(response.data)
+
+        self.assertEqual("POST_PHONE_SEND_CODE_SUCCESS", phone_data["type"])
+        self.assertEqual(self.test_number, phone_data["payload"]["phones"][0].get("number"))
+        self.assertEqual("+34 6096096096", phone_data["payload"]["phones"][1].get("number"))
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     @patch("eduid.webapp.phone.verifications.get_short_hash")
@@ -753,7 +779,7 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
         self.app.conf.environment = EduidEnvironment("dev")
 
         code = "0123456"
-        resp = self._get_code_backdoor(code=code)
+        resp = self._get_code_backdoor(code=code, magic_cookie_name="wrong_name")
 
         self.assertEqual(resp.status_code, 400)
 

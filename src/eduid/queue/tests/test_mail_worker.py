@@ -48,10 +48,11 @@ class TestMailWorker(QueueAsyncioTest):
             os.environ["EDUID_CONFIG_YAML"] = "YAML_CONFIG_NOT_USED"
 
         self.config = load_config(typ=QueueWorkerConfig, app_name="test", ns="queue", test_config=self.test_config)
-        self.db.register_handler(EduidSignupEmail)
+        self.client_db.register_handler(EduidSignupEmail)
 
     async def asyncSetUp(self) -> None:
         await super().asyncSetUp()
+        self.worker_db.register_handler(EduidSignupEmail)
         await asyncio.sleep(0.5)  # wait for db
         self.worker = MailQueueWorker(config=self.config)
         self.tasks = [asyncio.create_task(self.worker.run())]
@@ -72,7 +73,7 @@ class TestMailWorker(QueueAsyncioTest):
         )
         queue_item = self.create_queue_item(expires_at, discard_at, payload)
         # Client saves new queue item
-        self.db.save(queue_item)
+        self.client_db.save(queue_item)
         await self._assert_item_gets_processed(queue_item)
 
     @patch("aiosmtplib.SMTP.sendmail")
@@ -89,7 +90,7 @@ class TestMailWorker(QueueAsyncioTest):
         )
         queue_item = self.create_queue_item(expires_at, discard_at, payload)
         # Client saves new queue item
-        self.db.save(queue_item)
+        self.client_db.save(queue_item)
         await self._assert_item_gets_processed(queue_item)
 
     @patch("aiosmtplib.SMTP.sendmail")
@@ -109,5 +110,5 @@ class TestMailWorker(QueueAsyncioTest):
         )
         queue_item = self.create_queue_item(expires_at, discard_at, payload)
         # Client saves new queue item
-        self.db.save(queue_item)
+        self.client_db.save(queue_item)
         await self._assert_item_gets_processed(queue_item, retry=True)

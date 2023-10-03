@@ -87,7 +87,7 @@ vscode_pip: vscode_venv
 vscode_packages:
 	$(info Installing apt packages in devcontainer)
 	sudo apt-get update
-	sudo apt install -y swig xmlsec1 python3-venv docker.io
+	sudo apt install -y swig xmlsec1 python3-venv docker.io ghostscript
 
 # This target is used by the devcontainer.json to configure the devcontainer
 vscode: vscode_packages vscode_pip vscode_hosts

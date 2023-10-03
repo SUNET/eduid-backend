@@ -6,7 +6,7 @@ from iso3166 import countries
 from pymongo.errors import PyMongoError
 
 from eduid.common.config.base import ProofingConfigMixin
-from eduid.common.rpc.exceptions import AmTaskFailed, MsgTaskFailed, NoNavetData
+from eduid.common.rpc.exceptions import AmTaskFailed
 from eduid.userdb import User
 from eduid.userdb.credentials import Credential
 from eduid.userdb.element import ElementKey
@@ -177,27 +177,17 @@ class SvipeIDProofingFunctions(ProofingFunctions[SvipeDocumentUserInfo]):
         if not _nin:
             return ProofingElementResult(error=CommonMsg.nin_invalid)
 
-        try:
-            navet_proofing_data = self._get_navet_data(nin=_nin)
-        except NoNavetData:
-            current_app.logger.exception("No data returned from Navet")
-            return ProofingElementResult(error=CommonMsg.no_navet_data)
-        except MsgTaskFailed:
-            current_app.logger.exception("Navet lookup failed")
-            current_app.stats.count("navet_error")
-            return ProofingElementResult(error=CommonMsg.navet_error)
-
         data = SvipeIDNINProofing(
             created_by=current_app.conf.app_name,
-            deregistration_information=navet_proofing_data.deregistration_information,
             eppn=user.eppn,
             nin=_nin,
+            given_name=self.session_info.given_name,
+            surname=self.session_info.family_name,
             svipe_id=self.session_info.svipe_id,
             transaction_id=self.session_info.transaction_id,
             document_type=self.session_info.document_type_sdn_en,  # standardised name in English (e.g. "Passport")
             document_number=self.session_info.document_number,
             proofing_version=current_app.conf.svipe_id_proofing_version,
-            user_postal_address=navet_proofing_data.user_postal_address,
         )
         return ProofingElementResult(data=data)
 

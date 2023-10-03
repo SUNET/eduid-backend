@@ -4,14 +4,12 @@ from typing import Generic, Optional, TypeVar
 
 from eduid.common.config.base import ProofingConfigMixin
 from eduid.common.rpc.exceptions import AmTaskFailed
-from eduid.common.rpc.msg_relay import FullPostalAddress
 from eduid.userdb import User
 from eduid.userdb.credentials import Credential
 from eduid.userdb.element import ElementKey
 from eduid.userdb.identity import IdentityElement
 from eduid.userdb.logs.element import ProofingLogElement
 from eduid.userdb.proofing import ProofingUser
-from eduid.webapp.common.api.helpers import ProofingNavetData, get_proofing_log_navet_data
 from eduid.webapp.common.api.messages import CommonMsg, TranslatableMsg
 from eduid.webapp.common.api.utils import save_and_sync_user
 from eduid.webapp.common.proofing.methods import ProofingMethod
@@ -107,22 +105,3 @@ class ProofingFunctions(ABC, Generic[SessionInfoVar]):
 
     def mark_credential_as_verified(self, credential: Credential, loa: Optional[str]) -> VerifyCredentialResult:
         raise NotImplementedError("Subclass must implement mark_credential_as_verified")
-
-    def _get_navet_data(self, nin: str) -> ProofingNavetData:
-        """
-        Fetch data such as official registered address from Navet (Skatteverket).
-        """
-        if self.backdoor:
-            # verify with bogus data and without Navet interaction for integration test
-            user_postal_address = FullPostalAddress(
-                **{
-                    "Name": {"GivenNameMarking": "20", "GivenName": "Magic Cookie", "Surname": "Testsson"},
-                    "OfficialAddress": {"Address2": "MAGIC COOKIE", "PostalCode": "12345", "City": "LANDET"},
-                }
-            )
-            return ProofingNavetData(
-                user_postal_address=user_postal_address,
-                deregistration_information=None,
-            )
-
-        return get_proofing_log_navet_data(nin=nin)

@@ -1,4 +1,5 @@
 -r sub_main.in
+-c constraints.txt
 Babel
 Pillow
 PyNaCl
