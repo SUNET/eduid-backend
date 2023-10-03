@@ -44,14 +44,14 @@ import eduid.webapp.common.authn
 from eduid.vccs.client import VCCSClient, VCCSPasswordFactor
 from eduid.webapp.common.api import exceptions
 from eduid.webapp.idp.idp_authn import IdPAuthn
-from eduid.webapp.idp.tests.test_app import IdPTests
+from eduid.webapp.idp.tests.test_api import IdPAPITests
 
 logger = logging.getLogger(__name__)
 
 eduid.webapp.common.authn.TESTING = True
 
 
-class TestIdPUserDb(IdPTests):
+class TestIdPUserDb(IdPAPITests):
     def test_lookup_user_by_email(self):
         _this = self.app.userdb.lookup_user(self.test_user.mail_addresses.primary.email)
         assert _this.eppn == self.test_user.eppn
@@ -74,7 +74,7 @@ class TestIdPUserDb(IdPTests):
         assert pwauth is None
 
 
-class TestAuthentication(IdPTests):
+class TestAuthentication(IdPAPITests):
     def test_authn_unknown_user(self):
         assert isinstance(self.app.authn, IdPAuthn)  # help pycharm
         pwauth = self.app.authn.password_authn("foo", "bar")

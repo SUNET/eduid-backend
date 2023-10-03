@@ -21,11 +21,11 @@ from typing import Mapping, Optional, Union
 from uuid import uuid4
 
 from defusedxml import ElementTree as DefusedElementTree
-from flask import make_response, redirect, render_template, request, url_for
+from flask import redirect
 from flask_babel import gettext as _
 from pydantic import BaseModel
 from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
-from werkzeug.exceptions import BadRequest, Forbidden, TooManyRequests
+from werkzeug.exceptions import BadRequest
 from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.common.misc.timeutil import utc_now
@@ -33,10 +33,9 @@ from eduid.common.utils import urlappend
 from eduid.userdb import User
 from eduid.userdb.idp import IdPUser
 from eduid.userdb.idp.user import SAMLAttributeSettings
-from eduid.webapp.common.api import exceptions
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.namespaces import IdP_OtherDevicePendingRequest, IdP_SAMLPendingRequest, RequestRef
-from eduid.webapp.idp import assurance, mischttp
+from eduid.webapp.idp import assurance
 from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.assurance import (
     AssuranceException,
@@ -47,11 +46,10 @@ from eduid.webapp.idp.assurance import (
 )
 from eduid.webapp.idp.assurance_data import AuthnInfo
 from eduid.webapp.idp.helpers import IdPMsg
-from eduid.webapp.idp.idp_authn import AuthnData
 from eduid.webapp.idp.idp_saml import ResponseArgs, SamlResponse
 from eduid.webapp.idp.login_context import LoginContext, LoginContextOtherDevice, LoginContextSAML
 from eduid.webapp.idp.mfa_action import need_security_key
-from eduid.webapp.idp.mischttp import HttpArgs, get_default_template_arguments, get_user_agent
+from eduid.webapp.idp.mischttp import HttpArgs, get_user_agent
 from eduid.webapp.idp.other_device.data import OtherDeviceState
 from eduid.webapp.idp.service import SAMLQueryParams, Service
 from eduid.webapp.idp.sso_session import SSOSession
@@ -234,85 +232,16 @@ class SSO(Service):
             current_app.logger.info(f"Redirecting user without a SAML request to {current_app.conf.eduid_site_url}")
             return redirect(current_app.conf.eduid_site_url)
 
-        if current_app.conf.login_bundle_url:
-            if info.SAMLRequest:
-                # redirect user to the Login javascript bundle
-                loc = urlappend(current_app.conf.login_bundle_url, ticket.request_ref)
-                current_app.logger.info(f"Redirecting user to login bundle {loc}")
-                return redirect(loc)
-            else:
-                raise BadRequest("No SAMLRequest, and login_bundle_url is set")
+        if not current_app.conf.login_bundle_url:
+            raise BadRequest("No login_bundle_url configured")
 
-        # TODO: Remove all this code, we don't use the template IdP anymore.
-        if not current_app.conf.enable_legacy_template_mode:
-            raise BadRequest("Template IdP not enabled")
-
-        # please mypy with this legacy code
-        assert isinstance(ticket, LoginContextSAML)
-
-        _next = login_next_step(ticket, self.sso_session, template_mode=True)
-        current_app.logger.debug(f"Login Next: {_next}")
-
-        if _next.message == IdPMsg.must_authenticate:
-            if not self.sso_session:
-                current_app.logger.info(f"{ticket.request_ref}: authenticate ip={request.remote_addr}")
-            elif ticket.saml_req.force_authn:
-                current_app.logger.info(f"{ticket.request_ref}: force_authn sso_session={self.sso_session.public_id}")
-
-            return redirect(url_for("misc.verify") + "?ref=" + ticket.request_ref)
-
-        if _next.message == IdPMsg.user_terminated:
-            raise Forbidden("USER_TERMINATED")
-        if _next.message == IdPMsg.wrong_user:
-            raise BadRequest("WRONG_USER")
-
-        if _next.message == IdPMsg.tou_required:
-            raise BadRequest("Old actions are disabled")
-
-        if _next.message == IdPMsg.mfa_required:
-            raise BadRequest("Old actions are disabled")
-
-        if _next.message == IdPMsg.proceed:
-            assert self.sso_session  # please mypy
-            current_app.logger.info(
-                f"{ticket.request_ref}: proceeding sso_session={self.sso_session.public_id}, age={self.sso_session.age}"
-            )
-            current_app.logger.debug(f"Continuing with Authn request {repr(ticket.saml_req.request_id)}")
-            assert _next.authn_info  # please mypy
-            return self.perform_login(ticket, _next.authn_info)
-
-        raise RuntimeError(f"Don't know what to do with {ticket}")
-
-    def perform_login(self, ticket: LoginContextSAML, authn_info: AuthnInfo) -> WerkzeugResponse:
-        """
-        Validate request, and then proceed with creating an AuthnResponse and
-        invoking the 'outgoing' SAML2 binding.
-
-        :param ticket: Login process state
-        :return: Response
-        """
-        current_app.logger.debug("\n\n---\n\n")
-        current_app.logger.debug("--- In SSO.perform_login() ---")
-
-        if not isinstance(self.sso_session, SSOSession):
-            raise RuntimeError(f"self.sso_session is not of type {SSOSession} ({type(self.sso_session)})")
-
-        user = current_app.userdb.lookup_user(self.sso_session.eppn)
-        if not user:
-            current_app.logger.error(f"User with eppn {self.sso_session.eppn} (from SSO session) not found")
-            raise Forbidden("User in SSO session not found")
-
-        params = self.get_response_params(authn_info, ticket, user)
-
-        if session.common.eppn and session.common.eppn != user.eppn:
-            current_app.logger.warning(f"Refusing to change eppn in session from {session.common.eppn} to {user.eppn}")
-            raise BadRequest("WRONG_USER")
-        session.common.eppn = user.eppn
-
-        # We're done with this SAML request. Remove it from the session.
-        del session.idp.pending_requests[ticket.request_ref]
-
-        return mischttp.create_html_response(params.binding, params.http_args)
+        if info.SAMLRequest:
+            # redirect user to the Login javascript bundle
+            loc = urlappend(current_app.conf.login_bundle_url, ticket.request_ref)
+            current_app.logger.info(f"Redirecting user to login bundle {loc}")
+            return redirect(loc)
+        else:
+            raise BadRequest("No SAMLRequest, and login_bundle_url is set")
 
     def get_response_params(self, authn_info: AuthnInfo, ticket: LoginContextSAML, user: IdPUser) -> SAMLResponseParams:
         resp_args = self._validate_login_request(ticket)
@@ -571,142 +500,6 @@ class SSO(Service):
         current_app.logger.debug(f"Validate login request :\n{ticket}")
         current_app.logger.debug(f"AuthnRequest from ticket: {ticket.saml_req!r}")
         return ticket.saml_req.get_response_args(ticket.request_ref, current_app.conf)
-
-
-# -----------------------------------------------------------------------------
-# === Authentication ====
-# -----------------------------------------------------------------------------
-
-
-def show_login_page(ticket: LoginContextSAML) -> WerkzeugResponse:
-    _username = ""
-    _login_subject = ticket.saml_req.login_subject
-    if _login_subject is not None:
-        current_app.logger.debug(f"Login subject: {_login_subject}")
-        # Login subject might be set by the idpproxy when requesting the user to do MFA step up
-        if _login_subject.endswith(current_app.conf.default_eppn_scope):
-            # remove the @scope
-            _username = _login_subject[: -(len(current_app.conf.default_eppn_scope) + 1)]
-
-    argv = get_default_template_arguments(current_app.conf)
-    argv.update(
-        {
-            "action": url_for("misc.verify"),
-            "alert_msg": "",
-            "ref": ticket.request_ref,
-            "password": "",
-            "username": _username,
-        }
-    )
-
-    # Set alert msg if found in the session
-    if ticket.pending_request.template_show_msg:
-        argv["alert_msg"] = ticket.pending_request.template_show_msg
-        ticket.pending_request.template_show_msg = None
-
-    current_app.logger.debug(f"Login page HTML substitution arguments :\n{pprint.pformat(argv)}")
-
-    html = render_template("login.jinja2", **argv)
-    return make_response(html)
-
-
-def do_verify() -> WerkzeugResponse:
-    """
-    Perform authentication of user based on user provided credentials.
-
-    What kind of authentication to perform was chosen by SSO._not_authn() when
-    the login web page was to be rendered. It is passed to this function through
-    an HTTP POST parameter (authn_reference).
-
-    This function should not be thought of as a "was login successful" or not.
-    It will figure out what authentication level to assert based on the authncontext
-    requested, and the actual authentication that succeeded.
-
-    :return: Does not return
-    :raise eduid_idp.mischttp.Redirect: On successful authentication, redirect to redirect_uri.
-    """
-    query = mischttp.get_post()
-    # extract password to keep it away from as much code as possible
-    password = query.pop("password", None)
-    if password:
-        query["password"] = "<redacted>"
-    current_app.logger.debug(f"do_verify parsed query :\n{pprint.pformat(query)}")
-
-    if "ref" not in query:
-        raise BadRequest(f"Missing parameter - please re-initiate login")
-    _info = SAMLQueryParams(request_ref=query["ref"])
-    _ticket = get_ticket(_info, None)
-    if not _ticket:
-        raise BadRequest(f"Missing parameter - please re-initiate login")
-
-    # TODO: Remove all this code, we don't use the template IdP anymore.
-    if not current_app.conf.enable_legacy_template_mode:
-        raise BadRequest("Template IdP not enabled")
-
-    # please mypy with this legacy code
-    assert isinstance(_ticket, LoginContextSAML)
-
-    authn_ref = _ticket.get_requested_authn_context()
-    current_app.logger.debug(f"Authenticating with {repr(authn_ref)}")
-
-    # Create an URL for redirecting the user back to the SSO redirect endpoint after this
-    # function - regardless of if authentication was successful or not. The only difference
-    # when authentication is successful is that a SSO session is created, and a reference
-    # to it set in a cookie in the redirect response.
-    next_endpoint = url_for("saml.sso_redirect") + "?ref=" + _ticket.request_ref
-
-    if not password or "username" not in query:
-        current_app.logger.debug(f"Credentials not supplied. Redirect => {next_endpoint}")
-        return redirect(next_endpoint)
-
-    try:
-        pwauth = current_app.authn.password_authn(query["username"].strip(), password)
-    except exceptions.EduidTooManyRequests as e:
-        raise TooManyRequests(e.args[0])
-    except exceptions.EduidForbidden as e:
-        raise Forbidden(e.args[0])
-    finally:
-        del password  # keep out of any exception logs
-
-    if not pwauth:
-        current_app.logger.info(f"{_ticket.request_ref}: Password authentication failed")
-        _ticket.pending_request.template_show_msg = _("Incorrect username or password")
-        current_app.logger.debug(f"Unknown user or wrong password. Redirect => {next_endpoint}")
-        return redirect(next_endpoint)
-
-    # Create SSO session
-    current_app.logger.debug(f"User {pwauth.user} authenticated OK (SAML id {repr(_ticket.saml_req.request_id)})")
-    _authn_credentials: list[AuthnData] = []
-    if pwauth.authndata:
-        _authn_credentials = [pwauth.authndata]
-    _sso_session = SSOSession(
-        authn_credentials=_authn_credentials,
-        authn_request_id=_ticket.saml_req.request_id,
-        eppn=pwauth.user.eppn,
-        expires_at=utc_now() + current_app.conf.sso_session_lifetime,
-    )
-
-    # This session contains information about the fact that the user was authenticated. It is
-    # used to avoid requiring subsequent authentication for the same user during a limited
-    # period of time, by storing the session-id in a browser cookie.
-    current_app.sso_sessions.save(_sso_session)
-
-    # INFO-Log the request id (sha1 of SAML request) and the sso_session
-    current_app.logger.info(
-        f"{_ticket.request_ref}: login sso_session={_sso_session.public_id}, authn={authn_ref}, user={pwauth.user}"
-    )
-
-    # Remember the password credential used for this particular request
-    session.idp.log_credential_used(_ticket.request_ref, pwauth.credential, pwauth.timestamp)
-
-    # Now that an SSO session has been created, redirect the users browser back to
-    # the main entry point of the IdP (the SSO redirect endpoint).
-    current_app.logger.debug(f"Redirecting user back to the SSO redirect endpoint => {next_endpoint}")
-    resp = redirect(next_endpoint)
-    # For debugging purposes, save the IdP SSO cookie value in the common session as well.
-    # This is because we think we might have issues overwriting cookies in redirect responses.
-    session.idp.sso_cookie_val = _sso_session.session_id
-    return mischttp.set_sso_cookie(current_app.conf.sso_cookie, _sso_session.session_id, resp)
 
 
 # ----------------------------------------------------------------------------

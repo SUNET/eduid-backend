@@ -119,7 +119,6 @@ class IdPConfig(EduIDBaseAppConfig, TouConfigMixin, WebauthnConfigMixin2, AmConf
     other_device_url: Optional[HttpUrl] = None
     esi_ladok_prefix: str = Field(default="urn:schac:personalUniqueCode:int:esi:ladok.se:externtstudentuid-")
     allow_other_device_logins: bool = False
-    enable_legacy_template_mode: bool = False
     other_device_logins_ttl: timedelta = Field(default=timedelta(minutes=2))
     other_device_max_code_attempts: int = 3
     other_device_secret_key: str  # secretbox key for protecting the login-with-other-device shared ID

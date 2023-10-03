@@ -33,23 +33,21 @@
 from typing import Any, Optional
 
 from flask import Blueprint, jsonify, redirect, request
-from werkzeug.exceptions import BadRequest
 from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith
 from eduid.webapp.common.api.messages import FluxData, success_response
 from eduid.webapp.common.api.schemas.models import FluxSuccessResponse
-from eduid.webapp.common.session.namespaces import IdP_SAMLPendingRequest, RequestRef
+from eduid.webapp.common.session.namespaces import IdP_SAMLPendingRequest
 from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.decorators import require_ticket, uses_sso_session
-from eduid.webapp.idp.login import do_verify, get_ticket, show_login_page
+from eduid.webapp.idp.login import get_ticket
 from eduid.webapp.idp.login_context import LoginContext, LoginContextSAML
 from eduid.webapp.idp.service import SAMLQueryParams
 from eduid.webapp.idp.sso_session import SSOSession, session
 
 __author__ = "ft"
 
-from eduid.webapp.idp.mischttp import parse_query_string
 from eduid.webapp.idp.schemas import AbortRequestSchema, AbortResponseSchema, LogoutRequestSchema, LogoutResponseSchema
 from eduid.webapp.idp.service import SAMLQueryParams
 
@@ -139,32 +137,3 @@ def logout(ref: Optional[str], sso_session: Optional[SSOSession]) -> WerkzeugRes
     current_app.logger.info("User logged out")
 
     return resp
-
-
-@misc_views.route("/verify", methods=["GET", "POST"])
-def verify() -> WerkzeugResponse:
-    current_app.logger.debug("\n\n")
-    current_app.logger.debug(f"--- Verify ({request.method}) ---")
-
-    if request.method == "GET":
-        query = parse_query_string()
-        if "ref" not in query:
-            raise BadRequest(f"Missing parameter - please re-initiate login")
-        _info = SAMLQueryParams(request_ref=RequestRef(query["ref"]))
-        ticket = get_ticket(_info, None)
-        if not ticket:
-            raise BadRequest(f"Missing parameter - please re-initiate login")
-
-        # TODO: Remove all this code, we don't use the template IdP anymore.
-        if not current_app.conf.enable_legacy_template_mode:
-            raise BadRequest("Template IdP not enabled")
-
-        # please mypy with this legacy code
-        assert isinstance(ticket, LoginContextSAML)
-
-        return show_login_page(ticket)
-
-    if request.method == "POST":
-        return do_verify()
-
-    raise BadRequest()
