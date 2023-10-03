@@ -290,7 +290,7 @@ class VCCSOathFactor(VCCSFactor):
             raise NotImplementedError()
         else:
             raise ValueError("Unknown 'action' value (not auth or add_creds)")
-        for (k, v) in res.items():
+        for k, v in res.items():
             if v is None:
                 raise ValueError(f"{action!r} property {k!r} not provided")
         return res

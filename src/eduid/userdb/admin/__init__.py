@@ -263,7 +263,7 @@ class RawData:
         Format for simple pretty-printing as key: value pairs.
         """
         res: list[str] = []
-        for (key, value) in self.doc.items():
+        for key, value in self.doc.items():
             if isinstance(value, str):
                 res.extend(["  {!s:>25}: {!s}".format(key, value.encode("utf-8"))])
             elif isinstance(value, datetime.datetime):

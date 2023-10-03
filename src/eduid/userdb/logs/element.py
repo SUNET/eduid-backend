@@ -13,6 +13,7 @@ from pydantic import Field
 from eduid.common.models.amapi_user import Reason, Source
 from eduid.common.rpc.msg_relay import DeregistrationInformation, FullPostalAddress
 from eduid.userdb.element import Element
+from eduid.userdb.identity import IdentityProofingMethod
 
 __author__ = "lundberg"
 
@@ -22,6 +23,8 @@ logger = logging.getLogger(__name__)
 
 TLogElementSubclass = TypeVar("TLogElementSubclass", bound="LogElement")
 TNinProofingLogElementSubclass = TypeVar("TNinProofingLogElementSubclass", bound="NinProofingLogElement")
+TNinEIDProofingLogElementSubclass = TypeVar("TNinEIDProofingLogElementSubclass", bound="NinEIDProofingLogElement")
+TNinNavetProofingLogElementSubclass = TypeVar("TNinNavetProofingLogElementSubclass", bound="NinNavetProofingLogElement")
 TForeignIdProofingLogElementSubclass = TypeVar(
     "TForeignIdProofingLogElementSubclass", bound="ForeignIdProofingLogElement"
 )
@@ -74,6 +77,15 @@ class ProofingLogElement(LogElement):
 class NinProofingLogElement(ProofingLogElement):
     # National identity number
     nin: str
+
+
+class NinEIDProofingLogElement(NinProofingLogElement):
+    # The users name from the EID service is used
+    given_name: str
+    surname: str
+
+
+class NinNavetProofingLogElement(NinProofingLogElement):
     # Navet response for users official address
     user_postal_address: FullPostalAddress
     # Navet response for users deregistration information (used if official address is missing)
@@ -129,7 +141,7 @@ class PhoneNumberProofing(ProofingLogElement):
     proofing_method: str = "sms"
 
 
-class TeleAdressProofing(NinProofingLogElement):
+class TeleAdressProofing(NinNavetProofingLogElement):
     """
     {
         'eduPersonPrincipalName': eppn,
@@ -150,7 +162,7 @@ class TeleAdressProofing(NinProofingLogElement):
     # Reason for mobile phone number match to user
     reason: str
     # Proofing method name
-    proofing_method: str = "TeleAdress"
+    proofing_method: str = IdentityProofingMethod.TELEADRESS.value
 
 
 # DEPRECATED: This proofing is deprecated
@@ -183,10 +195,10 @@ class TeleAdressProofingRelation(TeleAdressProofing):
     # Navet response for mobile phone subscriber deregistration information (used if official address is missing)
     registered_deregistration_information: Optional[DeregistrationInformation]
     # Proofing method name
-    proofing_method: str = "TeleAdress"
+    proofing_method: str = IdentityProofingMethod.TELEADRESS.value
 
 
-class LetterProofing(NinProofingLogElement):
+class LetterProofing(NinNavetProofingLogElement):
     """
     {
         'eduPersonPrincipalName': eppn,
@@ -206,10 +218,10 @@ class LetterProofing(NinProofingLogElement):
     # Letter service transaction id
     transaction_id: str
     # Proofing method name
-    proofing_method: str = "letter"
+    proofing_method: str = IdentityProofingMethod.LETTER.value
 
 
-class SeLegProofing(NinProofingLogElement):
+class SeLegProofing(NinNavetProofingLogElement):
     """
     {
         'eduPersonPrincipalName': eppn,
@@ -227,7 +239,7 @@ class SeLegProofing(NinProofingLogElement):
     # Provider transaction id
     transaction_id: str
     # Proofing method name
-    proofing_method: str = "se-leg"
+    proofing_method: str = IdentityProofingMethod.SE_LEG.value
     # Name of the provider who performed the vetting
     vetting_by: str = ""
 
@@ -278,19 +290,24 @@ class OrcidProofing(ProofingLogElement):
     proofing_method: str = "oidc"
 
 
-class SwedenConnectProofing(NinProofingLogElement):
+class SwedenConnectProofing(NinEIDProofingLogElement):
     """
     {
         'eduPersonPrincipalName': eppn,
         'created_ts': utc_now(),
         'created_by': 'application',
         'proofing_method': 'swedenconnect',
-        'proofing_version': '2018v1',
+        'proofing_version': '2023v1',
         'issuer': 'provider who performed the vetting',
         'authn_context_class': 'the asserted authn context class',
         'nin': 'national_identity_number',
-        'user_postal_address': {postal_address_from_navet}
+        'given_name': 'name',
+        'surname': 'name',
     }
+
+    Proofing version history:
+    2018v1 - inital deployment
+    2023v1 - Navet lookup is no longer performed per proofing
     """
 
     # Identity issuer
@@ -298,7 +315,7 @@ class SwedenConnectProofing(NinProofingLogElement):
     # The authentication context class asserted
     authn_context_class: str
     # Proofing method name
-    proofing_method: str = "swedenconnect"
+    proofing_method: str = IdentityProofingMethod.SWEDEN_CONNECT.value
 
 
 class SwedenConnectEIDASProofing(ForeignIdProofingLogElement):
@@ -336,33 +353,40 @@ class SwedenConnectEIDASProofing(ForeignIdProofingLogElement):
     mapped_personal_identity_number: Optional[str]
     personal_identity_number_binding: Optional[str]
     # Proofing method name
-    proofing_method: str = "swedenconnect"
+    proofing_method: str = IdentityProofingMethod.SWEDEN_CONNECT.value
 
 
-class SvipeIDNINProofing(NinProofingLogElement):
+class SvipeIDNINProofing(NinEIDProofingLogElement):
     """
     {
         'eduPersonPrincipalName': eppn,
         'created_ts': utc_now(),
         'created_by': 'application',
         'proofing_method': 'svipe_id',
-        'proofing_version': '2022v1',
+        'proofing_version': '2023v2',
         'svipe_id': 'unique identifier for the user',
         'document_type': 'type of document used for identification',
         'document_number': 'document number',
         'nin': 'national_identity_number',
-        'user_postal_address': {postal_address_from_navet}
+        'given_name': 'name',
+        'surname': 'name',
     }
+
+    Proofing version history:
+    2023v1 - inital deployment
+    2023v2 - Navet lookup is no longer performed per proofing
     """
 
     # unique identifier
     svipe_id: str
+    # transaction id
+    transaction_id: str
     # document type (standardized english)
     document_type: str
     # document number
     document_number: str
     # Proofing method name
-    proofing_method: str = "svipe_id"
+    proofing_method: str = IdentityProofingMethod.SVIPE_ID.value
 
 
 class SvipeIDForeignProofing(ForeignIdProofingLogElement):
@@ -382,8 +406,10 @@ class SvipeIDForeignProofing(ForeignIdProofingLogElement):
 
     # unique identifier
     svipe_id: str
+    # transaction id
+    transaction_id: str
     # document administrative number
-    administrative_number: str
+    administrative_number: Optional[str]
     # document type (standardized english)
     document_type: str
     # document number
@@ -391,7 +417,7 @@ class SvipeIDForeignProofing(ForeignIdProofingLogElement):
     # issuing country
     issuing_country: str
     # Proofing method name
-    proofing_method: str = "svipe_id"
+    proofing_method: str = IdentityProofingMethod.SVIPE_ID.value
 
 
 class MFATokenProofing(SwedenConnectProofing):
@@ -406,7 +432,8 @@ class MFATokenProofing(SwedenConnectProofing):
         'authn_context_class': 'the asserted authn context class',
         'key_id: 'Key id of token vetted',
         'nin': 'national_identity_number',
-        'user_postal_address': {postal_address_from_navet}
+        'given_name': 'name',
+        'surname': 'name',
     }
     """
 
@@ -442,7 +469,7 @@ class MFATokenEIDASProofing(SwedenConnectEIDASProofing):
     proofing_method: str = "swedenconnect"
 
 
-class NameUpdateProofing(NinProofingLogElement):
+class NameUpdateProofing(NinNavetProofingLogElement):
     """
     Used when a user request an update of their name from Navet.
 

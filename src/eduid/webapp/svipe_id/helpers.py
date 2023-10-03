@@ -70,29 +70,20 @@ class UserInfoBase(BaseModel):
 
 class SvipeDocumentUserInfo(UserInfoBase):
     birthdate: date
-    document_administrative_number: str = Field(alias="com.svipe:document_administrative_number")
+    document_administrative_number: Optional[str] = Field(alias="com.svipe:document_administrative_number")
     document_expiry_date: date = Field(alias="com.svipe:document_expiry_date")
     # Issuing Country: SWE
     document_issuing_country: str = Field(alias="com.svipe:document_issuing_country")
-    # Issuing Country (english): Sweden
-    document_issuing_country_en: str = Field(alias="com.svipe:document_issuing_country_en")
     # Nationality: SWE
     document_nationality: str = Field(alias="com.svipe:document_nationality")
-    # Nationality (english): Sweden
-    document_nationality_en: str = Field(alias="com.svipe:document_nationality_en")
     document_number: str = Field(alias="com.svipe:document_number")
-    # Document Type: P
-    document_type: str = Field(alias="com.svipe:document_type")
-    # Document Type (standardized): PN
-    document_type_sdn: str = Field(alias="com.svipe:document_type_sdn")
     # Document Type (standardized/english): Passport
     document_type_sdn_en: str = Field(alias="com.svipe:document_type_sdn_en")
     family_name: str
-    gender: Optional[str]
     given_name: str
     name: Optional[str]
-    nonce: str
     svipe_id: str = Field(alias="com.svipe:svipeid")
+    transaction_id: str = Field(alias="com.svipe:meta_transaction_id")
 
     @validator("document_nationality")
     def iso_3166_1_alpha_3_to_alpha2(cls, v):

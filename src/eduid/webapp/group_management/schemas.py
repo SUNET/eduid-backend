@@ -82,24 +82,20 @@ class GroupManagementResponseSchema(FluxStandardAction):
 
 
 class GroupCreateRequestSchema(EduidSchema, CSRFRequestMixin):
-
     display_name = fields.Str(required=True)
 
 
 class GroupDeleteRequestSchema(EduidSchema, CSRFRequestMixin):
-
     group_identifier = fields.UUID(required=True)
 
 
 class GroupRemoveUserRequestSchema(EduidSchema, CSRFRequestMixin):
-
     group_identifier = fields.UUID(required=True)
     user_identifier = fields.UUID(required=True)
     role = EnumField(GroupRole, required=True, by_value=True)
 
 
 class GroupInviteRequestSchema(EduidSchema, CSRFRequestMixin):
-
     group_identifier = fields.UUID(required=True)
     email_address = LowercaseEmail(required=True, validate=validate_email)
     role = EnumField(GroupRole, required=True, by_value=True)

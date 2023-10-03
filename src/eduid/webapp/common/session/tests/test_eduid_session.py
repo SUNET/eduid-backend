@@ -75,7 +75,6 @@ def session_init_app(name, test_config: Mapping[str, Any]) -> SessionTestApp:
 
 
 class EduidSessionTests(EduidAPITestCase):
-
     app: SessionTestApp
 
     def setUp(self, **kwargs):
@@ -197,7 +196,7 @@ class EduidSessionTests(EduidAPITestCase):
 
     def _test_bad_session_cookie(self, bad_cookie_value):
         with self.browser as browser:
-            browser.set_cookie(server_name=".test.localhost", key="sessid", value=bad_cookie_value)
+            browser.set_cookie(domain=".test.localhost", key="sessid", value=bad_cookie_value)
             response = browser.get("/unauthenticated")
             # Make sure the request completes correctly even with a bad cookie value
             self.assertEqual(response.status_code, 200)

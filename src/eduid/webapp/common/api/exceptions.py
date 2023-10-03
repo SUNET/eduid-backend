@@ -66,7 +66,6 @@ class ProofingLogFailure(Exception):
 
 
 class ThrottledException(Exception):
-
     state: "ResetPasswordEmailState"
 
     def __init__(self, state: "ResetPasswordEmailState"):
@@ -75,7 +74,6 @@ class ThrottledException(Exception):
 
 
 def init_exception_handlers(app):
-
     # Init error handler for raised exceptions
     @app.errorhandler(400)
     def _handle_flask_http_exception(error):

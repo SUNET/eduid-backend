@@ -29,10 +29,17 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-from eduid.common.config.base import AmConfigMixin, EduIDBaseAppConfig, MagicCookieMixin, MsgConfigMixin
+
+from eduid.common.config.base import (
+    AmConfigMixin,
+    CaptchaConfigMixin,
+    EduIDBaseAppConfig,
+    MagicCookieMixin,
+    MsgConfigMixin,
+)
 
 
-class PhoneConfig(EduIDBaseAppConfig, MagicCookieMixin, AmConfigMixin, MsgConfigMixin):
+class PhoneConfig(EduIDBaseAppConfig, MagicCookieMixin, AmConfigMixin, MsgConfigMixin, CaptchaConfigMixin):
     """
     Configuration for the phone app
     """

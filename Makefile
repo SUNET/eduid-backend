@@ -2,7 +2,12 @@ TOPDIR:=	$(abspath .)
 SRCDIR=		$(TOPDIR)/src
 SOURCE=		$(SRCDIR)/eduid
 PIPCOMPILE=	pip-compile -v --generate-hashes --index-url https://pypi.sunet.se/simple
-MYPY_ARGS=	--install-types --non-interactive --pretty --ignore-missing-imports
+MYPY_ARGS=	--install-types --non-interactive --pretty --ignore-missing-imports \
+			--warn-unused-ignores \
+			# --disallow-untyped-decorators
+MYPY_STRICT= --strict \
+			 --implicit-reexport \
+			 --allow-untyped-calls
 
 test:
 	PYTHONPATH=$(SRCDIR) pytest -vvv -ra --log-cli-level DEBUG
@@ -13,8 +18,14 @@ reformat:
 
 typecheck:
 	MYPYPATH=$(SRCDIR) mypy $(MYPY_ARGS) --namespace-packages -p eduid
-        # a second pass with --check-untyped-defs, excluding test files
 	MYPYPATH=$(SRCDIR) mypy $(MYPY_ARGS) --namespace-packages -p eduid --check-untyped-defs --exclude '/test_.*\.py$$'
+
+typecheck_strict:
+	$(info Running mypy in semi-strict mode (not enforced in the build pipeline yet))
+	MYPYPATH=$(SRCDIR) mypy $(MYPY_ARGS) $(MYPY_STRICT) --namespace-packages -p eduid \
+		 				--allow-untyped-defs
+        # a second pass with --strict (minus some things we're not ready for yet), excluding test files
+	MYPYPATH=$(SRCDIR) mypy $(MYPY_ARGS) $(MYPY_STRICT) --namespace-packages -p eduid --check-untyped-defs --exclude '/test_.*\.py$$'
 
 update_webapp_translations:
 	pybabel extract -k _ -k gettext -k ngettext --mapping=babel.cfg --width=120 --output=$(SOURCE)/webapp/translations/messages.pot $(SOURCE)/webapp/
@@ -76,7 +87,7 @@ vscode_pip: vscode_venv
 vscode_packages:
 	$(info Installing apt packages in devcontainer)
 	sudo apt-get update
-	sudo apt install -y swig xmlsec1 python3-venv docker.io
+	sudo apt install -y swig xmlsec1 python3-venv docker.io ghostscript
 
 # This target is used by the devcontainer.json to configure the devcontainer
 vscode: vscode_packages vscode_pip vscode_hosts

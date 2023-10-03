@@ -48,6 +48,7 @@ def init_logging():
         "<cyan> {line: <3} </cyan> | <level>{message}</level>"
     )
     loguru_logger.add(sys.stderr, format=fmt, level="DEBUG")
+    loguru_logger.debug("Logging initialized")
     return loguru_logger
     # return logging.getLogger('VCCS2')
 

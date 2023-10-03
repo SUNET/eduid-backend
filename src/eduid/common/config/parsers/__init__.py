@@ -1,5 +1,6 @@
 import json
 import os
+import sys
 from pathlib import Path
 from typing import Any, Mapping, Optional
 
@@ -20,6 +21,7 @@ def load_config(
     test_config: Optional[Mapping[str, Any]] = None,
 ) -> TRootConfigSubclass:
     """Figure out where to load configuration from, and do it."""
+    print("loading config...", file=sys.stderr)
     app_path = os.environ.get("EDUID_CONFIG_NS", f"/eduid/{ns}/{app_name}/")
     common_path = os.environ.get("EDUID_CONFIG_COMMON_NS", f"/eduid/{ns}/common/")
 

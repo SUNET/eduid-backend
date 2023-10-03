@@ -101,4 +101,5 @@ class MockedScimAPIMixin(MockedSyncAuthAPIMixin):
         put_user_route.return_value = Response(200, text=UserResponse(**self.put_user_response).json(exclude_none=True))
 
         self.mocked_scim_api.start()
-        self.addCleanup(self.mocked_scim_api.stop)  # type: ignore
+        assert hasattr(self, "addCleanup")  # please mypy
+        self.addCleanup(self.mocked_scim_api.stop)

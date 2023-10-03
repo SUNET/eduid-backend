@@ -12,12 +12,11 @@ from fido2.webauthn import AuthenticatorAttachment
 
 from eduid.common.config.base import EduidEnvironment
 from eduid.common.misc.timeutil import utc_now
-from eduid.common.rpc.msg_relay import DeregisteredCauseCode, DeregistrationInformation, OfficialAddress
 from eduid.userdb import NinIdentity
 from eduid.userdb.credentials import U2F, Webauthn
 from eduid.userdb.credentials.external import EidasCredential, ExternalCredential, SwedenConnectCredential
 from eduid.userdb.element import ElementKey
-from eduid.userdb.identity import EIDASIdentity, EIDASLoa, PridPersistence
+from eduid.userdb.identity import EIDASIdentity, EIDASLoa, IdentityProofingMethod, PridPersistence
 from eduid.webapp.authn.views import FALLBACK_FRONTEND_ACTION
 from eduid.webapp.common.api.messages import CommonMsg, TranslatableMsg, redirect_with_msg
 from eduid.webapp.common.api.testing import CSRFTestClient
@@ -382,7 +381,7 @@ class EidasTests(ProofingTests[EidasApp]):
 
         ps = urlparse(finish_url)
         # Check the base part of the URL (everything except the query string)
-        _ps = ps._replace(query="")  # type: ignore
+        _ps = ps._replace(query="")
         if expect_redirect_url is not None:
             redirect_url_no_params = urlunparse(_ps)
             assert redirect_url_no_params == expect_redirect_url
@@ -528,7 +527,6 @@ class EidasTests(ProofingTests[EidasApp]):
         verify_credential: Optional[ElementKey] = None,
         frontend_state: Optional[str] = "This is a unit test",
     ) -> None:
-
         if eppn is None:
             eppn = self.test_user_eppn
 
@@ -824,9 +822,8 @@ class EidasTests(ProofingTests[EidasApp]):
         self._verify_user_parameters(eppn)
 
         self.app.conf.magic_cookie = "magic-cookie"
-        with self.session_cookie(self.browser, eppn) as browser:
-            browser.set_cookie("localhost", key="magic-cookie", value=self.app.conf.magic_cookie)
-            browser.set_cookie("localhost", key="nin", value=nin.number)
+        with self.session_cookie_and_magic_cookie(self.browser, eppn=eppn) as browser:
+            browser.set_cookie(domain=self.test_domain, key="nin", value=nin.number)
             self.verify_token(
                 endpoint=f"/verify-token/{credential.key}",
                 eppn=eppn,
@@ -855,37 +852,21 @@ class EidasTests(ProofingTests[EidasApp]):
         )
         user = self.app.central_userdb.get_user_by_eppn(eppn)
         self._verify_user_parameters(
-            eppn, num_mfa_tokens=0, identity_verified=True, num_proofings=1, locked_identity=user.identities.nin
+            eppn,
+            num_mfa_tokens=0,
+            identity_verified=True,
+            num_proofings=1,
+            locked_identity=user.identities.nin,
+            proofing_method=IdentityProofingMethod.SWEDEN_CONNECT,
+            proofing_version=self.app.conf.freja_proofing_version,
         )
-
-    @patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_nin_verify_no_official_address(
-        self, mock_request_user_sync: MagicMock, mock_get_all_navet_data: MagicMock
-    ):
-        mock_get_all_navet_data.return_value = self._get_all_navet_data()
-        # add empty official address and deregistration information as for a user that has emigrated
-        mock_get_all_navet_data.return_value.person.postal_addresses.official_address = OfficialAddress()
-        mock_get_all_navet_data.return_value.person.deregistration_information = DeregistrationInformation(
-            date="20220509", cause_code=DeregisteredCauseCode.EMIGRATED
-        )
-        mock_request_user_sync.side_effect = self.request_user_sync
-
-        eppn = self.test_unverified_user_eppn
-        self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=False)
-
-        self.reauthn(
-            "/verify-nin",
-            expect_msg=EidasMsg.old_nin_verify_success,
-            eppn=eppn,
-            expect_redirect_url="http://test.localhost/profile",
-        )
-
-        self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=True, num_proofings=1)
+        # check names
+        assert user.given_name == "Ûlla"
+        assert user.surname == "Älm"
         # check proofing log
         doc = self.app.proofing_log._get_documents_by_attr(attr="eduPersonPrincipalName", value=eppn)[0]
-        assert doc["user_postal_address"]["official_address"] == {}
-        assert doc["deregistration_information"]["cause_code"] == "UV"
+        assert doc["given_name"] == "Ûlla"
+        assert doc["surname"] == "Älm"
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_mfa_login(self, mock_request_user_sync: MagicMock):
@@ -1174,8 +1155,8 @@ class EidasTests(ProofingTests[EidasApp]):
 
         self.app.conf.magic_cookie = "magic-cookie"
         with self.session_cookie(self.browser, eppn) as browser:
-            browser.set_cookie("localhost", key="magic-cookie", value=self.app.conf.magic_cookie)
-            browser.set_cookie("localhost", key="nin", value=nin.number)
+            browser.set_cookie(domain="test.localhost", key="magic-cookie", value=self.app.conf.magic_cookie)
+            browser.set_cookie(domain="test.localhost", key="nin", value=nin.number)
             self.reauthn(
                 "/mfa-authentication",
                 expect_msg=EidasMsg.action_completed,
@@ -1198,9 +1179,8 @@ class EidasTests(ProofingTests[EidasApp]):
 
         self.app.conf.magic_cookie = "magic-cookie"
 
-        with self.session_cookie(self.browser, eppn) as browser:
-            browser.set_cookie("localhost", key="magic-cookie", value=self.app.conf.magic_cookie)
-            browser.set_cookie("localhost", key="nin", value=nin.number)
+        with self.session_cookie_and_magic_cookie(self.browser, eppn) as browser:
+            browser.set_cookie(domain="test.localhost", key="nin", value=nin.number)
             self.reauthn(
                 "/verify-nin",
                 expect_msg=EidasMsg.old_nin_verify_success,
@@ -1225,9 +1205,8 @@ class EidasTests(ProofingTests[EidasApp]):
         self.app.conf.magic_cookie = "magic-cookie"
         self.app.conf.environment = EduidEnvironment.production
 
-        with self.session_cookie(self.browser, eppn) as browser:
-            browser.set_cookie("localhost", key="magic-cookie", value=self.app.conf.magic_cookie)
-            browser.set_cookie("localhost", key="nin", value=nin.number)
+        with self.session_cookie_and_magic_cookie(self.browser, eppn=eppn) as browser:
+            browser.set_cookie(domain=self.test_domain, key="nin", value=nin.number)
             self.reauthn(
                 "/verify-nin",
                 expect_msg=EidasMsg.old_nin_verify_success,
@@ -1256,9 +1235,10 @@ class EidasTests(ProofingTests[EidasApp]):
 
         self.app.conf.magic_cookie = "magic-cookie"
 
-        with self.session_cookie(self.browser, eppn) as browser:
-            browser.set_cookie("localhost", key="magic-cookie", value="NOT-the-magic-cookie")
-            browser.set_cookie("localhost", key="nin", value=nin.number)
+        with self.session_cookie_and_magic_cookie(
+            self.browser, eppn=eppn, magic_cookie_value="NOT-the-magic-cookie"
+        ) as browser:
+            browser.set_cookie(domain="test.localhost", key="nin", value=nin.number)
             self.reauthn(
                 "/verify-nin",
                 expect_msg=EidasMsg.old_nin_verify_success,
@@ -1393,6 +1373,8 @@ class EidasTests(ProofingTests[EidasApp]):
             identity_verified=True,
             num_proofings=1,
             locked_identity=user.identities.eidas,
+            proofing_method=IdentityProofingMethod.SWEDEN_CONNECT,
+            proofing_version=self.app.conf.foreign_eid_proofing_version,
         )
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")

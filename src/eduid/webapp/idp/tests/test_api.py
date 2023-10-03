@@ -41,6 +41,8 @@ from werkzeug.test import TestResponse
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb import ToUEvent
+from eduid.userdb.mail import MailAddress
+from eduid.userdb.user import User
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.common.authn.cache import IdentityCache, OutstandingQueriesCache, StateCache
 from eduid.webapp.common.authn.utils import get_saml2_config
@@ -62,7 +64,7 @@ class GenericResult:
 
 @dataclass
 class NextResult(GenericResult):
-    pass
+    error: Optional[dict[str, Any]] = None
 
 
 @dataclass
@@ -82,6 +84,12 @@ class FinishedResultAPI(GenericResult):
 
 
 @dataclass
+class TestUser:
+    eppn: Optional[str]
+    password: Optional[str]
+
+
+@dataclass
 class LoginResultAPI:
     response: TestResponse
     ref: Optional[str] = None
@@ -91,10 +99,13 @@ class LoginResultAPI:
     pwauth_result: Optional[PwAuthResult] = None
     tou_result: Optional[TouResult] = None
     finished_result: Optional[FinishedResultAPI] = None
+    error: Optional[dict[str, Any]] = None
 
 
 class IdPAPITests(EduidAPITestCase[IdPApp]):
     """Base TestCase for those tests that need a full environment setup"""
+
+    default_user: TestUser
 
     def setUp(
         self,
@@ -111,6 +122,7 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
         self.pysaml2_identity = IdentityCache(self._pysaml2_caches)  # _saml2_identities in _pysaml2_caches
         self.pysaml2_oq = OutstandingQueriesCache(self._pysaml2_caches)  # _saml2_outstanding_queries in _pysaml2_caches
         self.saml2_client = Saml2Client(config=self.sp_config, identity_cache=self.pysaml2_identity)
+        self.default_user = TestUser(eppn=self.test_user.eppn, password="bar")
 
     def load_app(self, config: Optional[Mapping[str, Any]]) -> IdPApp:
         """
@@ -127,6 +139,7 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
                 "pysaml2_config": str(fn),
                 "fticks_secret_key": "test test",
                 "eduperson_targeted_id_secret_key": "eptid_secret",
+                "pairwise_id_secret_key": "pairwise_secret",
                 "sso_cookie": {"key": "test_sso_cookie"},
                 "eduid_site_url": "https://eduid.docker_dev",
                 "u2f_app_id": "https://example.com",
@@ -134,6 +147,7 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
                 "fido2_rp_id": "idp.example.com",
                 "login_bundle_url": "https://idp.eduid.docker/test-bundle",
                 "tou_version": "2016-v1",
+                "default_eppn_scope": "test.scope",
                 "other_device_secret_key": "lx0sg0g21QUkiu9JAPfhx4hJ5prJtbk1PPE-OBvpiAk=",
                 "known_devices_secret_key": "WwemHQgPm1hpx41NYaVBQpRV7BAq0OMtfF3k4H72J7c=",
                 "geo_statistics_secret_key": "gk5cBWIZ6k-mNHWnA33ZpsgXfgH50Wi_s3mUNI9GF0o=",
@@ -147,8 +161,7 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
         authn_context: Optional[Mapping[str, Any]] = None,
         force_authn: bool = False,
         assertion_consumer_service_url: Optional[str] = None,
-        username: Optional[str] = None,
-        password: Optional[str] = None,
+        test_user: Optional[TestUser] = None,
     ) -> LoginResultAPI:
         """
         Try logging in to the IdP.
@@ -170,6 +183,9 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
         self.pysaml2_oq.set(session_id, self.relay_state)
 
         path = self._extract_path_from_info(info)
+
+        user: TestUser = test_user if test_user is not None else self.default_user
+
         with self.session_cookie_anon(self.browser) as browser:
             # Send SAML request to SAML endpoint, expect a redirect to the login bundle back
             resp = browser.get(path)
@@ -189,6 +205,10 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
                 # Call the 'next' endpoint
                 _next = self._call_next(ref)
 
+                if _next.error:
+                    result.error = _next.error
+                    return result
+
                 _action = IdPAction(_next.payload["action"])
                 if _action not in result.visit_count:
                     result.visit_count[_action] = 0
@@ -201,11 +221,11 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
                     return result
 
                 if _action == IdPAction.PWAUTH:
-                    if not username or not password:
+                    if not user.eppn or not user.password:
                         logger.error(f"Can't login without username and password, aborting with result {result}")
                         return result
 
-                    result.pwauth_result = self._call_pwauth(_next.payload["target"], ref, username, password)
+                    result.pwauth_result = self._call_pwauth(_next.payload["target"], ref, user.eppn, user.password)
                     result.sso_cookie_val = result.pwauth_result.sso_cookie_val
                     cookie_jar.update(result.pwauth_result.cookies)
 
@@ -229,6 +249,22 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
                     data = {"ref": ref, "csrf_token": sess.get_csrf_token()}
                 response = client.post("/next", data=json.dumps(data), content_type=self.content_type_json)
         logger.debug(f"Next endpoint returned:\n{json.dumps(response.json, indent=4)}")
+        if response.is_json:
+            assert response.json is not None
+            if response.json.get("error"):
+                return NextResult(payload=self.get_response_payload(response), error=response.json)
+        if response._status_code != 200 and response._status_code != 302:
+            _page_text = response.data.decode("UTF-8")
+            _re = r"<p>(.*?error:.*?)</p>"
+            _re_match = re.search(_re, _page_text)
+            assert _re_match is not None
+            _error_message = _re_match.group(1)
+            _error: dict[str, Any] = {
+                "status_code": response._status_code,
+                "status": response.status,
+                "message": _error_message,
+            }
+            return NextResult(payload={}, error=_error)
         return NextResult(payload=self.get_response_payload(response))
 
     def _call_pwauth(self, target: str, ref: str, username: str, password: str) -> PwAuthResult:
@@ -294,12 +330,11 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
         return path
 
     def parse_saml_authn_response(
-        self, response: TestResponse, saml2_client: Optional[Saml2Client] = None
+        self, result: FinishedResultAPI, saml2_client: Optional[Saml2Client] = None
     ) -> AuthnResponse:
         _saml2_client = saml2_client if saml2_client is not None else self.saml2_client
 
-        form = self._extract_form_inputs(response.data.decode("utf-8"))
-        xmlstr = bytes(form["SAMLResponse"], "ascii")
+        xmlstr = result.payload["parameters"]["SAMLResponse"]
         outstanding_queries = self.pysaml2_oq.outstanding_queries()
         return _saml2_client.parse_authn_request_response(xmlstr, BINDING_HTTP_POST, outstanding_queries)
 
@@ -308,10 +343,12 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
             return None
         return self.app.sso_sessions.get_session(SSOSessionId(sso_cookie_val))
 
-    def add_test_user_tou(self, version: Optional[str] = None) -> ToUEvent:
+    def add_test_user_tou(self, user: Optional[User] = None, version: Optional[str] = None) -> ToUEvent:
         """Utility function to add a valid ToU to the default test user"""
         if version is None:
             version = self.app.conf.tou_version
+        if user is None:
+            user = self.test_user
         tou = ToUEvent(
             version=version,
             created_by="idp_tests",
@@ -319,6 +356,18 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
             modified_ts=utc_now(),
             event_id=str(ObjectId()),
         )
-        self.test_user.tou.add(tou)
-        self.amdb.save(self.test_user)
+        user.tou.add(tou)
+        self.amdb.save(user)
         return tou
+
+    def add_test_user_mail_address(self, mail_address: MailAddress) -> None:
+        """Utility function to add a mail address to the default test user"""
+        self.test_user.mail_addresses.add(mail_address)
+        self.amdb.save(self.test_user)
+
+    def get_attributes(self, result, saml2_client: Optional[Saml2Client] = None):
+        assert result.finished_result is not None
+        authn_response = self.parse_saml_authn_response(result.finished_result, saml2_client=saml2_client)
+        session_info = authn_response.session_info()
+        attributes: dict[str, list[Any]] = session_info["ava"]
+        return attributes

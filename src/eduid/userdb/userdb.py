@@ -74,7 +74,6 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
     """
 
     def __init__(self, db_uri: str, db_name: str, collection: str = "userdb"):
-
         if db_name == "eduid_am" and collection == "userdb":
             # Hack to get right collection name while the configuration points to the old database
             collection = "attributes"
@@ -386,7 +385,7 @@ class AmDB(UserDB[User]):
     def user_from_dict(cls, data: TUserDbDocument) -> User:
         return User.from_dict(data)
 
-    def save(self, user: User) -> UserSaveResult:  # type: ignore[override]
+    def save(self, user: User) -> UserSaveResult:
         """
         Save a User object to the database.
         """

@@ -69,7 +69,7 @@ class SLO(Service):
         """
         # Need to get the body without sanitation
         data = request.stream.read().decode("utf-8")
-        return SAMLQueryParams(SAMLRequest=data, RelayState="")
+        return SAMLQueryParams(SAMLRequest=data, RelayState="foo")
 
     def perform_logout(self, info: SAMLQueryParams, binding: str) -> WerkzeugResponse:
         """

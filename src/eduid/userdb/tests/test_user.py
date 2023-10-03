@@ -88,10 +88,10 @@ class TestNewUser(unittest.TestCase):
                 {
                     "version": "U2F_V2",
                     "app_id": "unit test",
-                    "keyhandle": "U2F SWAMID AL2",
+                    "keyhandle": "U2F SWAMID AL3",
                     "public_key": "foo",
                     "verified": True,
-                    "proofing_method": CredentialProofingMethod.SWAMID_AL2_MFA,
+                    "proofing_method": CredentialProofingMethod.SWAMID_AL3_MFA,
                     "proofing_version": "testing",
                 },
             ],
@@ -184,10 +184,10 @@ class TestNewUser(unittest.TestCase):
             U2F(
                 version="U2F_V2",
                 app_id="unit test",
-                keyhandle="U2F SWAMID AL2",
+                keyhandle="U2F SWAMID AL3",
                 public_key="foo",
                 is_verified=True,
-                proofing_method=CredentialProofingMethod.SWAMID_AL2_MFA,
+                proofing_method=CredentialProofingMethod.SWAMID_AL3_MFA,
                 proofing_version="testing",
             ),
         ]
@@ -741,14 +741,14 @@ class TestNewUser(unittest.TestCase):
     def test_user_verified_credentials(self):
         ver = [x for x in self.user2.credentials.to_list() if x.is_verified]
         keys = [x.key for x in ver]
-        self.assertEqual(keys, [_keyid("U2F SWAMID AL2" + "foo")])
+        self.assertEqual(keys, [_keyid("U2F SWAMID AL3" + "foo")])
 
     def test_user_unverified_credential(self):
         cred = [x for x in self.user2.credentials.to_list() if x.is_verified][0]
-        self.assertEqual(cred.proofing_method, CredentialProofingMethod.SWAMID_AL2_MFA)
+        self.assertEqual(cred.proofing_method, CredentialProofingMethod.SWAMID_AL3_MFA)
         _dict1 = cred.to_dict()
         self.assertEqual(_dict1["verified"], True)
-        self.assertEqual(_dict1["proofing_method"], CredentialProofingMethod.SWAMID_AL2_MFA)
+        self.assertEqual(_dict1["proofing_method"], CredentialProofingMethod.SWAMID_AL3_MFA)
         self.assertEqual(_dict1["proofing_version"], "testing")
         cred.is_verified = False
         _dict2 = cred.to_dict()
@@ -857,10 +857,10 @@ class TestNewUser(unittest.TestCase):
         second = {
             "version": "U2F_V2",
             "app_id": "unit test",
-            "keyhandle": "U2F SWAMID AL2",
+            "keyhandle": "U2F SWAMID AL3",
             "public_key": "foo",
             "verified": True,
-            "proofing_method": CredentialProofingMethod.SWAMID_AL2_MFA,
+            "proofing_method": CredentialProofingMethod.SWAMID_AL3_MFA,
             "proofing_version": "testing",
         }
 

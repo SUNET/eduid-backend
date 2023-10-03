@@ -36,11 +36,12 @@ import logging
 import os.path
 import sys
 from datetime import timedelta
-from typing import TYPE_CHECKING, Any, Mapping, Optional, Sequence
+from typing import TYPE_CHECKING, Optional, Sequence
 
 from pwgen import pwgen
 from saml2 import server
 from saml2.config import SPConfig
+from saml2.typing import SAMLHttpArgs
 
 # From https://stackoverflow.com/a/39757388
 # The TYPE_CHECKING constant is always False at runtime, so the import won't be evaluated, but mypy
@@ -70,7 +71,7 @@ def get_saml2_config(module_path: str, name="SAML_CONFIG") -> SPConfig:
     return conf
 
 
-def get_location(http_info: Mapping[str, Any]) -> str:
+def get_location(http_info: SAMLHttpArgs) -> str:
     """Extract the redirect URL from a pysaml2 http_info object"""
     assert "headers" in http_info
     headers = http_info["headers"]

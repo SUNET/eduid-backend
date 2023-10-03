@@ -85,9 +85,7 @@ import nacl.encoding
 import nacl.secret
 import nacl.utils
 import redis
-
-# error: Module "redis" has no attribute "sentinel" according to mypy
-from redis import sentinel  # type: ignore
+from redis import sentinel
 
 from eduid.common.config.base import RedisConfig
 from eduid.common.misc.encoders import EduidJSONEncoder

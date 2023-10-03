@@ -39,12 +39,10 @@ __author__ = "eperez"
 
 
 class ResetPasswordEmailRequestSchema(EduidSchema, CSRFRequestMixin):
-
     email = LowercaseEmail(required=True)
 
 
 class ResetPasswordEmailCodeRequestSchema(EduidSchema, CSRFRequestMixin):
-
     email_code = fields.String(required=True)
 
 
@@ -78,24 +76,20 @@ class ResetPasswordVerifyEmailResponseSchema(FluxStandardAction):
 
 
 class ResetPasswordExtraSecPhoneSchema(EduidSchema, CSRFRequestMixin):
-
     email_code = fields.String(required=True)
     phone_index = fields.Integer(required=True)
 
 
 class ResetPasswordWithCodeSchema(EduidSchema, CSRFRequestMixin):
-
     email_code = fields.String(required=True)
     password = fields.String(required=True)
 
 
 class ResetPasswordWithPhoneCodeSchema(ResetPasswordWithCodeSchema):
-
     phone_code = fields.String(required=True)
 
 
 class ResetPasswordWithSecTokenSchema(ResetPasswordWithCodeSchema):
-
     authenticator_data = fields.String(required=False, data_key="authenticatorData")
     client_data_json = fields.String(required=False, data_key="clientDataJSON")
     credential_id = fields.String(required=False, data_key="credentialId")
@@ -110,14 +104,12 @@ class SuggestedPasswordResponseSchema(FluxStandardAction):
 
 
 class NewPasswordSecurePhoneRequestSchema(EduidSchema, CSRFRequestMixin):
-
     email_code = fields.String(required=True)
     password = fields.String(required=True)
     phone_code = fields.String(required=True)
 
 
 class NewPasswordSecureTokenRequestSchema(EduidSchema, CSRFRequestMixin):
-
     email_code = fields.String(required=True)
     password = fields.String(required=True)
     token_response = fields.String(required=False, data_key="tokenResponse")

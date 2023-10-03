@@ -58,7 +58,6 @@ logger = logging.getLogger(__name__)
 
 @dataclass()
 class ProofingState:
-
     # __post_init__ will mint a new ObjectId if `id' is None
     id: Optional[bson.ObjectId]
     eppn: str
@@ -142,7 +141,6 @@ class ProofingState:
 
 @dataclass()
 class NinProofingState(ProofingState):
-
     nin: NinProofingElement
 
     @classmethod
@@ -160,7 +158,6 @@ class NinProofingState(ProofingState):
 
 @dataclass()
 class LetterProofingState(NinProofingState):
-
     proofing_letter: SentLetterElement
 
     @classmethod
@@ -179,7 +176,6 @@ class LetterProofingState(NinProofingState):
 
 @dataclass()
 class OrcidProofingState(ProofingState):
-
     state: str
     nonce: str
 
@@ -190,7 +186,6 @@ class OrcidProofingState(ProofingState):
 
 @dataclass()
 class OidcProofingState(NinProofingState):
-
     state: str
     nonce: str
     token: str
@@ -204,7 +199,6 @@ class OidcProofingState(NinProofingState):
 
 @dataclass()
 class EmailProofingState(ProofingState):
-
     verification: EmailProofingElement
 
     @classmethod
@@ -222,7 +216,6 @@ class EmailProofingState(ProofingState):
 
 @dataclass()
 class PhoneProofingState(ProofingState):
-
     verification: PhoneProofingElement
 
     @classmethod

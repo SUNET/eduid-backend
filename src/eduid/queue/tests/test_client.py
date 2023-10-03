@@ -47,7 +47,6 @@ class TestMessage(TestCase):
         )
 
     def test_eduid_invite_mail(self):
-
         payload = EduidInviteEmail(
             email="mail@example.com",
             reference="ref_id",

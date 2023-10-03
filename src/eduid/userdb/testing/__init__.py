@@ -177,3 +177,67 @@ class MongoTestCase(unittest.TestCase):
         # Close, but do not shut down the temporary MongoDB instance for performance reasons.
         self.amdb.close()
         super().tearDown()
+
+
+class AsyncMongoTestCase(unittest.IsolatedAsyncioTestCase):
+    """TestCase with an embedded MongoDB temporary instance.
+
+    Each test runs on a temporary instance of MongoDB. The instance will
+    be listen in a random port between 40000 and 50000.
+
+    A test can access the connection using the attribute `conn`.
+    A test can access the port using the attribute `port`
+    """
+
+    def setUp(self, *args: list[Any], **kwargs: dict[str, Any]):
+        """
+        Test case initialization.
+        :return:
+        """
+        super().setUp()
+        self.maxDiff = None
+
+        # Set up provisional logging to capture logs from test setup too
+        self._init_logging()
+
+        self.tmp_db = MongoTemporaryInstance.get_instance()
+        assert isinstance(self.tmp_db, MongoTemporaryInstance)  # please mypy
+
+        logger.info("Resetting all databases for new tests")
+        self._reset_databases()
+
+        mongo_settings = {
+            "mongo_replicaset": None,
+            "mongo_uri": self.tmp_db.uri,
+        }
+
+        if getattr(self, "settings", None) is None:
+            self.settings = mongo_settings
+        else:
+            self.settings.update(mongo_settings)
+
+    def _init_logging(self):
+        local_context = LocalContext(
+            app_debug=True,
+            app_name="testing",
+            format="{asctime} | {levelname:7} |             | {name:35} | {message}",
+            level="DEBUG",
+            relative_time=True,
+        )
+        logging_config = make_dictConfig(local_context)
+        logging.config.dictConfig(logging_config)
+
+    def _reset_databases(self):
+        """
+        Reset databases for the next test class.
+
+        We do this both at shutdown (to clean up) and in setUp() to make sure that tests get a clean environment.
+        Particularly vscode doesn't always run tearDown(), when tests fails or the debugger is stopped mid-test.
+        """
+        for db_name in self.tmp_db.conn.list_database_names():
+            if db_name not in ["local", "admin", "config"]:  # Do not drop mongo internal dbs
+                self.tmp_db.conn.drop_database(db_name)
+
+    def tearDown(self):
+        self._reset_databases()
+        super().tearDown()

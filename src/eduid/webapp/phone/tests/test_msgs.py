@@ -18,4 +18,4 @@ class MessagesTests(unittest.TestCase):
         self.assertEqual(PhoneMsg.verify_success.value, "phones.verification-success")
         self.assertEqual(PhoneMsg.removal_success.value, "phones.removal-success")
         self.assertEqual(PhoneMsg.still_valid_code.value, "still-valid-code")
-        self.assertEqual(PhoneMsg.resend_success.value, "phones.code-sent")
+        self.assertEqual(PhoneMsg.send_code_success.value, "phones.code-sent")

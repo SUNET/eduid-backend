@@ -41,6 +41,7 @@ class Name(NavetModelConfig):
     given_name: Optional[str] = Field(default=None, alias="GivenName")
     middle_name: Optional[str] = Field(default=None, alias="MiddleName")
     surname: Optional[str] = Field(default=None, alias="Surname")
+    notification_name: Optional[str] = Field(default=None, alias="NotificationName")
 
 
 class RelationName(NavetModelConfig):
@@ -48,6 +49,7 @@ class RelationName(NavetModelConfig):
     given_name: Optional[str] = Field(default=None, alias="GivenName")
     middle_name: Optional[str] = Field(default=None, alias="MiddleName")
     surname: Optional[str] = Field(default=None, alias="Surname")
+    notification_name: Optional[str] = Field(default=None, alias="NotificationName")
 
 
 class PersonId(NavetModelConfig):

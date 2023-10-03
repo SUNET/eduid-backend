@@ -49,13 +49,13 @@ class QueueWorker(ABC):
 
     async def run(self):
         # Init db in the correct loop
-        self.db = AsyncQueueDB(db_uri=self.config.mongo_uri, collection=self.config.mongo_collection)
+        self.db = await AsyncQueueDB.create(db_uri=self.config.mongo_uri, collection=self.config.mongo_collection)
         # Register payloads to handle
         for payload in self.payloads:
             self.db.register_handler(payload)
 
         # Create a main task for easy cleanup when exiting
-        main_task = asyncio.create_task(self.run_subtasks(), name=f"run subtasks")
+        main_task = asyncio.create_task(self.run_subtasks(), name="run subtasks")
         # set up signal handling to be a well behaved service
         loop = asyncio.get_running_loop()
         for signame in {"SIGINT", "SIGTERM"}:

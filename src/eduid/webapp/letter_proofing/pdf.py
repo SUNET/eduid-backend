@@ -8,6 +8,7 @@ from typing import Mapping
 from xhtml2pdf import pisa
 
 from eduid.common.rpc.msg_relay import FullPostalAddress
+from eduid.webapp.common.api.helpers import get_marked_given_name
 
 logger = logging.getLogger(__name__)
 
@@ -24,11 +25,16 @@ def format_address(recipient: Mapping):
     :rtype: tuple
     """
     try:
-        # TODO: Take GivenNameMarking in to account
-        given_name = recipient.get("Name", {})["GivenName"]  # Mandatory
-        middle_name = recipient.get("Name", {}).get("MiddleName", "")  # Optional
-        surname = recipient.get("Name", {})["Surname"]  # Mandatory
-        name = f"{given_name!s} {middle_name!s} {surname!s}"
+        _notification_name = recipient.get("Name", {}).get("NotificationName", None)  # Optional
+        if _notification_name:
+            name = _notification_name
+        else:
+            _given_name_marking = recipient.get("Name", {}).get("GivenNameMarking", None)  # Optional
+            _given_name = recipient.get("Name", {})["GivenName"]  # Mandatory
+            given_name = get_marked_given_name(_given_name, _given_name_marking)
+            middle_name = recipient.get("Name", {}).get("MiddleName", "")  # Optional
+            surname = recipient.get("Name", {})["Surname"]  # Mandatory
+            name = f"{given_name!s} {middle_name!s} {surname!s}"
         # TODO: Take eventual CareOf and Address1(?) in to account
         care_of = recipient.get("OfficialAddress", {}).get("CareOf", "")  # Optional
         address = recipient.get("OfficialAddress", {})["Address2"]  # Mandatory
@@ -82,7 +88,7 @@ def create_pdf(
 
     letter_template = render_template(
         "letter.jinja2",
-        sunet_logo=f"file://{templates_path}/sunet_logo.eps",
+        sunet_logo=f"{templates_path}/sunet_logo.eps",
         recipient_name=name,
         recipient_care_of=care_of,
         recipient_address=address,

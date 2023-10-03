@@ -1,3 +1,4 @@
+import json
 from dataclasses import dataclass
 from typing import Optional
 from urllib.parse import parse_qs, urlparse
@@ -90,7 +91,9 @@ def _authn(
 
     try:
         auth_redirect = current_app.oidc_client.svipe.authorize_redirect(
-            redirect_uri=url_for("svipe_id.authn_callback", _external=True)
+            redirect_uri=url_for("svipe_id.authn_callback", _external=True),
+            # TODO: id_token instead of userinfo would be preferred but I can't get it to work
+            claims=json.dumps({"userinfo": current_app.conf.svipe_client.claims_request}),
         )
     except OAuthError:
         current_app.logger.exception("Failed to create authorization request")
@@ -176,11 +179,11 @@ def authn_callback(user) -> WerkzeugResponse:
         user_response = current_app.oidc_client.svipe.userinfo()
         current_app.logger.debug(f"Got user response: {user_response}")
         # TODO: look in to why we are not getting a full userinfo in token response anymore
-        if not token_response.get("userinfo", dict).get("sub") == user_response.get("sub"):  # sub must match
+        if not token_response.get("userinfo", dict()).get("sub") == user_response.get("sub"):  # sub must match
             raise OAuthError("sub mismatch")
-        user_response.update(token_response.get("userinfo", dict))
+        user_response.update(token_response.get("userinfo", dict()))
         current_app.logger.debug(f"merged user response and token respose userinfo: {user_response}")
-    except (OAuthError, BadRequestKeyError):
+    except (OAuthError, BadRequestKeyError, KeyError):
         # catch any exception from the oidc client and also exceptions about missing request arguments
         current_app.logger.exception(f"Failed to get token response from Svipe ID")
         current_app.stats.count(name="token_response_failed")

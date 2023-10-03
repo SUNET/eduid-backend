@@ -169,6 +169,10 @@ class Signup(TimestampedNS):
     credentials: Credentials = Field(default_factory=Credentials)
 
 
+class Phone(SessionNSBase):
+    captcha: Captcha = Field(default_factory=Captcha)
+
+
 RequestRef = NewType("RequestRef", str)
 
 
@@ -272,14 +276,12 @@ class SPAuthnData(BaseModel):
 
 
 class EidasNamespace(SessionNSBase):
-
     # TODO: Move verify_token_action_credential_id into SP_AuthnRequest
     verify_token_action_credential_id: Optional[ElementKey] = None
     sp: SPAuthnData = Field(default=SPAuthnData())
 
 
 class AuthnNamespace(SessionNSBase):
-
     sp: SPAuthnData = Field(default=SPAuthnData())
     name_id: Optional[str] = None  # SAML NameID, used in logout
     next: Optional[str] = None

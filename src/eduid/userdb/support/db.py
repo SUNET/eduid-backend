@@ -47,12 +47,10 @@ class SupportUserDB(UserDB[SupportUser]):
 
 
 class SupportSignupUserDB(SignupUserDB):
-
     pass
 
 
 class SupportAuthnInfoDB(BaseDB):
-
     model = models.UserAuthnInfo
 
     def __init__(self, db_uri: str):
@@ -86,7 +84,6 @@ class SupportAuthnInfoDB(BaseDB):
 
 
 class SupportProofingDB(BaseDB):
-
     model: type[GenericFilterDict] = GenericFilterDict
 
     def __init__(self, db_uri: str, db_name: str, collection: str):
@@ -112,7 +109,6 @@ class SupportProofingDB(BaseDB):
 
 
 class SupportLetterProofingDB(SupportProofingDB):
-
     model = models.UserLetterProofing
 
     def __init__(self, db_uri: str):
@@ -133,7 +129,6 @@ class SupportLetterProofingDB(SupportProofingDB):
 
 
 class SupportOidcProofingDB(SupportProofingDB):
-
     model = models.UserOidcProofing
 
     def __init__(self, db_uri: str):
@@ -143,7 +138,6 @@ class SupportOidcProofingDB(SupportProofingDB):
 
 
 class SupportEmailProofingDB(SupportProofingDB):
-
     model = models.UserEmailProofing
 
     def __init__(self, db_uri: str):
@@ -153,7 +147,6 @@ class SupportEmailProofingDB(SupportProofingDB):
 
 
 class SupportPhoneProofingDB(SupportProofingDB):
-
     model = models.UserPhoneProofing
 
     def __init__(self, db_uri: str):
@@ -163,7 +156,6 @@ class SupportPhoneProofingDB(SupportProofingDB):
 
 
 class SupportProofingLogDB(BaseDB):
-
     model = models.ProofingLogEntry
 
     def __init__(self, db_uri: str):

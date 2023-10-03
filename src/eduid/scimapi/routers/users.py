@@ -101,7 +101,6 @@ async def on_put(req: ContextRequest, resp: Response, update_request: UserUpdate
 
     nutid_changed = False
     if SCIMSchema.NUTID_USER_V1 in update_request.schemas and update_request.nutid_user_v1 is not None:
-
         if not acceptable_linked_accounts(update_request.nutid_user_v1.linked_accounts):
             raise BadRequest(detail="Invalid nutid linked_accounts")
 

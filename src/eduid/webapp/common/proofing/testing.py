@@ -2,7 +2,7 @@ from typing import Generic, Optional
 
 from eduid.common.config.base import EduIDBaseAppConfig
 from eduid.userdb.credentials import FidoCredential
-from eduid.userdb.identity import IdentityElement
+from eduid.userdb.identity import IdentityElement, IdentityProofingMethod
 from eduid.userdb.logs.db import ProofingLog
 from eduid.userdb.user import User
 from eduid.userdb.userdb import AmDB
@@ -64,6 +64,8 @@ class ProofingTests(EduidAPITestCase[TTestAppVar], Generic[TTestAppVar]):
         num_mfa_tokens: int = 1,
         num_proofings: int = 0,
         token_verified: bool = False,
+        proofing_method: Optional[IdentityProofingMethod] = None,
+        proofing_version: Optional[str] = None,
     ):
         """This function is used to verify a user's parameters at the start of a test case,
         and then again at the end to ensure the right set of changes occurred to the user in the database.
@@ -98,6 +100,15 @@ class ProofingTests(EduidAPITestCase[TTestAppVar], Generic[TTestAppVar]):
             assert (
                 user_identity.is_verified == identity_verified
             ), f"{user_identity} was expected to be verified={identity_verified}"
+
+            if proofing_method is not None:
+                assert (
+                    user_identity.proofing_method == proofing_method
+                ), f"{user_identity.proofing_method} != {proofing_method}"
+            if proofing_version is not None:
+                assert (
+                    user_identity.proofing_version == proofing_version
+                ), f"{user_identity.proofing_version} != {proofing_version}"
 
         if locked_identity is not None:
             # Check parameters of a specific locked nin

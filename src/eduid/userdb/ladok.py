@@ -15,7 +15,6 @@ class UniversityName(BaseModel):
 
 
 class University(Element):
-
     ladok_name: str
     name: UniversityName
 

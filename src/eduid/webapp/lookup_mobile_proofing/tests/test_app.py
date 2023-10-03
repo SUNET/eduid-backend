@@ -187,10 +187,7 @@ class LookupMobileProofingTests(EduidAPITestCase[MobileProofingApp]):
 
         csrf_token = response["payload"]["csrf_token"]
 
-        with self.session_cookie(self.browser, self.test_user_eppn) as browser:
-
-            browser.set_cookie("localhost", key="magic-cookie", value="magic-cookie")
-
+        with self.session_cookie_and_magic_cookie(self.browser, eppn=self.test_user_eppn) as browser:
             data = {"nin": self.test_user_nin_underage, "csrf_token": csrf_token}
             response = browser.post("/proofing", data=json.dumps(data), content_type=self.content_type_json)
             response = json.loads(response.data)
@@ -213,7 +210,6 @@ class LookupMobileProofingTests(EduidAPITestCase[MobileProofingApp]):
         self.app.conf.environment = EduidEnvironment("production")
         self.app.conf.magic_cookie = "magic-cookie"
         self.app.conf.magic_cookie_name = "magic-cookie"
-        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             response = json.loads(browser.get("/proofing").data)
@@ -221,10 +217,7 @@ class LookupMobileProofingTests(EduidAPITestCase[MobileProofingApp]):
 
         csrf_token = response["payload"]["csrf_token"]
 
-        with self.session_cookie(self.browser, self.test_user_eppn) as browser:
-
-            browser.set_cookie("localhost", key="magic-cookie", value="magic-cookie")
-
+        with self.session_cookie_and_magic_cookie(self.browser, eppn=self.test_user_eppn) as browser:
             data = {"nin": self.test_user_nin, "csrf_token": csrf_token}
             response = browser.post("/proofing", data=json.dumps(data), content_type=self.content_type_json)
             response = json.loads(response.data)
@@ -245,7 +238,6 @@ class LookupMobileProofingTests(EduidAPITestCase[MobileProofingApp]):
 
         self.app.conf.magic_cookie = ""
         self.app.conf.magic_cookie_name = "magic-cookie"
-        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             response = json.loads(browser.get("/proofing").data)
@@ -253,10 +245,7 @@ class LookupMobileProofingTests(EduidAPITestCase[MobileProofingApp]):
 
         csrf_token = response["payload"]["csrf_token"]
 
-        with self.session_cookie(self.browser, self.test_user_eppn) as browser:
-
-            browser.set_cookie("localhost", key="magic-cookie", value="magic-cookie")
-
+        with self.session_cookie_and_magic_cookie(self.browser, self.test_user_eppn) as browser:
             data = {"nin": self.test_user_nin, "csrf_token": csrf_token}
             response = browser.post("/proofing", data=json.dumps(data), content_type=self.content_type_json)
             response = json.loads(response.data)

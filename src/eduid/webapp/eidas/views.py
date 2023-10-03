@@ -33,7 +33,7 @@ from eduid.webapp.eidas.helpers import (
     EidasMsg,
     attribute_remap,
     check_credential_to_verify,
-    create_authn_request,
+    create_authn_info,
     create_metadata,
     is_required_loa,
     is_valid_reauthn,
@@ -197,7 +197,7 @@ def _authn(
             current_app.logger.warning(f"Missing configuration magic_cookie_idp")
 
     ref = AuthnRequestRef(str(uuid4()))
-    authn_request = create_authn_request(
+    authn_info = create_authn_info(
         authn_ref=ref,
         force_authn=True,
         framework=proofing_method.framework,
@@ -215,12 +215,12 @@ def _authn(
     )
     current_app.logger.debug(f"Stored SP_AuthnRequest[{ref}]: {session.eidas.sp.authns[ref]}")
 
-    url = get_location(authn_request)  # type: ignore
+    url = get_location(authn_info)
     if not url:
-        current_app.logger.error(f"Couldn't extract Location from {authn_request}")
+        current_app.logger.error(f"Couldn't extract Location from {authn_info}")
         return AuthnResult(error=EidasMsg.method_not_available)
 
-    return AuthnResult(authn_req=authn_request, authn_id=ref, url=url)
+    return AuthnResult(authn_req=authn_info, authn_id=ref, url=url)
 
 
 @eidas_views.route("/saml2-acs", methods=["POST"])

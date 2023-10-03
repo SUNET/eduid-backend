@@ -42,6 +42,14 @@ class PhoneMsg(TranslatableMsg):
     attempted operations on the back end.
     """
 
+    # captcha not completed
+    captcha_not_completed = "phone.captcha-not-completed"
+    # captcha completion failed
+    captcha_failed = "phone.captcha-failed"
+    # captcha already completed
+    captcha_already_completed = "phone.captcha-already-completed"
+    # captcha not requested from get-captcha endpoint
+    captcha_not_requested = "phone.captcha-not-requested"
     # validation error: not conforming to e164
     e164_error = "phone.e164_format"
     # validation error: invalid phone number
@@ -67,4 +75,4 @@ class PhoneMsg(TranslatableMsg):
     # the previously sent verification code is still valid
     still_valid_code = "still-valid-code"
     # success re-sending a verification code
-    resend_success = "phones.code-sent"
+    send_code_success = "phones.code-sent"

@@ -47,11 +47,13 @@ of the Flask application::
 import logging
 from typing import Any, AnyStr, Optional
 
-from flask import abort, current_app
+from flask import abort
 from flask.wrappers import Request as FlaskRequest
 from werkzeug.datastructures import EnvironHeaders, ImmutableMultiDict, ImmutableTypeConversionDict
 
 from eduid.webapp.common.api.sanitation import SanitationProblem, Sanitizer
+
+logger = logging.getLogger(__name__)
 
 
 class SanitationMixin(Sanitizer):
@@ -65,19 +67,16 @@ class SanitationMixin(Sanitizer):
         untrusted_text: AnyStr,
         content_type: Optional[str] = None,
         strip_characters: bool = False,
-        logger: Optional[logging.Logger] = None,
     ):
-        if logger is None:
-            logger = current_app.logger
         try:
             return super().sanitize_input(
-                untrusted_text, content_type=content_type, strip_characters=strip_characters, logger=logger
+                untrusted_text=untrusted_text, content_type=content_type, strip_characters=strip_characters
             )
         except SanitationProblem:
             abort(400)
 
 
-class SanitizedImmutableMultiDict(ImmutableMultiDict, SanitationMixin):  # type: ignore
+class SanitizedImmutableMultiDict(ImmutableMultiDict, SanitationMixin):
     """
     See `werkzeug.datastructures.ImmutableMultiDict`.
     This class is an extension that overrides all access methods to
@@ -174,7 +173,7 @@ class SanitizedImmutableMultiDict(ImmutableMultiDict, SanitationMixin):  # type:
         return dict(self.lists())
 
 
-class SanitizedTypeConversionDict(ImmutableTypeConversionDict, SanitationMixin):  # type: ignore
+class SanitizedTypeConversionDict(ImmutableTypeConversionDict, SanitationMixin):
     """
     See `werkzeug.datastructures.TypeConversionDict`.
     This class is an extension that overrides all access methods to
@@ -244,14 +243,14 @@ class SanitizedEnvironHeaders(EnvironHeaders, SanitationMixin):
                           used because get() calls it.
         """
         val = super().__getitem__(key)
-        return self.sanitize_input(val, content_type=self.content_type)
+        return self.sanitize_input(untrusted_text=val, content_type=self.content_type)
 
     def __iter__(self):
         """
         Sanitized __iter__
         """
         for key, value in EnvironHeaders.__iter__(self):
-            yield key, self.sanitize_input(value, self.content_type)
+            yield key, self.sanitize_input(untrusted_text=value, content_type=self.content_type)
 
 
 class Request(FlaskRequest, SanitationMixin):
@@ -269,7 +268,7 @@ class Request(FlaskRequest, SanitationMixin):
     def get_data(self, *args: Any, **kwargs: Any):
         text = super().get_data(*args, **kwargs)
         if text:
-            text = self.sanitize_input(text)
+            text = self.sanitize_input(untrusted_text=text, content_type=self.mimetype)
         if text is None:
             text = ""
         return text

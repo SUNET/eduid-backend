@@ -44,8 +44,8 @@ from typing import Any, Generator, Generic, Iterable, Mapping, Optional, TypeVar
 from flask.testing import FlaskClient
 from werkzeug.test import TestResponse
 
-from eduid.common.config.base import EduIDBaseAppConfig, RedisConfig
-from eduid.common.rpc.msg_relay import NavetData
+from eduid.common.config.base import EduIDBaseAppConfig, MagicCookieMixin, RedisConfig
+from eduid.common.rpc.msg_relay import FullPostalAddress, NavetData
 from eduid.common.testing_base import CommonTestCase
 from eduid.userdb import User
 from eduid.userdb.db import BaseDB
@@ -142,7 +142,7 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
 
         super().setUp(am_users=am_users, *args, **kwargs)
 
-        self.user: Optional[User] = None  # type: ignore
+        self.user: Optional[User] = None
 
         # Load the user from the database so that it can be saved there again in tests
         _test_user = self.amdb.get_user_by_eppn(users[0])
@@ -166,6 +166,7 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
 
         # Helper constants
         self.content_type_json = "application/json"
+        self.test_domain = "test.localhost"
 
         if copy_user_to_private:
             data = self.test_user.to_dict()
@@ -220,10 +221,12 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
         self,
         client: CSRFTestClient,
         eppn: Optional[str],
-        server_name: str = "localhost",
         logged_in: bool = True,
+        domain: Optional[str] = None,
         **kwargs: Any,
     ) -> Generator[CSRFTestClient, None, None]:
+        if domain is None:
+            domain = self.test_domain
         with client.session_transaction(**kwargs) as sess:
             if eppn is not None:
                 sess.common.eppn = eppn
@@ -231,14 +234,55 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
             assert isinstance(self.app, EduIDBaseApp)
             _conf = getattr(self.app, "conf")
             assert isinstance(_conf, EduIDBaseAppConfig)
-            client.set_cookie(server_name, key=_conf.flask.session_cookie_name, value=sess.meta.cookie_val)
+            client.set_cookie(domain=domain, key=_conf.flask.session_cookie_name, value=sess.meta.cookie_val)
         yield client
 
     @contextmanager
-    def session_cookie_anon(
-        self, client: CSRFTestClient, server_name: str = "localhost", **kwargs: Any
+    def session_cookie_anon(self, client: CSRFTestClient, **kwargs: Any) -> Generator[CSRFTestClient, None, None]:
+        with self.session_cookie(client=client, eppn=None, **kwargs) as _client:
+            yield _client
+
+    @contextmanager
+    def session_cookie_and_magic_cookie(
+        self,
+        client: CSRFTestClient,
+        eppn: Optional[str],
+        logged_in: bool = True,
+        domain: Optional[str] = None,
+        magic_cookie_name: Optional[str] = None,
+        magic_cookie_value: Optional[str] = None,
+        **kwargs: Any,
     ) -> Generator[CSRFTestClient, None, None]:
-        with self.session_cookie(client=client, eppn=None, server_name=server_name, **kwargs) as _client:
+        if domain is None:
+            domain = self.test_domain
+        assert isinstance(self.app, EduIDBaseApp)
+        _conf = getattr(self.app, "conf")
+        assert isinstance(_conf, MagicCookieMixin)
+        if magic_cookie_name is None:
+            assert _conf.magic_cookie_name is not None
+            magic_cookie_name = _conf.magic_cookie_name
+        if magic_cookie_value is None:
+            assert _conf.magic_cookie is not None
+            magic_cookie_value = _conf.magic_cookie
+        with self.session_cookie(client=client, eppn=eppn, domain=domain, logged_in=logged_in, **kwargs) as _client:
+            _client.set_cookie(domain=domain, key=magic_cookie_name, value=magic_cookie_value)
+            yield _client
+
+    @contextmanager
+    def session_cookie_and_magic_cookie_anon(
+        self,
+        client: CSRFTestClient,
+        magic_cookie_name: Optional[str] = None,
+        magic_cookie_value: Optional[str] = None,
+        **kwargs: Any,
+    ) -> Generator[CSRFTestClient, None, None]:
+        with self.session_cookie_and_magic_cookie(
+            client=client,
+            eppn=None,
+            magic_cookie_name=magic_cookie_name,
+            magic_cookie_value=magic_cookie_value,
+            **kwargs,
+        ) as _client:
             yield _client
 
     def request_user_sync(self, private_user: User, app_name_override: Optional[str] = None) -> bool:
@@ -301,6 +345,10 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
     @staticmethod
     def _get_all_navet_data():
         return NavetData.parse_obj(MessageSender.get_devel_all_navet_data())
+
+    @staticmethod
+    def _get_full_postal_address():
+        return FullPostalAddress.parse_obj(MessageSender.get_devel_postal_address())
 
     def _check_error_response(
         self,
@@ -437,6 +485,8 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
         assert user.identities.nin.created_by == created_by_str
         assert user.identities.nin.verified_by == proofing_state.nin.created_by
         assert user.identities.nin.is_verified is True
+        assert user.identities.nin.proofing_method is not None
+        assert user.identities.nin.proofing_version is not None
 
         _log = getattr(self.app, "proofing_log")
         assert isinstance(_log, ProofingLog)
@@ -458,7 +508,6 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
 
 
 class CSRFTestClient(FlaskClient):
-
     # Add the custom csrf headers to every call to post
     def post(self, *args: Any, **kwargs: Any) -> TestResponse:
         """
