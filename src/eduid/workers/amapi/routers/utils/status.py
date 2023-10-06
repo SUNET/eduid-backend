@@ -36,14 +36,14 @@ def log_failure_info(ctx: ContextRequest, key: str, msg: str, exc: Optional[Exce
     if key not in FAILURE_INFO:
         FAILURE_INFO[key] = FailCountItem(first_failure=datetime.utcnow())
     FAILURE_INFO[key].count += 1
-    ctx.app.logger.warning(f"{msg} {FAILURE_INFO[key]}: {exc}")
+    ctx.app.context.logger.warning(f"{msg} {FAILURE_INFO[key]}: {exc}")
 
 
 def reset_failure_info(ctx: ContextRequest, key: str) -> None:
     if key not in FAILURE_INFO:
         return None
     info = FAILURE_INFO.pop(key)
-    ctx.app.logger.info(f"Check {key} back to normal. Resetting info {info}")
+    ctx.app.context.logger.info(f"Check {key} back to normal. Resetting info {info}")
 
 
 def check_restart(key, restart: int, terminate: int) -> bool:
@@ -73,8 +73,10 @@ def get_cached_response(ctx: ContextRequest, resp: Response, key: str) -> Option
     now = datetime.utcnow()
     if SIMPLE_CACHE.get(key) is not None:
         if now < SIMPLE_CACHE[key].expire_time:
-            if ctx.app.config.debug:
-                ctx.app.logger.debug(f"Returned cached response for {key}" f" {now} < {SIMPLE_CACHE[key].expire_time}")
+            if ctx.app.context.config.debug:
+                ctx.app.context.logger.debug(
+                    f"Returned cached response for {key}" f" {now} < {SIMPLE_CACHE[key].expire_time}"
+                )
             resp.headers["Expires"] = SIMPLE_CACHE[key].expire_time.strftime("%a, %d %b %Y %H:%M:%S UTC")
             return SIMPLE_CACHE[key].data
     return None
@@ -87,12 +89,12 @@ def set_cached_response(ctx: ContextRequest, resp: Response, key: str, data: Map
     resp.headers["Expires"] = expires.strftime("%a, %d %b %Y %H:%M:%S UTC")
     SIMPLE_CACHE[key] = SimpleCacheItem(expire_time=expires, data=data)
     if ctx.app.config.debug:
-        ctx.app.logger.debug(f"Cached response for {key} until {expires}")
+        ctx.app.context.logger.debug(f"Cached response for {key} until {expires}")
 
 
 def check_mongo(ctx: ContextRequest):
     try:
-        ctx.app.db.is_healthy()
+        ctx.app.context.db.is_healthy()
         reset_failure_info(ctx, "_check_mongo")
         return True
     except Exception as exc:
