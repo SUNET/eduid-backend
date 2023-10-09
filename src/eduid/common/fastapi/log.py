@@ -2,17 +2,16 @@ import logging
 import pprint
 from logging.config import dictConfig
 
+from eduid.common.config.base import LoggingConfigMixin
 from eduid.common.config.exceptions import BadConfiguration
 from eduid.common.logging import LocalContext, LoggingFilters, make_dictConfig, merge_config
 
 __author__ = "lundberg"
 
-from eduid.scimapi.config import ScimApiConfig
-
 DEFAULT_FORMAT = "{asctime} | {levelname:7} | {hostname} | {name:35} | {module:10} | {message}"
 
 
-def make_local_context(app_name: str, config: ScimApiConfig) -> LocalContext:
+def make_local_context(app_name: str, config: LoggingConfigMixin) -> LocalContext:
     """
     Local context is a place to put parameters for filters and formatters in logging dictConfigs.
 
@@ -46,7 +45,7 @@ def make_local_context(app_name: str, config: ScimApiConfig) -> LocalContext:
     return local_context
 
 
-def init_logging(app_name: str, config: ScimApiConfig) -> None:
+def init_logging(app_name: str, config: LoggingConfigMixin) -> None:
     local_context = make_local_context(app_name, config)
     logging_config = make_dictConfig(local_context)
     logging_config = merge_config(logging_config, config.logging_config)
