@@ -1,9 +1,9 @@
 import logging
 
+from eduid.common.fastapi.log import init_logging
 from eduid.userdb import AmDB
 from eduid.userdb.logs.db import UserChangeLog
 from eduid.workers.amapi.config import AMApiConfig
-from eduid.workers.amapi.log import init_logging
 from eduid.workers.amapi.utils import load_jwks
 
 
