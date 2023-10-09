@@ -66,7 +66,6 @@ class ChpassResponseSchema(SecurityResponseSchema):
 
 
 class ChangePasswordRequestSchema(EduidSchema, CSRFRequestMixin):
-(??)
     old_password = fields.String(required=False)
     new_password = fields.String(required=True)
 
