@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from typing import Any, Mapping
 from datetime import datetime, timedelta
+from typing import Any, Mapping
+
 from pydantic import BaseModel, Field
 
 from eduid.common.misc.timeutil import utc_now

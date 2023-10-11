@@ -8,6 +8,7 @@ from eduid.common.config.base import EduidEnvironment, MagicCookieMixin, MailCon
 from eduid.common.rpc.exceptions import NoNavetData
 from eduid.common.rpc.mail_relay import MailRelay
 from eduid.common.rpc.msg_relay import DeregisteredCauseCode, DeregistrationInformation, FullPostalAddress, MsgRelay
+from eduid.common.utils import get_marked_given_name
 from eduid.userdb import NinIdentity
 from eduid.userdb.element import ElementKey
 from eduid.userdb.exceptions import LockedIdentityViolation
@@ -28,7 +29,6 @@ from eduid.userdb.user import TUserSubclass, User
 from eduid.userdb.userdb import UserDB
 from eduid.webapp.common.api.app import EduIDBaseApp
 from eduid.webapp.common.api.utils import get_from_current_app, save_and_sync_user
-from eduid.common.utils import get_marked_given_name
 
 __author__ = "lundberg"
 

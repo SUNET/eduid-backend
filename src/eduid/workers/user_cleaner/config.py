@@ -1,10 +1,10 @@
 from datetime import timedelta
 from typing import Sequence
 
-from pydantic import Field, BaseModel
+from pydantic import BaseModel, Field
 
 from eduid.common.clients.gnap_client.base import GNAPClientAuthData
-from eduid.common.config.base import LoggingConfigMixin, RootConfig, MsgConfigMixin, LoggingFilters, StatsConfigMixin
+from eduid.common.config.base import LoggingConfigMixin, LoggingFilters, MsgConfigMixin, RootConfig, StatsConfigMixin
 
 
 class AmAPIConfig(BaseModel):

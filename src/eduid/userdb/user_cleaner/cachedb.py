@@ -1,7 +1,8 @@
+import logging
 from abc import ABC
 from datetime import timedelta
 from time import time
-import logging
+
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.db import BaseDB, TUserDbDocument
 from eduid.userdb.user import User

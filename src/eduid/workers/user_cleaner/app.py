@@ -1,31 +1,27 @@
-from dataclasses import Field
 import logging
-import signal
 import os
-from abc import ABC
-
-from queue import Queue
+import signal
 import time
-
-from typing import Any, Mapping, Optional, Union
-
+from abc import ABC
+from dataclasses import Field
 from pathlib import Path
-from eduid.common.misc.timeutil import utc_now
+from queue import Queue
+from typing import Any, Mapping, Optional, Union
 
 from eduid.common.clients.amapi_client.amapi_client import AMAPIClient
 from eduid.common.config.parsers import load_config
+from eduid.common.logging import init_logging
+from eduid.common.misc.timeutil import utc_now
 from eduid.common.rpc.msg_relay import MsgRelay
+from eduid.common.stats import init_app_stats
 from eduid.userdb import AmDB
 from eduid.userdb.identity import IdentityType
 from eduid.userdb.meta import CleanerType
-from eduid.common.logging import init_logging
-from eduid.common.stats import init_app_stats
-
-from eduid.workers.user_cleaner.config import UserCleanerConfig
-from eduid.userdb.user_cleaner.cachedb import CacheDB
 from eduid.userdb.user_cleaner.cache import CacheUser
-from eduid.userdb.user_cleaner.metadb import MetaDB
+from eduid.userdb.user_cleaner.cachedb import CacheDB
 from eduid.userdb.user_cleaner.meta import Meta
+from eduid.userdb.user_cleaner.metadb import MetaDB
+from eduid.workers.user_cleaner.config import UserCleanerConfig
 
 
 class WorkerBase(ABC):

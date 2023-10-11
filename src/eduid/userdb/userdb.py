@@ -401,7 +401,6 @@ class AmDB(UserDB[User]):
         return UserSaveResult(success=bool(result))
 
     def unverify_mail_aliases(self, user_id: ObjectId, mail_aliases: Optional[list[TUserDbDocument]]) -> int:
-
         count = 0
         if mail_aliases is None:
             logger.debug(f"No mailAliases to check duplicates against for user {user_id}.")

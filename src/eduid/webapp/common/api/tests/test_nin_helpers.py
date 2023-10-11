@@ -29,7 +29,6 @@ from eduid.webapp.common.api.helpers import (
     set_user_names_from_nin_proofing,
     verify_nin_for_user,
 )
-from eduid.common.utils import set_user_names_from_official_address
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.common.session.eduid_session import SessionFactory
 

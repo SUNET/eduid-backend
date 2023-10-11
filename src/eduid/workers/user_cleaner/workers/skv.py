@@ -1,16 +1,16 @@
-from typing import Any, Mapping, Optional
 from time import time
+from typing import Any, Mapping, Optional
 
-from eduid.common.models.amapi_user import UserUpdateNameRequest, Reason, Source
+from eduid.common.models.amapi_user import Reason, Source, UserUpdateNameRequest
 from eduid.common.rpc.msg_relay import NavetData
 from eduid.common.utils import set_user_names_from_official_address
 from eduid.userdb.identity import IdentityType
 from eduid.userdb.meta import CleanerType
-from eduid.workers.user_cleaner.app import WorkerBase
 from eduid.userdb.user_cleaner.cache import CacheUser
 from eduid.userdb.user_cleaner.cachedb import CacheDB
-from eduid.userdb.user_cleaner.metadb import MetaDB
 from eduid.userdb.user_cleaner.meta import Meta
+from eduid.userdb.user_cleaner.metadb import MetaDB
+from eduid.workers.user_cleaner.app import WorkerBase
 
 
 class SKV(WorkerBase):

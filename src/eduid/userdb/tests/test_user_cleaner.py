@@ -1,8 +1,8 @@
 from unittest import TestCase
 
 from eduid.userdb.testing import MongoTemporaryInstance
-from eduid.userdb.user_cleaner.cachedb import CacheDB
 from eduid.userdb.user_cleaner.cache import CacheUser
+from eduid.userdb.user_cleaner.cachedb import CacheDB
 
 
 class TestUserCleanerCache(TestCase):

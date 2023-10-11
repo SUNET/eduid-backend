@@ -1,10 +1,10 @@
 __author__ = "lundberg"
 
+import logging
+from typing import List, Optional
+
 from eduid.common.rpc.msg_relay import FullPostalAddress
 from eduid.userdb.user import TUserSubclass
-import logging
-
-from typing import List, Optional
 
 logger = logging.getLogger(__name__)
 

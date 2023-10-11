@@ -1,7 +1,8 @@
 from typing import Union
+
 from eduid.userdb.db import BaseDB
-from eduid.userdb.user_cleaner.meta import Meta
 from eduid.userdb.meta import CleanerType
+from eduid.userdb.user_cleaner.meta import Meta
 
 
 class MetaDB(BaseDB):

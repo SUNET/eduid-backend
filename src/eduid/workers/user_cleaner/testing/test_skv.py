@@ -1,18 +1,17 @@
 from datetime import timedelta
 from typing import Any, Dict
 from unittest.mock import MagicMock, patch
-from eduid.common.clients.amapi_client.testing import MockedAMAPIMixin
-from eduid.common.testing_base import CommonTestCase
-from eduid.userdb.fixtures.users import UserFixtures
-from eduid.workers.user_cleaner.workers.skv import init_skv_worker
-from eduid.common.rpc.msg_relay import (
-    NavetData,
-)
+
 import pytest
 from jwcrypto.jwk import JWK
 
-from eduid.workers.msg.tasks import MessageSender
+from eduid.common.clients.amapi_client.testing import MockedAMAPIMixin
+from eduid.common.rpc.msg_relay import NavetData
+from eduid.common.testing_base import CommonTestCase
+from eduid.userdb.fixtures.users import UserFixtures
 from eduid.userdb.user_cleaner.cache import CacheUser
+from eduid.workers.msg.tasks import MessageSender
+from eduid.workers.user_cleaner.workers.skv import init_skv_worker
 
 
 class WorkerTest(CommonTestCase, MockedAMAPIMixin):

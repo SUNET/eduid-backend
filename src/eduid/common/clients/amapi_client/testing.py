@@ -1,7 +1,9 @@
 from typing import Mapping, Optional
 
 import respx
-from httpx import Response, Request
+from httpx import Request, Response
+
+from eduid.common.clients.gnap_client.testing import MockedSyncAuthAPIMixin
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.models.amapi_user import (
     UserUpdateEmailRequest,
@@ -9,12 +11,10 @@ from eduid.common.models.amapi_user import (
     UserUpdateNameRequest,
     UserUpdatePhoneRequest,
 )
-
-from eduid.common.clients.gnap_client.testing import MockedSyncAuthAPIMixin
-from eduid.userdb.userdb import AmDB
 from eduid.userdb.mail import MailAddressList
 from eduid.userdb.phone import PhoneNumberList
 from eduid.userdb.user import User
+from eduid.userdb.userdb import AmDB
 
 
 class MockedAMAPIMixin(MockedSyncAuthAPIMixin):
