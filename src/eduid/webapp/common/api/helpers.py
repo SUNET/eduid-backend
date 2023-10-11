@@ -28,50 +28,9 @@ from eduid.userdb.user import TUserSubclass, User
 from eduid.userdb.userdb import UserDB
 from eduid.webapp.common.api.app import EduIDBaseApp
 from eduid.webapp.common.api.utils import get_from_current_app, save_and_sync_user
+from eduid.common.utils import get_marked_given_name
 
 __author__ = "lundberg"
-
-
-def get_marked_given_name(given_name: str, given_name_marking: Optional[str]) -> str:
-    """
-    Given name marking denotes up to two given names, and is used to determine
-    which of the given names are to be primarily used in addressing a person.
-    For this purpose, the given_name_marking is two numbers:
-        indexing starting at 1
-        the second can be 0 for only one mark
-        hyphenated names are counted separately (i.e. Jan-Erik are two separate names)
-            If they are both marked they should be re-hyphenated
-
-    current version of documentation:
-    https://www.skatteverket.se/download/18.2cf1b5cd163796a5c8bf20e/1530691773712/AllmanBeskrivning.pdf
-
-    :param given_name: Given name
-    :param given_name_marking: Given name marking
-
-    :return: Marked given name (Tilltalsnamn)
-    """
-    if not given_name_marking or "00" == given_name_marking:
-        return given_name
-
-    # cheating with indexing
-    _given_names: List[Optional[str]] = [None]
-    for name in given_name.split():
-        if "-" in name:
-            # hyphenated names are counted separately
-            _given_names.extend(name.split("-"))
-        else:
-            _given_names.append(name)
-
-    _optional_marked_names: List[Optional[str]] = []
-    for i in given_name_marking:
-        _optional_marked_names.append(_given_names[int(i)])
-    # remove None values
-    # i.e. 0 index and hyphenated names second part placeholder
-    _marked_names: List[str] = [name for name in _optional_marked_names if name is not None]
-    if "-".join(_marked_names) in given_name:
-        return "-".join(_marked_names)
-    else:
-        return " ".join(_marked_names)
 
 
 def set_user_names_from_nin_proofing(
