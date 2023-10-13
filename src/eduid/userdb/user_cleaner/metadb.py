@@ -1,8 +1,11 @@
+import logging
 from typing import Union
 
 from eduid.userdb.db import BaseDB
 from eduid.userdb.meta import CleanerType
 from eduid.userdb.user_cleaner.meta import Meta
+
+logger = logging.getLogger(__name__)
 
 
 class MetaDB(BaseDB):
@@ -16,8 +19,12 @@ class MetaDB(BaseDB):
 
     def save(self, doc: Meta) -> bool:
         """Save och replace an existing meta document."""
-        res = self._coll.replace_one({"cleaner_type": doc.cleaner_type}, doc.to_dict(), upsert=True)
-        return res.acknowledged
+        try:
+            res = self._coll.replace_one({"cleaner_type": doc.cleaner_type}, doc.to_dict(), upsert=True)
+            return res.acknowledged
+        except Exception as e:
+            logger.error(f"Failed to save meta document: {e}")
+            return False
 
     def get(self, cleaner_type: CleanerType) -> Union[Meta, None]:
         """Get a worker meta from Meta."""
@@ -26,6 +33,6 @@ class MetaDB(BaseDB):
             return None
         return Meta.from_dict(data=res)
 
-    def exist(self, cleaner_type: CleanerType) -> bool:
+    def exists(self, cleaner_type: CleanerType) -> bool:
         """Check if a user exists in the cache."""
         return self._coll.count_documents({"cleaner_type": cleaner_type}) > 0

@@ -71,7 +71,9 @@ class SKV(WorkerBase):
 
     def run(self):
         """skatteverket worker entry point"""
-        if not self.db_meta.exist(cleaner_type=self.cleaner_type):
+        self.logger.info("Starting skatteverket worker, getting meta")
+        if not self.db_meta.exists(cleaner_type=self.cleaner_type):
+            self.logger.info("meta does not exist, creating")
             meta = Meta(
                 periodicity=self.config.periodicity,
                 cleaner_type=self.cleaner_type,
@@ -130,6 +132,7 @@ def init_skv_worker(test_config: Optional[Mapping[str, Any]] = None) -> SKV:
 def start_worker():
     """Start skv (skatteverket) worker"""
     worker = init_skv_worker()
+    worker.logger.info("Starting skv worker")
     worker.run()
 
 

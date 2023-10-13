@@ -58,6 +58,9 @@ class CacheDB(BaseDB):
         """Populate cache db with the user from AMDB."""
 
         number_of_users = len(am_users)
+        if number_of_users == 0:
+            logger.info("No users to populate")
+            return
 
         # strip 2 hours of each day in order to give us some slack
         time_constant = timedelta(
