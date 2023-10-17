@@ -4,7 +4,8 @@ from abc import ABCMeta
 from typing import Any, Callable, Union
 from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
-from flask import current_app
+from flask import Request, current_app
+from flask_cors.core import get_cors_headers, get_cors_options
 from werkzeug.wrappers import Response
 from werkzeug.wsgi import get_current_url
 
@@ -73,10 +74,23 @@ class AuthnBaseApp(EduIDBaseApp, metaclass=ABCMeta):
         # Don't know why that is, but url_parts[4] is probably empty (unless there are query parameters in
         # conf.token_service_url) so let's just ignore the type error for now.
         query.update(params)  # type: ignore
-
         url_parts[4] = urlencode(query)
         location = urlunparse(url_parts)
 
-        headers = [("Location", location)]
+        # add cors headers to authentication redirect response
+        req = Request(environ)
+        cors_options = get_cors_options(self)
+        cors_headers = get_cors_headers(
+            options=cors_options,
+            request_headers=req.headers,
+            request_method=req.method,
+        )
+        # cors_headers is a MultiDict, start_response wants a list of tuples
+        headers = []
+        for key, value in cors_headers.items():
+            headers.append((key, value))
+
+        # Add redirect location to header
+        headers.append(("Location", location))
         start_response("302 Found", headers)
         return []
