@@ -174,8 +174,7 @@ def authenticate(
     return success_response(payload={"location": result.url})
 
 
-# get_status to not get tangled up in /status/healthy and the like
-@authn_views.route("/get_status", methods=["POST"])
+@authn_views.route("/authentication-status", methods=["POST"])
 @UnmarshalWith(AuthnStatusRequestSchema)
 @MarshalWith(AuthnStatusResponseSchema)
 def get_status(authn_id: AuthnRequestRef) -> FluxData:
