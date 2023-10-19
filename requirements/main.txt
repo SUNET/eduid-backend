@@ -1239,7 +1239,7 @@ uritools==4.0.2 \
     --hash=sha256:04df2b787d0eb76200e8319382a03562fbfe4741fd66c15506b08d3b8211d573 \
     --hash=sha256:607b15eae1e7b69a120f463a7d98f91a56671e1ab92aae13f8e1f25c017fe60e
     # via pyhanko-certvalidator
-urllib3==1.26.17 \
+urllib3==1.26.18 \
     --hash=sha256:24d6a242c28d29af46c3fae832c36db3bbebcc533dd1bb549172cd739c82df21 \
     --hash=sha256:94a757d178c9be92ef5539b8840d48dc9cf1b2709c9d6b588232a055c524458b
     # via
