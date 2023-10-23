@@ -2,6 +2,7 @@ from typing import Optional
 
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
+from starlette.middleware.cors import CORSMiddleware
 
 from eduid.common.config.parsers import load_config
 from eduid.scimapi.config import ScimApiConfig
@@ -46,6 +47,13 @@ def init_api(name: str = "scimapi", test_config: Optional[dict] = None) -> ScimA
     # Middleware
     app.add_middleware(AuthenticationMiddleware, context=app.context)
     app.add_middleware(ScimMiddleware, context=app.context)
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
     # Exception handling
     app.add_exception_handler(RequestValidationError, validation_exception_handler)
