@@ -39,12 +39,6 @@ asn1crypto==1.5.1 \
     #   oscrypto
     #   pyhanko
     #   pyhanko-certvalidator
-async-timeout==4.0.3 \
-    --hash=sha256:4640d96be84d82d02ed59ea2b7105a0f7b33abe8703703cd0ab0bf87c427522f \
-    --hash=sha256:7405140ff1230c310e51dc27b3145b9092d659ce68ff733fb0cefe3ee42be028
-    # via
-    #   -c main.txt
-    #   redis
 authlib==1.2.1 \
     --hash=sha256:421f7c6b468d907ca2d9afede256f068f87e34d23dd221c07d13d4c234726afb \
     --hash=sha256:c88984ea00149a90e3537c964327da930779afa4564e354edfd98410bea01911
@@ -386,7 +380,6 @@ exceptiongroup==1.1.3 \
     # via
     #   -c main.txt
     #   -r sub_main.in
-    #   anyio
 fido-mds==2023.9 \
     --hash=sha256:a7c36661daec7bfcfeccd02bc8773f5bfc9b3696e5f0fd3fb6c202fd990bd5f5 \
     --hash=sha256:ad1e4a89f979b4aa9be3c4c35ba3dd45f6e4f404b40b7c4a4b7e099705be2fba
@@ -1449,11 +1442,9 @@ typing-extensions==4.8.0 \
     --hash=sha256:df8e4339e9cb77357558cbdbceca33c303714cf861d1eef15e1070055ae8b7ef
     # via
     #   -c main.txt
-    #   marshmallow-dataclass
     #   oic
     #   pydantic
     #   qrcode
-    #   typeguard
     #   typing-inspect
 typing-inspect==0.9.0 \
     --hash=sha256:9ee6fc59062311ef8547596ab6b955e1b8aa46242d854bfc78f4f6b0eff35f9f \
@@ -1517,9 +1508,9 @@ webencodings==0.5.1 \
     #   cssselect2
     #   html5lib
     #   tinycss2
-werkzeug==3.0.0 \
-    --hash=sha256:3ffff4dcc32db52ef3cc94dff3000a3c2846890f3a5a51800a27b909c5e770f0 \
-    --hash=sha256:cbb2600f7eabe51dbc0502f58be0b3e1b96b893b05695ea2b35b43d4de2d9962
+werkzeug==3.0.1 \
+    --hash=sha256:507e811ecea72b18a404947aded4b3390e1db8f826b494d76550ef45bb3b1dcc \
+    --hash=sha256:90a285dc0e42ad56b34e696398b8122ee4c681833fb35b8334a095d82c56da10
     # via flask
 wrapt==1.15.0 \
     --hash=sha256:02fce1852f755f44f95af51f69d22e45080102e9d00258053b79367d07af39c0 \
