@@ -298,7 +298,7 @@ cookies-samesite-compat==0.0.1 \
     # via
     #   -c main.txt
     #   -r main.in
-cryptography==41.0.4 \
+cryptography==41.0.5 \
     --hash=sha256:004b6ccc95943f6a9ad3142cfabcc769d7ee38a3f60fb0dddbfb431f818c3a67 \
     --hash=sha256:047c4603aeb4bbd8db2756e38f5b8bd7e94318c047cfe4efeb5d715e08b49311 \
     --hash=sha256:0d9409894f495d465fe6fda92cb70e8323e9648af912d5b9141d616df40a87b8 \
@@ -1517,7 +1517,7 @@ webencodings==0.5.1 \
     #   cssselect2
     #   html5lib
     #   tinycss2
-werkzeug==3.0.0 \
+werkzeug==3.0.1 \
     --hash=sha256:3ffff4dcc32db52ef3cc94dff3000a3c2846890f3a5a51800a27b909c5e770f0 \
     --hash=sha256:cbb2600f7eabe51dbc0502f58be0b3e1b96b893b05695ea2b35b43d4de2d9962
     # via flask
