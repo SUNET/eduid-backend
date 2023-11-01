@@ -1356,7 +1356,7 @@ pyparsing==3.1.1 \
     # via
     #   -c main.txt
     #   httplib2
-pypdf==3.16.2 \
+pypdf==3.17.0 \
     --hash=sha256:6e000281fd0f4cd32e6f1e75b05af0b6c0fbbd9777fa9a8e9d86e34cda65419d \
     --hash=sha256:d132953be1e2af7b115fbfd445459fdfc601a845ca12379160e1b6afaa1fef2c
     # via
@@ -1974,7 +1974,7 @@ websockets==11.0.3 \
     --hash=sha256:fb06eea71a00a7af0ae6aefbb932fb8a7df3cb390cc217d51a9ad7343de1b8d0 \
     --hash=sha256:ffd7dcaf744f25f82190856bc26ed81721508fc5cbf2a330751e135ff1283564
     # via uvicorn
-werkzeug==3.0.0 \
+werkzeug==3.0.1 \
     --hash=sha256:3ffff4dcc32db52ef3cc94dff3000a3c2846890f3a5a51800a27b909c5e770f0 \
     --hash=sha256:cbb2600f7eabe51dbc0502f58be0b3e1b96b893b05695ea2b35b43d4de2d9962
     # via
