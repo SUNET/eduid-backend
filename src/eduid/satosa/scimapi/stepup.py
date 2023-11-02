@@ -3,7 +3,7 @@
 import functools
 import json
 import logging
-from typing import Any, Iterable, Mapping, NewType, Optional, Callable, Union, TypeAlias
+from typing import Any, Callable, Iterable, Mapping, NewType, Optional, TypeAlias, Union
 from urllib.parse import urlparse
 
 from pydantic import BaseModel, Field, ValidationError
