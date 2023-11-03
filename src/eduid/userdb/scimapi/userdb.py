@@ -150,6 +150,21 @@ class ScimApiUserDB(ScimApiBaseDB):
         users = [ScimApiUser.from_dict(x) for x in docs]
         return users, total_count
 
+    def get_user_by_profile_data(
+        self,
+        profile: str,
+        key: str,
+        operator: str,
+        value: datetime,
+        limit: Optional[int] = None,
+        skip: Optional[int] = None,
+    ) -> tuple[list[ScimApiUser], int]:
+        mongo_operator = self._get_mongo_operator(operator)
+        spec = {f"profiles.{profile}.data.{key}": {mongo_operator: value}}
+        docs, total_count = self._get_documents_and_count_by_filter(spec=spec, limit=limit, skip=skip)
+        users = [ScimApiUser.from_dict(x) for x in docs]
+        return users, total_count
+
     def user_exists(self, scim_id: str) -> bool:
         return bool(self.db_count(spec={"scim_id": scim_id}, limit=1))
 

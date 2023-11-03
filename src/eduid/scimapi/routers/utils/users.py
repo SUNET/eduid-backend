@@ -125,3 +125,23 @@ def filter_lastmodified(
     return req.context.userdb.get_users_by_last_modified(
         operator=search_filter.op, value=datetime.fromisoformat(search_filter.val), skip=skip, limit=limit
     )
+
+
+def filter_profile_data(
+    req: ContextRequest,
+    search_filter: SearchFilter,
+    profile: str,
+    key: str,
+    skip: Optional[int] = None,
+    limit: Optional[int] = None,
+) -> tuple[list[ScimApiUser], int]:
+    if search_filter.op != "eq":
+        raise BadRequest(scim_type="invalidFilter", detail="Unsupported operator")
+
+    req.app.context.logger.debug(
+        f"Searching for users with {search_filter.attr} {search_filter.op} {repr(search_filter.val)}"
+    )
+    users, count = req.context.userdb.get_user_by_profile_data(
+        profile=profile, operator=search_filter.op, key=key, value=search_filter.val, skip=skip, limit=limit
+    )
+    return users, count

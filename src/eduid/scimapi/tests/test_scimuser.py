@@ -181,6 +181,9 @@ class ScimApiTestUserResourceBase(ScimApiTestCase):
     def setUp(self) -> None:
         super().setUp()
         self.test_profile = ScimApiProfile(attributes={"displayName": "Test User 1"}, data={"test_key": "test_value"})
+        self.test_profile2 = ScimApiProfile(
+            attributes={"displayName": "Test User 2"}, data={"another_test_key": "another_test_value"}
+        )
 
     def _assertUserUpdateSuccess(self, req: Mapping, response, user: ScimApiUser):
         """Function to validate successful responses to SCIM calls that update a user according to a request."""
