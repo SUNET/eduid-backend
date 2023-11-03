@@ -500,7 +500,7 @@ class TestUserResource(ScimApiTestUserResourceBase):
     def test_search_user_external_id(self):
         db_user = self.add_user(identifier=str(uuid4()), external_id="test-id-1", profiles={"test": self.test_profile})
         self.add_user(identifier=str(uuid4()), external_id="test-id-2", profiles={"test": self.test_profile})
-        self._perform_search(filter=f'externalId eq "{db_user.external_id}"', expected_user=db_user)
+        self._perform_search(search_filter=f'externalId eq "{db_user.external_id}"', expected_user=db_user)
 
     def test_search_user_last_modified(self):
         db_user1 = self.add_user(identifier=str(uuid4()), external_id="test-id-1", profiles={"test": self.test_profile})
@@ -508,14 +508,19 @@ class TestUserResource(ScimApiTestUserResourceBase):
         self.assertGreater(db_user2.last_modified, db_user1.last_modified)
 
         self._perform_search(
-            filter=f'meta.lastModified ge "{db_user1.last_modified.isoformat()}"',
+            search_filter=f'meta.lastModified ge "{db_user1.last_modified.isoformat()}"',
             expected_num_resources=2,
             expected_total_results=2,
         )
 
         self._perform_search(
-            filter=f'meta.lastModified gt "{db_user1.last_modified.isoformat()}"', expected_user=db_user2
+            search_filter=f'meta.lastModified gt "{db_user1.last_modified.isoformat()}"', expected_user=db_user2
         )
+
+    def test_search_user_profile_data(self):
+        db_user = self.add_user(identifier=str(uuid4()), external_id="test-id-1", profiles={"test": self.test_profile})
+        self.add_user(identifier=str(uuid4()), external_id="test-id-2", profiles={"test": self.test_profile2})
+        self._perform_search(search_filter='profiles.test.data.test_key eq "test_value"', expected_user=db_user)
 
     def test_search_user_start_index(self):
         for i in range(9):
@@ -523,7 +528,7 @@ class TestUserResource(ScimApiTestUserResourceBase):
         self.assertEqual(9, self.userdb.db_count())
         last_modified = datetime.utcnow() - timedelta(hours=1)
         self._perform_search(
-            filter=f'meta.lastmodified gt "{last_modified.isoformat()}"',
+            search_filter=f'meta.lastmodified gt "{last_modified.isoformat()}"',
             start=5,
             return_json=True,
             expected_num_resources=5,
@@ -536,7 +541,7 @@ class TestUserResource(ScimApiTestUserResourceBase):
         self.assertEqual(9, self.userdb.db_count())
         last_modified = datetime.utcnow() - timedelta(hours=1)
         self._perform_search(
-            filter=f'meta.lastmodified gt "{last_modified.isoformat()}"',
+            search_filter=f'meta.lastmodified gt "{last_modified.isoformat()}"',
             count=5,
             return_json=True,
             expected_num_resources=5,
@@ -549,7 +554,7 @@ class TestUserResource(ScimApiTestUserResourceBase):
         self.assertEqual(9, self.userdb.db_count())
         last_modified = datetime.utcnow() - timedelta(hours=1)
         self._perform_search(
-            filter=f'meta.lastmodified gt "{last_modified.isoformat()}"',
+            search_filter=f'meta.lastmodified gt "{last_modified.isoformat()}"',
             start=7,
             count=5,
             return_json=True,
@@ -651,7 +656,7 @@ class TestUserResource(ScimApiTestUserResourceBase):
 
     def _perform_search(
         self,
-        filter: str,
+        search_filter: str,
         start: int = 1,
         count: int = 10,
         return_json: bool = False,
@@ -659,10 +664,10 @@ class TestUserResource(ScimApiTestUserResourceBase):
         expected_num_resources: Optional[int] = None,
         expected_total_results: Optional[int] = None,
     ):
-        logger.info(f"Searching for group(s) using filter {repr(filter)}")
+        logger.info(f"Searching for user(s) using filter {repr(search_filter)}")
         req = {
             "schemas": [SCIMSchema.API_MESSAGES_20_SEARCH_REQUEST.value],
-            "filter": filter,
+            "filter": search_filter,
             "startIndex": start,
             "count": count,
         }
