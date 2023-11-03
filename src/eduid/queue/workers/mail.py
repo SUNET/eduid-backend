@@ -65,7 +65,7 @@ class MailQueueWorker(QueueWorker):
             password = self.config.mail_password
             if username and password:
                 logger.debug(f"Logging in with username: {username}")
-                await self._smtp.login(username=username, password=password)
+                await self._smtp.login(username, password)
         # ensure that the connection is still alive
         if not self._smtp.is_connected:
             logger.debug("Reconnecting SMTP client")
