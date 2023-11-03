@@ -33,3 +33,10 @@ class ScimApiBaseDB(BaseDB):
             if skip is not None:
                 total_count += skip
         return docs, total_count
+
+    def _get_mongo_operator(self, scim_operator: str) -> str:
+        # map SCIM filter operators to mongodb filter operator
+        mongo_operator = {"eq": "$eq", "gt": "$gt", "ge": "$gte"}.get(scim_operator)
+        if not mongo_operator:
+            raise ValueError("Invalid filter operator")
+        return mongo_operator
