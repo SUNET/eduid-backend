@@ -672,9 +672,9 @@ class TestUserResource(ScimApiTestUserResourceBase):
             "count": count,
         }
         response = self.client.post(url="/Users/.search", json=req, headers=self.headers)
-        logger.info(f"Search parsed_response:\n{response.json}")
+        logger.info(f"Search parsed_response:\n{response.json()}")
         if return_json:
-            return response.json
+            return response.json()
         self._assertResponse(response)
         expected_schemas = [SCIMSchema.API_MESSAGES_20_LIST_RESPONSE.value]
         response_schemas = response.json().get("schemas")
