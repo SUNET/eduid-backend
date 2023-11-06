@@ -38,6 +38,7 @@ class Config:
 
 @dataclass
 class UserGroups:
+    data_owner: str
     member: list[ScimApiGroup] = field(default_factory=list)
     manager: list[ScimApiGroup] = field(default_factory=list)
 
@@ -173,11 +174,11 @@ class ScimAttributes(ResponseMicroService):
 
         for member_group in user_groups.member:
             data.attributes["eduPersonEntitlement"].append(
-                f"{data_owner}:group:{member_group.graph.identifier}#eduid-scimapi"
+                f"{user_groups.data_owner}:group:{member_group.graph.identifier}#eduid-iam"
             )
         for manager_group in user_groups.manager:
             data.attributes["eduPersonEntitlement"].append(
-                f"{data_owner}:group:{manager_group.graph.identifier}:role=manager#eduid-scimapi"
+                f"{user_groups.data_owner}:group:{manager_group.graph.identifier}:role=manager#eduid-iam"
             )
 
         logger.debug(f"eduPersonEntitlement after groups: {data.attributes['eduPersonEntitlement']}")
@@ -256,6 +257,7 @@ class ScimAttributes(ResponseMicroService):
             return None
 
         return UserGroups(
+            data_owner=groupdb.graphdb.scope,
             member=groupdb.get_groups_for_user_identifer(user.scim_id),
             manager=groupdb.get_groups_owned_by_user_identifier(user.scim_id),
         )
