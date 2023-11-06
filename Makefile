@@ -80,14 +80,9 @@ vscode_venv:
 
 vscode_pip: vscode_venv
 	$(info Installing pip packages in devcontainer)
-	pip3 install --upgrade pip
+	.venv/bin/pip install --upgrade pip
 	.venv/bin/pip install -r requirements/test_requirements.txt
 	.venv/bin/mypy --install-types
 
-vscode_packages:
-	$(info Installing apt packages in devcontainer)
-	sudo apt-get update
-	sudo apt install -y swig xmlsec1 python3-venv docker.io ghostscript libcairo2-dev
-
 # This target is used by the devcontainer.json to configure the devcontainer
-vscode: vscode_packages vscode_pip vscode_hosts
+vscode:  vscode_pip 
