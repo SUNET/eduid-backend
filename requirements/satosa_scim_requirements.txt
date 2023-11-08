@@ -6,15 +6,15 @@
 #
 --index-url https://pypi.sunet.se/simple
 
-aiosmtplib==3.0.0 \
-    --hash=sha256:3b718f8a457fa3a986c4975f0cccb864a73070bc4809f83199b55e6251eeb254 \
-    --hash=sha256:857767879678edb5d188e9d38c16dbfe7b3045b535f45b26b349c6471fe8c234
+aiosmtplib==3.0.1 \
+    --hash=sha256:43580604b152152a221598be3037f0ae6359c2817187ac4433bd857bc3fc6513 \
+    --hash=sha256:abcceae7e820577307b4cda2041b2c25e5121469c0e186764ddf8e15b12064cd
     # via
     #   -c main.txt
     #   -r main.in
-amqp==5.1.1 \
-    --hash=sha256:2c1b13fecc0893e946c65cbd5f36427861cffa4ea2201d8f6fca22e2a373b5e2 \
-    --hash=sha256:6f0956d2c23d8fa6e7691934d8c3930eadb44972cbbd1a7ae3a520f735d43359
+amqp==5.2.0 \
+    --hash=sha256:827cb12fb0baa892aad844fd95258143bce4027fdac4fccddbc43330fd281637 \
+    --hash=sha256:a1ecff425ad063ad42a486c902807d1482311481c8ad95a72694b2975e75f7fd
     # via
     #   -c main.txt
     #   kombu
@@ -24,7 +24,7 @@ anyio==3.7.1 \
     # via
     #   -c constraints.txt
     #   -c main.txt
-    #   httpcore
+    #   httpx
 arabic-reshaper==3.0.0 \
     --hash=sha256:3f71d5034bb694204a239a6f1ebcf323ac3c5b059de02259235e2016a1a5e2dc \
     --hash=sha256:ffcd13ba5ec007db71c072f5b23f420da92ac7f268512065d49e790e62237099
@@ -51,9 +51,9 @@ babel==2.13.1 \
     # via
     #   -c main.txt
     #   -r main.in
-billiard==4.1.0 \
-    --hash=sha256:0f50d6be051c6b2b75bfbc8bfd85af195c5739c281d3f5b86a5640c65563614a \
-    --hash=sha256:1ad2eeae8e28053d729ba3373d34d9d6e210f6e4d8bf0a9c64f92bd053f1edf5
+billiard==4.2.0 \
+    --hash=sha256:07aa978b308f334ff8282bd4a746e681b3513db5c9a514cbdd810cbbdc19714d \
+    --hash=sha256:9a3c3184cb275aa17a732f93f65b20c525d3d9f253722d26a82194803ade5a2c
     # via
     #   -c main.txt
     #   celery
@@ -63,15 +63,15 @@ bleach==6.1.0 \
     # via
     #   -c main.txt
     #   -r main.in
-boto3==1.28.76 \
-    --hash=sha256:85e2fa361ad3210d30800bad311688261f2673a9b301e0edab56463d89609761 \
-    --hash=sha256:d18688bc5d688decf3cc404430a3ac3ec317be653cdcfbc51104c01f38a66434
+boto3==1.28.80 \
+    --hash=sha256:2f43e032ab804a3c39996d524003d2b906e5d86856a32da3427e36912a22d2b7 \
+    --hash=sha256:c48c6e04e43f894881b883a28fd032f16805f6cb2771b85f0c97f3fe34db0a41
     # via
     #   -c main.txt
     #   -r main.in
-botocore==1.31.76 \
-    --hash=sha256:479abb5a1ee03eb00faa1ea176bc595b2f46f7494777807681a9df45ed99ea18 \
-    --hash=sha256:74e0a4515d61b2860b24dc208ca89a68d79dc00147125d531746d3ba808822ad
+botocore==1.31.80 \
+    --hash=sha256:1c693c0f8b2553fcbe0df223241191e6f9f60b4245d65c1822c08f659274fef2 \
+    --hash=sha256:d43fe303530c12efca9be4ec3a9104e8a669f11d1ba9feb18f0284d751a9672c
     # via
     #   -c main.txt
     #   boto3
@@ -418,9 +418,9 @@ html5lib==1.1 \
     #   -c main.txt
     #   -r main.in
     #   xhtml2pdf
-httpcore==0.18.0 \
-    --hash=sha256:13b5e5cd1dca1a6636a6aaea212b19f4f85cd88c366a2b82304181b769aab3c9 \
-    --hash=sha256:adc5398ee0a476567bf87467063ee63584a8bce86078bf748e48754f60202ced
+httpcore==1.0.1 \
+    --hash=sha256:c5e97ef177dca2023d0b9aad98e49507ef5423e9f1d94ffe2cfe250aa28e63b0 \
+    --hash=sha256:fce1ddf9b606cfb98132ab58865c3728c52c8e4c3c46e2aabb3674464a186e92
     # via
     #   -c main.txt
     #   httpx
@@ -430,9 +430,9 @@ httplib2==0.22.0 \
     # via
     #   -c main.txt
     #   pysmscom
-httpx==0.25.0 \
-    --hash=sha256:181ea7f8ba3a82578be86ef4171554dd45fec26a02556a744db029a0a27b7100 \
-    --hash=sha256:47ecda285389cb32bb2691cc6e069e3ab0205956f681c5b2ad2325719751d875
+httpx==0.25.1 \
+    --hash=sha256:fec7d6cc5c27c578a391f7e87b9aa7d3d8fbcd034f6399f9f79b45bcc12a866a \
+    --hash=sha256:ffd96d5cf901e63863d9f1b4b6807861dbea4d301613415d9e6e57ead15fc5d0
     # via
     #   -c main.txt
     #   -r main.in
@@ -452,9 +452,9 @@ importlib-metadata==6.8.0 \
     # via
     #   -c main.txt
     #   -r sub_main.in
-importlib-resources==6.1.0 \
-    --hash=sha256:9d48dcccc213325e810fd723e7fbb45ccb39f6cf5c31f00cf2b965f5f10f3cb9 \
-    --hash=sha256:aa50258bbfa56d4e33fbd8aa3ef48ded10d1735f11532b8df95388cc6bdb7e83
+importlib-resources==6.1.1 \
+    --hash=sha256:3893a00122eafde6894c59914446a512f728a0c1a45f9bb9b63721b6bacf0b4a \
+    --hash=sha256:e8bf90d8213b486f428c9c39714b920041cb02c184686a3dee24905aaa8105d6
     # via
     #   -c main.txt
     #   -r sub_main.in
@@ -476,9 +476,9 @@ jwcrypto==1.5.0 \
     # via
     #   -c main.txt
     #   -r main.in
-kombu==5.3.2 \
-    --hash=sha256:0ba213f630a2cb2772728aef56ac6883dc3a2f13435e10048f6e97d48506dbbd \
-    --hash=sha256:b753c9cfc9b1e976e637a7cbc1a65d446a22e45546cd996ea28f932082b7dc9e
+kombu==5.3.3 \
+    --hash=sha256:1491df826cfc5178c80f3e89dd6dfba68e484ef334db81070eb5cb8094b31167 \
+    --hash=sha256:6cd5c5d5ef77538434b8f81f3e265c414269418645dbb47dbf130a8a05c3e357
     # via
     #   -c main.txt
     #   celery
@@ -688,8 +688,8 @@ mypy-extensions==1.0.0 \
     # via
     #   -c main.txt
     #   typing-inspect
-neo4j==5.14.0 \
-    --hash=sha256:6040efca47126c01385f09e550fb7d7671b1853a1e1c34908aa3713cebd285da
+neo4j==5.14.1 \
+    --hash=sha256:3200be8550ed16622b2fadf4f749d08b9982989c4bfce6f99ab693f104104cb4
     # via
     #   -c main.txt
     #   -r main.in
@@ -1385,7 +1385,6 @@ sniffio==1.3.0 \
     # via
     #   -c main.txt
     #   anyio
-    #   httpcore
     #   httpx
 statsd==4.0.1 \
     --hash=sha256:99763da81bfea8daf6b3d22d11aaccb01a8d0f52ea521daab37e758a4ca7d128 \
@@ -1465,9 +1464,9 @@ urllib3==2.0.7 \
     #   -c main.txt
     #   botocore
     #   requests
-vine==5.0.0 \
-    --hash=sha256:4c9dceab6f76ed92105027c49c823800dd33cacce13bdedc5b914e3514b7fb30 \
-    --hash=sha256:7d3b1624a953da82ef63462013bbd271d3eb75751489f9807598e8f340bd637e
+vine==5.1.0 \
+    --hash=sha256:40fdf3c48b2cfe1c38a49e9ae2da6fda88e4794c810050a728bd7413811fb1dc \
+    --hash=sha256:8b62e981d35c41049211cf62a0a1242d8c1ee9bd15bb196ce38aefd6799e61e0
     # via
     #   -c main.txt
     #   amqp
