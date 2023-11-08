@@ -2,12 +2,12 @@ import os
 import unittest
 import uuid
 from dataclasses import asdict
+from json import JSONDecodeError
 from typing import Any, Mapping, Optional, Union
 
 import pkg_resources
 from bson import ObjectId
 from httpx import Response
-from simplejson import JSONDecodeError
 from starlette.testclient import TestClient
 
 from eduid.common.config.parsers import load_config

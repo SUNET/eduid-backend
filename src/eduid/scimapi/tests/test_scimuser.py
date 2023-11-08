@@ -497,6 +497,25 @@ class TestUserResource(ScimApiTestUserResourceBase):
             response.json(), schemas=["urn:ietf:params:scim:api:messages:2.0:Error"], detail="externalID must be unique"
         )
 
+    def test_delete_user(self):
+        external_id = "test-id-1"
+        db_user = self.add_user(identifier=str(uuid4()), external_id=external_id, profiles={"test": self.test_profile})
+        user_scim_id = db_user.scim_id
+
+        self.headers["IF-MATCH"] = make_etag(db_user.version)
+        response = self.client.delete(url=f"/Users/{db_user.scim_id}", headers=self.headers)
+        self._assertResponse(response, status_code=204)  # No content
+
+        db_user = self.userdb.get_user_by_scim_id(user_scim_id)
+        assert db_user is None
+
+        # check that the action resulted in an event in the database
+        events = self.eventdb.get_events_by_resource(SCIMResourceType.USER, user_scim_id)
+        assert len(events) == 1
+        event = events[0]
+        assert event.resource.external_id == external_id
+        assert event.data["status"] == EventStatus.DELETED.value
+
     def test_search_user_external_id(self):
         db_user = self.add_user(identifier=str(uuid4()), external_id="test-id-1", profiles={"test": self.test_profile})
         self.add_user(identifier=str(uuid4()), external_id="test-id-2", profiles={"test": self.test_profile})

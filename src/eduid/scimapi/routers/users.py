@@ -250,6 +250,37 @@ async def on_post(req: ContextRequest, resp: Response, create_request: UserCreat
     return user
 
 
+@users_router.delete(
+    "/{scim_id}",
+    status_code=204,
+    responses={204: {"description": "No Content"}},
+)
+async def on_delete(req: ContextRequest, scim_id: str) -> None:
+    req.app.context.logger.info(f"Deleting user {scim_id}")
+    db_user = req.context.userdb.get_user_by_scim_id(scim_id=scim_id)
+    req.app.context.logger.debug(f"Found user: {db_user}")
+    if not db_user:
+        raise NotFound(detail="User not found")
+
+    # Check version
+    if not req.app.context.check_version(req, db_user):
+        raise BadRequest(detail="Version mismatch")
+
+    res = req.context.userdb.remove(db_user)
+
+    add_api_event(
+        context=req.app.context,
+        data_owner=req.context.data_owner,
+        db_obj=db_user,
+        resource_type=SCIMResourceType.USER,
+        level=EventLevel.INFO,
+        status=EventStatus.DELETED,
+        message="User was deleted",
+    )
+
+    req.app.context.logger.debug(f"Remove user result: {res}")
+
+
 @users_router.post("/.search", response_model=ListResponse, response_model_exclude_none=True)
 async def search(req: ContextRequest, query: SearchRequest) -> ListResponse:
     """
