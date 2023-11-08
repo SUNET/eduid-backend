@@ -17,6 +17,7 @@ from eduid.scimapi.config import DataOwnerName, ScimApiConfig, ScopeName
 from eduid.scimapi.context import Context
 from eduid.scimapi.context_request import ContextRequestMixin
 from eduid.scimapi.exceptions import Unauthorized, http_error_detail_handler
+logger = logging.getLogger(__name__)
 
 
 class SudoAccess(BaseModel):
@@ -71,7 +72,6 @@ class AuthnBearerToken(BaseModel):
             new_access += [this]
         return new_access
 
-    def get_data_owner(self, logger: logging.Logger) -> Optional[DataOwnerName]:
         """
         Get the data owner to use.
 
@@ -94,7 +94,7 @@ class AuthnBearerToken(BaseModel):
            requested_access: [{'type': 'scim-api', 'scope': 'example.edu'}]}
         """
 
-        allowed_scopes = self._get_allowed_scopes(self.scim_config, logger)
+        allowed_scopes = self._get_allowed_scopes(self.scim_config)
         logger.debug(f"Request {self}, allowed scopes: {allowed_scopes}")
 
         # only support one requested access at a time for now and do not fall back to simple scope check if
@@ -126,7 +126,7 @@ class AuthnBearerToken(BaseModel):
 
         return None
 
-    def _get_allowed_scopes(self, config: ScimApiConfig, logger: logging.Logger) -> set[ScopeName]:
+    def _get_allowed_scopes(self, config: ScimApiConfig) -> set[ScopeName]:
         """
         Make a set of all the allowed scopes for the requester.
 
@@ -260,7 +260,7 @@ class AuthenticationMiddleware(BaseMiddleware):
             return await http_error_detail_handler(req=req, exc=Unauthorized(detail="Bearer token error"))
 
         try:
-            data_owner = token.get_data_owner(self.context.logger)
+            data_owner = token.get_data_owner()
         except RequestedAccessDenied as exc:
             self.context.logger.error(f"Access denied: {exc}")
             return await http_error_detail_handler(
