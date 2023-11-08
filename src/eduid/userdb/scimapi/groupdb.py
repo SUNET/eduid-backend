@@ -258,6 +258,14 @@ class ScimApiGroupDB(ScimApiBaseDB):
             return group
         return None
 
+    def get_group_by_display_name(self, display_name: str) -> Optional[ScimApiGroup]:
+        doc = self._get_document_by_attr("display_name", display_name)
+        if doc:
+            group = ScimApiGroup.from_dict(doc)
+            group.graph = self._get_graph_group(str(group.scim_id))
+            return group
+        return None
+
     def get_groups_by_property(
         self, key: str, value: Union[str, int], skip=0, limit=100
     ) -> tuple[list[ScimApiGroup], int]:

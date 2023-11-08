@@ -60,6 +60,11 @@ class ScimApiConfig(RootConfig, LoggingConfigMixin, AWSMixin):
     scope_sudo: dict[ScopeName, set[ScopeName]] = Field(default={})
     # The expected value of the authn JWT claims['requested_access']['type']
     requested_access_type: Optional[str] = "scim-api"
+    # required saml assurance level for authentications with interaction auth_source
+    required_saml_assurance_level: list[str] = Field(default=["http://www.swamid.se/policy/assurance/al3"])
+    # group name to match saml entitlement for authorization
+    account_manager_default_group: str = "Account Managers"
+    account_manager_group_mapping: dict[DataOwnerName, str] = Field(default={})
     # Invite config
     invite_url: str = ""
     invite_expire: int = 180 * 86400  # 180 days

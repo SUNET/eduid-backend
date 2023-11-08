@@ -12,6 +12,7 @@ from starlette.testclient import TestClient
 
 from eduid.common.config.parsers import load_config
 from eduid.common.models.scim_base import SCIMSchema
+from eduid.graphdb.groupdb import User as GraphUser
 from eduid.graphdb.testing import Neo4jTemporaryInstance
 from eduid.queue.db.message import MessageDB
 from eduid.scimapi.app import init_api
@@ -83,10 +84,6 @@ class MongoNeoTestCase(BaseDBTestCase):
         )
         super().setUpClass()
 
-    def tearDown(self):
-        super().tearDown()
-        self.neo4j_instance.purge_db()
-
 
 class ScimApiTestCase(MongoNeoTestCase):
     """Base test case providing the real API"""
@@ -107,6 +104,7 @@ class ScimApiTestCase(MongoNeoTestCase):
         # TODO: more tests for scoped groups when that is implemented
         self.data_owner = DataOwnerName("eduid.se")
         self.userdb = self.context.get_userdb(self.data_owner)
+        self.groupdb = self.context.get_groupdb(self.data_owner)
         self.invitedb = self.context.get_invitedb(self.data_owner)
         self.signup_invitedb = SignupInviteDB(db_uri=config.mongo_uri)
         self.messagedb = MessageDB(db_uri=config.mongo_uri)
@@ -143,6 +141,15 @@ class ScimApiTestCase(MongoNeoTestCase):
         self.userdb.save(user)
         return self.userdb.get_user_by_scim_id(scim_id=identifier)
 
+    def add_group_with_member(
+        self, group_identifier: str, display_name: str, user_identifier: str
+    ) -> Optional[ScimApiGroup]:
+        group = ScimApiGroup(scim_id=uuid.UUID(group_identifier), display_name=display_name)
+        group.add_member(GraphUser(identifier=user_identifier, display_name="Test Member 1"))
+        assert self.groupdb
+        self.groupdb.save(group)
+        return self.groupdb.get_group_by_scim_id(scim_id=group_identifier)
+
     def tearDown(self):
         super().tearDown()
         if self.userdb:
@@ -155,6 +162,9 @@ class ScimApiTestCase(MongoNeoTestCase):
             self.signup_invitedb._drop_whole_collection()
         if self.messagedb:
             self.messagedb._drop_whole_collection()
+        if self.groupdb:
+            self.groupdb._drop_whole_collection()
+            self.neo4j_instance.purge_db()
 
     def _assertScimError(
         self,
