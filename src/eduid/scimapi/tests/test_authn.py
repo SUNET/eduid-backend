@@ -12,7 +12,7 @@ from jwcrypto import jwt
 from eduid.common.config.parsers import load_config
 from eduid.common.models.scim_base import SCIMSchema
 from eduid.scimapi.config import DataOwner, DataOwnerName, ScimApiConfig, ScopeName
-from eduid.scimapi.middleware import AuthnBearerToken, RequestedAccessDenied, SudoAccess
+from eduid.scimapi.middleware import AuthnBearerToken, AuthSource, RequestedAccessDenied, SudoAccess
 from eduid.scimapi.testing import BaseDBTestCase
 from eduid.scimapi.tests.test_scimuser import ScimApiTestUserResourceBase
 from eduid.userdb.scimapi import ScimApiProfile
@@ -186,6 +186,22 @@ class TestAuthnBearerToken(BaseDBTestCase):
         assert token.auth_source == AuthSource.CONFIG
         assert token.requested_access == [SudoAccess(type="scim-api", scope=ScopeName("eduid.se"))]
 
+    def test_interaction_token(self):
+        """Test the normal case. Login with access granted based on the single scope in the request."""
+        domain = "eduid.se"
+        claims = {
+            "version": 1,
+            "saml_eppn": f"eppn@{domain}",
+            "auth_source": "interaction",
+            "requested_access": [{"type": "scim-api", "scope": "eduid.se"}],
+        }
+        token = AuthnBearerToken(scim_config=self.config, **claims)
+        assert token.version == 1
+        assert token.scopes == {domain}
+        assert token.get_data_owner() == domain
+        assert token.auth_source == AuthSource.INTERACTION
+        assert token.requested_access == [SudoAccess(type="scim-api", scope=ScopeName("eduid.se"))]
+
     def test_regular_token_with_canonisation(self):
         """Test the normal case. Login with access granted based on the single scope in the request."""
         domain = "eduid.se"
@@ -193,6 +209,16 @@ class TestAuthnBearerToken(BaseDBTestCase):
         config = self.config.copy()
         config.scope_mapping[domain_alias] = domain
         claims = {"version": 1, "scopes": [domain_alias], "auth_source": "config"}
+        token = AuthnBearerToken(scim_config=self.config, **claims)
+        assert token.get_data_owner() == domain
+
+    def test_interaction_token_with_canonisation(self):
+        """Test the normal case. Login with access granted based on the single scope in the request."""
+        domain = DataOwnerName("eduid.se")
+        domain_alias = ScopeName("eduid.example.edu")
+        config = self.config.copy()
+        config.scope_mapping[domain_alias] = domain
+        claims = {"version": 1, "auth_source": "interaction", "saml_eppn": f"user@{domain_alias}"}
         token = AuthnBearerToken(scim_config=self.config, **claims)
         assert token.get_data_owner() == domain
 
@@ -212,6 +238,13 @@ class TestAuthnBearerToken(BaseDBTestCase):
         """Test login with a scope that has no data owner in the configuration."""
         domain = "example.org"
         claims = {"version": 1, "scopes": [domain], "auth_source": "config"}
+        token = AuthnBearerToken(scim_config=self.config, **claims)
+        assert token.get_data_owner() is None
+
+    def test_interaction_token_unknown_scope(self):
+        """Test login with a scope that has no data owner in the configuration."""
+        domain = "example.org"
+        claims = {"version": 1, "saml_eppn": f"eppn{domain}", "auth_source": "interaction"}
         token = AuthnBearerToken(scim_config=self.config, **claims)
         assert token.get_data_owner() is None
 
@@ -389,6 +422,29 @@ class TestAuthnUserResource(ScimApiTestUserResourceBase):
             SCIMSchema.NUTID_USER_V1.value: {"profiles": {"test": asdict(self.test_profile)}, "linked_accounts": []},
         }
         self._assertUserUpdateSuccess(_req, response, db_user)
+
+    def test_get_user_interaction_token(self):
+        db_user = self.add_user(identifier=str(uuid4()), external_id="test-id-1", profiles={"test": self.test_profile})
+        db_group = self.add_group_with_member(
+            group_identifier=str(uuid4()),
+            display_name=self.context.config.account_manager_default_group,
+            user_identifier=str(db_user.scim_id),
+        )
+
+        claims = {
+            "saml_eppn": "eppn@eduid.se",
+            "version": 1,
+            "auth_source": "interaction",
+            "saml_assurance": [
+                "http://www.swamid.se/policy/assurance/al1",
+                "http://www.swamid.se/policy/assurance/al2",
+                "http://www.swamid.se/policy/assurance/al3",
+            ],
+            "saml_entitlement": [
+                "urn:mace:some:other:entitlement",
+                f"{self.groupdb.graphdb.scope}:group:{db_group.graph.identifier}#eduid-iam",
+            ],
+        }
         token = self._make_bearer_token(claims=claims)
 
         response = self._get_user_from_api(user=db_user, bearer_token=token)

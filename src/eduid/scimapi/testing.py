@@ -12,6 +12,7 @@ from starlette.testclient import TestClient
 
 from eduid.common.config.parsers import load_config
 from eduid.common.models.scim_base import SCIMSchema
+from eduid.graphdb.groupdb import User as GraphUser
 from eduid.graphdb.testing import Neo4jTemporaryInstance
 from eduid.queue.db.message import MessageDB
 from eduid.scimapi.app import init_api
@@ -139,6 +140,15 @@ class ScimApiTestCase(MongoNeoTestCase):
         assert self.userdb
         self.userdb.save(user)
         return self.userdb.get_user_by_scim_id(scim_id=identifier)
+
+    def add_group_with_member(
+        self, group_identifier: str, display_name: str, user_identifier: str
+    ) -> Optional[ScimApiGroup]:
+        group = ScimApiGroup(scim_id=uuid.UUID(group_identifier), display_name=display_name)
+        group.add_member(GraphUser(identifier=user_identifier, display_name="Test Member 1"))
+        assert self.groupdb
+        self.groupdb.save(group)
+        return self.groupdb.get_group_by_scim_id(scim_id=group_identifier)
 
     def tearDown(self):
         super().tearDown()
