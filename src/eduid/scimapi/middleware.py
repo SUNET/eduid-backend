@@ -2,12 +2,13 @@ import json
 import logging
 import re
 from copy import copy
+from enum import Enum
 from typing import Any, Mapping, Optional
 
 from fastapi import Request, Response
 from jwcrypto import jwt
 from jwcrypto.common import JWException
-from pydantic import BaseModel, Field, StrictInt, ValidationError, validator
+from pydantic import BaseModel, Field, StrictInt, ValidationError, root_validator, validator
 from starlette.datastructures import URL
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import Message
@@ -17,12 +18,29 @@ from eduid.scimapi.config import DataOwnerName, ScimApiConfig, ScopeName
 from eduid.scimapi.context import Context
 from eduid.scimapi.context_request import ContextRequestMixin
 from eduid.scimapi.exceptions import Unauthorized, http_error_detail_handler
+from eduid.userdb.scimapi import ScimApiGroupDB
+
 logger = logging.getLogger(__name__)
+
+
+class AuthSource(str, Enum):
+    INTERACTION = "interaction"
+    CONFIG = "config"
+    MDQ = "mdq"
+    TLSFED = "tlsfed"
 
 
 class SudoAccess(BaseModel):
     type: str
     scope: ScopeName
+
+
+class AuthenticationError(Exception):
+    pass
+
+
+class AuthorizationError(Exception):
+    pass
 
 
 class RequestedAccessDenied(Exception):
@@ -38,8 +56,18 @@ class AuthnBearerToken(BaseModel):
 
     scim_config: ScimApiConfig  # must be listed first, used in validators
     version: StrictInt
+    auth_source: AuthSource
     requested_access: list[SudoAccess] = Field(default=[])
     scopes: set[ScopeName] = Field(default=set())
+    # saml interaction claims
+    saml_issuer: Optional[str] = None
+    saml_assurance: Optional[list[str]] = None
+    saml_entitlement: Optional[list[str]] = None
+    saml_eppn: Optional[str] = None
+    saml_unique_id: Optional[str] = None
+
+    # class Config:
+    #    validate_assignment = True
 
     def __str__(self):
         return f"<{self.__class__.__name__}: scopes={self.scopes}, requested_access={self.requested_access}>"
@@ -49,6 +77,13 @@ class AuthnBearerToken(BaseModel):
         if v != 1:
             raise ValueError("Unknown version")
         return v
+
+    @root_validator(pre=True)
+    def set_scopes_from_saml_data(cls, values: dict[str, Any]):
+        # Get scope from saml identifier if the auth source is interaction and set it as scopes
+        if values.get("auth_source") == AuthSource.INTERACTION.value:
+            values["scopes"] = cls._get_scope_from_saml_data(values=values)
+        return values
 
     @validator("scopes")
     def validate_scopes(cls, v: set[ScopeName], values: Mapping[str, Any]) -> set[ScopeName]:
@@ -72,6 +107,67 @@ class AuthnBearerToken(BaseModel):
             new_access += [this]
         return new_access
 
+    @staticmethod
+    def _get_scope_from_saml_data(values: Mapping[str, Any]) -> list[ScopeName]:
+        saml_identifier = values.get("saml_eppn") or values.get("saml_unique_id")
+        if not saml_identifier:
+            return []
+        try:
+            scope = ScopeName(saml_identifier.split("@")[1])
+        except IndexError:
+            return []
+        logger.info(f"Scope from saml data: {scope}")
+        return [scope]
+
+    def validate_auth_source(self) -> None:
+        """
+        Check if the auth source is any of the one we know of. If the auth source is config, mdq or tlsfed we
+        can just let it through. If the auth source is interaction we need to check the saml data to make sure
+        the user is allowed access to the data owner.
+        """
+        if self.auth_source in [AuthSource.CONFIG, AuthSource.MDQ, AuthSource.TLSFED]:
+            logger.info(f"{self.auth_source} is a trusted auth source")
+            return
+
+        if self.auth_source == AuthSource.INTERACTION:
+            assurances = self.saml_assurance or []
+            # validate that the authentication meets the required assurance level
+            for assurance_level in self.scim_config.required_saml_assurance_level:
+                if assurance_level in assurances:
+                    logger.info(f"Allowed assurance level {assurance_level} is in saml data: {assurances}")
+                    return
+            raise AuthenticationError(
+                f"Asserted SAML assurance level(s) ({assurances}) not in"
+                f"allow-list: {self.scim_config.required_saml_assurance_level}"
+            )
+
+        raise AuthenticationError(f"Unsupported authentication source: {self.auth_source}")
+
+    def validate_saml_entitlements(self, data_owner: DataOwnerName, groupdb: Optional[ScimApiGroupDB] = None) -> None:
+        if groupdb is None:
+            raise AuthenticationError("No groupdb provided, cannot validate saml entitlements.")
+
+        default_name = self.scim_config.account_manager_default_group
+        account_manager_group_name = self.scim_config.account_manager_group_mapping.get(data_owner, default_name)
+        logger.debug(f"Checking for account manager group called {account_manager_group_name}")
+
+        account_manager_group = groupdb.get_group_by_display_name(display_name=account_manager_group_name)
+        if account_manager_group is None:
+            raise AuthenticationError('No "Account Managers" group found for data owner')
+        logger.debug(f"Found group {account_manager_group_name} with id {account_manager_group.graph.identifier}")
+
+        # TODO: create a helper function to do this for all places where we do this dance in the repo
+        # create the expected saml group id
+        saml_group_id = f"{groupdb.graphdb.scope}:group:{account_manager_group.graph.identifier}#eduid-iam"
+        # match against users entitlements
+        entitlements = self.saml_entitlement or []
+        if saml_group_id in entitlements:
+            logger.debug(f"{saml_group_id} in {entitlements}")
+            return
+        logger.error(f"{saml_group_id} NOT in {entitlements}")
+        raise AuthorizationError(f"Not authorized: {saml_group_id} not in saml entitlements")
+
+    def get_data_owner(self) -> Optional[DataOwnerName]:
         """
         Get the data owner to use.
 
@@ -260,6 +356,14 @@ class AuthenticationMiddleware(BaseMiddleware):
             return await http_error_detail_handler(req=req, exc=Unauthorized(detail="Bearer token error"))
 
         try:
+            token.validate_auth_source()
+        except AuthenticationError as exc:
+            self.context.logger.error(f"Access denied: {exc}")
+            return await http_error_detail_handler(
+                req=req, exc=Unauthorized(detail="Authentication source or assurance level invalid")
+            )
+
+        try:
             data_owner = token.get_data_owner()
         except RequestedAccessDenied as exc:
             self.context.logger.error(f"Access denied: {exc}")
@@ -277,5 +381,15 @@ class AuthenticationMiddleware(BaseMiddleware):
         req.context.groupdb = self.context.get_groupdb(data_owner)
         req.context.invitedb = self.context.get_invitedb(data_owner)
         req.context.eventdb = self.context.get_eventdb(data_owner)
+
+        # check authorization for interaction authentications
+        try:
+            if token.auth_source == AuthSource.INTERACTION:
+                token.validate_saml_entitlements(data_owner=data_owner, groupdb=req.context.groupdb)
+        except AuthorizationError as exc:
+            self.context.logger.error(f"Access denied: {exc}")
+            return await http_error_detail_handler(
+                req=req, exc=Unauthorized(detail="Missing correct entitlement in saml data")
+            )
 
         return await call_next(req)
