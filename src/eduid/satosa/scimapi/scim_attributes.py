@@ -17,6 +17,7 @@ from eduid.satosa.scimapi.common import (
     get_metadata,
     store_mfa_stepup_accounts,
 )
+from eduid.userdb.scimapi import ScimApiGroup, ScimApiGroupDB
 from eduid.userdb.scimapi.userdb import ScimApiUser, ScimApiUserDB, ScimEduidUserDB
 
 logger = logging.getLogger(__name__)
@@ -25,12 +26,21 @@ logger = logging.getLogger(__name__)
 @dataclass
 class Config:
     mongo_uri: str
+    neo4j_uri: Optional[str] = None
+    neo4j_config: dict = field(default_factory=dict)
     allow_users_not_in_database: bool = False
     fallback_data_owner: Optional[str] = None
     idp_to_data_owner: Mapping[str, str] = field(default_factory=dict)
     mfa_stepup_issuer_to_entity_id: Mapping[str, str] = field(default_factory=dict)
     scope_to_data_owner: Mapping[str, str] = field(default_factory=dict)
     virt_idp_to_data_owner: Mapping[str, str] = field(default_factory=dict)
+
+
+@dataclass
+class UserGroups:
+    data_owner: str
+    member: list[ScimApiGroup] = field(default_factory=list)
+    manager: list[ScimApiGroup] = field(default_factory=list)
 
 
 class ScimAttributes(ResponseMicroService):
@@ -45,6 +55,7 @@ class ScimAttributes(ResponseMicroService):
         self.eduid_userdb = ScimEduidUserDB(db_uri=self.config.mongo_uri)
         logger.info(f"Connected to eduid db: {self.eduid_userdb}")
         self._userdbs: dict[str, ScimApiUserDB] = {}
+        self._groupdbs: dict[str, ScimApiGroupDB] = {}
         self.converter = AttributeMapper(internal_attributes)
         # Get the internal attribute name for the eduPersonPrincipalName that will be
         # used to find users in the SCIM database
@@ -64,6 +75,23 @@ class ScimAttributes(ResponseMicroService):
             )
         return self._userdbs[data_owner]
 
+    def get_groupdb_for_data_owner(self, data_owner: str) -> Optional[ScimApiGroupDB]:
+        if self.config.neo4j_uri is None:
+            # be able to turn off group lookups by unsetting neo4j_uri
+            logger.info("No neo4j_uri set in config, group lookups will be turned off.")
+            return None
+        if data_owner not in self._groupdbs:
+            _owner = data_owner.replace(".", "_")  # replace dots with underscores
+            self._groupdbs[data_owner] = ScimApiGroupDB(
+                neo4j_uri=self.config.neo4j_uri,
+                neo4j_config=self.config.neo4j_config,
+                scope=data_owner,
+                mongo_uri=self.config.mongo_uri,
+                mongo_dbname="eduid_scimapi",
+                mongo_collection=f"{_owner}__groups",
+            )
+        return self._groupdbs[data_owner]
+
     def process(
         self,
         context: satosa.context.Context,
@@ -72,6 +100,7 @@ class ScimAttributes(ResponseMicroService):
         logger.debug(f"Data as dict:\n{pprint.pformat(data.to_dict())}")
 
         scopes: set[str] = set()
+
         try:
             scopes = self._get_scopes_for_idp(context, data.auth_info.issuer)
         except Exception:
@@ -79,45 +108,81 @@ class ScimAttributes(ResponseMicroService):
         logger.debug(f"Scopes in metadata for IdP {data.auth_info.issuer}: {scopes}")
 
         frontend_name = context.state.get(ROUTER_STATE_KEY)
-        user = self._get_user(data, scopes, frontend_name)
+        data_owner = self._get_data_owner(data, scopes, frontend_name)
+        logger.info(f"entityId {data.auth_info.issuer}, scope(s) {scopes}, data_owner {data_owner}")
+        user = self._get_user(data, data_owner)
+        user_groups = self._get_user_groups(user, data_owner)
+
         if user:
-            # TODO: handle multiple profiles beyond just picking the first one
-            profiles = user.profiles.keys()
-            if profiles:
-                _name = sorted(profiles)[0]
-                logger.info(f"Applying attributes from SCIM user {user.scim_id}, profile {_name}")
-                profile = user.profiles[_name]
-
-                update = self.converter.to_internal("saml", profile.attributes)
-
-                for _name, _new in update.items():
-                    _old = data.attributes.get(_name)
-                    if _old != _new:
-                        logger.debug(f"Changing attribute {_name} from {repr(_old)} to {repr(_new)}")
-                        data.attributes[_name] = _new
-            # Look for a linked account suitable for use for MFA stepup (in the stepup plugin that runs after this one)
-            _stepup_accounts: list[MfaStepupAccount] = []
-            for acc in user.linked_accounts:
-                logger.debug(f"Linked account: {acc}")
-                _entity_id = self.config.mfa_stepup_issuer_to_entity_id.get(acc.issuer)
-                if _entity_id and acc.parameters.get("mfa_stepup") is True:
-                    _stepup_accounts += [
-                        MfaStepupAccount(
-                            entity_id=_entity_id,
-                            identifier=acc.value,
-                        )
-                    ]
-            store_mfa_stepup_accounts(data=data, accounts=_stepup_accounts)
-            logger.debug(f"MFA stepup accounts: {data.mfa_stepup_accounts}")
+            logger.debug(f"Found user: {user}")
+            data = self._process_user(user=user, data=data)
         else:
             if self.config.allow_users_not_in_database:
                 logger.info(
                     "User not found in database but letting through since 'allow_users_not_in_database' is set to True"
                 )
             else:
-                raise SATOSAAuthenticationError(context.state, f"User not found in database")
+                raise SATOSAAuthenticationError(context.state, "User not found in database")
+
+        if user_groups:
+            logger.debug(f"Found user groups: {user_groups}")
+            data = self._process_groups(data_owner=data_owner, user_groups=user_groups, data=data)
 
         return super().process(context, data)
+
+    def _process_user(self, user: ScimApiUser, data: satosa.internal.InternalData) -> satosa.internal.InternalData:
+        # TODO: handle multiple profiles beyond just picking the first one
+        profiles = user.profiles.keys()
+        if profiles:
+            _name = sorted(profiles)[0]
+            logger.info(f"Applying attributes from SCIM user {user.scim_id}, profile {_name}")
+            profile = user.profiles[_name]
+
+            update = self.converter.to_internal("saml", profile.attributes)
+
+            for _name, _new in update.items():
+                _old = data.attributes.get(_name)
+                if _old != _new:
+                    logger.debug(f"Changing attribute {_name} from {repr(_old)} to {repr(_new)}")
+                    data.attributes[_name] = _new
+
+        # Look for a linked account suitable for use for MFA stepup (in the stepup plugin that runs after this one)
+        _stepup_accounts: list[MfaStepupAccount] = []
+        for acc in user.linked_accounts:
+            logger.debug(f"Linked account: {acc}")
+            _entity_id = self.config.mfa_stepup_issuer_to_entity_id.get(acc.issuer)
+            if _entity_id and acc.parameters.get("mfa_stepup") is True:
+                _stepup_accounts += [
+                    MfaStepupAccount(
+                        entity_id=_entity_id,
+                        identifier=acc.value,
+                    )
+                ]
+        store_mfa_stepup_accounts(data=data, accounts=_stepup_accounts)
+        logger.debug(f"MFA stepup accounts: {data.mfa_stepup_accounts}")
+
+        return data
+
+    def _process_groups(
+        self, data_owner: Optional[str], user_groups: UserGroups, data: satosa.internal.InternalData
+    ) -> satosa.internal.InternalData:
+        if data_owner is None:
+            return data
+
+        if data.attributes.get("eduPersonEntitlement") is None:
+            data.attributes["eduPersonEntitlement"] = []
+
+        for member_group in user_groups.member:
+            data.attributes["eduPersonEntitlement"].append(
+                f"{user_groups.data_owner}:group:{member_group.graph.identifier}#eduid-iam"
+            )
+        for manager_group in user_groups.manager:
+            data.attributes["eduPersonEntitlement"].append(
+                f"{user_groups.data_owner}:group:{manager_group.graph.identifier}:role=manager#eduid-iam"
+            )
+
+        logger.debug(f"eduPersonEntitlement after groups: {data.attributes['eduPersonEntitlement']}")
+        return data
 
     def _get_scopes_for_idp(self, context: satosa.context.Context, entity_id: str) -> set[str]:
         res = set()
@@ -131,9 +196,9 @@ class ScimAttributes(ResponseMicroService):
             res.update(_extract_saml_scope(idpsso))
         return res
 
-    def _get_user(
+    def _get_data_owner(
         self, data: satosa.internal.InternalData, scopes: set[str], frontend_name: str
-    ) -> Optional[ScimApiUser]:
+    ) -> Optional[str]:
         # Look for explicit information about what data owner to use for this IdP
         issuer = frontend_name
         data_owner: Optional[str] = self.config.virt_idp_to_data_owner.get(issuer)
@@ -162,7 +227,11 @@ class ScimAttributes(ResponseMicroService):
             logger.warning(f"No data owner for issuer {issuer}")
             return None
 
-        logger.info(f"entityId {data.auth_info.issuer}, scope(s) {scopes}, data_owner {data_owner}")
+        return data_owner
+
+    def _get_user(self, data: satosa.internal.InternalData, data_owner: Optional[str]) -> Optional[ScimApiUser]:
+        if data_owner is None:
+            return None
 
         userdb = self.get_userdb_for_data_owner(data_owner)
 
@@ -178,6 +247,20 @@ class ScimAttributes(ResponseMicroService):
         else:
             logger.info(f"No user found using {self.ext_id_attr} {ext_id}")
         return user
+
+    def _get_user_groups(self, user: Optional[ScimApiUser], data_owner: Optional[str]) -> Optional[UserGroups]:
+        if user is None or data_owner is None:
+            return None
+
+        groupdb = self.get_groupdb_for_data_owner(data_owner)
+        if groupdb is None:
+            return None
+
+        return UserGroups(
+            data_owner=groupdb.graphdb.scope,
+            member=groupdb.get_groups_for_user_identifer(user.scim_id),
+            manager=groupdb.get_groups_owned_by_user_identifier(user.scim_id),
+        )
 
 
 def _extract_saml_scope(idpsso: list[Mapping[str, Any]]) -> set[str]:
