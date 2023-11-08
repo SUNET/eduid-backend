@@ -144,11 +144,23 @@ class ScimApiUserDB(ScimApiBaseDB):
     def get_users_by_last_modified(
         self, operator: str, value: datetime, limit: Optional[int] = None, skip: Optional[int] = None
     ) -> tuple[list[ScimApiUser], int]:
-        # map SCIM filter operators to mongodb filter
-        mongo_operator = {"gt": "$gt", "ge": "$gte"}.get(operator)
-        if not mongo_operator:
-            raise ValueError("Invalid filter operator")
+        mongo_operator = self._get_mongo_operator(operator)
         spec = {"last_modified": {mongo_operator: value}}
+        docs, total_count = self._get_documents_and_count_by_filter(spec=spec, limit=limit, skip=skip)
+        users = [ScimApiUser.from_dict(x) for x in docs]
+        return users, total_count
+
+    def get_user_by_profile_data(
+        self,
+        profile: str,
+        key: str,
+        operator: str,
+        value: datetime,
+        limit: Optional[int] = None,
+        skip: Optional[int] = None,
+    ) -> tuple[list[ScimApiUser], int]:
+        mongo_operator = self._get_mongo_operator(operator)
+        spec = {f"profiles.{profile}.data.{key}": {mongo_operator: value}}
         docs, total_count = self._get_documents_and_count_by_filter(spec=spec, limit=limit, skip=skip)
         users = [ScimApiUser.from_dict(x) for x in docs]
         return users, total_count

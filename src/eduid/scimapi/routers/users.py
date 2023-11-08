@@ -1,4 +1,5 @@
 import pprint
+import re
 from dataclasses import replace
 from typing import Optional
 
@@ -15,6 +16,7 @@ from eduid.scimapi.routers.utils.users import (
     db_user_to_response,
     filter_externalid,
     filter_lastmodified,
+    filter_profile_data,
     save_user,
     users_to_resources_dicts,
 )
@@ -318,15 +320,27 @@ async def search(req: ContextRequest, query: SearchRequest) -> ListResponse:
     req.app.context.logger.info(f"Searching for users(s)")
     req.app.context.logger.debug(f"Parsed user search query: {query}")
 
-    filter = parse_search_filter(query.filter)
+    _filter = parse_search_filter(query.filter)
+    profile_data_regex = re.compile(r"^profiles\.([a-z_]+)\.data\.([a-z_]+)$")
 
-    if filter.attr == "externalid":
-        users = filter_externalid(req, filter)
+    if _filter.attr == "externalid":
+        users = filter_externalid(req, _filter)
         total_count = len(users)
-    elif filter.attr == "meta.lastmodified":
+    elif _filter.attr == "meta.lastmodified":
         # SCIM start_index 1 equals item 0
-        users, total_count = filter_lastmodified(req, filter, skip=query.start_index - 1, limit=query.count)
+        users, total_count = filter_lastmodified(req, _filter, skip=query.start_index - 1, limit=query.count)
+    elif _filter.attr.startswith("profiles.") and (
+        re_match := re.match(pattern=profile_data_regex, string=_filter.attr)
+    ):
+        users, total_count = filter_profile_data(
+            req,
+            _filter,
+            profile=re_match.group(1),
+            key=re_match.group(2),
+            skip=query.start_index - 1,
+            limit=query.count,
+        )
     else:
-        raise BadRequest(scim_type="invalidFilter", detail=f"Can't filter on attribute {filter.attr}")
+        raise BadRequest(scim_type="invalidFilter", detail=f"Can't filter on attribute {_filter.attr}")
 
     return ListResponse(resources=users_to_resources_dicts(query, users), total_results=total_count)
