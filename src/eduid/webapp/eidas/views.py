@@ -187,7 +187,7 @@ def _authn(
                 return AuthnResult(error=EidasMsg.method_not_available)
             current_app.logger.debug(f"Changed requested IdP due to magic cookie: {idp}")
         else:
-            current_app.logger.warning(f"Missing configuration magic_cookie_idp")
+            current_app.logger.warning("Missing configuration magic_cookie_idp")
 
     ref = AuthnRequestRef(str(uuid4()))
     authn_info = create_authn_info(
