@@ -173,7 +173,7 @@ def mfa_authenticate_action(args: ACSArgs) -> ACSResult:
         current_app.stats.count(name=f"mfa_auth_{args.proofing_method.method}_identity_not_matching")
         return ACSResult(message=BankIDMsg.identity_not_matching)
 
-    current_app.stats.count(name=f"mfa_auth_success")
+    current_app.stats.count(name="mfa_auth_success")
     current_app.stats.count(name=f"mfa_auth_{args.proofing_method.method}_success")
     current_app.stats.count(name=f"mfa_auth_{parsed.info.issuer}_success")
     return ACSResult(success=True, message=BankIDMsg.mfa_authn_success)
