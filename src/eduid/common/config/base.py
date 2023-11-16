@@ -372,24 +372,28 @@ class Pysaml2SPConfigMixin(BaseModel):
 class ProofingConfigMixin(BaseModel):
     # sweden connect
     trust_framework: TrustFramework = TrustFramework.SWECONN
-    required_loa: list[str] = Field(default=["loa3"])  # one of authentication_context_map below
+    required_loa: list[str] = Field(default=["loa3"])
     freja_idp: Optional[str] = None
 
     # eidas
     foreign_trust_framework: TrustFramework = TrustFramework.EIDAS
-    foreign_required_loa: list[str] = Field(
-        default=["eidas-nf-low", "eidas-nf-sub", "eidas-nf-high"]
-    )  # one of authentication_context_map below
+    foreign_required_loa: list[str] = Field(default=["eidas-nf-low", "eidas-nf-sub", "eidas-nf-high"])
     foreign_identity_idp: Optional[str] = None
+
+    # bankid
+    bankid_trust_framework: TrustFramework = TrustFramework.BANKID
+    bankid_required_loa: list[str] = Field(default=["uncertified-loa3"])
+    bankid_idp: Optional[str] = None
 
     # identity proofing
     freja_proofing_version: str = Field(default="2023v1")
     foreign_eid_proofing_version: str = Field(default="2022v1")
     svipe_id_proofing_version: str = Field(default="2023v2")
+    bankid_proofing_version: str = Field(default="2023v1")
 
     # security key proofing
     security_key_proofing_method: CredentialProofingMethod = Field(default=CredentialProofingMethod.SWAMID_AL3_MFA)
-    security_key_proofing_version: str = Field(default="2023v1")
+    security_key_proofing_version: str = Field(default="2023v2")
     security_key_foreign_eid_proofing_version: str = Field(default="2022v1")
 
     frontend_action_finish_url: dict[str, str] = Field(default={})

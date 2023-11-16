@@ -15,6 +15,7 @@ class TrustFramework(str, Enum):
     SWECONN = "SWECONN"
     EIDAS = "EIDAS"
     SVIPE = "SVIPE"
+    BANKID = "BANKID"
 
 
 class ExternalCredential(Credential):
@@ -56,9 +57,20 @@ class EidasCredential(ExternalCredential):
     level: str  # a value like "loa3", "eidas_sub", ...
 
 
+class BankIDCredential(ExternalCredential):
+    framework: TrustFramework = Field(default=TrustFramework.BANKID, const=True)
+    # To be technology neutral, we don't want to store e.g. the SAML authnContextClassRef in the database,
+    # and mapping a level to an authnContextClassRef really ought to be dependent on configuration matching
+    # the IdP:s expected values at a certain time. Such configuration is better to have in the SP than in
+    # the database layer.
+    level: str  # a value like "loa3", "eidas_sub", ...
+
+
 def external_credential_from_dict(data: Mapping[str, Any]) -> Optional[ExternalCredential]:
     if data["framework"] == TrustFramework.SWECONN.value:
         return SwedenConnectCredential.from_dict(data)
     if data["framework"] == TrustFramework.EIDAS.value:
         return EidasCredential.from_dict(data)
+    if data["framework"] == TrustFramework.BANKID.value:
+        return BankIDCredential.from_dict(data)
     return None

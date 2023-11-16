@@ -9,6 +9,7 @@ from pydantic import ValidationError
 from eduid.common.config.base import ProofingConfigMixin
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.credentials.external import TrustFramework
+from eduid.webapp.bankid.saml_session_info import BankIDSessionInfo
 from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.common.authn.session_info import SessionInfo
 from eduid.webapp.common.proofing.messages import ProofingMsg
@@ -21,7 +22,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class SessionInfoParseResult:
     error: Optional[TranslatableMsg] = None
-    info: Optional[Union[NinSessionInfo, ForeignEidSessionInfo, SvipeDocumentUserInfo]] = None
+    info: Optional[Union[NinSessionInfo, ForeignEidSessionInfo, SvipeDocumentUserInfo, BankIDSessionInfo]] = None
 
 
 @dataclass(frozen=True)
@@ -87,6 +88,19 @@ class ProofingMethodEidas(ProofingMethodSAML):
 
 
 @dataclass(frozen=True)
+class ProofingMethodBankID(ProofingMethodSAML):
+    def parse_session_info(self, session_info: SessionInfo, backdoor: bool) -> SessionInfoParseResult:
+        try:
+            parsed_session_info = BankIDSessionInfo(**session_info)
+            logger.debug(f"session info: {parsed_session_info}")
+        except ValidationError:
+            logger.exception("missing attribute in SAML response")
+            return SessionInfoParseResult(error=ProofingMsg.attribute_missing)
+
+        return SessionInfoParseResult(info=parsed_session_info)
+
+
+@dataclass(frozen=True)
 class ProofingMethodSvipe(ProofingMethod):
     def parse_session_info(self, session_info: SessionInfo, backdoor: bool) -> SessionInfoParseResult:
         try:
@@ -110,7 +124,7 @@ def get_proofing_method(
     frontend_action: str,
     config: ProofingConfigMixin,
     fallback_redirect_url: Optional[str] = None,
-) -> Optional[Union[ProofingMethodFreja, ProofingMethodEidas, ProofingMethodSvipe]]:
+) -> Optional[Union[ProofingMethodFreja, ProofingMethodEidas, ProofingMethodSvipe, ProofingMethodBankID]]:
     # look up the finish_url here (when receiving the request, rather than in the ACS)
     # to be able to fail fast if frontend requests an action that backend isn't configured for
     finish_url = config.frontend_action_finish_url.get(frontend_action, fallback_redirect_url)
@@ -145,6 +159,17 @@ def get_proofing_method(
             method=method,
             framework=TrustFramework.SVIPE,
             finish_url=finish_url,
+        )
+    if method == "bankid":
+        if not config.bankid_idp:
+            logger.warning(f"Missing configuration bankid_idp required for proofing method {method}")
+            return None
+        return ProofingMethodBankID(
+            method=method,
+            framework=TrustFramework.BANKID,
+            finish_url=finish_url,
+            idp=config.bankid_idp,
+            required_loa=config.bankid_required_loa,
         )
 
     logger.warning(f"Unknown proofing method {method}")

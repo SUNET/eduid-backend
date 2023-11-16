@@ -5,7 +5,6 @@ import logging
 import os
 import pprint
 from datetime import datetime
-from time import time
 from typing import TYPE_CHECKING, Any, MutableMapping, Optional
 
 from flask import Request as FlaskRequest
@@ -22,6 +21,7 @@ from eduid.webapp.common.api.utils import get_from_current_app
 from eduid.webapp.common.session.meta import SessionMeta
 from eduid.webapp.common.session.namespaces import (
     AuthnNamespace,
+    BankIDNamespace,
     Common,
     EidasNamespace,
     IdP_Namespace,
@@ -58,6 +58,7 @@ class EduidNamespaces(BaseModel):
     eidas: Optional[EidasNamespace] = None
     authn: Optional[AuthnNamespace] = None
     svipe_id: Optional[SvipeIDNamespace] = None
+    bankid: Optional[BankIDNamespace] = None
 
 
 class EduidSession(SessionMixin, MutableMapping[str, Any]):
@@ -237,6 +238,12 @@ class EduidSession(SessionMixin, MutableMapping[str, Any]):
         if not self._namespaces.svipe_id:
             self._namespaces.svipe_id = SvipeIDNamespace.from_dict(self._session.get("svipe_id", {}))
         return self._namespaces.svipe_id
+
+    @property
+    def bankid(self) -> BankIDNamespace:
+        if not self._namespaces.bankid:
+            self._namespaces.bankid = BankIDNamespace.from_dict(self._session.get("bankid", {}))
+        return self._namespaces.bankid
 
     @property
     def created(self) -> datetime:

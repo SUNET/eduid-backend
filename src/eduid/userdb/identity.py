@@ -28,6 +28,7 @@ class IdentityProofingMethod(str, Enum):
     SE_LEG = "se-leg"
     SWEDEN_CONNECT = "swedenconnect"
     TELEADRESS = "TeleAdress"
+    BANKID = "bankid"
 
 
 class IdentityElement(VerifiedElement, ABC):

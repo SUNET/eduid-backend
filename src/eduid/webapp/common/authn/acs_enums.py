@@ -23,6 +23,13 @@ class EidasAcsAction(str, Enum):
     old_mfa_authn = "mfa-authentication-action"
 
 
+@unique
+class BankIDAcsAction(str, Enum):
+    verify_identity = "verify-identity-action"
+    verify_credential = "verify-credential-action"
+    mfa_authenticate = "mfa-authenticate-action"
+
+
 def is_old_action(frontend_action: str) -> bool:
     return frontend_action in [
         EidasAcsAction.old_mfa_authn.value,
