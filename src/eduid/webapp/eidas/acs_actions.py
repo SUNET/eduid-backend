@@ -5,10 +5,11 @@ from eduid.webapp.common.api.decorators import require_user
 from eduid.webapp.common.authn.acs_enums import EidasAcsAction
 from eduid.webapp.common.authn.acs_registry import ACSArgs, ACSResult, acs_action
 from eduid.webapp.common.proofing.messages import ProofingMsg
+from eduid.webapp.common.proofing.saml_helpers import authn_ctx_to_loa
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.namespaces import SP_AuthnRequest
 from eduid.webapp.eidas.app import current_eidas_app as current_app
-from eduid.webapp.eidas.helpers import EidasMsg, authn_ctx_to_loa
+from eduid.webapp.eidas.helpers import EidasMsg
 from eduid.webapp.eidas.proofing import get_proofing_functions
 
 __author__ = "lundberg"
@@ -119,7 +120,7 @@ def verify_credential_action(user: User, args: ACSArgs) -> ACSResult:
         current_app.stats.count(name=f"verify_credential_{args.proofing_method.method}_identity_not_matching")
         return ACSResult(message=EidasMsg.identity_not_matching)
 
-    loa = authn_ctx_to_loa(args.session_info)
+    loa = authn_ctx_to_loa(args.session_info, current_app.conf.authentication_context_map)
 
     verify_result = proofing.verify_credential(user=user, credential=credential, loa=loa)
     if verify_result.error is not None:
