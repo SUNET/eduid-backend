@@ -1,4 +1,4 @@
-from typing import Optional, Union
+from typing import Optional
 
 from flask import Blueprint, redirect, request
 from werkzeug.wrappers import Response as WerkzeugResponse
@@ -6,7 +6,6 @@ from werkzeug.wrappers import Response as WerkzeugResponse
 from eduid.userdb import User
 from eduid.userdb.element import ElementKey
 from eduid.webapp.common.api.decorators import require_user
-from eduid.webapp.common.api.messages import FluxData
 from eduid.webapp.common.api.utils import sanitise_redirect_url
 from eduid.webapp.common.authn.acs_enums import EidasAcsAction
 from eduid.webapp.common.session import session

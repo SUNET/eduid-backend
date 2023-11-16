@@ -29,7 +29,6 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-from contextlib import contextmanager
 from typing import Any, Mapping
 
 from werkzeug.exceptions import NotFound

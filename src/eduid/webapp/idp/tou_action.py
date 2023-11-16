@@ -33,11 +33,9 @@
 __author__ = "eperez"
 
 import logging
-from typing import Optional
 
 from eduid.userdb.idp import IdPUser
 from eduid.webapp.idp.app import current_idp_app as current_app
-from eduid.webapp.idp.login_context import LoginContext
 
 logger = logging.getLogger(__name__)
 

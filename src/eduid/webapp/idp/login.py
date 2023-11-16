@@ -22,7 +22,6 @@ from uuid import uuid4
 
 from defusedxml import ElementTree as DefusedElementTree
 from flask import redirect
-from flask_babel import gettext as _
 from pydantic import BaseModel
 from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 from werkzeug.exceptions import BadRequest

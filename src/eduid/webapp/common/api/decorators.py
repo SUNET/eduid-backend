@@ -2,7 +2,7 @@ import json
 import logging
 from collections.abc import Awaitable, Mapping
 from functools import wraps
-from typing import Any, Callable, Dict, Optional, Type, TypeVar, Union, cast
+from typing import Any, Callable, Optional, TypeVar, Union, cast
 
 from flask import abort, jsonify, request
 from flask.typing import ResponseReturnValue as FlaskResponseReturnValue

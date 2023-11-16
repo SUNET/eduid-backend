@@ -43,7 +43,6 @@ from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.decorators import require_ticket, uses_sso_session
 from eduid.webapp.idp.login import get_ticket
 from eduid.webapp.idp.login_context import LoginContext, LoginContextSAML
-from eduid.webapp.idp.service import SAMLQueryParams
 from eduid.webapp.idp.sso_session import SSOSession, session
 
 __author__ = "ft"

@@ -3,7 +3,6 @@ import binascii
 import hashlib
 import hmac
 from dataclasses import dataclass, field
-from typing import Tuple
 
 import nacl.utils
 

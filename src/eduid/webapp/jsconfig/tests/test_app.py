@@ -40,7 +40,6 @@ from eduid.common.testing_base import normalised_data
 from eduid.webapp.common.api.testing import CSRFTestClient, EduidAPITestCase
 from eduid.webapp.jsconfig.app import JSConfigApp, jsconfig_init_app
 from eduid.webapp.jsconfig.settings.common import JSConfigConfig
-from eduid.webapp.jsconfig.settings.jsapps import JsAppsConfig
 
 DASHBOARD_LINK = "https://dashboard.example.com"
 PERSONAL_DATA_SERVICE_URL = "https://example.com/personal_data_url"
