@@ -140,7 +140,7 @@ class LadokTests(EduidAPITestCase[LadokApp]):
 
         ladok_name = "ab"
         response = self._link_user(eppn=self.test_user_eppn, ladok_name=ladok_name)
-        self._check_success_response(response, type_="POST_LADOK_LINK_USER_FAIL", msg=LadokMsg.no_ladok_data)
+        self._check_error_response(response, type_="POST_LADOK_LINK_USER_FAIL", msg=LadokMsg.no_ladok_data)
 
         user = self.app.central_userdb.get_user_by_eppn(eppn=self.test_user_eppn)
         assert user.ladok is None
@@ -154,7 +154,7 @@ class LadokTests(EduidAPITestCase[LadokApp]):
 
         ladok_name = "ab"
         response = self._link_user(eppn=self.test_unverified_user_eppn, ladok_name=ladok_name)
-        self._check_success_response(response, type_="POST_LADOK_LINK_USER_FAIL", msg=LadokMsg.no_verified_nin)
+        self._check_error_response(response, type_="POST_LADOK_LINK_USER_FAIL", msg=LadokMsg.no_verified_nin)
 
         user = self.app.central_userdb.get_user_by_eppn(eppn=self.test_unverified_user_eppn)
         assert user.ladok is None
