@@ -21,7 +21,7 @@ from eduid.userdb.proofing import (
     OrcidProofingUserDB,
     PhoneProofingUserDB,
 )
-from eduid.userdb.proofing.db import LadokProofingUserDB, SvideIDProofingUserDB
+from eduid.userdb.proofing.db import LadokProofingUserDB, SvideIDProofingUserDB, BankIDProofingUserDB
 from eduid.userdb.reset_password import ResetPasswordUserDB
 from eduid.userdb.security import SecurityUserDB
 from eduid.userdb.signup import SignupUserDB
@@ -265,3 +265,22 @@ class eduid_svipe_id(AttributeFetcher):
     @classmethod
     def get_user_db(cls, uri: str) -> SvideIDProofingUserDB:
         return SvideIDProofingUserDB(uri)
+
+
+class eduid_bankid(AttributeFetcher):
+    whitelist_set_attrs = [
+        "passwords",
+        "nins",  # Old format
+        "identities",
+        "givenName",
+        "surname",
+        "displayName",
+    ]
+    whitelist_unset_attrs: list[str] = [
+        "identities",
+        "nins",  # Old format
+    ]
+
+    @classmethod
+    def get_user_db(cls, uri: str) -> BankIDProofingUserDB:
+        return BankIDProofingUserDB(uri)
