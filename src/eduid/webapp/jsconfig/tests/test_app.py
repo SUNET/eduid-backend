@@ -70,6 +70,7 @@ class JSConfigTests(EduidAPITestCase[JSConfigApp]):
                 "jsapps": {
                     "authn_service_url": "https://dashboard.example.com/services/authn",
                     "authn_url": "authn_url",
+                    "bankid_service_url": "https://dashboard.example.com/services/bankid",
                     "dashboard_link": "https://example.com/dashboard",
                     "dashboard_url": "https://example.com/dashboard",
                     "eidas_service_url": "https://dashboard.example.com/services/eidas",
