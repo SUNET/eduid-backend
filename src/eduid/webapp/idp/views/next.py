@@ -220,8 +220,9 @@ class AuthnOptions:
     display_name: Optional[str] = None
     # Is this login locked to being performed by a particular user? (Identified by the email/phone/...)
     forced_username: Optional[str] = None
-    # Can an unknown user log in using just a Freja eID+? Yes, if there is an eduID user with the users (verified) NIN.
-    freja_eidplus: bool = True
+    # Can an unknown user log in using just a swedish eID? Yes, if there is an eduID user with the users (verified) NIN.
+    freja_eidplus: bool = True  # TODO: remove freja_eidplus replaced by swedish_eid
+    swedish_eid: bool = True
     # If the user has a session, 'logout' should be shown (to allow switch of users).
     has_session: bool = False
     # Can the user log (an unknown user) log in using another device? Sure.
@@ -327,19 +328,21 @@ def _set_user_options(res: AuthnOptions, eppn: str) -> None:
             f"User logging in (from either known device, other device, SSO session, or SP request): {user}"
         )
         if user.credentials.filter(Password):
-            current_app.logger.debug(f"User has a Password credential")
+            current_app.logger.debug("User has a Password credential")
             res.password = True
 
         if user.credentials.filter(FidoCredential):
-            current_app.logger.debug(f"User has a FIDO/Webauthn credential")
+            current_app.logger.debug("User has a FIDO/Webauthn credential")
             res.webauthn = True
 
         if user.locked_identity.nin:
-            current_app.logger.debug(f"User has a locked NIN -> Freja is possible")
+            current_app.logger.debug("User has a locked NIN -> swedish eID is possible")
             res.freja_eidplus = True
+            res.swedish_eid = True
         else:
-            current_app.logger.debug(f"No locked NIN for user -> Freja NOT possible")
+            current_app.logger.debug("No locked NIN for user -> swedish eID NOT possible")
             res.freja_eidplus = False
+            res.swedish_eid = False
 
         res.forced_username = get_login_username(user)
         current_app.logger.debug(f"User forced_username: {res.forced_username}")
