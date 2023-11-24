@@ -114,7 +114,7 @@ def check_credential_to_verify(user: User, credential_id: str) -> CredentialVeri
     current_app.logger.debug(f"Credential {credential_id} recently used for login: {credential_already_used}")
     if not credential_already_used:
         # If token was not used for login, ask the user to authenticate again
-        current_app.logger.info(f"{token_to_verify.key} was no used to login, returning must authenticate error")
+        current_app.logger.info(f"{token_to_verify.key} was not used to login, returning must authenticate error")
         return CredentialVerifyResult(verified_ok=False, message=BankIDMsg.must_authenticate)
 
     return CredentialVerifyResult(verified_ok=True)
