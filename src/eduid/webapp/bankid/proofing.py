@@ -26,6 +26,7 @@ from eduid.webapp.common.proofing.base import (
     VerifyUserResult,
 )
 from eduid.webapp.common.proofing.methods import ProofingMethod, ProofingMethodSAML
+from eduid.webapp.common.session import session
 
 
 @dataclass
@@ -151,6 +152,16 @@ class BankIDProofingFunctions(ProofingFunctions[BankIDSessionInfo]):
             assert isinstance(proofing_method, ProofingMethodSAML)  # please mypy
             credential_used = _find_or_add_credential(user, proofing_method.framework, proofing_method.required_loa)
             current_app.logger.debug(f"Found or added credential {credential_used}")
+
+        # OLD way - remove as soon as possible
+        # update session
+        session.mfa_action.success = mfa_success
+        if mfa_success is True:
+            # add metadata if the authentication was a success
+            session.mfa_action.issuer = self.session_info.issuer
+            session.mfa_action.authn_instant = self.session_info.authn_instant.isoformat()
+            session.mfa_action.authn_context = self.session_info.authn_context
+            session.mfa_action.credential_used = credential_used
 
         if not mfa_success:
             current_app.logger.error("Asserted identity not matching user verified identity")
