@@ -1,0 +1,991 @@
+import base64
+import datetime
+import logging
+import os
+import unittest
+from typing import Any, Mapping, Optional, Union
+from unittest.mock import MagicMock, patch
+from uuid import uuid4
+
+from fido2.webauthn import AuthenticatorAttachment
+
+from eduid.common.config.base import EduidEnvironment
+from eduid.common.misc.timeutil import utc_now
+from eduid.userdb import NinIdentity
+from eduid.userdb.credentials import U2F, Webauthn
+from eduid.userdb.credentials.external import BankIDCredential, SwedenConnectCredential
+from eduid.userdb.element import ElementKey
+from eduid.userdb.identity import IdentityProofingMethod
+from eduid.webapp.authn.views import FALLBACK_FRONTEND_ACTION
+from eduid.webapp.bankid.app import BankIDApp, init_bankid_app
+from eduid.webapp.bankid.helpers import BankIDMsg
+from eduid.webapp.common.api.messages import TranslatableMsg
+from eduid.webapp.common.api.testing import CSRFTestClient
+from eduid.webapp.common.authn.acs_enums import AuthnAcsAction, BankIDAcsAction
+from eduid.webapp.common.authn.cache import OutstandingQueriesCache
+from eduid.webapp.common.proofing.messages import ProofingMsg
+from eduid.webapp.common.proofing.testing import ProofingTests
+from eduid.webapp.common.session import EduidSession
+from eduid.webapp.common.session.namespaces import AuthnRequestRef, SP_AuthnRequest
+
+__author__ = "lundberg"
+
+logger = logging.getLogger(__name__)
+
+HERE = os.path.abspath(os.path.dirname(__file__))
+
+
+class BankIDTests(ProofingTests[BankIDApp]):
+    """Base TestCase for those tests that need a full environment setup"""
+
+    def setUp(self, *args: Any, **kwargs: Any) -> None:
+        self.test_user_eppn = "hubba-bubba"
+        self.test_unverified_user_eppn = "hubba-baar"
+        self.test_user_nin = NinIdentity(
+            number="197801011234", date_of_birth=datetime.datetime.fromisoformat("1978-01-01")
+        )
+        self.test_user_wrong_nin = NinIdentity(
+            number="190001021234", date_of_birth=datetime.datetime.fromisoformat("1900-01-02")
+        )
+        self.test_backdoor_nin = NinIdentity(
+            number="190102031234", date_of_birth=datetime.datetime.fromisoformat("1901-02-03")
+        )
+        self.test_idp = "https://idp.example.com/simplesaml/saml2/idp/metadata.php"
+        self.default_redirect_url = "http://redirect.localhost/redirect"
+
+        self.saml_response_tpl_success_old = """<?xml version='1.0' encoding='UTF-8'?>
+<samlp:Response xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Destination="{sp_url}saml2-acs" ID="id-88b9f586a2a3a639f9327485cc37c40a" InResponseTo="{session_id}" IssueInstant="{timestamp}" Version="2.0">
+  <saml:Issuer Format="urn:oasis:names:tc:SAML:2.0:nameid-format:entity">https://idp.example.com/simplesaml/saml2/idp/metadata.php</saml:Issuer>
+  <samlp:Status>
+    <samlp:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:Success" />
+  </samlp:Status>
+  <saml:Assertion ID="id-093952102ceb73436e49cb91c58b0578" IssueInstant="{timestamp}" Version="2.0">
+    <saml:Issuer Format="urn:oasis:names:tc:SAML:2.0:nameid-format:entity">https://idp.example.com/simplesaml/saml2/idp/metadata.php</saml:Issuer>
+    <saml:Subject>
+      <saml:NameID Format="urn:oasis:names:tc:SAML:2.0:nameid-format:transient" NameQualifier="" SPNameQualifier="{sp_url}saml2-metadata">1f87035b4c1325b296a53d92097e6b3fa36d7e30ee82e3fcb0680d60243c1f03</saml:NameID>
+      <saml:SubjectConfirmation Method="urn:oasis:names:tc:SAML:2.0:cm:bearer">
+        <saml:SubjectConfirmationData InResponseTo="{session_id}" NotOnOrAfter="{tomorrow}" Recipient="{sp_url}saml2-acs" />
+      </saml:SubjectConfirmation>
+    </saml:Subject>
+    <saml:Conditions NotBefore="{yesterday}" NotOnOrAfter="{tomorrow}">
+      <saml:AudienceRestriction>
+        <saml:Audience>{sp_url}saml2-metadata</saml:Audience>
+      </saml:AudienceRestriction>
+    </saml:Conditions>
+    <saml:AuthnStatement AuthnInstant="{timestamp}" SessionIndex="{session_id}">
+      <saml:AuthnContext>
+        <saml:AuthnContextClassRef>http://id.elegnamnden.se/loa/1.0/loa3</saml:AuthnContextClassRef>
+      </saml:AuthnContext>
+    </saml:AuthnStatement>
+    <saml:AttributeStatement>
+      <saml:Attribute FriendlyName="personalIdentityNumber" Name="urn:oid:1.2.752.29.4.13" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri">
+        <saml:AttributeValue xsi:type="xs:string">{asserted_identity}</saml:AttributeValue>
+      </saml:Attribute>
+      <saml:Attribute FriendlyName="displayName" Name="urn:oid:2.16.840.1.113730.3.1.241" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri">
+        <saml:AttributeValue xsi:type="xs:string">Ülla Älm</saml:AttributeValue>
+      </saml:Attribute>
+      <saml:Attribute FriendlyName="givenName" Name="urn:oid:2.5.4.42" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri">
+        <saml:AttributeValue xsi:type="xs:string">Ûlla</saml:AttributeValue>
+      </saml:Attribute>
+      <saml:Attribute FriendlyName="dateOfBirth" Name="urn:oid:1.3.6.1.5.5.7.9.1" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri">
+        <saml:AttributeValue xsi:type="xs:string">{date_of_birth}</saml:AttributeValue>
+      </saml:Attribute>
+      <saml:Attribute FriendlyName="sn" Name="urn:oid:2.5.4.4" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri">
+        <saml:AttributeValue xsi:type="xs:string">Älm</saml:AttributeValue>
+      </saml:Attribute>
+      {extra_attributes}
+    </saml:AttributeStatement>
+  </saml:Assertion>
+</samlp:Response>"""
+        self.saml_response_tpl_success = """<?xml version="1.0"?>
+<samlp:Response xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Destination="{sp_url}saml2-acs" ID="id-88b9f586a2a3a639f9327485cc37c40a" InResponseTo="{session_id}" IssueInstant="{timestamp}" Version="2.0">
+    <saml:Issuer Format="urn:oasis:names:tc:SAML:2.0:nameid-format:entity">https://idp.example.com/simplesaml/saml2/idp/metadata.php</saml:Issuer>
+    <samlp:Status>
+        <samlp:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:Success" />
+    </samlp:Status>
+    <saml2:Assertion xmlns:saml2="urn:oasis:names:tc:SAML:2.0:assertion" ID="_33e79bbdbd76a8498a9a93f5ddb7bf0b" IssueInstant="{timestamp}" Version="2.0">
+      <saml2:Issuer>https://idp.example.com/simplesaml/saml2/idp/metadata.php</saml2:Issuer>
+      <saml2:Subject>
+        <saml2:NameID Format="urn:oasis:names:tc:SAML:2.0:nameid-format:persistent" NameQualifier="" SPNameQualifier="{sp_url}saml2-metadata">q7ghJ2fIxobbFJ8+5ZUGAOvIhW1wJEEam2nl8lu87EQ=</saml2:NameID>
+        <saml2:SubjectConfirmation Method="urn:oasis:names:tc:SAML:2.0:cm:bearer">
+          <saml2:SubjectConfirmationData InResponseTo="{session_id}" NotOnOrAfter="{tomorrow}" Recipient="{sp_url}saml2-acs"/>
+        </saml2:SubjectConfirmation>
+      </saml2:Subject>
+      <saml2:Conditions NotBefore="{yesterday}" NotOnOrAfter="{tomorrow}">
+        <saml2:AudienceRestriction>
+          <saml2:Audience>{sp_url}saml2-metadata</saml2:Audience>
+        </saml2:AudienceRestriction>
+      </saml2:Conditions>
+      <saml2:AuthnStatement AuthnInstant="{timestamp}" SessionIndex="{session_id}">    
+        <saml2:AuthnContext>
+          <saml2:AuthnContextClassRef>http://id.swedenconnect.se/loa/1.0/uncertified-loa3</saml2:AuthnContextClassRef>
+        </saml2:AuthnContext>
+      </saml2:AuthnStatement>
+      <saml2:AttributeStatement>
+        <saml2:Attribute FriendlyName="personalIdentityNumber" Name="urn:oid:1.2.752.29.4.13" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri">
+          <saml2:AttributeValue xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="xsd:string">{asserted_identity}</saml2:AttributeValue>
+        </saml2:Attribute>
+        <saml2:Attribute FriendlyName="displayName" Name="urn:oid:2.16.840.1.113730.3.1.241" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri">
+          <saml2:AttributeValue xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="xsd:string">Ûlla Älm</saml2:AttributeValue>
+        </saml2:Attribute>
+        <saml2:Attribute FriendlyName="givenName" Name="urn:oid:2.5.4.42" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri">
+          <saml2:AttributeValue xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="xsd:string">Ûlla</saml2:AttributeValue>
+        </saml2:Attribute>
+        <saml2:Attribute FriendlyName="sn" Name="urn:oid:2.5.4.4" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri">
+          <saml2:AttributeValue xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="xsd:string">Älm</saml2:AttributeValue>
+        </saml2:Attribute>
+        <saml2:Attribute FriendlyName="authContextParams" Name="urn:oid:1.2.752.201.3.3" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri">
+          <saml2:AttributeValue xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="xsd:string">bankidNotBefore=2023-10-11Z;bankidUserAgentAddress=109.228.137.82;bankUniqueHardwareIdentifier=Nlybi6hjHkLa438wWUwFQHZOdfE=</saml2:AttributeValue>
+        </saml2:Attribute>
+        <saml2:Attribute FriendlyName="transactionIdentifier" Name="urn:oid:1.2.752.201.3.2" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri">
+          <saml2:AttributeValue xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="xsd:string">bf5d125b-ecee-4531-95ba-fac7c4e49441</saml2:AttributeValue>
+        </saml2:Attribute>
+      </saml2:AttributeStatement>
+    </saml2:Assertion>
+</samlp:Response>"""
+        self.saml_response_tpl_fail = """<?xml version="1.0" encoding="UTF-8"?>
+<saml2p:Response xmlns:saml2p="urn:oasis:names:tc:SAML:2.0:protocol" Destination="{sp_url}saml2-acs" ID="_ebad01e547857fa54927b020dba1edb1" InResponseTo="{session_id}" IssueInstant="{timestamp}" Version="2.0">
+  <saml2:Issuer xmlns:saml2="urn:oasis:names:tc:SAML:2.0:assertion">https://idp.example.com/simplesaml/saml2/idp/metadata.php</saml2:Issuer>
+  <saml2p:Status>
+    <saml2p:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:Requester">
+      <saml2p:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:AuthnFailed" />
+    </saml2p:StatusCode>
+    <saml2p:StatusMessage>User login was not successful or could not meet the requirements of the requesting application.</saml2p:StatusMessage>
+  </saml2p:Status>
+</saml2p:Response>"""
+        self.saml_response_tpl_cancel = """
+        <?xml version="1.0" encoding="UTF-8"?>
+<saml2p:Response xmlns:saml2p="urn:oasis:names:tc:SAML:2.0:protocol" Destination="{sp_url}saml2-acs" ID="_ebad01e547857fa54927b020dba1edb1" InResponseTo="{session_id}" IssueInstant="{timestamp}" Version="2.0">
+  <saml2:Issuer xmlns:saml2="urn:oasis:names:tc:SAML:2.0:assertion">https://idp.example.com/simplesaml/saml2/idp/metadata.php</saml2:Issuer>
+  <saml2p:Status>
+    <saml2p:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:Requester">
+      <saml2p:StatusCode Value="http://id.elegnamnden.se/status/1.0/cancel" />
+    </saml2p:StatusCode>
+    <saml2p:StatusMessage>The login attempt was cancelled</saml2p:StatusMessage>
+  </saml2p:Status>
+</saml2p:Response>"""
+
+        super().setUp(users=["hubba-bubba", "hubba-baar"])
+
+    def load_app(self, config: Mapping[str, Any]) -> BankIDApp:
+        """
+        Called from the parent class, so we can provide the appropriate flask
+        app for this test case.
+        """
+        return init_bankid_app("testing", config)
+
+    def update_config(self, config: dict[str, Any]) -> dict[str, Any]:
+        saml_config = os.path.join(HERE, "saml2_settings.py")
+        config.update(
+            {
+                "authn_service_url": "http://test.localhost/service/authn",
+                "token_verify_redirect_url": "http://test.localhost/profile",
+                "identity_verify_redirect_url": "http://test.localhost/profile",
+                "saml2_settings_module": saml_config,
+                "safe_relay_domain": "localhost",
+                "magic_cookie": "",
+                "magic_cookie_name": "magic-cookie",
+                "magic_cookie_idp": self.test_idp,
+                "environment": "dev",
+                "bankid_idp": self.test_idp,
+                "frontend_action_finish_url": {
+                    "mfa-authenticate-action": "http://test.localhost/testing-mfa-authenticate/{app_name}/{authn_id}",
+                    "verify-identity-action": "http://test.localhost/testing-verify-identity/{app_name}/{authn_id}",
+                    "verify-credential-action": "http://test.localhost/testing-verify-credential/{app_name}/{authn_id}",
+                },
+            }
+        )
+        return config
+
+    def add_token_to_user(self, eppn: str, credential_id: str, token_type: str) -> Union[U2F, Webauthn]:
+        user = self.app.central_userdb.get_user_by_eppn(eppn)
+        mfa_token: Union[U2F, Webauthn]
+        if token_type == "u2f":
+            mfa_token = U2F(
+                version="test",
+                keyhandle=credential_id,
+                public_key="test",
+                app_id="test",
+                attest_cert="test",
+                description="test",
+                created_by="test",
+            )
+        else:
+            mfa_token = Webauthn(
+                keyhandle=credential_id,
+                credential_data="test",
+                app_id="test",
+                description="test",
+                created_by="test",
+                authenticator=AuthenticatorAttachment.CROSS_PLATFORM,
+            )
+        user.credentials.add(mfa_token)
+        self.request_user_sync(user)
+        return mfa_token
+
+    def add_nin_to_user(self, eppn: str, nin: str, verified: bool) -> NinIdentity:
+        user = self.app.central_userdb.get_user_by_eppn(eppn)
+        nin_element = NinIdentity(number=nin, created_by="test", is_verified=verified)
+        user.identities.add(nin_element)
+        self.request_user_sync(user)
+        return nin_element
+
+    @staticmethod
+    def generate_auth_response(
+        request_id: str,
+        saml_response_tpl: str,
+        asserted_identity: str,
+        date_of_birth: Optional[datetime.datetime] = None,
+        age: int = 10,
+        credentials_used: Optional[list[ElementKey]] = None,
+    ) -> bytes:
+        """
+        Generates a fresh signed authentication response
+        """
+
+        timestamp = datetime.datetime.utcnow() - datetime.timedelta(seconds=age)
+        tomorrow = datetime.datetime.utcnow() + datetime.timedelta(days=1)
+        yesterday = datetime.datetime.utcnow() - datetime.timedelta(days=1)
+        if date_of_birth is None:
+            date_of_birth = datetime.datetime.strptime(asserted_identity[:8], "%Y%m%d")
+
+        sp_baseurl = "http://test.localhost:6544/"
+
+        extra_attributes: list[str] = []
+
+        if credentials_used:
+            for cred in credentials_used:
+                this = f"""
+                       <saml:Attribute Name="eduidIdPCredentialsUsed"
+                                       NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri">
+                           <saml:AttributeValue xsi:type="xs:string">{cred}</saml:AttributeValue>
+                       </saml:Attribute>
+                       """
+                extra_attributes += [this]
+
+        extra_attributes_str = "\n".join(extra_attributes)
+
+        resp = " ".join(
+            saml_response_tpl.format(
+                **{
+                    "asserted_identity": asserted_identity,
+                    "date_of_birth": date_of_birth.strftime("%Y-%m-%d"),
+                    "session_id": request_id,
+                    "timestamp": timestamp.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                    "tomorrow": tomorrow.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                    "yesterday": yesterday.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                    "sp_url": sp_baseurl,
+                    "extra_attributes": extra_attributes_str,
+                }
+            ).split()
+        )
+
+        return resp.encode("utf-8")
+
+    def _session_setup(
+        self,
+        session: EduidSession,
+        action: BankIDAcsAction,
+        req_id: Optional[str] = None,
+        relay_state: AuthnRequestRef = AuthnRequestRef("relay_state"),
+        verify_token: Optional[ElementKey] = None,
+        credentials_used: Optional[list[ElementKey]] = None,
+    ) -> None:
+        assert isinstance(session, EduidSession)
+        if req_id is not None:
+            oq_cache = OutstandingQueriesCache(backend=session.bankid.sp.pysaml2_dicts)
+            oq_cache.set(req_id, relay_state)
+        session.bankid.sp.post_authn_action = action
+        if verify_token is not None:
+            logger.debug(f"Test setting verify_token_action_credential_id in session {session}: {verify_token}")
+            session.bankid.verify_token_action_credential_id = verify_token
+        if credentials_used is not None:
+            self._setup_faked_login(session=session, credentials_used=credentials_used)
+
+    def _setup_faked_login(
+        self, session: EduidSession, credentials_used: list[ElementKey], redirect_url: Optional[str] = None
+    ) -> None:
+        logger.debug(f"Test setting credentials used for login in session {session}: {credentials_used}")
+        _authn_id = AuthnRequestRef(str(uuid4()))
+        if redirect_url is None:
+            redirect_url = self.default_redirect_url
+        session.authn.sp.authns[_authn_id] = SP_AuthnRequest(
+            post_authn_action=AuthnAcsAction.login,
+            credentials_used=credentials_used,
+            authn_instant=utc_now(),
+            redirect_url=redirect_url,
+            frontend_action=FALLBACK_FRONTEND_ACTION,
+        )
+
+    @staticmethod
+    def _get_request_id_from_session(session: EduidSession) -> tuple[str, AuthnRequestRef]:
+        """extract the (probable) SAML request ID from the session"""
+        oq_cache = OutstandingQueriesCache(session.bankid.sp.pysaml2_dicts)
+        ids = oq_cache.outstanding_queries().keys()
+        logger.debug(f"Outstanding queries for bankid in session {session}: {ids}")
+        if len(ids) != 1:
+            raise RuntimeError("More or less than one authn request in the session")
+        saml_req_id = list(ids)[0]
+        req_ref = AuthnRequestRef(oq_cache.outstanding_queries()[saml_req_id])
+        return saml_req_id, req_ref
+
+    def reauthn(
+        self,
+        endpoint: str,
+        frontend_action: str,
+        expect_msg: TranslatableMsg,
+        age: int = 10,
+        browser: Optional[CSRFTestClient] = None,
+        eppn: Optional[str] = None,
+        expect_error: bool = False,
+        identity: Optional[NinIdentity] = None,
+        logged_in: bool = True,
+        method: str = "bankid",
+        response_template: Optional[str] = None,
+    ) -> None:
+        return self._call_endpoint_and_saml_acs(
+            age=age,
+            browser=browser,
+            endpoint=endpoint,
+            eppn=eppn,
+            expect_error=expect_error,
+            expect_msg=expect_msg,
+            frontend_action=frontend_action,
+            identity=identity,
+            logged_in=logged_in,
+            method=method,
+            response_template=response_template,
+        )
+
+    def verify_token(
+        self,
+        endpoint: str,
+        frontend_action: str,
+        expect_msg: TranslatableMsg,
+        age: int = 10,
+        browser: Optional[CSRFTestClient] = None,
+        credentials_used: Optional[list[ElementKey]] = None,
+        eppn: Optional[str] = None,
+        expect_error: bool = False,
+        expect_saml_error: bool = False,
+        identity: Optional[NinIdentity] = None,
+        method: str = "bankid",
+        response_template: Optional[str] = None,
+        verify_credential: Optional[ElementKey] = None,
+    ) -> None:
+        return self._call_endpoint_and_saml_acs(
+            age=age,
+            browser=browser,
+            credentials_used=credentials_used,
+            endpoint=endpoint,
+            eppn=eppn,
+            expect_error=expect_error,
+            expect_msg=expect_msg,
+            expect_saml_error=expect_saml_error,
+            frontend_action=frontend_action,
+            identity=identity,
+            method=method,
+            response_template=response_template,
+            verify_credential=verify_credential,
+        )
+
+    def _get_authn_redirect_url(
+        self,
+        browser: CSRFTestClient,
+        endpoint: str,
+        method: str,
+        frontend_action: str,
+        verify_credential: Optional[ElementKey] = None,
+        frontend_state: Optional[str] = None,
+    ) -> str:
+        with browser.session_transaction() as sess:
+            csrf_token = sess.get_csrf_token()
+
+        req = {
+            "csrf_token": csrf_token,
+            "method": method,
+        }
+        if frontend_state:
+            req["frontend_state"] = frontend_state
+        if endpoint == "/verify-credential" and verify_credential:
+            req["credential_id"] = verify_credential
+        if frontend_action is not None:
+            req["frontend_action"] = frontend_action
+        assert browser
+        response = browser.post(endpoint, json=req)
+        self._check_success_response(response, type_=None, payload={"csrf_token": csrf_token})
+
+        loc = self.get_response_payload(response).get("location")
+        assert loc is not None, "Location in header is missing"
+        return loc
+
+    def _call_endpoint_and_saml_acs(
+        self,
+        endpoint: str,
+        method: str,
+        frontend_action: str,
+        eppn: Optional[str],
+        expect_msg: TranslatableMsg,
+        age: int = 10,
+        browser: Optional[CSRFTestClient] = None,
+        credentials_used: Optional[list[ElementKey]] = None,
+        expect_error: bool = False,
+        expect_saml_error: bool = False,
+        identity: Optional[NinIdentity] = None,
+        logged_in: bool = True,
+        response_template: Optional[str] = None,
+        verify_credential: Optional[ElementKey] = None,
+        frontend_state: Optional[str] = "This is a unit test",
+    ) -> None:
+        if eppn is None:
+            eppn = self.test_user_eppn
+
+        if identity is None:
+            identity = self.test_user_nin
+
+        if response_template is None:
+            response_template = self.saml_response_tpl_success
+
+        if browser is None:
+            browser = self.browser
+
+        assert isinstance(browser, CSRFTestClient)
+
+        browser_with_session_cookie = self.session_cookie(browser, eppn)
+        if not logged_in:
+            browser_with_session_cookie = self.session_cookie_anon(browser)
+
+        with browser_with_session_cookie as browser:
+            if credentials_used:
+                with browser.session_transaction() as sess:
+                    self._setup_faked_login(session=sess, credentials_used=credentials_used)
+
+            if logged_in is False:
+                with browser.session_transaction() as sess:
+                    # the user is at least partially logged in at this stage
+                    sess.common.eppn = eppn
+
+            _url = self._get_authn_redirect_url(
+                browser=browser,
+                endpoint=endpoint,
+                method=method,
+                frontend_action=frontend_action,
+                verify_credential=verify_credential,
+                frontend_state=frontend_state,
+            )
+            logger.debug(f"Backend told us to proceed with URL {_url}")
+
+            with browser.session_transaction() as sess:
+                request_id, authn_ref = self._get_request_id_from_session(sess)
+
+            authn_response = self.generate_auth_response(
+                request_id,
+                response_template,
+                asserted_identity=identity.unique_value,
+                date_of_birth=identity.date_of_birth,
+                age=age,
+                credentials_used=credentials_used,
+            )
+
+            data = {"SAMLResponse": base64.b64encode(authn_response), "RelayState": ""}
+            logger.debug(f"Posting a fake SAML assertion in response to request {request_id} (ref {authn_ref})")
+            response = browser.post("/saml2-acs", data=data)
+
+            if expect_saml_error:
+                assert response.status_code == 400
+                return
+
+            assert response.status_code == 302
+
+            self._verify_status(
+                browser=browser,
+                expect_msg=expect_msg,
+                expect_error=expect_error,
+                finish_url=response.location,
+                frontend_action=frontend_action,
+                frontend_state=frontend_state,
+                method=method,
+            )
+
+    def test_authenticate(self):
+        response = self.browser.get("/")
+        self.assertEqual(response.status_code, 302)  # Redirect to token service
+        with self.session_cookie(self.browser, self.test_user.eppn) as browser:
+            response = browser.get("/")
+        self._check_success_response(response, type_="GET_BANKID_SUCCESS")
+
+    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+    def test_u2f_token_verify(self, mock_request_user_sync: MagicMock):
+        mock_request_user_sync.side_effect = self.request_user_sync
+
+        eppn = self.test_user.eppn
+        credential = self.add_token_to_user(eppn, "test", "u2f")
+
+        self._verify_user_parameters(eppn)
+
+        self.verify_token(
+            endpoint="/verify-credential",
+            frontend_action=BankIDAcsAction.verify_credential,
+            eppn=eppn,
+            expect_msg=BankIDMsg.credential_verify_success,
+            credentials_used=[credential.key, ElementKey("other_id")],
+            verify_credential=credential.key,
+        )
+
+        self._verify_user_parameters(eppn, token_verified=True, num_proofings=1)
+
+    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+    def test_webauthn_token_verify(self, mock_request_user_sync: MagicMock):
+        mock_request_user_sync.side_effect = self.request_user_sync
+
+        eppn = self.test_user.eppn
+
+        credential = self.add_token_to_user(eppn, "test", "webauthn")
+
+        self._verify_user_parameters(eppn)
+
+        self.verify_token(
+            endpoint="/verify-credential",
+            frontend_action=BankIDAcsAction.verify_credential,
+            eppn=eppn,
+            expect_msg=BankIDMsg.credential_verify_success,
+            credentials_used=[credential.key, ElementKey("other_id")],
+            verify_credential=credential.key,
+        )
+
+        self._verify_user_parameters(eppn, token_verified=True, num_proofings=1)
+
+    def test_mfa_token_verify_wrong_verified_nin(self):
+        eppn = self.test_user.eppn
+        nin = self.test_user_wrong_nin
+        credential = self.add_token_to_user(eppn, "test", "u2f")
+
+        self._verify_user_parameters(eppn, identity=nin, identity_present=False)
+
+        self.verify_token(
+            endpoint="/verify-credential",
+            frontend_action=BankIDAcsAction.verify_credential,
+            eppn=eppn,
+            expect_msg=BankIDMsg.identity_not_matching,
+            expect_error=True,
+            credentials_used=[credential.key, ElementKey("other_id")],
+            verify_credential=credential.key,
+            identity=nin,
+        )
+
+        self._verify_user_parameters(eppn, identity=nin, identity_present=False)
+
+    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+    def test_mfa_token_verify_no_verified_nin(self, mock_request_user_sync: MagicMock):
+        mock_request_user_sync.side_effect = self.request_user_sync
+
+        eppn = self.test_unverified_user_eppn
+        nin = self.test_user_nin
+        credential = self.add_token_to_user(eppn, "test", "webauthn")
+
+        self._verify_user_parameters(eppn, identity_verified=False)
+
+        self.verify_token(
+            endpoint="/verify-credential",
+            frontend_action=BankIDAcsAction.verify_credential,
+            eppn=eppn,
+            expect_msg=BankIDMsg.credential_verify_success,
+            credentials_used=[credential.key, ElementKey("other_id")],
+            verify_credential=credential.key,
+            identity=nin,
+        )
+
+        # Verify the user now has a verified NIN
+        self._verify_user_parameters(
+            eppn, token_verified=True, num_proofings=2, identity_present=True, identity=nin, identity_verified=True
+        )
+
+    def test_mfa_token_verify_no_mfa_login(self):
+        eppn = self.test_user.eppn
+        credential = self.add_token_to_user(eppn, "test", "u2f")
+
+        self._verify_user_parameters(eppn)
+
+        with self.session_cookie(self.browser, eppn) as browser:
+            with browser.session_transaction() as sess:
+                csrf_token = sess.get_csrf_token()
+            req = {
+                "credential_id": credential.key,
+                "method": "bankid",
+                "frontend_action": BankIDAcsAction.verify_credential.value,
+                "csrf_token": csrf_token,
+            }
+            response = browser.post("/verify-credential", json=req)
+
+        self._check_error_response(
+            response=response, type_="POST_BANKID_VERIFY_CREDENTIAL_FAIL", msg=BankIDMsg.must_authenticate
+        )
+        self._verify_user_parameters(eppn)
+
+    def test_mfa_token_verify_no_mfa_token_in_session(self):
+        eppn = self.test_user.eppn
+        credential = self.add_token_to_user(eppn, "test", "webauthn")
+
+        self._verify_user_parameters(eppn)
+
+        self.verify_token(
+            endpoint="/verify-credential",
+            frontend_action=BankIDAcsAction.verify_credential,
+            eppn=eppn,
+            expect_msg=BankIDMsg.token_not_found,
+            credentials_used=[credential.key, ElementKey("other_id")],
+            verify_credential=credential.key,
+            response_template=self.saml_response_tpl_fail,
+            expect_saml_error=True,
+        )
+
+        self._verify_user_parameters(eppn)
+
+    def test_mfa_token_verify_aborted_auth(self):
+        eppn = self.test_user.eppn
+        credential = self.add_token_to_user(eppn, "test", "u2f")
+
+        self._verify_user_parameters(eppn)
+
+        self.verify_token(
+            endpoint="/verify-credential",
+            frontend_action=BankIDAcsAction.verify_credential,
+            eppn=eppn,
+            expect_msg=BankIDMsg.credential_verify_success,
+            credentials_used=[credential.key, ElementKey("other_id")],
+            verify_credential=credential.key,
+            response_template=self.saml_response_tpl_fail,
+            expect_saml_error=True,
+        )
+
+        self._verify_user_parameters(eppn)
+
+    def test_mfa_token_verify_cancel_auth(self):
+        eppn = self.test_user.eppn
+
+        credential = self.add_token_to_user(eppn, "test", "webauthn")
+
+        self._verify_user_parameters(eppn)
+
+        self.verify_token(
+            endpoint="/verify-credential",
+            frontend_action=BankIDAcsAction.verify_credential,
+            eppn=eppn,
+            expect_msg=BankIDMsg.credential_verify_success,
+            credentials_used=[credential.key, ElementKey("other_id")],
+            verify_credential=credential.key,
+            identity=self.test_user_wrong_nin,
+            response_template=self.saml_response_tpl_cancel,
+            expect_saml_error=True,
+        )
+
+        self._verify_user_parameters(eppn)
+
+    def test_mfa_token_verify_auth_fail(self):
+        eppn = self.test_user.eppn
+
+        credential = self.add_token_to_user(eppn, "test", "u2f")
+
+        self._verify_user_parameters(eppn)
+
+        self.verify_token(
+            endpoint="/verify-credential",
+            frontend_action=BankIDAcsAction.verify_credential,
+            eppn=eppn,
+            expect_msg=BankIDMsg.credential_verify_success,
+            credentials_used=[credential.key, ElementKey("other_id")],
+            verify_credential=credential.key,
+            identity=self.test_user_wrong_nin,
+            response_template=self.saml_response_tpl_fail,
+            expect_saml_error=True,
+        )
+
+        self._verify_user_parameters(eppn)
+
+    @unittest.skip("No support for magic cookie yet")
+    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+    def test_webauthn_token_verify_backdoor(self, mock_request_user_sync: MagicMock):
+        mock_request_user_sync.side_effect = self.request_user_sync
+
+        eppn = self.test_unverified_user_eppn
+        nin = self.test_backdoor_nin
+        credential = self.add_token_to_user(eppn, "test", "webauthn")
+
+        self._verify_user_parameters(eppn)
+
+        self.app.conf.magic_cookie = "magic-cookie"
+        with self.session_cookie_and_magic_cookie(self.browser, eppn=eppn) as browser:
+            browser.set_cookie(domain=self.test_domain, key="nin", value=nin.number)
+            self.verify_token(
+                endpoint="/verify-credential",
+                frontend_action=BankIDAcsAction.verify_credential,
+                eppn=eppn,
+                expect_msg=BankIDMsg.credential_verify_success,
+                credentials_used=[credential.key, ElementKey("other_id")],
+                verify_credential=credential.key,
+                browser=browser,
+            )
+
+        self._verify_user_parameters(eppn, identity=nin, identity_verified=True, token_verified=True, num_proofings=2)
+
+    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+    def test_nin_verify(self, mock_request_user_sync: MagicMock):
+        mock_request_user_sync.side_effect = self.request_user_sync
+
+        eppn = self.test_unverified_user_eppn
+        self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=False)
+
+        self.reauthn(
+            "/verify-identity",
+            frontend_action=BankIDAcsAction.verify_identity.value,
+            expect_msg=BankIDMsg.identity_verify_success,
+            eppn=eppn,
+        )
+        user = self.app.central_userdb.get_user_by_eppn(eppn)
+        self._verify_user_parameters(
+            eppn,
+            num_mfa_tokens=0,
+            identity_verified=True,
+            num_proofings=1,
+            locked_identity=user.identities.nin,
+            proofing_method=IdentityProofingMethod.BANKID,
+            proofing_version=self.app.conf.freja_proofing_version,
+        )
+        # check names
+        assert user.given_name == "Ûlla"
+        assert user.surname == "Älm"
+        # check proofing log
+        doc = self.app.proofing_log._get_documents_by_attr(attr="eduPersonPrincipalName", value=eppn)[0]
+        assert doc["given_name"] == "Ûlla"
+        assert doc["surname"] == "Älm"
+
+    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+    def test_mfa_login(self, mock_request_user_sync: MagicMock):
+        mock_request_user_sync.side_effect = self.request_user_sync
+
+        eppn = self.test_user.eppn
+        self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=True)
+
+        self.reauthn(
+            "/mfa-authenticate",
+            frontend_action=BankIDAcsAction.mfa_authenticate.value,
+            expect_msg=BankIDMsg.mfa_authn_success,
+            eppn=eppn,
+            logged_in=False,
+        )
+
+        self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=True, num_proofings=0)
+
+    def test_mfa_login_no_nin(self):
+        eppn = self.test_unverified_user_eppn
+        self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=False, token_verified=False)
+
+        self.reauthn(
+            "/mfa-authenticate",
+            frontend_action=BankIDAcsAction.mfa_authenticate.value,
+            expect_msg=BankIDMsg.identity_not_matching,
+            expect_error=True,
+            eppn=eppn,
+            logged_in=False,
+        )
+
+        self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=False, num_proofings=0)
+
+    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+    def test_mfa_login_unverified_nin(self, mock_request_user_sync: MagicMock):
+        mock_request_user_sync.side_effect = self.request_user_sync
+        eppn = self.test_unverified_user_eppn
+
+        # Add locked nin to user
+        user = self.app.central_userdb.get_user_by_eppn(eppn)
+        locked_nin = NinIdentity(created_by="test", number=self.test_user_nin.number, is_verified=True)
+        user.locked_identity.add(locked_nin)
+        self.app.central_userdb.save(user)
+
+        self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=False, token_verified=False)
+
+        self.reauthn(
+            "/mfa-authenticate",
+            frontend_action=BankIDAcsAction.mfa_authenticate.value,
+            expect_msg=BankIDMsg.mfa_authn_success,
+            eppn=eppn,
+            logged_in=False,
+        )
+
+        self._verify_user_parameters(
+            eppn, num_mfa_tokens=0, identity_verified=True, num_proofings=1, locked_identity=user.identities.nin
+        )
+
+    @unittest.skip("No support for magic cookie yet")
+    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+    def test_mfa_login_backdoor(self, mock_request_user_sync: MagicMock):
+        mock_request_user_sync.side_effect = self.request_user_sync
+
+        eppn = self.test_unverified_user_eppn
+        nin = self.test_backdoor_nin
+
+        # add verified magic cookie nin to user
+        self.add_nin_to_user(eppn=eppn, nin=nin.number, verified=True)
+
+        self._verify_user_parameters(eppn, num_mfa_tokens=0, identity=nin, identity_verified=True)
+
+        self.app.conf.magic_cookie = "magic-cookie"
+        with self.session_cookie(self.browser, eppn) as browser:
+            browser.set_cookie(domain="test.localhost", key="magic-cookie", value=self.app.conf.magic_cookie)
+            browser.set_cookie(domain="test.localhost", key="nin", value=nin.number)
+            self.reauthn(
+                "/mfa-authenticate",
+                frontend_action=BankIDAcsAction.mfa_authenticate.value,
+                expect_msg=BankIDMsg.mfa_authn_success,
+                eppn=eppn,
+                logged_in=False,
+                browser=browser,
+            )
+
+        self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=True, num_proofings=0)
+
+    @unittest.skip("No support for magic cookie yet")
+    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+    def test_nin_verify_backdoor(self, mock_request_user_sync: Any):
+        mock_request_user_sync.side_effect = self.request_user_sync
+
+        eppn = self.test_unverified_user_eppn
+        nin = self.test_backdoor_nin
+        self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=False)
+
+        self.app.conf.magic_cookie = "magic-cookie"
+
+        with self.session_cookie_and_magic_cookie(self.browser, eppn) as browser:
+            browser.set_cookie(domain="test.localhost", key="nin", value=nin.number)
+            self.reauthn(
+                "/verify-identity",
+                frontend_action=BankIDAcsAction.verify_identity,
+                expect_msg=BankIDMsg.identity_verify_success,
+                eppn=eppn,
+                browser=browser,
+            )
+
+        self._verify_user_parameters(eppn, num_mfa_tokens=0, identity=nin, identity_verified=True, num_proofings=1)
+
+    @unittest.skip("No support for magic cookie yet")
+    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+    def test_nin_verify_no_backdoor_in_pro(self, mock_request_user_sync: MagicMock):
+        mock_request_user_sync.side_effect = self.request_user_sync
+
+        eppn = self.test_unverified_user_eppn
+        nin = self.test_backdoor_nin
+
+        self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=False)
+
+        self.app.conf.magic_cookie = "magic-cookie"
+        self.app.conf.environment = EduidEnvironment.production
+
+        with self.session_cookie_and_magic_cookie(self.browser, eppn=eppn) as browser:
+            browser.set_cookie(domain=self.test_domain, key="nin", value=nin.number)
+            self.reauthn(
+                "/verify-identity",
+                frontend_action=BankIDAcsAction.verify_identity,
+                expect_msg=BankIDMsg.identity_verify_success,
+                eppn=eppn,
+                browser=browser,
+            )
+
+        # the tests checks that the default nin was verified and not the nin set in the test cookie
+        self._verify_user_parameters(
+            eppn, identity=self.test_user_nin, num_mfa_tokens=0, num_proofings=1, identity_verified=True
+        )
+
+    @unittest.skip("No support for magic cookie yet")
+    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+    def test_nin_verify_no_backdoor_misconfigured(self, mock_request_user_sync: MagicMock):
+        mock_request_user_sync.side_effect = self.request_user_sync
+
+        eppn = self.test_unverified_user_eppn
+        nin = self.test_backdoor_nin
+
+        self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=False)
+
+        self.app.conf.magic_cookie = "magic-cookie"
+
+        with self.session_cookie_and_magic_cookie(
+            self.browser, eppn=eppn, magic_cookie_value="NOT-the-magic-cookie"
+        ) as browser:
+            browser.set_cookie(domain="test.localhost", key="nin", value=nin.number)
+            self.reauthn(
+                "/verify-identity",
+                frontend_action=BankIDAcsAction.verify_identity,
+                expect_msg=BankIDMsg.identity_verify_success,
+                eppn=eppn,
+                browser=browser,
+            )
+
+        # the tests checks that the default nin was verified and not the nin set in the test cookie
+        self._verify_user_parameters(
+            eppn, identity=self.test_user_nin, num_mfa_tokens=0, num_proofings=1, identity_verified=True
+        )
+
+    def test_nin_verify_already_verified(self):
+        # Verify that the test user has a verified NIN in the database already
+        eppn = self.test_user.eppn
+        nin = self.test_user_nin
+        self._verify_user_parameters(eppn, num_mfa_tokens=0, identity=nin, identity_verified=True)
+
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
+        assert user.identities.nin is not None
+        assert user.identities.nin.is_verified is True
+
+        self.reauthn(
+            "/verify-identity",
+            frontend_action=BankIDAcsAction.verify_identity,
+            expect_msg=ProofingMsg.identity_already_verified,
+            expect_error=True,
+            identity=nin,
+        )
+
+    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+    def test_mfa_authentication_verified_user(self, mock_request_user_sync: MagicMock):
+        mock_request_user_sync.side_effect = self.request_user_sync
+
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
+        assert user.identities.nin is not None
+        assert user.identities.nin.is_verified is True, "User was expected to have a verified NIN"
+
+        assert user.credentials.filter(SwedenConnectCredential) == []
+        credentials_before = user.credentials.to_list()
+
+        self.reauthn(
+            endpoint="/mfa-authenticate",
+            frontend_action=BankIDAcsAction.mfa_authenticate,
+            expect_msg=BankIDMsg.mfa_authn_success,
+        )
+
+        # Verify that an ExternalCredential was added
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
+        assert len(user.credentials.to_list()) == len(credentials_before) + 1
+
+        _creds = user.credentials.filter(BankIDCredential)
+        assert len(_creds) == 1
+        cred = _creds[0]
+        assert cred.level in self.app.conf.bankid_required_loa
+
+    def test_mfa_authentication_too_old_authn_instant(self):
+        self.reauthn(
+            endpoint="/mfa-authenticate",
+            frontend_action=BankIDAcsAction.mfa_authenticate,
+            age=61,
+            expect_msg=BankIDMsg.must_authenticate,
+            expect_error=True,
+        )
+
+    def test_mfa_authentication_wrong_nin(self):
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        assert user.identities.nin is not None
+        assert user.identities.nin.is_verified is True, "User was expected to have a verified NIN"
+
+        self.reauthn(
+            endpoint="/mfa-authenticate",
+            frontend_action=BankIDAcsAction.mfa_authenticate,
+            expect_msg=BankIDMsg.identity_not_matching,
+            expect_error=True,
+            identity=self.test_user_wrong_nin,
+        )

@@ -46,7 +46,7 @@ from werkzeug.exceptions import BadRequest
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.credentials import U2F, Credential, CredentialProofingMethod, Password
-from eduid.userdb.identity import IdentityList, NinIdentity
+from eduid.userdb.identity import IdentityList, IdentityProofingMethod, NinIdentity
 from eduid.userdb.idp import IdPUser
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.logindata import ExternalMfaData
@@ -176,7 +176,9 @@ class SSOIdPTests(IdPAPITests):
 
 class TestSSO(SSOIdPTests):
     # ------------------------------------------------------------------------
-    def get_user_set_nins(self, eppn: str, nins: Sequence[str]) -> IdPUser:
+    def get_user_set_nins(
+        self, eppn: str, nins: Sequence[str], proofing_method: Optional[IdentityProofingMethod] = None
+    ) -> IdPUser:
         """
         Fetch a user from the user database and set it's NINs to those in nins.
         :param eppn: eduPersonPrincipalName or email address
@@ -193,6 +195,7 @@ class TestSSO(SSOIdPTests):
                 created_by="unittest",
                 created_ts=utc_now(),
                 is_verified=True,
+                proofing_method=proofing_method,
             )
             user.identities.add(this_nin)
         return user
@@ -713,6 +716,93 @@ class TestSSO(SSOIdPTests):
         """
         out = self._get_login_response_authn(req_class_ref=EduidAuthnContextClass.REFEDS_MFA, credentials=["pw"])
         assert out.message == IdPMsg.mfa_required
+        assert out.error is False
+
+    def test__get_login_digg_loa2_fido_mfa(self):
+        """
+        Test login with password and external mfa for verified user, request DIGG_LOA2.
+
+        Expect the response Authn to be DIGG_LOA2.
+        """
+        user = self.get_user_set_nins(
+            self.test_user.eppn, ["190101011234"], proofing_method=IdentityProofingMethod.BANKID
+        )
+        user.credentials.add(_U2F_SWAMID_AL3)
+        out = self._get_login_response_authn(
+            user=user,
+            req_class_ref=EduidAuthnContextClass.DIGG_LOA2,
+            credentials=["pw", _U2F_SWAMID_AL3],
+        )
+        assert out.message == IdPMsg.proceed
+        assert out.authn_info
+        assert out.authn_info.class_ref == EduidAuthnContextClass.DIGG_LOA2
+        assert out.authn_info.authn_attributes["eduPersonAssurance"] == [
+            item.value for item in self.app.conf.swamid_assurance_profile_3
+        ]
+
+    def test__get_login_digg_loa2_external_mfa(self):
+        """
+        Test login with password and external mfa for verified user, request DIGG_LOA2.
+
+        Expect the response Authn to be DIGG_LOA2.
+        """
+        user = self.get_user_set_nins(
+            self.test_user.eppn, ["190101011234"], proofing_method=IdentityProofingMethod.SWEDEN_CONNECT
+        )
+        external_mfa = ExternalMfaData(
+            issuer="issuer.example.com",
+            authn_context="http://id.elegnamnden.se/loa/1.0/loa3",
+            timestamp=datetime.datetime.utcnow(),
+        )
+        out = self._get_login_response_authn(
+            user=user,
+            req_class_ref=EduidAuthnContextClass.DIGG_LOA2,
+            credentials=["pw", external_mfa],
+        )
+        assert out.message == IdPMsg.proceed
+        assert out.authn_info
+        assert out.authn_info.class_ref == EduidAuthnContextClass.DIGG_LOA2
+        assert out.authn_info.authn_attributes["eduPersonAssurance"] == [
+            item.value for item in self.app.conf.swamid_assurance_profile_3
+        ]
+
+    def test__get_login_digg_loa2_identity_proofing_method_not_allowed(self):
+        """
+        Test login with password and external mfa for verified user, request DIGG_LOA2.
+
+        Expect the response Authn to fail with error message for frontend.
+        """
+        user = self.get_user_set_nins(
+            self.test_user.eppn, ["190101011234"], proofing_method=IdentityProofingMethod.TELEADRESS
+        )
+        external_mfa = ExternalMfaData(
+            issuer="issuer.example.com",
+            authn_context="http://id.elegnamnden.se/loa/1.0/loa3",
+            timestamp=datetime.datetime.utcnow(),
+        )
+        out = self._get_login_response_authn(
+            user=user,
+            req_class_ref=EduidAuthnContextClass.DIGG_LOA2,
+            credentials=["pw", external_mfa],
+        )
+        assert out.message == IdPMsg.identity_proofing_method_not_allowed
+        assert out.error is False
+
+    def test__get_login_digg_loa2_mfa_proofing_method_not_allowed(self):
+        """
+        Test login with password and external mfa for verified user, request DIGG_LOA2.
+
+        Expect the response Authn to fail with message for frontend.
+        """
+        user = self.get_user_set_nins(
+            self.test_user.eppn, ["190101011234"], proofing_method=IdentityProofingMethod.SWEDEN_CONNECT
+        )
+        out = self._get_login_response_authn(
+            user=user,
+            req_class_ref=EduidAuthnContextClass.DIGG_LOA2,
+            credentials=["pw", "u2f"],
+        )
+        assert out.message == IdPMsg.mfa_proofing_method_not_allowed
         assert out.error is False
 
     def test__forceauthn_request(self):

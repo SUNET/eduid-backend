@@ -6,11 +6,9 @@ from typing import Any, Optional
 from flask import abort, make_response, request, url_for
 from saml2 import BINDING_HTTP_REDIRECT
 from saml2.client import Saml2Client
-from saml2.metadata import entity_descriptor
 from saml2.typing import SAMLHttpArgs
 from werkzeug.wrappers import Response as WerkzeugResponse
 
-from eduid.common.misc.timeutil import utc_now
 from eduid.common.utils import urlappend
 from eduid.userdb import User
 from eduid.userdb.credentials import FidoCredential
@@ -23,7 +21,6 @@ from eduid.webapp.common.authn.session_info import SessionInfo
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.namespaces import AuthnRequestRef
 from eduid.webapp.eidas.app import current_eidas_app as current_app
-from eduid.webapp.eidas.saml_session_info import BaseSessionInfo
 
 __author__ = "lundberg"
 
@@ -111,62 +108,6 @@ def create_authn_info(
     oq_cache = OutstandingQueriesCache(session.eidas.sp.pysaml2_dicts)
     oq_cache.set(session_id, authn_ref)
     return info
-
-
-def is_required_loa(session_info: SessionInfo, required_loa: list[str]) -> bool:
-    parsed_session_info = BaseSessionInfo(**session_info)
-    if not required_loa:
-        logger.debug(f"No LOA required, allowing {parsed_session_info.authn_context}")
-        return True
-    loa_uris = [current_app.conf.authentication_context_map.get(loa) for loa in required_loa]
-    if not loa_uris:
-        logger.error(f"LOA {required_loa} not found in configuration (authentication_context_map), disallowing")
-        return False
-    if parsed_session_info.authn_context in loa_uris:
-        logger.debug(f"Asserted authn context {parsed_session_info.authn_context} matches required {required_loa}")
-        return True
-    logger.error("Asserted authn context class does not match required class")
-    logger.error(f"Asserted: {parsed_session_info.authn_context}")
-    logger.error(f"Required: {loa_uris} ({required_loa})")
-    return False
-
-
-def authn_ctx_to_loa(session_info: SessionInfo) -> Optional[str]:
-    """Lookup short name (such as 'loa3') for an authentication context class we've received."""
-    parsed = BaseSessionInfo(**session_info)
-    for k, v in current_app.conf.authentication_context_map.items():
-        if v == parsed.authn_context:
-            return k
-    return None
-
-
-def authn_context_class_to_loa(session_info: BaseSessionInfo) -> Optional[str]:
-    for key, value in current_app.conf.authentication_context_map.items():
-        if value == session_info.authn_context:
-            return key
-    return None
-
-
-def is_valid_reauthn(session_info: SessionInfo, max_age: int = 60) -> bool:
-    """
-    :param session_info: The SAML2 session_info
-    :param max_age: Max time (in seconds) since authn that is to be allowed
-    :return: True if authn instant is no older than max_age
-    """
-    parsed_session_info = BaseSessionInfo(**session_info)
-    now = utc_now()
-    age = now - parsed_session_info.authn_instant
-    if age.total_seconds() <= max_age:
-        logger.debug(
-            f"Re-authn is valid, authn instant {parsed_session_info.authn_instant}, age {age}, max_age {max_age}s"
-        )
-        return True
-    logger.error(f"Authn instant {parsed_session_info.authn_instant} too old (age {age}, max_age {max_age} seconds)")
-    return False
-
-
-def create_metadata(config):
-    return entity_descriptor(config)
 
 
 def attribute_remap(session_info: SessionInfo) -> SessionInfo:

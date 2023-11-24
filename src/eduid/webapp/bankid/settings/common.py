@@ -1,5 +1,6 @@
 #
-# Copyright (c) 2016 NORDUnet A/S
+# Copyright (c) 2013-2016 NORDUnet A/S
+# Copyright (c) 2019 SUNET
 # All rights reserved.
 #
 #   Redistribution and use in source and binary forms, with or
@@ -29,39 +30,46 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+"""
+Configuration (file) handling for the eduID eidas app.
+"""
 
-from flask import Blueprint, abort
+from typing import Optional
 
-from eduid.webapp.common.api.decorators import MarshalWith
-from eduid.webapp.common.api.messages import FluxData, success_response
-from eduid.webapp.common.api.schemas.base import FluxStandardAction
-from eduid.webapp.common.session import session
-from eduid.webapp.jsconfig.app import current_jsconfig_app as current_app
+from pydantic import Field
 
-jsconfig_views = Blueprint("jsconfig", __name__, url_prefix="")
+from eduid.common.config.base import (
+    AmConfigMixin,
+    EduIDBaseAppConfig,
+    ErrorsConfigMixin,
+    MagicCookieMixin,
+    ProofingConfigMixin,
+    Pysaml2SPConfigMixin,
+)
 
 
-@jsconfig_views.route("/config", methods=["GET"])
-@MarshalWith(FluxStandardAction)
-def get_config() -> FluxData:
+class BankIDConfig(
+    EduIDBaseAppConfig,
+    MagicCookieMixin,
+    AmConfigMixin,
+    ErrorsConfigMixin,
+    ProofingConfigMixin,
+    Pysaml2SPConfigMixin,
+):
     """
-    Configuration for the dashboard front app
+    Configuration for the eidas app
     """
 
-    config_dict = current_app.conf.jsapps.dict()
-    config_dict["csrf_token"] = session.get_csrf_token()
+    app_name: str = "bankid"
 
-    return success_response(payload=config_dict)
+    authn_service_url: str
 
-
-@jsconfig_views.route("/<frontend_app>/config", methods=["GET"])
-@MarshalWith(FluxStandardAction)
-def get_config_for(frontend_app: str) -> FluxData:
-    """
-    Configuration for the dashboard front app
-    """
-    if frontend_app in ["dashboard", "signup", "login", "errors"]:
-        current_app.logger.info(f"requesting config for frontend app {frontend_app}")
-        return get_config()
-    current_app.logger.error(f"{frontend_app} not in the list of supported apps")
-    abort(404)
+    # Federation config
+    authentication_context_map: dict[str, str] = Field(
+        default={
+            "uncertified-loa3": "http://id.swedenconnect.se/loa/1.0/uncertified-loa3",
+        }
+    )
+    # magic cookie IdP is used for integration tests when magic cookie is set
+    magic_cookie_idp: Optional[str] = None
+    magic_cookie_foreign_id_idp: Optional[str] = None

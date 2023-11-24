@@ -293,3 +293,8 @@ class LadokProofingUserDB(ProofingUserDB):
 class SvideIDProofingUserDB(ProofingUserDB):
     def __init__(self, db_uri: str, db_name: str = "eduid_svipe_id"):
         super().__init__(db_uri, db_name)
+
+
+class BankIDProofingUserDB(ProofingUserDB):
+    def __init__(self, db_uri: str, db_name: str = "eduid_bankid"):
+        super().__init__(db_uri, db_name)

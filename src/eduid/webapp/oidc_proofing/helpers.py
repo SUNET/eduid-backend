@@ -10,7 +10,7 @@ from oic.oic.message import ClaimsRequest
 
 from eduid.userdb import User
 from eduid.userdb.logs import SeLegProofing, SeLegProofingFrejaEid
-from eduid.userdb.proofing import OidcProofingState, ProofingUser
+from eduid.userdb.proofing import OidcProofingState
 from eduid.userdb.proofing.element import NinProofingElement
 from eduid.userdb.proofing.user import ProofingUser
 from eduid.webapp.common.api.helpers import number_match_proofing, verify_nin_for_user

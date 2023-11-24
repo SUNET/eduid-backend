@@ -40,7 +40,6 @@ from eduid.common.testing_base import normalised_data
 from eduid.webapp.common.api.testing import CSRFTestClient, EduidAPITestCase
 from eduid.webapp.jsconfig.app import JSConfigApp, jsconfig_init_app
 from eduid.webapp.jsconfig.settings.common import JSConfigConfig
-from eduid.webapp.jsconfig.settings.jsapps import JsAppsConfig
 
 DASHBOARD_LINK = "https://dashboard.example.com"
 PERSONAL_DATA_SERVICE_URL = "https://example.com/personal_data_url"
@@ -71,6 +70,7 @@ class JSConfigTests(EduidAPITestCase[JSConfigApp]):
                 "jsapps": {
                     "authn_service_url": "https://dashboard.example.com/services/authn",
                     "authn_url": "authn_url",
+                    "bankid_service_url": "https://dashboard.example.com/services/bankid",
                     "dashboard_link": "https://example.com/dashboard",
                     "dashboard_url": "https://example.com/dashboard",
                     "eidas_service_url": "https://dashboard.example.com/services/eidas",

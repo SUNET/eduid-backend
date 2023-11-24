@@ -6,46 +6,38 @@ from flask import Blueprint, make_response, redirect, request
 from saml2.request import AuthnRequest
 from werkzeug.wrappers import Response as WerkzeugResponse
 
-from eduid.common.config.base import EduidEnvironment
 from eduid.userdb import User
 from eduid.userdb.element import ElementKey
+from eduid.webapp.bankid.app import current_bankid_app as current_app
+from eduid.webapp.bankid.helpers import BankIDMsg, check_credential_to_verify, create_authn_info
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, require_user
 from eduid.webapp.common.api.errors import EduidErrorsContext, goto_errors_response
 from eduid.webapp.common.api.helpers import check_magic_cookie
-from eduid.webapp.common.api.messages import (
-    CommonMsg,
-    FluxData,
-    TranslatableMsg,
-    error_response,
-    redirect_with_msg,
-    success_response,
-)
+from eduid.webapp.common.api.messages import CommonMsg, FluxData, TranslatableMsg, error_response, success_response
 from eduid.webapp.common.api.schemas.csrf import EmptyResponse
-from eduid.webapp.common.authn.acs_enums import EidasAcsAction, is_old_action
+from eduid.webapp.common.authn.acs_enums import BankIDAcsAction
 from eduid.webapp.common.authn.acs_registry import ACSArgs, get_action
 from eduid.webapp.common.authn.eduid_saml2 import process_assertion
 from eduid.webapp.common.authn.utils import get_location
 from eduid.webapp.common.proofing.methods import ProofingMethodSAML, get_proofing_method
 from eduid.webapp.common.proofing.saml_helpers import create_metadata, is_required_loa, is_valid_reauthn
 from eduid.webapp.common.session import session
-from eduid.webapp.common.session.namespaces import AuthnRequestRef, MfaActionError, SP_AuthnRequest
-from eduid.webapp.eidas.app import current_eidas_app as current_app
-from eduid.webapp.eidas.helpers import EidasMsg, attribute_remap, check_credential_to_verify, create_authn_info
+from eduid.webapp.common.session.namespaces import AuthnRequestRef, SP_AuthnRequest
 
 __author__ = "lundberg"
 
-from eduid.webapp.eidas.schemas import (
-    EidasCommonRequestSchema,
-    EidasCommonResponseSchema,
-    EidasStatusRequestSchema,
-    EidasStatusResponseSchema,
-    EidasVerifyCredentialRequestSchema,
+from eduid.webapp.bankid.schemas import (
+    BankIDCommonRequestSchema,
+    BankIDCommonResponseSchema,
+    BankIDStatusRequestSchema,
+    BankIDStatusResponseSchema,
+    BankIDVerifyCredentialRequestSchema,
 )
 
-eidas_views = Blueprint("eidas", __name__, url_prefix="")
+bankid_views = Blueprint("bankid", __name__, url_prefix="")
 
 
-@eidas_views.route("/", methods=["GET"])
+@bankid_views.route("/", methods=["GET"])
 @MarshalWith(EmptyResponse)
 @require_user
 def index(user: User) -> FluxData:
@@ -53,13 +45,13 @@ def index(user: User) -> FluxData:
 
 
 # get_status to not get tangled up in /status/healthy and the like
-@eidas_views.route("/get_status", methods=["POST"])
-@UnmarshalWith(EidasStatusRequestSchema)
-@MarshalWith(EidasStatusResponseSchema)
+@bankid_views.route("/get_status", methods=["POST"])
+@UnmarshalWith(BankIDStatusRequestSchema)
+@MarshalWith(BankIDStatusResponseSchema)
 def get_status(authn_id: AuthnRequestRef) -> FluxData:
-    authn = session.eidas.sp.authns.get(authn_id)
+    authn = session.bankid.sp.authns.get(authn_id)
     if not authn:
-        return error_response(message=EidasMsg.not_found)
+        return error_response(message=BankIDMsg.not_found)
 
     payload = {
         "frontend_action": authn.frontend_action,
@@ -73,9 +65,9 @@ def get_status(authn_id: AuthnRequestRef) -> FluxData:
     return success_response(payload=payload)
 
 
-@eidas_views.route("/verify-credential", methods=["POST"])
-@UnmarshalWith(EidasVerifyCredentialRequestSchema)
-@MarshalWith(EidasCommonResponseSchema)
+@bankid_views.route("/verify-credential", methods=["POST"])
+@UnmarshalWith(BankIDVerifyCredentialRequestSchema)
+@MarshalWith(BankIDCommonResponseSchema)
 @require_user
 def verify_credential(
     user: User, method: str, credential_id: ElementKey, frontend_action: str, frontend_state: Optional[str] = None
@@ -88,12 +80,10 @@ def verify_credential(
     if not ret.verified_ok:
         current_app.logger.info(f"Can't proceed with verify-credential at this time: {ret.message}")
         current_app.logger.debug(f"Can't proceed with verify-credential at this time: {ret}")
-        if ret.location:
-            return success_response(payload={"location": ret.location}, message=ret.message)
         return error_response(message=ret.message)
 
     result = _authn(
-        EidasAcsAction.verify_credential,
+        BankIDAcsAction.verify_credential,
         method=method,
         frontend_action=frontend_action,
         frontend_state=frontend_state,
@@ -106,15 +96,15 @@ def verify_credential(
     return success_response(payload={"location": result.url})
 
 
-@eidas_views.route("/verify-identity", methods=["POST"])
-@UnmarshalWith(EidasCommonRequestSchema)
-@MarshalWith(EidasCommonResponseSchema)
+@bankid_views.route("/verify-identity", methods=["POST"])
+@UnmarshalWith(BankIDCommonRequestSchema)
+@MarshalWith(BankIDCommonResponseSchema)
 @require_user
 def verify_identity(user: User, method: str, frontend_action: str, frontend_state: Optional[str] = None) -> FluxData:
     current_app.logger.debug(f"verify-identity called for method {method}")
 
     result = _authn(
-        EidasAcsAction.verify_identity,
+        BankIDAcsAction.verify_identity,
         method=method,
         frontend_action=frontend_action,
         frontend_state=frontend_state,
@@ -126,14 +116,14 @@ def verify_identity(user: User, method: str, frontend_action: str, frontend_stat
     return success_response(payload={"location": result.url})
 
 
-@eidas_views.route("/mfa-authenticate", methods=["POST"])
-@UnmarshalWith(EidasCommonRequestSchema)
-@MarshalWith(EidasCommonResponseSchema)
+@bankid_views.route("/mfa-authenticate", methods=["POST"])
+@UnmarshalWith(BankIDCommonRequestSchema)
+@MarshalWith(BankIDCommonResponseSchema)
 def mfa_authentication(method: str, frontend_action: str, frontend_state: Optional[str] = None) -> FluxData:
     current_app.logger.debug("mfa-authenticate called")
 
     result = _authn(
-        EidasAcsAction.mfa_authenticate,
+        BankIDAcsAction.mfa_authenticate,
         method=method,
         frontend_action=frontend_action,
         frontend_state=frontend_state,
@@ -154,40 +144,29 @@ class AuthnResult:
 
 
 def _authn(
-    action: EidasAcsAction,
+    action: BankIDAcsAction,
     method: str,
     frontend_action: str,
     frontend_state: Optional[str] = None,
     proofing_credential_id: Optional[ElementKey] = None,
-    redirect_url: Optional[str] = None,  # DEPRECATED - try to use frontend_action instead
 ) -> AuthnResult:
     current_app.logger.debug(f"Requested method: {method}, frontend action: {frontend_action}")
-
-    fallback_url = None
-    if is_old_action(frontend_action):
-        current_app.logger.debug(f"Using fallback URL {redirect_url} for action {frontend_action}")
-        fallback_url = redirect_url
-
-    proofing_method = get_proofing_method(method, frontend_action, current_app.conf, fallback_redirect_url=fallback_url)
+    proofing_method = get_proofing_method(method, frontend_action, current_app.conf)
     current_app.logger.debug(f"Proofing method: {proofing_method}")
     if not proofing_method:
-        return AuthnResult(error=EidasMsg.method_not_available)
+        return AuthnResult(error=BankIDMsg.method_not_available)
     assert isinstance(proofing_method, ProofingMethodSAML)  # please mypy
 
     idp = proofing_method.idp
-    if check_magic_cookie(current_app.conf):
-        # set a test IdP with minimal interaction for the integration tests
-        if current_app.conf.magic_cookie_idp:
-            if proofing_method.method == "freja" and current_app.conf.magic_cookie_idp:
-                idp = current_app.conf.magic_cookie_idp
-            elif proofing_method.method == "eidas" and current_app.conf.magic_cookie_foreign_id_idp:
-                idp = current_app.conf.magic_cookie_foreign_id_idp
-            else:
-                current_app.logger.error(f"Magic cookie is not supported for method {method}")
-                return AuthnResult(error=EidasMsg.method_not_available)
-            current_app.logger.debug(f"Changed requested IdP due to magic cookie: {idp}")
-        else:
-            current_app.logger.warning("Missing configuration magic_cookie_idp")
+    # TODO: We don't have any IdP that works for our automated tests
+    # if check_magic_cookie(current_app.conf):
+    #    # set a test IdP with minimal interaction for the integration tests
+    #    if current_app.conf.magic_cookie_idp:
+    #        idp = current_app.conf.magic_cookie_idp
+    #        current_app.logger.debug(f"Changed requested IdP due to magic cookie: {idp}")
+    #    else:
+    #        current_app.logger.error(f"Magic cookie is not supported for method {method}")
+    #        return AuthnResult(error=BankIDMsg.method_not_available)
 
     ref = AuthnRequestRef(str(uuid4()))
     authn_info = create_authn_info(
@@ -198,39 +177,38 @@ def _authn(
         selected_idp=idp,
     )
 
-    session.eidas.sp.authns[ref] = SP_AuthnRequest(
+    session.bankid.sp.authns[ref] = SP_AuthnRequest(
         frontend_action=frontend_action,
         frontend_state=frontend_state,
         post_authn_action=action,
         proofing_credential_id=proofing_credential_id,
         method=proofing_method.method,
-        redirect_url=redirect_url,  # DEPRECATED - try to use frontend_action instead
     )
-    current_app.logger.debug(f"Stored SP_AuthnRequest[{ref}]: {session.eidas.sp.authns[ref]}")
+    current_app.logger.debug(f"Stored SP_AuthnRequest[{ref}]: {session.bankid.sp.authns[ref]}")
 
     url = get_location(authn_info)
     if not url:
         current_app.logger.error(f"Couldn't extract Location from {authn_info}")
-        return AuthnResult(error=EidasMsg.method_not_available)
+        return AuthnResult(error=BankIDMsg.method_not_available)
 
     return AuthnResult(authn_req=authn_info, authn_id=ref, url=url)
 
 
-@eidas_views.route("/saml2-acs", methods=["POST"])
+@bankid_views.route("/saml2-acs", methods=["POST"])
 def assertion_consumer_service() -> WerkzeugResponse:
     """
     Assertion consumer service, receives POSTs from SAML2 IdP's
     """
     assertion = process_assertion(
         form=request.form,
-        sp_data=session.eidas.sp,
+        sp_data=session.bankid.sp,
         authenticate_user=False,  # If the IdP is not our own, we can't load the user
     )
     if isinstance(assertion, WerkzeugResponse):
         return assertion
     current_app.logger.debug(f"Auth response:\n{assertion}\n\n")
 
-    authn_req = session.eidas.sp.authns.get(assertion.authn_req_ref)
+    authn_req = session.bankid.sp.authns.get(assertion.authn_req_ref)
 
     if not authn_req:
         # Perhaps a SAML authn response received out of order - abort without destroying state
@@ -247,16 +225,10 @@ def assertion_consumer_service() -> WerkzeugResponse:
             rp=current_app.saml2_config.entityid,
         )
 
-    fallback_url = None
-    if is_old_action(assertion.authndata.frontend_action):
-        fallback_url = assertion.authndata.redirect_url
-        current_app.logger.debug(f"Using fallback URL {fallback_url} for action {assertion.authndata.frontend_action}")
-
     proofing_method = get_proofing_method(
         assertion.authndata.method,
         assertion.authndata.frontend_action,
         current_app.conf,
-        fallback_redirect_url=fallback_url,
     )
     if not proofing_method:
         # We _really_ shouldn't end up here because this same thing would have been done in the
@@ -269,26 +241,26 @@ def assertion_consumer_service() -> WerkzeugResponse:
             ctx=EduidErrorsContext.SAML_RESPONSE_FAIL,
             rp=current_app.saml2_config.entityid,
         )
-    assert isinstance(proofing_method, ProofingMethodSAML)  # please mypy
 
+    formatted_finish_url = proofing_method.formatted_finish_url(
+        app_name=current_app.conf.app_name, authn_id=assertion.authn_req_ref
+    )
+    assert formatted_finish_url  # please type checking
+
+    assert isinstance(proofing_method, ProofingMethodSAML)  # please mypy
     if not is_required_loa(
         assertion.session_info, proofing_method.required_loa, current_app.conf.authentication_context_map
     ):
-        session.mfa_action.error = MfaActionError.authn_context_mismatch  # TODO: Old way, remove after a release cycle
         assertion.authndata.error = True
-        assertion.authndata.status = EidasMsg.authn_context_mismatch.value
-        return redirect_with_msg(proofing_method.finish_url, EidasMsg.authn_context_mismatch)
+        assertion.authndata.status = BankIDMsg.authn_context_mismatch.value
+        return redirect(formatted_finish_url)
 
     if not is_valid_reauthn(assertion.session_info):
-        session.mfa_action.error = MfaActionError.authn_too_old  # TODO: Old way, remove after a release cycle
         assertion.authndata.error = True
-        assertion.authndata.status = EidasMsg.reauthn_expired.value
-        return redirect_with_msg(proofing_method.finish_url, EidasMsg.reauthn_expired)
+        assertion.authndata.status = BankIDMsg.must_authenticate.value
+        return redirect(formatted_finish_url)
 
-    # Remap nin in staging environment
-    if current_app.conf.environment in [EduidEnvironment.staging, EduidEnvironment.dev]:
-        assertion.session_info = attribute_remap(assertion.session_info)
-
+    # assertion checks out try to do the action
     action = get_action(default_action=None, authndata=assertion.authndata)
     backdoor = check_magic_cookie(config=current_app.conf)
     args = ACSArgs(
@@ -300,20 +272,12 @@ def assertion_consumer_service() -> WerkzeugResponse:
     result = action(args=args)
     current_app.logger.debug(f"ACS action result: {result}")
 
-    formatted_finish_url = proofing_method.formatted_finish_url(
-        app_name=current_app.conf.app_name, authn_id=assertion.authn_req_ref
-    )
-    assert formatted_finish_url  # please type checking
-
     if not result.success:
         current_app.logger.info(f"SAML ACS action failed: {result.message}")
         # update session so this error can be retrieved from the /status endpoint
         _msg = result.message or CommonMsg.temp_problem
         args.authn_req.status = _msg.value
         args.authn_req.error = True
-        if is_old_action(assertion.authndata.frontend_action):
-            # Including the error in the redirect URL is deprecated and should be removed once frontend stops using it
-            return redirect_with_msg(formatted_finish_url, _msg, error=True)
         return redirect(formatted_finish_url)
 
     current_app.logger.debug(f"SAML ACS action successful (frontend_action {args.authn_req.frontend_action})")
@@ -321,19 +285,10 @@ def assertion_consumer_service() -> WerkzeugResponse:
         args.authn_req.status = result.message.value
     args.authn_req.error = False
 
-    _old_action_success_msg = {
-        EidasAcsAction.old_mfa_authn.value: EidasMsg.action_completed,
-        EidasAcsAction.old_token_verify.value: EidasMsg.old_token_verify_success,
-        EidasAcsAction.old_nin_verify.value: EidasMsg.old_nin_verify_success,
-    }
-    _msg2 = _old_action_success_msg.get(args.authn_req.frontend_action)
-    if _msg2:
-        return redirect_with_msg(proofing_method.finish_url, _msg2, error=False)
-
     return redirect(formatted_finish_url)
 
 
-@eidas_views.route("/saml2-metadata")
+@bankid_views.route("/saml2-metadata")
 def metadata() -> WerkzeugResponse:
     """
     Returns an XML with the SAML 2.0 metadata for this SP as configured in the saml2_settings.py file.

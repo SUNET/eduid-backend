@@ -15,7 +15,7 @@ from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.credentials import Credential
 from eduid.userdb.credentials.external import TrustFramework
 from eduid.userdb.element import ElementKey
-from eduid.webapp.common.authn.acs_enums import AuthnAcsAction, EidasAcsAction
+from eduid.webapp.common.authn.acs_enums import AuthnAcsAction, BankIDAcsAction, EidasAcsAction
 from eduid.webapp.idp.other_device.data import OtherDeviceId
 from eduid.webapp.svipe_id.callback_enums import SvipeIDAction
 
@@ -246,7 +246,7 @@ class BaseAuthnRequest(BaseModel, ABC):
     frontend_state: Optional[str] = None  # opaque data from frontend, returned in /status
     method: Optional[str] = None  # proofing method that frontend is invoking
     frontend_action: str  # what action frontend is performing, decides the finish URL the user is redirected to
-    post_authn_action: Optional[Union[AuthnAcsAction, EidasAcsAction, SvipeIDAction]] = None
+    post_authn_action: Optional[Union[AuthnAcsAction, EidasAcsAction, SvipeIDAction, BankIDAcsAction]] = None
     created_ts: datetime = Field(default_factory=utc_now)
     authn_instant: Optional[datetime] = None
     status: Optional[str] = None  # populated by the SAML2 ACS/OIDC callback action
@@ -264,7 +264,7 @@ PySAML2Dicts = NewType("PySAML2Dicts", dict[str, dict[str, Any]])
 
 
 class SPAuthnData(BaseModel):
-    post_authn_action: Optional[Union[AuthnAcsAction, EidasAcsAction]] = None
+    post_authn_action: Optional[Union[AuthnAcsAction, EidasAcsAction, BankIDAcsAction]] = None
     pysaml2_dicts: PySAML2Dicts = Field(default=cast(PySAML2Dicts, dict()))
     authns: dict[AuthnRequestRef, SP_AuthnRequest] = Field(default_factory=dict)
 
@@ -298,3 +298,9 @@ class RPAuthnData(BaseModel):
 
 class SvipeIDNamespace(SessionNSBase):
     rp: RPAuthnData = Field(default=RPAuthnData())
+
+
+class BankIDNamespace(SessionNSBase):
+    # TODO: Move verify_token_action_credential_id into SP_AuthnRequest
+    verify_token_action_credential_id: Optional[ElementKey] = None
+    sp: SPAuthnData = Field(default=SPAuthnData())

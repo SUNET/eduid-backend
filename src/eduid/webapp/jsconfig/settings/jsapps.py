@@ -62,6 +62,7 @@ class JsAppsConfig(PasswordConfigMixin):
     # backend endpoint urls
     authn_service_url: HttpUrl
     authn_url: Optional[str]  # deprecated
+    bankid_service_url: HttpUrl
     eidas_service_url: HttpUrl
     eidas_url: Optional[str]  # deprecated
     emails_service_url: HttpUrl

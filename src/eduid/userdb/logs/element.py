@@ -420,6 +420,30 @@ class SvipeIDForeignProofing(ForeignIdProofingLogElement):
     proofing_method: str = IdentityProofingMethod.SVIPE_ID.value
 
 
+class BankIDProofing(NinEIDProofingLogElement):
+    """
+    {
+        'eduPersonPrincipalName': eppn,
+        'created_ts': utc_now(),
+        'created_by': 'application',
+        'proofing_method': 'bankid',
+        'proofing_version': '2023v1',
+        'nin': 'national_identity_number',
+        'given_name': 'name',
+        'surname': 'name',
+        'transaction_id': 'transaction id',
+    }
+
+    Proofing version history:
+    2023v1 - inital deployment
+    """
+
+    # Transaction ID from BankID
+    transaction_id: str
+    # Proofing method name
+    proofing_method: str = IdentityProofingMethod.BANKID.value
+
+
 class MFATokenProofing(SwedenConnectProofing):
     """
     {
@@ -467,6 +491,26 @@ class MFATokenEIDASProofing(SwedenConnectEIDASProofing):
     key_id: str
     # Proofing method name
     proofing_method: str = "swedenconnect"
+
+
+class MFATokenBankIDProofing(BankIDProofing):
+    """
+    {
+        'eduPersonPrincipalName': eppn,
+        'created_ts': utc_now(),
+        'created_by': 'application',
+        'proofing_method': 'bankid',
+        'proofing_version': '2023v1',
+        'nin': 'national_identity_number',
+        'given_name': 'name',
+        'surname': 'name',
+        'transaction_id': 'transaction id',
+        'key_id: 'Key id of token vetted',
+    }
+    """
+
+    # Data used to initialize the vetting process
+    key_id: str
 
 
 class NameUpdateProofing(NinNavetProofingLogElement):

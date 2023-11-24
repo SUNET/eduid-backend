@@ -12,6 +12,7 @@ from eduid.userdb.element import ElementKey
 
 @unique
 class EduidAuthnContextClass(str, Enum):
+    DIGG_LOA2 = "http://id.elegnamnden.se/loa/1.0/loa2"
     REFEDS_MFA = "https://refeds.org/profile/mfa"
     REFEDS_SFA = "https://refeds.org/profile/sfa"
     FIDO_U2F = "https://www.swamid.se/specs/id-fido-u2f-ce-transports"
@@ -29,6 +30,12 @@ class SwamidAssurance(str, Enum):
     REFEDS_IAP_MEDIUM = "https://refeds.org/assurance/IAP/medium"
     REFEDS_EPPN_UNIQUE = "https://refeds.org/assurance/ID/eppn-unique-no-reassign"
     REFEDS_ID_UNIQUE = "https://refeds.org/assurance/ID/unique"
+
+
+class SwedenConnectAssurance(str, Enum):
+    LOA2 = "http://id.elegnamnden.se/loa/1.0/loa2"
+    LOA3 = "http://id.elegnamnden.se/loa/1.0/loa3"
+    UNCERTIFIED_LOA3 = "http://id.swedenconnect.se/loa/1.0/uncertified-loa3"
 
 
 class AuthnInfo(BaseModel):

@@ -371,6 +371,8 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
         """
         Check the message returned from an eduID webapp endpoint.
         """
+        if response.json and response.json.get("error") is True:
+            assert False is True, f"FluxResponse has error set to True: {response.json}"
         return self._check_api_response(response, 200, type_=type_, message=msg, payload=payload)
 
     @staticmethod

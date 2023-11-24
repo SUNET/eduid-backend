@@ -1,23 +1,23 @@
 from eduid.userdb import User
 from eduid.userdb.credentials.fido import FidoCredential
 from eduid.webapp.authn.helpers import credential_used_to_authenticate
+from eduid.webapp.bankid.app import current_bankid_app as current_app
+from eduid.webapp.bankid.helpers import BankIDMsg
+from eduid.webapp.bankid.proofing import get_proofing_functions
 from eduid.webapp.common.api.decorators import require_user
-from eduid.webapp.common.authn.acs_enums import EidasAcsAction
+from eduid.webapp.common.authn.acs_enums import BankIDAcsAction
 from eduid.webapp.common.authn.acs_registry import ACSArgs, ACSResult, acs_action
 from eduid.webapp.common.proofing.messages import ProofingMsg
 from eduid.webapp.common.proofing.saml_helpers import authn_ctx_to_loa
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.namespaces import SP_AuthnRequest
-from eduid.webapp.eidas.app import current_eidas_app as current_app
-from eduid.webapp.eidas.helpers import EidasMsg
-from eduid.webapp.eidas.proofing import get_proofing_functions
 
 __author__ = "lundberg"
 
-from eduid.webapp.eidas.saml_session_info import BaseSessionInfo
+from eduid.webapp.bankid.saml_session_info import BaseSessionInfo
 
 
-@acs_action(EidasAcsAction.verify_identity)
+@acs_action(BankIDAcsAction.verify_identity)
 @require_user
 def verify_identity_action(user: User, args: ACSArgs) -> ACSResult:
     """
@@ -30,7 +30,7 @@ def verify_identity_action(user: User, args: ACSArgs) -> ACSResult:
     """
     # please type checking
     if not args.proofing_method:
-        return ACSResult(message=EidasMsg.method_not_available)
+        return ACSResult(message=BankIDMsg.method_not_available)
 
     parsed = args.proofing_method.parse_session_info(args.session_info, backdoor=args.backdoor)
     if parsed.error:
@@ -53,10 +53,10 @@ def verify_identity_action(user: User, args: ACSArgs) -> ACSResult:
     if verify_result.error is not None:
         return ACSResult(message=verify_result.error)
 
-    return ACSResult(success=True, message=EidasMsg.identity_verify_success)
+    return ACSResult(success=True, message=BankIDMsg.identity_verify_success)
 
 
-@acs_action(EidasAcsAction.verify_credential)
+@acs_action(BankIDAcsAction.verify_credential)
 @require_user
 def verify_credential_action(user: User, args: ACSArgs) -> ACSResult:
     """
@@ -69,19 +69,19 @@ def verify_credential_action(user: User, args: ACSArgs) -> ACSResult:
     """
     # please type checking
     if not args.proofing_method:
-        return ACSResult(message=EidasMsg.method_not_available)
+        return ACSResult(message=BankIDMsg.method_not_available)
     assert isinstance(args.authn_req, SP_AuthnRequest)
 
     credential = user.credentials.find(args.authn_req.proofing_credential_id)
     if not isinstance(credential, FidoCredential):
         current_app.logger.error(f"Credential {credential} is not a FidoCredential")
-        return ACSResult(message=EidasMsg.token_not_in_creds)
+        return ACSResult(message=BankIDMsg.token_not_found)
 
     # Check (again) if token was used to authenticate this session. The first time we checked,
     # we verified that the token was used very recently, but we have to allow for more time
     # here since the user might have spent a couple of minutes authenticating with the external IdP.
     if not credential_used_to_authenticate(credential, max_age=300):
-        return ACSResult(message=EidasMsg.reauthn_expired)
+        return ACSResult(message=BankIDMsg.must_authenticate)
 
     parsed = args.proofing_method.parse_session_info(args.session_info, args.backdoor)
     if parsed.error:
@@ -108,7 +108,7 @@ def verify_credential_action(user: User, args: ACSArgs) -> ACSResult:
             credential = user.credentials.find(credential.key)
             if not isinstance(credential, FidoCredential):
                 current_app.logger.error(f"Credential {credential} is not a FidoCredential")
-                return ACSResult(message=EidasMsg.token_not_in_creds)
+                return ACSResult(message=BankIDMsg.token_not_found)
 
     # Check that the users' verified identity matches the one that was asserted now
     match_res = proofing.match_identity(user=user, proofing_method=args.proofing_method)
@@ -118,7 +118,7 @@ def verify_credential_action(user: User, args: ACSArgs) -> ACSResult:
     if not match_res.matched:
         # Matching external mfa authentication with user nin failed, bail
         current_app.stats.count(name=f"verify_credential_{args.proofing_method.method}_identity_not_matching")
-        return ACSResult(message=EidasMsg.identity_not_matching)
+        return ACSResult(message=BankIDMsg.identity_not_matching)
 
     loa = authn_ctx_to_loa(args.session_info, current_app.conf.authentication_context_map)
 
@@ -129,10 +129,10 @@ def verify_credential_action(user: User, args: ACSArgs) -> ACSResult:
     current_app.stats.count(name="fido_token_verified")
     current_app.stats.count(name=f"verify_credential_{args.proofing_method.method}_success")
 
-    return ACSResult(success=True, message=EidasMsg.credential_verify_success)
+    return ACSResult(success=True, message=BankIDMsg.credential_verify_success)
 
 
-@acs_action(EidasAcsAction.mfa_authenticate)
+@acs_action(BankIDAcsAction.mfa_authenticate)
 def mfa_authenticate_action(args: ACSArgs) -> ACSResult:
     """
     Authenticate a user using Use a Sweden Connect federation IdP assertion.
@@ -146,7 +146,7 @@ def mfa_authenticate_action(args: ACSArgs) -> ACSResult:
     """
     # please type checking
     if not args.proofing_method:
-        return ACSResult(message=EidasMsg.method_not_available)
+        return ACSResult(message=BankIDMsg.method_not_available)
 
     # Get user from central database
     user = current_app.central_userdb.get_user_by_eppn(session.common.eppn)
@@ -171,9 +171,9 @@ def mfa_authenticate_action(args: ACSArgs) -> ACSResult:
     if not match_res.matched:
         # Matching external mfa authentication with user nin failed, bail
         current_app.stats.count(name=f"mfa_auth_{args.proofing_method.method}_identity_not_matching")
-        return ACSResult(message=EidasMsg.identity_not_matching)
+        return ACSResult(message=BankIDMsg.identity_not_matching)
 
-    current_app.stats.count(name=f"mfa_auth_success")
+    current_app.stats.count(name="mfa_auth_success")
     current_app.stats.count(name=f"mfa_auth_{args.proofing_method.method}_success")
     current_app.stats.count(name=f"mfa_auth_{parsed.info.issuer}_success")
-    return ACSResult(success=True, message=EidasMsg.mfa_authn_success)
+    return ACSResult(success=True, message=BankIDMsg.mfa_authn_success)

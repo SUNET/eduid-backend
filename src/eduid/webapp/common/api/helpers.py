@@ -1,6 +1,6 @@
 import warnings
 from dataclasses import dataclass
-from typing import Any, Iterable, List, Optional, TypeVar, Union, cast, overload
+from typing import Any, List, Optional, TypeVar, Union, cast, overload
 
 from flask import current_app, render_template, request
 
