@@ -42,6 +42,8 @@ from eduid.webapp.idp.assurance import (
     MissingAuthentication,
     MissingMultiFactor,
     MissingPasswordFactor,
+    IdentityProofingMethodNotAllowed,
+    MfaProofingMethodNotAllowed,
 )
 from eduid.webapp.idp.assurance_data import AuthnInfo
 from eduid.webapp.idp.helpers import IdPMsg
@@ -86,7 +88,7 @@ class NextResult(BaseModel):
         )
 
 
-def login_next_step(ticket: LoginContext, sso_session: Optional[SSOSession], template_mode: bool = False) -> NextResult:
+def login_next_step(ticket: LoginContext, sso_session: Optional[SSOSession]) -> NextResult:
     """The main state machine for the login flow(s)."""
     if ticket.pending_request.aborted:
         current_app.logger.debug("Login request is aborted")
@@ -157,9 +159,13 @@ def login_next_step(ticket: LoginContext, sso_session: Optional[SSOSession], tem
     except MissingPasswordFactor:
         res = NextResult(message=IdPMsg.must_authenticate)
     except MissingMultiFactor:
-        res = NextResult(message=IdPMsg.mfa_required, user=user if template_mode else None)
+        res = NextResult(message=IdPMsg.mfa_required)
     except MissingAuthentication:
         res = NextResult(message=IdPMsg.must_authenticate)
+    except IdentityProofingMethodNotAllowed:
+        res = NextResult(message=IdPMsg.identity_proofing_method_not_allowed)
+    except MfaProofingMethodNotAllowed:
+        res = NextResult(message=IdPMsg.mfa_proofing_method_not_allowed)
     except AssuranceException as exc:
         current_app.logger.info(f"Assurance not possible: {repr(exc)}")
         res = NextResult(message=IdPMsg.assurance_not_possible, error=True)
@@ -175,10 +181,10 @@ def login_next_step(ticket: LoginContext, sso_session: Optional[SSOSession], tem
     session.common.eppn = user.eppn
 
     if need_tou_acceptance(user):
-        return NextResult(message=IdPMsg.tou_required, user=user if template_mode else None)
+        return NextResult(message=IdPMsg.tou_required)
 
     if need_security_key(user, ticket):
-        return NextResult(message=IdPMsg.mfa_required, user=user if template_mode else None)
+        return NextResult(message=IdPMsg.mfa_required)
 
     return res
 
