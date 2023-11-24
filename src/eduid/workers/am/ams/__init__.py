@@ -21,7 +21,7 @@ from eduid.userdb.proofing import (
     OrcidProofingUserDB,
     PhoneProofingUserDB,
 )
-from eduid.userdb.proofing.db import LadokProofingUserDB, SvideIDProofingUserDB, BankIDProofingUserDB
+from eduid.userdb.proofing.db import BankIDProofingUserDB, LadokProofingUserDB, SvideIDProofingUserDB
 from eduid.userdb.reset_password import ResetPasswordUserDB
 from eduid.userdb.security import SecurityUserDB
 from eduid.userdb.signup import SignupUserDB

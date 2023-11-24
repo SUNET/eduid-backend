@@ -33,7 +33,7 @@ import logging
 from typing import Optional
 
 from eduid.userdb.credentials import Credential, FidoCredential
-from eduid.userdb.credentials.external import SwedenConnectCredential, BankIDCredential
+from eduid.userdb.credentials.external import BankIDCredential, SwedenConnectCredential
 from eduid.userdb.idp.user import IdPUser
 from eduid.webapp.common.session.namespaces import OnetimeCredential, OnetimeCredType
 from eduid.webapp.idp.login_context import LoginContext

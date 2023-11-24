@@ -39,11 +39,11 @@ from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.assurance import (
     AssuranceException,
     AuthnState,
+    IdentityProofingMethodNotAllowed,
+    MfaProofingMethodNotAllowed,
     MissingAuthentication,
     MissingMultiFactor,
     MissingPasswordFactor,
-    IdentityProofingMethodNotAllowed,
-    MfaProofingMethodNotAllowed,
 )
 from eduid.webapp.idp.assurance_data import AuthnInfo
 from eduid.webapp.idp.helpers import IdPMsg

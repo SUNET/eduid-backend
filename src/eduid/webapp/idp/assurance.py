@@ -36,7 +36,7 @@ import logging
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.credentials import CredentialProofingMethod, FidoCredential, Password
-from eduid.userdb.credentials.external import SwedenConnectCredential, BankIDCredential
+from eduid.userdb.credentials.external import BankIDCredential, SwedenConnectCredential
 from eduid.userdb.element import ElementKey
 from eduid.userdb.identity import IdentityProofingMethod
 from eduid.userdb.idp import IdPUser
