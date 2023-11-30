@@ -2142,7 +2142,6 @@ zxcvbn==4.4.28 \
     # via
     #   -c main.txt
     #   -r main.in
-
 # The following packages are considered to be unsafe in a requirements file:
 pip==23.3.1 \
     --hash=sha256:1fcaa041308d01f14575f6d0d2ea4b75a3e2871fe4f9c694976f908768e14174 \
