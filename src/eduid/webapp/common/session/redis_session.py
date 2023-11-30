@@ -271,7 +271,8 @@ class RedisEncryptedSession(typing.MutableMapping):
         # Fetch session from session store (Redis). We remember the raw data and use it
         # when writing data back to Redis to detect if the session was updated by someone
         # else (in which case we abort).
-        self._raw_data = self.conn.get(self.db_key)
+        # TODO: conn.get returns ResponseT = Union[Awaitable, Any] - mypy doesn't like that
+        self._raw_data = self.conn.get(self.db_key)  # type: ignore[assignment]
         if not self._raw_data:
             return False
 
@@ -324,7 +325,7 @@ class RedisEncryptedSession(typing.MutableMapping):
         }
         return bytes(json.dumps(versioned), "ascii")
 
-    def decrypt_data(self, data_str: str) -> dict[str, Any]:
+    def decrypt_data(self, data_str: Union[bytes, str]) -> dict[str, Any]:
         """
         Decrypt and verify session data read from Redis.
 
