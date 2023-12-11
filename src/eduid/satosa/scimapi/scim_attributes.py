@@ -50,6 +50,7 @@ class ScimAttributes(ResponseMicroService):
 
     def __init__(self, config: Mapping[str, Any], internal_attributes: dict[str, Any], *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
+
         self.config = Config(**config)
         # Setup databases
         self.eduid_userdb = ScimEduidUserDB(db_uri=self.config.mongo_uri)
@@ -169,19 +170,19 @@ class ScimAttributes(ResponseMicroService):
         if data_owner is None:
             return data
 
-        if data.attributes.get("eduPersonEntitlement") is None:
-            data.attributes["eduPersonEntitlement"] = []
+        if data.attributes.get("edupersonentitlement") is None:
+            data.attributes["edupersonentitlement"] = []
 
         for member_group in user_groups.member:
-            data.attributes["eduPersonEntitlement"].append(
+            data.attributes["edupersonentitlement"].append(
                 f"{user_groups.data_owner}:group:{member_group.graph.identifier}#eduid-iam"
             )
         for manager_group in user_groups.manager:
-            data.attributes["eduPersonEntitlement"].append(
+            data.attributes["edupersonentitlement"].append(
                 f"{user_groups.data_owner}:group:{manager_group.graph.identifier}:role=manager#eduid-iam"
             )
 
-        logger.debug(f"eduPersonEntitlement after groups: {data.attributes['eduPersonEntitlement']}")
+        logger.debug(f"edupersonentitlement after groups: {data.attributes['edupersonentitlement']}")
         return data
 
     def _get_scopes_for_idp(self, context: satosa.context.Context, entity_id: str) -> set[str]:
