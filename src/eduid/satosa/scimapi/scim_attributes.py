@@ -28,7 +28,7 @@ class Config:
     mongo_uri: str
     neo4j_uri: Optional[str] = None
     neo4j_config: dict = field(default_factory=dict)
-    allow_users_not_in_database: bool = False
+    allow_users_not_in_database: Mapping[str, bool] = {"default": False}
     fallback_data_owner: Optional[str] = None
     idp_to_data_owner: Mapping[str, str] = field(default_factory=dict)
     mfa_stepup_issuer_to_entity_id: Mapping[str, str] = field(default_factory=dict)
@@ -118,11 +118,18 @@ class ScimAttributes(ResponseMicroService):
             logger.debug(f"Found user: {user}")
             data = self._process_user(user=user, data=data)
         else:
-            if self.config.allow_users_not_in_database:
-                logger.info(
-                    "User not found in database but letting through since 'allow_users_not_in_database' is set to True"
-                )
-            else:
+            allow_users_not_in_database = False
+            for frontend in [frontend_name, "default"]:
+                if frontend in self.config.allow_users_not_in_database:
+                    if self.config.allow_users_not_in_database[frontend]:
+                        logger.info(
+                            f"user not found in database but letting through since 'allow_users_not_in_database[{frontend}]' is set to true"
+                        )
+                        allow_users_not_in_database = True
+                    # A specific configuration per frontend should always win over default even if it's False
+                    break
+
+            if allow_users_not_in_database == False:
                 raise SATOSAAuthenticationError(context.state, "User not found in database")
 
         if user_groups:
