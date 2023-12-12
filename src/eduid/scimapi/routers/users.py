@@ -17,9 +17,9 @@ from eduid.scimapi.routers.utils.users import (
     filter_externalid,
     filter_lastmodified,
     filter_profile_data,
+    get_user_groups,
     save_user,
     users_to_resources_dicts,
-    get_user_groups,
 )
 from eduid.scimapi.search import parse_search_filter
 from eduid.userdb.scimapi import (
