@@ -103,7 +103,7 @@ async def on_put(req: ContextRequest, resp: Response, update_request: UserUpdate
 
     nutid_changed = False
     if SCIMSchema.NUTID_USER_V1 in update_request.schemas and update_request.nutid_user_v1 is not None:
-        if not acceptable_linked_accounts(update_request.nutid_user_v1.linked_accounts):
+        if not acceptable_linked_accounts(update_request.nutid_user_v1.linked_accounts, req.app.config.environment):
             raise BadRequest(detail="Invalid nutid linked_accounts")
 
         # Look for changes in profiles
@@ -213,7 +213,7 @@ async def on_post(req: ContextRequest, resp: Response, create_request: UserCreat
     profiles = {}
     linked_accounts = []
     if SCIMSchema.NUTID_USER_V1 in create_request.schemas and create_request.nutid_user_v1 is not None:
-        if not acceptable_linked_accounts(create_request.nutid_user_v1.linked_accounts):
+        if not acceptable_linked_accounts(create_request.nutid_user_v1.linked_accounts, req.app.config.environment):
             raise BadRequest(detail="Invalid nutid linked_accounts")
 
         # convert from one type of profiles to another
