@@ -519,6 +519,46 @@ class TestUserResource(ScimApiTestUserResourceBase):
         assert event.resource.external_id == external_id
         assert event.data["status"] == EventStatus.DELETED.value
 
+    def test_delete_user_with_groups(self):
+        external_id = "test-id-1"
+        db_user = self.add_user(identifier=str(uuid4()), external_id=external_id, profiles={"test": self.test_profile})
+        user_scim_id = db_user.scim_id
+        group1 = self.add_group_with_member(
+            group_identifier=str(uuid4()), display_name="Group 1", user_identifier=str(user_scim_id)
+        )
+        group1 = self.add_owner_to_group(group_identifier=str(group1.scim_id), user_identifier=str(user_scim_id))
+        extra_user = self.add_user(
+            identifier=str(uuid4()), external_id="other external id", profiles={"test": self.test_profile}
+        )
+        group2 = self.add_group_with_member(
+            group_identifier=str(uuid4()), display_name="Group 2", user_identifier=str(user_scim_id)
+        )
+        group2 = self.add_member_to_group(group_identifier=str(group2.scim_id), user_identifier=str(extra_user.scim_id))
+
+        assert len(group1.members) == 1
+        assert len(group1.owners) == 1
+        assert len(group2.members) == 2
+
+        self.headers["IF-MATCH"] = make_etag(db_user.version)
+        response = self.client.delete(url=f"/Users/{db_user.scim_id}", headers=self.headers)
+        self._assertResponse(response, status_code=204)  # No content
+
+        db_user = self.userdb.get_user_by_scim_id(user_scim_id)
+        assert db_user is None
+
+        group1 = self.groupdb.get_group_by_scim_id(str(group1.scim_id))
+        assert len(group1.graph.members) == 0
+        assert len(group1.graph.owners) == 0
+        group2 = self.groupdb.get_group_by_scim_id(str(group2.scim_id))
+        assert len(group2.graph.members) == 1
+
+        # check that the action resulted in an event in the database
+        events = self.eventdb.get_events_by_resource(SCIMResourceType.USER, user_scim_id)
+        assert len(events) == 1
+        event = events[0]
+        assert event.resource.external_id == external_id
+        assert event.data["status"] == EventStatus.DELETED.value
+
     def test_search_user_external_id(self):
         db_user = self.add_user(identifier=str(uuid4()), external_id="test-id-1", profiles={"test": self.test_profile})
         self.add_user(identifier=str(uuid4()), external_id="test-id-2", profiles={"test": self.test_profile})
