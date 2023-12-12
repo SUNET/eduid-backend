@@ -150,6 +150,24 @@ class ScimApiTestCase(MongoNeoTestCase):
         self.groupdb.save(group)
         return self.groupdb.get_group_by_scim_id(scim_id=group_identifier)
 
+    def add_member_to_group(self, group_identifier: str, user_identifier: str) -> Optional[ScimApiGroup]:
+        assert self.groupdb
+        group = self.groupdb.get_group_by_scim_id(scim_id=group_identifier)
+        assert group is not None  # please mypy
+        num_members = len(group.members)
+        group.add_member(GraphUser(identifier=user_identifier, display_name=f"Test Member {num_members + 1}"))
+        self.groupdb.save(group)
+        return self.groupdb.get_group_by_scim_id(scim_id=group_identifier)
+
+    def add_owner_to_group(self, group_identifier: str, user_identifier: str) -> Optional[ScimApiGroup]:
+        assert self.groupdb
+        group = self.groupdb.get_group_by_scim_id(scim_id=group_identifier)
+        assert group is not None  # please mypy
+        num_owners = len(group.owners)
+        group.add_owner(GraphUser(identifier=user_identifier, display_name=f"Test Owner {num_owners + 1}"))
+        self.groupdb.save(group)
+        return self.groupdb.get_group_by_scim_id(scim_id=group_identifier)
+
     def tearDown(self):
         super().tearDown()
         if self.userdb:

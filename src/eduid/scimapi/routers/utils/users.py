@@ -5,6 +5,7 @@ from typing import Any, Optional, Sequence
 from fastapi import Response
 from pymongo.errors import DuplicateKeyError
 
+from eduid.common.config.base import EduidEnvironment
 from eduid.common.models.scim_base import Email, Meta, Name, PhoneNumber, SCIMResourceType, SCIMSchema, SearchRequest
 from eduid.common.models.scim_user import Group, LinkedAccount, NutidUserExtensionV1, Profile, UserResponse
 from eduid.scimapi.context_request import ContextRequest
@@ -77,11 +78,15 @@ def save_user(req: ContextRequest, db_user: ScimApiUser) -> None:
         raise BadRequest(detail="Duplicated key error")
 
 
-def acceptable_linked_accounts(value: list[LinkedAccount]):
+def acceptable_linked_accounts(value: list[LinkedAccount], environment: EduidEnvironment):
     """
     Setting linked_accounts through SCIM with limited issuer and value. If we need to support
     stepup with someone other than eduID this needs to change.
     """
+    # short circuit this check for dev env
+    if environment == EduidEnvironment.dev:
+        return True
+
     for this in value:
         if this.issuer not in ["eduid.se", "dev.eduid.se"]:
             return False
