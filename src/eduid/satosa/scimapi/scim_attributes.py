@@ -28,7 +28,7 @@ class Config:
     mongo_uri: str
     neo4j_uri: Optional[str] = None
     neo4j_config: dict = field(default_factory=dict)
-    allow_users_not_in_database: Mapping[str, bool] = {"default": False}
+    allow_users_not_in_database: Mapping[str, bool] = field(default_factory=lambda: {"default": False})
     fallback_data_owner: Optional[str] = None
     idp_to_data_owner: Mapping[str, str] = field(default_factory=dict)
     mfa_stepup_issuer_to_entity_id: Mapping[str, str] = field(default_factory=dict)
