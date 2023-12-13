@@ -118,16 +118,8 @@ class ScimAttributes(ResponseMicroService):
             logger.debug(f"Found user: {user}")
             data = self._process_user(user=user, data=data)
         else:
-            allow_users_not_in_database = False
-            for frontend in [frontend_name, "default"]:
-                if frontend in self.config.allow_users_not_in_database:
-                    if self.config.allow_users_not_in_database[frontend]:
-                        logger.info(
-                            f"user not found in database but letting through since 'allow_users_not_in_database[{frontend}]' is set to true"
-                        )
-                        allow_users_not_in_database = True
-                    # A specific configuration per frontend should always win over default even if it's False
-                    break
+            default_allow = self.config.allow_users_not_in_database.get("default", False)
+            allow_users_not_in_database = self.config.allow_users_not_in_database.get(frontend_name, default_allow)
 
             if allow_users_not_in_database == False:
                 raise SATOSAAuthenticationError(context.state, "User not found in database")
