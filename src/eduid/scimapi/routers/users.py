@@ -7,9 +7,10 @@ from fastapi import Response
 
 from eduid.common.models.scim_base import ListResponse, SCIMResourceType, SCIMSchema, SearchRequest
 from eduid.common.models.scim_user import UserCreateRequest, UserResponse, UserUpdateRequest
+from eduid.graphdb.exceptions import EduIDGroupDBError
 from eduid.scimapi.api_router import APIRouter
 from eduid.scimapi.context_request import ContextRequest, ContextRequestRoute
-from eduid.scimapi.exceptions import BadRequest, ErrorDetail, NotFound
+from eduid.scimapi.exceptions import BadRequest, Conflict, ErrorDetail, NotFound
 from eduid.scimapi.routers.utils.events import add_api_event
 from eduid.scimapi.routers.utils.users import (
     acceptable_linked_accounts,
@@ -22,6 +23,7 @@ from eduid.scimapi.routers.utils.users import (
     users_to_resources_dicts,
 )
 from eduid.scimapi.search import parse_search_filter
+from eduid.userdb.exceptions import EduIDDBError
 from eduid.userdb.scimapi import (
     EventLevel,
     EventStatus,
@@ -269,7 +271,13 @@ async def on_delete(req: ContextRequest, scim_id: str) -> None:
     if not req.app.context.check_version(req, db_user):
         raise BadRequest(detail="Version mismatch")
 
-    remove_user_from_all_groups(req, db_user)
+    try:
+        remove_user_from_all_groups(req, db_user)
+    except (EduIDDBError, EduIDGroupDBError):
+        # this can be a problem when deleting many users that are all part of the same group as it can
+        # lead to a race condition where the group is updated before the user is removed from it
+        raise Conflict(detail="Database object out of sync, please retry")
+
     res = req.context.userdb.remove(db_user)
 
     add_api_event(

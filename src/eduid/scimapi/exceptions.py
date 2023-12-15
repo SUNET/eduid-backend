@@ -116,3 +116,10 @@ class UnsupportedMediaTypeMalformed(HTTPErrorDetail):
         super().__init__(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, **kwargs)
         if not self.error_detail.detail:
             self.error_detail.detail = "Request was made with an unsupported media type"
+
+
+class Conflict(HTTPErrorDetail):
+    def __init__(self, **kwargs):
+        super().__init__(status_code=status.HTTP_409_CONFLICT, **kwargs)
+        if not self.error_detail.detail:
+            self.error_detail.detail = "Request conflicts with the current state"
