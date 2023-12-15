@@ -1,13 +1,16 @@
 import base64
 import logging
-from typing import AnyStr, TypeVar
+import time
+from typing import AnyStr, Callable, TypeVar
 from uuid import uuid4
 
 from bson import ObjectId
 from jwcrypto import jwk
 
 from eduid.common.config.exceptions import BadConfiguration
+from eduid.graphdb.exceptions import VersionMismatch
 from eduid.scimapi.config import ScimApiConfig
+from eduid.userdb.exceptions import DocumentOutOfSync
 
 logger = logging.getLogger(__name__)
 
@@ -61,3 +64,19 @@ def load_jwks(config: ScimApiConfig) -> jwk.JWKSet:
         jwks = jwk.JWKSet.from_json(f.read())
         logger.info(f"jwks loaded from {config.keystore_path}")
     return jwks
+
+
+def retryable(func: Callable, max_retries: int = 10):
+    def wrapper_run_func(*args, **kwargs):
+        retry = 0
+        while True:
+            try:
+                return func(*args, **kwargs)
+            except (DocumentOutOfSync, VersionMismatch) as e:
+                retry += 1
+                if retry >= max_retries:
+                    raise e
+                time.sleep(0.1)
+                logger.warning(f"Retrying {func.__name__}, retry {retry} of {max_retries}: {e}")
+
+    return wrapper_run_func

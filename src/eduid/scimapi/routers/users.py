@@ -1,6 +1,5 @@
 import pprint
 import re
-import time
 from dataclasses import replace
 from typing import Optional
 
@@ -18,13 +17,11 @@ from eduid.scimapi.routers.utils.users import (
     filter_externalid,
     filter_lastmodified,
     filter_profile_data,
-    get_user_groups,
+    remove_user_from_all_groups,
     save_user,
     users_to_resources_dicts,
-    remove_user_from_all_groups,
 )
 from eduid.scimapi.search import parse_search_filter
-from eduid.userdb.exceptions import DocumentOutOfSync
 from eduid.userdb.scimapi import (
     EventLevel,
     EventStatus,
@@ -272,18 +269,7 @@ async def on_delete(req: ContextRequest, scim_id: str) -> None:
     if not req.app.context.check_version(req, db_user):
         raise BadRequest(detail="Version mismatch")
 
-    retry = 0
-    while True:
-        try:
-            remove_user_from_all_groups(req, db_user)
-            break
-        except DocumentOutOfSync as e:
-            retry += 1
-            if retry > 3:
-                raise e
-            time.sleep(0.1)
-            req.app.context.logger.warning(f"Retrying remove user from groups: {e}")
-
+    remove_user_from_all_groups(req, db_user)
     res = req.context.userdb.remove(db_user)
 
     add_api_event(
