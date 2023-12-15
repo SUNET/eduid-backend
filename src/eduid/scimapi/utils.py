@@ -1,4 +1,5 @@
 import base64
+import functools
 import logging
 import time
 from typing import AnyStr, Callable, TypeVar
@@ -66,8 +67,10 @@ def load_jwks(config: ScimApiConfig) -> jwk.JWKSet:
     return jwks
 
 
-def retryable(func: Callable, max_retries: int = 10):
+def retryable_db_write(func: Callable):
+    @functools.wraps(func)
     def wrapper_run_func(*args, **kwargs):
+        max_retries = 10
         retry = 0
         while True:
             try:

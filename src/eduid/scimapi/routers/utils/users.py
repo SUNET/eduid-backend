@@ -12,7 +12,7 @@ from eduid.scimapi.context_request import ContextRequest
 from eduid.scimapi.exceptions import BadRequest
 from eduid.scimapi.routers.utils.events import add_api_event
 from eduid.scimapi.search import SearchFilter
-from eduid.scimapi.utils import make_etag, retryable
+from eduid.scimapi.utils import make_etag, retryable_db_write
 from eduid.userdb.scimapi import EventLevel, EventStatus
 from eduid.userdb.scimapi.userdb import ScimApiUser
 
@@ -27,7 +27,7 @@ def get_user_groups(req: ContextRequest, db_user: ScimApiUser) -> list[Group]:
     return groups
 
 
-@retryable
+@retryable_db_write
 def remove_user_from_all_groups(req: ContextRequest, db_user: ScimApiUser) -> None:
     """Remove a user from all groups"""
     # Remove user from groups
