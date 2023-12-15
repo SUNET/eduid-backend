@@ -75,10 +75,10 @@ def retryable_db_write(func: Callable):
         while True:
             try:
                 return func(*args, **kwargs)
-            except (DocumentOutOfSync, VersionMismatch) as e:
+            except (EduIDDBError, EduIDGroupDBError, Neo4jError) as e:
                 retry += 1
                 if retry >= max_retries:
-                    raise e
+                    raise MaxRetriesReached(f"Max retries reached for {func.__name__}")
                 time.sleep(0.1)
                 logger.warning(f"Retrying {func.__name__}, retry {retry} of {max_retries}: {e}")
 

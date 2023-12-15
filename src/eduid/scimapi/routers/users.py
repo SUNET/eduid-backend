@@ -273,9 +273,10 @@ async def on_delete(req: ContextRequest, scim_id: str) -> None:
 
     try:
         remove_user_from_all_groups(req, db_user)
-    except (EduIDDBError, EduIDGroupDBError):
+    except MaxRetriesReached:
         # this can be a problem when deleting many users that are all part of the same group as it can
         # lead to a race condition where the group is updated before the user is removed from it
+        req.app.context.logger.exception("Max retries reached when removing user from groups")
         raise Conflict(detail="Database object out of sync, please retry")
 
     res = req.context.userdb.remove(db_user)

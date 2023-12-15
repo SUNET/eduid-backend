@@ -16,6 +16,10 @@ from eduid.common.models.scim_base import SCIMSchema
 logger = logging.getLogger(__name__)
 
 
+class MaxRetriesReached(Exception):
+    pass
+
+
 class ErrorDetail(BaseModel):
     scimType: Optional[str] = None
     schemas: list[str] = [SCIMSchema.ERROR.value]
