@@ -27,17 +27,12 @@ from satosa.backends.saml2 import SAMLBackend
 from satosa.context import Context
 from satosa.exception import SATOSAAuthenticationError, SATOSAError
 from satosa.internal import InternalData
-from satosa.micro_services.base import (
-    # TODO: Enable when https://github.com/IdentityPython/SATOSA/pull/435 has been accepted
-    # CallbackCallSignature,
-    # CallbackReturnType,
-    # ProcessReturnType,
+from satosa.micro_services.base import (  # TODO: Enable when https://github.com/IdentityPython/SATOSA/pull/435 has been accepted; CallbackCallSignature,; CallbackReturnType,; ProcessReturnType,
     RequestMicroService,
     ResponseMicroService,
 )
 from satosa.response import Response
 from satosa.saml_util import make_saml_response
-
 
 try:
     # Available in a future version of pysaml2

@@ -8,11 +8,12 @@ from pymongo.errors import DuplicateKeyError
 from eduid.common.config.base import EduidEnvironment
 from eduid.common.models.scim_base import Email, Meta, Name, PhoneNumber, SCIMResourceType, SCIMSchema, SearchRequest
 from eduid.common.models.scim_user import Group, LinkedAccount, NutidUserExtensionV1, Profile, UserResponse
+from eduid.common.utils import make_etag
 from eduid.scimapi.context_request import ContextRequest
 from eduid.scimapi.exceptions import BadRequest
 from eduid.scimapi.routers.utils.events import add_api_event
 from eduid.scimapi.search import SearchFilter
-from eduid.scimapi.utils import make_etag, retryable_db_write
+from eduid.scimapi.utils import retryable_db_write
 from eduid.userdb.scimapi import EventLevel, EventStatus
 from eduid.userdb.scimapi.userdb import ScimApiUser
 

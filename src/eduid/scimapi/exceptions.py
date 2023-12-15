@@ -31,6 +31,10 @@ class SCIMErrorResponse(JSONResponse):
     media_type = "application/scim+json"
 
 
+class MaxRetriesReached(Exception):
+    pass
+
+
 async def unexpected_error_handler(req: Request, exc: Exception):
     error_id = uuid.uuid4()
     logger.error(f"unexpected error {error_id}: {req.method} {req.url.path} - {exc}")

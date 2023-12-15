@@ -15,8 +15,9 @@ from httpx import AsyncClient, Response
 from eduid.common.models.scim_base import Email, LanguageTag, Meta, Name, PhoneNumber, SCIMResourceType, SCIMSchema
 from eduid.common.models.scim_user import LinkedAccount, NutidUserExtensionV1, Profile, UserResponse
 from eduid.common.testing_base import normalised_data
+from eduid.common.utils import make_etag
 from eduid.scimapi.testing import ScimApiTestCase
-from eduid.scimapi.utils import filter_none, make_etag
+from eduid.scimapi.utils import filter_none
 from eduid.userdb.scimapi import EventStatus, ScimApiLinkedAccount
 from eduid.userdb.scimapi.userdb import ScimApiProfile, ScimApiUser
 

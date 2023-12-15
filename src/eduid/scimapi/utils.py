@@ -5,13 +5,14 @@ import time
 from typing import AnyStr, Callable, TypeVar
 from uuid import uuid4
 
-from bson import ObjectId
 from jwcrypto import jwk
+from neo4j.exceptions import Neo4jError
 
 from eduid.common.config.exceptions import BadConfiguration
-from eduid.graphdb.exceptions import VersionMismatch
+from eduid.graphdb.exceptions import EduIDGroupDBError
 from eduid.scimapi.config import ScimApiConfig
-from eduid.userdb.exceptions import DocumentOutOfSync
+from eduid.scimapi.exceptions import MaxRetriesReached
+from eduid.userdb.exceptions import EduIDDBError
 
 logger = logging.getLogger(__name__)
 
@@ -44,10 +45,6 @@ def filter_none(x: Filtered) -> Filtered:
         return [filter_none(i) for i in x if x is not None]  # type: ignore[return-value]
 
     return x
-
-
-def make_etag(version: ObjectId):
-    return f'W/"{version}"'
 
 
 def get_unique_hash():

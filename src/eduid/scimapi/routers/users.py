@@ -7,10 +7,9 @@ from fastapi import Response
 
 from eduid.common.models.scim_base import ListResponse, SCIMResourceType, SCIMSchema, SearchRequest
 from eduid.common.models.scim_user import UserCreateRequest, UserResponse, UserUpdateRequest
-from eduid.graphdb.exceptions import EduIDGroupDBError
 from eduid.scimapi.api_router import APIRouter
 from eduid.scimapi.context_request import ContextRequest, ContextRequestRoute
-from eduid.scimapi.exceptions import BadRequest, Conflict, ErrorDetail, NotFound
+from eduid.scimapi.exceptions import BadRequest, Conflict, ErrorDetail, MaxRetriesReached, NotFound
 from eduid.scimapi.routers.utils.events import add_api_event
 from eduid.scimapi.routers.utils.users import (
     acceptable_linked_accounts,
@@ -23,7 +22,6 @@ from eduid.scimapi.routers.utils.users import (
     users_to_resources_dicts,
 )
 from eduid.scimapi.search import parse_search_filter
-from eduid.userdb.exceptions import EduIDDBError
 from eduid.userdb.scimapi import (
     EventLevel,
     EventStatus,

@@ -5,13 +5,12 @@ from typing import Any, Optional, Union
 from uuid import UUID
 
 from bson import ObjectId
-from dateutil.parser import ParserError, parse
 from langcodes import standardize_tag
 from pydantic import BaseModel, EmailStr, Extra, Field
 
-from eduid.scimapi.utils import make_etag
-
 __author__ = "lundberg"
+
+from eduid.common.utils import make_etag
 
 # https://snipplr.com/view/11540/regex-for-tel-uris
 PHONE_NUMBER_RFC_3966 = re.compile(
