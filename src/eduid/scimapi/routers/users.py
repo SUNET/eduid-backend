@@ -1,5 +1,6 @@
 import pprint
 import re
+import time
 from dataclasses import replace
 from typing import Optional
 
@@ -20,8 +21,10 @@ from eduid.scimapi.routers.utils.users import (
     get_user_groups,
     save_user,
     users_to_resources_dicts,
+    remove_user_from_all_groups,
 )
 from eduid.scimapi.search import parse_search_filter
+from eduid.userdb.exceptions import DocumentOutOfSync
 from eduid.userdb.scimapi import (
     EventLevel,
     EventStatus,
@@ -269,46 +272,17 @@ async def on_delete(req: ContextRequest, scim_id: str) -> None:
     if not req.app.context.check_version(req, db_user):
         raise BadRequest(detail="Version mismatch")
 
-    # Remove user from groups
-    for member_group in req.context.groupdb.get_groups_for_user_identifer(db_user.scim_id):
-        # we need to get the full group object to get all the members
-        group = req.context.groupdb.get_group_by_scim_id(str(member_group.scim_id))
-        for member in group.graph.members.copy():
-            if member.identifier == str(db_user.scim_id):
-                req.app.context.logger.debug(
-                    f"Removing member {db_user.scim_id} from group {group.scim_id} ({group.display_name}"
-                )
-                group.graph.members.remove(member)
-                req.context.groupdb.save(group)
-                add_api_event(
-                    context=req.app.context,
-                    data_owner=req.context.data_owner,
-                    db_obj=group,
-                    resource_type=SCIMResourceType.GROUP,
-                    level=EventLevel.INFO,
-                    status=EventStatus.UPDATED,
-                    message="Member was removed",
-                )
-                break
-
-    for owner_group in req.context.groupdb.get_groups_owned_by_user_identifier(db_user.scim_id):
-        for owner in owner_group.graph.owners.copy():
-            if owner.identifier == str(db_user.scim_id):
-                req.app.context.logger.debug(
-                    f"Removing member {db_user.scim_id} from group {owner_group.scim_id} ({owner_group.display_name}"
-                )
-                owner_group.graph.owners.remove(owner)
-                req.context.groupdb.save(owner_group)
-                add_api_event(
-                    context=req.app.context,
-                    data_owner=req.context.data_owner,
-                    db_obj=owner_group,
-                    resource_type=SCIMResourceType.GROUP,
-                    level=EventLevel.INFO,
-                    status=EventStatus.UPDATED,
-                    message="Owner was removed",
-                )
-                break
+    retry = 0
+    while True:
+        try:
+            remove_user_from_all_groups(req, db_user)
+            break
+        except DocumentOutOfSync as e:
+            retry += 1
+            if retry > 3:
+                raise e
+            time.sleep(0.1)
+            req.app.context.logger.warning(f"Retrying remove user from groups: {e}")
 
     res = req.context.userdb.remove(db_user)
 

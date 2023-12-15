@@ -10,8 +10,10 @@ from eduid.common.models.scim_base import Email, Meta, Name, PhoneNumber, SCIMRe
 from eduid.common.models.scim_user import Group, LinkedAccount, NutidUserExtensionV1, Profile, UserResponse
 from eduid.scimapi.context_request import ContextRequest
 from eduid.scimapi.exceptions import BadRequest
+from eduid.scimapi.routers.utils.events import add_api_event
 from eduid.scimapi.search import SearchFilter
 from eduid.scimapi.utils import make_etag
+from eduid.userdb.scimapi import EventLevel, EventStatus
 from eduid.userdb.scimapi.userdb import ScimApiUser
 
 
@@ -23,6 +25,50 @@ def get_user_groups(req: ContextRequest, db_user: ScimApiUser) -> list[Group]:
         ref = req.app.context.url_for("Groups", group.scim_id)
         groups.append(Group(value=group.scim_id, ref=ref, display=group.display_name))
     return groups
+
+
+def remove_user_from_all_groups(req: ContextRequest, db_user: ScimApiUser) -> None:
+    """Remove a user from all groups"""
+    # Remove user from groups
+    for member_group in req.context.groupdb.get_groups_for_user_identifer(db_user.scim_id):
+        # we need to get the full group object to get all the members
+        group = req.context.groupdb.get_group_by_scim_id(str(member_group.scim_id))
+        for member in group.graph.members.copy():
+            if member.identifier == str(db_user.scim_id):
+                req.app.context.logger.debug(
+                    f"Removing member {db_user.scim_id} from group {group.scim_id} ({group.display_name}"
+                )
+                group.graph.members.remove(member)
+                req.context.groupdb.save(group)
+                add_api_event(
+                    context=req.app.context,
+                    data_owner=req.context.data_owner,
+                    db_obj=group,
+                    resource_type=SCIMResourceType.GROUP,
+                    level=EventLevel.INFO,
+                    status=EventStatus.UPDATED,
+                    message="Member was removed",
+                )
+                break
+
+    for owner_group in req.context.groupdb.get_groups_owned_by_user_identifier(db_user.scim_id):
+        for owner in owner_group.graph.owners.copy():
+            if owner.identifier == str(db_user.scim_id):
+                req.app.context.logger.debug(
+                    f"Removing member {db_user.scim_id} from group {owner_group.scim_id} ({owner_group.display_name}"
+                )
+                owner_group.graph.owners.remove(owner)
+                req.context.groupdb.save(owner_group)
+                add_api_event(
+                    context=req.app.context,
+                    data_owner=req.context.data_owner,
+                    db_obj=owner_group,
+                    resource_type=SCIMResourceType.GROUP,
+                    level=EventLevel.INFO,
+                    status=EventStatus.UPDATED,
+                    message="Owner was removed",
+                )
+                break
 
 
 def db_user_to_response(req: ContextRequest, resp: Response, db_user: ScimApiUser) -> UserResponse:
