@@ -527,7 +527,7 @@ jmespath==1.0.1 \
     #   -c main.txt
     #   boto3
     #   botocore
-jwcrypto==1.5.0 \
+jwcrypto==1.5.1 \
     --hash=sha256:2c1dc51cf8e38ddf324795dfe9426dee9dd46caf47f535ccbc18781fba810b8d
     # via
     #   -c main.txt
