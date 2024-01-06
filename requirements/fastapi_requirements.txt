@@ -908,7 +908,7 @@ pycparser==2.21 \
     # via
     #   -c main.txt
     #   cffi
-pycryptodome==3.19.0 \
+pycryptodome==3.19.1 \
     --hash=sha256:0101f647d11a1aae5a8ce4f5fad6644ae1b22bb65d05accc7d322943c69a74a6 \
     --hash=sha256:04dd31d3b33a6b22ac4d432b3274588917dcf850cc0c51c84eca1d8ed6933810 \
     --hash=sha256:05e33267394aad6db6595c0ce9d427fe21552f5425e116a925455e099fdf759a \
@@ -942,7 +942,7 @@ pycryptodome==3.19.0 \
     --hash=sha256:e249a784cc98a29c77cea9df54284a44b40cafbfae57636dd2f8775b48af2434 \
     --hash=sha256:fc7a79590e2b5d08530175823a242de6790abc73638cc6dc9d2684e7be2f5e49
     # via pyhsm
-pycryptodomex==3.19.0 \
+pycryptodomex==3.19.1 \
     --hash=sha256:09c9401dc06fb3d94cb1ec23b4ea067a25d1f4c6b7b118ff5631d0b5daaab3cc \
     --hash=sha256:0b2f1982c5bc311f0aab8c293524b861b485d76f7c9ab2c3ac9a25b6f7655975 \
     --hash=sha256:136b284e9246b4ccf4f752d435c80f2c44fc2321c198505de1d43a95a3453b3c \
