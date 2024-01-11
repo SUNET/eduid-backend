@@ -54,7 +54,7 @@ class ServeStatic(RequestMicroService):
             mimetype = mimetypes.guess_type(file)[0]
             logger.debug(f"mimetype {mimetype}")
         except Exception:
-            response = f"File not found /{path}".encode()
+            response = "File not found".encode()
             mimetype = "text/html"
             status = "404 Not Found"
 
