@@ -38,8 +38,8 @@ class ServeStatic(RequestMicroService):
         url_map = []
         for endpoint, path in self.locations.items():
             endpoint = endpoint.strip("/")
-            logger.info("{} registering {} - {}".format(self.logprefix, endpoint, path))
-            url_map.append(["^%s/" % endpoint, self._handle])
+            logger.info(f"{self.logprefix} registering {endpoint} - {path}")
+            url_map.append([f"^{endpoint}/", self._handle])
         return url_map
 
     def _handle(self, context):
@@ -48,13 +48,13 @@ class ServeStatic(RequestMicroService):
         target = path[len(endpoint) + 1 :]
         status = "200 OK"
         try:
-            file = "%s/%s" % (self.locations[endpoint], target)
-            logger.info("{} _handle: {} - {} - {}".format(self.logprefix, endpoint, target, file))
+            file = f"{self.locations[endpoint]}/{target}"
+            logger.info(f"{self.logprefix} _handle: {endpoint} - {target} - {file}")
             response = open(file, "rb").read()
             mimetype = mimetypes.guess_type(file)[0]
-            logger.debug("mimetype {}".format(mimetype))
+            logger.debug(f"mimetype {mimetype}")
         except Exception:
-            response = "File not found /{}".format(path)
+            response = f"File not found /{path}".encode()
             mimetype = "text/html"
             status = "404 Not Found"
 
