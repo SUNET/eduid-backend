@@ -47,15 +47,17 @@ class ServeStatic(RequestMicroService):
         endpoint = path.split("/")[0]
         target = path[len(endpoint) + 1 :]
         status = "200 OK"
+
+        file = f"{self.locations[endpoint]}/{target}"
         try:
-            file = f"{self.locations[endpoint]}/{target}"
-            logger.info(f"{self.logprefix} _handle: {endpoint} - {target} - {file}")
-            response = open(file, "rb").read()
-            mimetype = mimetypes.guess_type(file)[0]
-            logger.debug(f"mimetype {mimetype}")
-        except Exception:
+            with open(file, "rb") as f:
+                response = f.read()
+                mimetype = mimetypes.guess_type(file)[0]
+                logger.debug(f"mimetype {mimetype}")
+        except IOError:
             response = "File not found".encode()
             mimetype = "text/html"
             status = "404 Not Found"
 
+        logger.info(f"{self.logprefix} _handle: {endpoint} - {target} - {file} - {status}")
         return Response(response, content=mimetype, status=status)
