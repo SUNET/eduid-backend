@@ -9,7 +9,7 @@ from fastapi.exception_handlers import http_exception_handler
 from fastapi.exceptions import RequestValidationError
 from pydantic import BaseModel
 from starlette.exceptions import HTTPException as StarletteHTTPException
-from starlette.responses import JSONResponse
+from starlette.responses import JSONResponse, Response
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +23,7 @@ class ErrorResponse(JSONResponse):
     media_type = "application/json"
 
 
-async def unexpected_error_handler(req: Request, exc: Exception):
+async def unexpected_error_handler(req: Request, exc: Exception) -> Union[Response, JSONResponse]:
     error_id = uuid.uuid4()
     logger.error(f"unexpected error {error_id}: {req.method} {req.url.path} - {exc}")
     http_exception = StarletteHTTPException(
@@ -32,17 +32,17 @@ async def unexpected_error_handler(req: Request, exc: Exception):
     return await http_exception_handler(req, http_exception)
 
 
-async def validation_exception_handler(req: Request, exc: RequestValidationError):
+async def validation_exception_handler(req: Request, exc: RequestValidationError) -> ErrorResponse:
     status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
     detail = ErrorDetail(
-        detail=exc.errors(),
+        detail=list(exc.errors()),
         status=status_code,
     )
     logger.error(f"validation exception: {req.method} {req.url.path} - {exc} - {detail}")
     return ErrorResponse(content=detail.dict(exclude_none=True), status_code=status_code)
 
 
-async def http_error_detail_handler(req: Request, exc: HTTPErrorDetail):
+async def http_error_detail_handler(req: Request, exc: HTTPErrorDetail) -> ErrorResponse:
     logger.error(f"error detail: {req.method} {req.url.path} - {exc} - {exc.error_detail}")
     return ErrorResponse(
         content=exc.error_detail.dict(exclude_none=True),

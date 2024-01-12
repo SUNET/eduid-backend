@@ -38,8 +38,10 @@ def init_api(name: str = "am_api", test_config: Optional[dict] = None) -> AMAPI:
     app.add_middleware(AuthenticationMiddleware)
 
     # Exception handling
-    app.add_exception_handler(RequestValidationError, validation_exception_handler)
-    app.add_exception_handler(HTTPErrorDetail, http_error_detail_handler)
+    # seems like there is a discussion about how to type exception handlers that was closed
+    # https://github.com/encode/starlette/pull/1456
+    app.add_exception_handler(RequestValidationError, validation_exception_handler)  # type: ignore[arg-type]
+    app.add_exception_handler(HTTPErrorDetail, http_error_detail_handler)  # type: ignore[arg-type]
     app.add_exception_handler(Exception, unexpected_error_handler)
 
     app.context.logger.info("app running...")
