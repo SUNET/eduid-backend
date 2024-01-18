@@ -6,7 +6,7 @@ from eduid.maccapi.model.user import ManagedAccount
 
 from typing import List
 
-from eduid.maccapi.util import generate_ma_eppn, logger, save_and_sync_user
+from eduid.maccapi.util import generate_ma_eppn, save_and_sync_user
 from eduid.userdb.credentials import Password
 from eduid.userdb.exceptions import UserOutOfSync
 from eduid.vccs.client import VCCSClient, VCCSClientHTTPError, VCCSPasswordFactor, VCCSRevokeFactor
@@ -18,17 +18,22 @@ def list_users(context: Context):
     return managed_accounts
 
 
-def add_password(managed_account: ManagedAccount, password: str, vccs_url: str) -> bool:
+def add_password(context: Context, managed_account: ManagedAccount, password: str) -> bool:
+    vccs_url = context.config.vccs_url
     vccs = VCCSClient(base_url=vccs_url)
-    logger.debug(f"vccs_url: {vccs_url}")
+    context.logger.debug(f"vccs_url: {vccs_url}")
 
     new_factor = VCCSPasswordFactor(password=password, credential_id=str(ObjectId()))
 
-    # TODO: add to credentials store
+    # Add password to vccs only if not testing
+    if context.config.testing == True:
+        context.logger.debug("Testing mode, not adding password to vccs")
+        return True
+    
     if not vccs.add_credentials(str(managed_account.user_id), [new_factor]):
-        logger.error(f"Failed adding password credential {new_factor.credential_id} for user {managed_account}")
+        context.logger.error(f"Failed adding password credential {new_factor.credential_id} for user {managed_account}")
         return False
-    logger.info(f"Added password credential {new_factor.credential_id} for user {managed_account}")
+    context.logger.info(f"Added password credential {new_factor.credential_id} for user {managed_account}")
 
     _password = Password(credential_id=new_factor.credential_id, salt=new_factor.salt, is_generated=True, created_by="maccapi")
     managed_account.credentials.add(_password)
@@ -39,7 +44,7 @@ def add_password(managed_account: ManagedAccount, password: str, vccs_url: str) 
 def revoke_passwords(context: Context, managed_account: ManagedAccount, reason: str):
     vccs_url = context.config.vccs_url
     vccs = VCCSClient(base_url=vccs_url)
-    logger.debug(f"vccs_url: {vccs_url}")
+    context.logger.debug(f"vccs_url: {vccs_url}")
 
     revoke_factors = []
     for password in managed_account.credentials.filter(Password):
@@ -50,6 +55,12 @@ def revoke_passwords(context: Context, managed_account: ManagedAccount, reason: 
         managed_account.credentials.remove(password.key)
 
     userid = str(managed_account.user_id)
+
+    # Revoke the password with vccs only if not testing
+    if context.config.testing == True:
+        context.logger.debug(f"Testing mode, not revoking password with vccs")
+        return True
+
     try:
         vccs.revoke_credentials(user_id=userid, factors=revoke_factors)
     except VCCSClientHTTPError:
@@ -65,7 +76,7 @@ def create_and_sync_user(context: Context, given_name: str, surname: str, passwo
 
     managed_account = ManagedAccount(eppn=eppn, given_name=given_name, surname=surname)
 
-    if not add_password(managed_account=managed_account, password=password, vccs_url=context.config.vccs_url):
+    if not add_password(context=context, managed_account=managed_account, password=password):
         context.logger.error(f"Failed adding password for user {managed_account}")
         raise Exception(f"Failed adding password for user {managed_account}")
 
@@ -96,8 +107,14 @@ def replace_password(context: Context, eppn: str, new_password: str):
     if managed_account is None:
         raise Exception(f"User {eppn} not found")
     revoke_passwords(context=context, managed_account=managed_account, reason="Password replaced")
-    if not add_password(managed_account=managed_account, password=new_password, vccs_url=context.config.vccs_url):
+    if not add_password(context=context, managed_account=managed_account, password=new_password):
         context.logger.error(f"Failed to add password for {managed_account}")
         raise Exception(f"Failed to add password for {managed_account}")
     save_and_sync_user(context=context, managed_account=managed_account)
     context.logger.info(f"Replaced password for {managed_account}")
+
+def get_user(context: Context, eppn: str) -> ManagedAccount:
+    managed_account: ManagedAccount = context.db.get_user_by_eppn(eppn)
+    if managed_account is None:
+        raise Exception(f"User {eppn} not found")
+    return managed_account

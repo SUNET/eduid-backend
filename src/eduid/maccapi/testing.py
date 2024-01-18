@@ -1,0 +1,79 @@
+import os
+from typing import Any, Optional
+import unittest
+from eduid.common.config.parsers import load_config
+from eduid.maccapi.app import init_api
+from eduid.maccapi.config import MAccApiConfig
+from eduid.maccapi.context import Context
+from eduid.maccapi.model.user import ManagedAccount
+
+from eduid.userdb.testing import MongoTemporaryInstance
+
+from starlette.testclient import TestClient
+
+class BaseDBTestCase(unittest.TestCase):
+    """
+    Base test case that sets up a temporary database for testing.
+    """
+
+    mongodb_instance = MongoTemporaryInstance
+    mongo_uri = str
+
+    @classmethod
+    def setUpClass(cls):
+        cls.mongodb_instance = MongoTemporaryInstance.get_instance()
+        cls.mongo_uri = cls.mongodb_instance.uri
+
+    def _get_config(self) -> dict[str, Any]:
+        config = {
+            "debug": True,
+            "testing": True,
+            "mongo_uri": self.mongo_uri,
+            "data_owners": {"eduid.se": {"db_name": "eduid_se"}},
+            "logging_config": {
+                "loggers": {
+                    "root": {
+                        "handlers": ["console"],
+                        "level": "DEBUG",
+                    }
+                }
+            }
+        }
+        return config
+
+class MAccApiTestCase(BaseDBTestCase):
+    """
+    Base class for tests of the MAcc API.
+    """
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        return super().setUpClass()
+    
+    def setUp(self) -> None:
+        if "EDUID_CONFIG_YAML" not in os.environ:
+            os.environ["EDUID_CONFIG_YAML"] = "YAML_CONFIG_NOT_USED"
+        
+        self.test_config = super()._get_config()
+        config = load_config(typ=MAccApiConfig, app_name="maccapi", ns="api", test_config=self.test_config)
+        self.context = Context(config=config)
+        self.db = self.context.db
+
+        self.api = init_api(name="test_api", test_config=self.test_config)
+        self.client = TestClient(self.api)
+    
+    def _get_config(self) -> dict:
+        config = super()._get_config()
+        # TODO: add auth settings
+        return config
+    
+    def tearDown(self) -> None:
+        super().tearDown()
+        if self.db:
+            self.db._drop_whole_collection()
+
+    def add_user(self, eppn: str, given_name: str, surname: str) -> Optional[ManagedAccount]:
+        user = ManagedAccount(eppn=eppn, given_name=given_name, surname=surname)
+        assert self.db
+        self.db.save(user)
+        return self.db.get_user_by_eppn(eppn)

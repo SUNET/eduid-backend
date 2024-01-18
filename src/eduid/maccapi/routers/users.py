@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Request
-from eduid.maccapi.helpers import create_and_sync_user, deactivate_user, list_users, replace_password
+from eduid.maccapi.helpers import create_and_sync_user, deactivate_user, get_user, list_users, replace_password
 
 from eduid.maccapi.model.api import ApiUser, UserListResponse, UserCreateRequest, UserCreatedResponse, UserRemoveRequest, UserRemovedResponse, UserResetPasswordRequest, UserResetPasswordResponse
 from eduid.maccapi.model.user import ManagedAccount
@@ -63,14 +63,17 @@ async def reset_password(request: Request, reset_request: UserResetPasswordReque
     """
     request.app.context.logger.debug(f"reset_password: {reset_request}")
 
+    eppn = reset_request.eppn
     new_password = generate_password()
 
     try:
-        replace_password(context=request.app.context, eppn=reset_request.eppn, new_password=new_password)
+        managed_account = get_user(context=request.app.context, eppn=eppn)
+        replace_password(context=request.app.context, eppn=eppn, new_password=new_password)
+        api_user = ApiUser(eppn=managed_account.eppn, given_name=managed_account.given_name, surname=managed_account.surname, password=new_password)
+        response = UserResetPasswordResponse(status="success", user=api_user)
     except Exception as e:
         request.app.context.logger.error(f"reset_password error: {e}")
         response = UserResetPasswordResponse(status="error")
         return response
 
-    response = UserResetPasswordResponse(status="success", password=new_password)
     return response

@@ -31,5 +31,5 @@ class UserResetPasswordRequest(BaseModel):
 
 class UserResetPasswordResponse(BaseModel):
     status: str
-    password: Optional[str]
+    user: Optional[ApiUser]
     

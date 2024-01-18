@@ -15,6 +15,8 @@ class MAccAPI(FastAPI):
         super().__init__(root_path=self.config.application_root)
         self.context = Context(config=self.config)
         self.context.logger.info(f"Starting {name} app")
+        self.title = "maccapi"
+        self.version = "1.0.0"
 
 def init_api(name: str = "maccapi", test_config: Optional[dict] = None) -> MAccAPI:
     """
