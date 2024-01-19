@@ -16,8 +16,8 @@ class BaseDBTestCase(unittest.TestCase):
     Base test case that sets up a temporary database for testing.
     """
 
-    mongodb_instance = MongoTemporaryInstance
-    mongo_uri = str
+    mongodb_instance : MongoTemporaryInstance
+    mongo_uri : str
 
     @classmethod
     def setUpClass(cls):
