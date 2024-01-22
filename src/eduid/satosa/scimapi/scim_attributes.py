@@ -5,20 +5,17 @@ from typing import Any, Mapping, Optional
 
 import satosa.context
 import satosa.internal
-from saml2.mdstore import MetaData
-from satosa.attribute_mapping import AttributeMapper
-from satosa.exception import SATOSAAuthenticationError
-from satosa.micro_services.base import ResponseMicroService
-from satosa.routing import STATE_KEY as ROUTER_STATE_KEY
-
 from eduid.satosa.scimapi.common import (
     MfaStepupAccount,
-    get_internal_attribute_name,
     get_metadata,
     store_mfa_stepup_accounts,
 )
 from eduid.userdb.scimapi import ScimApiGroup, ScimApiGroupDB
 from eduid.userdb.scimapi.userdb import ScimApiUser, ScimApiUserDB, ScimEduidUserDB
+from satosa.attribute_mapping import AttributeMapper
+from satosa.exception import SATOSAAuthenticationError
+from satosa.micro_services.base import ResponseMicroService
+from satosa.routing import STATE_KEY as ROUTER_STATE_KEY
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +25,7 @@ class Config:
     mongo_uri: str
     neo4j_uri: Optional[str] = None
     neo4j_config: dict = field(default_factory=dict)
-    allow_users_not_in_database: bool = False
+    allow_users_not_in_database: Mapping[str, bool] = field(default_factory=lambda: {"default": False})
     fallback_data_owner: Optional[str] = None
     idp_to_data_owner: Mapping[str, str] = field(default_factory=dict)
     mfa_stepup_issuer_to_entity_id: Mapping[str, str] = field(default_factory=dict)
@@ -118,11 +115,10 @@ class ScimAttributes(ResponseMicroService):
             logger.debug(f"Found user: {user}")
             data = self._process_user(user=user, data=data)
         else:
-            if self.config.allow_users_not_in_database:
-                logger.info(
-                    "User not found in database but letting through since 'allow_users_not_in_database' is set to True"
-                )
-            else:
+            default_allow = self.config.allow_users_not_in_database.get("default", False)
+            allow_users_not_in_database = self.config.allow_users_not_in_database.get(frontend_name, default_allow)
+
+            if allow_users_not_in_database == False:
                 raise SATOSAAuthenticationError(context.state, "User not found in database")
 
         if user_groups:

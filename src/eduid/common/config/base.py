@@ -100,10 +100,17 @@ class CookieConfig(BaseModel):
 TRootConfigSubclass = TypeVar("TRootConfigSubclass", bound="RootConfig")
 
 
+class EduidEnvironment(str, Enum):
+    dev = "dev"
+    staging = "staging"
+    production = "production"
+
+
 class RootConfig(BaseModel):
     app_name: str
     debug: bool = False
     testing: bool = False
+    environment: EduidEnvironment = EduidEnvironment.production
 
     class Config:
         validate_assignment = True  # validate data when test cases modify the config object
@@ -111,12 +118,6 @@ class RootConfig(BaseModel):
 
 # EduIDBaseApp is currently Flask apps
 TEduIDBaseAppConfigSubclass = TypeVar("TEduIDBaseAppConfigSubclass", bound="EduIDBaseAppConfig")
-
-
-class EduidEnvironment(str, Enum):
-    dev = "dev"
-    staging = "staging"
-    production = "production"
 
 
 class LoggingFilters(str, Enum):
@@ -135,7 +136,6 @@ class WorkerConfig(RootConfig):
 
     audit: bool = False
     celery: CeleryConfig = Field(default_factory=CeleryConfig)
-    environment: EduidEnvironment = EduidEnvironment.production
     mongo_uri: Optional[str] = None
     transaction_audit: bool = False
 
@@ -402,7 +402,6 @@ class ProofingConfigMixin(BaseModel):
 
 class EduIDBaseAppConfig(RootConfig, LoggingConfigMixin, StatsConfigMixin, RedisConfigMixin):
     available_languages: Mapping[str, str] = Field(default={"en": "English", "sv": "Svenska"})
-    environment: EduidEnvironment = EduidEnvironment.production
     flask: FlaskConfig = Field(default_factory=FlaskConfig)
     mongo_uri: str
     # Allow list of URLs that do not need authentication. Unauthenticated requests

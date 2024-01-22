@@ -17,6 +17,7 @@ from eduid.scimapi.routers.utils.users import (
     filter_externalid,
     filter_lastmodified,
     filter_profile_data,
+    get_user_groups,
     save_user,
     users_to_resources_dicts,
 )
@@ -103,7 +104,7 @@ async def on_put(req: ContextRequest, resp: Response, update_request: UserUpdate
 
     nutid_changed = False
     if SCIMSchema.NUTID_USER_V1 in update_request.schemas and update_request.nutid_user_v1 is not None:
-        if not acceptable_linked_accounts(update_request.nutid_user_v1.linked_accounts):
+        if not acceptable_linked_accounts(update_request.nutid_user_v1.linked_accounts, req.app.config.environment):
             raise BadRequest(detail="Invalid nutid linked_accounts")
 
         # Look for changes in profiles
@@ -153,7 +154,7 @@ async def on_put(req: ContextRequest, resp: Response, update_request: UserUpdate
             message="User was updated",
         )
     else:
-        req.app.context.logger.info(f"No changes detected")
+        req.app.context.logger.info("No changes detected")
 
     return db_user_to_response(req=req, resp=resp, db_user=db_user)
 
@@ -207,13 +208,13 @@ async def on_post(req: ContextRequest, resp: Response, create_request: UserCreat
     }
     """
 
-    req.app.context.logger.info(f"Creating user")
+    req.app.context.logger.info("Creating user")
     req.app.context.logger.debug(create_request)
 
     profiles = {}
     linked_accounts = []
     if SCIMSchema.NUTID_USER_V1 in create_request.schemas and create_request.nutid_user_v1 is not None:
-        if not acceptable_linked_accounts(create_request.nutid_user_v1.linked_accounts):
+        if not acceptable_linked_accounts(create_request.nutid_user_v1.linked_accounts, req.app.config.environment):
             raise BadRequest(detail="Invalid nutid linked_accounts")
 
         # convert from one type of profiles to another
@@ -268,6 +269,47 @@ async def on_delete(req: ContextRequest, scim_id: str) -> None:
     if not req.app.context.check_version(req, db_user):
         raise BadRequest(detail="Version mismatch")
 
+    # Remove user from groups
+    for member_group in req.context.groupdb.get_groups_for_user_identifer(db_user.scim_id):
+        # we need to get the full group object to get all the members
+        group = req.context.groupdb.get_group_by_scim_id(str(member_group.scim_id))
+        for member in group.graph.members.copy():
+            if member.identifier == str(db_user.scim_id):
+                req.app.context.logger.debug(
+                    f"Removing member {db_user.scim_id} from group {group.scim_id} ({group.display_name}"
+                )
+                group.graph.members.remove(member)
+                req.context.groupdb.save(group)
+                add_api_event(
+                    context=req.app.context,
+                    data_owner=req.context.data_owner,
+                    db_obj=group,
+                    resource_type=SCIMResourceType.GROUP,
+                    level=EventLevel.INFO,
+                    status=EventStatus.UPDATED,
+                    message="Member was removed",
+                )
+                break
+
+    for owner_group in req.context.groupdb.get_groups_owned_by_user_identifier(db_user.scim_id):
+        for owner in owner_group.graph.owners.copy():
+            if owner.identifier == str(db_user.scim_id):
+                req.app.context.logger.debug(
+                    f"Removing member {db_user.scim_id} from group {owner_group.scim_id} ({owner_group.display_name}"
+                )
+                owner_group.graph.owners.remove(owner)
+                req.context.groupdb.save(owner_group)
+                add_api_event(
+                    context=req.app.context,
+                    data_owner=req.context.data_owner,
+                    db_obj=owner_group,
+                    resource_type=SCIMResourceType.GROUP,
+                    level=EventLevel.INFO,
+                    status=EventStatus.UPDATED,
+                    message="Owner was removed",
+                )
+                break
+
     res = req.context.userdb.remove(db_user)
 
     add_api_event(
@@ -317,7 +359,7 @@ async def search(req: ContextRequest, query: SearchRequest) -> ListResponse:
       ]
     }
     """
-    req.app.context.logger.info(f"Searching for users(s)")
+    req.app.context.logger.info("Searching for users(s)")
     req.app.context.logger.debug(f"Parsed user search query: {query}")
 
     _filter = parse_search_filter(query.filter)
