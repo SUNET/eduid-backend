@@ -1,31 +1,18 @@
 import logging
 
+from jwcrypto import jwk
 from uuid import uuid4
 from pwgen import pwgen
 import math
+from eduid.common.config.exceptions import BadConfiguration
+from eduid.maccapi.config import MAccApiConfig
 
 
-from eduid.userdb.exceptions import UserDoesNotExist
-from eduid.maccapi.model.user import ManagedAccount
-from eduid.maccapi.context import Context
-from eduid.maccapi.userdb import ManagedAccountDB
 
 logger = logging.getLogger(__name__)
 
 def get_short_hash(entropy=8):
     return uuid4().hex[:entropy]
-
-def generate_ma_eppn(context: Context) -> str:
-    # TODO: check for existing eppn
-    for _ in range(10):
-        eppn = f"ma-{get_short_hash(8)}"
-        try:
-            context.db.get_user_by_eppn(eppn)
-        except UserDoesNotExist:
-            return eppn
-    context.logger.critical("Failed to generate unique eppn")
-    raise Exception("Failed to generate unique eppn")
-
 
 def generate_password(length: int = 12) -> str:
     password = pwgen(int(length), no_capitalize=True, no_symbols=True)
@@ -33,10 +20,10 @@ def generate_password(length: int = 12) -> str:
 
     return password
 
-def save_and_sync_user(context: Context, managed_account: ManagedAccount):
-    context.logger.debug(f"Saving and syncing user {managed_account}")
-    result = context.db.save(managed_account)
-    context.logger.debug(f"Saved user {managed_account} with result {result}")
-
-
-
+def load_jwks(config: MAccApiConfig) -> jwk.JWKSet:
+    if not config.keystore_path.exists():
+        raise BadConfiguration(f"JWKS path {config.keystore_path} does not exist")
+    with open(config.keystore_path, "r") as f:
+        jwks = jwk.JWKSet.from_json(f.read())
+        logger.info(f"jwks loaded from {config.keystore_path}")
+    return jwks

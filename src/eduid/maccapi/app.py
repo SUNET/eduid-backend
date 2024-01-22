@@ -5,9 +5,11 @@ from fastapi.routing import APIRoute
 from eduid.common.config.parsers import load_config
 from eduid.maccapi.config import MAccApiConfig
 from eduid.maccapi.context import Context
+from eduid.maccapi.middleware import AuthenticationMiddleware
 
 from eduid.maccapi.routers.status import status_router
 from eduid.maccapi.routers.users import users_router
+
 
 class MAccAPI(FastAPI):
     def __init__(self, name: str="maccapi", test_config: Optional[dict] = None):
@@ -27,6 +29,8 @@ def init_api(name: str = "maccapi", test_config: Optional[dict] = None) -> MAccA
 
     app.include_router(status_router)
     app.include_router(users_router)
+
+    app.add_middleware(AuthenticationMiddleware, context=app.context)
 
     app.context.logger.info("app running...")
     return app

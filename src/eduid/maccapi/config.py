@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 from pydantic import Field, validator
 from eduid.common.config.base import LoggingConfigMixin, RootConfig
 from eduid.common.utils import removesuffix
@@ -17,6 +18,8 @@ class MAccApiConfig(RootConfig, LoggingConfigMixin):
     no_authn_urls: list[str] = Field(default=["^/status/healthy$", "^/docs/?$", "^/openapi.json"])
     vccs_url: str = "http://vccs:8080/"
     mongo_uri: str = ""
+    authorization_mandatory: bool = True
+    keystore_path: Path
 
     @validator("application_root")
     def application_root_must_not_end_with_slash(cls, v: str):

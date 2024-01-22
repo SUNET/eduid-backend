@@ -3,6 +3,7 @@ import logging
 from eduid.common.fastapi.log import init_logging
 from eduid.maccapi.config import MAccApiConfig
 from eduid.maccapi.userdb import ManagedAccountDB
+from eduid.maccapi.util import load_jwks
 
 class Context:
     def __init__(self, config: MAccApiConfig):
@@ -17,3 +18,6 @@ class Context:
         # Setup database
         self.db = ManagedAccountDB(config.mongo_uri)
         self.logger.info("Database initialized")
+
+        # Setup keystore
+        self.jwks = load_jwks(config)

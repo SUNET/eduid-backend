@@ -1,6 +1,8 @@
 import os
 from typing import Any, Optional
 import unittest
+
+import pkg_resources
 from eduid.common.config.parsers import load_config
 from eduid.maccapi.app import init_api
 from eduid.maccapi.config import MAccApiConfig
@@ -53,18 +55,27 @@ class MAccApiTestCase(BaseDBTestCase):
     def setUp(self) -> None:
         if "EDUID_CONFIG_YAML" not in os.environ:
             os.environ["EDUID_CONFIG_YAML"] = "YAML_CONFIG_NOT_USED"
-        
-        self.test_config = super()._get_config()
+
+        self.datadir = pkg_resources.resource_filename(__name__, "tests/data")
+        self.test_config = self._get_config()
         config = load_config(typ=MAccApiConfig, app_name="maccapi", ns="api", test_config=self.test_config)
         self.context = Context(config=config)
         self.db = self.context.db
 
         self.api = init_api(name="test_api", test_config=self.test_config)
         self.client = TestClient(self.api)
+        self.headers = {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+        }
+
     
     def _get_config(self) -> dict:
         config = super()._get_config()
         # TODO: add auth settings
+        config["keystore_path"] = f"{self.datadir}/testing_jwks.json"
+        config["signing_key_id"] = "testing-maccapi-2106210000"
+        config["authorization_mandatory"] = False
         return config
     
     def tearDown(self) -> None:

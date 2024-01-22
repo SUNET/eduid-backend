@@ -5,10 +5,10 @@ from eduid.maccapi.model.user import ManagedAccount
 
 
 from typing import List
+from eduid.maccapi.util import get_short_hash
 
-from eduid.maccapi.util import generate_ma_eppn, save_and_sync_user
 from eduid.userdb.credentials import Password
-from eduid.userdb.exceptions import UserOutOfSync
+from eduid.userdb.exceptions import UserDoesNotExist, UserOutOfSync
 from eduid.vccs.client import VCCSClient, VCCSClientHTTPError, VCCSPasswordFactor, VCCSRevokeFactor
 
 
@@ -68,6 +68,24 @@ def revoke_passwords(context: Context, managed_account: ManagedAccount, reason: 
         context.logger.error(f"Failed revoking password for user {managed_account}")
         return False
     return True
+
+
+def save_and_sync_user(context: Context, managed_account: ManagedAccount):
+    context.logger.debug(f"Saving and syncing user {managed_account}")
+    result = context.db.save(managed_account)
+    context.logger.debug(f"Saved user {managed_account} with result {result}")
+
+
+def generate_ma_eppn(context: Context) -> str:
+    # TODO: check for existing eppn
+    for _ in range(10):
+        eppn = f"ma-{get_short_hash(8)}"
+        try:
+            context.db.get_user_by_eppn(eppn)
+        except UserDoesNotExist:
+            return eppn
+    context.logger.critical("Failed to generate unique eppn")
+    raise Exception("Failed to generate unique eppn")
 
 
 def create_and_sync_user(context: Context, given_name: str, surname: str, password: str) -> ManagedAccount:
