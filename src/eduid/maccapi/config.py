@@ -1,10 +1,13 @@
 import logging
 from pathlib import Path
+
 from pydantic import Field, validator
+
 from eduid.common.config.base import LoggingConfigMixin, RootConfig
 from eduid.common.utils import removesuffix
 
 logger = logging.getLogger(__name__)
+
 
 class MAccApiConfig(RootConfig, LoggingConfigMixin):
     """

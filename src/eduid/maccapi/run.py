@@ -3,7 +3,7 @@ from sys import stderr
 
 from eduid.maccapi.app import init_api
 
-__author__ = 'ylle'
+__author__ = "ylle"
 
 DEBUG = os.environ.get("EDUID_APP_DEBUG", False)
 if DEBUG:

@@ -1,5 +1,5 @@
-from eduid.userdb.maccapi import ManagedAccount
 from eduid.maccapi.testing import MAccApiTestCase
+from eduid.userdb.maccapi import ManagedAccount
 
 
 class TestUser(MAccApiTestCase):

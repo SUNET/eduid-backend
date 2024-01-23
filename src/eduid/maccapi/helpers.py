@@ -1,22 +1,23 @@
+from typing import List
+
 from bson import ObjectId
+
 from eduid.common.misc.timeutil import utc_now
 from eduid.maccapi.context import Context
-from eduid.userdb.maccapi import ManagedAccount
-
-
-from typing import List
 from eduid.maccapi.util import get_short_hash
-
 from eduid.userdb.credentials import Password
 from eduid.userdb.exceptions import UserDoesNotExist, UserOutOfSync
+from eduid.userdb.maccapi import ManagedAccount
 from eduid.vccs.client import VCCSClient, VCCSClientHTTPError, VCCSPasswordFactor, VCCSRevokeFactor
-from eduid.userdb.exceptions import UserDoesNotExist
+
 
 class UnableToCreateUniqueEppn(Exception):
     pass
 
+
 class UnableToAddPassword(Exception):
     pass
+
 
 def list_users(context: Context):
     managed_accounts: List[ManagedAccount] = context.db.get_users_by_organization("foo")
@@ -35,13 +36,15 @@ def add_password(context: Context, managed_account: ManagedAccount, password: st
     if context.config.testing == True:
         context.logger.debug("Testing mode, not adding password to vccs")
         return True
-    
+
     if not vccs.add_credentials(str(managed_account.user_id), [new_factor]):
         context.logger.error(f"Failed adding password credential {new_factor.credential_id} for user {managed_account}")
         return False
     context.logger.info(f"Added password credential {new_factor.credential_id} for user {managed_account}")
 
-    _password = Password(credential_id=new_factor.credential_id, salt=new_factor.salt, is_generated=True, created_by="maccapi")
+    _password = Password(
+        credential_id=new_factor.credential_id, salt=new_factor.salt, is_generated=True, created_by="maccapi"
+    )
     managed_account.credentials.add(_password)
 
     return True
@@ -94,7 +97,6 @@ def generate_ma_eppn(context: Context) -> str:
 
 
 def create_and_sync_user(context: Context, given_name: str, surname: str, password: str) -> ManagedAccount:
-
     eppn = generate_ma_eppn(context=context)
 
     managed_account = ManagedAccount(eppn=eppn, given_name=given_name, surname=surname)
@@ -106,7 +108,9 @@ def create_and_sync_user(context: Context, given_name: str, surname: str, passwo
     try:
         save_and_sync_user(context=context, managed_account=managed_account)
     except UserOutOfSync as e:
-        revoke_passwords(context=context, managed_account=managed_account, reason="UserOutOfSync during create_and_sync_user")
+        revoke_passwords(
+            context=context, managed_account=managed_account, reason="UserOutOfSync during create_and_sync_user"
+        )
         context.logger.error(f"Failed saving user {managed_account} due to {e}")
         raise e
 
@@ -135,6 +139,7 @@ def replace_password(context: Context, eppn: str, new_password: str):
         raise UnableToAddPassword(f"Failed to add password for {managed_account}")
     save_and_sync_user(context=context, managed_account=managed_account)
     context.logger.info(f"Replaced password for {managed_account}")
+
 
 def get_user(context: Context, eppn: str) -> ManagedAccount:
     managed_account: ManagedAccount = context.db.get_user_by_eppn(eppn)

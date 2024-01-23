@@ -5,17 +5,14 @@ from typing import Any, Mapping, Optional
 
 import satosa.context
 import satosa.internal
-from eduid.satosa.scimapi.common import (
-    MfaStepupAccount,
-    get_metadata,
-    store_mfa_stepup_accounts,
-)
-from eduid.userdb.scimapi import ScimApiGroup, ScimApiGroupDB
-from eduid.userdb.scimapi.userdb import ScimApiUser, ScimApiUserDB, ScimEduidUserDB
 from satosa.attribute_mapping import AttributeMapper
 from satosa.exception import SATOSAAuthenticationError
 from satosa.micro_services.base import ResponseMicroService
 from satosa.routing import STATE_KEY as ROUTER_STATE_KEY
+
+from eduid.satosa.scimapi.common import MfaStepupAccount, get_metadata, store_mfa_stepup_accounts
+from eduid.userdb.scimapi import ScimApiGroup, ScimApiGroupDB
+from eduid.userdb.scimapi.userdb import ScimApiUser, ScimApiUserDB, ScimEduidUserDB
 
 logger = logging.getLogger(__name__)
 

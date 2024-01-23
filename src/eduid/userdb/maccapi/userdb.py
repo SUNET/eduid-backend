@@ -1,11 +1,10 @@
-from eduid.userdb.db import TUserDbDocument
 from typing import List
-from eduid.userdb.element import UserDBValueError
-from eduid.userdb.user import User
-
 
 from pydantic import validator
 
+from eduid.userdb.db import TUserDbDocument
+from eduid.userdb.element import UserDBValueError
+from eduid.userdb.user import User
 from eduid.userdb.userdb import UserDB
 
 
@@ -37,5 +36,5 @@ class ManagedAccountDB(UserDB[ManagedAccount]):
         :return: A list of users with the given organization
         """
         # TODO: check for organization
-        users = self._get_documents_by_aggregate({"terminated" : {"$exists" : False}})
+        users = self._get_documents_by_aggregate({"terminated": {"$exists": False}})
         return self._users_from_documents(users)

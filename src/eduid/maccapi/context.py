@@ -2,8 +2,9 @@ import logging
 
 from eduid.common.fastapi.log import init_logging
 from eduid.maccapi.config import MAccApiConfig
-from eduid.userdb.maccapi import ManagedAccountDB
 from eduid.maccapi.util import load_jwks
+from eduid.userdb.maccapi import ManagedAccountDB
+
 
 class Context:
     def __init__(self, config: MAccApiConfig):

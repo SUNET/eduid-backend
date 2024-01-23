@@ -1,27 +1,30 @@
 import json
 from typing import Any, Mapping
-from eduid.maccapi.testing import MAccApiTestCase
+
 from jwcrypto import jwt
+
+from eduid.maccapi.testing import MAccApiTestCase
+
 
 class TestMAccApi(MAccApiTestCase):
     def setUp(self) -> None:
-        self.user1 = { "given_name": "Test", "surname": "User" }
-        self.user2 = { "given_name": "Test", "surname": "User2" }
+        self.user1 = {"given_name": "Test", "surname": "User"}
+        self.user2 = {"given_name": "Test", "surname": "User2"}
         return super().setUp()
-    
+
     def _make_bearer_token(self, claims: Mapping[str, Any]) -> str:
         token = jwt.JWT(header={"alg": "ES256"}, claims=claims)
         jwk = list(self.context.jwks)[0]
         token.make_signed_token(jwk)
         return token.serialize()
-    
+
     def test_create_user(self):
         response = self.client.post(url="/Users/create", json=self.user1)
         assert response.status_code == 200
 
         content = response.content.decode("utf-8")
         payload = json.loads(content)
-        
+
         assert payload["status"] == "success"
         assert payload["user"]["given_name"] == self.user1["given_name"]
         assert payload["user"]["surname"] == self.user1["surname"]
@@ -45,7 +48,7 @@ class TestMAccApi(MAccApiTestCase):
     def test_remove_user(self):
         response = self.client.post(url="/Users/create", json=self.user1)
         assert response.status_code == 200
-        
+
         content = response.content.decode("utf-8")
         payload = json.loads(content)
         eppn = payload["user"]["eppn"]
@@ -62,7 +65,7 @@ class TestMAccApi(MAccApiTestCase):
     def test_reset_password(self):
         response = self.client.post(url="/Users/create", json=self.user1)
         assert response.status_code == 200
-        
+
         content = response.content.decode("utf-8")
         payload = json.loads(content)
         eppn = payload["user"]["eppn"]
@@ -90,7 +93,7 @@ class TestMAccApi(MAccApiTestCase):
 
         content = response.content.decode("utf-8")
         payload = json.loads(content)
-        
+
         assert payload["status"] == "success"
         assert payload["user"]["given_name"] == self.user1["given_name"]
         assert payload["user"]["surname"] == self.user1["surname"]

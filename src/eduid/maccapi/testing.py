@@ -1,25 +1,25 @@
 import os
-from typing import Any, Optional
 import unittest
+from typing import Any, Optional
 
 import pkg_resources
+from starlette.testclient import TestClient
+
 from eduid.common.config.parsers import load_config
 from eduid.maccapi.app import init_api
 from eduid.maccapi.config import MAccApiConfig
 from eduid.maccapi.context import Context
 from eduid.userdb.maccapi import ManagedAccount
-
 from eduid.userdb.testing import MongoTemporaryInstance
 
-from starlette.testclient import TestClient
 
 class BaseDBTestCase(unittest.TestCase):
     """
     Base test case that sets up a temporary database for testing.
     """
 
-    mongodb_instance : MongoTemporaryInstance
-    mongo_uri : str
+    mongodb_instance: MongoTemporaryInstance
+    mongo_uri: str
 
     @classmethod
     def setUpClass(cls):
@@ -39,9 +39,10 @@ class BaseDBTestCase(unittest.TestCase):
                         "level": "DEBUG",
                     }
                 }
-            }
+            },
         }
         return config
+
 
 class MAccApiTestCase(BaseDBTestCase):
     """
@@ -51,7 +52,7 @@ class MAccApiTestCase(BaseDBTestCase):
     @classmethod
     def setUpClass(cls) -> None:
         return super().setUpClass()
-    
+
     def setUp(self) -> None:
         if "EDUID_CONFIG_YAML" not in os.environ:
             os.environ["EDUID_CONFIG_YAML"] = "YAML_CONFIG_NOT_USED"
@@ -69,7 +70,6 @@ class MAccApiTestCase(BaseDBTestCase):
             "Accept": "application/json",
         }
 
-    
     def _get_config(self) -> dict:
         config = super()._get_config()
         # TODO: add auth settings
@@ -77,7 +77,7 @@ class MAccApiTestCase(BaseDBTestCase):
         config["signing_key_id"] = "testing-maccapi-2106210000"
         config["authorization_mandatory"] = False
         return config
-    
+
     def tearDown(self) -> None:
         super().tearDown()
         if self.db:
