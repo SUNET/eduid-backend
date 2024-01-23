@@ -1,4 +1,4 @@
-from eduid.maccapi.model.user import ManagedAccount
+from eduid.userdb.maccapi import ManagedAccount
 from eduid.maccapi.testing import MAccApiTestCase
 
 

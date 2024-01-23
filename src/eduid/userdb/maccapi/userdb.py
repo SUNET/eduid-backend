@@ -1,7 +1,25 @@
-from eduid.userdb.userdb import UserDB
-from eduid.maccapi.model.user import ManagedAccount
 from eduid.userdb.db import TUserDbDocument
 from typing import List
+from eduid.userdb.element import UserDBValueError
+from eduid.userdb.user import User
+
+
+from pydantic import validator
+
+from eduid.userdb.userdb import UserDB
+
+
+class ManagedAccount(User):
+    """
+    Subclass of eduid.userdb.User for managed accounts.
+    """
+
+    @validator("eppn", pre=True)
+    def check_eppn(cls, v: str) -> str:
+        if len(v) != 11 or not v.startswith("ma-"):
+            raise UserDBValueError(f"Invalid eppn: {v}")
+        return v
+
 
 class ManagedAccountDB(UserDB[ManagedAccount]):
     def __init__(self, db_uri: str, db_name: str = "eduid_managed_accounts", collection: str = "users"):

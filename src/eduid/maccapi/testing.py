@@ -7,7 +7,7 @@ from eduid.common.config.parsers import load_config
 from eduid.maccapi.app import init_api
 from eduid.maccapi.config import MAccApiConfig
 from eduid.maccapi.context import Context
-from eduid.maccapi.model.user import ManagedAccount
+from eduid.userdb.maccapi import ManagedAccount
 
 from eduid.userdb.testing import MongoTemporaryInstance
 

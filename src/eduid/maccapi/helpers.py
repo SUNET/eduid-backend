@@ -1,7 +1,7 @@
 from bson import ObjectId
 from eduid.common.misc.timeutil import utc_now
 from eduid.maccapi.context import Context
-from eduid.maccapi.model.user import ManagedAccount
+from eduid.userdb.maccapi import ManagedAccount
 
 
 from typing import List

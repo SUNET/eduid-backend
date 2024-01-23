@@ -2,7 +2,7 @@ from fastapi import APIRouter, Request
 from eduid.maccapi.helpers import create_and_sync_user, deactivate_user, get_user, list_users, replace_password
 
 from eduid.maccapi.model.api import ApiUser, UserListResponse, UserCreateRequest, UserCreatedResponse, UserRemoveRequest, UserRemovedResponse, UserResetPasswordRequest, UserResetPasswordResponse
-from eduid.maccapi.model.user import ManagedAccount
+from eduid.userdb.maccapi import ManagedAccount
 from eduid.maccapi.util import generate_password
 
 users_router = APIRouter(prefix="/Users")

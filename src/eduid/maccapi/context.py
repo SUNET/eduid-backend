@@ -2,7 +2,7 @@ import logging
 
 from eduid.common.fastapi.log import init_logging
 from eduid.maccapi.config import MAccApiConfig
-from eduid.maccapi.userdb import ManagedAccountDB
+from eduid.userdb.maccapi import ManagedAccountDB
 from eduid.maccapi.util import load_jwks
 
 class Context:
