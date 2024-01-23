@@ -10,7 +10,13 @@ from eduid.maccapi.util import get_short_hash
 from eduid.userdb.credentials import Password
 from eduid.userdb.exceptions import UserDoesNotExist, UserOutOfSync
 from eduid.vccs.client import VCCSClient, VCCSClientHTTPError, VCCSPasswordFactor, VCCSRevokeFactor
+from eduid.userdb.exceptions import UserDoesNotExist
 
+class UnableToCreateUniqueEppn(Exception):
+    pass
+
+class UnableToAddPassword(Exception):
+    pass
 
 def list_users(context: Context):
     managed_accounts: List[ManagedAccount] = context.db.get_users_by_organization("foo")
@@ -77,7 +83,6 @@ def save_and_sync_user(context: Context, managed_account: ManagedAccount):
 
 
 def generate_ma_eppn(context: Context) -> str:
-    # TODO: check for existing eppn
     for _ in range(10):
         eppn = f"ma-{get_short_hash(8)}"
         try:
@@ -85,7 +90,7 @@ def generate_ma_eppn(context: Context) -> str:
         except UserDoesNotExist:
             return eppn
     context.logger.critical("Failed to generate unique eppn")
-    raise Exception("Failed to generate unique eppn")
+    raise UnableToCreateUniqueEppn("Failed to generate unique eppn")
 
 
 def create_and_sync_user(context: Context, given_name: str, surname: str, password: str) -> ManagedAccount:
@@ -96,7 +101,7 @@ def create_and_sync_user(context: Context, given_name: str, surname: str, passwo
 
     if not add_password(context=context, managed_account=managed_account, password=password):
         context.logger.error(f"Failed adding password for user {managed_account}")
-        raise Exception(f"Failed adding password for user {managed_account}")
+        raise UnableToAddPassword(f"Failed adding password for user {managed_account}")
 
     try:
         save_and_sync_user(context=context, managed_account=managed_account)
@@ -112,7 +117,7 @@ def create_and_sync_user(context: Context, given_name: str, surname: str, passwo
 def deactivate_user(context: Context, eppn: str) -> ManagedAccount:
     managed_account: ManagedAccount = context.db.get_user_by_eppn(eppn)
     if managed_account is None:
-        raise Exception(f"User {eppn} not found")
+        raise UserDoesNotExist(f"User {eppn} not found")
     managed_account.terminated = utc_now()
     revoke_passwords(context=context, managed_account=managed_account, reason="User deactivated")
     save_and_sync_user(context=context, managed_account=managed_account)
@@ -123,16 +128,16 @@ def deactivate_user(context: Context, eppn: str) -> ManagedAccount:
 def replace_password(context: Context, eppn: str, new_password: str):
     managed_account: ManagedAccount = context.db.get_user_by_eppn(eppn)
     if managed_account is None:
-        raise Exception(f"User {eppn} not found")
+        raise UserDoesNotExist(f"User {eppn} not found")
     revoke_passwords(context=context, managed_account=managed_account, reason="Password replaced")
     if not add_password(context=context, managed_account=managed_account, password=new_password):
         context.logger.error(f"Failed to add password for {managed_account}")
-        raise Exception(f"Failed to add password for {managed_account}")
+        raise UnableToAddPassword(f"Failed to add password for {managed_account}")
     save_and_sync_user(context=context, managed_account=managed_account)
     context.logger.info(f"Replaced password for {managed_account}")
 
 def get_user(context: Context, eppn: str) -> ManagedAccount:
     managed_account: ManagedAccount = context.db.get_user_by_eppn(eppn)
     if managed_account is None:
-        raise Exception(f"User {eppn} not found")
+        raise UserDoesNotExist(f"User {eppn} not found")
     return managed_account
