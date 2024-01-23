@@ -1,14 +1,3 @@
-#
-# Copyright (c) 2018 SUNET
-# Copyright (c) 2013, 2014, 2016, 2017 NORDUnet A/S
-# Copyright 2012 Roland Hedberg. All rights reserved.
-# All rights reserved.
-#
-# See the file eduid-IdP/LICENSE.txt for license statement.
-#
-# Author : Fredrik Thulin <fredrik@thulin.net>
-#          Roland Hedberg
-#
 import logging
 import time
 import warnings

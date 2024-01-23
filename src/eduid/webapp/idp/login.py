@@ -1,13 +1,3 @@
-#
-# Copyright (c) 2013, 2014, 2016 NORDUnet A/S. All rights reserved.
-# Copyright 2012 Roland Hedberg. All rights reserved.
-#
-# See the file eduid-IdP/LICENSE.txt for license statement.
-#
-# Author : Fredrik Thulin <fredrik@thulin.net>
-#          Roland Hedberg
-#
-
 """
 Code handling Single Sign On logins.
 """

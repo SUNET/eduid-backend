@@ -1,14 +1,3 @@
-#
-# Copyright (c) 2013 NORDUnet A/S
-# Copyright 2012 Roland Hedberg. All rights reserved.
-# All rights reserved.
-#
-# See the file eduid-IdP/LICENSE.txt for license statement.
-#
-# Author : Fredrik Thulin <fredrik@thulin.net>
-#          Roland Hedberg
-#
-
 """
 Miscellaneous HTTP related functions.
 """
