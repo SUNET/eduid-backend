@@ -1,5 +1,7 @@
 __author__ = "lundberg"
 
+from bson import ObjectId
+
 
 def urlappend(base: str, path: str) -> str:
     """
@@ -40,3 +42,7 @@ def removesuffix(s: str, suffix: str) -> str:
         return s[: -len(suffix)]
     else:
         return s[:]
+
+
+def make_etag(version: ObjectId):
+    return f'W/"{version}"'

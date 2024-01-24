@@ -6,12 +6,12 @@ from uuid import UUID
 from eduid.common.config.base import DataOwnerName
 from eduid.common.fastapi.log import init_logging
 from eduid.common.models.scim_base import SCIMResourceType
-from eduid.common.utils import urlappend
+from eduid.common.utils import make_etag, urlappend
 from eduid.queue.db.message import MessageDB
 from eduid.scimapi.config import ScimApiConfig
 from eduid.scimapi.context_request import ContextRequest
 from eduid.scimapi.notifications import NotificationRelay
-from eduid.scimapi.utils import load_jwks, make_etag
+from eduid.scimapi.utils import load_jwks
 from eduid.userdb.scimapi import ScimApiEventDB, ScimApiGroup, ScimApiGroupDB
 from eduid.userdb.scimapi.invitedb import ScimApiInvite, ScimApiInviteDB
 from eduid.userdb.scimapi.userdb import ScimApiUser, ScimApiUserDB

@@ -16,6 +16,7 @@ from eduid.graphdb.groupdb import GroupDB
 from eduid.graphdb.groupdb import User as GraphUser
 from eduid.scimapi.models.group import GroupCreateRequest, GroupUpdateRequest
 from eduid.userdb.db import TUserDbDocument
+from eduid.userdb.exceptions import DocumentOutOfSync
 from eduid.userdb.scimapi.basedb import ScimApiBaseDB
 from eduid.userdb.scimapi.common import ScimApiResourceBase
 
@@ -141,7 +142,7 @@ class ScimApiGroupDB(ScimApiBaseDB):
             db_group = self._coll.find_one({"_id": group.group_id})
             if db_group:
                 logger.debug(f"{self} FAILED Updating group {group} in {self._coll_name}")
-                raise RuntimeError("Group out of sync, please retry")
+                raise DocumentOutOfSync("Group out of sync, please retry")
             self._coll.insert_one(group_dict)
         # Save graphdb group
         # TODO: Should we try to roll back mongodb change if the graphdb save fails?

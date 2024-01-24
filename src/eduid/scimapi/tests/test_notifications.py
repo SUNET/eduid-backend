@@ -2,9 +2,9 @@ from typing import Any
 from uuid import uuid4
 
 from eduid.common.models.scim_base import SCIMResourceType, SCIMSchema
+from eduid.common.utils import make_etag
 from eduid.queue.db.queue_item import QueueItem
 from eduid.scimapi.testing import ScimApiTestCase
-from eduid.scimapi.utils import make_etag
 from eduid.userdb.scimapi import EventLevel
 
 # from moto import mock_sns

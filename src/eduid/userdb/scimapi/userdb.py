@@ -11,6 +11,7 @@ from bson import ObjectId
 
 from eduid.userdb import User, UserDB
 from eduid.userdb.db import TUserDbDocument
+from eduid.userdb.exceptions import DocumentOutOfSync
 from eduid.userdb.scimapi.basedb import ScimApiBaseDB
 from eduid.userdb.scimapi.common import (
     ScimApiEmail,
@@ -112,7 +113,7 @@ class ScimApiUserDB(ScimApiBaseDB):
             db_user = self._coll.find_one({"_id": user.user_id})
             if db_user:
                 logger.debug(f"{self} FAILED Updating user {user} in {self._coll_name}")
-                raise RuntimeError("User out of sync, please retry")
+                raise DocumentOutOfSync("User out of sync, please retry")
             # Out of sync check did not find any problems, it is a new user - save it.
             _result2 = self._coll.insert_one(user_dict)
         # put the new version number and last_modified in the user object after a successful update

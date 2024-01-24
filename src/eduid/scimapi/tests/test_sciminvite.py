@@ -12,8 +12,9 @@ from eduid.common.misc.timeutil import utc_now
 from eduid.common.models.scim_base import Email, Meta, Name, PhoneNumber, SCIMResourceType, SCIMSchema
 from eduid.common.models.scim_invite import InviteResponse, NutidInviteExtensionV1
 from eduid.common.models.scim_user import NutidUserExtensionV1, Profile
+from eduid.common.utils import make_etag
 from eduid.scimapi.testing import ScimApiTestCase
-from eduid.scimapi.utils import filter_none, make_etag
+from eduid.scimapi.utils import filter_none
 from eduid.userdb.scimapi import EventStatus, ScimApiEmail, ScimApiName, ScimApiPhoneNumber, ScimApiProfile
 from eduid.userdb.scimapi.invitedb import ScimApiInvite
 from eduid.userdb.signup import Invite as SignupInvite

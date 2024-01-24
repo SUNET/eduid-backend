@@ -1,20 +1,23 @@
+import asyncio
 import json
 import logging
 import unittest
 from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta
 from typing import Any, Mapping, Optional
+from unittest import IsolatedAsyncioTestCase
 from uuid import UUID, uuid4
 
 import bson
 from bson import ObjectId
-from httpx import Response
+from httpx import AsyncClient, Response
 
 from eduid.common.models.scim_base import Email, LanguageTag, Meta, Name, PhoneNumber, SCIMResourceType, SCIMSchema
 from eduid.common.models.scim_user import LinkedAccount, NutidUserExtensionV1, Profile, UserResponse
 from eduid.common.testing_base import normalised_data
+from eduid.common.utils import make_etag
 from eduid.scimapi.testing import ScimApiTestCase
-from eduid.scimapi.utils import filter_none, make_etag
+from eduid.scimapi.utils import filter_none
 from eduid.userdb.scimapi import EventStatus, ScimApiLinkedAccount
 from eduid.userdb.scimapi.userdb import ScimApiProfile, ScimApiUser
 
@@ -778,3 +781,47 @@ class TestUserResource(ScimApiTestUserResourceBase):
         self.assertEqual([SCIMSchema.API_MESSAGES_20_LIST_RESPONSE.value], response.json().get("schemas"))
         resources = response.json().get("Resources")
         return resources
+
+
+class TestAsyncUserResource(IsolatedAsyncioTestCase, ScimApiTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        # ScimApiTestCase.setUp(self)
+        self.async_client = AsyncClient(app=self.api, base_url="http://testserver")
+        # create users
+        self.user_count = 10
+        self.users = [
+            self.add_user(identifier=str(uuid4()), external_id=f"test-id-{num}") for num in range(self.user_count)
+        ]
+        # create a group with the first user
+        self.group = self.add_group_with_member(
+            group_identifier=str(uuid4()), display_name="Group 1", user_identifier=str(self.users[0].scim_id)
+        )
+        # add the rest of the users to the group
+        for user in self.users[1:]:
+            self.add_member_to_group(group_identifier=str(self.group.scim_id), user_identifier=str(user.scim_id))
+
+    async def test_delete_user_with_groups(self):
+        group = self.groupdb.get_group_by_scim_id(str(self.group.scim_id))
+        assert group is not None  # please mypy
+        assert len(group.members) == self.user_count
+
+        # delete half of the users in parallel
+        tasks = list()
+        for user in self.users[: self.user_count // 2]:
+            headers = {
+                "Content-Type": "application/scim+json",
+                "Accept": "application/scim+json",
+                "IF-MATCH": make_etag(user.version),
+            }
+            tasks.append(asyncio.create_task(self.async_client.delete(url=f"/Users/{user.scim_id}", headers=headers)))
+
+        await asyncio.gather(*tasks)
+        for task in tasks:
+            self._assertResponse(task.result(), status_code=204)  # No content
+
+        for user in self.users[: self.user_count // 2]:
+            assert self.userdb.get_user_by_scim_id(user.scim_id) is None
+
+        group = self.groupdb.get_group_by_scim_id(str(group.scim_id))
+        assert len(group.graph.members) == self.user_count // 2

@@ -131,7 +131,7 @@ class ScimApiTestCase(MongoNeoTestCase):
         external_id: Optional[str] = None,
         profiles: Optional[dict[str, ScimApiProfile]] = None,
         linked_accounts: Optional[list[ScimApiLinkedAccount]] = None,
-    ) -> Optional[ScimApiUser]:
+    ) -> ScimApiUser:
         user = ScimApiUser(user_id=ObjectId(), scim_id=uuid.UUID(identifier), external_id=external_id)
         if profiles:
             for key, value in profiles.items():
@@ -140,16 +140,18 @@ class ScimApiTestCase(MongoNeoTestCase):
             user.linked_accounts = linked_accounts
         assert self.userdb
         self.userdb.save(user)
-        return self.userdb.get_user_by_scim_id(scim_id=identifier)
+        saved_user = self.userdb.get_user_by_scim_id(scim_id=identifier)
+        assert saved_user is not None  # please mypy
+        return saved_user
 
-    def add_group_with_member(
-        self, group_identifier: str, display_name: str, user_identifier: str
-    ) -> Optional[ScimApiGroup]:
+    def add_group_with_member(self, group_identifier: str, display_name: str, user_identifier: str) -> ScimApiGroup:
         group = ScimApiGroup(scim_id=uuid.UUID(group_identifier), display_name=display_name)
         group.add_member(GraphUser(identifier=user_identifier, display_name="Test Member 1"))
         assert self.groupdb
         self.groupdb.save(group)
-        return self.groupdb.get_group_by_scim_id(scim_id=group_identifier)
+        saved_group = self.groupdb.get_group_by_scim_id(scim_id=group_identifier)
+        assert saved_group is not None
+        return saved_group
 
     def add_member_to_group(self, group_identifier: str, user_identifier: str) -> Optional[ScimApiGroup]:
         assert self.groupdb
