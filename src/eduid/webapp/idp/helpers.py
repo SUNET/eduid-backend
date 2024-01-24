@@ -1,6 +1,9 @@
 from enum import Enum, unique
+from typing import Optional
 
+from eduid.userdb.idp import IdPUser
 from eduid.webapp.common.api.messages import TranslatableMsg
+from eduid.webapp.idp.app import current_idp_app as current_app
 
 
 @unique
@@ -47,3 +50,16 @@ class IdPAction(str, Enum):
     MFA = "MFA"
     TOU = "TOU"
     FINISHED = "FINISHED"
+
+
+def lookup_user(username: str, managed_account_allowed: bool = False) -> Optional[IdPUser]:
+    """
+    Lookup a user by username in both central userdb and in managed account db
+    """
+    # check for managed user where username always starts with ma-
+    if username.startswith("ma-"):
+        if not managed_account_allowed:
+            return None
+        return current_app.managed_account_db.get_account_as_idp_user(username)
+    else:
+        return current_app.userdb.lookup_user(username)

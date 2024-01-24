@@ -92,6 +92,15 @@ class IdPUser(User):
     Wrapper class for eduid.userdb.User adding functions useful in the IdP.
     """
 
+    is_managed_account: bool = False
+
+    def _to_dict_transform(self, data: dict[str, Any]) -> dict[str, Any]:
+        data = super()._to_dict_transform(data)
+        # Remove the is_managed_account as it is only for the ephemeral IdP user and should not be saved
+        # or used for instantiating a new user object
+        del data["is_managed_account"]
+        return data
+
     def to_saml_attributes(
         self,
         settings: SAMLAttributeSettings,
