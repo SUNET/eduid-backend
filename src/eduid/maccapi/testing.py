@@ -72,7 +72,6 @@ class MAccApiTestCase(BaseDBTestCase):
 
     def _get_config(self) -> dict:
         config = super()._get_config()
-        # TODO: add auth settings
         config["keystore_path"] = f"{self.datadir}/testing_jwks.json"
         config["signing_key_id"] = "testing-maccapi-2106210000"
         config["authorization_mandatory"] = False

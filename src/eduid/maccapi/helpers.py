@@ -67,7 +67,7 @@ def revoke_passwords(context: Context, managed_account: ManagedAccount, reason: 
 
     # Revoke the password with vccs only if not testing
     if context.config.testing == True:
-        context.logger.debug(f"Testing mode, not revoking password with vccs")
+        context.logger.debug("Testing mode, not revoking password with vccs")
         return True
 
     try:

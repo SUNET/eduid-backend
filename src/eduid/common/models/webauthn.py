@@ -68,7 +68,7 @@ class AuthnBearerToken(BaseModel):
     def validate_requested_access(cls, v: list[SudoAccess], values: Mapping[str, Any]) -> list[SudoAccess]:
         config = values.get("config")
         if not config:
-            raise ValueError(f"Can't validate without config")
+            raise ValueError("Can't validate without config")
         new_access: list[SudoAccess] = []
         for this in v:
             if this.type != config.requested_access_type:
