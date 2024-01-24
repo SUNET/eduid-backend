@@ -10,7 +10,6 @@ from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoin
 
 from eduid.common.models.webauthn import AuthnBearerToken, RequestedAccessDenied
 from eduid.maccapi.context import Context
-from eduid.maccapi.context_request import ContextRequestMixin
 
 
 def return_error_response(status_code: int, detail: str) -> JSONResponse:
@@ -20,14 +19,12 @@ def return_error_response(status_code: int, detail: str) -> JSONResponse:
     )
 
 
-class AuthenticationMiddleware(BaseHTTPMiddleware, ContextRequestMixin):
+class AuthenticationMiddleware(BaseHTTPMiddleware):
     def __init__(self, app, context: Context):
         super().__init__(app)
         self.context = context
 
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
-        request = self.make_context_request(request)
-
         path = request.url.path.lstrip(request.app.config.application_root)
         method_path = f"{request.method.lower()}:{path}"
 
