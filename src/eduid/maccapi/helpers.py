@@ -20,7 +20,7 @@ class UnableToAddPassword(Exception):
 
 
 def list_users(context: Context):
-    managed_accounts: List[ManagedAccount] = context.db.get_users_by_organization("foo")
+    managed_accounts: List[ManagedAccount] = context.db.get_users()
     context.logger.info(f"Listing {managed_accounts.__len__()} users")
     return managed_accounts
 
