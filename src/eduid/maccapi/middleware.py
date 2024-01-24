@@ -5,8 +5,10 @@ from fastapi import Request, Response, status
 from fastapi.responses import JSONResponse
 from jwcrypto import jwt
 from jwcrypto.common import JWException
+from pydantic import ValidationError
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 
+from eduid.common.models.webauthn import AuthnBearerToken, RequestedAccessDenied
 from eduid.maccapi.context import Context
 from eduid.maccapi.context_request import ContextRequestMixin
 
@@ -56,7 +58,37 @@ class AuthenticationMiddleware(BaseHTTPMiddleware, ContextRequestMixin):
             self.context.logger.info(f"Bearer token error: {e}")
             return return_error_response(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Bearer token")
 
-        self.context.logger.info(f"Bearer token claims: {claims}")
+        if "config" in claims:
+            self.context.logger.warning(f"JWT has config: {claims}")
+            return return_error_response(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Bearer token")
+
+        try:
+            self.context.logger.debug(f"Parsing claims: {claims}")
+            token = AuthnBearerToken(config=self.context.config, **claims)
+            self.context.logger.debug(f"Bearer token: {token}")
+        except ValidationError:
+            self.context.logger.exception("Authorization Bearer Token error")
+            return return_error_response(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Bearer token")
+
+        try:
+            token.validate_auth_source()
+        except RequestedAccessDenied as e:
+            self.context.logger.error("Access denied: {e}")
+            return return_error_response(
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication source or assurance level invalid"
+            )
+
+        try:
+            data_owner = token.get_data_owner()
+        except RequestedAccessDenied as e:
+            self.context.logger.error("Access denied: {e}")
+            return return_error_response(
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="Data owner requested in access token denied"
+            )
+
+        if not data_owner or data_owner not in self.context.config.data_owners:
+            self.context.logger.error(f"Data owner {repr(data_owner)} not configured")
+            return return_error_response(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unknown data_owner")
 
         return await call_next(request)
 

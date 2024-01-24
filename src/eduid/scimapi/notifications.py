@@ -6,9 +6,10 @@ from datetime import datetime, timedelta
 from os import environ
 from typing import TYPE_CHECKING, Any, NewType
 
+from eduid.common.config.base import DataOwnerName
 from eduid.queue.db import QueueItem, SenderInfo
 from eduid.queue.db.message.payload import EduidSCIMAPINotification
-from eduid.scimapi.config import DataOwnerName, ScimApiConfig
+from eduid.scimapi.config import ScimApiConfig
 
 if TYPE_CHECKING:
     from eduid.scimapi.context import Context

@@ -6,7 +6,7 @@ from typing import Callable, Optional, Union
 from fastapi import Request, Response
 from fastapi.routing import APIRoute
 
-from eduid.scimapi.config import DataOwnerName
+from eduid.common.config.base import DataOwnerName
 from eduid.userdb.scimapi import ScimApiEventDB, ScimApiGroupDB
 from eduid.userdb.scimapi.invitedb import ScimApiInviteDB
 from eduid.userdb.scimapi.userdb import ScimApiUserDB

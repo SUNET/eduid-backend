@@ -82,7 +82,13 @@ class TestMAccApi(MAccApiTestCase):
         assert payload["user"]["password"] != None
 
     def test_auth_create_user(self):
-        claims = {"scopes": ["12345678901234"]}
+        domain = "eduid.se"
+        claims = {
+            "version": 1,
+            "scopes": [domain],
+            "auth_source": "config",
+            "requested_access": [{"type": "maccapi", "scope": "eduid.se"}],
+        }
         token = self._make_bearer_token(claims=claims)
 
         headers = self.headers
