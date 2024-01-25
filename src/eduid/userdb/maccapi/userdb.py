@@ -24,6 +24,9 @@ class ManagedAccountDB(UserDB[ManagedAccount]):
     def __init__(self, db_uri: str, db_name: str = "eduid_managed_accounts", collection: str = "users"):
         super().__init__(db_uri, db_name, collection)
 
+        indexes = {"eppn-index-v1": {"key": [("eduPersonPrincipalName", 1)], "unique": True}}
+        self.setup_indexes(indexes)
+
     @classmethod
     def user_from_dict(cls, data: TUserDbDocument) -> ManagedAccount:
         return ManagedAccount.from_dict(data)
