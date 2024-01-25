@@ -1,6 +1,6 @@
 import os
 import unittest
-from typing import Any, Optional
+from typing import Any, Optional, cast
 
 import pkg_resources
 from starlette.testclient import TestClient
@@ -11,6 +11,8 @@ from eduid.maccapi.config import MAccApiConfig
 from eduid.maccapi.context import Context
 from eduid.userdb.maccapi import ManagedAccount
 from eduid.userdb.testing import MongoTemporaryInstance
+from eduid.vccs.client import VCCSClient
+from eduid.webapp.common.authn.testing import MockVCCSClient
 
 
 class BaseDBTestCase(unittest.TestCase):
@@ -63,7 +65,9 @@ class MAccApiTestCase(BaseDBTestCase):
         self.context = Context(config=config)
         self.db = self.context.db
 
-        self.api = init_api(name="test_api", test_config=self.test_config)
+        vccs_client = cast(VCCSClient, MockVCCSClient())
+        
+        self.api = init_api(name="test_api", test_config=self.test_config, vccs_client=vccs_client)
         self.client = TestClient(self.api)
         self.headers = {
             "Content-Type": "application/json",

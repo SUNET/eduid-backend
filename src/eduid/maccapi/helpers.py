@@ -26,9 +26,7 @@ def list_users(context: Context):
 
 
 def add_password(context: Context, managed_account: ManagedAccount, password: str) -> bool:
-    vccs_url = context.config.vccs_url
-    vccs = VCCSClient(base_url=vccs_url)
-    context.logger.debug(f"vccs_url: {vccs_url}")
+    vccs = context.vccs_client
 
     new_factor = VCCSPasswordFactor(password=password, credential_id=str(ObjectId()))
 
@@ -51,9 +49,7 @@ def add_password(context: Context, managed_account: ManagedAccount, password: st
 
 
 def revoke_passwords(context: Context, managed_account: ManagedAccount, reason: str):
-    vccs_url = context.config.vccs_url
-    vccs = VCCSClient(base_url=vccs_url)
-    context.logger.debug(f"vccs_url: {vccs_url}")
+    vccs = context.vccs_client
 
     revoke_factors = []
     for password in managed_account.credentials.filter(Password):
@@ -65,13 +61,8 @@ def revoke_passwords(context: Context, managed_account: ManagedAccount, reason: 
 
     userid = str(managed_account.user_id)
 
-    # Revoke the password with vccs only if not testing
-    if context.config.testing == True:
-        context.logger.debug("Testing mode, not revoking password with vccs")
-        return True
-
     try:
-        vccs.revoke_credentials(user_id=userid, factors=revoke_factors)
+        vccs.revoke_credentials(userid, revoke_factors)
     except VCCSClientHTTPError:
         # Should probably not happen since managed account only have one password credential
         context.logger.error(f"Failed revoking password for user {managed_account}")
