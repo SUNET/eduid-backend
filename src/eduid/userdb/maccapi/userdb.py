@@ -24,7 +24,6 @@ class ManagedAccountDB(UserDB[ManagedAccount]):
     def __init__(self, db_uri: str, db_name: str = "eduid_managed_accounts", collection: str = "users"):
         super().__init__(db_uri, db_name, collection)
 
-
     @classmethod
     def user_from_dict(cls, data: TUserDbDocument) -> ManagedAccount:
         return ManagedAccount.from_dict(data)

@@ -13,7 +13,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import Message
 
 from eduid.common.config.base import DataOwnerName, ScopeName
-from eduid.common.models.webauthn import (
+from eduid.common.models.bearer_token import (
     AuthenticationError,
     AuthnBearerToken,
     AuthorizationError,

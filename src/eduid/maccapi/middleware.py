@@ -8,7 +8,7 @@ from jwcrypto.common import JWException
 from pydantic import ValidationError
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 
-from eduid.common.models.webauthn import AuthnBearerToken, RequestedAccessDenied
+from eduid.common.models.bearer_token import AuthnBearerToken, RequestedAccessDenied
 from eduid.maccapi.context import Context
 
 
