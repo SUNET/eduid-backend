@@ -1,6 +1,13 @@
 from fastapi import APIRouter, Request
 
-from eduid.maccapi.helpers import create_and_sync_user, deactivate_user, get_user, list_users, replace_password
+from eduid.maccapi.helpers import (
+    UnableToAddPassword,
+    create_and_sync_user,
+    deactivate_user,
+    get_user,
+    list_users,
+    replace_password,
+)
 from eduid.maccapi.model.api import (
     ApiUser,
     UserCreatedResponse,
@@ -12,6 +19,7 @@ from eduid.maccapi.model.api import (
     UserResetPasswordResponse,
 )
 from eduid.maccapi.util import generate_password
+from eduid.userdb.exceptions import UserDoesNotExist
 from eduid.userdb.maccapi import ManagedAccount
 
 users_router = APIRouter(prefix="/Users")
@@ -76,7 +84,7 @@ async def remove_user(request: Request, remove_request: UserRemoveRequest) -> Us
             eppn=managed_account.eppn, given_name=managed_account.given_name, surname=managed_account.surname
         )
         response = UserRemovedResponse(status="success", user=api_user)
-    except Exception as e:
+    except UserDoesNotExist as e:
         request.app.context.logger.error(f"remove_user error: {e}")
         response = UserRemovedResponse(status="error")
 
@@ -103,7 +111,7 @@ async def reset_password(request: Request, reset_request: UserResetPasswordReque
             password=new_password,
         )
         response = UserResetPasswordResponse(status="success", user=api_user)
-    except Exception as e:
+    except (UserDoesNotExist, UnableToAddPassword) as e:
         request.app.context.logger.error(f"reset_password error: {e}")
         response = UserResetPasswordResponse(status="error")
         return response
