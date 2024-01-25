@@ -294,7 +294,7 @@ def get_client() -> MongoClient[TUserDbDocument]:
     else:
         db_uri = f"mongodb://{host}:{port}/"
 
-    return MongoClient[TUserDbDocument](db_uri, read_preference=ReadPreference.SECONDARY)
+    return MongoClient[TUserDbDocument](db_uri, read_preference=ReadPreference.SECONDARY_PREFERRED)
 
 
 def get_argparser(description: Optional[str] = None, eppn: bool = False) -> argparse.ArgumentParser:
