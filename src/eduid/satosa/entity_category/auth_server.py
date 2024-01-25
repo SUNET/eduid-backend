@@ -1,5 +1,6 @@
 __author__ = "lundberg"
 
+from typing import List, Dict, Any
 
 SUNET_AUTH_SERVER = [
     "eduPersonPrincipalName",
@@ -23,7 +24,7 @@ ONLY_REQUIRED = {
 }
 
 # These restrictions are parsed (and validated) into a list of saml2.assertion.EntityCategoryRule instances.
-RESTRICTIONS = [
+RESTRICTIONS: List[Dict[str, Any]] = [
     # Example of conversion of some of the rules in RELEASE to this new format:
     #
     # {
