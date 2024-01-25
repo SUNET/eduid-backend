@@ -11,11 +11,8 @@ from eduid.maccapi.config import MAccApiConfig
 logger = logging.getLogger(__name__)
 
 
-def generate_password(length: int = 12) -> str:
-    password = pwgen(int(length), no_capitalize=True, no_symbols=True)
-    password = " ".join([password[i * 4 : i * 4 + 4] for i in range(0, math.ceil(len(password) / 4))])
-
-    return password
+def make_presentable_password(password: str) -> str:
+    return " ".join([password[i * 4 : i * 4 + 4] for i in range(0, math.ceil(len(password) / 4))])
 
 
 def load_jwks(config: MAccApiConfig) -> jwk.JWKSet:

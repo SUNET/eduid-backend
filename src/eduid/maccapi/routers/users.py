@@ -18,9 +18,10 @@ from eduid.maccapi.model.api import (
     UserResetPasswordRequest,
     UserResetPasswordResponse,
 )
-from eduid.maccapi.util import generate_password
+from eduid.maccapi.util import make_presentable_password
 from eduid.userdb.exceptions import UserDoesNotExist
 from eduid.userdb.maccapi import ManagedAccount
+from eduid.webapp.common.authn.utils import generate_password
 
 users_router = APIRouter(prefix="/Users")
 
@@ -47,6 +48,7 @@ async def add_user(request: Request, create_request: UserCreateRequest) -> UserC
     request.app.context.logger.debug(f"add_user request: {create_request}")
 
     password = generate_password()
+    presentable_password = make_presentable_password(password)
 
     managed_account: ManagedAccount = create_and_sync_user(
         context=request.app.context,
@@ -100,7 +102,7 @@ async def reset_password(request: Request, reset_request: UserResetPasswordReque
 
     eppn = reset_request.eppn
     new_password = generate_password()
-
+    presentable_password = make_presentable_password(new_password)
     try:
         managed_account = get_user(context=request.app.context, eppn=eppn)
         replace_password(context=request.app.context, eppn=eppn, new_password=new_password)
@@ -108,7 +110,7 @@ async def reset_password(request: Request, reset_request: UserResetPasswordReque
             eppn=managed_account.eppn,
             given_name=managed_account.given_name,
             surname=managed_account.surname,
-            password=new_password,
+            password=presentable_password,
         )
         response = UserResetPasswordResponse(status="success", user=api_user)
     except (UserDoesNotExist, UnableToAddPassword) as e:
