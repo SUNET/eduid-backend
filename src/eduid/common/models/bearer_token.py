@@ -1,11 +1,12 @@
+import logging
 from copy import copy
 from enum import Enum
 from typing import Any, Mapping, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, StrictInt, root_validator, validator
 
 from eduid.common.config.base import AuthnBearerTokenConfig, DataOwnerName, ScopeName
-from eduid.userdb.scimapi.groupdb import Field, ScimApiGroupDB, StrictInt, root_validator, validator
+from eduid.userdb.scimapi.groupdb import ScimApiGroupDB
 
 
 class AuthSource(str, Enum):
