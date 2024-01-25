@@ -3,8 +3,8 @@ from typing import List
 from bson import ObjectId
 
 from eduid.common.misc.timeutil import utc_now
+from eduid.common.utils import get_short_hash
 from eduid.maccapi.context import Context
-from eduid.maccapi.util import get_short_hash
 from eduid.userdb.credentials import Password
 from eduid.userdb.exceptions import UserDoesNotExist, UserOutOfSync
 from eduid.userdb.maccapi import ManagedAccount

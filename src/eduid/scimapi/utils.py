@@ -51,10 +51,6 @@ def get_unique_hash():
     return str(uuid4())
 
 
-def get_short_hash(entropy=10):
-    return uuid4().hex[:entropy]
-
-
 def load_jwks(config: ScimApiConfig) -> jwk.JWKSet:
     if not config.keystore_path.exists():
         raise BadConfiguration(f"JWKS path {config.keystore_path} does not exist.")
