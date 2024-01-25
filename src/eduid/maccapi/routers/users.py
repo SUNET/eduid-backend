@@ -54,7 +54,7 @@ async def add_user(request: Request, create_request: UserCreateRequest) -> UserC
         context=request.app.context,
         given_name=create_request.given_name,
         surname=create_request.surname,
-        password=password,
+        password=presentable_password,
     )
 
     request.app.context.logger.debug(f"created managed_account: {managed_account.to_dict()}")
