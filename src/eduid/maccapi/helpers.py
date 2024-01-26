@@ -30,11 +30,6 @@ def add_password(context: Context, managed_account: ManagedAccount, password: st
 
     new_factor = VCCSPasswordFactor(password=password, credential_id=str(ObjectId()))
 
-    # Add password to vccs only if not testing
-    if context.config.testing == True:
-        context.logger.debug("Testing mode, not adding password to vccs")
-        return True
-
     if not vccs.add_credentials(str(managed_account.user_id), [new_factor]):
         context.logger.error(f"Failed adding password credential {new_factor.credential_id} for user {managed_account}")
         return False
