@@ -18,7 +18,7 @@ class AuthSource(str, Enum):
 
 class SudoAccess(BaseModel):
     type: str
-    scope: ScopeName
+    scope: Optional[ScopeName]
 
 
 class AuthenticationError(Exception):
@@ -84,6 +84,9 @@ class AuthnBearerToken(BaseModel):
         for this in v:
             if this.type != config.requested_access_type:
                 # not meant for us
+                continue
+            if this.scope == None:
+                # scope is Optional
                 continue
             this.scope = config.scope_mapping.get(this.scope, this.scope)
             new_access += [this]
@@ -178,6 +181,9 @@ class AuthnBearerToken(BaseModel):
         # only support one requested access at a time for now and do not fall back to simple scope check if
         # requested access is used
         for this in self.requested_access:
+            if this.scope == None:
+                # scope is Optional
+                continue
             _allowed = this.scope in allowed_scopes
             _found = self.config.data_owners.get(DataOwnerName(this.scope))
             logger.debug(f"Requested access to scope {this.scope}, allowed {_allowed}, found: {_found}")
