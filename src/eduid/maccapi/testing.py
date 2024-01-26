@@ -66,7 +66,7 @@ class MAccApiTestCase(BaseDBTestCase):
         self.db = self.context.db
 
         vccs_client = cast(VCCSClient, MockVCCSClient())
-        
+
         self.api = init_api(name="test_api", test_config=self.test_config, vccs_client=vccs_client)
         self.client = TestClient(self.api)
         self.headers = {

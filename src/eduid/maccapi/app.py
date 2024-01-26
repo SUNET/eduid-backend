@@ -13,14 +13,18 @@ from eduid.vccs.client import VCCSClient
 
 
 class MAccAPI(FastAPI):
-    def __init__(self, name: str = "maccapi", test_config: Optional[dict] = None, vccs_client: Optional[VCCSClient] = None):
+    def __init__(
+        self, name: str = "maccapi", test_config: Optional[dict] = None, vccs_client: Optional[VCCSClient] = None
+    ):
         self.config = load_config(typ=MAccApiConfig, app_name=name, ns="api", test_config=test_config)
         super().__init__(root_path=self.config.application_root)
         self.context = Context(config=self.config, vccs_client=vccs_client)
         self.context.logger.info(f"Starting {name} app")
 
 
-def init_api(name: str = "maccapi", test_config: Optional[dict] = None, vccs_client: Optional[VCCSClient] = None) -> MAccAPI:
+def init_api(
+    name: str = "maccapi", test_config: Optional[dict] = None, vccs_client: Optional[VCCSClient] = None
+) -> MAccAPI:
     """
     Initialize the API.
     """
