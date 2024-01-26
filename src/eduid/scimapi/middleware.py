@@ -1,32 +1,27 @@
 import json
 import logging
 import re
-from copy import copy
-from typing import Any, Mapping, Optional
 
 from fastapi import Request, Response
 from jwcrypto import jwt
 from jwcrypto.common import JWException
-from pydantic import BaseModel, Field, ValidationError, root_validator, validator
+from pydantic import ValidationError
 from starlette.datastructures import URL
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import Message
 
-from eduid.common.config.base import DataOwnerName, ScopeName
+from eduid.common.config.base import DataOwnerName
 from eduid.common.models.bearer_token import (
     AuthenticationError,
     AuthnBearerToken,
     AuthorizationError,
     AuthSource,
     RequestedAccessDenied,
-    SudoAccess,
 )
 from eduid.common.utils import removeprefix
-from eduid.scimapi.config import ScimApiConfig
 from eduid.scimapi.context import Context
 from eduid.scimapi.context_request import ContextRequestMixin
 from eduid.scimapi.exceptions import Unauthorized, http_error_detail_handler
-from eduid.userdb.scimapi import ScimApiGroupDB
 
 logger = logging.getLogger(__name__)
 
