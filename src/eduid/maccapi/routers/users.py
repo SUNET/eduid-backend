@@ -69,6 +69,7 @@ async def add_user(request: Request, create_request: UserCreateRequest) -> UserC
         ),
     )
     request.app.context.logger.debug(f"add_user response: {response}")
+    request.app.context.stats.count("maccapi_create_user_success")
     return response
 
 
@@ -86,9 +87,11 @@ async def remove_user(request: Request, remove_request: UserRemoveRequest) -> Us
             eppn=managed_account.eppn, given_name=managed_account.given_name, surname=managed_account.surname
         )
         response = UserRemovedResponse(status="success", user=api_user)
+        request.app.context.stats.count("maccapi_remove_user_success")
     except UserDoesNotExist as e:
         request.app.context.logger.error(f"remove_user error: {e}")
         response = UserRemovedResponse(status="error")
+        request.app.context.stats.count("maccapi_remove_user_error")
 
     return response
 
@@ -113,9 +116,10 @@ async def reset_password(request: Request, reset_request: UserResetPasswordReque
             password=presentable_password,
         )
         response = UserResetPasswordResponse(status="success", user=api_user)
+        request.app.context.stats.count("maccapi_reset_password_success")
     except (UserDoesNotExist, UnableToAddPassword) as e:
         request.app.context.logger.error(f"reset_password error: {e}")
         response = UserResetPasswordResponse(status="error")
-        return response
+        request.app.context.stats.count("maccapi_reset_password_error")
 
     return response

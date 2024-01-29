@@ -4,13 +4,13 @@ from typing import Optional
 
 from pydantic import Field, validator
 
-from eduid.common.config.base import AuthnBearerTokenConfig, LoggingConfigMixin
+from eduid.common.config.base import AuthnBearerTokenConfig, LoggingConfigMixin, StatsConfigMixin
 from eduid.common.utils import removesuffix
 
 logger = logging.getLogger(__name__)
 
 
-class MAccApiConfig(AuthnBearerTokenConfig, LoggingConfigMixin):
+class MAccApiConfig(AuthnBearerTokenConfig, LoggingConfigMixin, StatsConfigMixin):
     """
     Configuration for the Managed Accounts API app
     """

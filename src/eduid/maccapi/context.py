@@ -7,6 +7,7 @@ from eduid.maccapi.util import load_jwks
 from eduid.userdb.maccapi import ManagedAccountDB
 from eduid.vccs.client import VCCSClient
 
+from eduid.common.stats import init_app_stats
 
 class Context:
     def __init__(self, config: MAccApiConfig, vccs_client: Optional[VCCSClient] = None):
@@ -30,3 +31,7 @@ class Context:
             self.vccs_client = vccs_client
         else:
             self.vccs_client = VCCSClient(base_url=config.vccs_url)
+
+        # Setup stats
+        self.stats = init_app_stats(config=config)
+        self.logger.info("Stats initialized")
