@@ -21,7 +21,7 @@ from eduid.maccapi.model.api import (
 from eduid.maccapi.util import make_presentable_password
 from eduid.userdb.exceptions import UserDoesNotExist
 from eduid.userdb.maccapi import ManagedAccount
-from eduid.webapp.common.authn.utils import generate_password
+from eduid.common.utils import generate_password
 
 users_router = APIRouter(prefix="/Users")
 

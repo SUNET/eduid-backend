@@ -1,7 +1,7 @@
 import unittest
 
 from eduid.webapp.common.api.validation import is_valid_password
-from eduid.webapp.common.authn.utils import generate_password
+from eduid.common.utils import generate_password
 
 
 class TestIsValidPassword(unittest.TestCase):

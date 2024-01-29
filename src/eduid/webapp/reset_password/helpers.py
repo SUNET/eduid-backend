@@ -21,7 +21,7 @@ from eduid.webapp.common.api.messages import FluxData, TranslatableMsg, error_re
 from eduid.webapp.common.api.utils import check_password_hash, get_unique_hash, get_zxcvbn_terms, save_and_sync_user
 from eduid.webapp.common.api.validation import is_valid_password
 from eduid.webapp.common.authn import fido_tokens
-from eduid.webapp.common.authn.utils import generate_password
+from eduid.common.utils import generate_password
 from eduid.webapp.common.authn.vccs import reset_password
 from eduid.webapp.common.session import session
 from eduid.webapp.reset_password.app import current_reset_password_app as current_app

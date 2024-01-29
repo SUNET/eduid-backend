@@ -17,7 +17,7 @@ from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response
 from eduid.webapp.common.api.schemas.base import FluxStandardAction
 from eduid.webapp.common.api.schemas.csrf import EmptyRequest
 from eduid.webapp.common.api.utils import make_short_code
-from eduid.webapp.common.authn.utils import generate_password
+from eduid.common.utils import generate_password
 from eduid.webapp.common.session import session
 from eduid.webapp.signup.app import current_signup_app as current_app
 from eduid.webapp.signup.helpers import (
