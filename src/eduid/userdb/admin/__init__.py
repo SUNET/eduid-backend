@@ -27,6 +27,11 @@ volunteers = {
 }
 usual_suspects = volunteers.values()
 
+# TODO: remove PYTHON_UUID_LEGACY_JSON_OPTIONS when we switch uuidRepresentation to "standard"
+PYTHON_UUID_LEGACY_JSON_OPTIONS: bson.json_util.JSONOptions = bson.json_util.JSONOptions(
+    json_mode=bson.json_util.JSONMode.RELAXED, uuid_representation=bson.binary.UuidRepresentation.PYTHON_LEGACY
+)
+
 
 class RawDb:
     """
@@ -134,7 +139,7 @@ class RawDb:
 
         def safe_encode(k2: Any, v2: Any) -> str:
             try:
-                return bson.json_util.dumps({k2: v2})
+                return bson.json_util.dumps({k2: v2}, json_options=PYTHON_UUID_LEGACY_JSON_OPTIONS)
             except:
                 sys.stderr.write(f"Failed encoding key {k2!r}: {v2!r}\n\n")
                 raise
@@ -165,11 +170,19 @@ class RawDb:
         """
         filename = self._get_backup_filename(backup_dir, "before", "json")
         with open(filename, "w") as fd:
-            fd.write(bson.json_util.dumps(raw.before, indent=True, sort_keys=True) + "\n")
+            fd.write(
+                bson.json_util.dumps(
+                    raw.before, indent=True, sort_keys=True, json_options=PYTHON_UUID_LEGACY_JSON_OPTIONS
+                )
+                + "\n"
+            )
 
         filename = self._get_backup_filename(backup_dir, "after", "json")
         with open(filename, "w") as fd:
-            fd.write(bson.json_util.dumps(raw.doc, indent=True, sort_keys=True) + "\n")
+            fd.write(
+                bson.json_util.dumps(raw.doc, indent=True, sort_keys=True, json_options=PYTHON_UUID_LEGACY_JSON_OPTIONS)
+                + "\n"
+            )
 
     def _get_backup_filename(self, dirname: str, filename: str, ext: str):
         """
