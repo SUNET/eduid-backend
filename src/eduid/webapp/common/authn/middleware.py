@@ -1,12 +1,11 @@
 import logging
 import re
 from abc import ABCMeta
-from typing import Any, Callable, Union
+from typing import Iterable, TYPE_CHECKING
 from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
 from flask import Request, current_app
 from flask_cors.core import get_cors_headers, get_cors_options
-from werkzeug.wrappers import Response
 from werkzeug.wsgi import get_current_url
 
 from eduid.common.config.base import EduIDBaseAppConfig
@@ -15,11 +14,11 @@ from eduid.webapp.common.api.app import EduIDBaseApp
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.redis_session import NoSessionDataFoundException
 
+if TYPE_CHECKING:
+    from _typeshed.wsgi import StartResponse
+    from _typeshed.wsgi import WSGIEnvironment
+
 no_context_logger = logging.getLogger(__name__)
-
-
-THeaders = list[tuple[str, str]]
-TStartResponse = Callable[[str, THeaders], None]
 
 
 class AuthnBaseApp(EduIDBaseApp, metaclass=ABCMeta):
@@ -28,7 +27,7 @@ class AuthnBaseApp(EduIDBaseApp, metaclass=ABCMeta):
     and in case it isn't, redirects to the authn service.
     """
 
-    def __call__(self, environ: dict[str, Any], start_response: TStartResponse) -> Union[Response, list[str]]:
+    def __call__(self, environ: "WSGIEnvironment", start_response: "StartResponse") -> Iterable[bytes]:
         # let request with method OPTIONS pass through
         if environ["REQUEST_METHOD"] == "OPTIONS":
             return super().__call__(environ, start_response)
