@@ -294,7 +294,12 @@ def get_client() -> MongoClient[TUserDbDocument]:
     else:
         db_uri = f"mongodb://{host}:{port}/"
 
-    return MongoClient[TUserDbDocument](db_uri, read_preference=ReadPreference.SECONDARY_PREFERRED)
+    return MongoClient[TUserDbDocument](
+        db_uri,
+        read_preference=ReadPreference.SECONDARY_PREFERRED,
+        # TODO: switch uuidRepresentation to "standard" when we made sure all UUIDs are stored as strings
+        uuidRepresentation="pythonLegacy",
+    )
 
 
 def get_argparser(description: Optional[str] = None, eppn: bool = False) -> argparse.ArgumentParser:
