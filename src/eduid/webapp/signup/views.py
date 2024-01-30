@@ -7,7 +7,7 @@ from uuid import uuid4
 from flask import Blueprint, abort, request
 
 from eduid.common.misc.timeutil import utc_now
-from eduid.common.utils import get_short_hash
+from eduid.common.utils import generate_password, get_short_hash
 from eduid.userdb import User
 from eduid.userdb.exceptions import UserOutOfSync
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, require_user
@@ -17,7 +17,6 @@ from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response
 from eduid.webapp.common.api.schemas.base import FluxStandardAction
 from eduid.webapp.common.api.schemas.csrf import EmptyRequest
 from eduid.webapp.common.api.utils import make_short_code
-from eduid.common.utils import generate_password
 from eduid.webapp.common.session import session
 from eduid.webapp.signup.app import current_signup_app as current_app
 from eduid.webapp.signup.helpers import (

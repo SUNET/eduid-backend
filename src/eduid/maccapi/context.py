@@ -2,12 +2,12 @@ import logging
 from typing import Optional
 
 from eduid.common.fastapi.log import init_logging
+from eduid.common.stats import init_app_stats
 from eduid.maccapi.config import MAccApiConfig
 from eduid.maccapi.util import load_jwks
 from eduid.userdb.maccapi import ManagedAccountDB
 from eduid.vccs.client import VCCSClient
 
-from eduid.common.stats import init_app_stats
 
 class Context:
     def __init__(self, config: MAccApiConfig, vccs_client: Optional[VCCSClient] = None):
