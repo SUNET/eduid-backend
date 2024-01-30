@@ -2,6 +2,8 @@ from typing import List, Optional
 
 from pydantic import BaseModel
 
+from eduid.common.config.base import EduidScope
+
 
 class ApiUser(BaseModel):
     eppn: str
@@ -10,8 +12,12 @@ class ApiUser(BaseModel):
     password: Optional[str]
 
 
-class UserListResponse(BaseModel):
+class ApiResponseBaseModel(BaseModel):
     status: str
+    scope: EduidScope
+
+
+class UserListResponse(ApiResponseBaseModel):
     users: List[ApiUser]
 
 
@@ -20,8 +26,7 @@ class UserCreateRequest(BaseModel):
     surname: str
 
 
-class UserCreatedResponse(BaseModel):
-    status: str
+class UserCreatedResponse(ApiResponseBaseModel):
     user: ApiUser
 
 
@@ -29,8 +34,7 @@ class UserRemoveRequest(BaseModel):
     eppn: str
 
 
-class UserRemovedResponse(BaseModel):
-    status: str
+class UserRemovedResponse(ApiResponseBaseModel):
     user: Optional[ApiUser]
 
 
@@ -38,6 +42,5 @@ class UserResetPasswordRequest(BaseModel):
     eppn: str
 
 
-class UserResetPasswordResponse(BaseModel):
-    status: str
+class UserResetPasswordResponse(ApiResponseBaseModel):
     user: Optional[ApiUser]

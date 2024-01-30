@@ -3,6 +3,7 @@ from typing import Any, Mapping
 
 from jwcrypto import jwt
 
+from eduid.common.config.base import EduidScope
 from eduid.maccapi.testing import MAccApiTestCase
 
 
@@ -26,6 +27,8 @@ class TestMAccApi(MAccApiTestCase):
         payload = json.loads(content)
 
         assert payload["status"] == "success"
+        # production is default scope unless set to something else in config
+        assert payload["scope"] == EduidScope.production
         assert payload["user"]["given_name"] == self.user1["given_name"]
         assert payload["user"]["surname"] == self.user1["surname"]
         assert payload["user"]["eppn"] != None

@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Request
 
+from eduid.common.utils import generate_password
 from eduid.maccapi.helpers import (
     UnableToAddPassword,
     create_and_sync_user,
@@ -21,7 +22,6 @@ from eduid.maccapi.model.api import (
 from eduid.maccapi.util import make_presentable_password
 from eduid.userdb.exceptions import UserDoesNotExist
 from eduid.userdb.maccapi import ManagedAccount
-from eduid.common.utils import generate_password
 
 users_router = APIRouter(prefix="/Users")
 
@@ -35,7 +35,7 @@ async def get_users(request: Request) -> UserListResponse:
 
     users = [ApiUser(eppn=user.eppn, given_name=user.given_name, surname=user.surname) for user in manages_accounts]
 
-    response = UserListResponse(status="success", users=users)
+    response = UserListResponse(status="success", scope=request.app.context.config.default_eppn_scope, users=users)
 
     return response
 
@@ -61,6 +61,7 @@ async def add_user(request: Request, create_request: UserCreateRequest) -> UserC
 
     response = UserCreatedResponse(
         status="success",
+        scope=request.app.context.config.default_eppn_scope,
         user=ApiUser(
             eppn=managed_account.eppn,
             given_name=managed_account.given_name,
@@ -86,11 +87,16 @@ async def remove_user(request: Request, remove_request: UserRemoveRequest) -> Us
         api_user = ApiUser(
             eppn=managed_account.eppn, given_name=managed_account.given_name, surname=managed_account.surname
         )
-        response = UserRemovedResponse(status="success", user=api_user)
+        response = UserRemovedResponse(
+            status="success", scope=request.app.context.config.default_eppn_scope, user=api_user
+        )
         request.app.context.stats.count("maccapi_remove_user_success")
     except UserDoesNotExist as e:
         request.app.context.logger.error(f"remove_user error: {e}")
-        response = UserRemovedResponse(status="error")
+        response = UserRemovedResponse(
+            status="error",
+            scope=request.app.context.config.default_eppn_scope,
+        )
         request.app.context.stats.count("maccapi_remove_user_error")
 
     return response
@@ -115,11 +121,16 @@ async def reset_password(request: Request, reset_request: UserResetPasswordReque
             surname=managed_account.surname,
             password=presentable_password,
         )
-        response = UserResetPasswordResponse(status="success", user=api_user)
+        response = UserResetPasswordResponse(
+            status="success", scope=request.app.context.config.default_eppn_scope, user=api_user
+        )
         request.app.context.stats.count("maccapi_reset_password_success")
     except (UserDoesNotExist, UnableToAddPassword) as e:
         request.app.context.logger.error(f"reset_password error: {e}")
-        response = UserResetPasswordResponse(status="error")
+        response = UserResetPasswordResponse(
+            status="error",
+            scope=request.app.context.config.default_eppn_scope,
+        )
         request.app.context.stats.count("maccapi_reset_password_error")
 
     return response

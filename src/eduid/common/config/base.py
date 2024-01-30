@@ -74,11 +74,18 @@ class EduidEnvironment(str, Enum):
     production = "production"
 
 
+class EduidScope(str, Enum):
+    dev = "local.eduid.se"
+    staging = "dev.eduid.se"
+    production = "eduid.se"
+
+
 class RootConfig(BaseModel):
     app_name: str
     debug: bool = False
     testing: bool = False
     environment: EduidEnvironment = EduidEnvironment.production
+    default_eppn_scope: EduidScope = EduidScope.production
 
     class Config:
         validate_assignment = True  # validate data when test cases modify the config object
