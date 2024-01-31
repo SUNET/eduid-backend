@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, HTTPException, Request
+from eduid.common.config.base import EduidEnvironment
 
 from eduid.common.utils import generate_password
 from eduid.maccapi.helpers import (
@@ -31,6 +32,10 @@ async def get_users(request: Request) -> UserListResponse:
     """
     return all users that the calling user has access to in current context
     """
+
+    if request.app.context.config.environment in [EduidEnvironment.production, EduidEnvironment.staging]:
+        raise HTTPException(status_code=403, detail="Not allowed in production")
+
     manages_accounts = list_users(context=request.app.context)
 
     users = [ApiUser(eppn=user.eppn, given_name=user.given_name, surname=user.surname) for user in manages_accounts]

@@ -33,6 +33,7 @@ class BaseDBTestCase(unittest.TestCase):
             "debug": True,
             "testing": True,
             "mongo_uri": self.mongo_uri,
+            "environment": "dev",
             "data_owners": {"eduid.se": {"db_name": "eduid_se"}},
             "logging_config": {
                 "loggers": {
