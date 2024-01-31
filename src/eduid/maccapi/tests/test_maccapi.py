@@ -11,6 +11,15 @@ class TestMAccApi(MAccApiTestCase):
         self.user1 = {"given_name": "Test", "surname": "User"}
         self.user2 = {"given_name": "Test", "surname": "User2"}
         self.user3 = {"given_name": "Test", "surname": "User3"}
+        self.domain = "eduid.se"
+        self.claims = {
+            "saml_eppn": f"test@eduid.se",
+            "version": 1,
+            "scopes": [self.domain],
+            "auth_source": "config",
+            "requested_access": [{"type": "maccapi", "scope": "eduid.se"}],
+        }
+
         return super().setUp()
 
     def _make_bearer_token(self, claims: Mapping[str, Any]) -> str:
@@ -48,7 +57,6 @@ class TestMAccApi(MAccApiTestCase):
         assert payload["user"]["password"] != None
 
     def test_create_multiple_users(self):
-        domain = "eduid.se"
         claims = {
             "saml_eppn": "test@eduid.se",
             "version": 1,
@@ -65,15 +73,7 @@ class TestMAccApi(MAccApiTestCase):
         assert response.status_code == 200
 
         # Create two users in another scope
-        domain = "eduid.se"
-        claims = {
-            "saml_eppn": f"test@eduid.se",
-            "version": 1,
-            "scopes": [domain],
-            "auth_source": "config",
-            "requested_access": [{"type": "maccapi", "scope": "eduid.se"}],
-        }
-        token = self._make_bearer_token(claims=claims)
+        token = self._make_bearer_token(claims=self.claims)
 
         headers = self.headers
         headers["Authorization"] = f"Bearer {token}"
@@ -92,15 +92,7 @@ class TestMAccApi(MAccApiTestCase):
         assert len(payload["users"]) == 2
 
     def test_remove_user(self):
-        domain = "eduid.se"
-        claims = {
-            "saml_eppn": "test@eduid.se",
-            "version": 1,
-            "scopes": [domain],
-            "auth_source": "config",
-            "requested_access": [{"type": "maccapi", "scope": "eduid.se"}],
-        }
-        token = self._make_bearer_token(claims=claims)
+        token = self._make_bearer_token(claims=self.claims)
 
         headers = self.headers
         headers["Authorization"] = f"Bearer {token}"
@@ -122,15 +114,7 @@ class TestMAccApi(MAccApiTestCase):
         assert payload["user"]["surname"] == self.user1["surname"]
 
     def test_reset_password(self):
-        domain = "eduid.se"
-        claims = {
-            "saml_eppn": "test@eduid.se",
-            "version": 1,
-            "scopes": [domain],
-            "auth_source": "config",
-            "requested_access": [{"type": "maccapi", "scope": "eduid.se"}],
-        }
-        token = self._make_bearer_token(claims=claims)
+        token = self._make_bearer_token(claims=self.claims)
 
         headers = self.headers
         headers["Authorization"] = f"Bearer {token}"
