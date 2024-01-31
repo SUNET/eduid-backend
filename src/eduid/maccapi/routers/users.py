@@ -1,7 +1,8 @@
 from fastapi import APIRouter
 
+from eduid.common.fastapi.context_request import ContextRequest
 from eduid.common.utils import generate_password
-from eduid.maccapi.context_request import ContextRequest, ContextRequestRoute
+from eduid.maccapi.context_request import MaccAPIRoute
 from eduid.maccapi.helpers import (
     UnableToAddPassword,
     add_api_event,
@@ -25,7 +26,7 @@ from eduid.maccapi.util import make_presentable_password
 from eduid.userdb.exceptions import UserDoesNotExist
 from eduid.userdb.maccapi import ManagedAccount
 
-users_router = APIRouter(route_class=ContextRequestRoute, prefix="/Users")
+users_router = APIRouter(route_class=MaccAPIRoute, prefix="/Users")
 
 
 @users_router.get("/", response_model_exclude_none=True)

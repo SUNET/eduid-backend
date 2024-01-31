@@ -11,6 +11,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import Message
 
 from eduid.common.config.base import DataOwnerName
+from eduid.common.fastapi.context_request import ContextRequestMixin
 from eduid.common.models.bearer_token import (
     AuthenticationError,
     AuthnBearerToken,
@@ -20,7 +21,7 @@ from eduid.common.models.bearer_token import (
 )
 from eduid.common.utils import removeprefix
 from eduid.scimapi.context import Context
-from eduid.scimapi.context_request import ContextRequestMixin
+from eduid.scimapi.context_request import ScimApiContext
 from eduid.scimapi.exceptions import Unauthorized, http_error_detail_handler
 
 logger = logging.getLogger(__name__)
@@ -52,7 +53,7 @@ class BaseMiddleware(BaseHTTPMiddleware, ContextRequestMixin):
 
 class ScimMiddleware(BaseMiddleware):
     async def dispatch(self, req: Request, call_next) -> Response:
-        req = self.make_context_request(req)
+        req = self.make_context_request(request=req, contextClass=ScimApiContext)
         self.context.logger.debug(f"process_request: {req.method} {req.url.path}")
         # TODO: fix me? is this needed?
         # if req.method == 'POST':
@@ -102,7 +103,7 @@ class AuthenticationMiddleware(BaseMiddleware):
         return False
 
     async def dispatch(self, req: Request, call_next) -> Response:
-        req = self.make_context_request(req)
+        req = self.make_context_request(request=req, contextClass=ScimApiContext)
 
         if self._is_no_auth_path(req.url):
             return await call_next(req)

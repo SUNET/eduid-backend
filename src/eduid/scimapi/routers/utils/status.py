@@ -5,7 +5,7 @@ from typing import Any, Mapping, Optional
 
 from fastapi import Response
 
-from eduid.scimapi.context_request import ContextRequest
+from eduid.common.fastapi.context_request import ContextRequest
 
 __author__ = "lundberg"
 

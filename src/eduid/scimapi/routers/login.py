@@ -3,9 +3,9 @@ import datetime
 from fastapi import Response
 from jwcrypto import jwt
 
+from eduid.common.fastapi.context_request import ContextRequest
 from eduid.common.models.bearer_token import AuthSource
 from eduid.scimapi.api_router import APIRouter
-from eduid.scimapi.context_request import ContextRequest
 from eduid.scimapi.exceptions import ErrorDetail, NotFound, Unauthorized
 from eduid.scimapi.models.login import TokenRequest
 

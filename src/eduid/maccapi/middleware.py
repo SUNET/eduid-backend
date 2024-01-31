@@ -8,9 +8,10 @@ from jwcrypto.common import JWException
 from pydantic import ValidationError
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 
+from eduid.common.fastapi.context_request import ContextRequestMixin
 from eduid.common.models.bearer_token import AuthnBearerToken, RequestedAccessDenied
 from eduid.maccapi.context import Context
-from eduid.maccapi.context_request import ContextRequestMixin
+from eduid.maccapi.context_request import MaccAPIContext
 
 
 def return_error_response(status_code: int, detail: str) -> JSONResponse:
@@ -26,7 +27,7 @@ class AuthenticationMiddleware(BaseHTTPMiddleware, ContextRequestMixin):
         self.context = context
 
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
-        request = self.make_context_request(request)
+        request = self.make_context_request(request, contextClass=MaccAPIContext)
 
         path = request.url.path.removeprefix(request.app.config.application_root)
 

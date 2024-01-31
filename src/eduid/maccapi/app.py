@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from eduid.common.config.parsers import load_config
 from eduid.maccapi.config import MAccApiConfig
 from eduid.maccapi.context import Context
-from eduid.maccapi.context_request import ContextRequestRoute
+from eduid.maccapi.context_request import MaccAPIRoute
 from eduid.maccapi.middleware import AuthenticationMiddleware
 from eduid.maccapi.routers.status import status_router
 from eduid.maccapi.routers.users import users_router
@@ -29,7 +29,7 @@ def init_api(
     Initialize the API.
     """
     app = MAccAPI(name=name, test_config=test_config, vccs_client=vccs_client)
-    app.router.route_class = ContextRequestRoute
+    app.router.route_class = MaccAPIRoute
 
     app.include_router(status_router)
     app.include_router(users_router)

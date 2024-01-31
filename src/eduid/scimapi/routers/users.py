@@ -5,10 +5,11 @@ from typing import Optional
 
 from fastapi import Response
 
+from eduid.common.fastapi.context_request import ContextRequest
 from eduid.common.models.scim_base import ListResponse, SCIMResourceType, SCIMSchema, SearchRequest
 from eduid.common.models.scim_user import UserCreateRequest, UserResponse, UserUpdateRequest
 from eduid.scimapi.api_router import APIRouter
-from eduid.scimapi.context_request import ContextRequest, ContextRequestRoute
+from eduid.scimapi.context_request import ScimApiRoute
 from eduid.scimapi.exceptions import BadRequest, Conflict, ErrorDetail, MaxRetriesReached, NotFound
 from eduid.scimapi.routers.utils.events import add_api_event
 from eduid.scimapi.routers.utils.users import (
@@ -33,7 +34,7 @@ from eduid.userdb.scimapi import (
 from eduid.userdb.scimapi.userdb import ScimApiProfile, ScimApiUser
 
 users_router = APIRouter(
-    route_class=ContextRequestRoute,
+    route_class=ScimApiRoute,
     prefix="/Users",
     responses={
         400: {"description": "Bad request", "model": ErrorDetail},

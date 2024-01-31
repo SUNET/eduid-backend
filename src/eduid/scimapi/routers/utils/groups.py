@@ -5,9 +5,9 @@ from uuid import UUID
 
 from fastapi import Request, Response
 
+from eduid.common.fastapi.context_request import ContextRequest
 from eduid.common.models.scim_base import Meta, SCIMResourceType, SCIMSchema
 from eduid.common.utils import make_etag
-from eduid.scimapi.context_request import ContextRequest
 from eduid.scimapi.exceptions import BadRequest
 from eduid.scimapi.models.group import GroupMember, GroupResponse, NutidGroupExtensionV1
 from eduid.scimapi.search import SearchFilter
