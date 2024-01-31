@@ -19,6 +19,9 @@ class MAccApiConfig(AuthnBearerTokenConfig, LoggingConfigMixin, StatsConfigMixin
     # The expected value of the authn JWT claims['requested_access']['type']
     requested_access_type: Optional[str] = "maccapi"
 
+    log_retention_days: int = 730
+    account_retention_days: int = 365
+
     @validator("application_root")
     def application_root_must_not_end_with_slash(cls, v: str):
         if v.endswith("/"):

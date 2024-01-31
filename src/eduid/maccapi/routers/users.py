@@ -1,9 +1,10 @@
-from fastapi import APIRouter, HTTPException, Request
-from eduid.common.config.base import EduidEnvironment
+from fastapi import APIRouter
 
 from eduid.common.utils import generate_password
+from eduid.maccapi.context_request import ContextRequest, ContextRequestRoute
 from eduid.maccapi.helpers import (
     UnableToAddPassword,
+    add_api_event,
     create_and_sync_user,
     deactivate_user,
     get_user,
@@ -24,19 +25,16 @@ from eduid.maccapi.util import make_presentable_password
 from eduid.userdb.exceptions import UserDoesNotExist
 from eduid.userdb.maccapi import ManagedAccount
 
-users_router = APIRouter(prefix="/Users")
+users_router = APIRouter(route_class=ContextRequestRoute, prefix="/Users")
 
 
 @users_router.get("/", response_model_exclude_none=True)
-async def get_users(request: Request) -> UserListResponse:
+async def get_users(request: ContextRequest) -> UserListResponse:
     """
     return all users that the calling user has access to in current context
     """
 
-    if request.app.context.config.environment in [EduidEnvironment.production, EduidEnvironment.staging]:
-        raise HTTPException(status_code=403, detail="Not allowed in production")
-
-    manages_accounts = list_users(context=request.app.context)
+    manages_accounts = list_users(context=request.app.context, data_owner=request.context.data_owner)
 
     users = [ApiUser(eppn=user.eppn, given_name=user.given_name, surname=user.surname) for user in manages_accounts]
 
@@ -46,7 +44,7 @@ async def get_users(request: Request) -> UserListResponse:
 
 
 @users_router.post("/create", response_model_exclude_none=True)
-async def add_user(request: Request, create_request: UserCreateRequest) -> UserCreatedResponse:
+async def add_user(request: ContextRequest, create_request: UserCreateRequest) -> UserCreatedResponse:
     """
     add a new user to the current context
     """
@@ -57,12 +55,21 @@ async def add_user(request: Request, create_request: UserCreateRequest) -> UserC
 
     managed_account: ManagedAccount = create_and_sync_user(
         context=request.app.context,
+        data_owner=request.context.data_owner,
         given_name=create_request.given_name,
         surname=create_request.surname,
         password=presentable_password,
     )
 
     request.app.context.logger.debug(f"created managed_account: {managed_account.to_dict()}")
+
+    add_api_event(
+        context=request.app.context,
+        eppn=managed_account.eppn,
+        action="created user",
+        action_by=request.context.manager_eppn,
+        data_owner=request.context.data_owner,
+    )
 
     response = UserCreatedResponse(
         status="success",
@@ -80,7 +87,7 @@ async def add_user(request: Request, create_request: UserCreateRequest) -> UserC
 
 
 @users_router.post("/remove", response_model_exclude_none=True)
-async def remove_user(request: Request, remove_request: UserRemoveRequest) -> UserRemovedResponse:
+async def remove_user(request: ContextRequest, remove_request: UserRemoveRequest) -> UserRemovedResponse:
     """
     remove a user from the current context
     """
@@ -88,7 +95,18 @@ async def remove_user(request: Request, remove_request: UserRemoveRequest) -> Us
     request.app.context.logger.debug(f"remove_user: {remove_request}")
 
     try:
-        managed_account: ManagedAccount = deactivate_user(context=request.app.context, eppn=remove_request.eppn)
+        managed_account: ManagedAccount = deactivate_user(
+            context=request.app.context, eppn=remove_request.eppn, data_owner=request.context.data_owner
+        )
+
+        add_api_event(
+            context=request.app.context,
+            eppn=remove_request.eppn,
+            action="deactivated user",
+            action_by=request.context.manager_eppn,
+            data_owner=request.context.data_owner,
+        )
+
         api_user = ApiUser(
             eppn=managed_account.eppn, given_name=managed_account.given_name, surname=managed_account.surname
         )
@@ -108,7 +126,7 @@ async def remove_user(request: Request, remove_request: UserRemoveRequest) -> Us
 
 
 @users_router.post("/reset_password")
-async def reset_password(request: Request, reset_request: UserResetPasswordRequest) -> UserResetPasswordResponse:
+async def reset_password(request: ContextRequest, reset_request: UserResetPasswordRequest) -> UserResetPasswordResponse:
     """
     reset a user's password
     """
@@ -118,8 +136,17 @@ async def reset_password(request: Request, reset_request: UserResetPasswordReque
     new_password = generate_password()
     presentable_password = make_presentable_password(new_password)
     try:
-        managed_account = get_user(context=request.app.context, eppn=eppn)
+        managed_account = get_user(context=request.app.context, eppn=eppn, data_owner=request.context.data_owner)
         replace_password(context=request.app.context, eppn=eppn, new_password=new_password)
+
+        add_api_event(
+            context=request.app.context,
+            eppn=reset_request.eppn,
+            action="reset password for user",
+            action_by=request.context.manager_eppn,
+            data_owner=request.context.data_owner,
+        )
+
         api_user = ApiUser(
             eppn=managed_account.eppn,
             given_name=managed_account.given_name,

@@ -34,7 +34,7 @@ class BaseDBTestCase(unittest.TestCase):
             "testing": True,
             "mongo_uri": self.mongo_uri,
             "environment": "dev",
-            "data_owners": {"eduid.se": {"db_name": "eduid_se"}},
+            "data_owners": {"eduid.se": {"db_name": "eduid_se"}, "test.eduid.se": {"db_name": "test_eduid_se"}},
             "logging_config": {
                 "loggers": {
                     "root": {
@@ -86,9 +86,3 @@ class MAccApiTestCase(BaseDBTestCase):
         super().tearDown()
         if self.db:
             self.db._drop_whole_collection()
-
-    def add_user(self, eppn: str, given_name: str, surname: str) -> Optional[ManagedAccount]:
-        user = ManagedAccount(eppn=eppn, given_name=given_name, surname=surname)
-        assert self.db
-        self.db.save(user)
-        return self.db.get_user_by_eppn(eppn)

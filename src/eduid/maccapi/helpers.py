@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 from typing import List
 
 from bson import ObjectId
@@ -7,6 +8,7 @@ from eduid.common.utils import get_short_hash
 from eduid.maccapi.context import Context
 from eduid.userdb.credentials import Password
 from eduid.userdb.exceptions import UserDoesNotExist, UserOutOfSync
+from eduid.userdb.logs.element import ManagedAccountLogElement
 from eduid.userdb.maccapi import ManagedAccount
 from eduid.vccs.client import VCCSClient, VCCSClientHTTPError, VCCSPasswordFactor, VCCSRevokeFactor
 
@@ -19,8 +21,8 @@ class UnableToAddPassword(Exception):
     pass
 
 
-def list_users(context: Context):
-    managed_accounts: List[ManagedAccount] = context.db.get_users()
+def list_users(context: Context, data_owner: str):
+    managed_accounts: List[ManagedAccount] = context.db.get_users(data_owner=data_owner)
     context.logger.info(f"Listing {managed_accounts.__len__()} users")
     return managed_accounts
 
@@ -82,10 +84,15 @@ def generate_ma_eppn(context: Context) -> str:
     raise UnableToCreateUniqueEppn("Failed to generate unique eppn")
 
 
-def create_and_sync_user(context: Context, given_name: str, surname: str, password: str) -> ManagedAccount:
+def create_and_sync_user(
+    context: Context, given_name: str, surname: str, password: str, data_owner: str
+) -> ManagedAccount:
     eppn = generate_ma_eppn(context=context)
 
-    managed_account = ManagedAccount(eppn=eppn, given_name=given_name, surname=surname)
+    expiration: datetime = utc_now() + timedelta(days=context.config.log_retention_days)
+    managed_account = ManagedAccount(
+        eppn=eppn, given_name=given_name, surname=surname, data_owner=data_owner, expire_at=expiration
+    )
 
     if not add_password(context=context, managed_account=managed_account, password=password):
         context.logger.error(f"Failed adding password for user {managed_account}")
@@ -104,9 +111,11 @@ def create_and_sync_user(context: Context, given_name: str, surname: str, passwo
     return managed_account
 
 
-def deactivate_user(context: Context, eppn: str) -> ManagedAccount:
+def deactivate_user(context: Context, eppn: str, data_owner: str) -> ManagedAccount:
     managed_account: ManagedAccount = context.db.get_user_by_eppn(eppn)
     if managed_account is None:
+        raise UserDoesNotExist(f"User {eppn} not found")
+    if managed_account.data_owner != data_owner:
         raise UserDoesNotExist(f"User {eppn} not found")
     managed_account.terminated = utc_now()
     revoke_passwords(context=context, managed_account=managed_account, reason="User deactivated")
@@ -127,8 +136,23 @@ def replace_password(context: Context, eppn: str, new_password: str):
     context.logger.info(f"Replaced password for {managed_account}")
 
 
-def get_user(context: Context, eppn: str) -> ManagedAccount:
+def get_user(context: Context, eppn: str, data_owner: str) -> ManagedAccount:
     managed_account: ManagedAccount = context.db.get_user_by_eppn(eppn)
     if managed_account is None:
         raise UserDoesNotExist(f"User {eppn} not found")
+    if managed_account.data_owner != data_owner:
+        raise UserDoesNotExist(f"User {eppn} not found")
     return managed_account
+
+
+def add_api_event(context: Context, eppn: str, action: str, action_by: str, data_owner: str):
+    expiration: datetime = utc_now() + timedelta(days=context.config.log_retention_days)
+    log_element = ManagedAccountLogElement(
+        eppn=eppn,
+        created_by=context.name,
+        action=action,
+        action_by=action_by,
+        expire_at=expiration,
+        data_owner=data_owner,
+    )
+    context.audit_log.save(log_element=log_element)

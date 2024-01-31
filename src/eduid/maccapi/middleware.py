@@ -10,6 +10,7 @@ from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoin
 
 from eduid.common.models.bearer_token import AuthnBearerToken, RequestedAccessDenied
 from eduid.maccapi.context import Context
+from eduid.maccapi.context_request import ContextRequestMixin
 
 
 def return_error_response(status_code: int, detail: str) -> JSONResponse:
@@ -19,12 +20,14 @@ def return_error_response(status_code: int, detail: str) -> JSONResponse:
     )
 
 
-class AuthenticationMiddleware(BaseHTTPMiddleware):
+class AuthenticationMiddleware(BaseHTTPMiddleware, ContextRequestMixin):
     def __init__(self, app, context: Context):
         super().__init__(app)
         self.context = context
 
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
+        request = self.make_context_request(request)
+
         path = request.url.path.removeprefix(request.app.config.application_root)
 
         if not path:
@@ -85,6 +88,9 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
         if not data_owner or data_owner not in self.context.config.data_owners:
             self.context.logger.error(f"Data owner {repr(data_owner)} not configured")
             return return_error_response(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unknown data_owner")
+
+        request.context.data_owner = data_owner
+        request.context.manager_eppn = token.saml_eppn
 
         return await call_next(request)
 
