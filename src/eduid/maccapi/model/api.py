@@ -2,8 +2,6 @@ from typing import List, Optional
 
 from pydantic import BaseModel
 
-from eduid.common.config.base import EduidScope
-
 
 class ApiUser(BaseModel):
     eppn: str
@@ -14,7 +12,7 @@ class ApiUser(BaseModel):
 
 class ApiResponseBaseModel(BaseModel):
     status: str
-    scope: EduidScope
+    scope: str
 
 
 class UserListResponse(ApiResponseBaseModel):
