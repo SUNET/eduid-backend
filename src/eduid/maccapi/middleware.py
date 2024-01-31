@@ -25,7 +25,7 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
         self.context = context
 
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
-        path = request.url.path.lstrip(request.app.config.application_root)
+        path = request.url.path.removeprefix(request.app.config.application_root)
 
         if not path:
             return return_error_response(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid path")
