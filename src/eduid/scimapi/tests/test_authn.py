@@ -11,7 +11,7 @@ from jwcrypto import jwt
 
 from eduid.common.config.base import DataOwner, DataOwnerName, ScopeName
 from eduid.common.config.parsers import load_config
-from eduid.common.models.bearer_token import AuthnBearerToken, AuthSource, RequestedAccessDenied, RequestedAccess
+from eduid.common.models.bearer_token import AuthnBearerToken, AuthSource, RequestedAccess, RequestedAccessDenied
 from eduid.common.models.scim_base import SCIMSchema
 from eduid.scimapi.config import ScimApiConfig
 from eduid.scimapi.testing import BaseDBTestCase
