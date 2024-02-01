@@ -5,7 +5,6 @@ import sys
 from datetime import timedelta
 from typing import TYPE_CHECKING, Optional, Sequence
 
-from pwgen import pwgen
 from saml2 import server
 from saml2.config import SPConfig
 from saml2.typing import SAMLHttpArgs
@@ -91,10 +90,6 @@ def no_authn_views(config: EduIDBaseAppConfig, paths: Sequence[str]) -> None:
         if no_auth_regex not in config.no_authn_urls:
             config.no_authn_urls.append(no_auth_regex)
     return None
-
-
-def generate_password(length: int = 12) -> str:
-    return pwgen(int(length), no_capitalize=True, no_symbols=True)
 
 
 def check_previous_identification(session_ns: TimestampedNS) -> Optional[str]:

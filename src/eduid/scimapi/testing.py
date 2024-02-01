@@ -10,13 +10,14 @@ from bson import ObjectId
 from httpx import Response
 from starlette.testclient import TestClient
 
+from eduid.common.config.base import DataOwnerName
 from eduid.common.config.parsers import load_config
 from eduid.common.models.scim_base import SCIMSchema
 from eduid.graphdb.groupdb import User as GraphUser
 from eduid.graphdb.testing import Neo4jTemporaryInstance
 from eduid.queue.db.message import MessageDB
 from eduid.scimapi.app import init_api
-from eduid.scimapi.config import DataOwnerName, ScimApiConfig
+from eduid.scimapi.config import ScimApiConfig
 from eduid.scimapi.context import Context
 from eduid.userdb.scimapi import ScimApiEvent, ScimApiGroup, ScimApiLinkedAccount, ScimApiName
 from eduid.userdb.scimapi.invitedb import ScimApiInvite

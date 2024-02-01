@@ -7,13 +7,13 @@ from flask_babel import gettext as _
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.rpc.msg_relay import FullPostalAddress, NavetData
+from eduid.common.utils import generate_password
 from eduid.userdb import NinIdentity
 from eduid.userdb.logs.element import NameUpdateProofing
 from eduid.userdb.security import SecurityUser
 from eduid.userdb.user import User
 from eduid.webapp.common.api.helpers import send_mail, set_user_names_from_official_address
 from eduid.webapp.common.api.messages import FluxData, TranslatableMsg, error_response
-from eduid.webapp.common.authn.utils import generate_password
 from eduid.webapp.common.session.namespaces import SP_AuthnRequest
 from eduid.webapp.security.app import current_security_app as current_app
 

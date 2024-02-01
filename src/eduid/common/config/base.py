@@ -11,7 +11,7 @@ from re import Pattern
 from typing import Any, Mapping, Optional, Sequence, TypeVar, Union
 
 import pkg_resources
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConstrainedStr, Field
 
 from eduid.userdb.credentials import CredentialProofingMethod
 from eduid.userdb.credentials.external import TrustFramework
@@ -79,6 +79,7 @@ class RootConfig(BaseModel):
     debug: bool = False
     testing: bool = False
     environment: EduidEnvironment = EduidEnvironment.production
+    default_eppn_scope: str = "eduid.se"
 
     class Config:
         validate_assignment = True  # validate data when test cases modify the config object
@@ -380,3 +381,43 @@ class EduIDBaseAppConfig(RootConfig, LoggingConfigMixin, StatsConfigMixin, Redis
     status_cache_seconds: int = 10
     # All AuthnBaseApps need this to redirect not-logged-in requests to the authn service
     token_service_url: str
+
+
+class ReasonableDomainName(ConstrainedStr):
+    min_length = len("x.se")
+    to_lower = True
+
+
+class DataOwner(BaseModel):
+    db_name: Optional[str] = None
+    notify: list[str] = []
+
+
+class DataOwnerName(ReasonableDomainName):
+    pass
+
+
+class ScopeName(ReasonableDomainName):
+    pass
+
+
+class AuthnBearerTokenConfig(RootConfig):
+    protocol: str = "http"
+    server_name: str = "localhost:8000"
+    application_root: str = ""
+    log_format: str = "{asctime} | {levelname:7} | {hostname} | {name:35} | {module:10} | {message}"
+    no_authn_urls: list[str] = Field(default=["^/status/healthy$", "^/docs/?$", "^/openapi.json"])
+    mongo_uri: str = ""
+    authorization_mandatory: bool = True
+    authorization_token_expire: int = 5 * 60
+    keystore_path: Path
+    data_owners: dict[DataOwnerName, DataOwner] = Field(default={})
+    # Map scope to data owner name
+    scope_mapping: dict[ScopeName, DataOwnerName] = Field(default={})
+    # Allow someone with scope x to sudo to scope y
+    scope_sudo: dict[ScopeName, set[ScopeName]] = Field(default={})
+    requested_access_type: Optional[str]
+    required_saml_assurance_level: list[str] = Field(default=["http://www.swamid.se/policy/assurance/al3"])
+    # group name to match saml entitlement for authorization
+    account_manager_default_group: str = "Account Managers"
+    account_manager_group_mapping: dict[DataOwnerName, str] = Field(default={})

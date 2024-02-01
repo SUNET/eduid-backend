@@ -6,16 +6,16 @@ from typing import Any, Optional, Sequence
 from fastapi import Request, Response
 from pymongo.errors import DuplicateKeyError
 
+from eduid.common.fastapi.context_request import ContextRequest
 from eduid.common.models.scim_base import Email, Meta, Name, PhoneNumber, SCIMResourceType, SCIMSchema, SearchRequest
 from eduid.common.models.scim_invite import InviteCreateRequest, InviteResponse, NutidInviteExtensionV1
 from eduid.common.models.scim_user import NutidUserExtensionV1, Profile
-from eduid.common.utils import make_etag
+from eduid.common.utils import get_short_hash, make_etag
 from eduid.queue.db import QueueItem, SenderInfo
 from eduid.queue.db.message import EduidInviteEmail
-from eduid.scimapi.context_request import ContextRequest
 from eduid.scimapi.exceptions import BadRequest
 from eduid.scimapi.search import SearchFilter
-from eduid.scimapi.utils import get_short_hash, get_unique_hash
+from eduid.scimapi.utils import get_unique_hash
 from eduid.userdb.scimapi.invitedb import ScimApiInvite
 from eduid.userdb.signup import Invite as SignupInvite
 from eduid.userdb.signup import InviteMailAddress, InvitePhoneNumber, InviteType, SCIMReference

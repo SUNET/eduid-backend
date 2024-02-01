@@ -9,10 +9,11 @@ import pytest
 from httpx import Response
 from jwcrypto import jwt
 
+from eduid.common.config.base import DataOwner, DataOwnerName, ScopeName
 from eduid.common.config.parsers import load_config
+from eduid.common.models.bearer_token import AuthnBearerToken, AuthSource, RequestedAccess, RequestedAccessDenied
 from eduid.common.models.scim_base import SCIMSchema
-from eduid.scimapi.config import DataOwner, DataOwnerName, ScimApiConfig, ScopeName
-from eduid.scimapi.middleware import AuthnBearerToken, AuthSource, RequestedAccessDenied, SudoAccess
+from eduid.scimapi.config import ScimApiConfig
 from eduid.scimapi.testing import BaseDBTestCase
 from eduid.scimapi.tests.test_scimuser import ScimApiTestUserResourceBase
 from eduid.userdb.scimapi import ScimApiProfile
@@ -46,27 +47,27 @@ class TestAuthnBearerToken(BaseDBTestCase):
         config.scope_mapping[ScopeName("example.org")] = DataOwnerName(domain)
         # test no canonization
         token = AuthnBearerToken(
-            scim_config=self.config, version=1, scopes={ScopeName(domain)}, auth_source=AuthSource.CONFIG
+            config=self.config, version=1, scopes={ScopeName(domain)}, auth_source=AuthSource.CONFIG
         )
         assert token.scopes == {domain}
         # test no canonization, but normalisation
         token = AuthnBearerToken(
-            scim_config=self.config, version=1, scopes={ScopeName(domain.upper())}, auth_source=AuthSource.CONFIG
+            config=self.config, version=1, scopes={ScopeName(domain.upper())}, auth_source=AuthSource.CONFIG
         )
         assert token.scopes == {domain}
         # test canonization
         token = AuthnBearerToken(
-            scim_config=self.config, version=1, scopes={ScopeName("example.org")}, auth_source=AuthSource.CONFIG
+            config=self.config, version=1, scopes={ScopeName("example.org")}, auth_source=AuthSource.CONFIG
         )
         assert token.scopes == {domain}
         # test canonization and normalisation
         token = AuthnBearerToken(
-            scim_config=self.config, version=1, scopes={ScopeName("Example.Org")}, auth_source=AuthSource.CONFIG
+            config=self.config, version=1, scopes={ScopeName("Example.Org")}, auth_source=AuthSource.CONFIG
         )
         assert token.scopes == {domain}
         # test canonization and normalisation, and de-duplication
         token = AuthnBearerToken(
-            scim_config=self.config,
+            config=self.config,
             version=1,
             scopes={ScopeName("Example.Org"), ScopeName("example.coM"), ScopeName("other.foo")},
             auth_source=AuthSource.CONFIG,
@@ -76,9 +77,7 @@ class TestAuthnBearerToken(BaseDBTestCase):
     def test_invalid_scope(self) -> None:
         # test too short domain name
         with pytest.raises(ValueError) as exc_info:
-            AuthnBearerToken(
-                scim_config=self.config, version=1, scopes={ScopeName(".se")}, auth_source=AuthSource.CONFIG
-            )
+            AuthnBearerToken(config=self.config, version=1, scopes={ScopeName(".se")}, auth_source=AuthSource.CONFIG)
         assert exc_info.value.errors() == [  # type: ignore
             {
                 "ctx": {"limit_value": 4},
@@ -92,7 +91,7 @@ class TestAuthnBearerToken(BaseDBTestCase):
         # test too short domain name
         with pytest.raises(ValueError) as exc_info:
             AuthnBearerToken(
-                scim_config=self.config, version=99, scopes={ScopeName("eduid.se")}, auth_source=AuthSource.CONFIG
+                config=self.config, version=99, scopes={ScopeName("eduid.se")}, auth_source=AuthSource.CONFIG
             )
         assert exc_info.value.errors() == [  # type: ignore
             {"loc": ("version",), "msg": "Unknown version", "type": "value_error"}
@@ -108,43 +107,43 @@ class TestAuthnBearerToken(BaseDBTestCase):
         assert _requested_access_type is not None
         # test no canonization
         token = AuthnBearerToken(
-            scim_config=self.config,
+            config=self.config,
             version=1,
             scopes={ScopeName(domain)},
-            requested_access=[SudoAccess(type=_requested_access_type, scope=domain)],
+            requested_access=[RequestedAccess(type=_requested_access_type, scope=domain)],
             auth_source=AuthSource.CONFIG,
         )
         assert token.scopes == {domain}
-        assert token.requested_access == [SudoAccess(type=_requested_access_type, scope=domain)]
+        assert token.requested_access == [RequestedAccess(type=_requested_access_type, scope=domain)]
         # test no canonization, but normalisation
         token = AuthnBearerToken(
-            scim_config=self.config,
+            config=self.config,
             version=1,
             scopes={ScopeName(domain.capitalize())},
-            requested_access=[SudoAccess(type=_requested_access_type, scope=ScopeName(domain.upper()))],
+            requested_access=[RequestedAccess(type=_requested_access_type, scope=ScopeName(domain.upper()))],
             auth_source=AuthSource.CONFIG,
         )
         assert token.scopes == {domain}
-        assert token.requested_access == [SudoAccess(type=_requested_access_type, scope=domain)]
+        assert token.requested_access == [RequestedAccess(type=_requested_access_type, scope=domain)]
         # test canonization
         token = AuthnBearerToken(
-            scim_config=self.config,
+            config=self.config,
             version=1,
             scopes={domain},
-            requested_access=[SudoAccess(type=_requested_access_type, scope=ScopeName("example.org"))],
+            requested_access=[RequestedAccess(type=_requested_access_type, scope=ScopeName("example.org"))],
             auth_source=AuthSource.CONFIG,
         )
         assert token.scopes == {domain}
-        assert token.requested_access == [SudoAccess(type=_requested_access_type, scope=domain)]
+        assert token.requested_access == [RequestedAccess(type=_requested_access_type, scope=domain)]
 
     def test_invalid_requested_access_scope(self):
         # test too short domain name
         with pytest.raises(ValueError) as exc_info:
             AuthnBearerToken(
-                scim_config=self.config,
+                config=self.config,
                 version=1,
                 scopes={"eduid.se"},
-                requested_access=[SudoAccess(type=self.config.requested_access_type, scope=".se")],
+                requested_access=[RequestedAccess(type=self.config.requested_access_type, scope=".se")],
                 auth_source=AuthSource.CONFIG,
             )
         assert exc_info.value.errors() == [
@@ -160,15 +159,21 @@ class TestAuthnBearerToken(BaseDBTestCase):
         """Test with a 'requested_access' field with the wrong 'type' value."""
         domain = "eduid.se"
         # test no canonization
-        token = AuthnBearerToken(
-            scim_config=self.config,
-            version=1,
-            scopes={domain},
-            requested_access=[SudoAccess(type="someone else", scope=domain)],
-            auth_source=AuthSource.CONFIG,
-        )
-        assert token.scopes == {domain}
-        assert token.requested_access == []
+        with pytest.raises(ValueError) as exc_info:
+            AuthnBearerToken(
+                config=self.config,
+                version=1,
+                scopes={domain},
+                requested_access=[RequestedAccess(type="someone else", scope=domain)],
+                auth_source=AuthSource.CONFIG,
+            )
+        assert exc_info.value.errors() == [
+            {
+                "loc": ('requested_access',),
+                "msg": "No requested access",
+                "type": "value_error",
+            }
+        ]
 
     def test_regular_token(self):
         """Test the normal case. Login with access granted based on the single scope in the request."""
@@ -179,12 +184,35 @@ class TestAuthnBearerToken(BaseDBTestCase):
             "auth_source": "config",
             "requested_access": [{"type": "scim-api", "scope": "eduid.se"}],
         }
-        token = AuthnBearerToken(scim_config=self.config, **claims)
+        token = AuthnBearerToken(config=self.config, **claims)
         assert token.version == 1
         assert token.scopes == {domain}
         assert token.get_data_owner() == domain
         assert token.auth_source == AuthSource.CONFIG
-        assert token.requested_access == [SudoAccess(type="scim-api", scope=ScopeName("eduid.se"))]
+        assert token.requested_access == [RequestedAccess(type="scim-api", scope=ScopeName("eduid.se"))]
+
+    def test_multiple_access_requests_including_us(self):
+        """Test when requested access has multiple requests. Only keep the request for the current resource."""
+        domain = "eduid.se"
+        token = AuthnBearerToken(
+            config=self.config,
+            version=1,
+            scopes={domain},
+            requested_access=[
+                RequestedAccess(type="scim-api", scope=ScopeName(domain)),
+                RequestedAccess(type="someone else", scope=ScopeName(domain)),
+            ],
+            auth_source=AuthSource.CONFIG
+        )
+        assert token.version == 1
+        assert token.scopes == {domain}
+        assert token.get_data_owner() == domain
+        assert token.auth_source == AuthSource.CONFIG
+        # The token should only contain requested access to the current resource
+        assert len(token.requested_access) == 1
+        assert token.requested_access == [
+            RequestedAccess(type="scim-api", scope=ScopeName(domain)),
+        ]
 
     def test_interaction_token(self):
         """Test the normal case. Login with access granted based on the single scope in the request."""
@@ -195,12 +223,12 @@ class TestAuthnBearerToken(BaseDBTestCase):
             "auth_source": "interaction",
             "requested_access": [{"type": "scim-api", "scope": "eduid.se"}],
         }
-        token = AuthnBearerToken(scim_config=self.config, **claims)
+        token = AuthnBearerToken(config=self.config, **claims)
         assert token.version == 1
         assert token.scopes == {domain}
         assert token.get_data_owner() == domain
         assert token.auth_source == AuthSource.INTERACTION
-        assert token.requested_access == [SudoAccess(type="scim-api", scope=ScopeName("eduid.se"))]
+        assert token.requested_access == [RequestedAccess(type="scim-api", scope=ScopeName("eduid.se"))]
 
     def test_regular_token_with_canonisation(self):
         """Test the normal case. Login with access granted based on the single scope in the request."""
@@ -209,7 +237,7 @@ class TestAuthnBearerToken(BaseDBTestCase):
         config = self.config.copy()
         config.scope_mapping[domain_alias] = domain
         claims = {"version": 1, "scopes": [domain_alias], "auth_source": "config"}
-        token = AuthnBearerToken(scim_config=self.config, **claims)
+        token = AuthnBearerToken(config=self.config, **claims)
         assert token.get_data_owner() == domain
 
     def test_interaction_token_with_canonisation(self):
@@ -219,7 +247,7 @@ class TestAuthnBearerToken(BaseDBTestCase):
         config = self.config.copy()
         config.scope_mapping[domain_alias] = domain
         claims = {"version": 1, "auth_source": "interaction", "saml_eppn": f"user@{domain_alias}"}
-        token = AuthnBearerToken(scim_config=self.config, **claims)
+        token = AuthnBearerToken(config=self.config, **claims)
         assert token.get_data_owner() == domain
 
     def test_regular_token_upper_case(self):
@@ -229,7 +257,7 @@ class TestAuthnBearerToken(BaseDBTestCase):
         """
         domain = "eduid.se"
         claims = {"version": 1, "scopes": [domain.upper()], "auth_source": "config"}
-        token = AuthnBearerToken(scim_config=self.config, **claims)
+        token = AuthnBearerToken(config=self.config, **claims)
         assert token.version == 1
         assert token.scopes == {domain}
         assert token.get_data_owner() == domain
@@ -238,14 +266,14 @@ class TestAuthnBearerToken(BaseDBTestCase):
         """Test login with a scope that has no data owner in the configuration."""
         domain = "example.org"
         claims = {"version": 1, "scopes": [domain], "auth_source": "config"}
-        token = AuthnBearerToken(scim_config=self.config, **claims)
+        token = AuthnBearerToken(config=self.config, **claims)
         assert token.get_data_owner() is None
 
     def test_interaction_token_unknown_scope(self):
         """Test login with a scope that has no data owner in the configuration."""
         domain = "example.org"
         claims = {"version": 1, "saml_eppn": f"eppn{domain}", "auth_source": "interaction"}
-        token = AuthnBearerToken(scim_config=self.config, **claims)
+        token = AuthnBearerToken(config=self.config, **claims)
         assert token.get_data_owner() is None
 
     def test_regular_token_multiple_scopes(self):
@@ -254,7 +282,7 @@ class TestAuthnBearerToken(BaseDBTestCase):
         """
         domain = "eduid.se"
         claims = {"version": 1, "scopes": ["aaa.example.com", domain], "auth_source": "config"}
-        token = AuthnBearerToken(scim_config=self.config, **claims)
+        token = AuthnBearerToken(config=self.config, **claims)
         assert token.get_data_owner() == domain
 
     def test_sudo_allowed(self) -> None:
@@ -270,7 +298,7 @@ class TestAuthnBearerToken(BaseDBTestCase):
             "requested_access": [{"type": config.requested_access_type, "scope": domain}],
             "auth_source": "config",
         }
-        token = AuthnBearerToken(scim_config=config, **claims)
+        token = AuthnBearerToken(config=config, **claims)
         assert token.get_data_owner() == domain
 
     def test_sudo_not_allowed(self) -> None:
@@ -287,7 +315,7 @@ class TestAuthnBearerToken(BaseDBTestCase):
             "requested_access": [{"type": config.requested_access_type, "scope": domain}],
             "auth_source": "config",
         }
-        token = AuthnBearerToken(scim_config=config, **claims)
+        token = AuthnBearerToken(config=config, **claims)
 
         with pytest.raises(RequestedAccessDenied) as exc_info:
             assert token.get_data_owner() is None
@@ -309,7 +337,7 @@ class TestAuthnBearerToken(BaseDBTestCase):
             "requested_access": [{"type": config.requested_access_type, "scope": domain}],
             "auth_source": "config",
         }
-        token = AuthnBearerToken(scim_config=config, **claims)
+        token = AuthnBearerToken(config=config, **claims)
 
         with pytest.raises(RequestedAccessDenied) as exc_info:
             assert token.get_data_owner() is None
@@ -332,7 +360,7 @@ class TestAuthnBearerToken(BaseDBTestCase):
             "requested_access": [{"type": config.requested_access_type, "scope": domain}],
             "auth_source": "config",
         }
-        token = AuthnBearerToken(scim_config=config, **claims)
+        token = AuthnBearerToken(config=config, **claims)
         assert token.get_data_owner() == domain
 
     def test_sudo_with_canonicalisation(self) -> None:
@@ -354,7 +382,7 @@ class TestAuthnBearerToken(BaseDBTestCase):
             "requested_access": [{"type": config.requested_access_type, "scope": domain_alias}],
             "auth_source": "config",
         }
-        token = AuthnBearerToken(scim_config=config, **claims)
+        token = AuthnBearerToken(config=config, **claims)
         assert token.get_data_owner() == domain
 
 

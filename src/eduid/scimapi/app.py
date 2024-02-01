@@ -7,7 +7,7 @@ from starlette.middleware.cors import CORSMiddleware
 from eduid.common.config.parsers import load_config
 from eduid.scimapi.config import ScimApiConfig
 from eduid.scimapi.context import Context
-from eduid.scimapi.context_request import ContextRequestRoute
+from eduid.scimapi.context_request import ScimApiRoute
 from eduid.scimapi.exceptions import (
     HTTPErrorDetail,
     http_error_detail_handler,
@@ -33,7 +33,7 @@ class ScimAPI(FastAPI):
 
 def init_api(name: str = "scimapi", test_config: Optional[dict] = None) -> ScimAPI:
     app = ScimAPI(name=name, test_config=test_config)
-    app.router.route_class = ContextRequestRoute
+    app.router.route_class = ScimApiRoute
 
     # Routers
     # TODO: Move bearer token generation to a separate API

@@ -593,3 +593,23 @@ class UserChangeLogElement(LogElement):
     log_element_id: Optional[bson.ObjectId] = Field(alias="_id")
     reason: Reason
     source: Source
+
+
+class ManagedAccountLogElement(LogElement):
+    """
+    {
+        'eduPersonPrincipalName': managed account eppn,
+        'created_ts': utc_now(),
+        'created_by': 'application,
+        'action': 'action taken',
+        'action_by': eppn,
+        'expire_at': datetime,
+        'data_owner': str
+    }
+    """
+
+    eppn: str = Field(alias="eduPersonPrincipalName")
+    action: str
+    action_by: str
+    expire_at: datetime
+    data_owner: str

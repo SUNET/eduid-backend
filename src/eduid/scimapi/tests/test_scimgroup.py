@@ -7,12 +7,12 @@ from uuid import UUID, uuid4
 
 from bson import ObjectId
 
+from eduid.common.config.base import DataOwnerName
 from eduid.common.models.scim_base import Meta, SCIMResourceType, SCIMSchema, WeakVersion
 from eduid.common.testing_base import normalised_data
 from eduid.common.utils import make_etag
 from eduid.graphdb.groupdb import Group as GraphGroup
 from eduid.graphdb.groupdb import User as GraphUser
-from eduid.scimapi.config import DataOwnerName
 from eduid.scimapi.models.group import GroupMember, GroupResponse
 from eduid.scimapi.testing import ScimApiTestCase
 from eduid.scimapi.tests.test_scimbase import TestScimBase

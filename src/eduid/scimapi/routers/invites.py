@@ -3,10 +3,11 @@ from typing import Optional
 
 from fastapi import Response
 
+from eduid.common.fastapi.context_request import ContextRequest
 from eduid.common.models.scim_base import ListResponse, SCIMResourceType, SearchRequest
 from eduid.common.models.scim_invite import InviteCreateRequest, InviteResponse, InviteUpdateRequest
 from eduid.scimapi.api_router import APIRouter
-from eduid.scimapi.context_request import ContextRequest, ContextRequestRoute
+from eduid.scimapi.context_request import ScimApiRoute
 from eduid.scimapi.exceptions import BadRequest, ErrorDetail, NotFound
 from eduid.scimapi.routers.utils.events import add_api_event
 from eduid.scimapi.routers.utils.invites import (
@@ -25,7 +26,7 @@ from eduid.userdb.scimapi.invitedb import ScimApiInvite
 __author__ = "lundberg"
 
 invites_router = APIRouter(
-    route_class=ContextRequestRoute,
+    route_class=ScimApiRoute,
     prefix="/Invites",
     responses={
         400: {"description": "Bad request", "model": ErrorDetail},

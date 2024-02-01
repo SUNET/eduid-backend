@@ -59,3 +59,11 @@ class UserChangeLog(LogDB):
     def get_by_eppn(self, eppn: str) -> list[UserChangeLogElement]:
         docs = self._get_documents_by_attr("eduPersonPrincipalName", eppn)
         return [UserChangeLogElement(**doc) for doc in docs]
+
+
+class ManagedAccountLog(LogDB):
+    def __init__(self, db_uri: str, collection: str = "managed_account_log"):
+        super().__init__(db_uri, collection)
+        # Create in index
+        indexes = {"expiration-time": {"key": [("expire_at", 1)], "expireAfterSeconds": 0}}
+        self.setup_indexes(indexes)

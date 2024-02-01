@@ -1,6 +1,9 @@
 __author__ = "lundberg"
 
+from uuid import uuid4
+
 from bson import ObjectId
+from pwgen import pwgen
 
 
 def urlappend(base: str, path: str) -> str:
@@ -46,3 +49,11 @@ def removesuffix(s: str, suffix: str) -> str:
 
 def make_etag(version: ObjectId):
     return f'W/"{version}"'
+
+
+def get_short_hash(entropy: int = 10) -> str:
+    return uuid4().hex[:entropy]
+
+
+def generate_password(length: int = 12) -> str:
+    return pwgen(int(length), no_capitalize=True, no_symbols=True)
