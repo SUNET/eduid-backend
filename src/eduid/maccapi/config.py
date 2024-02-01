@@ -1,8 +1,7 @@
 import logging
-from pathlib import Path
 from typing import Optional
 
-from pydantic import Field, validator
+from pydantic import validator
 
 from eduid.common.config.base import AuthnBearerTokenConfig, LoggingConfigMixin, StatsConfigMixin
 from eduid.common.utils import removesuffix
@@ -18,6 +17,8 @@ class MAccApiConfig(AuthnBearerTokenConfig, LoggingConfigMixin, StatsConfigMixin
     vccs_url: str = "http://vccs:8080/"
     # The expected value of the authn JWT claims['requested_access']['type']
     requested_access_type: Optional[str] = "maccapi"
+
+    status_cache_seconds: int = 10
 
     log_retention_days: int = 730
     account_retention_days: int = 365
