@@ -16,7 +16,7 @@ class AuthSource(str, Enum):
     TLSFED = "tlsfed"
 
 
-class SudoAccess(BaseModel):
+class RequestedAccess(BaseModel):
     type: str
     scope: Optional[ScopeName]
 
@@ -42,7 +42,7 @@ class AuthnBearerToken(BaseModel):
     config: AuthnBearerTokenConfig
     version: StrictInt
     auth_source: AuthSource
-    requested_access: list[SudoAccess] = Field(default=[])
+    requested_access: list[RequestedAccess] = Field(default=[])
     scopes: set[ScopeName] = Field(default=set())
     # saml interaction claims
     saml_issuer: Optional[str] = None
@@ -76,20 +76,22 @@ class AuthnBearerToken(BaseModel):
         return canonical_scopes
 
     @validator("requested_access")
-    def validate_requested_access(cls, v: list[SudoAccess], values: Mapping[str, Any]) -> list[SudoAccess]:
+    def validate_requested_access(cls, v: list[RequestedAccess], values: Mapping[str, Any]) -> list[RequestedAccess]:
         config = values.get("config")
         if not config:
             raise ValueError("Can't validate without config")
-        new_access: list[SudoAccess] = []
+        new_access: list[RequestedAccess] = []
         for this in v:
             if this.type != config.requested_access_type:
                 # not meant for us
                 continue
-            if this.scope == None:
-                # scope is Optional
-                continue
-            this.scope = config.scope_mapping.get(this.scope, this.scope)
+            if this.scope is not None:
+                this.scope = config.scope_mapping.get(this.scope, this.scope)
             new_access += [this]
+        if not new_access:
+            logger.debug(f"Requested access: {v}")
+            logger.debug(f"New access: {new_access}")
+            raise ValueError("No requested access")
         return new_access
 
     @staticmethod
@@ -179,9 +181,9 @@ class AuthnBearerToken(BaseModel):
         logger.debug(f"Request {self}, allowed scopes: {allowed_scopes}")
 
         # only support one requested access at a time for now and do not fall back to simple scope check if
-        # requested access is used
+        # requested access is used with a scope
         for this in self.requested_access:
-            if this.scope == None:
+            if this.scope is None:
                 # scope is Optional
                 continue
             _allowed = this.scope in allowed_scopes
