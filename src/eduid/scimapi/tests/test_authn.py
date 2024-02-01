@@ -159,15 +159,21 @@ class TestAuthnBearerToken(BaseDBTestCase):
         """Test with a 'requested_access' field with the wrong 'type' value."""
         domain = "eduid.se"
         # test no canonization
-        token = AuthnBearerToken(
-            config=self.config,
-            version=1,
-            scopes={domain},
-            requested_access=[RequestedAccess(type="someone else", scope=domain)],
-            auth_source=AuthSource.CONFIG,
-        )
-        assert token.scopes == {domain}
-        assert token.requested_access == []
+        with pytest.raises(ValueError) as exc_info:
+            AuthnBearerToken(
+                config=self.config,
+                version=1,
+                scopes={domain},
+                requested_access=[RequestedAccess(type="someone else", scope=domain)],
+                auth_source=AuthSource.CONFIG,
+            )
+        assert exc_info.value.errors() == [
+            {
+                "loc": ('requested_access',),
+                "msg": "No requested access",
+                "type": "value_error",
+            }
+        ]
 
     def test_regular_token(self):
         """Test the normal case. Login with access granted based on the single scope in the request."""
@@ -184,6 +190,29 @@ class TestAuthnBearerToken(BaseDBTestCase):
         assert token.get_data_owner() == domain
         assert token.auth_source == AuthSource.CONFIG
         assert token.requested_access == [RequestedAccess(type="scim-api", scope=ScopeName("eduid.se"))]
+
+    def test_multiple_access_requests_including_us(self):
+        """Test when requested access has multiple requests. Only keep the request for the current resource."""
+        domain = "eduid.se"
+        token = AuthnBearerToken(
+            config=self.config,
+            version=1,
+            scopes={domain},
+            requested_access=[
+                RequestedAccess(type="scim-api", scope=ScopeName(domain)),
+                RequestedAccess(type="someone else", scope=ScopeName(domain)),
+            ],
+            auth_source=AuthSource.CONFIG
+        )
+        assert token.version == 1
+        assert token.scopes == {domain}
+        assert token.get_data_owner() == domain
+        assert token.auth_source == AuthSource.CONFIG
+        # The token should only contain requested access to the current resource
+        assert len(token.requested_access) == 1
+        assert token.requested_access == [
+            RequestedAccess(type="scim-api", scope=ScopeName(domain)),
+        ]
 
     def test_interaction_token(self):
         """Test the normal case. Login with access granted based on the single scope in the request."""
