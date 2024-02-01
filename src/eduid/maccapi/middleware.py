@@ -27,7 +27,7 @@ class AuthenticationMiddleware(BaseHTTPMiddleware, ContextRequestMixin):
         self.context = context
 
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
-        request = self.make_context_request(request, contextClass=MaccAPIContext)
+        request = self.make_context_request(request, context_class=MaccAPIContext)
 
         path = request.url.path.removeprefix(request.app.config.application_root)
 

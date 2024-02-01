@@ -53,7 +53,7 @@ class BaseMiddleware(BaseHTTPMiddleware, ContextRequestMixin):
 
 class ScimMiddleware(BaseMiddleware):
     async def dispatch(self, req: Request, call_next) -> Response:
-        req = self.make_context_request(request=req, contextClass=ScimApiContext)
+        req = self.make_context_request(request=req, context_class=ScimApiContext)
         self.context.logger.debug(f"process_request: {req.method} {req.url.path}")
         # TODO: fix me? is this needed?
         # if req.method == 'POST':
@@ -103,7 +103,7 @@ class AuthenticationMiddleware(BaseMiddleware):
         return False
 
     async def dispatch(self, req: Request, call_next) -> Response:
-        req = self.make_context_request(request=req, contextClass=ScimApiContext)
+        req = self.make_context_request(request=req, context_class=ScimApiContext)
 
         if self._is_no_auth_path(req.url):
             return await call_next(req)

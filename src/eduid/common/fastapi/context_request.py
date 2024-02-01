@@ -12,9 +12,9 @@ class Context:
 
 
 class ContextRequest(Request):
-    def __init__(self, contextClass: type[Context], *args, **kwargs):
+    def __init__(self, context_class: type[Context], *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.contextClass = contextClass
+        self.contextClass = context_class
 
     @property
     def context(self):
@@ -32,9 +32,9 @@ class ContextRequest(Request):
 
 class ContextRequestMixin:
     @staticmethod
-    def make_context_request(request: Union[Request, ContextRequest], contextClass: type[Context]) -> ContextRequest:
+    def make_context_request(request: Union[Request, ContextRequest], context_class: type[Context]) -> ContextRequest:
         if not isinstance(request, ContextRequest):
-            request = ContextRequest(contextClass=contextClass, scope=request.scope, receive=request.receive)
+            request = ContextRequest(context_class=context_class, scope=request.scope, receive=request.receive)
         return request
 
 
@@ -50,7 +50,7 @@ class ContextRequestRoute(APIRoute, ContextRequestMixin):
         original_route_handler = super().get_route_handler()
 
         async def context_route_handler(request: Union[Request, ContextRequest]) -> Response:
-            request = self.make_context_request(request=request, contextClass=self.contextClass)
+            request = self.make_context_request(request=request, context_class=self.contextClass)
             return await original_route_handler(request)
 
         return context_route_handler
