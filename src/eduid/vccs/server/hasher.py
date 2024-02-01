@@ -88,7 +88,6 @@ class VCCSYHSMHasher(VCCSHasher):
 
 
 class VCCSSoftHasher(VCCSHasher):
-
     """
     Hasher implementation without any real extra security benefits
     (except perhaps separating HMAC keys from credential store).

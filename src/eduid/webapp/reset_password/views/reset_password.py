@@ -42,6 +42,7 @@ supplemented with a text input for the SMS'ed code. In this case submitting the
 form will also result in resetting her password, but without unverifying any of
 her data.
 """
+
 from typing import Optional
 
 from flask import Blueprint, abort, request

@@ -32,7 +32,6 @@ class IdentityProofingMethod(str, Enum):
 
 
 class IdentityElement(VerifiedElement, ABC):
-
     """
     Element that is used for an identity for a user
 
@@ -70,7 +69,6 @@ class IdentityElement(VerifiedElement, ABC):
 
 
 class NinIdentity(IdentityElement):
-
     """
     Element that is used as a NIN identity for a user
 
@@ -114,7 +112,6 @@ class EIDASLoa(str, Enum):
 
 
 class EIDASIdentity(ForeignIdentityElement):
-
     """
     Element that is used as an EIDAS identity for a user
 

@@ -2,7 +2,6 @@
 Configuration (file) handling for the eduID email app.
 """
 
-
 from eduid.common.config.base import (
     AmConfigMixin,
     EduIDBaseAppConfig,

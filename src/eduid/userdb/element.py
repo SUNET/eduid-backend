@@ -43,6 +43,7 @@ respectively called in `from_dict` and `to_dict` and can be overridden in
 subclasses.
 
 """
+
 from __future__ import annotations
 
 import copy

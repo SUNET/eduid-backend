@@ -164,13 +164,11 @@ TProofingUser = TypeVar("TProofingUser", bound=User)
 
 
 @overload
-def add_nin_to_user(user: User, proofing_state: NinProofingState) -> ProofingUser:
-    ...
+def add_nin_to_user(user: User, proofing_state: NinProofingState) -> ProofingUser: ...
 
 
 @overload
-def add_nin_to_user(user: User, proofing_state: NinProofingState, user_type: type[TProofingUser]) -> TProofingUser:
-    ...
+def add_nin_to_user(user: User, proofing_state: NinProofingState, user_type: type[TProofingUser]) -> TProofingUser: ...
 
 
 def add_nin_to_user(user, proofing_state, user_type=ProofingUser):

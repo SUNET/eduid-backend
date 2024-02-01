@@ -34,13 +34,11 @@ SIMPLE_CACHE: dict[str, SimpleCacheItem] = dict()
 
 
 @overload
-def cached_json_response(key: str, data: dict[str, Any]) -> Response:
-    ...
+def cached_json_response(key: str, data: dict[str, Any]) -> Response: ...
 
 
 @overload
-def cached_json_response(key: str, data: Literal[None]) -> Optional[Response]:
-    ...
+def cached_json_response(key: str, data: Literal[None]) -> Optional[Response]: ...
 
 
 def cached_json_response(key: str, data: Optional[dict[str, Any]] = None) -> Optional[Response]:

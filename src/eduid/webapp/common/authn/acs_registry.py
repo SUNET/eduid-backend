@@ -9,6 +9,7 @@ and are called with two positional parameters:
  * the session_info given in the SAML response (a dict)
  * The user object
 """
+
 from dataclasses import dataclass
 from enum import Enum
 from typing import Callable, Optional, Union

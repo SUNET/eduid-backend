@@ -5,9 +5,8 @@ from flask import current_app
 from eduid.common.config.parsers import load_config
 from eduid.common.rpc.am_relay import AmRelay
 from eduid.userdb.actions.tou.userdb import ToUUserDB
-
-# from eduid.userdb.actions.tou import ToUUserDB
 from eduid.userdb.idp import IdPUserDb
+from eduid.userdb.maccapi import ManagedAccountDB
 from eduid.webapp.common.api import translation
 from eduid.webapp.common.api.app import EduIDBaseApp
 from eduid.webapp.common.authn.utils import init_pysaml2
@@ -46,7 +45,8 @@ class IdPApp(EduIDBaseApp):
         self.authn_info_db = None
 
         self.userdb = IdPUserDb(db_uri=config.mongo_uri)
-        self.authn = idp_authn.IdPAuthn(config=config, userdb=self.userdb)
+        self.managed_account_db = ManagedAccountDB(config.mongo_uri)
+        self.authn = idp_authn.IdPAuthn(config=config, userdb=self.userdb, managed_account_db=self.managed_account_db)
         self.tou_db = ToUUserDB(config.mongo_uri)
         self.other_device_db = OtherDeviceDB(config.mongo_uri)
         self.known_device_db = KnownDeviceDB(

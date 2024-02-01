@@ -15,7 +15,7 @@ from eduid.webapp.common.api.messages import FluxData, error_response, success_r
 from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.assurance_data import AuthnInfo
 from eduid.webapp.idp.decorators import require_ticket, uses_sso_session
-from eduid.webapp.idp.helpers import IdPAction, IdPMsg
+from eduid.webapp.idp.helpers import IdPAction, IdPMsg, lookup_user
 from eduid.webapp.idp.idp_saml import cancel_saml_request
 from eduid.webapp.idp.login import SSO, login_next_step
 from eduid.webapp.idp.login_context import LoginContext, LoginContextOtherDevice, LoginContextSAML
@@ -53,7 +53,7 @@ def next_view(ticket: LoginContext, sso_session: Optional[SSOSession]) -> FluxDa
             saml_params = cancel_saml_request(ticket, current_app.conf)
 
             if saml_params.binding != BINDING_HTTP_POST:
-                current_app.logger.error(f"SAML response does not have binding HTTP_POST")
+                current_app.logger.error("SAML response does not have binding HTTP_POST")
                 return error_response(message=IdPMsg.general_failure)
 
             return success_response(
@@ -145,7 +145,7 @@ def next_view(ticket: LoginContext, sso_session: Optional[SSOSession]) -> FluxDa
         if not sso_session:
             return error_response(message=IdPMsg.no_sso_session)
 
-        user = current_app.userdb.lookup_user(sso_session.eppn)
+        user = lookup_user(sso_session.eppn, managed_account_allowed=True)
         if not user:
             current_app.logger.error(f"User with eppn {sso_session.eppn} (from SSO session) not found")
             return error_response(message=IdPMsg.general_failure)
@@ -322,7 +322,7 @@ def _get_service_info(ticket: LoginContext) -> dict[str, Any]:
 
 def _set_user_options(res: AuthnOptions, eppn: str) -> None:
     """Augment the AuthnOptions instance with information about the current user"""
-    user = current_app.userdb.lookup_user(eppn)
+    user = lookup_user(eppn)
     if user:
         current_app.logger.debug(
             f"User logging in (from either known device, other device, SSO session, or SP request): {user}"

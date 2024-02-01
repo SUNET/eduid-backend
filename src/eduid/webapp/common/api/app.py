@@ -2,6 +2,7 @@
 Define a EduIDApp to create a Flask app and update
 it with all attributes common to all eduID services.
 """
+
 from __future__ import annotations
 
 import os

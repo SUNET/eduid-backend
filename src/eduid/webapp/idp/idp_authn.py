@@ -2,6 +2,7 @@
 Module handling authentication of users. Also applies login policies
 such as rate limiting.
 """
+
 from __future__ import annotations
 
 import logging
@@ -18,6 +19,7 @@ from eduid.userdb import MongoDB
 from eduid.userdb.credentials import Password
 from eduid.userdb.element import ElementKey
 from eduid.userdb.idp import IdPUser, IdPUserDb
+from eduid.userdb.maccapi import ManagedAccountDB
 from eduid.vccs.client import VCCSClientHTTPError, VCCSPasswordFactor
 from eduid.webapp.common.api import exceptions
 from eduid.webapp.common.authn import get_vccs_client
@@ -79,9 +81,11 @@ class IdPAuthn:
         self,
         config: IdPConfig,
         userdb: IdPUserDb,
+        managed_account_db: ManagedAccountDB,
     ):
         self.config = config
         self.userdb = userdb
+        self.managed_account_db = managed_account_db
         self.auth_client = get_vccs_client(config.vccs_url)
         # already checked with isinstance in app init
         assert config.mongo_uri is not None
@@ -93,7 +97,12 @@ class IdPAuthn:
 
         :returns: The IdPUser found, and AuthnData on success
         """
-        user = self.userdb.lookup_user(username)
+        # check for managed user where username always starts with ma-
+        if username.startswith("ma-"):
+            user = self.managed_account_db.get_account_as_idp_user(username)
+        else:
+            user = self.userdb.lookup_user(username)
+
         if not user:
             return None
 
@@ -115,23 +124,28 @@ class IdPAuthn:
         """
         pw_credentials = user.credentials.filter(Password)
         if self.authn_store:  # requires optional configuration
-            authn_info = self.authn_store.get_user_authn_info(user)
-            if authn_info.failures_this_month > self.config.max_authn_failures_per_month:
-                logger.info(
-                    "User {!r} AuthN failures this month {!r} > {!r}".format(
-                        user, authn_info.failures_this_month, self.config.max_authn_failures_per_month
+            if user.is_managed_account:
+                logger.debug("Skipping authn_store, no credential failure check for managed accounts")
+            else:
+                authn_info = self.authn_store.get_user_authn_info(user)
+                if authn_info.failures_this_month > self.config.max_authn_failures_per_month:
+                    logger.info(
+                        "User {!r} AuthN failures this month {!r} > {!r}".format(
+                            user, authn_info.failures_this_month, self.config.max_authn_failures_per_month
+                        )
                     )
-                )
-                raise exceptions.EduidTooManyRequests("Too Many Requests")
+                    raise exceptions.EduidTooManyRequests("Too Many Requests")
 
-            # Optimize list of credentials to try based on which credentials the
-            # user used in the last successful authentication. This optimization
-            # is based on plain assumption, no measurements whatsoever.
-            last_creds = authn_info.last_used_credentials
-            sorted_creds = sorted(pw_credentials, key=lambda x: x.credential_id not in last_creds)
-            if sorted_creds != pw_credentials:
-                logger.debug(f"Re-sorted list of credentials into\n{sorted_creds}\nbased on last-used {last_creds!r}")
-                pw_credentials = sorted_creds
+                # Optimize list of credentials to try based on which credentials the
+                # user used in the last successful authentication. This optimization
+                # is based on plain assumption, no measurements whatsoever.
+                last_creds = authn_info.last_used_credentials
+                sorted_creds = sorted(pw_credentials, key=lambda x: x.credential_id not in last_creds)
+                if sorted_creds != pw_credentials:
+                    logger.debug(
+                        f"Re-sorted list of credentials into\n{sorted_creds}\nbased on last-used {last_creds!r}"
+                    )
+                    pw_credentials = sorted_creds
 
         return self._authn_passwords(user, password, pw_credentials)
 
@@ -197,6 +211,9 @@ class IdPAuthn:
         :param success: List of successfully authenticated credentials
         :param failure: List of failed credentials
         """
+        if user.is_managed_account:
+            logger.debug("Skipping logging to the authn store for managed accounts")
+            return None
         if not self.authn_store:  # requires optional configuration
             return None
         if success:

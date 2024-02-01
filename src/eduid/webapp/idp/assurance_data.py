@@ -1,6 +1,7 @@
 """
 Some data structures that causes import loops if they are defined in assurance.py.
 """
+
 from datetime import datetime
 from enum import Enum, unique
 from typing import Any

@@ -1,5 +1,5 @@
 from dataclasses import asdict, dataclass
-from typing import Callable, Optional, Union
+from typing import Callable, Union
 
 from fastapi import Request, Response
 from fastapi.routing import APIRoute

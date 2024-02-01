@@ -1,12 +1,17 @@
+import logging
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 
 from pydantic import validator
 
 from eduid.userdb.db import TUserDbDocument
 from eduid.userdb.element import UserDBValueError
+from eduid.userdb.exceptions import EduIDDBError
+from eduid.userdb.idp import IdPUser
 from eduid.userdb.user import User
 from eduid.userdb.userdb import UserDB
+
+logger = logging.getLogger(__name__)
 
 
 class ManagedAccount(User):
@@ -22,6 +27,16 @@ class ManagedAccount(User):
         if len(v) != 11 or not v.startswith("ma-"):
             raise UserDBValueError(f"Invalid eppn: {v}")
         return v
+
+    def to_idp_user(self) -> IdPUser:
+        managed_account_dict = self.to_dict()
+        # Remove fields that are not part of the IdPUser model
+        del managed_account_dict["data_owner"]
+        del managed_account_dict["expire_at"]
+        # Add is_managed_account field to the IdPUser
+        # This is used in the IdPs to distinguish between managed and regular accounts
+        managed_account_dict["is_managed_account"] = True
+        return IdPUser.from_dict(managed_account_dict)
 
 
 class ManagedAccountDB(UserDB[ManagedAccount]):
@@ -44,3 +59,28 @@ class ManagedAccountDB(UserDB[ManagedAccount]):
         """
         users = self._get_documents_by_aggregate({"data_owner": data_owner, "terminated": {"$exists": False}})
         return self._users_from_documents(users)
+
+    def get_account_as_idp_user(self, username: str) -> Optional[IdPUser]:
+        """
+        Get ManagedAccount from the db
+        """
+        # username should always start with ma- and be lowercase
+        username = username.lower()
+        if not username.startswith("ma-"):
+            return None
+
+        try:
+            if "@" in username:
+                # strip scope if present
+                username = username.split("@")[0]
+            managed_account = self.get_user_by_eppn(username)
+        except EduIDDBError:
+            logger.exception(f"Managed account lookup using {repr(username)} did not return a valid account")
+            return None
+
+        if managed_account is None:
+            logger.info(f"Unknown managed account: {repr(username)}")
+            return None
+
+        logger.debug(f"Found managed account  {managed_account} using {repr(username)}")
+        return managed_account.to_idp_user()

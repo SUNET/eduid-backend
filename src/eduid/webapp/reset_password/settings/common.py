@@ -1,6 +1,7 @@
 """
 Configuration (file) handling for the eduID reset_password app.
 """
+
 from datetime import timedelta
 
 from pydantic import Field

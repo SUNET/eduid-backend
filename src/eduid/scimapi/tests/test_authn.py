@@ -169,7 +169,7 @@ class TestAuthnBearerToken(BaseDBTestCase):
             )
         assert exc_info.value.errors() == [
             {
-                "loc": ('requested_access',),
+                "loc": ("requested_access",),
                 "msg": "No requested access",
                 "type": "value_error",
             }
@@ -202,7 +202,7 @@ class TestAuthnBearerToken(BaseDBTestCase):
                 RequestedAccess(type="scim-api", scope=ScopeName(domain)),
                 RequestedAccess(type="someone else", scope=ScopeName(domain)),
             ],
-            auth_source=AuthSource.CONFIG
+            auth_source=AuthSource.CONFIG,
         )
         assert token.version == 1
         assert token.scopes == {domain}
