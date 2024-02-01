@@ -17,7 +17,7 @@ from eduid.webapp.common.session import session
 from eduid.webapp.common.session.namespaces import IdP_OtherDevicePendingRequest, RequestRef
 from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.decorators import require_ticket, uses_sso_session
-from eduid.webapp.idp.helpers import IdPMsg
+from eduid.webapp.idp.helpers import IdPMsg, lookup_user
 from eduid.webapp.idp.login_context import LoginContext
 from eduid.webapp.idp.mischttp import set_sso_cookie
 from eduid.webapp.idp.other_device.data import OtherDeviceId, OtherDeviceState
@@ -84,7 +84,7 @@ def use_other_1(
         if required_user.eppn:
             user = current_app.userdb.get_user_by_eppn(required_user.eppn)
         elif username:
-            user = current_app.userdb.lookup_user(username)
+            user = lookup_user(username)
 
         current_app.logger.debug(f"Adding new use other device state (user: {user})")
         state = current_app.other_device_db.add_new_state(ticket, user, ttl=current_app.conf.other_device_logins_ttl)

@@ -93,7 +93,7 @@ from eduid.webapp.idp.assurance import (
     MissingPasswordFactor,
 )
 from eduid.webapp.idp.assurance_data import AuthnInfo
-from eduid.webapp.idp.helpers import IdPMsg
+from eduid.webapp.idp.helpers import IdPMsg, lookup_user
 from eduid.webapp.idp.idp_saml import ResponseArgs, SamlResponse
 from eduid.webapp.idp.login_context import LoginContext, LoginContextOtherDevice, LoginContextSAML
 from eduid.webapp.idp.mfa_action import need_security_key
@@ -188,7 +188,7 @@ def login_next_step(ticket: LoginContext, sso_session: Optional[SSOSession]) -> 
         current_app.logger.debug("No SSO session found - initiating authentication")
         return NextResult(message=IdPMsg.must_authenticate)
 
-    user = current_app.userdb.lookup_user(sso_session.eppn)
+    user = lookup_user(sso_session.eppn, managed_account_allowed=True)
     if not user:
         current_app.logger.error(f"User with eppn {sso_session.eppn} (from SSO session) not found")
         return NextResult(message=IdPMsg.general_failure, error=True)
@@ -219,6 +219,10 @@ def login_next_step(ticket: LoginContext, sso_session: Optional[SSOSession]) -> 
 
     if res.message == IdPMsg.must_authenticate:
         # User might not be authenticated enough for e.g. ToU acceptance yet
+        return res
+
+    if user.is_managed_account:
+        current_app.logger.debug("Skipping eduID session, TOU and MFA for managed account")
         return res
 
     # User is at least partially authenticated, put the eppn in the shared session

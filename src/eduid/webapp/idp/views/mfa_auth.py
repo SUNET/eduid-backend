@@ -21,7 +21,7 @@ from eduid.webapp.common.session.namespaces import (
 )
 from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.decorators import require_ticket, uses_sso_session
-from eduid.webapp.idp.helpers import IdPMsg
+from eduid.webapp.idp.helpers import IdPMsg, lookup_user
 from eduid.webapp.idp.idp_authn import AuthnData, ExternalAuthnData
 from eduid.webapp.idp.login_context import LoginContext
 from eduid.webapp.idp.schemas import MfaAuthRequestSchema, MfaAuthResponseSchema
@@ -48,7 +48,7 @@ def mfa_auth(
         current_app.logger.error(f"MFA auth called without an SSO session")
         return error_response(message=IdPMsg.no_sso_session)
 
-    user = current_app.userdb.lookup_user(sso_session.eppn)
+    user = lookup_user(sso_session.eppn)
     if not user:
         current_app.logger.error(f"User with eppn {sso_session.eppn} (from SSO session) not found")
         return error_response(message=IdPMsg.general_failure)

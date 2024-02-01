@@ -8,7 +8,7 @@ from eduid.common.misc.timeutil import utc_now
 from eduid.webapp.common.api.messages import FluxData, error_response, success_response
 from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.assurance import AuthnState
-from eduid.webapp.idp.helpers import IdPAction, IdPMsg
+from eduid.webapp.idp.helpers import IdPAction, IdPMsg, lookup_user
 from eduid.webapp.idp.login_context import LoginContextOtherDevice
 from eduid.webapp.idp.other_device.data import OtherDeviceState
 from eduid.webapp.idp.other_device.db import OtherDevice
@@ -62,7 +62,7 @@ def device2_state_to_flux_payload(state: OtherDevice, now: datetime) -> Mapping[
     display_name = None
 
     if state.eppn:
-        user = current_app.userdb.lookup_user(state.eppn)
+        user = lookup_user(state.eppn)
         if user:
             display_name = user.display_name or user.given_name or state.eppn
             username = get_login_username(user)
