@@ -42,6 +42,7 @@ the padding made up so that base32 does not need to pad itself by
 appending equal-signs ('=') at the end, since that is not allowed
 in an NCName.
 """
+
 from __future__ import annotations
 
 import json

@@ -35,9 +35,9 @@ class JsAppsConfig(PasswordConfigMixin):
     eidas_url: Optional[str]  # deprecated
     emails_service_url: HttpUrl
     emails_url: Optional[str]  # deprecated
-    error_info_url: Optional[
-        HttpUrl
-    ] = None  # Needs to be a full URL since the backend is on the idp, not on https://eduid.se
+    error_info_url: Optional[HttpUrl] = (
+        None  # Needs to be a full URL since the backend is on the idp, not on https://eduid.se
+    )
     group_mgmt_service_url: HttpUrl
     group_mgmt_url: Optional[str]  # deprecated
     ladok_service_url: HttpUrl
@@ -46,9 +46,9 @@ class JsAppsConfig(PasswordConfigMixin):
     letter_proofing_url: Optional[str]  # deprecated
     login_base_url: Optional[AnyUrl]  # deprecated
     login_next_url: HttpUrl  # Needs to be a full URL since the backend is on the idp, not on https://eduid.se
-    login_request_other_url: Optional[
-        HttpUrl
-    ] = None  # Needs to be a full URL since the backend is on the idp, not on https://eduid.se
+    login_request_other_url: Optional[HttpUrl] = (
+        None  # Needs to be a full URL since the backend is on the idp, not on https://eduid.se
+    )
     login_service_url: HttpUrl
     lookup_mobile_proofing_service_url: HttpUrl
     lookup_mobile_proofing_url: Optional[str]  # deprecated

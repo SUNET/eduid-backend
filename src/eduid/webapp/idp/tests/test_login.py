@@ -41,7 +41,7 @@ class IdPTestLoginAPI(IdPAPITests):
         # pre-accept ToU for this test
         self.add_test_user_tou()
 
-        # Patch the VCCSClient so we do not need a vccs server
+        # Patch the VCCSClient, so we do not need a vccs server
         with patch.object(VCCSClient, "authenticate") as mock_vccs:
             mock_vccs.return_value = True
             result = self._try_login()
@@ -62,7 +62,7 @@ class IdPTestLoginAPI(IdPAPITests):
         # Enable AM sync of user to central db for this particular test
         AmCelerySingleton.worker_config.mongo_uri = self.app.conf.mongo_uri
 
-        # Patch the VCCSClient so we do not need a vccs server
+        # Patch the VCCSClient, so we do not need a vccs server
         with patch.object(VCCSClient, "authenticate") as mock_vccs:
             mock_vccs.return_value = True
             result = self._try_login()
@@ -83,7 +83,7 @@ class IdPTestLoginAPI(IdPAPITests):
         # pre-accept ToU for this test
         self.add_test_user_tou()
 
-        # Patch the VCCSClient so we do not need a vccs server
+        # Patch the VCCSClient, so we do not need a vccs server
         with patch.object(VCCSClient, "authenticate") as mock_vccs:
             mock_vccs.return_value = True
             result = self._try_login()
@@ -97,7 +97,7 @@ class IdPTestLoginAPI(IdPAPITests):
         assert attributes["eduPersonPrincipalName"] == [f"hubba-bubba@{self.app.conf.default_eppn_scope}"]
 
         # Log in again, with ForceAuthn="true"
-        # Patch the VCCSClient so we do not need a vccs server
+        # Patch the VCCSClient, so we do not need a vccs server
         with patch.object(VCCSClient, "authenticate") as mock_vccs:
             mock_vccs.return_value = True
             result2 = self._try_login(force_authn=True)
@@ -112,7 +112,7 @@ class IdPTestLoginAPI(IdPAPITests):
         user.terminated = datetime.fromisoformat("2020-02-25T15:52:59.745")
         self.amdb.save(user)
 
-        # Patch the VCCSClient so we do not need a vccs server
+        # Patch the VCCSClient, so we do not need a vccs server
         with patch.object(VCCSClient, "authenticate") as mock_vccs:
             mock_vccs.return_value = True
             result = self._try_login()
@@ -129,7 +129,7 @@ class IdPTestLoginAPI(IdPAPITests):
         # pre-accept ToU for this test
         self.add_test_user_tou()
 
-        # Patch the VCCSClient so we do not need a vccs server
+        # Patch the VCCSClient, so we do not need a vccs server
         with patch.object(VCCSClient, "authenticate") as mock_vccs:
             mock_vccs.return_value = True
             result = self._try_login(saml2_client=saml2_client)
@@ -144,7 +144,7 @@ class IdPTestLoginAPI(IdPAPITests):
         # pre-accept ToU for this test
         self.add_test_user_tou()
 
-        # Patch the VCCSClient so we do not need a vccs server
+        # Patch the VCCSClient, so we do not need a vccs server
         with patch.object(VCCSClient, "authenticate") as mock_vccs:
             mock_vccs.return_value = True
             result = self._try_login()
@@ -169,7 +169,7 @@ class IdPTestLoginAPI(IdPAPITests):
         # pre-accept ToU for this test
         self.add_test_user_tou()
 
-        # Patch the VCCSClient so we do not need a vccs server
+        # Patch the VCCSClient, so we do not need a vccs server
         with patch.object(VCCSClient, "authenticate") as mock_vccs:
             mock_vccs.return_value = True
             result = self._try_login(saml2_client=saml2_client)
@@ -190,7 +190,7 @@ class IdPTestLoginAPI(IdPAPITests):
         # pre-accept ToU for this test
         self.add_test_user_tou()
 
-        # Patch the VCCSClient so we do not need a vccs server
+        # Patch the VCCSClient, so we do not need a vccs server
         with patch.object(VCCSClient, "authenticate") as mock_vccs:
             mock_vccs.return_value = True
             result = self._try_login(saml2_client=saml2_client)
@@ -272,7 +272,7 @@ class IdPTestLoginAPI(IdPAPITests):
         # pre-accept ToU for this test
         self.add_test_user_tou()
 
-        # Patch the VCCSClient so we do not need a vccs server
+        # Patch the VCCSClient, so we do not need a vccs server
         with patch.object(VCCSClient, "authenticate") as mock_vccs:
             mock_vccs.return_value = True
             result = self._try_login(assertion_consumer_service_url="https://localhost:8080/acs/")
@@ -289,7 +289,7 @@ class IdPTestLoginAPI(IdPAPITests):
         self.app.conf.geo_statistics_feature_enabled = True
         self.app.conf.geo_statistics_url = parse_obj_as(HttpUrl, "http://eduid.docker")
 
-        # Patch the VCCSClient so we do not need a vccs server
+        # Patch the VCCSClient, so we do not need a vccs server
         with patch.object(VCCSClient, "authenticate") as mock_vccs:
             mock_vccs.return_value = True
             with patch("requests.post", new_callable=MagicMock) as mock_post:
@@ -325,7 +325,17 @@ class IdPTestLoginAPI(IdPAPITests):
         self.app.conf.geo_statistics_feature_enabled = True
         self.app.conf.geo_statistics_url = parse_obj_as(HttpUrl, "http://eduid.docker")
 
-        # Patch the VCCSClient so we do not need a vccs server
+        # Patch the VCCSClient, so we do not need a vccs server
+        with patch.object(VCCSClient, "authenticate") as mock_vccs:
+            mock_vccs.return_value = True
+            with patch("requests.post", new_callable=MagicMock) as mock_post:
+                mock_post.side_effect = RequestException("Test Exception")
+                result = self._try_login()
+                assert mock_post.call_count == 1
+
+        assert result.finished_result is not None
+        assert result.finished_result.payload["message"] == IdPMsg.finished.value
+
 
 class IdPTestLoginAPIManagedAccounts(IdPAPITests):
     def setUp(self, *args, **kwargs):

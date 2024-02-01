@@ -1,7 +1,7 @@
 import logging
 import re
 from abc import ABCMeta
-from typing import Iterable, TYPE_CHECKING
+from typing import TYPE_CHECKING, Iterable
 from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
 from flask import Request, current_app
@@ -15,8 +15,7 @@ from eduid.webapp.common.session import session
 from eduid.webapp.common.session.redis_session import NoSessionDataFoundException
 
 if TYPE_CHECKING:
-    from _typeshed.wsgi import StartResponse
-    from _typeshed.wsgi import WSGIEnvironment
+    from _typeshed.wsgi import StartResponse, WSGIEnvironment
 
 no_context_logger = logging.getLogger(__name__)
 

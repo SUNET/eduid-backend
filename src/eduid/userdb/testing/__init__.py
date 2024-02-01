@@ -1,6 +1,7 @@
 """
 Code used in unit tests of various eduID applications.
 """
+
 from __future__ import annotations
 
 import logging

@@ -1,6 +1,7 @@
 """
 Exceptions thrown by the eduid.userdb database lookup functions.
 """
+
 from typing import Any
 
 

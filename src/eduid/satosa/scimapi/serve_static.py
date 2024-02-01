@@ -1,6 +1,7 @@
 """
 A microservice to serve static file(s) - based on a simular microservice in InAcademia
 """
+
 import logging
 import mimetypes
 

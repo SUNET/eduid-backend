@@ -99,7 +99,7 @@ def use_other_1(
         return success_response(payload=payload)
 
     if not state:
-        current_app.logger.info(f"Login using other device: State not found")
+        current_app.logger.info("Login using other device: State not found")
         return error_response(message=IdPMsg.state_not_found)
 
     if state.expires_at <= now:

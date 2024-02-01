@@ -1,6 +1,6 @@
 __author__ = "lundberg"
 
-from typing import List, Dict, Any
+from typing import Any, Dict, List
 
 SUNET_AUTH_SERVER = [
     "eduPersonPrincipalName",

@@ -1,4 +1,5 @@
 """ Test worker that just logs received items """
+
 import asyncio
 import logging
 import os

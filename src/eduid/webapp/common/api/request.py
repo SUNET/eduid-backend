@@ -13,6 +13,7 @@ of the Flask application::
     >>> app = Flask('name')
     >>> app.request_class =  Request
 """
+
 import logging
 from typing import Any, AnyStr, Optional
 

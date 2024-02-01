@@ -53,7 +53,7 @@ def next_view(ticket: LoginContext, sso_session: Optional[SSOSession]) -> FluxDa
             saml_params = cancel_saml_request(ticket, current_app.conf)
 
             if saml_params.binding != BINDING_HTTP_POST:
-                current_app.logger.error(f"SAML response does not have binding HTTP_POST")
+                current_app.logger.error("SAML response does not have binding HTTP_POST")
                 return error_response(message=IdPMsg.general_failure)
 
             return success_response(

@@ -1,6 +1,7 @@
 """
 Configuration (file) handling for the eduID idp app.
 """
+
 from datetime import timedelta
 from typing import Optional
 

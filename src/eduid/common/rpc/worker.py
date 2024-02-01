@@ -1,4 +1,4 @@
-from typing import Type, TypeVar
+from typing import TypeVar
 
 from eduid.common.config.exceptions import BadConfiguration
 from eduid.common.config.parsers import load_config
