@@ -13,7 +13,7 @@ class TestMAccApi(MAccApiTestCase):
         self.user3 = {"given_name": "Test", "surname": "User3"}
         self.domain = "eduid.se"
         self.claims = {
-            "saml_eppn": f"test@eduid.se",
+            "saml_eppn": "test@eduid.se",
             "version": 1,
             "scopes": [self.domain],
             "auth_source": "config",

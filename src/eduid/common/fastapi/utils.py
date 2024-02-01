@@ -72,14 +72,13 @@ def get_cached_response(req: ContextRequest, resp: Response, key: str) -> Option
     resp.headers["Cache-Control"] = f"public,max-age={cache_for_seconds}"
 
     now = datetime.utcnow()
-    if SIMPLE_CACHE.get(key) is not None:
-        if now < SIMPLE_CACHE[key].expire_time:
-            if req.app.context.config.debug:
-                req.app.context.logger.debug(
-                    f"Returned cached response for {key}" f" {now} < {SIMPLE_CACHE[key].expire_time}"
-                )
-            resp.headers["Expires"] = SIMPLE_CACHE[key].expire_time.strftime("%a, %d %b %Y %H:%M:%S UTC")
-            return SIMPLE_CACHE[key].data
+    if SIMPLE_CACHE.get(key) is not None and now < SIMPLE_CACHE[key].expire_time:
+        if req.app.context.config.debug:
+            req.app.context.logger.debug(
+                f"Returned cached response for {key} {now} < {SIMPLE_CACHE[key].expire_time}"
+            )
+        resp.headers["Expires"] = SIMPLE_CACHE[key].expire_time.strftime("%a, %d %b %Y %H:%M:%S UTC")
+        return SIMPLE_CACHE[key].data
     return None
 
 
