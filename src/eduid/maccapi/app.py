@@ -1,6 +1,7 @@
 from typing import Optional
 
 from fastapi import FastAPI
+from starlette.middleware.cors import CORSMiddleware
 
 from eduid.common.config.parsers import load_config
 from eduid.maccapi.config import MAccApiConfig
@@ -35,6 +36,13 @@ def init_api(
     app.include_router(users_router)
 
     app.add_middleware(AuthenticationMiddleware, context=app.context)
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
     app.context.logger.info("app running...")
     return app
