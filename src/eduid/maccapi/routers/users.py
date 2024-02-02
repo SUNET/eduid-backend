@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Response, status
 
 from eduid.common.fastapi.context_request import ContextRequest
 from eduid.common.utils import generate_password
@@ -45,7 +45,9 @@ async def get_users(request: ContextRequest) -> UserListResponse:
 
 
 @users_router.post("/create", response_model_exclude_none=True)
-async def add_user(request: ContextRequest, create_request: UserCreateRequest) -> UserCreatedResponse:
+async def add_user(
+    request: ContextRequest, create_request: UserCreateRequest, response: Response
+) -> UserCreatedResponse:
     """
     add a new user to the current context
     """
@@ -72,7 +74,7 @@ async def add_user(request: ContextRequest, create_request: UserCreateRequest) -
         data_owner=request.context.data_owner,
     )
 
-    response = UserCreatedResponse(
+    add_user_response = UserCreatedResponse(
         status="success",
         scope=request.app.context.config.default_eppn_scope,
         user=ApiUser(
@@ -82,13 +84,16 @@ async def add_user(request: ContextRequest, create_request: UserCreateRequest) -
             password=presentable_password,
         ),
     )
-    request.app.context.logger.debug(f"add_user response: {response}")
+    request.app.context.logger.debug(f"add_user response: {add_user_response}")
     request.app.context.stats.count("maccapi_create_user_success")
-    return response
+    response.status_code = status.HTTP_201_CREATED
+    return add_user_response
 
 
 @users_router.post("/remove", response_model_exclude_none=True)
-async def remove_user(request: ContextRequest, remove_request: UserRemoveRequest) -> UserRemovedResponse:
+async def remove_user(
+    request: ContextRequest, remove_request: UserRemoveRequest, response: Response
+) -> UserRemovedResponse:
     """
     remove a user from the current context
     """
@@ -111,23 +116,26 @@ async def remove_user(request: ContextRequest, remove_request: UserRemoveRequest
         api_user = ApiUser(
             eppn=managed_account.eppn, given_name=managed_account.given_name, surname=managed_account.surname
         )
-        response = UserRemovedResponse(
+        remove_user_response = UserRemovedResponse(
             status="success", scope=request.app.context.config.default_eppn_scope, user=api_user
         )
         request.app.context.stats.count("maccapi_remove_user_success")
     except UserDoesNotExist as e:
         request.app.context.logger.error(f"remove_user error: {e}")
-        response = UserRemovedResponse(
+        remove_user_response = UserRemovedResponse(
             status="error",
             scope=request.app.context.config.default_eppn_scope,
         )
         request.app.context.stats.count("maccapi_remove_user_error")
+        response.status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
 
-    return response
+    return remove_user_response
 
 
 @users_router.post("/reset_password")
-async def reset_password(request: ContextRequest, reset_request: UserResetPasswordRequest) -> UserResetPasswordResponse:
+async def reset_password(
+    request: ContextRequest, reset_request: UserResetPasswordRequest, response: Response
+) -> UserResetPasswordResponse:
     """
     reset a user's password
     """
@@ -154,16 +162,20 @@ async def reset_password(request: ContextRequest, reset_request: UserResetPasswo
             surname=managed_account.surname,
             password=presentable_password,
         )
-        response = UserResetPasswordResponse(
+        reset_password_response = UserResetPasswordResponse(
             status="success", scope=request.app.context.config.default_eppn_scope, user=api_user
         )
         request.app.context.stats.count("maccapi_reset_password_success")
     except (UserDoesNotExist, UnableToAddPassword) as e:
         request.app.context.logger.error(f"reset_password error: {e}")
-        response = UserResetPasswordResponse(
+        reset_password_response = UserResetPasswordResponse(
             status="error",
             scope=request.app.context.config.default_eppn_scope,
         )
         request.app.context.stats.count("maccapi_reset_password_error")
+        if isinstance(e, UserDoesNotExist):
+            response.status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
+        else:
+            response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
 
-    return response
+    return reset_password_response
