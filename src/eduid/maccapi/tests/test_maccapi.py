@@ -27,6 +27,9 @@ class TestMAccApi(MAccApiTestCase):
         jwk = list(self.context.jwks)[0]
         token.make_signed_token(jwk)
         return token.serialize()
+    
+    def _is_presentable_format(self, password: str) -> bool:
+        return len(password) == 14 and password[4] == " " and password[9] == " "
 
     def test_create_user(self):
         domain = "eduid.se"
@@ -125,6 +128,8 @@ class TestMAccApi(MAccApiTestCase):
         content = response.content.decode("utf-8")
         payload = json.loads(content)
         eppn = payload["user"]["eppn"]
+        password = payload["user"]["password"]
+        assert self._is_presentable_format(password)
 
         response = self.client.post(url="/Users/reset_password", json={"eppn": eppn}, headers=headers)
         assert response.status_code == 200
@@ -136,3 +141,5 @@ class TestMAccApi(MAccApiTestCase):
         assert payload["user"]["given_name"] == self.user1["given_name"]
         assert payload["user"]["surname"] == self.user1["surname"]
         assert payload["user"]["password"] != None
+        new_password = payload["user"]["password"]
+        assert self._is_presentable_format(new_password)

@@ -59,7 +59,7 @@ async def add_user(request: ContextRequest, create_request: UserCreateRequest) -
         data_owner=request.context.data_owner,
         given_name=create_request.given_name,
         surname=create_request.surname,
-        password=presentable_password,
+        password=password,
     )
 
     request.app.context.logger.debug(f"created managed_account: {managed_account.to_dict()}")
@@ -79,7 +79,7 @@ async def add_user(request: ContextRequest, create_request: UserCreateRequest) -
             eppn=managed_account.eppn,
             given_name=managed_account.given_name,
             surname=managed_account.surname,
-            password=password,
+            password=presentable_password,
         ),
     )
     request.app.context.logger.debug(f"add_user response: {response}")
