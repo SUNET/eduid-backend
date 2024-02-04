@@ -1450,7 +1450,7 @@ python-jose==3.3.0 \
     # via
     #   -c main.txt
     #   -r main.in
-python-multipart==0.0.6 \
+python-multipart==0.0.7 \
     --hash=sha256:e9925a80bb668529f1b67c7fdb0a5dacdd7cbfc6fb0bff3ea443fe22bdd62132 \
     --hash=sha256:ee698bab5ef148b0a760751c261902cd096e57e10558e11aca17646b74ee1c18
     # via -r fastapi_requirements.in
