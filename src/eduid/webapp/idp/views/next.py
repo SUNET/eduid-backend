@@ -90,6 +90,7 @@ def next_view(ticket: LoginContext, sso_session: Optional[SSOSession]) -> FluxDa
     required_user = get_required_user(ticket, sso_session)
     if required_user.response:
         return required_user.response
+    current_app.logger.debug(f"Required user: {required_user.eppn}")
 
     if _next.message == IdPMsg.other_device:
         _payload = {
@@ -306,6 +307,7 @@ def get_required_user(ticket: LoginContext, sso_session: Optional[SSOSession]) -
         return RequiredUserResult(response=error_response(message=IdPMsg.wrong_user))
 
     if eppn_set:
+        current_app.logger.info(f"Determined user to log in to be {eppn_set}")
         return RequiredUserResult(eppn=eppn_set.pop())
 
     return RequiredUserResult(eppn=None)
