@@ -322,7 +322,7 @@ def _get_service_info(ticket: LoginContext) -> dict[str, Any]:
 
 def _set_user_options(res: AuthnOptions, eppn: str) -> None:
     """Augment the AuthnOptions instance with information about the current user"""
-    user = lookup_user(eppn)
+    user = lookup_user(eppn, managed_account_allowed=True)
     if user:
         current_app.logger.debug(
             f"User logging in (from either known device, other device, SSO session, or SP request): {user}"
