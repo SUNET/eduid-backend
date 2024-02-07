@@ -74,15 +74,15 @@ blinker==1.7.0 \
     #   flask
     #   flask-mail
     #   raven
-boto3==1.34.35 \
-    --hash=sha256:4052031f9ac18924e94be7c30a5f0af5843a4752b8c8cb9034cd978be252b61b \
-    --hash=sha256:53897701ab4f307fbcfdade673eae809dfc5eabb6102053c84907aa27de66e53
+boto3==1.34.36 \
+    --hash=sha256:1e38a4ea4bb8bc66fbb858abb411820709fda5d6c5604c2da0f696653d49c684 \
+    --hash=sha256:7ec36deb7ccc9c4943510692303cf93883ef61dc2c79f8bd4d75ee42209559d3
     # via
     #   -c main.txt
     #   -r main.in
-botocore==1.34.35 \
-    --hash=sha256:8a2b53ab772584a5f7e2fe1e4a59028b0602cfef8e39d622db7c6b670e4b1ee6 \
-    --hash=sha256:b67b8c865973202dc655a493317ae14b33d115e49ed6960874eb05d950167b37
+botocore==1.34.36 \
+    --hash=sha256:3f39ae0165f1a27f621fc91a46fb59f87e819671fad106c230dadcc724892f70 \
+    --hash=sha256:89c3dc15b6ffae146029df636d51b9952740051204c444ec765286b081c917bc
     # via
     #   -c main.txt
     #   boto3
@@ -1119,9 +1119,9 @@ pypng==0.20220715.0 \
     # via
     #   -c main.txt
     #   qrcode
-pysaml2==7.4.1+sunet3 \
-    --hash=sha256:55772e8a497c8bb2757027f8d2b9980c2df8b46c5e85b95c2e779c4222bcbde6 \
-    --hash=sha256:7425ca65ed772417838329fbcc891a653abb069f8d803924602de78900471c47
+pysaml2==7.4.1+sunet4 \
+    --hash=sha256:5421660dbd286155e85435974ce52f44004cdf3ee93667bfbfcf3dce972a1e7e \
+    --hash=sha256:6d514606bd53e245f40a692e39adf1a996d2165c591c7f3b1034d1870f63144b
     # via
     #   -c main.txt
     #   -r main.in
@@ -1594,9 +1594,9 @@ xhtml2pdf==0.2.14 \
     # via
     #   -c main.txt
     #   -r main.in
-xmlschema==3.0.1 \
-    --hash=sha256:116243b2ad38cd2df9ee0606d4e4e898a6f156736b39ab0017e6f49862c0809e \
-    --hash=sha256:bb24a5f4738e49d85d9eb03a2b5af26bbbbfdb055517ad953d98925094b8c026
+xmlschema==2.5.1 \
+    --hash=sha256:4f7497de6c8b6dc2c28ad7b9ed6e21d186f4afe248a5bea4f54eedab4da44083 \
+    --hash=sha256:ec2b2a15c8896c1fcd14dcee34ca30032b99456c3c43ce793fdb9dca2fb4b869
     # via
     #   -c main.txt
     #   pysaml2
