@@ -3,7 +3,7 @@ from enum import Enum
 from pathlib import Path
 from typing import NewType, Optional
 
-from pydantic import BaseModel, Field, validator
+from pydantic import field_validator, BaseModel, Field
 
 from eduid.common.config.base import LoggingConfigMixin, RootConfig
 
@@ -23,7 +23,8 @@ class EndpointRestriction(BaseModel):
     endpoint: str = Field(min_length=1)
     method: SupportedMethod
 
-    @validator("endpoint")
+    @field_validator("endpoint")
+    @classmethod
     def check_endpoint(cls, v: str) -> str:
         if not v.startswith("/"):
             raise ValueError("endpoint must start with /")

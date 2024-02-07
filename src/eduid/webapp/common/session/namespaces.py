@@ -197,7 +197,7 @@ class OnetimeCredential(Credential):
 class IdP_PendingRequest(BaseModel, ABC):
     aborted: Optional[bool] = False
     used: Optional[bool] = False  # set to True after the request has been completed (to handle 'back' button presses)
-    template_show_msg: Optional[str]  # set when the template version of the idp should show a message to the user
+    template_show_msg: Optional[str] = None  # set when the template version of the idp should show a message to the user
     # Credentials used while authenticating _this SAML request_. Not ones inherited from SSO.
     credentials_used: dict[ElementKey, datetime] = Field(default_factory=dict)
     onetime_credentials: dict[ElementKey, OnetimeCredential] = Field(default_factory=dict)
@@ -206,13 +206,13 @@ class IdP_PendingRequest(BaseModel, ABC):
 class IdP_SAMLPendingRequest(IdP_PendingRequest):
     request: str
     binding: str
-    relay_state: Optional[str]
+    relay_state: Optional[str] = None
     # a pointer to an ongoing request to login using another device
     other_device_state_id: Optional[OtherDeviceId] = None
 
 
 class IdP_OtherDevicePendingRequest(IdP_PendingRequest):
-    state_id: Optional[OtherDeviceId]  # can be None on aborted/expired requests
+    state_id: Optional[OtherDeviceId] = None  # can be None on aborted/expired requests
 
 
 class IdP_Namespace(TimestampedNS):
@@ -257,7 +257,7 @@ class SP_AuthnRequest(BaseAuthnRequest):
     credentials_used: list[ElementKey] = Field(default_factory=list)
     # proofing_credential_id is the credential being person-proofed, when doing that
     proofing_credential_id: Optional[ElementKey] = None
-    redirect_url: Optional[str]  # Deprecated, use frontend_action to get return URL from config instead
+    redirect_url: Optional[str] = None  # Deprecated, use frontend_action to get return URL from config instead
 
 
 PySAML2Dicts = NewType("PySAML2Dicts", dict[str, dict[str, Any]])

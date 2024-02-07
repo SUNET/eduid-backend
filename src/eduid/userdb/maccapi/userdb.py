@@ -2,7 +2,7 @@ import logging
 from datetime import datetime
 from typing import List, Optional
 
-from pydantic import validator
+from pydantic import field_validator
 
 from eduid.userdb.db import TUserDbDocument
 from eduid.userdb.element import UserDBValueError
@@ -22,7 +22,8 @@ class ManagedAccount(User):
     data_owner: str
     expire_at: datetime
 
-    @validator("eppn", pre=True)
+    @field_validator("eppn", mode="before")
+    @classmethod
     def check_eppn(cls, v: str) -> str:
         if len(v) != 11 or not v.startswith("ma-"):
             raise UserDBValueError(f"Invalid eppn: {v}")

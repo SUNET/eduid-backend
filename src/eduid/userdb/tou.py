@@ -4,7 +4,7 @@ import datetime
 from typing import Any
 
 from bson import ObjectId
-from pydantic import validator
+from pydantic import field_validator
 
 from eduid.userdb.event import Event, EventList
 from eduid.userdb.exceptions import UserDBValueError
@@ -19,7 +19,8 @@ class ToUEvent(Event):
     created_by: str
     version: str
 
-    @validator("version")
+    @field_validator("version")
+    @classmethod
     def _validate_tou_version(cls, v):
         if not v:
             raise ValueError("ToU must have a version")

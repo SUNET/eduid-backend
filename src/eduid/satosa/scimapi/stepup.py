@@ -66,7 +66,7 @@ class LoaSettings(BaseModel):
     extra_accepted: list[str] = Field(default=[])  # (aliased) LoAs that satisfy the requester
     returned: Optional[
         str
-    ]  # LoA that should be returned to the requester, if we get any of the requested + extra_accepted
+    ] = None  # LoA that should be returned to the requester, if we get any of the requested + extra_accepted
 
 
 EntityId = NewType("EntityId", str)
@@ -87,13 +87,13 @@ class MFA(BaseModel):
 class StepupPluginConfig(BaseModel):
     mfa: MfaConfig
     sp_config: Mapping[str, Any]
-    sign_alg: Optional[str]
-    digest_alg: Optional[str]
+    sign_alg: Optional[str] = None
+    digest_alg: Optional[str] = None
 
 
 class StepupParams(BaseModel):
     issuer: str
-    issuer_loa: Optional[str]  # LoA that the IdP released - as requested through the acr_mapping configuration
+    issuer_loa: Optional[str] = None  # LoA that the IdP released - as requested through the acr_mapping configuration
     requester: EntityId
     requester_loas: list[str]  # (original) LoAs required by the requester
     loa_settings: LoaSettings  # LoA settings to use. Either from the configuration or derived using entity attributes in the metadata.

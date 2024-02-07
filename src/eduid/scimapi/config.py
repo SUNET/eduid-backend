@@ -2,7 +2,7 @@ import logging
 from pathlib import Path
 from typing import Optional
 
-from pydantic import BaseModel, Field, validator
+from pydantic import field_validator, BaseModel, Field
 
 from eduid.common.config.base import AuthnBearerTokenConfig, DataOwnerName, LoggingConfigMixin, RootConfig
 from eduid.common.utils import removesuffix
@@ -33,7 +33,8 @@ class ScimApiConfig(AuthnBearerTokenConfig, LoggingConfigMixin, AWSMixin):
     invite_url: str = ""
     invite_expire: int = 180 * 86400  # 180 days
 
-    @validator("application_root")
+    @field_validator("application_root")
+    @classmethod
     def application_root_must_not_end_with_slash(cls, v: str):
         if v.endswith("/"):
             logger.warning(f"application_root should not end with slash ({v})")

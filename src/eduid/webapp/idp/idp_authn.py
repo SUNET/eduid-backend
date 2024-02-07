@@ -11,7 +11,7 @@ from datetime import datetime
 from typing import Any, Mapping, Optional, Sequence
 
 from bson import ObjectId
-from pydantic import BaseModel, Field
+from pydantic import ConfigDict, BaseModel, Field
 from pymongo import ReturnDocument
 
 from eduid.common.misc.timeutil import utc_now
@@ -45,9 +45,7 @@ class AuthnData(BaseModel):
     cred_id: ElementKey
     timestamp: datetime = Field(default_factory=utc_now, alias="authn_ts")  # authn_ts was the old name in the db
     external: Optional[ExternalAuthnData] = None
-
-    class Config:
-        allow_population_by_field_name = True  # allow setting timestamp using it's name, not just the alias
+    model_config = ConfigDict(populate_by_name=True)
 
     def to_dict(self) -> dict[str, Any]:
         """Return the object in dict format (serialized for storing in MongoDB)."""

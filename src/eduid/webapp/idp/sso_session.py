@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from typing import Any, Mapping, NewType, Optional
 
 from bson import ObjectId
-from pydantic import BaseModel, Field
+from pydantic import ConfigDict, BaseModel, Field
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.element import ElementKey
@@ -69,10 +69,7 @@ class SSOSession(BaseModel):
     external_mfa: Optional[ExternalMfaData] = None
     obj_id: ObjectId = Field(default_factory=ObjectId, alias="_id")
     session_id: SSOSessionId = Field(default_factory=create_session_id)
-
-    class Config:
-        allow_population_by_field_name = True  # allow setting obj_id by name, not just by it's alias (_id)
-        arbitrary_types_allowed = True  # allow ObjectId
+    model_config = ConfigDict(populate_by_name=True, arbitrary_types_allowed=True)
 
     def __str__(self) -> str:
         # Session id allows impersonation if leaked, so only log a small part of it

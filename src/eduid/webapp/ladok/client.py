@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Mapping, Optional
 
 import requests
-from pydantic import AnyHttpUrl, BaseModel, Field, ValidationError
+from pydantic import ConfigDict, AnyHttpUrl, BaseModel, Field, ValidationError
 
 __author__ = "lundberg"
 
@@ -18,13 +18,12 @@ class LadokClientException(Exception):
 
 
 class Error(BaseModel):
-    id: Optional[str]
+    id: Optional[str] = None
     detail: Optional[str] = Field(default=None, alias="details")
 
 
 class LadokBaseModel(BaseModel):
-    class Config:
-        allow_population_by_field_name = True
+    model_config = ConfigDict(populate_by_name=True)
 
 
 class UniversityName(LadokBaseModel):
@@ -37,20 +36,20 @@ class UniversitiesData(LadokBaseModel):
 
 
 class UniversitiesInfoResponse(LadokBaseModel):
-    data: Optional[UniversitiesData]
-    error: Optional[Error]
+    data: Optional[UniversitiesData] = None
+    error: Optional[Error] = None
 
 
 class LadokUserInfo(LadokBaseModel):
     external_id: str = Field(alias="ladok_externt_uid")
-    esi: Optional[str]
-    is_student: Optional[bool]
+    esi: Optional[str] = None
+    is_student: Optional[bool] = None
     student_until: Optional[datetime] = Field(default=None, alias="expire_student")
 
 
 class LadokUserInfoResponse(LadokBaseModel):
-    data: Optional[LadokUserInfo]
-    error: Optional[Error]
+    data: Optional[LadokUserInfo] = None
+    error: Optional[Error] = None
 
 
 class LadokClientConfig(LadokBaseModel):

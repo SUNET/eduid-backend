@@ -52,8 +52,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Generic, Mapping, NewType, Optional, TypeVar, Union
 
-from pydantic import BaseModel, Extra, Field, validator
-from pydantic.generics import GenericModel
+from pydantic import ConfigDict, BaseModel, Field, validator
 
 from eduid.userdb.db import TUserDbDocument
 from eduid.userdb.exceptions import EduIDUserDBError, UserDBValueError
@@ -111,12 +110,7 @@ class Element(BaseModel):
     # any changes to data in the production database. Remove after a burn-in period.
     no_created_ts_in_db: bool = Field(default=False, exclude=True)
     no_modified_ts_in_db: bool = Field(default=False, exclude=True)
-
-    class Config:
-        allow_population_by_field_name = True  # allow setting created_ts by name, not just it's alias
-        validate_assignment = True  # validate data when updated, not just when initialised
-        extra = Extra.forbid  # reject unknown data
-        arbitrary_types_allowed = True  # allow ObjectId as type in Event
+    model_config = ConfigDict(populate_by_name=True, validate_assignment=True, extra="forbid", arbitrary_types_allowed=True)
 
     def __str__(self) -> str:
         return f"<eduID {self.__class__.__name__}: {self.dict()}>"
@@ -279,7 +273,7 @@ ListElement = TypeVar("ListElement", bound=Element)
 MatchingElement = TypeVar("MatchingElement", bound=Element)
 
 
-class ElementList(GenericModel, Generic[ListElement], ABC):
+class ElementList(BaseModel, Generic[ListElement], ABC):
     """
     Hold a list of Element instances.
 
@@ -287,14 +281,13 @@ class ElementList(GenericModel, Generic[ListElement], ABC):
     """
 
     elements: list[ListElement] = Field(default=[])
-
-    class Config:
-        validate_assignment = True  # validate data when updated, not just when initialised
-        extra = Extra.forbid  # reject unknown data
+    model_config = ConfigDict(validate_assignment=True, extra="forbid")
 
     def __str__(self):
         return "<eduID {!s}: {!r}>".format(self.__class__.__name__, getattr(self, "elements", None))
 
+    # TODO[pydantic]: We couldn't refactor the `validator`, please replace it by `field_validator` manually.
+    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-validators for more information.
     @validator("elements", pre=True)
     def _validate_element_values(cls, values, field):
         cls._validate_elements(values, field)

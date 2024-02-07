@@ -8,7 +8,7 @@ from operator import itemgetter
 from typing import Any, Optional, TypeVar, Union, cast
 
 import bson
-from pydantic import BaseModel, Extra, Field, root_validator, validator
+from pydantic import field_validator, model_validator, ConfigDict, BaseModel, Field
 
 from eduid.userdb.credentials import CredentialList
 from eduid.userdb.db import BaseDB, TUserDbDocument
@@ -62,14 +62,10 @@ class User(BaseModel):
     profiles: ProfileList = Field(default_factory=ProfileList)
     letter_proofing_data: Optional[Union[list, dict]] = None  # remove dict after a full load-save-users
     revoked_ts: Optional[datetime] = None
+    model_config = ConfigDict(populate_by_name=True, validate_assignment=True, extra="forbid", arbitrary_types_allowed=True)
 
-    class Config:
-        allow_population_by_field_name = True  # allow setting created_ts by name, not just it's alias
-        validate_assignment = True  # validate data when updated, not just when initialised
-        extra = Extra.forbid  # reject unknown data
-        arbitrary_types_allowed = True  # allow ObjectId as type in Event
-
-    @validator("eppn", pre=True)
+    @field_validator("eppn", mode="before")
+    @classmethod
     def check_eppn(cls, v: str) -> str:
         if len(v) != 11 or "-" not in v:
             # the exception to the rule - an old proquint implementation once generated a short eppn
@@ -79,7 +75,8 @@ class User(BaseModel):
                     raise UserDBValueError(f"Malformed eppn ({v})")
         return v
 
-    @root_validator(pre=True)
+    @model_validator(mode="before")
+    @classmethod
     def check_revoked(cls, values: dict[str, Any]) -> dict[str, Any]:
         # raise exception if the user is revoked
         if values.get("revoked_ts") is not None:
@@ -88,7 +85,8 @@ class User(BaseModel):
             )
         return values
 
-    @root_validator()
+    @model_validator()
+    @classmethod
     def update_meta_modified_ts(cls, values: dict[str, Any]) -> dict[str, Any]:
         # as we validate on assignment this will run every time the User is changed
         if values.get("modified_ts"):

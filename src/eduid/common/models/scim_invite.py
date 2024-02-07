@@ -28,7 +28,7 @@ class NutidInviteExtensionV1(EduidBaseModel):
     national_identity_number: Optional[str] = Field(
         default=None,
         alias="nationalIdentityNumber",
-        regex=nin_re_str,
+        pattern=nin_re_str,
     )
     preferred_language: Optional[LanguageTag] = Field(default=None, alias="preferredLanguage")
     groups: list[UUID] = Field(default_factory=list)

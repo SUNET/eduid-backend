@@ -7,7 +7,7 @@ class ApiUser(BaseModel):
     eppn: str
     given_name: str
     surname: str
-    password: Optional[str]
+    password: Optional[str] = None
 
 
 class ApiResponseBaseModel(BaseModel):
@@ -33,7 +33,7 @@ class UserRemoveRequest(BaseModel):
 
 
 class UserRemovedResponse(ApiResponseBaseModel):
-    user: Optional[ApiUser]
+    user: Optional[ApiUser] = None
 
 
 class UserResetPasswordRequest(BaseModel):
@@ -41,4 +41,4 @@ class UserResetPasswordRequest(BaseModel):
 
 
 class UserResetPasswordResponse(ApiResponseBaseModel):
-    user: Optional[ApiUser]
+    user: Optional[ApiUser] = None

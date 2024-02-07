@@ -14,4 +14,4 @@ class ExternalMfaData(BaseModel):
     issuer: str
     authn_context: str
     timestamp: datetime
-    credential_id: Optional[ElementKey]
+    credential_id: Optional[ElementKey] = None

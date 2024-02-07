@@ -12,7 +12,7 @@ import nacl.secret
 import nacl.utils
 from bson import ObjectId
 from nacl.secret import SecretBox
-from pydantic import BaseModel, Field
+from pydantic import ConfigDict, BaseModel, Field
 
 from eduid.userdb.db import BaseDB
 from eduid.userdb.util import utc_now
@@ -26,9 +26,7 @@ class BrowserDeviceInfo(BaseModel):
     shared: str  # encrypted and formatted for sharing with the eduID frontend (will be stored in browser local storage)
     state_id: KnownDeviceId  # database id for this device
     secret_box: SecretBox  # nacl secretbox to encrypt/decrypt database contents for this device
-
-    class Config:
-        arbitrary_types_allowed = True  # don't reject SecretBox
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     def __str__(self):
         # Ensure no more than necessary of the public (really 'shared with browser') and state_id end up in logs etc.
@@ -74,10 +72,7 @@ class KnownDevice(BaseModel):
     data: KnownDeviceData = Field(default_factory=KnownDeviceData)
     expires_at: datetime = Field(default_factory=utc_now)
     last_used: datetime = Field(default_factory=utc_now)
-
-    class Config:
-        # Don't reject ObjectId and SecretBox
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     def to_dict(self, from_browser: BrowserDeviceInfo) -> dict[str, Any]:
         res = self.dict()

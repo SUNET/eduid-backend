@@ -69,7 +69,7 @@ from uuid import uuid4
 
 from defusedxml import ElementTree as DefusedElementTree
 from flask import redirect
-from pydantic import BaseModel
+from pydantic import ConfigDict, BaseModel
 from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 from werkzeug.exceptions import BadRequest
 from werkzeug.wrappers import Response as WerkzeugResponse
@@ -123,10 +123,7 @@ class NextResult(BaseModel):
     authn_info: Optional[AuthnInfo] = None
     authn_state: Optional[AuthnState] = None
     user: Optional[User] = None
-
-    class Config:
-        # don't reject WerkzeugResponse
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     def __str__(self):
         return (

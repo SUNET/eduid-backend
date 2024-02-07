@@ -8,7 +8,7 @@ from uuid import UUID
 
 import bson
 from fido_mds.models.fido_mds import Entry as FidoMetadataEntry
-from pydantic import Field
+from pydantic import ConfigDict, Field
 
 from eduid.common.models.amapi_user import Reason, Source
 from eduid.common.rpc.msg_relay import DeregistrationInformation, FullPostalAddress
@@ -35,9 +35,7 @@ class LogElement(Element):
 
     # Application creating the log element
     created_by: str
-
-    class Config:
-        min_anystr_length = 1  # No empty strings allowed in log records
+    model_config = ConfigDict(str_min_length=1)
 
     @classmethod
     def _from_dict_transform(cls: type[TLogElementSubclass], data: dict[str, Any]) -> dict[str, Any]:

@@ -9,7 +9,7 @@ from typing import Any, Mapping, Optional
 
 from bson import ObjectId
 from flask import request
-from pydantic import BaseModel, Field
+from pydantic import ConfigDict, BaseModel, Field
 
 from eduid.common.misc.encoders import EduidJSONEncoder
 from eduid.common.misc.timeutil import utc_now
@@ -29,12 +29,12 @@ logger = logging.getLogger(__name__)
 
 class Device1Data(BaseModel):
     ref: str  # the login 'ref' on device 1 (where login using another device was initiated)
-    authn_context: Optional[EduidAuthnContextClass]  # the level of authentication required on device 1
-    request_id: Optional[str]  # the request ID on device 1 (SAML authnRequest request id for example)
+    authn_context: Optional[EduidAuthnContextClass] = None  # the level of authentication required on device 1
+    request_id: Optional[str] = None  # the request ID on device 1 (SAML authnRequest request id for example)
     reauthn_required: bool  # if reauthn is required for the login on device 1
     ip_address: str  # the IP address of device 1, to be used by the user on device 2 to assess the request
-    user_agent: Optional[str]  # the user agent of device 1, to be used by the user on device 2 to assess the request
-    service_info: Optional[ServiceInfo]  # information about the service (SP) where the user is logging in
+    user_agent: Optional[str] = None  # the user agent of device 1, to be used by the user on device 2 to assess the request
+    service_info: Optional[ServiceInfo] = None  # information about the service (SP) where the user is logging in
     is_known_device: bool  # device 1 is a device that has previously logged in as state.eppn
 
 
@@ -50,16 +50,13 @@ class OtherDevice(BaseModel):
     created_at: datetime
     device1: Device1Data
     device2: Device2Data
-    eppn: Optional[str]  # the eppn of the user on device 1, either from the SSO session or derived from e-mail address
+    eppn: Optional[str] = None  # the eppn of the user on device 1, either from the SSO session or derived from e-mail address
     expires_at: datetime
     obj_id: ObjectId = Field(default_factory=ObjectId, alias="_id")
     display_id: str = Field(repr=False)  # id number shown to the user on both devices, to match up screens
     state: OtherDeviceState  # the state this request is in
     state_id: OtherDeviceId  # unique reference for this state
-
-    class Config:
-        # Don't reject ObjectId
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     @classmethod
     def from_parameters(

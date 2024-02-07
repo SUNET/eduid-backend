@@ -3,7 +3,7 @@ from enum import Enum
 from typing import Annotated, Optional
 
 from bson import ObjectId
-from pydantic import BaseModel, Field
+from pydantic import ConfigDict, BaseModel, Field
 
 from eduid.common.misc.timeutil import utc_now
 
@@ -22,9 +22,7 @@ class Meta(BaseModel):
     modified_ts: Optional[datetime] = None
     cleaned: Optional[dict[CleanerType, datetime]] = None
     is_in_database: Annotated[bool, Field(exclude=True)] = False  # this is set to True when userdb loads the object
-
-    class Config:
-        arbitrary_types_allowed = True  # allow ObjectId as type
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     def new_version(self):
         self.version = ObjectId()

@@ -3,7 +3,7 @@ from copy import copy
 from enum import Enum
 from typing import Any, Mapping, Optional
 
-from pydantic import BaseModel, Field, StrictInt, root_validator, validator
+from pydantic import field_validator, model_validator, BaseModel, Field, StrictInt, validator
 
 from eduid.common.config.base import AuthnBearerTokenConfig, DataOwnerName, ScopeName
 from eduid.userdb.scimapi.groupdb import ScimApiGroupDB
@@ -18,7 +18,7 @@ class AuthSource(str, Enum):
 
 class RequestedAccess(BaseModel):
     type: str
-    scope: Optional[ScopeName]
+    scope: Optional[ScopeName] = None
 
 
 class AuthenticationError(Exception):
@@ -54,19 +54,23 @@ class AuthnBearerToken(BaseModel):
     def __str__(self):
         return f"<{self.__class__.__name__}: scopes={self.scopes}, requested_access={self.requested_access}>"
 
-    @validator("version")
+    @field_validator("version")
+    @classmethod
     def validate_version(cls, v: int) -> int:
         if v != 1:
             raise ValueError("Unknown version")
         return v
 
-    @root_validator(pre=True)
+    @model_validator(mode="before")
+    @classmethod
     def set_scopes_from_saml_data(cls, values: dict[str, Any]):
         # Get scope from saml identifier if the auth source is interaction and set it as scopes
         if values.get("auth_source") == AuthSource.INTERACTION.value:
             values["scopes"] = cls._get_scope_from_saml_data(values=values)
         return values
 
+    # TODO[pydantic]: We couldn't refactor the `validator`, please replace it by `field_validator` manually.
+    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-validators for more information.
     @validator("scopes")
     def validate_scopes(cls, v: set[ScopeName], values: Mapping[str, Any]) -> set[ScopeName]:
         config = values.get("config")
@@ -75,6 +79,8 @@ class AuthnBearerToken(BaseModel):
         canonical_scopes = {config.scope_mapping.get(x, x) for x in v}
         return canonical_scopes
 
+    # TODO[pydantic]: We couldn't refactor the `validator`, please replace it by `field_validator` manually.
+    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-validators for more information.
     @validator("requested_access")
     def validate_requested_access(cls, v: list[RequestedAccess], values: Mapping[str, Any]) -> list[RequestedAccess]:
         config = values.get("config")

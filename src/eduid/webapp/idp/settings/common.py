@@ -5,7 +5,7 @@ Configuration (file) handling for the eduID idp app.
 from datetime import timedelta
 from typing import Optional
 
-from pydantic import Field, HttpUrl, validator
+from pydantic import field_validator, Field, HttpUrl, validator
 
 from eduid.common.config.base import (
     AmConfigMixin,
@@ -143,6 +143,8 @@ class IdPConfig(EduIDBaseAppConfig, TouConfigMixin, WebauthnConfigMixin2, AmConf
         }
     )
 
+    # TODO[pydantic]: We couldn't refactor the `validator`, please replace it by `field_validator` manually.
+    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-validators for more information.
     @validator("sso_cookie")
     def make_sso_cookie(cls, v, values) -> CookieConfig:
         # Convert sso_cookie from dict to the proper dataclass
@@ -155,7 +157,8 @@ class IdPConfig(EduIDBaseAppConfig, TouConfigMixin, WebauthnConfigMixin2, AmConf
             "sso_cookie not present, and no fallback values either (sso_cookie_name and sso_cookie_domain)"
         )
 
-    @validator("sso_session_lifetime", pre=True)
+    @field_validator("sso_session_lifetime", mode="before")
+    @classmethod
     def validate_sso_session_lifetime(cls, v):
         if isinstance(v, int):
             # legacy format for this was number of minutes

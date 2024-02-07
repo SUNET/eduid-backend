@@ -6,7 +6,7 @@ from uuid import UUID
 
 from bson import ObjectId
 from langcodes import standardize_tag
-from pydantic import BaseModel, EmailStr, Extra, Field
+from pydantic import ConfigDict, BaseModel, EmailStr, Field
 
 __author__ = "lundberg"
 
@@ -30,6 +30,8 @@ class WeakVersion(ObjectId):
     """
 
     @classmethod
+    # TODO[pydantic]: We couldn't refactor `__get_validators__`, please create the `__get_pydantic_core_schema__` manually.
+    # Check https://docs.pydantic.dev/latest/migration/#defining-custom-types for more information.
     def __get_validators__(cls):
         # one or more validators may be yielded which will be called in the
         # order to validate the input, each validator will receive as an input
@@ -37,6 +39,8 @@ class WeakVersion(ObjectId):
         yield cls.validate
 
     @classmethod
+    # TODO[pydantic]: We couldn't refactor `__modify_schema__`, please create the `__get_pydantic_json_schema__` manually.
+    # Check https://docs.pydantic.dev/latest/migration/#defining-custom-types for more information.
     def __modify_schema__(cls, field_schema):
         # __modify_schema__ should mutate the dict it receives in place,
         # the returned value will be ignored
@@ -71,10 +75,14 @@ class LowerEmailStr(EmailStr):
 
 class PhoneNumberStr(str):
     @classmethod
+    # TODO[pydantic]: We couldn't refactor `__get_validators__`, please create the `__get_pydantic_core_schema__` manually.
+    # Check https://docs.pydantic.dev/latest/migration/#defining-custom-types for more information.
     def __get_validators__(cls):
         yield cls.validate
 
     @classmethod
+    # TODO[pydantic]: We couldn't refactor `__modify_schema__`, please create the `__get_pydantic_json_schema__` manually.
+    # Check https://docs.pydantic.dev/latest/migration/#defining-custom-types for more information.
     def __modify_schema__(cls, field_schema):
         # TODO: Better documentation
         field_schema.update(
@@ -97,10 +105,14 @@ class PhoneNumberStr(str):
 
 class LanguageTag(str):
     @classmethod
+    # TODO[pydantic]: We couldn't refactor `__get_validators__`, please create the `__get_pydantic_core_schema__` manually.
+    # Check https://docs.pydantic.dev/latest/migration/#defining-custom-types for more information.
     def __get_validators__(cls):
         yield cls.validate
 
     @classmethod
+    # TODO[pydantic]: We couldn't refactor `__modify_schema__`, please create the `__get_pydantic_json_schema__` manually.
+    # Check https://docs.pydantic.dev/latest/migration/#defining-custom-types for more information.
     def __modify_schema__(cls, field_schema):
         # TODO: Better documentation
         field_schema.update(
@@ -172,11 +184,9 @@ class PhoneNumberType(str, Enum):
 
 
 class EduidBaseModel(BaseModel):
-    class Config:
-        extra = Extra.forbid  # Do not ignore undefined keys
-        frozen = True
-        allow_population_by_field_name = True
-        json_encoders = {WeakVersion: WeakVersion.serialize, datetime: serialize_datetime}
+    # TODO[pydantic]: The following keys were removed: `json_encoders`.
+    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-config for more information.
+    model_config = ConfigDict(extra="forbid", frozen=True, populate_by_name=True, json_encoders={WeakVersion: WeakVersion.serialize, datetime: serialize_datetime})
 
 
 class SubResource(EduidBaseModel):
@@ -224,7 +234,7 @@ class Email(EduidBaseModel):
 class PhoneNumber(EduidBaseModel):
     value: PhoneNumberStr
     display: Optional[str] = None
-    type: Optional[PhoneNumberType]
+    type: Optional[PhoneNumberType] = None
     primary: bool = True
 
 
@@ -233,23 +243,23 @@ class BaseResponse(EduidBaseModel):
 
     id: UUID
     meta: Meta
-    schemas: list[SCIMSchema] = Field(min_items=1)
+    schemas: list[SCIMSchema] = Field(min_length=1)
     external_id: Optional[str] = Field(default=None, alias="externalId")
 
 
 class BaseCreateRequest(EduidBaseModel):
-    schemas: list[SCIMSchema] = Field(min_items=1)
+    schemas: list[SCIMSchema] = Field(min_length=1)
     external_id: Optional[str] = Field(default=None, alias="externalId")
 
 
 class BaseUpdateRequest(EduidBaseModel):
     id: UUID
-    schemas: list[SCIMSchema] = Field(min_items=1)
+    schemas: list[SCIMSchema] = Field(min_length=1)
     external_id: Optional[str] = Field(default=None, alias="externalId")
 
 
 class SearchRequest(EduidBaseModel):
-    schemas: list[SCIMSchema] = Field(min_items=1, default=[SCIMSchema.API_MESSAGES_20_SEARCH_REQUEST])
+    schemas: list[SCIMSchema] = Field(min_length=1, default=[SCIMSchema.API_MESSAGES_20_SEARCH_REQUEST])
     filter: str
     start_index: int = Field(default=1, alias="startIndex", ge=1)  # Greater or equal to 1
     count: int = Field(default=100, ge=1)  # Greater or equal to 1
@@ -257,6 +267,6 @@ class SearchRequest(EduidBaseModel):
 
 
 class ListResponse(EduidBaseModel):
-    schemas: list[SCIMSchema] = Field(min_items=1, default=[SCIMSchema.API_MESSAGES_20_LIST_RESPONSE])
+    schemas: list[SCIMSchema] = Field(min_length=1, default=[SCIMSchema.API_MESSAGES_20_LIST_RESPONSE])
     resources: list[dict[Any, Any]] = Field(default_factory=list, alias="Resources")
     total_results: int = Field(default=0, alias="totalResults")

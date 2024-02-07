@@ -2,7 +2,7 @@ import logging
 from enum import Enum
 from typing import Optional
 
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import ConfigDict, BaseModel, Field, ValidationError
 
 import eduid.workers.msg
 from eduid.common.config.base import MsgConfigMixin
@@ -27,8 +27,7 @@ LANGUAGE_MAPPING = {
 
 
 class NavetModelConfig(BaseModel):
-    class Config:
-        allow_population_by_field_name = True
+    model_config = ConfigDict(populate_by_name=True)
 
 
 class CaseInformation(NavetModelConfig):

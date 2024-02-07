@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Optional, TypeVar
 
-from pydantic import validator
+from pydantic import field_validator
 
 from eduid.common.rpc.msg_relay import FullPostalAddress
 from eduid.userdb.element import Element, VerifiedElement
@@ -82,7 +82,8 @@ class EmailProofingElement(ProofingElement):
 
     email: str
 
-    @validator("email", pre=True)
+    @field_validator("email", mode="before")
+    @classmethod
     def validate_email(cls, v: Any):
         if not isinstance(v, str):
             raise ValueError("must be a string")

@@ -4,7 +4,7 @@ from enum import unique
 from typing import Any, Optional
 
 from iso3166 import countries
-from pydantic import BaseModel, Field, validator
+from pydantic import field_validator, ConfigDict, BaseModel, Field
 
 from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.common.session import session
@@ -62,15 +62,12 @@ class UserInfoBase(BaseModel):
     nbf: int
     sid: str
     sub: str
-
-    class Config:
-        extra = "allow"
-        allow_population_by_field_name = True
+    model_config = ConfigDict(extra="allow", populate_by_name=True)
 
 
 class SvipeDocumentUserInfo(UserInfoBase):
     birthdate: date
-    document_administrative_number: Optional[str] = Field(alias="com.svipe:document_administrative_number")
+    document_administrative_number: Optional[str] = Field(None, alias="com.svipe:document_administrative_number")
     document_expiry_date: date = Field(alias="com.svipe:document_expiry_date")
     # Issuing Country: SWE
     document_issuing_country: str = Field(alias="com.svipe:document_issuing_country")
@@ -81,11 +78,12 @@ class SvipeDocumentUserInfo(UserInfoBase):
     document_type_sdn_en: str = Field(alias="com.svipe:document_type_sdn_en")
     family_name: str
     given_name: str
-    name: Optional[str]
+    name: Optional[str] = None
     svipe_id: str = Field(alias="com.svipe:svipeid")
     transaction_id: str = Field(alias="com.svipe:meta_transaction_id")
 
-    @validator("document_nationality")
+    @field_validator("document_nationality")
+    @classmethod
     def iso_3166_1_alpha_3_to_alpha2(cls, v):
         # translate ISO 3166-1 alpha-3 to alpha-2 to match the format used in eduid-userdb
         try:
