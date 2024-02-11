@@ -369,7 +369,7 @@ deprecated==1.2.14 \
     # via
     #   -c main.txt
     #   jwcrypto
-dnspython==2.5.0 \
+dnspython==2.6.0rc1 \
     --hash=sha256:6facdf76b73c742ccf2d07add296f178e629da60be23ce4b0a9c927b1e02c3a6 \
     --hash=sha256:a0034815a59ba9ae888946be7ccca8f7c157b286f8455b379c692efb51022a15
     # via
