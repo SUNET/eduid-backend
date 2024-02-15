@@ -5,6 +5,7 @@ import uuid
 from typing import Optional, Union
 
 from fastapi import Request, status
+from fastapi.encoders import jsonable_encoder
 from fastapi.exception_handlers import http_exception_handler
 from fastapi.exceptions import RequestValidationError
 from pydantic import BaseModel
@@ -43,7 +44,10 @@ async def unexpected_error_handler(req: Request, exc: Exception) -> Response:
 async def validation_exception_handler(req: Request, exc: RequestValidationError) -> SCIMErrorResponse:
     status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
     detail = ErrorDetail(
-        schemas=[SCIMSchema.ERROR.value], scimType="invalidSyntax", detail=list(exc.errors()), status=status_code
+        schemas=[SCIMSchema.ERROR.value],
+        scimType="invalidSyntax",
+        detail=jsonable_encoder(list(exc.errors())),
+        status=status_code,
     )
     logger.error(f"validation exception: {req.method} {req.url.path} - {exc} - {detail}")
     return SCIMErrorResponse(content=detail.dict(exclude_none=True), status_code=status_code)

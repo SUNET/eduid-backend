@@ -8,6 +8,7 @@ from eduid.common.models.scim_base import (
     BaseCreateRequest,
     BaseResponse,
     EduidBaseModel,
+    ScimDatetime,
     SCIMResourceType,
     SCIMSchema,
     WeakVersion,
@@ -20,7 +21,7 @@ __author__ = "ft"
 class NutidEventResource(EduidBaseModel):
     resource_type: SCIMResourceType = Field(alias="resourceType")
     scim_id: UUID = Field(alias="id")
-    last_modified: datetime = Field(alias="lastModified")
+    last_modified: ScimDatetime = Field(alias="lastModified")
     version: WeakVersion
     external_id: Optional[str] = Field(default=None, alias="externalId")
     location: Optional[str] = None
@@ -35,8 +36,8 @@ class NutidEventExtensionV1(EduidBaseModel):
     resource: NutidEventResource
     level: EventLevel = Field(default=EventLevel.INFO)
     data: dict[str, Any] = Field(default_factory=dict)
-    expires_at: Optional[datetime] = Field(default=None, alias="expiresAt")
-    timestamp: Optional[datetime] = None
+    expires_at: Optional[ScimDatetime] = Field(default=None, alias="expiresAt")
+    timestamp: Optional[ScimDatetime] = None
     source: Optional[str] = None
 
 

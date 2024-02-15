@@ -6,7 +6,7 @@ import os
 import uuid
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import Any, Optional, TypeVar, Union
+from typing import Any, Callable, Optional, TypeVar, Union
 
 from bson import ObjectId
 
@@ -51,10 +51,14 @@ def normalised_data(data: SomeData, replace_datetime: Optional[str] = None) -> S
                 o = o.replace(microsecond=0)
                 return o.isoformat()
 
-            if isinstance(o, (ObjectId, uuid.UUID, Enum)):
+            if isinstance(o, (ObjectId, uuid.UUID, Enum, Exception)):
                 return str(o)
 
-            return super().default(o)
+            # catch all for wierd stuff in pydantic 2 errors
+            try:
+                return super().default(o)
+            except TypeError:
+                return repr(o)
 
     class NormaliseDecoder(json.JSONDecoder):
         def __init__(self, *args: Any, **kwargs: Any):

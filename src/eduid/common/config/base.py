@@ -8,10 +8,10 @@ from datetime import timedelta
 from enum import Enum
 from pathlib import Path
 from re import Pattern
-from typing import Any, Mapping, Optional, Sequence, TypeVar, Union
+from typing import Annotated, Any, Mapping, Optional, Sequence, TypeVar, Union
 
 import pkg_resources
-from pydantic import ConfigDict, BaseModel, ConstrainedStr, Field
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field
 
 from eduid.userdb.credentials import CredentialProofingMethod
 from eduid.userdb.credentials.external import TrustFramework
@@ -381,22 +381,14 @@ class EduIDBaseAppConfig(RootConfig, LoggingConfigMixin, StatsConfigMixin, Redis
     token_service_url: str
 
 
-class _ReasonableDomainName(ConstrainedStr):
-    min_length = len("x.se")
-    to_lower = True
+ReasonableDomainName = Annotated[str, Field(min_length=len("x.se")), AfterValidator(lambda v: v.lower())]
+DataOwnerName = ReasonableDomainName
+ScopeName = ReasonableDomainName
 
 
 class DataOwner(BaseModel):
     db_name: Optional[str] = None
     notify: list[str] = []
-
-
-class DataOwnerName(ReasonableDomainName):
-    pass
-
-
-class ScopeName(ReasonableDomainName):
-    pass
 
 
 class AuthnBearerTokenConfig(RootConfig):

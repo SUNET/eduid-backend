@@ -2,7 +2,8 @@ from datetime import datetime
 from typing import Any, Optional
 from uuid import UUID
 
-from pydantic import Field, root_validator
+from pydantic import Field, model_validator, root_validator
+from typing_extensions import Self
 
 from eduid.common.models.scim_base import (
     BaseCreateRequest,
@@ -13,6 +14,7 @@ from eduid.common.models.scim_base import (
     LanguageTag,
     Name,
     PhoneNumber,
+    ScimDatetime,
     SCIMSchema,
 )
 from eduid.common.models.scim_user import NutidUserExtensionV1
@@ -37,25 +39,25 @@ class NutidInviteExtensionV1(EduidBaseModel):
     finish_url: Optional[str] = Field(default=None, alias="finishURL")
     invite_url: Optional[str] = Field(default=None, alias="inviteURL")
     enable_mfa_stepup: Optional[bool] = Field(default=None, alias="enableMfaStepup")
-    completed: Optional[datetime] = None
-    expires_at: Optional[datetime] = Field(default=None, alias="expiresAt")
+    completed: Optional[ScimDatetime] = None
+    expires_at: Optional[ScimDatetime] = Field(default=None, alias="expiresAt")
 
-    @root_validator
-    def validate_schema(cls, values: dict[str, Any]) -> dict:
-        # Validate that at least one email address were provided if an invite email should be sent
-        if values.get("send_email") is True and len(values.get("emails", [])) == 0:
+    @model_validator(mode="after")
+    def validate_schema(self) -> Self:
+        # Validate that at least one email address were provided if an invitation email should be sent
+        if self.send_email is True and len(self.emails) == 0:
             raise ValueError("There must be an email address to be able to send an invite mail.")
         # Validate that there is a primary email address if more than one is requested
-        if len(values.get("emails", [])) > 1:
-            primary_addresses = [email for email in values["emails"] if email.primary is True]
+        if len(self.emails) > 1:
+            primary_addresses = [email for email in self.emails if email.primary is True]
             if len(primary_addresses) != 1:
                 raise ValueError("There must be exactly one primary email address.")
         # Validate that inviter_name and send_email is not None
-        if values.get("send_email") is None:
+        if self.send_email is None:
             raise ValueError("Missing sendEmail")
-        if values.get("inviter_name") is None:
+        if self.inviter_name is None:
             raise ValueError("Missing inviterName")
-        return values
+        return self
 
 
 class NutidInviteV1(EduidBaseModel):

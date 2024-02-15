@@ -65,7 +65,15 @@ class TestInitConfig(unittest.TestCase):
         with pytest.raises(ValidationError) as exc_info:
             load_config(typ=TestConfig, ns="test", app_name="test_missing_value")
 
-        assert exc_info.value.errors() == [{"loc": ("number",), "msg": "field required", "type": "value_error.missing"}]
+        assert exc_info.value.errors() == [
+            {
+                "input": {"app_name": "test_missing_value", "debug": True, "foo": "bar"},
+                "loc": ("number",),
+                "msg": "Field required",
+                "type": "missing",
+                "url": "https://errors.pydantic.dev/2.6/v/missing",
+            }
+        ]
 
     def test_YamlConfig_wrong_type(self):
         os.environ["EDUID_CONFIG_NS"] = "/eduid/test/test_wrong_type"
@@ -76,7 +84,13 @@ class TestInitConfig(unittest.TestCase):
             load_config(typ=TestConfig, ns="test", app_name="test_wrong_type")
 
         assert exc_info.value.errors() == [
-            {"loc": ("number",), "msg": "value is not a valid integer", "type": "type_error.integer"}
+            {
+                "input": "0xz",
+                "loc": ("number",),
+                "msg": "Input should be a valid integer, unable to parse string as an integer",
+                "type": "int_parsing",
+                "url": "https://errors.pydantic.dev/2.6/v/int_parsing",
+            }
         ]
 
     def test_YamlConfig_unknown_data(self):

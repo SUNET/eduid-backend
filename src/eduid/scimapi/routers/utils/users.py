@@ -112,7 +112,7 @@ def db_user_to_response(req: ContextRequest, resp: Response, db_user: ScimApiUse
 
     resp.headers["Location"] = location
     resp.headers["ETag"] = make_etag(db_user.version)
-    req.app.context.logger.debug(f"Extra debug: Response:\n{user.json(exclude_none=True, indent=2)}")
+    req.app.context.logger.debug(f"Extra debug: Response:\n{user.model_dump_json(exclude_none=True, indent=2)}")
     return user
 
 

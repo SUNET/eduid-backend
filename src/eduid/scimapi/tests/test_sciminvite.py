@@ -113,7 +113,7 @@ class TestScimInvite(unittest.TestCase):
             ),
         )
 
-        scim = invite_response.json(exclude_none=True, by_alias=True, sort_keys=True)
+        scim = invite_response.model_dump_json(exclude_none=True, by_alias=True)
 
         expected = {
             "schemas": [
@@ -414,15 +414,17 @@ class TestInviteResource(ScimApiTestCase):
 
         req1 = copy(req)
         del req1[SCIMSchema.NUTID_INVITE_V1.value]["inviterName"]
-        response = self.client.post(url=f"/Invites/", json=req1, headers=self.headers)
+        response = self.client.post(url="/Invites/", json=req1, headers=self.headers)
         self._assertScimError(
             status=422,
             json=response.json(),
             detail=[
                 {
-                    "loc": ["body", "https://scim.eduid.se/schema/nutid/invite/v1", "__root__"],
-                    "msg": "Missing inviterName",
+                    "ctx": {"error": {}},
+                    "loc": ["body", "https://scim.eduid.se/schema/nutid/invite/v1"],
+                    "msg": "Value error, Missing inviterName",
                     "type": "value_error",
+                    "url": "https://errors.pydantic.dev/2.6/v/value_error",
                 }
             ],
         )
@@ -435,9 +437,11 @@ class TestInviteResource(ScimApiTestCase):
             json=response.json(),
             detail=[
                 {
-                    "loc": ["body", "https://scim.eduid.se/schema/nutid/invite/v1", "__root__"],
-                    "msg": "Missing sendEmail",
+                    "ctx": {"error": {}},
+                    "loc": ["body", "https://scim.eduid.se/schema/nutid/invite/v1"],
+                    "msg": "Value error, Missing sendEmail",
                     "type": "value_error",
+                    "url": "https://errors.pydantic.dev/2.6/v/value_error",
                 }
             ],
         )

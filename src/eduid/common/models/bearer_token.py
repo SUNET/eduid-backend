@@ -3,7 +3,8 @@ from copy import copy
 from enum import Enum
 from typing import Any, Mapping, Optional
 
-from pydantic import field_validator, model_validator, BaseModel, Field, StrictInt, validator
+from pydantic import BaseModel, Field, StrictInt, field_validator, model_validator, validator
+from pydantic_core.core_schema import ValidationInfo
 
 from eduid.common.config.base import AuthnBearerTokenConfig, DataOwnerName, ScopeName
 from eduid.userdb.scimapi.groupdb import ScimApiGroupDB
@@ -69,21 +70,17 @@ class AuthnBearerToken(BaseModel):
             values["scopes"] = cls._get_scope_from_saml_data(values=values)
         return values
 
-    # TODO[pydantic]: We couldn't refactor the `validator`, please replace it by `field_validator` manually.
-    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-validators for more information.
-    @validator("scopes")
-    def validate_scopes(cls, v: set[ScopeName], values: Mapping[str, Any]) -> set[ScopeName]:
-        config = values.get("config")
+    @field_validator("scopes")
+    def validate_scopes(cls, v: set[ScopeName], values: ValidationInfo) -> set[ScopeName]:
+        config = values.data.get("config")
         if not config:
             raise ValueError("Can't validate without config")
         canonical_scopes = {config.scope_mapping.get(x, x) for x in v}
         return canonical_scopes
 
-    # TODO[pydantic]: We couldn't refactor the `validator`, please replace it by `field_validator` manually.
-    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-validators for more information.
-    @validator("requested_access")
-    def validate_requested_access(cls, v: list[RequestedAccess], values: Mapping[str, Any]) -> list[RequestedAccess]:
-        config = values.get("config")
+    @field_validator("requested_access")
+    def validate_requested_access(cls, v: list[RequestedAccess], values: ValidationInfo) -> list[RequestedAccess]:
+        config = values.data.get("config")
         if not config:
             raise ValueError("Can't validate without config")
         new_access: list[RequestedAccess] = []

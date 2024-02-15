@@ -202,7 +202,16 @@ class ScimApiTestCase(MongoNeoTestCase):
         if scim_type is not None:
             self.assertEqual(scim_type, json.get("scimType"))
         if detail is not None:
-            self.assertEqual(detail, json.get("detail"))
+            if isinstance(json.get("detail"), list):
+                response_detail = []
+                for item in json.get("detail"):
+                    if "input" in item:
+                        # remote input from error detail as that will often vary between tests
+                        del item["input"]
+                    response_detail.append(item)
+                self.assertEqual(detail, response_detail)
+            else:
+                self.assertEqual(detail, json.get("detail"))
 
     def _assertScimResponseProperties(
         self,
