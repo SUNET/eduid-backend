@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 from unittest import TestCase
 
@@ -11,6 +11,7 @@ from pydantic import ValidationError
 
 import eduid.userdb.element
 import eduid.userdb.exceptions
+from eduid.common.testing_base import normalised_data
 from eduid.userdb import PhoneNumber
 from eduid.userdb.event import EventList
 from eduid.userdb.tou import ToUEvent
@@ -96,13 +97,55 @@ class TestEventList(TestCase):
         with pytest.raises(ValidationError) as exc_info:
             self.two.add(dup)
 
-        assert exc_info.value.errors() == [
-            {
-                "loc": ("elements",),
-                "msg": "Duplicate element key: '222222222222222222222222'",
-                "type": "value_error",
-            }
-        ]
+        assert normalised_data(exc_info.value.errors()) == normalised_data(
+            [
+                {
+                    "ctx": {"error": ValueError("Duplicate element key: '222222222222222222222222'")},
+                    "input": [
+                        ToUEvent(
+                            created_by="test",
+                            created_ts=datetime(2015, 9, 24, 1, 1, 1, 111111, tzinfo=timezone.utc),
+                            modified_ts=datetime(2015, 9, 24, 1, 1, 1, 111111, tzinfo=timezone.utc),
+                            no_created_ts_in_db=False,
+                            no_modified_ts_in_db=False,
+                            data=None,
+                            event_type="tou_event",
+                            event_id="111111111111111111111111",
+                            no_event_type_in_db=False,
+                            version="1",
+                        ),
+                        ToUEvent(
+                            created_by="test",
+                            created_ts=datetime(2015, 9, 24, 2, 2, 2, 222222, tzinfo=timezone.utc),
+                            modified_ts=datetime(2018, 9, 25, 2, 2, 2, 222222, tzinfo=timezone.utc),
+                            no_created_ts_in_db=False,
+                            no_modified_ts_in_db=False,
+                            data=None,
+                            event_type="tou_event",
+                            event_id="222222222222222222222222",
+                            no_event_type_in_db=False,
+                            version="2",
+                        ),
+                        ToUEvent(
+                            created_by="test",
+                            created_ts=datetime(2015, 9, 24, 2, 2, 2, 222222, tzinfo=timezone.utc),
+                            modified_ts=datetime(2018, 9, 25, 2, 2, 2, 222222, tzinfo=timezone.utc),
+                            no_created_ts_in_db=False,
+                            no_modified_ts_in_db=False,
+                            data=None,
+                            event_type="tou_event",
+                            event_id="222222222222222222222222",
+                            no_event_type_in_db=False,
+                            version="other version",
+                        ),
+                    ],
+                    "loc": ("elements",),
+                    "msg": "Value error, Duplicate element key: '222222222222222222222222'",
+                    "type": "value_error",
+                    "url": "https://errors.pydantic.dev/2.6/v/value_error",
+                }
+            ]
+        )
 
     def test_add_event(self):
         third = self.three.to_list_of_dicts()[-1]
@@ -132,10 +175,23 @@ class TestEventList(TestCase):
         with pytest.raises(ValidationError) as exc_info:
             SomeEventList.from_list_of_dicts([e1])
 
-        assert exc_info.value.errors() == [
-            {"loc": ("created_by",), "msg": "field required", "type": "value_error.missing"},
-            {"loc": ("version",), "msg": "field required", "type": "value_error.missing"},
-        ]
+        assert normalised_data(exc_info.value.errors(), exclude_keys=["input"]) == normalised_data(
+            [
+                {
+                    "loc": ("created_by",),
+                    "msg": "Field required",
+                    "type": "missing",
+                    "url": "https://errors.pydantic.dev/2.6/v/missing",
+                },
+                {
+                    "loc": ("version",),
+                    "msg": "Field required",
+                    "type": "missing",
+                    "url": "https://errors.pydantic.dev/2.6/v/missing",
+                },
+            ],
+            exclude_keys=["input"],
+        )
 
     def test_modified_ts_addition(self):
         _event_no_modified_ts = {

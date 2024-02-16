@@ -7,6 +7,7 @@ from pydantic import ValidationError
 
 import eduid.userdb.element
 import eduid.userdb.exceptions
+from eduid.common.testing_base import normalised_data
 from eduid.userdb import MailAddress
 from eduid.userdb.phone import PhoneNumber, PhoneNumberList
 
@@ -85,9 +86,18 @@ class TestPhoneNumberList(unittest.TestCase):
         with pytest.raises(ValidationError) as exc_info:
             self.two.add(dup)
 
-        assert exc_info.value.errors() == [
-            {"loc": ("elements",), "msg": "Duplicate element key: '+46700000001'", "type": "value_error"}
-        ]
+        assert normalised_data(exc_info.value.errors(), exclude_keys=["input"]) == normalised_data(
+            [
+                {
+                    "ctx": {"error": ValueError("Duplicate element key: '+46700000001'")},
+                    "loc": ("elements",),
+                    "msg": "Value error, Duplicate element key: '+46700000001'",
+                    "type": "value_error",
+                    "url": "https://errors.pydantic.dev/2.6/v/value_error",
+                }
+            ],
+            exclude_keys=["input"],
+        )
 
     def test_add_phonenumber(self):
         third = self.three.find("+46700000003")
@@ -107,14 +117,18 @@ class TestPhoneNumberList(unittest.TestCase):
         new = MailAddress(email="ft@example.org")
         with pytest.raises(ValidationError) as exc_info:
             self.one.add(new)
-        assert exc_info.value.errors() == [
-            {
-                "loc": ("elements",),
-                "msg": "Value of type <class 'eduid.userdb.mail.MailAddress'> is not an "
-                "<class 'eduid.userdb.phone.PhoneNumber'>",
-                "type": "type_error",
-            }
-        ]
+        assert normalised_data(exc_info.value.errors(), exclude_keys=["input"]) == normalised_data(
+            [
+                {
+                    "ctx": {"class_name": "PhoneNumber"},
+                    "loc": ("elements", 1),
+                    "msg": "Input should be a valid dictionary or instance of PhoneNumber",
+                    "type": "model_type",
+                    "url": "https://errors.pydantic.dev/2.6/v/model_type",
+                }
+            ],
+            exclude_keys=["input"],
+        )
 
     def test_remove(self):
         self.three.remove("+46700000003")
@@ -252,7 +266,13 @@ class TestPhoneNumber(unittest.TestCase):
             PhoneNumber.from_dict(one)
 
         assert exc_info.value.errors() == [
-            {"loc": ("foo",), "msg": "extra fields not permitted", "type": "value_error.extra"}
+            {
+                "input": "bar",
+                "loc": ("foo",),
+                "msg": "Extra inputs are not permitted",
+                "type": "extra_forbidden",
+                "url": "https://errors.pydantic.dev/2.6/v/extra_forbidden",
+            }
         ]
 
     def test_changing_is_verified_on_primary(self):

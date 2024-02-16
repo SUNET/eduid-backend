@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Literal, Any, Mapping, Optional
+from typing import Any, Literal, Mapping, Optional
 
 from bson import ObjectId
-from pydantic import field_validator, Field
+from pydantic import Field, field_validator
 
 from eduid.userdb.credentials import Credential
 from eduid.userdb.element import ElementKey

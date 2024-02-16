@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from bson import ObjectId
-from pydantic import field_validator, Field
+from pydantic import Field, field_validator
 
 from eduid.userdb.credentials import Credential
 

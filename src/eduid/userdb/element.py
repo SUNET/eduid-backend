@@ -52,7 +52,8 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Generic, Mapping, NewType, Optional, TypeVar, Union
 
-from pydantic import ConfigDict, BaseModel, Field, validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, validator, InstanceOf
+from pydantic_core.core_schema import ValidationInfo
 
 from eduid.userdb.db import TUserDbDocument
 from eduid.userdb.exceptions import EduIDUserDBError, UserDBValueError
@@ -110,7 +111,9 @@ class Element(BaseModel):
     # any changes to data in the production database. Remove after a burn-in period.
     no_created_ts_in_db: bool = Field(default=False, exclude=True)
     no_modified_ts_in_db: bool = Field(default=False, exclude=True)
-    model_config = ConfigDict(populate_by_name=True, validate_assignment=True, extra="forbid", arbitrary_types_allowed=True)
+    model_config = ConfigDict(
+        populate_by_name=True, validate_assignment=True, extra="forbid", arbitrary_types_allowed=True
+    )
 
     def __str__(self) -> str:
         return f"<eduID {self.__class__.__name__}: {self.dict()}>"
@@ -286,15 +289,14 @@ class ElementList(BaseModel, Generic[ListElement], ABC):
     def __str__(self):
         return "<eduID {!s}: {!r}>".format(self.__class__.__name__, getattr(self, "elements", None))
 
-    # TODO[pydantic]: We couldn't refactor the `validator`, please replace it by `field_validator` manually.
-    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-validators for more information.
-    @validator("elements", pre=True)
+    @field_validator("elements", mode="before")
+    @classmethod
     def _validate_element_values(cls, values, field):
         cls._validate_elements(values, field)
         return values
 
     @classmethod
-    def _validate_elements(cls, values, field):
+    def _validate_elements(cls, values, info: ValidationInfo):
         """
         Validate elements. Since the 'elements' property is defined on subclasses
         (to get the right type information), a pydantic validator can't be placed here
@@ -303,9 +305,7 @@ class ElementList(BaseModel, Generic[ListElement], ABC):
         # Ensure no elements have duplicate keys
         for this in values:
             if not isinstance(this, Element):
-                raise TypeError(f"Value is of type {type(this)} which is not an Element subclass")
-            if not isinstance(this, field.type_):
-                raise TypeError(f"Value of type {type(this)} is not an {field.type_}")
+                raise ValueError(f"Value is of type {type(this)} which is not an Element subclass")
             same_key = [x for x in values if x.key == this.key]
             if len(same_key) != 1:
                 raise ValueError(f"Duplicate element key: {repr(this.key)}")

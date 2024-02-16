@@ -8,7 +8,8 @@ from operator import itemgetter
 from typing import Any, Optional, TypeVar, Union, cast
 
 import bson
-from pydantic import field_validator, model_validator, ConfigDict, BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from typing_extensions import Self
 
 from eduid.userdb.credentials import CredentialList
 from eduid.userdb.db import BaseDB, TUserDbDocument
@@ -62,7 +63,9 @@ class User(BaseModel):
     profiles: ProfileList = Field(default_factory=ProfileList)
     letter_proofing_data: Optional[Union[list, dict]] = None  # remove dict after a full load-save-users
     revoked_ts: Optional[datetime] = None
-    model_config = ConfigDict(populate_by_name=True, validate_assignment=True, extra="forbid", arbitrary_types_allowed=True)
+    model_config = ConfigDict(
+        populate_by_name=True, validate_assignment=True, extra="forbid", arbitrary_types_allowed=True
+    )
 
     @field_validator("eppn", mode="before")
     @classmethod
@@ -85,13 +88,12 @@ class User(BaseModel):
             )
         return values
 
-    @model_validator()
-    @classmethod
-    def update_meta_modified_ts(cls, values: dict[str, Any]) -> dict[str, Any]:
+    @model_validator(mode="after")
+    def update_meta_modified_ts(self) -> Self:
         # as we validate on assignment this will run every time the User is changed
-        if values.get("modified_ts"):
-            values["meta"].modified_ts = values["modified_ts"]
-        return values
+        if self.modified_ts:
+            self.meta.modified_ts = self.modified_ts
+        return self
 
     def __str__(self) -> str:
         """

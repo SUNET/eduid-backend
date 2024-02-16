@@ -87,7 +87,7 @@ class NinNavetProofingLogElement(NinProofingLogElement):
     # Navet response for users official address
     user_postal_address: FullPostalAddress
     # Navet response for users deregistration information (used if official address is missing)
-    deregistration_information: Optional[DeregistrationInformation]
+    deregistration_information: Optional[DeregistrationInformation] = None
 
 
 class ForeignIdProofingLogElement(ProofingLogElement):
@@ -191,7 +191,7 @@ class TeleAdressProofingRelation(TeleAdressProofing):
     # Navet response for mobile phone subscriber
     registered_postal_address: FullPostalAddress
     # Navet response for mobile phone subscriber deregistration information (used if official address is missing)
-    registered_deregistration_information: Optional[DeregistrationInformation]
+    registered_deregistration_information: Optional[DeregistrationInformation] = None
     # Proofing method name
     proofing_method: str = IdentityProofingMethod.TELEADRESS.value
 
@@ -588,7 +588,7 @@ class FidoMetadataLogElement(LogElement):
 class UserChangeLogElement(LogElement):
     eppn: str = Field(alias="eduPersonPrincipalName")
     diff: str
-    log_element_id: Optional[bson.ObjectId] = Field(alias="_id")
+    log_element_id: Optional[bson.ObjectId] = Field(alias="_id", default=None)
     reason: Reason
     source: Source
 
