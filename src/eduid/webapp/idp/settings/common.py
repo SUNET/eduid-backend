@@ -145,16 +145,15 @@ class IdPConfig(EduIDBaseAppConfig, TouConfigMixin, WebauthnConfigMixin2, AmConf
         }
     )
 
-    # TODO[pydantic]: We couldn't refactor the `validator`, please replace it by `field_validator` manually.
-    # Check https://docs.pydantic.dev/dev-v2/migration/#changes-to-validators for more information.
-    @validator("sso_cookie")
-    def make_sso_cookie(cls, v, values) -> CookieConfig:
+    @field_validator("sso_cookie")
+    @classmethod
+    def make_sso_cookie(cls, v, info: ValidationInfo) -> CookieConfig:
         # Convert sso_cookie from dict to the proper dataclass
         if isinstance(v, dict):
             return CookieConfig(**v)
-        if "sso_cookie_name" in values and "sso_cookie_domain" in values:
+        if "sso_cookie_name" in info.data and "sso_cookie_domain" in info.data:
             # let legacy parameters override as long as they are present
-            return CookieConfig(key=values["sso_cookie_name"], domain=values["sso_cookie_domain"])
+            return CookieConfig(key=info.data["sso_cookie_name"], domain=info.data["sso_cookie_domain"])
         raise ValueError(
             "sso_cookie not present, and no fallback values either (sso_cookie_name and sso_cookie_domain)"
         )
