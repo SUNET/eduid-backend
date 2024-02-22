@@ -147,7 +147,7 @@ class CreatePDFTest(EduidAPITestCase):
         return app_config
 
     def test_create_pdf(self):
-        recipient = FullPostalAddress.parse_obj(
+        recipient = FullPostalAddress.model_validate(
             OrderedDict(
                 [
                     (

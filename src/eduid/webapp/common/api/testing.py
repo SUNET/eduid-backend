@@ -312,11 +312,11 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
 
     @staticmethod
     def _get_all_navet_data():
-        return NavetData.parse_obj(MessageSender.get_devel_all_navet_data())
+        return NavetData.model_validate(MessageSender.get_devel_all_navet_data())
 
     @staticmethod
     def _get_full_postal_address():
-        return FullPostalAddress.parse_obj(MessageSender.get_devel_postal_address())
+        return FullPostalAddress.model_validate(MessageSender.get_devel_postal_address())
 
     def _check_error_response(
         self,

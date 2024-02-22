@@ -1,6 +1,6 @@
 from datetime import datetime
 from enum import Enum
-from typing import Annotated, Any, Optional, Union
+from typing import Annotated, Any, Optional
 from uuid import UUID
 
 from bson import ObjectId
@@ -113,7 +113,7 @@ class SubResource(EduidBaseModel):
 
     @classmethod
     def from_mapping(cls, data):
-        return cls.parse_obj(data)
+        return cls.model_validate(data)
 
 
 class Meta(EduidBaseModel):
