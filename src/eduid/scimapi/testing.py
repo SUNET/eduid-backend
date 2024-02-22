@@ -204,7 +204,7 @@ class ScimApiTestCase(MongoNeoTestCase):
         if detail is not None:
             if isinstance(json.get("detail"), list):
                 response_detail = []
-                for item in json.get("detail"):
+                for item in json.get("detail", []):
                     if "input" in item:
                         # remote input from error detail as that will often vary between tests
                         del item["input"]

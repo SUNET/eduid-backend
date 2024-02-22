@@ -18,7 +18,7 @@ from eduid.userdb.user import User
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.common.authn.cache import IdentityCache, OutstandingQueriesCache, StateCache
 from eduid.webapp.common.authn.utils import get_saml2_config
-from eduid.webapp.common.session.namespaces import PySAML2Dicts
+from eduid.webapp.common.session.namespaces import AuthnRequestRef, PySAML2Dicts
 from eduid.webapp.idp.app import IdPApp, init_idp_app
 from eduid.webapp.idp.helpers import IdPAction
 from eduid.webapp.idp.sso_session import SSOSession, SSOSessionId
@@ -86,7 +86,7 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
     ):
         super().setUp(*args, **kwargs)
         self.idp_entity_id = "https://unittest-idp.example.edu/idp.xml"
-        self.relay_state = "test-fest"
+        self.relay_state = AuthnRequestRef("test-fest")
         self.sp_config = get_saml2_config(self.app.conf.pysaml2_config, name="SP_CONFIG")
         # pysaml2 likes to keep state about ongoing logins, data from login to when you logout etc.
         self._pysaml2_caches = PySAML2Dicts({})

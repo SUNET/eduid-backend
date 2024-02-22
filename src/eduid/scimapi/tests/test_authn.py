@@ -8,6 +8,7 @@ from uuid import uuid4
 import pytest
 from httpx import Response
 from jwcrypto import jwt
+from pydantic import ValidationError
 
 from eduid.common.config.base import DataOwner, DataOwnerName, ScopeName
 from eduid.common.config.parsers import load_config
@@ -77,7 +78,7 @@ class TestAuthnBearerToken(BaseDBTestCase):
 
     def test_invalid_scope(self) -> None:
         # test too short domain name
-        with pytest.raises(ValueError) as exc_info:
+        with pytest.raises(ValidationError) as exc_info:
             AuthnBearerToken(config=self.config, version=1, scopes={ScopeName(".se")}, auth_source=AuthSource.CONFIG)
         assert exc_info.value.errors() == [
             {
@@ -92,7 +93,7 @@ class TestAuthnBearerToken(BaseDBTestCase):
 
     def test_invalid_version(self) -> None:
         # test too short domain name
-        with pytest.raises(ValueError) as exc_info:
+        with pytest.raises(ValidationError) as exc_info:
             AuthnBearerToken(
                 config=self.config, version=99, scopes={ScopeName("eduid.se")}, auth_source=AuthSource.CONFIG
             )
