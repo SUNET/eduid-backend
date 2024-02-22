@@ -23,7 +23,7 @@ class SignupConfig(
     Configuration for the signup app
     """
 
-    app_name = "signup"
+    app_name: str = "signup"
 
     vccs_url: str
     signup_url: str
@@ -35,7 +35,7 @@ class SignupConfig(
     email_verification_code_length: int = 6
     email_verification_max_bad_attempts: int = 3
     email_verification_timeout: timedelta = Field(default=timedelta(minutes=10))
-    email_proofing_version = Field(default="2013v1")
+    email_proofing_version: str = Field(default="2013v1")
     default_finish_url: str = "https://www.eduid.se/"
     eduid_site_url: str = "https://www.eduid.se"  # TODO: Backwards compatibility, remove when no longer used
     eduid_site_name: str = "eduID"
