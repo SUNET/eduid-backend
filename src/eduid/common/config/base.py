@@ -244,8 +244,8 @@ class CeleryConfigMixin(BaseModel):
 
 class LoggingConfigMixin(BaseModel):
     app_name: str
-    testing: bool = False
     debug: bool = False
+    testing: bool = False
     # If this list contains anything, debug logging will only be performed for these users
     debug_eppns: Sequence[str] = Field(default=[])
     log_format: str = "{asctime} | {levelname:7} | {hostname} | {eppn:11} | {name:35} | {module:10} | {message}"
