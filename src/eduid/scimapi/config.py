@@ -1,10 +1,9 @@
 import logging
-from pathlib import Path
 from typing import Optional
 
-from pydantic import field_validator, BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
-from eduid.common.config.base import AuthnBearerTokenConfig, DataOwnerName, LoggingConfigMixin, RootConfig
+from eduid.common.config.base import AuthnBearerTokenConfig, LoggingConfigMixin
 from eduid.common.utils import removesuffix
 
 logger = logging.getLogger(__name__)

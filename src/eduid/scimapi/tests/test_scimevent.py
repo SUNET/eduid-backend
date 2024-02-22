@@ -107,7 +107,7 @@ class TestEventResource(ScimApiTestCase):
         }
         created = self._create_event(event=event)
 
-        # check that the create resulted in an event in the database
+        # check that the creation resulted in an event in the database
         events = self.eventdb.get_events_by_resource(SCIMResourceType.USER, scim_id=user.scim_id)
         assert len(events) == 1
         db_event = events[0]

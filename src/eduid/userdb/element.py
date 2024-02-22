@@ -52,7 +52,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Generic, Mapping, NewType, Optional, TypeVar, Union
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, validator, InstanceOf
+from pydantic import BaseModel, ConfigDict, Field, InstanceOf, field_validator, validator
 from pydantic_core.core_schema import ValidationInfo
 
 from eduid.userdb.db import TUserDbDocument

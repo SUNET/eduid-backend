@@ -69,7 +69,7 @@ from uuid import uuid4
 
 from defusedxml import ElementTree as DefusedElementTree
 from flask import redirect
-from pydantic import ConfigDict, BaseModel
+from pydantic import BaseModel, ConfigDict
 from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 from werkzeug.exceptions import BadRequest
 from werkzeug.wrappers import Response as WerkzeugResponse

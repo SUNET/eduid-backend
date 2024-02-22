@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Optional
 
 from dateutil.parser import parse as dt_parse
-from pydantic import model_validator, BaseModel
+from pydantic import BaseModel, model_validator
 
 __author__ = "lundberg"
 

@@ -56,7 +56,7 @@ async def on_put(
     req: ContextRequest, resp: Response, update_request: InviteUpdateRequest, scim_id: str
 ) -> InviteResponse:
     if scim_id != str(update_request.id):
-        req.app.context.logger.error(f"Id mismatch")
+        req.app.context.logger.error("Id mismatch")
         req.app.context.logger.debug(f"{scim_id} != {update_request.id}")
         raise BadRequest(detail="Id mismatch")
 
@@ -167,7 +167,7 @@ async def on_put(
             message="Invite was updated",
         )
     else:
-        req.app.context.logger.info(f"No changes detected")
+        req.app.context.logger.info("No changes detected")
 
     return db_invite_to_response(req, resp, db_invite, signup_invite)
 
@@ -218,7 +218,7 @@ async def on_post(req: ContextRequest, resp: Response, create_request: InviteCre
          ],
      }
     """
-    req.app.context.logger.info(f"Creating invite")
+    req.app.context.logger.info("Creating invite")
     profiles = {}
     for profile_name, profile in create_request.nutid_user_v1.profiles.items():
         profiles[profile_name] = ScimApiProfile(attributes=profile.attributes, data=profile.data)

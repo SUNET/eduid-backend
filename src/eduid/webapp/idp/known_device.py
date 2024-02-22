@@ -12,7 +12,7 @@ import nacl.secret
 import nacl.utils
 from bson import ObjectId
 from nacl.secret import SecretBox
-from pydantic import ConfigDict, BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from eduid.userdb.db import BaseDB
 from eduid.userdb.util import utc_now

@@ -11,7 +11,7 @@ from datetime import datetime
 from typing import Any, Mapping, Optional, Sequence
 
 from bson import ObjectId
-from pydantic import ConfigDict, BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from pymongo import ReturnDocument
 
 from eduid.common.misc.timeutil import utc_now

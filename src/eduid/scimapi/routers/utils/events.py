@@ -68,7 +68,7 @@ def get_scim_referenced(req: ContextRequest, resource: NutidEventResource) -> Op
     elif resource.resource_type == SCIMResourceType.INVITE:
         return req.context.invitedb.get_invite_by_scim_id(str(resource.scim_id))
     elif resource.resource_type == SCIMResourceType.EVENT:
-        raise BadRequest(detail=f"Events can not refer to other events")
+        raise BadRequest(detail="Events can not refer to other events")
     raise BadRequest(detail=f"Events for resource {resource.resource_type.value} not implemented")
 
 

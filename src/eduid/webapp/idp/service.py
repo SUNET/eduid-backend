@@ -62,7 +62,7 @@ from abc import ABC
 from typing import Any, Optional
 
 from flask import request
-from pydantic import field_validator, ConfigDict, BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.webapp.common.session.namespaces import RequestRef

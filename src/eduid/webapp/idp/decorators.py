@@ -20,7 +20,7 @@ def require_ticket(f):
     def require_ticket_decorator(*args, **kwargs):
         """Decorator to turn the 'ref' parameter sent by the frontend into a ticket (LoginContext)"""
         if "ref" not in kwargs:
-            logger.debug(f"Login ref not supplied")
+            logger.debug("Login ref not supplied")
             return _flux_error(IdPMsg.bad_ref)
         ref = kwargs.pop("ref")
 

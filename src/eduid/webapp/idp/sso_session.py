@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from typing import Any, Mapping, NewType, Optional
 
 from bson import ObjectId
-from pydantic import ConfigDict, BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.element import ElementKey
