@@ -197,7 +197,9 @@ class OnetimeCredential(Credential):
 class IdP_PendingRequest(BaseModel, ABC):
     aborted: Optional[bool] = False
     used: Optional[bool] = False  # set to True after the request has been completed (to handle 'back' button presses)
-    template_show_msg: Optional[str] = None  # set when the template version of the idp should show a message to the user
+    template_show_msg: Optional[str] = (
+        None  # set when the template version of the idp should show a message to the user
+    )
     # Credentials used while authenticating _this SAML request_. Not ones inherited from SSO.
     credentials_used: dict[ElementKey, datetime] = Field(default_factory=dict)
     onetime_credentials: dict[ElementKey, OnetimeCredential] = Field(default_factory=dict)
@@ -215,23 +217,14 @@ class IdP_OtherDevicePendingRequest(IdP_PendingRequest):
     state_id: Optional[OtherDeviceId] = None  # can be None on aborted/expired requests
 
 
+IdP_PendingRequestSubclass = Union[IdP_SAMLPendingRequest, IdP_OtherDevicePendingRequest]
+
+
 class IdP_Namespace(TimestampedNS):
     # The SSO cookie value last set by the IdP. Used to debug issues with browsers not
     # honoring Set-Cookie in redirects, or something.
     sso_cookie_val: Optional[str] = None
-    pending_requests: dict[RequestRef, IdP_PendingRequest] = Field(default={})
-
-    @classmethod
-    def _from_dict_transform(cls: type[IdP_Namespace], data: Mapping[str, Any]) -> dict[str, Any]:
-        _data = super()._from_dict_transform(data)
-        if "pending_requests" in _data:
-            # pre-parse values into the right subclass if IdP_PendingRequest
-            for k, v in _data["pending_requests"].items():
-                if "binding" in v:
-                    _data["pending_requests"][k] = IdP_SAMLPendingRequest(**v)
-                elif "state_id" in v:
-                    _data["pending_requests"][k] = IdP_OtherDevicePendingRequest(**v)
-        return _data
+    pending_requests: dict[RequestRef, IdP_PendingRequestSubclass] = Field(default={})
 
     def log_credential_used(
         self, request_ref: RequestRef, credential: Union[Credential, OnetimeCredential], timestamp: datetime
