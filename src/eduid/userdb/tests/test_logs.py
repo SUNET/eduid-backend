@@ -310,18 +310,13 @@ class TestProofingLog(TestCase):
         data = {
             "eppn": self.user.eppn,
             "created_by": "test",
-            "phone_number": "some_phone_number",
             "proofing_version": "test",
             "reference": "reference id",
         }
-        proofing_element = PhoneNumberProofing(**data)
-        proofing_element.phone_number = 0
-
+        proofing_element = PhoneNumberProofing.model_construct(**data, phone_number=0)
         self.assertTrue(self.proofing_log_db.save(proofing_element))
 
-        proofing_element = PhoneNumberProofing(**data)
-        proofing_element.phone_number = False
-
+        proofing_element = PhoneNumberProofing.model_construct(**data, phone_number=False)
         self.assertTrue(self.proofing_log_db.save(proofing_element))
 
     def test_deregistered_proofing_data(self):
