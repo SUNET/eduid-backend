@@ -6,7 +6,7 @@ import os
 import uuid
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import Any, Callable, Optional, TypeVar, Union
+from typing import Any, Optional, TypeVar, Union
 
 from bson import ObjectId
 
@@ -31,7 +31,9 @@ class CommonTestCase(MongoTestCase):
 SomeData = TypeVar("SomeData")
 
 
-def normalised_data(data: SomeData, replace_datetime: Optional[str] = None) -> SomeData:
+def normalised_data(
+    data: SomeData, replace_datetime: Optional[str] = None, exclude_keys: Optional[list[str]] = None
+) -> SomeData:
     """Utility function for normalising data before comparisons in test cases."""
 
     class NormaliseEncoder(json.JSONEncoder):
@@ -94,6 +96,23 @@ def normalised_data(data: SomeData, replace_datetime: Optional[str] = None) -> S
                 ret[key] = value
             return ret
 
+    def _exclude_keys(key: str, obj: SomeData) -> SomeData:
+        """
+        remove keys from the data
+        """
+        if isinstance(obj, dict):
+            if key in obj:
+                del obj[key]
+            for value in obj.values():
+                _exclude_keys(key, value)
+        elif isinstance(obj, list):
+            for item in obj:
+                _exclude_keys(key, item)
+        return obj
+
+    if exclude_keys is not None:
+        for key in exclude_keys:
+            _exclude_keys(key=key, obj=data)
     _dumped = json.dumps(data, sort_keys=True, cls=NormaliseEncoder)
     _loaded = json.loads(_dumped, cls=NormaliseDecoder)
     return _loaded
