@@ -292,7 +292,7 @@ cookies-samesite-compat==0.0.1 \
     #   -c main.txt
     #   -r main.in
     #   satosa
-cryptography==42.0.2 \
+cryptography==42.0.4 \
     --hash=sha256:087887e55e0b9c8724cf05361357875adb5c20dec27e5816b653492980d20380 \
     --hash=sha256:09a77e5b2e8ca732a19a90c5bca2d124621a1edb5438c5daa2d2738bfeb02589 \
     --hash=sha256:130c0f77022b2b9c99d8cebcdd834d81705f61c68e91ddd614ce74c657f8b3ea \
