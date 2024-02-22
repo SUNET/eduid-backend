@@ -1,14 +1,15 @@
 import logging
 from abc import ABC
 from datetime import datetime, timedelta
-from typing import Any, Coroutine, Optional, Union
+from typing import Annotated, Any, Coroutine, Optional, Union
 
 from httpx import Request
 from jwcrypto.jwk import JWK
 from jwcrypto.jws import JWS
-from pydantic import field_validator, BaseModel, Field
+from pydantic import BaseModel, Field
 
 from eduid.common.misc.timeutil import utc_now
+from eduid.common.models.generic import JWKPydanticAnnotation
 from eduid.common.models.gnap_models import (
     Access,
     AccessTokenFlags,
@@ -26,6 +27,9 @@ __author__ = "lundberg"
 logger = logging.getLogger(__name__)
 
 
+ClientJWK = Annotated[JWK, JWKPydanticAnnotation]
+
+
 class GNAPClientException(Exception):
     pass
 
@@ -33,16 +37,9 @@ class GNAPClientException(Exception):
 class GNAPClientAuthData(BaseModel):
     authn_server_url: str
     key_name: str
-    client_jwk: JWK
+    client_jwk: ClientJWK
     access: list[Union[str, Access]] = Field(default_factory=list)
     default_access_token_expires_in: timedelta = timedelta(hours=1)
-
-    @field_validator("client_jwk")
-    @classmethod
-    def _validate_client_jwk(cls, v):
-        if not isinstance(v, JWK):
-            return JWK(**v)
-        return v
 
 
 class GNAPBearerTokenMixin(ABC):
