@@ -103,7 +103,7 @@ class TestKnownDevice(unittest.TestCase):
         }
         # we can only test the type and length - the nonce will be different each time so the data changes
         assert isinstance(encrypted_data, bytes)
-        assert len(encrypted_data) == 180
+        assert len(encrypted_data) == 172
 
         # restore first_dict and try parsing it
         first_dict["data"] = encrypted_data
