@@ -5,7 +5,8 @@ Configuration (file) handling for the eduID idp app.
 from datetime import timedelta
 from typing import Optional
 
-from pydantic import field_validator, Field, HttpUrl, validator
+from pydantic import Field, HttpUrl, field_validator
+from pydantic_core.core_schema import ValidationInfo
 
 from eduid.common.config.base import (
     AmConfigMixin,
@@ -14,6 +15,7 @@ from eduid.common.config.base import (
     TouConfigMixin,
     WebauthnConfigMixin2,
 )
+from eduid.common.models.generic import HttpUrlStr
 from eduid.webapp.idp.assurance_data import SwamidAssurance
 
 
@@ -85,8 +87,8 @@ class IdPConfig(EduIDBaseAppConfig, TouConfigMixin, WebauthnConfigMixin2, AmConf
     eduperson_targeted_id_secret_key: str = ""
     pairwise_id_secret_key: str = ""
     eduid_site_url: str
-    login_bundle_url: Optional[HttpUrl] = None
-    other_device_url: Optional[HttpUrl] = None
+    login_bundle_url: Optional[HttpUrlStr] = None
+    other_device_url: Optional[HttpUrlStr] = None
     esi_ladok_prefix: str = Field(default="urn:schac:personalUniqueCode:int:esi:ladok.se:externtstudentuid-")
     allow_other_device_logins: bool = False
     other_device_logins_ttl: timedelta = Field(default=timedelta(minutes=2))
@@ -101,7 +103,7 @@ class IdPConfig(EduIDBaseAppConfig, TouConfigMixin, WebauthnConfigMixin2, AmConf
     # secret key for encrypting personal information for geo-location service
     geo_statistics_secret_key: Optional[str] = None
     geo_statistics_feature_enabled: bool = False
-    geo_statistics_url: Optional[HttpUrl] = None
+    geo_statistics_url: Optional[HttpUrlStr] = None
     swamid_assurance_profile_1: list[SwamidAssurance] = Field(
         default=[
             SwamidAssurance.SWAMID_AL1,

@@ -2,7 +2,7 @@
 from datetime import timedelta
 from typing import Optional
 
-from pydantic import AnyUrl, Field
+from pydantic import Field
 
 from eduid.common.clients.gnap_client.base import GNAPClientAuthData
 from eduid.common.config.base import (
@@ -13,6 +13,7 @@ from eduid.common.config.base import (
     MailConfigMixin,
     TouConfigMixin,
 )
+from eduid.common.models.generic import AnyUrlStr
 
 
 class SignupConfig(
@@ -40,7 +41,7 @@ class SignupConfig(
     eduid_site_name: str = "eduID"
     recaptcha_public_key: str = ""
     recaptcha_private_key: str = ""
-    scim_api_url: Optional[AnyUrl] = None
+    scim_api_url: Optional[AnyUrlStr] = None
     gnap_auth_data: Optional[GNAPClientAuthData] = None
     eduid_scope: str = "eduid.se"
     private_userdb_auto_expire: Optional[timedelta] = Field(default=timedelta(days=7))

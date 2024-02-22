@@ -9,6 +9,9 @@ from pydantic_core import core_schema
 
 __author__ = "lundberg"
 
+AnyUrlStr = Annotated[str, AnyUrl]
+HttpUrlStr = Annotated[str, HttpUrl]
+
 
 # https://docs.pydantic.dev/2.6/concepts/types/#handling-third-party-types
 class ObjectIdPydanticAnnotation:
