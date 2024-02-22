@@ -348,8 +348,8 @@ class SwedenConnectEIDASProofing(ForeignIdProofingLogElement):
     # Transaction identifier
     transaction_identifier: str
     # if and when a nin can be mapped to a person these will be used
-    mapped_personal_identity_number: Optional[str]
-    personal_identity_number_binding: Optional[str]
+    mapped_personal_identity_number: Optional[str] = None
+    personal_identity_number_binding: Optional[str] = None
     # Proofing method name
     proofing_method: str = IdentityProofingMethod.SWEDEN_CONNECT.value
 

@@ -4,7 +4,7 @@ from enum import unique
 from typing import Any, Optional
 
 from iso3166 import countries
-from pydantic import field_validator, ConfigDict, BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.common.session import session
@@ -67,7 +67,9 @@ class UserInfoBase(BaseModel):
 
 class SvipeDocumentUserInfo(UserInfoBase):
     birthdate: date
-    document_administrative_number: Optional[str] = Field(None, alias="com.svipe:document_administrative_number")
+    document_administrative_number: Optional[str] = Field(
+        alias="com.svipe:document_administrative_number", default=None
+    )
     document_expiry_date: date = Field(alias="com.svipe:document_expiry_date")
     # Issuing Country: SWE
     document_issuing_country: str = Field(alias="com.svipe:document_issuing_country")

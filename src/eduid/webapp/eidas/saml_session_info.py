@@ -42,8 +42,8 @@ class ForeignEidAttributes(SAMLAttributes):
     transaction_identifier: str = Field(alias="transactionIdentifier")
     # there are plans for a service in the future that provides the attributes below for
     # swedish citizens living abroad with eID from the country of residence
-    mapped_personal_identity_number: Optional[str] = Field(alias="mappedPersonalIdentityNumber")
-    personal_identity_number_binding: Optional[str] = Field(alias="personalIdentityNumberBinding")
+    mapped_personal_identity_number: Optional[str] = Field(alias="mappedPersonalIdentityNumber", default=None)
+    personal_identity_number_binding: Optional[str] = Field(alias="personalIdentityNumberBinding", default=None)
 
 
 class NinSessionInfo(BaseSessionInfo):
