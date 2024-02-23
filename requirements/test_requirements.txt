@@ -106,15 +106,15 @@ blinker==1.7.0 \
     #   flask
     #   flask-mail
     #   raven
-boto3==1.34.48 \
-    --hash=sha256:adc785ff05aec9fc93f82d507420b320203cd4fd011c67eb369b3aa2b5aeb298 \
-    --hash=sha256:f9873c3f03de546d7297475c6acd771840c385521caadb8c121a1ac38bc59cd4
+boto3==1.34.36 \
+    --hash=sha256:1e38a4ea4bb8bc66fbb858abb411820709fda5d6c5604c2da0f696653d49c684 \
+    --hash=sha256:7ec36deb7ccc9c4943510692303cf93883ef61dc2c79f8bd4d75ee42209559d3
     # via
     #   -c main.txt
     #   -r main.in
-botocore==1.34.48 \
-    --hash=sha256:eabdde36309274b76bb79ae9bdfa10c1fd91a2c9b3343cfa15b8a91f8e1ec224 \
-    --hash=sha256:f3e1c84fa75fd6921dfbfb4b2f803bcc424b9b866982fe80e08edbd26ca9861c
+botocore==1.34.36 \
+    --hash=sha256:3f39ae0165f1a27f621fc91a46fb59f87e819671fad106c230dadcc724892f70 \
+    --hash=sha256:89c3dc15b6ffae146029df636d51b9952740051204c444ec765286b081c917bc
     # via
     #   -c main.txt
     #   boto3
@@ -1450,9 +1450,7 @@ pypng==0.20220715.0 \
 pyproject-hooks==1.0.0 \
     --hash=sha256:283c11acd6b928d2f6a7c73fa0d01cb2bdc5f07c57a2eeb6e83d5e56b97976f8 \
     --hash=sha256:f271b298b97f5955d53fb12b72c1fb1948c22c1a6b70b315c54cedaca0264ef5
-    # via
-    #   build
-    #   pip-tools
+    # via build
 pysaml2==7.4.1+sunet4 \
     --hash=sha256:5421660dbd286155e85435974ce52f44004cdf3ee93667bfbfcf3dce972a1e7e \
     --hash=sha256:6d514606bd53e245f40a692e39adf1a996d2165c591c7f3b1034d1870f63144b

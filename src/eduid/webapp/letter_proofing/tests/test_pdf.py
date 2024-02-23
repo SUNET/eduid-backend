@@ -197,3 +197,9 @@ C/O TESTAREN & TESTSSON
 12345 LANDET"""
             in pdf_text
         )
+        assert (
+            """SUNET / eduID
+Tulegatan 11 3tr
+113 53 Stockholm"""
+            in pdf_text
+        )
