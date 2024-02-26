@@ -3,6 +3,7 @@ from unittest import TestCase
 import pytest
 from pydantic import ValidationError
 
+from eduid.common.testing_base import normalised_data
 from eduid.userdb.profile import Profile, ProfileList
 
 __author__ = "lundberg"
@@ -65,6 +66,15 @@ class ProfileTest(TestCase):
         with pytest.raises(ValidationError) as exc_info:
             ProfileList(elements=[profile, profile2])
 
-        assert exc_info.value.errors() == [
-            {"loc": ("elements",), "msg": "Duplicate element key: 'test owner 1'", "type": "value_error"}
-        ]
+        assert normalised_data(exc_info.value.errors(), exclude_keys=["input"]) == normalised_data(
+            [
+                {
+                    "ctx": {"error": ValueError("Duplicate element key: 'test owner 1'")},
+                    "loc": ("elements",),
+                    "msg": "Value error, Duplicate element key: 'test owner 1'",
+                    "type": "value_error",
+                    "url": "https://errors.pydantic.dev/2.6/v/value_error",
+                }
+            ],
+            exclude_keys=["input"],
+        )

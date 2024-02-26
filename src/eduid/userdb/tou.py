@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-import datetime
+from datetime import datetime, timedelta
 from typing import Any
 
 from bson import ObjectId
-from pydantic import validator
+from pydantic import field_validator
 
 from eduid.userdb.event import Event, EventList
 from eduid.userdb.exceptions import UserDBValueError
@@ -19,7 +19,8 @@ class ToUEvent(Event):
     created_by: str
     version: str
 
-    @validator("version")
+    @field_validator("version")
+    @classmethod
     def _validate_tou_version(cls, v):
         if not v:
             raise ValueError("ToU must have a version")
@@ -46,11 +47,11 @@ class ToUEvent(Event):
 
         :param interval_seconds: the max number of seconds between a users acceptance of the ToU
         """
-        if not isinstance(self.modified_ts, datetime.datetime):
+        if not isinstance(self.modified_ts, datetime):
             if self.modified_ts is None:
                 return False
             raise UserDBValueError(f"Malformed modified_ts: {self.modified_ts!r}")
-        delta = datetime.timedelta(seconds=interval_seconds)
+        delta = timedelta(seconds=interval_seconds)
         expiry_date = self.modified_ts + delta
         return expiry_date < utc_now()
 

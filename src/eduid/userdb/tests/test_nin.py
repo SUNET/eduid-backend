@@ -7,6 +7,7 @@ import pytest
 from pydantic import ValidationError
 
 import eduid.userdb.exceptions
+from eduid.common.testing_base import normalised_data
 from eduid.userdb import PhoneNumber
 from eduid.userdb.element import ElementKey
 from eduid.userdb.nin import Nin, NinList
@@ -79,9 +80,18 @@ class TestNinList(unittest.TestCase):
         with pytest.raises(ValidationError) as exc_info:
             self.two.add(dup)
 
-        assert exc_info.value.errors() == [
-            {"loc": ("elements",), "msg": "Duplicate element key: '197801011234'", "type": "value_error"}
-        ]
+        assert normalised_data(exc_info.value.errors(), exclude_keys=["input"]) == normalised_data(
+            [
+                {
+                    "ctx": {"error": ValueError("Duplicate element key: '197801011234'")},
+                    "loc": ("elements",),
+                    "msg": "Value error, Duplicate element key: '197801011234'",
+                    "type": "value_error",
+                    "url": "https://errors.pydantic.dev/2.6/v/value_error",
+                }
+            ],
+            exclude_keys=["input"],
+        )
 
     def test_add_nin(self):
         third = self.three.find("197803033456")
@@ -104,14 +114,18 @@ class TestNinList(unittest.TestCase):
         new = PhoneNumber(number="+4612345678")
         with pytest.raises(ValidationError) as exc_info:
             self.one.add(new)
-        assert exc_info.value.errors() == [
-            {
-                "loc": ("elements",),
-                "msg": "Value of type <class 'eduid.userdb.phone.PhoneNumber'> is not an "
-                "<class 'eduid.userdb.nin.Nin'>",
-                "type": "type_error",
-            }
-        ]
+        assert normalised_data(exc_info.value.errors(), exclude_keys=["input"]) == normalised_data(
+            [
+                {
+                    "ctx": {"class_name": "Nin"},
+                    "loc": ("elements", 1),
+                    "msg": "Input should be a valid dictionary or instance of Nin",
+                    "type": "model_type",
+                    "url": "https://errors.pydantic.dev/2.6/v/model_type",
+                }
+            ],
+            exclude_keys=["input"],
+        )
 
     def test_remove(self):
         self.three.remove(ElementKey("197803033456"))

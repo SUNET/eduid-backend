@@ -1,7 +1,7 @@
 import logging
 from typing import Optional
 
-from pydantic import validator
+from pydantic import field_validator
 
 from eduid.common.config.base import AuthnBearerTokenConfig, LoggingConfigMixin, StatsConfigMixin
 from eduid.common.utils import removesuffix
@@ -23,7 +23,8 @@ class MAccApiConfig(AuthnBearerTokenConfig, LoggingConfigMixin, StatsConfigMixin
     log_retention_days: int = 730
     account_retention_days: int = 365
 
-    @validator("application_root")
+    @field_validator("application_root")
+    @classmethod
     def application_root_must_not_end_with_slash(cls, v: str):
         if v.endswith("/"):
             logger.warning(f"application_root should not end with slash ({v})")

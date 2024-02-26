@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import validator
+from pydantic import field_validator
 
 from eduid.userdb.element import ElementKey, PrimaryElement, PrimaryElementList
 
@@ -12,7 +12,8 @@ __author__ = "ft"
 class MailAddress(PrimaryElement):
     email: str
 
-    @validator("email", pre=True)
+    @field_validator("email", mode="before")
+    @classmethod
     def validate_email(cls, v):
         if not isinstance(v, str):
             raise ValueError("must be a string")

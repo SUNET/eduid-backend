@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Any, Mapping, Optional
+from typing import Any, Literal, Mapping, Optional
 
 from bson import ObjectId
-from pydantic import Field, validator
+from pydantic import Field, field_validator
 
 from eduid.userdb.credentials import Credential
 from eduid.userdb.element import ElementKey
@@ -22,7 +22,8 @@ class ExternalCredential(Credential):
     credential_id: str = Field(alias="id", default_factory=objectid_str)
     framework: TrustFramework
 
-    @validator("credential_id", pre=True)
+    @field_validator("credential_id", mode="before")
+    @classmethod
     def credential_id_objectid(cls, v):
         """Turn ObjectId into string"""
         if isinstance(v, ObjectId):
@@ -40,7 +41,7 @@ class ExternalCredential(Credential):
 
 
 class SwedenConnectCredential(ExternalCredential):
-    framework: TrustFramework = Field(default=TrustFramework.SWECONN, const=True)
+    framework: Literal[TrustFramework.SWECONN] = TrustFramework.SWECONN
     # To be technology neutral, we don't want to store e.g. the SAML authnContextClassRef in the database,
     # and mapping a level to an authnContextClassRef really ought to be dependent on configuration matching
     # the IdP:s expected values at a certain time. Such configuration is better to have in the SP than in
@@ -49,7 +50,7 @@ class SwedenConnectCredential(ExternalCredential):
 
 
 class EidasCredential(ExternalCredential):
-    framework: TrustFramework = Field(default=TrustFramework.EIDAS, const=True)
+    framework: Literal[TrustFramework.EIDAS] = TrustFramework.EIDAS
     # To be technology neutral, we don't want to store e.g. the SAML authnContextClassRef in the database,
     # and mapping a level to an authnContextClassRef really ought to be dependent on configuration matching
     # the IdP:s expected values at a certain time. Such configuration is better to have in the SP than in
@@ -58,7 +59,7 @@ class EidasCredential(ExternalCredential):
 
 
 class BankIDCredential(ExternalCredential):
-    framework: TrustFramework = Field(default=TrustFramework.BANKID, const=True)
+    framework: Literal[TrustFramework.BANKID] = TrustFramework.BANKID
     # To be technology neutral, we don't want to store e.g. the SAML authnContextClassRef in the database,
     # and mapping a level to an authnContextClassRef really ought to be dependent on configuration matching
     # the IdP:s expected values at a certain time. Such configuration is better to have in the SP than in

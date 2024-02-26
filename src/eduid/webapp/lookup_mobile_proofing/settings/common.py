@@ -6,5 +6,5 @@ class MobileProofingConfig(EduIDBaseAppConfig, MagicCookieMixin, AmConfigMixin, 
     Configuration for the lookup mobile proofing app
     """
 
-    app_name = "lookup_mobile_proofing"
+    app_name: str = "lookup_mobile_proofing"
     lookup_mobile_broker_url: str = ""

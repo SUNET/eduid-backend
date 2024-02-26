@@ -29,7 +29,7 @@ class FidoCred(BaseModel):
     u2f: dict[str, Any]  # TODO: This can probably be removed
     # pydantic (1.8.2) bugs out if webauthn is typed as 'AttestedCredentialData' :/
     # (saying Expected bytes, got AttestedCredentialData (type=type_error))
-    webauthn: Any
+    webauthn: Any = None
 
 
 def _get_user_credentials_u2f(user: User) -> dict[ElementKey, FidoCred]:

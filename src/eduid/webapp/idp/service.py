@@ -62,7 +62,7 @@ from abc import ABC
 from typing import Any, Optional
 
 from flask import request
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.webapp.common.session.namespaces import RequestRef
@@ -72,22 +72,21 @@ from eduid.webapp.idp.sso_session import SSOSession
 
 
 class SAMLQueryParams(BaseModel):
-    SAMLRequest: Optional[str]
-    RelayState: Optional[str]
+    SAMLRequest: Optional[str] = None
+    RelayState: Optional[str] = None
     request_ref: Optional[RequestRef] = Field(default=None, alias="ref")
+    model_config = ConfigDict(populate_by_name=True)
 
-    class Config:
-        # Allow setting request_ref using it's name too - not just the alias (ref)
-        allow_population_by_field_name = True
-
-    @validator("SAMLRequest", "RelayState")
+    @field_validator("SAMLRequest", "RelayState")
+    @classmethod
     def validate_query_params(cls, v: Any):
         if not isinstance(v, str) or not v:
             raise ValueError("must be a non-empty string")
         # TODO: perform extra sanitation?
         return v
 
-    @validator("request_ref")
+    @field_validator("request_ref")
+    @classmethod
     def validate_request_ref(cls, v: Any):
         if v is None:
             return None

@@ -5,7 +5,8 @@ Configuration (file) handling for the eduID idp app.
 from datetime import timedelta
 from typing import Optional
 
-from pydantic import Field, HttpUrl, validator
+from pydantic import Field, HttpUrl, field_validator
+from pydantic_core.core_schema import ValidationInfo
 
 from eduid.common.config.base import (
     AmConfigMixin,
@@ -14,6 +15,7 @@ from eduid.common.config.base import (
     TouConfigMixin,
     WebauthnConfigMixin2,
 )
+from eduid.common.models.generic import HttpUrlStr
 from eduid.webapp.idp.assurance_data import SwamidAssurance
 
 
@@ -85,8 +87,8 @@ class IdPConfig(EduIDBaseAppConfig, TouConfigMixin, WebauthnConfigMixin2, AmConf
     eduperson_targeted_id_secret_key: str = ""
     pairwise_id_secret_key: str = ""
     eduid_site_url: str
-    login_bundle_url: Optional[HttpUrl] = None
-    other_device_url: Optional[HttpUrl] = None
+    login_bundle_url: Optional[HttpUrlStr] = None
+    other_device_url: Optional[HttpUrlStr] = None
     esi_ladok_prefix: str = Field(default="urn:schac:personalUniqueCode:int:esi:ladok.se:externtstudentuid-")
     allow_other_device_logins: bool = False
     other_device_logins_ttl: timedelta = Field(default=timedelta(minutes=2))
@@ -101,7 +103,7 @@ class IdPConfig(EduIDBaseAppConfig, TouConfigMixin, WebauthnConfigMixin2, AmConf
     # secret key for encrypting personal information for geo-location service
     geo_statistics_secret_key: Optional[str] = None
     geo_statistics_feature_enabled: bool = False
-    geo_statistics_url: Optional[HttpUrl] = None
+    geo_statistics_url: Optional[HttpUrlStr] = None
     swamid_assurance_profile_1: list[SwamidAssurance] = Field(
         default=[
             SwamidAssurance.SWAMID_AL1,
@@ -143,19 +145,21 @@ class IdPConfig(EduIDBaseAppConfig, TouConfigMixin, WebauthnConfigMixin2, AmConf
         }
     )
 
-    @validator("sso_cookie")
-    def make_sso_cookie(cls, v, values) -> CookieConfig:
+    @field_validator("sso_cookie")
+    @classmethod
+    def make_sso_cookie(cls, v, info: ValidationInfo) -> CookieConfig:
         # Convert sso_cookie from dict to the proper dataclass
         if isinstance(v, dict):
             return CookieConfig(**v)
-        if "sso_cookie_name" in values and "sso_cookie_domain" in values:
+        if "sso_cookie_name" in info.data and "sso_cookie_domain" in info.data:
             # let legacy parameters override as long as they are present
-            return CookieConfig(key=values["sso_cookie_name"], domain=values["sso_cookie_domain"])
+            return CookieConfig(key=info.data["sso_cookie_name"], domain=info.data["sso_cookie_domain"])
         raise ValueError(
             "sso_cookie not present, and no fallback values either (sso_cookie_name and sso_cookie_domain)"
         )
 
-    @validator("sso_session_lifetime", pre=True)
+    @field_validator("sso_session_lifetime", mode="before")
+    @classmethod
     def validate_sso_session_lifetime(cls, v):
         if isinstance(v, int):
             # legacy format for this was number of minutes

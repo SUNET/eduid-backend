@@ -41,8 +41,8 @@ class SecurityConfig(
     chpass_old_password_needed: bool = True
 
     # webauthn
-    webauthn_proofing_method = Field(default="webauthn metadata")
-    webauthn_proofing_version = Field(default="2022v1")
+    webauthn_proofing_method: str = Field(default="webauthn metadata")
+    webauthn_proofing_version: str = Field(default="2022v1")
     webauthn_max_allowed_tokens: int = 10
     webauthn_attestation: Optional[AttestationConveyancePreference] = None
     webauthn_allowed_user_verification_methods: list[str] = Field(

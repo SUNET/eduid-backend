@@ -54,7 +54,9 @@ def db_event_to_response(req: ContextRequest, resp: Response, db_event: ScimApiE
 
     resp.headers["Location"] = location
     resp.headers["ETag"] = make_etag(db_event.version)
-    req.app.context.logger.debug(f"Extra debug: Response:\n{event_response.json(exclude_none=True, indent=2)}")
+    req.app.context.logger.debug(
+        f"Extra debug: Response:\n{event_response.model_dump_json(exclude_none=True, indent=2)}"
+    )
     return event_response
 
 
@@ -66,7 +68,7 @@ def get_scim_referenced(req: ContextRequest, resource: NutidEventResource) -> Op
     elif resource.resource_type == SCIMResourceType.INVITE:
         return req.context.invitedb.get_invite_by_scim_id(str(resource.scim_id))
     elif resource.resource_type == SCIMResourceType.EVENT:
-        raise BadRequest(detail=f"Events can not refer to other events")
+        raise BadRequest(detail="Events can not refer to other events")
     raise BadRequest(detail=f"Events for resource {resource.resource_type.value} not implemented")
 
 

@@ -4,7 +4,7 @@ import logging
 from abc import ABC
 from datetime import datetime
 from enum import Enum
-from typing import Any, Optional, Union
+from typing import Any, Literal, Optional, Union
 
 from pydantic import Field
 
@@ -77,7 +77,7 @@ class NinIdentity(IdentityElement):
         number
     """
 
-    identity_type: IdentityType = Field(default=IdentityType.NIN, const=True)
+    identity_type: Literal[IdentityType.NIN] = IdentityType.NIN
     number: str
     date_of_birth: Optional[datetime] = None
 
@@ -123,7 +123,7 @@ class EIDASIdentity(ForeignIdentityElement):
         country_code
     """
 
-    identity_type: IdentityType = Field(default=IdentityType.EIDAS, const=True)
+    identity_type: Literal[IdentityType.EIDAS] = IdentityType.EIDAS
     prid: str
     prid_persistence: PridPersistence
     loa: EIDASLoa
@@ -148,11 +148,11 @@ class SvipeIdentity(ForeignIdentityElement):
         country_code
     """
 
-    identity_type: IdentityType = Field(default=IdentityType.SVIPE, const=True)
+    identity_type: Literal[IdentityType.SVIPE] = IdentityType.SVIPE
     #  A globally unique identifier issued by Svipe to the user. Under normal conditions, a given person will retain
     #  the same Svipe ID even after renewing the underlying identity document.
     svipe_id: str
-    administrative_number: Optional[str]
+    administrative_number: Optional[str] = None
 
     @property
     def unique_key_name(self) -> str:

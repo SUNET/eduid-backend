@@ -27,7 +27,7 @@ def fetch_mfa_stepup_accounts(data: satosa.internal.InternalData) -> list[MfaSte
     """Retrieve the MFA stepup accounts from the internal data"""
     if not hasattr(data, "mfa_stepup_accounts") or not isinstance(data.mfa_stepup_accounts, list):
         return []
-    return [MfaStepupAccount.parse_obj(x) for x in data.mfa_stepup_accounts]
+    return [MfaStepupAccount.model_validate(x) for x in data.mfa_stepup_accounts]
 
 
 def get_metadata(context: satosa.context.Context) -> Generator[MetaData, None, None]:

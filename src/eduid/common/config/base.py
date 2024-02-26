@@ -8,10 +8,10 @@ from datetime import timedelta
 from enum import Enum
 from pathlib import Path
 from re import Pattern
-from typing import Any, Mapping, Optional, Sequence, TypeVar, Union
+from typing import Annotated, Any, Mapping, Optional, Sequence, TypeVar, Union
 
 import pkg_resources
-from pydantic import BaseModel, ConstrainedStr, Field
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field
 
 from eduid.userdb.credentials import CredentialProofingMethod
 from eduid.userdb.credentials.external import TrustFramework
@@ -80,9 +80,7 @@ class RootConfig(BaseModel):
     testing: bool = False
     environment: EduidEnvironment = EduidEnvironment.production
     default_eppn_scope: str = "eduid.se"
-
-    class Config:
-        validate_assignment = True  # validate data when test cases modify the config object
+    model_config = ConfigDict(validate_assignment=True)
 
 
 # EduIDBaseApp is currently Flask apps
@@ -246,8 +244,8 @@ class CeleryConfigMixin(BaseModel):
 
 class LoggingConfigMixin(BaseModel):
     app_name: str
-    testing: bool = False
     debug: bool = False
+    testing: bool = False
     # If this list contains anything, debug logging will only be performed for these users
     debug_eppns: Sequence[str] = Field(default=[])
     log_format: str = "{asctime} | {levelname:7} | {hostname} | {eppn:11} | {name:35} | {module:10} | {message}"
@@ -295,7 +293,7 @@ class CaptchaConfigMixin(BaseModel):
 class AmConfigMixin(CeleryConfigMixin):
     """Config used by AmRelay"""
 
-    am_relay_for_override: Optional[str]  # only set this if f'eduid_{app_name}' is not right
+    am_relay_for_override: Optional[str] = None  # only set this if f'eduid_{app_name}' is not right
 
 
 class MailConfigMixin(CeleryConfigMixin):
@@ -383,22 +381,14 @@ class EduIDBaseAppConfig(RootConfig, LoggingConfigMixin, StatsConfigMixin, Redis
     token_service_url: str
 
 
-class ReasonableDomainName(ConstrainedStr):
-    min_length = len("x.se")
-    to_lower = True
+ReasonableDomainName = Annotated[str, Field(min_length=len("x.se")), AfterValidator(lambda v: v.lower())]
+DataOwnerName = ReasonableDomainName
+ScopeName = ReasonableDomainName
 
 
 class DataOwner(BaseModel):
     db_name: Optional[str] = None
     notify: list[str] = []
-
-
-class DataOwnerName(ReasonableDomainName):
-    pass
-
-
-class ScopeName(ReasonableDomainName):
-    pass
 
 
 class AuthnBearerTokenConfig(RootConfig):
@@ -416,7 +406,7 @@ class AuthnBearerTokenConfig(RootConfig):
     scope_mapping: dict[ScopeName, DataOwnerName] = Field(default={})
     # Allow someone with scope x to sudo to scope y
     scope_sudo: dict[ScopeName, set[ScopeName]] = Field(default={})
-    requested_access_type: Optional[str]
+    requested_access_type: Optional[str] = None
     required_saml_assurance_level: list[str] = Field(default=["http://www.swamid.se/policy/assurance/al3"])
     # group name to match saml entitlement for authorization
     account_manager_default_group: str = "Account Managers"

@@ -253,7 +253,7 @@ def _get_authn_options(ticket: LoginContext, sso_session: Optional[SSOSession], 
     res.other_device = current_app.conf.allow_other_device_logins
 
     if ticket.is_other_device_2:
-        current_app.logger.debug(f"This is already a request to log in to another device, not allowing other_device")
+        current_app.logger.debug("This is already a request to log in to another device, not allowing other_device")
         res.other_device = False
 
     if eppn:

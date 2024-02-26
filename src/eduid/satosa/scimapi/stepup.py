@@ -64,9 +64,9 @@ class StepUpError(SATOSAError):
 class LoaSettings(BaseModel):
     requested: list[str]  # LoA that the StepUp-provider understands
     extra_accepted: list[str] = Field(default=[])  # (aliased) LoAs that satisfy the requester
-    returned: Optional[
-        str
-    ]  # LoA that should be returned to the requester, if we get any of the requested + extra_accepted
+    returned: Optional[str] = (
+        None  # LoA that should be returned to the requester, if we get any of the requested + extra_accepted
+    )
 
 
 EntityId = NewType("EntityId", str)
@@ -87,13 +87,13 @@ class MFA(BaseModel):
 class StepupPluginConfig(BaseModel):
     mfa: MfaConfig
     sp_config: Mapping[str, Any]
-    sign_alg: Optional[str]
-    digest_alg: Optional[str]
+    sign_alg: Optional[str] = None
+    digest_alg: Optional[str] = None
 
 
 class StepupParams(BaseModel):
     issuer: str
-    issuer_loa: Optional[str]  # LoA that the IdP released - as requested through the acr_mapping configuration
+    issuer_loa: Optional[str] = None  # LoA that the IdP released - as requested through the acr_mapping configuration
     requester: EntityId
     requester_loas: list[str]  # (original) LoAs required by the requester
     loa_settings: LoaSettings  # LoA settings to use. Either from the configuration or derived using entity attributes in the metadata.
@@ -187,7 +187,7 @@ class StepUp(ResponseMicroService):
         super().__init__(*args, **kwargs)
 
         try:
-            parsed_config = StepupPluginConfig.parse_obj(config)
+            parsed_config = StepupPluginConfig.model_validate(config)
         except ValidationError as e:
             raise StepUpError(f"The configuration for this plugin is not valid: {e}")
 
@@ -503,7 +503,7 @@ class AuthnContext(RequestMicroService):
         super().__init__(*args, **kwargs)
 
         try:
-            parsed_config = MFA.parse_obj(config)
+            parsed_config = MFA.model_validate(config)
         except ValidationError as e:
             raise StepUpError(f"The configuration for this plugin is not valid: {e}")
 
@@ -612,7 +612,7 @@ class StepupSAMLBackend(SAMLBackend):
         self.mfa: Optional[MfaConfig] = None
 
         try:
-            parsed_config = StepupPluginConfig.parse_obj(self.config)
+            parsed_config = StepupPluginConfig.model_validate(self.config)
         except ValidationError as e:
             raise StepUpError(f"The configuration for this plugin is not valid: {e}")
         self.mfa = parsed_config.mfa
@@ -644,7 +644,7 @@ class RewriteAuthnContextClass(ResponseMicroService):
         self.mfa: Optional[MfaConfig] = None
 
         try:
-            parsed_config = MFA.parse_obj(config)
+            parsed_config = MFA.model_validate(config)
         except ValidationError as e:
             raise StepUpError(f"The configuration for this plugin is not valid: {e}")
         self.mfa = parsed_config.mfa
@@ -699,4 +699,4 @@ def fetch_params(data: satosa.internal.InternalData) -> Optional[StepupParams]:
     """Retrieve the LoA settings from the internal data"""
     if not hasattr(data, "stepup_params") or not isinstance(data.stepup_params, dict):
         return None
-    return StepupParams.parse_obj(data.stepup_params)
+    return StepupParams.model_validate(data.stepup_params)

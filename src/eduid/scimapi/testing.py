@@ -13,6 +13,7 @@ from starlette.testclient import TestClient
 from eduid.common.config.base import DataOwnerName
 from eduid.common.config.parsers import load_config
 from eduid.common.models.scim_base import SCIMSchema
+from eduid.common.testing_base import normalised_data
 from eduid.graphdb.groupdb import User as GraphUser
 from eduid.graphdb.testing import Neo4jTemporaryInstance
 from eduid.queue.db.message import MessageDB
@@ -194,6 +195,7 @@ class ScimApiTestCase(MongoNeoTestCase):
         status: int = 400,
         scim_type: Optional[str] = None,
         detail: Optional[Any] = None,
+        exclude_keys: Optional[list[str]] = None,
     ):
         if schemas is None:
             schemas = [SCIMSchema.ERROR.value]
@@ -202,7 +204,9 @@ class ScimApiTestCase(MongoNeoTestCase):
         if scim_type is not None:
             self.assertEqual(scim_type, json.get("scimType"))
         if detail is not None:
-            self.assertEqual(detail, json.get("detail"))
+            expected = normalised_data(detail)
+            generated = normalised_data(json.get("detail"), exclude_keys=exclude_keys)
+            self.assertEqual(expected, generated)
 
     def _assertScimResponseProperties(
         self,

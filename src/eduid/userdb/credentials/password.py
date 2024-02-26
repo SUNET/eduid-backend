@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from bson import ObjectId
-from pydantic import Field, validator
+from pydantic import Field, field_validator
 
 from eduid.userdb.credentials import Credential
 
@@ -15,7 +15,8 @@ class Password(Credential):
     salt: str
     is_generated: bool = False
 
-    @validator("credential_id", pre=True)
+    @field_validator("credential_id", mode="before")
+    @classmethod
     def credential_id_objectid(cls, v):
         """Turn ObjectId into string"""
         if isinstance(v, ObjectId):

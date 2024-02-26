@@ -236,11 +236,19 @@ class TestGroupResource_POST(TestGroupResource):
     def test_schema_violation(self):
         # request missing displayName
         req = {"schemas": [SCIMSchema.CORE_20_GROUP.value], "members": []}
-        response = self.client.post(url=f"/Groups/", json=req, headers=self.headers)
+        response = self.client.post(url="/Groups/", json=req, headers=self.headers)
         self._assertScimError(
             status=422,
             json=response.json(),
-            detail=[{"loc": ["body", "displayName"], "msg": "field required", "type": "value_error.missing"}],
+            detail=[
+                {
+                    "type": "missing",
+                    "loc": ["body", "displayName"],
+                    "msg": "Field required",
+                    "url": "https://errors.pydantic.dev/2.6/v/missing",
+                }
+            ],
+            exclude_keys=["input"],
         )
 
 
@@ -474,7 +482,15 @@ class TestGroupResource_PUT(TestGroupResource):
         self._assertScimError(
             status=422,
             json=response.json(),
-            detail=[{"loc": ["body", "displayName"], "msg": "field required", "type": "value_error.missing"}],
+            detail=[
+                {
+                    "loc": ["body", "displayName"],
+                    "msg": "Field required",
+                    "type": "missing",
+                    "url": "https://errors.pydantic.dev/2.6/v/missing",
+                }
+            ],
+            exclude_keys=["input"],
         )
 
 
@@ -607,7 +623,15 @@ class TestGroupSearchResource(TestGroupResource):
         self._assertScimError(
             status=422,
             json=response.json(),
-            detail=[{"loc": ["body", "filter"], "msg": "field required", "type": "value_error.missing"}],
+            detail=[
+                {
+                    "loc": ["body", "filter"],
+                    "msg": "Field required",
+                    "type": "missing",
+                    "url": "https://errors.pydantic.dev/2.6/v/missing",
+                }
+            ],
+            exclude_keys=["input"],
         )
 
 

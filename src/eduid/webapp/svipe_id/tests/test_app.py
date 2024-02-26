@@ -273,7 +273,7 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
                 },
             },
         }
-        cfg = SvipeClientConfig.parse_obj(data["svipe_client"])
+        cfg = SvipeClientConfig.model_validate(data["svipe_client"])
         assert cfg.claims_request == data["svipe_client"]["claims_request"]
 
     def test_authenticate(self):

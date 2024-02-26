@@ -31,7 +31,9 @@ class CommonTestCase(MongoTestCase):
 SomeData = TypeVar("SomeData")
 
 
-def normalised_data(data: SomeData, replace_datetime: Optional[str] = None) -> SomeData:
+def normalised_data(
+    data: SomeData, replace_datetime: Optional[str] = None, exclude_keys: Optional[list[str]] = None
+) -> SomeData:
     """Utility function for normalising data before comparisons in test cases."""
 
     class NormaliseEncoder(json.JSONEncoder):
@@ -51,10 +53,14 @@ def normalised_data(data: SomeData, replace_datetime: Optional[str] = None) -> S
                 o = o.replace(microsecond=0)
                 return o.isoformat()
 
-            if isinstance(o, (ObjectId, uuid.UUID, Enum)):
+            if isinstance(o, (ObjectId, uuid.UUID, Enum, Exception)):
                 return str(o)
 
-            return super().default(o)
+            # catch all for wierd stuff in pydantic 2 errors
+            try:
+                return super().default(o)
+            except TypeError:
+                return repr(o)
 
     class NormaliseDecoder(json.JSONDecoder):
         def __init__(self, *args: Any, **kwargs: Any):
@@ -90,6 +96,22 @@ def normalised_data(data: SomeData, replace_datetime: Optional[str] = None) -> S
                 ret[key] = value
             return ret
 
+    def _exclude_keys(exclude_key: str, obj: SomeData) -> None:
+        """
+        remove keys from the data
+        """
+        if isinstance(obj, dict):
+            if exclude_key in obj:
+                del obj[exclude_key]
+            for value in obj.values():
+                _exclude_keys(exclude_key, value)
+        elif isinstance(obj, list):
+            for item in obj:
+                _exclude_keys(exclude_key, item)
+
+    if exclude_keys is not None:
+        for _key in exclude_keys:
+            _exclude_keys(exclude_key=_key, obj=data)
     _dumped = json.dumps(data, sort_keys=True, cls=NormaliseEncoder)
     _loaded = json.loads(_dumped, cls=NormaliseDecoder)
     return _loaded
