@@ -427,11 +427,12 @@ class TestInviteResource(ScimApiTestCase):
                     "url": "https://errors.pydantic.dev/2.6/v/value_error",
                 }
             ],
+            exclude_keys=["input"],
         )
 
         req2 = copy(req)
         del req2[SCIMSchema.NUTID_INVITE_V1.value]["sendEmail"]
-        response = self.client.post(url=f"/Invites/", json=req2, headers=self.headers)
+        response = self.client.post(url="/Invites/", json=req2, headers=self.headers)
         self._assertScimError(
             status=422,
             json=response.json(),
@@ -444,6 +445,7 @@ class TestInviteResource(ScimApiTestCase):
                     "url": "https://errors.pydantic.dev/2.6/v/value_error",
                 }
             ],
+            exclude_keys=["input"],
         )
 
     def test_create_invite_do_not_send_email(self):

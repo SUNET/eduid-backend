@@ -291,12 +291,12 @@ class ElementList(BaseModel, Generic[ListElement], ABC):
 
     @field_validator("elements", mode="before")
     @classmethod
-    def _validate_element_values(cls, values, field):
-        cls._validate_elements(values, field)
+    def _validate_element_values(cls, values: list[ListElement]) -> list[ListElement]:
+        cls._validate_elements(values)
         return values
 
     @classmethod
-    def _validate_elements(cls, values, info: ValidationInfo):
+    def _validate_elements(cls, values: list[ListElement]) -> list[ListElement]:
         """
         Validate elements. Since the 'elements' property is defined on subclasses
         (to get the right type information), a pydantic validator can't be placed here
@@ -421,13 +421,13 @@ class PrimaryElementList(VerifiedElementList[ListElement], Generic[ListElement],
     """
 
     @classmethod
-    def _validate_elements(cls, values, field):
+    def _validate_elements(cls, values: list[ListElement]):
         """
         Validate elements. Since the 'elements' property is defined on subclasses
         (to get the right type information), a pydantic validator can't be placed here
         on the superclass.
         """
-        super()._validate_elements(values, field)
+        super()._validate_elements(values)
         # call _get_primary to validate the elements - will raise an exception on errors
         cls._get_primary(values)
         return values

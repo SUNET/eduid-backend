@@ -248,6 +248,7 @@ class TestGroupResource_POST(TestGroupResource):
                     "url": "https://errors.pydantic.dev/2.6/v/missing",
                 }
             ],
+            exclude_keys=["input"],
         )
 
 
@@ -489,6 +490,7 @@ class TestGroupResource_PUT(TestGroupResource):
                     "url": "https://errors.pydantic.dev/2.6/v/missing",
                 }
             ],
+            exclude_keys=["input"],
         )
 
 
@@ -629,6 +631,7 @@ class TestGroupSearchResource(TestGroupResource):
                     "url": "https://errors.pydantic.dev/2.6/v/missing",
                 }
             ],
+            exclude_keys=["input"],
         )
 
 

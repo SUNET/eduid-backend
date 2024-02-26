@@ -96,23 +96,22 @@ def normalised_data(
                 ret[key] = value
             return ret
 
-    def _exclude_keys(key: str, obj: SomeData) -> SomeData:
+    def _exclude_keys(exclude_key: str, obj: SomeData) -> None:
         """
         remove keys from the data
         """
         if isinstance(obj, dict):
-            if key in obj:
-                del obj[key]
+            if exclude_key in obj:
+                del obj[exclude_key]
             for value in obj.values():
-                _exclude_keys(key, value)
+                _exclude_keys(exclude_key, value)
         elif isinstance(obj, list):
             for item in obj:
-                _exclude_keys(key, item)
-        return obj
+                _exclude_keys(exclude_key, item)
 
     if exclude_keys is not None:
-        for key in exclude_keys:
-            _exclude_keys(key=key, obj=data)
+        for _key in exclude_keys:
+            _exclude_keys(exclude_key=_key, obj=data)
     _dumped = json.dumps(data, sort_keys=True, cls=NormaliseEncoder)
     _loaded = json.loads(_dumped, cls=NormaliseDecoder)
     return _loaded
