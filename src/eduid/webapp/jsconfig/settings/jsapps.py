@@ -47,7 +47,7 @@ class JsAppsConfig(PasswordConfigMixin):
     letter_proofing_url: Optional[str] = None  # deprecated
     login_base_url: Optional[AnyUrlStr] = None  # deprecated
     # login_next_url needs to be a full URL since the backend is on the idp, not on https://eduid.se
-    login_next_url: HttpUrlStr = None
+    login_next_url: HttpUrlStr
     # login_request_other_url needs to be a full URL since the backend is on the idp, not on https://eduid.se
     login_request_other_url: Optional[HttpUrlStr] = None
     login_service_url: HttpUrlStr
