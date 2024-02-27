@@ -136,8 +136,12 @@ class FrejaProofingFunctions(SwedenConnectProofingFunctions[NinSessionInfo]):
         assert isinstance(proofing_log_entry.data, NinProofingLogElement)  # please type checking
 
         # Verify NIN for user
+        date_of_birth = self.session_info.attributes.date_of_birth
         nin_element = NinProofingElement(
-            number=self.session_info.attributes.nin, created_by=current_app.conf.app_name, is_verified=False
+            number=self.session_info.attributes.nin,
+            date_of_birth=datetime(year=date_of_birth.year, month=date_of_birth.month, day=date_of_birth.day),
+            created_by=current_app.conf.app_name,
+            is_verified=False,
         )
         proofing_state = NinProofingState(id=None, modified_ts=None, eppn=proofing_user.eppn, nin=nin_element)
         try:

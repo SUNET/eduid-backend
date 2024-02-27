@@ -223,9 +223,16 @@ class IdentityList(VerifiedElementList[IdentityElement]):
         if self.nin and self.nin.is_verified:
             if self.nin.date_of_birth is not None:
                 return self.nin.date_of_birth
-            # Fall back to parsing NIN as this should work for all existing users
+            # Fall back to parsing NIN
             try:
-                return datetime.strptime(self.nin.number[:8], "%Y%m%d")
+                try:
+                    return datetime.strptime(self.nin.number[:8], "%Y%m%d")
+                except ValueError:
+                    # the nin might be a coordination number
+                    day = int(self.nin.number[6:8])
+                    if day >= 61:  # coordination number day is 61-91
+                        day = day - 60
+                    return datetime.strptime(self.nin.number[:6] + str(day).zfill(2), "%Y%m%d")
             except ValueError:
                 logger.exception("Unable to parse user nin to date of birth")
                 logger.debug(f"User nins: {self.nin}")
