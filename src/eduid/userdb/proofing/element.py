@@ -54,6 +54,7 @@ class NinProofingElement(ProofingElement):
     Properties of NinProofingElement:
 
         number
+        date_of_birth
         created_by
         created_ts
         is_verified
@@ -63,6 +64,7 @@ class NinProofingElement(ProofingElement):
     """
 
     number: str
+    date_of_birth: Optional[datetime] = None
 
 
 class EmailProofingElement(ProofingElement):
