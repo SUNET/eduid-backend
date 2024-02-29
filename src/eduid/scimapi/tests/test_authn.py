@@ -9,7 +9,7 @@ import pytest
 from httpx import Response
 from jwcrypto import jwt
 
-from eduid.common.config.base import DataOwner, DataOwnerName, ScopeName
+from eduid.common.config.base import DataOwnerConfig, DataOwnerName, ScopeName
 from eduid.common.config.parsers import load_config
 from eduid.common.models.bearer_token import AuthnBearerToken, AuthSource, RequestedAccess, RequestedAccessDenied
 from eduid.common.models.scim_base import SCIMSchema
@@ -351,7 +351,7 @@ class TestAuthnBearerToken(BaseDBTestCase):
         domain = ScopeName("eduid.se")
         sudoer = ScopeName("sudoer.example.org")
         config: ScimApiConfig = self.config.copy()
-        config.data_owners[DataOwnerName(sudoer)] = DataOwner(db_name="sudoer_db")
+        config.data_owners[DataOwnerName(sudoer)] = DataOwnerConfig(db_name="sudoer_db")
         config.scope_sudo = {sudoer: {domain}}
         config.requested_access_type = "api-test"
         claims = {
@@ -372,7 +372,7 @@ class TestAuthnBearerToken(BaseDBTestCase):
         domain_alias = ScopeName("eduid.example.edu")
         sudoer = DataOwnerName("sudoer.example.org")
         config: ScimApiConfig = self.config.copy()
-        config.data_owners[sudoer] = DataOwner(db_name="sudoer_db")
+        config.data_owners[sudoer] = DataOwnerConfig(db_name="sudoer_db")
         config.scope_sudo = {ScopeName(sudoer): {ScopeName("eduid.se")}}
         config.scope_mapping[domain_alias] = domain
         config.requested_access_type = "api-test"
@@ -483,3 +483,11 @@ class TestAuthnUserResource(ScimApiTestUserResourceBase):
             SCIMSchema.NUTID_USER_V1.value: {"profiles": {"test": asdict(self.test_profile)}, "linked_accounts": []},
         }
         self._assertUserUpdateSuccess(_req, response, db_user)
+
+    def test_get_user_data_owner_not_configured(self):
+        db_user = self.add_user(identifier=str(uuid4()), external_id="test-id-1", profiles={"test": self.test_profile})
+        claims = {"scopes": ["not_configured.se"], "version": 1, "auth_source": "config"}
+        token = self._make_bearer_token(claims=claims)
+
+        response = self._get_user_from_api(user=db_user, bearer_token=token)
+        self._assertScimError(json=response.json(), status=401, detail="Unknown data_owner")

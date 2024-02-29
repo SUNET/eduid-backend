@@ -388,7 +388,7 @@ class ReasonableDomainName(ConstrainedStr):
     to_lower = True
 
 
-class DataOwner(BaseModel):
+class DataOwnerConfig(BaseModel):
     db_name: Optional[str] = None
     notify: list[str] = []
 
@@ -411,7 +411,8 @@ class AuthnBearerTokenConfig(RootConfig):
     authorization_mandatory: bool = True
     authorization_token_expire: int = 5 * 60
     keystore_path: Path
-    data_owners: dict[DataOwnerName, DataOwner] = Field(default={})
+    data_owners: dict[DataOwnerName, DataOwnerConfig] = Field(default={})
+    max_loaded_data_owner_dbs: int = 10
     # Map scope to data owner name
     scope_mapping: dict[ScopeName, DataOwnerName] = Field(default={})
     # Allow someone with scope x to sudo to scope y
