@@ -31,6 +31,8 @@ class SwamidAssurance(str, Enum):
     REFEDS_IAP_MEDIUM = "https://refeds.org/assurance/IAP/medium"
     REFEDS_EPPN_UNIQUE = "https://refeds.org/assurance/ID/eppn-unique-no-reassign"
     REFEDS_ID_UNIQUE = "https://refeds.org/assurance/ID/unique"
+    REFEDS_PROFILE_CAPPUCCINO = "https://refeds.org/assurance/profile/cappuccino"
+    REFEDS_PROFILE_ESPRESSO = "https://refeds.org/assurance/profile/espresso"
 
 
 class SwedenConnectAssurance(str, Enum):
