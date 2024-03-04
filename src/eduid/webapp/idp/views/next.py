@@ -15,8 +15,8 @@ from eduid.webapp.common.api.messages import FluxData, error_response, success_r
 from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.assurance_data import AuthnInfo
 from eduid.webapp.idp.decorators import require_ticket, uses_sso_session
-from eduid.webapp.idp.helpers import IdPAction, IdPMsg, lookup_user
-from eduid.webapp.idp.idp_saml import cancel_saml_request
+from eduid.webapp.idp.helpers import IdPAction, IdPMsg, create_saml_sp_response, lookup_user
+from eduid.webapp.idp.idp_saml import authn_context_class_not_supported, cancel_saml_request
 from eduid.webapp.idp.login import SSO, login_next_step
 from eduid.webapp.idp.login_context import LoginContext, LoginContextOtherDevice, LoginContextSAML
 from eduid.webapp.idp.mischttp import get_user_agent
@@ -51,19 +51,7 @@ def next_view(ticket: LoginContext, sso_session: Optional[SSOSession]) -> FluxDa
     if _next.message == IdPMsg.aborted:
         if isinstance(ticket, LoginContextSAML):
             saml_params = cancel_saml_request(ticket, current_app.conf)
-
-            if saml_params.binding != BINDING_HTTP_POST:
-                current_app.logger.error("SAML response does not have binding HTTP_POST")
-                return error_response(message=IdPMsg.general_failure)
-
-            return success_response(
-                message=IdPMsg.finished,
-                payload={
-                    "action": IdPAction.FINISHED.value,
-                    "target": saml_params.url,
-                    "parameters": saml_params.post_params,
-                },
-            )
+            return create_saml_sp_response(saml_params=saml_params)
         elif isinstance(ticket, LoginContextOtherDevice):
             state = ticket.other_device_req
             if state.state in [OtherDeviceState.NEW, OtherDeviceState.IN_PROGRESS, OtherDeviceState.AUTHENTICATED]:
@@ -85,6 +73,13 @@ def next_view(ticket: LoginContext, sso_session: Optional[SSOSession]) -> FluxDa
             else:
                 current_app.logger.info(f"Not aborting use other device in state {state.state}")
         current_app.logger.error(f"Don't know how to abort login request {ticket}")
+        return error_response(message=IdPMsg.general_failure)
+
+    if _next.message == IdPMsg.assurance_failure:
+        if isinstance(ticket, LoginContextSAML):
+            saml_params = authn_context_class_not_supported(ticket, current_app.conf)
+            return create_saml_sp_response(saml_params=saml_params)
+        current_app.logger.error(f"Don't know how to send error response for request {ticket}")
         return error_response(message=IdPMsg.general_failure)
 
     required_user = get_required_user(ticket, sso_session)
@@ -182,21 +177,11 @@ def next_view(ticket: LoginContext, sso_session: Optional[SSOSession]) -> FluxDa
 
         if isinstance(ticket, LoginContextSAML):
             saml_params = sso.get_response_params(_next.authn_info, ticket, user)
-            if saml_params.binding != BINDING_HTTP_POST:
-                current_app.logger.error(f"SAML response does not have binding HTTP_POST")
-                return error_response(message=IdPMsg.general_failure)
-            return success_response(
-                message=IdPMsg.finished,
-                payload={
-                    "action": IdPAction.FINISHED.value,
-                    "target": saml_params.url,
-                    "parameters": saml_params.post_params,
-                },
-            )
+            return create_saml_sp_response(saml_params=saml_params)
         elif isinstance(ticket, LoginContextOtherDevice):
             if not ticket.is_other_device_2:
                 # We shouldn't be able to get here, but this clearly shows where this code runs
-                current_app.logger.warning(f"Ticket is LoginContextOtherDevice, but this is not device #2")
+                current_app.logger.warning("Ticket is LoginContextOtherDevice, but this is not device #2")
                 return error_response(message=IdPMsg.general_failure)
 
             return device2_finish(ticket, sso_session, _next.authn_state)
