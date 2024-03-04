@@ -62,7 +62,7 @@ def security_init_app(name: str = "security", test_config: Optional[Mapping[str,
     no_authn_views(
         config,
         [
-            "/webauthn/test",
+            "/webauthn/approved-security-keys",
         ],
     )
 
