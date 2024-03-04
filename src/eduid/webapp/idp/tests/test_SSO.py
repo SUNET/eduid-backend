@@ -43,31 +43,33 @@ _U2F_SWAMID_AL3 = U2F(
 logger = logging.getLogger(__name__)
 
 
-def make_SAML_request(class_ref: Union[EduidAuthnContextClass, str]):
+def make_SAML_request(class_ref: Optional[Union[EduidAuthnContextClass, str]] = None):
     if isinstance(class_ref, EduidAuthnContextClass):
         class_ref = class_ref.value
-
-    return _transport_encode(
-        """
+    if class_ref is not None:
+        authn_context = f"""
+  <ns0:RequestedAuthnContext>
+    <ns1:AuthnContextClassRef>{class_ref}</ns1:AuthnContextClassRef>
+  </ns0:RequestedAuthnContext>
+    """
+    else:
+        authn_context = ""
+    xml = f"""
 <?xml version="1.0" encoding="UTF-8"?>
 <ns0:AuthnRequest xmlns:ns0="urn:oasis:names:tc:SAML:2.0:protocol"
     xmlns:ns1="urn:oasis:names:tc:SAML:2.0:assertion"
         AssertionConsumerServiceURL="https://sp.example.edu/saml2/acs/"
         Destination="https://unittest-idp.example.edu/sso/post"
         ID="id-57beb2b2f788ec50b10541dbe48e9626"
-        IssueInstant="{now!s}"
+        IssueInstant="{saml2.time_util.instant()}"
         ProtocolBinding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST"
         Version="2.0">
   <ns1:Issuer Format="urn:oasis:names:tc:SAML:2.0:nameid-format:entity">https://sp.example.edu/saml2/metadata/</ns1:Issuer>
   <ns0:NameIDPolicy AllowCreate="false" Format="urn:oasis:names:tc:SAML:2.0:nameid-format:persistent"/>
-  <ns0:RequestedAuthnContext>
-    <ns1:AuthnContextClassRef>{class_ref!s}</ns1:AuthnContextClassRef>
-  </ns0:RequestedAuthnContext>
+  {authn_context}
 </ns0:AuthnRequest>
-""".format(
-            class_ref=class_ref, now=saml2.time_util.instant()
-        )
-    )
+        """
+    return _transport_encode(xml)
 
 
 def _transport_encode(data):
@@ -77,7 +79,9 @@ def _transport_encode(data):
 
 class SSOIdPTests(IdPAPITests):
     def _make_login_ticket(
-        self, req_class_ref: Union[EduidAuthnContextClass, str], request_ref: Optional[RequestRef] = None
+        self,
+        req_class_ref: Optional[Union[EduidAuthnContextClass, str]] = None,
+        request_ref: Optional[RequestRef] = None,
     ) -> LoginContext:
         xmlstr = make_SAML_request(class_ref=req_class_ref)
         binding = "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST"
@@ -171,7 +175,7 @@ class TestSSO(SSOIdPTests):
 
     def _get_login_response_authn(
         self,
-        req_class_ref: Union[EduidAuthnContextClass, str],
+        req_class_ref: Optional[Union[EduidAuthnContextClass, str]],
         credentials: list[Union[str, Credential, AuthnData, ExternalMfaData]],
         user: Optional[IdPUser] = None,
         add_tou: bool = True,
@@ -401,29 +405,38 @@ class TestSSO(SSOIdPTests):
 
     def test__get_login_response_8(self):
         """
-        Test login with password, request unknown context class.
+        Test login with mfa, request unknown context class.
 
-        Expect the response Authn to be REFEDS MFA.
+        Expect an error response.
         """
         out = self._get_login_response_authn(
             req_class_ref="urn:no-such-class",
             credentials=["pw", "u2f"],
         )
-        assert out.message == IdPMsg.proceed
-        assert out.authn_info
-        assert out.authn_info.class_ref == EduidAuthnContextClass.REFEDS_MFA
-        assert out.authn_info.authn_attributes["eduPersonAssurance"] == [
-            item.value for item in self.app.conf.swamid_assurance_profile_1
-        ]
+        assert out.message == IdPMsg.assurance_failure
+        assert out.authn_info is None
 
     def test__get_login_response_9(self):
         """
         Test login with password, request unknown context class.
 
-        Expect the response Authn to be password-protected-transport.
+        Expect the response Authn to be SAML error response.
         """
         out = self._get_login_response_authn(
             req_class_ref="urn:no-such-class",
+            credentials=["pw"],
+        )
+        assert out.message == IdPMsg.assurance_failure
+        assert out.authn_info is None
+
+    def test__get_login_response_10(self):
+        """
+        Test login with password, request no authn context class.
+
+        Expect the response Authn to be password-protected-transport.
+        """
+        out = self._get_login_response_authn(
+            req_class_ref=None,
             credentials=["pw"],
         )
         assert out.message == IdPMsg.proceed
@@ -433,12 +446,29 @@ class TestSSO(SSOIdPTests):
             item.value for item in self.app.conf.swamid_assurance_profile_1
         ]
 
+    def test__get_login_response_11(self):
+        """
+        Test login with mfa, request no authn context class.
+
+        Expect the response Authn to be REFEDS_MFA.
+        """
+        out = self._get_login_response_authn(
+            req_class_ref=None,
+            credentials=["pw", "u2f"],
+        )
+        assert out.message == IdPMsg.proceed
+        assert out.authn_info
+        assert out.authn_info.class_ref == EduidAuthnContextClass.REFEDS_MFA
+        assert out.authn_info.authn_attributes["eduPersonAssurance"] == [
+            item.value for item in self.app.conf.swamid_assurance_profile_1
+        ]
+
     def test__get_login_response_assurance_AL1(self):
         """
         Make sure eduPersonAssurace is SWAMID AL1 with no verified nin.
         """
         out = self._get_login_response_authn(
-            req_class_ref="urn:no-such-class",
+            req_class_ref=None,
             credentials=["pw"],
         )
         assert out.message == IdPMsg.proceed
@@ -454,8 +484,8 @@ class TestSSO(SSOIdPTests):
         """
         user = self.get_user_set_nins(self.test_user.eppn, ["190101011234"])
         out = self._get_login_response_authn(
+            req_class_ref=None,
             user=user,
-            req_class_ref="urn:no-such-class",
             credentials=["pw"],
         )
         assert out.message == IdPMsg.proceed

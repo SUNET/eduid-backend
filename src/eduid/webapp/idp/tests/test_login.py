@@ -101,7 +101,7 @@ class IdPTestLoginAPI(IdPAPITests):
         # Patch the VCCSClient, so we do not need a vccs server
         with patch.object(VCCSClient, "authenticate") as mock_vccs:
             mock_vccs.return_value = True
-            result2 = self._try_login(force_authn=True)
+            result2 = self._try_login(force_authn=True, sso_cookie_val=result.sso_cookie_val)
 
         assert result2.finished_result is not None
         authn_response2 = self.parse_saml_authn_response(result2.finished_result)
