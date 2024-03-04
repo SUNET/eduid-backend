@@ -321,7 +321,8 @@ def _pick_authn_context(accrs: Sequence[str], log_tag: str) -> Optional[EduidAut
         try:
             known += [EduidAuthnContextClass(x)]
         except ValueError:
-            logger.debug(f"Ignoring unknown authnContextClassRef: {x}")
+            logger.info(f"Unknown authnContextClassRef: {x}")
+            known += [EduidAuthnContextClass.NOT_IMPLEMENTED]
     if not known:
         return None
     # TODO: Pick the most applicable somehow, not just the first one in the list
