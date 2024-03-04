@@ -56,6 +56,15 @@ def security_init_app(name: str = "security", test_config: Optional[Mapping[str,
     from eduid.webapp.security.views.change_password import change_password_views
     from eduid.webapp.security.views.security import security_views
     from eduid.webapp.security.views.webauthn import webauthn_views
+    from eduid.webapp.common.authn.utils import no_authn_views
+
+    # Register view path that should not be authorized
+    no_authn_views(
+        config,
+        [
+            "/webauthn/test",
+        ],
+    )
 
     app.register_blueprint(security_views)
     app.register_blueprint(webauthn_views)

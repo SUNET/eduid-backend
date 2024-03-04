@@ -1,5 +1,8 @@
 import base64
-from typing import Optional, Sequence
+from typing import Optional, Sequence, List, Set, Union
+from uuid import UUID
+from dataclasses import dataclass, field
+from datetime import datetime
 
 from fido2 import cbor
 from fido2.server import Fido2Server, PublicKeyCredentialRpEntity
@@ -13,8 +16,10 @@ from fido2.webauthn import (
     PublicKeyCredentialUserEntity,
     UserVerificationRequirement,
 )
+from fido_mds.models.fido_mds import AuthenticatorStatus
+from fido_mds.models.webauthn import AttestationFormat
 from fido_mds.exceptions import AttestationVerificationError, MetadataValidationError
-from flask import Blueprint
+from flask import Blueprint, jsonify
 
 from eduid.common.rpc.exceptions import AmTaskFailed
 from eduid.userdb import User
@@ -229,3 +234,139 @@ def remove(user: User, credential_key: str) -> FluxData:
 
     credentials = compile_credential_list(security_user)
     return success_response(message=message, payload={"credentials": credentials})
+
+
+########################
+# FROM HERE TEST
+########################
+
+@dataclass
+class AuthenticatorInformation:
+    authenticator_id: Union[UUID, str]
+    attestation_formats: List[AttestationFormat]
+    status: Optional[AuthenticatorStatus] = field(default=None)
+    last_status_change: Optional[datetime] = field(default=None)
+    icon: Optional[str] = field(default=None)
+    description: Optional[str] = field(default=None)
+    key_protection: list[str] = field(default_factory=list)
+    user_verification_methods: list[str] = field(default_factory=list)
+
+WEBAUTHN_ALLOWED_USER_VERIFICATION_METHODS: list[str] = [
+    "faceprint_internal",
+    "passcode_external",
+    "passcode_internal",
+    "handprint_internal",
+    "pattern_internal",
+    "voiceprint_internal",
+    "fingerprint_internal",
+    "eyeprint_internal",
+]
+WEBAUTHN_ALLOWED_KEY_PROTECTION: list[str] = ["remote_handle", "hardware", "secure_element", "tee"]
+
+WEBAUTHN_ALLOWED_STATUS: list[AuthenticatorStatus] = [
+    AuthenticatorStatus.FIDO_CERTIFIED,
+    AuthenticatorStatus.FIDO_CERTIFIED_L1,
+    AuthenticatorStatus.FIDO_CERTIFIED_L2,
+    AuthenticatorStatus.FIDO_CERTIFIED_L3,
+    AuthenticatorStatus.FIDO_CERTIFIED_L1plus,
+    AuthenticatorStatus.FIDO_CERTIFIED_L2plus,
+    AuthenticatorStatus.FIDO_CERTIFIED_L3plus,
+]
+
+def is_authenticator_mfa_approved_from_script(authenticator_info: AuthenticatorInformation) -> bool:
+    """
+    This is our current policy for determine if a FIDO2 authenticator can do multi-factor authentications.
+    """
+    #print(f"Checking mfa approved for {authenticator_info.description}")
+    # If there is no attestation we can not trust the authenticator info
+    if not authenticator_info.attestation_formats:
+        return False
+
+    # check status in metadata and disallow uncertified and incident statuses
+    if authenticator_info.status not in WEBAUTHN_ALLOWED_STATUS:
+        #print(f"status {authenticator_info.status} is not mfa capable")
+        return False
+
+    # true if the authenticator supports any of the user verification methods we allow
+    is_accepted_user_verification = any(
+        [
+            method
+            for method in authenticator_info.user_verification_methods
+            if method in WEBAUTHN_ALLOWED_USER_VERIFICATION_METHODS
+        ]
+    )
+    # a typical token has key protection ["hardware"] or ["hardware", "tee"] but some also support software, so
+    # we have to check that all key protections supported is in our allow list
+    is_accepted_key_protection = all(
+        [
+            protection
+            for protection in authenticator_info.key_protection
+            if protection in WEBAUTHN_ALLOWED_KEY_PROTECTION
+        ]
+    )
+    #print(f"is_accepted_user_verification: {is_accepted_user_verification}")
+    # if not is_accepted_user_verification:
+    #     print(f"user verification methods: {authenticator_info.user_verification_methods}")
+    # print(f"is_accepted_key_protection: {is_accepted_key_protection}")
+    # if not is_accepted_key_protection:
+    #     print(f"key protections: {authenticator_info.key_protection}")
+    if is_accepted_user_verification and is_accepted_key_protection:
+        return True
+    return False
+
+
+@webauthn_views.route("/test", methods=["GET"])
+def test() -> FluxData:
+    current_app.logger.info("DEBUG DEBUG DEBUG")
+    # 1 - Gather the fido_list - from self.fido_mds - built in Security app? 
+    # 2 - for each key in the fido_list
+    # 2a - if is_authenticator_mfa_approved() == true, add to approved_list
+    # 3 - return approved_list 
+
+    # the list of keys in the fido_list, as AuthenticatorInformation format
+    parsed_entries: List[AuthenticatorInformation] = []
+
+    # Are those variable needed? seems more for statistics
+    available_status: Set[str] = set()
+    available_user_verification_methods: Set[str] = set()
+    available_key_protections: Set[str] = set()
+
+    #print(current_app.fido_mds.metadata.entries)
+
+    for metadata_entry in current_app.fido_mds.metadata.entries:
+        # debug, what is the whole list of fido keys?
+        # print(metadata_entry)
+
+        last_status_change = metadata_entry.time_of_last_status_change
+        user_verification_methods = [
+            detail.user_verification_method for detail in metadata_entry.metadata_statement.get_user_verification_details()
+        ]
+        available_status.add(metadata_entry.status_reports[0].status)
+        available_user_verification_methods.update(user_verification_methods)
+        available_key_protections.update(metadata_entry.metadata_statement.key_protection)
+
+        authenticator_info = AuthenticatorInformation(
+            attestation_formats=metadata_entry.metadata_statement.attestation_types,
+            authenticator_id=metadata_entry.aaguid or metadata_entry.aaid,
+            status=metadata_entry.status_reports[0].status,  # latest status reports status
+            last_status_change=last_status_change,
+            user_verification_methods=user_verification_methods,
+            key_protection=metadata_entry.metadata_statement.key_protection,
+            description=metadata_entry.metadata_statement.description,
+            # icon=metadata_entry.metadata_statement.icon,
+        )
+        parsed_entries.append(authenticator_info)
+
+    approved_list: List[AuthenticatorInformation] = []
+    approved_names_list: List[str] = []
+    for entry in parsed_entries:
+        if is_authenticator_mfa_approved_from_script(entry):
+            approved_list.append(entry)
+            approved_names_list.append(entry.description)
+    
+    current_app.logger.info(f"{approved_list}")
+    current_app.logger.info(f"{len(approved_list)} authenticators approved")
+
+    # Serialize the approved_list to JSON
+
+    return jsonify(approved_names_list)
