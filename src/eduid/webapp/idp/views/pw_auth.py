@@ -32,7 +32,7 @@ def pw_auth(ticket: LoginContext, username: str, password: str) -> Union[FluxDat
         return error_response(message=IdPMsg.not_available)
 
     if not username or not password:
-        current_app.logger.debug(f"Credentials not supplied")
+        current_app.logger.debug("Credentials not supplied")
         return error_response(message=IdPMsg.wrong_credentials)
 
     try:
