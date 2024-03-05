@@ -42,6 +42,10 @@ class MissingAuthentication(AssuranceException):
     pass
 
 
+class AuthnContextNotSupported(AssuranceException):
+    pass
+
+
 class IdentityProofingMethodNotAllowed(AssuranceException):
     pass
 
@@ -264,15 +268,18 @@ def response_authn(authn: AuthnState, ticket: LoginContext, user: IdPUser, sso_s
         if authn.password_used:
             response_accr = EduidAuthnContextClass.PASSWORD_PT
 
-    else:
-        # Handle both unknown and empty req_authn_ctx the same
+    elif req_authn_ctx is None:
+        # Handle empty req_authn_ctx
         if authn.is_multifactor:
             response_accr = EduidAuthnContextClass.REFEDS_MFA
         elif authn.password_used:
             response_accr = EduidAuthnContextClass.PASSWORD_PT
+        else:
+            raise MissingAuthentication()
 
-    if not response_accr:
-        raise MissingAuthentication()
+    if response_accr is None:
+        # Fail on unknown req_authn_ctx
+        raise AuthnContextNotSupported()
 
     if authn.is_swamid_al2:
         if authn.swamid_al3_used:

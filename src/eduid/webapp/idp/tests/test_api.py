@@ -134,6 +134,7 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
         force_authn: bool = False,
         assertion_consumer_service_url: Optional[str] = None,
         test_user: Optional[TestUser] = None,
+        sso_cookie_val: Optional[str] = None,
     ) -> LoginResultAPI:
         """
         Try logging in to the IdP.
@@ -170,6 +171,8 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
             result = LoginResultAPI(ref=ref, response=resp)
 
             cookie_jar = {}
+            if sso_cookie_val is not None:
+                cookie_jar["idpauthn"] = sso_cookie_val
 
             while True:
                 logger.info(f"Main API test loop, current state: {result}")

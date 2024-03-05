@@ -62,9 +62,8 @@ import hmac
 import pprint
 import time
 from base64 import b64encode
-from dataclasses import dataclass
 from hashlib import sha256
-from typing import Mapping, Optional, Union
+from typing import Optional
 from uuid import uuid4
 
 from defusedxml import ElementTree as DefusedElementTree
@@ -85,6 +84,7 @@ from eduid.webapp.idp import assurance
 from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.assurance import (
     AssuranceException,
+    AuthnContextNotSupported,
     AuthnState,
     IdentityProofingMethodNotAllowed,
     MfaProofingMethodNotAllowed,
@@ -94,10 +94,10 @@ from eduid.webapp.idp.assurance import (
 )
 from eduid.webapp.idp.assurance_data import AuthnInfo
 from eduid.webapp.idp.helpers import IdPMsg, lookup_user
-from eduid.webapp.idp.idp_saml import ResponseArgs, SamlResponse
+from eduid.webapp.idp.idp_saml import ResponseArgs, SamlResponse, SAMLResponseParams
 from eduid.webapp.idp.login_context import LoginContext, LoginContextOtherDevice, LoginContextSAML
 from eduid.webapp.idp.mfa_action import need_security_key
-from eduid.webapp.idp.mischttp import HttpArgs, get_user_agent
+from eduid.webapp.idp.mischttp import get_user_agent
 from eduid.webapp.idp.other_device.data import OtherDeviceState
 from eduid.webapp.idp.service import SAMLQueryParams, Service
 from eduid.webapp.idp.sso_session import SSOSession
@@ -194,8 +194,6 @@ def login_next_step(ticket: LoginContext, sso_session: Optional[SSOSession]) -> 
         current_app.logger.info(f"User {user} is terminated")
         return NextResult(message=IdPMsg.user_terminated, error=True)
 
-    res = NextResult(message=IdPMsg.assurance_failure, error=True)
-
     try:
         authn_state = AuthnState(user, sso_session, ticket)
         authn_info = assurance.response_authn(authn_state, ticket, user, sso_session)
@@ -210,6 +208,8 @@ def login_next_step(ticket: LoginContext, sso_session: Optional[SSOSession]) -> 
         res = NextResult(message=IdPMsg.identity_proofing_method_not_allowed)
     except MfaProofingMethodNotAllowed:
         res = NextResult(message=IdPMsg.mfa_proofing_method_not_allowed)
+    except AuthnContextNotSupported:
+        res = NextResult(message=IdPMsg.assurance_failure, error=True)
     except AssuranceException as exc:
         current_app.logger.info(f"Assurance not possible: {repr(exc)}")
         res = NextResult(message=IdPMsg.assurance_not_possible, error=True)
@@ -235,15 +235,6 @@ def login_next_step(ticket: LoginContext, sso_session: Optional[SSOSession]) -> 
         return NextResult(message=IdPMsg.mfa_required)
 
     return res
-
-
-@dataclass
-class SAMLResponseParams:
-    url: str
-    post_params: Mapping[str, Optional[Union[str, bool]]]
-    # Parameters for the old template realm
-    binding: str
-    http_args: HttpArgs
 
 
 class SSO(Service):

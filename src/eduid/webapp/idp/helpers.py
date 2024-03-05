@@ -1,9 +1,14 @@
+from dataclasses import dataclass
 from enum import Enum, unique
-from typing import Optional
+from typing import Mapping, Optional, Union
+
+from saml2 import BINDING_HTTP_POST
 
 from eduid.userdb.idp import IdPUser
-from eduid.webapp.common.api.messages import TranslatableMsg
+from eduid.webapp.common.api.messages import TranslatableMsg, error_response, success_response
 from eduid.webapp.idp.app import current_idp_app as current_app
+from eduid.webapp.idp.idp_saml import SAMLResponseParams
+from eduid.webapp.idp.mischttp import HttpArgs
 
 
 @unique
@@ -11,7 +16,7 @@ class IdPMsg(str, TranslatableMsg):
     aborted = "login.aborted"
     unknown_device = "login.unknown_device"
     action_required = "login.action_required"  # Shouldn't actually be returned to the frontend
-    assurance_failure = "login.assurance_failure"
+    assurance_failure = "login.assurance_failure"  # Shouldn't actually be returned to the frontend
     assurance_not_possible = "login.assurance_not_possible"
     bad_ref = "login.bad_ref"
     credential_expired = "login.credential_expired"
@@ -63,3 +68,20 @@ def lookup_user(username: str, managed_account_allowed: bool = False) -> Optiona
         return current_app.managed_account_db.get_account_as_idp_user(username)
     else:
         return current_app.userdb.lookup_user(username)
+
+
+def create_saml_sp_response(saml_params: SAMLResponseParams):
+    """
+    Create a response to frontend that should be posted to the SP
+    """
+    if saml_params.binding != BINDING_HTTP_POST:
+        current_app.logger.error("SAML response does not have binding HTTP_POST")
+        return error_response(message=IdPMsg.general_failure)
+    return success_response(
+        message=IdPMsg.finished,
+        payload={
+            "action": IdPAction.FINISHED.value,
+            "target": saml_params.url,
+            "parameters": saml_params.post_params,
+        },
+    )
