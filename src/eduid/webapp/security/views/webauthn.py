@@ -1,8 +1,8 @@
 import base64
-from typing import Optional, Sequence, List, Set, Union
-from uuid import UUID
 from dataclasses import dataclass, field
 from datetime import datetime
+from typing import List, Optional, Sequence, Set, Union
+from uuid import UUID
 
 from fido2 import cbor
 from fido2.server import Fido2Server, PublicKeyCredentialRpEntity
@@ -16,8 +16,6 @@ from fido2.webauthn import (
     PublicKeyCredentialUserEntity,
     UserVerificationRequirement,
 )
-from fido_mds.models.fido_mds import AuthenticatorStatus
-from fido_mds.models.webauthn import AttestationFormat
 from fido_mds.exceptions import AttestationVerificationError, MetadataValidationError
 from flask import Blueprint, jsonify
 
@@ -34,7 +32,7 @@ from eduid.webapp.common.api.utils import save_and_sync_user
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.namespaces import WebauthnRegistration
 from eduid.webapp.security.app import current_security_app as current_app
-from eduid.webapp.security.helpers import SecurityMsg, compile_credential_list
+from eduid.webapp.security.helpers import SecurityMsg, compile_credential_list, get_approved_security_keys
 from eduid.webapp.security.schemas import (
     RemoveWebauthnTokenRequestSchema,
     SecurityKeysResponseSchema,
@@ -44,7 +42,6 @@ from eduid.webapp.security.schemas import (
 )
 from eduid.webapp.security.webauthn_proofing import (
     OtherAuthenticatorStatus,
-    AuthenticatorInformation,
     get_authenticator_information,
     is_authenticator_mfa_approved,
     save_webauthn_proofing_log,
@@ -241,37 +238,4 @@ def remove(user: User, credential_key: str) -> FluxData:
 @webauthn_views.route("/approved-security-keys", methods=["GET"])
 @MarshalWith(SecurityKeysResponseSchema)
 def approved_security_keys() -> FluxData:
-    # a way to reuse is_authenticator_mfa_approved() from security app
-    parsed_entries: List[AuthenticatorInformation] = []
-    for metadata_entry in current_app.fido_mds.metadata.entries:
-
-        user_verification_methods = [
-            detail.user_verification_method for detail in metadata_entry.metadata_statement.get_user_verification_details()
-        ]
-
-        # simulated to fit AuthenticatorInformation format
-        attestation_format = AttestationFormat.PACKED
-        if not metadata_entry.metadata_statement.attestation_types:
-            attestation_format = AttestationFormat.NONE
-
-        authenticator_info = AuthenticatorInformation(
-            authenticator_id=metadata_entry.aaguid or metadata_entry.aaid,
-            attestation_format=attestation_format,
-            user_present=False, # simulated to fit AuthenticatorInformation required fields
-            user_verified=False, # simulated to fit AuthenticatorInformation required fields
-            status=metadata_entry.status_reports[0].status,
-            last_status_change=metadata_entry.time_of_last_status_change,
-            user_verification_methods=user_verification_methods,
-            key_protection=metadata_entry.metadata_statement.key_protection,
-            description=metadata_entry.metadata_statement.description,
-            # icon=metadata_entry.metadata_statement.icon,
-        )
-        parsed_entries.append(authenticator_info)
-
-    approved_keys_list: List[str] = []
-    for entry in parsed_entries:
-        if is_authenticator_mfa_approved(entry):
-            approved_keys_list.append(entry.description)
-
-    # sort list case insensitive
-    return {"next_update": current_app.fido_mds.metadata.next_update, "entries": sorted(approved_keys_list, key=str.casefold)}
+    return success_response(payload=get_approved_security_keys())

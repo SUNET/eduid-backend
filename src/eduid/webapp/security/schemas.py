@@ -129,6 +129,7 @@ class UserUpdateResponseSchema(FluxStandardAction):
 
     payload = fields.Nested(UserUpdatePayload)
 
+
 # follow same format of FIDO Alliance Metadata Service (MDS version 3) BLOB
 class SecurityKeysResponseSchema(FluxStandardAction):
     next_update = fields.DateTime(required=True)
