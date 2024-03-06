@@ -674,3 +674,21 @@ class SecurityWebauthnTests(EduidAPITestCase):
         with self.app.test_request_context():
             res = is_authenticator_mfa_approved(authenticator_info=authenticator_info)
         assert res is False
+
+    def test_approved_security_keys(self):
+        response = self.browser.get("/webauthn/approved-security-keys")
+        self._check_success_response(response=response, type_="GET_WEBAUTHN_WEBAUTHN_APPROVED_SECURITY_KEYS_SUCCESS")
+
+        payload = response.json.get("payload")
+        assert "next_update" in payload
+        assert "entries" in payload
+        assert len(payload["entries"]) > 0
+
+        # test twice to test @cache
+        response = self.browser.get("/webauthn/approved-security-keys")
+        self._check_success_response(response=response, type_="GET_WEBAUTHN_WEBAUTHN_APPROVED_SECURITY_KEYS_SUCCESS")
+
+        payload = response.json.get("payload")
+        assert "next_update" in payload
+        assert "entries" in payload
+        assert len(payload["entries"]) > 0
