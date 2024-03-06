@@ -68,15 +68,15 @@ bleach==6.1.0 \
     # via
     #   -c main.txt
     #   -r main.in
-boto3==1.34.50 \
-    --hash=sha256:290952be7899560039cb0042e8a2354f61a7dead0d0ca8bea6ba901930df0468 \
-    --hash=sha256:8d709365231234bc4f0ca98fdf33a25eeebf78072853c6aa3d259f0f5cf09877
+boto3==1.34.56 \
+    --hash=sha256:300888f0c1b6f32f27f85a9aa876f50f46514ec619647af7e4d20db74d339714 \
+    --hash=sha256:b26928f9a21cf3649cea20a59061340f3294c6e7785ceb6e1a953eb8010dc3ba
     # via
     #   -c main.txt
     #   -r main.in
-botocore==1.34.50 \
-    --hash=sha256:33ab82cb96c4bb684f0dbafb071808e4817d83debc88b223e7d988256370c6d7 \
-    --hash=sha256:fda510559dbe796eefdb59561cc81be1b99afba3dee53fd23db9a3d587adc0ab
+botocore==1.34.56 \
+    --hash=sha256:bffeb71ab21d47d4ecf947d9bdb2fbd1b0bbd0c27742cea7cf0b77b701c41d9f \
+    --hash=sha256:fff66e22a5589c2d58fba57d1d95c334ce771895e831f80365f6cff6453285ec
     # via
     #   -c main.txt
     #   boto3
@@ -383,9 +383,9 @@ exceptiongroup==1.2.0 \
     #   -c main.txt
     #   -r sub_main.in
     #   anyio
-fido-mds==2024.2 \
-    --hash=sha256:52b88ea753c525596f58c96750dfa35da15f7282666e533c91b83b41984a63f3 \
-    --hash=sha256:b6e134b88759cdd6319c59c41627f0d9c22e9c0fac73c07bf1a39d182672d612
+fido-mds==2024.3 \
+    --hash=sha256:07b08ef9d2c90aa5b5c0094f6f8fa206ca4b5031163894a4fb5c489285a9756a \
+    --hash=sha256:8208926e7815e7d941d7297f8a84ce620c46efc7482c773b1079e06d91ca23eb
     # via
     #   -c main.txt
     #   -r main.in
@@ -483,8 +483,9 @@ jmespath==1.0.1 \
     #   -c main.txt
     #   boto3
     #   botocore
-jwcrypto==1.5.4 \
-    --hash=sha256:0815fbab613db99bad85691da5f136f8860423396667728a264bcfa6e1db36b0
+jwcrypto==1.5.5 \
+    --hash=sha256:59e7d5e4589d1b07170f368e20c32eb32a023911806a9723b1f43a0d8b3028d6 \
+    --hash=sha256:c18b10b2049603bef3ae7b77ad14bded431a9077d113447d62bebd8550b0d5bd
     # via
     #   -c main.txt
     #   -r main.in
@@ -654,9 +655,9 @@ markupsafe==2.1.5 \
     #   -c main.txt
     #   jinja2
     #   mako
-marshmallow==3.21.0 \
-    --hash=sha256:20f53be28c6e374a711a16165fb22a8dc6003e3f7cda1285e3ca777b9193885b \
-    --hash=sha256:e7997f83571c7fd476042c2c188e4ee8a78900ca5e74bd9c8097afa56624e9bd
+marshmallow==3.21.1 \
+    --hash=sha256:4e65e9e0d80fc9e609574b9983cf32579f305c718afb30d7233ab818571768c3 \
+    --hash=sha256:f085493f79efb0644f270a9bf2892843142d80d7174bbbd2f3713f2a589dc633
     # via
     #   -c main.txt
     #   -r main.in
@@ -686,8 +687,8 @@ mypy-extensions==1.0.0 \
     # via
     #   -c main.txt
     #   typing-inspect
-neo4j==5.17.0 \
-    --hash=sha256:dcd7150a0c3834a89a6e27505e614f340376f31c97c48ba60dc70a220ee85e3b
+neo4j==5.18.0 \
+    --hash=sha256:4014406ae5b8b485a8ba46c9f00b6f5b4aaf88e7c3a50603445030c2aab701c9
     # via
     #   -c main.txt
     #   -r main.in
@@ -867,9 +868,9 @@ pycryptodomex==3.20.0 \
     #   -c main.txt
     #   oic
     #   pyjwkest
-pydantic==2.6.2 \
-    --hash=sha256:37a5432e54b12fecaa1049c5195f3d860a10e01bdfd24f1840ef14bd0d3aeab3 \
-    --hash=sha256:a09be1c3d28f3abe37f8a78af58284b236a92ce520105ddc91a6d29ea1176ba7
+pydantic==2.6.3 \
+    --hash=sha256:72c6034df47f46ccdf81869fddb81aade68056003900a8724a4f160700016a2a \
+    --hash=sha256:e07805c4c7f5c6826e33a1d4c9d47950d7eaf34868e2690f8594d2e30241f11f
     # via
     #   -c main.txt
     #   -r main.in
@@ -1110,15 +1111,15 @@ pyopenssl==24.0.0 \
     #   -r main.in
     #   fido-mds
     #   pysaml2
-pyparsing==3.1.1 \
-    --hash=sha256:32c7c0b711493c72ff18a981d24f28aaf9c1fb7ed5e9667c9e84e3db623bdbfb \
-    --hash=sha256:ede28a1a32462f5a9705e07aea48001a08f7cf81a021585011deba701581a0db
+pyparsing==3.1.2 \
+    --hash=sha256:a1bac0ce561155ecc3ed78ca94d3c9378656ad4c94c1270de543f621420f94ad \
+    --hash=sha256:f9db75911801ed778fe61bb643079ff86601aca99fcae6345aa67292038fb742
     # via
     #   -c main.txt
     #   httplib2
-pypdf==4.0.2 \
-    --hash=sha256:3316d9ddfcff5df67ae3cdfe8b945c432aa43e7f970bae7c2a4ab4fe129cd937 \
-    --hash=sha256:a62daa2a24d5a608ba1b6284dde185317ce3644f89b9ebe5314d0c5d1c9f257d
+pypdf==4.1.0 \
+    --hash=sha256:01c3257ec908676efd60a4537e525b89d48e0852bc92b4e0aa4cc646feda17cc \
+    --hash=sha256:16cac912a05200099cef3f347c4c7e0aaf0a6d027603b8f9a973c0ea500dff89
     # via
     #   -c main.txt
     #   xhtml2pdf
@@ -1146,9 +1147,9 @@ python-bidi==0.4.2 \
     # via
     #   -c main.txt
     #   xhtml2pdf
-python-dateutil==2.8.2 \
-    --hash=sha256:0123cacc1627ae19ddf3c27a5de5bd67ee4586fbdd6440d9748f8abb483d3e86 \
-    --hash=sha256:961d03dc3453ebbc59dbdea9e4e11c5651520a876d0f4db161e8674aae935da9
+python-dateutil==2.9.0.post0 \
+    --hash=sha256:37dd54208da7e1cd875388217d5e00ebd4179249f90fb72437e91a35459a0ad3 \
+    --hash=sha256:a8b2bc7bffae282281c8140a97d3aa9c14da0b136dfe83f850eea9a5f7470427
     # via
     #   -c main.txt
     #   -r main.in
@@ -1248,9 +1249,9 @@ qrcode==7.4.2 \
     #   -c main.txt
     #   -r main.in
     #   pyhanko
-redis==5.0.1 \
-    --hash=sha256:0dab495cd5753069d3bc650a0dde8a8f9edde16fc5691b689a566eda58100d0f \
-    --hash=sha256:ed4802971884ae19d640775ba3b03aa2e7bd5e8fb8dfaed2decce4d0fc48391f
+redis==5.0.2 \
+    --hash=sha256:3f82cc80d350e93042c8e6e7a5d0596e4dd68715babffba79492733e1f367037 \
+    --hash=sha256:4caa8e1fcb6f3c0ef28dba99535101d80934b7d4cd541bbb47f4a3826ee472d1
     # via
     #   -c main.txt
     #   -r main.in
