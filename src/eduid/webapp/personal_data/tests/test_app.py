@@ -8,6 +8,7 @@ from eduid.userdb.element import ElementKey
 from eduid.webapp.common.api.exceptions import ApiException
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.personal_data.app import PersonalDataApp, pd_init_app
+from eduid.webapp.personal_data.helpers import PDataMsg, is_valid_display_name
 
 
 class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
@@ -102,20 +103,6 @@ class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
             response2 = client.get("/identities")
             return response2
 
-    def _get_user_nins(self, eppn: Optional[str] = None):
-        """
-        GET a list of all the identities of a user
-
-        :param eppn: the eppn of the user
-        """
-        response = self.browser.get("/nins")
-        self.assertEqual(response.status_code, 302)  # Redirect to token service
-
-        eppn = eppn or self.test_user_data["eduPersonPrincipalName"]
-        with self.session_cookie(self.browser, eppn) as client:
-            response2 = client.get("/nins")
-            return response2
-
     # actual test methods
 
     def test_get_user(self):
@@ -148,7 +135,6 @@ class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
                 "university": {"ladok_name": "DEV", "name": {"en": "Test University", "sv": "Testlärosäte"}},
             },
             "language": "en",
-            "nins": [{"number": "197801011234", "primary": True, "verified": True}],
             "identities": {
                 "is_verified": True,
                 "nin": {"number": "197801011234", "verified": True},
@@ -235,8 +221,7 @@ class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
         self._check_error_response(response, type_="POST_PERSONAL_DATA_USER_FAIL", payload=expected_payload)
 
     def test_post_user_with_display_name(self):
-        # verify that display_name is ignored
-        response = self._post_user(mod_data={"display_name": "Not Peter Johnson"}, verified_user=False)
+        response = self._post_user(mod_data={"display_name": "Peter Johnson"}, verified_user=False)
         expected_payload = {
             "surname": "Johnson",
             "given_name": "Peter",
@@ -244,6 +229,10 @@ class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
             "language": "en",
         }
         self._check_success_response(response, type_="POST_PERSONAL_DATA_USER_SUCCESS", payload=expected_payload)
+
+    def test_post_user_with_bad_display_name(self):
+        response = self._post_user(mod_data={"display_name": "Not Peter Johnson"}, verified_user=False)
+        self._check_error_response(response, type_="POST_PERSONAL_DATA_USER_FAIL", msg=PDataMsg.display_name_invalid)
 
     def test_post_user_no_language(self):
         response = self._post_user(mod_data={"language": ""})
@@ -255,23 +244,9 @@ class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
         expected_payload = {"error": {"language": ["Language 'es' is not available"]}}
         self._check_error_response(response, type_="POST_PERSONAL_DATA_USER_FAIL", payload=expected_payload)
 
-    def test_get_user_nins(self):
-        response = self._get_user_nins()
-        expected_payload = {
-            "nins": [{"number": "197801011234", "primary": True, "verified": True}],
-            "identities": {
-                "is_verified": True,
-                "nin": {"number": "197801011234", "verified": True},
-                "eidas": {"verified": True, "country_code": "DE", "date_of_birth": "1978-09-02"},
-                "svipe": {"verified": True, "country_code": "DE", "date_of_birth": "1978-09-02"},
-            },
-        }
-        self._check_success_response(response, type_="GET_PERSONAL_DATA_NINS_SUCCESS", payload=expected_payload)
-
     def test_get_user_identities(self):
         response = self._get_user_identities()
         expected_payload = {
-            "nins": [{"number": "197801011234", "primary": True, "verified": True}],
             "identities": {
                 "is_verified": True,
                 "nin": {"number": "197801011234", "verified": True},
@@ -280,3 +255,37 @@ class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
             },
         }
         self._check_success_response(response, type_="GET_PERSONAL_DATA_IDENTITIES_SUCCESS", payload=expected_payload)
+
+    def test_is_valid_display_name(self):
+        params = [
+            ("Testaren Test", "Testdotter", "Test Testdotter", True),
+            (None, "Testdotter", "Testdotter", True),
+            ("Testaren Test", None, "Testaren Test", True),
+            ("", "Testdotter", "Testdotter", True),
+            ("Testaren Test", "", "Testaren Test", True),
+            ("Testaren Test", "Testdotter", "Test Testaren", False),
+            ("Testaren Test", "Testdotter", "Kungen av Kungsan", False),
+            # random names from Skatteverket test list
+            ("Margit Karin Linnea", "Larsson", "Linnea Larsson", True),
+            ("Eleonara", "Braun", "Eleonara Braun", True),
+            ("Krister Edvard", "Hultling", "Krister Edvard Hultling", True),
+            ("Anna", "Sjöström", "Anna", False),
+            ("Bengt Gustav Lennart", "Gustavsson", "Bengt Lennart", False),
+            ("Karin Ulrika Stina Viola", "Albertsson", "Stina Karin Albertsson", True),
+            ("Torgny", "Vaerum", "Vaerum", False),
+            ("Ulla Alex:A Lilly E", "Paykull-Hansson", "Alex:A Paykull", True),
+            ("Erik Hans", "Åkerberg", "Erik Åkerberg", True),
+            ("Sune", "Nilsson", "Nilsson", False),
+            ("Liisa", "Crowley-Skogså", "Liisa Crowley-Skogså", True),
+            ("Svante Hans-Emil", "Grundberg", "Emil Grundberg", True),
+            ("Birthe", "Hansen", "Birthe Hansen", True),
+            ("Stella Ann", "Vaan Den Dubois", "Ann Dubois", True),
+            ("Ingela Ester Louisa", "Karlsson", "Ester Karlsson", True),
+            ("Karl", "Svensson", "Svensson Karl", True),
+            ("Sture Johan Johannes Jarlsson Karl Humbertus Urban Jan-Erik", "Tolvling", "Jan Johannes Tolvling", True),
+            ("Sture Johan Johannes Jarlsson Karl Humbertus Urban Jan-Erik", "Tolvling", "Jan-Johannes Tolvling", False),
+            ("Sverker Jr", "Yeström", "Jr Yeström", True),
+            ("Bruno", "von Nieroth", "Bruno von Nieroth", True),
+        ]
+        for param in params:
+            assert is_valid_display_name(param[0], param[1], param[2]) is param[3]

@@ -9,7 +9,7 @@ from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, requi
 from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response, success_response
 from eduid.webapp.common.api.utils import save_and_sync_user
 from eduid.webapp.personal_data.app import current_pdata_app as current_app
-from eduid.webapp.personal_data.helpers import PDataMsg
+from eduid.webapp.personal_data.helpers import PDataMsg, is_valid_display_name
 from eduid.webapp.personal_data.schemas import (
     AllDataResponseSchema,
     IdentitiesResponseSchema,
@@ -45,16 +45,24 @@ def get_user(user: User) -> FluxData:
 @MarshalWith(PersonalDataResponseSchema)
 @require_user
 def post_user(user: User, given_name: str, surname: str, language: str, display_name: Optional[str] = None) -> FluxData:
-    # TODO: Remove display_name when frontend stops sending it
     personal_data_user = PersonalDataUser.from_user(user, current_app.private_userdb)
     current_app.logger.debug(f"Trying to save user {user}")
 
-    # disallow change of first name, surname and display name if the user is verified
+    # disallow change of first name, surname if the user is verified
     if not user.identities.is_verified:
         personal_data_user.given_name = given_name
         personal_data_user.surname = surname
-        personal_data_user.display_name = f"{given_name} {surname}"
+
+    # set display name to either given name + surname or a combination of the two
+    if display_name is None:
+        personal_data_user.display_name = f"{personal_data_user.given_name} {personal_data_user.surname}"
+    elif is_valid_display_name(personal_data_user.given_name, personal_data_user.surname, display_name):
+        personal_data_user.display_name = display_name
+    else:
+        return error_response(message=PDataMsg.display_name_invalid)
+
     personal_data_user.language = language
+
     try:
         save_and_sync_user(personal_data_user)
     except UserOutOfSync:
@@ -66,22 +74,8 @@ def post_user(user: User, given_name: str, surname: str, language: str, display_
     return success_response(payload=personal_data, message=PDataMsg.save_success)
 
 
-@pd_views.route("/nins", methods=["GET"])
-@MarshalWith(IdentitiesResponseSchema)
-@require_user
-def get_nins(user) -> FluxData:
-    # TODO: remove endpoint after frontend stops using it
-    return get_identities()
-
-
 @pd_views.route("/identities", methods=["GET"])
 @MarshalWith(IdentitiesResponseSchema)
 @require_user
 def get_identities(user) -> FluxData:
-    # TODO: remove nins after frontend stops using it
-    data = {"identities": user.identities.to_frontend_format(), "nins": []}
-
-    if user.identities.nin is not None:
-        data["nins"].append(user.identities.nin.to_old_nin())
-
-    return success_response(payload=data)
+    return success_response(payload={"identities": user.identities.to_frontend_format()})

@@ -2,7 +2,7 @@ from marshmallow import fields
 
 from eduid.webapp.common.api.schemas.base import EduidSchema, FluxStandardAction
 from eduid.webapp.common.api.schemas.csrf import CSRFRequestMixin, CSRFResponseMixin
-from eduid.webapp.common.api.schemas.identity import IdentitiesSchema, NinSchema
+from eduid.webapp.common.api.schemas.identity import IdentitiesSchema
 from eduid.webapp.common.api.schemas.ladok import LadokSchema
 from eduid.webapp.common.api.schemas.orcid import OrcidSchema
 from eduid.webapp.email.schemas import EmailSchema
@@ -15,7 +15,6 @@ __author__ = "eperez"
 class PersonalDataRequestSchema(EduidSchema, CSRFRequestMixin):
     given_name = fields.String(required=True, validate=[validate_nonempty])
     surname = fields.String(required=True, validate=[validate_nonempty])
-    # TODO: remove display_name when frontend stops sending it
     display_name = fields.String(required=False)
     language = fields.String(required=True, default="en", validate=validate_language)
 
@@ -36,7 +35,6 @@ class PersonalDataResponseSchema(FluxStandardAction):
 
 class IdentitiesResponseSchema(FluxStandardAction):
     class IdentitiesResponsePayload(EmailSchema, CSRFResponseMixin):
-        nins = fields.Nested(NinSchema, many=True)
         identities = fields.Nested(IdentitiesSchema)
 
     payload = fields.Nested(IdentitiesResponsePayload)
@@ -48,7 +46,6 @@ class AllDataSchema(EduidSchema):
     surname = fields.String(required=True)
     display_name = fields.String(required=True, attribute="displayName")
     language = fields.String(required=True, attribute="preferredLanguage", validate=validate_language)
-    nins = fields.Nested(NinSchema, many=True)
     identities = fields.Nested(IdentitiesSchema)
     emails = fields.Nested(EmailSchema, many=True, attribute="mailAliases")
     phones = fields.Nested(PhoneSchema, many=True, attribute="phone")
