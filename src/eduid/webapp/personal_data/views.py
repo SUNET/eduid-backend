@@ -66,22 +66,8 @@ def post_user(user: User, given_name: str, surname: str, language: str, display_
     return success_response(payload=personal_data, message=PDataMsg.save_success)
 
 
-@pd_views.route("/nins", methods=["GET"])
-@MarshalWith(IdentitiesResponseSchema)
-@require_user
-def get_nins(user) -> FluxData:
-    # TODO: remove endpoint after frontend stops using it
-    return get_identities()
-
-
 @pd_views.route("/identities", methods=["GET"])
 @MarshalWith(IdentitiesResponseSchema)
 @require_user
 def get_identities(user) -> FluxData:
-    # TODO: remove nins after frontend stops using it
-    data = {"identities": user.identities.to_frontend_format(), "nins": []}
-
-    if user.identities.nin is not None:
-        data["nins"].append(user.identities.nin.to_old_nin())
-
-    return success_response(payload=data)
+    return success_response(payload={"identities": user.identities.to_frontend_format()})

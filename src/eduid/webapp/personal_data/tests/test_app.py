@@ -102,20 +102,6 @@ class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
             response2 = client.get("/identities")
             return response2
 
-    def _get_user_nins(self, eppn: Optional[str] = None):
-        """
-        GET a list of all the identities of a user
-
-        :param eppn: the eppn of the user
-        """
-        response = self.browser.get("/nins")
-        self.assertEqual(response.status_code, 302)  # Redirect to token service
-
-        eppn = eppn or self.test_user_data["eduPersonPrincipalName"]
-        with self.session_cookie(self.browser, eppn) as client:
-            response2 = client.get("/nins")
-            return response2
-
     # actual test methods
 
     def test_get_user(self):
@@ -148,7 +134,6 @@ class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
                 "university": {"ladok_name": "DEV", "name": {"en": "Test University", "sv": "Testlärosäte"}},
             },
             "language": "en",
-            "nins": [{"number": "197801011234", "primary": True, "verified": True}],
             "identities": {
                 "is_verified": True,
                 "nin": {"number": "197801011234", "verified": True},
@@ -255,23 +240,9 @@ class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
         expected_payload = {"error": {"language": ["Language 'es' is not available"]}}
         self._check_error_response(response, type_="POST_PERSONAL_DATA_USER_FAIL", payload=expected_payload)
 
-    def test_get_user_nins(self):
-        response = self._get_user_nins()
-        expected_payload = {
-            "nins": [{"number": "197801011234", "primary": True, "verified": True}],
-            "identities": {
-                "is_verified": True,
-                "nin": {"number": "197801011234", "verified": True},
-                "eidas": {"verified": True, "country_code": "DE", "date_of_birth": "1978-09-02"},
-                "svipe": {"verified": True, "country_code": "DE", "date_of_birth": "1978-09-02"},
-            },
-        }
-        self._check_success_response(response, type_="GET_PERSONAL_DATA_NINS_SUCCESS", payload=expected_payload)
-
     def test_get_user_identities(self):
         response = self._get_user_identities()
         expected_payload = {
-            "nins": [{"number": "197801011234", "primary": True, "verified": True}],
             "identities": {
                 "is_verified": True,
                 "nin": {"number": "197801011234", "verified": True},
