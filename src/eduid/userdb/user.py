@@ -175,7 +175,7 @@ class User(BaseModel):
 
         # users can have terminated set to False due to earlier bug
         # TODO: Remove after next full load-save
-        if data["terminated"] is False:
+        if "terminated" in data and data["terminated"] is False:
             data["terminated"] = None
 
         # parse complex data
