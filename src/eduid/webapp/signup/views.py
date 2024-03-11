@@ -1,20 +1,16 @@
-from base64 import b64encode
-from io import BytesIO
-from re import findall
 from typing import Optional
 from uuid import uuid4
 
 from flask import Blueprint, abort, request
 
 from eduid.common.misc.timeutil import utc_now
-from eduid.common.utils import generate_password, get_short_hash
+from eduid.common.utils import generate_password
 from eduid.userdb import User
 from eduid.userdb.exceptions import UserOutOfSync
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, require_user
 from eduid.webapp.common.api.exceptions import ProofingLogFailure
 from eduid.webapp.common.api.helpers import check_magic_cookie
 from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response, success_response
-from eduid.webapp.common.api.schemas.base import FluxStandardAction
 from eduid.webapp.common.api.schemas.csrf import EmptyRequest
 from eduid.webapp.common.api.utils import make_short_code
 from eduid.webapp.common.session import session
@@ -28,20 +24,16 @@ from eduid.webapp.signup.helpers import (
     complete_and_update_invite,
     create_and_sync_user,
     is_email_verification_expired,
-    remove_users_with_mail_address,
     send_signup_mail,
-    verify_recaptcha,
 )
 from eduid.webapp.signup.schemas import (
     AcceptTouRequest,
-    AccountCreatedResponse,
     CaptchaCompleteRequest,
     CaptchaResponse,
     CreateUserRequest,
     EmailSchema,
     InviteCodeRequest,
     InviteDataResponse,
-    RegisterEmailSchema,
     SignupStatusResponse,
     VerifyEmailRequest,
 )
@@ -179,18 +171,14 @@ def captcha_request() -> FluxData:
 
     session.signup.captcha.internal_answer = make_short_code(digits=current_app.conf.captcha_code_length)
     session.signup.captcha.bad_attempts = 0
-    data = current_app.captcha_image_generator.generate_image(chars=session.signup.captcha.internal_answer)
-    with BytesIO() as f:
-        data.save(fp=f, format="PNG", optimize=True)
-        return success_response(
-            payload={"captcha_img": f"data:image/png;base64,{b64encode(f.getvalue()).decode('utf-8')}"},
-        )
+    captcha_payload = current_app.captcha.get_request_payload(answer=session.signup.captcha.internal_answer)
+    return success_response(payload=captcha_payload)
 
 
 @signup_views.route("/captcha", methods=["POST"])
 @UnmarshalWith(CaptchaCompleteRequest)
 @MarshalWith(SignupStatusResponse)
-def captcha_response(recaptcha_response: Optional[str] = None, internal_response: Optional[str] = None) -> FluxData:
+def captcha_response(internal_response: Optional[str] = None) -> FluxData:
     """
     Check for humanness even at level AL1.
     """
@@ -203,7 +191,7 @@ def captcha_response(recaptcha_response: Optional[str] = None, internal_response
         # bad attempts is reset when a new captcha is generated
         return error_response(message=SignupMsg.captcha_failed)
 
-    # add a backdoor to bypass recaptcha checks for humanness,
+    # add a backdoor to bypass captcha checks for humanness,
     # to be used in testing environments for automated integration tests.
     if check_magic_cookie(current_app.conf):
         current_app.logger.info("Using BACKDOOR to verify captcha during signup!")
@@ -214,15 +202,7 @@ def captcha_response(recaptcha_response: Optional[str] = None, internal_response
             captcha_verified = False
 
     # common path with no backdoor
-    if recaptcha_response and not captcha_verified:
-        remote_ip = request.remote_addr
-        if not remote_ip:
-            raise RuntimeError("No remote IP address found")
-        if current_app.conf.recaptcha_public_key and current_app.conf.recaptcha_private_key:
-            captcha_verified = verify_recaptcha(current_app.conf.recaptcha_private_key, recaptcha_response, remote_ip)
-        else:
-            current_app.logger.info("Missing configuration for reCaptcha!")
-    elif internal_response and not captcha_verified:
+    if internal_response and not captcha_verified:
         if session.signup.captcha.internal_answer is None:
             return error_response(message=SignupMsg.captcha_not_requested)
         captcha_verified = internal_response == session.signup.captcha.internal_answer
