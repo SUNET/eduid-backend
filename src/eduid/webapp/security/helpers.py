@@ -248,8 +248,18 @@ def get_approved_security_keys() -> dict[str, Any]:
         if entry.description and is_authenticator_mfa_approved(entry):
             approved_keys_list.append(entry.description)
 
-    # sort list case insensitive
+    # remove case-insensitive duplicates from list, while maintaining the original case
+    marker = set()
+    unique_approved_keys_list: List[str] = []
+
+    for key in approved_keys_list:
+        lower_case_key = key.lower()
+        if lower_case_key not in marker:   # test presence
+            marker.add(lower_case_key)
+            unique_approved_keys_list.append(key)   # preserve original case
+
+    # sort list - case insensitive
     return {
         "next_update": current_app.fido_mds.metadata.next_update,
-        "entries": sorted(approved_keys_list, key=str.casefold),
+        "entries": sorted(unique_approved_keys_list, key=str.casefold),
     }
