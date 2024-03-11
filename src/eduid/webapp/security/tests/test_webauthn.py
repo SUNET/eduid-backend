@@ -692,3 +692,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
         assert "next_update" in payload
         assert "entries" in payload
         assert len(payload["entries"]) > 0
+
+        # test no dubles
+        unique_lowecase_entries = list(set(e.lower() for e in payload["entries"]))
+        assert len(unique_lowecase_entries) == len(payload["entries"])
