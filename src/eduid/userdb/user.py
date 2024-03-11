@@ -173,6 +173,11 @@ class User(BaseModel):
         for _locked_nin in data.get("locked_identity", []):
             _locked_nin["verified"] = True
 
+        # users can have terminated set to False due to earlier bug
+        # TODO: Remove after next full load-save
+        if data["terminated"] is False:
+            data["terminated"] = None
+
         # parse complex data
         data["mail_addresses"] = cls._parse_mail_addresses(data)
         data["phone_numbers"] = cls._parse_phone_numbers(data)
