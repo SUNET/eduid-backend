@@ -70,5 +70,4 @@ class JsAppsConfig(PasswordConfigMixin):
     proofing_methods: list = Field(default=["letter", "lookup_mobile", "oidc", "eidas"])
     token_verify_idp: HttpUrlStr
     # Signup config
-    recaptcha_public_key: Optional[str] = None
     tous: Optional[dict[str, str]] = None

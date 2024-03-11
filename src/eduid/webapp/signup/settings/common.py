@@ -39,8 +39,6 @@ class SignupConfig(
     default_finish_url: str = "https://www.eduid.se/"
     eduid_site_url: str = "https://www.eduid.se"  # TODO: Backwards compatibility, remove when no longer used
     eduid_site_name: str = "eduID"
-    recaptcha_public_key: str = ""
-    recaptcha_private_key: str = ""
     scim_api_url: Optional[AnyUrlStr] = None
     gnap_auth_data: Optional[GNAPClientAuthData] = None
     eduid_scope: str = "eduid.se"

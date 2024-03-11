@@ -1,13 +1,11 @@
 import os
 import struct
-import time
 from dataclasses import replace
 from datetime import datetime, timedelta
 from enum import Enum, unique
 from typing import Optional, Union
 
 import proquint
-import requests
 from flask import abort
 
 from eduid.common.config.base import EduidEnvironment
@@ -81,8 +79,6 @@ class SignupMsg(TranslatableMsg):
     reg_new = "signup.registering-new"
     # The email address used is already known
     old_email_used = "signup.registering-address-used"
-    # recaptcha not verified
-    no_recaptcha = "signup.recaptcha-not-verified"
     # unrecognized verification code
     unknown_code = "signup.unknown-code"
     # the verification code has already been verified
@@ -174,44 +170,6 @@ def check_email_status(email: str) -> EmailStatus:
 
     # if the user has changed email address to register with, send a new code
     return EmailStatus.NEW
-
-
-def verify_recaptcha(secret_key: str, captcha_response: str, user_ip: str, retries: int = 3) -> bool:
-    """
-    Verify the recaptcha response received from the client
-    against the recaptcha API.
-
-    :param secret_key: Recaptcha secret key
-    :param captcha_response: User recaptcha response
-    :param user_ip: User ip address
-    :param retries: Number of times to retry sending recaptcha response
-
-    :return: True|False
-    """
-    current_app.stats.count(name="recaptcha_verify_attempt")
-    url = "https://www.google.com/recaptcha/api/siteverify"
-    params = {"secret": secret_key, "response": captcha_response, "remoteip": user_ip}
-    while retries:
-        retries -= 1
-        try:
-            current_app.logger.debug("Sending the CAPTCHA response")
-            verify_rs = requests.get(url, params=params, verify=True)
-            verify_rs.raise_for_status()  # raise exception status code in 400 or 500 range
-            current_app.logger.debug(f"CAPTCHA response: {verify_rs}")
-            if verify_rs.json().get("success", False) is True:
-                current_app.logger.info(f"Valid CAPTCHA response from {user_ip}")
-                current_app.stats.count(name="recaptcha_verify_success")
-                return True
-            _error = verify_rs.json().get("error-codes", "Unspecified error")
-            current_app.logger.info(f"Invalid CAPTCHA response from {user_ip}: {_error}")
-        except requests.exceptions.RequestException as e:
-            if not retries:
-                current_app.logger.error("Caught RequestException while sending CAPTCHA, giving up.")
-                raise e
-            current_app.logger.warning("Caught RequestException while sending CAPTCHA, trying again.")
-            current_app.logger.warning(e)
-            time.sleep(0.5)
-    return False
 
 
 def send_signup_mail(email: str, verification_code: str, reference: str, use_email_link: bool = False) -> None:

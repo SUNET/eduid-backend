@@ -1,6 +1,5 @@
 from typing import Any, Mapping, Optional, cast
 
-from captcha.image import ImageCaptcha
 from flask import current_app
 
 from eduid.common.clients import SCIMClient
@@ -13,6 +12,7 @@ from eduid.userdb.logs import ProofingLog
 from eduid.userdb.signup import SignupInviteDB, SignupUserDB
 from eduid.webapp.common.api import translation
 from eduid.webapp.common.api.app import EduIDBaseApp
+from eduid.webapp.common.api.captcha import init_captcha
 from eduid.webapp.signup.settings.common import SignupConfig
 
 
@@ -25,13 +25,7 @@ class SignupApp(EduIDBaseApp):
         self.am_relay = AmRelay(config)
         self.mail_relay = MailRelay(config)
 
-        self.captcha_image_generator = ImageCaptcha(
-            height=self.conf.captcha_height,
-            width=self.conf.captcha_width,
-            fonts=[str(path) for path in self.conf.captcha_fonts],  # please mypy
-            # underlying module lies in argument type hint
-            font_sizes=self.conf.captcha_font_size,  # type: ignore[arg-type]
-        )
+        self.captcha = init_captcha(config)
 
         self.scim_clients: dict[str, SCIMClient] = {}
 

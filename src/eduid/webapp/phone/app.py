@@ -1,6 +1,5 @@
 from typing import Any, Mapping, Optional, cast
 
-from captcha.image import ImageCaptcha
 from flask import current_app
 
 from eduid.common.config.parsers import load_config
@@ -9,6 +8,7 @@ from eduid.common.rpc.msg_relay import MsgRelay
 from eduid.userdb.logs import ProofingLog
 from eduid.userdb.proofing import PhoneProofingStateDB, PhoneProofingUserDB
 from eduid.webapp.common.api import translation
+from eduid.webapp.common.api.captcha import init_captcha
 from eduid.webapp.common.authn.middleware import AuthnBaseApp
 from eduid.webapp.phone.settings.common import PhoneConfig
 
@@ -28,14 +28,7 @@ class PhoneApp(AuthnBaseApp):
         self.proofing_log = ProofingLog(config.mongo_uri)
 
         self.babel = translation.init_babel(self)
-
-        self.captcha_image_generator = ImageCaptcha(
-            height=self.conf.captcha_height,
-            width=self.conf.captcha_width,
-            fonts=[str(path) for path in self.conf.captcha_fonts],  # please mypy
-            # underlying module lies in argument type hint
-            font_sizes=self.conf.captcha_font_size,  # type: ignore[arg-type]
-        )
+        self.captcha = init_captcha(config)
 
 
 current_phone_app: PhoneApp = cast(PhoneApp, current_app)
