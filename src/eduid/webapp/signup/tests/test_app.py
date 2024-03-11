@@ -15,7 +15,7 @@ from eduid.common.clients.scim_client.testing import MockedScimAPIMixin
 from eduid.common.config.base import EduidEnvironment
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.exceptions import UserOutOfSync
-from eduid.userdb.signup import Invite, InviteMailAddress, InviteType, SignupUser
+from eduid.userdb.signup import Invite, InviteMailAddress, InviteType
 from eduid.userdb.signup.invite import InvitePhoneNumber, SCIMReference
 from eduid.webapp.common.api.exceptions import ProofingLogFailure
 from eduid.webapp.common.api.messages import CommonMsg, TranslatableMsg
@@ -137,10 +137,6 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
                         data = {
                             "csrf_token": sess.get_csrf_token(),
                         }
-                if captcha_data is not None:
-                    data.update(captcha_data)
-                    # remove any None values
-                    data = {k: v for k, v in data.items() if v is not None}
 
                 if add_magic_cookie:
                     assert self.app.conf.magic_cookie_name is not None
@@ -148,6 +144,13 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
                     if magic_cookie_name is None:
                         magic_cookie_name = self.app.conf.magic_cookie_name
                     client.set_cookie(domain=self.test_domain, key=magic_cookie_name, value=self.app.conf.magic_cookie)
+                    # set backdoor captcha code
+                    data["internal_response"] = self.app.conf.captcha_backdoor_code
+
+                if captcha_data is not None:
+                    data.update(captcha_data)
+                    # remove any None values
+                    data = {k: v for k, v in data.items() if v is not None}
 
                 logger.info(f"Making request to {endpoint} with data:\n{data}")
                 response = client.post(f"{endpoint}", data=json.dumps(data), content_type=self.content_type_json)
@@ -845,7 +848,8 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
 
     def test_captcha_internal_not_requested(self):
         res = self._captcha(
-            captcha_data={"internal_response": "not-requested", "recaptcha_response": None},
+            generate_internal_captcha=False,
+            captcha_data={"internal_response": "not-requested"},
             expect_success=False,
             expected_message=SignupMsg.captcha_not_requested,
         )
