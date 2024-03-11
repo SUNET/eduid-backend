@@ -75,8 +75,6 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
                 "password_length": 10,
                 "vccs_url": "http://turq:13085/",
                 "default_finish_url": "https://www.eduid.se/",
-                "recaptcha_public_key": "XXXX",
-                "recaptcha_private_key": "XXXX",
                 "captcha_max_bad_attempts": 3,
                 "environment": "dev",
                 "scim_api_url": "http://localhost/scim/",
@@ -104,16 +102,13 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
             type_="POST_SIGNUP_GET_CAPTCHA_SUCCESS",
         )
         assert self.get_response_payload(response)["captcha_img"].startswith("data:image/png;base64,")
+        assert self.get_response_payload(response)["captcha_audio"].startswith("data:audio/wav;base64,")
         return SignupResult(url=endpoint, reached_state=SignupState.S9_GENERATE_CAPTCHA, response=response)
 
     # parameterized test methods
-    @patch("eduid.webapp.signup.views.verify_recaptcha")
     def _captcha(
         self,
-        mock_recaptcha: Any,
         captcha_data: Optional[Mapping[str, Any]] = None,
-        recaptcha_return_value: bool = True,
-        internal_captcha: bool = False,
         generate_internal_captcha: bool = True,
         add_magic_cookie: bool = False,
         magic_cookie_name: Optional[str] = None,
@@ -123,18 +118,13 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
     ):
         """
         :param captcha_data: to control the data POSTed to the /captcha endpoint
-        :param recaptcha_return_value: to mock recaptcha verification failure
         :param add_magic_cookie: add magic cookie to the captcha request
         """
-        mock_recaptcha.return_value = recaptcha_return_value
 
         with self.session_cookie_anon(self.browser) as client:
             with self.app.test_request_context():
                 endpoint = url_for("signup.captcha_response")
-                if not internal_captcha:
-                    with client.session_transaction() as sess:
-                        data = {"csrf_token": sess.get_csrf_token(), "recaptcha_response": "dummy"}
-                elif generate_internal_captcha:
+                if generate_internal_captcha:
                     self._get_captcha()
                     with client.session_transaction() as sess:
                         assert sess.signup.captcha.internal_answer
@@ -816,15 +806,6 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         res = self._captcha()
         assert res.reached_state == SignupState.S3_COMPLETE_CAPTCHA
 
-    def test_captcha_internal(self):
-        res = self._captcha(internal_captcha=True)
-        assert res.reached_state == SignupState.S3_COMPLETE_CAPTCHA
-
-    def test_recaptcha_new_no_key(self):
-        self.app.conf.recaptcha_public_key = ""
-        res = self._captcha(expect_success=False, expected_message=SignupMsg.captcha_failed)
-        assert res.reached_state == SignupState.S3_COMPLETE_CAPTCHA
-
     def test_captcha_new_wrong_csrf(self):
         data = {"csrf_token": "wrong-token"}
         res = self._captcha(captcha_data=data, expect_success=False, expected_message=None)
@@ -832,13 +813,6 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
 
     def test_captcha_fail(self):
         res = self._captcha(
-            recaptcha_return_value=False, expect_success=False, expected_message=SignupMsg.captcha_failed
-        )
-        assert res.reached_state == SignupState.S3_COMPLETE_CAPTCHA
-
-    def test_captcha_internal_fail(self):
-        res = self._captcha(
-            internal_captcha=True,
             captcha_data={"internal_response": "wrong"},
             expect_success=False,
             expected_message=SignupMsg.captcha_failed,
@@ -848,7 +822,6 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
     def test_captcha_internal_fail_to_many_attempts(self):
         # run once to generate captcha
         self._captcha(
-            internal_captcha=True,
             generate_internal_captcha=True,
             captcha_data={"internal_response": "wrong"},
             expect_success=False,
@@ -857,7 +830,6 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         for _ in range(self.app.conf.captcha_max_bad_attempts):
             # make x bad attempts to get over the limit
             self._captcha(
-                internal_captcha=True,
                 generate_internal_captcha=False,
                 captcha_data={"internal_response": "wrong"},
                 expect_success=False,
@@ -865,7 +837,6 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
             )
         # try one more time, should fail even as we use the correct code
         res = self._captcha(
-            internal_captcha=True,
             generate_internal_captcha=False,
             expect_success=False,
             expected_message=SignupMsg.captcha_failed,
@@ -886,7 +857,6 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         self.app.conf.environment = EduidEnvironment("dev")
 
         res = self._captcha(
-            recaptcha_return_value=False,
             add_magic_cookie=True,
             expect_success=True,
         )
@@ -898,7 +868,6 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         self.app.conf.environment = EduidEnvironment("dev")
 
         res = self._captcha(
-            internal_captcha=True,
             add_magic_cookie=True,
             captcha_data={"internal_response": self.app.conf.captcha_backdoor_code},
             expect_success=True,
@@ -911,7 +880,6 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         self.app.conf.environment = EduidEnvironment("dev")
 
         res = self._captcha(
-            internal_captcha=True,
             add_magic_cookie=True,
             captcha_data={"internal_response": "wrong"},
             expect_success=False,
@@ -924,7 +892,6 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         self.app.conf.magic_cookie_name = "magic"
         self.app.conf.environment = EduidEnvironment("production")
         res = self._captcha(
-            recaptcha_return_value=False,
             add_magic_cookie=True,
             expect_success=False,
             expected_message=SignupMsg.captcha_failed,
@@ -936,7 +903,6 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         self.app.conf.magic_cookie_name = ""
         self.app.conf.environment = EduidEnvironment("dev")
         res = self._captcha(
-            recaptcha_return_value=False,
             add_magic_cookie=True,
             expect_success=False,
             expected_message=SignupMsg.captcha_failed,
@@ -949,7 +915,6 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         self.app.conf.magic_cookie_name = "magic"
         self.app.conf.environment = EduidEnvironment("dev")
         res = self._captcha(
-            recaptcha_return_value=False,
             add_magic_cookie=True,
             expect_success=False,
             expected_message=SignupMsg.captcha_failed,

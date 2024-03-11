@@ -55,7 +55,6 @@ class JSConfigTests(EduidAPITestCase[JSConfigApp]):
                     "password_length": 10,
                     "personal_data_service_url": "https://dashboard.example.com/services/pdata",
                     "phone_service_url": "https://dashboard.example.com/services/phone",
-                    "recaptcha_public_key": "public_key",
                     "reset_password_link": "https://example.com/reset-password",
                     "reset_password_service_url": "https://idp.example.com/servics/reset-password",
                     "security_service_url": "https://idp.example.com/servics/security",
