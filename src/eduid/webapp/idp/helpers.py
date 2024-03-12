@@ -1,6 +1,5 @@
-from dataclasses import dataclass
 from enum import Enum, unique
-from typing import Mapping, Optional, Union
+from typing import Optional
 
 from saml2 import BINDING_HTTP_POST
 
@@ -8,7 +7,6 @@ from eduid.userdb.idp import IdPUser
 from eduid.webapp.common.api.messages import TranslatableMsg, error_response, success_response
 from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.idp_saml import SAMLResponseParams
-from eduid.webapp.idp.mischttp import HttpArgs
 
 
 @unique
@@ -83,5 +81,6 @@ def create_saml_sp_response(saml_params: SAMLResponseParams):
             "action": IdPAction.FINISHED.value,
             "target": saml_params.url,
             "parameters": saml_params.post_params,
+            "missing_attributes": saml_params.missing_attributes,
         },
     )

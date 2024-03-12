@@ -14,6 +14,7 @@ from eduid.common.models.generic import HttpUrlStr
 from eduid.userdb import MailAddress
 from eduid.userdb.credentials import Password
 from eduid.userdb.maccapi.userdb import ManagedAccount
+from eduid.userdb.mail import MailAddressList
 from eduid.vccs.client import VCCSClient
 from eduid.webapp.common.authn.utils import get_saml2_config
 from eduid.webapp.idp.helpers import IdPAction, IdPMsg
@@ -79,6 +80,27 @@ class IdPTestLoginAPI(IdPAPITests):
 
         assert "eduPersonPrincipalName" in attributes
         assert attributes["eduPersonPrincipalName"] == [f"hubba-bubba@{self.app.conf.default_eppn_scope}"]
+
+    def test_login_missing_attributes(self) -> None:
+        # pre-accept ToU for this test
+        self.add_test_user_tou()
+
+        # remove mail address from user to simulate missing attribute
+        self.test_user.mail_addresses = MailAddressList()
+        self.request_user_sync(self.test_user)
+
+        # Patch the VCCSClient, so we do not need a vccs server
+        with patch.object(VCCSClient, "authenticate") as mock_vccs:
+            mock_vccs.return_value = True
+            result = self._try_login()
+
+        assert result.visit_order == [IdPAction.PWAUTH, IdPAction.FINISHED]
+        assert result.finished_result is not None
+        assert len(result.finished_result.payload["missing_attributes"]) == 1
+        assert result.finished_result.payload["missing_attributes"][0]["friendly_name"] == "mailLocalAddress"
+
+        attributes = self.get_attributes(result)
+        assert attributes["mailLocalAddress"] == []
 
     def test_ForceAuthn_with_existing_SSO_session(self) -> None:
         # pre-accept ToU for this test
