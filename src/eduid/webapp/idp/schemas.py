@@ -36,11 +36,16 @@ class NextResponseSchema(FluxStandardAction):
         class ServiceInfoResponsePayload(EduidSchema):
             display_name = fields.Dict(keys=fields.Str(), values=fields.Str(), required=False)
 
+        class MissingAttributesPayload(EduidSchema):
+            name = fields.Str(required=True)
+            friendly_name = fields.Str(required=True)
+
         action = fields.Str(required=True)
         target = fields.Str(required=True)
         parameters = fields.Dict(keys=fields.Str(), required=False)
         authn_options = fields.Nested(AuthnOptionsResponsePayload, required=False)
         service_info = fields.Nested(ServiceInfoResponsePayload, required=False)
+        missing_attributes = fields.List(fields.Nested(MissingAttributesPayload), required=False)
 
     payload = fields.Nested(NextResponsePayload)
 
