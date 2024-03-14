@@ -168,6 +168,7 @@ class MailQueueWorker(QueueWorker):
     def _build_mail(self, subject: str, txt_template: str, html_template: str, data: EmailPayload) -> EmailMessage:
         msg = self._create_base_message(recipient=data.email)
         with self._jinja2.select_language(data.language) as env:
+            logger.debug(f"LANG: {data.language}")
             msg["Subject"] = subject
             txt = env.get_template(txt_template).render(**asdict(data))
             logger.debug(f"TXT: {txt}")
