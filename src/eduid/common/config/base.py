@@ -80,6 +80,7 @@ class RootConfig(BaseModel):
     testing: bool = False
     environment: EduidEnvironment = EduidEnvironment.production
     default_eppn_scope: str = "eduid.se"
+    default_language: str = "en"
     model_config = ConfigDict(validate_assignment=True)
 
 

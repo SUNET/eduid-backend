@@ -76,3 +76,10 @@ class OldEduidSignupEmail(EmailPayload):
     site_name: str
     site_url: str
     version: int = 1
+
+
+@dataclass
+class EduidResetPasswordEmail(EmailPayload):
+    verification_code: str
+    site_name: str
+    version: int = 1

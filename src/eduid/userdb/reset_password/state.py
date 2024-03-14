@@ -4,6 +4,7 @@ import datetime
 import logging
 from dataclasses import asdict, dataclass, field
 from typing import Any, Optional, TypeVar
+from uuid import uuid4
 
 import bson
 
@@ -79,6 +80,8 @@ class _ResetPasswordEmailStateRequired:
 @dataclass
 class ResetPasswordEmailState(ResetPasswordState, _ResetPasswordEmailStateRequired):
     """ """
+
+    email_reference: str = field(default_factory=lambda: str(uuid4()))
 
     def __post_init__(self):
         super().__post_init__()
