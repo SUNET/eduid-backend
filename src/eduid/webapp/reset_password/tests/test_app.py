@@ -592,12 +592,6 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         state2 = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
         self.assertNotEqual(state1.email_code.code, state2.email_code.code)
 
-    def test_post_email_address_sendmail_fail(self):
-        from eduid.common.rpc.exceptions import MailTaskFailed
-
-        response = self._post_email_address(sendmail_return=False, sendmail_side_effect=MailTaskFailed)
-        self._check_error_response(response, msg=ResetPwMsg.email_send_failure, type_="POST_RESET_PASSWORD_FAIL")
-
     @patch("eduid.userdb.userdb.UserDB.get_user_by_mail")
     def test_post_email_uncomplete_signup(self, mock_get_user: Mock):
         mock_get_user.side_effect = UserHasNotCompletedSignup("incomplete signup")

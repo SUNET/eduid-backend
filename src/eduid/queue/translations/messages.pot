@@ -2,30 +2,24 @@
 # Copyright (C) 2024 ORGANIZATION
 # This file is distributed under the same license as the PROJECT project.
 # FIRST AUTHOR <EMAIL@ADDRESS>, 2024.
-# 
-# Translators:
-# Johan Lundberg <lundberg.johan@gmail.com>, 2020
-# Johan Lundberg <lundberg@sunet.se>, 2024
-# 
+#
 #, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
 "POT-Creation-Date: 2024-03-14 11:16+0100\n"
-"PO-Revision-Date: 2020-10-21 13:47+0000\n"
-"Last-Translator: Johan Lundberg <lundberg@sunet.se>, 2024\n"
-"Language-Team: Swedish (Sweden) (https://app.transifex.com/sunet/teams/114180/sv_SE/)\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.8.0\n"
-"Language: sv_SE\n"
-"Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
 #: /home/lundberg/projects/eduid-backend/src/eduid/queue/templates/eduid_invite_mail_html.jinja2:1
 msgid "en"
-msgstr "sv"
+msgstr ""
 
 #: /home/lundberg/projects/eduid-backend/src/eduid/queue/templates/eduid_invite_mail_html.jinja2:3
 #, python-format
@@ -39,14 +33,6 @@ msgid ""
 "\n"
 "    <p>(This is an automated email. Please do not reply.)</p>\n"
 msgstr ""
-"\n"
-"<p>Du har fått en inbjudan från %(inviter_name)s att skapa ett eduID-konto.</p>\n"
-"\n"
-"<p>Följ länken nedan för att acceptera inbjudan och skapa ditt konto.</p>\n"
-"\n"
-"<a href=\"%(invite_link)s\">%(invite_link)s</a>\n"
-"\n"
-"<p>(Detta är ett automatiserat meddelande och går ej att svara på.)</p>\n"
 
 #: /home/lundberg/projects/eduid-backend/src/eduid/queue/templates/eduid_invite_mail_txt.jinja2:2
 #, python-format
@@ -60,14 +46,6 @@ msgid ""
 "\n"
 "    (This is an automated email. Please do not reply.)\n"
 msgstr ""
-"\n"
-"    Du har fått en inbjudan från %(inviter_name)s att skapa ett eduID-konto.\n"
-"\n"
-"    Följ länken nedan för att acceptera inbjudan och skapa ditt konto.\n"
-"\n"
-"    %(invite_link)s\n"
-"\n"
-"    (Detta är ett automatiserat meddelande och går ej att svara på.)\n"
 
 #: /home/lundberg/projects/eduid-backend/src/eduid/queue/templates/eduid_signup_email.html.jinja2:1
 #, python-format
@@ -83,16 +61,6 @@ msgid ""
 "<p>%(verification_code)s</p>\n"
 "\n"
 msgstr ""
-"\n"
-"\n"
-"<h2>Välkommen till %(site_name)s,</h2>\n"
-"\n"
-"<p>Du har registrerat  %(email)s som e-postadress för %(site_name)s.</p>\n"
-"\n"
-"<p>Skriv in koden nedan på verifieringssidan för att visa att adressen tillhör dig:</p>\n"
-"\n"
-"<p>%(verification_code)s</p>\n"
-"\n"
 
 #: /home/lundberg/projects/eduid-backend/src/eduid/queue/templates/eduid_signup_email.txt.jinja2:1
 #, python-format
@@ -108,15 +76,6 @@ msgid ""
 "%(verification_code)s\n"
 "\n"
 msgstr ""
-"\n"
-"Välkommen till %(site_name)s,\n"
-"\n"
-"Du har registrerat %(email)s som e-postadress för %(site_name)s.\n"
-"\n"
-"Skriv in koden nedan på verifieringssidan för att visa att adressen tillhör dig:\n"
-"\n"
-"%(verification_code)s\n"
-"\n"
 
 #: /home/lundberg/projects/eduid-backend/src/eduid/queue/templates/old_eduid_signup_email.html.jinja2:1
 #, python-format
@@ -132,16 +91,6 @@ msgid ""
 "<a href=\"%(verification_link)s\">%(verification_link)s</a>\n"
 "\n"
 msgstr ""
-"\n"
-"\n"
-"<h2>Välkommen till %(site_name)s,</h2>\n"
-"\n"
-"<p>Du har nyligen registrerat dig hos <a href=\"%(site_url)s\">%(site_name)s</a>.</p>\n"
-"\n"
-"<p>Skriv in koden nedan på verifieringssidan för att visa att adressen tillhör dig:</p>\n"
-"\n"
-"<a href=\"%(verification_link)s\">%(verification_link)s</a>\n"
-"\n"
 
 #: /home/lundberg/projects/eduid-backend/src/eduid/queue/templates/old_eduid_signup_email.txt.jinja2:1
 #, python-format
@@ -157,16 +106,6 @@ msgid ""
 "  %(verification_link)s\n"
 "\n"
 msgstr ""
-"\n"
-"\n"
-"Välkommen till %(site_name)s,\n"
-"\n"
-"Du har nyligen registrerat dig hos %(site_name)s.\n"
-"\n"
-"Skriv in koden nedan på verifieringssidan för att visa att adressen tillhör dig:\n"
-"\n"
-"  %(verification_link)s\n"
-"\n"
 
 #: /home/lundberg/projects/eduid-backend/src/eduid/queue/templates/reset_password_email.html.jinja2:1
 #, python-format
@@ -181,14 +120,6 @@ msgid ""
 "<p>The code is valid for %(password_reset_timeout)s hours.</p>\n"
 "<p>(This is an automated email. Please do not reply.)</p>\n"
 msgstr ""
-"\n"
-"<p>Hej,</p>\n"
-"<p>Du har bett om att byta lösenord för ditt %(site_name)s-konto .</p>\n"
-"<p>För att fortsätta byta lösenord skriv in koden nedan på verifieringssidan:\n"
-"<p>%(verification_code)s</p>\n"
-"\n"
-"<p>Koden är giltig i %(password_reset_timeout)s timmar.</p>\n"
-"<p>(Detta är ett automatiserat meddelande och går ej att svara på.)</p>\n"
 
 #: /home/lundberg/projects/eduid-backend/src/eduid/queue/templates/reset_password_email.txt.jinja2:1
 #, python-format
@@ -206,27 +137,16 @@ msgid ""
 "\n"
 "(This is an automated email. Please do not reply.)\n"
 msgstr ""
-"\n"
-"Hej,\n"
-"\n"
-"Du har bett om att byta lösenord för ditt %(site_name)s-konto..\n"
-"\n"
-"För att fortsätta byta lösenord skriv in koden nedan på verifieringssidan:\n"
-"\n"
-"%(verification_code)s\n"
-"\n"
-"Koden är giltig i  %(password_reset_timeout)s timmar.\n"
-"\n"
-"(Detta är ett automatiserat meddelande och går ej att svara på.)\n"
 
 #: /home/lundberg/projects/eduid-backend/src/eduid/queue/workers/mail.py:182
 msgid "eduID invitation"
-msgstr "eduID-inbjudan"
+msgstr ""
 
 #: /home/lundberg/projects/eduid-backend/src/eduid/queue/workers/mail.py:196
 msgid "eduID registration"
-msgstr "eduID-registrering"
+msgstr ""
 
 #: /home/lundberg/projects/eduid-backend/src/eduid/queue/workers/mail.py:210
 msgid "Reset password"
-msgstr "Återställa lösenord"
+msgstr ""
+

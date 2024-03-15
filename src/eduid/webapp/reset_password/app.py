@@ -6,6 +6,7 @@ from eduid.common.config.parsers import load_config
 from eduid.common.rpc.am_relay import AmRelay
 from eduid.common.rpc.mail_relay import MailRelay
 from eduid.common.rpc.msg_relay import MsgRelay
+from eduid.queue.db.message import MessageDB
 from eduid.userdb.logs import ProofingLog
 from eduid.userdb.reset_password import ResetPasswordStateDB, ResetPasswordUserDB
 from eduid.webapp.common.api import translation
@@ -30,6 +31,7 @@ class ResetPasswordApp(EduIDBaseApp):
         self.private_userdb = ResetPasswordUserDB(self.conf.mongo_uri)
         self.password_reset_state_db = ResetPasswordStateDB(self.conf.mongo_uri)
         self.proofing_log = ProofingLog(self.conf.mongo_uri)
+        self.messagedb = MessageDB(config.mongo_uri)
 
         self.babel = translation.init_babel(self)
 

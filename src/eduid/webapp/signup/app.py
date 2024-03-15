@@ -10,7 +10,6 @@ from eduid.common.rpc.mail_relay import MailRelay
 from eduid.queue.db.message import MessageDB
 from eduid.userdb.logs import ProofingLog
 from eduid.userdb.signup import SignupInviteDB, SignupUserDB
-from eduid.webapp.common.api import translation
 from eduid.webapp.common.api.app import EduIDBaseApp
 from eduid.webapp.common.api.captcha import init_captcha
 from eduid.webapp.signup.settings.common import SignupConfig
@@ -33,8 +32,6 @@ class SignupApp(EduIDBaseApp):
         self.proofing_log = ProofingLog(config.mongo_uri)
         self.invite_db = SignupInviteDB(config.mongo_uri)
         self.messagedb = MessageDB(config.mongo_uri)
-
-        self.babel = translation.init_babel(self)
 
     def get_scim_client_for(self, data_owner: str) -> SCIMClient:
         if self.conf.gnap_auth_data is None or self.conf.scim_api_url is None:
