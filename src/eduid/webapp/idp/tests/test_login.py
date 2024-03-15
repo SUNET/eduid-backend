@@ -17,6 +17,7 @@ from eduid.userdb.maccapi.userdb import ManagedAccount
 from eduid.userdb.mail import MailAddressList
 from eduid.vccs.client import VCCSClient
 from eduid.webapp.common.authn.utils import get_saml2_config
+from eduid.webapp.idp.assurance_data import EduidAuthnContextClass
 from eduid.webapp.idp.helpers import IdPAction, IdPMsg
 from eduid.webapp.idp.tests.test_api import IdPAPITests, TestUser
 from eduid.workers.am import AmCelerySingleton
@@ -103,32 +104,43 @@ class IdPTestLoginAPI(IdPAPITests):
         assert attributes["mailLocalAddress"] == []
 
     def test_ForceAuthn_with_existing_SSO_session(self) -> None:
-        # pre-accept ToU for this test
-        self.add_test_user_tou()
+        for accr in [None, EduidAuthnContextClass.PASSWORD_PT, EduidAuthnContextClass.REFEDS_MFA]:
+            requested_authn_context = None
+            if accr is not None:
+                requested_authn_context = {"authn_context_class_ref": [accr.value]}
 
-        # Patch the VCCSClient, so we do not need a vccs server
-        with patch.object(VCCSClient, "authenticate") as mock_vccs:
-            mock_vccs.return_value = True
-            result = self._try_login()
+            # pre-accept ToU for this test
+            self.add_test_user_tou()
 
-        assert result.finished_result is not None
-        authn_response = self.parse_saml_authn_response(result.finished_result)
-        session_info = authn_response.session_info()
-        attributes: dict[str, list[Any]] = session_info["ava"]
+            # Patch the VCCSClient, so we do not need a vccs server
+            with patch.object(VCCSClient, "authenticate") as mock_vccs:
+                mock_vccs.return_value = True
+                result = self._try_login()
 
-        assert "eduPersonPrincipalName" in attributes
-        assert attributes["eduPersonPrincipalName"] == [f"hubba-bubba@{self.app.conf.default_eppn_scope}"]
+            assert result.finished_result is not None
+            authn_response = self.parse_saml_authn_response(result.finished_result)
+            session_info = authn_response.session_info()
+            attributes: dict[str, list[Any]] = session_info["ava"]
 
-        # Log in again, with ForceAuthn="true"
-        # Patch the VCCSClient, so we do not need a vccs server
-        with patch.object(VCCSClient, "authenticate") as mock_vccs:
-            mock_vccs.return_value = True
-            result2 = self._try_login(force_authn=True, sso_cookie_val=result.sso_cookie_val)
+            assert "eduPersonPrincipalName" in attributes
+            assert attributes["eduPersonPrincipalName"] == [f"hubba-bubba@{self.app.conf.default_eppn_scope}"]
 
-        assert result2.finished_result is not None
-        authn_response2 = self.parse_saml_authn_response(result2.finished_result)
-        # Make sure the second response isn't referring to the first login request
-        assert authn_response.in_response_to != authn_response2.in_response_to
+            # Log in again, with ForceAuthn="true"
+            # Patch the VCCSClient, so we do not need a vccs server
+            with patch.object(VCCSClient, "authenticate") as mock_vccs:
+                mock_vccs.return_value = True
+                result2 = self._try_login(
+                    force_authn=True, authn_context=requested_authn_context, sso_cookie_val=result.sso_cookie_val
+                )
+
+            if accr is EduidAuthnContextClass.REFEDS_MFA:
+                # we currently have no way to mock a correct MFA authentication so just check that we try to do MFA
+                assert result2.visit_order == [IdPAction.PWAUTH, IdPAction.MFA]
+            else:
+                assert result2.finished_result is not None
+                authn_response2 = self.parse_saml_authn_response(result2.finished_result)
+                # Make sure the second response isn't referring to the first login request
+                assert authn_response.in_response_to != authn_response2.in_response_to
 
     def test_terminated_user(self) -> None:
         user = self.amdb.get_user_by_eppn(self.test_user.eppn)

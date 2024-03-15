@@ -265,8 +265,9 @@ def response_authn(authn: AuthnState, ticket: LoginContext, user: IdPUser, sso_s
 
     elif req_authn_ctx == EduidAuthnContextClass.PASSWORD_PT:
         current_idp_app.stats.count("req_authn_ctx_password_pt")
-        if authn.password_used:
-            response_accr = EduidAuthnContextClass.PASSWORD_PT
+        if not authn.password_used:
+            raise MissingPasswordFactor()
+        response_accr = EduidAuthnContextClass.PASSWORD_PT
 
     elif req_authn_ctx is None:
         # Handle empty req_authn_ctx
