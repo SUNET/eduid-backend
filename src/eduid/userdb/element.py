@@ -52,8 +52,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Generic, Mapping, NewType, Optional, TypeVar, Union
 
-from pydantic import BaseModel, ConfigDict, Field, InstanceOf, field_validator, validator
-from pydantic_core.core_schema import ValidationInfo
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from eduid.userdb.db import TUserDbDocument
 from eduid.userdb.exceptions import EduIDUserDBError, UserDBValueError
@@ -154,12 +153,12 @@ class Element(BaseModel):
         if "added_timestamp" in data:
             data["created_ts"] = data.pop("added_timestamp")
 
-        if "created_ts" not in data:
+        if "created_ts" not in data or isinstance(data.get("created_ts"), bool):
             # some really old nin entries in the database have neither created_ts nor modified_ts
             data["no_created_ts_in_db"] = True
             data["created_ts"] = datetime.fromisoformat("1900-01-01T00:00:00+00:00")
 
-        if "modified_ts" not in data:
+        if "modified_ts" not in data or isinstance(data.get("modified_ts"), bool):
             data["no_modified_ts_in_db"] = True
             # Use created_ts as modified_ts if no explicit modified_ts was found
             data["modified_ts"] = data["created_ts"]
