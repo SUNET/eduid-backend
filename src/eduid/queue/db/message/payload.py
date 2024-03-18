@@ -82,4 +82,5 @@ class OldEduidSignupEmail(EmailPayload):
 class EduidResetPasswordEmail(EmailPayload):
     verification_code: str
     site_name: str
+    password_reset_timeout: int  # hours
     version: int = 1

@@ -1,5 +1,6 @@
 import math
 from dataclasses import dataclass
+from datetime import timedelta
 from enum import unique
 from typing import Any, Mapping, Optional, Union
 
@@ -193,6 +194,7 @@ def send_password_reset_mail(email_address: str) -> ResetPasswordEmailState:
         payload = EduidResetPasswordEmail(
             email=email_address,
             verification_code=state.email_code.code,
+            password_reset_timeout=current_app.conf.email_code_timeout // timedelta(hours=1),
             site_name=current_app.conf.eduid_site_name,
             language=get_user_locale() or current_app.conf.default_language,
             reference=state.email_reference,

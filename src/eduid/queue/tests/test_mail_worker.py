@@ -142,6 +142,7 @@ class TestMailWorker(QueueAsyncioTest):
                 reference="test",
                 language=lang,
                 verification_code="secret",
+                password_reset_timeout=2,
                 site_name="Test App",
             )
             msg = self.worker._build_mail(
@@ -153,5 +154,7 @@ class TestMailWorker(QueueAsyncioTest):
             msg_string = str(msg)
             if lang == "en":
                 assert "You recently asked to reset your password for" in msg_string
+                assert "The code is valid for 2 hours." in msg_string
             if lang == "sv":
                 assert "Du har bett om att byta" in msg_string
+                assert "giltig i 2 timmar." in msg_string
