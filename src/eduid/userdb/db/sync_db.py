@@ -20,6 +20,25 @@ logger = logging.getLogger(__name__)
 extra_logger = logger.getChild("extra_debug")
 
 
+class MongoClientCache:
+    """
+    A cache for pymongo.MongoClient instances.
+    """
+
+    _clients: dict[str, pymongo.MongoClient] = {}
+
+    def get_client(self, db_args) -> pymongo.MongoClient:
+        connection_uri: str = db_args["host"]
+        if connection_uri in self._clients:
+            logger.debug(f"Reusing existing connection to {connection_uri}")
+            return self._clients[connection_uri]
+        else:
+            logger.debug(f"Creating new connection to {connection_uri}")
+            client = pymongo.MongoClient[TUserDbDocument](**db_args)
+            self._clients[connection_uri] = client
+            return client
+
+
 class MongoDB(BaseMongoDB):
     def __init__(
         self,
@@ -29,7 +48,7 @@ class MongoDB(BaseMongoDB):
     ):
         super().__init__(db_uri=db_uri, db_name=db_name, **kwargs)
         try:
-            self._client = pymongo.MongoClient[TUserDbDocument](**self.db_args)
+            self._client = MongoClientCache().get_client(db_args=self.db_args)
 
         except PyMongoError as e:
             raise MongoConnectionError(f"Error connecting to mongodb {self!r}: {e}")

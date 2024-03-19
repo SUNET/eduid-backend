@@ -10,13 +10,17 @@ from aiosmtplib import SMTPResponse
 from eduid.common.config.parsers import load_config
 from eduid.queue.config import QueueWorkerConfig
 from eduid.queue.db.message import EduidSignupEmail
-from eduid.queue.testing import QueueAsyncioTest, SMPTDFixTemporaryInstance
+from eduid.queue.testing import IsolatedWorkerDBMixin, QueueAsyncioTest, SMPTDFixTemporaryInstance
 from eduid.queue.workers.mail import MailQueueWorker
 from eduid.userdb.util import utc_now
 
 __author__ = "lundberg"
 
 logger = logging.getLogger(__name__)
+
+
+class TestMailQueueWorker(IsolatedWorkerDBMixin, MailQueueWorker):
+    pass
 
 
 class TestMailWorker(QueueAsyncioTest):
@@ -54,7 +58,7 @@ class TestMailWorker(QueueAsyncioTest):
         await super().asyncSetUp()
         self.worker_db.register_handler(EduidSignupEmail)
         await asyncio.sleep(0.5)  # wait for db
-        self.worker = MailQueueWorker(config=self.config)
+        self.worker = TestMailQueueWorker(config=self.config)
         self.tasks = [asyncio.create_task(self.worker.run())]
         await asyncio.sleep(0.5)  # wait for worker to initialize
 
