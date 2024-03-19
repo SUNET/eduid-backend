@@ -6,15 +6,16 @@ from typing import Any, Optional, Sequence
 from fastapi import Request, Response
 from pymongo.errors import DuplicateKeyError
 
+from eduid.common.fastapi.context_request import ContextRequest
 from eduid.common.models.scim_base import Email, Meta, Name, PhoneNumber, SCIMResourceType, SCIMSchema, SearchRequest
 from eduid.common.models.scim_invite import InviteCreateRequest, InviteResponse, NutidInviteExtensionV1
 from eduid.common.models.scim_user import NutidUserExtensionV1, Profile
+from eduid.common.utils import get_short_hash, make_etag
 from eduid.queue.db import QueueItem, SenderInfo
 from eduid.queue.db.message import EduidInviteEmail
-from eduid.scimapi.context_request import ContextRequest
 from eduid.scimapi.exceptions import BadRequest
 from eduid.scimapi.search import SearchFilter
-from eduid.scimapi.utils import get_short_hash, get_unique_hash, make_etag
+from eduid.scimapi.utils import get_unique_hash
 from eduid.userdb.scimapi.invitedb import ScimApiInvite
 from eduid.userdb.signup import Invite as SignupInvite
 from eduid.userdb.signup import InviteMailAddress, InvitePhoneNumber, InviteType, SCIMReference
@@ -106,7 +107,7 @@ def db_invite_to_response(req: Request, resp: Response, db_invite: ScimApiInvite
 
     resp.headers["Location"] = location
     resp.headers["ETag"] = make_etag(db_invite.version)
-    req.app.context.logger.debug(f"Extra debug: Response:\n{scim_invite.json(exclude_none=True, indent=2)}")
+    req.app.context.logger.debug(f"Extra debug: Response:\n{scim_invite.model_dump_json(exclude_none=True, indent=2)}")
     return scim_invite
 
 

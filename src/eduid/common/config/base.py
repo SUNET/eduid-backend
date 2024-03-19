@@ -1,35 +1,3 @@
-#
-# Copyright (c) 2013-2016 NORDUnet A/S
-# Copyright (c) 2019 SUNET
-# All rights reserved.
-#
-#   Redistribution and use in source and binary forms, with or
-#   without modification, are permitted provided that the following
-#   conditions are met:
-#
-#     1. Redistributions of source code must retain the above copyright
-#        notice, this list of conditions and the following disclaimer.
-#     2. Redistributions in binary form must reproduce the above
-#        copyright notice, this list of conditions and the following
-#        disclaimer in the documentation and/or other materials provided
-#        with the distribution.
-#     3. Neither the name of the NORDUnet nor the names of its
-#        contributors may be used to endorse or promote products derived
-#        from this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-# FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
-# COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
-# ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
-#
 """
 Configuration (file) handling for eduID IdP.
 """
@@ -40,10 +8,10 @@ from datetime import timedelta
 from enum import Enum
 from pathlib import Path
 from re import Pattern
-from typing import Any, Mapping, Optional, Sequence, TypeVar, Union
+from typing import Annotated, Any, Mapping, Optional, Sequence, TypeVar, Union
 
 import pkg_resources
-from pydantic import BaseModel, Field
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field
 
 from eduid.userdb.credentials import CredentialProofingMethod
 from eduid.userdb.credentials.external import TrustFramework
@@ -100,23 +68,24 @@ class CookieConfig(BaseModel):
 TRootConfigSubclass = TypeVar("TRootConfigSubclass", bound="RootConfig")
 
 
-class RootConfig(BaseModel):
-    app_name: str
-    debug: bool = False
-    testing: bool = False
-
-    class Config:
-        validate_assignment = True  # validate data when test cases modify the config object
-
-
-# EduIDBaseApp is currently Flask apps
-TEduIDBaseAppConfigSubclass = TypeVar("TEduIDBaseAppConfigSubclass", bound="EduIDBaseAppConfig")
-
-
 class EduidEnvironment(str, Enum):
     dev = "dev"
     staging = "staging"
     production = "production"
+
+
+class RootConfig(BaseModel):
+    app_name: str
+    debug: bool = False
+    testing: bool = False
+    environment: EduidEnvironment = EduidEnvironment.production
+    default_eppn_scope: str = "eduid.se"
+    default_language: str = "en"
+    model_config = ConfigDict(validate_assignment=True)
+
+
+# EduIDBaseApp is currently Flask apps
+TEduIDBaseAppConfigSubclass = TypeVar("TEduIDBaseAppConfigSubclass", bound="EduIDBaseAppConfig")
 
 
 class LoggingFilters(str, Enum):
@@ -135,7 +104,6 @@ class WorkerConfig(RootConfig):
 
     audit: bool = False
     celery: CeleryConfig = Field(default_factory=CeleryConfig)
-    environment: EduidEnvironment = EduidEnvironment.production
     mongo_uri: Optional[str] = None
     transaction_audit: bool = False
 
@@ -277,8 +245,8 @@ class CeleryConfigMixin(BaseModel):
 
 class LoggingConfigMixin(BaseModel):
     app_name: str
-    testing: bool = False
     debug: bool = False
+    testing: bool = False
     # If this list contains anything, debug logging will only be performed for these users
     debug_eppns: Sequence[str] = Field(default=[])
     log_format: str = "{asctime} | {levelname:7} | {hostname} | {eppn:11} | {name:35} | {module:10} | {message}"
@@ -326,7 +294,7 @@ class CaptchaConfigMixin(BaseModel):
 class AmConfigMixin(CeleryConfigMixin):
     """Config used by AmRelay"""
 
-    am_relay_for_override: Optional[str]  # only set this if f'eduid_{app_name}' is not right
+    am_relay_for_override: Optional[str] = None  # only set this if f'eduid_{app_name}' is not right
 
 
 class MailConfigMixin(CeleryConfigMixin):
@@ -372,24 +340,28 @@ class Pysaml2SPConfigMixin(BaseModel):
 class ProofingConfigMixin(BaseModel):
     # sweden connect
     trust_framework: TrustFramework = TrustFramework.SWECONN
-    required_loa: list[str] = Field(default=["loa3"])  # one of authentication_context_map below
+    required_loa: list[str] = Field(default=["loa3"])
     freja_idp: Optional[str] = None
 
     # eidas
     foreign_trust_framework: TrustFramework = TrustFramework.EIDAS
-    foreign_required_loa: list[str] = Field(
-        default=["eidas-nf-low", "eidas-nf-sub", "eidas-nf-high"]
-    )  # one of authentication_context_map below
+    foreign_required_loa: list[str] = Field(default=["eidas-nf-low", "eidas-nf-sub", "eidas-nf-high"])
     foreign_identity_idp: Optional[str] = None
+
+    # bankid
+    bankid_trust_framework: TrustFramework = TrustFramework.BANKID
+    bankid_required_loa: list[str] = Field(default=["uncertified-loa3"])
+    bankid_idp: Optional[str] = None
 
     # identity proofing
     freja_proofing_version: str = Field(default="2023v1")
     foreign_eid_proofing_version: str = Field(default="2022v1")
     svipe_id_proofing_version: str = Field(default="2023v2")
+    bankid_proofing_version: str = Field(default="2023v1")
 
     # security key proofing
     security_key_proofing_method: CredentialProofingMethod = Field(default=CredentialProofingMethod.SWAMID_AL3_MFA)
-    security_key_proofing_version: str = Field(default="2023v1")
+    security_key_proofing_version: str = Field(default="2023v2")
     security_key_foreign_eid_proofing_version: str = Field(default="2022v1")
 
     frontend_action_finish_url: dict[str, str] = Field(default={})
@@ -398,7 +370,6 @@ class ProofingConfigMixin(BaseModel):
 
 class EduIDBaseAppConfig(RootConfig, LoggingConfigMixin, StatsConfigMixin, RedisConfigMixin):
     available_languages: Mapping[str, str] = Field(default={"en": "English", "sv": "Svenska"})
-    environment: EduidEnvironment = EduidEnvironment.production
     flask: FlaskConfig = Field(default_factory=FlaskConfig)
     mongo_uri: str
     # Allow list of URLs that do not need authentication. Unauthenticated requests
@@ -411,3 +382,36 @@ class EduIDBaseAppConfig(RootConfig, LoggingConfigMixin, StatsConfigMixin, Redis
     status_cache_seconds: int = 10
     # All AuthnBaseApps need this to redirect not-logged-in requests to the authn service
     token_service_url: str
+
+
+ReasonableDomainName = Annotated[str, Field(min_length=len("x.se")), AfterValidator(lambda v: v.lower())]
+DataOwnerName = ReasonableDomainName
+ScopeName = ReasonableDomainName
+
+
+class DataOwnerConfig(BaseModel):
+    db_name: Optional[str] = None
+    notify: list[str] = []
+
+
+class AuthnBearerTokenConfig(RootConfig):
+    protocol: str = "http"
+    server_name: str = "localhost:8000"
+    application_root: str = ""
+    log_format: str = "{asctime} | {levelname:7} | {hostname} | {name:35} | {module:10} | {message}"
+    no_authn_urls: list[str] = Field(default=["^/status/healthy$", "^/docs/?$", "^/openapi.json"])
+    mongo_uri: str = ""
+    authorization_mandatory: bool = True
+    authorization_token_expire: int = 5 * 60
+    keystore_path: Path
+    data_owners: dict[DataOwnerName, DataOwnerConfig] = Field(default={})
+    max_loaded_data_owner_dbs: int = 10
+    # Map scope to data owner name
+    scope_mapping: dict[ScopeName, DataOwnerName] = Field(default={})
+    # Allow someone with scope x to sudo to scope y
+    scope_sudo: dict[ScopeName, set[ScopeName]] = Field(default={})
+    requested_access_type: Optional[str] = None
+    required_saml_assurance_level: list[str] = Field(default=["http://www.swamid.se/policy/assurance/al3"])
+    # group name to match saml entitlement for authorization
+    account_manager_default_group: str = "Account Managers"
+    account_manager_group_mapping: dict[DataOwnerName, str] = Field(default={})

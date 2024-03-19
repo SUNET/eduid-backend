@@ -3,10 +3,11 @@ from typing import Optional
 
 from fastapi import Response
 
+from eduid.common.fastapi.context_request import ContextRequest
 from eduid.common.models.scim_base import ListResponse, SCIMResourceType, SearchRequest
 from eduid.common.models.scim_invite import InviteCreateRequest, InviteResponse, InviteUpdateRequest
 from eduid.scimapi.api_router import APIRouter
-from eduid.scimapi.context_request import ContextRequest, ContextRequestRoute
+from eduid.scimapi.context_request import ScimApiRoute
 from eduid.scimapi.exceptions import BadRequest, ErrorDetail, NotFound
 from eduid.scimapi.routers.utils.events import add_api_event
 from eduid.scimapi.routers.utils.invites import (
@@ -25,7 +26,7 @@ from eduid.userdb.scimapi.invitedb import ScimApiInvite
 __author__ = "lundberg"
 
 invites_router = APIRouter(
-    route_class=ContextRequestRoute,
+    route_class=ScimApiRoute,
     prefix="/Invites",
     responses={
         400: {"description": "Bad request", "model": ErrorDetail},
@@ -55,7 +56,7 @@ async def on_put(
     req: ContextRequest, resp: Response, update_request: InviteUpdateRequest, scim_id: str
 ) -> InviteResponse:
     if scim_id != str(update_request.id):
-        req.app.context.logger.error(f"Id mismatch")
+        req.app.context.logger.error("Id mismatch")
         req.app.context.logger.debug(f"{scim_id} != {update_request.id}")
         raise BadRequest(detail="Id mismatch")
 
@@ -166,7 +167,7 @@ async def on_put(
             message="Invite was updated",
         )
     else:
-        req.app.context.logger.info(f"No changes detected")
+        req.app.context.logger.info("No changes detected")
 
     return db_invite_to_response(req, resp, db_invite, signup_invite)
 
@@ -217,7 +218,7 @@ async def on_post(req: ContextRequest, resp: Response, create_request: InviteCre
          ],
      }
     """
-    req.app.context.logger.info(f"Creating invite")
+    req.app.context.logger.info("Creating invite")
     profiles = {}
     for profile_name, profile in create_request.nutid_user_v1.profiles.items():
         profiles[profile_name] = ScimApiProfile(attributes=profile.attributes, data=profile.data)

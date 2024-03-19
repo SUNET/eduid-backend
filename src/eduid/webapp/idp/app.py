@@ -1,35 +1,3 @@
-#
-# Copyright (c) 2020 SUNET
-# All rights reserved.
-#
-#   Redistribution and use in source and binary forms, with or
-#   without modification, are permitted provided that the following
-#   conditions are met:
-#
-#     1. Redistributions of source code must retain the above copyright
-#        notice, this list of conditions and the following disclaimer.
-#     2. Redistributions in binary form must reproduce the above
-#        copyright notice, this list of conditions and the following
-#        disclaimer in the documentation and/or other materials provided
-#        with the distribution.
-#     3. Neither the name of the SUNET nor the names of its
-#        contributors may be used to endorse or promote products derived
-#        from this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-# FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
-# COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
-# ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
-#
-
 from typing import Any, Mapping, Optional, cast
 
 from flask import current_app
@@ -37,9 +5,8 @@ from flask import current_app
 from eduid.common.config.parsers import load_config
 from eduid.common.rpc.am_relay import AmRelay
 from eduid.userdb.actions.tou.userdb import ToUUserDB
-
-# from eduid.userdb.actions.tou import ToUUserDB
 from eduid.userdb.idp import IdPUserDb
+from eduid.userdb.maccapi import ManagedAccountDB
 from eduid.webapp.common.api import translation
 from eduid.webapp.common.api.app import EduIDBaseApp
 from eduid.webapp.common.authn.utils import init_pysaml2
@@ -78,7 +45,8 @@ class IdPApp(EduIDBaseApp):
         self.authn_info_db = None
 
         self.userdb = IdPUserDb(db_uri=config.mongo_uri)
-        self.authn = idp_authn.IdPAuthn(config=config, userdb=self.userdb)
+        self.managed_account_db = ManagedAccountDB(config.mongo_uri)
+        self.authn = idp_authn.IdPAuthn(config=config, userdb=self.userdb, managed_account_db=self.managed_account_db)
         self.tou_db = ToUUserDB(config.mongo_uri)
         self.other_device_db = OtherDeviceDB(config.mongo_uri)
         self.known_device_db = KnownDeviceDB(

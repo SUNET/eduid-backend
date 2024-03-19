@@ -1,6 +1,6 @@
 import warnings
 from dataclasses import dataclass
-from typing import Any, Iterable, List, Optional, TypeVar, Union, cast, overload
+from typing import Any, List, Optional, TypeVar, Union, cast, overload
 
 from flask import current_app, render_template, request
 
@@ -164,13 +164,11 @@ TProofingUser = TypeVar("TProofingUser", bound=User)
 
 
 @overload
-def add_nin_to_user(user: User, proofing_state: NinProofingState) -> ProofingUser:
-    ...
+def add_nin_to_user(user: User, proofing_state: NinProofingState) -> ProofingUser: ...
 
 
 @overload
-def add_nin_to_user(user: User, proofing_state: NinProofingState, user_type: type[TProofingUser]) -> TProofingUser:
-    ...
+def add_nin_to_user(user: User, proofing_state: NinProofingState, user_type: type[TProofingUser]) -> TProofingUser: ...
 
 
 def add_nin_to_user(user, proofing_state, user_type=ProofingUser):
@@ -185,6 +183,7 @@ def add_nin_to_user(user, proofing_state, user_type=ProofingUser):
             created_ts=proofing_state.nin.created_ts,
             is_verified=False,  # always add a nin identity as unverified
             number=proofing_state.nin.number,
+            date_of_birth=proofing_state.nin.date_of_birth,
         )
         proofing_user.identities.add(nin_identity)
         save_and_sync_user(proofing_user)
@@ -249,6 +248,7 @@ def verify_nin_for_user(
         proofing_user.identities.remove(ElementKey(IdentityType.NIN.value))
         nin_identity = NinIdentity(
             number=proofing_state.nin.number,
+            date_of_birth=proofing_state.nin.date_of_birth,
             created_ts=proofing_state.nin.created_ts,
             created_by=proofing_state.nin.created_by,
         )
@@ -271,7 +271,7 @@ def verify_nin_for_user(
     # Send proofing data to the proofing log
     if not proofing_log.save(proofing_log_entry):
         return False
-    current_app.logger.info(f"Recorded nin identity verification in the proofing log")
+    current_app.logger.info("Recorded nin identity verification in the proofing log")
 
     save_and_sync_user(proofing_user)
 

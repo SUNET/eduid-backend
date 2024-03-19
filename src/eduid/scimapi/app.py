@@ -2,11 +2,12 @@ from typing import Optional
 
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
+from starlette.middleware.cors import CORSMiddleware
 
 from eduid.common.config.parsers import load_config
 from eduid.scimapi.config import ScimApiConfig
 from eduid.scimapi.context import Context
-from eduid.scimapi.context_request import ContextRequestRoute
+from eduid.scimapi.context_request import ScimApiRoute
 from eduid.scimapi.exceptions import (
     HTTPErrorDetail,
     http_error_detail_handler,
@@ -32,7 +33,7 @@ class ScimAPI(FastAPI):
 
 def init_api(name: str = "scimapi", test_config: Optional[dict] = None) -> ScimAPI:
     app = ScimAPI(name=name, test_config=test_config)
-    app.router.route_class = ContextRequestRoute
+    app.router.route_class = ScimApiRoute
 
     # Routers
     # TODO: Move bearer token generation to a separate API
@@ -46,10 +47,19 @@ def init_api(name: str = "scimapi", test_config: Optional[dict] = None) -> ScimA
     # Middleware
     app.add_middleware(AuthenticationMiddleware, context=app.context)
     app.add_middleware(ScimMiddleware, context=app.context)
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
     # Exception handling
-    app.add_exception_handler(RequestValidationError, validation_exception_handler)
-    app.add_exception_handler(HTTPErrorDetail, http_error_detail_handler)
+    # seems like there is a discussion about how to type exception handlers that was closed
+    # https://github.com/encode/starlette/pull/1456
+    app.add_exception_handler(RequestValidationError, validation_exception_handler)  # type: ignore[arg-type]
+    app.add_exception_handler(HTTPErrorDetail, http_error_detail_handler)  # type: ignore[arg-type]
     app.add_exception_handler(Exception, unexpected_error_handler)
 
     app.context.logger.info("app running...")

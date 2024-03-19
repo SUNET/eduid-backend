@@ -159,11 +159,15 @@ def verify_code(user: User, code: str) -> FluxData:
         current_app.stats.count("navet_error")
         return error_response(message=CommonMsg.navet_error)
 
+    letter_sent_to = None
+    if proofing_state.proofing_letter.address:
+        letter_sent_to = proofing_state.proofing_letter.address.model_dump()
+
     proofing_log_entry = LetterProofing(
         eppn=user.eppn,
         created_by="eduid_letter_proofing",
         nin=proofing_state.nin.number,
-        letter_sent_to=proofing_state.proofing_letter.address,
+        letter_sent_to=letter_sent_to,
         transaction_id=proofing_state.proofing_letter.transaction_id,
         user_postal_address=official_address,
         proofing_version="2016v1",

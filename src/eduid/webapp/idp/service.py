@@ -1,13 +1,59 @@
+# This SAML IdP implementation is derived from the pysaml2 example 'idp2'.
+# That code is covered by the following copyright (from pysaml2 LICENSE.txt 2013-05-06) :
 #
-# Copyright (c) 2013, 2014 NORDUnet A/S
 # Copyright 2012 Roland Hedberg. All rights reserved.
-# All rights reserved.
 #
-# See the file eduid-IdP/LICENSE.txt for license statement.
+# Redistribution and use in source and binary forms, with or without modification, are
+# permitted provided that the following conditions are met:
 #
-# Author : Fredrik Thulin <fredrik@thulin.net>
-#          Roland Hedberg
+#    1. Redistributions of source code must retain the above copyright notice, this list of
+#       conditions and the following disclaimer.
 #
+#    2. Redistributions in binary form must reproduce the above copyright notice, this list
+#       of conditions and the following disclaimer in the documentation and/or other materials
+#       provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY ROLAND HEDBERG ``AS IS'' AND ANY EXPRESS OR IMPLIED
+# WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
+# FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL ROLAND HEDBERG OR
+# CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+# SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+# ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+# NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+# ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#
+# -------------------------------------------------------------------------------
+#
+# All the changes made during the eduID development are subject to the following
+# copyright:
+#
+# Copyright (c) 2013 SUNET. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without modification,
+# are permitted provided that the following conditions are met:
+#
+# 1. Redistributions of source code must retain the above copyright notice, this
+#    list of conditions and the following disclaimer.
+#
+# 2. Redistributions in binary form must reproduce the above copyright notice,
+#    this list of conditions and the following disclaimer in the documentation
+#    and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY SUNET "AS IS" AND ANY EXPRESS OR IMPLIED
+# WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+# MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT
+# SHALL SUNET OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+# PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
+# BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
+# IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
+# OF SUCH DAMAGE.
+#
+# The views and conclusions contained in the software and documentation are those
+# of the authors and should not be interpreted as representing official policies,
+# either expressed or implied, of SUNET.
 
 """
 Common code for SSO login/logout requests.
@@ -16,7 +62,7 @@ from abc import ABC
 from typing import Any, Optional
 
 from flask import request
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.webapp.common.session.namespaces import RequestRef
@@ -26,22 +72,21 @@ from eduid.webapp.idp.sso_session import SSOSession
 
 
 class SAMLQueryParams(BaseModel):
-    SAMLRequest: Optional[str]
-    RelayState: Optional[str]
+    SAMLRequest: Optional[str] = None
+    RelayState: Optional[str] = None
     request_ref: Optional[RequestRef] = Field(default=None, alias="ref")
+    model_config = ConfigDict(populate_by_name=True)
 
-    class Config:
-        # Allow setting request_ref using it's name too - not just the alias (ref)
-        allow_population_by_field_name = True
-
-    @validator("SAMLRequest", "RelayState")
+    @field_validator("SAMLRequest", "RelayState")
+    @classmethod
     def validate_query_params(cls, v: Any):
         if not isinstance(v, str) or not v:
             raise ValueError("must be a non-empty string")
         # TODO: perform extra sanitation?
         return v
 
-    @validator("request_ref")
+    @field_validator("request_ref")
+    @classmethod
     def validate_request_ref(cls, v: Any):
         if v is None:
             return None

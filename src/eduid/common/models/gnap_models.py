@@ -2,7 +2,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Optional, Union
 
-from pydantic import AnyUrl, BaseModel, Field, validator
+from pydantic import AnyUrl, BaseModel, ConfigDict, Field, field_validator
 
 from eduid.common.models.jose_models import (
     ECJWK,
@@ -18,8 +18,7 @@ __author__ = "lundberg"
 
 
 class GnapBaseModel(BaseModel):
-    class Config:
-        allow_population_by_field_name = True
+    model_config = ConfigDict(populate_by_name=True)
 
 
 class ProofMethod(str, Enum):
@@ -38,11 +37,12 @@ class Proof(GnapBaseModel):
 
 class Key(GnapBaseModel):
     proof: Proof
-    jwk: Optional[Union[ECJWK, RSAJWK, SymmetricJWK]]
-    cert: Optional[str]
+    jwk: Optional[Union[ECJWK, RSAJWK, SymmetricJWK]] = None
+    cert: Optional[str] = None
     cert_S256: Optional[str] = Field(default=None, alias="cert#S256")
 
-    @validator("proof", pre=True)
+    @field_validator("proof", mode="before")
+    @classmethod
     def expand_proof(cls, v: Union[str, dict[str, Any]]) -> dict[str, Any]:
         # If additional parameters are not required or used for a specific method,
         # the method MAY be passed as a string instead of an object.
@@ -69,31 +69,31 @@ class Access(GnapBaseModel):
     # The types of actions the client instance will take at the RS as an
     # array of strings.  For example, a client instance asking for a
     # combination of "read" and "write" access.
-    actions: Optional[list[str]]
+    actions: Optional[list[str]] = None
     # The location of the RS as an array of strings. These strings are
     # typically URIs identifying the location of the RS.
-    locations: Optional[list[str]]
+    locations: Optional[list[str]] = None
     # The kinds of data available to the client instance at the RS's API
     # as an array of strings.  For example, a client instance asking for
     # access to raw "image" data and "metadata" at a photograph API.
-    datatypes: Optional[list[str]]
+    datatypes: Optional[list[str]] = None
     # A string identifier indicating a specific resource at the RS. For
     # example, a patient identifier for a medical API or a bank account
     # number for a financial API.
-    identifier: Optional[str]
+    identifier: Optional[str] = None
     # The types or levels of privilege being requested at the resource.
     # For example, a client instance asking for administrative level
     # access, or access when the resource owner is no longer online.
-    privileges: Optional[list[str]]
+    privileges: Optional[list[str]] = None
     # Sunet addition for requesting access to a specified scope
-    scope: Optional[str]
+    scope: Optional[str] = None
 
 
 class AccessTokenRequest(GnapBaseModel):
-    access: Optional[list[Union[str, Access]]]
+    access: Optional[list[Union[str, Access]]] = None
     # TODO: label is REQUIRED if used as part of a multiple access token request
-    label: Optional[str]
-    flags: Optional[list[AccessTokenFlags]]
+    label: Optional[str] = None
+    flags: Optional[list[AccessTokenFlags]] = None
 
 
 class Client(GnapBaseModel):
@@ -107,16 +107,16 @@ class GrantRequest(GnapBaseModel):
 
 class AccessTokenResponse(GnapBaseModel):
     value: str
-    label: Optional[str]
-    manage: Optional[AnyUrl]
-    access: Optional[list[Union[str, Access]]]
+    label: Optional[str] = None
+    manage: Optional[AnyUrl] = None
+    access: Optional[list[Union[str, Access]]] = None
     expires_in: Optional[int] = Field(default=None, description="seconds until expiry")
-    key: Optional[Union[str, Key]]
-    flags: Optional[list[AccessTokenFlags]]
+    key: Optional[Union[str, Key]] = None
+    flags: Optional[list[AccessTokenFlags]] = None
 
 
 class GrantResponse(GnapBaseModel):
-    access_token: Optional[AccessTokenResponse]
+    access_token: Optional[AccessTokenResponse] = None
 
 
 class GNAPJOSEHeader(JOSEHeader):
@@ -131,4 +131,4 @@ class GNAPJOSEHeader(JOSEHeader):
     # When a request is bound to an access token, the access token hash value. The value MUST be the result of
     # Base64url encoding (with no padding) the SHA-256 digest of the ASCII encoding of the associated access
     # token's value.  REQUIRED if the request protects an access token.
-    ath: Optional[str]
+    ath: Optional[str] = None

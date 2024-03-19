@@ -7,15 +7,15 @@ from uuid import UUID, uuid4
 
 from bson import ObjectId
 
+from eduid.common.config.base import DataOwnerName
 from eduid.common.models.scim_base import Meta, SCIMResourceType, SCIMSchema, WeakVersion
 from eduid.common.testing_base import normalised_data
+from eduid.common.utils import make_etag
 from eduid.graphdb.groupdb import Group as GraphGroup
 from eduid.graphdb.groupdb import User as GraphUser
-from eduid.scimapi.config import DataOwnerName
 from eduid.scimapi.models.group import GroupMember, GroupResponse
 from eduid.scimapi.testing import ScimApiTestCase
 from eduid.scimapi.tests.test_scimbase import TestScimBase
-from eduid.scimapi.utils import make_etag
 from eduid.userdb.scimapi import EventStatus, GroupExtensions, ScimApiGroup
 from eduid.userdb.scimapi.userdb import ScimApiUser
 
@@ -236,11 +236,19 @@ class TestGroupResource_POST(TestGroupResource):
     def test_schema_violation(self):
         # request missing displayName
         req = {"schemas": [SCIMSchema.CORE_20_GROUP.value], "members": []}
-        response = self.client.post(url=f"/Groups/", json=req, headers=self.headers)
+        response = self.client.post(url="/Groups/", json=req, headers=self.headers)
         self._assertScimError(
             status=422,
             json=response.json(),
-            detail=[{"loc": ["body", "displayName"], "msg": "field required", "type": "value_error.missing"}],
+            detail=[
+                {
+                    "type": "missing",
+                    "loc": ["body", "displayName"],
+                    "msg": "Field required",
+                    "url": "https://errors.pydantic.dev/2.6/v/missing",
+                }
+            ],
+            exclude_keys=["input"],
         )
 
 
@@ -474,7 +482,15 @@ class TestGroupResource_PUT(TestGroupResource):
         self._assertScimError(
             status=422,
             json=response.json(),
-            detail=[{"loc": ["body", "displayName"], "msg": "field required", "type": "value_error.missing"}],
+            detail=[
+                {
+                    "loc": ["body", "displayName"],
+                    "msg": "Field required",
+                    "type": "missing",
+                    "url": "https://errors.pydantic.dev/2.6/v/missing",
+                }
+            ],
+            exclude_keys=["input"],
         )
 
 
@@ -607,7 +623,15 @@ class TestGroupSearchResource(TestGroupResource):
         self._assertScimError(
             status=422,
             json=response.json(),
-            detail=[{"loc": ["body", "filter"], "msg": "field required", "type": "value_error.missing"}],
+            detail=[
+                {
+                    "loc": ["body", "filter"],
+                    "msg": "Field required",
+                    "type": "missing",
+                    "url": "https://errors.pydantic.dev/2.6/v/missing",
+                }
+            ],
+            exclude_keys=["input"],
         )
 
 

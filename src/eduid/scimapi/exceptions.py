@@ -5,15 +5,20 @@ import uuid
 from typing import Optional, Union
 
 from fastapi import Request, status
+from fastapi.encoders import jsonable_encoder
 from fastapi.exception_handlers import http_exception_handler
 from fastapi.exceptions import RequestValidationError
 from pydantic import BaseModel
 from starlette.exceptions import HTTPException as StarletteHTTPException
-from starlette.responses import JSONResponse
+from starlette.responses import JSONResponse, Response
 
 from eduid.common.models.scim_base import SCIMSchema
 
 logger = logging.getLogger(__name__)
+
+
+class MaxRetriesReached(Exception):
+    pass
 
 
 class ErrorDetail(BaseModel):
@@ -27,7 +32,7 @@ class SCIMErrorResponse(JSONResponse):
     media_type = "application/scim+json"
 
 
-async def unexpected_error_handler(req: Request, exc: Exception):
+async def unexpected_error_handler(req: Request, exc: Exception) -> Response:
     error_id = uuid.uuid4()
     logger.error(f"unexpected error {error_id}: {req.method} {req.url.path} - {exc}")
     http_exception = StarletteHTTPException(
@@ -36,16 +41,19 @@ async def unexpected_error_handler(req: Request, exc: Exception):
     return await http_exception_handler(req, http_exception)
 
 
-async def validation_exception_handler(req: Request, exc: RequestValidationError):
+async def validation_exception_handler(req: Request, exc: RequestValidationError) -> SCIMErrorResponse:
     status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
     detail = ErrorDetail(
-        schemas=[SCIMSchema.ERROR.value], scimType="invalidSyntax", detail=exc.errors(), status=status_code
+        schemas=[SCIMSchema.ERROR.value],
+        scimType="invalidSyntax",
+        detail=jsonable_encoder(list(exc.errors())),
+        status=status_code,
     )
     logger.error(f"validation exception: {req.method} {req.url.path} - {exc} - {detail}")
     return SCIMErrorResponse(content=detail.dict(exclude_none=True), status_code=status_code)
 
 
-async def http_error_detail_handler(req: Request, exc: HTTPErrorDetail):
+async def http_error_detail_handler(req: Request, exc: HTTPErrorDetail) -> SCIMErrorResponse:
     logger.error(f"error detail: {req.method} {req.url.path} - {exc} - {exc.error_detail}")
     return SCIMErrorResponse(
         content=exc.error_detail.dict(exclude_none=True),
@@ -116,3 +124,10 @@ class UnsupportedMediaTypeMalformed(HTTPErrorDetail):
         super().__init__(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, **kwargs)
         if not self.error_detail.detail:
             self.error_detail.detail = "Request was made with an unsupported media type"
+
+
+class Conflict(HTTPErrorDetail):
+    def __init__(self, **kwargs):
+        super().__init__(status_code=status.HTTP_409_CONFLICT, **kwargs)
+        if not self.error_detail.detail:
+            self.error_detail.detail = "Request conflicts with the current state"

@@ -1,20 +1,24 @@
 import pprint
+import re
 from dataclasses import replace
 from typing import Optional
 
 from fastapi import Response
 
+from eduid.common.fastapi.context_request import ContextRequest
 from eduid.common.models.scim_base import ListResponse, SCIMResourceType, SCIMSchema, SearchRequest
 from eduid.common.models.scim_user import UserCreateRequest, UserResponse, UserUpdateRequest
 from eduid.scimapi.api_router import APIRouter
-from eduid.scimapi.context_request import ContextRequest, ContextRequestRoute
-from eduid.scimapi.exceptions import BadRequest, ErrorDetail, NotFound
+from eduid.scimapi.context_request import ScimApiRoute
+from eduid.scimapi.exceptions import BadRequest, Conflict, ErrorDetail, MaxRetriesReached, NotFound
 from eduid.scimapi.routers.utils.events import add_api_event
 from eduid.scimapi.routers.utils.users import (
     acceptable_linked_accounts,
     db_user_to_response,
     filter_externalid,
     filter_lastmodified,
+    filter_profile_data,
+    remove_user_from_all_groups,
     save_user,
     users_to_resources_dicts,
 )
@@ -30,7 +34,7 @@ from eduid.userdb.scimapi import (
 from eduid.userdb.scimapi.userdb import ScimApiProfile, ScimApiUser
 
 users_router = APIRouter(
-    route_class=ContextRequestRoute,
+    route_class=ScimApiRoute,
     prefix="/Users",
     responses={
         400: {"description": "Bad request", "model": ErrorDetail},
@@ -101,7 +105,7 @@ async def on_put(req: ContextRequest, resp: Response, update_request: UserUpdate
 
     nutid_changed = False
     if SCIMSchema.NUTID_USER_V1 in update_request.schemas and update_request.nutid_user_v1 is not None:
-        if not acceptable_linked_accounts(update_request.nutid_user_v1.linked_accounts):
+        if not acceptable_linked_accounts(update_request.nutid_user_v1.linked_accounts, req.app.config.environment):
             raise BadRequest(detail="Invalid nutid linked_accounts")
 
         # Look for changes in profiles
@@ -151,7 +155,7 @@ async def on_put(req: ContextRequest, resp: Response, update_request: UserUpdate
             message="User was updated",
         )
     else:
-        req.app.context.logger.info(f"No changes detected")
+        req.app.context.logger.info("No changes detected")
 
     return db_user_to_response(req=req, resp=resp, db_user=db_user)
 
@@ -205,13 +209,13 @@ async def on_post(req: ContextRequest, resp: Response, create_request: UserCreat
     }
     """
 
-    req.app.context.logger.info(f"Creating user")
+    req.app.context.logger.info("Creating user")
     req.app.context.logger.debug(create_request)
 
     profiles = {}
     linked_accounts = []
     if SCIMSchema.NUTID_USER_V1 in create_request.schemas and create_request.nutid_user_v1 is not None:
-        if not acceptable_linked_accounts(create_request.nutid_user_v1.linked_accounts):
+        if not acceptable_linked_accounts(create_request.nutid_user_v1.linked_accounts, req.app.config.environment):
             raise BadRequest(detail="Invalid nutid linked_accounts")
 
         # convert from one type of profiles to another
@@ -250,6 +254,45 @@ async def on_post(req: ContextRequest, resp: Response, create_request: UserCreat
     return user
 
 
+@users_router.delete(
+    "/{scim_id}",
+    status_code=204,
+    responses={204: {"description": "No Content"}},
+)
+async def on_delete(req: ContextRequest, scim_id: str) -> None:
+    req.app.context.logger.info(f"Deleting user {scim_id}")
+    db_user = req.context.userdb.get_user_by_scim_id(scim_id=scim_id)
+    req.app.context.logger.debug(f"Found user: {db_user}")
+    if not db_user:
+        raise NotFound(detail="User not found")
+
+    # Check version
+    if not req.app.context.check_version(req, db_user):
+        raise BadRequest(detail="Version mismatch")
+
+    try:
+        remove_user_from_all_groups(req, db_user)
+    except MaxRetriesReached:
+        # this can be a problem when deleting many users that are all part of the same group as it can
+        # lead to a race condition where the group is updated before the user is removed from it
+        req.app.context.logger.exception("Max retries reached when removing user from groups")
+        raise Conflict(detail="Database object out of sync, please retry")
+
+    res = req.context.userdb.remove(db_user)
+
+    add_api_event(
+        context=req.app.context,
+        data_owner=req.context.data_owner,
+        db_obj=db_user,
+        resource_type=SCIMResourceType.USER,
+        level=EventLevel.INFO,
+        status=EventStatus.DELETED,
+        message="User was deleted",
+    )
+
+    req.app.context.logger.debug(f"Remove user result: {res}")
+
+
 @users_router.post("/.search", response_model=ListResponse, response_model_exclude_none=True)
 async def search(req: ContextRequest, query: SearchRequest) -> ListResponse:
     """
@@ -284,18 +327,30 @@ async def search(req: ContextRequest, query: SearchRequest) -> ListResponse:
       ]
     }
     """
-    req.app.context.logger.info(f"Searching for users(s)")
+    req.app.context.logger.info("Searching for users(s)")
     req.app.context.logger.debug(f"Parsed user search query: {query}")
 
-    filter = parse_search_filter(query.filter)
+    _filter = parse_search_filter(query.filter)
+    profile_data_regex = re.compile(r"^profiles\.([a-z_]+)\.data\.([a-z_]+)$")
 
-    if filter.attr == "externalid":
-        users = filter_externalid(req, filter)
+    if _filter.attr == "externalid":
+        users = filter_externalid(req, _filter)
         total_count = len(users)
-    elif filter.attr == "meta.lastmodified":
+    elif _filter.attr == "meta.lastmodified":
         # SCIM start_index 1 equals item 0
-        users, total_count = filter_lastmodified(req, filter, skip=query.start_index - 1, limit=query.count)
+        users, total_count = filter_lastmodified(req, _filter, skip=query.start_index - 1, limit=query.count)
+    elif _filter.attr.startswith("profiles.") and (
+        re_match := re.match(pattern=profile_data_regex, string=_filter.attr)
+    ):
+        users, total_count = filter_profile_data(
+            req,
+            _filter,
+            profile=re_match.group(1),
+            key=re_match.group(2),
+            skip=query.start_index - 1,
+            limit=query.count,
+        )
     else:
-        raise BadRequest(scim_type="invalidFilter", detail=f"Can't filter on attribute {filter.attr}")
+        raise BadRequest(scim_type="invalidFilter", detail=f"Can't filter on attribute {_filter.attr}")
 
     return ListResponse(resources=users_to_resources_dicts(query, users), total_results=total_count)

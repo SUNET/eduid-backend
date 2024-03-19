@@ -3,7 +3,6 @@ from datetime import datetime
 from typing import Any, Mapping
 
 from eduid.common.config.parsers import load_config
-from eduid.common.misc.timeutil import utc_now
 from eduid.common.testing_base import normalised_data
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.common.session import EduidSession

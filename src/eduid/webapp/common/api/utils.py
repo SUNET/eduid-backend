@@ -47,10 +47,6 @@ def get_unique_hash() -> str:
     return str(uuid4())
 
 
-def get_short_hash(entropy: int = 10) -> str:
-    return uuid4().hex[:entropy]
-
-
 def make_short_code(digits: int = 6) -> str:
     """Make a short decimal code, left-padded with zeros to the width specified by `digits'."""
     code = int.from_bytes(os.urandom(4), byteorder="big") % 1000000

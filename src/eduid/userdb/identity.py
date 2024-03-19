@@ -4,7 +4,7 @@ import logging
 from abc import ABC
 from datetime import datetime
 from enum import Enum
-from typing import Any, Optional, Union
+from typing import Any, Literal, Optional, Union
 
 from pydantic import Field
 
@@ -28,10 +28,10 @@ class IdentityProofingMethod(str, Enum):
     SE_LEG = "se-leg"
     SWEDEN_CONNECT = "swedenconnect"
     TELEADRESS = "TeleAdress"
+    BANKID = "bankid"
 
 
 class IdentityElement(VerifiedElement, ABC):
-
     """
     Element that is used for an identity for a user
 
@@ -69,7 +69,6 @@ class IdentityElement(VerifiedElement, ABC):
 
 
 class NinIdentity(IdentityElement):
-
     """
     Element that is used as a NIN identity for a user
 
@@ -78,7 +77,7 @@ class NinIdentity(IdentityElement):
         number
     """
 
-    identity_type: IdentityType = Field(default=IdentityType.NIN, const=True)
+    identity_type: Literal[IdentityType.NIN] = IdentityType.NIN
     number: str
     date_of_birth: Optional[datetime] = None
 
@@ -113,7 +112,6 @@ class EIDASLoa(str, Enum):
 
 
 class EIDASIdentity(ForeignIdentityElement):
-
     """
     Element that is used as an EIDAS identity for a user
 
@@ -125,7 +123,7 @@ class EIDASIdentity(ForeignIdentityElement):
         country_code
     """
 
-    identity_type: IdentityType = Field(default=IdentityType.EIDAS, const=True)
+    identity_type: Literal[IdentityType.EIDAS] = IdentityType.EIDAS
     prid: str
     prid_persistence: PridPersistence
     loa: EIDASLoa
@@ -150,11 +148,11 @@ class SvipeIdentity(ForeignIdentityElement):
         country_code
     """
 
-    identity_type: IdentityType = Field(default=IdentityType.SVIPE, const=True)
+    identity_type: Literal[IdentityType.SVIPE] = IdentityType.SVIPE
     #  A globally unique identifier issued by Svipe to the user. Under normal conditions, a given person will retain
     #  the same Svipe ID even after renewing the underlying identity document.
     svipe_id: str
-    administrative_number: Optional[str]
+    administrative_number: Optional[str] = None
 
     @property
     def unique_key_name(self) -> str:
@@ -225,9 +223,16 @@ class IdentityList(VerifiedElementList[IdentityElement]):
         if self.nin and self.nin.is_verified:
             if self.nin.date_of_birth is not None:
                 return self.nin.date_of_birth
-            # Fall back to parsing NIN as this should work for all existing users
+            # Fall back to parsing NIN
             try:
-                return datetime.strptime(self.nin.number[:8], "%Y%m%d")
+                try:
+                    return datetime.strptime(self.nin.number[:8], "%Y%m%d")
+                except ValueError:
+                    # the nin might be a coordination number
+                    day = int(self.nin.number[6:8])
+                    if day >= 61:  # coordination number day is 61-91
+                        day = day - 60
+                    return datetime.strptime(self.nin.number[:6] + str(day).zfill(2), "%Y%m%d")
             except ValueError:
                 logger.exception("Unable to parse user nin to date of birth")
                 logger.debug(f"User nins: {self.nin}")

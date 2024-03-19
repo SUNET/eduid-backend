@@ -1,21 +1,24 @@
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import unique
-from typing import Optional
+from functools import cache
+from typing import Any, List, Optional
 
+from fido_mds.models.webauthn import AttestationFormat
 from flask_babel import gettext as _
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.rpc.msg_relay import FullPostalAddress, NavetData
+from eduid.common.utils import generate_password
 from eduid.userdb import NinIdentity
 from eduid.userdb.logs.element import NameUpdateProofing
 from eduid.userdb.security import SecurityUser
 from eduid.userdb.user import User
 from eduid.webapp.common.api.helpers import send_mail, set_user_names_from_official_address
 from eduid.webapp.common.api.messages import FluxData, TranslatableMsg, error_response
-from eduid.webapp.common.authn.utils import generate_password
 from eduid.webapp.common.session.namespaces import SP_AuthnRequest
 from eduid.webapp.security.app import current_security_app as current_app
+from eduid.webapp.security.webauthn_proofing import AuthenticatorInformation, is_authenticator_mfa_approved
 
 __author__ = "lundberg"
 
@@ -212,3 +215,55 @@ def update_user_official_name(security_user: SecurityUser, navet_data: NavetData
         current_app.stats.count(name="refresh_user_data_name_updated")
 
     return True
+
+
+@cache
+def get_approved_security_keys() -> dict[str, Any]:
+    # a way to reuse is_authenticator_mfa_approved() from security app
+    parsed_entries: List[AuthenticatorInformation] = []
+    for metadata_entry in current_app.fido_mds.metadata.entries:
+
+        user_verification_methods = [
+            detail.user_verification_method
+            for detail in metadata_entry.metadata_statement.get_user_verification_details()
+        ]
+
+        # simulated to fit AuthenticatorInformation format
+        attestation_format = AttestationFormat.PACKED
+        if not metadata_entry.metadata_statement.attestation_types:
+            attestation_format = AttestationFormat.NONE
+
+        authenticator_info = AuthenticatorInformation(
+            authenticator_id=metadata_entry.aaguid or metadata_entry.aaid,
+            attestation_format=attestation_format,
+            user_present=False,  # simulated to fit AuthenticatorInformation required fields
+            user_verified=False,  # simulated to fit AuthenticatorInformation required fields
+            status=metadata_entry.status_reports[0].status,
+            last_status_change=metadata_entry.time_of_last_status_change,
+            user_verification_methods=user_verification_methods,
+            key_protection=metadata_entry.metadata_statement.key_protection,
+            description=metadata_entry.metadata_statement.description,
+            # icon=metadata_entry.metadata_statement.icon,
+        )
+        parsed_entries.append(authenticator_info)
+
+    approved_keys_list: List[str] = []
+    for entry in parsed_entries:
+        if entry.description and is_authenticator_mfa_approved(entry):
+            approved_keys_list.append(entry.description)
+
+    # remove case-insensitive duplicates from list, while maintaining the original case
+    marker = set()
+    unique_approved_keys_list: List[str] = []
+
+    for key in approved_keys_list:
+        lower_case_key = key.lower()
+        if lower_case_key not in marker:  # test presence
+            marker.add(lower_case_key)
+            unique_approved_keys_list.append(key)  # preserve original case
+
+    # sort list - case insensitive
+    return {
+        "next_update": current_app.fido_mds.metadata.next_update,
+        "entries": sorted(unique_approved_keys_list, key=str.casefold),
+    }

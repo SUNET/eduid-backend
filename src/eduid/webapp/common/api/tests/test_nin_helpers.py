@@ -326,10 +326,12 @@ class NinHelpersTest(EduidAPITestCase[HelpersTestApp]):
             self._get_nin_navet_proofing_log_entry(user=user, created_by="", nin=nin_element.number)
         assert exc_info.value.errors() == [
             {
-                "ctx": {"limit_value": 1},
+                "ctx": {"min_length": 1},
+                "input": "",
                 "loc": ("created_by",),
-                "msg": "ensure this value has at least 1 characters",
-                "type": "value_error.any_str.min_length",
+                "msg": "String should have at least 1 character",
+                "type": "string_too_short",
+                "url": "https://errors.pydantic.dev/2.6/v/string_too_short",
             }
         ]
 

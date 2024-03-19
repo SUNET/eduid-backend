@@ -1,41 +1,12 @@
-#
-# Copyright (c) 2020 SUNET
-# All rights reserved.
-#
-#   Redistribution and use in source and binary forms, with or
-#   without modification, are permitted provided that the following
-#   conditions are met:
-#
-#     1. Redistributions of source code must retain the above copyright
-#        notice, this list of conditions and the following disclaimer.
-#     2. Redistributions in binary form must reproduce the above
-#        copyright notice, this list of conditions and the following
-#        disclaimer in the documentation and/or other materials provided
-#        with the distribution.
-#     3. Neither the name of the NORDUnet nor the names of its
-#        contributors may be used to endorse or promote products derived
-#        from this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-# FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
-# COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
-# ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
-#
 """
 Configuration (file) handling for the eduID idp app.
 """
+
 from datetime import timedelta
 from typing import Optional
 
-from pydantic import Field, HttpUrl, validator
+from pydantic import Field, HttpUrl, field_validator
+from pydantic_core.core_schema import ValidationInfo
 
 from eduid.common.config.base import (
     AmConfigMixin,
@@ -44,6 +15,7 @@ from eduid.common.config.base import (
     TouConfigMixin,
     WebauthnConfigMixin2,
 )
+from eduid.common.models.generic import HttpUrlStr
 from eduid.webapp.idp.assurance_data import SwamidAssurance
 
 
@@ -115,8 +87,8 @@ class IdPConfig(EduIDBaseAppConfig, TouConfigMixin, WebauthnConfigMixin2, AmConf
     eduperson_targeted_id_secret_key: str = ""
     pairwise_id_secret_key: str = ""
     eduid_site_url: str
-    login_bundle_url: Optional[HttpUrl] = None
-    other_device_url: Optional[HttpUrl] = None
+    login_bundle_url: Optional[HttpUrlStr] = None
+    other_device_url: Optional[HttpUrlStr] = None
     esi_ladok_prefix: str = Field(default="urn:schac:personalUniqueCode:int:esi:ladok.se:externtstudentuid-")
     allow_other_device_logins: bool = False
     other_device_logins_ttl: timedelta = Field(default=timedelta(minutes=2))
@@ -131,7 +103,7 @@ class IdPConfig(EduIDBaseAppConfig, TouConfigMixin, WebauthnConfigMixin2, AmConf
     # secret key for encrypting personal information for geo-location service
     geo_statistics_secret_key: Optional[str] = None
     geo_statistics_feature_enabled: bool = False
-    geo_statistics_url: Optional[HttpUrl] = None
+    geo_statistics_url: Optional[HttpUrlStr] = None
     swamid_assurance_profile_1: list[SwamidAssurance] = Field(
         default=[
             SwamidAssurance.SWAMID_AL1,
@@ -146,6 +118,7 @@ class IdPConfig(EduIDBaseAppConfig, TouConfigMixin, WebauthnConfigMixin2, AmConf
             SwamidAssurance.SWAMID_AL1,
             SwamidAssurance.SWAMID_AL2,
             SwamidAssurance.REFEDS_ASSURANCE,
+            SwamidAssurance.REFEDS_PROFILE_CAPPUCCINO,
             SwamidAssurance.REFEDS_ID_UNIQUE,
             SwamidAssurance.REFEDS_EPPN_UNIQUE,
             SwamidAssurance.REFEDS_IAP_LOW,
@@ -158,6 +131,8 @@ class IdPConfig(EduIDBaseAppConfig, TouConfigMixin, WebauthnConfigMixin2, AmConf
             SwamidAssurance.SWAMID_AL2,
             SwamidAssurance.SWAMID_AL3,
             SwamidAssurance.REFEDS_ASSURANCE,
+            SwamidAssurance.REFEDS_PROFILE_CAPPUCCINO,
+            SwamidAssurance.REFEDS_PROFILE_ESPRESSO,
             SwamidAssurance.REFEDS_ID_UNIQUE,
             SwamidAssurance.REFEDS_EPPN_UNIQUE,
             SwamidAssurance.REFEDS_IAP_LOW,
@@ -173,19 +148,21 @@ class IdPConfig(EduIDBaseAppConfig, TouConfigMixin, WebauthnConfigMixin2, AmConf
         }
     )
 
-    @validator("sso_cookie")
-    def make_sso_cookie(cls, v, values) -> CookieConfig:
+    @field_validator("sso_cookie")
+    @classmethod
+    def make_sso_cookie(cls, v, info: ValidationInfo) -> CookieConfig:
         # Convert sso_cookie from dict to the proper dataclass
         if isinstance(v, dict):
             return CookieConfig(**v)
-        if "sso_cookie_name" in values and "sso_cookie_domain" in values:
+        if "sso_cookie_name" in info.data and "sso_cookie_domain" in info.data:
             # let legacy parameters override as long as they are present
-            return CookieConfig(key=values["sso_cookie_name"], domain=values["sso_cookie_domain"])
+            return CookieConfig(key=info.data["sso_cookie_name"], domain=info.data["sso_cookie_domain"])
         raise ValueError(
             "sso_cookie not present, and no fallback values either (sso_cookie_name and sso_cookie_domain)"
         )
 
-    @validator("sso_session_lifetime", pre=True)
+    @field_validator("sso_session_lifetime", mode="before")
+    @classmethod
     def validate_sso_session_lifetime(cls, v):
         if isinstance(v, int):
             # legacy format for this was number of minutes

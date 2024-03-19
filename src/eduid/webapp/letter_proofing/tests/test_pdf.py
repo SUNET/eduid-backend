@@ -147,7 +147,7 @@ class CreatePDFTest(EduidAPITestCase):
         return app_config
 
     def test_create_pdf(self):
-        recipient = FullPostalAddress.parse_obj(
+        recipient = FullPostalAddress.model_validate(
             OrderedDict(
                 [
                     (
@@ -195,5 +195,11 @@ class CreatePDFTest(EduidAPITestCase):
 C/O TESTAREN & TESTSSON
 \xd6RGATAN 79 LGH 10 LGH 4321
 12345 LANDET"""
+            in pdf_text
+        )
+        assert (
+            """SUNET / eduID
+Tulegatan 11 3tr
+113 53 Stockholm"""
             in pdf_text
         )

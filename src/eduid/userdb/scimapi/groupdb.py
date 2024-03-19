@@ -16,6 +16,7 @@ from eduid.graphdb.groupdb import GroupDB
 from eduid.graphdb.groupdb import User as GraphUser
 from eduid.scimapi.models.group import GroupCreateRequest, GroupUpdateRequest
 from eduid.userdb.db import TUserDbDocument
+from eduid.userdb.exceptions import DocumentOutOfSync
 from eduid.userdb.scimapi.basedb import ScimApiBaseDB
 from eduid.userdb.scimapi.common import ScimApiResourceBase
 
@@ -141,7 +142,7 @@ class ScimApiGroupDB(ScimApiBaseDB):
             db_group = self._coll.find_one({"_id": group.group_id})
             if db_group:
                 logger.debug(f"{self} FAILED Updating group {group} in {self._coll_name}")
-                raise RuntimeError("Group out of sync, please retry")
+                raise DocumentOutOfSync("Group out of sync, please retry")
             self._coll.insert_one(group_dict)
         # Save graphdb group
         # TODO: Should we try to roll back mongodb change if the graphdb save fails?
@@ -258,6 +259,14 @@ class ScimApiGroupDB(ScimApiBaseDB):
             return group
         return None
 
+    def get_group_by_display_name(self, display_name: str) -> Optional[ScimApiGroup]:
+        doc = self._get_document_by_attr("display_name", display_name)
+        if doc:
+            group = ScimApiGroup.from_dict(doc)
+            group.graph = self._get_graph_group(str(group.scim_id))
+            return group
+        return None
+
     def get_groups_by_property(
         self, key: str, value: Union[str, int], skip=0, limit=100
     ) -> tuple[list[ScimApiGroup], int]:
@@ -296,10 +305,7 @@ class ScimApiGroupDB(ScimApiBaseDB):
     def get_groups_by_last_modified(
         self, operator: str, value: datetime, limit: Optional[int] = None, skip: Optional[int] = None
     ) -> tuple[list[ScimApiGroup], int]:
-        # map SCIM filter operators to mongodb filter
-        mongo_operator = {"gt": "$gt", "ge": "$gte"}.get(operator)
-        if not mongo_operator:
-            raise ValueError("Invalid filter operator")
+        mongo_operator = self._get_mongo_operator(operator)
         spec = {"last_modified": {mongo_operator: value}}
         docs, total_count = self._get_documents_and_count_by_filter(spec=spec, limit=limit, skip=skip)
         groups = [ScimApiGroup.from_dict(x) for x in docs]

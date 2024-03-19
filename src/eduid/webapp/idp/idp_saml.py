@@ -1,6 +1,7 @@
 import logging
 import typing
 from base64 import b64encode
+from dataclasses import dataclass, field
 from hashlib import sha1
 from typing import Any, Mapping, NewType, Optional, Union
 
@@ -19,7 +20,6 @@ from eduid.webapp.idp.mischttp import HttpArgs
 from eduid.webapp.idp.settings.common import IdPConfig
 
 if typing.TYPE_CHECKING:
-    from eduid.webapp.idp.login import SAMLResponseParams
     from eduid.webapp.idp.login_context import LoginContextSAML
 
 ResponseArgs = NewType("ResponseArgs", dict[str, Any])
@@ -36,6 +36,15 @@ class SAMLValidationError(Exception):
 
 
 ReqSHA1 = NewType("ReqSHA1", str)
+
+
+@dataclass
+class SAMLResponseParams:
+    url: str
+    post_params: Mapping[str, Optional[Union[str, bool]]]
+    binding: str
+    http_args: HttpArgs
+    missing_attributes: list[dict[str, str]] = field(default_factory=list)
 
 
 def gen_key(something: Union[str, bytes]) -> ReqSHA1:
@@ -137,6 +146,13 @@ class IdP_SAMLRequest:
                 if not isinstance(this, str):
                     raise ValueError(f"Invalid authnContextClassRef value ({repr(this)})")
             return res
+        return []
+
+    def get_required_attributes(self) -> list[dict[str, str]]:
+        sp_attribute_spec = self._idp.metadata.attribute_requirement(self.sp_entity_id)
+        if sp_attribute_spec:
+            required = sp_attribute_spec.get("required", [])
+            return [{"name": item.get("name"), "friendly_name": item.get("friendly_name")} for item in required]
         return []
 
     @property
@@ -306,6 +322,13 @@ class IdP_SAMLRequest:
 
     def make_cancel_response(self, resp_args: ResponseArgs) -> SamlResponse:
         info = (samlp.STATUS_AUTHN_FAILED, "Request cancelled by user")
+        return self.make_error_response(info, resp_args)
+
+    def make_authn_context_class_not_supported_response(self, resp_args: ResponseArgs) -> SamlResponse:
+        info = (samlp.STATUS_AUTHN_FAILED, "Authentication context class not supported")
+        return self.make_error_response(info, resp_args)
+
+    def make_error_response(self, info: tuple[str, str], resp_args: ResponseArgs):
         saml_response = self._idp.create_error_response(info=info, sign=True, **resp_args)
         logger.debug(f"Cancel SAML response:\n{saml_response}")
         if not isinstance(saml_response, str):
@@ -335,11 +358,9 @@ class IdP_SAMLRequest:
         return HttpArgs.from_pysaml2_dict(_args)
 
 
-def cancel_saml_request(ticket: "LoginContextSAML", conf: IdPConfig) -> "SAMLResponseParams":
-    from eduid.webapp.idp.login import SAMLResponseParams
-
-    resp_args = ticket.saml_req.get_response_args(ticket.request_ref, conf)
-    saml_response = ticket.saml_req.make_cancel_response(resp_args=resp_args)
+def make_saml_response_params(
+    saml_response: SamlResponse, resp_args: ResponseArgs, ticket: "LoginContextSAML"
+) -> SAMLResponseParams:
     http_args = ticket.saml_req.apply_binding(resp_args, ticket.RelayState, saml_response)
     params = {
         "SAMLResponse": b64encode(str(saml_response).encode("utf-8")).decode("ascii"),
@@ -348,3 +369,15 @@ def cancel_saml_request(ticket: "LoginContextSAML", conf: IdPConfig) -> "SAMLRes
     binding = resp_args["binding"]
     saml_params = SAMLResponseParams(url=http_args.url, post_params=params, binding=binding, http_args=http_args)
     return saml_params
+
+
+def cancel_saml_request(ticket: "LoginContextSAML", conf: IdPConfig) -> "SAMLResponseParams":
+    resp_args = ticket.saml_req.get_response_args(ticket.request_ref, conf)
+    saml_response = ticket.saml_req.make_cancel_response(resp_args=resp_args)
+    return make_saml_response_params(saml_response=saml_response, resp_args=resp_args, ticket=ticket)
+
+
+def authn_context_class_not_supported(ticket: "LoginContextSAML", conf: IdPConfig) -> "SAMLResponseParams":
+    resp_args = ticket.saml_req.get_response_args(ticket.request_ref, conf)
+    saml_response = ticket.saml_req.make_authn_context_class_not_supported_response(resp_args=resp_args)
+    return make_saml_response_params(saml_response=saml_response, resp_args=resp_args, ticket=ticket)

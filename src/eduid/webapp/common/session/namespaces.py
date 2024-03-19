@@ -15,7 +15,7 @@ from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.credentials import Credential
 from eduid.userdb.credentials.external import TrustFramework
 from eduid.userdb.element import ElementKey
-from eduid.webapp.common.authn.acs_enums import AuthnAcsAction, EidasAcsAction
+from eduid.webapp.common.authn.acs_enums import AuthnAcsAction, BankIDAcsAction, EidasAcsAction
 from eduid.webapp.idp.other_device.data import OtherDeviceId
 from eduid.webapp.svipe_id.callback_enums import SvipeIDAction
 
@@ -197,7 +197,9 @@ class OnetimeCredential(Credential):
 class IdP_PendingRequest(BaseModel, ABC):
     aborted: Optional[bool] = False
     used: Optional[bool] = False  # set to True after the request has been completed (to handle 'back' button presses)
-    template_show_msg: Optional[str]  # set when the template version of the idp should show a message to the user
+    template_show_msg: Optional[str] = (
+        None  # set when the template version of the idp should show a message to the user
+    )
     # Credentials used while authenticating _this SAML request_. Not ones inherited from SSO.
     credentials_used: dict[ElementKey, datetime] = Field(default_factory=dict)
     onetime_credentials: dict[ElementKey, OnetimeCredential] = Field(default_factory=dict)
@@ -206,32 +208,23 @@ class IdP_PendingRequest(BaseModel, ABC):
 class IdP_SAMLPendingRequest(IdP_PendingRequest):
     request: str
     binding: str
-    relay_state: Optional[str]
+    relay_state: Optional[str] = None
     # a pointer to an ongoing request to login using another device
     other_device_state_id: Optional[OtherDeviceId] = None
 
 
 class IdP_OtherDevicePendingRequest(IdP_PendingRequest):
-    state_id: Optional[OtherDeviceId]  # can be None on aborted/expired requests
+    state_id: Optional[OtherDeviceId] = None  # can be None on aborted/expired requests
+
+
+IdP_PendingRequestSubclass = Union[IdP_SAMLPendingRequest, IdP_OtherDevicePendingRequest]
 
 
 class IdP_Namespace(TimestampedNS):
     # The SSO cookie value last set by the IdP. Used to debug issues with browsers not
     # honoring Set-Cookie in redirects, or something.
     sso_cookie_val: Optional[str] = None
-    pending_requests: dict[RequestRef, IdP_PendingRequest] = Field(default={})
-
-    @classmethod
-    def _from_dict_transform(cls: type[IdP_Namespace], data: Mapping[str, Any]) -> dict[str, Any]:
-        _data = super()._from_dict_transform(data)
-        if "pending_requests" in _data:
-            # pre-parse values into the right subclass if IdP_PendingRequest
-            for k, v in _data["pending_requests"].items():
-                if "binding" in v:
-                    _data["pending_requests"][k] = IdP_SAMLPendingRequest(**v)
-                elif "state_id" in v:
-                    _data["pending_requests"][k] = IdP_OtherDevicePendingRequest(**v)
-        return _data
+    pending_requests: dict[RequestRef, IdP_PendingRequestSubclass] = Field(default={})
 
     def log_credential_used(
         self, request_ref: RequestRef, credential: Union[Credential, OnetimeCredential], timestamp: datetime
@@ -253,7 +246,7 @@ class BaseAuthnRequest(BaseModel, ABC):
     frontend_state: Optional[str] = None  # opaque data from frontend, returned in /status
     method: Optional[str] = None  # proofing method that frontend is invoking
     frontend_action: str  # what action frontend is performing, decides the finish URL the user is redirected to
-    post_authn_action: Optional[Union[AuthnAcsAction, EidasAcsAction, SvipeIDAction]] = None
+    post_authn_action: Optional[Union[AuthnAcsAction, EidasAcsAction, SvipeIDAction, BankIDAcsAction]] = None
     created_ts: datetime = Field(default_factory=utc_now)
     authn_instant: Optional[datetime] = None
     status: Optional[str] = None  # populated by the SAML2 ACS/OIDC callback action
@@ -264,9 +257,9 @@ class SP_AuthnRequest(BaseAuthnRequest):
     credentials_used: list[ElementKey] = Field(default_factory=list)
     # proofing_credential_id is the credential being person-proofed, when doing that
     proofing_credential_id: Optional[ElementKey] = None
-    redirect_url: Optional[str]  # Deprecated, use frontend_action to get return URL from config instead
+    redirect_url: Optional[str] = None  # Deprecated, use frontend_action to get return URL from config instead
     consumed: bool = False  # an operation that requires a new authentication has used this one already
-    req_authn_ctx: List[str] = []  # the authentication contexts requested for this authentication
+    req_authn_ctx: List[str] = Field(default_factory=list)  # the authentication contexts requested for this authentication
     params: AuthnParameters = Field(default_factory=AuthnParameters)
 
 
@@ -274,7 +267,7 @@ PySAML2Dicts = NewType("PySAML2Dicts", dict[str, dict[str, Any]])
 
 
 class SPAuthnData(BaseModel):
-    post_authn_action: Optional[Union[AuthnAcsAction, EidasAcsAction]] = None
+    post_authn_action: Optional[Union[AuthnAcsAction, EidasAcsAction, BankIDAcsAction]] = None
     pysaml2_dicts: PySAML2Dicts = Field(default=cast(PySAML2Dicts, dict()))
     authns: dict[AuthnRequestRef, SP_AuthnRequest] = Field(default_factory=dict)
 
@@ -308,3 +301,9 @@ class RPAuthnData(BaseModel):
 
 class SvipeIDNamespace(SessionNSBase):
     rp: RPAuthnData = Field(default=RPAuthnData())
+
+
+class BankIDNamespace(SessionNSBase):
+    # TODO: Move verify_token_action_credential_id into SP_AuthnRequest
+    verify_token_action_credential_id: Optional[ElementKey] = None
+    sp: SPAuthnData = Field(default=SPAuthnData())

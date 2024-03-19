@@ -1,38 +1,5 @@
-#
-# Copyright (c) 2016 NORDUnet A/S
-# Copyright (c) 2020 SUNET
-# All rights reserved.
-#
-#   Redistribution and use in source and binary forms, with or
-#   without modification, are permitted provided that the following
-#   conditions are met:
-#
-#     1. Redistributions of source code must retain the above copyright
-#        notice, this list of conditions and the following disclaimer.
-#     2. Redistributions in binary form must reproduce the above
-#        copyright notice, this list of conditions and the following
-#        disclaimer in the documentation and/or other materials provided
-#        with the distribution.
-#     3. Neither the name of the NORDUnet nor the names of its
-#        contributors may be used to endorse or promote products derived
-#        from this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-# FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
-# COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
-# ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
-#
 from typing import Any, Mapping, Optional, cast
 
-from captcha.image import ImageCaptcha
 from flask import current_app
 
 from eduid.common.clients import SCIMClient
@@ -43,8 +10,8 @@ from eduid.common.rpc.mail_relay import MailRelay
 from eduid.queue.db.message import MessageDB
 from eduid.userdb.logs import ProofingLog
 from eduid.userdb.signup import SignupInviteDB, SignupUserDB
-from eduid.webapp.common.api import translation
 from eduid.webapp.common.api.app import EduIDBaseApp
+from eduid.webapp.common.api.captcha import init_captcha
 from eduid.webapp.signup.settings.common import SignupConfig
 
 
@@ -57,13 +24,7 @@ class SignupApp(EduIDBaseApp):
         self.am_relay = AmRelay(config)
         self.mail_relay = MailRelay(config)
 
-        self.captcha_image_generator = ImageCaptcha(
-            height=self.conf.captcha_height,
-            width=self.conf.captcha_width,
-            fonts=[str(path) for path in self.conf.captcha_fonts],  # please mypy
-            # underlying module lies in argument type hint
-            font_sizes=self.conf.captcha_font_size,  # type: ignore[arg-type]
-        )
+        self.captcha = init_captcha(config)
 
         self.scim_clients: dict[str, SCIMClient] = {}
 
@@ -71,8 +32,6 @@ class SignupApp(EduIDBaseApp):
         self.proofing_log = ProofingLog(config.mongo_uri)
         self.invite_db = SignupInviteDB(config.mongo_uri)
         self.messagedb = MessageDB(config.mongo_uri)
-
-        self.babel = translation.init_babel(self)
 
     def get_scim_client_for(self, data_owner: str) -> SCIMClient:
         if self.conf.gnap_auth_data is None or self.conf.scim_api_url is None:

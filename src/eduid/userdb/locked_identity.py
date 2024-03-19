@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import validator
+from pydantic import field_validator
 
 from eduid.userdb.exceptions import EduIDUserDBError
 from eduid.userdb.identity import IdentityElement, IdentityList
@@ -15,7 +15,8 @@ class LockedIdentityList(IdentityList):
     Hold a list of IdentityElement instances.
     """
 
-    @validator("elements")
+    @field_validator("elements")
+    @classmethod
     def validate_is_verified(cls, v: list[IdentityElement]):
         # If using a validator with a subclass that references a List type field on a parent class, using
         # each_item=True will cause the validator not to run; instead, the list must be iterated over programmatically.

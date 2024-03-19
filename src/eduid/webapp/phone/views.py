@@ -1,37 +1,3 @@
-#
-# Copyright (c) 2016 NORDUnet A/S
-# All rights reserved.
-#
-#   Redistribution and use in source and binary forms, with or
-#   without modification, are permitted provided that the following
-#   conditions are met:
-#
-#     1. Redistributions of source code must retain the above copyright
-#        notice, this list of conditions and the following disclaimer.
-#     2. Redistributions in binary form must reproduce the above
-#        copyright notice, this list of conditions and the following
-#        disclaimer in the documentation and/or other materials provided
-#        with the distribution.
-#     3. Neither the name of the NORDUnet nor the names of its
-#        contributors may be used to endorse or promote products derived
-#        from this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-# FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
-# COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
-# ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
-#
-
-from base64 import b64encode
-from io import BytesIO
 from typing import Optional
 
 from flask import Blueprint, abort, request
@@ -293,12 +259,8 @@ def captcha_request() -> FluxData:
     session.phone.captcha.completed = False
     session.phone.captcha.internal_answer = make_short_code(digits=current_app.conf.captcha_code_length)
     session.phone.captcha.bad_attempts = 0
-    data = current_app.captcha_image_generator.generate_image(chars=session.phone.captcha.internal_answer)
-    with BytesIO() as f:
-        data.save(fp=f, format="PNG", optimize=True)
-        return success_response(
-            payload={"captcha_img": f"data:image/png;base64,{b64encode(f.getvalue()).decode('utf-8')}"},
-        )
+    captcha_payload = current_app.captcha.get_request_payload(answer=session.phone.captcha.internal_answer)
+    return success_response(payload=captcha_payload)
 
 
 @phone_views.route("/captcha", methods=["POST"])
@@ -317,7 +279,7 @@ def captcha_response(internal_response: Optional[str] = None) -> FluxData:
         # bad attempts is reset when a new captcha is generated
         return error_response(message=PhoneMsg.captcha_failed)
 
-    # add a backdoor to bypass recaptcha checks for humanness,
+    # add a backdoor to bypass captcha checks for humanness,
     # to be used in testing environments for automated integration tests.
     if check_magic_cookie(current_app.conf):
         current_app.logger.info("Using BACKDOOR to verify captcha during phone verification!")

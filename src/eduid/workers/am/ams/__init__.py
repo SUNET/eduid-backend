@@ -4,6 +4,7 @@ The eduID Attribute Manager package.
 Copyright (c) 2013, 2014, 2015, 2018 SUNET. All rights reserved.
 See the file LICENSE.txt for full license statement.
 """
+
 __author__ = "eperez"
 
 
@@ -21,7 +22,7 @@ from eduid.userdb.proofing import (
     OrcidProofingUserDB,
     PhoneProofingUserDB,
 )
-from eduid.userdb.proofing.db import LadokProofingUserDB, SvideIDProofingUserDB
+from eduid.userdb.proofing.db import BankIDProofingUserDB, LadokProofingUserDB, SvideIDProofingUserDB
 from eduid.userdb.reset_password import ResetPasswordUserDB
 from eduid.userdb.security import SecurityUserDB
 from eduid.userdb.signup import SignupUserDB
@@ -55,7 +56,9 @@ class eduid_signup(AttributeFetcher):
             raise ValueError("Not syncing user that has not completed signup")
         return attributes
 
-    get_user_db = lambda cls, uri: SignupUserDB(uri)
+    @classmethod
+    def get_user_db(cls, uri: str) -> SignupUserDB:
+        return SignupUserDB(uri)
 
 
 class eduid_oidc_proofing(AttributeFetcher):
@@ -71,7 +74,10 @@ class eduid_oidc_proofing(AttributeFetcher):
         "identities",
         "nins",  # Old format
     ]
-    get_user_db = lambda cls, uri: OidcProofingUserDB(uri)
+
+    @classmethod
+    def get_user_db(cls, uri: str) -> OidcProofingUserDB:
+        return OidcProofingUserDB(uri)
 
 
 class eduid_letter_proofing(AttributeFetcher):
@@ -87,7 +93,10 @@ class eduid_letter_proofing(AttributeFetcher):
         "identities",
         "nins",  # Old format
     ]
-    get_user_db = lambda cls, uri: LetterProofingUserDB(uri)
+
+    @classmethod
+    def get_user_db(cls, uri: str) -> LetterProofingUserDB:
+        return LetterProofingUserDB(uri)
 
 
 class eduid_lookup_mobile_proofing(AttributeFetcher):
@@ -102,7 +111,10 @@ class eduid_lookup_mobile_proofing(AttributeFetcher):
         "identities",
         "nins",  # Old format
     ]
-    get_user_db = lambda cls, uri: LookupMobileProofingUserDB(uri)
+
+    @classmethod
+    def get_user_db(cls, uri: str) -> LookupMobileProofingUserDB:
+        return LookupMobileProofingUserDB(uri)
 
 
 class eduid_email(AttributeFetcher):
@@ -110,7 +122,10 @@ class eduid_email(AttributeFetcher):
     whitelist_unset_attrs = [
         "mailAliases",
     ]
-    get_user_db = lambda cls, uri: EmailProofingUserDB(uri)
+
+    @classmethod
+    def get_user_db(cls, uri: str) -> EmailProofingUserDB:
+        return EmailProofingUserDB(uri)
 
 
 class eduid_phone(AttributeFetcher):
@@ -118,7 +133,10 @@ class eduid_phone(AttributeFetcher):
     whitelist_unset_attrs = [
         "phone",
     ]
-    get_user_db = lambda cls, uri: PhoneProofingUserDB(uri)
+
+    @classmethod
+    def get_user_db(cls, uri: str) -> PhoneProofingUserDB:
+        return PhoneProofingUserDB(uri)
 
 
 class eduid_personal_data(AttributeFetcher):
@@ -128,7 +146,10 @@ class eduid_personal_data(AttributeFetcher):
         "displayName",
         "preferredLanguage",
     ]
-    get_user_db = lambda cls, uri: PersonalDataUserDB(uri)
+
+    @classmethod
+    def get_user_db(cls, uri: str) -> PersonalDataUserDB:
+        return PersonalDataUserDB(uri)
 
 
 class eduid_security(AttributeFetcher):
@@ -149,7 +170,10 @@ class eduid_security(AttributeFetcher):
         "identities",  # For AL1 downgrade on password reset
         "phone",  # For AL1 downgrade on password reset
     ]
-    get_user_db = lambda cls, uri: SecurityUserDB(uri)
+
+    @classmethod
+    def get_user_db(cls, uri: str) -> SecurityUserDB:
+        return SecurityUserDB(uri)
 
 
 class eduid_reset_password(AttributeFetcher):
@@ -167,7 +191,10 @@ class eduid_reset_password(AttributeFetcher):
         "identities",  # For AL1 downgrade on password reset
         "phone",  # For AL1 downgrade on password reset
     ]
-    get_user_db = lambda cls, uri: ResetPasswordUserDB(uri)
+
+    @classmethod
+    def get_user_db(cls, uri: str) -> ResetPasswordUserDB:
+        return ResetPasswordUserDB(uri)
 
 
 class eduid_orcid(AttributeFetcher):
@@ -177,7 +204,10 @@ class eduid_orcid(AttributeFetcher):
     whitelist_unset_attrs = [
         "orcid",
     ]
-    get_user_db = lambda cls, uri: OrcidProofingUserDB(uri)
+
+    @classmethod
+    def get_user_db(cls, uri: str) -> OrcidProofingUserDB:
+        return OrcidProofingUserDB(uri)
 
 
 class eduid_eidas(AttributeFetcher):
@@ -193,13 +223,19 @@ class eduid_eidas(AttributeFetcher):
         "identities",
         "nins",  # Old format
     ]
-    get_user_db = lambda cls, uri: EidasProofingUserDB(uri)
+
+    @classmethod
+    def get_user_db(cls, uri: str) -> EidasProofingUserDB:
+        return EidasProofingUserDB(uri)
 
 
 class eduid_tou(AttributeFetcher):
     whitelist_set_attrs = ["tou"]
     whitelist_unset_attrs: list[str] = []
-    get_user_db = lambda cls, uri: ToUUserDB(uri)
+
+    @classmethod
+    def get_user_db(cls, uri: str) -> ToUUserDB:
+        return ToUUserDB(uri)
 
 
 class eduid_ladok(AttributeFetcher):
@@ -209,7 +245,10 @@ class eduid_ladok(AttributeFetcher):
     whitelist_unset_attrs = [
         "ladok",
     ]
-    get_user_db = lambda cls, uri: LadokProofingUserDB(uri)
+
+    @classmethod
+    def get_user_db(cls, uri: str) -> LadokProofingUserDB:
+        return LadokProofingUserDB(uri)
 
 
 class eduid_svipe_id(AttributeFetcher):
@@ -223,4 +262,26 @@ class eduid_svipe_id(AttributeFetcher):
     whitelist_unset_attrs: list[str] = [
         "identities",
     ]
-    get_user_db = lambda cls, uri: SvideIDProofingUserDB(uri)
+
+    @classmethod
+    def get_user_db(cls, uri: str) -> SvideIDProofingUserDB:
+        return SvideIDProofingUserDB(uri)
+
+
+class eduid_bankid(AttributeFetcher):
+    whitelist_set_attrs = [
+        "passwords",
+        "nins",  # Old format
+        "identities",
+        "givenName",
+        "surname",
+        "displayName",
+    ]
+    whitelist_unset_attrs: list[str] = [
+        "identities",
+        "nins",  # Old format
+    ]
+
+    @classmethod
+    def get_user_db(cls, uri: str) -> BankIDProofingUserDB:
+        return BankIDProofingUserDB(uri)

@@ -10,6 +10,7 @@ from aiosmtplib import SMTPResponse
 from eduid.common.config.parsers import load_config
 from eduid.queue.config import QueueWorkerConfig
 from eduid.queue.db.message import EduidSignupEmail
+from eduid.queue.db.message.payload import EduidResetPasswordEmail
 from eduid.queue.testing import QueueAsyncioTest, SMPTDFixTemporaryInstance
 from eduid.queue.workers.mail import MailQueueWorker
 from eduid.userdb.util import utc_now
@@ -112,3 +113,48 @@ class TestMailWorker(QueueAsyncioTest):
         # Client saves new queue item
         self.client_db.save(queue_item)
         await self._assert_item_gets_processed(queue_item, retry=True)
+
+    async def test_register_mail_translations(self):
+        for lang in ["en", "sv"]:
+            payload = EduidSignupEmail(
+                email="noone@example.com",
+                reference="test",
+                language=lang,
+                verification_code="secret",
+                site_name="Test App",
+            )
+            msg = self.worker._build_mail(
+                subject="Translation Test",
+                txt_template="eduid_signup_email.txt.jinja2",
+                html_template="eduid_signup_email.html.jinja2",
+                data=payload,
+            )
+            msg_string = str(msg)
+            if lang == "en":
+                assert "You recently used noone@example.com to sign up for" in msg_string
+            if lang == "sv":
+                assert "Du har registrerat noone@example.com som e-postadress" in msg_string
+
+    async def test_reset_password_mail_translations(self):
+        for lang in ["en", "sv"]:
+            payload = EduidResetPasswordEmail(
+                email="noone@example.com",
+                reference="test",
+                language=lang,
+                verification_code="secret",
+                password_reset_timeout=2,
+                site_name="Test App",
+            )
+            msg = self.worker._build_mail(
+                subject="Translation Test",
+                txt_template="reset_password_email.txt.jinja2",
+                html_template="reset_password_email.html.jinja2",
+                data=payload,
+            )
+            msg_string = str(msg)
+            if lang == "en":
+                assert "You recently asked to reset your password for" in msg_string
+                assert "The code is valid for 2 hours." in msg_string
+            if lang == "sv":
+                assert "Du har bett om att byta" in msg_string
+                assert "giltig i 2 timmar." in msg_string

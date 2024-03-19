@@ -1,43 +1,12 @@
 #!/usr/bin/python
-#
-# Copyright (c) 2013, 2014 NORDUnet A/S
-# All rights reserved.
-#
-#   Redistribution and use in source and binary forms, with or
-#   without modification, are permitted provided that the following
-#   conditions are met:
-#
-#     1. Redistributions of source code must retain the above copyright
-#        notice, this list of conditions and the following disclaimer.
-#     2. Redistributions in binary form must reproduce the above
-#        copyright notice, this list of conditions and the following
-#        disclaimer in the documentation and/or other materials provided
-#        with the distribution.
-#     3. Neither the name of the NORDUnet nor the names of its
-#        contributors may be used to endorse or promote products derived
-#        from this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-# FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
-# COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
-# ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
-#
-# Author : Fredrik Thulin <fredrik@thulin.net>
-#
+
 import logging
 
 from eduid.common.misc.timeutil import utc_now
-from eduid.userdb.credentials import CredentialProofingMethod, FidoCredential, Password, Webauthn
-from eduid.userdb.credentials.external import SwedenConnectCredential
+from eduid.userdb.credentials import CredentialProofingMethod, FidoCredential, Password
+from eduid.userdb.credentials.external import BankIDCredential, SwedenConnectCredential
 from eduid.userdb.element import ElementKey
+from eduid.userdb.identity import IdentityProofingMethod
 from eduid.userdb.idp import IdPUser
 from eduid.webapp.common.session.namespaces import OnetimeCredential, OnetimeCredType
 from eduid.webapp.idp.app import current_idp_app
@@ -73,13 +42,27 @@ class MissingAuthentication(AssuranceException):
     pass
 
 
+class AuthnContextNotSupported(AssuranceException):
+    pass
+
+
+class IdentityProofingMethodNotAllowed(AssuranceException):
+    pass
+
+
+class MfaProofingMethodNotAllowed(AssuranceException):
+    pass
+
+
 class AuthnState:
     def __init__(self, user: IdPUser, sso_session: SSOSession, ticket: LoginContext):
         self.password_used = False
         self.is_swamid_al2 = False
+        self.is_digg_loa2 = False
         self.fido_used = False
         self.external_mfa_used = False
         self.swamid_al3_used = False
+        self.digg_loa2_approved_identity = False
         self._onetime_credentials: dict[ElementKey, OnetimeCredential] = {}
         self._credentials = self._gather_credentials(sso_session, ticket, user)
 
@@ -107,6 +90,12 @@ class AuthnState:
                 self.external_mfa_used = True
                 if cred.level == "loa3":
                     self.swamid_al3_used = True
+            elif isinstance(cred, BankIDCredential):
+                # NEW way
+                logger.debug(f"BankID MFA used for this request: {cred}")
+                self.external_mfa_used = True
+                if cred.level == "uncertified-loa3":
+                    self.swamid_al3_used = True
             else:
                 # Warn, but do not fail when the credential isn't found on the user. This can't be a hard failure,
                 # because when a user changes password they will get a new credential and the old is removed from
@@ -118,6 +107,18 @@ class AuthnState:
 
         if user.identities.is_verified:
             self.is_swamid_al2 = True
+
+        # check if the user can assert DIGG loa2
+        if user.identities.nin and user.identities.nin.is_verified:
+            self.digg_loa2_approved_identity = user.identities.nin.proofing_method in [
+                IdentityProofingMethod.SWEDEN_CONNECT,
+                IdentityProofingMethod.BANKID,
+                IdentityProofingMethod.LETTER,
+            ]
+            logger.debug(f"User NIN proofing method: {user.identities.nin.proofing_method}")
+            if self.digg_loa2_approved_identity and self.swamid_al3_used:
+                logger.info("User can assert DIGG loa2")
+                self.is_digg_loa2 = True
 
     def _gather_credentials(self, sso_session: SSOSession, ticket: LoginContext, user: IdPUser) -> list[UsedCredential]:
         """
@@ -218,21 +219,35 @@ def response_authn(authn: AuthnState, ticket: LoginContext, user: IdPUser, sso_s
     logger.info(f"Authn for {user} will be evaluated based on: {authn}")
 
     attributes = {}
-    response_authn = None
+    response_accr = None
 
-    if req_authn_ctx == EduidAuthnContextClass.REFEDS_MFA:
+    if req_authn_ctx == EduidAuthnContextClass.DIGG_LOA2:
+        current_idp_app.stats.count("req_authn_ctx_digg_loa2")
+        if not authn.password_used:
+            raise MissingPasswordFactor()
+        if not authn.is_multifactor:
+            raise MissingMultiFactor()
+        if not authn.digg_loa2_approved_identity:
+            raise IdentityProofingMethodNotAllowed()
+        if not authn.swamid_al3_used:
+            raise MfaProofingMethodNotAllowed()
+        if not authn.is_digg_loa2:  # this case should be covered by the previous two, but belt and bracers
+            raise AssuranceException()
+        response_accr = EduidAuthnContextClass.DIGG_LOA2
+
+    elif req_authn_ctx == EduidAuthnContextClass.REFEDS_MFA:
         current_idp_app.stats.count("req_authn_ctx_refeds_mfa")
         if not authn.password_used:
             raise MissingPasswordFactor()
         if not authn.is_multifactor:
             raise MissingMultiFactor()
-        response_authn = EduidAuthnContextClass.REFEDS_MFA
+        response_accr = EduidAuthnContextClass.REFEDS_MFA
 
     elif req_authn_ctx == EduidAuthnContextClass.REFEDS_SFA:
         current_idp_app.stats.count("req_authn_ctx_refeds_sfa")
         if not authn.is_singlefactor:
             raise MissingSingleFactor()
-        response_authn = EduidAuthnContextClass.REFEDS_SFA
+        response_accr = EduidAuthnContextClass.REFEDS_SFA
 
     elif req_authn_ctx == EduidAuthnContextClass.EDUID_MFA:
         current_idp_app.stats.count("req_authn_ctx_eduid_mfa")
@@ -240,28 +255,32 @@ def response_authn(authn: AuthnState, ticket: LoginContext, user: IdPUser, sso_s
             raise MissingPasswordFactor()
         if not authn.is_multifactor:
             raise MissingMultiFactor()
-        response_authn = EduidAuthnContextClass.EDUID_MFA
+        response_accr = EduidAuthnContextClass.EDUID_MFA
 
     elif req_authn_ctx == EduidAuthnContextClass.FIDO_U2F:
         current_idp_app.stats.count("req_authn_ctx_fido_u2f")
         if not authn.password_used and authn.fido_used:
             raise MissingMultiFactor()
-        response_authn = EduidAuthnContextClass.FIDO_U2F
+        response_accr = EduidAuthnContextClass.FIDO_U2F
 
     elif req_authn_ctx == EduidAuthnContextClass.PASSWORD_PT:
         current_idp_app.stats.count("req_authn_ctx_password_pt")
-        if authn.password_used:
-            response_authn = EduidAuthnContextClass.PASSWORD_PT
+        if not authn.password_used:
+            raise MissingPasswordFactor()
+        response_accr = EduidAuthnContextClass.PASSWORD_PT
 
-    else:
-        # Handle both unknown and empty req_authn_ctx the same
+    elif req_authn_ctx is None:
+        # Handle empty req_authn_ctx
         if authn.is_multifactor:
-            response_authn = EduidAuthnContextClass.REFEDS_MFA
+            response_accr = EduidAuthnContextClass.REFEDS_MFA
         elif authn.password_used:
-            response_authn = EduidAuthnContextClass.PASSWORD_PT
+            response_accr = EduidAuthnContextClass.PASSWORD_PT
+        else:
+            raise MissingAuthentication()
 
-    if not response_authn:
-        raise MissingAuthentication()
+    if response_accr is None:
+        # Fail on unknown req_authn_ctx
+        raise AuthnContextNotSupported()
 
     if authn.is_swamid_al2:
         if authn.swamid_al3_used:
@@ -271,7 +290,7 @@ def response_authn(authn: AuthnState, ticket: LoginContext, user: IdPUser, sso_s
     else:
         attributes["eduPersonAssurance"] = [item.value for item in current_app.conf.swamid_assurance_profile_1]
 
-    logger.info(f"Assurances for {user} was evaluated to: {response_authn.name} with attributes {attributes}")
+    logger.info(f"Assurances for {user} was evaluated to: {response_accr.name} with attributes {attributes}")
 
     # From all the credentials we're basing this authentication on, use the earliest one as authn instant.
     _instant = utc_now()
@@ -281,4 +300,4 @@ def response_authn(authn: AuthnState, ticket: LoginContext, user: IdPUser, sso_s
             _instant = this.ts
 
     logger.debug(f"Authn instant: {_instant.isoformat()}")
-    return AuthnInfo(class_ref=response_authn, authn_attributes=attributes, instant=_instant)
+    return AuthnInfo(class_ref=response_accr, authn_attributes=attributes, instant=_instant)

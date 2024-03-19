@@ -52,7 +52,7 @@ class AuthenticationMiddleware(BaseHTTPMiddleware, ContextRequestMixin):
         _token = auth[len("Bearer ") :]
         _jwt = jwt.JWT()
         try:
-            _jwt.deserialize(_token, req.app.jwks)
+            _jwt.deserialize(_token, req.app.context.jwks)
             claims = json.loads(_jwt.claims)
         except (JWException, KeyError, ValueError) as e:
             logger.info(f"Bearer token error: {e}")

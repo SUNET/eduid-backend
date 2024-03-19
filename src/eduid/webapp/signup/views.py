@@ -1,22 +1,18 @@
-from base64 import b64encode
-from io import BytesIO
-from re import findall
 from typing import Optional
 from uuid import uuid4
 
 from flask import Blueprint, abort, request
 
 from eduid.common.misc.timeutil import utc_now
+from eduid.common.utils import generate_password
 from eduid.userdb import User
 from eduid.userdb.exceptions import UserOutOfSync
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, require_user
 from eduid.webapp.common.api.exceptions import ProofingLogFailure
 from eduid.webapp.common.api.helpers import check_magic_cookie
 from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response, success_response
-from eduid.webapp.common.api.schemas.base import FluxStandardAction
 from eduid.webapp.common.api.schemas.csrf import EmptyRequest
-from eduid.webapp.common.api.utils import get_short_hash, make_short_code
-from eduid.webapp.common.authn.utils import generate_password
+from eduid.webapp.common.api.utils import make_short_code
 from eduid.webapp.common.session import session
 from eduid.webapp.signup.app import current_signup_app as current_app
 from eduid.webapp.signup.helpers import (
@@ -28,20 +24,16 @@ from eduid.webapp.signup.helpers import (
     complete_and_update_invite,
     create_and_sync_user,
     is_email_verification_expired,
-    remove_users_with_mail_address,
     send_signup_mail,
-    verify_recaptcha,
 )
 from eduid.webapp.signup.schemas import (
     AcceptTouRequest,
-    AccountCreatedResponse,
     CaptchaCompleteRequest,
     CaptchaResponse,
     CreateUserRequest,
     EmailSchema,
     InviteCodeRequest,
     InviteDataResponse,
-    RegisterEmailSchema,
     SignupStatusResponse,
     VerifyEmailRequest,
 )
@@ -179,18 +171,14 @@ def captcha_request() -> FluxData:
 
     session.signup.captcha.internal_answer = make_short_code(digits=current_app.conf.captcha_code_length)
     session.signup.captcha.bad_attempts = 0
-    data = current_app.captcha_image_generator.generate_image(chars=session.signup.captcha.internal_answer)
-    with BytesIO() as f:
-        data.save(fp=f, format="PNG", optimize=True)
-        return success_response(
-            payload={"captcha_img": f"data:image/png;base64,{b64encode(f.getvalue()).decode('utf-8')}"},
-        )
+    captcha_payload = current_app.captcha.get_request_payload(answer=session.signup.captcha.internal_answer)
+    return success_response(payload=captcha_payload)
 
 
 @signup_views.route("/captcha", methods=["POST"])
 @UnmarshalWith(CaptchaCompleteRequest)
 @MarshalWith(SignupStatusResponse)
-def captcha_response(recaptcha_response: Optional[str] = None, internal_response: Optional[str] = None) -> FluxData:
+def captcha_response(internal_response: Optional[str] = None) -> FluxData:
     """
     Check for humanness even at level AL1.
     """
@@ -203,7 +191,7 @@ def captcha_response(recaptcha_response: Optional[str] = None, internal_response
         # bad attempts is reset when a new captcha is generated
         return error_response(message=SignupMsg.captcha_failed)
 
-    # add a backdoor to bypass recaptcha checks for humanness,
+    # add a backdoor to bypass captcha checks for humanness,
     # to be used in testing environments for automated integration tests.
     if check_magic_cookie(current_app.conf):
         current_app.logger.info("Using BACKDOOR to verify captcha during signup!")
@@ -214,15 +202,7 @@ def captcha_response(recaptcha_response: Optional[str] = None, internal_response
             captcha_verified = False
 
     # common path with no backdoor
-    if recaptcha_response and not captcha_verified:
-        remote_ip = request.remote_addr
-        if not remote_ip:
-            raise RuntimeError("No remote IP address found")
-        if current_app.conf.recaptcha_public_key and current_app.conf.recaptcha_private_key:
-            captcha_verified = verify_recaptcha(current_app.conf.recaptcha_private_key, recaptcha_response, remote_ip)
-        else:
-            current_app.logger.info("Missing configuration for reCaptcha!")
-    elif internal_response and not captcha_verified:
+    if internal_response and not captcha_verified:
         if session.signup.captcha.internal_answer is None:
             return error_response(message=SignupMsg.captcha_not_requested)
         captcha_verified = internal_response == session.signup.captcha.internal_answer
@@ -442,148 +422,3 @@ def get_email_code():
         current_app.logger.exception("Someone tried to use the backdoor to get the email verification code for signup")
 
     abort(400)
-
-
-# backwards compatibility
-@signup_views.route("/trycaptcha", methods=["POST"])
-@UnmarshalWith(RegisterEmailSchema)
-@MarshalWith(AccountCreatedResponse)
-def trycaptcha(email: str, recaptcha_response: str, tou_accepted: bool) -> FluxData:
-    """
-    Kantara requires a check for humanness even at level AL1.
-    """
-    if not tou_accepted:
-        return error_response(message=SignupMsg.tou_not_accepted)
-    session.signup.tou.completed = True
-    session.signup.tou.version = current_app.conf.tou_version
-
-    recaptcha_verified = False
-
-    # add a backdoor to bypass recaptcha checks for humanness,
-    # to be used in testing environments for automated integration tests.
-    if check_magic_cookie(current_app.conf):
-        current_app.logger.info("Using BACKDOOR to verify reCaptcha during signup!")
-        recaptcha_verified = True
-
-    # common path with no backdoor
-    if not recaptcha_verified:
-        remote_ip = request.remote_addr
-        if not remote_ip:
-            raise RuntimeError("No remote IP address found")
-        if current_app.conf.recaptcha_public_key and current_app.conf.recaptcha_private_key:
-            recaptcha_verified = verify_recaptcha(current_app.conf.recaptcha_private_key, recaptcha_response, remote_ip)
-        else:
-            current_app.logger.info("Missing configuration for reCaptcha!")
-
-    if recaptcha_verified:
-        session.signup.captcha.completed = True
-
-        # if an old signup is in progress, let the user continue it
-        signup_user = current_app.private_userdb.get_user_by_pending_mail_address(email)
-        if signup_user is not None:
-            assert signup_user.pending_mail_address is not None  # please mypy
-            current_app.logger.debug(f"Found user {signup_user} with pending email {email} in signup db")
-            session.signup.email.address = signup_user.pending_mail_address.email
-            session.signup.email.verification_code = signup_user.pending_mail_address.verification_code
-            session.signup.email.sent_at = signup_user.pending_mail_address.modified_ts
-
-        _next = check_email_status(email)
-        current_app.logger.info(f"recaptcha verified, next is {_next}")
-
-        if _next == EmailStatus.ADDRESS_USED:
-            current_app.stats.count(name="address_used_error")
-            return error_response(payload=dict(next=_next), message=SignupMsg.old_email_used)
-        elif _next == EmailStatus.THROTTLED:
-            current_app.logger.info("throttled error")
-            return error_response(payload=dict(next=_next), message=SignupMsg.email_throttled)
-        elif _next == EmailStatus.NEW:
-            # Workaround for failed earlier sync of user to userdb: Remove any signup_user with this e-mail address.
-            remove_users_with_mail_address(email)
-
-            session.signup.email.address = email
-            session.signup.email.verification_code = get_short_hash(
-                entropy=current_app.conf.email_verification_code_length
-            )
-            session.signup.email.sent_at = utc_now()
-            session.signup.email.reference = str(uuid4())
-
-            send_signup_mail(
-                email=session.signup.email.address,
-                verification_code=session.signup.email.verification_code,
-                reference=session.signup.email.reference,
-                use_email_link=True,
-            )
-            return success_response(payload=dict(next="new"), message=SignupMsg.reg_new)
-
-        elif _next == EmailStatus.RESEND_CODE:
-            assert session.signup.email.address is not None  # please mypy
-            assert session.signup.email.verification_code is not None  # please mypy
-            assert session.signup.email.reference is not None  # please mypy
-            send_signup_mail(
-                email=session.signup.email.address,
-                verification_code=session.signup.email.verification_code,
-                reference=session.signup.email.reference,
-                use_email_link=True,
-            )
-            current_app.stats.count(name="resend_code")
-            # Show the same end screen for resending a mail and a new registration
-            return success_response(payload=dict(next="new"), message=SignupMsg.reg_new)
-
-    return error_response(message=SignupMsg.no_recaptcha)
-
-
-@signup_views.route("/verify-link/<code>", methods=["GET"])
-@MarshalWith(FluxStandardAction)
-def verify_link(code: str) -> FluxData:
-    # ignore verification attempts if there has been to many wrong attempts
-    if session.signup.email.bad_attempts >= current_app.conf.email_verification_max_bad_attempts:
-        current_app.logger.info("Too many wrong verification attempts")
-        return error_response(message=SignupMsg.email_verification_too_many_tries)
-
-    if (
-        is_email_verification_expired(sent_ts=session.signup.email.sent_at)
-        or session.signup.email.verification_code is None
-        or session.signup.email.verification_code != code
-    ):
-        current_app.logger.info("Verification failed")
-        session.signup.email.bad_attempts += 1
-        return error_response(payload=dict(status="unknown-code"), message=SignupMsg.unknown_code)
-
-    session.signup.email.completed = True
-    session.signup.credentials.password = generate_password(length=current_app.conf.password_length)
-
-    assert session.signup.email.address is not None  # please mypy
-    assert session.signup.tou.version is not None  # please mypy
-    try:
-        signup_user = create_and_sync_user(
-            email=session.signup.email.address,
-            password=session.signup.credentials.password,
-            tou_version=session.signup.tou.version,
-        )
-
-    except EmailAlreadyVerifiedException:
-        return error_response(payload=dict(status="already-verified"), message=SignupMsg.already_verified)
-    except ProofingLogFailure:
-        return error_response(message=CommonMsg.temp_problem)
-    except UserOutOfSync:
-        return error_response(message=CommonMsg.out_of_sync)
-
-    parts = findall(".{,4}", session.signup.credentials.password)
-    password = " ".join(parts).rstrip()
-
-    context = {
-        "status": "verified",
-        "password": password,
-        "dashboard_url": current_app.conf.dashboard_url,
-    }
-
-    if signup_user.mail_addresses.primary:
-        context["email"] = signup_user.mail_addresses.primary.email
-
-    current_app.stats.count(name="signup_complete")
-    current_app.logger.info(f"Signup process for new user {signup_user} complete")
-    del session.signup
-    return success_response(payload=context)
-
-
-# end backwards compatibility

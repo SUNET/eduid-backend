@@ -3,7 +3,7 @@ from abc import ABC
 from typing import Optional, Sequence, TypeVar
 from urllib.parse import urlencode
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from eduid.webapp.common.session.namespaces import (
     IdP_OtherDevicePendingRequest,
@@ -36,9 +36,7 @@ class LoginContext(ABC, BaseModel):
     remember_me: Optional[bool] = None  # if the user wants to be remembered or not (on this device)
     _known_device: Optional[KnownDevice] = None
     _pending_request: Optional[IdP_PendingRequest] = None
-
-    class Config:
-        underscore_attrs_are_private = True  # needed for the underscore attributes to be inherited to subclasses
+    model_config = ConfigDict()
 
     def __str__(self) -> str:
         return f"<{self.__class__.__name__}: key={self.request_ref}>"
@@ -323,7 +321,8 @@ def _pick_authn_context(accrs: Sequence[str], log_tag: str) -> Optional[EduidAut
         try:
             known += [EduidAuthnContextClass(x)]
         except ValueError:
-            logger.debug(f"Ignoring unknown authnContextClassRef: {x}")
+            logger.info(f"Unknown authnContextClassRef: {x}")
+            known += [EduidAuthnContextClass.NOT_IMPLEMENTED]
     if not known:
         return None
     # TODO: Pick the most applicable somehow, not just the first one in the list

@@ -1,64 +1,27 @@
-#
-# Copyright (c) 2019 SUNET
-# All rights reserved.
-#
-#   Redistribution and use in source and binary forms, with or
-#   without modification, are permitted provided that the following
-#   conditions are met:
-#
-#     1. Redistributions of source code must retain the above copyright
-#        notice, this list of conditions and the following disclaimer.
-#     2. Redistributions in binary form must reproduce the above
-#        copyright notice, this list of conditions and the following
-#        disclaimer in the documentation and/or other materials provided
-#        with the distribution.
-#     3. Neither the name of the SUNET nor the names of its
-#        contributors may be used to endorse or promote products derived
-#        from this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-# FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
-# COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
-# ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
-#
 import math
 from dataclasses import dataclass
+from datetime import timedelta
 from enum import unique
 from typing import Any, Mapping, Optional, Union
 
 from flask import render_template
-from flask_babel import gettext as _
 
 from eduid.common.config.base import EduidEnvironment
 from eduid.common.misc.timeutil import utc_now
-from eduid.common.rpc.exceptions import MailTaskFailed
-from eduid.common.utils import urlappend
+from eduid.common.utils import generate_password, get_short_hash
+from eduid.queue.client import init_queue_item
+from eduid.queue.db.message.payload import EduidResetPasswordEmail
 from eduid.userdb.exceptions import UserDoesNotExist
 from eduid.userdb.logs import MailAddressProofing, PhoneNumberProofing
 from eduid.userdb.reset_password import ResetPasswordEmailAndPhoneState, ResetPasswordEmailState, ResetPasswordUser
 from eduid.userdb.reset_password.element import CodeElement
 from eduid.userdb.user import User
 from eduid.webapp.common.api.exceptions import ThrottledException
-from eduid.webapp.common.api.helpers import send_mail
 from eduid.webapp.common.api.messages import FluxData, TranslatableMsg, error_response, success_response
-from eduid.webapp.common.api.utils import (
-    check_password_hash,
-    get_short_hash,
-    get_unique_hash,
-    get_zxcvbn_terms,
-    save_and_sync_user,
-)
+from eduid.webapp.common.api.translation import get_user_locale
+from eduid.webapp.common.api.utils import check_password_hash, get_zxcvbn_terms, make_short_code, save_and_sync_user
 from eduid.webapp.common.api.validation import is_valid_password
 from eduid.webapp.common.authn import fido_tokens
-from eduid.webapp.common.authn.utils import generate_password
 from eduid.webapp.common.authn.vccs import reset_password
 from eduid.webapp.common.session import session
 from eduid.webapp.reset_password.app import current_reset_password_app as current_app
@@ -194,7 +157,7 @@ def is_generated_password(password: str) -> bool:
 
 def send_password_reset_mail(email_address: str) -> ResetPasswordEmailState:
     """
-    :param email_address: User input for password reset
+    Put a reset password email message on the queue.
     """
     user = current_app.central_userdb.get_user_by_mail(email_address)
     if not user:
@@ -216,29 +179,41 @@ def send_password_reset_mail(email_address: str) -> ResetPasswordEmailState:
         state = ResetPasswordEmailState(
             eppn=user.eppn,
             email_address=email_address,
-            email_code=CodeElement(code=get_unique_hash(), created_by=current_app.conf.app_name, is_verified=False),
+            email_code=CodeElement(
+                code=make_short_code(digits=current_app.conf.email_code_length),
+                created_by=current_app.conf.app_name,
+                is_verified=False,
+            ),
         )
         _is_in_db = False
     current_app.password_reset_state_db.save(state, is_in_database=_is_in_db)
 
-    # Send email
-    text_template = "reset_password_email.txt.jinja2"
-    html_template = "reset_password_email.html.jinja2"
+    # send the reset password email to all verified email addresses
     to_addresses = [address.email for address in user.mail_addresses.verified]
-    pwreset_timeout = int(current_app.conf.email_code_timeout.total_seconds()) // 60 // 60  # seconds to hours
-    # We must send the user to an url that does not correspond to a flask view,
-    # but to a js bundle (i.e. a flask view in a *different* app)
-    resetpw_link = urlappend(current_app.conf.password_reset_link, state.email_code.code)
-    context = {"reset_password_link": resetpw_link, "password_reset_timeout": pwreset_timeout}
-    subject = _("Reset password")
-    try:
-        send_mail(subject, to_addresses, text_template, html_template, current_app, context, state.reference)
-    except MailTaskFailed as e:
-        current_app.logger.error(f"Sending password reset e-mail failed")
-        current_app.logger.debug(f"email address: {email_address}")
-        raise e
+    for email_address in to_addresses:
+        payload = EduidResetPasswordEmail(
+            email=email_address,
+            verification_code=state.email_code.code,
+            password_reset_timeout=current_app.conf.email_code_timeout // timedelta(hours=1),
+            site_name=current_app.conf.eduid_site_name,
+            language=get_user_locale() or current_app.conf.default_language,
+            reference=state.email_reference,
+        )
 
-    current_app.logger.info(f"Sent password reset email")
+        message = init_queue_item(
+            app_name=current_app.conf.app_name, expires_in=current_app.conf.email_code_timeout, payload=payload
+        )
+        current_app.messagedb.save(message)
+        current_app.logger.info(
+            f"Saved rest password email queue item in queue collection {current_app.messagedb._coll_name}"
+        )
+        current_app.logger.debug(f"email: {email_address}")
+        if current_app.conf.environment == EduidEnvironment.dev:
+            # Debug-log the code and message in development environment
+            current_app.logger.debug(f"code: {state.email_code.code}")
+            current_app.logger.debug(f"Generating verification e-mail with context:\n{payload}")
+
+    current_app.logger.info("Queued password reset email(s)")
     current_app.logger.debug(f"Mail addresses: {to_addresses}")
 
     return state

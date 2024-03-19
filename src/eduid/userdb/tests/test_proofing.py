@@ -11,17 +11,19 @@ __author__ = "lundberg"
 EPPN = "foob-arra"
 
 # Address as we get it from Navet
-ADDRESS = FullPostalAddress.parse_obj(
-    [
-        (
-            "Name",
-            OrderedDict([("GivenNameMarking", "20"), ("GivenName", "Testaren Test"), ("Surname", "Testsson")]),
-        ),
-        (
-            "OfficialAddress",
-            OrderedDict([("Address2", "\xd6RGATAN 79 LGH 10"), ("PostalCode", "12345"), ("City", "LANDET")]),
-        ),
-    ]
+ADDRESS = FullPostalAddress.model_validate(
+    OrderedDict(
+        [
+            (
+                "Name",
+                OrderedDict([("GivenNameMarking", "20"), ("GivenName", "Testaren Test"), ("Surname", "Testsson")]),
+            ),
+            (
+                "OfficialAddress",
+                OrderedDict([("Address2", "\xd6RGATAN 79 LGH 10"), ("PostalCode", "12345"), ("City", "LANDET")]),
+            ),
+        ]
+    )
 )
 
 

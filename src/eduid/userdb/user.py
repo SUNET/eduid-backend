@@ -1,36 +1,3 @@
-#
-# Copyright (c) 2014-2015 NORDUnet A/S
-# All rights reserved.
-#
-#   Redistribution and use in source and binary forms, with or
-#   without modification, are permitted provided that the following
-#   conditions are met:
-#
-#     1. Redistributions of source code must retain the above copyright
-#        notice, this list of conditions and the following disclaimer.
-#     2. Redistributions in binary form must reproduce the above
-#        copyright notice, this list of conditions and the following
-#        disclaimer in the documentation and/or other materials provided
-#        with the distribution.
-#     3. Neither the name of the NORDUnet nor the names of its
-#        contributors may be used to endorse or promote products derived
-#        from this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-# FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
-# COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
-# ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
-#
-# Author : Fredrik Thulin <fredrik@thulin.net>
-#
 from __future__ import annotations
 
 import copy
@@ -41,7 +8,8 @@ from operator import itemgetter
 from typing import Any, Optional, TypeVar, Union, cast
 
 import bson
-from pydantic import BaseModel, Extra, Field, root_validator, validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from typing_extensions import Self
 
 from eduid.userdb.credentials import CredentialList
 from eduid.userdb.db import BaseDB, TUserDbDocument
@@ -95,14 +63,12 @@ class User(BaseModel):
     profiles: ProfileList = Field(default_factory=ProfileList)
     letter_proofing_data: Optional[Union[list, dict]] = None  # remove dict after a full load-save-users
     revoked_ts: Optional[datetime] = None
+    model_config = ConfigDict(
+        populate_by_name=True, validate_assignment=True, extra="forbid", arbitrary_types_allowed=True
+    )
 
-    class Config:
-        allow_population_by_field_name = True  # allow setting created_ts by name, not just it's alias
-        validate_assignment = True  # validate data when updated, not just when initialised
-        extra = Extra.forbid  # reject unknown data
-        arbitrary_types_allowed = True  # allow ObjectId as type in Event
-
-    @validator("eppn", pre=True)
+    @field_validator("eppn", mode="before")
+    @classmethod
     def check_eppn(cls, v: str) -> str:
         if len(v) != 11 or "-" not in v:
             # the exception to the rule - an old proquint implementation once generated a short eppn
@@ -112,7 +78,8 @@ class User(BaseModel):
                     raise UserDBValueError(f"Malformed eppn ({v})")
         return v
 
-    @root_validator(pre=True)
+    @model_validator(mode="before")
+    @classmethod
     def check_revoked(cls, values: dict[str, Any]) -> dict[str, Any]:
         # raise exception if the user is revoked
         if values.get("revoked_ts") is not None:
@@ -121,12 +88,12 @@ class User(BaseModel):
             )
         return values
 
-    @root_validator()
-    def update_meta_modified_ts(cls, values: dict[str, Any]) -> dict[str, Any]:
+    @model_validator(mode="after")
+    def update_meta_modified_ts(self) -> Self:
         # as we validate on assignment this will run every time the User is changed
-        if values.get("modified_ts"):
-            values["meta"].modified_ts = values["modified_ts"]
-        return values
+        if self.modified_ts:
+            self.meta.modified_ts = self.modified_ts
+        return self
 
     def __str__(self) -> str:
         """
@@ -205,6 +172,11 @@ class User(BaseModel):
         # TODO: Remove after next full load-save
         for _locked_nin in data.get("locked_identity", []):
             _locked_nin["verified"] = True
+
+        # users can have terminated set to False due to earlier bug
+        # TODO: Remove after next full load-save
+        if "terminated" in data and data["terminated"] is False:
+            data["terminated"] = None
 
         # parse complex data
         data["mail_addresses"] = cls._parse_mail_addresses(data)

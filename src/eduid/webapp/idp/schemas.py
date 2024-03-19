@@ -1,33 +1,4 @@
-#
-# Copyright (c) 2020 SUNET
-# All rights reserved.
-#
-#   Redistribution and use in source and binary forms, with or
-#   without modification, are permitted provided that the following
-#   conditions are met:
-#
-#     1. Redistributions of source code must retain the above copyright
-#        notice, this list of conditions and the following disclaimer.
-#     2. Redistributions in binary form must reproduce the above
-#        copyright notice, this list of conditions and the following
-#        disclaimer in the documentation and/or other materials provided
-#        with the distribution.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-# FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
-# COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
-# ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
-#
-
-from typing import Any, Mapping, Optional
+from typing import Any, Optional
 
 from marshmallow import Schema, ValidationError, fields
 
@@ -53,6 +24,7 @@ class NextResponseSchema(FluxStandardAction):
             display_name = fields.Str(required=False)
             forced_username = fields.Str(required=False)
             freja_eidplus = fields.Bool(required=True)
+            swedish_eid = fields.Bool(required=True)
             has_session = fields.Bool(required=True)
             is_reauthn = fields.Bool(required=True)
             other_device = fields.Bool(required=True)
@@ -64,11 +36,16 @@ class NextResponseSchema(FluxStandardAction):
         class ServiceInfoResponsePayload(EduidSchema):
             display_name = fields.Dict(keys=fields.Str(), values=fields.Str(), required=False)
 
+        class MissingAttributesPayload(EduidSchema):
+            name = fields.Str(required=True)
+            friendly_name = fields.Str(required=True)
+
         action = fields.Str(required=True)
         target = fields.Str(required=True)
         parameters = fields.Dict(keys=fields.Str(), required=False)
         authn_options = fields.Nested(AuthnOptionsResponsePayload, required=False)
         service_info = fields.Nested(ServiceInfoResponsePayload, required=False)
+        missing_attributes = fields.List(fields.Nested(MissingAttributesPayload), required=False)
 
     payload = fields.Nested(NextResponsePayload)
 

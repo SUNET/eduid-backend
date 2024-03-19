@@ -1,36 +1,3 @@
-#
-# Copyright (c) 2015 NORDUnet A/S
-# All rights reserved.
-#
-#   Redistribution and use in source and binary forms, with or
-#   without modification, are permitted provided that the following
-#   conditions are met:
-#
-#     1. Redistributions of source code must retain the above copyright
-#        notice, this list of conditions and the following disclaimer.
-#     2. Redistributions in binary form must reproduce the above
-#        copyright notice, this list of conditions and the following
-#        disclaimer in the documentation and/or other materials provided
-#        with the distribution.
-#     3. Neither the name of the NORDUnet nor the names of its
-#        contributors may be used to endorse or promote products derived
-#        from this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-# FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
-# COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
-# ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
-#
-# Author : Fredrik Thulin <fredrik@thulin.net>
-#
 """
 userdb data
 ===========
@@ -76,6 +43,7 @@ respectively called in `from_dict` and `to_dict` and can be overridden in
 subclasses.
 
 """
+
 from __future__ import annotations
 
 import copy
@@ -84,8 +52,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Generic, Mapping, NewType, Optional, TypeVar, Union
 
-from pydantic import BaseModel, Extra, Field, validator
-from pydantic.generics import GenericModel
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from eduid.userdb.db import TUserDbDocument
 from eduid.userdb.exceptions import EduIDUserDBError, UserDBValueError
@@ -143,12 +110,9 @@ class Element(BaseModel):
     # any changes to data in the production database. Remove after a burn-in period.
     no_created_ts_in_db: bool = Field(default=False, exclude=True)
     no_modified_ts_in_db: bool = Field(default=False, exclude=True)
-
-    class Config:
-        allow_population_by_field_name = True  # allow setting created_ts by name, not just it's alias
-        validate_assignment = True  # validate data when updated, not just when initialised
-        extra = Extra.forbid  # reject unknown data
-        arbitrary_types_allowed = True  # allow ObjectId as type in Event
+    model_config = ConfigDict(
+        populate_by_name=True, validate_assignment=True, extra="forbid", arbitrary_types_allowed=True
+    )
 
     def __str__(self) -> str:
         return f"<eduID {self.__class__.__name__}: {self.dict()}>"
@@ -189,12 +153,12 @@ class Element(BaseModel):
         if "added_timestamp" in data:
             data["created_ts"] = data.pop("added_timestamp")
 
-        if "created_ts" not in data:
+        if "created_ts" not in data or isinstance(data.get("created_ts"), bool):
             # some really old nin entries in the database have neither created_ts nor modified_ts
             data["no_created_ts_in_db"] = True
             data["created_ts"] = datetime.fromisoformat("1900-01-01T00:00:00+00:00")
 
-        if "modified_ts" not in data:
+        if "modified_ts" not in data or isinstance(data.get("modified_ts"), bool):
             data["no_modified_ts_in_db"] = True
             # Use created_ts as modified_ts if no explicit modified_ts was found
             data["modified_ts"] = data["created_ts"]
@@ -311,7 +275,7 @@ ListElement = TypeVar("ListElement", bound=Element)
 MatchingElement = TypeVar("MatchingElement", bound=Element)
 
 
-class ElementList(GenericModel, Generic[ListElement], ABC):
+class ElementList(BaseModel, Generic[ListElement], ABC):
     """
     Hold a list of Element instances.
 
@@ -319,21 +283,19 @@ class ElementList(GenericModel, Generic[ListElement], ABC):
     """
 
     elements: list[ListElement] = Field(default=[])
-
-    class Config:
-        validate_assignment = True  # validate data when updated, not just when initialised
-        extra = Extra.forbid  # reject unknown data
+    model_config = ConfigDict(validate_assignment=True, extra="forbid")
 
     def __str__(self):
         return "<eduID {!s}: {!r}>".format(self.__class__.__name__, getattr(self, "elements", None))
 
-    @validator("elements", pre=True)
-    def _validate_element_values(cls, values, field):
-        cls._validate_elements(values, field)
+    @field_validator("elements", mode="before")
+    @classmethod
+    def _validate_element_values(cls, values: list[ListElement]) -> list[ListElement]:
+        cls._validate_elements(values)
         return values
 
     @classmethod
-    def _validate_elements(cls, values, field):
+    def _validate_elements(cls, values: list[ListElement]) -> list[ListElement]:
         """
         Validate elements. Since the 'elements' property is defined on subclasses
         (to get the right type information), a pydantic validator can't be placed here
@@ -342,9 +304,7 @@ class ElementList(GenericModel, Generic[ListElement], ABC):
         # Ensure no elements have duplicate keys
         for this in values:
             if not isinstance(this, Element):
-                raise TypeError(f"Value is of type {type(this)} which is not an Element subclass")
-            if not isinstance(this, field.type_):
-                raise TypeError(f"Value of type {type(this)} is not an {field.type_}")
+                raise ValueError(f"Value is of type {type(this)} which is not an Element subclass")
             same_key = [x for x in values if x.key == this.key]
             if len(same_key) != 1:
                 raise ValueError(f"Duplicate element key: {repr(this.key)}")
@@ -460,13 +420,13 @@ class PrimaryElementList(VerifiedElementList[ListElement], Generic[ListElement],
     """
 
     @classmethod
-    def _validate_elements(cls, values, field):
+    def _validate_elements(cls, values: list[ListElement]):
         """
         Validate elements. Since the 'elements' property is defined on subclasses
         (to get the right type information), a pydantic validator can't be placed here
         on the superclass.
         """
-        super()._validate_elements(values, field)
+        super()._validate_elements(values)
         # call _get_primary to validate the elements - will raise an exception on errors
         cls._get_primary(values)
         return values

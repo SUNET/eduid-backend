@@ -114,7 +114,6 @@ class CaptchaResponse(FluxStandardAction):
 
 
 class CaptchaCompleteRequest(EduidSchema, CSRFRequestMixin):
-    recaptcha_response = fields.String(required=False)
     internal_response = fields.String(required=False)
 
 
@@ -167,7 +166,6 @@ class InviteCompletedResponse(FluxStandardAction):
 
 
 class RegisterEmailSchema(EmailSchema):
-    recaptcha_response = fields.String(required=True)
     tou_accepted = fields.Boolean(required=True)
 
 

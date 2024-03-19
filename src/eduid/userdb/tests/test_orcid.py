@@ -125,7 +125,13 @@ class TestOrcid(unittest.TestCase):
         with pytest.raises(ValidationError) as exc_info:
             Orcid.from_dict(data)
         assert exc_info.value.errors() == [
-            {"loc": ("unknown_key",), "msg": "extra fields not permitted", "type": "value_error.extra"}
+            {
+                "input": "test",
+                "loc": ("unknown_key",),
+                "msg": "Extra inputs are not permitted",
+                "type": "extra_forbidden",
+                "url": "https://errors.pydantic.dev/2.6/v/extra_forbidden",
+            }
         ]
 
         with pytest.raises(eduid.userdb.exceptions.UserDBValueError):

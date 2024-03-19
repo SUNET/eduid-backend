@@ -12,8 +12,9 @@ from eduid.common.misc.timeutil import utc_now
 from eduid.common.models.scim_base import Email, Meta, Name, PhoneNumber, SCIMResourceType, SCIMSchema
 from eduid.common.models.scim_invite import InviteResponse, NutidInviteExtensionV1
 from eduid.common.models.scim_user import NutidUserExtensionV1, Profile
+from eduid.common.utils import make_etag
 from eduid.scimapi.testing import ScimApiTestCase
-from eduid.scimapi.utils import filter_none, make_etag
+from eduid.scimapi.utils import filter_none
 from eduid.userdb.scimapi import EventStatus, ScimApiEmail, ScimApiName, ScimApiPhoneNumber, ScimApiProfile
 from eduid.userdb.scimapi.invitedb import ScimApiInvite
 from eduid.userdb.signup import Invite as SignupInvite
@@ -112,7 +113,7 @@ class TestScimInvite(unittest.TestCase):
             ),
         )
 
-        scim = invite_response.json(exclude_none=True, by_alias=True, sort_keys=True)
+        scim = invite_response.model_dump_json(exclude_none=True, by_alias=True)
 
         expected = {
             "schemas": [
@@ -413,32 +414,38 @@ class TestInviteResource(ScimApiTestCase):
 
         req1 = copy(req)
         del req1[SCIMSchema.NUTID_INVITE_V1.value]["inviterName"]
-        response = self.client.post(url=f"/Invites/", json=req1, headers=self.headers)
+        response = self.client.post(url="/Invites/", json=req1, headers=self.headers)
         self._assertScimError(
             status=422,
             json=response.json(),
             detail=[
                 {
-                    "loc": ["body", "https://scim.eduid.se/schema/nutid/invite/v1", "__root__"],
-                    "msg": "Missing inviterName",
+                    "ctx": {"error": {}},
+                    "loc": ["body", "https://scim.eduid.se/schema/nutid/invite/v1"],
+                    "msg": "Value error, Missing inviterName",
                     "type": "value_error",
+                    "url": "https://errors.pydantic.dev/2.6/v/value_error",
                 }
             ],
+            exclude_keys=["input"],
         )
 
         req2 = copy(req)
         del req2[SCIMSchema.NUTID_INVITE_V1.value]["sendEmail"]
-        response = self.client.post(url=f"/Invites/", json=req2, headers=self.headers)
+        response = self.client.post(url="/Invites/", json=req2, headers=self.headers)
         self._assertScimError(
             status=422,
             json=response.json(),
             detail=[
                 {
-                    "loc": ["body", "https://scim.eduid.se/schema/nutid/invite/v1", "__root__"],
-                    "msg": "Missing sendEmail",
+                    "ctx": {"error": {}},
+                    "loc": ["body", "https://scim.eduid.se/schema/nutid/invite/v1"],
+                    "msg": "Value error, Missing sendEmail",
                     "type": "value_error",
+                    "url": "https://errors.pydantic.dev/2.6/v/value_error",
                 }
             ],
+            exclude_keys=["input"],
         )
 
     def test_create_invite_do_not_send_email(self):

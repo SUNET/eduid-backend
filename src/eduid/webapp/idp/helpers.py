@@ -1,6 +1,12 @@
 from enum import Enum, unique
+from typing import Optional
 
-from eduid.webapp.common.api.messages import TranslatableMsg
+from saml2 import BINDING_HTTP_POST
+
+from eduid.userdb.idp import IdPUser
+from eduid.webapp.common.api.messages import TranslatableMsg, error_response, success_response
+from eduid.webapp.idp.app import current_idp_app as current_app
+from eduid.webapp.idp.idp_saml import SAMLResponseParams
 
 
 @unique
@@ -8,7 +14,7 @@ class IdPMsg(str, TranslatableMsg):
     aborted = "login.aborted"
     unknown_device = "login.unknown_device"
     action_required = "login.action_required"  # Shouldn't actually be returned to the frontend
-    assurance_failure = "login.assurance_failure"
+    assurance_failure = "login.assurance_failure"  # Shouldn't actually be returned to the frontend
     assurance_not_possible = "login.assurance_not_possible"
     bad_ref = "login.bad_ref"
     credential_expired = "login.credential_expired"
@@ -16,10 +22,12 @@ class IdPMsg(str, TranslatableMsg):
     general_failure = "login.general_failure"
     mfa_required = "login.mfa_required"
     mfa_auth_failed = "login.mfa_auth_failed"
+    mfa_proofing_method_not_allowed = "login.mfa_proofing_method_not_allowed"
     must_authenticate = "login.must_authenticate"
     no_sso_session = "login.no_sso_session"
     not_available = "login.not_available"
     not_implemented = "login.not_implemented"
+    identity_proofing_method_not_allowed = "login.identity_proofing_method_not_allowed"
     other_device = "login.use_another_device"
     other_device_expired = "login.other_device_expired"
     proceed = "login.proceed"  # Shouldn't actually be returned to the frontend
@@ -45,3 +53,34 @@ class IdPAction(str, Enum):
     MFA = "MFA"
     TOU = "TOU"
     FINISHED = "FINISHED"
+
+
+def lookup_user(username: str, managed_account_allowed: bool = False) -> Optional[IdPUser]:
+    """
+    Lookup a user by username in both central userdb and in managed account db
+    """
+    # check for managed user where username always starts with ma-
+    if username.startswith("ma-"):
+        if not managed_account_allowed:
+            return None
+        return current_app.managed_account_db.get_account_as_idp_user(username)
+    else:
+        return current_app.userdb.lookup_user(username)
+
+
+def create_saml_sp_response(saml_params: SAMLResponseParams):
+    """
+    Create a response to frontend that should be posted to the SP
+    """
+    if saml_params.binding != BINDING_HTTP_POST:
+        current_app.logger.error("SAML response does not have binding HTTP_POST")
+        return error_response(message=IdPMsg.general_failure)
+    return success_response(
+        message=IdPMsg.finished,
+        payload={
+            "action": IdPAction.FINISHED.value,
+            "target": saml_params.url,
+            "parameters": saml_params.post_params,
+            "missing_attributes": saml_params.missing_attributes,
+        },
+    )

@@ -1,3 +1,4 @@
+import unittest
 from unittest import TestCase
 
 import pytest
@@ -296,10 +297,12 @@ class TestProofingLog(TestCase):
 
         assert exc_info.value.errors() == [
             {
-                "ctx": {"limit_value": 1},
+                "ctx": {"min_length": 1},
+                "input": "",
                 "loc": ("phone_number",),
-                "msg": "ensure this value has at least 1 characters",
-                "type": "value_error.any_str.min_length",
+                "msg": "String should have at least 1 character",
+                "type": "string_too_short",
+                "url": "https://errors.pydantic.dev/2.6/v/string_too_short",
             }
         ]
 
@@ -307,18 +310,13 @@ class TestProofingLog(TestCase):
         data = {
             "eppn": self.user.eppn,
             "created_by": "test",
-            "phone_number": "some_phone_number",
             "proofing_version": "test",
             "reference": "reference id",
         }
-        proofing_element = PhoneNumberProofing(**data)
-        proofing_element.phone_number = 0
-
+        proofing_element = PhoneNumberProofing.model_construct(**data, phone_number=0)
         self.assertTrue(self.proofing_log_db.save(proofing_element))
 
-        proofing_element = PhoneNumberProofing(**data)
-        proofing_element.phone_number = False
-
+        proofing_element = PhoneNumberProofing.model_construct(**data, phone_number=False)
         self.assertTrue(self.proofing_log_db.save(proofing_element))
 
     def test_deregistered_proofing_data(self):

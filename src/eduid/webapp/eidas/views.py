@@ -26,18 +26,11 @@ from eduid.webapp.common.authn.acs_registry import ACSArgs, get_action
 from eduid.webapp.common.authn.eduid_saml2 import process_assertion
 from eduid.webapp.common.authn.utils import get_location
 from eduid.webapp.common.proofing.methods import ProofingMethodSAML, get_proofing_method
+from eduid.webapp.common.proofing.saml_helpers import create_metadata, is_required_loa, is_valid_reauthn
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.namespaces import AuthnRequestRef, MfaActionError, SP_AuthnRequest
 from eduid.webapp.eidas.app import current_eidas_app as current_app
-from eduid.webapp.eidas.helpers import (
-    EidasMsg,
-    attribute_remap,
-    check_credential_to_verify,
-    create_authn_info,
-    create_metadata,
-    is_required_loa,
-    is_valid_reauthn,
-)
+from eduid.webapp.eidas.helpers import EidasMsg, attribute_remap, check_credential_to_verify, create_authn_info
 
 __author__ = "lundberg"
 
@@ -195,7 +188,7 @@ def _authn(
                 return AuthnResult(error=EidasMsg.method_not_available)
             current_app.logger.debug(f"Changed requested IdP due to magic cookie: {idp}")
         else:
-            current_app.logger.warning(f"Missing configuration magic_cookie_idp")
+            current_app.logger.warning("Missing configuration magic_cookie_idp")
 
     ref = AuthnRequestRef(str(uuid4()))
     authn_info = create_authn_info(
@@ -279,7 +272,9 @@ def assertion_consumer_service() -> WerkzeugResponse:
         )
     assert isinstance(proofing_method, ProofingMethodSAML)  # please mypy
 
-    if not is_required_loa(assertion.session_info, proofing_method.required_loa):
+    if not is_required_loa(
+        assertion.session_info, proofing_method.required_loa, current_app.conf.authentication_context_map
+    ):
         session.mfa_action.error = MfaActionError.authn_context_mismatch  # TODO: Old way, remove after a release cycle
         assertion.authndata.error = True
         assertion.authndata.status = EidasMsg.authn_context_mismatch.value

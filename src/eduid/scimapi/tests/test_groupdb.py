@@ -2,9 +2,10 @@ import logging
 from typing import Optional
 from uuid import UUID, uuid4
 
+from eduid.common.config.base import DataOwnerName
 from eduid.common.config.parsers import load_config
 from eduid.graphdb.groupdb import Group as GraphGroup
-from eduid.scimapi.config import DataOwnerName, ScimApiConfig
+from eduid.scimapi.config import ScimApiConfig
 from eduid.scimapi.context import Context
 from eduid.scimapi.testing import ScimApiTestCase
 from eduid.userdb.scimapi import GroupExtensions, ScimApiGroup

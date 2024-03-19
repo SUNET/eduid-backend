@@ -1,37 +1,4 @@
 #!/usr/bin/python
-#
-# Copyright (c) 2014, 2015 NORDUnet A/S
-# All rights reserved.
-#
-#   Redistribution and use in source and binary forms, with or
-#   without modification, are permitted provided that the following
-#   conditions are met:
-#
-#     1. Redistributions of source code must retain the above copyright
-#        notice, this list of conditions and the following disclaimer.
-#     2. Redistributions in binary form must reproduce the above
-#        copyright notice, this list of conditions and the following
-#        disclaimer in the documentation and/or other materials provided
-#        with the distribution.
-#     3. Neither the name of the NORDUnet nor the names of its
-#        contributors may be used to endorse or promote products derived
-#        from this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-# FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
-# COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
-# ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
-#
-# Author : Fredrik Thulin <fredrik@thulin.net>
-#
 
 import datetime
 import logging
@@ -46,7 +13,7 @@ from werkzeug.exceptions import BadRequest
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.credentials import U2F, Credential, CredentialProofingMethod, Password
-from eduid.userdb.identity import IdentityList, NinIdentity
+from eduid.userdb.identity import IdentityList, IdentityProofingMethod, NinIdentity
 from eduid.userdb.idp import IdPUser
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.logindata import ExternalMfaData
@@ -76,31 +43,33 @@ _U2F_SWAMID_AL3 = U2F(
 logger = logging.getLogger(__name__)
 
 
-def make_SAML_request(class_ref: Union[EduidAuthnContextClass, str]):
+def make_SAML_request(class_ref: Optional[Union[EduidAuthnContextClass, str]] = None):
     if isinstance(class_ref, EduidAuthnContextClass):
         class_ref = class_ref.value
-
-    return _transport_encode(
-        """
+    if class_ref is not None:
+        authn_context = f"""
+  <ns0:RequestedAuthnContext>
+    <ns1:AuthnContextClassRef>{class_ref}</ns1:AuthnContextClassRef>
+  </ns0:RequestedAuthnContext>
+    """
+    else:
+        authn_context = ""
+    xml = f"""
 <?xml version="1.0" encoding="UTF-8"?>
 <ns0:AuthnRequest xmlns:ns0="urn:oasis:names:tc:SAML:2.0:protocol"
     xmlns:ns1="urn:oasis:names:tc:SAML:2.0:assertion"
         AssertionConsumerServiceURL="https://sp.example.edu/saml2/acs/"
         Destination="https://unittest-idp.example.edu/sso/post"
         ID="id-57beb2b2f788ec50b10541dbe48e9626"
-        IssueInstant="{now!s}"
+        IssueInstant="{saml2.time_util.instant()}"
         ProtocolBinding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST"
         Version="2.0">
   <ns1:Issuer Format="urn:oasis:names:tc:SAML:2.0:nameid-format:entity">https://sp.example.edu/saml2/metadata/</ns1:Issuer>
   <ns0:NameIDPolicy AllowCreate="false" Format="urn:oasis:names:tc:SAML:2.0:nameid-format:persistent"/>
-  <ns0:RequestedAuthnContext>
-    <ns1:AuthnContextClassRef>{class_ref!s}</ns1:AuthnContextClassRef>
-  </ns0:RequestedAuthnContext>
+  {authn_context}
 </ns0:AuthnRequest>
-""".format(
-            class_ref=class_ref, now=saml2.time_util.instant()
-        )
-    )
+        """
+    return _transport_encode(xml)
 
 
 def _transport_encode(data):
@@ -110,7 +79,9 @@ def _transport_encode(data):
 
 class SSOIdPTests(IdPAPITests):
     def _make_login_ticket(
-        self, req_class_ref: Union[EduidAuthnContextClass, str], request_ref: Optional[RequestRef] = None
+        self,
+        req_class_ref: Optional[Union[EduidAuthnContextClass, str]] = None,
+        request_ref: Optional[RequestRef] = None,
     ) -> LoginContext:
         xmlstr = make_SAML_request(class_ref=req_class_ref)
         binding = "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST"
@@ -176,7 +147,9 @@ class SSOIdPTests(IdPAPITests):
 
 class TestSSO(SSOIdPTests):
     # ------------------------------------------------------------------------
-    def get_user_set_nins(self, eppn: str, nins: Sequence[str]) -> IdPUser:
+    def get_user_set_nins(
+        self, eppn: str, nins: Sequence[str], proofing_method: Optional[IdentityProofingMethod] = None
+    ) -> IdPUser:
         """
         Fetch a user from the user database and set it's NINs to those in nins.
         :param eppn: eduPersonPrincipalName or email address
@@ -193,6 +166,7 @@ class TestSSO(SSOIdPTests):
                 created_by="unittest",
                 created_ts=utc_now(),
                 is_verified=True,
+                proofing_method=proofing_method,
             )
             user.identities.add(this_nin)
         return user
@@ -201,7 +175,7 @@ class TestSSO(SSOIdPTests):
 
     def _get_login_response_authn(
         self,
-        req_class_ref: Union[EduidAuthnContextClass, str],
+        req_class_ref: Optional[Union[EduidAuthnContextClass, str]],
         credentials: list[Union[str, Credential, AuthnData, ExternalMfaData]],
         user: Optional[IdPUser] = None,
         add_tou: bool = True,
@@ -431,29 +405,38 @@ class TestSSO(SSOIdPTests):
 
     def test__get_login_response_8(self):
         """
-        Test login with password, request unknown context class.
+        Test login with mfa, request unknown context class.
 
-        Expect the response Authn to be REFEDS MFA.
+        Expect an error response.
         """
         out = self._get_login_response_authn(
             req_class_ref="urn:no-such-class",
             credentials=["pw", "u2f"],
         )
-        assert out.message == IdPMsg.proceed
-        assert out.authn_info
-        assert out.authn_info.class_ref == EduidAuthnContextClass.REFEDS_MFA
-        assert out.authn_info.authn_attributes["eduPersonAssurance"] == [
-            item.value for item in self.app.conf.swamid_assurance_profile_1
-        ]
+        assert out.message == IdPMsg.assurance_failure
+        assert out.authn_info is None
 
     def test__get_login_response_9(self):
         """
         Test login with password, request unknown context class.
 
-        Expect the response Authn to be password-protected-transport.
+        Expect the response Authn to be SAML error response.
         """
         out = self._get_login_response_authn(
             req_class_ref="urn:no-such-class",
+            credentials=["pw"],
+        )
+        assert out.message == IdPMsg.assurance_failure
+        assert out.authn_info is None
+
+    def test__get_login_response_10(self):
+        """
+        Test login with password, request no authn context class.
+
+        Expect the response Authn to be password-protected-transport.
+        """
+        out = self._get_login_response_authn(
+            req_class_ref=None,
             credentials=["pw"],
         )
         assert out.message == IdPMsg.proceed
@@ -463,12 +446,29 @@ class TestSSO(SSOIdPTests):
             item.value for item in self.app.conf.swamid_assurance_profile_1
         ]
 
+    def test__get_login_response_11(self):
+        """
+        Test login with mfa, request no authn context class.
+
+        Expect the response Authn to be REFEDS_MFA.
+        """
+        out = self._get_login_response_authn(
+            req_class_ref=None,
+            credentials=["pw", "u2f"],
+        )
+        assert out.message == IdPMsg.proceed
+        assert out.authn_info
+        assert out.authn_info.class_ref == EduidAuthnContextClass.REFEDS_MFA
+        assert out.authn_info.authn_attributes["eduPersonAssurance"] == [
+            item.value for item in self.app.conf.swamid_assurance_profile_1
+        ]
+
     def test__get_login_response_assurance_AL1(self):
         """
         Make sure eduPersonAssurace is SWAMID AL1 with no verified nin.
         """
         out = self._get_login_response_authn(
-            req_class_ref="urn:no-such-class",
+            req_class_ref=None,
             credentials=["pw"],
         )
         assert out.message == IdPMsg.proceed
@@ -484,8 +484,8 @@ class TestSSO(SSOIdPTests):
         """
         user = self.get_user_set_nins(self.test_user.eppn, ["190101011234"])
         out = self._get_login_response_authn(
+            req_class_ref=None,
             user=user,
-            req_class_ref="urn:no-such-class",
             credentials=["pw"],
         )
         assert out.message == IdPMsg.proceed
@@ -713,6 +713,93 @@ class TestSSO(SSOIdPTests):
         """
         out = self._get_login_response_authn(req_class_ref=EduidAuthnContextClass.REFEDS_MFA, credentials=["pw"])
         assert out.message == IdPMsg.mfa_required
+        assert out.error is False
+
+    def test__get_login_digg_loa2_fido_mfa(self):
+        """
+        Test login with password and external mfa for verified user, request DIGG_LOA2.
+
+        Expect the response Authn to be DIGG_LOA2.
+        """
+        user = self.get_user_set_nins(
+            self.test_user.eppn, ["190101011234"], proofing_method=IdentityProofingMethod.BANKID
+        )
+        user.credentials.add(_U2F_SWAMID_AL3)
+        out = self._get_login_response_authn(
+            user=user,
+            req_class_ref=EduidAuthnContextClass.DIGG_LOA2,
+            credentials=["pw", _U2F_SWAMID_AL3],
+        )
+        assert out.message == IdPMsg.proceed
+        assert out.authn_info
+        assert out.authn_info.class_ref == EduidAuthnContextClass.DIGG_LOA2
+        assert out.authn_info.authn_attributes["eduPersonAssurance"] == [
+            item.value for item in self.app.conf.swamid_assurance_profile_3
+        ]
+
+    def test__get_login_digg_loa2_external_mfa(self):
+        """
+        Test login with password and external mfa for verified user, request DIGG_LOA2.
+
+        Expect the response Authn to be DIGG_LOA2.
+        """
+        user = self.get_user_set_nins(
+            self.test_user.eppn, ["190101011234"], proofing_method=IdentityProofingMethod.SWEDEN_CONNECT
+        )
+        external_mfa = ExternalMfaData(
+            issuer="issuer.example.com",
+            authn_context="http://id.elegnamnden.se/loa/1.0/loa3",
+            timestamp=datetime.datetime.utcnow(),
+        )
+        out = self._get_login_response_authn(
+            user=user,
+            req_class_ref=EduidAuthnContextClass.DIGG_LOA2,
+            credentials=["pw", external_mfa],
+        )
+        assert out.message == IdPMsg.proceed
+        assert out.authn_info
+        assert out.authn_info.class_ref == EduidAuthnContextClass.DIGG_LOA2
+        assert out.authn_info.authn_attributes["eduPersonAssurance"] == [
+            item.value for item in self.app.conf.swamid_assurance_profile_3
+        ]
+
+    def test__get_login_digg_loa2_identity_proofing_method_not_allowed(self):
+        """
+        Test login with password and external mfa for verified user, request DIGG_LOA2.
+
+        Expect the response Authn to fail with error message for frontend.
+        """
+        user = self.get_user_set_nins(
+            self.test_user.eppn, ["190101011234"], proofing_method=IdentityProofingMethod.TELEADRESS
+        )
+        external_mfa = ExternalMfaData(
+            issuer="issuer.example.com",
+            authn_context="http://id.elegnamnden.se/loa/1.0/loa3",
+            timestamp=datetime.datetime.utcnow(),
+        )
+        out = self._get_login_response_authn(
+            user=user,
+            req_class_ref=EduidAuthnContextClass.DIGG_LOA2,
+            credentials=["pw", external_mfa],
+        )
+        assert out.message == IdPMsg.identity_proofing_method_not_allowed
+        assert out.error is False
+
+    def test__get_login_digg_loa2_mfa_proofing_method_not_allowed(self):
+        """
+        Test login with password and external mfa for verified user, request DIGG_LOA2.
+
+        Expect the response Authn to fail with message for frontend.
+        """
+        user = self.get_user_set_nins(
+            self.test_user.eppn, ["190101011234"], proofing_method=IdentityProofingMethod.SWEDEN_CONNECT
+        )
+        out = self._get_login_response_authn(
+            user=user,
+            req_class_ref=EduidAuthnContextClass.DIGG_LOA2,
+            credentials=["pw", "u2f"],
+        )
+        assert out.message == IdPMsg.mfa_proofing_method_not_allowed
         assert out.error is False
 
     def test__forceauthn_request(self):

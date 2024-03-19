@@ -5,7 +5,7 @@ import datetime
 from typing import Any, Mapping, Optional, TypeVar
 
 import bson
-from pydantic import BaseModel, Extra, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from eduid.userdb.db import TUserDbDocument
 from eduid.userdb.security.element import CodeElement
@@ -24,12 +24,9 @@ class PasswordResetState(BaseModel):
     modified_ts: Optional[datetime.datetime] = None
     extra_security: Optional[dict[str, Any]] = None
     generated_password: Optional[str] = None
-
-    class Config:
-        allow_population_by_field_name = True  # allow setting created_ts by name, not just it's alias
-        validate_assignment = True  # validate data when updated, not just when initialised
-        extra = Extra.forbid  # reject unknown data
-        arbitrary_types_allowed = True  # allow ObjectId as type in Event
+    model_config = ConfigDict(
+        populate_by_name=True, validate_assignment=True, extra="forbid", arbitrary_types_allowed=True
+    )
 
     # @deprecated("Remove once the password reset views are served from their own webapp")
     # def __post_init__(self):

@@ -4,13 +4,12 @@ from uuid import uuid4
 
 from fastapi import Response
 
+from eduid.common.config.base import DataOwnerName
+from eduid.common.fastapi.context_request import ContextRequest
 from eduid.common.models.scim_base import Meta, SCIMResourceType, SCIMSchema, WeakVersion
-from eduid.common.utils import urlappend
-from eduid.scimapi.config import DataOwnerName
-from eduid.scimapi.context_request import ContextRequest
+from eduid.common.utils import make_etag, urlappend
 from eduid.scimapi.exceptions import BadRequest
 from eduid.scimapi.models.event import EventResponse, NutidEventExtensionV1, NutidEventResource
-from eduid.scimapi.utils import make_etag
 from eduid.userdb.scimapi import EventLevel, EventStatus, ScimApiEvent, ScimApiEventResource, ScimApiResourceBase
 
 if TYPE_CHECKING:
@@ -55,7 +54,9 @@ def db_event_to_response(req: ContextRequest, resp: Response, db_event: ScimApiE
 
     resp.headers["Location"] = location
     resp.headers["ETag"] = make_etag(db_event.version)
-    req.app.context.logger.debug(f"Extra debug: Response:\n{event_response.json(exclude_none=True, indent=2)}")
+    req.app.context.logger.debug(
+        f"Extra debug: Response:\n{event_response.model_dump_json(exclude_none=True, indent=2)}"
+    )
     return event_response
 
 
@@ -67,7 +68,7 @@ def get_scim_referenced(req: ContextRequest, resource: NutidEventResource) -> Op
     elif resource.resource_type == SCIMResourceType.INVITE:
         return req.context.invitedb.get_invite_by_scim_id(str(resource.scim_id))
     elif resource.resource_type == SCIMResourceType.EVENT:
-        raise BadRequest(detail=f"Events can not refer to other events")
+        raise BadRequest(detail="Events can not refer to other events")
     raise BadRequest(detail=f"Events for resource {resource.resource_type.value} not implemented")
 
 

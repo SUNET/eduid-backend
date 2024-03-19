@@ -7,6 +7,7 @@ from pydantic import ValidationError
 
 import eduid.userdb.element
 import eduid.userdb.exceptions
+from eduid.common.testing_base import normalised_data
 from eduid.userdb.credentials import U2F, CredentialList
 from eduid.userdb.credentials.external import SwedenConnectCredential
 from eduid.userdb.element import ElementKey
@@ -101,9 +102,18 @@ class TestCredentialList(unittest.TestCase):
         with pytest.raises(ValidationError) as exc_info:
             self.two.add(dup)
 
-        assert exc_info.value.errors() == [
-            {"loc": ("elements",), "msg": "Duplicate element key: '222222222222222222222222'", "type": "value_error"}
-        ]
+        assert normalised_data(exc_info.value.errors(), exclude_keys=["input"]) == normalised_data(
+            [
+                {
+                    "ctx": {"error": "Duplicate element key: '222222222222222222222222'"},
+                    "loc": ["elements"],
+                    "msg": "Value error, Duplicate element key: '222222222222222222222222'",
+                    "type": "value_error",
+                    "url": "https://errors.pydantic.dev/2.6/v/value_error",
+                }
+            ],
+            exclude_keys=["input"],
+        )
 
     def test_add_password(self):
         this = CredentialList.from_list_of_dicts([_one_dict, _two_dict] + [_three_dict])

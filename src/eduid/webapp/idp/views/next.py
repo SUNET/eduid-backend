@@ -15,8 +15,8 @@ from eduid.webapp.common.api.messages import FluxData, error_response, success_r
 from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.assurance_data import AuthnInfo
 from eduid.webapp.idp.decorators import require_ticket, uses_sso_session
-from eduid.webapp.idp.helpers import IdPAction, IdPMsg
-from eduid.webapp.idp.idp_saml import cancel_saml_request
+from eduid.webapp.idp.helpers import IdPAction, IdPMsg, create_saml_sp_response, lookup_user
+from eduid.webapp.idp.idp_saml import authn_context_class_not_supported, cancel_saml_request
 from eduid.webapp.idp.login import SSO, login_next_step
 from eduid.webapp.idp.login_context import LoginContext, LoginContextOtherDevice, LoginContextSAML
 from eduid.webapp.idp.mischttp import get_user_agent
@@ -51,19 +51,7 @@ def next_view(ticket: LoginContext, sso_session: Optional[SSOSession]) -> FluxDa
     if _next.message == IdPMsg.aborted:
         if isinstance(ticket, LoginContextSAML):
             saml_params = cancel_saml_request(ticket, current_app.conf)
-
-            if saml_params.binding != BINDING_HTTP_POST:
-                current_app.logger.error(f"SAML response does not have binding HTTP_POST")
-                return error_response(message=IdPMsg.general_failure)
-
-            return success_response(
-                message=IdPMsg.finished,
-                payload={
-                    "action": IdPAction.FINISHED.value,
-                    "target": saml_params.url,
-                    "parameters": saml_params.post_params,
-                },
-            )
+            return create_saml_sp_response(saml_params=saml_params)
         elif isinstance(ticket, LoginContextOtherDevice):
             state = ticket.other_device_req
             if state.state in [OtherDeviceState.NEW, OtherDeviceState.IN_PROGRESS, OtherDeviceState.AUTHENTICATED]:
@@ -87,9 +75,17 @@ def next_view(ticket: LoginContext, sso_session: Optional[SSOSession]) -> FluxDa
         current_app.logger.error(f"Don't know how to abort login request {ticket}")
         return error_response(message=IdPMsg.general_failure)
 
+    if _next.message == IdPMsg.assurance_failure:
+        if isinstance(ticket, LoginContextSAML):
+            saml_params = authn_context_class_not_supported(ticket, current_app.conf)
+            return create_saml_sp_response(saml_params=saml_params)
+        current_app.logger.error(f"Don't know how to send error response for request {ticket}")
+        return error_response(message=IdPMsg.general_failure)
+
     required_user = get_required_user(ticket, sso_session)
     if required_user.response:
         return required_user.response
+    current_app.logger.debug(f"Required user: {required_user.eppn}")
 
     if _next.message == IdPMsg.other_device:
         _payload = {
@@ -145,7 +141,7 @@ def next_view(ticket: LoginContext, sso_session: Optional[SSOSession]) -> FluxDa
         if not sso_session:
             return error_response(message=IdPMsg.no_sso_session)
 
-        user = current_app.userdb.lookup_user(sso_session.eppn)
+        user = lookup_user(sso_session.eppn, managed_account_allowed=True)
         if not user:
             current_app.logger.error(f"User with eppn {sso_session.eppn} (from SSO session) not found")
             return error_response(message=IdPMsg.general_failure)
@@ -181,21 +177,11 @@ def next_view(ticket: LoginContext, sso_session: Optional[SSOSession]) -> FluxDa
 
         if isinstance(ticket, LoginContextSAML):
             saml_params = sso.get_response_params(_next.authn_info, ticket, user)
-            if saml_params.binding != BINDING_HTTP_POST:
-                current_app.logger.error(f"SAML response does not have binding HTTP_POST")
-                return error_response(message=IdPMsg.general_failure)
-            return success_response(
-                message=IdPMsg.finished,
-                payload={
-                    "action": IdPAction.FINISHED.value,
-                    "target": saml_params.url,
-                    "parameters": saml_params.post_params,
-                },
-            )
+            return create_saml_sp_response(saml_params=saml_params)
         elif isinstance(ticket, LoginContextOtherDevice):
             if not ticket.is_other_device_2:
                 # We shouldn't be able to get here, but this clearly shows where this code runs
-                current_app.logger.warning(f"Ticket is LoginContextOtherDevice, but this is not device #2")
+                current_app.logger.warning("Ticket is LoginContextOtherDevice, but this is not device #2")
                 return error_response(message=IdPMsg.general_failure)
 
             return device2_finish(ticket, sso_session, _next.authn_state)
@@ -220,8 +206,9 @@ class AuthnOptions:
     display_name: Optional[str] = None
     # Is this login locked to being performed by a particular user? (Identified by the email/phone/...)
     forced_username: Optional[str] = None
-    # Can an unknown user log in using just a Freja eID+? Yes, if there is an eduID user with the users (verified) NIN.
-    freja_eidplus: bool = True
+    # Can an unknown user log in using just a swedish eID? Yes, if there is an eduID user with the users (verified) NIN.
+    freja_eidplus: bool = True  # TODO: remove freja_eidplus replaced by swedish_eid
+    swedish_eid: bool = True
     # If the user has a session, 'logout' should be shown (to allow switch of users).
     has_session: bool = False
     # Can the user log (an unknown user) log in using another device? Sure.
@@ -251,7 +238,7 @@ def _get_authn_options(ticket: LoginContext, sso_session: Optional[SSOSession], 
     res.other_device = current_app.conf.allow_other_device_logins
 
     if ticket.is_other_device_2:
-        current_app.logger.debug(f"This is already a request to log in to another device, not allowing other_device")
+        current_app.logger.debug("This is already a request to log in to another device, not allowing other_device")
         res.other_device = False
 
     if eppn:
@@ -305,6 +292,7 @@ def get_required_user(ticket: LoginContext, sso_session: Optional[SSOSession]) -
         return RequiredUserResult(response=error_response(message=IdPMsg.wrong_user))
 
     if eppn_set:
+        current_app.logger.info(f"Determined user to log in to be {eppn_set}")
         return RequiredUserResult(eppn=eppn_set.pop())
 
     return RequiredUserResult(eppn=None)
@@ -321,25 +309,27 @@ def _get_service_info(ticket: LoginContext) -> dict[str, Any]:
 
 def _set_user_options(res: AuthnOptions, eppn: str) -> None:
     """Augment the AuthnOptions instance with information about the current user"""
-    user = current_app.userdb.lookup_user(eppn)
+    user = lookup_user(eppn, managed_account_allowed=True)
     if user:
         current_app.logger.debug(
             f"User logging in (from either known device, other device, SSO session, or SP request): {user}"
         )
         if user.credentials.filter(Password):
-            current_app.logger.debug(f"User has a Password credential")
+            current_app.logger.debug("User has a Password credential")
             res.password = True
 
         if user.credentials.filter(FidoCredential):
-            current_app.logger.debug(f"User has a FIDO/Webauthn credential")
+            current_app.logger.debug("User has a FIDO/Webauthn credential")
             res.webauthn = True
 
         if user.locked_identity.nin:
-            current_app.logger.debug(f"User has a locked NIN -> Freja is possible")
+            current_app.logger.debug("User has a locked NIN -> swedish eID is possible")
             res.freja_eidplus = True
+            res.swedish_eid = True
         else:
-            current_app.logger.debug(f"No locked NIN for user -> Freja NOT possible")
+            current_app.logger.debug("No locked NIN for user -> swedish eID NOT possible")
             res.freja_eidplus = False
+            res.swedish_eid = False
 
         res.forced_username = get_login_username(user)
         current_app.logger.debug(f"User forced_username: {res.forced_username}")

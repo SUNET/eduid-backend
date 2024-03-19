@@ -1,12 +1,59 @@
+# This SAML IdP implementation is derived from the pysaml2 example 'idp2'.
+# That code is covered by the following copyright (from pysaml2 LICENSE.txt 2013-05-06) :
 #
-# Copyright (c) 2013, 2014, 2016 NORDUnet A/S. All rights reserved.
 # Copyright 2012 Roland Hedberg. All rights reserved.
 #
-# See the file eduid-IdP/LICENSE.txt for license statement.
+# Redistribution and use in source and binary forms, with or without modification, are
+# permitted provided that the following conditions are met:
 #
-# Author : Fredrik Thulin <fredrik@thulin.net>
-#          Roland Hedberg
+#    1. Redistributions of source code must retain the above copyright notice, this list of
+#       conditions and the following disclaimer.
 #
+#    2. Redistributions in binary form must reproduce the above copyright notice, this list
+#       of conditions and the following disclaimer in the documentation and/or other materials
+#       provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY ROLAND HEDBERG ``AS IS'' AND ANY EXPRESS OR IMPLIED
+# WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
+# FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL ROLAND HEDBERG OR
+# CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+# SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+# ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+# NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+# ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#
+# -------------------------------------------------------------------------------
+#
+# All the changes made during the eduID development are subject to the following
+# copyright:
+#
+# Copyright (c) 2013 SUNET. All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without modification,
+# are permitted provided that the following conditions are met:
+#
+# 1. Redistributions of source code must retain the above copyright notice, this
+#    list of conditions and the following disclaimer.
+#
+# 2. Redistributions in binary form must reproduce the above copyright notice,
+#    this list of conditions and the following disclaimer in the documentation
+#    and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY SUNET "AS IS" AND ANY EXPRESS OR IMPLIED
+# WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+# MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT
+# SHALL SUNET OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+# PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
+# BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
+# IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY
+# OF SUCH DAMAGE.
+#
+# The views and conclusions contained in the software and documentation are those
+# of the authors and should not be interpreted as representing official policies,
+# either expressed or implied, of SUNET.
 
 """
 Code handling Single Sign On logins.
@@ -15,15 +62,13 @@ import hmac
 import pprint
 import time
 from base64 import b64encode
-from dataclasses import dataclass
 from hashlib import sha256
-from typing import Mapping, Optional, Union
+from typing import Any, Optional
 from uuid import uuid4
 
 from defusedxml import ElementTree as DefusedElementTree
 from flask import redirect
-from flask_babel import gettext as _
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 from werkzeug.exceptions import BadRequest
 from werkzeug.wrappers import Response as WerkzeugResponse
@@ -39,17 +84,20 @@ from eduid.webapp.idp import assurance
 from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.assurance import (
     AssuranceException,
+    AuthnContextNotSupported,
     AuthnState,
+    IdentityProofingMethodNotAllowed,
+    MfaProofingMethodNotAllowed,
     MissingAuthentication,
     MissingMultiFactor,
     MissingPasswordFactor,
 )
 from eduid.webapp.idp.assurance_data import AuthnInfo
-from eduid.webapp.idp.helpers import IdPMsg
-from eduid.webapp.idp.idp_saml import ResponseArgs, SamlResponse
+from eduid.webapp.idp.helpers import IdPMsg, lookup_user
+from eduid.webapp.idp.idp_saml import ResponseArgs, SamlResponse, SAMLResponseParams
 from eduid.webapp.idp.login_context import LoginContext, LoginContextOtherDevice, LoginContextSAML
 from eduid.webapp.idp.mfa_action import need_security_key
-from eduid.webapp.idp.mischttp import HttpArgs, get_user_agent
+from eduid.webapp.idp.mischttp import get_user_agent
 from eduid.webapp.idp.other_device.data import OtherDeviceState
 from eduid.webapp.idp.service import SAMLQueryParams, Service
 from eduid.webapp.idp.sso_session import SSOSession
@@ -75,10 +123,7 @@ class NextResult(BaseModel):
     authn_info: Optional[AuthnInfo] = None
     authn_state: Optional[AuthnState] = None
     user: Optional[User] = None
-
-    class Config:
-        # don't reject WerkzeugResponse
-        arbitrary_types_allowed = True
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     def __str__(self):
         return (
@@ -87,7 +132,7 @@ class NextResult(BaseModel):
         )
 
 
-def login_next_step(ticket: LoginContext, sso_session: Optional[SSOSession], template_mode: bool = False) -> NextResult:
+def login_next_step(ticket: LoginContext, sso_session: Optional[SSOSession]) -> NextResult:
     """The main state machine for the login flow(s)."""
     if ticket.pending_request.aborted:
         current_app.logger.debug("Login request is aborted")
@@ -140,7 +185,7 @@ def login_next_step(ticket: LoginContext, sso_session: Optional[SSOSession], tem
         current_app.logger.debug("No SSO session found - initiating authentication")
         return NextResult(message=IdPMsg.must_authenticate)
 
-    user = current_app.userdb.lookup_user(sso_session.eppn)
+    user = lookup_user(sso_session.eppn, managed_account_allowed=True)
     if not user:
         current_app.logger.error(f"User with eppn {sso_session.eppn} (from SSO session) not found")
         return NextResult(message=IdPMsg.general_failure, error=True)
@@ -149,8 +194,6 @@ def login_next_step(ticket: LoginContext, sso_session: Optional[SSOSession], tem
         current_app.logger.info(f"User {user} is terminated")
         return NextResult(message=IdPMsg.user_terminated, error=True)
 
-    res = NextResult(message=IdPMsg.assurance_failure, error=True)
-
     try:
         authn_state = AuthnState(user, sso_session, ticket)
         authn_info = assurance.response_authn(authn_state, ticket, user, sso_session)
@@ -158,15 +201,25 @@ def login_next_step(ticket: LoginContext, sso_session: Optional[SSOSession], tem
     except MissingPasswordFactor:
         res = NextResult(message=IdPMsg.must_authenticate)
     except MissingMultiFactor:
-        res = NextResult(message=IdPMsg.mfa_required, user=user if template_mode else None)
+        res = NextResult(message=IdPMsg.mfa_required)
     except MissingAuthentication:
         res = NextResult(message=IdPMsg.must_authenticate)
+    except IdentityProofingMethodNotAllowed:
+        res = NextResult(message=IdPMsg.identity_proofing_method_not_allowed)
+    except MfaProofingMethodNotAllowed:
+        res = NextResult(message=IdPMsg.mfa_proofing_method_not_allowed)
+    except AuthnContextNotSupported:
+        res = NextResult(message=IdPMsg.assurance_failure, error=True)
     except AssuranceException as exc:
         current_app.logger.info(f"Assurance not possible: {repr(exc)}")
         res = NextResult(message=IdPMsg.assurance_not_possible, error=True)
 
     if res.message == IdPMsg.must_authenticate:
         # User might not be authenticated enough for e.g. ToU acceptance yet
+        return res
+
+    if user.is_managed_account:
+        current_app.logger.debug("Skipping eduID session, TOU and MFA for managed account")
         return res
 
     # User is at least partially authenticated, put the eppn in the shared session
@@ -176,21 +229,12 @@ def login_next_step(ticket: LoginContext, sso_session: Optional[SSOSession], tem
     session.common.eppn = user.eppn
 
     if need_tou_acceptance(user):
-        return NextResult(message=IdPMsg.tou_required, user=user if template_mode else None)
+        return NextResult(message=IdPMsg.tou_required)
 
     if need_security_key(user, ticket):
-        return NextResult(message=IdPMsg.mfa_required, user=user if template_mode else None)
+        return NextResult(message=IdPMsg.mfa_required)
 
     return res
-
-
-@dataclass
-class SAMLResponseParams:
-    url: str
-    post_params: Mapping[str, Optional[Union[str, bool]]]
-    # Parameters for the old template realm
-    binding: str
-    http_args: HttpArgs
 
 
 class SSO(Service):
@@ -253,7 +297,13 @@ class SSO(Service):
             current_app.logger.debug(f"Asserting AuthnContext {authn_info} (none requested)")
 
         assert self.sso_session  # please mypy
-        saml_response = self._make_saml_response(authn_info, resp_args, user, ticket, self.sso_session)
+        attributes = self.gather_attributes(
+            response_authn=authn_info, resp_args=resp_args, user=user, ticket=ticket, sso_session=self.sso_session
+        )
+        missing_attributes = self.get_missing_attributes(ticket=ticket, attributes=attributes)
+        saml_response = self._make_saml_response(
+            response_authn=authn_info, resp_args=resp_args, user=user, ticket=ticket, attributes=attributes
+        )
 
         binding = resp_args["binding"]
         destination = resp_args["destination"]
@@ -278,27 +328,19 @@ class SSO(Service):
         return SAMLResponseParams(
             url=http_args.url,
             post_params=params,
+            missing_attributes=missing_attributes,
             binding=binding,
             http_args=http_args,
         )
 
-    def _make_saml_response(
+    def gather_attributes(
         self,
         response_authn: AuthnInfo,
         resp_args: ResponseArgs,
         user: IdPUser,
         ticket: LoginContextSAML,
         sso_session: SSOSession,
-    ) -> SamlResponse:
-        """
-        Create the SAML response using pysaml2 create_authn_response().
-
-        :param resp_args: pysaml2 response arguments
-        :param user: IdP user
-        :param ticket: Login process state
-
-        :return: SAML response (string)
-        """
+    ) -> dict[str, Any]:
         sp_identifier = resp_args.get("sp_entity_id", resp_args["destination"])
         current_app.logger.debug(f"Creating SAML response for SP {sp_identifier}")
         sp_entity_categories = ticket.saml_req.sp_entity_attributes.get("http://macedir.org/entity-category", [])
@@ -325,6 +367,8 @@ class SSO(Service):
         # Add a list of credentials used in a private attribute that will only be
         # released to the eduID authn component
         attributes["eduidIdPCredentialsUsed"] = [x.cred_id for x in sso_session.authn_credentials]
+
+        # Add attributes from the authn process
         for k, v in response_authn.authn_attributes.items():
             if k in attributes:
                 current_app.logger.debug(
@@ -333,6 +377,40 @@ class SSO(Service):
             else:
                 current_app.logger.debug(f"Adding attribute {k} with value from authn process: {v}")
             attributes[k] = v
+        return attributes
+
+    @staticmethod
+    def get_missing_attributes(ticket: LoginContextSAML, attributes: dict[str, Any]) -> list[dict[str, str]]:
+        missing_attributes = []
+        required_attributes = ticket.saml_req.get_required_attributes()
+        current_app.logger.debug(f"Required attributes: {required_attributes}")
+        for required_attribute in required_attributes:
+            # Add attribute as missing if the attribute is missing from the attributes dict or evaluates falsy
+            friendly_name = required_attribute.get("friendly_name")
+            if friendly_name not in attributes or not attributes.get(friendly_name):
+                missing_attributes.append(required_attribute)
+        if missing_attributes:
+            current_app.logger.info(f"Missing required attributes: {missing_attributes}")
+        return missing_attributes
+
+    def _make_saml_response(
+        self,
+        response_authn: AuthnInfo,
+        resp_args: ResponseArgs,
+        user: IdPUser,
+        ticket: LoginContextSAML,
+        attributes: dict[str, Any],
+    ) -> SamlResponse:
+        """
+        Create the SAML response using pysaml2 create_authn_response().
+
+        :param resp_args: pysaml2 response arguments
+        :param user: IdP user
+        :param ticket: Login process state
+
+        :return: SAML response (string)
+        """
+
         if current_app.conf.debug:
             # Only perform expensive parse/pretty-print if debugging
             pp = pprint.PrettyPrinter()
@@ -345,7 +423,6 @@ class SSO(Service):
 
         saml_response = ticket.saml_req.make_saml_response(attributes, user.eppn, response_authn, resp_args)
         self._kantara_log_assertion_id(saml_response, ticket)
-
         return saml_response
 
     @staticmethod

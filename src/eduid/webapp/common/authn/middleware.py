@@ -2,10 +2,11 @@ import json
 import logging
 import re
 from abc import ABCMeta
-from typing import Any, AnyStr, Callable, Mapping, Union, cast
+from typing import TYPE_CHECKING, Iterable
 from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
-from flask import current_app, jsonify, make_response
+from flask import Request, current_app, jsonify, make_response
+from flask_cors.core import get_cors_headers, get_cors_options
 from werkzeug.wrappers import Response
 from werkzeug.wsgi import get_current_url
 
@@ -17,11 +18,10 @@ from eduid.webapp.common.api.schemas.base import FluxStandardAction
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.redis_session import NoSessionDataFoundException
 
+if TYPE_CHECKING:
+    from _typeshed.wsgi import StartResponse, WSGIEnvironment
+
 no_context_logger = logging.getLogger(__name__)
-
-
-THeaders = list[tuple[str, str]]
-TStartResponse = Callable[[str, THeaders], None]
 
 
 class AuthnBaseApp(EduIDBaseApp, metaclass=ABCMeta):
@@ -30,9 +30,7 @@ class AuthnBaseApp(EduIDBaseApp, metaclass=ABCMeta):
     and in case it isn't, redirects to the authn service.
     """
 
-    def __call__(
-        self, environ: dict[str, Any], start_response: TStartResponse
-    ) -> Union[Response, list[bytes], Mapping[str, Any]]:
+    def __call__(self, environ: "WSGIEnvironment", start_response: "StartResponse") -> Iterable[bytes]:
         # let request with method OPTIONS pass through
         if environ["REQUEST_METHOD"] == "OPTIONS":
             return super().__call__(environ, start_response)
@@ -95,10 +93,23 @@ class AuthnBaseApp(EduIDBaseApp, metaclass=ABCMeta):
         # Don't know why that is, but url_parts[4] is probably empty (unless there are query parameters in
         # conf.token_service_url) so let's just ignore the type error for now.
         query.update(params)  # type: ignore
-
         url_parts[4] = urlencode(query)
         location = urlunparse(url_parts)
 
-        headers = [("Location", location)]
+        # add cors headers to authentication redirect response
+        req = Request(environ)
+        cors_options = get_cors_options(self)
+        cors_headers = get_cors_headers(
+            options=cors_options,
+            request_headers=req.headers,
+            request_method=req.method,
+        )
+        # cors_headers is a MultiDict, start_response wants a list of tuples
+        headers = []
+        for key, value in cors_headers.items():
+            headers.append((key, value))
+
+        # Add redirect location to header
+        headers.append(("Location", location))
         start_response("302 Found", headers)
         return []

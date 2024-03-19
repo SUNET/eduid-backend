@@ -210,7 +210,7 @@ class ChangePasswordTests(EduidAPITestCase[SecurityApp]):
     def test_change_passwd_empty_data(self):
         data1 = {"new_password": "", "old_password": ""}
         response = self._change_password(data1=data1)
-        self._check_success_response(
+        self._check_error_response(
             response, type_="POST_CHANGE_PASSWORD_CHANGE_PASSWORD_SET_PASSWORD_FAIL", msg=SecurityMsg.chpass_no_data
         )
 

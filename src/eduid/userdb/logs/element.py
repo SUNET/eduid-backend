@@ -8,7 +8,7 @@ from uuid import UUID
 
 import bson
 from fido_mds.models.fido_mds import Entry as FidoMetadataEntry
-from pydantic import Field
+from pydantic import ConfigDict, Field
 
 from eduid.common.models.amapi_user import Reason, Source
 from eduid.common.rpc.msg_relay import DeregistrationInformation, FullPostalAddress
@@ -35,9 +35,7 @@ class LogElement(Element):
 
     # Application creating the log element
     created_by: str
-
-    class Config:
-        min_anystr_length = 1  # No empty strings allowed in log records
+    model_config = ConfigDict(str_min_length=1)
 
     @classmethod
     def _from_dict_transform(cls: type[TLogElementSubclass], data: dict[str, Any]) -> dict[str, Any]:
@@ -89,7 +87,7 @@ class NinNavetProofingLogElement(NinProofingLogElement):
     # Navet response for users official address
     user_postal_address: FullPostalAddress
     # Navet response for users deregistration information (used if official address is missing)
-    deregistration_information: Optional[DeregistrationInformation]
+    deregistration_information: Optional[DeregistrationInformation] = None
 
 
 class ForeignIdProofingLogElement(ProofingLogElement):
@@ -193,7 +191,7 @@ class TeleAdressProofingRelation(TeleAdressProofing):
     # Navet response for mobile phone subscriber
     registered_postal_address: FullPostalAddress
     # Navet response for mobile phone subscriber deregistration information (used if official address is missing)
-    registered_deregistration_information: Optional[DeregistrationInformation]
+    registered_deregistration_information: Optional[DeregistrationInformation] = None
     # Proofing method name
     proofing_method: str = IdentityProofingMethod.TELEADRESS.value
 
@@ -350,8 +348,8 @@ class SwedenConnectEIDASProofing(ForeignIdProofingLogElement):
     # Transaction identifier
     transaction_identifier: str
     # if and when a nin can be mapped to a person these will be used
-    mapped_personal_identity_number: Optional[str]
-    personal_identity_number_binding: Optional[str]
+    mapped_personal_identity_number: Optional[str] = None
+    personal_identity_number_binding: Optional[str] = None
     # Proofing method name
     proofing_method: str = IdentityProofingMethod.SWEDEN_CONNECT.value
 
@@ -420,6 +418,30 @@ class SvipeIDForeignProofing(ForeignIdProofingLogElement):
     proofing_method: str = IdentityProofingMethod.SVIPE_ID.value
 
 
+class BankIDProofing(NinEIDProofingLogElement):
+    """
+    {
+        'eduPersonPrincipalName': eppn,
+        'created_ts': utc_now(),
+        'created_by': 'application',
+        'proofing_method': 'bankid',
+        'proofing_version': '2023v1',
+        'nin': 'national_identity_number',
+        'given_name': 'name',
+        'surname': 'name',
+        'transaction_id': 'transaction id',
+    }
+
+    Proofing version history:
+    2023v1 - inital deployment
+    """
+
+    # Transaction ID from BankID
+    transaction_id: str
+    # Proofing method name
+    proofing_method: str = IdentityProofingMethod.BANKID.value
+
+
 class MFATokenProofing(SwedenConnectProofing):
     """
     {
@@ -467,6 +489,26 @@ class MFATokenEIDASProofing(SwedenConnectEIDASProofing):
     key_id: str
     # Proofing method name
     proofing_method: str = "swedenconnect"
+
+
+class MFATokenBankIDProofing(BankIDProofing):
+    """
+    {
+        'eduPersonPrincipalName': eppn,
+        'created_ts': utc_now(),
+        'created_by': 'application',
+        'proofing_method': 'bankid',
+        'proofing_version': '2023v1',
+        'nin': 'national_identity_number',
+        'given_name': 'name',
+        'surname': 'name',
+        'transaction_id': 'transaction id',
+        'key_id: 'Key id of token vetted',
+    }
+    """
+
+    # Data used to initialize the vetting process
+    key_id: str
 
 
 class NameUpdateProofing(NinNavetProofingLogElement):
@@ -546,6 +588,26 @@ class FidoMetadataLogElement(LogElement):
 class UserChangeLogElement(LogElement):
     eppn: str = Field(alias="eduPersonPrincipalName")
     diff: str
-    log_element_id: Optional[bson.ObjectId] = Field(alias="_id")
+    log_element_id: Optional[bson.ObjectId] = Field(alias="_id", default=None)
     reason: Reason
     source: Source
+
+
+class ManagedAccountLogElement(LogElement):
+    """
+    {
+        'eduPersonPrincipalName': managed account eppn,
+        'created_ts': utc_now(),
+        'created_by': 'application,
+        'action': 'action taken',
+        'action_by': eppn,
+        'expire_at': datetime,
+        'data_owner': str
+    }
+    """
+
+    eppn: str = Field(alias="eduPersonPrincipalName")
+    action: str
+    action_by: str
+    expire_at: datetime
+    data_owner: str

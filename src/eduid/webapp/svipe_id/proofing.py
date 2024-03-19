@@ -64,9 +64,11 @@ class SvipeIDProofingFunctions(ProofingFunctions[SvipeDocumentUserInfo]):
         assert isinstance(proofing_log_entry.data, NinProofingLogElement)  # please type checking
 
         # Verify NIN for user
+        date_of_birth = self.session_info.birthdate
         try:
             nin_element = NinProofingElement(
                 number=self.session_info.document_administrative_number,
+                date_of_birth=datetime(year=date_of_birth.year, month=date_of_birth.month, day=date_of_birth.day),
                 created_by=current_app.conf.app_name,
                 is_verified=False,
             )

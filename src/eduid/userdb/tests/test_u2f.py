@@ -77,7 +77,13 @@ class TestU2F(TestCase):
         with pytest.raises(ValidationError) as exc_info:
             U2F.from_dict(one)
         assert exc_info.value.errors() == [
-            {"loc": ("foo",), "msg": "extra fields not permitted", "type": "value_error.extra"}
+            {
+                "input": "bar",
+                "loc": ("foo",),
+                "msg": "Extra inputs are not permitted",
+                "type": "extra_forbidden",
+                "url": "https://errors.pydantic.dev/2.6/v/extra_forbidden",
+            }
         ]
 
     def test_created_by(self):

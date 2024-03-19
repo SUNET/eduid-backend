@@ -2,7 +2,7 @@ import logging
 from enum import Enum
 from typing import Optional
 
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 import eduid.workers.msg
 from eduid.common.config.base import MsgConfigMixin
@@ -27,8 +27,7 @@ LANGUAGE_MAPPING = {
 
 
 class NavetModelConfig(BaseModel):
-    class Config:
-        allow_population_by_field_name = True
+    model_config = ConfigDict(populate_by_name=True)
 
 
 class CaseInformation(NavetModelConfig):
@@ -174,7 +173,7 @@ class MsgRelay:
             raise NoNavetData("No data returned from Navet")
 
         try:
-            data = NavetData.parse_obj(ret)
+            data = NavetData.model_validate(ret)
         except ValidationError:
             logger.exception("Insufficient data returned from Navet")
             raise NoNavetData("Insufficient data returned from Navet")
@@ -215,7 +214,7 @@ class MsgRelay:
             raise NoAddressFound("No postal address returned from Navet")
 
         try:
-            data = FullPostalAddress.parse_obj(ret)
+            data = FullPostalAddress.model_validate(ret)
             return data
         except ValidationError:
             logger.exception("Missing data in postal address returned from Navet")

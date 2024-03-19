@@ -1,23 +1,23 @@
 # Translations template for PROJECT.
-# Copyright (C) 2022 ORGANIZATION
+# Copyright (C) 2024 ORGANIZATION
 # This file is distributed under the same license as the PROJECT project.
-# FIRST AUTHOR <EMAIL@ADDRESS>, 2022.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2024.
 #
 #, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2022-10-26 12:45+0200\n"
+"POT-Creation-Date: 2024-03-14 11:16+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.10.3\n"
+"Generated-By: Babel 2.8.0\n"
 
-#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/email/verifications.py:67
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/email/verifications.py:36
 msgid "eduID confirmation email"
 msgstr ""
 
@@ -55,11 +55,11 @@ msgid ""
 "\n"
 msgstr ""
 
-#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/group_management/helpers.py:247
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/group_management/helpers.py:246
 msgid "Group invitation"
 msgstr ""
 
-#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/group_management/helpers.py:276
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/group_management/helpers.py:275
 msgid "Group invitation cancelled"
 msgstr ""
 
@@ -111,10 +111,6 @@ msgid ""
 "(This is an automated email. Please do not reply.)\n"
 msgstr ""
 
-#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/idp/login.py:640
-msgid "Incorrect username or password"
-msgstr ""
-
 #: /home/lundberg/projects/eduid-backend/src/eduid/webapp/idp/templates/bad_request.jinja2:9
 msgid "Bad Request"
 msgstr ""
@@ -150,12 +146,10 @@ msgid "FAQ"
 msgstr ""
 
 #: /home/lundberg/projects/eduid-backend/src/eduid/webapp/idp/templates/base.jinja2:45
-#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/idp/templates/login.jinja2:51
 msgid "Sign up"
 msgstr ""
 
 #: /home/lundberg/projects/eduid-backend/src/eduid/webapp/idp/templates/base.jinja2:49
-#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/idp/templates/login.jinja2:48
 msgid "Sign in"
 msgstr ""
 
@@ -173,7 +167,6 @@ msgstr ""
 
 #: /home/lundberg/projects/eduid-backend/src/eduid/webapp/idp/templates/credential_expired.jinja2:19
 #: /home/lundberg/projects/eduid-backend/src/eduid/webapp/idp/templates/user_terminated.jinja2:19
-#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/reset_password/helpers.py:233
 msgid "Reset password"
 msgstr ""
 
@@ -214,26 +207,6 @@ msgstr ""
 
 #: /home/lundberg/projects/eduid-backend/src/eduid/webapp/idp/templates/forbidden.jinja2:17
 msgid "to confirm your identity."
-msgstr ""
-
-#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/idp/templates/login.jinja2:12
-msgid "eduID login"
-msgstr ""
-
-#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/idp/templates/login.jinja2:18
-msgid "Something failed, or Javascript disabled"
-msgstr ""
-
-#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/idp/templates/login.jinja2:25
-msgid "Email:"
-msgstr ""
-
-#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/idp/templates/login.jinja2:35
-msgid "Password:"
-msgstr ""
-
-#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/idp/templates/login.jinja2:42
-msgid "Forgot your password?"
 msgstr ""
 
 #: /home/lundberg/projects/eduid-backend/src/eduid/webapp/idp/templates/mfa_required.jinja2:11
@@ -344,7 +317,7 @@ msgid ""
 "</div>\n"
 msgstr ""
 
-#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/oidc_proofing/helpers.py:131
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/oidc_proofing/helpers.py:127
 #, python-format
 msgid "%(site_name)s account verification"
 msgstr ""
@@ -380,39 +353,7 @@ msgid ""
 "Code: %(verification_code)s\n"
 msgstr ""
 
-#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/reset_password/views/templates/reset_password_email.html.jinja2:1
-#, python-format
-msgid ""
-"\n"
-"<p>Hi,</p>\n"
-"<p>You recently asked to reset your password for your %(site_name)s account.</p>\n"
-"<p>To change your password, click the link below:</p>\n"
-"<p><a href=\"%(reset_password_link)s\">%(reset_password_link)s</a></p>\n"
-"<p>If clicking the link does not work you can copy and paste it into your browser.</p>\n"
-"<p>The password reset link is valid for %(password_reset_timeout)s hours.</p>\n"
-"<p>(This is an automated email. Please do not reply.)</p>\n"
-msgstr ""
-
-#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/reset_password/views/templates/reset_password_email.txt.jinja2:1
-#, python-format
-msgid ""
-"\n"
-"Hi,\n"
-"\n"
-"You recently asked to reset your password for your %(site_name)s account.\n"
-"\n"
-"To change your password, click the link below:\n"
-"\n"
-"%(reset_password_link)s\n"
-"\n"
-"If clicking the link does not work you can copy and paste it into your browser.\n"
-"\n"
-"The password reset link is valid for %(password_reset_timeout)s hours.\n"
-"\n"
-"(This is an automated email. Please do not reply.)\n"
-msgstr ""
-
-#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/security/helpers.py:145
+#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/security/helpers.py:149
 msgid "Terminate account"
 msgstr ""
 
@@ -440,39 +381,5 @@ msgid ""
 "    Thank you for using %(site_name)s.\n"
 "\n"
 "    (This is an automated email. Please do not reply.)\n"
-msgstr ""
-
-#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/signup/verifications.py:124
-msgid "eduid-signup verification email"
-msgstr ""
-
-#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/signup/templates/verification_email.html.jinja2:1
-#, python-format
-msgid ""
-"\n"
-"\n"
-"<h2>Welcome to %(site_name)s,</h2>\n"
-"\n"
-"<p>You recently signed up for <a href=\"%(site_url)s\">%(site_name)s</a>.</p>\n"
-"\n"
-"<p>Please confirm the e-mail address and get your password by clicking on this link:</p>\n"
-"\n"
-"<a href=\"%(verification_link)s\">%(verification_link)s</a>\n"
-"\n"
-msgstr ""
-
-#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/signup/templates/verification_email.txt.jinja2:1
-#, python-format
-msgid ""
-"\n"
-"\n"
-"Welcome to %(site_name)s,\n"
-"\n"
-"You recently signed up for %(site_name)s.\n"
-"\n"
-"Please confirm the e-mail address and get your password by clicking on this link:\n"
-"\n"
-"  %(verification_link)s\n"
-"\n"
 msgstr ""
 

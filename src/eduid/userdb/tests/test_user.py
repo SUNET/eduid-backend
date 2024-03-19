@@ -788,6 +788,20 @@ class TestNewUser(unittest.TestCase):
         )
         self.assertEqual("Right", user.to_dict()["surname"])
 
+    def test_terminated_user(self):
+        data = self.user1.to_dict()
+        data["terminated"] = utc_now()
+        user = User.from_dict(data)
+        assert user.terminated is not None
+        assert isinstance(user.terminated, datetime) is True
+
+    def test_terminated_user_false(self):
+        # users can have terminated set to False due to a bug in the past
+        data = self.user1.to_dict()
+        data["terminated"] = False
+        user = User.from_dict(data)
+        assert user.terminated is None
+
     def test_rebuild_user1(self):
         data = self.user1.to_dict()
         new_user1 = User.from_dict(data)

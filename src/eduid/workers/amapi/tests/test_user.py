@@ -26,7 +26,7 @@ class TestUsers(TestAMBase, GNAPBearerTokenMixin):
         return f"/users/{self.eppn}/{endpoint}"
 
     def _check_audit_log(self, diff: dict[str, Any]) -> None:
-        audit_logs = self.api.audit_logger.get_by_eppn(self.eppn)
+        audit_logs = self.api.context.audit_logger.get_by_eppn(self.eppn)
         assert len(audit_logs) == 1
         assert audit_logs[0].eppn == self.eppn
         assert audit_logs[0].reason == self.reason
@@ -43,7 +43,7 @@ class TestUsers(TestAMBase, GNAPBearerTokenMixin):
 
     def _auth_header(self, service_name: str) -> Headers:
         expire = datetime.timedelta(seconds=3600)
-        signing_key = self.api.jwks.get_key(self.test_singing_key)
+        signing_key = self.api.context.jwks.get_key(self.test_singing_key)
         claims = AuthnBearerToken(
             iss="test-issuer",
             sub="test-subject",

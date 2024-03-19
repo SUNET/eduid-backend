@@ -4,12 +4,12 @@ from enum import unique
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.rpc.msg_relay import FullPostalAddress
+from eduid.common.utils import get_short_hash
 from eduid.userdb import User
 from eduid.userdb.proofing import LetterProofingState, NinProofingElement
 from eduid.userdb.proofing.element import SentLetterElement
 from eduid.webapp.common.api.helpers import check_magic_cookie
 from eduid.webapp.common.api.messages import TranslatableMsg, error_response, success_response
-from eduid.webapp.common.api.utils import get_short_hash
 from eduid.webapp.letter_proofing import pdf
 from eduid.webapp.letter_proofing.app import current_letterp_app as current_app
 

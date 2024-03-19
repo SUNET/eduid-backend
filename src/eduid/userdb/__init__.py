@@ -5,7 +5,6 @@ Copyright (c) 2013-2017 SUNET. All rights reserved.
 See the file LICENSE.txt for full license statement.
 """
 
-
 __version__ = "0.0.1"
 __copyright__ = "SUNET"
 __organization__ = "SUNET"

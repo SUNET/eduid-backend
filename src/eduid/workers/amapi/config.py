@@ -3,7 +3,7 @@ from enum import Enum
 from pathlib import Path
 from typing import NewType, Optional
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 
 from eduid.common.config.base import LoggingConfigMixin, RootConfig
 
@@ -23,7 +23,8 @@ class EndpointRestriction(BaseModel):
     endpoint: str = Field(min_length=1)
     method: SupportedMethod
 
-    @validator("endpoint")
+    @field_validator("endpoint")
+    @classmethod
     def check_endpoint(cls, v: str) -> str:
         if not v.startswith("/"):
             raise ValueError("endpoint must start with /")
@@ -34,7 +35,8 @@ class EndpointRestriction(BaseModel):
         return f"{self.method.value}:{self.endpoint}"
 
 
-class AMApiConfig(RootConfig, LoggingConfigMixin):
+class AMApiConfig(RootConfig, LoggingConfigMixin):  # type: ignore[misc]
+    # mypy and pydantic not agreeing, https://github.com/pydantic/pydantic/issues/8729
     """
     Configuration for the User Management API app
     """

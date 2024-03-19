@@ -1,6 +1,7 @@
 """
 Some data structures that causes import loops if they are defined in assurance.py.
 """
+
 from datetime import datetime
 from enum import Enum, unique
 from typing import Any
@@ -12,11 +13,13 @@ from eduid.userdb.element import ElementKey
 
 @unique
 class EduidAuthnContextClass(str, Enum):
+    DIGG_LOA2 = "http://id.elegnamnden.se/loa/1.0/loa2"
     REFEDS_MFA = "https://refeds.org/profile/mfa"
     REFEDS_SFA = "https://refeds.org/profile/sfa"
     FIDO_U2F = "https://www.swamid.se/specs/id-fido-u2f-ce-transports"
     EDUID_MFA = "https://eduid.se/specs/mfa"
     PASSWORD_PT = "urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport"
+    NOT_IMPLEMENTED = "not implemented"
 
 
 class SwamidAssurance(str, Enum):
@@ -29,6 +32,14 @@ class SwamidAssurance(str, Enum):
     REFEDS_IAP_MEDIUM = "https://refeds.org/assurance/IAP/medium"
     REFEDS_EPPN_UNIQUE = "https://refeds.org/assurance/ID/eppn-unique-no-reassign"
     REFEDS_ID_UNIQUE = "https://refeds.org/assurance/ID/unique"
+    REFEDS_PROFILE_CAPPUCCINO = "https://refeds.org/assurance/profile/cappuccino"
+    REFEDS_PROFILE_ESPRESSO = "https://refeds.org/assurance/profile/espresso"
+
+
+class SwedenConnectAssurance(str, Enum):
+    LOA2 = "http://id.elegnamnden.se/loa/1.0/loa2"
+    LOA3 = "http://id.elegnamnden.se/loa/1.0/loa3"
+    UNCERTIFIED_LOA3 = "http://id.swedenconnect.se/loa/1.0/uncertified-loa3"
 
 
 class AuthnInfo(BaseModel):

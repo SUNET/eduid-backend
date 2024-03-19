@@ -5,12 +5,12 @@ from uuid import UUID
 
 from fastapi import Request, Response
 
+from eduid.common.fastapi.context_request import ContextRequest
 from eduid.common.models.scim_base import Meta, SCIMResourceType, SCIMSchema
-from eduid.scimapi.context_request import ContextRequest
+from eduid.common.utils import make_etag
 from eduid.scimapi.exceptions import BadRequest
 from eduid.scimapi.models.group import GroupMember, GroupResponse, NutidGroupExtensionV1
 from eduid.scimapi.search import SearchFilter
-from eduid.scimapi.utils import make_etag
 from eduid.userdb.scimapi import ScimApiGroup
 
 __author__ = "lundberg"
@@ -58,7 +58,7 @@ def db_group_to_response(req: ContextRequest, resp: Response, db_group: ScimApiG
     # if SCIMSchema.NUTID_GROUP_V1 not in group.schemas and SCIMSchema.NUTID_GROUP_V1.value in dumped_group:
     #    # Serialization will always put the NUTID_GROUP_V1 in the dumped_group, even if there was no data
     #    del dumped_group[SCIMSchema.NUTID_GROUP_V1.value]
-    req.app.context.logger.debug(f"Extra debug: Response:\n{group.json(exclude_none=True, indent=2)}")
+    req.app.context.logger.debug(f"Extra debug: Response:\n{group.model_dump_json(exclude_none=True, indent=2)}")
     return group
 
 

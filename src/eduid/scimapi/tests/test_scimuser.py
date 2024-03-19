@@ -1,20 +1,23 @@
+import asyncio
 import json
 import logging
 import unittest
 from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta
 from typing import Any, Mapping, Optional
+from unittest import IsolatedAsyncioTestCase
 from uuid import UUID, uuid4
 
 import bson
 from bson import ObjectId
-from httpx import Response
+from httpx import AsyncClient, Response
 
 from eduid.common.models.scim_base import Email, LanguageTag, Meta, Name, PhoneNumber, SCIMResourceType, SCIMSchema
 from eduid.common.models.scim_user import LinkedAccount, NutidUserExtensionV1, Profile, UserResponse
 from eduid.common.testing_base import normalised_data
+from eduid.common.utils import make_etag
 from eduid.scimapi.testing import ScimApiTestCase
-from eduid.scimapi.utils import filter_none, make_etag
+from eduid.scimapi.utils import filter_none
 from eduid.userdb.scimapi import EventStatus, ScimApiLinkedAccount
 from eduid.userdb.scimapi.userdb import ScimApiProfile, ScimApiUser
 
@@ -181,6 +184,9 @@ class ScimApiTestUserResourceBase(ScimApiTestCase):
     def setUp(self) -> None:
         super().setUp()
         self.test_profile = ScimApiProfile(attributes={"displayName": "Test User 1"}, data={"test_key": "test_value"})
+        self.test_profile2 = ScimApiProfile(
+            attributes={"displayName": "Test User 2"}, data={"another_test_key": "another_test_value"}
+        )
 
     def _assertUserUpdateSuccess(self, req: Mapping, response, user: ScimApiUser):
         """Function to validate successful responses to SCIM calls that update a user according to a request."""
@@ -497,10 +503,69 @@ class TestUserResource(ScimApiTestUserResourceBase):
             response.json(), schemas=["urn:ietf:params:scim:api:messages:2.0:Error"], detail="externalID must be unique"
         )
 
+    def test_delete_user(self):
+        external_id = "test-id-1"
+        db_user = self.add_user(identifier=str(uuid4()), external_id=external_id, profiles={"test": self.test_profile})
+        user_scim_id = db_user.scim_id
+
+        self.headers["IF-MATCH"] = make_etag(db_user.version)
+        response = self.client.delete(url=f"/Users/{db_user.scim_id}", headers=self.headers)
+        self._assertResponse(response, status_code=204)  # No content
+
+        db_user = self.userdb.get_user_by_scim_id(user_scim_id)
+        assert db_user is None
+
+        # check that the action resulted in an event in the database
+        events = self.eventdb.get_events_by_resource(SCIMResourceType.USER, user_scim_id)
+        assert len(events) == 1
+        event = events[0]
+        assert event.resource.external_id == external_id
+        assert event.data["status"] == EventStatus.DELETED.value
+
+    def test_delete_user_with_groups(self):
+        external_id = "test-id-1"
+        db_user = self.add_user(identifier=str(uuid4()), external_id=external_id, profiles={"test": self.test_profile})
+        user_scim_id = db_user.scim_id
+        group1 = self.add_group_with_member(
+            group_identifier=str(uuid4()), display_name="Group 1", user_identifier=str(user_scim_id)
+        )
+        group1 = self.add_owner_to_group(group_identifier=str(group1.scim_id), user_identifier=str(user_scim_id))
+        extra_user = self.add_user(
+            identifier=str(uuid4()), external_id="other external id", profiles={"test": self.test_profile}
+        )
+        group2 = self.add_group_with_member(
+            group_identifier=str(uuid4()), display_name="Group 2", user_identifier=str(user_scim_id)
+        )
+        group2 = self.add_member_to_group(group_identifier=str(group2.scim_id), user_identifier=str(extra_user.scim_id))
+
+        assert len(group1.members) == 1
+        assert len(group1.owners) == 1
+        assert len(group2.members) == 2
+
+        self.headers["IF-MATCH"] = make_etag(db_user.version)
+        response = self.client.delete(url=f"/Users/{db_user.scim_id}", headers=self.headers)
+        self._assertResponse(response, status_code=204)  # No content
+
+        db_user = self.userdb.get_user_by_scim_id(user_scim_id)
+        assert db_user is None
+
+        group1 = self.groupdb.get_group_by_scim_id(str(group1.scim_id))
+        assert len(group1.graph.members) == 0
+        assert len(group1.graph.owners) == 0
+        group2 = self.groupdb.get_group_by_scim_id(str(group2.scim_id))
+        assert len(group2.graph.members) == 1
+
+        # check that the action resulted in an event in the database
+        events = self.eventdb.get_events_by_resource(SCIMResourceType.USER, user_scim_id)
+        assert len(events) == 1
+        event = events[0]
+        assert event.resource.external_id == external_id
+        assert event.data["status"] == EventStatus.DELETED.value
+
     def test_search_user_external_id(self):
         db_user = self.add_user(identifier=str(uuid4()), external_id="test-id-1", profiles={"test": self.test_profile})
         self.add_user(identifier=str(uuid4()), external_id="test-id-2", profiles={"test": self.test_profile})
-        self._perform_search(filter=f'externalId eq "{db_user.external_id}"', expected_user=db_user)
+        self._perform_search(search_filter=f'externalId eq "{db_user.external_id}"', expected_user=db_user)
 
     def test_search_user_last_modified(self):
         db_user1 = self.add_user(identifier=str(uuid4()), external_id="test-id-1", profiles={"test": self.test_profile})
@@ -508,14 +573,19 @@ class TestUserResource(ScimApiTestUserResourceBase):
         self.assertGreater(db_user2.last_modified, db_user1.last_modified)
 
         self._perform_search(
-            filter=f'meta.lastModified ge "{db_user1.last_modified.isoformat()}"',
+            search_filter=f'meta.lastModified ge "{db_user1.last_modified.isoformat()}"',
             expected_num_resources=2,
             expected_total_results=2,
         )
 
         self._perform_search(
-            filter=f'meta.lastModified gt "{db_user1.last_modified.isoformat()}"', expected_user=db_user2
+            search_filter=f'meta.lastModified gt "{db_user1.last_modified.isoformat()}"', expected_user=db_user2
         )
+
+    def test_search_user_profile_data(self):
+        db_user = self.add_user(identifier=str(uuid4()), external_id="test-id-1", profiles={"test": self.test_profile})
+        self.add_user(identifier=str(uuid4()), external_id="test-id-2", profiles={"test": self.test_profile2})
+        self._perform_search(search_filter='profiles.test.data.test_key eq "test_value"', expected_user=db_user)
 
     def test_search_user_start_index(self):
         for i in range(9):
@@ -523,7 +593,7 @@ class TestUserResource(ScimApiTestUserResourceBase):
         self.assertEqual(9, self.userdb.db_count())
         last_modified = datetime.utcnow() - timedelta(hours=1)
         self._perform_search(
-            filter=f'meta.lastmodified gt "{last_modified.isoformat()}"',
+            search_filter=f'meta.lastmodified gt "{last_modified.isoformat()}"',
             start=5,
             return_json=True,
             expected_num_resources=5,
@@ -536,7 +606,7 @@ class TestUserResource(ScimApiTestUserResourceBase):
         self.assertEqual(9, self.userdb.db_count())
         last_modified = datetime.utcnow() - timedelta(hours=1)
         self._perform_search(
-            filter=f'meta.lastmodified gt "{last_modified.isoformat()}"',
+            search_filter=f'meta.lastmodified gt "{last_modified.isoformat()}"',
             count=5,
             return_json=True,
             expected_num_resources=5,
@@ -549,7 +619,7 @@ class TestUserResource(ScimApiTestUserResourceBase):
         self.assertEqual(9, self.userdb.db_count())
         last_modified = datetime.utcnow() - timedelta(hours=1)
         self._perform_search(
-            filter=f'meta.lastmodified gt "{last_modified.isoformat()}"',
+            search_filter=f'meta.lastmodified gt "{last_modified.isoformat()}"',
             start=7,
             count=5,
             return_json=True,
@@ -651,7 +721,7 @@ class TestUserResource(ScimApiTestUserResourceBase):
 
     def _perform_search(
         self,
-        filter: str,
+        search_filter: str,
         start: int = 1,
         count: int = 10,
         return_json: bool = False,
@@ -659,17 +729,17 @@ class TestUserResource(ScimApiTestUserResourceBase):
         expected_num_resources: Optional[int] = None,
         expected_total_results: Optional[int] = None,
     ):
-        logger.info(f"Searching for group(s) using filter {repr(filter)}")
+        logger.info(f"Searching for user(s) using filter {repr(search_filter)}")
         req = {
             "schemas": [SCIMSchema.API_MESSAGES_20_SEARCH_REQUEST.value],
-            "filter": filter,
+            "filter": search_filter,
             "startIndex": start,
             "count": count,
         }
         response = self.client.post(url="/Users/.search", json=req, headers=self.headers)
-        logger.info(f"Search parsed_response:\n{response.json}")
+        logger.info(f"Search parsed_response:\n{response.json()}")
         if return_json:
-            return response.json
+            return response.json()
         self._assertResponse(response)
         expected_schemas = [SCIMSchema.API_MESSAGES_20_LIST_RESPONSE.value]
         response_schemas = response.json().get("schemas")
@@ -711,3 +781,47 @@ class TestUserResource(ScimApiTestUserResourceBase):
         self.assertEqual([SCIMSchema.API_MESSAGES_20_LIST_RESPONSE.value], response.json().get("schemas"))
         resources = response.json().get("Resources")
         return resources
+
+
+class TestAsyncUserResource(IsolatedAsyncioTestCase, ScimApiTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        # ScimApiTestCase.setUp(self)
+        self.async_client = AsyncClient(app=self.api, base_url="http://testserver")
+        # create users
+        self.user_count = 10
+        self.users = [
+            self.add_user(identifier=str(uuid4()), external_id=f"test-id-{num}") for num in range(self.user_count)
+        ]
+        # create a group with the first user
+        self.group = self.add_group_with_member(
+            group_identifier=str(uuid4()), display_name="Group 1", user_identifier=str(self.users[0].scim_id)
+        )
+        # add the rest of the users to the group
+        for user in self.users[1:]:
+            self.add_member_to_group(group_identifier=str(self.group.scim_id), user_identifier=str(user.scim_id))
+
+    async def test_delete_user_with_groups(self):
+        group = self.groupdb.get_group_by_scim_id(str(self.group.scim_id))
+        assert group is not None  # please mypy
+        assert len(group.members) == self.user_count
+
+        # delete half of the users in parallel
+        tasks = list()
+        for user in self.users[: self.user_count // 2]:
+            headers = {
+                "Content-Type": "application/scim+json",
+                "Accept": "application/scim+json",
+                "IF-MATCH": make_etag(user.version),
+            }
+            tasks.append(asyncio.create_task(self.async_client.delete(url=f"/Users/{user.scim_id}", headers=headers)))
+
+        await asyncio.gather(*tasks)
+        for task in tasks:
+            self._assertResponse(task.result(), status_code=204)  # No content
+
+        for user in self.users[: self.user_count // 2]:
+            assert self.userdb.get_user_by_scim_id(user.scim_id) is None
+
+        group = self.groupdb.get_group_by_scim_id(str(group.scim_id))
+        assert len(group.graph.members) == self.user_count // 2

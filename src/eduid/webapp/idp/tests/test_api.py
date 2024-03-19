@@ -1,31 +1,3 @@
-#
-# Copyright (c) 2021 SUNET
-# All rights reserved.
-#
-#   Redistribution and use in source and binary forms, with or
-#   without modification, are permitted provided that the following
-#   conditions are met:
-#
-#     1. Redistributions of source code must retain the above copyright
-#        notice, this list of conditions and the following disclaimer.
-#     2. Redistributions in binary form must reproduce the above
-#        copyright notice, this list of conditions and the following
-#        disclaimer in the documentation and/or other materials provided
-#        with the distribution.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-# FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
-# COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
-# ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
-#
 import json
 import logging
 import re
@@ -46,7 +18,7 @@ from eduid.userdb.user import User
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.common.authn.cache import IdentityCache, OutstandingQueriesCache, StateCache
 from eduid.webapp.common.authn.utils import get_saml2_config
-from eduid.webapp.common.session.namespaces import PySAML2Dicts
+from eduid.webapp.common.session.namespaces import AuthnRequestRef, PySAML2Dicts
 from eduid.webapp.idp.app import IdPApp, init_idp_app
 from eduid.webapp.idp.helpers import IdPAction
 from eduid.webapp.idp.sso_session import SSOSession, SSOSessionId
@@ -114,7 +86,7 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
     ):
         super().setUp(*args, **kwargs)
         self.idp_entity_id = "https://unittest-idp.example.edu/idp.xml"
-        self.relay_state = "test-fest"
+        self.relay_state = AuthnRequestRef("test-fest")
         self.sp_config = get_saml2_config(self.app.conf.pysaml2_config, name="SP_CONFIG")
         # pysaml2 likes to keep state about ongoing logins, data from login to when you logout etc.
         self._pysaml2_caches = PySAML2Dicts({})
@@ -162,6 +134,7 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
         force_authn: bool = False,
         assertion_consumer_service_url: Optional[str] = None,
         test_user: Optional[TestUser] = None,
+        sso_cookie_val: Optional[str] = None,
     ) -> LoginResultAPI:
         """
         Try logging in to the IdP.
@@ -198,6 +171,8 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
             result = LoginResultAPI(ref=ref, response=resp)
 
             cookie_jar = {}
+            if sso_cookie_val is not None:
+                cookie_jar["idpauthn"] = sso_cookie_val
 
             while True:
                 logger.info(f"Main API test loop, current state: {result}")

@@ -35,9 +35,10 @@ from eduid.webapp.common.proofing.base import (
     VerifyUserResult,
 )
 from eduid.webapp.common.proofing.methods import ProofingMethod, ProofingMethodSAML
+from eduid.webapp.common.proofing.saml_helpers import authn_context_class_to_loa
 from eduid.webapp.common.session import session
 from eduid.webapp.eidas.app import current_eidas_app as current_app
-from eduid.webapp.eidas.helpers import EidasMsg, authn_context_class_to_loa
+from eduid.webapp.eidas.helpers import EidasMsg
 from eduid.webapp.eidas.saml_session_info import BaseSessionInfo, ForeignEidSessionInfo, NinSessionInfo
 
 BaseSessionInfoVar = TypeVar("BaseSessionInfoVar", bound=BaseSessionInfo)
@@ -135,8 +136,12 @@ class FrejaProofingFunctions(SwedenConnectProofingFunctions[NinSessionInfo]):
         assert isinstance(proofing_log_entry.data, NinProofingLogElement)  # please type checking
 
         # Verify NIN for user
+        date_of_birth = self.session_info.attributes.date_of_birth
         nin_element = NinProofingElement(
-            number=self.session_info.attributes.nin, created_by=current_app.conf.app_name, is_verified=False
+            number=self.session_info.attributes.nin,
+            date_of_birth=datetime(year=date_of_birth.year, month=date_of_birth.month, day=date_of_birth.day),
+            created_by=current_app.conf.app_name,
+            is_verified=False,
         )
         proofing_state = NinProofingState(id=None, modified_ts=None, eppn=proofing_user.eppn, nin=nin_element)
         try:
@@ -247,7 +252,11 @@ class EidasProofingFunctions(SwedenConnectProofingFunctions[ForeignEidSessionInf
         existing_identity = user.identities.eidas
         locked_identity = user.locked_identity.eidas
 
-        loa = EIDASLoa(authn_context_class_to_loa(session_info=self.session_info))
+        loa = EIDASLoa(
+            authn_context_class_to_loa(
+                session_info=self.session_info, authentication_context_map=current_app.conf.authentication_context_map
+            )
+        )
         date_of_birth = self.session_info.attributes.date_of_birth
         new_identity = EIDASIdentity(
             created_by=current_app.conf.app_name,

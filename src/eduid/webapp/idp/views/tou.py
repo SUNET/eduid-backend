@@ -12,7 +12,7 @@ from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response
 from eduid.webapp.common.api.utils import save_and_sync_user
 from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.decorators import require_ticket, uses_sso_session
-from eduid.webapp.idp.helpers import IdPMsg
+from eduid.webapp.idp.helpers import IdPMsg, lookup_user
 from eduid.webapp.idp.login_context import LoginContext
 from eduid.webapp.idp.schemas import TouRequestSchema, TouResponseSchema
 from eduid.webapp.idp.sso_session import SSOSession
@@ -42,10 +42,10 @@ def tou(
             return error_response(message=IdPMsg.tou_not_acceptable)
 
         if not sso_session:
-            current_app.logger.error(f"TOU called without an SSO session")
+            current_app.logger.error("TOU called without an SSO session")
             return error_response(message=IdPMsg.general_failure)
 
-        user = current_app.userdb.lookup_user(sso_session.eppn)
+        user = lookup_user(sso_session.eppn)
         if not user:
             current_app.logger.error(f"User with eppn {sso_session.eppn} (from SSO session) not found")
             return error_response(message=IdPMsg.general_failure)

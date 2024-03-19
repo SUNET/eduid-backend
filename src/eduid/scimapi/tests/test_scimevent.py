@@ -7,9 +7,9 @@ from httpx import Response
 
 from eduid.common.models.scim_base import SCIMResourceType, SCIMSchema
 from eduid.common.testing_base import normalised_data
+from eduid.common.utils import make_etag
 from eduid.scimapi.models.event import EventResponse, NutidEventExtensionV1
 from eduid.scimapi.testing import ScimApiTestCase
-from eduid.scimapi.utils import make_etag
 from eduid.userdb.scimapi import EventLevel, ScimApiEvent
 
 
@@ -107,7 +107,7 @@ class TestEventResource(ScimApiTestCase):
         }
         created = self._create_event(event=event)
 
-        # check that the create resulted in an event in the database
+        # check that the creation resulted in an event in the database
         events = self.eventdb.get_events_by_resource(SCIMResourceType.USER, scim_id=user.scim_id)
         assert len(events) == 1
         db_event = events[0]

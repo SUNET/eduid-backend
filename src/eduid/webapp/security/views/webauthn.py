@@ -1,5 +1,8 @@
 import base64
-from typing import Optional, Sequence
+from dataclasses import dataclass, field
+from datetime import datetime
+from typing import List, Optional, Sequence, Set, Union
+from uuid import UUID
 
 from fido2 import cbor
 from fido2.server import Fido2Server, PublicKeyCredentialRpEntity
@@ -14,7 +17,7 @@ from fido2.webauthn import (
     UserVerificationRequirement,
 )
 from fido_mds.exceptions import AttestationVerificationError, MetadataValidationError
-from flask import Blueprint
+from flask import Blueprint, jsonify
 
 from eduid.common.rpc.exceptions import AmTaskFailed
 from eduid.userdb import User
@@ -29,9 +32,10 @@ from eduid.webapp.common.api.utils import save_and_sync_user
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.namespaces import WebauthnRegistration
 from eduid.webapp.security.app import current_security_app as current_app
-from eduid.webapp.security.helpers import SecurityMsg, compile_credential_list
+from eduid.webapp.security.helpers import SecurityMsg, compile_credential_list, get_approved_security_keys
 from eduid.webapp.security.schemas import (
     RemoveWebauthnTokenRequestSchema,
+    SecurityKeysResponseSchema,
     SecurityResponseSchema,
     WebauthnRegisterBeginSchema,
     WebauthnRegisterRequestSchema,
@@ -229,3 +233,9 @@ def remove(user: User, credential_key: str) -> FluxData:
 
     credentials = compile_credential_list(security_user)
     return success_response(message=message, payload={"credentials": credentials})
+
+
+@webauthn_views.route("/approved-security-keys", methods=["GET"])
+@MarshalWith(SecurityKeysResponseSchema)
+def approved_security_keys() -> FluxData:
+    return success_response(payload=get_approved_security_keys())

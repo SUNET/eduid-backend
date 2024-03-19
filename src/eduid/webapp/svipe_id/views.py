@@ -6,7 +6,6 @@ from urllib.parse import parse_qs, urlparse
 from authlib.integrations.base_client import OAuthError
 from flask import Blueprint, make_response, redirect, request, url_for
 from werkzeug import Response as WerkzeugResponse
-from werkzeug.exceptions import BadRequestKeyError
 
 from eduid.userdb import User
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, require_user
@@ -180,11 +179,11 @@ def authn_callback(user) -> WerkzeugResponse:
         user_response = current_app.oidc_client.svipe.userinfo()
         current_app.logger.debug(f"Got user response: {user_response}")
         # TODO: look in to why we are not getting a full userinfo in token response anymore
-        if not token_response.get("userinfo", dict()).get("sub") == user_response.get("sub"):  # sub must match
+        if token_response.get("userinfo", dict()).get("sub") != user_response.get("sub"):  # sub must match
             raise OAuthError("sub mismatch")
         user_response.update(token_response.get("userinfo", dict()))
         current_app.logger.debug(f"merged user response and token respose userinfo: {user_response}")
-    except (OAuthError, BadRequestKeyError, KeyError):
+    except (OAuthError, KeyError):
         # catch any exception from the oidc client and also exceptions about missing request arguments
         current_app.logger.exception(f"Failed to get token response from Svipe ID")
         current_app.stats.count(name="token_response_failed")

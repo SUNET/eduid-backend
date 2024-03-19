@@ -31,7 +31,7 @@ def update_user(
     ],
 ) -> UserUpdateResponse:
     """General function for updating a user object"""
-    user_obj = req.app.db.get_user_by_eppn(eppn=eppn)
+    user_obj = req.app.context.db.get_user_by_eppn(eppn=eppn)
 
     old_user_dict = user_obj.to_dict()
 
@@ -42,7 +42,7 @@ def update_user(
 
     elif isinstance(data, UserUpdateEmailRequest):
         mails = [mail.to_dict() for mail in data.mail_addresses]
-        req.app.db.unverify_mail_aliases(user_id=user_obj.user_id, mail_aliases=mails)
+        req.app.context.db.unverify_mail_aliases(user_id=user_obj.user_id, mail_aliases=mails)
 
         user_obj.mail_addresses = MailAddressList(elements=data.mail_addresses)
 
@@ -51,7 +51,7 @@ def update_user(
 
     elif isinstance(data, UserUpdatePhoneRequest):
         phones = [phone.to_dict() for phone in data.phone_numbers]
-        req.app.db.unverify_phones(user_id=user_obj.user_id, phones=phones)
+        req.app.context.db.unverify_phones(user_id=user_obj.user_id, phones=phones)
 
         user_obj.phone_numbers = PhoneNumberList(elements=data.phone_numbers)
 
@@ -63,7 +63,7 @@ def update_user(
 
     diff = None
 
-    user_save_result = req.app.db.save(user=user_obj)
+    user_save_result = req.app.context.db.save(user=user_obj)
     if user_save_result.success:
         diff = DeepDiff(
             old_user_dict,
@@ -79,7 +79,7 @@ def update_user(
             reason=data.reason,
             source=data.source,
         )
-        if req.app.audit_logger.save(audit_msg):
-            req.app.logger.info(f"Add audit log record for {eppn}")
+        if req.app.context.audit_logger.save(audit_msg):
+            req.app.context.logger.info(f"Add audit log record for {eppn}")
 
     return UserUpdateResponse(status=user_save_result.success, diff=diff)

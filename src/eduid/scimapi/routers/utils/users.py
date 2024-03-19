@@ -5,12 +5,16 @@ from typing import Any, Optional, Sequence
 from fastapi import Response
 from pymongo.errors import DuplicateKeyError
 
+from eduid.common.config.base import EduidEnvironment
+from eduid.common.fastapi.context_request import ContextRequest
 from eduid.common.models.scim_base import Email, Meta, Name, PhoneNumber, SCIMResourceType, SCIMSchema, SearchRequest
 from eduid.common.models.scim_user import Group, LinkedAccount, NutidUserExtensionV1, Profile, UserResponse
-from eduid.scimapi.context_request import ContextRequest
+from eduid.common.utils import make_etag
 from eduid.scimapi.exceptions import BadRequest
+from eduid.scimapi.routers.utils.events import add_api_event
 from eduid.scimapi.search import SearchFilter
-from eduid.scimapi.utils import make_etag
+from eduid.scimapi.utils import retryable_db_write
+from eduid.userdb.scimapi import EventLevel, EventStatus
 from eduid.userdb.scimapi.userdb import ScimApiUser
 
 
@@ -22,6 +26,51 @@ def get_user_groups(req: ContextRequest, db_user: ScimApiUser) -> list[Group]:
         ref = req.app.context.url_for("Groups", group.scim_id)
         groups.append(Group(value=group.scim_id, ref=ref, display=group.display_name))
     return groups
+
+
+@retryable_db_write
+def remove_user_from_all_groups(req: ContextRequest, db_user: ScimApiUser) -> None:
+    """Remove a user from all groups"""
+    # Remove user from groups
+    for member_group in req.context.groupdb.get_groups_for_user_identifer(db_user.scim_id):
+        # we need to get the full group object to get all the members
+        group = req.context.groupdb.get_group_by_scim_id(str(member_group.scim_id))
+        for member in group.graph.members.copy():
+            if member.identifier == str(db_user.scim_id):
+                req.app.context.logger.debug(
+                    f"Removing member {db_user.scim_id} from group {group.scim_id} ({group.display_name}"
+                )
+                group.graph.members.remove(member)
+                req.context.groupdb.save(group)
+                add_api_event(
+                    context=req.app.context,
+                    data_owner=req.context.data_owner,
+                    db_obj=group,
+                    resource_type=SCIMResourceType.GROUP,
+                    level=EventLevel.INFO,
+                    status=EventStatus.UPDATED,
+                    message="Member was removed",
+                )
+                break
+
+    for owner_group in req.context.groupdb.get_groups_owned_by_user_identifier(db_user.scim_id):
+        for owner in owner_group.graph.owners.copy():
+            if owner.identifier == str(db_user.scim_id):
+                req.app.context.logger.debug(
+                    f"Removing member {db_user.scim_id} from group {owner_group.scim_id} ({owner_group.display_name}"
+                )
+                owner_group.graph.owners.remove(owner)
+                req.context.groupdb.save(owner_group)
+                add_api_event(
+                    context=req.app.context,
+                    data_owner=req.context.data_owner,
+                    db_obj=owner_group,
+                    resource_type=SCIMResourceType.GROUP,
+                    level=EventLevel.INFO,
+                    status=EventStatus.UPDATED,
+                    message="Owner was removed",
+                )
+                break
 
 
 def db_user_to_response(req: ContextRequest, resp: Response, db_user: ScimApiUser) -> UserResponse:
@@ -63,7 +112,7 @@ def db_user_to_response(req: ContextRequest, resp: Response, db_user: ScimApiUse
 
     resp.headers["Location"] = location
     resp.headers["ETag"] = make_etag(db_user.version)
-    req.app.context.logger.debug(f"Extra debug: Response:\n{user.json(exclude_none=True, indent=2)}")
+    req.app.context.logger.debug(f"Extra debug: Response:\n{user.model_dump_json(exclude_none=True, indent=2)}")
     return user
 
 
@@ -77,11 +126,15 @@ def save_user(req: ContextRequest, db_user: ScimApiUser) -> None:
         raise BadRequest(detail="Duplicated key error")
 
 
-def acceptable_linked_accounts(value: list[LinkedAccount]):
+def acceptable_linked_accounts(value: list[LinkedAccount], environment: EduidEnvironment):
     """
     Setting linked_accounts through SCIM with limited issuer and value. If we need to support
     stepup with someone other than eduID this needs to change.
     """
+    # short circuit this check for dev env
+    if environment == EduidEnvironment.dev:
+        return True
+
     for this in value:
         if this.issuer not in ["eduid.se", "dev.eduid.se"]:
             return False
@@ -101,13 +154,13 @@ def users_to_resources_dicts(query: SearchRequest, users: Sequence[ScimApiUser])
     return [{"id": str(user.scim_id)} for user in users]
 
 
-def filter_externalid(req: ContextRequest, filter: SearchFilter) -> list[ScimApiUser]:
-    if filter.op != "eq":
+def filter_externalid(req: ContextRequest, search_filter: SearchFilter) -> list[ScimApiUser]:
+    if search_filter.op != "eq":
         raise BadRequest(scim_type="invalidFilter", detail="Unsupported operator")
-    if not isinstance(filter.val, str):
+    if not isinstance(search_filter.val, str):
         raise BadRequest(scim_type="invalidFilter", detail="Invalid externalId")
 
-    user = req.context.userdb.get_user_by_external_id(filter.val)
+    user = req.context.userdb.get_user_by_external_id(search_filter.val)
 
     if not user:
         return []
@@ -116,12 +169,32 @@ def filter_externalid(req: ContextRequest, filter: SearchFilter) -> list[ScimApi
 
 
 def filter_lastmodified(
-    req: ContextRequest, filter: SearchFilter, skip: Optional[int] = None, limit: Optional[int] = None
+    req: ContextRequest, search_filter: SearchFilter, skip: Optional[int] = None, limit: Optional[int] = None
 ) -> tuple[list[ScimApiUser], int]:
-    if filter.op not in ["gt", "ge"]:
+    if search_filter.op not in ["gt", "ge"]:
         raise BadRequest(scim_type="invalidFilter", detail="Unsupported operator")
-    if not isinstance(filter.val, str):
+    if not isinstance(search_filter.val, str):
         raise BadRequest(scim_type="invalidFilter", detail="Invalid datetime")
     return req.context.userdb.get_users_by_last_modified(
-        operator=filter.op, value=datetime.fromisoformat(filter.val), skip=skip, limit=limit
+        operator=search_filter.op, value=datetime.fromisoformat(search_filter.val), skip=skip, limit=limit
     )
+
+
+def filter_profile_data(
+    req: ContextRequest,
+    search_filter: SearchFilter,
+    profile: str,
+    key: str,
+    skip: Optional[int] = None,
+    limit: Optional[int] = None,
+) -> tuple[list[ScimApiUser], int]:
+    if search_filter.op != "eq":
+        raise BadRequest(scim_type="invalidFilter", detail="Unsupported operator")
+
+    req.app.context.logger.debug(
+        f"Searching for users with {search_filter.attr} {search_filter.op} {repr(search_filter.val)}"
+    )
+    users, count = req.context.userdb.get_user_by_profile_data(
+        profile=profile, operator=search_filter.op, key=key, value=search_filter.val, skip=skip, limit=limit
+    )
+    return users, count

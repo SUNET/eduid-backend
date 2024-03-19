@@ -2,20 +2,23 @@ import os
 import unittest
 import uuid
 from dataclasses import asdict
+from json import JSONDecodeError
 from typing import Any, Mapping, Optional, Union
 
 import pkg_resources
 from bson import ObjectId
 from httpx import Response
-from simplejson import JSONDecodeError
 from starlette.testclient import TestClient
 
+from eduid.common.config.base import DataOwnerName
 from eduid.common.config.parsers import load_config
 from eduid.common.models.scim_base import SCIMSchema
+from eduid.common.testing_base import normalised_data
+from eduid.graphdb.groupdb import User as GraphUser
 from eduid.graphdb.testing import Neo4jTemporaryInstance
 from eduid.queue.db.message import MessageDB
 from eduid.scimapi.app import init_api
-from eduid.scimapi.config import DataOwnerName, ScimApiConfig
+from eduid.scimapi.config import ScimApiConfig
 from eduid.scimapi.context import Context
 from eduid.userdb.scimapi import ScimApiEvent, ScimApiGroup, ScimApiLinkedAccount, ScimApiName
 from eduid.userdb.scimapi.invitedb import ScimApiInvite
@@ -83,10 +86,6 @@ class MongoNeoTestCase(BaseDBTestCase):
         )
         super().setUpClass()
 
-    def tearDown(self):
-        super().tearDown()
-        self.neo4j_instance.purge_db()
-
 
 class ScimApiTestCase(MongoNeoTestCase):
     """Base test case providing the real API"""
@@ -107,6 +106,7 @@ class ScimApiTestCase(MongoNeoTestCase):
         # TODO: more tests for scoped groups when that is implemented
         self.data_owner = DataOwnerName("eduid.se")
         self.userdb = self.context.get_userdb(self.data_owner)
+        self.groupdb = self.context.get_groupdb(self.data_owner)
         self.invitedb = self.context.get_invitedb(self.data_owner)
         self.signup_invitedb = SignupInviteDB(db_uri=config.mongo_uri)
         self.messagedb = MessageDB(db_uri=config.mongo_uri)
@@ -132,7 +132,7 @@ class ScimApiTestCase(MongoNeoTestCase):
         external_id: Optional[str] = None,
         profiles: Optional[dict[str, ScimApiProfile]] = None,
         linked_accounts: Optional[list[ScimApiLinkedAccount]] = None,
-    ) -> Optional[ScimApiUser]:
+    ) -> ScimApiUser:
         user = ScimApiUser(user_id=ObjectId(), scim_id=uuid.UUID(identifier), external_id=external_id)
         if profiles:
             for key, value in profiles.items():
@@ -141,7 +141,36 @@ class ScimApiTestCase(MongoNeoTestCase):
             user.linked_accounts = linked_accounts
         assert self.userdb
         self.userdb.save(user)
-        return self.userdb.get_user_by_scim_id(scim_id=identifier)
+        saved_user = self.userdb.get_user_by_scim_id(scim_id=identifier)
+        assert saved_user is not None  # please mypy
+        return saved_user
+
+    def add_group_with_member(self, group_identifier: str, display_name: str, user_identifier: str) -> ScimApiGroup:
+        group = ScimApiGroup(scim_id=uuid.UUID(group_identifier), display_name=display_name)
+        group.add_member(GraphUser(identifier=user_identifier, display_name="Test Member 1"))
+        assert self.groupdb
+        self.groupdb.save(group)
+        saved_group = self.groupdb.get_group_by_scim_id(scim_id=group_identifier)
+        assert saved_group is not None
+        return saved_group
+
+    def add_member_to_group(self, group_identifier: str, user_identifier: str) -> Optional[ScimApiGroup]:
+        assert self.groupdb
+        group = self.groupdb.get_group_by_scim_id(scim_id=group_identifier)
+        assert group is not None  # please mypy
+        num_members = len(group.members)
+        group.add_member(GraphUser(identifier=user_identifier, display_name=f"Test Member {num_members + 1}"))
+        self.groupdb.save(group)
+        return self.groupdb.get_group_by_scim_id(scim_id=group_identifier)
+
+    def add_owner_to_group(self, group_identifier: str, user_identifier: str) -> Optional[ScimApiGroup]:
+        assert self.groupdb
+        group = self.groupdb.get_group_by_scim_id(scim_id=group_identifier)
+        assert group is not None  # please mypy
+        num_owners = len(group.owners)
+        group.add_owner(GraphUser(identifier=user_identifier, display_name=f"Test Owner {num_owners + 1}"))
+        self.groupdb.save(group)
+        return self.groupdb.get_group_by_scim_id(scim_id=group_identifier)
 
     def tearDown(self):
         super().tearDown()
@@ -155,6 +184,9 @@ class ScimApiTestCase(MongoNeoTestCase):
             self.signup_invitedb._drop_whole_collection()
         if self.messagedb:
             self.messagedb._drop_whole_collection()
+        if self.groupdb:
+            self.groupdb._drop_whole_collection()
+            self.neo4j_instance.purge_db()
 
     def _assertScimError(
         self,
@@ -163,6 +195,7 @@ class ScimApiTestCase(MongoNeoTestCase):
         status: int = 400,
         scim_type: Optional[str] = None,
         detail: Optional[Any] = None,
+        exclude_keys: Optional[list[str]] = None,
     ):
         if schemas is None:
             schemas = [SCIMSchema.ERROR.value]
@@ -171,7 +204,9 @@ class ScimApiTestCase(MongoNeoTestCase):
         if scim_type is not None:
             self.assertEqual(scim_type, json.get("scimType"))
         if detail is not None:
-            self.assertEqual(detail, json.get("detail"))
+            expected = normalised_data(detail)
+            generated = normalised_data(json.get("detail"), exclude_keys=exclude_keys)
+            self.assertEqual(expected, generated)
 
     def _assertScimResponseProperties(
         self,

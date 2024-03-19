@@ -1,20 +1,20 @@
-# Translations template for eduid-queue.
-# Copyright (C) 2020 ORGANIZATION
-# This file is distributed under the same license as the eduid-queue project.
-# FIRST AUTHOR <EMAIL@ADDRESS>, 2020.
+# Translations template for PROJECT.
+# Copyright (C) 2024 ORGANIZATION
+# This file is distributed under the same license as the PROJECT project.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2024.
 # 
 # Translators:
-# Johan Lundberg <lundberg@sunet.se>, 2020
+# Johan Lundberg <lundberg@sunet.se>, 2024
 # 
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: eduid-queue 0.0.1\n"
+"Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2020-11-16 18:01+0100\n"
+"POT-Creation-Date: 2024-03-14 11:16+0100\n"
 "PO-Revision-Date: 2020-10-21 13:47+0000\n"
-"Last-Translator: Johan Lundberg <lundberg@sunet.se>, 2020\n"
-"Language-Team: English (United States) (https://www.transifex.com/sunet/teams/114180/en_US/)\n"
+"Last-Translator: Johan Lundberg <lundberg@sunet.se>, 2024\n"
+"Language-Team: English (United States) (https://app.transifex.com/sunet/teams/114180/en_US/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -22,11 +22,11 @@ msgstr ""
 "Language: en_US\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: src/eduid_queue/templates/eduid_invite_mail_html.jinja2:1
+#: /home/lundberg/projects/eduid-backend/src/eduid/queue/templates/eduid_invite_mail_html.jinja2:1
 msgid "en"
 msgstr "en"
 
-#: src/eduid_queue/templates/eduid_invite_mail_html.jinja2:3
+#: /home/lundberg/projects/eduid-backend/src/eduid/queue/templates/eduid_invite_mail_html.jinja2:3
 #, python-format
 msgid ""
 "\n"
@@ -47,7 +47,7 @@ msgstr ""
 "\n"
 "    <p>(This is an automated email. Please do not reply.)</p>\n"
 
-#: src/eduid_queue/templates/eduid_invite_mail_txt.jinja2:2
+#: /home/lundberg/projects/eduid-backend/src/eduid/queue/templates/eduid_invite_mail_txt.jinja2:2
 #, python-format
 msgid ""
 "\n"
@@ -68,6 +68,166 @@ msgstr ""
 "\n"
 "    (This is an automated email. Please do not reply.)\n"
 
-#: src/eduid_queue/workers/mail.py:101
+#: /home/lundberg/projects/eduid-backend/src/eduid/queue/templates/eduid_signup_email.html.jinja2:1
+#, python-format
+msgid ""
+"\n"
+"\n"
+"<h2>Welcome to %(site_name)s,</h2>\n"
+"\n"
+"<p>You recently used %(email)s to sign up for %(site_name)s.</p>\n"
+"\n"
+"<p>To verify this email address belongs to you, enter the code below on the email verification page:</p>\n"
+"\n"
+"<p>%(verification_code)s</p>\n"
+"\n"
+msgstr ""
+"\n"
+"\n"
+"<h2>Welcome to %(site_name)s,</h2>\n"
+"\n"
+"<p>You recently used %(email)s to sign up for %(site_name)s.</p>\n"
+"\n"
+"<p>To verify this email address belongs to you, enter the code below on the email verification page:</p>\n"
+"\n"
+"<p>%(verification_code)s</p>\n"
+"\n"
+
+#: /home/lundberg/projects/eduid-backend/src/eduid/queue/templates/eduid_signup_email.txt.jinja2:1
+#, python-format
+msgid ""
+"\n"
+"\n"
+"Welcome to %(site_name)s,\n"
+"\n"
+"You recently used %(email)s to sign up for %(site_name)s.\n"
+"\n"
+"To verify this email address belongs to you, enter the code below on the email verification page:\n"
+"\n"
+"%(verification_code)s\n"
+"\n"
+msgstr ""
+"\n"
+"\n"
+"Welcome to %(site_name)s,\n"
+"\n"
+"You recently used %(email)s to sign up for %(site_name)s.\n"
+"\n"
+"To verify this email address belongs to you, enter the code below on the email verification page:\n"
+"\n"
+"%(verification_code)s\n"
+"\n"
+
+#: /home/lundberg/projects/eduid-backend/src/eduid/queue/templates/old_eduid_signup_email.html.jinja2:1
+#, python-format
+msgid ""
+"\n"
+"\n"
+"<h2>Welcome to %(site_name)s,</h2>\n"
+"\n"
+"<p>You recently signed up for <a href=\"%(site_url)s\">%(site_name)s</a>.</p>\n"
+"\n"
+"<p>Please confirm the e-mail address and get your password by clicking on this link:</p>\n"
+"\n"
+"<a href=\"%(verification_link)s\">%(verification_link)s</a>\n"
+"\n"
+msgstr ""
+"\n"
+"\n"
+"<h2>Welcome to %(site_name)s,</h2>\n"
+"\n"
+"<p>You recently signed up for <a href=\"%(site_url)s\">%(site_name)s</a>.</p>\n"
+"\n"
+"<p>Please confirm the e-mail address and get your password by clicking on this link:</p>\n"
+"\n"
+"<a href=\"%(verification_link)s\">%(verification_link)s</a>\n"
+"\n"
+
+#: /home/lundberg/projects/eduid-backend/src/eduid/queue/templates/old_eduid_signup_email.txt.jinja2:1
+#, python-format
+msgid ""
+"\n"
+"\n"
+"Welcome to %(site_name)s,\n"
+"\n"
+"You recently signed up for %(site_name)s.\n"
+"\n"
+"Please confirm the e-mail address and get your password by clicking on this link:\n"
+"\n"
+"  %(verification_link)s\n"
+"\n"
+msgstr ""
+"\n"
+"\n"
+"Welcome to %(site_name)s,\n"
+"\n"
+"You recently signed up for %(site_name)s.\n"
+"\n"
+"Please confirm the e-mail address and get your password by clicking on this link:\n"
+"\n"
+"  %(verification_link)s\n"
+"\n"
+
+#: /home/lundberg/projects/eduid-backend/src/eduid/queue/templates/reset_password_email.html.jinja2:1
+#, python-format
+msgid ""
+"\n"
+"<p>Hi,</p>\n"
+"<p>You recently asked to reset your password for your %(site_name)s account.</p>\n"
+"<p>To verify this email address belongs to you, enter the code below on the email verification page:</p>\n"
+"\n"
+"<p>%(verification_code)s</p>\n"
+"\n"
+"<p>The code is valid for %(password_reset_timeout)s hours.</p>\n"
+"<p>(This is an automated email. Please do not reply.)</p>\n"
+msgstr ""
+"\n"
+"<p>Hi,</p>\n"
+"<p>You recently asked to reset your password for your %(site_name)s account.</p>\n"
+"<p>To verify this email address belongs to you, enter the code below on the email verification page:</p>\n"
+"\n"
+"<p>%(verification_code)s</p>\n"
+"\n"
+"<p>The code is valid for %(password_reset_timeout)s hours.</p>\n"
+"<p>(This is an automated email. Please do not reply.)</p>\n"
+
+#: /home/lundberg/projects/eduid-backend/src/eduid/queue/templates/reset_password_email.txt.jinja2:1
+#, python-format
+msgid ""
+"\n"
+"Hi,\n"
+"\n"
+"You recently asked to reset your password for your %(site_name)s account.\n"
+"\n"
+"To verify this email address belongs to you, enter the code below on the email verification page:\n"
+"\n"
+"%(verification_code)s\n"
+"\n"
+"The code is valid for %(password_reset_timeout)s hours.\n"
+"\n"
+"(This is an automated email. Please do not reply.)\n"
+msgstr ""
+"\n"
+"Hi,\n"
+"\n"
+"You recently asked to reset your password for your %(site_name)s account.\n"
+"\n"
+"To verify this email address belongs to you, enter the code below on the email verification page:\n"
+"\n"
+"%(verification_code)s\n"
+"\n"
+"The code is valid for %(password_reset_timeout)s hours.\n"
+"\n"
+"(This is an automated email. Please do not reply.)\n"
+
+#: /home/lundberg/projects/eduid-backend/src/eduid/queue/workers/mail.py:182
 msgid "eduID invitation"
 msgstr "eduID invitation"
+
+#: /home/lundberg/projects/eduid-backend/src/eduid/queue/workers/mail.py:196
+msgid "eduID registration"
+msgstr "eduID registration"
+
+#: /home/lundberg/projects/eduid-backend/src/eduid/queue/workers/mail.py:210
+msgid "Reset password"
+msgstr "Reset password"
