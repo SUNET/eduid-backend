@@ -63,7 +63,7 @@ import pprint
 import time
 from base64 import b64encode
 from hashlib import sha256
-from typing import Optional
+from typing import Any, Optional
 from uuid import uuid4
 
 from defusedxml import ElementTree as DefusedElementTree
@@ -297,7 +297,13 @@ class SSO(Service):
             current_app.logger.debug(f"Asserting AuthnContext {authn_info} (none requested)")
 
         assert self.sso_session  # please mypy
-        saml_response = self._make_saml_response(authn_info, resp_args, user, ticket, self.sso_session)
+        attributes = self.gather_attributes(
+            response_authn=authn_info, resp_args=resp_args, user=user, ticket=ticket, sso_session=self.sso_session
+        )
+        missing_attributes = self.get_missing_attributes(ticket=ticket, attributes=attributes)
+        saml_response = self._make_saml_response(
+            response_authn=authn_info, resp_args=resp_args, user=user, ticket=ticket, attributes=attributes
+        )
 
         binding = resp_args["binding"]
         destination = resp_args["destination"]
@@ -322,27 +328,19 @@ class SSO(Service):
         return SAMLResponseParams(
             url=http_args.url,
             post_params=params,
+            missing_attributes=missing_attributes,
             binding=binding,
             http_args=http_args,
         )
 
-    def _make_saml_response(
+    def gather_attributes(
         self,
         response_authn: AuthnInfo,
         resp_args: ResponseArgs,
         user: IdPUser,
         ticket: LoginContextSAML,
         sso_session: SSOSession,
-    ) -> SamlResponse:
-        """
-        Create the SAML response using pysaml2 create_authn_response().
-
-        :param resp_args: pysaml2 response arguments
-        :param user: IdP user
-        :param ticket: Login process state
-
-        :return: SAML response (string)
-        """
+    ) -> dict[str, Any]:
         sp_identifier = resp_args.get("sp_entity_id", resp_args["destination"])
         current_app.logger.debug(f"Creating SAML response for SP {sp_identifier}")
         sp_entity_categories = ticket.saml_req.sp_entity_attributes.get("http://macedir.org/entity-category", [])
@@ -369,6 +367,8 @@ class SSO(Service):
         # Add a list of credentials used in a private attribute that will only be
         # released to the eduID authn component
         attributes["eduidIdPCredentialsUsed"] = [x.cred_id for x in sso_session.authn_credentials]
+
+        # Add attributes from the authn process
         for k, v in response_authn.authn_attributes.items():
             if k in attributes:
                 current_app.logger.debug(
@@ -377,6 +377,40 @@ class SSO(Service):
             else:
                 current_app.logger.debug(f"Adding attribute {k} with value from authn process: {v}")
             attributes[k] = v
+        return attributes
+
+    @staticmethod
+    def get_missing_attributes(ticket: LoginContextSAML, attributes: dict[str, Any]) -> list[dict[str, str]]:
+        missing_attributes = []
+        required_attributes = ticket.saml_req.get_required_attributes()
+        current_app.logger.debug(f"Required attributes: {required_attributes}")
+        for required_attribute in required_attributes:
+            # Add attribute as missing if the attribute is missing from the attributes dict or evaluates falsy
+            friendly_name = required_attribute.get("friendly_name")
+            if friendly_name not in attributes or not attributes.get(friendly_name):
+                missing_attributes.append(required_attribute)
+        if missing_attributes:
+            current_app.logger.info(f"Missing required attributes: {missing_attributes}")
+        return missing_attributes
+
+    def _make_saml_response(
+        self,
+        response_authn: AuthnInfo,
+        resp_args: ResponseArgs,
+        user: IdPUser,
+        ticket: LoginContextSAML,
+        attributes: dict[str, Any],
+    ) -> SamlResponse:
+        """
+        Create the SAML response using pysaml2 create_authn_response().
+
+        :param resp_args: pysaml2 response arguments
+        :param user: IdP user
+        :param ticket: Login process state
+
+        :return: SAML response (string)
+        """
+
         if current_app.conf.debug:
             # Only perform expensive parse/pretty-print if debugging
             pp = pprint.PrettyPrinter()
@@ -389,7 +423,6 @@ class SSO(Service):
 
         saml_response = ticket.saml_req.make_saml_response(attributes, user.eppn, response_authn, resp_args)
         self._kantara_log_assertion_id(saml_response, ticket)
-
         return saml_response
 
     @staticmethod

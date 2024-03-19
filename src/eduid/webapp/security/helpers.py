@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import unique
 from functools import cache
-from typing import Any, Dict, List, Optional, TypedDict
+from typing import Any, List, Optional
 
 from fido_mds.models.webauthn import AttestationFormat
 from flask_babel import gettext as _
@@ -254,9 +254,9 @@ def get_approved_security_keys() -> dict[str, Any]:
 
     for key in approved_keys_list:
         lower_case_key = key.lower()
-        if lower_case_key not in marker:   # test presence
+        if lower_case_key not in marker:  # test presence
             marker.add(lower_case_key)
-            unique_approved_keys_list.append(key)   # preserve original case
+            unique_approved_keys_list.append(key)  # preserve original case
 
     # sort list - case insensitive
     return {

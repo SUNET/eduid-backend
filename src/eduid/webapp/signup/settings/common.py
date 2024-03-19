@@ -28,7 +28,6 @@ class SignupConfig(
     vccs_url: str
     signup_url: str
     dashboard_url: str
-    default_language: str = "en"
 
     password_length: int = 10
     throttle_resend: timedelta = Field(default=timedelta(minutes=5))

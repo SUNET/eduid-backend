@@ -1,7 +1,7 @@
 import logging
 import typing
 from base64 import b64encode
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from hashlib import sha1
 from typing import Any, Mapping, NewType, Optional, Union
 
@@ -42,9 +42,9 @@ ReqSHA1 = NewType("ReqSHA1", str)
 class SAMLResponseParams:
     url: str
     post_params: Mapping[str, Optional[Union[str, bool]]]
-    # Parameters for the old template realm
     binding: str
     http_args: HttpArgs
+    missing_attributes: list[dict[str, str]] = field(default_factory=list)
 
 
 def gen_key(something: Union[str, bytes]) -> ReqSHA1:
@@ -146,6 +146,13 @@ class IdP_SAMLRequest:
                 if not isinstance(this, str):
                     raise ValueError(f"Invalid authnContextClassRef value ({repr(this)})")
             return res
+        return []
+
+    def get_required_attributes(self) -> list[dict[str, str]]:
+        sp_attribute_spec = self._idp.metadata.attribute_requirement(self.sp_entity_id)
+        if sp_attribute_spec:
+            required = sp_attribute_spec.get("required", [])
+            return [{"name": item.get("name"), "friendly_name": item.get("friendly_name")} for item in required]
         return []
 
     @property

@@ -1,9 +1,9 @@
 import os
 import struct
 from dataclasses import replace
-from datetime import datetime, timedelta
+from datetime import datetime
 from enum import Enum, unique
-from typing import Optional, Union
+from typing import Optional
 
 import proquint
 from flask import abort
@@ -13,10 +13,8 @@ from eduid.common.misc.timeutil import utc_now
 from eduid.common.models.scim_base import SCIMSchema
 from eduid.common.models.scim_user import LinkedAccount as SCIMLinkedAccount
 from eduid.common.models.scim_user import UserCreateRequest, UserResponse, UserUpdateRequest
-from eduid.common.utils import urlappend
-from eduid.queue.db import QueueItem, SenderInfo
+from eduid.queue.client import init_queue_item
 from eduid.queue.db.message import EduidSignupEmail
-from eduid.queue.db.message.payload import OldEduidSignupEmail
 from eduid.userdb import MailAddress, NinIdentity, PhoneNumber, Profile, User
 from eduid.userdb.exceptions import UserDoesNotExist, UserHasNotCompletedSignup, UserOutOfSync
 from eduid.userdb.logs import MailAddressProofing
@@ -172,43 +170,20 @@ def check_email_status(email: str) -> EmailStatus:
     return EmailStatus.NEW
 
 
-def send_signup_mail(email: str, verification_code: str, reference: str, use_email_link: bool = False) -> None:
+def send_signup_mail(email: str, verification_code: str, reference: str) -> None:
     """
     Put a signup email message on the queue.
     """
-    payload: Union[EduidSignupEmail, OldEduidSignupEmail]
-    if use_email_link:
-        # backwards compatibility
-        verfication_link = urlappend(current_app.conf.signup_url, f"/code/{verification_code}")
-        payload = OldEduidSignupEmail(
-            email=email,
-            verification_link=verfication_link,
-            site_name=current_app.conf.eduid_site_name,
-            site_url=current_app.conf.eduid_site_url,
-            language=get_user_locale() or current_app.conf.default_language,
-            reference=reference,
-        )
-    else:
-        payload = EduidSignupEmail(
-            email=email,
-            verification_code=verification_code,
-            site_name=current_app.conf.eduid_site_name,
-            language=get_user_locale() or current_app.conf.default_language,
-            reference=reference,
-        )
+    payload = EduidSignupEmail(
+        email=email,
+        verification_code=verification_code,
+        site_name=current_app.conf.eduid_site_name,
+        language=get_user_locale() or current_app.conf.default_language,
+        reference=reference,
+    )
     app_name = current_app.conf.app_name
-    system_hostname = os.environ.get("SYSTEM_HOSTNAME", "")  # Underlying hosts name for containers
-    hostname = os.environ.get("HOSTNAME", "")  # Actual hostname or container id
-    sender_info = SenderInfo(hostname=hostname, node_id=f"{app_name}@{system_hostname}")
-    expires_at = utc_now() + current_app.conf.email_verification_timeout
-    discard_at = expires_at + timedelta(days=7)
-    message = QueueItem(
-        version=1,
-        expires_at=expires_at,
-        discard_at=discard_at,
-        sender_info=sender_info,
-        payload_type=payload.get_type(),
-        payload=payload,
+    message = init_queue_item(
+        app_name=app_name, expires_in=current_app.conf.email_verification_timeout, payload=payload
     )
     current_app.messagedb.save(message)
     current_app.logger.info(f"Saved signup email queue item in queue collection {current_app.messagedb._coll_name}")

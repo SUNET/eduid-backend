@@ -37,6 +37,7 @@ class ResetPasswordConfig(
     dashboard_url: str
 
     email_code_timeout: timedelta = Field(default=timedelta(hours=2))
+    email_code_length: int = 6
     phone_code_timeout: timedelta = Field(default=timedelta(minutes=10))
     # Number of bytes of salt to generate (recommended min 16).
     password_salt_length: int = 32
@@ -48,8 +49,6 @@ class ResetPasswordConfig(
     password_generation_rounds: int = 2**5
     # throttle resend of mail and sms
     throttle_resend: timedelta = Field(default=timedelta(minutes=5))
-    # URL to get the js app that can drive the process to reset the password
-    password_reset_link: str = "https://www.eduid.se/reset-password/email-code"
     password_service_url: str = "/services/reset-password/"
     # Throttle sending SMSs for extra security resetting passwords
     throttle_sms: timedelta = Field(default=timedelta(minutes=5))
