@@ -146,12 +146,9 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
     def tearDown(self):
         try:
             # Reset anything that looks like a BaseDB, for the next test class.
-            # Also explicitly close the connections to the database, or we will
-            # run out of file descriptors in some settings
             for this in vars(self.app).values():
                 if isinstance(this, BaseDB):
                     this._drop_whole_collection()
-                    this.close()
         except Exception as exc:
             sys.stderr.write(f"Exception in tearDown: {exc!s}\n{exc!r}\n")
             traceback.print_exc()

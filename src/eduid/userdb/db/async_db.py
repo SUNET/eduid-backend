@@ -16,6 +16,25 @@ logger = logging.getLogger(__name__)
 extra_logger = logger.getChild("extra_debug")
 
 
+class AsyncClientCache:
+    """
+    A cache for AsyncIOMotorClient instances.
+    """
+
+    _clients: dict[str, AsyncIOMotorClient] = {}
+
+    def get_client(self, db_args) -> AsyncIOMotorClient:
+        connection_uri: str = db_args["host"]
+        if connection_uri in self._clients:
+            logger.debug(f"Reusing existing connection to {connection_uri}")
+            return self._clients[connection_uri]
+        else:
+            logger.debug(f"Creating new connection to {connection_uri}")
+            client = AsyncIOMotorClient(**db_args)
+            self._clients[connection_uri] = client
+            return client
+
+
 class AsyncMongoDB(BaseMongoDB):
     def __init__(
         self,
@@ -25,7 +44,7 @@ class AsyncMongoDB(BaseMongoDB):
     ):
         super().__init__(db_uri=db_uri, db_name=db_name, **kwargs)
         try:
-            self._client = AsyncIOMotorClient(**self.db_args)
+            self._client = AsyncClientCache().get_client(self.db_args)
         except PyMongoError as e:
             raise MongoConnectionError(f"Error connecting to mongodb {self!r}: {e}")
 

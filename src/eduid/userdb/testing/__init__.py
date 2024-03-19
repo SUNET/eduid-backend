@@ -142,8 +142,6 @@ class MongoTestCase(unittest.TestCase):
         for userdoc in self.amdb._get_all_docs():
             assert User.from_dict(data=userdoc)
         self._reset_databases()
-        # Close, but do not shut down the temporary MongoDB instance for performance reasons.
-        self.amdb.close()
         super().tearDown()
 
 

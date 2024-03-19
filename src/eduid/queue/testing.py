@@ -5,8 +5,9 @@ import logging
 import time
 from asyncio import Task
 from datetime import datetime, timedelta
-from typing import Any, Optional, Sequence, cast
+from typing import TYPE_CHECKING, Any, Optional, Sequence, TypeAlias, cast
 from unittest import IsolatedAsyncioTestCase, TestCase
+from unittest.mock import patch
 
 import pymongo
 import pymongo.errors
@@ -14,8 +15,15 @@ import pymongo.errors
 from eduid.common.misc.timeutil import utc_now
 from eduid.queue.db import Payload, QueueDB, QueueItem, SenderInfo
 from eduid.queue.db.worker import AsyncQueueDB
+from eduid.queue.workers.base import QueueWorker
 from eduid.userdb.db import TUserDbDocument
 from eduid.userdb.testing import EduidTemporaryInstance, MongoTemporaryInstance
+
+# type checking shenanigans for mypy
+if TYPE_CHECKING:
+    MixinBase: TypeAlias = QueueWorker
+else:
+    MixinBase = object
 
 __author__ = "lundberg"
 
@@ -159,7 +167,9 @@ class QueueAsyncioTest(EduidQueueTestCase, IsolatedAsyncioTestCase):
         db_init_try = 0
         while True:
             try:
-                self.worker_db = await AsyncQueueDB.create(db_uri=self.mongo_uri, collection=self.mongo_collection)
+                # Make sure the isolated test cases get to create their own mongodb clients
+                with patch("eduid.userdb.db.async_db.AsyncClientCache._clients", {}):
+                    self.worker_db = await AsyncQueueDB.create(db_uri=self.mongo_uri, collection=self.mongo_collection)
                 break
             except pymongo.errors.NotPrimaryError as e:
                 db_init_try += 1
@@ -194,3 +204,12 @@ class QueueAsyncioTest(EduidQueueTestCase, IsolatedAsyncioTestCase):
                 return None
             logger.info(f"Queue item {queue_item.item_id} not processed yet")
         assert fetched is None
+
+
+class IsolatedWorkerDBMixin(MixinBase):
+    # override run so we can mock cache of database clients
+    async def run(self):
+        # Init db in the correct loop
+        # Make sure the isolated test cases get to create their own mongodb clients
+        with patch("eduid.userdb.db.async_db.AsyncClientCache._clients", {}):
+            await super().run()

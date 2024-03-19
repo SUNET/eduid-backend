@@ -1,4 +1,5 @@
 from unittest import IsolatedAsyncioTestCase, TestCase
+from unittest.mock import patch
 
 from bson import ObjectId
 
@@ -65,7 +66,9 @@ class TestAsyncMongoDB(IsolatedAsyncioTestCase):
 class TestAsyncDB(AsyncMongoTestCase):
     async def asyncSetUp(self) -> None:
         await super().asyncSetUp()
-        self.db = AsyncBaseDB(db_uri=self.tmp_db.uri, db_name="testdb", collection="test")
+        # Make sure the isolated test cases get to create their own mongodb clients
+        with patch("eduid.userdb.db.async_db.AsyncClientCache._clients", {}):
+            self.db = AsyncBaseDB(db_uri=self.tmp_db.uri, db_name="testdb", collection="test")
         self.num_objs = 10
         await self.db.collection.insert_many([{"x": i} for i in range(self.num_objs)])
 

@@ -7,7 +7,7 @@ from os import environ
 from eduid.common.config.parsers import load_config
 from eduid.queue.config import QueueWorkerConfig
 from eduid.queue.db import QueueItem, TestPayload
-from eduid.queue.testing import QueueAsyncioTest
+from eduid.queue.testing import IsolatedWorkerDBMixin, QueueAsyncioTest
 from eduid.queue.workers.base import QueueWorker
 from eduid.userdb.util import utc_now
 
@@ -16,7 +16,7 @@ __author__ = "lundberg"
 logger = logging.getLogger(__name__)
 
 
-class QueueTestWorker(QueueWorker):
+class QueueTestWorker(IsolatedWorkerDBMixin, QueueWorker):
     async def handle_expired_item(self, queue_item: QueueItem) -> None:
         if not isinstance(queue_item.payload, TestPayload):
             raise Exception(f"queue_item.payload type {type(queue_item.payload)} not TestPayload")
