@@ -12,6 +12,7 @@ class SvipeIDStatusRequestSchema(EduidSchema, CSRFRequestMixin):
 
 class SvipeIDStatusResponseSchema(EduidSchema, CSRFResponseMixin):
     class StatusResponsePayload(EduidSchema, CSRFResponseMixin):
+        authn_id = fields.String(required=True)
         frontend_action = fields.String(required=True)
         frontend_state = fields.String(required=False)
         method = fields.String(required=True)

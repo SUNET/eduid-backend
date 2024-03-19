@@ -6,7 +6,7 @@ from eduid.webapp.common.api.schemas.csrf import CSRFRequestMixin, CSRFResponseM
 __author__ = "lundberg"
 
 
-class EidasCommonRequestSchema(EduidSchema, CSRFRequestMixin):
+class AuthnCommonRequestSchema(EduidSchema, CSRFRequestMixin):
     """A verify request for either an identity or a credential proofing."""
 
     method = fields.String(required=True)
@@ -14,22 +14,25 @@ class EidasCommonRequestSchema(EduidSchema, CSRFRequestMixin):
     frontend_state = fields.String(required=False)
 
 
-class EidasCommonResponseSchema(FluxStandardAction):
-    class VerifyResponsePayload(EduidSchema, CSRFResponseMixin):
+class AuthnCommonResponseSchema(FluxStandardAction):
+    class AuthnCommonResponsePayload(EduidSchema, CSRFResponseMixin):
         location = fields.String(required=False)
 
-    payload = fields.Nested(VerifyResponsePayload)
+    payload = fields.Nested(AuthnCommonResponsePayload)
 
 
-class EidasVerifyCredentialRequestSchema(EidasCommonRequestSchema):
-    credential_id = fields.String(required=True)
+class AuthnAuthenticateRequestSchema(AuthnCommonRequestSchema):
+    same_user = fields.Boolean(required=False)
+    force_authn = fields.Boolean(required=False)
+    high_security = fields.Boolean(required=False)  # opportunistic MFA, request it if the user has a token
+    force_mfa = fields.Boolean(required=False)  # require MFA even if the user has no token (use Freja or other)
 
 
-class EidasStatusRequestSchema(EduidSchema, CSRFRequestMixin):
+class AuthnStatusRequestSchema(EduidSchema, CSRFRequestMixin):
     authn_id = fields.String(required=False)
 
 
-class EidasStatusResponseSchema(EduidSchema, CSRFResponseMixin):
+class AuthnStatusResponseSchema(EduidSchema, CSRFResponseMixin):
     class StatusResponsePayload(EduidSchema, CSRFResponseMixin):
         authn_id = fields.String(required=False)
         frontend_action = fields.String(required=True)

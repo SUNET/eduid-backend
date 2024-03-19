@@ -1,16 +1,20 @@
+import json
 import logging
 import re
 from abc import ABCMeta
-from typing import TYPE_CHECKING, Iterable
+from typing import TYPE_CHECKING, Iterable, cast, Mapping, Any
 from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
-from flask import Request, current_app
+from flask import Request, current_app, jsonify, make_response
 from flask_cors.core import get_cors_headers, get_cors_options
+from werkzeug.wrappers import Response
 from werkzeug.wsgi import get_current_url
 
 from eduid.common.config.base import EduIDBaseAppConfig
 from eduid.common.utils import urlappend
 from eduid.webapp.common.api.app import EduIDBaseApp
+from eduid.webapp.common.api.messages import error_response
+from eduid.webapp.common.api.schemas.base import FluxStandardAction
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.redis_session import NoSessionDataFoundException
 
@@ -61,9 +65,26 @@ class AuthnBaseApp(EduIDBaseApp, metaclass=ABCMeta):
                 # If HTTP_COOKIE is not removed self.request_context(environ) below
                 # will try to look up the Session data in the backend
 
-        ts_url = urlappend(conf.token_service_url, "login")
+            ts_url = urlappend(conf.token_service_url, "login")
 
-        params = {"next": next_url}
+            params = {"next": next_url}
+
+            if conf.enable_authn_json_response:
+                # NEW way, respond with a 401 with a JSON payload
+                params["login_url"] = ts_url
+                res = error_response(message="Authentication required", payload=params)
+                _encoded = cast(Mapping[str, Any], FluxStandardAction().dump(res.to_dict()))
+                body = json.dumps(_encoded).encode("utf-8")
+                headers = [
+                    ("Content-Type", "application/json"),
+                    ("Content-Length", str(len(body))),
+                    ("WWW-Authenticate", "eduID"),
+                ]
+                start_response("401 Unauthorized", headers)
+                # return make_response(jsonify(_encoded), 401)
+                return [body]
+
+        # OLD way, respond with a 301 redirect
 
         url_parts = list(urlparse(ts_url))
         query = parse_qs(url_parts[4])
