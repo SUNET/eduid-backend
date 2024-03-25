@@ -9,10 +9,6 @@ from eduid.webapp.common.api.testing import CSRFTestClient, EduidAPITestCase
 from eduid.webapp.jsconfig.app import JSConfigApp, jsconfig_init_app
 from eduid.webapp.jsconfig.settings.common import JSConfigConfig
 
-DASHBOARD_LINK = "https://dashboard.example.com"
-PERSONAL_DATA_SERVICE_URL = "https://example.com/personal_data_url"
-FAQ_LINK = "https://example.com/static_faq_url"
-
 
 class JSConfigTests(EduidAPITestCase[JSConfigApp]):
     def setUp(self):
@@ -46,9 +42,9 @@ class JSConfigTests(EduidAPITestCase[JSConfigApp]):
                     "group_mgmt_service_url": "https://dashboard.example.com/services/group_mgmt",
                     "ladok_service_url": "https://dashboard.example.com/services/ladok",
                     "letter_proofing_service_url": "https://dashboard.example.com/services/letter",
-                    "login_next_url": "https://idp.example.com/servics/idp/next",
+                    "login_next_url": "https://idp.example.com/services/idp/next",
                     "login_request_other_url": "https://idp.example.com/services/idp/other",
-                    "login_service_url": "https://idp.example.com/servics/idp",
+                    "login_service_url": "https://idp.example.com/services/idp",
                     "lookup_mobile_proofing_service_url": "https://dashboard.example.com/services/mobile-proofing",
                     "orcid_service_url": "https://dashboard.example.com/services/orcid",
                     "password_entropy": 12,
@@ -56,8 +52,9 @@ class JSConfigTests(EduidAPITestCase[JSConfigApp]):
                     "personal_data_service_url": "https://dashboard.example.com/services/pdata",
                     "phone_service_url": "https://dashboard.example.com/services/phone",
                     "reset_password_link": "https://example.com/reset-password",
-                    "reset_password_service_url": "https://idp.example.com/servics/reset-password",
-                    "security_service_url": "https://idp.example.com/servics/security",
+                    "reset_password_service_url": "https://idp.example.com/services/reset-password",
+                    "security_service_url": "https://dashboard.example.com/services/security",
+                    "signup_service_url": "https://signup.example.com/services/security",
                     "sentry_dsn": "sentry_dsn",
                     "signup_link": "https://example.com/signup",
                     "svipe_service_url": "https://dashboard.example.com/services/svipe",

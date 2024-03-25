@@ -113,8 +113,6 @@ class SecurityWebauthnTests(EduidAPITestCase):
                 "available_languages": {"en": "English", "sv": "Svenska"},
                 "webauthn_max_allowed_tokens": 10,
                 "fido2_rp_id": "eduid.docker",
-                "u2f_app_id": "https://eduid.se/u2f-app-id.json",
-                "u2f_valid_facets": [],
                 "vccs_url": "https://vccs",
                 "dashboard_url": "https://dashboard",
             }
