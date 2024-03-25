@@ -114,8 +114,6 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
                 "pairwise_id_secret_key": "pairwise_secret",
                 "sso_cookie": {"key": "test_sso_cookie"},
                 "eduid_site_url": "https://eduid.docker_dev",
-                "u2f_app_id": "https://example.com",
-                "u2f_valid_facets": ["https://dashboard.dev.eduid.se", "https://idp.dev.eduid.se"],
                 "fido2_rp_id": "idp.example.com",
                 "login_bundle_url": "https://idp.eduid.docker/test-bundle",
                 "tou_version": "2016-v1",
