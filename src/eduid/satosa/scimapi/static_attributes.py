@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Mapping
+from typing import Any, Mapping, Optional
 
 import satosa.context
 import satosa.internal
@@ -50,24 +50,22 @@ class AddStaticAttributesForVirtualIdp(ResponseMicroService):
 
     def __init__(self, config: Mapping[str, Any], *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
-        if "static_attributes_for_virtual_idp" in config:
-            self.static_attributes: StaticAttributesConfig = config["static_attributes_for_virtual_idp"]
-        if "static_appended_attributes_for_virtual_idp" in config:
-            self.static_appended_attributes: StaticAppendedAttributesConfig = config[
-                "static_appended_attributes_for_virtual_idp"
-            ]
+        self.static_attributes: Optional[StaticAttributesConfig] = config.get("static_attributes_for_virtual_idp")
+        self.static_appended_attributes: Optional[StaticAppendedAttributesConfig] = config.get(
+            "static_appended_attributes_for_virtual_idp"
+        )
 
     def _build_static(self, requester: str, vidp: str, existing_attributes: dict):
         static_attributes: dict[str, list[str]] = dict()
 
-        if hasattr(self, "static_attributes"):
+        if self.static_attributes:
             recipes: Mapping[str, list] = get_dict_defaults(self.static_attributes, requester, vidp)
             for attr_name, fmt in recipes.items():
                 logger.debug(f"Adding static attribute {attr_name}: {fmt} for requester {requester} or {vidp}")
 
                 static_attributes[attr_name] = fmt
 
-        if hasattr(self, "static_appended_attributes"):
+        if self.static_appended_attributes:
             recipes = get_dict_defaults(self.static_appended_attributes, requester, vidp)
             for attr_name, fmt in recipes.items():
                 static_attributes[attr_name] = fmt
