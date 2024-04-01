@@ -604,7 +604,7 @@ phonenumbers==8.13.31 \
     --hash=sha256:2742071c9d0af09274c8a5b2a26d9a36acbf2ea5cb62943cc2ceadb5c0c87641 \
     --hash=sha256:e45d0bc852516a3a6594bcec0ae47b825421a8adcfcf5f114ad148f1523d8646
     # via -r main.in
-pillow==10.2.0 \
+pillow==10.3.0 \
     --hash=sha256:0304004f8067386b477d20a518b50f3fa658a28d44e4116970abfcd94fac34a8 \
     --hash=sha256:0689b5a8c5288bc0504d9fcee48f61a6a586b9b98514d7d29b840143d6734f39 \
     --hash=sha256:0eae2073305f451d8ecacb5474997c08569fb4eb4ac231ffa4ad7d342fdc25ac \
