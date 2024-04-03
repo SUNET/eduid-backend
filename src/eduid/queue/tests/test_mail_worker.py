@@ -10,7 +10,7 @@ from aiosmtplib import SMTPResponse
 from eduid.common.config.parsers import load_config
 from eduid.queue.config import QueueWorkerConfig
 from eduid.queue.db.message import EduidSignupEmail
-from eduid.queue.db.message.payload import EduidResetPasswordEmail
+from eduid.queue.db.message.payload import EduidResetPasswordEmail, EduidVerificationEmail
 from eduid.queue.testing import IsolatedWorkerDBMixin, QueueAsyncioTest, SMPTDFixTemporaryInstance
 from eduid.queue.workers.mail import MailQueueWorker
 from eduid.userdb.util import utc_now
@@ -162,3 +162,25 @@ class TestMailWorker(QueueAsyncioTest):
             if lang == "sv":
                 assert "Du har bett om att byta" in msg_string
                 assert "giltig i 2 timmar." in msg_string
+
+    async def test_verification_mail_translations(self):
+        for lang in ["en", "sv"]:
+            payload = EduidVerificationEmail(
+                email="noone@example.com",
+                reference="test",
+                language=lang,
+                verification_code="secret",
+                site_name="Test App",
+            )
+            msg = self.worker._build_mail(
+                subject="Translation Test",
+                txt_template="verification_email.txt.jinja2",
+                html_template="verification_email.html.jinja2",
+                data=payload,
+            )
+            msg_string = str(msg)
+            if lang == "en":
+                assert "You have recently added this mail address to your Test App account." in msg_string
+            if lang == "sv":
+                assert "Du har nyligen lagt till den" in msg_string
+                assert "Skriv in koden nedan" in msg_string

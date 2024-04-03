@@ -84,3 +84,10 @@ class EduidResetPasswordEmail(EmailPayload):
     site_name: str
     password_reset_timeout: int  # hours
     version: int = 1
+
+
+@dataclass
+class EduidVerificationEmail(EmailPayload):
+    verification_code: str
+    site_name: str
+    version: int = 1
