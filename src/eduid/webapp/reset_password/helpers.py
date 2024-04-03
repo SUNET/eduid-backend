@@ -323,7 +323,7 @@ def reset_user_password(
     # Undo termination if user is terminated
     if reset_password_user.terminated is not None:
         current_app.logger.info(f"Revoking termination for user: {user.terminated}")
-        reset_password_user.terminated = None
+        reset_password_user.terminated = None  # type: ignore[assignment]
 
     save_and_sync_user(reset_password_user)
     current_app.stats.count(name="password_reset_success", value=1)

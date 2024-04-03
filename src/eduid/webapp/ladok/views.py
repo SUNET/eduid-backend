@@ -103,7 +103,7 @@ def unlink_user(user: User) -> FluxData:
         return success_response(message=LadokMsg.user_unlinked)
 
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
-    proofing_user.ladok = None
+    proofing_user.ladok = None  # type: ignore[assignment]
     try:
         save_and_sync_user(proofing_user)
     except AmTaskFailed as e:
