@@ -2,6 +2,8 @@
 Configuration (file) handling for the eduID email app.
 """
 
+from datetime import timedelta
+
 from eduid.common.config.base import (
     AmConfigMixin,
     EduIDBaseAppConfig,
@@ -18,6 +20,5 @@ class EmailConfig(EduIDBaseAppConfig, MagicCookieMixin, AmConfigMixin, MailConfi
 
     app_name: str = "email"
 
-    email_verification_timeout: int = 86400  # seconds
+    email_verification_timeout: timedelta = timedelta(days=1)
     throttle_resend_seconds: int = 300
-    email_verify_redirect_url: str = "/profile/emails"
