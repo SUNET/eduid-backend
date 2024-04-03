@@ -8,7 +8,7 @@ from datetime import timedelta
 from enum import Enum
 from pathlib import Path
 from re import Pattern
-from typing import Annotated, Any, Mapping, Optional, Sequence, TypeVar, Union
+from typing import Annotated, Any, Mapping, Optional, Sequence, TypeVar, Union, Iterable, IO
 
 import pkg_resources
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field
@@ -225,6 +225,19 @@ class FlaskConfig(CORSMixin):
         return self.dict()
 
 
+class ProfilingConfig(BaseModel):
+    """
+    Configuration for the profiling using werkzeug.middleware.profiler.ProfilerMiddleware
+    """
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)  # allow IO type
+    stream: Optional[IO] = None
+    sort_by: Iterable[str] = Field(default_factory=lambda: ("time", "calls"))
+    restrictions: Iterable[Union[str, int, float]] = Field(default_factory=tuple)
+    profile_dir: Optional[str] = None
+    filename_format: str = "{method}.{path}.{elapsed:.0f}ms.{time:.0f}.prof"
+
+
 class WebauthnConfigMixin2(BaseModel):
     fido2_rp_id: str  # 'eduid.se'
     fido2_rp_name: str = "eduID Sweden"
@@ -371,6 +384,8 @@ class ProofingConfigMixin(BaseModel):
 class EduIDBaseAppConfig(RootConfig, LoggingConfigMixin, StatsConfigMixin, RedisConfigMixin):
     available_languages: Mapping[str, str] = Field(default={"en": "English", "sv": "Svenska"})
     flask: FlaskConfig = Field(default_factory=FlaskConfig)
+    # settings for optional profiling of the application
+    profiling: Optional[ProfilingConfig] = None
     mongo_uri: str
     # Allow list of URLs that do not need authentication. Unauthenticated requests
     # for these URLs will be served, rather than redirected to the authn service.
