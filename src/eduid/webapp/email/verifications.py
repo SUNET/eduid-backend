@@ -1,11 +1,13 @@
-from flask import render_template, url_for
-from flask_babel import gettext as _
-
+from eduid.common.config.base import EduidEnvironment
+from eduid.common.utils import get_short_hash
+from eduid.queue.client import init_queue_item
+from eduid.queue.db.message.payload import EduidVerificationEmail
 from eduid.userdb import User
 from eduid.userdb.logs import MailAddressProofing
 from eduid.userdb.mail import MailAddress
 from eduid.userdb.proofing import EmailProofingElement, EmailProofingState
-from eduid.webapp.common.api.utils import get_unique_hash, save_and_sync_user
+from eduid.webapp.common.api.translation import get_user_locale
+from eduid.webapp.common.api.utils import save_and_sync_user
 from eduid.webapp.email.app import current_email_app as current_app
 
 
@@ -20,7 +22,7 @@ def new_proofing_state(email: str, user: User):
         current_app.logger.info("Removed old proofing state")
         current_app.logger.debug(f"Old proofing state: {old_state.to_dict()}")
 
-    verification = EmailProofingElement(email=email, verification_code=get_unique_hash(), created_by="email")
+    verification = EmailProofingElement(email=email, verification_code=get_short_hash(), created_by="email")
     proofing_state = EmailProofingState(id=None, modified_ts=None, eppn=user.eppn, verification=verification)
     # XXX This should be an atomic transaction together with saving
     # the user and sending the letter.
@@ -33,27 +35,31 @@ def new_proofing_state(email: str, user: User):
 
 
 def send_verification_code(email: str, user: User) -> bool:
-    subject = _("eduID confirmation email")
+
     state = new_proofing_state(email, user)
     if state is None:
         return False
 
-    link = url_for("email.verify_link", code=state.verification.verification_code, email=email, _external=True)
-    site_name = current_app.conf.eduid_site_name
-    site_url = current_app.conf.eduid_site_url
+    payload = EduidVerificationEmail(
+        email=email,
+        verification_code=state.verification.verification_code,
+        site_name=current_app.conf.eduid_site_name,
+        language=get_user_locale() or current_app.conf.default_language,
+        reference=state.reference,
+    )
 
-    context = {
-        "email": email,
-        "verification_link": link,
-        "site_url": site_url,
-        "site_name": site_name,
-        "code": state.verification.verification_code,
-    }
-
-    text = render_template("verification_email.txt.jinja2", **context)
-    html = render_template("verification_email.html.jinja2", **context)
-
-    current_app.mail_relay.sendmail(subject, [email], text, html, reference=state.reference)
+    message = init_queue_item(
+        app_name=current_app.conf.app_name, expires_in=current_app.conf.email_verification_timeout, payload=payload
+    )
+    current_app.messagedb.save(message)
+    current_app.logger.info(
+        f"Saved verification email queue item in queue collection {current_app.messagedb._coll_name}"
+    )
+    current_app.logger.debug(f"email: {email}")
+    if current_app.conf.environment == EduidEnvironment.dev:
+        # Debug-log the code and message in development environment
+        current_app.logger.debug(f"code: {state.verification.verification_code}")
+        current_app.logger.debug(f"Generating verification e-mail with context:\n{payload}")
     current_app.logger.info(
         "Sent email address verification mail to user {}" " about address {!s}.".format(user, email)
     )

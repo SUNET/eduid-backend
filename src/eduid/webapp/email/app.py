@@ -4,10 +4,9 @@ from flask import current_app
 
 from eduid.common.config.parsers import load_config
 from eduid.common.rpc.am_relay import AmRelay
-from eduid.common.rpc.mail_relay import MailRelay
+from eduid.queue.db.message import MessageDB
 from eduid.userdb.logs import ProofingLog
 from eduid.userdb.proofing import EmailProofingStateDB, EmailProofingUserDB
-from eduid.webapp.common.api import translation
 from eduid.webapp.common.authn.middleware import AuthnBaseApp
 from eduid.webapp.email.settings.common import EmailConfig
 
@@ -20,13 +19,11 @@ class EmailApp(AuthnBaseApp):
 
         # Init celery
         self.am_relay = AmRelay(config)
-        self.mail_relay = MailRelay(config)
-
-        self.babel = translation.init_babel(self)
 
         self.private_userdb = EmailProofingUserDB(config.mongo_uri)
         self.proofing_statedb = EmailProofingStateDB(config.mongo_uri)
         self.proofing_log = ProofingLog(config.mongo_uri)
+        self.messagedb = MessageDB(config.mongo_uri)
 
 
 current_email_app: EmailApp = cast(EmailApp, current_app)

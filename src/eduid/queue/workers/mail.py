@@ -13,7 +13,7 @@ from eduid.common.config.parsers import load_config
 from eduid.queue.config import QueueWorkerConfig
 from eduid.queue.db import QueueItem
 from eduid.queue.db.message import EduidInviteEmail, EduidSignupEmail
-from eduid.queue.db.message.payload import EduidResetPasswordEmail, EmailPayload, OldEduidSignupEmail
+from eduid.queue.db.message.payload import EduidResetPasswordEmail, EduidVerificationEmail, EmailPayload
 from eduid.queue.db.payload import Payload
 from eduid.queue.db.queue_item import Status
 from eduid.queue.helpers import Jinja2Env
@@ -144,7 +144,15 @@ class MailQueueWorker(QueueWorker):
                     queue_item.payload,
                 )
             )
-            logger.debug(f"send_eduid_invite_mail returned status: {status}")
+            logger.debug(f"send_eduid_reset_password_mail returned status: {status}")
+        elif queue_item.payload_type == EduidVerificationEmail.get_type():
+            status = await self.send_eduid_verification_mail(
+                cast(
+                    EduidVerificationEmail,
+                    queue_item.payload,
+                )
+            )
+            logger.debug(f"send_eduid_verification_mail returned status: {status}")
 
         if status and status.retry:
             logger.info(f"Retrying queue item: {queue_item.item_id}")
@@ -211,6 +219,20 @@ class MailQueueWorker(QueueWorker):
             subject=_("Reset password"),
             txt_template="reset_password_email.txt.jinja2",
             html_template="reset_password_email.html.jinja2",
+            data=data,
+        )
+        return await self.sendmail(
+            sender=self.config.mail_default_from,
+            recipient=data.email,
+            message=msg.as_string(),
+            reference=data.reference,
+        )
+
+    async def send_eduid_verification_mail(self, data: EduidVerificationEmail) -> Status:
+        msg = self._build_mail(
+            subject=_("eduID verification email"),
+            txt_template="verification_email.txt.jinja2",
+            html_template="verification_email.html.jinja2",
             data=data,
         )
         return await self.sendmail(

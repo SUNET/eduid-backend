@@ -11,14 +11,14 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2024-03-14 11:16+0100\n"
+"POT-Creation-Date: 2024-04-03 14:30+0200\n"
 "PO-Revision-Date: 2020-10-21 13:47+0000\n"
 "Last-Translator: Johan Lundberg <lundberg@sunet.se>, 2024\n"
 "Language-Team: English (United States) (https://app.transifex.com/sunet/teams/114180/en_US/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.8.0\n"
+"Generated-By: Babel 2.14.0\n"
 "Language: en_US\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
@@ -220,14 +220,58 @@ msgstr ""
 "\n"
 "(This is an automated email. Please do not reply.)\n"
 
-#: /home/lundberg/projects/eduid-backend/src/eduid/queue/workers/mail.py:182
+#: /home/lundberg/projects/eduid-backend/src/eduid/queue/templates/verification_email.html.jinja2:1
+#, python-format
+msgid ""
+"\n"
+"\n"
+"<p>You have recently added this mail address to your %(site_name)s account.</p>\n"
+"\n"
+"<p>To verify this email address belongs to you, enter the code below on the email verification page:</p>\n"
+"\n"
+"<p><strong>%(verification_code)s</strong></p>\n"
+"\n"
+msgstr ""
+"\n"
+"\n"
+"<p>You have recently added this mail address to your %(site_name)s account.</p>\n"
+"\n"
+"<p>To verify this email address belongs to you, enter the code below on the email verification page:</p>\n"
+"\n"
+"<p><strong>%(verification_code)s</strong></p>\n"
+"\n"
+
+#: /home/lundberg/projects/eduid-backend/src/eduid/queue/templates/verification_email.txt.jinja2:1
+#, python-format
+msgid ""
+"\n"
+"You have recently added this mail address to your %(site_name)s account.\n"
+"\n"
+"To verify this email address belongs to you, enter the code below on the email verification page:\n"
+"\n"
+"%(verification_code)s\n"
+"\n"
+msgstr ""
+"\n"
+"You have recently added this mail address to your %(site_name)s account.\n"
+"\n"
+"To verify this email address belongs to you, enter the code below on the email verification page:\n"
+"\n"
+"%(verification_code)s\n"
+"\n"
+
+#: /home/lundberg/projects/eduid-backend/src/eduid/queue/workers/mail.py:195
 msgid "eduID invitation"
 msgstr "eduID invitation"
 
-#: /home/lundberg/projects/eduid-backend/src/eduid/queue/workers/mail.py:196
+#: /home/lundberg/projects/eduid-backend/src/eduid/queue/workers/mail.py:209
 msgid "eduID registration"
 msgstr "eduID registration"
 
-#: /home/lundberg/projects/eduid-backend/src/eduid/queue/workers/mail.py:210
+#: /home/lundberg/projects/eduid-backend/src/eduid/queue/workers/mail.py:223
 msgid "Reset password"
 msgstr "Reset password"
+
+#: /home/lundberg/projects/eduid-backend/src/eduid/queue/workers/mail.py:237
+msgid "eduID verification email"
+msgstr "eduID verification email"
