@@ -384,6 +384,7 @@ class ProofingConfigMixin(BaseModel):
 class EduIDBaseAppConfig(RootConfig, LoggingConfigMixin, StatsConfigMixin, RedisConfigMixin):
     available_languages: Mapping[str, str] = Field(default={"en": "English", "sv": "Svenska"})
     flask: FlaskConfig = Field(default_factory=FlaskConfig)
+    # settings for optional profiling of the application
     profiling: Optional[ProfilingConfig] = None
     mongo_uri: str
     # Allow list of URLs that do not need authentication. Unauthenticated requests
@@ -394,7 +395,6 @@ class EduIDBaseAppConfig(RootConfig, LoggingConfigMixin, StatsConfigMixin, Redis
     status_cache_seconds: int = 10
     # All AuthnBaseApps need this to redirect not-logged-in requests to the authn service
     token_service_url: str
-    # settings for optional profiling
 
 
 ReasonableDomainName = Annotated[str, Field(min_length=len("x.se")), AfterValidator(lambda v: v.lower())]
