@@ -14,13 +14,17 @@ __author__ = "eperez"
 
 class PersonalDataRequestSchema(EduidSchema, CSRFRequestMixin):
     given_name = fields.String(required=True, validate=[validate_nonempty])
+    chosen_given_name = fields.String(required=False)
     surname = fields.String(required=True, validate=[validate_nonempty])
+    legal_name = fields.String(required=False)
     language = fields.String(required=True, default="en", validate=validate_language)
 
 
 class PersonalDataSchema(EduidSchema):
     given_name = fields.String(required=True, attribute="givenName")
+    chosen_given_name = fields.String(required=False)
     surname = fields.String(required=True)
+    legal_name = fields.String(required=False)
     language = fields.String(required=True, attribute="preferredLanguage")
 
 
@@ -41,7 +45,9 @@ class IdentitiesResponseSchema(FluxStandardAction):
 class AllDataSchema(EduidSchema):
     eppn = fields.String(required=True, attribute="eduPersonPrincipalName")
     given_name = fields.String(required=True, attribute="givenName")
+    chosen_given_name = fields.String(required=False)
     surname = fields.String(required=True)
+    legal_name = fields.String(required=False)
     language = fields.String(required=True, attribute="preferredLanguage", validate=validate_language)
     identities = fields.Nested(IdentitiesSchema)
     emails = fields.Nested(EmailSchema, many=True, attribute="mailAliases")

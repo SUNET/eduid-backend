@@ -45,7 +45,9 @@ class User(BaseModel):
     eppn: str = Field(alias="eduPersonPrincipalName")
     user_id: bson.ObjectId = Field(default_factory=bson.ObjectId, alias="_id")
     given_name: Optional[str] = Field(default=None, alias="givenName")
+    chosen_given_name: Optional[str] = None
     surname: Optional[str] = None
+    legal_name: Optional[str] = None
     subject: Optional[SubjectType] = None
     language: Optional[str] = Field(default=None, alias="preferredLanguage")
     mail_addresses: MailAddressList = Field(default_factory=MailAddressList, alias="mailAliases")

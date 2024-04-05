@@ -102,7 +102,9 @@ class eduid_lookup_mobile_proofing(AttributeFetcher):
         "nins",  # Old format
         "identities",  # New format
         "givenName",
+        "chosen_given_name",
         "surname",
+        "legal_name",
     ]
     whitelist_unset_attrs = [
         "identities",
@@ -139,6 +141,7 @@ class eduid_phone(AttributeFetcher):
 class eduid_personal_data(AttributeFetcher):
     whitelist_set_attrs = [
         "givenName",
+        "chosen_given_name",
         "surname",
         "preferredLanguage",
     ]
@@ -156,7 +159,9 @@ class eduid_security(AttributeFetcher):
         "identities",  # For AL1 downgrade on password reset
         "phone",  # For AL1 downgrade on password reset
         "givenName",  # For updating user from official source (Navet)
+        "chosen_given_name",  # For updating user from official source (Navet)
         "surname",  # For updating user from official source (Navet)
+        "legal_name",  # For updating user from official source (Navet)
     ]
     whitelist_unset_attrs = [
         "passwords",
@@ -211,7 +216,9 @@ class eduid_eidas(AttributeFetcher):
         "nins",  # Old format
         "identities",
         "givenName",
+        "chosen_given_name",
         "surname",
+        "legal_name",
     ]
     whitelist_unset_attrs: list[str] = [
         "identities",
@@ -250,7 +257,9 @@ class eduid_svipe_id(AttributeFetcher):
         "passwords",
         "identities",
         "givenName",
+        "chosen_given_name",
         "surname",
+        "legal_name",
     ]
     whitelist_unset_attrs: list[str] = [
         "identities",
@@ -267,7 +276,9 @@ class eduid_bankid(AttributeFetcher):
         "nins",  # Old format
         "identities",
         "givenName",
+        "chosen_given_name",
         "surname",
+        "legal_name",
     ]
     whitelist_unset_attrs: list[str] = [
         "identities",

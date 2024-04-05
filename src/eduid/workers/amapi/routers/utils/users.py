@@ -38,6 +38,8 @@ def update_user(
     if isinstance(data, UserUpdateNameRequest):
         user_obj.surname = data.surname
         user_obj.given_name = data.given_name
+        user_obj.chosen_given_name = data.chosen_given_name
+        user_obj.legal_name = data.legal_name
 
     elif isinstance(data, UserUpdateEmailRequest):
         mails = [mail.to_dict() for mail in data.mail_addresses]

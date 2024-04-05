@@ -1,8 +1,5 @@
 import base64
-from dataclasses import dataclass, field
-from datetime import datetime
-from typing import List, Optional, Sequence, Set, Union
-from uuid import UUID
+from typing import Optional, Sequence
 
 from fido2 import cbor
 from fido2.server import Fido2Server, PublicKeyCredentialRpEntity
@@ -17,7 +14,7 @@ from fido2.webauthn import (
     UserVerificationRequirement,
 )
 from fido_mds.exceptions import AttestationVerificationError, MetadataValidationError
-from flask import Blueprint, jsonify
+from flask import Blueprint
 
 from eduid.common.rpc.exceptions import AmTaskFailed
 from eduid.userdb import User
@@ -99,8 +96,15 @@ def registration_begin(user: User, authenticator: str) -> FluxData:
         rp_name=current_app.conf.fido2_rp_name,
         attestation=current_app.conf.webauthn_attestation,
     )
+    if user.given_name is None or user.surname is None:
         return error_response(message=SecurityMsg.no_pdata)
+
+    display_name = f"{user.given_name} {user.surname}"
+    if user.chosen_given_name:
+        display_name = f"{user.chosen_given_name} {user.surname}"
+
     user_entity = PublicKeyCredentialUserEntity(
+        id=bytes(user.eppn, "utf-8"), name=f"{user.given_name} {user.surname}", display_name=display_name
     )
     registration_data, state = server.register_begin(
         user=user_entity,

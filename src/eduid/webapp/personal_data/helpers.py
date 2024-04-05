@@ -20,6 +20,7 @@ class PDataMsg(TranslatableMsg):
     # validation error: missing required field
     required = "pdata.field_required"
     # display name must be made up of given name and surname
+    chosen_given_name_invalid = "pdata.chosen_given_name_invalid"
     # validation error: illegal characters
     special_chars = "only allow letters"
 
@@ -34,41 +35,33 @@ def unique_name_parts(name: str) -> list[str]:
     return list(set(name_parts))
 
 
-def is_valid_display_name(
-    given_name: Optional[str] = None, surname: Optional[str] = None, display_name: Optional[str] = None
-) -> bool:
+def is_valid_chosen_given_name(given_name: Optional[str] = None, chosen_given_name: Optional[str] = None) -> bool:
     """
-    Validate the display name is made up of a combination of given_name and surname.
+    Validate the chosen given name is made up of a combination of given_name.
     """
-    if not display_name:
+    if not chosen_given_name:
         return False
 
     given_name_parts = []
-    surname_parts = []
-    display_name_parts = display_name.lower().split()
+    chosen_given_name_parts = chosen_given_name.lower().split()
 
     if given_name:
         given_name_parts = unique_name_parts(name=given_name.lower())
-    if surname:
-        surname_parts = unique_name_parts(name=surname.lower())
 
-    # check that at least one given name and one surname is in the display name if set
-    if given_name and not [part for part in given_name_parts if part in display_name_parts]:
-        return False
-    if surname and not [part for part in surname_parts if part in display_name_parts]:
+    # check that at least one given name is in the chosen given name if set
+    if given_name and not [part for part in given_name_parts if part in chosen_given_name_parts]:
         return False
 
-    # check that all parts of display name are in given name and surname
-    parts = given_name_parts + surname_parts
-    for part in parts:
-        if part in display_name_parts:
-            display_name_parts.remove(part)
+    # check that all parts of chosen given name are in given name
+    for part in given_name_parts:
+        if part in chosen_given_name_parts:
+            chosen_given_name_parts.remove(part)
 
-    if not display_name_parts:
+    if not chosen_given_name_parts:
         # all parts of display name are in given name and surname
         return True
 
     logger.error("Display name is not made up of given name and surname")
-    logger.debug(f"Allowed parts: {parts}")
-    logger.debug(f"Extra characters in display name: {display_name_parts}")
+    logger.debug(f"Allowed parts: {given_name_parts}")
+    logger.debug(f"Extra characters in display name: {chosen_given_name_parts}")
     return False
