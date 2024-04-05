@@ -40,6 +40,7 @@ class TestIdpUser(TestCase):
             "eduPersonAssurance": ["http://www.swamid.se/policy/assurance/al2"],
             "cn": "John Smith",
             "sn": "Smith",
+            "norEduPersonLegalName": "John Smith",
             "norEduPersonNIN": "197801011234",
             "personalIdentityNumber": "197801011234",
             "schacDateOfBirth": "19780101",
@@ -49,4 +50,4 @@ class TestIdpUser(TestCase):
             "schacPersonalUniqueCode": f"{self.saml_attribute_settings.esi_ladok_prefix}{idp_user.ladok.external_id}",
             "subject-id": f"{idp_user.eppn}@{self.saml_attribute_settings.default_eppn_scope}",
         }
-        assert normalised_data(expected) == normalised_data(attributes)
+        assert normalised_data(expected) == normalised_data(attributes), f"expected did not match {attributes}"

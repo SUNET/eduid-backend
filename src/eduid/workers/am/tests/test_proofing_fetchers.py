@@ -260,6 +260,7 @@ class AttributeFetcherPersonalDataTests(ProofingTestCase):
             {
                 "$set": {
                     "givenName": "Testaren",
+                    "chosen_given_name": "Testaren",
                     "surname": "Testsson",
                     "preferredLanguage": "sv",
                 },
@@ -276,6 +277,7 @@ class AttributeFetcherPersonalDataTests(ProofingTestCase):
             {
                 "$set": {
                     "givenName": "Testaren",
+                    "chosen_given_name": "Testaren",
                     "surname": "Testsson",
                     "preferredLanguage": "sv",
                 },
@@ -293,7 +295,9 @@ class AttributeFetcherSecurityTests(ProofingTestCase):
         expected = {
             "$set": {
                 "givenName": "Testaren",
+                "chosen_given_name": "Testaren",
                 "surname": "Testsson",
+                "legal_name": "Testaren Testsson",
                 "passwords": [
                     {
                         "credential_id": "112345678901234567890123",
@@ -327,7 +331,9 @@ class AttributeFetcherSecurityTests(ProofingTestCase):
         expected = {
             "$set": {
                 "givenName": "Testaren",
+                "chosen_given_name": "Testaren",
                 "surname": "Testsson",
+                "legal_name": "Testaren Testsson",
                 "passwords": [
                     {
                         "credential_id": "112345678901234567890123",

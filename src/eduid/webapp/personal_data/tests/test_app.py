@@ -8,6 +8,7 @@ from eduid.userdb.element import ElementKey
 from eduid.webapp.common.api.exceptions import ApiException
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.personal_data.app import PersonalDataApp, pd_init_app
+from eduid.webapp.personal_data.helpers import PDataMsg, is_valid_chosen_given_name
 
 
 class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
@@ -167,6 +168,7 @@ class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
         }
         self._check_success_response(response, type_="POST_PERSONAL_DATA_USER_SUCCESS", payload=expected_payload)
 
+    def test_set_chosen_given_name_and_language_verified_user(self):
         expected_payload = {
             "surname": "Smith",
             "given_name": "John",
@@ -214,13 +216,21 @@ class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
         expected_payload = {"error": {"surname": ["pdata.field_required"]}}
         self._check_error_response(response, type_="POST_PERSONAL_DATA_USER_FAIL", payload=expected_payload)
 
+    def test_post_user_with_chosen_given_name(self):
+        response = self._post_user(mod_data={"chosen_given_name": "Peter"}, verified_user=False)
         expected_payload = {
             "surname": "Johnson",
             "given_name": "Peter",
+            "chosen_given_name": "Peter",
             "language": "en",
         }
         self._check_success_response(response, type_="POST_PERSONAL_DATA_USER_SUCCESS", payload=expected_payload)
 
+    def test_post_user_with_bad_chosen_given_name(self):
+        response = self._post_user(mod_data={"chosen_given_name": "Michael"}, verified_user=False)
+        self._check_error_response(
+            response, type_="POST_PERSONAL_DATA_USER_FAIL", msg=PDataMsg.chosen_given_name_invalid
+        )
 
     def test_post_user_no_language(self):
         response = self._post_user(mod_data={"language": ""})
@@ -244,7 +254,35 @@ class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
         }
         self._check_success_response(response, type_="GET_PERSONAL_DATA_IDENTITIES_SUCCESS", payload=expected_payload)
 
+    @staticmethod
+    def test_is_valid_chosen_given_name():
         params = [
+            ("", "", False),
+            (None, None, False),
+            ("Testaren Test", None, False),
+            ("Testaren Test", "Test", True),
+            ("Testaren Test", "Testaren Test", True),
+            ("Testaren Test", "Testaren Test", True),
+            ("Testaren Test", "Test Testaren", True),
+            ("Testaren Test", "Kungen av Kungsan", False),
             # random names from Skatteverket test list
+            ("Margit Karin Linnea", "Linnea", True),
+            ("Eleonara", "Eleonara", True),
+            ("Krister Edvard", "Krister Edvard", True),
+            ("Bengt Gustav Lennart", "Bengt Lennart", True),
+            ("Karin Ulrika Stina Viola", "Stina Karin", True),
+            ("Torgny", "Vaerum", False),
+            ("Ulla Alex:A Lilly E", "Alex:A", True),
+            ("Erik Hans", "Erik", True),
+            ("Sune", "Nilsson", False),
+            ("Svante Hans-Emil", "Emil", True),
+            ("Stella Ann", "Ann", True),
+            ("Ingela Ester Louisa", "Ester", True),
+            ("Sture Johan Johannes Jarlsson Karl Humbertus Urban Jan-Erik", "Jan Johannes", True),
+            ("Sture Johan Johannes Jarlsson Karl Humbertus Urban Jan-Erik", "Jan-Johannes", False),
+            ("Sverker Jr", "Jr", True),
         ]
         for param in params:
+            assert (
+                is_valid_chosen_given_name(param[0], param[1]) is param[2]
+            ), f"{param[0]}, {param[1]} did not return {param[2]}"
