@@ -8,7 +8,7 @@ from datetime import timedelta
 from enum import Enum
 from pathlib import Path
 from re import Pattern
-from typing import Annotated, Any, Mapping, Optional, Sequence, TypeVar, Union, Iterable, IO
+from typing import IO, Annotated, Any, Iterable, Mapping, Optional, Sequence, TypeVar, Union
 
 import pkg_resources
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field

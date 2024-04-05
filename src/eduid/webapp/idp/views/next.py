@@ -6,7 +6,6 @@ from typing import Any, Optional
 import requests
 from cryptography.hazmat.primitives import hashes, hmac
 from flask import Blueprint, request, url_for
-from saml2 import BINDING_HTTP_POST
 
 from eduid.userdb.credentials import FidoCredential, Password
 from eduid.userdb.idp import IdPUser
