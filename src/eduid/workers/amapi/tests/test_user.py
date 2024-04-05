@@ -61,15 +61,11 @@ class TestUsers(TestAMBase, GNAPBearerTokenMixin):
             "reason": self.reason,
             "source": self.source,
             "given_name": None,
-            "display_name": "test_display_name",
             "surname": "Smith",
         }
         expected_audit_diff = {
             "dictionary_item_removed": ["root['givenName']"],
             "values_changed": {
-                "root['displayName']": {
-                    "new_value": "test_display_name",
-                    "old_value": "John Smith",
                 },
             },
         }
@@ -81,7 +77,6 @@ class TestUsers(TestAMBase, GNAPBearerTokenMixin):
         assert got.status_code == status.HTTP_200_OK
         user_after = self.amdb.get_user_by_eppn(self.eppn)
         assert user_after.given_name is None
-        assert user_after.display_name == "test_display_name"
         assert user_after.surname == "Smith"
         assert user_after.meta.version is not ObjectId("987654321098765432103210")
 

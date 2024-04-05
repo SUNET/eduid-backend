@@ -293,8 +293,6 @@ def complete_and_update_invite(user: User, invite_code: str):
         signup_user.given_name = invite.given_name
     if invite.surname and not signup_user.surname:
         signup_user.surname = invite.surname
-    if not signup_user.display_name and invite.given_name and invite.surname:
-        signup_user.display_name = f"{invite.given_name} {invite.surname}"
     if invite.preferred_language and not signup_user.language:
         signup_user.language = invite.preferred_language
     if invite.nin and not signup_user.identities.nin:

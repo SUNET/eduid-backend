@@ -45,7 +45,6 @@ class User(BaseModel):
     eppn: str = Field(alias="eduPersonPrincipalName")
     user_id: bson.ObjectId = Field(default_factory=bson.ObjectId, alias="_id")
     given_name: Optional[str] = Field(default=None, alias="givenName")
-    display_name: Optional[str] = Field(default=None, alias="displayName")
     surname: Optional[str] = None
     subject: Optional[SubjectType] = None
     language: Optional[str] = Field(default=None, alias="preferredLanguage")
@@ -142,6 +141,10 @@ class User(BaseModel):
             # once converted to surname but also left behind, and discard 'sn'.
             if "surname" not in data:
                 data["surname"] = _sn
+
+        # clean up displayName
+        if "displayName" in data:
+            data.pop("displayName")
 
         # migrate nins to identities
         # TODO: Remove parsing of nins after next full load-save

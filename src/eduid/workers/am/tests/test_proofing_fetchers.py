@@ -49,7 +49,6 @@ class AttributeFetcherNINProofingTests(ProofingTestCase):
             "$set": {
                 "givenName": "Testaren",
                 "surname": "Testsson",
-                "displayName": "John",
                 "identities": [
                     {
                         "identity_type": IdentityType.NIN.value,
@@ -120,7 +119,6 @@ class AttributeFetcherNINProofingTests(ProofingTestCase):
             "$set": {
                 "givenName": "Testaren",
                 "surname": "Testsson",
-                "displayName": "John",
                 "identities": [
                     {
                         "identity_type": IdentityType.NIN.value,
@@ -205,7 +203,6 @@ class AttributeFetcherEmailProofingTests(ProofingTestCase):
             "surname": "Testsson",
             "preferredLanguage": "sv",
             "eduPersonPrincipalName": "test-test",
-            "displayName": "John",
             "mailAliases": [{"email": "john@example.com", "verified": True, "primary": True}],
             "mobile": [{"verified": True, "mobile": "+46700011336", "primary": True}],
             "passwords": [
@@ -264,7 +261,6 @@ class AttributeFetcherPersonalDataTests(ProofingTestCase):
                 "$set": {
                     "givenName": "Testaren",
                     "surname": "Testsson",
-                    "displayName": "John",
                     "preferredLanguage": "sv",
                 },
             },
@@ -281,7 +277,6 @@ class AttributeFetcherPersonalDataTests(ProofingTestCase):
                 "$set": {
                     "givenName": "Testaren",
                     "surname": "Testsson",
-                    "displayName": "John",
                     "preferredLanguage": "sv",
                 },
             },
@@ -299,7 +294,6 @@ class AttributeFetcherSecurityTests(ProofingTestCase):
             "$set": {
                 "givenName": "Testaren",
                 "surname": "Testsson",
-                "displayName": "John",
                 "passwords": [
                     {
                         "credential_id": "112345678901234567890123",
@@ -334,7 +328,6 @@ class AttributeFetcherSecurityTests(ProofingTestCase):
             "$set": {
                 "givenName": "Testaren",
                 "surname": "Testsson",
-                "displayName": "John",
                 "passwords": [
                     {
                         "credential_id": "112345678901234567890123",

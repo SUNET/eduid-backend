@@ -38,7 +38,6 @@ def update_user(
     if isinstance(data, UserUpdateNameRequest):
         user_obj.surname = data.surname
         user_obj.given_name = data.given_name
-        user_obj.display_name = data.display_name
 
     elif isinstance(data, UserUpdateEmailRequest):
         mails = [mail.to_dict() for mail in data.mail_addresses]

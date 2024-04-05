@@ -64,7 +64,7 @@ def device2_state_to_flux_payload(state: OtherDevice, now: datetime) -> Mapping[
     if state.eppn:
         user = lookup_user(state.eppn)
         if user:
-            display_name = user.display_name or user.given_name or state.eppn
+            display_name = user.chosen_given_name or user.given_name or state.eppn
             username = get_login_username(user)
 
     _proximity = IPProximity.FAR

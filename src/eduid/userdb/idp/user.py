@@ -157,8 +157,6 @@ def add_eduperson_assurance(attributes: dict[str, Any], user: IdPUser) -> dict[s
 
 def make_name_attributes(attributes: dict[str, Any], user: IdPUser) -> dict[str, Any]:
     # displayName
-    if attributes.get("displayName") is None and user.display_name:
-        attributes["displayName"] = user.display_name
     # givenName
     if attributes.get("givenName") is None and user.given_name:
         attributes["givenName"] = user.given_name

@@ -207,7 +207,6 @@ class TestNewUser(unittest.TestCase):
         self.user2 = User(
             user_id=ObjectId("549190b5d00690878ae9b622"),
             eppn="birub-gagoz",
-            display_name="Some \xf6ne",
             given_name="Some",
             mail_addresses=MailAddressList(elements=mailAliases_list),
             phone_numbers=PhoneNumberList(elements=phone_list),
@@ -227,8 +226,6 @@ class TestNewUser(unittest.TestCase):
     def test_given_name(self):
         self.assertEqual(self.user2.given_name, self.data2["givenName"])
 
-    def test_display_name(self):
-        self.assertEqual(self.user2.display_name, self.data2["displayName"])
 
     def test_surname(self):
         self.assertEqual(self.user2.surname, self.data2["surname"])

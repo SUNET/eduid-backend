@@ -34,7 +34,6 @@ USER_DATA = TUserDbDocument(
     {
         "givenName": "Testaren",
         "surname": "Testsson",
-        "displayName": "John",
         "preferredLanguage": "sv",
         "eduPersonPrincipalName": "test-test",
         "mailAliases": [{"email": "john@example.com", "verified": True}],

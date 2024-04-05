@@ -9,7 +9,6 @@ from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, requi
 from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response, success_response
 from eduid.webapp.common.api.utils import save_and_sync_user
 from eduid.webapp.personal_data.app import current_pdata_app as current_app
-from eduid.webapp.personal_data.helpers import PDataMsg, is_valid_display_name
 from eduid.webapp.personal_data.schemas import (
     AllDataResponseSchema,
     IdentitiesResponseSchema,
@@ -44,7 +43,6 @@ def get_user(user: User) -> FluxData:
 @UnmarshalWith(PersonalDataRequestSchema)
 @MarshalWith(PersonalDataResponseSchema)
 @require_user
-def post_user(user: User, given_name: str, surname: str, language: str, display_name: Optional[str] = None) -> FluxData:
     personal_data_user = PersonalDataUser.from_user(user, current_app.private_userdb)
     current_app.logger.debug(f"Trying to save user {user}")
 
@@ -53,13 +51,6 @@ def post_user(user: User, given_name: str, surname: str, language: str, display_
         personal_data_user.given_name = given_name
         personal_data_user.surname = surname
 
-    # set display name to either given name + surname or a combination of the two
-    if display_name is None:
-        personal_data_user.display_name = f"{personal_data_user.given_name} {personal_data_user.surname}"
-    elif is_valid_display_name(personal_data_user.given_name, personal_data_user.surname, display_name):
-        personal_data_user.display_name = display_name
-    else:
-        return error_response(message=PDataMsg.display_name_invalid)
 
     personal_data_user.language = language
 

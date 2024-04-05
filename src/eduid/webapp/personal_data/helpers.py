@@ -20,7 +20,6 @@ class PDataMsg(TranslatableMsg):
     # validation error: missing required field
     required = "pdata.field_required"
     # display name must be made up of given name and surname
-    display_name_invalid = "pdata.display_name_invalid"
     # validation error: illegal characters
     special_chars = "only allow letters"
 

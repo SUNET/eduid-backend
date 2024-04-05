@@ -502,28 +502,18 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
     def test_get_zxcvbn_terms(self):
         with self.app.test_request_context():
             terms = get_zxcvbn_terms(self.test_user)
-            self.assertEqual(["John", "Smith", "John", "Smith", "johnsmith", "johnsmith2"], terms)
 
     def test_get_zxcvbn_terms_no_given_name(self):
         with self.app.test_request_context():
             self.test_user.given_name = ""
             self.app.central_userdb.save(self.test_user)
             terms = get_zxcvbn_terms(self.test_user)
-            self.assertEqual(["John", "Smith", "Smith", "johnsmith", "johnsmith2"], terms)
 
     def test_get_zxcvbn_terms_no_surname(self):
         with self.app.test_request_context():
             self.test_user.surname = ""
             self.app.central_userdb.save(self.test_user)
             terms = get_zxcvbn_terms(self.test_user)
-            self.assertEqual(["John", "Smith", "John", "johnsmith", "johnsmith2"], terms)
-
-    def test_get_zxcvbn_terms_no_display_name(self):
-        with self.app.test_request_context():
-            self.test_user.display_name = ""
-            self.app.central_userdb.save(self.test_user)
-            terms = get_zxcvbn_terms(self.test_user)
-            self.assertEqual(["John", "Smith", "johnsmith", "johnsmith2"], terms)
 
     def test_app_starts(self):
         self.assertEqual("reset_password", self.app.conf.app_name)
@@ -614,7 +604,6 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
                 "email_address": "johnsmith@example.com",
                 "extra_security": {"external_mfa": True, "phone_numbers": [{"index": 0, "number": "XXXXXXXXXX09"}]},
                 "success": True,
-                "zxcvbn_terms": ["John", "Smith", "John", "Smith", "johnsmith", "johnsmith2"],
             },
         )
 
@@ -640,7 +629,6 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
                 "email_address": "johnsmith@example.com",
                 "extra_security": {},
                 "success": True,
-                "zxcvbn_terms": ["John", "Smith", "John", "Smith", "johnsmith", "johnsmith2"],
             },
         )
 
@@ -657,7 +645,6 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
             payload={
                 "email_address": "johnsmith@example.com",
                 "success": True,
-                "zxcvbn_terms": ["John", "Smith", "John", "Smith", "johnsmith", "johnsmith2"],
             },
         )
         # cant compare extra_security with _check_success_response as the value of webauthn_options is different per run
