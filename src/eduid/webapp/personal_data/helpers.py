@@ -58,7 +58,7 @@ def is_valid_chosen_given_name(given_name: Optional[str] = None, chosen_given_na
             chosen_given_name_parts.remove(part)
 
     if not chosen_given_name_parts:
-        # all parts of display name are in given name and surname
+        # all parts of chosen given name are in given name
         return True
 
     logger.error("Display name is not made up of given name and surname")
