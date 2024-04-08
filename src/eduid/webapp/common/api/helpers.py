@@ -98,20 +98,21 @@ def set_user_names_from_official_address(
     """
     user.given_name = proofing_log_entry.user_postal_address.name.given_name
     user.surname = proofing_log_entry.user_postal_address.name.surname
+    user.legal_name = f"{proofing_log_entry.user_postal_address.name.given_name} {proofing_log_entry.user_postal_address.name.surname}"
 
+    # please mypy
     if user.given_name is None or user.surname is None:
-        # please mypy
         raise RuntimeError("No given name or surname found in proofing log user postal address")
 
+    # Set chosen given name with given name marking if present
     given_name_marking = proofing_log_entry.user_postal_address.name.given_name_marking
-    user.display_name = f"{user.given_name} {user.surname}"
     if given_name_marking:
         _given_name = get_marked_given_name(user.given_name, given_name_marking)
-        user.display_name = f"{_given_name} {user.surname}"
+        user.chosen_given_name = _given_name
     current_app.logger.info("User names set from official address")
     current_app.logger.debug(
         f"{proofing_log_entry.user_postal_address.name} resulted in given_name: {user.given_name}, "
-        f"surname: {user.surname} and display_name: {user.display_name}"
+        f"chosen_given_name: {user.chosen_given_name}, surname: {user.surname} and legal_name: {user.legal_name}"
     )
     return user
 
@@ -121,25 +122,22 @@ def set_user_names_from_nin_eid_proofing(
 ) -> TUserSubclass:
     user.given_name = proofing_log_entry.given_name
     user.surname = proofing_log_entry.surname
-    user.display_name = f"{user.given_name} {user.surname}"
+    user.legal_name = f"{proofing_log_entry.given_name} {proofing_log_entry.surname}"
     return user
 
 
 def set_user_names_from_foreign_id(
-    user: TUserSubclass, proofing_log_entry: TForeignIdProofingLogElementSubclass, display_name: Optional[str] = None
+    user: TUserSubclass, proofing_log_entry: TForeignIdProofingLogElementSubclass
 ) -> TUserSubclass:
     """
     :param user: Proofing app private userdb user
     :param proofing_log_entry: Proofing log entry element
-    :param display_name: If any other display name than given name + surname should be used
 
     :returns: User object
     """
     user.given_name = proofing_log_entry.given_name
     user.surname = proofing_log_entry.surname
-    user.display_name = f"{user.given_name} {user.surname}"
-    if display_name is not None:
-        user.display_name = display_name
+    user.legal_name = f"{proofing_log_entry.given_name} {proofing_log_entry.surname}"
     return user
 
 

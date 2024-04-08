@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 from uuid import UUID
 
 import bson
+from deepdiff import DeepDiff
 
 from eduid.common.testing_base import normalised_data
 from eduid.userdb.identity import IdentityType
@@ -49,7 +50,6 @@ class AttributeFetcherNINProofingTests(ProofingTestCase):
             "$set": {
                 "givenName": "Testaren",
                 "surname": "Testsson",
-                "displayName": "John",
                 "identities": [
                     {
                         "identity_type": IdentityType.NIN.value,
@@ -87,12 +87,16 @@ class AttributeFetcherNINProofingTests(ProofingTestCase):
             "$unset": {"nins": None},
         }
 
-        assert normalised_data(fetched) == expected, "Fetched letter proofing data has unexpected data"
+        assert (
+            normalised_data(fetched) == expected
+        ), f"Fetched letter proofing data has unexpected data: {DeepDiff(fetched, expected)}"
 
         fetched2 = self.fetcher.fetch_attrs(proofing_user.user_id)
 
         # Don't repeat the letter_proofing_data
-        assert normalised_data(fetched2) == expected, "Fetched (2nd time) letter proofing data has unexpected data"
+        assert (
+            normalised_data(fetched2) == expected
+        ), f"Fetched (2nd time) letter proofing data has unexpected data: {DeepDiff(fetched, expected)}"
 
         # Adding a new letter_proofing_data
         self.user_data["letter_proofing_data"].append(
@@ -120,7 +124,6 @@ class AttributeFetcherNINProofingTests(ProofingTestCase):
             "$set": {
                 "givenName": "Testaren",
                 "surname": "Testsson",
-                "displayName": "John",
                 "identities": [
                     {
                         "identity_type": IdentityType.NIN.value,
@@ -182,7 +185,7 @@ class AttributeFetcherNINProofingTests(ProofingTestCase):
 
         assert normalised_data(fetched3) == normalised_data(
             expected
-        ), "Fetched letter proofing data with appended attributes has unexpected data"
+        ), f"Fetched (3d time) letter proofing data with appended attributes has unexpected data: {DeepDiff(fetched, expected)}"
 
 
 class AttributeFetcherEmailProofingTests(ProofingTestCase):
@@ -205,7 +208,6 @@ class AttributeFetcherEmailProofingTests(ProofingTestCase):
             "surname": "Testsson",
             "preferredLanguage": "sv",
             "eduPersonPrincipalName": "test-test",
-            "displayName": "John",
             "mailAliases": [{"email": "john@example.com", "verified": True, "primary": True}],
             "mobile": [{"verified": True, "mobile": "+46700011336", "primary": True}],
             "passwords": [
@@ -263,8 +265,8 @@ class AttributeFetcherPersonalDataTests(ProofingTestCase):
             {
                 "$set": {
                     "givenName": "Testaren",
+                    "chosen_given_name": "Testaren",
                     "surname": "Testsson",
-                    "displayName": "John",
                     "preferredLanguage": "sv",
                 },
             },
@@ -280,8 +282,8 @@ class AttributeFetcherPersonalDataTests(ProofingTestCase):
             {
                 "$set": {
                     "givenName": "Testaren",
+                    "chosen_given_name": "Testaren",
                     "surname": "Testsson",
-                    "displayName": "John",
                     "preferredLanguage": "sv",
                 },
             },
@@ -298,8 +300,9 @@ class AttributeFetcherSecurityTests(ProofingTestCase):
         expected = {
             "$set": {
                 "givenName": "Testaren",
+                "chosen_given_name": "Testaren",
                 "surname": "Testsson",
-                "displayName": "John",
+                "legal_name": "Testaren Testsson",
                 "passwords": [
                     {
                         "credential_id": "112345678901234567890123",
@@ -322,7 +325,7 @@ class AttributeFetcherSecurityTests(ProofingTestCase):
         }
         fetched = self.fetcher.fetch_attrs(security_user.user_id)
 
-        assert normalised_data(fetched) == expected
+        assert normalised_data(fetched) == expected, f"fetched does not match expected: {DeepDiff(fetched, expected)}"
 
     def test_fillup_attributes(self):
         security_user = SecurityUser.from_dict(self.user_data)
@@ -333,8 +336,9 @@ class AttributeFetcherSecurityTests(ProofingTestCase):
         expected = {
             "$set": {
                 "givenName": "Testaren",
+                "chosen_given_name": "Testaren",
                 "surname": "Testsson",
-                "displayName": "John",
+                "legal_name": "Testaren Testsson",
                 "passwords": [
                     {
                         "credential_id": "112345678901234567890123",
@@ -355,7 +359,7 @@ class AttributeFetcherSecurityTests(ProofingTestCase):
             },
             "$unset": {"nins": None, "terminated": None},
         }
-        assert normalised_data(fetched) == expected
+        assert normalised_data(fetched) == expected, f"fetched does not match expected: {DeepDiff(fetched, expected)}"
 
 
 class AttributeFetcherResetPasswordTests(ProofingTestCase):

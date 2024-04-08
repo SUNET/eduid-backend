@@ -33,8 +33,9 @@ logger = logging.getLogger(__name__)
 USER_DATA = TUserDbDocument(
     {
         "givenName": "Testaren",
+        "chosen_given_name": "Testaren",
         "surname": "Testsson",
-        "displayName": "John",
+        "legal_name": "Testaren Testsson",
         "preferredLanguage": "sv",
         "eduPersonPrincipalName": "test-test",
         "mailAliases": [{"email": "john@example.com", "verified": True}],

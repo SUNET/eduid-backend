@@ -8,7 +8,7 @@ from eduid.userdb.element import ElementKey
 from eduid.webapp.common.api.exceptions import ApiException
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.personal_data.app import PersonalDataApp, pd_init_app
-from eduid.webapp.personal_data.helpers import PDataMsg, is_valid_display_name
+from eduid.webapp.personal_data.helpers import PDataMsg, is_valid_chosen_given_name
 
 
 class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
@@ -110,7 +110,6 @@ class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
         self.assertEqual(user_data["type"], "GET_PERSONAL_DATA_USER_SUCCESS")
         self.assertEqual(user_data["payload"]["given_name"], "John")
         self.assertEqual(user_data["payload"]["surname"], "Smith")
-        self.assertEqual(user_data["payload"]["display_name"], "John Smith")
         self.assertEqual(user_data["payload"]["language"], "en")
         # Check that unwanted data is not serialized
         self.assertIsNotNone(self.test_user.to_dict().get("passwords"))
@@ -123,7 +122,6 @@ class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
     def test_get_user_all_data(self):
         response = self._get_user_all_data(eppn="hubba-bubba")
         expected_payload = {
-            "display_name": "John Smith",
             "emails": [
                 {"email": "johnsmith@example.com", "primary": True, "verified": True},
                 {"email": "johnsmith2@example.com", "primary": False, "verified": False},
@@ -170,11 +168,10 @@ class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
         }
         self._check_success_response(response, type_="POST_PERSONAL_DATA_USER_SUCCESS", payload=expected_payload)
 
-    def test_set_display_name_and_language_verified_user(self):
+    def test_set_chosen_given_name_and_language_verified_user(self):
         expected_payload = {
             "surname": "Smith",
             "given_name": "John",
-            "display_name": "John Smith",
             "language": "sv",
         }
         response = self._post_user(mod_data=expected_payload)
@@ -189,7 +186,6 @@ class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
         expected_payload = {
             "surname": "Smith",
             "given_name": "John",
-            "display_name": "John Smith",
             "language": "sv",
         }
         response = self._post_user(mod_data=mod_data)
@@ -220,19 +216,21 @@ class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
         expected_payload = {"error": {"surname": ["pdata.field_required"]}}
         self._check_error_response(response, type_="POST_PERSONAL_DATA_USER_FAIL", payload=expected_payload)
 
-    def test_post_user_with_display_name(self):
-        response = self._post_user(mod_data={"display_name": "Peter Johnson"}, verified_user=False)
+    def test_post_user_with_chosen_given_name(self):
+        response = self._post_user(mod_data={"chosen_given_name": "Peter"}, verified_user=False)
         expected_payload = {
             "surname": "Johnson",
             "given_name": "Peter",
-            "display_name": "Peter Johnson",
+            "chosen_given_name": "Peter",
             "language": "en",
         }
         self._check_success_response(response, type_="POST_PERSONAL_DATA_USER_SUCCESS", payload=expected_payload)
 
-    def test_post_user_with_bad_display_name(self):
-        response = self._post_user(mod_data={"display_name": "Not Peter Johnson"}, verified_user=False)
-        self._check_error_response(response, type_="POST_PERSONAL_DATA_USER_FAIL", msg=PDataMsg.display_name_invalid)
+    def test_post_user_with_bad_chosen_given_name(self):
+        response = self._post_user(mod_data={"chosen_given_name": "Michael"}, verified_user=False)
+        self._check_error_response(
+            response, type_="POST_PERSONAL_DATA_USER_FAIL", msg=PDataMsg.chosen_given_name_invalid
+        )
 
     def test_post_user_no_language(self):
         response = self._post_user(mod_data={"language": ""})
@@ -256,36 +254,35 @@ class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
         }
         self._check_success_response(response, type_="GET_PERSONAL_DATA_IDENTITIES_SUCCESS", payload=expected_payload)
 
-    def test_is_valid_display_name(self):
+    @staticmethod
+    def test_is_valid_chosen_given_name():
         params = [
-            ("Testaren Test", "Testdotter", "Test Testdotter", True),
-            (None, "Testdotter", "Testdotter", True),
-            ("Testaren Test", None, "Testaren Test", True),
-            ("", "Testdotter", "Testdotter", True),
-            ("Testaren Test", "", "Testaren Test", True),
-            ("Testaren Test", "Testdotter", "Test Testaren", False),
-            ("Testaren Test", "Testdotter", "Kungen av Kungsan", False),
+            ("", "", False),
+            (None, None, False),
+            ("Testaren Test", None, False),
+            ("Testaren Test", "Test", True),
+            ("Testaren Test", "Testaren Test", True),
+            ("Testaren Test", "Testaren Test", True),
+            ("Testaren Test", "Test Testaren", True),
+            ("Testaren Test", "Kungen av Kungsan", False),
             # random names from Skatteverket test list
-            ("Margit Karin Linnea", "Larsson", "Linnea Larsson", True),
-            ("Eleonara", "Braun", "Eleonara Braun", True),
-            ("Krister Edvard", "Hultling", "Krister Edvard Hultling", True),
-            ("Anna", "Sjöström", "Anna", False),
-            ("Bengt Gustav Lennart", "Gustavsson", "Bengt Lennart", False),
-            ("Karin Ulrika Stina Viola", "Albertsson", "Stina Karin Albertsson", True),
-            ("Torgny", "Vaerum", "Vaerum", False),
-            ("Ulla Alex:A Lilly E", "Paykull-Hansson", "Alex:A Paykull", True),
-            ("Erik Hans", "Åkerberg", "Erik Åkerberg", True),
-            ("Sune", "Nilsson", "Nilsson", False),
-            ("Liisa", "Crowley-Skogså", "Liisa Crowley-Skogså", True),
-            ("Svante Hans-Emil", "Grundberg", "Emil Grundberg", True),
-            ("Birthe", "Hansen", "Birthe Hansen", True),
-            ("Stella Ann", "Vaan Den Dubois", "Ann Dubois", True),
-            ("Ingela Ester Louisa", "Karlsson", "Ester Karlsson", True),
-            ("Karl", "Svensson", "Svensson Karl", True),
-            ("Sture Johan Johannes Jarlsson Karl Humbertus Urban Jan-Erik", "Tolvling", "Jan Johannes Tolvling", True),
-            ("Sture Johan Johannes Jarlsson Karl Humbertus Urban Jan-Erik", "Tolvling", "Jan-Johannes Tolvling", False),
-            ("Sverker Jr", "Yeström", "Jr Yeström", True),
-            ("Bruno", "von Nieroth", "Bruno von Nieroth", True),
+            ("Margit Karin Linnea", "Linnea", True),
+            ("Eleonara", "Eleonara", True),
+            ("Krister Edvard", "Krister Edvard", True),
+            ("Bengt Gustav Lennart", "Bengt Lennart", True),
+            ("Karin Ulrika Stina Viola", "Stina Karin", True),
+            ("Torgny", "Vaerum", False),
+            ("Ulla Alex:A Lilly E", "Alex:A", True),
+            ("Erik Hans", "Erik", True),
+            ("Sune", "Nilsson", False),
+            ("Svante Hans-Emil", "Emil", True),
+            ("Stella Ann", "Ann", True),
+            ("Ingela Ester Louisa", "Ester", True),
+            ("Sture Johan Johannes Jarlsson Karl Humbertus Urban Jan-Erik", "Jan Johannes", True),
+            ("Sture Johan Johannes Jarlsson Karl Humbertus Urban Jan-Erik", "Jan-Johannes", False),
+            ("Sverker Jr", "Jr", True),
         ]
         for param in params:
-            assert is_valid_display_name(param[0], param[1], param[2]) is param[3]
+            assert (
+                is_valid_chosen_given_name(param[0], param[1]) is param[2]
+            ), f"{param[0]}, {param[1]} did not return {param[2]}"

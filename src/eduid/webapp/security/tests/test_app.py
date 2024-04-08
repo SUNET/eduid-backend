@@ -417,35 +417,37 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
         """
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         assert user.given_name == "John"
+        assert user.chosen_given_name is None
         assert user.surname == "Smith"
-        assert user.display_name == "John Smith"
+        assert user.legal_name is None
 
         response = self._refresh_user_data(user=user)
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         assert user.given_name == "Testaren Test"
+        assert user.chosen_given_name == "Test"
         assert user.surname == "Testsson"
-        assert user.display_name == "Test Testsson"
+        assert user.legal_name == "Testaren Test Testsson"
         self._check_success_response(
             response,
             type_="POST_SECURITY_REFRESH_OFFICIAL_USER_DATA_SUCCESS",
             msg=SecurityMsg.user_updated,
         )
 
-    def test_refresh_user_official_name_no_display_name(self):
+    def test_refresh_user_official_name_no_chosen_given_name(self):
         """
         Refresh a verified users given name and surname from Navet data.
         Make sure the users display name is set, using given name marking, from first name and surname if
         previously unset.
         """
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
-        user.display_name = None
+        user.chosen_given_name = None
         self.app.central_userdb.save(user)
 
         response = self._refresh_user_data(user=user)
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         assert user.given_name == "Testaren Test"
         assert user.surname == "Testsson"
-        assert user.display_name == "Test Testsson"
+        assert user.chosen_given_name == "Test"
         self._check_success_response(
             response,
             type_="POST_SECURITY_REFRESH_OFFICIAL_USER_DATA_SUCCESS",
@@ -484,15 +486,17 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         # Unset names from the users
         user.given_name = ""
+        user.chosen_given_name = ""
         user.surname = ""
-        user.display_name = ""
+        user.legal_name = ""
         self.app.central_userdb.save(user)
 
         response = self._refresh_user_data(user=user)
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         assert user.given_name == "Testaren Test"
+        assert user.chosen_given_name == "Test"
         assert user.surname == "Testsson"
-        assert user.display_name == "Test Testsson"
+        assert user.legal_name == "Testaren Test Testsson"
         self._check_success_response(
             response, type_="POST_SECURITY_REFRESH_OFFICIAL_USER_DATA_SUCCESS", msg=SecurityMsg.user_updated
         )
@@ -507,14 +511,16 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         assert user.given_name == "John"
+        assert user.chosen_given_name is None
         assert user.surname == "Smith"
-        assert user.display_name == "John Smith"
+        assert user.legal_name is None
 
         response = self._refresh_user_data(user=user, navet_return_value=mock_get_all_navet_data)
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         assert user.given_name == "Testaren Test"
+        assert user.chosen_given_name == "Test"
         assert user.surname == "Testsson"
-        assert user.display_name == "Test Testsson"
+        assert user.legal_name == "Testaren Test Testsson"
         self._check_success_response(
             response,
             type_="POST_SECURITY_REFRESH_OFFICIAL_USER_DATA_SUCCESS",

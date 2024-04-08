@@ -6,7 +6,6 @@ from typing import Any, Optional
 import requests
 from cryptography.hazmat.primitives import hashes, hmac
 from flask import Blueprint, request, url_for
-from saml2 import BINDING_HTTP_POST
 
 from eduid.userdb.credentials import FidoCredential, Password
 from eduid.userdb.idp import IdPUser
@@ -340,7 +339,7 @@ def _set_user_options(res: AuthnOptions, eppn: str) -> None:
         if res.forced_username:
             res.username = False
 
-        res.display_name = user.display_name or user.given_name or res.forced_username
+        res.display_name = user.chosen_given_name or user.given_name or res.forced_username
 
     return None
 

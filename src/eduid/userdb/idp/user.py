@@ -8,6 +8,7 @@ from enum import Enum, unique
 from typing import Any, Optional
 
 from eduid.userdb import User
+from eduid.webapp.idp.assurance_data import EduidAuthnContextClass
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +43,7 @@ class SAMLAttributeSettings:
     sp_entity_categories: list[str]
     sp_subject_id_request: list[str]
     esi_ladok_prefix: str
+    authn_context_class: EduidAuthnContextClass
     pairwise_id: Optional[str] = None
 
 
@@ -98,7 +100,7 @@ class IdPUser(User):
         attributes = make_schac_personal_unique_code(attributes, self, settings)
         attributes = add_pairwise_or_subject_id(attributes, self, settings)
         attributes = add_eduperson_assurance(attributes, self)
-        attributes = make_name_attributes(attributes, self)
+        attributes = make_name_attributes(attributes, self, settings)
         attributes = make_nor_eduperson_nin(attributes, self)
         attributes = make_personal_identity_number(attributes, self)
         attributes = make_schac_date_of_birth(attributes, self)
@@ -155,19 +157,33 @@ def add_eduperson_assurance(attributes: dict[str, Any], user: IdPUser) -> dict[s
     return attributes
 
 
-def make_name_attributes(attributes: dict[str, Any], user: IdPUser) -> dict[str, Any]:
+def make_name_attributes(attributes: dict[str, Any], user: IdPUser, settings: SAMLAttributeSettings) -> dict[str, Any]:
     # displayName
-    if attributes.get("displayName") is None and user.display_name:
-        attributes["displayName"] = user.display_name
+    if attributes.get("displayName") is None:
+        attributes["displayName"] = f"{user.given_name} {user.surname}"
+        if user.chosen_given_name and settings.authn_context_class != EduidAuthnContextClass.DIGG_LOA2:
+            # use the chosen given name if it is set except for when asserting a DIGG LoA2
+            attributes["displayName"] = f"{user.chosen_given_name} {user.surname}"
+
     # givenName
     if attributes.get("givenName") is None and user.given_name:
         attributes["givenName"] = user.given_name
-    # cn (givenName + sn)
-    if attributes.get("cn") is None and (user.given_name and user.surname):
-        attributes["cn"] = f"{user.given_name} {user.surname}"
+
+    # cn (use displayName)
+    if attributes.get("cn") is None:
+        attributes["cn"] = attributes["displayName"]
+
     # sn
     if attributes.get("sn") is None and user.surname:
         attributes["sn"] = user.surname
+
+    # norEduPersonLegalName
+    if attributes.get("norEduPersonLegalName") is None and user.legal_name:
+        attributes["norEduPersonLegalName"] = user.legal_name
+    # fill users legal name if not set and user has a verified identity
+    if user.legal_name is None and user.identities.is_verified:
+        attributes["norEduPersonLegalName"] = f"{user.given_name} {user.surname}"
+
     return attributes
 
 

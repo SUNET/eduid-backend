@@ -336,7 +336,6 @@ class NinHelpersTest(EduidAPITestCase[HelpersTestApp]):
         ]
 
     def test_set_user_names_from_official_address_1(self):
-        del self.test_userdata["displayName"]
         user = ProofingUser.from_dict(data=self.test_userdata)
         proofing_element = self._get_nin_navet_proofing_log_entry(
             user=user,
@@ -346,12 +345,12 @@ class NinHelpersTest(EduidAPITestCase[HelpersTestApp]):
         with self.app.app_context():
             user = set_user_names_from_nin_proofing(user, proofing_element)
             assert user.given_name == "Testaren Test"
+            assert user.chosen_given_name == "Test"
             assert user.surname == "Testsson"
-            assert user.display_name == "Test Testsson"
+            assert user.legal_name == "Testaren Test Testsson"
 
     def test_set_user_names_from_official_address_2(self):
         _user = UserFixtures().new_user_example
-        _user.display_name = None
         user = ProofingUser.from_dict(data=_user.to_dict())
         navet_response = self.navet_response()
         navet_response.name.given_name = "Test"
@@ -365,12 +364,12 @@ class NinHelpersTest(EduidAPITestCase[HelpersTestApp]):
         with self.app.app_context():
             user = set_user_names_from_nin_proofing(user, proofing_element)
             assert user.given_name == "Test"
+            assert user.chosen_given_name == "Test"
             assert user.surname == "Testsson"
-            assert user.display_name == "Test Testsson"
+            assert user.legal_name == "Test Testsson"
 
     def test_set_user_names_from_official_address_3(self):
         _user = UserFixtures().new_user_example
-        _user.display_name = None
         user = ProofingUser.from_dict(data=_user.to_dict())
         navet_response = self.navet_response()
         navet_response.name.given_name = "Pippilotta Viktualia Rullgardina Krusmynta Efraimsdotter"
@@ -385,11 +384,11 @@ class NinHelpersTest(EduidAPITestCase[HelpersTestApp]):
         with self.app.app_context():
             user = set_user_names_from_nin_proofing(user, proofing_element)
             assert user.given_name == "Pippilotta Viktualia Rullgardina Krusmynta Efraimsdotter"
+            assert user.chosen_given_name == "Rullgardina"
             assert user.surname == "Långstrump"
-            assert user.display_name == "Rullgardina Långstrump"
+            assert user.legal_name == "Pippilotta Viktualia Rullgardina Krusmynta Efraimsdotter Långstrump"
 
     def test_set_user_names_from_official_address_4(self):
-        self.test_user.display_name = None
         user = ProofingUser.from_dict(data=self.test_user.to_dict())
         navet_response = self.navet_response()
         navet_response.name.given_name_marking = None
@@ -402,11 +401,11 @@ class NinHelpersTest(EduidAPITestCase[HelpersTestApp]):
         with self.app.app_context():
             user = set_user_names_from_nin_proofing(user, proofing_element)
             assert user.given_name == "Testaren Test"
+            assert user.chosen_given_name is None
             assert user.surname == "Testsson"
-            assert user.display_name == "Testaren Test Testsson"
+            assert user.legal_name == "Testaren Test Testsson"
 
     def test_set_user_names_from_eid(self):
-        del self.test_userdata["displayName"]
         user = ProofingUser.from_dict(data=self.test_userdata)
         proofing_element = self._get_nin_eid_proofing_log_entry(
             user=user,
@@ -416,8 +415,9 @@ class NinHelpersTest(EduidAPITestCase[HelpersTestApp]):
         with self.app.app_context():
             user = set_user_names_from_nin_proofing(user, proofing_element)
             assert user.given_name == "Testaren Test"
+            assert user.chosen_given_name is None
             assert user.surname == "Testsson"
-            assert user.display_name == "Testaren Test Testsson"
+            assert user.legal_name == "Testaren Test Testsson"
 
     def test_set_user_names_from_foreign_eid(self):
         proofing_element = self._get_foreign_proofing_log_entry(user=self.test_proofing_user)
@@ -425,27 +425,10 @@ class NinHelpersTest(EduidAPITestCase[HelpersTestApp]):
             user = set_user_names_from_foreign_id(self.test_proofing_user, proofing_element)
             assert user.given_name == "Testaren Test"
             assert user.surname == "Testsson"
-            assert user.display_name == "Testaren Test Testsson"
+            assert user.legal_name == "Testaren Test Testsson"
 
-    def test_set_user_names_from_foreign_eid_existing_display_name(self):
-        proofing_element = self._get_foreign_proofing_log_entry(user=self.test_proofing_user)
-        with self.app.app_context():
-            user = set_user_names_from_foreign_id(self.test_proofing_user, proofing_element)
-            assert user.given_name == "Testaren Test"
-            assert user.surname == "Testsson"
-            assert user.display_name == "Testaren Test Testsson"
-
-    def test_set_user_names_from_foreign_eid_custom_display_name(self):
-        proofing_element = self._get_foreign_proofing_log_entry(user=self.test_proofing_user)
-        with self.app.app_context():
-            user = set_user_names_from_foreign_id(
-                self.test_proofing_user, proofing_element, display_name="Test Testsson"
-            )
-            assert user.given_name == "Testaren Test"
-            assert user.surname == "Testsson"
-            assert user.display_name == "Test Testsson"
-
-    def test_get_given_name_from_marking(self):
+    @staticmethod
+    def test_get_given_name_from_marking():
         assert get_marked_given_name("Jan-Erik Martin", "30") == "Martin"
         assert get_marked_given_name("Eva Mia", "20") == "Mia"
         assert get_marked_given_name("Kjell Olof", "12") == "Kjell Olof"

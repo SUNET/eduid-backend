@@ -8,7 +8,7 @@ from __future__ import annotations
 import os
 from abc import ABCMeta
 from sys import stderr
-from typing import Any, Optional, TypeVar, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Optional, TypeVar
 
 from cookies_samesite_compat import CookiesSameSiteCompatMiddleware
 from flask import Flask
@@ -197,6 +197,7 @@ def init_app_profiling(app: WSGIApplication, config: EduIDBaseAppConfig):
     Setup profiling middleware for any app.
     """
     import sys
+
     from werkzeug.middleware.profiler import ProfilerMiddleware
 
     if config.profiling is None:

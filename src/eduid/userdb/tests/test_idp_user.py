@@ -3,6 +3,7 @@ from unittest import TestCase
 from eduid.common.testing_base import normalised_data
 from eduid.userdb.fixtures.users import UserFixtures
 from eduid.userdb.idp.user import _SAML_ATTRIBUTES, IdPUser, SAMLAttributeSettings
+from eduid.webapp.idp.assurance_data import EduidAuthnContextClass
 
 __author__ = "lundberg"
 
@@ -17,6 +18,7 @@ class TestIdpUser(TestCase):
             sp_entity_categories=["https://myacademicid.org/entity-categories/esi"],
             sp_subject_id_request=["subject-id"],
             esi_ladok_prefix="test-prefix",
+            authn_context_class=EduidAuthnContextClass.PASSWORD_PT,
         )
 
     def test_idp_user_to_attributes_all(self):
@@ -40,6 +42,7 @@ class TestIdpUser(TestCase):
             "eduPersonAssurance": ["http://www.swamid.se/policy/assurance/al2"],
             "cn": "John Smith",
             "sn": "Smith",
+            "norEduPersonLegalName": "John Smith",
             "norEduPersonNIN": "197801011234",
             "personalIdentityNumber": "197801011234",
             "schacDateOfBirth": "19780101",
@@ -49,4 +52,4 @@ class TestIdpUser(TestCase):
             "schacPersonalUniqueCode": f"{self.saml_attribute_settings.esi_ladok_prefix}{idp_user.ladok.external_id}",
             "subject-id": f"{idp_user.eppn}@{self.saml_attribute_settings.default_eppn_scope}",
         }
-        assert normalised_data(expected) == normalised_data(attributes)
+        assert normalised_data(expected) == normalised_data(attributes), f"expected did not match {attributes}"
