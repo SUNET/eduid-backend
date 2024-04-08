@@ -3,6 +3,7 @@ from unittest import TestCase
 from eduid.common.testing_base import normalised_data
 from eduid.userdb.fixtures.users import UserFixtures
 from eduid.userdb.idp.user import _SAML_ATTRIBUTES, IdPUser, SAMLAttributeSettings
+from eduid.webapp.idp.assurance_data import EduidAuthnContextClass
 
 __author__ = "lundberg"
 
@@ -17,6 +18,7 @@ class TestIdpUser(TestCase):
             sp_entity_categories=["https://myacademicid.org/entity-categories/esi"],
             sp_subject_id_request=["subject-id"],
             esi_ladok_prefix="test-prefix",
+            authn_context_class=EduidAuthnContextClass.PASSWORD_PT,
         )
 
     def test_idp_user_to_attributes_all(self):
