@@ -356,6 +356,7 @@ class SSO(Service):
             sp_entity_categories=sp_entity_categories,
             sp_subject_id_request=sp_subject_id_request,
             esi_ladok_prefix=current_app.conf.esi_ladok_prefix,
+            authn_context_class=response_authn.class_ref,
             pairwise_id=self._get_pairwise_id(relying_party=sp_identifier, user_eppn=user.eppn),
         )
         attributes = user.to_saml_attributes(settings=saml_attribute_settings)

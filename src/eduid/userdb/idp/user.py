@@ -8,6 +8,7 @@ from enum import Enum, unique
 from typing import Any, Optional
 
 from eduid.userdb import User
+from eduid.webapp.idp.assurance_data import EduidAuthnContextClass
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +43,7 @@ class SAMLAttributeSettings:
     sp_entity_categories: list[str]
     sp_subject_id_request: list[str]
     esi_ladok_prefix: str
+    authn_context_class: EduidAuthnContextClass
     pairwise_id: Optional[str] = None
 
 
@@ -158,19 +160,18 @@ def add_eduperson_assurance(attributes: dict[str, Any], user: IdPUser) -> dict[s
 def make_name_attributes(attributes: dict[str, Any], user: IdPUser, settings: SAMLAttributeSettings) -> dict[str, Any]:
     # displayName
     if attributes.get("displayName") is None:
-        # TODO: Find out a way to differentiate between Swamid and Sweden Connect
-        if user.chosen_given_name:
+        attributes["displayName"] = f"{user.given_name} {user.surname}"
+        if user.chosen_given_name and settings.authn_context_class != EduidAuthnContextClass.DIGG_LOA2:
+            # use the chosen given name if it is set except for when asserting a DIGG LoA2
             attributes["displayName"] = f"{user.chosen_given_name} {user.surname}"
-        else:
-            attributes["displayName"] = f"{user.given_name} {user.surname}"
 
     # givenName
     if attributes.get("givenName") is None and user.given_name:
         attributes["givenName"] = user.given_name
 
-    # cn (givenName + sn)
-    if attributes.get("cn") is None and (user.given_name and user.surname):
-        attributes["cn"] = f"{user.given_name} {user.surname}"
+    # cn (use displayName)
+    if attributes.get("cn") is None:
+        attributes["cn"] = attributes["displayName"]
 
     # sn
     if attributes.get("sn") is None and user.surname:
