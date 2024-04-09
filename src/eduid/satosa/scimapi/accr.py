@@ -44,7 +44,9 @@ class request(RequestMicroService):
         if self.lowest_accepted_accr_for_virtual_idp:
             for idp, minimum_accr in self.lowest_accepted_accr_for_virtual_idp.items():
                 if minimum_accr not in self.supported_accr_sorted_by_prio:
-                    raise SATOSAConfigurationError(f"{idp} has minium required accr {minimum_accr} not in supported accrs")
+                    raise SATOSAConfigurationError(
+                        f"{idp} has minium required accr {minimum_accr} not in supported accrs"
+                    )
 
         super().__init__(*args, **kwargs)
 
@@ -80,7 +82,7 @@ class request(RequestMicroService):
         virtual_idp = context.target_frontend
         minimum_accr = ""
         if self.lowest_accepted_accr_for_virtual_idp:
-            minimum_accr = self.lowest_accepted_accr_for_virtual_idp.get(virtual_idp,"")
+            minimum_accr = self.lowest_accepted_accr_for_virtual_idp.get(virtual_idp, "")
         if minimum_accr:
             logger.info(f"Minimum accepted ACCR for {virtual_idp} is: {minimum_accr}.")
             supported_accr = self.supported_accr_sorted_by_prio
