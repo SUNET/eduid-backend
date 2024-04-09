@@ -70,7 +70,7 @@ class request(RequestMicroService):
                     logger.debug(f"Remapping ACCR for internal use. From {value} to {internal_accr_rewrite_map[value]}")
                     requested_accr[index] = internal_accr_rewrite_map[value]
 
-        context.state["saved_accr"] = requested_accr
+        context.state["requested_accr"] = requested_accr
         context.state["supported_accr_sorted_by_prio"] = self.supported_accr_sorted_by_prio
         accr_to_forward = requested_accr
         logger.debug(f"Saving requested ACCR for later use: {requested_accr}).")
@@ -113,11 +113,11 @@ class response(ResponseMicroService):
 
     def process(self, context: satosa.context.Context, data: satosa.internal.InternalData) -> ProcessReturnType:
         received_accr = data.auth_info.auth_class_ref
-        saved_accr = context.state.get("saved_accr")
+        requested_accr = context.state.get("requested_accr")
         internal_accr_rewrite_map = context.state.get("internal_accr_rewrite_map")
         supported_accr_sorted_by_prio = context.state.get("supported_accr_sorted_by_prio")
         logger.debug(f"Received ACCR from IdP: {received_accr}")
-        logger.debug(f"Saved (requested) ACCR from state: {saved_accr}")
+        logger.debug(f"Requested (by SP) ACCR from state: {requested_accr}")
 
         if internal_accr_rewrite_map and received_accr:
             for origin, rewrite in internal_accr_rewrite_map.items():
@@ -126,12 +126,12 @@ class response(ResponseMicroService):
                     received_accr = origin
                     break
 
-        if not saved_accr:
+        if not requested_accr:
             logger.debug(f"No ACCR in request, setting: {received_accr}")
             data.auth_info.auth_class_ref = received_accr
         else:
             for accr in supported_accr_sorted_by_prio:
-                if accr in saved_accr:
+                if accr in requested_accr:
                     logger.debug(f"Setting ACCR to most priorirtied avaliable value in request: {accr}")
                     data.auth_info.auth_class_ref = accr
                     break
