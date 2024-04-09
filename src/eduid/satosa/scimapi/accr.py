@@ -10,7 +10,7 @@ from satosa.micro_services.base import RequestMicroService, ResponseMicroService
 logger = logging.getLogger(__name__)
 
 
-SupportedACCRsSortedByPrioConfig = list
+SupportedACCRsSortedByPrioConfig = list[str]
 LowestAcceptedACCRForVirtualIdpConfig = dict[str, str]
 InternalACCRRewriteMap: Mapping[str, str] = field(default_factory=dict)
 ProcessReturnType = Union[satosa.internal.InternalData, satosa.response.Response]
@@ -47,7 +47,7 @@ class request(RequestMicroService):
         super().__init__(*args, **kwargs)
 
     def process(self, context: satosa.context.Context, data: satosa.internal.InternalData) -> ProcessReturnType:
-        requested_accr: list = context.get_decoration(Context.KEY_AUTHN_CONTEXT_CLASS_REF)
+        requested_accr: list[str] = context.get_decoration(Context.KEY_AUTHN_CONTEXT_CLASS_REF)
 
         if requested_accr:
             supported_accr_to_forward = []
