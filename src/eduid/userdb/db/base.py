@@ -63,7 +63,7 @@ class BaseMongoDB:
 
     def __repr__(self):
         return "<eduID {!s}: {!s} {!s}>".format(
-            self.__class__.__name__, getattr(self, "_db_uri", None), getattr(self, "_database_name", None)
+            self.__class__.__name__, getattr(self, "sanitized_uri", None), getattr(self, "_database_name", None)
         )
 
     __str__ = __repr__
