@@ -1,5 +1,4 @@
 import logging
-from dataclasses import field
 from typing import Any, Mapping, Optional, Union
 
 import satosa.internal
@@ -12,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 SupportedACCRsSortedByPrioConfig = list[str]
 LowestAcceptedACCRForVirtualIdpConfig = dict[str, str]
-InternalACCRRewriteMap: Mapping[str, str] = field(default_factory=dict)
+InternalACCRRewriteMap = Mapping[str, str]
 ProcessReturnType = Union[satosa.internal.InternalData, satosa.response.Response]
 
 
@@ -40,7 +39,7 @@ class request(RequestMicroService):
         self.supported_accr_sorted_by_prio: SupportedACCRsSortedByPrioConfig = config.get(
             "supported_accr_sorted_by_prio", []
         )
-        self.internal_accr_rewrite_map: Optional[SupportedACCRsSortedByPrioConfig] = config.get(
+        self.internal_accr_rewrite_map: Optional[InternalACCRRewriteMap] = config.get(
             "internal_accr_rewrite_map"
         )
 
