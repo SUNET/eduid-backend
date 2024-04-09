@@ -4,7 +4,7 @@ from typing import Any, Mapping, Optional, Union
 
 import satosa.internal
 from satosa.context import Context
-from satosa.exception import SATOSAAuthenticationError
+from satosa.exception import SATOSAAuthenticationError, SATOSAConfigurationError
 from satosa.micro_services.base import RequestMicroService, ResponseMicroService
 
 logger = logging.getLogger(__name__)
@@ -80,9 +80,15 @@ class request(RequestMicroService):
             minimum_accr = self.lowest_accepted_accr_for_virtual_idp.get(virtual_idp)
         if minimum_accr:
             logger.debug(f"Minimum accepted ACCR for {virtual_idp} is: {minimum_accr}.")
-            required_accr_by_virtual_idp, _ = self.split_sorted_accr_by(
-                minimum_accr=minimum_accr, supported_accr=self.supported_accr_sorted_by_prio
-            )
+            supported_accr = self.supported_accr_sorted_by_prio
+            if minimum_accr in supported_accr:
+                required_accr_by_virtual_idp = supported_accr[: supported_accr.index(minimum_accr) + 1]
+            else:
+                # XXX - This should probably be done in __init__ when configuration is loaded.
+                raise SATOSAConfigurationError(
+                    f"Required ACCR ({minimum_accr}) not present in supported ACCR(s) ({supported_accr})"
+                )
+
             logger.debug(
                 f"Replacing requested ACCR: {requested_accr}, with what {virtual_idp} requires: {required_accr_by_virtual_idp}."
             )
@@ -91,20 +97,6 @@ class request(RequestMicroService):
         context.state[Context.KEY_TARGET_AUTHN_CONTEXT_CLASS_REF] = accr_to_forward
 
         return super().process(context, data)
-
-    @staticmethod
-    def split_sorted_accr_by(minimum_accr: str, supported_accr: list) -> tuple[list, list]:
-        result = []
-        temp_list = []
-        for i in supported_accr:
-            if i == minimum_accr:
-                temp_list.append(i)
-                result.append(temp_list)
-                temp_list = []
-            else:
-                temp_list.append(i)
-        result.append(temp_list)
-        return result[0], result[1]
 
 
 class response(ResponseMicroService):
