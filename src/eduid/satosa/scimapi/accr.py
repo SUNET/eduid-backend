@@ -39,9 +39,7 @@ class request(RequestMicroService):
         self.supported_accr_sorted_by_prio: SupportedACCRsSortedByPrioConfig = config.get(
             "supported_accr_sorted_by_prio", []
         )
-        self.internal_accr_rewrite_map: Optional[InternalACCRRewriteMap] = config.get(
-            "internal_accr_rewrite_map"
-        )
+        self.internal_accr_rewrite_map: Optional[InternalACCRRewriteMap] = config.get("internal_accr_rewrite_map")
 
         super().__init__(*args, **kwargs)
 
@@ -125,15 +123,13 @@ class response(ResponseMicroService):
                     received_accr = origin
                     break
 
-        if not requested_accr:
-            logger.info(f"No ACCR in request, setting: {received_accr}")
-            data.auth_info.auth_class_ref = received_accr
-        else:
+        if requested_accr:
             for accr in supported_accr_sorted_by_prio:
                 if accr in requested_accr:
                     logger.info(f"Setting ACCR to most priorirtied avaliable value in request: {accr}")
                     data.auth_info.auth_class_ref = accr
                     break
-            # XXX exception if no match?
+
+        logger.info(f"Returing ACCR to SP: {data.auth_info.auth_class_ref}")
 
         return super().process(context, data)
