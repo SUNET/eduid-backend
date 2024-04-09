@@ -66,11 +66,15 @@ class eduid_oidc_proofing(AttributeFetcher):
         "nins",  # Old format
         "identities",  # New format
         "givenName",
+        "chosen_given_name",
         "surname",
+        "legal_name",
     ]
     whitelist_unset_attrs = [
         "identities",
+        "chosen_given_name",
         "nins",  # Old format
+        "displayName",  # deprecated
     ]
 
     @classmethod
@@ -84,12 +88,15 @@ class eduid_letter_proofing(AttributeFetcher):
         "identities",  # New format
         "letter_proofing_data",
         "givenName",
+        "chosen_given_name",
         "surname",
-        "displayName",
+        "legal_name",
     ]
     whitelist_unset_attrs = [
         "identities",
+        "chosen_given_name",
         "nins",  # Old format
+        "displayName",  # deprecated
     ]
 
     @classmethod
@@ -108,7 +115,9 @@ class eduid_lookup_mobile_proofing(AttributeFetcher):
     ]
     whitelist_unset_attrs = [
         "identities",
+        "chosen_given_name",
         "nins",  # Old format
+        "displayName",  # deprecated
     ]
 
     @classmethod
@@ -146,6 +155,11 @@ class eduid_personal_data(AttributeFetcher):
         "preferredLanguage",
     ]
 
+    whitelist_unset_attrs = [
+        "chosen_given_name",
+        "displayName",  # deprecated
+    ]
+
     @classmethod
     def get_user_db(cls, uri: str) -> PersonalDataUserDB:
         return PersonalDataUserDB(uri)
@@ -169,6 +183,7 @@ class eduid_security(AttributeFetcher):
         "nins",  # Old format for AL1 downgrade on password reset
         "identities",  # For AL1 downgrade on password reset
         "phone",  # For AL1 downgrade on password reset
+        "displayName",  # deprecated
     ]
 
     @classmethod
@@ -222,7 +237,9 @@ class eduid_eidas(AttributeFetcher):
     ]
     whitelist_unset_attrs: list[str] = [
         "identities",
+        "chosen_given_name",
         "nins",  # Old format
+        "displayName",  # deprecated
     ]
 
     @classmethod
@@ -263,6 +280,9 @@ class eduid_svipe_id(AttributeFetcher):
     ]
     whitelist_unset_attrs: list[str] = [
         "identities",
+        "chosen_given_name",
+        "nins",  # Old format
+        "displayName",  # deprecated
     ]
 
     @classmethod
@@ -282,7 +302,9 @@ class eduid_bankid(AttributeFetcher):
     ]
     whitelist_unset_attrs: list[str] = [
         "identities",
+        "chosen_given_name",
         "nins",  # Old format
+        "displayName",  # deprecated
     ]
 
     @classmethod
