@@ -41,6 +41,11 @@ class request(RequestMicroService):
         )
         self.internal_accr_rewrite_map: Optional[InternalACCRRewriteMap] = config.get("internal_accr_rewrite_map")
 
+        if self.lowest_accepted_accr_for_virtual_idp:
+            for idp, minimum_accr in self.lowest_accepted_accr_for_virtual_idp.items():
+                if minimum_accr not in self.supported_accr_sorted_by_prio:
+                    raise SATOSAConfigurationError(f"{idp} has minium required accr {minimum_accr} not in supported accrs")
+
         super().__init__(*args, **kwargs)
 
     def process(self, context: satosa.context.Context, data: satosa.internal.InternalData) -> ProcessReturnType:
@@ -73,19 +78,13 @@ class request(RequestMicroService):
         logger.info(f"Saving requested ACCR for later use: {requested_accr}).")
 
         virtual_idp = context.target_frontend
+        minimum_accr = ""
         if self.lowest_accepted_accr_for_virtual_idp:
             minimum_accr = self.lowest_accepted_accr_for_virtual_idp.get(virtual_idp)
         if minimum_accr:
             logger.info(f"Minimum accepted ACCR for {virtual_idp} is: {minimum_accr}.")
             supported_accr = self.supported_accr_sorted_by_prio
-            if minimum_accr in supported_accr:
-                required_accr_by_virtual_idp = supported_accr[: supported_accr.index(minimum_accr) + 1]
-            else:
-                # XXX - This should probably be done in __init__ when configuration is loaded.
-                raise SATOSAConfigurationError(
-                    f"Required ACCR ({minimum_accr}) not present in supported ACCR(s) ({supported_accr})"
-                )
-
+            required_accr_by_virtual_idp = supported_accr[: supported_accr.index(minimum_accr) + 1]
             logger.info(
                 f"Replacing requested ACCR: {requested_accr}, with what {virtual_idp} requires: {required_accr_by_virtual_idp}."
             )
