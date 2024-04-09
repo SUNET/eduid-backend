@@ -1,5 +1,5 @@
 import logging
-from dataclasses import dataclass, field
+from dataclasses import field
 from typing import Any, Mapping, Optional, Union
 
 import satosa.internal
