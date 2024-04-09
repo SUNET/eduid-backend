@@ -122,7 +122,7 @@ class response(ResponseMicroService):
                     received_accr = origin
                     break
 
-        if requested_accr:
+        if received_accr not in requested_accr:
             for accr in supported_accr_sorted_by_prio:
                 if accr in requested_accr:
                     logger.info(f"Setting ACCR to most priorirtied avaliable value in request: {accr}")
