@@ -158,16 +158,22 @@ def add_eduperson_assurance(attributes: dict[str, Any], user: IdPUser) -> dict[s
 
 
 def make_name_attributes(attributes: dict[str, Any], user: IdPUser, settings: SAMLAttributeSettings) -> dict[str, Any]:
+    # if the request comes from Swamid, we can use the user chosen given name
+    # treat all requests as from Swamid unless the authn context class is DIGG_LOA2
+    swamid_request = settings.authn_context_class != EduidAuthnContextClass.DIGG_LOA2
+
     # displayName
     if attributes.get("displayName") is None:
         attributes["displayName"] = f"{user.given_name} {user.surname}"
-        if user.chosen_given_name and settings.authn_context_class != EduidAuthnContextClass.DIGG_LOA2:
+        if swamid_request and user.chosen_given_name:
             # use the chosen given name if it is set except for when asserting a DIGG LoA2
             attributes["displayName"] = f"{user.chosen_given_name} {user.surname}"
 
     # givenName
     if attributes.get("givenName") is None and user.given_name:
         attributes["givenName"] = user.given_name
+        if swamid_request and user.chosen_given_name:
+            attributes["givenName"] = user.chosen_given_name
 
     # cn (use displayName)
     if attributes.get("cn") is None:
