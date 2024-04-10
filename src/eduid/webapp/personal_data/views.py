@@ -55,13 +55,17 @@ def post_user(
         personal_data_user.given_name = given_name
         personal_data_user.surname = surname
 
-    # set chosen given name to either given name or a subset of given name
-    if chosen_given_name is not None:
-        if is_valid_chosen_given_name(personal_data_user.given_name, chosen_given_name):
-            personal_data_user.chosen_given_name = chosen_given_name
-        else:
-            return error_response(message=PDataMsg.chosen_given_name_invalid)
+    # set chosen given name to either given name or a subset of given name if supplied
+    # also allow to set chosen given name to None
+    if (
+        chosen_given_name is not None
+        and is_valid_chosen_given_name(personal_data_user.given_name, chosen_given_name) is False
+    ):
+        return error_response(message=PDataMsg.chosen_given_name_invalid)
 
+    # mypy borked?
+    # error: Incompatible types in assignment (expression has type "str | None", variable has type "str")
+    personal_data_user.chosen_given_name = chosen_given_name  # type: ignore[assignment]
     personal_data_user.language = language
 
     try:

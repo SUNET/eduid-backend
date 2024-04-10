@@ -232,6 +232,21 @@ class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
             response, type_="POST_PERSONAL_DATA_USER_FAIL", msg=PDataMsg.chosen_given_name_invalid
         )
 
+    def test_post_user_to_unset_chosen_given_name(self):
+        # set test user chosen given name
+        self.test_user.chosen_given_name = "Peter"
+        self.app.central_userdb.save(self.test_user)
+        user = self.app.central_userdb.get_user_by_eppn(eppn=self.test_user.eppn)
+        assert user.chosen_given_name == "Peter"
+
+        response = self._post_user(verified_user=False)
+        expected_payload = {
+            "surname": "Johnson",
+            "given_name": "Peter",
+            "language": "en",
+        }
+        self._check_success_response(response, type_="POST_PERSONAL_DATA_USER_SUCCESS", payload=expected_payload)
+
     def test_post_user_no_language(self):
         response = self._post_user(mod_data={"language": ""})
         expected_payload = {"error": {"language": ["Language '' is not available"]}}

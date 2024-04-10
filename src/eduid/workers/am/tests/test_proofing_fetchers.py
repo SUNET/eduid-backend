@@ -49,7 +49,9 @@ class AttributeFetcherNINProofingTests(ProofingTestCase):
         expected = {
             "$set": {
                 "givenName": "Testaren",
+                "chosen_given_name": "Testaren",
                 "surname": "Testsson",
+                "legal_name": "Testaren Testsson",
                 "identities": [
                     {
                         "identity_type": IdentityType.NIN.value,
@@ -123,7 +125,9 @@ class AttributeFetcherNINProofingTests(ProofingTestCase):
         expected = {
             "$set": {
                 "givenName": "Testaren",
+                "chosen_given_name": "Testaren",
                 "surname": "Testsson",
+                "legal_name": "Testaren Testsson",
                 "identities": [
                     {
                         "identity_type": IdentityType.NIN.value,

@@ -123,6 +123,8 @@ def set_user_names_from_nin_eid_proofing(
     user.given_name = proofing_log_entry.given_name
     user.surname = proofing_log_entry.surname
     user.legal_name = f"{proofing_log_entry.given_name} {proofing_log_entry.surname}"
+    # unset chosen given name, if there was a name change it might no longer be correct
+    user.chosen_given_name = None
     return user
 
 
@@ -138,6 +140,8 @@ def set_user_names_from_foreign_id(
     user.given_name = proofing_log_entry.given_name
     user.surname = proofing_log_entry.surname
     user.legal_name = f"{proofing_log_entry.given_name} {proofing_log_entry.surname}"
+    # unset chosen given name, if there was a name change it might no longer be correct
+    user.chosen_given_name = None
     return user
 
 
