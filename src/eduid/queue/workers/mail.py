@@ -3,10 +3,10 @@ import logging
 from dataclasses import asdict
 from email.message import EmailMessage
 from email.utils import formatdate, make_msgid
-from gettext import gettext as _
 from typing import Any, Mapping, Optional, Sequence, cast
 
 from aiosmtplib import SMTP, SMTPException, SMTPResponse
+from jinja2 import Environment
 
 from eduid.common.config.base import EduidEnvironment
 from eduid.common.config.parsers import load_config
@@ -178,26 +178,29 @@ class MailQueueWorker(QueueWorker):
         msg["To"] = recipient
         return msg
 
-    def _build_mail(self, subject: str, txt_template: str, html_template: str, data: EmailPayload) -> EmailMessage:
+    def _build_mail(
+        self, translation_env: Environment, subject: str, txt_template: str, html_template: str, data: EmailPayload
+    ) -> EmailMessage:
         msg = self._create_base_message(recipient=data.email)
-        with self._jinja2.select_language(data.language) as env:
-            logger.debug(f"LANG: {data.language}")
-            msg["Subject"] = subject
-            txt = env.get_template(txt_template).render(**asdict(data))
-            logger.debug(f"TXT: {txt}")
-            html = env.get_template(html_template).render(**asdict(data))
-            logger.debug(f"HTML: {html}")
+        logger.debug(f"LANG: {data.language}")
+        msg["Subject"] = subject
+        txt = translation_env.get_template(txt_template).render(**asdict(data))
+        logger.debug(f"TXT: {txt}")
+        html = translation_env.get_template(html_template).render(**asdict(data))
+        logger.debug(f"HTML: {html}")
         msg.set_content(txt, "plain", "utf-8")
         msg.add_alternative(html, "html", "utf-8")
         return msg
 
     async def send_eduid_invite_mail(self, data: EduidInviteEmail) -> Status:
-        msg = self._build_mail(
-            subject=_("eduID invitation"),
-            txt_template="eduid_invite_mail_txt.jinja2",
-            html_template="eduid_invite_mail_html.jinja2",
-            data=data,
-        )
+        with self._jinja2.select_language(data.language) as env:
+            msg = self._build_mail(
+                translation_env=env,
+                subject=env.gettext("eduID invitation"),
+                txt_template="eduid_invite_mail_txt.jinja2",
+                html_template="eduid_invite_mail_html.jinja2",
+                data=data,
+            )
         return await self.sendmail(
             sender=self.config.mail_default_from,
             recipient=data.email,
@@ -206,12 +209,14 @@ class MailQueueWorker(QueueWorker):
         )
 
     async def send_eduid_signup_mail(self, data: EduidSignupEmail) -> Status:
-        msg = self._build_mail(
-            subject=_("eduID registration"),
-            txt_template="eduid_signup_email.txt.jinja2",
-            html_template="eduid_signup_email.html.jinja2",
-            data=data,
-        )
+        with self._jinja2.select_language(data.language) as env:
+            msg = self._build_mail(
+                translation_env=env,
+                subject=env.gettext("eduID registration"),
+                txt_template="eduid_signup_email.txt.jinja2",
+                html_template="eduid_signup_email.html.jinja2",
+                data=data,
+            )
         return await self.sendmail(
             sender=self.config.mail_default_from,
             recipient=data.email,
@@ -220,12 +225,14 @@ class MailQueueWorker(QueueWorker):
         )
 
     async def send_eduid_reset_password_mail(self, data: EduidResetPasswordEmail) -> Status:
-        msg = self._build_mail(
-            subject=_("Reset password"),
-            txt_template="reset_password_email.txt.jinja2",
-            html_template="reset_password_email.html.jinja2",
-            data=data,
-        )
+        with self._jinja2.select_language(data.language) as env:
+            msg = self._build_mail(
+                translation_env=env,
+                subject=env.gettext("eduID reset password"),
+                txt_template="reset_password_email.txt.jinja2",
+                html_template="reset_password_email.html.jinja2",
+                data=data,
+            )
         return await self.sendmail(
             sender=self.config.mail_default_from,
             recipient=data.email,
@@ -234,12 +241,14 @@ class MailQueueWorker(QueueWorker):
         )
 
     async def send_eduid_verification_mail(self, data: EduidVerificationEmail) -> Status:
-        msg = self._build_mail(
-            subject=_("eduID verification email"),
-            txt_template="verification_email.txt.jinja2",
-            html_template="verification_email.html.jinja2",
-            data=data,
-        )
+        with self._jinja2.select_language(data.language) as env:
+            msg = self._build_mail(
+                translation_env=env,
+                subject=env.gettext("eduID verification email"),
+                txt_template="verification_email.txt.jinja2",
+                html_template="verification_email.html.jinja2",
+                data=data,
+            )
         return await self.sendmail(
             sender=self.config.mail_default_from,
             recipient=data.email,
