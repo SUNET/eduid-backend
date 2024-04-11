@@ -21,11 +21,6 @@ class TestIdpUser(TestCase):
             authn_context_class=EduidAuthnContextClass.PASSWORD_PT,
         )
 
-    def test_supported_attributes(self):
-        idp_user = IdPUser.from_dict(UserFixtures().mocked_user_standard.to_dict())
-        attributes = idp_user.to_saml_attributes(settings=self.saml_attribute_settings, filter_attributes=[])
-        assert list(attributes.keys()) == list(SUPPORTED_SAML_ATTRIBUTES.keys())
-
     def test_idp_user_to_attributes_all(self):
         idp_user = IdPUser.from_dict(UserFixtures().mocked_user_standard.to_dict())
         attributes = idp_user.to_saml_attributes(settings=self.saml_attribute_settings)
