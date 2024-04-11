@@ -12,7 +12,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2024-04-03 14:30+0200\n"
+"POT-Creation-Date: 2024-04-11 12:38+0200\n"
 "PO-Revision-Date: 2020-10-21 13:47+0000\n"
 "Last-Translator: Johan Lundberg <lundberg@sunet.se>, 2024\n"
 "Language-Team: Swedish (Sweden) (https://app.transifex.com/sunet/teams/114180/sv_SE/)\n"
@@ -259,18 +259,24 @@ msgstr ""
 "%(verification_code)s\n"
 "\n"
 
-#: /home/lundberg/projects/eduid-backend/src/eduid/queue/workers/mail.py:195
-msgid "eduID invitation"
-msgstr "eduID-inbjudan"
-
-#: /home/lundberg/projects/eduid-backend/src/eduid/queue/workers/mail.py:209
+#: /home/lundberg/projects/eduid-backend/src/eduid/queue/tests/test_mail_worker.py:133
+#: /home/lundberg/projects/eduid-backend/src/eduid/queue/workers/mail.py:215
 msgid "eduID registration"
 msgstr "eduID-registrering"
 
-#: /home/lundberg/projects/eduid-backend/src/eduid/queue/workers/mail.py:223
+#: /home/lundberg/projects/eduid-backend/src/eduid/queue/tests/test_mail_worker.py:159
 msgid "Reset password"
-msgstr "Återställa lösenord"
+msgstr "eduID lösenordsåterställning"
 
-#: /home/lundberg/projects/eduid-backend/src/eduid/queue/workers/mail.py:237
+#: /home/lundberg/projects/eduid-backend/src/eduid/queue/tests/test_mail_worker.py:186
+#: /home/lundberg/projects/eduid-backend/src/eduid/queue/workers/mail.py:247
 msgid "eduID verification email"
 msgstr "eduID e-postverifiering"
+
+#: /home/lundberg/projects/eduid-backend/src/eduid/queue/workers/mail.py:199
+msgid "eduID invitation"
+msgstr "eduID-inbjudan"
+
+#: /home/lundberg/projects/eduid-backend/src/eduid/queue/workers/mail.py:231
+msgid "eduID reset password"
+msgstr "eduID lösenordsåterställning"
