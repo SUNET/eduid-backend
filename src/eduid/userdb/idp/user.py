@@ -12,8 +12,8 @@ from eduid.webapp.idp.assurance_data import EduidAuthnContextClass
 
 logger = logging.getLogger(__name__)
 
-# default list of SAML attributes to release
-_SAML_ATTRIBUTES = [
+# list of supported SAML attributes we can release
+SUPPORTED_SAML_ATTRIBUTES = [
     "c",
     "cn",
     "co",
@@ -21,16 +21,20 @@ _SAML_ATTRIBUTES = [
     "eduPersonAssurance",
     "eduPersonEntitlement",
     "eduPersonOrcid",
-    "eduPersonTargetedID",
     "eduPersonPrincipalName",
+    "eduPersonTargetedID",
     "givenName",
     "mail",
+    "mailLocalAddress",
+    "norEduPersonLegalName",
     "norEduPersonNIN",
+    "pairwise-id",
     "personalIdentityNumber",
     "preferredLanguage",
     "schacDateOfBirth",
     "schacPersonalUniqueCode",
     "sn",
+    "subject-id",
 ]
 
 
@@ -85,17 +89,14 @@ class IdPUser(User):
 
         :return: SAML attributes
         """
+        attributes: dict[str, Any] = {}
+
         if filter_attributes is None:
-            filter_attributes = _SAML_ATTRIBUTES
-        attributes_in = self.to_dict()
-        attributes = {}
-        for approved in filter_attributes:
-            if approved in attributes_in:
-                attributes[approved] = attributes_in.pop(approved)
-        logger.debug(f"Discarded non-attributes: {list(attributes_in.keys())!s}")
+            filter_attributes = SUPPORTED_SAML_ATTRIBUTES
+
         # Create and add missing attributes that can be released if correct release policy
         # is applied by pysaml2 for the current metadata
-        attributes = make_scoped_eppn(attributes, settings)
+        attributes = make_scoped_eppn(attributes, self, settings)
         attributes = add_country_attributes(attributes, settings)
         attributes = make_schac_personal_unique_code(attributes, self, settings)
         attributes = add_pairwise_or_subject_id(attributes, self, settings)
@@ -107,26 +108,33 @@ class IdPUser(User):
         attributes = make_mail(attributes, self)
         attributes = make_eduperson_orcid(attributes, self)
         attributes = add_mail_local_address(attributes, self)
+        attributes = make_eduperson_entitlement(attributes, self)
+        attributes = add_preferred_language(attributes, self)
 
         logger.info(f"Attributes available for release: {list(attributes.keys())}")
         logger.debug(f"Attributes with values: {attributes}")
-        return attributes
+
+        filtered_attributes = {}
+        for approved in filter_attributes:
+            if approved in attributes:
+                filtered_attributes[approved] = attributes.pop(approved)
+        logger.info(f"Attributes available for release AFTER filter: {list(filtered_attributes.keys())}")
+        logger.debug(f"Attributes filtered out: {attributes}")
+
+        return filtered_attributes
 
 
-def make_scoped_eppn(attributes: dict[str, Any], settings: SAMLAttributeSettings) -> dict[str, Any]:
+def make_scoped_eppn(attributes: dict[str, Any], user: IdPUser, settings: SAMLAttributeSettings) -> dict[str, Any]:
     """
     Add scope to unscoped eduPersonPrincipalName attributes before releasing them.
 
     What scope to add, if any, is currently controlled by the configuration parameter
     `default_eppn_scope'.
-
-    :param attributes: Attributes of a user
-    :param settings: IdP configuration settings
-    :return: New attributes
     """
-    eppn = attributes.get("eduPersonPrincipalName")
+    eppn = user.eppn
     scope = settings.default_eppn_scope
-    if not eppn or not scope:
+
+    if not scope:
         return attributes
     if "@" not in eppn:
         attributes["eduPersonPrincipalName"] = eppn + "@" + scope
@@ -323,4 +331,28 @@ def add_pairwise_or_subject_id(
         if attributes.get("subject-id") is None:
             attributes["subject-id"] = f"{user.eppn}@{settings.default_eppn_scope}"
 
+    return attributes
+
+
+def make_eduperson_entitlement(attributes: dict[str, Any], user: IdPUser) -> dict[str, Any]:
+    """
+    Adds the eduPersonEntitlement attribute to the attributes dictionary.
+    """
+    if attributes.get("eduPersonEntitlement") is not None:
+        return attributes
+
+    if user.entitlements is not None:
+        attributes["eduPersonEntitlement"] = user.entitlements
+    return attributes
+
+
+def add_preferred_language(attributes: dict[str, Any], user: IdPUser) -> dict[str, Any]:
+    """
+    Adds the preferred language to the attributes dictionary.
+    """
+    if attributes.get("preferredLanguage") is not None:
+        return attributes
+
+    if user.language is not None:
+        attributes["preferredLanguage"] = user.language
     return attributes
