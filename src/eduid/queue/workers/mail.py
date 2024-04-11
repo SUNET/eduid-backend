@@ -195,7 +195,7 @@ class MailQueueWorker(QueueWorker):
     async def send_eduid_invite_mail(self, data: EduidInviteEmail) -> Status:
         with self._jinja2.select_language(data.language) as env:
             msg = self._build_mail(
-                translation_env=env,
+                translation_env=env.jinja2_env,
                 subject=env.gettext("eduID invitation"),
                 txt_template="eduid_invite_mail_txt.jinja2",
                 html_template="eduid_invite_mail_html.jinja2",
@@ -211,7 +211,7 @@ class MailQueueWorker(QueueWorker):
     async def send_eduid_signup_mail(self, data: EduidSignupEmail) -> Status:
         with self._jinja2.select_language(data.language) as env:
             msg = self._build_mail(
-                translation_env=env,
+                translation_env=env.jinja2_env,
                 subject=env.gettext("eduID registration"),
                 txt_template="eduid_signup_email.txt.jinja2",
                 html_template="eduid_signup_email.html.jinja2",
@@ -227,7 +227,7 @@ class MailQueueWorker(QueueWorker):
     async def send_eduid_reset_password_mail(self, data: EduidResetPasswordEmail) -> Status:
         with self._jinja2.select_language(data.language) as env:
             msg = self._build_mail(
-                translation_env=env,
+                translation_env=env.jinja2_env,
                 subject=env.gettext("eduID reset password"),
                 txt_template="reset_password_email.txt.jinja2",
                 html_template="reset_password_email.html.jinja2",
@@ -243,7 +243,7 @@ class MailQueueWorker(QueueWorker):
     async def send_eduid_verification_mail(self, data: EduidVerificationEmail) -> Status:
         with self._jinja2.select_language(data.language) as env:
             msg = self._build_mail(
-                translation_env=env,
+                translation_env=env.jinja2_env,
                 subject=env.gettext("eduID verification email"),
                 txt_template="verification_email.txt.jinja2",
                 html_template="verification_email.html.jinja2",

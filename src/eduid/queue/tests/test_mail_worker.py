@@ -129,7 +129,7 @@ class TestMailWorker(QueueAsyncioTest):
             )
             with self.worker._jinja2.select_language(lang) as env:
                 msg = self.worker._build_mail(
-                    translation_env=env,
+                    translation_env=env.jinja2_env,
                     subject=env.gettext("eduID registration"),
                     txt_template="eduid_signup_email.txt.jinja2",
                     html_template="eduid_signup_email.html.jinja2",
@@ -155,7 +155,7 @@ class TestMailWorker(QueueAsyncioTest):
             )
             with self.worker._jinja2.select_language(lang) as env:
                 msg = self.worker._build_mail(
-                    translation_env=env,
+                    translation_env=env.jinja2_env,
                     subject=env.gettext("Reset password"),
                     txt_template="reset_password_email.txt.jinja2",
                     html_template="reset_password_email.html.jinja2",
@@ -182,7 +182,7 @@ class TestMailWorker(QueueAsyncioTest):
             )
             with self.worker._jinja2.select_language(lang) as env:
                 msg = self.worker._build_mail(
-                    translation_env=env,
+                    translation_env=env.jinja2_env,
                     subject=env.gettext("eduID verification email"),
                     txt_template="verification_email.txt.jinja2",
                     html_template="verification_email.html.jinja2",
