@@ -4,6 +4,7 @@ from typing import Any, Callable, TypeVar
 from flask import abort
 
 from eduid.userdb import User
+from eduid.userdb.credentials import Credential
 from eduid.userdb.db import TUserDbDocument
 from eduid.webapp.common.api.utils import get_user
 from eduid.webapp.support.app import current_support_app as current_app
@@ -19,6 +20,7 @@ def get_credentials_aux_data(user: User) -> list[TUserDbDocument]:
     credentials: list[TUserDbDocument] = []
     for credential in user.credentials.to_list():
         credential_dict = credential.to_dict()
+        credential_dict["type"] = credential.__class__.__name__
         credential_info = current_app.support_authn_db.get_credential_info(credential.key)
         if credential_info:
             # Add success_ts
