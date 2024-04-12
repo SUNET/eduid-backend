@@ -68,6 +68,18 @@ class User(BaseModel):
         populate_by_name=True, validate_assignment=True, extra="forbid", arbitrary_types_allowed=True
     )
 
+    @property
+    def friendly_identifier(self) -> str:
+        """
+        Should return something that the user can identify their account with.
+        For now, it will be chosen given name + surname -> given name + surname -> eppn.
+        """
+        if self.chosen_given_name and self.surname:
+            return f"{self.chosen_given_name} {self.surname}"
+        elif self.given_name and self.surname:
+            return f"{self.given_name} {self.surname}"
+        return self.eppn
+
     @field_validator("eppn", mode="before")
     @classmethod
     def check_eppn(cls, v: str) -> str:

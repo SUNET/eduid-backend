@@ -339,7 +339,7 @@ def _set_user_options(res: AuthnOptions, eppn: str) -> None:
         if res.forced_username:
             res.username = False
 
-        res.display_name = user.chosen_given_name or user.given_name or res.forced_username
+        res.display_name = user.friendly_identifier or res.forced_username
 
     return None
 
