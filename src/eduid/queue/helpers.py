@@ -2,11 +2,11 @@ import logging
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Iterator
-from typing_extensions import Self
 
 import babel
 from babel.support import Translations
 from jinja2 import Environment, FileSystemLoader, select_autoescape
+from typing_extensions import Self
 
 __author__ = "lundberg"
 
