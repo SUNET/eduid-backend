@@ -216,7 +216,7 @@ def response_authn(authn: AuthnState, ticket: LoginContext, user: IdPUser, sso_s
     given the RequestedAuthnContext from the SAML request.
     """
     req_authn_ctx = ticket.get_requested_authn_context()
-    logger.info(f"Authn for {user} will be evaluated based on: {authn}")
+    logger.info(f"Authn for {user} will be evaluated for {req_authn_ctx} based on: {authn}")
 
     attributes = {}
     response_accr = None
