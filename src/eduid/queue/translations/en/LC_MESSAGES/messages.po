@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2024-04-11 12:38+0200\n"
+"POT-Creation-Date: 2024-04-15 11:07+0200\n"
 "PO-Revision-Date: 2020-10-21 13:47+0000\n"
 "Last-Translator: Johan Lundberg <lundberg@sunet.se>, 2024\n"
 "Language-Team: English (United States) (https://app.transifex.com/sunet/teams/114180/en_US/)\n"
@@ -220,6 +220,48 @@ msgstr ""
 "\n"
 "(This is an automated email. Please do not reply.)\n"
 
+#: /home/lundberg/projects/eduid-backend/src/eduid/queue/templates/termination_email.html.jinja2:5
+#, python-format
+msgid ""
+"\n"
+"    <p>You have chosen to terminate your account at %(site_name)s.</p>\n"
+"\n"
+"    <p>If you don't do anything the account will automatically be removed after one week.</p>\n"
+"\n"
+"    <p>If you want to keep your account, reset your password within one week.</p>\n"
+"\n"
+"    <p>(This is an automated email. Please do not reply.)</p>\n"
+msgstr ""
+"\n"
+"    <p>You have chosen to terminate your account at %(site_name)s.</p>\n"
+"\n"
+"    <p>If you don't do anything the account will automatically be removed after one week.</p>\n"
+"\n"
+"    <p>If you want to keep your account, reset your password within one week.</p>\n"
+"\n"
+"    <p>(This is an automated email. Please do not reply.)</p>\n"
+
+#: /home/lundberg/projects/eduid-backend/src/eduid/queue/templates/termination_email.txt.jinja2:2
+#, python-format
+msgid ""
+"\n"
+"    You have chosen to terminate your account at %(site_name)s.\n"
+"\n"
+"    If you don't do anything the account will automatically be removed after one week.\n"
+"\n"
+"    If you want to keep your account, reset your password within one week.\n"
+"\n"
+"    (This is an automated email. Please do not reply.)\n"
+msgstr ""
+"\n"
+"    You have chosen to terminate your account at %(site_name)s.\n"
+"\n"
+"    If you don't do anything the account will automatically be removed after one week.\n"
+"\n"
+"    If you want to keep your account, reset your password within one week.\n"
+"\n"
+"    (This is an automated email. Please do not reply.)\n"
+
 #: /home/lundberg/projects/eduid-backend/src/eduid/queue/templates/verification_email.html.jinja2:1
 #, python-format
 msgid ""
@@ -261,7 +303,7 @@ msgstr ""
 "\n"
 
 #: /home/lundberg/projects/eduid-backend/src/eduid/queue/tests/test_mail_worker.py:133
-#: /home/lundberg/projects/eduid-backend/src/eduid/queue/workers/mail.py:215
+#: /home/lundberg/projects/eduid-backend/src/eduid/queue/workers/mail.py:229
 msgid "eduID registration"
 msgstr "eduID registration"
 
@@ -270,14 +312,19 @@ msgid "Reset password"
 msgstr "Reset password"
 
 #: /home/lundberg/projects/eduid-backend/src/eduid/queue/tests/test_mail_worker.py:186
-#: /home/lundberg/projects/eduid-backend/src/eduid/queue/workers/mail.py:247
+#: /home/lundberg/projects/eduid-backend/src/eduid/queue/workers/mail.py:261
 msgid "eduID verification email"
 msgstr "eduID verification email"
 
-#: /home/lundberg/projects/eduid-backend/src/eduid/queue/workers/mail.py:199
+#: /home/lundberg/projects/eduid-backend/src/eduid/queue/tests/test_mail_worker.py:211
+#: /home/lundberg/projects/eduid-backend/src/eduid/queue/workers/mail.py:277
+msgid "eduID account termination"
+msgstr "eduID account termination"
+
+#: /home/lundberg/projects/eduid-backend/src/eduid/queue/workers/mail.py:213
 msgid "eduID invitation"
 msgstr "eduID invitation"
 
-#: /home/lundberg/projects/eduid-backend/src/eduid/queue/workers/mail.py:231
+#: /home/lundberg/projects/eduid-backend/src/eduid/queue/workers/mail.py:245
 msgid "eduID reset password"
 msgstr "eduID reset password"
