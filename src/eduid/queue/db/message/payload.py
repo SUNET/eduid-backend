@@ -83,3 +83,9 @@ class EduidVerificationEmail(EmailPayload):
     verification_code: str
     site_name: str
     version: int = 1
+
+
+@dataclass
+class EduidTerminationEmail(EmailPayload):
+    site_name: str
+    version: int = 1

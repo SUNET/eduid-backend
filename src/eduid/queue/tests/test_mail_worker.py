@@ -10,7 +10,7 @@ from aiosmtplib import SMTPResponse
 from eduid.common.config.parsers import load_config
 from eduid.queue.config import QueueWorkerConfig
 from eduid.queue.db.message import EduidSignupEmail
-from eduid.queue.db.message.payload import EduidResetPasswordEmail, EduidVerificationEmail
+from eduid.queue.db.message.payload import EduidResetPasswordEmail, EduidTerminationEmail, EduidVerificationEmail
 from eduid.queue.testing import IsolatedWorkerDBMixin, QueueAsyncioTest, SMPTDFixTemporaryInstance
 from eduid.queue.workers.mail import MailQueueWorker
 from eduid.userdb.util import utc_now
@@ -196,3 +196,27 @@ class TestMailWorker(QueueAsyncioTest):
                 assert "Subject: eduID e-postverifiering" in msg_string
                 assert "Du har nyligen lagt till den" in msg_string
                 assert "Skriv in koden nedan" in msg_string
+
+    async def test_termination_mail_translations(self):
+        for lang in ["en", "sv"]:
+            payload = EduidTerminationEmail(
+                email="noone@example.com",
+                reference="test",
+                language=lang,
+                site_name="Test App",
+            )
+            with self.worker._jinja2.select_language(lang) as env:
+                msg = self.worker._build_mail(
+                    translation_env=env.jinja2_env,
+                    subject=env.gettext("eduID account termination"),
+                    txt_template="termination_email.txt.jinja2",
+                    html_template="termination_email.html.jinja2",
+                    data=payload,
+                )
+            msg_string = str(msg)
+            if lang == "en":
+                assert "Subject: eduID account termination" in msg_string
+                assert "You have chosen to terminate your account at Test App." in msg_string
+            if lang == "sv":
+                assert "Subject: eduID avsluta konto" in msg_string
+                assert "tas ditt konto bort om en vecka." in msg_string
