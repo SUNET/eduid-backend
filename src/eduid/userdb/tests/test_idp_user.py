@@ -78,3 +78,21 @@ class TestIdpUser(TestCase):
         assert attributes["givenName"] == "John Jack"
         assert attributes["displayName"] == "John Jack Smith"
         assert attributes["cn"] == "John Jack Smith"
+
+    def test_idp_user_display_name(self):
+        idp_user = IdPUser.from_dict(UserFixtures().mocked_user_standard.to_dict())
+        attributes = idp_user.to_saml_attributes(settings=self.saml_attribute_settings)
+        assert attributes["displayName"] == "John Smith"
+        assert attributes["cn"] == "John Smith"
+
+    def test_idp_user_display_name_no_given_name(self):
+        idp_user = IdPUser.from_dict(UserFixtures().mocked_user_standard.to_dict())
+        idp_user.given_name = None
+        idp_user.chosen_given_name = None
+        idp_user.surname = "Probably never going to be a user in this state"
+
+        attributes = idp_user.to_saml_attributes(settings=self.saml_attribute_settings)
+        assert "givenName" not in attributes
+        assert attributes.get("sn") == "Probably never going to be a user in this state"
+        assert "displayName" not in attributes
+        assert "cn" not in attributes
