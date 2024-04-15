@@ -5,6 +5,7 @@ from typing import Any, List, Optional, TypeVar, Union, cast, overload
 from flask import current_app, render_template, request
 
 from eduid.common.config.base import EduidEnvironment, MagicCookieMixin, MailConfigMixin
+from eduid.common.decorators import deprecated
 from eduid.common.rpc.exceptions import NoNavetData
 from eduid.common.rpc.mail_relay import MailRelay
 from eduid.common.rpc.msg_relay import DeregisteredCauseCode, DeregistrationInformation, FullPostalAddress, MsgRelay
@@ -280,6 +281,7 @@ def verify_nin_for_user(
     return True
 
 
+@deprecated("queue should be used instead")
 def send_mail(
     subject: str,
     to_addresses: list[str],
@@ -298,6 +300,7 @@ def send_mail(
     :param context: template context
     :param reference: Audit reference to help cross-reference audit log and events
     """
+
     mail_relay = get_from_current_app("mail_relay", MailRelay)
     conf = get_from_current_app("conf", MailConfigMixin)
 
