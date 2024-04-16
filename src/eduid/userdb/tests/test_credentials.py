@@ -109,11 +109,9 @@ class TestCredentialList(unittest.TestCase):
                     "loc": ["elements"],
                     "msg": "Value error, Duplicate element key: '222222222222222222222222'",
                     "type": "value_error",
-                    "url": "https://errors.pydantic.dev/2.6/v/value_error",
                 }
             ],
-            exclude_keys=["input"],
-        )
+        ), f"Wrong error message: {exc_info.value.errors()}"
 
     def test_add_password(self):
         this = CredentialList.from_list_of_dicts([_one_dict, _two_dict] + [_three_dict])

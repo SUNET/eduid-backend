@@ -7,6 +7,7 @@ from pydantic import ValidationError
 
 import eduid.userdb.element
 import eduid.userdb.exceptions
+from eduid.common.misc.timeutil import utc_now
 from eduid.common.testing_base import normalised_data
 from eduid.userdb import MailAddress
 from eduid.userdb.phone import PhoneNumber, PhoneNumberList
@@ -93,11 +94,11 @@ class TestPhoneNumberList(unittest.TestCase):
                     "loc": ("elements",),
                     "msg": "Value error, Duplicate element key: '+46700000001'",
                     "type": "value_error",
-                    "url": "https://errors.pydantic.dev/2.6/v/value_error",
+                    "url": "https://errors.pydantic.dev/2.7/v/value_error",
                 }
             ],
             exclude_keys=["input"],
-        )
+        ), f"Wrong error message: {exc_info.value.errors()}"
 
     def test_add_phonenumber(self):
         third = self.three.find("+46700000003")
@@ -124,11 +125,11 @@ class TestPhoneNumberList(unittest.TestCase):
                     "loc": ("elements", 1),
                     "msg": "Input should be a valid dictionary or instance of PhoneNumber",
                     "type": "model_type",
-                    "url": "https://errors.pydantic.dev/2.6/v/model_type",
+                    "url": "https://errors.pydantic.dev/2.7/v/model_type",
                 }
             ],
             exclude_keys=["input"],
-        )
+        ), f"Wrong error message: {exc_info.value.errors()}"
 
     def test_remove(self):
         self.three.remove("+46700000003")
@@ -265,15 +266,14 @@ class TestPhoneNumber(unittest.TestCase):
         with pytest.raises(ValidationError) as exc_info:
             PhoneNumber.from_dict(one)
 
-        assert exc_info.value.errors() == [
+        assert normalised_data(exc_info.value.errors(), exclude_keys=["url"]) == [
             {
                 "input": "bar",
                 "loc": ("foo",),
                 "msg": "Extra inputs are not permitted",
                 "type": "extra_forbidden",
-                "url": "https://errors.pydantic.dev/2.6/v/extra_forbidden",
             }
-        ]
+        ], f"Wrong error message: {exc_info.value.errors()}"
 
     def test_changing_is_verified_on_primary(self):
         this = self.one.primary
@@ -299,8 +299,7 @@ class TestPhoneNumber(unittest.TestCase):
 
     def test_modify_verified_ts(self):
         this = self.three.find("+46700000003")
-        now = datetime.datetime.utcnow()
-        this.verified_ts = now
+        this.verified_ts = utc_now()
         self.assertEqual(this.verified_ts, now)
 
     def test_created_by(self):

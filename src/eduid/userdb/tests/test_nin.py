@@ -87,7 +87,7 @@ class TestNinList(unittest.TestCase):
                     "loc": ("elements",),
                     "msg": "Value error, Duplicate element key: '197801011234'",
                     "type": "value_error",
-                    "url": "https://errors.pydantic.dev/2.6/v/value_error",
+                    "url": "https://errors.pydantic.dev/2.7/v/value_error",
                 }
             ],
             exclude_keys=["input"],
@@ -121,7 +121,7 @@ class TestNinList(unittest.TestCase):
                     "loc": ("elements", 1),
                     "msg": "Input should be a valid dictionary or instance of Nin",
                     "type": "model_type",
-                    "url": "https://errors.pydantic.dev/2.6/v/model_type",
+                    "url": "https://errors.pydantic.dev/2.7/v/model_type",
                 }
             ],
             exclude_keys=["input"],

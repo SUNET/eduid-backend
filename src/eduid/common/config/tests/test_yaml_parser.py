@@ -71,9 +71,9 @@ class TestInitConfig(unittest.TestCase):
                 "loc": ("number",),
                 "msg": "Field required",
                 "type": "missing",
-                "url": "https://errors.pydantic.dev/2.6/v/missing",
+                "url": "https://errors.pydantic.dev/2.7/v/missing",
             }
-        ]
+        ], f"Wrong error message: {exc_info.value.errors()}"
 
     def test_YamlConfig_wrong_type(self):
         os.environ["EDUID_CONFIG_NS"] = "/eduid/test/test_wrong_type"
@@ -89,9 +89,9 @@ class TestInitConfig(unittest.TestCase):
                 "loc": ("number",),
                 "msg": "Input should be a valid integer, unable to parse string as an integer",
                 "type": "int_parsing",
-                "url": "https://errors.pydantic.dev/2.6/v/int_parsing",
+                "url": "https://errors.pydantic.dev/2.7/v/int_parsing",
             }
-        ]
+        ], f"Wrong error message: {exc_info.value.errors()}"
 
     def test_YamlConfig_unknown_data(self):
         """Unknown data should not be rejected because it is an operational nightmare"""

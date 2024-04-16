@@ -324,16 +324,17 @@ class NinHelpersTest(EduidAPITestCase[HelpersTestApp]):
         # Create a ProofingLogElement with an empty created_by, which should be rejected
         with pytest.raises(ValidationError) as exc_info:
             self._get_nin_navet_proofing_log_entry(user=user, created_by="", nin=nin_element.number)
-        assert exc_info.value.errors() == [
-            {
-                "ctx": {"min_length": 1},
-                "input": "",
-                "loc": ("created_by",),
-                "msg": "String should have at least 1 character",
-                "type": "string_too_short",
-                "url": "https://errors.pydantic.dev/2.6/v/string_too_short",
-            }
-        ]
+        assert normalised_data(exc_info.value.errors(), exclude_keys=["input"]) == normalised_data(
+            [
+                {
+                    "ctx": {"min_length": 1},
+                    "input": "",
+                    "loc": ("created_by",),
+                    "msg": "String should have at least 1 character",
+                    "type": "string_too_short",
+                }
+            ]
+        ), f"Wrong error message: {exc_info.value.errors()}"
 
     def test_set_user_names_from_official_address_1(self):
         user = ProofingUser.from_dict(data=self.test_userdata)

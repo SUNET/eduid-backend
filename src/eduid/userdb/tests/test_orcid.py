@@ -130,7 +130,7 @@ class TestOrcid(unittest.TestCase):
                 "loc": ("unknown_key",),
                 "msg": "Extra inputs are not permitted",
                 "type": "extra_forbidden",
-                "url": "https://errors.pydantic.dev/2.6/v/extra_forbidden",
+                "url": "https://errors.pydantic.dev/2.7/v/extra_forbidden",
             }
         ]
 

@@ -73,7 +73,7 @@ class ProfileTest(TestCase):
                     "loc": ("elements",),
                     "msg": "Value error, Duplicate element key: 'test owner 1'",
                     "type": "value_error",
-                    "url": "https://errors.pydantic.dev/2.6/v/value_error",
+                    "url": "https://errors.pydantic.dev/2.7/v/value_error",
                 }
             ],
             exclude_keys=["input"],
