@@ -95,7 +95,7 @@ class TestIdentityList(unittest.TestCase):
                     "loc": ("elements",),
                     "msg": "Value error, Duplicate element key: <IdentityType.NIN: 'nin'>",
                     "type": "value_error",
-                    "url": "https://errors.pydantic.dev/2.6/v/value_error",
+                    "url": "https://errors.pydantic.dev/2.7/v/value_error",
                 }
             ],
             exclude_keys=["input"],
@@ -124,7 +124,7 @@ class TestIdentityList(unittest.TestCase):
                     "loc": ("elements", 1),
                     "msg": "Input should be a valid dictionary or instance of IdentityElement",
                     "type": "model_type",
-                    "url": "https://errors.pydantic.dev/2.6/v/model_type",
+                    "url": "https://errors.pydantic.dev/2.7/v/model_type",
                 }
             ],
             exclude_keys=["input"],

@@ -302,7 +302,7 @@ class TestProofingLog(TestCase):
                 "loc": ("phone_number",),
                 "msg": "String should have at least 1 character",
                 "type": "string_too_short",
-                "url": "https://errors.pydantic.dev/2.6/v/string_too_short",
+                "url": "https://errors.pydantic.dev/2.7/v/string_too_short",
             }
         ]
 

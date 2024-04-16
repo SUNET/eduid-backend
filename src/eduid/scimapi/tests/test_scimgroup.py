@@ -245,10 +245,9 @@ class TestGroupResource_POST(TestGroupResource):
                     "type": "missing",
                     "loc": ["body", "displayName"],
                     "msg": "Field required",
-                    "url": "https://errors.pydantic.dev/2.6/v/missing",
                 }
             ],
-            exclude_keys=["input"],
+            exclude_keys=["input", "url"],
         )
 
 
@@ -487,10 +486,9 @@ class TestGroupResource_PUT(TestGroupResource):
                     "loc": ["body", "displayName"],
                     "msg": "Field required",
                     "type": "missing",
-                    "url": "https://errors.pydantic.dev/2.6/v/missing",
                 }
             ],
-            exclude_keys=["input"],
+            exclude_keys=["input", "url"],
         )
 
 
@@ -628,10 +626,9 @@ class TestGroupSearchResource(TestGroupResource):
                     "loc": ["body", "filter"],
                     "msg": "Field required",
                     "type": "missing",
-                    "url": "https://errors.pydantic.dev/2.6/v/missing",
                 }
             ],
-            exclude_keys=["input"],
+            exclude_keys=["input", "url"],
         )
 
 
