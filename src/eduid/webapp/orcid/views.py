@@ -183,7 +183,7 @@ def get_orcid(user: User) -> FluxData:
 def remove_orcid(user: User) -> FluxData:
     current_app.logger.info("Removing ORCID data for user")
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
-    proofing_user.orcid = None  # type: ignore[assignment]
+    proofing_user.orcid = None
     save_and_sync_user(proofing_user)
     current_app.logger.info("ORCID data removed for user")
     return success_response(payload=proofing_user.to_dict())

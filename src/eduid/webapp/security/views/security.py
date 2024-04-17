@@ -122,7 +122,7 @@ def change_password(user: User):
         current_app.logger.debug(f"Problem verifying the old credentials for {user}")
         return error_response(message="chpass.unable-to-verify-old-password")
 
-    security_user.terminated = None  # type: ignore[assignment]
+    security_user.terminated = None
     try:
         save_and_sync_user(security_user)
     except UserOutOfSync:
