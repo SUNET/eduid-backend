@@ -775,7 +775,7 @@ class TestSSO(SSOIdPTests):
         external_mfa = ExternalMfaData(
             issuer="issuer.example.com",
             authn_context="http://id.elegnamnden.se/loa/1.0/loa3",
-            timestamp=datetime.datetime.utcnow(),
+            timestamp=utc_now(),
         )
         out = self._get_login_response_authn(
             user=user,
@@ -783,7 +783,7 @@ class TestSSO(SSOIdPTests):
             credentials=["pw", external_mfa],
         )
         assert out.message == IdPMsg.identity_proofing_method_not_allowed
-        assert out.error is False
+        assert out.error is True
 
     def test__get_login_digg_loa2_mfa_proofing_method_not_allowed(self):
         """
@@ -800,7 +800,7 @@ class TestSSO(SSOIdPTests):
             credentials=["pw", "u2f"],
         )
         assert out.message == IdPMsg.mfa_proofing_method_not_allowed
-        assert out.error is False
+        assert out.error is True
 
     def test__forceauthn_request(self):
         """ForceAuthn can apparently be either 'true' or '1'.
