@@ -80,18 +80,16 @@ class TestNinList(unittest.TestCase):
         with pytest.raises(ValidationError) as exc_info:
             self.two.add(dup)
 
-        assert normalised_data(exc_info.value.errors(), exclude_keys=["input"]) == normalised_data(
+        assert normalised_data(exc_info.value.errors(), exclude_keys=["input", "url"]) == normalised_data(
             [
                 {
                     "ctx": {"error": ValueError("Duplicate element key: '197801011234'")},
-                    "loc": ("elements",),
+                    "loc": ["elements"],
                     "msg": "Value error, Duplicate element key: '197801011234'",
                     "type": "value_error",
-                    "url": "https://errors.pydantic.dev/2.7/v/value_error",
                 }
             ],
-            exclude_keys=["input"],
-        )
+        ), f"Wrong error message: {normalised_data(exc_info.value.errors(), exclude_keys=['input', 'url'])}"
 
     def test_add_nin(self):
         third = self.three.find("197803033456")
@@ -114,18 +112,16 @@ class TestNinList(unittest.TestCase):
         new = PhoneNumber(number="+4612345678")
         with pytest.raises(ValidationError) as exc_info:
             self.one.add(new)
-        assert normalised_data(exc_info.value.errors(), exclude_keys=["input"]) == normalised_data(
+        assert normalised_data(exc_info.value.errors(), exclude_keys=["input", "url"]) == normalised_data(
             [
                 {
                     "ctx": {"class_name": "Nin"},
-                    "loc": ("elements", 1),
+                    "loc": ["elements", 1],
                     "msg": "Input should be a valid dictionary or instance of Nin",
                     "type": "model_type",
-                    "url": "https://errors.pydantic.dev/2.7/v/model_type",
                 }
             ],
-            exclude_keys=["input"],
-        )
+        ), f"Wrong error message: {normalised_data(exc_info.value.errors(), exclude_keys=['input', 'url'])}"
 
     def test_remove(self):
         self.three.remove(ElementKey("197803033456"))

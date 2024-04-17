@@ -87,18 +87,16 @@ class TestPhoneNumberList(unittest.TestCase):
         with pytest.raises(ValidationError) as exc_info:
             self.two.add(dup)
 
-        assert normalised_data(exc_info.value.errors(), exclude_keys=["input"]) == normalised_data(
+        assert normalised_data(exc_info.value.errors(), exclude_keys=["input", "url"]) == normalised_data(
             [
                 {
                     "ctx": {"error": ValueError("Duplicate element key: '+46700000001'")},
                     "loc": ("elements",),
                     "msg": "Value error, Duplicate element key: '+46700000001'",
                     "type": "value_error",
-                    "url": "https://errors.pydantic.dev/2.7/v/value_error",
                 }
-            ],
-            exclude_keys=["input"],
-        ), f"Wrong error message: {exc_info.value.errors()}"
+            ]
+        ), f"Wrong error message: {normalised_data(exc_info.value.errors(), exclude_keys=['input', 'url'])}"
 
     def test_add_phonenumber(self):
         third = self.three.find("+46700000003")
@@ -118,18 +116,16 @@ class TestPhoneNumberList(unittest.TestCase):
         new = MailAddress(email="ft@example.org")
         with pytest.raises(ValidationError) as exc_info:
             self.one.add(new)
-        assert normalised_data(exc_info.value.errors(), exclude_keys=["input"]) == normalised_data(
+        assert normalised_data(exc_info.value.errors(), exclude_keys=["input", "url"]) == normalised_data(
             [
                 {
                     "ctx": {"class_name": "PhoneNumber"},
                     "loc": ("elements", 1),
                     "msg": "Input should be a valid dictionary or instance of PhoneNumber",
                     "type": "model_type",
-                    "url": "https://errors.pydantic.dev/2.7/v/model_type",
                 }
-            ],
-            exclude_keys=["input"],
-        ), f"Wrong error message: {exc_info.value.errors()}"
+            ]
+        ), f"Wrong error message: {normalised_data(exc_info.value.errors(), exclude_keys=['input', 'url'])}"
 
     def test_remove(self):
         self.three.remove("+46700000003")

@@ -6,6 +6,7 @@ from pydantic import ValidationError
 
 from eduid.common.models.amapi_user import Reason, Source
 from eduid.common.rpc.msg_relay import DeregisteredCauseCode, DeregistrationInformation, FullPostalAddress, Name
+from eduid.common.testing_base import normalised_data
 from eduid.userdb.fixtures.users import UserFixtures
 from eduid.userdb.logs.db import ProofingLog, UserChangeLog
 from eduid.userdb.logs.element import (
@@ -295,16 +296,15 @@ class TestProofingLog(TestCase):
         with pytest.raises(ValidationError) as exc_info:
             proofing_element.phone_number = ""
 
-        assert exc_info.value.errors() == [
+        assert normalised_data(exc_info.value.errors(), exclude_keys=["url"]) == [
             {
                 "ctx": {"min_length": 1},
                 "input": "",
-                "loc": ("phone_number",),
+                "loc": ["phone_number"],
                 "msg": "String should have at least 1 character",
                 "type": "string_too_short",
-                "url": "https://errors.pydantic.dev/2.7/v/string_too_short",
             }
-        ]
+        ], f"Wrong error message: {normalised_data(exc_info.value.errors(), exclude_keys=['url'])}"
 
     def test_boolean_false_proofing_data(self):
         data = {

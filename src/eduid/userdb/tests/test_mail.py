@@ -78,18 +78,16 @@ class TestMailAddressList(unittest.TestCase):
         with pytest.raises(ValidationError) as exc_info:
             self.two.add(dup)
 
-        assert normalised_data(exc_info.value.errors(), exclude_keys=["input"]) == normalised_data(
+        assert normalised_data(exc_info.value.errors(), exclude_keys=["input", "url"]) == normalised_data(
             [
                 {
                     "ctx": {"error": ValueError("Duplicate element key: 'ft@one.example.org'")},
                     "loc": ("elements",),
                     "msg": "Value error, Duplicate element key: 'ft@one.example.org'",
                     "type": "value_error",
-                    "url": "https://errors.pydantic.dev/2.7/v/value_error",
                 }
             ],
-            exclude_keys=["input"],
-        ), f"Wrong error message: {exc_info.value.errors()}"
+        ), f"Wrong error message: {normalised_data(exc_info.value.errors(), exclude_keys=['input', 'url'])}"
 
     def test_add_mailaddress(self):
         third = self.three.find("ft@three.example.org")
