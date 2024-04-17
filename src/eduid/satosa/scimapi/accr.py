@@ -132,6 +132,8 @@ class response(ResponseMicroService):
                     logger.info(f"Setting ACCR to most priorirtied avaliable value in request: {accr}")
                     data.auth_info.auth_class_ref = accr
                     break
+        else:
+            data.auth_info.auth_class_ref = received_accr
 
         logger.info(f"Returing ACCR to SP: {data.auth_info.auth_class_ref}")
 
