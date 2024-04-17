@@ -1,4 +1,5 @@
 import logging
+from copy import deepcopy
 from typing import Any, Mapping, Optional, Union
 
 import satosa.internal
@@ -65,7 +66,7 @@ class request(RequestMicroService):
             if not supported_accr_to_forward:
                 raise SATOSAAuthenticationError(context.state, "Unsupported ACCR")
 
-            requested_accr = supported_accr_to_forward.copy()
+            requested_accr = deepcopy(supported_accr_to_forward)
 
         logger.info(f"Saving requested ACCR for later use: {requested_accr}).")
         context.state["requested_accr"] = requested_accr
