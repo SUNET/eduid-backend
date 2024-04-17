@@ -8,11 +8,12 @@ from enum import Enum, unique
 from typing import Any, Optional
 
 from eduid.userdb import User
+from eduid.webapp.idp.assurance_data import EduidAuthnContextClass
 
 logger = logging.getLogger(__name__)
 
-# default list of SAML attributes to release
-_SAML_ATTRIBUTES = [
+# list of supported SAML attributes we can release
+SUPPORTED_SAML_ATTRIBUTES = [
     "c",
     "cn",
     "co",
@@ -20,16 +21,20 @@ _SAML_ATTRIBUTES = [
     "eduPersonAssurance",
     "eduPersonEntitlement",
     "eduPersonOrcid",
-    "eduPersonTargetedID",
     "eduPersonPrincipalName",
+    "eduPersonTargetedID",
     "givenName",
     "mail",
+    "mailLocalAddress",
+    "norEduPersonLegalName",
     "norEduPersonNIN",
+    "pairwise-id",
     "personalIdentityNumber",
     "preferredLanguage",
     "schacDateOfBirth",
     "schacPersonalUniqueCode",
     "sn",
+    "subject-id",
 ]
 
 
@@ -42,6 +47,7 @@ class SAMLAttributeSettings:
     sp_entity_categories: list[str]
     sp_subject_id_request: list[str]
     esi_ladok_prefix: str
+    authn_context_class: EduidAuthnContextClass
     pairwise_id: Optional[str] = None
 
 
@@ -83,48 +89,52 @@ class IdPUser(User):
 
         :return: SAML attributes
         """
+        attributes: dict[str, Any] = {}
+
         if filter_attributes is None:
-            filter_attributes = _SAML_ATTRIBUTES
-        attributes_in = self.to_dict()
-        attributes = {}
-        for approved in filter_attributes:
-            if approved in attributes_in:
-                attributes[approved] = attributes_in.pop(approved)
-        logger.debug(f"Discarded non-attributes: {list(attributes_in.keys())!s}")
+            filter_attributes = SUPPORTED_SAML_ATTRIBUTES
+
         # Create and add missing attributes that can be released if correct release policy
         # is applied by pysaml2 for the current metadata
-        attributes = make_scoped_eppn(attributes, settings)
+        attributes = make_scoped_eppn(attributes, self, settings)
         attributes = add_country_attributes(attributes, settings)
         attributes = make_schac_personal_unique_code(attributes, self, settings)
         attributes = add_pairwise_or_subject_id(attributes, self, settings)
         attributes = add_eduperson_assurance(attributes, self)
-        attributes = make_name_attributes(attributes, self)
+        attributes = make_name_attributes(attributes, self, settings)
         attributes = make_nor_eduperson_nin(attributes, self)
         attributes = make_personal_identity_number(attributes, self)
         attributes = make_schac_date_of_birth(attributes, self)
         attributes = make_mail(attributes, self)
         attributes = make_eduperson_orcid(attributes, self)
         attributes = add_mail_local_address(attributes, self)
+        attributes = make_eduperson_entitlement(attributes, self)
+        attributes = add_preferred_language(attributes, self)
 
         logger.info(f"Attributes available for release: {list(attributes.keys())}")
         logger.debug(f"Attributes with values: {attributes}")
-        return attributes
+
+        filtered_attributes = {}
+        for approved in filter_attributes:
+            if approved in attributes:
+                filtered_attributes[approved] = attributes.pop(approved)
+        logger.info(f"Attributes available for release AFTER filter: {list(filtered_attributes.keys())}")
+        logger.debug(f"Attributes filtered out: {attributes}")
+
+        return filtered_attributes
 
 
-def make_scoped_eppn(attributes: dict[str, Any], settings: SAMLAttributeSettings) -> dict[str, Any]:
+def make_scoped_eppn(attributes: dict[str, Any], user: IdPUser, settings: SAMLAttributeSettings) -> dict[str, Any]:
     """
     Add scope to unscoped eduPersonPrincipalName attributes before releasing them.
 
     What scope to add, if any, is currently controlled by the configuration parameter
     `default_eppn_scope'.
-
-    :param attributes: Attributes of a user
-    :param settings: IdP configuration settings
-    :return: New attributes
     """
-    eppn = attributes.get("eduPersonPrincipalName")
+    eppn = user.eppn
     scope = settings.default_eppn_scope
-    if not eppn or not scope:
+
+    if not scope:
         return attributes
     if "@" not in eppn:
         attributes["eduPersonPrincipalName"] = eppn + "@" + scope
@@ -155,19 +165,36 @@ def add_eduperson_assurance(attributes: dict[str, Any], user: IdPUser) -> dict[s
     return attributes
 
 
-def make_name_attributes(attributes: dict[str, Any], user: IdPUser) -> dict[str, Any]:
-    # displayName
-    if attributes.get("displayName") is None and user.display_name:
-        attributes["displayName"] = user.display_name
+def make_name_attributes(attributes: dict[str, Any], user: IdPUser, settings: SAMLAttributeSettings) -> dict[str, Any]:
+    # if the request comes from Swamid, we can use the user chosen given name
+    # treat all requests as from Swamid unless the authn context class is DIGG_LOA2
+    swamid_request = settings.authn_context_class != EduidAuthnContextClass.DIGG_LOA2
+
     # givenName
     if attributes.get("givenName") is None and user.given_name:
         attributes["givenName"] = user.given_name
-    # cn (givenName + sn)
-    if attributes.get("cn") is None and (user.given_name and user.surname):
-        attributes["cn"] = f"{user.given_name} {user.surname}"
+        if swamid_request and user.chosen_given_name:
+            attributes["givenName"] = user.chosen_given_name
+
     # sn
     if attributes.get("sn") is None and user.surname:
         attributes["sn"] = user.surname
+
+    # norEduPersonLegalName
+    if attributes.get("norEduPersonLegalName") is None and user.legal_name:
+        attributes["norEduPersonLegalName"] = user.legal_name
+    # fill users legal name if not set and user has a verified identity
+    if user.legal_name is None and user.identities.is_verified:
+        attributes["norEduPersonLegalName"] = f"{user.given_name} {user.surname}"
+
+    # displayName
+    if attributes.get("displayName") is None and attributes.get("givenName") and attributes.get("sn"):
+        attributes["displayName"] = f"{attributes['givenName']} {attributes['sn']}"
+
+    # cn (use displayName)
+    if attributes.get("cn") is None and attributes.get("displayName"):
+        attributes["cn"] = attributes["displayName"]
+
     return attributes
 
 
@@ -301,4 +328,28 @@ def add_pairwise_or_subject_id(
         if attributes.get("subject-id") is None:
             attributes["subject-id"] = f"{user.eppn}@{settings.default_eppn_scope}"
 
+    return attributes
+
+
+def make_eduperson_entitlement(attributes: dict[str, Any], user: IdPUser) -> dict[str, Any]:
+    """
+    Adds the eduPersonEntitlement attribute to the attributes dictionary.
+    """
+    if attributes.get("eduPersonEntitlement") is not None:
+        return attributes
+
+    if user.entitlements is not None:
+        attributes["eduPersonEntitlement"] = user.entitlements
+    return attributes
+
+
+def add_preferred_language(attributes: dict[str, Any], user: IdPUser) -> dict[str, Any]:
+    """
+    Adds the preferred language to the attributes dictionary.
+    """
+    if attributes.get("preferredLanguage") is not None:
+        return attributes
+
+    if user.language is not None:
+        attributes["preferredLanguage"] = user.language
     return attributes

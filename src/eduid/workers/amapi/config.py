@@ -35,8 +35,7 @@ class EndpointRestriction(BaseModel):
         return f"{self.method.value}:{self.endpoint}"
 
 
-class AMApiConfig(RootConfig, LoggingConfigMixin):  # type: ignore[misc]
-    # mypy and pydantic not agreeing, https://github.com/pydantic/pydantic/issues/8729
+class AMApiConfig(RootConfig, LoggingConfigMixin):
     """
     Configuration for the User Management API app
     """

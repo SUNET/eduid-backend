@@ -47,7 +47,6 @@ class AttributeFetcherTests(AMTestCase):
                 "identities": expected_identities,
                 "givenName": self.user.given_name,
                 "surname": self.user.surname,
-                "displayName": self.user.display_name,
                 "preferredLanguage": self.user.language,
             }
         }
@@ -117,7 +116,6 @@ class AttributeFetcherTests(AMTestCase):
                 "identities": expected_identities,
                 "givenName": user.given_name,
                 "surname": user.surname,
-                "displayName": user.display_name,
                 "preferredLanguage": user.language,
             }
         }

@@ -205,9 +205,9 @@ def login_next_step(ticket: LoginContext, sso_session: Optional[SSOSession]) -> 
     except MissingAuthentication:
         res = NextResult(message=IdPMsg.must_authenticate)
     except IdentityProofingMethodNotAllowed:
-        res = NextResult(message=IdPMsg.identity_proofing_method_not_allowed)
+        res = NextResult(message=IdPMsg.identity_proofing_method_not_allowed, error=True)
     except MfaProofingMethodNotAllowed:
-        res = NextResult(message=IdPMsg.mfa_proofing_method_not_allowed)
+        res = NextResult(message=IdPMsg.mfa_proofing_method_not_allowed, error=True)
     except AuthnContextNotSupported:
         res = NextResult(message=IdPMsg.assurance_failure, error=True)
     except AssuranceException as exc:
@@ -356,6 +356,7 @@ class SSO(Service):
             sp_entity_categories=sp_entity_categories,
             sp_subject_id_request=sp_subject_id_request,
             esi_ladok_prefix=current_app.conf.esi_ladok_prefix,
+            authn_context_class=response_authn.class_ref,
             pairwise_id=self._get_pairwise_id(relying_party=sp_identifier, user_eppn=user.eppn),
         )
         attributes = user.to_saml_attributes(settings=saml_attribute_settings)

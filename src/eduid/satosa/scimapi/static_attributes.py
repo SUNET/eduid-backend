@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Mapping
+from typing import Any, Mapping, Optional
 
 import satosa.context
 import satosa.internal
@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 
 # Type describing this microservice's configuration data
 StaticAttributesConfig = dict[str, list[dict[str, str]]]
+StaticAppendedAttributesConfig = dict[str, list[dict[str, str]]]
 
 
 class AddStaticAttributesForVirtualIdp(ResponseMicroService):
@@ -33,6 +34,12 @@ class AddStaticAttributesForVirtualIdp(ResponseMicroService):
                 virtual_idp_2:
                     schachomeorganization:
                       - fax
+        static_appended_attributes_for_virtual_idp:
+            default:
+                virtual_idp_1:
+                    eduPersonAssurance:
+                        - https://refeds.org/assurance/ATP/ePA-1m
+                        - https://refeds.org/assurance/IAP/local-enterprise
     ```
     The use of "" and 'default' is synonymous. Attribute rules are not overloaded
     or inherited. For instance a response for "requester1" from virtual_idp_1 in
@@ -43,16 +50,32 @@ class AddStaticAttributesForVirtualIdp(ResponseMicroService):
 
     def __init__(self, config: Mapping[str, Any], *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
-        self.static_attributes: StaticAttributesConfig = config["static_attributes_for_virtual_idp"]
+        self.static_attributes: Optional[StaticAttributesConfig] = config.get("static_attributes_for_virtual_idp")
+        self.static_appended_attributes: Optional[StaticAppendedAttributesConfig] = config.get(
+            "static_appended_attributes_for_virtual_idp"
+        )
 
-    def _build_static(self, requester: str, vidp: str):
+    def _build_static(self, requester: str, vidp: str, existing_attributes: dict):
         static_attributes: dict[str, list[str]] = dict()
 
-        recipes: Mapping[str, list] = get_dict_defaults(self.static_attributes, requester, vidp)
-        for attr_name, fmt in recipes.items():
-            logger.debug(f"Adding static attribute {attr_name}: {fmt} for requester {requester} or {vidp}")
+        if self.static_attributes:
+            recipes: Mapping[str, list] = get_dict_defaults(self.static_attributes, requester, vidp)
+            for attr_name, fmt in recipes.items():
+                logger.debug(f"Adding static attribute {attr_name}: {fmt} for requester {requester} or {vidp}")
 
-            static_attributes[attr_name] = fmt
+                static_attributes[attr_name] = fmt
+
+        if self.static_appended_attributes:
+            recipes = get_dict_defaults(self.static_appended_attributes, requester, vidp)
+            for attr_name, fmt in recipes.items():
+                static_attributes[attr_name] = fmt
+                if attr_name in existing_attributes:
+                    for value in existing_attributes[attr_name]:
+                        if value not in fmt:
+                            static_attributes[attr_name].append(value)
+                    static_attributes[attr_name].sort()
+
+                logger.debug(f"Appending static attribute {attr_name}: {fmt} for requester {requester} or {vidp}")
 
         return static_attributes
 
@@ -61,5 +84,5 @@ class AddStaticAttributesForVirtualIdp(ResponseMicroService):
     ) -> satosa.internal.InternalData:
         if context.state is not None and isinstance(data.requester, str) and data.attributes is not None:
             virtual_idp: str = context.state.get(ROUTER_STATE_KEY)
-            data.attributes.update(self._build_static(data.requester, virtual_idp))
+            data.attributes.update(self._build_static(data.requester, virtual_idp, data.attributes))
         return super().process(context, data)

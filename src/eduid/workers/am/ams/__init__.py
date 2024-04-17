@@ -42,7 +42,6 @@ class eduid_signup(AttributeFetcher):
         # attributes for invites below
         "givenName",
         "surname",
-        "displayName",
         "preferredLanguage",
         "phone",
         "identities",
@@ -67,12 +66,15 @@ class eduid_oidc_proofing(AttributeFetcher):
         "nins",  # Old format
         "identities",  # New format
         "givenName",
+        "chosen_given_name",
         "surname",
-        "displayName",
+        "legal_name",
     ]
     whitelist_unset_attrs = [
         "identities",
+        "chosen_given_name",
         "nins",  # Old format
+        "displayName",  # deprecated
     ]
 
     @classmethod
@@ -86,12 +88,15 @@ class eduid_letter_proofing(AttributeFetcher):
         "identities",  # New format
         "letter_proofing_data",
         "givenName",
+        "chosen_given_name",
         "surname",
-        "displayName",
+        "legal_name",
     ]
     whitelist_unset_attrs = [
         "identities",
+        "chosen_given_name",
         "nins",  # Old format
+        "displayName",  # deprecated
     ]
 
     @classmethod
@@ -104,12 +109,15 @@ class eduid_lookup_mobile_proofing(AttributeFetcher):
         "nins",  # Old format
         "identities",  # New format
         "givenName",
+        "chosen_given_name",
         "surname",
-        "displayName",
+        "legal_name",
     ]
     whitelist_unset_attrs = [
         "identities",
+        "chosen_given_name",
         "nins",  # Old format
+        "displayName",  # deprecated
     ]
 
     @classmethod
@@ -142,9 +150,14 @@ class eduid_phone(AttributeFetcher):
 class eduid_personal_data(AttributeFetcher):
     whitelist_set_attrs = [
         "givenName",
+        "chosen_given_name",
         "surname",
-        "displayName",
         "preferredLanguage",
+    ]
+
+    whitelist_unset_attrs = [
+        "chosen_given_name",
+        "displayName",  # deprecated
     ]
 
     @classmethod
@@ -160,8 +173,9 @@ class eduid_security(AttributeFetcher):
         "identities",  # For AL1 downgrade on password reset
         "phone",  # For AL1 downgrade on password reset
         "givenName",  # For updating user from official source (Navet)
+        "chosen_given_name",  # For updating user from official source (Navet)
         "surname",  # For updating user from official source (Navet)
-        "displayName",  # For updating user from official source (Navet)
+        "legal_name",  # For updating user from official source (Navet)
     ]
     whitelist_unset_attrs = [
         "passwords",
@@ -169,6 +183,7 @@ class eduid_security(AttributeFetcher):
         "nins",  # Old format for AL1 downgrade on password reset
         "identities",  # For AL1 downgrade on password reset
         "phone",  # For AL1 downgrade on password reset
+        "displayName",  # deprecated
     ]
 
     @classmethod
@@ -216,12 +231,15 @@ class eduid_eidas(AttributeFetcher):
         "nins",  # Old format
         "identities",
         "givenName",
+        "chosen_given_name",
         "surname",
-        "displayName",
+        "legal_name",
     ]
     whitelist_unset_attrs: list[str] = [
         "identities",
+        "chosen_given_name",
         "nins",  # Old format
+        "displayName",  # deprecated
     ]
 
     @classmethod
@@ -256,11 +274,15 @@ class eduid_svipe_id(AttributeFetcher):
         "passwords",
         "identities",
         "givenName",
+        "chosen_given_name",
         "surname",
-        "displayName",
+        "legal_name",
     ]
     whitelist_unset_attrs: list[str] = [
         "identities",
+        "chosen_given_name",
+        "nins",  # Old format
+        "displayName",  # deprecated
     ]
 
     @classmethod
@@ -274,12 +296,15 @@ class eduid_bankid(AttributeFetcher):
         "nins",  # Old format
         "identities",
         "givenName",
+        "chosen_given_name",
         "surname",
-        "displayName",
+        "legal_name",
     ]
     whitelist_unset_attrs: list[str] = [
         "identities",
+        "chosen_given_name",
         "nins",  # Old format
+        "displayName",  # deprecated
     ]
 
     @classmethod

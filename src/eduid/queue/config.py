@@ -5,8 +5,7 @@ from eduid.common.config.base import EduidEnvironment, LoggingConfigMixin, Loggi
 __author__ = "lundberg"
 
 
-class QueueWorkerConfig(RootConfig, LoggingConfigMixin):  # type: ignore[misc]
-    # mypy and pydantic not agreeing, https://github.com/pydantic/pydantic/issues/8729
+class QueueWorkerConfig(RootConfig, LoggingConfigMixin):
     """
     Configuration for eduid-queue workers
     """

@@ -264,9 +264,6 @@ def get_zxcvbn_terms(user: User) -> list[str]:
     """
     user_input: list[str] = []
     # Personal info
-    if user.display_name:
-        for part in user.display_name.split():
-            user_input.append("".join(part.split()))
     if user.given_name:
         user_input.append(user.given_name)
     if user.surname:

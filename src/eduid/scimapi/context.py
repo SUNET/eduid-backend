@@ -86,11 +86,6 @@ class Context:
             invitedb=ScimApiInviteDB(db_uri=self.config.mongo_uri, collection=f"{db_name}__invites"),
             eventdb=ScimApiEventDB(db_uri=self.config.mongo_uri, collection=f"{db_name}__events"),
         )
-        # keep loaded data owner dbs at a reasonable size
-        if len(self._dbs) > self.config.max_loaded_data_owner_dbs:
-            data_owner, _ = sorted(self._dbs.items(), key=lambda item: item[1].last_accessed).pop(0)
-            self.logger.info(f"Removing oldest data owner dbs: {data_owner}")
-            del self._dbs[data_owner]
 
     def _get_data_owner_dbs(self, data_owner: DataOwnerName) -> DataOwnerDatabases:
         if data_owner not in self._dbs:

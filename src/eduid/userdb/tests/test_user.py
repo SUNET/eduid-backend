@@ -31,6 +31,9 @@ class TestNewUser(unittest.TestCase):
         self.data1 = {
             "_id": ObjectId("547357c3d00690878ae9b620"),
             "eduPersonPrincipalName": "guvat-nalif",
+            "givenName": "User",
+            "chosen_given_name": "User",
+            "legal_name": "User One",
             "mail": "user@example.net",
             "mailAliases": [
                 {
@@ -51,6 +54,7 @@ class TestNewUser(unittest.TestCase):
             ],
             "identities": [verified_nin_identity.to_dict()],
             "subject": "physical person",
+            "surname": "One",
             "eduPersonEntitlement": ["http://foo.example.org"],
             "preferredLanguage": "en",
         }
@@ -147,10 +151,14 @@ class TestNewUser(unittest.TestCase):
         self.user1 = User(
             user_id=ObjectId("547357c3d00690878ae9b620"),
             eppn="guvat-nalif",
+            given_name="User",
+            chosen_given_name="User",
             mail_addresses=MailAddressList(elements=mailAliases_list),
             credentials=CredentialList(elements=password_list),
             identities=IdentityList(elements=identity_list),
+            legal_name="User One",
             subject=SubjectType("physical person"),
+            surname="One",
             entitlements=["http://foo.example.org"],
             language="en",
         )
@@ -207,7 +215,6 @@ class TestNewUser(unittest.TestCase):
         self.user2 = User(
             user_id=ObjectId("549190b5d00690878ae9b622"),
             eppn="birub-gagoz",
-            display_name="Some \xf6ne",
             given_name="Some",
             mail_addresses=MailAddressList(elements=mailAliases_list),
             phone_numbers=PhoneNumberList(elements=phone_list),
@@ -227,11 +234,14 @@ class TestNewUser(unittest.TestCase):
     def test_given_name(self):
         self.assertEqual(self.user2.given_name, self.data2["givenName"])
 
-    def test_display_name(self):
-        self.assertEqual(self.user2.display_name, self.data2["displayName"])
+    def test_chosen_given_name(self):
+        self.assertEqual(self.user1.chosen_given_name, self.data1["chosen_given_name"])
 
     def test_surname(self):
         self.assertEqual(self.user2.surname, self.data2["surname"])
+
+    def test_legal_name(self):
+        self.assertEqual(self.user1.legal_name, self.data1["legal_name"])
 
     def test_mail_addresses(self):
         self.assertEqual(self.user1.mail_addresses.primary.email, self.data1["mailAliases"][0]["email"])

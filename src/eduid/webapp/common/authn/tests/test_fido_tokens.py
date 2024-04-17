@@ -76,8 +76,6 @@ SAMPLE_WEBAUTHN_FIDO2STATE = WebauthnState(
 
 SAMPLE_WEBAUTHN_APP_CONFIG = {
     "fido2_rp_id": "eduid.docker",
-    "u2f_app_id": "https://eduid.se/u2f-app-id.json",
-    "u2f_valid_facets": ["https://dashboard.dev.eduid.se", "https://idp.dev.eduid.se"],
 }
 
 

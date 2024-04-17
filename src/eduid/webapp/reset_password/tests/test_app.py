@@ -65,23 +65,15 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
 
     # Parameterized test methods
 
-    @patch("eduid.common.rpc.mail_relay.MailRelay.sendmail")
     def _post_email_address(
         self,
-        mock_sendmail: Any,
         data1: Optional[dict[str, Any]] = None,
-        sendmail_return: bool = True,
-        sendmail_side_effect: Any = None,
     ):
         """
         POST an email address to start the reset password process for the corresponding account.
 
         :param data1: to control the data sent with the POST request.
-        :param sendmail_return: mock return value for the sendmail function
-        :param sendmail_side_effect: Mock raising exception calling the sendmail function
         """
-        mock_sendmail.return_value = sendmail_return
-        mock_sendmail.side_effect = sendmail_side_effect
         if self.test_user.mail_addresses.primary is None:
             raise RuntimeError(f"user {self.test_user} has no primary email address")
 
@@ -510,28 +502,21 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
     def test_get_zxcvbn_terms(self):
         with self.app.test_request_context():
             terms = get_zxcvbn_terms(self.test_user)
-            self.assertEqual(["John", "Smith", "John", "Smith", "johnsmith", "johnsmith2"], terms)
+            self.assertEqual(["John", "Smith", "johnsmith", "johnsmith2"], terms)
 
     def test_get_zxcvbn_terms_no_given_name(self):
         with self.app.test_request_context():
             self.test_user.given_name = ""
             self.app.central_userdb.save(self.test_user)
             terms = get_zxcvbn_terms(self.test_user)
-            self.assertEqual(["John", "Smith", "Smith", "johnsmith", "johnsmith2"], terms)
+            self.assertEqual(["Smith", "johnsmith", "johnsmith2"], terms)
 
     def test_get_zxcvbn_terms_no_surname(self):
         with self.app.test_request_context():
             self.test_user.surname = ""
             self.app.central_userdb.save(self.test_user)
             terms = get_zxcvbn_terms(self.test_user)
-            self.assertEqual(["John", "Smith", "John", "johnsmith", "johnsmith2"], terms)
-
-    def test_get_zxcvbn_terms_no_display_name(self):
-        with self.app.test_request_context():
-            self.test_user.display_name = ""
-            self.app.central_userdb.save(self.test_user)
-            terms = get_zxcvbn_terms(self.test_user)
-            self.assertEqual(["John", "Smith", "johnsmith", "johnsmith2"], terms)
+            self.assertEqual(["John", "johnsmith", "johnsmith2"], terms)
 
     def test_app_starts(self):
         self.assertEqual("reset_password", self.app.conf.app_name)
@@ -622,7 +607,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
                 "email_address": "johnsmith@example.com",
                 "extra_security": {"external_mfa": True, "phone_numbers": [{"index": 0, "number": "XXXXXXXXXX09"}]},
                 "success": True,
-                "zxcvbn_terms": ["John", "Smith", "John", "Smith", "johnsmith", "johnsmith2"],
+                "zxcvbn_terms": ["John", "Smith", "johnsmith", "johnsmith2"],
             },
         )
 
@@ -648,7 +633,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
                 "email_address": "johnsmith@example.com",
                 "extra_security": {},
                 "success": True,
-                "zxcvbn_terms": ["John", "Smith", "John", "Smith", "johnsmith", "johnsmith2"],
+                "zxcvbn_terms": ["John", "Smith", "johnsmith", "johnsmith2"],
             },
         )
 
@@ -665,7 +650,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
             payload={
                 "email_address": "johnsmith@example.com",
                 "success": True,
-                "zxcvbn_terms": ["John", "Smith", "John", "Smith", "johnsmith", "johnsmith2"],
+                "zxcvbn_terms": ["John", "Smith", "johnsmith", "johnsmith2"],
             },
         )
         # cant compare extra_security with _check_success_response as the value of webauthn_options is different per run
@@ -690,9 +675,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
             error={"csrf_token": ["CSRF failed to validate"]},
         )
 
-    @patch("eduid.common.rpc.mail_relay.MailRelay.sendmail")
-    def test_post_reset_invalid_session_eppn(self, mock_sendmail):
-        mock_sendmail.return_value = True
+    def test_post_reset_invalid_session_eppn(self):
         if self.test_user.mail_addresses.primary is None:
             raise RuntimeError(f"user {self.test_user} has no primary email address")
 

@@ -45,8 +45,9 @@ class User(BaseModel):
     eppn: str = Field(alias="eduPersonPrincipalName")
     user_id: bson.ObjectId = Field(default_factory=bson.ObjectId, alias="_id")
     given_name: Optional[str] = Field(default=None, alias="givenName")
-    display_name: Optional[str] = Field(default=None, alias="displayName")
+    chosen_given_name: Optional[str] = None
     surname: Optional[str] = None
+    legal_name: Optional[str] = None
     subject: Optional[SubjectType] = None
     language: Optional[str] = Field(default=None, alias="preferredLanguage")
     mail_addresses: MailAddressList = Field(default_factory=MailAddressList, alias="mailAliases")
@@ -66,6 +67,18 @@ class User(BaseModel):
     model_config = ConfigDict(
         populate_by_name=True, validate_assignment=True, extra="forbid", arbitrary_types_allowed=True
     )
+
+    @property
+    def friendly_identifier(self) -> str:
+        """
+        Should return something that the user can identify their account with.
+        For now, it will be chosen given name + surname -> given name + surname -> eppn.
+        """
+        if self.chosen_given_name and self.surname:
+            return f"{self.chosen_given_name} {self.surname}"
+        elif self.given_name and self.surname:
+            return f"{self.given_name} {self.surname}"
+        return self.eppn
 
     @field_validator("eppn", mode="before")
     @classmethod
@@ -142,6 +155,10 @@ class User(BaseModel):
             # once converted to surname but also left behind, and discard 'sn'.
             if "surname" not in data:
                 data["surname"] = _sn
+
+        # clean up displayName
+        if "displayName" in data:
+            data.pop("displayName")
 
         # migrate nins to identities
         # TODO: Remove parsing of nins after next full load-save

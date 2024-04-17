@@ -6,7 +6,6 @@ from typing import Any, Optional
 import requests
 from cryptography.hazmat.primitives import hashes, hmac
 from flask import Blueprint, request, url_for
-from saml2 import BINDING_HTTP_POST
 
 from eduid.userdb.credentials import FidoCredential, Password
 from eduid.userdb.idp import IdPUser
@@ -75,12 +74,22 @@ def next_view(ticket: LoginContext, sso_session: Optional[SSOSession]) -> FluxDa
         current_app.logger.error(f"Don't know how to abort login request {ticket}")
         return error_response(message=IdPMsg.general_failure)
 
+    # catch assurance problems that we should tell the SP about
     if _next.message == IdPMsg.assurance_failure:
         if isinstance(ticket, LoginContextSAML):
             saml_params = authn_context_class_not_supported(ticket, current_app.conf)
             return create_saml_sp_response(saml_params=saml_params)
         current_app.logger.error(f"Don't know how to send error response for request {ticket}")
         return error_response(message=IdPMsg.general_failure)
+
+    # catch assurance problems that we should tell the USER about
+    if _next.message in [
+        IdPMsg.identity_proofing_method_not_allowed,
+        IdPMsg.mfa_proofing_method_not_allowed,
+        IdPMsg.assurance_not_possible,
+    ]:
+        current_app.logger.error(f"Can not continue with request due to assurance problem: {_next.message}")
+        return error_response(message=_next.message)
 
     required_user = get_required_user(ticket, sso_session)
     if required_user.response:
@@ -188,6 +197,7 @@ def next_view(ticket: LoginContext, sso_session: Optional[SSOSession]) -> FluxDa
         current_app.logger.error(f"Don't know how to finish login request {ticket}")
         return error_response(message=IdPMsg.general_failure)
 
+    current_app.logger.error(f"Do not know how to log in the user. Fell through with next: {_next}")
     return error_response(message=IdPMsg.not_implemented)
 
 
@@ -340,7 +350,7 @@ def _set_user_options(res: AuthnOptions, eppn: str) -> None:
         if res.forced_username:
             res.username = False
 
-        res.display_name = user.display_name or user.given_name or res.forced_username
+        res.display_name = user.friendly_identifier or res.forced_username
 
     return None
 

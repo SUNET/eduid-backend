@@ -5,6 +5,7 @@ from pydantic import ValidationError
 
 import eduid.userdb.element
 import eduid.userdb.exceptions
+from eduid.common.testing_base import normalised_data
 from eduid.userdb.orcid import OidcAuthorization, OidcIdToken, Orcid
 
 __author__ = "lundberg"
@@ -124,15 +125,14 @@ class TestOrcid(unittest.TestCase):
 
         with pytest.raises(ValidationError) as exc_info:
             Orcid.from_dict(data)
-        assert exc_info.value.errors() == [
+        assert normalised_data(exc_info.value.errors(), exclude_keys=["url"]) == [
             {
                 "input": "test",
-                "loc": ("unknown_key",),
+                "loc": ["unknown_key"],
                 "msg": "Extra inputs are not permitted",
                 "type": "extra_forbidden",
-                "url": "https://errors.pydantic.dev/2.6/v/extra_forbidden",
             }
-        ]
+        ], f"Wrong error message: {normalised_data(exc_info.value.errors(), exclude_keys=['url'])}"
 
         with pytest.raises(eduid.userdb.exceptions.UserDBValueError):
             Orcid.from_dict(None)

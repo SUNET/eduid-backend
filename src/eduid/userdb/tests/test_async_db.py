@@ -1,4 +1,5 @@
 from unittest import IsolatedAsyncioTestCase, TestCase
+from unittest.mock import patch
 
 from bson import ObjectId
 
@@ -46,6 +47,9 @@ class TestAsyncMongoDB(IsolatedAsyncioTestCase):
         self.assertEqual(mdb._db_uri, uri)
         self.assertEqual(mdb._database_name, "testdb")
         self.assertEqual(mdb.sanitized_uri, "mongodb://john:secret@db.example.com:1111/testdb")
+        self.assertEqual(
+            mdb.__repr__(), "<eduID AsyncMongoDB: mongodb://john:secret@db.example.com:1111/testdb testdb>"
+        )
 
     async def test_uri_with_replicaset(self):
         uri = "mongodb://john:s3cr3t@db.example.com,db2.example.com:27017,db3.example.com:1234/?replicaSet=rs9"
@@ -65,7 +69,9 @@ class TestAsyncMongoDB(IsolatedAsyncioTestCase):
 class TestAsyncDB(AsyncMongoTestCase):
     async def asyncSetUp(self) -> None:
         await super().asyncSetUp()
-        self.db = AsyncBaseDB(db_uri=self.tmp_db.uri, db_name="testdb", collection="test")
+        # Make sure the isolated test cases get to create their own mongodb clients
+        with patch("eduid.userdb.db.async_db.AsyncClientCache._clients", {}):
+            self.db = AsyncBaseDB(db_uri=self.tmp_db.uri, db_name="testdb", collection="test")
         self.num_objs = 10
         await self.db.collection.insert_many([{"x": i} for i in range(self.num_objs)])
 

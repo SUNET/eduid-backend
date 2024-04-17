@@ -69,16 +69,20 @@ class PendingMailAddress(MailAlias):
 
 
 class Credential(GenericFilterDict):
-    add_keys = ["_id", "created_by", "created_ts", "type", "success_ts"]
-
-    def __init__(self, data):
-        _data = deepcopy(data)
-        # Figure out type of credential
-        if "salt" in _data:
-            _data["type"] = "Password"
-        elif "keyhandle" in _data:
-            _data["type"] = "U2F"
-        super().__init__(_data)
+    add_keys = [
+        "_id",
+        "created_by",
+        "created_ts",
+        "type",
+        "success_ts",
+        "authenticator",
+        "authenticator_id",
+        "attestation_format",
+        "mfa_approved",
+        "verified",
+        "framework",
+        "level",
+    ]
 
 
 class ToU(GenericFilterDict):

@@ -8,7 +8,7 @@ from __future__ import annotations
 import os
 from abc import ABCMeta
 from sys import stderr
-from typing import Any, Optional, TypeVar
+from typing import TYPE_CHECKING, Any, Optional, TypeVar
 
 from cookies_samesite_compat import CookiesSameSiteCompatMiddleware
 from flask import Flask
@@ -37,6 +37,9 @@ from eduid.webapp.common.api.middleware import PrefixMiddleware
 from eduid.webapp.common.api.request import Request
 from eduid.webapp.common.authn.utils import no_authn_views
 from eduid.webapp.common.session.eduid_session import SessionFactory
+
+if TYPE_CHECKING:
+    from _typeshed.wsgi import WSGIApplication
 
 DEBUG = os.environ.get("EDUID_APP_DEBUG", False)
 if DEBUG:
@@ -77,7 +80,7 @@ class EduIDBaseApp(Flask, metaclass=ABCMeta):
             init_app_debug(self)
 
         # App setup
-        self.wsgi_app = ProxyFix(self.wsgi_app)  # type: ignore
+        self.wsgi_app = ProxyFix(self.wsgi_app)  # type: ignore[method-assign]
         self.request_class = Request
         # autocorrect location header means that redirects defaults to an absolute path
         # werkzeug 2.1.0 changed default value to False
@@ -85,14 +88,14 @@ class EduIDBaseApp(Flask, metaclass=ABCMeta):
         self.url_map.strict_slashes = False
 
         # Set app url prefix to APPLICATION_ROOT
-        self.wsgi_app = PrefixMiddleware(  # type: ignore
+        self.wsgi_app = PrefixMiddleware(  # type: ignore[method-assign]
             self.wsgi_app,
             prefix=config.flask.application_root,
             server_name=config.flask.server_name or "",
         )
 
         # Allow legacy samesite cookie support
-        self.wsgi_app = CookiesSameSiteCompatMiddleware(self.wsgi_app, self.config)  # type: ignore
+        self.wsgi_app = CookiesSameSiteCompatMiddleware(self.wsgi_app, self.config)  # type: ignore[method-assign]
 
         # Initialize shared features
         init_logging(config)
@@ -110,6 +113,13 @@ class EduIDBaseApp(Flask, metaclass=ABCMeta):
         # Set up generic health check views
         self.failure_info: dict[str, FailCountItem] = dict()
         init_status_views(self, config)
+
+        # Profiling setup
+        if config.profiling is not None:
+            self.config["PROFILE"] = True
+            self.wsgi_app = init_app_profiling(self.wsgi_app, config)  # type: ignore[method-assign]
+            self.logger.warning("Profiling enabled")
+            self.logger.debug(f"Profiler settings: {config.profiling}")
 
     @property
     def central_userdb(self) -> AmDB:
@@ -180,3 +190,29 @@ def init_status_views(app: EduIDBaseApp, config: EduIDBaseAppConfig) -> None:
     status_paths = ["/status/healthy", "/status/sanity-check"]
     no_authn_views(config, status_paths)
     return None
+
+
+def init_app_profiling(app: WSGIApplication, config: EduIDBaseAppConfig):
+    """
+    Setup profiling middleware for any app.
+    """
+    import sys
+
+    from werkzeug.middleware.profiler import ProfilerMiddleware
+
+    if config.profiling is None:
+        raise BadConfiguration("No profiling configuration found")
+
+    # handle stream default here to avoid unnecessary import in config
+    if config.profiling.stream is None:
+        config.profiling.stream = sys.stdout
+
+    app = ProfilerMiddleware(
+        app,
+        stream=config.profiling.stream,
+        sort_by=config.profiling.sort_by,
+        restrictions=config.profiling.restrictions,
+        profile_dir=config.profiling.profile_dir,
+        filename_format=config.profiling.filename_format,
+    )
+    return app

@@ -146,12 +146,9 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
     def tearDown(self):
         try:
             # Reset anything that looks like a BaseDB, for the next test class.
-            # Also explicitly close the connections to the database, or we will
-            # run out of file descriptors in some settings
             for this in vars(self.app).values():
                 if isinstance(this, BaseDB):
                     this._drop_whole_collection()
-                    this.close()
         except Exception as exc:
             sys.stderr.write(f"Exception in tearDown: {exc!s}\n{exc!r}\n")
             traceback.print_exc()
@@ -424,7 +421,9 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
             if payload is not None:
                 for k, v in payload.items():
                     assert k in _json["payload"], f"The Flux response payload does not contain {repr(k)}"
-                    assert v == _json["payload"][k], f"The Flux response payload item {repr(k)} is not {repr(v)}"
+                    assert (
+                        v == _json["payload"][k]
+                    ), f"The Flux response payload item {repr(k)} should be {repr(v)} but is {repr(_json['payload'][k])}"
             if assure_not_in_payload is not None:
                 for key in assure_not_in_payload:
                     _assure_not_in_dict(_json["payload"], key)

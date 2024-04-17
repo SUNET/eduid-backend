@@ -37,8 +37,9 @@ class UserUpdateResponse(BaseModel):
 
 class UserUpdateNameRequest(UserBaseRequest):
     given_name: Optional[str] = None
-    display_name: Optional[str] = None
+    chosen_given_name: Optional[str] = None
     surname: Optional[str] = None
+    legal_name: Optional[str] = None
 
 
 class UserUpdateMetaRequest(UserBaseRequest):
