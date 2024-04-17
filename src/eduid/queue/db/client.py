@@ -16,10 +16,10 @@ __author__ = "lundberg"
 
 
 class QueuePayloadMixin:
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         self.handlers: dict[str, type[Payload]] = dict()
 
-    def register_handler(self, payload: type[Payload]):
+    def register_handler(self, payload: type[Payload]) -> None:
         payload_type = payload.get_type()
         if payload_type in self.handlers:
             raise KeyError(f"Payload type '{payload_type}' already registered with {self}")

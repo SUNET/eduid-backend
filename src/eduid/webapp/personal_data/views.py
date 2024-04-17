@@ -65,7 +65,7 @@ def post_user(
 
     # mypy borked?
     # error: Incompatible types in assignment (expression has type "str | None", variable has type "str")
-    personal_data_user.chosen_given_name = chosen_given_name  # type: ignore[assignment]
+    personal_data_user.chosen_given_name = chosen_given_name
     personal_data_user.language = language
 
     try:

@@ -206,7 +206,7 @@ class ScimApiTestCase(MongoNeoTestCase):
         if detail is not None:
             expected = normalised_data(detail)
             generated = normalised_data(json.get("detail"), exclude_keys=exclude_keys)
-            self.assertEqual(expected, generated)
+            assert expected == generated, f"Wrong error message: {generated}"
 
     def _assertScimResponseProperties(
         self,
