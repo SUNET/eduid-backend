@@ -64,21 +64,22 @@ class request(RequestMicroService):
 
             if not supported_accr_to_forward:
                 raise SATOSAAuthenticationError(context.state, "Unsupported ACCR")
-            else:
-                requested_accr = supported_accr_to_forward
+
+            requested_accr = supported_accr_to_forward.copy()
+
+        logger.info(f"Saving requested ACCR for later use: {requested_accr}).")
+        context.state["requested_accr"] = requested_accr
 
         internal_accr_rewrite_map = self.internal_accr_rewrite_map
-        if internal_accr_rewrite_map and requested_accr:
+        if internal_accr_rewrite_map and supported_accr_to_forward:
             context.state["internal_accr_rewrite_map"] = internal_accr_rewrite_map
-            for index, value in enumerate(requested_accr):
+            for index, value in enumerate(supported_accr_to_forward):
                 if value in internal_accr_rewrite_map:
                     logger.info(f"Remapping ACCR for internal use. From {value} to {internal_accr_rewrite_map[value]}")
-                    requested_accr[index] = internal_accr_rewrite_map[value]
+                    supported_accr_to_forward[index] = internal_accr_rewrite_map[value]
 
-        context.state["requested_accr"] = requested_accr
         context.state["supported_accr_sorted_by_prio"] = self.supported_accr_sorted_by_prio
-        accr_to_forward = requested_accr
-        logger.info(f"Saving requested ACCR for later use: {requested_accr}).")
+        accr_to_forward = supported_accr_to_forward
 
         virtual_idp = context.target_frontend
         minimum_accr = ""
