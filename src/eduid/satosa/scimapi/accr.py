@@ -53,6 +53,7 @@ class request(RequestMicroService):
     def process(self, context: satosa.context.Context, data: satosa.internal.InternalData) -> ProcessReturnType:
         requested_accr: list[str] = context.get_decoration(Context.KEY_AUTHN_CONTEXT_CLASS_REF)
 
+        logger.debug(f"Incoming ACCR: {requested_accr}")
         if requested_accr:
             supported_accr_to_forward = []
             for accr in requested_accr:
