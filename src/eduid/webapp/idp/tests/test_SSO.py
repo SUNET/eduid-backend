@@ -753,7 +753,7 @@ class TestSSO(SSOIdPTests):
         self.app.userdb.save(user)
 
         # test with allowed identity proofing methods
-        for nin_verified_by in ["bankid", "eidas", "eduid-idproofing-letter"]:
+        for nin_verified_by in ["bankid", "eidas", "eduid-eidas", "eduid-idproofing-letter"]:
             user = self.get_user_set_nins(self.test_user.eppn, ["190101011234"], nin_verified_by=nin_verified_by)
             out = self._get_login_response_authn(
                 user=user,

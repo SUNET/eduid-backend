@@ -74,7 +74,7 @@ class IdentityElement(VerifiedElement, ABC):
         match self.verified_by:
             case "bankid":
                 return IdentityProofingMethod.BANKID
-            case "eidas":
+            case "eidas" | "eduid-eidas":
                 return IdentityProofingMethod.SWEDEN_CONNECT
             case "eduid-idproofing-letter":
                 return IdentityProofingMethod.LETTER

@@ -227,6 +227,8 @@ class TestIdentity(TestCase):
         assert this.get_missing_proofing_method() is IdentityProofingMethod.BANKID
         this.verified_by = "eidas"
         assert this.get_missing_proofing_method() is IdentityProofingMethod.SWEDEN_CONNECT
+        this.verified_by = "eduid-eidas"
+        assert this.get_missing_proofing_method() is IdentityProofingMethod.SWEDEN_CONNECT
         this.verified_by = "eduid-idproofing-letter"
         assert this.get_missing_proofing_method() is IdentityProofingMethod.LETTER
         this.verified_by = "lookup_mobile_proofing"
