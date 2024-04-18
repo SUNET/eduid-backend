@@ -255,7 +255,7 @@ class TestSSO(SSOIdPTests):
             req_class_ref=EduidAuthnContextClass.REFEDS_MFA,
             credentials=["pw", _U2F_SWAMID_AL3],
         )
-        assert out.message == IdPMsg.proceed
+        assert out.message == IdPMsg.proceed, f"Wrong message: {out.message}"
         assert out.authn_info
         assert out.authn_info.class_ref == EduidAuthnContextClass.REFEDS_MFA
         assert out.authn_info.authn_attributes["eduPersonAssurance"] == [
@@ -275,7 +275,7 @@ class TestSSO(SSOIdPTests):
             req_class_ref=EduidAuthnContextClass.REFEDS_MFA,
             credentials=["pw", _U2F],
         )
-        assert out.message == IdPMsg.proceed
+        assert out.message == IdPMsg.proceed, f"Wrong message: {out.message}"
         assert out.authn_info
         assert out.authn_info.class_ref == EduidAuthnContextClass.REFEDS_MFA
         assert out.authn_info.authn_attributes["eduPersonAssurance"] == [
@@ -299,7 +299,7 @@ class TestSSO(SSOIdPTests):
             req_class_ref=EduidAuthnContextClass.REFEDS_MFA,
             credentials=["pw", external_mfa],
         )
-        assert out.message == IdPMsg.proceed
+        assert out.message == IdPMsg.proceed, f"Wrong message: {out.message}"
         assert out.authn_info
         assert out.authn_info.class_ref == EduidAuthnContextClass.REFEDS_MFA
         assert out.authn_info.authn_attributes["eduPersonAssurance"] == [
@@ -316,7 +316,7 @@ class TestSSO(SSOIdPTests):
             req_class_ref=EduidAuthnContextClass.REFEDS_SFA,
             credentials=["pw", "u2f"],
         )
-        assert out.message == IdPMsg.proceed
+        assert out.message == IdPMsg.proceed, f"Wrong message: {out.message}"
         assert out.authn_info
         assert out.authn_info.class_ref == EduidAuthnContextClass.REFEDS_SFA
         assert out.authn_info.authn_attributes["eduPersonAssurance"] == [
@@ -333,7 +333,7 @@ class TestSSO(SSOIdPTests):
             req_class_ref=EduidAuthnContextClass.REFEDS_SFA,
             credentials=["pw"],
         )
-        assert out.message == IdPMsg.proceed
+        assert out.message == IdPMsg.proceed, f"Wrong message: {out.message}"
         assert out.authn_info
         assert out.authn_info.class_ref == EduidAuthnContextClass.REFEDS_SFA
         assert out.authn_info.authn_attributes["eduPersonAssurance"] == [
@@ -350,7 +350,7 @@ class TestSSO(SSOIdPTests):
             req_class_ref=EduidAuthnContextClass.REFEDS_SFA,
             credentials=["u2f"],
         )
-        assert out.message == IdPMsg.proceed
+        assert out.message == IdPMsg.proceed, f"Wrong message: {out.message}"
         assert out.authn_info
         assert out.authn_info.class_ref == EduidAuthnContextClass.REFEDS_SFA
         assert out.authn_info.authn_attributes["eduPersonAssurance"] == [
@@ -367,7 +367,7 @@ class TestSSO(SSOIdPTests):
             req_class_ref=EduidAuthnContextClass.FIDO_U2F,
             credentials=["pw", "u2f"],
         )
-        assert out.message == IdPMsg.proceed
+        assert out.message == IdPMsg.proceed, f"Wrong message: {out.message}"
         assert out.authn_info
         assert out.authn_info.class_ref == EduidAuthnContextClass.FIDO_U2F
         assert out.authn_info.authn_attributes["eduPersonAssurance"] == [
@@ -384,7 +384,7 @@ class TestSSO(SSOIdPTests):
             req_class_ref=EduidAuthnContextClass.PASSWORD_PT,
             credentials=["pw", "u2f"],
         )
-        assert out.message == IdPMsg.proceed
+        assert out.message == IdPMsg.proceed, f"Wrong message: {out.message}"
         assert out.authn_info
         assert out.authn_info.class_ref == EduidAuthnContextClass.PASSWORD_PT
         assert out.authn_info.authn_attributes["eduPersonAssurance"] == [
@@ -401,7 +401,7 @@ class TestSSO(SSOIdPTests):
             req_class_ref=EduidAuthnContextClass.PASSWORD_PT,
             credentials=["pw"],
         )
-        assert out.message == IdPMsg.proceed
+        assert out.message == IdPMsg.proceed, f"Wrong message: {out.message}"
         assert out.authn_info
         assert out.authn_info.class_ref == EduidAuthnContextClass.PASSWORD_PT
         assert out.authn_info.authn_attributes["eduPersonAssurance"] == [
@@ -418,7 +418,7 @@ class TestSSO(SSOIdPTests):
             req_class_ref="urn:no-such-class",
             credentials=["pw", "u2f"],
         )
-        assert out.message == IdPMsg.assurance_failure
+        assert out.message == IdPMsg.assurance_failure, f"Wrong message: {out.message}"
         assert out.authn_info is None
 
     def test__get_login_response_9(self):
@@ -431,7 +431,7 @@ class TestSSO(SSOIdPTests):
             req_class_ref="urn:no-such-class",
             credentials=["pw"],
         )
-        assert out.message == IdPMsg.assurance_failure
+        assert out.message == IdPMsg.assurance_failure, f"Wrong message: {out.message}"
         assert out.authn_info is None
 
     def test__get_login_response_10(self):
@@ -444,7 +444,7 @@ class TestSSO(SSOIdPTests):
             req_class_ref=None,
             credentials=["pw"],
         )
-        assert out.message == IdPMsg.proceed
+        assert out.message == IdPMsg.proceed, f"Wrong message: {out.message}"
         assert out.authn_info
         assert out.authn_info.class_ref == EduidAuthnContextClass.PASSWORD_PT
         assert out.authn_info.authn_attributes["eduPersonAssurance"] == [
@@ -461,7 +461,7 @@ class TestSSO(SSOIdPTests):
             req_class_ref=None,
             credentials=["pw", "u2f"],
         )
-        assert out.message == IdPMsg.proceed
+        assert out.message == IdPMsg.proceed, f"Wrong message: {out.message}"
         assert out.authn_info
         assert out.authn_info.class_ref == EduidAuthnContextClass.REFEDS_MFA
         assert out.authn_info.authn_attributes["eduPersonAssurance"] == [
@@ -476,7 +476,7 @@ class TestSSO(SSOIdPTests):
             req_class_ref=None,
             credentials=["pw"],
         )
-        assert out.message == IdPMsg.proceed
+        assert out.message == IdPMsg.proceed, f"Wrong message: {out.message}"
         assert out.authn_info
         assert out.authn_info.class_ref == EduidAuthnContextClass.PASSWORD_PT
         assert out.authn_info.authn_attributes["eduPersonAssurance"] == [
@@ -493,7 +493,7 @@ class TestSSO(SSOIdPTests):
             user=user,
             credentials=["pw"],
         )
-        assert out.message == IdPMsg.proceed
+        assert out.message == IdPMsg.proceed, f"Wrong message: {out.message}"
         assert out.authn_info
         assert out.authn_info.class_ref == EduidAuthnContextClass.PASSWORD_PT
         assert out.authn_info.authn_attributes["eduPersonAssurance"] == [
@@ -510,7 +510,7 @@ class TestSSO(SSOIdPTests):
             req_class_ref=EduidAuthnContextClass.EDUID_MFA,
             credentials=["pw", "u2f"],
         )
-        assert out.message == IdPMsg.proceed
+        assert out.message == IdPMsg.proceed, f"Wrong message: {out.message}"
         assert out.authn_info
         assert out.authn_info.class_ref == EduidAuthnContextClass.EDUID_MFA
         assert out.authn_info.authn_attributes["eduPersonAssurance"] == [
@@ -527,7 +527,7 @@ class TestSSO(SSOIdPTests):
             req_class_ref=EduidAuthnContextClass.REFEDS_MFA,
             credentials=["pw", "u2f"],
         )
-        assert out.message == IdPMsg.proceed
+        assert out.message == IdPMsg.proceed, f"Wrong message: {out.message}"
         assert out.authn_info
         assert out.authn_info.class_ref == EduidAuthnContextClass.REFEDS_MFA
         assert out.authn_info.authn_attributes["eduPersonAssurance"] == [
@@ -546,7 +546,7 @@ class TestSSO(SSOIdPTests):
             req_class_ref=EduidAuthnContextClass.EDUID_MFA,
             credentials=["pw", "u2f"],
         )
-        assert out.message == IdPMsg.proceed
+        assert out.message == IdPMsg.proceed, f"Wrong message: {out.message}"
         assert out.authn_info
         assert out.authn_info.class_ref == EduidAuthnContextClass.EDUID_MFA
         assert out.authn_info.authn_attributes["eduPersonAssurance"] == [
@@ -565,7 +565,7 @@ class TestSSO(SSOIdPTests):
             req_class_ref=EduidAuthnContextClass.REFEDS_MFA,
             credentials=["pw", "u2f"],
         )
-        assert out.message == IdPMsg.proceed
+        assert out.message == IdPMsg.proceed, f"Wrong message: {out.message}"
         assert out.authn_info
         assert out.authn_info.class_ref == EduidAuthnContextClass.REFEDS_MFA
         assert out.authn_info.authn_attributes["eduPersonAssurance"] == [
@@ -585,7 +585,7 @@ class TestSSO(SSOIdPTests):
             req_class_ref=EduidAuthnContextClass.EDUID_MFA,
             credentials=["pw", "u2f"],
         )
-        assert out.message == IdPMsg.proceed
+        assert out.message == IdPMsg.proceed, f"Wrong message: {out.message}"
         assert out.authn_info
         assert out.authn_info.class_ref == EduidAuthnContextClass.EDUID_MFA
         assert out.authn_info.authn_attributes["eduPersonAssurance"] == [
@@ -605,7 +605,7 @@ class TestSSO(SSOIdPTests):
             req_class_ref=EduidAuthnContextClass.EDUID_MFA,
             credentials=["pw", _U2F_SWAMID_AL3],
         )
-        assert out.message == IdPMsg.proceed
+        assert out.message == IdPMsg.proceed, f"Wrong message: {out.message}"
         assert out.authn_info
         assert out.authn_info.class_ref == EduidAuthnContextClass.EDUID_MFA
         assert out.authn_info.authn_attributes["eduPersonAssurance"] == [
@@ -625,7 +625,7 @@ class TestSSO(SSOIdPTests):
             req_class_ref=EduidAuthnContextClass.REFEDS_MFA,
             credentials=["pw", _U2F_SWAMID_AL3],
         )
-        assert out.message == IdPMsg.proceed
+        assert out.message == IdPMsg.proceed, f"Wrong message: {out.message}"
         assert out.authn_info
         assert out.authn_info.class_ref == EduidAuthnContextClass.REFEDS_MFA
         assert out.authn_info.authn_attributes["eduPersonAssurance"] == [
@@ -649,7 +649,7 @@ class TestSSO(SSOIdPTests):
             req_class_ref=EduidAuthnContextClass.EDUID_MFA,
             credentials=["pw", external_mfa],
         )
-        assert out.message == IdPMsg.proceed
+        assert out.message == IdPMsg.proceed, f"Wrong message: {out.message}"
         assert out.authn_info
         assert out.authn_info.class_ref == EduidAuthnContextClass.EDUID_MFA
         assert out.authn_info.authn_attributes["eduPersonAssurance"] == [
@@ -673,7 +673,7 @@ class TestSSO(SSOIdPTests):
             req_class_ref=EduidAuthnContextClass.REFEDS_MFA,
             credentials=["pw", external_mfa],
         )
-        assert out.message == IdPMsg.proceed
+        assert out.message == IdPMsg.proceed, f"Wrong message: {out.message}"
         assert out.authn_info
         assert out.authn_info.class_ref == EduidAuthnContextClass.REFEDS_MFA
         assert out.authn_info.authn_attributes["eduPersonAssurance"] == [
@@ -693,7 +693,7 @@ class TestSSO(SSOIdPTests):
             req_class_ref=EduidAuthnContextClass.REFEDS_MFA,
             credentials=["pw", _U2F_SWAMID_AL3],
         )
-        assert out.message == IdPMsg.proceed
+        assert out.message == IdPMsg.proceed, f"Wrong message: {out.message}"
         assert out.authn_info
         assert out.authn_info.class_ref == EduidAuthnContextClass.REFEDS_MFA
         assert out.authn_info.authn_attributes["eduPersonAssurance"] == [
@@ -707,7 +707,7 @@ class TestSSO(SSOIdPTests):
         This is not a failure, the user just needs to do MFA too.
         """
         out = self._get_login_response_authn(req_class_ref=EduidAuthnContextClass.EDUID_MFA, credentials=["pw"])
-        assert out.message == IdPMsg.mfa_required
+        assert out.message == IdPMsg.mfa_required, f"Wrong message: {out.message}"
         assert out.error is False
 
     def test__get_login_response_refeds_mfa_no_multifactor(self):
@@ -717,12 +717,12 @@ class TestSSO(SSOIdPTests):
         This is not a failure, the user just needs to do MFA too.
         """
         out = self._get_login_response_authn(req_class_ref=EduidAuthnContextClass.REFEDS_MFA, credentials=["pw"])
-        assert out.message == IdPMsg.mfa_required
+        assert out.message == IdPMsg.mfa_required, f"Wrong message: {out.message}"
         assert out.error is False
 
     def test__get_login_digg_loa2_fido_mfa(self):
         """
-        Test login with password and external mfa for verified user, request DIGG_LOA2.
+        Test login with password and fido mfa for verified user, request DIGG_LOA2.
 
         Expect the response Authn to be DIGG_LOA2.
         """
@@ -735,7 +735,7 @@ class TestSSO(SSOIdPTests):
             req_class_ref=EduidAuthnContextClass.DIGG_LOA2,
             credentials=["pw", _U2F_SWAMID_AL3],
         )
-        assert out.message == IdPMsg.proceed
+        assert out.message == IdPMsg.proceed, f"Wrong message: {out.message}"
         assert out.authn_info
         assert out.authn_info.class_ref == EduidAuthnContextClass.DIGG_LOA2
         assert out.authn_info.authn_attributes["eduPersonAssurance"] == [
@@ -790,14 +790,14 @@ class TestSSO(SSOIdPTests):
         external_mfa = ExternalMfaData(
             issuer="issuer.example.com",
             authn_context="http://id.elegnamnden.se/loa/1.0/loa3",
-            timestamp=datetime.datetime.utcnow(),
+            timestamp=utc_now(),
         )
         out = self._get_login_response_authn(
             user=user,
             req_class_ref=EduidAuthnContextClass.DIGG_LOA2,
             credentials=["pw", external_mfa],
         )
-        assert out.message == IdPMsg.proceed
+        assert out.message == IdPMsg.proceed, f"Wrong message: {out.message}"
         assert out.authn_info
         assert out.authn_info.class_ref == EduidAuthnContextClass.DIGG_LOA2
         assert out.authn_info.authn_attributes["eduPersonAssurance"] == [
@@ -823,7 +823,7 @@ class TestSSO(SSOIdPTests):
             req_class_ref=EduidAuthnContextClass.DIGG_LOA2,
             credentials=["pw", external_mfa],
         )
-        assert out.message == IdPMsg.identity_proofing_method_not_allowed
+        assert out.message == IdPMsg.identity_proofing_method_not_allowed, f"Wrong message: {out.message}"
         assert out.error is True
 
     def test__get_login_digg_loa2_mfa_proofing_method_not_allowed(self):
@@ -840,7 +840,7 @@ class TestSSO(SSOIdPTests):
             req_class_ref=EduidAuthnContextClass.DIGG_LOA2,
             credentials=["pw", "u2f"],
         )
-        assert out.message == IdPMsg.mfa_proofing_method_not_allowed
+        assert out.message == IdPMsg.mfa_proofing_method_not_allowed, f"Wrong message: {out.message}"
         assert out.error is True
 
     def test__forceauthn_request(self):
