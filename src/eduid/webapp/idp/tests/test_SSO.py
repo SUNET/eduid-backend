@@ -148,7 +148,11 @@ class SSOIdPTests(IdPAPITests):
 class TestSSO(SSOIdPTests):
     # ------------------------------------------------------------------------
     def get_user_set_nins(
-        self, eppn: str, nins: Sequence[str], proofing_method: Optional[IdentityProofingMethod] = None
+        self,
+        eppn: str,
+        nins: Sequence[str],
+        proofing_method: Optional[IdentityProofingMethod] = None,
+        nin_verified_by: str = "unittest",
     ) -> IdPUser:
         """
         Fetch a user from the user database and set it's NINs to those in nins.
@@ -165,6 +169,7 @@ class TestSSO(SSOIdPTests):
                 number=number,
                 created_by="unittest",
                 created_ts=utc_now(),
+                verified_by=nin_verified_by,
                 is_verified=True,
                 proofing_method=proofing_method,
             )
@@ -736,6 +741,42 @@ class TestSSO(SSOIdPTests):
         assert out.authn_info.authn_attributes["eduPersonAssurance"] == [
             item.value for item in self.app.conf.swamid_assurance_profile_3
         ]
+
+    def test__get_login_digg_loa2_fido_mfa_no_identity_proofing_method(self):
+        """
+        Test login with password and external mfa for verified user, request DIGG_LOA2.
+
+        Expect the response Authn to be DIGG_LOA2.
+        """
+        user = self.app.userdb.lookup_user(self.test_user.eppn)
+        user.credentials.add(_U2F_SWAMID_AL3)
+        self.app.userdb.save(user)
+
+        # test with allowed identity proofing methods
+        for nin_verified_by in ["bankid", "eidas", "eduid-idproofing-letter"]:
+            user = self.get_user_set_nins(self.test_user.eppn, ["190101011234"], nin_verified_by=nin_verified_by)
+            out = self._get_login_response_authn(
+                user=user,
+                req_class_ref=EduidAuthnContextClass.DIGG_LOA2,
+                credentials=["pw", _U2F_SWAMID_AL3],
+            )
+            assert out.message == IdPMsg.proceed, f"Wrong message: {out.message}"
+            assert out.authn_info
+            assert out.authn_info.class_ref == EduidAuthnContextClass.DIGG_LOA2
+            assert out.authn_info.authn_attributes["eduPersonAssurance"] == [
+                item.value for item in self.app.conf.swamid_assurance_profile_3
+            ]
+
+        # test with not allowed identity proofing methods
+        for nin_verified_by in ["lookup_mobile_proofing", "oidc_proofing"]:
+            user = self.get_user_set_nins(self.test_user.eppn, ["190101011234"], nin_verified_by=nin_verified_by)
+            out = self._get_login_response_authn(
+                user=user,
+                req_class_ref=EduidAuthnContextClass.DIGG_LOA2,
+                credentials=["pw", _U2F_SWAMID_AL3],
+            )
+            assert out.message == IdPMsg.identity_proofing_method_not_allowed, f"Wrong message: {out.message}"
+            assert out.authn_info is None
 
     def test__get_login_digg_loa2_external_mfa(self):
         """
