@@ -67,6 +67,27 @@ class IdentityElement(VerifiedElement, ABC):
     def to_frontend_format(self) -> dict[str, Any]:
         return super().to_dict()
 
+    def get_missing_proofing_method(self) -> Optional[IdentityProofingMethod]:
+        """
+        Returns the proofing method that is missing for this identity
+        """
+        match self.verified_by:
+            case "bankid":
+                return IdentityProofingMethod.BANKID
+            case "eidas":
+                return IdentityProofingMethod.SWEDEN_CONNECT
+            case "eduid-idproofing-letter":
+                return IdentityProofingMethod.LETTER
+            case "lookup_mobile_proofing":
+                return IdentityProofingMethod.TELEADRESS
+            case "oidc_proofing":
+                return IdentityProofingMethod.SE_LEG
+            case "svipe_id":
+                return IdentityProofingMethod.SVIPE_ID
+            case _:
+                logger.warning(f"Unknown verified_by value: {self.verified_by}")
+                return None
+
 
 class NinIdentity(IdentityElement):
     """
