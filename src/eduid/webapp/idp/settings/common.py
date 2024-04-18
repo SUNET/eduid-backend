@@ -16,6 +16,7 @@ from eduid.common.config.base import (
     WebauthnConfigMixin2,
 )
 from eduid.common.models.generic import HttpUrlStr
+from eduid.userdb.identity import IdentityProofingMethod
 from eduid.webapp.idp.assurance_data import SwamidAssurance
 
 
@@ -146,6 +147,13 @@ class IdPConfig(EduIDBaseAppConfig, TouConfigMixin, WebauthnConfigMixin2, AmConf
             "https://dashboard.dev.eduid.se/services/authn/saml2-metadata": "https://dev.eduid.se/",
             "https://dashboard.eduid.se/services/authn/saml2-metadata": "https://eduid.se/",
         }
+    )
+    digg_loa2_allowed_identity_proofing_methods: list[IdentityProofingMethod] = Field(
+        default=[
+            IdentityProofingMethod.SWEDEN_CONNECT,
+            IdentityProofingMethod.BANKID,
+            IdentityProofingMethod.LETTER,
+        ]
     )
 
     @field_validator("sso_cookie")

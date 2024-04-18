@@ -11,7 +11,14 @@ from eduid.common.misc.timeutil import utc_now
 from eduid.common.testing_base import normalised_data
 from eduid.userdb import PhoneNumber
 from eduid.userdb.element import ElementKey
-from eduid.userdb.identity import EIDASLoa, IdentityList, IdentityType, NinIdentity, PridPersistence
+from eduid.userdb.identity import (
+    EIDASLoa,
+    IdentityList,
+    IdentityProofingMethod,
+    IdentityType,
+    NinIdentity,
+    PridPersistence,
+)
 
 __author__ = "lundberg"
 
@@ -211,3 +218,22 @@ class TestIdentity(TestCase):
         this_dict["created_ts"] = True
         this_dict["modified_ts"] = True
         assert NinIdentity.from_dict(this_dict) is not None
+
+    def test_get_missing_proofing_method(self):
+        this = self.three.find("nin")
+        this.verified_by = "foo"
+        assert this.get_missing_proofing_method() is None
+        this.verified_by = "bankid"
+        assert this.get_missing_proofing_method() is IdentityProofingMethod.BANKID
+        this.verified_by = "eidas"
+        assert this.get_missing_proofing_method() is IdentityProofingMethod.SWEDEN_CONNECT
+        this.verified_by = "eduid-eidas"
+        assert this.get_missing_proofing_method() is IdentityProofingMethod.SWEDEN_CONNECT
+        this.verified_by = "eduid-idproofing-letter"
+        assert this.get_missing_proofing_method() is IdentityProofingMethod.LETTER
+        this.verified_by = "lookup_mobile_proofing"
+        assert this.get_missing_proofing_method() is IdentityProofingMethod.TELEADRESS
+        this.verified_by = "oidc_proofing"
+        assert this.get_missing_proofing_method() is IdentityProofingMethod.SE_LEG
+        this.verified_by = "svipe_id"
+        assert this.get_missing_proofing_method() is IdentityProofingMethod.SVIPE_ID
