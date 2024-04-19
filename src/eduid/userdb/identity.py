@@ -195,11 +195,11 @@ class IdentityList(VerifiedElementList[IdentityElement]):
         for item in items:
             _type = item["identity_type"]
             if _type == IdentityType.NIN.value:
-                elements.append(NinIdentity(**item))
+                elements.append(NinIdentity.from_dict(item))
             elif _type == IdentityType.EIDAS.value:
-                elements.append(EIDASIdentity(**item))
+                elements.append(EIDASIdentity.from_dict(item))
             elif _type == IdentityType.SVIPE.value:
-                elements.append(SvipeIdentity(**item))
+                elements.append(SvipeIdentity.from_dict(item))
             else:
                 raise ValueError(f"identity_type {_type} not valid")
         return cls(elements=elements)
