@@ -55,8 +55,8 @@ class request(RequestMicroService):
         requested_accr: list[str] = context.get_decoration(Context.KEY_AUTHN_CONTEXT_CLASS_REF)
 
         logger.debug(f"Incoming ACCR: {requested_accr}")
+        supported_accr_to_forward = []
         if requested_accr:
-            supported_accr_to_forward = []
             for accr in requested_accr:
                 if accr in self.supported_accr_sorted_by_prio:
                     supported_accr_to_forward.append(accr)
