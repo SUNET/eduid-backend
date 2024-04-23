@@ -67,6 +67,27 @@ class IdentityElement(VerifiedElement, ABC):
     def to_frontend_format(self) -> dict[str, Any]:
         return super().to_dict()
 
+    def get_missing_proofing_method(self) -> Optional[IdentityProofingMethod]:
+        """
+        Returns the proofing method that is missing for this identity
+        """
+        match self.verified_by:
+            case "bankid":
+                return IdentityProofingMethod.BANKID
+            case "eidas" | "eduid-eidas":
+                return IdentityProofingMethod.SWEDEN_CONNECT
+            case "eduid-idproofing-letter":
+                return IdentityProofingMethod.LETTER
+            case "lookup_mobile_proofing":
+                return IdentityProofingMethod.TELEADRESS
+            case "oidc_proofing":
+                return IdentityProofingMethod.SE_LEG
+            case "svipe_id":
+                return IdentityProofingMethod.SVIPE_ID
+            case _:
+                logger.warning(f"Unknown verified_by value: {self.verified_by}")
+                return None
+
 
 class NinIdentity(IdentityElement):
     """
@@ -174,11 +195,11 @@ class IdentityList(VerifiedElementList[IdentityElement]):
         for item in items:
             _type = item["identity_type"]
             if _type == IdentityType.NIN.value:
-                elements.append(NinIdentity(**item))
+                elements.append(NinIdentity.from_dict(item))
             elif _type == IdentityType.EIDAS.value:
-                elements.append(EIDASIdentity(**item))
+                elements.append(EIDASIdentity.from_dict(item))
             elif _type == IdentityType.SVIPE.value:
-                elements.append(SvipeIdentity(**item))
+                elements.append(SvipeIdentity.from_dict(item))
             else:
                 raise ValueError(f"identity_type {_type} not valid")
         return cls(elements=elements)

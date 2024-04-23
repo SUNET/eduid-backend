@@ -1,3 +1,4 @@
+from datetime import datetime
 from unittest import TestCase
 
 from pydantic import ValidationError
@@ -36,3 +37,17 @@ class TestAppUser(TestCase):
         _data.pop("eduPersonPrincipalName")
         with self.assertRaises(ValidationError):
             User.from_dict(_data)
+
+    def test_identities_created_ts_true(self):
+        _data = self.user.to_dict()
+        _data["identities"][0]["created_ts"] = True
+        user = User.from_dict(_data)
+        identity = user.identities.find(_data["identities"][0]["identity_type"])
+        assert isinstance(identity.created_ts, datetime) is True
+
+    def test_locked_identity_created_ts_true(self):
+        _data = self.user.to_dict()
+        _data["locked_identity"][0]["created_ts"] = True
+        user = User.from_dict(_data)
+        locked_identity = user.locked_identity.find(_data["locked_identity"][0]["identity_type"])
+        assert isinstance(locked_identity.created_ts, datetime) is True

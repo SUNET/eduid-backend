@@ -55,8 +55,8 @@ class request(RequestMicroService):
         requested_accr: list[str] = context.get_decoration(Context.KEY_AUTHN_CONTEXT_CLASS_REF)
 
         logger.debug(f"Incoming ACCR: {requested_accr}")
+        supported_accr_to_forward = []
         if requested_accr:
-            supported_accr_to_forward = []
             for accr in requested_accr:
                 if accr in self.supported_accr_sorted_by_prio:
                     supported_accr_to_forward.append(accr)
@@ -130,7 +130,7 @@ class response(ResponseMicroService):
         if received_accr not in requested_accr:
             for accr in supported_accr_sorted_by_prio:
                 if accr in requested_accr:
-                    logger.info(f"Setting ACCR to most priorirtied avaliable value in request: {accr}")
+                    logger.info(f"Setting ACCR to most prioritized available value in request: {accr}")
                     data.auth_info.auth_class_ref = accr
                     break
         else:
