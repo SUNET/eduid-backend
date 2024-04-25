@@ -156,7 +156,7 @@ def delete_account(user: User):
     """
     current_app.logger.debug("Initiating account termination for user")
 
-    ts_url = current_app.conf.token_service_url
+    ts_url = current_app.conf.authn_service_url
     terminate_url = urlappend(ts_url, "terminate")
     next_url = url_for("security.account_terminated")
 

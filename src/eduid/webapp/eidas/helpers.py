@@ -149,7 +149,7 @@ def check_credential_to_verify(user: User, credential_id: str) -> CredentialVeri
         # If token was not used for login, ask authn to authenticate the user again,
         # and then return to this endpoint with the same credential_id. Better luck next time I guess.
         current_app.logger.info(f"Started proofing of token {token_to_verify.key}, redirecting to authn")
-        reauthn_url = urlappend(current_app.conf.token_service_url, "reauthn")
+        reauthn_url = urlappend(current_app.conf.authn_service_url, "reauthn")
         next_url = url_for("old_eidas.verify_token", credential_id=token_to_verify.key, _external=True)
         # Add idp arg to next_url if set
         idp = request.args.get("idp")

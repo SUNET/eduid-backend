@@ -25,5 +25,3 @@ class AuthnConfig(EduIDBaseAppConfig, ErrorsConfigMixin, Pysaml2SPConfigMixin):
     saml2_login_redirect_url: str
     saml2_logout_redirect_url: str
     saml2_strip_saml_user_suffix: str
-
-    token_service_url: str

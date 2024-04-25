@@ -30,8 +30,6 @@ class EidasConfig(
 
     app_name: str = "eidas"
 
-    token_service_url: str
-
     token_verify_redirect_url: str  # TODO: remove when old views are gone
     identity_verify_redirect_url: str  # TODO: remove when old views are gone
 
