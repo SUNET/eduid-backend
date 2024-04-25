@@ -335,7 +335,7 @@ class UnAuthnAPITestCase(EduidAPITestCase):
                 "saml2_logout_redirect_url": "/",
                 "saml2_settings_module": saml_config,
                 "saml2_strip_saml_user_suffix": "@test.eduid.se",
-                "token_service_url": "http://login",
+                "authn_service_url": "http://login",
             }
         )
         return config
@@ -352,7 +352,7 @@ class UnAuthnAPITestCase(EduidAPITestCase):
         with self.app.test_client() as c:
             resp = c.get("/")
             self.assertEqual(resp.status_code, 302)
-            self.assertTrue(resp.location.startswith(self.app.conf.token_service_url))
+            self.assertTrue(resp.location.startswith(self.app.conf.authn_service_url))
 
     def test_cookie(self):
         sessid = "fb1f42420b0109020203325d750185673df252de388932a3957f522a6c43a" "a47"
@@ -398,7 +398,7 @@ class NoAuthnAPITestCase(EduidAPITestCase):
                 "saml2_logout_redirect_url": "/",
                 "saml2_settings_module": saml_config,
                 "saml2_strip_saml_user_suffix": "@test.eduid.se",
-                "token_service_url": "http://login",
+                "authn_service_url": "http://login",
             }
         )
         return config
@@ -420,7 +420,7 @@ class NoAuthnAPITestCase(EduidAPITestCase):
         with self.app.test_client() as c:
             resp = c.get("/test2")
             self.assertEqual(resp.status_code, 302)
-            self.assertTrue(resp.location.startswith(self.app.conf.token_service_url))
+            self.assertTrue(resp.location.startswith(self.app.conf.authn_service_url))
 
     def test_no_authn_util(self):
         no_authn_urls_before = [path for path in self.app.conf.no_authn_urls]
