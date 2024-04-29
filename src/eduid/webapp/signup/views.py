@@ -31,9 +31,9 @@ from eduid.webapp.signup.schemas import (
     CaptchaCompleteRequest,
     CaptchaResponse,
     CreateUserRequest,
-    EmailSchema,
     InviteCodeRequest,
     InviteDataResponse,
+    NameAndEmailSchema,
     SignupStatusResponse,
     VerifyEmailRequest,
 )
@@ -53,9 +53,9 @@ def get_state():
 
 
 @signup_views.route("/register-email", methods=["POST"])
-@UnmarshalWith(EmailSchema)
+@UnmarshalWith(NameAndEmailSchema)
 @MarshalWith(SignupStatusResponse)
-def register_email(email: str):
+def register_email(given_name: str, surname: str, email: str):
     """
     Register a with new email address.
     """
@@ -79,6 +79,8 @@ def register_email(email: str):
         current_app.stats.count(name="resend_code")
     elif email_status == EmailStatus.NEW:
         current_app.logger.info("Starting new signup")
+        session.signup.name.given_name = given_name
+        session.signup.name.surname = surname
         session.signup.email.address = email
         session.signup.email.verification_code = make_short_code(digits=current_app.conf.email_verification_code_length)
         session.signup.email.sent_at = utc_now()
@@ -260,10 +262,14 @@ def create_user(use_password: bool, use_webauthn: bool) -> FluxData:
         current_app.logger.error("Neither password nor webauthn selected")
         return error_response(message=SignupMsg.credential_not_added)
 
+    assert session.signup.name.given_name is not None  # please mypy
+    assert session.signup.name.surname is not None  # please mypy
     assert session.signup.email.address is not None  # please mypy
     assert session.signup.tou.version is not None  # please mypy
     try:
         signup_user = create_and_sync_user(
+            given_name=session.signup.name.given_name,
+            surname=session.signup.name.surname,
             email=session.signup.email.address,
             password=session.signup.credentials.password,
             tou_version=session.signup.tou.version,

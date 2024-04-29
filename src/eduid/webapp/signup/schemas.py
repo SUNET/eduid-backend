@@ -117,7 +117,9 @@ class CaptchaCompleteRequest(EduidSchema, CSRFRequestMixin):
     internal_response = fields.String(required=False)
 
 
-class EmailSchema(EduidSchema, CSRFRequestMixin):
+class NameAndEmailSchema(EduidSchema, CSRFRequestMixin):
+    given_name = fields.String(required=True)
+    surname = fields.String(required=True)
     email = LowercaseEmail(required=True, validate=[validate_email])
 
 
