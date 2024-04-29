@@ -162,21 +162,3 @@ class InviteCompletedResponse(FluxStandardAction):
         finish_url = fields.String(required=False)
 
     payload = fields.Nested(InviteCompletedSchema)
-
-
-# backwards compatibility
-
-
-class RegisterEmailSchema(EmailSchema):
-    tou_accepted = fields.Boolean(required=True)
-
-
-class AccountCreatedSchema(EduidSchema, CSRFResponseMixin):
-    next = fields.String(required=True)
-
-
-class AccountCreatedResponse(FluxStandardAction):
-    payload = fields.Nested(AccountCreatedSchema)
-
-
-# end of backwards compatibility
