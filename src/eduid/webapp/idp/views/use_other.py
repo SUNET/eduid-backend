@@ -10,6 +10,7 @@ from nacl.secret import SecretBox
 from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.common.misc.timeutil import utc_now
+from eduid.userdb.exceptions import UserDoesNotExist
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith
 from eduid.webapp.common.api.messages import FluxData, error_response, success_response
 from eduid.webapp.common.api.schemas.models import FluxSuccessResponse
@@ -82,7 +83,13 @@ def use_other_1(
 
         user = None
         if required_user.eppn:
-            user = current_app.userdb.get_user_by_eppn(required_user.eppn)
+            try:
+                user = current_app.userdb.get_user_by_eppn(required_user.eppn)
+            except UserDoesNotExist:
+                current_app.logger.info(
+                    f"Login using other device: User {required_user.eppn} does not exist in central db"
+                )
+                return error_response(message=IdPMsg.user_not_found)
         elif username:
             user = lookup_user(username)
 
