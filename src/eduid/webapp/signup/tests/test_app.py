@@ -189,6 +189,8 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
     def _register_email(
         self,
         data1: Optional[dict[str, Any]] = None,
+        given_name: str = "Test",
+        surname: str = "Testdotter",
         email: str = "dummy@example.com",
         expect_success: bool = True,
         expected_message: Optional[TranslatableMsg] = None,
@@ -205,7 +207,12 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
             with self.app.test_request_context():
                 endpoint = url_for("signup.register_email")
                 with client.session_transaction() as sess:
-                    data = {"email": email, "csrf_token": sess.get_csrf_token()}
+                    data = {
+                        "given_name": given_name,
+                        "surname": surname,
+                        "email": email,
+                        "csrf_token": sess.get_csrf_token(),
+                    }
                 if data1 is not None:
                     data.update(data1)
 
@@ -436,6 +443,8 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
 
     def _prepare_for_create_user(
         self,
+        given_name: str = "Test",
+        surname: str = "Testdotter",
         email: str = "dummy@example.com",
         tou_accepted: bool = True,
         captcha_completed: bool = True,
@@ -444,6 +453,8 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
     ):
         with self.session_cookie_anon(self.browser) as client:
             with client.session_transaction() as sess:
+                sess.signup.name.given_name = given_name
+                sess.signup.name.surname = surname
                 sess.signup.tou.completed = tou_accepted
                 sess.signup.tou.version = "test_tou_v1"
                 sess.signup.captcha.completed = captcha_completed
@@ -930,15 +941,29 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
             response = client.post("/captcha")
             self.assertEqual(response.status_code, 200)
             data = json.loads(response.data)
-            self.assertEqual(data["error"], True)
+            self.assertTrue(data["error"])
             self.assertEqual(data["type"], "POST_SIGNUP_CAPTCHA_FAIL")
             self.assertIn("csrf_token", data["payload"]["error"])
 
     def test_register_new_user(self):
+        given_name = "John"
+        surname = "Smith"
+        email = "jsmith@example.com"
         self._captcha()
-        res = self._register_email(expect_success=True, expected_message=None)
+        res = self._register_email(
+            given_name=given_name,
+            surname=surname,
+            email=email,
+            expect_success=True,
+            expected_message=None,
+        )
         assert res.reached_state == SignupState.S4_REGISTER_EMAIL
         assert self.app.messagedb.db_count() == 1
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                assert sess.signup.email.address == email
+                assert sess.signup.name.given_name == given_name
+                assert sess.signup.name.surname == surname
 
     def test_register_new_user_mixed_case(self):
         self._captcha()
@@ -1056,8 +1081,10 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
                 assert sess.signup.email.address == mixed_case_email.lower()
 
     def test_create_user(self):
+        given_name = "Testaren Test"
+        surname = "Test"
         email = "test@example.com"
-        self._prepare_for_create_user(email=email)
+        self._prepare_for_create_user(given_name=given_name, surname=surname, email=email)
         response = self._create_user(expect_success=True)
         assert response.reached_state == SignupState.S6_CREATE_USER
 
@@ -1067,6 +1094,8 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
                 assert eppn is not None
                 assert sess.signup.credentials.password is None
         user = self.app.central_userdb.get_user_by_eppn(eppn)
+        assert user.given_name == given_name
+        assert user.surname == surname
         assert user.mail_addresses.to_list()[0].email == email
 
     def test_create_user_eppn_in_session(self):
