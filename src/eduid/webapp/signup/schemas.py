@@ -14,6 +14,10 @@ __author__ = "lundberg"
 class SignupStatusResponse(FluxStandardAction):
     class StatusSchema(EduidSchema, CSRFResponseMixin):
         class State(EduidSchema):
+            class Name(EduidSchema):
+                given_name = fields.String(required=False)
+                surname = fields.String(required=False)
+
             class EmailVerification(EduidSchema):
                 address = fields.String(required=False)
                 completed = fields.Boolean(required=True)
@@ -44,6 +48,7 @@ class SignupStatusResponse(FluxStandardAction):
                 # TODO: implement webauthn signup
 
             already_signed_up = fields.Boolean(required=True)
+            name = fields.Nested(Name, required=True)
             email = fields.Nested(EmailVerification, required=True)
             invite = fields.Nested(Invite, required=True)
             tou = fields.Nested(Tou, required=True)
