@@ -37,18 +37,13 @@ class SignupState(Enum):
     S7_COMPLETE_INVITE = "complete_invite"
     S8_GENERATE_PASSWORD = "generate_password"
     S9_GENERATE_CAPTCHA = "generate_captcha"
-
-
-class OldSignupState(Enum):
-    S5_CAPTCHA = "captcha"
-    S6_MAIL_SENT_NO_USER = "no_user_created"
-    S7_VERIFY_LINK = "verify_link"
+    S10_GET_STATE = "get_state"
 
 
 @dataclass
 class SignupResult:
     url: str
-    reached_state: Union[SignupState, OldSignupState]
+    reached_state: SignupState
     response: TestResponse
 
 
@@ -104,6 +99,18 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         assert self.get_response_payload(response)["captcha_img"].startswith("data:image/png;base64,")
         assert self.get_response_payload(response)["captcha_audio"].startswith("data:audio/wav;base64,")
         return SignupResult(url=endpoint, reached_state=SignupState.S9_GENERATE_CAPTCHA, response=response)
+
+    def _get_state(self) -> SignupResult:
+        with self.session_cookie_anon(self.browser) as client:
+            with self.app.test_request_context():
+                endpoint = url_for("signup.get_state")
+                logger.info(f"Making GET request to {endpoint}")
+                response = client.get(f"{endpoint}")
+
+        self._check_api_response(
+            response=response, status=200, type_="GET_SIGNUP_STATE_SUCCESS", assure_not_in_payload=["verification_code"]
+        )
+        return SignupResult(url=endpoint, reached_state=SignupState.S10_GET_STATE, response=response)
 
     # parameterized test methods
     def _captcha(
@@ -783,6 +790,21 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
                     return client.get(f"/get-code?email={email}")
 
     # actual tests
+    def test_get_state_initial(self):
+        res = self._get_state()
+        assert res.reached_state == SignupState.S10_GET_STATE
+        state = self.get_response_payload(res.response)["state"]
+        assert state == {
+            "already_signed_up": False,
+            "captcha": {"completed": False},
+            "credentials": {"completed": False, "password": None},
+            "email": {"address": None, "bad_attempts": 0, "bad_attempts_max": 3, "completed": False, "sent_at": None},
+            "invite": {"completed": False, "finish_url": None, "initiated_signup": False},
+            "name": {"given_name": None, "surname": None},
+            "tou": {"completed": False, "version": "2016-v1"},
+            "user_created": False,
+        }, f"actual state is {state}"
+
     def test_accept_tou(self):
         res = self._accept_tou()
         assert res.reached_state == SignupState.S2_ACCEPT_TOU
