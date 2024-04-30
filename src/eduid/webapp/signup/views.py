@@ -344,6 +344,12 @@ def accept_invite(invite_code: str) -> FluxData:
         current_app.logger.debug(f"invite_code: {invite_code}")
         return error_response(message=SignupMsg.invite_already_completed)
 
+    if invite.given_name is not None:
+        session.signup.name.given_name = invite.given_name
+
+    if invite.surname is not None:
+        session.signup.name.surname = invite.surname
+
     if invite.get_primary_mail_address() is not None:
         session.signup.email.address = invite.get_primary_mail_address()
 

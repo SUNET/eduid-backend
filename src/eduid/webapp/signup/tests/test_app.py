@@ -14,6 +14,7 @@ from werkzeug.test import TestResponse
 from eduid.common.clients.scim_client.testing import MockedScimAPIMixin
 from eduid.common.config.base import EduidEnvironment
 from eduid.common.misc.timeutil import utc_now
+from eduid.common.testing_base import normalised_data
 from eduid.userdb.exceptions import UserOutOfSync
 from eduid.userdb.signup import Invite, InviteMailAddress, InviteType
 from eduid.userdb.signup.invite import InvitePhoneNumber, SCIMReference
@@ -1221,12 +1222,42 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         )
         assert self.get_response_payload(res.response)["error"] == {"csrf_token": ["CSRF failed to validate"]}
 
+    def test_get_state_after_accept_invite(self):
+        invite = self._create_invite()
+        self._accept_invite(email=invite.get_primary_mail_address(), invite_code=invite.invite_code)
+        res = self._get_state()
+        assert res.reached_state == SignupState.S10_GET_STATE
+        state = self.get_response_payload(res.response)["state"]
+        assert normalised_data(state, exclude_keys=["expires_time_left", "throttle_time_left", "sent_at"]) == {
+            "already_signed_up": False,
+            "captcha": {"completed": False},
+            "credentials": {"completed": False, "password": None},
+            "email": {
+                "address": "dummy@example.com",
+                "bad_attempts": 0,
+                "bad_attempts_max": 3,
+                "completed": True,
+                "expires_time_max": 600,
+                "throttle_time_max": 300,
+            },
+            "invite": {"completed": False, "finish_url": None, "initiated_signup": True},
+            "name": {"given_name": "Invite", "surname": "Invitesson"},
+            "tou": {"completed": False, "version": "2016-v1"},
+            "user_created": False,
+        }, f"Actual state {normalised_data(state, exclude_keys=['expires_time_left', 'throttle_time_left', 'sent_at'])}"
+
     def test_complete_invite_new_user(self):
         self.start_mocked_scim_api()
 
         invite = self._create_invite()
         self._accept_invite(email=invite.get_primary_mail_address(), invite_code=invite.invite_code)
-        self._prepare_for_create_user(email=invite.get_primary_mail_address())
+        res = self._get_state()
+        state_payload = self.get_response_payload(res.response)
+        self._prepare_for_create_user(
+            email=invite.get_primary_mail_address(),
+            given_name=state_payload["state"]["name"]["given_name"],
+            surname=state_payload["state"]["name"]["surname"],
+        ),
         self._create_user(expect_success=True)
         res = self._complete_invite()
         assert res.reached_state == SignupState.S7_COMPLETE_INVITE
