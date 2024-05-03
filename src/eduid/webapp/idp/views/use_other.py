@@ -89,7 +89,7 @@ def use_other_1(
                 current_app.logger.info(
                     f"Login using other device: User {required_user.eppn} does not exist in central db"
                 )
-                return error_response(message=IdPMsg.user_not_found)
+                return error_response(message=IdPMsg.wrong_user)
         elif username:
             user = lookup_user(username)
 
