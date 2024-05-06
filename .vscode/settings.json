@@ -76,4 +76,7 @@
         "Werkzeug",
         "zxcvbn"
     ],
+    "mypy-type-checker.args": [
+        "--ignore-missing-imports"
+    ],
 }
