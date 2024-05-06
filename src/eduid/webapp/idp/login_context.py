@@ -240,8 +240,6 @@ class LoginContextSAML(LoginContext):
         """
         res = _pick_authn_context(self.authn_contexts, self.request_ref)
 
-        attributes = self.saml_req.sp_entity_attributes
-
         return res
 
 
