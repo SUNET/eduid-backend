@@ -241,17 +241,7 @@ class LoginContextSAML(LoginContext):
         res = _pick_authn_context(self.authn_contexts, self.request_ref)
 
         attributes = self.saml_req.sp_entity_attributes
-        if "http://www.swamid.se/assurance-requirement" in attributes:
-            # TODO: This is probably obsolete and not present anywhere in SWAMID metadata anymore
-            new_authn = _pick_authn_context(attributes["http://www.swamid.se/assurance-requirement"], self.request_ref)
-            logger.debug(
-                f"Entity {self.saml_req.sp_entity_id} has AuthnCtx preferences in metadata. "
-                f"Overriding {res} -> {new_authn}"
-            )
-            try:
-                res = EduidAuthnContextClass(new_authn)
-            except ValueError:
-                logger.debug(f"Ignoring unknown authnContextClassRef found in metadata: {new_authn}")
+
         return res
 
 
