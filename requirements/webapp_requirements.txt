@@ -1652,7 +1652,7 @@ webencodings==0.5.1 \
     #   cssselect2
     #   html5lib
     #   tinycss2
-werkzeug==3.0.2 \
+werkzeug==3.0.3 \
     --hash=sha256:3aac3f5da756f93030740bc235d3e09449efcf65f2f55e3602e1d851b8f48795 \
     --hash=sha256:e39b645a6ac92822588e7b39a692e7828724ceae0b0d702ef96701f90e70128d
     # via flask
