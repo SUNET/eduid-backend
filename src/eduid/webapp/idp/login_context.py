@@ -233,14 +233,11 @@ class LoginContextSAML(LoginContext):
 
     def get_requested_authn_context(self) -> Optional[EduidAuthnContextClass]:
         """
-        Check if the SP has explicit Authn preferences in the metadata (some SPs are not
-        capable of conveying this preference in the RequestedAuthnContext)
+        Return the authn context (if any) that was originally requested.
 
         TODO: Don't just return the first one, but the most relevant somehow.
         """
-        res = _pick_authn_context(self.authn_contexts, self.request_ref)
-
-        return res
+        return _pick_authn_context(self.authn_contexts, self.request_ref)
 
 
 class LoginContextOtherDevice(LoginContext):
