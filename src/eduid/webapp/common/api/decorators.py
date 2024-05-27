@@ -96,10 +96,13 @@ def can_verify_nin(f: EduidRouteCallable) -> EduidRouteCallable:
         user = get_user()
         # A user can just have one verified NIN
         if user.identities.nin is not None and user.identities.nin.is_verified is True:
+            logger.info("User already has a verified NIN")
             return error_response(message=CommonMsg.user_already_verified)
         # A user can not verify a nin if another previously was verified
         locked_nin = user.locked_identity.nin
         if isinstance(locked_nin, NinIdentity) and locked_nin.number != kwargs["nin"]:
+            logger.info("User has a different locked NIN")
+            logger.debug(f"Locked NIN: {locked_nin.number}. New NIN: {kwargs['nin']}")
             return error_response(message=CommonMsg.user_has_other_locked_nin)
 
         return f(*args, **kwargs)
