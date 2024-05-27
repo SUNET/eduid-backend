@@ -127,6 +127,11 @@ class SecurityNS(SessionNSBase):
     webauthn_registration: Optional[WebauthnRegistration] = None
 
 
+class Name(SessionNSBase):
+    given_name: Optional[str] = None
+    surname: Optional[str] = None
+
+
 class EmailVerification(SessionNSBase):
     completed: bool = False
     address: Optional[str] = None
@@ -162,6 +167,7 @@ class Credentials(SessionNSBase):
 
 class Signup(TimestampedNS):
     user_created: bool = False
+    name: Name = Field(default_factory=Name)
     email: EmailVerification = Field(default_factory=EmailVerification)
     invite: Invite = Field(default_factory=Invite)
     tou: Tou = Field(default_factory=Tou)

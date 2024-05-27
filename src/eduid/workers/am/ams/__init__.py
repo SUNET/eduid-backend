@@ -33,6 +33,8 @@ logger = get_task_logger(__name__)
 
 class eduid_signup(AttributeFetcher):
     whitelist_set_attrs = [
+        "givenName",
+        "surname",
         "mail",
         "mailAliases",
         "eduPersonPrincipalName",
@@ -40,8 +42,6 @@ class eduid_signup(AttributeFetcher):
         "passwords",
         "tou",
         # attributes for invites below
-        "givenName",
-        "surname",
         "preferredLanguage",
         "phone",
         "identities",
