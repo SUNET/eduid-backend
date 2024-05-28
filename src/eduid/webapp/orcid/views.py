@@ -2,6 +2,7 @@ from urllib.parse import urlencode
 
 from flask import Blueprint, redirect, request, url_for
 from oic.oic.message import AuthorizationResponse, Claims, ClaimsRequest
+from pydantic import ValidationError
 from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.userdb.logs import OrcidProofing
@@ -13,7 +14,7 @@ from eduid.webapp.common.api.messages import CommonMsg, FluxData, TranslatableMs
 from eduid.webapp.common.api.schemas.csrf import EmptyRequest
 from eduid.webapp.common.api.utils import get_unique_hash, save_and_sync_user
 from eduid.webapp.orcid.app import current_orcid_app as current_app
-from eduid.webapp.orcid.helpers import OrcidMsg
+from eduid.webapp.orcid.helpers import OrcidMsg, OrcidUserinfo
 from eduid.webapp.orcid.schemas import OrcidResponseSchema
 
 __author__ = "lundberg"
@@ -100,13 +101,20 @@ def authorization_response(user: User) -> WerkzeugResponse:
 
     # do userinfo request
     current_app.logger.debug("Trying to do userinfo request:")
-    userinfo = current_app.oidc_client.do_user_info_request(
+    userinfo_result = current_app.oidc_client.do_user_info_request(
         method=current_app.conf.userinfo_endpoint_method, state=authn_resp["state"]
     )
-    current_app.logger.debug(f"userinfo received: {userinfo!s}")
-    if userinfo["sub"] != id_token["sub"]:
+    current_app.logger.debug(f"userinfo received: {userinfo_result}")
+
+    try:
+        userinfo = OrcidUserinfo(**userinfo_result)
+    except ValidationError as e:
+        current_app.logger.error(f"Failed to parse userinfo: {e}")
+        return redirect_with_msg(redirect_url, OrcidMsg.authz_error)
+
+    if userinfo.sub != id_token["sub"]:
         current_app.logger.error(
-            f"The 'sub' of userinfo does not match 'sub' of ID Token for user {proofing_state.eppn!s}."
+            f"The 'sub' of userinfo does not match 'sub' of ID Token for user {proofing_state.eppn}."
         )
         return redirect_with_msg(redirect_url, OrcidMsg.sub_mismatch)
 
@@ -132,10 +140,10 @@ def authorization_response(user: User) -> WerkzeugResponse:
         created_by="orcid",
     )
     orcid_element = Orcid(
-        id=userinfo["id"],
-        name=userinfo["name"],
-        given_name=userinfo["given_name"],
-        family_name=userinfo["family_name"],
+        id=userinfo.orcid,
+        name=userinfo.name,
+        given_name=userinfo.given_name,
+        family_name=userinfo.family_name,
         is_verified=True,
         oidc_authz=oidc_authz,
         created_by="orcid",
