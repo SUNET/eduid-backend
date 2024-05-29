@@ -20,15 +20,15 @@ from eduid.common.models.amapi_user import (
 
 
 class AMAPIClient(GNAPClient):
-    def __init__(self, amapi_url: str, app, auth_data=GNAPClientAuthData, **kwargs):
-        super().__init__(auth_data=auth_data, app=app, **kwargs)
+    def __init__(self, amapi_url: str, auth_data=GNAPClientAuthData, verify_tls: bool = True, **kwargs):
+        super().__init__(auth_data=auth_data, verify=verify_tls, **kwargs)
         self.amapi_url = amapi_url
 
     def _users_base_url(self) -> str:
         return urlappend(self.amapi_url, "users")
 
     def _put(self, base_path: str, user: str, endpoint: str, body: Any) -> httpx.Response:
-        return self.put(urlappend(base_path, f"{user}/{endpoint}"), json=body.json())
+        return self.put(url=urlappend(base_path, f"{user}/{endpoint}"), content=body.json())
 
     def update_user_email(self, user: str, body: UserUpdateEmailRequest) -> UserUpdateResponse:
         ret = self._put(base_path=self._users_base_url(), user=user, endpoint="email", body=body)

@@ -1,14 +1,20 @@
 import logging
 
-from pydantic import field_validator
+from pydantic import BaseModel, field_validator
 
-from eduid.common.config.base import LoggingConfigMixin, RootConfig, StatsConfigMixin
+from eduid.common.clients.gnap_client.base import GNAPClientAuthData
+from eduid.common.config.base import LoggingConfigMixin, MsgConfigMixin, RootConfig, StatsConfigMixin
 from eduid.common.utils import removesuffix
 
 logger = logging.getLogger(__name__)
 
 
-class JobRunnerConfig(RootConfig, LoggingConfigMixin, StatsConfigMixin):
+class AmAPIConfig(BaseModel):
+    url: str
+    tls_verify: bool = True
+
+
+class JobRunnerConfig(RootConfig, LoggingConfigMixin, StatsConfigMixin, MsgConfigMixin):
     """
     Configuration for the user-cleaner service.
     """
@@ -18,6 +24,9 @@ class JobRunnerConfig(RootConfig, LoggingConfigMixin, StatsConfigMixin):
     mongo_uri: str = ""
     status_cache_seconds: int = 10
     jobs: dict = {}
+
+    gnap_auth_data: GNAPClientAuthData
+    amapi: AmAPIConfig
 
     @field_validator("application_root")
     @classmethod

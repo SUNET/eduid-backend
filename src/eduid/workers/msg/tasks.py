@@ -234,23 +234,30 @@ class MessageSender(Task):
     def get_all_navet_data(self, identity_number: str) -> Optional[OrderedDict[str, Any]]:
         # Only log the message if devel_mode is enabled
         if MsgCelerySingleton.worker_config.devel_mode is True:
-            return self.get_devel_all_navet_data()
+            return self.get_devel_all_navet_data(identity_number)
 
         data = self._get_navet_data(identity_number)
         return navet_get_all_data(data)
 
     @staticmethod
-    def get_devel_all_navet_data() -> OrderedDict[str, Any]:
+    def get_devel_all_navet_data(identity_number: str = "190102031234") -> OrderedDict[str, Any]:
         """
         Return a dict with devel data
+        Birthdates preceding 1900 are shown as deceased for testing purposes
         """
+
+        deregistration_information = {}
+        birth_year = int(identity_number[0:4])
+        if birth_year < 1900:
+            deregistration_information = {"date": "20220315", "causeCode": "AV"}
+
         result = OrderedDict(
             {
                 "CaseInformation": {"lastChanged": "20170904141659"},
                 "Person": {
-                    "PersonId": {"NationalIdentityNumber": "197609272393"},
+                    "PersonId": {"NationalIdentityNumber": identity_number},
                     "ReferenceNationalIdentityNumber": "",
-                    "DeregistrationInformation": {},
+                    "DeregistrationInformation": deregistration_information,
                     "Name": {"GivenNameMarking": "20", "GivenName": "Testaren Test", "Surname": "Testsson"},
                     "PostalAddresses": {
                         "OfficialAddress": {"Address2": "ÖRGATAN 79 LGH 10", "PostalCode": "12345", "City": "LANDET"}

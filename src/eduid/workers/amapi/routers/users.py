@@ -57,5 +57,5 @@ async def on_put_meta_cleaned(req: ContextRequest, data: UserUpdateMetaCleanedRe
 
 @users_router.put("/{eppn}/terminate", response_model=UserUpdateResponse)
 async def on_terminate_user(req: ContextRequest, data: UserUpdateTerminateRequest, eppn: str):
-    req.app.context.logger.info(f"Terminate user {eppn} email")
+    req.app.context.logger.info(f"Terminate user {eppn}")
     return update_user(req=req, eppn=eppn, data=data)

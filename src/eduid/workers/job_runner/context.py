@@ -1,7 +1,9 @@
 import logging
 from os import environ
 
+from eduid.common.clients.amapi_client.amapi_client import AMAPIClient
 from eduid.common.fastapi.log import init_logging
+from eduid.common.rpc.msg_relay import MsgRelay
 from eduid.userdb.user_cleaner.db import CleanerQueueDB
 from eduid.userdb.userdb import AmDB
 from eduid.workers.job_runner.config import JobRunnerConfig
@@ -28,3 +30,15 @@ class Context:
 
         self.cleaner_queue = CleanerQueueDB(db_uri=self.config.mongo_uri)
         self.logger.info(f"Database {self.cleaner_queue} initialized")
+
+        # Setup MsgRelay
+        self.msg_relay = MsgRelay(self.config)
+        self.logger.info(f"MsgRelay {self.msg_relay} initialized")
+
+        # Setup amapi client
+        self.amapi_client = AMAPIClient(
+            amapi_url=self.config.amapi.url,
+            auth_data=self.config.gnap_auth_data,
+            verify_tls=self.config.amapi.tls_verify,
+        )
+        self.logger.info(f"AMAPIClient {self.amapi_client} initialized")

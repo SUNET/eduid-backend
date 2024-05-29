@@ -99,9 +99,14 @@ class DeregisteredCauseCode(str, Enum):
     DECEASED = "AV"
     EMIGRATED = "UV"
     OLD_NIN = "GN"
-    OTHER_REASON = "AN"
-    TECHNICALLY_DEREGISTERED = "TA"
+    OLD_COORDINATION_NUMBER = "GS"
+    # From 2006-09-20
     MISSING = "OB"
+    TECHNICALLY_DEREGISTERED = "TA"
+    ANNULLED_COORDINATION_NUMBER = "AS"
+    # Before 2006-09-20
+    OTHER_REASON = "AN"
+    # From 2018-07-01
     FALSE_IDENTITY = "FI"
 
 
