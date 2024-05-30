@@ -48,6 +48,39 @@
             {% endfor %}
         </td>
     </tr>
+<tr>
+        <th>Locked identity:</th>
+        <td>
+            {% for item in user_dict.locked_identity|multisort('verified', 'created_ts', reverse=True) %}
+                <dl>
+                    <dt>Type</dt><dd>{{ item.get('identity_type') }}</dd>
+                    {% if item.get('number') %}
+                        <dt>Number</dt><dd>{{ item.get('number') }}</dd>
+                    {% endif %}
+                    {% if item.get('prid') %}
+                        <dt>Prid</dt><dd>{{ item.get('prid') }}</dd>
+                    {% endif %}
+                    {% if item.get('prid_persistence') %}
+                        <dt>Prid persistence</dt><dd>{{ item.get('prid_persistence') }}</dd>
+                    {% endif %}
+                    {% if item.get('country_code') %}
+                        <dt>Country code</dt><dd>{{ item.get('country_code') }}</dd>
+                    {% endif %}
+                    {% if item.get('date_of_birth') %}
+                        <dt>Date of birth</dt><dd>{{ item.get('date_of_birth')|dateformat }}</dd>
+                    {% endif %}
+                    <dt>Verified</dt><dd>{{ item.get('verified') }}</dd>
+                    <dt>Added timestamp</dt><dd>{{ item.get('created_ts')|datetimeformat }}</dd>
+                    {% if item.get('verified_by') %}
+                        <dt>Verified using</dt><dd>{{ item.get('verified_by') }}</dd>
+                    {% endif %}
+                    {% if  item.get('verified_ts') %}
+                        <dt>Verified timestamp</dt><dd>{{ item.get('verified_ts')|datetimeformat }}</dd>
+                    {% endif %}
+                </dl>
+            {% endfor %}
+        </td>
+    </tr>
     <tr>
         <th>Mail addresses:</th>
         <td>
@@ -90,6 +123,21 @@
                 <dl>
                     <dt>Type</dt><dd>{{ credential.get('type') }}</dd>
                     <dt>Last used successfully</dt><dd>{{ credential.get('success_ts')|datetimeformat }}</dd>
+                    {% if credential.get('verified') %}
+                        <dt>Verified</dt><dd>{{ credential.get('verified') }}</dd>
+                    {% endif %}
+                    {% if credential.get('type') == 'Webauthn' %}
+                        <dt>Authenticator</dt><dd>{{ credential.get('authenticator') }}</dd>
+                        <dt>Authenticator ID</dt><dd>{{ credential.get('authenticator_id') }}</dd>
+                        <dt>Attestation Format</dt><dd>{{ credential.get('attestation_format') }}</dd>
+                        <dt>Mfa approved</dt><dd>{{ credential.get('mfa_approved') }}</dd>
+                    {% endif %}
+                    {% if credential.get('framework') %}
+                        <dt>Framework</dt><dd>{{ credential.get('framework') }}</dd>
+                    {% endif %}
+                    {% if credential.get('level') %}
+                        <dt>Level</dt><dd>{{ credential.get('level') }}</dd>
+                    {% endif %}
                     <dt>Added using</dt><dd>{{ credential.get('created_by') }}</dd>
                     <dt>Added timestamp</dt><dd>{{ credential.get('created_ts')|datetimeformat }}</dd>
                 </dl>

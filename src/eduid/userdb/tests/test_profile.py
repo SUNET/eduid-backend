@@ -66,15 +66,13 @@ class ProfileTest(TestCase):
         with pytest.raises(ValidationError) as exc_info:
             ProfileList(elements=[profile, profile2])
 
-        assert normalised_data(exc_info.value.errors(), exclude_keys=["input"]) == normalised_data(
+        assert normalised_data(exc_info.value.errors(), exclude_keys=["input", "url"]) == normalised_data(
             [
                 {
                     "ctx": {"error": ValueError("Duplicate element key: 'test owner 1'")},
                     "loc": ("elements",),
                     "msg": "Value error, Duplicate element key: 'test owner 1'",
                     "type": "value_error",
-                    "url": "https://errors.pydantic.dev/2.6/v/value_error",
                 }
-            ],
-            exclude_keys=["input"],
+            ]
         )

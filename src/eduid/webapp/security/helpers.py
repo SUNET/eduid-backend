@@ -5,17 +5,20 @@ from functools import cache
 from typing import Any, List, Optional
 
 from fido_mds.models.webauthn import AttestationFormat
-from flask_babel import gettext as _
 
+from eduid.common.config.base import EduidEnvironment
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.rpc.msg_relay import FullPostalAddress, NavetData
 from eduid.common.utils import generate_password
+from eduid.queue.client import init_queue_item
+from eduid.queue.db.message.payload import EduidTerminationEmail
 from eduid.userdb import NinIdentity
 from eduid.userdb.logs.element import NameUpdateProofing
 from eduid.userdb.security import SecurityUser
 from eduid.userdb.user import User
-from eduid.webapp.common.api.helpers import send_mail, set_user_names_from_official_address
+from eduid.webapp.common.api.helpers import set_user_names_from_official_address
 from eduid.webapp.common.api.messages import FluxData, TranslatableMsg, error_response
+from eduid.webapp.common.api.translation import get_user_locale
 from eduid.webapp.common.session.namespaces import SP_AuthnRequest
 from eduid.webapp.security.app import current_security_app as current_app
 from eduid.webapp.security.webauthn_proofing import AuthenticatorInformation, is_authenticator_mfa_approved
@@ -70,8 +73,10 @@ class SecurityMsg(TranslatableMsg):
     no_webauthn = "security.webauthn-token-notfound"
     invalid_authenticator = "security.webauthn-invalid-authenticator"
     missing_registration_state = "security.webauthn-missing-registration-state"
+    webauthn_missing_credential_data = "security.webauthn-missing-credential-data"
     webauthn_attestation_fail = "security.webauthn-attestation-fail"
     webauthn_metadata_fail = "security.webauthn-metadata-fail"
+    webauthn_registration_fail = "security.webauthn-registration-fail"
 
 
 @dataclass
@@ -146,12 +151,25 @@ def send_termination_mail(user):
 
     Sends a termination mail to all verified mail addresses for the user.
     """
-    subject = _("Terminate account")
-    text_template = "termination_email.txt.jinja2"
-    html_template = "termination_email.html.jinja2"
-    to_addresses = [address.email for address in user.mail_addresses.verified]
-    send_mail(subject, to_addresses, text_template, html_template, current_app)
-    current_app.logger.info("Sent termination email to user.")
+    for email in user.mail_addresses.verified:
+        # send a termination mail to all the users verified mail addresses
+        payload = EduidTerminationEmail(
+            email=email.email,
+            site_name=current_app.conf.eduid_site_name,
+            language=get_user_locale() or current_app.conf.default_language,
+            reference=f"eppn={user.eppn},mail={email.email},ts={utc_now()}",
+        )
+
+        message = init_queue_item(app_name=current_app.conf.app_name, expires_in=timedelta(days=7), payload=payload)
+        current_app.messagedb.save(message)
+        current_app.logger.info(
+            f"Saved termination mail queue item in queue collection {current_app.messagedb._coll_name}"
+        )
+        current_app.logger.debug(f"email: {email}")
+        if current_app.conf.environment == EduidEnvironment.dev:
+            # Debug-log the code and message in development environment
+            current_app.logger.debug(f"Generating termination mail with context:\n{payload}")
+        current_app.logger.info(f"Sent termination mail to user {user} to address {email}.")
 
 
 def check_reauthn(authn: Optional[SP_AuthnRequest], max_age: timedelta) -> Optional[FluxData]:

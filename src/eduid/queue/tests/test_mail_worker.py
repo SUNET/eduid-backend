@@ -10,7 +10,7 @@ from aiosmtplib import SMTPResponse
 from eduid.common.config.parsers import load_config
 from eduid.queue.config import QueueWorkerConfig
 from eduid.queue.db.message import EduidSignupEmail
-from eduid.queue.db.message.payload import EduidResetPasswordEmail, EduidVerificationEmail
+from eduid.queue.db.message.payload import EduidResetPasswordEmail, EduidTerminationEmail, EduidVerificationEmail
 from eduid.queue.testing import IsolatedWorkerDBMixin, QueueAsyncioTest, SMPTDFixTemporaryInstance
 from eduid.queue.workers.mail import MailQueueWorker
 from eduid.userdb.util import utc_now
@@ -127,16 +127,20 @@ class TestMailWorker(QueueAsyncioTest):
                 verification_code="secret",
                 site_name="Test App",
             )
-            msg = self.worker._build_mail(
-                subject="Translation Test",
-                txt_template="eduid_signup_email.txt.jinja2",
-                html_template="eduid_signup_email.html.jinja2",
-                data=payload,
-            )
+            with self.worker._jinja2.select_language(lang) as env:
+                msg = self.worker._build_mail(
+                    translation_env=env.jinja2_env,
+                    subject=env.gettext("eduID registration"),
+                    txt_template="eduid_signup_email.txt.jinja2",
+                    html_template="eduid_signup_email.html.jinja2",
+                    data=payload,
+                )
             msg_string = str(msg)
             if lang == "en":
+                assert "Subject: eduID registration" in msg_string
                 assert "You recently used noone@example.com to sign up for" in msg_string
             if lang == "sv":
+                assert "Subject: eduID-registrering" in msg_string
                 assert "Du har registrerat noone@example.com som e-postadress" in msg_string
 
     async def test_reset_password_mail_translations(self):
@@ -149,17 +153,21 @@ class TestMailWorker(QueueAsyncioTest):
                 password_reset_timeout=2,
                 site_name="Test App",
             )
-            msg = self.worker._build_mail(
-                subject="Translation Test",
-                txt_template="reset_password_email.txt.jinja2",
-                html_template="reset_password_email.html.jinja2",
-                data=payload,
-            )
+            with self.worker._jinja2.select_language(lang) as env:
+                msg = self.worker._build_mail(
+                    translation_env=env.jinja2_env,
+                    subject=env.gettext("Reset password"),
+                    txt_template="reset_password_email.txt.jinja2",
+                    html_template="reset_password_email.html.jinja2",
+                    data=payload,
+                )
             msg_string = str(msg)
             if lang == "en":
+                assert "Subject: Reset password" in msg_string
                 assert "You recently asked to reset your password for" in msg_string
                 assert "The code is valid for 2 hours." in msg_string
             if lang == "sv":
+                assert "Subject: eduID lösenordsåterställning" in msg_string
                 assert "Du har bett om att byta" in msg_string
                 assert "giltig i 2 timmar." in msg_string
 
@@ -172,15 +180,43 @@ class TestMailWorker(QueueAsyncioTest):
                 verification_code="secret",
                 site_name="Test App",
             )
-            msg = self.worker._build_mail(
-                subject="Translation Test",
-                txt_template="verification_email.txt.jinja2",
-                html_template="verification_email.html.jinja2",
-                data=payload,
-            )
+            with self.worker._jinja2.select_language(lang) as env:
+                msg = self.worker._build_mail(
+                    translation_env=env.jinja2_env,
+                    subject=env.gettext("eduID verification email"),
+                    txt_template="verification_email.txt.jinja2",
+                    html_template="verification_email.html.jinja2",
+                    data=payload,
+                )
             msg_string = str(msg)
             if lang == "en":
+                assert "Subject: eduID verification email" in msg_string
                 assert "You have recently added this mail address to your Test App account." in msg_string
             if lang == "sv":
+                assert "Subject: eduID e-postverifiering" in msg_string
                 assert "Du har nyligen lagt till den" in msg_string
                 assert "Skriv in koden nedan" in msg_string
+
+    async def test_termination_mail_translations(self):
+        for lang in ["en", "sv"]:
+            payload = EduidTerminationEmail(
+                email="noone@example.com",
+                reference="test",
+                language=lang,
+                site_name="Test App",
+            )
+            with self.worker._jinja2.select_language(lang) as env:
+                msg = self.worker._build_mail(
+                    translation_env=env.jinja2_env,
+                    subject=env.gettext("eduID account termination"),
+                    txt_template="termination_email.txt.jinja2",
+                    html_template="termination_email.html.jinja2",
+                    data=payload,
+                )
+            msg_string = str(msg)
+            if lang == "en":
+                assert "Subject: eduID account termination" in msg_string
+                assert "You have chosen to terminate your account at Test App." in msg_string
+            if lang == "sv":
+                assert "Subject: eduID avsluta konto" in msg_string
+                assert "tas ditt konto bort om en vecka." in msg_string

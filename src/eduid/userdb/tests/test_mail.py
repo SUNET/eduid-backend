@@ -8,6 +8,7 @@ from pydantic import ValidationError
 
 import eduid.userdb.element
 import eduid.userdb.exceptions
+from eduid.common.misc.timeutil import utc_now
 from eduid.common.testing_base import normalised_data
 from eduid.userdb import PhoneNumber
 from eduid.userdb.mail import MailAddress, MailAddressList
@@ -77,18 +78,16 @@ class TestMailAddressList(unittest.TestCase):
         with pytest.raises(ValidationError) as exc_info:
             self.two.add(dup)
 
-        assert normalised_data(exc_info.value.errors(), exclude_keys=["input"]) == normalised_data(
+        assert normalised_data(exc_info.value.errors(), exclude_keys=["input", "url"]) == normalised_data(
             [
                 {
                     "ctx": {"error": ValueError("Duplicate element key: 'ft@one.example.org'")},
                     "loc": ("elements",),
                     "msg": "Value error, Duplicate element key: 'ft@one.example.org'",
                     "type": "value_error",
-                    "url": "https://errors.pydantic.dev/2.6/v/value_error",
                 }
             ],
-            exclude_keys=["input"],
-        )
+        ), f"Wrong error message: {normalised_data(exc_info.value.errors(), exclude_keys=['input', 'url'])}"
 
     def test_add_mailaddress(self):
         third = self.three.find("ft@three.example.org")
@@ -211,15 +210,14 @@ class TestMailAddress(TestCase):
         with pytest.raises(ValidationError) as exc_info:
             MailAddress.from_dict(one)
 
-        assert exc_info.value.errors() == [
+        assert normalised_data(exc_info.value.errors(), exclude_keys=["url"]) == [
             {
                 "input": "bar",
-                "loc": ("foo",),
+                "loc": ["foo"],
                 "msg": "Extra inputs are not permitted",
                 "type": "extra_forbidden",
-                "url": "https://errors.pydantic.dev/2.6/v/extra_forbidden",
             }
-        ]
+        ], f"Wrong error message: {normalised_data(exc_info.value.errors(), exclude_keys=['url'])}"
 
     def test_bad_input_type(self):
         one = copy.deepcopy(_one_dict)
@@ -227,7 +225,7 @@ class TestMailAddress(TestCase):
         with pytest.raises(ValidationError) as exc_info:
             MailAddress.from_dict(one)
 
-        assert normalised_data(exc_info.value.errors()) == normalised_data(
+        assert normalised_data(exc_info.value.errors(), exclude_keys=["url"]) == normalised_data(
             [
                 {
                     "ctx": {"error": ValueError("must be a string")},
@@ -235,10 +233,9 @@ class TestMailAddress(TestCase):
                     "loc": ("email",),
                     "msg": "Value error, must be a string",
                     "type": "value_error",
-                    "url": "https://errors.pydantic.dev/2.6/v/value_error",
                 }
             ]
-        )
+        ), f"Wrong error message: {exc_info.value.errors()}"
 
     def test_changing_is_verified_on_primary(self):
         this = self.one.primary
@@ -263,13 +260,12 @@ class TestMailAddress(TestCase):
 
     def test_verified_ts(self):
         this = self.three.find("ft@three.example.org")
-        this.verified_ts = datetime.datetime.utcnow()
+        this.verified_ts = utc_now()
         self.assertIsInstance(this.verified_ts, datetime.datetime)
 
     def test_modify_verified_ts(self):
         this = self.three.find("ft@three.example.org")
-        now = datetime.datetime.utcnow()
-        this.verified_ts = now
+        this.verified_ts = utc_now()
 
     def test_created_by(self):
         this = self.three.find("ft@three.example.org")

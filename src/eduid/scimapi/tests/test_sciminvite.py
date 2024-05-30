@@ -424,10 +424,9 @@ class TestInviteResource(ScimApiTestCase):
                     "loc": ["body", "https://scim.eduid.se/schema/nutid/invite/v1"],
                     "msg": "Value error, Missing inviterName",
                     "type": "value_error",
-                    "url": "https://errors.pydantic.dev/2.6/v/value_error",
                 }
             ],
-            exclude_keys=["input"],
+            exclude_keys=["input", "url"],
         )
 
         req2 = copy(req)
@@ -442,10 +441,9 @@ class TestInviteResource(ScimApiTestCase):
                     "loc": ["body", "https://scim.eduid.se/schema/nutid/invite/v1"],
                     "msg": "Value error, Missing sendEmail",
                     "type": "value_error",
-                    "url": "https://errors.pydantic.dev/2.6/v/value_error",
                 }
             ],
-            exclude_keys=["input"],
+            exclude_keys=["input", "url"],
         )
 
     def test_create_invite_do_not_send_email(self):

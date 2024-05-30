@@ -7,6 +7,7 @@ from pydantic import ValidationError
 
 from eduid.common.config.base import RootConfig
 from eduid.common.config.parsers import load_config
+from eduid.common.testing_base import normalised_data
 
 __author__ = "ft"
 
@@ -65,15 +66,14 @@ class TestInitConfig(unittest.TestCase):
         with pytest.raises(ValidationError) as exc_info:
             load_config(typ=TestConfig, ns="test", app_name="test_missing_value")
 
-        assert exc_info.value.errors() == [
+        assert normalised_data(exc_info.value.errors(), exclude_keys=["url"]) == [
             {
                 "input": {"app_name": "test_missing_value", "debug": True, "foo": "bar"},
-                "loc": ("number",),
+                "loc": ["number"],
                 "msg": "Field required",
                 "type": "missing",
-                "url": "https://errors.pydantic.dev/2.6/v/missing",
             }
-        ]
+        ], f"Wrong error message: {exc_info.value.errors()}"
 
     def test_YamlConfig_wrong_type(self):
         os.environ["EDUID_CONFIG_NS"] = "/eduid/test/test_wrong_type"
@@ -83,15 +83,14 @@ class TestInitConfig(unittest.TestCase):
         with pytest.raises(ValidationError) as exc_info:
             load_config(typ=TestConfig, ns="test", app_name="test_wrong_type")
 
-        assert exc_info.value.errors() == [
+        assert normalised_data(exc_info.value.errors(), exclude_keys=["url"]) == [
             {
                 "input": "0xz",
-                "loc": ("number",),
+                "loc": ["number"],
                 "msg": "Input should be a valid integer, unable to parse string as an integer",
                 "type": "int_parsing",
-                "url": "https://errors.pydantic.dev/2.6/v/int_parsing",
             }
-        ]
+        ], f"Wrong error message: {exc_info.value.errors()}"
 
     def test_YamlConfig_unknown_data(self):
         """Unknown data should not be rejected because it is an operational nightmare"""

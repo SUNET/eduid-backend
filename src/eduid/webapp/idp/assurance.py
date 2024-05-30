@@ -110,12 +110,16 @@ class AuthnState:
 
         # check if the user can assert DIGG loa2
         if user.identities.nin and user.identities.nin.is_verified:
-            self.digg_loa2_approved_identity = user.identities.nin.proofing_method in [
-                IdentityProofingMethod.SWEDEN_CONNECT,
-                IdentityProofingMethod.BANKID,
-                IdentityProofingMethod.LETTER,
-            ]
-            logger.debug(f"User NIN proofing method: {user.identities.nin.proofing_method}")
+            identity_proofing_method = user.identities.nin.proofing_method
+            # if the identity was verified before 2023-02, the proofing_method has not been set
+            # this will be fixed when we start enforcing re-proofing of NINs
+            if identity_proofing_method is None:
+                identity_proofing_method = user.identities.nin.get_missing_proofing_method()
+            # DIGG only allow the following methods for identity proofing
+            self.digg_loa2_approved_identity = (
+                identity_proofing_method in current_app.conf.digg_loa2_allowed_identity_proofing_methods
+            )
+            logger.debug(f"User NIN proofing method: {identity_proofing_method}")
             if self.digg_loa2_approved_identity and self.swamid_al3_used:
                 logger.info("User can assert DIGG loa2")
                 self.is_digg_loa2 = True
@@ -216,7 +220,7 @@ def response_authn(authn: AuthnState, ticket: LoginContext, user: IdPUser, sso_s
     given the RequestedAuthnContext from the SAML request.
     """
     req_authn_ctx = ticket.get_requested_authn_context()
-    logger.info(f"Authn for {user} will be evaluated based on: {authn}")
+    logger.info(f"Authn for {user} will be evaluated for {req_authn_ctx} based on: {authn}")
 
     attributes = {}
     response_accr = None

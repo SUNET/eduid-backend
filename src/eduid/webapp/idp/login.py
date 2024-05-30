@@ -205,9 +205,9 @@ def login_next_step(ticket: LoginContext, sso_session: Optional[SSOSession]) -> 
     except MissingAuthentication:
         res = NextResult(message=IdPMsg.must_authenticate)
     except IdentityProofingMethodNotAllowed:
-        res = NextResult(message=IdPMsg.identity_proofing_method_not_allowed)
+        res = NextResult(message=IdPMsg.identity_proofing_method_not_allowed, error=True)
     except MfaProofingMethodNotAllowed:
-        res = NextResult(message=IdPMsg.mfa_proofing_method_not_allowed)
+        res = NextResult(message=IdPMsg.mfa_proofing_method_not_allowed, error=True)
     except AuthnContextNotSupported:
         res = NextResult(message=IdPMsg.assurance_failure, error=True)
     except AssuranceException as exc:

@@ -80,16 +80,17 @@ class TestAuthnBearerToken(BaseDBTestCase):
         # test too short domain name
         with pytest.raises(ValidationError) as exc_info:
             AuthnBearerToken(config=self.config, version=1, scopes={ScopeName(".se")}, auth_source=AuthSource.CONFIG)
-        assert exc_info.value.errors() == [
-            {
-                "ctx": {"min_length": 4},
-                "input": ".se",
-                "loc": ("scopes", 0),
-                "msg": "String should have at least 4 characters",
-                "type": "string_too_short",
-                "url": "https://errors.pydantic.dev/2.6/v/string_too_short",
-            }
-        ]
+        assert normalised_data(exc_info.value.errors(), exclude_keys=["url"]) == normalised_data(
+            [
+                {
+                    "ctx": {"min_length": 4},
+                    "input": ".se",
+                    "loc": ("scopes", 0),
+                    "msg": "String should have at least 4 characters",
+                    "type": "string_too_short",
+                }
+            ]
+        ), f"Wrong error message: {exc_info.value.errors()}"
 
     def test_invalid_version(self) -> None:
         # test too short domain name
@@ -97,7 +98,7 @@ class TestAuthnBearerToken(BaseDBTestCase):
             AuthnBearerToken(
                 config=self.config, version=99, scopes={ScopeName("eduid.se")}, auth_source=AuthSource.CONFIG
             )
-        assert normalised_data(exc_info.value.errors()) == normalised_data(
+        assert normalised_data(exc_info.value.errors(), exclude_keys=["url"]) == normalised_data(
             [
                 {
                     "ctx": {"error": ValueError("Unknown version")},
@@ -105,10 +106,9 @@ class TestAuthnBearerToken(BaseDBTestCase):
                     "loc": ("version",),
                     "msg": "Value error, Unknown version",
                     "type": "value_error",
-                    "url": "https://errors.pydantic.dev/2.6/v/value_error",
                 }
             ]
-        )
+        ), f"Wrong error message: {exc_info.value.errors()}"
 
     def test_requested_access_canonicalization(self) -> None:
         """Test input data normalisation of the 'requested_access' field."""
@@ -159,7 +159,7 @@ class TestAuthnBearerToken(BaseDBTestCase):
                 requested_access=[RequestedAccess(type=self.config.requested_access_type, scope=".se")],
                 auth_source=AuthSource.CONFIG,
             )
-        assert normalised_data(exc_info.value.errors()) == normalised_data(
+        assert normalised_data(exc_info.value.errors(), exclude_keys=["url"]) == normalised_data(
             [
                 {
                     "ctx": {"min_length": 4},
@@ -167,10 +167,9 @@ class TestAuthnBearerToken(BaseDBTestCase):
                     "loc": ("scope",),
                     "msg": "String should have at least 4 characters",
                     "type": "string_too_short",
-                    "url": "https://errors.pydantic.dev/2.6/v/string_too_short",
                 }
             ]
-        )
+        ), f"Wrong error message: {exc_info.value.errors()}"
 
     def test_requested_access_not_for_us(self):
         """Test with a 'requested_access' field with the wrong 'type' value."""
@@ -184,7 +183,7 @@ class TestAuthnBearerToken(BaseDBTestCase):
                 requested_access=[RequestedAccess(type="someone else", scope=domain)],
                 auth_source=AuthSource.CONFIG,
             )
-        assert normalised_data(exc_info.value.errors()) == normalised_data(
+        assert normalised_data(exc_info.value.errors(), exclude_keys=["url"]) == normalised_data(
             [
                 {
                     "type": "value_error",
@@ -192,10 +191,9 @@ class TestAuthnBearerToken(BaseDBTestCase):
                     "msg": "Value error, No requested access",
                     "input": [RequestedAccess(type="someone else", scope="eduid.se")],
                     "ctx": {"error": ValueError("No requested access")},
-                    "url": "https://errors.pydantic.dev/2.6/v/value_error",
                 }
             ]
-        )
+        ), f"Wrong error message: {exc_info.value.errors()}"
 
     def test_regular_token(self):
         """Test the normal case. Login with access granted based on the single scope in the request."""

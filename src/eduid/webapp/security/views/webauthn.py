@@ -99,12 +99,8 @@ def registration_begin(user: User, authenticator: str) -> FluxData:
     if user.given_name is None or user.surname is None:
         return error_response(message=SecurityMsg.no_pdata)
 
-    display_name = f"{user.given_name} {user.surname}"
-    if user.chosen_given_name:
-        display_name = f"{user.chosen_given_name} {user.surname}"
-
     user_entity = PublicKeyCredentialUserEntity(
-        id=bytes(user.eppn, "utf-8"), name=f"{user.given_name} {user.surname}", display_name=display_name
+        id=bytes(user.eppn, "utf-8"), name=f"{user.given_name} {user.surname}", display_name=user.friendly_identifier
     )
     registration_data, state = server.register_begin(
         user=user_entity,
@@ -149,12 +145,12 @@ def registration_complete(
     try:
         authenticator_info = get_authenticator_information(attestation=attestation_object, client_data=client_data)
     except (AttestationVerificationError, NotImplementedError, ValueError):
-        current_app.logger.exception(f"attestation verification failed")
+        current_app.logger.exception("attestation verification failed")
         current_app.logger.info(f"attestation_object: {attestation_object}")
         current_app.logger.info(f"client_data: {client_data}")
         return error_response(message=SecurityMsg.webauthn_attestation_fail)
     except MetadataValidationError:
-        current_app.logger.exception(f"metadata validation failed")
+        current_app.logger.exception("metadata validation failed")
         current_app.logger.info(f"attestation_object: {attestation_object}")
         current_app.logger.info(f"client_data: {client_data}")
         return error_response(message=SecurityMsg.webauthn_metadata_fail)
@@ -163,9 +159,16 @@ def registration_complete(
     reg_state = session.security.webauthn_registration
     session.security.webauthn_registration = None
 
-    auth_data: AuthenticatorData = server.register_complete(reg_state.webauthn_state, cdata_obj, att_obj)
+    try:
+        auth_data: AuthenticatorData = server.register_complete(reg_state.webauthn_state, cdata_obj, att_obj)
+    except ValueError:
+        current_app.logger.exception("Webauthn registration failed")
+        return error_response(message=SecurityMsg.webauthn_registration_fail)
     if auth_data.credential_data is None:
-        raise RuntimeError("Authenticator data does not contain credential data")
+        current_app.logger.error("Webauthn credential data is missing")
+        current_app.logger.debug(f"Received auth_data: {auth_data}")
+        return error_response(message=SecurityMsg.webauthn_missing_credential_data)
+
     credential_data = base64.urlsafe_b64encode(auth_data.credential_data).decode("ascii")
     current_app.logger.debug(f"Processed Webauthn credential data: {credential_data}")
     mfa_approved = is_authenticator_mfa_approved(authenticator_info=authenticator_info)

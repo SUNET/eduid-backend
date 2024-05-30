@@ -14,6 +14,10 @@ __author__ = "lundberg"
 class SignupStatusResponse(FluxStandardAction):
     class StatusSchema(EduidSchema, CSRFResponseMixin):
         class State(EduidSchema):
+            class Name(EduidSchema):
+                given_name = fields.String(required=False)
+                surname = fields.String(required=False)
+
             class EmailVerification(EduidSchema):
                 address = fields.String(required=False)
                 completed = fields.Boolean(required=True)
@@ -44,6 +48,7 @@ class SignupStatusResponse(FluxStandardAction):
                 # TODO: implement webauthn signup
 
             already_signed_up = fields.Boolean(required=True)
+            name = fields.Nested(Name, required=True)
             email = fields.Nested(EmailVerification, required=True)
             invite = fields.Nested(Invite, required=True)
             tou = fields.Nested(Tou, required=True)
@@ -117,7 +122,9 @@ class CaptchaCompleteRequest(EduidSchema, CSRFRequestMixin):
     internal_response = fields.String(required=False)
 
 
-class EmailSchema(EduidSchema, CSRFRequestMixin):
+class NameAndEmailSchema(EduidSchema, CSRFRequestMixin):
+    given_name = fields.String(required=True)
+    surname = fields.String(required=True)
     email = LowercaseEmail(required=True, validate=[validate_email])
 
 
@@ -160,21 +167,3 @@ class InviteCompletedResponse(FluxStandardAction):
         finish_url = fields.String(required=False)
 
     payload = fields.Nested(InviteCompletedSchema)
-
-
-# backwards compatibility
-
-
-class RegisterEmailSchema(EmailSchema):
-    tou_accepted = fields.Boolean(required=True)
-
-
-class AccountCreatedSchema(EduidSchema, CSRFResponseMixin):
-    next = fields.String(required=True)
-
-
-class AccountCreatedResponse(FluxStandardAction):
-    payload = fields.Nested(AccountCreatedSchema)
-
-
-# end of backwards compatibility

@@ -6,6 +6,7 @@ from unittest import TestCase
 import pytest
 from pydantic import ValidationError
 
+from eduid.common.testing_base import normalised_data
 from eduid.userdb.credentials import U2F, Credential, CredentialList, CredentialProofingMethod
 
 __author__ = "lundberg"
@@ -76,15 +77,14 @@ class TestU2F(TestCase):
         one["foo"] = "bar"
         with pytest.raises(ValidationError) as exc_info:
             U2F.from_dict(one)
-        assert exc_info.value.errors() == [
+        assert normalised_data(exc_info.value.errors(), exclude_keys=["url"]) == [
             {
                 "input": "bar",
-                "loc": ("foo",),
+                "loc": ["foo"],
                 "msg": "Extra inputs are not permitted",
                 "type": "extra_forbidden",
-                "url": "https://errors.pydantic.dev/2.6/v/extra_forbidden",
             }
-        ]
+        ], f"Wrong error message: {normalised_data(exc_info.value.errors(), exclude_keys=['url'])}"
 
     def test_created_by(self):
         this = self.three.find(_keyid(_three_dict))
