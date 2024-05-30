@@ -2,7 +2,7 @@ from marshmallow import ValidationError, fields, validates
 
 from eduid.webapp.common.api.schemas.base import EduidSchema, FluxStandardAction
 from eduid.webapp.common.api.schemas.csrf import CSRFRequestMixin, CSRFResponseMixin
-from eduid.webapp.common.api.schemas.identity import IdentitiesSchema, NinSchema
+from eduid.webapp.common.api.schemas.identity import IdentitiesSchema
 from eduid.webapp.common.api.schemas.password import PasswordSchema
 from eduid.webapp.common.api.schemas.validators import validate_nin
 
@@ -114,13 +114,16 @@ class NINRequestSchema(EduidSchema, CSRFRequestMixin):
     nin = fields.String(required=True, validate=validate_nin)
 
 
+class IdentityRequestSchema(EduidSchema, CSRFRequestMixin):
+    identity_type = fields.String(required=True)
+
+
 class IdentitiesResponseSchema(FluxStandardAction):
-    class RemoveNINPayload(EduidSchema, CSRFResponseMixin):
+    class RemoveIdentityPayload(EduidSchema, CSRFResponseMixin):
         message = fields.String(required=False)
-        nins = fields.Nested(NinSchema, many=True)
         identities = fields.Nested(IdentitiesSchema)
 
-    payload = fields.Nested(RemoveNINPayload)
+    payload = fields.Nested(RemoveIdentityPayload)
 
 
 class UserUpdateResponseSchema(FluxStandardAction):

@@ -1,16 +1,11 @@
-import json
-from datetime import timedelta
-from typing import Union
-from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
+from flask import Blueprint
 
-from flask import Blueprint, redirect, request, url_for
-from marshmallow import ValidationError
-
+from eduid.common.config.base import FrontendAction
 from eduid.common.misc.timeutil import utc_now
-from eduid.common.rpc.exceptions import AmTaskFailed, MsgTaskFailed
-from eduid.common.utils import urlappend
+from eduid.common.rpc.exceptions import AmTaskFailed
 from eduid.userdb import User
 from eduid.userdb.exceptions import UserOutOfSync
+from eduid.userdb.identity import IdentityType
 from eduid.userdb.proofing import NinProofingElement
 from eduid.userdb.proofing.state import NinProofingState
 from eduid.userdb.security import SecurityUser
@@ -18,29 +13,26 @@ from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, requi
 from eduid.webapp.common.api.helpers import add_nin_to_user
 from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response, success_response
 from eduid.webapp.common.api.schemas.csrf import EmptyRequest
-from eduid.webapp.common.api.utils import get_zxcvbn_terms, save_and_sync_user
-from eduid.webapp.common.authn.acs_enums import AuthnAcsAction
-from eduid.webapp.common.authn.vccs import add_credentials, revoke_all_credentials
+from eduid.webapp.common.api.utils import save_and_sync_user
+from eduid.webapp.common.authn.utils import get_authn_for_action
+from eduid.webapp.common.authn.vccs import revoke_all_credentials
 from eduid.webapp.common.session import session
 from eduid.webapp.security.app import current_security_app as current_app
 from eduid.webapp.security.helpers import (
     SecurityMsg,
     check_reauthn,
     compile_credential_list,
-    generate_suggested_password,
+    remove_identity_from_user,
     remove_nin_from_user,
     send_termination_mail,
     update_user_official_name,
 )
 from eduid.webapp.security.schemas import (
     AccountTerminatedSchema,
-    ChangePasswordSchema,
-    ChpassResponseSchema,
     IdentitiesResponseSchema,
+    IdentityRequestSchema,
     NINRequestSchema,
-    RedirectResponseSchema,
     SecurityResponseSchema,
-    SuggestedPasswordResponseSchema,
     UserUpdateResponseSchema,
 )
 
@@ -74,14 +66,17 @@ def terminate_account(user: User):
     sends an email to the address in the terminated account,
     and logs out the session.
     """
-    security_user = SecurityUser.from_user(user, current_app.private_userdb)
+    frontend_action = FrontendAction.TERMINATE_ACCOUNT_AUTHN
 
-    authn = session.authn.sp.get_authn_for_action(AuthnAcsAction.terminate_account)
-    current_app.logger.debug(f"account_terminated called with authn {authn}")
-    # TODO: 10 minutes to complete account termination seems overly generous
-    _need_reauthn = check_reauthn(authn, timedelta(seconds=600))
+    _need_reauthn = check_reauthn(frontend_action=frontend_action)
     if _need_reauthn:
         return _need_reauthn
+
+    authn = get_authn_for_action(config=current_app.conf, frontend_action=frontend_action)
+    assert authn is not None  # please mypy (if authn was None we would have returned with _need_reauthn above)
+    current_app.logger.debug(f"terminate_account called with authn {authn}")
+
+    security_user = SecurityUser.from_user(user, current_app.private_userdb)
 
     # revoke all user passwords
     revoke_all_credentials(security_user, vccs_url=current_app.conf.vccs_url)
@@ -103,14 +98,14 @@ def terminate_account(user: User):
     current_app.logger.info("Terminated user account")
 
     # email the user
-    try:
-        send_termination_mail(security_user)
-    except MsgTaskFailed as e:
-        current_app.logger.error(f"Failed to send account termination mail: {e}")
-        current_app.logger.error("Account will be terminated successfully anyway.")
+    send_termination_mail(security_user)
 
+    # log out the user
+    authn.consumed = True
     current_app.logger.debug(f"Logging out (terminated) user {user}")
-    return redirect(f"{current_app.conf.logout_endpoint}?next={current_app.conf.termination_redirect_url}")
+    return success_response(
+        payload={"location": f"{current_app.conf.logout_endpoint}?next={current_app.conf.termination_redirect_url}"}
+    )
 
 
 @security_views.route("/add-nin", methods=["POST"])
@@ -135,13 +130,8 @@ def add_nin(user: User, nin: str) -> FluxData:
         current_app.logger.debug(f"NIN: {nin}")
         return error_response(message=CommonMsg.temp_problem)
 
-    # TODO: remove nins after frontend stops using it
-    nins: list[dict[str, Union[str, bool]]] = []
-    if security_user.identities.nin is not None:
-        nins.append(security_user.identities.nin.to_old_nin())
-
     return success_response(
-        payload=dict(identities=security_user.identities.to_frontend_format(), nins=nins),
+        payload=dict(identities=security_user.identities.to_frontend_format()),
         message=SecurityMsg.add_success,
     )
 
@@ -172,13 +162,52 @@ def remove_nin(user: User, nin: str) -> FluxData:
             current_app.logger.debug(f"NIN: {nin}")
             return error_response(message=CommonMsg.temp_problem)
 
-    # TODO: remove nins after frontend stops using it
-    nins = []
-    if security_user.identities.nin is not None:
-        nins.append(security_user.identities.nin.to_old_nin())
-
     return success_response(
-        payload=dict(identities=security_user.identities.to_frontend_format(), nins=nins),
+        payload=dict(identities=security_user.identities.to_frontend_format()),
+        message=SecurityMsg.rm_success,
+    )
+
+
+@security_views.route("/remove-identity", methods=["POST"])
+@UnmarshalWith(IdentityRequestSchema)
+@MarshalWith(IdentitiesResponseSchema)
+@require_user
+def remove_identities(user: User, identity_type: str) -> FluxData:
+    """
+    Remove all verified identities from the user to let the user verify them again.
+    This will not remove any locked identities.
+    """
+
+    frontend_action = FrontendAction.REMOVE_IDENTITY
+
+    _need_reauthn = check_reauthn(frontend_action=frontend_action)
+    if _need_reauthn:
+        return _need_reauthn
+
+    authn = get_authn_for_action(config=current_app.conf, frontend_action=frontend_action)
+    assert authn is not None  # please mypy (if authn was None we would have returned with _need_reauthn above)
+
+    try:
+        _type = IdentityType(identity_type)
+    except ValueError:
+        current_app.logger.error(f"Invalid identity type: {identity_type}")
+        return error_response(message=SecurityMsg.wrong_identity_type)
+
+    security_user = SecurityUser.from_user(user, current_app.private_userdb)
+
+    current_app.logger.info(f"Removing _{type} identity from user")
+    current_app.logger.debug(f"identities BEFORE: {security_user.identities}")
+
+    try:
+        remove_identity_from_user(security_user, _type)
+    except AmTaskFailed:
+        current_app.logger.exception(f"Removing identity of type {_type} from user failed")
+        return error_response(message=CommonMsg.temp_problem)
+
+    current_app.logger.debug(f"identities AFTER: {security_user.identities}")
+    current_app.stats.count(name=f"remove_{_type}_identity")
+    return success_response(
+        payload=dict(identities=security_user.identities.to_frontend_format()),
         message=SecurityMsg.rm_success,
     )
 

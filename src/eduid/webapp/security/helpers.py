@@ -6,20 +6,22 @@ from typing import Any, List, Optional
 
 from fido_mds.models.webauthn import AttestationFormat
 
-from eduid.common.config.base import EduidEnvironment
+from eduid.common.config.base import EduidEnvironment, FrontendAction
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.rpc.msg_relay import FullPostalAddress, NavetData
 from eduid.common.utils import generate_password
 from eduid.queue.client import init_queue_item
 from eduid.queue.db.message.payload import EduidTerminationEmail
 from eduid.userdb import NinIdentity
+from eduid.userdb.identity import IdentityType
 from eduid.userdb.logs.element import NameUpdateProofing
 from eduid.userdb.security import SecurityUser
 from eduid.userdb.user import User
 from eduid.webapp.common.api.helpers import set_user_names_from_official_address
-from eduid.webapp.common.api.messages import FluxData, TranslatableMsg, error_response
+from eduid.webapp.common.api.messages import FluxData, TranslatableMsg, need_authentication_response
+from eduid.webapp.common.api.schemas.authn_status import AuthnActionStatus
 from eduid.webapp.common.api.translation import get_user_locale
-from eduid.webapp.common.session.namespaces import SP_AuthnRequest
+from eduid.webapp.common.authn.utils import validate_authn_for_action
 from eduid.webapp.security.app import current_security_app as current_app
 from eduid.webapp.security.webauthn_proofing import AuthenticatorInformation, is_authenticator_mfa_approved
 
@@ -33,10 +35,6 @@ class SecurityMsg(TranslatableMsg):
     attempted operations on the back end.
     """
 
-    # Too much time passed since re-authn for account termination
-    stale_reauthn = "security.stale_authn_info"
-    # No reauthn
-    no_reauthn = "security.no_reauthn"
     # removing a verified NIN is not allowed
     rm_verified = "nins.verified_no_rm"
     # success removing nin
@@ -51,8 +49,6 @@ class SecurityMsg(TranslatableMsg):
     no_pdata = "security.webauthn-missing-pdata"
     # success registering webauthn token
     webauthn_success = "security.webauthn_register_success"
-    # It is not allowed to remove the last webauthn credential left
-    no_last = "security.webauthn-noremove-last"
     # Success removing webauthn token
     rm_webauthn = "security.webauthn-token-removed"
     # old_password or new_password missing
@@ -75,6 +71,10 @@ class SecurityMsg(TranslatableMsg):
     missing_registration_state = "security.webauthn-missing-registration-state"
     webauthn_attestation_fail = "security.webauthn-attestation-fail"
     webauthn_metadata_fail = "security.webauthn-metadata-fail"
+    # Status requested for unknown authn_id
+    not_found = "security.not_found"
+    # wrong identity type requested
+    wrong_identity_type = "security.wrong-identity-type"
 
 
 @dataclass
@@ -130,6 +130,25 @@ def remove_nin_from_user(security_user: SecurityUser, nin: NinIdentity) -> None:
     current_app.logger.info(f"Sync result for user {security_user}: {result}")
 
 
+def remove_identity_from_user(security_user: SecurityUser, identity_type: IdentityType) -> None:
+    """
+    Remove identity from a user and sync to central db
+    """
+
+    identity = security_user.identities.find(identity_type.value)
+    if identity is None:
+        return None  # no op, identity already gone
+
+    security_user.identities.remove(identity.key)
+    # Save user to private db
+    current_app.private_userdb.save(security_user)
+    # Ask am to sync user to central db
+    current_app.logger.debug(f"Request sync for user {security_user}")
+    result = current_app.am_relay.request_user_sync(security_user)
+    current_app.logger.info(f"Sync result for user {security_user}: {result}")
+    return None
+
+
 def generate_suggested_password() -> str:
     """
     The suggested password is saved in session to avoid form hijacking
@@ -170,22 +189,17 @@ def send_termination_mail(user):
         current_app.logger.info(f"Sent termination mail to user {user} to address {email}.")
 
 
-def check_reauthn(authn: Optional[SP_AuthnRequest], max_age: timedelta) -> Optional[FluxData]:
+def check_reauthn(frontend_action: FrontendAction) -> Optional[FluxData]:
     """Check if a re-authentication has been performed recently enough for this action"""
-    if not authn or not authn.authn_instant:
-        current_app.logger.info(f"Action requires re-authentication")
-        return error_response(message=SecurityMsg.no_reauthn)
 
-    if authn.consumed:
-        current_app.logger.info(f"The authentication presented has already been consumed")
-        return error_response(message=SecurityMsg.no_reauthn)
-
-    delta = utc_now() - authn.authn_instant
-
-    if delta > max_age:
-        current_app.logger.info(f"Re-authentication age {delta} too old")
-        return error_response(message=SecurityMsg.stale_reauthn)
-
+    authn_status = validate_authn_for_action(config=current_app.conf, frontend_action=frontend_action)
+    current_app.logger.debug(f"check_reauthn called with authn status {authn_status}")
+    if authn_status != AuthnActionStatus.OK:
+        if authn_status == AuthnActionStatus.STALE:
+            # count stale authentications to monitor if users need more time
+            current_app.stats.count(name=f"{frontend_action.value}_stale_reauthn", value=1)
+        return need_authentication_response(frontend_action=frontend_action, authn_status=authn_status)
+    current_app.stats.count(name=f"{frontend_action.value}_successful_reauthn", value=1)
     return None
 
 
