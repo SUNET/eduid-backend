@@ -3,23 +3,13 @@ Some data structures that causes import loops if they are defined in assurance.p
 """
 
 from datetime import datetime
-from enum import Enum, unique
+from enum import Enum
 from typing import Any
 
 from pydantic import BaseModel
 
 from eduid.userdb.element import ElementKey
-
-
-@unique
-class EduidAuthnContextClass(str, Enum):
-    DIGG_LOA2 = "http://id.elegnamnden.se/loa/1.0/loa2"
-    REFEDS_MFA = "https://refeds.org/profile/mfa"
-    REFEDS_SFA = "https://refeds.org/profile/sfa"
-    FIDO_U2F = "https://www.swamid.se/specs/id-fido-u2f-ce-transports"
-    EDUID_MFA = "https://eduid.se/specs/mfa"
-    PASSWORD_PT = "urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport"
-    NOT_IMPLEMENTED = "not implemented"
+from eduid.webapp.common.authn.eduid_saml2 import EduidAuthnContextClass
 
 
 class SwamidAssurance(str, Enum):
