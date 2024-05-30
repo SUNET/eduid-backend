@@ -10,5 +10,4 @@ class AuthnMsg(TranslatableMsg):
     attempted operations on the back end.
     """
 
-    # Status requested for unknown authn_id
-    not_found = "authn.not_found"
+    frontend_action_not_supported = "authn.frontend_action_not_supported"
