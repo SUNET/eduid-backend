@@ -10,6 +10,7 @@ from eduid.common.config.base import (
     AmConfigMixin,
     EduIDBaseAppConfig,
     ErrorsConfigMixin,
+    FrontendActionMixin,
     MagicCookieMixin,
     ProofingConfigMixin,
     Pysaml2SPConfigMixin,
@@ -23,6 +24,7 @@ class EidasConfig(
     ErrorsConfigMixin,
     ProofingConfigMixin,
     Pysaml2SPConfigMixin,
+    FrontendActionMixin,
 ):
     """
     Configuration for the eidas app

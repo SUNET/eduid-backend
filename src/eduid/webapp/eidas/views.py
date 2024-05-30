@@ -1,46 +1,46 @@
 from dataclasses import dataclass
 from typing import Optional
-from uuid import uuid4
 
 from flask import Blueprint, make_response, redirect, request
 from saml2.request import AuthnRequest
 from werkzeug.wrappers import Response as WerkzeugResponse
 
-from eduid.common.config.base import EduidEnvironment
+from eduid.common.config.base import EduidEnvironment, FrontendAction
 from eduid.userdb import User
+from eduid.userdb.credentials import FidoCredential
 from eduid.userdb.element import ElementKey
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, require_user
 from eduid.webapp.common.api.errors import EduidErrorsContext, goto_errors_response
 from eduid.webapp.common.api.helpers import check_magic_cookie
 from eduid.webapp.common.api.messages import (
+    AuthnStatusMsg,
     CommonMsg,
     FluxData,
     TranslatableMsg,
     error_response,
-    redirect_with_msg,
+    need_authentication_response,
     success_response,
 )
+from eduid.webapp.common.api.schemas.authn_status import StatusRequestSchema, StatusResponseSchema
 from eduid.webapp.common.api.schemas.csrf import EmptyResponse
-from eduid.webapp.common.authn.acs_enums import EidasAcsAction, is_old_action
+from eduid.webapp.common.authn.acs_enums import EidasAcsAction
 from eduid.webapp.common.authn.acs_registry import ACSArgs, get_action
 from eduid.webapp.common.authn.eduid_saml2 import process_assertion
 from eduid.webapp.common.authn.utils import get_location
 from eduid.webapp.common.proofing.methods import ProofingMethodSAML, get_proofing_method
-from eduid.webapp.common.proofing.saml_helpers import create_metadata, is_required_loa, is_valid_reauthn
+from eduid.webapp.common.proofing.saml_helpers import create_metadata
 from eduid.webapp.common.session import session
-from eduid.webapp.common.session.namespaces import AuthnRequestRef, MfaActionError, SP_AuthnRequest
+from eduid.webapp.common.session.namespaces import AuthnRequestRef, SP_AuthnRequest
 from eduid.webapp.eidas.app import current_eidas_app as current_app
-from eduid.webapp.eidas.helpers import EidasMsg, attribute_remap, check_credential_to_verify, create_authn_info
-
-__author__ = "lundberg"
-
+from eduid.webapp.eidas.helpers import EidasMsg, attribute_remap, check_reauthn, create_authn_info
 from eduid.webapp.eidas.schemas import (
     EidasCommonRequestSchema,
     EidasCommonResponseSchema,
-    EidasStatusRequestSchema,
-    EidasStatusResponseSchema,
     EidasVerifyCredentialRequestSchema,
 )
+
+__author__ = "lundberg"
+
 
 eidas_views = Blueprint("eidas", __name__, url_prefix="")
 
@@ -52,18 +52,18 @@ def index(user: User) -> FluxData:
     return success_response(payload=None, message=None)
 
 
-# get_status to not get tangled up in /status/healthy and the like
-@eidas_views.route("/get_status", methods=["POST"])
-@UnmarshalWith(EidasStatusRequestSchema)
-@MarshalWith(EidasStatusResponseSchema)
+# get-status to not get tangled up in /status/healthy and the like
+@eidas_views.route("/get-status", methods=["POST"])
+@UnmarshalWith(StatusRequestSchema)
+@MarshalWith(StatusResponseSchema)
 def get_status(authn_id: AuthnRequestRef) -> FluxData:
     authn = session.eidas.sp.authns.get(authn_id)
     if not authn:
-        return error_response(message=EidasMsg.not_found)
+        return error_response(message=AuthnStatusMsg.not_found)
 
     payload = {
         "authn_id": authn_id,
-        "frontend_action": authn.frontend_action,
+        "frontend_action": authn.frontend_action.value,
         "frontend_state": authn.frontend_state,
         "method": authn.method,
         "error": bool(authn.error),
@@ -83,20 +83,31 @@ def verify_credential(
 ) -> FluxData:
     current_app.logger.debug(f"verify-credential called with credential_id: {credential_id}")
 
+    _frontend_action = FrontendAction.VERIFY_CREDENTIAL
+
+    if frontend_action != _frontend_action.value:
+        current_app.logger.error(f"Invalid frontend_action: {frontend_action}")
+        return error_response(message=EidasMsg.frontend_action_not_supported)
+
     # verify that the user has the credential and that it was used for login recently
-    ret = check_credential_to_verify(user=user, credential_id=credential_id)
-    current_app.logger.debug(f"Credential check result: {ret}")
-    if not ret.verified_ok:
-        current_app.logger.info(f"Can't proceed with verify-credential at this time: {ret.message}")
-        current_app.logger.debug(f"Can't proceed with verify-credential at this time: {ret}")
-        if ret.location:
-            return success_response(payload={"location": ret.location}, message=ret.message)
-        return error_response(message=ret.message)
+    credential = user.credentials.find(credential_id)
+    if credential is None or isinstance(credential, FidoCredential) is False:
+        current_app.logger.error(f"Can't find credential with id: {credential_id}")
+        return error_response(message=EidasMsg.credential_not_found)
+
+    _need_reauthn = check_reauthn(frontend_action=_frontend_action, credential_used=credential)
+    if _need_reauthn:
+        current_app.logger.debug(f"Need re-authentication for credential: {credential_id}")
+        return need_authentication_response(
+            frontend_action=_frontend_action,
+            authn_status=_need_reauthn,
+            payload={"credential_description": credential.description},  # type: ignore[attr-defined]
+        )
 
     result = _authn(
         EidasAcsAction.verify_credential,
         method=method,
-        frontend_action=frontend_action,
+        frontend_action=_frontend_action.value,
         frontend_state=frontend_state,
         proofing_credential_id=credential_id,
     )
@@ -160,16 +171,16 @@ def _authn(
     frontend_action: str,
     frontend_state: Optional[str] = None,
     proofing_credential_id: Optional[ElementKey] = None,
-    redirect_url: Optional[str] = None,  # DEPRECATED - try to use frontend_action instead
 ) -> AuthnResult:
     current_app.logger.debug(f"Requested method: {method}, frontend action: {frontend_action}")
+    try:
+        _frontend_action = FrontendAction(frontend_action)
+        authn_params = current_app.conf.frontend_action_authn_parameters[_frontend_action]
+    except (ValueError, KeyError):
+        current_app.logger.exception(f"Frontend action {frontend_action} not supported")
+        return AuthnResult(error=EidasMsg.frontend_action_not_supported)
 
-    fallback_url = None
-    if is_old_action(frontend_action):
-        current_app.logger.debug(f"Using fallback URL {redirect_url} for action {frontend_action}")
-        fallback_url = redirect_url
-
-    proofing_method = get_proofing_method(method, frontend_action, current_app.conf, fallback_redirect_url=fallback_url)
+    proofing_method = get_proofing_method(method, _frontend_action, current_app.conf)
     current_app.logger.debug(f"Proofing method: {proofing_method}")
     if not proofing_method:
         return AuthnResult(error=EidasMsg.method_not_available)
@@ -190,31 +201,51 @@ def _authn(
         else:
             current_app.logger.warning("Missing configuration magic_cookie_idp")
 
-    ref = AuthnRequestRef(str(uuid4()))
+    authn_req = SP_AuthnRequest(
+        frontend_action=_frontend_action,
+        frontend_state=frontend_state,
+        post_authn_action=action,
+        proofing_credential_id=proofing_credential_id,
+        method=proofing_method.method,
+        finish_url=authn_params.finish_url,
+    )
+
     authn_info = create_authn_info(
-        authn_ref=ref,
-        force_authn=True,
+        authn_ref=authn_req.authn_id,
+        force_authn=authn_params.force_authn,
         framework=proofing_method.framework,
         required_loa=proofing_method.required_loa,
         selected_idp=idp,
     )
 
-    session.eidas.sp.authns[ref] = SP_AuthnRequest(
-        frontend_action=frontend_action,
-        frontend_state=frontend_state,
-        post_authn_action=action,
-        proofing_credential_id=proofing_credential_id,
-        method=proofing_method.method,
-        redirect_url=redirect_url,  # DEPRECATED - try to use frontend_action instead
+    if _frontend_action is FrontendAction.LOGIN_MFA_AUTHN:
+        # TODO:
+        # 1. Release code that stores all this in both the SP_AuthnRequest, and the old place: session.mfa_action
+        # 2. When all sessions in Redis has data in both places, update the ACS function to read from the new place
+        #   IdP should look up any FrontendAction.LOGIN_MFA_AUTHN authn requests and match frontend state with the
+        #   current login ref. We should make something similar for reset password.
+        # 3. Remove session.mfa_action
+        #
+        # Clear session keys used for external mfa
+        del session.mfa_action
+
+        # Ideally, we should be able to support multiple ongoing external MFA requests at the same time,
+        # but for now at least remember the SAML request id and the login_ref (when the frontend has been
+        # updated to supply it to /mfa-authentication) so that the IdP can verify the login_ref matches
+        # when processing a successful response in session.mfa_action.
+        session.mfa_action.authn_req_ref = authn_req.authn_id
+
+    session.eidas.sp.authns[authn_req.authn_id] = authn_req
+    current_app.logger.debug(
+        f"Stored SP_AuthnRequest[{authn_req.authn_id}]: {session.eidas.sp.authns[authn_req.authn_id]}"
     )
-    current_app.logger.debug(f"Stored SP_AuthnRequest[{ref}]: {session.eidas.sp.authns[ref]}")
 
     url = get_location(authn_info)
     if not url:
         current_app.logger.error(f"Couldn't extract Location from {authn_info}")
         return AuthnResult(error=EidasMsg.method_not_available)
 
-    return AuthnResult(authn_req=authn_info, authn_id=ref, url=url)
+    return AuthnResult(authn_req=authn_info, authn_id=authn_req.authn_id, url=url)
 
 
 @eidas_views.route("/saml2-acs", methods=["POST"])
@@ -248,16 +279,8 @@ def assertion_consumer_service() -> WerkzeugResponse:
             rp=current_app.saml2_config.entityid,
         )
 
-    fallback_url = None
-    if is_old_action(assertion.authndata.frontend_action):
-        fallback_url = assertion.authndata.redirect_url
-        current_app.logger.debug(f"Using fallback URL {fallback_url} for action {assertion.authndata.frontend_action}")
-
     proofing_method = get_proofing_method(
-        assertion.authndata.method,
-        assertion.authndata.frontend_action,
-        current_app.conf,
-        fallback_redirect_url=fallback_url,
+        assertion.authndata.method, assertion.authndata.frontend_action, current_app.conf
     )
     if not proofing_method:
         # We _really_ shouldn't end up here because this same thing would have been done in the
@@ -270,21 +293,6 @@ def assertion_consumer_service() -> WerkzeugResponse:
             ctx=EduidErrorsContext.SAML_RESPONSE_FAIL,
             rp=current_app.saml2_config.entityid,
         )
-    assert isinstance(proofing_method, ProofingMethodSAML)  # please mypy
-
-    if not is_required_loa(
-        assertion.session_info, proofing_method.required_loa, current_app.conf.authentication_context_map
-    ):
-        session.mfa_action.error = MfaActionError.authn_context_mismatch  # TODO: Old way, remove after a release cycle
-        assertion.authndata.error = True
-        assertion.authndata.status = EidasMsg.authn_context_mismatch.value
-        return redirect_with_msg(proofing_method.finish_url, EidasMsg.authn_context_mismatch)
-
-    if not is_valid_reauthn(assertion.session_info):
-        session.mfa_action.error = MfaActionError.authn_too_old  # TODO: Old way, remove after a release cycle
-        assertion.authndata.error = True
-        assertion.authndata.status = EidasMsg.reauthn_expired.value
-        return redirect_with_msg(proofing_method.finish_url, EidasMsg.reauthn_expired)
 
     # Remap nin in staging environment
     if current_app.conf.environment in [EduidEnvironment.staging, EduidEnvironment.dev]:
@@ -312,25 +320,14 @@ def assertion_consumer_service() -> WerkzeugResponse:
         _msg = result.message or CommonMsg.temp_problem
         args.authn_req.status = _msg.value
         args.authn_req.error = True
-        if is_old_action(assertion.authndata.frontend_action):
-            # Including the error in the redirect URL is deprecated and should be removed once frontend stops using it
-            return redirect_with_msg(formatted_finish_url, _msg, error=True)
+        args.authn_req.consumed = True
         return redirect(formatted_finish_url)
 
     current_app.logger.debug(f"SAML ACS action successful (frontend_action {args.authn_req.frontend_action})")
     if result.message:
         args.authn_req.status = result.message.value
     args.authn_req.error = False
-
-    _old_action_success_msg = {
-        EidasAcsAction.old_mfa_authn.value: EidasMsg.action_completed,
-        EidasAcsAction.old_token_verify.value: EidasMsg.old_token_verify_success,
-        EidasAcsAction.old_nin_verify.value: EidasMsg.old_nin_verify_success,
-    }
-    _msg2 = _old_action_success_msg.get(args.authn_req.frontend_action)
-    if _msg2:
-        return redirect_with_msg(proofing_method.finish_url, _msg2, error=False)
-
+    args.authn_req.consumed = True
     return redirect(formatted_finish_url)
 
 
