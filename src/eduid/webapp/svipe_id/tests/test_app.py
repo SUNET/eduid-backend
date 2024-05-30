@@ -7,6 +7,7 @@ from urllib.parse import parse_qs, urlparse
 from flask import url_for
 from iso3166 import Country, countries
 
+from eduid.common.config.base import FrontendAction
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb import SvipeIdentity
 from eduid.userdb.identity import IdentityProofingMethod
@@ -31,7 +32,7 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
 
         self.default_frontend_data = {
             "method": "svipe_id",
-            "frontend_action": "svipeidVerifyIdentity",
+            "frontend_action": "verifyIdentity",
             "frontend_state": "test_state",
         }
 
@@ -123,8 +124,11 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
                     "client_secret": "test_client_secret",
                     "issuer": "https://issuer.example.com",
                 },
-                "frontend_action_finish_url": {
-                    "svipeidVerifyIdentity": "https://dashboard.example.com/profile/ext-return/{app_name}/{authn_id}",
+                "frontend_action_authn_parameters": {
+                    FrontendAction.VERIFY_IDENTITY.value: {
+                        "force_authn": True,
+                        "finish_url": "https://dashboard.example.com/profile/ext-return/{app_name}/{authn_id}",
+                    },
                 },
             }
         )
@@ -320,7 +324,7 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
         assert response.status_code == 302
         self._verify_status(
             finish_url=response.headers["Location"],
-            frontend_action=self.default_frontend_data["frontend_action"],
+            frontend_action=FrontendAction(self.default_frontend_data["frontend_action"]),
             frontend_state=self.default_frontend_data["frontend_state"],
             method=self.default_frontend_data["method"],
             expect_msg=SvipeIDMsg.identity_verify_success,
@@ -362,7 +366,7 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
         assert response.status_code == 302
         self._verify_status(
             finish_url=response.headers["Location"],
-            frontend_action=self.default_frontend_data["frontend_action"],
+            frontend_action=FrontendAction(self.default_frontend_data["frontend_action"]),
             frontend_state=self.default_frontend_data["frontend_state"],
             method=self.default_frontend_data["method"],
             expect_msg=SvipeIDMsg.identity_verify_success,
@@ -397,7 +401,7 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
         assert response.status_code == 302
         self._verify_status(
             finish_url=response.headers["Location"],
-            frontend_action=self.default_frontend_data["frontend_action"],
+            frontend_action=FrontendAction(self.default_frontend_data["frontend_action"]),
             frontend_state=self.default_frontend_data["frontend_state"],
             method=self.default_frontend_data["method"],
             expect_msg=SvipeIDMsg.identity_verify_success,
@@ -439,7 +443,7 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
         assert response.status_code == 302
         self._verify_status(
             finish_url=response.headers["Location"],
-            frontend_action=self.default_frontend_data["frontend_action"],
+            frontend_action=FrontendAction(self.default_frontend_data["frontend_action"]),
             frontend_state=self.default_frontend_data["frontend_state"],
             method=self.default_frontend_data["method"],
             expect_error=True,
@@ -478,7 +482,7 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
         assert response.status_code == 302
         self._verify_status(
             finish_url=response.headers["Location"],
-            frontend_action=self.default_frontend_data["frontend_action"],
+            frontend_action=FrontendAction(self.default_frontend_data["frontend_action"]),
             frontend_state=self.default_frontend_data["frontend_state"],
             method=self.default_frontend_data["method"],
             expect_error=True,
@@ -518,7 +522,7 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
         assert response.status_code == 302
         self._verify_status(
             finish_url=response.headers["Location"],
-            frontend_action=self.default_frontend_data["frontend_action"],
+            frontend_action=FrontendAction(self.default_frontend_data["frontend_action"]),
             frontend_state=self.default_frontend_data["frontend_state"],
             method=self.default_frontend_data["method"],
             expect_msg=SvipeIDMsg.identity_verify_success,
@@ -565,7 +569,7 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
         assert response.status_code == 302
         self._verify_status(
             finish_url=response.headers["Location"],
-            frontend_action=self.default_frontend_data["frontend_action"],
+            frontend_action=FrontendAction(self.default_frontend_data["frontend_action"]),
             frontend_state=self.default_frontend_data["frontend_state"],
             method=self.default_frontend_data["method"],
             expect_error=True,
@@ -611,7 +615,7 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
         assert response.status_code == 302
         self._verify_status(
             finish_url=response.headers["Location"],
-            frontend_action=self.default_frontend_data["frontend_action"],
+            frontend_action=FrontendAction(self.default_frontend_data["frontend_action"]),
             frontend_state=self.default_frontend_data["frontend_state"],
             method=self.default_frontend_data["method"],
             expect_error=True,
@@ -642,7 +646,7 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
         assert response.status_code == 302
         self._verify_status(
             finish_url=response.headers["Location"],
-            frontend_action=self.default_frontend_data["frontend_action"],
+            frontend_action=FrontendAction(self.default_frontend_data["frontend_action"]),
             frontend_state=self.default_frontend_data["frontend_state"],
             method=self.default_frontend_data["method"],
             expect_msg=SvipeIDMsg.identity_verify_success,
@@ -677,7 +681,7 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
         assert response.status_code == 302
         self._verify_status(
             finish_url=response.headers["Location"],
-            frontend_action=self.default_frontend_data["frontend_action"],
+            frontend_action=FrontendAction(self.default_frontend_data["frontend_action"]),
             frontend_state=self.default_frontend_data["frontend_state"],
             method=self.default_frontend_data["method"],
             expect_error=True,
