@@ -6,7 +6,7 @@ from typing import Optional, Union
 from flask import request
 from pydantic import ValidationError
 
-from eduid.common.config.base import ProofingConfigMixin
+from eduid.common.config.base import FrontendAction, ProofingConfigMixin
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.credentials.external import TrustFramework
 from eduid.webapp.bankid.saml_session_info import BankIDSessionInfo
@@ -121,23 +121,19 @@ class ProofingMethodSvipe(ProofingMethod):
 
 def get_proofing_method(
     method: Optional[str],
-    frontend_action: str,
+    frontend_action: FrontendAction,
     config: ProofingConfigMixin,
-    fallback_redirect_url: Optional[str] = None,
 ) -> Optional[Union[ProofingMethodFreja, ProofingMethodEidas, ProofingMethodSvipe, ProofingMethodBankID]]:
-    # look up the finish_url here (when receiving the request, rather than in the ACS)
-    # to be able to fail fast if frontend requests an action that backend isn't configured for
-    finish_url = config.frontend_action_finish_url.get(frontend_action, fallback_redirect_url)
-    if not finish_url:
-        logger.warning(f"No finish_url for frontend_action {frontend_action} (fallback: {fallback_redirect_url})")
-        return None
+
+    authn_params = config.frontend_action_authn_parameters.get(frontend_action)
+    assert authn_params is not None  # please mypy
 
     if method == "freja":
         if not config.freja_idp:
             logger.warning(f"Missing configuration freja_idp required for proofing method {method}")
             return None
         return ProofingMethodFreja(
-            finish_url=finish_url,
+            finish_url=authn_params.finish_url,
             framework=TrustFramework.SWECONN,
             idp=config.freja_idp,
             method=method,
@@ -148,7 +144,7 @@ def get_proofing_method(
             logger.warning(f"Missing configuration foreign_identity_idp required for proofing method {method}")
             return None
         return ProofingMethodEidas(
-            finish_url=finish_url,
+            finish_url=authn_params.finish_url,
             framework=TrustFramework.EIDAS,
             idp=config.foreign_identity_idp,
             method=method,
@@ -158,7 +154,7 @@ def get_proofing_method(
         return ProofingMethodSvipe(
             method=method,
             framework=TrustFramework.SVIPE,
-            finish_url=finish_url,
+            finish_url=authn_params.finish_url,
         )
     if method == "bankid":
         if not config.bankid_idp:
@@ -167,7 +163,7 @@ def get_proofing_method(
         return ProofingMethodBankID(
             method=method,
             framework=TrustFramework.BANKID,
-            finish_url=finish_url,
+            finish_url=authn_params.finish_url,
             idp=config.bankid_idp,
             required_loa=config.bankid_required_loa,
         )
