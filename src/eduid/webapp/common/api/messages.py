@@ -84,7 +84,7 @@ def success_response(
     :param payload: A mapping that will become the Flux Standard Action 'payload'.
                     This should contain data the frontend needs to render a view to the user.
                     For example, in a letter proofing scenario where a user requests that
-                    a letter with a code is sent to their registered address, the backend might
+                    a letter with a code is  sent to their registered address, the backend might
                     return the timestamp when a letter was sent, as well as when the code will
                     expire.
     :param message: An optional simple message that will be translated in eduid-front into a message to the user.

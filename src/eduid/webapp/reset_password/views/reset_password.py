@@ -422,7 +422,7 @@ def set_new_pw_extra_security_token(
         }
         current_app.stats.count(name="extra_security_security_key_webauthn_data_received")
         if not session.mfa_action.webauthn_state:
-            current_app.logger.error(f"No webauthn state in session")
+            current_app.logger.error("No webauthn state in session")
             current_app.stats.count(name="extra_security_security_key_webauthn_missing_session_data")
             return error_response(message=ResetPwMsg.missing_data)
 
