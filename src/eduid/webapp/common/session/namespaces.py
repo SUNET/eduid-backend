@@ -9,9 +9,12 @@ from typing import Any, List, Mapping, NewType, Optional, TypeVar, Union, cast
 from uuid import uuid4
 
 from fido2.webauthn import AuthenticatorAttachment
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, Field, ValidationError, field_validator
+from pydantic_core.core_schema import ValidationInfo
 
+from eduid.common.config.base import FrontendAction
 from eduid.common.misc.timeutil import utc_now
+from eduid.common.utils import uuid4_str
 from eduid.userdb.credentials import Credential
 from eduid.userdb.credentials.external import TrustFramework
 from eduid.userdb.element import ElementKey
@@ -235,52 +238,70 @@ class IdP_Namespace(TimestampedNS):
         self.pending_requests[request_ref].credentials_used[credential.key] = timestamp
 
 
-class AuthnParameters(BaseModel):
-    force_authn: bool = False  # a new authentication was required
-    force_mfa: bool = False  # require MFA even if the user has no token (use Freja or other)
-    high_security: bool = False  # opportunistic MFA, request it if the user has a token
-    same_user: bool = False  # the same user was required to log in, such as when entering the security center
-
-
 class BaseAuthnRequest(BaseModel, ABC):
+    frontend_action: FrontendAction  # what action frontend is performing
     frontend_state: Optional[str] = None  # opaque data from frontend, returned in /status
     method: Optional[str] = None  # proofing method that frontend is invoking
-    frontend_action: str  # what action frontend is performing, decides the finish URL the user is redirected to
     post_authn_action: Optional[Union[AuthnAcsAction, EidasAcsAction, SvipeIDAction, BankIDAcsAction]] = None
     created_ts: datetime = Field(default_factory=utc_now)
     authn_instant: Optional[datetime] = None
     status: Optional[str] = None  # populated by the SAML2 ACS/OIDC callback action
     error: Optional[bool] = None
+    finish_url: str  # the URL to redirect to after authentication is complete
+    consumed: bool = False  # an operation that requires a new authentication has used this one already
 
 
 class SP_AuthnRequest(BaseAuthnRequest):
+    authn_id: AuthnRequestRef = Field(default_factory=lambda: AuthnRequestRef(uuid4_str()))
     credentials_used: list[ElementKey] = Field(default_factory=list)
     # proofing_credential_id is the credential being person-proofed, when doing that
     proofing_credential_id: Optional[ElementKey] = None
-    redirect_url: Optional[str] = None  # Deprecated, use frontend_action to get return URL from config instead
-    consumed: bool = False  # an operation that requires a new authentication has used this one already
-    req_authn_ctx: List[str] = Field(default_factory=list)  # the authentication contexts requested for this authentication
-    params: AuthnParameters = Field(default_factory=AuthnParameters)
+    req_authn_ctx: List[str] = Field(
+        default_factory=list
+    )  # the authentication contexts requested for this authentication
+    asserted_authn_ctx: Optional[str] = None  # the authentication contexts asserted for this authentication
+
+    def formatted_finish_url(self, app_name: str) -> str:
+        return self.finish_url.format(app_name=app_name, authn_id=self.authn_id)
 
 
 PySAML2Dicts = NewType("PySAML2Dicts", dict[str, dict[str, Any]])
 
 
 class SPAuthnData(BaseModel):
-    post_authn_action: Optional[Union[AuthnAcsAction, EidasAcsAction, BankIDAcsAction]] = None
     pysaml2_dicts: PySAML2Dicts = Field(default=cast(PySAML2Dicts, dict()))
     authns: dict[AuthnRequestRef, SP_AuthnRequest] = Field(default_factory=dict)
 
-    def get_authn_for_action(self, action: Union[AuthnAcsAction, EidasAcsAction]) -> Optional[SP_AuthnRequest]:
+    @field_validator("authns", mode="after")
+    @classmethod
+    def authns_cleanup(
+        cls, v: dict[AuthnRequestRef, SP_AuthnRequest], info: ValidationInfo
+    ) -> dict[AuthnRequestRef, SP_AuthnRequest]:
+        """
+        Keep the authns list from growing indefinitely.
+        """
+        # if authns is larger than 10, sort on created_ts and remove the oldest
+        if len(v) > 10:
+            items = sorted(v.items(), reverse=True, key=lambda item: item[1].created_ts)
+            return dict(items[:10])
+        return v
+
+    def _remove_get_authn_for_action(
+        self, action: Union[AuthnAcsAction, EidasAcsAction, BankIDAcsAction]
+    ) -> Optional[SP_AuthnRequest]:
         for authn in self.authns.values():
             if authn.post_authn_action == action:
                 return authn
         return None
 
+    def get_authn_for_frontend_action(self, action: FrontendAction) -> Optional[SP_AuthnRequest]:
+        for authn in self.authns.values():
+            if authn.frontend_action == action:
+                return authn
+        return None
+
 
 class EidasNamespace(SessionNSBase):
-    # TODO: Move verify_token_action_credential_id into SP_AuthnRequest
-    verify_token_action_credential_id: Optional[ElementKey] = None
     sp: SPAuthnData = Field(default=SPAuthnData())
 
 
@@ -291,7 +312,10 @@ class AuthnNamespace(SessionNSBase):
 
 
 class RP_AuthnRequest(BaseAuthnRequest):
-    pass
+    authn_id: OIDCState
+
+    def formatted_finish_url(self, app_name: str) -> str:
+        return self.finish_url.format(app_name=app_name, authn_id=self.authn_id)
 
 
 class RPAuthnData(BaseModel):
@@ -304,6 +328,4 @@ class SvipeIDNamespace(SessionNSBase):
 
 
 class BankIDNamespace(SessionNSBase):
-    # TODO: Move verify_token_action_credential_id into SP_AuthnRequest
-    verify_token_action_credential_id: Optional[ElementKey] = None
     sp: SPAuthnData = Field(default=SPAuthnData())

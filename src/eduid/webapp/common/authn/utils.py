@@ -2,24 +2,21 @@ import importlib.util
 import logging
 import os.path
 import sys
-from datetime import timedelta
-from typing import TYPE_CHECKING, Optional, Sequence
+from typing import Optional, Sequence
 
 from saml2 import server
 from saml2.config import SPConfig
 from saml2.typing import SAMLHttpArgs
 
-# From https://stackoverflow.com/a/39757388
-# The TYPE_CHECKING constant is always False at runtime, so the import won't be evaluated, but mypy
-# (and other type-checking tools) will evaluate the contents of that block.
-from eduid.common.config.base import EduIDBaseAppConfig
+from eduid.common.config.base import EduIDBaseAppConfig, FrontendAction, FrontendActionMixin
+from eduid.common.config.exceptions import BadConfiguration
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.utils import urlappend
+from eduid.userdb.credentials import Credential
+from eduid.webapp.common.api.schemas.authn_status import AuthnActionStatus
 from eduid.webapp.common.authn.session_info import SessionInfo
-from eduid.webapp.common.session.namespaces import TimestampedNS
-
-if TYPE_CHECKING:
-    pass
+from eduid.webapp.common.session import session
+from eduid.webapp.common.session.namespaces import SP_AuthnRequest
 
 logger = logging.getLogger(__name__)
 
@@ -138,3 +135,76 @@ def init_pysaml2(cfgfile: str) -> server.Server:
     finally:
         # restore path
         sys.path = old_path
+
+
+def get_authn_for_action(config: FrontendActionMixin, frontend_action: FrontendAction) -> Optional[SP_AuthnRequest]:
+    authn_params = config.frontend_action_authn_parameters.get(frontend_action)
+    if authn_params is None:
+        raise BadConfiguration(f"No authn parameters for frontend action {frontend_action}")
+
+    authn = session.authn.sp.get_authn_for_frontend_action(frontend_action)
+    if not authn and authn_params.allow_login_auth:
+        authn = session.authn.sp.get_authn_for_frontend_action(FrontendAction.LOGIN)
+        # check for old login actions until we remove them
+        if not authn and authn_params.allow_login_auth:
+            authn = session.authn.sp.get_authn_for_frontend_action(FrontendAction.OLD_LOGIN)
+    return authn
+
+
+def validate_authn_for_action(
+    config: FrontendActionMixin,
+    frontend_action: FrontendAction,
+    credential_used: Optional[Credential] = None,
+) -> AuthnActionStatus:
+    """ """
+    authn_params = config.frontend_action_authn_parameters.get(frontend_action)
+    if authn_params is None:
+        raise BadConfiguration(f"No authn parameters for frontend action {frontend_action}")
+
+    authn = get_authn_for_action(config=config, frontend_action=frontend_action)
+
+    if not authn or not authn.authn_instant:
+        logger.info("No authentication found")
+        logger.debug(f"frontend action: {frontend_action}, allow_login_auth={authn_params.allow_login_auth}")
+        return AuthnActionStatus.NOT_FOUND
+
+    if authn.consumed:
+        logger.info("The authentication presented has already been consumed")
+        return AuthnActionStatus.CONSUMED
+
+    delta = utc_now() - authn.authn_instant
+    logger.debug(f"Authentication age {delta}")
+    if delta > authn_params.max_age:
+        logger.info(f"Authentication age {delta} too old")
+        return AuthnActionStatus.STALE
+
+    if authn.req_authn_ctx:
+        if authn.asserted_authn_ctx not in authn.req_authn_ctx:
+            logger.info("Authentication requires a different authentication context")
+            logger.info(f"Expected accr: {authn.req_authn_ctx} got: {authn.asserted_authn_ctx}")
+            return AuthnActionStatus.WRONG_ACCR
+
+    # specific check for MFA to be able to use login actions
+    if authn_params.force_mfa and len(authn.credentials_used) < 2:
+        logger.info("Authentication requires MFA")
+        logger.info(f"Expected at least 2 credentials got: {len(authn.credentials_used)}")
+        return AuthnActionStatus.NO_MFA
+
+    if credential_used and not credential_recently_used(
+        credential=credential_used, action=authn, max_age=int(authn_params.max_age.total_seconds())
+    ):
+        logger.info(f"Credential {credential_used} has not been used recently")
+        return AuthnActionStatus.CREDENTIAL_NOT_RECENTLY_USED
+
+    return AuthnActionStatus.OK
+
+
+def credential_recently_used(credential: Credential, action: Optional[SP_AuthnRequest], max_age: int) -> bool:
+    logger.debug(f"Checking if credential {credential} has been used in the last {max_age} seconds")
+    if action and credential.key in action.credentials_used:
+        if action.authn_instant is not None:
+            age = (utc_now() - action.authn_instant).total_seconds()
+            if 0 < age < max_age:
+                logger.debug(f"Credential {credential} has been used recently")
+                return True
+    return False

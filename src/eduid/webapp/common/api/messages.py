@@ -7,6 +7,8 @@ from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 from flask import redirect
 from werkzeug.wrappers import Response as WerkzeugResponse
 
+from eduid.common.config.base import FrontendAction
+from eduid.webapp.common.api.schemas.authn_status import AuthnActionStatus
 from eduid.webapp.common.api.schemas.models import FluxResponseStatus
 
 
@@ -49,10 +51,23 @@ class CommonMsg(TranslatableMsg):
     locked_identity_not_matching = "common.locked_identity_not_matching"
 
 
+@unique
+class AuthnStatusMsg(TranslatableMsg):
+    """
+    Messages sent to the front end with information on the results of the
+    attempted operations on the back end.
+    """
+
+    # Status requested for unknown authn_id
+    not_found = "authn_status.not-found"
+    must_authenticate = "authn_status.must-authenticate"
+
+
 @dataclass(frozen=True)
 class FluxData:
     status: FluxResponseStatus
     payload: Mapping[str, Any]
+    meta: Optional[Mapping[str, Any]] = None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -92,6 +107,20 @@ def error_response(
                     If used, this should be an TranslatableMsg instance or, for B/C and robustness, a str.
     """
     return FluxData(status=FluxResponseStatus.ERROR, payload=_make_payload(payload, message, False))
+
+
+def need_authentication_response(
+    frontend_action: FrontendAction, authn_status: AuthnActionStatus, payload: Optional[Mapping[str, Any]] = None
+) -> FluxData:
+    meta = {
+        "frontend_action": frontend_action.value,
+        "authn_status": authn_status.value,
+    }
+    return FluxData(
+        status=FluxResponseStatus.ERROR,
+        meta=meta,
+        payload=_make_payload(payload, AuthnStatusMsg.must_authenticate, success=False),
+    )
 
 
 def _make_payload(
