@@ -1,5 +1,6 @@
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
+from eduid.common.config.exceptions import BadConfiguration
 from eduid.workers.job_runner.context import Context
 from eduid.workers.job_runner.jobs.skv import check_skv_users, gather_skv_users
 
@@ -39,4 +40,4 @@ class JobScheduler(AsyncIOScheduler):
                 case "check_skv_users":
                     self.add_job(check_skv_users, "cron", **params, args=(context,))
                 case _:
-                    raise BaseException("unknown job in config")
+                    raise BadConfiguration("unknown job in config")
