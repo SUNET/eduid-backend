@@ -31,7 +31,7 @@ def check_skv_users(context: Context):
     Check all users that should be checked against SKV API:s
     """
     context.logger.debug(f"checking users")
-    user = context.cleaner_queue.get_next_user()
+    user = context.cleaner_queue.get_next_user(CleanerType.SKV)
     if user is not None:
         context.logger.debug(f"Checking if user with eppn {user.eppn} should be terminated")
         assert user.identities.nin is not None  # Please mypy

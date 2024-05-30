@@ -19,7 +19,6 @@ class CleanerQueueUser(User):
     User version to bookkeep cleaning actions.
     eppn
     cleaner_type
-    next_check_ts
     """
 
     cleaner_type: CleanerType
@@ -31,6 +30,7 @@ class CleanerQueueDB(UserDB[CleanerQueueUser]):
 
         indexes = {
             "eppn-index-v1": {"key": [("eduPersonPrincipalName", 1)], "unique": True},
+            "creation-index-v1": {"key": [("meta.created_ts", 1)], "unique": False},
         }
         self.setup_indexes(indexes)
 
@@ -38,9 +38,9 @@ class CleanerQueueDB(UserDB[CleanerQueueUser]):
     def user_from_dict(cls, data: TUserDbDocument) -> CleanerQueueUser:
         return CleanerQueueUser.from_dict(data)
 
-    def get_next_user(self) -> Optional[CleanerQueueUser]:
+    def get_next_user(self, cleaner_type: CleanerType) -> Optional[CleanerQueueUser]:
         docs = self._get_documents_by_aggregate(
-            match={"cleaner_type": CleanerType.SKV}, sort={"meta.created_ts": pymongo.DESCENDING}, limit=1
+            match={"cleaner_type": cleaner_type}, sort={"meta.created_ts": pymongo.ASCENDING}, limit=1
         )
         logger.debug(f"Found {len(docs)} documents")
         if len(docs) == 0:
