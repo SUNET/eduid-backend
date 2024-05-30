@@ -50,7 +50,7 @@ def authn_context_class_to_loa(
     return None
 
 
-def is_valid_reauthn(session_info: SessionInfo, max_age: int = 60) -> bool:
+def is_valid_authn_instant(session_info: SessionInfo, max_age: int = 60) -> bool:
     """
     :param session_info: The SAML2 session_info
     :param max_age: Max time (in seconds) since authn that is to be allowed
