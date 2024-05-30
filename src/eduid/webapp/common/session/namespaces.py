@@ -62,14 +62,6 @@ class LoginApplication(str, Enum):
     signup = "signup"
 
 
-@unique
-class MfaActionError(str, Enum):
-    authn_context_mismatch = "authn_context_mismatch"
-    authn_too_old = "authn_too_old"
-    nin_not_matching = "nin_not_matching"
-    foreign_eid_not_matching = "foreign_eid_not_matching"
-
-
 class Common(SessionNSBase):
     eppn: Optional[str] = None
     is_logged_in: bool = False
@@ -82,7 +74,6 @@ WebauthnState = NewType("WebauthnState", dict[str, Any])
 
 class MfaAction(SessionNSBase):
     success: bool = False
-    error: Optional[MfaActionError] = None
     login_ref: Optional[str] = None
     authn_req_ref: Optional[AuthnRequestRef] = None
     credential_used: Optional[ElementKey] = None
