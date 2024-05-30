@@ -39,4 +39,4 @@ class JobScheduler(AsyncIOScheduler):
                 case "check_skv_users":
                     self.add_job(check_skv_users, "cron", **params, args=(context,))
                 case _:
-                    BaseException("unknown job in config")
+                    raise BaseException("unknown job in config")

@@ -12,7 +12,7 @@ def gather_skv_users(context: Context):
     Gather and queue all users that should be checked against SKV API:s
 
     """
-    context.logger.debug(f"gathering users to check")
+    context.logger.debug("gathering users to check")
     users: list[User] = context.db.get_unterminated_users_with_nin()
     context.logger.debug(f"gathered {len(users)} users to check")
     for user in users:
@@ -30,7 +30,7 @@ def check_skv_users(context: Context):
     """
     Check all users that should be checked against SKV API:s
     """
-    context.logger.debug(f"checking users")
+    context.logger.debug("checking users")
     user = context.cleaner_queue.get_next_user(CleanerType.SKV)
     if user is not None:
         context.logger.debug(f"Checking if user with eppn {user.eppn} should be terminated")
@@ -52,7 +52,7 @@ def check_skv_users(context: Context):
             context.logger.debug(f"User with eppn {user.eppn} is still registered")
 
     else:
-        context.logger.debug(f"Nothing to do")
+        context.logger.debug("Nothing to do")
 
 
 def terminate_user(context: Context, eppn: str, reason: Reason):
