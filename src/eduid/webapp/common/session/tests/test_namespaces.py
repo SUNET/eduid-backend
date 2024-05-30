@@ -50,12 +50,13 @@ class TestIdPNamespace(EduidAPITestCase):
                 "user_created": False,
                 "email": {"completed": False, "verification_code": "test", "bad_attempts": 0},
                 "invite": {"initiated_signup": False, "completed": False},
+                "name": {},
                 "tou": {"completed": False},
                 "captcha": {"bad_attempts": 0, "completed": False},
                 "credentials": {"completed": False},
             },
             "idp": {"ts": "now", "sso_cookie_val": "abc", "pending_requests": {}},
-        }
+        }, f"Actual result: {normalised_data(out, replace_datetime='now')}"
 
         session.persist()
 

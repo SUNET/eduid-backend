@@ -179,9 +179,16 @@ def registration_complete(
     reg_state = session.security.webauthn_registration
     session.security.webauthn_registration = None
 
-    auth_data: AuthenticatorData = server.register_complete(reg_state.webauthn_state, cdata_obj, att_obj)
+    try:
+        auth_data: AuthenticatorData = server.register_complete(reg_state.webauthn_state, cdata_obj, att_obj)
+    except ValueError:
+        current_app.logger.exception("Webauthn registration failed")
+        return error_response(message=SecurityMsg.webauthn_registration_fail)
     if auth_data.credential_data is None:
-        raise RuntimeError("Authenticator data does not contain credential data")
+        current_app.logger.error("Webauthn credential data is missing")
+        current_app.logger.debug(f"Received auth_data: {auth_data}")
+        return error_response(message=SecurityMsg.webauthn_missing_credential_data)
+
     credential_data = base64.urlsafe_b64encode(auth_data.credential_data).decode("ascii")
     current_app.logger.debug(f"Processed Webauthn credential data: {credential_data}")
     mfa_approved = is_authenticator_mfa_approved(authenticator_info=authenticator_info)

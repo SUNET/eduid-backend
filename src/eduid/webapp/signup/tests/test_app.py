@@ -14,6 +14,7 @@ from werkzeug.test import TestResponse
 from eduid.common.clients.scim_client.testing import MockedScimAPIMixin
 from eduid.common.config.base import EduidEnvironment
 from eduid.common.misc.timeutil import utc_now
+from eduid.common.testing_base import normalised_data
 from eduid.userdb.exceptions import UserOutOfSync
 from eduid.userdb.signup import Invite, InviteMailAddress, InviteType
 from eduid.userdb.signup.invite import InvitePhoneNumber, SCIMReference
@@ -37,18 +38,13 @@ class SignupState(Enum):
     S7_COMPLETE_INVITE = "complete_invite"
     S8_GENERATE_PASSWORD = "generate_password"
     S9_GENERATE_CAPTCHA = "generate_captcha"
-
-
-class OldSignupState(Enum):
-    S5_CAPTCHA = "captcha"
-    S6_MAIL_SENT_NO_USER = "no_user_created"
-    S7_VERIFY_LINK = "verify_link"
+    S10_GET_STATE = "get_state"
 
 
 @dataclass
 class SignupResult:
     url: str
-    reached_state: Union[SignupState, OldSignupState]
+    reached_state: SignupState
     response: TestResponse
 
 
@@ -104,6 +100,18 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         assert self.get_response_payload(response)["captcha_img"].startswith("data:image/png;base64,")
         assert self.get_response_payload(response)["captcha_audio"].startswith("data:audio/wav;base64,")
         return SignupResult(url=endpoint, reached_state=SignupState.S9_GENERATE_CAPTCHA, response=response)
+
+    def _get_state(self) -> SignupResult:
+        with self.session_cookie_anon(self.browser) as client:
+            with self.app.test_request_context():
+                endpoint = url_for("signup.get_state")
+                logger.info(f"Making GET request to {endpoint}")
+                response = client.get(f"{endpoint}")
+
+        self._check_api_response(
+            response=response, status=200, type_="GET_SIGNUP_STATE_SUCCESS", assure_not_in_payload=["verification_code"]
+        )
+        return SignupResult(url=endpoint, reached_state=SignupState.S10_GET_STATE, response=response)
 
     # parameterized test methods
     def _captcha(
@@ -189,6 +197,8 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
     def _register_email(
         self,
         data1: Optional[dict[str, Any]] = None,
+        given_name: str = "Test",
+        surname: str = "Testdotter",
         email: str = "dummy@example.com",
         expect_success: bool = True,
         expected_message: Optional[TranslatableMsg] = None,
@@ -205,7 +215,12 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
             with self.app.test_request_context():
                 endpoint = url_for("signup.register_email")
                 with client.session_transaction() as sess:
-                    data = {"email": email, "csrf_token": sess.get_csrf_token()}
+                    data = {
+                        "given_name": given_name,
+                        "surname": surname,
+                        "email": email,
+                        "csrf_token": sess.get_csrf_token(),
+                    }
                 if data1 is not None:
                     data.update(data1)
 
@@ -436,6 +451,8 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
 
     def _prepare_for_create_user(
         self,
+        given_name: str = "Test",
+        surname: str = "Testdotter",
         email: str = "dummy@example.com",
         tou_accepted: bool = True,
         captcha_completed: bool = True,
@@ -444,6 +461,8 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
     ):
         with self.session_cookie_anon(self.browser) as client:
             with client.session_transaction() as sess:
+                sess.signup.name.given_name = given_name
+                sess.signup.name.surname = surname
                 sess.signup.tou.completed = tou_accepted
                 sess.signup.tou.version = "test_tou_v1"
                 sess.signup.captcha.completed = captcha_completed
@@ -772,6 +791,21 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
                     return client.get(f"/get-code?email={email}")
 
     # actual tests
+    def test_get_state_initial(self):
+        res = self._get_state()
+        assert res.reached_state == SignupState.S10_GET_STATE
+        state = self.get_response_payload(res.response)["state"]
+        assert state == {
+            "already_signed_up": False,
+            "captcha": {"completed": False},
+            "credentials": {"completed": False, "password": None},
+            "email": {"address": None, "bad_attempts": 0, "bad_attempts_max": 3, "completed": False, "sent_at": None},
+            "invite": {"completed": False, "finish_url": None, "initiated_signup": False},
+            "name": {"given_name": None, "surname": None},
+            "tou": {"completed": False, "version": "2016-v1"},
+            "user_created": False,
+        }, f"actual state is {state}"
+
     def test_accept_tou(self):
         res = self._accept_tou()
         assert res.reached_state == SignupState.S2_ACCEPT_TOU
@@ -930,15 +964,29 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
             response = client.post("/captcha")
             self.assertEqual(response.status_code, 200)
             data = json.loads(response.data)
-            self.assertEqual(data["error"], True)
+            self.assertTrue(data["error"])
             self.assertEqual(data["type"], "POST_SIGNUP_CAPTCHA_FAIL")
             self.assertIn("csrf_token", data["payload"]["error"])
 
     def test_register_new_user(self):
+        given_name = "John"
+        surname = "Smith"
+        email = "jsmith@example.com"
         self._captcha()
-        res = self._register_email(expect_success=True, expected_message=None)
+        res = self._register_email(
+            given_name=given_name,
+            surname=surname,
+            email=email,
+            expect_success=True,
+            expected_message=None,
+        )
         assert res.reached_state == SignupState.S4_REGISTER_EMAIL
         assert self.app.messagedb.db_count() == 1
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                assert sess.signup.email.address == email
+                assert sess.signup.name.given_name == given_name
+                assert sess.signup.name.surname == surname
 
     def test_register_new_user_mixed_case(self):
         self._captcha()
@@ -1056,8 +1104,10 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
                 assert sess.signup.email.address == mixed_case_email.lower()
 
     def test_create_user(self):
+        given_name = "Testaren Test"
+        surname = "Test"
         email = "test@example.com"
-        self._prepare_for_create_user(email=email)
+        self._prepare_for_create_user(given_name=given_name, surname=surname, email=email)
         response = self._create_user(expect_success=True)
         assert response.reached_state == SignupState.S6_CREATE_USER
 
@@ -1067,6 +1117,8 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
                 assert eppn is not None
                 assert sess.signup.credentials.password is None
         user = self.app.central_userdb.get_user_by_eppn(eppn)
+        assert user.given_name == given_name
+        assert user.surname == surname
         assert user.mail_addresses.to_list()[0].email == email
 
     def test_create_user_eppn_in_session(self):
@@ -1170,12 +1222,42 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         )
         assert self.get_response_payload(res.response)["error"] == {"csrf_token": ["CSRF failed to validate"]}
 
+    def test_get_state_after_accept_invite(self):
+        invite = self._create_invite()
+        self._accept_invite(email=invite.get_primary_mail_address(), invite_code=invite.invite_code)
+        res = self._get_state()
+        assert res.reached_state == SignupState.S10_GET_STATE
+        state = self.get_response_payload(res.response)["state"]
+        assert normalised_data(state, exclude_keys=["expires_time_left", "throttle_time_left", "sent_at"]) == {
+            "already_signed_up": False,
+            "captcha": {"completed": False},
+            "credentials": {"completed": False, "password": None},
+            "email": {
+                "address": "dummy@example.com",
+                "bad_attempts": 0,
+                "bad_attempts_max": 3,
+                "completed": True,
+                "expires_time_max": 600,
+                "throttle_time_max": 300,
+            },
+            "invite": {"completed": False, "finish_url": None, "initiated_signup": True},
+            "name": {"given_name": "Invite", "surname": "Invitesson"},
+            "tou": {"completed": False, "version": "2016-v1"},
+            "user_created": False,
+        }, f"Actual state {normalised_data(state, exclude_keys=['expires_time_left', 'throttle_time_left', 'sent_at'])}"
+
     def test_complete_invite_new_user(self):
         self.start_mocked_scim_api()
 
         invite = self._create_invite()
         self._accept_invite(email=invite.get_primary_mail_address(), invite_code=invite.invite_code)
-        self._prepare_for_create_user(email=invite.get_primary_mail_address())
+        res = self._get_state()
+        state_payload = self.get_response_payload(res.response)
+        self._prepare_for_create_user(
+            email=invite.get_primary_mail_address(),
+            given_name=state_payload["state"]["name"]["given_name"],
+            surname=state_payload["state"]["name"]["surname"],
+        ),
         self._create_user(expect_success=True)
         res = self._complete_invite()
         assert res.reached_state == SignupState.S7_COMPLETE_INVITE

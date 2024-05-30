@@ -1,5 +1,9 @@
 from enum import unique
+from typing import Optional
 
+from pydantic import BaseModel, Field
+
+from eduid.common.models.generic import HttpUrlStr
 from eduid.webapp.common.api.messages import TranslatableMsg
 
 
@@ -22,3 +26,11 @@ class OrcidMsg(TranslatableMsg):
     sub_mismatch = "orc.sub_mismatch"
     # ORCID proofing data saved for user
     authz_success = "orc.authorization_success"
+
+
+class OrcidUserinfo(BaseModel):
+    orcid: HttpUrlStr = Field(alias="id")
+    sub: str
+    name: Optional[str] = None
+    family_name: str
+    given_name: str

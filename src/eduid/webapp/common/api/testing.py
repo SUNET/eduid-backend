@@ -565,6 +565,9 @@ class CSRFTestClient(FlaskClient):
 
         return super().post(*args, **kwargs)
 
+    def get(self, *args: Any, **kwargs: Any) -> TestResponse:
+        return super().get(*args, **kwargs)
+
     @contextmanager
     def session_transaction(self, *args: Any, **kwargs: Any) -> Generator[EduidSession, None, None]:
         """

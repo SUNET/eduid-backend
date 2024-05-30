@@ -103,8 +103,8 @@ class MailQueueWorker(QueueWorker):
             )
             return Status(success=True, message="Devel message printed")
 
-        smtp_client = await self.smtp
         try:
+            smtp_client = await self.smtp
             errors, response_message = await smtp_client.sendmail(sender, recipient, message)
         except SMTPException as e:
             logger.error(f"SMTPException: {e}")

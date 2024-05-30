@@ -194,7 +194,9 @@ def send_signup_mail(email: str, verification_code: str, reference: str) -> None
         current_app.logger.debug(f"Generating verification e-mail with context:\n{payload}")
 
 
-def create_and_sync_user(email: str, tou_version: str, password: Optional[str] = None) -> SignupUser:
+def create_and_sync_user(
+    given_name: str, surname: str, email: str, tou_version: str, password: Optional[str] = None
+) -> SignupUser:
     """
     * Create a new user in the central userdb
     * Generate a new eppn
@@ -207,6 +209,8 @@ def create_and_sync_user(email: str, tou_version: str, password: Optional[str] =
     current_app.logger.info("Creating new user")
 
     signup_user = SignupUser(eppn=generate_eppn())
+    signup_user.given_name = given_name
+    signup_user.surname = surname
 
     # Record the acceptance of the terms of use
     record_tou(signup_user=signup_user, tou_version=tou_version)
