@@ -298,18 +298,7 @@ class AuthnAPITestCase(AuthnAPITestBase):
 
                 return self.app.dispatch_request()
 
-    def test_signup_authn_new_user(self):
-        eppn = "hubba-fooo"
-        resp = self._signup_authn_user(eppn)
-        self.assertEqual(resp.status_code, 302)
-        self.assertTrue(resp.location.startswith(self.app.conf.signup_authn_success_redirect_url))
 
-    def test_signup_authn_old_user(self):
-        """A user that has verified their account should not try to use token login"""
-        eppn = "hubba-bubba"
-        resp = self._signup_authn_user(eppn)
-        self.assertEqual(resp.status_code, 302)
-        self.assertTrue(resp.location.startswith(self.app.conf.signup_authn_failure_redirect_url))
 
 
 class AuthnTestApp(AuthnBaseApp):

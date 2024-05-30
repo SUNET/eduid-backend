@@ -30,9 +30,6 @@ class EidasConfig(
 
     app_name: str = "eidas"
 
-    token_verify_redirect_url: str  # TODO: remove when old views are gone
-    identity_verify_redirect_url: str  # TODO: remove when old views are gone
-
     # Federation config
     authentication_context_map: dict[str, str] = Field(
         default={

@@ -89,34 +89,6 @@ def no_authn_views(config: EduIDBaseAppConfig, paths: Sequence[str]) -> None:
     return None
 
 
-def check_previous_identification(session_ns: TimestampedNS) -> Optional[str]:
-    """
-    Check that the user, though not properly authenticated, has been recognized
-    by some app with access to the shared session
-    Must be called within a request context.
-
-    Used after signup or for idp actions.
-
-    :return: The eppn in case the check is successful, None otherwise
-    """
-    from eduid.webapp.common.session import session
-
-    eppn = session.common.eppn
-    logger.debug(f"Trying to authenticate user {eppn} with timestamp {session_ns.ts}")
-    # check that the eppn and timestamp have been set in the session
-    if eppn is None or session_ns.ts is None:
-        return None
-    # check timestamp to make sure it is within -300..900
-    now = utc_now()
-    # TODO: The namespace timestamp is a pretty underwhelming measure of the intent to allow this
-    #       user to continue doing what they are doing. Do something better.
-    if (session_ns.ts < now - timedelta(seconds=300)) or (session_ns.ts > now + timedelta(seconds=900)):
-        delta = (now - session_ns.ts).total_seconds()
-        logger.error(f"Auth token timestamp {session_ns.ts} out of bounds ({delta} seconds from {now})")
-        return None
-    return eppn
-
-
 def init_pysaml2(cfgfile: str) -> server.Server:
     """
     Initialization of PySAML2.

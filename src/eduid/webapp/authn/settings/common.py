@@ -12,14 +12,6 @@ class AuthnConfig(EduIDBaseAppConfig, ErrorsConfigMixin, Pysaml2SPConfigMixin):
 
     app_name: str = "authn"
     server_name: str = "authn"
-    required_loa: Mapping[str, str] = Field(
-        default={
-            "personal": "http://www.swamid.se/policy/assurance/al1",
-            "helpdesk": "http://www.swamid.se/policy/assurance/al2",
-            "admin": "http://www.swamid.se/policy/assurance/al3",
-        }
-    )
-    available_loa: str = "http://www.swamid.se/policy/assurance/al1"
     signup_authn_success_redirect_url: str = "https://dashboard.eduid.se"
     signup_authn_failure_redirect_url: str = "https://dashboard.eduid.se"
     saml2_login_redirect_url: str

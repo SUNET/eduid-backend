@@ -17,22 +17,9 @@ class EidasAcsAction(str, Enum):
     verify_credential = "verify-credential-action"
     mfa_authenticate = "mfa-authenticate-action"
 
-    # keep these until old_views are gone. used to send correct success-responses.
-    old_token_verify = "token-verify-action"
-    old_nin_verify = "nin-verify-action"
-    old_mfa_authn = "mfa-authentication-action"
-
 
 @unique
 class BankIDAcsAction(str, Enum):
     verify_identity = "verify-identity-action"
     verify_credential = "verify-credential-action"
     mfa_authenticate = "mfa-authenticate-action"
-
-
-def is_old_action(frontend_action: str) -> bool:
-    return frontend_action in [
-        EidasAcsAction.old_mfa_authn.value,
-        EidasAcsAction.old_token_verify.value,
-        EidasAcsAction.old_nin_verify.value,
-    ]
