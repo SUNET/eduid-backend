@@ -351,18 +351,18 @@ class Pysaml2SPConfigMixin(BaseModel):
 
 @unique
 class FrontendAction(Enum):
-    OLD_LOGIN = "oldLogin"
-    LOGIN = "login"
-    VERIFY_IDENTITY = "verifyIdentity"
-    REMOVE_IDENTITY = "removeIdentity"
-    VERIFY_CREDENTIAL = "verifyCredential"
-    LOGIN_MFA_AUTHN = "loginMfaAuthn"
-    RESET_PW_MFA_AUTHN = "resetpwMfaAuthn"
-    CHANGE_PW_AUTHN = "changepwAuthn"
     ADD_SECURITY_KEY_AUTHN = "addSecurityKeyAuthn"
-    REMOVE_SECURITY_KEY_AUTHN = "removeSecurityKeyAuthn"
-    TERMINATE_ACCOUNT_AUTHN = "terminateAccountAuthn"
+    CHANGE_PW_AUTHN = "changepwAuthn"
     CHANGE_SECURITY_SETTINGS_AUTHN = "changeSecuritySettingsAuthn"
+    LOGIN = "login"
+    LOGIN_MFA_AUTHN = "loginMfaAuthn"
+    OLD_LOGIN = "oldLogin"
+    REMOVE_IDENTITY = "removeIdentity"
+    REMOVE_SECURITY_KEY_AUTHN = "removeSecurityKeyAuthn"
+    RESET_PW_MFA_AUTHN = "resetpwMfaAuthn"
+    TERMINATE_ACCOUNT_AUTHN = "terminateAccountAuthn"
+    VERIFY_CREDENTIAL = "verifyCredential"
+    VERIFY_IDENTITY = "verifyIdentity"
 
 
 class AuthnParameters(BaseModel):
@@ -381,13 +381,10 @@ class FrontendActionMixin(BaseModel):
     # if the current way means to many logins for the users we can explore it.
     frontend_action_authn_parameters: dict[FrontendAction, AuthnParameters] = Field(
         default={
-            FrontendAction.OLD_LOGIN: AuthnParameters(
-                same_user=False,
-                finish_url="https://eduid.se/profile/",
-            ),
-            FrontendAction.LOGIN: AuthnParameters(
-                same_user=False,
-                finish_url="https://eduid.se/login/ext-return/{app_name}/{authn_id}",
+            FrontendAction.ADD_SECURITY_KEY_AUTHN: AuthnParameters(
+                high_security=True,
+                allow_login_auth=True,
+                finish_url="https://eduid.se/profile/ext-return/{app_name}/{authn_id}",
             ),
             FrontendAction.CHANGE_PW_AUTHN: AuthnParameters(
                 force_authn=True,
@@ -395,28 +392,41 @@ class FrontendActionMixin(BaseModel):
                 allow_login_auth=True,
                 finish_url="https://eduid.se/profile/ext-return/{app_name}/{authn_id}",
             ),
-            FrontendAction.TERMINATE_ACCOUNT_AUTHN: AuthnParameters(
+            FrontendAction.CHANGE_SECURITY_SETTINGS_AUTHN: AuthnParameters(
                 force_authn=True,
                 high_security=True,
                 allow_login_auth=True,
                 finish_url="https://eduid.se/profile/ext-return/{app_name}/{authn_id}",
             ),
-            FrontendAction.ADD_SECURITY_KEY_AUTHN: AuthnParameters(
-                high_security=True,
+            FrontendAction.LOGIN: AuthnParameters(
+                same_user=False,
+                finish_url="https://eduid.se/login/ext-return/{app_name}/{authn_id}",
+            ),
+            FrontendAction.LOGIN_MFA_AUTHN: AuthnParameters(
+                force_authn=True,
                 allow_login_auth=True,
-                finish_url="https://eduid.se/profile/ext-return/{app_name}/{authn_id}",
+                finish_url="https://eduid.se/login/ext-return/{app_name}/{authn_id}",
+            ),
+            FrontendAction.OLD_LOGIN: AuthnParameters(
+                same_user=False,
+                finish_url="https://eduid.se/profile/",
             ),
             FrontendAction.REMOVE_SECURITY_KEY_AUTHN: AuthnParameters(
                 force_mfa=True,
                 allow_login_auth=True,
                 finish_url="https://eduid.se/profile/ext-return/{app_name}/{authn_id}",
             ),
+            FrontendAction.RESET_PW_MFA_AUTHN: AuthnParameters(
+                force_authn=True,
+                allow_login_auth=True,
+                finish_url="https://eduid.se/login/ext-return/{app_name}/{authn_id}",
+            ),
             FrontendAction.VERIFY_IDENTITY: AuthnParameters(
                 force_authn=True,
                 allow_login_auth=True,
                 finish_url="https://eduid.se/profile/ext-return/{app_name}/{authn_id}",
             ),
-            FrontendAction.REMOVE_IDENTITY: AuthnParameters(
+            FrontendAction.TERMINATE_ACCOUNT_AUTHN: AuthnParameters(
                 force_authn=True,
                 high_security=True,
                 allow_login_auth=True,
@@ -428,15 +438,11 @@ class FrontendActionMixin(BaseModel):
                 allow_login_auth=True,
                 finish_url="https://eduid.se/profile/ext-return/{app_name}/{authn_id}",
             ),
-            FrontendAction.LOGIN_MFA_AUTHN: AuthnParameters(
+            FrontendAction.REMOVE_IDENTITY: AuthnParameters(
                 force_authn=True,
+                high_security=True,
                 allow_login_auth=True,
-                finish_url="https://eduid.se//login/ext-return/{app_name}/{authn_id}",
-            ),
-            FrontendAction.RESET_PW_MFA_AUTHN: AuthnParameters(
-                force_authn=True,
-                allow_login_auth=True,
-                finish_url="https://eduid.se//login/ext-return/{app_name}/{authn_id}",
+                finish_url="https://eduid.se/profile/ext-return/{app_name}/{authn_id}",
             ),
         }
     )
