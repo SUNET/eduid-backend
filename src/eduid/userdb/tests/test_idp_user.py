@@ -3,7 +3,7 @@ from unittest import TestCase
 from eduid.common.testing_base import normalised_data
 from eduid.userdb.fixtures.users import UserFixtures
 from eduid.userdb.idp.user import SUPPORTED_SAML_ATTRIBUTES, IdPUser, SAMLAttributeSettings
-from eduid.webapp.common.authn.eduid_saml2 import EduidAuthnContextClass
+from eduid.common.models.saml2 import EduidAuthnContextClass
 
 __author__ = "lundberg"
 

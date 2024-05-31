@@ -21,7 +21,8 @@ from eduid.webapp.authn.settings.common import AuthnConfig
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.common.authn.acs_enums import AuthnAcsAction
 from eduid.webapp.common.authn.cache import OutstandingQueriesCache
-from eduid.webapp.common.authn.eduid_saml2 import EduidAuthnContextClass, get_authn_request
+from eduid.webapp.common.authn.eduid_saml2 import get_authn_request
+from eduid.common.models.saml2 import EduidAuthnContextClass
 from eduid.webapp.common.authn.middleware import AuthnBaseApp
 from eduid.webapp.common.authn.tests.responses import auth_response, logout_request, logout_response
 from eduid.webapp.common.authn.utils import get_location, no_authn_views

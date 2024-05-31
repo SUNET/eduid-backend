@@ -5,7 +5,7 @@ from urllib.parse import urlencode
 
 from pydantic import BaseModel, ConfigDict
 
-from eduid.webapp.common.authn.eduid_saml2 import EduidAuthnContextClass
+from eduid.common.models.saml2 import EduidAuthnContextClass
 from eduid.webapp.common.session.namespaces import (
     IdP_OtherDevicePendingRequest,
     IdP_PendingRequest,

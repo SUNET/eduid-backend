@@ -16,7 +16,7 @@ from eduid.userdb.credentials import Password
 from eduid.userdb.maccapi.userdb import ManagedAccount
 from eduid.userdb.mail import MailAddressList
 from eduid.vccs.client import VCCSClient
-from eduid.webapp.common.authn.eduid_saml2 import EduidAuthnContextClass
+from eduid.common.models.saml2 import EduidAuthnContextClass
 from eduid.webapp.common.authn.utils import get_saml2_config
 from eduid.webapp.idp.helpers import IdPAction, IdPMsg
 from eduid.webapp.idp.tests.test_api import IdPAPITests, TestUser

@@ -15,7 +15,7 @@ from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.credentials import U2F, Credential, CredentialProofingMethod, Password
 from eduid.userdb.identity import IdentityList, IdentityProofingMethod, NinIdentity
 from eduid.userdb.idp import IdPUser
-from eduid.webapp.common.authn.eduid_saml2 import EduidAuthnContextClass
+from eduid.common.models.saml2 import EduidAuthnContextClass
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.logindata import ExternalMfaData
 from eduid.webapp.common.session.namespaces import IdP_SAMLPendingRequest, RequestRef

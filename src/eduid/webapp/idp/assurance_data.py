@@ -9,7 +9,7 @@ from typing import Any
 from pydantic import BaseModel
 
 from eduid.userdb.element import ElementKey
-from eduid.webapp.common.authn.eduid_saml2 import EduidAuthnContextClass
+from eduid.common.models.saml2 import EduidAuthnContextClass
 
 
 class SwamidAssurance(str, Enum):

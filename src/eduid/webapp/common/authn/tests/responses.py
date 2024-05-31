@@ -2,7 +2,7 @@ from datetime import timedelta
 from typing import Optional
 
 from eduid.common.misc.timeutil import utc_now
-from eduid.webapp.common.authn.eduid_saml2 import EduidAuthnContextClass
+from eduid.common.models.saml2 import EduidAuthnContextClass
 
 
 def auth_response(session_id: str, eppn: str, accr: Optional[EduidAuthnContextClass] = None) -> str:
