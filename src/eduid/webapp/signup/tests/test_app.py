@@ -3,7 +3,7 @@ import logging
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import Any, Mapping, Optional, Union
+from typing import Any, Mapping, Optional
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
@@ -83,8 +83,17 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         )
         return config
 
-    def _get_captcha(self):
-        with self.session_cookie_anon(self.browser) as client:
+    def _get_captcha(
+        self,
+        expect_success: bool = True,
+        expected_message: Optional[TranslatableMsg] = None,
+        logged_in: bool = False,
+    ):
+        eppn = None
+        if logged_in:
+            eppn = self.test_user.eppn
+
+        with self.session_cookie(self.browser, eppn=eppn, logged_in=logged_in) as client:
             with self.app.test_request_context():
                 endpoint = url_for("signup.captcha_request")
                 with client.session_transaction() as sess:
@@ -92,17 +101,29 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
                         "csrf_token": sess.get_csrf_token(),
                     }
         response = client.post(f"{endpoint}", data=json.dumps(data), content_type=self.content_type_json)
+
+        if expect_success:
+            type_ = "POST_SIGNUP_GET_CAPTCHA_SUCCESS"
+            assert self.get_response_payload(response)["captcha_img"].startswith("data:image/png;base64,")
+            assert self.get_response_payload(response)["captcha_audio"].startswith("data:audio/wav;base64,")
+        else:
+            type_ = "POST_SIGNUP_GET_CAPTCHA_FAIL"
+
         self._check_api_response(
             response,
             status=200,
-            type_="POST_SIGNUP_GET_CAPTCHA_SUCCESS",
+            type_=type_,
+            message=expected_message,
         )
-        assert self.get_response_payload(response)["captcha_img"].startswith("data:image/png;base64,")
-        assert self.get_response_payload(response)["captcha_audio"].startswith("data:audio/wav;base64,")
+
         return SignupResult(url=endpoint, reached_state=SignupState.S9_GENERATE_CAPTCHA, response=response)
 
-    def _get_state(self) -> SignupResult:
-        with self.session_cookie_anon(self.browser) as client:
+    def _get_state(self, logged_in: bool = False) -> SignupResult:
+        eppn = None
+        if logged_in:
+            eppn = self.test_user.eppn
+
+        with self.session_cookie(self.browser, eppn=eppn, logged_in=logged_in) as client:
             with self.app.test_request_context():
                 endpoint = url_for("signup.get_state")
                 logger.info(f"Making GET request to {endpoint}")
@@ -117,34 +138,30 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
     def _captcha(
         self,
         captcha_data: Optional[Mapping[str, Any]] = None,
-        generate_internal_captcha: bool = True,
         add_magic_cookie: bool = False,
         magic_cookie_name: Optional[str] = None,
         expect_success: bool = True,
         expected_message: Optional[TranslatableMsg] = None,
         expected_payload: Optional[Mapping[str, Any]] = None,
+        logged_in: bool = False,
     ):
         """
         :param captcha_data: to control the data POSTed to the /captcha endpoint
         :param add_magic_cookie: add magic cookie to the captcha request
         """
 
-        with self.session_cookie_anon(self.browser) as client:
+        eppn = None
+        if logged_in:
+            eppn = self.test_user.eppn
+
+        with self.session_cookie(self.browser, eppn=eppn, logged_in=logged_in) as client:
             with self.app.test_request_context():
                 endpoint = url_for("signup.captcha_response")
-                if generate_internal_captcha:
-                    self._get_captcha()
-                    with client.session_transaction() as sess:
-                        assert sess.signup.captcha.internal_answer
-                        data = {
-                            "csrf_token": sess.get_csrf_token(),
-                            "internal_response": sess.signup.captcha.internal_answer,
-                        }
-                else:
-                    with client.session_transaction() as sess:
-                        data = {
-                            "csrf_token": sess.get_csrf_token(),
-                        }
+                with client.session_transaction() as sess:
+                    data = {
+                        "csrf_token": sess.get_csrf_token(),
+                        "internal_response": sess.signup.captcha.internal_answer,
+                    }
 
                 if add_magic_cookie:
                     assert self.app.conf.magic_cookie_name is not None
@@ -203,6 +220,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         expect_success: bool = True,
         expected_message: Optional[TranslatableMsg] = None,
         expected_payload: Optional[Mapping[str, Any]] = None,
+        logged_in: bool = False,
     ):
         """
         Trigger sending an email with a verification code.
@@ -210,8 +228,11 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         :param data1: to control the data POSTed to the verify email endpoint
         :param email: what email address to use
         """
+        eppn = None
+        if logged_in:
+            eppn = self.test_user.eppn
 
-        with self.session_cookie_anon(self.browser) as client:
+        with self.session_cookie(self.browser, eppn=eppn, logged_in=logged_in) as client:
             with self.app.test_request_context():
                 endpoint = url_for("signup.register_email")
                 with client.session_transaction() as sess:
@@ -270,14 +291,18 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         expect_success: bool = True,
         expected_message: Optional[TranslatableMsg] = None,
         expected_payload: Optional[Mapping[str, Any]] = None,
+        logged_in: bool = False,
     ):
         """
         Verify registered email with a verification code.
 
         :param data1: to control the data POSTed to the verify email endpoint
         """
+        eppn = None
+        if logged_in:
+            eppn = self.test_user.eppn
 
-        with self.session_cookie_anon(self.browser) as client:
+        with self.session_cookie(self.browser, eppn=eppn, logged_in=logged_in) as client:
             with self.app.test_request_context():
                 endpoint = url_for("signup.verify_email")
                 with client.session_transaction() as sess:
@@ -336,6 +361,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         expect_success: bool = True,
         expected_message: Optional[TranslatableMsg] = None,
         expected_payload: Optional[Mapping[str, Any]] = None,
+        logged_in: bool = False,
     ):
         """
         Verify registered email with a verification code.
@@ -346,7 +372,11 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         if tou_version is None:
             tou_version = self.app.conf.tou_version
 
-        with self.session_cookie_anon(self.browser) as client:
+        eppn = None
+        if logged_in:
+            eppn = self.test_user.eppn
+
+        with self.session_cookie(self.browser, eppn=eppn, logged_in=logged_in) as client:
             with self.app.test_request_context():
                 endpoint = url_for("signup.accept_tou")
                 with client.session_transaction() as sess:
@@ -399,13 +429,18 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         expect_success: bool = True,
         expected_message: Optional[TranslatableMsg] = None,
         expected_payload: Optional[Mapping[str, Any]] = None,
+        logged_in: bool = False,
     ):
         """
         Generate a password and return in state.
 
         :param data1: to control the data POSTed to the verify email endpoint
         """
-        with self.session_cookie_anon(self.browser) as client:
+        eppn = None
+        if logged_in:
+            eppn = self.test_user.eppn
+
+        with self.session_cookie(self.browser, eppn=eppn, logged_in=logged_in) as client:
             with self.app.test_request_context():
                 endpoint = url_for("signup.get_password")
                 with client.session_transaction() as sess:
@@ -458,8 +493,13 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         captcha_completed: bool = True,
         email_verified: bool = True,
         generated_password: Optional[str] = "test_password",
+        logged_in: bool = False,
     ):
-        with self.session_cookie_anon(self.browser) as client:
+        eppn = None
+        if logged_in:
+            eppn = self.test_user.eppn
+
+        with self.session_cookie(self.browser, eppn=eppn, logged_in=logged_in) as client:
             with client.session_transaction() as sess:
                 sess.signup.name.given_name = given_name
                 sess.signup.name.surname = surname
@@ -481,13 +521,19 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         expect_success: bool = True,
         expected_message: Optional[TranslatableMsg] = None,
         expected_payload: Optional[Mapping[str, Any]] = None,
+        logged_in: bool = False,
     ):
         """
         Create a new user with the data in the session.
         """
         mock_add_credentials.return_value = True
         mock_request_user_sync.side_effect = self.request_user_sync
-        with self.session_cookie_anon(self.browser) as client:
+
+        eppn = None
+        if logged_in:
+            eppn = self.test_user.eppn
+
+        with self.session_cookie(self.browser, eppn=eppn, logged_in=logged_in) as client:
             with client.session_transaction() as sess:
                 with self.app.test_request_context():
                     endpoint = url_for("signup.create_user")
@@ -573,6 +619,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         expect_success: bool = True,
         expected_message: Optional[TranslatableMsg] = None,
         expected_payload: Optional[Mapping[str, Any]] = None,
+        logged_in: bool = False,
     ):
         """
         Get invite data from the invite data endpoint.
@@ -580,24 +627,17 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         with self.app.test_request_context():
             endpoint = url_for("signup.get_invite")
 
-        if eppn is None:
-            with self.session_cookie_anon(self.browser) as client:
-                with client.session_transaction() as sess:
-                    data = {
-                        "invite_code": invite_code,
-                        "csrf_token": sess.get_csrf_token(),
-                    }
-                    if data1 is not None:
-                        data.update(data1)
-        else:
-            with self.session_cookie(self.browser, eppn=eppn) as client:
-                with client.session_transaction() as sess:
-                    data = {
-                        "invite_code": invite_code,
-                        "csrf_token": sess.get_csrf_token(),
-                    }
-                    if data1 is not None:
-                        data.update(data1)
+        if eppn is None and logged_in:
+            eppn = self.test_user.eppn
+
+        with self.session_cookie(self.browser, eppn=eppn, logged_in=logged_in) as client:
+            with client.session_transaction() as sess:
+                data = {
+                    "invite_code": invite_code,
+                    "csrf_token": sess.get_csrf_token(),
+                }
+                if data1 is not None:
+                    data.update(data1)
 
         logger.info(f"Making request to {endpoint}")
         response = client.post(f"{endpoint}", data=json.dumps(data), content_type=self.content_type_json)
@@ -655,8 +695,13 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         expect_success: bool = True,
         expected_message: Optional[TranslatableMsg] = None,
         expected_payload: Optional[Mapping[str, Any]] = None,
+        logged_in: bool = False,
     ):
-        with self.session_cookie_anon(self.browser) as client:
+        eppn = None
+        if logged_in:
+            eppn = self.test_user.eppn
+
+        with self.session_cookie(self.browser, eppn=eppn, logged_in=logged_in) as client:
             with client.session_transaction() as sess:
                 with self.app.test_request_context():
                     endpoint = url_for("signup.accept_invite")
@@ -718,33 +763,22 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         expected_payload: Optional[Mapping[str, Any]] = None,
     ):
         mock_request_user_sync.side_effect = self.request_user_sync
+        logged_in = False
+        if eppn:
+            logged_in = True
 
-        if eppn is None:
-            with self.session_cookie_anon(self.browser) as client:
-                with client.session_transaction() as sess:
-                    with self.app.test_request_context():
-                        endpoint = url_for("signup.complete_invite")
-                        data = {
-                            "csrf_token": sess.get_csrf_token(),
-                        }
-                    if data1 is not None:
-                        data.update(data1)
+        with self.session_cookie(self.browser, eppn=eppn, logged_in=logged_in) as client:
+            with client.session_transaction() as sess:
+                with self.app.test_request_context():
+                    endpoint = url_for("signup.complete_invite")
+                    data = {
+                        "csrf_token": sess.get_csrf_token(),
+                    }
+                if data1 is not None:
+                    data.update(data1)
 
-                logger.info(f"Making request to {endpoint}")
-                response = client.post(f"{endpoint}", data=json.dumps(data), content_type=self.content_type_json)
-        else:
-            with self.session_cookie(self.browser, eppn=eppn) as client:
-                with client.session_transaction() as sess:
-                    with self.app.test_request_context():
-                        endpoint = url_for("signup.complete_invite")
-                        data = {
-                            "csrf_token": sess.get_csrf_token(),
-                        }
-                    if data1 is not None:
-                        data.update(data1)
-
-                logger.info(f"Making request to {endpoint}")
-                response = client.post(f"{endpoint}", data=json.dumps(data), content_type=self.content_type_json)
+            logger.info(f"Making request to {endpoint}")
+            response = client.post(f"{endpoint}", data=json.dumps(data), content_type=self.content_type_json)
 
         logger.info(f"Request to {endpoint} result: {response}")
 
@@ -806,9 +840,27 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
             "user_created": False,
         }, f"actual state is {state}"
 
+    def test_get_state_initial_logged_in(self):
+        res = self._get_state(logged_in=True)
+        assert res.reached_state == SignupState.S10_GET_STATE
+        state = self.get_response_payload(res.response)["state"]
+        assert state == {
+            "already_signed_up": True,
+            "captcha": {"completed": False},
+            "credentials": {"completed": False, "password": None},
+            "email": {"address": None, "bad_attempts": 0, "bad_attempts_max": 3, "completed": False, "sent_at": None},
+            "invite": {"completed": False, "finish_url": None, "initiated_signup": False},
+            "name": {"given_name": None, "surname": None},
+            "tou": {"completed": False, "version": "2016-v1"},
+            "user_created": False,
+        }, f"actual state is {state}"
+
     def test_accept_tou(self):
         res = self._accept_tou()
         assert res.reached_state == SignupState.S2_ACCEPT_TOU
+
+    def test_accept_tou_logged_in(self):
+        self._accept_tou(logged_in=True, expect_success=False, expected_message=CommonMsg.logout_required)
 
     def test_not_accept_tou(self):
         res = self._accept_tou(accept_tou=False, expect_success=False, expected_message=SignupMsg.tou_not_completed)
@@ -840,8 +892,15 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         assert self.get_response_payload(res.response)["error"] == {"csrf_token": ["CSRF failed to validate"]}
 
     def test_captcha(self):
+        res = self._get_captcha()
+        assert res.reached_state == SignupState.S9_GENERATE_CAPTCHA
         res = self._captcha()
         assert res.reached_state == SignupState.S3_COMPLETE_CAPTCHA
+
+    def test_captcha_logged_in(self):
+        res = self._get_captcha()
+        assert res.reached_state == SignupState.S9_GENERATE_CAPTCHA
+        self._captcha(logged_in=True, expect_success=False, expected_message=CommonMsg.logout_required)
 
     def test_captcha_new_wrong_csrf(self):
         data = {"csrf_token": "wrong-token"}
@@ -849,6 +908,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         assert self.get_response_payload(res.response)["error"] == {"csrf_token": ["CSRF failed to validate"]}
 
     def test_captcha_fail(self):
+        self._get_captcha()
         res = self._captcha(
             captcha_data={"internal_response": "wrong"},
             expect_success=False,
@@ -858,8 +918,8 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
 
     def test_captcha_internal_fail_to_many_attempts(self):
         # run once to generate captcha
+        self._get_captcha()
         self._captcha(
-            generate_internal_captcha=True,
             captcha_data={"internal_response": "wrong"},
             expect_success=False,
             expected_message=SignupMsg.captcha_failed,
@@ -867,14 +927,12 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         for _ in range(self.app.conf.captcha_max_bad_attempts):
             # make x bad attempts to get over the limit
             self._captcha(
-                generate_internal_captcha=False,
                 captcha_data={"internal_response": "wrong"},
                 expect_success=False,
                 expected_message=SignupMsg.captcha_failed,
             )
         # try one more time, should fail even as we use the correct code
         res = self._captcha(
-            generate_internal_captcha=False,
             expect_success=False,
             expected_message=SignupMsg.captcha_failed,
         )
@@ -882,7 +940,6 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
 
     def test_captcha_internal_not_requested(self):
         res = self._captcha(
-            generate_internal_captcha=False,
             captcha_data={"internal_response": "not-requested"},
             expect_success=False,
             expected_message=SignupMsg.captcha_not_requested,
@@ -894,6 +951,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         self.app.conf.magic_cookie_name = "magic"
         self.app.conf.environment = EduidEnvironment("dev")
 
+        self._get_captcha()
         res = self._captcha(
             add_magic_cookie=True,
             expect_success=True,
@@ -905,6 +963,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         self.app.conf.magic_cookie_name = "magic"
         self.app.conf.environment = EduidEnvironment("dev")
 
+        self._get_captcha()
         res = self._captcha(
             add_magic_cookie=True,
             captcha_data={"internal_response": self.app.conf.captcha_backdoor_code},
@@ -917,6 +976,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         self.app.conf.magic_cookie_name = "magic"
         self.app.conf.environment = EduidEnvironment("dev")
 
+        self._get_captcha()
         res = self._captcha(
             add_magic_cookie=True,
             captcha_data={"internal_response": "wrong"},
@@ -929,6 +989,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         self.app.conf.magic_cookie = "magic-cookie"
         self.app.conf.magic_cookie_name = "magic"
         self.app.conf.environment = EduidEnvironment("production")
+        self._get_captcha()
         res = self._captcha(
             add_magic_cookie=True,
             expect_success=False,
@@ -940,6 +1001,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         self.app.conf.magic_cookie = "magic-cookie"
         self.app.conf.magic_cookie_name = ""
         self.app.conf.environment = EduidEnvironment("dev")
+        self._get_captcha()
         res = self._captcha(
             add_magic_cookie=True,
             expect_success=False,
@@ -952,6 +1014,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         self.app.conf.magic_cookie = ""
         self.app.conf.magic_cookie_name = "magic"
         self.app.conf.environment = EduidEnvironment("dev")
+        self._get_captcha()
         res = self._captcha(
             add_magic_cookie=True,
             expect_success=False,
@@ -960,7 +1023,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         assert res.reached_state == SignupState.S3_COMPLETE_CAPTCHA
 
     def test_captcha_no_data_fail(self):
-        with self.session_cookie_anon(self.browser) as client:
+        with self.session_cookie(self.browser, eppn=None) as client:
             response = client.post("/captcha")
             self.assertEqual(response.status_code, 200)
             data = json.loads(response.data)
@@ -972,6 +1035,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         given_name = "John"
         surname = "Smith"
         email = "jsmith@example.com"
+        self._get_captcha()
         self._captcha()
         res = self._register_email(
             given_name=given_name,
@@ -982,13 +1046,29 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         )
         assert res.reached_state == SignupState.S4_REGISTER_EMAIL
         assert self.app.messagedb.db_count() == 1
-        with self.session_cookie_anon(self.browser) as client:
+        with self.session_cookie(self.browser, eppn=None) as client:
             with client.session_transaction() as sess:
                 assert sess.signup.email.address == email
                 assert sess.signup.name.given_name == given_name
                 assert sess.signup.name.surname == surname
 
+    def test_register_new_user_logged_in(self):
+        given_name = "John"
+        surname = "Smith"
+        email = "jsmith@example.com"
+        self._get_captcha()
+        self._captcha()
+        self._register_email(
+            given_name=given_name,
+            surname=surname,
+            email=email,
+            logged_in=True,
+            expect_success=False,
+            expected_message=CommonMsg.logout_required,
+        )
+
     def test_register_new_user_mixed_case(self):
+        self._get_captcha()
         self._captcha()
         mixed_case_email = "MixedCase@example.com"
         res = self._register_email(email=mixed_case_email)
@@ -999,6 +1079,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
                 assert sess.signup.email.address == mixed_case_email.lower()
 
     def test_register_existing_user(self):
+        self._get_captcha()
         self._captcha()
         res = self._register_email(
             email="johnsmith@example.com", expect_success=False, expected_message=SignupMsg.email_used
@@ -1006,6 +1087,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         assert res.reached_state == SignupState.S4_REGISTER_EMAIL
 
     def test_register_existing_user_mixed_case(self):
+        self._get_captcha()
         self._captcha()
         res = self._register_email(
             email="JohnSmith@Example.com", expect_success=False, expected_message=SignupMsg.email_used
@@ -1014,6 +1096,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
 
     def test_register_existing_signup_user(self):
         # TODO: for backwards compatibility, remove when compatibility code in view is removed
+        self._get_captcha()
         self._captcha()
         res = self._register_email(email="johnsmith2@example.com")
         assert res.reached_state == SignupState.S4_REGISTER_EMAIL
@@ -1021,15 +1104,17 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
     def test_register_existing_signup_user_mixed_case(self):
         # TODO: for backwards compatibility, remove when compatibility code in view is removed
         mixed_case_email = "JohnSmith2@Example.com"
+        self._get_captcha()
         self._captcha()
         res = self._register_email(email=mixed_case_email)
         assert res.reached_state == SignupState.S4_REGISTER_EMAIL
 
-        with self.session_cookie_anon(self.browser) as client:
+        with self.session_cookie(self.browser, eppn=False, logged_in=False) as client:
             with client.session_transaction() as sess:
                 assert sess.signup.email.address == mixed_case_email.lower()
 
     def test_register_user_resend(self):
+        self._get_captcha()
         self._captcha()
         self._register_email(expect_success=True, expected_message=None)
         with self.session_cookie_anon(self.browser) as client:
@@ -1044,6 +1129,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         assert self.app.messagedb.db_count() == 2
 
     def test_register_user_resend_email_throttled(self):
+        self._get_captcha()
         self._captcha()
         self._register_email(expect_success=True, expected_message=None)
         res = self._register_email(expect_success=False, expected_message=SignupMsg.email_throttled)
@@ -1051,6 +1137,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         assert self.app.messagedb.db_count() == 1
 
     def test_register_user_resend_mail_expired(self):
+        self._get_captcha()
         self._captcha()
         self._register_email(expect_success=True, expected_message=None)
         with self.session_cookie_anon(self.browser) as client:
@@ -1065,12 +1152,20 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         assert self.app.messagedb.db_count() == 2
 
     def test_verify_email(self):
+        self._get_captcha()
         self._captcha()
         self._register_email()
         response = self._verify_email()
         assert response.reached_state == SignupState.S5_VERIFY_EMAIL
 
+    def test_verify_email_logged_in(self):
+        self._get_captcha()
+        self._captcha()
+        self._register_email()
+        self._verify_email(logged_in=True, expect_success=False, expected_message=CommonMsg.logout_required)
+
     def test_verify_email_wrong_code(self):
+        self._get_captcha()
         self._captcha()
         self._register_email()
         data = {"verification_code": "wrong"}
@@ -1080,6 +1175,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         assert response.reached_state == SignupState.S5_VERIFY_EMAIL
 
     def test_verify_email_wrong_code_to_many_attempts(self):
+        self._get_captcha()
         self._captcha()
         self._register_email()
         data = {"verification_code": "wrong"}
@@ -1094,6 +1190,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
 
     def test_verify_email_mixed_case(self):
         mixed_case_email = "MixedCase@Example.com"
+        self._get_captcha()
         self._captcha()
         self._register_email(email=mixed_case_email)
         response = self._verify_email()
@@ -1121,14 +1218,10 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         assert user.surname == surname
         assert user.mail_addresses.to_list()[0].email == email
 
-    def test_create_user_eppn_in_session(self):
+    def test_create_user_logged_in(self):
         email = "test@example.com"
         self._prepare_for_create_user(email=email)
-        with self.session_cookie_anon(self.browser) as client:
-            with client.session_transaction() as sess:
-                sess.common.eppn = "some-eppn"
-        response = self._create_user(expect_success=False, expected_message=SignupMsg.user_already_exists)
-        assert response.reached_state == SignupState.S6_CREATE_USER
+        self._create_user(logged_in=True, expect_success=False, expected_message=CommonMsg.logout_required)
 
     def test_create_user_out_of_sync(self):
         self._prepare_for_create_user()
@@ -1194,7 +1287,10 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
     def test_get_invite_data_already_logged_in(self):
         invite = self._create_invite()
         res = self._get_invite_data(
-            email=invite.get_primary_mail_address(), invite_code=invite.invite_code, eppn=self.test_user.eppn
+            email=invite.get_primary_mail_address(),
+            invite_code=invite.invite_code,
+            eppn=self.test_user.eppn,
+            logged_in=True,
         )
         assert res.reached_state == SignupState.S0_GET_INVITE_DATA
 
@@ -1312,7 +1408,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         self._register_email(email=email)
         response = self._get_code_backdoor(email=email)
 
-        with self.session_cookie_anon(self.browser) as client:
+        with self.session_cookie(self.browser, eppn=None) as client:
             with client.session_transaction() as sess:
                 assert response.text == sess.signup.email.verification_code
 
