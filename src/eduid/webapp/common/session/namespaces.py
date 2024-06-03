@@ -48,6 +48,12 @@ class SessionNSBase(BaseModel, ABC):
         _data = deepcopy(data)  # do not modify callers data
         return dict(_data)
 
+    def clear(self):
+        """
+        Clears all session namespace data.
+        """
+        self.__dict__ = self.model_construct(_cls=self.__class__, field_set={}).__dict__
+
 
 TSessionNSSubclass = TypeVar("TSessionNSSubclass", bound=SessionNSBase)
 
