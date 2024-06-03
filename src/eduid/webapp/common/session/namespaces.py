@@ -31,7 +31,7 @@ OIDCState = NewType("OIDCState", str)
 
 class SessionNSBase(BaseModel, ABC):
     def to_dict(self) -> dict[str, Any]:
-        return self.dict()
+        return self.model_dump()
 
     @classmethod
     def from_dict(cls: type[TSessionNSSubclass], data: Mapping[str, Any]) -> TSessionNSSubclass:
