@@ -7,7 +7,7 @@ from eduid.common.misc.timeutil import utc_now
 from eduid.common.utils import generate_password
 from eduid.userdb import User
 from eduid.userdb.exceptions import UserOutOfSync
-from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, require_user
+from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, require_not_logged_in, require_user
 from eduid.webapp.common.api.exceptions import ProofingLogFailure
 from eduid.webapp.common.api.helpers import check_magic_cookie
 from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response, success_response
@@ -55,6 +55,7 @@ def get_state():
 @signup_views.route("/register-email", methods=["POST"])
 @UnmarshalWith(NameAndEmailSchema)
 @MarshalWith(SignupStatusResponse)
+@require_not_logged_in
 def register_email(given_name: str, surname: str, email: str):
     """
     Register a with new email address.
@@ -65,7 +66,12 @@ def register_email(given_name: str, surname: str, email: str):
     if not session.signup.captcha.completed:
         # don't allow registration without captcha completion
         # this is so that a malicious user can't send a lot of emails or enumerate email addresses already registered
+        current_app.logger.info("Captcha not completed")
         return error_response(message=SignupMsg.captcha_not_completed)
+
+    if session.signup.email.completed:
+        current_app.logger.info("Email already verified")
+        return success_response(payload={"state": session.signup.to_dict()})
 
     email_status = check_email_status(email)
     if email_status == EmailStatus.ADDRESS_USED:
@@ -79,6 +85,9 @@ def register_email(given_name: str, surname: str, email: str):
         current_app.stats.count(name="resend_code")
     elif email_status == EmailStatus.NEW:
         current_app.logger.info("Starting new signup")
+        # make sure the session is clean
+        session.signup.email.clear()
+        session.signup.name.clear()
         session.signup.name.given_name = given_name
         session.signup.name.surname = surname
         session.signup.email.address = email
@@ -108,6 +117,7 @@ def register_email(given_name: str, surname: str, email: str):
 @signup_views.route("/verify-email", methods=["POST"])
 @UnmarshalWith(VerifyEmailRequest)
 @MarshalWith(SignupStatusResponse)
+@require_not_logged_in
 def verify_email(verification_code: str):
     """
     Verify the email address.
@@ -117,7 +127,12 @@ def verify_email(verification_code: str):
     current_app.logger.debug(f"verification code: {verification_code}")
 
     if not session.signup.captcha.completed:
+        current_app.logger.info("Captcha not completed")
         return error_response(message=SignupMsg.captcha_not_completed)
+
+    if session.signup.email.completed:
+        current_app.logger.info("Email already verified")
+        return success_response(payload={"state": session.signup.to_dict()})
 
     if is_email_verification_expired(sent_ts=session.signup.email.sent_at):
         current_app.logger.info("Email verification expired")
@@ -146,11 +161,17 @@ def verify_email(verification_code: str):
 @signup_views.route("/accept-tou", methods=["POST"])
 @UnmarshalWith(AcceptTouRequest)
 @MarshalWith(SignupStatusResponse)
+@require_not_logged_in
 def accept_tou(tou_accepted: bool, tou_version: str):
     """
     Accept the Terms of Use.
     """
-    current_app.logger.info("Accepting ToU")
+    current_app.logger.info(f"Accepting ToU: {tou_accepted}, version: {tou_version}")
+
+    if session.signup.tou.completed:
+        current_app.logger.info("ToU already completed")
+        return success_response(payload={"state": session.signup.to_dict()})
+
     if not tou_accepted:
         current_app.logger.info("ToU not completed")
         return error_response(message=SignupMsg.tou_not_completed)
@@ -167,6 +188,7 @@ def accept_tou(tou_accepted: bool, tou_version: str):
 @signup_views.route("/get-captcha", methods=["POST"])
 @UnmarshalWith(EmptyRequest)
 @MarshalWith(CaptchaResponse)
+@require_not_logged_in
 def captcha_request() -> FluxData:
     if session.signup.captcha.completed:
         return error_response(message=SignupMsg.captcha_already_completed)
@@ -180,11 +202,16 @@ def captcha_request() -> FluxData:
 @signup_views.route("/captcha", methods=["POST"])
 @UnmarshalWith(CaptchaCompleteRequest)
 @MarshalWith(SignupStatusResponse)
+@require_not_logged_in
 def captcha_response(internal_response: Optional[str] = None) -> FluxData:
     """
     Check for humanness even at level AL1.
     """
     current_app.logger.info("Checking captcha")
+
+    if session.signup.captcha.completed:
+        current_app.logger.info("Captcha already completed")
+        return error_response(message=SignupMsg.captcha_already_completed)
 
     captcha_verified = False
 
@@ -222,6 +249,7 @@ def captcha_response(internal_response: Optional[str] = None) -> FluxData:
 @signup_views.route("/get-password", methods=["POST"])
 @UnmarshalWith(EmptyRequest)
 @MarshalWith(SignupStatusResponse)
+@require_not_logged_in
 def get_password() -> FluxData:
     current_app.logger.info("Password requested")
     if session.signup.credentials.password is None:
@@ -233,6 +261,7 @@ def get_password() -> FluxData:
 @signup_views.route("/create-user", methods=["POST"])
 @UnmarshalWith(CreateUserRequest)
 @MarshalWith(SignupStatusResponse)
+@require_not_logged_in
 def create_user(use_password: bool, use_webauthn: bool) -> FluxData:
     current_app.logger.info("Creating user")
 
