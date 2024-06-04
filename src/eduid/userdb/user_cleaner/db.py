@@ -39,15 +39,13 @@ class CleanerQueueDB(UserDB[CleanerQueueUser]):
         return CleanerQueueUser.from_dict(data)
 
     def get_next_user(self, cleaner_type: CleanerType) -> Optional[CleanerQueueUser]:
-        docs = self._get_documents_by_aggregate(
-            match={"cleaner_type": cleaner_type}, sort={"meta.created_ts": pymongo.ASCENDING}, limit=1
+        doc = self._coll.find_one_and_delete(
+            filter={"cleaner_type": cleaner_type}, sort=[("meta.created_ts", pymongo.ASCENDING)]
         )
-        logger.debug(f"Found {len(docs)} documents")
-        if len(docs) == 0:
-            return None
-        else:
-            doc = docs[0]
-            logger.debug(f"Found document with id {doc['_id']}, removing it from queue")
+        if doc is not None:
+            logger.debug("Found document")
             user = self.user_from_dict(doc)
-            self.remove_document(doc["_id"])
             return user
+        else:
+            logger.debug("No document found")
+            return None
