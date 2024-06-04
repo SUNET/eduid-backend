@@ -244,13 +244,8 @@ def add_nin(user: User, nin: str) -> FluxData:
         current_app.logger.debug(f"NIN: {nin}")
         return error_response(message=CommonMsg.temp_problem)
 
-    # TODO: remove nins after frontend stops using it
-    nins: list[dict[str, Union[str, bool]]] = []
-    if security_user.identities.nin is not None:
-        nins.append(security_user.identities.nin.to_old_nin())
-
     return success_response(
-        payload=dict(identities=security_user.identities.to_frontend_format(), nins=nins),
+        payload=dict(identities=security_user.identities.to_frontend_format()),
         message=SecurityMsg.add_success,
     )
 
@@ -281,13 +276,8 @@ def remove_nin(user: User, nin: str) -> FluxData:
             current_app.logger.debug(f"NIN: {nin}")
             return error_response(message=CommonMsg.temp_problem)
 
-    # TODO: remove nins after frontend stops using it
-    nins = []
-    if security_user.identities.nin is not None:
-        nins.append(security_user.identities.nin.to_old_nin())
-
     return success_response(
-        payload=dict(identities=security_user.identities.to_frontend_format(), nins=nins),
+        payload=dict(identities=security_user.identities.to_frontend_format()),
         message=SecurityMsg.rm_success,
     )
 

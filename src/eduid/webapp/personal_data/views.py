@@ -26,10 +26,6 @@ pd_views = Blueprint("personal_data", __name__, url_prefix="")
 def get_all_data(user: User) -> FluxData:
     user_dict = user.to_dict()
     user_dict["identities"] = user.identities.to_frontend_format()
-    # TODO: remove nins after frontend stops using it
-    user_dict["nins"] = []
-    if user.identities.nin is not None:
-        user_dict["nins"].append(user.identities.nin.to_old_nin())
     return success_response(payload=user_dict)
 
 
