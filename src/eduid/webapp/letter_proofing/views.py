@@ -136,7 +136,7 @@ def verify_code(user: User, code: str) -> FluxData:
         return error_response(message=LetterMsg.no_state)
 
     # Check if provided code matches the one in the letter
-    if not code == proofing_state.nin.verification_code:
+    if code != proofing_state.nin.verification_code:
         current_app.logger.error(f"Verification code for user {user} does not match")
         # TODO: Throttling to discourage an adversary to try brute force
         return error_response(message=LetterMsg.wrong_code)
