@@ -5,6 +5,7 @@ from flask import Blueprint
 from eduid.userdb import User
 from eduid.userdb.exceptions import UserOutOfSync
 from eduid.userdb.personal_data import PersonalDataUser
+from eduid.userdb.user import UserSettings
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, require_user
 from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response, success_response
 from eduid.webapp.common.api.utils import save_and_sync_user
@@ -15,6 +16,8 @@ from eduid.webapp.personal_data.schemas import (
     IdentitiesResponseSchema,
     PersonalDataRequestSchema,
     PersonalDataResponseSchema,
+    UserSettingsResponseSchema,
+    UserSettingsRequestSchema,
 )
 
 pd_views = Blueprint("personal_data", __name__, url_prefix="")
@@ -29,6 +32,13 @@ def get_all_data(user: User) -> FluxData:
     return success_response(payload=user_dict)
 
 
+@pd_views.route("/identities", methods=["GET"])
+@MarshalWith(IdentitiesResponseSchema)
+@require_user
+def get_identities(user) -> FluxData:
+    return success_response(payload={"identities": user.identities.to_frontend_format()})
+
+
 @pd_views.route("/user", methods=["GET"])
 @MarshalWith(PersonalDataResponseSchema)
 @require_user
@@ -40,7 +50,7 @@ def get_user(user: User) -> FluxData:
 @UnmarshalWith(PersonalDataRequestSchema)
 @MarshalWith(PersonalDataResponseSchema)
 @require_user
-def post_user(
+def update_personal_data(
     user: User, given_name: str, surname: str, language: str, chosen_given_name: Optional[str] = None
 ) -> FluxData:
     personal_data_user = PersonalDataUser.from_user(user, current_app.private_userdb)
@@ -75,8 +85,28 @@ def post_user(
     return success_response(payload=personal_data, message=PDataMsg.save_success)
 
 
-@pd_views.route("/identities", methods=["GET"])
-@MarshalWith(IdentitiesResponseSchema)
+@pd_views.route("/settings", methods=["GET"])
+@MarshalWith(UserSettingsResponseSchema)
 @require_user
-def get_identities(user) -> FluxData:
-    return success_response(payload={"identities": user.identities.to_frontend_format()})
+def get_user_settings(user: User) -> FluxData:
+    payload = user.settings.model_dump()
+    return success_response(payload=payload)
+
+
+@pd_views.route("/settings", methods=["POST"])
+@UnmarshalWith(UserSettingsRequestSchema)
+@MarshalWith(UserSettingsResponseSchema)
+@require_user
+def set_user_settings(user: User, force_mfa: bool) -> FluxData:
+    personal_data_user = PersonalDataUser.from_user(user, current_app.private_userdb)
+    personal_data_user.settings.force_mfa = force_mfa
+    current_app.logger.debug(f"Trying to save user settings {personal_data_user.settings}")
+
+    try:
+        save_and_sync_user(personal_data_user)
+    except UserOutOfSync:
+        return error_response(message=CommonMsg.out_of_sync)
+    current_app.stats.count(name="user_settings_saved", value=1)
+
+    current_app.logger.info("Saved user settings")
+    return get_user_settings()
