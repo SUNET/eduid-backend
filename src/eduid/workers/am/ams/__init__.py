@@ -148,7 +148,13 @@ class eduid_phone(AttributeFetcher):
 
 
 class eduid_personal_data(AttributeFetcher):
-    whitelist_set_attrs = ["givenName", "chosen_given_name", "surname", "preferredLanguage", "settings"]
+    whitelist_set_attrs = [
+        "givenName",
+        "chosen_given_name",
+        "surname",
+        "preferredLanguage",
+        "settings",
+    ]
 
     whitelist_unset_attrs = [
         "chosen_given_name",
