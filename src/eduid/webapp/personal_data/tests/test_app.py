@@ -89,6 +89,41 @@ class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
                     data.update(mod_data)
             return client.post("/user", data=json.dumps(data), content_type=self.content_type_json)
 
+    def _get_settings(self, eppn: Optional[str] = None):
+        """
+        Send a GET request to get the personal data of a user
+
+        :param eppn: the eppn of the user
+        """
+        response = self.browser.get("/settings")
+        self.assertEqual(response.status_code, 302)  # Redirect to token service
+
+        eppn = eppn or self.test_user.eppn
+        with self.session_cookie(self.browser, eppn) as client:
+            response2 = client.get("/settings")
+
+        return response2
+
+    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+    def _post_settings(self, mock_request_user_sync: Any, mod_data: Optional[dict[str, Any]] = None):
+        """
+        POST settings for the test user
+        """
+        mock_request_user_sync.side_effect = self.request_user_sync
+        eppn = self.test_user.eppn
+
+        data = {"force_mfa": True}
+        if mod_data is not None:
+            data = mod_data
+
+        with self.session_cookie(self.browser, eppn) as client:
+            with self.app.test_request_context():
+                with client.session_transaction() as sess:
+                    data["csrf_token"] = sess.get_csrf_token()
+                if mod_data:
+                    data.update(mod_data)
+            return client.post("/settings", json=data)
+
     def _get_user_identities(self, eppn: Optional[str] = None):
         """
         GET a list of all the identities of a user
@@ -143,6 +178,7 @@ class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
                 {"number": "+34609609609", "primary": True, "verified": True},
                 {"number": "+34 6096096096", "primary": False, "verified": False},
             ],
+            "settings": {"force_mfa": True},
             "surname": "Smith",
         }
 
@@ -256,6 +292,41 @@ class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
         response = self._post_user(mod_data={"language": "es"})
         expected_payload = {"error": {"language": ["Language 'es' is not available"]}}
         self._check_error_response(response, type_="POST_PERSONAL_DATA_USER_FAIL", payload=expected_payload)
+
+    def test_get_settings(self):
+        response = self._get_settings()
+        expected_payload = {"force_mfa": True}
+        self._check_success_response(
+            response=response, type_="GET_PERSONAL_DATA_SETTINGS_SUCCESS", payload=expected_payload
+        )
+
+    def test_update_settings(self):
+        user = self.app.central_userdb.get_user_by_eppn(eppn=self.test_user.eppn)
+        assert user.settings.force_mfa is True
+
+        response = self._post_settings(mod_data={"force_mfa": False})
+        expected_payload = {"force_mfa": False}
+        self._check_success_response(
+            response=response, type_="POST_PERSONAL_DATA_SETTINGS_SUCCESS", payload=expected_payload
+        )
+
+        user = self.app.central_userdb.get_user_by_eppn(eppn=self.test_user.eppn)
+        assert user.settings.force_mfa is False
+
+    def test_post_settings_bad_csrf(self):
+        response = self._post_settings(mod_data={"csrf_token": "wrong-token"})
+        expected_payload = {"error": {"csrf_token": ["CSRF failed to validate"]}}
+        self._check_error_response(response, type_="POST_PERSONAL_DATA_SETTINGS_FAIL", payload=expected_payload)
+
+    def test_post_settings_no_force_mfa(self):
+        response = self._post_settings(mod_data={})
+        expected_payload = {"error": {"force_mfa": ["Missing data for required field."]}}
+        self._check_error_response(response, type_="POST_PERSONAL_DATA_SETTINGS_FAIL", payload=expected_payload)
+
+    def test_post_settings_wrong_force_mfa(self):
+        response = self._post_settings(mod_data={"force_mfa": "tomato"})
+        expected_payload = {"error": {"force_mfa": ["Not a valid boolean."]}}
+        self._check_error_response(response, type_="POST_PERSONAL_DATA_SETTINGS_FAIL", payload=expected_payload)
 
     def test_get_user_identities(self):
         response = self._get_user_identities()
