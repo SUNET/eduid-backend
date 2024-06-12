@@ -16,8 +16,8 @@ from eduid.webapp.personal_data.schemas import (
     IdentitiesResponseSchema,
     PersonalDataRequestSchema,
     PersonalDataResponseSchema,
-    UserSettingsResponseSchema,
     UserSettingsRequestSchema,
+    UserSettingsResponseSchema,
 )
 
 pd_views = Blueprint("personal_data", __name__, url_prefix="")
