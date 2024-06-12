@@ -112,7 +112,7 @@ class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
         mock_request_user_sync.side_effect = self.request_user_sync
         eppn = self.test_user.eppn
 
-        data = {"force_mfa": True}
+        data: dict[str, Any] = {"force_mfa": True}
         if mod_data is not None:
             data = mod_data
 
