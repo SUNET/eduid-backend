@@ -248,7 +248,7 @@ def remove(user: User, credential_key: str) -> FluxData:
 
     authn, _ = get_authn_for_action(config=current_app.conf, frontend_action=frontend_action)
     assert authn is not None  # please mypy (if authn was None we would have returned with _need_reauthn above)
-    current_app.logger.debug(f"terminate_account called with authn {authn}")
+    current_app.logger.debug(f"remove security key called with authn {authn}")
 
     security_user = SecurityUser.from_user(user, current_app.private_userdb)
 
