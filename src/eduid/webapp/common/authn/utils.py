@@ -2,13 +2,13 @@ import importlib.util
 import logging
 import os.path
 import sys
-from typing import Optional, Sequence
+from typing import Optional, Sequence, Tuple
 
 from saml2 import server
 from saml2.config import SPConfig
 from saml2.typing import SAMLHttpArgs
 
-from eduid.common.config.base import EduIDBaseAppConfig, FrontendAction, FrontendActionMixin
+from eduid.common.config.base import EduIDBaseAppConfig, FrontendAction, FrontendActionMixin, AuthnParameters
 from eduid.common.config.exceptions import BadConfiguration
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.utils import urlappend
@@ -109,7 +109,9 @@ def init_pysaml2(cfgfile: str) -> server.Server:
         sys.path = old_path
 
 
-def get_authn_for_action(config: FrontendActionMixin, frontend_action: FrontendAction) -> Optional[SP_AuthnRequest]:
+def get_authn_for_action(
+    config: FrontendActionMixin, frontend_action: FrontendAction
+) -> Tuple[Optional[SP_AuthnRequest], AuthnParameters]:
     authn_params = config.frontend_action_authn_parameters.get(frontend_action)
     if authn_params is None:
         raise BadConfiguration(f"No authn parameters for frontend action {frontend_action}")
@@ -120,7 +122,7 @@ def get_authn_for_action(config: FrontendActionMixin, frontend_action: FrontendA
         # check for old login actions until we remove them
         if not authn and authn_params.allow_login_auth:
             authn = session.authn.sp.get_authn_for_frontend_action(FrontendAction.OLD_LOGIN)
-    return authn
+    return authn, authn_params
 
 
 def validate_authn_for_action(
@@ -128,12 +130,12 @@ def validate_authn_for_action(
     frontend_action: FrontendAction,
     credential_used: Optional[Credential] = None,
 ) -> AuthnActionStatus:
-    """ """
-    authn_params = config.frontend_action_authn_parameters.get(frontend_action)
-    if authn_params is None:
-        raise BadConfiguration(f"No authn parameters for frontend action {frontend_action}")
+    """
+    Validate the authentication for the given frontend action.
+    """
 
-    authn = get_authn_for_action(config=config, frontend_action=frontend_action)
+    logger.debug(f"Validating authentication for frontend action {frontend_action}")
+    authn, authn_params = get_authn_for_action(config=config, frontend_action=frontend_action)
 
     if not authn or not authn.authn_instant:
         logger.info("No authentication found")

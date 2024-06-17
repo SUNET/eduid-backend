@@ -72,7 +72,7 @@ def terminate_account(user: User):
     if _need_reauthn:
         return _need_reauthn
 
-    authn = get_authn_for_action(config=current_app.conf, frontend_action=frontend_action)
+    authn, _ = get_authn_for_action(config=current_app.conf, frontend_action=frontend_action)
     assert authn is not None  # please mypy (if authn was None we would have returned with _need_reauthn above)
     current_app.logger.debug(f"terminate_account called with authn {authn}")
 
@@ -184,7 +184,7 @@ def remove_identities(user: User, identity_type: str) -> FluxData:
     if _need_reauthn:
         return _need_reauthn
 
-    authn = get_authn_for_action(config=current_app.conf, frontend_action=frontend_action)
+    authn, _ = get_authn_for_action(config=current_app.conf, frontend_action=frontend_action)
     assert authn is not None  # please mypy (if authn was None we would have returned with _need_reauthn above)
 
     try:
@@ -206,6 +206,9 @@ def remove_identities(user: User, identity_type: str) -> FluxData:
 
     current_app.logger.debug(f"identities AFTER: {security_user.identities}")
     current_app.stats.count(name=f"remove_{_type}_identity")
+
+    authn.consumed = True
+
     return success_response(
         payload=dict(identities=security_user.identities.to_frontend_format()),
         message=SecurityMsg.rm_success,

@@ -62,7 +62,7 @@ def change_password_view(user: User, new_password: str, old_password: Optional[s
     if _need_reauthn:
         return _need_reauthn
 
-    authn = get_authn_for_action(config=current_app.conf, frontend_action=frontend_action)
+    authn, _ = get_authn_for_action(config=current_app.conf, frontend_action=frontend_action)
     assert authn is not None  # please mypy (if authn was None we would have returned with _need_reauthn above)
     current_app.logger.debug(f"change_password called with authn {authn}")
 
