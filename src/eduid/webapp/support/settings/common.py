@@ -11,7 +11,7 @@ class SupportConfig(EduIDBaseAppConfig):
     Configuration for the support app
     """
 
-    token_service_url_logout: str
+    authn_service_url_logout: str
     eduid_static_url: str
 
     app_name: str = "support"

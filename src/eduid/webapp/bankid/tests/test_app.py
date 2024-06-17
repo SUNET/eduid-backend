@@ -5,21 +5,19 @@ import os
 import unittest
 from typing import Any, Mapping, Optional, Union
 from unittest.mock import MagicMock, patch
-from uuid import uuid4
 
 from fido2.webauthn import AuthenticatorAttachment
 
-from eduid.common.config.base import EduidEnvironment
+from eduid.common.config.base import EduidEnvironment, FrontendAction
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb import NinIdentity
 from eduid.userdb.credentials import U2F, Webauthn
 from eduid.userdb.credentials.external import BankIDCredential, SwedenConnectCredential
 from eduid.userdb.element import ElementKey
 from eduid.userdb.identity import IdentityProofingMethod
-from eduid.webapp.authn.views import FALLBACK_FRONTEND_ACTION
 from eduid.webapp.bankid.app import BankIDApp, init_bankid_app
 from eduid.webapp.bankid.helpers import BankIDMsg
-from eduid.webapp.common.api.messages import TranslatableMsg
+from eduid.webapp.common.api.messages import AuthnStatusMsg, TranslatableMsg
 from eduid.webapp.common.api.testing import CSRFTestClient
 from eduid.webapp.common.authn.acs_enums import AuthnAcsAction, BankIDAcsAction
 from eduid.webapp.common.authn.cache import OutstandingQueriesCache
@@ -188,10 +186,22 @@ class BankIDTests(ProofingTests[BankIDApp]):
                 "magic_cookie_idp": self.test_idp,
                 "environment": "dev",
                 "bankid_idp": self.test_idp,
-                "frontend_action_finish_url": {
-                    "mfa-authenticate-action": "http://test.localhost/testing-mfa-authenticate/{app_name}/{authn_id}",
-                    "verify-identity-action": "http://test.localhost/testing-verify-identity/{app_name}/{authn_id}",
-                    "verify-credential-action": "http://test.localhost/testing-verify-credential/{app_name}/{authn_id}",
+                "frontend_action_authn_parameters": {
+                    FrontendAction.LOGIN_MFA_AUTHN.value: {
+                        "force_authn": True,
+                        "force_mfa": True,
+                        "finish_url": "http://test.localhost/testing-mfa-authenticate/{app_name}/{authn_id}",
+                    },
+                    FrontendAction.VERIFY_IDENTITY.value: {
+                        "force_authn": True,
+                        "finish_url": "http://test.localhost/testing-verify-identity/{app_name}/{authn_id}",
+                    },
+                    FrontendAction.VERIFY_CREDENTIAL.value: {
+                        "force_authn": True,
+                        "force_mfa": True,
+                        "allow_login_auth": True,
+                        "finish_url": "http://test.localhost/testing-verify-credential/{app_name}/{authn_id}",
+                    },
                 },
             }
         )
@@ -243,9 +253,9 @@ class BankIDTests(ProofingTests[BankIDApp]):
         Generates a fresh signed authentication response
         """
 
-        timestamp = datetime.datetime.utcnow() - datetime.timedelta(seconds=age)
-        tomorrow = datetime.datetime.utcnow() + datetime.timedelta(days=1)
-        yesterday = datetime.datetime.utcnow() - datetime.timedelta(days=1)
+        timestamp = utc_now() - datetime.timedelta(seconds=age)
+        tomorrow = utc_now() + datetime.timedelta(days=1)
+        yesterday = utc_now() - datetime.timedelta(days=1)
         if date_of_birth is None:
             date_of_birth = datetime.datetime.strptime(asserted_identity[:8], "%Y%m%d")
 
@@ -282,40 +292,17 @@ class BankIDTests(ProofingTests[BankIDApp]):
 
         return resp.encode("utf-8")
 
-    def _session_setup(
-        self,
-        session: EduidSession,
-        action: BankIDAcsAction,
-        req_id: Optional[str] = None,
-        relay_state: AuthnRequestRef = AuthnRequestRef("relay_state"),
-        verify_token: Optional[ElementKey] = None,
-        credentials_used: Optional[list[ElementKey]] = None,
-    ) -> None:
-        assert isinstance(session, EduidSession)
-        if req_id is not None:
-            oq_cache = OutstandingQueriesCache(backend=session.bankid.sp.pysaml2_dicts)
-            oq_cache.set(req_id, relay_state)
-        session.bankid.sp.post_authn_action = action
-        if verify_token is not None:
-            logger.debug(f"Test setting verify_token_action_credential_id in session {session}: {verify_token}")
-            session.bankid.verify_token_action_credential_id = verify_token
-        if credentials_used is not None:
-            self._setup_faked_login(session=session, credentials_used=credentials_used)
-
-    def _setup_faked_login(
-        self, session: EduidSession, credentials_used: list[ElementKey], redirect_url: Optional[str] = None
-    ) -> None:
+    def _setup_faked_login(self, session: EduidSession, credentials_used: list[ElementKey]) -> None:
         logger.debug(f"Test setting credentials used for login in session {session}: {credentials_used}")
-        _authn_id = AuthnRequestRef(str(uuid4()))
-        if redirect_url is None:
-            redirect_url = self.default_redirect_url
-        session.authn.sp.authns[_authn_id] = SP_AuthnRequest(
+        authn_req = SP_AuthnRequest(
             post_authn_action=AuthnAcsAction.login,
             credentials_used=credentials_used,
             authn_instant=utc_now(),
-            redirect_url=redirect_url,
-            frontend_action=FALLBACK_FRONTEND_ACTION,
+            frontend_action=FrontendAction.LOGIN,
+            finish_url="https://example.com/ext-return/{app_name}/{authn_id}",
         )
+
+        session.authn.sp.authns = {authn_req.authn_id: authn_req}
 
     @staticmethod
     def _get_request_id_from_session(session: EduidSession) -> tuple[str, AuthnRequestRef]:
@@ -332,7 +319,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
     def reauthn(
         self,
         endpoint: str,
-        frontend_action: str,
+        frontend_action: FrontendAction,
         expect_msg: TranslatableMsg,
         age: int = 10,
         browser: Optional[CSRFTestClient] = None,
@@ -360,7 +347,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
     def verify_token(
         self,
         endpoint: str,
-        frontend_action: str,
+        frontend_action: FrontendAction,
         expect_msg: TranslatableMsg,
         age: int = 10,
         browser: Optional[CSRFTestClient] = None,
@@ -394,7 +381,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
         browser: CSRFTestClient,
         endpoint: str,
         method: str,
-        frontend_action: str,
+        frontend_action: FrontendAction,
         verify_credential: Optional[ElementKey] = None,
         frontend_state: Optional[str] = None,
     ) -> str:
@@ -410,7 +397,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
         if endpoint == "/verify-credential" and verify_credential:
             req["credential_id"] = verify_credential
         if frontend_action is not None:
-            req["frontend_action"] = frontend_action
+            req["frontend_action"] = frontend_action.value
         assert browser
         response = browser.post(endpoint, json=req)
         self._check_success_response(response, type_=None, payload={"csrf_token": csrf_token})
@@ -423,7 +410,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
         self,
         endpoint: str,
         method: str,
-        frontend_action: str,
+        frontend_action: FrontendAction,
         eppn: Optional[str],
         expect_msg: TranslatableMsg,
         age: int = 10,
@@ -525,7 +512,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
 
         self.verify_token(
             endpoint="/verify-credential",
-            frontend_action=BankIDAcsAction.verify_credential,
+            frontend_action=FrontendAction.VERIFY_CREDENTIAL,
             eppn=eppn,
             expect_msg=BankIDMsg.credential_verify_success,
             credentials_used=[credential.key, ElementKey("other_id")],
@@ -546,7 +533,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
 
         self.verify_token(
             endpoint="/verify-credential",
-            frontend_action=BankIDAcsAction.verify_credential,
+            frontend_action=FrontendAction.VERIFY_CREDENTIAL,
             eppn=eppn,
             expect_msg=BankIDMsg.credential_verify_success,
             credentials_used=[credential.key, ElementKey("other_id")],
@@ -564,7 +551,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
 
         self.verify_token(
             endpoint="/verify-credential",
-            frontend_action=BankIDAcsAction.verify_credential,
+            frontend_action=FrontendAction.VERIFY_CREDENTIAL,
             eppn=eppn,
             expect_msg=BankIDMsg.identity_not_matching,
             expect_error=True,
@@ -587,7 +574,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
 
         self.verify_token(
             endpoint="/verify-credential",
-            frontend_action=BankIDAcsAction.verify_credential,
+            frontend_action=FrontendAction.VERIFY_CREDENTIAL,
             eppn=eppn,
             expect_msg=BankIDMsg.credential_verify_success,
             credentials_used=[credential.key, ElementKey("other_id")],
@@ -612,13 +599,16 @@ class BankIDTests(ProofingTests[BankIDApp]):
             req = {
                 "credential_id": credential.key,
                 "method": "bankid",
-                "frontend_action": BankIDAcsAction.verify_credential.value,
+                "frontend_action": FrontendAction.VERIFY_CREDENTIAL.value,
                 "csrf_token": csrf_token,
             }
             response = browser.post("/verify-credential", json=req)
 
         self._check_error_response(
-            response=response, type_="POST_BANKID_VERIFY_CREDENTIAL_FAIL", msg=BankIDMsg.must_authenticate
+            response=response,
+            type_="POST_BANKID_VERIFY_CREDENTIAL_FAIL",
+            msg=AuthnStatusMsg.must_authenticate,
+            payload={"credential_description": "test"},
         )
         self._verify_user_parameters(eppn)
 
@@ -630,9 +620,9 @@ class BankIDTests(ProofingTests[BankIDApp]):
 
         self.verify_token(
             endpoint="/verify-credential",
-            frontend_action=BankIDAcsAction.verify_credential,
+            frontend_action=FrontendAction.VERIFY_CREDENTIAL,
             eppn=eppn,
-            expect_msg=BankIDMsg.token_not_found,
+            expect_msg=BankIDMsg.credential_not_found,
             credentials_used=[credential.key, ElementKey("other_id")],
             verify_credential=credential.key,
             response_template=self.saml_response_tpl_fail,
@@ -649,7 +639,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
 
         self.verify_token(
             endpoint="/verify-credential",
-            frontend_action=BankIDAcsAction.verify_credential,
+            frontend_action=FrontendAction.VERIFY_CREDENTIAL,
             eppn=eppn,
             expect_msg=BankIDMsg.credential_verify_success,
             credentials_used=[credential.key, ElementKey("other_id")],
@@ -669,7 +659,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
 
         self.verify_token(
             endpoint="/verify-credential",
-            frontend_action=BankIDAcsAction.verify_credential,
+            frontend_action=FrontendAction.VERIFY_CREDENTIAL,
             eppn=eppn,
             expect_msg=BankIDMsg.credential_verify_success,
             credentials_used=[credential.key, ElementKey("other_id")],
@@ -690,7 +680,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
 
         self.verify_token(
             endpoint="/verify-credential",
-            frontend_action=BankIDAcsAction.verify_credential,
+            frontend_action=FrontendAction.VERIFY_CREDENTIAL,
             eppn=eppn,
             expect_msg=BankIDMsg.credential_verify_success,
             credentials_used=[credential.key, ElementKey("other_id")],
@@ -718,7 +708,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
             browser.set_cookie(domain=self.test_domain, key="nin", value=nin.number)
             self.verify_token(
                 endpoint="/verify-credential",
-                frontend_action=BankIDAcsAction.verify_credential,
+                frontend_action=FrontendAction.VERIFY_CREDENTIAL,
                 eppn=eppn,
                 expect_msg=BankIDMsg.credential_verify_success,
                 credentials_used=[credential.key, ElementKey("other_id")],
@@ -737,7 +727,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
 
         self.reauthn(
             "/verify-identity",
-            frontend_action=BankIDAcsAction.verify_identity.value,
+            frontend_action=FrontendAction.VERIFY_IDENTITY,
             expect_msg=BankIDMsg.identity_verify_success,
             eppn=eppn,
         )
@@ -768,7 +758,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
 
         self.reauthn(
             "/mfa-authenticate",
-            frontend_action=BankIDAcsAction.mfa_authenticate.value,
+            frontend_action=FrontendAction.LOGIN_MFA_AUTHN,
             expect_msg=BankIDMsg.mfa_authn_success,
             eppn=eppn,
             logged_in=False,
@@ -782,7 +772,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
 
         self.reauthn(
             "/mfa-authenticate",
-            frontend_action=BankIDAcsAction.mfa_authenticate.value,
+            frontend_action=FrontendAction.LOGIN_MFA_AUTHN,
             expect_msg=BankIDMsg.identity_not_matching,
             expect_error=True,
             eppn=eppn,
@@ -806,7 +796,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
 
         self.reauthn(
             "/mfa-authenticate",
-            frontend_action=BankIDAcsAction.mfa_authenticate.value,
+            frontend_action=FrontendAction.LOGIN_MFA_AUTHN,
             expect_msg=BankIDMsg.mfa_authn_success,
             eppn=eppn,
             logged_in=False,
@@ -835,7 +825,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
             browser.set_cookie(domain="test.localhost", key="nin", value=nin.number)
             self.reauthn(
                 "/mfa-authenticate",
-                frontend_action=BankIDAcsAction.mfa_authenticate.value,
+                frontend_action=FrontendAction.LOGIN_MFA_AUTHN,
                 expect_msg=BankIDMsg.mfa_authn_success,
                 eppn=eppn,
                 logged_in=False,
@@ -859,7 +849,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
             browser.set_cookie(domain="test.localhost", key="nin", value=nin.number)
             self.reauthn(
                 "/verify-identity",
-                frontend_action=BankIDAcsAction.verify_identity,
+                frontend_action=FrontendAction.VERIFY_IDENTITY,
                 expect_msg=BankIDMsg.identity_verify_success,
                 eppn=eppn,
                 browser=browser,
@@ -884,7 +874,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
             browser.set_cookie(domain=self.test_domain, key="nin", value=nin.number)
             self.reauthn(
                 "/verify-identity",
-                frontend_action=BankIDAcsAction.verify_identity,
+                frontend_action=FrontendAction.VERIFY_IDENTITY,
                 expect_msg=BankIDMsg.identity_verify_success,
                 eppn=eppn,
                 browser=browser,
@@ -913,7 +903,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
             browser.set_cookie(domain="test.localhost", key="nin", value=nin.number)
             self.reauthn(
                 "/verify-identity",
-                frontend_action=BankIDAcsAction.verify_identity,
+                frontend_action=FrontendAction.VERIFY_IDENTITY,
                 expect_msg=BankIDMsg.identity_verify_success,
                 eppn=eppn,
                 browser=browser,
@@ -936,7 +926,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
 
         self.reauthn(
             "/verify-identity",
-            frontend_action=BankIDAcsAction.verify_identity,
+            frontend_action=FrontendAction.VERIFY_IDENTITY,
             expect_msg=ProofingMsg.identity_already_verified,
             expect_error=True,
             identity=nin,
@@ -955,7 +945,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
 
         self.reauthn(
             endpoint="/mfa-authenticate",
-            frontend_action=BankIDAcsAction.mfa_authenticate,
+            frontend_action=FrontendAction.LOGIN_MFA_AUTHN,
             expect_msg=BankIDMsg.mfa_authn_success,
         )
 
@@ -971,9 +961,9 @@ class BankIDTests(ProofingTests[BankIDApp]):
     def test_mfa_authentication_too_old_authn_instant(self):
         self.reauthn(
             endpoint="/mfa-authenticate",
-            frontend_action=BankIDAcsAction.mfa_authenticate,
+            frontend_action=FrontendAction.LOGIN_MFA_AUTHN,
             age=61,
-            expect_msg=BankIDMsg.must_authenticate,
+            expect_msg=BankIDMsg.authn_instant_too_old,
             expect_error=True,
         )
 
@@ -984,7 +974,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
 
         self.reauthn(
             endpoint="/mfa-authenticate",
-            frontend_action=BankIDAcsAction.mfa_authenticate,
+            frontend_action=FrontendAction.LOGIN_MFA_AUTHN,
             expect_msg=BankIDMsg.identity_not_matching,
             expect_error=True,
             identity=self.test_user_wrong_nin,

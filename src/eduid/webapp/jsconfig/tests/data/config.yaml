@@ -3,6 +3,7 @@ eduid:
   webapp:
     common:
       testing: true
+      authn_service_url: 'https://dashboard.example.com/services/authn'
     jsconfig:
       app_name: jsconfig
       jsapps:

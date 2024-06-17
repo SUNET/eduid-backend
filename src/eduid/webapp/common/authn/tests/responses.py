@@ -2,15 +2,19 @@ from datetime import timedelta
 from typing import Optional
 
 from eduid.common.misc.timeutil import utc_now
+from eduid.common.models.saml2 import EduidAuthnContextClass
 
 
-def auth_response(session_id: str, eppn: str) -> str:
+def auth_response(session_id: str, eppn: str, accr: Optional[EduidAuthnContextClass] = None) -> str:
     """Generates a fresh signed authentication response"""
     timestamp = utc_now() - timedelta(seconds=10)
     tomorrow = utc_now() + timedelta(days=1)
     yesterday = utc_now() - timedelta(days=1)
 
     sp_baseurl = "http://test.localhost:6544/"
+
+    if accr is None:
+        accr = EduidAuthnContextClass.PASSWORD_PT
 
     saml_response_tpl = """<?xml version='1.0' encoding='UTF-8'?>
 <samlp:Response xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion"
@@ -54,9 +58,7 @@ def auth_response(session_id: str, eppn: str) -> str:
         <saml:AuthnStatement AuthnInstant="{timestamp}"
                              SessionIndex="{session_id}">
             <saml:AuthnContext>
-                <saml:AuthnContextClassRef>
-                    urn:oasis:names:tc:SAML:2.0:ac:classes:Password
-                </saml:AuthnContextClassRef>
+                <saml:AuthnContextClassRef>{accr}</saml:AuthnContextClassRef>
             </saml:AuthnContext>
         </saml:AuthnStatement>
 
@@ -86,6 +88,7 @@ def auth_response(session_id: str, eppn: str) -> str:
             "tomorrow": tomorrow.strftime("%Y-%m-%dT%H:%M:%SZ"),
             "yesterday": yesterday.strftime("%Y-%m-%dT%H:%M:%SZ"),
             "sp_url": sp_baseurl,
+            "accr": accr.value,
         }
     )
 

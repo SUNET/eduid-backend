@@ -16,6 +16,7 @@ from fido2.webauthn import (
 from fido_mds.exceptions import AttestationVerificationError, MetadataValidationError
 from flask import Blueprint
 
+from eduid.common.config.base import FrontendAction
 from eduid.common.rpc.exceptions import AmTaskFailed
 from eduid.userdb import User
 from eduid.userdb.credentials import Webauthn
@@ -26,10 +27,16 @@ from eduid.webapp.common.api.helpers import check_magic_cookie
 from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response, success_response
 from eduid.webapp.common.api.schemas.base import FluxStandardAction
 from eduid.webapp.common.api.utils import save_and_sync_user
+from eduid.webapp.common.authn.utils import get_authn_for_action
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.namespaces import WebauthnRegistration
 from eduid.webapp.security.app import current_security_app as current_app
-from eduid.webapp.security.helpers import SecurityMsg, compile_credential_list, get_approved_security_keys
+from eduid.webapp.security.helpers import (
+    SecurityMsg,
+    check_reauthn,
+    compile_credential_list,
+    get_approved_security_keys,
+)
 from eduid.webapp.security.schemas import (
     RemoveWebauthnTokenRequestSchema,
     SecurityKeysResponseSchema,
@@ -79,6 +86,13 @@ webauthn_views = Blueprint("webauthn", __name__, url_prefix="/webauthn", templat
 @MarshalWith(FluxStandardAction)
 @require_user
 def registration_begin(user: User, authenticator: str) -> FluxData:
+
+    frontend_action = FrontendAction.ADD_SECURITY_KEY_AUTHN
+
+    _need_reauthn = check_reauthn(frontend_action=frontend_action)
+    if _need_reauthn:
+        return _need_reauthn
+
     try:
         _auth_enum = AuthenticatorAttachment(authenticator)
     except ValueError:
@@ -133,6 +147,12 @@ def urlsafe_b64decode(data: str) -> bytes:
 def registration_complete(
     user: User, credential_id: str, attestation_object: str, client_data: str, description: str
 ) -> FluxData:
+    frontend_action = FrontendAction.ADD_SECURITY_KEY_AUTHN
+
+    _need_reauthn = check_reauthn(frontend_action=frontend_action)
+    if _need_reauthn:
+        return _need_reauthn
+
     security_user = SecurityUser.from_user(user, current_app.private_userdb)
     server = get_webauthn_server(rp_id=current_app.conf.fido2_rp_id, rp_name=current_app.conf.fido2_rp_name)
     att_obj = AttestationObject(urlsafe_b64decode(attestation_object))
@@ -219,11 +239,18 @@ def registration_complete(
 @MarshalWith(SecurityResponseSchema)
 @require_user
 def remove(user: User, credential_key: str) -> FluxData:
+
+    frontend_action = FrontendAction.REMOVE_SECURITY_KEY_AUTHN
+
+    _need_reauthn = check_reauthn(frontend_action=frontend_action)
+    if _need_reauthn:
+        return _need_reauthn
+
+    authn, _ = get_authn_for_action(config=current_app.conf, frontend_action=frontend_action)
+    assert authn is not None  # please mypy (if authn was None we would have returned with _need_reauthn above)
+    current_app.logger.debug(f"remove security key called with authn {authn}")
+
     security_user = SecurityUser.from_user(user, current_app.private_userdb)
-    tokens = security_user.credentials.filter(FidoCredential)
-    if len(tokens) <= 1:
-        current_app.logger.info(f"User {security_user} has tried to remove the last security token")
-        return error_response(message=SecurityMsg.no_last)
 
     token_to_remove = security_user.credentials.find(credential_key)
     if token_to_remove:
