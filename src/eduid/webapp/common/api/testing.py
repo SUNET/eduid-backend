@@ -71,6 +71,8 @@ TEST_CONFIG = {
             "saml2": {"level": "WARNING"},
             "xmlsec": {"level": "INFO"},
             "urllib3": {"level": "INFO"},
+            "pymongo.serverSelection": {"level": "INFO"},
+            "pymongo.command": {"level": "INFO"},
             "eduid.webapp.common.session": {"level": "INFO"},
             "eduid.userdb.userdb.extra_debug": {"level": "INFO"},
             "eduid.userdb.db.extra_debug": {"level": "INFO"},

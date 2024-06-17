@@ -102,6 +102,26 @@ class TestIdPNamespace(EduidAPITestCase):
         assert second.idp.sso_cookie_val == first.idp.sso_cookie_val
         assert second.idp.ts == first.idp.ts
 
+    def test_clear_namespace(self):
+        _meta = SessionMeta.new(app_secret="secret")
+        base_session = self.app.session_interface.manager.get_session(meta=_meta, new=True)
+        first = EduidSession(app=self.app, meta=_meta, base_session=base_session, new=True)
+        first.signup.email.address = "test@example.com"
+        first.signup.email.verification_code = "123456"
+        first.persist()
+        # load session again and clear it
+        base_session = self.app.session_interface.manager.get_session(meta=_meta, new=False)
+        second = EduidSession(self.app, _meta, base_session, new=False)
+        assert second.signup.email.address == "test@example.com"
+        assert second.signup.email.verification_code == "123456"
+        second.signup.clear()
+        second.signup.email.address = "test@example.com"
+        second.persist()
+        # load session one more time and make sure verification_code is empty
+        base_session = self.app.session_interface.manager.get_session(meta=_meta, new=False)
+        third = EduidSession(self.app, _meta, base_session, new=False)
+        assert third.signup.email.address == "test@example.com"
+        assert third.signup.email.verification_code is None
 
 class TestAuthnNamespace(EduidAPITestCase):
     app: SessionTestApp

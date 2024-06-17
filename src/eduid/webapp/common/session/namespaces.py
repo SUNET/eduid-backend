@@ -34,7 +34,7 @@ OIDCState = NewType("OIDCState", str)
 
 class SessionNSBase(BaseModel, ABC):
     def to_dict(self) -> dict[str, Any]:
-        return self.dict()
+        return self.model_dump()
 
     @classmethod
     def from_dict(cls: type[TSessionNSSubclass], data: Mapping[str, Any]) -> TSessionNSSubclass:
@@ -50,6 +50,12 @@ class SessionNSBase(BaseModel, ABC):
     def _from_dict_transform(cls: type[SessionNSBase], data: Mapping[str, Any]) -> dict[str, Any]:
         _data = deepcopy(data)  # do not modify callers data
         return dict(_data)
+
+    def clear(self):
+        """
+        Clears all session namespace data.
+        """
+        self.__dict__ = self.model_construct(_cls=self.__class__, field_set={}).__dict__
 
 
 TSessionNSSubclass = TypeVar("TSessionNSSubclass", bound=SessionNSBase)
