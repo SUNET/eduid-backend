@@ -7,24 +7,30 @@ import sys
 import traceback
 from contextlib import contextmanager
 from copy import deepcopy
+from datetime import timedelta
 from typing import Any, Generator, Generic, Iterable, Mapping, Optional, TypeVar, cast
 
 from flask.testing import FlaskClient
 from werkzeug.test import TestResponse
 
-from eduid.common.config.base import EduIDBaseAppConfig, MagicCookieMixin, RedisConfig
+from eduid.common.config.base import EduIDBaseAppConfig, FrontendAction, MagicCookieMixin, RedisConfig
+from eduid.common.misc.timeutil import utc_now
 from eduid.common.rpc.msg_relay import FullPostalAddress, NavetData
 from eduid.common.testing_base import CommonTestCase
 from eduid.userdb import User
 from eduid.userdb.db import BaseDB
+from eduid.userdb.element import ElementKey
 from eduid.userdb.fixtures.users import UserFixtures
 from eduid.userdb.logs.db import ProofingLog
 from eduid.userdb.proofing.state import NinProofingState
 from eduid.userdb.testing import MongoTemporaryInstance
 from eduid.userdb.userdb import UserDB
 from eduid.webapp.common.api.app import EduIDBaseApp
-from eduid.webapp.common.api.messages import TranslatableMsg
+from eduid.webapp.common.api.messages import AuthnStatusMsg, TranslatableMsg
+from eduid.webapp.common.api.schemas.authn_status import AuthnActionStatus
+from eduid.webapp.common.authn.acs_enums import AuthnAcsAction
 from eduid.webapp.common.session import EduidSession
+from eduid.webapp.common.session.namespaces import SP_AuthnRequest
 from eduid.webapp.common.session.testing import RedisTemporaryInstance
 from eduid.workers.msg.tasks import MessageSender
 
@@ -50,7 +56,7 @@ TEST_CONFIG = {
     "json_sort_keys": True,
     "jsonify_prettyprint_regular": True,
     "mongo_uri": "mongodb://localhost",
-    "token_service_url": "http://test.localhost/",
+    "authn_service_url": "http://test.localhost/",
     "eduid_site_name": "eduID TESTING",
     "celery": {
         "broker_transport": "memory",
@@ -119,6 +125,7 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
         # Initialize some convenience variables on self based on the first user in `users'
         self.test_user = _test_user
         self.test_user_data = self.test_user.to_dict()
+        self.test_user_eppn = self.test_user_data["eduPersonPrincipalName"]
 
         # Set up Redis for shared sessions
         self.redis_instance = RedisTemporaryInstance.get_instance()
@@ -309,6 +316,37 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
         self.app.central_userdb.save(user)
         return True
 
+    def set_authn_action(
+        self,
+        eppn: str,
+        frontend_action: FrontendAction,
+        post_authn_action: AuthnAcsAction = AuthnAcsAction.login,
+        age: timedelta = timedelta(seconds=30),
+        finish_url: Optional[str] = None,
+        force_mfa: bool = False,
+        credentials_used: Optional[list[ElementKey]] = None,
+    ):
+        if not finish_url:
+            finish_url = "https://example.com/ext-return/{app_name}/{authn_id}"
+
+        if credentials_used is None:
+            credentials_used = []
+
+        if force_mfa:
+            credentials_used = [ElementKey("mock_credential_one"), ElementKey("mock_credential_two")]
+
+        with self.session_cookie(self.browser, eppn) as client:
+            with client.session_transaction() as sess:
+                # Add authn data faking a reauthn event has taken place for this action
+                sp_authn_req = SP_AuthnRequest(
+                    post_authn_action=post_authn_action,
+                    authn_instant=utc_now() - age,
+                    frontend_action=frontend_action,
+                    credentials_used=credentials_used,
+                    finish_url=finish_url,
+                )
+                sess.authn.sp.authns[sp_authn_req.authn_id] = sp_authn_req
+
     @staticmethod
     def _get_all_navet_data():
         return NavetData.model_validate(MessageSender.get_devel_all_navet_data())
@@ -316,6 +354,23 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
     @staticmethod
     def _get_full_postal_address():
         return FullPostalAddress.model_validate(MessageSender.get_devel_postal_address())
+
+    def _check_must_authenticate_response(
+        self,
+        response: TestResponse,
+        type_: Optional[str],
+        frontend_action: FrontendAction,
+        authn_status: AuthnActionStatus,
+    ):
+        """Check that a call to the API failed in the authentication stage."""
+        meta = {
+            "frontend_action": frontend_action.value,
+            "authn_status": authn_status.value,
+        }
+        payload = {
+            "message": AuthnStatusMsg.must_authenticate.value,
+        }
+        return self._check_api_response(response, status=200, type_=type_, payload=payload, meta=meta)
 
     def _check_error_response(
         self,
@@ -365,6 +420,7 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
         error: Optional[Mapping[str, Any]] = None,
         payload: Optional[Mapping[str, Any]] = None,
         assure_not_in_payload: Optional[Iterable[str]] = None,
+        meta: Optional[Mapping[str, Any]] = None,
     ):
         """
         Check data returned from an eduID webapp endpoint.
@@ -429,6 +485,12 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
             if assure_not_in_payload is not None:
                 for key in assure_not_in_payload:
                     _assure_not_in_dict(_json["payload"], key)
+            if meta is not None:
+                for k, v in meta.items():
+                    assert k in _json["meta"], f"The Flux response meta does not contain {repr(k)}"
+                    assert (
+                        v == _json["meta"][k]
+                    ), f"The Flux response meta item {repr(k)} should be {repr(v)} but is {repr(_json['meta'][k])}"
 
         except (AssertionError, KeyError):
             if response.json:

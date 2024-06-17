@@ -6,6 +6,7 @@ from eduid.common.config.base import (
     AmConfigMixin,
     EduIDBaseAppConfig,
     ErrorsConfigMixin,
+    FrontendActionMixin,
     MagicCookieMixin,
     ProofingConfigMixin,
 )
@@ -43,7 +44,14 @@ class SvipeClientConfig(AuthlibClientConfig):
     )
 
 
-class SvipeIdConfig(EduIDBaseAppConfig, AmConfigMixin, ProofingConfigMixin, ErrorsConfigMixin, MagicCookieMixin):
+class SvipeIdConfig(
+    EduIDBaseAppConfig,
+    AmConfigMixin,
+    ProofingConfigMixin,
+    ErrorsConfigMixin,
+    MagicCookieMixin,
+    FrontendActionMixin,
+):
     """
     Configuration for the svipe_id app
     """

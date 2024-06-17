@@ -28,7 +28,7 @@ class LookupMobileMongoTestCase(MongoTestCase):
                     "cache_backend": "memory",
                 },
                 "mongo_uri": self.tmp_db.uri,
-                "token_service_url": "foo",
+                "authn_service_url": "foo",
                 "testing": True,
             }
             self.lookup_mobile_settings = MobConfig(**settings)

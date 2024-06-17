@@ -8,6 +8,7 @@ from pydantic import Field
 from eduid.common.config.base import (
     AmConfigMixin,
     EduIDBaseAppConfig,
+    FrontendActionMixin,
     MagicCookieMixin,
     MailConfigMixin,
     MsgConfigMixin,
@@ -24,6 +25,7 @@ class SecurityConfig(
     MsgConfigMixin,
     MailConfigMixin,
     PasswordConfigMixin,
+    FrontendActionMixin,
 ):
     """
     Configuration for the security app
@@ -33,7 +35,6 @@ class SecurityConfig(
 
     vccs_url: str
     dashboard_url: str
-    token_service_url: str
     throttle_update_user_period: timedelta = Field(default=timedelta(seconds=600))
 
     # change password
@@ -74,8 +75,6 @@ class SecurityConfig(
     )
 
     # for logging out when terminating an account
-    logout_endpoint: str = "/services/authn/logout"
+    logout_endpoint: str = "https://dashboard.eduid.se/services/authn/logout"
     # URL to send the user to after terminating the account
     termination_redirect_url: str = "https://eduid.se"
-    eduid_site_url: str = "https://www.eduid.se"
-    eduid_site_name: str = "eduID"

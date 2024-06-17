@@ -5,27 +5,24 @@ import os
 from typing import Any, Mapping, Optional, Union
 from unittest import TestCase
 from unittest.mock import MagicMock, patch
-from urllib.parse import parse_qs, quote_plus, urlparse, urlunparse
-from uuid import uuid4
 
 from fido2.webauthn import AuthenticatorAttachment
 
-from eduid.common.config.base import EduidEnvironment
+from eduid.common.config.base import AuthnParameters, EduidEnvironment, FrontendAction
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb import NinIdentity
 from eduid.userdb.credentials import U2F, Webauthn
 from eduid.userdb.credentials.external import EidasCredential, ExternalCredential, SwedenConnectCredential
 from eduid.userdb.element import ElementKey
 from eduid.userdb.identity import EIDASIdentity, EIDASLoa, IdentityProofingMethod, PridPersistence
-from eduid.webapp.authn.views import FALLBACK_FRONTEND_ACTION
-from eduid.webapp.common.api.messages import CommonMsg, TranslatableMsg, redirect_with_msg
+from eduid.webapp.common.api.messages import AuthnStatusMsg, CommonMsg, TranslatableMsg, redirect_with_msg
 from eduid.webapp.common.api.testing import CSRFTestClient
 from eduid.webapp.common.authn.acs_enums import AuthnAcsAction, EidasAcsAction
 from eduid.webapp.common.authn.cache import OutstandingQueriesCache
 from eduid.webapp.common.proofing.messages import ProofingMsg
 from eduid.webapp.common.proofing.testing import ProofingTests
 from eduid.webapp.common.session import EduidSession
-from eduid.webapp.common.session.namespaces import AuthnRequestRef, MfaActionError, SP_AuthnRequest
+from eduid.webapp.common.session.namespaces import AuthnRequestRef, SP_AuthnRequest
 from eduid.webapp.eidas.app import EidasApp, init_eidas_app
 from eduid.webapp.eidas.helpers import EidasMsg
 
@@ -202,8 +199,6 @@ class EidasTests(ProofingTests[EidasApp]):
         saml_config = os.path.join(HERE, "saml2_settings.py")
         config.update(
             {
-                "token_verify_redirect_url": "http://test.localhost/profile",
-                "identity_verify_redirect_url": "http://test.localhost/profile",
                 "saml2_settings_module": saml_config,
                 "safe_relay_domain": "localhost",
                 "magic_cookie": "",
@@ -212,19 +207,28 @@ class EidasTests(ProofingTests[EidasApp]):
                 "environment": "dev",
                 "freja_idp": self.test_idp,
                 "foreign_identity_idp": self.test_idp,
-                "frontend_action_finish_url": {
-                    "token_verify_redirect": "http://test.localhost/profile",
-                    "identity_verify_redirect": "http://test.localhost/profile",
-                    "testing": "http://test.localhost/testing",
-                    "mfa_authenticate": "http://test.localhost/testing-mfa-authenticate/{app_name}/{authn_id}",
-                    "verify_identity": "http://test.localhost/testing-verify-identity/{app_name}/{authn_id}",
-                    "verify_credential": "http://test.localhost/testing-verify-credential/{app_name}/{authn_id}",
+                "frontend_action_authn_parameters": {
+                    FrontendAction.LOGIN_MFA_AUTHN.value: {
+                        "force_authn": True,
+                        "force_mfa": True,
+                        "finish_url": "http://test.localhost/testing-mfa-authenticate/{app_name}/{authn_id}",
+                    },
+                    FrontendAction.VERIFY_IDENTITY.value: {
+                        "force_authn": True,
+                        "finish_url": "http://test.localhost/testing-verify-identity/{app_name}/{authn_id}",
+                    },
+                    FrontendAction.VERIFY_CREDENTIAL.value: {
+                        "force_authn": True,
+                        "force_mfa": True,
+                        "allow_login_auth": True,
+                        "finish_url": "http://test.localhost/testing-verify-credential/{app_name}/{authn_id}",
+                    },
                 },
             }
         )
         return config
 
-    def add_token_to_user(self, eppn: str, credential_id: str, token_type: str) -> Union[U2F, Webauthn]:
+    def add_security_key_to_user(self, eppn: str, credential_id: str, token_type: str) -> Union[U2F, Webauthn]:
         user = self.app.central_userdb.get_user_by_eppn(eppn)
         mfa_token: Union[U2F, Webauthn]
         if token_type == "u2f":
@@ -278,9 +282,9 @@ class EidasTests(ProofingTests[EidasApp]):
         Generates a fresh signed authentication response
         """
 
-        timestamp = datetime.datetime.utcnow() - datetime.timedelta(seconds=age)
-        tomorrow = datetime.datetime.utcnow() + datetime.timedelta(days=1)
-        yesterday = datetime.datetime.utcnow() - datetime.timedelta(days=1)
+        timestamp = utc_now() - datetime.timedelta(seconds=age)
+        tomorrow = utc_now() + datetime.timedelta(days=1)
+        yesterday = utc_now() - datetime.timedelta(days=1)
         if date_of_birth is None:
             date_of_birth = datetime.datetime.strptime(asserted_identity[:8], "%Y%m%d")
 
@@ -317,40 +321,17 @@ class EidasTests(ProofingTests[EidasApp]):
 
         return resp.encode("utf-8")
 
-    def _session_setup(
-        self,
-        session: EduidSession,
-        action: EidasAcsAction,
-        req_id: Optional[str] = None,
-        relay_state: AuthnRequestRef = AuthnRequestRef("relay_state"),
-        verify_token: Optional[ElementKey] = None,
-        credentials_used: Optional[list[ElementKey]] = None,
-    ) -> None:
-        assert isinstance(session, EduidSession)
-        if req_id is not None:
-            oq_cache = OutstandingQueriesCache(backend=session.eidas.sp.pysaml2_dicts)
-            oq_cache.set(req_id, relay_state)
-        session.eidas.sp.post_authn_action = action
-        if verify_token is not None:
-            logger.debug(f"Test setting verify_token_action_credential_id in session {session}: {verify_token}")
-            session.eidas.verify_token_action_credential_id = verify_token
-        if credentials_used is not None:
-            self._setup_faked_login(session=session, credentials_used=credentials_used)
-
-    def _setup_faked_login(
-        self, session: EduidSession, credentials_used: list[ElementKey], redirect_url: Optional[str] = None
-    ) -> None:
+    @staticmethod
+    def _setup_faked_login(session: EduidSession, credentials_used: list[ElementKey]) -> None:
         logger.debug(f"Test setting credentials used for login in session {session}: {credentials_used}")
-        _authn_id = AuthnRequestRef(str(uuid4()))
-        if redirect_url is None:
-            redirect_url = self.default_redirect_url
-        session.authn.sp.authns[_authn_id] = SP_AuthnRequest(
+        authn_req = SP_AuthnRequest(
             post_authn_action=AuthnAcsAction.login,
             credentials_used=credentials_used,
             authn_instant=utc_now(),
-            redirect_url=redirect_url,
-            frontend_action=FALLBACK_FRONTEND_ACTION,
+            frontend_action=FrontendAction.LOGIN,
+            finish_url="http://test.localhost/testing-mfa-authenticate/{app_name}/{authn_id}",
         )
+        session.authn.sp.authns = {authn_req.authn_id: authn_req}
 
     @staticmethod
     def _get_request_id_from_session(session: EduidSession) -> tuple[str, AuthnRequestRef]:
@@ -367,45 +348,26 @@ class EidasTests(ProofingTests[EidasApp]):
     @staticmethod
     def _verify_finish_url(
         finish_url: str,
-        expect_msg: TranslatableMsg,
-        expect_error: bool,
-        expect_redirect_url: Optional[str],
-        new_endpoint: bool = False,
+        expected_finish_url: str,
     ) -> None:
         logger.debug(f"Verifying returned location {finish_url}")
 
-        if new_endpoint:
-            # Remove the /{app_name}/{authn_id} part from the finish URL
-            finish_url = "/".join(finish_url.split("/")[:-2])
-            logger.debug(f"Removed the /app_name/authn_id from the location before checking it: {finish_url}")
+        # Remove the /{app_name}/{authn_id} part from the finish URL
+        finish_url = "/".join(finish_url.split("/")[:-2])
+        logger.debug(f"Removed the /app_name/authn_id from the location before checking it: {finish_url}")
+        expected_finish_url = "/".join(expected_finish_url.split("/")[:-2])
 
-        ps = urlparse(finish_url)
-        # Check the base part of the URL (everything except the query string)
-        _ps = ps._replace(query="")
-        if expect_redirect_url is not None:
-            redirect_url_no_params = urlunparse(_ps)
-            assert redirect_url_no_params == expect_redirect_url
-        # Check the msg in the query string
-        qs = parse_qs(str(ps.query))
-        if "msg" not in qs and new_endpoint:
-            # allow new-style APIs not returning a message in the redirect_url
-            return
-        if expect_error:
-            assert qs["msg"] == [f":ERROR:{expect_msg.value}"]
-        else:
-            assert qs["msg"] == [expect_msg.value]
+        assert finish_url == expected_finish_url, f"expected finish url {expected_finish_url} but got {finish_url}"
 
     def reauthn(
         self,
         endpoint: str,
         expect_msg: TranslatableMsg,
+        frontend_action: FrontendAction,
         age: int = 10,
         browser: Optional[CSRFTestClient] = None,
         eppn: Optional[str] = None,
         expect_error: bool = False,
-        expect_mfa_action_error: Optional[MfaActionError] = None,
-        expect_redirect_url: Optional[str] = None,
-        frontend_action: Optional[str] = None,
         identity: Optional[Union[NinIdentity, EIDASIdentity]] = None,
         logged_in: bool = True,
         method: str = "freja",
@@ -418,9 +380,7 @@ class EidasTests(ProofingTests[EidasApp]):
             endpoint=endpoint,
             eppn=eppn,
             expect_error=expect_error,
-            expect_mfa_action_error=expect_mfa_action_error,
             expect_msg=expect_msg,
-            expect_redirect_url=expect_redirect_url,
             frontend_action=frontend_action,
             identity=identity,
             logged_in=logged_in,
@@ -433,21 +393,18 @@ class EidasTests(ProofingTests[EidasApp]):
         self,
         endpoint: str,
         expect_msg: TranslatableMsg,
+        frontend_action: FrontendAction,
         age: int = 10,
         browser: Optional[CSRFTestClient] = None,
         credentials_used: Optional[list[ElementKey]] = None,
         eppn: Optional[str] = None,
         expect_error: bool = False,
-        expect_redirect_url: Optional[str] = None,
         expect_saml_error: bool = False,
-        frontend_action: Optional[str] = None,
         identity: Optional[Union[NinIdentity, EIDASIdentity]] = None,
         method: str = "freja",
         response_template: Optional[str] = None,
         verify_credential: Optional[ElementKey] = None,
     ) -> None:
-        if expect_redirect_url is None:
-            expect_redirect_url = self.app.conf.token_verify_redirect_url
         return self._call_endpoint_and_saml_acs(
             age=age,
             browser=browser,
@@ -456,7 +413,6 @@ class EidasTests(ProofingTests[EidasApp]):
             eppn=eppn,
             expect_error=expect_error,
             expect_msg=expect_msg,
-            expect_redirect_url=expect_redirect_url,
             expect_saml_error=expect_saml_error,
             frontend_action=frontend_action,
             identity=identity,
@@ -465,46 +421,41 @@ class EidasTests(ProofingTests[EidasApp]):
             verify_credential=verify_credential,
         )
 
-    def _is_new_endpoint(self, endpoint: str) -> bool:
-        return endpoint in ["/mfa-authenticate", "/verify-identity", "/verify-credential"]
-
     def _get_authn_redirect_url(
         self,
         browser: CSRFTestClient,
         endpoint: str,
         method: str,
-        frontend_action: Optional[str] = None,
-        next_url: Optional[str] = None,
+        frontend_action: FrontendAction,
+        expect_success: bool = True,
         verify_credential: Optional[ElementKey] = None,
         frontend_state: Optional[str] = None,
     ) -> str:
         with browser.session_transaction() as sess:
             csrf_token = sess.get_csrf_token()
-
-        if self._is_new_endpoint(endpoint):
-            req = {
-                "csrf_token": csrf_token,
-                "method": method,
-            }
-            if frontend_state:
-                req["frontend_state"] = frontend_state
-            if endpoint == "/verify-credential" and verify_credential:
-                req["credential_id"] = verify_credential
-            if frontend_action is not None:
-                req["frontend_action"] = frontend_action
-            assert browser
-            response = browser.post(endpoint, json=req)
+        req = {
+            "csrf_token": csrf_token,
+            "method": method,
+        }
+        if frontend_state:
+            req["frontend_state"] = frontend_state
+        if endpoint == "/verify-credential" and verify_credential:
+            req["credential_id"] = verify_credential
+        if frontend_action is not None:
+            req["frontend_action"] = frontend_action.value
+        assert browser
+        response = browser.post(endpoint, json=req)
+        if expect_success:
             self._check_success_response(response, type_=None, payload={"csrf_token": csrf_token})
-
             loc = self.get_response_payload(response).get("location")
             assert loc is not None
-            return loc
-
-        # OLD endpoints
-        _url = f"{endpoint}/?idp={self.test_idp}"
-        if next_url is not None:
-            _url = f'{_url}&next={quote_plus(bytes(next_url, "utf-8"))}'
-        return _url
+        else:
+            loc = None
+            payload = {"csrf_token": csrf_token}
+            if verify_credential:
+                payload["credential_description"] = "test"
+            self._check_error_response(response, type_=None, payload=payload, msg=AuthnStatusMsg.must_authenticate)
+        return loc
 
     def _call_endpoint_and_saml_acs(
         self,
@@ -512,14 +463,12 @@ class EidasTests(ProofingTests[EidasApp]):
         method: str,
         eppn: Optional[str],
         expect_msg: TranslatableMsg,
+        frontend_action: FrontendAction,
         age: int = 10,
         browser: Optional[CSRFTestClient] = None,
         credentials_used: Optional[list[ElementKey]] = None,
         expect_error: bool = False,
-        expect_mfa_action_error: Optional[MfaActionError] = None,
-        expect_redirect_url: Optional[str] = None,
         expect_saml_error: bool = False,
-        frontend_action: Optional[str] = None,
         identity: Optional[Union[NinIdentity, EIDASIdentity]] = None,
         logged_in: bool = True,
         next_url: Optional[str] = None,
@@ -536,11 +485,10 @@ class EidasTests(ProofingTests[EidasApp]):
         if response_template is None:
             response_template = self.saml_response_tpl_success
 
-        if next_url is None:
-            next_url = self.default_redirect_url
-
         if browser is None:
             browser = self.browser
+
+        expected_finish_url = self.app.conf.frontend_action_authn_parameters[frontend_action].finish_url
 
         assert isinstance(browser, CSRFTestClient)
 
@@ -563,19 +511,11 @@ class EidasTests(ProofingTests[EidasApp]):
                 endpoint=endpoint,
                 method=method,
                 frontend_action=frontend_action,
-                next_url=next_url,
                 verify_credential=verify_credential,
                 frontend_state=frontend_state,
             )
 
-            if not self._is_new_endpoint(endpoint):
-                # OLD redirect based endpoints
-                logger.debug(f"Test fetching url: {_url}")
-                response = browser.get(_url)
-                logger.debug(f"Test fetched url {_url}, response: {response}")
-                assert response.status_code == 302
-            else:
-                logger.debug(f"Backend told us to proceed with URL {_url}")
+            logger.debug(f"Backend told us to proceed with URL {_url}")
 
             with browser.session_transaction() as sess:
                 request_id, authn_ref = self._get_request_id_from_session(sess)
@@ -593,10 +533,6 @@ class EidasTests(ProofingTests[EidasApp]):
             logger.debug(f"Posting a fake SAML assertion in response to request {request_id} (ref {authn_ref})")
             response = browser.post("/saml2-acs", data=data)
 
-            if expect_mfa_action_error is not None:
-                with browser.session_transaction() as sess:
-                    assert sess.mfa_action.error == expect_mfa_action_error
-
             if expect_saml_error:
                 assert response.status_code == 400
                 return
@@ -604,23 +540,19 @@ class EidasTests(ProofingTests[EidasApp]):
             assert response.status_code == 302
 
             self._verify_finish_url(
-                expect_msg=expect_msg,
-                expect_error=expect_error,
-                expect_redirect_url=expect_redirect_url,
+                expected_finish_url=expected_finish_url,
                 finish_url=response.location,
-                new_endpoint=self._is_new_endpoint(endpoint),
             )
 
-            if self._is_new_endpoint(endpoint=endpoint):
-                self._verify_status(
-                    browser=browser,
-                    expect_msg=expect_msg,
-                    expect_error=expect_error,
-                    finish_url=response.location,
-                    frontend_action=frontend_action,
-                    frontend_state=frontend_state,
-                    method=method,
-                )
+            self._verify_status(
+                browser=browser,
+                expect_msg=expect_msg,
+                expect_error=expect_error,
+                finish_url=response.location,
+                frontend_action=frontend_action,
+                frontend_state=frontend_state,
+                method=method,
+            )
 
     def test_authenticate(self):
         response = self.browser.get("/")
@@ -629,26 +561,30 @@ class EidasTests(ProofingTests[EidasApp]):
             response = browser.get("/")
         self._check_success_response(response, type_="GET_EIDAS_SUCCESS")
 
-    @patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_u2f_token_verify(self, mock_request_user_sync: MagicMock, mock_get_all_navet_data: MagicMock):
-        mock_get_all_navet_data.return_value = self._get_all_navet_data()
+    def test_verify_credential(self, mock_request_user_sync: MagicMock):
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_user.eppn
-        credential = self.add_token_to_user(eppn, "test", "u2f")
+        self._verify_user_parameters(eppn, num_mfa_tokens=0)
 
-        self._verify_user_parameters(eppn)
+        for security_key_type in ["u2f", "webauthn"]:
+            credential = self.add_security_key_to_user(
+                eppn, credential_id=f"test_{security_key_type}", token_type=security_key_type
+            )
+            self.verify_token(
+                endpoint="/verify-credential",
+                eppn=eppn,
+                identity=self.test_user.identities.nin,
+                expect_msg=EidasMsg.credential_verify_success,
+                credentials_used=[credential.key, ElementKey("other_id")],
+                verify_credential=credential.key,
+                response_template=self.saml_response_tpl_success,
+                method="freja",
+                frontend_action=FrontendAction.VERIFY_CREDENTIAL,
+            )
 
-        self.verify_token(
-            endpoint=f"/verify-token/{credential.key}",
-            eppn=eppn,
-            expect_msg=EidasMsg.old_token_verify_success,
-            credentials_used=[credential.key, ElementKey("other_id")],
-            verify_credential=credential.key,
-        )
-
-        self._verify_user_parameters(eppn, token_verified=True, num_proofings=1)
+        self._verify_user_parameters(eppn, token_verified=True, num_proofings=2, num_mfa_tokens=2)
 
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
@@ -658,16 +594,20 @@ class EidasTests(ProofingTests[EidasApp]):
 
         eppn = self.test_user.eppn
 
-        credential = self.add_token_to_user(eppn, "test", "webauthn")
+        credential = self.add_security_key_to_user(eppn, "test", "webauthn")
 
         self._verify_user_parameters(eppn)
 
         self.verify_token(
-            endpoint=f"/verify-token/{credential.key}",
+            endpoint="/verify-credential",
             eppn=eppn,
-            expect_msg=EidasMsg.old_token_verify_success,
+            identity=self.test_user.identities.nin,
+            expect_msg=EidasMsg.credential_verify_success,
             credentials_used=[credential.key, ElementKey("other_id")],
             verify_credential=credential.key,
+            response_template=self.saml_response_tpl_success,
+            method="freja",
+            frontend_action=FrontendAction.VERIFY_CREDENTIAL,
         )
 
         self._verify_user_parameters(eppn, token_verified=True, num_proofings=1)
@@ -675,13 +615,14 @@ class EidasTests(ProofingTests[EidasApp]):
     def test_mfa_token_verify_wrong_verified_nin(self):
         eppn = self.test_user.eppn
         nin = self.test_user_wrong_nin
-        credential = self.add_token_to_user(eppn, "test", "u2f")
+        credential = self.add_security_key_to_user(eppn, "test", "u2f")
 
         self._verify_user_parameters(eppn, identity=nin, identity_present=False)
 
         self.verify_token(
-            endpoint=f"/verify-token/{credential.key}",
+            endpoint="/verify-credential",
             eppn=eppn,
+            frontend_action=FrontendAction.VERIFY_CREDENTIAL,
             expect_msg=EidasMsg.identity_not_matching,
             expect_error=True,
             credentials_used=[credential.key, ElementKey("other_id")],
@@ -701,14 +642,15 @@ class EidasTests(ProofingTests[EidasApp]):
 
         eppn = self.test_unverified_user_eppn
         nin = self.test_user_nin
-        credential = self.add_token_to_user(eppn, "test", "webauthn")
+        credential = self.add_security_key_to_user(eppn, "test", "webauthn")
 
         self._verify_user_parameters(eppn, identity_verified=False)
 
         self.verify_token(
-            endpoint=f"/verify-token/{credential.key}",
+            endpoint="/verify-credential",
             eppn=eppn,
-            expect_msg=EidasMsg.old_token_verify_success,
+            frontend_action=FrontendAction.VERIFY_CREDENTIAL,
+            expect_msg=EidasMsg.credential_verify_success,
             credentials_used=[credential.key, ElementKey("other_id")],
             verify_credential=credential.key,
             identity=nin,
@@ -721,30 +663,41 @@ class EidasTests(ProofingTests[EidasApp]):
 
     def test_mfa_token_verify_no_mfa_login(self):
         eppn = self.test_user.eppn
-        credential = self.add_token_to_user(eppn, "test", "u2f")
+        cred = self.add_security_key_to_user(eppn, "test", "u2f")
 
         self._verify_user_parameters(eppn)
 
         with self.session_cookie(self.browser, eppn) as browser:
-            response = browser.get(f"/verify-token/{credential.key}?idp={self.test_idp}")
-            assert response.status_code == 302
-            assert response.location == (
-                "http://test.localhost/reauthn?next="
-                f"http://test.localhost/verify-token/{credential.key}?idp={self.test_idp}"
+            with browser.session_transaction() as sess:
+                csrf_token = sess.get_csrf_token()
+            data = {
+                "csrf_token": csrf_token,
+                "credential_id": cred.key,
+                "method": "freja",
+                "frontend_action": FrontendAction.VERIFY_CREDENTIAL.value,
+            }
+            response = browser.post("/verify-credential", json=data)
+            assert response.status_code == 200
+            self._check_error_response(
+                response=response,
+                payload={"credential_description": "test"},
+                msg=AuthnStatusMsg.must_authenticate,
+                type_="POST_EIDAS_VERIFY_CREDENTIAL_FAIL",
             )
 
         self._verify_user_parameters(eppn)
 
     def test_mfa_token_verify_no_mfa_token_in_session(self):
         eppn = self.test_user.eppn
-        credential = self.add_token_to_user(eppn, "test", "webauthn")
+        credential = self.add_security_key_to_user(eppn, "test", "webauthn")
 
         self._verify_user_parameters(eppn)
 
         self.verify_token(
-            endpoint=f"/verify-token/{credential.key}",
+            endpoint="/verify-credential",
             eppn=eppn,
-            expect_msg=EidasMsg.token_not_in_creds,
+            frontend_action=FrontendAction.VERIFY_CREDENTIAL,
+            expect_msg=EidasMsg.credential_not_found,
             credentials_used=[credential.key, ElementKey("other_id")],
             verify_credential=credential.key,
             response_template=self.saml_response_tpl_fail,
@@ -755,14 +708,15 @@ class EidasTests(ProofingTests[EidasApp]):
 
     def test_mfa_token_verify_aborted_auth(self):
         eppn = self.test_user.eppn
-        credential = self.add_token_to_user(eppn, "test", "u2f")
+        credential = self.add_security_key_to_user(eppn, "test", "u2f")
 
         self._verify_user_parameters(eppn)
 
         self.verify_token(
-            endpoint=f"/verify-token/{credential.key}",
+            endpoint="/verify-credential",
             eppn=eppn,
-            expect_msg=EidasMsg.old_token_verify_success,
+            frontend_action=FrontendAction.VERIFY_CREDENTIAL,
+            expect_msg=EidasMsg.credential_verify_success,
             credentials_used=[credential.key, ElementKey("other_id")],
             verify_credential=credential.key,
             response_template=self.saml_response_tpl_fail,
@@ -774,14 +728,15 @@ class EidasTests(ProofingTests[EidasApp]):
     def test_mfa_token_verify_cancel_auth(self):
         eppn = self.test_user.eppn
 
-        credential = self.add_token_to_user(eppn, "test", "webauthn")
+        credential = self.add_security_key_to_user(eppn, "test", "webauthn")
 
         self._verify_user_parameters(eppn)
 
         self.verify_token(
-            endpoint=f"/verify-token/{credential.key}",
+            endpoint="/verify-credential",
             eppn=eppn,
-            expect_msg=EidasMsg.old_token_verify_success,
+            frontend_action=FrontendAction.VERIFY_CREDENTIAL,
+            expect_msg=EidasMsg.credential_verify_success,
             credentials_used=[credential.key, ElementKey("other_id")],
             verify_credential=credential.key,
             identity=self.test_user_wrong_nin,
@@ -794,14 +749,15 @@ class EidasTests(ProofingTests[EidasApp]):
     def test_mfa_token_verify_auth_fail(self):
         eppn = self.test_user.eppn
 
-        credential = self.add_token_to_user(eppn, "test", "u2f")
+        credential = self.add_security_key_to_user(eppn, "test", "u2f")
 
         self._verify_user_parameters(eppn)
 
         self.verify_token(
-            endpoint=f"/verify-token/{credential.key}",
+            endpoint="/verify-credential",
             eppn=eppn,
-            expect_msg=EidasMsg.old_token_verify_success,
+            frontend_action=FrontendAction.VERIFY_CREDENTIAL,
+            expect_msg=EidasMsg.credential_verify_success,
             credentials_used=[credential.key, ElementKey("other_id")],
             verify_credential=credential.key,
             identity=self.test_user_wrong_nin,
@@ -817,7 +773,7 @@ class EidasTests(ProofingTests[EidasApp]):
 
         eppn = self.test_unverified_user_eppn
         nin = self.test_backdoor_nin
-        credential = self.add_token_to_user(eppn, "test", "webauthn")
+        credential = self.add_security_key_to_user(eppn, "test", "webauthn")
 
         self._verify_user_parameters(eppn)
 
@@ -825,9 +781,10 @@ class EidasTests(ProofingTests[EidasApp]):
         with self.session_cookie_and_magic_cookie(self.browser, eppn=eppn) as browser:
             browser.set_cookie(domain=self.test_domain, key="nin", value=nin.number)
             self.verify_token(
-                endpoint=f"/verify-token/{credential.key}",
+                endpoint="/verify-credential",
                 eppn=eppn,
-                expect_msg=EidasMsg.old_token_verify_success,
+                frontend_action=FrontendAction.VERIFY_CREDENTIAL,
+                expect_msg=EidasMsg.credential_verify_success,
                 credentials_used=[credential.key, ElementKey("other_id")],
                 verify_credential=credential.key,
                 browser=browser,
@@ -845,10 +802,10 @@ class EidasTests(ProofingTests[EidasApp]):
         self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=False)
 
         self.reauthn(
-            "/verify-nin",
-            expect_msg=EidasMsg.old_nin_verify_success,
+            "/verify-identity",
+            frontend_action=FrontendAction.VERIFY_IDENTITY,
+            expect_msg=EidasMsg.identity_verify_success,
             eppn=eppn,
-            expect_redirect_url="http://test.localhost/profile",
         )
         user = self.app.central_userdb.get_user_by_eppn(eppn)
         self._verify_user_parameters(
@@ -876,12 +833,12 @@ class EidasTests(ProofingTests[EidasApp]):
         self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=True)
 
         self.reauthn(
-            "/mfa-authentication",
-            expect_msg=EidasMsg.action_completed,
+            "/mfa-authenticate",
+            frontend_action=FrontendAction.LOGIN_MFA_AUTHN,
+            expect_msg=EidasMsg.mfa_authn_success,
             eppn=eppn,
             logged_in=False,
             next_url="http://idp.test.localhost/mfa-step",
-            expect_redirect_url="http://idp.test.localhost/mfa-step",
         )
 
         self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=True, num_proofings=0)
@@ -891,13 +848,13 @@ class EidasTests(ProofingTests[EidasApp]):
         self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=False, token_verified=False)
 
         self.reauthn(
-            "/mfa-authentication",
+            "/mfa-authenticate",
+            frontend_action=FrontendAction.LOGIN_MFA_AUTHN,
             expect_msg=EidasMsg.identity_not_matching,
             expect_error=True,
             eppn=eppn,
             logged_in=False,
             next_url="http://idp.test.localhost/mfa-step",
-            expect_redirect_url="http://idp.test.localhost/mfa-step",
         )
 
         self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=False, num_proofings=0)
@@ -918,12 +875,12 @@ class EidasTests(ProofingTests[EidasApp]):
         self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=False, token_verified=False)
 
         self.reauthn(
-            "/mfa-authentication",
-            expect_msg=EidasMsg.action_completed,
+            "/mfa-authenticate",
+            frontend_action=FrontendAction.LOGIN_MFA_AUTHN,
+            expect_msg=EidasMsg.mfa_authn_success,
             eppn=eppn,
             logged_in=False,
             next_url="http://idp.test.localhost/mfa-step",
-            expect_redirect_url="http://idp.test.localhost/mfa-step",
         )
 
         self._verify_user_parameters(
@@ -947,10 +904,9 @@ class EidasTests(ProofingTests[EidasApp]):
             "/mfa-authenticate",
             expect_msg=EidasMsg.mfa_authn_success,
             eppn=eppn,
-            frontend_action="mfa_authenticate",
+            frontend_action=FrontendAction.LOGIN_MFA_AUTHN,
             identity=self.test_user_eidas,
             logged_in=False,
-            expect_redirect_url="http://test.localhost/testing-mfa-authenticate",
             response_template=self.saml_response_foreign_eid_tpl_success,
             method="eidas",
         )
@@ -981,10 +937,9 @@ class EidasTests(ProofingTests[EidasApp]):
             identity=identity,
             logged_in=False,
             next_url="http://idp.test.localhost/mfa-step",
-            expect_redirect_url="http://test.localhost/testing-mfa-authenticate",
             response_template=self.saml_response_foreign_eid_tpl_success,
             method="eidas",
-            frontend_action="mfa_authenticate",
+            frontend_action=FrontendAction.LOGIN_MFA_AUTHN,
         )
 
         self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=False, num_proofings=0)
@@ -1010,10 +965,9 @@ class EidasTests(ProofingTests[EidasApp]):
             identity=identity,
             logged_in=False,
             next_url="http://idp.test.localhost/mfa-step",
-            expect_redirect_url="http://test.localhost/testing-mfa-authenticate",
             response_template=self.saml_response_foreign_eid_tpl_success,
             method="eidas",
-            frontend_action="mfa_authenticate",
+            frontend_action=FrontendAction.LOGIN_MFA_AUTHN,
         )
 
         self._verify_user_parameters(
@@ -1025,7 +979,7 @@ class EidasTests(ProofingTests[EidasApp]):
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_user.eppn
-        credential = self.add_token_to_user(eppn, "test", "webauthn")
+        credential = self.add_security_key_to_user(eppn, "test", "webauthn")
         self.set_eidas_for_user(eppn=eppn, identity=self.test_user_eidas, verified=True)
 
         self._verify_user_parameters(eppn, identity=self.test_user_eidas, identity_verified=True)
@@ -1038,9 +992,8 @@ class EidasTests(ProofingTests[EidasApp]):
             credentials_used=[credential.key, ElementKey("other_id")],
             verify_credential=credential.key,
             response_template=self.saml_response_foreign_eid_tpl_success,
-            expect_redirect_url="http://test.localhost/testing-verify-credential",
             method="eidas",
-            frontend_action="verify_credential",
+            frontend_action=FrontendAction.VERIFY_CREDENTIAL,
         )
 
         self._verify_user_parameters(
@@ -1051,7 +1004,7 @@ class EidasTests(ProofingTests[EidasApp]):
         eppn = self.test_user.eppn
         identity = self.test_user_other_eidas
         self.set_eidas_for_user(eppn=eppn, identity=identity, verified=True)
-        credential = self.add_token_to_user(eppn, "test", "webauthn")
+        credential = self.add_security_key_to_user(eppn, "test", "webauthn")
 
         self._verify_user_parameters(eppn, identity=identity, identity_present=True, identity_verified=True)
 
@@ -1064,9 +1017,8 @@ class EidasTests(ProofingTests[EidasApp]):
             credentials_used=[credential.key, ElementKey("other_id")],
             verify_credential=credential.key,
             response_template=self.saml_response_foreign_eid_tpl_success,
-            expect_redirect_url="http://test.localhost/testing-verify-credential",
             method="eidas",
-            frontend_action="verify_credential",
+            frontend_action=FrontendAction.VERIFY_CREDENTIAL,
         )
 
         self._verify_user_parameters(
@@ -1079,7 +1031,7 @@ class EidasTests(ProofingTests[EidasApp]):
 
         eppn = self.test_unverified_user_eppn
         identity = self.test_user_eidas
-        credential = self.add_token_to_user(eppn, "test", "webauthn")
+        credential = self.add_security_key_to_user(eppn, "test", "webauthn")
 
         self._verify_user_parameters(eppn, identity_verified=False, identity_present=False)
 
@@ -1091,9 +1043,8 @@ class EidasTests(ProofingTests[EidasApp]):
             credentials_used=[credential.key, ElementKey("other_id")],
             verify_credential=credential.key,
             response_template=self.saml_response_foreign_eid_tpl_success,
-            expect_redirect_url="http://test.localhost/testing-verify-credential",
             method="eidas",
-            frontend_action="verify_credential",
+            frontend_action=FrontendAction.VERIFY_CREDENTIAL,
         )
 
         # Verify the user now has a verified eidas identity
@@ -1103,7 +1054,7 @@ class EidasTests(ProofingTests[EidasApp]):
 
     def test_foreign_eid_mfa_token_verify_no_mfa_login(self):
         eppn = self.test_user.eppn
-        credential = self.add_token_to_user(eppn, "test", "webauthn")
+        credential = self.add_security_key_to_user(eppn, "test", "webauthn")
 
         self._verify_user_parameters(eppn)
 
@@ -1112,17 +1063,18 @@ class EidasTests(ProofingTests[EidasApp]):
                 browser=browser,
                 endpoint="/verify-credential",
                 method="eidas",
-                frontend_action="verify-credential",
+                frontend_action=FrontendAction.VERIFY_CREDENTIAL,
                 verify_credential=credential.key,
+                expect_success=False,
             )
-            assert location == f"http://test.localhost/reauthn?next=http://test.localhost/verify-token/{credential.key}"
+            assert location is None
 
         self._verify_user_parameters(eppn)
 
     def test_foreign_eid_mfa_token_verify_no_mfa_token_in_session(self):
         eppn = self.test_user.eppn
         identity = self.test_user_eidas
-        credential = self.add_token_to_user(eppn, "test", "webauthn")
+        credential = self.add_security_key_to_user(eppn, "test", "webauthn")
 
         self._verify_user_parameters(eppn)
 
@@ -1130,13 +1082,13 @@ class EidasTests(ProofingTests[EidasApp]):
             endpoint="/verify-credential",
             eppn=eppn,
             identity=identity,
-            expect_msg=EidasMsg.token_not_in_creds,
+            expect_msg=EidasMsg.credential_not_found,
             credentials_used=[credential.key, ElementKey("other_id")],
             verify_credential=credential.key,
             response_template=self.saml_response_tpl_fail,
             expect_saml_error=True,
             method="eidas",
-            frontend_action="verify_credential",
+            frontend_action=FrontendAction.VERIFY_CREDENTIAL,
         )
 
         self._verify_user_parameters(eppn)
@@ -1154,16 +1106,17 @@ class EidasTests(ProofingTests[EidasApp]):
         self._verify_user_parameters(eppn, num_mfa_tokens=0, identity=nin, identity_verified=True)
 
         self.app.conf.magic_cookie = "magic-cookie"
+
         with self.session_cookie(self.browser, eppn) as browser:
             browser.set_cookie(domain="test.localhost", key="magic-cookie", value=self.app.conf.magic_cookie)
             browser.set_cookie(domain="test.localhost", key="nin", value=nin.number)
             self.reauthn(
-                "/mfa-authentication",
-                expect_msg=EidasMsg.action_completed,
+                "/mfa-authenticate",
+                frontend_action=FrontendAction.LOGIN_MFA_AUTHN,
+                expect_msg=EidasMsg.mfa_authn_success,
                 eppn=eppn,
                 logged_in=False,
                 next_url="http://idp.test.localhost/mfa-step",
-                expect_redirect_url="http://idp.test.localhost/mfa-step",
                 browser=browser,
             )
 
@@ -1182,10 +1135,10 @@ class EidasTests(ProofingTests[EidasApp]):
         with self.session_cookie_and_magic_cookie(self.browser, eppn) as browser:
             browser.set_cookie(domain="test.localhost", key="nin", value=nin.number)
             self.reauthn(
-                "/verify-nin",
-                expect_msg=EidasMsg.old_nin_verify_success,
+                "/verify-identity",
+                frontend_action=FrontendAction.VERIFY_IDENTITY,
+                expect_msg=EidasMsg.identity_verify_success,
                 eppn=eppn,
-                expect_redirect_url="http://test.localhost/profile",
                 browser=browser,
             )
 
@@ -1208,10 +1161,10 @@ class EidasTests(ProofingTests[EidasApp]):
         with self.session_cookie_and_magic_cookie(self.browser, eppn=eppn) as browser:
             browser.set_cookie(domain=self.test_domain, key="nin", value=nin.number)
             self.reauthn(
-                "/verify-nin",
-                expect_msg=EidasMsg.old_nin_verify_success,
+                "/verify-identity",
+                frontend_action=FrontendAction.VERIFY_IDENTITY,
+                expect_msg=EidasMsg.identity_verify_success,
                 eppn=eppn,
-                expect_redirect_url="http://test.localhost/profile",
                 browser=browser,
             )
 
@@ -1240,10 +1193,10 @@ class EidasTests(ProofingTests[EidasApp]):
         ) as browser:
             browser.set_cookie(domain="test.localhost", key="nin", value=nin.number)
             self.reauthn(
-                "/verify-nin",
-                expect_msg=EidasMsg.old_nin_verify_success,
+                "/verify-identity",
+                frontend_action=FrontendAction.VERIFY_IDENTITY,
+                expect_msg=EidasMsg.identity_verify_success,
                 eppn=eppn,
-                expect_redirect_url="http://test.localhost/profile",
                 browser=browser,
             )
 
@@ -1263,10 +1216,10 @@ class EidasTests(ProofingTests[EidasApp]):
         assert user.identities.nin.is_verified is True
 
         self.reauthn(
-            "/verify-nin",
+            "/verify-identity",
+            frontend_action=FrontendAction.VERIFY_IDENTITY,
             expect_msg=ProofingMsg.identity_already_verified,
             expect_error=True,
-            expect_redirect_url="http://test.localhost/profile",
             identity=nin,
         )
 
@@ -1282,9 +1235,9 @@ class EidasTests(ProofingTests[EidasApp]):
         credentials_before = user.credentials.to_list()
 
         self.reauthn(
-            endpoint="/mfa-authentication",
-            expect_msg=EidasMsg.action_completed,
-            expect_redirect_url=self.default_redirect_url,
+            endpoint="/mfa-authenticate",
+            frontend_action=FrontendAction.LOGIN_MFA_AUTHN,
+            expect_msg=EidasMsg.mfa_authn_success,
         )
 
         # Verify that an ExternalCredential was added
@@ -1297,14 +1250,14 @@ class EidasTests(ProofingTests[EidasApp]):
         assert cred.level in self.app.conf.required_loa
 
     def test_mfa_authentication_too_old_authn_instant(self):
+
         self.reauthn(
-            endpoint="/mfa-authentication",
+            endpoint="/mfa-authenticate",
             next_url=self.default_redirect_url,
+            frontend_action=FrontendAction.LOGIN_MFA_AUTHN,
             age=61,
-            expect_msg=EidasMsg.reauthn_expired,
-            expect_mfa_action_error=MfaActionError.authn_too_old,
+            expect_msg=EidasMsg.authn_instant_too_old,
             expect_error=True,
-            expect_redirect_url=self.default_redirect_url,
         )
 
     def test_mfa_authentication_wrong_nin(self):
@@ -1313,7 +1266,8 @@ class EidasTests(ProofingTests[EidasApp]):
         assert user.identities.nin.is_verified is True, "User was expected to have a verified NIN"
 
         self.reauthn(
-            endpoint="/mfa-authentication",
+            endpoint="/mfa-authenticate",
+            frontend_action=FrontendAction.LOGIN_MFA_AUTHN,
             expect_msg=EidasMsg.identity_not_matching,
             expect_error=True,
             identity=self.test_user_wrong_nin,
@@ -1335,10 +1289,10 @@ class EidasTests(ProofingTests[EidasApp]):
         )
 
         self.reauthn(
-            "/verify-nin",
-            expect_msg=EidasMsg.old_nin_verify_success,
+            "/verify-identity",
+            frontend_action=FrontendAction.VERIFY_IDENTITY,
+            expect_msg=EidasMsg.identity_verify_success,
             eppn=eppn,
-            expect_redirect_url="http://test.localhost/profile",
             identity=self.test_user_nin,
         )
 
@@ -1360,9 +1314,8 @@ class EidasTests(ProofingTests[EidasApp]):
             eppn=eppn,
             identity=identity,
             response_template=self.saml_response_foreign_eid_tpl_success,
-            expect_redirect_url="http://test.localhost/testing-verify-identity",
             method="eidas",
-            frontend_action="verify_identity",
+            frontend_action=FrontendAction.VERIFY_IDENTITY,
         )
 
         user = self.app.central_userdb.get_user_by_eppn(eppn=eppn)
@@ -1400,9 +1353,8 @@ class EidasTests(ProofingTests[EidasApp]):
             eppn=eppn,
             identity=identity,
             response_template=self.saml_response_foreign_eid_tpl_success,
-            expect_redirect_url="http://test.localhost/testing-verify-identity",
             method="eidas",
-            frontend_action="verify_identity",
+            frontend_action=FrontendAction.VERIFY_IDENTITY,
         )
 
         self._verify_user_parameters(
@@ -1439,9 +1391,8 @@ class EidasTests(ProofingTests[EidasApp]):
             eppn=eppn,
             identity=identity,
             response_template=self.saml_response_foreign_eid_tpl_success,
-            expect_redirect_url="http://test.localhost/testing-verify-identity",
             method="eidas",
-            frontend_action="verify_identity",
+            frontend_action=FrontendAction.VERIFY_CREDENTIAL,
         )
 
         self._verify_user_parameters(

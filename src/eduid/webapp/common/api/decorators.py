@@ -161,9 +161,9 @@ class MarshalWith:
 
             _flux_response: FluxResponse
             if ret.status != FluxResponseStatus.OK:
-                _flux_response = FluxFailResponse(request, payload=ret.payload)
+                _flux_response = FluxFailResponse(request, meta=ret.meta, payload=ret.payload)
             else:
-                _flux_response = FluxSuccessResponse(request, payload=ret.payload)
+                _flux_response = FluxSuccessResponse(request, meta=ret.meta, payload=ret.payload)
             try:
                 flux_logger.debug(f"Encoding response: {_flux_response.to_dict()} using schema {self.schema()}")
                 _encoded = cast(Mapping[str, Any], self.schema().dump(_flux_response.to_dict()))

@@ -1,5 +1,5 @@
 from copy import copy
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from enum import Enum, unique
 from typing import Any, Mapping, Optional, Union
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
@@ -7,6 +7,8 @@ from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 from flask import redirect
 from werkzeug.wrappers import Response as WerkzeugResponse
 
+from eduid.common.config.base import FrontendAction
+from eduid.webapp.common.api.schemas.authn_status import AuthnActionStatus
 from eduid.webapp.common.api.schemas.models import FluxResponseStatus
 
 
@@ -51,10 +53,26 @@ class CommonMsg(TranslatableMsg):
     locked_identity_not_matching = "common.locked_identity_not_matching"
 
 
+@unique
+class AuthnStatusMsg(TranslatableMsg):
+    """
+    Messages sent to the front end with information on the results of the
+    attempted operations on the back end.
+    """
+
+    # Status requested for unknown authn_id
+    not_found = "authn_status.not-found"
+    must_authenticate = "authn_status.must-authenticate"
+
+
 @dataclass(frozen=True)
 class FluxData:
     status: FluxResponseStatus
     payload: Mapping[str, Any]
+    meta: Optional[Mapping[str, Any]] = None
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
 
 
 def success_response(
@@ -68,7 +86,7 @@ def success_response(
     :param payload: A mapping that will become the Flux Standard Action 'payload'.
                     This should contain data the frontend needs to render a view to the user.
                     For example, in a letter proofing scenario where a user requests that
-                    a letter with a code is sent to their registered address, the backend might
+                    a letter with a code is  sent to their registered address, the backend might
                     return the timestamp when a letter was sent, as well as when the code will
                     expire.
     :param message: An optional simple message that will be translated in eduid-front into a message to the user.
@@ -91,6 +109,20 @@ def error_response(
                     If used, this should be an TranslatableMsg instance or, for B/C and robustness, a str.
     """
     return FluxData(status=FluxResponseStatus.ERROR, payload=_make_payload(payload, message, False))
+
+
+def need_authentication_response(
+    frontend_action: FrontendAction, authn_status: AuthnActionStatus, payload: Optional[Mapping[str, Any]] = None
+) -> FluxData:
+    meta = {
+        "frontend_action": frontend_action.value,
+        "authn_status": authn_status.value,
+    }
+    return FluxData(
+        status=FluxResponseStatus.ERROR,
+        meta=meta,
+        payload=_make_payload(payload, AuthnStatusMsg.must_authenticate, success=False),
+    )
 
 
 def _make_payload(

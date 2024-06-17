@@ -18,7 +18,7 @@ def index(support_user: User):
 
     if request.method != "POST" or not search_query:
         return render_template(
-            "index.html", support_user=support_user, logout_url=current_app.conf.token_service_url_logout
+            "index.html", support_user=support_user, logout_url=current_app.conf.authn_service_url_logout
         )
 
     lookup_users: Sequence[User] = []
@@ -43,7 +43,7 @@ def index(support_user: User):
             return render_template(
                 "index.html",
                 support_user=support_user,
-                logout_url=current_app.conf.token_service_url_logout,
+                logout_url=current_app.conf.authn_service_url_logout,
                 error="No users matched the search query",
             )
 
@@ -76,7 +76,7 @@ def index(support_user: User):
     return render_template(
         "index.html",
         support_user=support_user,
-        logout_url=current_app.conf.token_service_url_logout,
+        logout_url=current_app.conf.authn_service_url_logout,
         users=users,
         search_query=search_query,
     )

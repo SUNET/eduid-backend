@@ -30,8 +30,7 @@ class SvipeIDMsg(TranslatableMsg):
     identity_verify_success = "svipe_id.identity_verify_success"
     # Authorization error at Svipe ID
     authorization_error = "svipe_id.authorization_fail"
-    # Status requested for unknown authn_id
-    not_found = "svipe_id.not_found"
+    frontend_action_not_supported = "svipe_id.frontend-action-not-supported"
 
 
 class SessionOAuthCache:

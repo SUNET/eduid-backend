@@ -1,33 +1,13 @@
-import logging
-from typing import Optional
+from enum import unique
 
-from eduid.common.misc.timeutil import utc_now
-from eduid.userdb.credentials import Credential
-from eduid.webapp.common.authn.acs_enums import AuthnAcsAction
-from eduid.webapp.common.session import session
-from eduid.webapp.common.session.namespaces import SP_AuthnRequest
-
-logger = logging.getLogger(__name__)
+from eduid.webapp.common.api.messages import TranslatableMsg
 
 
-def credential_used_to_authenticate(credential: Credential, max_age: int) -> bool:
+@unique
+class AuthnMsg(TranslatableMsg):
     """
-    Check if a particular credential was used to authenticate (using the eduID IdP and authn).
+    Messages sent to the front end with information on the results of the
+    attempted operations on the back end.
     """
-    logger.debug(f"Checking if credential {credential} has been used in the last {max_age} seconds")
 
-    login = session.authn.sp.get_authn_for_action(AuthnAcsAction.login)
-    reauthn = session.authn.sp.get_authn_for_action(AuthnAcsAction.reauthn)
-
-    if _credential_recently_used(credential, login, max_age) or _credential_recently_used(credential, reauthn, max_age):
-        return True
-    return False
-
-
-def _credential_recently_used(credential: Credential, action: Optional[SP_AuthnRequest], max_age: int) -> bool:
-    if action and credential.key in action.credentials_used:
-        if action.authn_instant is not None:
-            age = (utc_now() - action.authn_instant).total_seconds()
-            if 0 < age < max_age:
-                return True
-    return False
+    frontend_action_not_supported = "authn.frontend_action_not_supported"

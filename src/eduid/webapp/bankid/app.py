@@ -65,7 +65,7 @@ def init_bankid_app(name: str = "bankid", test_config: Optional[Mapping[str, Any
             "/saml2-acs",
             "/mfa-authentication",
             "/mfa-authenticate",
-            "/get_status",
+            "/get-status",
         ],
     )
 
