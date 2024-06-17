@@ -119,7 +119,8 @@ class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
         with self.session_cookie(self.browser, eppn) as client:
             with self.app.test_request_context():
                 with client.session_transaction() as sess:
-                    data["csrf_token"] = sess.get_csrf_token()
+                    if "csrf_token" not in data:
+                        data["csrf_token"] = sess.get_csrf_token()
                 if mod_data:
                     data.update(mod_data)
             return client.post("/settings", json=data)
@@ -314,7 +315,7 @@ class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
         assert user.settings.force_mfa is False
 
     def test_post_settings_bad_csrf(self):
-        response = self._post_settings(mod_data={"csrf_token": "wrong-token"})
+        response = self._post_settings(mod_data={"csrf_token": "wrong-token", "force_mfa": True})
         expected_payload = {"error": {"csrf_token": ["CSRF failed to validate"]}}
         self._check_error_response(response, type_="POST_PERSONAL_DATA_SETTINGS_FAIL", payload=expected_payload)
 

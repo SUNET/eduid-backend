@@ -272,6 +272,7 @@ class AttributeFetcherPersonalDataTests(ProofingTestCase):
                     "chosen_given_name": "Testaren",
                     "surname": "Testsson",
                     "preferredLanguage": "sv",
+                    "settings": {"force_mfa": True},
                 },
             },
         )
@@ -289,6 +290,7 @@ class AttributeFetcherPersonalDataTests(ProofingTestCase):
                     "chosen_given_name": "Testaren",
                     "surname": "Testsson",
                     "preferredLanguage": "sv",
+                    "settings": {"force_mfa": True},
                 },
             },
         )
