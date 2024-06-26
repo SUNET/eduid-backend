@@ -28,6 +28,7 @@ HERE = os.path.abspath(os.path.dirname(__file__))
 
 
 class IdPTestLoginAPI(IdPAPITests):
+
     def test_login_start(self) -> None:
         result = self._try_login(test_user=TestUser(eppn=None, password=None))
         assert result.visit_order == [IdPAction.PWAUTH]
@@ -82,13 +83,101 @@ class IdPTestLoginAPI(IdPAPITests):
         assert "eduPersonPrincipalName" in attributes
         assert attributes["eduPersonPrincipalName"] == [f"hubba-bubba@{self.app.conf.default_eppn_scope}"]
 
-    def test_login_missing_attributes(self) -> None:
+    def test_login_mfaauth(self) -> None:
         # pre-accept ToU for this test
         self.add_test_user_tou()
 
+        # add security key to user
+        self.add_test_user_security_key()
+
+        # Patch the VCCSClient, so we do not need a vccs server
+        with patch.object(VCCSClient, "authenticate") as mock_vccs:
+            mock_vccs.return_value = True
+            result = self._try_login()
+
+        assert result.visit_order == [
+            IdPAction.PWAUTH,
+            IdPAction.MFA,
+            IdPAction.FINISHED,
+        ], f"NOT expected visit order {result.visit_order}"
+        assert result.sso_cookie_val is not None
+        assert result.finished_result is not None
+        assert result.finished_result.payload["message"] == IdPMsg.finished.value
+        assert result.finished_result.payload["target"] == "https://sp.example.edu/saml2/acs/"
+        assert result.finished_result.payload["parameters"]["RelayState"] == self.relay_state
+
+        attributes = self.get_attributes(result)
+
+        assert "eduPersonPrincipalName" in attributes
+        assert attributes["eduPersonPrincipalName"] == [f"hubba-bubba@{self.app.conf.default_eppn_scope}"]
+
+    def test_login_no_mandatory_mfa(self) -> None:
+        # pre-accept ToU for this test
+        self.add_test_user_tou()
+
+        # add security key to user
+        self.add_test_user_security_key(force_mfa_user_setting=False)
+
+        # Patch the VCCSClient, so we do not need a vccs server
+        with patch.object(VCCSClient, "authenticate") as mock_vccs:
+            mock_vccs.return_value = True
+            result = self._try_login()
+
+        assert result.visit_order == [
+            IdPAction.PWAUTH,
+            IdPAction.FINISHED,
+        ], f"NOT expected visit order {result.visit_order}"
+        assert result.sso_cookie_val is not None
+        assert result.finished_result is not None
+        assert result.finished_result.payload["message"] == IdPMsg.finished.value
+        assert result.finished_result.payload["target"] == "https://sp.example.edu/saml2/acs/"
+        assert result.finished_result.payload["parameters"]["RelayState"] == self.relay_state
+
+        attributes = self.get_attributes(result)
+
+        assert "eduPersonPrincipalName" in attributes
+        assert attributes["eduPersonPrincipalName"] == [f"hubba-bubba@{self.app.conf.default_eppn_scope}"]
+
+    def test_login_no_mandatory_mfa_with_mfa_accr(self) -> None:
+        # pre-accept ToU for this test
+        self.add_test_user_tou()
+
+        # add security key to user
+        self.add_test_user_security_key(force_mfa_user_setting=False)
+
+        # Patch the VCCSClient, so we do not need a vccs server
+        with patch.object(VCCSClient, "authenticate") as mock_vccs:
+            mock_vccs.return_value = True
+            result = self._try_login(
+                authn_context={
+                    "authn_context_class_ref": [EduidAuthnContextClass.REFEDS_MFA.value],
+                    "comparison": "exact",
+                }
+            )
+
+        assert result.visit_order == [
+            IdPAction.PWAUTH,
+            IdPAction.MFA,
+            IdPAction.FINISHED,
+        ], f"NOT expected visit order {result.visit_order}"
+        assert result.sso_cookie_val is not None
+        assert result.finished_result is not None
+        assert result.finished_result.payload["message"] == IdPMsg.finished.value
+        assert result.finished_result.payload["target"] == "https://sp.example.edu/saml2/acs/"
+        assert result.finished_result.payload["parameters"]["RelayState"] == self.relay_state
+
+        attributes = self.get_attributes(result)
+
+        assert "eduPersonPrincipalName" in attributes
+        assert attributes["eduPersonPrincipalName"] == [f"hubba-bubba@{self.app.conf.default_eppn_scope}"]
+
+    def test_login_missing_attributes(self) -> None:
+        # pre-accept ToU for this test
+        user, _ = self.add_test_user_tou()
+
         # remove mail address from user to simulate missing attribute
-        self.test_user.mail_addresses = MailAddressList()
-        self.request_user_sync(self.test_user)
+        user.mail_addresses = MailAddressList()
+        self.request_user_sync(user)
 
         # Patch the VCCSClient, so we do not need a vccs server
         with patch.object(VCCSClient, "authenticate") as mock_vccs:
@@ -104,6 +193,9 @@ class IdPTestLoginAPI(IdPAPITests):
         assert attributes["mailLocalAddress"] == []
 
     def test_ForceAuthn_with_existing_SSO_session(self) -> None:
+        # add security key to user
+        self.add_test_user_security_key()
+
         for accr in [None, EduidAuthnContextClass.PASSWORD_PT, EduidAuthnContextClass.REFEDS_MFA]:
             requested_authn_context = None
             if accr is not None:
@@ -134,8 +226,11 @@ class IdPTestLoginAPI(IdPAPITests):
                 )
 
             if accr is EduidAuthnContextClass.REFEDS_MFA:
-                # we currently have no way to mock a correct MFA authentication so just check that we try to do MFA
-                assert result2.visit_order == [IdPAction.PWAUTH, IdPAction.MFA]
+                assert result2.visit_order == [
+                    IdPAction.PWAUTH,
+                    IdPAction.MFA,
+                    IdPAction.FINISHED,
+                ], f"Actual visit order: {result2.visit_order}"
             else:
                 assert result2.finished_result is not None
                 authn_response2 = self.parse_saml_authn_response(result2.finished_result)
