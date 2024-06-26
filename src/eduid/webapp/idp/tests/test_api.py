@@ -416,6 +416,7 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
         is_verified: bool = False,
         mfa_approved: bool = False,
         credential: Optional[FidoCredential] = None,
+        force_mfa_user_setting: bool = True,
     ):
         if user is None:
             user = self.test_user
@@ -435,6 +436,7 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
                 mfa_approved=mfa_approved,
             )
         user.credentials.add(credential)
+        user.settings.force_mfa = force_mfa_user_setting
         self.request_user_sync(user)
 
     def add_test_user_external_mfa_cred(
