@@ -1,20 +1,44 @@
+from typing import Optional
+
 from eduid.userdb import User
 from eduid.userdb.credentials.fido import FidoCredential
-from eduid.webapp.authn.helpers import credential_used_to_authenticate
 from eduid.webapp.common.api.decorators import require_user
+from eduid.webapp.common.api.messages import AuthnStatusMsg
 from eduid.webapp.common.authn.acs_enums import EidasAcsAction
 from eduid.webapp.common.authn.acs_registry import ACSArgs, ACSResult, acs_action
 from eduid.webapp.common.proofing.messages import ProofingMsg
-from eduid.webapp.common.proofing.saml_helpers import authn_ctx_to_loa
+from eduid.webapp.common.proofing.methods import ProofingMethodSAML
+from eduid.webapp.common.proofing.saml_helpers import authn_ctx_to_loa, is_required_loa, is_valid_authn_instant
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.namespaces import SP_AuthnRequest
 from eduid.webapp.eidas.app import current_eidas_app as current_app
-from eduid.webapp.eidas.helpers import EidasMsg
+from eduid.webapp.eidas.helpers import EidasMsg, check_reauthn
 from eduid.webapp.eidas.proofing import get_proofing_functions
+from eduid.webapp.eidas.saml_session_info import BaseSessionInfo
 
 __author__ = "lundberg"
 
-from eduid.webapp.eidas.saml_session_info import BaseSessionInfo
+
+def common_saml_checks(args: ACSArgs) -> Optional[ACSResult]:
+    """
+    Check that the user is authenticated and that the session info is valid.
+    """
+    assert isinstance(args.proofing_method, ProofingMethodSAML)  # please mypy
+    if not is_required_loa(
+        args.session_info, args.proofing_method.required_loa, current_app.conf.authentication_context_map
+    ):
+        current_app.logger.error("SAML response did not meet required LOA")
+        args.authn_req.error = True
+        args.authn_req.status = EidasMsg.authn_context_mismatch.value
+        return ACSResult(message=EidasMsg.authn_context_mismatch)
+
+    if not is_valid_authn_instant(args.session_info):
+        current_app.logger.error("SAML response was not a valid reauthn")
+        args.authn_req.error = True
+        args.authn_req.status = EidasMsg.authn_instant_too_old.value
+        return ACSResult(message=EidasMsg.authn_instant_too_old)
+
+    return None
 
 
 @acs_action(EidasAcsAction.verify_identity)
@@ -31,6 +55,10 @@ def verify_identity_action(user: User, args: ACSArgs) -> ACSResult:
     # please type checking
     if not args.proofing_method:
         return ACSResult(message=EidasMsg.method_not_available)
+
+    # validate the assertion data
+    if ret := common_saml_checks(args=args):
+        return ret
 
     parsed = args.proofing_method.parse_session_info(args.session_info, backdoor=args.backdoor)
     if parsed.error:
@@ -70,18 +98,23 @@ def verify_credential_action(user: User, args: ACSArgs) -> ACSResult:
     # please type checking
     if not args.proofing_method:
         return ACSResult(message=EidasMsg.method_not_available)
+
+    # validate the assertion data
+    if ret := common_saml_checks(args=args):
+        return ret
+
     assert isinstance(args.authn_req, SP_AuthnRequest)
 
     credential = user.credentials.find(args.authn_req.proofing_credential_id)
     if not isinstance(credential, FidoCredential):
         current_app.logger.error(f"Credential {credential} is not a FidoCredential")
-        return ACSResult(message=EidasMsg.token_not_in_creds)
+        return ACSResult(message=EidasMsg.credential_not_found)
 
-    # Check (again) if token was used to authenticate this session. The first time we checked,
-    # we verified that the token was used very recently, but we have to allow for more time
-    # here since the user might have spent a couple of minutes authenticating with the external IdP.
-    if not credential_used_to_authenticate(credential, max_age=300):
-        return ACSResult(message=EidasMsg.reauthn_expired)
+    # Check (again) if token was used to authenticate this session and that the auth is not stale.
+    _need_reauthn = check_reauthn(frontend_action=args.authn_req.frontend_action, credential_used=credential)
+    if _need_reauthn:
+        current_app.logger.error(f"User needs to authenticate: {_need_reauthn}")
+        return ACSResult(message=AuthnStatusMsg.must_authenticate)
 
     parsed = args.proofing_method.parse_session_info(args.session_info, args.backdoor)
     if parsed.error:
@@ -108,7 +141,7 @@ def verify_credential_action(user: User, args: ACSArgs) -> ACSResult:
             credential = user.credentials.find(credential.key)
             if not isinstance(credential, FidoCredential):
                 current_app.logger.error(f"Credential {credential} is not a FidoCredential")
-                return ACSResult(message=EidasMsg.token_not_in_creds)
+                return ACSResult(message=EidasMsg.credential_not_found)
 
     # Check that the users' verified identity matches the one that was asserted now
     match_res = proofing.match_identity(user=user, proofing_method=args.proofing_method)
@@ -148,6 +181,10 @@ def mfa_authenticate_action(args: ACSArgs) -> ACSResult:
     if not args.proofing_method:
         return ACSResult(message=EidasMsg.method_not_available)
 
+    # validate the assertion data
+    if ret := common_saml_checks(args=args):
+        return ret
+
     # Get user from central database
     user = current_app.central_userdb.get_user_by_eppn(session.common.eppn)
 
@@ -173,7 +210,7 @@ def mfa_authenticate_action(args: ACSArgs) -> ACSResult:
         current_app.stats.count(name=f"mfa_auth_{args.proofing_method.method}_identity_not_matching")
         return ACSResult(message=EidasMsg.identity_not_matching)
 
-    current_app.stats.count(name=f"mfa_auth_success")
+    current_app.stats.count(name="mfa_auth_success")
     current_app.stats.count(name=f"mfa_auth_{args.proofing_method.method}_success")
     current_app.stats.count(name=f"mfa_auth_{parsed.info.issuer}_success")
     return ACSResult(success=True, message=EidasMsg.mfa_authn_success)

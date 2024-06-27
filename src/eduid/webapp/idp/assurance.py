@@ -6,12 +6,12 @@ from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.credentials import CredentialProofingMethod, FidoCredential, Password
 from eduid.userdb.credentials.external import BankIDCredential, SwedenConnectCredential
 from eduid.userdb.element import ElementKey
-from eduid.userdb.identity import IdentityProofingMethod
 from eduid.userdb.idp import IdPUser
+from eduid.common.models.saml2 import EduidAuthnContextClass
 from eduid.webapp.common.session.namespaces import OnetimeCredential, OnetimeCredType
 from eduid.webapp.idp.app import current_idp_app
 from eduid.webapp.idp.app import current_idp_app as current_app
-from eduid.webapp.idp.assurance_data import AuthnInfo, EduidAuthnContextClass, UsedCredential, UsedWhere
+from eduid.webapp.idp.assurance_data import AuthnInfo, UsedCredential, UsedWhere
 from eduid.webapp.idp.login_context import LoginContext
 from eduid.webapp.idp.sso_session import SSOSession
 

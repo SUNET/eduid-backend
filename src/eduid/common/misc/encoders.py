@@ -1,8 +1,10 @@
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
+from enum import Enum
 from typing import Any, Union
 
 from bson import ObjectId
+from pydantic import TypeAdapter
 from saml2.saml import NameID
 
 
@@ -12,7 +14,11 @@ class EduidJSONEncoder(json.JSONEncoder):
     def default(self, o: Any) -> Union[str, Any]:
         if isinstance(o, datetime):
             return o.isoformat()
+        if isinstance(o, timedelta):
+            return TypeAdapter(timedelta).dump_python(o, mode="json")
         if isinstance(o, (ObjectId, NameID)):
             return str(o)
+        if isinstance(o, Enum):
+            return o.value
 
         return super().default(o)

@@ -1,6 +1,6 @@
 from typing import Generic, Optional
 
-from eduid.common.config.base import EduIDBaseAppConfig
+from eduid.common.config.base import EduIDBaseAppConfig, FrontendAction
 from eduid.userdb.credentials import FidoCredential
 from eduid.userdb.identity import IdentityElement, IdentityProofingMethod
 from eduid.userdb.logs.db import ProofingLog
@@ -17,7 +17,7 @@ class ProofingTests(EduidAPITestCase[TTestAppVar], Generic[TTestAppVar]):
     def _verify_status(
         self,
         finish_url: str,
-        frontend_action: Optional[str],
+        frontend_action: FrontendAction,
         frontend_state: Optional[str],
         method: str,
         browser: Optional[CSRFTestClient] = None,
@@ -38,14 +38,14 @@ class ProofingTests(EduidAPITestCase[TTestAppVar], Generic[TTestAppVar]):
         assert isinstance(self.app, EduIDBaseApp)
         _conf = getattr(self.app, "conf")
         assert isinstance(_conf, EduIDBaseAppConfig)
-        assert app_name == _conf.app_name
+        assert app_name == _conf.app_name, f"expected app_name {_conf.app_name} but got {app_name}"
 
         logger.debug(f"Verifying status for request {authn_id}")
 
         req = {"authn_id": authn_id, "csrf_token": csrf_token}
-        response = browser.post("/get_status", json=req)
+        response = browser.post("/get-status", json=req)
         expected_payload = {
-            "frontend_action": frontend_action,
+            "frontend_action": frontend_action.value,
             "frontend_state": frontend_state,
             "method": method,
             "error": expect_error,
@@ -77,13 +77,19 @@ class ProofingTests(EduidAPITestCase[TTestAppVar], Generic[TTestAppVar]):
         user_mfa_tokens = user.credentials.filter(FidoCredential)
 
         # Check token status
-        assert len(user_mfa_tokens) == num_mfa_tokens, "Unexpected number of FidoCredentials on user"
+        assert (
+            len(user_mfa_tokens) == num_mfa_tokens
+        ), f"Unexpected number of FidoCredentials on user. {len(user_mfa_tokens)}, expected {num_mfa_tokens}"
         if user_mfa_tokens:
-            assert user_mfa_tokens[0].is_verified == token_verified, "User token unexpected is_verified"
+            assert (
+                user_mfa_tokens[0].is_verified == token_verified
+            ), f"User token was expected to be verified={token_verified}"
 
         _log = getattr(self.app, "proofing_log")
         assert isinstance(_log, ProofingLog)
-        assert _log.db_count() == num_proofings, "Unexpected number of proofings in db"
+        assert (
+            _log.db_count() == num_proofings
+        ), f"Unexpected number of proofings in db. {_log.db_count()}, expected {num_proofings}"
 
         if identity is not None:
             # Check parameters of a specific nin

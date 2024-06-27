@@ -7,11 +7,13 @@ from authlib.integrations.base_client import OAuthError
 from flask import Blueprint, make_response, redirect, request, url_for
 from werkzeug import Response as WerkzeugResponse
 
+from eduid.common.config.base import FrontendAction
 from eduid.userdb import User
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, require_user
 from eduid.webapp.common.api.errors import EduidErrorsContext, goto_errors_response
 from eduid.webapp.common.api.helpers import check_magic_cookie
-from eduid.webapp.common.api.messages import FluxData, TranslatableMsg, error_response, success_response
+from eduid.webapp.common.api.messages import AuthnStatusMsg, FluxData, TranslatableMsg, error_response, success_response
+from eduid.webapp.common.api.schemas.authn_status import StatusRequestSchema, StatusResponseSchema
 from eduid.webapp.common.api.schemas.csrf import EmptyResponse
 from eduid.webapp.common.authn.acs_registry import ACSArgs, get_action
 from eduid.webapp.common.proofing.methods import get_proofing_method
@@ -20,12 +22,7 @@ from eduid.webapp.common.session.namespaces import OIDCState, RP_AuthnRequest
 from eduid.webapp.svipe_id.app import current_svipe_id_app as current_app
 from eduid.webapp.svipe_id.callback_enums import SvipeIDAction
 from eduid.webapp.svipe_id.helpers import SvipeIDMsg
-from eduid.webapp.svipe_id.schemas import (
-    SvipeIDCommonRequestSchema,
-    SvipeIDCommonResponseSchema,
-    SvipeIDStatusRequestSchema,
-    SvipeIDStatusResponseSchema,
-)
+from eduid.webapp.svipe_id.schemas import SvipeIDCommonRequestSchema, SvipeIDCommonResponseSchema
 
 __author__ = "lundberg"
 
@@ -40,16 +37,17 @@ def index(user: User) -> FluxData:
     return success_response(payload=None, message=None)
 
 
-@svipe_id_views.route("/get_status", methods=["POST"])
-@UnmarshalWith(SvipeIDStatusRequestSchema)
-@MarshalWith(SvipeIDStatusResponseSchema)
+@svipe_id_views.route("/get-status", methods=["POST"])
+@UnmarshalWith(StatusRequestSchema)
+@MarshalWith(StatusResponseSchema)
 def get_status(authn_id: OIDCState) -> FluxData:
     authn = session.svipe_id.rp.authns.get(authn_id)
     if not authn:
-        return error_response(message=SvipeIDMsg.not_found)
+        return error_response(message=AuthnStatusMsg.not_found)
 
     payload = {
-        "frontend_action": authn.frontend_action,
+        "authn_id": str(authn_id),
+        "frontend_action": authn.frontend_action.value,
         "frontend_state": authn.frontend_state,
         "method": authn.method,
         "error": bool(authn.error),
@@ -89,6 +87,13 @@ def _authn(
     current_app.logger.debug(f"Requested method: {method}, frontend action: {frontend_action}")
 
     try:
+        _frontend_action = FrontendAction(frontend_action)
+        authn_params = current_app.conf.frontend_action_authn_parameters[_frontend_action]
+    except (ValueError, KeyError):
+        current_app.logger.exception(f"Frontend action {frontend_action} not supported")
+        return AuthnResult(error=SvipeIDMsg.frontend_action_not_supported)
+
+    try:
         auth_redirect = current_app.oidc_client.svipe.authorize_redirect(
             redirect_uri=url_for("svipe_id.authn_callback", _external=True),
             # TODO: id_token instead of userinfo would be preferred but I can't get it to work
@@ -107,22 +112,23 @@ def _authn(
         current_app.logger.error(f'Failed to parse "state" from authn request: {auth_url_query}')
         return AuthnResult(error=SvipeIDMsg.authn_request_failed)
 
-    proofing_method = get_proofing_method(method, frontend_action, current_app.conf)
+    proofing_method = get_proofing_method(method, _frontend_action, current_app.conf)
     if not proofing_method:
         current_app.logger.error(f"Unknown method: {method}")
         return AuthnResult(error=SvipeIDMsg.method_not_available)
 
-    session.svipe_id.rp.authns[OIDCState(state)] = RP_AuthnRequest(
-        frontend_action=frontend_action,
+    authn_req = RP_AuthnRequest(
+        authn_id=OIDCState(state),
+        frontend_action=_frontend_action,
         frontend_state=frontend_state,
         post_authn_action=action,
         method=proofing_method.method,
+        finish_url=authn_params.finish_url,
     )
-    current_app.logger.debug(
-        f"Stored RP_AuthnRequest[{OIDCState(state)}]: {session.svipe_id.rp.authns[OIDCState(state)]}"
-    )
+    session.svipe_id.rp.authns[authn_req.authn_id] = authn_req
+    current_app.logger.debug(f"Stored RP_AuthnRequest[{authn_req.authn_id}]: {authn_req}")
     current_app.logger.debug(f"returning url: {auth_url}")
-    return AuthnResult(authn_id=OIDCState(state), url=auth_url, authn_req=session.svipe_id.rp.authns[OIDCState(state)])
+    return AuthnResult(authn_id=authn_req.authn_id, url=auth_url, authn_req=authn_req)
 
 
 @svipe_id_views.route("/authn-callback", methods=["GET"])
@@ -169,7 +175,7 @@ def authn_callback(user) -> WerkzeugResponse:
             rp=url_for("svipe_id.auth_callback", _external=True),
         )
 
-    formatted_finish_url = proofing_method.formatted_finish_url(app_name=current_app.conf.app_name, authn_id=oidc_state)
+    formatted_finish_url = authn_req.formatted_finish_url(app_name=current_app.conf.app_name)
     assert formatted_finish_url  # please type checking
 
     try:
@@ -184,11 +190,10 @@ def authn_callback(user) -> WerkzeugResponse:
         current_app.logger.debug(f"merged user response and token respose userinfo: {user_response}")
     except (OAuthError, KeyError):
         # catch any exception from the oidc client and also exceptions about missing request arguments
-        current_app.logger.exception(f"Failed to get token response from Svipe ID")
+        current_app.logger.exception("Failed to get token response from Svipe ID")
         current_app.stats.count(name="token_response_failed")
         authn_req.error = True
         authn_req.status = SvipeIDMsg.authorization_error.value
-        session.svipe_id.rp.authns[oidc_state] = authn_req
         return redirect(formatted_finish_url)
 
     # end session after successful token response
@@ -199,7 +204,7 @@ def authn_callback(user) -> WerkzeugResponse:
         )
     except OAuthError:
         # keep going even if we can't end the session
-        current_app.logger.exception(f"Failed to end OIDC session")
+        current_app.logger.exception("Failed to end OIDC session")
 
     action = get_action(default_action=None, authndata=authn_req)
     backdoor = check_magic_cookie(config=current_app.conf)
@@ -215,14 +220,14 @@ def authn_callback(user) -> WerkzeugResponse:
     if not result.success:
         current_app.logger.info(f"OIDC callback action failed: {result.message}")
         current_app.stats.count(name="authn_action_failed")
-        authn_req.error = True
+        args.authn_req.error = True
         if result.message:
-            authn_req.status = result.message.value
-        session.svipe_id.rp.authns[oidc_state] = authn_req
+            args.authn_req.status = result.message.value
+        args.authn_req.consumed = True
         return redirect(formatted_finish_url)
 
-    current_app.logger.debug(f"OIDC callback action successful (frontend_action {authn_req.frontend_action})")
+    current_app.logger.debug(f"OIDC callback action successful (frontend_action {args.authn_req.frontend_action})")
     if result.message:
-        authn_req.status = result.message.value
-    session.svipe_id.rp.authns[oidc_state] = authn_req
+        args.authn_req.status = result.message.value
+    args.authn_req.consumed = True
     return redirect(formatted_finish_url)

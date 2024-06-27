@@ -12,13 +12,7 @@ from eduid.webapp.common.api.messages import FluxData, error_response, success_r
 from eduid.webapp.common.authn import fido_tokens
 from eduid.webapp.common.session import EduidSession, session
 from eduid.webapp.common.session.logindata import ExternalMfaData
-from eduid.webapp.common.session.namespaces import (
-    MfaAction,
-    MfaActionError,
-    OnetimeCredential,
-    OnetimeCredType,
-    RequestRef,
-)
+from eduid.webapp.common.session.namespaces import MfaAction, OnetimeCredential, OnetimeCredType, RequestRef
 from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.decorators import require_ticket, uses_sso_session
 from eduid.webapp.idp.helpers import IdPMsg, lookup_user
@@ -121,7 +115,7 @@ def _check_external_mfa(
             # TODO: Make this an unconditional check once frontend has been updated to pass login_ref to
             #       the eidas /mfa-authenticate endpoint
             if mfa_action.login_ref != ref:
-                current_app.logger.info(f"MFA data in session does not match this request, rejecting")
+                current_app.logger.info("MFA data in session does not match this request, rejecting")
                 return CheckResult(response=error_response(message=IdPMsg.general_failure))
 
         current_app.logger.info(f"User {user} logged in using external MFA service {mfa_action.issuer}")
@@ -165,18 +159,6 @@ def _check_external_mfa(
         )
 
         return CheckResult(credential=cred, authn_data=authn)
-
-    # External MFA was tried and failed, mfa_action.error is set in the eidas app
-    if mfa_action.error is not None:
-        if mfa_action.error is MfaActionError.authn_context_mismatch:
-            return CheckResult(response=error_response(message=IdPMsg.eidas_authn_context_mismatch))
-        elif mfa_action.error is MfaActionError.authn_too_old:
-            return CheckResult(response=error_response(message=IdPMsg.eidas_reauthn_expired))
-        elif mfa_action.error is MfaActionError.nin_not_matching:
-            return CheckResult(response=error_response(message=IdPMsg.eidas_nin_not_matching))
-        else:
-            current_app.logger.warning(f"eidas returned {mfa_action.error} that did not match an error message")
-            return CheckResult(response=error_response(message=IdPMsg.general_failure))
 
     return None
 

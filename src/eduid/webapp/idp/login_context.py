@@ -5,13 +5,13 @@ from urllib.parse import urlencode
 
 from pydantic import BaseModel, ConfigDict
 
+from eduid.common.models.saml2 import EduidAuthnContextClass
 from eduid.webapp.common.session.namespaces import (
     IdP_OtherDevicePendingRequest,
     IdP_PendingRequest,
     IdP_SAMLPendingRequest,
     RequestRef,
 )
-from eduid.webapp.idp.assurance_data import EduidAuthnContextClass
 from eduid.webapp.idp.idp_saml import IdP_SAMLRequest, ServiceInfo
 from eduid.webapp.idp.known_device import BrowserDeviceInfo, KnownDevice
 from eduid.webapp.idp.other_device.data import OtherDeviceId

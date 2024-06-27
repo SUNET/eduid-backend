@@ -81,3 +81,7 @@ def parse_weak_version(version: ObjectId | str) -> ObjectId | str:
     if isinstance(version, ObjectId):
         return version
     return version.lstrip('W/"').rstrip('"')
+
+
+def uuid4_str() -> str:
+    return str(uuid4())

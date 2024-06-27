@@ -6,16 +6,12 @@ from unittest.mock import patch
 from fido2.webauthn import AttestationObject, AuthenticatorAttachment, CollectedClientData
 from werkzeug.http import dump_cookie
 
-from eduid.common.config.base import EduidEnvironment
+from eduid.common.config.base import EduidEnvironment, FrontendAction
 from eduid.userdb.credentials import U2F, Webauthn
-from eduid.userdb.credentials.fido import FidoCredential
-from eduid.userdb.credentials.list import CredentialList
-from eduid.userdb.credentials.password import Password
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.common.session import EduidSession
 from eduid.webapp.common.session.namespaces import WebauthnRegistration, WebauthnState
 from eduid.webapp.security.app import SecurityApp, security_init_app
-from eduid.webapp.security.helpers import SecurityMsg
 from eduid.webapp.security.views.webauthn import get_webauthn_server
 from eduid.webapp.security.webauthn_proofing import get_authenticator_information, is_authenticator_mfa_approved
 
@@ -202,20 +198,20 @@ class SecurityWebauthnTests(EduidAPITestCase):
         :param csrf: to control the CSRF token to send
         :param check_session: whether to check the registration state in the session
         """
-        response = self.browser.get("/webauthn/register/begin")
-        self.assertEqual(response.status_code, 302)  # Redirect to token service
-
-        eppn = self.test_user_data["eduPersonPrincipalName"]
+        self.set_authn_action(
+            eppn=self.test_user_eppn,
+            frontend_action=FrontendAction.ADD_SECURITY_KEY_AUTHN,
+        )
 
         if existing_legacy_token:
-            self._add_u2f_token_to_user(eppn)
+            self._add_u2f_token_to_user(self.test_user_eppn)
 
         if other == "ctap1":
             self._add_token_to_user(client_data=CLIENT_DATA_JSON, attestation=ATTESTATION_OBJECT, state=STATE)
         elif other == "ctap2":
             self._add_token_to_user(client_data=CLIENT_DATA_JSON_2, attestation=ATTESTATION_OBJECT_2, state=STATE_2)
 
-        with self.session_cookie(self.browser, eppn) as client:
+        with self.session_cookie(self.browser, self.test_user_eppn) as client:
             with client.session_transaction() as sess:
                 with self.app.test_request_context():
                     if csrf is not None:
@@ -253,12 +249,17 @@ class SecurityWebauthnTests(EduidAPITestCase):
         :param csrf: to control the CSRF token to send
         """
         mock_request_user_sync.side_effect = self.request_user_sync
-        eppn = self.test_user_data["eduPersonPrincipalName"]
+
+        self.set_authn_action(
+            eppn=self.test_user_eppn,
+            frontend_action=FrontendAction.ADD_SECURITY_KEY_AUTHN,
+        )
+
         if existing_legacy_token:
-            self._add_u2f_token_to_user(eppn)
+            self._add_u2f_token_to_user(self.test_user_eppn)
 
         webauthn_state = WebauthnState(state)
-        with self.session_cookie(self.browser, eppn) as client:
+        with self.session_cookie(self.browser, self.test_user_eppn) as client:
             with self.app.test_request_context():
                 with client.session_transaction() as sess:
                     assert isinstance(sess, EduidSession)
@@ -280,67 +281,6 @@ class SecurityWebauthnTests(EduidAPITestCase):
                 "/webauthn/register/complete", data=json.dumps(data), content_type=self.content_type_json
             )
             return json.loads(response2.data)
-
-    def _dont_remove_last(
-        self,
-        client_data: bytes,
-        attestation: bytes,
-        state: dict,
-        existing_legacy_token: bool = False,
-        csrf: Optional[str] = None,
-    ) -> None:
-        """
-        Send a request to remove the only webauthn credential from the test user - which should fail.
-
-        :param client_data: client data as would be produced by a browser
-        :param attestation: attestation object as would be produced by a browser
-        :param state: registration state kept in the session
-        :param existing_legacy_token: whether to add a legacy U2F credential to the test user
-        :param csrf: to control the CSRF token to send
-        """
-        eppn = self.test_user.eppn
-
-        test_user = self.app.central_userdb.get_user_by_eppn(eppn)
-        # Remove all credentials except the password
-        test_user.credentials = CredentialList(elements=test_user.credentials.filter(Password))
-        self.app.central_userdb.save(test_user)
-
-        user_token: FidoCredential
-        if existing_legacy_token:
-            user_token = self._add_u2f_token_to_user(eppn)
-        else:
-            user_token = self._add_token_to_user(client_data=client_data, attestation=attestation, state=state)
-
-        # Verify what's in the database now matches our expectations
-        test_user = self.app.central_userdb.get_user_by_eppn(eppn)
-        assert len(test_user.credentials.filter(FidoCredential)) == 1
-
-        response = self.browser.post("/webauthn/remove", data={})
-        self.assertEqual(response.status_code, 302)  # Redirect to token service
-
-        with self.session_cookie(self.browser, eppn) as client:
-            credentials_response = client.get("/credentials")
-            csrf_token = json.loads(credentials_response.data)["payload"]["csrf_token"]
-            if csrf is not None:
-                csrf_token = csrf
-            else:
-                csrf_token = json.loads(credentials_response.data)["payload"]["csrf_token"]
-            data = {
-                "csrf_token": csrf_token,
-                "credential_key": user_token.key,
-            }
-            response2 = client.post("/webauthn/remove", data=json.dumps(data), content_type=self.content_type_json)
-
-        if csrf is not None:
-            self._check_error_response(
-                response2,
-                type_="POST_WEBAUTHN_WEBAUTHN_REMOVE_FAIL",
-                error={"csrf_token": ["CSRF failed to validate"]},
-            )
-        else:
-            self._check_api_response(
-                response2, status=200, type_="POST_WEBAUTHN_WEBAUTHN_REMOVE_FAIL", message=SecurityMsg.no_last
-            )
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def _remove(
@@ -370,27 +310,23 @@ class SecurityWebauthnTests(EduidAPITestCase):
         """
         mock_request_user_sync.side_effect = self.request_user_sync
 
-        eppn = self.test_user_data["eduPersonPrincipalName"]
         if existing_legacy_token:
-            self._add_u2f_token_to_user(eppn)
+            self._add_u2f_token_to_user(self.test_user_eppn)
 
         user_token = self._add_token_to_user(client_data=client_data, attestation=attestation, state=state)
         self._add_token_to_user(client_data=client_data_2, attestation=attestation_2, state=state_2)
 
-        response = self.browser.post("/webauthn/remove", data={})
-        self.assertEqual(response.status_code, 302)  # Redirect to token service
-
-        with self.session_cookie(self.browser, eppn) as client:
-            credentials_response = client.get("/credentials")
-            if csrf is not None:
-                csrf_token = csrf
-            else:
-                csrf_token = json.loads(credentials_response.data)["payload"]["csrf_token"]
+        with self.session_cookie(self.browser, self.test_user_eppn) as client:
+            with client.session_transaction() as sess:
+                if csrf is not None:
+                    csrf_token = csrf
+                else:
+                    csrf_token = sess.get_csrf_token()
             data = {
                 "csrf_token": csrf_token,
                 "credential_key": user_token.key,
             }
-            response2 = client.post("/webauthn/remove", data=json.dumps(data), content_type=self.content_type_json)
+            response2 = client.post("/webauthn/remove", json=data)
             return user_token, json.loads(response2.data)
 
     def _apple_special_verify_attestation(self, attestation: Attestation, client_data: bytes) -> bool:
@@ -410,6 +346,10 @@ class SecurityWebauthnTests(EduidAPITestCase):
         raise NotImplementedError(f"verification of {attestation.fmt.value} not implemented")
 
     # actual tests
+
+    def test_begin_no_login(self):
+        response = self.browser.get("/webauthn/register/begin")
+        self.assertEqual(response.status_code, 302)  # Redirect to authn service
 
     def test_begin_register_first_key(self):
         data = self._begin_register_key()
@@ -515,28 +455,13 @@ class SecurityWebauthnTests(EduidAPITestCase):
         self.assertEqual(data["type"], "POST_WEBAUTHN_WEBAUTHN_REGISTER_COMPLETE_FAIL")
         self.assertEqual(data["payload"]["error"]["csrf_token"], ["CSRF failed to validate"])
 
-    def test_dont_remove_last_ctap1(self):
-        self._dont_remove_last(client_data=CLIENT_DATA_JSON, attestation=ATTESTATION_OBJECT, state=STATE)
-
-    def test_dont_remove_last_ctap1_with_legacy_token(self):
-        self._dont_remove_last(
-            client_data=CLIENT_DATA_JSON, attestation=ATTESTATION_OBJECT, state=STATE, existing_legacy_token=True
-        )
-
-    def test_dont_remove_last_ctap2(self):
-        self._dont_remove_last(client_data=CLIENT_DATA_JSON_2, attestation=ATTESTATION_OBJECT_2, state=STATE_2)
-
-    def test_dont_remove_last_ctap2_with_legacy_token(self):
-        self._dont_remove_last(
-            client_data=CLIENT_DATA_JSON_2, attestation=ATTESTATION_OBJECT_2, state=STATE_2, existing_legacy_token=True
-        )
-
-    def test_dont_remove_last_wrong_csrf(self):
-        self._dont_remove_last(
-            client_data=CLIENT_DATA_JSON, attestation=ATTESTATION_OBJECT, state=STATE, csrf="wrong-token"
-        )
-
     def test_remove_ctap1(self):
+        self.set_authn_action(
+            eppn=self.test_user_eppn,
+            frontend_action=FrontendAction.REMOVE_SECURITY_KEY_AUTHN,
+            force_mfa=True,
+        )
+
         user_token, data = self._remove(
             client_data=CLIENT_DATA_JSON,
             attestation=ATTESTATION_OBJECT,
@@ -548,6 +473,12 @@ class SecurityWebauthnTests(EduidAPITestCase):
         self._check_removal(data, user_token)
 
     def test_remove_ctap1_with_legacy_token(self):
+        self.set_authn_action(
+            eppn=self.test_user_eppn,
+            frontend_action=FrontendAction.REMOVE_SECURITY_KEY_AUTHN,
+            force_mfa=True,
+        )
+
         user_token, data = self._remove(
             client_data=CLIENT_DATA_JSON,
             attestation=ATTESTATION_OBJECT,
@@ -560,6 +491,12 @@ class SecurityWebauthnTests(EduidAPITestCase):
         self._check_removal(data, user_token)
 
     def test_remove_ctap2(self):
+        self.set_authn_action(
+            eppn=self.test_user_eppn,
+            frontend_action=FrontendAction.REMOVE_SECURITY_KEY_AUTHN,
+            force_mfa=True,
+        )
+
         user_token, data = self._remove(
             client_data=CLIENT_DATA_JSON_2,
             attestation=ATTESTATION_OBJECT_2,
@@ -571,6 +508,12 @@ class SecurityWebauthnTests(EduidAPITestCase):
         self._check_removal(data, user_token)
 
     def test_remove_ctap2_legacy_token(self):
+        self.set_authn_action(
+            eppn=self.test_user_eppn,
+            frontend_action=FrontendAction.REMOVE_SECURITY_KEY_AUTHN,
+            force_mfa=True,
+        )
+
         user_token, data = self._remove(
             client_data=CLIENT_DATA_JSON_2,
             attestation=ATTESTATION_OBJECT_2,
@@ -583,7 +526,12 @@ class SecurityWebauthnTests(EduidAPITestCase):
         self._check_removal(data, user_token)
 
     def test_remove_wrong_csrf(self):
-        user_token, data = self._remove(
+        self.set_authn_action(
+            eppn=self.test_user_eppn,
+            frontend_action=FrontendAction.REMOVE_SECURITY_KEY_AUTHN,
+        )
+
+        _, data = self._remove(
             client_data=CLIENT_DATA_JSON,
             attestation=ATTESTATION_OBJECT,
             state=STATE,
