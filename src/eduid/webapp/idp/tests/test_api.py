@@ -3,7 +3,7 @@ import logging
 import re
 from dataclasses import dataclass, field
 from pathlib import PurePath
-from typing import Any, Mapping, Optional, Tuple
+from typing import Any, Mapping, Optional, Tuple, Union
 from unittest.mock import MagicMock, patch
 
 from bson import ObjectId
@@ -466,3 +466,44 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
         session_info = authn_response.session_info()
         attributes: dict[str, list[Any]] = session_info["ava"]
         return attributes
+
+    def _assert_dict_contains(self, actual: dict[str, Any], expected: dict[str, Any]):
+        # try:
+        for key, value in expected.items():
+            assert key in actual, f"expected {key} not in {actual}"
+            if isinstance(value, dict):
+                self._assert_dict_contains(actual[key], value)
+            else:
+                assert actual[key] == value, f"expected {key} value: {actual[key]} != {value} in {actual}"
+        # except AssertionError as e:
+        # raise AssertionError(f"{e}\n\nactual: {actual}")
+
+    def _check_login_result(
+        self,
+        result: LoginResultAPI,
+        visit_order: list[IdPAction],
+        sso_cookie_val: Optional[Union[str, bool]] = True,
+        finish_result: Optional[FinishedResultAPI] = None,
+        pwauth_result: Optional[PwAuthResult] = None,
+        error: Optional[dict[str, Any]] = None,
+    ):
+        assert result.visit_order == visit_order, f"visit_order: {result.visit_order}, expected: {visit_order}"
+
+        if sso_cookie_val is True:
+            assert result.sso_cookie_val is not None, "Expected sso_cookie_val but it is None"
+        else:
+            assert (
+                result.sso_cookie_val == sso_cookie_val
+            ), f"sso_cookie_val: {result.sso_cookie_val}, expected: {sso_cookie_val}"
+
+        if finish_result is not None:
+            assert result.finished_result is not None, "Expected finished_result but it is None"
+            self._assert_dict_contains(result.finished_result.payload, finish_result.payload)
+
+        if pwauth_result is not None:
+            assert result.pwauth_result is not None, "Expected pwauth_result but it is None"
+            self._assert_dict_contains(result.pwauth_result.payload, pwauth_result.payload)
+
+        if error is not None:
+            assert result.error is not None, "Expected error but it is None"
+            self._assert_dict_contains(result.error, error)

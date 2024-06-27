@@ -11,15 +11,15 @@ from saml2.client import Saml2Client
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.models.generic import HttpUrlStr
+from eduid.common.models.saml2 import EduidAuthnContextClass
 from eduid.userdb import MailAddress
 from eduid.userdb.credentials import Password
 from eduid.userdb.maccapi.userdb import ManagedAccount
 from eduid.userdb.mail import MailAddressList
 from eduid.vccs.client import VCCSClient
-from eduid.common.models.saml2 import EduidAuthnContextClass
 from eduid.webapp.common.authn.utils import get_saml2_config
 from eduid.webapp.idp.helpers import IdPAction, IdPMsg
-from eduid.webapp.idp.tests.test_api import IdPAPITests, TestUser
+from eduid.webapp.idp.tests.test_api import FinishedResultAPI, IdPAPITests, PwAuthResult, TestUser
 from eduid.workers.am import AmCelerySingleton
 
 logger = logging.getLogger(__name__)
@@ -154,20 +154,23 @@ class IdPTestLoginAPI(IdPAPITests):
                     "comparison": "exact",
                 }
             )
-
-        assert result.visit_order == [
-            IdPAction.PWAUTH,
-            IdPAction.MFA,
-            IdPAction.FINISHED,
-        ], f"NOT expected visit order {result.visit_order}"
-        assert result.sso_cookie_val is not None
-        assert result.finished_result is not None
-        assert result.finished_result.payload["message"] == IdPMsg.finished.value
-        assert result.finished_result.payload["target"] == "https://sp.example.edu/saml2/acs/"
-        assert result.finished_result.payload["parameters"]["RelayState"] == self.relay_state
+        self._check_login_result(
+            result=result,
+            visit_order=[
+                IdPAction.PWAUTH,
+                IdPAction.MFA,
+                IdPAction.FINISHED,
+            ],
+            finish_result=FinishedResultAPI(
+                payload={
+                    "message": IdPMsg.finished.value,
+                    "target": "https://sp.example.edu/saml2/acs/",
+                    "parameters": {"RelayState": self.relay_state},
+                }
+            ),
+        )
 
         attributes = self.get_attributes(result)
-
         assert "eduPersonPrincipalName" in attributes
         assert attributes["eduPersonPrincipalName"] == [f"hubba-bubba@{self.app.conf.default_eppn_scope}"]
 
@@ -184,10 +187,17 @@ class IdPTestLoginAPI(IdPAPITests):
             mock_vccs.return_value = True
             result = self._try_login()
 
-        assert result.visit_order == [IdPAction.PWAUTH, IdPAction.FINISHED]
-        assert result.finished_result is not None
-        assert len(result.finished_result.payload["missing_attributes"]) == 1
-        assert result.finished_result.payload["missing_attributes"][0]["friendly_name"] == "mailLocalAddress"
+        self._check_login_result(
+            result=result,
+            visit_order=[IdPAction.PWAUTH, IdPAction.FINISHED],
+            finish_result=FinishedResultAPI(
+                payload={
+                    "missing_attributes": [
+                        {"friendly_name": "mailLocalAddress", "name": "urn:oid:2.16.840.1.113730.3.1.13"}
+                    ]
+                }
+            ),
+        )
 
         attributes = self.get_attributes(result)
         assert attributes["mailLocalAddress"] == []
@@ -246,11 +256,12 @@ class IdPTestLoginAPI(IdPAPITests):
         with patch.object(VCCSClient, "authenticate") as mock_vccs:
             mock_vccs.return_value = True
             result = self._try_login()
-        assert result.visit_order == [IdPAction.PWAUTH]
-        assert result.error is not None
-        payload = result.error.get("payload")
-        assert payload is not None
-        assert payload.get("message") == IdPMsg.user_terminated.value
+
+        self._check_login_result(
+            result=result,
+            visit_order=[IdPAction.PWAUTH],
+            error={"payload": {"message": IdPMsg.user_terminated.value}},
+        )
 
     def test_with_unknown_sp(self) -> None:
         sp_config = get_saml2_config(self.app.conf.pysaml2_config, name="UNKNOWN_SP_CONFIG")
@@ -264,11 +275,11 @@ class IdPTestLoginAPI(IdPAPITests):
             mock_vccs.return_value = True
             result = self._try_login(saml2_client=saml2_client)
 
-        assert result.visit_order == [IdPAction.PWAUTH]
-        assert result.error is not None
-        assert result.error.get("status_code") == 400
-        assert result.error.get("status") == "400 BAD REQUEST"
-        assert result.error.get("message") == "SAML error: Unknown Service Provider"
+        self._check_login_result(
+            result=result,
+            visit_order=[IdPAction.PWAUTH],
+            error={"status_code": 400, "status": "400 BAD REQUEST", "message": "SAML error: Unknown Service Provider"},
+        )
 
     def test_sso_to_unknown_sp(self) -> None:
         # pre-accept ToU for this test
@@ -279,18 +290,23 @@ class IdPTestLoginAPI(IdPAPITests):
             mock_vccs.return_value = True
             result = self._try_login()
 
-        assert result.visit_order == [IdPAction.PWAUTH, IdPAction.FINISHED]
+        self._check_login_result(
+            result=result,
+            visit_order=[IdPAction.PWAUTH, IdPAction.FINISHED],
+        )
 
         sp_config = get_saml2_config(self.app.conf.pysaml2_config, name="UNKNOWN_SP_CONFIG")
         saml2_client = Saml2Client(config=sp_config)
 
         # Don't patch VCCS here to ensure a SSO is done, not a password authentication
         result2 = self._try_login(saml2_client=saml2_client)
-        assert result2.visit_order == []
-        assert result2.error is not None
-        assert result2.error.get("status_code") == 400
-        assert result2.error.get("status") == "400 BAD REQUEST"
-        assert result2.error.get("message") == "SAML error: Unknown Service Provider"
+
+        self._check_login_result(
+            result=result2,
+            visit_order=[],
+            sso_cookie_val=None,
+            error={"status_code": 400, "status": "400 BAD REQUEST", "message": "SAML error: Unknown Service Provider"},
+        )
 
     def test_eduperson_targeted_id(self) -> None:
         sp_config = get_saml2_config(self.app.conf.pysaml2_config, name="COCO_SP_CONFIG")
@@ -304,12 +320,13 @@ class IdPTestLoginAPI(IdPAPITests):
             mock_vccs.return_value = True
             result = self._try_login(saml2_client=saml2_client)
 
-        assert result.visit_order == [IdPAction.PWAUTH, IdPAction.FINISHED]
+        self._check_login_result(
+            result=result,
+            visit_order=[IdPAction.PWAUTH, IdPAction.FINISHED],
+            finish_result=FinishedResultAPI(payload={"message": IdPMsg.finished.value}),
+        )
 
-        assert result.finished_result is not None
         attributes = self.get_attributes(result, saml2_client=saml2_client)
-
-        assert result.visit_order == [IdPAction.PWAUTH, IdPAction.FINISHED]
         assert "eduPersonTargetedID" in attributes
         assert attributes["eduPersonTargetedID"] == ["71a13b105e83aa69c31f41b08ea83694e0fae5f368d17ef18ba59e0f9e407ec9"]
 
@@ -325,7 +342,11 @@ class IdPTestLoginAPI(IdPAPITests):
             mock_vccs.return_value = True
             result = self._try_login(saml2_client=saml2_client)
 
-        assert result.visit_order == [IdPAction.PWAUTH, IdPAction.FINISHED]
+        self._check_login_result(
+            result=result,
+            visit_order=[IdPAction.PWAUTH, IdPAction.FINISHED],
+            finish_result=FinishedResultAPI(payload={"message": IdPMsg.finished.value}),
+        )
 
         attributes = self.get_attributes(result, saml2_client=saml2_client)
 
@@ -350,9 +371,11 @@ class IdPTestLoginAPI(IdPAPITests):
             mock_vccs.return_value = True
             result = self._try_login(saml2_client=saml2_client)
 
-        assert result.visit_order == [IdPAction.PWAUTH, IdPAction.FINISHED]
-
-        assert result.finished_result is not None
+        self._check_login_result(
+            result=result,
+            visit_order=[IdPAction.PWAUTH, IdPAction.FINISHED],
+            finish_result=FinishedResultAPI(payload={"message": IdPMsg.finished.value}),
+        )
 
         attributes = self.get_attributes(result, saml2_client=saml2_client)
 
@@ -372,7 +395,11 @@ class IdPTestLoginAPI(IdPAPITests):
             mock_vccs.return_value = True
             result = self._try_login(saml2_client=saml2_client)
 
-        assert result.visit_order == [IdPAction.PWAUTH, IdPAction.FINISHED]
+        self._check_login_result(
+            result=result,
+            visit_order=[IdPAction.PWAUTH, IdPAction.FINISHED],
+            finish_result=FinishedResultAPI(payload={"message": IdPMsg.finished.value}),
+        )
 
         attributes = self.get_attributes(result, saml2_client=saml2_client)
         assert attributes["subject-id"] == ["hubba-bubba@test.scope"]
@@ -392,7 +419,11 @@ class IdPTestLoginAPI(IdPAPITests):
             mock_vccs.return_value = True
             result = self._try_login(saml2_client=saml2_client)
 
-        assert result.visit_order == [IdPAction.PWAUTH, IdPAction.FINISHED]
+        self._check_login_result(
+            result=result,
+            visit_order=[IdPAction.PWAUTH, IdPAction.FINISHED],
+            finish_result=FinishedResultAPI(payload={"message": IdPMsg.finished.value}),
+        )
 
         attributes = self.get_attributes(result, saml2_client=saml2_client)
 
@@ -407,9 +438,11 @@ class IdPTestLoginAPI(IdPAPITests):
             mock_vccs.return_value = True
             result = self._try_login(assertion_consumer_service_url="https://localhost:8080/acs/")
 
-        assert result.visit_order == [IdPAction.PWAUTH, IdPAction.FINISHED]
-        assert result.finished_result is not None
-        assert result.finished_result.payload["target"] == "https://localhost:8080/acs/"
+        self._check_login_result(
+            result=result,
+            visit_order=[IdPAction.PWAUTH, IdPAction.FINISHED],
+            finish_result=FinishedResultAPI(payload={"target": "https://localhost:8080/acs/"}),
+        )
 
     def test_geo_statistics_success(self) -> None:
         # pre-accept ToU for this test
@@ -444,8 +477,11 @@ class IdPTestLoginAPI(IdPAPITests):
                     }
                 }
 
-        assert result.finished_result is not None
-        assert result.finished_result.payload["message"] == IdPMsg.finished.value
+        self._check_login_result(
+            result=result,
+            visit_order=[IdPAction.PWAUTH, IdPAction.FINISHED],
+            finish_result=FinishedResultAPI(payload={"message": IdPMsg.finished.value}),
+        )
 
     def test_geo_statistics_fail(self) -> None:
         # pre-accept ToU for this test
@@ -463,8 +499,11 @@ class IdPTestLoginAPI(IdPAPITests):
                 result = self._try_login()
                 assert mock_post.call_count == 1
 
-        assert result.finished_result is not None
-        assert result.finished_result.payload["message"] == IdPMsg.finished.value
+        self._check_login_result(
+            result=result,
+            visit_order=[IdPAction.PWAUTH, IdPAction.FINISHED],
+            finish_result=FinishedResultAPI(payload={"message": IdPMsg.finished.value}),
+        )
 
 
 class IdPTestLoginAPIManagedAccounts(IdPAPITests):
@@ -492,10 +531,12 @@ class IdPTestLoginAPIManagedAccounts(IdPAPITests):
 
     def test_login_pwauth_wrong_password(self) -> None:
         result = self._try_login()
-        assert result.visit_order == [IdPAction.PWAUTH, IdPAction.PWAUTH]
-        assert result.sso_cookie_val is None
-        assert result.pwauth_result is not None
-        assert result.pwauth_result.payload["message"] == IdPMsg.wrong_credentials.value
+        self._check_login_result(
+            result=result,
+            visit_order=[IdPAction.PWAUTH, IdPAction.PWAUTH],
+            sso_cookie_val=None,
+            pwauth_result=PwAuthResult(payload={"message": IdPMsg.wrong_credentials.value}),
+        )
 
     def test_login_pwauth_right_password(self) -> None:
         # Patch the VCCSClient, so we do not need a vccs server
@@ -503,12 +544,17 @@ class IdPTestLoginAPIManagedAccounts(IdPAPITests):
             mock_vccs.return_value = True
             result = self._try_login()
 
-        assert result.visit_order == [IdPAction.PWAUTH, IdPAction.FINISHED]
-        assert result.sso_cookie_val is not None
-        assert result.finished_result is not None
-        assert result.finished_result.payload["message"] == IdPMsg.finished.value
-        assert result.finished_result.payload["target"] == "https://sp.example.edu/saml2/acs/"
-        assert result.finished_result.payload["parameters"]["RelayState"] == self.relay_state
+        self._check_login_result(
+            result=result,
+            visit_order=[IdPAction.PWAUTH, IdPAction.FINISHED],
+            finish_result=FinishedResultAPI(
+                payload={
+                    "message": IdPMsg.finished.value,
+                    "target": "https://sp.example.edu/saml2/acs/",
+                    "parameters": {"RelayState": self.relay_state},
+                }
+            ),
+        )
 
         attributes = self.get_attributes(result)
 
@@ -549,11 +595,10 @@ class IdPTestLoginAPIManagedAccounts(IdPAPITests):
         with patch.object(VCCSClient, "authenticate") as mock_vccs:
             mock_vccs.return_value = True
             result = self._try_login()
-        assert result.visit_order == [IdPAction.PWAUTH]
-        assert result.error is not None
-        payload = result.error.get("payload")
-        assert payload is not None
-        assert payload.get("message") == IdPMsg.user_terminated.value
+
+        self._check_login_result(
+            result=result, visit_order=[IdPAction.PWAUTH], error={"payload": {"message": IdPMsg.user_terminated.value}}
+        )
 
     def test_with_unknown_sp(self) -> None:
         sp_config = get_saml2_config(self.app.conf.pysaml2_config, name="UNKNOWN_SP_CONFIG")
@@ -564,11 +609,11 @@ class IdPTestLoginAPIManagedAccounts(IdPAPITests):
             mock_vccs.return_value = True
             result = self._try_login(saml2_client=saml2_client)
 
-        assert result.visit_order == [IdPAction.PWAUTH]
-        assert result.error is not None
-        assert result.error.get("status_code") == 400
-        assert result.error.get("status") == "400 BAD REQUEST"
-        assert result.error.get("message") == "SAML error: Unknown Service Provider"
+        self._check_login_result(
+            result=result,
+            visit_order=[IdPAction.PWAUTH],
+            error={"status_code": 400, "status": "400 BAD REQUEST", "message": "SAML error: Unknown Service Provider"},
+        )
 
     def test_sso_to_unknown_sp(self) -> None:
         # Patch the VCCSClient, so we do not need a vccs server
@@ -583,11 +628,13 @@ class IdPTestLoginAPIManagedAccounts(IdPAPITests):
 
         # Don't patch VCCS here to ensure a SSO is done, not a password authentication
         result2 = self._try_login(saml2_client=saml2_client)
-        assert result2.visit_order == []
-        assert result2.error is not None
-        assert result2.error.get("status_code") == 400
-        assert result2.error.get("status") == "400 BAD REQUEST"
-        assert result2.error.get("message") == "SAML error: Unknown Service Provider"
+
+        self._check_login_result(
+            result=result2,
+            visit_order=[],
+            sso_cookie_val=None,
+            error={"status_code": 400, "status": "400 BAD REQUEST", "message": "SAML error: Unknown Service Provider"},
+        )
 
     def test_eduperson_targeted_id(self) -> None:
         sp_config = get_saml2_config(self.app.conf.pysaml2_config, name="COCO_SP_CONFIG")
@@ -601,12 +648,13 @@ class IdPTestLoginAPIManagedAccounts(IdPAPITests):
             mock_vccs.return_value = True
             result = self._try_login(saml2_client=saml2_client)
 
-        assert result.visit_order == [IdPAction.PWAUTH, IdPAction.FINISHED]
+        self._check_login_result(
+            result=result,
+            visit_order=[IdPAction.PWAUTH, IdPAction.FINISHED],
+            finish_result=FinishedResultAPI(payload={"message": IdPMsg.finished.value}),
+        )
 
-        assert result.finished_result is not None
         attributes = self.get_attributes(result, saml2_client=saml2_client)
-
-        assert result.visit_order == [IdPAction.PWAUTH, IdPAction.FINISHED]
         assert "eduPersonTargetedID" in attributes
         assert attributes["eduPersonTargetedID"] == ["f0e831c0fcc8d61aef72e92f34e51f415f101050b8291a8c2c41ab4978b18f93"]
 
@@ -622,12 +670,13 @@ class IdPTestLoginAPIManagedAccounts(IdPAPITests):
             mock_vccs.return_value = True
             result = self._try_login(saml2_client=saml2_client)
 
-        assert result.visit_order == [IdPAction.PWAUTH, IdPAction.FINISHED]
-
-        assert result.finished_result is not None
+        self._check_login_result(
+            result=result,
+            visit_order=[IdPAction.PWAUTH, IdPAction.FINISHED],
+            finish_result=FinishedResultAPI(payload={"message": IdPMsg.finished.value}),
+        )
 
         attributes = self.get_attributes(result, saml2_client=saml2_client)
-
         assert attributes["pairwise-id"] == [
             "133d9ecc64c5d8ed99ef00329e87b8677e74fc573e3f41ba0c259695813b9c19@test.scope"
         ]
@@ -644,7 +693,11 @@ class IdPTestLoginAPIManagedAccounts(IdPAPITests):
             mock_vccs.return_value = True
             result = self._try_login(saml2_client=saml2_client)
 
-        assert result.visit_order == [IdPAction.PWAUTH, IdPAction.FINISHED]
+        self._check_login_result(
+            result=result,
+            visit_order=[IdPAction.PWAUTH, IdPAction.FINISHED],
+            finish_result=FinishedResultAPI(payload={"message": IdPMsg.finished.value}),
+        )
 
         attributes = self.get_attributes(result, saml2_client=saml2_client)
         assert attributes["subject-id"] == [f"{self.test_eppn}@test.scope"]
@@ -658,9 +711,11 @@ class IdPTestLoginAPIManagedAccounts(IdPAPITests):
             mock_vccs.return_value = True
             result = self._try_login(assertion_consumer_service_url="https://localhost:8080/acs/")
 
-        assert result.visit_order == [IdPAction.PWAUTH, IdPAction.FINISHED]
-        assert result.finished_result is not None
-        assert result.finished_result.payload["target"] == "https://localhost:8080/acs/"
+        self._check_login_result(
+            result=result,
+            visit_order=[IdPAction.PWAUTH, IdPAction.FINISHED],
+            finish_result=FinishedResultAPI(payload={"target": "https://localhost:8080/acs/"}),
+        )
 
     def test_geo_statistics_success(self) -> None:
         # enable geo statistics
@@ -692,8 +747,11 @@ class IdPTestLoginAPIManagedAccounts(IdPAPITests):
                     }
                 }
 
-        assert result.finished_result is not None
-        assert result.finished_result.payload["message"] == IdPMsg.finished.value
+        self._check_login_result(
+            result=result,
+            visit_order=[IdPAction.PWAUTH, IdPAction.FINISHED],
+            finish_result=FinishedResultAPI(payload={"message": IdPMsg.finished.value}),
+        )
 
     def test_geo_statistics_fail(self) -> None:
         # enable geo statistics
@@ -708,5 +766,8 @@ class IdPTestLoginAPIManagedAccounts(IdPAPITests):
                 result = self._try_login()
                 assert mock_post.call_count == 1
 
-        assert result.finished_result is not None
-        assert result.finished_result.payload["message"] == IdPMsg.finished.value
+        self._check_login_result(
+            result=result,
+            visit_order=[IdPAction.PWAUTH, IdPAction.FINISHED],
+            finish_result=FinishedResultAPI(payload={"message": IdPMsg.finished.value}),
+        )
