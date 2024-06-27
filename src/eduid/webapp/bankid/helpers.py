@@ -1,20 +1,19 @@
 import logging
-from dataclasses import dataclass
 from enum import unique
 from typing import Any, Optional
 
 from saml2 import BINDING_HTTP_REDIRECT
 from saml2.client import Saml2Client
 from saml2.typing import SAMLHttpArgs
-from werkzeug.wrappers import Response as WerkzeugResponse
 
-from eduid.userdb import User
-from eduid.userdb.credentials import FidoCredential
+from eduid.common.config.base import FrontendAction
+from eduid.userdb.credentials import Credential
 from eduid.userdb.credentials.external import TrustFramework
-from eduid.webapp.authn.helpers import credential_used_to_authenticate
 from eduid.webapp.bankid.app import current_bankid_app as current_app
 from eduid.webapp.common.api.messages import TranslatableMsg
+from eduid.webapp.common.api.schemas.authn_status import AuthnActionStatus
 from eduid.webapp.common.authn.cache import OutstandingQueriesCache
+from eduid.webapp.common.authn.utils import validate_authn_for_action
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.namespaces import AuthnRequestRef
 
@@ -32,6 +31,8 @@ class BankIDMsg(TranslatableMsg):
 
     # uncertified LOA 3 not asserted
     authn_context_mismatch = "bankid.authn_context_mismatch"
+    # Authentication instant too old
+    authn_instant_too_old = "bankid.authn_instant_too_old"
     # the personalIdentityNumber from BankID does not correspond to a verified nin in the user's account
     identity_not_matching = "bankid.identity_not_matching"
     # The user already has a verified identity
@@ -40,20 +41,20 @@ class BankIDMsg(TranslatableMsg):
     identity_verify_success = "bankid.identity_verify_success"
     # missing redirect URL for mfa authn
     no_redirect_url = "bankid.no_redirect_url"
-    # Token not found on the credentials in the user's account
-    token_not_found = "bankid.token_not_found"
     # Attribute missing from IdP
     attribute_missing = "bankid.attribute_missing"
     # Unavailable vetting method requested
     method_not_available = "bankid.method_not_available"
-    # Need to authenticate (again?) before performing this action
-    must_authenticate = "bankid.must_authenticate"
     # Status requested for unknown authn_id
     not_found = "bankid.not_found"
     # Successfully authenticated with external MFA
     mfa_authn_success = "bankid.mfa_authn_success"
     # Successfully verified a credential
     credential_verify_success = "bankid.credential_verify_success"
+    # frontend action is not implemented
+    frontend_action_not_supported = "bankid.frontend_action_not_supported"
+    # Credential not found in the user's account
+    credential_not_found = "bankid.credential_not_found"
 
 
 def create_authn_info(
@@ -94,27 +95,19 @@ def create_authn_info(
     return info
 
 
-@dataclass()
-class CredentialVerifyResult:
-    verified_ok: bool
-    message: Optional[BankIDMsg] = None
-    response: Optional[WerkzeugResponse] = None  # TODO: make obsolete and remove
-    location: Optional[str] = None
+def check_reauthn(
+    frontend_action: FrontendAction, credential_used: Optional[Credential] = None
+) -> Optional[AuthnActionStatus]:
+    """Check if a re-authentication has been performed recently enough for this action"""
 
-
-def check_credential_to_verify(user: User, credential_id: str) -> CredentialVerifyResult:
-    # Check if requested key id is a mfa token and if the user used that to log in
-    token_to_verify = user.credentials.find(credential_id)
-    if not isinstance(token_to_verify, FidoCredential):
-        current_app.logger.error(f"Credential {token_to_verify} is not a FidoCredential")
-        return CredentialVerifyResult(verified_ok=False, message=BankIDMsg.token_not_found)
-
-    # Check if the credential was just now (within 60s) used to log in
-    credential_already_used = credential_used_to_authenticate(token_to_verify, max_age=60)
-    current_app.logger.debug(f"Credential {credential_id} recently used for login: {credential_already_used}")
-    if not credential_already_used:
-        # If token was not used for login, ask the user to authenticate again
-        current_app.logger.info(f"{token_to_verify.key} was not used to login, returning must authenticate error")
-        return CredentialVerifyResult(verified_ok=False, message=BankIDMsg.must_authenticate)
-
-    return CredentialVerifyResult(verified_ok=True)
+    authn_status = validate_authn_for_action(
+        config=current_app.conf, frontend_action=frontend_action, credential_used=credential_used
+    )
+    current_app.logger.debug(f"check_reauthn called with authn status {authn_status}")
+    if authn_status != AuthnActionStatus.OK:
+        if authn_status == AuthnActionStatus.STALE:
+            # count stale authentications to monitor if users need more time
+            current_app.stats.count(name=f"{frontend_action.value}_stale_reauthn", value=1)
+        return authn_status
+    current_app.stats.count(name=f"{frontend_action.value}_successful_reauthn", value=1)
+    return None

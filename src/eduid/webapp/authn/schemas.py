@@ -6,31 +6,26 @@ from eduid.webapp.common.api.schemas.csrf import CSRFRequestMixin, CSRFResponseM
 __author__ = "lundberg"
 
 
-class EidasCommonRequestSchema(EduidSchema, CSRFRequestMixin):
+class AuthnCommonRequestSchema(EduidSchema, CSRFRequestMixin):
     """A verify request for either an identity or a credential proofing."""
 
-    method = fields.String(required=True)
     frontend_action = fields.String(required=True)
     frontend_state = fields.String(required=False)
+    method = fields.String(required=False)
 
 
-class EidasCommonResponseSchema(FluxStandardAction):
-    class VerifyResponsePayload(EduidSchema, CSRFResponseMixin):
+class AuthnCommonResponseSchema(FluxStandardAction):
+    class AuthnCommonResponsePayload(EduidSchema, CSRFResponseMixin):
         location = fields.String(required=False)
-        credential_description = fields.String(required=False)
 
-    payload = fields.Nested(VerifyResponsePayload)
-
-
-class EidasVerifyCredentialRequestSchema(EidasCommonRequestSchema):
-    credential_id = fields.String(required=True)
+    payload = fields.Nested(AuthnCommonResponsePayload)
 
 
-class EidasStatusRequestSchema(EduidSchema, CSRFRequestMixin):
+class AuthnStatusRequestSchema(EduidSchema, CSRFRequestMixin):
     authn_id = fields.String(required=False)
 
 
-class EidasStatusResponseSchema(EduidSchema, CSRFResponseMixin):
+class AuthnStatusResponseSchema(EduidSchema, CSRFResponseMixin):
     class StatusResponsePayload(EduidSchema, CSRFResponseMixin):
         authn_id = fields.String(required=False)
         frontend_action = fields.String(required=True)

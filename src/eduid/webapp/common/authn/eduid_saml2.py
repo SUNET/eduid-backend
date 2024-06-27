@@ -279,7 +279,7 @@ def process_assertion(
         )
 
     if authn_ref not in sp_data.authns:
-        current_app.logger.info(f"Unknown response. Redirecting user to eduID Errors page")
+        current_app.logger.info("Unknown response. Redirecting user to eduID Errors page")
         if not current_app.conf.errors_url_template:
             return make_response("Unknown authn response", 400)
         return goto_errors_response(
@@ -293,6 +293,7 @@ def process_assertion(
 
     session_info = response.session_info()
     authn_data.authn_instant = dt_parse(session_info["authn_info"][0][2])
+    authn_data.asserted_authn_ctx = get_authn_ctx(session_info)
 
     user = None
     if authenticate_user:

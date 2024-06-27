@@ -63,6 +63,22 @@ def require_eppn(f: EduidRouteCallable) -> EduidRouteCallable:
     return require_eppn_decorator
 
 
+def require_not_logged_in(f: EduidRouteCallable) -> EduidRouteCallable:
+    """
+    Decorator for views that require the user not to be logged in.
+
+    Because it can return a FluxData, this decorator must come after the MarshalWith decorator.
+    """
+
+    @wraps(f)
+    def require_eppn_decorator(*args: Any, **kwargs: Any) -> EduidViewReturnType:
+        if session.common.is_logged_in:
+            return error_response(message=CommonMsg.logout_required)
+        return f(*args, **kwargs)
+
+    return require_eppn_decorator
+
+
 TRequireUserResult = TypeVar("TRequireUserResult")
 
 
@@ -145,9 +161,9 @@ class MarshalWith:
 
             _flux_response: FluxResponse
             if ret.status != FluxResponseStatus.OK:
-                _flux_response = FluxFailResponse(request, payload=ret.payload)
+                _flux_response = FluxFailResponse(request, meta=ret.meta, payload=ret.payload)
             else:
-                _flux_response = FluxSuccessResponse(request, payload=ret.payload)
+                _flux_response = FluxSuccessResponse(request, meta=ret.meta, payload=ret.payload)
             try:
                 flux_logger.debug(f"Encoding response: {_flux_response.to_dict()} using schema {self.schema()}")
                 _encoded = cast(Mapping[str, Any], self.schema().dump(_flux_response.to_dict()))

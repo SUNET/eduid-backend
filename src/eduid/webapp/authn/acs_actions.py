@@ -33,10 +33,6 @@ def login_action(args: ACSArgs) -> ACSResult:
     """
     Upon successful login in the IdP, store login info in the session
     and redirect back to the app that asked for authn.
-
-    :param session_info: the SAML session info
-    :param user: the authenticated user
-    :param authndata: data about this particular authentication event
     """
     current_app.logger.info(f"User {args.user} logging in.")
     if not args.user:
@@ -70,9 +66,6 @@ def _reauthn(reason: str, args: ACSArgs) -> ACSResult:
     """
     Upon successful reauthn in the IdP, update the session and redirect back to the app that asked for reauthn.
 
-    :param session_info: the SAML session info
-    :param user: the authenticated user
-    :param authndata: data about this particular authentication event
     """
     current_app.logger.info(f"Re-authenticating user {args.user} for {reason}.")
     current_app.logger.debug(f"Data about this authentication: {args.authn_req}")

@@ -5,7 +5,7 @@ Configuration (file) handling for eduID IdP.
 from __future__ import annotations
 
 from datetime import timedelta
-from enum import Enum
+from enum import Enum, unique
 from pathlib import Path
 from re import Pattern
 from typing import IO, Annotated, Any, Iterable, Mapping, Optional, Sequence, TypeVar, Union
@@ -340,7 +340,6 @@ class ErrorsConfigMixin(BaseModel):
 
 
 class Pysaml2SPConfigMixin(BaseModel):
-    frontend_action_finish_url: dict[str, str] = Field(default={})
 
     # Authn algorithms
     authn_sign_alg: str = "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"
@@ -350,7 +349,106 @@ class Pysaml2SPConfigMixin(BaseModel):
     safe_relay_domain: str = "eduid.se"
 
 
-class ProofingConfigMixin(BaseModel):
+@unique
+class FrontendAction(Enum):
+    ADD_SECURITY_KEY_AUTHN = "addSecurityKeyAuthn"
+    CHANGE_PW_AUTHN = "changepwAuthn"
+    CHANGE_SECURITY_SETTINGS_AUTHN = "changeSecuritySettingsAuthn"
+    LOGIN = "login"
+    LOGIN_MFA_AUTHN = "loginMfaAuthn"
+    OLD_LOGIN = "oldLogin"
+    REMOVE_IDENTITY = "removeIdentity"
+    REMOVE_SECURITY_KEY_AUTHN = "removeSecurityKeyAuthn"
+    RESET_PW_MFA_AUTHN = "resetpwMfaAuthn"
+    TERMINATE_ACCOUNT_AUTHN = "terminateAccountAuthn"
+    VERIFY_CREDENTIAL = "verifyCredential"
+    VERIFY_IDENTITY = "verifyIdentity"
+
+
+class AuthnParameters(BaseModel):
+    force_authn: bool = False  # a new authentication was required
+    force_mfa: bool = False  # require MFA even if the user has no token (use Freja or other)
+    high_security: bool = False  # opportunistic MFA, request it if the user has a token
+    same_user: bool = True  # the same user was required to log in, such as when entering the security center
+    max_age: timedelta = timedelta(minutes=5)  # the maximum age of the authentication
+    allow_login_auth: bool = False  # allow login authentication as substitute action
+    finish_url: str  # str as we want to use unformatted parts as {app_name} and {authn_id}
+
+
+class FrontendActionMixin(BaseModel):
+    # TODO: maybe we should add a meta action shared by the frontend actions that needs the same level of
+    # security so that we could allow an action "of the same level" to be used for another action
+    # if the current way means to many logins for the users we can explore it.
+    frontend_action_authn_parameters: dict[FrontendAction, AuthnParameters] = Field(
+        default={
+            FrontendAction.ADD_SECURITY_KEY_AUTHN: AuthnParameters(
+                high_security=True,
+                allow_login_auth=True,
+                finish_url="https://eduid.se/profile/ext-return/{app_name}/{authn_id}",
+            ),
+            FrontendAction.CHANGE_PW_AUTHN: AuthnParameters(
+                force_authn=True,
+                high_security=True,
+                allow_login_auth=True,
+                finish_url="https://eduid.se/profile/ext-return/{app_name}/{authn_id}",
+            ),
+            FrontendAction.CHANGE_SECURITY_SETTINGS_AUTHN: AuthnParameters(
+                force_authn=True,
+                high_security=True,
+                allow_login_auth=True,
+                finish_url="https://eduid.se/profile/ext-return/{app_name}/{authn_id}",
+            ),
+            FrontendAction.LOGIN: AuthnParameters(
+                same_user=False,
+                finish_url="https://eduid.se/login/ext-return/{app_name}/{authn_id}",
+            ),
+            FrontendAction.LOGIN_MFA_AUTHN: AuthnParameters(
+                force_authn=True,
+                allow_login_auth=True,
+                finish_url="https://eduid.se/login/ext-return/{app_name}/{authn_id}",
+            ),
+            FrontendAction.OLD_LOGIN: AuthnParameters(
+                same_user=False,
+                finish_url="https://eduid.se/profile/",
+            ),
+            FrontendAction.REMOVE_SECURITY_KEY_AUTHN: AuthnParameters(
+                force_mfa=True,
+                allow_login_auth=True,
+                finish_url="https://eduid.se/profile/ext-return/{app_name}/{authn_id}",
+            ),
+            FrontendAction.RESET_PW_MFA_AUTHN: AuthnParameters(
+                force_authn=True,
+                allow_login_auth=True,
+                finish_url="https://eduid.se/login/ext-return/{app_name}/{authn_id}",
+            ),
+            FrontendAction.VERIFY_IDENTITY: AuthnParameters(
+                force_authn=True,
+                allow_login_auth=True,
+                finish_url="https://eduid.se/profile/ext-return/{app_name}/{authn_id}",
+            ),
+            FrontendAction.TERMINATE_ACCOUNT_AUTHN: AuthnParameters(
+                force_authn=True,
+                high_security=True,
+                allow_login_auth=True,
+                finish_url="https://eduid.se/profile/ext-return/{app_name}/{authn_id}",
+            ),
+            FrontendAction.VERIFY_CREDENTIAL: AuthnParameters(
+                force_authn=True,
+                force_mfa=True,
+                allow_login_auth=True,
+                finish_url="https://eduid.se/profile/ext-return/{app_name}/{authn_id}",
+            ),
+            FrontendAction.REMOVE_IDENTITY: AuthnParameters(
+                force_authn=True,
+                high_security=True,
+                allow_login_auth=True,
+                finish_url="https://eduid.se/profile/ext-return/{app_name}/{authn_id}",
+            ),
+        }
+    )
+
+
+class ProofingConfigMixin(FrontendActionMixin):
     # sweden connect
     trust_framework: TrustFramework = TrustFramework.SWECONN
     required_loa: list[str] = Field(default=["loa3"])
@@ -377,9 +475,6 @@ class ProofingConfigMixin(BaseModel):
     security_key_proofing_version: str = Field(default="2023v2")
     security_key_foreign_eid_proofing_version: str = Field(default="2022v1")
 
-    frontend_action_finish_url: dict[str, str] = Field(default={})
-    fallback_redirect_url: str = "https://dashboard.eduid.se"
-
 
 class EduIDBaseAppConfig(RootConfig, LoggingConfigMixin, StatsConfigMixin, RedisConfigMixin):
     available_languages: Mapping[str, str] = Field(default={"en": "English", "sv": "Svenska"})
@@ -392,9 +487,11 @@ class EduIDBaseAppConfig(RootConfig, LoggingConfigMixin, StatsConfigMixin, Redis
     # The list is a list of regex that are matched against the path of the
     # requested URL ex. ^/test$.
     no_authn_urls: list[str] = Field(default=["^/status/healthy$", "^/status/sanity-check$"])
+    # Feature opt-in for new-style authn responses, requires new frontend code.
+    enable_authn_json_response: bool = False
     status_cache_seconds: int = 10
     # All AuthnBaseApps need this to redirect not-logged-in requests to the authn service
-    token_service_url: str
+    authn_service_url: str
 
 
 ReasonableDomainName = Annotated[str, Field(min_length=len("x.se")), AfterValidator(lambda v: v.lower())]

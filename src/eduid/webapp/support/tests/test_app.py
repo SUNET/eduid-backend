@@ -28,7 +28,7 @@ class SupportAppTests(EduidAPITestCase):
         config.update(
             {
                 "support_personnel": ["hubba-bubba"],
-                "token_service_url_logout": "https://localhost/logout",
+                "authn_service_url_logout": "https://localhost/logout",
                 "eduid_static_url": "https://testing.eduid.se/static/",
             }
         )
