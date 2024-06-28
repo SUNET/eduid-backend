@@ -116,7 +116,7 @@ class IdPTestLoginAPI(IdPAPITests):
         self.add_test_user_tou()
 
         # add security key to user
-        self.add_test_user_security_key(force_mfa_user_setting=False)
+        self.add_test_user_security_key(always_use_security_key_user_preference=False)
 
         # Patch the VCCSClient, so we do not need a vccs server
         with patch.object(VCCSClient, "authenticate") as mock_vccs:
@@ -143,7 +143,7 @@ class IdPTestLoginAPI(IdPAPITests):
         self.add_test_user_tou()
 
         # add security key to user
-        self.add_test_user_security_key(force_mfa_user_setting=False)
+        self.add_test_user_security_key(always_use_security_key_user_preference=False)
 
         # Patch the VCCSClient, so we do not need a vccs server
         with patch.object(VCCSClient, "authenticate") as mock_vccs:
