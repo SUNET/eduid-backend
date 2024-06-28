@@ -36,8 +36,8 @@ class SubjectType(str, Enum):
     PERSON = "physical person"
 
 
-class UserSettings(BaseModel):
-    force_mfa: bool = Field(default=True)
+class UserPreferences(BaseModel):
+    always_use_security_key: bool = Field(default=True)
 
 
 class User(BaseModel):
@@ -69,7 +69,7 @@ class User(BaseModel):
     profiles: ProfileList = Field(default_factory=ProfileList)
     letter_proofing_data: Optional[Union[list, dict]] = None  # remove dict after a full load-save-users
     revoked_ts: Optional[datetime] = None
-    settings: UserSettings = Field(default_factory=UserSettings)
+    preferences: UserPreferences = Field(default_factory=UserPreferences)
     model_config = ConfigDict(
         populate_by_name=True, validate_assignment=True, extra="forbid", arbitrary_types_allowed=True
     )

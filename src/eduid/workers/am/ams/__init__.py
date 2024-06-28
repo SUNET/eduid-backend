@@ -153,7 +153,7 @@ class eduid_personal_data(AttributeFetcher):
         "chosen_given_name",
         "surname",
         "preferredLanguage",
-        "settings",
+        "preferences",
     ]
 
     whitelist_unset_attrs = [
