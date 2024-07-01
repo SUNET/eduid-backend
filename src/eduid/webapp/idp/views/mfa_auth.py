@@ -39,7 +39,7 @@ def mfa_auth(
         return error_response(message=IdPMsg.not_available)
 
     if not sso_session:
-        current_app.logger.error(f"MFA auth called without an SSO session")
+        current_app.logger.error("MFA auth called without an SSO session")
         return error_response(message=IdPMsg.no_sso_session)
 
     user = lookup_user(sso_session.eppn)
@@ -173,7 +173,7 @@ def _check_webauthn(
     # Process webauthn_response
     #
     if not mfa_action.webauthn_state:
-        current_app.logger.error(f"No active webauthn challenge found in the session, can't do verification")
+        current_app.logger.error("No active webauthn challenge found in the session, can't do verification")
         return CheckResult(response=error_response(message=IdPMsg.general_failure))
 
     try:

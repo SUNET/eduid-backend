@@ -478,7 +478,9 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
                 assert error == _error, f"Wrong error returned. expected: {error}, actual: {_error}"
             if payload is not None:
                 for k, v in payload.items():
-                    assert k in _json["payload"], f"The Flux response payload does not contain {repr(k)}"
+                    assert (
+                        k in _json["payload"]
+                    ), f"The Flux response payload {_json['payload']} does not contain {repr(k)}"
                     assert (
                         v == _json["payload"][k]
                     ), f"The Flux response payload item {repr(k)} should be {repr(v)} but is {repr(_json['payload'][k])}"

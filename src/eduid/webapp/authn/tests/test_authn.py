@@ -15,6 +15,7 @@ from werkzeug.http import dump_cookie
 from eduid.common.config.base import FrontendAction
 from eduid.common.config.parsers import load_config
 from eduid.common.misc.timeutil import utc_now
+from eduid.common.models.saml2 import EduidAuthnContextClass
 from eduid.common.utils import urlappend
 from eduid.webapp.authn.app import AuthnApp, authn_init_app
 from eduid.webapp.authn.settings.common import AuthnConfig
@@ -22,7 +23,6 @@ from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.common.authn.acs_enums import AuthnAcsAction
 from eduid.webapp.common.authn.cache import OutstandingQueriesCache
 from eduid.webapp.common.authn.eduid_saml2 import get_authn_request
-from eduid.common.models.saml2 import EduidAuthnContextClass
 from eduid.webapp.common.authn.middleware import AuthnBaseApp
 from eduid.webapp.common.authn.tests.responses import auth_response, logout_request, logout_response
 from eduid.webapp.common.authn.utils import get_location, no_authn_views
