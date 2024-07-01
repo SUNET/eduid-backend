@@ -13,10 +13,10 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from eduid.common.misc.encoders import EduidJSONEncoder
 from eduid.common.misc.timeutil import utc_now
+from eduid.common.models.saml2 import EduidAuthnContextClass
 from eduid.userdb import User
 from eduid.userdb.db import BaseDB
 from eduid.webapp.common.api.utils import make_short_code
-from eduid.common.models.saml2 import EduidAuthnContextClass
 from eduid.webapp.idp.assurance_data import UsedCredential
 from eduid.webapp.idp.idp_saml import ServiceInfo
 from eduid.webapp.idp.mischttp import get_user_agent

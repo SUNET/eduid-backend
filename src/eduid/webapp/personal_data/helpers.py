@@ -3,7 +3,11 @@ import re
 from enum import unique
 from typing import Optional
 
-from eduid.webapp.common.api.messages import TranslatableMsg
+from eduid.common.config.base import FrontendAction
+from eduid.webapp.common.api.messages import FluxData, TranslatableMsg, need_authentication_response
+from eduid.webapp.common.api.schemas.authn_status import AuthnActionStatus
+from eduid.webapp.common.authn.utils import validate_authn_for_action
+from eduid.webapp.personal_data.app import current_pdata_app as current_app
 
 logger = logging.getLogger(__name__)
 
@@ -65,3 +69,17 @@ def is_valid_chosen_given_name(given_name: Optional[str] = None, chosen_given_na
     logger.debug(f"Allowed parts: {given_name_parts}")
     logger.debug(f"Extra characters in display name: {chosen_given_name_parts}")
     return False
+
+
+def check_reauthn(frontend_action: FrontendAction) -> Optional[FluxData]:
+    """Check if a re-authentication has been performed recently enough for this action"""
+
+    authn_status = validate_authn_for_action(config=current_app.conf, frontend_action=frontend_action)
+    current_app.logger.debug(f"check_reauthn called with authn status {authn_status}")
+    if authn_status != AuthnActionStatus.OK:
+        if authn_status == AuthnActionStatus.STALE:
+            # count stale authentications to monitor if users need more time
+            current_app.stats.count(name=f"{frontend_action.value}_stale_reauthn", value=1)
+        return need_authentication_response(frontend_action=frontend_action, authn_status=authn_status)
+    current_app.stats.count(name=f"{frontend_action.value}_successful_reauthn", value=1)
+    return None
