@@ -3,6 +3,7 @@ from abc import ABC
 from dataclasses import dataclass
 from typing import Any, Generic, Mapping, Optional, TypeVar, Union
 
+import pymongo
 from bson import ObjectId
 from bson.errors import InvalidId
 from pymongo import ReturnDocument
@@ -19,7 +20,7 @@ from eduid.userdb.exceptions import (
     UserOutOfSync,
 )
 from eduid.userdb.identity import IdentityType
-from eduid.userdb.meta import CleanerType, Meta
+from eduid.userdb.meta import Meta
 from eduid.userdb.user import User
 
 logger = logging.getLogger(__name__)
@@ -95,26 +96,6 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
             except InvalidId:
                 return None
         return self._get_user_by_attr("_id", user_id)
-
-    def _get_users_by_aggregate(self, match: dict[str, Any], sort: dict[str, Any], limit: int) -> list[UserVar]:
-        users = self._get_documents_by_aggregate(match=match, sort=sort, limit=limit)
-        return self._users_from_documents(users)
-
-    def get_uncleaned_verified_users(
-        self, cleaned_type: CleanerType, identity_type: IdentityType, limit: int
-    ) -> list[UserVar]:
-        match = {
-            "identities": {
-                "$elemMatch": {
-                    "verified": True,
-                    "identity_type": identity_type.value,
-                }
-            }
-        }
-
-        type_filter = f"meta.cleaned.{cleaned_type.value}"
-        sort = {type_filter: 1}
-        return self._get_users_by_aggregate(match=match, sort=sort, limit=limit)
 
     def get_verified_users_count(self, identity_type: Optional[IdentityType] = None) -> int:
         spec: dict[str, Any]
@@ -368,6 +349,20 @@ class AmDB(UserDB[User]):
         user.modified_ts = result.ts
 
         return UserSaveResult(success=bool(result))
+
+    def get_unterminated_users_with_nin(self) -> list[User]:
+        match = {
+            "identities": {
+                "$elemMatch": {
+                    "verified": True,
+                    "identity_type": IdentityType.NIN.value,
+                }
+            },
+            "terminated": {"$exists": False},
+        }
+
+        users = self._get_documents_by_aggregate(match=match)
+        return self._users_from_documents(users)
 
     def unverify_mail_aliases(self, user_id: ObjectId, mail_aliases: Optional[list[dict[str, Any]]]) -> int:
         count = 0

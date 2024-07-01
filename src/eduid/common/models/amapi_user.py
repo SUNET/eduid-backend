@@ -13,6 +13,7 @@ __author__ = "masv"
 
 class Reason(str, Enum):
     USER_DECEASED = "user_deceased"
+    USER_DEREGISTERED = "user_deregistered"
     NAME_CHANGED = "name_changed"
     CAREGIVER_CHANGED = "caregiver_changed"
     READ_USER = "read_user"
