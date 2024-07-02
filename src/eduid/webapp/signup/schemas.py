@@ -44,7 +44,8 @@ class SignupStatusResponse(FluxStandardAction):
 
             class Credentials(EduidSchema):
                 completed = fields.Boolean(required=True)
-                password = fields.String(required=False)
+                generated_password = fields.String(required=False)
+                custom_password = fields.String(required=False)
                 # TODO: implement webauthn signup
 
             already_signed_up = fields.Boolean(required=True)
@@ -133,7 +134,8 @@ class VerifyEmailRequest(EduidSchema, CSRFRequestMixin):
 
 
 class CreateUserRequest(EduidSchema, CSRFRequestMixin):
-    use_password = fields.Boolean(required=True)
+    use_suggested_password = fields.Boolean(required=True)
+    custom_password = fields.String(required=False)
     use_webauthn = fields.Boolean(required=True)
 
 
