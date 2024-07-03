@@ -1,3 +1,4 @@
+from eduid.common.misc.timeutil import utc_now
 from eduid.common.models.amapi_user import Reason, Source, UserUpdateResponse, UserUpdateTerminateRequest
 from eduid.common.rpc.msg_relay import DeregisteredCauseCode, NavetData
 from eduid.userdb.exceptions import UserDoesNotExist
@@ -5,6 +6,7 @@ from eduid.userdb.meta import CleanerType
 from eduid.userdb.user import User
 from eduid.userdb.user_cleaner.db import CleanerQueueUser
 from eduid.workers.job_runner.context import Context
+from eduid.workers.job_runner.helpers import save_and_sync_user
 
 
 def gather_skv_users(context: Context):
@@ -46,8 +48,7 @@ def check_skv_users(context: Context):
                 context.logger.debug(f"User with eppn {user.eppn} has emigrated and should not be terminated")
             else:
                 context.logger.debug(f"User with eppn {user.eppn} should be terminated")
-                reason = Reason.USER_DECEASED if cause == DeregisteredCauseCode.DECEASED else Reason.USER_DEREGISTERED
-                terminate_user(context, user.eppn, reason)
+                terminate_user(context, user)
         else:
             context.logger.debug(f"User with eppn {user.eppn} is still registered")
 
@@ -55,10 +56,10 @@ def check_skv_users(context: Context):
         context.logger.debug("Nothing to do")
 
 
-def terminate_user(context: Context, eppn: str, reason: Reason):
+def terminate_user(context: Context, queue_user: CleanerQueueUser):
     """
     Terminate a user
     """
-    request_body: UserUpdateTerminateRequest = UserUpdateTerminateRequest(reason=reason, source=Source.SKV_NAVET_V2)
-    response: UserUpdateResponse = context.amapi_client.update_user_terminate(user=eppn, body=request_body)
-    context.logger.debug(f"Terminate user response: {response}")
+    user = context.db.get_user_by_eppn(queue_user.eppn)
+    user.terminated = utc_now()
+    save_and_sync_user(context, user)

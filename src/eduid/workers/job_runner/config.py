@@ -3,7 +3,7 @@ import logging
 from pydantic import BaseModel, field_validator
 
 from eduid.common.clients.gnap_client.base import GNAPClientAuthData
-from eduid.common.config.base import LoggingConfigMixin, MsgConfigMixin, RootConfig, StatsConfigMixin
+from eduid.common.config.base import AmConfigMixin, LoggingConfigMixin, MsgConfigMixin, RootConfig, StatsConfigMixin
 from eduid.common.utils import removesuffix
 
 logger = logging.getLogger(__name__)
@@ -14,7 +14,7 @@ class AmAPIConfig(BaseModel):
     tls_verify: bool = True
 
 
-class JobRunnerConfig(RootConfig, LoggingConfigMixin, StatsConfigMixin, MsgConfigMixin):
+class JobRunnerConfig(RootConfig, LoggingConfigMixin, StatsConfigMixin, MsgConfigMixin, AmConfigMixin):
     """
     Configuration for the user-cleaner service.
     """
