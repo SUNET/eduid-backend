@@ -24,6 +24,7 @@ from eduid.webapp.common.api.exceptions import ProofingLogFailure, VCCSBackendFa
 from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.common.api.translation import get_user_locale
 from eduid.webapp.common.api.utils import is_throttled, save_and_sync_user, time_left
+from eduid.webapp.common.api.validation import is_valid_password
 from eduid.webapp.common.authn.vccs import add_password, revoke_passwords
 from eduid.webapp.common.session import session
 from eduid.webapp.signup.app import current_signup_app as current_app
@@ -61,8 +62,10 @@ class SignupMsg(TranslatableMsg):
     email_verification_too_many_tries = "signup.email-verification-to-many-tries"
     # user has already been created
     user_already_exists = "signup.user-already-exists"
-    # user has no password genereated in session
+    # user has no generated_password generated in session
     password_not_generated = "signup.password-not-generated"
+    # user has provided a weak custom password
+    weak_custom_password = "signup.weak-custom-password"
     # user has not registered webauthn
     webauthn_not_registered = "signup.webauthn-not-registered"
     # user has no credential
@@ -195,15 +198,20 @@ def send_signup_mail(email: str, verification_code: str, reference: str) -> None
 
 
 def create_and_sync_user(
-    given_name: str, surname: str, email: str, tou_version: str, password: Optional[str] = None
+    given_name: str,
+    surname: str,
+    email: str,
+    tou_version: str,
+    generated_password: Optional[str] = None,
+    custom_password: Optional[str] = None,
 ) -> SignupUser:
     """
     * Create a new user in the central userdb
     * Generate a new eppn
     * Record acceptance of TOU
     * Record email address and email address verification
-    * Add password to the user
-    * Add the password to the password db
+    * Add generated_password to the user
+    * Add the generated_password to the generated_password db
     * Update the attribute manager db with the new account
     """
     current_app.logger.info("Creating new user")
@@ -218,12 +226,21 @@ def create_and_sync_user(
     record_email_address(signup_user=signup_user, email=email)
 
     # TODO: add_password needs to understand that signup_user is a descendant from User
-    if password is not None and not add_password(
-        signup_user, password, application=current_app.conf.app_name, vccs_url=current_app.conf.vccs_url
-    ):
-        current_app.logger.error("Failed to add a credential to user")
-        current_app.logger.debug(f"signup_user: {signup_user}")
-        raise VCCSBackendFailure("Failed to add a credential to user")
+    if generated_password is not None or custom_password is not None:
+        is_generated = custom_password is None
+        password = custom_password or generated_password
+        assert password is not None  # please mypy
+
+        if not add_password(
+            signup_user,
+            password,
+            is_generated=is_generated,
+            application=current_app.conf.app_name,
+            vccs_url=current_app.conf.vccs_url,
+        ):
+            current_app.logger.error("Failed to add a credential to user")
+            current_app.logger.debug(f"signup_user: {signup_user}")
+            raise VCCSBackendFailure("Failed to add a credential to user")
 
     try:
         save_and_sync_user(signup_user)
@@ -233,7 +250,7 @@ def create_and_sync_user(
         raise e
 
     current_app.stats.count(name="user_created")
-    current_app.logger.info(f"Signup user created")
+    current_app.logger.info("Signup user created")
     current_app.logger.debug(f"user: {signup_user}")
     return signup_user
 
@@ -407,6 +424,26 @@ def is_email_verification_expired(sent_ts: Optional[datetime]) -> bool:
     if sent_ts is None:
         return True
     return utc_now() - sent_ts > current_app.conf.email_verification_timeout
+
+
+def is_valid_custom_password(custom_password: Optional[str]) -> bool:
+    if custom_password is None:
+        return False
+
+    # collect user_info and check against zxcvbn
+    user_info_data = [session.signup.name.given_name, session.signup.name.surname, session.signup.email.address]
+    user_info = [item for item in user_info_data if item]
+    try:
+        is_valid_password(
+            custom_password,
+            user_info=user_info,
+            min_entropy=current_app.conf.password_entropy,
+            min_score=current_app.conf.min_zxcvbn_score,
+        )
+    except ValueError:
+        return False
+
+    return True
 
 
 # backwards compatibility

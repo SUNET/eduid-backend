@@ -15,6 +15,7 @@ from eduid.common.clients.scim_client.testing import MockedScimAPIMixin
 from eduid.common.config.base import EduidEnvironment
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.testing_base import normalised_data
+from eduid.userdb.credentials import Password
 from eduid.userdb.exceptions import UserOutOfSync
 from eduid.userdb.signup import Invite, InviteMailAddress, InviteType
 from eduid.userdb.signup.invite import InvitePhoneNumber, SCIMReference
@@ -432,7 +433,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         logged_in: bool = False,
     ):
         """
-        Generate a password and return in state.
+        Generate a generated_password and return in state.
 
         :param data1: to control the data POSTed to the verify email endpoint
         """
@@ -460,7 +461,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
 
             if expect_success:
                 if not expected_payload:
-                    assert self.get_response_payload(response)["state"]["credentials"]["password"] is not None
+                    assert self.get_response_payload(response)["state"]["credentials"]["generated_password"] is not None
 
                 self._check_api_response(
                     response,
@@ -509,7 +510,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
                 sess.signup.email.address = email
                 sess.signup.email.completed = email_verified
                 sess.signup.email.reference = "test_ref"
-                sess.signup.credentials.password = generated_password
+                sess.signup.credentials.generated_password = generated_password
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     @patch("eduid.vccs.client.VCCSClient.add_credentials")
@@ -517,7 +518,8 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         self,
         mock_add_credentials: Any,
         mock_request_user_sync: Any,
-        data1: Optional[dict[str, Any]] = None,
+        data: Optional[dict[str, Any]] = None,
+        custom_password: Optional[str] = None,
         expect_success: bool = True,
         expected_message: Optional[TranslatableMsg] = None,
         expected_payload: Optional[Mapping[str, Any]] = None,
@@ -537,16 +539,16 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
             with client.session_transaction() as sess:
                 with self.app.test_request_context():
                     endpoint = url_for("signup.create_user")
-                    data = {
+                    _data = {
                         "csrf_token": sess.get_csrf_token(),
-                        "use_password": True,
+                        "use_suggested_password": True,
                         "use_webauthn": False,
                     }
-                if data1 is not None:
-                    data.update(data1)
+                if data is not None:
+                    _data.update(data)
 
             logger.info(f"Making request to {endpoint}")
-            response = client.post(f"{endpoint}", data=json.dumps(data), content_type=self.content_type_json)
+            response = client.post(f"{endpoint}", json=_data)
 
             logger.info(f"Request to {endpoint} result: {response}")
 
@@ -560,7 +562,16 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
                     assert self.get_response_payload(response)["state"]["captcha"]["completed"] is True
                     assert self.get_response_payload(response)["state"]["email"]["completed"] is True
                     assert self.get_response_payload(response)["state"]["credentials"]["completed"] is True
-                    assert self.get_response_payload(response)["state"]["credentials"]["password"] is not None
+                    if custom_password:
+                        assert (
+                            self.get_response_payload(response)["state"]["credentials"]["custom_password"]
+                            == custom_password
+                        )
+                    else:
+                        assert (
+                            self.get_response_payload(response)["state"]["credentials"]["generated_password"]
+                            == "test_password"
+                        )
                     assert self.get_response_payload(response)["state"]["user_created"] is True
                     with client.session_transaction() as sess:
                         assert sess.common.eppn is not None
@@ -574,6 +585,11 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
                     assure_not_in_payload=["verification_code"],
                 )
             else:
+                if not logged_in:
+                    with client.session_transaction() as sess:
+                        eppn = sess.common.eppn
+                        assert eppn is None
+
                 self._check_api_response(
                     response,
                     status=200,
@@ -832,7 +848,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         assert state == {
             "already_signed_up": False,
             "captcha": {"completed": False},
-            "credentials": {"completed": False, "password": None},
+            "credentials": {"completed": False, "generated_password": None},
             "email": {"address": None, "bad_attempts": 0, "bad_attempts_max": 3, "completed": False, "sent_at": None},
             "invite": {"completed": False, "finish_url": None, "initiated_signup": False},
             "name": {"given_name": None, "surname": None},
@@ -847,7 +863,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         assert state == {
             "already_signed_up": True,
             "captcha": {"completed": False},
-            "credentials": {"completed": False, "password": None},
+            "credentials": {"completed": False, "generated_password": None},
             "email": {"address": None, "bad_attempts": 0, "bad_attempts_max": 3, "completed": False, "sent_at": None},
             "invite": {"completed": False, "finish_url": None, "initiated_signup": False},
             "name": {"given_name": None, "surname": None},
@@ -1212,16 +1228,55 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
             with client.session_transaction() as sess:
                 eppn = sess.common.eppn
                 assert eppn is not None
-                assert sess.signup.credentials.password is None
+                assert sess.signup.credentials.generated_password is None
         user = self.app.central_userdb.get_user_by_eppn(eppn)
         assert user.given_name == given_name
         assert user.surname == surname
         assert user.mail_addresses.to_list()[0].email == email
+        passwords = user.credentials.filter(Password)
+        assert len(passwords) == 1
+        assert passwords[0].is_generated is True
 
     def test_create_user_logged_in(self):
         email = "test@example.com"
         self._prepare_for_create_user(email=email)
         self._create_user(logged_in=True, expect_success=False, expected_message=CommonMsg.logout_required)
+
+    def test_create_user_with_custom_password(self):
+        given_name = "Testaren Test"
+        surname = "Test"
+        email = "test@example.com"
+        self._prepare_for_create_user(given_name=given_name, surname=surname, email=email)
+        data = {
+            "use_suggested_password": False,
+            "custom_password": "9MbKxTHhCDK3Y9hhn6",
+            "use_webauthn": False,
+        }
+        response = self._create_user(data=data, expect_success=True)
+        assert response.reached_state == SignupState.S6_CREATE_USER
+
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                eppn = sess.common.eppn
+                assert eppn is not None
+
+        user = self.app.central_userdb.get_user_by_eppn(eppn)
+        passwords = user.credentials.filter(Password)
+        assert len(passwords) == 1
+        assert passwords[0].is_generated is False
+
+    def test_create_user_with_weak_custom_password(self):
+        given_name = "Testaren Test"
+        surname = "Test"
+        email = "test@example.com"
+        self._prepare_for_create_user(given_name=given_name, surname=surname, email=email)
+        data = {
+            "use_suggested_password": True,
+            "custom_password": "abc123",
+            "use_webauthn": False,
+        }
+        response = self._create_user(data=data, expect_success=False, expected_message=SignupMsg.weak_custom_password)
+        assert response.reached_state == SignupState.S6_CREATE_USER
 
     def test_create_user_out_of_sync(self):
         self._prepare_for_create_user()
@@ -1247,9 +1302,9 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
 
     def test_create_user_no_csrf(self):
         self._prepare_for_create_user()
-        data1 = {"csrf_token": "wrong"}
+        data = {"csrf_token": "wrong"}
         res = self._create_user(
-            data1=data1,
+            data=data,
             expect_success=False,
             expected_message=None,
         )
@@ -1327,7 +1382,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         assert normalised_data(state, exclude_keys=["expires_time_left", "throttle_time_left", "sent_at"]) == {
             "already_signed_up": False,
             "captcha": {"completed": False},
-            "credentials": {"completed": False, "password": None},
+            "credentials": {"completed": False, "generated_password": None},
             "email": {
                 "address": "dummy@example.com",
                 "bad_attempts": 0,
