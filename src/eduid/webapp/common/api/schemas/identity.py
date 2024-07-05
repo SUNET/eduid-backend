@@ -23,10 +23,3 @@ class IdentitiesSchema(EduidSchema):
     nin = fields.Nested(NinIdentitySchema)
     eidas = fields.Nested(ForeignIdentitySchema)
     svipe = fields.Nested(ForeignIdentitySchema)
-
-
-# TODO: Remove after frontend uses identities
-class NinSchema(EduidSchema):
-    number = fields.String(required=True)
-    verified = fields.Boolean(required=True)
-    primary = fields.Boolean(required=True)

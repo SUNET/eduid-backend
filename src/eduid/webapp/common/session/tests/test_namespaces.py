@@ -123,6 +123,7 @@ class TestIdPNamespace(EduidAPITestCase):
         assert third.signup.email.address == "test@example.com"
         assert third.signup.email.verification_code is None
 
+
 class TestAuthnNamespace(EduidAPITestCase):
     app: SessionTestApp
 

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from enum import unique, Enum
+from enum import Enum, unique
 
 __author__ = "lundberg"
 

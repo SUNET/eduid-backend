@@ -12,10 +12,10 @@ from saml2.s_utils import UnravelError
 from werkzeug.exceptions import BadRequest
 
 from eduid.common.misc.timeutil import utc_now
+from eduid.common.models.saml2 import EduidAuthnContextClass
 from eduid.userdb.credentials import U2F, Credential, CredentialProofingMethod, Password
 from eduid.userdb.identity import IdentityList, IdentityProofingMethod, NinIdentity
 from eduid.userdb.idp import IdPUser
-from eduid.common.models.saml2 import EduidAuthnContextClass
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.logindata import ExternalMfaData
 from eduid.webapp.common.session.namespaces import IdP_SAMLPendingRequest, RequestRef

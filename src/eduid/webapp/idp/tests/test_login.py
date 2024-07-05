@@ -11,12 +11,12 @@ from saml2.client import Saml2Client
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.models.generic import HttpUrlStr
+from eduid.common.models.saml2 import EduidAuthnContextClass
 from eduid.userdb import MailAddress
 from eduid.userdb.credentials import Password
 from eduid.userdb.maccapi.userdb import ManagedAccount
 from eduid.userdb.mail import MailAddressList
 from eduid.vccs.client import VCCSClient
-from eduid.common.models.saml2 import EduidAuthnContextClass
 from eduid.webapp.common.authn.utils import get_saml2_config
 from eduid.webapp.idp.helpers import IdPAction, IdPMsg
 from eduid.webapp.idp.tests.test_api import IdPAPITests, TestUser
