@@ -157,7 +157,7 @@ class SanitizedTypeConversionDict(ImmutableTypeConversionDict, SanitationMixin):
         val = super(ImmutableTypeConversionDict, self).__getitem__(key)
         return self.sanitize_input(str(val))
 
-    def get(self, key, default=None, type=None):
+    def get(self, key, default=None, type=None) -> Optional[Any]:  # type: ignore[override]
         """
         Sanitized, type conversion get.
         The value identified by `key` is sanitized, and if `type`

@@ -1,5 +1,6 @@
 import logging
 from pathlib import PurePath
+from typing import Any
 
 from eduid.common.config.base import EduIDBaseAppConfig, MailConfigMixin, MsgConfigMixin
 from eduid.common.config.workers import MsgConfig
@@ -20,7 +21,7 @@ class MailTestConfig(EduIDBaseAppConfig, MailConfigMixin):
 
 
 class MsgMongoTestCase(MongoTestCase):
-    def setUp(self, init_msg=True):
+    def setUp(self, init_msg=True) -> Any:  # type: ignore[override]
         super().setUp()
         data_path = PurePath(__file__).with_name("tests") / "data"
         if init_msg:
