@@ -19,6 +19,10 @@ def need_security_key(user: IdPUser, ticket: LoginContext) -> bool:
         logger.debug("User has no FIDO credentials, no extra requirement for MFA this session imposed")
         return False
 
+    if user.preferences.always_use_security_key is False:
+        logger.debug("User has not forced MFA, no extra requirement for MFA this session imposed")
+        return False
+
     for cred_key in ticket.pending_request.credentials_used:
         credential: Optional[Credential]
         if cred_key in ticket.pending_request.onetime_credentials:
