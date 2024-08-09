@@ -7,8 +7,8 @@ from dataclasses import dataclass
 from enum import Enum, unique
 from typing import Any, Optional
 
-from eduid.userdb import User
 from eduid.common.models.saml2 import EduidAuthnContextClass
+from eduid.userdb import User
 
 logger = logging.getLogger(__name__)
 

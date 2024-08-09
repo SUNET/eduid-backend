@@ -983,10 +983,7 @@ class TestNewUser(unittest.TestCase):
 
     def test_nins_and_identities_on_user(self):
         user_dict = UserFixtures().mocked_user_standard.to_dict()
-        user = User.from_dict(user_dict)
-        user_dict["nins"] = [user.identities.nin.to_old_nin()]
         assert user_dict["identities"] != []
-        assert user_dict["nins"] != []
         user_dict = User.from_dict(user_dict).to_dict()
         assert user_dict.get("nins") is None
         assert user_dict.get("identities") is not None

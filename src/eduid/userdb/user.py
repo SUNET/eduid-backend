@@ -36,6 +36,10 @@ class SubjectType(str, Enum):
     PERSON = "physical person"
 
 
+class UserPreferences(BaseModel):
+    always_use_security_key: bool = Field(default=True)
+
+
 class User(BaseModel):
     """
     Generic eduID user object.
@@ -49,6 +53,7 @@ class User(BaseModel):
     surname: Optional[str] = None
     legal_name: Optional[str] = None
     subject: Optional[SubjectType] = None
+    # TODO: Move language in to settings and set the initial value in signup flow based in browser language
     language: Optional[str] = Field(default=None, alias="preferredLanguage")
     mail_addresses: MailAddressList = Field(default_factory=MailAddressList, alias="mailAliases")
     phone_numbers: PhoneNumberList = Field(default_factory=PhoneNumberList, alias="phone")
@@ -64,6 +69,7 @@ class User(BaseModel):
     profiles: ProfileList = Field(default_factory=ProfileList)
     letter_proofing_data: Optional[Union[list, dict]] = None  # remove dict after a full load-save-users
     revoked_ts: Optional[datetime] = None
+    preferences: UserPreferences = Field(default_factory=UserPreferences)
     model_config = ConfigDict(
         populate_by_name=True, validate_assignment=True, extra="forbid", arbitrary_types_allowed=True
     )

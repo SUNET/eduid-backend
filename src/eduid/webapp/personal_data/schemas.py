@@ -28,6 +28,21 @@ class PersonalDataSchema(EduidSchema):
     language = fields.String(required=True, attribute="preferredLanguage")
 
 
+class UserPreferencesSchema(EduidSchema):
+    always_use_security_key = fields.Boolean(required=True, default=True)
+
+
+class UserPreferencesRequestSchema(UserPreferencesSchema, CSRFRequestMixin):
+    pass
+
+
+class UserPreferencesResponseSchema(FluxStandardAction):
+    class UserPreferencesResponsePayload(UserPreferencesSchema, CSRFResponseMixin):
+        pass
+
+    payload = fields.Nested(UserPreferencesResponsePayload)
+
+
 class PersonalDataResponseSchema(FluxStandardAction):
     class PersonalDataResponsePayload(PersonalDataSchema, CSRFResponseMixin):
         pass
@@ -54,6 +69,7 @@ class AllDataSchema(EduidSchema):
     phones = fields.Nested(PhoneSchema, many=True, attribute="phone")
     orcid = fields.Nested(OrcidSchema, attribute="orcid")
     ladok = fields.Nested(LadokSchema, attribute="ladok")
+    preferences = fields.Nested(UserPreferencesSchema, attribute="preferences")
 
 
 class AllDataResponseSchema(FluxStandardAction):

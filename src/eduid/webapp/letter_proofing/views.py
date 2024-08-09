@@ -136,7 +136,7 @@ def verify_code(user: User, code: str) -> FluxData:
         return error_response(message=LetterMsg.no_state)
 
     # Check if provided code matches the one in the letter
-    if not code == proofing_state.nin.verification_code:
+    if code != proofing_state.nin.verification_code:
         current_app.logger.error(f"Verification code for user {user} does not match")
         # TODO: Throttling to discourage an adversary to try brute force
         return error_response(message=LetterMsg.wrong_code)
@@ -190,13 +190,8 @@ def verify_code(user: User, code: str) -> FluxData:
     current_app.proofing_statedb.remove_state(proofing_state)
     current_app.stats.count(name="nin_verified")
 
-    # TODO: remove nins after frontend stops using it
-    nins = []
-    if proofing_user.identities.nin is not None:
-        nins.append(proofing_user.identities.nin.to_old_nin())
-
     return success_response(
-        payload=dict(identities=proofing_user.identities.to_frontend_format(), nins=nins),
+        payload=dict(identities=proofing_user.identities.to_frontend_format()),
         message=LetterMsg.verify_success,
     )
 

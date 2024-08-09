@@ -8,7 +8,7 @@ from saml2 import server
 from saml2.config import SPConfig
 from saml2.typing import SAMLHttpArgs
 
-from eduid.common.config.base import EduIDBaseAppConfig, FrontendAction, FrontendActionMixin, AuthnParameters
+from eduid.common.config.base import AuthnParameters, EduIDBaseAppConfig, FrontendAction, FrontendActionMixin
 from eduid.common.config.exceptions import BadConfiguration
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.utils import urlappend

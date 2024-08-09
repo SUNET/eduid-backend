@@ -272,6 +272,7 @@ class AttributeFetcherPersonalDataTests(ProofingTestCase):
                     "chosen_given_name": "Testaren",
                     "surname": "Testsson",
                     "preferredLanguage": "sv",
+                    "preferences": {"always_use_security_key": True},
                 },
             },
         )
@@ -289,6 +290,7 @@ class AttributeFetcherPersonalDataTests(ProofingTestCase):
                     "chosen_given_name": "Testaren",
                     "surname": "Testsson",
                     "preferredLanguage": "sv",
+                    "preferences": {"always_use_security_key": True},
                 },
             },
         )

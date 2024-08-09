@@ -353,7 +353,7 @@ class Pysaml2SPConfigMixin(BaseModel):
 class FrontendAction(Enum):
     ADD_SECURITY_KEY_AUTHN = "addSecurityKeyAuthn"
     CHANGE_PW_AUTHN = "changepwAuthn"
-    CHANGE_SECURITY_SETTINGS_AUTHN = "changeSecuritySettingsAuthn"
+    CHANGE_SECURITY_PREFERENCES_AUTHN = "changeSecurityPreferencesAuthn"
     LOGIN = "login"
     LOGIN_MFA_AUTHN = "loginMfaAuthn"
     OLD_LOGIN = "oldLogin"
@@ -392,7 +392,7 @@ class FrontendActionMixin(BaseModel):
                 allow_login_auth=True,
                 finish_url="https://eduid.se/profile/ext-return/{app_name}/{authn_id}",
             ),
-            FrontendAction.CHANGE_SECURITY_SETTINGS_AUTHN: AuthnParameters(
+            FrontendAction.CHANGE_SECURITY_PREFERENCES_AUTHN: AuthnParameters(
                 force_authn=True,
                 high_security=True,
                 allow_login_auth=True,

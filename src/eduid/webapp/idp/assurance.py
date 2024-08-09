@@ -3,11 +3,11 @@
 import logging
 
 from eduid.common.misc.timeutil import utc_now
+from eduid.common.models.saml2 import EduidAuthnContextClass
 from eduid.userdb.credentials import CredentialProofingMethod, FidoCredential, Password
 from eduid.userdb.credentials.external import BankIDCredential, SwedenConnectCredential
 from eduid.userdb.element import ElementKey
 from eduid.userdb.idp import IdPUser
-from eduid.common.models.saml2 import EduidAuthnContextClass
 from eduid.webapp.common.session.namespaces import OnetimeCredential, OnetimeCredType
 from eduid.webapp.idp.app import current_idp_app
 from eduid.webapp.idp.app import current_idp_app as current_app

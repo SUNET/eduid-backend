@@ -1,11 +1,14 @@
 import json
+from datetime import timedelta
 from typing import Any, Mapping, Optional
 from unittest.mock import patch
 
 from werkzeug.test import TestResponse
 
+from eduid.common.config.base import FrontendAction
 from eduid.userdb.element import ElementKey
 from eduid.webapp.common.api.exceptions import ApiException
+from eduid.webapp.common.api.schemas.authn_status import AuthnActionStatus
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.personal_data.app import PersonalDataApp, pd_init_app
 from eduid.webapp.personal_data.helpers import PDataMsg, is_valid_chosen_given_name
@@ -89,6 +92,42 @@ class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
                     data.update(mod_data)
             return client.post("/user", data=json.dumps(data), content_type=self.content_type_json)
 
+    def _get_preferences(self, eppn: Optional[str] = None):
+        """
+        Send a GET request to get the personal data of a user
+
+        :param eppn: the eppn of the user
+        """
+        response = self.browser.get("/preferences")
+        self.assertEqual(response.status_code, 302)  # Redirect to token service
+
+        eppn = eppn or self.test_user.eppn
+        with self.session_cookie(self.browser, eppn) as client:
+            response2 = client.get("/preferences")
+
+        return response2
+
+    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+    def _post_preferences(self, mock_request_user_sync: Any, mod_data: Optional[dict[str, Any]] = None):
+        """
+        POST preferences for the test user
+        """
+        mock_request_user_sync.side_effect = self.request_user_sync
+        eppn = self.test_user.eppn
+
+        data: dict[str, Any] = {"always_use_security_key": True}
+        if mod_data is not None:
+            data = mod_data
+
+        with self.session_cookie(self.browser, eppn) as client:
+            with self.app.test_request_context():
+                with client.session_transaction() as sess:
+                    if "csrf_token" not in data:
+                        data["csrf_token"] = sess.get_csrf_token()
+                if mod_data:
+                    data.update(mod_data)
+            return client.post("/preferences", json=data)
+
     def _get_user_identities(self, eppn: Optional[str] = None):
         """
         GET a list of all the identities of a user
@@ -143,6 +182,7 @@ class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
                 {"number": "+34609609609", "primary": True, "verified": True},
                 {"number": "+34 6096096096", "primary": False, "verified": False},
             ],
+            "preferences": {"always_use_security_key": True},
             "surname": "Smith",
         }
 
@@ -256,6 +296,63 @@ class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
         response = self._post_user(mod_data={"language": "es"})
         expected_payload = {"error": {"language": ["Language 'es' is not available"]}}
         self._check_error_response(response, type_="POST_PERSONAL_DATA_USER_FAIL", payload=expected_payload)
+
+    def test_get_preferences(self):
+        response = self._get_preferences()
+        expected_payload = {"always_use_security_key": True}
+        self._check_success_response(
+            response=response, type_="GET_PERSONAL_DATA_PREFERENCES_SUCCESS", payload=expected_payload
+        )
+
+    def test_update_preferences(self):
+        self.set_authn_action(
+            eppn=self.test_user_eppn,
+            frontend_action=FrontendAction.CHANGE_SECURITY_PREFERENCES_AUTHN,
+            age=timedelta(seconds=22),
+        )
+
+        user = self.app.central_userdb.get_user_by_eppn(eppn=self.test_user.eppn)
+        assert user.preferences.always_use_security_key is True
+
+        response = self._post_preferences(mod_data={"always_use_security_key": False})
+        expected_payload = {"always_use_security_key": False}
+        self._check_success_response(
+            response=response, type_="POST_PERSONAL_DATA_PREFERENCES_SUCCESS", payload=expected_payload
+        )
+
+        user = self.app.central_userdb.get_user_by_eppn(eppn=self.test_user.eppn)
+        assert user.preferences.always_use_security_key is False
+
+    def test_update_preferences_no_auth(self):
+        user = self.app.central_userdb.get_user_by_eppn(eppn=self.test_user.eppn)
+        assert user.preferences.always_use_security_key is True
+
+        response = self._post_preferences(mod_data={"always_use_security_key": False})
+
+        self._check_must_authenticate_response(
+            response=response,
+            type_="POST_PERSONAL_DATA_PREFERENCES_FAIL",
+            frontend_action=FrontendAction.CHANGE_SECURITY_PREFERENCES_AUTHN,
+            authn_status=AuthnActionStatus.NOT_FOUND,
+        )
+
+        user = self.app.central_userdb.get_user_by_eppn(eppn=self.test_user.eppn)
+        assert user.preferences.always_use_security_key is True
+
+    def test_post_preferences_bad_csrf(self):
+        response = self._post_preferences(mod_data={"csrf_token": "wrong-token", "always_use_security_key": True})
+        expected_payload = {"error": {"csrf_token": ["CSRF failed to validate"]}}
+        self._check_error_response(response, type_="POST_PERSONAL_DATA_PREFERENCES_FAIL", payload=expected_payload)
+
+    def test_post_preferences_no_always_use_security_key(self):
+        response = self._post_preferences(mod_data={})
+        expected_payload = {"error": {"always_use_security_key": ["Missing data for required field."]}}
+        self._check_error_response(response, type_="POST_PERSONAL_DATA_PREFERENCES_FAIL", payload=expected_payload)
+
+    def test_post_preferences_wrong_always_use_security_key(self):
+        response = self._post_preferences(mod_data={"always_use_security_key": "tomato"})
+        expected_payload = {"error": {"always_use_security_key": ["Not a valid boolean."]}}
+        self._check_error_response(response, type_="POST_PERSONAL_DATA_PREFERENCES_FAIL", payload=expected_payload)
 
     def test_get_user_identities(self):
         response = self._get_user_identities()

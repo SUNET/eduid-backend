@@ -8,8 +8,8 @@ from typing import Any
 
 from pydantic import BaseModel
 
-from eduid.userdb.element import ElementKey
 from eduid.common.models.saml2 import EduidAuthnContextClass
+from eduid.userdb.element import ElementKey
 
 
 class SwamidAssurance(str, Enum):
