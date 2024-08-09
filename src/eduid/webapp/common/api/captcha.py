@@ -17,9 +17,8 @@ class InternalCaptcha:
         self.image_generator = ImageCaptcha(
             height=config.captcha_height,
             width=config.captcha_width,
-            fonts=[str(path) for path in config.captcha_fonts],  # please mypy
-            # underlying module lies in argument type hint
-            font_sizes=config.captcha_font_size,  # type: ignore[arg-type]
+            fonts=[str(path) for path in config.captcha_fonts],
+            font_sizes=config.captcha_font_size,
         )
         self.audio_generator = AudioCaptcha()
 

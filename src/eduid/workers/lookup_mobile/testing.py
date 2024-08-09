@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 
 from eduid.common.config.base import CeleryConfigMixin, EduIDBaseAppConfig
 from eduid.common.config.workers import MobConfig
@@ -14,7 +15,7 @@ class MobTestConfig(EduIDBaseAppConfig, CeleryConfigMixin):
 
 
 class LookupMobileMongoTestCase(MongoTestCase):
-    def setUp(self, init_lookup_mobile=True, **kwargs):
+    def setUp(self, init_lookup_mobile=True, **kwargs) -> Any:  # type: ignore[override]
         super().setUp(**kwargs)
         if init_lookup_mobile:
             settings = {
