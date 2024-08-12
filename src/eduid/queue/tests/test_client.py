@@ -157,7 +157,7 @@ class TestMessageDB(EduidQueueTestCase):
 
         loaded_item = self.messagedb.get_item_by_id(item.item_id)
         assert normalised_data(item.to_dict()) == normalised_data(loaded_item.to_dict())
-        assert normalised_data(item.payload.to_dict()), normalised_data(loaded_item.payload.to_dict())
+        assert normalised_data(item.payload.to_dict()) == normalised_data(loaded_item.payload.to_dict())
 
     @skip("It takes mongo a couple of seconds to actually remove the document, skip for now.")
     # TODO: Investigate if it is possible to force a expire check in mongodb

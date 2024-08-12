@@ -12,7 +12,8 @@ from eduid.webapp.common.api.exceptions import ProofingLogFailure
 from eduid.webapp.common.api.helpers import check_magic_cookie
 from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response, success_response
 from eduid.webapp.common.api.schemas.csrf import EmptyRequest
-from eduid.webapp.common.api.utils import make_short_code
+from eduid.webapp.common.api.utils import get_zxcvbn_terms, make_short_code
+from eduid.webapp.common.api.validation import is_valid_password
 from eduid.webapp.common.session import session
 from eduid.webapp.signup.app import current_signup_app as current_app
 from eduid.webapp.signup.helpers import (
@@ -24,6 +25,7 @@ from eduid.webapp.signup.helpers import (
     complete_and_update_invite,
     create_and_sync_user,
     is_email_verification_expired,
+    is_valid_custom_password,
     send_signup_mail,
 )
 from eduid.webapp.signup.schemas import (
@@ -252,8 +254,8 @@ def captcha_response(internal_response: Optional[str] = None) -> FluxData:
 @require_not_logged_in
 def get_password() -> FluxData:
     current_app.logger.info("Password requested")
-    if session.signup.credentials.password is None:
-        session.signup.credentials.password = generate_password(length=current_app.conf.password_length)
+    if session.signup.credentials.generated_password is None:
+        session.signup.credentials.generated_password = generate_password(length=current_app.conf.password_length)
         session.signup.credentials.completed = True
     return success_response(payload={"state": session.signup.to_dict()})
 
@@ -262,8 +264,12 @@ def get_password() -> FluxData:
 @UnmarshalWith(CreateUserRequest)
 @MarshalWith(SignupStatusResponse)
 @require_not_logged_in
-def create_user(use_password: bool, use_webauthn: bool) -> FluxData:
+def create_user(use_suggested_password: bool, use_webauthn: bool, custom_password: Optional[str] = None) -> FluxData:
     current_app.logger.info("Creating user")
+
+    use_password = False
+    if use_suggested_password or custom_password is not None:
+        use_password = True
 
     if session.common.eppn or session.signup.user_created:
         # do not try to create a new user if the user already exists
@@ -281,14 +287,18 @@ def create_user(use_password: bool, use_webauthn: bool) -> FluxData:
     if not session.signup.tou.completed:
         current_app.logger.error("ToU not completed")
         return error_response(message=SignupMsg.tou_not_completed)
-    if use_password and not session.signup.credentials.password:
-        current_app.logger.error("No password generated")
+    if use_password and not session.signup.credentials.generated_password:
+        current_app.logger.error("No generated_password generated")
         return error_response(message=SignupMsg.password_not_generated)
+    if use_password and custom_password is not None:
+        if not is_valid_custom_password(custom_password):
+            current_app.logger.error("Weak custom password")
+            return error_response(message=SignupMsg.weak_custom_password)
     if use_webauthn and not session.signup.credentials.webauthn:
         current_app.logger.error("No webauthn registered")
         return error_response(message=SignupMsg.webauthn_not_registered)
     if not use_password and not use_webauthn:
-        current_app.logger.error("Neither password nor webauthn selected")
+        current_app.logger.error("Neither generated_password nor webauthn selected")
         return error_response(message=SignupMsg.credential_not_added)
 
     assert session.signup.name.given_name is not None  # please mypy
@@ -300,7 +310,8 @@ def create_user(use_password: bool, use_webauthn: bool) -> FluxData:
             given_name=session.signup.name.given_name,
             surname=session.signup.name.surname,
             email=session.signup.email.address,
-            password=session.signup.credentials.password,
+            generated_password=session.signup.credentials.generated_password,
+            custom_password=custom_password,
             tou_version=session.signup.tou.version,
         )
     except EmailAlreadyVerifiedException:
@@ -313,10 +324,12 @@ def create_user(use_password: bool, use_webauthn: bool) -> FluxData:
     session.signup.user_created = True
     session.signup.credentials.completed = True
     session.common.eppn = signup_user.eppn
-    # create payload before clearing password
+    # create payload before clearing passwords
     state = session.signup.to_dict()
-    # clear password from session
-    session.signup.credentials.password = None
+    state["credentials"]["custom_password"] = custom_password
+    # clear passwords from session and namespace
+    session.signup.credentials.generated_password = None
+    del custom_password
     # clear signup session if the user is done
     if not session.signup.invite.initiated_signup:
         del session.signup

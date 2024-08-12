@@ -11,13 +11,20 @@ from eduid.common.config.base import (
     EduIDBaseAppConfig,
     MagicCookieMixin,
     MailConfigMixin,
+    PasswordConfigMixin,
     TouConfigMixin,
 )
 from eduid.common.models.generic import AnyUrlStr
 
 
 class SignupConfig(
-    EduIDBaseAppConfig, MagicCookieMixin, AmConfigMixin, MailConfigMixin, TouConfigMixin, CaptchaConfigMixin
+    EduIDBaseAppConfig,
+    MagicCookieMixin,
+    AmConfigMixin,
+    MailConfigMixin,
+    TouConfigMixin,
+    CaptchaConfigMixin,
+    PasswordConfigMixin,
 ):
     """
     Configuration for the signup app
