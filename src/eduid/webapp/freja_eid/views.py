@@ -97,7 +97,7 @@ def _authn(
         auth_redirect = current_app.oidc_client.freja_eid.authorize_redirect(
             redirect_uri=url_for("freja_eid.authn_callback", _external=True),
             # TODO: id_token instead of userinfo would be preferred but I can't get it to work
-            claims=json.dumps({"userinfo": current_app.conf.freja_eid_client.claims_request}),
+            # claims=json.dumps({"userinfo": current_app.conf.freja_eid_client.claims_request}),
         )
     except OAuthError:
         current_app.logger.exception("Failed to create authorization request")
@@ -158,7 +158,7 @@ def authn_callback(user) -> WerkzeugResponse:
         return goto_errors_response(
             errors_url=current_app.conf.errors_url_template,
             ctx=EduidErrorsContext.OIDC_RESPONSE_UNSOLICITED,
-            rp=url_for("freja_eid.auth_callback", _external=True),
+            rp=url_for("freja_eid.authn_callback", _external=True),
         )
     current_app.stats.count(name="authn_response")
 
@@ -172,7 +172,7 @@ def authn_callback(user) -> WerkzeugResponse:
         return goto_errors_response(
             errors_url=current_app.conf.errors_url_template,
             ctx=EduidErrorsContext.OIDC_RESPONSE_FAIL,
-            rp=url_for("freja_eid.auth_callback", _external=True),
+            rp=url_for("freja_eid.authn_callback", _external=True),
         )
 
     formatted_finish_url = authn_req.formatted_finish_url(app_name=current_app.conf.app_name)

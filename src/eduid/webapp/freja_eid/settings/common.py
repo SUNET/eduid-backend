@@ -27,17 +27,16 @@ class FrejaEIDClientConfig(AuthlibClientConfig):
     acr_values: list[str] = Field(default=[])
     scopes: list[str] = Field(default=["openid"])
     claims_request: dict[str, Union[None, dict[str, bool]]] = Field(
-        default={
-            "https://frejaeid.com/oidc/claims/personalIdentityNumber": {"essential": True},
-            "https://frejaeid.com/oidc/claims/document": {"essential": True},
-            "https://frejaeid.com/oidc/claims/registrationLevel": {"essential": True},
-            "https://frejaeid.com/oidc/claims/relyingPartyUserId": {"essential": True},
-            "family_name": {"essential": True},
-            "given_name": {"essential": True},
-            "name": None,
-            "https://frejaeid.com/oidc/claims/age": None,
-            "https://frejaeid.com/oidc/claims/country": None,
-        }
+        default={}
+        #    "https://frejaeid.com/oidc/claims/personalIdentityNumber": {"essential": True},
+        #    "https://frejaeid.com/oidc/claims/document": {"essential": True},
+        #    "https://frejaeid.com/oidc/claims/registrationLevel": {"essential": True},
+        #    "https://frejaeid.com/oidc/claims/relyingPartyUserId": {"essential": True},
+        #    "family_name": {"essential": True},
+        #    "given_name": {"essential": True},
+        #    "name": None,
+        #    "https://frejaeid.com/oidc/claims/country": None,
+        # }
     )
 
 
