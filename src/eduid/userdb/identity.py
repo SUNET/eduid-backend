@@ -19,6 +19,7 @@ class IdentityType(str, Enum):
     NIN = "nin"
     EIDAS = "eidas"
     SVIPE = "svipe"
+    FREJA = "freja"
 
 
 class IdentityProofingMethod(str, Enum):
@@ -29,6 +30,7 @@ class IdentityProofingMethod(str, Enum):
     SWEDEN_CONNECT = "swedenconnect"
     TELEADRESS = "TeleAdress"
     BANKID = "bankid"
+    FREJA_EID = "freja_eid"
 
 
 class IdentityElement(VerifiedElement, ABC):
@@ -84,6 +86,8 @@ class IdentityElement(VerifiedElement, ABC):
                 return IdentityProofingMethod.SE_LEG
             case "svipe_id":
                 return IdentityProofingMethod.SVIPE_ID
+            case "freja_eid":
+                return IdentityProofingMethod.FREJA_EID
             case _:
                 logger.warning(f"Unknown verified_by value: {self.verified_by}")
                 return None
@@ -184,6 +188,39 @@ class SvipeIdentity(ForeignIdentityElement):
         return self.svipe_id
 
 
+class FrejaRegistrationLevel(Enum):
+    EXTENDED = "extended"
+    PLUS = "plus"
+
+
+class FrejaIdentity(ForeignIdentityElement):
+    """
+    Element that is used as a Freja identity for a user
+
+    Properties of FrejaIdentity:
+
+        user_id
+        administrative_number
+        registration_level
+        country_code
+    """
+
+    identity_type: Literal[IdentityType.SVIPE] = IdentityType.SVIPE
+    # claim: https://frejaeid.com/oidc/scopes/relyingPartyUserId
+    # A unique, user-specific value that allows the Relying Party to identify the same user across multiple sessions
+    user_id: str
+    administrative_number: Optional[str] = None
+    registration_level: FrejaRegistrationLevel
+
+    @property
+    def unique_key_name(self) -> str:
+        return "user_id"
+
+    @property
+    def unique_value(self) -> str:
+        return self.user_id
+
+
 class IdentityList(VerifiedElementList[IdentityElement]):
     """
     Hold a list of IdentityElement instances.
@@ -200,6 +237,8 @@ class IdentityList(VerifiedElementList[IdentityElement]):
                 elements.append(EIDASIdentity.from_dict(item))
             elif _type == IdentityType.SVIPE.value:
                 elements.append(SvipeIdentity.from_dict(item))
+            elif _type == IdentityType.FREJA.value:
+                elements.append(FrejaIdentity.from_dict(item))
             else:
                 raise ValueError(f"identity_type {_type} not valid")
         return cls(elements=elements)
@@ -234,6 +273,13 @@ class IdentityList(VerifiedElementList[IdentityElement]):
         _svipe = self.filter(SvipeIdentity)
         if _svipe:
             return _svipe[0]
+        return None
+
+    @property
+    def freja(self) -> Optional[FrejaIdentity]:
+        _freja = self.filter(FrejaIdentity)
+        if _freja:
+            return _freja[0]
         return None
 
     @property
