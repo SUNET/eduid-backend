@@ -124,8 +124,6 @@ class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
                 with client.session_transaction() as sess:
                     if "csrf_token" not in data:
                         data["csrf_token"] = sess.get_csrf_token()
-                if mod_data:
-                    data.update(mod_data)
             return client.post("/preferences", json=data)
 
     def _get_user_identities(self, eppn: Optional[str] = None):

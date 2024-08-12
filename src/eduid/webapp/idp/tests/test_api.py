@@ -3,16 +3,22 @@ import logging
 import re
 from dataclasses import dataclass, field
 from pathlib import PurePath
-from typing import Any, Mapping, Optional
+from typing import Any, Mapping, Optional, Tuple, Union
+from unittest.mock import MagicMock, patch
 
 from bson import ObjectId
+from fido2.webauthn import AuthenticatorAttachment
 from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
 from saml2.client import Saml2Client
 from saml2.response import AuthnResponse
 from werkzeug.test import TestResponse
 
 from eduid.common.misc.timeutil import utc_now
+from eduid.common.models.webauthn import WebauthnChallenge
 from eduid.userdb import ToUEvent
+from eduid.userdb.credentials import Credential, FidoCredential, Webauthn
+from eduid.userdb.credentials.external import TrustFramework, external_credential_from_dict
+from eduid.userdb.idp import IdPUser
 from eduid.userdb.mail import MailAddress
 from eduid.userdb.user import User
 from eduid.webapp.common.api.testing import EduidAPITestCase
@@ -21,7 +27,9 @@ from eduid.webapp.common.authn.utils import get_saml2_config
 from eduid.webapp.common.session.namespaces import AuthnRequestRef, PySAML2Dicts
 from eduid.webapp.idp.app import IdPApp, init_idp_app
 from eduid.webapp.idp.helpers import IdPAction
+from eduid.webapp.idp.idp_authn import AuthnData
 from eduid.webapp.idp.sso_session import SSOSession, SSOSessionId
+from eduid.webapp.idp.views.mfa_auth import CheckResult
 
 __author__ = "ft"
 
@@ -51,6 +59,11 @@ class TouResult(GenericResult):
 
 
 @dataclass
+class MfaResult(GenericResult):
+    pass
+
+
+@dataclass
 class FinishedResultAPI(GenericResult):
     pass
 
@@ -70,6 +83,7 @@ class LoginResultAPI:
     visit_order: list[IdPAction] = field(default_factory=list)
     pwauth_result: Optional[PwAuthResult] = None
     tou_result: Optional[TouResult] = None
+    mfa_result: Optional[MfaResult] = None
     finished_result: Optional[FinishedResultAPI] = None
     error: Optional[dict[str, Any]] = None
 
@@ -133,6 +147,7 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
         assertion_consumer_service_url: Optional[str] = None,
         test_user: Optional[TestUser] = None,
         sso_cookie_val: Optional[str] = None,
+        mfa_credential: Optional[Credential] = None,
     ) -> LoginResultAPI:
         """
         Try logging in to the IdP.
@@ -203,8 +218,19 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
                     cookie_jar.update(result.pwauth_result.cookies)
 
                 if _action == IdPAction.MFA:
-                    # Not implemented yet
-                    return result
+                    if mfa_credential is None:
+                        assert user.eppn is not None  # please mypy
+                        _user = self.app.userdb.lookup_user(user.eppn)
+                        assert _user is not None
+                        # default mfa_credential to the first FidoCredential on the user
+                        try:
+                            mfa_credential = _user.credentials.filter(FidoCredential)[0]
+                        except IndexError:
+                            raise AssertionError(
+                                f"No FidoCredential found for user {_user.eppn}, aborting with result {result}"
+                            )
+
+                    result.mfa_result = self._call_mfa(_next.payload["target"], ref, mfa_credential)
 
                 if _action == IdPAction.TOU:
                     result.tou_result = self._call_tou(
@@ -275,6 +301,42 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
         result = TouResult(payload=self.get_response_payload(response))
         return result
 
+    @patch("eduid.webapp.idp.views.mfa_auth._check_webauthn")
+    @patch("eduid.webapp.common.authn.fido_tokens.start_token_verification")
+    def _call_mfa(
+        self, target: str, ref: str, mfa_credential: Credential, mock_stv: MagicMock, mock_cw: MagicMock
+    ) -> MfaResult:
+        mock_stv.return_value = WebauthnChallenge(webauthn_options="{'mock_webautn_options': 'mock_webauthn_options'}")
+        mock_cw.return_value = None
+        # first call to mfa endpoint returns a challenge
+        with self.session_cookie_anon(self.browser) as client:
+            with self.app.test_request_context():
+                with client.session_transaction() as sess:
+                    data = {"ref": ref, "csrf_token": sess.get_csrf_token()}
+                response = client.post(target, json=data)
+
+        payload = self.get_response_payload(response=response)
+        assert (
+            payload.get("webauthn_options") == mock_stv.return_value.webauthn_options
+        ), f"webauthn_options: {payload.get('webauthn_options')}, Expected: {mock_stv.return_value.webauthn_options}"
+        assert payload.get("finished") == False, "Expected finished=False"
+
+        logger.debug(f"MFA endpoint returned (challenge):\n{json.dumps(response.json, indent=4)}")
+
+        # mock valid mfa auth
+        mock_cw.return_value = CheckResult(
+            credential=mfa_credential, authn_data=AuthnData(cred_id=mfa_credential.key, timestamp=utc_now())
+        )
+        # second call to mfa endpoint returns a result
+        with self.session_cookie_anon(self.browser) as client:
+            with self.app.test_request_context():
+                with client.session_transaction() as sess:
+                    data = {"ref": ref, "csrf_token": sess.get_csrf_token()}
+                response = client.post(target, json=data)
+
+        result = MfaResult(payload=self.get_response_payload(response))
+        return result
+
     @staticmethod
     def _extract_form_inputs(res: str) -> dict[str, Any]:
         inputs = {}
@@ -316,12 +378,17 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
             return None
         return self.app.sso_sessions.get_session(SSOSessionId(sso_cookie_val))
 
-    def add_test_user_tou(self, user: Optional[User] = None, version: Optional[str] = None) -> ToUEvent:
+    def add_test_user_tou(self, eppn: Optional[str] = None, version: Optional[str] = None) -> Tuple[IdPUser, ToUEvent]:
         """Utility function to add a valid ToU to the default test user"""
         if version is None:
             version = self.app.conf.tou_version
-        if user is None:
-            user = self.test_user
+        if eppn is None:
+            eppn = self.test_user.eppn
+
+        # load user from central db to not get out of sync
+        user = self.app.userdb.lookup_user(eppn)
+        assert user is not None
+
         tou = ToUEvent(
             version=version,
             created_by="idp_tests",
@@ -330,13 +397,68 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
             event_id=str(ObjectId()),
         )
         user.tou.add(tou)
-        self.amdb.save(user)
-        return tou
+        self.request_user_sync(user)
+        return user, tou
 
     def add_test_user_mail_address(self, mail_address: MailAddress) -> None:
         """Utility function to add a mail address to the default test user"""
-        self.test_user.mail_addresses.add(mail_address)
-        self.amdb.save(self.test_user)
+        # load user from central db to not get out of sync
+        user = self.app.userdb.lookup_user(self.test_user.eppn)
+        assert user is not None
+
+        user.mail_addresses.add(mail_address)
+        self.request_user_sync(user)
+
+    def add_test_user_security_key(
+        self,
+        user: Optional[User] = None,
+        credential_id: Optional[str] = "webauthn_keyhandle",
+        is_verified: bool = False,
+        mfa_approved: bool = False,
+        credential: Optional[FidoCredential] = None,
+        always_use_security_key_user_preference: bool = True,
+    ):
+        if user is None:
+            user = self.test_user
+        # load user from central db to not get out of sync
+        user = self.app.userdb.lookup_user(user.eppn)
+        assert user is not None
+
+        if credential is None:
+            credential = Webauthn(
+                keyhandle=credential_id,
+                credential_data="test",
+                app_id="test",
+                description="test security key",
+                created_by="test",
+                authenticator=AuthenticatorAttachment.CROSS_PLATFORM,
+                is_verified=is_verified,
+                mfa_approved=mfa_approved,
+            )
+        user.credentials.add(credential)
+        user.preferences.always_use_security_key = always_use_security_key_user_preference
+        self.request_user_sync(user)
+
+    def add_test_user_external_mfa_cred(
+        self,
+        user: Optional[User] = None,
+        trust_framework: Optional[TrustFramework] = None,
+    ):
+        if user is None:
+            user = self.test_user
+        # load user from central db to not get out of sync
+        user = self.app.userdb.lookup_user(user.eppn)
+        assert user is not None
+
+        if trust_framework is None:
+            trust_framework = TrustFramework.SWECONN
+
+        cred = external_credential_from_dict(
+            {"trust_framework": trust_framework, "created_ts": utc_now(), "created_by": "test"}
+        )
+        assert cred is not None  # please mypy
+        user.credentials.add(cred)
+        self.request_user_sync(user)
 
     def get_attributes(self, result, saml2_client: Optional[Saml2Client] = None):
         assert result.finished_result is not None
@@ -344,3 +466,41 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
         session_info = authn_response.session_info()
         attributes: dict[str, list[Any]] = session_info["ava"]
         return attributes
+
+    def _assert_dict_contains(self, actual: dict[str, Any], expected: dict[str, Any]):
+        for key, value in expected.items():
+            assert key in actual, f"expected {key} not in {actual}"
+            if isinstance(value, dict):
+                self._assert_dict_contains(actual[key], value)
+            else:
+                assert actual[key] == value, f"expected {key} value: {actual[key]} != {value} in {actual}"
+
+    def _check_login_result(
+        self,
+        result: LoginResultAPI,
+        visit_order: list[IdPAction],
+        sso_cookie_val: Optional[Union[str, bool]] = True,
+        finish_result: Optional[FinishedResultAPI] = None,
+        pwauth_result: Optional[PwAuthResult] = None,
+        error: Optional[dict[str, Any]] = None,
+    ):
+        assert result.visit_order == visit_order, f"visit_order: {result.visit_order}, expected: {visit_order}"
+
+        if sso_cookie_val is True:
+            assert result.sso_cookie_val is not None, "Expected sso_cookie_val but it is None"
+        else:
+            assert (
+                result.sso_cookie_val == sso_cookie_val
+            ), f"sso_cookie_val: {result.sso_cookie_val}, expected: {sso_cookie_val}"
+
+        if finish_result is not None:
+            assert result.finished_result is not None, "Expected finished_result but it is None"
+            self._assert_dict_contains(result.finished_result.payload, finish_result.payload)
+
+        if pwauth_result is not None:
+            assert result.pwauth_result is not None, "Expected pwauth_result but it is None"
+            self._assert_dict_contains(result.pwauth_result.payload, pwauth_result.payload)
+
+        if error is not None:
+            assert result.error is not None, "Expected error but it is None"
+            self._assert_dict_contains(result.error, error)
