@@ -31,15 +31,26 @@ class IdPTestLoginAPI(IdPAPITests):
 
     def test_login_start(self) -> None:
         result = self._try_login(test_user=TestUser(eppn=None, password=None))
-        assert result.visit_order == [IdPAction.PWAUTH]
-        assert result.sso_cookie_val is None
+
+        self._check_login_result(
+            result=result,
+            visit_order=[IdPAction.PWAUTH],
+            sso_cookie_val=None,
+        )
 
     def test_login_pwauth_wrong_password(self) -> None:
         result = self._try_login()
-        assert result.visit_order == [IdPAction.PWAUTH, IdPAction.PWAUTH]
-        assert result.sso_cookie_val is None
-        assert result.pwauth_result is not None
-        assert result.pwauth_result.payload["message"] == IdPMsg.wrong_credentials.value
+
+        self._check_login_result(
+            result=result,
+            visit_order=[IdPAction.PWAUTH, IdPAction.PWAUTH],
+            sso_cookie_val=None,
+            pwauth_result=PwAuthResult(
+                payload={
+                    "message": IdPMsg.wrong_credentials.value,
+                }
+            ),
+        )
 
     def test_login_pwauth_right_password(self) -> None:
         # pre-accept ToU for this test
@@ -50,12 +61,17 @@ class IdPTestLoginAPI(IdPAPITests):
             mock_vccs.return_value = True
             result = self._try_login()
 
-        assert result.visit_order == [IdPAction.PWAUTH, IdPAction.FINISHED]
-        assert result.sso_cookie_val is not None
-        assert result.finished_result is not None
-        assert result.finished_result.payload["message"] == IdPMsg.finished.value
-        assert result.finished_result.payload["target"] == "https://sp.example.edu/saml2/acs/"
-        assert result.finished_result.payload["parameters"]["RelayState"] == self.relay_state
+        self._check_login_result(
+            result=result,
+            visit_order=[IdPAction.PWAUTH, IdPAction.FINISHED],
+            finish_result=FinishedResultAPI(
+                payload={
+                    "message": IdPMsg.finished.value,
+                    "target": "https://sp.example.edu/saml2/acs/",
+                    "parameters": {"RelayState": self.relay_state},
+                }
+            ),
+        )
 
         attributes = self.get_attributes(result)
 
@@ -71,15 +87,19 @@ class IdPTestLoginAPI(IdPAPITests):
             mock_vccs.return_value = True
             result = self._try_login()
 
-        assert result.visit_order == [IdPAction.PWAUTH, IdPAction.TOU, IdPAction.FINISHED]
-        assert result.sso_cookie_val is not None
-        assert result.finished_result is not None
-        assert result.finished_result.payload["message"] == IdPMsg.finished.value
-        assert result.finished_result.payload["target"] == "https://sp.example.edu/saml2/acs/"
-        assert result.finished_result.payload["parameters"]["RelayState"] == self.relay_state
+        self._check_login_result(
+            result=result,
+            visit_order=[IdPAction.PWAUTH, IdPAction.TOU, IdPAction.FINISHED],
+            finish_result=FinishedResultAPI(
+                payload={
+                    "message": IdPMsg.finished.value,
+                    "target": "https://sp.example.edu/saml2/acs/",
+                    "parameters": {"RelayState": self.relay_state},
+                }
+            ),
+        )
 
         attributes = self.get_attributes(result)
-
         assert "eduPersonPrincipalName" in attributes
         assert attributes["eduPersonPrincipalName"] == [f"hubba-bubba@{self.app.conf.default_eppn_scope}"]
 
@@ -95,19 +115,23 @@ class IdPTestLoginAPI(IdPAPITests):
             mock_vccs.return_value = True
             result = self._try_login()
 
-        assert result.visit_order == [
-            IdPAction.PWAUTH,
-            IdPAction.MFA,
-            IdPAction.FINISHED,
-        ], f"NOT expected visit order {result.visit_order}"
-        assert result.sso_cookie_val is not None
-        assert result.finished_result is not None
-        assert result.finished_result.payload["message"] == IdPMsg.finished.value
-        assert result.finished_result.payload["target"] == "https://sp.example.edu/saml2/acs/"
-        assert result.finished_result.payload["parameters"]["RelayState"] == self.relay_state
+        self._check_login_result(
+            result=result,
+            visit_order=[
+                IdPAction.PWAUTH,
+                IdPAction.MFA,
+                IdPAction.FINISHED,
+            ],
+            finish_result=FinishedResultAPI(
+                payload={
+                    "message": IdPMsg.finished.value,
+                    "target": "https://sp.example.edu/saml2/acs/",
+                    "parameters": {"RelayState": self.relay_state},
+                }
+            ),
+        )
 
         attributes = self.get_attributes(result)
-
         assert "eduPersonPrincipalName" in attributes
         assert attributes["eduPersonPrincipalName"] == [f"hubba-bubba@{self.app.conf.default_eppn_scope}"]
 
@@ -123,18 +147,22 @@ class IdPTestLoginAPI(IdPAPITests):
             mock_vccs.return_value = True
             result = self._try_login()
 
-        assert result.visit_order == [
-            IdPAction.PWAUTH,
-            IdPAction.FINISHED,
-        ], f"NOT expected visit order {result.visit_order}"
-        assert result.sso_cookie_val is not None
-        assert result.finished_result is not None
-        assert result.finished_result.payload["message"] == IdPMsg.finished.value
-        assert result.finished_result.payload["target"] == "https://sp.example.edu/saml2/acs/"
-        assert result.finished_result.payload["parameters"]["RelayState"] == self.relay_state
+        self._check_login_result(
+            result=result,
+            visit_order=[
+                IdPAction.PWAUTH,
+                IdPAction.FINISHED,
+            ],
+            finish_result=FinishedResultAPI(
+                payload={
+                    "message": IdPMsg.finished.value,
+                    "target": "https://sp.example.edu/saml2/acs/",
+                    "parameters": {"RelayState": self.relay_state},
+                }
+            ),
+        )
 
         attributes = self.get_attributes(result)
-
         assert "eduPersonPrincipalName" in attributes
         assert attributes["eduPersonPrincipalName"] == [f"hubba-bubba@{self.app.conf.default_eppn_scope}"]
 

@@ -468,15 +468,12 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
         return attributes
 
     def _assert_dict_contains(self, actual: dict[str, Any], expected: dict[str, Any]):
-        # try:
         for key, value in expected.items():
             assert key in actual, f"expected {key} not in {actual}"
             if isinstance(value, dict):
                 self._assert_dict_contains(actual[key], value)
             else:
                 assert actual[key] == value, f"expected {key} value: {actual[key]} != {value} in {actual}"
-        # except AssertionError as e:
-        # raise AssertionError(f"{e}\n\nactual: {actual}")
 
     def _check_login_result(
         self,
