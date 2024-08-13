@@ -324,12 +324,13 @@ def create_user(use_suggested_password: bool, use_webauthn: bool, custom_passwor
     session.signup.user_created = True
     session.signup.credentials.completed = True
     session.common.eppn = signup_user.eppn
-    # create payload before clearing passwords
+    # create payload before clearing generated password
     state = session.signup.to_dict()
-    state["credentials"]["custom_password"] = custom_password
+    if custom_password is not None:
+        state["credentials"]["custom_password"] = True
     # clear passwords from session and namespace
-    session.signup.credentials.generated_password = None
     del custom_password
+    session.signup.credentials.generated_password = None
     # clear signup session if the user is done
     if not session.signup.invite.initiated_signup:
         del session.signup
