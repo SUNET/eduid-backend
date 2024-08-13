@@ -14,7 +14,7 @@ from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.common.authn.session_info import SessionInfo
 from eduid.webapp.common.proofing.messages import ProofingMsg
 from eduid.webapp.eidas.saml_session_info import ForeignEidSessionInfo, NinSessionInfo
-from eduid.webapp.freja_eid.helpers import FrejaEIDDocumentUserInfo
+from eduid.webapp.freja_eid.helpers import FrejaEIDTokenResponse
 from eduid.webapp.svipe_id.helpers import SvipeDocumentUserInfo
 
 logger = logging.getLogger(__name__)
@@ -32,7 +32,9 @@ class ProofingMethod(ABC):
     framework: TrustFramework
     finish_url: str
 
-    def parse_session_info(self, session_info: SessionInfo, backdoor: bool) -> SessionInfoParseResult:
+    def parse_session_info(
+        self, session_info: SessionInfo, backdoor: bool, transaction_id: Optional[str] = None
+    ) -> SessionInfoParseResult:
         raise NotImplementedError("Subclass must implement parse_session_info")
 
     def formatted_finish_url(self, app_name: str, authn_id: str) -> Optional[str]:
@@ -46,7 +48,9 @@ class ProofingMethodSAML(ProofingMethod):
     idp: str
     required_loa: list[str]
 
-    def parse_session_info(self, session_info: SessionInfo, backdoor: bool) -> SessionInfoParseResult:
+    def parse_session_info(
+        self, session_info: SessionInfo, backdoor: bool, transaction_id: Optional[str] = None
+    ) -> SessionInfoParseResult:
         raise NotImplementedError("Subclass must implement parse_session_info")
 
 
@@ -55,7 +59,9 @@ class ProofingMethodFreja(ProofingMethodSAML):
     idp: str
     required_loa: list[str]
 
-    def parse_session_info(self, session_info: SessionInfo, backdoor: bool) -> SessionInfoParseResult:
+    def parse_session_info(
+        self, session_info: SessionInfo, backdoor: bool, transaction_id: Optional[str] = None
+    ) -> SessionInfoParseResult:
         try:
             parsed_session_info = NinSessionInfo(**session_info)
             logger.debug(f"session info: {parsed_session_info}")
@@ -77,7 +83,9 @@ class ProofingMethodFreja(ProofingMethodSAML):
 
 @dataclass(frozen=True)
 class ProofingMethodEidas(ProofingMethodSAML):
-    def parse_session_info(self, session_info: SessionInfo, backdoor: bool) -> SessionInfoParseResult:
+    def parse_session_info(
+        self, session_info: SessionInfo, backdoor: bool, transaction_id: Optional[str] = None
+    ) -> SessionInfoParseResult:
         try:
             parsed_session_info = ForeignEidSessionInfo(**session_info)
             logger.debug(f"session info: {parsed_session_info}")
@@ -90,7 +98,9 @@ class ProofingMethodEidas(ProofingMethodSAML):
 
 @dataclass(frozen=True)
 class ProofingMethodBankID(ProofingMethodSAML):
-    def parse_session_info(self, session_info: SessionInfo, backdoor: bool) -> SessionInfoParseResult:
+    def parse_session_info(
+        self, session_info: SessionInfo, backdoor: bool, transaction_id: Optional[str] = None
+    ) -> SessionInfoParseResult:
         try:
             parsed_session_info = BankIDSessionInfo(**session_info)
             logger.debug(f"session info: {parsed_session_info}")
@@ -103,7 +113,9 @@ class ProofingMethodBankID(ProofingMethodSAML):
 
 @dataclass(frozen=True)
 class ProofingMethodSvipe(ProofingMethod):
-    def parse_session_info(self, session_info: SessionInfo, backdoor: bool) -> SessionInfoParseResult:
+    def parse_session_info(
+        self, session_info: SessionInfo, backdoor: bool, transaction_id: Optional[str] = None
+    ) -> SessionInfoParseResult:
         try:
             parsed_session_info = SvipeDocumentUserInfo(**session_info)
             logger.debug(f"session info: {parsed_session_info}")
@@ -122,9 +134,11 @@ class ProofingMethodSvipe(ProofingMethod):
 
 @dataclass(frozen=True)
 class ProofingMethodFrejaEID(ProofingMethod):
-    def parse_session_info(self, session_info: SessionInfo, backdoor: bool) -> SessionInfoParseResult:
+    def parse_session_info(
+        self, session_info: SessionInfo, backdoor: bool, transaction_id: Optional[str] = None
+    ) -> SessionInfoParseResult:
         try:
-            parsed_session_info = FrejaEIDDocumentUserInfo(**session_info)
+            parsed_session_info = FrejaEIDTokenResponse(**session_info, transaction_id=transaction_id)
             logger.debug(f"session info: {parsed_session_info}")
         except ValidationError:
             logger.exception("missing claim in userinfo response")
