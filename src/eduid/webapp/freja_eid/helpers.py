@@ -1,6 +1,6 @@
 import logging
 from datetime import date
-from enum import unique
+from enum import Enum, unique
 from typing import Any, Optional
 
 from iso3166 import countries
@@ -52,39 +52,39 @@ class SessionOAuthCache:
 
 
 class UserInfoBase(BaseModel):
-    at_hash: str
     aud: str
-    auth_time: int
-    c_hash: str
     exp: int
     iat: int
     iss: str
-    nbf: int
-    sid: str
     sub: str
     model_config = ConfigDict(extra="allow", populate_by_name=True)
 
 
+class FrejaDocumentType(Enum):
+    PASSPORT = "PASS"
+    DRIVING_LICENCE = "DRILIC"
+    NATIONAL_ID = "NATID"
+    SIS_CERTIFIED_ID = "IDSIS"
+    TAX_AGENCY_ID = "TAXID"
+    OTHER_ID = "OTHERID"
+
+
+class FrejaDocument(BaseModel):
+    type: str
+    country: str
+    serialNumber: str
+    expirationDate: date
+
+
 class FrejaEIDDocumentUserInfo(UserInfoBase):
-    personal_identity_number: str = Field(alias="https://frejaeid.com/oidc/claims/personalIdentityNumber")
-    document: Any = Field(alias="https://frejaeid.com/oidc/claims/document")
-    registration_level: FrejaRegistrationLevel = Field(alias="https://frejaeid.com/oidc/claims/registrationLevel")
     country: str = Field(alias="https://frejaeid.com/oidc/claims/country")
+    document: FrejaDocument = Field(alias="https://frejaeid.com/oidc/claims/document")
     family_name: str
     given_name: str
-    name: Optional[str] = None
+    name: str
+    personal_identity_number: str = Field(alias="https://frejaeid.com/oidc/claims/personalIdentityNumber")
+    registration_level: FrejaRegistrationLevel = Field(alias="https://frejaeid.com/oidc/claims/registrationLevel")
     user_id: str = Field(alias="https://frejaeid.com/oidc/claims/relyingPartyUserId")
-    transaction_id: str
-
-    @field_validator("country")
-    @classmethod
-    def country_name_to_alpha2(cls, v):
-        # translate ISO 3166-1 alpha-3 to alpha-2 to match the format used in eduid-userdb
-        try:
-            country = countries.get(v)
-        except KeyError:
-            raise ValueError(f"country code {v} not found in iso3166")
-        return country.alpha2
 
 
 class FrejaEIDTokenResponse(BaseModel):
@@ -94,3 +94,4 @@ class FrejaEIDTokenResponse(BaseModel):
     id_token: str
     token_type: str
     userinfo: FrejaEIDDocumentUserInfo
+    transaction_id: str

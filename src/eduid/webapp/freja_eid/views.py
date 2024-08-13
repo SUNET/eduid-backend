@@ -181,35 +181,18 @@ def authn_callback(user) -> WerkzeugResponse:
     try:
         token_response = current_app.oidc_client.freja_eid.authorize_access_token()
         current_app.logger.debug(f"Got token response: {token_response}")
-        user_response = current_app.oidc_client.freja_eid.userinfo()
-        current_app.logger.debug(f"Got user response: {user_response}")
-        # TODO: look in to why we are not getting a full userinfo in token response anymore
-        if token_response.get("userinfo", dict()).get("sub") != user_response.get("sub"):  # sub must match
-            raise OAuthError("sub mismatch")
-        user_response.update(token_response.get("userinfo", dict()))
-        current_app.logger.debug(f"merged user response and token respose userinfo: {user_response}")
     except (OAuthError, KeyError):
         # catch any exception from the oidc client and also exceptions about missing request arguments
-        current_app.logger.exception("Failed to get token response from Svipe ID")
+        current_app.logger.exception("Failed to get token response from Freja")
         current_app.stats.count(name="token_response_failed")
         authn_req.error = True
         authn_req.status = FrejaEIDMsg.authorization_error.value
         return redirect(formatted_finish_url)
 
-    # end session after successful token response
-    try:
-        metadata = current_app.oidc_client.freja_eid.load_server_metadata()
-        current_app.oidc_client.freja_eid.get(
-            metadata.get("end_session_endpoint"), params={"id_token_hint": token_response["id_token"]}
-        )
-    except OAuthError:
-        # keep going even if we can't end the session
-        current_app.logger.exception("Failed to end OIDC session")
-
     action = get_action(default_action=None, authndata=authn_req)
     backdoor = check_magic_cookie(config=current_app.conf)
     args = ACSArgs(
-        session_info=user_response,
+        session_info=token_response,
         authn_req=authn_req,
         proofing_method=proofing_method,
         backdoor=backdoor,

@@ -11,8 +11,8 @@ from eduid.userdb import User
 from eduid.userdb.credentials import Credential
 from eduid.userdb.element import ElementKey
 from eduid.userdb.exceptions import LockedIdentityViolation
-from eduid.userdb.identity import IdentityElement, IdentityProofingMethod, IdentityType, FrejaIdentity
-from eduid.userdb.logs.element import NinProofingLogElement, FrejaEIDForeignProofing, FrejaEIDNINProofing
+from eduid.userdb.identity import FrejaIdentity, IdentityElement, IdentityProofingMethod, IdentityType
+from eduid.userdb.logs.element import FrejaEIDForeignProofing, FrejaEIDNINProofing, NinProofingLogElement
 from eduid.userdb.proofing import NinProofingElement, ProofingUser
 from eduid.userdb.proofing.state import NinProofingState
 from eduid.webapp.common.api.helpers import set_user_names_from_foreign_id, verify_nin_for_user
@@ -26,20 +26,20 @@ from eduid.webapp.common.proofing.base import (
 )
 from eduid.webapp.common.proofing.methods import ProofingMethod
 from eduid.webapp.freja_eid.app import current_freja_eid_app as current_app
-from eduid.webapp.freja_eid.helpers import FrejaEIDDocumentUserInfo
+from eduid.webapp.freja_eid.helpers import FrejaEIDTokenResponse
 
 __author__ = "lundberg"
 
 
 @dataclass
-class FrejaEIDProofingFunctions(ProofingFunctions[FrejaEIDDocumentUserInfo]):
+class FrejaEIDProofingFunctions(ProofingFunctions[FrejaEIDTokenResponse]):
     def is_swedish_document(self) -> bool:
-        issuing_country = countries.get(self.session_info.document_issuing_country, None)
+        issuing_country = countries.get(self.session_info.userinfo.document.country, None)
         sweden = countries.get("SE")
         if not sweden:
             raise RuntimeError('Could not find country "SE" in iso3166')
         if not issuing_country:
-            raise RuntimeError(f'Could not find country "{self.session_info.document_issuing_country}" in iso3166')
+            raise RuntimeError(f'Could not find country "{self.session_info.userinfo.document.country}" in iso3166')
         if issuing_country == sweden:
             return True
         return False
@@ -225,9 +225,9 @@ class FrejaEIDProofingFunctions(ProofingFunctions[FrejaEIDDocumentUserInfo]):
 
 
 def get_proofing_functions(
-    session_info: FrejaEIDDocumentUserInfo,
+    session_info: FrejaEIDTokenResponse,
     app_name: str,
     config: ProofingConfigMixin,
     backdoor: bool,
-) -> ProofingFunctions[FrejaEIDDocumentUserInfo]:
+) -> ProofingFunctions[FrejaEIDTokenResponse]:
     return FrejaEIDProofingFunctions(session_info=session_info, app_name=app_name, config=config, backdoor=backdoor)

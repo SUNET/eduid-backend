@@ -4,7 +4,7 @@ from eduid.webapp.common.authn.acs_registry import ACSArgs, ACSResult, acs_actio
 from eduid.webapp.common.proofing.messages import ProofingMsg
 from eduid.webapp.freja_eid.app import current_freja_eid_app as current_app
 from eduid.webapp.freja_eid.callback_enums import FrejaEIDAction
-from eduid.webapp.freja_eid.helpers import FrejaEIDDocumentUserInfo, FrejaEIDMsg
+from eduid.webapp.freja_eid.helpers import FrejaEIDMsg, FrejaEIDTokenResponse
 from eduid.webapp.freja_eid.proofing import get_proofing_functions
 
 __author__ = "lundberg"
@@ -20,12 +20,14 @@ def verify_identity_action(user: User, args: ACSArgs) -> ACSResult:
     if not args.proofing_method:
         return ACSResult(message=FrejaEIDMsg.method_not_available)
 
-    parsed = args.proofing_method.parse_session_info(args.session_info, backdoor=args.backdoor)
+    parsed = args.proofing_method.parse_session_info(
+        args.session_info, backdoor=args.backdoor, transaction_id=args.authn_req.authn_id
+    )
     if parsed.error:
         return ACSResult(message=parsed.error)
 
     # please type checking
-    assert isinstance(parsed.info, FrejaEIDDocumentUserInfo)
+    assert isinstance(parsed.info, FrejaEIDTokenResponse)
 
     proofing = get_proofing_functions(
         session_info=parsed.info, app_name=current_app.conf.app_name, config=current_app.conf, backdoor=args.backdoor
