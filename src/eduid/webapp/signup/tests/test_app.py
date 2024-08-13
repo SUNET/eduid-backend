@@ -563,9 +563,9 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
                     assert self.get_response_payload(response)["state"]["email"]["completed"] is True
                     assert self.get_response_payload(response)["state"]["credentials"]["completed"] is True
                     if custom_password:
+                        assert self.get_response_payload(response)["state"]["credentials"]["custom_password"] is True
                         assert (
-                            self.get_response_payload(response)["state"]["credentials"]["custom_password"]
-                            == custom_password
+                            self.get_response_payload(response)["state"]["credentials"]["generated_password"] is False
                         )
                     else:
                         assert (
@@ -848,7 +848,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         assert state == {
             "already_signed_up": False,
             "captcha": {"completed": False},
-            "credentials": {"completed": False, "generated_password": None},
+            "credentials": {"completed": False, "custom_password": False, "generated_password": None},
             "email": {"address": None, "bad_attempts": 0, "bad_attempts_max": 3, "completed": False, "sent_at": None},
             "invite": {"completed": False, "finish_url": None, "initiated_signup": False},
             "name": {"given_name": None, "surname": None},
@@ -863,7 +863,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         assert state == {
             "already_signed_up": True,
             "captcha": {"completed": False},
-            "credentials": {"completed": False, "generated_password": None},
+            "credentials": {"completed": False, "custom_password": False, "generated_password": None},
             "email": {"address": None, "bad_attempts": 0, "bad_attempts_max": 3, "completed": False, "sent_at": None},
             "invite": {"completed": False, "finish_url": None, "initiated_signup": False},
             "name": {"given_name": None, "surname": None},
@@ -1382,7 +1382,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         assert normalised_data(state, exclude_keys=["expires_time_left", "throttle_time_left", "sent_at"]) == {
             "already_signed_up": False,
             "captcha": {"completed": False},
-            "credentials": {"completed": False, "generated_password": None},
+            "credentials": {"completed": False, "custom_password": False, "generated_password": None},
             "email": {
                 "address": "dummy@example.com",
                 "bad_attempts": 0,
