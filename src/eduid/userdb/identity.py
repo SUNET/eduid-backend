@@ -189,8 +189,8 @@ class SvipeIdentity(ForeignIdentityElement):
 
 
 class FrejaRegistrationLevel(Enum):
-    EXTENDED = "extended"
-    PLUS = "plus"
+    EXTENDED = "EXTENDED"
+    PLUS = "PLUS"
 
 
 class FrejaIdentity(ForeignIdentityElement):
