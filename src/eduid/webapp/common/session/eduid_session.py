@@ -24,6 +24,7 @@ from eduid.webapp.common.session.namespaces import (
     BankIDNamespace,
     Common,
     EidasNamespace,
+    FrejaEIDNamespace,
     IdP_Namespace,
     MfaAction,
     Phone,
@@ -32,7 +33,6 @@ from eduid.webapp.common.session.namespaces import (
     Signup,
     SvipeIDNamespace,
     TimestampedNS,
-    FrejaEIDNamespace,
 )
 from eduid.webapp.common.session.redis_session import RedisEncryptedSession, SessionManager, SessionOutOfSync
 
