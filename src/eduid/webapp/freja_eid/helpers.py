@@ -30,9 +30,11 @@ class FrejaEIDMsg(TranslatableMsg):
     method_not_available = "freja_eid.method_not_available"
     # Identity verification success
     identity_verify_success = "freja_eid.identity_verify_success"
-    # Authorization error at Svipe ID
+    # Authorization error at Freja EID
     authorization_error = "freja_eid.authorization_fail"
     frontend_action_not_supported = "freja_eid.frontend_action_not_supported"
+    # registration level not satisfied
+    registration_level_not_satisfied = "freja_eid.registration_level_not_satisfied"
 
 
 class SessionOAuthCache:
