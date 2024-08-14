@@ -9,19 +9,17 @@ from iso3166 import Country, countries
 
 from eduid.common.config.base import FrontendAction
 from eduid.common.misc.timeutil import utc_now
-from eduid.userdb import SvipeIdentity
-from eduid.userdb.identity import IdentityProofingMethod
+from eduid.userdb.identity import FrejaIdentity, FrejaRegistrationLevel, IdentityProofingMethod
 from eduid.webapp.common.api.messages import CommonMsg
 from eduid.webapp.common.proofing.messages import ProofingMsg
 from eduid.webapp.common.proofing.testing import ProofingTests
-from eduid.webapp.svipe_id.app import SvipeIdApp, svipe_id_init_app
-from eduid.webapp.svipe_id.helpers import SvipeDocumentUserInfo, SvipeIDMsg
-from eduid.webapp.svipe_id.settings.common import SvipeClientConfig
+from eduid.webapp.freja_eid.app import FrejaEIDApp, freja_eid_init_app
+from eduid.webapp.freja_eid.helpers import FrejaDocument, FrejaDocumentType, FrejaEIDDocumentUserInfo, FrejaEIDMsg
 
 __author__ = "lundberg"
 
 
-class SvipeIdTests(ProofingTests[SvipeIdApp]):
+class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
     """Base TestCase for those tests that need a full environment setup"""
 
     def setUp(self, *args, **kwargs):
@@ -31,98 +29,92 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
         self._user_setup()
 
         self.default_frontend_data = {
-            "method": "svipe_id",
+            "method": "freja_eid",
             "frontend_action": "verifyIdentity",
             "frontend_state": "test_state",
         }
 
         self.oidc_provider_config = {
-            "issuer": "https://example.com/op/",
-            "authorization_endpoint": "https://example.com/op/authorize",
-            "token_endpoint": "https://example.com/op/token",
-            "userinfo_endpoint": "https://example.com/op/userinfo",
-            "jwks_uri": "https://example.com/op/keys",
-            "registration_endpoint": "https://example.com/op/clients",
-            "scopes_supported": ["openid", "profile", "email", "phone", "document", "document_full"],
-            "response_types_supported": [
-                "code",
-                "token",
-                "id_token",
-                "id_token token",
-                "code id_token",
-                "code token",
-                "code id_token token",
-                "none",
-            ],
+            "response_types_supported": ["code"],
+            "request_parameter_supported": True,
+            "request_uri_parameter_supported": False,
+            "userinfo_encryption_alg_values_supported": ["none"],
+            "claims_parameter_supported": False,
             "grant_types_supported": ["authorization_code"],
-            "subject_types_supported": ["public"],
-            "revocation_endpoint": "https://example.com/op/token/revoke",
-            "end_session_endpoint": "https://example.com/op/logout",
-            "token_endpoint_auth_methods_supported": ["client_secret_basic", "client_secret_post", "none"],
+            "scopes_supported": [
+                "openid",
+                "email",
+                "profile",
+                "https://frejaeid.com/oidc/scopes/age",
+                "https://frejaeid.com/oidc/scopes/personalIdentityNumber",
+                "https://frejaeid.com/oidc/scopes/organisationId",
+                "phone",
+                "https://frejaeid.com/oidc/scopes/allPhoneNumbers",
+                "https://frejaeid.com/oidc/scopes/covidCertificate",
+                "https://frejaeid.com/oidc/scopes/document",
+                "https://frejaeid.com/oidc/scopes/registrationLevel",
+                "https://frejaeid.com/oidc/scopes/allEmailAddresses",
+                "https://frejaeid.com/oidc/scopes/relyingPartyUserId",
+                "https://frejaeid.com/oidc/scopes/integratorSpecificUserId",
+                "https://frejaeid.com/oidc/scopes/customIdentifier",
+                "https://frejaeid.com/oidc/scopes/addresses",
+                "address",
+            ],
+            "issuer": "https://example.com/op/oidc/",
+            "authorization_endpoint": "https://example.com/op/oidc/authorize",
+            "userinfo_endpoint": "https://example.com/op/oidc/userinfo",
+            "token_endpoint_auth_signing_alg_values_supported": ["RS256"],
+            "userinfo_signing_alg_values_supported": ["none"],
             "claims_supported": [
-                "iss",
-                "ver",
-                "sub",
-                "aud",
-                "iat",
-                "exp",
-                "jti",
-                "auth_time",
-                "amr",
-                "idp",
-                "nonce",
-                "at_hash",
-                "c_hashname",
-                "given_name",
-                "family_name",
                 "email",
                 "email_verified",
+                "name",
+                "given_name",
+                "family_name",
+                "https://frejaeid.com/oidc/claims/age",
+                "https://frejaeid.com/oidc/claims/personalIdentityNumber",
+                "https://frejaeid.com/oidc/claims/country",
+                "https://frejaeid.com/oidc/claims/organisationIdIdentifier",
+                "https://frejaeid.com/oidc/claims/organisationIdAdditionalAttributes",
                 "phone_number",
                 "phone_number_verified",
-                "gender",
-                "birthdate",
-                "updated_at",
-                "locale",
-                "com.svipe:svipeid",
-                "com.svipe:document_portrait",
-                "com.svipe:document_nationality",
-                "com.svipe:document_nationality_en",
-                "com.svipe:document_type",
-                "com.svipe:document_type_sdn",
-                "com.svipe:document_type_sdn_en",
-                "com.svipe:document_number",
-                "com.svipe:document_issuing_country",
-                "com.svipe:document_issuing_country_en",
-                "com.svipe:document_expiry_date",
-                "com.svipe:document_administrative_number",
+                "https://frejaeid.com/oidc/claims/allPhoneNumbers",
+                "https://frejaeid.com/oidc/claims/covidCertificate",
+                "https://frejaeid.com/oidc/claims/document",
+                "https://frejaeid.com/oidc/claims/registrationLevel",
+                "https://frejaeid.com/oidc/claims/allEmailAddresses",
+                "https://frejaeid.com/oidc/claims/relyingPartyUserId",
+                "https://frejaeid.com/oidc/claims/integratorSpecificUserId",
+                "https://frejaeid.com/oidc/claims/customIdentifier",
+                "https://frejaeid.com/oidc/claims/addresses",
+                "address",
             ],
-            "backchannel_logout_supported": True,
-            "backchannel_logout_session_supported": True,
-            "frontchannel_logout_supported": True,
-            "frontchannel_logout_session_supported": True,
-            "claims_parameter_supported": True,
-            "request_parameter_supported": True,
-            "request_uri_parameter_supported": True,
-            "request_object_signing_alg_values_supported": ["RS256"],
-            "userinfo_signing_alg_values_supported": ["RS256"],
+            "require_request_uri_registration": True,
+            "code_challenge_methods_supported": ["plain", "S256"],
+            "jwks_uri": "https://example.com/op/oidc/jwk",
+            "subject_types_supported": ["public"],
             "id_token_signing_alg_values_supported": ["RS256"],
-            "acr_values_supported": ["face_present", "document_present", "face_and_document_present"],
+            "claim_types_supported": ["normal"],
+            "token_endpoint_auth_methods_supported": ["client_secret_post", "client_secret_basic"],
+            "request_object_signing_alg_values_supported": ["RS256", "none"],
+            "request_object_encryption_alg_values_supported": ["RSA1_5", "RSA-OAEP-256"],
+            "token_endpoint": "https://example.com/op/oidc/token",
         }
 
-    def load_app(self, config: dict[str, Any]) -> SvipeIdApp:
+    def load_app(self, config: dict[str, Any]) -> FrejaEIDApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
-        return svipe_id_init_app("testing", config)
+        return freja_eid_init_app("testing", config)
 
     def update_config(self, config: dict[str, Any]):
         config.update(
             {
-                "svipe_client": {
+                "freja_eid_client": {
                     "client_id": "test_client_id",
                     "client_secret": "test_client_secret",
-                    "issuer": "https://issuer.example.com",
+                    "issuer": "https://example.com/op/oidc",
                 },
                 "frontend_action_authn_parameters": {
                     FrontendAction.VERIFY_IDENTITY.value: {
@@ -135,53 +127,52 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
         return config
 
     def _user_setup(self):
-        # remove any svipe identity that already exists, we want to handle those ourselves
+        # remove any freja eid identity that already exists, we want to handle those ourselves
         for eppn in [self.test_user.eppn, self.unverified_test_user.eppn]:
             user = self.app.central_userdb.get_user_by_eppn(eppn)
-            if user.identities.svipe:
-                user.identities.remove(user.identities.svipe.key)
+            if user.identities.freja:
+                user.identities.remove(user.identities.freja.key)
                 self.app.central_userdb.save(user)
 
     @staticmethod
     def get_mock_userinfo(
         issuing_country: Country,
-        nationality: Country,
-        administrative_number: Optional[str] = "123456789",
+        personal_identity_number: Optional[str] = "123456789",
+        registration_level: FrejaRegistrationLevel = FrejaRegistrationLevel.EXTENDED,
         birthdate: date = date(year=1901, month=2, day=3),
-        svipe_id: str = "unique_svipe_id",
+        freja_user_id: str = "unique_freja_eid",
         transaction_id: str = "unique_transaction_id",
         given_name: str = "Test",
         family_name: str = "Testsson",
         now: datetime = utc_now(),
         userinfo_expires: Optional[datetime] = None,
         document_expires: Optional[datetime] = None,
-    ) -> SvipeDocumentUserInfo:
+    ) -> FrejaEIDDocumentUserInfo:
         if userinfo_expires is None:
             userinfo_expires = now + timedelta(minutes=5)
         if document_expires is None:
             document_expires = now + timedelta(days=1095)  # 3 years
 
-        return SvipeDocumentUserInfo(
-            at_hash="test",
+        return FrejaEIDDocumentUserInfo(
             aud="test",
-            auth_time=int(now.timestamp()),
-            c_hash="test",
             exp=int(userinfo_expires.timestamp()),
             iat=int(now.timestamp()),
             iss="test",
-            nbf=int(now.timestamp()),
-            sid="test",
-            sub=svipe_id,
-            birthdate=birthdate,
+            sub=freja_user_id,
+            date_of_birth=birthdate,
             family_name=family_name,
             given_name=given_name,
-            document_administrative_number=administrative_number,
-            document_expiry_date=document_expires.date(),
-            document_type_sdn_en="Passport",
-            document_issuing_country=issuing_country.alpha3,
-            document_nationality=nationality.alpha3,
-            document_number="1234567890",
-            svipe_id=svipe_id,
+            name=f"{given_name} {family_name}",
+            country=issuing_country.alpha2,
+            document=FrejaDocument(
+                type=FrejaDocumentType.PASSPORT,
+                country=issuing_country.alpha2,
+                serial_number="1234567890",
+                expiration_date=document_expires.date(),
+            ),
+            personal_identity_number=personal_identity_number,
+            user_id=freja_user_id,
+            registration_level=registration_level,
             transaction_id=transaction_id,
         )
 
@@ -204,10 +195,10 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
         mock_end_session: MagicMock,
         state: str,
         nonce: str,
-        userinfo: SvipeDocumentUserInfo,
+        userinfo: FrejaEIDDocumentUserInfo,
     ):
         with self.app.test_request_context():
-            endpoint = url_for("svipe_id.authn_callback")
+            endpoint = url_for("freja_eid.authn_callback")
 
         mock_metadata.return_value = self.oidc_provider_config
         mock_end_session.return_value = True
@@ -235,8 +226,8 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
             "id_token": id_token,
         }
 
-        mock_parse_id_token.return_value = userinfo.dict()
-        mock_userinfo.return_value = userinfo.dict()
+        mock_parse_id_token.return_value = userinfo.model_dump()
+        mock_userinfo.return_value = userinfo.model_dump()
         return self.browser.get(f"{endpoint}?id_token=id_token&state={state}&code=mock_code")
 
     @patch("authlib.integrations.base_client.sync_app.OAuth2Mixin.load_server_metadata")
@@ -255,54 +246,29 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
     def test_app_starts(self):
         assert self.app.conf.app_name == "testing"
 
-    def test_client_claims_config(self):
-        data = {
-            "svipe_client": {
-                "client_id": "x",
-                "client_secret": "y",
-                "issuer": "https://issuer.example.edu/",
-                "claims_request": {
-                    "com.svipe:document_administrative_number": {"essential": True},
-                    "com.svipe:document_expiry_date": {"essential": True},
-                    "com.svipe:document_issuing_country": {"essential": True},
-                    "com.svipe:document_nationality": {"essential": True},
-                    "com.svipe:document_number": {"essential": True},
-                    "birthdate": {"essential": True},
-                    "com.svipe:document_type_sdn_en": {"essential": True},
-                    "com.svipe:meta_transaction_id": {"essential": True},
-                    "com.svipe:svipeid": {"essential": True},
-                    "family_name": {"essential": True},
-                    "given_name": {"essential": True},
-                    "name": None,
-                },
-            },
-        }
-        cfg = SvipeClientConfig.model_validate(data["svipe_client"])
-        assert cfg.claims_request == data["svipe_client"]["claims_request"]
-
     def test_authenticate(self):
         response = self.browser.get("/")
         self.assertEqual(response.status_code, 302)  # Redirect to token service
         with self.session_cookie(self.browser, self.test_user.eppn) as browser:
             response = browser.get("/")
-        self._check_success_response(response, type_="GET_SVIPE_ID_SUCCESS")
+        self._check_success_response(response, type_="GET_FREJA_EID_SUCCESS")
 
     def test_verify_identity_request(self):
         with self.app.test_request_context():
-            endpoint = url_for("svipe_id.verify_identity")
+            endpoint = url_for("freja_eid.verify_identity")
 
         response = self._start_auth(endpoint=endpoint, data=self.default_frontend_data, eppn=self.test_user.eppn)
         assert response.status_code == 200
-        self._check_success_response(response, type_="POST_SVIPE_ID_VERIFY_IDENTITY_SUCCESS")
-        assert self.get_response_payload(response)["location"].startswith("https://example.com/op/authorize")
+        self._check_success_response(response, type_="POST_FREJA_EID_VERIFY_IDENTITY_SUCCESS")
+        assert self.get_response_payload(response)["location"].startswith("https://example.com/op/oidc/authorize")
         query: dict[str, list[str]] = parse_qs(urlparse(self.get_response_payload(response)["location"]).query)  # type: ignore
         assert query["response_type"] == ["code"]
         assert query["client_id"] == ["test_client_id"]
         assert query["redirect_uri"] == ["http://test.localhost/authn-callback"]
-        assert query["scope"] == ["openid"]
+        assert query["scope"] == [
+            " ".join(self.app.conf.freja_eid_client.scopes)
+        ], f"{query['scope']} != {[' '.join(self.app.conf.freja_eid_client.scopes)]}"
         assert query["code_challenge_method"] == ["S256"]
-        assert query["acr_values"] == ["face_present"]
-        assert query["claims"] == [json.dumps({"userinfo": self.app.conf.svipe_client.claims_request})]
 
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
@@ -314,12 +280,12 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
         country = countries.get("Sweden")
 
         with self.app.test_request_context():
-            endpoint = url_for("svipe_id.verify_identity")
+            endpoint = url_for("freja_eid.verify_identity")
 
         start_auth_response = self._start_auth(endpoint=endpoint, data=self.default_frontend_data, eppn=eppn)
         state, nonce = self._get_state_and_nonce(self.get_response_payload(start_auth_response)["location"])
 
-        userinfo = self.get_mock_userinfo(issuing_country=country, nationality=country)
+        userinfo = self.get_mock_userinfo(issuing_country=country, registration_level=FrejaRegistrationLevel.PLUS)
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
         assert response.status_code == 302
         self._verify_status(
@@ -327,7 +293,7 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
             frontend_action=FrontendAction(self.default_frontend_data["frontend_action"]),
             frontend_state=self.default_frontend_data["frontend_state"],
             method=self.default_frontend_data["method"],
-            expect_msg=SvipeIDMsg.identity_verify_success,
+            expect_msg=FrejaEIDMsg.identity_verify_success,
         )
 
         user = self.app.central_userdb.get_user_by_eppn(eppn)
@@ -337,8 +303,8 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
             num_proofings=1,
             num_mfa_tokens=0,
             locked_identity=user.identities.nin,
-            proofing_method=IdentityProofingMethod.SVIPE_ID,
-            proofing_version=self.app.conf.svipe_id_proofing_version,
+            proofing_method=IdentityProofingMethod.FREJA_EID,
+            proofing_version=self.app.conf.freja_eid_proofing_version,
         )
 
         # check names
@@ -357,11 +323,11 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
         country = countries.get("Denmark")
 
         with self.app.test_request_context():
-            endpoint = url_for("svipe_id.verify_identity")
+            endpoint = url_for("freja_eid.verify_identity")
 
         start_auth_response = self._start_auth(endpoint=endpoint, data=self.default_frontend_data, eppn=eppn)
         state, nonce = self._get_state_and_nonce(self.get_response_payload(start_auth_response)["location"])
-        userinfo = self.get_mock_userinfo(issuing_country=country, nationality=country)
+        userinfo = self.get_mock_userinfo(issuing_country=country)
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
         assert response.status_code == 302
         self._verify_status(
@@ -369,7 +335,7 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
             frontend_action=FrontendAction(self.default_frontend_data["frontend_action"]),
             frontend_state=self.default_frontend_data["frontend_state"],
             method=self.default_frontend_data["method"],
-            expect_msg=SvipeIDMsg.identity_verify_success,
+            expect_msg=FrejaEIDMsg.identity_verify_success,
         )
 
         user = self.app.central_userdb.get_user_by_eppn(eppn)
@@ -378,25 +344,25 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
             identity_verified=True,
             num_proofings=1,
             num_mfa_tokens=0,
-            locked_identity=user.identities.svipe,
-            proofing_method=IdentityProofingMethod.SVIPE_ID,
-            proofing_version=self.app.conf.svipe_id_proofing_version,
+            locked_identity=user.identities.freja,
+            proofing_method=IdentityProofingMethod.FREJA_EID,
+            proofing_version=self.app.conf.freja_eid_proofing_version,
         )
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_verify_foreign_identity_no_admin_number(self, mock_request_user_sync: MagicMock):
-        """Not all countries have something like a Swedish NIN, so administrative_number may be None"""
+    def test_verify_foreign_identity_no_identity_number(self, mock_request_user_sync: MagicMock):
+        """Not all countries have something like a Swedish NIN, so personal_identity_number may be None"""
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.unverified_test_user.eppn
         country = countries.get("Denmark")
 
         with self.app.test_request_context():
-            endpoint = url_for("svipe_id.verify_identity")
+            endpoint = url_for("freja_eid.verify_identity")
 
         start_auth_response = self._start_auth(endpoint=endpoint, data=self.default_frontend_data, eppn=eppn)
         state, nonce = self._get_state_and_nonce(self.get_response_payload(start_auth_response)["location"])
-        userinfo = self.get_mock_userinfo(issuing_country=country, nationality=country, administrative_number=None)
+        userinfo = self.get_mock_userinfo(issuing_country=country, personal_identity_number=None)
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
         assert response.status_code == 302
         self._verify_status(
@@ -404,22 +370,22 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
             frontend_action=FrontendAction(self.default_frontend_data["frontend_action"]),
             frontend_state=self.default_frontend_data["frontend_state"],
             method=self.default_frontend_data["method"],
-            expect_msg=SvipeIDMsg.identity_verify_success,
+            expect_msg=FrejaEIDMsg.identity_verify_success,
         )
 
         user = self.app.central_userdb.get_user_by_eppn(eppn)
 
-        assert user.identities.svipe is not None
-        assert user.identities.svipe.administrative_number is None
+        assert user.identities.freja is not None
+        assert user.identities.freja.personal_identity_number is None
 
         self._verify_user_parameters(
             eppn,
             identity_verified=True,
             num_proofings=1,
             num_mfa_tokens=0,
-            locked_identity=user.identities.svipe,
-            proofing_method=IdentityProofingMethod.SVIPE_ID,
-            proofing_version=self.app.conf.svipe_id_proofing_version,
+            locked_identity=user.identities.freja,
+            proofing_method=IdentityProofingMethod.FREJA_EID,
+            proofing_version=self.app.conf.freja_eid_proofing_version,
         )
 
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
@@ -434,11 +400,11 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
         country = countries.get("Sweden")
 
         with self.app.test_request_context():
-            endpoint = url_for("svipe_id.verify_identity")
+            endpoint = url_for("freja_eid.verify_identity")
 
         start_auth_response = self._start_auth(endpoint=endpoint, data=self.default_frontend_data, eppn=eppn)
         state, nonce = self._get_state_and_nonce(self.get_response_payload(start_auth_response)["location"])
-        userinfo = self.get_mock_userinfo(issuing_country=country, nationality=country)
+        userinfo = self.get_mock_userinfo(issuing_country=country)
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
         assert response.status_code == 302
         self._verify_status(
@@ -458,26 +424,27 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
         eppn = self.test_user.eppn
         country = countries.get("Denmark")
 
-        # add a verified svipe identity
+        # add a verified freja eid identity
         user = self.app.central_userdb.get_user_by_eppn(eppn)
-        userinfo = self.get_mock_userinfo(issuing_country=country, nationality=country)
+        userinfo = self.get_mock_userinfo(issuing_country=country)
         user.identities.add(
-            SvipeIdentity(
-                administrative_number=userinfo.document_administrative_number,
+            FrejaIdentity(
+                personal_identity_number=userinfo.personal_identity_number,
                 country_code=country.alpha2,
-                date_of_birth=datetime.combine(userinfo.birthdate.today(), datetime.min.time()),
+                date_of_birth=datetime.combine(userinfo.date_of_birth, datetime.min.time()),
                 is_verified=True,
-                svipe_id=userinfo.svipe_id,
+                user_id=userinfo.user_id,
+                registration_level=userinfo.registration_level,
             )
         )
         self.request_user_sync(user)
 
         with self.app.test_request_context():
-            endpoint = url_for("svipe_id.verify_identity")
+            endpoint = url_for("freja_eid.verify_identity")
 
         start_auth_response = self._start_auth(endpoint=endpoint, data=self.default_frontend_data, eppn=eppn)
         state, nonce = self._get_state_and_nonce(self.get_response_payload(start_auth_response)["location"])
-        userinfo = self.get_mock_userinfo(issuing_country=country, nationality=country)
+        userinfo = self.get_mock_userinfo(issuing_country=country)
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
         assert response.status_code == 302
         self._verify_status(
@@ -497,16 +464,17 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
         eppn = self.test_user.eppn
         country = countries.get("Denmark")
 
-        # add a locked svipe identity that will match the new identity
+        # add a locked freja eid identity that will match the new identity
         user = self.app.central_userdb.get_user_by_eppn(eppn)
-        userinfo = self.get_mock_userinfo(issuing_country=country, nationality=country)
+        userinfo = self.get_mock_userinfo(issuing_country=country)
         user.locked_identity.add(
-            SvipeIdentity(
-                administrative_number=userinfo.document_administrative_number,
+            FrejaIdentity(
+                personal_identity_number=userinfo.personal_identity_number,
                 country_code="DK",
-                date_of_birth=datetime.combine(userinfo.birthdate, datetime.min.time()),
+                date_of_birth=datetime.combine(userinfo.date_of_birth, datetime.min.time()),
                 is_verified=True,
-                svipe_id="another_svipe_id",
+                user_id="another_freja_eid",
+                registration_level=userinfo.registration_level,
             )
         )
         user.given_name = userinfo.given_name
@@ -514,7 +482,7 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
         self.app.central_userdb.save(user)
 
         with self.app.test_request_context():
-            endpoint = url_for("svipe_id.verify_identity")
+            endpoint = url_for("freja_eid.verify_identity")
 
         start_auth_response = self._start_auth(endpoint=endpoint, data=self.default_frontend_data, eppn=eppn)
         state, nonce = self._get_state_and_nonce(self.get_response_payload(start_auth_response)["location"])
@@ -525,13 +493,14 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
             frontend_action=FrontendAction(self.default_frontend_data["frontend_action"]),
             frontend_state=self.default_frontend_data["frontend_state"],
             method=self.default_frontend_data["method"],
-            expect_msg=SvipeIDMsg.identity_verify_success,
+            expect_msg=FrejaEIDMsg.identity_verify_success,
         )
-        new_locked_identity = SvipeIdentity(
-            administrative_number=userinfo.document_administrative_number,
+        new_locked_identity = FrejaIdentity(
+            personal_identity_number=userinfo.personal_identity_number,
             country_code="DK",
-            date_of_birth=datetime.combine(userinfo.birthdate.today(), datetime.min.time()),
-            svipe_id=userinfo.svipe_id,
+            date_of_birth=datetime.combine(userinfo.date_of_birth, datetime.min.time()),
+            user_id=userinfo.user_id,
+            registration_level=userinfo.registration_level,
         )
         self._verify_user_parameters(
             eppn, identity_verified=True, num_proofings=1, num_mfa_tokens=0, locked_identity=new_locked_identity
@@ -544,27 +513,28 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
         eppn = self.unverified_test_user.eppn
         country = countries.get("Denmark")
 
-        userinfo = self.get_mock_userinfo(issuing_country=country, nationality=country)
+        userinfo = self.get_mock_userinfo(issuing_country=country)
 
-        # add a locked svipe identity that will NOT match the new identity
+        # add a locked freja eid identity that will NOT match the new identity
         user = self.app.central_userdb.get_user_by_eppn(eppn)
         user.locked_identity.add(
-            SvipeIdentity(
-                administrative_number=userinfo.document_administrative_number,
-                country_code=userinfo.document_nationality,
+            FrejaIdentity(
+                personal_identity_number=userinfo.personal_identity_number,
+                country_code=userinfo.document.country,
                 date_of_birth=datetime.today(),  # not matching the new identity
                 is_verified=True,
-                svipe_id="another_svipe_id",
+                user_id="another_freja_eid",
+                registration_level=userinfo.registration_level,
             )
         )
         self.app.central_userdb.save(user)
 
         with self.app.test_request_context():
-            endpoint = url_for("svipe_id.verify_identity")
+            endpoint = url_for("freja_eid.verify_identity")
 
         start_auth_response = self._start_auth(endpoint=endpoint, data=self.default_frontend_data, eppn=eppn)
         state, nonce = self._get_state_and_nonce(self.get_response_payload(start_auth_response)["location"])
-        userinfo = self.get_mock_userinfo(issuing_country=country, nationality=country)
+        userinfo = self.get_mock_userinfo(issuing_country=country)
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
         assert response.status_code == 302
         self._verify_status(
@@ -576,41 +546,42 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
             expect_msg=CommonMsg.locked_identity_not_matching,
         )
         self._verify_user_parameters(
-            eppn, identity_verified=False, num_proofings=0, num_mfa_tokens=0, locked_identity=user.locked_identity.svipe
+            eppn, identity_verified=False, num_proofings=0, num_mfa_tokens=0, locked_identity=user.locked_identity.freja
         )
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_verify_foreign_identity_replace_locked_identity_fail_admin_number(self, mock_request_user_sync: MagicMock):
+    def test_verify_foreign_identity_replace_locked_identity_fail_personal_id_number(
+        self, mock_request_user_sync: MagicMock
+    ):
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.unverified_test_user.eppn
         country = countries.get("Denmark")
-        admin_number = "1234567890"
+        personal_identity_number = "1234567890"
         other_admin_number = "0987654321"
 
-        userinfo = self.get_mock_userinfo(
-            issuing_country=country, nationality=country, administrative_number=admin_number
-        )
+        userinfo = self.get_mock_userinfo(issuing_country=country, personal_identity_number=personal_identity_number)
 
-        # add a locked svipe identity that will NOT match the new identity
+        # add a locked freja eid identity that will NOT match the new identity
         user = self.app.central_userdb.get_user_by_eppn(eppn)
         user.locked_identity.add(
-            SvipeIdentity(
-                administrative_number=other_admin_number,  # not matching the new identity
-                country_code=userinfo.document_nationality,
-                date_of_birth=datetime.combine(userinfo.birthdate.today(), datetime.min.time()),
+            FrejaIdentity(
+                personal_identity_number=other_admin_number,  # not matching the new identity
+                country_code=userinfo.document.country,
+                date_of_birth=datetime.combine(userinfo.date_of_birth, datetime.min.time()),
                 is_verified=True,
-                svipe_id="another_svipe_id",
+                user_id="another_freja_eid",
+                registration_level=userinfo.registration_level,
             )
         )
         self.app.central_userdb.save(user)
 
         with self.app.test_request_context():
-            endpoint = url_for("svipe_id.verify_identity")
+            endpoint = url_for("freja_eid.verify_identity")
 
         start_auth_response = self._start_auth(endpoint=endpoint, data=self.default_frontend_data, eppn=eppn)
         state, nonce = self._get_state_and_nonce(self.get_response_payload(start_auth_response)["location"])
-        userinfo = self.get_mock_userinfo(issuing_country=country, nationality=country)
+        userinfo = self.get_mock_userinfo(issuing_country=country)
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
         assert response.status_code == 302
         self._verify_status(
@@ -622,7 +593,7 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
             expect_msg=CommonMsg.locked_identity_not_matching,
         )
         self._verify_user_parameters(
-            eppn, identity_verified=False, num_proofings=0, num_mfa_tokens=0, locked_identity=user.locked_identity.svipe
+            eppn, identity_verified=False, num_proofings=0, num_mfa_tokens=0, locked_identity=user.locked_identity.freja
         )
 
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
@@ -637,11 +608,11 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
         country = countries.get("Denmark")
 
         with self.app.test_request_context():
-            endpoint = url_for("svipe_id.verify_identity")
+            endpoint = url_for("freja_eid.verify_identity")
 
         start_auth_response = self._start_auth(endpoint=endpoint, data=self.default_frontend_data, eppn=eppn)
         state, nonce = self._get_state_and_nonce(self.get_response_payload(start_auth_response)["location"])
-        userinfo = self.get_mock_userinfo(issuing_country=country, nationality=country)
+        userinfo = self.get_mock_userinfo(issuing_country=country)
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
         assert response.status_code == 302
         self._verify_status(
@@ -649,11 +620,11 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
             frontend_action=FrontendAction(self.default_frontend_data["frontend_action"]),
             frontend_state=self.default_frontend_data["frontend_state"],
             method=self.default_frontend_data["method"],
-            expect_msg=SvipeIDMsg.identity_verify_success,
+            expect_msg=FrejaEIDMsg.identity_verify_success,
         )
         user = self.app.central_userdb.get_user_by_eppn(eppn)
         self._verify_user_parameters(
-            eppn, identity_verified=True, num_proofings=1, num_mfa_tokens=0, locked_identity=user.identities.svipe
+            eppn, identity_verified=True, num_proofings=1, num_mfa_tokens=0, locked_identity=user.identities.freja
         )
         self._verify_user_parameters(
             eppn, identity_verified=True, num_proofings=1, num_mfa_tokens=0, locked_identity=user.identities.nin
@@ -671,12 +642,12 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
         country = countries.get("Sweden")
 
         with self.app.test_request_context():
-            endpoint = url_for("svipe_id.verify_identity")
+            endpoint = url_for("freja_eid.verify_identity")
 
         start_auth_response = self._start_auth(endpoint=endpoint, data=self.default_frontend_data, eppn=eppn)
         state, nonce = self._get_state_and_nonce(self.get_response_payload(start_auth_response)["location"])
         yesterday = utc_now() - timedelta(days=1)
-        userinfo = self.get_mock_userinfo(issuing_country=country, nationality=country, document_expires=yesterday)
+        userinfo = self.get_mock_userinfo(issuing_country=country, document_expires=yesterday)
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
         assert response.status_code == 302
         self._verify_status(
