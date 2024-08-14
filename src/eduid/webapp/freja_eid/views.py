@@ -96,8 +96,6 @@ def _authn(
     try:
         auth_redirect = current_app.oidc_client.freja_eid.authorize_redirect(
             redirect_uri=url_for("freja_eid.authn_callback", _external=True),
-            # TODO: id_token instead of userinfo would be preferred but I can't get it to work
-            # claims=json.dumps({"userinfo": current_app.conf.freja_eid_client.claims_request}),
         )
     except OAuthError:
         current_app.logger.exception("Failed to create authorization request")
@@ -192,7 +190,7 @@ def authn_callback(user) -> WerkzeugResponse:
     action = get_action(default_action=None, authndata=authn_req)
     backdoor = check_magic_cookie(config=current_app.conf)
     args = ACSArgs(
-        session_info=token_response,
+        session_info=token_response.get("userinfo"),
         authn_req=authn_req,
         proofing_method=proofing_method,
         backdoor=backdoor,

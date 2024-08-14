@@ -188,7 +188,7 @@ class SvipeIdentity(ForeignIdentityElement):
         return self.svipe_id
 
 
-class FrejaRegistrationLevel(Enum):
+class FrejaRegistrationLevel(str, Enum):
     EXTENDED = "EXTENDED"
     PLUS = "PLUS"
 
@@ -200,16 +200,16 @@ class FrejaIdentity(ForeignIdentityElement):
     Properties of FrejaIdentity:
 
         user_id
-        administrative_number
+        personal_identity_number
         registration_level
         country_code
     """
 
-    identity_type: Literal[IdentityType.SVIPE] = IdentityType.SVIPE
+    identity_type: Literal[IdentityType.FREJA] = IdentityType.FREJA
     # claim: https://frejaeid.com/oidc/scopes/relyingPartyUserId
     # A unique, user-specific value that allows the Relying Party to identify the same user across multiple sessions
     user_id: str
-    administrative_number: Optional[str] = None
+    personal_identity_number: Optional[str] = None
     registration_level: FrejaRegistrationLevel
 
     @property

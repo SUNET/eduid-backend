@@ -14,7 +14,7 @@ from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.common.authn.session_info import SessionInfo
 from eduid.webapp.common.proofing.messages import ProofingMsg
 from eduid.webapp.eidas.saml_session_info import ForeignEidSessionInfo, NinSessionInfo
-from eduid.webapp.freja_eid.helpers import FrejaEIDTokenResponse
+from eduid.webapp.freja_eid.helpers import FrejaEIDDocumentUserInfo, FrejaEIDTokenResponse
 from eduid.webapp.svipe_id.helpers import SvipeDocumentUserInfo
 
 logger = logging.getLogger(__name__)
@@ -23,7 +23,9 @@ logger = logging.getLogger(__name__)
 @dataclass
 class SessionInfoParseResult:
     error: Optional[TranslatableMsg] = None
-    info: Optional[Union[NinSessionInfo, ForeignEidSessionInfo, SvipeDocumentUserInfo, BankIDSessionInfo]] = None
+    info: Optional[
+        Union[NinSessionInfo, ForeignEidSessionInfo, SvipeDocumentUserInfo, BankIDSessionInfo, FrejaEIDDocumentUserInfo]
+    ] = None
 
 
 @dataclass(frozen=True)
@@ -132,8 +134,9 @@ class ProofingMethodFrejaEID(ProofingMethod):
 
         # verify session info data
         # document should not have expired
-        if parsed_session_info.document_expiry_date < utc_now().date():
-            logger.error(f"Document has expired {parsed_session_info.document_expiry_date}")
+        expiration_date = parsed_session_info.document.expiration_date
+        if expiration_date < utc_now().date():
+            logger.error(f"Document has expired {expiration_date}")
             return SessionInfoParseResult(error=ProofingMsg.session_info_not_valid)
 
         return SessionInfoParseResult(info=parsed_session_info)

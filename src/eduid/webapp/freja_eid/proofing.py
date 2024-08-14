@@ -11,7 +11,13 @@ from eduid.userdb import User
 from eduid.userdb.credentials import Credential
 from eduid.userdb.element import ElementKey
 from eduid.userdb.exceptions import LockedIdentityViolation
-from eduid.userdb.identity import FrejaIdentity, IdentityElement, IdentityProofingMethod, IdentityType
+from eduid.userdb.identity import (
+    FrejaIdentity,
+    FrejaRegistrationLevel,
+    IdentityElement,
+    IdentityProofingMethod,
+    IdentityType,
+)
 from eduid.userdb.logs.element import FrejaEIDForeignProofing, FrejaEIDNINProofing, NinProofingLogElement
 from eduid.userdb.proofing import NinProofingElement, ProofingUser
 from eduid.userdb.proofing.state import NinProofingState
@@ -26,20 +32,20 @@ from eduid.webapp.common.proofing.base import (
 )
 from eduid.webapp.common.proofing.methods import ProofingMethod
 from eduid.webapp.freja_eid.app import current_freja_eid_app as current_app
-from eduid.webapp.freja_eid.helpers import FrejaEIDTokenResponse
+from eduid.webapp.freja_eid.helpers import FrejaEIDDocumentUserInfo, FrejaEIDMsg, FrejaEIDTokenResponse
 
 __author__ = "lundberg"
 
 
 @dataclass
-class FrejaEIDProofingFunctions(ProofingFunctions[FrejaEIDTokenResponse]):
+class FrejaEIDProofingFunctions(ProofingFunctions[FrejaEIDDocumentUserInfo]):
     def is_swedish_document(self) -> bool:
-        issuing_country = countries.get(self.session_info.userinfo.document.country, None)
+        issuing_country = countries.get(self.session_info.document.country, None)
         sweden = countries.get("SE")
         if not sweden:
             raise RuntimeError('Could not find country "SE" in iso3166')
         if not issuing_country:
-            raise RuntimeError(f'Could not find country "{self.session_info.userinfo.document.country}" in iso3166')
+            raise RuntimeError(f'Could not find country "{self.session_info.document.country}" in iso3166')
         if issuing_country == sweden:
             return True
         return False
@@ -57,6 +63,10 @@ class FrejaEIDProofingFunctions(ProofingFunctions[FrejaEIDTokenResponse]):
     def _verify_nin_identity(self, user: User) -> VerifyUserResult:
         proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
 
+        # force user to be registered with PLUS registration level for a NIN identity
+        if self.session_info.registration_level != FrejaRegistrationLevel.PLUS:
+            return VerifyUserResult(error=FrejaEIDMsg.registration_level_not_satisfied)
+
         # Create a proofing log
         proofing_log_entry = self.identity_proofing_element(user=user)
         if proofing_log_entry.error:
@@ -64,10 +74,10 @@ class FrejaEIDProofingFunctions(ProofingFunctions[FrejaEIDTokenResponse]):
         assert isinstance(proofing_log_entry.data, NinProofingLogElement)  # please type checking
 
         # Verify NIN for user
-        date_of_birth = self.session_info.birthdate
+        date_of_birth = self.session_info.date_of_birth
         try:
             nin_element = NinProofingElement(
-                number=self.session_info.document_administrative_number,
+                number=self.session_info.personal_identity_number,
                 date_of_birth=datetime(year=date_of_birth.year, month=date_of_birth.month, day=date_of_birth.day),
                 created_by=current_app.conf.app_name,
                 is_verified=False,
@@ -94,14 +104,14 @@ class FrejaEIDProofingFunctions(ProofingFunctions[FrejaEIDTokenResponse]):
         existing_identity = user.identities.freja
         locked_identity = user.locked_identity.freja
 
-        date_of_birth = self.session_info.birthdate
+        date_of_birth = self.session_info.date_of_birth
         new_identity = FrejaIdentity(
-            administrative_number=self.session_info.document_administrative_number,
-            country_code=self.session_info.document_nationality,
+            personal_identity_number=self.session_info.personal_identity_number,
+            country_code=self.session_info.document.country,
             created_by=current_app.conf.app_name,
             date_of_birth=datetime(year=date_of_birth.year, month=date_of_birth.month, day=date_of_birth.day),
             is_verified=True,
-            proofing_method=IdentityProofingMethod.SVIPE_ID,
+            proofing_method=IdentityProofingMethod.FREJA_EID,
             proofing_version=current_app.conf.freja_eid_proofing_version,
             user_id=self.session_info.user_id,
             registration_level=self.session_info.registration_level,
@@ -133,7 +143,7 @@ class FrejaEIDProofingFunctions(ProofingFunctions[FrejaEIDTokenResponse]):
         # update the users names from the verified identity
         proofing_user = set_user_names_from_foreign_id(proofing_user, proofing_log_entry.data)
 
-        # Verify Svipe identity for user
+        # Verify Freja identity for user
         if not current_app.proofing_log.save(proofing_log_entry.data):
             current_app.logger.error("Failed to save Svipe identity proofing log for user")
             return VerifyUserResult(error=CommonMsg.temp_problem)
@@ -159,7 +169,7 @@ class FrejaEIDProofingFunctions(ProofingFunctions[FrejaEIDTokenResponse]):
             return True
         # Freja relyingPartyUserId should stay the same, but it is not impossible that it has changed
         # try to verify that it is the same person with a new Freja relyingPartyUserId
-        date_of_birth_matches = locked_identity.date_of_birth.date() == self.session_info.birthdate
+        date_of_birth_matches = locked_identity.date_of_birth.date() == self.session_info.date_of_birth
         given_name_matches = proofing_user.given_name == self.session_info.given_name
         surname_matches = proofing_user.surname == self.session_info.family_name
         if date_of_birth_matches and given_name_matches and surname_matches:
@@ -176,7 +186,7 @@ class FrejaEIDProofingFunctions(ProofingFunctions[FrejaEIDTokenResponse]):
         return self._foreign_identity_proofing_element(user)
 
     def _nin_identity_proofing_element(self, user: User) -> ProofingElementResult:
-        _nin = self.session_info.document_administrative_number
+        _nin = self.session_info.personal_identity_number
         if not _nin:
             return ProofingElementResult(error=CommonMsg.nin_invalid)
 
@@ -188,29 +198,29 @@ class FrejaEIDProofingFunctions(ProofingFunctions[FrejaEIDTokenResponse]):
             surname=self.session_info.family_name,
             user_id=self.session_info.user_id,
             transaction_id=self.session_info.transaction_id,
-            document_type=self.session_info.document_type_sdn_en,  # standardised name in English (e.g. "Passport")
-            document_number=self.session_info.document_number,
+            document_type=self.session_info.document.type.value,  # according to Freja naming convention
+            document_number=self.session_info.document.serial_number,
             proofing_version=current_app.conf.freja_eid_proofing_version,
         )
         return ProofingElementResult(data=data)
 
     def _foreign_identity_proofing_element(self, user: User) -> ProofingElementResult:
         # The top-level LogElement class won't allow empty strings (and not None either)
-        _non_empty_admin_number = self.session_info.document_administrative_number or "freja_no_admin_number_provided"
+        _non_empty_identity_number = self.session_info.personal_identity_number or "freja_no_identity_number_provided"
         data = FrejaEIDForeignProofing(
             created_by=current_app.conf.app_name,
             eppn=user.eppn,
             user_id=self.session_info.user_id,
             transaction_id=self.session_info.transaction_id,
-            document_type=self.session_info.document_type_sdn_en,  # standardised name in English (e.g. "Passport")
-            document_number=self.session_info.document_number,
+            document_type=self.session_info.document.type.value,  # according to Freja naming convention
+            document_number=self.session_info.document.serial_number,
             proofing_version=current_app.conf.freja_eid_proofing_version,
             given_name=self.session_info.given_name,
             surname=self.session_info.family_name,
-            date_of_birth=self.session_info.birthdate.isoformat(),
-            country_code=self.session_info.document_nationality,
-            administrative_number=_non_empty_admin_number,
-            issuing_country=self.session_info.document_issuing_country,
+            date_of_birth=self.session_info.date_of_birth.isoformat(),
+            country_code=self.session_info.country,
+            administrative_number=_non_empty_identity_number,
+            issuing_country=self.session_info.document.country,
         )
         return ProofingElementResult(data=data)
 
@@ -225,9 +235,9 @@ class FrejaEIDProofingFunctions(ProofingFunctions[FrejaEIDTokenResponse]):
 
 
 def get_proofing_functions(
-    session_info: FrejaEIDTokenResponse,
+    session_info: FrejaEIDDocumentUserInfo,
     app_name: str,
     config: ProofingConfigMixin,
     backdoor: bool,
-) -> ProofingFunctions[FrejaEIDTokenResponse]:
+) -> ProofingFunctions[FrejaEIDDocumentUserInfo]:
     return FrejaEIDProofingFunctions(session_info=session_info, app_name=app_name, config=config, backdoor=backdoor)

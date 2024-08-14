@@ -1,3 +1,4 @@
+import datetime
 import logging
 from datetime import date
 from enum import Enum, unique
@@ -70,10 +71,11 @@ class FrejaDocumentType(Enum):
 
 
 class FrejaDocument(BaseModel):
-    type: str
+    type: FrejaDocumentType
     country: str
-    serialNumber: str
-    expirationDate: date
+    serial_number: str = Field(alias="serialNumber")
+    expiration_date: date = Field(alias="expirationDate")
+    model_config = ConfigDict(populate_by_name=True)
 
 
 class FrejaEIDDocumentUserInfo(UserInfoBase):
@@ -82,9 +84,13 @@ class FrejaEIDDocumentUserInfo(UserInfoBase):
     family_name: str
     given_name: str
     name: str
-    personal_identity_number: str = Field(alias="https://frejaeid.com/oidc/claims/personalIdentityNumber")
+    personal_identity_number: Optional[str] = Field(alias="https://frejaeid.com/oidc/claims/personalIdentityNumber")
+    date_of_birth: date = Field(
+        alias="https://frejaeid.com/oidc/claims/dateOfBirth", default_factory=lambda: date.today()
+    )
     registration_level: FrejaRegistrationLevel = Field(alias="https://frejaeid.com/oidc/claims/registrationLevel")
     user_id: str = Field(alias="https://frejaeid.com/oidc/claims/relyingPartyUserId")
+    transaction_id: str
 
 
 class FrejaEIDTokenResponse(BaseModel):
@@ -94,4 +100,3 @@ class FrejaEIDTokenResponse(BaseModel):
     id_token: str
     token_type: str
     userinfo: FrejaEIDDocumentUserInfo
-    transaction_id: str
