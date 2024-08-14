@@ -30,8 +30,8 @@ class FrejaEIDApp(AuthnBaseApp):
         client_kwargs = {}
         if self.conf.freja_eid_client.scopes:
             client_kwargs["scope"] = " ".join(self.conf.freja_eid_client.scopes)
-        # if self.conf.freja_eid_client.code_challenge_method:
-        #    client_kwargs["code_challenge_method"] = self.conf.freja_eid_client.code_challenge_method
+        if self.conf.freja_eid_client.code_challenge_method:
+            client_kwargs["code_challenge_method"] = self.conf.freja_eid_client.code_challenge_method
         authorize_params = {}
         if self.conf.freja_eid_client.acr_values:
             authorize_params["acr_values"] = " ".join(self.conf.freja_eid_client.acr_values)
