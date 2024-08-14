@@ -20,9 +20,7 @@ def verify_identity_action(user: User, args: ACSArgs) -> ACSResult:
     if not args.proofing_method:
         return ACSResult(message=FrejaEIDMsg.method_not_available)
 
-    parsed = args.proofing_method.parse_session_info(
-        args.session_info, backdoor=args.backdoor, transaction_id=args.authn_req.authn_id
-    )
+    parsed = args.proofing_method.parse_session_info(args.session_info, backdoor=args.backdoor)
     if parsed.error:
         return ACSResult(message=parsed.error)
 

@@ -32,9 +32,7 @@ class ProofingMethod(ABC):
     framework: TrustFramework
     finish_url: str
 
-    def parse_session_info(
-        self, session_info: SessionInfo, backdoor: bool, transaction_id: Optional[str] = None
-    ) -> SessionInfoParseResult:
+    def parse_session_info(self, session_info: SessionInfo, backdoor: bool) -> SessionInfoParseResult:
         raise NotImplementedError("Subclass must implement parse_session_info")
 
     def formatted_finish_url(self, app_name: str, authn_id: str) -> Optional[str]:
@@ -48,9 +46,7 @@ class ProofingMethodSAML(ProofingMethod):
     idp: str
     required_loa: list[str]
 
-    def parse_session_info(
-        self, session_info: SessionInfo, backdoor: bool, transaction_id: Optional[str] = None
-    ) -> SessionInfoParseResult:
+    def parse_session_info(self, session_info: SessionInfo, backdoor: bool) -> SessionInfoParseResult:
         raise NotImplementedError("Subclass must implement parse_session_info")
 
 
@@ -59,9 +55,7 @@ class ProofingMethodFreja(ProofingMethodSAML):
     idp: str
     required_loa: list[str]
 
-    def parse_session_info(
-        self, session_info: SessionInfo, backdoor: bool, transaction_id: Optional[str] = None
-    ) -> SessionInfoParseResult:
+    def parse_session_info(self, session_info: SessionInfo, backdoor: bool) -> SessionInfoParseResult:
         try:
             parsed_session_info = NinSessionInfo(**session_info)
             logger.debug(f"session info: {parsed_session_info}")
@@ -83,9 +77,7 @@ class ProofingMethodFreja(ProofingMethodSAML):
 
 @dataclass(frozen=True)
 class ProofingMethodEidas(ProofingMethodSAML):
-    def parse_session_info(
-        self, session_info: SessionInfo, backdoor: bool, transaction_id: Optional[str] = None
-    ) -> SessionInfoParseResult:
+    def parse_session_info(self, session_info: SessionInfo, backdoor: bool) -> SessionInfoParseResult:
         try:
             parsed_session_info = ForeignEidSessionInfo(**session_info)
             logger.debug(f"session info: {parsed_session_info}")
@@ -98,9 +90,7 @@ class ProofingMethodEidas(ProofingMethodSAML):
 
 @dataclass(frozen=True)
 class ProofingMethodBankID(ProofingMethodSAML):
-    def parse_session_info(
-        self, session_info: SessionInfo, backdoor: bool, transaction_id: Optional[str] = None
-    ) -> SessionInfoParseResult:
+    def parse_session_info(self, session_info: SessionInfo, backdoor: bool) -> SessionInfoParseResult:
         try:
             parsed_session_info = BankIDSessionInfo(**session_info)
             logger.debug(f"session info: {parsed_session_info}")
@@ -113,9 +103,7 @@ class ProofingMethodBankID(ProofingMethodSAML):
 
 @dataclass(frozen=True)
 class ProofingMethodSvipe(ProofingMethod):
-    def parse_session_info(
-        self, session_info: SessionInfo, backdoor: bool, transaction_id: Optional[str] = None
-    ) -> SessionInfoParseResult:
+    def parse_session_info(self, session_info: SessionInfo, backdoor: bool) -> SessionInfoParseResult:
         try:
             parsed_session_info = SvipeDocumentUserInfo(**session_info)
             logger.debug(f"session info: {parsed_session_info}")
@@ -134,11 +122,9 @@ class ProofingMethodSvipe(ProofingMethod):
 
 @dataclass(frozen=True)
 class ProofingMethodFrejaEID(ProofingMethod):
-    def parse_session_info(
-        self, session_info: SessionInfo, backdoor: bool, transaction_id: Optional[str] = None
-    ) -> SessionInfoParseResult:
+    def parse_session_info(self, session_info: SessionInfo, backdoor: bool) -> SessionInfoParseResult:
         try:
-            parsed_session_info = FrejaEIDTokenResponse(**session_info, transaction_id=transaction_id)
+            parsed_session_info = FrejaEIDDocumentUserInfo(**session_info)
             logger.debug(f"session info: {parsed_session_info}")
         except ValidationError:
             logger.exception("missing claim in userinfo response")
