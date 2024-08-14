@@ -32,7 +32,7 @@ class FrejaEIDMsg(TranslatableMsg):
     identity_verify_success = "freja_eid.identity_verify_success"
     # Authorization error at Svipe ID
     authorization_error = "freja_eid.authorization_fail"
-    frontend_action_not_supported = "freja_eid.frontend-action-not-supported"
+    frontend_action_not_supported = "freja_eid.frontend_action_not_supported"
 
 
 class SessionOAuthCache:
