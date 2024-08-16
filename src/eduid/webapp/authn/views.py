@@ -115,6 +115,7 @@ def authenticate(
     try:
         action = FrontendAction(frontend_action)
         authn_params = current_app.conf.frontend_action_authn_parameters[action]
+        current_app.logger.debug(f"Authn parameters for frontend action {action}: {authn_params}")
     except (ValueError, KeyError):
         current_app.logger.exception(f"Frontend action {frontend_action} not supported")
         return error_response(message=AuthnMsg.frontend_action_not_supported)
@@ -131,6 +132,9 @@ def authenticate(
         )
 
     if authn_params.force_mfa or _request_mfa:
+        current_app.logger.debug(
+            f"Forcing MFA authentication. force_mfa: {authn_params.force_mfa}, request_mfa: {_request_mfa}"
+        )
         req_authn_ctx = [REFEDS_MFA]
 
     sp_authn = SP_AuthnRequest(
