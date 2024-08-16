@@ -4,7 +4,6 @@ import os.path
 import sys
 from typing import Optional, Sequence, Tuple
 
-from eduid.userdb import User
 from saml2 import server
 from saml2.config import SPConfig
 from saml2.typing import SAMLHttpArgs
@@ -13,7 +12,8 @@ from eduid.common.config.base import AuthnParameters, EduIDBaseAppConfig, Fronte
 from eduid.common.config.exceptions import BadConfiguration
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.utils import urlappend
-from eduid.userdb.credentials import Credential, Webauthn, FidoCredential
+from eduid.userdb import User
+from eduid.userdb.credentials import Credential, FidoCredential
 from eduid.webapp.common.api.schemas.authn_status import AuthnActionStatus
 from eduid.webapp.common.authn.session_info import SessionInfo
 from eduid.webapp.common.session import session
