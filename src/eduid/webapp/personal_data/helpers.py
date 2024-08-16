@@ -72,7 +72,7 @@ def is_valid_chosen_given_name(given_name: Optional[str] = None, chosen_given_na
     return False
 
 
-def check_reauthn(frontend_action: FrontendAction, user: Optional[User] = None) -> Optional[FluxData]:
+def check_reauthn(frontend_action: FrontendAction, user: User) -> Optional[FluxData]:
     """Check if a re-authentication has been performed recently enough for this action"""
 
     authn_status = validate_authn_for_action(config=current_app.conf, frontend_action=frontend_action, user=user)

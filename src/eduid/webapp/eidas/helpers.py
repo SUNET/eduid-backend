@@ -8,6 +8,7 @@ from saml2.client import Saml2Client
 from saml2.typing import SAMLHttpArgs
 
 from eduid.common.config.base import FrontendAction
+from eduid.userdb import User
 from eduid.userdb.credentials import Credential
 from eduid.userdb.credentials.external import TrustFramework
 from eduid.webapp.common.api.messages import TranslatableMsg
@@ -122,12 +123,12 @@ class CredentialVerifyResult:
 
 
 def check_reauthn(
-    frontend_action: FrontendAction, credential_used: Optional[Credential] = None
+    frontend_action: FrontendAction, user: User, credential_used: Optional[Credential] = None
 ) -> Optional[AuthnActionStatus]:
     """Check if a re-authentication has been performed recently enough for this action"""
 
     authn_status = validate_authn_for_action(
-        config=current_app.conf, frontend_action=frontend_action, credential_used=credential_used
+        config=current_app.conf, frontend_action=frontend_action, credential_used=credential_used, user=user
     )
     current_app.logger.debug(f"check_reauthn called with authn status {authn_status}")
     if authn_status != AuthnActionStatus.OK:

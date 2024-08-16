@@ -95,7 +95,7 @@ def verify_credential(
         current_app.logger.error(f"Can't find credential with id: {credential_id}")
         return error_response(message=EidasMsg.credential_not_found)
 
-    _need_reauthn = check_reauthn(frontend_action=_frontend_action, credential_used=credential)
+    _need_reauthn = check_reauthn(frontend_action=_frontend_action, user=user, credential_used=credential)
     if _need_reauthn:
         current_app.logger.debug(f"Need re-authentication for credential: {credential_id}")
         return need_authentication_response(

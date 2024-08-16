@@ -129,8 +129,8 @@ def get_authn_for_action(
 def validate_authn_for_action(
     config: FrontendActionMixin,
     frontend_action: FrontendAction,
+    user: User,
     credential_used: Optional[Credential] = None,
-    user: Optional[User] = None,
 ) -> AuthnActionStatus:
     """
     Validate the authentication for the given frontend action.
