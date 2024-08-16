@@ -163,13 +163,13 @@ def validate_authn_for_action(
     # optimistic check for MFA aka "high security"
     if authn_params.high_security and len(authn.credentials_used) < 2:
         if len(user.credentials.filter(FidoCredential)) >= 1:
-            logger.info("Authentication requires MFA")
+            logger.info("Authentication (high_security) requires MFA")
             logger.info(f"Expected at least 2 credentials got: {len(authn.credentials_used)}")
             return AuthnActionStatus.NO_MFA
 
     # specific check for MFA to be able to use login actions
     if authn_params.force_mfa and len(authn.credentials_used) < 2:
-        logger.info("Authentication requires MFA")
+        logger.info("Authentication (force_mfa) requires MFA")
         logger.info(f"Expected at least 2 credentials got: {len(authn.credentials_used)}")
         return AuthnActionStatus.NO_MFA
 
