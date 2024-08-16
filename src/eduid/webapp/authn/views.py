@@ -231,6 +231,7 @@ def _authn(sp_authn: SP_AuthnRequest, idp: str, authn_params: AuthnParameters) -
         authn_id=sp_authn.authn_id,
         selected_idp=idp,
         force_authn=authn_params.force_authn,
+        req_authn_ctx=sp_authn.req_authn_ctx,
         sign_alg=current_app.conf.authn_sign_alg,
         digest_alg=current_app.conf.authn_digest_alg,
         subject=subject,
