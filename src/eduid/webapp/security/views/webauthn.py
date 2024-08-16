@@ -89,7 +89,7 @@ def registration_begin(user: User, authenticator: str) -> FluxData:
 
     frontend_action = FrontendAction.ADD_SECURITY_KEY_AUTHN
 
-    _need_reauthn = check_reauthn(frontend_action=frontend_action)
+    _need_reauthn = check_reauthn(frontend_action=frontend_action, user=user)
     if _need_reauthn:
         return _need_reauthn
 
@@ -149,7 +149,7 @@ def registration_complete(
 ) -> FluxData:
     frontend_action = FrontendAction.ADD_SECURITY_KEY_AUTHN
 
-    _need_reauthn = check_reauthn(frontend_action=frontend_action)
+    _need_reauthn = check_reauthn(frontend_action=frontend_action, user=user)
     if _need_reauthn:
         return _need_reauthn
 
@@ -242,7 +242,7 @@ def remove(user: User, credential_key: str) -> FluxData:
 
     frontend_action = FrontendAction.REMOVE_SECURITY_KEY_AUTHN
 
-    _need_reauthn = check_reauthn(frontend_action=frontend_action)
+    _need_reauthn = check_reauthn(frontend_action=frontend_action, user=user)
     if _need_reauthn:
         return _need_reauthn
 

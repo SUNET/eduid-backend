@@ -107,7 +107,7 @@ def verify_credential_action(user: User, args: ACSArgs) -> ACSResult:
         return ACSResult(message=BankIDMsg.credential_not_found)
 
     # Check (again) if token was used to authenticate this session and that the auth is not stale.
-    _need_reauthn = check_reauthn(frontend_action=args.authn_req.frontend_action, credential_used=credential)
+    _need_reauthn = check_reauthn(frontend_action=args.authn_req.frontend_action, user=user, credential_used=credential)
     if _need_reauthn:
         current_app.logger.error(f"User needs to authenticate: {_need_reauthn}")
         return ACSResult(message=AuthnStatusMsg.must_authenticate)

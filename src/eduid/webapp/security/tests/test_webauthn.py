@@ -7,7 +7,7 @@ from fido2.webauthn import AttestationObject, AuthenticatorAttachment, Collected
 from werkzeug.http import dump_cookie
 
 from eduid.common.config.base import EduidEnvironment, FrontendAction
-from eduid.userdb.credentials import U2F, Webauthn
+from eduid.userdb.credentials import U2F, FidoCredential, Webauthn
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.common.session import EduidSession
 from eduid.webapp.common.session.namespaces import WebauthnRegistration, WebauthnState
@@ -95,6 +95,16 @@ CREDENTIAL_ID_2 = (
 
 class SecurityWebauthnTests(EduidAPITestCase):
     app: SecurityApp
+
+    def setUp(self):
+        super().setUp()
+        # remove all FidoCredentials from the test user
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        assert user is not None
+        for credential in user.credentials:
+            if isinstance(credential, FidoCredential):
+                user.credentials.remove(credential.key)
+        self.app.central_userdb.save(user)
 
     def load_app(self, config: Mapping[str, Any]) -> SecurityApp:
         """
@@ -198,9 +208,16 @@ class SecurityWebauthnTests(EduidAPITestCase):
         :param csrf: to control the CSRF token to send
         :param check_session: whether to check the registration state in the session
         """
+
+        force_mfa = False
+        if other is not None or existing_legacy_token:
+            # Fake that user used the other security key to authenticate
+            force_mfa = True
+
         self.set_authn_action(
             eppn=self.test_user_eppn,
             frontend_action=FrontendAction.ADD_SECURITY_KEY_AUTHN,
+            force_mfa=force_mfa,
         )
 
         if existing_legacy_token:
@@ -250,9 +267,15 @@ class SecurityWebauthnTests(EduidAPITestCase):
         """
         mock_request_user_sync.side_effect = self.request_user_sync
 
+        force_mfa = False
+        if existing_legacy_token:
+            # Fake that user used the other security key to authenticate
+            force_mfa = True
+
         self.set_authn_action(
             eppn=self.test_user_eppn,
             frontend_action=FrontendAction.ADD_SECURITY_KEY_AUTHN,
+            force_mfa=force_mfa,
         )
 
         if existing_legacy_token:
@@ -639,6 +662,6 @@ class SecurityWebauthnTests(EduidAPITestCase):
         assert "entries" in payload
         assert len(payload["entries"]) > 0
 
-        # test no dubles
+        # test no doubles
         unique_lowecase_entries = list(set(e.lower() for e in payload["entries"]))
         assert len(unique_lowecase_entries) == len(payload["entries"])

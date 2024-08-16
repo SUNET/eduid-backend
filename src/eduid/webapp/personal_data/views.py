@@ -103,7 +103,7 @@ def set_user_preferences(user: User, always_use_security_key: bool) -> FluxData:
     # and have a separate endpoint for each group and FrontendAction.
     frontend_action = FrontendAction.CHANGE_SECURITY_PREFERENCES_AUTHN
 
-    _need_reauthn = check_reauthn(frontend_action=frontend_action)
+    _need_reauthn = check_reauthn(frontend_action=frontend_action, user=user)
     if _need_reauthn:
         return _need_reauthn
 

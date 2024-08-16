@@ -382,6 +382,7 @@ class FrontendActionMixin(BaseModel):
     frontend_action_authn_parameters: dict[FrontendAction, AuthnParameters] = Field(
         default={
             FrontendAction.ADD_SECURITY_KEY_AUTHN: AuthnParameters(
+                force_authn=True,
                 high_security=True,
                 allow_login_auth=True,
                 finish_url="https://eduid.se/profile/ext-return/{app_name}/{authn_id}",
@@ -412,6 +413,7 @@ class FrontendActionMixin(BaseModel):
                 finish_url="https://eduid.se/profile/",
             ),
             FrontendAction.REMOVE_SECURITY_KEY_AUTHN: AuthnParameters(
+                force_authn=True,
                 force_mfa=True,
                 allow_login_auth=True,
                 finish_url="https://eduid.se/profile/ext-return/{app_name}/{authn_id}",

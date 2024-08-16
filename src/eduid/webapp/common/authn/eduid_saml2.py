@@ -61,6 +61,7 @@ def get_authn_request(
     authn_id: AuthnRequestRef,
     selected_idp: Optional[str],
     force_authn: bool = False,
+    req_authn_ctx: Optional[list] = None,
     sign_alg: Optional[str] = None,
     digest_alg: Optional[str] = None,
     subject: Optional[Subject] = None,
@@ -68,6 +69,12 @@ def get_authn_request(
     logger.debug(f"Authn request args: force_authn={force_authn}")
 
     client = Saml2Client(saml2_config)
+
+    # authn context class
+    kwargs: dict[str, Any] = {}
+    if req_authn_ctx is not None:
+        logger.debug(f"Requesting AuthnContext {req_authn_ctx}")
+        kwargs["requested_authn_context"] = {"authn_context_class_ref": req_authn_ctx, "comparison": "exact"}
 
     try:
         session_id: str
@@ -80,6 +87,7 @@ def get_authn_request(
             digest_alg=digest_alg,
             subject=subject,
             force_authn=str(force_authn).lower(),
+            **kwargs,
         )
     except TypeError:
         logger.error("Unable to know which IdP to use")

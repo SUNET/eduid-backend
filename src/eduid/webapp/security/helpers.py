@@ -191,10 +191,10 @@ def send_termination_mail(user):
         current_app.logger.info(f"Sent termination mail to user {user} to address {email}.")
 
 
-def check_reauthn(frontend_action: FrontendAction) -> Optional[FluxData]:
+def check_reauthn(frontend_action: FrontendAction, user: User) -> Optional[FluxData]:
     """Check if a re-authentication has been performed recently enough for this action"""
 
-    authn_status = validate_authn_for_action(config=current_app.conf, frontend_action=frontend_action)
+    authn_status = validate_authn_for_action(config=current_app.conf, frontend_action=frontend_action, user=user)
     current_app.logger.debug(f"check_reauthn called with authn status {authn_status}")
     if authn_status != AuthnActionStatus.OK:
         if authn_status == AuthnActionStatus.STALE:
