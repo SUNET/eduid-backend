@@ -37,21 +37,24 @@ def check_skv_users(context: Context):
     if user is not None:
         context.logger.debug(f"Checking if user with eppn {user.eppn} should be terminated")
         assert user.identities.nin is not None  # Please mypy
-        navet_data: NavetData = context.msg_relay.get_all_navet_data(
-            nin=user.identities.nin.number, allow_deregistered=True
-        )
-        context.logger.debug(f"Navet data: {navet_data}")
+        try:
+            navet_data: NavetData = context.msg_relay.get_all_navet_data(
+                nin=user.identities.nin.number, allow_deregistered=True
+            )
+            context.logger.debug(f"Navet data: {navet_data}")
 
-        if navet_data.person.is_deregistered():
-            cause = navet_data.person.deregistration_information.cause_code
-            if cause is DeregisteredCauseCode.EMIGRATED:
-                context.logger.debug(f"User with eppn {user.eppn} has emigrated and should not be terminated")
+            if navet_data.person.is_deregistered():
+                cause = navet_data.person.deregistration_information.cause_code
+                if cause is DeregisteredCauseCode.EMIGRATED:
+                    context.logger.debug(f"User with eppn {user.eppn} has emigrated and should not be terminated")
+                else:
+                    context.logger.debug(f"User with eppn {user.eppn} should be terminated")
+                    terminate_user(context, user)
             else:
-                context.logger.debug(f"User with eppn {user.eppn} should be terminated")
-                terminate_user(context, user)
-        else:
-            context.logger.debug(f"User with eppn {user.eppn} is still registered")
-
+                context.logger.debug(f"User with eppn {user.eppn} is still registered")
+        except:
+            context.logger.error(f"Failed to get Navet data for user with eppn {user.eppn}")
+            # The user will be requeued for a new check by the next run of gather_skv_users
     else:
         context.logger.debug("Nothing to do")
 
