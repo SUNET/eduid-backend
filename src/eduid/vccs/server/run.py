@@ -1,6 +1,5 @@
 import sys
 from asyncio import Lock
-from binascii import unhexlify
 from typing import Any, Mapping, Optional
 
 from fastapi import FastAPI
@@ -21,7 +20,7 @@ from eduid.vccs.server.log import InterceptHandler, init_logging
 
 
 class VCCS_API(FastAPI):
-    def __init__(self, test_config: Optional[Mapping[str, Any]] = None):
+    def __init__(self, test_config: Optional[Mapping[str, Any]] = None) -> None:
         print("vccs_api is starting", file=sys.stderr)
         super().__init__()
 
@@ -34,7 +33,7 @@ class VCCS_API(FastAPI):
             name=self.state.config.yhsm_device, lock=yhsm_lock, debug=self.state.config.yhsm_debug
         )
         if self.state.config.yhsm_unlock_password:
-            self.state.hasher.unlock(unhexlify(self.state.config.yhsm_unlock_password))
+            self.state.hasher.unlock(self.state.config.yhsm_unlock_password)
 
         self.state.kdf = ndnkdf.NDNKDF()
 
