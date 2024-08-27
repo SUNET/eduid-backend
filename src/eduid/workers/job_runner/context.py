@@ -43,11 +43,3 @@ class Context:
         # Setup AmRelay
         self.am_relay = AmRelay(self.config)
         self.logger.info(f"AmRelay {self.am_relay} initialized")
-
-        # Setup amapi client
-        self.amapi_client = AMAPIClient(
-            amapi_url=self.config.amapi.url,
-            auth_data=self.config.gnap_auth_data,
-            verify_tls=self.config.amapi.tls_verify,
-        )
-        self.logger.info(f"AMAPIClient {self.amapi_client} initialized")

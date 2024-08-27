@@ -9,11 +9,6 @@ from eduid.common.utils import removesuffix
 logger = logging.getLogger(__name__)
 
 
-class AmAPIConfig(BaseModel):
-    url: str
-    tls_verify: bool = True
-
-
 class JobRunnerConfig(RootConfig, LoggingConfigMixin, StatsConfigMixin, MsgConfigMixin, AmConfigMixin):
     """
     Configuration for the user-cleaner service.
@@ -26,7 +21,6 @@ class JobRunnerConfig(RootConfig, LoggingConfigMixin, StatsConfigMixin, MsgConfi
     jobs: dict = {}
 
     gnap_auth_data: GNAPClientAuthData
-    amapi: AmAPIConfig
 
     @field_validator("application_root")
     @classmethod
