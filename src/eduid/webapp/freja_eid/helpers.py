@@ -7,6 +7,7 @@ from typing import Any, Optional
 from iso3166 import countries
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from eduid.common.utils import uuid4_str
 from eduid.userdb.identity import FrejaRegistrationLevel
 from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.common.session import session
@@ -86,13 +87,17 @@ class FrejaEIDDocumentUserInfo(UserInfoBase):
     family_name: str
     given_name: str
     name: str
-    personal_identity_number: Optional[str] = Field(alias="https://frejaeid.com/oidc/claims/personalIdentityNumber")
+    personal_identity_number: Optional[str] = Field(
+        alias="https:/frejaeid.com/oidc/claims/personalIdentityNumber", default=None
+    )
+    # TODO: just until we get the date of birth from the response
     date_of_birth: date = Field(
         alias="https://frejaeid.com/oidc/claims/dateOfBirth", default_factory=lambda: date.today()
     )
     registration_level: FrejaRegistrationLevel = Field(alias="https://frejaeid.com/oidc/claims/registrationLevel")
     user_id: str = Field(alias="https://frejaeid.com/oidc/claims/relyingPartyUserId")
-    transaction_id: str
+    # TODO: just until we get the transaction id from the response
+    transaction_id: str = Field(alias="https://frejaeid.com/oidc/claims/transactionId", default_factory=uuid4_str)
 
 
 class FrejaEIDTokenResponse(BaseModel):
