@@ -23,3 +23,4 @@ class IdentitiesSchema(EduidSchema):
     nin = fields.Nested(NinIdentitySchema)
     eidas = fields.Nested(ForeignIdentitySchema)
     svipe = fields.Nested(ForeignIdentitySchema)
+    freja = fields.Nested(ForeignIdentitySchema)

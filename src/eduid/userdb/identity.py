@@ -309,6 +309,9 @@ class IdentityList(VerifiedElementList[IdentityElement]):
         # SVIPE
         if self.svipe and self.svipe.is_verified:
             return self.svipe.date_of_birth
+        # Freja eID
+        if self.freja and self.freja.is_verified:
+            return self.freja.date_of_birth
         return None
 
     def to_frontend_format(self) -> dict[str, Any]:
