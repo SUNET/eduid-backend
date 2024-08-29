@@ -1,12 +1,68 @@
 import logging
+from datetime import datetime, tzinfo
+from typing import Any, Optional, Union
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, ConfigDict, Field, RootModel, field_validator, model_validator
 
 from eduid.common.clients.gnap_client.base import GNAPClientAuthData
 from eduid.common.config.base import AmConfigMixin, LoggingConfigMixin, MsgConfigMixin, RootConfig, StatsConfigMixin
 from eduid.common.utils import removesuffix
 
 logger = logging.getLogger(__name__)
+
+
+class JobCronConfig(BaseModel):
+    """
+    Cron configuration for a single job.
+    https://apscheduler.readthedocs.io/en/stable/modules/triggers/cron.html#module-apscheduler.triggers.cron
+    """
+
+    model_config = ConfigDict(arbitrary_types_allowed=True, extra="forbid")
+
+    year: Optional[Union[int, str]] = None
+    month: Optional[Union[int, str]] = None
+    day: Optional[Union[int, str]] = None
+    week: Optional[Union[int, str]] = None
+    day_of_week: Optional[Union[int, str]] = None
+    hour: Optional[Union[int, str]] = None
+    minute: Optional[Union[int, str]] = None
+    second: Optional[Union[int, str]] = None
+    start_date: Optional[Union[datetime, str]] = None
+    end_date: Optional[Union[datetime, str]] = None
+    timezone: Optional[Union[tzinfo, str]] = None
+    jitter: Optional[int] = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def at_least_one_datetime_value(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            need_one_of = ["year", "month", "day", "week", "day_of_week", "hour", "minute", "second"]
+            assert len(data.keys() & need_one_of), f"At least one of {need_one_of} must be set"
+        return data
+
+
+class JobConfig(RootModel):
+    """
+    Configuration for a single job.
+    """
+
+    root: dict[str, JobCronConfig]
+
+    def __iter__(self):
+        return iter(self.root)
+
+    def __getitem__(self, key):
+        return self.root[key]
+
+
+class JobsRootConfig(RootModel):
+    root: dict[str, JobConfig]
+
+    def __iter__(self):
+        return iter(self.root)
+
+    def __getitem__(self, key):
+        return self.root[key]
 
 
 class JobRunnerConfig(RootConfig, LoggingConfigMixin, StatsConfigMixin, MsgConfigMixin, AmConfigMixin):
@@ -18,8 +74,7 @@ class JobRunnerConfig(RootConfig, LoggingConfigMixin, StatsConfigMixin, MsgConfi
     log_format: str = "{asctime} | {levelname:7} | {hostname} | {name:35} | {module:10} | {message}"
     mongo_uri: str = ""
     status_cache_seconds: int = 10
-    jobs: dict = {}
-
+    jobs: Optional[JobsRootConfig] = None
     gnap_auth_data: GNAPClientAuthData
 
     @field_validator("application_root")

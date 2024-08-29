@@ -14,7 +14,12 @@ class JobScheduler(AsyncIOScheduler):
 
         environment = context.config.environment
 
-        jobs_config = context.config.jobs
+        if context.config.jobs is None:
+            context.logger.info(f"No jobs configured for {context.worker_name} running {environment}")
+            return
+
+        jobs_config = context.config.jobs.model_dump()
+        context.logger.debug(f"jobs_config: {jobs_config}")
 
         jobs: dict = {}
 
