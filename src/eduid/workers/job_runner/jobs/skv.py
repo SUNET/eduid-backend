@@ -1,5 +1,6 @@
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.models.amapi_user import Reason, Source, UserUpdateResponse, UserUpdateTerminateRequest
+from eduid.common.rpc.exceptions import MsgTaskFailed, NoNavetData
 from eduid.common.rpc.msg_relay import DeregisteredCauseCode, NavetData
 from eduid.userdb.exceptions import UserDoesNotExist
 from eduid.userdb.meta import CleanerType
@@ -52,7 +53,7 @@ def check_skv_users(context: Context):
                     terminate_user(context, user)
             else:
                 context.logger.debug(f"User with eppn {user.eppn} is still registered")
-        except:
+        except (MsgTaskFailed, NoNavetData):
             context.logger.error(f"Failed to get Navet data for user with eppn {user.eppn}")
             # The user will be requeued for a new check by the next run of gather_skv_users
     else:
