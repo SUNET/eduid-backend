@@ -1,8 +1,8 @@
 import logging
 from datetime import datetime, tzinfo
-from typing import Any, Optional, Union
+from typing import Any, NewType, Optional, Union
 
-from pydantic import BaseModel, ConfigDict, Field, RootModel, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
 from eduid.common.clients.gnap_client.base import GNAPClientAuthData
 from eduid.common.config.base import AmConfigMixin, LoggingConfigMixin, MsgConfigMixin, RootConfig, StatsConfigMixin
@@ -41,28 +41,9 @@ class JobCronConfig(BaseModel):
         return data
 
 
-class JobConfig(RootModel):
-    """
-    Configuration for a single job.
-    """
-
-    root: dict[str, JobCronConfig]
-
-    def __iter__(self):
-        return iter(self.root)
-
-    def __getitem__(self, key):
-        return self.root[key]
-
-
-class JobsRootConfig(RootModel):
-    root: dict[str, JobConfig]
-
-    def __iter__(self):
-        return iter(self.root)
-
-    def __getitem__(self, key):
-        return self.root[key]
+EnvironmentOrWorkerName = NewType("EnvironmentOrWorkerName", str)
+JobName = NewType("JobName", str)
+JobsConfig = NewType("JobsConfig", dict[EnvironmentOrWorkerName, dict[JobName, JobCronConfig]])
 
 
 class JobRunnerConfig(RootConfig, LoggingConfigMixin, StatsConfigMixin, MsgConfigMixin, AmConfigMixin):
@@ -74,7 +55,7 @@ class JobRunnerConfig(RootConfig, LoggingConfigMixin, StatsConfigMixin, MsgConfi
     log_format: str = "{asctime} | {levelname:7} | {hostname} | {name:35} | {module:10} | {message}"
     mongo_uri: str = ""
     status_cache_seconds: int = 10
-    jobs: Optional[JobsRootConfig] = None
+    jobs: Optional[JobsConfig] = None
     gnap_auth_data: GNAPClientAuthData
 
     @field_validator("application_root")
