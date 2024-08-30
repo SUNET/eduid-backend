@@ -32,6 +32,10 @@ anyio==4.4.0 \
     #   httpx
     #   starlette
     #   watchfiles
+apscheduler==3.10.4 \
+    --hash=sha256:e6df071b27d9be898e486bc7940a7be50b4af2e9da7c08f0744a96d4bd4cef4a \
+    --hash=sha256:fb91e8a768632a4756a585f79ec834e0e27aad5860bac7eaa523d9ccefd87661
+    # via -r worker_requirements.in
 arabic-reshaper==3.0.0 \
     --hash=sha256:3f71d5034bb694204a239a6f1ebcf323ac3c5b059de02259235e2016a1a5e2dc \
     --hash=sha256:ffcd13ba5ec007db71c072f5b23f420da92ac7f268512065d49e790e62237099
@@ -1806,6 +1810,7 @@ pytz==2024.1 \
     --hash=sha256:328171f4e3623139da4983451950b28e95ac706e13f3f2630a879749e7a8b319
     # via
     #   -c main.txt
+    #   apscheduler
     #   flask-babel
     #   neo4j
     #   pysaml2
@@ -2037,6 +2042,7 @@ six==1.16.0 \
     --hash=sha256:8abb2f1d86890a2dfb989f9a77cfcfd3e47c2a354b01111771326f8aa26e0254
     # via
     #   -c main.txt
+    #   apscheduler
     #   bleach
     #   ecdsa
     #   html5lib
@@ -2135,6 +2141,7 @@ tzlocal==5.2 \
     --hash=sha256:8d399205578f1a9342816409cc1e46a93ebd5755e39ea2d85334bea911bf0e6e
     # via
     #   -c main.txt
+    #   apscheduler
     #   pyhanko
 ua-parser==0.18.0 \
     --hash=sha256:9d94ac3a80bcb0166823956a779186c746b50ea4c9fd9bf30fdb758553c38950 \

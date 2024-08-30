@@ -7,7 +7,7 @@ import pytest
 from eduid.common.config.base import CeleryConfig, MsgConfigMixin
 from eduid.common.config.workers import MsgConfig
 from eduid.common.rpc.exceptions import NoAddressFound, NoNavetData
-from eduid.common.rpc.msg_relay import FullPostalAddress, MsgRelay, NavetData, RelationType
+from eduid.common.rpc.msg_relay import DeregisteredCauseCode, FullPostalAddress, MsgRelay, NavetData, RelationType
 from eduid.workers.msg import MsgCelerySingleton
 from eduid.workers.msg.tasks import MessageSender
 
@@ -38,6 +38,15 @@ class MsgRelayTests(unittest.TestCase):
         mock_get_all_navet_data.return_value = ret
         res = self.msg_relay.get_all_navet_data(nin="190102031234")
         assert res == NavetData(**self.message_sender.get_devel_all_navet_data())
+
+    @patch("eduid.workers.msg.tasks.get_all_navet_data.apply_async")
+    def test_get_all_navet_data_deceased(self, mock_get_all_navet_data: MagicMock):
+        mock_conf = {"get.return_value": self.message_sender.get_devel_all_navet_data(identity_number="189001019802")}
+        ret = Mock(**mock_conf)
+        mock_get_all_navet_data.return_value = ret
+        res = self.msg_relay.get_all_navet_data(nin="189001019802", allow_deregistered=True)
+        assert res.person.deregistration_information.cause_code == DeregisteredCauseCode.DECEASED
+        assert res == NavetData(**self.message_sender.get_devel_all_navet_data(identity_number="189001019802"))
 
     @patch("eduid.workers.msg.tasks.get_all_navet_data.apply_async")
     def test_get_all_navet_data_none_response(self, mock_get_all_navet_data: MagicMock):
