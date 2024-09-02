@@ -11,14 +11,14 @@ from eduid.common.stats import init_app_stats
 logger = logging.getLogger(__name__)
 
 
-class requester_counter(ResponseMicroService):
+class RequesterCounter(ResponseMicroService):
     """
         A class to count the requesting SP.
 
         Example configuration:
     ```yaml
-        module: statsd.requester_counter
-        name: requester_counter
+        module: statsd.RequesterCounter
+        name: RequesterCounter
         config:
                 app_name: idpproxy
                 stats_port: 8125
