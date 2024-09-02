@@ -44,7 +44,7 @@ class requesterCounter(ResponseMicroService):
             return super().process(context, data)
 
         # Graphite is picky about the characters in it's key names
-        requester_entity_id = re.sub(r"[^a-zwA-ZW0-9]", "_", requester_entity_id)
+        requester_entity_id = re.sub(r"[^a-zA-Z0-9]", "_", requester_entity_id)
         # For easier readability - only allow one underscore in a row
         requester_entity_id = re.sub(r"_{2,}", "_", requester_entity_id)
 
