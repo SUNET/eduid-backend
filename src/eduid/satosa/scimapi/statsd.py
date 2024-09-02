@@ -37,9 +37,8 @@ class requester_counter(ResponseMicroService):
     def process(
         self, context: satosa.context.Context, data: satosa.internal.InternalData
     ) -> satosa.internal.InternalData:
-        try:
-            requester_entity_id = context.state.state_dict["SATOSA_BASE"]["requester"]
-        except KeyError:
+        requester_entity_id = data.requester
+        if not requester_entity_id:
             logger.warn("Unable to determine the entityID for the SP requester")
             return super().process(context, data)
 
