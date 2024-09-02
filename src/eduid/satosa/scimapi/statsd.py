@@ -39,7 +39,7 @@ class requester_counter(ResponseMicroService):
     ) -> satosa.internal.InternalData:
         requester_entity_id = data.requester
         if not requester_entity_id:
-            logger.warn("Unable to determine the entityID for the SP requester")
+            logger.warning("Unable to determine the entityID for the SP requester")
             return super().process(context, data)
 
         # Graphite is picky about the characters in its key names
