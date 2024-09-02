@@ -3,6 +3,8 @@ import re
 from typing import Any, Mapping
 
 import satosa.internal
+from satosa.context import Context
+from satosa.internal import InternalData
 from satosa.micro_services.base import ResponseMicroService
 
 from eduid.common.config.base import StatsConfigMixin
@@ -34,9 +36,7 @@ class RequesterCounter(ResponseMicroService):
         statsd_config = StatsConfigMixin(**config)
         self.stats = init_app_stats(statsd_config)
 
-    def process(
-        self, context: satosa.context.Context, data: satosa.internal.InternalData
-    ) -> satosa.internal.InternalData:
+    def process(self, context: Context, data: InternalData) -> InternalData:
         requester_entity_id = data.requester
         if not requester_entity_id:
             logger.warning("Unable to determine the entityID for the SP requester")
