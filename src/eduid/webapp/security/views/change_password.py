@@ -38,7 +38,7 @@ def get_suggested(user: User) -> FluxData:
     View to get a suggested password for the logged user.
     """
 
-    _need_reauthn = check_reauthn(frontend_action=FrontendAction.CHANGE_PW_AUTHN)
+    _need_reauthn = check_reauthn(frontend_action=FrontendAction.CHANGE_PW_AUTHN, user=user)
     if _need_reauthn:
         return _need_reauthn
 
@@ -58,7 +58,7 @@ def change_password_view(user: User, new_password: str, old_password: Optional[s
     """
     frontend_action = FrontendAction.CHANGE_PW_AUTHN
 
-    _need_reauthn = check_reauthn(frontend_action=frontend_action)
+    _need_reauthn = check_reauthn(frontend_action=frontend_action, user=user)
     if _need_reauthn:
         return _need_reauthn
 

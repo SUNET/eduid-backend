@@ -36,7 +36,7 @@ class SignupConfig(
     signup_url: str
     dashboard_url: str
 
-    password_length: int = 10
+    password_length: int = 12
     throttle_resend: timedelta = Field(default=timedelta(minutes=5))
     email_verification_code_length: int = 6
     email_verification_max_bad_attempts: int = 3

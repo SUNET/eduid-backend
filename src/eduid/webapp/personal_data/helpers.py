@@ -4,6 +4,7 @@ from enum import unique
 from typing import Optional
 
 from eduid.common.config.base import FrontendAction
+from eduid.userdb import User
 from eduid.webapp.common.api.messages import FluxData, TranslatableMsg, need_authentication_response
 from eduid.webapp.common.api.schemas.authn_status import AuthnActionStatus
 from eduid.webapp.common.authn.utils import validate_authn_for_action
@@ -71,10 +72,10 @@ def is_valid_chosen_given_name(given_name: Optional[str] = None, chosen_given_na
     return False
 
 
-def check_reauthn(frontend_action: FrontendAction) -> Optional[FluxData]:
+def check_reauthn(frontend_action: FrontendAction, user: User) -> Optional[FluxData]:
     """Check if a re-authentication has been performed recently enough for this action"""
 
-    authn_status = validate_authn_for_action(config=current_app.conf, frontend_action=frontend_action)
+    authn_status = validate_authn_for_action(config=current_app.conf, frontend_action=frontend_action, user=user)
     current_app.logger.debug(f"check_reauthn called with authn status {authn_status}")
     if authn_status != AuthnActionStatus.OK:
         if authn_status == AuthnActionStatus.STALE:

@@ -68,7 +68,7 @@ def terminate_account(user: User):
     """
     frontend_action = FrontendAction.TERMINATE_ACCOUNT_AUTHN
 
-    _need_reauthn = check_reauthn(frontend_action=frontend_action)
+    _need_reauthn = check_reauthn(frontend_action=frontend_action, user=user)
     if _need_reauthn:
         return _need_reauthn
 
@@ -180,7 +180,7 @@ def remove_identities(user: User, identity_type: str) -> FluxData:
 
     frontend_action = FrontendAction.REMOVE_IDENTITY
 
-    _need_reauthn = check_reauthn(frontend_action=frontend_action)
+    _need_reauthn = check_reauthn(frontend_action=frontend_action, user=user)
     if _need_reauthn:
         return _need_reauthn
 
