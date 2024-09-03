@@ -14,7 +14,7 @@ class TestMongoDB(TestCase):
         uri = "mongodb://db.example.com:1111/testdb"
         mdb = db.MongoDB(uri, db_name="testdb")
         conn = mdb.get_connection()
-        database = mdb.get_database()
+        mdb.get_database()
         self.assertIsNotNone(conn)
         self.assertEqual(mdb._db_uri, uri)
         self.assertEqual(mdb._database_name, "testdb")
@@ -22,7 +22,7 @@ class TestMongoDB(TestCase):
     def test_uri_without_path_component(self):
         uri = "mongodb://db.example.com:1111"
         mdb = db.MongoDB(uri, db_name="testdb")
-        database = mdb.get_database()
+        mdb.get_database()
         self.assertEqual(mdb._db_uri, uri + "/testdb")
         self.assertEqual(mdb._database_name, "testdb")
 
@@ -30,7 +30,7 @@ class TestMongoDB(TestCase):
         uri = "mongodb://db.example.com/"
         mdb = db.MongoDB(uri)
         self.assertEqual(mdb._db_uri, uri)
-        database = mdb.get_database("testdb")
+        mdb.get_database("testdb")
         self.assertEqual(mdb.sanitized_uri, "mongodb://db.example.com/")
 
     def test_uri_with_username_and_password(self):

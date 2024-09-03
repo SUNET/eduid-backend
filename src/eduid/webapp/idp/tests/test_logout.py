@@ -32,7 +32,7 @@ class IdPTestLogoutAPI(IdPAPITests):
         # pre-accept ToU for this test
         self.add_test_user_tou()
 
-        with self.browser.session_transaction() as sess:
+        with self.browser.session_transaction():
             # Patch the VCCSClient so we do not need a vccs server
             with patch.object(VCCSClient, "authenticate"):
                 VCCSClient.authenticate.return_value = True
@@ -91,7 +91,7 @@ class IdPTestLogoutAPI(IdPAPITests):
         # pre-accept ToU for this test
         self.add_test_user_tou()
 
-        with self.browser.session_transaction() as sess:
+        with self.browser.session_transaction():
             # Patch the VCCSClient so we do not need a vccs server
             with patch.object(VCCSClient, "authenticate"):
                 VCCSClient.authenticate.return_value = True

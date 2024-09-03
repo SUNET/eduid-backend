@@ -59,7 +59,7 @@ class TestTransactionAudit(MsgMongoTestCase):
 
         no_name()
 
-        result = c.find({})
+        c.find({})
         self.assertEqual(c.count_documents({}), 0)
 
         TransactionAudit.enable(self.msg_settings.mongo_uri)
@@ -69,5 +69,5 @@ class TestTransactionAudit(MsgMongoTestCase):
             return {"baka": "kaka"}
 
         no_name2()
-        result = c.find({})
+        c.find({})
         self.assertEqual(c.count_documents({}), 1)
