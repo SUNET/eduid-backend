@@ -30,11 +30,11 @@ def _get_other_device_state_using_ref(ref: RequestRef, device: int) -> OtherDevi
     # Check both callers opinion of what device this is, and the states. Belts and bracers.
     if device == 1 or ticket.is_other_device_1:
         if isinstance(ticket.pending_request, IdP_OtherDevicePendingRequest):
-            current_app.logger.warning(f"Not allowing recursive login using another device")
+            current_app.logger.warning("Not allowing recursive login using another device")
             return OtherDeviceRefResult(response=error_response(message=IdPMsg.not_available))
     elif device == 2 or ticket.is_other_device_2:
         if not isinstance(ticket.pending_request, IdP_OtherDevicePendingRequest):
-            current_app.logger.warning(f"The pending request is not an IdP_OtherDevicePendingRequest")
+            current_app.logger.warning("The pending request is not an IdP_OtherDevicePendingRequest")
             return OtherDeviceRefResult(response=error_response(message=IdPMsg.not_available))
 
     state = None

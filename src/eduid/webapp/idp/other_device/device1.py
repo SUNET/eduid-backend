@@ -59,13 +59,13 @@ def device1_check_response_code(
         if state.state != OtherDeviceState.AUTHENTICATED:
             logger.info(f"Not validating response code for use other device in state {state.state}")
         else:
-            logger.info(f"Use other device: Incorrect response_code")
+            logger.info("Use other device: Incorrect response_code")
         current_app.stats.count("login_using_other_device_incorrect_code")
         state.bad_attempts += 1
 
     if state.state != OtherDeviceState.DENIED:
         if state.bad_attempts >= current_app.conf.other_device_max_code_attempts:
-            logger.info(f"Use other device: too many response code attempts")
+            logger.info("Use other device: too many response code attempts")
             current_app.stats.count("login_using_other_device_denied")
             state.state = OtherDeviceState.DENIED
 

@@ -375,7 +375,7 @@ class GroupDB(BaseGraphDB):
                 raise EduIDGroupDBError(e.message)
             finally:
                 if tx.closed():
-                    logger.info(f"Group save successful")
+                    logger.info("Group save successful")
                 else:
                     logger.error("Group save error: ROLLING BACK")
                 tx.close()

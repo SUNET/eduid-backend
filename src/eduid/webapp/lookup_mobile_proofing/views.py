@@ -60,7 +60,7 @@ def proofing(user: User, nin: str) -> FluxData:
                 return error_response(message=CommonMsg.temp_problem)
             return success_response(message=MobileMsg.verify_success)
         except AmTaskFailed:
-            current_app.logger.exception(f"Verifying nin for user failed")
+            current_app.logger.exception("Verifying nin for user failed")
             return error_response(message=CommonMsg.temp_problem)
         except LockedIdentityViolation:
             current_app.logger.exception("Verifying NIN for user failed")

@@ -119,6 +119,6 @@ class Context:
     def check_version(self, req: ContextRequest, db_obj: Union[ScimApiGroup, ScimApiUser, ScimApiInvite]) -> bool:
         if req.headers.get("IF-MATCH") == make_etag(db_obj.version):
             return True
-        self.logger.error(f"Version mismatch")
+        self.logger.error("Version mismatch")
         self.logger.debug(f'{req.headers.get("IF-MATCH")} != {make_etag(db_obj.version)}')
         return False

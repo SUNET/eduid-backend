@@ -184,7 +184,7 @@ class TestGroupResource_GET(TestGroupResource):
     def test_get_groups(self):
         for i in range(9):
             self.add_group(uuid4(), f"Test Group {i}")
-        response = self.client.get(url=f"/Groups", headers=self.headers)
+        response = self.client.get(url="/Groups", headers=self.headers)
         self.assertEqual([SCIMSchema.API_MESSAGES_20_LIST_RESPONSE.value], response.json().get("schemas"))
         resources = response.json().get("Resources")
         expected_num_resources = self.groupdb.graphdb.db.count_nodes()
@@ -550,14 +550,14 @@ class TestGroupSearchResource(TestGroupResource):
 
     def test_search_group_start_index(self):
         for i in range(9):
-            self.add_group(uuid4(), f"Test Group")
+            self.add_group(uuid4(), "Test Group")
         self._perform_search(
             filter='displayName eq "Test Group"', start=5, expected_num_resources=5, expected_total_results=9
         )
 
     def test_search_group_count(self):
         for i in range(9):
-            self.add_group(uuid4(), f"Test Group")
+            self.add_group(uuid4(), "Test Group")
 
         groups = self.groupdb.get_groups()
         self.assertEqual(len(groups), 9)
@@ -605,11 +605,11 @@ class TestGroupSearchResource(TestGroupResource):
         self._perform_search(filter=f'meta.lastModified gt "{group1.last_modified.isoformat()}"', expected_group=group2)
 
     def test_search_group_last_modified_invalid_datetime_1(self):
-        json = self._perform_search(filter=f"meta.lastModified ge 1", return_json=True)
+        json = self._perform_search(filter="meta.lastModified ge 1", return_json=True)
         self._assertScimError(json, detail="Invalid datetime")
 
     def test_search_group_last_modified_invalid_datetime_2(self):
-        json = self._perform_search(filter=f'meta.lastModified ge "2020-05-12_15:36:99+00:00"', return_json=True)
+        json = self._perform_search(filter='meta.lastModified ge "2020-05-12_15:36:99+00:00"', return_json=True)
         self._assertScimError(json, detail="Invalid datetime")
 
     def test_schema_violation(self):

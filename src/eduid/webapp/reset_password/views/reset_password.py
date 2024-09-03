@@ -135,7 +135,7 @@ def start_reset_pw(email: str) -> FluxData:
         current_app.logger.exception(f"User with email {email} has to complete signup")
         return error_response(message=ResetPwMsg.invalid_user)
     except MailTaskFailed:
-        current_app.logger.exception(f"Sending password reset email failed")
+        current_app.logger.exception("Sending password reset email failed")
         return error_response(message=ResetPwMsg.email_send_failure)
 
     current_app.stats.count(name="email_sent", value=1)
@@ -314,7 +314,7 @@ def choose_extra_security_phone(email_code: str, phone_index: int) -> FluxData:
     try:
         send_verify_phone_code(context.state, phone_number["number"])
     except MsgTaskFailed:
-        current_app.logger.exception(f"Sending sms failed")
+        current_app.logger.exception("Sending sms failed")
         return error_response(message=ResetPwMsg.send_sms_failure)
 
     current_app.stats.count(name="extra_security_phone_sent")

@@ -23,20 +23,20 @@ class TestSearchFilter(unittest.TestCase):
         self.assertEqual(sf.val, nowstr)
 
     def test_str(self):
-        filter = f'foo eq "123"'
+        filter = 'foo eq "123"'
         sf = parse_search_filter(filter)
         self.assertEqual(sf.attr, "foo")
         self.assertEqual(sf.op, "eq")
         self.assertEqual(sf.val, "123")
 
     def test_int(self):
-        filter = f"foo eq 123"
+        filter = "foo eq 123"
         sf = parse_search_filter(filter)
         self.assertEqual(sf.attr, "foo")
         self.assertEqual(sf.op, "eq")
         self.assertEqual(sf.val, 123)
 
     def test_not_printable(self):
-        filter = f"foo eq 12\u00093"
+        filter = "foo eq 12\u00093"
         with self.assertRaises(BadRequest):
             parse_search_filter(filter)

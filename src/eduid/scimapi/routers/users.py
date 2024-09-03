@@ -61,7 +61,7 @@ async def on_put(req: ContextRequest, resp: Response, update_request: UserUpdate
     req.app.context.logger.info(f"Updating user {scim_id}")
     req.app.context.logger.debug(update_request)
     if scim_id != str(update_request.id):
-        req.app.context.logger.error(f"Id mismatch")
+        req.app.context.logger.error("Id mismatch")
         req.app.context.logger.debug(f"{scim_id} != {update_request.id}")
         raise BadRequest(detail="Id mismatch")
 

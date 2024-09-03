@@ -64,7 +64,7 @@ async def on_post(req: ContextRequest, resp: Response, create_request: EventCrea
             }
     }
     """
-    req.app.context.logger.info(f"Creating event")
+    req.app.context.logger.info("Creating event")
     req.app.context.logger.debug(create_request)
 
     # TODO: Instead of checking input here we should use dump_only for the fields in the schema

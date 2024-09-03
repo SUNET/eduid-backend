@@ -266,7 +266,7 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
         :param user: User object
         """
         if not isinstance(user, User):
-            raise EduIDUserDBError(f"user is not a subclass of User")
+            raise EduIDUserDBError("user is not a subclass of User")
 
         spec: dict[str, Any] = {"_id": user.user_id}
         try:

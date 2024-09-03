@@ -15,7 +15,7 @@ def init_exception_handlers(app: "IdPApp") -> "IdPApp":
         app.logger.error(f"IdP HTTPException {request}: {error}")
         app.logger.debug(f"Exception handler invoked on request from {request.remote_addr}: {request}")
         if app.debug or app.testing:
-            app.logger.exception(f"Got exception in IdP")
+            app.logger.exception("Got exception in IdP")
         # It looks to me like this function get_response() returns a WerkzeugResponse, but it's
         # declared to return a sans io Response (which doesn't have a body). Don't know why.
         response: WerkzeugResponse = error.get_response()  # type: ignore[assignment]

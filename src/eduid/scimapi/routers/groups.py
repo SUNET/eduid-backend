@@ -132,7 +132,7 @@ async def on_put(
     req.app.context.logger.info("Updating group")
     req.app.context.logger.debug(update_request)
     if scim_id != str(update_request.id):
-        req.app.context.logger.error(f"Id mismatch")
+        req.app.context.logger.error("Id mismatch")
         req.app.context.logger.debug(f"{scim_id} != {update_request.id}")
         raise BadRequest(detail="Id mismatch")
 
@@ -147,7 +147,7 @@ async def on_put(
         raise BadRequest(detail="Version mismatch")
 
     # Check that members exists in their respective db
-    req.app.context.logger.info(f"Checking if group and user members exists")
+    req.app.context.logger.info("Checking if group and user members exists")
     for member in update_request.members:
         if member.is_group:
             if not req.context.groupdb.group_exists(str(member.value)):

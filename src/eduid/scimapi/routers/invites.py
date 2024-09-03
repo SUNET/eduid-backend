@@ -325,7 +325,7 @@ async def search(req: ContextRequest, query: SearchRequest) -> ListResponse:
       ]
     }
     """
-    req.app.context.logger.info(f"Searching for invite(s)")
+    req.app.context.logger.info("Searching for invite(s)")
     req.app.context.logger.debug(f"Parsed invite search query: {query}")
 
     filter = parse_search_filter(query.filter)

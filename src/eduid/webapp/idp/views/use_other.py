@@ -199,7 +199,7 @@ def use_other_2(
             current_app.logger.debug(f"Extra debug: Full other device state:\n{state.to_json()}")
 
     if not state:
-        current_app.logger.debug(f"Other device: No state found, bailing out")
+        current_app.logger.debug("Other device: No state found, bailing out")
         return error_response(message=IdPMsg.state_not_found)
 
     now = utc_now()  # ensure coherent results of 'is this expired?' checks
