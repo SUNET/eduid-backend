@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Mapping, Optional
 
 import requests
-from pydantic import AnyHttpUrl, BaseModel, ConfigDict, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 __author__ = "lundberg"
 

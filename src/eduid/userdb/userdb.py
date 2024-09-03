@@ -3,7 +3,6 @@ from abc import ABC
 from dataclasses import dataclass
 from typing import Any, Generic, Mapping, Optional, TypeVar, Union
 
-import pymongo
 from bson import ObjectId
 from bson.errors import InvalidId
 from pymongo import ReturnDocument

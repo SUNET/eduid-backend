@@ -1,12 +1,9 @@
-from unittest import IsolatedAsyncioTestCase, TestCase
+from unittest import IsolatedAsyncioTestCase
 from unittest.mock import patch
 
-from bson import ObjectId
 
 from eduid.userdb.db.async_db import AsyncBaseDB, AsyncMongoDB
-from eduid.userdb.fixtures.users import UserFixtures
-from eduid.userdb.identity import IdentityType
-from eduid.userdb.testing import AsyncMongoTestCase, MongoTestCase
+from eduid.userdb.testing import AsyncMongoTestCase
 
 
 class TestAsyncMongoDB(IsolatedAsyncioTestCase):

@@ -3,7 +3,7 @@ from copy import copy
 from enum import Enum
 from typing import Any, Mapping, Optional
 
-from pydantic import BaseModel, Field, StrictInt, field_validator, model_validator, validator
+from pydantic import BaseModel, Field, StrictInt, field_validator, model_validator
 from pydantic_core.core_schema import ValidationInfo
 
 from eduid.common.config.base import AuthnBearerTokenConfig, DataOwnerName, ScopeName

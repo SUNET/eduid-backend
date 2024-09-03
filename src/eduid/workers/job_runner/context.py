@@ -1,7 +1,6 @@
 import logging
 from os import environ
 
-from eduid.common.clients.amapi_client.amapi_client import AMAPIClient
 from eduid.common.fastapi.log import init_logging
 from eduid.common.rpc.am_relay import AmRelay
 from eduid.common.rpc.msg_relay import MsgRelay

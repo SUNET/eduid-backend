@@ -1,15 +1,10 @@
 import os
 import unittest
-from typing import Any
 
 import pkg_resources
-from jwcrypto.jwk import JWK
 
-from eduid.common.config.parsers import load_config
 from eduid.userdb.testing import MongoTemporaryInstance
 from eduid.userdb.user_cleaner.db import CleanerQueueDB
-from eduid.workers.job_runner.config import JobRunnerConfig
-from eduid.workers.job_runner.context import Context
 
 
 class BaseDBTestCase(unittest.TestCase):

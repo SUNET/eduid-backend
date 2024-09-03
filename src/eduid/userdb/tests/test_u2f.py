@@ -7,7 +7,7 @@ import pytest
 from pydantic import ValidationError
 
 from eduid.common.testing_base import normalised_data
-from eduid.userdb.credentials import U2F, Credential, CredentialList, CredentialProofingMethod
+from eduid.userdb.credentials import U2F, CredentialList, CredentialProofingMethod
 
 __author__ = "lundberg"
 

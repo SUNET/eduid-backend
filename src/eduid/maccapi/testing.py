@@ -1,6 +1,6 @@
 import os
 import unittest
-from typing import Any, Optional, cast
+from typing import Any, cast
 
 import pkg_resources
 from starlette.testclient import TestClient
@@ -9,7 +9,6 @@ from eduid.common.config.parsers import load_config
 from eduid.maccapi.app import init_api
 from eduid.maccapi.config import MAccApiConfig
 from eduid.maccapi.context import Context
-from eduid.userdb.maccapi import ManagedAccount
 from eduid.userdb.testing import MongoTemporaryInstance
 from eduid.vccs.client import VCCSClient
 from eduid.webapp.common.authn.testing import MockVCCSClient
