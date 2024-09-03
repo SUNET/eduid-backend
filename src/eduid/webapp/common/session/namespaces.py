@@ -19,6 +19,7 @@ from eduid.userdb.credentials import Credential
 from eduid.userdb.credentials.external import TrustFramework
 from eduid.userdb.element import ElementKey
 from eduid.webapp.common.authn.acs_enums import AuthnAcsAction, BankIDAcsAction, EidasAcsAction
+from eduid.webapp.freja_eid.callback_enums import FrejaEIDAction
 from eduid.webapp.idp.other_device.data import OtherDeviceId
 from eduid.webapp.svipe_id.callback_enums import SvipeIDAction
 
@@ -245,7 +246,9 @@ class BaseAuthnRequest(BaseModel, ABC):
     frontend_action: FrontendAction  # what action frontend is performing
     frontend_state: Optional[str] = None  # opaque data from frontend, returned in /status
     method: Optional[str] = None  # proofing method that frontend is invoking
-    post_authn_action: Optional[Union[AuthnAcsAction, EidasAcsAction, SvipeIDAction, BankIDAcsAction]] = None
+    post_authn_action: Optional[
+        Union[AuthnAcsAction, EidasAcsAction, SvipeIDAction, BankIDAcsAction, FrejaEIDAction]
+    ] = None
     created_ts: datetime = Field(default_factory=utc_now)
     authn_instant: Optional[datetime] = None
     status: Optional[str] = None  # populated by the SAML2 ACS/OIDC callback action
@@ -332,3 +335,7 @@ class SvipeIDNamespace(SessionNSBase):
 
 class BankIDNamespace(SessionNSBase):
     sp: SPAuthnData = Field(default=SPAuthnData())
+
+
+class FrejaEIDNamespace(SessionNSBase):
+    rp: RPAuthnData = Field(default=RPAuthnData())

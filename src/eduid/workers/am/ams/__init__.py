@@ -22,7 +22,12 @@ from eduid.userdb.proofing import (
     OrcidProofingUserDB,
     PhoneProofingUserDB,
 )
-from eduid.userdb.proofing.db import BankIDProofingUserDB, LadokProofingUserDB, SvideIDProofingUserDB
+from eduid.userdb.proofing.db import (
+    BankIDProofingUserDB,
+    FrejaEIDProofingUserDB,
+    LadokProofingUserDB,
+    SvideIDProofingUserDB,
+)
 from eduid.userdb.reset_password import ResetPasswordUserDB
 from eduid.userdb.security import SecurityUserDB
 from eduid.userdb.signup import SignupUserDB
@@ -312,6 +317,27 @@ class eduid_bankid(AttributeFetcher):
     @classmethod
     def get_user_db(cls, uri: str) -> BankIDProofingUserDB:
         return BankIDProofingUserDB(uri)
+
+
+class eduid_freja_eid(AttributeFetcher):
+    whitelist_set_attrs = [
+        "passwords",
+        "identities",
+        "givenName",
+        "chosen_given_name",
+        "surname",
+        "legal_name",
+    ]
+    whitelist_unset_attrs: list[str] = [
+        "identities",
+        "chosen_given_name",
+        "nins",  # Old format
+        "displayName",  # deprecated
+    ]
+
+    @classmethod
+    def get_user_db(cls, uri: str) -> FrejaEIDProofingUserDB:
+        return FrejaEIDProofingUserDB(uri)
 
 
 class eduid_job_runner(AttributeFetcher):
