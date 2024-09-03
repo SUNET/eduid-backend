@@ -24,9 +24,9 @@ from eduid.userdb.proofing import (
 )
 from eduid.userdb.proofing.db import (
     BankIDProofingUserDB,
+    FrejaEIDProofingUserDB,
     LadokProofingUserDB,
     SvideIDProofingUserDB,
-    FrejaEIDProofingUserDB,
 )
 from eduid.userdb.reset_password import ResetPasswordUserDB
 from eduid.userdb.security import SecurityUserDB
