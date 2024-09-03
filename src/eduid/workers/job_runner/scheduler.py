@@ -7,7 +7,6 @@ from eduid.workers.job_runner.jobs.skv import check_skv_users, gather_skv_users
 
 
 class JobScheduler(AsyncIOScheduler):
-
     def schedule_jobs(self, context: Context):
         """
         Schedule all jobs configured for host or environment

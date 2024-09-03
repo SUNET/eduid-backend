@@ -9,13 +9,13 @@ from eduid.userdb.support.db import (
 )
 
 __all__ = [
-    'SupportAuthnInfoDB',
-    'SupportEmailProofingDB',
-    'SupportLetterProofingDB',
-    'SupportOidcProofingDB',
-    'SupportPhoneProofingDB',
-    'SupportProofingDB',
-    'SupportProofingLogDB',
+    "SupportAuthnInfoDB",
+    "SupportEmailProofingDB",
+    "SupportLetterProofingDB",
+    "SupportOidcProofingDB",
+    "SupportPhoneProofingDB",
+    "SupportProofingDB",
+    "SupportProofingLogDB",
 ]
 
 __author__ = "lundberg"

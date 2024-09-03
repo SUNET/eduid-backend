@@ -1,4 +1,3 @@
-
 from eduid.userdb.fixtures.users import UserFixtures
 from eduid.userdb.meta import CleanerType
 from eduid.userdb.user_cleaner.db import CleanerQueueUser

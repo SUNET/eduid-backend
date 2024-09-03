@@ -124,7 +124,6 @@ def get_proofing_method(
     frontend_action: FrontendAction,
     config: ProofingConfigMixin,
 ) -> Optional[Union[ProofingMethodFreja, ProofingMethodEidas, ProofingMethodSvipe, ProofingMethodBankID]]:
-
     authn_params = config.frontend_action_authn_parameters.get(frontend_action)
     assert authn_params is not None  # please mypy
 

@@ -109,9 +109,7 @@ def logout_response(session_id: str) -> str:
     <samlp:Status>
         <samlp:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:Success" />
     </samlp:Status>
-</samlp:LogoutResponse>""".format(
-        now=timestamp.strftime("%Y-%m-%dT%H:%M:%SZ"), session_id=session_id
-    )
+</samlp:LogoutResponse>""".format(now=timestamp.strftime("%Y-%m-%dT%H:%M:%SZ"), session_id=session_id)
 
     return saml_logout_response
 

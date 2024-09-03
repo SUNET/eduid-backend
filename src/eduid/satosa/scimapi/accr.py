@@ -109,7 +109,6 @@ class response(ResponseMicroService):
     """
 
     def __init__(self, config: Mapping[str, Any], internal_attributes: dict[str, Any], *args: Any, **kwargs: Any):
-
         super().__init__(*args, **kwargs)
 
     def process(self, context: satosa.context.Context, data: satosa.internal.InternalData) -> ProcessReturnType:

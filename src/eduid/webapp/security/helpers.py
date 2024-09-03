@@ -254,7 +254,6 @@ def get_approved_security_keys() -> dict[str, Any]:
     # a way to reuse is_authenticator_mfa_approved() from security app
     parsed_entries: List[AuthenticatorInformation] = []
     for metadata_entry in current_app.fido_mds.metadata.entries:
-
         user_verification_methods = [
             detail.user_verification_method
             for detail in metadata_entry.metadata_statement.get_user_verification_details()

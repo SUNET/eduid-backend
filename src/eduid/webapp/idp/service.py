@@ -58,6 +58,7 @@
 """
 Common code for SSO login/logout requests.
 """
+
 from abc import ABC
 from typing import Any, Optional
 

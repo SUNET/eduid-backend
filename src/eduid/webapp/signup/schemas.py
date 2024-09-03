@@ -80,9 +80,9 @@ class SignupStatusResponse(FluxStandardAction):
             throttle_time_left = time_left(sent_at, current_app.conf.throttle_resend).total_seconds()
             if throttle_time_left > 0:
                 out_data["payload"]["state"]["email"]["throttle_time_left"] = throttle_time_left
-                out_data["payload"]["state"]["email"][
-                    "throttle_time_max"
-                ] = current_app.conf.throttle_resend.total_seconds()
+                out_data["payload"]["state"]["email"]["throttle_time_max"] = (
+                    current_app.conf.throttle_resend.total_seconds()
+                )
         return out_data
 
     @pre_dump
@@ -92,17 +92,17 @@ class SignupStatusResponse(FluxStandardAction):
             verification_time_left = time_left(sent_at, current_app.conf.email_verification_timeout).total_seconds()
             if verification_time_left > 0:
                 out_data["payload"]["state"]["email"]["expires_time_left"] = verification_time_left
-                out_data["payload"]["state"]["email"][
-                    "expires_time_max"
-                ] = current_app.conf.email_verification_timeout.total_seconds()
+                out_data["payload"]["state"]["email"]["expires_time_max"] = (
+                    current_app.conf.email_verification_timeout.total_seconds()
+                )
         return out_data
 
     @pre_dump
     def bad_attempts_max(self, out_data, **kwargs):
         if out_data["payload"].get("state", {}).get("email"):
-            out_data["payload"]["state"]["email"][
-                "bad_attempts_max"
-            ] = current_app.conf.email_verification_max_bad_attempts
+            out_data["payload"]["state"]["email"]["bad_attempts_max"] = (
+                current_app.conf.email_verification_max_bad_attempts
+            )
         return out_data
 
 

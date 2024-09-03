@@ -32,7 +32,7 @@ TRequireSupportPersonnelResult = TypeVar("TRequireSupportPersonnelResult")
 
 
 def require_support_personnel(
-    f: Callable[..., TRequireSupportPersonnelResult]
+    f: Callable[..., TRequireSupportPersonnelResult],
 ) -> Callable[..., TRequireSupportPersonnelResult]:
     @wraps(f)
     def require_support_decorator(*args: Any, **kwargs: Any):

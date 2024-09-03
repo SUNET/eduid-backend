@@ -28,7 +28,6 @@ HERE = os.path.abspath(os.path.dirname(__file__))
 
 
 class IdPTestLoginAPI(IdPAPITests):
-
     def test_login_start(self) -> None:
         result = self._try_login(test_user=TestUser(eppn=None, password=None))
 

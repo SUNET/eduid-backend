@@ -3,12 +3,12 @@ from eduid.userdb.security.state import PasswordResetEmailAndPhoneState, Passwor
 from eduid.userdb.security.user import SecurityUser
 
 __all__ = [
-    'PasswordResetState',
-    'PasswordResetEmailState',
-    'PasswordResetEmailAndPhoneState',
-    'PasswordResetStateDB',
-    'SecurityUser',
-    'SecurityUserDB',
+    "PasswordResetState",
+    "PasswordResetEmailState",
+    "PasswordResetEmailAndPhoneState",
+    "PasswordResetStateDB",
+    "SecurityUser",
+    "SecurityUserDB",
 ]
 
 __author__ = "lundberg"

@@ -1250,7 +1250,6 @@ class EidasTests(ProofingTests[EidasApp]):
         assert cred.level in self.app.conf.required_loa
 
     def test_mfa_authentication_too_old_authn_instant(self):
-
         self.reauthn(
             endpoint="/mfa-authenticate",
             next_url=self.default_redirect_url,

@@ -1,4 +1,4 @@
-""" Test worker that just logs received items """
+"""Test worker that just logs received items"""
 
 import asyncio
 import logging
