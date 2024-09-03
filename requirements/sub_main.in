@@ -6,3 +6,4 @@ setuptools
 backports.zoneinfo;python_version<"3.9"
 tomli
 exceptiongroup
+async-timeout
