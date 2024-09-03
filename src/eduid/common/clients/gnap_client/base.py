@@ -36,6 +36,7 @@ class GNAPClientException(Exception):
 
 class GNAPClientAuthData(BaseModel):
     authn_server_url: str
+    authn_server_verify: bool = True
     key_name: str
     client_jwk: ClientJWK
     access: list[Union[str, Access]] = Field(default_factory=list)

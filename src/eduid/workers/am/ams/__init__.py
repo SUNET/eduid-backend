@@ -31,6 +31,7 @@ from eduid.userdb.proofing.db import (
 from eduid.userdb.reset_password import ResetPasswordUserDB
 from eduid.userdb.security import SecurityUserDB
 from eduid.userdb.signup import SignupUserDB
+from eduid.userdb.user_cleaner.userdb import CleanerUserDB
 from eduid.workers.am.ams.common import AttributeFetcher
 
 logger = get_task_logger(__name__)
@@ -337,3 +338,11 @@ class eduid_freja_eid(AttributeFetcher):
     @classmethod
     def get_user_db(cls, uri: str) -> FrejaEIDProofingUserDB:
         return FrejaEIDProofingUserDB(uri)
+
+
+class eduid_job_runner(AttributeFetcher):
+    whitelist_set_attrs = ["terminated"]  # skv cleaner checks status of registered persons
+
+    @classmethod
+    def get_user_db(cls, uri: str) -> CleanerUserDB:
+        return CleanerUserDB(uri)
