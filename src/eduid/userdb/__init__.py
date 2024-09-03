@@ -11,9 +11,6 @@ __organization__ = "SUNET"
 __license__ = "BSD"
 __authors__ = ["Fredrik Thulin"]
 
-#import eduid.userdb.exceptions
-#import eduid.userdb.mail
-#import eduid.userdb.phone
 from eduid.userdb.db import MongoDB
 from eduid.userdb.event import EventList
 from eduid.userdb.identity import EIDASIdentity, NinIdentity, SvipeIdentity
