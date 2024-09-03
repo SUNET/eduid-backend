@@ -12,7 +12,7 @@ class TestVerifiers(LookupMobileMongoTestCase):
         assert mobile_verifier.find_NIN_by_mobile("+46701740610") == "200202027140"
         assert mobile_verifier.find_NIN_by_mobile("+46701740608") == "197512126371"
         assert mobile_verifier.find_NIN_by_mobile("+46701740609") == "197512126371"
-        assert mobile_verifier.find_NIN_by_mobile("+46701740699") == None
+        assert mobile_verifier.find_NIN_by_mobile("+46701740699") is None
 
     def test_find_mobiles_by_NIN(self):
         # TODO: Actually connects to teleadress?
