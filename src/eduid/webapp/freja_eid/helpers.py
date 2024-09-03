@@ -90,14 +90,10 @@ class FrejaEIDDocumentUserInfo(UserInfoBase):
     personal_identity_number: Optional[str] = Field(
         alias="https:/frejaeid.com/oidc/claims/personalIdentityNumber", default=None
     )
-    # TODO: just until we get the date of birth from the response
-    date_of_birth: date = Field(
-        alias="https://frejaeid.com/oidc/claims/dateOfBirth", default_factory=lambda: date.today()
-    )
+    date_of_birth: date = Field(alias="https://frejaeid.com/oidc/claims/birthdate")
     registration_level: FrejaRegistrationLevel = Field(alias="https://frejaeid.com/oidc/claims/registrationLevel")
     user_id: str = Field(alias="https://frejaeid.com/oidc/claims/relyingPartyUserId")
-    # TODO: just until we get the transaction id from the response
-    transaction_id: str = Field(alias="https://frejaeid.com/oidc/claims/transactionId", default_factory=uuid4_str)
+    transaction_id: str = Field(alias="https://frejaeid.com/oidc/claims/transactionReference")
 
 
 class FrejaEIDTokenResponse(BaseModel):
