@@ -798,7 +798,7 @@ class OldAuthnAPITestCase(OldAuthnAPITestBase):
     def test_terminate_assertion_consumer_service(self):
         res = self.acs("/terminate", self.test_user.eppn)
         assert res.session.common.eppn == self.test_user.eppn
-        assert res.session.common.is_logged_in == True
+        assert res.session.common.is_logged_in
         authn = res.session.authn.sp.authns[res.authn_ref]
         assert authn.post_authn_action == AuthnAcsAction.terminate_account
         assert authn.authn_instant is not None

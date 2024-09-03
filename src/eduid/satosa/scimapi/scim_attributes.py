@@ -115,7 +115,7 @@ class ScimAttributes(ResponseMicroService):
             default_allow = self.config.allow_users_not_in_database.get("default", False)
             allow_users_not_in_database = self.config.allow_users_not_in_database.get(frontend_name, default_allow)
 
-            if allow_users_not_in_database == False:
+            if not allow_users_not_in_database:
                 raise SATOSAAuthenticationError(context.state, "User not found in database")
 
         if user_groups:

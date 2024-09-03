@@ -74,4 +74,4 @@ class IdentityCacheTests(unittest.TestCase):
         ic = IdentityCache(PySAML2Dicts({}))
 
         assert isinstance(ic._db, SessionCacheAdapter)
-        assert ic._sync == False
+        assert not ic._sync

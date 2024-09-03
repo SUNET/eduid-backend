@@ -550,8 +550,8 @@ class EmailTests(EduidAPITestCase[EmailApp]):
         assert mail_address_element is not None
 
         assert mail_address_element.email == email
-        assert mail_address_element.is_verified == True
-        assert mail_address_element.is_primary == False
+        assert mail_address_element.is_verified
+        assert not mail_address_element.is_primary
         assert self.app.proofing_log.db_count() == 1
 
     def test_verify_unknown(self):
@@ -606,8 +606,8 @@ class EmailTests(EduidAPITestCase[EmailApp]):
         assert mail_address_element is not None
 
         assert mail_address_element.email, email.lower()
-        assert mail_address_element.is_verified == True
-        assert mail_address_element.is_primary == False
+        assert mail_address_element.is_verified
+        assert not mail_address_element.is_primary
         assert self.app.proofing_log.db_count() == 1
 
     def test_handle_multiple_email_proofings(self):
