@@ -18,7 +18,7 @@ from eduid.userdb.idp import IdPUser
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.logindata import ExternalMfaData
 from eduid.webapp.common.session.namespaces import IdP_SAMLPendingRequest, RequestRef
-from eduid.webapp.idp.assurance_data import EduidAuthnContextClass, SwamidAssurance
+from eduid.webapp.idp.assurance_data import SwamidAssurance
 from eduid.webapp.idp.helpers import IdPMsg
 from eduid.webapp.idp.idp_authn import AuthnData
 from eduid.webapp.idp.idp_saml import IdP_SAMLRequest, ServiceInfo
