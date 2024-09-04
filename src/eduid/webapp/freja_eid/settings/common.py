@@ -25,6 +25,8 @@ class FrejaEIDClientConfig(AuthlibClientConfig):
             "https://frejaeid.com/oidc/scopes/document",
             "https://frejaeid.com/oidc/scopes/registrationLevel",
             "https://frejaeid.com/oidc/scopes/relyingPartyUserId",
+            "https://frejaeid.com/oidc/scopes/transactionReference",
+            "https://frejaeid.com/oidc/scopes/birthdate",
         ]
     )
     claims_request: dict[str, Union[None, dict[str, bool]]] = Field(default={})

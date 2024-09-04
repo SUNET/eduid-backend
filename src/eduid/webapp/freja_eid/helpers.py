@@ -90,7 +90,7 @@ class FrejaEIDDocumentUserInfo(UserInfoBase):
     personal_identity_number: Optional[str] = Field(
         alias="https:/frejaeid.com/oidc/claims/personalIdentityNumber", default=None
     )
-    date_of_birth: date = Field(alias="https://frejaeid.com/oidc/claims/birthdate")
+    date_of_birth: date = Field(alias="birthdate")
     registration_level: FrejaRegistrationLevel = Field(alias="https://frejaeid.com/oidc/claims/registrationLevel")
     user_id: str = Field(alias="https://frejaeid.com/oidc/claims/relyingPartyUserId")
     transaction_id: str = Field(alias="https://frejaeid.com/oidc/claims/transactionReference")
