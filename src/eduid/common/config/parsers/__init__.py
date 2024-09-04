@@ -45,7 +45,7 @@ def load_config(
         # Looks like there could be a FlaskConfig mixed into the config
         config["flask"] = FlaskConfig(**config)
 
-    if "celery_config" in config and not "celery" in config:
+    if "celery_config" in config and "celery" not in config:
         config["celery"] = config["celery_config"]
 
     if "app_name" not in config:
