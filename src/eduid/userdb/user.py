@@ -400,11 +400,7 @@ class User(BaseModel):
         """
         ladok = data.pop("ladok", None)
         if ladok is not None:
-            # TODO: This try/except is to flush out old format of ladok data from development, remove soon!
-            try:
-                return Ladok.from_dict(ladok)
-            except:
-                return None
+            return Ladok.from_dict(ladok)
         return None
 
     @classmethod
