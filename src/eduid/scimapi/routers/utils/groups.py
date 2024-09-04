@@ -93,7 +93,7 @@ def filter_lastmodified(
         raise BadRequest(scim_type="invalidFilter", detail="Invalid datetime")
     try:
         _parsed = datetime.fromisoformat(filter.val)
-    except:
+    except Exception:
         raise BadRequest(scim_type="invalidFilter", detail="Invalid datetime")
     return req.context.groupdb.get_groups_by_last_modified(operator=filter.op, value=_parsed, skip=skip, limit=limit)
 
