@@ -32,7 +32,7 @@ from eduid.webapp.common.proofing.base import (
 )
 from eduid.webapp.common.proofing.methods import ProofingMethod
 from eduid.webapp.freja_eid.app import current_freja_eid_app as current_app
-from eduid.webapp.freja_eid.helpers import FrejaEIDDocumentUserInfo, FrejaEIDMsg, FrejaEIDTokenResponse
+from eduid.webapp.freja_eid.helpers import FrejaEIDDocumentUserInfo, FrejaEIDMsg
 
 __author__ = "lundberg"
 

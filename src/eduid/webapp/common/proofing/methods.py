@@ -14,7 +14,7 @@ from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.common.authn.session_info import SessionInfo
 from eduid.webapp.common.proofing.messages import ProofingMsg
 from eduid.webapp.eidas.saml_session_info import ForeignEidSessionInfo, NinSessionInfo
-from eduid.webapp.freja_eid.helpers import FrejaEIDDocumentUserInfo, FrejaEIDTokenResponse
+from eduid.webapp.freja_eid.helpers import FrejaEIDDocumentUserInfo
 from eduid.webapp.svipe_id.helpers import SvipeDocumentUserInfo
 
 logger = logging.getLogger(__name__)

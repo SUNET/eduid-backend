@@ -2,7 +2,6 @@ import logging
 import re
 from typing import Any, Mapping
 
-import satosa.internal
 from satosa.context import Context
 from satosa.internal import InternalData
 from satosa.micro_services.base import ResponseMicroService
