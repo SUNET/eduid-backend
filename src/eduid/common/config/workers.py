@@ -19,9 +19,7 @@ class MsgConfig(WorkerConfig):
 
     audit: bool = True
     devel_mode: bool = False
-    mail_certfile: str = ""
     mail_host: str = "localhost"
-    mail_keyfile: str = ""
     mail_password: str = ""
     mail_port: int = 25
     mail_starttls: bool = False

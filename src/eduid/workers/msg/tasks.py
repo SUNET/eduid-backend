@@ -2,6 +2,7 @@ import json
 import logging
 import smtplib
 from collections import OrderedDict
+from ssl import SSLContext
 from typing import Any, Optional
 
 from celery import Task
@@ -55,10 +56,7 @@ class MessageSender(Task):
         config = MsgCelerySingleton.worker_config
         _smtp = smtplib.SMTP(config.mail_host, config.mail_port)
         if config.mail_starttls:
-            if config.mail_keyfile and config.mail_certfile:
-                _smtp.starttls(config.mail_keyfile, config.mail_certfile)
-            else:
-                _smtp.starttls()
+            _smtp.starttls()
         if config.mail_username and config.mail_password:
             _smtp.login(config.mail_username, config.mail_password)
         return _smtp

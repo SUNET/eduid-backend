@@ -14,6 +14,7 @@ from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.common.authn.session_info import SessionInfo
 from eduid.webapp.common.proofing.messages import ProofingMsg
 from eduid.webapp.eidas.saml_session_info import ForeignEidSessionInfo, NinSessionInfo
+from eduid.webapp.freja_eid.helpers import FrejaEIDDocumentUserInfo, FrejaEIDTokenResponse
 from eduid.webapp.svipe_id.helpers import SvipeDocumentUserInfo
 
 logger = logging.getLogger(__name__)
@@ -22,7 +23,9 @@ logger = logging.getLogger(__name__)
 @dataclass
 class SessionInfoParseResult:
     error: Optional[TranslatableMsg] = None
-    info: Optional[Union[NinSessionInfo, ForeignEidSessionInfo, SvipeDocumentUserInfo, BankIDSessionInfo]] = None
+    info: Optional[
+        Union[NinSessionInfo, ForeignEidSessionInfo, SvipeDocumentUserInfo, BankIDSessionInfo, FrejaEIDDocumentUserInfo]
+    ] = None
 
 
 @dataclass(frozen=True)
@@ -119,11 +122,33 @@ class ProofingMethodSvipe(ProofingMethod):
         return SessionInfoParseResult(info=parsed_session_info)
 
 
+@dataclass(frozen=True)
+class ProofingMethodFrejaEID(ProofingMethod):
+    def parse_session_info(self, session_info: SessionInfo, backdoor: bool) -> SessionInfoParseResult:
+        try:
+            parsed_session_info = FrejaEIDDocumentUserInfo(**session_info)
+            logger.debug(f"session info: {parsed_session_info}")
+        except ValidationError:
+            logger.exception("missing claim in userinfo response")
+            return SessionInfoParseResult(error=ProofingMsg.attribute_missing)
+
+        # verify session info data
+        # document should not have expired
+        expiration_date = parsed_session_info.document.expiration_date
+        if expiration_date < utc_now().date():
+            logger.error(f"Document has expired {expiration_date}")
+            return SessionInfoParseResult(error=ProofingMsg.session_info_not_valid)
+
+        return SessionInfoParseResult(info=parsed_session_info)
+
+
 def get_proofing_method(
     method: Optional[str],
     frontend_action: FrontendAction,
     config: ProofingConfigMixin,
-) -> Optional[Union[ProofingMethodFreja, ProofingMethodEidas, ProofingMethodSvipe, ProofingMethodBankID]]:
+) -> Optional[
+    Union[ProofingMethodFreja, ProofingMethodEidas, ProofingMethodSvipe, ProofingMethodBankID, ProofingMethodFrejaEID]
+]:
     authn_params = config.frontend_action_authn_parameters.get(frontend_action)
     assert authn_params is not None  # please mypy
 
@@ -165,6 +190,12 @@ def get_proofing_method(
             finish_url=authn_params.finish_url,
             idp=config.bankid_idp,
             required_loa=config.bankid_required_loa,
+        )
+    if method == "freja_eid":
+        return ProofingMethodFrejaEID(
+            method=method,
+            framework=TrustFramework.FREJA,
+            finish_url=authn_params.finish_url,
         )
 
     logger.warning(f"Unknown proofing method {method}")

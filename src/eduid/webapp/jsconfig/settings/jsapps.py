@@ -32,6 +32,7 @@ class JsAppsConfig(PasswordConfigMixin):
     emails_service_url: HttpUrlStr
     # error_info_url needs to be a full URL since the backend is on the idp, not on https://eduid.se
     error_info_url: Optional[HttpUrlStr] = None
+    freja_eid_service_url: Optional[HttpUrlStr] = None
     group_mgmt_service_url: HttpUrlStr
     ladok_service_url: HttpUrlStr
     letter_proofing_service_url: HttpUrlStr

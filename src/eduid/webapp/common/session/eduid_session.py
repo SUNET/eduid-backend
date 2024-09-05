@@ -24,6 +24,7 @@ from eduid.webapp.common.session.namespaces import (
     BankIDNamespace,
     Common,
     EidasNamespace,
+    FrejaEIDNamespace,
     IdP_Namespace,
     MfaAction,
     Phone,
@@ -59,6 +60,7 @@ class EduidNamespaces(BaseModel):
     authn: Optional[AuthnNamespace] = None
     svipe_id: Optional[SvipeIDNamespace] = None
     bankid: Optional[BankIDNamespace] = None
+    freja_eid: Optional[FrejaEIDNamespace] = None
 
 
 class EduidSession(SessionMixin, MutableMapping[str, Any]):
@@ -244,6 +246,12 @@ class EduidSession(SessionMixin, MutableMapping[str, Any]):
         if not self._namespaces.bankid:
             self._namespaces.bankid = BankIDNamespace.from_dict(self._session.get("bankid", {}))
         return self._namespaces.bankid
+
+    @property
+    def freja_eid(self) -> FrejaEIDNamespace:
+        if not self._namespaces.freja_eid:
+            self._namespaces.freja_eid = FrejaEIDNamespace.from_dict(self._session.get("freja_eid", {}))
+        return self._namespaces.freja_eid
 
     @property
     def created(self) -> datetime:

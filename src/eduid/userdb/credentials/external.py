@@ -16,6 +16,7 @@ class TrustFramework(str, Enum):
     EIDAS = "EIDAS"
     SVIPE = "SVIPE"
     BANKID = "BANKID"
+    FREJA = "FREJA"
 
 
 class ExternalCredential(Credential):

@@ -442,6 +442,69 @@ class BankIDProofing(NinEIDProofingLogElement):
     proofing_method: str = IdentityProofingMethod.BANKID.value
 
 
+class FrejaEIDNINProofing(NinEIDProofingLogElement):
+    """
+    {
+        'eduPersonPrincipalName': eppn,
+        'created_ts': utc_now(),
+        'created_by': 'application',
+        'proofing_method': 'freja_eid',
+        'proofing_version': '2024v1',
+        'user_id': 'unique identifier for the user',
+        'document_type': 'type of document used for identification',
+        'document_number': 'document number',
+        'nin': 'national_identity_number',
+        'given_name': 'name',
+        'surname': 'name',
+    }
+
+    Proofing version history:
+    2024v1 - inital deployment
+    """
+
+    # unique identifier
+    user_id: str
+    # transaction id
+    transaction_id: str
+    # document type
+    document_type: str
+    # document number
+    document_number: str
+    # Proofing method name
+    proofing_method: str = IdentityProofingMethod.FREJA_EID.value
+
+
+class FrejaEIDForeignProofing(ForeignIdProofingLogElement):
+    """
+    {
+        'eduPersonPrincipalName': eppn,
+        'created_ts': utc_now(),
+        'created_by': 'application',
+        'proofing_method': 'freja_eid',
+        'proofing_version': '2024v1',
+        'user_id': 'unique identifier for the user',
+        'document_type': 'type of document used for identification',
+        'document_number': 'document number',
+        'issuing_country': 'country of issuance',
+    }
+    """
+
+    # unique identifier
+    user_id: str
+    # transaction id
+    transaction_id: str
+    # document administrative number
+    administrative_number: Optional[str]
+    # document type (standardized english)
+    document_type: str
+    # document number
+    document_number: str
+    # issuing country
+    issuing_country: str
+    # Proofing method name
+    proofing_method: str = IdentityProofingMethod.FREJA_EID.value
+
+
 class MFATokenProofing(SwedenConnectProofing):
     """
     {
