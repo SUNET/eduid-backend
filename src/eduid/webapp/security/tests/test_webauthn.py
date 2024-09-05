@@ -354,7 +354,9 @@ class SecurityWebauthnTests(EduidAPITestCase):
             response2 = client.post("/webauthn/remove", json=data)
             return user_token, json.loads(response2.data)
 
-    def _apple_special_verify_attestation(self: FidoMetadataStore, attestation: Attestation, client_data: bytes) -> bool:
+    def _apple_special_verify_attestation(
+        self: FidoMetadataStore, attestation: Attestation, client_data: bytes
+    ) -> bool:
         if attestation.fmt is AttestationFormat.PACKED:
             return self.verify_packed_attestation(attestation=attestation, client_data=client_data)
         if attestation.fmt is AttestationFormat.APPLE:
@@ -568,7 +570,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
         self.assertEqual(data["payload"]["error"]["csrf_token"], ["CSRF failed to validate"])
 
     @patch("fido_mds.FidoMetadataStore.verify_attestation", _apple_special_verify_attestation)
-    def test_authenticator_information(self):        
+    def test_authenticator_information(self):
         authenticators = [YUBIKEY_4, YUBIKEY_5_NFC, MICROSOFT_SURFACE_1796, NEXUS_5, IPHONE_12, NONE_ATTESTATION]
         for authenticator in authenticators:
             with self.app.test_request_context():

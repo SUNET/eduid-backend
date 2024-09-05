@@ -29,7 +29,6 @@ class RequesterCounter(ResponseMicroService):
     """
 
     def __init__(self, config: Mapping[str, Any], *args: Any, **kwargs: Any):
-
         super().__init__(*args, **kwargs)
 
         statsd_config = StatsConfigMixin(**config)
