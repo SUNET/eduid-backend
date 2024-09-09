@@ -14,7 +14,7 @@ jobs:
         python-version: ["3.10"]
     env:
       PIP_INDEX_URL: https://pypi.sunet.se/simple/
-      NEO4J_VERSION: 4.0-enterprise
+      NEO4J_VERSION: 4.4-enterprise
 
     steps:
       - uses: actions/checkout@v4

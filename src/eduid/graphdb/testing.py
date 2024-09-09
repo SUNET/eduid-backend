@@ -15,7 +15,7 @@ __author__ = "lundberg"
 
 
 # Run tests with different Neo4j docker image versions using environment variables
-NEO4J_VERSION = environ.get("NEO4J_VERSION", "4.1-enterprise")
+NEO4J_VERSION = environ.get("NEO4J_VERSION", "4.4-enterprise")
 
 logger = logging.getLogger(__name__)
 logger.info(f"NEO4J_VERSION={NEO4J_VERSION}")
@@ -36,7 +36,7 @@ class Neo4jTemporaryInstance(EduidTemporaryInstance):
     _bolt_port: int
 
     DEFAULT_USERNAME = "neo4j"
-    DEFAULT_PASSWORD = "testing"
+    DEFAULT_PASSWORD = "testingtesting"
 
     def __init__(self, max_retry_seconds: int = 60, neo4j_version: str = NEO4J_VERSION):
         self._http_port = random.randint(40000, 43000)
