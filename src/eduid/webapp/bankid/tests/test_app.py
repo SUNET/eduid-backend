@@ -114,7 +114,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
           <saml2:Audience>{sp_url}saml2-metadata</saml2:Audience>
         </saml2:AudienceRestriction>
       </saml2:Conditions>
-      <saml2:AuthnStatement AuthnInstant="{timestamp}" SessionIndex="{session_id}">    
+      <saml2:AuthnStatement AuthnInstant="{timestamp}" SessionIndex="{session_id}">
         <saml2:AuthnContext>
           <saml2:AuthnContextClassRef>http://id.swedenconnect.se/loa/1.0/uncertified-loa3</saml2:AuthnContextClassRef>
         </saml2:AuthnContext>
