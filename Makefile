@@ -13,6 +13,9 @@ test:
 	PYTHONPATH=$(SRCDIR) pytest -vvv -ra --log-cli-level DEBUG
 
 reformat:
+	# sort imports and remove unused imports
+	ruff check --select F401,I --fix
+	# reformat
 	ruff format
 
 lint:
