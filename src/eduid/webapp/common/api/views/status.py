@@ -3,9 +3,8 @@ from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, Literal, Mapping, Optional, cast, overload
 
-from flask import Blueprint
+from flask import Blueprint, jsonify
 from flask import current_app as flask_current_app
-from flask import jsonify
 from flask.wrappers import Response
 
 from eduid.common.config.base import EduIDBaseAppConfig

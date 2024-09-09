@@ -3,9 +3,8 @@ import json
 from typing import Any, Mapping, Optional
 from unittest.mock import patch
 
-from fido_mds import FidoMetadataStore
-
 from fido2.webauthn import AttestationObject, AuthenticatorAttachment, CollectedClientData
+from fido_mds import FidoMetadataStore
 from werkzeug.http import dump_cookie
 
 from eduid.common.config.base import EduidEnvironment, FrontendAction
@@ -25,7 +24,7 @@ __author__ = "eperez"
 # result of calling Fido2Server.register_begin
 from fido_mds import Attestation
 from fido_mds.models.webauthn import AttestationFormat
-from fido_mds.tests.data import IPHONE_12, MICROSOFT_SURFACE_1796, NEXUS_5, YUBIKEY_4, YUBIKEY_5_NFC, NONE_ATTESTATION
+from fido_mds.tests.data import IPHONE_12, MICROSOFT_SURFACE_1796, NEXUS_5, NONE_ATTESTATION, YUBIKEY_4, YUBIKEY_5_NFC
 
 # CTAP1 security key
 STATE = {"challenge": "u3zHzb7krB4c4wj0Uxuhsz2lCXqLnwV9ZxMhvL2lcfo", "user_verification": "discouraged"}

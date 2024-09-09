@@ -1,7 +1,6 @@
 from unittest import IsolatedAsyncioTestCase
 from unittest.mock import patch
 
-
 from eduid.userdb.db.async_db import AsyncBaseDB, AsyncMongoDB
 from eduid.userdb.testing import AsyncMongoTestCase
 
