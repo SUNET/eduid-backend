@@ -270,10 +270,8 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         ], f"{query['scope']} != {[' '.join(self.app.conf.freja_eid_client.scopes)]}"
         assert query["code_challenge_method"] == ["S256"]
 
-    @patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_verify_nin_identity(self, mock_request_user_sync: MagicMock, mock_get_all_navet_data: MagicMock):
-        mock_get_all_navet_data.return_value = self._get_all_navet_data()
+    def test_verify_nin_identity(self, mock_request_user_sync: MagicMock):
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.unverified_test_user.eppn
