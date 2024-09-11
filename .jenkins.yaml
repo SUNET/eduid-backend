@@ -8,11 +8,11 @@ pre_build_script:
   - "docker pull docker.sunet.se/eduid/redis:latest"
   - "docker pull docker.sunet.se/eduid/mongodb:latest"
   - "docker pull docker.sunet.se/eduid/smtpdfix:latest"
-  - "docker pull neo4j:4.0-enterprise"
+  - "docker pull neo4j:4.4-enterprise"
   # pillow requires libjpeg and gs
   - "apt-get install -y libjpeg-dev libfreetype6-dev ghostscript libcairo2-dev"
 environment_variables:
-  NEO4J_VERSION: "4.0-enterprise"
+  NEO4J_VERSION: "4.4-enterprise"
 script:
   - "python3.10 -m venv venv"
   - ". venv/bin/activate"

@@ -53,12 +53,20 @@ class GroupDB(BaseGraphDB):
                 "CREATE CONSTRAINT ON (n:User) ASSERT n.identifier IS UNIQUE",
                 # Replaced by CREATE CONSTRAINT [name] FOR (node:Label) REQUIRE node.prop IS UNIQUE
             ]
-            for statment in statements:
+            for statement in statements:
                 try:
-                    session.run(statment)
+                    session.run(statement)
                 except ClientError as e:
                     assert e.message is not None  # please mypy
-                    if "An equivalent constraint already exists" not in e.message:
+                    acceptable_error_codes = [
+                        "Neo.ClientError.Schema.ConstraintAlreadyExists",
+                        "Neo.ClientError.Schema.EquivalentSchemaRuleAlreadyExists",
+                    ]
+                    # e.message check is neo4j <= 4.1, e.code is neo4j >= 4.4
+                    if (
+                        "An equivalent constraint already exists" not in e.message
+                        and e.code not in acceptable_error_codes
+                    ):
                         raise e
                     # Constraints already set up
                     pass

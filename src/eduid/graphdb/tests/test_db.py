@@ -28,7 +28,7 @@ class TestBaseGraphDB(Neo4jTestCase):
     def test_base_db(self):
         db_uri = self.neo4jdb.db_uri
 
-        config = {"encrypted": False, "auth": basic_auth("neo4j", "testing")}
+        config = {"encrypted": False, "auth": basic_auth("neo4j", "testingtesting")}
         test_db = self.TestDB(db_uri=db_uri, config=config)
         with test_db._db.driver.session() as session:
             session.run("CREATE (n:Test $props)", props={"name": "test node", "testing": True})
