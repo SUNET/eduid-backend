@@ -1,9 +1,7 @@
 import logging
 import math
-from uuid import uuid4
 
 from jwcrypto import jwk
-from pwgen import pwgen
 
 from eduid.common.config.exceptions import BadConfiguration
 from eduid.maccapi.config import MAccApiConfig

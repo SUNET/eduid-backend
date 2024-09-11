@@ -5,3 +5,12 @@ from eduid.userdb.reset_password.state import (
     ResetPasswordState,
 )
 from eduid.userdb.reset_password.user import ResetPasswordUser
+
+__all__ = [
+    "ResetPasswordStateDB",
+    "ResetPasswordUserDB",
+    "ResetPasswordState",
+    "ResetPasswordEmailState",
+    "ResetPasswordEmailAndPhoneState",
+    "ResetPasswordUser",
+]

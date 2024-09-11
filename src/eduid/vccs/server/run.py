@@ -4,10 +4,9 @@ from typing import Any, Mapping, Optional
 
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
+from ndnkdf import ndnkdf
 from starlette.responses import JSONResponse
 from starlette.status import HTTP_422_UNPROCESSABLE_ENTITY
-
-from ndnkdf import ndnkdf
 
 from eduid.vccs.server.config import init_config
 from eduid.vccs.server.db import CredentialDB

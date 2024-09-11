@@ -2,7 +2,6 @@ import json
 import logging
 import smtplib
 from collections import OrderedDict
-from ssl import SSLContext
 from typing import Any, Optional
 
 from celery import Task

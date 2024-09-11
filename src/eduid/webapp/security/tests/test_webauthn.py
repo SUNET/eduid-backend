@@ -4,6 +4,7 @@ from typing import Any, Mapping, Optional
 from unittest.mock import patch
 
 from fido2.webauthn import AttestationObject, AuthenticatorAttachment, CollectedClientData
+from fido_mds import FidoMetadataStore
 from werkzeug.http import dump_cookie
 
 from eduid.common.config.base import EduidEnvironment, FrontendAction
@@ -23,7 +24,7 @@ __author__ = "eperez"
 # result of calling Fido2Server.register_begin
 from fido_mds import Attestation
 from fido_mds.models.webauthn import AttestationFormat
-from fido_mds.tests.data import IPHONE_12, MICROSOFT_SURFACE_1796, NEXUS_5, YUBIKEY_4, YUBIKEY_5_NFC
+from fido_mds.tests.data import IPHONE_12, MICROSOFT_SURFACE_1796, NEXUS_5, NONE_ATTESTATION, YUBIKEY_4, YUBIKEY_5_NFC
 
 # CTAP1 security key
 STATE = {"challenge": "u3zHzb7krB4c4wj0Uxuhsz2lCXqLnwV9ZxMhvL2lcfo", "user_verification": "discouraged"}
@@ -352,20 +353,21 @@ class SecurityWebauthnTests(EduidAPITestCase):
             response2 = client.post("/webauthn/remove", json=data)
             return user_token, json.loads(response2.data)
 
-    def _apple_special_verify_attestation(self, attestation: Attestation, client_data: bytes) -> bool:
+    def _apple_special_verify_attestation(
+        self: FidoMetadataStore, attestation: Attestation, client_data: bytes
+    ) -> bool:
         if attestation.fmt is AttestationFormat.PACKED:
-            return self.app.fido_mds.verify_packed_attestation(attestation=attestation, client_data=client_data)
+            return self.verify_packed_attestation(attestation=attestation, client_data=client_data)
         if attestation.fmt is AttestationFormat.APPLE:
-            # apple attestation cert is only valid for three days
+            # apple attestation cert in fido_mds test data is only valid for three days
             return True
         if attestation.fmt is AttestationFormat.TPM:
-            return self.app.fido_mds.verify_tpm_attestation(attestation=attestation, client_data=client_data)
+            return self.verify_tpm_attestation(attestation=attestation, client_data=client_data)
         if attestation.fmt is AttestationFormat.ANDROID_SAFETYNET:
-            return self.app.fido_mds.verify_android_safetynet_attestation(
-                attestation=attestation, client_data=client_data
-            )
+            # android attestation cert in fido_mds test data is only valid for three months
+            return True
         if attestation.fmt is AttestationFormat.FIDO_U2F:
-            return self.app.fido_mds.verify_fido_u2f_attestation(attestation=attestation, client_data=client_data)
+            return self.verify_fido_u2f_attestation(attestation=attestation, client_data=client_data)
         raise NotImplementedError(f"verification of {attestation.fmt.value} not implemented")
 
     # actual tests
@@ -566,17 +568,8 @@ class SecurityWebauthnTests(EduidAPITestCase):
         self.assertEqual(data["type"], "POST_WEBAUTHN_WEBAUTHN_REMOVE_FAIL")
         self.assertEqual(data["payload"]["error"]["csrf_token"], ["CSRF failed to validate"])
 
-    @patch("fido_mds.FidoMetadataStore.verify_attestation")
-    def test_authenticator_information(self, mock_verify_attestation):
-        mock_verify_attestation = self._apple_special_verify_attestation
-
-        none_attestation_object = """o2NmbXRkbm9uZWdhdHRTdG10oGhhdXRoRGF0YViYxj7KDbeWdwEtucH8hAuBSeGOZxHTsdSGjUDkRxEY
-        LMJdAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCRvlr2y1QgLxAbJYI1H-HBYDyMcpQECAyYgASFYIGjY1rmhCeHsVeb2o2sNKcJp67MJG785al2g1uAM
-        IVwJIlggsQ4QvdBJpB721HU4hbYknS-JhNtE0kM01_c2FKHm7Lc"""
-        none_client_data = """eyJ0eXBlIjoid2ViYXV0aG4uY3JlYXRlIiwiY2hhbGxlbmdlIjoiMFlJdWs0S0s2YjhCaU1yOFh6dUFFM2c2Z1d
-        ZOWEyd1RkWlpuamhjQXNJTSIsIm9yaWdpbiI6Imh0dHBzOi8vZGFzaGJvYXJkLmRldi5lZHVpZC5zZSJ9"""
-        NONE_ATTESTATION = (none_attestation_object, none_client_data)
-
+    @patch("fido_mds.FidoMetadataStore.verify_attestation", _apple_special_verify_attestation)
+    def test_authenticator_information(self):
         authenticators = [YUBIKEY_4, YUBIKEY_5_NFC, MICROSOFT_SURFACE_1796, NEXUS_5, IPHONE_12, NONE_ATTESTATION]
         for authenticator in authenticators:
             with self.app.test_request_context():

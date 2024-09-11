@@ -127,7 +127,7 @@ class SessionManager:
         else:
             if not res.load_session():
                 logger.warning(f"No existing session found for {res}")
-                raise KeyError(f"Session not found using provided cookie")
+                raise KeyError("Session not found using provided cookie")
 
         return res
 
@@ -140,7 +140,7 @@ def get_redis_pool(cfg: RedisConfig) -> Union[sentinel.SentinelConnectionPool, r
         return sentinel.SentinelConnectionPool(cfg.sentinel_service_name, manager)
     else:
         if not cfg.host:
-            logger.error(f"Redis configuration without sentinel parameters does not have host")
+            logger.error("Redis configuration without sentinel parameters does not have host")
             raise RuntimeError("Redis configuration incorrect")
         return redis.ConnectionPool(host=cfg.host, port=cfg.port, db=cfg.db)
 

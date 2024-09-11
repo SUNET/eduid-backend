@@ -218,7 +218,7 @@ class UnmarshalWith:
                 )
                 logger.warning(f"Error un-marshalling request using {self.schema}: {e.normalized_messages()}")
                 if "password" in _data_str:
-                    logger.debug(f"Failing request has a password in it, not logging JSON data")
+                    logger.debug("Failing request has a password in it, not logging JSON data")
                 else:
                     logger.debug(f"Failing request JSON data:\n{json.dumps(json_data, indent=4, sort_keys=True)}")
                 error_response: FlaskResponse = jsonify(response_data.to_dict())

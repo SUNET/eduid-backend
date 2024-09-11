@@ -1,13 +1,10 @@
-import datetime
 import logging
 from datetime import date
 from enum import Enum, unique
 from typing import Any, Optional
 
-from iso3166 import countries
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field
 
-from eduid.common.utils import uuid4_str
 from eduid.userdb.identity import FrejaRegistrationLevel
 from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.common.session import session

@@ -7,7 +7,6 @@ from captcha.image import ImageCaptcha
 
 from eduid.common.config.base import CaptchaConfigMixin
 from eduid.common.config.exceptions import BadConfiguration
-from eduid.webapp.common.api.app import TEduIDBaseAppSubclass
 
 __author__ = "lundberg"
 

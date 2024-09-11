@@ -75,7 +75,7 @@ class TestTransactionAudit(LookupMobileMongoTestCase):
 
         no_name(self)
 
-        result = c.find()
+        c.find()
         self.assertEqual(c.count_documents({}), 0)
 
         TransactionAudit.enable()
@@ -85,5 +85,5 @@ class TestTransactionAudit(LookupMobileMongoTestCase):
             return {"baka": "kaka"}
 
         no_name2(self)
-        result = c.find()
+        c.find()
         self.assertEqual(c.count_documents({}), 1)

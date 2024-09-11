@@ -237,7 +237,7 @@ def update_user_official_name(security_user: SecurityUser, navet_data: NavetData
             current_app.logger.debug(f"proofing_log_entry: {proofing_log_entry}")
             return False
 
-        current_app.logger.info(f"Recorded verification in the proofing log")
+        current_app.logger.info("Recorded verification in the proofing log")
         # Save user to private db
         current_app.private_userdb.save(security_user)
         # Ask am to sync user to central db
@@ -254,7 +254,6 @@ def get_approved_security_keys() -> dict[str, Any]:
     # a way to reuse is_authenticator_mfa_approved() from security app
     parsed_entries: List[AuthenticatorInformation] = []
     for metadata_entry in current_app.fido_mds.metadata.entries:
-
         user_verification_methods = [
             detail.user_verification_method
             for detail in metadata_entry.metadata_statement.get_user_verification_details()

@@ -3,7 +3,7 @@ from typing import Optional
 from pydantic import Field
 
 from eduid.common.config.base import EduidEnvironment, PasswordConfigMixin
-from eduid.common.models.generic import AnyUrlStr, HttpUrlStr
+from eduid.common.models.generic import HttpUrlStr
 
 
 class JsAppsConfig(PasswordConfigMixin):

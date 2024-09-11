@@ -152,7 +152,7 @@ def verify_webauthn(
             data = request_dict[key]
             data += "=" * (len(data) % 4)
             return base64.urlsafe_b64decode(data)
-        except:
+        except Exception:
             logger.exception(f"Failed to find/b64decode Webauthn parameter {key}: {request_dict.get(key)}")
             raise VerificationProblem("mfa.bad-token-response")  # XXX add bad-token-response to frontend
 

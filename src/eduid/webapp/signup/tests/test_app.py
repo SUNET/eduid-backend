@@ -1408,7 +1408,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
             email=invite.get_primary_mail_address(),
             given_name=state_payload["state"]["name"]["given_name"],
             surname=state_payload["state"]["name"]["surname"],
-        ),
+        )
         self._create_user(expect_success=True)
         res = self._complete_invite()
         assert res.reached_state == SignupState.S7_COMPLETE_INVITE

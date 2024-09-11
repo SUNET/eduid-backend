@@ -1,7 +1,7 @@
 from os import environ
 from typing import Mapping
 
-from fastapi import APIRouter, Request, Response
+from fastapi import APIRouter, Response
 from pydantic import BaseModel
 
 from eduid.common.fastapi.context_request import ContextRequest, ContextRequestRoute

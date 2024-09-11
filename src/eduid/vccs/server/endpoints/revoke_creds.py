@@ -77,7 +77,7 @@ async def revoke_creds(req: Request, request: RevokeCredsRequestV1) -> RevokeCre
                 f"operation=revoke, reason={repr(factor.reason)}, reference={repr(factor.reference)}, "
                 f"credential_id={cred.credential_id}, result={res}"
             )
-            if res == True:
+            if res:
                 this_result = True
         else:
             req.app.logger.warning(f"Credential not found: {factor.credential_id}")

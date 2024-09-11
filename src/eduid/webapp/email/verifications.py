@@ -35,7 +35,6 @@ def new_proofing_state(email: str, user: User):
 
 
 def send_verification_code(email: str, user: User) -> bool:
-
     state = new_proofing_state(email, user)
     if state is None:
         return False

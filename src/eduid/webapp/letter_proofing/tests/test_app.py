@@ -410,7 +410,7 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
         user.locked_identity.add(NinIdentity(number=self.test_user_nin, created_by="test", is_verified=True))
         self.app.central_userdb.save(user)
         with self.session_cookie(self.browser, self.test_user_eppn):
-            response = self.send_letter(self.test_user_nin)
+            self.send_letter(self.test_user_nin)
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_postal_address")

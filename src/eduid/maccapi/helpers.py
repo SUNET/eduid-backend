@@ -10,7 +10,7 @@ from eduid.userdb.credentials import Password
 from eduid.userdb.exceptions import UserDoesNotExist, UserOutOfSync
 from eduid.userdb.logs.element import ManagedAccountLogElement
 from eduid.userdb.maccapi import ManagedAccount
-from eduid.vccs.client import VCCSClient, VCCSClientHTTPError, VCCSPasswordFactor, VCCSRevokeFactor
+from eduid.vccs.client import VCCSClientHTTPError, VCCSPasswordFactor, VCCSRevokeFactor
 
 
 class UnableToCreateUniqueEppn(Exception):

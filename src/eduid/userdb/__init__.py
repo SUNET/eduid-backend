@@ -11,9 +11,6 @@ __organization__ = "SUNET"
 __license__ = "BSD"
 __authors__ = ["Fredrik Thulin"]
 
-import eduid.userdb.exceptions
-import eduid.userdb.mail
-import eduid.userdb.phone
 from eduid.userdb.db import MongoDB
 from eduid.userdb.event import EventList
 from eduid.userdb.identity import EIDASIdentity, NinIdentity, SvipeIdentity
@@ -26,3 +23,23 @@ from eduid.userdb.profile import Profile
 from eduid.userdb.tou import ToUEvent
 from eduid.userdb.user import User
 from eduid.userdb.userdb import AmDB, UserDB
+
+__all__ = [
+    "User",
+    "UserDB",
+    "AmDB",
+    "EventList",
+    "ToUEvent",
+    "Profile",
+    "Nin",
+    "NinIdentity",
+    "SvipeIdentity",
+    "EIDASIdentity",
+    "MailAddress",
+    "PhoneNumber",
+    "OidcIdToken",
+    "OidcAuthorization",
+    "Orcid",
+    "LockedIdentityList",
+    "MongoDB",
+]

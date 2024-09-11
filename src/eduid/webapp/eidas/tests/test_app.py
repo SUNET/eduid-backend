@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, patch
 
 from fido2.webauthn import AuthenticatorAttachment
 
-from eduid.common.config.base import AuthnParameters, EduidEnvironment, FrontendAction
+from eduid.common.config.base import EduidEnvironment, FrontendAction
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb import NinIdentity
 from eduid.userdb.credentials import U2F, Webauthn
@@ -17,7 +17,7 @@ from eduid.userdb.element import ElementKey
 from eduid.userdb.identity import EIDASIdentity, EIDASLoa, IdentityProofingMethod, PridPersistence
 from eduid.webapp.common.api.messages import AuthnStatusMsg, CommonMsg, TranslatableMsg, redirect_with_msg
 from eduid.webapp.common.api.testing import CSRFTestClient
-from eduid.webapp.common.authn.acs_enums import AuthnAcsAction, EidasAcsAction
+from eduid.webapp.common.authn.acs_enums import AuthnAcsAction
 from eduid.webapp.common.authn.cache import OutstandingQueriesCache
 from eduid.webapp.common.proofing.messages import ProofingMsg
 from eduid.webapp.common.proofing.testing import ProofingTests
@@ -1250,7 +1250,6 @@ class EidasTests(ProofingTests[EidasApp]):
         assert cred.level in self.app.conf.required_loa
 
     def test_mfa_authentication_too_old_authn_instant(self):
-
         self.reauthn(
             endpoint="/mfa-authenticate",
             next_url=self.default_redirect_url,

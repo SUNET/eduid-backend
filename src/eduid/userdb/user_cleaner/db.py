@@ -1,15 +1,12 @@
 import logging
-from datetime import datetime
-from enum import Enum
 from typing import Optional
 
 import pymongo
 
 from eduid.userdb.db.base import TUserDbDocument
-from eduid.userdb.identity import IdentityType
 from eduid.userdb.meta import CleanerType
 from eduid.userdb.user import User
-from eduid.userdb.userdb import UserDB, UserVar
+from eduid.userdb.userdb import UserDB
 
 logger = logging.getLogger(__name__)
 

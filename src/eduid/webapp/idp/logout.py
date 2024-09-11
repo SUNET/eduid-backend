@@ -140,7 +140,7 @@ class SLO(Service):
             assert isinstance(req_info, saml2.request.LogoutRequest)
             current_app.logger.debug(f"Parsed Logout request ({binding}):\n{req_info.message}")
         except Exception:
-            current_app.logger.exception(f"Failed parsing logout request")
+            current_app.logger.exception("Failed parsing logout request")
             current_app.logger.debug(f"_perform_logout {binding}:\n{info}")
             raise BadRequest("Failed parsing logout request")
 
@@ -236,7 +236,7 @@ class SLO(Service):
             current_app.IDP.session_db.remove_authn_statements(name_id)
             current_app.logger.info(f"{req_key}: logout name_id={name_id!r}")
         except KeyError:
-            current_app.logger.exception(f"Failed removing authn")
+            current_app.logger.exception("Failed removing authn")
             raise InternalServerError()
         return str(STATUS_SUCCESS)  # use str() to ensure external value is the right type
 

@@ -73,7 +73,7 @@ class AuthenticationMiddleware(BaseHTTPMiddleware, ContextRequestMixin):
         try:
             token.validate_auth_source()
         except RequestedAccessDenied as e:
-            self.context.logger.error("Access denied: {e}")
+            self.context.logger.error(f"Access denied: {e}")
             return return_error_response(
                 status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication source or assurance level invalid"
             )
@@ -81,7 +81,7 @@ class AuthenticationMiddleware(BaseHTTPMiddleware, ContextRequestMixin):
         try:
             data_owner = token.get_data_owner()
         except RequestedAccessDenied as e:
-            self.context.logger.error("Access denied: {e}")
+            self.context.logger.error(f"Access denied: {e}")
             return return_error_response(
                 status_code=status.HTTP_401_UNAUTHORIZED, detail="Data owner requested in access token denied"
             )

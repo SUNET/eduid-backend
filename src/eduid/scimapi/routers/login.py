@@ -23,7 +23,7 @@ login_router = APIRouter(
 async def get_token(req: ContextRequest, resp: Response, token_req: TokenRequest) -> None:
     if not req.app.config.login_enabled:
         raise NotFound()
-    req.app.context.logger.info(f"Logging in")
+    req.app.context.logger.info("Logging in")
     if token_req.data_owner not in req.app.context.config.data_owners:
         raise Unauthorized()
     now = datetime.datetime.now(tz=datetime.timezone.utc)

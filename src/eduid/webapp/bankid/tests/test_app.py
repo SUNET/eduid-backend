@@ -19,7 +19,7 @@ from eduid.webapp.bankid.app import BankIDApp, init_bankid_app
 from eduid.webapp.bankid.helpers import BankIDMsg
 from eduid.webapp.common.api.messages import AuthnStatusMsg, TranslatableMsg
 from eduid.webapp.common.api.testing import CSRFTestClient
-from eduid.webapp.common.authn.acs_enums import AuthnAcsAction, BankIDAcsAction
+from eduid.webapp.common.authn.acs_enums import AuthnAcsAction
 from eduid.webapp.common.authn.cache import OutstandingQueriesCache
 from eduid.webapp.common.proofing.messages import ProofingMsg
 from eduid.webapp.common.proofing.testing import ProofingTests

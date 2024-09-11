@@ -86,7 +86,6 @@ webauthn_views = Blueprint("webauthn", __name__, url_prefix="/webauthn", templat
 @MarshalWith(FluxStandardAction)
 @require_user
 def registration_begin(user: User, authenticator: str) -> FluxData:
-
     frontend_action = FrontendAction.ADD_SECURITY_KEY_AUTHN
 
     _need_reauthn = check_reauthn(frontend_action=frontend_action, user=user)
@@ -239,7 +238,6 @@ def registration_complete(
 @MarshalWith(SecurityResponseSchema)
 @require_user
 def remove(user: User, credential_key: str) -> FluxData:
-
     frontend_action = FrontendAction.REMOVE_SECURITY_KEY_AUTHN
 
     _need_reauthn = check_reauthn(frontend_action=frontend_action, user=user)

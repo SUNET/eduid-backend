@@ -304,7 +304,7 @@ class EidasProofingFunctions(SwedenConnectProofingFunctions[ForeignEidSessionInf
             # Save user to private db
             current_app.private_userdb.save(proofing_user)
             # Ask am to sync user to central db
-            current_app.logger.info(f"Request sync for user")
+            current_app.logger.info("Request sync for user")
             result = current_app.am_relay.request_user_sync(proofing_user)
             current_app.logger.info(f"Sync result for user: {result}")
         except AmTaskFailed:
@@ -395,7 +395,7 @@ def _find_or_add_credential(
 ) -> Optional[ElementKey]:
     if not required_loa:
         # mainly keep mypy calm
-        current_app.logger.debug(f"Not recording credential used without required_loa")
+        current_app.logger.debug("Not recording credential used without required_loa")
         return None
 
     cred: ExternalCredential

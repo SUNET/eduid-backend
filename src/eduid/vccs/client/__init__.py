@@ -327,7 +327,7 @@ class VCCSClient:
 
         response = self._execute(auth_req, "auth_response")
         resp_auth = response["authenticated"]
-        if type(resp_auth) != bool:
+        if type(resp_auth) is not bool:
             raise TypeError(f"Authenticated value type error : {resp_auth!r}")
         return resp_auth is True
 
@@ -344,7 +344,7 @@ class VCCSClient:
 
         response = self._execute(add_creds_req, "add_creds_response")
         success = response["success"]
-        if type(success) != bool:
+        if type(success) is not bool:
             raise TypeError(f"Operation success value type error : {success!r}")
         return success is True
 
@@ -362,7 +362,7 @@ class VCCSClient:
 
         response = self._execute(revoke_creds_req, "revoke_creds_response")
         success = response["success"]
-        if type(success) != bool:
+        if type(success) is not bool:
             raise TypeError(f"Operation success value type error : {success!r}")
         return success is True
 

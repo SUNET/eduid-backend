@@ -319,7 +319,7 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
         assert (
             payload.get("webauthn_options") == mock_stv.return_value.webauthn_options
         ), f"webauthn_options: {payload.get('webauthn_options')}, Expected: {mock_stv.return_value.webauthn_options}"
-        assert payload.get("finished") == False, "Expected finished=False"
+        assert not payload.get("finished"), "Expected finished=False"
 
         logger.debug(f"MFA endpoint returned (challenge):\n{json.dumps(response.json, indent=4)}")
 

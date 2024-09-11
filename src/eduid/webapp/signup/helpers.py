@@ -351,7 +351,7 @@ def complete_and_update_invite(user: User, invite_code: str):
         session.signup.invite.finish_url = invite.finish_url
     session.signup.invite.completed = True
 
-    current_app.logger.info(f"Invite completed")
+    current_app.logger.info("Invite completed")
     current_app.logger.debug(f"invite_code: {invite.invite_code}")
     current_app.stats.count(name=f"{invite.invite_type.value}_invite_completed")
 

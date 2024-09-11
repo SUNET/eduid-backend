@@ -163,7 +163,7 @@ def next_view(ticket: LoginContext, sso_session: Optional[SSOSession]) -> FluxDa
         try:
             # Logging stats is optional, make sure we never fail a login because of it
             _log_user_agent()
-        except:
+        except Exception:
             current_app.logger.exception("Producing User-Agent stats failed")
 
         if current_app.conf.known_devices_feature_enabled:
@@ -181,7 +181,7 @@ def next_view(ticket: LoginContext, sso_session: Optional[SSOSession]) -> FluxDa
             try:
                 # Logging stats is optional, make sure we never fail a login because of it
                 _geo_statistics(ticket=ticket, sso_session=sso_session)
-            except:
+            except Exception:
                 current_app.logger.exception("Producing Geo stats failed")
 
         if isinstance(ticket, LoginContextSAML):
@@ -312,7 +312,7 @@ def _get_service_info(ticket: LoginContext) -> dict[str, Any]:
     try:
         if ticket.service_info is not None:
             return ticket.service_info.to_dict()
-    except:
+    except Exception:
         current_app.logger.exception("Failed getting service info for SP")
     return {}
 

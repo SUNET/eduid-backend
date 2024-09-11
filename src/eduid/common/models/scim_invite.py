@@ -1,8 +1,7 @@
-from datetime import datetime
-from typing import Any, Optional
+from typing import Optional
 from uuid import UUID
 
-from pydantic import Field, model_validator, root_validator
+from pydantic import Field, model_validator
 from typing_extensions import Self
 
 from eduid.common.models.scim_base import (

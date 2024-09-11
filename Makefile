@@ -13,8 +13,13 @@ test:
 	PYTHONPATH=$(SRCDIR) pytest -vvv -ra --log-cli-level DEBUG
 
 reformat:
-	isort --line-width 120 --atomic --project eduid $(SOURCE)
-	black --line-length 120 --target-version py310 $(SOURCE)
+	# sort imports and remove unused imports
+	ruff check --select F401,I --fix
+	# reformat
+	ruff format
+
+lint:
+	ruff check
 
 typecheck:
 	MYPYPATH=$(SRCDIR) mypy $(MYPY_ARGS) --namespace-packages -p eduid

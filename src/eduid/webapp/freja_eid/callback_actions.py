@@ -4,7 +4,7 @@ from eduid.webapp.common.authn.acs_registry import ACSArgs, ACSResult, acs_actio
 from eduid.webapp.common.proofing.messages import ProofingMsg
 from eduid.webapp.freja_eid.app import current_freja_eid_app as current_app
 from eduid.webapp.freja_eid.callback_enums import FrejaEIDAction
-from eduid.webapp.freja_eid.helpers import FrejaEIDDocumentUserInfo, FrejaEIDMsg, FrejaEIDTokenResponse
+from eduid.webapp.freja_eid.helpers import FrejaEIDDocumentUserInfo, FrejaEIDMsg
 from eduid.webapp.freja_eid.proofing import get_proofing_functions
 
 __author__ = "lundberg"

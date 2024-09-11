@@ -21,3 +21,27 @@ from eduid.userdb.proofing.state import (
     PhoneProofingState,
 )
 from eduid.userdb.proofing.user import ProofingUser
+
+__all__ = [
+    "EidasProofingUserDB",
+    "EmailProofingStateDB",
+    "EmailProofingUserDB",
+    "LetterProofingStateDB",
+    "LetterProofingUserDB",
+    "LookupMobileProofingUserDB",
+    "OidcProofingStateDB",
+    "OidcProofingUserDB",
+    "OrcidProofingStateDB",
+    "OrcidProofingUserDB",
+    "PhoneProofingStateDB",
+    "PhoneProofingUserDB",
+    "ProofingUser",
+    "LetterProofingState",
+    "EmailProofingState",
+    "OidcProofingState",
+    "OrcidProofingState",
+    "PhoneProofingState",
+    "EmailProofingElement",
+    "NinProofingElement",
+    "PhoneProofingElement",
+]

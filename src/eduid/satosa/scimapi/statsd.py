@@ -2,7 +2,6 @@ import logging
 import re
 from typing import Any, Mapping
 
-import satosa.internal
 from satosa.context import Context
 from satosa.internal import InternalData
 from satosa.micro_services.base import ResponseMicroService
@@ -30,7 +29,6 @@ class RequesterCounter(ResponseMicroService):
     """
 
     def __init__(self, config: Mapping[str, Any], *args: Any, **kwargs: Any):
-
         super().__init__(*args, **kwargs)
 
         statsd_config = StatsConfigMixin(**config)

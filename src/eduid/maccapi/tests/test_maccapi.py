@@ -56,8 +56,8 @@ class TestMAccApi(MAccApiTestCase):
         assert payload["scope"] == "eduid.se"
         assert payload["user"]["given_name"] == self.user1["given_name"]
         assert payload["user"]["surname"] == self.user1["surname"]
-        assert payload["user"]["eppn"] != None
-        assert payload["user"]["password"] != None
+        assert payload["user"]["eppn"] is not None
+        assert payload["user"]["password"] is not None
 
     def test_create_multiple_users(self):
         claims = {
@@ -140,7 +140,7 @@ class TestMAccApi(MAccApiTestCase):
         assert payload["user"]["eppn"] == eppn
         assert payload["user"]["given_name"] == self.user1["given_name"]
         assert payload["user"]["surname"] == self.user1["surname"]
-        assert payload["user"]["password"] != None
+        assert payload["user"]["password"] is not None
         new_password = payload["user"]["password"]
         assert self._is_presentable_format(new_password)
 

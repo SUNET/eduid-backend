@@ -98,7 +98,6 @@ def get_user_preferences(user: User) -> FluxData:
 @MarshalWith(UserPreferencesResponseSchema)
 @require_user
 def set_user_preferences(user: User, always_use_security_key: bool) -> FluxData:
-
     # When we get more user preferences we should probably split them into different groups
     # and have a separate endpoint for each group and FrontendAction.
     frontend_action = FrontendAction.CHANGE_SECURITY_PREFERENCES_AUTHN

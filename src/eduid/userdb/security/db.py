@@ -67,7 +67,7 @@ class PasswordResetStateDB(BaseDB):
 
     @staticmethod
     def init_state(
-        data: Mapping[str, Any]
+        data: Mapping[str, Any],
     ) -> Optional[Union[PasswordResetEmailState, PasswordResetEmailAndPhoneState]]:
         _data = dict(copy.deepcopy(data))  # to not modify callers data
         method = _data.pop("method", None)

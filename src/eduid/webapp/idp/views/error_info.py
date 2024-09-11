@@ -17,7 +17,7 @@ error_info_views = Blueprint("error_info", __name__, url_prefix="")
 @MarshalWith(ErrorInfoResponseSchema)
 def error_info() -> FluxData:
     current_app.logger.debug("\n\n")
-    current_app.logger.debug(f"--- Error info ---")
+    current_app.logger.debug("--- Error info ---")
 
     try:
         user = get_user()

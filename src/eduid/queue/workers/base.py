@@ -149,7 +149,7 @@ class QueueWorker(ABC):
         tasks: set[Task] = set()
         try:
             while True:
-                logger.debug(f"Running periodic collection check")
+                logger.debug("Running periodic collection check")
                 tasks = await self.collect_periodic_tasks()
 
                 # TODO: Implement some kind of retry of failed events here

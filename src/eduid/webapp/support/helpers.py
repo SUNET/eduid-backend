@@ -4,7 +4,6 @@ from typing import Any, Callable, TypeVar
 from flask import abort
 
 from eduid.userdb import User
-from eduid.userdb.credentials import Credential
 from eduid.userdb.db import TUserDbDocument
 from eduid.webapp.common.api.utils import get_user
 from eduid.webapp.support.app import current_support_app as current_app
@@ -33,7 +32,7 @@ TRequireSupportPersonnelResult = TypeVar("TRequireSupportPersonnelResult")
 
 
 def require_support_personnel(
-    f: Callable[..., TRequireSupportPersonnelResult]
+    f: Callable[..., TRequireSupportPersonnelResult],
 ) -> Callable[..., TRequireSupportPersonnelResult]:
     @wraps(f)
     def require_support_decorator(*args: Any, **kwargs: Any):

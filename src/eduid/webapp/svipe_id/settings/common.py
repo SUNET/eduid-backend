@@ -1,6 +1,6 @@
 from typing import Union
 
-from pydantic import AnyUrl, BaseModel, Field
+from pydantic import Field
 
 from eduid.common.clients.oidc_client.base import AuthlibClientConfig
 from eduid.common.config.base import (

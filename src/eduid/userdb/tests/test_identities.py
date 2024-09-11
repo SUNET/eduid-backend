@@ -1,4 +1,3 @@
-import copy
 import datetime
 import unittest
 from unittest import TestCase

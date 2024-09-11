@@ -43,7 +43,7 @@ def require_ticket(f):
                 ticket.known_device_info = BrowserDeviceInfo.from_public(
                     this_device, current_app.known_device_db.app_secret_box
                 )
-            except:
+            except Exception:
                 logger.exception("Couldn't parse the this_device supplied")
                 logger.debug(f"Extra debug: Known device: {this_device}")
                 pass

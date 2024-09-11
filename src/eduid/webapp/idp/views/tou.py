@@ -76,7 +76,7 @@ def tou(
             return error_response(message=CommonMsg.out_of_sync)
 
         if not res:
-            current_app.logger.error(f"Failed saving/syncing user after accepting ToU")
+            current_app.logger.error("Failed saving/syncing user after accepting ToU")
             return error_response(message=IdPMsg.general_failure)
 
         return success_response(payload={"finished": True})

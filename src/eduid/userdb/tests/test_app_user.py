@@ -4,7 +4,6 @@ from unittest import TestCase
 from pydantic import ValidationError
 
 from eduid.userdb import User
-from eduid.userdb.credentials import CredentialList
 from eduid.userdb.db import TUserDbDocument
 from eduid.userdb.fixtures.users import UserFixtures
 
