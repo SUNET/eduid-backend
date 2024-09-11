@@ -14,7 +14,13 @@ from eduid.webapp.common.api.messages import CommonMsg
 from eduid.webapp.common.proofing.messages import ProofingMsg
 from eduid.webapp.common.proofing.testing import ProofingTests
 from eduid.webapp.freja_eid.app import FrejaEIDApp, freja_eid_init_app
-from eduid.webapp.freja_eid.helpers import FrejaDocument, FrejaDocumentType, FrejaEIDDocumentUserInfo, FrejaEIDMsg
+from eduid.webapp.freja_eid.helpers import (
+    FrejaDocument,
+    FrejaDocumentType,
+    FrejaEIDDocumentUserInfo,
+    FrejaEIDMsg,
+    FrejaEIDTokenResponse,
+)
 
 __author__ = "lundberg"
 
@@ -245,6 +251,60 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
 
     def test_app_starts(self):
         assert self.app.conf.app_name == "testing"
+
+    @staticmethod
+    def test_parse_token_response():
+        token_response_swedish = {
+            "access_token": "access_token",
+            "token_type": "Bearer",
+            "expires_in": 599,
+            "scope": "space delimited scopes",
+            "id_token": "id_token",
+            "expires_at": 1726060986,
+            "userinfo": {
+                "sub": "subject_identifier",
+                "https://frejaeid.com/oidc/claims/country": "SE",
+                "birthdate": "1981-07-01",
+                "kid": "oidc_signing_kid",
+                "iss": "https://eid-provider.example.com/oidc/",
+                "https://frejaeid.com/oidc/claims/registrationLevel": "PLUS",
+                "https://frejaeid.com/oidc/claims/personalIdentityNumber": "198107011481",
+                "given_name": "Sven",
+                "nonce": "some_nonce",
+                "aud": "test",
+                "name": "Sven Svensson",
+                "https://frejaeid.com/oidc/claims/document": {
+                    "type": "PASS",
+                    "country": "SE",
+                    "serialNumber": "791840288",
+                    "expirationDate": "2029-09-11",
+                },
+                "https://frejaeid.com/oidc/claims/relyingPartyUserId": "relying_party_user_id",
+                "exp": 1726063987,
+                "https://frejaeid.com/oidc/claims/transactionReference": "transaction_reference",
+                "iat": 1726060387,
+                "family_name": "Svensson",
+                "jti": "61ec03e5-ec08-4ac2-bd54-6256994fb784",
+            },
+        }
+        parsed_token_response = FrejaEIDTokenResponse(**token_response_swedish)
+        assert parsed_token_response is not None
+        assert parsed_token_response.userinfo is not None
+        assert parsed_token_response.userinfo.iss == "https://eid-provider.example.com/oidc/"
+        assert parsed_token_response.userinfo.aud == "test"
+        assert parsed_token_response.userinfo.registration_level == FrejaRegistrationLevel.PLUS
+        assert parsed_token_response.userinfo.personal_identity_number == "198107011481"
+        assert parsed_token_response.userinfo.name == "Sven Svensson"
+        assert parsed_token_response.userinfo.family_name == "Svensson"
+        assert parsed_token_response.userinfo.given_name == "Sven"
+        assert parsed_token_response.userinfo.date_of_birth == date(year=1981, month=7, day=1)
+        assert parsed_token_response.userinfo.document is not None
+        assert parsed_token_response.userinfo.document.type == FrejaDocumentType.PASSPORT
+        assert parsed_token_response.userinfo.document.country == "SE"
+        assert parsed_token_response.userinfo.document.serial_number == "791840288"
+        assert parsed_token_response.userinfo.document.expiration_date == date(year=2029, month=9, day=11)
+        assert parsed_token_response.userinfo.transaction_id == "transaction_reference"
+        assert parsed_token_response.userinfo.user_id == "relying_party_user_id"
 
     def test_authenticate(self):
         response = self.browser.get("/")
