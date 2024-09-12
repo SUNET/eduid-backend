@@ -1,9 +1,13 @@
+from typing import Optional
+
 from flask import Blueprint
 
 from eduid.common.config.base import FrontendAction
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.rpc.exceptions import AmTaskFailed
 from eduid.userdb import User
+from eduid.userdb.credentials import FidoCredential
+from eduid.userdb.element import ElementKey
 from eduid.userdb.exceptions import UserOutOfSync
 from eduid.userdb.identity import IdentityType
 from eduid.userdb.proofing import NinProofingElement
@@ -14,7 +18,7 @@ from eduid.webapp.common.api.helpers import add_nin_to_user
 from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response, success_response
 from eduid.webapp.common.api.schemas.csrf import EmptyRequest
 from eduid.webapp.common.api.utils import save_and_sync_user
-from eduid.webapp.common.authn.utils import get_authn_for_action
+from eduid.webapp.common.authn.utils import get_authn_for_action, validate_authn_for_action
 from eduid.webapp.common.authn.vccs import revoke_all_credentials
 from eduid.webapp.common.session import session
 from eduid.webapp.security.app import current_security_app as current_app
@@ -29,6 +33,8 @@ from eduid.webapp.security.helpers import (
 )
 from eduid.webapp.security.schemas import (
     AccountTerminatedSchema,
+    AuthnStatusRequestSchema,
+    AuthnStatusResponseSchema,
     IdentitiesResponseSchema,
     IdentityRequestSchema,
     NINRequestSchema,
@@ -251,3 +257,27 @@ def refresh_user_data(user: User) -> FluxData:
         return error_response(message=CommonMsg.temp_problem)
 
     return success_response(message=SecurityMsg.user_updated)
+
+
+@security_views.route("/authn-status", methods=["POST"])
+@UnmarshalWith(AuthnStatusRequestSchema)
+@MarshalWith(AuthnStatusResponseSchema)
+@require_user
+def check_authn_status(user: User, frontend_action: str, credential_id: Optional[ElementKey] = None) -> FluxData:
+    credential = None
+    if credential_id is not None:
+        credential = user.credentials.find(credential_id)
+        if credential is None or isinstance(credential, FidoCredential) is False:
+            current_app.logger.error(f"Can't find credential with id: {credential_id}")
+            return error_response(message=SecurityMsg.credential_not_found)
+
+    try:
+        _frontend_action = FrontendAction(frontend_action)
+    except ValueError:
+        current_app.logger.error(f"Invalid frontend action: {frontend_action}")
+        return error_response(message=SecurityMsg.frontend_action_not_supported)
+
+    authn_status = validate_authn_for_action(
+        config=current_app.conf, frontend_action=_frontend_action, user=user, credential_used=credential
+    )
+    return success_response(payload={"authn_status": authn_status.value})

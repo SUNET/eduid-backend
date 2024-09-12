@@ -77,6 +77,10 @@ class SecurityMsg(TranslatableMsg):
     not_found = "security.not_found"
     # wrong identity type requested
     wrong_identity_type = "security.wrong-identity-type"
+    # Credential not found in the user's account
+    credential_not_found = "security.credential_not_found"
+    # frontend action is not implemented
+    frontend_action_not_supported = "security.frontend_action_not_supported"
 
 
 @dataclass
