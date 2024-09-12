@@ -193,6 +193,16 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
         with self.session_cookie(self.browser, eppn) as client:
             return client.get("/credentials")
 
+    def _get_authn_status(self, frontend_action: FrontendAction, credential_id: Optional[str] = None):
+        data = {"frontend_action": frontend_action.value}
+        if credential_id is not None:
+            data["credential_id"] = credential_id
+        eppn = self.test_user_data["eduPersonPrincipalName"]
+        with self.session_cookie(self.browser, eppn) as client:
+            with client.session_transaction() as sess:
+                data["csrf_token"] = sess.get_csrf_token()
+            return client.post("/authn-status", json=data)
+
     # actual tests
 
     def test_delete_account_no_csrf(self):
@@ -567,3 +577,57 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
             ],
         }
         self._check_success_response(response, type_="GET_SECURITY_CREDENTIALS_SUCCESS", payload=expected_payload)
+
+    def test_authn_status_ok(self):
+        frontend_action = FrontendAction.CHANGE_PW_AUTHN
+        self.set_authn_action(
+            eppn=self.test_user_eppn,
+            frontend_action=frontend_action,
+        )
+        response = self._get_authn_status(frontend_action=frontend_action)
+        self._check_success_response(
+            response=response,
+            type_="POST_SECURITY_AUTHN_STATUS_SUCCESS",
+            payload={"authn_status": AuthnActionStatus.OK.value},
+        )
+
+    def test_authn_status_stale(self):
+        frontend_action = FrontendAction.CHANGE_PW_AUTHN
+        self.set_authn_action(eppn=self.test_user_eppn, frontend_action=frontend_action, age=timedelta(minutes=10))
+        response = self._get_authn_status(frontend_action=frontend_action)
+        self._check_success_response(
+            response=response,
+            type_="POST_SECURITY_AUTHN_STATUS_SUCCESS",
+            payload={"authn_status": AuthnActionStatus.STALE.value},
+        )
+
+    def test_authn_status_no_mfa(self):
+        frontend_action = FrontendAction.REMOVE_SECURITY_KEY_AUTHN
+        self.set_authn_action(eppn=self.test_user_eppn, frontend_action=frontend_action)
+        response = self._get_authn_status(frontend_action=frontend_action)
+        self._check_success_response(
+            response=response,
+            type_="POST_SECURITY_AUTHN_STATUS_SUCCESS",
+            payload={"authn_status": AuthnActionStatus.NO_MFA.value},
+        )
+
+    def test_authn_status_credential_not_existing(self):
+        frontend_action = FrontendAction.VERIFY_CREDENTIAL
+        self.set_authn_action(eppn=self.test_user_eppn, frontend_action=frontend_action, force_mfa=True)
+        response = self._get_authn_status(frontend_action=frontend_action, credential_id="none_existing_credential_id")
+        self._check_error_response(
+            response=response,
+            type_="POST_SECURITY_AUTHN_STATUS_FAIL",
+            msg=SecurityMsg.credential_not_found,
+        )
+
+    def test_authn_status_credential_not_used(self):
+        frontend_action = FrontendAction.VERIFY_CREDENTIAL
+        credential = self.add_security_key_to_user(self.test_user_eppn, keyhandle="keyhandle_1")
+        self.set_authn_action(eppn=self.test_user_eppn, frontend_action=frontend_action, force_mfa=True)
+        response = self._get_authn_status(frontend_action=frontend_action, credential_id=credential.key)
+        self._check_success_response(
+            response=response,
+            type_="POST_SECURITY_AUTHN_STATUS_SUCCESS",
+            payload={"authn_status": AuthnActionStatus.CREDENTIAL_NOT_RECENTLY_USED.value},
+        )
