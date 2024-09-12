@@ -6,12 +6,9 @@ from typing import Any, Mapping, Optional, Union
 from unittest import TestCase
 from unittest.mock import MagicMock, patch
 
-from fido2.webauthn import AuthenticatorAttachment
-
 from eduid.common.config.base import EduidEnvironment, FrontendAction
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb import NinIdentity
-from eduid.userdb.credentials import U2F, Webauthn
 from eduid.userdb.credentials.external import EidasCredential, ExternalCredential, SwedenConnectCredential
 from eduid.userdb.element import ElementKey
 from eduid.userdb.identity import EIDASIdentity, EIDASLoa, IdentityProofingMethod, PridPersistence
@@ -227,32 +224,6 @@ class EidasTests(ProofingTests[EidasApp]):
             }
         )
         return config
-
-    def add_security_key_to_user(self, eppn: str, credential_id: str, token_type: str) -> Union[U2F, Webauthn]:
-        user = self.app.central_userdb.get_user_by_eppn(eppn)
-        mfa_token: Union[U2F, Webauthn]
-        if token_type == "u2f":
-            mfa_token = U2F(
-                version="test",
-                keyhandle=credential_id,
-                public_key="test",
-                app_id="test",
-                attest_cert="test",
-                description="test",
-                created_by="test",
-            )
-        else:
-            mfa_token = Webauthn(
-                keyhandle=credential_id,
-                credential_data="test",
-                app_id="test",
-                description="test",
-                created_by="test",
-                authenticator=AuthenticatorAttachment.CROSS_PLATFORM,
-            )
-        user.credentials.add(mfa_token)
-        self.request_user_sync(user)
-        return mfa_token
 
     def add_nin_to_user(self, eppn: str, nin: str, verified: bool) -> NinIdentity:
         user = self.app.central_userdb.get_user_by_eppn(eppn)
@@ -570,7 +541,7 @@ class EidasTests(ProofingTests[EidasApp]):
 
         for security_key_type in ["u2f", "webauthn"]:
             credential = self.add_security_key_to_user(
-                eppn, credential_id=f"test_{security_key_type}", token_type=security_key_type
+                eppn, keyhandle=f"test_{security_key_type}", token_type=security_key_type
             )
             self.verify_token(
                 endpoint="/verify-credential",

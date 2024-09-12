@@ -3,15 +3,12 @@ import datetime
 import logging
 import os
 import unittest
-from typing import Any, Mapping, Optional, Union
+from typing import Any, Mapping, Optional
 from unittest.mock import MagicMock, patch
-
-from fido2.webauthn import AuthenticatorAttachment
 
 from eduid.common.config.base import EduidEnvironment, FrontendAction
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb import NinIdentity
-from eduid.userdb.credentials import U2F, Webauthn
 from eduid.userdb.credentials.external import BankIDCredential, SwedenConnectCredential
 from eduid.userdb.element import ElementKey
 from eduid.userdb.identity import IdentityProofingMethod
@@ -206,32 +203,6 @@ class BankIDTests(ProofingTests[BankIDApp]):
             }
         )
         return config
-
-    def add_token_to_user(self, eppn: str, credential_id: str, token_type: str) -> Union[U2F, Webauthn]:
-        user = self.app.central_userdb.get_user_by_eppn(eppn)
-        mfa_token: Union[U2F, Webauthn]
-        if token_type == "u2f":
-            mfa_token = U2F(
-                version="test",
-                keyhandle=credential_id,
-                public_key="test",
-                app_id="test",
-                attest_cert="test",
-                description="test",
-                created_by="test",
-            )
-        else:
-            mfa_token = Webauthn(
-                keyhandle=credential_id,
-                credential_data="test",
-                app_id="test",
-                description="test",
-                created_by="test",
-                authenticator=AuthenticatorAttachment.CROSS_PLATFORM,
-            )
-        user.credentials.add(mfa_token)
-        self.request_user_sync(user)
-        return mfa_token
 
     def add_nin_to_user(self, eppn: str, nin: str, verified: bool) -> NinIdentity:
         user = self.app.central_userdb.get_user_by_eppn(eppn)
@@ -506,7 +477,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_user.eppn
-        credential = self.add_token_to_user(eppn, "test", "u2f")
+        credential = self.add_security_key_to_user(eppn, "test", "u2f")
 
         self._verify_user_parameters(eppn)
 
@@ -527,7 +498,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
 
         eppn = self.test_user.eppn
 
-        credential = self.add_token_to_user(eppn, "test", "webauthn")
+        credential = self.add_security_key_to_user(eppn, "test", "webauthn")
 
         self._verify_user_parameters(eppn)
 
@@ -545,7 +516,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
     def test_mfa_token_verify_wrong_verified_nin(self):
         eppn = self.test_user.eppn
         nin = self.test_user_wrong_nin
-        credential = self.add_token_to_user(eppn, "test", "u2f")
+        credential = self.add_security_key_to_user(eppn, "test", "u2f")
 
         self._verify_user_parameters(eppn, identity=nin, identity_present=False)
 
@@ -568,7 +539,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
 
         eppn = self.test_unverified_user_eppn
         nin = self.test_user_nin
-        credential = self.add_token_to_user(eppn, "test", "webauthn")
+        credential = self.add_security_key_to_user(eppn, "test", "webauthn")
 
         self._verify_user_parameters(eppn, identity_verified=False)
 
@@ -589,7 +560,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
 
     def test_mfa_token_verify_no_mfa_login(self):
         eppn = self.test_user.eppn
-        credential = self.add_token_to_user(eppn, "test", "u2f")
+        credential = self.add_security_key_to_user(eppn, "test", "u2f")
 
         self._verify_user_parameters(eppn)
 
@@ -614,7 +585,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
 
     def test_mfa_token_verify_no_mfa_token_in_session(self):
         eppn = self.test_user.eppn
-        credential = self.add_token_to_user(eppn, "test", "webauthn")
+        credential = self.add_security_key_to_user(eppn, "test", "webauthn")
 
         self._verify_user_parameters(eppn)
 
@@ -633,7 +604,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
 
     def test_mfa_token_verify_aborted_auth(self):
         eppn = self.test_user.eppn
-        credential = self.add_token_to_user(eppn, "test", "u2f")
+        credential = self.add_security_key_to_user(eppn, "test", "u2f")
 
         self._verify_user_parameters(eppn)
 
@@ -653,7 +624,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
     def test_mfa_token_verify_cancel_auth(self):
         eppn = self.test_user.eppn
 
-        credential = self.add_token_to_user(eppn, "test", "webauthn")
+        credential = self.add_security_key_to_user(eppn, "test", "webauthn")
 
         self._verify_user_parameters(eppn)
 
@@ -674,7 +645,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
     def test_mfa_token_verify_auth_fail(self):
         eppn = self.test_user.eppn
 
-        credential = self.add_token_to_user(eppn, "test", "u2f")
+        credential = self.add_security_key_to_user(eppn, "test", "u2f")
 
         self._verify_user_parameters(eppn)
 
@@ -699,7 +670,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
 
         eppn = self.test_unverified_user_eppn
         nin = self.test_backdoor_nin
-        credential = self.add_token_to_user(eppn, "test", "webauthn")
+        credential = self.add_security_key_to_user(eppn, "test", "webauthn")
 
         self._verify_user_parameters(eppn)
 
