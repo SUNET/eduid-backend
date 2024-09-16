@@ -1,8 +1,9 @@
 import base64
 import logging
+from collections.abc import Mapping
 from datetime import datetime
 from io import BytesIO
-from typing import Any, Mapping, Optional, Union
+from typing import Any, Optional, Union
 
 import nacl
 import nacl.encoding

@@ -10,9 +10,10 @@ and are called with two positional parameters:
  * The user object
 """
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
-from typing import Callable, Optional, Union
+from typing import Optional, Union
 
 from flask import current_app
 from werkzeug.wrappers import Response as WerkzeugResponse

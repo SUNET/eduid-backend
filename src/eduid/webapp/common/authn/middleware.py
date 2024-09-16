@@ -2,7 +2,8 @@ import json
 import logging
 import re
 from abc import ABCMeta
-from typing import TYPE_CHECKING, Any, Iterable, Mapping, Optional, cast
+from collections.abc import Iterable, Mapping
+from typing import TYPE_CHECKING, Any, Optional, cast
 from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
 from flask import Request, current_app

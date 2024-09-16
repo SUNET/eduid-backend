@@ -1,7 +1,8 @@
 import sys
+from collections.abc import Mapping
 from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta
-from typing import Any, Mapping, Optional
+from typing import Any, Optional
 
 from fastapi import Response
 

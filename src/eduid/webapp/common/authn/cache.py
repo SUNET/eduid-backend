@@ -1,4 +1,5 @@
-from typing import Any, Iterator, MutableMapping, TypeVar
+from collections.abc import Iterator, MutableMapping
+from typing import Any, TypeVar
 
 from saml2.cache import Cache
 

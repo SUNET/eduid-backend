@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Mapping, Optional
+from typing import Optional
 
 from eduid.graphdb.helpers import neo4j_ts_to_dt
 

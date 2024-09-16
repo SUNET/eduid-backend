@@ -1,8 +1,9 @@
 __author__ = "lundberg"
 
 import logging
+from collections.abc import Mapping
 from datetime import datetime
-from typing import Any, Mapping, Optional, Union
+from typing import Any, Optional, Union
 from uuid import UUID, uuid4
 
 from bson import ObjectId

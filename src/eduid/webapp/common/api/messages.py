@@ -1,7 +1,8 @@
+from collections.abc import Mapping
 from copy import copy
 from dataclasses import asdict, dataclass
 from enum import Enum, unique
-from typing import Any, Mapping, Optional, Union
+from typing import Any, Optional, Union
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from flask import redirect

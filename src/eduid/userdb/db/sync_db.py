@@ -1,7 +1,8 @@
 import logging
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Mapping, Optional, Union
+from typing import Any, Optional, Union
 
 import pymongo
 import pymongo.collection

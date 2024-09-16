@@ -4,8 +4,9 @@ import json
 import logging
 import typing
 import uuid
+from collections.abc import Mapping
 from datetime import datetime, timedelta
-from typing import Any, Mapping, Optional
+from typing import Any, Optional
 
 from bson import ObjectId
 from flask import request

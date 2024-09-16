@@ -1,7 +1,8 @@
 from abc import ABC
+from collections.abc import Mapping
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from typing import Any, Mapping, TypeVar
+from typing import Any, TypeVar
 
 __author__ = "lundberg"
 

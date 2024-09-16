@@ -1,7 +1,8 @@
 __author__ = "mathiashedstrom"
 
 import re
-from typing import Optional, Sequence
+from collections.abc import Sequence
+from typing import Optional
 
 import phonenumbers
 

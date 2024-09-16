@@ -3,7 +3,8 @@ import datetime
 import logging
 import os
 import unittest
-from typing import Any, Mapping, Optional, Union
+from collections.abc import Mapping
+from typing import Any, Optional, Union
 from unittest.mock import MagicMock, patch
 
 from fido2.webauthn import AuthenticatorAttachment

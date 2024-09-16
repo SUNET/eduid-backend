@@ -1,7 +1,8 @@
 import logging
 import pprint
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any, Mapping, Optional, Union
+from typing import Any, Optional, Union
 from xml.etree.ElementTree import ParseError
 
 from dateutil.parser import parse as dt_parse

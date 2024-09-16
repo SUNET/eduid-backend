@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from datetime import datetime, timedelta
-from typing import Any, Mapping, Union
+from typing import Any, Union
 
 from eduid.userdb.element import Element, ElementKey
 from eduid.userdb.util import utc_now

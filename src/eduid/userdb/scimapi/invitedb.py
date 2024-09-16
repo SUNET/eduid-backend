@@ -3,9 +3,10 @@ from __future__ import annotations
 import copy
 import logging
 import uuid
+from collections.abc import Mapping
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from typing import Any, Mapping, Optional
+from typing import Any, Optional
 from uuid import UUID
 
 from bson import ObjectId

@@ -1,5 +1,6 @@
 import operator
-from typing import Any, Mapping, Optional, cast
+from collections.abc import Mapping
+from typing import Any, Optional, cast
 
 from flask import current_app
 from jinja2.exceptions import UndefinedError

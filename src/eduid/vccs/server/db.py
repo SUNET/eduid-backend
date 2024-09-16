@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import asdict, field
 from enum import Enum, unique
-from typing import Any, Mapping, Optional, Type, Union, cast
+from typing import Any, Optional, Type, Union, cast
 
 from bson import ObjectId
 from loguru import logger

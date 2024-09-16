@@ -6,9 +6,10 @@ such as rate limiting.
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Mapping, Optional, Sequence
+from typing import Any, Optional
 
 from bson import ObjectId
 from pydantic import BaseModel, ConfigDict, Field

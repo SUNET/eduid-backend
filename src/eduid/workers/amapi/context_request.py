@@ -1,7 +1,8 @@
 __author__ = "masv"
 
+from collections.abc import Callable
 from dataclasses import asdict, dataclass
-from typing import Callable, Union
+from typing import Union
 
 from fastapi import Request, Response
 from fastapi.routing import APIRoute

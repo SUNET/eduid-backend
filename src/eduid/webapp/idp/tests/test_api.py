@@ -1,9 +1,10 @@
 import json
 import logging
 import re
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from pathlib import PurePath
-from typing import Any, Mapping, Optional, Tuple, Union
+from typing import Any, Optional, Tuple, Union
 from unittest.mock import MagicMock, patch
 
 from bson import ObjectId

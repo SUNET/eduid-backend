@@ -1,6 +1,7 @@
 import json
+from collections.abc import Mapping
 from datetime import datetime, timedelta
-from typing import Any, Mapping, Optional
+from typing import Any, Optional
 from unittest.mock import MagicMock, patch
 
 from eduid.common.config.base import FrontendAction

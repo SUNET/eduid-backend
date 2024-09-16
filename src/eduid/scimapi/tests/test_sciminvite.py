@@ -1,10 +1,11 @@
 import json
 import logging
 import unittest
+from collections.abc import Mapping
 from copy import copy
 from dataclasses import asdict
 from datetime import datetime, timedelta
-from typing import Any, Mapping, Optional
+from typing import Any, Optional
 
 from bson import ObjectId
 

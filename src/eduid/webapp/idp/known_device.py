@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import json
 import logging
+from collections.abc import Mapping
 from datetime import datetime, timedelta
-from typing import Any, Mapping, NewType, Optional
+from typing import Any, NewType, Optional
 from uuid import uuid4
 
 import nacl

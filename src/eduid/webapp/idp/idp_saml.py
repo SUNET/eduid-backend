@@ -1,9 +1,10 @@
 import logging
 import typing
 from base64 import b64encode
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from hashlib import sha1
-from typing import Any, Mapping, NewType, Optional, Union
+from typing import Any, NewType, Optional, Union
 
 import saml2.server
 from pydantic import BaseModel

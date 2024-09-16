@@ -1,6 +1,7 @@
 import base64
 import json
-from typing import Any, Mapping, Optional
+from collections.abc import Mapping
+from typing import Any, Optional
 from unittest.mock import patch
 
 from fido2.webauthn import AttestationObject, AuthenticatorAttachment, CollectedClientData

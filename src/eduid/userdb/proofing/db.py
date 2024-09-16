@@ -1,7 +1,8 @@
 import logging
 from abc import ABC
+from collections.abc import Mapping
 from operator import itemgetter
-from typing import Any, Generic, Mapping, Optional, TypeVar
+from typing import Any, Generic, Optional, TypeVar
 
 from eduid.userdb.db import BaseDB, SaveResult, TUserDbDocument
 from eduid.userdb.proofing.state import (

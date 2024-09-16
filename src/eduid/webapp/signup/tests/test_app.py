@@ -1,9 +1,10 @@
 import json
 import logging
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import Any, Mapping, Optional
+from typing import Any, Optional
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 

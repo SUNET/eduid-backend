@@ -4,8 +4,9 @@ import asyncio
 import logging
 import time
 from asyncio import Task
+from collections.abc import Sequence
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any, Optional, Sequence, TypeAlias, cast
+from typing import TYPE_CHECKING, Any, Optional, TypeAlias, cast
 from unittest import IsolatedAsyncioTestCase, TestCase
 from unittest.mock import patch
 

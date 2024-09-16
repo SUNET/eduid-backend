@@ -1,5 +1,6 @@
 import base64
-from typing import Optional, Sequence
+from collections.abc import Sequence
+from typing import Optional
 
 from fido2 import cbor
 from fido2.server import Fido2Server, PublicKeyCredentialRpEntity

@@ -48,9 +48,10 @@ from __future__ import annotations
 
 import copy
 from abc import ABC
+from collections.abc import Mapping
 from datetime import datetime
 from enum import Enum
-from typing import Any, Generic, Mapping, NewType, Optional, TypeVar, Union
+from typing import Any, Generic, NewType, Optional, TypeVar, Union
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 

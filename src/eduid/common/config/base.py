@@ -4,11 +4,12 @@ Configuration (file) handling for eduID IdP.
 
 from __future__ import annotations
 
+from collections.abc import Iterable, Mapping, Sequence
 from datetime import timedelta
 from enum import Enum, unique
 from pathlib import Path
 from re import Pattern
-from typing import IO, Annotated, Any, Iterable, Mapping, Optional, Sequence, TypeVar, Union
+from typing import IO, Annotated, Any, Optional, TypeVar, Union
 
 import pkg_resources
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field

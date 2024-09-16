@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import logging
 from abc import ABC
+from collections.abc import Mapping
 from copy import deepcopy
 from datetime import datetime
 from enum import Enum, unique
-from typing import Any, List, Mapping, NewType, Optional, TypeVar, Union, cast
+from typing import Any, List, NewType, Optional, TypeVar, Union, cast
 from uuid import uuid4
 
 from fido2.webauthn import AuthenticatorAttachment

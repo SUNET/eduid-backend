@@ -1,6 +1,7 @@
+from collections.abc import Callable
 from datetime import datetime
 from inspect import isclass
-from typing import Any, Callable, Optional
+from typing import Any, Optional
 
 from eduid.userdb.db import MongoDB
 

@@ -2,7 +2,8 @@ import importlib.util
 import logging
 import os.path
 import sys
-from typing import Optional, Sequence, Tuple
+from collections.abc import Sequence
+from typing import Optional, Tuple
 
 from saml2 import server
 from saml2.config import SPConfig

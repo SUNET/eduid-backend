@@ -1,6 +1,7 @@
 import logging
+from collections.abc import Mapping
 from copy import deepcopy
-from typing import Any, Mapping, Optional, Union
+from typing import Any, Optional, Union
 
 import satosa.internal
 from satosa.context import Context

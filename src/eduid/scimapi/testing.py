@@ -1,9 +1,10 @@
 import os
 import unittest
 import uuid
+from collections.abc import Mapping
 from dataclasses import asdict
 from json import JSONDecodeError
-from typing import Any, Mapping, Optional, Union
+from typing import Any, Optional, Union
 
 import pkg_resources
 from bson import ObjectId

@@ -3,8 +3,9 @@ from __future__ import annotations
 import logging
 import typing
 import uuid
+from collections.abc import Mapping
 from datetime import datetime, timedelta
-from typing import Any, Mapping, NewType, Optional
+from typing import Any, NewType, Optional
 
 from bson import ObjectId
 from pydantic import BaseModel, ConfigDict, Field

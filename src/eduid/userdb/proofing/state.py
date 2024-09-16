@@ -3,8 +3,9 @@ from __future__ import annotations
 import copy
 import datetime
 import logging
+from collections.abc import Mapping
 from dataclasses import asdict, dataclass
-from typing import Any, Mapping, Optional
+from typing import Any, Optional
 
 import bson
 

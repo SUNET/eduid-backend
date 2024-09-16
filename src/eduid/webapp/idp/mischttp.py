@@ -63,8 +63,9 @@ from __future__ import annotations
 
 import logging
 import pprint
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, Mapping, Optional, Sequence
+from typing import Any, Optional
 
 import user_agents
 from bleach import clean

@@ -1,8 +1,9 @@
 import logging
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import Mapping, Optional
+from typing import Optional
 
 from eduid.userdb import User
 from eduid.userdb.credentials import U2F, Password, Webauthn

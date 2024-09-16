@@ -1,7 +1,8 @@
 import logging
+from collections.abc import Mapping
 from dataclasses import replace
 from datetime import datetime, timedelta, timezone
-from typing import Any, Mapping, Optional, Union
+from typing import Any, Optional, Union
 
 from bson import ObjectId
 from pymongo.results import UpdateResult

@@ -1,6 +1,7 @@
 import json
+from collections.abc import Mapping
 from datetime import datetime, timedelta
-from typing import Any, AnyStr, Mapping, Optional
+from typing import Any, AnyStr, Optional
 from unittest.mock import MagicMock, Mock, patch
 
 from werkzeug.test import TestResponse

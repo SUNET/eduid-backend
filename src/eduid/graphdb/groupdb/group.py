@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Mapping, Optional, Union
+from typing import Optional, Union
 
 from bson import ObjectId
 

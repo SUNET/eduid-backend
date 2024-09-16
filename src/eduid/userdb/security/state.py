@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import copy
 import datetime
-from typing import Any, Mapping, Optional, TypeVar
+from collections.abc import Mapping
+from typing import Any, Optional, TypeVar
 
 import bson
 from pydantic import BaseModel, ConfigDict, Field

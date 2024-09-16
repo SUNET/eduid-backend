@@ -5,10 +5,11 @@ import logging.config
 import pprint
 import sys
 import traceback
+from collections.abc import Generator, Iterable, Mapping
 from contextlib import contextmanager
 from copy import deepcopy
 from datetime import timedelta
-from typing import Any, Generator, Generic, Iterable, Mapping, Optional, TypeVar, cast
+from typing import Any, Generic, Optional, TypeVar, cast
 
 from flask.testing import FlaskClient
 from werkzeug.test import TestResponse

@@ -1,7 +1,8 @@
 import logging
+from collections.abc import Mapping
 from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any, Literal, Mapping, Optional, cast, overload
+from typing import TYPE_CHECKING, Any, Literal, Optional, cast, overload
 
 from flask import Blueprint, jsonify
 from flask import current_app as flask_current_app

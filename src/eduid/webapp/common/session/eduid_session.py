@@ -4,8 +4,9 @@ import json
 import logging
 import os
 import pprint
+from collections.abc import MutableMapping
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, MutableMapping, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 from flask import Request as FlaskRequest
 from flask import Response as FlaskResponse

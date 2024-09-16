@@ -2,9 +2,10 @@ import asyncio
 import json
 import logging
 import unittest
+from collections.abc import Mapping
 from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta
-from typing import Any, Mapping, Optional
+from typing import Any, Optional
 from unittest import IsolatedAsyncioTestCase
 from uuid import UUID, uuid4
 

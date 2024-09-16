@@ -3,8 +3,9 @@ import os
 import stat
 from abc import ABC
 from binascii import unhexlify
+from collections.abc import Mapping
 from hashlib import sha1
-from typing import Any, Mapping, Optional
+from typing import Any, Optional
 
 import pyhsm
 import yaml

@@ -4,9 +4,10 @@ import argparse
 import json
 import logging
 import sys
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from pprint import pformat
-from typing import Any, Callable, Mapping, NewType, Optional, cast
+from typing import Any, NewType, Optional, cast
 
 import requests
 import yaml

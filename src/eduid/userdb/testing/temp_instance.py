@@ -8,7 +8,8 @@ import subprocess
 import tempfile
 import time
 from abc import ABC, abstractmethod
-from typing import Any, Optional, Sequence
+from collections.abc import Sequence
+from typing import Any, Optional
 
 from eduid.userdb.util import utc_now
 

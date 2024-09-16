@@ -1,6 +1,7 @@
 import datetime
 import json
-from typing import Any, Mapping, Optional
+from collections.abc import Mapping
+from typing import Any, Optional
 from unittest.mock import Mock, patch
 from urllib.parse import quote_plus
 

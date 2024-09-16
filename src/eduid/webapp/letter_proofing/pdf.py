@@ -1,8 +1,8 @@
 import logging
+from collections.abc import Mapping
 from datetime import datetime, timedelta
 from io import BytesIO, StringIO
 from pathlib import Path
-from typing import Mapping
 
 from xhtml2pdf import pisa
 

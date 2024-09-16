@@ -1,7 +1,8 @@
 import logging
 from abc import ABC
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any, Generic, Mapping, Optional, TypeVar, Union
+from typing import Any, Generic, Optional, TypeVar, Union
 
 from bson import ObjectId
 from bson.errors import InvalidId

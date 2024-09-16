@@ -2,7 +2,8 @@ import base64
 import datetime
 import logging
 import os
-from typing import Any, Mapping, Optional, Union
+from collections.abc import Mapping
+from typing import Any, Optional, Union
 from unittest import TestCase
 from unittest.mock import MagicMock, patch
 

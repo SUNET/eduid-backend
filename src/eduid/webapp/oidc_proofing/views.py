@@ -1,7 +1,8 @@
 import base64
 import binascii
+from collections.abc import Mapping
 from io import BytesIO
-from typing import Any, Mapping, Union
+from typing import Any, Union
 
 import qrcode
 import qrcode.image.svg

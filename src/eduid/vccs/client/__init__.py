@@ -42,7 +42,8 @@ Revoke a credential (irreversible!) :
 """
 
 import os
-from typing import Any, Optional, Sequence
+from collections.abc import Sequence
+from typing import Any, Optional
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen

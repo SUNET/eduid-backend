@@ -7,7 +7,8 @@ from __future__ import annotations
 import logging
 import logging.config
 import unittest
-from typing import Any, Optional, Sequence, cast
+from collections.abc import Sequence
+from typing import Any, Optional, cast
 
 import pymongo
 import pymongo.errors

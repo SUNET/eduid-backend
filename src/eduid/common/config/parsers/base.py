@@ -2,7 +2,8 @@ from abc import ABC
 
 __author__ = "lundberg"
 
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 
 class BaseConfigParser(ABC):

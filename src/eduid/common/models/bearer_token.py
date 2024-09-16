@@ -1,7 +1,8 @@
 import logging
+from collections.abc import Mapping
 from copy import copy
 from enum import Enum
-from typing import Any, Mapping, Optional
+from typing import Any, Optional
 
 from pydantic import BaseModel, Field, StrictInt, field_validator, model_validator
 from pydantic_core.core_schema import ValidationInfo

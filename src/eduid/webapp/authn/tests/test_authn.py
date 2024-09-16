@@ -3,8 +3,9 @@ import json
 import logging
 import os
 import uuid
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any, Mapping, Optional
+from typing import Any, Optional
 from urllib.parse import quote_plus
 
 from flask import Blueprint

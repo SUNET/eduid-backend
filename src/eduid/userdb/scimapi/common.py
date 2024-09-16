@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import uuid
 from abc import ABC
+from collections.abc import Mapping
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from typing import Any, Mapping, Optional, Type, Union
+from typing import Any, Optional, Type, Union
 from uuid import UUID
 
 from eduid.common.models.scim_base import EmailType, PhoneNumberType, WeakVersion

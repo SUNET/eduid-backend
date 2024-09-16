@@ -7,8 +7,9 @@ import os
 import pprint
 import sys
 import time
+from collections.abc import Generator
 from copy import deepcopy
-from typing import Any, Generator, Optional
+from typing import Any, Optional
 
 import bson
 import bson.json_util

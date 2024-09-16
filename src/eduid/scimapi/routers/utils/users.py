@@ -1,6 +1,7 @@
+from collections.abc import Sequence
 from dataclasses import asdict
 from datetime import datetime
-from typing import Any, Optional, Sequence
+from typing import Any, Optional
 
 from fastapi import Response
 from pymongo.errors import DuplicateKeyError

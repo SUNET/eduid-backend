@@ -59,8 +59,9 @@ import logging
 import time
 import warnings
 from collections import deque
+from collections.abc import Mapping
 from threading import Lock
-from typing import Any, Deque, Mapping, Optional, cast
+from typing import Any, Deque, Optional, cast
 
 from eduid.userdb.db import BaseDB
 from eduid.userdb.exceptions import EduIDDBError

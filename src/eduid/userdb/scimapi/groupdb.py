@@ -4,9 +4,10 @@ import copy
 import logging
 import pprint
 import uuid
+from collections.abc import Iterable, Mapping
 from dataclasses import asdict, dataclass, field, replace
 from datetime import datetime
-from typing import Any, Iterable, Mapping, Optional, Union
+from typing import Any, Optional, Union
 from uuid import UUID
 
 from bson import ObjectId

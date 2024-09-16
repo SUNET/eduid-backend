@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 import copy
 import logging
-from typing import Any, Mapping, NewType, Optional
+from collections.abc import Mapping
+from typing import Any, NewType, Optional
 
 from pymongo.uri_parser import parse_uri
 

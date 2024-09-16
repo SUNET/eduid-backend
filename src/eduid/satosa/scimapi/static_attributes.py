@@ -1,5 +1,6 @@
 import logging
-from typing import Any, Mapping, Optional
+from collections.abc import Mapping
+from typing import Any, Optional
 
 import satosa.context
 import satosa.internal
