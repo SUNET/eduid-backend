@@ -119,11 +119,6 @@ def _format_mongodb_uri(parsed_uri: Mapping[str, Any]) -> str:
 
     db_name = parsed_uri.get("database") or ""
 
-    res = "mongodb://{user_pass!s}{nodelist!s}/{db_name!s}{options!s}".format(
-        user_pass=user_pass,
-        nodelist=nodelist,
-        db_name=db_name,
-        # collection is ignored
-        options=options,
-    )
+    # collection is ignored
+    res = f"mongodb://{user_pass!s}{nodelist!s}/{db_name!s}{options!s}"
     return res

@@ -30,9 +30,7 @@ class ApiException(Exception):
         self.payload = payload
 
     def __repr__(self):
-        return "ApiException (message={!s}, status_code={!s}, payload={!r})".format(
-            self.message, self.status_code, self.payload
-        )
+        return f"ApiException (message={self.message!s}, status_code={self.status_code!s}, payload={self.payload!r})"
 
     def __unicode__(self):
         return self.__str__()

@@ -68,7 +68,7 @@ def get_saml_attribute(session_info: SessionInfo, attr_name: str) -> list[str] |
 
     attributes = session_info["ava"]
 
-    logger.debug("SAML attributes received: %s" % attributes)
+    logger.debug(f"SAML attributes received: {attributes}")
 
     # Look for the canonicalized attribute in the SAML assertion attributes
     for saml_attr, _ in attributes.items():

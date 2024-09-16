@@ -67,8 +67,8 @@ class RawDb:
                 yield RawData(doc, db, collection)
         except PyMongoError as exc:
             sys.stderr.write(
-                "{}\n\nFailed reading from mongodb ({}.{}) - "
-                "try sourcing the file /root/.mongo_credentials first?\n".format(exc, db, collection)
+                f"{exc}\n\nFailed reading from mongodb ({db}.{collection}) - "
+                "try sourcing the file /root/.mongo_credentials first?\n"
             )
             sys.exit(1)
 
@@ -84,9 +84,8 @@ class RawDb:
 
         if not os.path.isdir(self._backupbase):
             sys.stderr.write(
-                "\n\nBackup basedir {} not found, " "running in a container without the volume mounted?\n".format(
-                    self._backupbase
-                )
+                f"\n\nBackup basedir {self._backupbase} not found, "
+                "running in a container without the volume mounted?\n"
             )
             sys.exit(1)
 
@@ -156,12 +155,7 @@ class RawDb:
                 if k not in raw.before:
                     continue
                 if raw.doc[k] != raw.before[k]:
-                    fd.write(
-                        "MOD: BEFORE={} AFTER={}\n".format(
-                            safe_encode(k, raw.before[k]),
-                            safe_encode(k, raw.doc[k]),
-                        )
-                    )
+                    fd.write(f"MOD: BEFORE={safe_encode(k, raw.before[k])} AFTER={safe_encode(k, raw.doc[k])}\n")
 
             fd.write(f"DB_RESULT: {res}\n")
         return res
@@ -209,9 +203,8 @@ class RawDb:
 
         if not os.path.isdir(self._backupbase):
             sys.stderr.write(
-                "\n\nBackup basedir {} not found, running in a container " "without the volume mounted?\n".format(
-                    self._backupbase
-                )
+                f"\n\nBackup basedir {self._backupbase} not found, running in a container "
+                "without the volume mounted?\n"
             )
             sys.exit(1)
 

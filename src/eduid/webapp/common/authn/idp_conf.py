@@ -22,27 +22,27 @@ else:
 BASE = "http://localhost:8088"
 
 CONFIG = {
-    "entityid": "%s/idp.xml" % BASE,
+    "entityid": f"{BASE}/idp.xml",
     "description": "My IDP",
     "service": {
         "aa": {
-            "endpoints": {"attribute_service": [("%s/attr" % BASE, BINDING_SOAP)]},
+            "endpoints": {"attribute_service": [(f"{BASE}/attr", BINDING_SOAP)]},
             "name_id_format": [NAMEID_FORMAT_TRANSIENT, NAMEID_FORMAT_PERSISTENT],
         },
         "aq": {
-            "endpoints": {"authn_query_service": [("%s/aqs" % BASE, BINDING_SOAP)]},
+            "endpoints": {"authn_query_service": [(f"{BASE}/aqs", BINDING_SOAP)]},
         },
         "idp": {
             "name": "Rolands IdP",
             "endpoints": {
                 "single_sign_on_service": [
-                    ("%s/sso/redirect" % BASE, BINDING_HTTP_REDIRECT),
-                    ("%s/sso/post" % BASE, BINDING_HTTP_POST),
+                    (f"{BASE}/sso/redirect", BINDING_HTTP_REDIRECT),
+                    (f"{BASE}/sso/post", BINDING_HTTP_POST),
                 ],
                 "single_logout_service": [
-                    ("%s/slo/soap" % BASE, BINDING_SOAP),
-                    ("%s/slo/post" % BASE, BINDING_HTTP_POST),
-                    ("%s/slo/redirect" % BASE, BINDING_HTTP_REDIRECT),
+                    (f"{BASE}/slo/soap", BINDING_SOAP),
+                    (f"{BASE}/slo/post", BINDING_HTTP_POST),
+                    (f"{BASE}/slo/redirect", BINDING_HTTP_REDIRECT),
                 ],
             },
             "policy": {

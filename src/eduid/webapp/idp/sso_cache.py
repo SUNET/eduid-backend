@@ -161,9 +161,7 @@ class ExpiringCacheMem:
                     self._ages.appendleft((_exp_ts, _exp_key))
                     break
                 logger.debug(
-                    "Purged {!s} cache entry {!s} seconds over limit : {!s}".format(
-                        self.name, timestamp - _exp_ts, _exp_key
-                    )
+                    f"Purged {self.name!s} cache entry {timestamp - _exp_ts!s} seconds over limit : {_exp_key!s}"
                 )
                 self.delete(_exp_key)
         finally:

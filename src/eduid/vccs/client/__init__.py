@@ -74,12 +74,7 @@ class VCCSClientHTTPError(VCCSClientException):
         self.http_code = http_code
 
     def __str__(self):
-        return "<{cl} instance at {addr}: {code!r} {reason!r}>".format(
-            cl=self.__class__.__name__,
-            addr=hex(id(self)),
-            code=self.http_code,
-            reason=self.reason,
-        )
+        return f"<{self.__class__.__name__} instance at {hex(id(self))}: {self.http_code!r} {self.reason!r}>"
 
 
 class VCCSFactor:
