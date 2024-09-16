@@ -3,7 +3,7 @@ import logging
 import os.path
 import sys
 from collections.abc import Sequence
-from typing import Optional, Tuple
+from typing import Optional
 
 from saml2 import server
 from saml2.config import SPConfig
@@ -113,7 +113,7 @@ def init_pysaml2(cfgfile: str) -> server.Server:
 
 def get_authn_for_action(
     config: FrontendActionMixin, frontend_action: FrontendAction
-) -> Tuple[Optional[SP_AuthnRequest], AuthnParameters]:
+) -> tuple[Optional[SP_AuthnRequest], AuthnParameters]:
     authn_params = config.frontend_action_authn_parameters.get(frontend_action)
     if authn_params is None:
         raise BadConfiguration(f"No authn parameters for frontend action {frontend_action}")

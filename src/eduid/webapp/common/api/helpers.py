@@ -1,6 +1,6 @@
 import warnings
 from dataclasses import dataclass
-from typing import Any, List, Optional, TypeVar, Union, cast, overload
+from typing import Any, Optional, TypeVar, Union, cast, overload
 
 from flask import current_app, render_template, request
 
@@ -55,7 +55,7 @@ def get_marked_given_name(given_name: str, given_name_marking: Optional[str]) ->
         return given_name
 
     # cheating with indexing
-    _given_names: List[Optional[str]] = [None]
+    _given_names: list[Optional[str]] = [None]
     for name in given_name.split():
         if "-" in name:
             # hyphenated names are counted separately
@@ -63,12 +63,12 @@ def get_marked_given_name(given_name: str, given_name_marking: Optional[str]) ->
         else:
             _given_names.append(name)
 
-    _optional_marked_names: List[Optional[str]] = []
+    _optional_marked_names: list[Optional[str]] = []
     for i in given_name_marking:
         _optional_marked_names.append(_given_names[int(i)])
     # remove None values
     # i.e. 0 index and hyphenated names second part placeholder
-    _marked_names: List[str] = [name for name in _optional_marked_names if name is not None]
+    _marked_names: list[str] = [name for name in _optional_marked_names if name is not None]
     if "-".join(_marked_names) in given_name:
         return "-".join(_marked_names)
     else:

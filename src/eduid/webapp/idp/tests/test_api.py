@@ -4,7 +4,7 @@ import re
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from pathlib import PurePath
-from typing import Any, Optional, Tuple, Union
+from typing import Any, Optional, Union
 from unittest.mock import MagicMock, patch
 
 from bson import ObjectId
@@ -379,7 +379,7 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
             return None
         return self.app.sso_sessions.get_session(SSOSessionId(sso_cookie_val))
 
-    def add_test_user_tou(self, eppn: Optional[str] = None, version: Optional[str] = None) -> Tuple[IdPUser, ToUEvent]:
+    def add_test_user_tou(self, eppn: Optional[str] = None, version: Optional[str] = None) -> tuple[IdPUser, ToUEvent]:
         """Utility function to add a valid ToU to the default test user"""
         if version is None:
             version = self.app.conf.tou_version

@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime
-from typing import List, Optional
+from typing import Optional
 
 from pydantic import field_validator
 
@@ -54,7 +54,7 @@ class ManagedAccountDB(UserDB[ManagedAccount]):
     def user_from_dict(cls, data: TUserDbDocument) -> ManagedAccount:
         return ManagedAccount.from_dict(data)
 
-    def get_users(self, data_owner: str) -> List[ManagedAccount]:
+    def get_users(self, data_owner: str) -> list[ManagedAccount]:
         """
         :return: A list of users with the given organization
         """

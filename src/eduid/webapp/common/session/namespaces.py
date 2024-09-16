@@ -6,7 +6,7 @@ from collections.abc import Mapping
 from copy import deepcopy
 from datetime import datetime
 from enum import Enum, unique
-from typing import Any, List, NewType, Optional, TypeVar, Union, cast
+from typing import Any, NewType, Optional, TypeVar, Union, cast
 from uuid import uuid4
 
 from fido2.webauthn import AuthenticatorAttachment
@@ -263,7 +263,7 @@ class SP_AuthnRequest(BaseAuthnRequest):
     credentials_used: list[ElementKey] = Field(default_factory=list)
     # proofing_credential_id is the credential being person-proofed, when doing that
     proofing_credential_id: Optional[ElementKey] = None
-    req_authn_ctx: List[str] = Field(
+    req_authn_ctx: list[str] = Field(
         default_factory=list
     )  # the authentication contexts requested for this authentication
     asserted_authn_ctx: Optional[str] = None  # the authentication contexts asserted for this authentication

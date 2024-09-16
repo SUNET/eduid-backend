@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import unique
 from functools import cache
-from typing import Any, List, Optional
+from typing import Any, Optional
 
 from fido_mds.models.webauthn import AttestationFormat
 
@@ -252,7 +252,7 @@ def update_user_official_name(security_user: SecurityUser, navet_data: NavetData
 @cache
 def get_approved_security_keys() -> dict[str, Any]:
     # a way to reuse is_authenticator_mfa_approved() from security app
-    parsed_entries: List[AuthenticatorInformation] = []
+    parsed_entries: list[AuthenticatorInformation] = []
     for metadata_entry in current_app.fido_mds.metadata.entries:
         user_verification_methods = [
             detail.user_verification_method
@@ -278,14 +278,14 @@ def get_approved_security_keys() -> dict[str, Any]:
         )
         parsed_entries.append(authenticator_info)
 
-    approved_keys_list: List[str] = []
+    approved_keys_list: list[str] = []
     for entry in parsed_entries:
         if entry.description and is_authenticator_mfa_approved(entry):
             approved_keys_list.append(entry.description)
 
     # remove case-insensitive duplicates from list, while maintaining the original case
     marker = set()
-    unique_approved_keys_list: List[str] = []
+    unique_approved_keys_list: list[str] = []
 
     for key in approved_keys_list:
         lower_case_key = key.lower()

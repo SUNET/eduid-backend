@@ -61,7 +61,7 @@ import warnings
 from collections import deque
 from collections.abc import Mapping
 from threading import Lock
-from typing import Any, Deque, Optional, cast
+from typing import Any, Optional, cast
 
 from eduid.userdb.db import BaseDB
 from eduid.userdb.exceptions import EduIDDBError
@@ -114,7 +114,7 @@ class ExpiringCacheMem:
         self.ttl = ttl
         self.name = name
         self._data: dict[SSOSessionId, Any] = {}
-        self._ages: Deque[tuple[float, SSOSessionId]] = deque()
+        self._ages: deque[tuple[float, SSOSessionId]] = deque()
         self.lock = lock
         if self.lock is None:
             self.lock = cast(Lock, NoOpLock())  # intentionally lie to mypy
