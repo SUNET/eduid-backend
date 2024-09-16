@@ -173,7 +173,7 @@ class QueueAsyncioTest(EduidQueueTestCase, IsolatedAsyncioTestCase):
                 break
             except pymongo.errors.NotPrimaryError as e:
                 db_init_try += 1
-                await asyncio.wait(db_init_try)
+                await asyncio.sleep(db_init_try)
                 if db_init_try >= 10:
                     raise e
                 continue
