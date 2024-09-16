@@ -174,15 +174,6 @@ class IdPConfig(EduIDBaseAppConfig, TouConfigMixin, WebauthnConfigMixin2, AmConf
         if isinstance(v, int):
             # legacy format for this was number of minutes
             v = v * 60
-        if not (
-            isinstance(
-                v,
-                (
-                    int,
-                    str,
-                    timedelta,
-                ),
-            )
-        ):
+        if not isinstance(v, int | str | timedelta):
             raise ValueError("Invalid sso_session_lifetime (must be int, str or timedelta)")
         return v

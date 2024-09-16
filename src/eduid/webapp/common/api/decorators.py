@@ -145,7 +145,7 @@ class MarshalWith:
             # or in special cases an WerkzeugResponse (e.g. when a redirect is performed).
             ret = f(*args, **kwargs)
 
-            if isinstance(ret, (WerkzeugResponse, FlaskResponse)):
+            if isinstance(ret, WerkzeugResponse | FlaskResponse):
                 # No need to Marshal again, someone else already did that
                 return ret
 

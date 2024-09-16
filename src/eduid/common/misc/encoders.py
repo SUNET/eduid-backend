@@ -16,7 +16,7 @@ class EduidJSONEncoder(json.JSONEncoder):
             return o.isoformat()
         if isinstance(o, timedelta):
             return TypeAdapter(timedelta).dump_python(o, mode="json")
-        if isinstance(o, (ObjectId, NameID)):
+        if isinstance(o, ObjectId | NameID):
             return str(o)
         if isinstance(o, Enum):
             return o.value

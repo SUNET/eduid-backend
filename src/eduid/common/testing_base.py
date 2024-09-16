@@ -53,7 +53,7 @@ def normalised_data(
                 o = o.replace(microsecond=0)
                 return o.isoformat()
 
-            if isinstance(o, (ObjectId, uuid.UUID, Enum, Exception)):
+            if isinstance(o, ObjectId | uuid.UUID | Enum | Exception):
                 return str(o)
 
             # catch all for wierd stuff in pydantic 2 errors
