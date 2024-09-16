@@ -61,7 +61,7 @@ import warnings
 from collections import deque
 from collections.abc import Mapping
 from threading import Lock
-from typing import Any, Optional, cast
+from typing import Any, cast
 
 from eduid.userdb.db import BaseDB
 from eduid.userdb.exceptions import EduIDDBError
@@ -109,7 +109,7 @@ class ExpiringCacheMem:
     :param lock: threading.Lock compatible locking instance
     """
 
-    def __init__(self, name: str, logger: Optional[logging.Logger], ttl: int, lock: Optional[Lock] = None):
+    def __init__(self, name: str, logger: logging.Logger | None, ttl: int, lock: Lock | None = None):
         self.logger = logger
         self.ttl = ttl
         self.name = name
@@ -122,7 +122,7 @@ class ExpiringCacheMem:
         if self.logger is not None:
             warnings.warn("Object logger deprecated, using module_logger", DeprecationWarning)
 
-    def add(self, key: SSOSessionId, info: Any, now: Optional[int] = None) -> None:
+    def add(self, key: SSOSessionId, info: Any, now: int | None = None) -> None:
         """
         Add entry to the cache.
 
@@ -169,7 +169,7 @@ class ExpiringCacheMem:
         finally:
             self.lock.release()
 
-    def get(self, key: SSOSessionId) -> Optional[Mapping[str, Any]]:
+    def get(self, key: SSOSessionId) -> Mapping[str, Any] | None:
         """
         Fetch data from cache based on `key'.
 
@@ -248,7 +248,7 @@ class SSOSessionCache(BaseDB):
         )
         return None
 
-    def get_session(self, sid: SSOSessionId) -> Optional[SSOSession]:
+    def get_session(self, sid: SSOSessionId) -> SSOSession | None:
         """
         Lookup an SSO session using the session id (same `sid' previously used with add_session).
 

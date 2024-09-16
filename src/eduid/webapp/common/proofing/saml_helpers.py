@@ -1,5 +1,4 @@
 import logging
-from typing import Optional
 
 from saml2.metadata import entity_descriptor
 
@@ -32,7 +31,7 @@ def is_required_loa(
     return False
 
 
-def authn_ctx_to_loa(session_info: SessionInfo, authentication_context_map: dict[str, str]) -> Optional[str]:
+def authn_ctx_to_loa(session_info: SessionInfo, authentication_context_map: dict[str, str]) -> str | None:
     """Lookup short name (such as 'loa3') for an authentication context class we've received."""
     parsed = BaseSessionInfo(**session_info)
     for k, v in authentication_context_map.items():
@@ -41,9 +40,7 @@ def authn_ctx_to_loa(session_info: SessionInfo, authentication_context_map: dict
     return None
 
 
-def authn_context_class_to_loa(
-    session_info: BaseSessionInfo, authentication_context_map: dict[str, str]
-) -> Optional[str]:
+def authn_context_class_to_loa(session_info: BaseSessionInfo, authentication_context_map: dict[str, str]) -> str | None:
     for key, value in authentication_context_map.items():
         if value == session_info.authn_context:
             return key

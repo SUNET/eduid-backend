@@ -1,6 +1,5 @@
 import logging
 from datetime import datetime
-from typing import Optional
 
 from pydantic import field_validator
 
@@ -61,7 +60,7 @@ class ManagedAccountDB(UserDB[ManagedAccount]):
         users = self._get_documents_by_aggregate({"data_owner": data_owner, "terminated": {"$exists": False}})
         return self._users_from_documents(users)
 
-    def get_account_as_idp_user(self, username: str) -> Optional[IdPUser]:
+    def get_account_as_idp_user(self, username: str) -> IdPUser | None:
         """
         Get ManagedAccount from the db
         """

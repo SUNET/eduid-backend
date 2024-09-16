@@ -5,7 +5,7 @@ import unittest
 from collections.abc import Mapping
 from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta
-from typing import Any, Optional
+from typing import Any
 from unittest import IsolatedAsyncioTestCase
 from uuid import UUID, uuid4
 
@@ -177,8 +177,8 @@ class TestScimUser(unittest.TestCase):
 class UserApiResult:
     request: Mapping[str, Any]
     response: Response
-    nutid_user: Optional[NutidUserExtensionV1]
-    parsed_response: Optional[UserResponse]
+    nutid_user: NutidUserExtensionV1 | None
+    parsed_response: UserResponse | None
 
 
 class ScimApiTestUserResourceBase(ScimApiTestCase):
@@ -250,7 +250,7 @@ class ScimApiTestUserResourceBase(ScimApiTestCase):
         return UserApiResult(request=req, nutid_user=nutid_user, response=response, parsed_response=user_response)
 
     def _update_user(
-        self, req: dict[str, Any], scim_id: UUID, version: Optional[ObjectId], expect_success: bool = True
+        self, req: dict[str, Any], scim_id: UUID, version: ObjectId | None, expect_success: bool = True
     ) -> UserApiResult:
         if "schemas" not in req:
             _schemas = [SCIMSchema.CORE_20_USER.value]
@@ -726,9 +726,9 @@ class TestUserResource(ScimApiTestUserResourceBase):
         start: int = 1,
         count: int = 10,
         return_json: bool = False,
-        expected_user: Optional[ScimApiUser] = None,
-        expected_num_resources: Optional[int] = None,
-        expected_total_results: Optional[int] = None,
+        expected_user: ScimApiUser | None = None,
+        expected_num_resources: int | None = None,
+        expected_total_results: int | None = None,
     ):
         logger.info(f"Searching for user(s) using filter {repr(search_filter)}")
         req = {

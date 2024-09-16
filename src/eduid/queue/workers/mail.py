@@ -4,7 +4,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import asdict
 from email.message import EmailMessage
 from email.utils import formatdate, make_msgid
-from typing import Any, Optional, cast
+from typing import Any, cast
 
 from aiosmtplib import SMTP, SMTPException, SMTPResponse
 from jinja2 import Environment
@@ -42,7 +42,7 @@ class MailQueueWorker(QueueWorker):
         ]
         super().__init__(config=config, handle_payloads=payloads)
 
-        self._smtp: Optional[SMTP] = None
+        self._smtp: SMTP | None = None
         self._jinja2 = Jinja2Env()
 
     @property
@@ -288,7 +288,7 @@ class MailQueueWorker(QueueWorker):
         )
 
 
-def init_mail_worker(name: str = "mail_worker", test_config: Optional[Mapping[str, Any]] = None) -> MailQueueWorker:
+def init_mail_worker(name: str = "mail_worker", test_config: Mapping[str, Any] | None = None) -> MailQueueWorker:
     config = load_config(typ=QueueWorkerConfig, app_name=name, ns="queue", test_config=test_config)
     return MailQueueWorker(config=config)
 

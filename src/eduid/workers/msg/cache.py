@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any
 
 from eduid.userdb.db import BaseDB, TUserDbDocument
 from eduid.userdb.util import utc_now
@@ -23,7 +23,7 @@ class CacheMDB(BaseDB):
         self._coll.insert_one(TUserDbDocument(doc))
         return True
 
-    def get_cache_item(self, identifier: str) -> Optional[dict[str, Any]]:
+    def get_cache_item(self, identifier: str) -> dict[str, Any] | None:
         query = {"identifier": identifier}
         result = self._coll.find_one(query)
         if result is not None:

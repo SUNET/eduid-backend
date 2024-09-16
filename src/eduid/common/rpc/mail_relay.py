@@ -1,7 +1,6 @@
 import logging
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from typing import Optional
 
 import eduid.workers.msg
 from eduid.common.config.base import MailConfigMixin
@@ -29,9 +28,9 @@ class MailRelay:
         self,
         subject: str,
         recipients: list[str],
-        text: Optional[str] = None,
-        html: Optional[str] = None,
-        reference: Optional[str] = None,
+        text: str | None = None,
+        html: str | None = None,
+        reference: str | None = None,
         timeout: int = 25,
     ) -> None:
         """

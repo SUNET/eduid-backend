@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import Any, Optional, cast
+from typing import Any, cast
 
 from flask import current_app
 
@@ -39,7 +39,7 @@ current_reset_password_app: ResetPasswordApp = cast(ResetPasswordApp, current_ap
 
 
 def init_reset_password_app(
-    name: str = "reset_password", test_config: Optional[Mapping[str, Any]] = None
+    name: str = "reset_password", test_config: Mapping[str, Any] | None = None
 ) -> ResetPasswordApp:
     """
     :param name: The name of the instance, it will affect the configuration loaded.

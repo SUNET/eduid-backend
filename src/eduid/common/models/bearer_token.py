@@ -2,7 +2,7 @@ import logging
 from collections.abc import Mapping
 from copy import copy
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field, StrictInt, field_validator, model_validator
 from pydantic_core.core_schema import ValidationInfo
@@ -20,7 +20,7 @@ class AuthSource(str, Enum):
 
 class RequestedAccess(BaseModel):
     type: str
-    scope: Optional[ScopeName] = None
+    scope: ScopeName | None = None
 
 
 class AuthenticationError(Exception):
@@ -47,11 +47,11 @@ class AuthnBearerToken(BaseModel):
     requested_access: list[RequestedAccess] = Field(default=[])
     scopes: set[ScopeName] = Field(default=set())
     # saml interaction claims
-    saml_issuer: Optional[str] = None
-    saml_assurance: Optional[list[str]] = None
-    saml_entitlement: Optional[list[str]] = None
-    saml_eppn: Optional[str] = None
-    saml_unique_id: Optional[str] = None
+    saml_issuer: str | None = None
+    saml_assurance: list[str] | None = None
+    saml_entitlement: list[str] | None = None
+    saml_eppn: str | None = None
+    saml_unique_id: str | None = None
 
     def __str__(self):
         return f"<{self.__class__.__name__}: scopes={self.scopes}, requested_access={self.requested_access}>"
@@ -134,7 +134,7 @@ class AuthnBearerToken(BaseModel):
 
         raise AuthenticationError(f"Unsupported authentication source: {self.auth_source}")
 
-    def validate_saml_entitlements(self, data_owner: DataOwnerName, groupdb: Optional[ScimApiGroupDB] = None) -> None:
+    def validate_saml_entitlements(self, data_owner: DataOwnerName, groupdb: ScimApiGroupDB | None = None) -> None:
         if groupdb is None:
             raise AuthenticationError("No groupdb provided, cannot validate saml entitlements.")
 
@@ -158,7 +158,7 @@ class AuthnBearerToken(BaseModel):
         logger.error(f"{saml_group_id} NOT in {entitlements}")
         raise AuthorizationError(f"Not authorized: {saml_group_id} not in saml entitlements")
 
-    def get_data_owner(self) -> Optional[DataOwnerName]:
+    def get_data_owner(self) -> DataOwnerName | None:
         """
         Get the data owner to use.
 

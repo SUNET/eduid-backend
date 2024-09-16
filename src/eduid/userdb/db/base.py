@@ -2,7 +2,7 @@
 import copy
 import logging
 from collections.abc import Mapping
-from typing import Any, NewType, Optional
+from typing import Any, NewType
 
 from pymongo.uri_parser import parse_uri
 
@@ -20,15 +20,15 @@ class BaseMongoDB:
     def __init__(
         self,
         db_uri: str,
-        db_name: Optional[str] = None,
+        db_name: str | None = None,
         **kwargs: Any,
     ):
         if db_uri is None:
             raise ValueError("db_uri not supplied")
 
         self._db_uri: str = db_uri
-        self._database_name: Optional[str] = db_name
-        self._sanitized_uri: Optional[str] = None
+        self._database_name: str | None = db_name
+        self._sanitized_uri: str | None = None
 
         self._parsed_uri = parse_uri(db_uri)
 

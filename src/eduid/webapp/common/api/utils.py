@@ -2,7 +2,7 @@ import logging
 import os
 import re
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any, Optional, TypeVar, cast
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 from unittest.mock import MagicMock
 from urllib.parse import urlparse
 from uuid import uuid4
@@ -117,7 +117,7 @@ def get_user() -> User:
 
 
 def save_and_sync_user(
-    user: User, private_userdb: Optional[UserDB[User]] = None, app_name_override: Optional[str] = None
+    user: User, private_userdb: UserDB[User] | None = None, app_name_override: str | None = None
 ) -> bool:
     """
     Save (new) user object to the private userdb and propagate the changes to the central user db.
@@ -194,7 +194,7 @@ def get_flux_type(req: Request, suffix: str) -> str:
     return flux_type
 
 
-def sanitise_redirect_url(redirect_url: Optional[str], safe_default: str = "/") -> str:
+def sanitise_redirect_url(redirect_url: str | None, safe_default: str = "/") -> str:
     """
     Make sure the URL provided in relay_state is safe and does
     not provide an open redirect.
@@ -242,7 +242,7 @@ def hash_password(password: str) -> str:
     return ret
 
 
-def check_password_hash(password: str, hashed: Optional[str]) -> bool:
+def check_password_hash(password: str, hashed: str | None) -> bool:
     """
     Check that the provided password corresponds to the provided hash
     """

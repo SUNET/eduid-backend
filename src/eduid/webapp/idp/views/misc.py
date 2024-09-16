@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any
 
 from flask import Blueprint, jsonify, redirect, request
 from werkzeug.wrappers import Response as WerkzeugResponse
@@ -44,7 +44,7 @@ def abort(ticket: LoginContext) -> FluxData:
 @UnmarshalWith(LogoutRequestSchema)
 @MarshalWith(LogoutResponseSchema)
 @uses_sso_session
-def logout(ref: Optional[str], sso_session: Optional[SSOSession]) -> WerkzeugResponse:
+def logout(ref: str | None, sso_session: SSOSession | None) -> WerkzeugResponse:
     """Logout from the current SSO session"""
     current_app.logger.debug("\n\n")
     _session_id = sso_session.session_id if sso_session else None
@@ -57,7 +57,7 @@ def logout(ref: Optional[str], sso_session: Optional[SSOSession]) -> WerkzeugRes
 
     location = None
     ticket = None
-    old_saml_req: Optional[IdP_SAMLPendingRequest] = None
+    old_saml_req: IdP_SAMLPendingRequest | None = None
     _ref = None
     if ref:
         _info = SAMLQueryParams(request_ref=ref)

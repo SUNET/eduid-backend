@@ -1,5 +1,4 @@
 from collections.abc import Sequence
-from typing import Optional
 
 from bson import ObjectId
 from flask import Blueprint
@@ -28,9 +27,9 @@ tou_views = Blueprint("tou", __name__, url_prefix="")
 @uses_sso_session
 def tou(
     ticket: LoginContext,
-    sso_session: Optional[SSOSession],
-    versions: Optional[Sequence[str]] = None,
-    user_accepts: Optional[str] = None,
+    sso_session: SSOSession | None,
+    versions: Sequence[str] | None = None,
+    user_accepts: str | None = None,
 ) -> FluxData:
     current_app.logger.debug("\n\n")
     current_app.logger.debug(f"--- Terms of Use ({ticket.request_ref}) ---")

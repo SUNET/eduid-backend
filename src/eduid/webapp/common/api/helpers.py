@@ -1,6 +1,6 @@
 import warnings
 from dataclasses import dataclass
-from typing import Any, Optional, TypeVar, Union, cast, overload
+from typing import Any, TypeVar, cast, overload
 
 from flask import current_app, render_template, request
 
@@ -33,7 +33,7 @@ from eduid.webapp.common.api.utils import get_from_current_app, save_and_sync_us
 __author__ = "lundberg"
 
 
-def get_marked_given_name(given_name: str, given_name_marking: Optional[str]) -> str:
+def get_marked_given_name(given_name: str, given_name_marking: str | None) -> str:
     """
     Given name marking denotes up to two given names, and is used to determine
     which of the given names are to be primarily used in addressing a person.
@@ -55,7 +55,7 @@ def get_marked_given_name(given_name: str, given_name_marking: Optional[str]) ->
         return given_name
 
     # cheating with indexing
-    _given_names: list[Optional[str]] = [None]
+    _given_names: list[str | None] = [None]
     for name in given_name.split():
         if "-" in name:
             # hyphenated names are counted separately
@@ -63,7 +63,7 @@ def get_marked_given_name(given_name: str, given_name_marking: Optional[str]) ->
         else:
             _given_names.append(name)
 
-    _optional_marked_names: list[Optional[str]] = []
+    _optional_marked_names: list[str | None] = []
     for i in given_name_marking:
         _optional_marked_names.append(_given_names[int(i)])
     # remove None values
@@ -194,7 +194,7 @@ def add_nin_to_user(user, proofing_state, user_type=ProofingUser):
 
 
 def verify_nin_for_user(
-    user: Union[User, ProofingUser], proofing_state: NinProofingState, proofing_log_entry: NinProofingLogElement
+    user: User | ProofingUser, proofing_state: NinProofingState, proofing_log_entry: NinProofingLogElement
 ) -> bool:
     """
     Mark a nin on a user as verified, after logging data about the proofing to the proofing log.
@@ -288,8 +288,8 @@ def send_mail(
     text_template: str,
     html_template: str,
     app: EduIDBaseApp,
-    context: Optional[dict[str, Any]] = None,
-    reference: Optional[str] = None,
+    context: dict[str, Any] | None = None,
+    reference: str | None = None,
 ):
     """
     :param subject: subject text
@@ -356,7 +356,7 @@ def check_magic_cookie(config: MagicCookieMixin) -> bool:
 @dataclass
 class ProofingNavetData:
     user_postal_address: FullPostalAddress
-    deregistration_information: Optional[DeregistrationInformation] = None
+    deregistration_information: DeregistrationInformation | None = None
 
 
 def get_proofing_log_navet_data(nin: str) -> ProofingNavetData:

@@ -51,7 +51,7 @@ from abc import ABC
 from collections.abc import Mapping
 from datetime import datetime
 from enum import Enum
-from typing import Any, Generic, NewType, Optional, TypeVar, Union
+from typing import Any, Generic, NewType, TypeVar
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -104,7 +104,7 @@ class Element(BaseModel):
             EventElement
     """
 
-    created_by: Optional[str] = Field(default=None, alias="source")
+    created_by: str | None = Field(default=None, alias="source")
     created_ts: datetime = Field(default_factory=utc_now, alias="added_timestamp")
     modified_ts: datetime = Field(default_factory=utc_now)
     # This is a short-term hack to deploy new dataclass based elements without
@@ -200,10 +200,10 @@ class VerifiedElement(Element, ABC):
     """
 
     is_verified: bool = Field(default=False, alias="verified")
-    verified_by: Optional[str] = None
-    verified_ts: Optional[datetime] = None
-    proofing_method: Optional[Enum] = None
-    proofing_version: Optional[str] = None
+    verified_by: str | None = None
+    verified_ts: datetime | None = None
+    proofing_method: Enum | None = None
+    proofing_version: str | None = None
 
     def __str__(self):
         return f"<eduID {self.__class__.__name__}(key={repr(self.key)}): verified={self.is_verified}>"
@@ -332,7 +332,7 @@ class ElementList(BaseModel, Generic[ListElement], ABC):
         """
         return [this.to_dict() for this in self.elements if isinstance(this, Element)]
 
-    def find(self, key: Optional[Union[ElementKey, str]]) -> Optional[ListElement]:
+    def find(self, key: ElementKey | str | None) -> ListElement | None:
         """
         Find an Element from the element list, using the key.
 
@@ -433,7 +433,7 @@ class PrimaryElementList(VerifiedElementList[ListElement], Generic[ListElement],
         return values
 
     @property
-    def primary(self) -> Optional[ListElement]:
+    def primary(self) -> ListElement | None:
         """
         :return: Return the primary Element.
 
@@ -494,7 +494,7 @@ class PrimaryElementList(VerifiedElementList[ListElement], Generic[ListElement],
         self.elements = new  # type: ignore
 
     @classmethod
-    def _get_primary(cls, elements: list[ListElement]) -> Optional[ListElement]:
+    def _get_primary(cls, elements: list[ListElement]) -> ListElement | None:
         """
         Find the primary element in a list, and ensure there is exactly one (unless
         there are no confirmed elements, in which case, ensure there are exactly zero).

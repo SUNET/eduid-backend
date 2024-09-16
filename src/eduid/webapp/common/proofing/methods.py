@@ -1,7 +1,6 @@
 import logging
 from abc import ABC
 from dataclasses import dataclass
-from typing import Optional, Union
 
 from flask import request
 from pydantic import ValidationError
@@ -22,10 +21,15 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class SessionInfoParseResult:
-    error: Optional[TranslatableMsg] = None
-    info: Optional[
-        Union[NinSessionInfo, ForeignEidSessionInfo, SvipeDocumentUserInfo, BankIDSessionInfo, FrejaEIDDocumentUserInfo]
-    ] = None
+    error: TranslatableMsg | None = None
+    info: (
+        NinSessionInfo
+        | ForeignEidSessionInfo
+        | SvipeDocumentUserInfo
+        | BankIDSessionInfo
+        | FrejaEIDDocumentUserInfo
+        | None
+    ) = None
 
 
 @dataclass(frozen=True)
@@ -37,7 +41,7 @@ class ProofingMethod(ABC):
     def parse_session_info(self, session_info: SessionInfo, backdoor: bool) -> SessionInfoParseResult:
         raise NotImplementedError("Subclass must implement parse_session_info")
 
-    def formatted_finish_url(self, app_name: str, authn_id: str) -> Optional[str]:
+    def formatted_finish_url(self, app_name: str, authn_id: str) -> str | None:
         if not self.finish_url:
             return None
         return self.finish_url.format(app_name=app_name, authn_id=authn_id)
@@ -143,12 +147,17 @@ class ProofingMethodFrejaEID(ProofingMethod):
 
 
 def get_proofing_method(
-    method: Optional[str],
+    method: str | None,
     frontend_action: FrontendAction,
     config: ProofingConfigMixin,
-) -> Optional[
-    Union[ProofingMethodFreja, ProofingMethodEidas, ProofingMethodSvipe, ProofingMethodBankID, ProofingMethodFrejaEID]
-]:
+) -> (
+    ProofingMethodFreja
+    | ProofingMethodEidas
+    | ProofingMethodSvipe
+    | ProofingMethodBankID
+    | ProofingMethodFrejaEID
+    | None
+):
     authn_params = config.frontend_action_authn_parameters.get(frontend_action)
     assert authn_params is not None  # please mypy
 

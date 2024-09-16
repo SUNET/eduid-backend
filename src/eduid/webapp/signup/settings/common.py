@@ -1,6 +1,5 @@
 #
 from datetime import timedelta
-from typing import Optional
 
 from pydantic import Field
 
@@ -45,7 +44,7 @@ class SignupConfig(
     default_finish_url: str = "https://www.eduid.se/"
     eduid_site_url: str = "https://www.eduid.se"  # TODO: Backwards compatibility, remove when no longer used
     eduid_site_name: str = "eduID"
-    scim_api_url: Optional[AnyUrlStr] = None
-    gnap_auth_data: Optional[GNAPClientAuthData] = None
+    scim_api_url: AnyUrlStr | None = None
+    gnap_auth_data: GNAPClientAuthData | None = None
     eduid_scope: str = "eduid.se"
-    private_userdb_auto_expire: Optional[timedelta] = Field(default=timedelta(days=7))
+    private_userdb_auto_expire: timedelta | None = Field(default=timedelta(days=7))

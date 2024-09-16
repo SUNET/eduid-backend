@@ -5,7 +5,7 @@ User and user database module.
 import logging
 from dataclasses import dataclass
 from enum import Enum, unique
-from typing import Any, Optional
+from typing import Any
 
 from eduid.common.models.saml2 import EduidAuthnContextClass
 from eduid.userdb import User
@@ -48,7 +48,7 @@ class SAMLAttributeSettings:
     sp_subject_id_request: list[str]
     esi_ladok_prefix: str
     authn_context_class: EduidAuthnContextClass
-    pairwise_id: Optional[str] = None
+    pairwise_id: str | None = None
 
 
 @unique
@@ -76,7 +76,7 @@ class IdPUser(User):
     def to_saml_attributes(
         self,
         settings: SAMLAttributeSettings,
-        filter_attributes: Optional[list[str]] = None,
+        filter_attributes: list[str] | None = None,
     ) -> dict[str, Any]:
         """
         Return a dict of SAML attributes for a user.
@@ -259,7 +259,7 @@ def make_eduperson_orcid(attributes: dict[str, Any], user: IdPUser) -> dict[str,
     return attributes
 
 
-def _make_user_esi(user: IdPUser, settings: SAMLAttributeSettings) -> Optional[str]:
+def _make_user_esi(user: IdPUser, settings: SAMLAttributeSettings) -> str | None:
     # do not release Ladok ESI for an unverified user as you need to be verified to connect to Ladok
     if user.identities.is_verified:
         if user.ladok is not None and user.ladok.is_verified:

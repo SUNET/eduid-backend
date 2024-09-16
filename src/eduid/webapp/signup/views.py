@@ -1,4 +1,3 @@
-from typing import Optional
 from uuid import uuid4
 
 from flask import Blueprint, abort, request
@@ -204,7 +203,7 @@ def captcha_request() -> FluxData:
 @UnmarshalWith(CaptchaCompleteRequest)
 @MarshalWith(SignupStatusResponse)
 @require_not_logged_in
-def captcha_response(internal_response: Optional[str] = None) -> FluxData:
+def captcha_response(internal_response: str | None = None) -> FluxData:
     """
     Check for humanness even at level AL1.
     """
@@ -263,7 +262,7 @@ def get_password() -> FluxData:
 @UnmarshalWith(CreateUserRequest)
 @MarshalWith(SignupStatusResponse)
 @require_not_logged_in
-def create_user(use_suggested_password: bool, use_webauthn: bool, custom_password: Optional[str] = None) -> FluxData:
+def create_user(use_suggested_password: bool, use_webauthn: bool, custom_password: str | None = None) -> FluxData:
     current_app.logger.info("Creating user")
 
     use_password = False

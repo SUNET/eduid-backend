@@ -1,7 +1,7 @@
 import copy
 import logging
 from collections.abc import Mapping
-from typing import Any, Optional, Union
+from typing import Any
 
 from eduid.userdb.db import BaseDB, SaveResult, TUserDbDocument
 from eduid.userdb.deprecation import deprecated
@@ -30,7 +30,7 @@ class PasswordResetStateDB(BaseDB):
     def __init__(self, db_uri, db_name="eduid_security", collection="password_reset_data"):
         super().__init__(db_uri, db_name, collection=collection)
 
-    def get_state_by_email_code(self, email_code: str) -> Optional[PasswordResetState]:
+    def get_state_by_email_code(self, email_code: str) -> PasswordResetState | None:
         """
         Locate a state in the db given the state's email code.
 
@@ -51,7 +51,7 @@ class PasswordResetStateDB(BaseDB):
 
         return self.init_state(states[0])
 
-    def get_state_by_eppn(self, eppn: str) -> Optional[PasswordResetState]:
+    def get_state_by_eppn(self, eppn: str) -> PasswordResetState | None:
         """
         Locate a state in the db given the users eppn.
 
@@ -69,7 +69,7 @@ class PasswordResetStateDB(BaseDB):
     @staticmethod
     def init_state(
         data: Mapping[str, Any],
-    ) -> Optional[Union[PasswordResetEmailState, PasswordResetEmailAndPhoneState]]:
+    ) -> PasswordResetEmailState | PasswordResetEmailAndPhoneState | None:
         _data = dict(copy.deepcopy(data))  # to not modify callers data
         method = _data.pop("method", None)
         if method == "email":

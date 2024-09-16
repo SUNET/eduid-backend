@@ -6,7 +6,7 @@ from abc import ABC
 from collections.abc import Mapping
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from typing import Any, Optional, Union
+from typing import Any
 from uuid import UUID
 
 from eduid.common.models.scim_base import EmailType, PhoneNumberType, WeakVersion
@@ -20,7 +20,7 @@ class ScimApiResourceBase(ABC):
     """The elements common to all SCIM resource database objects"""
 
     scim_id: UUID = field(default_factory=lambda: uuid.uuid4())
-    external_id: Optional[str] = None
+    external_id: str | None = None
     version: WeakVersion = field(default_factory=lambda: WeakVersion())
     created: datetime = field(default_factory=lambda: utc_now())
     last_modified: datetime = field(default_factory=lambda: utc_now())
@@ -66,29 +66,29 @@ class ScimApiLinkedAccount:
 
 @dataclass(frozen=True)
 class ScimApiName:
-    family_name: Optional[str] = None
-    given_name: Optional[str] = None
-    formatted: Optional[str] = None
-    middle_name: Optional[str] = None
-    honorific_prefix: Optional[str] = None
-    honorific_suffix: Optional[str] = None
+    family_name: str | None = None
+    given_name: str | None = None
+    formatted: str | None = None
+    middle_name: str | None = None
+    honorific_prefix: str | None = None
+    honorific_suffix: str | None = None
 
-    def to_dict(self) -> dict[str, Optional[str]]:
+    def to_dict(self) -> dict[str, str | None]:
         return asdict(self)
 
     @classmethod
-    def from_dict(cls: type[ScimApiName], data: Mapping[str, Optional[str]]) -> ScimApiName:
+    def from_dict(cls: type[ScimApiName], data: Mapping[str, str | None]) -> ScimApiName:
         return cls(**data)
 
 
 @dataclass(frozen=True)
 class ScimApiEmail:
     value: str
-    display: Optional[str] = None
-    type: Optional[EmailType] = None
-    primary: Optional[bool] = None
+    display: str | None = None
+    type: EmailType | None = None
+    primary: bool | None = None
 
-    def to_dict(self) -> dict[str, Union[Optional[str], bool]]:
+    def to_dict(self) -> dict[str, str | None | bool]:
         res = asdict(self)
         if self.type is not None:
             res["type"] = self.type.value
@@ -105,11 +105,11 @@ class ScimApiEmail:
 @dataclass(frozen=True)
 class ScimApiPhoneNumber:
     value: str
-    display: Optional[str] = None
-    type: Optional[PhoneNumberType] = None
-    primary: Optional[bool] = None
+    display: str | None = None
+    type: PhoneNumberType | None = None
+    primary: bool | None = None
 
-    def to_dict(self) -> dict[str, Union[Optional[str], bool]]:
+    def to_dict(self) -> dict[str, str | None | bool]:
         res = asdict(self)
         if self.type is not None:
             res["type"] = self.type.value

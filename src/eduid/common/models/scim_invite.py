@@ -1,4 +1,3 @@
-from typing import Optional
 from uuid import UUID
 
 from pydantic import Field, model_validator
@@ -26,20 +25,20 @@ class NutidInviteExtensionV1(EduidBaseModel):
     name: Name = Field(default_factory=Name)
     emails: list[Email] = Field(default_factory=list)
     phone_numbers: list[PhoneNumber] = Field(default_factory=list, alias="phoneNumbers")
-    national_identity_number: Optional[str] = Field(
+    national_identity_number: str | None = Field(
         default=None,
         alias="nationalIdentityNumber",
         pattern=nin_re_str,
     )
-    preferred_language: Optional[LanguageTag] = Field(default=None, alias="preferredLanguage")
+    preferred_language: LanguageTag | None = Field(default=None, alias="preferredLanguage")
     groups: list[UUID] = Field(default_factory=list)
-    inviter_name: Optional[str] = Field(default=None, alias="inviterName")
-    send_email: Optional[bool] = Field(default=None, alias="sendEmail")
-    finish_url: Optional[str] = Field(default=None, alias="finishURL")
-    invite_url: Optional[str] = Field(default=None, alias="inviteURL")
-    enable_mfa_stepup: Optional[bool] = Field(default=None, alias="enableMfaStepup")
-    completed: Optional[ScimDatetime] = None
-    expires_at: Optional[ScimDatetime] = Field(default=None, alias="expiresAt")
+    inviter_name: str | None = Field(default=None, alias="inviterName")
+    send_email: bool | None = Field(default=None, alias="sendEmail")
+    finish_url: str | None = Field(default=None, alias="finishURL")
+    invite_url: str | None = Field(default=None, alias="inviteURL")
+    enable_mfa_stepup: bool | None = Field(default=None, alias="enableMfaStepup")
+    completed: ScimDatetime | None = None
+    expires_at: ScimDatetime | None = Field(default=None, alias="expiresAt")
 
     @model_validator(mode="after")
     def validate_schema(self) -> Self:

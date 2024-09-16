@@ -1,5 +1,3 @@
-from typing import Union
-
 from pydantic import Field
 
 from eduid.common.clients.oidc_client.base import AuthlibClientConfig
@@ -29,7 +27,7 @@ class FrejaEIDClientConfig(AuthlibClientConfig):
             "https://frejaeid.com/oidc/scopes/birthdate",
         ]
     )
-    claims_request: dict[str, Union[None, dict[str, bool]]] = Field(default={})
+    claims_request: dict[str, None | dict[str, bool]] = Field(default={})
 
 
 class FrejaEIDConfig(

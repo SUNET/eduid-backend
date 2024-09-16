@@ -1,5 +1,3 @@
-from typing import Optional
-
 from marshmallow import Schema, ValidationError
 
 __author__ = "lundberg"
@@ -9,9 +7,9 @@ from eduid.webapp.common.api.validation import is_valid_password
 
 class PasswordSchema(Schema):
     class Meta:
-        zxcvbn_terms: Optional[list[str]] = None
-        min_entropy: Optional[int] = None
-        min_score: Optional[int] = None
+        zxcvbn_terms: list[str] | None = None
+        min_entropy: int | None = None
+        min_score: int | None = None
 
     def __init__(self, *args, **kwargs):
         self.Meta.zxcvbn_terms = kwargs.pop("zxcvbn_terms", [])

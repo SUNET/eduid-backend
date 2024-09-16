@@ -1,5 +1,4 @@
 import logging
-from typing import Optional
 
 import eduid.workers.am
 from eduid.common.config.base import AmConfigMixin
@@ -33,7 +32,7 @@ class AmRelay:
         self._update_attrs = update_attributes_keep_result
         self._pong = pong
 
-    def request_user_sync(self, user: User, timeout: int = 25, app_name_override: Optional[str] = None) -> bool:
+    def request_user_sync(self, user: User, timeout: int = 25, app_name_override: str | None = None) -> bool:
         """
         Use Celery to ask eduid-am worker to propagate changes from our
         private UserDB into the central UserDB.

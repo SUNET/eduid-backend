@@ -1,6 +1,5 @@
 __author__ = "lundberg"
 
-from typing import Optional
 
 from eduid.common.config.base import DataOwnerName
 from eduid.common.fastapi.context_request import Context, ContextRequestRoute
@@ -10,11 +9,11 @@ from eduid.userdb.scimapi.userdb import ScimApiUserDB
 
 
 class ScimApiContext(Context):
-    data_owner: Optional[DataOwnerName] = None
-    userdb: Optional[ScimApiUserDB] = None
-    groupdb: Optional[ScimApiGroupDB] = None
-    invitedb: Optional[ScimApiInviteDB] = None
-    eventdb: Optional[ScimApiEventDB] = None
+    data_owner: DataOwnerName | None = None
+    userdb: ScimApiUserDB | None = None
+    groupdb: ScimApiGroupDB | None = None
+    invitedb: ScimApiInviteDB | None = None
+    eventdb: ScimApiEventDB | None = None
 
 
 class ScimApiRoute(ContextRequestRoute):

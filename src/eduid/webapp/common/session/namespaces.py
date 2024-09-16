@@ -6,7 +6,7 @@ from collections.abc import Mapping
 from copy import deepcopy
 from datetime import datetime
 from enum import Enum, unique
-from typing import Any, NewType, Optional, TypeVar, Union, cast
+from typing import Any, NewType, TypeVar, cast
 from uuid import uuid4
 
 from fido2.webauthn import AuthenticatorAttachment
@@ -71,10 +71,10 @@ class LoginApplication(str, Enum):
 
 
 class Common(SessionNSBase):
-    eppn: Optional[str] = None
+    eppn: str | None = None
     is_logged_in: bool = False
-    login_source: Optional[LoginApplication] = None
-    preferred_language: Optional[str] = None
+    login_source: LoginApplication | None = None
+    preferred_language: str | None = None
 
 
 WebauthnState = NewType("WebauthnState", dict[str, Any])
@@ -82,17 +82,17 @@ WebauthnState = NewType("WebauthnState", dict[str, Any])
 
 class MfaAction(SessionNSBase):
     success: bool = False
-    login_ref: Optional[str] = None
-    authn_req_ref: Optional[AuthnRequestRef] = None
-    credential_used: Optional[ElementKey] = None
+    login_ref: str | None = None
+    authn_req_ref: AuthnRequestRef | None = None
+    credential_used: ElementKey | None = None
     # Third-party MFA parameters
-    framework: Optional[TrustFramework] = None
+    framework: TrustFramework | None = None
     required_loa: list[str] = Field(default_factory=list)
-    issuer: Optional[str] = None
-    authn_instant: Optional[str] = None
-    authn_context: Optional[str] = None
+    issuer: str | None = None
+    authn_instant: str | None = None
+    authn_context: str | None = None
     # Webauthn MFA parameters
-    webauthn_state: Optional[WebauthnState] = None
+    webauthn_state: WebauthnState | None = None
 
 
 class TimestampedNS(SessionNSBase):
@@ -105,14 +105,14 @@ class TimestampedNS(SessionNSBase):
 
 
 class ResetPasswordNS(SessionNSBase):
-    generated_password_hash: Optional[str] = None
+    generated_password_hash: str | None = None
     # XXX the keys below are not in use yet. They are set in eduid.webapp.common,
     # in a way that the security app understands. Once the (reset|change)
     # password views are removed from the security app, we will be able to
     # start using them. The session key reauthn-for-chpass is in the same
     # situation.
-    extrasec_u2f_challenge: Optional[str] = None
-    extrasec_webauthn_state: Optional[str] = None
+    extrasec_u2f_challenge: str | None = None
+    extrasec_webauthn_state: str | None = None
 
 
 class WebauthnRegistration(SessionNSBase):
@@ -123,48 +123,48 @@ class WebauthnRegistration(SessionNSBase):
 
 class SecurityNS(SessionNSBase):
     # used for new change_password
-    generated_password_hash: Optional[str] = None
+    generated_password_hash: str | None = None
     # used for update user data from official source
-    user_requested_update: Optional[datetime] = None
-    webauthn_registration: Optional[WebauthnRegistration] = None
+    user_requested_update: datetime | None = None
+    webauthn_registration: WebauthnRegistration | None = None
 
 
 class Name(SessionNSBase):
-    given_name: Optional[str] = None
-    surname: Optional[str] = None
+    given_name: str | None = None
+    surname: str | None = None
 
 
 class EmailVerification(SessionNSBase):
     completed: bool = False
-    address: Optional[str] = None
-    verification_code: Optional[str] = None
+    address: str | None = None
+    verification_code: str | None = None
     bad_attempts: int = 0
-    sent_at: Optional[datetime] = None
-    reference: Optional[str] = None
+    sent_at: datetime | None = None
+    reference: str | None = None
 
 
 class Invite(SessionNSBase):
     completed: bool = False
     initiated_signup: bool = False
-    invite_code: Optional[str] = None
-    finish_url: Optional[str] = None
+    invite_code: str | None = None
+    finish_url: str | None = None
 
 
 class Tou(SessionNSBase):
     completed: bool = False
-    version: Optional[str] = None
+    version: str | None = None
 
 
 class Captcha(SessionNSBase):
     completed: bool = False
-    internal_answer: Optional[str] = None
+    internal_answer: str | None = None
     bad_attempts: int = 0
 
 
 class Credentials(SessionNSBase):
     completed: bool = False
-    generated_password: Optional[str] = None
-    webauthn: Optional[Any] = None  # TODO: implement webauthn signup
+    generated_password: str | None = None
+    webauthn: Any | None = None  # TODO: implement webauthn signup
 
 
 class Signup(TimestampedNS):
@@ -203,11 +203,9 @@ class OnetimeCredential(Credential):
 
 
 class IdP_PendingRequest(BaseModel, ABC):
-    aborted: Optional[bool] = False
-    used: Optional[bool] = False  # set to True after the request has been completed (to handle 'back' button presses)
-    template_show_msg: Optional[str] = (
-        None  # set when the template version of the idp should show a message to the user
-    )
+    aborted: bool | None = False
+    used: bool | None = False  # set to True after the request has been completed (to handle 'back' button presses)
+    template_show_msg: str | None = None  # set when the template version of the idp should show a message to the user
     # Credentials used while authenticating _this SAML request_. Not ones inherited from SSO.
     credentials_used: dict[ElementKey, datetime] = Field(default_factory=dict)
     onetime_credentials: dict[ElementKey, OnetimeCredential] = Field(default_factory=dict)
@@ -216,26 +214,26 @@ class IdP_PendingRequest(BaseModel, ABC):
 class IdP_SAMLPendingRequest(IdP_PendingRequest):
     request: str
     binding: str
-    relay_state: Optional[str] = None
+    relay_state: str | None = None
     # a pointer to an ongoing request to login using another device
-    other_device_state_id: Optional[OtherDeviceId] = None
+    other_device_state_id: OtherDeviceId | None = None
 
 
 class IdP_OtherDevicePendingRequest(IdP_PendingRequest):
-    state_id: Optional[OtherDeviceId] = None  # can be None on aborted/expired requests
+    state_id: OtherDeviceId | None = None  # can be None on aborted/expired requests
 
 
-IdP_PendingRequestSubclass = Union[IdP_SAMLPendingRequest, IdP_OtherDevicePendingRequest]
+IdP_PendingRequestSubclass = IdP_SAMLPendingRequest | IdP_OtherDevicePendingRequest
 
 
 class IdP_Namespace(TimestampedNS):
     # The SSO cookie value last set by the IdP. Used to debug issues with browsers not
     # honoring Set-Cookie in redirects, or something.
-    sso_cookie_val: Optional[str] = None
+    sso_cookie_val: str | None = None
     pending_requests: dict[RequestRef, IdP_PendingRequestSubclass] = Field(default={})
 
     def log_credential_used(
-        self, request_ref: RequestRef, credential: Union[Credential, OnetimeCredential], timestamp: datetime
+        self, request_ref: RequestRef, credential: Credential | OnetimeCredential, timestamp: datetime
     ) -> None:
         """Log the credential used in the session, under this particular SAML request"""
         if isinstance(credential, OnetimeCredential):
@@ -245,15 +243,13 @@ class IdP_Namespace(TimestampedNS):
 
 class BaseAuthnRequest(BaseModel, ABC):
     frontend_action: FrontendAction  # what action frontend is performing
-    frontend_state: Optional[str] = None  # opaque data from frontend, returned in /status
-    method: Optional[str] = None  # proofing method that frontend is invoking
-    post_authn_action: Optional[
-        Union[AuthnAcsAction, EidasAcsAction, SvipeIDAction, BankIDAcsAction, FrejaEIDAction]
-    ] = None
+    frontend_state: str | None = None  # opaque data from frontend, returned in /status
+    method: str | None = None  # proofing method that frontend is invoking
+    post_authn_action: AuthnAcsAction | EidasAcsAction | SvipeIDAction | BankIDAcsAction | FrejaEIDAction | None = None
     created_ts: datetime = Field(default_factory=utc_now)
-    authn_instant: Optional[datetime] = None
-    status: Optional[str] = None  # populated by the SAML2 ACS/OIDC callback action
-    error: Optional[bool] = None
+    authn_instant: datetime | None = None
+    status: str | None = None  # populated by the SAML2 ACS/OIDC callback action
+    error: bool | None = None
     finish_url: str  # the URL to redirect to after authentication is complete
     consumed: bool = False  # an operation that requires a new authentication has used this one already
 
@@ -262,11 +258,11 @@ class SP_AuthnRequest(BaseAuthnRequest):
     authn_id: AuthnRequestRef = Field(default_factory=lambda: AuthnRequestRef(uuid4_str()))
     credentials_used: list[ElementKey] = Field(default_factory=list)
     # proofing_credential_id is the credential being person-proofed, when doing that
-    proofing_credential_id: Optional[ElementKey] = None
+    proofing_credential_id: ElementKey | None = None
     req_authn_ctx: list[str] = Field(
         default_factory=list
     )  # the authentication contexts requested for this authentication
-    asserted_authn_ctx: Optional[str] = None  # the authentication contexts asserted for this authentication
+    asserted_authn_ctx: str | None = None  # the authentication contexts asserted for this authentication
 
     def formatted_finish_url(self, app_name: str) -> str:
         return self.finish_url.format(app_name=app_name, authn_id=self.authn_id)
@@ -294,14 +290,14 @@ class SPAuthnData(BaseModel):
         return v
 
     def _remove_get_authn_for_action(
-        self, action: Union[AuthnAcsAction, EidasAcsAction, BankIDAcsAction]
-    ) -> Optional[SP_AuthnRequest]:
+        self, action: AuthnAcsAction | EidasAcsAction | BankIDAcsAction
+    ) -> SP_AuthnRequest | None:
         for authn in self.authns.values():
             if authn.post_authn_action == action:
                 return authn
         return None
 
-    def get_authn_for_frontend_action(self, action: FrontendAction) -> Optional[SP_AuthnRequest]:
+    def get_authn_for_frontend_action(self, action: FrontendAction) -> SP_AuthnRequest | None:
         for authn in self.authns.values():
             if authn.frontend_action == action:
                 return authn
@@ -314,8 +310,8 @@ class EidasNamespace(SessionNSBase):
 
 class AuthnNamespace(SessionNSBase):
     sp: SPAuthnData = Field(default=SPAuthnData())
-    name_id: Optional[str] = None  # SAML NameID, used in logout
-    next: Optional[str] = None
+    name_id: str | None = None  # SAML NameID, used in logout
+    next: str | None = None
 
 
 class RP_AuthnRequest(BaseAuthnRequest):

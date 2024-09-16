@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import Optional
 
 from flask import Blueprint, make_response, redirect, request
 from werkzeug.wrappers import Response as WerkzeugResponse
@@ -79,7 +78,7 @@ def get_status(authn_id: AuthnRequestRef) -> FluxData:
 @MarshalWith(BankIDCommonResponseSchema)
 @require_user
 def verify_credential(
-    user: User, method: str, credential_id: ElementKey, frontend_action: str, frontend_state: Optional[str] = None
+    user: User, method: str, credential_id: ElementKey, frontend_action: str, frontend_state: str | None = None
 ) -> FluxData:
     current_app.logger.debug(f"verify-credential called with credential_id: {credential_id}")
 
@@ -122,7 +121,7 @@ def verify_credential(
 @UnmarshalWith(BankIDCommonRequestSchema)
 @MarshalWith(BankIDCommonResponseSchema)
 @require_user
-def verify_identity(user: User, method: str, frontend_action: str, frontend_state: Optional[str] = None) -> FluxData:
+def verify_identity(user: User, method: str, frontend_action: str, frontend_state: str | None = None) -> FluxData:
     current_app.logger.debug(f"verify-identity called for method {method}")
 
     result = _authn(
@@ -141,7 +140,7 @@ def verify_identity(user: User, method: str, frontend_action: str, frontend_stat
 @bankid_views.route("/mfa-authenticate", methods=["POST"])
 @UnmarshalWith(BankIDCommonRequestSchema)
 @MarshalWith(BankIDCommonResponseSchema)
-def mfa_authentication(method: str, frontend_action: str, frontend_state: Optional[str] = None) -> FluxData:
+def mfa_authentication(method: str, frontend_action: str, frontend_state: str | None = None) -> FluxData:
     current_app.logger.debug("mfa-authenticate called")
 
     result = _authn(
@@ -159,18 +158,18 @@ def mfa_authentication(method: str, frontend_action: str, frontend_state: Option
 
 @dataclass
 class AuthnResult:
-    authn_req: Optional[SAMLHttpArgs] = None
-    authn_id: Optional[AuthnRequestRef] = None
-    error: Optional[TranslatableMsg] = None
-    url: Optional[str] = None
+    authn_req: SAMLHttpArgs | None = None
+    authn_id: AuthnRequestRef | None = None
+    error: TranslatableMsg | None = None
+    url: str | None = None
 
 
 def _authn(
     action: BankIDAcsAction,
     method: str,
     frontend_action: str,
-    frontend_state: Optional[str] = None,
-    proofing_credential_id: Optional[ElementKey] = None,
+    frontend_state: str | None = None,
+    proofing_credential_id: ElementKey | None = None,
 ) -> AuthnResult:
     current_app.logger.debug(f"Requested method: {method}, frontend action: {frontend_action}")
     try:

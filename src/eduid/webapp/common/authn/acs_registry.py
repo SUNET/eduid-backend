@@ -13,7 +13,6 @@ and are called with two positional parameters:
 from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional, Union
 
 from flask import current_app
 from werkzeug.wrappers import Response as WerkzeugResponse
@@ -28,17 +27,17 @@ from eduid.webapp.common.session.namespaces import RP_AuthnRequest, SP_AuthnRequ
 @dataclass
 class ACSArgs:
     session_info: SessionInfo
-    authn_req: Union[SP_AuthnRequest, RP_AuthnRequest]
-    proofing_method: Optional[ProofingMethod] = None
+    authn_req: SP_AuthnRequest | RP_AuthnRequest
+    proofing_method: ProofingMethod | None = None
     backdoor: bool = False
-    user: Optional[User] = None
+    user: User | None = None
 
 
 @dataclass
 class ACSResult:
-    response: Optional[WerkzeugResponse] = None
+    response: WerkzeugResponse | None = None
     success: bool = False
-    message: Optional[TranslatableMsg] = None
+    message: TranslatableMsg | None = None
 
 
 # This is the list of ACS actions loaded. It is populated by decorating functions with the @acs_action.
@@ -69,9 +68,7 @@ def acs_action(action: Enum):
     return outer
 
 
-def get_action(
-    default_action: Optional[Enum], authndata: Union[SP_AuthnRequest, RP_AuthnRequest]
-) -> Callable[..., ACSResult]:
+def get_action(default_action: Enum | None, authndata: SP_AuthnRequest | RP_AuthnRequest) -> Callable[..., ACSResult]:
     """
     Retrieve an action from the registry based on the AcsAction stored in the session.
 

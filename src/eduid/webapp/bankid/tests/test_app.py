@@ -4,7 +4,7 @@ import logging
 import os
 import unittest
 from collections.abc import Mapping
-from typing import Any, Optional, Union
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 from fido2.webauthn import AuthenticatorAttachment
@@ -208,9 +208,9 @@ class BankIDTests(ProofingTests[BankIDApp]):
         )
         return config
 
-    def add_token_to_user(self, eppn: str, credential_id: str, token_type: str) -> Union[U2F, Webauthn]:
+    def add_token_to_user(self, eppn: str, credential_id: str, token_type: str) -> U2F | Webauthn:
         user = self.app.central_userdb.get_user_by_eppn(eppn)
-        mfa_token: Union[U2F, Webauthn]
+        mfa_token: U2F | Webauthn
         if token_type == "u2f":
             mfa_token = U2F(
                 version="test",
@@ -246,9 +246,9 @@ class BankIDTests(ProofingTests[BankIDApp]):
         request_id: str,
         saml_response_tpl: str,
         asserted_identity: str,
-        date_of_birth: Optional[datetime.datetime] = None,
+        date_of_birth: datetime.datetime | None = None,
         age: int = 10,
-        credentials_used: Optional[list[ElementKey]] = None,
+        credentials_used: list[ElementKey] | None = None,
     ) -> bytes:
         """
         Generates a fresh signed authentication response
@@ -323,13 +323,13 @@ class BankIDTests(ProofingTests[BankIDApp]):
         frontend_action: FrontendAction,
         expect_msg: TranslatableMsg,
         age: int = 10,
-        browser: Optional[CSRFTestClient] = None,
-        eppn: Optional[str] = None,
+        browser: CSRFTestClient | None = None,
+        eppn: str | None = None,
         expect_error: bool = False,
-        identity: Optional[NinIdentity] = None,
+        identity: NinIdentity | None = None,
         logged_in: bool = True,
         method: str = "bankid",
-        response_template: Optional[str] = None,
+        response_template: str | None = None,
     ) -> None:
         return self._call_endpoint_and_saml_acs(
             age=age,
@@ -351,15 +351,15 @@ class BankIDTests(ProofingTests[BankIDApp]):
         frontend_action: FrontendAction,
         expect_msg: TranslatableMsg,
         age: int = 10,
-        browser: Optional[CSRFTestClient] = None,
-        credentials_used: Optional[list[ElementKey]] = None,
-        eppn: Optional[str] = None,
+        browser: CSRFTestClient | None = None,
+        credentials_used: list[ElementKey] | None = None,
+        eppn: str | None = None,
         expect_error: bool = False,
         expect_saml_error: bool = False,
-        identity: Optional[NinIdentity] = None,
+        identity: NinIdentity | None = None,
         method: str = "bankid",
-        response_template: Optional[str] = None,
-        verify_credential: Optional[ElementKey] = None,
+        response_template: str | None = None,
+        verify_credential: ElementKey | None = None,
     ) -> None:
         return self._call_endpoint_and_saml_acs(
             age=age,
@@ -383,8 +383,8 @@ class BankIDTests(ProofingTests[BankIDApp]):
         endpoint: str,
         method: str,
         frontend_action: FrontendAction,
-        verify_credential: Optional[ElementKey] = None,
-        frontend_state: Optional[str] = None,
+        verify_credential: ElementKey | None = None,
+        frontend_state: str | None = None,
     ) -> str:
         with browser.session_transaction() as sess:
             csrf_token = sess.get_csrf_token()
@@ -412,18 +412,18 @@ class BankIDTests(ProofingTests[BankIDApp]):
         endpoint: str,
         method: str,
         frontend_action: FrontendAction,
-        eppn: Optional[str],
+        eppn: str | None,
         expect_msg: TranslatableMsg,
         age: int = 10,
-        browser: Optional[CSRFTestClient] = None,
-        credentials_used: Optional[list[ElementKey]] = None,
+        browser: CSRFTestClient | None = None,
+        credentials_used: list[ElementKey] | None = None,
         expect_error: bool = False,
         expect_saml_error: bool = False,
-        identity: Optional[NinIdentity] = None,
+        identity: NinIdentity | None = None,
         logged_in: bool = True,
-        response_template: Optional[str] = None,
-        verify_credential: Optional[ElementKey] = None,
-        frontend_state: Optional[str] = "This is a unit test",
+        response_template: str | None = None,
+        verify_credential: ElementKey | None = None,
+        frontend_state: str | None = "This is a unit test",
     ) -> None:
         if eppn is None:
             eppn = self.test_user_eppn

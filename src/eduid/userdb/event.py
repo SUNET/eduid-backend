@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC
-from typing import Any, Generic, Optional, TypeVar
+from typing import Any, Generic, TypeVar
 from uuid import uuid4
 
 from pydantic import Field
@@ -15,8 +15,8 @@ TEventSubclass = TypeVar("TEventSubclass", bound="Event")
 class Event(Element):
     """ """
 
-    data: Optional[dict[str, Any]] = None
-    event_type: Optional[str] = None
+    data: dict[str, Any] | None = None
+    event_type: str | None = None
     event_id: str = Field(default_factory=lambda: str(uuid4()), alias="id")
     # This is a short-term hack to deploy new dataclass based events without
     # any changes to data in the production database. Remove after a burn-in period.

@@ -2,7 +2,7 @@ import logging
 from abc import ABC
 from collections.abc import Mapping
 from operator import itemgetter
-from typing import Any, Generic, Optional, TypeVar
+from typing import Any, Generic, TypeVar
 
 from eduid.userdb.db import BaseDB, SaveResult, TUserDbDocument
 from eduid.userdb.proofing.state import (
@@ -34,7 +34,7 @@ class ProofingStateDB(BaseDB, Generic[ProofingStateVar], ABC):
         # must be implemented by subclass to get correct type information
         raise NotImplementedError()
 
-    def get_state_by_eppn(self, eppn: str) -> Optional[ProofingStateVar]:
+    def get_state_by_eppn(self, eppn: str) -> ProofingStateVar | None:
         """
         Locate a state in the db given the state user's eppn.
 
@@ -51,7 +51,7 @@ class ProofingStateDB(BaseDB, Generic[ProofingStateVar], ABC):
             return None
         return self.state_from_dict(data)
 
-    def get_latest_state_by_spec(self, spec: Mapping[str, Any]) -> Optional[ProofingStateVar]:
+    def get_latest_state_by_spec(self, spec: Mapping[str, Any]) -> ProofingStateVar | None:
         """
         Returns the latest inserted state and __removes any other state found__ defined by the spec .
 
@@ -113,7 +113,7 @@ class EmailProofingStateDB(ProofingStateDB[EmailProofingState]):
     def state_from_dict(cls, data: Mapping[str, Any]) -> EmailProofingState:
         return EmailProofingState.from_dict(data)
 
-    def get_state_by_eppn_and_email(self, eppn: str, email: str) -> Optional[EmailProofingState]:
+    def get_state_by_eppn_and_email(self, eppn: str, email: str) -> EmailProofingState | None:
         """
         Locate a state in the db given the eppn of the user and the
         email to be verified.
@@ -143,7 +143,7 @@ class PhoneProofingStateDB(ProofingStateDB[PhoneProofingState]):
     def state_from_dict(cls, data: Mapping[str, Any]) -> PhoneProofingState:
         return PhoneProofingState.from_dict(data)
 
-    def get_state_by_eppn_and_mobile(self, eppn: str, number: str) -> Optional[PhoneProofingState]:
+    def get_state_by_eppn_and_mobile(self, eppn: str, number: str) -> PhoneProofingState | None:
         """
         Locate a state in the db given the eppn of the user and the
         mobile to be verified.
@@ -171,7 +171,7 @@ class PhoneProofingStateDB(ProofingStateDB[PhoneProofingState]):
 
 
 class OidcStateDB(ProofingStateDB[ProofingStateVar], Generic[ProofingStateVar], ABC):
-    def get_state_by_oidc_state(self, oidc_state: str) -> Optional[ProofingStateVar]:
+    def get_state_by_oidc_state(self, oidc_state: str) -> ProofingStateVar | None:
         """
         Locate a state in the db given the user's OIDC state.
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from hashlib import sha256
-from typing import Any, Optional, Union
+from typing import Any
 from uuid import UUID
 
 from fido2.webauthn import AuthenticatorAttachment
@@ -32,7 +32,7 @@ class U2F(FidoCredential):
 
     version: str
     public_key: str
-    attest_cert: Optional[str] = None
+    attest_cert: str | None = None
 
     @property
     def key(self) -> ElementKey:
@@ -48,11 +48,11 @@ class Webauthn(FidoCredential):
     Webauthn token authentication credential
     """
 
-    authenticator_id: Optional[Union[UUID, str]] = None
+    authenticator_id: UUID | str | None = None
     credential_data: str
     authenticator: AuthenticatorAttachment
-    webauthn_proofing_version: Optional[str] = None
-    attestation_format: Optional[AttestationFormat] = None
+    webauthn_proofing_version: str | None = None
+    attestation_format: AttestationFormat | None = None
     mfa_approved: bool = False
 
     @property

@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import Any, Optional
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -109,7 +109,7 @@ class NinHelpersTest(EduidAPITestCase[HelpersTestApp]):
         return self.app.central_userdb.get_user_by_eppn(user.eppn)
 
     def _get_nin_navet_proofing_log_entry(
-        self, user: User, nin: str, created_by: str, navet_data: Optional[FullPostalAddress] = None
+        self, user: User, nin: str, created_by: str, navet_data: FullPostalAddress | None = None
     ) -> NinNavetProofingLogElement:
         if navet_data is None:
             navet_data = self.navet_response()

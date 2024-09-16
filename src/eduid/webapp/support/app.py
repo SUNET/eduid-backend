@@ -1,6 +1,6 @@
 import operator
 from collections.abc import Mapping
-from typing import Any, Optional, cast
+from typing import Any, cast
 
 from flask import current_app
 from jinja2.exceptions import UndefinedError
@@ -62,7 +62,7 @@ def register_template_funcs(app: SupportApp) -> None:
         return items
 
     @app.template_global()
-    def static_url_for(f: str, version: Optional[str] = None) -> str:
+    def static_url_for(f: str, version: str | None = None) -> str:
         """
         Get the static url for a file and optionally have a version argument appended for cache busting.
         """
@@ -74,7 +74,7 @@ def register_template_funcs(app: SupportApp) -> None:
     return None
 
 
-def support_init_app(name: str = "support", test_config: Optional[Mapping[str, Any]] = None) -> SupportApp:
+def support_init_app(name: str = "support", test_config: Mapping[str, Any] | None = None) -> SupportApp:
     """
     Create an instance of an eduid support app.
 

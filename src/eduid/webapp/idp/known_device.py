@@ -4,7 +4,7 @@ import json
 import logging
 from collections.abc import Mapping
 from datetime import datetime, timedelta
-from typing import Any, NewType, Optional
+from typing import Any, NewType
 from uuid import uuid4
 
 import nacl
@@ -57,11 +57,11 @@ class BrowserDeviceInfo(BaseModel):
 
 
 class KnownDeviceData(BaseModel):
-    eppn: Optional[str] = None
-    last_login: Optional[datetime] = None
-    ip_address: Optional[str] = None
-    user_agent: Optional[str] = None
-    login_counter: Optional[int] = 0
+    eppn: str | None = None
+    last_login: datetime | None = None
+    ip_address: str | None = None
+    user_agent: str | None = None
+    login_counter: int | None = 0
 
     def to_json(self):
         return self.json(exclude_none=True)
@@ -111,7 +111,7 @@ class KnownDeviceDB(BaseDB):
         }
         self.setup_indexes(indexes)
 
-    def save(self, state: KnownDevice, from_browser: BrowserDeviceInfo, ttl: Optional[timedelta] = None) -> bool:
+    def save(self, state: KnownDevice, from_browser: BrowserDeviceInfo, ttl: timedelta | None = None) -> bool:
         """
         Add a new KnownDevice to the database, or update an existing one.
         """
@@ -125,7 +125,7 @@ class KnownDeviceDB(BaseDB):
         )
         return result.acknowledged
 
-    def get_state_by_browser_info(self, from_browser: BrowserDeviceInfo) -> Optional[KnownDevice]:
+    def get_state_by_browser_info(self, from_browser: BrowserDeviceInfo) -> KnownDevice | None:
         state = self._get_document_by_attr("state_id", from_browser.state_id)
         if not state:
             logger.debug(f"Known-device state with state_id {from_browser.state_id} not found in the database")

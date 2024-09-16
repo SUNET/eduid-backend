@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import Any, Optional, cast
+from typing import Any, cast
 
 from flask import current_app
 
@@ -63,7 +63,7 @@ class IdPApp(EduIDBaseApp):
         self.logger.info("eduid-IdP application started")
 
     # OLD way, call sso_session.get_sso_session() directly instead, or use the @uses_sso_session decorator
-    def _lookup_sso_session(self) -> Optional[SSOSession]:
+    def _lookup_sso_session(self) -> SSOSession | None:
         """
         Locate any existing SSO session for this request.
 
@@ -75,7 +75,7 @@ class IdPApp(EduIDBaseApp):
 current_idp_app = cast(IdPApp, current_app)
 
 
-def init_idp_app(name: str = "idp", test_config: Optional[Mapping[str, Any]] = None) -> IdPApp:
+def init_idp_app(name: str = "idp", test_config: Mapping[str, Any] | None = None) -> IdPApp:
     """
     :param name: The name of the instance, it will affect the configuration loaded.
     :param test_config: Override configuration - used in tests.

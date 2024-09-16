@@ -9,7 +9,7 @@ import sys
 import time
 from collections.abc import Generator
 from copy import deepcopy
-from typing import Any, Optional
+from typing import Any
 
 import bson
 import bson.json_util
@@ -44,10 +44,10 @@ class RawDb:
     log detailing all the changes.
     """
 
-    def __init__(self, myname: Optional[str] = None, backupbase: str = "/root/raw_db_changes"):
+    def __init__(self, myname: str | None = None, backupbase: str = "/root/raw_db_changes"):
         self._client = get_client()
         self._start_time: str = datetime.datetime.fromtimestamp(int(time.time())).isoformat(sep="_").replace(":", "")
-        self._myname: Optional[str] = myname
+        self._myname: str | None = myname
         self._backupbase: str = backupbase
         self._file_num: int = 0
 
@@ -318,7 +318,7 @@ def get_client() -> MongoClient[TUserDbDocument]:
     )
 
 
-def get_argparser(description: Optional[str] = None, eppn: bool = False) -> argparse.ArgumentParser:
+def get_argparser(description: str | None = None, eppn: bool = False) -> argparse.ArgumentParser:
     """
     Get a standard argparser for raw db scripts.
 

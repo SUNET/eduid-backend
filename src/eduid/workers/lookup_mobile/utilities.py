@@ -2,12 +2,11 @@ __author__ = "mathiashedstrom"
 
 import re
 from collections.abc import Sequence
-from typing import Optional
 
 import phonenumbers
 
 
-def format_NIN(nin: Optional[str]) -> Optional[str]:
+def format_NIN(nin: str | None) -> str | None:
     if nin is None:
         return None
 
@@ -16,7 +15,7 @@ def format_NIN(nin: Optional[str]) -> Optional[str]:
     return nin
 
 
-def format_mobile_number(numbers: Sequence[str], region: Optional[str]) -> list[str]:
+def format_mobile_number(numbers: Sequence[str], region: str | None) -> list[str]:
     """
     Format a list of numbers to E.164 standard
     :param numbers: a list of phone numbers
@@ -26,6 +25,6 @@ def format_mobile_number(numbers: Sequence[str], region: Optional[str]) -> list[
     return [_format_number(x, region) for x in numbers]
 
 
-def _format_number(number: str, region: Optional[str]):
+def _format_number(number: str, region: str | None):
     """Parse a number and reconstruct it to the canonical E.164 format"""
     return phonenumbers.format_number(phonenumbers.parse(number, region), phonenumbers.PhoneNumberFormat.E164)

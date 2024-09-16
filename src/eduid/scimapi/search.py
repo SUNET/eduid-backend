@@ -1,7 +1,6 @@
 import logging
 import re
 from dataclasses import dataclass
-from typing import Union
 
 from eduid.scimapi.exceptions import BadRequest
 
@@ -12,7 +11,7 @@ logger = logging.getLogger(__name__)
 class SearchFilter:
     attr: str
     op: str
-    val: Union[str, int]
+    val: str | int
 
 
 def parse_search_filter(filter: str) -> SearchFilter:
@@ -25,7 +24,7 @@ def parse_search_filter(filter: str) -> SearchFilter:
         logger.debug(f"Unrecognised filter: {filter}")
         raise BadRequest(scim_type="invalidFilter", detail="Unrecognised filter")
 
-    val: Union[str, int]
+    val: str | int
     attr, op, val = match.groups()
 
     if len(val) and val[0] == '"' and val[-1] == '"':

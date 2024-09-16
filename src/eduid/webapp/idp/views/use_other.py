@@ -1,4 +1,3 @@
-from typing import Optional, Union
 from uuid import uuid4
 
 import nacl
@@ -44,11 +43,11 @@ other_device_views = Blueprint("other_device", __name__, url_prefix="")
 @uses_sso_session
 def use_other_1(
     ticket: LoginContext,
-    sso_session: Optional[SSOSession],
-    username: Optional[str] = None,
-    action: Optional[str] = None,
-    response_code: Optional[str] = None,
-) -> Union[FluxData, WerkzeugResponse]:
+    sso_session: SSOSession | None,
+    username: str | None = None,
+    action: str | None = None,
+    response_code: str | None = None,
+) -> FluxData | WerkzeugResponse:
     """
     The user requests to start a "Login using another device" flow.
 
@@ -159,10 +158,10 @@ def use_other_1(
 @MarshalWith(UseOther2ResponseSchema)
 @uses_sso_session
 def use_other_2(
-    ref: Optional[RequestRef],
-    state_id: Optional[OtherDeviceId],
-    sso_session: Optional[SSOSession],
-    action: Optional[str] = None,
+    ref: RequestRef | None,
+    state_id: OtherDeviceId | None,
+    sso_session: SSOSession | None,
+    action: str | None = None,
 ) -> FluxData:
     """ "Login using another device" flow.
 

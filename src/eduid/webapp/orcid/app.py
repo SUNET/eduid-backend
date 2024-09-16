@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import Any, Optional, cast
+from typing import Any, cast
 
 from flask import current_app
 
@@ -35,7 +35,7 @@ class OrcidApp(AuthnBaseApp):
 current_orcid_app: OrcidApp = cast(OrcidApp, current_app)
 
 
-def init_orcid_app(name: str = "orcid", test_config: Optional[Mapping[str, Any]] = None) -> OrcidApp:
+def init_orcid_app(name: str = "orcid", test_config: Mapping[str, Any] | None = None) -> OrcidApp:
     """
     :param name: The name of the instance, it will affect the configuration loaded.
     :param test_config: Override config, used in test cases.

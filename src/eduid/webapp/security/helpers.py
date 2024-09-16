@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import unique
 from functools import cache
-from typing import Any, Optional
+from typing import Any
 
 from fido_mds.models.webauthn import AttestationFormat
 
@@ -84,9 +84,9 @@ class CredentialInfo:
     key: str
     credential_type: str
     created_ts: datetime
-    success_ts: Optional[datetime]
+    success_ts: datetime | None
     verified: bool = False
-    description: Optional[str] = None
+    description: str | None = None
 
 
 def compile_credential_list(user: User) -> list[CredentialInfo]:
@@ -98,7 +98,7 @@ def compile_credential_list(user: User) -> list[CredentialInfo]:
     for cred_key, authn in authn_info.items():
         cred = user.credentials.find(cred_key)
         # pick up attributes not present on all types of credentials
-        _description: Optional[str] = None
+        _description: str | None = None
         _is_verified = False
         _d = getattr(cred, "description", None)
         if isinstance(_d, str):
@@ -191,7 +191,7 @@ def send_termination_mail(user):
         current_app.logger.info(f"Sent termination mail to user {user} to address {email}.")
 
 
-def check_reauthn(frontend_action: FrontendAction, user: User) -> Optional[FluxData]:
+def check_reauthn(frontend_action: FrontendAction, user: User) -> FluxData | None:
     """Check if a re-authentication has been performed recently enough for this action"""
 
     authn_status = validate_authn_for_action(config=current_app.conf, frontend_action=frontend_action, user=user)

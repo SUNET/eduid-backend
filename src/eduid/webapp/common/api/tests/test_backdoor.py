@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import Any, Optional
+from typing import Any
 
 from flask import Blueprint, abort, current_app, request
 
@@ -44,7 +44,7 @@ class BackdoorTests(EduidAPITestCase[BackdoorTestApp]):
     def setUp(  # type: ignore[override]
         self,
         *args: list[Any],
-        users: Optional[list[str]] = None,
+        users: list[str] | None = None,
         copy_user_to_private: bool = False,
         **kwargs: dict[str, Any],
     ) -> None:

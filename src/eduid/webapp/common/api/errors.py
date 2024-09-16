@@ -1,6 +1,5 @@
 from datetime import datetime
 from enum import Enum
-from typing import Optional
 
 from flask import redirect
 from werkzeug.wrappers import Response as WerkzeugResponse
@@ -18,7 +17,7 @@ class EduidErrorsContext(str, Enum):
 
 
 def goto_errors_response(
-    errors_url: str, ctx: EduidErrorsContext, rp: str, tid: Optional[str] = None, now: Optional[datetime] = None
+    errors_url: str, ctx: EduidErrorsContext, rp: str, tid: str | None = None, now: datetime | None = None
 ) -> WerkzeugResponse:
     if now is None:
         now = utc_now()

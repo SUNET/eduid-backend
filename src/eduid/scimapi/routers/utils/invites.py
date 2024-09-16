@@ -2,7 +2,7 @@ from collections.abc import Sequence
 from dataclasses import asdict
 from datetime import datetime, timedelta
 from os import environ
-from typing import Any, Optional
+from typing import Any
 
 from fastapi import Request, Response
 from pymongo.errors import DuplicateKeyError
@@ -181,7 +181,7 @@ def save_invite(
 
 
 def filter_lastmodified(
-    req: ContextRequest, filter: SearchFilter, skip: Optional[int] = None, limit: Optional[int] = None
+    req: ContextRequest, filter: SearchFilter, skip: int | None = None, limit: int | None = None
 ) -> tuple[list[ScimApiInvite], int]:
     if filter.op not in ["gt", "ge"]:
         raise BadRequest(scim_type="invalidFilter", detail="Unsupported operator")

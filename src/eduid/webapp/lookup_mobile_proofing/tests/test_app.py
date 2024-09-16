@@ -1,7 +1,7 @@
 import json
 from collections.abc import Mapping
 from datetime import datetime, timedelta
-from typing import Any, Optional
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 from eduid.common.config.base import EduidEnvironment
@@ -42,7 +42,7 @@ class LookupMobileProofingTests(EduidAPITestCase[MobileProofingApp]):
         )
         return config
 
-    def _check_nin_verified_ok_no_proofing_state(self, user: User, number: Optional[str] = None):
+    def _check_nin_verified_ok_no_proofing_state(self, user: User, number: str | None = None):
         nin_number = number or self.test_user_nin
         assert user.identities.nin is not None
         assert user.identities.nin.number == nin_number
@@ -51,7 +51,7 @@ class LookupMobileProofingTests(EduidAPITestCase[MobileProofingApp]):
         assert user.identities.nin.is_verified is True
         assert self.app.proofing_log.db_count() == 1
 
-    def _check_nin_not_verified_no_proofing_state(self, user: User, number: Optional[str] = None):
+    def _check_nin_not_verified_no_proofing_state(self, user: User, number: str | None = None):
         nin_number = number or self.test_user_nin
         assert user.identities.nin is not None
         assert user.identities.nin.number == nin_number

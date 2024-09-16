@@ -2,7 +2,7 @@
 Configuration (file) handling for the eduID group_management app.
 """
 
-from typing import Any, Optional
+from typing import Any
 
 from eduid.common.config.base import EduIDBaseAppConfig, MailConfigMixin
 
@@ -20,7 +20,7 @@ class GroupManagementConfig(EduIDBaseAppConfig, MailConfigMixin):
     group_delete_invite_template_txt: str = "group_delete_invite_email.txt.jinja2"
     group_invite_url: str = "https://dashboard.eduid.se"
     mail_default_from: str = "no-reply@eduid.se"
-    neo4j_config: Optional[dict[str, Any]] = None
+    neo4j_config: dict[str, Any] | None = None
     neo4j_uri: str = ""
     scim_data_owner: str = "eduid.se"
     scim_external_id_scope: str = "eduid.se"

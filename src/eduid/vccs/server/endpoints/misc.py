@@ -1,5 +1,4 @@
 from enum import Enum, unique
-from typing import Optional
 
 from fastapi import APIRouter, Request
 from pydantic.main import BaseModel
@@ -16,7 +15,7 @@ class Status(str, Enum):
 
 class StatusResponse(BaseModel):
     status: Status
-    add_creds_hmac: Optional[Status] = None
+    add_creds_hmac: Status | None = None
     version: int = 1
 
 

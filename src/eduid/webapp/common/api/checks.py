@@ -4,7 +4,7 @@ import sys
 from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta
 from os import environ
-from typing import TYPE_CHECKING, Optional, cast
+from typing import TYPE_CHECKING, cast
 
 import redis
 from flask import current_app as flask_current_app
@@ -34,24 +34,24 @@ def get_current_app() -> EduIDBaseApp:
 @dataclass
 class CheckResult:
     healthy: bool
-    status: Optional[str] = None
+    status: str | None = None
     hostname: str = field(default_factory=lambda: environ.get("HOSTNAME", "UNKNOWN"))
-    reason: Optional[str] = None
+    reason: str | None = None
 
 
 @dataclass
 class FailCountItem:
     first_failure: datetime = field(repr=False)
-    restart_at: Optional[datetime] = None
-    restart_interval: Optional[int] = None
-    exit_at: Optional[datetime] = None
+    restart_at: datetime | None = None
+    restart_interval: int | None = None
+    exit_at: datetime | None = None
     count: int = 0
 
     def __str__(self):
         return f"(first_failure: {self.first_failure.isoformat()}, fail count: {self.count})"
 
 
-def log_failure_info(key: str, msg: str, exc: Optional[Exception] = None) -> None:
+def log_failure_info(key: str, msg: str, exc: Exception | None = None) -> None:
     current_app = get_current_app()
 
     if key not in current_app.failure_info:
@@ -132,7 +132,7 @@ def check_redis() -> bool:
 def check_am() -> bool:
     current_app = get_current_app()
 
-    am_relay: Optional[AmRelay] = getattr(current_app, "am_relay", None)
+    am_relay: AmRelay | None = getattr(current_app, "am_relay", None)
     if not am_relay:
         return True
     try:
@@ -149,7 +149,7 @@ def check_am() -> bool:
 def check_msg() -> bool:
     current_app = get_current_app()
 
-    msg_relay: Optional[MsgRelay] = getattr(current_app, "msg_relay", None)
+    msg_relay: MsgRelay | None = getattr(current_app, "msg_relay", None)
     if not msg_relay:
         return True
     try:
@@ -167,7 +167,7 @@ def check_msg() -> bool:
 def check_mail() -> bool:
     current_app = get_current_app()
 
-    mail_relay: Optional[MailRelay] = getattr(current_app, "mail_relay", None)
+    mail_relay: MailRelay | None = getattr(current_app, "mail_relay", None)
     if not mail_relay:
         return True
     try:
@@ -185,7 +185,7 @@ def check_mail() -> bool:
 def check_lookup_mobile() -> bool:
     current_app = get_current_app()
 
-    _relay: Optional[LookupMobileRelay] = getattr(current_app, "lookup_mobile_relay", None)
+    _relay: LookupMobileRelay | None = getattr(current_app, "lookup_mobile_relay", None)
     if not _relay:
         return True
     try:

@@ -4,7 +4,7 @@ import builtins
 from collections.abc import Mapping
 from dataclasses import asdict, field
 from enum import Enum, unique
-from typing import Any, Optional, Union, cast
+from typing import Any, cast
 
 from bson import ObjectId
 from loguru import logger
@@ -217,7 +217,7 @@ class CredentialDB(BaseDB):
         credential.revision -= 1
         return False
 
-    def get_credential(self, credential_id: str) -> Optional[Union[PasswordCredential, RevokedCredential]]:
+    def get_credential(self, credential_id: str) -> PasswordCredential | RevokedCredential | None:
         """
         Lookup an credential using the credential id.
 

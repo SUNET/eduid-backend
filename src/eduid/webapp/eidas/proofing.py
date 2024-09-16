@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Generic, Optional, TypeVar
+from typing import Generic, TypeVar
 
 from eduid.common.config.base import ProofingConfigMixin
 from eduid.common.rpc.exceptions import AmTaskFailed
@@ -46,7 +46,7 @@ BaseSessionInfoVar = TypeVar("BaseSessionInfoVar", bound=BaseSessionInfo)
 
 @dataclass
 class SwedenConnectProofingFunctions(ProofingFunctions[BaseSessionInfoVar], Generic[BaseSessionInfoVar]):
-    def get_identity(self, user: User) -> Optional[IdentityElement]:
+    def get_identity(self, user: User) -> IdentityElement | None:
         raise NotImplementedError("Subclass must implement get_identity")
 
     def verify_identity(self, user: User) -> VerifyUserResult:
@@ -58,7 +58,7 @@ class SwedenConnectProofingFunctions(ProofingFunctions[BaseSessionInfoVar], Gene
     def credential_proofing_element(self, user: User, credential: Credential) -> ProofingElementResult:
         raise NotImplementedError("Subclass must implement credential_proofing_element")
 
-    def mark_credential_as_verified(self, credential: Credential, loa: Optional[str]) -> VerifyCredentialResult:
+    def mark_credential_as_verified(self, credential: Credential, loa: str | None) -> VerifyCredentialResult:
         raise NotImplementedError("Subclass must implement mark_credential_as_verified")
 
     def _match_identity_for_mfa(
@@ -123,7 +123,7 @@ class SwedenConnectProofingFunctions(ProofingFunctions[BaseSessionInfoVar], Gene
 
 @dataclass
 class FrejaProofingFunctions(SwedenConnectProofingFunctions[NinSessionInfo]):
-    def get_identity(self, user: User) -> Optional[IdentityElement]:
+    def get_identity(self, user: User) -> IdentityElement | None:
         return user.identities.nin
 
     def verify_identity(self, user: User) -> VerifyUserResult:
@@ -161,8 +161,8 @@ class FrejaProofingFunctions(SwedenConnectProofingFunctions[NinSessionInfo]):
         return VerifyUserResult(user=ProofingUser.from_user(_user, current_app.private_userdb))
 
     def identity_proofing_element(self, user: User) -> ProofingElementResult:
-        issuer: Optional[str]
-        authn_context: Optional[str]
+        issuer: str | None
+        authn_context: str | None
 
         if self.backdoor:
             proofing_version = "1999v1"
@@ -192,8 +192,8 @@ class FrejaProofingFunctions(SwedenConnectProofingFunctions[NinSessionInfo]):
         return ProofingElementResult(data=data)
 
     def credential_proofing_element(self, user: User, credential: Credential) -> ProofingElementResult:
-        issuer: Optional[str]
-        authn_context: Optional[str]
+        issuer: str | None
+        authn_context: str | None
 
         if self.backdoor:
             proofing_version = "1999v1"
@@ -230,7 +230,7 @@ class FrejaProofingFunctions(SwedenConnectProofingFunctions[NinSessionInfo]):
             proofing_method=proofing_method,
         )
 
-    def mark_credential_as_verified(self, credential: Credential, loa: Optional[str]) -> VerifyCredentialResult:
+    def mark_credential_as_verified(self, credential: Credential, loa: str | None) -> VerifyCredentialResult:
         if loa != "loa3":
             return VerifyCredentialResult(error=EidasMsg.authn_context_mismatch)
 
@@ -243,7 +243,7 @@ class FrejaProofingFunctions(SwedenConnectProofingFunctions[NinSessionInfo]):
 
 @dataclass()
 class EidasProofingFunctions(SwedenConnectProofingFunctions[ForeignEidSessionInfo]):
-    def get_identity(self, user: User) -> Optional[IdentityElement]:
+    def get_identity(self, user: User) -> IdentityElement | None:
         return user.identities.eidas
 
     def verify_identity(self, user: User) -> VerifyUserResult:
@@ -379,7 +379,7 @@ class EidasProofingFunctions(SwedenConnectProofingFunctions[ForeignEidSessionInf
             return True
         return False
 
-    def mark_credential_as_verified(self, credential: Credential, loa: Optional[str]) -> VerifyCredentialResult:
+    def mark_credential_as_verified(self, credential: Credential, loa: str | None) -> VerifyCredentialResult:
         if loa not in ["eidas-nf-low", "eidas-nf-sub", "eidas-nf-high"]:
             return VerifyCredentialResult(error=EidasMsg.authn_context_mismatch)
 
@@ -390,9 +390,7 @@ class EidasProofingFunctions(SwedenConnectProofingFunctions[ForeignEidSessionInf
         return VerifyCredentialResult(credential=credential)
 
 
-def _find_or_add_credential(
-    user: User, framework: Optional[TrustFramework], required_loa: list[str]
-) -> Optional[ElementKey]:
+def _find_or_add_credential(user: User, framework: TrustFramework | None, required_loa: list[str]) -> ElementKey | None:
     if not required_loa:
         # mainly keep mypy calm
         current_app.logger.debug("Not recording credential used without required_loa")

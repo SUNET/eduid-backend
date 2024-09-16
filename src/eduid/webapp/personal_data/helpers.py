@@ -1,7 +1,6 @@
 import logging
 import re
 from enum import unique
-from typing import Optional
 
 from eduid.common.config.base import FrontendAction
 from eduid.userdb import User
@@ -40,7 +39,7 @@ def unique_name_parts(name: str) -> list[str]:
     return list(set(name_parts))
 
 
-def is_valid_chosen_given_name(given_name: Optional[str] = None, chosen_given_name: Optional[str] = None) -> bool:
+def is_valid_chosen_given_name(given_name: str | None = None, chosen_given_name: str | None = None) -> bool:
     """
     Validate the chosen given name is made up of a combination of given_name.
     """
@@ -72,7 +71,7 @@ def is_valid_chosen_given_name(given_name: Optional[str] = None, chosen_given_na
     return False
 
 
-def check_reauthn(frontend_action: FrontendAction, user: User) -> Optional[FluxData]:
+def check_reauthn(frontend_action: FrontendAction, user: User) -> FluxData | None:
     """Check if a re-authentication has been performed recently enough for this action"""
 
     authn_status = validate_authn_for_action(config=current_app.conf, frontend_action=frontend_action, user=user)

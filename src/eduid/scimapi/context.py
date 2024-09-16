@@ -2,7 +2,6 @@ import logging
 import logging.config
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Optional, Union
 from uuid import UUID
 
 from eduid.common.config.base import DataOwnerConfig, DataOwnerName
@@ -95,16 +94,16 @@ class Context:
         data_owner_dbs.last_accessed = utc_now()
         return data_owner_dbs
 
-    def get_userdb(self, data_owner: DataOwnerName) -> Optional[ScimApiUserDB]:
+    def get_userdb(self, data_owner: DataOwnerName) -> ScimApiUserDB | None:
         return self._get_data_owner_dbs(data_owner=data_owner).userdb
 
-    def get_groupdb(self, data_owner: DataOwnerName) -> Optional[ScimApiGroupDB]:
+    def get_groupdb(self, data_owner: DataOwnerName) -> ScimApiGroupDB | None:
         return self._get_data_owner_dbs(data_owner=data_owner).groupdb
 
-    def get_invitedb(self, data_owner: DataOwnerName) -> Optional[ScimApiInviteDB]:
+    def get_invitedb(self, data_owner: DataOwnerName) -> ScimApiInviteDB | None:
         return self._get_data_owner_dbs(data_owner=data_owner).invitedb
 
-    def get_eventdb(self, data_owner: DataOwnerName) -> Optional[ScimApiEventDB]:
+    def get_eventdb(self, data_owner: DataOwnerName) -> ScimApiEventDB | None:
         return self._get_data_owner_dbs(data_owner=data_owner).eventdb
 
     def url_for(self, *args) -> str:
@@ -116,7 +115,7 @@ class Context:
     def resource_url(self, resource_type: SCIMResourceType, scim_id: UUID) -> str:
         return self.url_for(resource_type.value + "s", str(scim_id))
 
-    def check_version(self, req: ContextRequest, db_obj: Union[ScimApiGroup, ScimApiUser, ScimApiInvite]) -> bool:
+    def check_version(self, req: ContextRequest, db_obj: ScimApiGroup | ScimApiUser | ScimApiInvite) -> bool:
         if req.headers.get("IF-MATCH") == make_etag(db_obj.version):
             return True
         self.logger.error("Version mismatch")

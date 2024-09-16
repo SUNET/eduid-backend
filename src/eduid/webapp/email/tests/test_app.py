@@ -1,7 +1,7 @@
 import json
 from collections.abc import Mapping
 from datetime import datetime, timedelta
-from typing import Any, Optional
+from typing import Any
 from unittest.mock import patch
 
 from eduid.common.config.base import EduidEnvironment
@@ -76,7 +76,7 @@ class EmailTests(EduidAPITestCase[EmailApp]):
         self,
         mock_code_verification: Any,
         mock_request_user_sync: Any,
-        data1: Optional[dict[str, Any]] = None,
+        data1: dict[str, Any] | None = None,
         send_data: bool = True,
     ):
         """
@@ -110,7 +110,7 @@ class EmailTests(EduidAPITestCase[EmailApp]):
                 return client.post("/new")
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def _post_primary(self, mock_request_user_sync: Any, data1: Optional[dict[str, Any]] = None):
+    def _post_primary(self, mock_request_user_sync: Any, data1: dict[str, Any] | None = None):
         """
         Choose an email of the test user as primary
 
@@ -135,7 +135,7 @@ class EmailTests(EduidAPITestCase[EmailApp]):
                 return client.post("/primary", data=json.dumps(data), content_type=self.content_type_json)
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def _remove(self, mock_request_user_sync: Any, data1: Optional[dict[str, Any]] = None):
+    def _remove(self, mock_request_user_sync: Any, data1: dict[str, Any] | None = None):
         """
         POST to remove an email address form the test user
 
@@ -158,7 +158,7 @@ class EmailTests(EduidAPITestCase[EmailApp]):
             return client.post("/remove", data=json.dumps(data), content_type=self.content_type_json)
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def _resend_code(self, mock_request_user_sync: Any, data1: Optional[dict[str, Any]] = None):
+    def _resend_code(self, mock_request_user_sync: Any, data1: dict[str, Any] | None = None):
         """
         Trigger resending a new verification code to the email being verified
 
@@ -183,8 +183,8 @@ class EmailTests(EduidAPITestCase[EmailApp]):
         self,
         mock_code_verification: Any,
         mock_request_user_sync: Any,
-        data1: Optional[dict[str, Any]] = None,
-        data2: Optional[dict[str, Any]] = None,
+        data1: dict[str, Any] | None = None,
+        data2: dict[str, Any] | None = None,
     ):
         """
         POST a new email address for the test user, and then verify it.
@@ -231,10 +231,10 @@ class EmailTests(EduidAPITestCase[EmailApp]):
         self,
         mock_code_verification: Any,
         mock_request_user_sync: Any,
-        data1: Optional[dict[str, Any]] = None,
+        data1: dict[str, Any] | None = None,
         email: str = "johnsmith3@example.com",
         code: str = "123456",
-        magic_cookie_name: Optional[str] = None,
+        magic_cookie_name: str | None = None,
     ):
         """
         POST email data to generate a verification state,

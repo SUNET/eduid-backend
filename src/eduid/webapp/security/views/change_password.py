@@ -1,5 +1,3 @@
-from typing import Optional
-
 from flask import Blueprint
 
 from eduid.common.config.base import FrontendAction
@@ -52,7 +50,7 @@ def get_suggested(user: User) -> FluxData:
 @UnmarshalWith(ChangePasswordRequestSchema)
 @MarshalWith(SecurityResponseSchema)
 @require_user
-def change_password_view(user: User, new_password: str, old_password: Optional[str] = None) -> FluxData:
+def change_password_view(user: User, new_password: str, old_password: str | None = None) -> FluxData:
     """
     View to change the password
     """

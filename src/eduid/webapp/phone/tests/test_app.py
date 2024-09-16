@@ -1,7 +1,7 @@
 import json
 from collections.abc import Mapping
 from datetime import timedelta
-from typing import Any, Optional
+from typing import Any
 from unittest.mock import MagicMock, patch
 from urllib.parse import quote_plus
 
@@ -37,7 +37,7 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
 
     # parameterized test methods
 
-    def _get_all_phone(self, eppn: Optional[str] = None):
+    def _get_all_phone(self, eppn: str | None = None):
         """
         GET all phone data for some user
 
@@ -60,7 +60,7 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
         mock_phone_validator: Any,
         mock_code_verification: Any,
         mock_request_user_sync: Any,
-        mod_data: Optional[dict[str, Any]] = None,
+        mod_data: dict[str, Any] | None = None,
         send_data: bool = True,
     ):
         """
@@ -93,7 +93,7 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
                 return client.post("/new")
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def _post_primary(self, mock_request_user_sync: Any, mod_data: Optional[dict[str, Any]] = None):
+    def _post_primary(self, mock_request_user_sync: Any, mod_data: dict[str, Any] | None = None):
         """
         Set phone number as the primary number for the test user
 
@@ -116,7 +116,7 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
             return client.post("/primary", data=json.dumps(data), content_type=self.content_type_json)
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def _remove(self, mock_request_user_sync: Any, mod_data: Optional[dict[str, Any]] = None):
+    def _remove(self, mock_request_user_sync: Any, mod_data: dict[str, Any] | None = None):
         """
         Remove phone number from the test user
 
@@ -146,7 +146,7 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
         mock_phone_validator: Any,
         mock_request_user_sync: Any,
         mock_verification_code: Any,
-        mod_data: Optional[dict[str, Any]] = None,
+        mod_data: dict[str, Any] | None = None,
         captcha_completed: bool = True,
     ):
         """
@@ -179,10 +179,10 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
         mock_phone_validator: Any,
         mock_code_verification: Any,
         mock_request_user_sync: Any,
-        mod_data: Optional[dict[str, Any]] = None,
+        mod_data: dict[str, Any] | None = None,
         phone: str = "+34670123456",
         code: str = "5250f9a4",
-        magic_cookie_name: Optional[str] = None,
+        magic_cookie_name: str | None = None,
     ):
         """
         POST phone data to generate a verification state,

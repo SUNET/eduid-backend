@@ -1,5 +1,3 @@
-from typing import Optional
-
 import pkg_resources
 from flask import current_app, request
 from flask_babel import Babel
@@ -11,10 +9,10 @@ from eduid.webapp.common.session import session
 __author__ = "lundberg"
 
 
-def get_user_locale() -> Optional[str]:
+def get_user_locale() -> str | None:
     app = current_app
     assert isinstance(app, EduIDBaseApp)
-    lang: Optional[str]  # mypy 0.910 needs this
+    lang: str | None  # mypy 0.910 needs this
     # if a user is logged in, use the locale from the user settings
     if session.common.preferred_language is not None:
         lang = session.common.preferred_language

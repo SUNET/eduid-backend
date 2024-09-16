@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 
 from eduid.userdb.element import Element, ElementKey, VerifiedElement
 
@@ -24,15 +24,15 @@ class OidcIdToken(Element):
     # the number of seconds from 1970-01-01T0:0:0Z as measured in UTC until the date/time.
     iat: int
     # Nonce used to associate a Client session with an ID Token, and to mitigate replay attacks.
-    nonce: Optional[str] = None
+    nonce: str | None = None
     # Time when the End-User authentication occurred.
-    auth_time: Optional[int] = None
+    auth_time: int | None = None
     # Authentication Context Class Reference
-    acr: Optional[str] = None
+    acr: str | None = None
     # Authentication Methods References
-    amr: Optional[list[str]] = None
+    amr: list[str] | None = None
     # Authorized party
-    azp: Optional[str] = None
+    azp: str | None = None
 
     @property
     def key(self) -> ElementKey:
@@ -64,8 +64,8 @@ class OidcAuthorization(Element):
     access_token: str
     token_type: str
     id_token: OidcIdToken
-    expires_in: Optional[int] = None
-    refresh_token: Optional[str] = None
+    expires_in: int | None = None
+    refresh_token: str | None = None
 
     @property
     def key(self) -> ElementKey:
@@ -105,9 +105,9 @@ class Orcid(VerifiedElement):
     # User's ORCID
     id: str
     oidc_authz: OidcAuthorization
-    name: Optional[str] = None
-    given_name: Optional[str] = None
-    family_name: Optional[str] = None
+    name: str | None = None
+    given_name: str | None = None
+    family_name: str | None = None
 
     @property
     def key(self) -> ElementKey:

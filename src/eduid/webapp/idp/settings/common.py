@@ -3,7 +3,6 @@ Configuration (file) handling for the eduID idp app.
 """
 
 from datetime import timedelta
-from typing import Optional
 
 from pydantic import Field, HttpUrl, field_validator
 from pydantic_core.core_schema import ValidationInfo
@@ -30,7 +29,7 @@ class IdPConfig(EduIDBaseAppConfig, TouConfigMixin, WebauthnConfigMixin2, AmConf
     pysaml2_config: str = "eduid.webapp.common.authn.idp_conf"
     # SAML F-TICKS user anonymization key. If this is set, the IdP will log F-TICKS data
     # on every login.
-    fticks_secret_key: Optional[str] = None
+    fticks_secret_key: str | None = None
     # Get SAML F-TICKS format string.
     fticks_format_string: str = "F-TICKS/SWAMID/2.0#TS={ts}#RP={rp}#AP={ap}#PN={pn}#AM={am}#"
     # URL to static resources that can be used in templates
@@ -77,7 +76,7 @@ class IdPConfig(EduIDBaseAppConfig, TouConfigMixin, WebauthnConfigMixin2, AmConf
     tou_reaccept_interval: timedelta = Field(default=timedelta(days=3 * 365))
     # Legacy parameters for the SSO cookie. Keep in sync with sso_cookie above until removed!
     sso_cookie_name: str = "idpauthn"
-    sso_cookie_domain: Optional[str] = None
+    sso_cookie_domain: str | None = None
     # Cookie for IdP-specific session allowing users to SSO.
     # Must be specified after sso_cookie_name and sso_cookie_domain while those are present.
     sso_cookie: CookieConfig = Field(default_factory=lambda: CookieConfig(key="idpauthn"))
@@ -88,8 +87,8 @@ class IdPConfig(EduIDBaseAppConfig, TouConfigMixin, WebauthnConfigMixin2, AmConf
     eduperson_targeted_id_secret_key: str = ""
     pairwise_id_secret_key: str = ""
     eduid_site_url: str
-    login_bundle_url: Optional[HttpUrlStr] = None
-    other_device_url: Optional[HttpUrlStr] = None
+    login_bundle_url: HttpUrlStr | None = None
+    other_device_url: HttpUrlStr | None = None
     esi_ladok_prefix: str = Field(default="urn:schac:personalUniqueCode:int:esi:ladok.se:externtstudentuid-")
     allow_other_device_logins: bool = False
     other_device_logins_ttl: timedelta = Field(default=timedelta(minutes=2))
@@ -102,9 +101,9 @@ class IdPConfig(EduIDBaseAppConfig, TouConfigMixin, WebauthnConfigMixin2, AmConf
     known_devices_ttl: timedelta = Field(default=timedelta(days=90))
     known_devices_feature_enabled: bool = False
     # secret key for encrypting personal information for geo-location service
-    geo_statistics_secret_key: Optional[str] = None
+    geo_statistics_secret_key: str | None = None
     geo_statistics_feature_enabled: bool = False
-    geo_statistics_url: Optional[HttpUrlStr] = None
+    geo_statistics_url: HttpUrlStr | None = None
     swamid_assurance_profile_1: list[SwamidAssurance] = Field(
         default=[
             SwamidAssurance.SWAMID_AL1,

@@ -1,6 +1,5 @@
 import base64
 from collections.abc import Sequence
-from typing import Optional
 
 from fido2 import cbor
 from fido2.server import Fido2Server, PublicKeyCredentialRpEntity
@@ -54,7 +53,7 @@ from eduid.webapp.security.webauthn_proofing import (
 
 
 def get_webauthn_server(
-    rp_id: str, rp_name: str, attestation: Optional[AttestationConveyancePreference] = None
+    rp_id: str, rp_name: str, attestation: AttestationConveyancePreference | None = None
 ) -> Fido2Server:
     rp = PublicKeyCredentialRpEntity(id=rp_id, name=rp_name)
     return Fido2Server(rp, attestation=attestation)

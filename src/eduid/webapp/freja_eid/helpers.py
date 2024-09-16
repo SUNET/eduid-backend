@@ -1,7 +1,7 @@
 import logging
 from datetime import date
 from enum import Enum, unique
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -42,7 +42,7 @@ class SessionOAuthCache:
         return session.freja_eid.rp.authlib_cache.get(key)
 
     @staticmethod
-    def set(key: str, value: Any, expires: Optional[int] = None) -> None:
+    def set(key: str, value: Any, expires: int | None = None) -> None:
         session.freja_eid.rp.authlib_cache[key] = value
         logger.debug(f"Set {key}={value} (expires={expires}) in session.freja_eid.oauth_cache")
 
@@ -84,7 +84,7 @@ class FrejaEIDDocumentUserInfo(UserInfoBase):
     family_name: str
     given_name: str
     name: str
-    personal_identity_number: Optional[str] = Field(
+    personal_identity_number: str | None = Field(
         alias="https:/frejaeid.com/oidc/claims/personalIdentityNumber", default=None
     )
     date_of_birth: date = Field(alias="birthdate")

@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional
 
 from iso3166 import countries
 from pymongo.errors import PyMongoError
@@ -50,7 +49,7 @@ class FrejaEIDProofingFunctions(ProofingFunctions[FrejaEIDDocumentUserInfo]):
             return True
         return False
 
-    def get_identity(self, user: User) -> Optional[IdentityElement]:
+    def get_identity(self, user: User) -> IdentityElement | None:
         if self.is_swedish_document():
             return user.identities.nin
         return user.identities.freja
@@ -230,7 +229,7 @@ class FrejaEIDProofingFunctions(ProofingFunctions[FrejaEIDDocumentUserInfo]):
     def credential_proofing_element(self, user: User, credential: Credential) -> ProofingElementResult:
         raise NotImplementedError("No support for credential proofing")
 
-    def mark_credential_as_verified(self, credential: Credential, loa: Optional[str]) -> VerifyCredentialResult:
+    def mark_credential_as_verified(self, credential: Credential, loa: str | None) -> VerifyCredentialResult:
         raise NotImplementedError("No support for credential proofing")
 
 

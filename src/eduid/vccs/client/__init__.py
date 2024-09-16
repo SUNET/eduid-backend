@@ -43,7 +43,7 @@ Revoke a credential (irreversible!) :
 
 import os
 from collections.abc import Sequence
-from typing import Any, Optional
+from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
@@ -106,7 +106,7 @@ class VCCSPasswordFactor(VCCSFactor):
     Object representing an ordinary password authentication factor.
     """
 
-    def __init__(self, password: str, credential_id: str, salt: Optional[str] = None, strip_whitespace: bool = True):
+    def __init__(self, password: str, credential_id: str, salt: str | None = None, strip_whitespace: bool = True):
         """
         :param password: string, password as plaintext
         :param credential_id: unique id of credential in the authentication backend database
@@ -307,7 +307,7 @@ class VCCSClient:
     credentials (authentication factors).
     """
 
-    def __init__(self, base_url: Optional[str] = None):
+    def __init__(self, base_url: str | None = None):
         self.base_url = base_url if base_url else "http://localhost:8550/"
 
     def authenticate(self, user_id: str, factors: Sequence[VCCSFactor]) -> bool:

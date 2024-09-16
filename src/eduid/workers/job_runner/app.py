@@ -1,6 +1,5 @@
 from collections.abc import Callable
 from contextlib import asynccontextmanager
-from typing import Optional
 
 from fastapi import FastAPI
 
@@ -14,9 +13,7 @@ from eduid.workers.job_runner.status import status_router
 class JobRunner(FastAPI):
     scheduler: JobScheduler = JobScheduler(timezone="UTC")
 
-    def __init__(
-        self, name: str = "job_runner", test_config: Optional[dict] = None, lifespan: Optional[Callable] = None
-    ):
+    def __init__(self, name: str = "job_runner", test_config: dict | None = None, lifespan: Callable | None = None):
         self.config = load_config(typ=JobRunnerConfig, app_name=name, ns="worker", test_config=test_config)
         super().__init__(root_path=self.config.application_root, lifespan=lifespan)
 
@@ -33,7 +30,7 @@ async def lifespan(app: JobRunner):
     app.scheduler.shutdown()
 
 
-def init_app(name: str = "job_runner", test_config: Optional[dict] = None) -> JobRunner:
+def init_app(name: str = "job_runner", test_config: dict | None = None) -> JobRunner:
     app = JobRunner(name, test_config, lifespan=lifespan)
     app.context.logger.info(app.config)
 

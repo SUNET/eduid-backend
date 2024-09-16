@@ -6,7 +6,7 @@ import typing
 import uuid
 from collections.abc import Mapping
 from datetime import datetime, timedelta
-from typing import Any, Optional
+from typing import Any
 
 from bson import ObjectId
 from flask import request
@@ -31,20 +31,20 @@ logger = logging.getLogger(__name__)
 
 class Device1Data(BaseModel):
     ref: str  # the login 'ref' on device 1 (where login using another device was initiated)
-    authn_context: Optional[EduidAuthnContextClass] = None  # the level of authentication required on device 1
-    request_id: Optional[str] = None  # the request ID on device 1 (SAML authnRequest request id for example)
+    authn_context: EduidAuthnContextClass | None = None  # the level of authentication required on device 1
+    request_id: str | None = None  # the request ID on device 1 (SAML authnRequest request id for example)
     reauthn_required: bool  # if reauthn is required for the login on device 1
     ip_address: str  # the IP address of device 1, to be used by the user on device 2 to assess the request
-    user_agent: Optional[str] = (
+    user_agent: str | None = (
         None  # the user agent of device 1, to be used by the user on device 2 to assess the request
     )
-    service_info: Optional[ServiceInfo] = None  # information about the service (SP) where the user is logging in
+    service_info: ServiceInfo | None = None  # information about the service (SP) where the user is logging in
     is_known_device: bool  # device 1 is a device that has previously logged in as state.eppn
 
 
 class Device2Data(BaseModel):
-    ref: Optional[str] = None  # the pending_request 'ref' on device 2
-    response_code: Optional[str] = None  # code from login event (using device 2) that has to be entered on device 1
+    ref: str | None = None  # the pending_request 'ref' on device 2
+    response_code: str | None = None  # code from login event (using device 2) that has to be entered on device 1
     # TODO: doesn't work with onetime_credentials
     credentials_used: list[UsedCredential] = Field(default=[])
 
@@ -54,7 +54,7 @@ class OtherDevice(BaseModel):
     created_at: datetime
     device1: Device1Data
     device2: Device2Data
-    eppn: Optional[str] = (
+    eppn: str | None = (
         None  # the eppn of the user on device 1, either from the SSO session or derived from e-mail address
     )
     expires_at: datetime
@@ -68,10 +68,10 @@ class OtherDevice(BaseModel):
     def from_parameters(
         cls: type[OtherDevice],
         ticket: LoginContext,
-        eppn: Optional[str],
-        authn_context: Optional[EduidAuthnContextClass],
+        eppn: str | None,
+        authn_context: EduidAuthnContextClass | None,
         ip_address: str,
-        user_agent: Optional[str],
+        user_agent: str | None,
         ttl: timedelta,
     ) -> OtherDevice:
         _uuid = uuid.uuid4()
@@ -139,14 +139,14 @@ class OtherDeviceDB(BaseDB):
         )
         return result.acknowledged
 
-    def get_state_by_id(self, state_id: OtherDeviceId) -> Optional[OtherDevice]:
+    def get_state_by_id(self, state_id: OtherDeviceId) -> OtherDevice | None:
         state = self._get_document_by_attr("state_id", str(state_id))
         if not state:
             logger.debug(f"Other-device state with state_id {state_id} not found in the database")
             return None
         return OtherDevice.from_dict(state)
 
-    def add_new_state(self, ticket: LoginContext, user: Optional[User], ttl: timedelta) -> OtherDevice:
+    def add_new_state(self, ticket: LoginContext, user: User | None, ttl: timedelta) -> OtherDevice:
         user_agent = None
         ua = get_user_agent()
         if ua:
@@ -170,7 +170,7 @@ class OtherDeviceDB(BaseDB):
         logger.debug(f"   Full other-device state: {state.to_json()}")
         return state
 
-    def abort(self, state: OtherDevice) -> Optional[OtherDevice]:
+    def abort(self, state: OtherDevice) -> OtherDevice | None:
         """
         Abort a state.
 
@@ -191,7 +191,7 @@ class OtherDeviceDB(BaseDB):
             return None
         return state
 
-    def grab(self, state: OtherDevice, device2_ref: str) -> Optional[OtherDevice]:
+    def grab(self, state: OtherDevice, device2_ref: str) -> OtherDevice | None:
         """
         Grab a state, on device 2. This has to be an atomic operation to ensure two devices (one attacker and one
         victim) can't have pending_requests pointing at this very same OtherDevice state. Otherwise, the attacker
@@ -216,7 +216,7 @@ class OtherDeviceDB(BaseDB):
             return None
         return state
 
-    def logged_in(self, state: OtherDevice, eppn: str, credentials_used: list[UsedCredential]) -> Optional[OtherDevice]:
+    def logged_in(self, state: OtherDevice, eppn: str, credentials_used: list[UsedCredential]) -> OtherDevice | None:
         """
         Finish a state, on device 2.
         """

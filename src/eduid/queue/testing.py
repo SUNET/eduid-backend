@@ -6,7 +6,7 @@ import time
 from asyncio import Task
 from collections.abc import Sequence
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any, Optional, TypeAlias, cast
+from typing import TYPE_CHECKING, Any, TypeAlias, cast
 from unittest import IsolatedAsyncioTestCase, TestCase
 from unittest.mock import patch
 
@@ -193,7 +193,7 @@ class QueueAsyncioTest(EduidQueueTestCase, IsolatedAsyncioTestCase):
 
     async def _assert_item_gets_processed(self, queue_item: QueueItem, retry: bool = False):
         end_time = utc_now() + timedelta(seconds=10)
-        fetched: Optional[QueueItem] = None
+        fetched: QueueItem | None = None
         while utc_now() < end_time:
             await asyncio.sleep(0.5)  # Allow worker to run
             fetched = self.client_db.get_item_by_id(queue_item.item_id)

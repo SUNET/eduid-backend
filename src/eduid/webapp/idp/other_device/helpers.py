@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import Optional
 
 from eduid.webapp.common.api.messages import FluxData, error_response
 from eduid.webapp.common.session.namespaces import IdP_OtherDevicePendingRequest, RequestRef
@@ -13,9 +12,9 @@ from eduid.webapp.idp.service import SAMLQueryParams
 
 @dataclass
 class OtherDeviceRefResult:
-    response: Optional[FluxData] = None
-    ticket: Optional[LoginContext] = None
-    state: Optional[OtherDevice] = None
+    response: FluxData | None = None
+    ticket: LoginContext | None = None
+    state: OtherDevice | None = None
 
 
 def _get_other_device_state_using_ref(ref: RequestRef, device: int) -> OtherDeviceRefResult:

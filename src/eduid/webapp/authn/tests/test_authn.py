@@ -5,7 +5,7 @@ import os
 import uuid
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any
 from urllib.parse import quote_plus
 
 from flask import Blueprint
@@ -49,7 +49,7 @@ class AuthnAPITestBase(EduidAPITestCase):
     def setUp(  # type: ignore[override]
         self,
         *args: list[Any],
-        users: Optional[list[str]] = None,
+        users: list[str] | None = None,
         copy_user_to_private: bool = False,
         **kwargs: dict[str, Any],
     ) -> None:
@@ -183,8 +183,8 @@ class AuthnAPITestBase(EduidAPITestCase):
         url: str,
         eppn: str,
         frontend_action: FrontendAction,
-        frontend_state: Optional[str] = None,
-        accr: Optional[EduidAuthnContextClass] = None,
+        frontend_state: str | None = None,
+        accr: EduidAuthnContextClass | None = None,
     ) -> AcsResult:
         """
         common code for the tests that need to access the assertion consumer service

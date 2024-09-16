@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from flask import render_template, request
 from werkzeug.exceptions import HTTPException
@@ -53,7 +53,7 @@ def init_exception_handlers(app: "IdPApp") -> "IdPApp":
     return app
 
 
-def _get_error_template(status_code: Optional[int], message: Optional[str]) -> str:
+def _get_error_template(status_code: int | None, message: str | None) -> str:
     pages = {
         400: "bad_request.jinja2",
         401: "unauthorized.jinja2",

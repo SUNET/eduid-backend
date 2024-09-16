@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import Any, Optional, cast
+from typing import Any, cast
 
 from flask import current_app
 
@@ -21,7 +21,7 @@ class JSConfigApp(EduIDBaseApp):
 current_jsconfig_app: JSConfigApp = cast(JSConfigApp, current_app)
 
 
-def jsconfig_init_app(name: str = "jsconfig", test_config: Optional[Mapping[str, Any]] = None) -> JSConfigApp:
+def jsconfig_init_app(name: str = "jsconfig", test_config: Mapping[str, Any] | None = None) -> JSConfigApp:
     """
     Create an instance of an eduid jsconfig data app.
 

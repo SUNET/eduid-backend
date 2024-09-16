@@ -6,7 +6,7 @@ import os
 import pprint
 from collections.abc import MutableMapping
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 from flask import Request as FlaskRequest
 from flask import Response as FlaskResponse
@@ -50,18 +50,18 @@ logger = logging.getLogger(__name__)
 
 
 class EduidNamespaces(BaseModel):
-    common: Optional[Common] = None
-    mfa_action: Optional[MfaAction] = None
-    signup: Optional[Signup] = None
-    phone: Optional[Phone] = None
-    reset_password: Optional[ResetPasswordNS] = None
-    security: Optional[SecurityNS] = None
-    idp: Optional[IdP_Namespace] = None
-    eidas: Optional[EidasNamespace] = None
-    authn: Optional[AuthnNamespace] = None
-    svipe_id: Optional[SvipeIDNamespace] = None
-    bankid: Optional[BankIDNamespace] = None
-    freja_eid: Optional[FrejaEIDNamespace] = None
+    common: Common | None = None
+    mfa_action: MfaAction | None = None
+    signup: Signup | None = None
+    phone: Phone | None = None
+    reset_password: ResetPasswordNS | None = None
+    security: SecurityNS | None = None
+    idp: IdP_Namespace | None = None
+    eidas: EidasNamespace | None = None
+    authn: AuthnNamespace | None = None
+    svipe_id: SvipeIDNamespace | None = None
+    bankid: BankIDNamespace | None = None
+    freja_eid: FrejaEIDNamespace | None = None
 
 
 class EduidSession(SessionMixin, MutableMapping[str, Any]):
@@ -321,7 +321,7 @@ class EduidSession(SessionMixin, MutableMapping[str, Any]):
 
     def new_csrf_token(self) -> str:
         # only produce one csrf token by request
-        _csrf: Optional[str] = self.get("_csrft_")
+        _csrf: str | None = self.get("_csrft_")
         if not isinstance(_csrf, str):
             _csrf = os.urandom(20).hex()
             self["_csrft_"] = _csrf

@@ -2,7 +2,7 @@ import logging
 from abc import ABC
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any, Generic, Optional, TypeVar, Union
+from typing import Any, Generic, TypeVar
 
 from bson import ObjectId
 from bson.errors import InvalidId
@@ -82,7 +82,7 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
         # must be implemented by subclass to get correct type information
         raise NotImplementedError(f"user_from_dict not implemented in UserDB subclass {cls}")
 
-    def get_user_by_id(self, user_id: Union[str, ObjectId]) -> Optional[UserVar]:
+    def get_user_by_id(self, user_id: str | ObjectId) -> UserVar | None:
         """
         Locate a user in the userdb given the user's _id.
 
@@ -97,7 +97,7 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
                 return None
         return self._get_user_by_attr("_id", user_id)
 
-    def get_verified_users_count(self, identity_type: Optional[IdentityType] = None) -> int:
+    def get_verified_users_count(self, identity_type: IdentityType | None = None) -> int:
         spec: dict[str, Any]
         spec = {
             "identities": {
@@ -126,7 +126,7 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
 
         return self._users_from_documents(users)
 
-    def get_user_by_mail(self, email: str) -> Optional[UserVar]:
+    def get_user_by_mail(self, email: str) -> UserVar | None:
         """Locate a user with a (confirmed) e-mail address"""
         res = self.get_users_by_mail(email=email)
         if not res:
@@ -153,7 +153,7 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
         filter = {"$or": [{"mail": email}, {"mailAliases": {"$elemMatch": elemmatch}}]}
         return self._get_user_by_filter(filter)
 
-    def get_user_by_nin(self, nin: str) -> Optional[UserVar]:
+    def get_user_by_nin(self, nin: str) -> UserVar | None:
         """Locate a user with a (confirmed) NIN"""
         res = self.get_users_by_nin(nin=nin)
         if not res:
@@ -189,7 +189,7 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
         _filter = {"identities": {"$elemMatch": match}}
         return self._get_user_by_filter(_filter)
 
-    def get_user_by_phone(self, phone: str) -> Optional[UserVar]:
+    def get_user_by_phone(self, phone: str) -> UserVar | None:
         """Locate a user with a (confirmed) phone number"""
         res = self.get_users_by_phone(phone=phone)
         if not res:
@@ -220,7 +220,7 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
         filter = {"$or": [old_filter, new_filter]}
         return self._get_user_by_filter(filter)
 
-    def get_user_by_eppn(self, eppn: Optional[str]) -> UserVar:
+    def get_user_by_eppn(self, eppn: str | None) -> UserVar:
         """
         Look for a user using the eduPersonPrincipalName.
 
@@ -234,7 +234,7 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
             raise UserDoesNotExist(f"No user with eppn {repr(eppn)}")
         return res
 
-    def _get_user_by_attr(self, attr: str, value: Any) -> Optional[UserVar]:
+    def _get_user_by_attr(self, attr: str, value: Any) -> UserVar | None:
         """
         Locate a user in the userdb using any attribute and value.
 
@@ -364,7 +364,7 @@ class AmDB(UserDB[User]):
         users = self._get_documents_by_aggregate(match=match)
         return self._users_from_documents(users)
 
-    def unverify_mail_aliases(self, user_id: ObjectId, mail_aliases: Optional[list[dict[str, Any]]]) -> int:
+    def unverify_mail_aliases(self, user_id: ObjectId, mail_aliases: list[dict[str, Any]] | None) -> int:
         count = 0
         if mail_aliases is None:
             logger.debug(f"No mailAliases to check duplicates against for user {user_id}.")

@@ -2,7 +2,7 @@ import asyncio
 import json
 import logging
 from collections.abc import Mapping
-from typing import Any, Optional, cast
+from typing import Any, cast
 
 import httpx
 
@@ -56,7 +56,7 @@ class ScimEventQueueWorker(QueueWorker):
 
 
 def init_scim_event_worker(
-    name: str = "scim_event_worker", test_config: Optional[Mapping[str, Any]] = None
+    name: str = "scim_event_worker", test_config: Mapping[str, Any] | None = None
 ) -> ScimEventQueueWorker:
     config = load_config(typ=QueueWorkerConfig, app_name=name, ns="queue", test_config=test_config)
     return ScimEventQueueWorker(config=config)

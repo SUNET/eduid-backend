@@ -7,7 +7,7 @@ __author__ = "leifj"
 import logging
 from copy import deepcopy
 from datetime import datetime, timezone
-from typing import Any, Optional
+from typing import Any
 from uuid import UUID
 
 import bson
@@ -107,7 +107,7 @@ class WorkerTestCase(CommonTestCase):
     """
 
     def setUp(  # type: ignore[override]
-        self, *args: Any, am_settings: Optional[dict[str, Any]] = None, want_mongo_uri: bool = True, **kwargs: Any
+        self, *args: Any, am_settings: dict[str, Any] | None = None, want_mongo_uri: bool = True, **kwargs: Any
     ):
         """
         set up tests
@@ -153,8 +153,8 @@ class AMTestCase(WorkerTestCase):
 
 
 class ProofingTestCase(AMTestCase):
-    fetcher_name: Optional[str] = None
-    fetcher: Optional[AttributeFetcher] = None
+    fetcher_name: str | None = None
+    fetcher: AttributeFetcher | None = None
 
     def setUp(self, *args: Any, **kwargs: Any):
         super().setUp(*args, **kwargs)

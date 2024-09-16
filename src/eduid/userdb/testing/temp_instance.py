@@ -9,7 +9,7 @@ import tempfile
 import time
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
-from typing import Any, Optional
+from typing import Any
 
 from eduid.userdb.util import utc_now
 
@@ -26,7 +26,7 @@ class EduidTemporaryInstance(ABC):
     _instance = None
 
     def __init__(self, max_retry_seconds: int):
-        self._conn: Optional[Any] = None  # self._conn should be initialised by subclasses in `setup_conn'
+        self._conn: Any | None = None  # self._conn should be initialised by subclasses in `setup_conn'
         self._tmpdir = tempfile.mkdtemp()
         self._port = random.randint(40000, 65535)
         self._logfile = open(f"/tmp/{self.__class__.__name__}-{self.port}.log", "w")

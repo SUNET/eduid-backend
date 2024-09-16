@@ -3,7 +3,6 @@ User and user database module.
 """
 
 import logging
-from typing import Optional
 
 from eduid.userdb import UserDB
 from eduid.userdb.db import TUserDbDocument
@@ -21,7 +20,7 @@ class IdPUserDb(UserDB[IdPUser]):
     def user_from_dict(cls, data: TUserDbDocument) -> IdPUser:
         return IdPUser.from_dict(data)
 
-    def lookup_user(self, username: str) -> Optional[IdPUser]:
+    def lookup_user(self, username: str) -> IdPUser | None:
         """
         Load IdPUser from userdb.
 

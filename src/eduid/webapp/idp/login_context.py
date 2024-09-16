@@ -33,10 +33,10 @@ class LoginContext(ABC, BaseModel):
     """
 
     request_ref: RequestRef
-    known_device_info: Optional[BrowserDeviceInfo] = None
-    remember_me: Optional[bool] = None  # if the user wants to be remembered or not (on this device)
-    _known_device: Optional[KnownDevice] = None
-    _pending_request: Optional[IdP_PendingRequest] = None
+    known_device_info: BrowserDeviceInfo | None = None
+    remember_me: bool | None = None  # if the user wants to be remembered or not (on this device)
+    _known_device: KnownDevice | None = None
+    _pending_request: IdP_PendingRequest | None = None
     model_config = ConfigDict()
 
     def __str__(self) -> str:
@@ -55,7 +55,7 @@ class LoginContext(ABC, BaseModel):
         return self._pending_request
 
     @property
-    def request_id(self) -> Optional[str]:
+    def request_id(self) -> str | None:
         raise NotImplementedError("Subclass must implement request_id")
 
     @property
@@ -67,17 +67,17 @@ class LoginContext(ABC, BaseModel):
         raise NotImplementedError("Subclass must implement reauthn_required")
 
     @property
-    def service_requested_eppn(self) -> Optional[str]:
+    def service_requested_eppn(self) -> str | None:
         """The eppn of the user the service (e.g. SAML SP) requests logs in"""
         raise NotImplementedError("Subclass must implement service_requested_eppn")
 
     @property
-    def service_info(self) -> Optional[ServiceInfo]:
+    def service_info(self) -> ServiceInfo | None:
         """Information about the service where the user is logging in"""
         raise NotImplementedError("Subclass must implement service_requested_eppn")
 
     @property
-    def other_device_state_id(self) -> Optional[OtherDeviceId]:
+    def other_device_state_id(self) -> OtherDeviceId | None:
         """Get the state_id for the OtherDevice state, if the user wants to log in using another device."""
         raise NotImplementedError("Subclass must implement other_device_state_id")
 
@@ -91,7 +91,7 @@ class LoginContext(ABC, BaseModel):
         """Check if this is a request to log in on another device (specifically device #2)."""
         raise NotImplementedError("Subclass must implement is_other_device_2")
 
-    def set_other_device_state(self, state_id: Optional[OtherDeviceId]) -> None:
+    def set_other_device_state(self, state_id: OtherDeviceId | None) -> None:
         if isinstance(self.pending_request, IdP_SAMLPendingRequest):
             self.pending_request.other_device_state_id = state_id
         elif isinstance(self.pending_request, IdP_OtherDevicePendingRequest):
@@ -99,11 +99,11 @@ class LoginContext(ABC, BaseModel):
         else:
             raise TypeError(f"Can't set other_device on pending request of type {type(self.pending_request)}")
 
-    def get_requested_authn_context(self) -> Optional[EduidAuthnContextClass]:
+    def get_requested_authn_context(self) -> EduidAuthnContextClass | None:
         raise NotImplementedError("Subclass must implement get_requested_authn_context")
 
     @property
-    def known_device(self) -> Optional[KnownDevice]:
+    def known_device(self) -> KnownDevice | None:
         if not self._known_device:
             if self.known_device_info:
                 from eduid.webapp.idp.app import current_idp_app as current_app
@@ -166,7 +166,7 @@ class LoginContextSAML(LoginContext):
         return self._saml_req
 
     @property
-    def request_id(self) -> Optional[str]:
+    def request_id(self) -> str | None:
         return self.saml_req.request_id
 
     @property
@@ -178,7 +178,7 @@ class LoginContextSAML(LoginContext):
         return self.saml_req.force_authn
 
     @property
-    def service_requested_eppn(self) -> Optional[str]:
+    def service_requested_eppn(self) -> str | None:
         res = None
         _login_subject = self.saml_req.login_subject
         if _login_subject is not None:
@@ -200,7 +200,7 @@ class LoginContextSAML(LoginContext):
         return res
 
     @property
-    def service_info(self) -> Optional[ServiceInfo]:
+    def service_info(self) -> ServiceInfo | None:
         """Information about the service where the user is logging in"""
         _info = self.saml_req.service_info
         if not _info:
@@ -208,7 +208,7 @@ class LoginContextSAML(LoginContext):
         return ServiceInfo(display_name=_info.get("display_name", {}))
 
     @property
-    def other_device_state_id(self) -> Optional[OtherDeviceId]:
+    def other_device_state_id(self) -> OtherDeviceId | None:
         # On device #1, the pending_request has a pointer to the other-device-state
         # Use temporary variable to avoid pycharm warning
         #   Unresolved attribute reference 'other_device_state_id' for class 'IdP_PendingRequest'
@@ -232,7 +232,7 @@ class LoginContextSAML(LoginContext):
         """Check if this is a request to log in on another device (specifically device #2)."""
         return False
 
-    def get_requested_authn_context(self) -> Optional[EduidAuthnContextClass]:
+    def get_requested_authn_context(self) -> EduidAuthnContextClass | None:
         """
         Return the authn context (if any) that was originally requested.
 
@@ -245,7 +245,7 @@ class LoginContextOtherDevice(LoginContext):
     other_device_req: OtherDevice
 
     @property
-    def request_id(self) -> Optional[str]:
+    def request_id(self) -> str | None:
         return self.other_device_req.device1.request_id
 
     @property
@@ -259,7 +259,7 @@ class LoginContextOtherDevice(LoginContext):
         return self.other_device_req.device1.reauthn_required
 
     @property
-    def other_device_state_id(self) -> Optional[OtherDeviceId]:
+    def other_device_state_id(self) -> OtherDeviceId | None:
         # On device #2, the pending request is the other-device-state
         _pending = self.pending_request
         if isinstance(_pending, IdP_OtherDevicePendingRequest):
@@ -280,7 +280,7 @@ class LoginContextOtherDevice(LoginContext):
         has used a camera to scan the QR code shown on the OTHER device (first, initiating)."""
         return self.other_device_state_id is not None
 
-    def get_requested_authn_context(self) -> Optional[EduidAuthnContextClass]:
+    def get_requested_authn_context(self) -> EduidAuthnContextClass | None:
         """
         Return the authn context (if any) that was originally requested on the first device.
 
@@ -289,16 +289,16 @@ class LoginContextOtherDevice(LoginContext):
         return _pick_authn_context(self.authn_contexts, self.request_ref)
 
     @property
-    def service_requested_eppn(self) -> Optional[str]:
+    def service_requested_eppn(self) -> str | None:
         return self.other_device_req.eppn
 
     @property
-    def service_info(self) -> Optional[ServiceInfo]:
+    def service_info(self) -> ServiceInfo | None:
         """Information about the service where the user is logging in"""
         return None
 
 
-def _pick_authn_context(accrs: Sequence[str], log_tag: str) -> Optional[EduidAuthnContextClass]:
+def _pick_authn_context(accrs: Sequence[str], log_tag: str) -> EduidAuthnContextClass | None:
     if len(accrs) > 1:
         logger.warning(f"{log_tag}: More than one authnContextClassRef, using the first recognised: {accrs}")
     # first, select the ones recognised by this IdP

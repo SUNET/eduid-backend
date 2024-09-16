@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import Any, Optional
+from typing import Any
 
 from flask import current_app
 
@@ -26,7 +26,7 @@ def get_current_app() -> AuthnApp:
 current_authn_app = get_current_app()
 
 
-def authn_init_app(name: str = "authn", test_config: Optional[Mapping[str, Any]] = None) -> AuthnApp:
+def authn_init_app(name: str = "authn", test_config: Mapping[str, Any] | None = None) -> AuthnApp:
     """
     Create an instance of an authentication app.
 

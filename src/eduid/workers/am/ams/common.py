@@ -1,7 +1,7 @@
 __author__ = "eperez"
 
 from abc import ABC, abstractmethod
-from typing import Any, Optional
+from typing import Any
 
 import bson
 from celery.utils.log import get_task_logger
@@ -23,7 +23,7 @@ class AttributeFetcher(ABC):
         if not isinstance(worker_config, AmConfig):
             raise TypeError("AttributeFetcher config should be AmConfig")
         self.conf = worker_config
-        self.private_db: Optional[UserDB[User]] = None
+        self.private_db: UserDB[User] | None = None
         if worker_config.mongo_uri:
             self.private_db = self.get_user_db(worker_config.mongo_uri)
 

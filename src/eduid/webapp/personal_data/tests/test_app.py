@@ -1,7 +1,7 @@
 import json
 from collections.abc import Mapping
 from datetime import timedelta
-from typing import Any, Optional
+from typing import Any
 from unittest.mock import patch
 
 from werkzeug.test import TestResponse
@@ -36,7 +36,7 @@ class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
 
     # parameterized test methods
 
-    def _get_user(self, eppn: Optional[str] = None):
+    def _get_user(self, eppn: str | None = None):
         """
         Send a GET request to get the personal data of a user
 
@@ -65,7 +65,7 @@ class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def _post_user(
-        self, mock_request_user_sync: Any, mod_data: Optional[dict[str, Any]] = None, verified_user: bool = True
+        self, mock_request_user_sync: Any, mod_data: dict[str, Any] | None = None, verified_user: bool = True
     ):
         """
         POST personal data for the test user
@@ -93,7 +93,7 @@ class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
                     data.update(mod_data)
             return client.post("/user", data=json.dumps(data), content_type=self.content_type_json)
 
-    def _get_preferences(self, eppn: Optional[str] = None):
+    def _get_preferences(self, eppn: str | None = None):
         """
         Send a GET request to get the personal data of a user
 
@@ -109,7 +109,7 @@ class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
         return response2
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def _post_preferences(self, mock_request_user_sync: Any, mod_data: Optional[dict[str, Any]] = None):
+    def _post_preferences(self, mock_request_user_sync: Any, mod_data: dict[str, Any] | None = None):
         """
         POST preferences for the test user
         """
@@ -127,7 +127,7 @@ class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
                         data["csrf_token"] = sess.get_csrf_token()
             return client.post("/preferences", json=data)
 
-    def _get_user_identities(self, eppn: Optional[str] = None):
+    def _get_user_identities(self, eppn: str | None = None):
         """
         GET a list of all the identities of a user
 

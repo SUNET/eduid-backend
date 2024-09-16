@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import Any, Optional, cast
+from typing import Any, cast
 
 from flask import current_app
 
@@ -35,7 +35,7 @@ current_mobilep_app = cast(MobileProofingApp, current_app)
 
 
 def init_lookup_mobile_proofing_app(
-    name: str = "lookup_mobile_proofing", test_config: Optional[Mapping[str, Any]] = None
+    name: str = "lookup_mobile_proofing", test_config: Mapping[str, Any] | None = None
 ) -> MobileProofingApp:
     """
     :param name: The name of the instance, it will affect the configuration loaded.

@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 from flask import jsonify
 
@@ -15,8 +15,8 @@ class ApiException(Exception):
     def __init__(
         self,
         message: str = "ApiException",
-        status_code: Optional[int] = None,
-        payload: Optional[Mapping[str, Any]] = None,
+        status_code: int | None = None,
+        payload: Mapping[str, Any] | None = None,
     ):
         """
         :param message: Error message

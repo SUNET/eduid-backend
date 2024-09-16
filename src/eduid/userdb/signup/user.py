@@ -1,6 +1,6 @@
 __author__ = "ft"
 
-from typing import Any, Optional
+from typing import Any
 
 import bson
 from pydantic import Field
@@ -15,10 +15,10 @@ class SignupUser(User):
     Subclass of eduid.userdb.User with eduid Signup application specific data.
     """
 
-    social_network: Optional[str] = None
-    social_network_id: Optional[str] = None
+    social_network: str | None = None
+    social_network_id: str | None = None
     # The user's pending (unconfirmed) mail address.
-    pending_mail_address: Optional[EmailProofingElement] = None
+    pending_mail_address: EmailProofingElement | None = None
     # Holds a reference id that is used for connecting msg tasks with proofing log statements.
     proofing_reference: str = Field(default_factory=lambda: str(bson.ObjectId()))
 

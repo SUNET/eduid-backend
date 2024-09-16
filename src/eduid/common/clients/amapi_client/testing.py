@@ -1,12 +1,10 @@
-from typing import Optional
-
 import respx
 
 from eduid.common.clients.gnap_client.testing import MockedSyncAuthAPIMixin
 
 
 class MockedAMAPIMixin(MockedSyncAuthAPIMixin):
-    def start_mock_amapi(self, access_token_value: Optional[str] = None):
+    def start_mock_amapi(self, access_token_value: str | None = None):
         self.start_mock_auth_api(access_token_value=access_token_value)
 
         self.mocked_users = respx.mock(base_url="http://localhost", assert_all_called=False)

@@ -5,7 +5,7 @@ import typing
 import uuid
 from collections.abc import Mapping
 from datetime import datetime, timedelta
-from typing import Any, NewType, Optional
+from typing import Any, NewType
 
 from bson import ObjectId
 from pydantic import BaseModel, ConfigDict, Field
@@ -67,7 +67,7 @@ class SSOSession(BaseModel):
     expires_at: datetime = Field(default_factory=lambda: utc_now() + timedelta(minutes=5))
     # TODO: should be obsolete now, everything in here should also be available in authn_credentials
     #       (AuthnData.external), stored per credential instead of once per session.
-    external_mfa: Optional[ExternalMfaData] = None
+    external_mfa: ExternalMfaData | None = None
     obj_id: ObjectId = Field(default_factory=ObjectId, alias="_id")
     session_id: SSOSessionId = Field(default_factory=create_session_id)
     model_config = ConfigDict(populate_by_name=True, arbitrary_types_allowed=True)
@@ -125,7 +125,7 @@ class SSOSession(BaseModel):
 def record_authentication(
     ticket: LoginContext,
     eppn: str,
-    sso_session: Optional[SSOSession],
+    sso_session: SSOSession | None,
     credentials: list[AuthnData],
     sso_session_lifetime: timedelta,
 ) -> SSOSession:
@@ -145,7 +145,7 @@ def record_authentication(
     return sso_session
 
 
-def get_sso_session() -> Optional[SSOSession]:
+def get_sso_session() -> SSOSession | None:
     """
     Locate any existing SSO session for this request.
 
@@ -168,7 +168,7 @@ def get_sso_session() -> Optional[SSOSession]:
     return session
 
 
-def _lookup_sso_session(sso_sessions: SSOSessionCache) -> Optional[SSOSession]:
+def _lookup_sso_session(sso_sessions: SSOSessionCache) -> SSOSession | None:
     """
     See if a SSO session exists for this request, and return the data about
     the currently logged in user from the session store.
@@ -205,7 +205,7 @@ def _lookup_sso_session(sso_sessions: SSOSessionCache) -> Optional[SSOSession]:
     return _sso
 
 
-def get_sso_session_id() -> Optional[SSOSessionId]:
+def get_sso_session_id() -> SSOSessionId | None:
     """
     Get the SSO session id from the IdP SSO cookie.
 

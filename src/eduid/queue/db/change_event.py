@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Optional, Union
+from typing import Any
 
 __author__ = "lundberg"
 
@@ -22,7 +22,7 @@ class OperationType(Enum):
 
 @dataclass
 class ResumeToken:
-    data: Union[str, bytes]
+    data: str | bytes
 
 
 @dataclass
@@ -38,8 +38,8 @@ class DocumentKey:
 
 @dataclass
 class UpdateDescription:
-    updated_fields: Optional[dict[str, Any]]
-    removed_fields: Optional[list[str]]
+    updated_fields: dict[str, Any] | None
+    removed_fields: list[str] | None
 
 
 @dataclass(frozen=True)
@@ -52,9 +52,9 @@ class ChangeEvent:
     operation_type: OperationType
     ns: NS
     document_key: DocumentKey
-    full_document: Optional[dict[str, Any]] = None
-    to: Optional[NS] = None
-    update_description: Optional[UpdateDescription] = None
+    full_document: dict[str, Any] | None = None
+    to: NS | None = None
+    update_description: UpdateDescription | None = None
     # Available in MongoDB >=4
     # clusterTime
     # txnNumber

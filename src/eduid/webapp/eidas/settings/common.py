@@ -3,7 +3,6 @@ Configuration (file) handling for the eduID eidas app.
 """
 
 from collections.abc import Mapping
-from typing import Optional
 
 from pydantic import Field
 
@@ -57,5 +56,5 @@ class EidasConfig(
         }
     )
     # magic cookie IdP is used for integration tests when magic cookie is set
-    magic_cookie_idp: Optional[str] = None
-    magic_cookie_foreign_id_idp: Optional[str] = None
+    magic_cookie_idp: str | None = None
+    magic_cookie_foreign_id_idp: str | None = None

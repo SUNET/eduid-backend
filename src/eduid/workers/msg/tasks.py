@@ -2,7 +2,7 @@ import json
 import logging
 import smtplib
 from collections import OrderedDict
-from typing import Any, Optional
+from typing import Any
 
 from celery import Task
 from celery.utils.log import get_task_logger
@@ -41,8 +41,8 @@ class MessageSender(Task):
 
     abstract = True
 
-    _sms: Optional[SMSClient] = None
-    _navet_api: Optional[Hammock] = None
+    _sms: SMSClient | None = None
+    _navet_api: Hammock | None = None
 
     @property
     def sms(self) -> SMSClient:
@@ -103,8 +103,8 @@ class MessageSender(Task):
         recipient: str,
         template: str,
         language: str,
-        subject: Optional[str] = None,
-    ) -> Optional[str]:
+        subject: str | None = None,
+    ) -> str | None:
         """
         :param message_type: Message notification type (sms or mm)
         :param reference: Unique reference id
@@ -146,7 +146,7 @@ class MessageSender(Task):
         logger.debug(f"send_message result: {status}")
         return status
 
-    def get_postal_address(self, identity_number: str) -> Optional[OrderedDict[str, Any]]:
+    def get_postal_address(self, identity_number: str) -> OrderedDict[str, Any] | None:
         """
         Fetch name and postal address from NAVET
 
@@ -180,7 +180,7 @@ class MessageSender(Task):
         )
         return result
 
-    def get_relations(self, identity_number: str) -> Optional[OrderedDict[str, Any]]:
+    def get_relations(self, identity_number: str) -> OrderedDict[str, Any] | None:
         """
         Fetch information about someones relatives from NAVET
 
@@ -228,7 +228,7 @@ class MessageSender(Task):
         )
         return result
 
-    def get_all_navet_data(self, identity_number: str) -> Optional[OrderedDict[str, Any]]:
+    def get_all_navet_data(self, identity_number: str) -> OrderedDict[str, Any] | None:
         # Only log the message if devel_mode is enabled
         if MsgCelerySingleton.worker_config.devel_mode is True:
             return self.get_devel_all_navet_data(identity_number)
@@ -282,7 +282,7 @@ class MessageSender(Task):
         return result
 
     @TransactionAudit()
-    def _get_navet_data(self, identity_number: str) -> Optional[dict[str, Any]]:
+    def _get_navet_data(self, identity_number: str) -> dict[str, Any] | None:
         """
         Fetch all data about a NIN from Navet.
 
@@ -379,7 +379,7 @@ class MessageSender(Task):
 
         return self.sms.send(message, MsgCelerySingleton.worker_config.sms_sender, recipient, prio=2)
 
-    def pong(self, app_name: Optional[str]) -> str:
+    def pong(self, app_name: str | None) -> str:
         # Leverage cache to test mongo db health
         if self.cache("pong", 0).is_healthy():
             if app_name:
@@ -431,7 +431,7 @@ def sendsms(self: MessageSender, recipient: str, message: str, reference: str) -
 
 
 @app.task(bind=True, base=MessageSender, name="eduid_msg.tasks.get_all_navet_data")
-def get_all_navet_data(self: MessageSender, identity_number: str) -> Optional[OrderedDict[str, Any]]:
+def get_all_navet_data(self: MessageSender, identity_number: str) -> OrderedDict[str, Any] | None:
     """
     Retrieve all data about the person from the Swedish population register using a Swedish national
     identity number.
@@ -450,7 +450,7 @@ def get_all_navet_data(self: MessageSender, identity_number: str) -> Optional[Or
 
 
 @app.task(bind=True, base=MessageSender, name="eduid_msg.tasks.get_postal_address")
-def get_postal_address(self: MessageSender, identity_number: str) -> Optional[OrderedDict[str, Any]]:
+def get_postal_address(self: MessageSender, identity_number: str) -> OrderedDict[str, Any] | None:
     """
     Retrieve name and postal address from the Swedish population register using a Swedish national
     identity number.
@@ -532,7 +532,7 @@ def set_audit_log_postal_address(self: MessageSender, audit_reference: str) -> b
 
 
 @app.task(bind=True, base=MessageSender, name="eduid_msg.tasks.pong")
-def pong(self: MessageSender, app_name: Optional[str] = None) -> str:
+def pong(self: MessageSender, app_name: str | None = None) -> str:
     """
     eduID webapps periodically ping workers as a part of their health assessment.
 

@@ -6,7 +6,7 @@ import os
 import uuid
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import Any, Optional, TypeVar, Union
+from typing import Any, TypeVar
 
 from bson import ObjectId
 
@@ -32,12 +32,12 @@ SomeData = TypeVar("SomeData")
 
 
 def normalised_data(
-    data: SomeData, replace_datetime: Optional[str] = None, exclude_keys: Optional[list[str]] = None
+    data: SomeData, replace_datetime: str | None = None, exclude_keys: list[str] | None = None
 ) -> SomeData:
     """Utility function for normalising data before comparisons in test cases."""
 
     class NormaliseEncoder(json.JSONEncoder):
-        def default(self, o: Any) -> Union[str, Any]:
+        def default(self, o: Any) -> str | Any:
             if isinstance(o, datetime):
                 if replace_datetime is not None:
                     return replace_datetime

@@ -1,5 +1,3 @@
-from typing import Optional
-
 from pydantic import BaseModel
 
 
@@ -7,7 +5,7 @@ class ApiUser(BaseModel):
     eppn: str
     given_name: str
     surname: str
-    password: Optional[str] = None
+    password: str | None = None
 
 
 class ApiResponseBaseModel(BaseModel):
@@ -33,7 +31,7 @@ class UserRemoveRequest(BaseModel):
 
 
 class UserRemovedResponse(ApiResponseBaseModel):
-    user: Optional[ApiUser] = None
+    user: ApiUser | None = None
 
 
 class UserResetPasswordRequest(BaseModel):
@@ -41,4 +39,4 @@ class UserResetPasswordRequest(BaseModel):
 
 
 class UserResetPasswordResponse(ApiResponseBaseModel):
-    user: Optional[ApiUser] = None
+    user: ApiUser | None = None

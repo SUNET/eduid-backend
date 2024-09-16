@@ -2,7 +2,7 @@ import sys
 from collections.abc import Mapping
 from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta
-from typing import Any, Optional
+from typing import Any
 
 from fastapi import Response
 
@@ -20,9 +20,9 @@ class SimpleCacheItem:
 @dataclass
 class FailCountItem:
     first_failure: datetime = field(repr=False)
-    restart_at: Optional[datetime] = None
-    restart_interval: Optional[int] = None
-    exit_at: Optional[datetime] = None
+    restart_at: datetime | None = None
+    restart_interval: int | None = None
+    exit_at: datetime | None = None
     count: int = 0
 
     def __str__(self):
@@ -33,7 +33,7 @@ SIMPLE_CACHE: dict[str, SimpleCacheItem] = dict()
 FAILURE_INFO: dict[str, FailCountItem] = dict()
 
 
-def log_failure_info(ctx: ContextRequest, key: str, msg: str, exc: Optional[Exception] = None) -> None:
+def log_failure_info(ctx: ContextRequest, key: str, msg: str, exc: Exception | None = None) -> None:
     if key not in FAILURE_INFO:
         FAILURE_INFO[key] = FailCountItem(first_failure=datetime.utcnow())
     FAILURE_INFO[key].count += 1
@@ -67,7 +67,7 @@ def check_restart(key, restart: int, terminate: int) -> bool:
     return res
 
 
-def get_cached_response(ctx: ContextRequest, resp: Response, key: str) -> Optional[Mapping[str, Any]]:
+def get_cached_response(ctx: ContextRequest, resp: Response, key: str) -> Mapping[str, Any] | None:
     cache_for_seconds = ctx.app.config.status_cache_seconds
     resp.headers["Cache-Control"] = f"public,max-age={cache_for_seconds}"
 

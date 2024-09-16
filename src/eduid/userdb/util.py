@@ -4,7 +4,7 @@ import datetime
 import json
 import logging
 from collections.abc import Mapping
-from typing import Any, Optional
+from typing import Any
 
 from bson import ObjectId
 
@@ -34,7 +34,7 @@ def objectid_str() -> str:
     return str(ObjectId())
 
 
-def format_dict_for_debug(data: Optional[Mapping[str, Any]]) -> Optional[str]:
+def format_dict_for_debug(data: Mapping[str, Any] | None) -> str | None:
     """
     Format a dict for logging.
 

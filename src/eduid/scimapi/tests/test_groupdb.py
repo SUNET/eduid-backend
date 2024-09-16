@@ -1,5 +1,4 @@
 import logging
-from typing import Optional
 from uuid import UUID, uuid4
 
 from eduid.common.config.base import DataOwnerName
@@ -28,7 +27,7 @@ class TestGroupDB(ScimApiTestCase):
         super().tearDown()
         self.groupdb._drop_whole_collection()
 
-    def add_group(self, scim_id: UUID, display_name: str, extensions: Optional[GroupExtensions] = None) -> ScimApiGroup:
+    def add_group(self, scim_id: UUID, display_name: str, extensions: GroupExtensions | None = None) -> ScimApiGroup:
         if extensions is None:
             extensions = GroupExtensions()
         group = ScimApiGroup(scim_id=scim_id, display_name=display_name, extensions=extensions)

@@ -1,7 +1,6 @@
 import pprint
 import re
 from dataclasses import replace
-from typing import Optional
 
 from fastapi import Response
 
@@ -45,7 +44,7 @@ users_router = APIRouter(
 
 
 @users_router.get("/{scim_id}", response_model=UserResponse, response_model_exclude_none=True)
-async def on_get(req: ContextRequest, resp: Response, scim_id: Optional[str] = None) -> UserResponse:
+async def on_get(req: ContextRequest, resp: Response, scim_id: str | None = None) -> UserResponse:
     if scim_id is None:
         raise BadRequest(detail="Not implemented")
     req.app.context.logger.info(f"Fetching user {scim_id}")

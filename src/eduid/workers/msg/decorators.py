@@ -1,14 +1,14 @@
 from collections.abc import Callable
 from datetime import datetime
 from inspect import isclass
-from typing import Any, Optional
+from typing import Any
 
 from eduid.userdb.db import MongoDB
 
 
 class TransactionAudit:
     enabled = False
-    db_uri: Optional[str] = None
+    db_uri: str | None = None
     db_name: str = "eduid_msg"
     collection_name: str = "transaction_audit"
 
@@ -40,7 +40,7 @@ class TransactionAudit:
         return audit
 
     @classmethod
-    def enable(cls, db_uri: str, db_name: Optional[str] = None):
+    def enable(cls, db_uri: str, db_name: str | None = None):
         # if not isinstance(db_uri, str) or not db_uri:
         #    raise ValueError('Invalid db_uri passed to TransactionAudit')
         if isinstance(db_uri, str):

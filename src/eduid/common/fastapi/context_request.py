@@ -1,6 +1,5 @@
 from collections.abc import Callable
 from dataclasses import asdict, dataclass
-from typing import Union
 
 from fastapi import Request, Response
 from fastapi.routing import APIRoute
@@ -33,7 +32,7 @@ class ContextRequest(Request):
 
 class ContextRequestMixin:
     @staticmethod
-    def make_context_request(request: Union[Request, ContextRequest], context_class: type[Context]) -> ContextRequest:
+    def make_context_request(request: Request | ContextRequest, context_class: type[Context]) -> ContextRequest:
         if not isinstance(request, ContextRequest):
             request = ContextRequest(context_class=context_class, scope=request.scope, receive=request.receive)
         return request
@@ -50,7 +49,7 @@ class ContextRequestRoute(APIRoute, ContextRequestMixin):
     def get_route_handler(self) -> Callable:
         original_route_handler = super().get_route_handler()
 
-        async def context_route_handler(request: Union[Request, ContextRequest]) -> Response:
+        async def context_route_handler(request: Request | ContextRequest) -> Response:
             request = self.make_context_request(request=request, context_class=self.contextClass)
             return await original_route_handler(request)
 

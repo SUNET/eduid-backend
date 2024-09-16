@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import logging
 from collections.abc import Mapping
-from typing import Any, Optional, Union
+from typing import Any
 
 import pymongo
 from bson import ObjectId
@@ -41,7 +41,7 @@ class AsyncMongoDB(BaseMongoDB):
     def __init__(
         self,
         db_uri: str,
-        db_name: Optional[str] = None,
+        db_name: str | None = None,
         **kwargs: Any,
     ):
         super().__init__(db_uri=db_uri, db_name=db_name, **kwargs)
@@ -57,7 +57,7 @@ class AsyncMongoDB(BaseMongoDB):
         """
         return self._client
 
-    def get_database(self, database_name: Optional[str] = None) -> AsyncIOMotorDatabase:
+    def get_database(self, database_name: str | None = None) -> AsyncIOMotorDatabase:
         """
         Get a pymongo database handle.
 
@@ -70,7 +70,7 @@ class AsyncMongoDB(BaseMongoDB):
             raise ValueError("No database_name supplied, and no default provided to __init__")
         return self._client[database_name]
 
-    def get_collection(self, collection: str, database_name: Optional[str] = None) -> AsyncIOMotorCollection:
+    def get_collection(self, collection: str, database_name: str | None = None) -> AsyncIOMotorCollection:
         """
         Get a pymongo collection handle.
 
@@ -158,7 +158,7 @@ class AsyncBaseDB:
         logger.warning(f"{self!s} Dropping collection {self._coll_name!r}")
         return await self._coll.drop()
 
-    async def _get_document_by_attr(self, attr: str, value: Any) -> Optional[Mapping[str, Any]]:
+    async def _get_document_by_attr(self, attr: str, value: Any) -> Mapping[str, Any] | None:
         """
         Return the document in the MongoDB matching field=value
 
@@ -193,7 +193,7 @@ class AsyncBaseDB:
         return docs
 
     async def _get_documents_by_aggregate(
-        self, match: Mapping[str, Any], sort: Optional[Mapping[str, Any]] = None, limit: Optional[int] = None
+        self, match: Mapping[str, Any], sort: Mapping[str, Any] | None = None, limit: int | None = None
     ) -> list[Mapping[str, Any]]:
         pipeline: list[dict[str, Any]] = [{"$match": match}]
 
@@ -208,9 +208,9 @@ class AsyncBaseDB:
     async def _get_documents_by_filter(
         self,
         spec: Mapping[str, Any],
-        fields: Optional[Mapping[str, Any]] = None,
-        skip: Optional[int] = None,
-        limit: Optional[int] = None,
+        fields: Mapping[str, Any] | None = None,
+        skip: int | None = None,
+        limit: int | None = None,
     ) -> list[Mapping[str, Any]]:
         """
         Locate documents in the db using a custom search filter.
@@ -237,7 +237,7 @@ class AsyncBaseDB:
             return []
         return docs
 
-    async def db_count(self, spec: Optional[Mapping[str, Any]] = None, limit: Optional[int] = None) -> int:
+    async def db_count(self, spec: Mapping[str, Any] | None = None, limit: int | None = None) -> int:
         """
         Return number of entries in the collection.
 
@@ -252,7 +252,7 @@ class AsyncBaseDB:
             args["limit"] = limit
         return await self._coll.count_documents(filter=_filter, **args)
 
-    async def remove_document(self, spec_or_id: Union[Mapping[str, Any], ObjectId]) -> bool:
+    async def remove_document(self, spec_or_id: Mapping[str, Any] | ObjectId) -> bool:
         """
         Remove a document in the db given the _id or dict spec.
 

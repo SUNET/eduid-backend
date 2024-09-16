@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import Any, Optional
+from typing import Any
 
 from eduid.common.config.base import RootConfig
 from eduid.common.config.parsers import load_config
@@ -16,10 +16,10 @@ class VCCSConfig(RootConfig):
     kdf_min_iterations: int = 20000
     yhsm_debug: bool = False
     yhsm_device: str = "/dev/ttyACM0"
-    yhsm_unlock_password: Optional[str] = None
+    yhsm_unlock_password: str | None = None
 
 
-def init_config(ns: str, app_name: str, test_config: Optional[Mapping[str, Any]] = None) -> VCCSConfig:
+def init_config(ns: str, app_name: str, test_config: Mapping[str, Any] | None = None) -> VCCSConfig:
     config = load_config(typ=VCCSConfig, app_name=app_name, ns=ns, test_config=test_config)
     assert isinstance(config, VCCSConfig)  # convince mypy
     return config

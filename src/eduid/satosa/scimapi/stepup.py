@@ -4,7 +4,7 @@ import functools
 import json
 import logging
 from collections.abc import Callable, Iterable, Mapping
-from typing import Any, NewType, Optional, TypeAlias, Union
+from typing import Any, NewType, TypeAlias
 from urllib.parse import urlparse
 
 from pydantic import BaseModel, Field, ValidationError
@@ -45,7 +45,7 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 # TODO: Remove when https://github.com/IdentityPython/SATOSA/pull/435 has been accepted
-ProcessReturnType = Union[satosa.internal.InternalData, satosa.response.Response]
+ProcessReturnType: TypeAlias = satosa.internal.InternalData | satosa.response.Response
 CallbackReturnType: TypeAlias = satosa.response.Response
 CallbackCallSignature = Callable[[satosa.context.Context, Any], CallbackReturnType]
 # end todo
@@ -65,7 +65,7 @@ class StepUpError(SATOSAError):
 class LoaSettings(BaseModel):
     requested: list[str]  # LoA that the StepUp-provider understands
     extra_accepted: list[str] = Field(default=[])  # (aliased) LoAs that satisfy the requester
-    returned: Optional[str] = (
+    returned: str | None = (
         None  # LoA that should be returned to the requester, if we get any of the requested + extra_accepted
     )
 
@@ -77,8 +77,8 @@ AssuranceCertification = NewType("AssuranceCertification", str)
 
 class MfaConfig(BaseModel):
     by_entity_id: Mapping[EntityId, LoaSettings] = Field(default={})
-    by_entity_category: Optional[Mapping[EntityCategory, LoaSettings]] = Field(default={})
-    by_assurance_certification: Optional[Mapping[AssuranceCertification, LoaSettings]] = Field(default={})
+    by_entity_category: Mapping[EntityCategory, LoaSettings] | None = Field(default={})
+    by_assurance_certification: Mapping[AssuranceCertification, LoaSettings] | None = Field(default={})
 
 
 class MFA(BaseModel):
@@ -88,13 +88,13 @@ class MFA(BaseModel):
 class StepupPluginConfig(BaseModel):
     mfa: MfaConfig
     sp_config: Mapping[str, Any]
-    sign_alg: Optional[str] = None
-    digest_alg: Optional[str] = None
+    sign_alg: str | None = None
+    digest_alg: str | None = None
 
 
 class StepupParams(BaseModel):
     issuer: str
-    issuer_loa: Optional[str] = None  # LoA that the IdP released - as requested through the acr_mapping configuration
+    issuer_loa: str | None = None  # LoA that the IdP released - as requested through the acr_mapping configuration
     requester: EntityId
     requester_loas: list[str]  # (original) LoAs required by the requester
     loa_settings: LoaSettings  # LoA settings to use. Either from the configuration or derived using entity attributes in the metadata.
@@ -208,7 +208,7 @@ class StepUp(ResponseMicroService):
         logger.info("StepUp Authentication is active")
 
     def _get_params(self, context: satosa.context.Context, data: satosa.internal.InternalData) -> StepupParams:
-        _requester: Optional[EntityId] = EntityId(data.requester) if isinstance(data.requester, str) else None
+        _requester: EntityId | None = EntityId(data.requester) if isinstance(data.requester, str) else None
         _loa_settings = get_loa_settings_for_entity_id(_requester, get_metadata(context), self.mfa)
         if not _loa_settings:
             sp_requested = AuthnContext.get_from_state(context=context, state_key=STATE_KEY_MFA)
@@ -559,8 +559,8 @@ class AuthnContext(RequestMicroService):
 
 
 def get_loa_settings_for_entity_id(
-    entity_id: Optional[EntityId], metadata: Iterable[MetaData], mfa: Optional[MfaConfig]
-) -> Optional[LoaSettings]:
+    entity_id: EntityId | None, metadata: Iterable[MetaData], mfa: MfaConfig | None
+) -> LoaSettings | None:
     """
     SP: Return setting from by_entity_id or by_entity_category.
     IDP: Return settings from by_entity_id or by_assurance_certification.
@@ -610,7 +610,7 @@ class StepupSAMLBackend(SAMLBackend):
 
     def __init__(self, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
-        self.mfa: Optional[MfaConfig] = None
+        self.mfa: MfaConfig | None = None
 
         try:
             parsed_config = StepupPluginConfig.model_validate(self.config)
@@ -642,7 +642,7 @@ class RewriteAuthnContextClass(ResponseMicroService):
 
     def __init__(self, config: Mapping[str, Any], internal_attributes: dict[str, Any], *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
-        self.mfa: Optional[MfaConfig] = None
+        self.mfa: MfaConfig | None = None
 
         try:
             parsed_config = MFA.model_validate(config)
@@ -668,7 +668,7 @@ class RewriteAuthnContextClass(ResponseMicroService):
 
             logger.debug(f"LoA settings for {_issuer}: {_loa_settings}")
             if _loa_settings and _loa_settings.returned:
-                _asserted_loa: Optional[str] = data.auth_info.auth_class_ref
+                _asserted_loa: str | None = data.auth_info.auth_class_ref
                 if _asserted_loa in _loa_settings.requested or _asserted_loa in _loa_settings.extra_accepted:
                     logger.info(
                         "Rewriting authnContextClassRef in response from "
@@ -683,7 +683,7 @@ class RewriteAuthnContextClass(ResponseMicroService):
         return super().process(context, data)
 
 
-def is_loa_requirements_satisfied(settings: Optional[LoaSettings], loa: Optional[str]) -> bool:
+def is_loa_requirements_satisfied(settings: LoaSettings | None, loa: str | None) -> bool:
     if not settings:
         return False
     satisfied = loa in settings.requested or loa in settings.extra_accepted
@@ -696,7 +696,7 @@ def store_params(data: satosa.internal.InternalData, params: StepupParams) -> No
     data.stepup_params = params.dict()
 
 
-def fetch_params(data: satosa.internal.InternalData) -> Optional[StepupParams]:
+def fetch_params(data: satosa.internal.InternalData) -> StepupParams | None:
     """Retrieve the LoA settings from the internal data"""
     if not hasattr(data, "stepup_params") or not isinstance(data.stepup_params, dict):
         return None

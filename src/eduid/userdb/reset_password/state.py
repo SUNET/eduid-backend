@@ -3,7 +3,7 @@ from __future__ import annotations
 import datetime
 import logging
 from dataclasses import asdict, dataclass, field
-from typing import Any, Optional, TypeVar
+from typing import Any, TypeVar
 from uuid import uuid4
 
 import bson
@@ -25,10 +25,10 @@ class ResetPasswordState:
     eppn: str
     id: bson.ObjectId = field(default_factory=lambda: bson.ObjectId())
     reference: str = field(init=False)
-    method: Optional[str] = None
+    method: str | None = None
     created_ts: datetime.datetime = field(default_factory=utc_now)
-    modified_ts: Optional[datetime.datetime] = None
-    extra_security: Optional[dict[str, Any]] = None
+    modified_ts: datetime.datetime | None = None
+    extra_security: dict[str, Any] | None = None
     generated_password: bool = False
 
     def __post_init__(self):

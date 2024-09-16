@@ -1,6 +1,5 @@
 from datetime import datetime
 from enum import unique
-from typing import Optional
 
 from eduid.common.rpc.exceptions import LookupMobileTaskFailed
 from eduid.common.rpc.msg_relay import FullPostalAddress
@@ -34,7 +33,7 @@ class MobileMsg(TranslatableMsg):
     no_match = "nins.no-mobile-match"
 
 
-def nin_to_age(nin: str, now: Optional[datetime] = None) -> int:
+def nin_to_age(nin: str, now: datetime | None = None) -> int:
     """
     :param nin: National Identity Number, YYYYMMDDXXXX
     :return: Age in years
@@ -60,7 +59,7 @@ def create_proofing_state(user: User, nin: str) -> NinProofingState:
 
 def match_mobile_to_user(
     user: User, self_asserted_nin: str, verified_mobile_numbers: list[str]
-) -> Optional[TeleAdressProofing]:
+) -> TeleAdressProofing | None:
     """
     Lookup the user's phone number in the TeleAdress external database. If the phone number comes
     back registered to the self asserted NIN of the user, create a proofing log entry and return it.

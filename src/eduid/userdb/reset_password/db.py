@@ -1,6 +1,6 @@
 import logging
 from collections.abc import Mapping
-from typing import Any, Optional, Union
+from typing import Any
 
 from eduid.userdb.db import BaseDB, SaveResult, TUserDbDocument
 from eduid.userdb.exceptions import MultipleDocumentsReturned
@@ -30,7 +30,7 @@ class ResetPasswordStateDB(BaseDB):
 
     def get_state_by_email_code(
         self, email_code: str
-    ) -> Optional[Union[ResetPasswordEmailState, ResetPasswordEmailAndPhoneState]]:
+    ) -> ResetPasswordEmailState | ResetPasswordEmailAndPhoneState | None:
         """
         Locate a state in the db given the state's email code.
 
@@ -53,7 +53,7 @@ class ResetPasswordStateDB(BaseDB):
 
         return self.init_state(states[0])
 
-    def get_state_by_eppn(self, eppn: str) -> Optional[Union[ResetPasswordEmailState, ResetPasswordEmailAndPhoneState]]:
+    def get_state_by_eppn(self, eppn: str) -> ResetPasswordEmailState | ResetPasswordEmailAndPhoneState | None:
         """
         Locate a state in the db given the users eppn.
 
@@ -69,7 +69,7 @@ class ResetPasswordStateDB(BaseDB):
         return None
 
     @staticmethod
-    def init_state(state_mapping: Mapping) -> Optional[Union[ResetPasswordEmailState, ResetPasswordEmailAndPhoneState]]:
+    def init_state(state_mapping: Mapping) -> ResetPasswordEmailState | ResetPasswordEmailAndPhoneState | None:
         state = dict(state_mapping)
         if state.get("method") == "email":
             return ResetPasswordEmailState.from_dict(data=state)

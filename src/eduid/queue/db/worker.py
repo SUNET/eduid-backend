@@ -2,7 +2,7 @@ import logging
 from collections.abc import Mapping
 from dataclasses import replace
 from datetime import datetime, timedelta, timezone
-from typing import Any, Optional, Union
+from typing import Any
 
 from bson import ObjectId
 from pymongo.results import UpdateResult
@@ -40,7 +40,7 @@ class AsyncQueueDB(AsyncBaseDB, QueuePayloadMixin):
             return item
         return replace(item, payload=self._load_payload(item))
 
-    async def grab_item(self, item_id: Union[str, ObjectId], worker_name: str, regrab=False) -> Optional[QueueItem]:
+    async def grab_item(self, item_id: str | ObjectId, worker_name: str, regrab=False) -> QueueItem | None:
         """
         :param item_id: document id
         :param worker_name: current workers name
@@ -93,7 +93,7 @@ class AsyncQueueDB(AsyncBaseDB, QueuePayloadMixin):
         return item
 
     async def find_items(
-        self, processed: bool, min_age_in_seconds: Optional[int] = None, expired: Optional[bool] = None
+        self, processed: bool, min_age_in_seconds: int | None = None, expired: bool | None = None
     ) -> list:
         # TODO: Add registered payload types to spec
         spec: dict[str, Any] = {}
@@ -117,7 +117,7 @@ class AsyncQueueDB(AsyncBaseDB, QueuePayloadMixin):
         logger.debug(f"spec: {spec}")
         return [doc for doc in await self.collection.find(spec).to_list(length=100)]
 
-    async def remove_item(self, item_id: Union[str, ObjectId]) -> bool:
+    async def remove_item(self, item_id: str | ObjectId) -> bool:
         """
         Remove a document in the db given the _id.
 

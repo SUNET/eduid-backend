@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 import uuid
-from typing import Optional, Union
 
 from fastapi import Request, status
 from fastapi.exception_handlers import http_exception_handler
@@ -15,15 +14,15 @@ logger = logging.getLogger(__name__)
 
 
 class ErrorDetail(BaseModel):
-    detail: Optional[Union[str, dict, list]] = None
-    status: Optional[int] = None
+    detail: str | dict | list | None = None
+    status: int | None = None
 
 
 class ErrorResponse(JSONResponse):
     media_type = "application/json"
 
 
-async def unexpected_error_handler(req: Request, exc: Exception) -> Union[Response, JSONResponse]:
+async def unexpected_error_handler(req: Request, exc: Exception) -> Response | JSONResponse:
     error_id = uuid.uuid4()
     logger.error(f"unexpected error {error_id}: {req.method} {req.url.path} - {exc}")
     http_exception = StarletteHTTPException(
@@ -56,17 +55,17 @@ class HTTPErrorDetail(Exception):
     def __init__(
         self,
         status_code: int,
-        detail: Optional[str] = None,
+        detail: str | None = None,
     ):
         self._error_detail = ErrorDetail(detail=detail, status=status_code)
-        self._extra_headers: Optional[dict] = None
+        self._extra_headers: dict | None = None
 
     @property
     def error_detail(self) -> ErrorDetail:
         return self._error_detail
 
     @property
-    def extra_headers(self) -> Optional[dict]:
+    def extra_headers(self) -> dict | None:
         return self._extra_headers
 
     @extra_headers.setter

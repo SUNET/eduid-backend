@@ -2,7 +2,7 @@ import logging
 from collections.abc import Mapping
 from functools import wraps
 from string import Template
-from typing import Any, Optional
+from typing import Any
 
 from nacl import encoding, exceptions, secret
 
@@ -32,7 +32,7 @@ def read_secret_key(key_name: str) -> bytes:
         return encoding.URLSafeBase64Encoder.decode(f.readline())
 
 
-def init_secret_box(key_name: Optional[str] = None, secret_key: Optional[bytes] = None) -> secret.SecretBox:
+def init_secret_box(key_name: str | None = None, secret_key: bytes | None = None) -> secret.SecretBox:
     """
     :param key_name: Key file name
     :param secret_key: 32 bytes of secret data
@@ -118,7 +118,7 @@ def interpolate_list(config_dict: dict[str, Any], sub_list: list) -> list:
     return sub_list
 
 
-def interpolate_config(config_dict: dict[str, Any], sub_dict: Optional[dict[str, Any]] = None) -> dict[str, Any]:
+def interpolate_config(config_dict: dict[str, Any], sub_dict: dict[str, Any] | None = None) -> dict[str, Any]:
     """
     :param config_dict: Configuration dictionary
     :param sub_dict: Sub configuration dictionary

@@ -4,7 +4,7 @@ import uuid
 from collections.abc import Mapping
 from dataclasses import asdict
 from json import JSONDecodeError
-from typing import Any, Optional, Union
+from typing import Any
 
 import pkg_resources
 from bson import ObjectId
@@ -130,9 +130,9 @@ class ScimApiTestCase(MongoNeoTestCase):
     def add_user(
         self,
         identifier: str,
-        external_id: Optional[str] = None,
-        profiles: Optional[dict[str, ScimApiProfile]] = None,
-        linked_accounts: Optional[list[ScimApiLinkedAccount]] = None,
+        external_id: str | None = None,
+        profiles: dict[str, ScimApiProfile] | None = None,
+        linked_accounts: list[ScimApiLinkedAccount] | None = None,
     ) -> ScimApiUser:
         user = ScimApiUser(user_id=ObjectId(), scim_id=uuid.UUID(identifier), external_id=external_id)
         if profiles:
@@ -155,7 +155,7 @@ class ScimApiTestCase(MongoNeoTestCase):
         assert saved_group is not None
         return saved_group
 
-    def add_member_to_group(self, group_identifier: str, user_identifier: str) -> Optional[ScimApiGroup]:
+    def add_member_to_group(self, group_identifier: str, user_identifier: str) -> ScimApiGroup | None:
         assert self.groupdb
         group = self.groupdb.get_group_by_scim_id(scim_id=group_identifier)
         assert group is not None  # please mypy
@@ -164,7 +164,7 @@ class ScimApiTestCase(MongoNeoTestCase):
         self.groupdb.save(group)
         return self.groupdb.get_group_by_scim_id(scim_id=group_identifier)
 
-    def add_owner_to_group(self, group_identifier: str, user_identifier: str) -> Optional[ScimApiGroup]:
+    def add_owner_to_group(self, group_identifier: str, user_identifier: str) -> ScimApiGroup | None:
         assert self.groupdb
         group = self.groupdb.get_group_by_scim_id(scim_id=group_identifier)
         assert group is not None  # please mypy
@@ -192,11 +192,11 @@ class ScimApiTestCase(MongoNeoTestCase):
     def _assertScimError(
         self,
         json: Mapping[str, Any],
-        schemas: Optional[list[str]] = None,
+        schemas: list[str] | None = None,
         status: int = 400,
-        scim_type: Optional[str] = None,
-        detail: Optional[Any] = None,
-        exclude_keys: Optional[list[str]] = None,
+        scim_type: str | None = None,
+        detail: Any | None = None,
+        exclude_keys: list[str] | None = None,
     ):
         if schemas is None:
             schemas = [SCIMSchema.ERROR.value]
@@ -212,7 +212,7 @@ class ScimApiTestCase(MongoNeoTestCase):
     def _assertScimResponseProperties(
         self,
         response: Response,
-        resource: Union[ScimApiGroup, ScimApiUser, ScimApiInvite, ScimApiEvent],
+        resource: ScimApiGroup | ScimApiUser | ScimApiInvite | ScimApiEvent,
         expected_schemas: list[str],
     ):
         if SCIMSchema.NUTID_USER_V1.value in response.json():

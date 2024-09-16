@@ -3,7 +3,7 @@
 #
 import logging
 from datetime import datetime
-from typing import Any, Optional, TypeVar, Union
+from typing import Any, TypeVar
 from uuid import UUID
 
 import bson
@@ -87,7 +87,7 @@ class NinNavetProofingLogElement(NinProofingLogElement):
     # Navet response for users official address
     user_postal_address: FullPostalAddress
     # Navet response for users deregistration information (used if official address is missing)
-    deregistration_information: Optional[DeregistrationInformation] = None
+    deregistration_information: DeregistrationInformation | None = None
 
 
 class ForeignIdProofingLogElement(ProofingLogElement):
@@ -191,7 +191,7 @@ class TeleAdressProofingRelation(TeleAdressProofing):
     # Navet response for mobile phone subscriber
     registered_postal_address: FullPostalAddress
     # Navet response for mobile phone subscriber deregistration information (used if official address is missing)
-    registered_deregistration_information: Optional[DeregistrationInformation] = None
+    registered_deregistration_information: DeregistrationInformation | None = None
     # Proofing method name
     proofing_method: str = IdentityProofingMethod.TELEADRESS.value
 
@@ -348,8 +348,8 @@ class SwedenConnectEIDASProofing(ForeignIdProofingLogElement):
     # Transaction identifier
     transaction_identifier: str
     # if and when a nin can be mapped to a person these will be used
-    mapped_personal_identity_number: Optional[str] = None
-    personal_identity_number_binding: Optional[str] = None
+    mapped_personal_identity_number: str | None = None
+    personal_identity_number_binding: str | None = None
     # Proofing method name
     proofing_method: str = IdentityProofingMethod.SWEDEN_CONNECT.value
 
@@ -407,7 +407,7 @@ class SvipeIDForeignProofing(ForeignIdProofingLogElement):
     # transaction id
     transaction_id: str
     # document administrative number
-    administrative_number: Optional[str]
+    administrative_number: str | None
     # document type (standardized english)
     document_type: str
     # document number
@@ -494,7 +494,7 @@ class FrejaEIDForeignProofing(ForeignIdProofingLogElement):
     # transaction id
     transaction_id: str
     # document administrative number
-    administrative_number: Optional[str]
+    administrative_number: str | None
     # document type (standardized english)
     document_type: str
     # document number
@@ -592,9 +592,9 @@ class NameUpdateProofing(NinNavetProofingLogElement):
     """
 
     # Previous given name
-    previous_given_name: Optional[str]
+    previous_given_name: str | None
     # Previous surname
-    previous_surname: Optional[str]
+    previous_surname: str | None
     # Proofing method name
     proofing_method: str = "Navet name update"
 
@@ -636,14 +636,14 @@ class WebauthnMfaCapabilityProofingLog(ProofingLogElement):
     }
     """
 
-    authenticator_id: Union[UUID, str]
+    authenticator_id: UUID | str
     attestation_format: AttestationFormat
     user_verification_methods: list[str]
     key_protection: list[str]
 
 
 class FidoMetadataLogElement(LogElement):
-    authenticator_id: Union[UUID, str]
+    authenticator_id: UUID | str
     last_status_change: datetime
     metadata_entry: FidoMetadataEntry
 
@@ -651,7 +651,7 @@ class FidoMetadataLogElement(LogElement):
 class UserChangeLogElement(LogElement):
     eppn: str = Field(alias="eduPersonPrincipalName")
     diff: str
-    log_element_id: Optional[bson.ObjectId] = Field(alias="_id", default=None)
+    log_element_id: bson.ObjectId | None = Field(alias="_id", default=None)
     reason: Reason
     source: Source
 
