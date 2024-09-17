@@ -85,7 +85,7 @@ class FrejaEIDDocumentUserInfo(UserInfoBase):
     given_name: str
     name: str
     personal_identity_number: str | None = Field(
-        alias="https:/frejaeid.com/oidc/claims/personalIdentityNumber", default=None
+        alias="https://frejaeid.com/oidc/claims/personalIdentityNumber", default=None
     )
     date_of_birth: date = Field(alias="birthdate")
     registration_level: FrejaRegistrationLevel = Field(alias="https://frejaeid.com/oidc/claims/registrationLevel")

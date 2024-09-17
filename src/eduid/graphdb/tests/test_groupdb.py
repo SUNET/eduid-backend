@@ -13,7 +13,7 @@ __author__ = "lundberg"
 
 class TestGroupDB(Neo4jTestCase):
     def setUp(self) -> None:
-        self.db_config = {"encrypted": False, "auth": basic_auth("neo4j", "testing")}
+        self.db_config = {"encrypted": False, "auth": basic_auth("neo4j", "testingtesting")}
         self.group_db = GroupDB(db_uri=self.neo4jdb.db_uri, scope="__testing__", config=self.db_config)
         self.group1: dict[str, str | list | None] = {
             "identifier": "test1",
