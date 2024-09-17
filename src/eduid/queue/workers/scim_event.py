@@ -48,8 +48,9 @@ class ScimEventQueueWorker(QueueWorker):
 
     async def send_scim_notification(self, data: EduidSCIMAPINotification) -> Status:
         logger.debug(f"send_scim_notification: {data}")
-        r = httpx.post(data.post_url, json=json.loads(data.message))
-        logger.debug(f"send_scim_notification: HTTPX result: {r}")
+        async with httpx.AsyncClient() as client:
+            r = client.post(data.post_url, json=json.loads(data.message))
+            logger.debug(f"send_scim_notification: HTTPX result: {r}")
         return Status(success=True, message="OK")
 
 

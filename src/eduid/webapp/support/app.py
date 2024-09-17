@@ -44,21 +44,21 @@ def register_template_funcs(app: SupportApp) -> None:
         return value.strftime(format)
 
     @app.template_filter("multisort")
-    def sort_multi(l, *operators, **kwargs):
+    def sort_multi(items, *operators, **kwargs):
         # Don't try to sort on missing keys
         keys = list(operators)  # operators is immutable
         for key in operators:
-            for item in l:
+            for item in items:
                 if key not in item:
                     app.logger.debug(f"Removed key {key} before sorting.")
                     keys.remove(key)
                     break
         reverse = kwargs.pop("reverse", False)
         try:
-            l.sort(key=operator.itemgetter(*keys), reverse=reverse)
+            items.sort(key=operator.itemgetter(*keys), reverse=reverse)
         except UndefinedError:  # attribute did not exist
-            l = list()
-        return l
+            items = list()
+        return items
 
     @app.template_global()
     def static_url_for(f: str, version: Optional[str] = None) -> str:
