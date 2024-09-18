@@ -138,3 +138,15 @@ class UserUpdateResponseSchema(FluxStandardAction):
 class SecurityKeysResponseSchema(FluxStandardAction):
     next_update = fields.DateTime(required=True)
     entries = fields.List(fields.String())
+
+
+class AuthnStatusRequestSchema(EduidSchema, CSRFRequestMixin):
+    frontend_action = fields.String(required=True)
+    credential_id = fields.String(required=False)
+
+
+class AuthnStatusResponseSchema(FluxStandardAction):
+    class AuthnStatusPayload(EduidSchema, CSRFRequestMixin):
+        authn_status = fields.String(required=True)
+
+    payload = fields.Nested(AuthnStatusPayload)
