@@ -1,6 +1,6 @@
 import logging
 from enum import unique
-from typing import Any, Optional
+from typing import Any
 
 from saml2 import BINDING_HTTP_REDIRECT
 from saml2.client import Saml2Client
@@ -97,8 +97,8 @@ def create_authn_info(
 
 
 def check_reauthn(
-    frontend_action: FrontendAction, user: User, credential_used: Optional[Credential] = None
-) -> Optional[AuthnActionStatus]:
+    frontend_action: FrontendAction, user: User, credential_used: Credential | None = None
+) -> AuthnActionStatus | None:
     """Check if a re-authentication has been performed recently enough for this action"""
 
     authn_status = validate_authn_for_action(

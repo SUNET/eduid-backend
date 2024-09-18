@@ -1,8 +1,9 @@
 import base64
 import logging
+from collections.abc import Mapping
 from datetime import datetime
 from io import BytesIO
-from typing import Any, Mapping, Optional, Union
+from typing import Any
 
 import nacl
 import nacl.encoding
@@ -26,8 +27,8 @@ logger = logging.getLogger(__name__)
 
 
 def device1_check_response_code(
-    response_code: Optional[str], sso_session: Optional[SSOSession], state: OtherDevice, ticket: LoginContext
-) -> Union[Optional[SSOSession], FluxData]:
+    response_code: str | None, sso_session: SSOSession | None, state: OtherDevice, ticket: LoginContext
+) -> SSOSession | None | FluxData:
     """
     Validate the response code supplied by the user on device 1.
 
@@ -77,7 +78,7 @@ def device1_check_response_code(
 
 
 def device1_login_user_from_device2(
-    state: OtherDevice, ticket: LoginContext, sso_session: Optional[SSOSession]
+    state: OtherDevice, ticket: LoginContext, sso_session: SSOSession | None
 ) -> SSOSession:
     """
     Copy the credentials used for authentication on device 2 into the SSO session

@@ -2,7 +2,7 @@ import importlib.util
 import logging
 import os.path
 import sys
-from typing import Optional, Sequence, Tuple
+from collections.abc import Sequence
 
 from saml2 import server
 from saml2.config import SPConfig
@@ -46,7 +46,7 @@ def get_location(http_info: SAMLHttpArgs) -> str:
     return header_value
 
 
-def get_saml_attribute(session_info: SessionInfo, attr_name: str) -> Optional[list[str]]:
+def get_saml_attribute(session_info: SessionInfo, attr_name: str) -> list[str] | None:
     """
     Get value from a SAML attribute received from the SAML IdP.
 
@@ -68,7 +68,7 @@ def get_saml_attribute(session_info: SessionInfo, attr_name: str) -> Optional[li
 
     attributes = session_info["ava"]
 
-    logger.debug("SAML attributes received: %s" % attributes)
+    logger.debug(f"SAML attributes received: {attributes}")
 
     # Look for the canonicalized attribute in the SAML assertion attributes
     for saml_attr, _ in attributes.items():
@@ -112,7 +112,7 @@ def init_pysaml2(cfgfile: str) -> server.Server:
 
 def get_authn_for_action(
     config: FrontendActionMixin, frontend_action: FrontendAction
-) -> Tuple[Optional[SP_AuthnRequest], AuthnParameters]:
+) -> tuple[SP_AuthnRequest | None, AuthnParameters]:
     authn_params = config.frontend_action_authn_parameters.get(frontend_action)
     if authn_params is None:
         raise BadConfiguration(f"No authn parameters for frontend action {frontend_action}")
@@ -130,7 +130,7 @@ def validate_authn_for_action(
     config: FrontendActionMixin,
     frontend_action: FrontendAction,
     user: User,
-    credential_used: Optional[Credential] = None,
+    credential_used: Credential | None = None,
 ) -> AuthnActionStatus:
     """
     Validate the authentication for the given frontend action.
@@ -182,7 +182,7 @@ def validate_authn_for_action(
     return AuthnActionStatus.OK
 
 
-def credential_recently_used(credential: Credential, action: Optional[SP_AuthnRequest], max_age: int) -> bool:
+def credential_recently_used(credential: Credential, action: SP_AuthnRequest | None, max_age: int) -> bool:
     logger.debug(f"Checking if credential {credential} has been used in the last {max_age} seconds")
     if action and credential.key in action.credentials_used:
         if action.authn_instant is not None:

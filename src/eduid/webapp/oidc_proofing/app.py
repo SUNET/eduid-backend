@@ -1,4 +1,5 @@
-from typing import Any, Mapping, Optional, cast
+from collections.abc import Mapping
+from typing import Any, cast
 
 from flask import current_app
 
@@ -43,7 +44,7 @@ current_oidcp_app: OIDCProofingApp = cast(OIDCProofingApp, current_app)
 
 
 def init_oidc_proofing_app(
-    name: str = "oidc_proofing", test_config: Optional[Mapping[str, Any]] = None
+    name: str = "oidc_proofing", test_config: Mapping[str, Any] | None = None
 ) -> OIDCProofingApp:
     """
     Create an instance of an oidc proofing app.

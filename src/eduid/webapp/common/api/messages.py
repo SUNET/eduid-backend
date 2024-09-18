@@ -1,7 +1,8 @@
+from collections.abc import Mapping
 from copy import copy
 from dataclasses import asdict, dataclass
 from enum import Enum, unique
-from typing import Any, Mapping, Optional, Union
+from typing import Any
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from flask import redirect
@@ -69,14 +70,14 @@ class AuthnStatusMsg(TranslatableMsg):
 class FluxData:
     status: FluxResponseStatus
     payload: Mapping[str, Any]
-    meta: Optional[Mapping[str, Any]] = None
+    meta: Mapping[str, Any] | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 
 
 def success_response(
-    payload: Optional[Mapping[str, Any]] = None, message: Optional[Union[TranslatableMsg, str]] = None
+    payload: Mapping[str, Any] | None = None, message: TranslatableMsg | str | None = None
 ) -> FluxData:
     """
     Make a success response, that can be marshalled into a response that eduid-front understands.
@@ -95,9 +96,7 @@ def success_response(
     return FluxData(status=FluxResponseStatus.OK, payload=_make_payload(payload, message, True))
 
 
-def error_response(
-    payload: Optional[Mapping[str, Any]] = None, message: Optional[Union[TranslatableMsg, str]] = None
-) -> FluxData:
+def error_response(payload: Mapping[str, Any] | None = None, message: TranslatableMsg | str | None = None) -> FluxData:
     """
     Make an error response, that can be marshalled into a response that eduid-front understands.
 
@@ -112,7 +111,7 @@ def error_response(
 
 
 def need_authentication_response(
-    frontend_action: FrontendAction, authn_status: AuthnActionStatus, payload: Optional[Mapping[str, Any]] = None
+    frontend_action: FrontendAction, authn_status: AuthnActionStatus, payload: Mapping[str, Any] | None = None
 ) -> FluxData:
     meta = {
         "frontend_action": frontend_action.value,
@@ -126,7 +125,7 @@ def need_authentication_response(
 
 
 def _make_payload(
-    payload: Optional[Mapping[str, Any]], message: Optional[Union[TranslatableMsg, str]], success: bool
+    payload: Mapping[str, Any] | None, message: TranslatableMsg | str | None, success: bool
 ) -> Mapping[str, Any]:
     res: dict[str, Any] = {}
     if payload is not None:
@@ -160,7 +159,7 @@ def make_query_string(msg: TranslatableMsg, error: bool = True):
     return urlencode({"msg": msg_str})
 
 
-def redirect_with_msg(url: str, msg: Union[TranslatableMsg, str], error: bool = True) -> WerkzeugResponse:
+def redirect_with_msg(url: str, msg: TranslatableMsg | str, error: bool = True) -> WerkzeugResponse:
     """
     :param url: URL to redirect to
     :param msg: message to append to query string

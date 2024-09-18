@@ -63,8 +63,9 @@ from __future__ import annotations
 
 import logging
 import pprint
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, Mapping, Optional, Sequence
+from typing import Any
 
 import user_agents
 from bleach import clean
@@ -89,7 +90,7 @@ class HttpArgs:
     method: str
     url: str
     headers: Sequence[tuple[str, str]]
-    body: Optional[str]
+    body: str | None
 
     @classmethod
     def from_pysaml2_dict(cls: type[Self], http_args: dict[str, Any]) -> Self:
@@ -112,7 +113,7 @@ class HttpArgs:
         return cls(method=method, url=url, headers=headers, body=message)
 
     @property
-    def redirect_url(self) -> Optional[str]:
+    def redirect_url(self) -> str | None:
         """
         Get the destination URL for a redirect.
 
@@ -190,7 +191,7 @@ def _sanitise_items(data: Mapping[str, Any]) -> dict[str, str]:
 # ----------------------------------------------------------------------------
 # Cookie handling
 # ----------------------------------------------------------------------------
-def read_cookie(name: str) -> Optional[str]:
+def read_cookie(name: str) -> str | None:
     """
     Read a browser cookie.
 
@@ -271,7 +272,7 @@ class IdPUserAgent:
     safe_str: str
 
 
-def get_user_agent() -> Optional[IdPUserAgent]:
+def get_user_agent() -> IdPUserAgent | None:
     """Get the request User-Agent and parse it in a safe and controlled way"""
     user_agent = request.headers.get("user-agent")
     if not user_agent:

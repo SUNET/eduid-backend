@@ -1,6 +1,5 @@
 import logging
 from dataclasses import replace
-from typing import Optional, Union
 
 from bson import ObjectId
 
@@ -46,7 +45,7 @@ class QueueDB(BaseDB, QueuePayloadMixin):
         }
         self.setup_indexes(indexes)
 
-    def get_item_by_id(self, message_id: Union[str, ObjectId], parse_payload: bool = True) -> Optional[QueueItem]:
+    def get_item_by_id(self, message_id: str | ObjectId, parse_payload: bool = True) -> QueueItem | None:
         if isinstance(message_id, str):
             message_id = ObjectId(message_id)
 

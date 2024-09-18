@@ -1,9 +1,10 @@
 import json
 import logging
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import Any, Mapping, Optional
+from typing import Any
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
@@ -87,7 +88,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
     def _get_captcha(
         self,
         expect_success: bool = True,
-        expected_message: Optional[TranslatableMsg] = None,
+        expected_message: TranslatableMsg | None = None,
         logged_in: bool = False,
     ):
         eppn = None
@@ -138,12 +139,12 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
     # parameterized test methods
     def _captcha(
         self,
-        captcha_data: Optional[Mapping[str, Any]] = None,
+        captcha_data: Mapping[str, Any] | None = None,
         add_magic_cookie: bool = False,
-        magic_cookie_name: Optional[str] = None,
+        magic_cookie_name: str | None = None,
         expect_success: bool = True,
-        expected_message: Optional[TranslatableMsg] = None,
-        expected_payload: Optional[Mapping[str, Any]] = None,
+        expected_message: TranslatableMsg | None = None,
+        expected_payload: Mapping[str, Any] | None = None,
         logged_in: bool = False,
     ):
         """
@@ -214,13 +215,13 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
 
     def _register_email(
         self,
-        data1: Optional[dict[str, Any]] = None,
+        data1: dict[str, Any] | None = None,
         given_name: str = "Test",
         surname: str = "Testdotter",
         email: str = "dummy@example.com",
         expect_success: bool = True,
-        expected_message: Optional[TranslatableMsg] = None,
-        expected_payload: Optional[Mapping[str, Any]] = None,
+        expected_message: TranslatableMsg | None = None,
+        expected_payload: Mapping[str, Any] | None = None,
         logged_in: bool = False,
     ):
         """
@@ -288,10 +289,10 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
 
     def _verify_email(
         self,
-        data1: Optional[dict[str, Any]] = None,
+        data1: dict[str, Any] | None = None,
         expect_success: bool = True,
-        expected_message: Optional[TranslatableMsg] = None,
-        expected_payload: Optional[Mapping[str, Any]] = None,
+        expected_message: TranslatableMsg | None = None,
+        expected_payload: Mapping[str, Any] | None = None,
         logged_in: bool = False,
     ):
         """
@@ -356,12 +357,12 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
 
     def _accept_tou(
         self,
-        data1: Optional[dict[str, Any]] = None,
+        data1: dict[str, Any] | None = None,
         accept_tou: bool = True,
-        tou_version: Optional[str] = None,
+        tou_version: str | None = None,
         expect_success: bool = True,
-        expected_message: Optional[TranslatableMsg] = None,
-        expected_payload: Optional[Mapping[str, Any]] = None,
+        expected_message: TranslatableMsg | None = None,
+        expected_payload: Mapping[str, Any] | None = None,
         logged_in: bool = False,
     ):
         """
@@ -426,10 +427,10 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
 
     def _generate_password(
         self,
-        data1: Optional[dict[str, Any]] = None,
+        data1: dict[str, Any] | None = None,
         expect_success: bool = True,
-        expected_message: Optional[TranslatableMsg] = None,
-        expected_payload: Optional[Mapping[str, Any]] = None,
+        expected_message: TranslatableMsg | None = None,
+        expected_payload: Mapping[str, Any] | None = None,
         logged_in: bool = False,
     ):
         """
@@ -493,7 +494,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         tou_accepted: bool = True,
         captcha_completed: bool = True,
         email_verified: bool = True,
-        generated_password: Optional[str] = "test_password",
+        generated_password: str | None = "test_password",
         logged_in: bool = False,
     ):
         eppn = None
@@ -518,11 +519,11 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         self,
         mock_add_credentials: Any,
         mock_request_user_sync: Any,
-        data: Optional[dict[str, Any]] = None,
-        custom_password: Optional[str] = None,
+        data: dict[str, Any] | None = None,
+        custom_password: str | None = None,
         expect_success: bool = True,
-        expected_message: Optional[TranslatableMsg] = None,
-        expected_payload: Optional[Mapping[str, Any]] = None,
+        expected_message: TranslatableMsg | None = None,
+        expected_payload: Mapping[str, Any] | None = None,
         logged_in: bool = False,
     ):
         """
@@ -630,11 +631,11 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         self,
         email: str,
         invite_code: str,
-        eppn: Optional[str] = None,
-        data1: Optional[dict[str, Any]] = None,
+        eppn: str | None = None,
+        data1: dict[str, Any] | None = None,
         expect_success: bool = True,
-        expected_message: Optional[TranslatableMsg] = None,
-        expected_payload: Optional[Mapping[str, Any]] = None,
+        expected_message: TranslatableMsg | None = None,
+        expected_payload: Mapping[str, Any] | None = None,
         logged_in: bool = False,
     ):
         """
@@ -707,10 +708,10 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         email: str,
         invite_code: str,
         email_verified: bool = True,
-        data1: Optional[dict[str, Any]] = None,
+        data1: dict[str, Any] | None = None,
         expect_success: bool = True,
-        expected_message: Optional[TranslatableMsg] = None,
-        expected_payload: Optional[Mapping[str, Any]] = None,
+        expected_message: TranslatableMsg | None = None,
+        expected_payload: Mapping[str, Any] | None = None,
         logged_in: bool = False,
     ):
         eppn = None
@@ -772,11 +773,11 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
     def _complete_invite(
         self,
         mock_request_user_sync: MagicMock,
-        eppn: Optional[str] = None,
-        data1: Optional[dict[str, Any]] = None,
+        eppn: str | None = None,
+        data1: dict[str, Any] | None = None,
         expect_success: bool = True,
-        expected_message: Optional[TranslatableMsg] = None,
-        expected_payload: Optional[Mapping[str, Any]] = None,
+        expected_message: TranslatableMsg | None = None,
+        expected_payload: Mapping[str, Any] | None = None,
     ):
         mock_request_user_sync.side_effect = self.request_user_sync
         logged_in = False
@@ -831,7 +832,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
 
         return SignupResult(url=endpoint, reached_state=SignupState.S7_COMPLETE_INVITE, response=response)
 
-    def _get_code_backdoor(self, email: str, magic_cookie_name: Optional[str] = None):
+    def _get_code_backdoor(self, email: str, magic_cookie_name: str | None = None):
         """
         Test getting the generated verification code through the backdoor
         """

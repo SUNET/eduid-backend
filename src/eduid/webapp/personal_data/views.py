@@ -1,5 +1,3 @@
-from typing import Optional
-
 from flask import Blueprint
 
 from eduid.common.config.base import FrontendAction
@@ -51,7 +49,7 @@ def get_user(user: User) -> FluxData:
 @MarshalWith(PersonalDataResponseSchema)
 @require_user
 def update_personal_data(
-    user: User, given_name: str, surname: str, language: str, chosen_given_name: Optional[str] = None
+    user: User, given_name: str, surname: str, language: str, chosen_given_name: str | None = None
 ) -> FluxData:
     personal_data_user = PersonalDataUser.from_user(user, current_app.private_userdb)
     current_app.logger.debug(f"Trying to save user {user}")

@@ -1,7 +1,6 @@
 from dataclasses import dataclass, field
 from datetime import date, datetime, time
 from enum import Enum
-from typing import Optional, Union
 from uuid import UUID
 
 from fido2.utils import websafe_decode
@@ -24,14 +23,14 @@ class OtherAuthenticatorStatus(str, Enum):
 
 @dataclass
 class AuthenticatorInformation:
-    authenticator_id: Union[UUID, str]
+    authenticator_id: UUID | str
     attestation_format: AttestationFormat
     user_present: bool
     user_verified: bool
-    status: Optional[Union[AuthenticatorStatus, OtherAuthenticatorStatus]] = field(default=None)
-    last_status_change: Optional[datetime] = field(default=None)
-    icon: Optional[str] = field(default=None)
-    description: Optional[str] = field(default=None)
+    status: AuthenticatorStatus | OtherAuthenticatorStatus | None = field(default=None)
+    last_status_change: datetime | None = field(default=None)
+    icon: str | None = field(default=None)
+    description: str | None = field(default=None)
     key_protection: list[str] = field(default_factory=list)
     user_verification_methods: list[str] = field(default_factory=list)
 

@@ -1,5 +1,3 @@
-from typing import Optional
-
 import bson
 from celery import Task
 from celery.utils.log import get_task_logger
@@ -20,10 +18,10 @@ class AttributeManager(Task):
     abstract = True  # This means Celery won't register this as another task
 
     def __init__(self):
-        self._userdb: Optional[AmDB] = None
+        self._userdb: AmDB | None = None
 
     @property
-    def userdb(self) -> Optional[AmDB]:
+    def userdb(self) -> AmDB | None:
         if self._userdb:
             return self._userdb
         if AmCelerySingleton.worker_config.mongo_uri:

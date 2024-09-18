@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 
 from eduid.userdb.credentials.base import Credential
 from eduid.userdb.credentials.external import external_credential_from_dict
@@ -25,7 +25,7 @@ class CredentialList(ElementList[Credential]):
             if not isinstance(this, dict):
                 raise UserHasUnknownData(f"Unknown credential data (type {type(this)}): {repr(this)}")
 
-            credential: Optional[Credential] = None
+            credential: Credential | None = None
 
             if "salt" in this:
                 credential = Password.from_dict(this)

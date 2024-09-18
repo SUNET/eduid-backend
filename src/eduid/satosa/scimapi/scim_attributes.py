@@ -1,7 +1,8 @@
 import logging
 import pprint
+from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import Any, Mapping, Optional
+from typing import Any
 
 import satosa.context
 import satosa.internal
@@ -20,10 +21,10 @@ logger = logging.getLogger(__name__)
 @dataclass
 class Config:
     mongo_uri: str
-    neo4j_uri: Optional[str] = None
+    neo4j_uri: str | None = None
     neo4j_config: dict = field(default_factory=dict)
     allow_users_not_in_database: Mapping[str, bool] = field(default_factory=lambda: {"default": False})
-    fallback_data_owner: Optional[str] = None
+    fallback_data_owner: str | None = None
     idp_to_data_owner: Mapping[str, str] = field(default_factory=dict)
     mfa_stepup_issuer_to_entity_id: Mapping[str, str] = field(default_factory=dict)
     scope_to_data_owner: Mapping[str, str] = field(default_factory=dict)
@@ -70,7 +71,7 @@ class ScimAttributes(ResponseMicroService):
             )
         return self._userdbs[data_owner]
 
-    def get_groupdb_for_data_owner(self, data_owner: str) -> Optional[ScimApiGroupDB]:
+    def get_groupdb_for_data_owner(self, data_owner: str) -> ScimApiGroupDB | None:
         if self.config.neo4j_uri is None:
             # be able to turn off group lookups by unsetting neo4j_uri
             logger.info("No neo4j_uri set in config, group lookups will be turned off.")
@@ -158,7 +159,7 @@ class ScimAttributes(ResponseMicroService):
         return data
 
     def _process_groups(
-        self, data_owner: Optional[str], user_groups: UserGroups, data: satosa.internal.InternalData
+        self, data_owner: str | None, user_groups: UserGroups, data: satosa.internal.InternalData
     ) -> satosa.internal.InternalData:
         if data_owner is None:
             return data
@@ -190,12 +191,10 @@ class ScimAttributes(ResponseMicroService):
             res.update(_extract_saml_scope(idpsso))
         return res
 
-    def _get_data_owner(
-        self, data: satosa.internal.InternalData, scopes: set[str], frontend_name: str
-    ) -> Optional[str]:
+    def _get_data_owner(self, data: satosa.internal.InternalData, scopes: set[str], frontend_name: str) -> str | None:
         # Look for explicit information about what data owner to use for this IdP
         issuer = frontend_name
-        data_owner: Optional[str] = self.config.virt_idp_to_data_owner.get(issuer)
+        data_owner: str | None = self.config.virt_idp_to_data_owner.get(issuer)
         # Fallback to issuer. E.g Skolverkets idpproxy
         if not data_owner:
             issuer = data.auth_info.issuer
@@ -223,7 +222,7 @@ class ScimAttributes(ResponseMicroService):
 
         return data_owner
 
-    def _get_user(self, data: satosa.internal.InternalData, data_owner: Optional[str]) -> Optional[ScimApiUser]:
+    def _get_user(self, data: satosa.internal.InternalData, data_owner: str | None) -> ScimApiUser | None:
         if data_owner is None:
             return None
 
@@ -242,7 +241,7 @@ class ScimAttributes(ResponseMicroService):
             logger.info(f"No user found using {self.ext_id_attr} {ext_id}")
         return user
 
-    def _get_user_groups(self, user: Optional[ScimApiUser], data_owner: Optional[str]) -> Optional[UserGroups]:
+    def _get_user_groups(self, user: ScimApiUser | None, data_owner: str | None) -> UserGroups | None:
         if user is None or data_owner is None:
             return None
 

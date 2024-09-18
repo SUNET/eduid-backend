@@ -4,9 +4,10 @@ import copy
 import logging
 import pprint
 import uuid
+from collections.abc import Iterable, Mapping
 from dataclasses import asdict, dataclass, field, replace
 from datetime import datetime
-from typing import Any, Iterable, Mapping, Optional, Union
+from typing import Any
 from uuid import UUID
 
 from bson import ObjectId
@@ -54,27 +55,27 @@ class ScimApiGroup(ScimApiResourceBase, _ScimApiGroupRequired):
         self.graph = GraphGroup(identifier=str(self.scim_id), display_name=self.display_name)
 
     @property
-    def members(self) -> set[Union[GraphGroup, GraphUser]]:
+    def members(self) -> set[GraphGroup | GraphUser]:
         return self.graph.members
 
     @members.setter
-    def members(self, members: Iterable[Union[GraphGroup, GraphUser]]):
+    def members(self, members: Iterable[GraphGroup | GraphUser]):
         members = set(members)
         self.graph = replace(self.graph, members=members)
 
-    def add_member(self, member: Union[GraphGroup, GraphUser]) -> None:
+    def add_member(self, member: GraphGroup | GraphUser) -> None:
         self.graph.members.add(member)
 
     @property
-    def owners(self) -> set[Union[GraphGroup, GraphUser]]:
+    def owners(self) -> set[GraphGroup | GraphUser]:
         return self.graph.owners
 
     @owners.setter
-    def owners(self, owners: Iterable[Union[GraphGroup, GraphUser]]):
+    def owners(self, owners: Iterable[GraphGroup | GraphUser]):
         owners = set(owners)
         self.graph = replace(self.graph, owners=owners)
 
-    def add_owner(self, owner: Union[GraphGroup, GraphUser]) -> None:
+    def add_owner(self, owner: GraphGroup | GraphUser) -> None:
         self.graph.owners.add(owner)
 
     def has_member(self, identifier: UUID) -> bool:
@@ -107,7 +108,7 @@ class ScimApiGroupDB(ScimApiBaseDB):
         mongo_uri: str,
         mongo_dbname: str,
         mongo_collection: str,
-        neo4j_config: Optional[dict[str, Any]] = None,
+        neo4j_config: dict[str, Any] | None = None,
         setup_indexes: bool = True,
     ):
         super().__init__(mongo_uri, mongo_dbname, collection=mongo_collection)
@@ -178,8 +179,8 @@ class ScimApiGroupDB(ScimApiBaseDB):
         updated_members = set()
         logger.info(f"Updating group {str(db_group.scim_id)}")
         # please mypy
-        _member: Optional[Union[GraphUser, GraphGroup]]
-        _new_member: Optional[Union[GraphUser, GraphGroup]]
+        _member: GraphUser | GraphGroup | None
+        _new_member: GraphUser | GraphGroup | None
 
         for this in update_request.members:
             if this.is_user:
@@ -251,7 +252,7 @@ class ScimApiGroupDB(ScimApiBaseDB):
             res += [group]
         return res
 
-    def get_group_by_scim_id(self, scim_id: str) -> Optional[ScimApiGroup]:
+    def get_group_by_scim_id(self, scim_id: str) -> ScimApiGroup | None:
         doc = self._get_document_by_attr("scim_id", scim_id)
         if doc:
             group = ScimApiGroup.from_dict(doc)
@@ -259,7 +260,7 @@ class ScimApiGroupDB(ScimApiBaseDB):
             return group
         return None
 
-    def get_group_by_display_name(self, display_name: str) -> Optional[ScimApiGroup]:
+    def get_group_by_display_name(self, display_name: str) -> ScimApiGroup | None:
         doc = self._get_document_by_attr("display_name", display_name)
         if doc:
             group = ScimApiGroup.from_dict(doc)
@@ -267,9 +268,7 @@ class ScimApiGroupDB(ScimApiBaseDB):
             return group
         return None
 
-    def get_groups_by_property(
-        self, key: str, value: Union[str, int], skip=0, limit=100
-    ) -> tuple[list[ScimApiGroup], int]:
+    def get_groups_by_property(self, key: str, value: str | int, skip=0, limit=100) -> tuple[list[ScimApiGroup], int]:
         docs, count = self._get_documents_and_count_by_filter({key: value}, skip=skip, limit=limit)
         if not docs:
             return [], 0
@@ -303,7 +302,7 @@ class ScimApiGroupDB(ScimApiBaseDB):
         return res
 
     def get_groups_by_last_modified(
-        self, operator: str, value: datetime, limit: Optional[int] = None, skip: Optional[int] = None
+        self, operator: str, value: datetime, limit: int | None = None, skip: int | None = None
     ) -> tuple[list[ScimApiGroup], int]:
         mongo_operator = self._get_mongo_operator(operator)
         spec = {"last_modified": {mongo_operator: value}}

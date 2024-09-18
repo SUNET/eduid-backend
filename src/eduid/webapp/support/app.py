@@ -1,5 +1,6 @@
 import operator
-from typing import Any, Mapping, Optional, cast
+from collections.abc import Mapping
+from typing import Any, cast
 
 from flask import current_app
 from jinja2.exceptions import UndefinedError
@@ -44,24 +45,24 @@ def register_template_funcs(app: SupportApp) -> None:
         return value.strftime(format)
 
     @app.template_filter("multisort")
-    def sort_multi(l, *operators, **kwargs):
+    def sort_multi(items, *operators, **kwargs):
         # Don't try to sort on missing keys
         keys = list(operators)  # operators is immutable
         for key in operators:
-            for item in l:
+            for item in items:
                 if key not in item:
                     app.logger.debug(f"Removed key {key} before sorting.")
                     keys.remove(key)
                     break
         reverse = kwargs.pop("reverse", False)
         try:
-            l.sort(key=operator.itemgetter(*keys), reverse=reverse)
+            items.sort(key=operator.itemgetter(*keys), reverse=reverse)
         except UndefinedError:  # attribute did not exist
-            l = list()
-        return l
+            items = list()
+        return items
 
     @app.template_global()
-    def static_url_for(f: str, version: Optional[str] = None) -> str:
+    def static_url_for(f: str, version: str | None = None) -> str:
         """
         Get the static url for a file and optionally have a version argument appended for cache busting.
         """
@@ -73,7 +74,7 @@ def register_template_funcs(app: SupportApp) -> None:
     return None
 
 
-def support_init_app(name: str = "support", test_config: Optional[Mapping[str, Any]] = None) -> SupportApp:
+def support_init_app(name: str = "support", test_config: Mapping[str, Any] | None = None) -> SupportApp:
     """
     Create an instance of an eduid support app.
 

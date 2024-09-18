@@ -1,6 +1,6 @@
 from datetime import datetime
 from enum import Enum
-from typing import Annotated, Optional
+from typing import Annotated
 
 from bson import ObjectId
 from pydantic import BaseModel, ConfigDict, Field
@@ -17,10 +17,10 @@ class CleanerType(str, Enum):
 
 
 class Meta(BaseModel):
-    version: Optional[ObjectId] = None
+    version: ObjectId | None = None
     created_ts: datetime = Field(default_factory=utc_now)
-    modified_ts: Optional[datetime] = None
-    cleaned: Optional[dict[CleanerType, datetime]] = None
+    modified_ts: datetime | None = None
+    cleaned: dict[CleanerType, datetime] | None = None
     is_in_database: Annotated[bool, Field(exclude=True)] = False  # this is set to True when userdb loads the object
     model_config = ConfigDict(arbitrary_types_allowed=True)
 

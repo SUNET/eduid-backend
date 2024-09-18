@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import builtins
 import uuid
 from abc import ABC
+from collections.abc import Mapping
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from typing import Any, Mapping, Optional, Type, Union
+from typing import Any
 from uuid import UUID
 
 from eduid.common.models.scim_base import EmailType, PhoneNumberType, WeakVersion
@@ -18,7 +20,7 @@ class ScimApiResourceBase(ABC):
     """The elements common to all SCIM resource database objects"""
 
     scim_id: UUID = field(default_factory=lambda: uuid.uuid4())
-    external_id: Optional[str] = None
+    external_id: str | None = None
     version: WeakVersion = field(default_factory=lambda: WeakVersion())
     created: datetime = field(default_factory=lambda: utc_now())
     last_modified: datetime = field(default_factory=lambda: utc_now())
@@ -33,7 +35,7 @@ class ScimApiProfile:
         return asdict(self)
 
     @classmethod
-    def from_dict(cls: Type[ScimApiProfile], data: Mapping[str, Any]) -> ScimApiProfile:
+    def from_dict(cls: type[ScimApiProfile], data: Mapping[str, Any]) -> ScimApiProfile:
         _attributes = data.get("attributes", {})
         _data = data.get("data", {})
         return cls(attributes=_attributes, data=_data)
@@ -49,7 +51,7 @@ class ScimApiLinkedAccount:
         return asdict(self)
 
     @classmethod
-    def from_dict(cls: Type[ScimApiLinkedAccount], data: Mapping[str, Any]) -> ScimApiLinkedAccount:
+    def from_dict(cls: type[ScimApiLinkedAccount], data: Mapping[str, Any]) -> ScimApiLinkedAccount:
         _issuer = data.get("issuer")
         if not isinstance(_issuer, str):
             raise ValueError("ScimApiLinkedAccount.issuer must be a string")
@@ -64,36 +66,36 @@ class ScimApiLinkedAccount:
 
 @dataclass(frozen=True)
 class ScimApiName:
-    family_name: Optional[str] = None
-    given_name: Optional[str] = None
-    formatted: Optional[str] = None
-    middle_name: Optional[str] = None
-    honorific_prefix: Optional[str] = None
-    honorific_suffix: Optional[str] = None
+    family_name: str | None = None
+    given_name: str | None = None
+    formatted: str | None = None
+    middle_name: str | None = None
+    honorific_prefix: str | None = None
+    honorific_suffix: str | None = None
 
-    def to_dict(self) -> dict[str, Optional[str]]:
+    def to_dict(self) -> dict[str, str | None]:
         return asdict(self)
 
     @classmethod
-    def from_dict(cls: Type[ScimApiName], data: Mapping[str, Optional[str]]) -> ScimApiName:
+    def from_dict(cls: type[ScimApiName], data: Mapping[str, str | None]) -> ScimApiName:
         return cls(**data)
 
 
 @dataclass(frozen=True)
 class ScimApiEmail:
     value: str
-    display: Optional[str] = None
-    type: Optional[EmailType] = None
-    primary: Optional[bool] = None
+    display: str | None = None
+    type: EmailType | None = None
+    primary: bool | None = None
 
-    def to_dict(self) -> dict[str, Union[Optional[str], bool]]:
+    def to_dict(self) -> dict[str, str | None | bool]:
         res = asdict(self)
         if self.type is not None:
             res["type"] = self.type.value
         return res
 
     @classmethod
-    def from_dict(cls: Type[ScimApiEmail], data: Mapping[str, Any]) -> ScimApiEmail:
+    def from_dict(cls: builtins.type[ScimApiEmail], data: Mapping[str, Any]) -> ScimApiEmail:
         email_type = None
         if data.get("type") is not None:
             email_type = EmailType(data["type"])
@@ -103,18 +105,18 @@ class ScimApiEmail:
 @dataclass(frozen=True)
 class ScimApiPhoneNumber:
     value: str
-    display: Optional[str] = None
-    type: Optional[PhoneNumberType] = None
-    primary: Optional[bool] = None
+    display: str | None = None
+    type: PhoneNumberType | None = None
+    primary: bool | None = None
 
-    def to_dict(self) -> dict[str, Union[Optional[str], bool]]:
+    def to_dict(self) -> dict[str, str | None | bool]:
         res = asdict(self)
         if self.type is not None:
             res["type"] = self.type.value
         return res
 
     @classmethod
-    def from_dict(cls: Type[ScimApiPhoneNumber], data: Mapping[str, Any]) -> ScimApiPhoneNumber:
+    def from_dict(cls: builtins.type[ScimApiPhoneNumber], data: Mapping[str, Any]) -> ScimApiPhoneNumber:
         number_type = None
         if data.get("type") is not None:
             number_type = PhoneNumberType(data["type"])

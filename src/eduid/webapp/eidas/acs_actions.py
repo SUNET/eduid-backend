@@ -1,5 +1,3 @@
-from typing import Optional
-
 from eduid.userdb import User
 from eduid.userdb.credentials.fido import FidoCredential
 from eduid.webapp.common.api.decorators import require_user
@@ -19,7 +17,7 @@ from eduid.webapp.eidas.saml_session_info import BaseSessionInfo
 __author__ = "lundberg"
 
 
-def common_saml_checks(args: ACSArgs) -> Optional[ACSResult]:
+def common_saml_checks(args: ACSArgs) -> ACSResult | None:
     """
     Check that the user is authenticated and that the session info is valid.
     """

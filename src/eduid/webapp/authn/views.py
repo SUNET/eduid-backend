@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import Optional
 
 from flask import Blueprint, abort, make_response, redirect, request
 from saml2 import BINDING_HTTP_REDIRECT
@@ -108,8 +107,8 @@ def terminate() -> WerkzeugResponse:
 @MarshalWith(AuthnCommonResponseSchema)
 def authenticate(
     frontend_action: str,
-    frontend_state: Optional[str] = None,
-    method: Optional[str] = None,
+    frontend_state: str | None = None,
+    method: str | None = None,
 ) -> FluxData:
     current_app.logger.debug(f"authenticate called with frontend_action: {frontend_action}")
     try:
@@ -209,9 +208,9 @@ def _old_authn(action: AuthnAcsAction, force_authn: bool = False, same_user: boo
 
 @dataclass
 class AuthnResult:
-    authn_id: Optional[AuthnRequestRef] = None
-    error: Optional[TranslatableMsg] = None
-    url: Optional[str] = None
+    authn_id: AuthnRequestRef | None = None
+    error: TranslatableMsg | None = None
+    url: str | None = None
 
 
 def _authn(sp_authn: SP_AuthnRequest, idp: str, authn_params: AuthnParameters) -> AuthnResult:
@@ -291,7 +290,7 @@ def assertion_consumer_service() -> WerkzeugResponse:
     return redirect(formatted_finish_url)
 
 
-def _get_authn_name_id(session: EduidSession) -> Optional[NameID]:
+def _get_authn_name_id(session: EduidSession) -> NameID | None:
     """
     Get the SAML2 NameID of the currently logged-in user.
     :param session: The current session object

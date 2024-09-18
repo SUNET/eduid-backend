@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from abc import ABC
-from typing import Any, Mapping, Optional
+from collections.abc import Mapping
+from typing import Any
 from urllib.parse import urlparse
 
 from neo4j import Driver, GraphDatabase, basic_auth
@@ -12,7 +13,7 @@ __author__ = "lundberg"
 class Neo4jDB:
     """Simple wrapper to allow us to define the api"""
 
-    def __init__(self, db_uri: str, config: Optional[Mapping[str, Any]] = None):
+    def __init__(self, db_uri: str, config: Mapping[str, Any] | None = None):
         if not db_uri:
             raise ValueError("db_uri not supplied")
 
@@ -42,7 +43,7 @@ class Neo4jDB:
     def __repr__(self) -> str:
         return f'<eduID {self.__class__.__name__}: {getattr(self, "_username", None)}@{getattr(self, "_db_uri", None)}>'
 
-    def count_nodes(self, label: Optional[str] = None) -> Optional[int]:
+    def count_nodes(self, label: str | None = None) -> int | None:
         match_statement = "MATCH ()"
         if label:
             match_statement = f"MATCH(:{label})"
@@ -75,7 +76,7 @@ class Neo4jDB:
 class BaseGraphDB(ABC):
     """Base class for common db operations"""
 
-    def __init__(self, db_uri: str, config: Optional[dict[str, Any]] = None):
+    def __init__(self, db_uri: str, config: dict[str, Any] | None = None):
         self._db_uri = db_uri
         self._db = Neo4jDB(db_uri=self._db_uri, config=config)
         self.db_setup()

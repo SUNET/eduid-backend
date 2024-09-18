@@ -1,6 +1,6 @@
 from datetime import datetime
 from enum import Enum
-from typing import Annotated, Any, Optional
+from typing import Annotated, Any
 from uuid import UUID
 
 from bson import ObjectId
@@ -23,7 +23,7 @@ __author__ = "lundberg"
 
 
 # https://snipplr.com/view/11540/regex-for-tel-uris
-PHONE_NUMBER_RFC_3966 = """^tel:((?:\+[\d().-]*\d[\d().-]*|[0-9A-F*#().-]*[0-9A-F*#][0-9A-F*#().-]*(?:
+PHONE_NUMBER_RFC_3966 = r"""^tel:((?:\+[\d().-]*\d[\d().-]*|[0-9A-F*#().-]*[0-9A-F*#][0-9A-F*#().-]*(?:
     ;[a-z\d-]+(?:=(?:[a-z\d\[\]/:&+$_!~*'().-]|%[\dA-F]{2})+)?)*;phone-context=(?:\+[\d().-]*\d[\d().-]*|
     (?:[a-z0-9]\.|[a-z0-9][a-z0-9-]*[a-z0-9]\.)*(?:[a-z]|[a-z][a-z0-9-]*[a-z0-9])))(?:;[a-z\d-]+(?:=
     (?:[a-z\d\[\]/:&+$_!~*'().-]|%[\dA-F]{2})+)?)*(?:,(?:\+[\d().-]*\d[\d().-]*|[0-9A-F*#().-]*[0-9A-F*#]
@@ -125,25 +125,25 @@ class Meta(EduidBaseModel):
 
 
 class Name(EduidBaseModel):
-    family_name: Optional[str] = Field(default=None, alias="familyName")
-    given_name: Optional[str] = Field(default=None, alias="givenName")
-    formatted: Optional[str] = None
-    middle_name: Optional[str] = Field(default=None, alias="middleName")
-    honorific_prefix: Optional[str] = Field(default=None, alias="honorificPrefix")
-    honorific_suffix: Optional[str] = Field(default=None, alias="honorificSuffix")
+    family_name: str | None = Field(default=None, alias="familyName")
+    given_name: str | None = Field(default=None, alias="givenName")
+    formatted: str | None = None
+    middle_name: str | None = Field(default=None, alias="middleName")
+    honorific_prefix: str | None = Field(default=None, alias="honorificPrefix")
+    honorific_suffix: str | None = Field(default=None, alias="honorificSuffix")
 
 
 class Email(EduidBaseModel):
     value: LowerEmailStr
-    display: Optional[str] = None
-    type: Optional[EmailType] = None
+    display: str | None = None
+    type: EmailType | None = None
     primary: bool = True
 
 
 class PhoneNumber(EduidBaseModel):
     value: PhoneNumberStr
-    display: Optional[str] = None
-    type: Optional[PhoneNumberType] = None
+    display: str | None = None
+    type: PhoneNumberType | None = None
     primary: bool = True
 
 
@@ -153,18 +153,18 @@ class BaseResponse(EduidBaseModel):
     id: UUID
     meta: Meta
     schemas: list[SCIMSchema] = Field(min_length=1)
-    external_id: Optional[str] = Field(default=None, alias="externalId")
+    external_id: str | None = Field(default=None, alias="externalId")
 
 
 class BaseCreateRequest(EduidBaseModel):
     schemas: list[SCIMSchema] = Field(min_length=1)
-    external_id: Optional[str] = Field(default=None, alias="externalId")
+    external_id: str | None = Field(default=None, alias="externalId")
 
 
 class BaseUpdateRequest(EduidBaseModel):
     id: UUID
     schemas: list[SCIMSchema] = Field(min_length=1)
-    external_id: Optional[str] = Field(default=None, alias="externalId")
+    external_id: str | None = Field(default=None, alias="externalId")
 
 
 class SearchRequest(EduidBaseModel):
@@ -172,7 +172,7 @@ class SearchRequest(EduidBaseModel):
     filter: str
     start_index: int = Field(default=1, alias="startIndex", ge=1)  # Greater or equal to 1
     count: int = Field(default=100, ge=1)  # Greater or equal to 1
-    attributes: Optional[list[str]] = None
+    attributes: list[str] | None = None
 
 
 class ListResponse(EduidBaseModel):

@@ -7,7 +7,8 @@ from __future__ import annotations
 import logging
 import logging.config
 import unittest
-from typing import Any, Optional, Sequence, cast
+from collections.abc import Sequence
+from typing import Any, cast
 
 import pymongo
 import pymongo.errors
@@ -81,7 +82,7 @@ class MongoTestCase(unittest.TestCase):
     A test can access the port using the attribute `port`
     """
 
-    def setUp(self, *args: list[Any], am_users: Optional[list[User]] = None, **kwargs: dict[str, Any]):
+    def setUp(self, *args: list[Any], am_users: list[User] | None = None, **kwargs: dict[str, Any]):
         """
         Test case initialization.
         :return:

@@ -2,7 +2,8 @@ import base64
 import datetime
 import logging
 import os
-from typing import Any, Mapping, Optional, Union
+from collections.abc import Mapping
+from typing import Any
 from unittest import TestCase
 from unittest.mock import MagicMock, patch
 
@@ -245,9 +246,9 @@ class EidasTests(ProofingTests[EidasApp]):
         request_id: str,
         saml_response_tpl: str,
         asserted_identity: str,
-        date_of_birth: Optional[datetime.datetime] = None,
+        date_of_birth: datetime.datetime | None = None,
         age: int = 10,
-        credentials_used: Optional[list[ElementKey]] = None,
+        credentials_used: list[ElementKey] | None = None,
     ) -> bytes:
         """
         Generates a fresh signed authentication response
@@ -336,14 +337,14 @@ class EidasTests(ProofingTests[EidasApp]):
         expect_msg: TranslatableMsg,
         frontend_action: FrontendAction,
         age: int = 10,
-        browser: Optional[CSRFTestClient] = None,
-        eppn: Optional[str] = None,
+        browser: CSRFTestClient | None = None,
+        eppn: str | None = None,
         expect_error: bool = False,
-        identity: Optional[Union[NinIdentity, EIDASIdentity]] = None,
+        identity: NinIdentity | EIDASIdentity | None = None,
         logged_in: bool = True,
         method: str = "freja",
-        next_url: Optional[str] = None,
-        response_template: Optional[str] = None,
+        next_url: str | None = None,
+        response_template: str | None = None,
     ) -> None:
         return self._call_endpoint_and_saml_acs(
             age=age,
@@ -366,15 +367,15 @@ class EidasTests(ProofingTests[EidasApp]):
         expect_msg: TranslatableMsg,
         frontend_action: FrontendAction,
         age: int = 10,
-        browser: Optional[CSRFTestClient] = None,
-        credentials_used: Optional[list[ElementKey]] = None,
-        eppn: Optional[str] = None,
+        browser: CSRFTestClient | None = None,
+        credentials_used: list[ElementKey] | None = None,
+        eppn: str | None = None,
         expect_error: bool = False,
         expect_saml_error: bool = False,
-        identity: Optional[Union[NinIdentity, EIDASIdentity]] = None,
+        identity: NinIdentity | EIDASIdentity | None = None,
         method: str = "freja",
-        response_template: Optional[str] = None,
-        verify_credential: Optional[ElementKey] = None,
+        response_template: str | None = None,
+        verify_credential: ElementKey | None = None,
     ) -> None:
         return self._call_endpoint_and_saml_acs(
             age=age,
@@ -399,8 +400,8 @@ class EidasTests(ProofingTests[EidasApp]):
         method: str,
         frontend_action: FrontendAction,
         expect_success: bool = True,
-        verify_credential: Optional[ElementKey] = None,
-        frontend_state: Optional[str] = None,
+        verify_credential: ElementKey | None = None,
+        frontend_state: str | None = None,
     ) -> str:
         with browser.session_transaction() as sess:
             csrf_token = sess.get_csrf_token()
@@ -432,20 +433,20 @@ class EidasTests(ProofingTests[EidasApp]):
         self,
         endpoint: str,
         method: str,
-        eppn: Optional[str],
+        eppn: str | None,
         expect_msg: TranslatableMsg,
         frontend_action: FrontendAction,
         age: int = 10,
-        browser: Optional[CSRFTestClient] = None,
-        credentials_used: Optional[list[ElementKey]] = None,
+        browser: CSRFTestClient | None = None,
+        credentials_used: list[ElementKey] | None = None,
         expect_error: bool = False,
         expect_saml_error: bool = False,
-        identity: Optional[Union[NinIdentity, EIDASIdentity]] = None,
+        identity: NinIdentity | EIDASIdentity | None = None,
         logged_in: bool = True,
-        next_url: Optional[str] = None,
-        response_template: Optional[str] = None,
-        verify_credential: Optional[ElementKey] = None,
-        frontend_state: Optional[str] = "This is a unit test",
+        next_url: str | None = None,
+        response_template: str | None = None,
+        verify_credential: ElementKey | None = None,
+        frontend_state: str | None = "This is a unit test",
     ) -> None:
         if eppn is None:
             eppn = self.test_user_eppn

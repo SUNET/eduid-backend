@@ -1,6 +1,5 @@
 from datetime import datetime
 from enum import Enum
-from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -33,14 +32,14 @@ class UserBaseRequest(BaseModel):
 
 class UserUpdateResponse(BaseModel):
     status: bool
-    diff: Optional[str] = None
+    diff: str | None = None
 
 
 class UserUpdateNameRequest(UserBaseRequest):
-    given_name: Optional[str] = None
-    chosen_given_name: Optional[str] = None
-    surname: Optional[str] = None
-    legal_name: Optional[str] = None
+    given_name: str | None = None
+    chosen_given_name: str | None = None
+    surname: str | None = None
+    legal_name: str | None = None
 
 
 class UserUpdateMetaRequest(UserBaseRequest):
@@ -56,7 +55,7 @@ class UserUpdatePhoneRequest(UserBaseRequest):
 
 
 class UserUpdateLanguageRequest(UserBaseRequest):
-    language: Optional[str] = None
+    language: str | None = None
 
 
 class UserUpdateMetaCleanedRequest(UserBaseRequest):

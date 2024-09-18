@@ -1,7 +1,7 @@
 import logging
 from dataclasses import dataclass
 from enum import unique
-from typing import Any, Optional
+from typing import Any
 
 from saml2 import BINDING_HTTP_REDIRECT
 from saml2.client import Saml2Client
@@ -118,13 +118,13 @@ def attribute_remap(session_info: SessionInfo) -> SessionInfo:
 @dataclass()
 class CredentialVerifyResult:
     verified_ok: bool
-    message: Optional[EidasMsg] = None
-    credential_description: Optional[str] = None
+    message: EidasMsg | None = None
+    credential_description: str | None = None
 
 
 def check_reauthn(
-    frontend_action: FrontendAction, user: User, credential_used: Optional[Credential] = None
-) -> Optional[AuthnActionStatus]:
+    frontend_action: FrontendAction, user: User, credential_used: Credential | None = None
+) -> AuthnActionStatus | None:
     """Check if a re-authentication has been performed recently enough for this action"""
 
     authn_status = validate_authn_for_action(

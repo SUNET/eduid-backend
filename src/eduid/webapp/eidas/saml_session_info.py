@@ -1,6 +1,5 @@
 import logging
 from datetime import date
-from typing import Optional
 
 from pydantic import Field
 
@@ -17,7 +16,7 @@ class NinAttributes(SAMLAttributes):
     nin: str = Field(alias="personalIdentityNumber")
     given_name: str = Field(alias="givenName")
     surname: str = Field(alias="sn")
-    display_name: Optional[str] = Field(default=None, alias="displayName")
+    display_name: str | None = Field(default=None, alias="displayName")
     date_of_birth: date = Field(alias="dateOfBirth")
 
 
@@ -42,8 +41,8 @@ class ForeignEidAttributes(SAMLAttributes):
     transaction_identifier: str = Field(alias="transactionIdentifier")
     # there are plans for a service in the future that provides the attributes below for
     # swedish citizens living abroad with eID from the country of residence
-    mapped_personal_identity_number: Optional[str] = Field(alias="mappedPersonalIdentityNumber", default=None)
-    personal_identity_number_binding: Optional[str] = Field(alias="personalIdentityNumberBinding", default=None)
+    mapped_personal_identity_number: str | None = Field(alias="mappedPersonalIdentityNumber", default=None)
+    personal_identity_number_binding: str | None = Field(alias="personalIdentityNumberBinding", default=None)
 
 
 class NinSessionInfo(BaseSessionInfo):

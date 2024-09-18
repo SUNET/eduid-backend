@@ -1,5 +1,4 @@
 from enum import Enum, unique
-from typing import Optional
 
 from saml2 import BINDING_HTTP_POST
 
@@ -55,7 +54,7 @@ class IdPAction(str, Enum):
     FINISHED = "FINISHED"
 
 
-def lookup_user(username: str, managed_account_allowed: bool = False) -> Optional[IdPUser]:
+def lookup_user(username: str, managed_account_allowed: bool = False) -> IdPUser | None:
     """
     Lookup a user by username in both central userdb and in managed account db
     """

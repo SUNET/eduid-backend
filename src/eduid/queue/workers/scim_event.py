@@ -1,7 +1,8 @@
 import asyncio
 import json
 import logging
-from typing import Any, Mapping, Optional, cast
+from collections.abc import Mapping
+from typing import Any, cast
 
 import httpx
 
@@ -48,13 +49,14 @@ class ScimEventQueueWorker(QueueWorker):
 
     async def send_scim_notification(self, data: EduidSCIMAPINotification) -> Status:
         logger.debug(f"send_scim_notification: {data}")
-        r = httpx.post(data.post_url, json=json.loads(data.message))
-        logger.debug(f"send_scim_notification: HTTPX result: {r}")
+        async with httpx.AsyncClient() as client:
+            r = client.post(data.post_url, json=json.loads(data.message))
+            logger.debug(f"send_scim_notification: HTTPX result: {r}")
         return Status(success=True, message="OK")
 
 
 def init_scim_event_worker(
-    name: str = "scim_event_worker", test_config: Optional[Mapping[str, Any]] = None
+    name: str = "scim_event_worker", test_config: Mapping[str, Any] | None = None
 ) -> ScimEventQueueWorker:
     config = load_config(typ=QueueWorkerConfig, app_name=name, ns="queue", test_config=test_config)
     return ScimEventQueueWorker(config=config)

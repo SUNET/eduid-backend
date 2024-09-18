@@ -3,8 +3,9 @@ import os
 import stat
 from abc import ABC
 from binascii import unhexlify
+from collections.abc import Mapping
 from hashlib import sha1
-from typing import Any, Mapping, Optional
+from typing import Any
 
 import pyhsm
 import yaml
@@ -98,7 +99,7 @@ class VCCSSoftHasher(VCCSHasher):
         self.debug = debug
         # Covert keys from strings to bytes when loading
         self.keys: dict[int, bytes] = {}
-        self._temp_key: Optional[bytes] = None
+        self._temp_key: bytes | None = None
         for k, v in keys.items():
             self.keys[k] = unhexlify(v)
 
@@ -108,7 +109,7 @@ class VCCSSoftHasher(VCCSHasher):
     def info(self) -> Any:
         return f"key handles loaded: {list(self.keys.keys())}"
 
-    async def hmac_sha1(self, key_handle: Optional[int], data: bytes) -> bytes:
+    async def hmac_sha1(self, key_handle: int | None, data: bytes) -> bytes:
         """
         Perform HMAC-SHA-1 operation using YubiHSM.
 
@@ -120,7 +121,7 @@ class VCCSSoftHasher(VCCSHasher):
         finally:
             await self.lock_release()
 
-    def unsafe_hmac_sha1(self, key_handle: Optional[int], data: bytes) -> bytes:
+    def unsafe_hmac_sha1(self, key_handle: int | None, data: bytes) -> bytes:
         if key_handle is None:
             if not self._temp_key:
                 raise RuntimeError("No key handle provided, and no temp key loaded")

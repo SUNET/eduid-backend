@@ -1,6 +1,7 @@
+from collections.abc import Mapping
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from typing import Any, Mapping, Optional
+from typing import Any
 
 from bson import ObjectId
 
@@ -14,7 +15,7 @@ __author__ = "lundberg"
 class Status:
     success: bool
     retry: bool = False
-    message: Optional[str] = None
+    message: str | None = None
 
 
 @dataclass(frozen=True)
@@ -38,8 +39,8 @@ class QueueItem:
     payload: Payload
     item_id: ObjectId = field(default_factory=ObjectId)
     created_ts: datetime = field(default_factory=datetime.utcnow)
-    processed_by: Optional[str] = None
-    processed_ts: Optional[datetime] = None
+    processed_by: str | None = None
+    processed_ts: datetime | None = None
     retries: int = 0
 
     def to_dict(self) -> TUserDbDocument:

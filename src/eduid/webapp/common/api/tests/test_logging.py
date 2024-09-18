@@ -1,4 +1,5 @@
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 from eduid.common.config.base import EduIDBaseAppConfig
 from eduid.common.logging import merge_config

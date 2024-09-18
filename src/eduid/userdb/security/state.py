@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import copy
 import datetime
-from typing import Any, Mapping, Optional, TypeVar
+from collections.abc import Mapping
+from typing import Any, TypeVar
 
 import bson
 from pydantic import BaseModel, ConfigDict, Field
@@ -21,9 +22,9 @@ class PasswordResetState(BaseModel):
     eppn: str = Field(alias="eduPersonPrincipalName")
     state_id: bson.ObjectId = Field(default_factory=lambda: bson.ObjectId(), alias="_id")
     created_ts: datetime.datetime = Field(default_factory=lambda: utc_now())
-    modified_ts: Optional[datetime.datetime] = None
-    extra_security: Optional[dict[str, Any]] = None
-    generated_password: Optional[str] = None
+    modified_ts: datetime.datetime | None = None
+    extra_security: dict[str, Any] | None = None
+    generated_password: str | None = None
     model_config = ConfigDict(
         populate_by_name=True, validate_assignment=True, extra="forbid", arbitrary_types_allowed=True
     )

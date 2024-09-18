@@ -1,5 +1,4 @@
 from binascii import unhexlify
-from typing import Union
 
 from ndnkdf import NDNKDF
 
@@ -46,7 +45,7 @@ async def calculate_cred_hash(
     """
     # Lock down key usage & credential to auth
     T1 = b""
-    _components: list[Union[str, bytes]] = ["A", user_id, cred.credential_id, unhexlify(H1)]
+    _components: list[str | bytes] = ["A", user_id, cred.credential_id, unhexlify(H1)]
     for this in _components:
         # Turn strings into bytes
         if isinstance(this, str):

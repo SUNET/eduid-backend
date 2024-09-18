@@ -5,7 +5,7 @@ import logging
 from datetime import datetime
 from enum import Enum, unique
 from operator import itemgetter
-from typing import Any, Optional, TypeVar, Union, cast
+from typing import Any, TypeVar, cast
 
 import bson
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -48,27 +48,27 @@ class User(BaseModel):
     meta: Meta = Field(default_factory=Meta)
     eppn: str = Field(alias="eduPersonPrincipalName")
     user_id: bson.ObjectId = Field(default_factory=bson.ObjectId, alias="_id")
-    given_name: Optional[str] = Field(default=None, alias="givenName")
-    chosen_given_name: Optional[str] = None
-    surname: Optional[str] = None
-    legal_name: Optional[str] = None
-    subject: Optional[SubjectType] = None
+    given_name: str | None = Field(default=None, alias="givenName")
+    chosen_given_name: str | None = None
+    surname: str | None = None
+    legal_name: str | None = None
+    subject: SubjectType | None = None
     # TODO: Move language in to settings and set the initial value in signup flow based in browser language
-    language: Optional[str] = Field(default=None, alias="preferredLanguage")
+    language: str | None = Field(default=None, alias="preferredLanguage")
     mail_addresses: MailAddressList = Field(default_factory=MailAddressList, alias="mailAliases")
     phone_numbers: PhoneNumberList = Field(default_factory=PhoneNumberList, alias="phone")
     credentials: CredentialList = Field(default_factory=CredentialList, alias="passwords")
     identities: IdentityList = Field(default_factory=IdentityList)
-    modified_ts: Optional[datetime] = None  # TODO: remove after meta.modified_ts is used
+    modified_ts: datetime | None = None  # TODO: remove after meta.modified_ts is used
     entitlements: list[str] = Field(default_factory=list, alias="eduPersonEntitlement")
     tou: ToUList = Field(default_factory=ToUList)
-    terminated: Optional[datetime] = None
+    terminated: datetime | None = None
     locked_identity: LockedIdentityList = Field(default_factory=LockedIdentityList)
-    orcid: Optional[Orcid] = None
-    ladok: Optional[Ladok] = None
+    orcid: Orcid | None = None
+    ladok: Ladok | None = None
     profiles: ProfileList = Field(default_factory=ProfileList)
-    letter_proofing_data: Optional[Union[list, dict]] = None  # remove dict after a full load-save-users
-    revoked_ts: Optional[datetime] = None
+    letter_proofing_data: list | dict | None = None  # remove dict after a full load-save-users
+    revoked_ts: datetime | None = None
     preferences: UserPreferences = Field(default_factory=UserPreferences)
     model_config = ConfigDict(
         populate_by_name=True, validate_assignment=True, extra="forbid", arbitrary_types_allowed=True
@@ -384,7 +384,7 @@ class User(BaseModel):
         return LockedIdentityList.from_list_of_dicts(_locked_identity)
 
     @classmethod
-    def _parse_orcid(cls, data: dict[str, Any]) -> Optional[Orcid]:
+    def _parse_orcid(cls, data: dict[str, Any]) -> Orcid | None:
         """
         Parse the Orcid element.
         """
@@ -394,7 +394,7 @@ class User(BaseModel):
         return None
 
     @classmethod
-    def _parse_ladok(cls, data: dict[str, Any]) -> Optional[Ladok]:
+    def _parse_ladok(cls, data: dict[str, Any]) -> Ladok | None:
         """
         Parse the Ladok element.
         """

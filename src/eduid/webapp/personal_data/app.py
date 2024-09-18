@@ -1,4 +1,5 @@
-from typing import Any, Mapping, Optional, cast
+from collections.abc import Mapping
+from typing import Any, cast
 
 from flask import current_app
 
@@ -24,7 +25,7 @@ class PersonalDataApp(AuthnBaseApp):
 current_pdata_app: PersonalDataApp = cast(PersonalDataApp, current_app)
 
 
-def pd_init_app(name: str = "personal_data", test_config: Optional[Mapping[str, Any]] = None) -> PersonalDataApp:
+def pd_init_app(name: str = "personal_data", test_config: Mapping[str, Any] | None = None) -> PersonalDataApp:
     """
     Create an instance of an eduid personal data app.
 

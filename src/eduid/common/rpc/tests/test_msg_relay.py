@@ -1,5 +1,6 @@
 import unittest
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest

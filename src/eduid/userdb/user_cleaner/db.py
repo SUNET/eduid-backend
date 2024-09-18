@@ -1,5 +1,4 @@
 import logging
-from typing import Optional
 
 import pymongo
 
@@ -35,7 +34,7 @@ class CleanerQueueDB(UserDB[CleanerQueueUser]):
     def user_from_dict(cls, data: TUserDbDocument) -> CleanerQueueUser:
         return CleanerQueueUser.from_dict(data)
 
-    def get_next_user(self, cleaner_type: CleanerType) -> Optional[CleanerQueueUser]:
+    def get_next_user(self, cleaner_type: CleanerType) -> CleanerQueueUser | None:
         doc = self._coll.find_one_and_delete(
             filter={"cleaner_type": cleaner_type}, sort=[("meta.created_ts", pymongo.ASCENDING)]
         )

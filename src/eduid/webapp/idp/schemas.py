@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any
 
 from marshmallow import Schema, ValidationError, fields
 
@@ -77,7 +77,7 @@ class MfaAuthResponseSchema(FluxStandardAction):
 class ToUVersions(fields.Field):
     """Handle list of ToU versions available in the frontend both as comma-separated string (bug) and as list"""
 
-    def _deserialize(self, value: Any, attr: Optional[str], data: Any, **kwargs) -> Optional[list[str]]:
+    def _deserialize(self, value: Any, attr: str | None, data: Any, **kwargs) -> list[str] | None:
         if value is None:
             return None
         if isinstance(value, str):

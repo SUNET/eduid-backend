@@ -1,5 +1,4 @@
 from datetime import timedelta
-from typing import Optional
 
 from fido2.webauthn import AttestationConveyancePreference
 from fido_mds.models.fido_mds import AuthenticatorStatus
@@ -45,7 +44,7 @@ class SecurityConfig(
     webauthn_proofing_method: str = Field(default="webauthn metadata")
     webauthn_proofing_version: str = Field(default="2022v1")
     webauthn_max_allowed_tokens: int = 10
-    webauthn_attestation: Optional[AttestationConveyancePreference] = None
+    webauthn_attestation: AttestationConveyancePreference | None = None
     webauthn_allowed_user_verification_methods: list[str] = Field(
         default=[
             "faceprint_internal",

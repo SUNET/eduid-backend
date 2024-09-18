@@ -1,10 +1,11 @@
 import json
 import logging
 import unittest
+from collections.abc import Mapping
 from copy import copy
 from dataclasses import asdict
 from datetime import datetime, timedelta
-from typing import Any, Mapping, Optional
+from typing import Any
 
 from bson import ObjectId
 
@@ -189,7 +190,7 @@ class TestInviteResource(ScimApiTestCase):
             "profiles": {"student": {"attributes": {"displayName": "Test"}, "data": {}}},
         }
 
-    def add_invite(self, data: Optional[dict[str, Any]] = None, update: bool = False) -> ScimApiInvite:
+    def add_invite(self, data: dict[str, Any] | None = None, update: bool = False) -> ScimApiInvite:
         invite_data = self.invite_data
         if data:
             invite_data = data
@@ -284,9 +285,9 @@ class TestInviteResource(ScimApiTestCase):
         start: int = 1,
         count: int = 10,
         return_json: bool = False,
-        expected_invite: Optional[ScimApiInvite] = None,
-        expected_num_resources: Optional[int] = None,
-        expected_total_results: Optional[int] = None,
+        expected_invite: ScimApiInvite | None = None,
+        expected_num_resources: int | None = None,
+        expected_total_results: int | None = None,
     ):
         logger.info(f"Searching for group(s) using filter {repr(filter)}")
         req = {

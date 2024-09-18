@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
 import logging
 from datetime import datetime
-from typing import Optional
 
 from dateutil.parser import parse as dt_parse
 from pydantic import BaseModel, model_validator
@@ -17,7 +15,7 @@ class BaseSessionInfo(BaseModel):
     authn_info: list[tuple[str, list[str], str]]
 
     @property
-    def authn_context(self) -> Optional[str]:
+    def authn_context(self) -> str | None:
         try:
             return self.authn_info[0][0]
         except KeyError:

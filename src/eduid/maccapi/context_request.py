@@ -1,11 +1,9 @@
-from typing import Optional
-
 from eduid.common.fastapi.context_request import Context, ContextRequestRoute
 
 
 class MaccAPIContext(Context):
-    manager_eppn: Optional[str] = None
-    data_owner: Optional[str] = None
+    manager_eppn: str | None = None
+    data_owner: str | None = None
 
 
 class MaccAPIRoute(ContextRequestRoute):

@@ -3,9 +3,10 @@ from __future__ import annotations
 import copy
 import logging
 import uuid
+from collections.abc import Mapping
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from typing import Any, Mapping, Optional
+from typing import Any
 
 from bson import ObjectId
 
@@ -34,7 +35,7 @@ class ScimApiUser(ScimApiResourceBase):
     name: ScimApiName = field(default_factory=lambda: ScimApiName())
     emails: list[ScimApiEmail] = field(default_factory=list)
     phone_numbers: list[ScimApiPhoneNumber] = field(default_factory=list)
-    preferred_language: Optional[str] = None
+    preferred_language: str | None = None
     profiles: dict[str, ScimApiProfile] = field(default_factory=dict)
     linked_accounts: list[ScimApiLinkedAccount] = field(default_factory=list)
 
@@ -130,20 +131,20 @@ class ScimApiUserDB(ScimApiBaseDB):
     def remove(self, user: ScimApiUser):
         return self.remove_document(user.user_id)
 
-    def get_user_by_scim_id(self, scim_id: str) -> Optional[ScimApiUser]:
+    def get_user_by_scim_id(self, scim_id: str) -> ScimApiUser | None:
         doc = self._get_document_by_attr("scim_id", scim_id)
         if doc:
             return ScimApiUser.from_dict(doc)
         return None
 
-    def get_user_by_external_id(self, external_id: str) -> Optional[ScimApiUser]:
+    def get_user_by_external_id(self, external_id: str) -> ScimApiUser | None:
         doc = self._get_document_by_attr("external_id", external_id)
         if doc:
             return ScimApiUser.from_dict(doc)
         return None
 
     def get_users_by_last_modified(
-        self, operator: str, value: datetime, limit: Optional[int] = None, skip: Optional[int] = None
+        self, operator: str, value: datetime, limit: int | None = None, skip: int | None = None
     ) -> tuple[list[ScimApiUser], int]:
         mongo_operator = self._get_mongo_operator(operator)
         spec = {"last_modified": {mongo_operator: value}}
@@ -157,8 +158,8 @@ class ScimApiUserDB(ScimApiBaseDB):
         key: str,
         operator: str,
         value: datetime,
-        limit: Optional[int] = None,
-        skip: Optional[int] = None,
+        limit: int | None = None,
+        skip: int | None = None,
     ) -> tuple[list[ScimApiUser], int]:
         mongo_operator = self._get_mongo_operator(operator)
         spec = {f"profiles.{profile}.data.{key}": {mongo_operator: value}}

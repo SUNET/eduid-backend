@@ -1,6 +1,5 @@
 import logging
 from enum import Enum
-from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
@@ -35,40 +34,40 @@ class CaseInformation(NavetModelConfig):
 
 
 class Name(NavetModelConfig):
-    given_name_marking: Optional[str] = Field(default=None, alias="GivenNameMarking")
-    given_name: Optional[str] = Field(default=None, alias="GivenName")
-    middle_name: Optional[str] = Field(default=None, alias="MiddleName")
-    surname: Optional[str] = Field(default=None, alias="Surname")
-    notification_name: Optional[str] = Field(default=None, alias="NotificationName")
+    given_name_marking: str | None = Field(default=None, alias="GivenNameMarking")
+    given_name: str | None = Field(default=None, alias="GivenName")
+    middle_name: str | None = Field(default=None, alias="MiddleName")
+    surname: str | None = Field(default=None, alias="Surname")
+    notification_name: str | None = Field(default=None, alias="NotificationName")
 
 
 class RelationName(NavetModelConfig):
-    given_name_marking: Optional[str] = Field(default=None, alias="GivenNameMarking")
-    given_name: Optional[str] = Field(default=None, alias="GivenName")
-    middle_name: Optional[str] = Field(default=None, alias="MiddleName")
-    surname: Optional[str] = Field(default=None, alias="Surname")
-    notification_name: Optional[str] = Field(default=None, alias="NotificationName")
+    given_name_marking: str | None = Field(default=None, alias="GivenNameMarking")
+    given_name: str | None = Field(default=None, alias="GivenName")
+    middle_name: str | None = Field(default=None, alias="MiddleName")
+    surname: str | None = Field(default=None, alias="Surname")
+    notification_name: str | None = Field(default=None, alias="NotificationName")
 
 
 class PersonId(NavetModelConfig):
-    national_identity_number: Optional[str] = Field(default=None, alias="NationalIdentityNumber")
-    co_ordination_number: Optional[str] = Field(default=None, alias="CoOrdinationNumber")
+    national_identity_number: str | None = Field(default=None, alias="NationalIdentityNumber")
+    co_ordination_number: str | None = Field(default=None, alias="CoOrdinationNumber")
 
 
 class OfficialAddress(NavetModelConfig):
-    care_of: Optional[str] = Field(default=None, alias="CareOf")
+    care_of: str | None = Field(default=None, alias="CareOf")
     # From Skatteverket's documentation it is not clear why Address1
     # is needed. In practice, it is rarely used, but when actually
     # used it has been seen to often contains apartment numbers.
-    address1: Optional[str] = Field(default=None, alias="Address1")
-    address2: Optional[str] = Field(default=None, alias="Address2")
-    postal_code: Optional[str] = Field(default=None, alias="PostalCode")
-    city: Optional[str] = Field(default=None, alias="City")
+    address1: str | None = Field(default=None, alias="Address1")
+    address2: str | None = Field(default=None, alias="Address2")
+    postal_code: str | None = Field(default=None, alias="PostalCode")
+    city: str | None = Field(default=None, alias="City")
 
 
 class RelationId(NavetModelConfig):
-    national_identity_number: Optional[str] = Field(default=None, alias="NationalIdentityNumber")
-    birth_time_number: Optional[str] = Field(default=None, alias="BirthTimeNumber")
+    national_identity_number: str | None = Field(default=None, alias="NationalIdentityNumber")
+    birth_time_number: str | None = Field(default=None, alias="BirthTimeNumber")
 
 
 class RelationType(str, Enum):
@@ -85,10 +84,10 @@ class RelationType(str, Enum):
 class Relation(NavetModelConfig):
     name: RelationName = Field(default_factory=RelationName, alias="Name")
     relation_id: RelationId = Field(alias="RelationId")
-    relation_type: Optional[RelationType] = Field(default=None, alias="RelationType")
-    relation_start_date: Optional[str] = Field(default=None, alias="RelationStartDate")
-    relation_end_date: Optional[str] = Field(default=None, alias="RelationEndDate")
-    status: Optional[str] = Field(default=None, alias="Status")
+    relation_type: RelationType | None = Field(default=None, alias="RelationType")
+    relation_start_date: str | None = Field(default=None, alias="RelationStartDate")
+    relation_end_date: str | None = Field(default=None, alias="RelationEndDate")
+    status: str | None = Field(default=None, alias="Status")
 
 
 class PostalAddresses(NavetModelConfig):
@@ -111,15 +110,15 @@ class DeregisteredCauseCode(str, Enum):
 
 
 class DeregistrationInformation(NavetModelConfig):
-    date: Optional[str] = None
-    cause_code: Optional[DeregisteredCauseCode] = Field(default=None, alias="causeCode")
+    date: str | None = None
+    cause_code: DeregisteredCauseCode | None = Field(default=None, alias="causeCode")
 
 
 class Person(NavetModelConfig):
     name: Name = Field(default_factory=Name, alias="Name")
     person_id: PersonId = Field(alias="PersonId")
     deregistration_information: DeregistrationInformation = Field(alias="DeregistrationInformation")
-    reference_national_identity_number: Optional[str] = Field(default=None, alias="ReferenceNationalIdentityNumber")
+    reference_national_identity_number: str | None = Field(default=None, alias="ReferenceNationalIdentityNumber")
     postal_addresses: PostalAddresses = Field(alias="PostalAddresses")
     relations: list[Relation] = Field(default_factory=list, alias="Relations")
 

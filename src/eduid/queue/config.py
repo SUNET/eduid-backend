@@ -1,4 +1,4 @@
-from typing import Sequence
+from collections.abc import Sequence
 
 from eduid.common.config.base import EduidEnvironment, LoggingConfigMixin, LoggingFilters, RootConfig
 

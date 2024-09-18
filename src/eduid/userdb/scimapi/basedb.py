@@ -1,4 +1,5 @@
-from typing import Any, Mapping, Optional
+from collections.abc import Mapping
+from typing import Any
 
 from eduid.userdb.db import BaseDB, TUserDbDocument
 
@@ -9,9 +10,9 @@ class ScimApiBaseDB(BaseDB):
     def _get_documents_and_count_by_filter(
         self,
         spec: Mapping[str, Any],
-        fields: Optional[dict[str, Any]] = None,
-        limit: Optional[int] = None,
-        skip: Optional[int] = None,
+        fields: dict[str, Any] | None = None,
+        limit: int | None = None,
+        skip: int | None = None,
     ) -> tuple[list[TUserDbDocument], int]:
         """
         Locate and count documents in the db using a custom search filter.

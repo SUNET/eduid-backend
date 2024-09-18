@@ -4,10 +4,11 @@ This module provides utility functions.
 
 import os
 from collections import OrderedDict
-from typing import Any, Mapping, Optional
+from collections.abc import Mapping
+from typing import Any
 
 
-def is_deregistered(person: Optional[dict[str, Any]]) -> bool:
+def is_deregistered(person: dict[str, Any] | None) -> bool:
     if person is None:
         return False
     deregistration_information = person["DeregistrationInformation"]
@@ -35,7 +36,7 @@ def load_template(template_dir: str, filename: str, message_dict: Mapping[str, s
     raise RuntimeError("template not found")
 
 
-def navet_get_name_and_official_address(navet_data: Optional[dict[str, Any]]) -> Optional[OrderedDict[str, Any]]:
+def navet_get_name_and_official_address(navet_data: dict[str, Any] | None) -> OrderedDict[str, Any] | None:
     """
     :param navet_data:  Loaded JSON response from eduid-navet_service
     :return: Name and official address data objects
@@ -54,7 +55,7 @@ def navet_get_name_and_official_address(navet_data: Optional[dict[str, Any]]) ->
     return None
 
 
-def navet_get_relations(navet_data: Optional[dict[str, Any]]) -> Optional[OrderedDict[str, Any]]:
+def navet_get_relations(navet_data: dict[str, Any] | None) -> OrderedDict[str, Any] | None:
     """
     :param navet_data:  Loaded JSON response from eduid-navet_service
     :return: Relations data object
@@ -71,7 +72,7 @@ def navet_get_relations(navet_data: Optional[dict[str, Any]]) -> Optional[Ordere
     return None
 
 
-def navet_get_person(navet_data: Optional[dict[str, Any]]) -> Optional[OrderedDict[str, Any]]:
+def navet_get_person(navet_data: dict[str, Any] | None) -> OrderedDict[str, Any] | None:
     """
     :param navet_data: Loaded JSON response from eduid-navet_service
     :return: Personpost
@@ -111,7 +112,7 @@ def navet_get_person(navet_data: Optional[dict[str, Any]]) -> Optional[OrderedDi
     return None
 
 
-def navet_get_all_data(navet_data: Optional[dict[str, Any]]) -> Optional[OrderedDict[str, Any]]:
+def navet_get_all_data(navet_data: dict[str, Any] | None) -> OrderedDict[str, Any] | None:
     """
     :param navet_data: Loaded JSON response from eduid-navet_service
     :return: all available data from Navet

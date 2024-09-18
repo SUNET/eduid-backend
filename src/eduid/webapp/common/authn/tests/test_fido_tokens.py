@@ -1,7 +1,8 @@
 import base64
 import json
+from collections.abc import Mapping
 from copy import deepcopy
-from typing import Any, Mapping
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 from flask import Blueprint, current_app, request

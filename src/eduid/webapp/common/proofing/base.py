@@ -1,6 +1,6 @@
 from abc import ABC
 from dataclasses import dataclass
-from typing import Generic, Optional, TypeVar
+from typing import Generic, TypeVar
 
 from eduid.common.config.base import ProofingConfigMixin
 from eduid.common.rpc.exceptions import AmTaskFailed
@@ -20,26 +20,26 @@ SessionInfoVar = TypeVar("SessionInfoVar")
 
 @dataclass
 class MatchResult:
-    error: Optional[TranslatableMsg] = None
+    error: TranslatableMsg | None = None
     matched: bool = False
-    credential_used: Optional[ElementKey] = None
+    credential_used: ElementKey | None = None
 
 
 @dataclass
 class VerifyUserResult:
-    user: Optional[User] = None
-    error: Optional[TranslatableMsg] = None
+    user: User | None = None
+    error: TranslatableMsg | None = None
 
 
 @dataclass
 class VerifyCredentialResult(VerifyUserResult):
-    credential: Optional[Credential] = None
+    credential: Credential | None = None
 
 
 @dataclass
 class ProofingElementResult:
-    data: Optional[ProofingLogElement] = None
-    error: Optional[TranslatableMsg] = None
+    data: ProofingLogElement | None = None
+    error: TranslatableMsg | None = None
 
 
 @dataclass()
@@ -49,13 +49,13 @@ class ProofingFunctions(ABC, Generic[SessionInfoVar]):
     config: ProofingConfigMixin
     backdoor: bool
 
-    def get_identity(self, user: User) -> Optional[IdentityElement]:
+    def get_identity(self, user: User) -> IdentityElement | None:
         raise NotImplementedError("Subclass must implement get_identity")
 
     def verify_identity(self, user: User) -> VerifyUserResult:
         raise NotImplementedError("Subclass must implement verify_identity")
 
-    def verify_credential(self, user: User, credential: Credential, loa: Optional[str]) -> VerifyCredentialResult:
+    def verify_credential(self, user: User, credential: Credential, loa: str | None) -> VerifyCredentialResult:
         proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
 
         mark_result = self.mark_credential_as_verified(credential, loa)
@@ -103,5 +103,5 @@ class ProofingFunctions(ABC, Generic[SessionInfoVar]):
     def credential_proofing_element(self, user: User, credential: Credential) -> ProofingElementResult:
         raise NotImplementedError("Subclass must implement credential_proofing_element")
 
-    def mark_credential_as_verified(self, credential: Credential, loa: Optional[str]) -> VerifyCredentialResult:
+    def mark_credential_as_verified(self, credential: Credential, loa: str | None) -> VerifyCredentialResult:
         raise NotImplementedError("Subclass must implement mark_credential_as_verified")

@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import copy
 import datetime
+from collections.abc import Mapping
 from dataclasses import asdict, dataclass, field, fields
 from enum import Enum, unique
-from typing import Any, Mapping, Optional
+from typing import Any
 
 import bson
 
@@ -29,7 +30,7 @@ class GroupInviteState:
     id: bson.ObjectId = field(default_factory=bson.ObjectId)
     # Timestamp of last modification in the database.
     # None if GroupInviteState has never been written to the database.
-    modified_ts: Optional[datetime.datetime] = None
+    modified_ts: datetime.datetime | None = None
 
     @classmethod
     def from_dict(cls, data: Mapping[str, Any]) -> GroupInviteState:

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 import uuid
-from typing import Optional, Union
 
 from fastapi import Request, status
 from fastapi.encoders import jsonable_encoder
@@ -22,10 +21,10 @@ class MaxRetriesReached(Exception):
 
 
 class ErrorDetail(BaseModel):
-    scimType: Optional[str] = None
+    scimType: str | None = None
     schemas: list[str] = [SCIMSchema.ERROR.value]
-    detail: Optional[Union[str, dict, list]] = None
-    status: Optional[int] = None
+    detail: str | dict | list | None = None
+    status: int | None = None
 
 
 class SCIMErrorResponse(JSONResponse):
@@ -67,22 +66,22 @@ class HTTPErrorDetail(Exception):
     def __init__(
         self,
         status_code: int,
-        detail: Optional[str] = None,
-        schemas: Optional[list[str]] = None,
-        scim_type: Optional[str] = None,
+        detail: str | None = None,
+        schemas: list[str] | None = None,
+        scim_type: str | None = None,
     ):
         if schemas is None:
             schemas = [SCIMSchema.ERROR.value]
 
         self._error_detail = ErrorDetail(scimType=scim_type, schemas=schemas, detail=detail, status=status_code)
-        self._extra_headers: Optional[dict] = None
+        self._extra_headers: dict | None = None
 
     @property
     def error_detail(self) -> ErrorDetail:
         return self._error_detail
 
     @property
-    def extra_headers(self) -> Optional[dict]:
+    def extra_headers(self) -> dict | None:
         return self._extra_headers
 
     @extra_headers.setter

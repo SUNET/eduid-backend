@@ -1,8 +1,9 @@
 import math
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import timedelta
 from enum import unique
-from typing import Any, Mapping, Optional, Union
+from typing import Any
 
 from flask import render_template
 
@@ -85,13 +86,13 @@ class ResetPwMsg(TranslatableMsg):
 
 
 class StateException(Exception):
-    def __init__(self, msg: Optional[TranslatableMsg] = None):
+    def __init__(self, msg: TranslatableMsg | None = None):
         self.msg = msg
 
 
 @dataclass
 class ResetPasswordContext:
-    state: Union[ResetPasswordEmailState, ResetPasswordEmailAndPhoneState]
+    state: ResetPasswordEmailState | ResetPasswordEmailAndPhoneState
     user: User
 
 
@@ -113,7 +114,7 @@ def get_context(email_code: str) -> ResetPasswordContext:
     return ResetPasswordContext(state=state, user=user)
 
 
-def get_pwreset_state(email_code: str) -> Union[ResetPasswordEmailState, ResetPasswordEmailAndPhoneState]:
+def get_pwreset_state(email_code: str) -> ResetPasswordEmailState | ResetPasswordEmailAndPhoneState:
     """
     get the password reset state for the provided code
 
@@ -230,7 +231,7 @@ def generate_suggested_password(password_length: int) -> str:
 
 
 def extra_security_used(
-    state: Union[ResetPasswordEmailState, ResetPasswordEmailAndPhoneState], mfa_used: bool = False
+    state: ResetPasswordEmailState | ResetPasswordEmailAndPhoneState, mfa_used: bool = False
 ) -> bool:
     """
     Check if any extra security method was used
@@ -276,7 +277,7 @@ def unverify_user(user: ResetPasswordUser) -> None:
 
 def reset_user_password(
     user: User,
-    state: Union[ResetPasswordEmailState, ResetPasswordEmailAndPhoneState],
+    state: ResetPasswordEmailState | ResetPasswordEmailAndPhoneState,
     password: str,
     mfa_used: bool = False,
 ) -> FluxData:
@@ -423,7 +424,7 @@ def send_verify_phone_code(state: ResetPasswordEmailState, phone_number: str):
     current_app.logger.debug(f"Phone number: {phone_state.phone_number}")
 
 
-def send_sms(phone_number: str, text_template: str, reference: str, context: Optional[Mapping[str, Any]] = None):
+def send_sms(phone_number: str, text_template: str, reference: str, context: Mapping[str, Any] | None = None):
     """
     :param phone_number: the recipient of the sms
     :param text_template: message as a jinja template

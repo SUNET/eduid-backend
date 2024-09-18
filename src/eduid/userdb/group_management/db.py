@@ -1,6 +1,6 @@
 import logging
 from dataclasses import replace
-from typing import Any, Optional
+from typing import Any
 
 from eduid.userdb.db import BaseDB, SaveResult
 from eduid.userdb.group_management.state import GroupInviteState, GroupRole
@@ -20,7 +20,7 @@ class GroupManagementInviteStateDB(BaseDB):
         }
         self.setup_indexes(indexes)
 
-    def get_state(self, group_scim_id: str, email_address: str, role: GroupRole) -> Optional[GroupInviteState]:
+    def get_state(self, group_scim_id: str, email_address: str, role: GroupRole) -> GroupInviteState | None:
         """
         :param group_scim_id: Groups unique identifier
         :param email_address: Invited email address

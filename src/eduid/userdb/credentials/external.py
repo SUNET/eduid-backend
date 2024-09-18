@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from enum import Enum
-from typing import Any, Literal, Mapping, Optional
+from typing import Any, Literal
 
 from bson import ObjectId
 from pydantic import Field, field_validator
@@ -68,7 +69,7 @@ class BankIDCredential(ExternalCredential):
     level: str  # a value like "loa3", "eidas_sub", ...
 
 
-def external_credential_from_dict(data: Mapping[str, Any]) -> Optional[ExternalCredential]:
+def external_credential_from_dict(data: Mapping[str, Any]) -> ExternalCredential | None:
     if data["framework"] == TrustFramework.SWECONN.value:
         return SwedenConnectCredential.from_dict(data)
     if data["framework"] == TrustFramework.EIDAS.value:

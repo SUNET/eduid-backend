@@ -1,4 +1,5 @@
-from typing import Any, Mapping, Optional, cast
+from collections.abc import Mapping
+from typing import Any, cast
 
 from flask import current_app
 
@@ -29,7 +30,7 @@ class EmailApp(AuthnBaseApp):
 current_email_app: EmailApp = cast(EmailApp, current_app)
 
 
-def email_init_app(name: str = "email", test_config: Optional[Mapping[str, Any]] = None) -> EmailApp:
+def email_init_app(name: str = "email", test_config: Mapping[str, Any] | None = None) -> EmailApp:
     """
     Create an instance of an eduid email app.
 

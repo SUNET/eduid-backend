@@ -1,5 +1,3 @@
-from typing import Optional
-
 from flask import Blueprint
 
 from eduid.common.config.base import FrontendAction
@@ -263,7 +261,7 @@ def refresh_user_data(user: User) -> FluxData:
 @UnmarshalWith(AuthnStatusRequestSchema)
 @MarshalWith(AuthnStatusResponseSchema)
 @require_user
-def check_authn_status(user: User, frontend_action: str, credential_id: Optional[ElementKey] = None) -> FluxData:
+def check_authn_status(user: User, frontend_action: str, credential_id: ElementKey | None = None) -> FluxData:
     credential = None
     if credential_id is not None:
         credential = user.credentials.find(credential_id)

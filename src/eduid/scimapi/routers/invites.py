@@ -1,5 +1,4 @@
 from dataclasses import replace
-from typing import Optional
 
 from fastapi import Response
 
@@ -37,7 +36,7 @@ invites_router = APIRouter(
 
 
 @invites_router.get("/{scim_id}", response_model=InviteResponse, response_model_exclude_none=True)
-async def on_get(req: ContextRequest, resp: Response, scim_id: Optional[str] = None) -> InviteResponse:
+async def on_get(req: ContextRequest, resp: Response, scim_id: str | None = None) -> InviteResponse:
     if scim_id is None:
         raise BadRequest(detail="Not implemented")
     req.app.context.logger.info(f"Fetching invite {scim_id}")

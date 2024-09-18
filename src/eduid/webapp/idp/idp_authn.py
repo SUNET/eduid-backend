@@ -6,9 +6,10 @@ such as rate limiting.
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Mapping, Optional, Sequence
+from typing import Any
 
 from bson import ObjectId
 from pydantic import BaseModel, ConfigDict, Field
@@ -44,7 +45,7 @@ class AuthnData(BaseModel):
 
     cred_id: ElementKey
     timestamp: datetime = Field(default_factory=utc_now, alias="authn_ts")  # authn_ts was the old name in the db
-    external: Optional[ExternalAuthnData] = None
+    external: ExternalAuthnData | None = None
     model_config = ConfigDict(populate_by_name=True)
 
     def to_dict(self) -> dict[str, Any]:
@@ -64,7 +65,7 @@ class PasswordAuthnResponse:
     timestamp: datetime = field(default_factory=utc_now)
 
     @property
-    def authndata(self) -> Optional[AuthnData]:
+    def authndata(self) -> AuthnData | None:
         if not self.credential:
             return None
         return AuthnData(cred_id=self.credential.key, timestamp=self.timestamp)
@@ -89,7 +90,7 @@ class IdPAuthn:
         assert config.mongo_uri is not None
         self.authn_store = AuthnInfoStore(uri=config.mongo_uri)
 
-    def password_authn(self, username: str, password: str) -> Optional[PasswordAuthnResponse]:
+    def password_authn(self, username: str, password: str) -> PasswordAuthnResponse | None:
         """
         Authenticate someone using a username and password.
 
@@ -110,7 +111,7 @@ class IdPAuthn:
 
         return PasswordAuthnResponse(user=user, credential=cred)
 
-    def _verify_username_and_password2(self, user: IdPUser, password: str) -> Optional[Password]:
+    def _verify_username_and_password2(self, user: IdPUser, password: str) -> Password | None:
         """
         Attempt to verify that a password is valid for a specific user.
 
@@ -128,9 +129,7 @@ class IdPAuthn:
                 authn_info = self.authn_store.get_user_authn_info(user)
                 if authn_info.failures_this_month > self.config.max_authn_failures_per_month:
                     logger.info(
-                        "User {!r} AuthN failures this month {!r} > {!r}".format(
-                            user, authn_info.failures_this_month, self.config.max_authn_failures_per_month
-                        )
+                        f"User {user!r} AuthN failures this month {authn_info.failures_this_month!r} > {self.config.max_authn_failures_per_month!r}"
                     )
                     raise exceptions.EduidTooManyRequests("Too Many Requests")
 
@@ -147,7 +146,7 @@ class IdPAuthn:
 
         return self._authn_passwords(user, password, pw_credentials)
 
-    def _authn_passwords(self, user: IdPUser, password: str, pw_credentials: Sequence[Password]) -> Optional[Password]:
+    def _authn_passwords(self, user: IdPUser, password: str, pw_credentials: Sequence[Password]) -> Password | None:
         """
         Perform the final actual authentication of a user based on a list of (password) credentials.
 
@@ -257,7 +256,7 @@ class AuthnInfoStore:
         self._db = MongoDB(db_uri=uri, db_name=db_name)
         self.collection = self._db.get_collection(collection_name)
 
-    def credential_success(self, cred_ids: Sequence[str], ts: Optional[datetime] = None) -> None:
+    def credential_success(self, cred_ids: Sequence[str], ts: datetime | None = None) -> None:
         """
         Kantara AL2_CM_CSM#050 requires that any credential that is not used for
         a period of 18 months is disabled (taken to mean revoked).
@@ -281,7 +280,7 @@ class AuthnInfoStore:
         return None
 
     def update_user(
-        self, user_id: ObjectId, success: Sequence[str], failure: Sequence[str], ts: Optional[datetime] = None
+        self, user_id: ObjectId, success: Sequence[str], failure: Sequence[str], ts: datetime | None = None
     ) -> None:
         """
         Log authentication result data for this user.
@@ -317,7 +316,7 @@ class AuthnInfoStore:
         )
         return None
 
-    def unlock_user(self, user_id: ObjectId, fail_count: int = 0, ts: Optional[datetime] = None) -> None:
+    def unlock_user(self, user_id: ObjectId, fail_count: int = 0, ts: datetime | None = None) -> None:
         """
         Set the fail count for a specific user and month.
 
@@ -345,7 +344,7 @@ class AuthnInfoStore:
             return UserAuthnInfo(failures_this_month=0, last_used_credentials=[])
         return UserAuthnInfo.from_dict(docs[0])
 
-    def get_credential_last_used(self, cred_id: str) -> Optional[datetime]:
+    def get_credential_last_used(self, cred_id: str) -> datetime | None:
         """Get the timestamp for when a specific credential was last used successfully.
 
         :return: Time of last successful use, or None
@@ -370,7 +369,7 @@ class UserAuthnInfo:
     last_used_credentials: list[str]
 
     @classmethod
-    def from_dict(cls: type[UserAuthnInfo], data: dict[str, Any], ts: Optional[datetime] = None) -> UserAuthnInfo:
+    def from_dict(cls: type[UserAuthnInfo], data: dict[str, Any], ts: datetime | None = None) -> UserAuthnInfo:
         """Construct element from a data dict in database format."""
         data = dict(data)  # to not modify callers data
 

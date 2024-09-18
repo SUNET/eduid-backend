@@ -59,7 +59,7 @@
 Code handling Single Log Out requests.
 """
 
-from typing import Sequence
+from collections.abc import Sequence
 
 import saml2
 from flask import request

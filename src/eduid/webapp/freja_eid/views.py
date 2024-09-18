@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import Optional
 from urllib.parse import parse_qs, urlparse
 
 from authlib.integrations.base_client import OAuthError
@@ -61,7 +60,7 @@ def get_status(authn_id: OIDCState) -> FluxData:
 @UnmarshalWith(FrejaEIDCommonRequestSchema)
 @MarshalWith(FrejaEIDCommonResponseSchema)
 @require_user
-def verify_identity(user: User, method: str, frontend_action: str, frontend_state: Optional[str] = None) -> FluxData:
+def verify_identity(user: User, method: str, frontend_action: str, frontend_state: str | None = None) -> FluxData:
     res = _authn(FrejaEIDAction.verify_identity, method, frontend_action, frontend_state)
     if res.error:
         current_app.logger.error(f"Failed to start verify identity: {res.error}")
@@ -71,17 +70,17 @@ def verify_identity(user: User, method: str, frontend_action: str, frontend_stat
 
 @dataclass
 class AuthnResult:
-    authn_req: Optional[RP_AuthnRequest] = None
-    authn_id: Optional[OIDCState] = None
-    error: Optional[TranslatableMsg] = None
-    url: Optional[str] = None
+    authn_req: RP_AuthnRequest | None = None
+    authn_id: OIDCState | None = None
+    error: TranslatableMsg | None = None
+    url: str | None = None
 
 
 def _authn(
     action: FrejaEIDAction,
     method: str,
     frontend_action: str,
-    frontend_state: Optional[str] = None,
+    frontend_state: str | None = None,
 ) -> AuthnResult:
     current_app.logger.debug(f"Requested method: {method}, frontend action: {frontend_action}")
 
@@ -137,7 +136,7 @@ def authn_callback(user) -> WerkzeugResponse:
     current_app.logger.debug("authn_callback called")
     current_app.logger.debug(f"request.args: {request.args}")
     authn_req = None
-    oidc_state: Optional[OIDCState] = None
+    oidc_state: OIDCState | None = None
     if "state" in request.args:
         oidc_state = OIDCState(request.args["state"])
     if oidc_state is not None:

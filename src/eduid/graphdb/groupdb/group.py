@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Mapping, Optional, Union
 
 from bson import ObjectId
 
@@ -17,14 +17,14 @@ __author__ = "lundberg"
 class Group:
     identifier: str
     display_name: str
-    version: Optional[ObjectId] = None
-    created_ts: Optional[datetime] = None
-    modified_ts: Optional[datetime] = None
-    owners: set[Union[User, Group]] = field(compare=False, default_factory=set)
-    members: set[Union[User, Group]] = field(compare=False, default_factory=set)
+    version: ObjectId | None = None
+    created_ts: datetime | None = None
+    modified_ts: datetime | None = None
+    owners: set[User | Group] = field(compare=False, default_factory=set)
+    members: set[User | Group] = field(compare=False, default_factory=set)
 
     @staticmethod
-    def _get_user(it: list[User], identifier: str) -> Optional[User]:
+    def _get_user(it: list[User], identifier: str) -> User | None:
         res = [user for user in it if user.identifier == identifier]
         if not res:
             return None
@@ -33,7 +33,7 @@ class Group:
         return res[0]
 
     @staticmethod
-    def _get_group(it: list[Group], identifier: str) -> Optional[Group]:
+    def _get_group(it: list[Group], identifier: str) -> Group | None:
         res = [group for group in it if group.identifier == identifier]
         if not res:
             return None
@@ -57,16 +57,16 @@ class Group:
     def owner_groups(self) -> list[Group]:
         return [item for item in self.owners if isinstance(item, Group)]
 
-    def get_member_user(self, identifier: str) -> Optional[User]:
+    def get_member_user(self, identifier: str) -> User | None:
         return self._get_user(self.member_users, identifier=identifier)
 
-    def get_owner_user(self, identifier: str) -> Optional[User]:
+    def get_owner_user(self, identifier: str) -> User | None:
         return self._get_user(self.owner_users, identifier=identifier)
 
-    def get_member_group(self, identifier: str) -> Optional[Group]:
+    def get_member_group(self, identifier: str) -> Group | None:
         return self._get_group(self.member_groups, identifier=identifier)
 
-    def get_owner_group(self, identifier: str) -> Optional[Group]:
+    def get_owner_group(self, identifier: str) -> Group | None:
         return self._get_group(self.owner_groups, identifier=identifier)
 
     def has_member(self, identifier: str) -> bool:

@@ -1,5 +1,3 @@
-from typing import Union
-
 from pydantic import Field
 
 from eduid.common.clients.oidc_client.base import AuthlibClientConfig
@@ -18,7 +16,7 @@ __author__ = "lundberg"
 class SvipeClientConfig(AuthlibClientConfig):
     acr_values: list[str] = Field(default=["face_present"])
     scopes: list[str] = Field(default=["openid"])
-    claims_request: dict[str, Union[None, dict[str, bool]]] = Field(
+    claims_request: dict[str, None | dict[str, bool]] = Field(
         default={
             "birthdate": {"essential": True},
             "com.svipe:document_administrative_number": {"essential": True},

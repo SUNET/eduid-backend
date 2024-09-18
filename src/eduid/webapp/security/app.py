@@ -1,4 +1,5 @@
-from typing import Any, Mapping, Optional, cast
+from collections.abc import Mapping
+from typing import Any, cast
 
 from fido_mds import FidoMetadataStore
 from flask import current_app
@@ -37,7 +38,7 @@ class SecurityApp(AuthnBaseApp):
 current_security_app: SecurityApp = cast(SecurityApp, current_app)
 
 
-def security_init_app(name: str = "security", test_config: Optional[Mapping[str, Any]] = None) -> SecurityApp:
+def security_init_app(name: str = "security", test_config: Mapping[str, Any] | None = None) -> SecurityApp:
     """
     Create an instance of an eduid security (passwords) app.
 

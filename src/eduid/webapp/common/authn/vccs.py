@@ -1,5 +1,5 @@
 import logging
-from typing import Optional, cast
+from typing import cast
 
 from bson import ObjectId
 
@@ -12,7 +12,7 @@ from eduid.vccs.client import VCCSClient, VCCSClientHTTPError, VCCSPasswordFacto
 logger = logging.getLogger(__name__)
 
 
-def get_vccs_client(vccs_url: Optional[str]) -> VCCSClient:
+def get_vccs_client(vccs_url: str | None) -> VCCSClient:
     """
     Instantiate a VCCS client.
 
@@ -23,8 +23,8 @@ def get_vccs_client(vccs_url: Optional[str]) -> VCCSClient:
 
 
 def check_password(
-    password: str, user: User, vccs_url: Optional[str] = None, vccs: Optional[VCCSClient] = None
-) -> Optional[Password]:
+    password: str, user: User, vccs_url: str | None = None, vccs: VCCSClient | None = None
+) -> Password | None:
     """
     Try to validate a user provided password.
 
@@ -53,8 +53,8 @@ def add_password(
     new_password: str,
     application: str,
     is_generated: bool = False,
-    vccs_url: Optional[str] = None,
-    vccs: Optional[VCCSClient] = None,
+    vccs_url: str | None = None,
+    vccs: VCCSClient | None = None,
 ) -> bool:
     """
     :param user: User object
@@ -91,8 +91,8 @@ def reset_password(
     new_password: str,
     application: str,
     is_generated: bool = False,
-    vccs_url: Optional[str] = None,
-    vccs: Optional[VCCSClient] = None,
+    vccs_url: str | None = None,
+    vccs: VCCSClient | None = None,
 ) -> bool:
     """
     :param user: User object
@@ -133,11 +133,11 @@ def change_password(
     user: User,
     new_password: str,
     application: str,
-    old_password: Optional[str] = None,
-    old_password_id: Optional[str] = None,
+    old_password: str | None = None,
+    old_password_id: str | None = None,
     is_generated: bool = False,
-    vccs_url: Optional[str] = None,
-    vccs: Optional[VCCSClient] = None,
+    vccs_url: str | None = None,
+    vccs: VCCSClient | None = None,
 ) -> bool:
     """
     :param user: User object
@@ -198,12 +198,12 @@ def change_password(
 
 @deprecated
 def add_credentials(
-    old_password: Optional[str],
+    old_password: str | None,
     new_password: str,
     user: User,
     source: str,
-    vccs_url: Optional[str] = None,
-    vccs: Optional[VCCSClient] = None,
+    vccs_url: str | None = None,
+    vccs: VCCSClient | None = None,
 ) -> bool:
     """
     Add a new password to a user. Revokes the old one, if one is given.
@@ -271,10 +271,10 @@ def revoke_password(
     user: User,
     reason: str,
     reference: str,
-    old_password: Optional[Password] = None,
-    old_password_id: Optional[str] = None,
-    vccs_url: Optional[str] = None,
-    vccs: Optional[VCCSClient] = None,
+    old_password: Password | None = None,
+    old_password_id: str | None = None,
+    vccs_url: str | None = None,
+    vccs: VCCSClient | None = None,
 ) -> bool:
     if vccs is None:
         vccs = get_vccs_client(vccs_url)
@@ -304,7 +304,7 @@ def revoke_password(
 
 
 def revoke_passwords(
-    user: User, reason: str, application: str, vccs_url: Optional[str] = None, vccs: Optional[VCCSClient] = None
+    user: User, reason: str, application: str, vccs_url: str | None = None, vccs: VCCSClient | None = None
 ) -> bool:
     """
     :param user: User object
@@ -340,7 +340,7 @@ def revoke_passwords(
 
 @deprecated
 def revoke_all_credentials(
-    user, source="dashboard", vccs_url: Optional[str] = None, vccs: Optional[VCCSClient] = None
+    user, source="dashboard", vccs_url: str | None = None, vccs: VCCSClient | None = None
 ) -> None:
     if vccs is None:
         vccs = get_vccs_client(vccs_url)

@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from typing import Annotated, Any
 
 from bson import ObjectId

@@ -1,5 +1,3 @@
-from typing import Optional
-
 import eduid.workers.lookup_mobile
 
 __author__ = "mathiashedstrom"
@@ -19,7 +17,7 @@ class LookupMobileRelay:
         self._find_NIN_by_mobile = find_NIN_by_mobile
         self._pong = pong
 
-    def find_nin_by_mobile(self, mobile_number: str) -> Optional[str]:
+    def find_nin_by_mobile(self, mobile_number: str) -> str | None:
         try:
             result = self._find_NIN_by_mobile.delay(mobile_number)
             result = result.get(timeout=10)  # Lower timeout than standard gunicorn worker timeout (25)

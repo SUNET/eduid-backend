@@ -1,4 +1,5 @@
-from typing import Any, Mapping, Optional, cast
+from collections.abc import Mapping
+from typing import Any, cast
 
 from flask import current_app
 
@@ -32,7 +33,7 @@ class EidasApp(AuthnBaseApp):
 current_eidas_app: EidasApp = cast(EidasApp, current_app)
 
 
-def init_eidas_app(name: str = "eidas", test_config: Optional[Mapping[str, Any]] = None) -> EidasApp:
+def init_eidas_app(name: str = "eidas", test_config: Mapping[str, Any] | None = None) -> EidasApp:
     """
     Create an instance of an eidas app.
 

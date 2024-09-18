@@ -8,7 +8,7 @@ from __future__ import annotations
 import os
 from abc import ABCMeta
 from sys import stderr
-from typing import TYPE_CHECKING, Any, Optional, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar
 
 from cookies_samesite_compat import CookiesSameSiteCompatMiddleware
 from flask import Flask
@@ -106,7 +106,7 @@ class EduIDBaseApp(Flask, metaclass=ABCMeta):
         self.stats = init_app_stats(config)
         self.session_interface = SessionFactory(config)
 
-        self._central_userdb: Optional[AmDB] = None
+        self._central_userdb: AmDB | None = None
         if init_central_userdb:
             self._central_userdb = AmDB(config.mongo_uri)
 

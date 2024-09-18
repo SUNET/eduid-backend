@@ -1,8 +1,10 @@
 import logging
+from collections.abc import Mapping
 from copy import deepcopy
-from typing import Any, Mapping, Optional, Union
+from typing import Any, TypeAlias
 
 import satosa.internal
+import satosa.response
 from satosa.context import Context
 from satosa.exception import SATOSAAuthenticationError, SATOSAConfigurationError
 from satosa.micro_services.base import RequestMicroService, ResponseMicroService
@@ -13,7 +15,7 @@ logger = logging.getLogger(__name__)
 SupportedACCRsSortedByPrioConfig = list[str]
 LowestAcceptedACCRForVirtualIdpConfig = dict[str, str]
 InternalACCRRewriteMap = Mapping[str, str]
-ProcessReturnType = Union[satosa.internal.InternalData, satosa.response.Response]
+ProcessReturnType: TypeAlias = satosa.internal.InternalData | satosa.response.Response
 
 
 class request(RequestMicroService):
@@ -34,13 +36,13 @@ class request(RequestMicroService):
     """
 
     def __init__(self, config: Mapping[str, Any], internal_attributes: dict[str, Any], *args: Any, **kwargs: Any):
-        self.lowest_accepted_accr_for_virtual_idp: Optional[LowestAcceptedACCRForVirtualIdpConfig] = config.get(
+        self.lowest_accepted_accr_for_virtual_idp: LowestAcceptedACCRForVirtualIdpConfig | None = config.get(
             "lowest_accepted_accr_for_virtual_idp"
         )
         self.supported_accr_sorted_by_prio: SupportedACCRsSortedByPrioConfig = config.get(
             "supported_accr_sorted_by_prio", []
         )
-        self.internal_accr_rewrite_map: Optional[InternalACCRRewriteMap] = config.get("internal_accr_rewrite_map")
+        self.internal_accr_rewrite_map: InternalACCRRewriteMap | None = config.get("internal_accr_rewrite_map")
 
         if self.lowest_accepted_accr_for_virtual_idp:
             for idp, minimum_accr in self.lowest_accepted_accr_for_virtual_idp.items():

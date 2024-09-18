@@ -3,9 +3,10 @@ from __future__ import annotations
 import copy
 import logging
 import uuid
+from collections.abc import Mapping
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from typing import Any, Mapping, Optional
+from typing import Any
 from uuid import UUID
 
 from bson import ObjectId
@@ -34,9 +35,9 @@ class ScimApiInvite(ScimApiResourceBase):
     emails: list[ScimApiEmail] = field(default_factory=list)
     phone_numbers: list[ScimApiPhoneNumber] = field(default_factory=list)
     groups: list[UUID] = field(default_factory=list)
-    nin: Optional[str] = field(default=None)
-    preferred_language: Optional[str] = field(default=None)
-    completed: Optional[datetime] = field(default=None)
+    nin: str | None = field(default=None)
+    preferred_language: str | None = field(default=None)
+    completed: datetime | None = field(default=None)
     profiles: dict[str, ScimApiProfile] = field(default_factory=lambda: {})
 
     def to_dict(self) -> TUserDbDocument:
@@ -109,14 +110,14 @@ class ScimApiInviteDB(ScimApiBaseDB):
     def remove(self, invite: ScimApiInvite):
         return self.remove_document(invite.invite_id)
 
-    def get_invite_by_scim_id(self, scim_id: str) -> Optional[ScimApiInvite]:
+    def get_invite_by_scim_id(self, scim_id: str) -> ScimApiInvite | None:
         docs = self._get_document_by_attr("scim_id", scim_id)
         if docs:
             return ScimApiInvite.from_dict(docs)
         return None
 
     def get_invites_by_last_modified(
-        self, operator: str, value: datetime, limit: Optional[int] = None, skip: Optional[int] = None
+        self, operator: str, value: datetime, limit: int | None = None, skip: int | None = None
     ) -> tuple[list[ScimApiInvite], int]:
         # map SCIM filter operators to mongodb filter
         mongo_operator = {"gt": "$gt", "ge": "$gte"}.get(operator)

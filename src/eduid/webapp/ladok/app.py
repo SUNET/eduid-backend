@@ -1,4 +1,5 @@
-from typing import Any, Mapping, Optional, cast
+from collections.abc import Mapping
+from typing import Any, cast
 
 from flask import current_app
 
@@ -33,7 +34,7 @@ class LadokApp(AuthnBaseApp):
 current_ladok_app: LadokApp = cast(LadokApp, current_app)
 
 
-def init_ladok_app(name: str = "ladok", test_config: Optional[Mapping[str, Any]] = None) -> LadokApp:
+def init_ladok_app(name: str = "ladok", test_config: Mapping[str, Any] | None = None) -> LadokApp:
     """
     Create an instance of an ladok app.
 

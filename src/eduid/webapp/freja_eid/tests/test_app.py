@@ -1,6 +1,6 @@
 import json
 from datetime import date, datetime, timedelta
-from typing import Any, Optional
+from typing import Any
 from unittest.mock import MagicMock, patch
 from urllib.parse import parse_qs, urlparse
 
@@ -143,7 +143,7 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
     @staticmethod
     def get_mock_userinfo(
         issuing_country: Country,
-        personal_identity_number: Optional[str] = "123456789",
+        personal_identity_number: str | None = "123456789",
         registration_level: FrejaRegistrationLevel = FrejaRegistrationLevel.EXTENDED,
         birthdate: date = date(year=1901, month=2, day=3),
         freja_user_id: str = "unique_freja_eid",
@@ -151,8 +151,8 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         given_name: str = "Test",
         family_name: str = "Testsson",
         now: datetime = utc_now(),
-        userinfo_expires: Optional[datetime] = None,
-        document_expires: Optional[datetime] = None,
+        userinfo_expires: datetime | None = None,
+        document_expires: datetime | None = None,
     ) -> FrejaEIDDocumentUserInfo:
         if userinfo_expires is None:
             userinfo_expires = now + timedelta(minutes=5)

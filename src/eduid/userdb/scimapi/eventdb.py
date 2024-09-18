@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Mapping, Optional
+from typing import Any
 from uuid import UUID
 
 from bson import ObjectId
@@ -21,7 +22,7 @@ logger = logging.getLogger(__name__)
 class ScimApiEventResource:
     resource_type: SCIMResourceType
     scim_id: UUID
-    external_id: Optional[str]
+    external_id: str | None
     version: ObjectId
     last_modified: datetime
 
@@ -110,7 +111,7 @@ class ScimApiEventDB(ScimApiBaseDB):
         return result.acknowledged
 
     def get_events_by_resource(
-        self, resource_type: SCIMResourceType, scim_id: Optional[UUID] = None, external_id: Optional[str] = None
+        self, resource_type: SCIMResourceType, scim_id: UUID | None = None, external_id: str | None = None
     ) -> list[ScimApiEvent]:
         filter = {
             "resource.resource_type": resource_type.value,
@@ -125,7 +126,7 @@ class ScimApiEventDB(ScimApiBaseDB):
             return [ScimApiEvent.from_dict(this) for this in docs]
         return []
 
-    def get_event_by_scim_id(self, scim_id: str) -> Optional[ScimApiEvent]:
+    def get_event_by_scim_id(self, scim_id: str) -> ScimApiEvent | None:
         doc = self._get_document_by_attr("scim_id", scim_id)
         if not doc:
             return None

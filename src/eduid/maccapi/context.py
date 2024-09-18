@@ -1,5 +1,4 @@
 import logging
-from typing import Optional
 
 from eduid.common.fastapi.log import init_logging
 from eduid.common.stats import init_app_stats
@@ -11,7 +10,7 @@ from eduid.vccs.client import VCCSClient
 
 
 class Context:
-    def __init__(self, config: MAccApiConfig, vccs_client: Optional[VCCSClient] = None):
+    def __init__(self, config: MAccApiConfig, vccs_client: VCCSClient | None = None):
         self.name = config.app_name
         self.config = config
 

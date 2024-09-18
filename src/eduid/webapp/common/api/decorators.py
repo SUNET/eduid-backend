@@ -1,8 +1,8 @@
 import json
 import logging
-from collections.abc import Awaitable, Mapping
+from collections.abc import Awaitable, Callable, Mapping
 from functools import wraps
-from typing import Any, Callable, Optional, TypeVar, Union, cast
+from typing import Any, TypeVar, cast
 
 from flask import abort, jsonify, request
 from flask.typing import ResponseReturnValue as FlaskResponseReturnValue
@@ -29,14 +29,11 @@ flux_logger = logger.getChild("flux")
 
 
 EduidViewBackwardsCompat = Mapping[str, Any]  # TODO: Make our views stop returning dicts and remove this
-EduidViewResult = Union[FluxData, WerkzeugResponse, EduidViewBackwardsCompat]
+EduidViewResult = FluxData | WerkzeugResponse | EduidViewBackwardsCompat
 # The Flask route decorator first in the chain makes us have to accept the full ResponseReturnValue too
-EduidViewReturnType = Union[
-    EduidViewResult,
-    FlaskResponseReturnValue,
-    Awaitable[EduidViewResult],
-    Awaitable[FlaskResponseReturnValue],
-]
+EduidViewReturnType = (
+    EduidViewResult | FlaskResponseReturnValue | Awaitable[EduidViewResult] | Awaitable[FlaskResponseReturnValue]
+)
 EduidRouteCallable = Callable[..., EduidViewReturnType]
 
 
@@ -148,7 +145,7 @@ class MarshalWith:
             # or in special cases an WerkzeugResponse (e.g. when a redirect is performed).
             ret = f(*args, **kwargs)
 
-            if isinstance(ret, (WerkzeugResponse, FlaskResponse)):
+            if isinstance(ret, WerkzeugResponse | FlaskResponse):
                 # No need to Marshal again, someone else already did that
                 return ret
 
@@ -198,7 +195,7 @@ class UnmarshalWith:
             flux_logger.debug("")
             flux_logger.debug(f"--- New request ({request.path})")
             # silent=True lets get_json return None even if mime-type is not application/json
-            json_data: Optional[Mapping[str, Any]] = request.get_json(silent=True)
+            json_data: Mapping[str, Any] | None = request.get_json(silent=True)
             if json_data is None:
                 json_data = {}
             _data_str = str(json_data)

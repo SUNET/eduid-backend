@@ -1,10 +1,10 @@
+from collections.abc import Mapping
 from datetime import datetime, timezone
-from typing import Mapping, Optional
 
 __author__ = "lundberg"
 
 
-def neo4j_ts_to_dt(data: Mapping) -> Mapping[str, Optional[datetime]]:
+def neo4j_ts_to_dt(data: Mapping) -> Mapping[str, datetime | None]:
     created_ts = data.get("created_ts")
     if isinstance(created_ts, int):
         created_ts = datetime.fromtimestamp(created_ts / 1000)  # Milliseconds since 1970

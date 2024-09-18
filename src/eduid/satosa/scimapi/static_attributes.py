@@ -1,5 +1,6 @@
 import logging
-from typing import Any, Mapping, Optional
+from collections.abc import Mapping
+from typing import Any
 
 import satosa.context
 import satosa.internal
@@ -50,8 +51,8 @@ class AddStaticAttributesForVirtualIdp(ResponseMicroService):
 
     def __init__(self, config: Mapping[str, Any], *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
-        self.static_attributes: Optional[StaticAttributesConfig] = config.get("static_attributes_for_virtual_idp")
-        self.static_appended_attributes: Optional[StaticAppendedAttributesConfig] = config.get(
+        self.static_attributes: StaticAttributesConfig | None = config.get("static_attributes_for_virtual_idp")
+        self.static_appended_attributes: StaticAppendedAttributesConfig | None = config.get(
             "static_appended_attributes_for_virtual_idp"
         )
 

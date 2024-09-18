@@ -1,7 +1,8 @@
 import json
+from collections.abc import Mapping
 from datetime import datetime, timedelta
 from enum import unique
-from typing import Any, Mapping
+from typing import Any
 
 import requests
 from flask import render_template

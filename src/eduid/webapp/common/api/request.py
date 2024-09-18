@@ -15,7 +15,7 @@ of the Flask application::
 """
 
 import logging
-from typing import Any, AnyStr, Optional
+from typing import Any, AnyStr
 
 from flask import abort
 from flask.wrappers import Request as FlaskRequest
@@ -35,7 +35,7 @@ class SanitationMixin(Sanitizer):
     def sanitize_input(
         self,
         untrusted_text: AnyStr,
-        content_type: Optional[str] = None,
+        content_type: str | None = None,
         strip_characters: bool = False,
     ):
         try:
@@ -157,7 +157,7 @@ class SanitizedTypeConversionDict(ImmutableTypeConversionDict, SanitationMixin):
         val = super(ImmutableTypeConversionDict, self).__getitem__(key)
         return self.sanitize_input(str(val))
 
-    def get(self, key, default=None, type=None) -> Optional[Any]:  # type: ignore[override]
+    def get(self, key, default=None, type=None) -> Any | None:  # type: ignore[override]
         """
         Sanitized, type conversion get.
         The value identified by `key` is sanitized, and if `type`

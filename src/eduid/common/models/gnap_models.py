@@ -1,6 +1,6 @@
 from datetime import datetime
 from enum import Enum
-from typing import Any, Optional, Union
+from typing import Any
 
 from pydantic import AnyUrl, BaseModel, ConfigDict, Field, field_validator
 
@@ -37,13 +37,13 @@ class Proof(GnapBaseModel):
 
 class Key(GnapBaseModel):
     proof: Proof
-    jwk: Optional[Union[ECJWK, RSAJWK, SymmetricJWK]] = None
-    cert: Optional[str] = None
-    cert_S256: Optional[str] = Field(default=None, alias="cert#S256")
+    jwk: ECJWK | RSAJWK | SymmetricJWK | None = None
+    cert: str | None = None
+    cert_S256: str | None = Field(default=None, alias="cert#S256")
 
     @field_validator("proof", mode="before")
     @classmethod
-    def expand_proof(cls, v: Union[str, dict[str, Any]]) -> dict[str, Any]:
+    def expand_proof(cls, v: str | dict[str, Any]) -> dict[str, Any]:
         # If additional parameters are not required or used for a specific method,
         # the method MAY be passed as a string instead of an object.
         if isinstance(v, str):
@@ -69,54 +69,54 @@ class Access(GnapBaseModel):
     # The types of actions the client instance will take at the RS as an
     # array of strings.  For example, a client instance asking for a
     # combination of "read" and "write" access.
-    actions: Optional[list[str]] = None
+    actions: list[str] | None = None
     # The location of the RS as an array of strings. These strings are
     # typically URIs identifying the location of the RS.
-    locations: Optional[list[str]] = None
+    locations: list[str] | None = None
     # The kinds of data available to the client instance at the RS's API
     # as an array of strings.  For example, a client instance asking for
     # access to raw "image" data and "metadata" at a photograph API.
-    datatypes: Optional[list[str]] = None
+    datatypes: list[str] | None = None
     # A string identifier indicating a specific resource at the RS. For
     # example, a patient identifier for a medical API or a bank account
     # number for a financial API.
-    identifier: Optional[str] = None
+    identifier: str | None = None
     # The types or levels of privilege being requested at the resource.
     # For example, a client instance asking for administrative level
     # access, or access when the resource owner is no longer online.
-    privileges: Optional[list[str]] = None
+    privileges: list[str] | None = None
     # Sunet addition for requesting access to a specified scope
-    scope: Optional[str] = None
+    scope: str | None = None
 
 
 class AccessTokenRequest(GnapBaseModel):
-    access: Optional[list[Union[str, Access]]] = None
+    access: list[str | Access] | None = None
     # TODO: label is REQUIRED if used as part of a multiple access token request
-    label: Optional[str] = None
-    flags: Optional[list[AccessTokenFlags]] = None
+    label: str | None = None
+    flags: list[AccessTokenFlags] | None = None
 
 
 class Client(GnapBaseModel):
-    key: Union[str, Key]
+    key: str | Key
 
 
 class GrantRequest(GnapBaseModel):
-    access_token: Union[AccessTokenRequest, list[AccessTokenRequest]]
-    client: Union[str, Client]
+    access_token: AccessTokenRequest | list[AccessTokenRequest]
+    client: str | Client
 
 
 class AccessTokenResponse(GnapBaseModel):
     value: str
-    label: Optional[str] = None
-    manage: Optional[AnyUrl] = None
-    access: Optional[list[Union[str, Access]]] = None
-    expires_in: Optional[int] = Field(default=None, description="seconds until expiry")
-    key: Optional[Union[str, Key]] = None
-    flags: Optional[list[AccessTokenFlags]] = None
+    label: str | None = None
+    manage: AnyUrl | None = None
+    access: list[str | Access] | None = None
+    expires_in: int | None = Field(default=None, description="seconds until expiry")
+    key: str | Key | None = None
+    flags: list[AccessTokenFlags] | None = None
 
 
 class GrantResponse(GnapBaseModel):
-    access_token: Optional[AccessTokenResponse] = None
+    access_token: AccessTokenResponse | None = None
 
 
 class GNAPJOSEHeader(JOSEHeader):
@@ -131,4 +131,4 @@ class GNAPJOSEHeader(JOSEHeader):
     # When a request is bound to an access token, the access token hash value. The value MUST be the result of
     # Base64url encoding (with no padding) the SHA-256 digest of the ASCII encoding of the associated access
     # token's value.  REQUIRED if the request protects an access token.
-    ath: Optional[str] = None
+    ath: str | None = None

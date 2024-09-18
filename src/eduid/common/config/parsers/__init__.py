@@ -1,8 +1,9 @@
 import json
 import os
 import sys
+from collections.abc import Mapping
 from pathlib import Path
-from typing import Any, Mapping, Optional
+from typing import Any
 
 import yaml
 
@@ -18,7 +19,7 @@ def load_config(
     typ: type[TRootConfigSubclass],
     ns: str,
     app_name: str,
-    test_config: Optional[Mapping[str, Any]] = None,
+    test_config: Mapping[str, Any] | None = None,
 ) -> TRootConfigSubclass:
     """Figure out where to load configuration from, and do it."""
     print("loading config...", file=sys.stderr)
@@ -63,7 +64,7 @@ def load_config(
     return res
 
 
-def _choose_parser() -> Optional[BaseConfigParser]:
+def _choose_parser() -> BaseConfigParser | None:
     """
     Choose a parser to use for this app.
 
@@ -72,7 +73,7 @@ def _choose_parser() -> Optional[BaseConfigParser]:
 
     :return: Config parser instance
     """
-    parser: Optional[BaseConfigParser] = None
+    parser: BaseConfigParser | None = None
     yaml_file = os.environ.get("EDUID_CONFIG_YAML")
     if yaml_file:
         try:

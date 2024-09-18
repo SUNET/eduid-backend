@@ -1,9 +1,10 @@
 import json
 import logging
 import re
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from pathlib import PurePath
-from typing import Any, Mapping, Optional, Tuple, Union
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 from bson import ObjectId
@@ -44,12 +45,12 @@ class GenericResult:
 
 @dataclass
 class NextResult(GenericResult):
-    error: Optional[dict[str, Any]] = None
+    error: dict[str, Any] | None = None
 
 
 @dataclass
 class PwAuthResult(GenericResult):
-    sso_cookie_val: Optional[str] = None
+    sso_cookie_val: str | None = None
     cookies: dict[str, Any] = field(default_factory=dict)
 
 
@@ -70,22 +71,22 @@ class FinishedResultAPI(GenericResult):
 
 @dataclass
 class TestUser:
-    eppn: Optional[str]
-    password: Optional[str]
+    eppn: str | None
+    password: str | None
 
 
 @dataclass
 class LoginResultAPI:
     response: TestResponse
-    ref: Optional[str] = None
-    sso_cookie_val: Optional[str] = None
+    ref: str | None = None
+    sso_cookie_val: str | None = None
     visit_count: dict[str, int] = field(default_factory=dict)
     visit_order: list[IdPAction] = field(default_factory=list)
-    pwauth_result: Optional[PwAuthResult] = None
-    tou_result: Optional[TouResult] = None
-    mfa_result: Optional[MfaResult] = None
-    finished_result: Optional[FinishedResultAPI] = None
-    error: Optional[dict[str, Any]] = None
+    pwauth_result: PwAuthResult | None = None
+    tou_result: TouResult | None = None
+    mfa_result: MfaResult | None = None
+    finished_result: FinishedResultAPI | None = None
+    error: dict[str, Any] | None = None
 
 
 class IdPAPITests(EduidAPITestCase[IdPApp]):
@@ -110,7 +111,7 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
         self.saml2_client = Saml2Client(config=self.sp_config, identity_cache=self.pysaml2_identity)
         self.default_user = TestUser(eppn=self.test_user.eppn, password="bar")
 
-    def load_app(self, config: Optional[Mapping[str, Any]]) -> IdPApp:
+    def load_app(self, config: Mapping[str, Any] | None) -> IdPApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
@@ -141,13 +142,13 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
 
     def _try_login(
         self,
-        saml2_client: Optional[Saml2Client] = None,
-        authn_context: Optional[Mapping[str, Any]] = None,
+        saml2_client: Saml2Client | None = None,
+        authn_context: Mapping[str, Any] | None = None,
         force_authn: bool = False,
-        assertion_consumer_service_url: Optional[str] = None,
-        test_user: Optional[TestUser] = None,
-        sso_cookie_val: Optional[str] = None,
-        mfa_credential: Optional[Credential] = None,
+        assertion_consumer_service_url: str | None = None,
+        test_user: TestUser | None = None,
+        sso_cookie_val: str | None = None,
+        mfa_credential: Credential | None = None,
     ) -> LoginResultAPI:
         """
         Try logging in to the IdP.
@@ -289,7 +290,7 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
 
         return result
 
-    def _call_tou(self, target: str, ref: str, user_accepts: Optional[str]) -> TouResult:
+    def _call_tou(self, target: str, ref: str, user_accepts: str | None) -> TouResult:
         with self.session_cookie_anon(self.browser) as client:
             with self.app.test_request_context():
                 with client.session_transaction() as sess:
@@ -365,7 +366,7 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
         return path
 
     def parse_saml_authn_response(
-        self, result: FinishedResultAPI, saml2_client: Optional[Saml2Client] = None
+        self, result: FinishedResultAPI, saml2_client: Saml2Client | None = None
     ) -> AuthnResponse:
         _saml2_client = saml2_client if saml2_client is not None else self.saml2_client
 
@@ -373,12 +374,12 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
         outstanding_queries = self.pysaml2_oq.outstanding_queries()
         return _saml2_client.parse_authn_request_response(xmlstr, BINDING_HTTP_POST, outstanding_queries)
 
-    def get_sso_session(self, sso_cookie_val: str) -> Optional[SSOSession]:
+    def get_sso_session(self, sso_cookie_val: str) -> SSOSession | None:
         if sso_cookie_val is None:
             return None
         return self.app.sso_sessions.get_session(SSOSessionId(sso_cookie_val))
 
-    def add_test_user_tou(self, eppn: Optional[str] = None, version: Optional[str] = None) -> Tuple[IdPUser, ToUEvent]:
+    def add_test_user_tou(self, eppn: str | None = None, version: str | None = None) -> tuple[IdPUser, ToUEvent]:
         """Utility function to add a valid ToU to the default test user"""
         if version is None:
             version = self.app.conf.tou_version
@@ -411,11 +412,11 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
 
     def add_test_user_security_key(
         self,
-        user: Optional[User] = None,
-        credential_id: Optional[str] = "webauthn_keyhandle",
+        user: User | None = None,
+        credential_id: str | None = "webauthn_keyhandle",
         is_verified: bool = False,
         mfa_approved: bool = False,
-        credential: Optional[FidoCredential] = None,
+        credential: FidoCredential | None = None,
         always_use_security_key_user_preference: bool = True,
     ):
         if user is None:
@@ -441,8 +442,8 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
 
     def add_test_user_external_mfa_cred(
         self,
-        user: Optional[User] = None,
-        trust_framework: Optional[TrustFramework] = None,
+        user: User | None = None,
+        trust_framework: TrustFramework | None = None,
     ):
         if user is None:
             user = self.test_user
@@ -460,7 +461,7 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
         user.credentials.add(cred)
         self.request_user_sync(user)
 
-    def get_attributes(self, result, saml2_client: Optional[Saml2Client] = None):
+    def get_attributes(self, result, saml2_client: Saml2Client | None = None):
         assert result.finished_result is not None
         authn_response = self.parse_saml_authn_response(result.finished_result, saml2_client=saml2_client)
         session_info = authn_response.session_info()
@@ -479,10 +480,10 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
         self,
         result: LoginResultAPI,
         visit_order: list[IdPAction],
-        sso_cookie_val: Optional[Union[str, bool]] = True,
-        finish_result: Optional[FinishedResultAPI] = None,
-        pwauth_result: Optional[PwAuthResult] = None,
-        error: Optional[dict[str, Any]] = None,
+        sso_cookie_val: str | bool | None = True,
+        finish_result: FinishedResultAPI | None = None,
+        pwauth_result: PwAuthResult | None = None,
+        error: dict[str, Any] | None = None,
     ):
         assert result.visit_order == visit_order, f"visit_order: {result.visit_order}, expected: {visit_order}"
 

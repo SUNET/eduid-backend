@@ -3,8 +3,9 @@ from __future__ import annotations
 import logging
 import random
 import unittest
+from collections.abc import Sequence
 from os import environ
-from typing import Optional, Sequence, cast
+from typing import cast
 
 from neo4j.exceptions import ServiceUnavailable
 
@@ -30,7 +31,7 @@ class Neo4jTemporaryInstance(EduidTemporaryInstance):
 
     """
 
-    _instance: Optional[Neo4jTemporaryInstance] = None
+    _instance: Neo4jTemporaryInstance | None = None
     _http_port: int
     _https_port: int
     _bolt_port: int

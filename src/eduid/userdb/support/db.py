@@ -1,4 +1,4 @@
-from typing import Any, Optional, Union
+from typing import Any
 
 from bson import ObjectId
 
@@ -32,7 +32,7 @@ class SupportUserDB(UserDB[SupportUser]):
         :param query: search query, can be a user eppn, nin, mail address or phone number
         :return: A list of user docs
         """
-        results: list[Optional[SupportUser]] = list()
+        results: list[SupportUser | None] = list()
         # We could do this with a custom filter (and one db call) but it is better to lean on existing methods
         # if the way we find users change in the future
         try:
@@ -58,7 +58,7 @@ class SupportAuthnInfoDB(BaseDB):
         collection = "authn_info"
         super().__init__(db_uri, db_name, collection)
 
-    def get_authn_info(self, user_id: Union[str, ObjectId]) -> dict[str, Any]:
+    def get_authn_info(self, user_id: str | ObjectId) -> dict[str, Any]:
         """
         :param user_id: User objects user_id property
         :type user_id: ObjectId | str | unicode

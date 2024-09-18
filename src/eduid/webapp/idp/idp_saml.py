@@ -1,9 +1,10 @@
 import logging
 import typing
 from base64 import b64encode
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from hashlib import sha1
-from typing import Any, Mapping, NewType, Optional, Union
+from typing import Any, NewType
 
 import saml2.server
 from pydantic import BaseModel
@@ -41,13 +42,13 @@ ReqSHA1 = NewType("ReqSHA1", str)
 @dataclass
 class SAMLResponseParams:
     url: str
-    post_params: Mapping[str, Optional[Union[str, bool]]]
+    post_params: Mapping[str, str | bool | None]
     binding: str
     http_args: HttpArgs
     missing_attributes: list[dict[str, str]] = field(default_factory=list)
 
 
-def gen_key(something: Union[str, bytes]) -> ReqSHA1:
+def gen_key(something: str | bytes) -> ReqSHA1:
     """
     Generate a unique (not strictly guaranteed) key based on `something'.
 
@@ -84,7 +85,7 @@ class IdP_SAMLRequest:
         self._binding = binding
         self._idp = idp
         self._debug = debug
-        self._service_info: Optional[dict[str, Any]] = None
+        self._service_info: dict[str, Any] | None = None
 
         try:
             self._req_info = idp.parse_authn_request(request, binding)
@@ -135,7 +136,7 @@ class IdP_SAMLRequest:
         return self._request
 
     @property
-    def raw_requested_authn_context(self) -> Optional[RequestedAuthnContext]:
+    def raw_requested_authn_context(self) -> RequestedAuthnContext | None:
         return self._req_info.message.requested_authn_context
 
     def get_requested_authn_contexts(self) -> list[str]:
@@ -194,7 +195,7 @@ class IdP_SAMLRequest:
         return _res
 
     @property
-    def login_subject(self) -> Optional[str]:
+    def login_subject(self) -> str | None:
         """Get information about who the SP thinks should log in.
 
         This is used by the IdPProxy when doing MFA Step-up authentication, to signal
@@ -230,7 +231,7 @@ class IdP_SAMLRequest:
         return res
 
     @property
-    def service_info(self) -> Optional[dict[str, Any]]:
+    def service_info(self) -> dict[str, Any] | None:
         """Information about the service where the user is logging in"""
         if self._service_info is None:
             res: dict[str, Any] = {}

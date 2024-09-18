@@ -1,8 +1,9 @@
 __author__ = "lundberg"
 
 import logging
+from collections.abc import Mapping
 from datetime import datetime
-from typing import Any, Mapping, Optional, Union
+from typing import Any
 from uuid import UUID, uuid4
 
 from bson import ObjectId
@@ -58,7 +59,7 @@ class TestGroupResource(ScimApiTestCase):
         super().tearDown()
         self.groupdb._drop_whole_collection()
 
-    def add_group(self, scim_id: UUID, display_name: str, extensions: Optional[GroupExtensions] = None) -> ScimApiGroup:
+    def add_group(self, scim_id: UUID, display_name: str, extensions: GroupExtensions | None = None) -> ScimApiGroup:
         if extensions is None:
             extensions = GroupExtensions()
         group = ScimApiGroup(scim_id=scim_id, display_name=display_name, extensions=extensions)
@@ -67,9 +68,7 @@ class TestGroupResource(ScimApiTestCase):
         self.groupdb.save(group)
         return group
 
-    def add_member(
-        self, group: ScimApiGroup, member: Union[ScimApiUser, ScimApiGroup], display_name: str
-    ) -> ScimApiGroup:
+    def add_member(self, group: ScimApiGroup, member: ScimApiUser | ScimApiGroup, display_name: str) -> ScimApiGroup:
         if isinstance(member, ScimApiUser):
             user_member = GraphUser(identifier=str(member.scim_id), display_name=display_name)
             group.add_member(user_member)
@@ -86,9 +85,9 @@ class TestGroupResource(ScimApiTestCase):
         start: int = 1,
         count: int = 10,
         return_json: bool = False,
-        expected_group: Optional[ScimApiGroup] = None,
-        expected_num_resources: Optional[int] = None,
-        expected_total_results: Optional[int] = None,
+        expected_group: ScimApiGroup | None = None,
+        expected_num_resources: int | None = None,
+        expected_total_results: int | None = None,
     ):
         logger.info(f"Searching for group(s) using filter {repr(filter)}")
         req = {

@@ -1,7 +1,8 @@
 import base64
 import binascii
+from collections.abc import Mapping
 from io import BytesIO
-from typing import Any, Mapping, Union
+from typing import Any
 
 import qrcode
 import qrcode.image.svg
@@ -158,7 +159,7 @@ def get_seleg_state(user: User) -> dict[str, Any]:
 @MarshalWith(schemas.NonceResponseSchema)
 @can_verify_nin
 @require_user
-def seleg_proofing(user: User, nin: str) -> Union[FluxData, WerkzeugResponse]:
+def seleg_proofing(user: User, nin: str) -> FluxData | WerkzeugResponse:
     proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn)
     if not proofing_state:
         current_app.logger.debug(f"No proofing state found for user {user!s}. Initializing new proofing flow.")
@@ -226,7 +227,7 @@ def get_freja_state(user: User) -> Mapping[str, Any]:
 @MarshalWith(schemas.FrejaResponseSchema)
 @can_verify_nin
 @require_user
-def freja_proofing(user: User, nin: str) -> Union[FluxData, WerkzeugResponse]:
+def freja_proofing(user: User, nin: str) -> FluxData | WerkzeugResponse:
     proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn)
     if not proofing_state:
         current_app.logger.debug(f"No proofing state found for user {user!s}. Initializing new proofing flow.")

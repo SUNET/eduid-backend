@@ -4,11 +4,12 @@ Configuration (file) handling for eduID IdP.
 
 from __future__ import annotations
 
+from collections.abc import Iterable, Mapping, Sequence
 from datetime import timedelta
 from enum import Enum, unique
 from pathlib import Path
 from re import Pattern
-from typing import IO, Annotated, Any, Iterable, Mapping, Optional, Sequence, TypeVar, Union
+from typing import IO, Annotated, Any, TypeVar
 
 import pkg_resources
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field
@@ -44,25 +45,25 @@ class CeleryConfig(BaseModel):
             "eduid_lookup_mobile.tasks.*": {"queue": "lookup_mobile"},
         }
     )
-    mongo_uri: Optional[str] = None
+    mongo_uri: str | None = None
 
 
 class RedisConfig(BaseModel):
     port: int = 6379
     db: int = 0
-    host: Optional[str] = None
-    sentinel_hosts: Optional[Sequence[str]] = None
-    sentinel_service_name: Optional[str] = None
+    host: str | None = None
+    sentinel_hosts: Sequence[str] | None = None
+    sentinel_service_name: str | None = None
 
 
 class CookieConfig(BaseModel):
     key: str
-    domain: Optional[str] = None
+    domain: str | None = None
     path: str = "/"
     secure: bool = True
     httponly: bool = True
-    samesite: Optional[str] = None
-    max_age_seconds: Optional[int] = None  # None means this is a session cookie
+    samesite: str | None = None
+    max_age_seconds: int | None = None  # None means this is a session cookie
 
 
 TRootConfigSubclass = TypeVar("TRootConfigSubclass", bound="RootConfig")
@@ -104,21 +105,21 @@ class WorkerConfig(RootConfig):
 
     audit: bool = False
     celery: CeleryConfig = Field(default_factory=CeleryConfig)
-    mongo_uri: Optional[str] = None
+    mongo_uri: str | None = None
     transaction_audit: bool = False
 
 
 class CORSMixin(BaseModel):
-    cors_allow_headers: Union[str, list[str]] = "*"
+    cors_allow_headers: str | list[str] = "*"
     cors_always_send: bool = True
     cors_automatic_options: bool = True
-    cors_expose_headers: Optional[Union[str, list[str]]] = None
+    cors_expose_headers: str | list[str] | None = None
     cors_intercept_exceptions: bool = True
-    cors_max_age: Optional[Union[timedelta, int, str]] = None
-    cors_methods: Union[str, list[str]] = ["GET", "HEAD", "POST", "OPTIONS", "PUT", "PATCH", "DELETE"]
+    cors_max_age: timedelta | int | str | None = None
+    cors_methods: str | list[str] = ["GET", "HEAD", "POST", "OPTIONS", "PUT", "PATCH", "DELETE"]
     # The origin(s) to allow requests from. An origin configured here that matches the value of the Origin header in a
     # preflight OPTIONS request is returned as the value of the Access-Control-Allow-Origin response header.
-    cors_origins: Union[str, list[str], Pattern] = [r"^eduid\.se$", r".*\.eduid\.se$"]
+    cors_origins: str | list[str] | Pattern = [r"^eduid\.se$", r".*\.eduid\.se$"]
     # The series of regular expression and (optionally) associated CORS options to be applied to the given resource
     # path.
     # If the value is a dictionary, it’s keys must be regular expressions matching resources, and the values must be
@@ -127,7 +128,7 @@ class CORSMixin(BaseModel):
     # app-wide configured options are applied.
     # If the argument is a string, it is expected to be a regular expression matching resources for which the app-wide
     # configured options are applied.
-    cors_resources: Union[dict[Union[str, Pattern], CORSMixin], list[Union[str, Pattern]], Union[str, Pattern]] = r"/*"
+    cors_resources: dict[str | Pattern, CORSMixin] | list[str | Pattern] | str | Pattern = r"/*"
     cors_send_wildcard: bool = False
     cors_supports_credentials: bool = True
     cors_vary_header: bool = True
@@ -148,13 +149,13 @@ class FlaskConfig(CORSMixin):
     # explicitly enable or disable the propagation of exceptions.
     # If not set or explicitly set to None this is implicitly true if either
     # TESTING or DEBUG is true.
-    propagate_exceptions: Optional[bool] = None
+    propagate_exceptions: bool | None = None
     # By default if the application is in debug mode the request context is not
     # popped on exceptions to enable debuggers to introspect the data. This can be
     # disabled by this key. You can also use this setting to force-enable it for non
     # debug execution which might be useful to debug production applications (but
     # also very risky).
-    preserve_context_on_exception: Optional[bool] = None
+    preserve_context_on_exception: bool | None = None
     # If this is set to True Flask will not execute the error handlers of HTTP
     # exceptions but instead treat the exception like any other and bubble it through
     # the exception stack. This is helpful for hairy debugging situations where you
@@ -166,15 +167,15 @@ class FlaskConfig(CORSMixin):
     # consistency. Since it’s nice for debugging to know why exactly it failed this
     # flag can be used to debug those situations. If this config is set to True you
     # will get a regular traceback instead.
-    trap_bad_request_errors: Optional[bool] = None
-    secret_key: Optional[str] = None
+    trap_bad_request_errors: bool | None = None
+    secret_key: str | None = None
     # the name of the session cookie
     session_cookie_name: str = "sessid"
     # Sets a cookie with legacy SameSite=None, the SameSite key and value is omitted
     cookies_samesite_compat: list = Field(default=[("sessid", "sessid_samesite_compat")])
     # the domain for the session cookie. If this is not set, the cookie will
     # be valid for all subdomains of SERVER_NAME.
-    session_cookie_domain: Optional[str] = None
+    session_cookie_domain: str | None = None
     # the path for the session cookie. If this is not set the cookie will be valid
     # for all of APPLICATION_ROOT or if that is not set for '/'.
     session_cookie_path: str = "/"
@@ -185,7 +186,7 @@ class FlaskConfig(CORSMixin):
     # Restrict how cookies are sent with requests from external sites.
     # Can be set to None (samesite key omitted), 'None', 'Lax' (recommended) or 'Strict'.
     # Defaults to None
-    session_cookie_samesite: Optional[str] = None
+    session_cookie_samesite: str | None = None
     # the lifetime of a permanent session as datetime.timedelta object.
     # Starting with Flask 0.8 this can also be an integer representing seconds.
     permanent_session_lifetime: int = 14400  # 4 hours
@@ -199,7 +200,7 @@ class FlaskConfig(CORSMixin):
     # the name and port number of the server. Required for subdomain support (e.g.: 'myapp.dev:5000') Note that localhost
     # does not support subdomains so setting this to “localhost” does not help. Setting a SERVER_NAME also by default
     # enables URL generation without a request context but with an application context.
-    server_name: Optional[str] = None
+    server_name: str | None = None
     # If the application does not occupy a whole domain or subdomain this can be set to the path where the application is
     # configured to live. This is for session cookie as path value. If domains are used, this should be None.
     application_root: str = "/"
@@ -208,8 +209,8 @@ class FlaskConfig(CORSMixin):
     preferred_url_scheme: str = "http"
     # If set to a value in bytes, Flask will reject incoming requests with a
     # content length greater than this by returning a 413 status code.
-    max_content_length: Optional[int] = None
-    templates_auto_reload: Optional[bool] = None
+    max_content_length: int | None = None
+    templates_auto_reload: bool | None = None
     explain_template_loading: bool = False
     max_cookie_size: int = 4093
     babel_translation_directories: list[str] = ["translations"]
@@ -231,10 +232,10 @@ class ProfilingConfig(BaseModel):
     """
 
     model_config = ConfigDict(arbitrary_types_allowed=True)  # allow IO type
-    stream: Optional[IO] = None
+    stream: IO | None = None
     sort_by: Iterable[str] = Field(default_factory=lambda: ("time", "calls"))
-    restrictions: Iterable[Union[str, int, float]] = Field(default_factory=tuple)
-    profile_dir: Optional[str] = None
+    restrictions: Iterable[str | int | float] = Field(default_factory=tuple)
+    profile_dir: str | None = None
     filename_format: str = "{method}.{path}.{elapsed:.0f}ms.{time:.0f}.prof"
 
 
@@ -246,9 +247,9 @@ class WebauthnConfigMixin2(BaseModel):
 class MagicCookieMixin(BaseModel):
     environment: EduidEnvironment = EduidEnvironment.production
     # code to set in a "magic" cookie to bypass various verifications in test environments.
-    magic_cookie: Optional[str] = None
+    magic_cookie: str | None = None
     # name of the magic cookie
-    magic_cookie_name: Optional[str] = None
+    magic_cookie_name: str | None = None
 
 
 class CeleryConfigMixin(BaseModel):
@@ -270,7 +271,7 @@ class LoggingConfigMixin(BaseModel):
 
 class StatsConfigMixin(BaseModel):
     app_name: str
-    stats_host: Optional[str] = None
+    stats_host: str | None = None
     stats_port: int = 8125
 
 
@@ -307,7 +308,7 @@ class CaptchaConfigMixin(BaseModel):
 class AmConfigMixin(CeleryConfigMixin):
     """Config used by AmRelay"""
 
-    am_relay_for_override: Optional[str] = None  # only set this if f'eduid_{app_name}' is not right
+    am_relay_for_override: str | None = None  # only set this if f'eduid_{app_name}' is not right
 
 
 class MailConfigMixin(CeleryConfigMixin):
@@ -336,7 +337,7 @@ class PasswordConfigMixin(BaseModel):
 
 
 class ErrorsConfigMixin(BaseModel):
-    errors_url_template: Optional[str] = None
+    errors_url_template: str | None = None
 
 
 class Pysaml2SPConfigMixin(BaseModel):
@@ -453,17 +454,17 @@ class ProofingConfigMixin(FrontendActionMixin):
     # sweden connect
     trust_framework: TrustFramework = TrustFramework.SWECONN
     required_loa: list[str] = Field(default=["loa3"])
-    freja_idp: Optional[str] = None
+    freja_idp: str | None = None
 
     # eidas
     foreign_trust_framework: TrustFramework = TrustFramework.EIDAS
     foreign_required_loa: list[str] = Field(default=["eidas-nf-low", "eidas-nf-sub", "eidas-nf-high"])
-    foreign_identity_idp: Optional[str] = None
+    foreign_identity_idp: str | None = None
 
     # bankid
     bankid_trust_framework: TrustFramework = TrustFramework.BANKID
     bankid_required_loa: list[str] = Field(default=["uncertified-loa3"])
-    bankid_idp: Optional[str] = None
+    bankid_idp: str | None = None
 
     # identity proofing
     freja_proofing_version: str = Field(default="2023v1")
@@ -482,7 +483,7 @@ class EduIDBaseAppConfig(RootConfig, LoggingConfigMixin, StatsConfigMixin, Redis
     available_languages: Mapping[str, str] = Field(default={"en": "English", "sv": "Svenska"})
     flask: FlaskConfig = Field(default_factory=FlaskConfig)
     # settings for optional profiling of the application
-    profiling: Optional[ProfilingConfig] = None
+    profiling: ProfilingConfig | None = None
     mongo_uri: str
     # Allow list of URLs that do not need authentication. Unauthenticated requests
     # for these URLs will be served, rather than redirected to the authn service.
@@ -502,7 +503,7 @@ ScopeName = ReasonableDomainName
 
 
 class DataOwnerConfig(BaseModel):
-    db_name: Optional[str] = None
+    db_name: str | None = None
     notify: list[str] = []
 
 
@@ -522,7 +523,7 @@ class AuthnBearerTokenConfig(RootConfig):
     scope_mapping: dict[ScopeName, DataOwnerName] = Field(default={})
     # Allow someone with scope x to sudo to scope y
     scope_sudo: dict[ScopeName, set[ScopeName]] = Field(default={})
-    requested_access_type: Optional[str] = None
+    requested_access_type: str | None = None
     required_saml_assurance_level: list[str] = Field(default=["http://www.swamid.se/policy/assurance/al3"])
     # group name to match saml entitlement for authorization
     account_manager_default_group: str = "Account Managers"

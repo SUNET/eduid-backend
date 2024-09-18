@@ -1,5 +1,3 @@
-from typing import Optional
-
 from suds.client import Client
 
 from eduid.common.config.base import EduidEnvironment
@@ -17,7 +15,7 @@ class MobileLookupClient:
         # enable transaction logging if configured
         self.transaction_audit = self.conf.transaction_audit and self.conf.mongo_uri
 
-        self._client: Optional[Client] = None
+        self._client: Client | None = None
         self.logger = logger
 
     @property
@@ -49,7 +47,7 @@ class MobileLookupClient:
         return format_mobile_number(mobiles, number_region)
 
     @TransactionAudit()
-    def find_NIN_by_mobile(self, mobile_number) -> Optional[str]:
+    def find_NIN_by_mobile(self, mobile_number) -> str | None:
         nin = self._search_by_mobile(mobile_number)
         if not nin:
             self.logger.debug(f"Did not get search result from mobile number: {mobile_number}")
@@ -103,7 +101,7 @@ class MobileLookupClient:
 
         return mobile_numbers
 
-    def _search_by_mobile(self, mobile_number: str) -> Optional[str]:
+    def _search_by_mobile(self, mobile_number: str) -> str | None:
         person_search = self._get_find_person()
 
         # Set the eduid user id and password

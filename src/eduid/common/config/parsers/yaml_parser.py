@@ -1,5 +1,6 @@
+from collections.abc import Mapping
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any
 
 from eduid.common.config.parsers import BaseConfigParser
 from eduid.common.config.parsers.decorators import decrypt, interpolate

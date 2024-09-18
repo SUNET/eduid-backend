@@ -1,5 +1,5 @@
 import logging
-from typing import AnyStr, Optional
+from typing import AnyStr
 from urllib.parse import quote, unquote
 
 from bleach import clean
@@ -19,7 +19,7 @@ class Sanitizer:
     def sanitize_input(
         self,
         untrusted_text: AnyStr,
-        content_type: Optional[str] = None,
+        content_type: str | None = None,
         strip_characters: bool = False,
     ) -> str:
         """
@@ -60,7 +60,7 @@ class Sanitizer:
         self,
         untrusted_text: str,
         strip_characters: bool = False,
-        content_type: Optional[str] = None,
+        content_type: str | None = None,
         percent_encoded: bool = False,
     ) -> str:
         """

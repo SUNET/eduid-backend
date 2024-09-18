@@ -1,5 +1,5 @@
+from collections.abc import Mapping
 from os import environ
-from typing import Mapping
 
 from fastapi import APIRouter, Response
 from pydantic import BaseModel
