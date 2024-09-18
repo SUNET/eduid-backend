@@ -1,5 +1,3 @@
-from typing import Optional
-
 from flask import Blueprint, abort, request
 
 from eduid.common.rpc.exceptions import MsgTaskFailed
@@ -266,7 +264,7 @@ def captcha_request() -> FluxData:
 @phone_views.route("/captcha", methods=["POST"])
 @UnmarshalWith(CaptchaCompleteRequest)
 @MarshalWith(PhoneResponseSchema)
-def captcha_response(internal_response: Optional[str] = None) -> FluxData:
+def captcha_response(internal_response: str | None = None) -> FluxData:
     """
     Check for humanness.
     """

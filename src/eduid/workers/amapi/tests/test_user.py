@@ -1,7 +1,7 @@
 __author__ = "masv"
 
 import datetime
-from typing import Any, Optional
+from typing import Any
 
 from bson import ObjectId
 from fastapi import status
@@ -20,7 +20,7 @@ class TestUsers(TestAMBase, GNAPBearerTokenMixin):
     def setUp(self, *args, **kwargs):
         super().setUp(am_users=[UserFixtures().new_user_example])
 
-    def _make_url(self, endpoint: Optional[str] = None) -> str:
+    def _make_url(self, endpoint: str | None = None) -> str:
         if endpoint is None:
             return f"/users/{self.eppn}"
         return f"/users/{self.eppn}/{endpoint}"
@@ -33,7 +33,7 @@ class TestUsers(TestAMBase, GNAPBearerTokenMixin):
         assert audit_logs[0].source == self.source
         assert audit_logs[0].diff == self.as_json(diff)
 
-    def make_put_call(self, json_data: dict, oauth_header: Headers, endpoint: Optional[str] = None) -> Response:
+    def make_put_call(self, json_data: dict, oauth_header: Headers, endpoint: str | None = None) -> Response:
         response = self.client.put(
             url=self._make_url(endpoint),
             json=json_data,

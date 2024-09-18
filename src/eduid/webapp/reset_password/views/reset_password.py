@@ -43,8 +43,6 @@ form will also result in resetting her password, but without unverifying any of
 her data.
 """
 
-from typing import Optional
-
 from flask import Blueprint, abort, request
 
 from eduid.common.rpc.exceptions import MailTaskFailed, MsgTaskFailed
@@ -376,11 +374,11 @@ def set_new_pw_extra_security_phone(email_code: str, password: str, phone_code: 
 def set_new_pw_extra_security_token(
     email_code: str,
     password: str,
-    token_response: Optional[str] = None,
-    authenticator_data: Optional[str] = None,
-    client_data_json: Optional[str] = None,
-    credential_id: Optional[str] = None,
-    signature: Optional[str] = None,
+    token_response: str | None = None,
+    authenticator_data: str | None = None,
+    client_data_json: str | None = None,
+    credential_id: str | None = None,
+    signature: str | None = None,
 ) -> FluxData:
     """
     View that receives an emailed reset password code, hw token data,

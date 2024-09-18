@@ -18,11 +18,7 @@ class EduIDDBError(Exception):
         self.reason = reason
 
     def __str__(self):
-        return "<{cl} instance at {addr}: {reason!r}>".format(
-            cl=self.__class__.__name__,
-            addr=hex(id(self)),
-            reason=self.reason,
-        )
+        return f"<{self.__class__.__name__} instance at {hex(id(self))}: {self.reason!r}>"
 
 
 class ConnectionError(EduIDDBError):

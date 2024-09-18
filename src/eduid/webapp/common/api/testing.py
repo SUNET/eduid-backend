@@ -5,10 +5,11 @@ import logging.config
 import pprint
 import sys
 import traceback
+from collections.abc import Generator, Iterable, Mapping
 from contextlib import contextmanager
 from copy import deepcopy
 from datetime import timedelta
-from typing import Any, Generator, Generic, Iterable, Mapping, Optional, TypeVar, cast
+from typing import Any, Generic, TypeVar, cast
 
 from flask.testing import FlaskClient
 from werkzeug.test import TestResponse
@@ -98,7 +99,7 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
     def setUp(  # type: ignore[override]
         self,
         *args: list[Any],
-        users: Optional[list[str]] = None,
+        users: list[str] | None = None,
         copy_user_to_private: bool = False,
         **kwargs: dict[str, Any],
     ) -> None:
@@ -118,7 +119,7 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
 
         super().setUp(am_users=am_users, *args, **kwargs)
 
-        self.user: Optional[User] = None
+        self.user: User | None = None
 
         # Load the user from the database so that it can be saved there again in tests
         _test_user = self.amdb.get_user_by_eppn(users[0])
@@ -194,9 +195,9 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
     def session_cookie(
         self,
         client: CSRFTestClient,
-        eppn: Optional[str],
+        eppn: str | None,
         logged_in: bool = True,
-        domain: Optional[str] = None,
+        domain: str | None = None,
         **kwargs: Any,
     ) -> Generator[CSRFTestClient, None, None]:
         if domain is None:
@@ -220,11 +221,11 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
     def session_cookie_and_magic_cookie(
         self,
         client: CSRFTestClient,
-        eppn: Optional[str],
+        eppn: str | None,
         logged_in: bool = True,
-        domain: Optional[str] = None,
-        magic_cookie_name: Optional[str] = None,
-        magic_cookie_value: Optional[str] = None,
+        domain: str | None = None,
+        magic_cookie_name: str | None = None,
+        magic_cookie_value: str | None = None,
         **kwargs: Any,
     ) -> Generator[CSRFTestClient, None, None]:
         if domain is None:
@@ -246,8 +247,8 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
     def session_cookie_and_magic_cookie_anon(
         self,
         client: CSRFTestClient,
-        magic_cookie_name: Optional[str] = None,
-        magic_cookie_value: Optional[str] = None,
+        magic_cookie_name: str | None = None,
+        magic_cookie_value: str | None = None,
         **kwargs: Any,
     ) -> Generator[CSRFTestClient, None, None]:
         with self.session_cookie_and_magic_cookie(
@@ -259,7 +260,7 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
         ) as _client:
             yield _client
 
-    def request_user_sync(self, private_user: User, app_name_override: Optional[str] = None) -> bool:
+    def request_user_sync(self, private_user: User, app_name_override: str | None = None) -> bool:
         """
         Updates the central db user with data from the private db user.
 
@@ -322,9 +323,9 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
         frontend_action: FrontendAction,
         post_authn_action: AuthnAcsAction = AuthnAcsAction.login,
         age: timedelta = timedelta(seconds=30),
-        finish_url: Optional[str] = None,
+        finish_url: str | None = None,
         force_mfa: bool = False,
-        credentials_used: Optional[list[ElementKey]] = None,
+        credentials_used: list[ElementKey] | None = None,
     ):
         if not finish_url:
             finish_url = "https://example.com/ext-return/{app_name}/{authn_id}"
@@ -358,7 +359,7 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
     def _check_must_authenticate_response(
         self,
         response: TestResponse,
-        type_: Optional[str],
+        type_: str | None,
         frontend_action: FrontendAction,
         authn_status: AuthnActionStatus,
     ):
@@ -375,10 +376,10 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
     def _check_error_response(
         self,
         response: TestResponse,
-        type_: Optional[str],
-        msg: Optional[TranslatableMsg] = None,
-        error: Optional[Mapping[str, Any]] = None,
-        payload: Optional[Mapping[str, Any]] = None,
+        type_: str | None,
+        msg: TranslatableMsg | None = None,
+        error: Mapping[str, Any] | None = None,
+        payload: Mapping[str, Any] | None = None,
     ):
         """Check that a call to the API failed in the data validation stage."""
         return self._check_api_response(response, 200, type_=type_, message=msg, error=error, payload=payload)
@@ -386,9 +387,9 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
     def _check_success_response(
         self,
         response: TestResponse,
-        type_: Optional[str],
-        msg: Optional[TranslatableMsg] = None,
-        payload: Optional[Mapping[str, Any]] = None,
+        type_: str | None,
+        msg: TranslatableMsg | None = None,
+        payload: Mapping[str, Any] | None = None,
     ):
         """
         Check the message returned from an eduID webapp endpoint.
@@ -403,11 +404,11 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
         Perform some checks to make sure the response is a Flux Standard Action (FSA) response, and return the payload.
         """
         assert response.is_json, "Response is not JSON"
-        _json: Optional[dict[str, Any]] = response.json
+        _json: dict[str, Any] | None = response.json
         assert isinstance(_json, dict), "Response has invalid JSON"
-        _type: Optional[str] = _json.get("type")
+        _type: str | None = _json.get("type")
         assert _type is not None, "Response has no type (is not an FSA response)"
-        _payload: Optional[dict[str, Any]] = _json.get("payload", {})
+        _payload: dict[str, Any] | None = _json.get("payload", {})
         assert isinstance(_payload, dict), "Response has invalid payload"
         return _payload
 
@@ -415,12 +416,12 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
     def _check_api_response(
         response: TestResponse,
         status: int,
-        type_: Optional[str],
-        message: Optional[TranslatableMsg] = None,
-        error: Optional[Mapping[str, Any]] = None,
-        payload: Optional[Mapping[str, Any]] = None,
-        assure_not_in_payload: Optional[Iterable[str]] = None,
-        meta: Optional[Mapping[str, Any]] = None,
+        type_: str | None,
+        message: TranslatableMsg | None = None,
+        error: Mapping[str, Any] | None = None,
+        payload: Mapping[str, Any] | None = None,
+        assure_not_in_payload: Iterable[str] | None = None,
+        meta: Mapping[str, Any] | None = None,
     ):
         """
         Check data returned from an eduID webapp endpoint.
@@ -507,8 +508,8 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
         self,
         user: User,
         proofing_state: NinProofingState,
-        number: Optional[str] = None,
-        created_by: Optional[str] = None,
+        number: str | None = None,
+        created_by: str | None = None,
     ):
         if number is None and (self.test_user is not None and self.test_user.identities.nin):
             number = self.test_user.identities.nin.number
@@ -527,7 +528,7 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
         assert isinstance(_log, ProofingLog)
         assert _log.db_count() == 1
 
-    def _check_nin_not_verified(self, user: User, number: Optional[str] = None, created_by: Optional[str] = None):
+    def _check_nin_not_verified(self, user: User, number: str | None = None, created_by: str | None = None):
         if number is None and (self.test_user is not None and self.test_user.identities.nin):
             number = self.test_user.identities.nin.number
 

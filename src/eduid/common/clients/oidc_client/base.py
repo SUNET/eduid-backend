@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from pydantic import AnyUrl, BaseModel, Field
 
 __author__ = "lundberg"

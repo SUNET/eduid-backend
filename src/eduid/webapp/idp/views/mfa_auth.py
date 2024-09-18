@@ -1,6 +1,7 @@
+from collections.abc import Mapping
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import Any, Mapping, Optional
+from typing import Any
 
 from flask import Blueprint
 
@@ -30,7 +31,7 @@ mfa_auth_views = Blueprint("mfa_auth", __name__, url_prefix="")
 @require_ticket
 @uses_sso_session
 def mfa_auth(
-    ticket: LoginContext, sso_session: Optional[SSOSession], webauthn_response: Optional[Mapping[str, str]] = None
+    ticket: LoginContext, sso_session: SSOSession | None, webauthn_response: Mapping[str, str] | None = None
 ) -> FluxData:
     current_app.logger.debug("\n\n")
     current_app.logger.debug(f"--- MFA authentication ({ticket.request_ref}) ---")
@@ -101,14 +102,14 @@ def mfa_auth(
 
 @dataclass
 class CheckResult:
-    response: Optional[FluxData] = None
-    credential: Optional[Credential] = None
-    authn_data: Optional[AuthnData] = None
+    response: FluxData | None = None
+    credential: Credential | None = None
+    authn_data: AuthnData | None = None
 
 
 def _check_external_mfa(
     mfa_action: MfaAction, session: EduidSession, user: User, ref: RequestRef, sso_session: SSOSession
-) -> Optional[CheckResult]:
+) -> CheckResult | None:
     # Third party service MFA
     if mfa_action.success is True:  # Explicit check that success is the boolean True
         if mfa_action.login_ref:
@@ -164,8 +165,8 @@ def _check_external_mfa(
 
 
 def _check_webauthn(
-    webauthn_response: Optional[Mapping[str, str]], mfa_action: MfaAction, user: User
-) -> Optional[CheckResult]:
+    webauthn_response: Mapping[str, str] | None, mfa_action: MfaAction, user: User
+) -> CheckResult | None:
     if webauthn_response is None:
         return None
 

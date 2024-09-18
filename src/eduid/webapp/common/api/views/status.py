@@ -1,7 +1,8 @@
 import logging
+from collections.abc import Mapping
 from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any, Literal, Mapping, Optional, cast, overload
+from typing import TYPE_CHECKING, Any, Literal, cast, overload
 
 from flask import Blueprint, jsonify
 from flask import current_app as flask_current_app
@@ -37,10 +38,10 @@ def cached_json_response(key: str, data: dict[str, Any]) -> Response: ...
 
 
 @overload
-def cached_json_response(key: str, data: Literal[None]) -> Optional[Response]: ...
+def cached_json_response(key: str, data: Literal[None]) -> Response | None: ...
 
 
-def cached_json_response(key: str, data: Optional[dict[str, Any]] = None) -> Optional[Response]:
+def cached_json_response(key: str, data: dict[str, Any] | None = None) -> Response | None:
     cache_for_seconds = get_from_current_app("conf", EduIDBaseAppConfig).status_cache_seconds
     now = datetime.utcnow()
     if SIMPLE_CACHE.get(key) is not None:

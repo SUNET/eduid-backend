@@ -1,4 +1,5 @@
-from typing import Any, Mapping, Optional, cast
+from collections.abc import Mapping
+from typing import Any, cast
 
 from flask import current_app
 
@@ -34,7 +35,7 @@ class PhoneApp(AuthnBaseApp):
 current_phone_app: PhoneApp = cast(PhoneApp, current_app)
 
 
-def phone_init_app(name: str = "phone", test_config: Optional[Mapping[str, Any]] = None) -> PhoneApp:
+def phone_init_app(name: str = "phone", test_config: Mapping[str, Any] | None = None) -> PhoneApp:
     """
     Create an instance of an eduid phone app.
 

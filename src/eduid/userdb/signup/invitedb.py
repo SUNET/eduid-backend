@@ -1,7 +1,7 @@
 import datetime
 import logging
 from dataclasses import replace
-from typing import Any, Optional
+from typing import Any
 
 from eduid.userdb.db import SaveResult
 from eduid.userdb.exceptions import MultipleDocumentsReturned
@@ -27,13 +27,13 @@ class SignupInviteDB(BaseDB):
         }
         self.setup_indexes(indexes)
 
-    def get_invite_by_invite_code(self, code: str) -> Optional[Invite]:
+    def get_invite_by_invite_code(self, code: str) -> Invite | None:
         doc = self._get_document_by_attr("invite_code", code)
         if doc:
             return Invite.from_dict(doc)
         return None
 
-    def get_invite_by_reference(self, reference: InviteReference) -> Optional[Invite]:
+    def get_invite_by_reference(self, reference: InviteReference) -> Invite | None:
         if isinstance(reference, SCIMReference):
             spec = {"invite_reference.scim_id": reference.scim_id, "invite_reference.data_owner": reference.data_owner}
         else:

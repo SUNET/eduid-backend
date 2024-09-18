@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime, tzinfo
-from typing import Any, NewType, Optional, Union
+from typing import Any, NewType
 
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
@@ -19,18 +19,18 @@ class JobCronConfig(BaseModel):
 
     model_config = ConfigDict(arbitrary_types_allowed=True, extra="forbid")
 
-    year: Optional[Union[int, str]] = None
-    month: Optional[Union[int, str]] = None
-    day: Optional[Union[int, str]] = None
-    week: Optional[Union[int, str]] = None
-    day_of_week: Optional[Union[int, str]] = None
-    hour: Optional[Union[int, str]] = None
-    minute: Optional[Union[int, str]] = None
-    second: Optional[Union[int, str]] = None
-    start_date: Optional[Union[datetime, str]] = None
-    end_date: Optional[Union[datetime, str]] = None
-    timezone: Optional[Union[tzinfo, str]] = None
-    jitter: Optional[int] = None
+    year: int | str | None = None
+    month: int | str | None = None
+    day: int | str | None = None
+    week: int | str | None = None
+    day_of_week: int | str | None = None
+    hour: int | str | None = None
+    minute: int | str | None = None
+    second: int | str | None = None
+    start_date: datetime | str | None = None
+    end_date: datetime | str | None = None
+    timezone: tzinfo | str | None = None
+    jitter: int | None = None
 
     @model_validator(mode="before")
     @classmethod
@@ -55,7 +55,7 @@ class JobRunnerConfig(RootConfig, LoggingConfigMixin, StatsConfigMixin, MsgConfi
     log_format: str = "{asctime} | {levelname:7} | {hostname} | {name:35} | {module:10} | {message}"
     mongo_uri: str = ""
     status_cache_seconds: int = 10
-    jobs: Optional[JobsConfig] = None
+    jobs: JobsConfig | None = None
     gnap_auth_data: GNAPClientAuthData
 
     @field_validator("application_root")

@@ -4,7 +4,7 @@ import logging
 from abc import ABC
 from datetime import datetime
 from enum import Enum
-from typing import Any, Literal, Optional, Union
+from typing import Any, Literal
 
 from pydantic import Field
 
@@ -43,7 +43,7 @@ class IdentityElement(VerifiedElement, ABC):
     """
 
     identity_type: IdentityType
-    proofing_method: Optional[IdentityProofingMethod] = None
+    proofing_method: IdentityProofingMethod | None = None
 
     @property
     def key(self) -> ElementKey:
@@ -69,7 +69,7 @@ class IdentityElement(VerifiedElement, ABC):
     def to_frontend_format(self) -> dict[str, Any]:
         return super().to_dict()
 
-    def get_missing_proofing_method(self) -> Optional[IdentityProofingMethod]:
+    def get_missing_proofing_method(self) -> IdentityProofingMethod | None:
         """
         Returns the proofing method that is missing for this identity
         """
@@ -104,7 +104,7 @@ class NinIdentity(IdentityElement):
 
     identity_type: Literal[IdentityType.NIN] = IdentityType.NIN
     number: str
-    date_of_birth: Optional[datetime] = None
+    date_of_birth: datetime | None = None
 
     @property
     def unique_key_name(self) -> str:
@@ -114,7 +114,7 @@ class NinIdentity(IdentityElement):
     def unique_value(self) -> str:
         return self.number
 
-    def to_old_nin(self) -> dict[str, Union[str, bool]]:
+    def to_old_nin(self) -> dict[str, str | bool]:
         # TODO: remove nins after frontend stops using it
         return {"number": self.number, "verified": self.is_verified, "primary": True}
 
@@ -177,7 +177,7 @@ class SvipeIdentity(ForeignIdentityElement):
     #  A globally unique identifier issued by Svipe to the user. Under normal conditions, a given person will retain
     #  the same Svipe ID even after renewing the underlying identity document.
     svipe_id: str
-    administrative_number: Optional[str] = None
+    administrative_number: str | None = None
 
     @property
     def unique_key_name(self) -> str:
@@ -209,7 +209,7 @@ class FrejaIdentity(ForeignIdentityElement):
     # claim: https://frejaeid.com/oidc/scopes/relyingPartyUserId
     # A unique, user-specific value that allows the Relying Party to identify the same user across multiple sessions
     user_id: str
-    personal_identity_number: Optional[str] = None
+    personal_identity_number: str | None = None
     registration_level: FrejaRegistrationLevel
 
     @property
@@ -255,35 +255,35 @@ class IdentityList(VerifiedElementList[IdentityElement]):
         return any([element.is_verified for element in self.elements if isinstance(element, IdentityElement)])
 
     @property
-    def nin(self) -> Optional[NinIdentity]:
+    def nin(self) -> NinIdentity | None:
         _nin = self.filter(NinIdentity)
         if _nin:
             return _nin[0]
         return None
 
     @property
-    def eidas(self) -> Optional[EIDASIdentity]:
+    def eidas(self) -> EIDASIdentity | None:
         _eidas = self.filter(EIDASIdentity)
         if _eidas:
             return _eidas[0]
         return None
 
     @property
-    def svipe(self) -> Optional[SvipeIdentity]:
+    def svipe(self) -> SvipeIdentity | None:
         _svipe = self.filter(SvipeIdentity)
         if _svipe:
             return _svipe[0]
         return None
 
     @property
-    def freja(self) -> Optional[FrejaIdentity]:
+    def freja(self) -> FrejaIdentity | None:
         _freja = self.filter(FrejaIdentity)
         if _freja:
             return _freja[0]
         return None
 
     @property
-    def date_of_birth(self) -> Optional[datetime]:
+    def date_of_birth(self) -> datetime | None:
         if not self.is_verified:
             return None
         # NIN
@@ -315,7 +315,7 @@ class IdentityList(VerifiedElementList[IdentityElement]):
         return None
 
     def to_frontend_format(self) -> dict[str, Any]:
-        res: dict[str, Union[bool, dict[str, Any]]] = {
+        res: dict[str, bool | dict[str, Any]] = {
             item.identity_type.value: item.to_frontend_format() for item in self.to_list()
         }
         res["is_verified"] = self.is_verified

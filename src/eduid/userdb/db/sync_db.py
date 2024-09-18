@@ -1,7 +1,8 @@
 import logging
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Mapping, Optional, Union
+from typing import Any
 
 import pymongo
 import pymongo.collection
@@ -44,7 +45,7 @@ class MongoDB(BaseMongoDB):
     def __init__(
         self,
         db_uri: str,
-        db_name: Optional[str] = None,
+        db_name: str | None = None,
         **kwargs: Any,
     ):
         super().__init__(db_uri=db_uri, db_name=db_name, **kwargs)
@@ -61,7 +62,7 @@ class MongoDB(BaseMongoDB):
         """
         return self._client
 
-    def get_database(self, database_name: Optional[str] = None) -> Database[TUserDbDocument]:
+    def get_database(self, database_name: str | None = None) -> Database[TUserDbDocument]:
         """
         Get a pymongo database handle.
 
@@ -75,7 +76,7 @@ class MongoDB(BaseMongoDB):
         return self._client[database_name]
 
     def get_collection(
-        self, collection: str, database_name: Optional[str] = None
+        self, collection: str, database_name: str | None = None
     ) -> pymongo.collection.Collection[TUserDbDocument]:
         """
         Get a pymongo collection handle.
@@ -135,7 +136,7 @@ class SaveResult:
     ts: datetime
     inserted: int = 0
     updated: int = 0
-    doc_id: Optional[ObjectId] = None
+    doc_id: ObjectId | None = None
 
     def __bool__(self):
         return bool(self.inserted or self.updated)
@@ -181,7 +182,7 @@ class BaseDB:
         """
         return self._coll.find({})
 
-    def _get_document_by_attr(self, attr: str, value: Any) -> Optional[TUserDbDocument]:
+    def _get_document_by_attr(self, attr: str, value: Any) -> TUserDbDocument | None:
         """
         Return the document in the MongoDB matching field=value
 
@@ -216,7 +217,7 @@ class BaseDB:
         return docs
 
     def _get_documents_by_aggregate(
-        self, match: Mapping[str, Any], sort: Optional[Mapping[str, Any]] = None, limit: Optional[int] = None
+        self, match: Mapping[str, Any], sort: Mapping[str, Any] | None = None, limit: int | None = None
     ) -> list[TUserDbDocument]:
         pipeline: list[dict[str, Any]] = [{"$match": match}]
 
@@ -231,9 +232,9 @@ class BaseDB:
     def _get_documents_by_filter(
         self,
         spec: Mapping[str, Any],
-        fields: Optional[Mapping[str, Any]] = None,
-        skip: Optional[int] = None,
-        limit: Optional[int] = None,
+        fields: Mapping[str, Any] | None = None,
+        skip: int | None = None,
+        limit: int | None = None,
     ) -> list[TUserDbDocument]:
         """
         Locate documents in the db using a custom search filter.
@@ -260,7 +261,7 @@ class BaseDB:
             return []
         return docs
 
-    def db_count(self, spec: Optional[Mapping[str, Any]] = None, limit: Optional[int] = None) -> int:
+    def db_count(self, spec: Mapping[str, Any] | None = None, limit: int | None = None) -> int:
         """
         Return number of entries in the collection.
 
@@ -275,7 +276,7 @@ class BaseDB:
             args["limit"] = limit
         return self._coll.count_documents(filter=_filter, **args)
 
-    def remove_document(self, spec_or_id: Union[Mapping[str, Any], ObjectId]) -> bool:
+    def remove_document(self, spec_or_id: Mapping[str, Any] | ObjectId) -> bool:
         """
         Remove a document in the db given the _id or dict spec.
 
@@ -330,7 +331,7 @@ class BaseDB:
         data: TUserDbDocument,
         spec: Mapping[str, Any],
         is_in_database: bool,
-        meta: Optional[Meta] = None,
+        meta: Meta | None = None,
     ) -> SaveResult:
         """
         Save a document in the db.
@@ -412,7 +413,7 @@ class BaseDB:
         logger.debug(f"{self} Updated document {replace_spec} (ts {now.isoformat()}): {save_result}")
         return save_result
 
-    def _get_and_format_existing_doc_for_logging(self, spec: Mapping[str, Any]) -> Optional[str]:
+    def _get_and_format_existing_doc_for_logging(self, spec: Mapping[str, Any]) -> str | None:
         db_doc = {}
         db_state = self._coll.find_one(spec)
         if not db_state:

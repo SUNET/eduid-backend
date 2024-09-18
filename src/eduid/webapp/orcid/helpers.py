@@ -1,5 +1,4 @@
 from enum import unique
-from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -31,6 +30,6 @@ class OrcidMsg(TranslatableMsg):
 class OrcidUserinfo(BaseModel):
     orcid: HttpUrlStr = Field(alias="id")
     sub: str
-    name: Optional[str] = None
+    name: str | None = None
     family_name: str
     given_name: str

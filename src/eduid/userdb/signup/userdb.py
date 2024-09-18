@@ -1,5 +1,4 @@
 from datetime import timedelta
-from typing import Optional
 
 from eduid.userdb.db import TUserDbDocument
 from eduid.userdb.signup import SignupUser
@@ -14,7 +13,7 @@ class SignupUserDB(UserDB[SignupUser]):
         db_uri: str,
         db_name: str = "eduid_signup",
         collection: str = "registered",
-        auto_expire: Optional[timedelta] = None,
+        auto_expire: timedelta | None = None,
     ):
         super().__init__(db_uri, db_name, collection=collection)
 
@@ -32,9 +31,9 @@ class SignupUserDB(UserDB[SignupUser]):
     def user_from_dict(cls, data: TUserDbDocument) -> SignupUser:
         return SignupUser.from_dict(data)
 
-    def get_user_by_mail_verification_code(self, code: str) -> Optional[SignupUser]:
+    def get_user_by_mail_verification_code(self, code: str) -> SignupUser | None:
         return self._get_user_by_attr("pending_mail_address.verification_code", code)
 
-    def get_user_by_pending_mail_address(self, mail: str) -> Optional[SignupUser]:
+    def get_user_by_pending_mail_address(self, mail: str) -> SignupUser | None:
         mail = mail.lower()
         return self._get_user_by_attr("pending_mail_address.email", mail)

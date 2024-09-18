@@ -1,5 +1,4 @@
 from datetime import timedelta
-from typing import Optional
 
 from fastapi import Response
 
@@ -28,7 +27,7 @@ events_router = APIRouter(
 
 
 @events_router.get("/{scim_id}", response_model=EventResponse, response_model_exclude_none=True)
-async def on_get(req: ContextRequest, resp: Response, scim_id: Optional[str] = None) -> EventResponse:
+async def on_get(req: ContextRequest, resp: Response, scim_id: str | None = None) -> EventResponse:
     if scim_id is None:
         raise BadRequest(detail="Not implemented")
     req.app.context.logger.info(f"Fetching event {scim_id}")

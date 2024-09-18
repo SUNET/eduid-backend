@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import Field
 
@@ -48,9 +48,9 @@ class User(EduidBaseModel):
     name: Name = Field(default_factory=Name)
     emails: list[Email] = Field(default_factory=list)
     phone_numbers: list[PhoneNumber] = Field(default_factory=list, alias="phoneNumbers")
-    preferred_language: Optional[LanguageTag] = Field(default=None, alias="preferredLanguage")
+    preferred_language: LanguageTag | None = Field(default=None, alias="preferredLanguage")
     groups: list[Group] = Field(default_factory=list)
-    nutid_user_v1: Optional[NutidUserExtensionV1] = Field(
+    nutid_user_v1: NutidUserExtensionV1 | None = Field(
         default_factory=NutidUserExtensionV1, alias=SCIMSchema.NUTID_USER_V1.value
     )
 

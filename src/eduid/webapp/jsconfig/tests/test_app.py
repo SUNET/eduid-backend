@@ -1,7 +1,8 @@
 import json
 import os
+from collections.abc import Mapping
 from pathlib import PurePath
-from typing import Any, Mapping, cast
+from typing import Any, cast
 
 from eduid.common.config.parsers import load_config
 from eduid.common.testing_base import normalised_data

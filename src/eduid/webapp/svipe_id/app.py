@@ -1,4 +1,5 @@
-from typing import Any, Mapping, Optional, cast
+from collections.abc import Mapping
+from typing import Any, cast
 
 from authlib.integrations.flask_client import OAuth
 from flask import current_app
@@ -48,7 +49,7 @@ class SvipeIdApp(AuthnBaseApp):
 current_svipe_id_app = cast(SvipeIdApp, current_app)
 
 
-def svipe_id_init_app(name: str = "svipe_id", test_config: Optional[Mapping[str, Any]] = None) -> SvipeIdApp:
+def svipe_id_init_app(name: str = "svipe_id", test_config: Mapping[str, Any] | None = None) -> SvipeIdApp:
     """
     :param name: The name of the instance, it will affect the configuration loaded.
     :param test_config: Override config. Used in test cases.

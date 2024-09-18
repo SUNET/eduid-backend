@@ -4,9 +4,10 @@ import argparse
 import json
 import logging
 import sys
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from pprint import pformat
-from typing import Any, Callable, Mapping, NewType, Optional, cast
+from typing import Any, NewType, cast
 
 import requests
 import yaml
@@ -24,7 +25,7 @@ NUTID_EVENT_V1 = "https://scim.eduid.se/schema/nutid/event/v1"
 class Api:
     url: str
     verify: bool
-    token: Optional[str] = None
+    token: str | None = None
 
 
 def parse_args() -> Args:
@@ -41,11 +42,11 @@ def parse_args() -> Args:
 def scim_request(
     func: Callable,
     url: str,
-    data: Optional[dict] = None,
-    headers: Optional[dict] = None,
-    token: Optional[str] = None,
+    data: dict | None = None,
+    headers: dict | None = None,
+    token: str | None = None,
     verify: bool = True,
-) -> Optional[dict[str, Any]]:
+) -> dict[str, Any] | None:
     if not headers:
         headers = {"content-type": "application/scim+json"}
     if token is not None:
@@ -65,10 +66,10 @@ def scim_request(
 def _make_request(
     func: Callable,
     url: str,
-    data: Optional[dict] = None,
-    headers: Optional[dict] = None,
+    data: dict | None = None,
+    headers: dict | None = None,
     verify: bool = True,
-) -> Optional[requests.Response]:
+) -> requests.Response | None:
     r = func(url, json=data, headers=headers, verify=verify)
     logger.debug(f"Response from server: {r}\n{r.text}")
 
@@ -84,7 +85,7 @@ def _make_request(
     return r
 
 
-def search_user(api: Api, filter: str) -> Optional[dict[str, Any]]:
+def search_user(api: Api, filter: str) -> dict[str, Any] | None:
     logger.info(f"Searching for user with filter {filter}")
     query = {
         "schemas": ["urn:ietf:params:scim:api:messages:2.0:SearchRequest"],
@@ -99,7 +100,7 @@ def search_user(api: Api, filter: str) -> Optional[dict[str, Any]]:
     return res
 
 
-def search_group(api: Api, filter: str) -> Optional[dict[str, Any]]:
+def search_group(api: Api, filter: str) -> dict[str, Any] | None:
     logger.info(f"Searching for group with filter {filter}")
     query = {
         "schemas": ["urn:ietf:params:scim:api:messages:2.0:SearchRequest"],
@@ -114,7 +115,7 @@ def search_group(api: Api, filter: str) -> Optional[dict[str, Any]]:
     return res
 
 
-def create_user(api: Api, external_id: str) -> Optional[dict[str, Any]]:
+def create_user(api: Api, external_id: str) -> dict[str, Any] | None:
     logger.info(f"Creating user with externalId {external_id}")
     query = {"schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"], "externalId": external_id}
     logger.debug(f"Sending user create query:\n{pformat(json.dumps(query, sort_keys=True, indent=4))}")
@@ -123,7 +124,7 @@ def create_user(api: Api, external_id: str) -> Optional[dict[str, Any]]:
     return res
 
 
-def create_group(api: Api, display_name: str, token: Optional[str] = None) -> Optional[dict[str, Any]]:
+def create_group(api: Api, display_name: str, token: str | None = None) -> dict[str, Any] | None:
     logger.info(f"Creating group with displayName {display_name}")
     query = {"schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"], "displayName": display_name, "members": []}
     logger.debug(f"Sending group create query:\n{pformat(json.dumps(query, sort_keys=True, indent=4))}")
@@ -132,7 +133,7 @@ def create_group(api: Api, display_name: str, token: Optional[str] = None) -> Op
     return res
 
 
-def get_user_resource(api: Api, scim_id: str) -> Optional[dict[str, Any]]:
+def get_user_resource(api: Api, scim_id: str) -> dict[str, Any] | None:
     logger.debug(f"Fetching SCIM user resource {scim_id}")
 
     if "@" in scim_id:
@@ -146,7 +147,7 @@ def get_user_resource(api: Api, scim_id: str) -> Optional[dict[str, Any]]:
     return scim_request(requests.get, f"{api.url}/Users/{scim_id}", token=api.token, verify=api.verify)
 
 
-def get_group_resource(api: Api, scim_id: str) -> Optional[dict[str, Any]]:
+def get_group_resource(api: Api, scim_id: str) -> dict[str, Any] | None:
     logger.debug(f"Fetching SCIM group resource {scim_id}")
 
     return scim_request(requests.get, f"{api.url}/Groups/{scim_id}", token=api.token, verify=api.verify)
@@ -182,7 +183,7 @@ def put_user(api: Api, scim_id: str, nutid_data: Mapping[str, Any]) -> None:
     return None
 
 
-def put_group(api: Api, scim_id: str, data: dict[str, Any], token: Optional[str] = None) -> None:
+def put_group(api: Api, scim_id: str, data: dict[str, Any], token: str | None = None) -> None:
     scim = get_group_resource(api, scim_id)
     if not scim:
         return
@@ -218,7 +219,7 @@ def post_event(
     resource_scim_id: str,
     resource_type: str,
     level: str = "info",
-    data: Optional[dict[str, Any]] = None,
+    data: dict[str, Any] | None = None,
 ) -> None:
     if resource_type == "User":
         resource = get_user_resource(api=api, scim_id=resource_scim_id)
@@ -255,7 +256,7 @@ def post_event(
     logger.info(f"Update result:\n{json.dumps(res, sort_keys=True, indent=4)}")
 
 
-def process_login(api: Api, params: Mapping[str, Any]) -> Optional[str]:
+def process_login(api: Api, params: Mapping[str, Any]) -> str | None:
     url = f"{api.url}/login"
     data_owner = params["data_owner"]
     logger.debug(f"Login URL: {url}")

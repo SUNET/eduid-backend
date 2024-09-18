@@ -1,4 +1,5 @@
-from typing import Any, Mapping, Optional, cast
+from collections.abc import Mapping
+from typing import Any, cast
 
 from flask import current_app
 
@@ -47,7 +48,7 @@ class SignupApp(EduIDBaseApp):
 current_signup_app: SignupApp = cast(SignupApp, current_app)
 
 
-def signup_init_app(name: str = "signup", test_config: Optional[Mapping[str, Any]] = None) -> SignupApp:
+def signup_init_app(name: str = "signup", test_config: Mapping[str, Any] | None = None) -> SignupApp:
     """
     Create an instance of an eduid signup app.
 

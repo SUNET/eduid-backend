@@ -1,7 +1,7 @@
 import re
 from base64 import urlsafe_b64decode
 from dataclasses import asdict, dataclass
-from typing import Any, Optional
+from typing import Any
 
 import requests
 from cryptography.hazmat.primitives import hashes, hmac
@@ -33,7 +33,7 @@ next_views = Blueprint("next", __name__, url_prefix="")
 @MarshalWith(NextResponseSchema)
 @require_ticket
 @uses_sso_session
-def next_view(ticket: LoginContext, sso_session: Optional[SSOSession]) -> FluxData:
+def next_view(ticket: LoginContext, sso_session: SSOSession | None) -> FluxData:
     """Main state machine for frontend"""
     current_app.logger.debug("\n\n")
     current_app.logger.debug(f"--- Next ({ticket.request_ref}) ---")
@@ -213,9 +213,9 @@ class AuthnOptions:
     # Is this a re-authentication request? Meaning the very same user _has_ to log in, can't switch to another user.
     is_reauthn: bool
     # What to use in the greeting of the user at the login page
-    display_name: Optional[str] = None
+    display_name: str | None = None
     # Is this login locked to being performed by a particular user? (Identified by the email/phone/...)
-    forced_username: Optional[str] = None
+    forced_username: str | None = None
     # Can an unknown user log in using just a swedish eID? Yes, if there is an eduID user with the users (verified) NIN.
     freja_eidplus: bool = True  # TODO: remove freja_eidplus replaced by swedish_eid
     swedish_eid: bool = True
@@ -241,7 +241,7 @@ class AuthnOptions:
         return [x for x in _data.keys() if _data[x]]
 
 
-def _get_authn_options(ticket: LoginContext, sso_session: Optional[SSOSession], eppn: Optional[str]) -> dict[str, Any]:
+def _get_authn_options(ticket: LoginContext, sso_session: SSOSession | None, eppn: str | None) -> dict[str, Any]:
     res = AuthnOptions(is_reauthn=ticket.reauthn_required)
 
     # Availability of "login using another device" is controlled by configuration for now.
@@ -265,11 +265,11 @@ def _get_authn_options(ticket: LoginContext, sso_session: Optional[SSOSession], 
 
 @dataclass
 class RequiredUserResult:
-    response: Optional[FluxData] = None
-    eppn: Optional[str] = None
+    response: FluxData | None = None
+    eppn: str | None = None
 
 
-def get_required_user(ticket: LoginContext, sso_session: Optional[SSOSession]) -> RequiredUserResult:
+def get_required_user(ticket: LoginContext, sso_session: SSOSession | None) -> RequiredUserResult:
     """
     Figure out if something dictates a user that _must_ be used to log in at this time.
 
@@ -355,7 +355,7 @@ def _set_user_options(res: AuthnOptions, eppn: str) -> None:
     return None
 
 
-def _geo_statistics(ticket: LoginContext, sso_session: Optional[SSOSession]) -> None:
+def _geo_statistics(ticket: LoginContext, sso_session: SSOSession | None) -> None:
     """Log user statistics from login event"""
 
     if not sso_session:

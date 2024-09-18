@@ -1,5 +1,4 @@
 import logging
-from typing import Optional
 
 from eduid.userdb.credentials import Credential, FidoCredential
 from eduid.userdb.credentials.external import BankIDCredential, SwedenConnectCredential
@@ -24,7 +23,7 @@ def need_security_key(user: IdPUser, ticket: LoginContext) -> bool:
         return False
 
     for cred_key in ticket.pending_request.credentials_used:
-        credential: Optional[Credential]
+        credential: Credential | None
         if cred_key in ticket.pending_request.onetime_credentials:
             credential = ticket.pending_request.onetime_credentials[cred_key]
         else:

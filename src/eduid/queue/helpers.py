@@ -1,7 +1,7 @@
 import logging
+from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Iterator
 
 import babel
 from babel.support import Translations

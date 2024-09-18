@@ -1,6 +1,7 @@
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import Any, Mapping, Optional
+from typing import Any
 from uuid import UUID, uuid4
 
 from httpx import Response
@@ -18,7 +19,7 @@ class EventApiResult:
     response: Response
     event: NutidEventExtensionV1
     parsed_response: EventResponse
-    request: Optional[Mapping] = None
+    request: Mapping | None = None
 
 
 class TestEventResource(ScimApiTestCase):

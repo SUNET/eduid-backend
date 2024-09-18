@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Mapping, Optional
+from typing import Any
 from uuid import UUID
 
 from bson import ObjectId
@@ -57,18 +58,18 @@ class _InviteRequired:
 @dataclass(frozen=True)
 class Invite(_InviteRequired):
     invite_id: ObjectId = field(default_factory=ObjectId)
-    given_name: Optional[str] = field(default=None)
-    surname: Optional[str] = field(default=None)
+    given_name: str | None = field(default=None)
+    surname: str | None = field(default=None)
     mail_addresses: list[InviteMailAddress] = field(default_factory=list)
     phone_numbers: list[InvitePhoneNumber] = field(default_factory=list)
-    nin: Optional[str] = field(default=None)
+    nin: str | None = field(default=None)
     preferred_language: str = field(default="sv")
-    finish_url: Optional[str] = field(default=None)
-    completed_ts: Optional[datetime] = field(default=None)
+    finish_url: str | None = field(default=None)
+    completed_ts: datetime | None = field(default=None)
     created_ts: datetime = field(default_factory=datetime.utcnow)
-    modified_ts: Optional[datetime] = field(default=None)
+    modified_ts: datetime | None = field(default=None)
 
-    def get_primary_mail_address(self) -> Optional[str]:
+    def get_primary_mail_address(self) -> str | None:
         # there can be only one primary mail address set
         primary_mail_address = [item.email for item in self.mail_addresses if item.primary is True]
         if not primary_mail_address:

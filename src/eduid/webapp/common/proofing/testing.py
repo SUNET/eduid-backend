@@ -1,4 +1,4 @@
-from typing import Generic, Optional
+from typing import Generic
 
 from eduid.common.config.base import EduIDBaseAppConfig, FrontendAction
 from eduid.userdb.credentials import FidoCredential
@@ -18,11 +18,11 @@ class ProofingTests(EduidAPITestCase[TTestAppVar], Generic[TTestAppVar]):
         self,
         finish_url: str,
         frontend_action: FrontendAction,
-        frontend_state: Optional[str],
+        frontend_state: str | None,
         method: str,
-        browser: Optional[CSRFTestClient] = None,
+        browser: CSRFTestClient | None = None,
         expect_error: bool = False,
-        expect_msg: Optional[TranslatableMsg] = None,
+        expect_msg: TranslatableMsg | None = None,
     ) -> None:
         if browser is None:
             assert isinstance(self.browser, CSRFTestClient)
@@ -57,15 +57,15 @@ class ProofingTests(EduidAPITestCase[TTestAppVar], Generic[TTestAppVar]):
     def _verify_user_parameters(
         self,
         eppn: str,
-        identity: Optional[IdentityElement] = None,
+        identity: IdentityElement | None = None,
         identity_present: bool = True,
         identity_verified: bool = False,
-        locked_identity: Optional[IdentityElement] = None,
+        locked_identity: IdentityElement | None = None,
         num_mfa_tokens: int = 1,
         num_proofings: int = 0,
         token_verified: bool = False,
-        proofing_method: Optional[IdentityProofingMethod] = None,
-        proofing_version: Optional[str] = None,
+        proofing_method: IdentityProofingMethod | None = None,
+        proofing_version: str | None = None,
     ):
         """This function is used to verify a user's parameters at the start of a test case,
         and then again at the end to ensure the right set of changes occurred to the user in the database.

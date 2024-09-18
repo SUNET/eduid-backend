@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import Optional
 
 from pydantic import BaseModel
 
@@ -14,4 +13,4 @@ class ExternalMfaData(BaseModel):
     issuer: str
     authn_context: str
     timestamp: datetime
-    credential_id: Optional[ElementKey] = None
+    credential_id: ElementKey | None = None

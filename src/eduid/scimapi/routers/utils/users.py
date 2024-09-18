@@ -1,6 +1,7 @@
+from collections.abc import Sequence
 from dataclasses import asdict
 from datetime import datetime
-from typing import Any, Optional, Sequence
+from typing import Any
 
 from fastapi import Response
 from pymongo.errors import DuplicateKeyError
@@ -169,7 +170,7 @@ def filter_externalid(req: ContextRequest, search_filter: SearchFilter) -> list[
 
 
 def filter_lastmodified(
-    req: ContextRequest, search_filter: SearchFilter, skip: Optional[int] = None, limit: Optional[int] = None
+    req: ContextRequest, search_filter: SearchFilter, skip: int | None = None, limit: int | None = None
 ) -> tuple[list[ScimApiUser], int]:
     if search_filter.op not in ["gt", "ge"]:
         raise BadRequest(scim_type="invalidFilter", detail="Unsupported operator")
@@ -185,8 +186,8 @@ def filter_profile_data(
     search_filter: SearchFilter,
     profile: str,
     key: str,
-    skip: Optional[int] = None,
-    limit: Optional[int] = None,
+    skip: int | None = None,
+    limit: int | None = None,
 ) -> tuple[list[ScimApiUser], int]:
     if search_filter.op != "eq":
         raise BadRequest(scim_type="invalidFilter", detail="Unsupported operator")

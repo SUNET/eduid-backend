@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Optional, TypeVar
+from typing import Any, TypeVar
 
 from pydantic import field_validator
 
@@ -29,7 +29,7 @@ class ProofingElement(VerifiedElement):
         verification_code
     """
 
-    verification_code: Optional[str] = None
+    verification_code: str | None = None
 
     @classmethod
     def _from_dict_transform(cls: type[TProofingElementSubclass], data: dict[str, Any]) -> dict[str, Any]:
@@ -64,7 +64,7 @@ class NinProofingElement(ProofingElement):
     """
 
     number: str
-    date_of_birth: Optional[datetime] = None
+    date_of_birth: datetime | None = None
 
 
 class EmailProofingElement(ProofingElement):
@@ -123,6 +123,6 @@ class SentLetterElement(Element):
     """
 
     is_sent: bool = False
-    sent_ts: Optional[datetime] = None
-    transaction_id: Optional[str] = None
-    address: Optional[FullPostalAddress] = None
+    sent_ts: datetime | None = None
+    transaction_id: str | None = None
+    address: FullPostalAddress | None = None

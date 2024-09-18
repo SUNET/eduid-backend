@@ -1,5 +1,5 @@
 from datetime import timedelta
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 from uuid import uuid4
 
 from fastapi import Response
@@ -60,7 +60,7 @@ def db_event_to_response(req: ContextRequest, resp: Response, db_event: ScimApiE
     return event_response
 
 
-def get_scim_referenced(req: ContextRequest, resource: NutidEventResource) -> Optional[ScimApiResourceBase]:
+def get_scim_referenced(req: ContextRequest, resource: NutidEventResource) -> ScimApiResourceBase | None:
     if resource.resource_type == SCIMResourceType.USER:
         return req.context.userdb.get_user_by_scim_id(str(resource.scim_id))
     elif resource.resource_type == SCIMResourceType.GROUP:

@@ -1,8 +1,9 @@
 import logging
 import os
+from collections.abc import Mapping
 from dataclasses import asdict
 from pathlib import PurePath
-from typing import Any, Mapping, Optional
+from typing import Any
 from uuid import uuid4
 
 import pytest
@@ -418,7 +419,7 @@ class TestAuthnUserResource(ScimApiTestUserResourceBase):
         config["authorization_mandatory"] = True
         return config
 
-    def _get_user_from_api(self, user: ScimApiUser, bearer_token: Optional[str] = None) -> Response:
+    def _get_user_from_api(self, user: ScimApiUser, bearer_token: str | None = None) -> Response:
         headers = self.headers
         if bearer_token:
             headers["Authorization"] = f"Bearer {bearer_token}"

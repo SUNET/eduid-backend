@@ -1,6 +1,7 @@
 import json
+from collections.abc import Mapping
 from datetime import datetime, timedelta
-from typing import Any, AnyStr, Mapping, Optional
+from typing import Any, AnyStr
 from unittest.mock import MagicMock, Mock, patch
 
 from werkzeug.test import TestResponse
@@ -27,9 +28,9 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
     @staticmethod
     def mock_response(
         status_code: int = 200,
-        content: Optional[AnyStr] = None,
-        json_data: Optional[Mapping[str, Any]] = None,
-        headers: Optional[Mapping[str, Any]] = None,
+        content: AnyStr | None = None,
+        json_data: Mapping[str, Any] | None = None,
+        headers: Mapping[str, Any] | None = None,
         raise_for_status: Any = None,
     ) -> Mock:
         """
@@ -81,7 +82,7 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
         self.assertEqual(response.status_code, 200)
         return json.loads(response.data)
 
-    def send_letter(self, nin: str, csrf_token: Optional[str] = None, validate_response: bool = True) -> TestResponse:
+    def send_letter(self, nin: str, csrf_token: str | None = None, validate_response: bool = True) -> TestResponse:
         """
         Invoke the POST /proofing endpoint, check that the HTTP response code is 200 and return the response.
 
@@ -100,7 +101,7 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
     def _send_letter2(
         self,
         nin: str,
-        csrf_token: Optional[str],
+        csrf_token: str | None,
         mock_get_postal_address: MagicMock,
         mock_request_user_sync: MagicMock,
         mock_hammock: MagicMock,
@@ -118,7 +119,7 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
             response = client.post("/proofing", data=json.dumps(data), content_type=self.content_type_json)
         return response
 
-    def verify_code(self, code: str, csrf_token: Optional[str] = None, validate_response: bool = True) -> TestResponse:
+    def verify_code(self, code: str, csrf_token: str | None = None, validate_response: bool = True) -> TestResponse:
         """
         Invoke the POST /verify-code endpoint, check that the HTTP response code is 200 and return the response.
 
@@ -134,7 +135,7 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_postal_address")
     def _verify_code2(
-        self, code: str, csrf_token: Optional[str], mock_get_postal_address, mock_request_user_sync: MagicMock
+        self, code: str, csrf_token: str | None, mock_get_postal_address, mock_request_user_sync: MagicMock
     ):
         if csrf_token is None:
             _state = self.get_state()
@@ -155,8 +156,8 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
         mock_get_postal_address: Any,
         mock_request_user_sync: Any,
         mock_hammock: Any,
-        cookie_name: Optional[str] = None,
-        cookie_value: Optional[str] = None,
+        cookie_name: str | None = None,
+        cookie_value: str | None = None,
         add_cookie: bool = True,
     ):
         ekopost_response = self.mock_response(json_data={"id": "test"})

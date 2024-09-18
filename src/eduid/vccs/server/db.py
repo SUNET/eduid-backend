@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import builtins
+from collections.abc import Mapping
 from dataclasses import asdict, field
 from enum import Enum, unique
-from typing import Any, Mapping, Optional, Type, Union, cast
+from typing import Any, cast
 
 from bson import ObjectId
 from loguru import logger
@@ -47,7 +49,7 @@ class Credential:
     obj_id: ObjectId = field(default_factory=ObjectId)
 
     @classmethod
-    def _from_dict(cls: Type[Credential], data: Mapping[str, Any]) -> Credential:
+    def _from_dict(cls: builtins.type[Credential], data: Mapping[str, Any]) -> Credential:
         """Construct element from a data dict in database format."""
 
         _data = dict(data)  # to not modify callers data
@@ -113,7 +115,7 @@ class _PasswordCredentialRequired:
 @dataclass(config=CredentialPydanticConfig)
 class PasswordCredential(Credential, _PasswordCredentialRequired):
     @classmethod
-    def from_dict(cls: Type[PasswordCredential], data: Mapping[str, Any]) -> PasswordCredential:
+    def from_dict(cls: type[PasswordCredential], data: Mapping[str, Any]) -> PasswordCredential:
         # This indirection provides the correct return type for this subclass
         return cast(PasswordCredential, cls._from_dict(data))
 
@@ -127,7 +129,7 @@ class _RevokedCredentialRequired:
 @dataclass(config=CredentialPydanticConfig)
 class RevokedCredential(Credential, _RevokedCredentialRequired):
     @classmethod
-    def from_dict(cls: Type[RevokedCredential], data: Mapping[str, Any]) -> RevokedCredential:
+    def from_dict(cls: type[RevokedCredential], data: Mapping[str, Any]) -> RevokedCredential:
         # This indirection provides the correct return type for this subclass
         return cast(RevokedCredential, cls._from_dict(data))
 
@@ -215,7 +217,7 @@ class CredentialDB(BaseDB):
         credential.revision -= 1
         return False
 
-    def get_credential(self, credential_id: str) -> Optional[Union[PasswordCredential, RevokedCredential]]:
+    def get_credential(self, credential_id: str) -> PasswordCredential | RevokedCredential | None:
         """
         Lookup an credential using the credential id.
 

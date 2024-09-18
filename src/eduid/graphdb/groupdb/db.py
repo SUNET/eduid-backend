@@ -1,7 +1,7 @@
 import enum
 import logging
 from dataclasses import replace
-from typing import Any, Optional, Union
+from typing import Any
 
 from bson import ObjectId
 from neo4j import READ_ACCESS, WRITE_ACCESS, Record, Transaction
@@ -33,7 +33,7 @@ class Role(enum.Enum):
 
 
 class GroupDB(BaseGraphDB):
-    def __init__(self, db_uri: str, scope: str, config: Optional[dict[str, Any]] = None):
+    def __init__(self, db_uri: str, scope: str, config: dict[str, Any] | None = None):
         super().__init__(db_uri=db_uri, config=config)
         self._scope = scope
 
@@ -103,9 +103,9 @@ class GroupDB(BaseGraphDB):
 
     def _add_or_update_users_and_groups(
         self, tx: Transaction, group: Group
-    ) -> tuple[set[Union[User, Group]], set[Union[User, Group]]]:
-        members: set[Union[User, Group]] = set()
-        owners: set[Union[User, Group]] = set()
+    ) -> tuple[set[User | Group], set[User | Group]]:
+        members: set[User | Group] = set()
+        owners: set[User | Group] = set()
 
         for user_member in group.member_users:
             res = self._add_user_to_group(tx, group=group, member=user_member, role=Role.MEMBER)
@@ -206,8 +206,8 @@ class GroupDB(BaseGraphDB):
             display_name=member.display_name,
         ).single()
 
-    def get_users_and_groups_by_role(self, identifier: str, role: Role) -> list[Union[User, Group]]:
-        res: list[Union[User, Group]] = []
+    def get_users_and_groups_by_role(self, identifier: str, role: Role) -> list[User | Group]:
+        res: list[User | Group] = []
         q = f"""
             MATCH (g: Group {{scope: $scope, identifier: $identifier}})<-[r:{role.value}]-(m)
             RETURN r.display_name as display_name, r.created_ts as created_ts, r.modified_ts as modified_ts,
@@ -222,7 +222,7 @@ class GroupDB(BaseGraphDB):
                     res.append(self._load_group(record.data()))
         return res
 
-    def get_group(self, identifier: str) -> Optional[Group]:
+    def get_group(self, identifier: str) -> Group | None:
         q = """
             MATCH (g: Group {scope: $scope, identifier: $identifier})
             OPTIONAL MATCH (g)<-[r]-(m)
@@ -235,7 +235,7 @@ class GroupDB(BaseGraphDB):
             # group did not exist
             return None
 
-        group_data: Optional[Node]  # please mypy
+        group_data: Node | None  # please mypy
         if len(group_graph.relationships) == 0:
             # Just a group with no owners or members
             group_data = [node_data for node_data in group_graph.nodes][0]
@@ -390,17 +390,17 @@ class GroupDB(BaseGraphDB):
         saved_group = replace(saved_group, members=saved_members, owners=saved_owners)
         return saved_group
 
-    def _load_node(self, data: Union[dict, Node]) -> Union[User, Group]:
+    def _load_node(self, data: dict | Node) -> User | Group:
         if data.get("scope"):
             return self._load_group(data=data)
         return self._load_user(data=data)
 
     @staticmethod
-    def _load_group(data: Union[dict, Node]) -> Group:
+    def _load_group(data: dict | Node) -> Group:
         """Method meant to be overridden by subclasses wanting to annotate the group."""
         return Group.from_mapping(data)
 
     @staticmethod
-    def _load_user(data: Union[dict, Node]) -> User:
+    def _load_user(data: dict | Node) -> User:
         """Method meant to be overridden by subclasses wanting to annotate the user."""
         return User.from_mapping(data)

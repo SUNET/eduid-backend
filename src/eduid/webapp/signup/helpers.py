@@ -3,7 +3,6 @@ import struct
 from dataclasses import replace
 from datetime import datetime
 from enum import Enum, unique
-from typing import Optional
 
 import proquint
 from flask import abort
@@ -202,8 +201,8 @@ def create_and_sync_user(
     surname: str,
     email: str,
     tou_version: str,
-    generated_password: Optional[str] = None,
-    custom_password: Optional[str] = None,
+    generated_password: str | None = None,
+    custom_password: str | None = None,
 ) -> SignupUser:
     """
     * Create a new user in the central userdb
@@ -420,13 +419,13 @@ def update_or_create_scim_user(invite: Invite, signup_user: SignupUser) -> UserR
         return client.update_user(user=update_user, version=scim_user.meta.version)
 
 
-def is_email_verification_expired(sent_ts: Optional[datetime]) -> bool:
+def is_email_verification_expired(sent_ts: datetime | None) -> bool:
     if sent_ts is None:
         return True
     return utc_now() - sent_ts > current_app.conf.email_verification_timeout
 
 
-def is_valid_custom_password(custom_password: Optional[str]) -> bool:
+def is_valid_custom_password(custom_password: str | None) -> bool:
     if custom_password is None:
         return False
 

@@ -1,5 +1,3 @@
-from typing import Optional
-
 from fastapi import FastAPI
 
 from eduid.common.config.parsers import load_config
@@ -19,14 +17,14 @@ from eduid.workers.amapi.routers.users import users_router
 
 
 class AMAPI(FastAPI):
-    def __init__(self, name: str = "am_api", test_config: Optional[dict] = None):
+    def __init__(self, name: str = "am_api", test_config: dict | None = None):
         self.config = load_config(typ=AMApiConfig, app_name=name, ns="api", test_config=test_config)
         super().__init__()
         self.context = Context(config=self.config)
         self.context.logger.info(f"Starting {name} app")
 
 
-def init_api(name: str = "am_api", test_config: Optional[dict] = None) -> AMAPI:
+def init_api(name: str = "am_api", test_config: dict | None = None) -> AMAPI:
     app = AMAPI(name=name, test_config=test_config)
     app.router.route_class = ContextRequestRoute
 

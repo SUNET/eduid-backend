@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any
 from uuid import UUID
 
 from pydantic import Field
@@ -22,8 +22,8 @@ class NutidEventResource(EduidBaseModel):
     scim_id: UUID = Field(alias="id")
     last_modified: ScimDatetime = Field(alias="lastModified")
     version: WeakVersion
-    external_id: Optional[str] = Field(default=None, alias="externalId")
-    location: Optional[str] = None
+    external_id: str | None = Field(default=None, alias="externalId")
+    location: str | None = None
 
 
 class NutidEventExtensionV1(EduidBaseModel):
@@ -35,9 +35,9 @@ class NutidEventExtensionV1(EduidBaseModel):
     resource: NutidEventResource
     level: EventLevel = Field(default=EventLevel.INFO)
     data: dict[str, Any] = Field(default_factory=dict)
-    expires_at: Optional[ScimDatetime] = Field(default=None, alias="expiresAt")
-    timestamp: Optional[ScimDatetime] = None
-    source: Optional[str] = None
+    expires_at: ScimDatetime | None = Field(default=None, alias="expiresAt")
+    timestamp: ScimDatetime | None = None
+    source: str | None = None
 
 
 class NutidEventV1(EduidBaseModel):

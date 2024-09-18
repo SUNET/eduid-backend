@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import Field
 
@@ -25,7 +25,7 @@ class GroupMember(SubResource):
 class Group(EduidBaseModel):
     display_name: str = Field(alias="displayName")
     members: list[GroupMember] = Field(default_factory=list)
-    nutid_group_v1: Optional[NutidGroupExtensionV1] = Field(
+    nutid_group_v1: NutidGroupExtensionV1 | None = Field(
         default_factory=NutidGroupExtensionV1, alias=SCIMSchema.NUTID_GROUP_V1.value
     )
 

@@ -1,5 +1,6 @@
 import json
-from typing import Any, Mapping, Optional
+from collections.abc import Mapping
+from typing import Any
 from unittest.mock import patch
 
 from eduid.common.config.base import FrontendAction
@@ -45,7 +46,7 @@ class ChangePasswordTests(EduidAPITestCase[SecurityApp]):
 
     # parameterized test methods
 
-    def _get_suggested(self, reauthn: Optional[int] = 60):
+    def _get_suggested(self, reauthn: int | None = 60):
         """
         GET a suggested password.
         """
@@ -57,7 +58,7 @@ class ChangePasswordTests(EduidAPITestCase[SecurityApp]):
     def _change_password(
         self,
         mock_request_user_sync: Any,
-        data1: Optional[dict[str, Any]] = None,
+        data1: dict[str, Any] | None = None,
     ):
         """
         To change the password of the test user, POST old and new passwords,
@@ -82,7 +83,7 @@ class ChangePasswordTests(EduidAPITestCase[SecurityApp]):
     def _get_suggested_and_change(
         self,
         mock_request_user_sync: Any,
-        data1: Optional[dict[str, Any]] = None,
+        data1: dict[str, Any] | None = None,
         correct_old_password: bool = True,
     ):
         """

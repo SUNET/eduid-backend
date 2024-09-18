@@ -1,7 +1,8 @@
 import logging
 from abc import ABC
+from collections.abc import Coroutine
 from datetime import datetime, timedelta
-from typing import Annotated, Any, Coroutine, Optional, Union
+from typing import Annotated, Any
 
 from httpx import Request
 from jwcrypto.jwk import JWK
@@ -39,13 +40,13 @@ class GNAPClientAuthData(BaseModel):
     authn_server_verify: bool = True
     key_name: str
     client_jwk: ClientJWK
-    access: list[Union[str, Access]] = Field(default_factory=list)
+    access: list[str | Access] = Field(default_factory=list)
     default_access_token_expires_in: timedelta = timedelta(hours=1)
 
 
 class GNAPBearerTokenMixin(ABC):
     _auth_data: GNAPClientAuthData
-    _bearer_token: Optional[str] = None
+    _bearer_token: str | None = None
     _bearer_token_expires_at: datetime = utc_now()
 
     @property
@@ -86,8 +87,8 @@ class GNAPBearerTokenMixin(ABC):
     def _has_bearer_token(self) -> bool:
         return self._bearer_token is not None and self._bearer_token_expires_at > utc_now()
 
-    def _request_bearer_token(self) -> Union[GrantResponse, Coroutine[Any, Any, GrantResponse]]:
+    def _request_bearer_token(self) -> GrantResponse | Coroutine[Any, Any, GrantResponse]:
         raise NotImplementedError()
 
-    def _add_authz_header(self, request: Request) -> Union[None, Coroutine[Any, Any, None]]:
+    def _add_authz_header(self, request: Request) -> None | Coroutine[Any, Any, None]:
         raise NotImplementedError()

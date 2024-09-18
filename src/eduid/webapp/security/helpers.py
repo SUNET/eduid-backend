@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import unique
 from functools import cache
-from typing import Any, List, Optional
+from typing import Any
 
 from fido_mds.models.webauthn import AttestationFormat
 
@@ -84,9 +84,9 @@ class CredentialInfo:
     key: str
     credential_type: str
     created_ts: datetime
-    success_ts: Optional[datetime]
+    success_ts: datetime | None
     verified: bool = False
-    description: Optional[str] = None
+    description: str | None = None
 
 
 def compile_credential_list(user: User) -> list[CredentialInfo]:
@@ -98,7 +98,7 @@ def compile_credential_list(user: User) -> list[CredentialInfo]:
     for cred_key, authn in authn_info.items():
         cred = user.credentials.find(cred_key)
         # pick up attributes not present on all types of credentials
-        _description: Optional[str] = None
+        _description: str | None = None
         _is_verified = False
         _d = getattr(cred, "description", None)
         if isinstance(_d, str):
@@ -191,7 +191,7 @@ def send_termination_mail(user):
         current_app.logger.info(f"Sent termination mail to user {user} to address {email}.")
 
 
-def check_reauthn(frontend_action: FrontendAction, user: User) -> Optional[FluxData]:
+def check_reauthn(frontend_action: FrontendAction, user: User) -> FluxData | None:
     """Check if a re-authentication has been performed recently enough for this action"""
 
     authn_status = validate_authn_for_action(config=current_app.conf, frontend_action=frontend_action, user=user)
@@ -252,7 +252,7 @@ def update_user_official_name(security_user: SecurityUser, navet_data: NavetData
 @cache
 def get_approved_security_keys() -> dict[str, Any]:
     # a way to reuse is_authenticator_mfa_approved() from security app
-    parsed_entries: List[AuthenticatorInformation] = []
+    parsed_entries: list[AuthenticatorInformation] = []
     for metadata_entry in current_app.fido_mds.metadata.entries:
         user_verification_methods = [
             detail.user_verification_method
@@ -278,14 +278,14 @@ def get_approved_security_keys() -> dict[str, Any]:
         )
         parsed_entries.append(authenticator_info)
 
-    approved_keys_list: List[str] = []
+    approved_keys_list: list[str] = []
     for entry in parsed_entries:
         if entry.description and is_authenticator_mfa_approved(entry):
             approved_keys_list.append(entry.description)
 
     # remove case-insensitive duplicates from list, while maintaining the original case
     marker = set()
-    unique_approved_keys_list: List[str] = []
+    unique_approved_keys_list: list[str] = []
 
     for key in approved_keys_list:
         lower_case_key = key.lower()

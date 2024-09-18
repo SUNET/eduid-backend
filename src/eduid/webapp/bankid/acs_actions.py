@@ -1,5 +1,3 @@
-from typing import Optional
-
 from eduid.userdb import User
 from eduid.userdb.credentials.fido import FidoCredential
 from eduid.webapp.bankid.app import current_bankid_app as current_app
@@ -20,7 +18,7 @@ __author__ = "lundberg"
 from eduid.webapp.bankid.saml_session_info import BaseSessionInfo
 
 
-def common_saml_checks(args: ACSArgs) -> Optional[ACSResult]:
+def common_saml_checks(args: ACSArgs) -> ACSResult | None:
     """
     Perform common checks for SAML ACS actions.
     """

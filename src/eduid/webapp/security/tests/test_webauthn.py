@@ -1,6 +1,7 @@
 import base64
 import json
-from typing import Any, Mapping, Optional
+from collections.abc import Mapping
+from typing import Any
 from unittest.mock import patch
 
 from fido2.webauthn import AttestationObject, AuthenticatorAttachment, CollectedClientData
@@ -193,10 +194,10 @@ class SecurityWebauthnTests(EduidAPITestCase):
     # parameterized test methods
     def _begin_register_key(
         self,
-        other: Optional[str] = None,
+        other: str | None = None,
         authenticator: str = "cross-platform",
         existing_legacy_token: bool = False,
-        csrf: Optional[str] = None,
+        csrf: str | None = None,
         check_session: bool = True,
     ):
         """
@@ -254,7 +255,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
         state: dict,
         cred_id: bytes,
         existing_legacy_token: bool = False,
-        csrf: Optional[str] = None,
+        csrf: str | None = None,
     ):
         """
         Finish registering a webauthn token.
@@ -317,7 +318,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
         attestation_2: bytes,
         state_2: dict,
         existing_legacy_token: bool = False,
-        csrf: Optional[str] = None,
+        csrf: str | None = None,
     ):
         """
         Send a POST request to remove a webauthn credential from the test user.

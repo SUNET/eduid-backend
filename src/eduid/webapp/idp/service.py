@@ -60,7 +60,7 @@ Common code for SSO login/logout requests.
 """
 
 from abc import ABC
-from typing import Any, Optional
+from typing import Any
 
 from flask import request
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -73,9 +73,9 @@ from eduid.webapp.idp.sso_session import SSOSession
 
 
 class SAMLQueryParams(BaseModel):
-    SAMLRequest: Optional[str] = None
-    RelayState: Optional[str] = None
-    request_ref: Optional[RequestRef] = Field(default=None, alias="ref")
+    SAMLRequest: str | None = None
+    RelayState: str | None = None
+    request_ref: RequestRef | None = Field(default=None, alias="ref")
     model_config = ConfigDict(populate_by_name=True)
 
     @field_validator("SAMLRequest", "RelayState")
@@ -104,7 +104,7 @@ class Service(ABC):
     :param session: SSO session
     """
 
-    def __init__(self, sso_session: Optional[SSOSession]):
+    def __init__(self, sso_session: SSOSession | None):
         self.sso_session = sso_session
 
     def unpack_redirect(self) -> SAMLQueryParams:

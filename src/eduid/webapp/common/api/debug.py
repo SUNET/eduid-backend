@@ -1,8 +1,9 @@
 import pprint
 import sys
 import warnings
+from collections.abc import Callable
 from dataclasses import asdict
-from typing import Any, Callable
+from typing import Any
 from urllib import parse
 
 from flask import Flask, url_for

@@ -64,7 +64,7 @@ import pprint
 import time
 from base64 import b64encode
 from hashlib import sha256
-from typing import Any, Optional
+from typing import Any
 from uuid import uuid4
 
 from defusedxml import ElementTree as DefusedElementTree
@@ -121,9 +121,9 @@ class MustAuthenticate(Exception):
 class NextResult(BaseModel):
     message: IdPMsg
     error: bool = False
-    authn_info: Optional[AuthnInfo] = None
-    authn_state: Optional[AuthnState] = None
-    user: Optional[User] = None
+    authn_info: AuthnInfo | None = None
+    authn_state: AuthnState | None = None
+    user: User | None = None
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     def __str__(self):
@@ -133,7 +133,7 @@ class NextResult(BaseModel):
         )
 
 
-def login_next_step(ticket: LoginContext, sso_session: Optional[SSOSession]) -> NextResult:
+def login_next_step(ticket: LoginContext, sso_session: SSOSession | None) -> NextResult:
     """The main state machine for the login flow(s)."""
     if ticket.pending_request.aborted:
         current_app.logger.debug("Login request is aborted")
@@ -243,7 +243,7 @@ class SSO(Service):
     Single Sign On service.
     """
 
-    def __init__(self, sso_session: Optional[SSOSession]):
+    def __init__(self, sso_session: SSOSession | None):
         super().__init__(sso_session)
 
     def redirect(self) -> WerkzeugResponse:
@@ -524,7 +524,7 @@ class SSO(Service):
             }
         ]
 
-    def _get_pairwise_id(self, relying_party: str, user_eppn: str) -> Optional[str]:
+    def _get_pairwise_id(self, relying_party: str, user_eppn: str) -> str | None:
         """
         Given a particular relying party, a value (the unique ID and scope together) MUST be bound to only one subject,
         but the same unique ID given a different scope may refer to the same or (far more likely) a different subject.
@@ -595,7 +595,7 @@ def _add_saml_request_to_session(info: SAMLQueryParams, binding: str) -> Request
     return request_ref
 
 
-def get_ticket(info: SAMLQueryParams, binding: Optional[str]) -> Optional[LoginContext]:
+def get_ticket(info: SAMLQueryParams, binding: str | None) -> LoginContext | None:
     """
     Get the SSOLoginData from the eduid.webapp.common session, or from query parameters.
     """

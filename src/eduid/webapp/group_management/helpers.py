@@ -1,6 +1,6 @@
 from dataclasses import asdict, dataclass
 from enum import unique
-from typing import Any, Optional, Union
+from typing import Any
 from uuid import UUID
 
 from flask_babel import gettext as _
@@ -44,8 +44,8 @@ class UserGroup:
     display_name: str
     is_owner: bool
     is_member: bool
-    owners: set[Union[GraphUser, GraphGroup]]
-    members: set[Union[GraphUser, GraphGroup]]
+    owners: set[GraphUser | GraphGroup]
+    members: set[GraphUser | GraphGroup]
 
     @classmethod
     def from_scimapigroup(cls, group: ScimApiGroup, is_owner: bool = False, is_member: bool = False):
@@ -59,7 +59,7 @@ class UserGroup:
         )
 
 
-def get_scim_user_by_eppn(eppn: str) -> Optional[ScimApiUser]:
+def get_scim_user_by_eppn(eppn: str) -> ScimApiUser | None:
     external_id = f"{eppn}@{current_app.conf.scim_external_id_scope}"
     scim_user = current_app.scimapi_userdb.get_user_by_external_id(external_id=external_id)
     return scim_user

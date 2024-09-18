@@ -48,7 +48,8 @@ from __future__ import annotations
 import json
 import logging
 import typing
-from typing import Any, Mapping, Optional, Union
+from collections.abc import Mapping
+from typing import Any
 
 import nacl.encoding
 import nacl.secret
@@ -74,7 +75,7 @@ class SessionManager:
         redis_config: RedisConfig,
         app_secret: str,
         ttl: int = 600,
-        whitelist: Optional[list[str]] = None,
+        whitelist: list[str] | None = None,
         raise_on_unknown: bool = False,
     ):
         """
@@ -132,7 +133,7 @@ class SessionManager:
         return res
 
 
-def get_redis_pool(cfg: RedisConfig) -> Union[sentinel.SentinelConnectionPool, redis.ConnectionPool]:
+def get_redis_pool(cfg: RedisConfig) -> sentinel.SentinelConnectionPool | redis.ConnectionPool:
     logger.debug(f"Redis configuration: {cfg}")
     if cfg.sentinel_hosts and cfg.sentinel_service_name:
         host_port = [(x, cfg.port) for x in cfg.sentinel_hosts]
@@ -165,7 +166,7 @@ class RedisEncryptedSession(typing.MutableMapping):
         db_key: str,
         encryption_key: bytes,
         ttl: int,
-        whitelist: Optional[list[str]] = None,
+        whitelist: list[str] | None = None,
         raise_on_unknown: bool = False,
     ):
         """
@@ -195,7 +196,7 @@ class RedisEncryptedSession(typing.MutableMapping):
         self.whitelist = whitelist
         self.raise_on_unknown = raise_on_unknown
         # encrypted data loaded from redis, used to avoid clobbering concurrent updates to the session
-        self._raw_data: Optional[bytes] = None
+        self._raw_data: bytes | None = None
 
         self.secret_box = nacl.secret.SecretBox(encryption_key)
 
@@ -294,7 +295,7 @@ class RedisEncryptedSession(typing.MutableMapping):
         }
         return bytes(json.dumps(versioned), "ascii")
 
-    def decrypt_data(self, data_str: Union[bytes, str]) -> dict[str, Any]:
+    def decrypt_data(self, data_str: bytes | str) -> dict[str, Any]:
         """
         Decrypt and verify session data read from Redis.
 

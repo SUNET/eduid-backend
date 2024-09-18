@@ -1,11 +1,10 @@
 from datetime import timedelta
-from typing import Optional
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.models.saml2 import EduidAuthnContextClass
 
 
-def auth_response(session_id: str, eppn: str, accr: Optional[EduidAuthnContextClass] = None) -> str:
+def auth_response(session_id: str, eppn: str, accr: EduidAuthnContextClass | None = None) -> str:
     """Generates a fresh signed authentication response"""
     timestamp = utc_now() - timedelta(seconds=10)
     tomorrow = utc_now() + timedelta(days=1)
@@ -114,7 +113,7 @@ def logout_response(session_id: str) -> str:
     return saml_logout_response
 
 
-def logout_request(session_id: str, idp: Optional[str] = None) -> str:
+def logout_request(session_id: str, idp: str | None = None) -> str:
     """
     Create a SAML logout request from a template.
 

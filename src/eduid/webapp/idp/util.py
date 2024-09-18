@@ -4,14 +4,13 @@ import base64
 import ipaddress
 import logging
 from enum import Enum
-from typing import Union
 
 from eduid.userdb.idp import IdPUser
 
 logger = logging.getLogger(__name__)
 
 
-def b64encode(source: Union[str, bytes]) -> str:
+def b64encode(source: str | bytes) -> str:
     if isinstance(source, str):
         _source = bytes(source, "utf-8")
     else:
@@ -19,7 +18,7 @@ def b64encode(source: Union[str, bytes]) -> str:
     return base64.b64encode(_source).decode("utf-8")
 
 
-def maybe_xml_to_string(message: Union[str, bytes]) -> str:
+def maybe_xml_to_string(message: str | bytes) -> str:
     """
     Try to parse message as an XML string, and then return it pretty-printed.
 

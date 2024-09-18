@@ -12,7 +12,7 @@ SAML_CONFIG = {
     # full path to the xmlsec1 binary programm
     "xmlsec_binary": "/usr/bin/xmlsec1",
     # your entity id, usually your subdomain plus the url to the metadata view
-    "entityid": "%ssaml2-metadata" % BASE_URL,
+    "entityid": f"{BASE_URL}saml2-metadata",
     # directory with attribute mapping
     "attribute_map_dir": DEFAULT_ATTRIBUTEMAPS,
     # this block states what services we provide
@@ -24,12 +24,12 @@ SAML_CONFIG = {
                 # url and binding to the assetion consumer service view
                 # do not change the binding or service name
                 "assertion_consumer_service": [
-                    ("%ssaml2-acs" % BASE_URL, saml2.BINDING_HTTP_POST),
+                    (f"{BASE_URL}saml2-acs", saml2.BINDING_HTTP_POST),
                 ],
                 # url and binding to the single logout service view
                 # do not change the binding or service name
                 "single_logout_service": [
-                    ("%ssaml2-ls" % BASE_URL, saml2.BINDING_HTTP_REDIRECT),
+                    (f"{BASE_URL}saml2-ls", saml2.BINDING_HTTP_REDIRECT),
                 ],
             },
             # Do not check for signature during tests

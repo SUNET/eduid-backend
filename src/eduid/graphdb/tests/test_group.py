@@ -1,4 +1,3 @@
-from typing import Union
 from unittest import TestCase
 
 from eduid.graphdb.groupdb import Group, User
@@ -8,11 +7,11 @@ __author__ = "lundberg"
 
 class TestGroup(TestCase):
     def setUp(self) -> None:
-        self.group1: dict[str, Union[str, list]] = {
+        self.group1: dict[str, str | list] = {
             "identifier": "test1",
             "display_name": "Test Group 1",
         }
-        self.group2: dict[str, Union[str, list]] = {
+        self.group2: dict[str, str | list] = {
             "identifier": "test2",
             "display_name": "Test Group 2",
         }

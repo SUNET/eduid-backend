@@ -1,6 +1,5 @@
 import datetime
 from enum import Enum
-from typing import Optional, Union
 
 from pydantic import AnyUrl, BaseModel, Field
 
@@ -43,45 +42,45 @@ class SupportedHTTPMethods(str, Enum):
 
 class JWK(BaseModel):
     kty: KeyType
-    use: Optional[KeyUse] = None
-    key_opts: Optional[list[KeyOptions]] = None
-    alg: Optional[str] = None
-    kid: Optional[str] = None
-    x5u: Optional[str] = None
-    x5c: Optional[str] = None
-    x5t: Optional[str] = None
-    x5tS256: Optional[str] = Field(None, alias="x5t#S256")
+    use: KeyUse | None = None
+    key_opts: list[KeyOptions] | None = None
+    alg: str | None = None
+    kid: str | None = None
+    x5u: str | None = None
+    x5c: str | None = None
+    x5t: str | None = None
+    x5tS256: str | None = Field(None, alias="x5t#S256")
 
 
 class ECJWK(JWK):
-    crv: Optional[str] = None
-    x: Optional[str] = None
-    y: Optional[str] = None
-    d: Optional[str] = None
-    n: Optional[str] = None
-    e: Optional[str] = None
+    crv: str | None = None
+    x: str | None = None
+    y: str | None = None
+    d: str | None = None
+    n: str | None = None
+    e: str | None = None
 
 
 class RSAJWK(JWK):
-    d: Optional[str] = None
-    n: Optional[str] = None
-    e: Optional[str] = None
-    p: Optional[str] = None
-    q: Optional[str] = None
-    dp: Optional[str] = None
-    dq: Optional[str] = None
-    qi: Optional[str] = None
-    oth: Optional[str] = None
-    r: Optional[str] = None
-    t: Optional[str] = None
+    d: str | None = None
+    n: str | None = None
+    e: str | None = None
+    p: str | None = None
+    q: str | None = None
+    dp: str | None = None
+    dq: str | None = None
+    qi: str | None = None
+    oth: str | None = None
+    r: str | None = None
+    t: str | None = None
 
 
 class SymmetricJWK(JWK):
-    k: Optional[str] = None
+    k: str | None = None
 
 
 class JWKS(BaseModel):
-    keys: list[Union[ECJWK, RSAJWK, SymmetricJWK]]
+    keys: list[ECJWK | RSAJWK | SymmetricJWK]
 
 
 class SupportedJWSType(str, Enum):
@@ -90,17 +89,17 @@ class SupportedJWSType(str, Enum):
 
 
 class JOSEHeader(BaseModel):
-    kid: Optional[str] = None
+    kid: str | None = None
     alg: SupportedAlgorithms
-    jku: Optional[AnyUrl] = None
-    jwk: Optional[Union[ECJWK, RSAJWK, SymmetricJWK]] = None
-    x5u: Optional[str] = None
-    x5c: Optional[str] = None
-    x5t: Optional[str] = None
-    x5tS256: Optional[str] = Field(default=None, alias="x5t#S256")
-    typ: Optional[str] = None
-    cty: Optional[str] = None
-    crit: Optional[list] = None
+    jku: AnyUrl | None = None
+    jwk: ECJWK | RSAJWK | SymmetricJWK | None = None
+    x5u: str | None = None
+    x5c: str | None = None
+    x5t: str | None = None
+    x5tS256: str | None = Field(default=None, alias="x5t#S256")
+    typ: str | None = None
+    cty: str | None = None
+    crit: list | None = None
 
 
 class RegisteredClaims(BaseModel):
@@ -108,13 +107,13 @@ class RegisteredClaims(BaseModel):
     https://tools.ietf.org/html/rfc7519#section-4.1
     """
 
-    iss: Optional[str] = None  # Issuer
-    sub: Optional[str] = None  # Subject
-    aud: Optional[str] = None  # Audience
-    exp: Optional[datetime.timedelta] = None  # Expiration Time
+    iss: str | None = None  # Issuer
+    sub: str | None = None  # Subject
+    aud: str | None = None  # Audience
+    exp: datetime.timedelta | None = None  # Expiration Time
     nbf: datetime.datetime = Field(default_factory=utc_now)  # Not Before
     iat: datetime.datetime = Field(default_factory=utc_now)  # Issued At
-    jti: Optional[str] = None  # JWT ID
+    jti: str | None = None  # JWT ID
 
     def to_rfc7519(self):
         d = self.dict(exclude_none=True)

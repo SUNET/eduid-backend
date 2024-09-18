@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import Optional
 
 from eduid.common.config.base import ProofingConfigMixin
 from eduid.common.models.saml_models import BaseSessionInfo
@@ -31,7 +30,7 @@ from eduid.webapp.common.session import session
 
 @dataclass
 class BankIDProofingFunctions(ProofingFunctions[BankIDSessionInfo]):
-    def get_identity(self, user: User) -> Optional[IdentityElement]:
+    def get_identity(self, user: User) -> IdentityElement | None:
         return user.identities.nin
 
     def verify_identity(self, user: User) -> VerifyUserResult:
@@ -177,7 +176,7 @@ class BankIDProofingFunctions(ProofingFunctions[BankIDSessionInfo]):
 
         return MatchResult(matched=mfa_success, credential_used=credential_used)
 
-    def mark_credential_as_verified(self, credential: Credential, loa: Optional[str]) -> VerifyCredentialResult:
+    def mark_credential_as_verified(self, credential: Credential, loa: str | None) -> VerifyCredentialResult:
         if loa != "uncertified-loa3":
             return VerifyCredentialResult(error=BankIDMsg.authn_context_mismatch)
 
@@ -188,9 +187,7 @@ class BankIDProofingFunctions(ProofingFunctions[BankIDSessionInfo]):
         return VerifyCredentialResult(credential=credential)
 
 
-def _find_or_add_credential(
-    user: User, framework: Optional[TrustFramework], required_loa: list[str]
-) -> Optional[ElementKey]:
+def _find_or_add_credential(user: User, framework: TrustFramework | None, required_loa: list[str]) -> ElementKey | None:
     if not required_loa:
         # mainly keep mypy calm
         current_app.logger.debug("Not recording credential used without required_loa")

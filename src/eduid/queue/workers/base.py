@@ -4,10 +4,10 @@ import logging
 import signal
 from abc import ABC
 from asyncio import CancelledError, Task
+from collections.abc import Sequence
 from dataclasses import replace
 from datetime import datetime
 from os import environ
-from typing import Sequence
 
 from eduid.common.logging import init_logging
 from eduid.queue.config import QueueWorkerConfig
@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 
 def cancel_task(signame, task):
-    logger.info("got signal %s: exit" % signame)
+    logger.info(f"got signal {signame}: exit")
     task.cancel()
 
 

@@ -1,13 +1,12 @@
 from copy import deepcopy
-from typing import Optional
 
 __author__ = "lundberg"
 
 
 # Models for filtering out unneeded or unwanted data from eduID database objects
 class GenericFilterDict(dict):
-    add_keys: Optional[list[str]] = None
-    remove_keys: Optional[list[str]] = None
+    add_keys: list[str] | None = None
+    remove_keys: list[str] | None = None
 
     def __init__(self, data):
         """

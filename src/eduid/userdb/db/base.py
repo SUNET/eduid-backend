@@ -1,7 +1,7 @@
-# -*- coding: utf-8 -*-
 import copy
 import logging
-from typing import Any, Mapping, NewType, Optional
+from collections.abc import Mapping
+from typing import Any, NewType
 
 from pymongo.uri_parser import parse_uri
 
@@ -19,15 +19,15 @@ class BaseMongoDB:
     def __init__(
         self,
         db_uri: str,
-        db_name: Optional[str] = None,
+        db_name: str | None = None,
         **kwargs: Any,
     ):
         if db_uri is None:
             raise ValueError("db_uri not supplied")
 
         self._db_uri: str = db_uri
-        self._database_name: Optional[str] = db_name
-        self._sanitized_uri: Optional[str] = None
+        self._database_name: str | None = db_name
+        self._sanitized_uri: str | None = None
 
         self._parsed_uri = parse_uri(db_uri)
 
@@ -119,11 +119,6 @@ def _format_mongodb_uri(parsed_uri: Mapping[str, Any]) -> str:
 
     db_name = parsed_uri.get("database") or ""
 
-    res = "mongodb://{user_pass!s}{nodelist!s}/{db_name!s}{options!s}".format(
-        user_pass=user_pass,
-        nodelist=nodelist,
-        db_name=db_name,
-        # collection is ignored
-        options=options,
-    )
+    # collection is ignored
+    res = f"mongodb://{user_pass!s}{nodelist!s}/{db_name!s}{options!s}"
     return res

@@ -1,7 +1,8 @@
 import logging
+from collections.abc import Mapping
 from sys import exit
 from time import sleep
-from typing import Any, Mapping
+from typing import Any
 
 import requests
 from oic.oic import Client

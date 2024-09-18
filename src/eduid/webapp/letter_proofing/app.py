@@ -1,4 +1,5 @@
-from typing import Any, Mapping, Optional, cast
+from collections.abc import Mapping
+from typing import Any, cast
 
 from flask import current_app
 
@@ -41,7 +42,7 @@ current_letterp_app = cast(LetterProofingApp, current_app)
 
 
 def init_letter_proofing_app(
-    name: str = "letter_proofing", test_config: Optional[Mapping[str, Any]] = None
+    name: str = "letter_proofing", test_config: Mapping[str, Any] | None = None
 ) -> LetterProofingApp:
     """
     :param name: The name of the instance, it will affect the configuration loaded.

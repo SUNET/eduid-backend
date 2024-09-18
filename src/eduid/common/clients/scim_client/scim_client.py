@@ -1,5 +1,4 @@
 import logging
-from typing import Optional, Union
 from uuid import UUID
 
 import httpx
@@ -56,7 +55,7 @@ class SCIMClient(GNAPClient):
     def invites_endpoint(self) -> str:
         return urlappend(self.scim_api_url, "Invites")
 
-    def _get(self, endpoint: str, obj_id: Union[UUID, str]) -> httpx.Response:
+    def _get(self, endpoint: str, obj_id: UUID | str) -> httpx.Response:
         if isinstance(obj_id, UUID):
             obj_id = str(obj_id)
         return self.get(urlappend(endpoint, obj_id))
@@ -74,7 +73,7 @@ class SCIMClient(GNAPClient):
         ret = self.post(search_endpoint, content=search_req.json())
         return ListResponse.parse_raw(ret.text)
 
-    def get_user(self, user_id: Union[UUID, str]) -> UserResponse:
+    def get_user(self, user_id: UUID | str) -> UserResponse:
         ret = self._get(self.users_endpoint, obj_id=user_id)
         return UserResponse.parse_raw(ret.text)
 
@@ -86,7 +85,7 @@ class SCIMClient(GNAPClient):
         ret = self._update(self.users_endpoint, update_request=user, version=version)
         return UserResponse.parse_raw(ret.text)
 
-    def get_user_by_external_id(self, external_id: Optional[str]) -> Optional[UserResponse]:
+    def get_user_by_external_id(self, external_id: str | None) -> UserResponse | None:
         if external_id is None:
             return None
 
@@ -98,7 +97,7 @@ class SCIMClient(GNAPClient):
             raise SCIMError(f'More than one user with external_id "{external_id}"')
         return self.get_user(user_id=ret.resources[0]["id"])
 
-    def get_invite(self, invite_id: Union[UUID, str]) -> InviteResponse:
+    def get_invite(self, invite_id: UUID | str) -> InviteResponse:
         ret = self._get(self.invites_endpoint, obj_id=invite_id)
         return InviteResponse.parse_raw(ret.text)
 

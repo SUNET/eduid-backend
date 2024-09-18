@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta
-from typing import List
 
 from bson import ObjectId
 
@@ -22,7 +21,7 @@ class UnableToAddPassword(Exception):
 
 
 def list_users(context: Context, data_owner: str):
-    managed_accounts: List[ManagedAccount] = context.db.get_users(data_owner=data_owner)
+    managed_accounts: list[ManagedAccount] = context.db.get_users(data_owner=data_owner)
     context.logger.info(f"Listing {managed_accounts.__len__()} users")
     return managed_accounts
 

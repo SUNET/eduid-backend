@@ -1,5 +1,3 @@
-from typing import Optional
-
 from celery import Task
 from celery.utils.log import get_task_logger
 
@@ -18,7 +16,7 @@ class MobWorker(Task):
     abstract = True  # This means Celery won't register this as another task
 
     def __init__(self):
-        self._lookup_client: Optional[MobileLookupClient] = None
+        self._lookup_client: MobileLookupClient | None = None
 
     @property
     def lookup_client(self) -> MobileLookupClient:
@@ -39,7 +37,7 @@ def find_mobiles_by_NIN(self: MobWorker, national_identity_number: str, number_r
 
 
 @app.task(bind=True, base=MobWorker, name="eduid_lookup_mobile.tasks.find_NIN_by_mobile")
-def find_NIN_by_mobile(self: MobWorker, mobile_number: str) -> Optional[str]:
+def find_NIN_by_mobile(self: MobWorker, mobile_number: str) -> str | None:
     """
     Searches nin with the registered mobile number
     :return: the nin with the registered mobile number

@@ -1,6 +1,5 @@
 import logging
 from datetime import datetime
-from typing import Union
 from uuid import UUID
 
 from eduid.userdb.db import BaseDB, TUserDbDocument
@@ -43,7 +42,7 @@ class FidoMetadataLog(LogDB):
         }
         self.setup_indexes(indexes)
 
-    def exists(self, authenticator_id: Union[str, UUID], last_status_change: datetime) -> bool:
+    def exists(self, authenticator_id: str | UUID, last_status_change: datetime) -> bool:
         return bool(
             self.db_count(
                 spec={"authenticator_id": authenticator_id, "last_status_change": last_status_change},

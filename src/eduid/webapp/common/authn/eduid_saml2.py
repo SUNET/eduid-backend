@@ -1,7 +1,8 @@
 import logging
 import pprint
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any, Mapping, Optional, Union
+from typing import Any
 from xml.etree.ElementTree import ParseError
 
 from dateutil.parser import parse as dt_parse
@@ -34,7 +35,7 @@ class BadSAMLResponse(Exception):
     """Bad SAML response"""
 
 
-def get_authn_ctx(session_info: SessionInfo) -> Optional[str]:
+def get_authn_ctx(session_info: SessionInfo) -> str | None:
     """
     Get the SAML2 AuthnContext of the currently logged in users session.
 
@@ -59,12 +60,12 @@ def get_authn_request(
     session: EduidSession,
     relay_state: str,
     authn_id: AuthnRequestRef,
-    selected_idp: Optional[str],
+    selected_idp: str | None,
     force_authn: bool = False,
-    req_authn_ctx: Optional[list] = None,
-    sign_alg: Optional[str] = None,
-    digest_alg: Optional[str] = None,
-    subject: Optional[Subject] = None,
+    req_authn_ctx: list | None = None,
+    sign_alg: str | None = None,
+    digest_alg: str | None = None,
+    subject: Subject | None = None,
 ) -> SAMLHttpArgs:
     logger.debug(f"Authn request args: force_authn={force_authn}")
 
@@ -159,7 +160,7 @@ def get_authn_response(
     return response, authn_reqref
 
 
-def authenticate(session_info: SessionInfo, strip_suffix: Optional[str], userdb: UserDB) -> Optional[User]:
+def authenticate(session_info: SessionInfo, strip_suffix: str | None, userdb: UserDB) -> User | None:
     """
     Locate a user using the identity found in the SAML assertion.
 
@@ -242,7 +243,7 @@ def saml_logout(sp_config: SPConfig, user: User, location: str) -> WerkzeugRespo
 @dataclass
 class AssertionData:
     session_info: SessionInfo
-    user: Optional[User]
+    user: User | None
     authndata: SP_AuthnRequest
     authn_req_ref: AuthnRequestRef
 
@@ -256,9 +257,9 @@ class AssertionData:
 def process_assertion(
     form: Mapping[str, Any],
     sp_data: SPAuthnData,
-    strip_suffix: Optional[str] = None,
+    strip_suffix: str | None = None,
     authenticate_user: bool = True,
-) -> Union[AssertionData, WerkzeugResponse]:
+) -> AssertionData | WerkzeugResponse:
     """
     Common code for our various SAML SPs (currently authn and eidas) to process a received SAML assertion.
 

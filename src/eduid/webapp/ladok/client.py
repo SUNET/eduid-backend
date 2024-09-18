@@ -1,6 +1,6 @@
 import logging
+from collections.abc import Mapping
 from datetime import datetime
-from typing import Mapping, Optional
 
 import requests
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
@@ -19,8 +19,8 @@ class LadokClientException(Exception):
 
 
 class Error(BaseModel):
-    id: Optional[str] = None
-    detail: Optional[str] = Field(default=None, alias="details")
+    id: str | None = None
+    detail: str | None = Field(default=None, alias="details")
 
 
 class LadokBaseModel(BaseModel):
@@ -28,8 +28,8 @@ class LadokBaseModel(BaseModel):
 
 
 class UniversityName(LadokBaseModel):
-    sv: Optional[str] = Field(default=None, alias="long_name_sv")
-    en: Optional[str] = Field(default=None, alias="long_name_en")
+    sv: str | None = Field(default=None, alias="long_name_sv")
+    en: str | None = Field(default=None, alias="long_name_en")
 
 
 class UniversitiesData(LadokBaseModel):
@@ -37,26 +37,26 @@ class UniversitiesData(LadokBaseModel):
 
 
 class UniversitiesInfoResponse(LadokBaseModel):
-    data: Optional[UniversitiesData] = None
-    error: Optional[Error] = None
+    data: UniversitiesData | None = None
+    error: Error | None = None
 
 
 class LadokUserInfo(LadokBaseModel):
     external_id: str = Field(alias="ladok_externt_uid")
-    esi: Optional[str] = None
-    is_student: Optional[bool] = None
-    student_until: Optional[datetime] = Field(default=None, alias="expire_student")
+    esi: str | None = None
+    is_student: bool | None = None
+    student_until: datetime | None = Field(default=None, alias="expire_student")
 
 
 class LadokUserInfoResponse(LadokBaseModel):
-    data: Optional[LadokUserInfo] = None
-    error: Optional[Error] = None
+    data: LadokUserInfo | None = None
+    error: Error | None = None
 
 
 class LadokClientConfig(LadokBaseModel):
     url: HttpUrlStr
     version: str = "v1"
-    dev_universities: Optional[dict[str, UniversityName]] = None  # used for local development
+    dev_universities: dict[str, UniversityName] | None = None  # used for local development
 
 
 class University(BaseModel):
@@ -116,7 +116,7 @@ class LadokClient:
         assert universities_response.data is not None  # please mypy
         return universities_response.data
 
-    def get_user_info(self, ladok_name: str, nin: str) -> Optional[LadokUserInfo]:
+    def get_user_info(self, ladok_name: str, nin: str) -> LadokUserInfo | None:
         """
         path: /api/v1/kf/ladokinfo
         Request body:

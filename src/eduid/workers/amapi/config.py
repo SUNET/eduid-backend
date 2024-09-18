@@ -1,7 +1,7 @@
 import logging
 from enum import Enum
 from pathlib import Path
-from typing import NewType, Optional
+from typing import NewType
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -48,5 +48,5 @@ class AMApiConfig(RootConfig, LoggingConfigMixin):
     keystore_path: Path
     no_authn_urls: list[str] = Field(default=["/status/healthy", "/openapi.json"])
     status_cache_seconds: int = 10
-    requested_access_type: Optional[str] = "am_api"
+    requested_access_type: str | None = "am_api"
     user_restriction: dict[ServiceName, list[EndpointRestriction]]

@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any
 
 from bson import ObjectId
 from celery.utils.log import get_task_logger
@@ -40,7 +40,7 @@ def unverify_duplicates(userdb: AmDB, user_id: ObjectId, attributes: dict) -> di
     return {"mail_count": mail_count, "phone_count": phone_count, "nin_count": nin_count}
 
 
-def unverify_mail_aliases(userdb: AmDB, user_id: ObjectId, mail_aliases: Optional[list[dict[str, Any]]]) -> int:
+def unverify_mail_aliases(userdb: AmDB, user_id: ObjectId, mail_aliases: list[dict[str, Any]] | None) -> int:
     """
     :param userdb: Central userdb
     :param user_id: User document _id

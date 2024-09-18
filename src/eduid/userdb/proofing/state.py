@@ -3,8 +3,9 @@ from __future__ import annotations
 import copy
 import datetime
 import logging
+from collections.abc import Mapping
 from dataclasses import asdict, dataclass
-from typing import Any, Mapping, Optional
+from typing import Any
 
 import bson
 
@@ -26,11 +27,11 @@ logger = logging.getLogger(__name__)
 @dataclass()
 class ProofingState:
     # __post_init__ will mint a new ObjectId if `id' is None
-    id: Optional[bson.ObjectId]
+    id: bson.ObjectId | None
     eppn: str
     # Timestamp of last modification in the database.
     # None if ProofingState has never been written to the database.
-    modified_ts: Optional[datetime.datetime]
+    modified_ts: datetime.datetime | None
 
     def __post_init__(self):
         if self.id is None:

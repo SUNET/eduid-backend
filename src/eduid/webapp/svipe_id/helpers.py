@@ -1,7 +1,7 @@
 import logging
 from datetime import date
 from enum import unique
-from typing import Any, Optional
+from typing import Any
 
 from iso3166 import countries
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -40,7 +40,7 @@ class SessionOAuthCache:
         return session.svipe_id.rp.authlib_cache.get(key)
 
     @staticmethod
-    def set(key: str, value: Any, expires: Optional[int] = None) -> None:
+    def set(key: str, value: Any, expires: int | None = None) -> None:
         session.svipe_id.rp.authlib_cache[key] = value
         logger.debug(f"Set {key}={value} (expires={expires}) in session.svipe_id.oauth_cache")
 
@@ -66,9 +66,7 @@ class UserInfoBase(BaseModel):
 
 class SvipeDocumentUserInfo(UserInfoBase):
     birthdate: date
-    document_administrative_number: Optional[str] = Field(
-        alias="com.svipe:document_administrative_number", default=None
-    )
+    document_administrative_number: str | None = Field(alias="com.svipe:document_administrative_number", default=None)
     document_expiry_date: date = Field(alias="com.svipe:document_expiry_date")
     # Issuing Country: SWE
     document_issuing_country: str = Field(alias="com.svipe:document_issuing_country")
@@ -79,7 +77,7 @@ class SvipeDocumentUserInfo(UserInfoBase):
     document_type_sdn_en: str = Field(alias="com.svipe:document_type_sdn_en")
     family_name: str
     given_name: str
-    name: Optional[str] = None
+    name: str | None = None
     svipe_id: str = Field(alias="com.svipe:svipeid")
     transaction_id: str = Field(alias="com.svipe:meta_transaction_id")
 

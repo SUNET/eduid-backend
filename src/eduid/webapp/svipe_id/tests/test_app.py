@@ -1,6 +1,6 @@
 import json
 from datetime import date, datetime, timedelta
-from typing import Any, Optional
+from typing import Any
 from unittest.mock import MagicMock, patch
 from urllib.parse import parse_qs, urlparse
 
@@ -146,15 +146,15 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
     def get_mock_userinfo(
         issuing_country: Country,
         nationality: Country,
-        administrative_number: Optional[str] = "123456789",
+        administrative_number: str | None = "123456789",
         birthdate: date = date(year=1901, month=2, day=3),
         svipe_id: str = "unique_svipe_id",
         transaction_id: str = "unique_transaction_id",
         given_name: str = "Test",
         family_name: str = "Testsson",
         now: datetime = utc_now(),
-        userinfo_expires: Optional[datetime] = None,
-        document_expires: Optional[datetime] = None,
+        userinfo_expires: datetime | None = None,
+        document_expires: datetime | None = None,
     ) -> SvipeDocumentUserInfo:
         if userinfo_expires is None:
             userinfo_expires = now + timedelta(minutes=5)

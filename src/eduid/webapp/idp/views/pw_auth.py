@@ -1,5 +1,3 @@
-from typing import Union
-
 from flask import Blueprint, jsonify, request
 from werkzeug.wrappers import Response as WerkzeugResponse
 
@@ -24,7 +22,7 @@ pw_auth_views = Blueprint("pw_auth", __name__, url_prefix="")
 @UnmarshalWith(PwAuthRequestSchema)
 @MarshalWith(PwAuthResponseSchema)
 @require_ticket
-def pw_auth(ticket: LoginContext, username: str, password: str) -> Union[FluxData, WerkzeugResponse]:
+def pw_auth(ticket: LoginContext, username: str, password: str) -> FluxData | WerkzeugResponse:
     current_app.logger.debug("\n\n")
     current_app.logger.debug(f"--- Password authentication ({ticket.request_ref}) ---")
 

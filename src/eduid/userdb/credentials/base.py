@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 from eduid.userdb.element import TVerifiedElementSubclass, VerifiedElement
 
@@ -27,7 +27,7 @@ class Credential(VerifiedElement):
     so we are making them hashable.
     """
 
-    proofing_method: Optional[CredentialProofingMethod] = None
+    proofing_method: CredentialProofingMethod | None = None
 
     def __str__(self):
         if len(self.key) == 24:

@@ -16,7 +16,7 @@ def make_presentable_password(password: str) -> str:
 def load_jwks(config: MAccApiConfig) -> jwk.JWKSet:
     if not config.keystore_path.exists():
         raise BadConfiguration(f"JWKS path {config.keystore_path} does not exist")
-    with open(config.keystore_path, "r") as f:
+    with config.keystore_path.open("r") as f:
         jwks = jwk.JWKSet.from_json(f.read())
         logger.info(f"jwks loaded from {config.keystore_path}")
     return jwks

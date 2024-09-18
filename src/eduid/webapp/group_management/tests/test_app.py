@@ -1,5 +1,6 @@
 import json
-from typing import Any, Mapping, Optional
+from collections.abc import Mapping
+from typing import Any
 from unittest.mock import patch
 from uuid import UUID
 
@@ -95,7 +96,7 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
         return scim_api_user
 
     def _add_scim_group(
-        self, scim_id: UUID, display_name: str, extensions: Optional[GroupExtensions] = None
+        self, scim_id: UUID, display_name: str, extensions: GroupExtensions | None = None
     ) -> ScimApiGroup:
         if extensions is None:
             extensions = GroupExtensions()

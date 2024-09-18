@@ -59,8 +59,9 @@ import logging
 import time
 import warnings
 from collections import deque
+from collections.abc import Mapping
 from threading import Lock
-from typing import Any, Deque, Mapping, Optional, cast
+from typing import Any, cast
 
 from eduid.userdb.db import BaseDB
 from eduid.userdb.exceptions import EduIDDBError
@@ -108,12 +109,16 @@ class ExpiringCacheMem:
     :param lock: threading.Lock compatible locking instance
     """
 
-    def __init__(self, name: str, logger: Optional[logging.Logger], ttl: int, lock: Optional[Lock] = None):
+    # TODO: fix when python 3.13 is our target environment
+    # use quote annotations on lock for now until python 3.13 is released
+    # threading.Lock is not a class but a factory function, see:
+    # https://github.com/python/cpython/pull/114479
+    def __init__(self, name: str, logger: logging.Logger | None, ttl: int, lock: "Lock | None" = None):
         self.logger = logger
         self.ttl = ttl
         self.name = name
         self._data: dict[SSOSessionId, Any] = {}
-        self._ages: Deque[tuple[float, SSOSessionId]] = deque()
+        self._ages: deque[tuple[float, SSOSessionId]] = deque()
         self.lock = lock
         if self.lock is None:
             self.lock = cast(Lock, NoOpLock())  # intentionally lie to mypy
@@ -121,7 +126,7 @@ class ExpiringCacheMem:
         if self.logger is not None:
             warnings.warn("Object logger deprecated, using module_logger", DeprecationWarning)
 
-    def add(self, key: SSOSessionId, info: Any, now: Optional[int] = None) -> None:
+    def add(self, key: SSOSessionId, info: Any, now: int | None = None) -> None:
         """
         Add entry to the cache.
 
@@ -160,15 +165,13 @@ class ExpiringCacheMem:
                     self._ages.appendleft((_exp_ts, _exp_key))
                     break
                 logger.debug(
-                    "Purged {!s} cache entry {!s} seconds over limit : {!s}".format(
-                        self.name, timestamp - _exp_ts, _exp_key
-                    )
+                    f"Purged {self.name!s} cache entry {timestamp - _exp_ts!s} seconds over limit : {_exp_key!s}"
                 )
                 self.delete(_exp_key)
         finally:
             self.lock.release()
 
-    def get(self, key: SSOSessionId) -> Optional[Mapping[str, Any]]:
+    def get(self, key: SSOSessionId) -> Mapping[str, Any] | None:
         """
         Fetch data from cache based on `key'.
 
@@ -247,7 +250,7 @@ class SSOSessionCache(BaseDB):
         )
         return None
 
-    def get_session(self, sid: SSOSessionId) -> Optional[SSOSession]:
+    def get_session(self, sid: SSOSessionId) -> SSOSession | None:
         """
         Lookup an SSO session using the session id (same `sid' previously used with add_session).
 

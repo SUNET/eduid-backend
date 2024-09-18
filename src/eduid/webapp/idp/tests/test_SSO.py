@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 import logging
-from typing import Mapping, Optional, Sequence, Union
+from collections.abc import Mapping, Sequence
 from uuid import uuid4
 
 import saml2.server
@@ -43,7 +43,7 @@ _U2F_SWAMID_AL3 = U2F(
 logger = logging.getLogger(__name__)
 
 
-def make_SAML_request(class_ref: Optional[Union[EduidAuthnContextClass, str]] = None):
+def make_SAML_request(class_ref: EduidAuthnContextClass | str | None = None):
     if isinstance(class_ref, EduidAuthnContextClass):
         class_ref = class_ref.value
     if class_ref is not None:
@@ -80,8 +80,8 @@ def _transport_encode(data):
 class SSOIdPTests(IdPAPITests):
     def _make_login_ticket(
         self,
-        req_class_ref: Optional[Union[EduidAuthnContextClass, str]] = None,
-        request_ref: Optional[RequestRef] = None,
+        req_class_ref: EduidAuthnContextClass | str | None = None,
+        request_ref: RequestRef | None = None,
     ) -> LoginContext:
         xmlstr = make_SAML_request(class_ref=req_class_ref)
         binding = "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST"
@@ -151,7 +151,7 @@ class TestSSO(SSOIdPTests):
         self,
         eppn: str,
         nins: Sequence[str],
-        proofing_method: Optional[IdentityProofingMethod] = None,
+        proofing_method: IdentityProofingMethod | None = None,
         nin_verified_by: str = "unittest",
     ) -> IdPUser:
         """
@@ -183,9 +183,9 @@ class TestSSO(SSOIdPTests):
 
     def _get_login_response_authn(
         self,
-        req_class_ref: Optional[Union[EduidAuthnContextClass, str]],
-        credentials: list[Union[str, Credential, AuthnData, ExternalMfaData]],
-        user: Optional[IdPUser] = None,
+        req_class_ref: EduidAuthnContextClass | str | None,
+        credentials: list[str | Credential | AuthnData | ExternalMfaData],
+        user: IdPUser | None = None,
         add_tou: bool = True,
         add_credentials_to_this_request: bool = True,
     ) -> NextResult:
@@ -254,9 +254,9 @@ class TestSSO(SSOIdPTests):
         authn_result: NextResult,
         message: IdPMsg,
         expect_success: bool = True,
-        accr: Optional[EduidAuthnContextClass] = None,
-        assurance_profile: Optional[list[SwamidAssurance]] = None,
-        expect_error: Optional[bool] = False,
+        accr: EduidAuthnContextClass | None = None,
+        assurance_profile: list[SwamidAssurance] | None = None,
+        expect_error: bool | None = False,
     ):
         assert authn_result.message == message, f"Message: {authn_result.message}, Expected: {message}"
         if expect_success:

@@ -1,5 +1,3 @@
-from typing import Union
-
 from deepdiff import DeepDiff
 
 from eduid.common.misc.timeutil import utc_now
@@ -21,14 +19,12 @@ from eduid.workers.amapi.context_request import ContextRequest
 def update_user(
     req: ContextRequest,
     eppn: str,
-    data: Union[
-        UserUpdateEmailRequest,
-        UserUpdateNameRequest,
-        UserUpdateLanguageRequest,
-        UserUpdatePhoneRequest,
-        UserUpdateMetaCleanedRequest,
-        UserUpdateTerminateRequest,
-    ],
+    data: UserUpdateEmailRequest
+    | UserUpdateNameRequest
+    | UserUpdateLanguageRequest
+    | UserUpdatePhoneRequest
+    | UserUpdateMetaCleanedRequest
+    | UserUpdateTerminateRequest,
 ) -> UserUpdateResponse:
     """General function for updating a user object"""
     user_obj = req.app.context.db.get_user_by_eppn(eppn=eppn)

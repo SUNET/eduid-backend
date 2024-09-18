@@ -1,6 +1,7 @@
 import sys
 from asyncio import Lock
-from typing import Any, Mapping, Optional
+from collections.abc import Mapping
+from typing import Any
 
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
@@ -19,7 +20,7 @@ from eduid.vccs.server.log import InterceptHandler, init_logging
 
 
 class VCCS_API(FastAPI):
-    def __init__(self, test_config: Optional[Mapping[str, Any]] = None) -> None:
+    def __init__(self, test_config: Mapping[str, Any] | None = None) -> None:
         print("vccs_api is starting", file=sys.stderr)
         super().__init__()
 

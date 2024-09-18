@@ -2,7 +2,8 @@ import base64
 import functools
 import logging
 import time
-from typing import AnyStr, Callable, TypeVar
+from collections.abc import Callable
+from typing import AnyStr, TypeVar
 from uuid import uuid4
 
 from jwcrypto import jwk

@@ -1,4 +1,5 @@
-from typing import Any, Mapping, Optional, cast
+from collections.abc import Mapping
+from typing import Any, cast
 
 from authlib.integrations.flask_client import OAuth
 from flask import current_app
@@ -48,7 +49,7 @@ class FrejaEIDApp(AuthnBaseApp):
 current_freja_eid_app = cast(FrejaEIDApp, current_app)
 
 
-def freja_eid_init_app(name: str = "freja_eid", test_config: Optional[Mapping[str, Any]] = None) -> FrejaEIDApp:
+def freja_eid_init_app(name: str = "freja_eid", test_config: Mapping[str, Any] | None = None) -> FrejaEIDApp:
     """
     :param name: The name of the instance, it will affect the configuration loaded.
     :param test_config: Override config. Used in test cases.

@@ -1,4 +1,5 @@
-from typing import Any, Mapping, Optional, cast
+from collections.abc import Mapping
+from typing import Any, cast
 
 from flask import current_app
 
@@ -32,7 +33,7 @@ class BankIDApp(AuthnBaseApp):
 current_bankid_app: BankIDApp = cast(BankIDApp, current_app)
 
 
-def init_bankid_app(name: str = "bankid", test_config: Optional[Mapping[str, Any]] = None) -> BankIDApp:
+def init_bankid_app(name: str = "bankid", test_config: Mapping[str, Any] | None = None) -> BankIDApp:
     """
     Create an instance of an bankid app.
 

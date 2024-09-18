@@ -4,8 +4,9 @@ import asyncio
 import logging
 import os
 from asyncio import Task
+from collections.abc import Mapping
 from datetime import datetime, timedelta
-from typing import Any, Mapping, Optional
+from typing import Any
 
 from eduid.common.config.parsers import load_config
 from eduid.queue.config import QueueWorkerConfig
@@ -27,8 +28,8 @@ class SinkQueueWorker(QueueWorker):
 
         self._receiving = False
         self._counter = 0
-        self._first_ts: Optional[datetime] = None
-        self._last_ts: Optional[datetime] = None
+        self._first_ts: datetime | None = None
+        self._last_ts: datetime | None = None
         hostname = os.environ.get("HOSTNAME") or "localhost"
         self._sender_info = SenderInfo(hostname=hostname, node_id="sink_worker")
 
@@ -85,7 +86,7 @@ class SinkQueueWorker(QueueWorker):
         self._receiving = False
 
 
-def init_sink_worker(name: str = "sink_worker", test_config: Optional[Mapping[str, Any]] = None) -> SinkQueueWorker:
+def init_sink_worker(name: str = "sink_worker", test_config: Mapping[str, Any] | None = None) -> SinkQueueWorker:
     config = load_config(typ=QueueWorkerConfig, app_name=name, ns="queue", test_config=test_config)
     return SinkQueueWorker(config=config)
 
