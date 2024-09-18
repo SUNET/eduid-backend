@@ -455,7 +455,7 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
         def _assure_not_in_dict(d: Mapping[str, Any], unwanted_key: str):
             assert unwanted_key not in d, f"Key {unwanted_key} should not be in payload, but it is: {payload}"
             v2: Mapping[str, Any]
-            for _k2, v2 in d.items():
+            for v2 in d.values():
                 if isinstance(v2, dict):
                     _assure_not_in_dict(v2, unwanted_key)
 
