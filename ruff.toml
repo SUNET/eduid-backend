@@ -3,7 +3,9 @@ line-length = 120
 target-version = "py310"
 
 [lint]
-select = ["E", "F", "W", "I", "ASYNC", "UP", "FLY", "PERF1", "FURB"]
+select = ["E", "F", "W", "I", "ASYNC", "UP", "FLY", "PERF", "FURB"]
 
 # For now, ignore E501 (line too long) errors. They are in strings and comments.
-ignore = ["E501"]
+# For now, ignore PERF203 (try-except-in-loop), TODO: fix them.
+# For now, ignore PERF401 (manual-list-comprehension), TODO: fix them.
+ignore = ["E501", "PERF203", "PERF401"]
