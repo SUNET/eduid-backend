@@ -63,9 +63,7 @@ def get_marked_given_name(given_name: str, given_name_marking: str | None) -> st
         else:
             _given_names.append(name)
 
-    _optional_marked_names: list[str | None] = []
-    for i in given_name_marking:
-        _optional_marked_names.append(_given_names[int(i)])
+    _optional_marked_names: list[str | None] = [_given_names[int(i)] for i in given_name_marking]
     # remove None values
     # i.e. 0 index and hyphenated names second part placeholder
     _marked_names: list[str] = [name for name in _optional_marked_names if name is not None]

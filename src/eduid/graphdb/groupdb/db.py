@@ -284,8 +284,10 @@ class GroupDB(BaseGraphDB):
             RETURN g as group SKIP $skip LIMIT $limit
             """
         with self.db.driver.session(default_access_mode=READ_ACCESS) as session:
-            for record in session.run(q, scope=self.scope, value=value, skip=skip, limit=limit):
-                res.append(self._load_group(record.data()["group"]))
+            res = [
+                self._load_group(record.data()["group"])
+                for record in session.run(q, scope=self.scope, value=value, skip=skip, limit=limit)
+            ]
         return res
 
     def get_groups(self, skip: int = 0, limit: int = 100) -> list[Group]:
@@ -295,8 +297,10 @@ class GroupDB(BaseGraphDB):
             RETURN g as group SKIP $skip LIMIT $limit
             """
         with self.db.driver.session(default_access_mode=READ_ACCESS) as session:
-            for record in session.run(q, scope=self.scope, skip=skip, limit=limit):
-                res.append(self._load_group(record.data()["group"]))
+            res = [
+                self._load_group(record.data()["group"])
+                for record in session.run(q, scope=self.scope, skip=skip, limit=limit)
+            ]
         return res
 
     def _get_groups_for_role(self, label: Label, identifier: str, role: Role):
