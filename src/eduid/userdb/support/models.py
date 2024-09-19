@@ -22,10 +22,8 @@ class GenericFilterDict(dict):
             pass
         elif self.add_keys:
             for key in self.add_keys:
-                try:
+                if key in _data:
                     self[key] = _data[key]
-                except KeyError:
-                    pass
         elif self.remove_keys:
             for key in self.remove_keys:
                 _data.pop(key, None)

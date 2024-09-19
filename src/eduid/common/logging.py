@@ -142,9 +142,9 @@ def merge_config(base_config: dict[str, Any], new_config: dict[str, Any]) -> dic
     def merge(node, key, value):
         if isinstance(value, dict):
             for item in value:
-                try:
+                if key in node:
                     merge(node[key], item, value[item])
-                except KeyError:
+                else:
                     # No such key in base_config, just set it
                     node[key] = value
         else:
