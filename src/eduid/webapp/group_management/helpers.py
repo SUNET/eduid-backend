@@ -169,7 +169,8 @@ def remove_user_from_group(scim_user: ScimApiUser, scim_group: ScimApiGroup, rol
         if not current_app.scimapi_groupdb.save(scim_group):
             raise EduIDDBError(f"Failed to save group with scim_id {scim_group.scim_id}")
         current_app.logger.info(
-            f"Removed user as with scim_id {scim_user.scim_id} as {role.value} from group with scim_id {scim_group.scim_id}"
+            f"Removed user as with scim_id {scim_user.scim_id} as {role.value} "
+            f"from group with scim_id {scim_group.scim_id}"
         )
     return None
 
@@ -285,7 +286,8 @@ def send_delete_invite_email(invite_state: GroupInviteState):
         )
     except MailTaskFailed as e:
         current_app.logger.error(
-            f"Sending group {invite_state.group_scim_id} cancel invite email to {invite_state.email_address} failed: {e}"
+            f"Sending group {invite_state.group_scim_id} cancel invite email to "
+            f"{invite_state.email_address} failed: {e}"
         )
         raise e
 

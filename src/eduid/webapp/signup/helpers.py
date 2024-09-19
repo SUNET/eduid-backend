@@ -260,7 +260,8 @@ def record_tou(signup_user: SignupUser, tou_version: str) -> None:
     """
     event = ToUEvent(version=tou_version, created_by=current_app.conf.app_name)
     current_app.logger.info(
-        f"Recording ToU acceptance {event.event_id} (version {event.version}) for user {signup_user} (source: {current_app.conf.app_name})"
+        f"Recording ToU acceptance {event.event_id} (version {event.version}) for user {signup_user} "
+        f"(source: {current_app.conf.app_name})"
     )
     signup_user.tou.add(event)
 

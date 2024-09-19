@@ -97,7 +97,10 @@ def set_user_names_from_official_address(
     """
     user.given_name = proofing_log_entry.user_postal_address.name.given_name
     user.surname = proofing_log_entry.user_postal_address.name.surname
-    user.legal_name = f"{proofing_log_entry.user_postal_address.name.given_name} {proofing_log_entry.user_postal_address.name.surname}"
+    user.legal_name = (
+        f"{proofing_log_entry.user_postal_address.name.given_name} "
+        f"{proofing_log_entry.user_postal_address.name.surname}"
+    )
 
     # please mypy
     if user.given_name is None or user.surname is None:

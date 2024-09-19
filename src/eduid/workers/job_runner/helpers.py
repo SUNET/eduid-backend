@@ -14,7 +14,8 @@ def save_and_sync_user(context: Context, user: User) -> bool:
     private_user = CleanerUser.from_user(user, context.private_db)
     context.private_db.save(private_user)
     context.logger.debug(
-        f"Saving user {private_user} to private userdb {context.private_db} (is_in_database: {user.meta.is_in_database})"
+        f"Saving user {private_user} to private userdb {context.private_db} "
+        f"(is_in_database: {user.meta.is_in_database})"
     )
 
     # Sync to central userdb

@@ -510,9 +510,10 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
                     assert (
                         k in _json["payload"]
                     ), f"The Flux response payload {_json['payload']} does not contain {repr(k)}"
-                    assert (
-                        v == _json["payload"][k]
-                    ), f"The Flux response payload item {repr(k)} should be {repr(v)} but is {repr(_json['payload'][k])}"
+                    assert v == _json["payload"][k], (
+                        f"The Flux response payload item {repr(k)} should be {repr(v)} "
+                        f"but is {repr(_json['payload'][k])}"
+                    )
             if assure_not_in_payload is not None:
                 for key in assure_not_in_payload:
                     _assure_not_in_dict(_json["payload"], key)

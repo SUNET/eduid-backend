@@ -187,9 +187,10 @@ class AttributeFetcherNINProofingTests(ProofingTestCase):
             "$unset": {"nins": None},
         }
 
-        assert (
-            normalised_data(fetched3) == normalised_data(expected)
-        ), f"Fetched (3d time) letter proofing data with appended attributes has unexpected data: {DeepDiff(fetched, expected)}"
+        assert normalised_data(fetched3) == normalised_data(expected), (
+            "Fetched (3d time) letter proofing data with appended attributes has unexpected data: "
+            f"{DeepDiff(fetched, expected)}"
+        )
 
 
 class AttributeFetcherEmailProofingTests(ProofingTestCase):

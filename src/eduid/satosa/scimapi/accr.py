@@ -93,7 +93,8 @@ class request(RequestMicroService):
             supported_accr = self.supported_accr_sorted_by_prio
             required_accr_by_virtual_idp = supported_accr[: supported_accr.index(minimum_accr) + 1]
             logger.info(
-                f"Replacing requested ACCR: {requested_accr}, with what {virtual_idp} requires: {required_accr_by_virtual_idp}."
+                f"Replacing requested ACCR: {requested_accr}, "
+                f"with what {virtual_idp} requires: {required_accr_by_virtual_idp}."
             )
             accr_to_forward = required_accr_by_virtual_idp
 

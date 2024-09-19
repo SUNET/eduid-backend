@@ -129,7 +129,8 @@ class IdPAuthn:
                 authn_info = self.authn_store.get_user_authn_info(user)
                 if authn_info.failures_this_month > self.config.max_authn_failures_per_month:
                     logger.info(
-                        f"User {user!r} AuthN failures this month {authn_info.failures_this_month!r} > {self.config.max_authn_failures_per_month!r}"
+                        f"User {user!r} AuthN failures this month "
+                        f"{authn_info.failures_this_month!r} > {self.config.max_authn_failures_per_month!r}"
                     )
                     raise exceptions.EduidTooManyRequests("Too Many Requests")
 
