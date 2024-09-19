@@ -7,3 +7,4 @@ ndnkdf
 uvicorn[standard]
 python-multipart  # needed to parse form data
 deepdiff6
+apscheduler<4 # Next major version has API breaking changes
