@@ -47,7 +47,7 @@ def cached_json_response(key: str, data: dict[str, Any] | None = None) -> Respon
     if SIMPLE_CACHE.get(key) is not None:
         if now < SIMPLE_CACHE[key].expire_time:
             if get_from_current_app("debug", bool):
-                logger.debug(f"Returned cached response for {key}" f" {now} < {SIMPLE_CACHE[key].expire_time}")
+                logger.debug(f"Returned cached response for {key} {now} < {SIMPLE_CACHE[key].expire_time}")
             response = jsonify(SIMPLE_CACHE[key].data)
             response.headers.add("Expires", SIMPLE_CACHE[key].expire_time.strftime("%a, %d %b %Y %H:%M:%S UTC"))
             response.headers.add("Cache-Control", f"public,max-age={cache_for_seconds}")

@@ -212,7 +212,7 @@ class CredentialDB(BaseDB):
             logger.debug(f"Updated credential {credential} in the db (to revision {credential.revision}): {result}")
             return True
         logger.warning(
-            f"Could not update credential {credential} (to revision {credential.revision}): " f"{result.raw_result}"
+            f"Could not update credential {credential} (to revision {credential.revision}): {result.raw_result}"
         )
         credential.revision -= 1
         return False

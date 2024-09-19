@@ -189,9 +189,7 @@ def _lookup_sso_session(sso_sessions: SSOSessionCache) -> SSOSession | None:
             # Debug issues with browsers not returning updated SSO cookie values.
             # Only log partial cookie value since it allows impersonation if leaked.
             _other_session_id = SSOSessionId(session.idp.sso_cookie_val)
-            logger.debug(
-                "Found potential sso_cookie_val in the eduID session: " f"({session.idp.sso_cookie_val[:8]}...)"
-            )
+            logger.debug(f"Found potential sso_cookie_val in the eduID session: ({session.idp.sso_cookie_val[:8]}...)")
             _other_sso = sso_sessions.get_session(_other_session_id)
             if _other_sso is not None:
                 logger.info(f"Found no SSO session, but found one from session.idp.sso_cookie_val: {_other_sso}")
