@@ -4,7 +4,7 @@ from collections.abc import Mapping
 from typing import Any
 from unittest.mock import patch
 
-from fido2.webauthn import AttestationObject, AuthenticatorAttachment, CollectedClientData
+from fido2.webauthn import AttestationObject, AuthenticatorAttachment, CollectedClientData, UserVerificationRequirement
 from fido_mds import FidoMetadataStore
 from werkzeug.http import dump_cookie
 
@@ -171,7 +171,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
             assert isinstance(sess, EduidSession)
             assert sess.security.webauthn_registration is not None
             webauthn_state = sess.security.webauthn_registration.webauthn_state
-        assert webauthn_state["user_verification"] == "discouraged"
+        assert webauthn_state["user_verification"] == UserVerificationRequirement.PREFERRED.value
         assert "challenge" in webauthn_state
 
     def _check_registration_begun(self, data):

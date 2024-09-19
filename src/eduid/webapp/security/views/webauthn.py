@@ -11,7 +11,6 @@ from fido2.webauthn import (
     AuthenticatorData,
     CollectedClientData,
     PublicKeyCredentialUserEntity,
-    UserVerificationRequirement,
 )
 from fido_mds.exceptions import AttestationVerificationError, MetadataValidationError
 from flask import Blueprint
@@ -95,6 +94,7 @@ def registration_begin(user: User, authenticator: str) -> FluxData:
         _auth_enum = AuthenticatorAttachment(authenticator)
     except ValueError:
         return error_response(message=SecurityMsg.invalid_authenticator)
+
     user_webauthn_tokens = user.credentials.filter(FidoCredential)
     if len(user_webauthn_tokens) >= current_app.conf.webauthn_max_allowed_tokens:
         current_app.logger.error(
@@ -117,7 +117,7 @@ def registration_begin(user: User, authenticator: str) -> FluxData:
     registration_data, state = server.register_begin(
         user=user_entity,
         credentials=creds,
-        user_verification=UserVerificationRequirement.DISCOURAGED,
+        user_verification=current_app.conf.webauthn_user_verification,
         authenticator_attachment=_auth_enum,
     )
     session.security.webauthn_registration = WebauthnRegistration(webauthn_state=state, authenticator=_auth_enum)
