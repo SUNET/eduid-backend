@@ -92,7 +92,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
       {extra_attributes}
     </saml:AttributeStatement>
   </saml:Assertion>
-</samlp:Response>"""
+</samlp:Response>"""  # noqa: E501
         self.saml_response_tpl_success = """<?xml version="1.0"?>
 <samlp:Response xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Destination="{sp_url}saml2-acs" ID="id-88b9f586a2a3a639f9327485cc37c40a" InResponseTo="{session_id}" IssueInstant="{timestamp}" Version="2.0">
     <saml:Issuer Format="urn:oasis:names:tc:SAML:2.0:nameid-format:entity">https://idp.example.com/simplesaml/saml2/idp/metadata.php</saml:Issuer>
@@ -138,7 +138,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
         </saml2:Attribute>
       </saml2:AttributeStatement>
     </saml2:Assertion>
-</samlp:Response>"""
+</samlp:Response>"""  # noqa: E501
         self.saml_response_tpl_fail = """<?xml version="1.0" encoding="UTF-8"?>
 <saml2p:Response xmlns:saml2p="urn:oasis:names:tc:SAML:2.0:protocol" Destination="{sp_url}saml2-acs" ID="_ebad01e547857fa54927b020dba1edb1" InResponseTo="{session_id}" IssueInstant="{timestamp}" Version="2.0">
   <saml2:Issuer xmlns:saml2="urn:oasis:names:tc:SAML:2.0:assertion">https://idp.example.com/simplesaml/saml2/idp/metadata.php</saml2:Issuer>
@@ -148,7 +148,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
     </saml2p:StatusCode>
     <saml2p:StatusMessage>User login was not successful or could not meet the requirements of the requesting application.</saml2p:StatusMessage>
   </saml2p:Status>
-</saml2p:Response>"""
+</saml2p:Response>"""  # noqa: E501
         self.saml_response_tpl_cancel = """
         <?xml version="1.0" encoding="UTF-8"?>
 <saml2p:Response xmlns:saml2p="urn:oasis:names:tc:SAML:2.0:protocol" Destination="{sp_url}saml2-acs" ID="_ebad01e547857fa54927b020dba1edb1" InResponseTo="{session_id}" IssueInstant="{timestamp}" Version="2.0">
@@ -159,7 +159,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
     </saml2p:StatusCode>
     <saml2p:StatusMessage>The login attempt was cancelled</saml2p:StatusMessage>
   </saml2p:Status>
-</saml2p:Response>"""
+</saml2p:Response>"""  # noqa: E501
 
         super().setUp(users=["hubba-bubba", "hubba-baar"])
 
