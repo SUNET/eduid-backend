@@ -6,5 +6,4 @@ target-version = "py310"
 select = ["E", "F", "W", "I", "ASYNC", "UP", "FLY", "PERF", "FURB"]
 
 # For now, ignore E501 (line too long) errors. They are in strings and comments.
-# For now, ignore PERF203 (try-except-in-loop), TODO: fix them.
-ignore = ["E501", "PERF203"]
+ignore = ["E501"]
