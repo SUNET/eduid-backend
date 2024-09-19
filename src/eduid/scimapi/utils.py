@@ -69,7 +69,7 @@ def retryable_db_write(func: Callable):
         while True:
             try:
                 return func(*args, **kwargs)
-            except (EduIDDBError, EduIDGroupDBError, Neo4jError) as e:
+            except (EduIDDBError, EduIDGroupDBError, Neo4jError) as e:  # noqa: PERF203
                 retry += 1
                 if retry >= max_retries:
                     raise MaxRetriesReached(f"Max retries reached for {func.__name__}")
