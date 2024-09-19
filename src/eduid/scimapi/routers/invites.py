@@ -137,7 +137,7 @@ async def on_put(
     #             req.app.context.logger.info(f"Profile {this}/{update_request.nutid_user_v1.profiles[this]} updated")
     #             profiles_changed = True
     #         else:
-    #             req.app.context.logger.info(f"Profile {this}/{update_request.nutid_user_v1.profiles[this]} not changed")
+    #             req.app.context.logger.info(f"Profile {this}/{update_request.nutid_user_v1.profiles[this]} not changed")  # noqa: E501
     #     for this in db_invite.profiles.keys():
     #         if this not in update_request.nutid_user_v1.profiles:
     #             req.app.context.logger.info(f"Profile {this}/{db_invite.profiles[this]} removed")
