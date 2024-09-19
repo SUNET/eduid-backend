@@ -197,12 +197,12 @@ class FlaskConfig(CORSMixin):
     # per-file basis using the get_send_file_max_age() hook on Flask or Blueprint,
     # respectively. Defaults to 43200 (12 hours).
     send_file_max_age_default: int = 43200  # 12 hours
-    # the name and port number of the server. Required for subdomain support (e.g.: 'myapp.dev:5000') Note that localhost
-    # does not support subdomains so setting this to “localhost” does not help. Setting a SERVER_NAME also by default
-    # enables URL generation without a request context but with an application context.
+    # the name and port number of the server. Required for subdomain support (e.g.: 'myapp.dev:5000') Note that
+    # localhost does not support subdomains so setting this to “localhost” does not help. Setting a SERVER_NAME also by
+    # default enables URL generation without a request context but with an application context.
     server_name: str | None = None
-    # If the application does not occupy a whole domain or subdomain this can be set to the path where the application is
-    # configured to live. This is for session cookie as path value. If domains are used, this should be None.
+    # If the application does not occupy a whole domain or subdomain this can be set to the path where the application
+    # is configured to live. This is for session cookie as path value. If domains are used, this should be None.
     application_root: str = "/"
     # The URL scheme that should be used for URL generation if no URL scheme is
     # available. This defaults to http
