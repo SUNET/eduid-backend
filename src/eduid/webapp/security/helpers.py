@@ -6,7 +6,7 @@ from typing import Any
 
 from fido_mds.models.webauthn import AttestationFormat
 
-from eduid.common.config.base import EduidEnvironment, FrontendAction
+from eduid.common.config.base import EduidEnvironment
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.rpc.msg_relay import FullPostalAddress, NavetData
 from eduid.common.utils import generate_password
@@ -18,10 +18,8 @@ from eduid.userdb.logs.element import NameUpdateProofing
 from eduid.userdb.security import SecurityUser
 from eduid.userdb.user import User
 from eduid.webapp.common.api.helpers import set_user_names_from_official_address
-from eduid.webapp.common.api.messages import FluxData, TranslatableMsg, need_authentication_response
-from eduid.webapp.common.api.schemas.authn_status import AuthnActionStatus
+from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.common.api.translation import get_user_locale
-from eduid.webapp.common.authn.utils import validate_authn_for_action
 from eduid.webapp.security.app import current_security_app as current_app
 from eduid.webapp.security.webauthn_proofing import AuthenticatorInformation, is_authenticator_mfa_approved
 
@@ -189,20 +187,6 @@ def send_termination_mail(user):
             # Debug-log the code and message in development environment
             current_app.logger.debug(f"Generating termination mail with context:\n{payload}")
         current_app.logger.info(f"Sent termination mail to user {user} to address {email}.")
-
-
-def check_reauthn(frontend_action: FrontendAction, user: User) -> FluxData | None:
-    """Check if a re-authentication has been performed recently enough for this action"""
-
-    authn_status = validate_authn_for_action(config=current_app.conf, frontend_action=frontend_action, user=user)
-    current_app.logger.debug(f"check_reauthn called with authn status {authn_status}")
-    if authn_status != AuthnActionStatus.OK:
-        if authn_status == AuthnActionStatus.STALE:
-            # count stale authentications to monitor if users need more time
-            current_app.stats.count(name=f"{frontend_action.value}_stale_reauthn", value=1)
-        return need_authentication_response(frontend_action=frontend_action, authn_status=authn_status)
-    current_app.stats.count(name=f"{frontend_action.value}_successful_reauthn", value=1)
-    return None
 
 
 def update_user_official_name(security_user: SecurityUser, navet_data: NavetData) -> bool:

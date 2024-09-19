@@ -3,7 +3,9 @@ import logging
 import os.path
 import sys
 from collections.abc import Sequence
+from typing import TYPE_CHECKING, cast
 
+from flask import current_app as flask_current_app
 from saml2 import server
 from saml2.config import SPConfig
 from saml2.typing import SAMLHttpArgs
@@ -14,10 +16,18 @@ from eduid.common.misc.timeutil import utc_now
 from eduid.common.utils import urlappend
 from eduid.userdb import User
 from eduid.userdb.credentials import Credential, FidoCredential
+from eduid.webapp.common.api.messages import FluxData, need_authentication_response
 from eduid.webapp.common.api.schemas.authn_status import AuthnActionStatus
 from eduid.webapp.common.authn.session_info import SessionInfo
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.namespaces import SP_AuthnRequest
+
+if TYPE_CHECKING:
+    from eduid.webapp.common.authn.middleware import AuthnBaseApp
+
+    current_app = cast(AuthnBaseApp, flask_current_app)
+else:
+    current_app = flask_current_app
 
 logger = logging.getLogger(__name__)
 
@@ -130,7 +140,7 @@ def validate_authn_for_action(
     config: FrontendActionMixin,
     frontend_action: FrontendAction,
     user: User,
-    credential_used: Credential | None = None,
+    credential_requested: Credential | None = None,
 ) -> AuthnActionStatus:
     """
     Validate the authentication for the given frontend action.
@@ -173,10 +183,10 @@ def validate_authn_for_action(
         logger.info(f"Expected at least 2 credentials got: {len(authn.credentials_used)}")
         return AuthnActionStatus.NO_MFA
 
-    if credential_used and not credential_recently_used(
-        credential=credential_used, action=authn, max_age=int(authn_params.max_age.total_seconds())
+    if credential_requested and not credential_recently_used(
+        credential=credential_requested, action=authn, max_age=int(authn_params.max_age.total_seconds())
     ):
-        logger.info(f"Credential {credential_used} has not been used recently")
+        logger.info(f"Credential {credential_requested} has not been used recently")
         return AuthnActionStatus.CREDENTIAL_NOT_RECENTLY_USED
 
     return AuthnActionStatus.OK
@@ -191,3 +201,31 @@ def credential_recently_used(credential: Credential, action: SP_AuthnRequest | N
                 logger.debug(f"Credential {credential} has been used recently")
                 return True
     return False
+
+
+def check_reauthn(
+    frontend_action: FrontendAction, user: User, credential_requested: Credential | None = None
+) -> FluxData | None:
+    """Check if a re-authentication has been performed recently enough for this action"""
+
+    # please mypy
+    conf = getattr(current_app, "conf", None)
+    if not isinstance(conf, FrontendActionMixin):
+        raise RuntimeError(f"Could not find conf in {current_app}")
+
+    authn_status = validate_authn_for_action(
+        config=conf, frontend_action=frontend_action, credential_requested=credential_requested, user=user
+    )
+    current_app.logger.debug(f"check_reauthn called with authn status {authn_status}")
+    if authn_status != AuthnActionStatus.OK:
+        if authn_status == AuthnActionStatus.STALE:
+            # count stale authentications to monitor if users need more time
+            current_app.stats.count(name=f"{frontend_action.value}_stale_reauthn", value=1)
+        payload = None
+        if credential_requested:
+            current_app.logger.debug(f"Need re-authentication with credential: {credential_requested}")
+            payload = {"credential_description": credential_requested.description}
+        return need_authentication_response(frontend_action=frontend_action, authn_status=authn_status, payload=payload)
+
+    current_app.stats.count(name=f"{frontend_action.value}_successful_reauthn", value=1)
+    return None

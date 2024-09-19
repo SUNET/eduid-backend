@@ -27,13 +27,12 @@ from eduid.webapp.common.api.helpers import check_magic_cookie
 from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response, success_response
 from eduid.webapp.common.api.schemas.base import FluxStandardAction
 from eduid.webapp.common.api.utils import save_and_sync_user
-from eduid.webapp.common.authn.utils import get_authn_for_action
+from eduid.webapp.common.authn.utils import check_reauthn, get_authn_for_action
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.namespaces import WebauthnRegistration
 from eduid.webapp.security.app import current_security_app as current_app
 from eduid.webapp.security.helpers import (
     SecurityMsg,
-    check_reauthn,
     compile_credential_list,
     get_approved_security_keys,
 )
