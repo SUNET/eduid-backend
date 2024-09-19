@@ -301,12 +301,16 @@ class LoginContextOtherDevice(LoginContext):
 def _pick_authn_context(accrs: Sequence[str], log_tag: str) -> EduidAuthnContextClass | None:
     if len(accrs) > 1:
         logger.warning(f"{log_tag}: More than one authnContextClassRef, using the first recognised: {accrs}")
+    # make a set of implemented EduidAuthnContextClass values
+    # TODO: in python 3.12 this can be removed and test below can be 'x in EduidAuthnContextClass'
+    implemented: set[str] = {x.value for x in EduidAuthnContextClass}
+
     # first, select the ones recognised by this IdP
     known = []
     for x in accrs:
-        try:
+        if x in implemented:
             known += [EduidAuthnContextClass(x)]
-        except ValueError:
+        else:
             logger.info(f"Unknown authnContextClassRef: {x}")
             known += [EduidAuthnContextClass.NOT_IMPLEMENTED]
     if not known:
