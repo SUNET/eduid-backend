@@ -372,6 +372,7 @@ class AuthnParameters(BaseModel):
     same_user: bool = True  # the same user was required to log in, such as when entering the security center
     max_age: timedelta = timedelta(minutes=5)  # the maximum age of the authentication
     allow_login_auth: bool = False  # allow login authentication as substitute action
+    allow_signup_auth: bool = False  # allow during signup
     finish_url: str  # str as we want to use unformatted parts as {app_name} and {authn_id}
 
 
@@ -385,6 +386,7 @@ class FrontendActionMixin(BaseModel):
                 force_authn=True,
                 high_security=True,
                 allow_login_auth=True,
+                allow_signup_auth=True,
                 finish_url="https://eduid.se/profile/ext-return/{app_name}/{authn_id}",
             ),
             FrontendAction.CHANGE_PW_AUTHN: AuthnParameters(
@@ -426,6 +428,7 @@ class FrontendActionMixin(BaseModel):
             FrontendAction.VERIFY_IDENTITY: AuthnParameters(
                 force_authn=True,
                 allow_login_auth=True,
+                allow_signup_auth=True,
                 finish_url="https://eduid.se/profile/ext-return/{app_name}/{authn_id}",
             ),
             FrontendAction.TERMINATE_ACCOUNT_AUTHN: AuthnParameters(
@@ -438,6 +441,7 @@ class FrontendActionMixin(BaseModel):
                 force_authn=True,
                 force_mfa=True,
                 allow_login_auth=True,
+                allow_signup_auth=True,
                 finish_url="https://eduid.se/profile/ext-return/{app_name}/{authn_id}",
             ),
             FrontendAction.REMOVE_IDENTITY: AuthnParameters(

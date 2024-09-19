@@ -149,6 +149,13 @@ def validate_authn_for_action(
     logger.debug(f"Validating authentication for frontend action {frontend_action}")
     authn, authn_params = get_authn_for_action(config=config, frontend_action=frontend_action)
 
+    if not authn and authn_params.allow_signup_auth:
+        # check if there is an ongoing signup
+        session_age = utc_now() - session.signup.ts
+        if session.signup.user_created is False and session_age < authn_params.max_age:
+            logger.debug("Signup authentication found")
+            return AuthnActionStatus.SIGNUP
+
     if not authn or not authn.authn_instant:
         logger.info("No authentication found")
         logger.debug(f"frontend action: {frontend_action}, allow_login_auth={authn_params.allow_login_auth}")
