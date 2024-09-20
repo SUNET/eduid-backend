@@ -229,7 +229,7 @@ def check_reauthn(
             # count stale authentications to monitor if users need more time
             current_app.stats.count(name=f"{frontend_action.value}_stale_reauthn", value=1)
         payload = None
-        if credential_requested:
+        if credential_requested and isinstance(credential_requested, FidoCredential):
             current_app.logger.debug(f"Need re-authentication with credential: {credential_requested}")
             payload = {"credential_description": credential_requested.description}
         return need_authentication_response(frontend_action=frontend_action, authn_status=authn_status, payload=payload)
