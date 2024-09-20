@@ -452,6 +452,8 @@ class FrontendActionMixin(BaseModel):
             ),
         }
     )
+    # slack for recent signup validity as an authn action
+    signup_auth_slack: timedelta = timedelta(minutes=3)
 
 
 class ProofingConfigMixin(FrontendActionMixin):

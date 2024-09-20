@@ -150,11 +150,11 @@ def validate_authn_for_action(
     authn, authn_params = get_authn_for_action(config=config, frontend_action=frontend_action)
 
     if not authn and authn_params.allow_signup_auth:
-        # check if there is an ongoing signup
+        # check if the user is just created in the process of signup
         session_age = utc_now() - session.signup.ts
-        if session.signup.user_created is False and session_age < authn_params.max_age:
-            logger.debug("Signup authentication found")
-            return AuthnActionStatus.SIGNUP
+        if session.signup.user_created and session_age < (authn_params.max_age + config.signup_auth_slack):
+            logger.info("Signup in progress, no authentication required")
+            return AuthnActionStatus.OK
 
     if not authn or not authn.authn_instant:
         logger.info("No authentication found")
