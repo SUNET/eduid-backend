@@ -928,7 +928,9 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
 
     def test_post_reset_password_secure_token_wrong_credential(self):
         credential_data = {
-            "credential_data": "AAAAAAAAAAAAAAAAAAAAAABAi3KjBT0t5TPm693T0O0f4zyiwvdu9cY8BegCjiVvq_FS-ZmPcvXipFvHvD5CH6ZVRR3nsVsOla0Cad3fbtUA_aUBAgMmIAEhWCCiwDYGxl1LnRMqooWm0aRR9YbBG2LZ84BMNh_4rHkA9yJYIIujMrUOpGekbXjgMQ8M13ZsBD_cROSPB79eGz2Nw1ZE"
+            "credential_data": "AAAAAAAAAAAAAAAAAAAAAABAi3KjBT0t5TPm693T0O0f4zyiwvdu9cY8BegCjiVvq_FS-ZmPcvXipFvHv"
+            "D5CH6ZVRR3nsVsOla0Cad3fbtUA_aUBAgMmIAEhWCCiwDYGxl1LnRMqooWm0aRR9YbBG2LZ84BMNh_4rHkA9yJYIIujMrUOpGekb"
+            "XjgMQ8M13ZsBD_cROSPB79eGz2Nw1ZE"
         }
         response = self._post_reset_password_secure_token(credential_data=credential_data)
         self._check_error_response(

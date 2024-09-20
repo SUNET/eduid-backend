@@ -150,7 +150,7 @@ def verify(user: User, code: str, email: str) -> FluxData:
 @require_user
 def post_remove(user, email):
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
-    current_app.logger.debug(f"Trying to remove email address {email!r} " f"from user {proofing_user}")
+    current_app.logger.debug(f"Trying to remove email address {email!r} from user {proofing_user}")
 
     # Do not let the user remove all mail addresses
     if proofing_user.mail_addresses.count == 1:
@@ -184,17 +184,17 @@ def post_remove(user, email):
 @MarshalWith(EmailResponseSchema)
 @require_user
 def resend_code(user: User, email: str) -> FluxData:
-    current_app.logger.debug("Trying to send new verification code for email " f"address {email} for user {user}")
+    current_app.logger.debug(f"Trying to send new verification code for email address {email} for user {user}")
 
     if not user.mail_addresses.find(email):
-        current_app.logger.debug(f"Unknown email {email!r} in resend_code_action," f" user {user}")
+        current_app.logger.debug(f"Unknown email {email!r} in resend_code_action, user {user}")
         return error_response(message=CommonMsg.out_of_sync)
 
     sent = send_verification_code(email, user)
     if not sent:
         return error_response(message=EmailMsg.still_valid_code)
 
-    current_app.logger.debug("New verification code sent to " f"address {email} for user {user}")
+    current_app.logger.debug(f"New verification code sent to address {email} for user {user}")
     current_app.stats.count(name="email_resend_code", value=1)
 
     emails = {"emails": user.mail_addresses.to_list_of_dicts()}

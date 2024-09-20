@@ -51,7 +51,7 @@ class TestMongoDB(TestCase):
         self.assertEqual(mdb.sanitized_uri, "mongodb://john:secret@db.example.com/testdb?replicaset=rs9")
         self.assertEqual(
             mdb._db_uri,
-            "mongodb://john:s3cr3t@db.example.com,db2.example.com,db3.example.com:1234" "/testdb?replicaset=rs9",
+            "mongodb://john:s3cr3t@db.example.com,db2.example.com,db3.example.com:1234/testdb?replicaset=rs9",
         )
 
     def test_uri_with_options(self):

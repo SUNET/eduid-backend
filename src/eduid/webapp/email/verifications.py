@@ -59,7 +59,7 @@ def send_verification_code(email: str, user: User) -> bool:
         # Debug-log the code and message in development environment
         current_app.logger.debug(f"code: {state.verification.verification_code}")
         current_app.logger.debug(f"Generating verification e-mail with context:\n{payload}")
-    current_app.logger.info(f"Sent email address verification mail to user {user}" f" about address {email!s}.")
+    current_app.logger.info(f"Sent email address verification mail to user {user} about address {email!s}.")
     return True
 
 

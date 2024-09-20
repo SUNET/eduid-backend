@@ -203,9 +203,7 @@ def handle_freja_eid_userinfo(user: User, proofing_state: OidcProofingState, use
     opaque = userinfo["results"]["freja_eid"]["opaque"]
     transaction_id = userinfo["results"]["freja_eid"]["ref"]
     if not number_match_proofing(user, proofing_state, number):
-        current_app.logger.warning(
-            "Proofing state number did not match number in userinfo." "Using number from userinfo."
-        )
+        current_app.logger.warning("Proofing state number did not match number in userinfo.Using number from userinfo.")
         proofing_state.nin.number = number
 
     current_app.logger.info(f"Getting address for user {user}")

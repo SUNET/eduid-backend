@@ -181,7 +181,8 @@ def get_proofing_method(
             framework=TrustFramework.EIDAS,
             idp=config.foreign_identity_idp,
             method=method,
-            required_loa=config.foreign_required_loa,  # TODO: True Required LOA is likely higher here when verifying credentials
+            # TODO: True Required LOA is likely higher here when verifying credentials
+            required_loa=config.foreign_required_loa,
         )
     if method == "svipe_id":
         return ProofingMethodSvipe(

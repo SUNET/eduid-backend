@@ -11,7 +11,7 @@ class TestNeo4jDB(Neo4jTestCase):
         with self.neo4jdb.driver.session() as session:
             session.run("CREATE (n:Test $props)", props={"name": "test node", "testing": True})
         with self.neo4jdb.driver.session() as session:
-            result = session.run("MATCH (n {name: $name})" "RETURN n.testing", name="test node")
+            result = session.run("MATCH (n {name: $name})RETURN n.testing", name="test node")
             self.assertTrue(result.single().value())
 
 
@@ -33,5 +33,5 @@ class TestBaseGraphDB(Neo4jTestCase):
         with test_db._db.driver.session() as session:
             session.run("CREATE (n:Test $props)", props={"name": "test node", "testing": True})
         with test_db._db.driver.session() as session:
-            result = session.run("MATCH (n {name: $name})" "RETURN n.testing", name="test node")
+            result = session.run("MATCH (n {name: $name})RETURN n.testing", name="test node")
             self.assertTrue(result.single().value())

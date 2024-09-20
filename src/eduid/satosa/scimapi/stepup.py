@@ -28,7 +28,11 @@ from satosa.backends.saml2 import SAMLBackend
 from satosa.context import Context
 from satosa.exception import SATOSAAuthenticationError, SATOSAError
 from satosa.internal import InternalData
-from satosa.micro_services.base import (  # TODO: Enable when https://github.com/IdentityPython/SATOSA/pull/435 has been accepted; CallbackCallSignature,; CallbackReturnType,; ProcessReturnType,
+from satosa.micro_services.base import (
+    # TODO: Enable when https://github.com/IdentityPython/SATOSA/pull/435 has been accepted;
+    # CallbackCallSignature,
+    # CallbackReturnType,
+    # ProcessReturnType,
     RequestMicroService,
     ResponseMicroService,
 )
@@ -94,10 +98,13 @@ class StepupPluginConfig(BaseModel):
 
 class StepupParams(BaseModel):
     issuer: str
-    issuer_loa: str | None = None  # LoA that the IdP released - as requested through the acr_mapping configuration
+    # LoA that the IdP released - as requested through the acr_mapping configuration
+    issuer_loa: str | None = None
     requester: EntityId
-    requester_loas: list[str]  # (original) LoAs required by the requester
-    loa_settings: LoaSettings  # LoA settings to use. Either from the configuration or derived using entity attributes in the metadata.
+    # (original) LoAs required by the requester
+    requester_loas: list[str]
+    # LoA settings to use. Either from the configuration or derived using entity attributes in the metadata.
+    loa_settings: LoaSettings
 
 
 # Applied to response from IDP

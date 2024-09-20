@@ -139,7 +139,8 @@ class TestGroupResource(ScimApiTestCase):
             self.assertEqual(
                 expected_group.display_name,
                 resources[0].get("displayName"),
-                f"Search parsed_response group does not have the expected displayName: {str(expected_group.display_name)}",
+                "Search parsed_response group does not have the expected displayName: "
+                f"{str(expected_group.display_name)}",
             )
 
         return resources

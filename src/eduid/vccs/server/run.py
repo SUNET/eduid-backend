@@ -70,7 +70,7 @@ async def startup_event():
         if _name == "uvicorn.access":
             _logger.propagate = False
         app.logger.info(
-            f"Updated logger {_name} handlers {_old_handlers} -> {_logger.handlers} " f"(prop: {_logger.propagate})"
+            f"Updated logger {_name} handlers {_old_handlers} -> {_logger.handlers} (prop: {_logger.propagate})"
         )
 
 

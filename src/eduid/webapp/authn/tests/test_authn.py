@@ -859,7 +859,7 @@ class OldUnAuthnAPITestCase(EduidAPITestCase):
             self.assertTrue(resp.location.startswith(self.app.conf.authn_service_url))
 
     def test_cookie(self):
-        sessid = "fb1f42420b0109020203325d750185673df252de388932a3957f522a6c43a" "a47"
+        sessid = "fb1f42420b0109020203325d750185673df252de388932a3957f522a6c43aa47"
         self.redis_instance.conn.set(sessid, json.dumps({"v1": {"id": "0"}}))
 
         with self.session_cookie(self.browser, self.test_user.eppn) as c:
