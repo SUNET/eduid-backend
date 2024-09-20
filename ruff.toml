@@ -5,4 +5,4 @@ target-version = "py310"
 [lint]
 select = ["E", "F", "W", "I", "ASYNC", "UP", "FLY", "PERF", "FURB"]
 
-ignore = []
+ignore = ["E501"]

@@ -17,6 +17,8 @@ reformat:
 	ruff check --select F401,I --fix
 	# reformat
 	ruff format
+	# make an extended check with rules that might be triggered by reformat
+	ruff check --config ruff-extended.toml
 
 lint:
 	ruff check
