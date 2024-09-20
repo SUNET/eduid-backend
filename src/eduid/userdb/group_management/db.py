@@ -60,12 +60,11 @@ class GroupManagementInviteStateDB(BaseDB):
 
         :raise self.DocumentDoesNotExist: No document match the search criteria
         """
-        states: list[GroupInviteState] = []
-        for email_address in email_addresses:
-            spec = {"email_address": email_address}
-            for this in self._get_documents_by_filter(spec):
-                states.append(GroupInviteState.from_dict(this))
-
+        states: list[GroupInviteState] = [
+            GroupInviteState.from_dict(state)
+            for email_address in email_addresses
+            for state in self._get_documents_by_filter({"email_address": email_address})
+        ]
         return states
 
     def save(self, state: GroupInviteState, is_in_database: bool) -> SaveResult:

@@ -58,7 +58,7 @@ def is_valid_password(password: str, user_info: Sequence[str], min_entropy: int,
     # Check password complexity with zxcvbn
     result = zxcvbn(password, user_inputs=user_info)
     _guesses = result.get("guesses", 1)
-    _pw_entropy = math.log(_guesses, 2)
+    _pw_entropy = math.log2(_guesses)
     if _pw_entropy < min_entropy:
         raise ValueError("The password complexity is too weak.")
     # This is the SWAMID requirement for zxcvbn since 2021:

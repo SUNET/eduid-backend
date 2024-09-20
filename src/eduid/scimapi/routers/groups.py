@@ -30,9 +30,7 @@ groups_router = APIRouter(
 @groups_router.get("/", response_model=ListResponse)
 async def on_get_all(req: ContextRequest) -> ListResponse:
     db_groups = req.context.groupdb.get_groups()
-    resources = []
-    for db_group in db_groups:
-        resources.append({"id": str(db_group.scim_id), "displayName": db_group.graph.display_name})
+    resources = [{"id": str(db_group.scim_id), "displayName": db_group.graph.display_name} for db_group in db_groups]
     return ListResponse(total_results=len(db_groups), resources=resources)
 
 
@@ -302,7 +300,6 @@ async def search(req: ContextRequest, query: SearchRequest) -> ListResponse:
     else:
         raise BadRequest(scim_type="invalidFilter", detail=f"Can't filter on attribute {_filter.attr}")
 
-    resources = []
-    for this in groups:
-        resources.append({"id": str(this.scim_id), "displayName": this.display_name})
+    resources = [{"id": str(this.scim_id), "displayName": this.display_name} for this in groups]
+
     return ListResponse(total_results=total_count, resources=resources)

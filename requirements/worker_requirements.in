@@ -1,4 +1,3 @@
 -r main.in
 -c main.txt
 jinja2
-apscheduler<4 # Next major version has API breaking changes

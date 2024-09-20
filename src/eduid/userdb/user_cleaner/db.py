@@ -45,3 +45,6 @@ class CleanerQueueDB(UserDB[CleanerQueueUser]):
         else:
             logger.debug("No document found")
             return None
+
+    def user_in_queue(self, cleaner_type: CleanerType, eppn: str) -> bool:
+        return self.db_count(spec={"cleaner_type": cleaner_type, "eduPersonPrincipalName": eppn}, limit=1) > 0

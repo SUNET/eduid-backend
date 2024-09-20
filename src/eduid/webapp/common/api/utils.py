@@ -271,8 +271,7 @@ def get_zxcvbn_terms(user: User) -> list[str]:
 
     # Mail addresses
     if user.mail_addresses.count:
-        for item in user.mail_addresses.to_list():
-            user_input.append(item.email.split("@")[0])
+        user_input.extend(item.email.split("@")[0] for item in user.mail_addresses.to_list())
 
     return user_input
 

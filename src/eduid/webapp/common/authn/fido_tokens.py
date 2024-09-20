@@ -79,7 +79,7 @@ def _get_fido2server(credentials: dict[ElementKey, FidoCred], fido2rp: PublicKey
     # (assume all app-ids are the same - authenticating with a mix of different
     # app-ids isn't supported in current Webauthn)
     app_id = None
-    for _k, v in credentials.items():
+    for v in credentials.values():
         if v.app_id:
             app_id = v.app_id
             break

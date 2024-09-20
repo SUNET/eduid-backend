@@ -75,6 +75,10 @@ class SecurityMsg(TranslatableMsg):
     not_found = "security.not_found"
     # wrong identity type requested
     wrong_identity_type = "security.wrong-identity-type"
+    # Credential not found in the user's account
+    credential_not_found = "security.credential_not_found"
+    # frontend action is not implemented
+    frontend_action_not_supported = "security.frontend_action_not_supported"
 
 
 @dataclass
@@ -262,10 +266,9 @@ def get_approved_security_keys() -> dict[str, Any]:
         )
         parsed_entries.append(authenticator_info)
 
-    approved_keys_list: list[str] = []
-    for entry in parsed_entries:
-        if entry.description and is_authenticator_mfa_approved(entry):
-            approved_keys_list.append(entry.description)
+    approved_keys_list: list[str] = [
+        entry.description for entry in parsed_entries if entry.description and is_authenticator_mfa_approved(entry)
+    ]
 
     # remove case-insensitive duplicates from list, while maintaining the original case
     marker = set()

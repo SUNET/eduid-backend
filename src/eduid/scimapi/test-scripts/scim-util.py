@@ -194,11 +194,10 @@ def put_group(api: Api, scim_id: str, data: dict[str, Any], token: str | None = 
     if display_name:
         scim["displayName"] = display_name
     if members:
-        new_members = []
-        for member in members:
-            new_members.append(
-                {"$ref": f'{api}/Users/{member["id"]}', "value": member["id"], "display": member["display_name"]}
-            )
+        new_members = [
+            {"$ref": f'{api}/Users/{member["id"]}', "value": member["id"], "display": member["display_name"]}
+            for member in members
+        ]
         scim["members"] = new_members
     if "data" in data:
         if NUTID_GROUP_V1 not in scim["schemas"]:

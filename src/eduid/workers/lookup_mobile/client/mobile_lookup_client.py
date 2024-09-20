@@ -95,9 +95,7 @@ class MobileLookupClient:
         if record is None:
             return []
 
-        mobile_numbers = []
-        for r in record:
-            mobile_numbers.append(r.Mobiles)
+        mobile_numbers = [r.Mobiles for r in record]
 
         return mobile_numbers
 

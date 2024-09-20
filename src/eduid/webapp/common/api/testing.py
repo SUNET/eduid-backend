@@ -11,6 +11,7 @@ from copy import deepcopy
 from datetime import timedelta
 from typing import Any, Generic, TypeVar, cast
 
+from fido2.webauthn import AuthenticatorAttachment
 from flask.testing import FlaskClient
 from werkzeug.test import TestResponse
 
@@ -19,6 +20,7 @@ from eduid.common.misc.timeutil import utc_now
 from eduid.common.rpc.msg_relay import FullPostalAddress, NavetData
 from eduid.common.testing_base import CommonTestCase
 from eduid.userdb import User
+from eduid.userdb.credentials import U2F, Webauthn
 from eduid.userdb.db import BaseDB
 from eduid.userdb.element import ElementKey
 from eduid.userdb.fixtures.users import UserFixtures
@@ -348,6 +350,32 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
                 )
                 sess.authn.sp.authns[sp_authn_req.authn_id] = sp_authn_req
 
+    def add_security_key_to_user(self, eppn: str, keyhandle: str, token_type: str = "webauthn") -> U2F | Webauthn:
+        user = self.app.central_userdb.get_user_by_eppn(eppn)
+        mfa_token: U2F | Webauthn
+        if token_type == "u2f":
+            mfa_token = U2F(
+                version="test",
+                keyhandle=keyhandle,
+                public_key="test",
+                app_id="test",
+                attest_cert="test",
+                description="test",
+                created_by="test",
+            )
+        else:
+            mfa_token = Webauthn(
+                keyhandle=keyhandle,
+                credential_data="test",
+                app_id="test",
+                description="test",
+                created_by="test",
+                authenticator=AuthenticatorAttachment.CROSS_PLATFORM,
+            )
+        user.credentials.add(mfa_token)
+        self.request_user_sync(user)
+        return mfa_token
+
     @staticmethod
     def _get_all_navet_data():
         return NavetData.model_validate(MessageSender.get_devel_all_navet_data())
@@ -455,7 +483,7 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
         def _assure_not_in_dict(d: Mapping[str, Any], unwanted_key: str):
             assert unwanted_key not in d, f"Key {unwanted_key} should not be in payload, but it is: {payload}"
             v2: Mapping[str, Any]
-            for _k2, v2 in d.items():
+            for v2 in d.values():
                 if isinstance(v2, dict):
                     _assure_not_in_dict(v2, unwanted_key)
 

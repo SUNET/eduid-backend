@@ -26,7 +26,7 @@ def load_template(template_dir: str, filename: str, message_dict: Mapping[str, s
 
     if os.path.isdir(template_dir):
         try:
-            f = ".".join([filename, lang])
+            f = f"{filename}.{lang}"
             if os.path.exists(os.path.join(template_dir, f)):
                 filename = f
             template = Environment(loader=FileSystemLoader(template_dir)).get_template(filename)

@@ -3,8 +3,8 @@ import logging
 from collections.abc import Mapping
 from typing import Any
 
+from eduid.common.decorators import deprecated
 from eduid.userdb.db import BaseDB, SaveResult, TUserDbDocument
-from eduid.userdb.deprecation import deprecated
 from eduid.userdb.exceptions import MultipleDocumentsReturned
 from eduid.userdb.security.state import PasswordResetEmailAndPhoneState, PasswordResetEmailState, PasswordResetState
 from eduid.userdb.security.user import SecurityUser
