@@ -56,7 +56,6 @@ class NinHelpersTest(EduidAPITestCase[HelpersTestApp]):
         app for this test case.
         """
         app = HelpersTestApp("testing", config)
-        # app.register_blueprint(test_views)
 
         return app
 

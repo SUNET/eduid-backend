@@ -613,7 +613,6 @@ def get_ticket(info: SAMLQueryParams, binding: str | None) -> LoginContext | Non
     if info.request_ref not in session.idp.pending_requests:
         logger.debug(f"Ref {info.request_ref} not found in pending requests: {session.idp.pending_requests.keys()}")
         logger.debug(f"Extra debug, full pending requests: {session.idp.pending_requests}")
-        # raise RuntimeError(f'No pending request with ref {info.request_ref} found in session')
         return None
 
     pending = session.idp.pending_requests[info.request_ref]

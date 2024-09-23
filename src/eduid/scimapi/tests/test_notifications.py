@@ -7,9 +7,6 @@ from eduid.queue.db.queue_item import QueueItem
 from eduid.scimapi.testing import ScimApiTestCase
 from eduid.userdb.scimapi import EventLevel
 
-# from moto import mock_sns
-
-
 __author__ = "lundberg"
 
 

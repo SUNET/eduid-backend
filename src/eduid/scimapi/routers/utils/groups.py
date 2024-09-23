@@ -53,10 +53,6 @@ def db_group_to_response(req: ContextRequest, resp: Response, db_group: ScimApiG
 
     resp.headers["Location"] = location
     resp.headers["ETag"] = make_etag(db_group.version)
-    # TODO: Needed?
-    # if SCIMSchema.NUTID_GROUP_V1 not in group.schemas and SCIMSchema.NUTID_GROUP_V1.value in dumped_group:
-    #    # Serialization will always put the NUTID_GROUP_V1 in the dumped_group, even if there was no data
-    #    del dumped_group[SCIMSchema.NUTID_GROUP_V1.value]
     req.app.context.logger.debug(f"Extra debug: Response:\n{group.model_dump_json(exclude_none=True, indent=2)}")
     return group
 

@@ -341,14 +341,6 @@ class TestInviteResource(ScimApiTestCase):
         resources = response.json().get("Resources")
         return resources
 
-    # def test_get_invites(self):
-    #    for i in range(9):
-    #        self.add_user(identifier=str(uuid4()), external_id=f'test-id-{i}', profiles={'test': self.test_profile})
-    #    parsed_response = self.client.get(url=f'/Users', headers=self.headers)
-    #    self.assertEqual([SCIMSchema.API_MESSAGES_20_LIST_RESPONSE.value], parsed_response.json().get('schemas'))
-    #    resources = parsed_response.json().get('Resources')
-    #    self.assertEqual(self.userdb.db_count(), len(resources))
-
     def test_create_invite(self):
         req = {
             "schemas": [

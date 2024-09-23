@@ -55,33 +55,9 @@ class ScimMiddleware(BaseMiddleware):
     async def dispatch(self, req: Request, call_next) -> Response:
         req = self.make_context_request(request=req, context_class=ScimApiContext)
         self.context.logger.debug(f"process_request: {req.method} {req.url.path}")
-        # TODO: fix me? is this needed?
-        # if req.method == 'POST':
-        #     if req.path == '/login':
-        #         if req.content_type != 'application/json':
-        #             raise UnsupportedMediaTypeMalformed(
-        #                 detail=f'{req.content_type} is an unsupported media type for {req.path}'
-        #             )
-        #     elif req.path == '/notifications':
-        #         if req.content_type == 'text/plain; charset=UTF-8':
-        #             # We know the body is json, set the correct content type
-        #             req.content_type = 'application/json'
-        #     elif req.content_type != 'application/scim+json':
-        #         raise UnsupportedMediaTypeMalformed(detail=f'{req.content_type} is an unsupported media type')
         resp = await call_next(req)
 
         self.context.logger.debug(f"process_response: {req.method} {req.url.path}")
-        # Default to 'application/json' if responding with an error message
-        # if req_succeeded and resp.body:
-        #     # candidates should be sorted by increasing desirability
-        #     # preferred = request.client_prefers(('application/json', 'application/scim+json'))
-        #
-        #     preferred = None
-        #     self.context.logger.debug(f'Client prefers content-type {preferred}')
-        #     if preferred is None:
-        #         preferred = 'application/scim+json'
-        #         self.context.logger.debug(f'Default content-type {preferred} used')
-        #     resp.headers.content_type = preferred
         return resp
 
 
