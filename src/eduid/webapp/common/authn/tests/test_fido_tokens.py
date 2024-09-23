@@ -61,12 +61,12 @@ class MockFidoApp(EduIDBaseApp):
 SAMPLE_WEBAUTHN_REQUEST = {
     "credentialId": "i3KjBT0t5TPm693T9O0f4zyiwvdu9cY8BegCjiVvq_FS-ZmPcvXipFvHvD5CH6ZVRR3nsVsOla0Cad3fbtUA_Q",
     "authenticatorData": "3PcEcSYqagziJNECYxSBKMR01J4pmySHIPPDM-42YdMBAAAGNw",
-    # {
-    #   "type":"webauthn.get",
-    #   "challenge":"saoY-78kzDgV6mX5R2ixraC699jEU1cJTu7I9twUfJQ",
-    #   "origin":"https://idp.eduid.docker",
+    # {                                                             # noqa: ERA001
+    #   "type":"webauthn.get",                                      # noqa: ERA001
+    #   "challenge":"saoY-78kzDgV6mX5R2ixraC699jEU1cJTu7I9twUfJQ",  # noqa: ERA001
+    #   "origin":"https://idp.eduid.docker",                        # noqa: ERA001
     #   "crossOrigin":false
-    # }
+    # }                                                             # noqa: ERA001
     "clientDataJSON": "eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoic2FvWS03OGt6RGdWNm1YNVIyaXhyYUM2OTlqRVUxY0pU"
     "dTdJOXR3VWZKUSIsIm9yaWdpbiI6Imh0dHBzOi8vaWRwLmVkdWlkLmRvY2tlciIsImNyb3NzT3JpZ2luIjpmYWxzZX0",
     # This is a fake signature, we mock its verification below

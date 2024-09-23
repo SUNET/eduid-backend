@@ -472,7 +472,7 @@ class SSO(Service):
         if not current_app.conf.fticks_secret_key:
             return
         # Default format string:
-        #   'F-TICKS/SWAMID/2.0#TS={ts}#RP={rp}#AP={ap}#PN={pn}#AM={am}#',
+        #   'F-TICKS/SWAMID/2.0#TS={ts}#RP={rp}#AP={ap}#PN={pn}#AM={am}#',  # noqa: ERA001
         _timestamp = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
         _anon_userid = hmac.new(
             bytes(current_app.conf.fticks_secret_key, "ascii"), msg=bytes(user_id, "ascii"), digestmod=sha256
