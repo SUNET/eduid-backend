@@ -352,10 +352,10 @@ class IdP_SAMLRequest:
         )
         # _args is one of these pysaml2 dicts with HTML data, e.g.:
         #  {'headers': [('Content-type', 'text/html')],
-        #   'data': '...<body onload="document.forms[0].submit()">,
-        #   'url': 'https://sp.example.edu/saml2/acs/',
+        #   'data': '...<body onload="document.forms[0].submit()">, # noqa: ERA001
+        #   'url': 'https://sp.example.edu/saml2/acs/',             # noqa: ERA001
         #   'method': 'POST'
-        #  }
+        #  }                                                        # noqa: ERA001
         return HttpArgs.from_pysaml2_dict(_args)
 
 

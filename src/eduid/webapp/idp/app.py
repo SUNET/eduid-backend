@@ -27,8 +27,6 @@ class IdPApp(EduIDBaseApp):
 
         self.conf = config
 
-        # Init dbs
-        # self.private_userdb = IdPUserDB(self.conf.mongo_uri)
         # Initiate external modules
         self.babel = translation.init_babel(self)
 
@@ -45,6 +43,7 @@ class IdPApp(EduIDBaseApp):
 
         self.authn_info_db = None
 
+        # Init dbs
         self.userdb = IdPUserDb(db_uri=config.mongo_uri)
         self.managed_account_db = ManagedAccountDB(config.mongo_uri)
         self.authn = idp_authn.IdPAuthn(config=config, userdb=self.userdb, managed_account_db=self.managed_account_db)

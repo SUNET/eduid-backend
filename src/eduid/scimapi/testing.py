@@ -51,7 +51,6 @@ class BaseDBTestCase(unittest.TestCase):
             "data_owners": {"eduid.se": {"db_name": "eduid_se"}},
             "logging_config": {
                 "loggers": {
-                    #'eduid_groupdb': {'handlers': ['console'], 'level': 'DEBUG'},
                     "neo4j": {"handlers": ["console"], "level": "WARNING"},
                     "root": {"handlers": ["console"], "level": "DEBUG"},
                 },

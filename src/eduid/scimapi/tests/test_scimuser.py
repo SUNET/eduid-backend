@@ -787,7 +787,6 @@ class TestUserResource(ScimApiTestUserResourceBase):
 class TestAsyncUserResource(IsolatedAsyncioTestCase, ScimApiTestCase):
     def setUp(self) -> None:
         super().setUp()
-        # ScimApiTestCase.setUp(self)
         self.async_client = AsyncClient(app=self.api, base_url="http://testserver")
         # create users
         self.user_count = 10

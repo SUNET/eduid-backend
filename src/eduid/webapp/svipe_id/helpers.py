@@ -70,7 +70,7 @@ class SvipeDocumentUserInfo(UserInfoBase):
     document_expiry_date: date = Field(alias="com.svipe:document_expiry_date")
     # Issuing Country: SWE
     document_issuing_country: str = Field(alias="com.svipe:document_issuing_country")
-    # Nationality: SWE
+    # Nationality: SWE  # noqa: ERA001
     document_nationality: str = Field(alias="com.svipe:document_nationality")
     document_number: str = Field(alias="com.svipe:document_number")
     # Document Type (standardized/english): Passport

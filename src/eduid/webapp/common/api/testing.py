@@ -164,7 +164,6 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
         except Exception as exc:
             sys.stderr.write(f"Exception in tearDown: {exc!s}\n{exc!r}\n")
             traceback.print_exc()
-            # time.sleep(5)
         super(CommonTestCase, self).tearDown()
         # XXX reset redis
 
@@ -312,9 +311,6 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
         user.meta.modified_ts = central_user.meta.modified_ts
         user.meta.version = central_user.meta.version
         user.meta.is_in_database = True
-
-        # Make the new version in AM match the one in the private userdb
-        # user.meta.new_version = lambda: private_user.new_version
 
         self.app.central_userdb.save(user)
         return True

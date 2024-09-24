@@ -472,7 +472,7 @@ class SSO(Service):
         if not current_app.conf.fticks_secret_key:
             return
         # Default format string:
-        #   'F-TICKS/SWAMID/2.0#TS={ts}#RP={rp}#AP={ap}#PN={pn}#AM={am}#',
+        #   'F-TICKS/SWAMID/2.0#TS={ts}#RP={rp}#AP={ap}#PN={pn}#AM={am}#',  # noqa: ERA001
         _timestamp = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
         _anon_userid = hmac.new(
             bytes(current_app.conf.fticks_secret_key, "ascii"), msg=bytes(user_id, "ascii"), digestmod=sha256
@@ -613,7 +613,6 @@ def get_ticket(info: SAMLQueryParams, binding: str | None) -> LoginContext | Non
     if info.request_ref not in session.idp.pending_requests:
         logger.debug(f"Ref {info.request_ref} not found in pending requests: {session.idp.pending_requests.keys()}")
         logger.debug(f"Extra debug, full pending requests: {session.idp.pending_requests}")
-        # raise RuntimeError(f'No pending request with ref {info.request_ref} found in session')
         return None
 
     pending = session.idp.pending_requests[info.request_ref]

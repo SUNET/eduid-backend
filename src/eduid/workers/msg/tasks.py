@@ -491,11 +491,11 @@ def get_relations_to(self: MessageSender, identity_number: str, relative_nin: st
         result = []
         # Entrys in relations['Relations']['Relation'] (a list) look like this:
         #
-        #    {
-        #        "RelationId" : {
+        #    {                                                      # noqa: ERA001
+        #        "RelationId" : {                                   # noqa: ERA001
         #                "NationalIdentityNumber" : "200001011234
         #        },
-        #        "RelationType" : "B",
+        #        "RelationType" : "B",                              # noqa: ERA001
         #        "RelationStartDate" : "20000101"
         #    },
         #

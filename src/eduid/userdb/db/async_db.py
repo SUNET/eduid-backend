@@ -277,7 +277,7 @@ class AsyncBaseDB:
         """
         To update an index add a new item in indexes and remove the previous version.
         """
-        # indexes={'index-name': {'key': [('key', 1)], 'param1': True, 'param2': False}, }
+        # indexes={'index-name': {'key': [('key', 1)], 'param1': True, 'param2': False}, }  # noqa: ERA001
         # http://docs.mongodb.org/manual/reference/method/db.collection.ensureIndex/
         default_indexes = ["_id_"]  # _id_ index can not be deleted from a mongo collection
         current_indexes = await self._coll.index_information()

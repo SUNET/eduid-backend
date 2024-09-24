@@ -22,26 +22,6 @@ class InterceptHandler(logging.Handler):
 
 
 def init_logging():
-    # from eduid_common.api.logging import LocalContext, make_dictConfig
-    # local_context = LocalContext(
-    #    app_debug=True,
-    #    app_name='VCCS2',
-    #    format='{asctime} | {levelname:7} | {name:35} | {message}',
-    #    level='DEBUG',
-    #    relative_time=True,
-    # )
-    # logging_config = make_dictConfig(local_context)
-    # logging.config.dictConfig(logging_config)
-
-    # logging.getLogger("uvicorn.access").handlers = [InterceptHandler()]
-
-    # or _log in ['uvicorn', 'uvicorn.access', 'uvicorn.error', 'fastapi']:
-    # for _log in ['uvicorn.access']:
-    #    _logger = logging.getLogger(_log)
-    #    _logger.handlers = [InterceptHandler()]
-    #    if '.' in _log:
-    #        _logger.propagate = False
-
     loguru_logger.remove()
     fmt = (
         "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <7}</level> | <cyan>{module: <11}</cyan>:"
@@ -50,7 +30,6 @@ def init_logging():
     loguru_logger.add(sys.stderr, format=fmt, level="DEBUG")
     loguru_logger.debug("Logging initialized")
     return loguru_logger
-    # return logging.getLogger('VCCS2')
 
 
 def audit_log(msg: str) -> None:

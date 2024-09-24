@@ -64,7 +64,6 @@ class AuthnAPITestBase(EduidAPITestCase):
         saml_config = os.path.join(HERE, "saml2_settings.py")
         config.update(
             {
-                # "safe_relay_domain": "test.localhost",
                 "saml2_login_redirect_url": "/",
                 "saml2_logout_redirect_url": "/logged-out",
                 "saml2_settings_module": saml_config,

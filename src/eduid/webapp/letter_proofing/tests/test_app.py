@@ -66,7 +66,7 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
     def update_config(self, config: dict[str, Any]):
         config.update(
             {
-                # 'ekopost_debug_pdf': devnull,
+                # 'ekopost_debug_pdf': devnull, # set to file path if debugging # noqa: ERA001
                 "ekopost_api_uri": "http://localhost",
                 "ekopost_api_user": "ekopost_user",
                 "ekopost_api_pw": "secret",

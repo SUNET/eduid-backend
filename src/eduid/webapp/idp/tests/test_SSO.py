@@ -608,26 +608,6 @@ class TestSSO(SSOIdPTests):
             assurance_profile=self.app.conf.swamid_assurance_profile_2,
         )
 
-    def test_get_login_eduid_mfa_fido_swamid_al2(self):
-        """
-        Test login with password and fido_swamid_al2 for verified user, request EDUID_MFA.
-
-        Expect the response Authn to be EDUID_MFA, eduPersonAssurance AL1,Al2
-        """
-        user = self.get_user_set_nins(self.test_user.eppn, ["190101011234"])
-        # user.credentials.add(_U2F_SWAMID_AL2)
-        out = self._get_login_response_authn(
-            user=user,
-            req_class_ref=EduidAuthnContextClass.EDUID_MFA,
-            credentials=["pw", "u2f"],
-        )
-        self._check_login_response_authn(
-            authn_result=out,
-            message=IdPMsg.proceed,
-            accr=EduidAuthnContextClass.EDUID_MFA,
-            assurance_profile=self.app.conf.swamid_assurance_profile_2,
-        )
-
     def test_get_login_eduid_mfa_fido_swamid_al3(self):
         """
         Test login with password and fido_swamid_al3 for verified user, request EDUID_MFA.

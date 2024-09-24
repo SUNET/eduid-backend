@@ -37,10 +37,6 @@ def flask_view(ret: FluxData) -> FluxData:
 
 
 class MarshalDecoratorTests(EduidAPITestCase):
-    # def setUp(self) -> None:
-    #     self.app = EduIDBaseApp(__name__)
-    #     self.app.register_blueprint(test_views)
-
     app: DecoratorTestApp
 
     def load_app(self, config: Mapping[str, Any]) -> DecoratorTestApp:

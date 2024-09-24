@@ -84,12 +84,6 @@ def terminate_account(user: User):
 
     # revoke all user passwords
     revoke_all_credentials(security_user, vccs_url=current_app.conf.vccs_url)
-    # Skip removing old passwords from the user at this point as a password reset will do that anyway.
-    # This fixes the problem with loading users for a password reset as users without passwords triggers
-    # the UserHasNotCompletedSignup check in eduid-userdb.
-    # TODO: Needs a decision on how to handle unusable user passwords
-    # for p in security_user.credentials.filter(Password).to_list():
-    #    security_user.passwords.remove(p.key)
 
     # flag account as terminated
     security_user.terminated = utc_now()

@@ -166,10 +166,6 @@ class FrejaProofingFunctions(SwedenConnectProofingFunctions[NinSessionInfo]):
 
         if self.backdoor:
             proofing_version = "1999v1"
-            # TODO: Used to use these values when backdoor was in use, but is that really wise?
-            #       issuer = 'https://idp.example.com/simplesaml/saml2/idp/metadata.php'
-            #       authn_context = 'http://id.elegnamnden.se/loa/1.0/loa3'
-            #
             issuer = "MAGIC COOKIE"
             authn_context = "MAGIC COOKIE"
         else:

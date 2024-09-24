@@ -55,7 +55,7 @@ class ChangeEvent:
     full_document: dict[str, Any] | None = None
     to: NS | None = None
     update_description: UpdateDescription | None = None
-    # Available in MongoDB >=4
+    # Available in MongoDB >=4  # noqa: ERA001
     # clusterTime
     # txnNumber
     # lsid
