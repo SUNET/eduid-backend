@@ -32,6 +32,7 @@ class NextResponseSchema(FluxStandardAction):
             username = fields.Bool(required=False)
             usernamepassword = fields.Bool(required=False)
             webauthn = fields.Bool(required=True)
+            verified_phone_number = fields.Bool(required=True)
 
         class ServiceInfoResponsePayload(EduidSchema):
             display_name = fields.Dict(keys=fields.Str(), values=fields.Str(), required=False)

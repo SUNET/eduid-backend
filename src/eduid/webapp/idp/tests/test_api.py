@@ -338,18 +338,6 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
         result = MfaResult(payload=self.get_response_payload(response))
         return result
 
-    @staticmethod
-    def _extract_form_inputs(res: str) -> dict[str, Any]:
-        inputs = {}
-        for line in res.split("\n"):
-            if "input" in line:
-                # YOLO
-                m = re.match(".*<input .* name=['\"](.+?)['\"].*value=['\"](.+?)['\"]", line)
-                if m:
-                    name, value = m.groups()
-                    inputs[name] = value.strip("'\"")
-        return inputs
-
     def _extract_path_from_response(self, response: TestResponse) -> str:
         return self._extract_path_from_info({"headers": response.headers})
 
