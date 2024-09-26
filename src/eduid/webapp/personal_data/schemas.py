@@ -38,7 +38,6 @@ class UserNameSchema(EduidSchema):
     chosen_given_name = fields.String(required=False)
     surname = fields.String(required=True)
     legal_name = fields.String(required=False)
-    language = fields.String(required=True, attribute="preferredLanguage")
 
 
 class UserLanguageRequestSchema(EduidSchema, CSRFRequestMixin):

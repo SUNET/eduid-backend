@@ -1,3 +1,4 @@
+from eduid.common.decorators import deprecated
 from flask import Blueprint
 
 from eduid.common.config.base import FrontendAction
@@ -48,6 +49,7 @@ def get_user(user: User) -> FluxData:
     return success_response(payload=user.to_dict())
 
 
+@deprecated("update_personal_data view is deprecated, use update_user_name or update_user_language view instead") 
 @pd_views.route("/user", methods=["POST"])
 @UnmarshalWith(PersonalDataRequestSchema)
 @MarshalWith(PersonalDataResponseSchema)
@@ -117,7 +119,7 @@ def update_user_name(
         save_and_sync_user(personal_data_user)
     except UserOutOfSync:
         return error_response(message=CommonMsg.out_of_sync)
-    current_app.stats.count(name="personal_data_saved", value=1)
+    current_app.stats.count(name="user_name_saved", value=1)
     current_app.logger.info(f"Saved personal data for user {personal_data_user}")
 
     personal_data = personal_data_user.to_dict()
@@ -139,7 +141,7 @@ def update_user_language(
         save_and_sync_user(personal_data_user)
     except UserOutOfSync:
         return error_response(message=CommonMsg.out_of_sync)
-    current_app.stats.count(name="personal_data_saved", value=1)
+    current_app.stats.count(name="user_language_saved", value=1)
     current_app.logger.info(f"Saved personal data for user {personal_data_user}")
 
     personal_data = personal_data_user.to_dict()
