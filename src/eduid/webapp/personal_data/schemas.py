@@ -27,6 +27,25 @@ class PersonalDataSchema(EduidSchema):
     legal_name = fields.String(required=False)
     language = fields.String(required=True, attribute="preferredLanguage")
 
+class UserNameRequestSchema(EduidSchema, CSRFRequestMixin):
+    given_name = fields.String(required=True, validate=[validate_nonempty])
+    chosen_given_name = fields.String(required=False)
+    surname = fields.String(required=True, validate=[validate_nonempty])
+    legal_name = fields.String(required=False)
+
+class UserNameSchema(EduidSchema):
+    given_name = fields.String(required=True, attribute="givenName")
+    chosen_given_name = fields.String(required=False)
+    surname = fields.String(required=True)
+    legal_name = fields.String(required=False)
+    language = fields.String(required=True, attribute="preferredLanguage")
+
+
+class UserLanguageRequestSchema(EduidSchema, CSRFRequestMixin):
+    language = fields.String(required=True, default="en", validate=validate_language)
+
+class UserLanguageSchema(EduidSchema):
+    language = fields.String(required=True, attribute="preferredLanguage")
 
 class UserPreferencesSchema(EduidSchema):
     always_use_security_key = fields.Boolean(required=True, default=True)
@@ -48,6 +67,19 @@ class PersonalDataResponseSchema(FluxStandardAction):
         pass
 
     payload = fields.Nested(PersonalDataResponsePayload)
+
+class UserNameResponseSchema(FluxStandardAction):
+    class UserNameResponsePayload(UserNameSchema, CSRFResponseMixin):
+        pass
+
+    payload = fields.Nested(UserNameResponsePayload)
+
+
+class UserLanguageResponseSchema(FluxStandardAction):
+    class UserLanguageResponsePayload(UserLanguageSchema, CSRFResponseMixin):
+        pass
+
+    payload = fields.Nested(UserLanguageResponsePayload)
 
 
 class IdentitiesResponseSchema(FluxStandardAction):
