@@ -123,7 +123,7 @@ def update_user_name(
     personal_data = personal_data_user.to_dict()
     return success_response(payload=personal_data, message=PDataMsg.save_success)
 
-@pd_views.route("/use/language", methods=["POST"])
+@pd_views.route("/user/language", methods=["POST"])
 @UnmarshalWith(UserLanguageRequestSchema)
 @MarshalWith(UserLanguageResponseSchema)
 @require_user
