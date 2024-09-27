@@ -1,7 +1,7 @@
-from eduid.common.decorators import deprecated
 from flask import Blueprint
 
 from eduid.common.config.base import FrontendAction
+from eduid.common.decorators import deprecated
 from eduid.userdb import User
 from eduid.userdb.exceptions import UserOutOfSync
 from eduid.userdb.personal_data import PersonalDataUser
@@ -49,7 +49,7 @@ def get_user(user: User) -> FluxData:
     return success_response(payload=user.to_dict())
 
 
-@deprecated("update_personal_data view is deprecated, use update_user_name or update_user_language view instead") 
+@deprecated("update_personal_data view is deprecated, use update_user_name or update_user_language view instead")
 @pd_views.route("/user", methods=["POST"])
 @UnmarshalWith(PersonalDataRequestSchema)
 @MarshalWith(PersonalDataResponseSchema)
@@ -88,13 +88,12 @@ def update_personal_data(
     personal_data = personal_data_user.to_dict()
     return success_response(payload=personal_data, message=PDataMsg.save_success)
 
+
 @pd_views.route("/user/name", methods=["POST"])
 @UnmarshalWith(UserNameRequestSchema)
 @MarshalWith(UserNameResponseSchema)
 @require_user
-def update_user_name(
-    user: User, given_name: str, surname: str, chosen_given_name: str | None = None
-) -> FluxData:
+def update_user_name(user: User, given_name: str, surname: str, chosen_given_name: str | None = None) -> FluxData:
     personal_data_user = PersonalDataUser.from_user(user, current_app.private_userdb)
     current_app.logger.debug(f"Trying to save user {user}")
 
@@ -125,13 +124,12 @@ def update_user_name(
     personal_data = personal_data_user.to_dict()
     return success_response(payload=personal_data, message=PDataMsg.save_success)
 
+
 @pd_views.route("/user/language", methods=["POST"])
 @UnmarshalWith(UserLanguageRequestSchema)
 @MarshalWith(UserLanguageResponseSchema)
 @require_user
-def update_user_language(
-    user: User, language: str
-) -> FluxData:
+def update_user_language(user: User, language: str) -> FluxData:
     personal_data_user = PersonalDataUser.from_user(user, current_app.private_userdb)
     current_app.logger.debug(f"Trying to save user {user}")
 
