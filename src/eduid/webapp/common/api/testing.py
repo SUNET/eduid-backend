@@ -59,7 +59,6 @@ TEST_CONFIG = {
     "json_sort_keys": True,
     "jsonify_prettyprint_regular": True,
     "mongo_uri": "mongodb://localhost",
-    "authn_service_url": "http://test.localhost/",
     "eduid_site_name": "eduID TESTING",
     "celery": {
         "broker_transport": "memory",

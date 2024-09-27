@@ -308,7 +308,7 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
 
     def test_authenticate(self):
         response = self.browser.get("/")
-        self.assertEqual(response.status_code, 302)  # Redirect to token service
+        self.assertEqual(response.status_code, 401)
         with self.session_cookie(self.browser, self.test_user.eppn) as browser:
             response = browser.get("/")
         self._check_success_response(response, type_="GET_FREJA_EID_SUCCESS")

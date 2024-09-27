@@ -6,11 +6,9 @@ from saml2.client import Saml2Client
 from saml2.ident import decode
 from saml2.metadata import entity_descriptor
 from saml2.saml import NAMEID_FORMAT_UNSPECIFIED, NameID, Subject
-from werkzeug.exceptions import Forbidden
 from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.common.config.base import AuthnParameters, FrontendAction
-from eduid.common.decorators import deprecated
 from eduid.userdb.credentials.fido import FidoCredential
 from eduid.userdb.exceptions import UserDoesNotExist
 from eduid.webapp.authn import acs_actions  # acs_action needs to be imported to be loaded
@@ -63,43 +61,6 @@ def get_status(authn_id: AuthnRequestRef) -> FluxData:
         payload["status"] = authn.status
 
     return success_response(payload=payload)
-
-
-@deprecated("login view is deprecated, use authenticate view instead")
-@authn_views.route("/login")
-def login() -> WerkzeugResponse:
-    """
-    login view, redirects to SAML2 IdP
-    """
-    return _old_authn(AuthnAcsAction.login, same_user=False)
-
-
-@deprecated("reauthn view is deprecated, use authenticate view instead")
-@authn_views.route("/reauthn")
-def reauthn() -> WerkzeugResponse:
-    """
-    login view with force authn, redirects to SAML2 IdP
-    """
-    session.common.is_logged_in = False
-    return _old_authn(AuthnAcsAction.reauthn, force_authn=True)
-
-
-@deprecated("chpass view is deprecated, use authenticate view instead")
-@authn_views.route("/chpass")
-def chpass() -> WerkzeugResponse:
-    """
-    Reauthn view, sends a SAML2 reauthn request to the IdP.
-    """
-    return _old_authn(AuthnAcsAction.change_password, force_authn=True)
-
-
-@deprecated("terminate view is deprecated, use authenticate view instead")
-@authn_views.route("/terminate")
-def terminate() -> WerkzeugResponse:
-    """
-    Reauthn view, sends a SAML2 reauthn request to the IdP.
-    """
-    return _old_authn(AuthnAcsAction.terminate_account, force_authn=True)
 
 
 @authn_views.route("/authenticate", methods=["POST"])
@@ -165,45 +126,6 @@ def _get_idp() -> str:
     idp = list(_configured_idps.keys())[0]
     assert isinstance(idp, str)
     return idp
-
-
-def _old_authn(action: AuthnAcsAction, force_authn: bool = False, same_user: bool = True) -> WerkzeugResponse:
-    _frontend_action = request.args.get("frontend_action", FrontendAction.OLD_LOGIN)
-    _next = request.args.get("next")
-    try:
-        frontend_action = FrontendAction(_frontend_action)
-        authn_params = current_app.conf.frontend_action_authn_parameters[frontend_action]
-    except (ValueError, KeyError):
-        current_app.logger.exception(f"Frontend action {_frontend_action} not supported")
-        raise Forbidden("Requested frontend action not supported")
-
-    # allow backwards compatability authn_params
-    authn_params.force_mfa = force_authn
-    authn_params.same_user = same_user
-    if _next:
-        authn_params.finish_url = sanitise_redirect_url(_next)
-
-    idp = _get_idp()
-
-    # Be somewhat backwards compatible and check the provided IdP parameter
-    _requested_idp = request.args.get("idp")
-    if _requested_idp and _requested_idp != idp:
-        current_app.logger.error(f"Requested IdP {_requested_idp} not allowed")
-        # TODO: use goto_errors_response()
-        raise Forbidden("Requested IdP not allowed")
-
-    sp_authn = SP_AuthnRequest(
-        post_authn_action=action,
-        frontend_action=frontend_action,
-        finish_url=authn_params.finish_url,
-    )
-
-    result = _authn(sp_authn, idp, authn_params)
-    if not result.url:
-        raise RuntimeError("No redirect URL returned from _authn")
-
-    current_app.logger.debug(f"Redirecting user to the IdP: {result.url}")
-    return redirect(result.url)
 
 
 @dataclass

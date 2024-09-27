@@ -39,7 +39,7 @@ class AuthnTests(EduidAPITestCase):
 
     def test_get_view(self):
         response = self.browser.get("/some/path")
-        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.status_code, 401)
 
         with self.session_cookie(self.browser, "hubba-bubba") as client:
             with self.assertRaises(NotFound):

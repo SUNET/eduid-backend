@@ -109,7 +109,7 @@ class EduidSessionTests(EduidAPITestCase):
     def test_session_unauthenticated(self):
         with self.browser as browser:
             response = browser.get("/authenticated")
-            self.assertEqual(response.status_code, 302)
+            self.assertEqual(response.status_code, 401)
 
             response = browser.get("/unauthenticated")
             self.assertEqual(response.status_code, 200)

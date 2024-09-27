@@ -356,7 +356,6 @@ class FrontendAction(Enum):
     CHANGE_SECURITY_PREFERENCES_AUTHN = "changeSecurityPreferencesAuthn"
     LOGIN = "login"
     LOGIN_MFA_AUTHN = "loginMfaAuthn"
-    OLD_LOGIN = "oldLogin"
     REMOVE_IDENTITY = "removeIdentity"
     REMOVE_SECURITY_KEY_AUTHN = "removeSecurityKeyAuthn"
     RESET_PW_MFA_AUTHN = "resetpwMfaAuthn"
@@ -407,10 +406,6 @@ class FrontendActionMixin(BaseModel):
                 force_authn=True,
                 allow_login_auth=True,
                 finish_url="https://eduid.se/login/ext-return/{app_name}/{authn_id}",
-            ),
-            FrontendAction.OLD_LOGIN: AuthnParameters(
-                same_user=False,
-                finish_url="https://eduid.se/profile/",
             ),
             FrontendAction.REMOVE_SECURITY_KEY_AUTHN: AuthnParameters(
                 force_authn=True,
@@ -490,11 +485,7 @@ class EduIDBaseAppConfig(RootConfig, LoggingConfigMixin, StatsConfigMixin, Redis
     # The list is a list of regex that are matched against the path of the
     # requested URL ex. ^/test$.
     no_authn_urls: list[str] = Field(default=["^/status/healthy$", "^/status/sanity-check$"])
-    # Feature opt-in for new-style authn responses, requires new frontend code.
-    enable_authn_json_response: bool = False
     status_cache_seconds: int = 10
-    # All AuthnBaseApps need this to redirect not-logged-in requests to the authn service
-    authn_service_url: str
 
 
 ReasonableDomainName = Annotated[str, Field(min_length=len("x.se")), AfterValidator(lambda v: v.lower())]

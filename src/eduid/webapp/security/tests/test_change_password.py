@@ -135,14 +135,14 @@ class ChangePasswordTests(EduidAPITestCase[SecurityApp]):
     def test_app_starts(self):
         self.assertEqual(self.app.conf.app_name, "testing")
         response1 = self.browser.get("/change-password/suggested-password")
-        assert response1.status_code == 302  # redirect to the login page
+        assert response1.status_code == 401
         with self.session_cookie(self.browser, self.test_user_eppn) as client:
             response2 = client.get("/change-password/suggested-password")
             assert response2.status_code == 200  # authenticated response
 
     def test_get_suggested_not_logged_in(self):
         response = self.browser.get("/change-password/suggested-password")
-        self.assertEqual(response.status_code, 302)  # Redirect to authn service
+        self.assertEqual(response.status_code, 401)
 
     @patch("eduid.webapp.security.views.change_password.generate_suggested_password")
     def test_get_suggested(self, mock_generate_password):

@@ -225,7 +225,7 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
         self.app.scimapi_groupdb.save(self.scim_group1)
 
         response = self.browser.get("/groups")
-        assert response.status_code == 302  # Redirect to token service
+        assert response.status_code == 401
         with self.session_cookie(self.browser, self.test_user.eppn) as client:
             response = client.get("/groups")
         self._check_success_response(response, type_="GET_GROUP_MANAGEMENT_GROUPS_SUCCESS")
@@ -941,7 +941,7 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
 
     def test_all_invites(self):
         response = self.browser.get("/invites/all")
-        assert 302 == response.status_code  # Redirect to token service
+        assert 401 == response.status_code
 
         self._invite_setup()
 
@@ -997,7 +997,7 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
 
     def test_outgoing_invites(self):
         response = self.browser.get("/invites/outgoing")
-        assert 302 == response.status_code  # Redirect to token service
+        assert 401 == response.status_code
 
         self._invite_setup()
 
@@ -1021,7 +1021,7 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
 
     def test_incoming_invites(self):
         response = self.browser.get("/invites/incoming")
-        assert 302 == response.status_code  # Redirect to token service
+        assert 401 == response.status_code
 
         self._invite_setup()
 
@@ -1059,7 +1059,7 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
 
     def test_get_all_data(self):
         response = self.browser.get("/all-data")
-        assert 302 == response.status_code  # Redirect to token service
+        assert 401 == response.status_code
 
         self._invite_setup()
 

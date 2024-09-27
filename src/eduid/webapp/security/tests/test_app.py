@@ -188,7 +188,7 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
 
     def _get_credentials(self):
         response = self.browser.get("/credentials")
-        self.assertEqual(response.status_code, 302)  # Redirect to token service
+        self.assertEqual(response.status_code, 401)
 
         eppn = self.test_user_data["eduPersonPrincipalName"]
         with self.session_cookie(self.browser, eppn) as client:
@@ -226,7 +226,7 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
 
     def test_account_terminated_no_authn(self):
         response = self.browser.get("/terminate-account")
-        self.assertEqual(response.status_code, 302)  # Redirect to token service
+        self.assertEqual(response.status_code, 401)
 
     def test_account_terminated_no_reauthn(self):
         response = self._delete_account()

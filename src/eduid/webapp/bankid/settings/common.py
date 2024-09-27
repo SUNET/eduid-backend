@@ -30,8 +30,6 @@ class BankIDConfig(
 
     app_name: str = "bankid"
 
-    authn_service_url: str
-
     # Federation config
     authentication_context_map: dict[str, str] = Field(
         default={

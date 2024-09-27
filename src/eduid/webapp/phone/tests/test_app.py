@@ -44,7 +44,7 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
         :param eppn: eppn for the user
         """
         response = self.browser.get("/all")
-        self.assertEqual(response.status_code, 302)  # Redirect to token service
+        self.assertEqual(response.status_code, 401)
 
         eppn = eppn or self.test_user_data["eduPersonPrincipalName"]
         with self.session_cookie(self.browser, eppn) as client:
@@ -102,7 +102,7 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
         mock_request_user_sync.side_effect = self.request_user_sync
 
         response = self.browser.post("/primary")
-        self.assertEqual(response.status_code, 302)  # Redirect to token service
+        self.assertEqual(response.status_code, 401)
 
         eppn = self.test_user_data["eduPersonPrincipalName"]
 
@@ -125,7 +125,7 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
         mock_request_user_sync.side_effect = self.request_user_sync
 
         response = self.browser.post("/remove")
-        self.assertEqual(response.status_code, 302)  # Redirect to token service
+        self.assertEqual(response.status_code, 401)
 
         eppn = self.test_user_data["eduPersonPrincipalName"]
 
@@ -248,7 +248,7 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
 
     def test_post_phone_country_code(self):
         response = self.browser.post("/new")
-        self.assertEqual(response.status_code, 302)  # Redirect to token service
+        self.assertEqual(response.status_code, 401)
 
         response = self._post_phone()
 
@@ -422,7 +422,7 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
         mock_code_verification.return_value = "12345"
 
         response = self.browser.post("/remove")
-        self.assertEqual(response.status_code, 302)  # Redirect to token service
+        self.assertEqual(response.status_code, 401)
 
         eppn = self.test_user_data["eduPersonPrincipalName"]
         phone = "+34609123321"
@@ -471,7 +471,7 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
 
     def test_send_code(self):
         response = self.browser.post("/send-code")
-        self.assertEqual(response.status_code, 302)  # Redirect to token service
+        self.assertEqual(response.status_code, 401)
 
         response = self._send_code()
 
@@ -554,7 +554,7 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
         mock_code_verification.return_value = "12345"
 
         response = self.browser.post("/verify")
-        self.assertEqual(response.status_code, 302)  # Redirect to token service
+        self.assertEqual(response.status_code, 401)
 
         eppn = self.test_user_data["eduPersonPrincipalName"]
         phone = "+34609123321"
@@ -604,7 +604,7 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
         mock_code_verification.return_value = "12345"
 
         response = self.browser.post("/verify")
-        self.assertEqual(response.status_code, 302)  # Redirect to token service
+        self.assertEqual(response.status_code, 401)
 
         eppn = self.test_user_data["eduPersonPrincipalName"]
         phone = "+34609123321"
