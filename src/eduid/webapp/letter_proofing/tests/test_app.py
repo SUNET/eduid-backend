@@ -187,7 +187,7 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
 
     def test_authenticate(self):
         response = self.browser.get("/proofing")
-        self.assertEqual(response.status_code, 302)  # Redirect to token service
+        self.assertEqual(response.status_code, 401)
         with self.session_cookie(self.browser, self.test_user_eppn) as client:
             response = client.get("/proofing")
         self.assertEqual(response.status_code, 200)  # Authenticated request

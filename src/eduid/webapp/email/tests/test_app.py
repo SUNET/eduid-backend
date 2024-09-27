@@ -62,7 +62,7 @@ class EmailTests(EduidAPITestCase[EmailApp]):
         GET a list with all the email addresses of the test user
         """
         response = self.browser.get("/all")
-        self.assertEqual(response.status_code, 302)  # Redirect to token service
+        self.assertEqual(response.status_code, 401)
 
         eppn = self.test_user_data["eduPersonPrincipalName"]
         with self.session_cookie(self.browser, eppn) as client:
@@ -86,7 +86,7 @@ class EmailTests(EduidAPITestCase[EmailApp]):
         :param send_data: whether to actually send data in the POST
         """
         response = self.browser.post("/new")
-        self.assertEqual(response.status_code, 302)  # Redirect to token service
+        self.assertEqual(response.status_code, 401)
 
         mock_code_verification.return_value = "123456"
         mock_request_user_sync.side_effect = self.request_user_sync
@@ -119,7 +119,7 @@ class EmailTests(EduidAPITestCase[EmailApp]):
         mock_request_user_sync.side_effect = self.request_user_sync
 
         response = self.browser.post("/primary")
-        self.assertEqual(response.status_code, 302)  # Redirect to token service
+        self.assertEqual(response.status_code, 401)
 
         eppn = self.test_user_data["eduPersonPrincipalName"]
 
@@ -144,7 +144,7 @@ class EmailTests(EduidAPITestCase[EmailApp]):
         mock_request_user_sync.side_effect = self.request_user_sync
 
         response = self.browser.post("/remove")
-        self.assertEqual(response.status_code, 302)  # Redirect to token service
+        self.assertEqual(response.status_code, 401)
 
         eppn = self.test_user_data["eduPersonPrincipalName"]
 
@@ -196,7 +196,7 @@ class EmailTests(EduidAPITestCase[EmailApp]):
         mock_code_verification.return_value = "432123425"
 
         response = self.browser.post("/verify")
-        self.assertEqual(response.status_code, 302)  # Redirect to token service
+        self.assertEqual(response.status_code, 401)
 
         eppn = self.test_user_data["eduPersonPrincipalName"]
 
@@ -494,7 +494,7 @@ class EmailTests(EduidAPITestCase[EmailApp]):
 
     def test_resend_code(self):
         response = self.browser.post("/resend-code")
-        self.assertEqual(response.status_code, 302)  # Redirect to token service
+        self.assertEqual(response.status_code, 401)
 
         data1 = {"email": "johnsmith@example.com"}
         response = self._resend_code(data1=data1)

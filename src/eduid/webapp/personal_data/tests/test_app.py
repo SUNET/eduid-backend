@@ -43,7 +43,7 @@ class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
         :param eppn: the eppn of the user
         """
         response = self.browser.get("/user")
-        self.assertEqual(response.status_code, 302)  # Redirect to token service
+        self.assertEqual(response.status_code, 401)
 
         eppn = eppn or self.test_user_data["eduPersonPrincipalName"]
         with self.session_cookie(self.browser, eppn) as client:
@@ -58,7 +58,7 @@ class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
         :param eppn: the eppn of the user
         """
         response = self.browser.get("/all-user-data")
-        self.assertEqual(response.status_code, 302)  # Redirect to token service
+        self.assertEqual(response.status_code, 401)
 
         with self.session_cookie(self.browser, eppn) as client:
             return client.get("/all-user-data")
@@ -150,7 +150,7 @@ class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
         :param eppn: the eppn of the user
         """
         response = self.browser.get("/preferences")
-        self.assertEqual(response.status_code, 302)  # Redirect to token service
+        self.assertEqual(response.status_code, 401)
 
         eppn = eppn or self.test_user.eppn
         with self.session_cookie(self.browser, eppn) as client:
@@ -184,7 +184,7 @@ class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
         :param eppn: the eppn of the user
         """
         response = self.browser.get("/identities")
-        self.assertEqual(response.status_code, 302)  # Redirect to token service
+        self.assertEqual(response.status_code, 401)
 
         eppn = eppn or self.test_user_data["eduPersonPrincipalName"]
         with self.session_cookie(self.browser, eppn) as client:

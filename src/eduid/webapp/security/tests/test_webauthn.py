@@ -375,7 +375,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
 
     def test_begin_no_login(self):
         response = self.browser.get("/webauthn/register/begin")
-        self.assertEqual(response.status_code, 302)  # Redirect to authn service
+        self.assertEqual(response.status_code, 401)
 
     def test_begin_register_first_key(self):
         data = self._begin_register_key()

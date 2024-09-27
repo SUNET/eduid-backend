@@ -49,4 +49,4 @@ class MsgMongoTestCase(MongoTestCase):
             logger.debug(f"Initialised message_relay with config:\n{self.msg_settings}")
 
             self.msg_relay = MsgRelay(self.msg_settings)
-            self.mail_relay = MailRelay(MailTestConfig(**settings, authn_service_url="foo"))
+            self.mail_relay = MailRelay(MailTestConfig(**settings))

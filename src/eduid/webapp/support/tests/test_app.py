@@ -37,7 +37,7 @@ class SupportAppTests(EduidAPITestCase):
 
     def test_authenticate(self):
         response = self.client.get("/")
-        self.assertEqual(response.status_code, 302)  # Redirect to token service
+        self.assertEqual(response.status_code, 401)
         with self.session_cookie(self.client, self.test_user_eppn) as client:
             response = client.get("/")
         self.assertEqual(response.status_code, 200)  # Authenticated request
