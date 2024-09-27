@@ -120,9 +120,6 @@ def get_authn_for_action(
     authn = session.authn.sp.get_authn_for_frontend_action(frontend_action)
     if not authn and authn_params.allow_login_auth:
         authn = session.authn.sp.get_authn_for_frontend_action(FrontendAction.LOGIN)
-        # check for old login actions until we remove them
-        if not authn and authn_params.allow_login_auth:
-            authn = session.authn.sp.get_authn_for_frontend_action(FrontendAction.OLD_LOGIN)
     return authn, authn_params
 
 
