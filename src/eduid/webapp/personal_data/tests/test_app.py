@@ -93,6 +93,56 @@ class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
                     data.update(mod_data)
             return client.post("/user", data=json.dumps(data), content_type=self.content_type_json)
 
+    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+    def _post_user_name(
+        self, mock_request_user_sync: Any, mod_data: dict[str, Any] | None = None, verified_user: bool = True
+    ):
+        """
+        POST user name for the test user
+        """
+        mock_request_user_sync.side_effect = self.request_user_sync
+        eppn = self.test_user_data["eduPersonPrincipalName"]
+
+        if not verified_user:
+            # Remove verified identities from the users
+            user = self.app.central_userdb.get_user_by_eppn(eppn)
+            for identity in user.identities.verified:
+                user.identities.remove(ElementKey(identity.identity_type.value))
+            self.app.central_userdb.save(user)
+
+        with self.session_cookie(self.browser, eppn) as client:
+            with self.app.test_request_context():
+                with client.session_transaction() as sess:
+                    data = {
+                        "given_name": "Peter",
+                        "surname": "Johnson",
+                        "csrf_token": sess.get_csrf_token(),
+                    }
+                if mod_data:
+                    data.update(mod_data)
+            return client.post("/user/name", data=json.dumps(data), content_type=self.content_type_json)
+
+    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+    def _post_user_language(
+        self, mock_request_user_sync: Any, mod_data: dict[str, Any] | None = None, verified_user: bool = True
+    ):
+        """
+        POST user language for the test user
+        """
+        mock_request_user_sync.side_effect = self.request_user_sync
+        eppn = self.test_user_data["eduPersonPrincipalName"]
+
+        with self.session_cookie(self.browser, eppn) as client:
+            with self.app.test_request_context():
+                with client.session_transaction() as sess:
+                    data = {
+                        "language": "en",
+                        "csrf_token": sess.get_csrf_token(),
+                    }
+                if mod_data:
+                    data.update(mod_data)
+            return client.post("/user/language", data=json.dumps(data), content_type=self.content_type_json)
+
     def _get_preferences(self, eppn: str | None = None):
         """
         Send a GET request to get the personal data of a user
@@ -207,6 +257,23 @@ class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
         }
         self._check_success_response(response, type_="POST_PERSONAL_DATA_USER_SUCCESS", payload=expected_payload)
 
+    def test_post_user_name(self):
+        response = self._post_user_name(verified_user=False)
+        expected_payload = {
+            "surname": "Johnson",
+            "given_name": "Peter",
+        }
+        self._check_success_response(response, type_="POST_PERSONAL_DATA_USER_NAME_SUCCESS", payload=expected_payload)
+
+    def test_post_user_language(self):
+        response = self._post_user_language(verified_user=False)
+        expected_payload = {
+            "language": "en",
+        }
+        self._check_success_response(
+            response, type_="POST_PERSONAL_DATA_USER_LANGUAGE_SUCCESS", payload=expected_payload
+        )
+
     def test_set_chosen_given_name_and_language_verified_user(self):
         expected_payload = {
             "surname": "Smith",
@@ -215,6 +282,23 @@ class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
         }
         response = self._post_user(mod_data=expected_payload)
         self._check_success_response(response, type_="POST_PERSONAL_DATA_USER_SUCCESS", payload=expected_payload)
+
+    def test_post_user_name_set_chosen_given_name_verified_user(self):
+        expected_payload = {
+            "surname": "Smith",
+            "given_name": "John",
+        }
+        response = self._post_user_name(mod_data=expected_payload)
+        self._check_success_response(response, type_="POST_PERSONAL_DATA_USER_NAME_SUCCESS", payload=expected_payload)
+
+    def test_post_user_language_set_language_verified_user(self):
+        expected_payload = {
+            "language": "sv",
+        }
+        response = self._post_user_language(mod_data=expected_payload)
+        self._check_success_response(
+            response, type_="POST_PERSONAL_DATA_USER_LANGUAGE_SUCCESS", payload=expected_payload
+        )
 
     def test_set_given_name_and_surname_verified_user(self):
         mod_data = {
@@ -230,30 +314,67 @@ class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
         response = self._post_user(mod_data=mod_data)
         self._check_success_response(response, type_="POST_PERSONAL_DATA_USER_SUCCESS", payload=expected_payload)
 
+    def test_post_user_name_set_given_name_and_surname_verified_user(self):
+        mod_data = {
+            "surname": "Johnson",
+            "given_name": "Peter",
+        }
+        expected_payload = {
+            "surname": "Smith",
+            "given_name": "John",
+        }
+        response = self._post_user_name(mod_data=mod_data)
+        self._check_success_response(response, type_="POST_PERSONAL_DATA_USER_NAME_SUCCESS", payload=expected_payload)
+
     def test_post_user_bad_csrf(self):
         response = self._post_user(mod_data={"csrf_token": "wrong-token"})
         expected_payload = {"error": {"csrf_token": ["CSRF failed to validate"]}}
         self._check_error_response(response, type_="POST_PERSONAL_DATA_USER_FAIL", payload=expected_payload)
+
+    def test_post_user__name_bad_csrf(self):
+        response = self._post_user_name(mod_data={"csrf_token": "wrong-token"})
+        expected_payload = {"error": {"csrf_token": ["CSRF failed to validate"]}}
+        self._check_error_response(response, type_="POST_PERSONAL_DATA_USER_NAME_FAIL", payload=expected_payload)
 
     def test_post_user_no_given_name(self):
         response = self._post_user(mod_data={"given_name": ""})
         expected_payload = {"error": {"given_name": ["pdata.field_required"]}}
         self._check_error_response(response, type_="POST_PERSONAL_DATA_USER_FAIL", payload=expected_payload)
 
+    def test_post_user_name_no_given_name(self):
+        response = self._post_user_name(mod_data={"given_name": ""})
+        expected_payload = {"error": {"given_name": ["pdata.field_required"]}}
+        self._check_error_response(response, type_="POST_PERSONAL_DATA_USER_NAME_FAIL", payload=expected_payload)
+
     def test_post_user_blank_given_name(self):
         response = self._post_user(mod_data={"given_name": " "})
         expected_payload = {"error": {"given_name": ["pdata.field_required"]}}
         self._check_error_response(response, type_="POST_PERSONAL_DATA_USER_FAIL", payload=expected_payload)
+
+    def test_post_user_name_blank_given_name(self):
+        response = self._post_user_name(mod_data={"given_name": " "})
+        expected_payload = {"error": {"given_name": ["pdata.field_required"]}}
+        self._check_error_response(response, type_="POST_PERSONAL_DATA_USER_NAME_FAIL", payload=expected_payload)
 
     def test_post_user_no_surname(self):
         response = self._post_user(mod_data={"surname": ""})
         expected_payload = {"error": {"surname": ["pdata.field_required"]}}
         self._check_error_response(response, type_="POST_PERSONAL_DATA_USER_FAIL", payload=expected_payload)
 
+    def test_post_user_name_no_surname(self):
+        response = self._post_user_name(mod_data={"surname": ""})
+        expected_payload = {"error": {"surname": ["pdata.field_required"]}}
+        self._check_error_response(response, type_="POST_PERSONAL_DATA_USER_NAME_FAIL", payload=expected_payload)
+
     def test_post_user_blank_surname(self):
         response = self._post_user(mod_data={"surname": " "})
         expected_payload = {"error": {"surname": ["pdata.field_required"]}}
         self._check_error_response(response, type_="POST_PERSONAL_DATA_USER_FAIL", payload=expected_payload)
+
+    def test_post_user_name_blank_surname(self):
+        response = self._post_user_name(mod_data={"surname": " "})
+        expected_payload = {"error": {"surname": ["pdata.field_required"]}}
+        self._check_error_response(response, type_="POST_PERSONAL_DATA_USER_NAME_FAIL", payload=expected_payload)
 
     def test_post_user_with_chosen_given_name(self):
         response = self._post_user(mod_data={"chosen_given_name": "Peter"}, verified_user=False)
@@ -265,10 +386,25 @@ class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
         }
         self._check_success_response(response, type_="POST_PERSONAL_DATA_USER_SUCCESS", payload=expected_payload)
 
+    def test_post_user_name_with_chosen_given_name(self):
+        response = self._post_user_name(mod_data={"chosen_given_name": "Peter"}, verified_user=False)
+        expected_payload = {
+            "surname": "Johnson",
+            "given_name": "Peter",
+            "chosen_given_name": "Peter",
+        }
+        self._check_success_response(response, type_="POST_PERSONAL_DATA_USER_NAME_SUCCESS", payload=expected_payload)
+
     def test_post_user_with_bad_chosen_given_name(self):
         response = self._post_user(mod_data={"chosen_given_name": "Michael"}, verified_user=False)
         self._check_error_response(
             response, type_="POST_PERSONAL_DATA_USER_FAIL", msg=PDataMsg.chosen_given_name_invalid
+        )
+
+    def test_post_user_name_with_bad_chosen_given_name(self):
+        response = self._post_user_name(mod_data={"chosen_given_name": "Michael"}, verified_user=False)
+        self._check_error_response(
+            response, type_="POST_PERSONAL_DATA_USER_NAME_FAIL", msg=PDataMsg.chosen_given_name_invalid
         )
 
     def test_post_user_to_unset_chosen_given_name(self):
@@ -286,15 +422,39 @@ class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
         }
         self._check_success_response(response, type_="POST_PERSONAL_DATA_USER_SUCCESS", payload=expected_payload)
 
+    def test_post_user_name_to_unset_chosen_given_name(self):
+        # set test user chosen given name
+        self.test_user.chosen_given_name = "Peter"
+        self.app.central_userdb.save(self.test_user)
+        user = self.app.central_userdb.get_user_by_eppn(eppn=self.test_user.eppn)
+        assert user.chosen_given_name == "Peter"
+
+        response = self._post_user_name(verified_user=False)
+        expected_payload = {
+            "surname": "Johnson",
+            "given_name": "Peter",
+        }
+        self._check_success_response(response, type_="POST_PERSONAL_DATA_USER_NAME_SUCCESS", payload=expected_payload)
+
     def test_post_user_no_language(self):
         response = self._post_user(mod_data={"language": ""})
         expected_payload = {"error": {"language": ["Language '' is not available"]}}
         self._check_error_response(response, type_="POST_PERSONAL_DATA_USER_FAIL", payload=expected_payload)
 
+    def test_post_user_language_no_language(self):
+        response = self._post_user_language(mod_data={"language": ""})
+        expected_payload = {"error": {"language": ["Language '' is not available"]}}
+        self._check_error_response(response, type_="POST_PERSONAL_DATA_USER_LANGUAGE_FAIL", payload=expected_payload)
+
     def test_post_user_unknown_language(self):
         response = self._post_user(mod_data={"language": "es"})
         expected_payload = {"error": {"language": ["Language 'es' is not available"]}}
         self._check_error_response(response, type_="POST_PERSONAL_DATA_USER_FAIL", payload=expected_payload)
+
+    def test_post_user_language_unknown_language(self):
+        response = self._post_user_language(mod_data={"language": "es"})
+        expected_payload = {"error": {"language": ["Language 'es' is not available"]}}
+        self._check_error_response(response, type_="POST_PERSONAL_DATA_USER_LANGUAGE_FAIL", payload=expected_payload)
 
     def test_get_preferences(self):
         response = self._get_preferences()
