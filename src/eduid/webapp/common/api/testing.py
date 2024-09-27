@@ -326,7 +326,7 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
         post_authn_action: AuthnAcsAction = AuthnAcsAction.login,
         age: timedelta = timedelta(seconds=30),
         finish_url: str | None = None,
-        force_mfa: bool = False,
+        mock_mfa: bool = False,
         credentials_used: list[ElementKey] | None = None,
     ):
         if not finish_url:
@@ -335,7 +335,7 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
         if credentials_used is None:
             credentials_used = []
 
-        if force_mfa:
+        if mock_mfa:
             credentials_used = [ElementKey("mock_credential_one"), ElementKey("mock_credential_two")]
 
         with self.session_cookie(self.browser, eppn) as client:
@@ -349,6 +349,12 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
                     finish_url=finish_url,
                 )
                 sess.authn.sp.authns[sp_authn_req.authn_id] = sp_authn_req
+
+    def setup_signup_authn(self):
+        # mock recent account creation from signup
+        with self.session_cookie(self.browser, self.test_user_eppn) as client:
+            with client.session_transaction() as sess:
+                sess.signup.user_created = True
 
     def add_security_key_to_user(self, eppn: str, keyhandle: str, token_type: str = "webauthn") -> U2F | Webauthn:
         user = self.app.central_userdb.get_user_by_eppn(eppn)

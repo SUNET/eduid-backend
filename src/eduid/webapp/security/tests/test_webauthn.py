@@ -199,6 +199,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
         existing_legacy_token: bool = False,
         csrf: str | None = None,
         check_session: bool = True,
+        set_authn_action: bool = True,
     ):
         """
         Start process to register a webauthn token for the test user,
@@ -216,11 +217,12 @@ class SecurityWebauthnTests(EduidAPITestCase):
             # Fake that user used the other security key to authenticate
             force_mfa = True
 
-        self.set_authn_action(
-            eppn=self.test_user_eppn,
-            frontend_action=FrontendAction.ADD_SECURITY_KEY_AUTHN,
-            force_mfa=force_mfa,
-        )
+        if set_authn_action:
+            self.set_authn_action(
+                eppn=self.test_user_eppn,
+                frontend_action=FrontendAction.ADD_SECURITY_KEY_AUTHN,
+                mock_mfa=force_mfa,
+            )
 
         if existing_legacy_token:
             self._add_u2f_token_to_user(self.test_user_eppn)
@@ -256,6 +258,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
         cred_id: bytes,
         existing_legacy_token: bool = False,
         csrf: str | None = None,
+        set_authn_action: bool = True,
     ):
         """
         Finish registering a webauthn token.
@@ -274,11 +277,12 @@ class SecurityWebauthnTests(EduidAPITestCase):
             # Fake that user used the other security key to authenticate
             force_mfa = True
 
-        self.set_authn_action(
-            eppn=self.test_user_eppn,
-            frontend_action=FrontendAction.ADD_SECURITY_KEY_AUTHN,
-            force_mfa=force_mfa,
-        )
+        if set_authn_action:
+            self.set_authn_action(
+                eppn=self.test_user_eppn,
+                frontend_action=FrontendAction.ADD_SECURITY_KEY_AUTHN,
+                mock_mfa=force_mfa,
+            )
 
         if existing_legacy_token:
             self._add_u2f_token_to_user(self.test_user_eppn)
@@ -425,6 +429,16 @@ class SecurityWebauthnTests(EduidAPITestCase):
         data = self._begin_register_key(other="ctap2", authenticator="platform", existing_legacy_token=True)
         self._check_registration_begun(data)
 
+    def test_begin_register_first_key_signup_authn(self):
+        self.setup_signup_authn()
+        data = self._begin_register_key(set_authn_action=False)
+        self._check_registration_begun(data)
+
+    def test_begin_register_2nd_key_ater_ctap2_signup_authn(self):
+        self.setup_signup_authn()
+        data = self._begin_register_key(other="ctap2", set_authn_action=False)
+        self._check_registration_begun(data)
+
     def test_begin_register_wrong_csrf_token(self):
         data = self._begin_register_key(csrf="wrong-token", check_session=False)
         self.assertEqual(data["type"], "POST_WEBAUTHN_WEBAUTHN_REGISTER_BEGIN_FAIL")
@@ -470,6 +484,19 @@ class SecurityWebauthnTests(EduidAPITestCase):
         # check that a proofing element was written as the token is mfa capable
         assert self.app.proofing_log.db_count() == 1
 
+    def test_finish_register_ctap2_signup_authn(self):
+        self.setup_signup_authn()
+        data = self._finish_register_key(
+            set_authn_action=False,
+            client_data=CLIENT_DATA_JSON_2,
+            attestation=ATTESTATION_OBJECT_2,
+            state=STATE_2,
+            cred_id=CREDENTIAL_ID_2,
+        )
+        self._check_registration_complete(data)
+        # check that a proofing element was written as the token is mfa capable
+        assert self.app.proofing_log.db_count() == 1
+
     def test_finish_register_wrong_csrf(self):
         data = self._finish_register_key(
             client_data=CLIENT_DATA_JSON,
@@ -485,7 +512,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
         self.set_authn_action(
             eppn=self.test_user_eppn,
             frontend_action=FrontendAction.REMOVE_SECURITY_KEY_AUTHN,
-            force_mfa=True,
+            mock_mfa=True,
         )
 
         user_token, data = self._remove(
@@ -502,7 +529,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
         self.set_authn_action(
             eppn=self.test_user_eppn,
             frontend_action=FrontendAction.REMOVE_SECURITY_KEY_AUTHN,
-            force_mfa=True,
+            mock_mfa=True,
         )
 
         user_token, data = self._remove(
@@ -520,7 +547,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
         self.set_authn_action(
             eppn=self.test_user_eppn,
             frontend_action=FrontendAction.REMOVE_SECURITY_KEY_AUTHN,
-            force_mfa=True,
+            mock_mfa=True,
         )
 
         user_token, data = self._remove(
@@ -537,7 +564,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
         self.set_authn_action(
             eppn=self.test_user_eppn,
             frontend_action=FrontendAction.REMOVE_SECURITY_KEY_AUTHN,
-            force_mfa=True,
+            mock_mfa=True,
         )
 
         user_token, data = self._remove(

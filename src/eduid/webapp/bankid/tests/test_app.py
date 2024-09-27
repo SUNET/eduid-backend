@@ -264,18 +264,6 @@ class BankIDTests(ProofingTests[BankIDApp]):
 
         return resp.encode("utf-8")
 
-    def _setup_faked_login(self, session: EduidSession, credentials_used: list[ElementKey]) -> None:
-        logger.debug(f"Test setting credentials used for login in session {session}: {credentials_used}")
-        authn_req = SP_AuthnRequest(
-            post_authn_action=AuthnAcsAction.login,
-            credentials_used=credentials_used,
-            authn_instant=utc_now(),
-            frontend_action=FrontendAction.LOGIN,
-            finish_url="https://example.com/ext-return/{app_name}/{authn_id}",
-        )
-
-        session.authn.sp.authns = {authn_req.authn_id: authn_req}
-
     @staticmethod
     def _get_request_id_from_session(session: EduidSession) -> tuple[str, AuthnRequestRef]:
         """extract the (probable) SAML request ID from the session"""
@@ -410,14 +398,20 @@ class BankIDTests(ProofingTests[BankIDApp]):
 
         assert isinstance(browser, CSRFTestClient)
 
-        browser_with_session_cookie = self.session_cookie(browser, eppn)
-        if not logged_in:
+        if logged_in:
+            browser_with_session_cookie = self.session_cookie(browser, eppn)
+            self.set_authn_action(
+                eppn=eppn,
+                frontend_action=FrontendAction.LOGIN,
+                credentials_used=credentials_used,
+            )
+        else:
             browser_with_session_cookie = self.session_cookie_anon(browser)
 
         with browser_with_session_cookie as browser:
-            if credentials_used:
-                with browser.session_transaction() as sess:
-                    self._setup_faked_login(session=sess, credentials_used=credentials_used)
+            # if credentials_used:
+            #    with browser.session_transaction() as sess:
+            #        self._setup_faked_login(session=sess, credentials_used=credentials_used)
 
             if logged_in is False:
                 with browser.session_transaction() as sess:
@@ -495,6 +489,27 @@ class BankIDTests(ProofingTests[BankIDApp]):
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_webauthn_token_verify(self, mock_request_user_sync: MagicMock):
+        mock_request_user_sync.side_effect = self.request_user_sync
+
+        eppn = self.test_user.eppn
+
+        credential = self.add_security_key_to_user(eppn, "test", "webauthn")
+
+        self._verify_user_parameters(eppn)
+
+        self.verify_token(
+            endpoint="/verify-credential",
+            frontend_action=FrontendAction.VERIFY_CREDENTIAL,
+            eppn=eppn,
+            expect_msg=BankIDMsg.credential_verify_success,
+            credentials_used=[credential.key, ElementKey("other_id")],
+            verify_credential=credential.key,
+        )
+
+        self._verify_user_parameters(eppn, token_verified=True, num_proofings=1)
+
+    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+    def test_webauthn_token_verify_signup_authn(self, mock_request_user_sync: MagicMock):
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_user.eppn

@@ -614,7 +614,7 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
 
     def test_authn_status_credential_not_existing(self):
         frontend_action = FrontendAction.VERIFY_CREDENTIAL
-        self.set_authn_action(eppn=self.test_user_eppn, frontend_action=frontend_action, force_mfa=True)
+        self.set_authn_action(eppn=self.test_user_eppn, frontend_action=frontend_action, mock_mfa=True)
         response = self._get_authn_status(frontend_action=frontend_action, credential_id="none_existing_credential_id")
         self._check_error_response(
             response=response,
@@ -625,7 +625,7 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
     def test_authn_status_credential_not_used(self):
         frontend_action = FrontendAction.VERIFY_CREDENTIAL
         credential = self.add_security_key_to_user(self.test_user_eppn, keyhandle="keyhandle_1")
-        self.set_authn_action(eppn=self.test_user_eppn, frontend_action=frontend_action, force_mfa=True)
+        self.set_authn_action(eppn=self.test_user_eppn, frontend_action=frontend_action, mock_mfa=True)
         response = self._get_authn_status(frontend_action=frontend_action, credential_id=credential.key)
         self._check_success_response(
             response=response,

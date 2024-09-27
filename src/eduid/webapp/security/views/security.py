@@ -275,6 +275,6 @@ def check_authn_status(user: User, frontend_action: str, credential_id: ElementK
         return error_response(message=SecurityMsg.frontend_action_not_supported)
 
     authn_status = validate_authn_for_action(
-        config=current_app.conf, frontend_action=_frontend_action, user=user, credential_used=credential
+        config=current_app.conf, frontend_action=_frontend_action, user=user, credential_requested=credential
     )
     return success_response(payload={"authn_status": authn_status.value})
