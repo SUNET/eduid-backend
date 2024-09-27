@@ -1,4 +1,4 @@
-from typing import cast
+from typing import Any, cast
 from unittest.mock import patch
 
 from eduid.userdb.fixtures.users import UserFixtures
@@ -12,8 +12,8 @@ from eduid.webapp.common.authn.testing import MockVCCSClient
 class VCCSTestCase(MongoTestCase):
     user: User
 
-    def setUp(self, **kwargs):
-        super().setUp(am_users=[UserFixtures().new_user_example], **kwargs)
+    def setUp(self):
+        super().setUp(am_users=[UserFixtures().new_user_example])
         self.vccs_client = cast(VCCSClient, MockVCCSClient())
         _user = self.amdb.get_user_by_mail("johnsmith@example.com")
         assert _user is not None
@@ -149,7 +149,7 @@ class VCCSTestCase(MongoTestCase):
     def test_reset_password_error_revoking(self):
         from eduid.webapp.common.authn.testing import MockVCCSClient
 
-        def mock_revoke_creds(*args):
+        def mock_revoke_creds(*args: Any):
             raise VCCSClientHTTPError("dummy", 500)
 
         with patch.object(MockVCCSClient, "revoke_credentials", mock_revoke_creds):

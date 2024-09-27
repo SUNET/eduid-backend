@@ -2,6 +2,7 @@ import inspect
 import warnings
 from collections.abc import Callable
 from functools import wraps
+from typing import Any
 
 
 # https://stackoverflow.com/questions/2536307/how-do-i-deprecate-python-functions/40301488#40301488
@@ -28,7 +29,7 @@ def deprecated(reason: str | type | Callable):
                 fmt1 = "Call to deprecated function {name} ({reason})."
 
             @wraps(func1)
-            def new_func1(*args, **kwargs):
+            def new_func1(*args: Any, **kwargs: Any):
                 warnings.simplefilter("always", DeprecationWarning)
                 warnings.warn(
                     fmt1.format(name=func1.__name__, reason=reason), category=DeprecationWarning, stacklevel=2
@@ -57,7 +58,7 @@ def deprecated(reason: str | type | Callable):
             fmt2 = "Call to deprecated function {name}."
 
         @wraps(func2)
-        def new_func2(*args, **kwargs):
+        def new_func2(*args: Any, **kwargs: Any):
             warnings.simplefilter("always", DeprecationWarning)
             warnings.warn(fmt2.format(name=func2.__name__), category=DeprecationWarning, stacklevel=2)
             warnings.simplefilter("default", DeprecationWarning)

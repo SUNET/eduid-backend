@@ -96,8 +96,8 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
 
     def setUp(
         self,
-        *args,
-        **kwargs,
+        *args: Any,
+        **kwargs: Any,
     ):
         super().setUp(*args, **kwargs)
         self.idp_entity_id = "https://unittest-idp.example.edu/idp.xml"

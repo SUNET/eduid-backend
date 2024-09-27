@@ -14,7 +14,7 @@ from eduid.webapp.support.settings.common import SupportConfig
 
 
 class SupportApp(AuthnBaseApp):
-    def __init__(self, config: SupportConfig, **kwargs):
+    def __init__(self, config: SupportConfig, **kwargs: Any):
         super().__init__(config, **kwargs)
 
         self.conf = config
@@ -46,7 +46,7 @@ def register_template_funcs(app: SupportApp) -> None:
         return value.strftime(format)
 
     @app.template_filter("multisort")
-    def sort_multi(items: list, *operators, **kwargs):
+    def sort_multi(items: list, *operators: str, **kwargs: bool):
         # Don't try to sort on missing keys
         keys = list(operators)  # operators is immutable
         for key in operators:

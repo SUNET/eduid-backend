@@ -16,7 +16,7 @@ from eduid.webapp.personal_data.helpers import PDataMsg, is_valid_chosen_given_n
 
 
 class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
-    def setUp(self, *args, **kwargs):
+    def setUp(self, *args: Any, **kwargs: Any):
         super().setUp(*args, copy_user_to_private=True, **kwargs)
 
     def load_app(self, config: Mapping[str, Any]) -> PersonalDataApp:

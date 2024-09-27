@@ -16,7 +16,7 @@ class CSRFRequestMixin(Schema):
     csrf_token = fields.String(required=True)
 
     @validates("csrf_token")
-    def validate_csrf_token(self, value: str, **kwargs):
+    def validate_csrf_token(self, value: str, **kwargs: Any):
         custom_header = request.headers.get("X-Requested-With")
         if custom_header != "XMLHttpRequest":  # TODO: move value to config
             current_app.logger.error("CSRF check: missing custom X-Requested-With header")
@@ -26,13 +26,13 @@ class CSRFRequestMixin(Schema):
         logger.debug(f"Validated CSRF token in session: {session.get_csrf_token()}")
 
     @post_load
-    def post_processing(self, in_data: Any, **kwargs):
+    def post_processing(self, in_data: Any, **kwargs: Any):
         # Remove token from data forwarded to views
         in_data = self.remove_csrf_token(in_data)
         return in_data
 
     @staticmethod
-    def remove_csrf_token(in_data: Any, **kwargs):
+    def remove_csrf_token(in_data: Any, **kwargs: Any):
         del in_data["csrf_token"]
         return in_data
 
@@ -41,7 +41,7 @@ class CSRFResponseMixin(Schema):
     csrf_token = fields.String(required=True)
 
     @pre_dump
-    def get_csrf_token(self, out_data: Any, **kwargs):
+    def get_csrf_token(self, out_data: Any, **kwargs: Any):
         # Generate a new csrf token for every response
         out_data["csrf_token"] = session.new_csrf_token()
         logger.debug(f'Generated new CSRF token in CSRFResponseMixin: {out_data["csrf_token"]}')

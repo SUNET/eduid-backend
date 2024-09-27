@@ -13,6 +13,7 @@ and are called with two positional parameters:
 from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
+from typing import Any
 
 from flask import current_app
 from werkzeug.wrappers import Response as WerkzeugResponse
@@ -60,7 +61,7 @@ def acs_action(action: Enum):
     def outer(func: Callable[[ACSArgs], ACSResult]) -> Callable[[ACSArgs], ACSResult]:
         _actions[action.value] = func
 
-        def inner(*args, **kwargs) -> ACSResult:
+        def inner(*args: Any, **kwargs: Any) -> ACSResult:
             return func(*args, **kwargs)
 
         return inner

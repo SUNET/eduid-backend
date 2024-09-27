@@ -251,7 +251,7 @@ class AuthnAPITestCase(AuthnAPITestBase):
 
     app: AuthnApp
 
-    def setUp(self, **kwargs):
+    def setUp(self, **kwargs: Any):  # type: ignore[override]
         super().setUp(users=["hubba-bubba", "hubba-fooo"], **kwargs)
 
     def test_login_authn(self):
@@ -309,7 +309,7 @@ class AuthnAPITestCase(AuthnAPITestBase):
 
 
 class AuthnTestApp(AuthnBaseApp):
-    def __init__(self, config: AuthnConfig, **kwargs):
+    def __init__(self, config: AuthnConfig, **kwargs: Any):
         super().__init__(config, **kwargs)
         self.conf = config
 

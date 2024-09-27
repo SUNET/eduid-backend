@@ -11,7 +11,7 @@ from eduid.webapp.personal_data.settings import PersonalDataConfig
 
 
 class PersonalDataApp(AuthnBaseApp):
-    def __init__(self, config: PersonalDataConfig, **kwargs):
+    def __init__(self, config: PersonalDataConfig, **kwargs: Any):
         super().__init__(config, **kwargs)
 
         self.conf = config

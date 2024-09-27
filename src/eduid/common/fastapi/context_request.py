@@ -1,5 +1,6 @@
 from collections.abc import Callable
 from dataclasses import asdict, dataclass
+from typing import Any
 
 from fastapi import Request, Response
 from fastapi.routing import APIRoute
@@ -12,7 +13,7 @@ class Context:
 
 
 class ContextRequest(Request):
-    def __init__(self, context_class: type[Context], *args, **kwargs):
+    def __init__(self, context_class: type[Context], *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
         self.contextClass = context_class
 

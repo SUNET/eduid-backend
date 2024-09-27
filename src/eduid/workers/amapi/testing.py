@@ -11,7 +11,7 @@ from eduid.workers.amapi.config import EndpointRestriction
 
 
 class TestAMBase(CommonTestCase):
-    def setUp(self, *args, **kwargs):
+    def setUp(self, *args: Any, **kwargs: Any):
         super().setUp(*args, **kwargs)
 
         self.path = pkg_resources.resource_filename(__name__, "tests/data")

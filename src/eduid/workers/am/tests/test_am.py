@@ -1,3 +1,5 @@
+from typing import Any
+
 from bson import ObjectId
 
 import eduid.userdb
@@ -82,7 +84,7 @@ class MessageTest(AMTestCase):
     transforms 'uid' to its urn:oid representation.
     """
 
-    def setUp(self, *args, **kwargs):
+    def setUp(self, *args: Any, **kwargs: Any):
         super().setUp(*args, want_mongo_uri=True, **kwargs)
         self.private_db = AmTestUserDb(db_uri=self.tmp_db.uri, db_name="eduid_am_test")
         # register fake AMP plugin named 'test'

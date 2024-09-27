@@ -534,7 +534,7 @@ class IdPTestLoginAPI(IdPAPITests):
 
 
 class IdPTestLoginAPIManagedAccounts(IdPAPITests):
-    def setUp(self, *args, **kwargs):
+    def setUp(self, *args: Any, **kwargs: Any):
         super().setUp(*args, **kwargs)
         self.test_eppn = "ma-12345678"
         managed_account = self._create_managed_account_user(eppn=self.test_eppn)

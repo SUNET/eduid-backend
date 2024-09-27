@@ -24,7 +24,7 @@ __author__ = "lundberg"
 class SvipeIdTests(ProofingTests[SvipeIdApp]):
     """Base TestCase for those tests that need a full environment setup"""
 
-    def setUp(self, *args, **kwargs):
+    def setUp(self, *args: Any, **kwargs: Any):
         super().setUp(*args, **kwargs, users=["hubba-bubba", "hubba-baar"])
 
         self.unverified_test_user = self.app.central_userdb.get_user_by_eppn("hubba-baar")

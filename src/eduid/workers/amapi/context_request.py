@@ -2,6 +2,7 @@ __author__ = "masv"
 
 from collections.abc import Callable
 from dataclasses import asdict, dataclass
+from typing import Any
 
 from fastapi import Request, Response
 from fastapi.routing import APIRoute
@@ -14,7 +15,7 @@ class Context:
 
 
 class ContextRequest(Request):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
 
     @property

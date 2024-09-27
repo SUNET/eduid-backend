@@ -16,7 +16,7 @@ __author__ = "lundberg"
 
 
 class GroupManagementApp(AuthnBaseApp):
-    def __init__(self, config: GroupManagementConfig, **kwargs):
+    def __init__(self, config: GroupManagementConfig, **kwargs: Any):
         super().__init__(config, **kwargs)
 
         self.conf = config

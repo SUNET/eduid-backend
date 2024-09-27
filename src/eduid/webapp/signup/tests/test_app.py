@@ -51,7 +51,7 @@ class SignupResult:
 
 
 class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
-    def setUp(self, *args, **kwargs):
+    def setUp(self, *args: Any, **kwargs: Any):
         super().setUp(*args, **kwargs, copy_user_to_private=True)
 
     def load_app(self, config: Mapping[str, Any]) -> SignupApp:

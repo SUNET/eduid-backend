@@ -1,10 +1,12 @@
 import logging
+from typing import Any
 
 import bson
 import pytest
 
 from eduid.common.testing_base import normalised_data
 from eduid.userdb import User
+from eduid.userdb.db.base import TUserDbDocument
 from eduid.userdb.exceptions import UserDoesNotExist, UserOutOfSync
 from eduid.userdb.fixtures.passwords import signup_password
 from eduid.userdb.fixtures.users import UserFixtures
@@ -15,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 class TestUserDB(MongoTestCase):
-    def setUp(self, *args, **kwargs):
+    def setUp(self, *args: Any, **kwargs: Any):
         self.user = UserFixtures().mocked_user_standard
         super().setUp(am_users=[self.user], **kwargs)
 
@@ -71,9 +73,9 @@ class TestUserDB(MongoTestCase):
 class UserMissingMeta(MongoTestCase):
     user: User
 
-    def setUp(self, *args, **kwargs):
+    def setUp(self):
         self.user = UserFixtures().mocked_user_standard
-        super().setUp(*args, am_users=[self.user], **kwargs)
+        super().setUp(am_users=[self.user])
 
         self._remove_meta_from_user_in_db(self.user)
 
@@ -103,7 +105,7 @@ class UserMissingMeta(MongoTestCase):
 
 
 class UpdateUser(MongoTestCase):
-    def setUp(self, *args, **kwargs):
+    def setUp(self, *args: Any, **kwargs: Any):
         _users = UserFixtures()
         self.user = _users.mocked_user_standard
         super().setUp(am_users=[self.user, _users.mocked_user_standard_2], **kwargs)
@@ -133,25 +135,29 @@ class UpdateUser(MongoTestCase):
 
 
 class TestUserDB_mail(MongoTestCase):
-    def setUp(self, *args, **kwargs):
+    def setUp(self, *args: Any, **kwargs: Any):
         super().setUp(*args, **kwargs)
-        data1 = {
-            "_id": bson.ObjectId(),
-            "eduPersonPrincipalName": "mail-test1",
-            "mail": "test@gmail.com",
-            "mailAliases": [{"email": "test@gmail.com", "verified": True}],
-            "passwords": [signup_password.to_dict()],
-        }
+        data1: TUserDbDocument = TUserDbDocument(
+            {
+                "_id": bson.ObjectId(),
+                "eduPersonPrincipalName": "mail-test1",
+                "mail": "test@gmail.com",
+                "mailAliases": [{"email": "test@gmail.com", "verified": True}],
+                "passwords": [signup_password.to_dict()],
+            }
+        )
 
-        data2 = {
-            "_id": bson.ObjectId(),
-            "eduPersonPrincipalName": "mail-test2",
-            "mailAliases": [
-                {"email": "test2@gmail.com", "primary": True, "verified": True},
-                {"email": "test@gmail.com", "verified": False},
-            ],
-            "passwords": [signup_password.to_dict()],
-        }
+        data2: TUserDbDocument = TUserDbDocument(
+            {
+                "_id": bson.ObjectId(),
+                "eduPersonPrincipalName": "mail-test2",
+                "mailAliases": [
+                    {"email": "test2@gmail.com", "primary": True, "verified": True},
+                    {"email": "test@gmail.com", "verified": False},
+                ],
+                "passwords": [signup_password.to_dict()],
+            }
+        )
 
         self.user1 = User.from_dict(data1)
         self.user2 = User.from_dict(data2)
@@ -179,29 +185,33 @@ class TestUserDB_mail(MongoTestCase):
 
 
 class TestUserDB_phone(MongoTestCase):
-    def setUp(self, *args, **kwargs):
+    def setUp(self, *args: Any, **kwargs: Any):
         super().setUp(*args, **kwargs)
-        data1 = {
-            "_id": bson.ObjectId(),
-            "eduPersonPrincipalName": "phone-test1",
-            "mail": "kalle@example.com",
-            "phone": [
-                {"number": "+11111111111", "primary": True, "verified": True},
-                {"number": "+22222222222", "primary": False, "verified": True},
-            ],
-            "passwords": [signup_password.to_dict()],
-        }
-        data2 = {
-            "_id": bson.ObjectId(),
-            "eduPersonPrincipalName": "phone-test2",
-            "mail": "anka@example.com",
-            "phone": [
-                {"number": "+11111111111", "primary": True, "verified": False},
-                {"number": "+22222222222", "primary": False, "verified": False},
-                {"number": "+33333333333", "primary": False, "verified": False},
-            ],
-            "passwords": [signup_password.to_dict()],
-        }
+        data1: TUserDbDocument = TUserDbDocument(
+            {
+                "_id": bson.ObjectId(),
+                "eduPersonPrincipalName": "phone-test1",
+                "mail": "kalle@example.com",
+                "phone": [
+                    {"number": "+11111111111", "primary": True, "verified": True},
+                    {"number": "+22222222222", "primary": False, "verified": True},
+                ],
+                "passwords": [signup_password.to_dict()],
+            }
+        )
+        data2: TUserDbDocument = TUserDbDocument(
+            {
+                "_id": bson.ObjectId(),
+                "eduPersonPrincipalName": "phone-test2",
+                "mail": "anka@example.com",
+                "phone": [
+                    {"number": "+11111111111", "primary": True, "verified": False},
+                    {"number": "+22222222222", "primary": False, "verified": False},
+                    {"number": "+33333333333", "primary": False, "verified": False},
+                ],
+                "passwords": [signup_password.to_dict()],
+            }
+        )
 
         self.user1 = User.from_dict(data1)
         self.user2 = User.from_dict(data2)
@@ -237,36 +247,41 @@ class TestUserDB_phone(MongoTestCase):
 
 class TestUserDB_nin(MongoTestCase):
     # TODO: Keep for a while to make sure the conversion to identities work as expected
-    def setUp(self, *args, **kwargs):
+    def setUp(self, *args: Any, **kwargs: Any):
         super().setUp(*args, **kwargs)
-        data1 = {
-            "_id": bson.ObjectId(),
-            "eduPersonPrincipalName": "nin-test1",
-            "mail": "kalle@example.com",
-            "nins": [
-                {"number": "11111111111", "primary": True, "verified": True},
-            ],
-            "passwords": [signup_password.to_dict()],
-        }
-        data2 = {
-            "_id": bson.ObjectId(),
-            "eduPersonPrincipalName": "nin-test2",
-            "mail": "anka@example.com",
-            "nins": [
-                {"number": "22222222222", "primary": True, "verified": True},
-            ],
-            "passwords": [signup_password.to_dict()],
-        }
-
-        data3 = {
-            "_id": bson.ObjectId(),
-            "eduPersonPrincipalName": "nin-test3",
-            "mail": "anka@example.com",
-            "nins": [
-                {"number": "33333333333", "primary": False, "verified": False},
-            ],
-            "passwords": [signup_password.to_dict()],
-        }
+        data1: TUserDbDocument = TUserDbDocument(
+            {
+                "_id": bson.ObjectId(),
+                "eduPersonPrincipalName": "nin-test1",
+                "mail": "kalle@example.com",
+                "nins": [
+                    {"number": "11111111111", "primary": True, "verified": True},
+                ],
+                "passwords": [signup_password.to_dict()],
+            }
+        )
+        data2: TUserDbDocument = TUserDbDocument(
+            {
+                "_id": bson.ObjectId(),
+                "eduPersonPrincipalName": "nin-test2",
+                "mail": "anka@example.com",
+                "nins": [
+                    {"number": "22222222222", "primary": True, "verified": True},
+                ],
+                "passwords": [signup_password.to_dict()],
+            }
+        )
+        data3: TUserDbDocument = TUserDbDocument(
+            {
+                "_id": bson.ObjectId(),
+                "eduPersonPrincipalName": "nin-test3",
+                "mail": "anka@example.com",
+                "nins": [
+                    {"number": "33333333333", "primary": False, "verified": False},
+                ],
+                "passwords": [signup_password.to_dict()],
+            }
+        )
 
         self.user1 = User.from_dict(data1)
         self.user2 = User.from_dict(data2)

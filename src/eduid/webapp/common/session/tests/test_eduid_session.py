@@ -17,7 +17,7 @@ class SessionTestConfig(EduIDBaseAppConfig):
 
 
 class SessionTestApp(AuthnBaseApp):
-    def __init__(self, config: SessionTestConfig, **kwargs):
+    def __init__(self, config: SessionTestConfig, **kwargs: Any):
         super().__init__(config, **kwargs)
 
         self.conf = config
@@ -78,7 +78,7 @@ def session_init_app(name: str, test_config: Mapping[str, Any]) -> SessionTestAp
 class EduidSessionTests(EduidAPITestCase):
     app: SessionTestApp
 
-    def setUp(self, **kwargs):
+    def setUp(self, **kwargs: Any):  # type: ignore[override]
         self.test_user_eppn = "hubba-bubba"
         super().setUp(**kwargs)
 

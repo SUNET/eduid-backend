@@ -21,7 +21,7 @@ class OidcProofingTests(EduidAPITestCase):
 
     app: OIDCProofingApp
 
-    def setUp(self, *args, **kwargs):
+    def setUp(self, *args: Any, **kwargs: Any):
         self.test_user_eppn = "hubba-baar"
         self.test_user_nin = "200001023456"
         self.test_user_wrong_nin = "190001021234"

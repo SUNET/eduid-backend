@@ -5,9 +5,8 @@ from typing import Any
 
 from bson import ObjectId
 from fastapi import status
-from httpx import Headers
+from httpx import Headers, Response
 from jwcrypto import jwt
-from requests import Response
 
 from eduid.common.clients.gnap_client.base import GNAPBearerTokenMixin
 from eduid.userdb.fixtures.users import UserFixtures
@@ -17,7 +16,7 @@ from eduid.workers.amapi.utils import AuthnBearerToken
 
 
 class TestUsers(TestAMBase, GNAPBearerTokenMixin):
-    def setUp(self, *args, **kwargs):
+    def setUp(self, *args: Any, **kwargs: Any):
         super().setUp(am_users=[UserFixtures().new_user_example])
 
     def _make_url(self, endpoint: str | None = None) -> str:

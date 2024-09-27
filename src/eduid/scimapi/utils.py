@@ -3,7 +3,7 @@ import functools
 import logging
 import time
 from collections.abc import Callable
-from typing import AnyStr, TypeVar
+from typing import Any, AnyStr, TypeVar
 from uuid import uuid4
 
 from jwcrypto import jwk
@@ -63,7 +63,7 @@ def load_jwks(config: ScimApiConfig) -> jwk.JWKSet:
 
 def retryable_db_write(func: Callable):
     @functools.wraps(func)
-    def wrapper_run_func(*args, **kwargs):
+    def wrapper_run_func(*args: Any, **kwargs: Any):
         max_retries = 10
         retry = 0
         while True:

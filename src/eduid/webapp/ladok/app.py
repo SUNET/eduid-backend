@@ -15,7 +15,7 @@ __author__ = "lundberg"
 
 
 class LadokApp(AuthnBaseApp):
-    def __init__(self, config: LadokConfig, **kwargs):
+    def __init__(self, config: LadokConfig, **kwargs: Any):
         super().__init__(config, **kwargs)
 
         self.conf = config

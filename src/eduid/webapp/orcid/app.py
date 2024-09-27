@@ -15,7 +15,7 @@ __author__ = "lundberg"
 
 
 class OrcidApp(AuthnBaseApp):
-    def __init__(self, config: OrcidConfig, **kwargs):
+    def __init__(self, config: OrcidConfig, **kwargs: Any):
         super().__init__(config, **kwargs)
 
         self.conf = config

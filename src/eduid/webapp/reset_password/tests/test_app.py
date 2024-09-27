@@ -39,7 +39,7 @@ __author__ = "eperez"
 class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
     """Base TestCase for those tests that need a full environment setup"""
 
-    def setUp(self, *args, **kwargs):
+    def setUp(self, *args: Any, **kwargs: Any):
         super().setUp(*args, **kwargs)
         self.other_test_user = UserFixtures().mocked_user_standard_2
 

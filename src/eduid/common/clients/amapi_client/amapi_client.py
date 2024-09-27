@@ -20,7 +20,7 @@ from eduid.common.models.amapi_user import (
 
 
 class AMAPIClient(GNAPClient):
-    def __init__(self, amapi_url: str, auth_data: GNAPClientAuthData, verify_tls: bool = True, **kwargs):
+    def __init__(self, amapi_url: str, auth_data: GNAPClientAuthData, verify_tls: bool = True, **kwargs: Any):
         super().__init__(auth_data=auth_data, verify=verify_tls, **kwargs)
         self.amapi_url = amapi_url
 

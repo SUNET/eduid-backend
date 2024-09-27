@@ -1,3 +1,5 @@
+from typing import Any
+
 from bson import ObjectId
 
 import eduid.userdb
@@ -13,7 +15,7 @@ from eduid.workers.am.testing import AMTestCase
 class TestTasks(AMTestCase):
     user: User
 
-    def setUp(self, *args, **kwargs):
+    def setUp(self, *args: Any, **kwargs: Any):
         _users = UserFixtures()
         self.user = _users.mocked_user_standard
         super().setUp(want_mongo_uri=True, am_users=[self.user, _users.mocked_user_standard_2], **kwargs)

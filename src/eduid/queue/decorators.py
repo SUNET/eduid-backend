@@ -25,7 +25,7 @@ class TransactionAudit:
         if not self.enabled:
             return f
 
-        def audit(*args, **kwargs):
+        def audit(*args: Any, **kwargs: Any):
             ret = f(*args, **kwargs)
             if not isclass(ret) and self.collection:  # we can't save class objects in mongodb
                 date = utc_now()
@@ -52,7 +52,7 @@ class TransactionAudit:
         cls.enabled = False
 
     @staticmethod
-    def _filter(func: str, data: Any, *args, **kwargs):
+    def _filter(func: str, data: Any, *args: Any, **kwargs: Any):
         if data is False:
             return data
         if func == "_get_navet_data":

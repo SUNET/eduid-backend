@@ -13,7 +13,7 @@ __author__ = "lundberg"
 class TestResetGroupInviteStateDB(MongoTestCase):
     user: User
 
-    def setUp(self, **kwargs):
+    def setUp(self):
         super().setUp()
         self.user = UserFixtures().mocked_user_standard
         self.invite_state_db = GroupManagementInviteStateDB(self.tmp_db.uri)

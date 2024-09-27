@@ -16,7 +16,7 @@ __author__ = "lundberg"
 
 
 class FrejaEIDApp(AuthnBaseApp):
-    def __init__(self, config: FrejaEIDConfig, **kwargs):
+    def __init__(self, config: FrejaEIDConfig, **kwargs: Any):
         super().__init__(config, **kwargs)
 
         self.conf = config
