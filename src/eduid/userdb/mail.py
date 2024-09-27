@@ -14,7 +14,7 @@ class MailAddress(PrimaryElement):
 
     @field_validator("email", mode="before")
     @classmethod
-    def validate_email(cls, v):
+    def validate_email(cls, v: Any):
         if not isinstance(v, str):
             raise ValueError("must be a string")
         return v.lower()
@@ -53,7 +53,7 @@ class MailAddressList(PrimaryElementList[MailAddress]):
         return cls(elements=[MailAddress.from_dict(this) for this in items])
 
 
-def address_from_dict(data):
+def address_from_dict(data: dict[str, Any]):
     """
     Create a MailAddress instance from a dict.
 

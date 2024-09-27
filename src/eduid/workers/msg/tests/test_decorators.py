@@ -1,10 +1,14 @@
+from typing import Any
+
+from eduid.userdb.user import User
 from eduid.workers.msg.decorators import TransactionAudit
 from eduid.workers.msg.testing import MsgMongoTestCase
 
 
 class TestTransactionAudit(MsgMongoTestCase):
-    def setUp(self, init_msg=True):
+    def setUp(self, am_users: list[User] | None = None, init_msg: bool = True):
         super().setUp(init_msg=init_msg)
+        assert self.msg_settings.mongo_uri
         TransactionAudit.enable(self.msg_settings.mongo_uri, db_name="test")
 
     def test_transaction_audit(self):
@@ -24,7 +28,7 @@ class TestTransactionAudit(MsgMongoTestCase):
         assert result.next()["data"]["baka"] == "kaka"
 
         @TransactionAudit()
-        def _get_navet_data(arg1, arg2):
+        def _get_navet_data(arg1: str, arg2: str):
             return {"baka", "kaka"}
 
         _get_navet_data("dummy", "1111")
@@ -32,7 +36,16 @@ class TestTransactionAudit(MsgMongoTestCase):
         self.assertEqual(result["data"]["identity_number"], "1111")
 
         @TransactionAudit()
-        def send_message(_self, message_type, reference, message_dict, recipient, template, language, subject=None):
+        def send_message(
+            _self: Any,
+            message_type: str,
+            reference: str,
+            message_dict: str,
+            recipient: str,
+            template: str,
+            language: str,
+            subject: str | None = None,
+        ):
             return "kaka"
 
         send_message("dummy", "mm", "reference", "dummy", "2222", "template", "lang")

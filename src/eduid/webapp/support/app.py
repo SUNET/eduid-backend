@@ -1,5 +1,6 @@
 import operator
 from collections.abc import Mapping
+from datetime import datetime
 from typing import Any, cast
 
 from flask import current_app
@@ -33,19 +34,19 @@ current_support_app: SupportApp = cast(SupportApp, current_app)
 
 def register_template_funcs(app: SupportApp) -> None:
     @app.template_filter("datetimeformat")
-    def datetimeformat(value, format="%Y-%m-%d %H:%M %Z"):
+    def datetimeformat(value: datetime | None, format: str = "%Y-%m-%d %H:%M %Z"):
         if not value:
             return ""
         return value.strftime(format)
 
     @app.template_filter("dateformat")
-    def dateformat(value, format="%Y-%m-%d"):
+    def dateformat(value: datetime | None, format: str = "%Y-%m-%d"):
         if not value:
             return ""
         return value.strftime(format)
 
     @app.template_filter("multisort")
-    def sort_multi(items, *operators, **kwargs):
+    def sort_multi(items: list, *operators, **kwargs):
         # Don't try to sort on missing keys
         keys = list(operators)  # operators is immutable
         for key in operators:

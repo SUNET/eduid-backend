@@ -1,5 +1,5 @@
 import logging
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from functools import wraps
 from string import Template
 from typing import Any
@@ -11,7 +11,7 @@ __author__ = "lundberg"
 from eduid.common.config.parsers.exceptions import SecretKeyException
 
 
-def decrypt(f):
+def decrypt(f: Callable):
     @wraps(f)
     def decrypt_decorator(*args, **kwargs):
         config_dict = f(*args, **kwargs)
@@ -83,7 +83,7 @@ def decrypt_config(config_dict: Mapping[str, Any]) -> Mapping[str, Any]:
     return new_config_dict
 
 
-def interpolate(f):
+def interpolate(f: Callable):
     @wraps(f)
     def interpolation_decorator(*args, **kwargs):
         config_dict = f(*args, **kwargs)

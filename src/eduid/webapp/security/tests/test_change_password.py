@@ -1,7 +1,7 @@
 import json
 from collections.abc import Mapping
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from eduid.common.config.base import FrontendAction
 from eduid.userdb.credentials import Password
@@ -145,7 +145,7 @@ class ChangePasswordTests(EduidAPITestCase[SecurityApp]):
         self.assertEqual(response.status_code, 401)
 
     @patch("eduid.webapp.security.views.change_password.generate_suggested_password")
-    def test_get_suggested(self, mock_generate_password):
+    def test_get_suggested(self, mock_generate_password: MagicMock):
         mock_generate_password.return_value = "test-password"
 
         self.set_authn_action(
@@ -161,7 +161,7 @@ class ChangePasswordTests(EduidAPITestCase[SecurityApp]):
         )
 
     @patch("eduid.webapp.security.views.change_password.change_password")
-    def test_change_passwd(self, mock_change_password):
+    def test_change_passwd(self, mock_change_password: MagicMock):
         mock_change_password.return_value = True
 
         self.set_authn_action(
@@ -177,7 +177,7 @@ class ChangePasswordTests(EduidAPITestCase[SecurityApp]):
         )
 
     @patch("eduid.webapp.security.views.change_password.change_password")
-    def test_change_passwd_with_login_auth(self, mock_change_password):
+    def test_change_passwd_with_login_auth(self, mock_change_password: MagicMock):
         mock_change_password.return_value = True
 
         self.set_authn_action(
@@ -213,7 +213,7 @@ class ChangePasswordTests(EduidAPITestCase[SecurityApp]):
         )
 
     @patch("eduid.webapp.security.views.change_password.change_password")
-    def test_change_passwd_no_csrf(self, mock_change_password):
+    def test_change_passwd_no_csrf(self, mock_change_password: MagicMock):
         mock_change_password.return_value = True
 
         data1 = {"csrf_token": ""}
@@ -225,7 +225,7 @@ class ChangePasswordTests(EduidAPITestCase[SecurityApp]):
         )
 
     @patch("eduid.webapp.security.views.change_password.change_password")
-    def test_change_passwd_wrong_csrf(self, mock_change_password):
+    def test_change_passwd_wrong_csrf(self, mock_change_password: MagicMock):
         mock_change_password.return_value = True
 
         data1 = {"csrf_token": "wrong-token"}
@@ -237,7 +237,7 @@ class ChangePasswordTests(EduidAPITestCase[SecurityApp]):
         )
 
     @patch("eduid.webapp.security.views.change_password.change_password")
-    def test_change_passwd_weak(self, mock_change_password):
+    def test_change_passwd_weak(self, mock_change_password: MagicMock):
         mock_change_password.return_value = True
 
         self.set_authn_action(

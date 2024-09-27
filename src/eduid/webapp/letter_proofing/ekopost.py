@@ -1,6 +1,7 @@
 import base64
 import json
 from datetime import datetime
+from io import BytesIO
 
 from hammock import Hammock
 
@@ -23,7 +24,7 @@ class Ekopost:
 
         self.ekopost_api = Hammock(config.ekopost_api_uri, auth=auth, verify=config.ekopost_api_verify_ssl)
 
-    def send(self, eppn, document):
+    def send(self, eppn: str, document: BytesIO):
         """
         Send a letter containing a PDF-document
         to the recipient specified in the document.
@@ -63,7 +64,7 @@ class Ekopost:
 
         return closed_campaign["id"]
 
-    def _create_campaign(self, name, output_date, cost_center):
+    def _create_campaign(self, name: str, output_date: str, cost_center: str):
         """
         Create a new campaign
 
@@ -81,7 +82,9 @@ class Ekopost:
 
         raise EkopostException(f"Ekopost exception: {response.status_code!s} {response.text!s}")
 
-    def _create_envelope(self, campaign_id, name, postage="priority", plex="simplex", color="false"):
+    def _create_envelope(
+        self, campaign_id: str, name: str, postage: str = "priority", plex: str = "simplex", color: str = "false"
+    ):
         """
         Create an envelope for a specified campaign
 
@@ -105,7 +108,14 @@ class Ekopost:
 
         raise EkopostException(f"Ekopost exception: {response.status_code!s} {response.text!s}")
 
-    def _create_content(self, campaign_id, envelope_id, data, mime="application/pdf", content_type="document"):
+    def _create_content(
+        self,
+        campaign_id: str,
+        envelope_id: str,
+        data: bytes,
+        mime: str = "application/pdf",
+        content_type: str = "document",
+    ):
         """
         Create the content that should be linked to an envelope
 
@@ -137,7 +147,7 @@ class Ekopost:
 
         raise EkopostException(f"Ekopost exception: {response.status_code!s} {response.text!s}")
 
-    def _close_envelope(self, campaign_id, envelope_id):
+    def _close_envelope(self, campaign_id: str, envelope_id: str):
         """
         Change an envelope state to closed and mark it as ready for print & distribution.
         :param campaign_id: Unique id of a campaign within which the envelope exists
@@ -154,7 +164,7 @@ class Ekopost:
 
         raise EkopostException(f"Ekopost exception: {response.status_code!s} {response.text!s}")
 
-    def _close_campaign(self, campaign_id):
+    def _close_campaign(self, campaign_id: str):
         """
         Change a campains state to closed and mark it and all its
         envelopes as ready for print & distribution.

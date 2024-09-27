@@ -23,7 +23,7 @@ letter_proofing_views = Blueprint("letter_proofing", __name__, url_prefix="", te
 @letter_proofing_views.route("/proofing", methods=["GET"])
 @MarshalWith(schemas.LetterProofingResponseSchema)
 @require_user
-def get_state(user) -> FluxData:
+def get_state(user: User) -> FluxData:
     current_app.logger.info(f"Getting proofing state for user {user}")
     proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn)
 

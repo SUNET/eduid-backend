@@ -26,11 +26,11 @@ DEFAULT_FORMAT = "{asctime} | {levelname:7} | {hostname} | {eppn:11} | {name:35}
 
 # Default to RFC3339/ISO 8601 with tz
 class EduidFormatter(logging.Formatter):
-    def __init__(self, relative_time: bool = False, fmt=None):
+    def __init__(self, relative_time: bool = False, fmt: str | None = None):
         super().__init__(fmt=fmt, style="{")
         self._relative_time = relative_time
 
-    def formatTime(self, record: logging.LogRecord, datefmt=None) -> str:
+    def formatTime(self, record: logging.LogRecord, datefmt: str | None = None) -> str:
         if self._relative_time:
             # Relative time makes much more sense than absolute time when running tests for example
             _seconds = record.relativeCreated / 1000
@@ -52,7 +52,7 @@ class EduidFormatter(logging.Formatter):
 class AppFilter(logging.Filter):
     """Add `system_hostname`, `hostname` and `app_name` to records being logged."""
 
-    def __init__(self, app_name):
+    def __init__(self, app_name: str):
         super().__init__()
         self.app_name = app_name
         # TODO: I guess it could be argued that these should be put in the LocalContext and not evaluated at runtime.
@@ -139,7 +139,7 @@ class RequireDebugFalse(logging.Filter):
 def merge_config(base_config: dict[str, Any], new_config: dict[str, Any]) -> dict[str, Any]:
     """Recursively merge two dictConfig dicts."""
 
-    def merge(node, key, value):
+    def merge(node: dict[str, Any], key: str, value: Any):
         if isinstance(value, dict):
             for item in value:
                 if key in node:

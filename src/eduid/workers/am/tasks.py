@@ -1,4 +1,5 @@
 import bson
+from billiard.einfo import ExceptionInfo
 from celery import Task
 from celery.utils.log import get_task_logger
 
@@ -30,7 +31,7 @@ class AttributeManager(Task):
             self._userdb = AmDB(AmCelerySingleton.worker_config.mongo_uri, "eduid_am")
         return self._userdb
 
-    def on_failure(self, exc, task_id, args, kwargs, einfo):
+    def on_failure(self, exc: Exception, task_id: str, args: tuple, kwargs: dict, einfo: ExceptionInfo):
         # The most common problem when tasks raise exceptions is that mongodb has switched master,
         # but it is hard to accurately trap the right exception without importing pymongo here so
         # let's just reload all databases (self.userdb here and the plugins databases) when we

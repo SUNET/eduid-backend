@@ -127,7 +127,7 @@ class EduidSession(SessionMixin, MutableMapping[str, Any]):
             f"modified={self.modified}, cookie={self.short_id}>"
         )
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str):
         return self._session.__getitem__(key)
 
     def __setitem__(self, key: str, value: Any):
@@ -136,7 +136,7 @@ class EduidSession(SessionMixin, MutableMapping[str, Any]):
             logger.debug(f"SET {self}[{key}] = {value}")
             self.modified = True
 
-    def __delitem__(self, key):
+    def __delitem__(self, key: str):
         if key in self._session:
             del self._session[key]
             logger.debug(f"DEL {self}[{key}]")
@@ -148,7 +148,7 @@ class EduidSession(SessionMixin, MutableMapping[str, Any]):
     def __len__(self):
         return len(self._session)
 
-    def __contains__(self, key):
+    def __contains__(self, key: object):
         return self._session.__contains__(key)
 
     @property
@@ -161,7 +161,7 @@ class EduidSession(SessionMixin, MutableMapping[str, Any]):
         return True
 
     @permanent.setter
-    def permanent(self, value):
+    def permanent(self, value: bool):
         # EduidSessions are _always_ permanent
         pass
 

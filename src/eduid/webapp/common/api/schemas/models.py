@@ -1,5 +1,8 @@
+from collections.abc import Mapping
 from enum import Enum, unique
 from typing import Any
+
+from flask import Request
 
 from eduid.webapp.common.api.utils import get_flux_type
 
@@ -38,7 +41,13 @@ class FluxResponse:
     An action MUST NOT include properties other than type, payload, error, and meta.
     """
 
-    def __init__(self, req, payload=None, error=None, meta=None):
+    def __init__(
+        self,
+        req: Request,
+        payload: Mapping[str, Any] | None = None,
+        error: bool | None = None,
+        meta: Mapping[str, Any] | None = None,
+    ):
         _suffix = "success"
         if error:
             _suffix = "fail"
@@ -57,7 +66,7 @@ class FluxResponse:
         return f"{self.__class__.__name__!s} ({self.to_dict()!r})"
 
     def to_dict(self) -> dict[str, Any]:
-        rv = dict()
+        rv = dict[str, Any]()
         # A Flux Standard Action MUST have a type
         rv["type"] = self.flux_type
         # ... and MAY have payload, error, meta (and MUST NOT have anything else)
@@ -75,10 +84,10 @@ class FluxResponse:
 
 
 class FluxSuccessResponse(FluxResponse):
-    def __init__(self, req, payload, meta=None):
+    def __init__(self, req: Request, payload: Mapping[str, Any] | None, meta: Mapping[str, Any] | None = None):
         super().__init__(req, payload, meta=meta)
 
 
 class FluxFailResponse(FluxResponse):
-    def __init__(self, req, payload, meta=None):
+    def __init__(self, req: Request, payload: Mapping[str, Any] | None, meta: Mapping[str, Any] | None = None):
         super().__init__(req, payload, error=True, meta=meta)

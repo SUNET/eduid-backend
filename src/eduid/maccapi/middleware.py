@@ -7,6 +7,7 @@ from jwcrypto import jwt
 from jwcrypto.common import JWException
 from pydantic import ValidationError
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
+from starlette.types import ASGIApp
 
 from eduid.common.fastapi.context_request import ContextRequestMixin
 from eduid.common.models.bearer_token import AuthnBearerToken, RequestedAccessDenied
@@ -22,7 +23,7 @@ def return_error_response(status_code: int, detail: str) -> JSONResponse:
 
 
 class AuthenticationMiddleware(BaseHTTPMiddleware, ContextRequestMixin):
-    def __init__(self, app, context: Context):
+    def __init__(self, app: ASGIApp, context: Context):
         super().__init__(app)
         self.context = context
 

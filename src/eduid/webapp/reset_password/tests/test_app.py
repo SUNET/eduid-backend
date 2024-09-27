@@ -18,7 +18,7 @@ from eduid.userdb.fixtures.users import UserFixtures
 from eduid.userdb.reset_password import ResetPasswordEmailAndPhoneState, ResetPasswordEmailState
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.common.api.utils import get_zxcvbn_terms, hash_password
-from eduid.webapp.common.authn.testing import TestVCCSClient
+from eduid.webapp.common.authn.testing import MockVCCSClient
 from eduid.webapp.common.authn.tests.test_fido_tokens import (
     SAMPLE_WEBAUTHN_APP_CONFIG,
     SAMPLE_WEBAUTHN_FIDO2STATE,
@@ -137,7 +137,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         :param data2: control the data sent to actually reset the password.
         """
         mock_request_user_sync.side_effect = self.request_user_sync
-        mock_get_vccs_client.return_value = TestVCCSClient()
+        mock_get_vccs_client.return_value = MockVCCSClient()
 
         # check that the user has verified data
         user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
@@ -198,7 +198,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         :param repeat: if True, try to trigger sending the SMS twice.
         """
         mock_request_user_sync.side_effect = self.request_user_sync
-        mock_get_vccs_client.return_value = TestVCCSClient()
+        mock_get_vccs_client.return_value = MockVCCSClient()
         mock_sendsms.return_value = True
         if sendsms_side_effect:
             mock_sendsms.side_effect = sendsms_side_effect
@@ -257,7 +257,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         :param data2: To control the data sent to actually finally reset the password.
         """
         mock_request_user_sync.side_effect = self.request_user_sync
-        mock_get_vccs_client.return_value = TestVCCSClient()
+        mock_get_vccs_client.return_value = MockVCCSClient()
         mock_sendsms.return_value = True
 
         response = self._post_email_address(data1=data1)
@@ -320,7 +320,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         :param fido2state: to control the fido state kept in the session
         """
         mock_request_user_sync.side_effect = self.request_user_sync
-        mock_get_vccs_client.return_value = TestVCCSClient()
+        mock_get_vccs_client.return_value = MockVCCSClient()
         mock_verify.return_value = True
 
         credential = sample_credential.to_dict()
@@ -383,7 +383,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         :param external_mfa_state: to control the external mfa state kept in the session
         """
         mock_request_user_sync.side_effect = self.request_user_sync
-        mock_get_vccs_client.return_value = TestVCCSClient()
+        mock_get_vccs_client.return_value = MockVCCSClient()
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
 
@@ -457,7 +457,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         and getting the generated phone verification code through the backdoor
         """
         mock_request_user_sync.side_effect = self.request_user_sync
-        mock_get_vccs_client.return_value = TestVCCSClient()
+        mock_get_vccs_client.return_value = MockVCCSClient()
         mock_sendsms.return_value = True
         if sendsms_side_effect:
             mock_sendsms.side_effect = sendsms_side_effect

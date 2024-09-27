@@ -1,5 +1,7 @@
 __author__ = "lundberg"
 
+from typing import Any
+
 from eduid.common.config.workers import MsgConfig
 from eduid.workers.lookup_mobile.decorators import TransactionAudit
 from eduid.workers.lookup_mobile.testing import LookupMobileMongoTestCase
@@ -16,7 +18,7 @@ class TestTransactionAudit(LookupMobileMongoTestCase):
 
     def test_successfull_transaction_audit(self):
         @TransactionAudit()
-        def find_mobiles_by_NIN(self, national_identity_number, number_region=None):
+        def find_mobiles_by_NIN(self: Any, national_identity_number: str, number_region: str | None = None):
             return ["list", "of", "mobile_numbers"]
 
         find_mobiles_by_NIN(self, "200202025678")
@@ -29,7 +31,7 @@ class TestTransactionAudit(LookupMobileMongoTestCase):
         c.delete_many({})  # Clear database
 
         @TransactionAudit()
-        def find_NIN_by_mobile(self, mobile_number):
+        def find_NIN_by_mobile(self: Any, mobile_number: str):
             return "200202025678"
 
         find_NIN_by_mobile(self, "+46701740699")
@@ -43,7 +45,7 @@ class TestTransactionAudit(LookupMobileMongoTestCase):
 
     def test_failed_transaction_audit(self):
         @TransactionAudit()
-        def find_mobiles_by_NIN(self, national_identity_number, number_region=None):
+        def find_mobiles_by_NIN(self: Any, national_identity_number: str, number_region: str | None = None):
             return []
 
         find_mobiles_by_NIN(self, "200202025678")
@@ -54,7 +56,7 @@ class TestTransactionAudit(LookupMobileMongoTestCase):
         c.delete_many({})  # Clear database
 
         @TransactionAudit()
-        def find_NIN_by_mobile(self, mobile_number):
+        def find_NIN_by_mobile(self: Any, mobile_number: str):
             return
 
         find_NIN_by_mobile(self, "+46701740699")
@@ -70,7 +72,7 @@ class TestTransactionAudit(LookupMobileMongoTestCase):
         TransactionAudit.disable()
 
         @TransactionAudit()
-        def no_name(self):
+        def no_name(self: Any):
             return {"baka": "kaka"}
 
         no_name(self)
@@ -81,7 +83,7 @@ class TestTransactionAudit(LookupMobileMongoTestCase):
         TransactionAudit.enable()
 
         @TransactionAudit()
-        def no_name2(self):
+        def no_name2(self: Any):
             return {"baka": "kaka"}
 
         no_name2(self)

@@ -3,7 +3,7 @@ import logging
 import os
 from datetime import timedelta
 from os import environ
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from aiosmtplib import SMTPResponse
 
@@ -82,7 +82,7 @@ class TestMailWorker(QueueAsyncioTest):
         await self._assert_item_gets_processed(queue_item)
 
     @patch("aiosmtplib.SMTP.sendmail")
-    async def test_eduid_signup_mail_from_stream_unrecoverable_error(self, mock_sendmail):
+    async def test_eduid_signup_mail_from_stream_unrecoverable_error(self, mock_sendmail: MagicMock):
         """
         Test that saved queue items are handled by the handle_new_item method
         """
@@ -99,7 +99,7 @@ class TestMailWorker(QueueAsyncioTest):
         await self._assert_item_gets_processed(queue_item)
 
     @patch("aiosmtplib.SMTP.sendmail")
-    async def test_eduid_signup_mail_from_stream_error_retry(self, mock_sendmail):
+    async def test_eduid_signup_mail_from_stream_error_retry(self, mock_sendmail: MagicMock):
         """
         Test that saved queue items are handled by the handle_new_item method
         """

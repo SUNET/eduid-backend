@@ -5,8 +5,9 @@ from loguru import logger as loguru_logger
 
 
 class InterceptHandler(logging.Handler):
-    def emit(self, record):
+    def emit(self, record: logging.LogRecord):
         # Get corresponding Loguru level if it exists
+        level: str | int
         try:
             level = loguru_logger.level(record.levelname).name
         except ValueError:

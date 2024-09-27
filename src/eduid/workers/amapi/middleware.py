@@ -5,7 +5,7 @@ import logging
 from fastapi import Request, Response, status
 from jwcrypto import jwt
 from jwcrypto.common import JWException
-from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.responses import PlainTextResponse
 
 from eduid.workers.amapi.config import EndpointRestriction
@@ -28,7 +28,7 @@ def return_error_response(status_code: int, detail: str):
 
 
 class AuthenticationMiddleware(BaseHTTPMiddleware, ContextRequestMixin):
-    async def dispatch(self, req: Request, call_next) -> Response:
+    async def dispatch(self, req: Request, call_next: RequestResponseEndpoint) -> Response:
         req = self.make_context_request(request=req)
         path = req.url.path.lstrip(req.app.config.application_root)
         method_path = f"{req.method.lower()}:{path}"

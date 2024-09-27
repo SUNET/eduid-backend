@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 __author__ = "lundberg"
 
 
-def dont_validate(value):
+def dont_validate(value: Any):
     raise ValidationError(f"Problem with {value!r}")
 
 
@@ -35,7 +35,7 @@ class NonValidatingSchema(EduidSchema, CSRFRequestMixin):
 test_views = Blueprint("test", __name__)
 
 
-def _make_response(data):
+def _make_response(data: str):
     html = f"<html><body>{data}</body></html>"
     response = make_response(html, 200)
     response.headers["Content-Type"] = "text/html; charset=utf8"
@@ -56,7 +56,7 @@ def post_param_view():
 
 @test_views.route("/test-post-json", methods=["POST"])
 @UnmarshalWith(NonValidatingSchema)
-def post_json_view(test_data):
+def post_json_view(test_data: str):
     """never validates"""
     pass
 

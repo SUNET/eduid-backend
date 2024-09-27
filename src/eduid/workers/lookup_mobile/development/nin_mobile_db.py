@@ -12,11 +12,11 @@ _db = {
 }
 
 
-def get_mobile(nin):
+def get_mobile(nin: str):
     return _db.get(nin, [])
 
 
-def get_nin(mobile):
+def get_nin(mobile: str):
     for nin, numbers in _db.items():
         if mobile in numbers:
             return nin

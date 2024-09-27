@@ -106,9 +106,7 @@ class WorkerTestCase(CommonTestCase):
     Base Test case for eduID celery workers
     """
 
-    def setUp(  # type: ignore[override]
-        self, *args: Any, am_settings: dict[str, Any] | None = None, want_mongo_uri: bool = True, **kwargs: Any
-    ):
+    def setUp(self, *args: Any, am_settings: dict[str, Any] | None = None, want_mongo_uri: bool = True, **kwargs: Any):
         """
         set up tests
         """

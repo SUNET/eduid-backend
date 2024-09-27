@@ -3,7 +3,7 @@ import logging
 import re
 from abc import ABCMeta
 from collections.abc import Iterable, Mapping
-from typing import TYPE_CHECKING, Any, cast
+from typing import Any, cast
 from urllib.parse import urlparse
 
 from flask import Request, current_app
@@ -17,8 +17,8 @@ from eduid.webapp.common.api.schemas.base import FluxStandardAction
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.redis_session import NoSessionDataFoundException
 
-if TYPE_CHECKING:
-    from _typeshed.wsgi import StartResponse, WSGIEnvironment
+# TODO: in python >= 3.11 import from wsgiref.types
+from eduid.webapp.common.wsgi import StartResponse, WSGIEnvironment
 
 no_context_logger = logging.getLogger(__name__)
 

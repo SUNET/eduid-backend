@@ -21,7 +21,7 @@ __author__ = "lundberg"
 logger = logging.getLogger(__name__)
 
 
-def cancel_task(signame, task):
+def cancel_task(signame: str, task: Task):
     logger.info(f"got signal {signame}: exit")
     task.cancel()
 

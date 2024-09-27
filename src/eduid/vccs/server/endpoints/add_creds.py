@@ -67,7 +67,9 @@ async def add_creds(req: Request, request: AddCredsRequestV1) -> AddCredsRespons
     return response
 
 
-async def _add_password_credential(_config, factor, req, request):
+async def _add_password_credential(
+    _config: VCCSConfig, factor: RequestFactor, req: Request, request: AddCredsRequestV1
+):
     _salt = (await req.app.state.hasher.safe_random(_config.add_creds_password_salt_bytes)).hex()
     cred = PasswordCredential(
         credential_id=factor.credential_id,

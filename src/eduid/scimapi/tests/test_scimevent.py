@@ -49,11 +49,11 @@ class TestEventResource(ScimApiTestCase):
         parsed_response = EventResponse.parse_raw(response.text)
         return EventApiResult(event=parsed_response.nutid_event_v1, response=response, parsed_response=parsed_response)
 
-    def _assertEventUpdateSuccess(self, req: Mapping, response, event: ScimApiEvent):
+    def _assertEventUpdateSuccess(self, req: Mapping, response: Response, event: ScimApiEvent):
         """Function to validate successful responses to SCIM calls that update a event according to a request."""
 
         if response.json().get("schemas") == [SCIMSchema.ERROR.value]:
-            self.fail(f"Got SCIM error parsed_response ({response.status}):\n{response.json()}")
+            self.fail(f"Got SCIM error parsed_response ({response.status_code}):\n{response.json()}")
 
         expected_schemas = req.get("schemas", [SCIMSchema.NUTID_EVENT_CORE_V1.value])
         if (

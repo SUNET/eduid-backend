@@ -27,7 +27,7 @@ class MobWorker(Task):
 
 @app.task(bind=True, base=MobWorker)
 @deprecated("This task seems unused")
-def find_mobiles_by_NIN(self: MobWorker, national_identity_number: str, number_region=None) -> list[str]:
+def find_mobiles_by_NIN(self: MobWorker, national_identity_number: str, number_region: str | None = None) -> list[str]:
     """
     Searches mobile numbers registered to the given nin
     :param national_identity_number:

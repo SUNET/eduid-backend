@@ -14,6 +14,7 @@ Example usage in some view:
 __author__ = "ft"
 
 from abc import ABC, abstractmethod
+from logging import Logger
 
 from eduid.common.config.base import StatsConfigMixin
 
@@ -23,7 +24,7 @@ class AppStats(ABC):
     def count(self, name: str, value: int = 1) -> None:
         pass
 
-    def gauge(self, name: str, value: int, rate=1, delta=False):
+    def gauge(self, name: str, value: int, rate: int = 1, delta: bool = False):
         pass
 
 
@@ -35,7 +36,7 @@ class NoOpStats(AppStats):
     configured allows us to not check if current_app.stats is set everywhere.
     """
 
-    def __init__(self, logger=None, prefix=None):
+    def __init__(self, logger: Logger | None = None, prefix: str | None = None):
         self.logger = logger
         self.prefix = prefix
 
@@ -45,7 +46,7 @@ class NoOpStats(AppStats):
                 name = f"{self.prefix!s}.{name!s}"
             self.logger.info(f"No-op stats count: {name!r} {value!r}")
 
-    def gauge(self, name: str, value: int, rate=1, delta=False):
+    def gauge(self, name: str, value: int, rate: int = 1, delta: bool = False):
         if self.logger:
             if self.prefix:
                 name = f"{self.prefix!s}.{name!s}"
@@ -53,7 +54,7 @@ class NoOpStats(AppStats):
 
 
 class Statsd(AppStats):
-    def __init__(self, host, port, prefix=None):
+    def __init__(self, host: str, port: int, prefix: str | None = None):
         import statsd
 
         self.client = statsd.StatsClient(host, port, prefix=prefix)
@@ -64,7 +65,7 @@ class Statsd(AppStats):
         # for .count
         self.client.incr(f"{name}.count", count=value)
 
-    def gauge(self, name: str, value: int, rate=1, delta=False):
+    def gauge(self, name: str, value: int, rate: int = 1, delta: bool = False):
         self.client.gauge(f"{name}.gauge", value=value, rate=rate, delta=delta)
 
 

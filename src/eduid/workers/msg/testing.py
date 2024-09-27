@@ -7,6 +7,7 @@ from eduid.common.config.workers import MsgConfig
 from eduid.common.rpc.mail_relay import MailRelay
 from eduid.common.rpc.msg_relay import MsgRelay
 from eduid.userdb.testing import MongoTestCase
+from eduid.userdb.user import User
 from eduid.workers.msg.common import MsgCelerySingleton
 
 logger = logging.getLogger(__name__)
@@ -21,7 +22,7 @@ class MailTestConfig(EduIDBaseAppConfig, MailConfigMixin):
 
 
 class MsgMongoTestCase(MongoTestCase):
-    def setUp(self, init_msg=True) -> Any:  # type: ignore[override]
+    def setUp(self, am_users: list[User] | None = None, init_msg: bool = True) -> Any:
         super().setUp()
         data_path = PurePath(__file__).with_name("tests") / "data"
         if init_msg:

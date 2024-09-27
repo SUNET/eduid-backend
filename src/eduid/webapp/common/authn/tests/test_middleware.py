@@ -18,14 +18,14 @@ class AuthnTestApp(AuthnBaseApp):
 
 
 class AuthnTests(EduidAPITestCase):
-    def load_app(self, config):
+    def load_app(self, config: dict[str, Any]):
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
         return AuthnTestApp("testing", config)
 
-    def update_config(self, config):
+    def update_config(self, config: dict[str, Any]):
         config.update(
             {
                 "available_languages": {"en": "English", "sv": "Svenska"},
@@ -47,14 +47,14 @@ class AuthnTests(EduidAPITestCase):
 
 
 class UnAuthnTests(EduidAPITestCase):
-    def load_app(self, config):
+    def load_app(self, config: dict[str, Any]):
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
         return AuthnTestApp("testing", config)
 
-    def update_config(self, config):
+    def update_config(self, config: dict[str, Any]):
         config.update(
             {
                 "available_languages": {"en": "English", "sv": "Svenska"},

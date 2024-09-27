@@ -29,7 +29,7 @@ class TestGroupDB(Neo4jTestCase):
         self.user2: dict[str, str] = {"identifier": "user2", "display_name": "Namn Namnsson"}
 
     @staticmethod
-    def _assert_group(expected: Group, testing: Group, modified=False):
+    def _assert_group(expected: Group, testing: Group, modified: bool = False):
         assert expected.identifier == testing.identifier
         assert expected.display_name == testing.display_name
         assert testing.created_ts is not None

@@ -22,7 +22,7 @@ from eduid.userdb.util import utc_now
 __author__ = "ft"
 
 
-def _keyid(kh):
+def _keyid(kh: str):
     return "sha256:" + sha256(kh.encode("utf-8")).hexdigest()
 
 

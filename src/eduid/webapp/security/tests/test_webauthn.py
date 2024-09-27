@@ -10,7 +10,7 @@ from werkzeug.http import dump_cookie
 
 from eduid.common.config.base import EduidEnvironment, FrontendAction
 from eduid.userdb.credentials import U2F, FidoCredential, Webauthn
-from eduid.webapp.common.api.testing import EduidAPITestCase
+from eduid.webapp.common.api.testing import CSRFTestClient, EduidAPITestCase
 from eduid.webapp.common.session import EduidSession
 from eduid.webapp.common.session.namespaces import WebauthnRegistration, WebauthnState
 from eduid.webapp.security.app import SecurityApp, security_init_app
@@ -166,7 +166,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
         self.app.central_userdb.save(user)
         return u2f_token
 
-    def _check_session_state(self, client):
+    def _check_session_state(self, client: CSRFTestClient):
         with client.session_transaction() as sess:
             assert isinstance(sess, EduidSession)
             assert sess.security.webauthn_registration is not None
@@ -174,17 +174,17 @@ class SecurityWebauthnTests(EduidAPITestCase):
         assert webauthn_state["user_verification"] == "discouraged"
         assert "challenge" in webauthn_state
 
-    def _check_registration_begun(self, data):
+    def _check_registration_begun(self, data: dict):
         self.assertEqual(data["type"], "POST_WEBAUTHN_WEBAUTHN_REGISTER_BEGIN_SUCCESS")
         self.assertIn("registration_data", data["payload"])
         self.assertIn("csrf_token", data["payload"])
 
-    def _check_registration_complete(self, data):
+    def _check_registration_complete(self, data: dict):
         self.assertEqual(data["type"], "POST_WEBAUTHN_WEBAUTHN_REGISTER_COMPLETE_SUCCESS")
         self.assertTrue(len(data["payload"]["credentials"]) > 0)
         self.assertEqual(data["payload"]["message"], "security.webauthn_register_success")
 
-    def _check_removal(self, data, user_token):
+    def _check_removal(self, data: dict, user_token: Webauthn):
         self.assertEqual(data["type"], "POST_WEBAUTHN_WEBAUTHN_REMOVE_SUCCESS")
         self.assertIsNotNone(data["payload"]["credentials"])
         for credential in data["payload"]["credentials"]:

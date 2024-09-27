@@ -38,7 +38,7 @@ def get_all_data(user: User) -> FluxData:
 @pd_views.route("/identities", methods=["GET"])
 @MarshalWith(IdentitiesResponseSchema)
 @require_user
-def get_identities(user) -> FluxData:
+def get_identities(user: User) -> FluxData:
     return success_response(payload={"identities": user.identities.to_frontend_format()})
 
 

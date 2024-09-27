@@ -1,6 +1,7 @@
 from flask import Blueprint, abort, request
 from marshmallow import ValidationError
 
+from eduid.userdb.element import ElementKey
 from eduid.userdb.exceptions import UserOutOfSync
 from eduid.userdb.mail import MailAddress
 from eduid.userdb.proofing import ProofingUser
@@ -38,7 +39,7 @@ def get_all_emails(user: User) -> FluxData:
 @UnmarshalWith(AddEmailSchema)
 @MarshalWith(EmailResponseSchema)
 @require_user
-def post_email(user: User, email: str, verified, primary) -> FluxData:
+def post_email(user: User, email: str, verified: bool, primary: bool) -> FluxData:
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
     current_app.logger.debug(f"Trying to save unconfirmed email {repr(email)} for user {proofing_user}")
 
@@ -148,7 +149,7 @@ def verify(user: User, code: str, email: str) -> FluxData:
 @UnmarshalWith(ChangeEmailSchema)
 @MarshalWith(EmailResponseSchema)
 @require_user
-def post_remove(user, email):
+def post_remove(user: User, email: ElementKey):
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
     current_app.logger.debug(f"Trying to remove email address {email!r} from user {proofing_user}")
 

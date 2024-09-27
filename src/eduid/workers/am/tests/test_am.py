@@ -4,6 +4,7 @@ import eduid.userdb
 from eduid.common.config.workers import AmConfig
 from eduid.userdb.db import TUserDbDocument
 from eduid.userdb.exceptions import UserDoesNotExist
+from eduid.userdb.user import User
 from eduid.workers.am.ams.common import AttributeFetcher
 from eduid.workers.am.common import AmCelerySingleton
 from eduid.workers.am.testing import AMTestCase
@@ -43,11 +44,14 @@ class FakeAttributeFetcher(AttributeFetcher):
     :rtype: dict
     """
 
-    def get_user_db(self, uri):
+    @classmethod
+    def get_user_db(cls, uri: str):
         return AmTestUserDb(uri, db_name="eduid_am_test")
 
-    def fetch_attrs(self, user_id):
-        user = self.private_db.get_user_by_id(user_id)
+    def fetch_attrs(self, user_id: ObjectId):
+        assert self.private_db
+        user: User | None = self.private_db.get_user_by_id(user_id)
+        assert isinstance(user, AmTestUser)
         if user is None:
             raise UserDoesNotExist(f"No user matching _id={user_id!r}")
 
@@ -66,7 +70,7 @@ class BadAttributeFetcher(FakeAttributeFetcher):
     Returns a bad operations dict.
     """
 
-    def fetch_attrs(self, user_id):
+    def fetch_attrs(self, user_id: ObjectId):
         res = super().fetch_attrs(user_id)
         res["notanoperator"] = "test"
         return res

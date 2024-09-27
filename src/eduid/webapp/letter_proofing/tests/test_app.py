@@ -135,7 +135,7 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_postal_address")
     def _verify_code2(
-        self, code: str, csrf_token: str | None, mock_get_postal_address, mock_request_user_sync: MagicMock
+        self, code: str, csrf_token: str | None, mock_get_postal_address: MagicMock, mock_request_user_sync: MagicMock
     ):
         if csrf_token is None:
             _state = self.get_state()

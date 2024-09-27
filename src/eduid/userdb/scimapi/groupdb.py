@@ -268,7 +268,9 @@ class ScimApiGroupDB(ScimApiBaseDB):
             return group
         return None
 
-    def get_groups_by_property(self, key: str, value: str | int, skip=0, limit=100) -> tuple[list[ScimApiGroup], int]:
+    def get_groups_by_property(
+        self, key: str, value: str | int, skip: int = 0, limit: int = 100
+    ) -> tuple[list[ScimApiGroup], int]:
         docs, count = self._get_documents_and_count_by_filter({key: value}, skip=skip, limit=limit)
         if not docs:
             return [], 0

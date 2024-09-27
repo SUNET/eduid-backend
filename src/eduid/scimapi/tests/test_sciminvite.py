@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 from typing import Any
 
 from bson import ObjectId
+from httpx import Response
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.models.scim_base import Email, Meta, Name, PhoneNumber, SCIMResourceType, SCIMSchema
@@ -239,10 +240,12 @@ class TestInviteResource(ScimApiTestCase):
         self.signup_invitedb.save(signup_invite, is_in_database=False)
         return db_invite
 
-    def _assertUpdateSuccess(self, req: Mapping, response, invite: ScimApiInvite, signup_invite: SignupInvite):
+    def _assertUpdateSuccess(
+        self, req: Mapping, response: Response, invite: ScimApiInvite, signup_invite: SignupInvite
+    ):
         """Function to validate successful responses to SCIM calls that update an invite according to a request."""
         if response.json().get("schemas") == [SCIMSchema.ERROR.value]:
-            self.fail(f"Got SCIM error parsed_response ({response.status}):\n{response.json}")
+            self.fail(f"Got SCIM error parsed_response ({response.status_code}):\n{response.json}")
 
         expected_schemas = req.get("schemas", [SCIMSchema.NUTID_INVITE_V1.value, SCIMSchema.NUTID_USER_V1.value])
 

@@ -4,6 +4,7 @@ from typing import Any
 
 from pydantic import field_validator
 
+from eduid.userdb.element import ElementKey
 from eduid.userdb.exceptions import EduIDUserDBError
 from eduid.userdb.identity import IdentityElement, IdentityList
 
@@ -34,7 +35,7 @@ class LockedIdentityList(IdentityList):
         self.add(element=element)
         return None
 
-    def remove(self, key):
+    def remove(self, key: ElementKey):
         """
         Override remove method as an element should be set once, remove never.
         """

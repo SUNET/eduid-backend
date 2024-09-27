@@ -1,22 +1,27 @@
+from collections.abc import Callable
 from inspect import isclass
+from typing import Any
+
+from pymongo.synchronous.collection import Collection
 
 from eduid.userdb.db import MongoDB
 
 # TODO: Refactor but keep transaction audit document structure
+from eduid.userdb.db.base import TUserDbDocument
 from eduid.userdb.util import utc_now
 
 
 class TransactionAudit:
     enabled = False
 
-    def __init__(self, db_uri, db_name="eduid_queue", collection_name="transaction_audit"):
-        self._conn = None
-        self.db_uri = db_uri
-        self.db_name = db_name
-        self.collection_name = collection_name
-        self.collection = None
+    def __init__(self, db_uri: str, db_name: str = "eduid_queue", collection_name: str = "transaction_audit"):
+        self._conn: MongoDB | None = None
+        self.db_uri: str = db_uri
+        self.db_name: str = db_name
+        self.collection_name: str = collection_name
+        self.collection: Collection[TUserDbDocument] | None = None
 
-    def __call__(self, f):
+    def __call__(self, f: Callable[..., Any]) -> Callable[..., Any]:
         if not self.enabled:
             return f
 
@@ -47,7 +52,7 @@ class TransactionAudit:
         cls.enabled = False
 
     @staticmethod
-    def _filter(func, data, *args, **kwargs):
+    def _filter(func: str, data: Any, *args, **kwargs):
         if data is False:
             return data
         if func == "_get_navet_data":

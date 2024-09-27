@@ -174,7 +174,7 @@ class VCCSPasswordFactor(VCCSFactor):
         """
         return os.urandom(num_bytes)
 
-    def to_dict(self, _action):
+    def to_dict(self, _action: str) -> dict[str, Any]:
         """
         Return factor as dictionary, transmittable to authentiation backends.
         :param _action: 'auth', 'add_creds' or 'revoke_creds'
@@ -193,7 +193,15 @@ class VCCSOathFactor(VCCSFactor):
     """
 
     def __init__(
-        self, oath_type, credential_id, user_code=None, nonce=None, aead=None, key_handle=None, digits=6, oath_counter=0
+        self,
+        oath_type: str,
+        credential_id: int,
+        user_code: int | None = None,
+        nonce: str | None = None,
+        aead: str | None = None,
+        key_handle: int | None = None,
+        digits: int = 6,
+        oath_counter: int = 0,
     ):
         """
         :param oath_type: 'oath-totp' or 'oath-hotp' (time based or event based OATH)
@@ -362,7 +370,7 @@ class VCCSClient:
             raise TypeError(f"Operation success value type error : {success!r}")
         return success is True
 
-    def _execute(self, data, response_label: str):
+    def _execute(self, data: str, response_label: str):
         """
         Make a HTTP POST request to the authentication backend, and parse the result.
 
@@ -391,7 +399,7 @@ class VCCSClient:
             raise AssertionError(f"Received response of unknown version {resp_ver!r}")
         return resp[response_label]
 
-    def _execute_request_response(self, service: str, values):
+    def _execute_request_response(self, service: str, values: dict[str, Any]):
         """
         The part of _execute that has actual side effects. In a separate function
         to make everything else easily testable.

@@ -1,4 +1,8 @@
+from logging import Logger
+from typing import Any
+
 from suds.client import Client
+from suds.sudsobject import Object
 
 from eduid.common.config.base import EduidEnvironment
 from eduid.common.config.workers import MobConfig
@@ -9,7 +13,7 @@ from eduid.workers.lookup_mobile.utilities import format_mobile_number, format_N
 
 
 class MobileLookupClient:
-    def __init__(self, logger, config: MobConfig) -> None:
+    def __init__(self, logger: Logger, config: MobConfig) -> None:
         self.conf = config
 
         # enable transaction logging if configured
@@ -32,7 +36,7 @@ class MobileLookupClient:
 
     @TransactionAudit()
     @deprecated("This task seems unused")
-    def find_mobiles_by_NIN(self, national_identity_number: str, number_region=None) -> list[str]:
+    def find_mobiles_by_NIN(self, national_identity_number: str, number_region: str | None = None) -> list[str]:
         formatted_nin = format_NIN(national_identity_number)
         if not formatted_nin:
             self.logger.error(f"Invalid NIN input: {national_identity_number}")
@@ -47,7 +51,7 @@ class MobileLookupClient:
         return format_mobile_number(mobiles, number_region)
 
     @TransactionAudit()
-    def find_NIN_by_mobile(self, mobile_number) -> str | None:
+    def find_NIN_by_mobile(self, mobile_number: str) -> str | None:
         nin = self._search_by_mobile(mobile_number)
         if not nin:
             self.logger.debug(f"Did not get search result from mobile number: {mobile_number}")
@@ -55,7 +59,7 @@ class MobileLookupClient:
 
         return format_NIN(nin)
 
-    def _search(self, param):
+    def _search(self, param: Any | Object):
         # Start the search
         # TODO: remove self.conf.devel_mode, use environment instead
         if self.conf.testing or self.conf.environment == EduidEnvironment.dev:

@@ -8,6 +8,7 @@ from unittest.mock import MagicMock, patch
 from jose import jws as jose
 
 from eduid.userdb import NinIdentity
+from eduid.userdb.proofing.state import OidcProofingState
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.oidc_proofing.app import OIDCProofingApp, init_oidc_proofing_app
 from eduid.webapp.oidc_proofing.helpers import create_proofing_state, handle_freja_eid_userinfo
@@ -55,7 +56,7 @@ class OidcProofingTests(EduidAPITestCase):
         }
 
         class MockResponse:
-            def __init__(self, status_code, text):
+            def __init__(self, status_code: int, text: str):
                 self.status_code = status_code
                 self.text = text
 
@@ -63,7 +64,7 @@ class OidcProofingTests(EduidAPITestCase):
 
         super().setUp(users=["hubba-baar"], *args, **kwargs)
 
-    def load_app(self, config) -> OIDCProofingApp:
+    def load_app(self, config: dict[str, Any]) -> OIDCProofingApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
@@ -95,7 +96,13 @@ class OidcProofingTests(EduidAPITestCase):
     @patch("oic.oic.Client.do_user_info_request")
     @patch("oic.oic.Client.do_access_token_request")
     def mock_authorization_response(
-        self, qrdata, proofing_state, userinfo, mock_token_request, mock_userinfo_request, mock_auth_response
+        self,
+        qrdata: dict,
+        proofing_state: OidcProofingState,
+        userinfo: dict,
+        mock_token_request: MagicMock,
+        mock_userinfo_request: MagicMock,
+        mock_auth_response: MagicMock,
     ):
         mock_auth_response.return_value = {
             "id_token": "id_token",

@@ -40,7 +40,7 @@ class AsyncQueueDB(AsyncBaseDB, QueuePayloadMixin):
             return item
         return replace(item, payload=self._load_payload(item))
 
-    async def grab_item(self, item_id: str | ObjectId, worker_name: str, regrab=False) -> QueueItem | None:
+    async def grab_item(self, item_id: str | ObjectId, worker_name: str, regrab: bool = False) -> QueueItem | None:
         """
         :param item_id: document id
         :param worker_name: current workers name

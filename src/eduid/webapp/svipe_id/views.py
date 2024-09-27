@@ -132,7 +132,7 @@ def _authn(
 
 @svipe_id_views.route("/authn-callback", methods=["GET"])
 @require_user
-def authn_callback(user) -> WerkzeugResponse:
+def authn_callback(user: User) -> WerkzeugResponse:
     """
     This is the callback endpoint for the Svipe ID OIDC flow.
     """

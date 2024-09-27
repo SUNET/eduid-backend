@@ -1,15 +1,14 @@
-#!/usr/bin/python
-
-"""
-Test VCCS client.
-"""
-
 import os
 import unittest
+from typing import Any
 
 import simplejson as json
 
 from eduid.vccs.client import VCCSClient, VCCSOathFactor, VCCSPasswordFactor, VCCSRevokeFactor
+
+"""
+Test VCCS client.
+"""
 
 
 class FakeVCCSClient(VCCSClient):
@@ -18,11 +17,11 @@ class FakeVCCSClient(VCCSClient):
     in order to fake HTTP communication.
     """
 
-    def __init__(self, fake_response):
+    def __init__(self, fake_response: str):
         self.fake_response = fake_response
         VCCSClient.__init__(self)
 
-    def _execute_request_response(self, service, values):
+    def _execute_request_response(self, service: str, values: dict[str, Any]):
         self.last_service = service
         self.last_values = values
         return self.fake_response
@@ -33,7 +32,7 @@ class FakeVCCSPasswordFactor(VCCSPasswordFactor):
     Sub-class that overrides the get_random_bytes function to make certain things testable.
     """
 
-    def _get_random_bytes(self, num_bytes):
+    def _get_random_bytes(self, num_bytes: int):
         b = os.urandom(1)
         if isinstance(b, str):
             # Python2

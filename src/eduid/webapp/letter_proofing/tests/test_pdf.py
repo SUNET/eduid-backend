@@ -2,6 +2,7 @@ import unittest
 from collections import OrderedDict
 from datetime import datetime
 from io import BytesIO, StringIO
+from typing import Any
 
 from pypdf import PdfReader
 
@@ -131,14 +132,14 @@ class FormatAddressTest(unittest.TestCase):
 
 
 class CreatePDFTest(EduidAPITestCase):
-    def load_app(self, config):
+    def load_app(self, config: dict[str, Any]):
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
         return init_letter_proofing_app("testing", config)
 
-    def update_config(self, app_config):
+    def update_config(self, app_config: dict[str, Any]):
         app_config.update(
             {
                 "letter_wait_time_hours": 336,

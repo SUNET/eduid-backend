@@ -24,7 +24,7 @@ def is_valid_nin(nin: str) -> bool:
     raise ValueError("nin needs to be formatted as 18|19|20yymmddxxxx")
 
 
-def is_valid_email(email, **kwargs):
+def is_valid_email(email: str, **kwargs):
     """
     :param email: E-mail address
     :return: True or raises ValueError

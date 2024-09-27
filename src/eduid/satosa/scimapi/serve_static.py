@@ -5,8 +5,10 @@ A microservice to serve static file(s) - based on a simular microservice in InAc
 import logging
 import mimetypes
 
+from satosa.context import Context
 from satosa.micro_services.base import RequestMicroService
 from satosa.response import Response
+from satosa.satosa_config import SATOSAConfig
 
 logger = logging.getLogger("satosa")
 
@@ -27,7 +29,7 @@ class ServeStatic(RequestMicroService):
 
     logprefix = "SERVE_STATIC_SERVICE:"
 
-    def __init__(self, config, *args, **kwargs):
+    def __init__(self, config: SATOSAConfig, *args, **kwargs):
         """
         :type config: satosa.satosa_config.SATOSAConfig
         :param config: The SATOSA proxy config
@@ -43,7 +45,7 @@ class ServeStatic(RequestMicroService):
             url_map.append([f"^{endpoint}/", self._handle])
         return url_map
 
-    def _handle(self, context):
+    def _handle(self, context: Context):
         path = context._path
         endpoint = path.split("/")[0]
         target = path[len(endpoint) + 1 :]

@@ -1,3 +1,5 @@
+from typing import Any
+
 from neo4j import basic_auth
 
 from eduid.graphdb.db import BaseGraphDB
@@ -17,7 +19,7 @@ class TestNeo4jDB(Neo4jTestCase):
 
 class TestBaseGraphDB(Neo4jTestCase):
     class TestDB(BaseGraphDB):
-        def __init__(self, db_uri, config=None):
+        def __init__(self, db_uri: str, config: dict[str, Any] | None = None):
             super().__init__(db_uri, config=config)
 
         def db_setup(self):

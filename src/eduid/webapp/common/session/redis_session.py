@@ -206,19 +206,19 @@ class RedisEncryptedSession(typing.MutableMapping):
         # Include hex(id(self)) for now to troubleshoot clobbered sessions
         return f"<{self.__class__.__name__} at {hex(id(self))}: db_key={self.short_id}>"
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str):
         if key in self._data:
             return self._data[key]
         raise KeyError(f"Key {repr(key)} not present in session")
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: str, value: Any):
         if self.whitelist and key not in self.whitelist:
             if self.raise_on_unknown:
                 raise ValueError(f"Key {repr(key)} not allowed in session")
             return
         self._data[key] = value
 
-    def __delitem__(self, key):
+    def __delitem__(self, key: str):
         del self._data[key]
 
     def __iter__(self):
@@ -227,7 +227,7 @@ class RedisEncryptedSession(typing.MutableMapping):
     def __len__(self):
         return len(self._data)
 
-    def __contains__(self, key):
+    def __contains__(self, key: object):
         return self._data.__contains__(key)
 
     @property

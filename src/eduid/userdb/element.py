@@ -312,7 +312,7 @@ class ElementList(BaseModel, Generic[ListElement], ABC):
         return values
 
     @classmethod
-    def from_list_of_dicts(cls, items):
+    def from_list_of_dicts(cls, items: list[dict[str, Any]]):
         # must be implemented by subclass to get correct type information
         raise NotImplementedError()
 

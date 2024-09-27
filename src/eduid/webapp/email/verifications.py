@@ -6,6 +6,7 @@ from eduid.userdb import User
 from eduid.userdb.logs import MailAddressProofing
 from eduid.userdb.mail import MailAddress
 from eduid.userdb.proofing import EmailProofingElement, EmailProofingState
+from eduid.userdb.proofing.user import ProofingUser
 from eduid.webapp.common.api.translation import get_user_locale
 from eduid.webapp.common.api.utils import save_and_sync_user
 from eduid.webapp.email.app import current_email_app as current_app
@@ -63,7 +64,7 @@ def send_verification_code(email: str, user: User) -> bool:
     return True
 
 
-def verify_mail_address(state, proofing_user):
+def verify_mail_address(state: EmailProofingState, proofing_user: ProofingUser):
     """
     :param proofing_user: ProofingUser
     :param state: E-mail proofing state
@@ -80,6 +81,9 @@ def verify_mail_address(state, proofing_user):
         proofing_user.mail_addresses.add(email)
         # Adding the phone to the list creates a copy of the element, so we have to 'find' it again
         email = proofing_user.mail_addresses.find(state.verification.email)
+
+    # please mypy, email should be set now
+    assert email
 
     email.is_verified = True
     if not proofing_user.mail_addresses.primary:

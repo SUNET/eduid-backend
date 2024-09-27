@@ -1,4 +1,7 @@
 from copy import deepcopy
+from typing import Any
+
+from eduid.userdb.db.base import TUserDbDocument
 
 __author__ = "lundberg"
 
@@ -8,7 +11,7 @@ class GenericFilterDict(dict):
     add_keys: list[str] | None = None
     remove_keys: list[str] | None = None
 
-    def __init__(self, data):
+    def __init__(self, data: Any | None):
         """
         Create a filtered dict with white- or blacklisting of keys
 
@@ -35,7 +38,7 @@ class GenericFilterDict(dict):
 class SupportUserFilter(GenericFilterDict):
     remove_keys = ["_id", "letter_proofing_data"]
 
-    def __init__(self, data):
+    def __init__(self, data: TUserDbDocument):
         _data = deepcopy(data)
         super().__init__(_data)
 
@@ -47,7 +50,7 @@ class SupportUserFilter(GenericFilterDict):
 class SupportSignupUserFilter(GenericFilterDict):
     remove_keys = ["_id", "letter_proofing_data"]
 
-    def __init__(self, data):
+    def __init__(self, data: TUserDbDocument):
         _data = deepcopy(data)
         super().__init__(_data)
 
@@ -89,7 +92,7 @@ class ToU(GenericFilterDict):
 class UserAuthnInfo(GenericFilterDict):
     add_keys = ["success_ts", "fail_count", "success_count"]
 
-    def __init__(self, data):
+    def __init__(self, data: dict[str, Any]):
         _data = deepcopy(data)
         # Remove months with 0 failures or successes
         for attrib in ["fail_count", "success_count"]:
@@ -110,7 +113,7 @@ class UserActions(GenericFilterDict):
 class ProofingLogEntry(GenericFilterDict):
     add_keys = ["verified_data", "created_ts", "proofing_method", "proofing_version", "created_by", "vetting_by"]
 
-    def __init__(self, data):
+    def __init__(self, data: TUserDbDocument):
         _data = deepcopy(data)
         # Rename the verified data key to verified_data
         verified_data_names = ["nin", "mail_address", "phone_number", "orcid"]
@@ -129,7 +132,7 @@ class UserLetterProofing(GenericFilterDict):
     class ProofingLetter(GenericFilterDict):
         add_keys = ["sent_ts", "is_sent", "address"]
 
-    def __init__(self, data):
+    def __init__(self, data: dict[str, Any]):
         _data = deepcopy(data)
         super().__init__(_data)
         self["nin"] = self.Nin(self["nin"])
@@ -142,7 +145,7 @@ class UserOidcProofing(GenericFilterDict):
     class Nin(GenericFilterDict):
         add_keys = ["created_ts", "number"]
 
-    def __init__(self, data):
+    def __init__(self, data: TUserDbDocument):
         _data = deepcopy(data)
         super().__init__(_data)
         self["nin"] = self.Nin(self["nin"])
@@ -154,7 +157,7 @@ class UserEmailProofing(GenericFilterDict):
     class Verification(GenericFilterDict):
         add_keys = ["created_ts", "email"]
 
-    def __init__(self, data):
+    def __init__(self, data: TUserDbDocument):
         _data = deepcopy(data)
         super().__init__(_data)
         self["verification"] = self.Verification(self["verification"])
@@ -166,7 +169,7 @@ class UserPhoneProofing(GenericFilterDict):
     class Verification(GenericFilterDict):
         add_keys = ["created_ts", "number"]
 
-    def __init__(self, data):
+    def __init__(self, data: TUserDbDocument):
         _data = deepcopy(data)
         super().__init__(_data)
         self["verification"] = self.Verification(self["verification"])

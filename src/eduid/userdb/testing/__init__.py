@@ -82,7 +82,7 @@ class MongoTestCase(unittest.TestCase):
     A test can access the port using the attribute `port`
     """
 
-    def setUp(self, *args: list[Any], am_users: list[User] | None = None, **kwargs: dict[str, Any]):
+    def setUp(self, am_users: list[User] | None = None):
         """
         Test case initialization.
         :return:

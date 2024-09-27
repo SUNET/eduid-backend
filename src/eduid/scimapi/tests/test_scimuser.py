@@ -189,11 +189,11 @@ class ScimApiTestUserResourceBase(ScimApiTestCase):
             attributes={"displayName": "Test User 2"}, data={"another_test_key": "another_test_value"}
         )
 
-    def _assertUserUpdateSuccess(self, req: Mapping, response, user: ScimApiUser):
+    def _assertUserUpdateSuccess(self, req: Mapping, response: Response, user: ScimApiUser):
         """Function to validate successful responses to SCIM calls that update a user according to a request."""
 
         if response.json().get("schemas") == [SCIMSchema.ERROR.value]:
-            self.fail(f"Got SCIM error parsed_response ({response.status}):\n{response.json}")
+            self.fail(f"Got SCIM error parsed_response ({response.status_code}):\n{response.json}")
 
         expected_schemas = req.get("schemas", [SCIMSchema.CORE_20_USER.value])
         if SCIMSchema.NUTID_USER_V1.value in response.json() and SCIMSchema.NUTID_USER_V1.value not in expected_schemas:
@@ -226,7 +226,7 @@ class ScimApiTestUserResourceBase(ScimApiTestCase):
                 resp_nutid,
                 "Unexpected NUTID user data in parsed_response",
             )
-        elif SCIMSchema.NUTID_USER_V1.value in response.json:
+        elif SCIMSchema.NUTID_USER_V1.value in response.json():
             self.fail(f"Unexpected {SCIMSchema.NUTID_USER_V1.value} in the parsed_response")
 
     def _create_user(self, req: dict[str, Any], expect_success: bool = True) -> UserApiResult:

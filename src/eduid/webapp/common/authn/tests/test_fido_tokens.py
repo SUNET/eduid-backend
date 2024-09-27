@@ -179,7 +179,7 @@ class FidoTokensTestCase(EduidAPITestCase):
                     self.assertEqual(resp_data["success"], True)
 
     @patch("fido2.cose.ES256.verify")
-    def test_webauthn_verify_wrong_origin(self, mock_verify):
+    def test_webauthn_verify_wrong_origin(self, mock_verify: MagicMock):
         self.app.conf.fido2_rp_id = "wrong.rp.id"
         mock_verify.return_value = True
         # Add a working U2F credential for this test
@@ -204,7 +204,7 @@ class FidoTokensTestCase(EduidAPITestCase):
                     self.assertEqual(resp_data["success"], False)
 
     @patch("fido2.cose.ES256.verify")
-    def test_webauthn_verify_wrong_challenge(self, mock_verify):
+    def test_webauthn_verify_wrong_challenge(self, mock_verify: MagicMock):
         mock_verify.return_value = True
         # Add a working U2F credential for this test
         self.test_user.credentials.add(self.webauthn_credential)
@@ -226,7 +226,7 @@ class FidoTokensTestCase(EduidAPITestCase):
                     self.assertEqual(resp_data["success"], False)
 
     @patch("fido2.cose.ES256.verify")
-    def test_webauthn_verify_wrong_credential(self, mock_verify):
+    def test_webauthn_verify_wrong_credential(self, mock_verify: MagicMock):
         req = deepcopy(SAMPLE_WEBAUTHN_REQUEST)
         req["credentialId"] = req["credentialId"].replace("0", "9")
         mock_verify.return_value = True

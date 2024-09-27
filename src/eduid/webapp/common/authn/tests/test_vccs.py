@@ -28,7 +28,7 @@ class VCCSTestCase(MongoTestCase):
         vccs_module.revoke_passwords(self.user, reason="testing", application="test", vccs=self.vccs_client)
         super().tearDown()
 
-    def _check_credentials(self, creds):
+    def _check_credentials(self, creds: str):
         return vccs_module.check_password(creds, self.user, vccs=self.vccs_client)
 
     def test_check_good_credentials(self):

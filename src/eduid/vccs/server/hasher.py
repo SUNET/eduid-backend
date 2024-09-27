@@ -2,6 +2,7 @@ import hmac
 import os
 import stat
 from abc import ABC
+from asyncio.locks import Lock
 from binascii import unhexlify
 from collections.abc import Mapping
 from hashlib import sha1
@@ -11,8 +12,23 @@ import pyhsm
 import yaml
 
 
+class NoOpLock:
+    """
+    A No-op lock class, to avoid a lot of "if self.lock:" in code using locks.
+    """
+
+    def __init__(self):
+        pass
+
+    async def acquire(self):
+        pass
+
+    async def release(self):
+        pass
+
+
 class VCCSHasher(ABC):
-    def __init__(self, lock):
+    def __init__(self, lock: Lock | NoOpLock):
         self.lock = lock
 
     def unlock(self, password: str) -> None:
@@ -21,16 +37,16 @@ class VCCSHasher(ABC):
     def info(self) -> Any:
         raise NotImplementedError("Subclass should implement info")
 
-    def hmac_sha1(self, _key_handle, _data):
+    async def hmac_sha1(self, key_handle: int | None, data: bytes):
         raise NotImplementedError("Subclass should implement safe_hmac_sha1")
 
-    def unsafe_hmac_sha1(self, _key_handle, _data):
+    def unsafe_hmac_sha1(self, key_handle: int | None, _data: bytes):
         raise NotImplementedError("Subclass should implement hmac_sha1")
 
-    def load_temp_key(self, _nonce, _key_handle, _aead):
+    def load_temp_key(self, nonce: str, _key_handle: int, _aead: bytes):
         raise NotImplementedError("Subclass should implement load_temp_key")
 
-    def safe_random(self, _byte_count):
+    async def safe_random(self, byte_count: int):
         raise NotImplementedError("Subclass should implement safe_random")
 
     async def lock_acquire(self):
@@ -41,7 +57,7 @@ class VCCSHasher(ABC):
 
 
 class VCCSYHSMHasher(VCCSHasher):
-    def __init__(self, device, lock, debug=False):
+    def __init__(self, device: str, lock: Lock | NoOpLock, debug: bool = False):
         VCCSHasher.__init__(self, lock)
         self._yhsm = pyhsm.base.YHSM(device, debug)
 
@@ -52,7 +68,7 @@ class VCCSYHSMHasher(VCCSHasher):
     def info(self) -> Any:
         return self._yhsm.info()
 
-    async def hmac_sha1(self, key_handle: int, data: bytes) -> bytes:
+    async def hmac_sha1(self, key_handle: int | None, data: bytes) -> bytes:
         """
         Perform HMAC-SHA-1 operation using YubiHSM.
 
@@ -64,12 +80,12 @@ class VCCSYHSMHasher(VCCSHasher):
         finally:
             await self.lock_release()
 
-    def unsafe_hmac_sha1(self, key_handle: int, data: bytes) -> bytes:
+    def unsafe_hmac_sha1(self, key_handle: int | None, data: bytes) -> bytes:
         if key_handle is None:
             key_handle = pyhsm.defines.YSM_TEMP_KEY_HANDLE
         return self._yhsm.hmac_sha1(key_handle, data).get_hash()
 
-    def load_temp_key(self, nonce, key_handle, aead):
+    def load_temp_key(self, nonce: str, key_handle: int, aead: bytes):
         return self._yhsm.load_temp_key(nonce, key_handle, aead)
 
     async def safe_random(self, byte_count: int) -> bytes:
@@ -94,7 +110,7 @@ class VCCSSoftHasher(VCCSHasher):
     (except perhaps separating HMAC keys from credential store).
     """
 
-    def __init__(self, keys: Mapping[int, str], lock, debug=False):
+    def __init__(self, keys: Mapping[int, str], lock: Lock | NoOpLock, debug: bool = False):
         super().__init__(lock)
         self.debug = debug
         # Covert keys from strings to bytes when loading
@@ -142,22 +158,7 @@ class VCCSSoftHasher(VCCSHasher):
         return os.urandom(byte_count)
 
 
-class NoOpLock:
-    """
-    A No-op lock class, to avoid a lot of "if self.lock:" in code using locks.
-    """
-
-    def __init__(self):
-        pass
-
-    async def acquire(self):
-        pass
-
-    async def release(self):
-        pass
-
-
-def hasher_from_string(name: str, lock=None, debug=False):
+def hasher_from_string(name: str, lock: Lock | NoOpLock | None = None, debug: bool = False):
     """
     Create a hasher instance from a name. Name can currently only be a
     name of a YubiHSM device, such as '/dev/ttyACM0'.

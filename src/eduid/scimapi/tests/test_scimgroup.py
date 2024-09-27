@@ -7,6 +7,7 @@ from typing import Any
 from uuid import UUID, uuid4
 
 from bson import ObjectId
+from httpx import Response
 
 from eduid.common.config.base import DataOwnerName
 from eduid.common.models.scim_base import Meta, SCIMResourceType, SCIMSchema, WeakVersion
@@ -145,10 +146,10 @@ class TestGroupResource(ScimApiTestCase):
 
         return resources
 
-    def _assertGroupUpdateSuccess(self, req: Mapping, response, group: ScimApiGroup):
+    def _assertGroupUpdateSuccess(self, req: Mapping, response: Response, group: ScimApiGroup):
         """Function to validate successful responses to SCIM calls that update a group according to a request."""
         if response.json().get("schemas") == [SCIMSchema.ERROR.value]:
-            self.fail(f"Got SCIM error parsed_response ({response.status}):\n{response.json}")
+            self.fail(f"Got SCIM error parsed_response ({response.status_code}):\n{response.json}")
 
         expected_schemas = req.get("schemas", [SCIMSchema.CORE_20_GROUP.value])
         if (

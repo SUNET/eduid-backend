@@ -112,7 +112,7 @@ class SubResource(EduidBaseModel):
         return self.ref and "/Groups/" in self.ref
 
     @classmethod
-    def from_mapping(cls, data):
+    def from_mapping(cls, data: Any):
         return cls.model_validate(data)
 
 

@@ -1,7 +1,8 @@
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
 
-from flask import jsonify
+from flask import Flask, jsonify
+from werkzeug.exceptions import HTTPException
 
 __author__ = "lundberg"
 
@@ -72,10 +73,10 @@ class ThrottledException(Exception):
         self.state = state
 
 
-def init_exception_handlers(app):
+def init_exception_handlers(app: Flask):
     # Init error handler for raised exceptions
     @app.errorhandler(400)
-    def _handle_flask_http_exception(error):
+    def _handle_flask_http_exception(error: HTTPException):
         app.logger.error(f"HttpException {error!s}")
         e = ApiException(error.name, error.code)
         if app.config.get("DEBUG"):
@@ -87,7 +88,7 @@ def init_exception_handlers(app):
     return app
 
 
-def init_sentry(app):
+def init_sentry(app: Flask):
     if app.config.get("SENTRY_DSN"):
         try:
             from raven.contrib.flask import Sentry

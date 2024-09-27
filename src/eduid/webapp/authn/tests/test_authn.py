@@ -291,7 +291,8 @@ class AuthnAPITestCase(AuthnAPITestBase):
         eppn = "hubba-bubba"
         self.acs("/authenticate", eppn, FrontendAction.REMOVE_SECURITY_KEY_AUTHN, frontend_state="key_id_to_remove")
 
-    def _signup_authn_user(self, eppn):
+    # TODO: up for removal since it seems unused
+    def _signup_authn_user(self, eppn: str):
         timestamp = utc_now()
 
         with self.app.test_client() as c:

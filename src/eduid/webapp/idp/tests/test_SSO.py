@@ -7,8 +7,6 @@ from uuid import uuid4
 import saml2.server
 import saml2.time_util
 from saml2 import BINDING_HTTP_POST
-from saml2.s_utils import UnravelError
-from werkzeug.exceptions import BadRequest
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.models.saml2 import EduidAuthnContextClass
@@ -72,9 +70,13 @@ def make_SAML_request(class_ref: EduidAuthnContextClass | str | None = None):
     return _transport_encode(xml)
 
 
-def _transport_encode(data):
+def _transport_encode(data: str):
     # encode('base64') only works for POST bindings, redirect uses zlib compression too.
     return b64encode("".join(data.split("\n")))
+
+
+class SAMLError(BaseException):
+    pass
 
 
 class SSOIdPTests(IdPAPITests):
@@ -103,11 +105,9 @@ class SSOIdPTests(IdPAPITests):
         self,
         info: Mapping,
         binding: str,
-        logger: logging.Logger,
         idp: saml2.server.Server,
-        bad_request,
         debug: bool = False,
-        verify_request_signatures=True,
+        verify_request_signatures: bool = True,
     ) -> IdP_SAMLRequest:
         """
         Parse a SAMLRequest query parameter (base64 encoded) into an AuthnRequest
@@ -123,15 +123,13 @@ class SSOIdPTests(IdPAPITests):
         """
         try:
             saml_req = IdP_SAMLRequest(info["SAMLRequest"], binding, idp, debug=debug)
-        except UnravelError:
-            raise bad_request("No valid SAMLRequest found", logger=logger)
-        except ValueError:
-            raise bad_request("No valid SAMLRequest found", logger=logger)
+        except Exception:
+            raise SAMLError("No valid SAMLRequest found")
 
         if "SigAlg" in info and "Signature" in info:  # Signed request
             if verify_request_signatures:
                 if not saml_req.verify_signature(info["SigAlg"], info["Signature"]):
-                    raise bad_request("SAML request signature verification failure", logger=logger)
+                    raise SAMLError("SAML request signature verification failure")
             else:
                 logger.debug("Ignoring existing request signature, verify_request_signature is False")
         else:
@@ -903,8 +901,6 @@ class TestSSO(SSOIdPTests):
             x = self._parse_SAMLRequest(
                 info,
                 binding=BINDING_HTTP_POST,
-                bad_request=BadRequest,
-                logger=logger,
                 idp=self.app.IDP,
                 debug=True,
                 verify_request_signatures=False,

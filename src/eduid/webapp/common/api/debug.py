@@ -1,12 +1,15 @@
 import pprint
 import sys
 import warnings
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from dataclasses import asdict
 from typing import Any
 from urllib import parse
 
 from flask import Flask, url_for
+
+# TODO: in python >= 3.11 import from wsgiref.types
+from eduid.webapp.common.wsgi import StartResponse, WSGIEnvironment
 
 __author__ = "lundberg"
 
@@ -15,13 +18,13 @@ class LoggingMiddleware:
     def __init__(self, app: Callable[..., Any]):
         self._app = app
 
-    def __call__(self, environ: dict[Any, Any], resp: Callable[..., Any]):
+    def __call__(self, environ: WSGIEnvironment, start_response: StartResponse) -> Iterable[bytes]:
         errorlog = environ["wsgi.errors"]
         pprint.pprint(("REQUEST", environ), stream=errorlog)
 
-        def log_response(status, headers, *args):
+        def log_response(status: str, headers: list[tuple[str, str]], *args):
             pprint.pprint(("RESPONSE", status, headers), stream=errorlog)
-            return resp(status, headers, *args)
+            return start_response(status, headers, *args)
 
         return self._app(environ, log_response)
 
@@ -55,7 +58,7 @@ def dump_config(app: Flask):
 
 
 def init_app_debug(app: Flask):
-    app.wsgi_app = LoggingMiddleware(app.wsgi_app)  # type: ignore[assignment]
+    app.wsgi_app = LoggingMiddleware(app.wsgi_app)  # type: ignore[method-assign]
     dump_config(app)
     log_endpoints(app)
     pprint.pprint(("view_functions", app.view_functions), stream=sys.stderr)

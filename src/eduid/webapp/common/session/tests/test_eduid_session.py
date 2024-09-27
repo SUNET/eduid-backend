@@ -23,7 +23,7 @@ class SessionTestApp(AuthnBaseApp):
         self.conf = config
 
 
-def session_init_app(name, test_config: Mapping[str, Any]) -> SessionTestApp:
+def session_init_app(name: str, test_config: Mapping[str, Any]) -> SessionTestApp:
     config = load_config(typ=SessionTestConfig, app_name=name, ns="webapp", test_config=test_config)
     app = SessionTestApp(config, init_central_userdb=False)
     no_authn_views(config, ["/unauthenticated"])
@@ -195,7 +195,7 @@ class EduidSessionTests(EduidAPITestCase):
                 elif value == "expires":
                     self.assertEqual("Thu, 01-Jan-1970 00:00:00 GMT", value)
 
-    def _test_bad_session_cookie(self, bad_cookie_value):
+    def _test_bad_session_cookie(self, bad_cookie_value: str):
         with self.browser as browser:
             browser.set_cookie(domain=".test.localhost", key="sessid", value=bad_cookie_value)
             response = browser.get("/unauthenticated")

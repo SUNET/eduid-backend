@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, call, patch
 import pytest
 from celery.exceptions import Retry
 
+from eduid.userdb.user import User
 from eduid.workers.msg.testing import MsgMongoTestCase
 
 
@@ -11,7 +12,7 @@ class MockException(Exception):
 
 
 class TestTasks(MsgMongoTestCase):
-    def setUp(self, init_msg=True):
+    def setUp(self, am_users: list[User] | None = None, init_msg: bool = True):
         super().setUp(init_msg=init_msg)
         self.msg_dict = {"name": "Godiskungen", "admin": "Testadmin"}
 
@@ -66,7 +67,7 @@ class TestTasks(MsgMongoTestCase):
         }
 
     @patch("smscom.SMSClient.send")
-    def test_send_message_sms(self, sms_mock):
+    def test_send_message_sms(self, sms_mock: MagicMock):
         sms_mock.return_value = True
         self.msg_relay.sendsms(recipient="+466666", message="foo", reference="ref")
 
@@ -87,10 +88,8 @@ class TestTasks(MsgMongoTestCase):
 
         assert exc_info.value.excs == "ValueError(\"'to' is not a valid phone number\")"
 
-    @patch(
-        "smscom.SMSClient.send",
-    )
-    def test_send_message_sms_exception(self, sms_mock):
+    @patch("smscom.SMSClient.send")
+    def test_send_message_sms_exception(self, sms_mock: MagicMock):
         """Test creating an artificial exception in the SMSClient.send"""
         sms_mock.side_effect = MockException("Unrecoverable error")
         with pytest.raises(Retry) as exc_info:

@@ -15,6 +15,7 @@ of the Flask application::
 """
 
 import logging
+from collections.abc import Callable
 from typing import Any, AnyStr
 
 from flask import abort
@@ -53,7 +54,7 @@ class SanitizedImmutableMultiDict(ImmutableMultiDict, SanitationMixin):
     sanitize the extracted data.
     """
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: Any):
         """
         Return the first data value for this key;
         raises KeyError if not found.
@@ -64,7 +65,7 @@ class SanitizedImmutableMultiDict(ImmutableMultiDict, SanitationMixin):
         value = super().__getitem__(key)
         return self.sanitize_input(value)
 
-    def getlist(self, key, type=None):
+    def getlist(self, key: Any, type: Callable[[Any], Any] | None = None):
         """
         Return the list of items for a given key. If that key is not in the
         `MultiDict`, the return value will be an empty list.  Just as `get`
@@ -77,10 +78,11 @@ class SanitizedImmutableMultiDict(ImmutableMultiDict, SanitationMixin):
                      by this callable the value will be removed from the list.
         :return: a :class:`list` of all the values for the key.
         """
+        assert type is not None
         value_list = super().getlist(key, type=type)
         return [self.sanitize_input(v) for v in value_list]
 
-    def items(self, multi=False):
+    def items(self, multi: bool = False):
         """
         Return an iterator of ``(key, value)`` pairs.
 
@@ -124,7 +126,7 @@ class SanitizedImmutableMultiDict(ImmutableMultiDict, SanitationMixin):
         for values in dict.values(self):
             yield (self.sanitize_input(v) for v in values)
 
-    def to_dict(self, flat=True):
+    def to_dict(self, flat: bool = True):
         """Return the contents as regular dict.  If `flat` is `True` the
         returned dict will only have the first item present, if `flat` is
         `False` all values will be returned as lists.
@@ -150,14 +152,14 @@ class SanitizedTypeConversionDict(ImmutableTypeConversionDict, SanitationMixin):
     sanitize the extracted data.
     """
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: Any):
         """
         Sanitized __getitem__
         """
         val = super(ImmutableTypeConversionDict, self).__getitem__(key)
         return self.sanitize_input(str(val))
 
-    def get(self, key, default=None, type=None) -> Any | None:  # type: ignore[override]
+    def get(self, key: str, default: str | None = None, type: type | None = None) -> Any | None:  # type: ignore[override]
         """
         Sanitized, type conversion get.
         The value identified by `key` is sanitized, and if `type`

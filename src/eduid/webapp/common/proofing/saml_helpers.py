@@ -1,5 +1,6 @@
 import logging
 
+from saml2.config import SPConfig
 from saml2.metadata import entity_descriptor
 
 from eduid.common.misc.timeutil import utc_now
@@ -65,5 +66,5 @@ def is_valid_authn_instant(session_info: SessionInfo, max_age: int = 60) -> bool
     return False
 
 
-def create_metadata(config):
+def create_metadata(config: SPConfig):
     return entity_descriptor(config)

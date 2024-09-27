@@ -52,7 +52,7 @@ class TransactionAudit:
         cls.enabled = False
 
     @staticmethod
-    def _filter(func, data, *args, **kwargs):
+    def _filter(func: str, data: Any, *args, **kwargs):
         if data is False:
             return data
         if func == "_get_navet_data":

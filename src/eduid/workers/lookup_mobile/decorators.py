@@ -5,22 +5,27 @@ __author__ = "lundberg"
 #  logging module at a later stage.
 #
 
+from collections.abc import Callable
 from datetime import datetime
 from inspect import isclass
+from typing import Any
+
+from pymongo.collection import Collection
 
 from eduid.userdb.db import MongoDB
+from eduid.userdb.db.base import TUserDbDocument
 
 
 class TransactionAudit:
     enabled = True
     db_uri = None
 
-    def __init__(self, db_name="eduid_lookup_mobile", collection_name="transaction_audit"):
-        self.db_name = db_name
-        self.collection_name = collection_name
-        self.collection = None
+    def __init__(self, db_name: str = "eduid_lookup_mobile", collection_name: str = "transaction_audit"):
+        self.db_name: str = db_name
+        self.collection_name: str = collection_name
+        self.collection: Collection[TUserDbDocument] | None = None
 
-    def __call__(self, f):
+    def __call__(self, f: Callable[..., Any]) -> Callable[..., Any]:
         if not self.enabled:
             return f
 
@@ -38,11 +43,13 @@ class TransactionAudit:
                     self.collection = db.get_collection(self.collection_name)
                 if not isclass(ret):  # we can't save class objects in mongodb
                     date = datetime.utcnow()
-                    doc = {
-                        "function": f.__name__,
-                        "data": self._filter(f.__name__, ret, *args, **kwargs),
-                        "created_at": date,
-                    }
+                    doc = TUserDbDocument(
+                        {
+                            "function": f.__name__,
+                            "data": self._filter(f.__name__, ret, *args, **kwargs),
+                            "created_at": date,
+                        }
+                    )
                     self.collection.insert_one(doc)
             return ret
 
@@ -56,7 +63,7 @@ class TransactionAudit:
     def disable(cls):
         cls.enabled = False
 
-    def _filter(self, func, data, *args, **kwargs):
+    def _filter(self, func: str, data: Any, *args, **kwargs):
         if data is False:
             return data
         if func == "find_mobiles_by_NIN":
