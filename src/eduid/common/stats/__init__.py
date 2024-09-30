@@ -24,7 +24,7 @@ class AppStats(ABC):
     def count(self, name: str, value: int = 1) -> None:
         pass
 
-    def gauge(self, name: str, value: int, rate: int = 1, delta: bool = False):
+    def gauge(self, name: str, value: int, rate: int = 1, delta: bool = False) -> None:
         pass
 
 
@@ -46,7 +46,7 @@ class NoOpStats(AppStats):
                 name = f"{self.prefix!s}.{name!s}"
             self.logger.info(f"No-op stats count: {name!r} {value!r}")
 
-    def gauge(self, name: str, value: int, rate: int = 1, delta: bool = False):
+    def gauge(self, name: str, value: int, rate: int = 1, delta: bool = False) -> None:
         if self.logger:
             if self.prefix:
                 name = f"{self.prefix!s}.{name!s}"
@@ -65,7 +65,7 @@ class Statsd(AppStats):
         # for .count
         self.client.incr(f"{name}.count", count=value)
 
-    def gauge(self, name: str, value: int, rate: int = 1, delta: bool = False):
+    def gauge(self, name: str, value: int, rate: int = 1, delta: bool = False) -> None:
         self.client.gauge(f"{name}.gauge", value=value, rate=rate, delta=delta)
 
 

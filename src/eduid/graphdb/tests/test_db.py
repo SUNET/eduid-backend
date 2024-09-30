@@ -9,12 +9,14 @@ __author__ = "lundberg"
 
 
 class TestNeo4jDB(Neo4jTestCase):
-    def test_create_db(self):
+    def test_create_db(self) -> None:
         with self.neo4jdb.driver.session() as session:
             session.run("CREATE (n:Test $props)", props={"name": "test node", "testing": True})
         with self.neo4jdb.driver.session() as session:
             result = session.run("MATCH (n {name: $name})RETURN n.testing", name="test node")
-            self.assertTrue(result.single().value())
+            single = result.single()
+            assert single
+            self.assertTrue(single.value())
 
 
 class TestBaseGraphDB(Neo4jTestCase):
@@ -22,12 +24,12 @@ class TestBaseGraphDB(Neo4jTestCase):
         def __init__(self, db_uri: str, config: dict[str, Any] | None = None):
             super().__init__(db_uri, config=config)
 
-        def db_setup(self):
+        def db_setup(self) -> None:
             with self._db.driver.session() as session:
                 session.run("CREATE CONSTRAINT ON (n:Test) ASSERT n.name IS UNIQUE")
                 session.run("CREATE INDEX FOR (n:Test) ON (n.testing)")
 
-    def test_base_db(self):
+    def test_base_db(self) -> None:
         db_uri = self.neo4jdb.db_uri
 
         config = {"encrypted": False, "auth": basic_auth("neo4j", "testingtesting")}
@@ -36,4 +38,6 @@ class TestBaseGraphDB(Neo4jTestCase):
             session.run("CREATE (n:Test $props)", props={"name": "test node", "testing": True})
         with test_db._db.driver.session() as session:
             result = session.run("MATCH (n {name: $name})RETURN n.testing", name="test node")
-            self.assertTrue(result.single().value())
+            single = result.single()
+            assert single
+            self.assertTrue(single.value())

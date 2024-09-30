@@ -104,7 +104,7 @@ class Neo4jTemporaryInstance(EduidTemporaryInstance):
     def bolt_port(self):
         return self._bolt_port
 
-    def purge_db(self):
+    def purge_db(self) -> None:
         q = """
             MATCH (n)
             DETACH DELETE n
@@ -135,5 +135,5 @@ class Neo4jTestCase(unittest.TestCase):
         cls.neo4j_instance = Neo4jTemporaryInstance.get_instance(max_retry_seconds=60)
         cls.neo4jdb = cls.neo4j_instance.conn
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         self.neo4j_instance.purge_db()

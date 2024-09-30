@@ -79,7 +79,7 @@ class MockedScimAPIMixin(MockedSyncAuthAPIMixin):
 
     put_user_response = post_user_response
 
-    def start_mocked_scim_api(self):
+    def start_mocked_scim_api(self) -> None:
         self.start_mock_auth_api()
 
         self.mocked_scim_api = respx.mock(base_url="http://localhost/scim", assert_all_called=False)

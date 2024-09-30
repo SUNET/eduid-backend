@@ -37,7 +37,7 @@ class GroupDB(BaseGraphDB):
         super().__init__(db_uri=db_uri, config=config)
         self._scope = scope
 
-    def db_setup(self):
+    def db_setup(self) -> None:
         with self.db.driver.session(default_access_mode=WRITE_ACCESS) as session:
             # new index creation syntax in neo4j >=5.0
             statements = [

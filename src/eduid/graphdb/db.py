@@ -69,7 +69,7 @@ class Neo4jDB:
     def driver(self) -> Driver:
         return self._driver
 
-    def close(self):
+    def close(self) -> None:
         self.driver.close()
 
 
