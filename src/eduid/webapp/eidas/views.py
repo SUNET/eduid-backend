@@ -17,7 +17,6 @@ from eduid.webapp.common.api.messages import (
     FluxData,
     TranslatableMsg,
     error_response,
-    need_authentication_response,
     success_response,
 )
 from eduid.webapp.common.api.schemas.authn_status import StatusRequestSchema, StatusResponseSchema
@@ -25,13 +24,13 @@ from eduid.webapp.common.api.schemas.csrf import EmptyResponse
 from eduid.webapp.common.authn.acs_enums import EidasAcsAction
 from eduid.webapp.common.authn.acs_registry import ACSArgs, get_action
 from eduid.webapp.common.authn.eduid_saml2 import process_assertion
-from eduid.webapp.common.authn.utils import get_location
+from eduid.webapp.common.authn.utils import check_reauthn, get_location
 from eduid.webapp.common.proofing.methods import ProofingMethodSAML, get_proofing_method
 from eduid.webapp.common.proofing.saml_helpers import create_metadata
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.namespaces import AuthnRequestRef, SP_AuthnRequest
 from eduid.webapp.eidas.app import current_eidas_app as current_app
-from eduid.webapp.eidas.helpers import EidasMsg, attribute_remap, check_reauthn, create_authn_info
+from eduid.webapp.eidas.helpers import EidasMsg, attribute_remap, create_authn_info
 from eduid.webapp.eidas.schemas import (
     EidasCommonRequestSchema,
     EidasCommonResponseSchema,
@@ -94,14 +93,9 @@ def verify_credential(
         current_app.logger.error(f"Can't find credential with id: {credential_id}")
         return error_response(message=EidasMsg.credential_not_found)
 
-    _need_reauthn = check_reauthn(frontend_action=_frontend_action, user=user, credential_used=credential)
+    _need_reauthn = check_reauthn(frontend_action=_frontend_action, user=user, credential_requested=credential)
     if _need_reauthn:
-        current_app.logger.debug(f"Need re-authentication for credential: {credential_id}")
-        return need_authentication_response(
-            frontend_action=_frontend_action,
-            authn_status=_need_reauthn,
-            payload={"credential_description": credential.description},  # type: ignore[attr-defined]
-        )
+        return _need_reauthn
 
     result = _authn(
         EidasAcsAction.verify_credential,

@@ -7,15 +7,10 @@ from saml2 import BINDING_HTTP_REDIRECT
 from saml2.client import Saml2Client
 from saml2.typing import SAMLHttpArgs
 
-from eduid.common.config.base import FrontendAction
-from eduid.userdb import User
-from eduid.userdb.credentials import Credential
 from eduid.userdb.credentials.external import TrustFramework
 from eduid.webapp.common.api.messages import TranslatableMsg
-from eduid.webapp.common.api.schemas.authn_status import AuthnActionStatus
 from eduid.webapp.common.authn.cache import OutstandingQueriesCache
 from eduid.webapp.common.authn.session_info import SessionInfo
-from eduid.webapp.common.authn.utils import validate_authn_for_action
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.namespaces import AuthnRequestRef
 from eduid.webapp.eidas.app import current_eidas_app as current_app
@@ -120,21 +115,3 @@ class CredentialVerifyResult:
     verified_ok: bool
     message: EidasMsg | None = None
     credential_description: str | None = None
-
-
-def check_reauthn(
-    frontend_action: FrontendAction, user: User, credential_used: Credential | None = None
-) -> AuthnActionStatus | None:
-    """Check if a re-authentication has been performed recently enough for this action"""
-
-    authn_status = validate_authn_for_action(
-        config=current_app.conf, frontend_action=frontend_action, credential_used=credential_used, user=user
-    )
-    current_app.logger.debug(f"check_reauthn called with authn status {authn_status}")
-    if authn_status != AuthnActionStatus.OK:
-        if authn_status == AuthnActionStatus.STALE:
-            # count stale authentications to monitor if users need more time
-            current_app.stats.count(name=f"{frontend_action.value}_stale_reauthn", value=1)
-        return authn_status
-    current_app.stats.count(name=f"{frontend_action.value}_successful_reauthn", value=1)
-    return None

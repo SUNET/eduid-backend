@@ -8,8 +8,9 @@ from eduid.userdb.personal_data import PersonalDataUser
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, require_user
 from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response, success_response
 from eduid.webapp.common.api.utils import save_and_sync_user
+from eduid.webapp.common.authn.utils import check_reauthn
 from eduid.webapp.personal_data.app import current_pdata_app as current_app
-from eduid.webapp.personal_data.helpers import PDataMsg, check_reauthn, is_valid_chosen_given_name
+from eduid.webapp.personal_data.helpers import PDataMsg, is_valid_chosen_given_name
 from eduid.webapp.personal_data.schemas import (
     AllDataResponseSchema,
     IdentitiesResponseSchema,
