@@ -3,7 +3,6 @@ from unittest.mock import MagicMock, call, patch
 import pytest
 from celery.exceptions import Retry
 
-from eduid.userdb.user import User
 from eduid.workers.msg.testing import MsgMongoTestCase
 
 
@@ -12,59 +11,8 @@ class MockException(Exception):
 
 
 class TestTasks(MsgMongoTestCase):
-    def setUp(self, am_users: list[User] | None = None, init_msg: bool = True) -> None:
+    def setUp(self, init_msg: bool = True) -> None:  # type: ignore[override]
         super().setUp(init_msg=init_msg)
-        self.msg_dict = {"name": "Godiskungen", "admin": "Testadmin"}
-
-        class APIResponse(MagicMock):
-            status_code = 200
-
-            def json(self):
-                return self.data
-
-        self.response = APIResponse
-
-        self.recipient_ok = {
-            "AccountStatus": {
-                "RecipientId": "192705178354",
-                "ServiceSupplier": {"ServiceAddress": "https://notarealhost.skatteverket.se/webservice/accao/Service"},
-                "Type": "Secure",
-            },
-            "SenderAccepted": True,
-        }
-
-        self.recipient_sender_not = {
-            "AccountStatus": {
-                "RecipientId": "192705178354",
-                "ServiceSupplier": {"ServiceAddress": "https://notarealhost.skatteverket.se/webservice/accao/Service"},
-                "Type": "Secure",
-            },
-            "SenderAccepted": False,
-        }
-
-        self.recipient_not = {
-            "AccountStatus": {
-                "RecipientId": "192705178354",
-                "ServiceSupplier": {"ServiceAddress": "https://notarealhost.skatteverket.se/webservice/accao/Service"},
-                "Type": "Not",
-            },
-            "SenderAccepted": False,
-        }
-
-        self.recipient_anon = {
-            "AccountStatus": {
-                "RecipientId": "192705178354",
-                "ServiceSupplier": {"ServiceAddress": "https://notarealhost.skatteverket.se/webservice/accao/Service"},
-                "Type": "Anonymous",
-            },
-            "SenderAccepted": True,
-        }
-
-        self.message_delivered = {
-            "delivered": True,
-            "recipient": "192705178354",
-            "transaction_id": "ab6895f8-7203-4695-b083-ca89d68bf346",
-        }
 
     @patch("smscom.SMSClient.send")
     def test_send_message_sms(self, sms_mock: MagicMock) -> None:
