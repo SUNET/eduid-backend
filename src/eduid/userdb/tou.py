@@ -21,7 +21,7 @@ class ToUEvent(Event):
 
     @field_validator("version")
     @classmethod
-    def _validate_tou_version(cls, v: Any):
+    def _validate_tou_version(cls, v: Any) -> str:
         if not v:
             raise ValueError("ToU must have a version")
         if not isinstance(v, str):

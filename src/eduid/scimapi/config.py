@@ -33,7 +33,7 @@ class ScimApiConfig(AuthnBearerTokenConfig, LoggingConfigMixin, AWSMixin):
 
     @field_validator("application_root")
     @classmethod
-    def application_root_must_not_end_with_slash(cls, v: str):
+    def application_root_must_not_end_with_slash(cls, v: str) -> str:
         if v.endswith("/"):
             logger.warning(f"application_root should not end with slash ({v})")
             v = removesuffix(v, "/")

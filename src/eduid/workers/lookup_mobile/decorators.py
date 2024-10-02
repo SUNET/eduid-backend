@@ -56,11 +56,11 @@ class TransactionAudit:
         return audit
 
     @classmethod
-    def enable(cls):
+    def enable(cls) -> None:
         cls.enabled = True
 
     @classmethod
-    def disable(cls):
+    def disable(cls) -> None:
         cls.enabled = False
 
     def _filter(self, func: str, data: Any, *args: Any, **kwargs: Any) -> Any:

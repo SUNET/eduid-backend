@@ -171,7 +171,7 @@ class IdPConfig(EduIDBaseAppConfig, TouConfigMixin, WebauthnConfigMixin2, AmConf
 
     @field_validator("sso_session_lifetime", mode="before")
     @classmethod
-    def validate_sso_session_lifetime(cls, v: Any):
+    def validate_sso_session_lifetime(cls, v: Any) -> int | str | timedelta:
         if isinstance(v, int):
             # legacy format for this was number of minutes
             v = v * 60

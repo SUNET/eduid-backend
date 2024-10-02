@@ -5,7 +5,7 @@ import datetime
 import logging
 from collections.abc import Mapping
 from dataclasses import asdict, dataclass
-from typing import Any
+from typing import Any, TypeVar
 
 import bson
 
@@ -23,6 +23,8 @@ __author__ = "lundberg"
 
 logger = logging.getLogger(__name__)
 
+TProofingState = TypeVar("TProofingState", bound="ProofingState")
+
 
 @dataclass()
 class ProofingState:
@@ -38,7 +40,7 @@ class ProofingState:
             self.id = bson.ObjectId()
 
     @classmethod
-    def _default_from_dict(cls, data: Mapping[str, Any], fields: set[str]):
+    def _default_from_dict(cls: type[TProofingState], data: Mapping[str, Any], fields: set[str]) -> TProofingState:
         _data = copy.deepcopy(dict(data))  # to not modify callers data
         if "eduPersonPrincipalName" in _data:
             _data["eppn"] = _data.pop("eduPersonPrincipalName")
@@ -60,7 +62,7 @@ class ProofingState:
         return cls(**_data)
 
     @classmethod
-    def from_dict(cls, data: Mapping[str, Any]):
+    def from_dict(cls, data: Mapping[str, Any]) -> Any:
         raise NotImplementedError(f"from_dict not implemented for class {cls.__name__}")
 
     def to_dict(self) -> TUserDbDocument:

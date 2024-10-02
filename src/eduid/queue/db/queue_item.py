@@ -24,7 +24,7 @@ class SenderInfo:
     node_id: str  # Should be something like application@system_hostname ex. scimapi@apps-lla-3
 
     @classmethod
-    def from_dict(cls, data: Mapping[str, Any]):
+    def from_dict(cls, data: Mapping[str, Any]) -> "SenderInfo":
         data = dict(data)
         return cls(**data)
 
@@ -50,7 +50,7 @@ class QueueItem:
         return TUserDbDocument(res)
 
     @classmethod
-    def from_dict(cls, data: Mapping[str, Any]):
+    def from_dict(cls, data: Mapping[str, Any]) -> "QueueItem":
         data = dict(data)
         item_id = data.pop("_id")
         processed_by = data.pop("processed_by", None)

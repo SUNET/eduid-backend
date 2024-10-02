@@ -31,7 +31,7 @@ class RawPayload(Payload):
         return self.data
 
     @classmethod
-    def from_dict(cls, data: Mapping[str, Any]):
+    def from_dict(cls, data: Mapping[str, Any]) -> "RawPayload":
         data = dict(data)  # Do not change caller data
         return cls(data=data)
 
@@ -43,6 +43,6 @@ class TestPayload(Payload):
     version: int = 1
 
     @classmethod
-    def from_dict(cls, data: Mapping[str, Any]):
+    def from_dict(cls, data: Mapping[str, Any]) -> "TestPayload":
         data = dict(data)  # Do not change caller data
         return cls(**data)

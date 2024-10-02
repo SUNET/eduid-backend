@@ -45,7 +45,7 @@ class TransactionAudit:
         return audit
 
     @classmethod
-    def enable(cls, db_uri: str, db_name: str | None = None):
+    def enable(cls, db_uri: str, db_name: str | None = None) -> None:
         if isinstance(db_uri, str):
             cls.db_uri = db_uri
         if db_name is not None:
@@ -53,7 +53,7 @@ class TransactionAudit:
         cls.enabled = True
 
     @classmethod
-    def disable(cls):
+    def disable(cls) -> None:
         cls.enabled = False
 
     @staticmethod

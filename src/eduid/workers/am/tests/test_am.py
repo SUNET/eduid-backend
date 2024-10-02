@@ -47,7 +47,7 @@ class FakeAttributeFetcher(AttributeFetcher):
     """
 
     @classmethod
-    def get_user_db(cls, uri: str):
+    def get_user_db(cls, uri: str) -> AmTestUserDb:
         return AmTestUserDb(uri, db_name="eduid_am_test")
 
     def fetch_attrs(self, user_id: ObjectId) -> dict[str, Any]:

@@ -48,7 +48,7 @@ class UserGroup:
     members: set[GraphUser | GraphGroup]
 
     @classmethod
-    def from_scimapigroup(cls, group: ScimApiGroup, is_owner: bool = False, is_member: bool = False):
+    def from_scimapigroup(cls, group: ScimApiGroup, is_owner: bool = False, is_member: bool = False) -> "UserGroup":
         return cls(
             identifier=group.scim_id,
             display_name=group.display_name,

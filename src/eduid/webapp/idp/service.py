@@ -80,7 +80,7 @@ class SAMLQueryParams(BaseModel):
 
     @field_validator("SAMLRequest", "RelayState")
     @classmethod
-    def validate_query_params(cls, v: Any):
+    def validate_query_params(cls, v: Any) -> str:
         if not isinstance(v, str) or not v:
             raise ValueError("must be a non-empty string")
         # TODO: perform extra sanitation?
@@ -88,7 +88,7 @@ class SAMLQueryParams(BaseModel):
 
     @field_validator("request_ref")
     @classmethod
-    def validate_request_ref(cls, v: Any):
+    def validate_request_ref(cls, v: Any) -> str | None:
         if v is None:
             return None
         if not isinstance(v, str):

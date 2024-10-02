@@ -83,7 +83,7 @@ class SvipeDocumentUserInfo(UserInfoBase):
 
     @field_validator("document_nationality")
     @classmethod
-    def iso_3166_1_alpha_3_to_alpha2(cls, v: Any):
+    def iso_3166_1_alpha_3_to_alpha2(cls, v: Any) -> str:
         # translate ISO 3166-1 alpha-3 to alpha-2 to match the format used in eduid-userdb
         try:
             country = countries.get(v)

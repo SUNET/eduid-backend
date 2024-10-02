@@ -274,6 +274,7 @@ class PrimaryElement(VerifiedElement, ABC):
 
 ListElement = TypeVar("ListElement", bound=Element)
 MatchingElement = TypeVar("MatchingElement", bound=Element)
+TElementList = TypeVar("TElementList", bound="ElementList")
 
 
 class ElementList(BaseModel, Generic[ListElement], ABC):
@@ -312,7 +313,7 @@ class ElementList(BaseModel, Generic[ListElement], ABC):
         return values
 
     @classmethod
-    def from_list_of_dicts(cls, items: list[dict[str, Any]]):
+    def from_list_of_dicts(cls: type[TElementList], items: list[dict[str, Any]]) -> TElementList:
         # must be implemented by subclass to get correct type information
         raise NotImplementedError()
 
@@ -421,7 +422,7 @@ class PrimaryElementList(VerifiedElementList[ListElement], Generic[ListElement],
     """
 
     @classmethod
-    def _validate_elements(cls, values: list[ListElement]):
+    def _validate_elements(cls, values: list[ListElement]) -> list[ListElement]:
         """
         Validate elements. Since the 'elements' property is defined on subclasses
         (to get the right type information), a pydantic validator can't be placed here

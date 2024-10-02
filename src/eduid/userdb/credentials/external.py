@@ -26,7 +26,7 @@ class ExternalCredential(Credential):
 
     @field_validator("credential_id", mode="before")
     @classmethod
-    def credential_id_objectid(cls, v: Any):
+    def credential_id_objectid(cls, v: Any) -> str:
         """Turn ObjectId into string"""
         if isinstance(v, ObjectId):
             v = str(v)

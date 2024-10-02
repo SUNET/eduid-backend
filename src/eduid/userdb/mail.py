@@ -14,7 +14,7 @@ class MailAddress(PrimaryElement):
 
     @field_validator("email", mode="before")
     @classmethod
-    def validate_email(cls, v: Any):
+    def validate_email(cls, v: Any) -> str:
         if not isinstance(v, str):
             raise ValueError("must be a string")
         return v.lower()
