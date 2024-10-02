@@ -27,7 +27,7 @@ class ContextRequest(Request):
             return self.context
 
     @context.setter
-    def context(self, context: Context):
+    def context(self, context: Context) -> None:
         self.state.context = context
 
 

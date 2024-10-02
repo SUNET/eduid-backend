@@ -22,14 +22,14 @@ def deprecated(reason: str | type | Callable) -> Callable:
         #    def old_function(x, y):
         #      pass
 
-        def decorator(func1: Callable):
+        def decorator(func1: Callable) -> Callable:
             if inspect.isclass(func1):
                 fmt1 = "Call to deprecated class {name} ({reason})."
             else:
                 fmt1 = "Call to deprecated function {name} ({reason})."
 
             @wraps(func1)
-            def new_func1(*args: Any, **kwargs: Any):
+            def new_func1(*args: Any, **kwargs: Any) -> Any:
                 warnings.simplefilter("always", DeprecationWarning)
                 warnings.warn(
                     fmt1.format(name=func1.__name__, reason=reason), category=DeprecationWarning, stacklevel=2
@@ -58,7 +58,7 @@ def deprecated(reason: str | type | Callable) -> Callable:
             fmt2 = "Call to deprecated function {name}."
 
         @wraps(func2)
-        def new_func2(*args: Any, **kwargs: Any):
+        def new_func2(*args: Any, **kwargs: Any) -> Any:
             warnings.simplefilter("always", DeprecationWarning)
             warnings.warn(fmt2.format(name=func2.__name__), category=DeprecationWarning, stacklevel=2)
             warnings.simplefilter("default", DeprecationWarning)

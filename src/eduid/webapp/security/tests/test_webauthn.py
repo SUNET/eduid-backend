@@ -166,7 +166,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
         self.app.central_userdb.save(user)
         return u2f_token
 
-    def _check_session_state(self, client: CSRFTestClient):
+    def _check_session_state(self, client: CSRFTestClient) -> None:
         with client.session_transaction() as sess:
             assert isinstance(sess, EduidSession)
             assert sess.security.webauthn_registration is not None
@@ -174,17 +174,17 @@ class SecurityWebauthnTests(EduidAPITestCase):
         assert webauthn_state["user_verification"] == "discouraged"
         assert "challenge" in webauthn_state
 
-    def _check_registration_begun(self, data: dict):
+    def _check_registration_begun(self, data: dict) -> None:
         self.assertEqual(data["type"], "POST_WEBAUTHN_WEBAUTHN_REGISTER_BEGIN_SUCCESS")
         self.assertIn("registration_data", data["payload"])
         self.assertIn("csrf_token", data["payload"])
 
-    def _check_registration_complete(self, data: dict):
+    def _check_registration_complete(self, data: dict) -> None:
         self.assertEqual(data["type"], "POST_WEBAUTHN_WEBAUTHN_REGISTER_COMPLETE_SUCCESS")
         self.assertTrue(len(data["payload"]["credentials"]) > 0)
         self.assertEqual(data["payload"]["message"], "security.webauthn_register_success")
 
-    def _check_removal(self, data: dict, user_token: Webauthn):
+    def _check_removal(self, data: dict, user_token: Webauthn) -> None:
         self.assertEqual(data["type"], "POST_WEBAUTHN_WEBAUTHN_REMOVE_SUCCESS")
         self.assertIsNotNone(data["payload"]["credentials"])
         for credential in data["payload"]["credentials"]:
@@ -199,7 +199,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
         existing_legacy_token: bool = False,
         csrf: str | None = None,
         check_session: bool = True,
-    ):
+    ) -> dict:
         """
         Start process to register a webauthn token for the test user,
         possibly adding U2F or webauthn credentials before.
@@ -256,7 +256,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
         cred_id: bytes,
         existing_legacy_token: bool = False,
         csrf: str | None = None,
-    ):
+    ) -> dict:
         """
         Finish registering a webauthn token.
 
@@ -319,7 +319,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
         state_2: dict,
         existing_legacy_token: bool = False,
         csrf: str | None = None,
-    ):
+    ) -> tuple[Webauthn, dict]:
         """
         Send a POST request to remove a webauthn credential from the test user.
         Before sending the request, add 2 webauthn credentials (and possibly a legacy u2f credential) to the test user.

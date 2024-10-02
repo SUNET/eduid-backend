@@ -56,7 +56,7 @@ class AddStaticAttributesForVirtualIdp(ResponseMicroService):
             "static_appended_attributes_for_virtual_idp"
         )
 
-    def _build_static(self, requester: str, vidp: str, existing_attributes: dict):
+    def _build_static(self, requester: str, vidp: str, existing_attributes: dict) -> dict[str, list[str]]:
         static_attributes: dict[str, list[str]] = dict()
 
         if self.static_attributes:

@@ -86,7 +86,7 @@ class HTTPErrorDetail(Exception):
         return self._extra_headers
 
     @extra_headers.setter
-    def extra_headers(self, headers: dict):
+    def extra_headers(self, headers: dict) -> None:
         self._extra_headers = headers
 
 

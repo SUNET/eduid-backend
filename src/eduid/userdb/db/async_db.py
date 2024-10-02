@@ -149,7 +149,7 @@ class AsyncBaseDB:
     def connection(self) -> AsyncIOMotorClient:
         return self._db.get_connection()
 
-    async def _drop_whole_collection(self):
+    async def _drop_whole_collection(self) -> None:
         """
         Drop the whole collection. Should ONLY be used in testing, obviously.
         :return:

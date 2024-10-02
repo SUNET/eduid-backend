@@ -35,7 +35,7 @@ class NonValidatingSchema(EduidSchema, CSRFRequestMixin):
 test_views = Blueprint("test", __name__)
 
 
-def _make_response(data: str):
+def _make_response(data: str) -> Response:
     html = f"<html><body>{data}</body></html>"
     response = make_response(html, 200)
     response.headers["Content-Type"] = "text/html; charset=utf8"

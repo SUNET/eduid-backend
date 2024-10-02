@@ -30,28 +30,28 @@ def session_init_app(name: str, test_config: Mapping[str, Any]) -> SessionTestAp
     no_authn_views(config, ["/unauthenticated"])
 
     @app.route("/authenticated")
-    def authenticated():
+    def authenticated() -> str:
         session["authenticated_request"] = True
         return "Hello, World!"
 
     @app.route("/unauthenticated")
-    def unauthenticated():
+    def unauthenticated() -> str:
         session["unauthenticated_request"] = True
         return "Hello, World!"
 
     @app.route("/return-session-key-test")
-    def return_session_key_test():
+    def return_session_key_test() -> str:
         return session["test"]
 
     @app.route("/common")
-    def common():
+    def common() -> str:
         session.common.eppn = "hubba-bubba"
         session.common.is_logged_in = True
         session.common.login_source = LoginApplication["authn"]
         return "Hello, World!"
 
     @app.route("/mfa-action")
-    def mfa_action():
+    def mfa_action() -> str:
         session.mfa_action.success = True
         session.mfa_action.issuer = "https://issuer-entity-id.example.com"
         session.mfa_action.authn_instant = "2019-03-21T16:26:17Z"
@@ -59,17 +59,17 @@ def session_init_app(name: str, test_config: Mapping[str, Any]) -> SessionTestAp
         return "Hello, World!"
 
     @app.route("/reset-password")
-    def reset_password():
+    def reset_password() -> str:
         session.reset_password.generated_password_hash = "password-hash"
         return "Hello, World!"
 
     @app.route("/signup")
-    def signup():
+    def signup() -> str:
         session.signup.email.verification_code = "email-verification-code"
         return "Hello, World!"
 
     @app.route("/logout")
-    def logout():
+    def logout() -> str:
         session.invalidate()
         return "Goodbye"
 
@@ -196,7 +196,7 @@ class EduidSessionTests(EduidAPITestCase):
                 elif value == "expires":
                     self.assertEqual("Thu, 01-Jan-1970 00:00:00 GMT", value)
 
-    def _test_bad_session_cookie(self, bad_cookie_value: str):
+    def _test_bad_session_cookie(self, bad_cookie_value: str) -> None:
         with self.browser as browser:
             browser.set_cookie(domain=".test.localhost", key="sessid", value=bad_cookie_value)
             response = browser.get("/unauthenticated")

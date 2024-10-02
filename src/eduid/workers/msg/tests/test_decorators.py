@@ -13,7 +13,7 @@ class TestTransactionAudit(MsgMongoTestCase):
 
     def test_transaction_audit(self) -> None:
         @TransactionAudit()
-        def no_name():
+        def no_name() -> dict[str, str]:
             return {"baka": "kaka"}
 
         # Invoke transaction logging by calling the function that is decorated with TransactionAudit
@@ -28,7 +28,7 @@ class TestTransactionAudit(MsgMongoTestCase):
         assert result_cursor.next()["data"]["baka"] == "kaka"
 
         @TransactionAudit()
-        def _get_navet_data(arg1: str, arg2: str):
+        def _get_navet_data(arg1: str, arg2: str) -> set[str]:
             return {"baka", "kaka"}
 
         _get_navet_data("dummy", "1111")
@@ -46,7 +46,7 @@ class TestTransactionAudit(MsgMongoTestCase):
             template: str,
             language: str,
             subject: str | None = None,
-        ):
+        ) -> str:
             return "kaka"
 
         send_message("dummy", "mm", "reference", "dummy", "2222", "template", "lang")
@@ -70,7 +70,7 @@ class TestTransactionAudit(MsgMongoTestCase):
         TransactionAudit.disable()
 
         @TransactionAudit()
-        def no_name():
+        def no_name() -> dict[str, str]:
             return {"baka": "kaka"}
 
         no_name()
@@ -82,7 +82,7 @@ class TestTransactionAudit(MsgMongoTestCase):
         TransactionAudit.enable(self.msg_settings.mongo_uri)
 
         @TransactionAudit()
-        def no_name2():
+        def no_name2() -> dict[str, str]:
             return {"baka": "kaka"}
 
         no_name2()

@@ -22,7 +22,7 @@ class LoggingMiddleware:
         errorlog = environ["wsgi.errors"]
         pprint.pprint(("REQUEST", environ), stream=errorlog)
 
-        def log_response(status: str, headers: list[tuple[str, str]], *args: Any):
+        def log_response(status: str, headers: list[tuple[str, str]], *args: Any) -> Callable[[bytes], object]:
             pprint.pprint(("RESPONSE", status, headers), stream=errorlog)
             return start_response(status, headers, *args)
 

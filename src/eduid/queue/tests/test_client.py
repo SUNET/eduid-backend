@@ -36,7 +36,7 @@ class TestMessage(TestCase):
         self.discard_at = self.expires_at + timedelta(days=7)
         self.sender_info = SenderInfo(hostname="testhost", node_id="userdb@testhost")
 
-    def _create_queue_item(self, payload: Payload):
+    def _create_queue_item(self, payload: Payload) -> QueueItem:
         return QueueItem(
             version=1,
             expires_at=self.expires_at,
@@ -90,7 +90,7 @@ class TestMessageDB(EduidQueueTestCase):
         super().tearDown()
         self.messagedb._drop_whole_collection()
 
-    def _create_queue_item(self, payload: Payload):
+    def _create_queue_item(self, payload: Payload) -> QueueItem:
         return QueueItem(
             version=1,
             expires_at=self.expires_at,

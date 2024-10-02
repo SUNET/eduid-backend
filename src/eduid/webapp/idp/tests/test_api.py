@@ -347,7 +347,7 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
         loc = _location_headers[0][1]
         return self._extract_path_from_url(loc)
 
-    def _extract_path_from_url(self, url: str):
+    def _extract_path_from_url(self, url: str) -> str:
         # It is a complete URL, extract the path from it (8 is to skip over slashes in https://)
         _idx = url[8:].index("/")
         path = url[8 + _idx :]
@@ -456,7 +456,7 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
         attributes: dict[str, list[Any]] = session_info["ava"]
         return attributes
 
-    def _assert_dict_contains(self, actual: dict[str, Any], expected: dict[str, Any]):
+    def _assert_dict_contains(self, actual: dict[str, Any], expected: dict[str, Any]) -> None:
         for key, value in expected.items():
             assert key in actual, f"expected {key} not in {actual}"
             if isinstance(value, dict):
@@ -472,7 +472,7 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
         finish_result: FinishedResultAPI | None = None,
         pwauth_result: PwAuthResult | None = None,
         error: dict[str, Any] | None = None,
-    ):
+    ) -> None:
         assert result.visit_order == visit_order, f"visit_order: {result.visit_order}, expected: {visit_order}"
 
         if sso_cookie_val is True:

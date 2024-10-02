@@ -385,7 +385,7 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
         type_: str | None,
         frontend_action: FrontendAction,
         authn_status: AuthnActionStatus,
-    ):
+    ) -> None:
         """Check that a call to the API failed in the authentication stage."""
         meta = {
             "frontend_action": frontend_action.value,
@@ -394,7 +394,7 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
         payload = {
             "message": AuthnStatusMsg.must_authenticate.value,
         }
-        return self._check_api_response(response, status=200, type_=type_, payload=payload, meta=meta)
+        self._check_api_response(response, status=200, type_=type_, payload=payload, meta=meta)
 
     def _check_error_response(
         self,
@@ -403,9 +403,9 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
         msg: TranslatableMsg | None = None,
         error: Mapping[str, Any] | None = None,
         payload: Mapping[str, Any] | None = None,
-    ):
+    ) -> None:
         """Check that a call to the API failed in the data validation stage."""
-        return self._check_api_response(response, 200, type_=type_, message=msg, error=error, payload=payload)
+        self._check_api_response(response, 200, type_=type_, message=msg, error=error, payload=payload)
 
     def _check_success_response(
         self,
@@ -413,13 +413,13 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
         type_: str | None,
         msg: TranslatableMsg | None = None,
         payload: Mapping[str, Any] | None = None,
-    ):
+    ) -> None:
         """
         Check the message returned from an eduID webapp endpoint.
         """
         if response.json and response.json.get("error") is True:
             assert False is True, f"FluxResponse has error set to True: {response.json}"
-        return self._check_api_response(response, 200, type_=type_, message=msg, payload=payload)
+        self._check_api_response(response, 200, type_=type_, message=msg, payload=payload)
 
     @staticmethod
     def get_response_payload(response: TestResponse) -> dict[str, Any]:
@@ -445,7 +445,7 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
         payload: Mapping[str, Any] | None = None,
         assure_not_in_payload: Iterable[str] | None = None,
         meta: Mapping[str, Any] | None = None,
-    ):
+    ) -> None:
         """
         Check data returned from an eduID webapp endpoint.
 
@@ -475,7 +475,7 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
         :param payload: Data expected to be found in the 'payload' of the response
         """
 
-        def _assure_not_in_dict(d: Mapping[str, Any], unwanted_key: str):
+        def _assure_not_in_dict(d: Mapping[str, Any], unwanted_key: str) -> None:
             assert unwanted_key not in d, f"Key {unwanted_key} should not be in payload, but it is: {payload}"
             v2: Mapping[str, Any]
             for v2 in d.values():
@@ -534,7 +534,7 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
         proofing_state: NinProofingState,
         number: str | None = None,
         created_by: str | None = None,
-    ):
+    ) -> None:
         if number is None and (self.test_user is not None and self.test_user.identities.nin):
             number = self.test_user.identities.nin.number
 
@@ -552,7 +552,7 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
         assert isinstance(_log, ProofingLog)
         assert _log.db_count() == 1
 
-    def _check_nin_not_verified(self, user: User, number: str | None = None, created_by: str | None = None):
+    def _check_nin_not_verified(self, user: User, number: str | None = None, created_by: str | None = None) -> None:
         if number is None and (self.test_user is not None and self.test_user.identities.nin):
             number = self.test_user.identities.nin.number
 

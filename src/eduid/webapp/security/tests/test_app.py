@@ -4,6 +4,8 @@ from datetime import datetime, timedelta
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+from werkzeug.test import TestResponse
+
 from eduid.common.config.base import FrontendAction
 from eduid.common.rpc.msg_relay import DeregisteredCauseCode, DeregistrationInformation, OfficialAddress
 from eduid.userdb import User
@@ -55,7 +57,7 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
         mock_revoke: Any,
         mock_sync: Any,
         data1: dict[str, Any] | None = None,
-    ):
+    ) -> TestResponse:
         """
         Send a GET request to the endpoint to actually terminate the account,
         mocking re-authentication by setting a timestamp in the session.
@@ -75,7 +77,9 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
             return client.post("/terminate-account", json=data)
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def _remove_nin(self, mock_request_user_sync: Any, data1: dict[str, Any] | None = None, unverify: bool = False):
+    def _remove_nin(
+        self, mock_request_user_sync: Any, data1: dict[str, Any] | None = None, unverify: bool = False
+    ) -> TestResponse:
         """
         Send a POST request to remove a NIN from the test user, possibly
         unverifying his verified NIN.
@@ -104,7 +108,7 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
                 return client.post("/remove-nin", data=json.dumps(data), content_type=self.content_type_json)
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def _remove_identity(self, mock_request_user_sync: Any, data1: dict[str, Any] | None = None):
+    def _remove_identity(self, mock_request_user_sync: Any, data1: dict[str, Any] | None = None) -> TestResponse:
         """
         Send a POST request to remove all identities from the test user
 
@@ -132,7 +136,7 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
         data1: dict[str, Any] | None = None,
         remove: bool = True,
         unverify: bool = False,
-    ):
+    ) -> TestResponse:
         """
         Send a POST request to add a NIN to the test user, possibly removing it's primary, verified NIN.
 
@@ -172,7 +176,7 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
         mock_get_all_navet_data: Any,
         user: User,
         navet_return_value: Any | None = None,
-    ):
+    ) -> TestResponse:
         mock_request_user_sync.side_effect = self.request_user_sync
         if navet_return_value is None:
             mock_get_all_navet_data.return_value = self._get_all_navet_data()
@@ -186,7 +190,7 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
                 "/refresh-official-user-data", data=json.dumps(data), content_type=self.content_type_json
             )
 
-    def _get_credentials(self):
+    def _get_credentials(self) -> TestResponse:
         response = self.browser.get("/credentials")
         self.assertEqual(response.status_code, 401)
 
@@ -194,7 +198,7 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
         with self.session_cookie(self.browser, eppn) as client:
             return client.get("/credentials")
 
-    def _get_authn_status(self, frontend_action: FrontendAction, credential_id: str | None = None):
+    def _get_authn_status(self, frontend_action: FrontendAction, credential_id: str | None = None) -> TestResponse:
         data = {"frontend_action": frontend_action.value}
         if credential_id is not None:
             data["credential_id"] = credential_id

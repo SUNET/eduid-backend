@@ -133,7 +133,7 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         )
         return config
 
-    def _user_setup(self):
+    def _user_setup(self) -> None:
         # remove any freja eid identity that already exists, we want to handle those ourselves
         for eppn in [self.test_user.eppn, self.unverified_test_user.eppn]:
             user = self.app.central_userdb.get_user_by_eppn(eppn)
@@ -238,7 +238,7 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         return self.browser.get(f"{endpoint}?id_token=id_token&state={state}&code=mock_code")
 
     @patch("authlib.integrations.base_client.sync_app.OAuth2Mixin.load_server_metadata")
-    def _start_auth(self, mock_metadata: MagicMock, endpoint: str, data: dict[str, Any], eppn: str):
+    def _start_auth(self, mock_metadata: MagicMock, endpoint: str, data: dict[str, Any], eppn: str) -> TestResponse:
         mock_metadata.return_value = self.oidc_provider_config
 
         with self.session_cookie(self.browser, eppn) as client:

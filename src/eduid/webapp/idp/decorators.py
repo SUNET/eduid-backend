@@ -3,7 +3,7 @@ from collections.abc import Callable
 from functools import wraps
 from typing import Any
 
-from flask import jsonify, request
+from flask import Response, jsonify, request
 
 from eduid.webapp.common.api.schemas.models import FluxFailResponse
 from eduid.webapp.common.session import session
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 def require_ticket(f: Callable) -> Callable:
     @wraps(f)
-    def require_ticket_decorator(*args: Any, **kwargs: Any):
+    def require_ticket_decorator(*args: Any, **kwargs: Any) -> Response | Any:
         """Decorator to turn the 'ref' parameter sent by the frontend into a ticket (LoginContext)"""
         if "ref" not in kwargs:
             logger.debug("Login ref not supplied")
@@ -58,7 +58,7 @@ def require_ticket(f: Callable) -> Callable:
 
 def uses_sso_session(f: Callable) -> Callable:
     @wraps(f)
-    def uses_sso_session_decorator(*args: Any, **kwargs: Any):
+    def uses_sso_session_decorator(*args: Any, **kwargs: Any) -> Any:
         """Decorator to supply the current SSO session, if one is found and still valid"""
 
         kwargs["sso_session"] = get_sso_session()
@@ -67,7 +67,7 @@ def uses_sso_session(f: Callable) -> Callable:
     return uses_sso_session_decorator
 
 
-def _flux_error(msg: IdPMsg):
+def _flux_error(msg: IdPMsg) -> Response:
     response_data = FluxFailResponse(
         request, payload={"error": True, "message": msg, "csrf_token": session.get_csrf_token()}
     )

@@ -1,6 +1,7 @@
-from typing import Any, cast
+from typing import Any, NoReturn, cast
 from unittest.mock import patch
 
+from eduid.userdb.credentials.password import Password
 from eduid.userdb.fixtures.users import UserFixtures
 from eduid.userdb.testing import MongoTestCase
 from eduid.userdb.user import User
@@ -28,7 +29,7 @@ class VCCSTestCase(MongoTestCase):
         vccs_module.revoke_passwords(self.user, reason="testing", application="test", vccs=self.vccs_client)
         super().tearDown()
 
-    def _check_credentials(self, creds: str):
+    def _check_credentials(self, creds: str) -> Password | None:
         return vccs_module.check_password(creds, self.user, vccs=self.vccs_client)
 
     def test_check_good_credentials(self) -> None:
@@ -47,7 +48,7 @@ class VCCSTestCase(MongoTestCase):
         result2 = self._check_credentials("fghi")
         self.assertFalse(result2)
         result3 = self._check_credentials("wxyz")
-        self.assertTrue(result3)
+        assert result3
         self.assertFalse(result3.is_generated)
 
     def test_add_password_generated(self) -> None:
@@ -60,7 +61,7 @@ class VCCSTestCase(MongoTestCase):
         result2 = self._check_credentials("fghi")
         self.assertFalse(result2)
         result3 = self._check_credentials("wxyz")
-        self.assertTrue(result3)
+        assert result3
         self.assertTrue(result3.is_generated)
 
     def test_change_password(self) -> None:
@@ -73,7 +74,7 @@ class VCCSTestCase(MongoTestCase):
         result2 = self._check_credentials("fghi")
         self.assertFalse(result2)
         result3 = self._check_credentials("wxyz")
-        self.assertTrue(result3)
+        assert result3
         self.assertFalse(result3.is_generated)
 
     def test_change_password_generated(self) -> None:
@@ -91,7 +92,7 @@ class VCCSTestCase(MongoTestCase):
         result2 = self._check_credentials("fghi")
         self.assertFalse(result2)
         result3 = self._check_credentials("wxyz")
-        self.assertTrue(result3)
+        assert result3
         self.assertTrue(result3.is_generated)
 
     def test_change_password_bad_old_password(self) -> None:
@@ -114,7 +115,7 @@ class VCCSTestCase(MongoTestCase):
         result2 = self._check_credentials("fghi")
         self.assertFalse(result2)
         result3 = self._check_credentials("wxyz")
-        self.assertTrue(result3)
+        assert result3
         self.assertFalse(result3.is_generated)
 
     def test_reset_password_generated(self) -> None:
@@ -127,7 +128,7 @@ class VCCSTestCase(MongoTestCase):
         result2 = self._check_credentials("fghi")
         self.assertFalse(result2)
         result3 = self._check_credentials("wxyz")
-        self.assertTrue(result3)
+        assert result3
         self.assertTrue(result3.is_generated)
 
     def test_change_password_error_adding(self) -> None:
@@ -149,7 +150,7 @@ class VCCSTestCase(MongoTestCase):
     def test_reset_password_error_revoking(self) -> None:
         from eduid.webapp.common.authn.testing import MockVCCSClient
 
-        def mock_revoke_creds(*args: Any):
+        def mock_revoke_creds(*args: Any) -> NoReturn:
             raise VCCSClientHTTPError("dummy", 500)
 
         with patch.object(MockVCCSClient, "revoke_credentials", mock_revoke_creds):

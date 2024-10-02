@@ -63,7 +63,7 @@ def load_jwks(config: ScimApiConfig) -> jwk.JWKSet:
 
 def retryable_db_write(func: Callable) -> Callable:
     @functools.wraps(func)
-    def wrapper_run_func(*args: Any, **kwargs: Any):
+    def wrapper_run_func(*args: Any, **kwargs: Any) -> Any:
         max_retries = 10
         retry = 0
         while True:

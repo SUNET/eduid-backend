@@ -164,7 +164,7 @@ class BaseDB:
 
     __str__ = __repr__
 
-    def _drop_whole_collection(self):
+    def _drop_whole_collection(self) -> None:
         """
         Drop the whole collection. Should ONLY be used in testing, obviously.
         :return:

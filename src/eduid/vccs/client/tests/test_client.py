@@ -1,4 +1,3 @@
-import os
 import unittest
 from typing import Any
 
@@ -21,7 +20,7 @@ class FakeVCCSClient(VCCSClient):
         self.fake_response = fake_response
         VCCSClient.__init__(self)
 
-    def _execute_request_response(self, service: str, values: dict[str, Any]):
+    def _execute_request_response(self, service: str, values: dict[str, Any]) -> str:
         self.last_service = service
         self.last_values = values
         return self.fake_response
@@ -32,12 +31,7 @@ class FakeVCCSPasswordFactor(VCCSPasswordFactor):
     Sub-class that overrides the get_random_bytes function to make certain things testable.
     """
 
-    def _get_random_bytes(self, num_bytes: int):
-        b = os.urandom(1)
-        if isinstance(b, str):
-            # Python2
-            return chr(0xA) * num_bytes
-        # Python3
+    def _get_random_bytes(self, num_bytes: int) -> bytes:
         return b"\x0a" * num_bytes
 
 

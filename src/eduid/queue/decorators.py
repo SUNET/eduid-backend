@@ -25,7 +25,7 @@ class TransactionAudit:
         if not self.enabled:
             return f
 
-        def audit(*args: Any, **kwargs: Any):
+        def audit(*args: Any, **kwargs: Any) -> Any:
             ret = f(*args, **kwargs)
             if not isclass(ret) and self.collection:  # we can't save class objects in mongodb
                 date = utc_now()

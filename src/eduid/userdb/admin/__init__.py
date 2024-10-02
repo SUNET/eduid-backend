@@ -160,7 +160,7 @@ class RawDb:
             fd.write(f"DB_RESULT: {res}\n")
         return res
 
-    def _write_before_and_after(self, raw: RawData, backup_dir: str):
+    def _write_before_and_after(self, raw: RawData, backup_dir: str) -> None:
         """
         Write before- and after backup files of the document being saved, in JSON format.
         """
@@ -180,7 +180,7 @@ class RawDb:
                 + "\n"
             )
 
-    def _get_backup_filename(self, dirname: str, filename: str, ext: str):
+    def _get_backup_filename(self, dirname: str, filename: str, ext: str) -> str:
         """
         Look for a backup filename that hasn't been used. The use of self._file_num
         should mean we get matching before- after- and changes sets.

@@ -370,7 +370,7 @@ class VCCSClient:
             raise TypeError(f"Operation success value type error : {success!r}")
         return success is True
 
-    def _execute(self, data: str, response_label: str):
+    def _execute(self, data: str, response_label: str) -> dict:
         """
         Make a HTTP POST request to the authentication backend, and parse the result.
 
@@ -399,7 +399,7 @@ class VCCSClient:
             raise AssertionError(f"Received response of unknown version {resp_ver!r}")
         return resp[response_label]
 
-    def _execute_request_response(self, service: str, values: dict[str, Any]):
+    def _execute_request_response(self, service: str, values: dict[str, Any]) -> str:
         """
         The part of _execute that has actual side effects. In a separate function
         to make everything else easily testable.

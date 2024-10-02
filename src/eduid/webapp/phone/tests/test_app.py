@@ -5,6 +5,8 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 from urllib.parse import quote_plus
 
+from werkzeug.test import TestResponse
+
 from eduid.common.config.base import EduidEnvironment
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.phone.app import PhoneApp, phone_init_app
@@ -37,7 +39,7 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
 
     # parameterized test methods
 
-    def _get_all_phone(self, eppn: str | None = None):
+    def _get_all_phone(self, eppn: str | None = None) -> dict:
         """
         GET all phone data for some user
 
@@ -62,7 +64,7 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
         mock_request_user_sync: Any,
         mod_data: dict[str, Any] | None = None,
         send_data: bool = True,
-    ):
+    ) -> TestResponse:
         """
         POST phone data to add a new phone number to the test user
 
@@ -93,7 +95,7 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
                 return client.post("/new")
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def _post_primary(self, mock_request_user_sync: Any, mod_data: dict[str, Any] | None = None):
+    def _post_primary(self, mock_request_user_sync: Any, mod_data: dict[str, Any] | None = None) -> TestResponse:
         """
         Set phone number as the primary number for the test user
 
@@ -116,7 +118,7 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
             return client.post("/primary", data=json.dumps(data), content_type=self.content_type_json)
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def _remove(self, mock_request_user_sync: Any, mod_data: dict[str, Any] | None = None):
+    def _remove(self, mock_request_user_sync: Any, mod_data: dict[str, Any] | None = None) -> TestResponse:
         """
         Remove phone number from the test user
 
@@ -148,7 +150,7 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
         mock_verification_code: Any,
         mod_data: dict[str, Any] | None = None,
         captcha_completed: bool = True,
-    ):
+    ) -> TestResponse:
         """
         Send a POST request to trigger re-sending a verification code for an unverified phone number in the test user.
 
@@ -183,7 +185,7 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
         phone: str = "+34670123456",
         code: str = "5250f9a4",
         magic_cookie_name: str | None = None,
-    ):
+    ) -> TestResponse:
         """
         POST phone data to generate a verification state,
         and try to get the generated code through the backdoor

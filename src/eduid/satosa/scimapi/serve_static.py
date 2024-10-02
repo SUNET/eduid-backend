@@ -46,7 +46,7 @@ class ServeStatic(RequestMicroService):
             url_map.append([f"^{endpoint}/", self._handle])
         return url_map
 
-    def _handle(self, context: Context):
+    def _handle(self, context: Context) -> Response:
         path = context._path
         endpoint = path.split("/")[0]
         target = path[len(endpoint) + 1 :]

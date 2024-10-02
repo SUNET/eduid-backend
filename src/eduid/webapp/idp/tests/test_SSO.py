@@ -70,7 +70,7 @@ def make_SAML_request(class_ref: EduidAuthnContextClass | str | None = None) -> 
     return _transport_encode(xml)
 
 
-def _transport_encode(data: str):
+def _transport_encode(data: str) -> str:
     # encode('base64') only works for POST bindings, redirect uses zlib compression too.
     return b64encode("".join(data.split("\n")))
 

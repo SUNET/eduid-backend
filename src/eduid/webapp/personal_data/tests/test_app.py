@@ -36,7 +36,7 @@ class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
 
     # parameterized test methods
 
-    def _get_user(self, eppn: str | None = None):
+    def _get_user(self, eppn: str | None = None) -> dict:
         """
         Send a GET request to get the personal data of a user
 
@@ -66,7 +66,7 @@ class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def _post_user(
         self, mock_request_user_sync: Any, mod_data: dict[str, Any] | None = None, verified_user: bool = True
-    ):
+    ) -> TestResponse:
         """
         POST personal data for the test user
         """
@@ -96,7 +96,7 @@ class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def _post_user_name(
         self, mock_request_user_sync: Any, mod_data: dict[str, Any] | None = None, verified_user: bool = True
-    ):
+    ) -> TestResponse:
         """
         POST user name for the test user
         """
@@ -125,7 +125,7 @@ class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def _post_user_language(
         self, mock_request_user_sync: Any, mod_data: dict[str, Any] | None = None, verified_user: bool = True
-    ):
+    ) -> TestResponse:
         """
         POST user language for the test user
         """
@@ -143,7 +143,7 @@ class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
                     data.update(mod_data)
             return client.post("/user/language", data=json.dumps(data), content_type=self.content_type_json)
 
-    def _get_preferences(self, eppn: str | None = None):
+    def _get_preferences(self, eppn: str | None = None) -> TestResponse:
         """
         Send a GET request to get the personal data of a user
 
@@ -159,7 +159,7 @@ class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
         return response2
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def _post_preferences(self, mock_request_user_sync: Any, mod_data: dict[str, Any] | None = None):
+    def _post_preferences(self, mock_request_user_sync: Any, mod_data: dict[str, Any] | None = None) -> TestResponse:
         """
         POST preferences for the test user
         """
@@ -177,7 +177,7 @@ class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
                         data["csrf_token"] = sess.get_csrf_token()
             return client.post("/preferences", json=data)
 
-    def _get_user_identities(self, eppn: str | None = None):
+    def _get_user_identities(self, eppn: str | None = None) -> TestResponse:
         """
         GET a list of all the identities of a user
 

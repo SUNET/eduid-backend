@@ -189,7 +189,7 @@ class ScimApiTestUserResourceBase(ScimApiTestCase):
             attributes={"displayName": "Test User 2"}, data={"another_test_key": "another_test_value"}
         )
 
-    def _assertUserUpdateSuccess(self, req: Mapping, response: Response, user: ScimApiUser):
+    def _assertUserUpdateSuccess(self, req: Mapping, response: Response, user: ScimApiUser) -> None:
         """Function to validate successful responses to SCIM calls that update a user according to a request."""
 
         if response.json().get("schemas") == [SCIMSchema.ERROR.value]:
@@ -775,7 +775,7 @@ class TestUserResource(ScimApiTestUserResourceBase):
         expected_user: ScimApiUser | None = None,
         expected_num_resources: int | None = None,
         expected_total_results: int | None = None,
-    ):
+    ) -> dict:
         logger.info(f"Searching for user(s) using filter {repr(search_filter)}")
         req = {
             "schemas": [SCIMSchema.API_MESSAGES_20_SEARCH_REQUEST.value],

@@ -11,7 +11,7 @@ __author__ = "lundberg"
 
 
 class TestNotifications(ScimApiTestCase):
-    def _get_notifications(self):
+    def _get_notifications(self) -> list[QueueItem]:
         return [QueueItem.from_dict(x) for x in self.messagedb._get_all_docs()]
 
     def _get_config(self) -> dict[str, Any]:

@@ -154,7 +154,7 @@ class NinHelpersTest(EduidAPITestCase[HelpersTestApp]):
         user: User,
         nin_element: NinProofingElement,
         proofing_log_entry: TNinProofingLogElementSubclass,
-    ):
+    ) -> None:
         """Test happy-case when calling verify_nin_for_user with a User instance (deprecated)"""
         mock_user_sync.return_value = True
         proofing_state = NinProofingState.from_dict({"eduPersonPrincipalName": user.eppn, "nin": nin_element.to_dict()})
@@ -171,7 +171,7 @@ class NinHelpersTest(EduidAPITestCase[HelpersTestApp]):
 
     def _test_verify_nin_for_proofing_user(
         self, user: User, nin_element: NinProofingElement, proofing_log_entry: TNinProofingLogElementSubclass
-    ):
+    ) -> None:
         """Test happy-case when calling verify_nin_for_user with a ProofingUser instance"""
         proofing_state = NinProofingState.from_dict({"eduPersonPrincipalName": user.eppn, "nin": nin_element.to_dict()})
         assert proofing_state.nin.created_by is not None

@@ -23,7 +23,7 @@ _three_dict = {
 }
 
 
-def _keyid(key: dict[str, str]):
+def _keyid(key: dict[str, str]) -> str:
     return "sha256:" + sha256(key["keyhandle"].encode("utf-8") + key["credential_data"].encode("utf-8")).hexdigest()
 
 

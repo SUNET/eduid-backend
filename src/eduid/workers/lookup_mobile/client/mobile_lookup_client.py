@@ -28,7 +28,7 @@ class MobileLookupClient:
             self._client = Client(self.conf.teleadress_client_url, port=self.conf.teleadress_client_port)
         return self._client
 
-    def _get_find_person(self):
+    def _get_find_person(self) -> Any:
         find_person = self.client.factory.create("ns7:FindPersonClass")
         find_person.QueryParams = self.client.factory.create("ns7:QueryParamsClass")
         find_person.QueryColumns = self.client.factory.create("ns7:QueryColumnsClass")
@@ -59,7 +59,7 @@ class MobileLookupClient:
 
         return format_NIN(nin)
 
-    def _search(self, param: Any | Object):
+    def _search(self, param: Any | Object) -> list | None:
         # Start the search
         # TODO: remove self.conf.devel_mode, use environment instead
         if self.conf.testing or self.conf.environment == EduidEnvironment.dev:
@@ -68,11 +68,7 @@ class MobileLookupClient:
             result = self.client.service.Find(param)
 
         if result._error_code != 0:
-            self.logger.debug(
-                "Error code: {err_code}, error message: {err_message}".format(
-                    err_code=result._error_code, err_message=(result._error_text.encode("utf-8"))
-                )
-            )
+            self.logger.debug(f"Error code: {result._error_code}, error message: {result._error_text}")
             return None
 
         # Check if the search got a hit

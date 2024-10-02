@@ -161,7 +161,7 @@ class EduidSession(SessionMixin, MutableMapping[str, Any]):
         return True
 
     @permanent.setter
-    def permanent(self, value: bool):
+    def permanent(self, value: bool) -> None:
         # EduidSessions are _always_ permanent
         pass
 
@@ -178,7 +178,7 @@ class EduidSession(SessionMixin, MutableMapping[str, Any]):
         return self._namespaces.mfa_action
 
     @mfa_action.deleter
-    def mfa_action(self):
+    def mfa_action(self) -> None:
         """
         This can be thought of as the scratch area where the eidas SP communicates information back to the IdP.
 
@@ -196,7 +196,7 @@ class EduidSession(SessionMixin, MutableMapping[str, Any]):
         return self._namespaces.signup
 
     @signup.deleter
-    def signup(self):
+    def signup(self) -> None:
         self._namespaces.signup = None
         del self["signup"]
 

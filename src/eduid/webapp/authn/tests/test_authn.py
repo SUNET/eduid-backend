@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from flask import Blueprint, Response
+from flask.typing import ResponseReturnValue
 from saml2.s_utils import deflate_and_base64_encode
 from werkzeug.exceptions import NotFound
 from werkzeug.http import dump_cookie
@@ -294,7 +295,7 @@ class AuthnAPITestCase(AuthnAPITestBase):
         self.acs("/authenticate", eppn, FrontendAction.REMOVE_SECURITY_KEY_AUTHN, frontend_state="key_id_to_remove")
 
     # TODO: up for removal since it seems unused
-    def _signup_authn_user(self, eppn: str):
+    def _signup_authn_user(self, eppn: str) -> ResponseReturnValue:
         timestamp = utc_now()
 
         with self.app.test_client() as c:
@@ -368,15 +369,15 @@ class NoAuthnAPITestCase(EduidAPITestCase):
         test_views = Blueprint("testing", __name__)
 
         @test_views.route("/test")
-        def test():
+        def test() -> str:
             return "OK"
 
         @test_views.route("/test2")
-        def test2():
+        def test2() -> str:
             return "OK"
 
         @test_views.route("/test3")
-        def test3():
+        def test3() -> str:
             return "OK"
 
         self.app.register_blueprint(test_views)

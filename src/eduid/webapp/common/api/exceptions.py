@@ -1,7 +1,7 @@
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
 
-from flask import Flask, jsonify
+from flask import Flask, Response, jsonify
 from werkzeug.exceptions import HTTPException
 
 __author__ = "lundberg"
@@ -76,7 +76,7 @@ class ThrottledException(Exception):
 def init_exception_handlers(app: Flask) -> Flask:
     # Init error handler for raised exceptions
     @app.errorhandler(400)
-    def _handle_flask_http_exception(error: HTTPException):
+    def _handle_flask_http_exception(error: HTTPException) -> Response:
         app.logger.error(f"HttpException {error!s}")
         e = ApiException(error.name, error.code)
         if app.config.get("DEBUG"):

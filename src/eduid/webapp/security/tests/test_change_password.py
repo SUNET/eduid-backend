@@ -3,6 +3,8 @@ from collections.abc import Mapping
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+from werkzeug.test import TestResponse
+
 from eduid.common.config.base import FrontendAction
 from eduid.userdb.credentials import Password
 from eduid.webapp.common.api.schemas.authn_status import AuthnActionStatus
@@ -46,7 +48,7 @@ class ChangePasswordTests(EduidAPITestCase[SecurityApp]):
 
     # parameterized test methods
 
-    def _get_suggested(self, reauthn: int | None = 60):
+    def _get_suggested(self, reauthn: int | None = 60) -> TestResponse:
         """
         GET a suggested password.
         """
@@ -59,7 +61,7 @@ class ChangePasswordTests(EduidAPITestCase[SecurityApp]):
         self,
         mock_request_user_sync: Any,
         data1: dict[str, Any] | None = None,
-    ):
+    ) -> TestResponse:
         """
         To change the password of the test user, POST old and new passwords,
         mocking the required re-authentication (by setting a flag in the session).
@@ -85,7 +87,7 @@ class ChangePasswordTests(EduidAPITestCase[SecurityApp]):
         mock_request_user_sync: Any,
         data1: dict[str, Any] | None = None,
         correct_old_password: bool = True,
-    ):
+    ) -> TestResponse:
         """
         To change the password of the test user using a suggested password,
         first GET a suggested password, and then POST old and new passwords,

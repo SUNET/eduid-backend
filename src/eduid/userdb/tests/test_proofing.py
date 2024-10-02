@@ -28,7 +28,7 @@ ADDRESS = FullPostalAddress.model_validate(
 
 
 class ProofingStateTest(TestCase):
-    def _test_create_letterproofingstate(self, state: LetterProofingState, nin_expected_keys: list[str]):
+    def _test_create_letterproofingstate(self, state: LetterProofingState, nin_expected_keys: list[str]) -> None:
         """
         {
              'eppn': 'foob-arra',

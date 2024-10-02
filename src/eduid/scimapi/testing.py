@@ -196,7 +196,7 @@ class ScimApiTestCase(MongoNeoTestCase):
         scim_type: str | None = None,
         detail: Any | None = None,
         exclude_keys: list[str] | None = None,
-    ):
+    ) -> None:
         if schemas is None:
             schemas = [SCIMSchema.ERROR.value]
         self.assertEqual(schemas, json.get("schemas"))
@@ -213,7 +213,7 @@ class ScimApiTestCase(MongoNeoTestCase):
         response: Response,
         resource: ScimApiGroup | ScimApiUser | ScimApiInvite | ScimApiEvent,
         expected_schemas: list[str],
-    ):
+    ) -> None:
         if SCIMSchema.NUTID_USER_V1.value in response.json():
             # The API can always add this extension to the parsed_response, even if it was not in the request
             expected_schemas += [SCIMSchema.NUTID_USER_V1.value]

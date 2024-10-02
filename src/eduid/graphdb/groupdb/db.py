@@ -152,7 +152,7 @@ class GroupDB(BaseGraphDB):
                 elif Label.USER.value in record["labels"]:
                     self._remove_user_from_group(tx, group=group, user_identifier=record["identifier"], role=role)
 
-    def _remove_group_from_group(self, tx: Transaction, group: Group, group_identifier: str, role: Role):
+    def _remove_group_from_group(self, tx: Transaction, group: Group, group_identifier: str, role: Role) -> None:
         q = f"""
             MATCH (:Group {{scope: $scope, identifier: $identifier}})<-[r:{role.value}]-(:Group
                     {{scope: $scope, identifier: $group_identifier}})
@@ -165,7 +165,7 @@ class GroupDB(BaseGraphDB):
             group_identifier=group_identifier,
         )
 
-    def _remove_user_from_group(self, tx: Transaction, group: Group, user_identifier: str, role: Role):
+    def _remove_user_from_group(self, tx: Transaction, group: Group, user_identifier: str, role: Role) -> None:
         q = f"""
             MATCH (:Group {{scope: $scope, identifier: $identifier}})<-[r:{role.value}]-(:User
                     {{identifier: $user_identifier}})
@@ -315,7 +315,7 @@ class GroupDB(BaseGraphDB):
             ]
         return res
 
-    def _get_groups_for_role(self, label: Label, identifier: str, role: Role):
+    def _get_groups_for_role(self, label: Label, identifier: str, role: Role) -> list[Group]:
         res: list[Group] = []
         if label == Label.GROUP:
             entity_match = "(e:Group {scope: $scope, identifier: $identifier})"

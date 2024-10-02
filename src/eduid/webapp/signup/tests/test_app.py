@@ -90,7 +90,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         expect_success: bool = True,
         expected_message: TranslatableMsg | None = None,
         logged_in: bool = False,
-    ):
+    ) -> SignupResult:
         eppn = None
         if logged_in:
             eppn = self.test_user.eppn
@@ -146,7 +146,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         expected_message: TranslatableMsg | None = None,
         expected_payload: Mapping[str, Any] | None = None,
         logged_in: bool = False,
-    ):
+    ) -> SignupResult:
         """
         :param captcha_data: to control the data POSTed to the /captcha endpoint
         :param add_magic_cookie: add magic cookie to the captcha request
@@ -223,7 +223,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         expected_message: TranslatableMsg | None = None,
         expected_payload: Mapping[str, Any] | None = None,
         logged_in: bool = False,
-    ):
+    ) -> SignupResult:
         """
         Trigger sending an email with a verification code.
 
@@ -294,7 +294,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         expected_message: TranslatableMsg | None = None,
         expected_payload: Mapping[str, Any] | None = None,
         logged_in: bool = False,
-    ):
+    ) -> SignupResult:
         """
         Verify registered email with a verification code.
 
@@ -364,7 +364,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         expected_message: TranslatableMsg | None = None,
         expected_payload: Mapping[str, Any] | None = None,
         logged_in: bool = False,
-    ):
+    ) -> SignupResult:
         """
         Verify registered email with a verification code.
 
@@ -432,7 +432,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         expected_message: TranslatableMsg | None = None,
         expected_payload: Mapping[str, Any] | None = None,
         logged_in: bool = False,
-    ):
+    ) -> SignupResult:
         """
         Generate a generated_password and return in state.
 
@@ -496,7 +496,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         email_verified: bool = True,
         generated_password: str | None = "test_password",
         logged_in: bool = False,
-    ):
+    ) -> None:
         eppn = None
         if logged_in:
             eppn = self.test_user.eppn
@@ -525,7 +525,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         expected_message: TranslatableMsg | None = None,
         expected_payload: Mapping[str, Any] | None = None,
         logged_in: bool = False,
-    ):
+    ) -> SignupResult:
         """
         Create a new user with the data in the session.
         """
@@ -637,7 +637,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         expected_message: TranslatableMsg | None = None,
         expected_payload: Mapping[str, Any] | None = None,
         logged_in: bool = False,
-    ):
+    ) -> SignupResult:
         """
         Get invite data from the invite data endpoint.
         """
@@ -713,7 +713,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         expected_message: TranslatableMsg | None = None,
         expected_payload: Mapping[str, Any] | None = None,
         logged_in: bool = False,
-    ):
+    ) -> SignupResult:
         eppn = None
         if logged_in:
             eppn = self.test_user.eppn
@@ -778,7 +778,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         expect_success: bool = True,
         expected_message: TranslatableMsg | None = None,
         expected_payload: Mapping[str, Any] | None = None,
-    ):
+    ) -> SignupResult:
         mock_request_user_sync.side_effect = self.request_user_sync
         logged_in = False
         if eppn:
@@ -832,7 +832,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
 
         return SignupResult(url=endpoint, reached_state=SignupState.S7_COMPLETE_INVITE, response=response)
 
-    def _get_code_backdoor(self, email: str, magic_cookie_name: str | None = None):
+    def _get_code_backdoor(self, email: str, magic_cookie_name: str | None = None) -> TestResponse:
         """
         Test getting the generated verification code through the backdoor
         """

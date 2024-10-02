@@ -24,9 +24,10 @@ class DevelopResult:
     def __init__(self):
         self.record_list = [DevelopResult.RecordList()]
         self._error_code = 0
+        self._error_text = ""
 
 
-def _get_devel_search_result(search_param: Any | Object):
+def _get_devel_search_result(search_param: Any | Object) -> DevelopResult:
     nin = search_param.QueryParams.FindSSNo
     mobile = search_param.QueryParams.FindTelephone
 

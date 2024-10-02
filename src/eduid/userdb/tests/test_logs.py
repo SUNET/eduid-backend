@@ -350,7 +350,7 @@ class TestUserChangeLog(TestCase):
     def tearDown(self) -> None:
         self.user_log_db._drop_whole_collection()
 
-    def _insert_log_fixtures(self):
+    def _insert_log_fixtures(self) -> None:
         data_1 = UserChangeLogElement(
             eppn="hubba-bubba",
             created_by="test",

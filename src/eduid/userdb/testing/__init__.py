@@ -116,7 +116,7 @@ class MongoTestCase(unittest.TestCase):
                 logger.debug(f"Adding test user {user} to the database")
                 self.amdb.save(user)
 
-    def _init_logging(self):
+    def _init_logging(self) -> None:
         local_context = LocalContext(
             app_debug=True,
             app_name="testing",
@@ -127,7 +127,7 @@ class MongoTestCase(unittest.TestCase):
         logging_config = make_dictConfig(local_context)
         logging.config.dictConfig(logging_config)
 
-    def _reset_databases(self):
+    def _reset_databases(self) -> None:
         """
         Reset databases for the next test class.
 
@@ -183,7 +183,7 @@ class AsyncMongoTestCase(unittest.IsolatedAsyncioTestCase):
         else:
             self.settings.update(mongo_settings)
 
-    def _init_logging(self):
+    def _init_logging(self) -> None:
         local_context = LocalContext(
             app_debug=True,
             app_name="testing",
@@ -194,7 +194,7 @@ class AsyncMongoTestCase(unittest.IsolatedAsyncioTestCase):
         logging_config = make_dictConfig(local_context)
         logging.config.dictConfig(logging_config)
 
-    def _reset_databases(self):
+    def _reset_databases(self) -> None:
         """
         Reset databases for the next test class.
 

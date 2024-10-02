@@ -23,7 +23,7 @@ from eduid.userdb.util import utc_now
 __author__ = "ft"
 
 
-def _keyid(kh: str):
+def _keyid(kh: str) -> str:
     return "sha256:" + sha256(kh.encode("utf-8")).hexdigest()
 
 
@@ -126,7 +126,7 @@ class TestNewUser(unittest.TestCase):
         self._setup_user1()
         self._setup_user2()
 
-    def _setup_user1(self):
+    def _setup_user1(self) -> None:
         mailAliases_list = [
             MailAddress(
                 created_ts=datetime.fromisoformat("2014-12-18T11:25:19.804000"),
@@ -168,7 +168,7 @@ class TestNewUser(unittest.TestCase):
             language="en",
         )
 
-    def _setup_user2(self):
+    def _setup_user2(self) -> None:
         mailAliases_list = [
             MailAddress(email="someone+test1@gmail.com", is_verified=True),
             MailAddress(
@@ -249,6 +249,7 @@ class TestNewUser(unittest.TestCase):
         self.assertEqual(self.user1.legal_name, self.data1["legal_name"])
 
     def test_mail_addresses(self) -> None:
+        assert self.user1.mail_addresses.primary is not None
         self.assertEqual(self.user1.mail_addresses.primary.email, self.data1["mailAliases"][0]["email"])
 
     def test_passwords(self) -> None:

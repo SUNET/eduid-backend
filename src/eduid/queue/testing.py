@@ -138,7 +138,7 @@ class EduidQueueTestCase(TestCase):
     def tearDown(self) -> None:
         self.client_db._drop_whole_collection()
 
-    def _init_db(self):
+    def _init_db(self) -> None:
         db_init_try = 0
         while True:
             try:
@@ -164,7 +164,7 @@ class QueueAsyncioTest(EduidQueueTestCase, IsolatedAsyncioTestCase):
             if not task.done():
                 task.cancel()
 
-    async def _init_async_db(self):
+    async def _init_async_db(self) -> None:
         db_init_try = 0
         while True:
             try:
@@ -191,7 +191,7 @@ class QueueAsyncioTest(EduidQueueTestCase, IsolatedAsyncioTestCase):
             payload=payload,
         )
 
-    async def _assert_item_gets_processed(self, queue_item: QueueItem, retry: bool = False):
+    async def _assert_item_gets_processed(self, queue_item: QueueItem, retry: bool = False) -> None:
         end_time = utc_now() + timedelta(seconds=10)
         fetched: QueueItem | None = None
         while utc_now() < end_time:

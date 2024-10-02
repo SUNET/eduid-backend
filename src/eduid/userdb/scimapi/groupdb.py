@@ -59,7 +59,7 @@ class ScimApiGroup(ScimApiResourceBase, _ScimApiGroupRequired):
         return self.graph.members
 
     @members.setter
-    def members(self, members: Iterable[GraphGroup | GraphUser]):
+    def members(self, members: Iterable[GraphGroup | GraphUser]) -> None:
         members = set(members)
         self.graph = replace(self.graph, members=members)
 
@@ -71,7 +71,7 @@ class ScimApiGroup(ScimApiResourceBase, _ScimApiGroupRequired):
         return self.graph.owners
 
     @owners.setter
-    def owners(self, owners: Iterable[GraphGroup | GraphUser]):
+    def owners(self, owners: Iterable[GraphGroup | GraphUser]) -> None:
         owners = set(owners)
         self.graph = replace(self.graph, owners=owners)
 

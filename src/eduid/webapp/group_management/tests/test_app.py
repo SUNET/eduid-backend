@@ -56,7 +56,7 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
             scim_id=UUID("00000000-0000-0000-0000-000000000003"), display_name="Test Group 2"
         )
 
-    def _fix_mail_addresses(self):
+    def _fix_mail_addresses(self) -> None:
         # Due to mixup in base user data
         correct_address = self.test_user2.mail_addresses.find("johnsmith2@example.com")
         assert correct_address is not None
@@ -169,16 +169,16 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
         self._check_success_response(response, type_="POST_GROUP_INVITE_INVITES_DELETE_SUCCESS")
         return response
 
-    def _invite_setup(self):
+    def _invite_setup(self) -> None:
         # Add test user as group owner of two groups
         assert self.test_user.mail_addresses.primary is not None
         graph_user = GraphUser(
             identifier=str(self.scim_user1.scim_id), display_name=self.test_user.mail_addresses.primary.email
         )
-        self.scim_group1.owners = [graph_user]
+        self.scim_group1.owners = set([graph_user])
         self.app.scimapi_groupdb.save(self.scim_group1)
 
-        self.scim_group2.owners = [graph_user]
+        self.scim_group2.owners = set([graph_user])
         self.app.scimapi_groupdb.save(self.scim_group2)
 
         # Invite test_user2 as owner and member of Test Group 1
