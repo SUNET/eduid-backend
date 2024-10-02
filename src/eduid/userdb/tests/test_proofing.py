@@ -73,7 +73,7 @@ class ProofingStateTest(TestCase):
             sorted(_proofing_letter_expected_keys),
         )
 
-    def test_create_letterproofingstate_with_ninproofingelement_from_dict(self):
+    def test_create_letterproofingstate_with_ninproofingelement_from_dict(self) -> None:
         """ """
         state = LetterProofingState(
             eppn=EPPN,
@@ -102,7 +102,7 @@ class ProofingStateTest(TestCase):
 
         self._test_create_letterproofingstate(state, _nin_expected_keys)
 
-    def test_create_letterproofingstate_with_ninproofingelement_from_dict_with_created_ts(self):
+    def test_create_letterproofingstate_with_ninproofingelement_from_dict_with_created_ts(self) -> None:
         """ """
         state = LetterProofingState(
             eppn=EPPN,
@@ -130,7 +130,7 @@ class ProofingStateTest(TestCase):
 
         self._test_create_letterproofingstate(state, _nin_expected_keys)
 
-    def test_create_letterproofingstate(self):
+    def test_create_letterproofingstate(self) -> None:
         """ """
         state = LetterProofingState(
             eppn=EPPN,
@@ -155,7 +155,7 @@ class ProofingStateTest(TestCase):
 
         self._test_create_letterproofingstate(state, _nin_expected_keys)
 
-    def test_create_oidcproofingstate(self):
+    def test_create_oidcproofingstate(self) -> None:
         """
         {
             'eduPersonPrincipalName': 'foob-arra',
@@ -183,7 +183,7 @@ class ProofingStateTest(TestCase):
             ["_id", "eduPersonPrincipalName", "modified_ts", "nin", "nonce", "state", "token"],
         )
 
-    def test_proofing_state_expiration(self):
+    def test_proofing_state_expiration(self) -> None:
         state = ProofingState(id=None, eppn=EPPN, modified_ts=datetime.now(tz=None))
         self.assertFalse(state.is_expired(1))
 

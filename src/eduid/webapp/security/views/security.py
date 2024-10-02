@@ -21,6 +21,7 @@ from eduid.webapp.common.authn.vccs import revoke_all_credentials
 from eduid.webapp.common.session import session
 from eduid.webapp.security.app import current_security_app as current_app
 from eduid.webapp.security.helpers import (
+    CredentialInfo,
     SecurityMsg,
     check_reauthn,
     compile_credential_list,
@@ -46,7 +47,7 @@ security_views = Blueprint("security", __name__, url_prefix="", template_folder=
 @security_views.route("/credentials", methods=["GET"])
 @MarshalWith(SecurityResponseSchema)
 @require_user
-def get_credentials(user: User):
+def get_credentials(user: User) -> dict[str, list[CredentialInfo]]:
     """
     View to get credentials for the logged user.
     """
@@ -61,7 +62,7 @@ def get_credentials(user: User):
 @UnmarshalWith(EmptyRequest)
 @MarshalWith(AccountTerminatedSchema)
 @require_user
-def terminate_account(user: User):
+def terminate_account(user: User) -> FluxData:
     """
     The account termination action,
     removes all credentials for the terminated account

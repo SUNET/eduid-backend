@@ -182,7 +182,7 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
 
     def get_users_by_identity(
         self, identity_type: IdentityType, key: str, value: str, include_unconfirmed: bool = False
-    ):
+    ) -> list[UserVar]:
         match = {"identity_type": identity_type.value, key: value, "verified": True}
         if include_unconfirmed:
             del match["verified"]

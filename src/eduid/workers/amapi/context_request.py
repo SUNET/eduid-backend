@@ -10,7 +10,7 @@ from fastapi.routing import APIRoute
 
 @dataclass
 class Context:
-    def to_dict(self):
+    def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 
 
@@ -19,7 +19,7 @@ class ContextRequest(Request):
         super().__init__(*args, **kwargs)
 
     @property
-    def context(self):
+    def context(self) -> Context:
         try:
             return self.state.context
         except AttributeError:

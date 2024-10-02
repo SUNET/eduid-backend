@@ -62,7 +62,7 @@ def init_scim_event_worker(
     return ScimEventQueueWorker(config=config)
 
 
-def start_worker():
+def start_worker() -> None:
     worker = init_scim_event_worker()
     exit(asyncio.run(worker.run()))
 

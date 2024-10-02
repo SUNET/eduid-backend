@@ -64,19 +64,19 @@ class SignupStatusResponse(FluxStandardAction):
     payload = fields.Nested(StatusSchema)
 
     @pre_dump
-    def set_already_signed_up(self, data: dict, **kwargs: Any):
+    def set_already_signed_up(self, data: dict, **kwargs: Any) -> dict:
         if data["payload"].get("state"):
             data["payload"]["state"]["already_signed_up"] = bool(session.common.eppn)
         return data
 
     @pre_dump
-    def set_tou_version(self, data: dict, **kwargs: Any):
+    def set_tou_version(self, data: dict, **kwargs: Any) -> dict:
         if data["payload"].get("state", {}).get("tou") and data["payload"]["state"]["tou"].get("version") is None:
             data["payload"]["state"]["tou"]["version"] = current_app.conf.tou_version
         return data
 
     @pre_dump
-    def throttle_delta_to_seconds(self, out_data: dict, **kwargs: Any):
+    def throttle_delta_to_seconds(self, out_data: dict, **kwargs: Any) -> dict:
         if out_data["payload"].get("state", {}).get("email", {}).get("sent_at"):
             sent_at = out_data["payload"]["state"]["email"]["sent_at"]
             throttle_time_left = time_left(sent_at, current_app.conf.throttle_resend).total_seconds()
@@ -88,7 +88,7 @@ class SignupStatusResponse(FluxStandardAction):
         return out_data
 
     @pre_dump
-    def email_verification_timeout_delta_to_seconds(self, out_data: dict, **kwargs: Any):
+    def email_verification_timeout_delta_to_seconds(self, out_data: dict, **kwargs: Any) -> dict:
         if out_data["payload"].get("state", {}).get("email", {}).get("sent_at"):
             sent_at = out_data["payload"]["state"]["email"]["sent_at"]
             verification_time_left = time_left(sent_at, current_app.conf.email_verification_timeout).total_seconds()
@@ -100,7 +100,7 @@ class SignupStatusResponse(FluxStandardAction):
         return out_data
 
     @pre_dump
-    def bad_attempts_max(self, out_data: dict, **kwargs: Any):
+    def bad_attempts_max(self, out_data: dict, **kwargs: Any) -> dict:
         if out_data["payload"].get("state", {}).get("email"):
             out_data["payload"]["state"]["email"]["bad_attempts_max"] = (
                 current_app.conf.email_verification_max_bad_attempts

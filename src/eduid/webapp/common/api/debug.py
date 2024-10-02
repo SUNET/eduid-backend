@@ -29,7 +29,7 @@ class LoggingMiddleware:
         return self._app(environ, log_response)
 
 
-def log_endpoints(app: Flask):
+def log_endpoints(app: Flask) -> None:
     output: list[str] = []
     with app.app_context():
         for rule in app.url_map.iter_rules():
@@ -46,7 +46,7 @@ def log_endpoints(app: Flask):
             pprint.pprint(("ENDPOINT", line), stream=sys.stderr)
 
 
-def dump_config(app: Flask):
+def dump_config(app: Flask) -> None:
     pprint.pprint(("CONFIGURATION", "app.config"), stream=sys.stderr)
     try:
         config_items = asdict(app.config).items()  # type: ignore[call-overload]
@@ -57,7 +57,7 @@ def dump_config(app: Flask):
         pprint.pprint((key, value), stream=sys.stderr)
 
 
-def init_app_debug(app: Flask):
+def init_app_debug(app: Flask) -> Flask:
     app.wsgi_app = LoggingMiddleware(app.wsgi_app)  # type: ignore[method-assign]
     dump_config(app)
     log_endpoints(app)

@@ -106,7 +106,7 @@ class EduidTemporaryInstance(ABC):
             _output = "".join(fd.readlines())
         return _output
 
-    def shutdown(self):
+    def shutdown(self) -> None:
         logger.debug(f"{self} output at shutdown:\n{self.output}")
         if self._process:
             self._process.terminate()

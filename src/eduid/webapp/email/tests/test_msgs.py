@@ -4,7 +4,7 @@ from eduid.webapp.email.helpers import EmailMsg
 
 
 class MessagesTests(unittest.TestCase):
-    def test_messages(self):
+    def test_messages(self) -> None:
         """"""
         self.assertEqual(EmailMsg.missing.value, "emails.missing")
         self.assertEqual(EmailMsg.dupe.value, "emails.duplicated")

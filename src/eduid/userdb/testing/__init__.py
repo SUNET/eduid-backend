@@ -57,10 +57,10 @@ class MongoTemporaryInstance(EduidTemporaryInstance):
         return self._conn
 
     @property
-    def uri(self):
+    def uri(self) -> str:
         return f"mongodb://localhost:{self.port}"
 
-    def shutdown(self):
+    def shutdown(self) -> None:
         if self._conn:
             logger.info(f"Closing connection {self._conn}")
             self._conn.close()
@@ -82,7 +82,7 @@ class MongoTestCase(unittest.TestCase):
     A test can access the port using the attribute `port`
     """
 
-    def setUp(self, am_users: list[User] | None = None):
+    def setUp(self, am_users: list[User] | None = None) -> None:
         """
         Test case initialization.
         :return:
@@ -139,7 +139,7 @@ class MongoTestCase(unittest.TestCase):
                 self.tmp_db.conn.drop_database(db_name)
         self.amdb._drop_whole_collection()
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         for userdoc in self.amdb._get_all_docs():
             assert User.from_dict(data=userdoc)
         self._reset_databases()
@@ -156,7 +156,7 @@ class AsyncMongoTestCase(unittest.IsolatedAsyncioTestCase):
     A test can access the port using the attribute `port`
     """
 
-    def setUp(self, *args: list[Any], **kwargs: dict[str, Any]):
+    def setUp(self, *args: list[Any], **kwargs: dict[str, Any]) -> None:
         """
         Test case initialization.
         :return:
@@ -205,6 +205,6 @@ class AsyncMongoTestCase(unittest.IsolatedAsyncioTestCase):
             if db_name not in ["local", "admin", "config"]:  # Do not drop mongo internal dbs
                 self.tmp_db.conn.drop_database(db_name)
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         self._reset_databases()
         super().tearDown()

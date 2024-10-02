@@ -80,7 +80,7 @@ class AsyncMongoDB(BaseMongoDB):
         _db = self.get_database(database_name)
         return _db[collection]
 
-    async def is_healthy(self):
+    async def is_healthy(self) -> bool:
         """
         From mongo_client.py:
         Starting with version 3.0 the :class:`MongoClient`
@@ -111,7 +111,7 @@ class AsyncMongoDB(BaseMongoDB):
             logger.error(f"{self} not healthy: {e}")
             return False
 
-    async def close(self):
+    async def close(self) -> None:
         self._client.close()
 
 

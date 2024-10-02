@@ -42,7 +42,7 @@ class FakeVCCSPasswordFactor(VCCSPasswordFactor):
 
 
 class TestVCCSClient(unittest.TestCase):
-    def test_password_factor(self):
+    def test_password_factor(self) -> None:
         """
         Test creating a VCCSPasswordFactor instance.
         """
@@ -57,7 +57,7 @@ class TestVCCSClient(unittest.TestCase):
             },
         )
 
-    def test_utf8_password_factor(self):
+    def test_utf8_password_factor(self) -> None:
         """
         Test creating a VCCSPasswordFactor instance.
         """
@@ -72,22 +72,22 @@ class TestVCCSClient(unittest.TestCase):
             },
         )
 
-    def test_OATH_factor_auth(self):
+    def test_OATH_factor_auth(self) -> None:
         """
         Test creating a VCCSOathFactor instance.
         """
         aead = "aa" * 20
-        o = VCCSOathFactor("oath-hotp", 4712, nonce="010203040506", aead=aead, user_code="123456")
+        o = VCCSOathFactor("oath-hotp", 4712, nonce="010203040506", aead=aead, user_code=123456)
         self.assertEqual(
             o.to_dict("auth"),
             {
                 "type": "oath-hotp",
                 "credential_id": 4712,
-                "user_code": "123456",
+                "user_code": 123456,
             },
         )
 
-    def test_OATH_factor_add(self):
+    def test_OATH_factor_add(self) -> None:
         """
         Test creating a VCCSOathFactor instance for an add_creds request.
         """
@@ -106,24 +106,24 @@ class TestVCCSClient(unittest.TestCase):
             },
         )
 
-    def test_missing_parts_of_OATH_factor(self):
+    def test_missing_parts_of_OATH_factor(self) -> None:
         """
         Test creating a VCCSOathFactor instance with missing parts.
         """
         aead = "aa" * 20
-        o = VCCSOathFactor("oath-hotp", 4712, user_code="123456")
+        o = VCCSOathFactor("oath-hotp", 4712, user_code=123456)
         # missing AEAD
         with self.assertRaises(ValueError):
             o.to_dict("add_creds")
 
-        o = VCCSOathFactor("oath-hotp", 4712, nonce="010203040506", aead=aead, key_handle=0x1234, user_code="123456")
+        o = VCCSOathFactor("oath-hotp", 4712, nonce="010203040506", aead=aead, key_handle=0x1234, user_code=123456)
         # with AEAD o should be OK
         self.assertEqual(type(o.to_dict("add_creds")), dict)
         # unknown to_dict 'action' should raise
         with self.assertRaises(ValueError):
             o.to_dict("bad_action")
 
-    def test_authenticate1(self):
+    def test_authenticate1(self) -> None:
         """
         Test parsing of successful authentication response.
         """
@@ -137,7 +137,7 @@ class TestVCCSClient(unittest.TestCase):
         f = VCCSPasswordFactor("password", "4711", "$NDNv1H1$aaaaaaaaaaaaaaaa$12$32$")
         self.assertTrue(c.authenticate("ft@example.net", [f]))
 
-    def test_authenticate1_utf8(self):
+    def test_authenticate1_utf8(self) -> None:
         """
         Test parsing of successful authentication response with a password in UTF-8.
         """
@@ -151,7 +151,7 @@ class TestVCCSClient(unittest.TestCase):
         f = VCCSPasswordFactor("passwordåäöхэж", "4711", "$NDNv1H1$aaaaaaaaaaaaaaaa$12$32$")
         self.assertTrue(c.authenticate("ft@example.net", [f]))
 
-    def test_authenticate2(self):
+    def test_authenticate2(self) -> None:
         """
         Test unknown response version
         """
@@ -165,7 +165,7 @@ class TestVCCSClient(unittest.TestCase):
         with self.assertRaises(AssertionError):
             c.authenticate("ft@example.net", [f])
 
-    def test_authenticate2_utf8(self):
+    def test_authenticate2_utf8(self) -> None:
         """
         Test unknown response version with a password in UTF-8.
         """
@@ -179,7 +179,7 @@ class TestVCCSClient(unittest.TestCase):
         with self.assertRaises(AssertionError):
             c.authenticate("ft@example.net", [f])
 
-    def test_add_creds1(self):
+    def test_add_creds1(self) -> None:
         """
         Test parsing of successful add_creds response.
         """
@@ -207,7 +207,7 @@ class TestVCCSClient(unittest.TestCase):
         }
         self.assertEqual(expected, values)
 
-    def test_add_creds1_utf8(self):
+    def test_add_creds1_utf8(self) -> None:
         """
         Test parsing of successful add_creds response with a password in UTF-8.
         """
@@ -235,7 +235,7 @@ class TestVCCSClient(unittest.TestCase):
         }
         self.assertEqual(expected, values)
 
-    def test_add_creds2(self):
+    def test_add_creds2(self) -> None:
         """
         Test parsing of unsuccessful add_creds response.
         """
@@ -249,7 +249,7 @@ class TestVCCSClient(unittest.TestCase):
         f = VCCSPasswordFactor("password", "4711", "$NDNv1H1$aaaaaaaaaaaaaaaa$12$32$")
         self.assertFalse(c.add_credentials("ft@example.net", [f]))
 
-    def test_add_creds2_utf8(self):
+    def test_add_creds2_utf8(self) -> None:
         """
         Test parsing of unsuccessful add_creds response with a password in UTF-8.
         """
@@ -263,7 +263,7 @@ class TestVCCSClient(unittest.TestCase):
         f = VCCSPasswordFactor("passwordåäöхэж", "4711", "$NDNv1H1$aaaaaaaaaaaaaaaa$12$32$")
         self.assertFalse(c.add_credentials("ft@example.net", [f]))
 
-    def test_revoke_creds1(self):
+    def test_revoke_creds1(self) -> None:
         """
         Test parsing of unsuccessful revoke_creds response.
         """
@@ -277,24 +277,24 @@ class TestVCCSClient(unittest.TestCase):
         r = VCCSRevokeFactor("4712", "testing revoke", "foobar")
         self.assertFalse(c.revoke_credentials("ft@example.net", [r]))
 
-    def test_revoke_creds2(self):
+    def test_revoke_creds2(self) -> None:
         """
         Test revocation reason/reference bad types.
         """
-        FakeVCCSClient(None)
+        FakeVCCSClient("Fake response not used in test")
 
         with self.assertRaises(TypeError):
-            VCCSRevokeFactor(4712, 1234, "foobar")
+            VCCSRevokeFactor(4712, 1234, "foobar")  # type: ignore[arg-type]
 
         with self.assertRaises(TypeError):
-            VCCSRevokeFactor(4712, "foobar", 2345)
+            VCCSRevokeFactor(4712, "foobar", 2345)  # type: ignore[arg-type]
 
-    def test_unknown_salt_version(self):
+    def test_unknown_salt_version(self) -> None:
         """Test unknown salt version"""
         with self.assertRaises(ValueError):
             VCCSPasswordFactor("anything", "4711", "$NDNvFOO$aaaaaaaaaaaaaaaa$12$32$")
 
-    def test_generate_salt1(self):
+    def test_generate_salt1(self) -> None:
         """Test salt generation."""
         f = VCCSPasswordFactor("anything", "4711")
         self.assertEqual(len(f.salt), 80)
@@ -303,7 +303,7 @@ class TestVCCSClient(unittest.TestCase):
         self.assertEqual(rounds, 32)
         self.assertEqual(len(random), length)
 
-    def test_generate_salt2(self):
+    def test_generate_salt2(self) -> None:
         """Test salt generation with fake RNG."""
 
         f = FakeVCCSPasswordFactor("anything", "4711")

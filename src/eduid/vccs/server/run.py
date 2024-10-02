@@ -51,7 +51,7 @@ app.include_router(authenticate_router)
 
 
 @app.on_event("startup")
-async def startup_event():
+async def startup_event() -> None:
     """
     Uvicorn mucks with the logging config on startup, particularly the access log. Rein it in.
     """
@@ -75,7 +75,7 @@ async def startup_event():
 
 
 @app.exception_handler(RequestValidationError)
-async def validation_exception_handler(request: Request, exc: RequestValidationError):
+async def validation_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
     request.app.logger.warning(f"Failed parsing request: {exc}")
     return JSONResponse({"errors": exc.errors()}, status_code=HTTP_422_UNPROCESSABLE_ENTITY)
 

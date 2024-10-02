@@ -26,36 +26,36 @@ users_router = APIRouter(
 
 
 @users_router.put("/{eppn}/name", response_model=UserUpdateResponse)
-async def on_put_name(req: ContextRequest, data: UserUpdateNameRequest, eppn: str):
+async def on_put_name(req: ContextRequest, data: UserUpdateNameRequest, eppn: str) -> UserUpdateResponse:
     req.app.context.logger.info(f"Update user {eppn} name")
     return update_user(req=req, eppn=eppn, data=data)
 
 
 @users_router.put("/{eppn}/email", response_model=UserUpdateResponse)
-async def on_put_email(req: ContextRequest, data: UserUpdateEmailRequest, eppn: str):
+async def on_put_email(req: ContextRequest, data: UserUpdateEmailRequest, eppn: str) -> UserUpdateResponse:
     req.app.context.logger.info(f"Update user {eppn} email")
     return update_user(req=req, eppn=eppn, data=data)
 
 
 @users_router.put("/{eppn}/language", response_model=UserUpdateResponse)
-async def on_put_language(req: ContextRequest, data: UserUpdateLanguageRequest, eppn: str):
+async def on_put_language(req: ContextRequest, data: UserUpdateLanguageRequest, eppn: str) -> UserUpdateResponse:
     req.app.context.logger.info(f"Update user {eppn} language")
     return update_user(req=req, eppn=eppn, data=data)
 
 
 @users_router.put("/{eppn}/phone", response_model=UserUpdateResponse)
-async def on_put_phone(req: ContextRequest, data: UserUpdatePhoneRequest, eppn: str):
+async def on_put_phone(req: ContextRequest, data: UserUpdatePhoneRequest, eppn: str) -> UserUpdateResponse:
     req.app.context.logger.info(f"Update user {eppn} phone")
     return update_user(req=req, eppn=eppn, data=data)
 
 
 @users_router.put("/{eppn}/meta/cleaned", response_model=UserUpdateResponse)
-async def on_put_meta_cleaned(req: ContextRequest, data: UserUpdateMetaCleanedRequest, eppn: str):
+async def on_put_meta_cleaned(req: ContextRequest, data: UserUpdateMetaCleanedRequest, eppn: str) -> UserUpdateResponse:
     req.app.context.logger.info(f"Update user {eppn} meta/cleaned")
     return update_user(req=req, eppn=eppn, data=data)
 
 
 @users_router.put("/{eppn}/terminate", response_model=UserUpdateResponse)
-async def on_terminate_user(req: ContextRequest, data: UserUpdateTerminateRequest, eppn: str):
+async def on_terminate_user(req: ContextRequest, data: UserUpdateTerminateRequest, eppn: str) -> UserUpdateResponse:
     req.app.context.logger.info(f"Terminate user {eppn}")
     return update_user(req=req, eppn=eppn, data=data)

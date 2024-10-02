@@ -3,6 +3,8 @@ from collections.abc import Mapping
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+from werkzeug.test import TestResponse
+
 from eduid.userdb.orcid import OidcAuthorization, OidcIdToken, Orcid
 from eduid.userdb.proofing import ProofingUser
 from eduid.userdb.proofing.state import OrcidProofingState
@@ -15,7 +17,7 @@ __author__ = "lundberg"
 class OrcidTests(EduidAPITestCase[OrcidApp]):
     """Base TestCase for those tests that need a full environment setup"""
 
-    def setUp(self, *args: Any, **kwargs: Any):
+    def setUp(self, *args: Any, **kwargs: Any) -> None:
         self.test_user_eppn = "hubba-bubba"
         self.oidc_provider_config = {
             "token_endpoint_auth_signing_alg_values_supported": ["RS256"],
@@ -94,7 +96,7 @@ class OrcidTests(EduidAPITestCase[OrcidApp]):
         mock_token_request: MagicMock,
         mock_userinfo_request: MagicMock,
         mock_auth_response: MagicMock,
-    ):
+    ) -> TestResponse:
         mock_auth_response.return_value = {
             "id_token": "id_token",
             "code": "code",
@@ -123,7 +125,7 @@ class OrcidTests(EduidAPITestCase[OrcidApp]):
         mock_userinfo_request.return_value = userinfo
         return self.browser.get(f"/authorization-response?id_token=id_token&state={proofing_state.state}")
 
-    def test_authenticate(self):
+    def test_authenticate(self) -> None:
         response = self.browser.get("/authorize")
         self.assertEqual(response.status_code, 401)
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
@@ -132,7 +134,7 @@ class OrcidTests(EduidAPITestCase[OrcidApp]):
         self.assertTrue(response.location.startswith(self.app.conf.provider_configuration_info["issuer"]))
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_oidc_flow(self, mock_request_user_sync: MagicMock):
+    def test_oidc_flow(self, mock_request_user_sync: MagicMock) -> None:
         mock_request_user_sync.side_effect = self.request_user_sync
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
@@ -158,7 +160,7 @@ class OrcidTests(EduidAPITestCase[OrcidApp]):
         self.assertEqual(user.orcid.family_name, userinfo["family_name"])
         self.assertEqual(self.app.proofing_log.db_count(), 1)
 
-    def test_get_orcid(self):
+    def test_get_orcid(self) -> None:
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         proofing_user = ProofingUser.from_user(user, self.app.private_userdb)
         proofing_user.orcid = self.orcid_element
@@ -176,7 +178,7 @@ class OrcidTests(EduidAPITestCase[OrcidApp]):
         self._check_success_response(response, type_="GET_ORCID_SUCCESS", payload=expected_payload)
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_remove_orcid(self, mock_request_user_sync: MagicMock):
+    def test_remove_orcid(self, mock_request_user_sync: MagicMock) -> None:
         mock_request_user_sync.side_effect = self.request_user_sync
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)

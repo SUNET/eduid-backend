@@ -36,7 +36,7 @@ from satosa.micro_services.base import (
     RequestMicroService,
     ResponseMicroService,
 )
-from satosa.response import Response
+from satosa.response import Response, SeeOther
 from satosa.saml_util import make_saml_response
 
 try:
@@ -625,7 +625,7 @@ class StepupSAMLBackend(SAMLBackend):
             raise StepUpError(f"The configuration for this plugin is not valid: {e}")
         self.mfa = parsed_config.mfa
 
-    def authn_request(self, context: satosa.context.Context, entity_id: str):
+    def authn_request(self, context: satosa.context.Context, entity_id: str) -> SeeOther | Response:
         logger.debug(f"Processing AuthnRequest with entity id {repr(entity_id)}")
 
         if self.mfa and AuthnContext.sp_wants_mfa(context=context):

@@ -235,7 +235,7 @@ def get_incoming_invites(user: User) -> list[dict[str, Any]]:
     return invites
 
 
-def send_invite_email(invite_state: GroupInviteState):
+def send_invite_email(invite_state: GroupInviteState) -> None:
     text_template = current_app.conf.group_invite_template_txt
     html_template = current_app.conf.group_invite_template_txt
 
@@ -264,7 +264,7 @@ def send_invite_email(invite_state: GroupInviteState):
     current_app.logger.info(f"Sent group {invite_state.group_scim_id} invite email to {invite_state.email_address}")
 
 
-def send_delete_invite_email(invite_state: GroupInviteState):
+def send_delete_invite_email(invite_state: GroupInviteState) -> None:
     text_template = current_app.conf.group_delete_invite_template_txt
     html_template = current_app.conf.group_delete_invite_template_html
 

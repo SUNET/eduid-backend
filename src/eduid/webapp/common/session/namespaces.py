@@ -53,7 +53,7 @@ class SessionNSBase(BaseModel, ABC):
         _data = deepcopy(data)  # do not modify callers data
         return dict(_data)
 
-    def clear(self):
+    def clear(self) -> None:
         """
         Clears all session namespace data.
         """

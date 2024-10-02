@@ -73,7 +73,7 @@ class ThrottledException(Exception):
         self.state = state
 
 
-def init_exception_handlers(app: Flask):
+def init_exception_handlers(app: Flask) -> Flask:
     # Init error handler for raised exceptions
     @app.errorhandler(400)
     def _handle_flask_http_exception(error: HTTPException):
@@ -88,7 +88,7 @@ def init_exception_handlers(app: Flask):
     return app
 
 
-def init_sentry(app: Flask):
+def init_sentry(app: Flask) -> Flask:
     if app.config.get("SENTRY_DSN"):
         try:
             from raven.contrib.flask import Sentry

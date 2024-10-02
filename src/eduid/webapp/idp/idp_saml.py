@@ -329,7 +329,7 @@ class IdP_SAMLRequest:
         info = (samlp.STATUS_AUTHN_FAILED, "Authentication context class not supported")
         return self.make_error_response(info, resp_args)
 
-    def make_error_response(self, info: tuple[str, str], resp_args: ResponseArgs):
+    def make_error_response(self, info: tuple[str, str], resp_args: ResponseArgs) -> SamlResponse:
         saml_response = self._idp.create_error_response(info=info, sign=True, **resp_args)
         logger.debug(f"Cancel SAML response:\n{saml_response}")
         if not isinstance(saml_response, str):

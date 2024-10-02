@@ -6,7 +6,7 @@ from typing import Any
 
 
 # https://stackoverflow.com/questions/2536307/how-do-i-deprecate-python-functions/40301488#40301488
-def deprecated(reason: str | type | Callable):
+def deprecated(reason: str | type | Callable) -> Callable:
     """
     This is a decorator which can be used to mark functions
     as deprecated. It will result in a warning being emitted

@@ -407,7 +407,7 @@ def verify_email_address(state: ResetPasswordEmailState) -> bool:
     return False
 
 
-def send_verify_phone_code(state: ResetPasswordEmailState, phone_number: str):
+def send_verify_phone_code(state: ResetPasswordEmailState, phone_number: str) -> None:
     phone_state = ResetPasswordEmailAndPhoneState.from_email_state(
         state, phone_number=phone_number, phone_code=get_short_hash()
     )
@@ -424,7 +424,7 @@ def send_verify_phone_code(state: ResetPasswordEmailState, phone_number: str):
     current_app.logger.debug(f"Phone number: {phone_state.phone_number}")
 
 
-def send_sms(phone_number: str, text_template: str, reference: str, context: Mapping[str, Any] | None = None):
+def send_sms(phone_number: str, text_template: str, reference: str, context: Mapping[str, Any] | None = None) -> None:
     """
     :param phone_number: the recipient of the sms
     :param text_template: message as a jinja template

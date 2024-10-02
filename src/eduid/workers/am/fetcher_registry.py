@@ -40,6 +40,6 @@ class AFRegistry:
     def all_fetchers(self) -> Iterable[AttributeFetcher]:
         return self._fetchers.values()
 
-    def reset(self):
+    def reset(self) -> None:
         """After a worker failure, we reset the AF registry to have everything re-initialise"""
         self._fetchers = {}

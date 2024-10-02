@@ -37,7 +37,8 @@ token_response = {
 class TestOrcid(unittest.TestCase):
     maxDiff = None
 
-    def test_id_token(self):
+    def test_id_token(self) -> None:
+        assert isinstance(token_response["id_token"], dict)
         id_token_data = token_response["id_token"]
         id_token_data["created_by"] = "test"
         id_token_1 = OidcIdToken.from_dict(id_token_data)
@@ -65,9 +66,10 @@ class TestOrcid(unittest.TestCase):
         assert dict_1 == dict_2
 
         with self.assertRaises(eduid.userdb.exceptions.UserDBValueError):
-            OidcIdToken.from_dict(None)
+            OidcIdToken.from_dict(None)  # type: ignore[arg-type]
 
-    def test_oidc_authz(self):
+    def test_oidc_authz(self) -> None:
+        assert isinstance(token_response["id_token"], dict)
         id_token_data = token_response["id_token"]
         id_token_data["created_by"] = "test"
         id_token = OidcIdToken.from_dict(token_response["id_token"])
@@ -96,9 +98,10 @@ class TestOrcid(unittest.TestCase):
         assert dict_1 == dict_2
 
         with self.assertRaises(eduid.userdb.exceptions.UserDBValueError):
-            OidcAuthorization.from_dict(None)
+            OidcAuthorization.from_dict(None)  # type: ignore[arg-type]
 
-    def test_orcid(self):
+    def test_orcid(self) -> None:
+        assert isinstance(token_response["id_token"], dict)
         token_response["id_token"]["created_by"] = "test"
         token_response["created_by"] = "test"
         oidc_authz = OidcAuthorization.from_dict(token_response)
@@ -135,4 +138,4 @@ class TestOrcid(unittest.TestCase):
         ], f"Wrong error message: {normalised_data(exc_info.value.errors(), exclude_keys=['url'])}"
 
         with pytest.raises(eduid.userdb.exceptions.UserDBValueError):
-            Orcid.from_dict(None)
+            Orcid.from_dict(None)  # type: ignore[arg-type]

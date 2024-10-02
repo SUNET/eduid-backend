@@ -20,7 +20,7 @@ class UnableToAddPassword(Exception):
     pass
 
 
-def list_users(context: Context, data_owner: str):
+def list_users(context: Context, data_owner: str) -> list[ManagedAccount]:
     managed_accounts: list[ManagedAccount] = context.db.get_users(data_owner=data_owner)
     context.logger.info(f"Listing {managed_accounts.__len__()} users")
     return managed_accounts
@@ -44,7 +44,7 @@ def add_password(context: Context, managed_account: ManagedAccount, password: st
     return True
 
 
-def revoke_passwords(context: Context, managed_account: ManagedAccount, reason: str):
+def revoke_passwords(context: Context, managed_account: ManagedAccount, reason: str) -> bool:
     vccs = context.vccs_client
 
     revoke_factors = []
@@ -66,7 +66,7 @@ def revoke_passwords(context: Context, managed_account: ManagedAccount, reason: 
     return True
 
 
-def save_and_sync_user(context: Context, managed_account: ManagedAccount):
+def save_and_sync_user(context: Context, managed_account: ManagedAccount) -> None:
     context.logger.debug(f"Saving and syncing user {managed_account}")
     result = context.db.save(managed_account)
     context.logger.debug(f"Saved user {managed_account} with result {result}")
@@ -123,7 +123,7 @@ def deactivate_user(context: Context, eppn: str, data_owner: str) -> ManagedAcco
     return managed_account
 
 
-def replace_password(context: Context, eppn: str, new_password: str):
+def replace_password(context: Context, eppn: str, new_password: str) -> None:
     managed_account: ManagedAccount = context.db.get_user_by_eppn(eppn)
     if managed_account is None:
         raise UserDoesNotExist(f"User {eppn} not found")
@@ -144,7 +144,7 @@ def get_user(context: Context, eppn: str, data_owner: str) -> ManagedAccount:
     return managed_account
 
 
-def add_api_event(context: Context, eppn: str, action: str, action_by: str, data_owner: str):
+def add_api_event(context: Context, eppn: str, action: str, action_by: str, data_owner: str) -> None:
     expiration: datetime = utc_now() + timedelta(days=context.config.log_retention_days)
     log_element = ManagedAccountLogElement(
         eppn=eppn,

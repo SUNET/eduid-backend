@@ -12,6 +12,7 @@ from eduid.common.fastapi.utils import (
     reset_failure_info,
     set_cached_response,
 )
+from eduid.workers.job_runner.scheduler import JobScheduler
 
 status_router = APIRouter(route_class=ContextRequestRoute, prefix="/status")
 
@@ -22,7 +23,7 @@ class StatusResponse(BaseModel):
     reason: str
 
 
-def check_mongo(request: ContextRequest):
+def check_mongo(request: ContextRequest) -> bool | None:
     db = request.app.context.db
     try:
         db.is_healthy()
@@ -34,8 +35,8 @@ def check_mongo(request: ContextRequest):
         return False
 
 
-def check_scheduler(request: ContextRequest):
-    scheduler = request.app.scheduler
+def check_scheduler(request: ContextRequest) -> bool:
+    scheduler: JobScheduler = request.app.scheduler
     return scheduler.running
 
 

@@ -26,8 +26,9 @@ class TestEventResource(ScimApiTestCase):
     def setUp(self) -> None:
         super().setUp()
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         super().tearDown()
+        assert self.eventdb
         self.eventdb._drop_whole_collection()
 
     def _create_event(self, event: dict[str, Any], expect_success: bool = True) -> EventApiResult:
@@ -65,7 +66,7 @@ class TestEventResource(ScimApiTestCase):
 
         self._assertScimResponseProperties(response, resource=event, expected_schemas=expected_schemas)
 
-    def test_create_event(self):
+    def test_create_event(self) -> None:
         user = self.add_user(identifier=str(uuid4()), external_id="test@example.org")
         event = {
             "resource": {
@@ -80,6 +81,7 @@ class TestEventResource(ScimApiTestCase):
         result = self._create_event(event=event)
 
         # check that the create resulted in an event in the database
+        assert self.eventdb
         events = self.eventdb.get_events_by_resource(SCIMResourceType.USER, scim_id=user.scim_id)
         assert len(events) == 1
         db_event = events[0]
@@ -92,9 +94,10 @@ class TestEventResource(ScimApiTestCase):
         assert db_event.data == event["data"]
         # Verify what is returned in the parsed_response
         assert result.parsed_response.id == db_event.scim_id
+        assert result.request
         self._assertEventUpdateSuccess(req=result.request, response=result.response, event=db_event)
 
-    def test_create_and_fetch_event(self):
+    def test_create_and_fetch_event(self) -> None:
         user = self.add_user(identifier=str(uuid4()), external_id="test@example.org")
         event = {
             "resource": {
@@ -109,6 +112,7 @@ class TestEventResource(ScimApiTestCase):
         created = self._create_event(event=event)
 
         # check that the creation resulted in an event in the database
+        assert self.eventdb
         events = self.eventdb.get_events_by_resource(SCIMResourceType.USER, scim_id=user.scim_id)
         assert len(events) == 1
         db_event = events[0]

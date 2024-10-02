@@ -6,7 +6,7 @@ from eduid.userdb.signup import Invite, InviteMailAddress, InvitePhoneNumber, In
 
 
 class TestSignupInvite(TestCase):
-    def test_scim_invite(self):
+    def test_scim_invite(self) -> None:
         invite = Invite(
             invite_type=InviteType.SCIM,
             invite_reference=SCIMReference(data_owner="test_data_owner", scim_id=uuid4()),

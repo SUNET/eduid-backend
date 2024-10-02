@@ -104,12 +104,12 @@ class SubResource(EduidBaseModel):
     display: str
 
     @property
-    def is_user(self):
-        return self.ref and "/Users/" in self.ref
+    def is_user(self) -> bool:
+        return self.ref is not None and "/Users/" in self.ref
 
     @property
-    def is_group(self):
-        return self.ref and "/Groups/" in self.ref
+    def is_group(self) -> bool:
+        return self.ref is not None and "/Groups/" in self.ref
 
     @classmethod
     def from_mapping(cls, data: Any):

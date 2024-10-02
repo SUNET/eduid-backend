@@ -291,7 +291,7 @@ def send_mail(
     app: EduIDBaseApp,
     context: dict[str, Any] | None = None,
     reference: str | None = None,
-):
+) -> None:
     """
     :param subject: subject text
     :param to_addresses: email addresses for the to field

@@ -2,7 +2,7 @@ import datetime
 from hashlib import sha256
 from unittest import TestCase
 
-from eduid.userdb.credentials import CredentialList, CredentialProofingMethod
+from eduid.userdb.credentials import CredentialList, CredentialProofingMethod, Webauthn
 
 __author__ = "lundberg"
 
@@ -28,17 +28,19 @@ def _keyid(key: dict[str, str]):
 
 
 class TestWebauthn(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.empty = CredentialList()
         self.one = CredentialList.from_list_of_dicts([_one_dict])
         self.two = CredentialList.from_list_of_dicts([_one_dict, _two_dict])
         self.three = CredentialList.from_list_of_dicts([_one_dict, _two_dict, _three_dict])
 
-    def test_key(self):
+    def test_key(self) -> None:
         """
         Test that the 'key' property (used by CredentialList) works for the credential.
         """
         this = self.one.find(_keyid(_one_dict))
+        assert this
+        assert isinstance(this, Webauthn)
         self.assertEqual(
             this.key,
             _keyid(
@@ -49,7 +51,7 @@ class TestWebauthn(TestCase):
             ),
         )
 
-    def test_parse_cycle(self):
+    def test_parse_cycle(self) -> None:
         """
         Tests that we output something we parsed back into the same thing we output.
         """
@@ -57,17 +59,20 @@ class TestWebauthn(TestCase):
             this_dict = this.to_list_of_dicts()
             self.assertEqual(CredentialList.from_list_of_dicts(this_dict).to_list_of_dicts(), this.to_list_of_dicts())
 
-    def test_created_by(self):
+    def test_created_by(self) -> None:
         this = self.three.find(_keyid(_three_dict))
+        assert this
         this.created_by = "unit test"
         self.assertEqual(this.created_by, "unit test")
 
-    def test_created_ts(self):
+    def test_created_ts(self) -> None:
         this = self.three.find(_keyid(_three_dict))
+        assert this
         self.assertIsInstance(this.created_ts, datetime.datetime)
 
-    def test_proofing_method(self):
+    def test_proofing_method(self) -> None:
         this = self.three.find(_keyid(_three_dict))
+        assert this
         this.proofing_method = CredentialProofingMethod.SWAMID_AL2_MFA_HI
         self.assertEqual(this.proofing_method, CredentialProofingMethod.SWAMID_AL2_MFA_HI)
         this.proofing_method = CredentialProofingMethod.SWAMID_AL3_MFA
@@ -75,8 +80,9 @@ class TestWebauthn(TestCase):
         this.proofing_method = None
         self.assertEqual(this.proofing_method, None)
 
-    def test_proofing_version(self):
+    def test_proofing_version(self) -> None:
         this = self.three.find(_keyid(_three_dict))
+        assert this
         this.proofing_version = "TEST"
         self.assertEqual(this.proofing_version, "TEST")
         this.proofing_version = "TEST2"

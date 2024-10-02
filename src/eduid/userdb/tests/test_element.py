@@ -5,14 +5,14 @@ from eduid.userdb.element import Element, PrimaryElement, PrimaryElementViolatio
 
 
 class TestElements(TestCase):
-    def test_create_element(self):
+    def test_create_element(self) -> None:
         elem = Element(created_by="test")
 
         assert elem.created_by == "test"
         assert isinstance(elem.created_ts, datetime)
         assert isinstance(elem.modified_ts, datetime)
 
-    def test_create_element_with_created_ts(self):
+    def test_create_element_with_created_ts(self) -> None:
         now = datetime.utcnow()
         elem = Element(created_by="test", created_ts=now)
 
@@ -20,7 +20,7 @@ class TestElements(TestCase):
         assert elem.created_ts == now
         assert isinstance(elem.modified_ts, datetime)
 
-    def test_create_element_with_modified_ts(self):
+    def test_create_element_with_modified_ts(self) -> None:
         now = datetime.utcnow()
         elem = Element(created_by="test", modified_ts=now)
 
@@ -28,7 +28,7 @@ class TestElements(TestCase):
         assert elem.modified_ts == now
         assert isinstance(elem.modified_ts, datetime)
 
-    def test_create_element_with_created_and_modified_ts(self):
+    def test_create_element_with_created_and_modified_ts(self) -> None:
         now = datetime.utcnow()
         elem = Element(created_by="test", modified_ts=now, created_ts=now)
 
@@ -36,7 +36,7 @@ class TestElements(TestCase):
         assert elem.created_ts == now
         assert elem.modified_ts == now
 
-    def test_element_reset_modified_ts(self):
+    def test_element_reset_modified_ts(self) -> None:
         now = datetime.utcnow()
         elem = Element(created_by="test", modified_ts=now, created_ts=now)
 
@@ -47,7 +47,7 @@ class TestElements(TestCase):
 
 
 class TestVerifiedElements(TestCase):
-    def test_create_verified_element(self):
+    def test_create_verified_element(self) -> None:
         elem = VerifiedElement(created_by="test")
 
         assert elem.created_by == "test"
@@ -58,7 +58,7 @@ class TestVerifiedElements(TestCase):
         assert elem.verified_by is None
         assert elem.verified_ts is None
 
-    def test_modify_verified_element(self):
+    def test_modify_verified_element(self) -> None:
         elem = VerifiedElement(created_by="test")
         now = datetime.utcnow()
 
@@ -74,7 +74,7 @@ class TestVerifiedElements(TestCase):
         assert elem.verified_by == "test"
         assert elem.verified_ts == now
 
-    def test_create_full_verified_element(self):
+    def test_create_full_verified_element(self) -> None:
         now = datetime.utcnow()
 
         elem = VerifiedElement(
@@ -91,7 +91,7 @@ class TestVerifiedElements(TestCase):
 
 
 class TestPrimaryElements(TestCase):
-    def test_create_primary_element(self):
+    def test_create_primary_element(self) -> None:
         elem = PrimaryElement(created_by="test")
 
         assert elem.created_by == "test"
@@ -104,7 +104,7 @@ class TestPrimaryElements(TestCase):
 
         assert elem.is_primary is False
 
-    def test_modify_primary_element(self):
+    def test_modify_primary_element(self) -> None:
         elem = PrimaryElement(created_by="test")
         now = datetime.utcnow()
 
@@ -124,7 +124,7 @@ class TestPrimaryElements(TestCase):
 
         assert elem.is_primary is True
 
-    def test_create_full_primary_element(self):
+    def test_create_full_primary_element(self) -> None:
         now = datetime.utcnow()
 
         elem = PrimaryElement(
@@ -147,7 +147,7 @@ class TestPrimaryElements(TestCase):
 
         assert elem.is_primary is True
 
-    def test_unverify_primary_element(self):
+    def test_unverify_primary_element(self) -> None:
         now = datetime.utcnow()
 
         elem = PrimaryElement(

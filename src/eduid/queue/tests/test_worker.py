@@ -62,7 +62,7 @@ class TestBaseWorker(QueueAsyncioTest):
     async def asyncTearDown(self) -> None:
         await super().asyncTearDown()
 
-    async def test_worker_item_from_stream(self):
+    async def test_worker_item_from_stream(self) -> None:
         """
         Test that saved queue items are handled by the handle_new_item method
         """
@@ -74,7 +74,7 @@ class TestBaseWorker(QueueAsyncioTest):
         self.client_db.save(queue_item)
         await self._assert_item_gets_processed(queue_item)
 
-    async def test_worker_expired_item(self):
+    async def test_worker_expired_item(self) -> None:
         """
         Test that expired queue items are handled by the handle_expired_item method
         """

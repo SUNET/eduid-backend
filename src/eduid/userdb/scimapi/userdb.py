@@ -40,7 +40,7 @@ class ScimApiUser(ScimApiResourceBase):
     linked_accounts: list[ScimApiLinkedAccount] = field(default_factory=list)
 
     @property
-    def etag(self):
+    def etag(self) -> str:
         return f'W/"{self.version}"'
 
     def to_dict(self) -> TUserDbDocument:
@@ -128,7 +128,7 @@ class ScimApiUserDB(ScimApiBaseDB):
 
         return None
 
-    def remove(self, user: ScimApiUser):
+    def remove(self, user: ScimApiUser) -> bool:
         return self.remove_document(user.user_id)
 
     def get_user_by_scim_id(self, scim_id: str) -> ScimApiUser | None:
@@ -157,7 +157,7 @@ class ScimApiUserDB(ScimApiBaseDB):
         profile: str,
         key: str,
         operator: str,
-        value: datetime,
+        value: str | int,
         limit: int | None = None,
         skip: int | None = None,
     ) -> tuple[list[ScimApiUser], int]:

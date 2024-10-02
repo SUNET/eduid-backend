@@ -61,7 +61,7 @@ class ChangePasswordSchema(PasswordSchema):
     authn_id = fields.String(required=False)
 
     @validates("new_password")
-    def validate_custom_password(self, value: str, **kwargs: Any):
+    def validate_custom_password(self, value: str, **kwargs: Any) -> None:
         # Set a new error message
         try:
             self.validate_password(value)

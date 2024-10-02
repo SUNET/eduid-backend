@@ -107,7 +107,7 @@ class ScimApiInviteDB(ScimApiBaseDB):
 
         return result.acknowledged
 
-    def remove(self, invite: ScimApiInvite):
+    def remove(self, invite: ScimApiInvite) -> bool:
         return self.remove_document(invite.invite_id)
 
     def get_invite_by_scim_id(self, scim_id: str) -> ScimApiInvite | None:

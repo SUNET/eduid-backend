@@ -11,6 +11,7 @@ import eduid.userdb.exceptions
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.testing_base import normalised_data
 from eduid.userdb import PhoneNumber
+from eduid.userdb.element import ElementKey
 from eduid.userdb.mail import MailAddress, MailAddressList
 
 __author__ = "ft"
@@ -35,37 +36,39 @@ _three_dict = {
 
 
 class TestMailAddressList(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.maxDiff = None
         self.empty = MailAddressList()
         self.one = MailAddressList.from_list_of_dicts([_one_dict])
         self.two = MailAddressList.from_list_of_dicts([_one_dict, _two_dict])
         self.three = MailAddressList.from_list_of_dicts([_one_dict, _two_dict, _three_dict])
 
-    def test_init_bad_data(self):
+    def test_init_bad_data(self) -> None:
         with pytest.raises(ValidationError):
             MailAddressList(elements="bad input data")
         with pytest.raises(ValidationError):
             MailAddressList(elements=["bad input data"])
 
-    def test_to_list(self):
+    def test_to_list(self) -> None:
         self.assertEqual([], self.empty.to_list(), list)
         self.assertIsInstance(self.one.to_list(), list)
 
         self.assertEqual(1, len(self.one.to_list()))
 
-    def test_empty_to_list_of_dicts(self):
+    def test_empty_to_list_of_dicts(self) -> None:
         self.assertEqual([], self.empty.to_list_of_dicts(), list)
 
-    def test_find(self):
+    def test_find(self) -> None:
         match = self.one.find("ft@one.example.org")
+        assert match
         self.assertIsInstance(match, MailAddress)
         self.assertEqual(match.email, "ft@one.example.org")
         self.assertEqual(match.is_verified, True)
         self.assertEqual(match.verified_ts, None)
 
-    def test_add(self):
+    def test_add(self) -> None:
         second = self.two.find("ft@two.example.org")
+        assert second
         self.one.add(second)
 
         expected = self.two.to_list_of_dicts()
@@ -73,8 +76,10 @@ class TestMailAddressList(unittest.TestCase):
 
         assert obtained == expected, "Wrong data after adding mail address to list"
 
-    def test_add_duplicate(self):
+    def test_add_duplicate(self) -> None:
+        assert self.two.primary
         dup = self.two.find(self.two.primary.email)
+        assert dup
         with pytest.raises(ValidationError) as exc_info:
             self.two.add(dup)
 
@@ -89,8 +94,9 @@ class TestMailAddressList(unittest.TestCase):
             ],
         ), f"Wrong error message: {normalised_data(exc_info.value.errors(), exclude_keys=['input', 'url'])}"
 
-    def test_add_mailaddress(self):
+    def test_add_mailaddress(self) -> None:
         third = self.three.find("ft@three.example.org")
+        assert third
         this = MailAddressList.from_list_of_dicts([_one_dict, _two_dict, third.to_dict()])
 
         expected = self.three.to_list_of_dicts()
@@ -98,20 +104,20 @@ class TestMailAddressList(unittest.TestCase):
 
         assert obtained == expected, "Wrong data in mail address list"
 
-    def test_add_another_primary(self):
+    def test_add_another_primary(self) -> None:
         new = eduid.userdb.mail.address_from_dict(
             {"email": "ft@primary.example.org", "verified": True, "primary": True}
         )
         with self.assertRaises(eduid.userdb.element.PrimaryElementViolation):
             self.one.add(new)
 
-    def test_add_wrong_type(self):
+    def test_add_wrong_type(self) -> None:
         new = PhoneNumber(number="+4612345678")
         with pytest.raises(ValidationError):
-            self.one.add(new)
+            self.one.add(new)  # type: ignore[arg-type]
 
-    def test_remove(self):
-        self.three.remove("ft@three.example.org")
+    def test_remove(self) -> None:
+        self.three.remove(ElementKey("ft@three.example.org"))
         now_two = self.three
 
         expected = self.two.to_list_of_dicts()
@@ -119,51 +125,58 @@ class TestMailAddressList(unittest.TestCase):
 
         assert obtained == expected, "Wrong data after removing email from list"
 
-    def test_remove_unknown(self):
+    def test_remove_unknown(self) -> None:
         with self.assertRaises(eduid.userdb.exceptions.UserDBValueError):
-            self.one.remove("foo@no-such-address.example.org")
+            self.one.remove(ElementKey("foo@no-such-address.example.org"))
 
-    def test_remove_primary(self):
+    def test_remove_primary(self) -> None:
+        assert self.two.primary
         with pytest.raises(
             eduid.userdb.element.PrimaryElementViolation, match="Removing the primary element is not allowed"
         ):
             self.two.remove(self.two.primary.key)
 
-    def test_remove_primary_single(self):
-        self.one.remove(self.one.primary.email)
+    def test_remove_primary_single(self) -> None:
+        assert self.one.primary
+        self.one.remove(ElementKey(self.one.primary.email))
         now_empty = self.one
         self.assertEqual([], now_empty.to_list())
 
-    def test_primary(self):
+    def test_primary(self) -> None:
         match = self.one.primary
+        assert match
         self.assertEqual(match.email, "ft@one.example.org")
 
-    def test_empty_primary(self):
+    def test_empty_primary(self) -> None:
         self.assertEqual(None, self.empty.primary)
 
-    def test_set_primary_to_same(self):
+    def test_set_primary_to_same(self) -> None:
         match = self.one.primary
-        self.one.set_primary(match.email)
+        assert match
+        self.one.set_primary(ElementKey(match.email))
 
         match = self.two.primary
-        self.two.set_primary(match.email)
+        assert match
+        self.two.set_primary(ElementKey(match.email))
 
-    def test_set_unknown_as_primary(self):
+    def test_set_unknown_as_primary(self) -> None:
         with self.assertRaises(eduid.userdb.exceptions.UserDBValueError):
-            self.one.set_primary("foo@no-such-address.example.org")
+            self.one.set_primary(ElementKey("foo@no-such-address.example.org"))
 
-    def test_set_unverified_as_primary(self):
+    def test_set_unverified_as_primary(self) -> None:
         with self.assertRaises(eduid.userdb.element.PrimaryElementViolation):
-            self.three.set_primary("ft@three.example.org")
+            self.three.set_primary(ElementKey("ft@three.example.org"))
 
-    def test_change_primary(self):
+    def test_change_primary(self) -> None:
         match = self.two.primary
+        assert match
         self.assertEqual(match.email, "ft@one.example.org")
-        self.two.set_primary("ft@two.example.org")
+        self.two.set_primary(ElementKey("ft@two.example.org"))
         updated = self.two.primary
+        assert updated
         self.assertEqual(updated.email, "ft@two.example.org")
 
-    def test_bad_input_two_primary(self):
+    def test_bad_input_two_primary(self) -> None:
         one = copy.deepcopy(_one_dict)
         two = copy.deepcopy(_two_dict)
         one["primary"] = True
@@ -171,7 +184,7 @@ class TestMailAddressList(unittest.TestCase):
         with self.assertRaises(eduid.userdb.element.PrimaryElementViolation):
             MailAddressList.from_list_of_dicts([one, two])
 
-    def test_bad_input_unverified_primary(self):
+    def test_bad_input_unverified_primary(self) -> None:
         one = copy.deepcopy(_one_dict)
         one["verified"] = False
         with self.assertRaises(eduid.userdb.element.PrimaryElementViolation):
@@ -179,20 +192,21 @@ class TestMailAddressList(unittest.TestCase):
 
 
 class TestMailAddress(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.empty = MailAddressList()
         self.one = MailAddressList.from_list_of_dicts([_one_dict])
         self.two = MailAddressList.from_list_of_dicts([_one_dict, _two_dict])
         self.three = MailAddressList.from_list_of_dicts([_one_dict, _two_dict, _three_dict])
 
-    def test_key(self):
+    def test_key(self) -> None:
         """
         Test that the 'key' property (used by PrimaryElementList) works for the MailAddress.
         """
         address = self.two.primary
+        assert address
         self.assertEqual(address.key, address.email)
 
-    def test_parse_cycle(self):
+    def test_parse_cycle(self) -> None:
         """
         Tests that we output something we parsed back into the same thing we output.
         """
@@ -204,7 +218,7 @@ class TestMailAddress(TestCase):
 
             assert cycled == expected
 
-    def test_unknown_input_data(self):
+    def test_unknown_input_data(self) -> None:
         one = copy.deepcopy(_one_dict)
         one["foo"] = "bar"
         with pytest.raises(ValidationError) as exc_info:
@@ -219,7 +233,7 @@ class TestMailAddress(TestCase):
             }
         ], f"Wrong error message: {normalised_data(exc_info.value.errors(), exclude_keys=['url'])}"
 
-    def test_bad_input_type(self):
+    def test_bad_input_type(self) -> None:
         one = copy.deepcopy(_one_dict)
         one["email"] = False
         with pytest.raises(ValidationError) as exc_info:
@@ -237,46 +251,54 @@ class TestMailAddress(TestCase):
             ]
         ), f"Wrong error message: {exc_info.value.errors()}"
 
-    def test_changing_is_verified_on_primary(self):
+    def test_changing_is_verified_on_primary(self) -> None:
         this = self.one.primary
+        assert this
         with self.assertRaises(eduid.userdb.element.PrimaryElementViolation):
             this.is_verified = False
 
-    def test_changing_is_verified(self):
+    def test_changing_is_verified(self) -> None:
         this = self.three.find("ft@three.example.org")
+        assert this
         this.is_verified = False  # was False already
         this.is_verified = True
 
-    def test_verified_by(self):
+    def test_verified_by(self) -> None:
         this = self.three.find("ft@three.example.org")
+        assert this
         this.verified_by = "unit test"
         self.assertEqual(this.verified_by, "unit test")
 
-    def test_modify_verified_by(self):
+    def test_modify_verified_by(self) -> None:
         this = self.three.find("ft@three.example.org")
+        assert this
         this.verified_by = "unit test"
         this.verified_by = "test unit"
         self.assertEqual(this.verified_by, "test unit")
 
-    def test_verified_ts(self):
+    def test_verified_ts(self) -> None:
         this = self.three.find("ft@three.example.org")
+        assert this
         this.verified_ts = utc_now()
         self.assertIsInstance(this.verified_ts, datetime.datetime)
 
-    def test_modify_verified_ts(self):
+    def test_modify_verified_ts(self) -> None:
         this = self.three.find("ft@three.example.org")
+        assert this
         this.verified_ts = utc_now()
 
-    def test_created_by(self):
+    def test_created_by(self) -> None:
         this = self.three.find("ft@three.example.org")
+        assert this
         this.created_by = "unit test"
         self.assertEqual(this.created_by, "unit test")
 
-    def test_created_ts(self):
+    def test_created_ts(self) -> None:
         this = self.three.find("ft@three.example.org")
+        assert this
         self.assertIsInstance(this.created_ts, datetime.datetime)
 
-    def test_uppercase_email_address(self):
+    def test_uppercase_email_address(self) -> None:
         address = "UPPERCASE@example.com"
         mail_address = MailAddress(email=address)
         self.assertEqual(address.lower(), mail_address.email)

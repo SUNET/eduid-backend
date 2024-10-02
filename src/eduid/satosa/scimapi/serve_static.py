@@ -38,7 +38,7 @@ class ServeStatic(RequestMicroService):
         super().__init__(*args, **kwargs)
         self.locations = config.get("locations", {})
 
-    def register_endpoints(self):
+    def register_endpoints(self) -> list:
         url_map = []
         for endpoint, path in self.locations.items():
             endpoint = endpoint.strip("/")

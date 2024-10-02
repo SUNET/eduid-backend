@@ -17,7 +17,7 @@ class DevelopResult:
             self._num_records = 0
             self.record = []
 
-        def append_record(self, record: "DevelopResult.Record"):
+        def append_record(self, record: "DevelopResult.Record") -> None:
             self.record.append(record)
             self._num_records = len(self.record)
 

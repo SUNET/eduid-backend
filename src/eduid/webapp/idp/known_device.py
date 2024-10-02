@@ -63,7 +63,7 @@ class KnownDeviceData(BaseModel):
     user_agent: str | None = None
     login_counter: int | None = 0
 
-    def to_json(self):
+    def to_json(self) -> str:
         return self.json(exclude_none=True)
 
 

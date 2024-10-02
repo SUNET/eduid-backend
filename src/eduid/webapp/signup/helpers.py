@@ -302,7 +302,7 @@ def record_email_address(signup_user: SignupUser, email: str) -> None:
     current_app.stats.count(name="mail_verified")
 
 
-def complete_and_update_invite(user: User, invite_code: str):
+def complete_and_update_invite(user: User, invite_code: str) -> None:
     signup_user = SignupUser.from_user(user, current_app.private_userdb)
     invite = current_app.invite_db.get_invite_by_invite_code(invite_code)
     if invite is None:

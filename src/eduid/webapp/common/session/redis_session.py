@@ -311,7 +311,7 @@ class RedisEncryptedSession(typing.MutableMapping):
         logger.error(f"Unknown data retrieved from Redis[{self.short_id}]: {repr(data_str)}")
         raise ValueError("Unknown data retrieved from Redis")
 
-    def clear(self):
+    def clear(self) -> None:
         """
         Discard all data contained in the session.
         """
@@ -319,7 +319,7 @@ class RedisEncryptedSession(typing.MutableMapping):
         self.conn.delete(self.db_key)
         self._raw_data = None
 
-    def renew_ttl(self):
+    def renew_ttl(self) -> None:
         """
         Restart the ttl countdown
         """

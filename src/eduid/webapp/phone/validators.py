@@ -6,7 +6,7 @@ from eduid.webapp.common.api.utils import get_user
 from eduid.webapp.phone.app import current_phone_app as current_app
 
 
-def normalize_to_e_164(number: str):
+def normalize_to_e_164(number: str) -> str:
     number = "".join(number.split())  # Remove white space
     if number.startswith("00"):
         raise ValidationError("phone.e164_format")
@@ -16,24 +16,24 @@ def normalize_to_e_164(number: str):
     return number
 
 
-def validate_phone(number: str):
+def validate_phone(number: str) -> None:
     validate_format_phone(number)
     validate_swedish_mobile(number)
     validate_unique_phone(number)
 
 
-def validate_format_phone(number: str):
+def validate_format_phone(number: str) -> None:
     if not re.match(r"^\+[1-9]\d{6,20}$", number):
         raise ValidationError("phone.phone_format")
 
 
-def validate_swedish_mobile(number: str):
+def validate_swedish_mobile(number: str) -> None:
     if number.startswith("+467"):
         if not re.match(r"^\+467[02369]\d{7}$", number):
             raise ValidationError("phone.swedish_mobile_format")
 
 
-def validate_unique_phone(number: str):
+def validate_unique_phone(number: str) -> None:
     user = get_user()
     if user.phone_numbers.find(number):
         raise ValidationError("phone.phone_duplicated")

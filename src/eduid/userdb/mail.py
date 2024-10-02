@@ -53,7 +53,7 @@ class MailAddressList(PrimaryElementList[MailAddress]):
         return cls(elements=[MailAddress.from_dict(this) for this in items])
 
 
-def address_from_dict(data: dict[str, Any]):
+def address_from_dict(data: dict[str, Any]) -> MailAddress:
     """
     Create a MailAddress instance from a dict.
 

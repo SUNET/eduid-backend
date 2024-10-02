@@ -48,7 +48,7 @@ def filter_none(x: Filtered) -> Filtered:
     return x
 
 
-def get_unique_hash():
+def get_unique_hash() -> str:
     return str(uuid4())
 
 
@@ -61,7 +61,7 @@ def load_jwks(config: ScimApiConfig) -> jwk.JWKSet:
     return jwks
 
 
-def retryable_db_write(func: Callable):
+def retryable_db_write(func: Callable) -> Callable:
     @functools.wraps(func)
     def wrapper_run_func(*args: Any, **kwargs: Any):
         max_retries = 10

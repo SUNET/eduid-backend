@@ -23,7 +23,7 @@ class AccessDenied(Exception):
 
 # middleware needs to return a response
 # some background: https://github.com/tiangolo/fastapi/issues/458
-def return_error_response(status_code: int, detail: str):
+def return_error_response(status_code: int, detail: str) -> PlainTextResponse:
     return PlainTextResponse(status_code=status_code, content=detail)
 
 

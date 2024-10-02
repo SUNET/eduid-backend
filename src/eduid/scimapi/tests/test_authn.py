@@ -150,7 +150,7 @@ class TestAuthnBearerToken(BaseDBTestCase):
         assert token.scopes == {domain}
         assert token.requested_access == [RequestedAccess(type=_requested_access_type, scope=domain)]
 
-    def test_invalid_requested_access_scope(self):
+    def test_invalid_requested_access_scope(self) -> None:
         # test too short domain name
         with pytest.raises(ValueError) as exc_info:
             AuthnBearerToken(
@@ -160,6 +160,7 @@ class TestAuthnBearerToken(BaseDBTestCase):
                 requested_access=[RequestedAccess(type=self.config.requested_access_type, scope=".se")],
                 auth_source=AuthSource.CONFIG,
             )
+        assert isinstance(exc_info.value, ValidationError)
         assert normalised_data(exc_info.value.errors(), exclude_keys=["url"]) == normalised_data(
             [
                 {
@@ -172,7 +173,7 @@ class TestAuthnBearerToken(BaseDBTestCase):
             ]
         ), f"Wrong error message: {exc_info.value.errors()}"
 
-    def test_requested_access_not_for_us(self):
+    def test_requested_access_not_for_us(self) -> None:
         """Test with a 'requested_access' field with the wrong 'type' value."""
         domain = "eduid.se"
         # test no canonization
@@ -184,6 +185,7 @@ class TestAuthnBearerToken(BaseDBTestCase):
                 requested_access=[RequestedAccess(type="someone else", scope=domain)],
                 auth_source=AuthSource.CONFIG,
             )
+        assert isinstance(exc_info.value, ValidationError)
         assert normalised_data(exc_info.value.errors(), exclude_keys=["url"]) == normalised_data(
             [
                 {
@@ -196,7 +198,7 @@ class TestAuthnBearerToken(BaseDBTestCase):
             ]
         ), f"Wrong error message: {exc_info.value.errors()}"
 
-    def test_regular_token(self):
+    def test_regular_token(self) -> None:
         """Test the normal case. Login with access granted based on the single scope in the request."""
         domain = "eduid.se"
         claims = {
@@ -212,7 +214,7 @@ class TestAuthnBearerToken(BaseDBTestCase):
         assert token.auth_source == AuthSource.CONFIG
         assert token.requested_access == [RequestedAccess(type="scim-api", scope=ScopeName("eduid.se"))]
 
-    def test_multiple_access_requests_including_us(self):
+    def test_multiple_access_requests_including_us(self) -> None:
         """Test when requested access has multiple requests. Only keep the request for the current resource."""
         domain = "eduid.se"
         token = AuthnBearerToken(
@@ -235,7 +237,7 @@ class TestAuthnBearerToken(BaseDBTestCase):
             RequestedAccess(type="scim-api", scope=ScopeName(domain)),
         ]
 
-    def test_interaction_token(self):
+    def test_interaction_token(self) -> None:
         """Test the normal case. Login with access granted based on the single scope in the request."""
         domain = "eduid.se"
         claims = {
@@ -251,7 +253,7 @@ class TestAuthnBearerToken(BaseDBTestCase):
         assert token.auth_source == AuthSource.INTERACTION
         assert token.requested_access == [RequestedAccess(type="scim-api", scope=ScopeName("eduid.se"))]
 
-    def test_regular_token_with_canonisation(self):
+    def test_regular_token_with_canonisation(self) -> None:
         """Test the normal case. Login with access granted based on the single scope in the request."""
         domain = "eduid.se"
         domain_alias = "eduid.example.edu"
@@ -261,7 +263,7 @@ class TestAuthnBearerToken(BaseDBTestCase):
         token = AuthnBearerToken(config=self.config, **claims)
         assert token.get_data_owner() == domain
 
-    def test_interaction_token_with_canonisation(self):
+    def test_interaction_token_with_canonisation(self) -> None:
         """Test the normal case. Login with access granted based on the single scope in the request."""
         domain = DataOwnerName("eduid.se")
         domain_alias = ScopeName("eduid.example.edu")
@@ -271,7 +273,7 @@ class TestAuthnBearerToken(BaseDBTestCase):
         token = AuthnBearerToken(config=self.config, **claims)
         assert token.get_data_owner() == domain
 
-    def test_regular_token_upper_case(self):
+    def test_regular_token_upper_case(self) -> None:
         """
         Test the normal case. Login with access granted based on the single scope in the request.
         Scope provided in upper-case in the request.
@@ -283,21 +285,21 @@ class TestAuthnBearerToken(BaseDBTestCase):
         assert token.scopes == {domain}
         assert token.get_data_owner() == domain
 
-    def test_unknown_scope(self):
+    def test_unknown_scope(self) -> None:
         """Test login with a scope that has no data owner in the configuration."""
         domain = "example.org"
         claims = {"version": 1, "scopes": [domain], "auth_source": "config"}
         token = AuthnBearerToken(config=self.config, **claims)
         assert token.get_data_owner() is None
 
-    def test_interaction_token_unknown_scope(self):
+    def test_interaction_token_unknown_scope(self) -> None:
         """Test login with a scope that has no data owner in the configuration."""
         domain = "example.org"
         claims = {"version": 1, "saml_eppn": f"eppn{domain}", "auth_source": "interaction"}
         token = AuthnBearerToken(config=self.config, **claims)
         assert token.get_data_owner() is None
 
-    def test_regular_token_multiple_scopes(self):
+    def test_regular_token_multiple_scopes(self) -> None:
         """Test the normal case. Login with access granted based on the scope in the request that has a data owner
         in configuration (one extra scope provided in the request, named 'aaa' so it is checked first - and skipped).
         """
@@ -432,17 +434,17 @@ class TestAuthnUserResource(ScimApiTestUserResourceBase):
         token.make_signed_token(jwk)
         return token.serialize()
 
-    def test_get_user_no_authn(self):
+    def test_get_user_no_authn(self) -> None:
         db_user = self.add_user(identifier=str(uuid4()), external_id="test-id-1", profiles={"test": self.test_profile})
         response = self._get_user_from_api(db_user)
         self._assertScimError(response.json(), status=401, detail="No authentication header found")
 
-    def test_get_user_bogus_token(self):
+    def test_get_user_bogus_token(self) -> None:
         db_user = self.add_user(identifier=str(uuid4()), external_id="test-id-1", profiles={"test": self.test_profile})
         response = self._get_user_from_api(db_user, bearer_token="not a jws token")
         self._assertScimError(response.json(), status=401, detail="Bearer token error")
 
-    def test_get_user_untrusted_token(self):
+    def test_get_user_untrusted_token(self) -> None:
         db_user = self.add_user(identifier=str(uuid4()), external_id="test-id-1", profiles={"test": self.test_profile})
 
         response = self._get_user_from_api(
@@ -457,7 +459,7 @@ class TestAuthnUserResource(ScimApiTestUserResourceBase):
 
         self._assertScimError(response.json(), status=401, detail="Bearer token error")
 
-    def test_get_user_correct_token(self):
+    def test_get_user_correct_token(self) -> None:
         db_user = self.add_user(identifier=str(uuid4()), external_id="test-id-1", profiles={"test": self.test_profile})
 
         claims = {"scopes": ["eduid.se"], "version": 1, "auth_source": "config"}
@@ -472,7 +474,7 @@ class TestAuthnUserResource(ScimApiTestUserResourceBase):
         }
         self._assertUserUpdateSuccess(_req, response, db_user)
 
-    def test_get_user_interaction_token(self):
+    def test_get_user_interaction_token(self) -> None:
         db_user = self.add_user(identifier=str(uuid4()), external_id="test-id-1", profiles={"test": self.test_profile})
         db_group = self.add_group_with_member(
             group_identifier=str(uuid4()),
@@ -480,6 +482,7 @@ class TestAuthnUserResource(ScimApiTestUserResourceBase):
             user_identifier=str(db_user.scim_id),
         )
 
+        assert self.groupdb is not None
         claims = {
             "saml_eppn": "eppn@eduid.se",
             "version": 1,
@@ -505,7 +508,7 @@ class TestAuthnUserResource(ScimApiTestUserResourceBase):
         }
         self._assertUserUpdateSuccess(_req, response, db_user)
 
-    def test_get_user_data_owner_not_configured(self):
+    def test_get_user_data_owner_not_configured(self) -> None:
         db_user = self.add_user(identifier=str(uuid4()), external_id="test-id-1", profiles={"test": self.test_profile})
         claims = {"scopes": ["not_configured.se"], "version": 1, "auth_source": "config"}
         token = self._make_bearer_token(claims=claims)

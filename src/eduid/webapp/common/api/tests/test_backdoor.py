@@ -14,8 +14,9 @@ test_views = Blueprint("test", __name__)
 
 
 @test_views.route("/get-code", methods=["GET"])
-def get_code():
+def get_code() -> str:
     current_app.logger.info("Endpoint get_code called")
+    assert isinstance(current_app, BackdoorTestApp)
     try:
         if check_magic_cookie(current_app.conf):
             eppn = request.args.get("eppn")
@@ -79,13 +80,13 @@ class BackdoorTests(EduidAPITestCase[BackdoorTestApp]):
         app.session_interface = SessionFactory(app.conf)
         return app
 
-    def test_backdoor_get_code(self):
+    def test_backdoor_get_code(self) -> None:
         """"""
         with self.session_cookie_and_magic_cookie_anon(self.browser) as client:
             response = client.get(self.test_get_url)
             assert response.data == b"dummy-code-for-pepin-pepon"
 
-    def test_no_backdoor_in_pro(self):
+    def test_no_backdoor_in_pro(self) -> None:
         """"""
         self.app.conf.environment = EduidEnvironment("production")
 
@@ -93,19 +94,19 @@ class BackdoorTests(EduidAPITestCase[BackdoorTestApp]):
             response = client.get(self.test_get_url)
             self.assertEqual(response.status_code, 400)
 
-    def test_no_backdoor_without_cookie(self):
+    def test_no_backdoor_without_cookie(self) -> None:
         """"""
         with self.session_cookie_anon(self.browser) as client:
             response = client.get(self.test_get_url)
             self.assertEqual(response.status_code, 400)
 
-    def test_wrong_cookie_no_backdoor(self):
+    def test_wrong_cookie_no_backdoor(self) -> None:
         """"""
         with self.session_cookie_and_magic_cookie_anon(self.browser, magic_cookie_value="no-magic") as client:
             response = client.get(self.test_get_url)
             self.assertEqual(response.status_code, 400)
 
-    def test_no_magic_cookie_no_backdoor(self):
+    def test_no_magic_cookie_no_backdoor(self) -> None:
         """"""
         self.app.conf.magic_cookie = ""
 
@@ -113,7 +114,7 @@ class BackdoorTests(EduidAPITestCase[BackdoorTestApp]):
             response = client.get(self.test_get_url)
             self.assertEqual(response.status_code, 400)
 
-    def test_no_magic_cookie_name_no_backdoor(self):
+    def test_no_magic_cookie_name_no_backdoor(self) -> None:
         """"""
         self.app.conf.magic_cookie_name = ""
 

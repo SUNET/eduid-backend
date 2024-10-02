@@ -8,7 +8,7 @@ from eduid.workers.job_runner.context import Context
 from eduid.workers.job_runner.helpers import save_and_sync_user
 
 
-def gather_skv_users(context: Context):
+def gather_skv_users(context: Context) -> None:
     """ "
     Gather and queue all users that should be checked against SKV API:s
 
@@ -27,7 +27,7 @@ def gather_skv_users(context: Context):
             context.cleaner_queue.save(queue_user)
 
 
-def check_skv_users(context: Context):
+def check_skv_users(context: Context) -> None:
     """
     Check all users that should be checked against SKV API:s
     """
@@ -58,7 +58,7 @@ def check_skv_users(context: Context):
         context.logger.debug("Nothing to do")
 
 
-def terminate_user(context: Context, queue_user: CleanerQueueUser):
+def terminate_user(context: Context, queue_user: CleanerQueueUser) -> None:
     """
     Terminate a user
     """

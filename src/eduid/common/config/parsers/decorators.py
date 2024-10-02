@@ -11,7 +11,7 @@ __author__ = "lundberg"
 from eduid.common.config.parsers.exceptions import SecretKeyException
 
 
-def decrypt(f: Callable):
+def decrypt(f: Callable) -> Callable:
     @wraps(f)
     def decrypt_decorator(*args: Any, **kwargs: Any):
         config_dict = f(*args, **kwargs)
@@ -83,7 +83,7 @@ def decrypt_config(config_dict: Mapping[str, Any]) -> Mapping[str, Any]:
     return new_config_dict
 
 
-def interpolate(f: Callable):
+def interpolate(f: Callable) -> Callable:
     @wraps(f)
     def interpolation_decorator(*args: Any, **kwargs: Any):
         config_dict = f(*args, **kwargs)

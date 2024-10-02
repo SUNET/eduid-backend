@@ -133,7 +133,7 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
         self.redis_instance = RedisTemporaryInstance.get_instance()
         # settings
         config = deepcopy(TEST_CONFIG)
-        self.settings = self.update_config(config)
+        self.settings: dict[str, Any] = self.update_config(config)
         self.settings["redis_config"] = RedisConfig(host="localhost", port=self.redis_instance.port)
         assert isinstance(self.tmp_db, MongoTemporaryInstance)  # please mypy
         self.settings["mongo_uri"] = self.tmp_db.uri
@@ -154,7 +154,7 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
             logging.info(f"Copying test-user {self.test_user} to private_userdb {_private_userdb}")
             _private_userdb.save(_private_userdb.user_from_dict(data=data))
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         try:
             # Reset anything that looks like a BaseDB, for the next test class.
             for this in vars(self.app).values():
@@ -323,7 +323,7 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
         finish_url: str | None = None,
         force_mfa: bool = False,
         credentials_used: list[ElementKey] | None = None,
-    ):
+    ) -> None:
         if not finish_url:
             finish_url = "https://example.com/ext-return/{app_name}/{authn_id}"
 

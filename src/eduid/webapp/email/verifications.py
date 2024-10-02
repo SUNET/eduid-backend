@@ -12,7 +12,7 @@ from eduid.webapp.common.api.utils import save_and_sync_user
 from eduid.webapp.email.app import current_email_app as current_app
 
 
-def new_proofing_state(email: str, user: User):
+def new_proofing_state(email: str, user: User) -> EmailProofingState | None:
     old_state = current_app.proofing_statedb.get_state_by_eppn_and_email(user.eppn, email)
     current_app.logger.debug(f"Old proofing state in db: {old_state}")
 
@@ -40,6 +40,7 @@ def send_verification_code(email: str, user: User) -> bool:
     if state is None:
         return False
 
+    assert state.verification.verification_code  # please mypy
     payload = EduidVerificationEmail(
         email=email,
         verification_code=state.verification.verification_code,
@@ -64,7 +65,7 @@ def send_verification_code(email: str, user: User) -> bool:
     return True
 
 
-def verify_mail_address(state: EmailProofingState, proofing_user: ProofingUser):
+def verify_mail_address(state: EmailProofingState, proofing_user: ProofingUser) -> None:
     """
     :param proofing_user: ProofingUser
     :param state: E-mail proofing state

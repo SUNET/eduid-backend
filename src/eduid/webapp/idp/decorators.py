@@ -17,7 +17,7 @@ from eduid.webapp.idp.sso_session import get_sso_session
 logger = logging.getLogger(__name__)
 
 
-def require_ticket(f: Callable):
+def require_ticket(f: Callable) -> Callable:
     @wraps(f)
     def require_ticket_decorator(*args: Any, **kwargs: Any):
         """Decorator to turn the 'ref' parameter sent by the frontend into a ticket (LoginContext)"""
@@ -56,7 +56,7 @@ def require_ticket(f: Callable):
     return require_ticket_decorator
 
 
-def uses_sso_session(f: Callable):
+def uses_sso_session(f: Callable) -> Callable:
     @wraps(f)
     def uses_sso_session_decorator(*args: Any, **kwargs: Any):
         """Decorator to supply the current SSO session, if one is found and still valid"""

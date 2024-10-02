@@ -14,13 +14,13 @@ logger = logging.getLogger(__name__)
 class UTC(datetime.tzinfo):
     """UTC"""
 
-    def utcoffset(self, dt: datetime.datetime | None):
+    def utcoffset(self, dt: datetime.datetime | None) -> datetime.timedelta:
         return datetime.timedelta(0)
 
-    def tzname(self, dt: datetime.datetime | None):
+    def tzname(self, dt: datetime.datetime | None) -> str:
         return "UTC"
 
-    def dst(self, dt: datetime.datetime | None):
+    def dst(self, dt: datetime.datetime | None) -> datetime.timedelta:
         return datetime.timedelta(0)
 
 

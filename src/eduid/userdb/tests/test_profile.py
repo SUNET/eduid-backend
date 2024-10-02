@@ -13,7 +13,7 @@ OPAQUE_DATA = {"a_string": "I am a string", "an_int": 3, "a_list": ["eins", 2, "
 
 
 class ProfileTest(TestCase):
-    def test_create_profile(self):
+    def test_create_profile(self) -> None:
         profile = Profile(
             owner="test owner",
             profile_schema="test schema",
@@ -28,7 +28,7 @@ class ProfileTest(TestCase):
             self.assertIn(key, profile.profile_data)
             self.assertEqual(value, profile.profile_data[key])
 
-    def test_profile_list(self):
+    def test_profile_list(self) -> None:
         profile = Profile(
             owner="test owner 1",
             profile_schema="test schema",
@@ -48,12 +48,12 @@ class ProfileTest(TestCase):
         self.assertIsNotNone(profile_list.find("test owner 1"))
         self.assertIsNotNone(profile_list.find("test owner 2"))
 
-    def test_empty_profile_list(self):
+    def test_empty_profile_list(self) -> None:
         profile_list = ProfileList()
         self.assertIsNotNone(profile_list)
         self.assertEqual(profile_list.count, 0)
 
-    def test_profile_list_owner_conflict(self):
+    def test_profile_list_owner_conflict(self) -> None:
         profile = Profile(
             owner="test owner 1",
             profile_schema="test schema",

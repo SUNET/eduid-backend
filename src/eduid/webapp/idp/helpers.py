@@ -3,7 +3,7 @@ from enum import Enum, unique
 from saml2 import BINDING_HTTP_POST
 
 from eduid.userdb.idp import IdPUser
-from eduid.webapp.common.api.messages import TranslatableMsg, error_response, success_response
+from eduid.webapp.common.api.messages import FluxData, TranslatableMsg, error_response, success_response
 from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.idp_saml import SAMLResponseParams
 
@@ -67,7 +67,7 @@ def lookup_user(username: str, managed_account_allowed: bool = False) -> IdPUser
         return current_app.userdb.lookup_user(username)
 
 
-def create_saml_sp_response(saml_params: SAMLResponseParams):
+def create_saml_sp_response(saml_params: SAMLResponseParams) -> FluxData:
     """
     Create a response to frontend that should be posted to the SP
     """

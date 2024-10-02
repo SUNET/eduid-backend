@@ -73,7 +73,7 @@ class GroupDB(BaseGraphDB):
         logger.info(f"{self} setup done.")
 
     @property
-    def scope(self):
+    def scope(self) -> str:
         return self._scope
 
     def _create_or_update_group(self, tx: Transaction, group: Group) -> Group:
@@ -288,7 +288,7 @@ class GroupDB(BaseGraphDB):
         with self.db.driver.session(default_access_mode=WRITE_ACCESS) as session:
             session.run(q, scope=self.scope, identifier=identifier)
 
-    def get_groups_by_property(self, key: str, value: str, skip: int = 0, limit: int = 100):
+    def get_groups_by_property(self, key: str, value: str, skip: int = 0, limit: int = 100) -> list[Group]:
         res: list[Group] = []
         q = f"""
             MATCH (g: Group {{scope: $scope}})
@@ -377,7 +377,9 @@ class GroupDB(BaseGraphDB):
             RETURN count(*) as exists LIMIT 1
             """
         with self.db.driver.session(default_access_mode=READ_ACCESS) as session:
-            ret = session.run(q, scope=self.scope, identifier=identifier).single()["exists"]
+            single_value = session.run(q, scope=self.scope, identifier=identifier).single()
+            assert single_value is not None
+            ret = single_value["exists"]
         return bool(ret)
 
     def save(self, group: Group) -> Group:

@@ -2,6 +2,7 @@ import base64
 import json
 from datetime import datetime
 from io import BytesIO
+from typing import Any
 
 from hammock import Hammock
 
@@ -24,7 +25,7 @@ class Ekopost:
 
         self.ekopost_api = Hammock(config.ekopost_api_uri, auth=auth, verify=config.ekopost_api_verify_ssl)
 
-    def send(self, eppn: str, document: BytesIO):
+    def send(self, eppn: str, document: BytesIO) -> Any:
         """
         Send a letter containing a PDF-document
         to the recipient specified in the document.

@@ -46,7 +46,7 @@ def find_NIN_by_mobile(self: MobWorker, mobile_number: str) -> str | None:
 
 
 @app.task(bind=True, base=MobWorker, name="eduid_lookup_mobile.tasks.pong")
-def pong(self: MobWorker, app_name: str):
+def pong(self: MobWorker, app_name: str) -> str:
     """
     eduID webapps periodically ping workers as a part of their health assessment.
     """

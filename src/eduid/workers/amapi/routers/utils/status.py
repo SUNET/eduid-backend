@@ -93,7 +93,7 @@ def set_cached_response(ctx: ContextRequest, resp: Response, key: str, data: Map
         ctx.app.context.logger.debug(f"Cached response for {key} until {expires}")
 
 
-def check_mongo(ctx: ContextRequest):
+def check_mongo(ctx: ContextRequest) -> bool | None:
     try:
         ctx.app.context.db.is_healthy()
         reset_failure_info(ctx, "_check_mongo")

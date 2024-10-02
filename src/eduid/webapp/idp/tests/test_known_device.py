@@ -26,7 +26,7 @@ class TestBrowserDeviceInfo(unittest.TestCase):
         "-aK8015Gjc8Yx0tTfVlBjS4K1pETE4sJq_O1JDDSPESzxA2ZpIMiS4XyWwP2wcn477dpg"
     )
 
-    def test_new(self):
+    def test_new(self) -> None:
         first = BrowserDeviceInfo.new(app_secret_box=self.app_secret_box)
         second = BrowserDeviceInfo.new(app_secret_box=self.app_secret_box)
         assert first != second
@@ -35,13 +35,13 @@ class TestBrowserDeviceInfo(unittest.TestCase):
 
         assert first.shared != second.shared
 
-    def test_parse(self):
+    def test_parse(self) -> None:
         """Parse the string we would have gotten from the browser local storage"""
         first = BrowserDeviceInfo.from_public(self.from_browser, app_secret_box=self.app_secret_box)
         assert first.state_id == "bac35b64-955a-4fed-b96d-f076e6dd5cd5"
         assert first.shared == self.from_browser
 
-    def test_secretbox(self):
+    def test_secretbox(self) -> None:
         """Test the secretbox that will be used to encrypt the database contents"""
 
         # Initialise a BrowserDeviceInfo from the data that could have been stored in the browsers local storage.
@@ -54,9 +54,9 @@ class TestBrowserDeviceInfo(unittest.TestCase):
         assert test_encrypt == b"Z_37ehIJx2HfvxzhSctc5qTm0ZO66u4-bj791OIlMJ9RWE3RtCgvi63WRL0="
         assert first.secret_box.decrypt(test_encrypt, encoder=nacl.encoding.URLSafeBase64Encoder) == plain
 
-    def test_plaintext_v1(self):
+    def test_plaintext_v1(self) -> None:
         """Validate that the encrypted data is formatted correctly for v1"""
-        decrypted = self.app_secret_box.decrypt(self.from_browser, encoder=nacl.encoding.URLSafeBase64Encoder)
+        decrypted = self.app_secret_box.decrypt(self.from_browser.encode(), encoder=nacl.encoding.URLSafeBase64Encoder)
 
         # check if the version matches the one we know how to parse
         assert decrypted.startswith(b"1|")
@@ -68,9 +68,9 @@ class TestBrowserDeviceInfo(unittest.TestCase):
         # check that it is a valid UUID
         assert UUID(state_id) == UUID("bac35b64-955a-4fed-b96d-f076e6dd5cd5")
         # check that the private_key is of the expected size for use as a secret box key
-        assert len(nacl.encoding.Base64Encoder.decode(private_key)) == nacl.secret.SecretBox.KEY_SIZE
+        assert len(nacl.encoding.Base64Encoder.decode(private_key.encode())) == nacl.secret.SecretBox.KEY_SIZE
 
-    def test_str(self):
+    def test_str(self) -> None:
         """Ensure string representation doesn't disclose the secret key"""
         first = BrowserDeviceInfo.from_public(self.from_browser, app_secret_box=self.app_secret_box)
         assert str(first) == "<BrowserDeviceInfo: public[8]='8MOF0Zln', state_id[8]='bac35b64'>"
@@ -86,7 +86,7 @@ class TestKnownDevice(unittest.TestCase):
         "-aK8015Gjc8Yx0tTfVlBjS4K1pETE4sJq_O1JDDSPESzxA2ZpIMiS4XyWwP2wcn477dpg"
     )
 
-    def test_encrypt_decrypt(self):
+    def test_encrypt_decrypt(self) -> None:
         data = KnownDeviceData(eppn="hubba-bubba", ip_address="127.1.2.3", user_agent="testing")
         now = utc_now()
         obj_id = ObjectId("6216608c39402aa8abf74a9d")
@@ -116,14 +116,16 @@ class TestKnownDevice(unittest.TestCase):
 
 
 class TestIdPUserDb(IdPAPITests):
-    def test_adding_new_known_device(self):
+    def test_adding_new_known_device(self) -> None:
         assert isinstance(self.app, IdPApp)
         browser_info = self.app.known_device_db.create_new_state()
         first = self.app.known_device_db.get_state_by_browser_info(from_browser=browser_info)
+        assert first
         assert first.data.eppn is None
 
         first.data.eppn = "hubba-bubba"
         self.app.known_device_db.save(first, from_browser=browser_info, ttl=timedelta(hours=1))
 
         second = self.app.known_device_db.get_state_by_browser_info(from_browser=browser_info)
+        assert second
         assert second.data.eppn == "hubba-bubba"

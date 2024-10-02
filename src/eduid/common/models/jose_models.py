@@ -1,5 +1,6 @@
 import datetime
 from enum import Enum
+from typing import Any
 
 from pydantic import AnyUrl, BaseModel, Field
 
@@ -115,7 +116,7 @@ class RegisteredClaims(BaseModel):
     iat: datetime.datetime = Field(default_factory=utc_now)  # Issued At
     jti: str | None = None  # JWT ID
 
-    def to_rfc7519(self):
+    def to_rfc7519(self) -> dict[str, Any]:
         d = self.dict(exclude_none=True)
         if self.exp:
             d["exp"] = int((self.iat + self.exp).timestamp())

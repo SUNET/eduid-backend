@@ -32,8 +32,9 @@ class TestIdPNamespace(EduidAPITestCase):
         app.session_interface = SessionFactory(app.conf)
         return app
 
-    def test_to_dict_from_dict(self):
+    def test_to_dict_from_dict(self) -> None:
         _meta = SessionMeta.new(app_secret="secret")
+        assert isinstance(self.app.session_interface, SessionFactory)
         base_session = self.app.session_interface.manager.get_session(meta=_meta, new=True)
         session = EduidSession(app=self.app, meta=_meta, base_session=base_session, new=True)
 
@@ -71,8 +72,9 @@ class TestIdPNamespace(EduidAPITestCase):
         # ...and that it serialises to the same data again
         assert loaded_session.to_dict() == out
 
-    def test_to_dict_from_dict_with_timestamp(self):
+    def test_to_dict_from_dict_with_timestamp(self) -> None:
         _meta = SessionMeta.new(app_secret="secret")
+        assert isinstance(self.app.session_interface, SessionFactory)
         base_session = self.app.session_interface.manager.get_session(meta=_meta, new=True)
         first = EduidSession(app=self.app, meta=_meta, base_session=base_session, new=True)
 
@@ -103,8 +105,9 @@ class TestIdPNamespace(EduidAPITestCase):
         assert second.idp.sso_cookie_val == first.idp.sso_cookie_val
         assert second.idp.ts == first.idp.ts
 
-    def test_clear_namespace(self):
+    def test_clear_namespace(self) -> None:
         _meta = SessionMeta.new(app_secret="secret")
+        assert isinstance(self.app.session_interface, SessionFactory)
         base_session = self.app.session_interface.manager.get_session(meta=_meta, new=True)
         first = EduidSession(app=self.app, meta=_meta, base_session=base_session, new=True)
         first.signup.email.address = "test@example.com"
@@ -140,8 +143,9 @@ class TestAuthnNamespace(EduidAPITestCase):
         app.session_interface = SessionFactory(app.conf)
         return app
 
-    def test_sp_authns_cleanup(self):
+    def test_sp_authns_cleanup(self) -> None:
         _meta = SessionMeta.new(app_secret="secret")
+        assert isinstance(self.app.session_interface, SessionFactory)
         base_session = self.app.session_interface.manager.get_session(meta=_meta, new=True)
         sess = EduidSession(app=self.app, meta=_meta, base_session=base_session, new=True)
         for i in range(15):

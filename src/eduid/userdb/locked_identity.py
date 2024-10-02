@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, NoReturn
 
 from pydantic import field_validator
 
@@ -35,7 +35,7 @@ class LockedIdentityList(IdentityList):
         self.add(element=element)
         return None
 
-    def remove(self, key: ElementKey):
+    def remove(self, key: ElementKey) -> NoReturn:
         """
         Override remove method as an element should be set once, remove never.
         """

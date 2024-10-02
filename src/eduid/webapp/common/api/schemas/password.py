@@ -19,7 +19,7 @@ class PasswordSchema(Schema):
         self.Meta.min_score = kwargs.pop("min_score")
         super().__init__(*args, **kwargs)
 
-    def validate_password(self, password: str, **kwargs: Any):
+    def validate_password(self, password: str, **kwargs: Any) -> None:
         """
         :param password: New password
 

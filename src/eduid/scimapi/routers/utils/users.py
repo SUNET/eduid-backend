@@ -11,6 +11,7 @@ from eduid.common.fastapi.context_request import ContextRequest
 from eduid.common.models.scim_base import Email, Meta, Name, PhoneNumber, SCIMResourceType, SCIMSchema, SearchRequest
 from eduid.common.models.scim_user import Group, LinkedAccount, NutidUserExtensionV1, Profile, UserResponse
 from eduid.common.utils import make_etag
+from eduid.scimapi.context_request import ScimApiContext
 from eduid.scimapi.exceptions import BadRequest
 from eduid.scimapi.routers.utils.events import add_api_event
 from eduid.scimapi.search import SearchFilter
@@ -21,6 +22,8 @@ from eduid.userdb.scimapi.userdb import ScimApiUser
 
 def get_user_groups(req: ContextRequest, db_user: ScimApiUser) -> list[Group]:
     """Return the groups for a user formatted as SCIM search sub-resources"""
+    assert isinstance(req.context, ScimApiContext)
+    assert req.context.groupdb is not None
     user_groups = req.context.groupdb.get_groups_for_user_identifer(db_user.scim_id)
     groups = []
     for group in user_groups:
@@ -33,9 +36,13 @@ def get_user_groups(req: ContextRequest, db_user: ScimApiUser) -> list[Group]:
 def remove_user_from_all_groups(req: ContextRequest, db_user: ScimApiUser) -> None:
     """Remove a user from all groups"""
     # Remove user from groups
+    assert isinstance(req.context, ScimApiContext)
+    assert req.context.groupdb is not None
+    assert req.context.data_owner is not None
     for member_group in req.context.groupdb.get_groups_for_user_identifer(db_user.scim_id):
         # we need to get the full group object to get all the members
         group = req.context.groupdb.get_group_by_scim_id(str(member_group.scim_id))
+        assert group is not None
         for member in group.graph.members.copy():
             if member.identifier == str(db_user.scim_id):
                 req.app.context.logger.debug(
@@ -119,6 +126,8 @@ def db_user_to_response(req: ContextRequest, resp: Response, db_user: ScimApiUse
 
 def save_user(req: ContextRequest, db_user: ScimApiUser) -> None:
     try:
+        assert isinstance(req.context, ScimApiContext)
+        assert req.context.userdb is not None
         req.context.userdb.save(db_user)
     except DuplicateKeyError as e:
         assert e.details is not None  # please mypy
@@ -127,7 +136,7 @@ def save_user(req: ContextRequest, db_user: ScimApiUser) -> None:
         raise BadRequest(detail="Duplicated key error")
 
 
-def acceptable_linked_accounts(value: list[LinkedAccount], environment: EduidEnvironment):
+def acceptable_linked_accounts(value: list[LinkedAccount], environment: EduidEnvironment) -> bool:
     """
     Setting linked_accounts through SCIM with limited issuer and value. If we need to support
     stepup with someone other than eduID this needs to change.
@@ -161,6 +170,8 @@ def filter_externalid(req: ContextRequest, search_filter: SearchFilter) -> list[
     if not isinstance(search_filter.val, str):
         raise BadRequest(scim_type="invalidFilter", detail="Invalid externalId")
 
+    assert isinstance(req.context, ScimApiContext)
+    assert req.context.userdb is not None
     user = req.context.userdb.get_user_by_external_id(search_filter.val)
 
     if not user:
@@ -176,6 +187,8 @@ def filter_lastmodified(
         raise BadRequest(scim_type="invalidFilter", detail="Unsupported operator")
     if not isinstance(search_filter.val, str):
         raise BadRequest(scim_type="invalidFilter", detail="Invalid datetime")
+    assert isinstance(req.context, ScimApiContext)
+    assert req.context.userdb is not None
     return req.context.userdb.get_users_by_last_modified(
         operator=search_filter.op, value=datetime.fromisoformat(search_filter.val), skip=skip, limit=limit
     )
@@ -195,6 +208,8 @@ def filter_profile_data(
     req.app.context.logger.debug(
         f"Searching for users with {search_filter.attr} {search_filter.op} {repr(search_filter.val)}"
     )
+    assert isinstance(req.context, ScimApiContext)
+    assert req.context.userdb is not None
     users, count = req.context.userdb.get_user_by_profile_data(
         profile=profile, operator=search_filter.op, key=key, value=search_filter.val, skip=skip, limit=limit
     )

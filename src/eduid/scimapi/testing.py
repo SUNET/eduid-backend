@@ -172,7 +172,7 @@ class ScimApiTestCase(MongoNeoTestCase):
         self.groupdb.save(group)
         return self.groupdb.get_group_by_scim_id(scim_id=group_identifier)
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         super().tearDown()
         if self.userdb:
             self.userdb._drop_whole_collection()

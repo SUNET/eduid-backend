@@ -149,7 +149,7 @@ def verify(user: User, code: str, email: str) -> FluxData:
 @UnmarshalWith(ChangeEmailSchema)
 @MarshalWith(EmailResponseSchema)
 @require_user
-def post_remove(user: User, email: ElementKey):
+def post_remove(user: User, email: ElementKey) -> FluxData:
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
     current_app.logger.debug(f"Trying to remove email address {email!r} from user {proofing_user}")
 

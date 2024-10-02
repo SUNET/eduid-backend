@@ -8,7 +8,7 @@ from eduid.common.fastapi.context_request import ContextRequest
 from eduid.common.models.scim_base import ListResponse, SCIMResourceType, SCIMSchema, SearchRequest
 from eduid.common.models.scim_user import UserCreateRequest, UserResponse, UserUpdateRequest
 from eduid.scimapi.api_router import APIRouter
-from eduid.scimapi.context_request import ScimApiRoute
+from eduid.scimapi.context_request import ScimApiContext, ScimApiRoute
 from eduid.scimapi.exceptions import BadRequest, Conflict, ErrorDetail, MaxRetriesReached, NotFound
 from eduid.scimapi.routers.utils.events import add_api_event
 from eduid.scimapi.routers.utils.users import (
@@ -48,6 +48,8 @@ async def on_get(req: ContextRequest, resp: Response, scim_id: str | None = None
     if scim_id is None:
         raise BadRequest(detail="Not implemented")
     req.app.context.logger.info(f"Fetching user {scim_id}")
+    assert isinstance(req.context, ScimApiContext)
+    assert req.context.userdb is not None
     db_user = req.context.userdb.get_user_by_scim_id(scim_id)
     if not db_user:
         raise NotFound(detail="User not found")
@@ -64,6 +66,8 @@ async def on_put(req: ContextRequest, resp: Response, update_request: UserUpdate
         req.app.context.logger.debug(f"{scim_id} != {update_request.id}")
         raise BadRequest(detail="Id mismatch")
 
+    assert isinstance(req.context, ScimApiContext)
+    assert req.context.userdb is not None
     db_user = req.context.userdb.get_user_by_scim_id(scim_id)
     if not db_user:
         raise NotFound(detail="User not found")
@@ -143,6 +147,7 @@ async def on_put(req: ContextRequest, resp: Response, update_request: UserUpdate
 
     req.app.context.logger.debug(f"Core changed: {core_changed}, nutid_changed: {nutid_changed}")
     if core_changed or nutid_changed:
+        assert req.context.data_owner is not None
         save_user(req, db_user)
         add_api_event(
             context=req.app.context,
@@ -238,6 +243,8 @@ async def on_post(req: ContextRequest, resp: Response, create_request: UserCreat
     )
 
     save_user(req, db_user)
+    assert isinstance(req.context, ScimApiContext)
+    assert req.context.data_owner is not None
     add_api_event(
         context=req.app.context,
         data_owner=req.context.data_owner,
@@ -259,7 +266,9 @@ async def on_post(req: ContextRequest, resp: Response, create_request: UserCreat
     responses={204: {"description": "No Content"}},
 )
 async def on_delete(req: ContextRequest, scim_id: str) -> None:
+    assert isinstance(req.context, ScimApiContext)
     req.app.context.logger.info(f"Deleting user {scim_id}")
+    assert req.context.userdb is not None
     db_user = req.context.userdb.get_user_by_scim_id(scim_id=scim_id)
     req.app.context.logger.debug(f"Found user: {db_user}")
     if not db_user:
@@ -279,6 +288,7 @@ async def on_delete(req: ContextRequest, scim_id: str) -> None:
 
     res = req.context.userdb.remove(db_user)
 
+    assert req.context.data_owner is not None
     add_api_event(
         context=req.app.context,
         data_owner=req.context.data_owner,

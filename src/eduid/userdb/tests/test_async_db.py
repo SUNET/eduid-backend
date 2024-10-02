@@ -6,7 +6,7 @@ from eduid.userdb.testing import AsyncMongoTestCase
 
 
 class TestAsyncMongoDB(IsolatedAsyncioTestCase):
-    async def test_full_uri(self):
+    async def test_full_uri(self) -> None:
         # full specified uri
         uri = "mongodb://db.example.com:1111/testdb"
         mdb = AsyncMongoDB(uri, db_name="testdb")
@@ -17,7 +17,7 @@ class TestAsyncMongoDB(IsolatedAsyncioTestCase):
         self.assertEqual(mdb._db_uri, uri)
         self.assertEqual(mdb._database_name, "testdb")
 
-    async def test_uri_without_path_component(self):
+    async def test_uri_without_path_component(self) -> None:
         uri = "mongodb://db.example.com:1111"
         mdb = AsyncMongoDB(uri, db_name="testdb")
         database = mdb.get_database()
@@ -25,7 +25,7 @@ class TestAsyncMongoDB(IsolatedAsyncioTestCase):
         self.assertEqual(mdb._db_uri, uri + "/testdb")
         self.assertEqual(mdb._database_name, "testdb")
 
-    async def test_uri_without_port(self):
+    async def test_uri_without_port(self) -> None:
         uri = "mongodb://db.example.com/"
         mdb = AsyncMongoDB(uri)
         self.assertEqual(mdb._db_uri, uri)
@@ -33,7 +33,7 @@ class TestAsyncMongoDB(IsolatedAsyncioTestCase):
         assert database is not None
         self.assertEqual(mdb.sanitized_uri, "mongodb://db.example.com/")
 
-    async def test_uri_with_username_and_password(self):
+    async def test_uri_with_username_and_password(self) -> None:
         uri = "mongodb://john:s3cr3t@db.example.com:1111/testdb"
         mdb = AsyncMongoDB(uri, db_name="testdb")
         conn = mdb.get_connection()
@@ -47,7 +47,7 @@ class TestAsyncMongoDB(IsolatedAsyncioTestCase):
             mdb.__repr__(), "<eduID AsyncMongoDB: mongodb://john:secret@db.example.com:1111/testdb testdb>"
         )
 
-    async def test_uri_with_replicaset(self):
+    async def test_uri_with_replicaset(self) -> None:
         uri = "mongodb://john:s3cr3t@db.example.com,db2.example.com:27017,db3.example.com:1234/?replicaSet=rs9"
         mdb = AsyncMongoDB(uri, db_name="testdb")
         self.assertEqual(mdb.sanitized_uri, "mongodb://john:secret@db.example.com/testdb?replicaset=rs9")
@@ -56,7 +56,7 @@ class TestAsyncMongoDB(IsolatedAsyncioTestCase):
             "mongodb://john:s3cr3t@db.example.com,db2.example.com,db3.example.com:1234/testdb?replicaset=rs9",
         )
 
-    async def test_uri_with_options(self):
+    async def test_uri_with_options(self) -> None:
         uri = "mongodb://john:s3cr3t@db.example.com:27017/?ssl=true&replicaSet=rs9"
         mdb = AsyncMongoDB(uri, db_name="testdb")
         self.assertEqual(mdb.sanitized_uri, "mongodb://john:secret@db.example.com/testdb?replicaset=rs9&tls=true")
@@ -71,25 +71,25 @@ class TestAsyncDB(AsyncMongoTestCase):
         self.num_objs = 10
         await self.db.collection.insert_many([{"x": i} for i in range(self.num_objs)])
 
-    async def test_db_count(self):
+    async def test_db_count(self) -> None:
         self.assertEqual(self.num_objs, await self.db.db_count())
 
-    async def test_db_count_limit(self):
+    async def test_db_count_limit(self) -> None:
         self.assertEqual(1, await self.db.db_count(limit=1))
         self.assertEqual(2, await self.db.db_count(limit=2))
 
-    async def test_db_count_spec(self):
+    async def test_db_count_spec(self) -> None:
         self.assertEqual(1, await self.db.db_count(spec={"x": 3}))
 
-    async def test_get_documents_by_filter_skip(self):
+    async def test_get_documents_by_filter_skip(self) -> None:
         docs = await self.db._get_documents_by_filter(spec={}, skip=2)
         self.assertEqual(8, len(docs))
 
-    async def test_get_documents_by_filter_limit(self):
+    async def test_get_documents_by_filter_limit(self) -> None:
         docs = await self.db._get_documents_by_filter(spec={}, limit=1)
         self.assertEqual(1, len(docs))
 
-    async def test_get_documents_by_aggregate(self):
+    async def test_get_documents_by_aggregate(self) -> None:
         match = {
             "x": 3,
         }

@@ -88,7 +88,7 @@ class ResetPasswordEmailState(ResetPasswordState, _ResetPasswordEmailStateRequir
         self.method = "email"
         self.email_code = CodeElement.parse(application="security", code_or_element=self.email_code)
 
-    def to_dict(self):
+    def to_dict(self) -> TUserDbDocument:
         res = super().to_dict()
         res["email_code"] = self.email_code.to_dict()
         return res

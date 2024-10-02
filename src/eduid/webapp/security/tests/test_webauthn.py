@@ -98,7 +98,7 @@ CREDENTIAL_ID_2 = (
 class SecurityWebauthnTests(EduidAPITestCase):
     app: SecurityApp
 
-    def setUp(self):
+    def setUp(self) -> None:  # type: ignore[override]
         super().setUp()
         # remove all FidoCredentials from the test user
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
@@ -373,64 +373,64 @@ class SecurityWebauthnTests(EduidAPITestCase):
 
     # actual tests
 
-    def test_begin_no_login(self):
+    def test_begin_no_login(self) -> None:
         response = self.browser.get("/webauthn/register/begin")
         self.assertEqual(response.status_code, 401)
 
-    def test_begin_register_first_key(self):
+    def test_begin_register_first_key(self) -> None:
         data = self._begin_register_key()
         self._check_registration_begun(data)
 
-    def test_begin_register_first_key_with_legacy_token(self):
+    def test_begin_register_first_key_with_legacy_token(self) -> None:
         data = self._begin_register_key(existing_legacy_token=True)
         self._check_registration_begun(data)
 
-    def test_begin_register_2nd_key_ater_ctap1(self):
+    def test_begin_register_2nd_key_ater_ctap1(self) -> None:
         data = self._begin_register_key(other="ctap1")
         self._check_registration_begun(data)
 
-    def test_begin_register_2nd_key_ater_ctap1_with_legacy_token(self):
+    def test_begin_register_2nd_key_ater_ctap1_with_legacy_token(self) -> None:
         data = self._begin_register_key(other="ctap1", existing_legacy_token=True)
         self._check_registration_begun(data)
 
-    def test_begin_register_2nd_key_ater_ctap2(self):
+    def test_begin_register_2nd_key_ater_ctap2(self) -> None:
         data = self._begin_register_key(other="ctap2")
         self._check_registration_begun(data)
 
-    def test_begin_register_2nd_key_ater_ctap2_with_legacy_token(self):
+    def test_begin_register_2nd_key_ater_ctap2_with_legacy_token(self) -> None:
         data = self._begin_register_key(other="ctap2", existing_legacy_token=True)
         self._check_registration_begun(data)
 
-    def test_begin_register_first_device(self):
+    def test_begin_register_first_device(self) -> None:
         data = self._begin_register_key(authenticator="platform")
         self._check_registration_begun(data)
 
-    def test_begin_register_first_device_with_legacy_token(self):
+    def test_begin_register_first_device_with_legacy_token(self) -> None:
         data = self._begin_register_key(authenticator="platform", existing_legacy_token=True)
         self._check_registration_begun(data)
 
-    def test_begin_register_2nd_device_ater_ctap1(self):
+    def test_begin_register_2nd_device_ater_ctap1(self) -> None:
         data = self._begin_register_key(other="ctap1", authenticator="platform")
         self._check_registration_begun(data)
 
-    def test_begin_register_2nd_device_ater_ctap1_with_legacy_token(self):
+    def test_begin_register_2nd_device_ater_ctap1_with_legacy_token(self) -> None:
         data = self._begin_register_key(other="ctap1", authenticator="platform", existing_legacy_token=True)
         self._check_registration_begun(data)
 
-    def test_begin_register_2nd_device_ater_ctap2(self):
+    def test_begin_register_2nd_device_ater_ctap2(self) -> None:
         data = self._begin_register_key(other="ctap2", authenticator="platform")
         self._check_registration_begun(data)
 
-    def test_begin_register_2nd_device_ater_ctap2_with_legacy_token(self):
+    def test_begin_register_2nd_device_ater_ctap2_with_legacy_token(self) -> None:
         data = self._begin_register_key(other="ctap2", authenticator="platform", existing_legacy_token=True)
         self._check_registration_begun(data)
 
-    def test_begin_register_wrong_csrf_token(self):
+    def test_begin_register_wrong_csrf_token(self) -> None:
         data = self._begin_register_key(csrf="wrong-token", check_session=False)
         self.assertEqual(data["type"], "POST_WEBAUTHN_WEBAUTHN_REGISTER_BEGIN_FAIL")
         self.assertEqual(data["payload"]["error"]["csrf_token"], ["CSRF failed to validate"])
 
-    def test_finish_register_ctap1(self):
+    def test_finish_register_ctap1(self) -> None:
         data = self._finish_register_key(
             client_data=CLIENT_DATA_JSON, attestation=ATTESTATION_OBJECT, state=STATE, cred_id=CREDENTIAL_ID
         )
@@ -438,7 +438,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
         # check that a proofing element was not written as the token is not mfa capable
         assert self.app.proofing_log.db_count() == 0
 
-    def test_finish_register_ctap1_with_legacy_token(self):
+    def test_finish_register_ctap1_with_legacy_token(self) -> None:
         data = self._finish_register_key(
             client_data=CLIENT_DATA_JSON,
             attestation=ATTESTATION_OBJECT,
@@ -450,7 +450,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
         # check that a proofing element was not written as the token is not mfa capable
         assert self.app.proofing_log.db_count() == 0
 
-    def test_finish_register_ctap2(self):
+    def test_finish_register_ctap2(self) -> None:
         data = self._finish_register_key(
             client_data=CLIENT_DATA_JSON_2, attestation=ATTESTATION_OBJECT_2, state=STATE_2, cred_id=CREDENTIAL_ID_2
         )
@@ -458,7 +458,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
         # check that a proofing element was written as the token is mfa capable
         assert self.app.proofing_log.db_count() == 1
 
-    def test_finish_register_ctap2_with_legacy_token(self):
+    def test_finish_register_ctap2_with_legacy_token(self) -> None:
         data = self._finish_register_key(
             client_data=CLIENT_DATA_JSON_2,
             attestation=ATTESTATION_OBJECT_2,
@@ -470,7 +470,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
         # check that a proofing element was written as the token is mfa capable
         assert self.app.proofing_log.db_count() == 1
 
-    def test_finish_register_wrong_csrf(self):
+    def test_finish_register_wrong_csrf(self) -> None:
         data = self._finish_register_key(
             client_data=CLIENT_DATA_JSON,
             attestation=ATTESTATION_OBJECT,
@@ -481,7 +481,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
         self.assertEqual(data["type"], "POST_WEBAUTHN_WEBAUTHN_REGISTER_COMPLETE_FAIL")
         self.assertEqual(data["payload"]["error"]["csrf_token"], ["CSRF failed to validate"])
 
-    def test_remove_ctap1(self):
+    def test_remove_ctap1(self) -> None:
         self.set_authn_action(
             eppn=self.test_user_eppn,
             frontend_action=FrontendAction.REMOVE_SECURITY_KEY_AUTHN,
@@ -498,7 +498,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
         )
         self._check_removal(data, user_token)
 
-    def test_remove_ctap1_with_legacy_token(self):
+    def test_remove_ctap1_with_legacy_token(self) -> None:
         self.set_authn_action(
             eppn=self.test_user_eppn,
             frontend_action=FrontendAction.REMOVE_SECURITY_KEY_AUTHN,
@@ -516,7 +516,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
         )
         self._check_removal(data, user_token)
 
-    def test_remove_ctap2(self):
+    def test_remove_ctap2(self) -> None:
         self.set_authn_action(
             eppn=self.test_user_eppn,
             frontend_action=FrontendAction.REMOVE_SECURITY_KEY_AUTHN,
@@ -533,7 +533,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
         )
         self._check_removal(data, user_token)
 
-    def test_remove_ctap2_legacy_token(self):
+    def test_remove_ctap2_legacy_token(self) -> None:
         self.set_authn_action(
             eppn=self.test_user_eppn,
             frontend_action=FrontendAction.REMOVE_SECURITY_KEY_AUTHN,
@@ -551,7 +551,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
         )
         self._check_removal(data, user_token)
 
-    def test_remove_wrong_csrf(self):
+    def test_remove_wrong_csrf(self) -> None:
         self.set_authn_action(
             eppn=self.test_user_eppn,
             frontend_action=FrontendAction.REMOVE_SECURITY_KEY_AUTHN,
@@ -570,7 +570,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
         self.assertEqual(data["payload"]["error"]["csrf_token"], ["CSRF failed to validate"])
 
     @patch("fido_mds.FidoMetadataStore.verify_attestation", _apple_special_verify_attestation)
-    def test_authenticator_information(self):
+    def test_authenticator_information(self) -> None:
         authenticators = [YUBIKEY_4, YUBIKEY_5_NFC, MICROSOFT_SURFACE_1796, NEXUS_5, IPHONE_12, NONE_ATTESTATION]
         for authenticator in authenticators:
             with self.app.test_request_context():
@@ -594,6 +594,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
 
             if authenticator not in [IPHONE_12, NONE_ATTESTATION]:
                 # No metadata for Apple devices or none attestation
+                assert authenticator_info.last_status_change
                 assert (
                     self.app.fido_metadata_log.exists(
                         authenticator_id=authenticator_info.authenticator_id,
@@ -602,7 +603,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
                     is True
                 )
 
-    def test_authenticator_information_backdoor(self):
+    def test_authenticator_information_backdoor(self) -> None:
         # setup magic cookie backdoor
         self.app.conf.magic_cookie_name = "magic-cookie"
         self.app.conf.magic_cookie = "magic"
@@ -638,10 +639,11 @@ class SecurityWebauthnTests(EduidAPITestCase):
             res = is_authenticator_mfa_approved(authenticator_info=authenticator_info)
         assert res is False
 
-    def test_approved_security_keys(self):
+    def test_approved_security_keys(self) -> None:
         response = self.browser.get("/webauthn/approved-security-keys")
         self._check_success_response(response=response, type_="GET_WEBAUTHN_WEBAUTHN_APPROVED_SECURITY_KEYS_SUCCESS")
 
+        assert response.json
         payload = response.json.get("payload")
         assert "next_update" in payload
         assert "entries" in payload
@@ -651,6 +653,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
         response = self.browser.get("/webauthn/approved-security-keys")
         self._check_success_response(response=response, type_="GET_WEBAUTHN_WEBAUTHN_APPROVED_SECURITY_KEYS_SUCCESS")
 
+        assert response.json
         payload = response.json.get("payload")
         assert "next_update" in payload
         assert "entries" in payload

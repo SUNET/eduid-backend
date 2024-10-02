@@ -106,7 +106,9 @@ class WorkerTestCase(CommonTestCase):
     Base Test case for eduID celery workers
     """
 
-    def setUp(self, *args: Any, am_settings: dict[str, Any] | None = None, want_mongo_uri: bool = True, **kwargs: Any):
+    def setUp(
+        self, *args: Any, am_settings: dict[str, Any] | None = None, want_mongo_uri: bool = True, **kwargs: Any
+    ) -> None:
         """
         set up tests
         """
@@ -142,7 +144,7 @@ class WorkerTestCase(CommonTestCase):
 class AMTestCase(WorkerTestCase):
     """TestCase with an embedded Attribute Manager."""
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         for fetcher in AmCelerySingleton.af_registry.all_fetchers():
             if fetcher.private_db:
                 fetcher.private_db._drop_whole_collection()
@@ -153,7 +155,7 @@ class ProofingTestCase(AMTestCase):
     fetcher_name: str | None = None
     fetcher: AttributeFetcher | None = None
 
-    def setUp(self, *args: Any, **kwargs: Any):
+    def setUp(self, *args: Any, **kwargs: Any) -> None:
         super().setUp(*args, **kwargs)
 
         if self.fetcher_name:
@@ -169,7 +171,7 @@ class ProofingTestCase(AMTestCase):
                 assert fetcher.private_db
                 fetcher.private_db.save(proofing_user)
 
-    def test_invalid_user(self):
+    def test_invalid_user(self) -> None:
         if self.fetcher is None:
             pytest.skip("Fetcher not initialised")
         assert self.fetcher  # mypy doesn't understand pytest.skip it seems
@@ -177,7 +179,7 @@ class ProofingTestCase(AMTestCase):
         with self.assertRaises(UserDoesNotExist):
             self.fetcher.fetch_attrs(bson.ObjectId("0" * 24))
 
-    def test_malicious_attributes(self):
+    def test_malicious_attributes(self) -> None:
         if self.fetcher is None:
             pytest.skip("Fetcher not initialised")
         assert self.fetcher  # mypy doesn't understand pytest.skip it seems

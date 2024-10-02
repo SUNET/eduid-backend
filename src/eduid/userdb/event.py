@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC
-from typing import Any, Generic, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, TypeVar
 from uuid import uuid4
 
 from pydantic import Field
@@ -10,6 +10,9 @@ from eduid.userdb.element import Element, ElementKey, ElementList, ListElement
 from eduid.userdb.exceptions import BadEvent, UserDBValueError
 
 TEventSubclass = TypeVar("TEventSubclass", bound="Event")
+
+if TYPE_CHECKING:
+    from eduid.userdb.tou import ToUEvent
 
 
 class Event(Element):
@@ -69,7 +72,7 @@ class EventList(ElementList[ListElement], Generic[ListElement], ABC):
     pass
 
 
-def event_from_dict(data: dict[str, Any]):
+def event_from_dict(data: dict[str, Any]) -> ToUEvent:
     """
     Create an Event instance (probably really a subclass of Event) from a dict.
 

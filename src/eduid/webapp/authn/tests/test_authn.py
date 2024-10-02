@@ -6,7 +6,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
-from flask import Blueprint
+from flask import Blueprint, Response
 from saml2.s_utils import deflate_and_base64_encode
 from werkzeug.exceptions import NotFound
 from werkzeug.http import dump_cookie
@@ -251,22 +251,24 @@ class AuthnAPITestCase(AuthnAPITestBase):
 
     app: AuthnApp
 
-    def setUp(self, **kwargs: Any):  # type: ignore[override]
+    def setUp(self, **kwargs: Any) -> None:  # type: ignore[override]
         super().setUp(users=["hubba-bubba", "hubba-fooo"], **kwargs)
 
-    def test_login_authn(self):
+    def test_login_authn(self) -> None:
         self.authn("/authenticate", FrontendAction.LOGIN)
 
-    def test_chpass_authn(self):
+    def test_chpass_authn(self) -> None:
         self.authn("/authenticate", FrontendAction.CHANGE_PW_AUTHN)
 
-    def test_terminate_authn(self):
+    def test_terminate_authn(self) -> None:
         self.authn("/authenticate", FrontendAction.TERMINATE_ACCOUNT_AUTHN)
 
-    def test_login_assertion_consumer_service(self):
-        for accr in EduidAuthnContextClass:
-            if accr == EduidAuthnContextClass.NOT_IMPLEMENTED:
+    def test_login_assertion_consumer_service(self) -> None:
+        for context_class in EduidAuthnContextClass:
+            if context_class == EduidAuthnContextClass.NOT_IMPLEMENTED:
                 accr = None
+            else:
+                accr = context_class
             eppn = "hubba-bubba"
             res = self.acs("/authenticate", eppn, frontend_action=FrontendAction.LOGIN, accr=accr)
             assert res.session.common.eppn == "hubba-bubba"
@@ -275,7 +277,7 @@ class AuthnAPITestCase(AuthnAPITestBase):
             if accr:
                 assert authn.asserted_authn_ctx == accr.value
 
-    def test_assertion_consumer_service(self):
+    def test_assertion_consumer_service(self) -> None:
         actions = [FrontendAction.LOGIN, FrontendAction.CHANGE_PW_AUTHN, FrontendAction.TERMINATE_ACCOUNT_AUTHN]
         for action in actions:
             res = self.acs("/authenticate", eppn=self.test_user.eppn, frontend_action=action)
@@ -287,7 +289,7 @@ class AuthnAPITestCase(AuthnAPITestBase):
             age = utc_now() - authn.authn_instant
             assert 10 < age.total_seconds() < 15
 
-    def test_frontend_state(self):
+    def test_frontend_state(self) -> None:
         eppn = "hubba-bubba"
         self.acs("/authenticate", eppn, FrontendAction.REMOVE_SECURITY_KEY_AUTHN, frontend_state="key_id_to_remove")
 
@@ -343,12 +345,12 @@ class UnAuthnAPITestCase(EduidAPITestCase):
         config = load_config(typ=AuthnConfig, app_name="testing", ns="webapp", test_config=test_config)
         return AuthnTestApp(config)
 
-    def test_no_cookie(self):
+    def test_no_cookie(self) -> None:
         with self.app.test_client() as c:
             resp = c.get("/")
             self.assertEqual(resp.status_code, 401)
 
-    def test_cookie(self):
+    def test_cookie(self) -> None:
         sessid = "fb1f42420b0109020203325d750185673df252de388932a3957f522a6c43aa47"
         self.redis_instance.conn.set(sessid, json.dumps({"v1": {"id": "0"}}))
 
@@ -361,7 +363,7 @@ class NoAuthnAPITestCase(EduidAPITestCase):
 
     app: AuthnTestApp
 
-    def setUp(self):
+    def setUp(self) -> None:  # type: ignore[override]
         super().setUp()
         test_views = Blueprint("testing", __name__)
 
@@ -404,17 +406,17 @@ class NoAuthnAPITestCase(EduidAPITestCase):
         config = load_config(typ=AuthnConfig, app_name="testing", ns="webapp", test_config=test_config)
         return AuthnTestApp(config)
 
-    def test_no_authn(self):
+    def test_no_authn(self) -> None:
         with self.app.test_client() as c:
             resp = c.get("/test")
             self.assertEqual(resp.status_code, 200)
 
-    def test_authn(self):
+    def test_authn(self) -> None:
         with self.app.test_client() as c:
             resp = c.get("/test2")
             self.assertEqual(resp.status_code, 401)
 
-    def test_no_authn_util(self):
+    def test_no_authn_util(self) -> None:
         no_authn_urls_before = [path for path in self.app.conf.no_authn_urls]
         no_authn_path = "/test3"
         no_authn_views(self.app.conf, [no_authn_path])
@@ -426,33 +428,35 @@ class NoAuthnAPITestCase(EduidAPITestCase):
 
 
 class LogoutRequestTests(AuthnAPITestBase):
-    def test_metadataview(self):
+    def test_metadataview(self) -> None:
         with self.app.test_client() as c:
             response = c.get("/saml2-metadata")
             self.assertEqual(response.status, "200 OK")
 
-    def test_logout_nologgedin(self):
+    def test_logout_nologgedin(self) -> None:
         eppn = "hubba-bubba"
         with self.app.test_request_context("/logout", method="GET"):
             # eppn is set in the IdP
             session.common.eppn = eppn
             response = self.app.dispatch_request()
+            assert isinstance(response, Response)
             self.assertEqual(response.status, "302 FOUND")
             self.assertIn(self.app.conf.saml2_logout_redirect_url, response.headers["Location"])
 
-    def test_logout_loggedin(self):
+    def test_logout_loggedin(self) -> None:
         res = self.acs(url="/authenticate", eppn=self.test_user.eppn, frontend_action=FrontendAction.LOGIN)
         cookie = self.dump_session_cookie(res.session.meta.cookie_val)
 
         with self.app.test_request_context("/logout", method="GET", headers={"Cookie": cookie}):
             response = self.app.dispatch_request()
+            assert isinstance(response, Response)
             logger.debug(f"Test called /logout, response {response}")
             self.assertEqual(response.status, "302 FOUND")
             self.assertIn(
                 "https://idp.example.com/simplesaml/saml2/idp/SingleLogoutService.php", response.headers["location"]
             )
 
-    def test_logout_service_startingSP(self):
+    def test_logout_service_startingSP(self) -> None:
         session_id = self.start_authenticate(eppn=self.test_user.eppn, frontend_action=FrontendAction.LOGIN)
         cookie = self.dump_session_cookie(session_id)
 
@@ -466,11 +470,12 @@ class LogoutRequestTests(AuthnAPITestBase):
             },
         ):
             response = self.app.dispatch_request()
+            assert isinstance(response, Response)
 
             self.assertEqual(response.status, "302 FOUND")
             self.assertIn("testing-relay-state", response.location)
 
-    def test_logout_service_startingSP_already_logout(self):
+    def test_logout_service_startingSP_already_logout(self) -> None:
         session_id = self.start_authenticate(eppn=self.test_user.eppn, frontend_action=FrontendAction.LOGIN)
 
         with self.app.test_request_context(
@@ -482,11 +487,12 @@ class LogoutRequestTests(AuthnAPITestBase):
             },
         ):
             response = self.app.dispatch_request()
+            assert isinstance(response, Response)
 
             self.assertEqual(response.status, "302 FOUND")
             self.assertIn("testing-relay-state", response.location)
 
-    def test_logout_service_startingIDP(self):
+    def test_logout_service_startingIDP(self) -> None:
         res = self.acs("/authenticate", eppn=self.test_user.eppn, frontend_action=FrontendAction.LOGIN)
         cookie = self.dump_session_cookie(res.session.meta.cookie_val)
 
@@ -500,6 +506,7 @@ class LogoutRequestTests(AuthnAPITestBase):
             },
         ):
             response = self.app.dispatch_request()
+            assert isinstance(response, Response)
 
             self.assertEqual(response.status, "302 FOUND")
             assert (
@@ -507,7 +514,7 @@ class LogoutRequestTests(AuthnAPITestBase):
                 in response.location
             )
 
-    def test_logout_service_startingIDP_no_subject_id(self):
+    def test_logout_service_startingIDP_no_subject_id(self) -> None:
         eppn = "hubba-bubba"
         res = self.acs("/authenticate", eppn=self.test_user.eppn, frontend_action=FrontendAction.LOGIN)
         session_id = res.session.meta.cookie_val
@@ -540,6 +547,7 @@ class LogoutRequestTests(AuthnAPITestBase):
             session.authn.name_id = None
             session.persist()  # Explicit session.persist is needed when working within a test_request_context
             response = self.app.dispatch_request()
+            assert isinstance(response, Response)
 
             self.assertEqual(response.status, "302 FOUND")
             self.assertIn("testing-relay-state", response.location)

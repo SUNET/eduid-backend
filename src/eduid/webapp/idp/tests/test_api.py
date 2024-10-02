@@ -50,7 +50,7 @@ class NextResult(GenericResult):
 
 @dataclass
 class PwAuthResult(GenericResult):
-    sso_cookie_val: str | None = None
+    sso_cookie_val: SSOSessionId | None = None
     cookies: dict[str, Any] = field(default_factory=dict)
 
 
@@ -79,7 +79,7 @@ class TestUser:
 class LoginResultAPI:
     response: TestResponse
     ref: str | None = None
-    sso_cookie_val: str | None = None
+    sso_cookie_val: SSOSessionId | None = None
     visit_count: dict[str, int] = field(default_factory=dict)
     visit_order: list[IdPAction] = field(default_factory=list)
     pwauth_result: PwAuthResult | None = None
@@ -98,7 +98,7 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
         self,
         *args: Any,
         **kwargs: Any,
-    ):
+    ) -> None:
         super().setUp(*args, **kwargs)
         self.idp_entity_id = "https://unittest-idp.example.edu/idp.xml"
         self.relay_state = AuthnRequestRef("test-fest")
@@ -283,7 +283,7 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
         _re = f".*{self.app.conf.sso_cookie.key}=(.+?);.*"
         _sso_cookie_re = re.match(_re, cookies)
         if _sso_cookie_re:
-            result.sso_cookie_val = _sso_cookie_re.groups()[0]
+            result.sso_cookie_val = SSOSessionId(_sso_cookie_re.groups()[0])
 
         if result.sso_cookie_val:
             result.cookies = {self.app.conf.sso_cookie.key: result.sso_cookie_val}
@@ -406,7 +406,7 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
         mfa_approved: bool = False,
         credential: FidoCredential | None = None,
         always_use_security_key_user_preference: bool = True,
-    ):
+    ) -> None:
         if user is None:
             user = self.test_user
         # load user from central db to not get out of sync
@@ -432,7 +432,7 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
         self,
         user: User | None = None,
         trust_framework: TrustFramework | None = None,
-    ):
+    ) -> None:
         if user is None:
             user = self.test_user
         # load user from central db to not get out of sync
@@ -449,7 +449,7 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
         user.credentials.add(cred)
         self.request_user_sync(user)
 
-    def get_attributes(self, result: LoginResultAPI, saml2_client: Saml2Client | None = None):
+    def get_attributes(self, result: LoginResultAPI, saml2_client: Saml2Client | None = None) -> dict[str, list[Any]]:
         assert result.finished_result is not None
         authn_response = self.parse_saml_authn_response(result.finished_result, saml2_client=saml2_client)
         session_info = authn_response.session_info()

@@ -87,7 +87,7 @@ class MongoTemporaryInstanceReplicaSet(MongoTemporaryInstance):
         return cast(MongoTemporaryInstanceReplicaSet, super().get_instance(max_retry_seconds=max_retry_seconds))
 
     @property
-    def uri(self):
+    def uri(self) -> str:
         return f"mongodb://localhost:{self.port}"
 
 
@@ -209,7 +209,7 @@ class QueueAsyncioTest(EduidQueueTestCase, IsolatedAsyncioTestCase):
 
 class IsolatedWorkerDBMixin(MixinBase):
     # override run so we can mock cache of database clients
-    async def run(self):
+    async def run(self) -> None:
         # Init db in the correct loop
         # Make sure the isolated test cases get to create their own mongodb clients
         with patch("eduid.userdb.db.async_db.AsyncClientCache._clients", {}):

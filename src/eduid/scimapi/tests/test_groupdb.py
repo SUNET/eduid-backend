@@ -23,8 +23,9 @@ class TestGroupDB(ScimApiTestCase):
         for i in range(9):
             self.add_group(uuid4(), f"Test Group-{i}")
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         super().tearDown()
+        assert self.groupdb is not None
         self.groupdb._drop_whole_collection()
 
     def add_group(self, scim_id: UUID, display_name: str, extensions: GroupExtensions | None = None) -> ScimApiGroup:
@@ -37,22 +38,27 @@ class TestGroupDB(ScimApiTestCase):
         logger.info(f"TEST saved group {group}")
         return group
 
-    def test_full_search(self):
+    def test_full_search(self) -> None:
+        assert self.groupdb is not None
         groups = self.groupdb.get_groups()
         self.assertEqual(len(groups), 9)
 
-    def test_documents_and_count_first_page(self):
+    def test_documents_and_count_first_page(self) -> None:
+        assert self.groupdb is not None
         groups, count = self.groupdb._get_documents_and_count_by_filter(spec={}, limit=3)
-        [logger.info(f"Group {x}") for x in groups]
+        for x in groups:
+            logger.info(f"Group {x}")
         self.assertEqual(len(groups), 3)
         self.assertEqual(count, 9)
 
-    def test_documents_and_count_last_page(self):
+    def test_documents_and_count_last_page(self) -> None:
+        assert self.groupdb is not None
         groups, count = self.groupdb._get_documents_and_count_by_filter(spec={}, skip=6, limit=3)
         self.assertEqual(len(groups), 3)
         self.assertEqual(count, 9)
 
-    def test_documents_and_count_partial_last_page(self):
+    def test_documents_and_count_partial_last_page(self) -> None:
+        assert self.groupdb is not None
         groups, count = self.groupdb._get_documents_and_count_by_filter(spec={}, skip=8, limit=3)
         self.assertEqual(len(groups), 1)
         self.assertEqual(count, 9)

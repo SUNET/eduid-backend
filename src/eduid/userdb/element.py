@@ -349,7 +349,7 @@ class ElementList(BaseModel, Generic[ListElement], ABC):
             raise EduIDUserDBError("More than one element found")
         return res[0]
 
-    def add(self, element: ListElement):
+    def add(self, element: ListElement) -> None:
         """
         Add an element to the list.
 

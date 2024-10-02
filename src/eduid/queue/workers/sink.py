@@ -91,7 +91,7 @@ def init_sink_worker(name: str = "sink_worker", test_config: Mapping[str, Any] |
     return SinkQueueWorker(config=config)
 
 
-def start_worker():
+def start_worker() -> None:
     worker = init_sink_worker()
     exit(asyncio.run(worker.run()))
 

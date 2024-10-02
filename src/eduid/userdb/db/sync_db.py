@@ -88,7 +88,7 @@ class MongoDB(BaseMongoDB):
         _db = self.get_database(database_name)
         return _db[collection]
 
-    def is_healthy(self):
+    def is_healthy(self) -> bool:
         """
         From mongo_client.py:
         Starting with version 3.0 the :class:`MongoClient`
@@ -119,7 +119,7 @@ class MongoDB(BaseMongoDB):
             logger.error(f"{self} not healthy: {e}")
             return False
 
-    def close(self):
+    def close(self) -> None:
         self._client.close()
 
 

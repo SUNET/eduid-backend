@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 # Hack to be able to get request body both now and later
 # https://github.com/encode/starlette/issues/495#issuecomment-513138055
-async def set_body(request: Request, body: bytes):
+async def set_body(request: Request, body: bytes) -> None:
     async def receive() -> Message:
         return {"type": "http.request", "body": body}
 
@@ -80,6 +80,8 @@ class AuthenticationMiddleware(BaseMiddleware):
 
     async def dispatch(self, req: Request, call_next: RequestResponseEndpoint) -> Response:
         req = self.make_context_request(request=req, context_class=ScimApiContext)
+
+        assert isinstance(req.context, ScimApiContext)  # please mypy
 
         if self._is_no_auth_path(req.url):
             return await call_next(req)

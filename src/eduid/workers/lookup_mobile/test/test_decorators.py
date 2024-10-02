@@ -8,7 +8,7 @@ from eduid.workers.lookup_mobile.testing import LookupMobileMongoTestCase
 
 
 class TestTransactionAudit(LookupMobileMongoTestCase):
-    def setUp(self):
+    def setUp(self) -> None:  # type: ignore[override]
         super().setUp()
         # need to set self.mongo_uri and db for the TransactionAudit decorator
         self.conf = MsgConfig(app_name="testing", mongo_uri=self.tmp_db.uri)
@@ -16,7 +16,7 @@ class TestTransactionAudit(LookupMobileMongoTestCase):
 
         self.transaction_audit = True
 
-    def test_successfull_transaction_audit(self):
+    def test_successfull_transaction_audit(self) -> None:
         @TransactionAudit()
         def find_mobiles_by_NIN(self: Any, national_identity_number: str, number_region: str | None = None):
             return ["list", "of", "mobile_numbers"]
@@ -43,7 +43,7 @@ class TestTransactionAudit(LookupMobileMongoTestCase):
         self.assertTrue(hit["data"]["data_returned"])
         c.delete_many({})  # Clear database
 
-    def test_failed_transaction_audit(self):
+    def test_failed_transaction_audit(self) -> None:
         @TransactionAudit()
         def find_mobiles_by_NIN(self: Any, national_identity_number: str, number_region: str | None = None):
             return []
@@ -66,7 +66,7 @@ class TestTransactionAudit(LookupMobileMongoTestCase):
         self.assertFalse(result.next()["data"]["data_returned"])
         c.delete_many({})  # Clear database
 
-    def test_transaction_audit_toggle(self):
+    def test_transaction_audit_toggle(self) -> None:
         c = self.db["transaction_audit"]
         c.delete_many({})  # Clear database
         TransactionAudit.disable()

@@ -49,7 +49,7 @@ class MarshalDecoratorTests(EduidAPITestCase):
         app.session_interface = SessionFactory(app.conf)
         return app
 
-    def test_success_message(self):
+    def test_success_message(self) -> None:
         """Test that a simple success_message is turned into a well-formed Flux Standard Action response"""
         msg = success_response(message=TestsMsg.fst_test_msg)
         with self.app.test_request_context("/test/foo"):
@@ -59,7 +59,7 @@ class MarshalDecoratorTests(EduidAPITestCase):
                 "payload": {"message": "test.first_msg", "success": True},
             }
 
-    def test_success_message_with_data(self):
+    def test_success_message_with_data(self) -> None:
         """Test that a success_message with data is turned into a well-formed Flux Standard Action response"""
         msg = success_response(payload={"working": True}, message=TestsMsg.fst_test_msg)
         with self.app.test_request_context("/test/foo"):
@@ -69,7 +69,7 @@ class MarshalDecoratorTests(EduidAPITestCase):
                 "payload": {"message": "test.first_msg", "success": True, "working": True},
             }
 
-    def test_error_message(self):
+    def test_error_message(self) -> None:
         """Test that a simple success_message is turned into a well-formed Flux Standard Action response"""
         msg = error_response(message=TestsMsg.fst_test_msg)
         with self.app.test_request_context("/test/foo"):

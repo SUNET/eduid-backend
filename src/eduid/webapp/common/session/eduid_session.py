@@ -157,7 +157,7 @@ class EduidSession(SessionMixin, MutableMapping[str, Any]):
         return self.meta.cookie_val[:9] + "..."
 
     @property
-    def permanent(self):
+    def permanent(self) -> bool:
         return True
 
     @permanent.setter
@@ -273,7 +273,7 @@ class EduidSession(SessionMixin, MutableMapping[str, Any]):
             if renew_backend:
                 self._session.renew_ttl()
 
-    def reset(self, keep_csrf: bool = True):
+    def reset(self, keep_csrf: bool = True) -> None:
         """Used when logging out"""
         csrf = None if not keep_csrf else self.get_csrf_token()
         self._namespaces = EduidNamespaces()
@@ -284,7 +284,7 @@ class EduidSession(SessionMixin, MutableMapping[str, Any]):
         self.modified = True
         self._serialize_namespaces()
 
-    def invalidate(self):
+    def invalidate(self) -> None:
         """
         Invalidate the session. Clear the data from redis,
         and set an empty session cookie.
@@ -293,7 +293,7 @@ class EduidSession(SessionMixin, MutableMapping[str, Any]):
         self._invalidated = True
         self._session.clear()
 
-    def set_cookie(self, response: WerkzeugResponse):
+    def set_cookie(self, response: WerkzeugResponse) -> None:
         """
         Set the session cookie.
 
@@ -344,7 +344,7 @@ class EduidSession(SessionMixin, MutableMapping[str, Any]):
                     value = this.dict(exclude_none=True)
             self[k] = value
 
-    def persist(self):
+    def persist(self) -> None:
         """
         Store the session data in the redis backend,
         and renew the ttl for it.

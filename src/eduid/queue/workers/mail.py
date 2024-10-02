@@ -46,7 +46,7 @@ class MailQueueWorker(QueueWorker):
         self._jinja2 = Jinja2Env()
 
     @property
-    async def smtp(self):
+    async def smtp(self) -> SMTP:
         if self._smtp is None:
             logger.debug(f"Creating SMTP client for {self.config.mail_host}:{self.config.mail_port}")
             validate_certs = self.config.mail_verify_tls
@@ -293,7 +293,7 @@ def init_mail_worker(name: str = "mail_worker", test_config: Mapping[str, Any] |
     return MailQueueWorker(config=config)
 
 
-def start_worker():
+def start_worker() -> None:
     worker = init_mail_worker()
     if worker.smtp is None:
         # fail fast if we can't connect to the SMTP server

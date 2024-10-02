@@ -89,7 +89,7 @@ class MessageSender(Task):
         # Remove initiated cache dbs
         _CACHE = {}
 
-    def on_failure(self, exc: Exception, task_id: str, args: tuple, kwargs: dict, einfo: ExceptionInfo):
+    def on_failure(self, exc: Exception, task_id: str, args: tuple, kwargs: dict, einfo: ExceptionInfo) -> None:
         # Try to reload the db on connection failures (mongodb has probably switched master)
         if isinstance(exc, ConnectionError):
             logger.error("Task failed with db exception ConnectionError. Reloading db.")

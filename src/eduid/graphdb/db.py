@@ -85,7 +85,7 @@ class BaseGraphDB(ABC):
         return f"<eduID {self.__class__.__name__}: {self._db.sanitized_uri}>"
 
     @property
-    def db(self):
+    def db(self) -> Neo4jDB:
         return self._db
 
     def db_setup(self) -> None:

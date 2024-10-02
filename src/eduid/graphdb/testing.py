@@ -89,19 +89,19 @@ class Neo4jTemporaryInstance(EduidTemporaryInstance):
         return self._conn
 
     @property
-    def host(self):
+    def host(self) -> str:
         return self._host
 
     @property
-    def http_port(self):
+    def http_port(self) -> int:
         return self._http_port
 
     @property
-    def https_port(self):
+    def https_port(self) -> int:
         return self._https_port
 
     @property
-    def bolt_port(self):
+    def bolt_port(self) -> int:
         return self._bolt_port
 
     def purge_db(self) -> None:
