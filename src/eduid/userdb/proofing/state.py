@@ -33,7 +33,7 @@ class ProofingState:
     # None if ProofingState has never been written to the database.
     modified_ts: datetime.datetime | None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if self.id is None:
             self.id = bson.ObjectId()
 
@@ -71,7 +71,7 @@ class ProofingState:
             res["modified_ts"] = datetime.datetime.utcnow()
         return TUserDbDocument(res)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"<eduID {self.__class__.__name__!s}: eppn={self.eppn!s}>"
 
     @property

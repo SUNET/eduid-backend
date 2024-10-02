@@ -32,7 +32,7 @@ class DataOwnerDatabases:
 
 
 class Context:
-    def __init__(self, config: ScimApiConfig):
+    def __init__(self, config: ScimApiConfig) -> None:
         self.name = config.app_name
         self.config = config
 

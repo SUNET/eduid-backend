@@ -17,7 +17,7 @@ class NoOpLock:
     A No-op lock class, to avoid a lot of "if self.lock:" in code using locks.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         pass
 
     async def acquire(self) -> None:
@@ -28,7 +28,7 @@ class NoOpLock:
 
 
 class VCCSHasher(ABC):
-    def __init__(self, lock: Lock | NoOpLock):
+    def __init__(self, lock: Lock | NoOpLock) -> None:
         self.lock = lock
 
     def unlock(self, password: str) -> None:
@@ -57,7 +57,7 @@ class VCCSHasher(ABC):
 
 
 class VCCSYHSMHasher(VCCSHasher):
-    def __init__(self, device: str, lock: Lock | NoOpLock, debug: bool = False):
+    def __init__(self, device: str, lock: Lock | NoOpLock, debug: bool = False) -> None:
         VCCSHasher.__init__(self, lock)
         self._yhsm = pyhsm.base.YHSM(device, debug)
 
@@ -110,7 +110,7 @@ class VCCSSoftHasher(VCCSHasher):
     (except perhaps separating HMAC keys from credential store).
     """
 
-    def __init__(self, keys: Mapping[int, str], lock: Lock | NoOpLock, debug: bool = False):
+    def __init__(self, keys: Mapping[int, str], lock: Lock | NoOpLock, debug: bool = False) -> None:
         super().__init__(lock)
         self.debug = debug
         # Covert keys from strings to bytes when loading

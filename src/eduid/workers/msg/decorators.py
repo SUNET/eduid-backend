@@ -3,7 +3,10 @@ from datetime import datetime
 from inspect import isclass
 from typing import Any
 
+from pymongo.collection import Collection
+
 from eduid.userdb.db import MongoDB
+from eduid.userdb.db.base import TUserDbDocument
 
 
 class TransactionAudit:
@@ -12,9 +15,9 @@ class TransactionAudit:
     db_name: str = "eduid_msg"
     collection_name: str = "transaction_audit"
 
-    def __init__(self):
-        self._conn = None
-        self.collection = None
+    def __init__(self) -> None:
+        self._conn: MongoDB | None = None
+        self.collection: Collection[TUserDbDocument] | None = None
 
     def __call__(self, f: Callable[..., Any]) -> Callable[..., Any]:
         if not self.enabled:
@@ -24,11 +27,13 @@ class TransactionAudit:
             ret = f(*args, **kwargs)
             if not isclass(ret):  # we can't save class objects in mongodb
                 date = datetime.utcnow()
-                doc = {
-                    "function": f.__name__,
-                    "data": self._filter(f.__name__, ret, *args, **kwargs),
-                    "created_at": date,
-                }
+                doc = TUserDbDocument(
+                    {
+                        "function": f.__name__,
+                        "data": self._filter(f.__name__, ret, *args, **kwargs),
+                        "created_at": date,
+                    }
+                )
                 if self.collection is not None:
                     self.collection.insert_one(doc)
             return ret

@@ -205,7 +205,7 @@ class VerifiedElement(Element, ABC):
     proofing_method: Enum | None = None
     proofing_version: str | None = None
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"<eduID {self.__class__.__name__}(key={repr(self.key)}): verified={self.is_verified}>"
 
     @classmethod
@@ -245,7 +245,7 @@ class PrimaryElement(VerifiedElement, ABC):
 
     is_primary: bool = Field(default=False, alias="primary")  # primary is the old name
 
-    def __setattr__(self, key: str, value: Any):
+    def __setattr__(self, key: str, value: Any) -> None:
         """
         raise PrimaryElementViolation when trying to set a primary element as unverified
         """
@@ -254,7 +254,7 @@ class PrimaryElement(VerifiedElement, ABC):
 
         super().__setattr__(key, value)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return (
             f"<eduID {self.__class__.__name__}(key={repr(self.key)}): "
             f"primary={self.is_primary}, verified={self.is_verified}>"
@@ -286,7 +286,7 @@ class ElementList(BaseModel, Generic[ListElement], ABC):
     elements: list[ListElement] = Field(default=[])
     model_config = ConfigDict(validate_assignment=True, extra="forbid")
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "<eduID {!s}: {!r}>".format(self.__class__.__name__, getattr(self, "elements", None))
 
     @field_validator("elements", mode="before")

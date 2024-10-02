@@ -49,7 +49,7 @@ def start_verification() -> str | dict[str, Any]:
 
 
 class MockFidoApp(EduIDBaseApp):
-    def __init__(self, config: MockFidoConfig):
+    def __init__(self, config: MockFidoConfig) -> None:
         super().__init__(config)
 
         self.conf = config

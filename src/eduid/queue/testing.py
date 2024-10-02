@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 class MongoTemporaryInstanceReplicaSet(MongoTemporaryInstance):
     rs_initialized = False
 
-    def __init__(self, max_retry_seconds: int):
+    def __init__(self, max_retry_seconds: int) -> None:
         super().__init__(max_retry_seconds=max_retry_seconds)
 
     @property
@@ -92,7 +92,7 @@ class MongoTemporaryInstanceReplicaSet(MongoTemporaryInstance):
 
 
 class SMPTDFixTemporaryInstance(EduidTemporaryInstance):
-    def __init__(self, max_retry_seconds: int):
+    def __init__(self, max_retry_seconds: int) -> None:
         super().__init__(max_retry_seconds=max_retry_seconds)
 
     @property

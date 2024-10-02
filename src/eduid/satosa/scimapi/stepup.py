@@ -191,7 +191,9 @@ class StepUp(ResponseMicroService):
                 - [<base_url>/<name>/acs/redirect, 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect']
     """
 
-    def __init__(self, config: Mapping[str, Any], internal_attributes: dict[str, Any], *args: Any, **kwargs: Any):
+    def __init__(
+        self, config: Mapping[str, Any], internal_attributes: dict[str, Any], *args: Any, **kwargs: Any
+    ) -> None:
         super().__init__(*args, **kwargs)
 
         try:
@@ -507,7 +509,9 @@ class AuthnContext(RequestMicroService):
     It saves the original requested authn context class reference (accr) in the state.
     """
 
-    def __init__(self, config: Mapping[str, Any], internal_attributes: dict[str, Any], *args: Any, **kwargs: Any):
+    def __init__(
+        self, config: Mapping[str, Any], internal_attributes: dict[str, Any], *args: Any, **kwargs: Any
+    ) -> None:
         super().__init__(*args, **kwargs)
 
         try:
@@ -615,7 +619,7 @@ class StepupSAMLBackend(SAMLBackend):
     A SAML backend to request custom authn context class references from IdP:s with certain entity attributes.
     """
 
-    def __init__(self, *args: Any, **kwargs: Any):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.mfa: MfaConfig | None = None
 
@@ -647,7 +651,9 @@ class RewriteAuthnContextClass(ResponseMicroService):
     'normalisation' of the authn context class reference in our MFA configuration.
     """
 
-    def __init__(self, config: Mapping[str, Any], internal_attributes: dict[str, Any], *args: Any, **kwargs: Any):
+    def __init__(
+        self, config: Mapping[str, Any], internal_attributes: dict[str, Any], *args: Any, **kwargs: Any
+    ) -> None:
         super().__init__(*args, **kwargs)
         self.mfa: MfaConfig | None = None
 

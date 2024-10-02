@@ -29,7 +29,7 @@ class AuthnBaseApp(EduIDBaseApp, metaclass=ABCMeta):
     and in case it isn't, redirects to the authn service.
     """
 
-    def __call__(self, environ: "WSGIEnvironment", start_response: "StartResponse") -> Iterable[bytes]:
+    def __call__(self, environ: WSGIEnvironment, start_response: StartResponse) -> Iterable[bytes]:
         # let request with method OPTIONS pass through
         if environ["REQUEST_METHOD"] == "OPTIONS":
             return super().__call__(environ, start_response)

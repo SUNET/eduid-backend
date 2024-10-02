@@ -10,7 +10,7 @@ __author__ = "lundberg"
 
 
 class PersonalDataUserDB(UserDB[PersonalDataUser]):
-    def __init__(self, db_uri: str, db_name: str = "eduid_personal_data", collection: str = "profiles"):
+    def __init__(self, db_uri: str, db_name: str = "eduid_personal_data", collection: str = "profiles") -> None:
         super().__init__(db_uri, db_name, collection=collection)
 
     @classmethod

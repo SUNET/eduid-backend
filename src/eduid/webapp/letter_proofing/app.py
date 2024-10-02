@@ -17,7 +17,7 @@ __author__ = "lundberg"
 
 
 class LetterProofingApp(AuthnBaseApp):
-    def __init__(self, config: LetterProofingConfig, **kwargs: Any):
+    def __init__(self, config: LetterProofingConfig, **kwargs: Any) -> None:
         super().__init__(config, **kwargs)
 
         self.conf = config

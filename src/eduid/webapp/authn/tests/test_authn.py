@@ -312,7 +312,7 @@ class AuthnAPITestCase(AuthnAPITestBase):
 
 
 class AuthnTestApp(AuthnBaseApp):
-    def __init__(self, config: AuthnConfig, **kwargs: Any):
+    def __init__(self, config: AuthnConfig, **kwargs: Any) -> None:
         super().__init__(config, **kwargs)
         self.conf = config
 

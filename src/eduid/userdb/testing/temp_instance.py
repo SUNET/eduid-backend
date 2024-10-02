@@ -25,7 +25,7 @@ class EduidTemporaryInstance(ABC):
 
     _instance = None
 
-    def __init__(self, max_retry_seconds: int):
+    def __init__(self, max_retry_seconds: int) -> None:
         self._conn: Any | None = None  # self._conn should be initialised by subclasses in `setup_conn'
         self._tmpdir = tempfile.mkdtemp()
         self._port = random.randint(40000, 65535)

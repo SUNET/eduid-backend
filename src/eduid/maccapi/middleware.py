@@ -23,7 +23,7 @@ def return_error_response(status_code: int, detail: str) -> JSONResponse:
 
 
 class AuthenticationMiddleware(BaseHTTPMiddleware, ContextRequestMixin):
-    def __init__(self, app: ASGIApp, context: Context):
+    def __init__(self, app: ASGIApp, context: Context) -> None:
         super().__init__(app)
         self.context = context
 

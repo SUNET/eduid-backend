@@ -8,7 +8,7 @@ from eduid.workers.amapi.utils import load_jwks
 
 
 class Context:
-    def __init__(self, config: AMApiConfig):
+    def __init__(self, config: AMApiConfig) -> None:
         self.name = config.app_name
         self.config = config
 

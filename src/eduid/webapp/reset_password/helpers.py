@@ -86,7 +86,7 @@ class ResetPwMsg(TranslatableMsg):
 
 
 class StateException(Exception):
-    def __init__(self, msg: TranslatableMsg | None = None):
+    def __init__(self, msg: TranslatableMsg | None = None) -> None:
         self.msg = msg
 
 

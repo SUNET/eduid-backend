@@ -19,7 +19,7 @@ __author__ = "ft"
 
 
 class ScimEventQueueWorker(QueueWorker):
-    def __init__(self, config: QueueWorkerConfig):
+    def __init__(self, config: QueueWorkerConfig) -> None:
         # Register which queue items this worker should try to grab
         payloads = [EduidSCIMAPINotification]
         super().__init__(config=config, handle_payloads=payloads)

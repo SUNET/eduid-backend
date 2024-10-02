@@ -20,7 +20,7 @@ TFormattedMessage = NewType("TFormattedMessage", str)
 
 
 class NotificationRelay:
-    def __init__(self, config: ScimApiConfig):
+    def __init__(self, config: ScimApiConfig) -> None:
         self.config = config
         app_name = config.app_name
         system_hostname = environ.get("SYSTEM_HOSTNAME", "")  # Underlying hosts name for containers

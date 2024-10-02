@@ -43,7 +43,7 @@ async def get_body(request: Request) -> bytes:
 
 
 class BaseMiddleware(BaseHTTPMiddleware, ContextRequestMixin):
-    def __init__(self, app: ASGIApp, context: Context):
+    def __init__(self, app: ASGIApp, context: Context) -> None:
         super().__init__(app)
         self.context = context
 
@@ -62,7 +62,7 @@ class ScimMiddleware(BaseMiddleware):
 
 
 class AuthenticationMiddleware(BaseMiddleware):
-    def __init__(self, app: ASGIApp, context: Context):
+    def __init__(self, app: ASGIApp, context: Context) -> None:
         super().__init__(app, context)
         self.no_authn_urls = self.context.config.no_authn_urls
         self.context.logger.debug(f"No auth allow urls: {self.no_authn_urls}")

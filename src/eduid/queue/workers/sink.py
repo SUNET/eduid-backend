@@ -21,7 +21,7 @@ __author__ = "lundberg"
 
 
 class SinkQueueWorker(QueueWorker):
-    def __init__(self, config: QueueWorkerConfig):
+    def __init__(self, config: QueueWorkerConfig) -> None:
         # Register which queue items this worker should try to grab
         payloads = [EduidTestPayload]
         super().__init__(config=config, handle_payloads=payloads)

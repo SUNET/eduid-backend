@@ -51,7 +51,7 @@ class ScimApiGroup(ScimApiResourceBase, _ScimApiGroupRequired):
     extensions: GroupExtensions = field(default_factory=lambda: GroupExtensions())
     graph: GraphGroup = field(init=False)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self.graph = GraphGroup(identifier=str(self.scim_id), display_name=self.display_name)
 
     @property
@@ -110,7 +110,7 @@ class ScimApiGroupDB(ScimApiBaseDB):
         mongo_collection: str,
         neo4j_config: dict[str, Any] | None = None,
         setup_indexes: bool = True,
-    ):
+    ) -> None:
         super().__init__(mongo_uri, mongo_dbname, collection=mongo_collection)
         self.graphdb = GroupDB(db_uri=neo4j_uri, scope=scope, config=neo4j_config)
         logger.info(f"{self} initialised")

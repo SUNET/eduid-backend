@@ -70,7 +70,7 @@ class ScimApiInvite(ScimApiResourceBase):
 
 
 class ScimApiInviteDB(ScimApiBaseDB):
-    def __init__(self, db_uri: str, collection: str, db_name: str = "eduid_scimapi"):
+    def __init__(self, db_uri: str, collection: str, db_name: str = "eduid_scimapi") -> None:
         super().__init__(db_uri, db_name, collection=collection)
         # Create an index so that scim_id is unique per data owner
         indexes = {

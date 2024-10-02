@@ -40,7 +40,7 @@ class ManagedAccount(User):
 
 
 class ManagedAccountDB(UserDB[ManagedAccount]):
-    def __init__(self, db_uri: str, db_name: str = "eduid_managed_accounts", collection: str = "users"):
+    def __init__(self, db_uri: str, db_name: str = "eduid_managed_accounts", collection: str = "users") -> None:
         super().__init__(db_uri, db_name, collection)
 
         indexes = {

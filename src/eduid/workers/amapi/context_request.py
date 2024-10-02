@@ -15,7 +15,7 @@ class Context:
 
 
 class ContextRequest(Request):
-    def __init__(self, *args: Any, **kwargs: Any):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
     @property

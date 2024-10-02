@@ -15,7 +15,7 @@ from eduid.webapp.phone.settings.common import PhoneConfig
 
 
 class PhoneApp(AuthnBaseApp):
-    def __init__(self, config: PhoneConfig, **kwargs: Any):
+    def __init__(self, config: PhoneConfig, **kwargs: Any) -> None:
         super().__init__(config, **kwargs)
 
         self.conf = config

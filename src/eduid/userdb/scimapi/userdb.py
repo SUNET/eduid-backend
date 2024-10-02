@@ -72,7 +72,9 @@ class ScimApiUser(ScimApiResourceBase):
 
 
 class ScimApiUserDB(ScimApiBaseDB):
-    def __init__(self, db_uri: str, collection: str, db_name: str = "eduid_scimapi", setup_indexes: bool = True):
+    def __init__(
+        self, db_uri: str, collection: str, db_name: str = "eduid_scimapi", setup_indexes: bool = True
+    ) -> None:
         super().__init__(db_uri, db_name, collection=collection)
         if setup_indexes:
             # Create an index so that scim_id and external_id is unique per data owner
@@ -174,7 +176,7 @@ class ScimApiUserDB(ScimApiBaseDB):
 class ScimEduidUserDB(UserDB[User]):
     """EduID userdb"""
 
-    def __init__(self, db_uri: str, db_name: str = "eduid_scimapi"):
+    def __init__(self, db_uri: str, db_name: str = "eduid_scimapi") -> None:
         super().__init__(db_uri, db_name)
 
     @classmethod

@@ -92,7 +92,7 @@ def values_view() -> Response:
 
 
 class InputsTestApp(EduIDBaseApp):
-    def __init__(self, config: EduIDBaseAppConfig):
+    def __init__(self, config: EduIDBaseAppConfig) -> None:
         super().__init__(config)
 
         self.conf = config

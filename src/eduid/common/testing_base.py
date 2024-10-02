@@ -63,7 +63,7 @@ def normalised_data(
                 return repr(o)
 
     class NormaliseDecoder(json.JSONDecoder):
-        def __init__(self, *args: Any, **kwargs: Any):
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
             super().__init__(object_hook=self.object_hook, *args, **kwargs)
 
         def object_hook(self, o: Any) -> dict[str, Any]:

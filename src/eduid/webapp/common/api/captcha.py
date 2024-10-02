@@ -11,7 +11,7 @@ __author__ = "lundberg"
 
 
 class InternalCaptcha:
-    def __init__(self, config: CaptchaConfigMixin):
+    def __init__(self, config: CaptchaConfigMixin) -> None:
         self.image_generator = ImageCaptcha(
             height=config.captcha_height,
             width=config.captcha_width,

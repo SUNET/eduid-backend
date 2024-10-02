@@ -9,7 +9,9 @@ logger = logging.getLogger(__name__)
 
 
 class GroupManagementInviteStateDB(BaseDB):
-    def __init__(self, db_uri: str, db_name: str = "eduid_group_management", collection: str = "group_invite_data"):
+    def __init__(
+        self, db_uri: str, db_name: str = "eduid_group_management", collection: str = "group_invite_data"
+    ) -> None:
         super().__init__(db_uri, db_name, collection=collection)
         # Create an index so that invites for group_scim_id, email_address and role is unique
         indexes = {

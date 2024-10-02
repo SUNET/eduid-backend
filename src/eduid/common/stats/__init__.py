@@ -36,7 +36,7 @@ class NoOpStats(AppStats):
     configured allows us to not check if current_app.stats is set everywhere.
     """
 
-    def __init__(self, logger: Logger | None = None, prefix: str | None = None):
+    def __init__(self, logger: Logger | None = None, prefix: str | None = None) -> None:
         self.logger = logger
         self.prefix = prefix
 
@@ -54,7 +54,7 @@ class NoOpStats(AppStats):
 
 
 class Statsd(AppStats):
-    def __init__(self, host: str, port: int, prefix: str | None = None):
+    def __init__(self, host: str, port: int, prefix: str | None = None) -> None:
         import statsd
 
         self.client = statsd.StatsClient(host, port, prefix=prefix)

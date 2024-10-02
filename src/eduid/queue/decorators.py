@@ -14,7 +14,7 @@ from eduid.userdb.util import utc_now
 class TransactionAudit:
     enabled = False
 
-    def __init__(self, db_uri: str, db_name: str = "eduid_queue", collection_name: str = "transaction_audit"):
+    def __init__(self, db_uri: str, db_name: str = "eduid_queue", collection_name: str = "transaction_audit") -> None:
         self._conn: MongoDB | None = None
         self.db_uri: str = db_uri
         self.db_name: str = db_name

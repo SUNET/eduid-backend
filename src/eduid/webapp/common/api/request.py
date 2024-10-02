@@ -54,7 +54,7 @@ class SanitizedImmutableMultiDict(ImmutableMultiDict, SanitationMixin):
     sanitize the extracted data.
     """
 
-    def __getitem__(self, key: Any):
+    def __getitem__(self, key: Any) -> str:
         """
         Return the first data value for this key;
         raises KeyError if not found.
@@ -152,7 +152,7 @@ class SanitizedTypeConversionDict(ImmutableTypeConversionDict, SanitationMixin):
     sanitize the extracted data.
     """
 
-    def __getitem__(self, key: Any):
+    def __getitem__(self, key: Any) -> str:
         """
         Sanitized __getitem__
         """
@@ -200,7 +200,7 @@ class SanitizedEnvironHeaders(EnvironHeaders, SanitationMixin):
     Sanitized and read only version of the headers from a WSGI environment.
     """
 
-    def __init__(self, environ: dict[str, Any]):
+    def __init__(self, environ: dict[str, Any]) -> None:
         # set content type from environ at init so we don't get in to an infinite recursion
         # when sanitize_input tries to look it up later
         self.content_type = environ.get("CONTENT_TYPE")
@@ -217,7 +217,7 @@ class SanitizedEnvironHeaders(EnvironHeaders, SanitationMixin):
         val = super().__getitem__(key)
         return self.sanitize_input(untrusted_text=val, content_type=self.content_type)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[tuple[str, str]]:  # type: ignore[override]
         """
         Sanitized __iter__
         """
@@ -233,7 +233,7 @@ class Request(FlaskRequest, SanitationMixin):
     parameter_storage_class = SanitizedImmutableMultiDict
     dict_storage_class = SanitizedTypeConversionDict  # type: ignore[assignment]
 
-    def __init__(self, *args: Any, **kwargs: Any):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.headers = SanitizedEnvironHeaders(environ=self.environ)
 

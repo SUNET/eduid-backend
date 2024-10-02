@@ -47,7 +47,7 @@ class MongoDB(BaseMongoDB):
         db_uri: str,
         db_name: str | None = None,
         **kwargs: Any,
-    ):
+    ) -> None:
         super().__init__(db_uri=db_uri, db_name=db_name, **kwargs)
         try:
             self._client = MongoClientCache().get_client(db=self)
@@ -138,7 +138,7 @@ class SaveResult:
     updated: int = 0
     doc_id: ObjectId | None = None
 
-    def __bool__(self):
+    def __bool__(self) -> bool:
         return bool(self.inserted or self.updated)
 
 
@@ -151,7 +151,7 @@ class BaseDB:
         db_name: str,
         collection: str,
         safe_writes: bool = False,
-    ):
+    ) -> None:
         self._db_uri = db_uri
         self._coll_name = collection
         self._db = MongoDB(db_uri, db_name=db_name)
@@ -159,7 +159,7 @@ class BaseDB:
         if safe_writes:
             self._coll = self._coll.with_options(write_concern=pymongo.WriteConcern(w="majority"))
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<eduID {self.__class__.__name__!s}: {self._db.sanitized_uri!s} {self._coll_name!r}>"
 
     __str__ = __repr__

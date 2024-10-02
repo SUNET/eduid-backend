@@ -34,7 +34,7 @@ class InviteMailAddress:
     email: str
     primary: bool
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         # Make sure email is lowercase on init as we had trouble with mixed case
         super().__setattr__("email", self.email.lower())
 

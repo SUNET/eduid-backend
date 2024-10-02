@@ -36,7 +36,7 @@ class GeneratePairwiseId(ResponseMicroService):
         config: Mapping[str, Any],
         *args: Any,
         **kwargs: Any,
-    ):
+    ) -> None:
         super().__init__(*args, **kwargs)
         self.config = Config(**config)
         logger.info("Loaded pairwise-id generator")

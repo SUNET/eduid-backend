@@ -44,7 +44,7 @@ class RawDb:
     log detailing all the changes.
     """
 
-    def __init__(self, myname: str | None = None, backupbase: str = "/root/raw_db_changes"):
+    def __init__(self, myname: str | None = None, backupbase: str = "/root/raw_db_changes") -> None:
         self._client = get_client()
         self._start_time: str = datetime.datetime.fromtimestamp(int(time.time())).isoformat(sep="_").replace(":", "")
         self._myname: str | None = myname
@@ -237,7 +237,7 @@ class RawData:
     :param collection: Name of collection
     """
 
-    def __init__(self, doc: TUserDbDocument, db: str, collection: str):
+    def __init__(self, doc: TUserDbDocument, db: str, collection: str) -> None:
         self._before = deepcopy(doc)
         self._db = db
         self._collection = collection

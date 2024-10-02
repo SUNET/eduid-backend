@@ -18,7 +18,7 @@ from eduid.webapp.ladok.helpers import LadokMsg
 
 
 class MockResponse:
-    def __init__(self, status_code: int, data: Mapping[str, Any]):
+    def __init__(self, status_code: int, data: Mapping[str, Any]) -> None:
         self._data = data
         self.status_code = status_code
         self.text = json.dumps(self._data)

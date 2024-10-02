@@ -119,7 +119,7 @@ class OtherDevice(BaseModel):
 
 
 class OtherDeviceDB(BaseDB):
-    def __init__(self, db_uri: str, db_name: str = "eduid_idp", collection: str = "other_device"):
+    def __init__(self, db_uri: str, db_name: str = "eduid_idp", collection: str = "other_device") -> None:
         super().__init__(db_uri, db_name, collection=collection)
 
         indexes = {

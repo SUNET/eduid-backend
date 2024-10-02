@@ -9,7 +9,7 @@ from eduid.common.rpc.exceptions import LookupMobileTaskFailed
 
 
 class LookupMobileRelay:
-    def __init__(self, config: CeleryConfigMixin):
+    def __init__(self, config: CeleryConfigMixin) -> None:
         self.app_name = config.app_name
         eduid.workers.lookup_mobile.init_app(config.celery)
         # these have to be imported _after_ eduid.workers.lookup_mobile.init_app()

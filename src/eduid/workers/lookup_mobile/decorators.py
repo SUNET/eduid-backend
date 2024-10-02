@@ -20,7 +20,7 @@ class TransactionAudit:
     enabled = True
     db_uri = None
 
-    def __init__(self, db_name: str = "eduid_lookup_mobile", collection_name: str = "transaction_audit"):
+    def __init__(self, db_name: str = "eduid_lookup_mobile", collection_name: str = "transaction_audit") -> None:
         self.db_name: str = db_name
         self.collection_name: str = collection_name
         self.collection: Collection[TUserDbDocument] | None = None

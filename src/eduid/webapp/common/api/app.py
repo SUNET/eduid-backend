@@ -62,7 +62,7 @@ class EduIDBaseApp(Flask, metaclass=ABCMeta):
         init_central_userdb: bool = True,
         handle_exceptions: bool = True,
         **kwargs: Any,
-    ):
+    ) -> None:
         """
         :param config: EduID Flask app configuration subclass
         :param init_central_userdb: Whether the app requires access to the central user db.

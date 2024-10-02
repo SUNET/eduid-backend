@@ -29,7 +29,7 @@ class BrowserDeviceInfo(BaseModel):
     secret_box: SecretBox  # nacl secretbox to encrypt/decrypt database contents for this device
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    def __str__(self):
+    def __str__(self) -> str:
         # Ensure no more than necessary of the public (really 'shared with browser') and state_id end up in logs etc.
         return f"<{self.__class__.__name__}: public[8]={repr(self.shared[:8])}, state_id[8]={repr(self.state_id[:8])}>"
 
@@ -97,7 +97,7 @@ class KnownDeviceDB(BaseDB):
         ttl: timedelta,
         db_name: str = "eduid_idp",
         collection: str = "known_device",
-    ):
+    ) -> None:
         super().__init__(db_uri, db_name, collection=collection)
 
         self._new_ttl = new_ttl

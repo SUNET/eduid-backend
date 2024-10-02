@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 class AsyncQueueDB(AsyncBaseDB, QueuePayloadMixin):
-    def __init__(self, db_uri: str, collection: str, db_name: str = "eduid_queue"):
+    def __init__(self, db_uri: str, collection: str, db_name: str = "eduid_queue") -> None:
         super().__init__(db_uri, collection=collection, db_name=db_name)
 
         self.handlers: dict[str, type[Payload]] = dict()

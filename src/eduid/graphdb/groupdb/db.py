@@ -33,7 +33,7 @@ class Role(enum.Enum):
 
 
 class GroupDB(BaseGraphDB):
-    def __init__(self, db_uri: str, scope: str, config: dict[str, Any] | None = None):
+    def __init__(self, db_uri: str, scope: str, config: dict[str, Any] | None = None) -> None:
         super().__init__(db_uri=db_uri, config=config)
         self._scope = scope
 

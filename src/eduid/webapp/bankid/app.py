@@ -15,7 +15,7 @@ __author__ = "lundberg"
 
 
 class BankIDApp(AuthnBaseApp):
-    def __init__(self, config: BankIDConfig, **kwargs: Any):
+    def __init__(self, config: BankIDConfig, **kwargs: Any) -> None:
         super().__init__(config, **kwargs)
 
         self.conf = config

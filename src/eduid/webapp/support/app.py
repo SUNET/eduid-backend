@@ -14,7 +14,7 @@ from eduid.webapp.support.settings.common import SupportConfig
 
 
 class SupportApp(AuthnBaseApp):
-    def __init__(self, config: SupportConfig, **kwargs: Any):
+    def __init__(self, config: SupportConfig, **kwargs: Any) -> None:
         super().__init__(config, **kwargs)
 
         self.conf = config

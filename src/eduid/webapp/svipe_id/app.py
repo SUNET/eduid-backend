@@ -16,7 +16,7 @@ __author__ = "lundberg"
 
 
 class SvipeIdApp(AuthnBaseApp):
-    def __init__(self, config: SvipeIdConfig, **kwargs: Any):
+    def __init__(self, config: SvipeIdConfig, **kwargs: Any) -> None:
         super().__init__(config, **kwargs)
 
         self.conf = config

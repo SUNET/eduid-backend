@@ -48,7 +48,7 @@ from __future__ import annotations
 import json
 import logging
 import typing
-from collections.abc import Mapping
+from collections.abc import Iterator, Mapping
 from typing import Any
 
 import nacl.encoding
@@ -77,7 +77,7 @@ class SessionManager:
         ttl: int = 600,
         whitelist: list[str] | None = None,
         raise_on_unknown: bool = False,
-    ):
+    ) -> None:
         """
         Constructor for SessionManager
 
@@ -168,7 +168,7 @@ class RedisEncryptedSession(typing.MutableMapping):
         ttl: int,
         whitelist: list[str] | None = None,
         raise_on_unknown: bool = False,
-    ):
+    ) -> None:
         """
         Create an empty session object.
 
@@ -202,32 +202,32 @@ class RedisEncryptedSession(typing.MutableMapping):
 
         self._data: dict[str, Any] = {}
 
-    def __str__(self):
+    def __str__(self) -> str:
         # Include hex(id(self)) for now to troubleshoot clobbered sessions
         return f"<{self.__class__.__name__} at {hex(id(self))}: db_key={self.short_id}>"
 
-    def __getitem__(self, key: str):
+    def __getitem__(self, key: str) -> Any:
         if key in self._data:
             return self._data[key]
         raise KeyError(f"Key {repr(key)} not present in session")
 
-    def __setitem__(self, key: str, value: Any):
+    def __setitem__(self, key: str, value: Any) -> None:
         if self.whitelist and key not in self.whitelist:
             if self.raise_on_unknown:
                 raise ValueError(f"Key {repr(key)} not allowed in session")
             return
         self._data[key] = value
 
-    def __delitem__(self, key: str):
+    def __delitem__(self, key: str) -> None:
         del self._data[key]
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[str]:
         return self._data.__iter__()
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self._data)
 
-    def __contains__(self, key: object):
+    def __contains__(self, key: object) -> bool:
         return self._data.__contains__(key)
 
     @property

@@ -17,7 +17,7 @@ from eduid.workers.amapi.routers.users import users_router
 
 
 class AMAPI(FastAPI):
-    def __init__(self, name: str = "am_api", test_config: dict | None = None):
+    def __init__(self, name: str = "am_api", test_config: dict | None = None) -> None:
         self.config = load_config(typ=AMApiConfig, app_name=name, ns="api", test_config=test_config)
         super().__init__()
         self.context = Context(config=self.config)

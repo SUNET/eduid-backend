@@ -39,7 +39,7 @@ class Neo4jTemporaryInstance(EduidTemporaryInstance):
     DEFAULT_USERNAME = "neo4j"
     DEFAULT_PASSWORD = "testingtesting"
 
-    def __init__(self, max_retry_seconds: int = 60, neo4j_version: str = NEO4J_VERSION):
+    def __init__(self, max_retry_seconds: int = 60, neo4j_version: str = NEO4J_VERSION) -> None:
         self._http_port = random.randint(40000, 43000)
         self._https_port = random.randint(44000, 46000)
         self._bolt_port = random.randint(47000, 50000)

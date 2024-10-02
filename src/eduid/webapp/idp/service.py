@@ -104,7 +104,7 @@ class Service(ABC):
     :param session: SSO session
     """
 
-    def __init__(self, sso_session: SSOSession | None):
+    def __init__(self, sso_session: SSOSession | None) -> None:
         self.sso_session = sso_session
 
     def unpack_redirect(self) -> SAMLQueryParams:

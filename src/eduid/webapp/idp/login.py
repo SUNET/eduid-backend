@@ -126,7 +126,7 @@ class NextResult(BaseModel):
     user: User | None = None
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return (
             f"<{self.__class__.__name__}: message={self.message.value}, error={self.error}, authn={self.authn_info}, "
             f"user={self.user}>"
@@ -243,7 +243,7 @@ class SSO(Service):
     Single Sign On service.
     """
 
-    def __init__(self, sso_session: SSOSession | None):
+    def __init__(self, sso_session: SSOSession | None) -> None:
         super().__init__(sso_session)
 
     def redirect(self) -> WerkzeugResponse:

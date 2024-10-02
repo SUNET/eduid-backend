@@ -19,7 +19,7 @@ class AttributeFetcher(ABC):
     whitelist_set_attrs: list[str]
     whitelist_unset_attrs: list[str]
 
-    def __init__(self, worker_config: AmConfig):
+    def __init__(self, worker_config: AmConfig) -> None:
         if not isinstance(worker_config, AmConfig):
             raise TypeError("AttributeFetcher config should be AmConfig")
         self.conf = worker_config

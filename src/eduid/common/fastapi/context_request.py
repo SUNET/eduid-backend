@@ -13,7 +13,7 @@ class Context:
 
 
 class ContextRequest(Request):
-    def __init__(self, context_class: type[Context], *args: Any, **kwargs: Any):
+    def __init__(self, context_class: type[Context], *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.contextClass = context_class
 

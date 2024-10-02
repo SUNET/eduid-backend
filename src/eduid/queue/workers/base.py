@@ -27,7 +27,7 @@ def cancel_task(signame: str, task: Task) -> None:
 
 
 class QueueWorker(ABC):
-    def __init__(self, config: QueueWorkerConfig, handle_payloads: Sequence[type[Payload]]):
+    def __init__(self, config: QueueWorkerConfig, handle_payloads: Sequence[type[Payload]]) -> None:
         worker_name = environ.get("WORKER_NAME", None)
         if worker_name is None:
             raise RuntimeError("Environment variable WORKER_NAME needs to be set")

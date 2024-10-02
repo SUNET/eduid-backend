@@ -13,7 +13,7 @@ VT = TypeVar("VT")
 class SessionCacheAdapter(MutableMapping[str, VT]):
     key_prefix = "_saml2"
 
-    def __init__(self, backend: PySAML2Dicts, key_suffix: str):
+    def __init__(self, backend: PySAML2Dicts, key_suffix: str) -> None:
         self._backend = backend
         self._key = self.key_prefix + key_suffix
         if self._key not in self._backend:
@@ -51,7 +51,7 @@ class SessionCacheAdapter(MutableMapping[str, VT]):
 class OutstandingQueriesCache:
     """Handles the queries that have been sent to the IdP and have not been replied yet."""
 
-    def __init__(self, backend: PySAML2Dicts):
+    def __init__(self, backend: PySAML2Dicts) -> None:
         self._db = SessionCacheAdapter[AuthnRequestRef](backend, "_outstanding_queries")
 
     def outstanding_queries(self) -> dict[str, AuthnRequestRef]:
@@ -72,7 +72,7 @@ class IdentityCache(Cache):
     know where does he come from in order to notify such IdP/AA.
     """
 
-    def __init__(self, backend: PySAML2Dicts):
+    def __init__(self, backend: PySAML2Dicts) -> None:
         self._db = SessionCacheAdapter[Any](backend, "_identities")
         self._sync = False
 
@@ -80,5 +80,5 @@ class IdentityCache(Cache):
 class StateCache(SessionCacheAdapter[Any]):
     """Store state information that is needed to associate a logout request with its response."""
 
-    def __init__(self, backend: PySAML2Dicts):
+    def __init__(self, backend: PySAML2Dicts) -> None:
         super().__init__(backend, "_state")

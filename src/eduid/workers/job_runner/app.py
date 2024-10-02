@@ -13,7 +13,9 @@ from eduid.workers.job_runner.status import status_router
 class JobRunner(FastAPI):
     scheduler: JobScheduler = JobScheduler(timezone="UTC")
 
-    def __init__(self, name: str = "job_runner", test_config: dict | None = None, lifespan: Callable | None = None):
+    def __init__(
+        self, name: str = "job_runner", test_config: dict | None = None, lifespan: Callable | None = None
+    ) -> None:
         self.config = load_config(typ=JobRunnerConfig, app_name=name, ns="worker", test_config=test_config)
         super().__init__(root_path=self.config.application_root, lifespan=lifespan)
 

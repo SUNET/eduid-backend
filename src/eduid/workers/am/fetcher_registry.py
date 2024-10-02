@@ -19,7 +19,7 @@ class AFRegistry:
     and reside in eduid.workers.am.ams
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._fetchers: dict[str, AttributeFetcher] = {}
 
     def get_fetcher(self, key: str) -> AttributeFetcher:

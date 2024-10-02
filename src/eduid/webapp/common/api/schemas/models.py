@@ -47,7 +47,7 @@ class FluxResponse:
         payload: Mapping[str, Any] | None = None,
         error: bool | None = None,
         meta: Mapping[str, Any] | None = None,
-    ):
+    ) -> None:
         _suffix = "success"
         if error:
             _suffix = "fail"
@@ -56,13 +56,13 @@ class FluxResponse:
         self.meta = meta
         self.error = error
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<{self.__class__.__name__!s} ({self.to_dict()!r})>"
 
-    def __unicode__(self):
+    def __unicode__(self) -> str:
         return self.__str__()
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.__class__.__name__!s} ({self.to_dict()!r})"
 
     def to_dict(self) -> dict[str, Any]:
@@ -84,10 +84,10 @@ class FluxResponse:
 
 
 class FluxSuccessResponse(FluxResponse):
-    def __init__(self, req: Request, payload: Mapping[str, Any] | None, meta: Mapping[str, Any] | None = None):
+    def __init__(self, req: Request, payload: Mapping[str, Any] | None, meta: Mapping[str, Any] | None = None) -> None:
         super().__init__(req, payload, meta=meta)
 
 
 class FluxFailResponse(FluxResponse):
-    def __init__(self, req: Request, payload: Mapping[str, Any] | None, meta: Mapping[str, Any] | None = None):
+    def __init__(self, req: Request, payload: Mapping[str, Any] | None, meta: Mapping[str, Any] | None = None) -> None:
         super().__init__(req, payload, error=True, meta=meta)

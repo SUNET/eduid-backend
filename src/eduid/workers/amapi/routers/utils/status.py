@@ -25,7 +25,7 @@ class FailCountItem:
     exit_at: datetime | None = None
     count: int = 0
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"(first_failure: {self.first_failure.isoformat()}, fail count: {self.count})"
 
 

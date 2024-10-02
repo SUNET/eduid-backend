@@ -80,7 +80,7 @@ class IdP_SAMLRequest:
         binding: str,
         idp: saml2.server.Server,
         debug: bool = False,
-    ):
+    ) -> None:
         self._request = request
         self._binding = binding
         self._idp = idp

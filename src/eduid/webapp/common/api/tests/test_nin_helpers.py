@@ -37,7 +37,7 @@ __author__ = "lundberg"
 
 
 class HelpersTestApp(EduIDBaseApp):
-    def __init__(self, name: str, test_config: Mapping[str, Any], **kwargs: Any):
+    def __init__(self, name: str, test_config: Mapping[str, Any], **kwargs: Any) -> None:
         self.conf = load_config(typ=EduIDBaseAppConfig, app_name=name, ns="webapp", test_config=test_config)
         super().__init__(self.conf, **kwargs)
         self.session_interface = SessionFactory(self.conf)

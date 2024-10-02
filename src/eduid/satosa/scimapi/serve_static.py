@@ -30,7 +30,7 @@ class ServeStatic(RequestMicroService):
 
     logprefix = "SERVE_STATIC_SERVICE:"
 
-    def __init__(self, config: SATOSAConfig, *args: Any, **kwargs: Any):
+    def __init__(self, config: SATOSAConfig, *args: Any, **kwargs: Any) -> None:
         """
         :type config: satosa.satosa_config.SATOSAConfig
         :param config: The SATOSA proxy config

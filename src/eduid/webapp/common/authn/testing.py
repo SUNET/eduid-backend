@@ -17,8 +17,8 @@ class MockVCCSClient:
     """
 
     @deprecated("Remove once eduid-webapp is using MockVCCSClient (just below this)")
-    def __init__(self):
-        self.factors = {}
+    def __init__(self) -> None:
+        self.factors: dict[str, list[VCCSPasswordFactor]] = {}
 
     # TODO: check for removal, seems to be unused
     def authenticate(self, user_id: str, factors: Sequence[VCCSPasswordFactor]) -> bool:
@@ -56,7 +56,7 @@ class MockVCCSClient:
         return True
 
     def revoke_credentials(self, user_id: str, revoked: Sequence[VCCSRevokeFactor]) -> bool:
-        stored: list = self.factors.get(user_id, None)
+        stored: list | None = self.factors.get(user_id, None)
         removed: bool = False
         if stored:  # Nothing stored in test client yet
             for rfactor in revoked:

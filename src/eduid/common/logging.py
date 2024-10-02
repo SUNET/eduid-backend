@@ -26,7 +26,7 @@ DEFAULT_FORMAT = "{asctime} | {levelname:7} | {hostname} | {eppn:11} | {name:35}
 
 # Default to RFC3339/ISO 8601 with tz
 class EduidFormatter(logging.Formatter):
-    def __init__(self, relative_time: bool = False, fmt: str | None = None):
+    def __init__(self, relative_time: bool = False, fmt: str | None = None) -> None:
         super().__init__(fmt=fmt, style="{")
         self._relative_time = relative_time
 
@@ -52,7 +52,7 @@ class EduidFormatter(logging.Formatter):
 class AppFilter(logging.Filter):
     """Add `system_hostname`, `hostname` and `app_name` to records being logged."""
 
-    def __init__(self, app_name: str):
+    def __init__(self, app_name: str) -> None:
         super().__init__()
         self.app_name = app_name
         # TODO: I guess it could be argued that these should be put in the LocalContext and not evaluated at runtime.
@@ -89,7 +89,7 @@ class UserFilter(logging.Filter):
     This allows us to debug-log certain users in production, without having debug logging enabled for everyone.
     """
 
-    def __init__(self, debug_eppns: Sequence[str]):
+    def __init__(self, debug_eppns: Sequence[str]) -> None:
         super().__init__()
         self.debug_eppns = debug_eppns
 
@@ -117,7 +117,7 @@ class UserFilter(logging.Filter):
 class RequireDebugTrue(logging.Filter):
     """A filter to discard all debug log records if the Flask app.debug is not True. Generally not used."""
 
-    def __init__(self, app_debug: bool):
+    def __init__(self, app_debug: bool) -> None:
         super().__init__()
         self.app_debug = app_debug
 
@@ -128,7 +128,7 @@ class RequireDebugTrue(logging.Filter):
 class RequireDebugFalse(logging.Filter):
     """A filter to discard all debug log records if the Flask app.debug is not False. Generally not used."""
 
-    def __init__(self, app_debug: bool):
+    def __init__(self, app_debug: bool) -> None:
         super().__init__()
         self.app_debug = app_debug
 

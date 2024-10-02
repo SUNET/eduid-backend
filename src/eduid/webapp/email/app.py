@@ -13,7 +13,7 @@ from eduid.webapp.email.settings.common import EmailConfig
 
 
 class EmailApp(AuthnBaseApp):
-    def __init__(self, config: EmailConfig, **kwargs: Any):
+    def __init__(self, config: EmailConfig, **kwargs: Any) -> None:
         super().__init__(config, **kwargs)
 
         self.conf = config

@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 class SignupInviteDB(BaseDB):
-    def __init__(self, db_uri: str, db_name: str = "eduid_signup", collection: str = "invites"):
+    def __init__(self, db_uri: str, db_name: str = "eduid_signup", collection: str = "invites") -> None:
         BaseDB.__init__(self, db_uri, db_name, collection)
         # Create an index so that invite_code is unique and invites are removed at the expires_at time
         indexes = {

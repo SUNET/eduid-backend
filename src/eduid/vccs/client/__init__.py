@@ -57,7 +57,7 @@ class VCCSClientException(Exception):
     Base exception class for VCCS client.
     """
 
-    def __init__(self, reason: str):
+    def __init__(self, reason: str) -> None:
         Exception.__init__(self)
         self.reason = reason
 
@@ -69,11 +69,11 @@ class VCCSClientHTTPError(VCCSClientException):
     library is used by the VCCS client.
     """
 
-    def __init__(self, reason: str, http_code: int):
+    def __init__(self, reason: str, http_code: int) -> None:
         VCCSClientException.__init__(self, reason)
         self.http_code = http_code
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"<{self.__class__.__name__} instance at {hex(id(self))}: {self.http_code!r} {self.reason!r}>"
 
 
@@ -82,7 +82,7 @@ class VCCSFactor:
     Base class for authentication factors. Do not use directly.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         pass
 
     def to_dict(self, _action: str) -> dict[str, Any]:
@@ -101,7 +101,9 @@ class VCCSPasswordFactor(VCCSFactor):
     Object representing an ordinary password authentication factor.
     """
 
-    def __init__(self, password: str, credential_id: str, salt: str | None = None, strip_whitespace: bool = True):
+    def __init__(
+        self, password: str, credential_id: str, salt: str | None = None, strip_whitespace: bool = True
+    ) -> None:
         """
         :param password: string, password as plaintext
         :param credential_id: unique id of credential in the authentication backend database
@@ -202,7 +204,7 @@ class VCCSOathFactor(VCCSFactor):
         key_handle: int | None = None,
         digits: int = 6,
         oath_counter: int = 0,
-    ):
+    ) -> None:
         """
         :param oath_type: 'oath-totp' or 'oath-hotp' (time based or event based OATH)
         :param credential_id: integer, unique index of credential
@@ -271,7 +273,7 @@ class VCCSRevokeFactor(VCCSFactor):
     Object representing a factor to be revoked.
     """
 
-    def __init__(self, credential_id: str, reason: str, reference: str = ""):
+    def __init__(self, credential_id: str, reason: str, reference: str = "") -> None:
         """
         :param credential_id: unique index of credential
         :param reason: reason for revocation
@@ -310,7 +312,7 @@ class VCCSClient:
     credentials (authentication factors).
     """
 
-    def __init__(self, base_url: str | None = None):
+    def __init__(self, base_url: str | None = None) -> None:
         self.base_url = base_url if base_url else "http://localhost:8550/"
 
     def authenticate(self, user_id: str, factors: Sequence[VCCSFactor]) -> bool:

@@ -15,7 +15,7 @@ __author__ = "lundberg"
 
 
 class LoggingMiddleware:
-    def __init__(self, app: Callable[..., Any]):
+    def __init__(self, app: Callable[..., Any]) -> None:
         self._app = app
 
     def __call__(self, environ: WSGIEnvironment, start_response: StartResponse) -> Iterable[bytes]:

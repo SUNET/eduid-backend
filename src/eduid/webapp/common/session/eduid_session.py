@@ -4,7 +4,7 @@ import json
 import logging
 import os
 import pprint
-from collections.abc import MutableMapping
+from collections.abc import Iterator, MutableMapping
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
@@ -99,7 +99,9 @@ class EduidSession(SessionMixin, MutableMapping[str, Any]):
     and auto-complete support, and then Flask will call persist() which will store the data in the backend session.
     """
 
-    def __init__(self, app: EduIDBaseApp, meta: SessionMeta, base_session: RedisEncryptedSession, new: bool = False):
+    def __init__(
+        self, app: EduIDBaseApp, meta: SessionMeta, base_session: RedisEncryptedSession, new: bool = False
+    ) -> None:
         """
         :param app: the flask app
         :param meta: Session metadata
@@ -120,35 +122,35 @@ class EduidSession(SessionMixin, MutableMapping[str, Any]):
         # Namespaces, initialised lazily when accessed through properties
         self._namespaces = EduidNamespaces()
 
-    def __str__(self):
+    def __str__(self) -> str:
         # Include hex(id(self)) for now to troubleshoot clobbered sessions
         return (
             f"<{self.__class__.__name__} at {hex(id(self))}: new={self.new}, "
             f"modified={self.modified}, cookie={self.short_id}>"
         )
 
-    def __getitem__(self, key: str):
+    def __getitem__(self, key: str) -> Any:
         return self._session.__getitem__(key)
 
-    def __setitem__(self, key: str, value: Any):
+    def __setitem__(self, key: str, value: Any) -> None:
         if key not in self._session or self._session[key] != value:
             self._session[key] = value
             logger.debug(f"SET {self}[{key}] = {value}")
             self.modified = True
 
-    def __delitem__(self, key: str):
+    def __delitem__(self, key: str) -> None:
         if key in self._session:
             del self._session[key]
             logger.debug(f"DEL {self}[{key}]")
             self.modified = True
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[str]:
         return self._session.__iter__()
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self._session)
 
-    def __contains__(self, key: object):
+    def __contains__(self, key: object) -> bool:
         return self._session.__contains__(key)
 
     @property
@@ -378,7 +380,7 @@ class SessionFactory(SessionInterface):
     :param config: the configuration for the session
     """
 
-    def __init__(self, config: EduIDBaseAppConfig):
+    def __init__(self, config: EduIDBaseAppConfig) -> None:
         if config.flask.secret_key is None:
             raise BadConfiguration("flask.secret_key not set in config")
 

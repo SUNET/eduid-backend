@@ -16,7 +16,7 @@ class EkopostException(Exception):
 
 
 class Ekopost:
-    def __init__(self, config: LetterProofingConfig):
+    def __init__(self, config: LetterProofingConfig) -> None:
         self.config = config
 
         auth = None

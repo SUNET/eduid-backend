@@ -21,7 +21,7 @@ class TestNeo4jDB(Neo4jTestCase):
 
 class TestBaseGraphDB(Neo4jTestCase):
     class TestDB(BaseGraphDB):
-        def __init__(self, db_uri: str, config: dict[str, Any] | None = None):
+        def __init__(self, db_uri: str, config: dict[str, Any] | None = None) -> None:
             super().__init__(db_uri, config=config)
 
         def db_setup(self) -> None:

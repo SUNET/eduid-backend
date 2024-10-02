@@ -113,7 +113,7 @@ class ExpiringCacheMem:
     # use quote annotations on lock for now until python 3.13 is released
     # threading.Lock is not a class but a factory function, see:
     # https://github.com/python/cpython/pull/114479
-    def __init__(self, name: str, logger: logging.Logger | None, ttl: int, lock: "Lock | None" = None):
+    def __init__(self, name: str, logger: logging.Logger | None, ttl: int, lock: "Lock | None" = None) -> None:
         self.logger = logger
         self.ttl = ttl
         self.name = name
@@ -216,7 +216,7 @@ class SSOSessionCacheError(EduIDDBError):
 
 
 class SSOSessionCache(BaseDB):
-    def __init__(self, db_uri: str, db_name: str = "eduid_idp", collection: str = "sso_sessions"):
+    def __init__(self, db_uri: str, db_name: str = "eduid_idp", collection: str = "sso_sessions") -> None:
         super().__init__(db_uri, db_name, collection=collection, safe_writes=True)
 
         # Remove messages older than created_ts + ttl

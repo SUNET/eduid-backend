@@ -13,7 +13,7 @@ class PasswordSchema(Schema):
         min_entropy: int | None = None
         min_score: int | None = None
 
-    def __init__(self, *args: Any, **kwargs: Any):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         self.Meta.zxcvbn_terms = kwargs.pop("zxcvbn_terms", [])
         self.Meta.min_entropy = kwargs.pop("min_entropy")
         self.Meta.min_score = kwargs.pop("min_score")

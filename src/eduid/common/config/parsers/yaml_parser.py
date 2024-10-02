@@ -7,7 +7,7 @@ from eduid.common.config.parsers.decorators import decrypt, interpolate
 
 
 class YamlConfigParser(BaseConfigParser):
-    def __init__(self, path: Path):
+    def __init__(self, path: Path) -> None:
         self.path = path
 
     @interpolate

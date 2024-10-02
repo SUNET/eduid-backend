@@ -31,10 +31,10 @@ class ResetPasswordState:
     extra_security: dict[str, Any] | None = None
     generated_password: bool = False
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self.reference = str(self.id)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"<eduID {self.__class__.__name__!s}: {self.eppn!s}>"
 
     def to_dict(self) -> TUserDbDocument:
@@ -83,7 +83,7 @@ class ResetPasswordEmailState(ResetPasswordState, _ResetPasswordEmailStateRequir
 
     email_reference: str = field(default_factory=lambda: str(uuid4()))
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         super().__post_init__()
         self.method = "email"
         self.email_code = CodeElement.parse(application="security", code_or_element=self.email_code)
@@ -106,7 +106,7 @@ class _ResetPasswordEmailAndPhoneStateRequired:
 class ResetPasswordEmailAndPhoneState(ResetPasswordEmailState, _ResetPasswordEmailAndPhoneStateRequired):
     """ """
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         super().__post_init__()
         self.method = "email_and_phone"
         self.phone_code = CodeElement.parse(application="security", code_or_element=self.phone_code)

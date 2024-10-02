@@ -18,7 +18,7 @@ class ApiException(Exception):
         message: str = "ApiException",
         status_code: int | None = None,
         payload: Mapping[str, Any] | None = None,
-    ):
+    ) -> None:
         """
         :param message: Error message
         :param status_code: Http status code
@@ -30,13 +30,13 @@ class ApiException(Exception):
             self.status_code = status_code
         self.payload = payload
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"ApiException (message={self.message!s}, status_code={self.status_code!s}, payload={self.payload!r})"
 
-    def __unicode__(self):
+    def __unicode__(self) -> str:
         return self.__str__()
 
-    def __str__(self):
+    def __str__(self) -> str:
         if self.payload:
             return f"{self.status_code!s} with message {self.message!s} and payload {self.payload!r}"
         return f"{self.status_code!s} with message {self.message!s}"
@@ -68,7 +68,7 @@ class ProofingLogFailure(Exception):
 class ThrottledException(Exception):
     state: "ResetPasswordEmailState"
 
-    def __init__(self, state: "ResetPasswordEmailState"):
+    def __init__(self, state: "ResetPasswordEmailState") -> None:
         Exception.__init__(self)
         self.state = state
 

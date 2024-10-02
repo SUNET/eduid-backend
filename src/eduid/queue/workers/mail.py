@@ -31,7 +31,7 @@ __author__ = "lundberg"
 
 
 class MailQueueWorker(QueueWorker):
-    def __init__(self, config: QueueWorkerConfig):
+    def __init__(self, config: QueueWorkerConfig) -> None:
         # Register which queue items this worker should try to grab
         payloads: Sequence[type[Payload]] = [
             EduidInviteEmail,

@@ -81,7 +81,7 @@ class IdPAuthn:
         config: IdPConfig,
         userdb: IdPUserDb,
         managed_account_db: ManagedAccountDB,
-    ):
+    ) -> None:
         self.config = config
         self.userdb = userdb
         self.managed_account_db = managed_account_db
@@ -252,7 +252,7 @@ class AuthnInfoStore:
         }
     """
 
-    def __init__(self, uri: str, db_name: str = "eduid_idp_authninfo", collection_name: str = "authn_info"):
+    def __init__(self, uri: str, db_name: str = "eduid_idp_authninfo", collection_name: str = "authn_info") -> None:
         logger.debug("Setting up AuthnInfoStore")
         self._db = MongoDB(db_uri=uri, db_name=db_name)
         self.collection = self._db.get_collection(collection_name)

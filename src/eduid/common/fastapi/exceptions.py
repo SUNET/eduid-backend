@@ -57,7 +57,7 @@ class HTTPErrorDetail(Exception):
         self,
         status_code: int,
         detail: str | None = None,
-    ):
+    ) -> None:
         self._error_detail = ErrorDetail(detail=detail, status=status_code)
         self._extra_headers: dict | None = None
 
@@ -75,28 +75,28 @@ class HTTPErrorDetail(Exception):
 
 
 class BadRequest(HTTPErrorDetail):
-    def __init__(self, **kwargs: Any):
+    def __init__(self, **kwargs: Any) -> None:
         super().__init__(status_code=status.HTTP_400_BAD_REQUEST, **kwargs)
         if not self.error_detail.detail:
             self.error_detail.detail = "Bad Request"
 
 
 class Unauthorized(HTTPErrorDetail):
-    def __init__(self, **kwargs: Any):
+    def __init__(self, **kwargs: Any) -> None:
         super().__init__(status_code=status.HTTP_401_UNAUTHORIZED, **kwargs)
         if not self.error_detail.detail:
             self.error_detail.detail = "Unauthorized request"
 
 
 class NotFound(HTTPErrorDetail):
-    def __init__(self, **kwargs: Any):
+    def __init__(self, **kwargs: Any) -> None:
         super().__init__(status_code=status.HTTP_404_NOT_FOUND, **kwargs)
         if not self.error_detail.detail:
             self.error_detail.detail = "Resource not found"
 
 
 class MethodNotAllowedMalformed(HTTPErrorDetail):
-    def __init__(self, **kwargs: Any):
+    def __init__(self, **kwargs: Any) -> None:
         super().__init__(status_code=status.HTTP_405_METHOD_NOT_ALLOWED, **kwargs)
         if not self.error_detail.detail:
             allowed_methods = kwargs.get("allowed_methods")
@@ -104,7 +104,7 @@ class MethodNotAllowedMalformed(HTTPErrorDetail):
 
 
 class UnsupportedMediaTypeMalformed(HTTPErrorDetail):
-    def __init__(self, **kwargs: Any):
+    def __init__(self, **kwargs: Any) -> None:
         super().__init__(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, **kwargs)
         if not self.error_detail.detail:
             self.error_detail.detail = "Request was made with an unsupported media type"

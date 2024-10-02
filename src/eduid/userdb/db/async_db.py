@@ -42,7 +42,7 @@ class AsyncMongoDB(BaseMongoDB):
         db_uri: str,
         db_name: str | None = None,
         **kwargs: Any,
-    ):
+    ) -> None:
         super().__init__(db_uri=db_uri, db_name=db_name, **kwargs)
         try:
             self._client = AsyncClientCache().get_client(self)
@@ -124,7 +124,7 @@ class AsyncBaseDB:
         db_name: str,
         collection: str,
         safe_writes: bool = False,
-    ):
+    ) -> None:
         self._db_uri = db_uri
         self._coll_name = collection
         self._db = AsyncMongoDB(db_uri, db_name=db_name)
@@ -132,7 +132,7 @@ class AsyncBaseDB:
         if safe_writes:
             self._coll = self._coll.with_options(write_concern=pymongo.WriteConcern(w="majority"))
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<eduID {self.__class__.__name__!s}: {self._db.sanitized_uri!s} {self._coll_name!r}>"
 
     __str__ = __repr__

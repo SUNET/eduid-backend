@@ -9,7 +9,7 @@ from eduid.userdb.util import utc_now
 class CacheMDB(BaseDB):
     _init_collections: set[str] = set()
 
-    def __init__(self, db_uri: str, db_name: str, collection: str, ttl: int):
+    def __init__(self, db_uri: str, db_name: str, collection: str, ttl: int) -> None:
         super().__init__(db_uri=db_uri, db_name=db_name, collection=collection)
         indexes = {
             # Remove cache entries after TTL expires

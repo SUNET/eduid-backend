@@ -16,7 +16,7 @@ class FakeVCCSClient(VCCSClient):
     in order to fake HTTP communication.
     """
 
-    def __init__(self, fake_response: str):
+    def __init__(self, fake_response: str) -> None:
         self.fake_response = fake_response
         VCCSClient.__init__(self)
 

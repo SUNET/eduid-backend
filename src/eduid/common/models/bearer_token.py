@@ -53,7 +53,7 @@ class AuthnBearerToken(BaseModel):
     saml_eppn: str | None = None
     saml_unique_id: str | None = None
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"<{self.__class__.__name__}: scopes={self.scopes}, requested_access={self.requested_access}>"
 
     @field_validator("version")
