@@ -270,7 +270,7 @@ class ScimApiTestCase(MongoNeoTestCase):
         )
 
     @staticmethod
-    def _assertName(db_name: ScimApiName, response_name: dict[str, str]):
+    def _assertName(db_name: ScimApiName, response_name: dict[str, str]) -> None:
         name_map = [
             ("family_name", "familyName"),
             ("given_name", "givenName"),
@@ -286,7 +286,7 @@ class ScimApiTestCase(MongoNeoTestCase):
             ), f"{first}:{db_name_dict.get(first)} != {second}:{response_name.get(second)}"
 
     @staticmethod
-    def _assertResponse(response: Response, status_code: int = 200):
+    def _assertResponse(response: Response, status_code: int = 200) -> None:
         _detail = None
         try:
             if response.json():

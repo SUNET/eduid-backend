@@ -32,7 +32,7 @@ class CSRFRequestMixin(Schema):
         return in_data
 
     @staticmethod
-    def remove_csrf_token(in_data: Any, **kwargs: Any):
+    def remove_csrf_token(in_data: Any, **kwargs: Any) -> Any:
         del in_data["csrf_token"]
         return in_data
 

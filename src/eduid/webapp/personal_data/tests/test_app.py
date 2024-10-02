@@ -526,7 +526,7 @@ class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
         self._check_success_response(response, type_="GET_PERSONAL_DATA_IDENTITIES_SUCCESS", payload=expected_payload)
 
     @staticmethod
-    def test_is_valid_chosen_given_name():
+    def test_is_valid_chosen_given_name() -> None:
         params = [
             ("", "", False),
             (None, None, False),

@@ -180,7 +180,7 @@ class QueueAsyncioTest(EduidQueueTestCase, IsolatedAsyncioTestCase):
                 continue
 
     @staticmethod
-    def create_queue_item(expires_at: datetime, discard_at: datetime, payload: Payload):
+    def create_queue_item(expires_at: datetime, discard_at: datetime, payload: Payload) -> QueueItem:
         sender_info = SenderInfo(hostname="localhost", node_id="test")
         return QueueItem(
             version=1,

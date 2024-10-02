@@ -254,7 +254,7 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         assert self.app.conf.app_name == "testing"
 
     @staticmethod
-    def test_parse_token_response():
+    def test_parse_token_response() -> None:
         token_response_swedish = {
             "access_token": "access_token",
             "token_type": "Bearer",

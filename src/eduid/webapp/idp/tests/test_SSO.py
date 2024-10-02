@@ -255,7 +255,7 @@ class TestSSO(SSOIdPTests):
         accr: EduidAuthnContextClass | None = None,
         assurance_profile: list[SwamidAssurance] | None = None,
         expect_error: bool | None = False,
-    ):
+    ) -> None:
         assert authn_result.message == message, f"Message: {authn_result.message}, Expected: {message}"
         if expect_success:
             assert authn_result.authn_info

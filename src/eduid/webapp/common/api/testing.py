@@ -372,11 +372,11 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
         return mfa_token
 
     @staticmethod
-    def _get_all_navet_data():
+    def _get_all_navet_data() -> NavetData:
         return NavetData.model_validate(MessageSender.get_devel_all_navet_data())
 
     @staticmethod
-    def _get_full_postal_address():
+    def _get_full_postal_address() -> FullPostalAddress:
         return FullPostalAddress.model_validate(MessageSender.get_devel_postal_address())
 
     def _check_must_authenticate_response(

@@ -84,7 +84,7 @@ class MessageSender(Task):
         return _CACHE[cache_name]
 
     @staticmethod
-    def reload_db():
+    def reload_db() -> None:
         global _CACHE
         # Remove initiated cache dbs
         _CACHE = {}

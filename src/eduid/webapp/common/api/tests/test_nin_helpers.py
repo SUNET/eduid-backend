@@ -434,7 +434,7 @@ class NinHelpersTest(EduidAPITestCase[HelpersTestApp]):
             assert user.legal_name == "Testaren Test Testsson"
 
     @staticmethod
-    def test_get_given_name_from_marking():
+    def test_get_given_name_from_marking() -> None:
         assert get_marked_given_name("Jan-Erik Martin", "30") == "Martin"
         assert get_marked_given_name("Eva Mia", "20") == "Mia"
         assert get_marked_given_name("Kjell Olof", "12") == "Kjell Olof"
