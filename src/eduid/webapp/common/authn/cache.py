@@ -27,7 +27,7 @@ class SessionCacheAdapter(MutableMapping[str, VT]):
     def data(self) -> dict[str, VT]:
         return self._backend[self._key]
 
-    def __contains__(self, key: Any) -> bool:
+    def __contains__(self, key: object) -> bool:
         return key in self.data
 
     def __delitem__(self, key: str) -> None:

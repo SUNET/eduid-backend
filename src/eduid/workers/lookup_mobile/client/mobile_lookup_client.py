@@ -1,5 +1,4 @@
 from logging import Logger
-from typing import Any
 
 from suds.client import Client
 from suds.sudsobject import Object
@@ -28,7 +27,7 @@ class MobileLookupClient:
             self._client = Client(self.conf.teleadress_client_url, port=self.conf.teleadress_client_port)
         return self._client
 
-    def _get_find_person(self) -> Any:
+    def _get_find_person(self) -> Object:
         find_person = self.client.factory.create("ns7:FindPersonClass")
         find_person.QueryParams = self.client.factory.create("ns7:QueryParamsClass")
         find_person.QueryColumns = self.client.factory.create("ns7:QueryColumnsClass")
@@ -59,7 +58,7 @@ class MobileLookupClient:
 
         return format_NIN(nin)
 
-    def _search(self, param: Any | Object) -> list | None:
+    def _search(self, param: Object) -> list | None:
         # Start the search
         # TODO: remove self.conf.devel_mode, use environment instead
         if self.conf.testing or self.conf.environment == EduidEnvironment.dev:

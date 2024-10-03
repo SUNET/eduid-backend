@@ -245,7 +245,7 @@ class PrimaryElement(VerifiedElement, ABC):
 
     is_primary: bool = Field(default=False, alias="primary")  # primary is the old name
 
-    def __setattr__(self, key: str, value: Any) -> None:
+    def __setattr__(self, key: str, value: object) -> None:
         """
         raise PrimaryElementViolation when trying to set a primary element as unverified
         """

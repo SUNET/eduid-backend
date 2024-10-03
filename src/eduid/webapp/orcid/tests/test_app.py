@@ -8,6 +8,7 @@ from werkzeug.test import TestResponse
 from eduid.userdb.orcid import OidcAuthorization, OidcIdToken, Orcid
 from eduid.userdb.proofing import ProofingUser
 from eduid.userdb.proofing.state import OrcidProofingState
+from eduid.userdb.testing import SetupConfig
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.orcid.app import OrcidApp, init_orcid_app
 
@@ -17,7 +18,7 @@ __author__ = "lundberg"
 class OrcidTests(EduidAPITestCase[OrcidApp]):
     """Base TestCase for those tests that need a full environment setup"""
 
-    def setUp(self, *args: Any, **kwargs: Any) -> None:
+    def setUp(self, config: SetupConfig | None = None) -> None:
         self.test_user_eppn = "hubba-bubba"
         self.oidc_provider_config = {
             "token_endpoint_auth_signing_alg_values_supported": ["RS256"],
@@ -64,7 +65,7 @@ class OrcidTests(EduidAPITestCase[OrcidApp]):
             created_by="orcid",
         )
 
-        super().setUp(*args, **kwargs)
+        super().setUp(config=config)
 
     def load_app(self, config: Mapping[str, Any]) -> OrcidApp:
         """

@@ -12,6 +12,7 @@ from eduid.common.config.base import FrontendAction
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb import SvipeIdentity
 from eduid.userdb.identity import IdentityProofingMethod
+from eduid.userdb.testing import SetupConfig
 from eduid.webapp.common.api.messages import CommonMsg
 from eduid.webapp.common.proofing.messages import ProofingMsg
 from eduid.webapp.common.proofing.testing import ProofingTests
@@ -25,8 +26,11 @@ __author__ = "lundberg"
 class SvipeIdTests(ProofingTests[SvipeIdApp]):
     """Base TestCase for those tests that need a full environment setup"""
 
-    def setUp(self, *args: Any, **kwargs: Any) -> None:
-        super().setUp(*args, **kwargs, users=["hubba-bubba", "hubba-baar"])
+    def setUp(self, config: SetupConfig | None = None) -> None:
+        if config is None:
+            config = SetupConfig()
+        config.users = ["hubba-bubba", "hubba-baar"]
+        super().setUp(config=config)
 
         self.unverified_test_user = self.app.central_userdb.get_user_by_eppn("hubba-baar")
         self._user_setup()

@@ -1,10 +1,11 @@
 from eduid.userdb.db.base import TUserDbDocument
+from eduid.userdb.testing import SetupConfig
 from eduid.workers.msg.testing import MsgMongoTestCase
 
 
 class MessageTest(MsgMongoTestCase):
-    def setUp(self) -> None:  # type: ignore[override]
-        super().setUp()
+    def setUp(self, config: SetupConfig | None = None) -> None:
+        super().setUp(config=config)
 
     def test_mongo(self) -> None:
         db = self.tmp_db.conn["test"]

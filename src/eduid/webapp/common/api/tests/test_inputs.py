@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 __author__ = "lundberg"
 
 
-def dont_validate(value: Any) -> NoReturn:
+def dont_validate(value: str | bytes) -> NoReturn:
     raise ValidationError(f"Problem with {value!r}")
 
 

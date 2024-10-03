@@ -194,7 +194,7 @@ class ScimApiTestCase(MongoNeoTestCase):
         schemas: list[str] | None = None,
         status: int = 400,
         scim_type: str | None = None,
-        detail: Any | None = None,
+        detail: object | None = None,
         exclude_keys: list[str] | None = None,
     ) -> None:
         if schemas is None:

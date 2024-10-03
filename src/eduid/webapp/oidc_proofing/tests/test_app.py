@@ -10,6 +10,7 @@ from werkzeug.test import TestResponse
 
 from eduid.userdb import NinIdentity
 from eduid.userdb.proofing.state import OidcProofingState
+from eduid.userdb.testing import SetupConfig
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.oidc_proofing.app import OIDCProofingApp, init_oidc_proofing_app
 from eduid.webapp.oidc_proofing.helpers import create_proofing_state, handle_freja_eid_userinfo
@@ -22,7 +23,7 @@ class OidcProofingTests(EduidAPITestCase):
 
     app: OIDCProofingApp
 
-    def setUp(self, *args: Any, **kwargs: Any) -> None:
+    def setUp(self, config: SetupConfig | None = None) -> None:
         self.test_user_eppn = "hubba-baar"
         self.test_user_nin = "200001023456"
         self.test_user_wrong_nin = "190001021234"
@@ -63,7 +64,10 @@ class OidcProofingTests(EduidAPITestCase):
 
         self.oidc_provider_config_response = MockResponse(200, json.dumps(self.oidc_provider_config))
 
-        super().setUp(users=["hubba-baar"], *args, **kwargs)
+        if config is None:
+            config = SetupConfig()
+        config.users = ["hubba-baar"]
+        super().setUp(config=config)
 
     def load_app(self, config: dict[str, Any]) -> OIDCProofingApp:
         """

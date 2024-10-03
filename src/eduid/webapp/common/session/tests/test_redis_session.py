@@ -70,7 +70,7 @@ class TestSession(TestCase):
         )
         assert meta.session_id == "36d4b3272d57b997be7f312ba0b80331747820ce51471566dd0bc3de0bc07a46"
 
-        session = RedisEncryptedSession(
+        session: RedisEncryptedSession = RedisEncryptedSession(
             conn=self.redis_instance.conn,
             db_key=meta.session_id,
             encryption_key=meta.derive_key(app_secret, "nacl", nacl.secret.SecretBox.KEY_SIZE),

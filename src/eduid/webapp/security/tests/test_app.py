@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 from werkzeug.test import TestResponse
 
 from eduid.common.config.base import FrontendAction
-from eduid.common.rpc.msg_relay import DeregisteredCauseCode, DeregistrationInformation, OfficialAddress
+from eduid.common.rpc.msg_relay import DeregisteredCauseCode, DeregistrationInformation, NavetData, OfficialAddress
 from eduid.userdb import User
 from eduid.userdb.element import ElementKey
 from eduid.userdb.identity import IdentityType
@@ -54,8 +54,8 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
     @patch("eduid.webapp.security.views.security.revoke_all_credentials")
     def _delete_account(
         self,
-        mock_revoke: Any,
-        mock_sync: Any,
+        mock_revoke: MagicMock,
+        mock_sync: MagicMock,
         data1: dict[str, Any] | None = None,
     ) -> TestResponse:
         """
@@ -78,7 +78,7 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def _remove_nin(
-        self, mock_request_user_sync: Any, data1: dict[str, Any] | None = None, unverify: bool = False
+        self, mock_request_user_sync: MagicMock, data1: dict[str, Any] | None = None, unverify: bool = False
     ) -> TestResponse:
         """
         Send a POST request to remove a NIN from the test user, possibly
@@ -108,7 +108,7 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
                 return client.post("/remove-nin", data=json.dumps(data), content_type=self.content_type_json)
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def _remove_identity(self, mock_request_user_sync: Any, data1: dict[str, Any] | None = None) -> TestResponse:
+    def _remove_identity(self, mock_request_user_sync: MagicMock, data1: dict[str, Any] | None = None) -> TestResponse:
         """
         Send a POST request to remove all identities from the test user
 
@@ -132,7 +132,7 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def _add_nin(
         self,
-        mock_request_user_sync: Any,
+        mock_request_user_sync: MagicMock,
         data1: dict[str, Any] | None = None,
         remove: bool = True,
         unverify: bool = False,
@@ -172,10 +172,10 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def _refresh_user_data(
         self,
-        mock_request_user_sync: Any,
-        mock_get_all_navet_data: Any,
+        mock_request_user_sync: MagicMock,
+        mock_get_all_navet_data: MagicMock,
         user: User,
-        navet_return_value: Any | None = None,
+        navet_return_value: NavetData | None = None,
     ) -> TestResponse:
         mock_request_user_sync.side_effect = self.request_user_sync
         if navet_return_value is None:
@@ -307,7 +307,7 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
         assert user.identities.nin.is_verified is True
 
     @patch("eduid.webapp.security.views.security.remove_nin_from_user")
-    def test_remove_nin_am_fail(self, mock_remove: Any) -> None:
+    def test_remove_nin_am_fail(self, mock_remove: MagicMock) -> None:
         from eduid.common.rpc.exceptions import AmTaskFailed
 
         mock_remove.side_effect = AmTaskFailed()
@@ -431,7 +431,7 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
         assert user.identities.nin is None
 
     @patch("eduid.webapp.security.views.security.remove_identity_from_user")
-    def test_remove_identity_am_fail(self, mock_remove: Any) -> None:
+    def test_remove_identity_am_fail(self, mock_remove: MagicMock) -> None:
         from eduid.common.rpc.exceptions import AmTaskFailed
 
         mock_remove.side_effect = AmTaskFailed()

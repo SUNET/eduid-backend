@@ -1,11 +1,9 @@
 import logging
-from typing import Any
 
 from eduid.common.config.base import CeleryConfigMixin, EduIDBaseAppConfig
 from eduid.common.config.workers import MobConfig
 from eduid.common.rpc.lookup_mobile_relay import LookupMobileRelay
-from eduid.userdb.testing import MongoTestCase
-from eduid.userdb.user import User
+from eduid.userdb.testing import MongoTestCase, SetupConfig
 from eduid.workers.lookup_mobile.common import MobCelerySingleton
 
 logger = logging.getLogger(__name__)
@@ -16,9 +14,11 @@ class MobTestConfig(EduIDBaseAppConfig, CeleryConfigMixin):
 
 
 class LookupMobileMongoTestCase(MongoTestCase):
-    def setUp(self, am_users: list[User] | None = None, init_lookup_mobile: bool = True) -> Any:
-        super().setUp(am_users=am_users)
-        if init_lookup_mobile:
+    def setUp(self, config: SetupConfig | None = None) -> None:
+        super().setUp(config=config)
+        if config is None:
+            config = SetupConfig()
+        if config.init_lookup_mobile:
             settings = {
                 "app_name": "testing",
                 "celery": {

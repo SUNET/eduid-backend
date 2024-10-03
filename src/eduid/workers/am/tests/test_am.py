@@ -6,6 +6,7 @@ import eduid.userdb
 from eduid.common.config.workers import AmConfig
 from eduid.userdb.db import TUserDbDocument
 from eduid.userdb.exceptions import UserDoesNotExist
+from eduid.userdb.testing import SetupConfig
 from eduid.userdb.user import User
 from eduid.workers.am.ams.common import AttributeFetcher
 from eduid.workers.am.common import AmCelerySingleton
@@ -84,8 +85,11 @@ class MessageTest(AMTestCase):
     transforms 'uid' to its urn:oid representation.
     """
 
-    def setUp(self, *args: Any, **kwargs: Any) -> None:
-        super().setUp(*args, want_mongo_uri=True, **kwargs)
+    def setUp(self, config: SetupConfig | None = None) -> None:
+        if config is None:
+            config = SetupConfig()
+        config.want_mongo_uri = True
+        super().setUp(config=config)
         self.private_db = AmTestUserDb(db_uri=self.tmp_db.uri, db_name="eduid_am_test")
         # register fake AMP plugin named 'test'
         AmConfig(app_name="message_test", mongo_uri=self.tmp_db.uri)

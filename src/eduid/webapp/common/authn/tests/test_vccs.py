@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 from eduid.userdb.credentials.password import Password
 from eduid.userdb.fixtures.users import UserFixtures
-from eduid.userdb.testing import MongoTestCase
+from eduid.userdb.testing import MongoTestCase, SetupConfig
 from eduid.userdb.user import User
 from eduid.vccs.client import VCCSClient, VCCSClientHTTPError
 from eduid.webapp.common.authn import vccs as vccs_module
@@ -13,8 +13,11 @@ from eduid.webapp.common.authn.testing import MockVCCSClient
 class VCCSTestCase(MongoTestCase):
     user: User
 
-    def setUp(self) -> None:  # type: ignore[override]
-        super().setUp(am_users=[UserFixtures().new_user_example])
+    def setUp(self, config: SetupConfig | None = None) -> None:
+        if config is None:
+            config = SetupConfig()
+        config.am_users = [UserFixtures().new_user_example]
+        super().setUp(config=config)
         self.vccs_client = cast(VCCSClient, MockVCCSClient())
         _user = self.amdb.get_user_by_mail("johnsmith@example.com")
         assert _user is not None

@@ -28,7 +28,7 @@ class LookupMobileRelay:
             raise LookupMobileTaskFailed(f"find_nin_by_mobile task failed: {e}")
 
     @deprecated("This task seems unused")
-    def find_mobiles_by_nin(self, nin: str) -> Any:
+    def find_mobiles_by_nin(self, nin: str) -> Any:  # noqa: ANN401
         try:
             result = self._find_mobiles_by_NIN.delay(nin)
             result = result.get(timeout=10)  # Lower timeout than standard gunicorn worker timeout (25)

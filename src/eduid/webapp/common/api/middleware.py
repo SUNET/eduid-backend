@@ -1,6 +1,6 @@
 __author__ = "lundberg"
 
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from typing import Any
 
 # TODO: in python >= 3.11 import from wsgiref.types
@@ -18,7 +18,7 @@ class PrefixMiddleware:
         self.prefix = prefix
         self.server_name = server_name
 
-    def __call__(self, environ: WSGIEnvironment, start_response: StartResponse) -> Any | list[bytes]:
+    def __call__(self, environ: WSGIEnvironment, start_response: StartResponse) -> Iterable[bytes]:
         # Handle localhost requests for health checks
         if environ.get("REMOTE_ADDR") == "127.0.0.1":
             environ["HTTP_HOST"] = self.server_name

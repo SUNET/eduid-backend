@@ -8,6 +8,7 @@ import logging
 import logging.config
 import unittest
 from collections.abc import Sequence
+from dataclasses import dataclass
 from typing import Any, cast
 
 import pymongo
@@ -72,6 +73,17 @@ class MongoTemporaryInstance(EduidTemporaryInstance):
         return cast(MongoTemporaryInstance, super().get_instance(max_retry_seconds=max_retry_seconds))
 
 
+@dataclass
+class SetupConfig:
+    am_users: list[User] | None = None
+    am_settings: dict[str, Any] | None = None
+    want_mongo_uri: bool = True
+    users: list[str] | None = None
+    copy_user_to_private: bool = False
+    init_msg: bool = True
+    init_lookup_mobile: bool = True
+
+
 class MongoTestCase(unittest.TestCase):
     """TestCase with an embedded MongoDB temporary instance.
 
@@ -82,7 +94,7 @@ class MongoTestCase(unittest.TestCase):
     A test can access the port using the attribute `port`
     """
 
-    def setUp(self, am_users: list[User] | None = None) -> None:
+    def setUp(self, config: SetupConfig | None = None) -> None:
         """
         Test case initialization.
         :return:
@@ -110,9 +122,11 @@ class MongoTestCase(unittest.TestCase):
         else:
             self.settings.update(mongo_settings)
 
-        if am_users:
+        if config is None:
+            config = SetupConfig()
+        if config.am_users:
             # Set up test users in the MongoDB.
-            for user in am_users:
+            for user in config.am_users:
                 logger.debug(f"Adding test user {user} to the database")
                 self.amdb.save(user)
 

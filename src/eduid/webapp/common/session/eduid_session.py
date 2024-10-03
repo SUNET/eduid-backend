@@ -6,7 +6,7 @@ import os
 import pprint
 from collections.abc import Iterator, MutableMapping
 from datetime import datetime
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, TypeVar
 
 from flask import Request as FlaskRequest
 from flask import Response as FlaskResponse
@@ -64,7 +64,10 @@ class EduidNamespaces(BaseModel):
     freja_eid: FrejaEIDNamespace | None = None
 
 
-class EduidSession(SessionMixin, MutableMapping[str, Any]):
+VT = TypeVar("VT")
+
+
+class EduidSession(SessionMixin, MutableMapping[str, VT]):
     """
     Session implementing the flask.sessions.SessionMixin interface.
 
@@ -129,10 +132,10 @@ class EduidSession(SessionMixin, MutableMapping[str, Any]):
             f"modified={self.modified}, cookie={self.short_id}>"
         )
 
-    def __getitem__(self, key: str) -> Any:
+    def __getitem__(self, key: str) -> VT | str | None:
         return self._session.__getitem__(key)
 
-    def __setitem__(self, key: str, value: Any) -> None:
+    def __setitem__(self, key: str, value: VT | str | None) -> None:
         if key not in self._session or self._session[key] != value:
             self._session[key] = value
             logger.debug(f"SET {self}[{key}] = {value}")
@@ -431,7 +434,7 @@ class SessionFactory(SessionInterface):
             base_session = self.manager.get_session(meta=_meta, new=True)
             new = True
 
-        sess = EduidSession(app, _meta, base_session, new=new)
+        sess: EduidSession = EduidSession(app, _meta, base_session, new=new)
         logger.debug(f"Created/loaded session {sess} with base_session {base_session}")
         if app.debug or _conf.testing:
             _loaded_data = json.dumps(sess._session.to_dict(), indent=4, sort_keys=True)

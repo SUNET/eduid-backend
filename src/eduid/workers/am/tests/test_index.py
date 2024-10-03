@@ -3,6 +3,7 @@ __author__ = "lundberg"
 import unittest
 
 from eduid.userdb import UserDB
+from eduid.userdb.testing import SetupConfig
 from eduid.workers.am.testing import AMTestCase
 
 # TODO: tbd: fix or remove as it is not working yet
@@ -10,8 +11,8 @@ from eduid.workers.am.testing import AMTestCase
 
 @unittest.skip("Not working yet")
 class TestIndexes(AMTestCase):
-    def setUp(self) -> None:  # type: ignore[override]
-        super().setUp()
+    def setUp(self, config: SetupConfig | None = None) -> None:
+        super().setUp(config=config)
 
     def test_index_setup(self) -> None:
         indexes = {

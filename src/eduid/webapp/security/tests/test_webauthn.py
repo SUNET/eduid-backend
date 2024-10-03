@@ -2,7 +2,7 @@ import base64
 import json
 from collections.abc import Mapping
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from fido2.webauthn import AttestationObject, AuthenticatorAttachment, CollectedClientData
 from fido_mds import FidoMetadataStore
@@ -10,6 +10,7 @@ from werkzeug.http import dump_cookie
 
 from eduid.common.config.base import EduidEnvironment, FrontendAction
 from eduid.userdb.credentials import U2F, FidoCredential, Webauthn
+from eduid.userdb.testing import SetupConfig
 from eduid.webapp.common.api.testing import CSRFTestClient, EduidAPITestCase
 from eduid.webapp.common.session import EduidSession
 from eduid.webapp.common.session.namespaces import WebauthnRegistration, WebauthnState
@@ -98,8 +99,8 @@ CREDENTIAL_ID_2 = (
 class SecurityWebauthnTests(EduidAPITestCase):
     app: SecurityApp
 
-    def setUp(self) -> None:  # type: ignore[override]
-        super().setUp()
+    def setUp(self, config: SetupConfig | None = None) -> None:
+        super().setUp(config=config)
         # remove all FidoCredentials from the test user
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         assert user is not None
@@ -249,7 +250,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def _finish_register_key(
         self,
-        mock_request_user_sync: Any,
+        mock_request_user_sync: MagicMock,
         client_data: bytes,
         attestation: bytes,
         state: dict,
@@ -310,7 +311,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def _remove(
         self,
-        mock_request_user_sync: Any,
+        mock_request_user_sync: MagicMock,
         client_data: bytes,
         attestation: bytes,
         state: dict,

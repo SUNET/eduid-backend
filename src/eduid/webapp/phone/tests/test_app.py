@@ -8,14 +8,18 @@ from urllib.parse import quote_plus
 from werkzeug.test import TestResponse
 
 from eduid.common.config.base import EduidEnvironment
+from eduid.userdb.testing import SetupConfig
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.phone.app import PhoneApp, phone_init_app
 from eduid.webapp.phone.helpers import PhoneMsg
 
 
 class PhoneTests(EduidAPITestCase[PhoneApp]):
-    def setUp(self, *args: Any, **kwargs: Any) -> None:
-        super().setUp(*args, copy_user_to_private=True, **kwargs)
+    def setUp(self, config: SetupConfig | None = None) -> None:
+        if config is None:
+            config = SetupConfig()
+        config.copy_user_to_private = True
+        super().setUp(config=config)
 
         self.test_number = "+34609609609"
 
@@ -59,9 +63,9 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
     @patch("eduid.common.rpc.msg_relay.MsgRelay.sendsms")
     def _post_phone(
         self,
-        mock_phone_validator: Any,
-        mock_code_verification: Any,
-        mock_request_user_sync: Any,
+        mock_phone_validator: MagicMock,
+        mock_code_verification: MagicMock,
+        mock_request_user_sync: MagicMock,
         mod_data: dict[str, Any] | None = None,
         send_data: bool = True,
     ) -> TestResponse:
@@ -95,7 +99,7 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
                 return client.post("/new")
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def _post_primary(self, mock_request_user_sync: Any, mod_data: dict[str, Any] | None = None) -> TestResponse:
+    def _post_primary(self, mock_request_user_sync: MagicMock, mod_data: dict[str, Any] | None = None) -> TestResponse:
         """
         Set phone number as the primary number for the test user
 
@@ -118,7 +122,7 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
             return client.post("/primary", data=json.dumps(data), content_type=self.content_type_json)
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def _remove(self, mock_request_user_sync: Any, mod_data: dict[str, Any] | None = None) -> TestResponse:
+    def _remove(self, mock_request_user_sync: MagicMock, mod_data: dict[str, Any] | None = None) -> TestResponse:
         """
         Remove phone number from the test user
 
@@ -145,9 +149,9 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
     @patch("eduid.common.rpc.msg_relay.MsgRelay.sendsms")
     def _send_code(
         self,
-        mock_phone_validator: Any,
-        mock_request_user_sync: Any,
-        mock_verification_code: Any,
+        mock_phone_validator: MagicMock,
+        mock_request_user_sync: MagicMock,
+        mock_verification_code: MagicMock,
         mod_data: dict[str, Any] | None = None,
         captcha_completed: bool = True,
     ) -> TestResponse:
@@ -178,9 +182,9 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
     @patch("eduid.common.rpc.msg_relay.MsgRelay.sendsms")
     def _get_code_backdoor(
         self,
-        mock_phone_validator: Any,
-        mock_code_verification: Any,
-        mock_request_user_sync: Any,
+        mock_phone_validator: MagicMock,
+        mock_code_verification: MagicMock,
+        mock_request_user_sync: MagicMock,
         mod_data: dict[str, Any] | None = None,
         phone: str = "+34670123456",
         code: str = "5250f9a4",

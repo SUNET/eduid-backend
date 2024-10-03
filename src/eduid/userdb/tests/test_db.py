@@ -5,7 +5,7 @@ from bson import ObjectId
 import eduid.userdb.db as db
 from eduid.userdb.fixtures.users import UserFixtures
 from eduid.userdb.identity import IdentityType
-from eduid.userdb.testing import MongoTestCase
+from eduid.userdb.testing import MongoTestCase, SetupConfig
 
 
 class TestMongoDB(TestCase):
@@ -61,10 +61,13 @@ class TestMongoDB(TestCase):
 
 
 class TestDB(MongoTestCase):
-    def setUp(self) -> None:  # type: ignore[override]
+    def setUp(self, config: SetupConfig | None = None) -> None:
         _users = UserFixtures()
         self._am_users = [_users.new_unverified_user_example, _users.mocked_user_standard_2, _users.new_user_example]
-        super().setUp(am_users=self._am_users)
+        if config is None:
+            config = SetupConfig()
+        config.am_users = self._am_users
+        super().setUp(config=config)
 
     def test_db_count(self) -> None:
         self.assertEqual(len(self._am_users), self.amdb.db_count())

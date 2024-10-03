@@ -82,7 +82,7 @@ class EduidTemporaryInstance(ABC):
 
     @property
     @abstractmethod
-    def conn(self) -> Any:
+    def conn(self) -> Any:  # noqa: ANN401
         """Return the initialised _conn instance. No default since it ought to be typed in the subclasses."""
         raise NotImplementedError("All subclasses of EduidTemporaryInstance should implement the conn property")
 

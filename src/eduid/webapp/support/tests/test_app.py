@@ -1,6 +1,7 @@
 from collections.abc import Mapping
 from typing import Any
 
+from eduid.userdb.testing import SetupConfig
 from eduid.webapp.common.api.testing import CSRFTestClient, EduidAPITestCase
 from eduid.webapp.support.app import SupportApp, support_init_app
 
@@ -12,8 +13,8 @@ class SupportAppTests(EduidAPITestCase):
 
     app: SupportApp
 
-    def setUp(self) -> None:  # type: ignore[override]
-        super().setUp()
+    def setUp(self, config: SetupConfig | None = None) -> None:
+        super().setUp(config=config)
 
         self.test_user_eppn = "hubba-bubba"
         self.client = self.app.test_client()

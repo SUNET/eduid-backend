@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, call, patch
 import pytest
 from celery.exceptions import Retry
 
+from eduid.userdb.testing import SetupConfig
 from eduid.workers.msg.testing import MsgMongoTestCase
 
 
@@ -11,8 +12,8 @@ class MockException(Exception):
 
 
 class TestTasks(MsgMongoTestCase):
-    def setUp(self, init_msg: bool = True) -> None:  # type: ignore[override]
-        super().setUp(init_msg=init_msg)
+    def setUp(self, config: SetupConfig | None = None) -> None:
+        super().setUp(config=config)
 
     @patch("smscom.SMSClient.send")
     def test_send_message_sms(self, sms_mock: MagicMock) -> None:

@@ -29,7 +29,7 @@ class TransactionAudit:
         if not self.enabled:
             return f
 
-        def audit(*args: Any, **kwargs: Any) -> Any:
+        def audit(*args: Any, **kwargs: Any) -> Any:  # noqa: ANN401
             ret = f(*args, **kwargs)
             # XXX Ugly hack
             # The class that uses the decorator needs to have self.conf['MONGO_URI'] and self.transaction_audit set
@@ -63,7 +63,7 @@ class TransactionAudit:
     def disable(cls) -> None:
         cls.enabled = False
 
-    def _filter(self, func: str, data: Any, *args: Any, **kwargs: Any) -> Any:
+    def _filter(self, func: str, data: Any, *args: Any, **kwargs: Any) -> Any:  # noqa: ANN401
         if data is False:
             return data
         if func == "find_mobiles_by_NIN":

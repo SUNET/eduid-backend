@@ -157,7 +157,7 @@ class AsyncBaseDB:
         logger.warning(f"{self!s} Dropping collection {self._coll_name!r}")
         return await self._coll.drop()
 
-    async def _get_document_by_attr(self, attr: str, value: Any) -> Mapping[str, Any] | None:
+    async def _get_document_by_attr(self, attr: str, value: object) -> Mapping[str, Any] | None:
         """
         Return the document in the MongoDB matching field=value
 

@@ -3,14 +3,15 @@ from datetime import datetime, timezone
 from bson import ObjectId
 
 from eduid.userdb.element import ElementKey
+from eduid.userdb.testing import SetupConfig
 from eduid.webapp.idp.idp_authn import AuthnData
 from eduid.webapp.idp.sso_session import SSOSession
 from eduid.webapp.idp.tests.test_api import IdPAPITests
 
 
 class test_SSOSession(IdPAPITests):
-    def setUp(self) -> None:  # type: ignore[override]
-        super().setUp()
+    def setUp(self, config: SetupConfig | None = None) -> None:
+        super().setUp(config=config)
         # This is real data extracted from MongoDB before a lot of refactoring
         self.data = {
             "_id": ObjectId("5fcde44d56cf512b51f1ac4e"),

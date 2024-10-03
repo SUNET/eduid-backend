@@ -139,7 +139,7 @@ class RequireDebugFalse(logging.Filter):
 def merge_config(base_config: dict[str, Any], new_config: dict[str, Any]) -> dict[str, Any]:
     """Recursively merge two dictConfig dicts."""
 
-    def merge(node: dict[str, Any], key: str, value: Any) -> None:
+    def merge(node: dict[str, Any], key: str, value: object) -> None:
         if isinstance(value, dict):
             for item in value:
                 if key in node:

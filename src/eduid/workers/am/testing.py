@@ -22,7 +22,7 @@ from eduid.userdb.db import TUserDbDocument
 from eduid.userdb.exceptions import UserDoesNotExist
 from eduid.userdb.identity import IdentityType
 from eduid.userdb.proofing import ProofingUser
-from eduid.userdb.testing import MongoTemporaryInstance
+from eduid.userdb.testing import MongoTemporaryInstance, SetupConfig
 from eduid.userdb.userdb import UserDB
 from eduid.workers.am.ams import AttributeFetcher
 from eduid.workers.am.common import AmCelerySingleton
@@ -106,13 +106,11 @@ class WorkerTestCase(CommonTestCase):
     Base Test case for eduID celery workers
     """
 
-    def setUp(
-        self, *args: Any, am_settings: dict[str, Any] | None = None, want_mongo_uri: bool = True, **kwargs: Any
-    ) -> None:
+    def setUp(self, config: SetupConfig | None = None) -> None:
         """
         set up tests
         """
-        super().setUp(*args, **kwargs)
+        super().setUp(config=config)
 
         settings: dict[str, Any] = {
             "app_name": "testing",
@@ -129,9 +127,11 @@ class WorkerTestCase(CommonTestCase):
             "mongo_uri": None,
         }
 
-        if am_settings:
-            settings.update(am_settings)
-        if want_mongo_uri:
+        if config is None:
+            config = SetupConfig()
+        if config.am_settings:
+            settings.update(config.am_settings)
+        if config.want_mongo_uri:
             assert isinstance(self.tmp_db, MongoTemporaryInstance)  # please mypy
             settings["mongo_uri"] = self.tmp_db.uri
 
@@ -155,8 +155,8 @@ class ProofingTestCase(AMTestCase):
     fetcher_name: str | None = None
     fetcher: AttributeFetcher | None = None
 
-    def setUp(self, *args: Any, **kwargs: Any) -> None:
-        super().setUp(*args, **kwargs)
+    def setUp(self, config: SetupConfig | None = None) -> None:
+        super().setUp(config=config)
 
         if self.fetcher_name:
             self.fetcher = AmCelerySingleton.af_registry.get_fetcher(self.fetcher_name)

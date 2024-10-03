@@ -469,7 +469,7 @@ class StepUp(ResponseMicroService):
             raise RuntimeError("Unexpected response type")
         return res
 
-    def _metadata_endpoint(self, context: satosa.context.Context, extra: Any) -> CallbackReturnType:
+    def _metadata_endpoint(self, context: satosa.context.Context, extra: object) -> CallbackReturnType:
         metadata_string = create_metadata_string(None, self.sp.config, 4, None, None, None, None, None).decode("utf-8")
         return Response(metadata_string, content="text/xml")
 

@@ -36,7 +36,7 @@ class TestIdPNamespace(EduidAPITestCase):
         _meta = SessionMeta.new(app_secret="secret")
         assert isinstance(self.app.session_interface, SessionFactory)
         base_session = self.app.session_interface.manager.get_session(meta=_meta, new=True)
-        session = EduidSession(app=self.app, meta=_meta, base_session=base_session, new=True)
+        session: EduidSession = EduidSession(app=self.app, meta=_meta, base_session=base_session, new=True)
 
         assert session.idp.sso_cookie_val is None
 
@@ -76,7 +76,7 @@ class TestIdPNamespace(EduidAPITestCase):
         _meta = SessionMeta.new(app_secret="secret")
         assert isinstance(self.app.session_interface, SessionFactory)
         base_session = self.app.session_interface.manager.get_session(meta=_meta, new=True)
-        first = EduidSession(app=self.app, meta=_meta, base_session=base_session, new=True)
+        first: EduidSession = EduidSession(app=self.app, meta=_meta, base_session=base_session, new=True)
 
         assert first.idp.sso_cookie_val is None
 
@@ -94,10 +94,11 @@ class TestIdPNamespace(EduidAPITestCase):
 
         # Validate that the session can be loaded again
         base_session = self.app.session_interface.manager.get_session(meta=_meta, new=False)
-        second = EduidSession(self.app, _meta, base_session, new=False)
+        second: EduidSession = EduidSession(self.app, _meta, base_session, new=False)
         # loaded_session is raw data from the storage backend, it won't have timestamps deserialised into datetimes
         # (done by pydantic when loading the data into the EduidSession), so in order to expect the same serialisation
         # again we need to do that here
+        assert isinstance(second["idp"], dict)
         second["idp"]["ts"] = datetime.fromisoformat(second["idp"]["ts"])
         # ...and that it serialises to the same data that was persisted
         assert second._session.to_dict() == out
@@ -109,13 +110,13 @@ class TestIdPNamespace(EduidAPITestCase):
         _meta = SessionMeta.new(app_secret="secret")
         assert isinstance(self.app.session_interface, SessionFactory)
         base_session = self.app.session_interface.manager.get_session(meta=_meta, new=True)
-        first = EduidSession(app=self.app, meta=_meta, base_session=base_session, new=True)
+        first: EduidSession = EduidSession(app=self.app, meta=_meta, base_session=base_session, new=True)
         first.signup.email.address = "test@example.com"
         first.signup.email.verification_code = "123456"
         first.persist()
         # load session again and clear it
         base_session = self.app.session_interface.manager.get_session(meta=_meta, new=False)
-        second = EduidSession(self.app, _meta, base_session, new=False)
+        second: EduidSession = EduidSession(self.app, _meta, base_session, new=False)
         assert second.signup.email.address == "test@example.com"
         assert second.signup.email.verification_code == "123456"
         second.signup.clear()
@@ -123,7 +124,7 @@ class TestIdPNamespace(EduidAPITestCase):
         second.persist()
         # load session one more time and make sure verification_code is empty
         base_session = self.app.session_interface.manager.get_session(meta=_meta, new=False)
-        third = EduidSession(self.app, _meta, base_session, new=False)
+        third: EduidSession = EduidSession(self.app, _meta, base_session, new=False)
         assert third.signup.email.address == "test@example.com"
         assert third.signup.email.verification_code is None
 
@@ -147,7 +148,7 @@ class TestAuthnNamespace(EduidAPITestCase):
         _meta = SessionMeta.new(app_secret="secret")
         assert isinstance(self.app.session_interface, SessionFactory)
         base_session = self.app.session_interface.manager.get_session(meta=_meta, new=True)
-        sess = EduidSession(app=self.app, meta=_meta, base_session=base_session, new=True)
+        sess: EduidSession = EduidSession(app=self.app, meta=_meta, base_session=base_session, new=True)
         for i in range(15):
             sess.authn.sp.authns[AuthnRequestRef(str(i))] = SP_AuthnRequest(
                 frontend_action=FrontendAction.LOGIN, finish_url="some_url"

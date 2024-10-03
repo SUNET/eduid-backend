@@ -5,6 +5,7 @@ from flask import Blueprint, abort, current_app, request
 
 from eduid.common.config.base import EduIDBaseAppConfig, EduidEnvironment, MagicCookieMixin
 from eduid.common.config.parsers import load_config
+from eduid.userdb.testing import SetupConfig
 from eduid.webapp.common.api.app import EduIDBaseApp
 from eduid.webapp.common.api.helpers import check_magic_cookie
 from eduid.webapp.common.api.testing import EduidAPITestCase
@@ -42,14 +43,8 @@ class BackdoorTestApp(EduIDBaseApp):
 
 
 class BackdoorTests(EduidAPITestCase[BackdoorTestApp]):
-    def setUp(  # type: ignore[override]
-        self,
-        *args: list[Any],
-        users: list[str] | None = None,
-        copy_user_to_private: bool = False,
-        **kwargs: dict[str, Any],
-    ) -> None:
-        super().setUp(*args, users=users, copy_user_to_private=copy_user_to_private, **kwargs)
+    def setUp(self, config: SetupConfig | None = None) -> None:
+        super().setUp(config=config)
 
         self.test_get_url = "/get-code?eppn=pepin-pepon"
         self.test_app_domain = "test.localhost"

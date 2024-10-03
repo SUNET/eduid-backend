@@ -1,9 +1,9 @@
 import datetime
 import json
-from collections.abc import Mapping
+from collections.abc import Callable, Iterable, Mapping
 from datetime import timedelta
 from typing import Any
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 from urllib.parse import quote_plus
 
 from flask import url_for
@@ -17,6 +17,7 @@ from eduid.userdb.fixtures.fido_credentials import webauthn_credential
 from eduid.userdb.fixtures.fido_credentials import webauthn_credential as sample_credential
 from eduid.userdb.fixtures.users import UserFixtures
 from eduid.userdb.reset_password import ResetPasswordEmailAndPhoneState, ResetPasswordEmailState
+from eduid.userdb.testing import SetupConfig
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.common.api.utils import get_zxcvbn_terms, hash_password
 from eduid.webapp.common.authn.testing import MockVCCSClient
@@ -40,8 +41,8 @@ __author__ = "eperez"
 class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
     """Base TestCase for those tests that need a full environment setup"""
 
-    def setUp(self, *args: Any, **kwargs: Any) -> None:
-        super().setUp(*args, **kwargs)
+    def setUp(self, config: SetupConfig | None = None) -> None:
+        super().setUp(config=config)
         self.other_test_user = UserFixtures().mocked_user_standard_2
 
     def load_app(self, config: Mapping[str, Any] | None) -> ResetPasswordApp:
@@ -124,8 +125,8 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def _post_reset_password(
         self,
-        mock_request_user_sync: Any,
-        mock_get_vccs_client: Any,
+        mock_request_user_sync: MagicMock,
+        mock_get_vccs_client: MagicMock,
         data1: dict[str, Any] | None = None,
         data2: dict[str, Any] | None = None,
     ) -> TestResponse:
@@ -177,10 +178,10 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
     @patch("eduid.common.rpc.msg_relay.MsgRelay.sendsms")
     def _post_choose_extra_sec(
         self,
-        mock_sendsms: Any,
-        mock_request_user_sync: Any,
-        mock_get_vccs_client: Any,
-        sendsms_side_effect: Any = None,
+        mock_sendsms: MagicMock,
+        mock_request_user_sync: MagicMock,
+        mock_get_vccs_client: MagicMock,
+        sendsms_side_effect: Callable | Exception | Iterable | None = None,
         data1: dict[str, Any] | None = None,
         data2: dict[str, Any] | None = None,
         data3: dict[str, Any] | None = None,
@@ -241,9 +242,9 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
     @patch("eduid.common.rpc.msg_relay.MsgRelay.sendsms")
     def _post_reset_password_secure_phone(
         self,
-        mock_sendsms: Any,
-        mock_request_user_sync: Any,
-        mock_get_vccs_client: Any,
+        mock_sendsms: MagicMock,
+        mock_request_user_sync: MagicMock,
+        mock_get_vccs_client: MagicMock,
         data1: dict[str, Any] | None = None,
         data2: dict[str, Any] | None = None,
     ) -> TestResponse:
@@ -299,9 +300,9 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
     @patch("fido2.cose.ES256.verify")
     def _post_reset_password_secure_token(
         self,
-        mock_verify: Any,
-        mock_request_user_sync: Any,
-        mock_get_vccs_client: Any,
+        mock_verify: MagicMock,
+        mock_request_user_sync: MagicMock,
+        mock_get_vccs_client: MagicMock,
         data1: dict[str, Any] | None = None,
         credential_data: dict[str, Any] | None = None,
         data2: dict[str, Any] | None = None,
@@ -369,8 +370,8 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def _post_reset_password_secure_external_mfa(
         self,
-        mock_request_user_sync: Any,
-        mock_get_vccs_client: Any,
+        mock_request_user_sync: MagicMock,
+        mock_get_vccs_client: MagicMock,
         data1: dict[str, Any] | None = None,
         data2: dict[str, Any] | None = None,
         external_mfa_state: dict[str, Any] | None = None,
@@ -449,10 +450,10 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
     @patch("eduid.common.rpc.msg_relay.MsgRelay.sendsms")
     def _get_phone_code_backdoor(
         self,
-        mock_sendsms: Any,
-        mock_request_user_sync: Any,
-        mock_get_vccs_client: Any,
-        sendsms_side_effect: Any = None,
+        mock_sendsms: MagicMock,
+        mock_request_user_sync: MagicMock,
+        mock_get_vccs_client: MagicMock,
+        sendsms_side_effect: Callable | Exception | Iterable | None = None,
         magic_cookie_name: str | None = None,
     ) -> TestResponse:
         """
@@ -862,7 +863,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         self.assertEqual(len(verified_identities), 3)
 
     @patch("eduid.webapp.reset_password.views.reset_password.verify_phone_number")
-    def test_post_reset_password_secure_phone_verify_fail(self, mock_verify: Any) -> None:
+    def test_post_reset_password_secure_phone_verify_fail(self, mock_verify: MagicMock) -> None:
         mock_verify.return_value = False
         response = self._post_reset_password_secure_phone()
         self._check_error_response(

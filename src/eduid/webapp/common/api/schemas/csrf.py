@@ -26,13 +26,13 @@ class CSRFRequestMixin(Schema):
         logger.debug(f"Validated CSRF token in session: {session.get_csrf_token()}")
 
     @post_load
-    def post_processing(self, in_data: Any, **kwargs: Any) -> Any:
+    def post_processing(self, in_data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         # Remove token from data forwarded to views
         in_data = self.remove_csrf_token(in_data)
         return in_data
 
     @staticmethod
-    def remove_csrf_token(in_data: Any, **kwargs: Any) -> Any:
+    def remove_csrf_token(in_data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         del in_data["csrf_token"]
         return in_data
 
@@ -41,7 +41,7 @@ class CSRFResponseMixin(Schema):
     csrf_token = fields.String(required=True)
 
     @pre_dump
-    def get_csrf_token(self, out_data: Any, **kwargs: Any) -> Any:
+    def get_csrf_token(self, out_data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         # Generate a new csrf token for every response
         out_data["csrf_token"] = session.new_csrf_token()
         logger.debug(f'Generated new CSRF token in CSRFResponseMixin: {out_data["csrf_token"]}')

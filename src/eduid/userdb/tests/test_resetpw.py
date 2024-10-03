@@ -2,12 +2,12 @@ from datetime import timedelta
 
 from eduid.userdb.reset_password import ResetPasswordEmailAndPhoneState, ResetPasswordEmailState, ResetPasswordStateDB
 from eduid.userdb.reset_password.element import CodeElement
-from eduid.userdb.testing import MongoTestCase
+from eduid.userdb.testing import MongoTestCase, SetupConfig
 
 
 class TestResetPasswordStateDB(MongoTestCase):
-    def setUp(self) -> None:  # type: ignore[override]
-        super().setUp()
+    def setUp(self, config: SetupConfig | None = None) -> None:
+        super().setUp(config=config)
         self.resetpw_db = ResetPasswordStateDB(self.tmp_db.uri, "eduid_reset_password")
 
     def test_email_state(self) -> None:

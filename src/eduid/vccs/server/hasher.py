@@ -6,7 +6,7 @@ from asyncio.locks import Lock
 from binascii import unhexlify
 from collections.abc import Mapping
 from hashlib import sha1
-from typing import Any, Literal
+from typing import Literal
 
 import pyhsm
 import yaml
@@ -34,7 +34,7 @@ class VCCSHasher(ABC):
     def unlock(self, password: str) -> None:
         raise NotImplementedError("Subclass should implement unlock")
 
-    def info(self) -> Any:
+    def info(self) -> str | bytes | None:
         raise NotImplementedError("Subclass should implement info")
 
     async def hmac_sha1(self, key_handle: int | None, data: bytes) -> bytes:
@@ -65,8 +65,9 @@ class VCCSYHSMHasher(VCCSHasher):
         """Unlock YubiHSM on startup. The password is supposed to be hex encoded."""
         self._yhsm.unlock(unhexlify(password))
 
-    def info(self) -> Any:
-        return self._yhsm.info()
+    def info(self) -> str:
+        ret: bytes = self._yhsm.info()
+        return ret.decode()
 
     async def hmac_sha1(self, key_handle: int | None, data: bytes) -> bytes:
         """
@@ -122,7 +123,7 @@ class VCCSSoftHasher(VCCSHasher):
     def unlock(self, password: str) -> None:
         return None
 
-    def info(self) -> Any:
+    def info(self) -> str:
         return f"key handles loaded: {list(self.keys.keys())}"
 
     async def hmac_sha1(self, key_handle: int | None, data: bytes) -> bytes:

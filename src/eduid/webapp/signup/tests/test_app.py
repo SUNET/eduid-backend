@@ -20,6 +20,7 @@ from eduid.userdb.credentials import Password
 from eduid.userdb.exceptions import UserOutOfSync
 from eduid.userdb.signup import Invite, InviteMailAddress, InviteType
 from eduid.userdb.signup.invite import InvitePhoneNumber, SCIMReference
+from eduid.userdb.testing import SetupConfig
 from eduid.webapp.common.api.exceptions import ProofingLogFailure
 from eduid.webapp.common.api.messages import CommonMsg, TranslatableMsg
 from eduid.webapp.common.api.testing import EduidAPITestCase
@@ -51,8 +52,11 @@ class SignupResult:
 
 
 class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
-    def setUp(self, *args: Any, **kwargs: Any) -> None:
-        super().setUp(*args, **kwargs, copy_user_to_private=True)
+    def setUp(self, config: SetupConfig | None = None) -> None:
+        if config is None:
+            config = SetupConfig()
+        config.copy_user_to_private = True
+        super().setUp(config=config)
 
     def load_app(self, config: Mapping[str, Any]) -> SignupApp:
         """
@@ -517,8 +521,8 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
     @patch("eduid.vccs.client.VCCSClient.add_credentials")
     def _create_user(
         self,
-        mock_add_credentials: Any,
-        mock_request_user_sync: Any,
+        mock_add_credentials: MagicMock,
+        mock_request_user_sync: MagicMock,
         data: dict[str, Any] | None = None,
         custom_password: str | None = None,
         expect_success: bool = True,

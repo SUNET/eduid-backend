@@ -11,13 +11,18 @@ from jwcrypto import jwt
 from eduid.common.clients.gnap_client.base import GNAPBearerTokenMixin
 from eduid.userdb.fixtures.users import UserFixtures
 from eduid.userdb.meta import CleanerType
+from eduid.userdb.testing import SetupConfig
 from eduid.workers.amapi.testing import TestAMBase
 from eduid.workers.amapi.utils import AuthnBearerToken
 
 
 class TestUsers(TestAMBase, GNAPBearerTokenMixin):
-    def setUp(self, *args: Any, **kwargs: Any) -> None:
-        super().setUp(am_users=[UserFixtures().new_user_example])
+    def setUp(self, config: SetupConfig | None = None) -> None:
+        _am_users = [UserFixtures().new_user_example]
+        if config is None:
+            config = SetupConfig()
+        config.am_users = _am_users
+        super().setUp(config=config)
 
     def _make_url(self, endpoint: str | None = None) -> str:
         if endpoint is None:

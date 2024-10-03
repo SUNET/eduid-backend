@@ -234,7 +234,7 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
             raise UserDoesNotExist(f"No user with eppn {repr(eppn)}")
         return res
 
-    def _get_user_by_attr(self, attr: str, value: Any) -> UserVar | None:
+    def _get_user_by_attr(self, attr: str, value: Any) -> UserVar | None:  # noqa: ANN401
         """
         Locate a user in the userdb using any attribute and value.
 

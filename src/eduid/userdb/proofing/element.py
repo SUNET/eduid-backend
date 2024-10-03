@@ -86,7 +86,7 @@ class EmailProofingElement(ProofingElement):
 
     @field_validator("email", mode="before")
     @classmethod
-    def validate_email(cls, v: Any) -> str:
+    def validate_email(cls, v: object) -> str:
         if not isinstance(v, str):
             raise ValueError("must be a string")
         return v.lower()

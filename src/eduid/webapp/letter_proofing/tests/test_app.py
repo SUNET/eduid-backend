@@ -10,6 +10,7 @@ from eduid.common.config.base import EduidEnvironment
 from eduid.userdb import NinIdentity
 from eduid.userdb.element import ElementKey
 from eduid.userdb.identity import IdentityType
+from eduid.userdb.testing import SetupConfig
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.letter_proofing.app import LetterProofingApp, init_letter_proofing_app
 from eduid.webapp.letter_proofing.helpers import LetterMsg
@@ -20,11 +21,14 @@ __author__ = "lundberg"
 class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
     """Base TestCase for those tests that need a full environment setup"""
 
-    def setUp(self) -> None:  # type: ignore[override]
+    def setUp(self, config: SetupConfig | None = None) -> None:
         self.test_user_eppn = "hubba-baar"
         self.test_user_nin = "200001023456"
         self.test_user_wrong_nin = "190001021234"
-        super().setUp(users=["hubba-baar"])
+        if config is None:
+            config = SetupConfig()
+        config.users = ["hubba-baar"]
+        super().setUp(config=config)
 
     @staticmethod
     def mock_response(
@@ -32,7 +36,7 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
         content: AnyStr | None = None,
         json_data: Mapping[str, Any] | None = None,
         headers: Mapping[str, Any] | None = None,
-        raise_for_status: Any = None,
+        raise_for_status: Exception | None = None,
     ) -> Mock:
         """
         since we typically test a bunch of different
@@ -77,7 +81,7 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
         return config
 
     # Helper methods
-    def get_state(self) -> Any:
+    def get_state(self) -> dict[str, Any]:
         with self.session_cookie(self.browser, self.test_user_eppn) as client:
             response = client.get("/proofing")
         self.assertEqual(response.status_code, 200)
@@ -154,9 +158,9 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_postal_address")
     def get_code_backdoor(
         self,
-        mock_get_postal_address: Any,
-        mock_request_user_sync: Any,
-        mock_hammock: Any,
+        mock_get_postal_address: MagicMock,
+        mock_request_user_sync: MagicMock,
+        mock_hammock: MagicMock,
         cookie_name: str | None = None,
         cookie_value: str | None = None,
         add_cookie: bool = True,

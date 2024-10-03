@@ -2,12 +2,13 @@ import json
 from collections.abc import Mapping
 from datetime import timedelta
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from werkzeug.test import TestResponse
 
 from eduid.common.config.base import FrontendAction
 from eduid.userdb.element import ElementKey
+from eduid.userdb.testing import SetupConfig
 from eduid.webapp.common.api.exceptions import ApiException
 from eduid.webapp.common.api.schemas.authn_status import AuthnActionStatus
 from eduid.webapp.common.api.testing import EduidAPITestCase
@@ -16,8 +17,11 @@ from eduid.webapp.personal_data.helpers import PDataMsg, is_valid_chosen_given_n
 
 
 class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
-    def setUp(self, *args: Any, **kwargs: Any) -> None:
-        super().setUp(*args, copy_user_to_private=True, **kwargs)
+    def setUp(self, config: SetupConfig | None = None) -> None:
+        if config is None:
+            config = SetupConfig()
+        config.copy_user_to_private = True
+        super().setUp(config=config)
 
     def load_app(self, config: Mapping[str, Any]) -> PersonalDataApp:
         """
@@ -65,7 +69,7 @@ class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def _post_user(
-        self, mock_request_user_sync: Any, mod_data: dict[str, Any] | None = None, verified_user: bool = True
+        self, mock_request_user_sync: MagicMock, mod_data: dict[str, Any] | None = None, verified_user: bool = True
     ) -> TestResponse:
         """
         POST personal data for the test user
@@ -95,7 +99,7 @@ class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def _post_user_name(
-        self, mock_request_user_sync: Any, mod_data: dict[str, Any] | None = None, verified_user: bool = True
+        self, mock_request_user_sync: MagicMock, mod_data: dict[str, Any] | None = None, verified_user: bool = True
     ) -> TestResponse:
         """
         POST user name for the test user
@@ -124,7 +128,7 @@ class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def _post_user_language(
-        self, mock_request_user_sync: Any, mod_data: dict[str, Any] | None = None, verified_user: bool = True
+        self, mock_request_user_sync: MagicMock, mod_data: dict[str, Any] | None = None, verified_user: bool = True
     ) -> TestResponse:
         """
         POST user language for the test user
@@ -159,7 +163,9 @@ class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
         return response2
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def _post_preferences(self, mock_request_user_sync: Any, mod_data: dict[str, Any] | None = None) -> TestResponse:
+    def _post_preferences(
+        self, mock_request_user_sync: MagicMock, mod_data: dict[str, Any] | None = None
+    ) -> TestResponse:
         """
         POST preferences for the test user
         """

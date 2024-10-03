@@ -11,7 +11,7 @@ class GenericFilterDict(dict):
     add_keys: list[str] | None = None
     remove_keys: list[str] | None = None
 
-    def __init__(self, data: Any | None) -> None:
+    def __init__(self, data: dict[str, Any] | None) -> None:
         """
         Create a filtered dict with white- or blacklisting of keys
 

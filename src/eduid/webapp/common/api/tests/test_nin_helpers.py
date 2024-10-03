@@ -22,6 +22,7 @@ from eduid.userdb.logs.element import (
 )
 from eduid.userdb.proofing import LetterProofingStateDB, LetterProofingUserDB, NinProofingElement, ProofingUser
 from eduid.userdb.proofing.state import NinProofingState
+from eduid.userdb.testing import SetupConfig
 from eduid.webapp.common.api.app import EduIDBaseApp
 from eduid.webapp.common.api.helpers import (
     add_nin_to_user,
@@ -59,8 +60,8 @@ class NinHelpersTest(EduidAPITestCase[HelpersTestApp]):
 
         return app
 
-    def setUp(self, *args: Any, **kwargs: Any) -> None:
-        super().setUp(*args, **kwargs)
+    def setUp(self, config: SetupConfig | None = None) -> None:
+        super().setUp(config=config)
         self.test_user_nin = "200001023456"
         self.wrong_test_user_nin = "199909096789"
         self.test_userdata = self.test_user.to_dict()

@@ -4,7 +4,7 @@ from pymongo.errors import DuplicateKeyError
 
 from eduid.userdb.fixtures.users import UserFixtures
 from eduid.userdb.group_management import GroupInviteState, GroupManagementInviteStateDB, GroupRole
-from eduid.userdb.testing import MongoTestCase
+from eduid.userdb.testing import MongoTestCase, SetupConfig
 from eduid.userdb.user import User
 
 __author__ = "lundberg"
@@ -13,8 +13,8 @@ __author__ = "lundberg"
 class TestResetGroupInviteStateDB(MongoTestCase):
     user: User
 
-    def setUp(self) -> None:  # type: ignore[override]
-        super().setUp()
+    def setUp(self, config: SetupConfig | None = None) -> None:
+        super().setUp(config=config)
         self.user = UserFixtures().mocked_user_standard
         self.invite_state_db = GroupManagementInviteStateDB(self.tmp_db.uri)
 

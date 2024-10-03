@@ -13,6 +13,7 @@ from eduid.userdb import NinIdentity
 from eduid.userdb.credentials.external import BankIDCredential, SwedenConnectCredential
 from eduid.userdb.element import ElementKey
 from eduid.userdb.identity import IdentityProofingMethod
+from eduid.userdb.testing import SetupConfig
 from eduid.webapp.bankid.app import BankIDApp, init_bankid_app
 from eduid.webapp.bankid.helpers import BankIDMsg
 from eduid.webapp.common.api.messages import AuthnStatusMsg, TranslatableMsg
@@ -34,7 +35,7 @@ HERE = os.path.abspath(os.path.dirname(__file__))
 class BankIDTests(ProofingTests[BankIDApp]):
     """Base TestCase for those tests that need a full environment setup"""
 
-    def setUp(self, *args: Any, **kwargs: Any) -> None:
+    def setUp(self, config: SetupConfig | None = None) -> None:
         self.test_user_eppn = "hubba-bubba"
         self.test_unverified_user_eppn = "hubba-baar"
         self.test_user_nin = NinIdentity(
@@ -161,7 +162,10 @@ class BankIDTests(ProofingTests[BankIDApp]):
   </saml2p:Status>
 </saml2p:Response>"""  # noqa: E501
 
-        super().setUp(users=["hubba-bubba", "hubba-baar"])
+        if config is None:
+            config = SetupConfig()
+        config.users = ["hubba-bubba", "hubba-baar"]
+        super().setUp(config=config)
 
     def load_app(self, config: Mapping[str, Any]) -> BankIDApp:
         """
@@ -805,7 +809,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
 
     @unittest.skip("No support for magic cookie yet")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_nin_verify_backdoor(self, mock_request_user_sync: Any) -> None:
+    def test_nin_verify_backdoor(self, mock_request_user_sync: MagicMock) -> None:
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_unverified_user_eppn

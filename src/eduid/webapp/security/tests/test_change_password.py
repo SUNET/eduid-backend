@@ -7,6 +7,7 @@ from werkzeug.test import TestResponse
 
 from eduid.common.config.base import FrontendAction
 from eduid.userdb.credentials import Password
+from eduid.userdb.testing import SetupConfig
 from eduid.webapp.common.api.schemas.authn_status import AuthnActionStatus
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.common.api.utils import hash_password
@@ -17,11 +18,14 @@ from eduid.webapp.security.helpers import SecurityMsg
 class ChangePasswordTests(EduidAPITestCase[SecurityApp]):
     """Base TestCase for those tests that need a full environment setup"""
 
-    def setUp(self, *args: Any, **kwargs: Any) -> None:
+    def setUp(self, config: SetupConfig | None = None) -> None:
         self.test_user_eppn = "hubba-bubba"
         self.test_user_email = "johnsmith@example.com"
         self.test_user_nin = "197801011235"
-        super().setUp(*args, **kwargs, copy_user_to_private=True)
+        if config is None:
+            config = SetupConfig()
+        config.copy_user_to_private = True
+        super().setUp(config=config)
 
     def load_app(self, config: Mapping[str, Any]) -> SecurityApp:
         """
@@ -59,7 +63,7 @@ class ChangePasswordTests(EduidAPITestCase[SecurityApp]):
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def _change_password(
         self,
-        mock_request_user_sync: Any,
+        mock_request_user_sync: MagicMock,
         data1: dict[str, Any] | None = None,
     ) -> TestResponse:
         """
@@ -84,7 +88,7 @@ class ChangePasswordTests(EduidAPITestCase[SecurityApp]):
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def _get_suggested_and_change(
         self,
-        mock_request_user_sync: Any,
+        mock_request_user_sync: MagicMock,
         data1: dict[str, Any] | None = None,
         correct_old_password: bool = True,
     ) -> TestResponse:

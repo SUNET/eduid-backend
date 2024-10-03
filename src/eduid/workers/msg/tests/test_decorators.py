@@ -1,13 +1,11 @@
-from typing import Any
-
-from eduid.userdb.user import User
+from eduid.userdb.testing import SetupConfig
 from eduid.workers.msg.decorators import TransactionAudit
 from eduid.workers.msg.testing import MsgMongoTestCase
 
 
 class TestTransactionAudit(MsgMongoTestCase):
-    def setUp(self, am_users: list[User] | None = None, init_msg: bool = True) -> None:
-        super().setUp(init_msg=init_msg)
+    def setUp(self, config: SetupConfig | None = None) -> None:
+        super().setUp(config=config)
         assert self.msg_settings.mongo_uri
         TransactionAudit.enable(self.msg_settings.mongo_uri, db_name="test")
 
@@ -38,7 +36,7 @@ class TestTransactionAudit(MsgMongoTestCase):
 
         @TransactionAudit()
         def send_message(
-            _self: Any,
+            _self: str,
             message_type: str,
             reference: str,
             message_dict: str,

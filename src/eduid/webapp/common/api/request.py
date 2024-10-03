@@ -16,7 +16,7 @@ of the Flask application::
 
 import logging
 from collections.abc import Callable, Iterator
-from typing import Any, AnyStr
+from typing import Any, AnyStr, TypeVar
 
 from flask import abort
 from flask.wrappers import Request as FlaskRequest
@@ -54,7 +54,7 @@ class SanitizedImmutableMultiDict(ImmutableMultiDict, SanitationMixin):
     sanitize the extracted data.
     """
 
-    def __getitem__(self, key: Any) -> str:
+    def __getitem__(self, key: str) -> str:
         """
         Return the first data value for this key;
         raises KeyError if not found.
@@ -65,7 +65,7 @@ class SanitizedImmutableMultiDict(ImmutableMultiDict, SanitationMixin):
         value = super().__getitem__(key)
         return self.sanitize_input(value)
 
-    def getlist(self, key: Any, type: Callable[[Any], Any] | None = None) -> list:
+    def getlist(self, key: str, type: Callable[[Any], Any] | None = None) -> list:
         """
         Return the list of items for a given key. If that key is not in the
         `MultiDict`, the return value will be an empty list.  Just as `get`
@@ -145,6 +145,9 @@ class SanitizedImmutableMultiDict(ImmutableMultiDict, SanitationMixin):
         return dict(self.lists())
 
 
+T = TypeVar("T")
+
+
 class SanitizedTypeConversionDict(ImmutableTypeConversionDict, SanitationMixin):
     """
     See `werkzeug.datastructures.TypeConversionDict`.
@@ -152,14 +155,14 @@ class SanitizedTypeConversionDict(ImmutableTypeConversionDict, SanitationMixin):
     sanitize the extracted data.
     """
 
-    def __getitem__(self, key: Any) -> str:
+    def __getitem__(self, key: str) -> str:
         """
         Sanitized __getitem__
         """
         val = super(ImmutableTypeConversionDict, self).__getitem__(key)
         return self.sanitize_input(str(val))
 
-    def get(self, key: str, default: str | None = None, type: type | None = None) -> Any | None:  # type: ignore[override]
+    def get(self, key: str, default: str | None = None, type: Callable[[Any], T] | None = None) -> str | T | None:  # type: ignore[override]
         """
         Sanitized, type conversion get.
         The value identified by `key` is sanitized, and if `type`
@@ -188,7 +191,7 @@ class SanitizedTypeConversionDict(ImmutableTypeConversionDict, SanitationMixin):
         """
         return [self.sanitize_input(v) for v in super(ImmutableTypeConversionDict, self).values()]
 
-    def items(self) -> list[tuple[Any, str]]:  # type: ignore[override]
+    def items(self) -> list[tuple[str, str]]:  # type: ignore[override]
         """
         Sanitized items
         """

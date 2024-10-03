@@ -1,13 +1,12 @@
 import fnmatch
 import unittest
-from typing import Any
 
 from eduid.workers.amapi.config import EndpointRestriction, SupportedMethod
 from eduid.workers.amapi.middleware import AuthenticationMiddleware
 
 
 class TestMiddleware(unittest.TestCase):
-    def setUp(self, *args: Any, **kwargs: Any) -> None:
+    def setUp(self) -> None:
         super().setUp()
         self.middleware = AuthenticationMiddleware
 

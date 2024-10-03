@@ -4,8 +4,10 @@ from collections.abc import Callable
 from dataclasses import asdict, dataclass
 from typing import Any
 
-from fastapi import Request, Response
 from fastapi.routing import APIRoute
+from starlette.requests import Request, empty_receive, empty_send
+from starlette.responses import Response
+from starlette.types import Receive, Scope, Send
 
 
 @dataclass
@@ -15,8 +17,8 @@ class Context:
 
 
 class ContextRequest(Request):
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        super().__init__(*args, **kwargs)
+    def __init__(self, scope: Scope, receive: Receive = empty_receive, send: Send = empty_send) -> None:
+        super().__init__(scope=scope, receive=receive, send=send)
 
     @property
     def context(self) -> Context:

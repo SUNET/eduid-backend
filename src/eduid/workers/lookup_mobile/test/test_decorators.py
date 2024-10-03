@@ -1,15 +1,15 @@
 __author__ = "lundberg"
 
-from typing import Any
 
 from eduid.common.config.workers import MsgConfig
+from eduid.userdb.testing import SetupConfig
 from eduid.workers.lookup_mobile.decorators import TransactionAudit
 from eduid.workers.lookup_mobile.testing import LookupMobileMongoTestCase
 
 
 class TestTransactionAudit(LookupMobileMongoTestCase):
-    def setUp(self) -> None:  # type: ignore[override]
-        super().setUp()
+    def setUp(self, config: SetupConfig | None = None) -> None:
+        super().setUp(config=config)
         # need to set self.mongo_uri and db for the TransactionAudit decorator
         self.conf = MsgConfig(app_name="testing", mongo_uri=self.tmp_db.uri)
         self.db = self.tmp_db.conn["eduid_lookup_mobile"]
@@ -19,7 +19,7 @@ class TestTransactionAudit(LookupMobileMongoTestCase):
     def test_successfull_transaction_audit(self) -> None:
         @TransactionAudit()
         def find_mobiles_by_NIN(
-            self: Any, national_identity_number: str, number_region: str | None = None
+            self: TestTransactionAudit, national_identity_number: str, number_region: str | None = None
         ) -> list[str]:
             return ["list", "of", "mobile_numbers"]
 
@@ -33,7 +33,7 @@ class TestTransactionAudit(LookupMobileMongoTestCase):
         c.delete_many({})  # Clear database
 
         @TransactionAudit()
-        def find_NIN_by_mobile(self: Any, mobile_number: str) -> str:
+        def find_NIN_by_mobile(self: TestTransactionAudit, mobile_number: str) -> str:
             return "200202025678"
 
         find_NIN_by_mobile(self, "+46701740699")
@@ -47,7 +47,9 @@ class TestTransactionAudit(LookupMobileMongoTestCase):
 
     def test_failed_transaction_audit(self) -> None:
         @TransactionAudit()
-        def find_mobiles_by_NIN(self: Any, national_identity_number: str, number_region: str | None = None) -> list:
+        def find_mobiles_by_NIN(
+            self: TestTransactionAudit, national_identity_number: str, number_region: str | None = None
+        ) -> list:
             return []
 
         find_mobiles_by_NIN(self, "200202025678")
@@ -58,7 +60,7 @@ class TestTransactionAudit(LookupMobileMongoTestCase):
         c.delete_many({})  # Clear database
 
         @TransactionAudit()
-        def find_NIN_by_mobile(self: Any, mobile_number: str) -> None:
+        def find_NIN_by_mobile(self: TestTransactionAudit, mobile_number: str) -> None:
             return
 
         find_NIN_by_mobile(self, "+46701740699")
@@ -74,7 +76,7 @@ class TestTransactionAudit(LookupMobileMongoTestCase):
         TransactionAudit.disable()
 
         @TransactionAudit()
-        def no_name(self: Any) -> dict[str, str]:
+        def no_name(self: TestTransactionAudit) -> dict[str, str]:
             return {"baka": "kaka"}
 
         no_name(self)
@@ -85,7 +87,7 @@ class TestTransactionAudit(LookupMobileMongoTestCase):
         TransactionAudit.enable()
 
         @TransactionAudit()
-        def no_name2(self: Any) -> dict[str, str]:
+        def no_name2(self: TestTransactionAudit) -> dict[str, str]:
             return {"baka": "kaka"}
 
         no_name2(self)

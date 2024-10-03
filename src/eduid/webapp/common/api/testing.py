@@ -26,7 +26,7 @@ from eduid.userdb.element import ElementKey
 from eduid.userdb.fixtures.users import UserFixtures
 from eduid.userdb.logs.db import ProofingLog
 from eduid.userdb.proofing.state import NinProofingState
-from eduid.userdb.testing import MongoTemporaryInstance
+from eduid.userdb.testing import MongoTemporaryInstance, SetupConfig
 from eduid.userdb.userdb import UserDB
 from eduid.webapp.common.api.app import EduIDBaseApp
 from eduid.webapp.common.api.messages import AuthnStatusMsg, TranslatableMsg
@@ -97,16 +97,12 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
     app: TTestAppVar
     browser: CSRFTestClient
 
-    def setUp(  # type: ignore[override]
-        self,
-        *args: list[Any],
-        users: list[str] | None = None,
-        copy_user_to_private: bool = False,
-        **kwargs: dict[str, Any],
-    ) -> None:
+    def setUp(self, config: SetupConfig | None = None) -> None:
+        if config is None:
+            config = SetupConfig()
         # test users
-        if users is None:
-            users = ["hubba-bubba"]
+        if config.users is None:
+            config.users = ["hubba-bubba"]
 
         _users = UserFixtures()
         _standard_test_users = {
@@ -116,14 +112,15 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
         }
 
         # Make a list of User object to be saved to the new temporary mongodb instance
-        am_users = [_standard_test_users[x] for x in users]
+        am_users = [_standard_test_users[x] for x in config.users]
 
-        super().setUp(am_users=am_users, *args, **kwargs)
+        config.am_users = am_users
+        super().setUp(config=config)
 
         self.user: User | None = None
 
         # Load the user from the database so that it can be saved there again in tests
-        _test_user = self.amdb.get_user_by_eppn(users[0])
+        _test_user = self.amdb.get_user_by_eppn(config.users[0])
         # Initialize some convenience variables on self based on the first user in `users'
         self.test_user = _test_user
         self.test_user_data = self.test_user.to_dict()
@@ -132,8 +129,8 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
         # Set up Redis for shared sessions
         self.redis_instance = RedisTemporaryInstance.get_instance()
         # settings
-        config = deepcopy(TEST_CONFIG)
-        self.settings: dict[str, Any] = self.update_config(config)
+        test_config = deepcopy(TEST_CONFIG)
+        self.settings: dict[str, Any] = self.update_config(test_config)
         self.settings["redis_config"] = RedisConfig(host="localhost", port=self.redis_instance.port)
         assert isinstance(self.tmp_db, MongoTemporaryInstance)  # please mypy
         self.settings["mongo_uri"] = self.tmp_db.uri
@@ -147,7 +144,7 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
         self.content_type_json = "application/json"
         self.test_domain = "test.localhost"
 
-        if copy_user_to_private:
+        if config.copy_user_to_private:
             data = self.test_user.to_dict()
             _private_userdb = getattr(self.app, "private_userdb")
             assert isinstance(_private_userdb, UserDB)

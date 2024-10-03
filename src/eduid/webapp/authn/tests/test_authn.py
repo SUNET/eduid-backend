@@ -16,6 +16,7 @@ from eduid.common.config.base import FrontendAction
 from eduid.common.config.parsers import load_config
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.models.saml2 import EduidAuthnContextClass
+from eduid.userdb.testing import SetupConfig
 from eduid.webapp.authn.app import AuthnApp, authn_init_app
 from eduid.webapp.authn.settings.common import AuthnConfig
 from eduid.webapp.common.api.testing import EduidAPITestCase
@@ -42,14 +43,8 @@ class AuthnAPITestBase(EduidAPITestCase):
 
     app: AuthnApp
 
-    def setUp(  # type: ignore[override]
-        self,
-        *args: list[Any],
-        users: list[str] | None = None,
-        copy_user_to_private: bool = False,
-        **kwargs: dict[str, Any],
-    ) -> None:
-        super().setUp(*args, users=users, copy_user_to_private=copy_user_to_private, **kwargs)
+    def setUp(self, config: SetupConfig | None = None) -> None:
+        super().setUp(config=config)
         self.idp_url = "https://idp.example.com/simplesaml/saml2/idp/SSOService.php"
 
     def update_config(self, config: dict[str, Any]) -> dict[str, Any]:
@@ -252,8 +247,11 @@ class AuthnAPITestCase(AuthnAPITestBase):
 
     app: AuthnApp
 
-    def setUp(self, **kwargs: Any) -> None:  # type: ignore[override]
-        super().setUp(users=["hubba-bubba", "hubba-fooo"], **kwargs)
+    def setUp(self, config: SetupConfig | None = None) -> None:
+        if config is None:
+            config = SetupConfig()
+        config.users = ["hubba-bubba", "hubba-fooo"]
+        super().setUp(config=config)
 
     def test_login_authn(self) -> None:
         self.authn("/authenticate", FrontendAction.LOGIN)
@@ -364,8 +362,8 @@ class NoAuthnAPITestCase(EduidAPITestCase):
 
     app: AuthnTestApp
 
-    def setUp(self) -> None:  # type: ignore[override]
-        super().setUp()
+    def setUp(self, config: SetupConfig | None = None) -> None:
+        super().setUp(config=config)
         test_views = Blueprint("testing", __name__)
 
         @test_views.route("/test")

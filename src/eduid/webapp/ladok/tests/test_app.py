@@ -8,6 +8,7 @@ from werkzeug.test import TestResponse
 
 from eduid.common.config.base import EduidEnvironment
 from eduid.userdb.ladok import Ladok, University, UniversityName
+from eduid.userdb.testing import SetupConfig
 from eduid.webapp.common.api.testing import EduidAPITestCase
 
 __author__ = "lundberg"
@@ -28,7 +29,7 @@ class MockResponse:
 
 
 class LadokTests(EduidAPITestCase[LadokApp]):
-    def setUp(self, *args: Any, **kwargs: Any) -> None:
+    def setUp(self, config: SetupConfig | None = None) -> None:
         self.test_user_eppn = "hubba-bubba"
         self.test_unverified_user_eppn = "hubba-baar"
         self.ladok_user_external_id = uuid4()
@@ -45,7 +46,10 @@ class LadokTests(EduidAPITestCase[LadokApp]):
 
         self.universities_response = MockResponse(200, self.university_data)
 
-        super().setUp(users=["hubba-bubba", "hubba-baar"])
+        if config is None:
+            config = SetupConfig()
+        config.users = ["hubba-bubba", "hubba-baar"]
+        super().setUp(config=config)
 
         # remove Ladok data from test user
         user = self.app.central_userdb.get_user_by_eppn(eppn=self.test_user_eppn)
@@ -199,12 +203,15 @@ class LadokTests(EduidAPITestCase[LadokApp]):
 
 
 class LadokDevTests(EduidAPITestCase[LadokApp]):
-    def setUp(self, *args: Any, **kwargs: Any) -> None:
+    def setUp(self, config: SetupConfig | None = None) -> None:
         self.test_user_eppn = "hubba-bubba"
         self.test_unverified_user_eppn = "hubba-baar"
         self.ladok_user_external_id = uuid4()
 
-        super().setUp(users=["hubba-bubba", "hubba-baar"])
+        if config is None:
+            config = SetupConfig()
+        config.users = ["hubba-bubba", "hubba-baar"]
+        super().setUp(config=config)
 
     def load_app(self, config: Mapping[str, Any]) -> LadokApp:
         """

@@ -1,5 +1,4 @@
 __author__ = "mathiashedstrom"
-from typing import Any
 
 from suds.sudsobject import Object
 
@@ -27,7 +26,7 @@ class DevelopResult:
         self._error_text = ""
 
 
-def _get_devel_search_result(search_param: Any | Object) -> DevelopResult:
+def _get_devel_search_result(search_param: Object) -> DevelopResult:
     nin = search_param.QueryParams.FindSSNo
     mobile = search_param.QueryParams.FindTelephone
 

@@ -3,7 +3,6 @@ Configuration (file) handling for the eduID idp app.
 """
 
 from datetime import timedelta
-from typing import Any
 
 from pydantic import Field, HttpUrl, field_validator
 from pydantic_core.core_schema import ValidationInfo
@@ -158,7 +157,7 @@ class IdPConfig(EduIDBaseAppConfig, TouConfigMixin, WebauthnConfigMixin2, AmConf
 
     @field_validator("sso_cookie")
     @classmethod
-    def make_sso_cookie(cls, v: Any, info: ValidationInfo) -> CookieConfig:
+    def make_sso_cookie(cls, v: object, info: ValidationInfo) -> CookieConfig:
         # Convert sso_cookie from dict to the proper dataclass
         if isinstance(v, dict):
             return CookieConfig(**v)
@@ -171,7 +170,7 @@ class IdPConfig(EduIDBaseAppConfig, TouConfigMixin, WebauthnConfigMixin2, AmConf
 
     @field_validator("sso_session_lifetime", mode="before")
     @classmethod
-    def validate_sso_session_lifetime(cls, v: Any) -> int | str | timedelta:
+    def validate_sso_session_lifetime(cls, v: object) -> int | str | timedelta:
         if isinstance(v, int):
             # legacy format for this was number of minutes
             v = v * 60

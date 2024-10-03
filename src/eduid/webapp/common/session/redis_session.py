@@ -49,7 +49,7 @@ import json
 import logging
 import typing
 from collections.abc import Iterator, Mapping
-from typing import Any
+from typing import Any, TypeVar
 
 import nacl.encoding
 import nacl.secret
@@ -114,7 +114,7 @@ class SessionManager:
         """
         conn = self._get_connection()
 
-        res = RedisEncryptedSession(
+        res: RedisEncryptedSession = RedisEncryptedSession(
             conn,
             db_key=meta.session_id,
             encryption_key=meta.derive_key(self.secret, "nacl", nacl.secret.SecretBox.KEY_SIZE),
@@ -155,7 +155,10 @@ class SessionOutOfSync(Exception):
     pass
 
 
-class RedisEncryptedSession(typing.MutableMapping):
+VT = TypeVar("VT")
+
+
+class RedisEncryptedSession(typing.MutableMapping[str, VT]):
     """
     Session objects that keep their data in a redis db.
     """
@@ -200,18 +203,18 @@ class RedisEncryptedSession(typing.MutableMapping):
 
         self.secret_box = nacl.secret.SecretBox(encryption_key)
 
-        self._data: dict[str, Any] = {}
+        self._data: dict[str, VT] = {}
 
     def __str__(self) -> str:
         # Include hex(id(self)) for now to troubleshoot clobbered sessions
         return f"<{self.__class__.__name__} at {hex(id(self))}: db_key={self.short_id}>"
 
-    def __getitem__(self, key: str) -> Any:
+    def __getitem__(self, key: str) -> VT:
         if key in self._data:
             return self._data[key]
         raise KeyError(f"Key {repr(key)} not present in session")
 
-    def __setitem__(self, key: str, value: Any) -> None:
+    def __setitem__(self, key: str, value: VT) -> None:
         if self.whitelist and key not in self.whitelist:
             if self.raise_on_unknown:
                 raise ValueError(f"Key {repr(key)} not allowed in session")

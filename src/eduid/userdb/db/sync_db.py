@@ -182,7 +182,7 @@ class BaseDB:
         """
         return self._coll.find({})
 
-    def _get_document_by_attr(self, attr: str, value: Any) -> TUserDbDocument | None:
+    def _get_document_by_attr(self, attr: str, value: Any) -> TUserDbDocument | None:  # noqa: ANN401
         """
         Return the document in the MongoDB matching field=value
 

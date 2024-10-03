@@ -2,7 +2,7 @@ import json
 from collections.abc import Mapping
 from datetime import datetime, timedelta
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from werkzeug.test import TestResponse
 
@@ -10,13 +10,17 @@ from eduid.common.config.base import EduidEnvironment
 from eduid.userdb import User
 from eduid.userdb.mail import MailAddress
 from eduid.userdb.proofing import EmailProofingElement, EmailProofingState
+from eduid.userdb.testing import SetupConfig
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.email.app import EmailApp, email_init_app
 
 
 class EmailTests(EduidAPITestCase[EmailApp]):
-    def setUp(self, *args: Any, **kwargs: Any) -> None:
-        super().setUp(*args, **kwargs, copy_user_to_private=True)
+    def setUp(self, config: SetupConfig | None = None) -> None:
+        if config is None:
+            config = SetupConfig()
+        config.copy_user_to_private = True
+        super().setUp(config=config)
 
     def load_app(self, config: Mapping[str, Any]) -> EmailApp:
         """
@@ -76,8 +80,8 @@ class EmailTests(EduidAPITestCase[EmailApp]):
     @patch("eduid.webapp.email.verifications.get_short_hash")
     def _post_email(
         self,
-        mock_code_verification: Any,
-        mock_request_user_sync: Any,
+        mock_code_verification: MagicMock,
+        mock_request_user_sync: MagicMock,
         data1: dict[str, Any] | None = None,
         send_data: bool = True,
     ) -> TestResponse:
@@ -112,7 +116,7 @@ class EmailTests(EduidAPITestCase[EmailApp]):
                 return client.post("/new")
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def _post_primary(self, mock_request_user_sync: Any, data1: dict[str, Any] | None = None) -> TestResponse:
+    def _post_primary(self, mock_request_user_sync: MagicMock, data1: dict[str, Any] | None = None) -> TestResponse:
         """
         Choose an email of the test user as primary
 
@@ -137,7 +141,7 @@ class EmailTests(EduidAPITestCase[EmailApp]):
                 return client.post("/primary", data=json.dumps(data), content_type=self.content_type_json)
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def _remove(self, mock_request_user_sync: Any, data1: dict[str, Any] | None = None) -> TestResponse:
+    def _remove(self, mock_request_user_sync: MagicMock, data1: dict[str, Any] | None = None) -> TestResponse:
         """
         POST to remove an email address form the test user
 
@@ -160,7 +164,7 @@ class EmailTests(EduidAPITestCase[EmailApp]):
             return client.post("/remove", data=json.dumps(data), content_type=self.content_type_json)
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def _resend_code(self, mock_request_user_sync: Any, data1: dict[str, Any] | None = None) -> TestResponse:
+    def _resend_code(self, mock_request_user_sync: MagicMock, data1: dict[str, Any] | None = None) -> TestResponse:
         """
         Trigger resending a new verification code to the email being verified
 
@@ -183,8 +187,8 @@ class EmailTests(EduidAPITestCase[EmailApp]):
     @patch("eduid.webapp.email.verifications.get_short_hash")
     def _verify(
         self,
-        mock_code_verification: Any,
-        mock_request_user_sync: Any,
+        mock_code_verification: MagicMock,
+        mock_request_user_sync: MagicMock,
         data1: dict[str, Any] | None = None,
         data2: dict[str, Any] | None = None,
     ) -> TestResponse:
@@ -231,8 +235,8 @@ class EmailTests(EduidAPITestCase[EmailApp]):
     @patch("eduid.webapp.email.verifications.get_short_hash")
     def _get_code_backdoor(
         self,
-        mock_code_verification: Any,
-        mock_request_user_sync: Any,
+        mock_code_verification: MagicMock,
+        mock_request_user_sync: MagicMock,
         data1: dict[str, Any] | None = None,
         email: str = "johnsmith3@example.com",
         code: str = "123456",

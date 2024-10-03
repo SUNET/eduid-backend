@@ -9,7 +9,7 @@ import sys
 import time
 from collections.abc import Generator
 from copy import deepcopy
-from typing import Any
+from typing import Any  # noqa: F401
 
 import bson
 import bson.json_util
@@ -51,7 +51,7 @@ class RawDb:
         self._backupbase: str = backupbase
         self._file_num: int = 0
 
-    def find(self, db: str, collection: str, search_filter: Any) -> Generator[RawData, None, None]:
+    def find(self, db: str, collection: str, search_filter: object) -> Generator[RawData, None, None]:
         """
         Look for documents matching search_filter in the specified database and collection.
 
@@ -72,7 +72,7 @@ class RawDb:
             )
             sys.exit(1)
 
-    def save_with_backup(self, raw: RawData, dry_run: bool = True) -> Any:
+    def save_with_backup(self, raw: RawData, dry_run: bool = True) -> str | None:
         """
         Save a mongodb document while trying to carefully make a backup of the document before, after and what changed.
 
@@ -113,7 +113,7 @@ class RawDb:
 
         if raw.before == raw.doc:
             sys.stderr.write(f"Document in {db_coll} with id {_id} not changed, aborting save_with_backup\n")
-            return
+            return None
 
         self._file_num = 0
         backup_dir = self._make_backupdir(db_coll, _id)
@@ -132,13 +132,13 @@ class RawDb:
         # Write changes.txt after saving, so it will also indicate a successful save
         return self._write_changes(raw, backup_dir, res)
 
-    def _write_changes(self, raw: RawData, backup_dir: str, res: Any) -> Any:
+    def _write_changes(self, raw: RawData, backup_dir: str, res: str) -> str:
         """
         Write a file with one line per change between the before-doc and current doc.
         The format is intended to be easy to grep through.
         """
 
-        def safe_encode(k2: Any, v2: Any) -> str:
+        def safe_encode(k2: object, v2: object) -> str:
             try:
                 return bson.json_util.dumps({k2: v2}, json_options=PYTHON_UUID_LEGACY_JSON_OPTIONS)
             except:

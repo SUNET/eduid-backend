@@ -6,15 +6,19 @@ from typing import Any, cast
 
 from eduid.common.config.parsers import load_config
 from eduid.common.testing_base import normalised_data
+from eduid.userdb.testing import SetupConfig
 from eduid.webapp.common.api.testing import CSRFTestClient, EduidAPITestCase
 from eduid.webapp.jsconfig.app import JSConfigApp, jsconfig_init_app
 from eduid.webapp.jsconfig.settings.common import JSConfigConfig
 
 
 class JSConfigTests(EduidAPITestCase[JSConfigApp]):
-    def setUp(self) -> None:  # type: ignore[override]
+    def setUp(self, config: SetupConfig | None = None) -> None:
         self.data_dir = str(PurePath(__file__).with_name("data"))
-        super().setUp(copy_user_to_private=False)
+        if config is None:
+            config = SetupConfig()
+        config.copy_user_to_private = False
+        super().setUp(config=config)
 
     def load_app(self, config: Mapping[str, Any]) -> JSConfigApp:
         """

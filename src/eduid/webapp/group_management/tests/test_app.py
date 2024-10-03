@@ -1,7 +1,7 @@
 import json
 from collections.abc import Mapping
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from uuid import UUID
 
 from werkzeug.test import TestResponse
@@ -13,6 +13,7 @@ from eduid.userdb import User
 from eduid.userdb.element import ElementKey
 from eduid.userdb.scimapi import GroupExtensions, ScimApiGroup
 from eduid.userdb.scimapi.userdb import ScimApiUser
+from eduid.userdb.testing import SetupConfig
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.group_management.app import GroupManagementApp, init_group_management_app
 from eduid.webapp.group_management.helpers import GroupManagementMsg
@@ -36,9 +37,12 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
         )
         super().setUpClass()
 
-    def setUp(self, *args: Any, **kwargs: Any) -> None:
+    def setUp(self, config: SetupConfig | None = None) -> None:
         users = ["hubba-bubba", "hubba-baar", "hubba-fooo"]
-        super().setUp(users=users, **kwargs)
+        if config is None:
+            config = SetupConfig()
+        config.users = users
+        super().setUp(config=config)
         self.test_user2 = self.app.central_userdb.get_user_by_eppn("hubba-baar")
         self.test_user3 = self.app.central_userdb.get_user_by_eppn("hubba-fooo")
         # Temporarily fix email address locally until test user fixtures are merged
@@ -107,7 +111,7 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
 
     @patch("eduid.common.rpc.mail_relay.MailRelay.sendmail")
     def _invite(
-        self, mock_sendmail: Any, group_scim_id: str, inviter: User, invite_address: str, role: str
+        self, mock_sendmail: MagicMock, group_scim_id: str, inviter: User, invite_address: str, role: str
     ) -> TestResponse:
         mock_sendmail.return_value = True
         with self.session_cookie(self.browser, inviter.eppn) as client:
@@ -153,7 +157,7 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
 
     @patch("eduid.common.rpc.mail_relay.MailRelay.sendmail")
     def _delete_invite(
-        self, mock_sendmail: Any, group_scim_id: str, inviter: User, invite_address: str, role: str
+        self, mock_sendmail: MagicMock, group_scim_id: str, inviter: User, invite_address: str, role: str
     ) -> TestResponse:
         mock_sendmail.return_value = True
         with self.session_cookie(self.browser, inviter.eppn) as client:

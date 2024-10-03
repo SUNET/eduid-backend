@@ -115,7 +115,7 @@ class SubResource(EduidBaseModel):
         return self.ref is not None and "/Groups/" in self.ref
 
     @classmethod
-    def from_mapping(cls: type[TSubResource], data: Any) -> TSubResource:
+    def from_mapping(cls: type[TSubResource], data: object) -> TSubResource:
         return cls.model_validate(data)
 
 

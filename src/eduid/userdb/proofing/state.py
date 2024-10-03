@@ -62,7 +62,7 @@ class ProofingState:
         return cls(**_data)
 
     @classmethod
-    def from_dict(cls, data: Mapping[str, Any]) -> Any:
+    def from_dict(cls, data: Mapping[str, Any]) -> Any:  # noqa: ANN401
         raise NotImplementedError(f"from_dict not implemented for class {cls.__name__}")
 
     def to_dict(self) -> TUserDbDocument:
