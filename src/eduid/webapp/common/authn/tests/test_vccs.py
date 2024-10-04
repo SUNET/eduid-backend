@@ -1,5 +1,5 @@
 from typing import Any, NoReturn, cast
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from eduid.userdb.credentials.password import Password
 from eduid.userdb.fixtures.users import UserFixtures
@@ -138,6 +138,7 @@ class VCCSTestCase(MongoTestCase):
         from eduid.webapp.common.authn.testing import MockVCCSClient
 
         with patch.object(MockVCCSClient, "add_credentials"):
+            assert isinstance(MockVCCSClient.add_credentials, MagicMock)
             MockVCCSClient.add_credentials.return_value = False
             added = vccs_module.change_password(
                 self.user, new_password="wxyz", old_password="abcd", application="test", vccs=self.vccs_client
