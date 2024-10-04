@@ -66,8 +66,8 @@ async def on_put(req: ContextRequest, resp: Response, update_request: UserUpdate
         req.app.context.logger.debug(f"{scim_id} != {update_request.id}")
         raise BadRequest(detail="Id mismatch")
 
-    assert isinstance(req.context, ScimApiContext)
-    assert req.context.userdb is not None
+    assert isinstance(req.context, ScimApiContext)  # please mypy
+    assert req.context.userdb is not None  # please mypy
     db_user = req.context.userdb.get_user_by_scim_id(scim_id)
     if not db_user:
         raise NotFound(detail="User not found")
@@ -147,7 +147,7 @@ async def on_put(req: ContextRequest, resp: Response, update_request: UserUpdate
 
     req.app.context.logger.debug(f"Core changed: {core_changed}, nutid_changed: {nutid_changed}")
     if core_changed or nutid_changed:
-        assert req.context.data_owner is not None
+        assert req.context.data_owner is not None  # please mypy
         save_user(req, db_user)
         add_api_event(
             context=req.app.context,
@@ -243,8 +243,8 @@ async def on_post(req: ContextRequest, resp: Response, create_request: UserCreat
     )
 
     save_user(req, db_user)
-    assert isinstance(req.context, ScimApiContext)
-    assert req.context.data_owner is not None
+    assert isinstance(req.context, ScimApiContext)  # please mypy
+    assert req.context.data_owner is not None  # please mypy
     add_api_event(
         context=req.app.context,
         data_owner=req.context.data_owner,
@@ -266,9 +266,9 @@ async def on_post(req: ContextRequest, resp: Response, create_request: UserCreat
     responses={204: {"description": "No Content"}},
 )
 async def on_delete(req: ContextRequest, scim_id: str) -> None:
-    assert isinstance(req.context, ScimApiContext)
+    assert isinstance(req.context, ScimApiContext)  # please mypy
     req.app.context.logger.info(f"Deleting user {scim_id}")
-    assert req.context.userdb is not None
+    assert req.context.userdb is not None  # please mypy
     db_user = req.context.userdb.get_user_by_scim_id(scim_id=scim_id)
     req.app.context.logger.debug(f"Found user: {db_user}")
     if not db_user:
@@ -288,7 +288,7 @@ async def on_delete(req: ContextRequest, scim_id: str) -> None:
 
     res = req.context.userdb.remove(db_user)
 
-    assert req.context.data_owner is not None
+    assert req.context.data_owner is not None  # please mypy
     add_api_event(
         context=req.app.context,
         data_owner=req.context.data_owner,

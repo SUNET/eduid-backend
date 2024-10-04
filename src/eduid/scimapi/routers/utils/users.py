@@ -22,8 +22,8 @@ from eduid.userdb.scimapi.userdb import ScimApiUser
 
 def get_user_groups(req: ContextRequest, db_user: ScimApiUser) -> list[Group]:
     """Return the groups for a user formatted as SCIM search sub-resources"""
-    assert isinstance(req.context, ScimApiContext)
-    assert req.context.groupdb is not None
+    assert isinstance(req.context, ScimApiContext)  # please mypy
+    assert req.context.groupdb is not None  # please mypy
     user_groups = req.context.groupdb.get_groups_for_user_identifer(db_user.scim_id)
     groups = []
     for group in user_groups:
@@ -36,9 +36,9 @@ def get_user_groups(req: ContextRequest, db_user: ScimApiUser) -> list[Group]:
 def remove_user_from_all_groups(req: ContextRequest, db_user: ScimApiUser) -> None:
     """Remove a user from all groups"""
     # Remove user from groups
-    assert isinstance(req.context, ScimApiContext)
-    assert req.context.groupdb is not None
-    assert req.context.data_owner is not None
+    assert isinstance(req.context, ScimApiContext)  # please mypy
+    assert req.context.groupdb is not None  # please mypy
+    assert req.context.data_owner is not None  # please mypy
     for member_group in req.context.groupdb.get_groups_for_user_identifer(db_user.scim_id):
         # we need to get the full group object to get all the members
         group = req.context.groupdb.get_group_by_scim_id(str(member_group.scim_id))
@@ -126,8 +126,8 @@ def db_user_to_response(req: ContextRequest, resp: Response, db_user: ScimApiUse
 
 def save_user(req: ContextRequest, db_user: ScimApiUser) -> None:
     try:
-        assert isinstance(req.context, ScimApiContext)
-        assert req.context.userdb is not None
+        assert isinstance(req.context, ScimApiContext)  # please mypy
+        assert req.context.userdb is not None  # please mypy
         req.context.userdb.save(db_user)
     except DuplicateKeyError as e:
         assert e.details is not None  # please mypy
@@ -170,8 +170,8 @@ def filter_externalid(req: ContextRequest, search_filter: SearchFilter) -> list[
     if not isinstance(search_filter.val, str):
         raise BadRequest(scim_type="invalidFilter", detail="Invalid externalId")
 
-    assert isinstance(req.context, ScimApiContext)
-    assert req.context.userdb is not None
+    assert isinstance(req.context, ScimApiContext)  # please mypy
+    assert req.context.userdb is not None  # please mypy
     user = req.context.userdb.get_user_by_external_id(search_filter.val)
 
     if not user:
@@ -187,8 +187,8 @@ def filter_lastmodified(
         raise BadRequest(scim_type="invalidFilter", detail="Unsupported operator")
     if not isinstance(search_filter.val, str):
         raise BadRequest(scim_type="invalidFilter", detail="Invalid datetime")
-    assert isinstance(req.context, ScimApiContext)
-    assert req.context.userdb is not None
+    assert isinstance(req.context, ScimApiContext)  # please mypy
+    assert req.context.userdb is not None  # please mypy
     return req.context.userdb.get_users_by_last_modified(
         operator=search_filter.op, value=datetime.fromisoformat(search_filter.val), skip=skip, limit=limit
     )

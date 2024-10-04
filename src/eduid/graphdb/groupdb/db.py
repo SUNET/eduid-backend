@@ -378,7 +378,7 @@ class GroupDB(BaseGraphDB):
             """
         with self.db.driver.session(default_access_mode=READ_ACCESS) as session:
             single_value = session.run(q, scope=self.scope, identifier=identifier).single()
-            assert single_value is not None
+            assert single_value is not None  # please mypy
             ret = single_value["exists"]
         return bool(ret)
 

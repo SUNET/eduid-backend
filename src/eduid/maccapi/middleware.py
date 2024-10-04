@@ -91,7 +91,7 @@ class AuthenticationMiddleware(BaseHTTPMiddleware, ContextRequestMixin):
             self.context.logger.error(f"Data owner {repr(data_owner)} not configured")
             return return_error_response(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unknown data_owner")
 
-        assert isinstance(request.context, MaccAPIContext)
+        assert isinstance(request.context, MaccAPIContext)  # please mypy
         request.context.data_owner = data_owner
         request.context.manager_eppn = token.saml_eppn
 

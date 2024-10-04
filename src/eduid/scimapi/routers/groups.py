@@ -29,8 +29,8 @@ groups_router = APIRouter(
 
 @groups_router.get("/", response_model=ListResponse)
 async def on_get_all(req: ContextRequest) -> ListResponse:
-    assert isinstance(req.context, ScimApiContext)
-    assert req.context.groupdb is not None
+    assert isinstance(req.context, ScimApiContext)  # please mypy
+    assert req.context.groupdb is not None  # please mypy
     db_groups = req.context.groupdb.get_groups()
     resources = [{"id": str(db_group.scim_id), "displayName": db_group.graph.display_name} for db_group in db_groups]
     return ListResponse(total_results=len(db_groups), resources=resources)
@@ -69,8 +69,8 @@ async def on_get_one(req: ContextRequest, resp: Response, scim_id: str) -> Group
     """
     req.app.context.logger.info(f"Fetching group {scim_id}")
 
-    assert isinstance(req.context, ScimApiContext)
-    assert req.context.groupdb is not None
+    assert isinstance(req.context, ScimApiContext)  # please mypy
+    assert req.context.groupdb is not None  # please mypy
     db_group = req.context.groupdb.get_group_by_scim_id(scim_id)
     req.app.context.logger.debug(f"Found group: {db_group}")
     if not db_group:
@@ -139,8 +139,8 @@ async def on_put(
         raise BadRequest(detail="Id mismatch")
 
     req.app.context.logger.info(f"Fetching group {scim_id}")
-    assert isinstance(req.context, ScimApiContext)
-    assert req.context.groupdb is not None
+    assert isinstance(req.context, ScimApiContext)  # please mypy
+    assert req.context.groupdb is not None  # please mypy
     db_group = req.context.groupdb.get_group_by_scim_id(str(update_request.id))
     req.app.context.logger.debug(f"Found group: {db_group}")
     if not db_group:
@@ -151,7 +151,7 @@ async def on_put(
         raise BadRequest(detail="Version mismatch")
 
     # Check that members exists in their respective db
-    assert req.context.userdb is not None
+    assert req.context.userdb is not None  # please mypy
     req.app.context.logger.info("Checking if group and user members exists")
     for member in update_request.members:
         if member.is_group:
@@ -169,7 +169,7 @@ async def on_put(
     db_group = req.context.groupdb.get_group_by_scim_id(str(updated_group.scim_id))
     assert db_group  # please mypy
 
-    assert req.context.data_owner is not None
+    assert req.context.data_owner is not None  # please mypy
     if changed:
         add_api_event(
             context=req.app.context,
@@ -217,15 +217,15 @@ async def on_post(req: ContextRequest, resp: Response, create_request: GroupCrea
     """
     req.app.context.logger.info("Creating group")
     req.app.context.logger.debug(create_request)
-    assert isinstance(req.context, ScimApiContext)
-    assert req.context.groupdb is not None
+    assert isinstance(req.context, ScimApiContext)  # please mypy
+    assert req.context.groupdb is not None  # please mypy
     created_group = req.context.groupdb.create_group(create_request=create_request)
     # Load the group from the database to ensure results are consistent with subsequent GETs.
     # For example, timestamps have higher resolution in created_group than after a load.
     db_group = req.context.groupdb.get_group_by_scim_id(str(created_group.scim_id))
     assert db_group  # please mypy
 
-    assert req.context.data_owner is not None
+    assert req.context.data_owner is not None  # please mypy
     add_api_event(
         context=req.app.context,
         data_owner=req.context.data_owner,
@@ -248,8 +248,8 @@ async def on_post(req: ContextRequest, resp: Response, create_request: GroupCrea
 )
 async def on_delete(req: ContextRequest, scim_id: str) -> None:
     req.app.context.logger.info(f"Deleting group {scim_id}")
-    assert isinstance(req.context, ScimApiContext)
-    assert req.context.groupdb is not None
+    assert isinstance(req.context, ScimApiContext)  # please mypy
+    assert req.context.groupdb is not None  # please mypy
     db_group = req.context.groupdb.get_group_by_scim_id(scim_id=scim_id)
     req.app.context.logger.debug(f"Found group: {db_group}")
     if not db_group:
@@ -261,7 +261,7 @@ async def on_delete(req: ContextRequest, scim_id: str) -> None:
 
     res = req.context.groupdb.remove_group(db_group)
 
-    assert req.context.data_owner is not None
+    assert req.context.data_owner is not None  # please mypy
     add_api_event(
         context=req.app.context,
         data_owner=req.context.data_owner,

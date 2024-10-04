@@ -62,10 +62,10 @@ def db_event_to_response(req: ContextRequest, resp: Response, db_event: ScimApiE
 
 
 def get_scim_referenced(req: ContextRequest, resource: NutidEventResource) -> ScimApiResourceBase | None:
-    assert isinstance(req.context, ScimApiContext)
-    assert req.context.userdb is not None
-    assert req.context.groupdb is not None
-    assert req.context.invitedb is not None
+    assert isinstance(req.context, ScimApiContext)  # please mypy
+    assert req.context.userdb is not None  # please mypy
+    assert req.context.groupdb is not None  # please mypy
+    assert req.context.invitedb is not None  # please mypy
     if resource.resource_type == SCIMResourceType.USER:
         return req.context.userdb.get_user_by_scim_id(str(resource.scim_id))
     elif resource.resource_type == SCIMResourceType.GROUP:

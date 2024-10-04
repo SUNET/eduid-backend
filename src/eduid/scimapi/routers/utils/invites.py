@@ -28,8 +28,8 @@ __author__ = "lundberg"
 def create_signup_invite(
     req: ContextRequest, create_request: InviteCreateRequest, db_invite: ScimApiInvite
 ) -> SignupInvite:
-    assert isinstance(req.context, ScimApiContext)
-    assert req.context.data_owner is not None
+    assert isinstance(req.context, ScimApiContext)  # please mypy
+    assert req.context.data_owner is not None  # please mypy
     invite_reference = SCIMReference(data_owner=req.context.data_owner, scim_id=db_invite.scim_id)
 
     if create_request.nutid_invite_v1.send_email is False:
@@ -118,8 +118,8 @@ def db_invite_to_response(
 
 
 def create_signup_ref(req: ContextRequest, db_invite: ScimApiInvite) -> SCIMReference:
-    assert isinstance(req.context, ScimApiContext)
-    assert req.context.data_owner is not None
+    assert isinstance(req.context, ScimApiContext)  # please mypy
+    assert req.context.data_owner is not None  # please mypy
     return SCIMReference(data_owner=req.context.data_owner, scim_id=db_invite.scim_id)
 
 
@@ -171,8 +171,8 @@ def save_invite(
     signup_invite_is_in_database: bool,
 ) -> None:
     try:
-        assert isinstance(req.context, ScimApiContext)
-        assert req.context.invitedb is not None
+        assert isinstance(req.context, ScimApiContext)  # please mypy
+        assert req.context.invitedb is not None  # please mypy
         req.context.invitedb.save(db_invite)
     except DuplicateKeyError as e:
         assert e.details is not None  # please mypy
@@ -196,8 +196,8 @@ def filter_lastmodified(
         raise BadRequest(scim_type="invalidFilter", detail="Unsupported operator")
     if not isinstance(filter.val, str):
         raise BadRequest(scim_type="invalidFilter", detail="Invalid datetime")
-    assert isinstance(req.context, ScimApiContext)
-    assert req.context.invitedb is not None
+    assert isinstance(req.context, ScimApiContext)  # please mypy
+    assert req.context.invitedb is not None  # please mypy
     return req.context.invitedb.get_invites_by_last_modified(
         operator=filter.op, value=datetime.fromisoformat(filter.val), skip=skip, limit=limit
     )

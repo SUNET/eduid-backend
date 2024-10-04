@@ -70,10 +70,10 @@ def filter_display_name(
         raise BadRequest(scim_type="invalidFilter", detail="Invalid displayName")
 
     req.app.context.logger.debug(f"Searching for group with display name {repr(filter.val)}")
-    assert isinstance(req.context, ScimApiContext)
-    assert req.context.groupdb is not None
-    assert skip is not None
-    assert limit is not None
+    assert isinstance(req.context, ScimApiContext)  # please mypy
+    assert req.context.groupdb is not None  # please mypy
+    assert skip is not None  # please mypy
+    assert limit is not None  # please mypy
     groups, count = req.context.groupdb.get_groups_by_property(
         key="display_name", value=filter.val, skip=skip, limit=limit
     )
@@ -95,8 +95,8 @@ def filter_lastmodified(
         _parsed = datetime.fromisoformat(filter.val)
     except Exception:
         raise BadRequest(scim_type="invalidFilter", detail="Invalid datetime")
-    assert isinstance(req.context, ScimApiContext)
-    assert req.context.groupdb is not None
+    assert isinstance(req.context, ScimApiContext)  # please mypy
+    assert req.context.groupdb is not None  # please mypy
     return req.context.groupdb.get_groups_by_last_modified(operator=filter.op, value=_parsed, skip=skip, limit=limit)
 
 
@@ -114,10 +114,10 @@ def filter_extensions_data(
         raise BadRequest(scim_type="invalidFilter", detail="Unsupported extension search key")
 
     req.app.context.logger.debug(f"Searching for groups with {filter.attr} {filter.op} {repr(filter.val)}")
-    assert isinstance(req.context, ScimApiContext)
-    assert req.context.groupdb is not None
-    assert skip is not None
-    assert limit is not None
+    assert isinstance(req.context, ScimApiContext)  # please mypy
+    assert req.context.groupdb is not None  # please mypy
+    assert skip is not None  # please mypy
+    assert limit is not None  # please mypy
     groups, count = req.context.groupdb.get_groups_by_property(
         key=filter.attr, value=filter.val, skip=skip, limit=limit
     )
