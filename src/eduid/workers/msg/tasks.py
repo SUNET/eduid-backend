@@ -4,6 +4,7 @@ import smtplib
 from collections import OrderedDict
 from typing import Any
 
+from billiard.einfo import ExceptionInfo
 from celery import Task
 from celery.utils.log import get_task_logger
 from hammock import Hammock
@@ -83,12 +84,12 @@ class MessageSender(Task):
         return _CACHE[cache_name]
 
     @staticmethod
-    def reload_db():
+    def reload_db() -> None:
         global _CACHE
         # Remove initiated cache dbs
         _CACHE = {}
 
-    def on_failure(self, exc, task_id, args, kwargs, einfo):
+    def on_failure(self, exc: Exception, task_id: str, args: tuple, kwargs: dict, einfo: ExceptionInfo) -> None:
         # Try to reload the db on connection failures (mongodb has probably switched master)
         if isinstance(exc, ConnectionError):
             logger.error("Task failed with db exception ConnectionError. Reloading db.")

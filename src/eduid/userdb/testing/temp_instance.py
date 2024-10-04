@@ -25,7 +25,7 @@ class EduidTemporaryInstance(ABC):
 
     _instance = None
 
-    def __init__(self, max_retry_seconds: int):
+    def __init__(self, max_retry_seconds: int) -> None:
         self._conn: Any | None = None  # self._conn should be initialised by subclasses in `setup_conn'
         self._tmpdir = tempfile.mkdtemp()
         self._port = random.randint(40000, 65535)
@@ -82,7 +82,7 @@ class EduidTemporaryInstance(ABC):
 
     @property
     @abstractmethod
-    def conn(self) -> Any:
+    def conn(self) -> Any:  # noqa: ANN401
         """Return the initialised _conn instance. No default since it ought to be typed in the subclasses."""
         raise NotImplementedError("All subclasses of EduidTemporaryInstance should implement the conn property")
 
@@ -106,7 +106,7 @@ class EduidTemporaryInstance(ABC):
             _output = "".join(fd.readlines())
         return _output
 
-    def shutdown(self):
+    def shutdown(self) -> None:
         logger.debug(f"{self} output at shutdown:\n{self.output}")
         if self._process:
             self._process.terminate()

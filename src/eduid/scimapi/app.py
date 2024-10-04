@@ -22,7 +22,7 @@ from eduid.scimapi.routers.users import users_router
 
 
 class ScimAPI(FastAPI):
-    def __init__(self, name: str = "scimapi", test_config: dict | None = None):
+    def __init__(self, name: str = "scimapi", test_config: dict | None = None) -> None:
         self.config = load_config(typ=ScimApiConfig, app_name=name, ns="api", test_config=test_config)
         super().__init__(root_path=self.config.application_root)
         self.context = Context(config=self.config)

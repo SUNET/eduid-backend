@@ -34,7 +34,7 @@ class TestScimBase(TestCase):
         loaded_base = BaseResponse.parse_raw(base_dump)
         assert normalised_data(base.dict()) == normalised_data(loaded_base.dict())
 
-    def test_hashable_subresources(self):
+    def test_hashable_subresources(self) -> None:
         a = {
             "$ref": "http://localhost:8000/Users/78130160-b63d-4303-99cd-73767e2a999f",
             "display": "Test User 1 (updated)",

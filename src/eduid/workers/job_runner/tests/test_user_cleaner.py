@@ -7,10 +7,10 @@ from eduid.workers.job_runner.testing import CleanerQueueTestCase
 class TestCleanerQueueDB(CleanerQueueTestCase):
     users = UserFixtures()
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
 
-    def test_queue_order(self):
+    def test_queue_order(self) -> None:
         first = self.users.mocked_user_standard
         second = self.users.mocked_user_standard_2
         first_user: CleanerQueueUser = CleanerQueueUser(
@@ -25,10 +25,12 @@ class TestCleanerQueueDB(CleanerQueueTestCase):
         first_user_from_db = self.cleaner_queue_db.get_next_user(CleanerType.SKV)
         second_user_from_db = self.cleaner_queue_db.get_next_user(CleanerType.SKV)
 
+        assert first_user_from_db
         self.assertEqual(first_user_from_db.eppn, first.eppn)
+        assert second_user_from_db
         self.assertEqual(second_user_from_db.eppn, second_user.eppn)
 
-    def test_mixed_queue(self):
+    def test_mixed_queue(self) -> None:
         first = self.users.mocked_user_standard
         second = self.users.mocked_user_standard_2
         ladok_queue_user: CleanerQueueUser = CleanerQueueUser(
@@ -44,6 +46,8 @@ class TestCleanerQueueDB(CleanerQueueTestCase):
         second_user_from_db = self.cleaner_queue_db.get_next_user(CleanerType.SKV)
         third_user_from_db = self.cleaner_queue_db.get_next_user(CleanerType.LADOK)
 
+        assert first_user_from_db
         self.assertEqual(first_user_from_db.eppn, skv_queue_user.eppn)
         self.assertIsNone(second_user_from_db)
+        assert third_user_from_db
         self.assertEqual(third_user_from_db.eppn, ladok_queue_user.eppn)

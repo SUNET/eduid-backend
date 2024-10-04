@@ -39,7 +39,7 @@ class AuthnInfo(BaseModel):
     authn_attributes: dict[str, Any]  # these are added to the user attributes
     instant: datetime
 
-    def __str__(self):
+    def __str__(self) -> str:
         return (
             f"<{self.__class__.__name__}: accr={self.class_ref.name}, attributes={self.authn_attributes}, "
             f"instant={self.instant.isoformat()}>"

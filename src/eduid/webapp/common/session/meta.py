@@ -22,7 +22,7 @@ class SessionMeta:
     hmac_key: bytes = field(repr=False)  # key used to sign the session_id
 
     @classmethod
-    def new(cls, app_secret: str):
+    def new(cls, app_secret: str) -> "SessionMeta":
         # Generate a random session_id
         _bin_session_id = nacl.utils.random(SESSION_KEY_BITS // 8)
         _bin_hmac_key = derive_key(app_secret, _bin_session_id, "hmac", HMAC_DIGEST_SIZE)
@@ -32,7 +32,7 @@ class SessionMeta:
         return cls(token, session_id, _bin_signature, _bin_hmac_key)
 
     @classmethod
-    def from_cookie(cls, cookie_val: str, app_secret: str):
+    def from_cookie(cls, cookie_val: str, app_secret: str) -> "SessionMeta":
         _bin_session_id, _bin_signature = cls._decode_cookie(cookie_val)
         hmac_key = derive_key(app_secret, _bin_session_id, "hmac", HMAC_DIGEST_SIZE)
         if not cls._verify_session_id(_bin_session_id, hmac_key, _bin_signature):
@@ -92,7 +92,7 @@ class SessionMeta:
         return hmac.new(signing_key, session_id, digestmod=hashlib.sha256).digest()
 
     @classmethod
-    def _verify_session_id(cls, session_id: bytes, signing_key: bytes, signature: bytes):
+    def _verify_session_id(cls, session_id: bytes, signing_key: bytes, signature: bytes) -> bool | None:
         """
         Verify the HMAC signature on a session_id using the session-unique signing key.
 

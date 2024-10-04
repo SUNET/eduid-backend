@@ -10,7 +10,7 @@ from eduid.vccs.server.log import audit_log
 
 async def authenticate_password(
     cred: PasswordCredential, factor: RequestFactor, user_id: str, hasher: VCCSYHSMHasher, kdf: NDNKDF
-):
+) -> bool:
     res = False
     H2 = await calculate_cred_hash(user_id=user_id, H1=factor.H1, cred=cred, hasher=hasher, kdf=kdf)
     # XXX need to log successful login in credential_store to be able to ban

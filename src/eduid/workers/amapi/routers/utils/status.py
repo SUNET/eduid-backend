@@ -25,7 +25,7 @@ class FailCountItem:
     exit_at: datetime | None = None
     count: int = 0
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"(first_failure: {self.first_failure.isoformat()}, fail count: {self.count})"
 
 
@@ -47,7 +47,7 @@ def reset_failure_info(ctx: ContextRequest, key: str) -> None:
     ctx.app.context.logger.info(f"Check {key} back to normal. Resetting info {info}")
 
 
-def check_restart(key, restart: int, terminate: int) -> bool:
+def check_restart(key: str, restart: int, terminate: int) -> bool:
     res = False  # default to no restart
     info = FAILURE_INFO.get(key)
     if not info:
@@ -93,7 +93,7 @@ def set_cached_response(ctx: ContextRequest, resp: Response, key: str, data: Map
         ctx.app.context.logger.debug(f"Cached response for {key} until {expires}")
 
 
-def check_mongo(ctx: ContextRequest):
+def check_mongo(ctx: ContextRequest) -> bool | None:
     try:
         ctx.app.context.db.is_healthy()
         reset_failure_info(ctx, "_check_mongo")

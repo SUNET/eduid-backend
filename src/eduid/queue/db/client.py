@@ -1,5 +1,6 @@
 import logging
 from dataclasses import replace
+from typing import Any
 
 from bson import ObjectId
 
@@ -15,7 +16,7 @@ __author__ = "lundberg"
 
 
 class QueuePayloadMixin:
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         self.handlers: dict[str, type[Payload]] = dict()
 
     def register_handler(self, payload: type[Payload]) -> None:
@@ -34,7 +35,7 @@ class QueuePayloadMixin:
 
 
 class QueueDB(BaseDB, QueuePayloadMixin):
-    def __init__(self, db_uri: str, collection: str, db_name: str = "eduid_queue"):
+    def __init__(self, db_uri: str, collection: str, db_name: str = "eduid_queue") -> None:
         super().__init__(db_uri=db_uri, db_name=db_name, collection=collection)
 
         self.handlers: dict[str, type[Payload]] = dict()

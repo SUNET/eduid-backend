@@ -3,7 +3,7 @@ import logging
 import os
 from datetime import timedelta
 from os import environ
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from aiosmtplib import SMTPResponse
 
@@ -66,7 +66,7 @@ class TestMailWorker(QueueAsyncioTest):
     async def asyncTearDown(self) -> None:
         await super().asyncTearDown()
 
-    async def test_eduid_signup_mail_from_stream(self):
+    async def test_eduid_signup_mail_from_stream(self) -> None:
         """
         Test that saved queue items are handled by the handle_new_item method
         """
@@ -82,7 +82,7 @@ class TestMailWorker(QueueAsyncioTest):
         await self._assert_item_gets_processed(queue_item)
 
     @patch("aiosmtplib.SMTP.sendmail")
-    async def test_eduid_signup_mail_from_stream_unrecoverable_error(self, mock_sendmail):
+    async def test_eduid_signup_mail_from_stream_unrecoverable_error(self, mock_sendmail: MagicMock) -> None:
         """
         Test that saved queue items are handled by the handle_new_item method
         """
@@ -99,7 +99,7 @@ class TestMailWorker(QueueAsyncioTest):
         await self._assert_item_gets_processed(queue_item)
 
     @patch("aiosmtplib.SMTP.sendmail")
-    async def test_eduid_signup_mail_from_stream_error_retry(self, mock_sendmail):
+    async def test_eduid_signup_mail_from_stream_error_retry(self, mock_sendmail: MagicMock) -> None:
         """
         Test that saved queue items are handled by the handle_new_item method
         """
@@ -118,7 +118,7 @@ class TestMailWorker(QueueAsyncioTest):
         self.client_db.save(queue_item)
         await self._assert_item_gets_processed(queue_item, retry=True)
 
-    async def test_register_mail_translations(self):
+    async def test_register_mail_translations(self) -> None:
         for lang in ["en", "sv"]:
             payload = EduidSignupEmail(
                 email="noone@example.com",
@@ -143,7 +143,7 @@ class TestMailWorker(QueueAsyncioTest):
                 assert "Subject: eduID-registrering" in msg_string
                 assert "Du har registrerat noone@example.com som e-postadress" in msg_string
 
-    async def test_reset_password_mail_translations(self):
+    async def test_reset_password_mail_translations(self) -> None:
         for lang in ["en", "sv"]:
             payload = EduidResetPasswordEmail(
                 email="noone@example.com",
@@ -171,7 +171,7 @@ class TestMailWorker(QueueAsyncioTest):
                 assert "Du har bett om att byta" in msg_string
                 assert "giltig i 2 timmar." in msg_string
 
-    async def test_verification_mail_translations(self):
+    async def test_verification_mail_translations(self) -> None:
         for lang in ["en", "sv"]:
             payload = EduidVerificationEmail(
                 email="noone@example.com",
@@ -197,7 +197,7 @@ class TestMailWorker(QueueAsyncioTest):
                 assert "Du har nyligen lagt till den" in msg_string
                 assert "Skriv in koden nedan" in msg_string
 
-    async def test_termination_mail_translations(self):
+    async def test_termination_mail_translations(self) -> None:
         for lang in ["en", "sv"]:
             payload = EduidTerminationEmail(
                 email="noone@example.com",

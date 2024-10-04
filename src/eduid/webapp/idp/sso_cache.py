@@ -63,6 +63,7 @@ from collections.abc import Mapping
 from threading import Lock
 from typing import Any, cast
 
+from eduid.common.decorators import deprecated
 from eduid.userdb.db import BaseDB
 from eduid.userdb.exceptions import EduIDDBError
 from eduid.webapp.idp.sso_session import SSOSession, SSOSessionId
@@ -94,6 +95,7 @@ class NoOpLock:
         pass
 
 
+@deprecated("This class seems unused")
 class ExpiringCacheMem:
     """
     Simplistic implementation of a cache that removes entrys as they become too old.
@@ -113,7 +115,7 @@ class ExpiringCacheMem:
     # use quote annotations on lock for now until python 3.13 is released
     # threading.Lock is not a class but a factory function, see:
     # https://github.com/python/cpython/pull/114479
-    def __init__(self, name: str, logger: logging.Logger | None, ttl: int, lock: "Lock | None" = None):
+    def __init__(self, name: str, logger: logging.Logger | None, ttl: int, lock: "Lock | None" = None) -> None:
         self.logger = logger
         self.ttl = ttl
         self.name = name
@@ -126,7 +128,7 @@ class ExpiringCacheMem:
         if self.logger is not None:
             warnings.warn("Object logger deprecated, using module_logger", DeprecationWarning)
 
-    def add(self, key: SSOSessionId, info: Any, now: int | None = None) -> None:
+    def add(self, key: SSOSessionId, info: object, now: int | None = None) -> None:
         """
         Add entry to the cache.
 
@@ -180,7 +182,7 @@ class ExpiringCacheMem:
         """
         return self._data.get(key)
 
-    def update(self, key: SSOSessionId, info: Any) -> None:
+    def update(self, key: SSOSessionId, info: object) -> None:
         """
         Update an entry in the cache.
 
@@ -204,7 +206,7 @@ class ExpiringCacheMem:
             logger.debug(f"Failed deleting key {key!r} from {self.name!s} cache (entry did not exist)")
         return False
 
-    def items(self) -> Any:
+    def items(self) -> dict[SSOSessionId, Any]:
         """
         Return all items from cache.
         """
@@ -216,7 +218,7 @@ class SSOSessionCacheError(EduIDDBError):
 
 
 class SSOSessionCache(BaseDB):
-    def __init__(self, db_uri: str, db_name: str = "eduid_idp", collection: str = "sso_sessions"):
+    def __init__(self, db_uri: str, db_name: str = "eduid_idp", collection: str = "sso_sessions") -> None:
         super().__init__(db_uri, db_name, collection=collection, safe_writes=True)
 
         # Remove messages older than created_ts + ttl

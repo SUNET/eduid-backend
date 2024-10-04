@@ -43,7 +43,9 @@ class ScimAttributes(ResponseMicroService):
     Add attributes from the scim db to the responses.
     """
 
-    def __init__(self, config: Mapping[str, Any], internal_attributes: dict[str, Any], *args: Any, **kwargs: Any):
+    def __init__(
+        self, config: Mapping[str, Any], internal_attributes: dict[str, Any], *args: Any, **kwargs: Any
+    ) -> None:
         super().__init__(*args, **kwargs)
 
         self.config = Config(**config)

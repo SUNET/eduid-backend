@@ -66,7 +66,7 @@ class ProofingTests(EduidAPITestCase[TTestAppVar], Generic[TTestAppVar]):
         token_verified: bool = False,
         proofing_method: IdentityProofingMethod | None = None,
         proofing_version: str | None = None,
-    ):
+    ) -> None:
         """This function is used to verify a user's parameters at the start of a test case,
         and then again at the end to ensure the right set of changes occurred to the user in the database.
         """

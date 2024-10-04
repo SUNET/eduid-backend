@@ -87,7 +87,7 @@ class ScimApiEvent(ScimApiResourceBase, _ScimApiEventRequired):
 
 
 class ScimApiEventDB(ScimApiBaseDB):
-    def __init__(self, db_uri: str, collection: str, db_name: str = "eduid_scimapi"):
+    def __init__(self, db_uri: str, collection: str, db_name: str = "eduid_scimapi") -> None:
         super().__init__(db_uri, db_name, collection=collection)
         indexes = {
             # Remove messages older than expires_at datetime

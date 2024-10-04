@@ -6,11 +6,13 @@ from urllib.parse import parse_qs, urlparse
 
 from flask import url_for
 from iso3166 import Country, countries
+from werkzeug.test import TestResponse
 
 from eduid.common.config.base import FrontendAction
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb import SvipeIdentity
 from eduid.userdb.identity import IdentityProofingMethod
+from eduid.userdb.testing import SetupConfig
 from eduid.webapp.common.api.messages import CommonMsg
 from eduid.webapp.common.proofing.messages import ProofingMsg
 from eduid.webapp.common.proofing.testing import ProofingTests
@@ -24,8 +26,11 @@ __author__ = "lundberg"
 class SvipeIdTests(ProofingTests[SvipeIdApp]):
     """Base TestCase for those tests that need a full environment setup"""
 
-    def setUp(self, *args, **kwargs):
-        super().setUp(*args, **kwargs, users=["hubba-bubba", "hubba-baar"])
+    def setUp(self, config: SetupConfig | None = None) -> None:
+        if config is None:
+            config = SetupConfig()
+        config.users = ["hubba-bubba", "hubba-baar"]
+        super().setUp(config=config)
 
         self.unverified_test_user = self.app.central_userdb.get_user_by_eppn("hubba-baar")
         self._user_setup()
@@ -116,7 +121,7 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
         """
         return svipe_id_init_app("testing", config)
 
-    def update_config(self, config: dict[str, Any]):
+    def update_config(self, config: dict[str, Any]) -> dict[str, Any]:
         config.update(
             {
                 "svipe_client": {
@@ -134,7 +139,7 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
         )
         return config
 
-    def _user_setup(self):
+    def _user_setup(self) -> None:
         # remove any svipe identity that already exists, we want to handle those ourselves
         for eppn in [self.test_user.eppn, self.unverified_test_user.eppn]:
             user = self.app.central_userdb.get_user_by_eppn(eppn)
@@ -205,7 +210,7 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
         state: str,
         nonce: str,
         userinfo: SvipeDocumentUserInfo,
-    ):
+    ) -> TestResponse:
         with self.app.test_request_context():
             endpoint = url_for("svipe_id.authn_callback")
 
@@ -240,7 +245,7 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
         return self.browser.get(f"{endpoint}?id_token=id_token&state={state}&code=mock_code")
 
     @patch("authlib.integrations.base_client.sync_app.OAuth2Mixin.load_server_metadata")
-    def _start_auth(self, mock_metadata: MagicMock, endpoint: str, data: dict[str, Any], eppn: str):
+    def _start_auth(self, mock_metadata: MagicMock, endpoint: str, data: dict[str, Any], eppn: str) -> TestResponse:
         mock_metadata.return_value = self.oidc_provider_config
 
         with self.session_cookie(self.browser, eppn) as client:
@@ -252,10 +257,10 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
             _data.update(data)
             return client.post(endpoint, json=_data)
 
-    def test_app_starts(self):
+    def test_app_starts(self) -> None:
         assert self.app.conf.app_name == "testing"
 
-    def test_client_claims_config(self):
+    def test_client_claims_config(self) -> None:
         data = {
             "svipe_client": {
                 "client_id": "x",
@@ -280,14 +285,14 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
         cfg = SvipeClientConfig.model_validate(data["svipe_client"])
         assert cfg.claims_request == data["svipe_client"]["claims_request"]
 
-    def test_authenticate(self):
+    def test_authenticate(self) -> None:
         response = self.browser.get("/")
         self.assertEqual(response.status_code, 401)
         with self.session_cookie(self.browser, self.test_user.eppn) as browser:
             response = browser.get("/")
         self._check_success_response(response, type_="GET_SVIPE_ID_SUCCESS")
 
-    def test_verify_identity_request(self):
+    def test_verify_identity_request(self) -> None:
         with self.app.test_request_context():
             endpoint = url_for("svipe_id.verify_identity")
 
@@ -295,7 +300,7 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
         assert response.status_code == 200
         self._check_success_response(response, type_="POST_SVIPE_ID_VERIFY_IDENTITY_SUCCESS")
         assert self.get_response_payload(response)["location"].startswith("https://example.com/op/authorize")
-        query: dict[str, list[str]] = parse_qs(urlparse(self.get_response_payload(response)["location"]).query)  # type: ignore
+        query: dict[str, list[str]] = parse_qs(urlparse(self.get_response_payload(response)["location"]).query)
         assert query["response_type"] == ["code"]
         assert query["client_id"] == ["test_client_id"]
         assert query["redirect_uri"] == ["http://test.localhost/authn-callback"]
@@ -306,7 +311,7 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
 
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_verify_nin_identity(self, mock_request_user_sync: MagicMock, mock_get_all_navet_data: MagicMock):
+    def test_verify_nin_identity(self, mock_request_user_sync: MagicMock, mock_get_all_navet_data: MagicMock) -> None:
         mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
 
@@ -350,7 +355,7 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
         assert doc["surname"] == userinfo.family_name
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_verify_foreign_identity(self, mock_request_user_sync: MagicMock):
+    def test_verify_foreign_identity(self, mock_request_user_sync: MagicMock) -> None:
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.unverified_test_user.eppn
@@ -384,7 +389,7 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
         )
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_verify_foreign_identity_no_admin_number(self, mock_request_user_sync: MagicMock):
+    def test_verify_foreign_identity_no_admin_number(self, mock_request_user_sync: MagicMock) -> None:
         """Not all countries have something like a Swedish NIN, so administrative_number may be None"""
         mock_request_user_sync.side_effect = self.request_user_sync
 
@@ -426,7 +431,7 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_verify_nin_identity_already_verified(
         self, mock_request_user_sync: MagicMock, mock_get_all_navet_data: MagicMock
-    ):
+    ) -> None:
         mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
 
@@ -452,7 +457,7 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
         self._verify_user_parameters(eppn, identity_verified=True, num_proofings=0, num_mfa_tokens=0)
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_verify_foreign_identity_already_verified(self, mock_request_user_sync: MagicMock):
+    def test_verify_foreign_identity_already_verified(self, mock_request_user_sync: MagicMock) -> None:
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_user.eppn
@@ -491,7 +496,7 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
         self._verify_user_parameters(eppn, identity_verified=True, num_proofings=0, num_mfa_tokens=0)
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_verify_foreign_identity_replace_locked_identity(self, mock_request_user_sync: MagicMock):
+    def test_verify_foreign_identity_replace_locked_identity(self, mock_request_user_sync: MagicMock) -> None:
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_user.eppn
@@ -538,7 +543,7 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
         )
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_verify_foreign_identity_replace_locked_identity_fail(self, mock_request_user_sync: MagicMock):
+    def test_verify_foreign_identity_replace_locked_identity_fail(self, mock_request_user_sync: MagicMock) -> None:
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.unverified_test_user.eppn
@@ -580,7 +585,9 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
         )
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_verify_foreign_identity_replace_locked_identity_fail_admin_number(self, mock_request_user_sync: MagicMock):
+    def test_verify_foreign_identity_replace_locked_identity_fail_admin_number(
+        self, mock_request_user_sync: MagicMock
+    ) -> None:
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.unverified_test_user.eppn
@@ -629,7 +636,7 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_verify_foreign_identity_already_verified_nin(
         self, mock_request_user_sync: MagicMock, mock_get_all_navet_data: MagicMock
-    ):
+    ) -> None:
         mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
 
@@ -663,7 +670,7 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_verify_identity_expired_document(
         self, mock_request_user_sync: MagicMock, mock_get_all_navet_data: MagicMock
-    ):
+    ) -> None:
         mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
 

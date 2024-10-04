@@ -142,7 +142,7 @@ class MsgRelay:
     This is the interface to the RPC task to fetch data from NAVET, and to send SMSs.
     """
 
-    def __init__(self, config: MsgConfigMixin):
+    def __init__(self, config: MsgConfigMixin) -> None:
         self.app_name = config.app_name
         self.conf = config
         eduid.workers.msg.init_app(config.celery)

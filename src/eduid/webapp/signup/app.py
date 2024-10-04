@@ -17,7 +17,7 @@ from eduid.webapp.signup.settings.common import SignupConfig
 
 
 class SignupApp(EduIDBaseApp):
-    def __init__(self, config: SignupConfig, **kwargs):
+    def __init__(self, config: SignupConfig, **kwargs: Any) -> None:
         super().__init__(config, **kwargs)
 
         self.conf = config

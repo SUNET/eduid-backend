@@ -15,7 +15,8 @@ of the Flask application::
 """
 
 import logging
-from typing import Any, AnyStr
+from collections.abc import Callable, Iterator
+from typing import Any, AnyStr, TypeVar
 
 from flask import abort
 from flask.wrappers import Request as FlaskRequest
@@ -37,7 +38,7 @@ class SanitationMixin(Sanitizer):
         untrusted_text: AnyStr,
         content_type: str | None = None,
         strip_characters: bool = False,
-    ):
+    ) -> str:
         try:
             return super().sanitize_input(
                 untrusted_text=untrusted_text, content_type=content_type, strip_characters=strip_characters
@@ -53,7 +54,7 @@ class SanitizedImmutableMultiDict(ImmutableMultiDict, SanitationMixin):
     sanitize the extracted data.
     """
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str) -> str:
         """
         Return the first data value for this key;
         raises KeyError if not found.
@@ -64,7 +65,7 @@ class SanitizedImmutableMultiDict(ImmutableMultiDict, SanitationMixin):
         value = super().__getitem__(key)
         return self.sanitize_input(value)
 
-    def getlist(self, key, type=None):
+    def getlist(self, key: str, type: Callable[[Any], Any] | None = None) -> list:
         """
         Return the list of items for a given key. If that key is not in the
         `MultiDict`, the return value will be an empty list.  Just as `get`
@@ -77,10 +78,11 @@ class SanitizedImmutableMultiDict(ImmutableMultiDict, SanitationMixin):
                      by this callable the value will be removed from the list.
         :return: a :class:`list` of all the values for the key.
         """
+        assert type is not None
         value_list = super().getlist(key, type=type)
         return [self.sanitize_input(v) for v in value_list]
 
-    def items(self, multi=False):
+    def items(self, multi: bool = False) -> Iterator[tuple[Any, str]]:  # type: ignore[override]
         """
         Return an iterator of ``(key, value)`` pairs.
 
@@ -97,7 +99,7 @@ class SanitizedImmutableMultiDict(ImmutableMultiDict, SanitationMixin):
             else:
                 yield key, values[0]
 
-    def lists(self):
+    def lists(self) -> Iterator[tuple[Any, list[str]]]:
         """Return a list of ``(key, values)`` pairs, where values is the list
         of all values associated with the key."""
 
@@ -105,14 +107,14 @@ class SanitizedImmutableMultiDict(ImmutableMultiDict, SanitationMixin):
             values = [self.sanitize_input(v) for v in values]
             yield key, values
 
-    def values(self):
+    def values(self) -> Iterator[str]:  # type: ignore[override]
         """
         Returns an iterator of the first value on every key's value list.
         """
         for values in dict.values(self):
             yield self.sanitize_input(values[0])
 
-    def listvalues(self):
+    def listvalues(self) -> Iterator[Iterator[Any]]:  # type: ignore[override]
         """
         Return an iterator of all values associated with a key.  Zipping
         :meth:`keys` and this is the same as calling :meth:`lists`:
@@ -124,7 +126,7 @@ class SanitizedImmutableMultiDict(ImmutableMultiDict, SanitationMixin):
         for values in dict.values(self):
             yield (self.sanitize_input(v) for v in values)
 
-    def to_dict(self, flat=True):
+    def to_dict(self, flat: bool = True) -> dict | dict[Any, list[str]]:
         """Return the contents as regular dict.  If `flat` is `True` the
         returned dict will only have the first item present, if `flat` is
         `False` all values will be returned as lists.
@@ -143,6 +145,9 @@ class SanitizedImmutableMultiDict(ImmutableMultiDict, SanitationMixin):
         return dict(self.lists())
 
 
+T = TypeVar("T")
+
+
 class SanitizedTypeConversionDict(ImmutableTypeConversionDict, SanitationMixin):
     """
     See `werkzeug.datastructures.TypeConversionDict`.
@@ -150,14 +155,14 @@ class SanitizedTypeConversionDict(ImmutableTypeConversionDict, SanitationMixin):
     sanitize the extracted data.
     """
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str) -> str:
         """
         Sanitized __getitem__
         """
         val = super(ImmutableTypeConversionDict, self).__getitem__(key)
         return self.sanitize_input(str(val))
 
-    def get(self, key, default=None, type=None) -> Any | None:  # type: ignore[override]
+    def get(self, key: str, default: str | None = None, type: Callable[[Any], T] | None = None) -> str | T | None:  # type: ignore[override]
         """
         Sanitized, type conversion get.
         The value identified by `key` is sanitized, and if `type`
@@ -173,20 +178,20 @@ class SanitizedTypeConversionDict(ImmutableTypeConversionDict, SanitationMixin):
         :rtype: object
         """
         try:
-            val = self.sanitize_input(self[key])
+            val: Any = self.sanitize_input(self[key])
             if type is not None:
                 val = type(val)
         except (KeyError, ValueError):
             val = default
         return val
 
-    def values(self):
+    def values(self) -> list[str]:  # type: ignore[override]
         """
         sanitized values
         """
         return [self.sanitize_input(v) for v in super(ImmutableTypeConversionDict, self).values()]
 
-    def items(self):
+    def items(self) -> list[tuple[str, str]]:  # type: ignore[override]
         """
         Sanitized items
         """
@@ -198,7 +203,7 @@ class SanitizedEnvironHeaders(EnvironHeaders, SanitationMixin):
     Sanitized and read only version of the headers from a WSGI environment.
     """
 
-    def __init__(self, environ: dict[str, Any]):
+    def __init__(self, environ: dict[str, Any]) -> None:
         # set content type from environ at init so we don't get in to an infinite recursion
         # when sanitize_input tries to look it up later
         self.content_type = environ.get("CONTENT_TYPE")
@@ -215,7 +220,7 @@ class SanitizedEnvironHeaders(EnvironHeaders, SanitationMixin):
         val = super().__getitem__(key)
         return self.sanitize_input(untrusted_text=val, content_type=self.content_type)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[tuple[str, str]]:  # type: ignore[override]
         """
         Sanitized __iter__
         """
@@ -231,11 +236,11 @@ class Request(FlaskRequest, SanitationMixin):
     parameter_storage_class = SanitizedImmutableMultiDict
     dict_storage_class = SanitizedTypeConversionDict  # type: ignore[assignment]
 
-    def __init__(self, *args: Any, **kwargs: Any):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.headers = SanitizedEnvironHeaders(environ=self.environ)
 
-    def get_data(self, *args: Any, **kwargs: Any):
+    def get_data(self, *args: Any, **kwargs: Any) -> str:  # type: ignore[override]
         text = super().get_data(*args, **kwargs)
         if text:
             text = self.sanitize_input(untrusted_text=text, content_type=self.mimetype)

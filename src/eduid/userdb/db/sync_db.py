@@ -47,7 +47,7 @@ class MongoDB(BaseMongoDB):
         db_uri: str,
         db_name: str | None = None,
         **kwargs: Any,
-    ):
+    ) -> None:
         super().__init__(db_uri=db_uri, db_name=db_name, **kwargs)
         try:
             self._client = MongoClientCache().get_client(db=self)
@@ -88,7 +88,7 @@ class MongoDB(BaseMongoDB):
         _db = self.get_database(database_name)
         return _db[collection]
 
-    def is_healthy(self):
+    def is_healthy(self) -> bool:
         """
         From mongo_client.py:
         Starting with version 3.0 the :class:`MongoClient`
@@ -119,7 +119,7 @@ class MongoDB(BaseMongoDB):
             logger.error(f"{self} not healthy: {e}")
             return False
 
-    def close(self):
+    def close(self) -> None:
         self._client.close()
 
 
@@ -138,7 +138,7 @@ class SaveResult:
     updated: int = 0
     doc_id: ObjectId | None = None
 
-    def __bool__(self):
+    def __bool__(self) -> bool:
         return bool(self.inserted or self.updated)
 
 
@@ -151,7 +151,7 @@ class BaseDB:
         db_name: str,
         collection: str,
         safe_writes: bool = False,
-    ):
+    ) -> None:
         self._db_uri = db_uri
         self._coll_name = collection
         self._db = MongoDB(db_uri, db_name=db_name)
@@ -159,12 +159,12 @@ class BaseDB:
         if safe_writes:
             self._coll = self._coll.with_options(write_concern=pymongo.WriteConcern(w="majority"))
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<eduID {self.__class__.__name__!s}: {self._db.sanitized_uri!s} {self._coll_name!r}>"
 
     __str__ = __repr__
 
-    def _drop_whole_collection(self):
+    def _drop_whole_collection(self) -> None:
         """
         Drop the whole collection. Should ONLY be used in testing, obviously.
         :return:
@@ -182,7 +182,7 @@ class BaseDB:
         """
         return self._coll.find({})
 
-    def _get_document_by_attr(self, attr: str, value: Any) -> TUserDbDocument | None:
+    def _get_document_by_attr(self, attr: str, value: Any) -> TUserDbDocument | None:  # noqa: ANN401
         """
         Return the document in the MongoDB matching field=value
 

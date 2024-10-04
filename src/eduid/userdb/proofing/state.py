@@ -5,7 +5,7 @@ import datetime
 import logging
 from collections.abc import Mapping
 from dataclasses import asdict, dataclass
-from typing import Any
+from typing import Any, TypeVar
 
 import bson
 
@@ -23,6 +23,8 @@ __author__ = "lundberg"
 
 logger = logging.getLogger(__name__)
 
+TProofingState = TypeVar("TProofingState", bound="ProofingState")
+
 
 @dataclass()
 class ProofingState:
@@ -33,12 +35,12 @@ class ProofingState:
     # None if ProofingState has never been written to the database.
     modified_ts: datetime.datetime | None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if self.id is None:
             self.id = bson.ObjectId()
 
     @classmethod
-    def _default_from_dict(cls, data: Mapping[str, Any], fields: set[str]):
+    def _default_from_dict(cls: type[TProofingState], data: Mapping[str, Any], fields: set[str]) -> TProofingState:
         _data = copy.deepcopy(dict(data))  # to not modify callers data
         if "eduPersonPrincipalName" in _data:
             _data["eppn"] = _data.pop("eduPersonPrincipalName")
@@ -60,7 +62,7 @@ class ProofingState:
         return cls(**_data)
 
     @classmethod
-    def from_dict(cls, data: Mapping[str, Any]):
+    def from_dict(cls, data: Mapping[str, Any]) -> Any:  # noqa: ANN401
         raise NotImplementedError(f"from_dict not implemented for class {cls.__name__}")
 
     def to_dict(self) -> TUserDbDocument:
@@ -71,7 +73,7 @@ class ProofingState:
             res["modified_ts"] = datetime.datetime.utcnow()
         return TUserDbDocument(res)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"<eduID {self.__class__.__name__!s}: eppn={self.eppn!s}>"
 
     @property

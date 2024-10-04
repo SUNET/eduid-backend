@@ -4,13 +4,14 @@ import json
 import logging.config
 import os
 import uuid
+from collections.abc import Iterable
 from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Any, TypeVar
 
 from bson import ObjectId
 
-from eduid.userdb.testing import MongoTestCase
+from eduid.userdb.testing import MongoTestCase, SetupConfig
 
 logger = logging.getLogger(__name__)
 
@@ -18,14 +19,14 @@ logger = logging.getLogger(__name__)
 class CommonTestCase(MongoTestCase):
     """Base Test case for eduID webapps and workers"""
 
-    def setUp(self, *args: Any, **kwargs: Any) -> None:
+    def setUp(self, config: SetupConfig | None = None) -> None:
         """
         set up tests
         """
         if "EDUID_CONFIG_YAML" not in os.environ:
             os.environ["EDUID_CONFIG_YAML"] = "YAML_CONFIG_NOT_USED"
 
-        super().setUp(*args, **kwargs)
+        super().setUp(config=config)
 
 
 SomeData = TypeVar("SomeData")
@@ -37,7 +38,7 @@ def normalised_data(
     """Utility function for normalising data before comparisons in test cases."""
 
     class NormaliseEncoder(json.JSONEncoder):
-        def default(self, o: Any) -> str | Any:
+        def default(self, o: object) -> Iterable:
             if isinstance(o, datetime):
                 if replace_datetime is not None:
                     return replace_datetime
@@ -63,10 +64,10 @@ def normalised_data(
                 return repr(o)
 
     class NormaliseDecoder(json.JSONDecoder):
-        def __init__(self, *args: Any, **kwargs: Any):
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
             super().__init__(object_hook=self.object_hook, *args, **kwargs)
 
-        def object_hook(self, o: Any) -> dict[str, Any]:
+        def object_hook(self, o: dict) -> dict[str, Any]:
             """
             Decode any keys ending in _ts to datetime objects.
 

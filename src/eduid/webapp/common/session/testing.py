@@ -49,7 +49,7 @@ class RedisTemporaryInstance(EduidTemporaryInstance):
             raise RuntimeError("Missing temporary Redis instance")
         return self._conn
 
-    def get_params(self):
+    def get_params(self) -> tuple[str, int, int]:
         """
         Convenience function to get Redis connection parameters for the temporary database.
 

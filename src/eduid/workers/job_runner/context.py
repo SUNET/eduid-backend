@@ -11,7 +11,7 @@ from eduid.workers.job_runner.config import JobRunnerConfig
 
 
 class Context:
-    def __init__(self, config: JobRunnerConfig):
+    def __init__(self, config: JobRunnerConfig) -> None:
         self.name = config.app_name
         self.config = config
 

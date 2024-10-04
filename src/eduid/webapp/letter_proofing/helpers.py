@@ -9,7 +9,7 @@ from eduid.userdb import User
 from eduid.userdb.proofing import LetterProofingState, NinProofingElement
 from eduid.userdb.proofing.element import SentLetterElement
 from eduid.webapp.common.api.helpers import check_magic_cookie
-from eduid.webapp.common.api.messages import TranslatableMsg, error_response, success_response
+from eduid.webapp.common.api.messages import FluxData, TranslatableMsg, error_response, success_response
 from eduid.webapp.letter_proofing import pdf
 from eduid.webapp.letter_proofing.app import current_letterp_app as current_app
 
@@ -51,7 +51,7 @@ class StateExpireInfo:
     error: bool
     message: TranslatableMsg
 
-    def to_response(self):
+    def to_response(self) -> FluxData:
         """Create a response with information about the users current proofing state (or an error)."""
         if self.error:
             return error_response(message=self.message)

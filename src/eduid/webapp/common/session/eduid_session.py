@@ -4,9 +4,9 @@ import json
 import logging
 import os
 import pprint
-from collections.abc import MutableMapping
+from collections.abc import Iterator, MutableMapping
 from datetime import datetime
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, TypeVar
 
 from flask import Request as FlaskRequest
 from flask import Response as FlaskResponse
@@ -64,7 +64,10 @@ class EduidNamespaces(BaseModel):
     freja_eid: FrejaEIDNamespace | None = None
 
 
-class EduidSession(SessionMixin, MutableMapping[str, Any]):
+VT = TypeVar("VT")
+
+
+class EduidSession(SessionMixin, MutableMapping[str, VT]):
     """
     Session implementing the flask.sessions.SessionMixin interface.
 
@@ -99,7 +102,9 @@ class EduidSession(SessionMixin, MutableMapping[str, Any]):
     and auto-complete support, and then Flask will call persist() which will store the data in the backend session.
     """
 
-    def __init__(self, app: EduIDBaseApp, meta: SessionMeta, base_session: RedisEncryptedSession, new: bool = False):
+    def __init__(
+        self, app: EduIDBaseApp, meta: SessionMeta, base_session: RedisEncryptedSession, new: bool = False
+    ) -> None:
         """
         :param app: the flask app
         :param meta: Session metadata
@@ -120,35 +125,35 @@ class EduidSession(SessionMixin, MutableMapping[str, Any]):
         # Namespaces, initialised lazily when accessed through properties
         self._namespaces = EduidNamespaces()
 
-    def __str__(self):
+    def __str__(self) -> str:
         # Include hex(id(self)) for now to troubleshoot clobbered sessions
         return (
             f"<{self.__class__.__name__} at {hex(id(self))}: new={self.new}, "
             f"modified={self.modified}, cookie={self.short_id}>"
         )
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str) -> VT | str | None:
         return self._session.__getitem__(key)
 
-    def __setitem__(self, key: str, value: Any):
+    def __setitem__(self, key: str, value: VT | str | None) -> None:
         if key not in self._session or self._session[key] != value:
             self._session[key] = value
             logger.debug(f"SET {self}[{key}] = {value}")
             self.modified = True
 
-    def __delitem__(self, key):
+    def __delitem__(self, key: str) -> None:
         if key in self._session:
             del self._session[key]
             logger.debug(f"DEL {self}[{key}]")
             self.modified = True
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[str]:
         return self._session.__iter__()
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self._session)
 
-    def __contains__(self, key):
+    def __contains__(self, key: object) -> bool:
         return self._session.__contains__(key)
 
     @property
@@ -157,11 +162,11 @@ class EduidSession(SessionMixin, MutableMapping[str, Any]):
         return self.meta.cookie_val[:9] + "..."
 
     @property
-    def permanent(self):
+    def permanent(self) -> bool:
         return True
 
     @permanent.setter
-    def permanent(self, value):
+    def permanent(self, value: bool) -> None:
         # EduidSessions are _always_ permanent
         pass
 
@@ -178,7 +183,7 @@ class EduidSession(SessionMixin, MutableMapping[str, Any]):
         return self._namespaces.mfa_action
 
     @mfa_action.deleter
-    def mfa_action(self):
+    def mfa_action(self) -> None:
         """
         This can be thought of as the scratch area where the eidas SP communicates information back to the IdP.
 
@@ -196,7 +201,7 @@ class EduidSession(SessionMixin, MutableMapping[str, Any]):
         return self._namespaces.signup
 
     @signup.deleter
-    def signup(self):
+    def signup(self) -> None:
         self._namespaces.signup = None
         del self["signup"]
 
@@ -273,7 +278,7 @@ class EduidSession(SessionMixin, MutableMapping[str, Any]):
             if renew_backend:
                 self._session.renew_ttl()
 
-    def reset(self, keep_csrf: bool = True):
+    def reset(self, keep_csrf: bool = True) -> None:
         """Used when logging out"""
         csrf = None if not keep_csrf else self.get_csrf_token()
         self._namespaces = EduidNamespaces()
@@ -284,7 +289,7 @@ class EduidSession(SessionMixin, MutableMapping[str, Any]):
         self.modified = True
         self._serialize_namespaces()
 
-    def invalidate(self):
+    def invalidate(self) -> None:
         """
         Invalidate the session. Clear the data from redis,
         and set an empty session cookie.
@@ -293,7 +298,7 @@ class EduidSession(SessionMixin, MutableMapping[str, Any]):
         self._invalidated = True
         self._session.clear()
 
-    def set_cookie(self, response: WerkzeugResponse):
+    def set_cookie(self, response: WerkzeugResponse) -> None:
         """
         Set the session cookie.
 
@@ -344,7 +349,7 @@ class EduidSession(SessionMixin, MutableMapping[str, Any]):
                     value = this.dict(exclude_none=True)
             self[k] = value
 
-    def persist(self):
+    def persist(self) -> None:
         """
         Store the session data in the redis backend,
         and renew the ttl for it.
@@ -378,7 +383,7 @@ class SessionFactory(SessionInterface):
     :param config: the configuration for the session
     """
 
-    def __init__(self, config: EduIDBaseAppConfig):
+    def __init__(self, config: EduIDBaseAppConfig) -> None:
         if config.flask.secret_key is None:
             raise BadConfiguration("flask.secret_key not set in config")
 
@@ -429,7 +434,7 @@ class SessionFactory(SessionInterface):
             base_session = self.manager.get_session(meta=_meta, new=True)
             new = True
 
-        sess = EduidSession(app, _meta, base_session, new=new)
+        sess: EduidSession = EduidSession(app, _meta, base_session, new=new)
         logger.debug(f"Created/loaded session {sess} with base_session {base_session}")
         if app.debug or _conf.testing:
             _loaded_data = json.dumps(sess._session.to_dict(), indent=4, sort_keys=True)

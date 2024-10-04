@@ -21,13 +21,13 @@ __author__ = "lundberg"
 logger = logging.getLogger(__name__)
 
 
-def cancel_task(signame, task):
+def cancel_task(signame: str, task: Task) -> None:
     logger.info(f"got signal {signame}: exit")
     task.cancel()
 
 
 class QueueWorker(ABC):
-    def __init__(self, config: QueueWorkerConfig, handle_payloads: Sequence[type[Payload]]):
+    def __init__(self, config: QueueWorkerConfig, handle_payloads: Sequence[type[Payload]]) -> None:
         worker_name = environ.get("WORKER_NAME", None)
         if worker_name is None:
             raise RuntimeError("Environment variable WORKER_NAME needs to be set")
@@ -47,7 +47,7 @@ class QueueWorker(ABC):
         tasks.add(task)
         return tasks
 
-    async def run(self):
+    async def run(self) -> None:
         # Init db in the correct loop
         self.db = await AsyncQueueDB.create(db_uri=self.config.mongo_uri, collection=self.config.mongo_collection)
         # Register payloads to handle
@@ -64,7 +64,7 @@ class QueueWorker(ABC):
         logger.info(f"Running: {main_task.get_name()}")
         await main_task
 
-    async def run_subtasks(self):
+    async def run_subtasks(self) -> None:
         logger.info(f"Initiating event stream for: {self.db}")
         watch_collection_task = asyncio.create_task(
             self.watch_collection(), name=f"Watch collection {self.config.mongo_collection}"

@@ -365,7 +365,7 @@ def main(args: Args) -> bool:
     return True
 
 
-def _config_logger(args: Args, progname: str):
+def _config_logger(args: Args, progname: str) -> None:
     # This is the root log level
     level = logging.INFO
     if args.debug:

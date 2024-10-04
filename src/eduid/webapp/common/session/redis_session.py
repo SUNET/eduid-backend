@@ -48,8 +48,8 @@ from __future__ import annotations
 import json
 import logging
 import typing
-from collections.abc import Mapping
-from typing import Any
+from collections.abc import Iterator, Mapping
+from typing import Any, TypeVar
 
 import nacl.encoding
 import nacl.secret
@@ -77,7 +77,7 @@ class SessionManager:
         ttl: int = 600,
         whitelist: list[str] | None = None,
         raise_on_unknown: bool = False,
-    ):
+    ) -> None:
         """
         Constructor for SessionManager
 
@@ -114,7 +114,7 @@ class SessionManager:
         """
         conn = self._get_connection()
 
-        res = RedisEncryptedSession(
+        res: RedisEncryptedSession = RedisEncryptedSession(
             conn,
             db_key=meta.session_id,
             encryption_key=meta.derive_key(self.secret, "nacl", nacl.secret.SecretBox.KEY_SIZE),
@@ -155,7 +155,10 @@ class SessionOutOfSync(Exception):
     pass
 
 
-class RedisEncryptedSession(typing.MutableMapping):
+VT = TypeVar("VT")
+
+
+class RedisEncryptedSession(typing.MutableMapping[str, VT]):
     """
     Session objects that keep their data in a redis db.
     """
@@ -168,7 +171,7 @@ class RedisEncryptedSession(typing.MutableMapping):
         ttl: int,
         whitelist: list[str] | None = None,
         raise_on_unknown: bool = False,
-    ):
+    ) -> None:
         """
         Create an empty session object.
 
@@ -200,34 +203,34 @@ class RedisEncryptedSession(typing.MutableMapping):
 
         self.secret_box = nacl.secret.SecretBox(encryption_key)
 
-        self._data: dict[str, Any] = {}
+        self._data: dict[str, VT] = {}
 
-    def __str__(self):
+    def __str__(self) -> str:
         # Include hex(id(self)) for now to troubleshoot clobbered sessions
         return f"<{self.__class__.__name__} at {hex(id(self))}: db_key={self.short_id}>"
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str) -> VT:
         if key in self._data:
             return self._data[key]
         raise KeyError(f"Key {repr(key)} not present in session")
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: str, value: VT) -> None:
         if self.whitelist and key not in self.whitelist:
             if self.raise_on_unknown:
                 raise ValueError(f"Key {repr(key)} not allowed in session")
             return
         self._data[key] = value
 
-    def __delitem__(self, key):
+    def __delitem__(self, key: str) -> None:
         del self._data[key]
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[str]:
         return self._data.__iter__()
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self._data)
 
-    def __contains__(self, key):
+    def __contains__(self, key: object) -> bool:
         return self._data.__contains__(key)
 
     @property
@@ -311,7 +314,7 @@ class RedisEncryptedSession(typing.MutableMapping):
         logger.error(f"Unknown data retrieved from Redis[{self.short_id}]: {repr(data_str)}")
         raise ValueError("Unknown data retrieved from Redis")
 
-    def clear(self):
+    def clear(self) -> None:
         """
         Discard all data contained in the session.
         """
@@ -319,7 +322,7 @@ class RedisEncryptedSession(typing.MutableMapping):
         self.conn.delete(self.db_key)
         self._raw_data = None
 
-    def renew_ttl(self):
+    def renew_ttl(self) -> None:
         """
         Restart the ttl countdown
         """

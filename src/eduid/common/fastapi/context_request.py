@@ -1,5 +1,6 @@
 from collections.abc import Callable
 from dataclasses import asdict, dataclass
+from typing import Any
 
 from fastapi import Request, Response
 from fastapi.routing import APIRoute
@@ -7,17 +8,17 @@ from fastapi.routing import APIRoute
 
 @dataclass
 class Context:
-    def to_dict(self):
+    def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 
 
 class ContextRequest(Request):
-    def __init__(self, context_class: type[Context], *args, **kwargs):
+    def __init__(self, context_class: type[Context], *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.contextClass = context_class
 
     @property
-    def context(self):
+    def context(self) -> Context:
         try:
             return self.state.context
         except AttributeError:
@@ -26,7 +27,7 @@ class ContextRequest(Request):
             return self.context
 
     @context.setter
-    def context(self, context: Context):
+    def context(self, context: Context) -> None:
         self.state.context = context
 
 

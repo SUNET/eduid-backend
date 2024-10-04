@@ -8,10 +8,10 @@ __author__ = "lundberg"
 
 
 class TestInitConfig(unittest.TestCase):
-    def tearDown(self):
+    def tearDown(self) -> None:
         os.environ.clear()
 
-    def test_YamlConfigParser(self):
+    def test_YamlConfigParser(self) -> None:
         os.environ["EDUID_CONFIG_NS"] = "/test/ns/"
         os.environ["EDUID_CONFIG_YAML"] = "/config.yaml"
         parser = _choose_parser()

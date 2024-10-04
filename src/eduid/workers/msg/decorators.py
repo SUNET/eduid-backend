@@ -3,7 +3,10 @@ from datetime import datetime
 from inspect import isclass
 from typing import Any
 
+from pymongo.collection import Collection
+
 from eduid.userdb.db import MongoDB
+from eduid.userdb.db.base import TUserDbDocument
 
 
 class TransactionAudit:
@@ -12,23 +15,25 @@ class TransactionAudit:
     db_name: str = "eduid_msg"
     collection_name: str = "transaction_audit"
 
-    def __init__(self):
-        self._conn = None
-        self.collection = None
+    def __init__(self) -> None:
+        self._conn: MongoDB | None = None
+        self.collection: Collection[TUserDbDocument] | None = None
 
     def __call__(self, f: Callable[..., Any]) -> Callable[..., Any]:
         if not self.enabled:
             return f
 
-        def audit(*args, **kwargs):
+        def audit(*args: Any, **kwargs: Any) -> Any:  # noqa: ANN401
             ret = f(*args, **kwargs)
             if not isclass(ret):  # we can't save class objects in mongodb
                 date = datetime.utcnow()
-                doc = {
-                    "function": f.__name__,
-                    "data": self._filter(f.__name__, ret, *args, **kwargs),
-                    "created_at": date,
-                }
+                doc = TUserDbDocument(
+                    {
+                        "function": f.__name__,
+                        "data": self._filter(f.__name__, ret, *args, **kwargs),
+                        "created_at": date,
+                    }
+                )
                 if self.collection is not None:
                     self.collection.insert_one(doc)
             return ret
@@ -40,7 +45,7 @@ class TransactionAudit:
         return audit
 
     @classmethod
-    def enable(cls, db_uri: str, db_name: str | None = None):
+    def enable(cls, db_uri: str, db_name: str | None = None) -> None:
         if isinstance(db_uri, str):
             cls.db_uri = db_uri
         if db_name is not None:
@@ -48,11 +53,11 @@ class TransactionAudit:
         cls.enabled = True
 
     @classmethod
-    def disable(cls):
+    def disable(cls) -> None:
         cls.enabled = False
 
     @staticmethod
-    def _filter(func, data, *args, **kwargs):
+    def _filter(func: str, data: Any, *args: Any, **kwargs: Any) -> Any:  # noqa: ANN401
         if data is False:
             return data
         if func == "_get_navet_data":

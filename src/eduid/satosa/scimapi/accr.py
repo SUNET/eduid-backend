@@ -35,7 +35,9 @@ class request(RequestMicroService):
             http://id.swedenconnect.se/loa/1.0/uncertified-loa2: http://id.elegnamnden.se/loa/1.0/loa2
     """
 
-    def __init__(self, config: Mapping[str, Any], internal_attributes: dict[str, Any], *args: Any, **kwargs: Any):
+    def __init__(
+        self, config: Mapping[str, Any], internal_attributes: dict[str, Any], *args: Any, **kwargs: Any
+    ) -> None:
         self.lowest_accepted_accr_for_virtual_idp: LowestAcceptedACCRForVirtualIdpConfig | None = config.get(
             "lowest_accepted_accr_for_virtual_idp"
         )
@@ -111,7 +113,9 @@ class response(ResponseMicroService):
     name: accrResponse
     """
 
-    def __init__(self, config: Mapping[str, Any], internal_attributes: dict[str, Any], *args: Any, **kwargs: Any):
+    def __init__(
+        self, config: Mapping[str, Any], internal_attributes: dict[str, Any], *args: Any, **kwargs: Any
+    ) -> None:
         super().__init__(*args, **kwargs)
 
     def process(self, context: satosa.context.Context, data: satosa.internal.InternalData) -> ProcessReturnType:

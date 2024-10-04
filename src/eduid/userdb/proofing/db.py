@@ -26,7 +26,7 @@ ProofingStateVar = TypeVar("ProofingStateVar")
 
 
 class ProofingStateDB(BaseDB, Generic[ProofingStateVar], ABC):
-    def __init__(self, db_uri: str, db_name: str, collection: str = "proofing_data"):
+    def __init__(self, db_uri: str, db_name: str, collection: str = "proofing_data") -> None:
         super().__init__(db_uri, db_name, collection)
 
     @classmethod
@@ -97,7 +97,7 @@ class ProofingStateDB(BaseDB, Generic[ProofingStateVar], ABC):
 
 
 class LetterProofingStateDB(ProofingStateDB[LetterProofingState]):
-    def __init__(self, db_uri: str, db_name: str = "eduid_idproofing_letter"):
+    def __init__(self, db_uri: str, db_name: str = "eduid_idproofing_letter") -> None:
         super().__init__(db_uri, db_name)
 
     @classmethod
@@ -106,7 +106,7 @@ class LetterProofingStateDB(ProofingStateDB[LetterProofingState]):
 
 
 class EmailProofingStateDB(ProofingStateDB[EmailProofingState]):
-    def __init__(self, db_uri: str, db_name: str = "eduid_email"):
+    def __init__(self, db_uri: str, db_name: str = "eduid_email") -> None:
         super().__init__(db_uri, db_name)
 
     @classmethod
@@ -136,7 +136,7 @@ class EmailProofingStateDB(ProofingStateDB[EmailProofingState]):
 
 
 class PhoneProofingStateDB(ProofingStateDB[PhoneProofingState]):
-    def __init__(self, db_uri: str, db_name: str = "eduid_phone"):
+    def __init__(self, db_uri: str, db_name: str = "eduid_phone") -> None:
         super().__init__(db_uri, db_name)
 
     @classmethod
@@ -189,7 +189,7 @@ class OidcStateDB(ProofingStateDB[ProofingStateVar], Generic[ProofingStateVar], 
 
 
 class OidcProofingStateDB(OidcStateDB[OidcProofingState]):
-    def __init__(self, db_uri: str, db_name: str = "eduid_oidc_proofing"):
+    def __init__(self, db_uri: str, db_name: str = "eduid_oidc_proofing") -> None:
         super().__init__(db_uri, db_name)
 
     @classmethod
@@ -200,7 +200,7 @@ class OidcProofingStateDB(OidcStateDB[OidcProofingState]):
 class OrcidProofingStateDB(OidcStateDB[OrcidProofingState]):
     ProofingStateClass = OrcidProofingState
 
-    def __init__(self, db_uri: str, db_name: str = "eduid_orcid"):
+    def __init__(self, db_uri: str, db_name: str = "eduid_orcid") -> None:
         super().__init__(db_uri, db_name)
 
     @classmethod
@@ -209,7 +209,7 @@ class OrcidProofingStateDB(OidcStateDB[OrcidProofingState]):
 
 
 class ProofingUserDB(UserDB[ProofingUser]):
-    def __init__(self, db_uri: str, db_name: str, collection: str = "profiles"):
+    def __init__(self, db_uri: str, db_name: str, collection: str = "profiles") -> None:
         super().__init__(db_uri, db_name, collection=collection)
 
     def save(self, user: ProofingUser) -> UserSaveResult:
@@ -221,55 +221,55 @@ class ProofingUserDB(UserDB[ProofingUser]):
 
 
 class LetterProofingUserDB(ProofingUserDB):
-    def __init__(self, db_uri: str, db_name: str = "eduid_idproofing_letter"):
+    def __init__(self, db_uri: str, db_name: str = "eduid_idproofing_letter") -> None:
         super().__init__(db_uri, db_name)
 
 
 class OidcProofingUserDB(ProofingUserDB):
-    def __init__(self, db_uri: str, db_name: str = "eduid_oidc_proofing"):
+    def __init__(self, db_uri: str, db_name: str = "eduid_oidc_proofing") -> None:
         super().__init__(db_uri, db_name)
 
 
 class PhoneProofingUserDB(ProofingUserDB):
-    def __init__(self, db_uri: str, db_name: str = "eduid_phone"):
+    def __init__(self, db_uri: str, db_name: str = "eduid_phone") -> None:
         super().__init__(db_uri, db_name)
 
 
 class EmailProofingUserDB(ProofingUserDB):
-    def __init__(self, db_uri: str, db_name: str = "eduid_email"):
+    def __init__(self, db_uri: str, db_name: str = "eduid_email") -> None:
         super().__init__(db_uri, db_name)
 
 
 class LookupMobileProofingUserDB(ProofingUserDB):
-    def __init__(self, db_uri: str, db_name: str = "eduid_lookup_mobile_proofing"):
+    def __init__(self, db_uri: str, db_name: str = "eduid_lookup_mobile_proofing") -> None:
         super().__init__(db_uri, db_name)
 
 
 class OrcidProofingUserDB(ProofingUserDB):
-    def __init__(self, db_uri: str, db_name: str = "eduid_orcid"):
+    def __init__(self, db_uri: str, db_name: str = "eduid_orcid") -> None:
         super().__init__(db_uri, db_name)
 
 
 class EidasProofingUserDB(ProofingUserDB):
-    def __init__(self, db_uri: str, db_name: str = "eduid_eidas"):
+    def __init__(self, db_uri: str, db_name: str = "eduid_eidas") -> None:
         super().__init__(db_uri, db_name)
 
 
 class LadokProofingUserDB(ProofingUserDB):
-    def __init__(self, db_uri: str, db_name: str = "eduid_ladok"):
+    def __init__(self, db_uri: str, db_name: str = "eduid_ladok") -> None:
         super().__init__(db_uri, db_name)
 
 
 class SvideIDProofingUserDB(ProofingUserDB):
-    def __init__(self, db_uri: str, db_name: str = "eduid_svipe_id"):
+    def __init__(self, db_uri: str, db_name: str = "eduid_svipe_id") -> None:
         super().__init__(db_uri, db_name)
 
 
 class BankIDProofingUserDB(ProofingUserDB):
-    def __init__(self, db_uri: str, db_name: str = "eduid_bankid"):
+    def __init__(self, db_uri: str, db_name: str = "eduid_bankid") -> None:
         super().__init__(db_uri, db_name)
 
 
 class FrejaEIDProofingUserDB(ProofingUserDB):
-    def __init__(self, db_uri: str, db_name: str = "eduid_freja_eid"):
+    def __init__(self, db_uri: str, db_name: str = "eduid_freja_eid") -> None:
         super().__init__(db_uri, db_name)

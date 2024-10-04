@@ -13,6 +13,7 @@ from eduid.userdb import NinIdentity
 from eduid.userdb.credentials.external import BankIDCredential, SwedenConnectCredential
 from eduid.userdb.element import ElementKey
 from eduid.userdb.identity import IdentityProofingMethod
+from eduid.userdb.testing import SetupConfig
 from eduid.webapp.bankid.app import BankIDApp, init_bankid_app
 from eduid.webapp.bankid.helpers import BankIDMsg
 from eduid.webapp.common.api.messages import AuthnStatusMsg, TranslatableMsg
@@ -34,7 +35,7 @@ HERE = os.path.abspath(os.path.dirname(__file__))
 class BankIDTests(ProofingTests[BankIDApp]):
     """Base TestCase for those tests that need a full environment setup"""
 
-    def setUp(self, *args: Any, **kwargs: Any) -> None:
+    def setUp(self, config: SetupConfig | None = None) -> None:
         self.test_user_eppn = "hubba-bubba"
         self.test_unverified_user_eppn = "hubba-baar"
         self.test_user_nin = NinIdentity(
@@ -161,7 +162,10 @@ class BankIDTests(ProofingTests[BankIDApp]):
   </saml2p:Status>
 </saml2p:Response>"""  # noqa: E501
 
-        super().setUp(users=["hubba-bubba", "hubba-baar"])
+        if config is None:
+            config = SetupConfig()
+        config.users = ["hubba-bubba", "hubba-baar"]
+        super().setUp(config=config)
 
     def load_app(self, config: Mapping[str, Any]) -> BankIDApp:
         """
@@ -463,7 +467,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
                 method=method,
             )
 
-    def test_authenticate(self):
+    def test_authenticate(self) -> None:
         response = self.browser.get("/")
         self.assertEqual(response.status_code, 401)
         with self.session_cookie(self.browser, self.test_user.eppn) as browser:
@@ -471,7 +475,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
         self._check_success_response(response, type_="GET_BANKID_SUCCESS")
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_u2f_token_verify(self, mock_request_user_sync: MagicMock):
+    def test_u2f_token_verify(self, mock_request_user_sync: MagicMock) -> None:
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_user.eppn
@@ -491,7 +495,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
         self._verify_user_parameters(eppn, token_verified=True, num_proofings=1)
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_webauthn_token_verify(self, mock_request_user_sync: MagicMock):
+    def test_webauthn_token_verify(self, mock_request_user_sync: MagicMock) -> None:
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_user.eppn
@@ -511,7 +515,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
 
         self._verify_user_parameters(eppn, token_verified=True, num_proofings=1)
 
-    def test_mfa_token_verify_wrong_verified_nin(self):
+    def test_mfa_token_verify_wrong_verified_nin(self) -> None:
         eppn = self.test_user.eppn
         nin = self.test_user_wrong_nin
         credential = self.add_security_key_to_user(eppn, "test", "u2f")
@@ -532,7 +536,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
         self._verify_user_parameters(eppn, identity=nin, identity_present=False)
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_mfa_token_verify_no_verified_nin(self, mock_request_user_sync: MagicMock):
+    def test_mfa_token_verify_no_verified_nin(self, mock_request_user_sync: MagicMock) -> None:
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_unverified_user_eppn
@@ -556,7 +560,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
             eppn, token_verified=True, num_proofings=2, identity_present=True, identity=nin, identity_verified=True
         )
 
-    def test_mfa_token_verify_no_mfa_login(self):
+    def test_mfa_token_verify_no_mfa_login(self) -> None:
         eppn = self.test_user.eppn
         credential = self.add_security_key_to_user(eppn, "test", "u2f")
 
@@ -581,7 +585,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
         )
         self._verify_user_parameters(eppn)
 
-    def test_mfa_token_verify_no_mfa_token_in_session(self):
+    def test_mfa_token_verify_no_mfa_token_in_session(self) -> None:
         eppn = self.test_user.eppn
         credential = self.add_security_key_to_user(eppn, "test", "webauthn")
 
@@ -600,7 +604,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
 
         self._verify_user_parameters(eppn)
 
-    def test_mfa_token_verify_aborted_auth(self):
+    def test_mfa_token_verify_aborted_auth(self) -> None:
         eppn = self.test_user.eppn
         credential = self.add_security_key_to_user(eppn, "test", "u2f")
 
@@ -619,7 +623,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
 
         self._verify_user_parameters(eppn)
 
-    def test_mfa_token_verify_cancel_auth(self):
+    def test_mfa_token_verify_cancel_auth(self) -> None:
         eppn = self.test_user.eppn
 
         credential = self.add_security_key_to_user(eppn, "test", "webauthn")
@@ -640,7 +644,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
 
         self._verify_user_parameters(eppn)
 
-    def test_mfa_token_verify_auth_fail(self):
+    def test_mfa_token_verify_auth_fail(self) -> None:
         eppn = self.test_user.eppn
 
         credential = self.add_security_key_to_user(eppn, "test", "u2f")
@@ -663,7 +667,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
 
     @unittest.skip("No support for magic cookie yet")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_webauthn_token_verify_backdoor(self, mock_request_user_sync: MagicMock):
+    def test_webauthn_token_verify_backdoor(self, mock_request_user_sync: MagicMock) -> None:
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_unverified_user_eppn
@@ -688,7 +692,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
         self._verify_user_parameters(eppn, identity=nin, identity_verified=True, token_verified=True, num_proofings=2)
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_nin_verify(self, mock_request_user_sync: MagicMock):
+    def test_nin_verify(self, mock_request_user_sync: MagicMock) -> None:
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_unverified_user_eppn
@@ -719,7 +723,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
         assert doc["surname"] == "Älm"
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_mfa_login(self, mock_request_user_sync: MagicMock):
+    def test_mfa_login(self, mock_request_user_sync: MagicMock) -> None:
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_user.eppn
@@ -735,7 +739,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
 
         self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=True, num_proofings=0)
 
-    def test_mfa_login_no_nin(self):
+    def test_mfa_login_no_nin(self) -> None:
         eppn = self.test_unverified_user_eppn
         self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=False, token_verified=False)
 
@@ -751,7 +755,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
         self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=False, num_proofings=0)
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_mfa_login_unverified_nin(self, mock_request_user_sync: MagicMock):
+    def test_mfa_login_unverified_nin(self, mock_request_user_sync: MagicMock) -> None:
         mock_request_user_sync.side_effect = self.request_user_sync
         eppn = self.test_unverified_user_eppn
 
@@ -777,7 +781,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
 
     @unittest.skip("No support for magic cookie yet")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_mfa_login_backdoor(self, mock_request_user_sync: MagicMock):
+    def test_mfa_login_backdoor(self, mock_request_user_sync: MagicMock) -> None:
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_unverified_user_eppn
@@ -805,7 +809,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
 
     @unittest.skip("No support for magic cookie yet")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_nin_verify_backdoor(self, mock_request_user_sync: Any):
+    def test_nin_verify_backdoor(self, mock_request_user_sync: MagicMock) -> None:
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_unverified_user_eppn
@@ -828,7 +832,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
 
     @unittest.skip("No support for magic cookie yet")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_nin_verify_no_backdoor_in_pro(self, mock_request_user_sync: MagicMock):
+    def test_nin_verify_no_backdoor_in_pro(self, mock_request_user_sync: MagicMock) -> None:
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_unverified_user_eppn
@@ -856,7 +860,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
 
     @unittest.skip("No support for magic cookie yet")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_nin_verify_no_backdoor_misconfigured(self, mock_request_user_sync: MagicMock):
+    def test_nin_verify_no_backdoor_misconfigured(self, mock_request_user_sync: MagicMock) -> None:
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_unverified_user_eppn
@@ -883,7 +887,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
             eppn, identity=self.test_user_nin, num_mfa_tokens=0, num_proofings=1, identity_verified=True
         )
 
-    def test_nin_verify_already_verified(self):
+    def test_nin_verify_already_verified(self) -> None:
         # Verify that the test user has a verified NIN in the database already
         eppn = self.test_user.eppn
         nin = self.test_user_nin
@@ -902,7 +906,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
         )
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_mfa_authentication_verified_user(self, mock_request_user_sync: MagicMock):
+    def test_mfa_authentication_verified_user(self, mock_request_user_sync: MagicMock) -> None:
         mock_request_user_sync.side_effect = self.request_user_sync
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
@@ -927,7 +931,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
         cred = _creds[0]
         assert cred.level in self.app.conf.bankid_required_loa
 
-    def test_mfa_authentication_too_old_authn_instant(self):
+    def test_mfa_authentication_too_old_authn_instant(self) -> None:
         self.reauthn(
             endpoint="/mfa-authenticate",
             frontend_action=FrontendAction.LOGIN_MFA_AUTHN,
@@ -936,7 +940,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
             expect_error=True,
         )
 
-    def test_mfa_authentication_wrong_nin(self):
+    def test_mfa_authentication_wrong_nin(self) -> None:
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         assert user.identities.nin is not None
         assert user.identities.nin.is_verified is True, "User was expected to have a verified NIN"

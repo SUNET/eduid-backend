@@ -6,13 +6,14 @@ from fastapi.testclient import TestClient
 
 from eduid.common.models.amapi_user import Reason, Source
 from eduid.common.testing_base import CommonTestCase
+from eduid.userdb.testing import SetupConfig
 from eduid.workers.amapi.app import init_api
 from eduid.workers.amapi.config import EndpointRestriction
 
 
 class TestAMBase(CommonTestCase):
-    def setUp(self, *args, **kwargs):
-        super().setUp(*args, **kwargs)
+    def setUp(self, config: SetupConfig | None = None) -> None:
+        super().setUp(config=config)
 
         self.path = pkg_resources.resource_filename(__name__, "tests/data")
         self.test_config = self._get_config()

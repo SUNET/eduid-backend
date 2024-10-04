@@ -43,6 +43,6 @@ class HMACResponse(BaseModel):
 
 
 @misc_router.get("/hmac/{keyhandle}/{data}", response_model=HMACResponse)
-async def hmac(request: Request, keyhandle: int, data: bytes):
+async def hmac(request: Request, keyhandle: int, data: bytes) -> HMACResponse:
     hmac = await request.app.state.hasher.hmac_sha1(key_handle=keyhandle, data=data)
     return HMACResponse(keyhandle=keyhandle, hmac=hmac.hex())

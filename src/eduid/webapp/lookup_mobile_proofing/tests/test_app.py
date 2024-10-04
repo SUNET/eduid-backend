@@ -7,6 +7,7 @@ from unittest.mock import MagicMock, patch
 from eduid.common.config.base import EduidEnvironment
 from eduid.common.rpc.exceptions import LookupMobileTaskFailed
 from eduid.userdb import User
+from eduid.userdb.testing import SetupConfig
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.lookup_mobile_proofing.app import MobileProofingApp, init_lookup_mobile_proofing_app
 from eduid.webapp.lookup_mobile_proofing.helpers import MobileMsg
@@ -17,15 +18,18 @@ __author__ = "lundberg"
 class LookupMobileProofingTests(EduidAPITestCase[MobileProofingApp]):
     """Base TestCase for those tests that need a full environment setup"""
 
-    def setUp(self):
+    def setUp(self, config: SetupConfig | None = None) -> None:
         self.test_user_eppn = "hubba-baar"
         self.test_user_nin = "199001023456"
         fifteen_years_ago = datetime.now() - timedelta(days=15 * 365)
         self.test_user_nin_underage = f"{fifteen_years_ago.year}01023456"
 
-        super().setUp(users=["hubba-baar"])
+        if config is None:
+            config = SetupConfig()
+        config.users = ["hubba-baar"]
+        super().setUp(config=config)
 
-    def load_app(self, config: Mapping[str, Any]):
+    def load_app(self, config: Mapping[str, Any]) -> MobileProofingApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
@@ -42,7 +46,7 @@ class LookupMobileProofingTests(EduidAPITestCase[MobileProofingApp]):
         )
         return config
 
-    def _check_nin_verified_ok_no_proofing_state(self, user: User, number: str | None = None):
+    def _check_nin_verified_ok_no_proofing_state(self, user: User, number: str | None = None) -> None:
         nin_number = number or self.test_user_nin
         assert user.identities.nin is not None
         assert user.identities.nin.number == nin_number
@@ -51,7 +55,7 @@ class LookupMobileProofingTests(EduidAPITestCase[MobileProofingApp]):
         assert user.identities.nin.is_verified is True
         assert self.app.proofing_log.db_count() == 1
 
-    def _check_nin_not_verified_no_proofing_state(self, user: User, number: str | None = None):
+    def _check_nin_not_verified_no_proofing_state(self, user: User, number: str | None = None) -> None:
         nin_number = number or self.test_user_nin
         assert user.identities.nin is not None
         assert user.identities.nin.number == nin_number
@@ -59,7 +63,7 @@ class LookupMobileProofingTests(EduidAPITestCase[MobileProofingApp]):
         assert user.identities.nin.is_verified is False
         assert self.app.proofing_log.db_count() == 0
 
-    def test_authenticate(self):
+    def test_authenticate(self) -> None:
         response = self.browser.get("/proofing")
         self.assertEqual(response.status_code, 401)
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
@@ -71,7 +75,7 @@ class LookupMobileProofingTests(EduidAPITestCase[MobileProofingApp]):
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_proofing_flow(
         self, mock_request_user_sync: MagicMock, mock_get_all_navet_data: MagicMock, mock_find_nin_by_mobile: MagicMock
-    ):
+    ) -> None:
         mock_find_nin_by_mobile.return_value = self.test_user_nin
         mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
@@ -97,7 +101,7 @@ class LookupMobileProofingTests(EduidAPITestCase[MobileProofingApp]):
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_proofing_flow_underage(
         self, mock_request_user_sync: MagicMock, mock_get_all_navet_data: MagicMock, mock_find_nin_by_mobile: MagicMock
-    ):
+    ) -> None:
         mock_find_nin_by_mobile.return_value = self.test_user_nin_underage
         mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
@@ -123,7 +127,7 @@ class LookupMobileProofingTests(EduidAPITestCase[MobileProofingApp]):
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_proofing_flow_no_match(
         self, mock_request_user_sync: MagicMock, mock_get_all_navet_data: MagicMock, mock_find_nin_by_mobile: MagicMock
-    ):
+    ) -> None:
         mock_find_nin_by_mobile.return_value = None
         mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
@@ -148,7 +152,7 @@ class LookupMobileProofingTests(EduidAPITestCase[MobileProofingApp]):
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_proofing_flow_LookupMobileTaskFailed(
         self, mock_request_user_sync: MagicMock, mock_get_all_navet_data: MagicMock, mock_find_nin_by_mobile: MagicMock
-    ):
+    ) -> None:
         mock_find_nin_by_mobile.side_effect = LookupMobileTaskFailed("Test Exception")
         mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
@@ -174,7 +178,7 @@ class LookupMobileProofingTests(EduidAPITestCase[MobileProofingApp]):
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_proofing_flow_no_match_backdoor(
         self, mock_request_user_sync: MagicMock, mock_get_postal_address: MagicMock, mock_find_nin_by_mobile: MagicMock
-    ):
+    ) -> None:
         mock_find_nin_by_mobile.return_value = None
         mock_get_postal_address.return_value = None
         mock_request_user_sync.side_effect = self.request_user_sync
@@ -203,7 +207,7 @@ class LookupMobileProofingTests(EduidAPITestCase[MobileProofingApp]):
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_proofing_flow_no_match_backdoor_code_in_pro(
         self, mock_request_user_sync: MagicMock, mock_get_postal_address: MagicMock, mock_find_nin_by_mobile: MagicMock
-    ):
+    ) -> None:
         mock_find_nin_by_mobile.return_value = None
         mock_get_postal_address.return_value = None
         mock_request_user_sync.side_effect = self.request_user_sync
@@ -232,7 +236,7 @@ class LookupMobileProofingTests(EduidAPITestCase[MobileProofingApp]):
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_proofing_flow_no_match_backdoor_code_unconfigured(
         self, mock_request_user_sync: MagicMock, mock_get_postal_address: MagicMock, mock_find_nin_by_mobile: MagicMock
-    ):
+    ) -> None:
         mock_find_nin_by_mobile.return_value = None
         mock_get_postal_address.return_value = None
         mock_request_user_sync.side_effect = self.request_user_sync
@@ -265,7 +269,7 @@ class LookupMobileProofingTests(EduidAPITestCase[MobileProofingApp]):
         mock_get_all_navet_data: MagicMock,
         mock_find_nin_by_mobile: MagicMock,
         mock_get_relations_to: MagicMock,
-    ):
+    ) -> None:
         mock_get_relations_to.return_value = ["MO"]
         mock_find_nin_by_mobile.return_value = "197001021234"
         mock_get_all_navet_data.return_value = self._get_all_navet_data()
@@ -297,7 +301,7 @@ class LookupMobileProofingTests(EduidAPITestCase[MobileProofingApp]):
         mock_get_all_navet_data: MagicMock,
         mock_find_nin_by_mobile: MagicMock,
         mock_get_relations_to: MagicMock,
-    ):
+    ) -> None:
         mock_get_relations_to.return_value = []
         mock_find_nin_by_mobile.return_value = "197001021234"
         mock_get_all_navet_data.return_value = self._get_all_navet_data()

@@ -10,7 +10,7 @@ from eduid.vccs.client import VCCSClient
 
 
 class Context:
-    def __init__(self, config: MAccApiConfig, vccs_client: VCCSClient | None = None):
+    def __init__(self, config: MAccApiConfig, vccs_client: VCCSClient | None = None) -> None:
         self.name = config.app_name
         self.config = config
 

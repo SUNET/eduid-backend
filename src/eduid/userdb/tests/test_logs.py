@@ -30,15 +30,15 @@ __author__ = "lundberg"
 class TestProofingLog(TestCase):
     user: User
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.tmp_db = MongoTemporaryInstance.get_instance()
         self.proofing_log_db = ProofingLog(db_uri=self.tmp_db.uri)
         self.user = UserFixtures().mocked_user_standard
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         self.proofing_log_db._drop_whole_collection()
 
-    def test_id_proofing_data(self):
+    def test_id_proofing_data(self) -> None:
         proofing_element = ProofingLogElement(
             eppn=self.user.eppn, created_by="test", proofing_method="test", proofing_version="test"
         )
@@ -52,7 +52,7 @@ class TestProofingLog(TestCase):
         self.assertIsNotNone(hit["created_ts"])
         self.assertEqual(hit["proofing_method"], "test")
 
-    def test_teleadress_proofing(self):
+    def test_teleadress_proofing(self) -> None:
         data = {
             "eppn": self.user.eppn,
             "created_by": "test",
@@ -80,7 +80,7 @@ class TestProofingLog(TestCase):
         self.assertEqual(hit["proofing_method"], "TeleAdress")
         self.assertEqual(hit["proofing_version"], "test")
 
-    def test_teleadress_proofing_relation(self):
+    def test_teleadress_proofing_relation(self) -> None:
         data = {
             "eppn": self.user.eppn,
             "created_by": "test",
@@ -111,7 +111,7 @@ class TestProofingLog(TestCase):
         self.assertEqual(hit["proofing_method"], "TeleAdress")
         self.assertEqual(hit["proofing_version"], "test")
 
-    def test_letter_proofing(self):
+    def test_letter_proofing(self) -> None:
         data = {
             "eppn": self.user.eppn,
             "created_by": "test",
@@ -140,7 +140,7 @@ class TestProofingLog(TestCase):
         self.assertEqual(hit["proofing_method"], "letter")
         self.assertEqual(hit["proofing_version"], "test")
 
-    def test_mail_address_proofing(self):
+    def test_mail_address_proofing(self) -> None:
         data = {
             "eppn": self.user.eppn,
             "created_by": "test",
@@ -165,7 +165,7 @@ class TestProofingLog(TestCase):
         self.assertEqual(hit["proofing_method"], "e-mail")
         self.assertEqual(hit["mail_address"], "some_mail_address")
 
-    def test_phone_number_proofing(self):
+    def test_phone_number_proofing(self) -> None:
         data = {
             "eppn": self.user.eppn,
             "created_by": "test",
@@ -191,7 +191,7 @@ class TestProofingLog(TestCase):
         self.assertEqual(hit["phone_number"], "some_phone_number")
         self.assertEqual(hit["proofing_version"], "test")
 
-    def test_se_leg_proofing(self):
+    def test_se_leg_proofing(self) -> None:
         data = {
             "eppn": self.user.eppn,
             "created_by": "test",
@@ -222,7 +222,7 @@ class TestProofingLog(TestCase):
         self.assertEqual(hit["proofing_method"], "se-leg")
         self.assertEqual(hit["proofing_version"], "test")
 
-    def test_se_leg_proofing_freja(self):
+    def test_se_leg_proofing_freja(self) -> None:
         data = {
             "eppn": self.user.eppn,
             "created_by": "test",
@@ -254,7 +254,7 @@ class TestProofingLog(TestCase):
         self.assertEqual(hit["proofing_method"], "se-leg")
         self.assertEqual(hit["proofing_version"], "test")
 
-    def test_ladok_proofing(self):
+    def test_ladok_proofing(self) -> None:
         data = {
             "eppn": self.user.eppn,
             "created_by": "test",
@@ -283,7 +283,7 @@ class TestProofingLog(TestCase):
         self.assertEqual(hit["ladok_name"], "AB")
         self.assertEqual(hit["proofing_version"], "test")
 
-    def test_blank_string_proofing_data(self):
+    def test_blank_string_proofing_data(self) -> None:
         data = {
             "eppn": self.user.eppn,
             "created_by": "test",
@@ -305,20 +305,20 @@ class TestProofingLog(TestCase):
             }
         ], f"Wrong error message: {normalised_data(exc_info.value.errors(), exclude_keys=['url'])}"
 
-    def test_boolean_false_proofing_data(self):
+    def test_boolean_false_proofing_data(self) -> None:
         data = {
             "eppn": self.user.eppn,
             "created_by": "test",
             "proofing_version": "test",
             "reference": "reference id",
         }
-        proofing_element = PhoneNumberProofing.model_construct(**data, phone_number=0)
+        proofing_element = PhoneNumberProofing.model_construct(**data, phone_number=0)  # type: ignore[arg-type]
         self.assertTrue(self.proofing_log_db.save(proofing_element))
 
-        proofing_element = PhoneNumberProofing.model_construct(**data, phone_number=False)
+        proofing_element = PhoneNumberProofing.model_construct(**data, phone_number=False)  # type: ignore[arg-type]
         self.assertTrue(self.proofing_log_db.save(proofing_element))
 
-    def test_deregistered_proofing_data(self):
+    def test_deregistered_proofing_data(self) -> None:
         proofing_element = NinNavetProofingLogElement(
             eppn=self.user.eppn,
             created_by="test",
@@ -343,14 +343,14 @@ class TestProofingLog(TestCase):
 
 
 class TestUserChangeLog(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.tmp_db = MongoTemporaryInstance.get_instance()
         self.user_log_db = UserChangeLog(db_uri=self.tmp_db.uri)
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         self.user_log_db._drop_whole_collection()
 
-    def _insert_log_fixtures(self):
+    def _insert_log_fixtures(self) -> None:
         data_1 = UserChangeLogElement(
             eppn="hubba-bubba",
             created_by="test",
@@ -375,7 +375,7 @@ class TestUserChangeLog(TestCase):
         assert res[0]["eduPersonPrincipalName"] == "hubba-bubba"
         assert res[1]["eduPersonPrincipalName"] == "hubba-bubba"
 
-    def test_get_by_eppn(self):
+    def test_get_by_eppn(self) -> None:
         self._insert_log_fixtures()
 
         res_1 = self.user_log_db.get_by_eppn("hubba-bubba")

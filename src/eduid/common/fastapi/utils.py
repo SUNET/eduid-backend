@@ -26,7 +26,7 @@ class FailCountItem:
     exit_at: datetime | None = None
     count: int = 0
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"(first_failure: {self.first_failure.isoformat()}, fail count: {self.count})"
 
 
@@ -48,7 +48,7 @@ def reset_failure_info(req: ContextRequest, key: str) -> None:
     req.app.context.logger.info(f"Check {key} back to normal. Resetting info {info}")
 
 
-def check_restart(key, restart: int, terminate: int) -> bool:
+def check_restart(key: str, restart: int, terminate: int) -> bool:
     res = False  # default to no restart
     info = FAILURE_INFO.get(key)
     if not info:

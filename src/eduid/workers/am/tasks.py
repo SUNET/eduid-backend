@@ -1,4 +1,5 @@
 import bson
+from billiard.einfo import ExceptionInfo
 from celery import Task
 from celery.utils.log import get_task_logger
 
@@ -17,7 +18,7 @@ class AttributeManager(Task):
 
     abstract = True  # This means Celery won't register this as another task
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._userdb: AmDB | None = None
 
     @property
@@ -30,7 +31,7 @@ class AttributeManager(Task):
             self._userdb = AmDB(AmCelerySingleton.worker_config.mongo_uri, "eduid_am")
         return self._userdb
 
-    def on_failure(self, exc, task_id, args, kwargs, einfo):
+    def on_failure(self, exc: Exception, task_id: str, args: tuple, kwargs: dict, einfo: ExceptionInfo) -> None:
         # The most common problem when tasks raise exceptions is that mongodb has switched master,
         # but it is hard to accurately trap the right exception without importing pymongo here so
         # let's just reload all databases (self.userdb here and the plugins databases) when we
@@ -99,7 +100,7 @@ def update_attributes_keep_result(self: AttributeManager, app_name: str, user_id
 
 
 @app.task(bind=True, base=AttributeManager, name="eduid_am.tasks.pong")
-def pong(self: AttributeManager, app_name: str):
+def pong(self: AttributeManager, app_name: str) -> str:
     """
     eduID webapps periodically ping workers as a part of their health assessment.
     """

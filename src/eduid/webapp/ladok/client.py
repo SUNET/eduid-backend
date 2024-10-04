@@ -65,7 +65,7 @@ class University(BaseModel):
 
 
 class LadokClient:
-    def __init__(self, config: LadokClientConfig, env: EduidEnvironment):
+    def __init__(self, config: LadokClientConfig, env: EduidEnvironment) -> None:
         self.config = config
         self.env = env
         self.base_endpoint = urlappend(self.config.url, f"/api/{self.config.version}")

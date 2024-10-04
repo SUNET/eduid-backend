@@ -24,7 +24,7 @@ class StatusResponse(BaseModel):
     reason: str
 
 
-def check_mongo(request: ContextRequest):
+def check_mongo(request: ContextRequest) -> bool | None:
     db = request.app.context.db
     try:
         db.is_healthy()

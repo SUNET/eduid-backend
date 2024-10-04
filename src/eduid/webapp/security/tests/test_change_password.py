@@ -1,10 +1,13 @@
 import json
 from collections.abc import Mapping
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
+
+from werkzeug.test import TestResponse
 
 from eduid.common.config.base import FrontendAction
 from eduid.userdb.credentials import Password
+from eduid.userdb.testing import SetupConfig
 from eduid.webapp.common.api.schemas.authn_status import AuthnActionStatus
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.common.api.utils import hash_password
@@ -15,11 +18,14 @@ from eduid.webapp.security.helpers import SecurityMsg
 class ChangePasswordTests(EduidAPITestCase[SecurityApp]):
     """Base TestCase for those tests that need a full environment setup"""
 
-    def setUp(self, *args: Any, **kwargs: Any):
+    def setUp(self, config: SetupConfig | None = None) -> None:
         self.test_user_eppn = "hubba-bubba"
         self.test_user_email = "johnsmith@example.com"
         self.test_user_nin = "197801011235"
-        super().setUp(*args, **kwargs, copy_user_to_private=True)
+        if config is None:
+            config = SetupConfig()
+        config.copy_user_to_private = True
+        super().setUp(config=config)
 
     def load_app(self, config: Mapping[str, Any]) -> SecurityApp:
         """
@@ -46,7 +52,7 @@ class ChangePasswordTests(EduidAPITestCase[SecurityApp]):
 
     # parameterized test methods
 
-    def _get_suggested(self, reauthn: int | None = 60):
+    def _get_suggested(self, reauthn: int | None = 60) -> TestResponse:
         """
         GET a suggested password.
         """
@@ -57,9 +63,9 @@ class ChangePasswordTests(EduidAPITestCase[SecurityApp]):
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def _change_password(
         self,
-        mock_request_user_sync: Any,
+        mock_request_user_sync: MagicMock,
         data1: dict[str, Any] | None = None,
-    ):
+    ) -> TestResponse:
         """
         To change the password of the test user, POST old and new passwords,
         mocking the required re-authentication (by setting a flag in the session).
@@ -82,10 +88,10 @@ class ChangePasswordTests(EduidAPITestCase[SecurityApp]):
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def _get_suggested_and_change(
         self,
-        mock_request_user_sync: Any,
+        mock_request_user_sync: MagicMock,
         data1: dict[str, Any] | None = None,
         correct_old_password: bool = True,
-    ):
+    ) -> TestResponse:
         """
         To change the password of the test user using a suggested password,
         first GET a suggested password, and then POST old and new passwords,
@@ -128,11 +134,13 @@ class ChangePasswordTests(EduidAPITestCase[SecurityApp]):
                             )
 
     # actual tests
-    def test_user_setup(self):
+    def test_user_setup(self) -> None:
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
-        self.assertFalse(user.credentials.to_list()[-1].is_generated)
+        password = user.credentials.to_list()[-1]
+        assert isinstance(password, Password)
+        self.assertFalse(password.is_generated)
 
-    def test_app_starts(self):
+    def test_app_starts(self) -> None:
         self.assertEqual(self.app.conf.app_name, "testing")
         response1 = self.browser.get("/change-password/suggested-password")
         assert response1.status_code == 401
@@ -140,12 +148,12 @@ class ChangePasswordTests(EduidAPITestCase[SecurityApp]):
             response2 = client.get("/change-password/suggested-password")
             assert response2.status_code == 200  # authenticated response
 
-    def test_get_suggested_not_logged_in(self):
+    def test_get_suggested_not_logged_in(self) -> None:
         response = self.browser.get("/change-password/suggested-password")
         self.assertEqual(response.status_code, 401)
 
     @patch("eduid.webapp.security.views.change_password.generate_suggested_password")
-    def test_get_suggested(self, mock_generate_password):
+    def test_get_suggested(self, mock_generate_password: MagicMock) -> None:
         mock_generate_password.return_value = "test-password"
 
         self.set_authn_action(
@@ -161,7 +169,7 @@ class ChangePasswordTests(EduidAPITestCase[SecurityApp]):
         )
 
     @patch("eduid.webapp.security.views.change_password.change_password")
-    def test_change_passwd(self, mock_change_password):
+    def test_change_passwd(self, mock_change_password: MagicMock) -> None:
         mock_change_password.return_value = True
 
         self.set_authn_action(
@@ -177,7 +185,7 @@ class ChangePasswordTests(EduidAPITestCase[SecurityApp]):
         )
 
     @patch("eduid.webapp.security.views.change_password.change_password")
-    def test_change_passwd_with_login_auth(self, mock_change_password):
+    def test_change_passwd_with_login_auth(self, mock_change_password: MagicMock) -> None:
         mock_change_password.return_value = True
 
         self.set_authn_action(
@@ -192,7 +200,7 @@ class ChangePasswordTests(EduidAPITestCase[SecurityApp]):
             msg=SecurityMsg.change_password_success,
         )
 
-    def test_change_passwd_no_data(self):
+    def test_change_passwd_no_data(self) -> None:
         response = self._change_password(data1={})
         self._check_error_response(
             response,
@@ -200,7 +208,7 @@ class ChangePasswordTests(EduidAPITestCase[SecurityApp]):
             error={"new_password": ["Missing data for required field."]},
         )
 
-    def test_change_passwd_empty_data(self):
+    def test_change_passwd_empty_data(self) -> None:
         self.set_authn_action(
             eppn=self.test_user_eppn,
             frontend_action=FrontendAction.CHANGE_PW_AUTHN,
@@ -213,7 +221,7 @@ class ChangePasswordTests(EduidAPITestCase[SecurityApp]):
         )
 
     @patch("eduid.webapp.security.views.change_password.change_password")
-    def test_change_passwd_no_csrf(self, mock_change_password):
+    def test_change_passwd_no_csrf(self, mock_change_password: MagicMock) -> None:
         mock_change_password.return_value = True
 
         data1 = {"csrf_token": ""}
@@ -225,7 +233,7 @@ class ChangePasswordTests(EduidAPITestCase[SecurityApp]):
         )
 
     @patch("eduid.webapp.security.views.change_password.change_password")
-    def test_change_passwd_wrong_csrf(self, mock_change_password):
+    def test_change_passwd_wrong_csrf(self, mock_change_password: MagicMock) -> None:
         mock_change_password.return_value = True
 
         data1 = {"csrf_token": "wrong-token"}
@@ -237,7 +245,7 @@ class ChangePasswordTests(EduidAPITestCase[SecurityApp]):
         )
 
     @patch("eduid.webapp.security.views.change_password.change_password")
-    def test_change_passwd_weak(self, mock_change_password):
+    def test_change_passwd_weak(self, mock_change_password: MagicMock) -> None:
         mock_change_password.return_value = True
 
         self.set_authn_action(
@@ -253,7 +261,7 @@ class ChangePasswordTests(EduidAPITestCase[SecurityApp]):
             msg=SecurityMsg.chpass_weak,
         )
 
-    def test_change_passwd_no_reauthn(self):
+    def test_change_passwd_no_reauthn(self) -> None:
         response = self._change_password()
         self._check_must_authenticate_response(
             response=response,
@@ -262,7 +270,7 @@ class ChangePasswordTests(EduidAPITestCase[SecurityApp]):
             authn_status=AuthnActionStatus.NOT_FOUND,
         )
 
-    def test_get_suggested_and_change(self):
+    def test_get_suggested_and_change(self) -> None:
         self.set_authn_action(
             eppn=self.test_user_eppn,
             frontend_action=FrontendAction.CHANGE_PW_AUTHN,
@@ -275,9 +283,11 @@ class ChangePasswordTests(EduidAPITestCase[SecurityApp]):
 
         # check that the password is marked as generated
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
-        self.assertTrue(user.credentials.to_list()[-1].is_generated)
+        password = user.credentials.to_list()[-1]
+        assert isinstance(password, Password)
+        self.assertTrue(password.is_generated)
 
-    def test_get_suggested_and_change_custom(self):
+    def test_get_suggested_and_change_custom(self) -> None:
         self.set_authn_action(
             eppn=self.test_user_eppn,
             frontend_action=FrontendAction.CHANGE_PW_AUTHN,
@@ -291,9 +301,11 @@ class ChangePasswordTests(EduidAPITestCase[SecurityApp]):
 
         # check that the password is marked as generated in this case changed
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
-        self.assertFalse(user.credentials.to_list()[-1].is_generated)
+        password = user.credentials.to_list()[-1]
+        assert isinstance(password, Password)
+        self.assertFalse(password.is_generated)
 
-    def test_get_suggested_and_change_wrong_csrf(self):
+    def test_get_suggested_and_change_wrong_csrf(self) -> None:
         self.set_authn_action(
             eppn=self.test_user_eppn,
             frontend_action=FrontendAction.CHANGE_PW_AUTHN,
@@ -310,9 +322,11 @@ class ChangePasswordTests(EduidAPITestCase[SecurityApp]):
 
         # check that the password is not marked as generated, in this case changed
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
-        self.assertFalse(user.credentials.to_list()[-1].is_generated)
+        password = user.credentials.to_list()[-1]
+        assert isinstance(password, Password)
+        self.assertFalse(password.is_generated)
 
-    def test_get_suggested_and_change_wrong_old_pw(self):
+    def test_get_suggested_and_change_wrong_old_pw(self) -> None:
         self.set_authn_action(
             eppn=self.test_user_eppn,
             frontend_action=FrontendAction.CHANGE_PW_AUTHN,
@@ -327,9 +341,11 @@ class ChangePasswordTests(EduidAPITestCase[SecurityApp]):
 
         # check that the password is not marked as generated, in this case changed
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
-        self.assertFalse(user.credentials.to_list()[-1].is_generated)
+        password = user.credentials.to_list()[-1]
+        assert isinstance(password, Password)
+        self.assertFalse(password.is_generated)
 
-    def test_get_suggested_and_change_weak_new_pw(self):
+    def test_get_suggested_and_change_weak_new_pw(self) -> None:
         self.set_authn_action(
             eppn=self.test_user_eppn,
             frontend_action=FrontendAction.CHANGE_PW_AUTHN,
@@ -345,9 +361,11 @@ class ChangePasswordTests(EduidAPITestCase[SecurityApp]):
 
         # check that the password is not marked as generated, in this case changed
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
-        self.assertFalse(user.credentials.to_list()[-1].is_generated)
+        password = user.credentials.to_list()[-1]
+        assert isinstance(password, Password)
+        self.assertFalse(password.is_generated)
 
-    def test_get_suggested_and_change_no_old_password(self):
+    def test_get_suggested_and_change_no_old_password(self) -> None:
         self.set_authn_action(
             eppn=self.test_user_eppn,
             frontend_action=FrontendAction.CHANGE_PW_AUTHN,
@@ -370,7 +388,7 @@ class ChangePasswordTests(EduidAPITestCase[SecurityApp]):
         assert user.credentials.filter(Password)[-1].is_generated is True
         assert len(user.credentials.filter(Password)) == 1
 
-    def test_get_suggested_and_change_pw_check_consumed(self):
+    def test_get_suggested_and_change_pw_check_consumed(self) -> None:
         self.set_authn_action(
             eppn=self.test_user_eppn,
             frontend_action=FrontendAction.CHANGE_PW_AUTHN,

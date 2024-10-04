@@ -157,7 +157,7 @@ class IdPConfig(EduIDBaseAppConfig, TouConfigMixin, WebauthnConfigMixin2, AmConf
 
     @field_validator("sso_cookie")
     @classmethod
-    def make_sso_cookie(cls, v, info: ValidationInfo) -> CookieConfig:
+    def make_sso_cookie(cls, v: object, info: ValidationInfo) -> CookieConfig:
         # Convert sso_cookie from dict to the proper dataclass
         if isinstance(v, dict):
             return CookieConfig(**v)
@@ -170,7 +170,7 @@ class IdPConfig(EduIDBaseAppConfig, TouConfigMixin, WebauthnConfigMixin2, AmConf
 
     @field_validator("sso_session_lifetime", mode="before")
     @classmethod
-    def validate_sso_session_lifetime(cls, v):
+    def validate_sso_session_lifetime(cls, v: object) -> int | str | timedelta:
         if isinstance(v, int):
             # legacy format for this was number of minutes
             v = v * 60

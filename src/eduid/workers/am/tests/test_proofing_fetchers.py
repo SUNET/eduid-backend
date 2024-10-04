@@ -5,6 +5,7 @@ import bson
 from deepdiff import DeepDiff
 
 from eduid.common.testing_base import normalised_data
+from eduid.userdb.db.base import TUserDbDocument
 from eduid.userdb.identity import IdentityType
 from eduid.userdb.personal_data import PersonalDataUser
 from eduid.userdb.proofing import ProofingUser
@@ -16,7 +17,7 @@ from eduid.workers.am.testing import ProofingTestCase
 class AttributeFetcherNINProofingTests(ProofingTestCase):
     fetcher_name = "eduid_letter_proofing"
 
-    def test_append_attributes_letter_proofing_data(self):
+    def test_append_attributes_letter_proofing_data(self) -> None:
         self.user_data.update(
             {
                 "letter_proofing_data": [
@@ -42,6 +43,10 @@ class AttributeFetcherNINProofingTests(ProofingTestCase):
             }
         )
         proofing_user = ProofingUser.from_dict(self.user_data)
+
+        assert self.fetcher
+        assert self.fetcher.private_db
+
         self.fetcher.private_db.save(proofing_user)
 
         fetched = self.fetcher.fetch_attrs(proofing_user.user_id)
@@ -118,6 +123,10 @@ class AttributeFetcherNINProofingTests(ProofingTestCase):
             }
         )
         proofing_user = ProofingUser.from_dict(self.user_data)
+
+        assert self.fetcher
+        assert self.fetcher.private_db
+
         self.fetcher.private_db.save(proofing_user)
 
         fetched3 = self.fetcher.fetch_attrs(proofing_user.user_id)
@@ -196,8 +205,12 @@ class AttributeFetcherNINProofingTests(ProofingTestCase):
 class AttributeFetcherEmailProofingTests(ProofingTestCase):
     fetcher_name = "eduid_email"
 
-    def test_existing_user(self):
+    def test_existing_user(self) -> None:
         proofing_user = ProofingUser.from_dict(self.user_data)
+
+        assert self.fetcher
+        assert self.fetcher.private_db
+
         self.fetcher.private_db.save(proofing_user)
 
         fetched = self.fetcher.fetch_attrs(proofing_user.user_id)
@@ -207,32 +220,38 @@ class AttributeFetcherEmailProofingTests(ProofingTestCase):
 
         assert normalised_data(fetched) == expected
 
-    def test_fillup_attributes(self):
-        self.user_data = {
-            "givenName": "Testaren",
-            "surname": "Testsson",
-            "preferredLanguage": "sv",
-            "eduPersonPrincipalName": "test-test",
-            "mailAliases": [{"email": "john@example.com", "verified": True, "primary": True}],
-            "mobile": [{"verified": True, "mobile": "+46700011336", "primary": True}],
-            "passwords": [
-                {
-                    "id": bson.ObjectId("112345678901234567890123"),
-                    "salt": "$NDNv1H1$9c810d852430b62a9a7c6159d5d64c41c3831846f81b6799b54e1e8922f11545$32$32$",
-                }
-            ],
-            "identities": [
-                {
-                    "identity_type": IdentityType.NIN.value,
-                    "number": "123456781235",
-                    "verified": True,
-                    "created_ts": datetime(2022, 5, 18, 16, 36, 16, tzinfo=timezone.utc),
-                    "modified_ts": datetime(2022, 5, 18, 16, 36, 16, tzinfo=timezone.utc),
-                }
-            ],
-        }
+    def test_fillup_attributes(self) -> None:
+        self.user_data = TUserDbDocument(
+            {
+                "givenName": "Testaren",
+                "surname": "Testsson",
+                "preferredLanguage": "sv",
+                "eduPersonPrincipalName": "test-test",
+                "mailAliases": [{"email": "john@example.com", "verified": True, "primary": True}],
+                "mobile": [{"verified": True, "mobile": "+46700011336", "primary": True}],
+                "passwords": [
+                    {
+                        "id": bson.ObjectId("112345678901234567890123"),
+                        "salt": "$NDNv1H1$9c810d852430b62a9a7c6159d5d64c41c3831846f81b6799b54e1e8922f11545$32$32$",
+                    }
+                ],
+                "identities": [
+                    {
+                        "identity_type": IdentityType.NIN.value,
+                        "number": "123456781235",
+                        "verified": True,
+                        "created_ts": datetime(2022, 5, 18, 16, 36, 16, tzinfo=timezone.utc),
+                        "modified_ts": datetime(2022, 5, 18, 16, 36, 16, tzinfo=timezone.utc),
+                    }
+                ],
+            }
+        )
 
         proofing_user = ProofingUser.from_dict(self.user_data)
+
+        assert self.fetcher
+        assert self.fetcher.private_db
+
         self.fetcher.private_db.save(proofing_user)
 
         fetched = self.fetcher.fetch_attrs(proofing_user.user_id)
@@ -246,8 +265,12 @@ class AttributeFetcherEmailProofingTests(ProofingTestCase):
 class AttributeFetcherPhoneProofingTests(ProofingTestCase):
     fetcher_name = "eduid_phone"
 
-    def test_existing_user(self):
+    def test_existing_user(self) -> None:
         proofing_user = ProofingUser.from_dict(self.user_data)
+
+        assert self.fetcher
+        assert self.fetcher.private_db
+
         self.fetcher.private_db.save(proofing_user)
         fetched = self.fetcher.fetch_attrs(proofing_user.user_id)
 
@@ -261,8 +284,12 @@ class AttributeFetcherPhoneProofingTests(ProofingTestCase):
 class AttributeFetcherPersonalDataTests(ProofingTestCase):
     fetcher_name = "eduid_personal_data"
 
-    def test_existing_user(self):
+    def test_existing_user(self) -> None:
         personal_data_user = PersonalDataUser.from_dict(self.user_data)
+
+        assert self.fetcher
+        assert self.fetcher.private_db
+
         self.fetcher.private_db.save(personal_data_user)
 
         self.assertDictEqual(
@@ -278,9 +305,13 @@ class AttributeFetcherPersonalDataTests(ProofingTestCase):
             },
         )
 
-    def test_fillup_attributes(self):
+    def test_fillup_attributes(self) -> None:
         # TODO: This test is IDENTICAL to the one above - need to actually add _more_ attributes in this one
         personal_data_user = PersonalDataUser.from_dict(self.user_data)
+
+        assert self.fetcher
+        assert self.fetcher.private_db
+
         self.fetcher.private_db.save(personal_data_user)
 
         self.assertDictEqual(
@@ -300,8 +331,12 @@ class AttributeFetcherPersonalDataTests(ProofingTestCase):
 class AttributeFetcherSecurityTests(ProofingTestCase):
     fetcher_name = "eduid_security"
 
-    def test_existing_user(self):
+    def test_existing_user(self) -> None:
         security_user = SecurityUser.from_dict(self.user_data)
+
+        assert self.fetcher
+        assert self.fetcher.private_db
+
         self.fetcher.private_db.save(security_user)
 
         expected = {
@@ -334,8 +369,12 @@ class AttributeFetcherSecurityTests(ProofingTestCase):
 
         assert normalised_data(fetched) == expected, f"fetched does not match expected: {DeepDiff(fetched, expected)}"
 
-    def test_fillup_attributes(self):
+    def test_fillup_attributes(self) -> None:
         security_user = SecurityUser.from_dict(self.user_data)
+
+        assert self.fetcher
+        assert self.fetcher.private_db
+
         self.fetcher.private_db.save(security_user)
 
         fetched = self.fetcher.fetch_attrs(security_user.user_id)
@@ -372,8 +411,12 @@ class AttributeFetcherSecurityTests(ProofingTestCase):
 class AttributeFetcherResetPasswordTests(ProofingTestCase):
     fetcher_name = "eduid_reset_password"
 
-    def test_existing_user(self):
+    def test_existing_user(self) -> None:
         reset_password_user = ResetPasswordUser.from_dict(self.user_data)
+
+        assert self.fetcher
+        assert self.fetcher.private_db
+
         self.fetcher.private_db.save(reset_password_user)
 
         fetched = self.fetcher.fetch_attrs(reset_password_user.user_id)
@@ -403,9 +446,13 @@ class AttributeFetcherResetPasswordTests(ProofingTestCase):
 
         assert normalised_data(fetched) == expected, "Wrong data fetched by reset password fetcher"
 
-    def test_fillup_attributes(self):
+    def test_fillup_attributes(self) -> None:
         # TODO: This test is IDENTICAL to the one above - need to actually add _more_ attributes in this one
         reset_password_user = ResetPasswordUser.from_dict(self.user_data)
+
+        assert self.fetcher
+        assert self.fetcher.private_db
+
         self.fetcher.private_db.save(reset_password_user)
 
         fetched = self.fetcher.fetch_attrs(reset_password_user.user_id)
@@ -439,8 +486,12 @@ class AttributeFetcherResetPasswordTests(ProofingTestCase):
 class AttributeFetcherOrcidTests(ProofingTestCase):
     fetcher_name = "eduid_orcid"
 
-    def test_existing_user(self):
+    def test_existing_user(self) -> None:
         proofing_user = ProofingUser.from_dict(self.user_data)
+
+        assert self.fetcher
+        assert self.fetcher.private_db
+
         self.fetcher.private_db.save(proofing_user)
         fetched = self.fetcher.fetch_attrs(proofing_user.user_id)
 
@@ -475,9 +526,13 @@ class AttributeFetcherOrcidTests(ProofingTestCase):
 
         assert normalised_data(fetched) == expected
 
-    def test_remove_orcid(self):
+    def test_remove_orcid(self) -> None:
         proofing_user = ProofingUser.from_dict(self.user_data)
         proofing_user.orcid = None
+
+        assert self.fetcher
+        assert self.fetcher.private_db
+
         self.fetcher.private_db.save(proofing_user)
 
         self.assertDictEqual(self.fetcher.fetch_attrs(proofing_user.user_id), {"$unset": {"orcid": None}})
@@ -486,8 +541,12 @@ class AttributeFetcherOrcidTests(ProofingTestCase):
 class AttributeFetcherLadokTests(ProofingTestCase):
     fetcher_name = "eduid_ladok"
 
-    def test_existing_user(self):
+    def test_existing_user(self) -> None:
         proofing_user = ProofingUser.from_dict(self.user_data)
+
+        assert self.fetcher
+        assert self.fetcher.private_db
+
         self.fetcher.private_db.save(proofing_user)
         fetched = self.fetcher.fetch_attrs(proofing_user.user_id)
 
@@ -517,9 +576,13 @@ class AttributeFetcherLadokTests(ProofingTestCase):
 
         assert normalised_data(fetched) == normalised_data(expected)
 
-    def test_remove_ladok(self):
+    def test_remove_ladok(self) -> None:
         proofing_user = ProofingUser.from_dict(self.user_data)
         proofing_user.ladok = None
+
+        assert self.fetcher
+        assert self.fetcher.private_db
+
         self.fetcher.private_db.save(proofing_user)
 
         self.assertDictEqual(self.fetcher.fetch_attrs(proofing_user.user_id), {"$unset": {"ladok": None}})

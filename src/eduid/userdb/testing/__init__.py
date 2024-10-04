@@ -8,6 +8,7 @@ import logging
 import logging.config
 import unittest
 from collections.abc import Sequence
+from dataclasses import dataclass
 from typing import Any, cast
 
 import pymongo
@@ -57,10 +58,10 @@ class MongoTemporaryInstance(EduidTemporaryInstance):
         return self._conn
 
     @property
-    def uri(self):
+    def uri(self) -> str:
         return f"mongodb://localhost:{self.port}"
 
-    def shutdown(self):
+    def shutdown(self) -> None:
         if self._conn:
             logger.info(f"Closing connection {self._conn}")
             self._conn.close()
@@ -70,6 +71,17 @@ class MongoTemporaryInstance(EduidTemporaryInstance):
     @classmethod
     def get_instance(cls: type[MongoTemporaryInstance], max_retry_seconds: int = 20) -> MongoTemporaryInstance:
         return cast(MongoTemporaryInstance, super().get_instance(max_retry_seconds=max_retry_seconds))
+
+
+@dataclass
+class SetupConfig:
+    am_users: list[User] | None = None
+    am_settings: dict[str, Any] | None = None
+    want_mongo_uri: bool = True
+    users: list[str] | None = None
+    copy_user_to_private: bool = False
+    init_msg: bool = True
+    init_lookup_mobile: bool = True
 
 
 class MongoTestCase(unittest.TestCase):
@@ -82,7 +94,7 @@ class MongoTestCase(unittest.TestCase):
     A test can access the port using the attribute `port`
     """
 
-    def setUp(self, *args: list[Any], am_users: list[User] | None = None, **kwargs: dict[str, Any]):
+    def setUp(self, config: SetupConfig | None = None) -> None:
         """
         Test case initialization.
         :return:
@@ -110,13 +122,15 @@ class MongoTestCase(unittest.TestCase):
         else:
             self.settings.update(mongo_settings)
 
-        if am_users:
+        if config is None:
+            config = SetupConfig()
+        if config.am_users:
             # Set up test users in the MongoDB.
-            for user in am_users:
+            for user in config.am_users:
                 logger.debug(f"Adding test user {user} to the database")
                 self.amdb.save(user)
 
-    def _init_logging(self):
+    def _init_logging(self) -> None:
         local_context = LocalContext(
             app_debug=True,
             app_name="testing",
@@ -127,7 +141,7 @@ class MongoTestCase(unittest.TestCase):
         logging_config = make_dictConfig(local_context)
         logging.config.dictConfig(logging_config)
 
-    def _reset_databases(self):
+    def _reset_databases(self) -> None:
         """
         Reset databases for the next test class.
 
@@ -139,7 +153,7 @@ class MongoTestCase(unittest.TestCase):
                 self.tmp_db.conn.drop_database(db_name)
         self.amdb._drop_whole_collection()
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         for userdoc in self.amdb._get_all_docs():
             assert User.from_dict(data=userdoc)
         self._reset_databases()
@@ -156,7 +170,7 @@ class AsyncMongoTestCase(unittest.IsolatedAsyncioTestCase):
     A test can access the port using the attribute `port`
     """
 
-    def setUp(self, *args: list[Any], **kwargs: dict[str, Any]):
+    def setUp(self, *args: list[Any], **kwargs: dict[str, Any]) -> None:
         """
         Test case initialization.
         :return:
@@ -183,7 +197,7 @@ class AsyncMongoTestCase(unittest.IsolatedAsyncioTestCase):
         else:
             self.settings.update(mongo_settings)
 
-    def _init_logging(self):
+    def _init_logging(self) -> None:
         local_context = LocalContext(
             app_debug=True,
             app_name="testing",
@@ -194,7 +208,7 @@ class AsyncMongoTestCase(unittest.IsolatedAsyncioTestCase):
         logging_config = make_dictConfig(local_context)
         logging.config.dictConfig(logging_config)
 
-    def _reset_databases(self):
+    def _reset_databases(self) -> None:
         """
         Reset databases for the next test class.
 
@@ -205,6 +219,6 @@ class AsyncMongoTestCase(unittest.IsolatedAsyncioTestCase):
             if db_name not in ["local", "admin", "config"]:  # Do not drop mongo internal dbs
                 self.tmp_db.conn.drop_database(db_name)
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         self._reset_databases()
         super().tearDown()

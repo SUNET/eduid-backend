@@ -7,8 +7,8 @@ from jwcrypto import jwt
 from jwcrypto.common import JWException
 from pydantic import ValidationError
 from starlette.datastructures import URL
-from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.types import Message
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
+from starlette.types import ASGIApp, Message
 
 from eduid.common.config.base import DataOwnerName
 from eduid.common.fastapi.context_request import ContextRequestMixin
@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 # Hack to be able to get request body both now and later
 # https://github.com/encode/starlette/issues/495#issuecomment-513138055
-async def set_body(request: Request, body: bytes):
+async def set_body(request: Request, body: bytes) -> None:
     async def receive() -> Message:
         return {"type": "http.request", "body": body}
 
@@ -43,16 +43,16 @@ async def get_body(request: Request) -> bytes:
 
 
 class BaseMiddleware(BaseHTTPMiddleware, ContextRequestMixin):
-    def __init__(self, app, context: Context):
+    def __init__(self, app: ASGIApp, context: Context) -> None:
         super().__init__(app)
         self.context = context
 
-    async def dispatch(self, req: Request, call_next) -> Response:
+    async def dispatch(self, req: Request, call_next: RequestResponseEndpoint) -> Response:
         return await call_next(req)
 
 
 class ScimMiddleware(BaseMiddleware):
-    async def dispatch(self, req: Request, call_next) -> Response:
+    async def dispatch(self, req: Request, call_next: RequestResponseEndpoint) -> Response:
         req = self.make_context_request(request=req, context_class=ScimApiContext)
         self.context.logger.debug(f"process_request: {req.method} {req.url.path}")
         resp = await call_next(req)
@@ -62,7 +62,7 @@ class ScimMiddleware(BaseMiddleware):
 
 
 class AuthenticationMiddleware(BaseMiddleware):
-    def __init__(self, app, context: Context):
+    def __init__(self, app: ASGIApp, context: Context) -> None:
         super().__init__(app, context)
         self.no_authn_urls = self.context.config.no_authn_urls
         self.context.logger.debug(f"No auth allow urls: {self.no_authn_urls}")
@@ -78,8 +78,10 @@ class AuthenticationMiddleware(BaseMiddleware):
                 return True
         return False
 
-    async def dispatch(self, req: Request, call_next) -> Response:
+    async def dispatch(self, req: Request, call_next: RequestResponseEndpoint) -> Response:
         req = self.make_context_request(request=req, context_class=ScimApiContext)
+
+        assert isinstance(req.context, ScimApiContext)  # please mypy
 
         if self._is_no_auth_path(req.url):
             return await call_next(req)

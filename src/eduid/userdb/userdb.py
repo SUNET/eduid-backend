@@ -43,7 +43,7 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
     :param collection: mongodb collection name
     """
 
-    def __init__(self, db_uri: str, db_name: str, collection: str = "userdb"):
+    def __init__(self, db_uri: str, db_name: str, collection: str = "userdb") -> None:
         if db_name == "eduid_am" and collection == "userdb":
             # Hack to get right collection name while the configuration points to the old database
             collection = "attributes"
@@ -53,7 +53,7 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
 
         logger.debug(f"{self} connected to database")
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<eduID {self.__class__.__name__}: {self._db.sanitized_uri} {repr(self._coll_name)})>"
 
     __str__ = __repr__
@@ -182,7 +182,7 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
 
     def get_users_by_identity(
         self, identity_type: IdentityType, key: str, value: str, include_unconfirmed: bool = False
-    ):
+    ) -> list[UserVar]:
         match = {"identity_type": identity_type.value, key: value, "verified": True}
         if include_unconfirmed:
             del match["verified"]
@@ -234,7 +234,7 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
             raise UserDoesNotExist(f"No user with eppn {repr(eppn)}")
         return res
 
-    def _get_user_by_attr(self, attr: str, value: Any) -> UserVar | None:
+    def _get_user_by_attr(self, attr: str, value: Any) -> UserVar | None:  # noqa: ANN401
         """
         Locate a user in the userdb using any attribute and value.
 
@@ -328,7 +328,7 @@ class UserDB(BaseDB, Generic[UserVar], ABC):
 class AmDB(UserDB[User]):
     """Central userdb, aka. AM DB"""
 
-    def __init__(self, db_uri: str, db_name: str = "eduid_am"):
+    def __init__(self, db_uri: str, db_name: str = "eduid_am") -> None:
         super().__init__(db_uri, db_name)
 
     @classmethod

@@ -36,7 +36,7 @@ from satosa.micro_services.base import (
     RequestMicroService,
     ResponseMicroService,
 )
-from satosa.response import Response
+from satosa.response import Response, SeeOther
 from satosa.saml_util import make_saml_response
 
 try:
@@ -191,7 +191,9 @@ class StepUp(ResponseMicroService):
                 - [<base_url>/<name>/acs/redirect, 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect']
     """
 
-    def __init__(self, config: Mapping[str, Any], internal_attributes: dict[str, Any], *args: Any, **kwargs: Any):
+    def __init__(
+        self, config: Mapping[str, Any], internal_attributes: dict[str, Any], *args: Any, **kwargs: Any
+    ) -> None:
         super().__init__(*args, **kwargs)
 
         try:
@@ -467,7 +469,7 @@ class StepUp(ResponseMicroService):
             raise RuntimeError("Unexpected response type")
         return res
 
-    def _metadata_endpoint(self, context: satosa.context.Context, extra: Any) -> CallbackReturnType:
+    def _metadata_endpoint(self, context: satosa.context.Context, extra: object) -> CallbackReturnType:
         metadata_string = create_metadata_string(None, self.sp.config, 4, None, None, None, None, None).decode("utf-8")
         return Response(metadata_string, content="text/xml")
 
@@ -507,7 +509,9 @@ class AuthnContext(RequestMicroService):
     It saves the original requested authn context class reference (accr) in the state.
     """
 
-    def __init__(self, config: Mapping[str, Any], internal_attributes: dict[str, Any], *args: Any, **kwargs: Any):
+    def __init__(
+        self, config: Mapping[str, Any], internal_attributes: dict[str, Any], *args: Any, **kwargs: Any
+    ) -> None:
         super().__init__(*args, **kwargs)
 
         try:
@@ -615,7 +619,7 @@ class StepupSAMLBackend(SAMLBackend):
     A SAML backend to request custom authn context class references from IdP:s with certain entity attributes.
     """
 
-    def __init__(self, *args: Any, **kwargs: Any):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.mfa: MfaConfig | None = None
 
@@ -625,7 +629,7 @@ class StepupSAMLBackend(SAMLBackend):
             raise StepUpError(f"The configuration for this plugin is not valid: {e}")
         self.mfa = parsed_config.mfa
 
-    def authn_request(self, context: satosa.context.Context, entity_id: str):
+    def authn_request(self, context: satosa.context.Context, entity_id: str) -> SeeOther | Response:
         logger.debug(f"Processing AuthnRequest with entity id {repr(entity_id)}")
 
         if self.mfa and AuthnContext.sp_wants_mfa(context=context):
@@ -647,7 +651,9 @@ class RewriteAuthnContextClass(ResponseMicroService):
     'normalisation' of the authn context class reference in our MFA configuration.
     """
 
-    def __init__(self, config: Mapping[str, Any], internal_attributes: dict[str, Any], *args: Any, **kwargs: Any):
+    def __init__(
+        self, config: Mapping[str, Any], internal_attributes: dict[str, Any], *args: Any, **kwargs: Any
+    ) -> None:
         super().__init__(*args, **kwargs)
         self.mfa: MfaConfig | None = None
 

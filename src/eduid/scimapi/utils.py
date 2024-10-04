@@ -3,7 +3,7 @@ import functools
 import logging
 import time
 from collections.abc import Callable
-from typing import AnyStr, TypeVar
+from typing import Any, AnyStr, TypeVar
 from uuid import uuid4
 
 from jwcrypto import jwk
@@ -48,7 +48,7 @@ def filter_none(x: Filtered) -> Filtered:
     return x
 
 
-def get_unique_hash():
+def get_unique_hash() -> str:
     return str(uuid4())
 
 
@@ -61,9 +61,9 @@ def load_jwks(config: ScimApiConfig) -> jwk.JWKSet:
     return jwks
 
 
-def retryable_db_write(func: Callable):
+def retryable_db_write(func: Callable) -> Callable:
     @functools.wraps(func)
-    def wrapper_run_func(*args, **kwargs):
+    def wrapper_run_func(*args: Any, **kwargs: Any) -> Any:  # noqa: ANN401
         max_retries = 10
         retry = 0
         while True:

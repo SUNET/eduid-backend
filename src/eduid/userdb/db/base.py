@@ -21,7 +21,7 @@ class BaseMongoDB:
         db_uri: str,
         db_name: str | None = None,
         **kwargs: Any,
-    ):
+    ) -> None:
         if db_uri is None:
             raise ValueError("db_uri not supplied")
 
@@ -61,7 +61,7 @@ class BaseMongoDB:
                 kwargs["connectTimeoutMS"] = 5000
         return kwargs
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "<eduID {!s}: {!s} {!s}>".format(
             self.__class__.__name__, getattr(self, "sanitized_uri", None), getattr(self, "_database_name", None)
         )

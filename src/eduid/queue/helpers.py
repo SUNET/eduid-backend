@@ -18,7 +18,7 @@ class Jinja2Env:
     Initiates Jinja2 environment with Babel translations
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         templates_dir = Path(__file__).with_name("templates")
         translations_dir = Path(__file__).with_name("translations")
         # Templates

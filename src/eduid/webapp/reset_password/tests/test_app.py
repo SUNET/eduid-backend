@@ -1,8 +1,9 @@
 import datetime
 import json
-from collections.abc import Mapping
+from collections.abc import Callable, Iterable, Mapping
+from datetime import timedelta
 from typing import Any
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 from urllib.parse import quote_plus
 
 from flask import url_for
@@ -16,9 +17,10 @@ from eduid.userdb.fixtures.fido_credentials import webauthn_credential
 from eduid.userdb.fixtures.fido_credentials import webauthn_credential as sample_credential
 from eduid.userdb.fixtures.users import UserFixtures
 from eduid.userdb.reset_password import ResetPasswordEmailAndPhoneState, ResetPasswordEmailState
+from eduid.userdb.testing import SetupConfig
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.common.api.utils import get_zxcvbn_terms, hash_password
-from eduid.webapp.common.authn.testing import TestVCCSClient
+from eduid.webapp.common.authn.testing import MockVCCSClient
 from eduid.webapp.common.authn.tests.test_fido_tokens import (
     SAMPLE_WEBAUTHN_APP_CONFIG,
     SAMPLE_WEBAUTHN_FIDO2STATE,
@@ -39,8 +41,8 @@ __author__ = "eperez"
 class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
     """Base TestCase for those tests that need a full environment setup"""
 
-    def setUp(self, *args, **kwargs):
-        super().setUp(*args, **kwargs)
+    def setUp(self, config: SetupConfig | None = None) -> None:
+        super().setUp(config=config)
         self.other_test_user = UserFixtures().mocked_user_standard_2
 
     def load_app(self, config: Mapping[str, Any] | None) -> ResetPasswordApp:
@@ -50,7 +52,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         """
         return init_reset_password_app(test_config=config)
 
-    def update_config(self, config: dict[str, Any]):
+    def update_config(self, config: dict[str, Any]) -> dict[str, Any]:
         config.update(
             {
                 "available_languages": {"en": "English", "sv": "Svenska"},
@@ -69,7 +71,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
     def _post_email_address(
         self,
         data1: dict[str, Any] | None = None,
-    ):
+    ) -> TestResponse:
         """
         POST an email address to start the reset password process for the corresponding account.
 
@@ -123,11 +125,11 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def _post_reset_password(
         self,
-        mock_request_user_sync: Any,
-        mock_get_vccs_client: Any,
+        mock_request_user_sync: MagicMock,
+        mock_get_vccs_client: MagicMock,
         data1: dict[str, Any] | None = None,
         data2: dict[str, Any] | None = None,
-    ):
+    ) -> TestResponse:
         """
         Test sending data from the reset password form, without extra security.
         First POST an email address to the / endpoint to create a reset password state,
@@ -137,7 +139,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         :param data2: control the data sent to actually reset the password.
         """
         mock_request_user_sync.side_effect = self.request_user_sync
-        mock_get_vccs_client.return_value = TestVCCSClient()
+        mock_get_vccs_client.return_value = MockVCCSClient()
 
         # check that the user has verified data
         user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
@@ -176,15 +178,15 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
     @patch("eduid.common.rpc.msg_relay.MsgRelay.sendsms")
     def _post_choose_extra_sec(
         self,
-        mock_sendsms: Any,
-        mock_request_user_sync: Any,
-        mock_get_vccs_client: Any,
-        sendsms_side_effect: Any = None,
+        mock_sendsms: MagicMock,
+        mock_request_user_sync: MagicMock,
+        mock_get_vccs_client: MagicMock,
+        sendsms_side_effect: Callable | Exception | Iterable | None = None,
         data1: dict[str, Any] | None = None,
         data2: dict[str, Any] | None = None,
         data3: dict[str, Any] | None = None,
         repeat: bool = False,
-    ):
+    ) -> TestResponse:
         """
         Test choosing extra security via a confirmed phone number to reset the password.
         First create the reset password state in the database, then POST the generated code
@@ -198,7 +200,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         :param repeat: if True, try to trigger sending the SMS twice.
         """
         mock_request_user_sync.side_effect = self.request_user_sync
-        mock_get_vccs_client.return_value = TestVCCSClient()
+        mock_get_vccs_client.return_value = MockVCCSClient()
         mock_sendsms.return_value = True
         if sendsms_side_effect:
             mock_sendsms.side_effect = sendsms_side_effect
@@ -240,12 +242,12 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
     @patch("eduid.common.rpc.msg_relay.MsgRelay.sendsms")
     def _post_reset_password_secure_phone(
         self,
-        mock_sendsms: Any,
-        mock_request_user_sync: Any,
-        mock_get_vccs_client: Any,
+        mock_sendsms: MagicMock,
+        mock_request_user_sync: MagicMock,
+        mock_get_vccs_client: MagicMock,
         data1: dict[str, Any] | None = None,
         data2: dict[str, Any] | None = None,
-    ):
+    ) -> TestResponse:
         """
         Test fully resetting the password with extra security via a verification code sent by SMS.
         First initialize the reset password state by POSTing an email to the initial endpoint,
@@ -257,7 +259,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         :param data2: To control the data sent to actually finally reset the password.
         """
         mock_request_user_sync.side_effect = self.request_user_sync
-        mock_get_vccs_client.return_value = TestVCCSClient()
+        mock_get_vccs_client.return_value = MockVCCSClient()
         mock_sendsms.return_value = True
 
         response = self._post_email_address(data1=data1)
@@ -298,15 +300,15 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
     @patch("fido2.cose.ES256.verify")
     def _post_reset_password_secure_token(
         self,
-        mock_verify: Any,
-        mock_request_user_sync: Any,
-        mock_get_vccs_client: Any,
+        mock_verify: MagicMock,
+        mock_request_user_sync: MagicMock,
+        mock_get_vccs_client: MagicMock,
         data1: dict[str, Any] | None = None,
         credential_data: dict[str, Any] | None = None,
         data2: dict[str, Any] | None = None,
         fido2state: WebauthnState | None = None,
         custom_password: str | None = None,
-    ):
+    ) -> TestResponse:
         """
         Test resetting the password with extra security via a fido token.
         First create the reset password state in the database, then add a webauthn
@@ -320,7 +322,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         :param fido2state: to control the fido state kept in the session
         """
         mock_request_user_sync.side_effect = self.request_user_sync
-        mock_get_vccs_client.return_value = TestVCCSClient()
+        mock_get_vccs_client.return_value = MockVCCSClient()
         mock_verify.return_value = True
 
         credential = sample_credential.to_dict()
@@ -368,13 +370,13 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def _post_reset_password_secure_external_mfa(
         self,
-        mock_request_user_sync: Any,
-        mock_get_vccs_client: Any,
+        mock_request_user_sync: MagicMock,
+        mock_get_vccs_client: MagicMock,
         data1: dict[str, Any] | None = None,
         data2: dict[str, Any] | None = None,
         external_mfa_state: dict[str, Any] | None = None,
         custom_password: str | None = None,
-    ):
+    ) -> TestResponse:
         """
         Test resetting the password with extra security via a external MFA.
 
@@ -383,7 +385,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         :param external_mfa_state: to control the external mfa state kept in the session
         """
         mock_request_user_sync.side_effect = self.request_user_sync
-        mock_get_vccs_client.return_value = TestVCCSClient()
+        mock_get_vccs_client.return_value = MockVCCSClient()
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
 
@@ -426,7 +428,9 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
 
         return c.post(url, data=json.dumps(data), content_type=self.content_type_json)
 
-    def _get_email_code_backdoor(self, data1: dict[str, Any] | None = None, magic_cookie_name: str | None = None):
+    def _get_email_code_backdoor(
+        self, data1: dict[str, Any] | None = None, magic_cookie_name: str | None = None
+    ) -> TestResponse:
         """
         Create a password rest state for the test user, grab the created verification code from the db,
         and use it to get configuration for the reset form.
@@ -446,18 +450,18 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
     @patch("eduid.common.rpc.msg_relay.MsgRelay.sendsms")
     def _get_phone_code_backdoor(
         self,
-        mock_sendsms: Any,
-        mock_request_user_sync: Any,
-        mock_get_vccs_client: Any,
-        sendsms_side_effect: Any = None,
+        mock_sendsms: MagicMock,
+        mock_request_user_sync: MagicMock,
+        mock_get_vccs_client: MagicMock,
+        sendsms_side_effect: Callable | Exception | Iterable | None = None,
         magic_cookie_name: str | None = None,
-    ):
+    ) -> TestResponse:
         """
         Test choosing extra security via a confirmed phone number to reset the password,
         and getting the generated phone verification code through the backdoor
         """
         mock_request_user_sync.side_effect = self.request_user_sync
-        mock_get_vccs_client.return_value = TestVCCSClient()
+        mock_get_vccs_client.return_value = MockVCCSClient()
         mock_sendsms.return_value = True
         if sendsms_side_effect:
             mock_sendsms.side_effect = sendsms_side_effect
@@ -492,7 +496,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
             return client.get(f"/get-phone-code?eppn={eppn}")
 
     # actual tests
-    def test_correct_user_setup(self):
+    def test_correct_user_setup(self) -> None:
         # Check that user has verified data
         user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
         verified_phone_numbers = user.phone_numbers.verified
@@ -500,35 +504,36 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         verified_identities = user.identities.verified
         self.assertEqual(3, len(verified_identities))
 
-    def test_get_zxcvbn_terms(self):
+    def test_get_zxcvbn_terms(self) -> None:
         with self.app.test_request_context():
             terms = get_zxcvbn_terms(self.test_user)
             self.assertEqual(["John", "Smith", "johnsmith", "johnsmith2"], terms)
 
-    def test_get_zxcvbn_terms_no_given_name(self):
+    def test_get_zxcvbn_terms_no_given_name(self) -> None:
         with self.app.test_request_context():
             self.test_user.given_name = ""
             self.app.central_userdb.save(self.test_user)
             terms = get_zxcvbn_terms(self.test_user)
             self.assertEqual(["Smith", "johnsmith", "johnsmith2"], terms)
 
-    def test_get_zxcvbn_terms_no_surname(self):
+    def test_get_zxcvbn_terms_no_surname(self) -> None:
         with self.app.test_request_context():
             self.test_user.surname = ""
             self.app.central_userdb.save(self.test_user)
             terms = get_zxcvbn_terms(self.test_user)
             self.assertEqual(["John", "johnsmith", "johnsmith2"], terms)
 
-    def test_app_starts(self):
+    def test_app_starts(self) -> None:
         self.assertEqual("reset_password", self.app.conf.app_name)
 
-    def test_post_email_address(self):
+    def test_post_email_address(self) -> None:
         response = self._post_email_address()
         self._check_success_response(response, msg=ResetPwMsg.reset_pw_initialized, type_="POST_RESET_PASSWORD_SUCCESS")
         state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+        assert state
         self.assertEqual(state.email_address, "johnsmith@example.com")
 
-    def test_post_email_address_throttled(self):
+    def test_post_email_address_throttled(self) -> None:
         response1 = self._post_email_address()
         self._check_success_response(
             response1, msg=ResetPwMsg.reset_pw_initialized, type_="POST_RESET_PASSWORD_SUCCESS"
@@ -541,7 +546,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
             payload={"throttled_max": 300},
         )
 
-    def test_do_not_overwrite_email_state(self):
+    def test_do_not_overwrite_email_state(self) -> None:
         # Avoid getting throttled
         self.app.conf.throttle_resend = datetime.timedelta()
         response1 = self._post_email_address()
@@ -549,6 +554,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
             response1, msg=ResetPwMsg.reset_pw_initialized, type_="POST_RESET_PASSWORD_SUCCESS"
         )
         state1 = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+        assert state1
         self.assertEqual(state1.email_address, "johnsmith@example.com")
         self.assertIsNotNone(state1.email_code.code)
 
@@ -557,14 +563,16 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
             response2, msg=ResetPwMsg.reset_pw_initialized, type_="POST_RESET_PASSWORD_SUCCESS"
         )
         state2 = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+        assert state2
         self.assertEqual(state1.email_code.code, state2.email_code.code)
 
-    def test_overwrite_expired_email_state(self):
+    def test_overwrite_expired_email_state(self) -> None:
         response1 = self._post_email_address()
         self._check_success_response(
             response1, msg=ResetPwMsg.reset_pw_initialized, type_="POST_RESET_PASSWORD_SUCCESS"
         )
         state1 = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+        assert state1
         # Set created time 5 minutes before email_code_timeout
         state1.email_code.created_ts = datetime.datetime.utcnow() - (
             self.app.conf.email_code_timeout + datetime.timedelta(minutes=5)
@@ -576,20 +584,21 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
             response2, msg=ResetPwMsg.reset_pw_initialized, type_="POST_RESET_PASSWORD_SUCCESS"
         )
         state2 = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+        assert state2
         self.assertNotEqual(state1.email_code.code, state2.email_code.code)
 
     @patch("eduid.userdb.userdb.UserDB.get_user_by_mail")
-    def test_post_email_uncomplete_signup(self, mock_get_user: Mock):
+    def test_post_email_uncomplete_signup(self, mock_get_user: Mock) -> None:
         mock_get_user.side_effect = UserHasNotCompletedSignup("incomplete signup")
         response = self._post_email_address()
         self._check_error_response(response, msg=ResetPwMsg.invalid_user, type_="POST_RESET_PASSWORD_FAIL")
 
-    def test_post_unknown_email_address(self):
+    def test_post_unknown_email_address(self) -> None:
         data = {"email": "unknown@unplaced.un"}
         response = self._post_email_address(data1=data)
         self._check_error_response(response, msg=ResetPwMsg.user_not_found, type_="POST_RESET_PASSWORD_FAIL")
 
-    def test_post_invalid_email_address(self):
+    def test_post_invalid_email_address(self) -> None:
         data = {"email": "invalid-address"}
         response = self._post_email_address(data1=data)
         self._check_error_response(
@@ -598,7 +607,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
             payload={"error": {"email": ["Not a valid email address."]}},
         )
 
-    def test_post_reset_code(self):
+    def test_post_reset_code(self) -> None:
         response = self._post_reset_code()
         assert response is not None
         self._check_success_response(
@@ -612,11 +621,11 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
             },
         )
 
-    def test_post_reset_code_unknown_email(self):
+    def test_post_reset_code_unknown_email(self) -> None:
         data1 = {"email": "unknown@unknown.com"}
         assert not self._post_reset_code(data1=data1)
 
-    def test_post_reset_code_no_extra_sec(self):
+    def test_post_reset_code_no_extra_sec(self) -> None:
         user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
         # Remove all verified phone numbers
         for number in user.phone_numbers.verified:
@@ -638,7 +647,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
             },
         )
 
-    def test_post_reset_code_extra_security_alternatives_security_key(self):
+    def test_post_reset_code_extra_security_alternatives_security_key(self) -> None:
         user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
         # add security key to user
         user.credentials.add(webauthn_credential)
@@ -658,7 +667,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         assert "tokens" in self.get_response_payload(response)["extra_security"]
         assert "webauthn_options" in self.get_response_payload(response)["extra_security"]["tokens"]
 
-    def test_post_reset_wrong_code(self):
+    def test_post_reset_wrong_code(self) -> None:
         data2 = {"email_code": "wrong-code"}
         response = self._post_reset_code(data2=data2)
         assert response is not None
@@ -666,7 +675,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
             response, type_="POST_RESET_PASSWORD_VERIFY_EMAIL_FAIL", msg=ResetPwMsg.state_not_found
         )
 
-    def test_post_reset_wrong_csrf(self):
+    def test_post_reset_wrong_csrf(self) -> None:
         data2 = {"csrf_token": "wrong-code"}
         response = self._post_reset_code(data2=data2)
         assert response is not None
@@ -676,7 +685,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
             error={"csrf_token": ["CSRF failed to validate"]},
         )
 
-    def test_post_reset_invalid_session_eppn(self):
+    def test_post_reset_invalid_session_eppn(self) -> None:
         if self.test_user.mail_addresses.primary is None:
             raise RuntimeError(f"user {self.test_user} has no primary email address")
 
@@ -695,6 +704,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         with self.app.test_request_context():
             verify_url = url_for("reset_password.verify_email", _external=True)
         state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+        assert state
         with self.session_cookie(self.browser, eppn=self.other_test_user.eppn) as c:
             data = {
                 "email_code": state.email_code.code,
@@ -706,7 +716,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
             response=response, type_="POST_RESET_PASSWORD_VERIFY_EMAIL_FAIL", msg=ResetPwMsg.invalid_session
         )
 
-    def test_post_reset_password(self):
+    def test_post_reset_password(self) -> None:
         response = self._post_reset_password()
         self._check_success_response(
             response, type_="POST_RESET_PASSWORD_NEW_PASSWORD_SUCCESS", msg=ResetPwMsg.pw_reset_success
@@ -720,9 +730,11 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         self.assertEqual(len(verified_identities), 0)
 
         # check that the password is marked as generated
-        self.assertTrue(user.credentials.to_list()[0].is_generated)
+        password = user.credentials.to_list()[0]
+        assert isinstance(password, Password)
+        self.assertTrue(password.is_generated)
 
-    def test_post_reset_password_no_data(self):
+    def test_post_reset_password_no_data(self) -> None:
         response = self._post_reset_password(data2={})
         self._check_error_response(
             response,
@@ -734,12 +746,12 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
             },
         )
 
-    def test_post_reset_password_weak(self):
+    def test_post_reset_password_weak(self) -> None:
         data2 = {"password": "pw"}
         response = self._post_reset_password(data2=data2)
         self._check_error_response(response, type_="POST_RESET_PASSWORD_NEW_PASSWORD_FAIL", msg=ResetPwMsg.resetpw_weak)
 
-    def test_post_reset_password_no_csrf(self):
+    def test_post_reset_password_no_csrf(self) -> None:
         data2 = {"csrf_token": ""}
         response = self._post_reset_password(data2=data2)
         self._check_error_response(
@@ -750,7 +762,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
             },
         )
 
-    def test_post_reset_password_wrong_code(self):
+    def test_post_reset_password_wrong_code(self) -> None:
         data2 = {"email_code": "wrong-code"}
         response = self._post_reset_password(data2=data2)
         self._check_error_response(
@@ -764,7 +776,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         verified_identities = user.identities.verified
         self.assertEqual(len(verified_identities), 3)
 
-    def test_post_reset_password_custom(self):
+    def test_post_reset_password_custom(self) -> None:
         data2 = {"password": "cust0m-p4ssw0rd"}
         response = self._post_reset_password(data2=data2)
         self._check_success_response(
@@ -772,16 +784,18 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         )
 
         user = self.app.private_userdb.get_user_by_eppn(self.test_user.eppn)
-        self.assertFalse(user.credentials.to_list()[0].is_generated)
+        password = user.credentials.to_list()[0]
+        assert isinstance(password, Password)
+        self.assertFalse(password.is_generated)
 
-    def test_post_choose_extra_sec(self):
+    def test_post_choose_extra_sec(self) -> None:
         response = self._post_choose_extra_sec()
         self._check_success_response(
             response, type_="POST_RESET_PASSWORD_EXTRA_SECURITY_PHONE_SUCCESS", msg=ResetPwMsg.send_sms_success
         )
 
-    def test_post_choose_extra_sec_sms_fail(self):
-        self.app.conf.throttle_sms = 300
+    def test_post_choose_extra_sec_sms_fail(self) -> None:
+        self.app.conf.throttle_sms = timedelta(seconds=300)
         from eduid.common.rpc.exceptions import MsgTaskFailed
 
         response = self._post_choose_extra_sec(sendsms_side_effect=MsgTaskFailed())
@@ -789,35 +803,35 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
             response, type_="POST_RESET_PASSWORD_EXTRA_SECURITY_PHONE_FAIL", msg=ResetPwMsg.send_sms_failure
         )
 
-    def test_post_choose_extra_sec_throttled(self):
+    def test_post_choose_extra_sec_throttled(self) -> None:
         self.app.conf.throttle_sms = datetime.timedelta(minutes=5)
         response = self._post_choose_extra_sec(repeat=True)
         self._check_error_response(
             response, type_="POST_RESET_PASSWORD_EXTRA_SECURITY_PHONE_FAIL", msg=ResetPwMsg.send_sms_throttled
         )
 
-    def test_post_choose_extra_sec_not_throttled(self):
-        self.app.conf.throttle_sms = 0
+    def test_post_choose_extra_sec_not_throttled(self) -> None:
+        self.app.conf.throttle_sms = timedelta(0)
         response = self._post_choose_extra_sec(repeat=True)
         self._check_success_response(
             response, type_="POST_RESET_PASSWORD_EXTRA_SECURITY_PHONE_SUCCESS", msg=ResetPwMsg.send_sms_success
         )
 
-    def test_post_choose_extra_sec_wrong_code(self):
+    def test_post_choose_extra_sec_wrong_code(self) -> None:
         data2 = {"email_code": "wrong-code"}
         response = self._post_choose_extra_sec(data2=data2)
         self._check_error_response(
             response, type_="POST_RESET_PASSWORD_EXTRA_SECURITY_PHONE_FAIL", msg=ResetPwMsg.email_not_validated
         )
 
-    def test_post_choose_extra_sec_bad_phone_index(self):
+    def test_post_choose_extra_sec_bad_phone_index(self) -> None:
         data3 = {"phone_index": "3"}
         response = self._post_choose_extra_sec(data3=data3)
         self._check_error_response(
             response, type_="POST_RESET_PASSWORD_EXTRA_SECURITY_PHONE_FAIL", msg=ResetPwMsg.unknown_phone_number
         )
 
-    def test_post_choose_extra_sec_wrong_csrf_token(self):
+    def test_post_choose_extra_sec_wrong_csrf_token(self) -> None:
         data3 = {"csrf_token": "wrong-token"}
         response = self._post_choose_extra_sec(data3=data3)
         self._check_error_response(
@@ -826,14 +840,14 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
             error={"csrf_token": ["CSRF failed to validate"]},
         )
 
-    def test_post_choose_extra_sec_wrong_final_code(self):
+    def test_post_choose_extra_sec_wrong_final_code(self) -> None:
         data3 = {"email_code": "wrong-code"}
         response = self._post_choose_extra_sec(data3=data3)
         self._check_error_response(
             response, type_="POST_RESET_PASSWORD_EXTRA_SECURITY_PHONE_FAIL", msg=ResetPwMsg.state_not_found
         )
 
-    def test_post_reset_password_secure_phone(self):
+    def test_post_reset_password_secure_phone(self) -> None:
         response = self._post_reset_password_secure_phone()
         self._check_success_response(
             response,
@@ -849,14 +863,14 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         self.assertEqual(len(verified_identities), 3)
 
     @patch("eduid.webapp.reset_password.views.reset_password.verify_phone_number")
-    def test_post_reset_password_secure_phone_verify_fail(self, mock_verify: Any):
+    def test_post_reset_password_secure_phone_verify_fail(self, mock_verify: MagicMock) -> None:
         mock_verify.return_value = False
         response = self._post_reset_password_secure_phone()
         self._check_error_response(
             response, type_="POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_PHONE_FAIL", msg=ResetPwMsg.phone_invalid
         )
 
-    def test_post_reset_password_secure_phone_wrong_csrf_token(self):
+    def test_post_reset_password_secure_phone_wrong_csrf_token(self) -> None:
         data2 = {"csrf_token": "wrong-code"}
         response = self._post_reset_password_secure_phone(data2=data2)
         self._check_error_response(
@@ -865,14 +879,14 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
             error={"csrf_token": ["CSRF failed to validate"]},
         )
 
-    def test_post_reset_password_secure_phone_wrong_email_code(self):
+    def test_post_reset_password_secure_phone_wrong_email_code(self) -> None:
         data2 = {"email_code": "wrong-code"}
         response = self._post_reset_password_secure_phone(data2=data2)
         self._check_error_response(
             response, type_="POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_PHONE_FAIL", msg=ResetPwMsg.state_not_found
         )
 
-    def test_post_reset_password_secure_phone_wrong_sms_code(self):
+    def test_post_reset_password_secure_phone_wrong_sms_code(self) -> None:
         data2 = {"phone_code": "wrong-code"}
         response = self._post_reset_password_secure_phone(data2=data2)
         self._check_error_response(
@@ -881,14 +895,14 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
             msg=ResetPwMsg.unknown_phone_code,
         )
 
-    def test_post_reset_password_secure_phone_weak_password(self):
+    def test_post_reset_password_secure_phone_weak_password(self) -> None:
         data2 = {"password": "pw"}
         response = self._post_reset_password_secure_phone(data2=data2)
         self._check_error_response(
             response, type_="POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_PHONE_FAIL", msg=ResetPwMsg.resetpw_weak
         )
 
-    def test_post_reset_password_secure_token(self):
+    def test_post_reset_password_secure_token(self) -> None:
         response = self._post_reset_password_secure_token()
         self._check_success_response(
             response,
@@ -903,7 +917,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         verified_identities = user.identities.verified
         self.assertEqual(len(verified_identities), 3)
 
-    def test_post_reset_password_secure_token_custom_pw(self):
+    def test_post_reset_password_secure_token_custom_pw(self) -> None:
         response = self._post_reset_password_secure_token(custom_password="T%7j 8/tT a0=b")
         self._check_success_response(
             response,
@@ -914,7 +928,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         for cred in user.credentials.filter(Password):
             self.assertFalse(cred.is_generated)
 
-    def test_post_reset_password_secure_token_no_data(self):
+    def test_post_reset_password_secure_token_no_data(self) -> None:
         response = self._post_reset_password_secure_token(data2={})
         self._check_error_response(
             response,
@@ -926,7 +940,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
             },
         )
 
-    def test_post_reset_password_secure_token_wrong_credential(self):
+    def test_post_reset_password_secure_token_wrong_credential(self) -> None:
         credential_data = {
             "credential_data": "AAAAAAAAAAAAAAAAAAAAAABAi3KjBT0t5TPm693T0O0f4zyiwvdu9cY8BegCjiVvq_FS-ZmPcvXipFvHv"
             "D5CH6ZVRR3nsVsOla0Cad3fbtUA_aUBAgMmIAEhWCCiwDYGxl1LnRMqooWm0aRR9YbBG2LZ84BMNh_4rHkA9yJYIIujMrUOpGekb"
@@ -937,14 +951,14 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
             response, type_="POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_TOKEN_FAIL", msg=ResetPwMsg.fido_token_fail
         )
 
-    def test_post_reset_password_secure_token_wrong_request(self):
+    def test_post_reset_password_secure_token_wrong_request(self) -> None:
         data2 = {"authenticatorData": "Wrong-authenticatorData----UMmBLDxB7n3apMPQAAAAAAA"}
         response = self._post_reset_password_secure_token(data2=data2)
         self._check_error_response(
             response, type_="POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_TOKEN_FAIL", msg=ResetPwMsg.fido_token_fail
         )
 
-    def test_post_reset_password_secure_token_wrong_csrf(self):
+    def test_post_reset_password_secure_token_wrong_csrf(self) -> None:
         data2 = {"csrf_token": "wrong-code"}
         response = self._post_reset_password_secure_token(data2=data2)
         self._check_error_response(
@@ -953,21 +967,21 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
             error={"csrf_token": ["CSRF failed to validate"]},
         )
 
-    def test_post_reset_password_secure_token_wrong_code(self):
+    def test_post_reset_password_secure_token_wrong_code(self) -> None:
         data2 = {"email_code": "wrong-code"}
         response = self._post_reset_password_secure_token(data2=data2)
         self._check_error_response(
             response, type_="POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_TOKEN_FAIL", msg=ResetPwMsg.state_not_found
         )
 
-    def test_post_reset_password_secure_token_weak_password(self):
+    def test_post_reset_password_secure_token_weak_password(self) -> None:
         data2 = {"password": "pw"}
         response = self._post_reset_password_secure_token(data2=data2)
         self._check_error_response(
             response, type_="POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_TOKEN_FAIL", msg=ResetPwMsg.resetpw_weak
         )
 
-    def test_post_reset_password_secure_external_mfa(self):
+    def test_post_reset_password_secure_external_mfa(self) -> None:
         response = self._post_reset_password_secure_external_mfa()
         self._check_success_response(
             response,
@@ -982,7 +996,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         verified_identities = user.identities.verified
         self.assertEqual(len(verified_identities), 3)
 
-    def test_post_reset_password_secure_external_mfa_no_mfa_auth(self):
+    def test_post_reset_password_secure_external_mfa_no_mfa_auth(self) -> None:
         external_mfa_state = {"success": False, "issuer": None}
         response = self._post_reset_password_secure_external_mfa(external_mfa_state=external_mfa_state)
         self._check_error_response(
@@ -991,8 +1005,8 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
             msg=ResetPwMsg.external_mfa_fail,
         )
 
-    def test_post_reset_password_secure_email_timeout(self):
-        self.app.conf.email_code_timeout = 0
+    def test_post_reset_password_secure_email_timeout(self) -> None:
+        self.app.conf.email_code_timeout = timedelta(0)
         response = self._post_reset_password_secure_phone()
         self._check_error_response(
             response,
@@ -1000,8 +1014,8 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
             msg=ResetPwMsg.expired_email_code,
         )
 
-    def test_post_reset_password_secure_phone_timeout(self):
-        self.app.conf.phone_code_timeout = 0
+    def test_post_reset_password_secure_phone_timeout(self) -> None:
+        self.app.conf.phone_code_timeout = timedelta(0)
         response = self._post_reset_password_secure_phone()
         self._check_error_response(
             response,
@@ -1009,7 +1023,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
             msg=ResetPwMsg.expired_phone_code,
         )
 
-    def test_post_reset_password_secure_phone_custom(self):
+    def test_post_reset_password_secure_phone_custom(self) -> None:
         data2 = {"password": "other-password"}
         response = self._post_reset_password_secure_phone(data2=data2)
         self._check_success_response(
@@ -1020,9 +1034,11 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
 
         # check that the password is marked as generated
         user = self.app.private_userdb.get_user_by_eppn(self.test_user.eppn)
-        self.assertFalse(user.credentials.to_list()[0].is_generated)
+        password = user.credentials.to_list()[0]
+        assert isinstance(password, Password)
+        self.assertFalse(password.is_generated)
 
-    def test_revoke_termination_on_password_reset(self):
+    def test_revoke_termination_on_password_reset(self) -> None:
         # mark user as terminated
         user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
         user.terminated = utc_now()
@@ -1037,7 +1053,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
         assert user.terminated is None
 
-    def test_get_code_backdoor(self):
+    def test_get_code_backdoor(self) -> None:
         self.app.conf.magic_cookie = "magic-cookie"
         self.app.conf.magic_cookie_name = "magic"
         self.app.conf.environment = EduidEnvironment("dev")
@@ -1045,11 +1061,12 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         resp = self._get_email_code_backdoor()
 
         state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+        assert state
 
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(resp.data, state.email_code.code.encode("ascii"))
 
-    def test_get_code_no_backdoor_in_pro(self):
+    def test_get_code_no_backdoor_in_pro(self) -> None:
         self.app.conf.magic_cookie = "magic-cookie"
         self.app.conf.magic_cookie_name = "magic"
         self.app.conf.environment = EduidEnvironment("production")
@@ -1058,7 +1075,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
 
         self.assertEqual(resp.status_code, 400)
 
-    def test_get_code_no_backdoor_misconfigured1(self):
+    def test_get_code_no_backdoor_misconfigured1(self) -> None:
         self.app.conf.magic_cookie = "magic-cookie"
         self.app.conf.magic_cookie_name = ""
         self.app.conf.environment = EduidEnvironment("dev")
@@ -1067,7 +1084,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
 
         self.assertEqual(resp.status_code, 400)
 
-    def test_get_code_no_backdoor_misconfigured2(self):
+    def test_get_code_no_backdoor_misconfigured2(self) -> None:
         self.app.conf.magic_cookie = ""
         self.app.conf.magic_cookie_name = "magic"
         self.app.conf.environment = EduidEnvironment("dev")
@@ -1076,7 +1093,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
 
         self.assertEqual(resp.status_code, 400)
 
-    def test_get_phone_code_backdoor(self):
+    def test_get_phone_code_backdoor(self) -> None:
         self.app.conf.magic_cookie = "magic-cookie"
         self.app.conf.magic_cookie_name = "magic"
         self.app.conf.environment = EduidEnvironment("dev")
@@ -1084,11 +1101,12 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         resp = self._get_phone_code_backdoor()
 
         state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
+        assert isinstance(state, ResetPasswordEmailAndPhoneState)
 
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(resp.data, state.phone_code.code.encode("ascii"))
 
-    def test_get_phone_code_no_backdoor_in_pro(self):
+    def test_get_phone_code_no_backdoor_in_pro(self) -> None:
         self.app.conf.magic_cookie = "magic-cookie"
         self.app.conf.magic_cookie_name = "magic"
         self.app.conf.environment = EduidEnvironment("production")
@@ -1097,7 +1115,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
 
         self.assertEqual(resp.status_code, 400)
 
-    def test_get_phone_code_no_backdoor_misconfigured1(self):
+    def test_get_phone_code_no_backdoor_misconfigured1(self) -> None:
         self.app.conf.magic_cookie = "magic-cookie"
         self.app.conf.magic_cookie_name = ""
         self.app.conf.environment = EduidEnvironment("dev")
@@ -1106,7 +1124,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
 
         self.assertEqual(resp.status_code, 400)
 
-    def test_get_phone_code_no_backdoor_misconfigured2(self):
+    def test_get_phone_code_no_backdoor_misconfigured2(self) -> None:
         self.app.conf.magic_cookie = ""
         self.app.conf.magic_cookie_name = "magic"
         self.app.conf.environment = EduidEnvironment("dev")

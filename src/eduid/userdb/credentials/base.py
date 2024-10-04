@@ -29,7 +29,7 @@ class Credential(VerifiedElement):
 
     proofing_method: CredentialProofingMethod | None = None
 
-    def __str__(self):
+    def __str__(self) -> str:
         if len(self.key) == 24:
             # probably an object id in string format, don't cut it
             shortkey = str(self.key)

@@ -7,7 +7,7 @@ from typing import Any
 import qrcode
 import qrcode.image.svg
 import requests
-from flask import Blueprint, make_response, request, url_for
+from flask import Blueprint, Response, make_response, request, url_for
 from jose import jws as jose
 from oic.oic.message import AuthorizationResponse, Claims, ClaimsRequest
 from werkzeug.wrappers import Response as WerkzeugResponse
@@ -34,7 +34,7 @@ oidc_proofing_views = Blueprint("oidc_proofing", __name__, url_prefix="", templa
 
 
 @oidc_proofing_views.route("/authorization-response")
-def authorization_response():
+def authorization_response() -> Response:
     # parse authentication response
     query_string = request.query_string.decode("utf-8")
     current_app.logger.debug(f"query_string: {query_string!s}")

@@ -1,12 +1,14 @@
 import logging
 import sys
 
+from loguru import Logger
 from loguru import logger as loguru_logger
 
 
 class InterceptHandler(logging.Handler):
-    def emit(self, record):
+    def emit(self, record: logging.LogRecord) -> None:
         # Get corresponding Loguru level if it exists
+        level: str | int
         try:
             level = loguru_logger.level(record.levelname).name
         except ValueError:
@@ -21,7 +23,7 @@ class InterceptHandler(logging.Handler):
         loguru_logger.opt(depth=depth, exception=record.exc_info).log(level, record.getMessage())
 
 
-def init_logging():
+def init_logging() -> Logger:
     loguru_logger.remove()
     fmt = (
         "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <7}</level> | <cyan>{module: <11}</cyan>:"

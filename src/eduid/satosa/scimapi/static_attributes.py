@@ -49,14 +49,14 @@ class AddStaticAttributesForVirtualIdp(ResponseMicroService):
     override existing attributes if present.
     """
 
-    def __init__(self, config: Mapping[str, Any], *args: Any, **kwargs: Any):
+    def __init__(self, config: Mapping[str, Any], *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.static_attributes: StaticAttributesConfig | None = config.get("static_attributes_for_virtual_idp")
         self.static_appended_attributes: StaticAppendedAttributesConfig | None = config.get(
             "static_appended_attributes_for_virtual_idp"
         )
 
-    def _build_static(self, requester: str, vidp: str, existing_attributes: dict):
+    def _build_static(self, requester: str, vidp: str, existing_attributes: dict) -> dict[str, list[str]]:
         static_attributes: dict[str, list[str]] = dict()
 
         if self.static_attributes:

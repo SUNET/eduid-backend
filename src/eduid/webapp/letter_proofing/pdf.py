@@ -16,7 +16,7 @@ class AddressFormatException(Exception):
     pass
 
 
-def format_address(recipient: Mapping):
+def format_address(recipient: Mapping) -> tuple:
     """
     :param recipient: official address
     :type recipient: OrderedDict
@@ -54,7 +54,7 @@ def create_pdf(
     created_timestamp: datetime,
     primary_mail_address: str,
     letter_wait_time_hours: int,
-):
+) -> BytesIO:
     """
     Create a letter in the form of a PDF-document,
     containing a verification code to be sent to a user.

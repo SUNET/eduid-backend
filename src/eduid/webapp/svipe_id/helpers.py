@@ -1,7 +1,6 @@
 import logging
 from datetime import date
 from enum import unique
-from typing import Any
 
 from iso3166 import countries
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -34,13 +33,14 @@ class SvipeIDMsg(TranslatableMsg):
 
 
 class SessionOAuthCache:
+    # Used to store json-encoded data (OAuth->BaseOAuth->FrameworkIntegration)
     @staticmethod
-    def get(key: str) -> Any:
+    def get(key: str) -> str | None:
         logger.debug(f"Getting {key} from session.svipe_id.oauth_cache")
         return session.svipe_id.rp.authlib_cache.get(key)
 
     @staticmethod
-    def set(key: str, value: Any, expires: int | None = None) -> None:
+    def set(key: str, value: str, expires: int | None = None) -> None:
         session.svipe_id.rp.authlib_cache[key] = value
         logger.debug(f"Set {key}={value} (expires={expires}) in session.svipe_id.oauth_cache")
 
@@ -83,8 +83,8 @@ class SvipeDocumentUserInfo(UserInfoBase):
 
     @field_validator("document_nationality")
     @classmethod
-    def iso_3166_1_alpha_3_to_alpha2(cls, v):
-        # translate ISO 3166-1 alpha-3 to alpha-2 to match the format used in eduid-userdb
+    def iso_3166_1_alpha_3_to_alpha2(cls, v: str | int) -> str:
+        # translate ISO 3166-1 alpha-3 to alpha-2 to match the format used §in eduid-userdb
         try:
             country = countries.get(v)
         except KeyError:

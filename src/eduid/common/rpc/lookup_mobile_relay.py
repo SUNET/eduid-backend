@@ -1,3 +1,5 @@
+from typing import Any
+
 import eduid.workers.lookup_mobile
 
 __author__ = "mathiashedstrom"
@@ -7,7 +9,7 @@ from eduid.common.rpc.exceptions import LookupMobileTaskFailed
 
 
 class LookupMobileRelay:
-    def __init__(self, config: CeleryConfigMixin):
+    def __init__(self, config: CeleryConfigMixin) -> None:
         self.app_name = config.app_name
         eduid.workers.lookup_mobile.init_app(config.celery)
         # these have to be imported _after_ eduid.workers.lookup_mobile.init_app()
@@ -26,7 +28,7 @@ class LookupMobileRelay:
             raise LookupMobileTaskFailed(f"find_nin_by_mobile task failed: {e}")
 
     @deprecated("This task seems unused")
-    def find_mobiles_by_nin(self, nin: str):
+    def find_mobiles_by_nin(self, nin: str) -> Any:  # noqa: ANN401
         try:
             result = self._find_mobiles_by_NIN.delay(nin)
             result = result.get(timeout=10)  # Lower timeout than standard gunicorn worker timeout (25)

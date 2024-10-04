@@ -25,10 +25,10 @@ class TestInitConfig(unittest.TestCase):
     def setUp(self) -> None:
         self.data_dir = PurePath(__file__).with_name("data")
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         os.environ.clear()
 
-    def test_YamlConfig(self):
+    def test_YamlConfig(self) -> None:
         os.environ["EDUID_CONFIG_NS"] = "/eduid/test/app_one"
         os.environ["EDUID_CONFIG_COMMON_NS"] = "/eduid/test/common"
         os.environ["EDUID_CONFIG_YAML"] = str(self.data_dir / "test.yaml")
@@ -49,7 +49,7 @@ class TestInitConfig(unittest.TestCase):
         assert config_two.number == 10
         assert config_two.only_default == 19
 
-    def test_YamlConfig_interpolation(self):
+    def test_YamlConfig_interpolation(self) -> None:
         os.environ["EDUID_CONFIG_NS"] = "/eduid/test/test_interpolation"
         os.environ["EDUID_CONFIG_COMMON_NS"] = "/eduid/test/common"
         os.environ["EDUID_CONFIG_YAML"] = str(self.data_dir / "test.yaml")
@@ -58,7 +58,7 @@ class TestInitConfig(unittest.TestCase):
         assert config.number == 3
         assert config.foo == "hi world"
 
-    def test_YamlConfig_missing_value(self):
+    def test_YamlConfig_missing_value(self) -> None:
         os.environ["EDUID_CONFIG_NS"] = "/eduid/test/test_missing_value"
         os.environ["EDUID_CONFIG_COMMON_NS"] = "/eduid/test/common"
         os.environ["EDUID_CONFIG_YAML"] = str(self.data_dir / "test.yaml")
@@ -75,7 +75,7 @@ class TestInitConfig(unittest.TestCase):
             }
         ], f"Wrong error message: {exc_info.value.errors()}"
 
-    def test_YamlConfig_wrong_type(self):
+    def test_YamlConfig_wrong_type(self) -> None:
         os.environ["EDUID_CONFIG_NS"] = "/eduid/test/test_wrong_type"
         os.environ["EDUID_CONFIG_COMMON_NS"] = "/eduid/test/common"
         os.environ["EDUID_CONFIG_YAML"] = str(self.data_dir / "test.yaml")
@@ -92,7 +92,7 @@ class TestInitConfig(unittest.TestCase):
             }
         ], f"Wrong error message: {exc_info.value.errors()}"
 
-    def test_YamlConfig_unknown_data(self):
+    def test_YamlConfig_unknown_data(self) -> None:
         """Unknown data should not be rejected because it is an operational nightmare"""
         os.environ["EDUID_CONFIG_NS"] = "/eduid/test/test_unknown_data"
         os.environ["EDUID_CONFIG_COMMON_NS"] = "/eduid/test/common"
@@ -102,7 +102,7 @@ class TestInitConfig(unittest.TestCase):
         assert config.number == 0xFF
         assert config.foo == "bar"
 
-    def test_YamlConfig_mixed_case_keys(self):
+    def test_YamlConfig_mixed_case_keys(self) -> None:
         """For legacy reasons, all keys should be lowercased"""
         os.environ["EDUID_CONFIG_NS"] = "/eduid/test/test_mixed_case_keys"
         os.environ["EDUID_CONFIG_COMMON_NS"] = "/eduid/test/common"

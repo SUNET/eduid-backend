@@ -106,7 +106,7 @@ class OtherDevice(BaseModel):
     def to_dict(self) -> dict[str, Any]:
         return self.dict()
 
-    def to_json(self):
+    def to_json(self) -> str:
         """For debug logging ONLY. Redacts the response code if set."""
         data = self.to_dict()
         if data["device2"]["response_code"]:
@@ -119,7 +119,7 @@ class OtherDevice(BaseModel):
 
 
 class OtherDeviceDB(BaseDB):
-    def __init__(self, db_uri: str, db_name: str = "eduid_idp", collection: str = "other_device"):
+    def __init__(self, db_uri: str, db_name: str = "eduid_idp", collection: str = "other_device") -> None:
         super().__init__(db_uri, db_name, collection=collection)
 
         indexes = {

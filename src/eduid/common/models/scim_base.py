@@ -1,6 +1,6 @@
 from datetime import datetime
 from enum import Enum
-from typing import Annotated, Any
+from typing import Annotated, Any, TypeVar
 from uuid import UUID
 
 from bson import ObjectId
@@ -98,21 +98,24 @@ class EduidBaseModel(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True, populate_by_name=True)
 
 
+TSubResource = TypeVar("TSubResource", bound="SubResource")
+
+
 class SubResource(EduidBaseModel):
     value: UUID
     ref: str = Field(alias="$ref")
     display: str
 
     @property
-    def is_user(self):
-        return self.ref and "/Users/" in self.ref
+    def is_user(self) -> bool:
+        return self.ref is not None and "/Users/" in self.ref
 
     @property
-    def is_group(self):
-        return self.ref and "/Groups/" in self.ref
+    def is_group(self) -> bool:
+        return self.ref is not None and "/Groups/" in self.ref
 
     @classmethod
-    def from_mapping(cls, data):
+    def from_mapping(cls: type[TSubResource], data: object) -> TSubResource:
         return cls.model_validate(data)
 
 

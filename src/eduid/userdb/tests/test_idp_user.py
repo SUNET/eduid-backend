@@ -9,7 +9,7 @@ __author__ = "lundberg"
 
 
 class TestIdpUser(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.saml_attribute_settings = SAMLAttributeSettings(
             default_eppn_scope="example.com",
@@ -21,7 +21,7 @@ class TestIdpUser(TestCase):
             authn_context_class=EduidAuthnContextClass.PASSWORD_PT,
         )
 
-    def test_idp_user_to_attributes_all(self):
+    def test_idp_user_to_attributes_all(self) -> None:
         idp_user = IdPUser.from_dict(UserFixtures().mocked_user_standard.to_dict())
         attributes = idp_user.to_saml_attributes(settings=self.saml_attribute_settings)
 
@@ -37,6 +37,7 @@ class TestIdpUser(TestCase):
                     continue
             self.assertIsNotNone(attributes.get(key), f"{key} is unexpectedly None")
 
+        assert idp_user.ladok
         expected = {
             "c": "se",
             "cn": "John Smith",
@@ -60,7 +61,7 @@ class TestIdpUser(TestCase):
         }
         assert normalised_data(expected) == normalised_data(attributes), f"expected did not match {attributes}"
 
-    def test_idp_user_chosen_given_name(self):
+    def test_idp_user_chosen_given_name(self) -> None:
         idp_user = IdPUser.from_dict(UserFixtures().mocked_user_standard.to_dict())
         idp_user.given_name = "John Jack"
         idp_user.chosen_given_name = "Jack"
@@ -79,13 +80,13 @@ class TestIdpUser(TestCase):
         assert attributes["displayName"] == "John Jack Smith"
         assert attributes["cn"] == "John Jack Smith"
 
-    def test_idp_user_display_name(self):
+    def test_idp_user_display_name(self) -> None:
         idp_user = IdPUser.from_dict(UserFixtures().mocked_user_standard.to_dict())
         attributes = idp_user.to_saml_attributes(settings=self.saml_attribute_settings)
         assert attributes["displayName"] == "John Smith"
         assert attributes["cn"] == "John Smith"
 
-    def test_idp_user_display_name_no_given_name(self):
+    def test_idp_user_display_name_no_given_name(self) -> None:
         idp_user = IdPUser.from_dict(UserFixtures().mocked_user_standard.to_dict())
         idp_user.given_name = None
         idp_user.chosen_given_name = None

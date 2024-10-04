@@ -33,7 +33,7 @@ class AuthnInfoDB(BaseDB):
     TODO: We already have a database class to access this collection, in the IdP. Consolidate the two.
     """
 
-    def __init__(self, db_uri, db_name="eduid_idp_authninfo", collection="authn_info"):
+    def __init__(self, db_uri: str, db_name: str = "eduid_idp_authninfo", collection: str = "authn_info") -> None:
         super().__init__(db_uri, db_name, collection)
 
     def get_authn_info(self, user: User) -> Mapping[ElementKey, AuthnInfoElement]:

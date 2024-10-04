@@ -176,7 +176,7 @@ class RevokedCredential(Credential, _RevokedCredentialRequired):
 
 
 class CredentialDB(BaseDB):
-    def __init__(self, db_uri: str, db_name: str = "vccs_auth_credstore", collection: str = "credentials"):
+    def __init__(self, db_uri: str, db_name: str = "vccs_auth_credstore", collection: str = "credentials") -> None:
         super().__init__(db_uri, db_name, collection=collection)
 
         indexes = {

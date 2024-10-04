@@ -10,7 +10,7 @@ class LadokTest(TestCase):
     def setUp(self) -> None:
         self.external_uuid = uuid4()
 
-    def test_create_ladok(self):
+    def test_create_ladok(self) -> None:
         university = University(
             ladok_name="AB", name=UniversityName(sv="Lärosätesnamn", en="University Name"), created_by="test created_by"
         )

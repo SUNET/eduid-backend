@@ -13,6 +13,7 @@ import eduid.userdb.element
 import eduid.userdb.exceptions
 from eduid.common.testing_base import normalised_data
 from eduid.userdb import PhoneNumber
+from eduid.userdb.element import ElementKey
 from eduid.userdb.event import EventList
 from eduid.userdb.tou import ToUEvent
 
@@ -55,42 +56,43 @@ class SomeEventList(EventList[ToUEvent]):
 
 
 class TestEventList(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.empty = SomeEventList()
         self.one = SomeEventList.from_list_of_dicts([_one_dict])
         self.two = SomeEventList.from_list_of_dicts([_one_dict, _two_dict])
         self.three = SomeEventList.from_list_of_dicts([_one_dict, _two_dict, _three_dict])
 
-    def test_init_bad_data(self):
+    def test_init_bad_data(self) -> None:
         with pytest.raises(ValidationError):
             SomeEventList(elements="bad input data")
         with pytest.raises(ValidationError):
             SomeEventList(elements=["bad input data"])
 
-    def test_to_list(self):
+    def test_to_list(self) -> None:
         self.assertEqual([], self.empty.to_list(), list)
         self.assertIsInstance(self.one.to_list(), list)
 
         self.assertEqual(1, len(self.one.to_list()))
 
-    def test_to_list_of_dicts(self):
+    def test_to_list_of_dicts(self) -> None:
         self.assertEqual([], self.empty.to_list_of_dicts(), list)
 
         _one_dict_copy = deepcopy(_one_dict)  # Update id to event_id before comparing dicts
         _one_dict_copy["event_id"] = _one_dict_copy.pop("id")
         self.assertEqual([_one_dict_copy], self.one.to_list_of_dicts())
 
-    def test_find(self):
+    def test_find(self) -> None:
         match = self.one.find(self.one.to_list()[0].key)
+        assert match
         self.assertIsInstance(match, ToUEvent)
         self.assertEqual(match.version, _one_dict["version"])
 
-    def test_add(self):
+    def test_add(self) -> None:
         second = self.two.to_list()[-1]
         self.one.add(second)
         self.assertEqual(self.one.to_list_of_dicts(), self.two.to_list_of_dicts())
 
-    def test_add_duplicate_key(self):
+    def test_add_duplicate_key(self) -> None:
         data = deepcopy(_two_dict)
         data["version"] = "other version"
         dup = ToUEvent.from_dict(data)
@@ -108,26 +110,26 @@ class TestEventList(TestCase):
             ]
         ), f"Wrong error message: {exc_info.value.errors()}"
 
-    def test_add_event(self):
+    def test_add_event(self) -> None:
         third = self.three.to_list_of_dicts()[-1]
         this = SomeEventList.from_list_of_dicts([_one_dict, _two_dict, third])
         self.assertEqual(this.to_list_of_dicts(), self.three.to_list_of_dicts())
 
-    def test_add_wrong_type(self):
+    def test_add_wrong_type(self) -> None:
         new = PhoneNumber(number="+4612345678")
         with pytest.raises(ValidationError):
-            self.one.add(new)
+            self.one.add(new)  # type: ignore[arg-type]
 
-    def test_remove(self):
+    def test_remove(self) -> None:
         self.three.remove(self.three.to_list()[-1].key)
         now_two = self.three
         self.assertEqual(self.two.to_list_of_dicts(), now_two.to_list_of_dicts())
 
-    def test_remove_unknown(self):
+    def test_remove_unknown(self) -> None:
         with self.assertRaises(eduid.userdb.exceptions.UserDBValueError):
-            self.one.remove("+46709999999")
+            self.one.remove(ElementKey("+46709999999"))
 
-    def test_unknown_event_type(self):
+    def test_unknown_event_type(self) -> None:
         e1 = {
             "event_type": "unknown_event",
             "id": str(bson.ObjectId()),
@@ -151,7 +153,7 @@ class TestEventList(TestCase):
             ],
         ), f"Wrong error message: {exc_info.value.errors()}"
 
-    def test_modified_ts_addition(self):
+    def test_modified_ts_addition(self) -> None:
         _event_no_modified_ts = {
             "event_type": "tou_event",
             "version": "1",
@@ -171,10 +173,10 @@ class TestEventList(TestCase):
             else:
                 self.assertIsInstance(event["modified_ts"], datetime)
                 assert event["modified_ts"] == event["created_ts"]
-        for event in el.to_list():
-            self.assertIsInstance(event.modified_ts, datetime)
+        for event2 in el.to_list():
+            self.assertIsInstance(event2.modified_ts, datetime)
 
-    def test_update_modified_ts(self):
+    def test_update_modified_ts(self) -> None:
         _event_modified_ts = {
             "event_type": "tou_event",
             "version": "1",

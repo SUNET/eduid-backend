@@ -13,7 +13,7 @@ __author__ = "lundberg"
 class Neo4jDB:
     """Simple wrapper to allow us to define the api"""
 
-    def __init__(self, db_uri: str, config: Mapping[str, Any] | None = None):
+    def __init__(self, db_uri: str, config: Mapping[str, Any] | None = None) -> None:
         if not db_uri:
             raise ValueError("db_uri not supplied")
 
@@ -69,14 +69,14 @@ class Neo4jDB:
     def driver(self) -> Driver:
         return self._driver
 
-    def close(self):
+    def close(self) -> None:
         self.driver.close()
 
 
 class BaseGraphDB(ABC):
     """Base class for common db operations"""
 
-    def __init__(self, db_uri: str, config: dict[str, Any] | None = None):
+    def __init__(self, db_uri: str, config: dict[str, Any] | None = None) -> None:
         self._db_uri = db_uri
         self._db = Neo4jDB(db_uri=self._db_uri, config=config)
         self.db_setup()
@@ -85,7 +85,7 @@ class BaseGraphDB(ABC):
         return f"<eduID {self.__class__.__name__}: {self._db.sanitized_uri}>"
 
     @property
-    def db(self):
+    def db(self) -> Neo4jDB:
         return self._db
 
     def db_setup(self) -> None:

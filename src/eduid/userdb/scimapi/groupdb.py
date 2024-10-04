@@ -51,7 +51,7 @@ class ScimApiGroup(ScimApiResourceBase, _ScimApiGroupRequired):
     extensions: GroupExtensions = field(default_factory=lambda: GroupExtensions())
     graph: GraphGroup = field(init=False)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         self.graph = GraphGroup(identifier=str(self.scim_id), display_name=self.display_name)
 
     @property
@@ -59,7 +59,7 @@ class ScimApiGroup(ScimApiResourceBase, _ScimApiGroupRequired):
         return self.graph.members
 
     @members.setter
-    def members(self, members: Iterable[GraphGroup | GraphUser]):
+    def members(self, members: Iterable[GraphGroup | GraphUser]) -> None:
         members = set(members)
         self.graph = replace(self.graph, members=members)
 
@@ -71,7 +71,7 @@ class ScimApiGroup(ScimApiResourceBase, _ScimApiGroupRequired):
         return self.graph.owners
 
     @owners.setter
-    def owners(self, owners: Iterable[GraphGroup | GraphUser]):
+    def owners(self, owners: Iterable[GraphGroup | GraphUser]) -> None:
         owners = set(owners)
         self.graph = replace(self.graph, owners=owners)
 
@@ -110,7 +110,7 @@ class ScimApiGroupDB(ScimApiBaseDB):
         mongo_collection: str,
         neo4j_config: dict[str, Any] | None = None,
         setup_indexes: bool = True,
-    ):
+    ) -> None:
         super().__init__(mongo_uri, mongo_dbname, collection=mongo_collection)
         self.graphdb = GroupDB(db_uri=neo4j_uri, scope=scope, config=neo4j_config)
         logger.info(f"{self} initialised")
@@ -268,7 +268,9 @@ class ScimApiGroupDB(ScimApiBaseDB):
             return group
         return None
 
-    def get_groups_by_property(self, key: str, value: str | int, skip=0, limit=100) -> tuple[list[ScimApiGroup], int]:
+    def get_groups_by_property(
+        self, key: str, value: str | int, skip: int = 0, limit: int = 100
+    ) -> tuple[list[ScimApiGroup], int]:
         docs, count = self._get_documents_and_count_by_filter({key: value}, skip=skip, limit=limit)
         if not docs:
             return [], 0

@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 class MongoTemporaryInstanceReplicaSet(MongoTemporaryInstance):
     rs_initialized = False
 
-    def __init__(self, max_retry_seconds: int):
+    def __init__(self, max_retry_seconds: int) -> None:
         super().__init__(max_retry_seconds=max_retry_seconds)
 
     @property
@@ -87,12 +87,12 @@ class MongoTemporaryInstanceReplicaSet(MongoTemporaryInstance):
         return cast(MongoTemporaryInstanceReplicaSet, super().get_instance(max_retry_seconds=max_retry_seconds))
 
     @property
-    def uri(self):
+    def uri(self) -> str:
         return f"mongodb://localhost:{self.port}"
 
 
 class SMPTDFixTemporaryInstance(EduidTemporaryInstance):
-    def __init__(self, max_retry_seconds: int):
+    def __init__(self, max_retry_seconds: int) -> None:
         super().__init__(max_retry_seconds=max_retry_seconds)
 
     @property
@@ -138,7 +138,7 @@ class EduidQueueTestCase(TestCase):
     def tearDown(self) -> None:
         self.client_db._drop_whole_collection()
 
-    def _init_db(self):
+    def _init_db(self) -> None:
         db_init_try = 0
         while True:
             try:
@@ -164,7 +164,7 @@ class QueueAsyncioTest(EduidQueueTestCase, IsolatedAsyncioTestCase):
             if not task.done():
                 task.cancel()
 
-    async def _init_async_db(self):
+    async def _init_async_db(self) -> None:
         db_init_try = 0
         while True:
             try:
@@ -180,7 +180,7 @@ class QueueAsyncioTest(EduidQueueTestCase, IsolatedAsyncioTestCase):
                 continue
 
     @staticmethod
-    def create_queue_item(expires_at: datetime, discard_at: datetime, payload: Payload):
+    def create_queue_item(expires_at: datetime, discard_at: datetime, payload: Payload) -> QueueItem:
         sender_info = SenderInfo(hostname="localhost", node_id="test")
         return QueueItem(
             version=1,
@@ -191,7 +191,7 @@ class QueueAsyncioTest(EduidQueueTestCase, IsolatedAsyncioTestCase):
             payload=payload,
         )
 
-    async def _assert_item_gets_processed(self, queue_item: QueueItem, retry: bool = False):
+    async def _assert_item_gets_processed(self, queue_item: QueueItem, retry: bool = False) -> None:
         end_time = utc_now() + timedelta(seconds=10)
         fetched: QueueItem | None = None
         while utc_now() < end_time:
@@ -209,7 +209,7 @@ class QueueAsyncioTest(EduidQueueTestCase, IsolatedAsyncioTestCase):
 
 class IsolatedWorkerDBMixin(MixinBase):
     # override run so we can mock cache of database clients
-    async def run(self):
+    async def run(self) -> None:
         # Init db in the correct loop
         # Make sure the isolated test cases get to create their own mongodb clients
         with patch("eduid.userdb.db.async_db.AsyncClientCache._clients", {}):

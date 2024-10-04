@@ -36,7 +36,7 @@ def require_support_personnel(
     f: Callable[..., TRequireSupportPersonnelResult],
 ) -> Callable[..., TRequireSupportPersonnelResult]:
     @wraps(f)
-    def require_support_decorator(*args: Any, **kwargs: Any):
+    def require_support_decorator(*args: Any, **kwargs: Any) -> TRequireSupportPersonnelResult:
         user = get_user()
         # If the logged in user is whitelisted then we
         # pass on the request to the decorated view

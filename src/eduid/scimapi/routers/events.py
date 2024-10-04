@@ -5,7 +5,7 @@ from fastapi import Response
 from eduid.common.fastapi.context_request import ContextRequest
 from eduid.common.models.scim_base import SCIMResourceType
 from eduid.scimapi.api_router import APIRouter
-from eduid.scimapi.context_request import ScimApiRoute
+from eduid.scimapi.context_request import ScimApiContext, ScimApiRoute
 from eduid.scimapi.exceptions import BadRequest, ErrorDetail, NotFound
 from eduid.scimapi.models.event import EventCreateRequest, EventResponse
 from eduid.scimapi.routers.utils.events import db_event_to_response, get_scim_referenced
@@ -31,6 +31,8 @@ async def on_get(req: ContextRequest, resp: Response, scim_id: str | None = None
     if scim_id is None:
         raise BadRequest(detail="Not implemented")
     req.app.context.logger.info(f"Fetching event {scim_id}")
+    assert isinstance(req.context, ScimApiContext)  # please mypy
+    assert req.context.eventdb is not None  # please mypy
     db_event = req.context.eventdb.get_event_by_scim_id(scim_id)
     if not db_event:
         raise NotFound(detail="Event not found")
@@ -90,6 +92,10 @@ async def on_post(req: ContextRequest, resp: Response, create_request: EventCrea
     if create_request.nutid_event_v1.timestamp:
         _timestamp = create_request.nutid_event_v1.timestamp
     _expires_at = utc_now() + timedelta(days=1)
+
+    assert isinstance(req.context, ScimApiContext)  # please mypy
+    assert req.context.data_owner is not None  # please mypy
+    assert req.context.eventdb is not None  # please mypy
 
     event = ScimApiEvent(
         resource=ScimApiEventResource(

@@ -22,7 +22,7 @@ from eduid.webapp.common.session.namespaces import SP_AuthnRequest
 logger = logging.getLogger(__name__)
 
 
-def get_saml2_config(module_path: str, name="SAML_CONFIG") -> SPConfig:
+def get_saml2_config(module_path: str, name: str = "SAML_CONFIG") -> SPConfig:
     """Load SAML2 config file, in the form of a Python module."""
     spec = importlib.util.spec_from_file_location("saml2_settings", module_path)
     if spec is None:

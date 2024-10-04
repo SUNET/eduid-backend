@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 class AsyncQueueDB(AsyncBaseDB, QueuePayloadMixin):
-    def __init__(self, db_uri: str, collection: str, db_name: str = "eduid_queue"):
+    def __init__(self, db_uri: str, collection: str, db_name: str = "eduid_queue") -> None:
         super().__init__(db_uri, collection=collection, db_name=db_name)
 
         self.handlers: dict[str, type[Payload]] = dict()
@@ -33,14 +33,14 @@ class AsyncQueueDB(AsyncBaseDB, QueuePayloadMixin):
         await instance.setup_indexes(indexes)
         return instance
 
-    def parse_queue_item(self, doc: Mapping, parse_payload: bool = True):
+    def parse_queue_item(self, doc: Mapping, parse_payload: bool = True) -> QueueItem:
         item = QueueItem.from_dict(doc)
         if parse_payload is False:
             # Return the item with the generic RawPayload
             return item
         return replace(item, payload=self._load_payload(item))
 
-    async def grab_item(self, item_id: str | ObjectId, worker_name: str, regrab=False) -> QueueItem | None:
+    async def grab_item(self, item_id: str | ObjectId, worker_name: str, regrab: bool = False) -> QueueItem | None:
         """
         :param item_id: document id
         :param worker_name: current workers name

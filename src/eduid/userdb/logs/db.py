@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 class LogDB(BaseDB):
-    def __init__(self, db_uri: str, collection: str):
+    def __init__(self, db_uri: str, collection: str) -> None:
         db_name = "eduid_logs"
         # Make sure writes reach a majority of replicas
         super().__init__(db_uri, db_name, collection, safe_writes=True)
@@ -52,7 +52,7 @@ class FidoMetadataLog(LogDB):
 
 
 class UserChangeLog(LogDB):
-    def __init__(self, db_uri: str, collection: str = "user_change_log"):
+    def __init__(self, db_uri: str, collection: str = "user_change_log") -> None:
         super().__init__(db_uri, collection)
 
     def get_by_eppn(self, eppn: str) -> list[UserChangeLogElement]:
@@ -61,7 +61,7 @@ class UserChangeLog(LogDB):
 
 
 class ManagedAccountLog(LogDB):
-    def __init__(self, db_uri: str, collection: str = "managed_account_log"):
+    def __init__(self, db_uri: str, collection: str = "managed_account_log") -> None:
         super().__init__(db_uri, collection)
         # Create in index
         indexes = {"expiration-time": {"key": [("expire_at", 1)], "expireAfterSeconds": 0}}

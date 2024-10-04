@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 
 class VerificationProblem(Exception):
-    def __init__(self, msg: str):
+    def __init__(self, msg: str) -> None:
         self.msg = msg
 
 

@@ -10,13 +10,14 @@ from eduid.webapp.common.session.testing import RedisTemporaryInstance
 
 
 class TestSession(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.redis_instance = RedisTemporaryInstance.get_instance()
+        assert isinstance(self.redis_instance, RedisTemporaryInstance)
         _host, _port, _db = self.redis_instance.get_params()
         redis_cfg = RedisConfig(host=_host, port=_port, db=_db)
         self.manager = SessionManager(redis_cfg, app_secret="s3cr3t")
 
-    def test_create_session(self):
+    def test_create_session(self) -> None:
         """Test creating a session and reading it back"""
         _meta = SessionMeta.new(app_secret=self.manager.secret)
 
@@ -28,7 +29,7 @@ class TestSession(TestCase):
         session2 = self.manager.get_session(meta=_meta, new=False)
         self.assertEqual(session2["foo"], session1["foo"])
 
-    def test_clear_session(self):
+    def test_clear_session(self) -> None:
         """Test creating a session, clearing it and verifying it is gone"""
         _meta = SessionMeta.new(app_secret=self.manager.secret)
 
@@ -47,7 +48,7 @@ class TestSession(TestCase):
         with self.assertRaises(KeyError):
             self.manager.get_session(meta=_meta, new=False)
 
-    def test_decrypt_session(self):
+    def test_decrypt_session(self) -> None:
         data = (
             '{"v2": "afNhp/JEYbt5Me/ain90IkVYrG3pYFRV018fOI+rT9B5E5Tf2fRac7inBH+SbkbF2dkfbWDD2nIWITI5y2ti73kZ'
             "gj1NqkFMMxnSW7cLVuIgUoVF2S+ZTzgF2pfUOyV5QNOkG2HzFE5BTF/G3C1yImPy0dz2rtAJUMtojjs7fFovnF6PGYm+8Lef"
@@ -69,8 +70,8 @@ class TestSession(TestCase):
         )
         assert meta.session_id == "36d4b3272d57b997be7f312ba0b80331747820ce51471566dd0bc3de0bc07a46"
 
-        session = RedisEncryptedSession(
-            conn=None,
+        session: RedisEncryptedSession = RedisEncryptedSession(
+            conn=self.redis_instance.conn,
             db_key=meta.session_id,
             encryption_key=meta.derive_key(app_secret, "nacl", nacl.secret.SecretBox.KEY_SIZE),
             ttl=10,
@@ -78,13 +79,13 @@ class TestSession(TestCase):
         decrypted = session.decrypt_data(data)
         assert decrypted["flag"] == "dirty session to force saving to redis 0.9806122964128207"
 
-    def test_usable_token_encoding(self):
+    def test_usable_token_encoding(self) -> None:
         """Pysaml uses the token as an XML NCName so it can't contain some characters."""
         for i in range(1024):
             _meta = SessionMeta.new(app_secret=self.manager.secret)
             self.assertRegex(_meta.cookie_val, "^[a-z][a-zA-Z0-9.]+$")
 
-    def test_clobbered_session(self):
+    def test_clobbered_session(self) -> None:
         """Test what would happen if two requests are processed simultaneously"""
         _meta = SessionMeta.new(app_secret=self.manager.secret)
         session1 = self.manager.get_session(meta=_meta, new=True)

@@ -167,7 +167,7 @@ def generate_suggested_password() -> str:
     return password
 
 
-def send_termination_mail(user):
+def send_termination_mail(user: User) -> None:
     """
     :param user: User object
     :type user: User

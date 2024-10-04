@@ -205,7 +205,7 @@ class VerifiedElement(Element, ABC):
     proofing_method: Enum | None = None
     proofing_version: str | None = None
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"<eduID {self.__class__.__name__}(key={repr(self.key)}): verified={self.is_verified}>"
 
     @classmethod
@@ -245,7 +245,7 @@ class PrimaryElement(VerifiedElement, ABC):
 
     is_primary: bool = Field(default=False, alias="primary")  # primary is the old name
 
-    def __setattr__(self, key: str, value: Any):
+    def __setattr__(self, key: str, value: object) -> None:
         """
         raise PrimaryElementViolation when trying to set a primary element as unverified
         """
@@ -254,7 +254,7 @@ class PrimaryElement(VerifiedElement, ABC):
 
         super().__setattr__(key, value)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return (
             f"<eduID {self.__class__.__name__}(key={repr(self.key)}): "
             f"primary={self.is_primary}, verified={self.is_verified}>"
@@ -274,6 +274,7 @@ class PrimaryElement(VerifiedElement, ABC):
 
 ListElement = TypeVar("ListElement", bound=Element)
 MatchingElement = TypeVar("MatchingElement", bound=Element)
+TElementList = TypeVar("TElementList", bound="ElementList")
 
 
 class ElementList(BaseModel, Generic[ListElement], ABC):
@@ -286,7 +287,7 @@ class ElementList(BaseModel, Generic[ListElement], ABC):
     elements: list[ListElement] = Field(default=[])
     model_config = ConfigDict(validate_assignment=True, extra="forbid")
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "<eduID {!s}: {!r}>".format(self.__class__.__name__, getattr(self, "elements", None))
 
     @field_validator("elements", mode="before")
@@ -312,7 +313,7 @@ class ElementList(BaseModel, Generic[ListElement], ABC):
         return values
 
     @classmethod
-    def from_list_of_dicts(cls, items):
+    def from_list_of_dicts(cls: type[TElementList], items: list[dict[str, Any]]) -> TElementList:
         # must be implemented by subclass to get correct type information
         raise NotImplementedError()
 
@@ -349,7 +350,7 @@ class ElementList(BaseModel, Generic[ListElement], ABC):
             raise EduIDUserDBError("More than one element found")
         return res[0]
 
-    def add(self, element: ListElement):
+    def add(self, element: ListElement) -> None:
         """
         Add an element to the list.
 
@@ -421,7 +422,7 @@ class PrimaryElementList(VerifiedElementList[ListElement], Generic[ListElement],
     """
 
     @classmethod
-    def _validate_elements(cls, values: list[ListElement]):
+    def _validate_elements(cls, values: list[ListElement]) -> list[ListElement]:
         """
         Validate elements. Since the 'elements' property is defined on subclasses
         (to get the right type information), a pydantic validator can't be placed here

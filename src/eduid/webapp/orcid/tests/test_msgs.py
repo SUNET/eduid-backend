@@ -4,7 +4,7 @@ from eduid.webapp.orcid.helpers import OrcidMsg
 
 
 class MessagesTests(unittest.TestCase):
-    def test_messages(self):
+    def test_messages(self) -> None:
         """"""
         self.assertEqual(OrcidMsg.already_connected.value, "orc.already_connected")
         self.assertEqual(OrcidMsg.authz_error.value, "orc.authorization_fail")

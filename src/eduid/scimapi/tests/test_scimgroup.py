@@ -7,6 +7,7 @@ from typing import Any
 from uuid import UUID, uuid4
 
 from bson import ObjectId
+from httpx import Response
 
 from eduid.common.config.base import DataOwnerName
 from eduid.common.models.scim_base import Meta, SCIMResourceType, SCIMSchema, WeakVersion
@@ -55,8 +56,9 @@ class TestGroupResource(ScimApiTestCase):
         super().setUp()
         self.groupdb = self.context.get_groupdb(DataOwnerName("eduid.se"))
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         super().tearDown()
+        assert self.groupdb
         self.groupdb._drop_whole_collection()
 
     def add_group(self, scim_id: UUID, display_name: str, extensions: GroupExtensions | None = None) -> ScimApiGroup:
@@ -88,7 +90,7 @@ class TestGroupResource(ScimApiTestCase):
         expected_group: ScimApiGroup | None = None,
         expected_num_resources: int | None = None,
         expected_total_results: int | None = None,
-    ):
+    ) -> dict:
         logger.info(f"Searching for group(s) using filter {repr(filter)}")
         req = {
             "schemas": [SCIMSchema.API_MESSAGES_20_SEARCH_REQUEST.value],
@@ -145,10 +147,10 @@ class TestGroupResource(ScimApiTestCase):
 
         return resources
 
-    def _assertGroupUpdateSuccess(self, req: Mapping, response, group: ScimApiGroup):
+    def _assertGroupUpdateSuccess(self, req: Mapping, response: Response, group: ScimApiGroup) -> None:
         """Function to validate successful responses to SCIM calls that update a group according to a request."""
         if response.json().get("schemas") == [SCIMSchema.ERROR.value]:
-            self.fail(f"Got SCIM error parsed_response ({response.status}):\n{response.json}")
+            self.fail(f"Got SCIM error parsed_response ({response.status_code}):\n{response.json}")
 
         expected_schemas = req.get("schemas", [SCIMSchema.CORE_20_GROUP.value])
         if (
@@ -181,12 +183,13 @@ class TestGroupResource(ScimApiTestCase):
 
 
 class TestGroupResource_GET(TestGroupResource):
-    def test_get_groups(self):
+    def test_get_groups(self) -> None:
         for i in range(9):
             self.add_group(uuid4(), f"Test Group {i}")
         response = self.client.get(url="/Groups", headers=self.headers)
         self.assertEqual([SCIMSchema.API_MESSAGES_20_LIST_RESPONSE.value], response.json().get("schemas"))
         resources = response.json().get("Resources")
+        assert self.groupdb
         expected_num_resources = self.groupdb.graphdb.db.count_nodes()
         self.assertEqual(
             expected_num_resources,
@@ -199,18 +202,18 @@ class TestGroupResource_GET(TestGroupResource):
             f"Response totalResults does not match number of groups in the database: {expected_num_resources}",
         )
 
-    def test_get_group(self):
+    def test_get_group(self) -> None:
         db_group = self.add_group(uuid4(), "Test Group 1")
         response = self.client.get(url=f"/Groups/{db_group.scim_id}", headers=self.headers)
         self._assertGroupUpdateSuccess({"members": []}, response, db_group)
 
-    def test_get_group_not_found(self):
+    def test_get_group_not_found(self) -> None:
         response = self.client.get(url=f"/Groups/{uuid4()}", headers=self.headers)
         self._assertScimError(response.json(), status=404, detail="Group not found")
 
 
 class TestGroupResource_POST(TestGroupResource):
-    def test_create_group(self):
+    def test_create_group(self) -> None:
         req = {
             "schemas": [SCIMSchema.CORE_20_GROUP.value],
             "displayName": "Test Group 1",
@@ -220,6 +223,8 @@ class TestGroupResource_POST(TestGroupResource):
         response = self.client.post(url="/Groups/", json=req, headers=self.headers)
 
         # Load the created group from the database, ensuring it was in fact created
+        assert self.groupdb
+        assert isinstance(req["displayName"], str)  # please mypy
         _groups, _count = self.groupdb.get_groups_by_property("display_name", req["displayName"])
         self.assertEqual(1, _count, "More or less than one group found in the database after create")
         db_group = _groups[0]
@@ -227,13 +232,14 @@ class TestGroupResource_POST(TestGroupResource):
         self._assertGroupUpdateSuccess(req, response, db_group)
 
         # check that the action resulted in an event in the database
+        assert self.eventdb
         events = self.eventdb.get_events_by_resource(SCIMResourceType.GROUP, db_group.scim_id)
         assert len(events) == 1
         event = events[0]
         assert event.resource.external_id == req["externalId"]
         assert event.data["status"] == EventStatus.CREATED.value
 
-    def test_schema_violation(self):
+    def test_schema_violation(self) -> None:
         # request missing displayName
         req = {"schemas": [SCIMSchema.CORE_20_GROUP.value], "members": []}
         response = self.client.post(url="/Groups/", json=req, headers=self.headers)
@@ -252,7 +258,7 @@ class TestGroupResource_POST(TestGroupResource):
 
 
 class TestGroupResource_PUT(TestGroupResource):
-    def test_update_group(self):
+    def test_update_group(self) -> None:
         db_group = self.add_group(uuid4(), "Test Group 1")
         subgroup = self.add_group(uuid4(), "Test Group 2")
         user = self.add_user(identifier=str(uuid4()), external_id="not-used")
@@ -279,7 +285,7 @@ class TestGroupResource_PUT(TestGroupResource):
 
         self._assertGroupUpdateSuccess(req, response, db_group)
 
-    def test_update_existing_group(self):
+    def test_update_existing_group(self) -> None:
         db_group = self.add_group(uuid4(), "Test Group 1")
         subgroup = self.add_group(uuid4(), "Test Group 2")
         user = self.add_user(identifier=str(uuid4()), external_id="not-used")
@@ -318,13 +324,14 @@ class TestGroupResource_PUT(TestGroupResource):
         self._assertGroupUpdateSuccess(req, response, db_group)
 
         # check that the action resulted in an event in the database
+        assert self.eventdb
         events = self.eventdb.get_events_by_resource(SCIMResourceType.GROUP, db_group.scim_id)
         assert len(events) == 2
         event = events[0]
         assert event.resource.external_id == req["externalId"]
         assert event.data["status"] == EventStatus.UPDATED.value
 
-    def test_add_member_to_existing_group(self):
+    def test_add_member_to_existing_group(self) -> None:
         db_group = self.add_group(uuid4(), "Test Group 1")
         user = self.add_user(identifier=str(uuid4()), external_id="not-used")
         members = [
@@ -360,15 +367,18 @@ class TestGroupResource_PUT(TestGroupResource):
         response = self.client.put(url=f"/Groups/{db_group.scim_id}", json=req, headers=self.headers)
         self._assertGroupUpdateSuccess(req, response, db_group)
 
-    def test_removing_group_member(self):
+    def test_removing_group_member(self) -> None:
         db_group = self.add_group(uuid4(), "Test Group 1")
         subgroup = self.add_group(uuid4(), "Test Group 2")
         db_group = self.add_member(db_group, subgroup, "Test User")
         user = self.add_user(identifier=str(uuid4()), external_id="not-used")
         db_group = self.add_member(db_group, user, "Test User")
 
+        assert self.groupdb
+
         # Load group to verify it has two members
         _g1 = self.groupdb.get_group_by_scim_id(str(db_group.scim_id))
+        assert _g1
         self.assertEqual(2, len(_g1.graph.members), "Group loaded from database does not have two members")
         self.assertEqual(1, len(_g1.graph.member_users), "Group loaded from database does not have one member user")
         self.assertEqual(1, len(_g1.graph.member_groups), "Group loaded from database does not have one member group")
@@ -395,11 +405,12 @@ class TestGroupResource_PUT(TestGroupResource):
 
         # Load group to verify it has one less member now
         _g2 = self.groupdb.get_group_by_scim_id(str(db_group.scim_id))
+        assert _g2
         self.assertEqual(1, len(_g2.graph.members), "Group loaded from database does not have two members")
         self.assertEqual(1, len(_g2.graph.member_users), "Group loaded from database does not have one member user")
         self.assertEqual(0, len(_g2.graph.member_groups), "Group loaded from database does not have one member group")
 
-    def test_update_group_id_mismatch(self):
+    def test_update_group_id_mismatch(self) -> None:
         db_group = self.add_group(uuid4(), "Test Group 1")
         req = {
             "schemas": [SCIMSchema.CORE_20_GROUP.value],
@@ -410,7 +421,7 @@ class TestGroupResource_PUT(TestGroupResource):
         response = self.client.put(url=f"/Groups/{db_group.scim_id}", json=req, headers=self.headers)
         self._assertScimError(response.json(), detail="Id mismatch")
 
-    def test_update_group_not_found(self):
+    def test_update_group_not_found(self) -> None:
         req = {
             "schemas": [SCIMSchema.CORE_20_GROUP.value],
             "id": str(uuid4()),
@@ -420,7 +431,7 @@ class TestGroupResource_PUT(TestGroupResource):
         response = self.client.put(url=f'/Groups/{req["id"]}', json=req, headers=self.headers)
         self._assertScimError(response.json(), status=404, detail="Group not found")
 
-    def test_version_mismatch(self):
+    def test_version_mismatch(self) -> None:
         db_group = self.add_group(uuid4(), "Test Group 1")
         req = {
             "schemas": [SCIMSchema.CORE_20_GROUP.value],
@@ -431,7 +442,7 @@ class TestGroupResource_PUT(TestGroupResource):
         response = self.client.put(url=f"/Groups/{db_group.scim_id}", json=req, headers=self.headers)
         self._assertScimError(response.json(), detail="Version mismatch")
 
-    def test_update_group_member_does_not_exist(self):
+    def test_update_group_member_does_not_exist(self) -> None:
         db_group = self.add_group(uuid4(), "Test Group 1")
         _user_scim_id = str(uuid4())
         members = [
@@ -451,7 +462,7 @@ class TestGroupResource_PUT(TestGroupResource):
         response = self.client.put(url=f"/Groups/{db_group.scim_id}", json=req, headers=self.headers)
         self._assertScimError(response.json(), detail=f"User {_user_scim_id} not found")
 
-    def test_update_group_subgroup_does_not_exist(self):
+    def test_update_group_subgroup_does_not_exist(self) -> None:
         db_group = self.add_group(uuid4(), "Test Group 1")
         _subgroup_scim_id = str(uuid4())
         members = [
@@ -471,7 +482,7 @@ class TestGroupResource_PUT(TestGroupResource):
         response = self.client.put(url=f"/Groups/{db_group.scim_id}", json=req, headers=self.headers)
         self._assertScimError(response.json(), detail=f"Group {_subgroup_scim_id} not found")
 
-    def test_schema_violation(self):
+    def test_schema_violation(self) -> None:
         # request missing displayName
         req = {
             "schemas": [SCIMSchema.CORE_20_GROUP.value],
@@ -493,20 +504,22 @@ class TestGroupResource_PUT(TestGroupResource):
 
 
 class TestGroupResource_DELETE(TestGroupResource):
-    def test_delete_group(self):
+    def test_delete_group(self) -> None:
         group = self.add_group(uuid4(), "Test Group 1")
+        assert self.groupdb
+        assert self.eventdb
 
         # Verify we can find the group in the database
         db_group1 = self.groupdb.get_group_by_scim_id(str(group.scim_id))
-        self.assertIsNotNone(db_group1)
+        assert db_group1 is not None
 
         self.headers["IF-MATCH"] = make_etag(group.version)
         response = self.client.delete(url=f"/Groups/{group.scim_id}", headers=self.headers)
         self.assertEqual(204, response.status_code)
 
         # Verify the group is no longer in the database
-        db_group2 = self.groupdb.get_group_by_scim_id(group.scim_id)
-        self.assertIsNone(db_group2)
+        db_group2 = self.groupdb.get_group_by_scim_id(str(group.scim_id))
+        assert db_group2 is None
 
         # check that the action resulted in an event in the database
         events = self.eventdb.get_events_by_resource(SCIMResourceType.GROUP, db_group1.scim_id)
@@ -515,50 +528,51 @@ class TestGroupResource_DELETE(TestGroupResource):
         assert event.resource.external_id is None
         assert event.data["status"] == EventStatus.DELETED.value
 
-    def test_version_mismatch(self):
+    def test_version_mismatch(self) -> None:
         group = self.add_group(uuid4(), "Test Group 1")
 
         self.headers["IF-MATCH"] = make_etag(ObjectId())
         response = self.client.delete(url=f"/Groups/{group.scim_id}", headers=self.headers)
         self._assertScimError(response.json(), detail="Version mismatch")
 
-    def test_group_not_found(self):
+    def test_group_not_found(self) -> None:
         response = self.client.delete(url=f"/Groups/{uuid4()}", headers=self.headers)
         self._assertScimError(response.json(), status=404, detail="Group not found")
 
 
 class TestGroupSearchResource(TestGroupResource):
-    def test_search_group_display_name(self):
+    def test_search_group_display_name(self) -> None:
         db_group = self.add_group(uuid4(), "Test Group 1")
         self.add_group(uuid4(), "Test Group 2")
         self._perform_search(filter='displayName eq "Test Group 1"', expected_group=db_group)
 
-    def test_search_group_display_name_not_found(self):
+    def test_search_group_display_name_not_found(self) -> None:
         self._perform_search(filter='displayName eq "Test No Such Group"', expected_total_results=0)
 
-    def test_search_group_display_name_bad_operator(self):
+    def test_search_group_display_name_bad_operator(self) -> None:
         json = self._perform_search(filter="displayName lt 1", return_json=True)
         self._assertScimError(json, scim_type="invalidFilter", detail="Unsupported operator")
 
-    def test_search_group_display_name_not_string(self):
+    def test_search_group_display_name_not_string(self) -> None:
         json = self._perform_search(filter="displayName eq 1", return_json=True)
         self._assertScimError(json, scim_type="invalidFilter", detail="Invalid displayName")
 
-    def test_search_group_unknown_attribute(self):
+    def test_search_group_unknown_attribute(self) -> None:
         json = self._perform_search(filter="no_such_attribute lt 1", return_json=True)
         self._assertScimError(json, scim_type="invalidFilter", detail="Can't filter on attribute no_such_attribute")
 
-    def test_search_group_start_index(self):
+    def test_search_group_start_index(self) -> None:
         for i in range(9):
             self.add_group(uuid4(), "Test Group")
         self._perform_search(
             filter='displayName eq "Test Group"', start=5, expected_num_resources=5, expected_total_results=9
         )
 
-    def test_search_group_count(self):
+    def test_search_group_count(self) -> None:
         for i in range(9):
             self.add_group(uuid4(), "Test Group")
 
+        assert self.groupdb
         groups = self.groupdb.get_groups()
         self.assertEqual(len(groups), 9)
 
@@ -566,24 +580,24 @@ class TestGroupSearchResource(TestGroupResource):
             filter='displayName eq "Test Group"', start=1, count=5, expected_num_resources=5, expected_total_results=9
         )
 
-    def test_search_group_extension_data_attribute_str(self):
+    def test_search_group_extension_data_attribute_str(self) -> None:
         ext = GroupExtensions(data={"some_key": "20072009"})
         db_group = self.add_group(uuid4(), "Test Group with extension", extensions=ext)
 
         self._perform_search(filter='extensions.data.some_key eq "20072009"', expected_group=db_group)
 
-    def test_search_group_extension_data_bad_op(self):
+    def test_search_group_extension_data_bad_op(self) -> None:
         json = self._perform_search(filter='extensions.data.some_key XY "20072009"', return_json=True)
         self._assertScimError(json, detail="Unsupported operator")
 
-    def test_search_group_extension_data_invalid_key(self):
+    def test_search_group_extension_data_invalid_key(self) -> None:
         json = self._perform_search(filter='extensions.data.some.key eq "20072009"', return_json=True)
         self._assertScimError(json, detail="Unsupported extension search key")
 
-    def test_search_group_extension_data_not_found(self):
+    def test_search_group_extension_data_not_found(self) -> None:
         self._perform_search(filter='extensions.data.some_key eq "20072009"', expected_num_resources=0)
 
-    def test_search_group_extension_data_attribute_int(self):
+    def test_search_group_extension_data_attribute_int(self) -> None:
         ext1 = GroupExtensions(data={"some_key": 20072009})
         group = self.add_group(uuid4(), "Test Group with extension", extensions=ext1)
 
@@ -593,7 +607,7 @@ class TestGroupSearchResource(TestGroupResource):
 
         self._perform_search(filter="extensions.data.some_key eq 20072009", expected_group=group)
 
-    def test_search_group_last_modified(self):
+    def test_search_group_last_modified(self) -> None:
         group1 = self.add_group(uuid4(), "Test Group 1")
         group2 = self.add_group(uuid4(), "Test Group 2")
         self.assertGreater(group2.last_modified, group1.last_modified)
@@ -604,15 +618,15 @@ class TestGroupSearchResource(TestGroupResource):
 
         self._perform_search(filter=f'meta.lastModified gt "{group1.last_modified.isoformat()}"', expected_group=group2)
 
-    def test_search_group_last_modified_invalid_datetime_1(self):
+    def test_search_group_last_modified_invalid_datetime_1(self) -> None:
         json = self._perform_search(filter="meta.lastModified ge 1", return_json=True)
         self._assertScimError(json, detail="Invalid datetime")
 
-    def test_search_group_last_modified_invalid_datetime_2(self):
+    def test_search_group_last_modified_invalid_datetime_2(self) -> None:
         json = self._perform_search(filter='meta.lastModified ge "2020-05-12_15:36:99+00:00"', return_json=True)
         self._assertScimError(json, detail="Invalid datetime")
 
-    def test_schema_violation(self):
+    def test_schema_violation(self) -> None:
         # request missing filter
         req = {
             "schemas": [SCIMSchema.API_MESSAGES_20_SEARCH_REQUEST.value],
@@ -633,7 +647,7 @@ class TestGroupSearchResource(TestGroupResource):
 
 
 class TestGroupExtensionData(TestGroupResource):
-    def test_nutid_extension(self):
+    def test_nutid_extension(self) -> None:
         display_name = "Test Group with Nutid extension"
         nutid_data = {"data": {"testing": "certainly"}}
         req = {
@@ -647,7 +661,9 @@ class TestGroupExtensionData(TestGroupResource):
         # Load the newly created group from the database in order to validate the SCIM parsed_response better
         scim_id = post_resp.json().get("id")
         self.assertIsNotNone(scim_id, "Group creation parsed_response id not present")
+        assert self.groupdb
         db_group = self.groupdb.get_group_by_scim_id(scim_id)
+        assert db_group
         expected_schemas = [SCIMSchema.CORE_20_GROUP.value, SCIMSchema.NUTID_GROUP_V1.value]
         self._assertScimResponseProperties(post_resp, db_group, expected_schemas=expected_schemas)
         self.assertEqual([], post_resp.json().get("members"), "Group was not expected to have members")
@@ -685,7 +701,9 @@ class TestGroupExtensionData(TestGroupResource):
         get_resp2 = self.client.get(url=f"/Groups/{scim_id}", headers=self.headers)
         self.assertEqual(put_resp.json(), get_resp2.json())
 
+        assert self.groupdb
         db_group = self.groupdb.get_group_by_scim_id(scim_id)
+        assert db_group
         self._assertScimResponseProperties(get_resp2, db_group, expected_schemas=expected_schemas)
         self.assertEqual([], get_resp2.json().get("members"), "Group was not expected to have members")
 

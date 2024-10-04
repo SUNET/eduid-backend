@@ -7,8 +7,6 @@ from uuid import uuid4
 import saml2.server
 import saml2.time_util
 from saml2 import BINDING_HTTP_POST
-from saml2.s_utils import UnravelError
-from werkzeug.exceptions import BadRequest
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.models.saml2 import EduidAuthnContextClass
@@ -43,7 +41,7 @@ _U2F_SWAMID_AL3 = U2F(
 logger = logging.getLogger(__name__)
 
 
-def make_SAML_request(class_ref: EduidAuthnContextClass | str | None = None):
+def make_SAML_request(class_ref: EduidAuthnContextClass | str | None = None) -> str:
     if isinstance(class_ref, EduidAuthnContextClass):
         class_ref = class_ref.value
     if class_ref is not None:
@@ -72,9 +70,13 @@ def make_SAML_request(class_ref: EduidAuthnContextClass | str | None = None):
     return _transport_encode(xml)
 
 
-def _transport_encode(data):
+def _transport_encode(data: str) -> str:
     # encode('base64') only works for POST bindings, redirect uses zlib compression too.
     return b64encode("".join(data.split("\n")))
+
+
+class SAMLError(BaseException):
+    pass
 
 
 class SSOIdPTests(IdPAPITests):
@@ -103,11 +105,9 @@ class SSOIdPTests(IdPAPITests):
         self,
         info: Mapping,
         binding: str,
-        logger: logging.Logger,
         idp: saml2.server.Server,
-        bad_request,
         debug: bool = False,
-        verify_request_signatures=True,
+        verify_request_signatures: bool = True,
     ) -> IdP_SAMLRequest:
         """
         Parse a SAMLRequest query parameter (base64 encoded) into an AuthnRequest
@@ -123,15 +123,13 @@ class SSOIdPTests(IdPAPITests):
         """
         try:
             saml_req = IdP_SAMLRequest(info["SAMLRequest"], binding, idp, debug=debug)
-        except UnravelError:
-            raise bad_request("No valid SAMLRequest found", logger=logger)
-        except ValueError:
-            raise bad_request("No valid SAMLRequest found", logger=logger)
+        except Exception:
+            raise SAMLError("No valid SAMLRequest found")
 
         if "SigAlg" in info and "Signature" in info:  # Signed request
             if verify_request_signatures:
                 if not saml_req.verify_signature(info["SigAlg"], info["Signature"]):
-                    raise bad_request("SAML request signature verification failure", logger=logger)
+                    raise SAMLError("SAML request signature verification failure")
             else:
                 logger.debug("Ignoring existing request signature, verify_request_signature is False")
         else:
@@ -257,7 +255,7 @@ class TestSSO(SSOIdPTests):
         accr: EduidAuthnContextClass | None = None,
         assurance_profile: list[SwamidAssurance] | None = None,
         expect_error: bool | None = False,
-    ):
+    ) -> None:
         assert authn_result.message == message, f"Message: {authn_result.message}, Expected: {message}"
         if expect_success:
             assert authn_result.authn_info
@@ -274,7 +272,7 @@ class TestSSO(SSOIdPTests):
 
     # ------------------------------------------------------------------------
 
-    def test_get_login_response_1(self):
+    def test_get_login_response_1(self) -> None:
         """
         Test login with password and SWAMID AL3 U2F, request REFEDS MFA.
 
@@ -295,7 +293,7 @@ class TestSSO(SSOIdPTests):
             assurance_profile=self.app.conf.swamid_assurance_profile_3,
         )
 
-    def test_get_login_response_2(self):
+    def test_get_login_response_2(self) -> None:
         """
         Test login with password and U2F, request REFEDS MFA.
 
@@ -316,7 +314,7 @@ class TestSSO(SSOIdPTests):
             assurance_profile=self.app.conf.swamid_assurance_profile_2,
         )
 
-    def test_get_login_response_external_multifactor(self):
+    def test_get_login_response_external_multifactor(self) -> None:
         """
         Test login with password and external MFA, request REFEDS MFA.
 
@@ -340,7 +338,7 @@ class TestSSO(SSOIdPTests):
             assurance_profile=self.app.conf.swamid_assurance_profile_3,
         )
 
-    def test_get_login_response_3(self):
+    def test_get_login_response_3(self) -> None:
         """
         Test login with password and U2F, request REFEDS SFA.
 
@@ -357,7 +355,7 @@ class TestSSO(SSOIdPTests):
             assurance_profile=self.app.conf.swamid_assurance_profile_1,
         )
 
-    def test_get_login_response_4(self):
+    def test_get_login_response_4(self) -> None:
         """
         Test login with password, request REFEDS SFA.
 
@@ -374,7 +372,7 @@ class TestSSO(SSOIdPTests):
             assurance_profile=self.app.conf.swamid_assurance_profile_1,
         )
 
-    def test_get_login_response_UNSPECIFIED2(self):
+    def test_get_login_response_UNSPECIFIED2(self) -> None:
         """
         Test login with U2F, request REFEDS SFA.
 
@@ -391,7 +389,7 @@ class TestSSO(SSOIdPTests):
             assurance_profile=self.app.conf.swamid_assurance_profile_1,
         )
 
-    def test_get_login_response_5(self):
+    def test_get_login_response_5(self) -> None:
         """
         Test login with password and U2F, request FIDO U2F.
 
@@ -408,7 +406,7 @@ class TestSSO(SSOIdPTests):
             assurance_profile=self.app.conf.swamid_assurance_profile_1,
         )
 
-    def test_get_login_response_6(self):
+    def test_get_login_response_6(self) -> None:
         """
         Test login with password and U2F, request plain password-protected-transport.
 
@@ -425,7 +423,7 @@ class TestSSO(SSOIdPTests):
             assurance_profile=self.app.conf.swamid_assurance_profile_1,
         )
 
-    def test_get_login_response_7(self):
+    def test_get_login_response_7(self) -> None:
         """
         Test login with password, request plain password-protected-transport.
 
@@ -442,7 +440,7 @@ class TestSSO(SSOIdPTests):
             assurance_profile=self.app.conf.swamid_assurance_profile_1,
         )
 
-    def test_get_login_response_8(self):
+    def test_get_login_response_8(self) -> None:
         """
         Test login with mfa, request unknown context class.
 
@@ -456,7 +454,7 @@ class TestSSO(SSOIdPTests):
             authn_result=out, message=IdPMsg.assurance_failure, expect_success=False, expect_error=True
         )
 
-    def test_get_login_response_9(self):
+    def test_get_login_response_9(self) -> None:
         """
         Test login with password, request unknown context class.
 
@@ -470,7 +468,7 @@ class TestSSO(SSOIdPTests):
             authn_result=out, message=IdPMsg.assurance_failure, expect_success=False, expect_error=True
         )
 
-    def test_get_login_response_10(self):
+    def test_get_login_response_10(self) -> None:
         """
         Test login with password, request no authn context class.
 
@@ -487,7 +485,7 @@ class TestSSO(SSOIdPTests):
             assurance_profile=self.app.conf.swamid_assurance_profile_1,
         )
 
-    def test_get_login_response_11(self):
+    def test_get_login_response_11(self) -> None:
         """
         Test login with mfa, request no authn context class.
 
@@ -504,7 +502,7 @@ class TestSSO(SSOIdPTests):
             assurance_profile=self.app.conf.swamid_assurance_profile_1,
         )
 
-    def test_get_login_response_assurance_AL1(self):
+    def test_get_login_response_assurance_AL1(self) -> None:
         """
         Make sure eduPersonAssurace is SWAMID AL1 with no verified nin.
         """
@@ -519,7 +517,7 @@ class TestSSO(SSOIdPTests):
             assurance_profile=self.app.conf.swamid_assurance_profile_1,
         )
 
-    def test_get_login_response_assurance_AL2(self):
+    def test_get_login_response_assurance_AL2(self) -> None:
         """
         Make sure eduPersonAssurace is SWAMID AL2 with a verified nin.
         """
@@ -536,7 +534,7 @@ class TestSSO(SSOIdPTests):
             assurance_profile=self.app.conf.swamid_assurance_profile_2,
         )
 
-    def test_get_login_eduid_mfa_fido_al1(self):
+    def test_get_login_eduid_mfa_fido_al1(self) -> None:
         """
         Test login with password and fido for not verified user, request EDUID_MFA.
 
@@ -553,7 +551,7 @@ class TestSSO(SSOIdPTests):
             assurance_profile=self.app.conf.swamid_assurance_profile_1,
         )
 
-    def test_get_login_refeds_mfa_fido_al1(self):
+    def test_get_login_refeds_mfa_fido_al1(self) -> None:
         """
         Test login with password and fido for not verified user, request REFEDS_MFA.
 
@@ -570,7 +568,7 @@ class TestSSO(SSOIdPTests):
             assurance_profile=self.app.conf.swamid_assurance_profile_1,
         )
 
-    def test_get_login_eduid_mfa_fido_al2(self):
+    def test_get_login_eduid_mfa_fido_al2(self) -> None:
         """
         Test login with password and fido for verified user, request EDUID_MFA.
 
@@ -589,7 +587,7 @@ class TestSSO(SSOIdPTests):
             assurance_profile=self.app.conf.swamid_assurance_profile_2,
         )
 
-    def test_get_login_refeds_mfa_fido_al2(self):
+    def test_get_login_refeds_mfa_fido_al2(self) -> None:
         """
         Test login with password and fido for verified user, request EDUID_MFA.
 
@@ -608,7 +606,7 @@ class TestSSO(SSOIdPTests):
             assurance_profile=self.app.conf.swamid_assurance_profile_2,
         )
 
-    def test_get_login_eduid_mfa_fido_swamid_al3(self):
+    def test_get_login_eduid_mfa_fido_swamid_al3(self) -> None:
         """
         Test login with password and fido_swamid_al3 for verified user, request EDUID_MFA.
 
@@ -629,7 +627,7 @@ class TestSSO(SSOIdPTests):
             assurance_profile=self.app.conf.swamid_assurance_profile_3,
         )
 
-    def test_get_login_refeds_mfa_fido_swamid_al3(self):
+    def test_get_login_refeds_mfa_fido_swamid_al3(self) -> None:
         """
         Test login with password and fido_swamid_al3 for verified user, request REFEDS_MFA.
 
@@ -650,7 +648,7 @@ class TestSSO(SSOIdPTests):
             assurance_profile=self.app.conf.swamid_assurance_profile_3,
         )
 
-    def test_get_login_eduid_mfa_external_mfa_al3(self):
+    def test_get_login_eduid_mfa_external_mfa_al3(self) -> None:
         """
         Test login with password and external mfa for verified user, request EDUID_MFA.
 
@@ -674,7 +672,7 @@ class TestSSO(SSOIdPTests):
             assurance_profile=self.app.conf.swamid_assurance_profile_3,
         )
 
-    def test_get_login_refeds_mfa_external_mfa(self):
+    def test_get_login_refeds_mfa_external_mfa(self) -> None:
         """
         Test login with password and external mfa for verified user, request REFEDS_MFA.
 
@@ -698,13 +696,14 @@ class TestSSO(SSOIdPTests):
             assurance_profile=self.app.conf.swamid_assurance_profile_3,
         )
 
-    def test_get_login_refeds_mfa_fido_al1_with_al3_mfa(self):
+    def test_get_login_refeds_mfa_fido_al1_with_al3_mfa(self) -> None:
         """
         Test login with password and fido for not verified user, request REFEDS_MFA.
 
         Expect the response Authn to be REFEDS_MFA, eduPersonAssurance AL1
         """
         user = self.app.userdb.lookup_user(self.test_user.eppn)
+        assert user
         user.credentials.add(_U2F_SWAMID_AL3)
         self.app.central_userdb.save(user)
         out = self._get_login_response_authn(
@@ -718,7 +717,7 @@ class TestSSO(SSOIdPTests):
             assurance_profile=self.app.conf.swamid_assurance_profile_1,
         )
 
-    def test_get_login_response_eduid_mfa_no_multifactor(self):
+    def test_get_login_response_eduid_mfa_no_multifactor(self) -> None:
         """
         Test login with password, request EDUID_MFA.
 
@@ -727,7 +726,7 @@ class TestSSO(SSOIdPTests):
         out = self._get_login_response_authn(req_class_ref=EduidAuthnContextClass.EDUID_MFA, credentials=["pw"])
         self._check_login_response_authn(authn_result=out, message=IdPMsg.mfa_required, expect_success=False)
 
-    def test_get_login_response_refeds_mfa_no_multifactor(self):
+    def test_get_login_response_refeds_mfa_no_multifactor(self) -> None:
         """
         Test login with password, request EDUID_MFA.
 
@@ -736,7 +735,7 @@ class TestSSO(SSOIdPTests):
         out = self._get_login_response_authn(req_class_ref=EduidAuthnContextClass.REFEDS_MFA, credentials=["pw"])
         self._check_login_response_authn(authn_result=out, message=IdPMsg.mfa_required, expect_success=False)
 
-    def test_get_login_digg_loa2_fido_mfa(self):
+    def test_get_login_digg_loa2_fido_mfa(self) -> None:
         """
         Test login with password and fido mfa for verified user, request DIGG_LOA2.
 
@@ -757,13 +756,14 @@ class TestSSO(SSOIdPTests):
             assurance_profile=self.app.conf.swamid_assurance_profile_3,
         )
 
-    def test_get_login_digg_loa2_fido_mfa_no_identity_proofing_method(self):
+    def test_get_login_digg_loa2_fido_mfa_no_identity_proofing_method(self) -> None:
         """
         Test login with password and external mfa for verified user, request DIGG_LOA2.
 
         Expect the response Authn to be DIGG_LOA2.
         """
         user = self.app.userdb.lookup_user(self.test_user.eppn)
+        assert user
         user.credentials.add(_U2F_SWAMID_AL3)
         self.app.userdb.save(user)
 
@@ -797,7 +797,7 @@ class TestSSO(SSOIdPTests):
                 expect_error=True,
             )
 
-    def test_get_login_digg_loa2_external_mfa(self):
+    def test_get_login_digg_loa2_external_mfa(self) -> None:
         """
         Test login with password and external mfa for verified user, request DIGG_LOA2.
 
@@ -823,7 +823,7 @@ class TestSSO(SSOIdPTests):
             assurance_profile=self.app.conf.swamid_assurance_profile_3,
         )
 
-    def test_get_login_digg_loa2_identity_proofing_method_not_allowed(self):
+    def test_get_login_digg_loa2_identity_proofing_method_not_allowed(self) -> None:
         """
         Test login with password and external mfa for verified user, request DIGG_LOA2.
 
@@ -849,7 +849,7 @@ class TestSSO(SSOIdPTests):
             expect_error=True,
         )
 
-    def test_get_login_digg_loa2_mfa_proofing_method_not_allowed(self):
+    def test_get_login_digg_loa2_mfa_proofing_method_not_allowed(self) -> None:
         """
         Test login with password and external mfa for verified user, request DIGG_LOA2.
 
@@ -870,7 +870,7 @@ class TestSSO(SSOIdPTests):
             expect_error=True,
         )
 
-    def test_forceauthn_request(self):
+    def test_forceauthn_request(self) -> None:
         """ForceAuthn can apparently be either 'true' or '1'.
 
         https://lists.oasis-open.org/archives/security-services/201402/msg00019.html
@@ -903,8 +903,6 @@ class TestSSO(SSOIdPTests):
             x = self._parse_SAMLRequest(
                 info,
                 binding=BINDING_HTTP_POST,
-                bad_request=BadRequest,
-                logger=logger,
                 idp=self.app.IDP,
                 debug=True,
                 verify_request_signatures=False,
@@ -912,7 +910,7 @@ class TestSSO(SSOIdPTests):
 
             assert x.force_authn == expected
 
-    def test_service_info(self):
+    def test_service_info(self) -> None:
         with self.app.test_request_context():
             ticket = self._make_login_ticket(EduidAuthnContextClass.PASSWORD_PT)
 

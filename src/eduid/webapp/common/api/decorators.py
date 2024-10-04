@@ -135,10 +135,10 @@ class MarshalWith:
     on-the-wire format of these Flux Standard Actions.
     """
 
-    def __init__(self, schema: type[Schema]):
+    def __init__(self, schema: type[Schema]) -> None:
         self.schema = schema
 
-    def __call__(self, f: EduidRouteCallable):
+    def __call__(self, f: EduidRouteCallable) -> Callable:
         @wraps(f)
         def marshal_decorator(*args: Any, **kwargs: Any) -> WerkzeugResponse:
             # Call the Flask view, which is expected to return a FluxData instance,
@@ -184,10 +184,10 @@ class UnmarshalWith:
     not a FluxData instance.
     """
 
-    def __init__(self, schema: type[Schema]):
+    def __init__(self, schema: type[Schema]) -> None:
         self.schema = schema
 
-    def __call__(self, f: EduidRouteCallable):
+    def __call__(self, f: EduidRouteCallable) -> Callable:
         @wraps(f)
         def unmarshal_decorator(
             *args: Any, **kwargs: Any
