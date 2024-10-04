@@ -1,7 +1,6 @@
 import logging
 from collections.abc import Sequence
 
-from eduid.common.decorators import deprecated
 from eduid.vccs.client import VCCSFactor, VCCSPasswordFactor, VCCSRevokeFactor
 
 logger = logging.getLogger()
