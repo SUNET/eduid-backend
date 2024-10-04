@@ -9,7 +9,6 @@ import sys
 import time
 from collections.abc import Generator
 from copy import deepcopy
-from typing import Any  # noqa: F401
 
 import bson
 import bson.json_util
