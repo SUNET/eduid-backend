@@ -15,7 +15,7 @@ class TestNeo4jDB(Neo4jTestCase):
         with self.neo4jdb.driver.session() as session:
             result = session.run("MATCH (n {name: $name})RETURN n.testing", name="test node")
             single = result.single()
-            assert single
+            assert single is not None
             self.assertTrue(single.value())
 
 
@@ -39,5 +39,5 @@ class TestBaseGraphDB(Neo4jTestCase):
         with test_db._db.driver.session() as session:
             result = session.run("MATCH (n {name: $name})RETURN n.testing", name="test node")
             single = result.single()
-            assert single
+            assert single is not None
             self.assertTrue(single.value())

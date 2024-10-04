@@ -112,7 +112,7 @@ class TestGroupDB(Neo4jTestCase):
         assert 1 == self.group_db.db.count_nodes(label="User")
 
         post_save_group = self.group_db.get_group(identifier="test1")
-        assert post_save_group
+        assert post_save_group is not None
         post_save_user = post_save_group.member_users[0]
         self._assert_user(user, post_save_user)
 
@@ -126,7 +126,7 @@ class TestGroupDB(Neo4jTestCase):
         assert 2 == self.group_db.db.count_nodes(label="Group")
 
         post_save_group = self.group_db.get_group(identifier="test1")
-        assert post_save_group
+        assert post_save_group is not None
         post_save_member_group = post_save_group.member_groups[0]
         self._assert_group(member_group, post_save_member_group)
 
@@ -146,7 +146,7 @@ class TestGroupDB(Neo4jTestCase):
         assert 2 == self.group_db.db.count_nodes(label="Group")
 
         post_save_group = self.group_db.get_group(identifier="test1")
-        assert post_save_group
+        assert post_save_group is not None
         post_save_member_group = post_save_group.member_groups[0]
         self._assert_group(member_group, post_save_member_group)
 
@@ -372,7 +372,7 @@ class TestGroupDB(Neo4jTestCase):
         assert post_remove_group.has_member(member_user2.identifier) is True
 
         get_group = self.group_db.get_group(identifier="test1")
-        assert get_group
+        assert get_group is not None
         assert get_group.has_member(member_user1.identifier) is False
         assert get_group.has_member(member_user2.identifier) is True
 
@@ -399,6 +399,6 @@ class TestGroupDB(Neo4jTestCase):
         assert post_remove_group.has_member(member_user1.identifier) is True
 
         get_group = self.group_db.get_group(identifier=group.identifier)
-        assert get_group
+        assert get_group is not None
         assert get_group.has_member(member_group1.identifier) is False
         assert get_group.has_member(member_user1.identifier) is True
