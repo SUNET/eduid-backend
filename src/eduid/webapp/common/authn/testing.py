@@ -16,7 +16,6 @@ class MockVCCSClient:
     before the real functions (check_password, add_credentials) use it.
     """
 
-    @deprecated("Remove once eduid-webapp is using MockVCCSClient (just below this)")
     def __init__(self) -> None:
         self.factors: dict[str, list[VCCSPasswordFactor]] = {}
 
