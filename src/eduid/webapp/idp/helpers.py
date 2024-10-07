@@ -1,4 +1,5 @@
 from enum import Enum, unique
+from typing import Any
 
 from saml2 import BINDING_HTTP_POST
 
@@ -67,7 +68,7 @@ def lookup_user(username: str, managed_account_allowed: bool = False) -> IdPUser
         return current_app.userdb.lookup_user(username)
 
 
-def create_saml_sp_response(saml_params: SAMLResponseParams) -> FluxData:
+def create_saml_sp_response(saml_params: SAMLResponseParams, authn_options: dict[str, Any]) -> FluxData:
     """
     Create a response to frontend that should be posted to the SP
     """
@@ -81,5 +82,6 @@ def create_saml_sp_response(saml_params: SAMLResponseParams) -> FluxData:
             "target": saml_params.url,
             "parameters": saml_params.post_params,
             "missing_attributes": saml_params.missing_attributes,
+            "authn_options": authn_options,
         },
     )

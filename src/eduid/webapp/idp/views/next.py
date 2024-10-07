@@ -186,7 +186,8 @@ def next_view(ticket: LoginContext, sso_session: SSOSession | None) -> FluxData:
 
         if isinstance(ticket, LoginContextSAML):
             saml_params = sso.get_response_params(_next.authn_info, ticket, user)
-            return create_saml_sp_response(saml_params=saml_params)
+            authn_options = _get_authn_options(ticket, sso_session, required_user.eppn)
+            return create_saml_sp_response(saml_params=saml_params, authn_options=authn_options)
         elif isinstance(ticket, LoginContextOtherDevice):
             if not ticket.is_other_device_2:
                 # We shouldn't be able to get here, but this clearly shows where this code runs
