@@ -50,7 +50,8 @@ def next_view(ticket: LoginContext, sso_session: SSOSession | None) -> FluxData:
     if _next.message == IdPMsg.aborted:
         if isinstance(ticket, LoginContextSAML):
             saml_params = cancel_saml_request(ticket, current_app.conf)
-            return create_saml_sp_response(saml_params=saml_params)
+            authn_options = _get_authn_options(ticket=ticket, sso_session=sso_session, eppn=None)
+            return create_saml_sp_response(saml_params=saml_params, authn_options=authn_options)
         elif isinstance(ticket, LoginContextOtherDevice):
             state = ticket.other_device_req
             if state.state in [OtherDeviceState.NEW, OtherDeviceState.IN_PROGRESS, OtherDeviceState.AUTHENTICATED]:
@@ -78,7 +79,8 @@ def next_view(ticket: LoginContext, sso_session: SSOSession | None) -> FluxData:
     if _next.message == IdPMsg.assurance_failure:
         if isinstance(ticket, LoginContextSAML):
             saml_params = authn_context_class_not_supported(ticket, current_app.conf)
-            return create_saml_sp_response(saml_params=saml_params)
+            authn_options = _get_authn_options(ticket=ticket, sso_session=sso_session, eppn=None)
+            return create_saml_sp_response(saml_params=saml_params, authn_options=authn_options)
         current_app.logger.error(f"Don't know how to send error response for request {ticket}")
         return error_response(message=IdPMsg.general_failure)
 
@@ -100,7 +102,7 @@ def next_view(ticket: LoginContext, sso_session: SSOSession | None) -> FluxData:
         _payload = {
             "action": IdPAction.OTHER_DEVICE.value,
             "target": url_for("other_device.use_other_1", _external=True),
-            "authn_options": _get_authn_options(ticket, sso_session, required_user.eppn),
+            "authn_options": _get_authn_options(ticket=ticket, sso_session=sso_session, eppn=required_user.eppn),
             "service_info": _get_service_info(ticket),
         }
 
@@ -113,7 +115,7 @@ def next_view(ticket: LoginContext, sso_session: SSOSession | None) -> FluxData:
         _payload = {
             "action": IdPAction.PWAUTH.value,
             "target": url_for("pw_auth.pw_auth", _external=True),
-            "authn_options": _get_authn_options(ticket, sso_session, required_user.eppn),
+            "authn_options": _get_authn_options(ticket=ticket, sso_session=sso_session, eppn=required_user.eppn),
             "service_info": _get_service_info(ticket),
         }
 
@@ -128,7 +130,7 @@ def next_view(ticket: LoginContext, sso_session: SSOSession | None) -> FluxData:
             payload={
                 "action": IdPAction.MFA.value,
                 "target": url_for("mfa_auth.mfa_auth", _external=True),
-                "authn_options": _get_authn_options(ticket, sso_session, required_user.eppn),
+                "authn_options": _get_authn_options(ticket=ticket, sso_session=sso_session, eppn=required_user.eppn),
                 "service_info": _get_service_info(ticket),
             },
         )
@@ -139,7 +141,7 @@ def next_view(ticket: LoginContext, sso_session: SSOSession | None) -> FluxData:
             payload={
                 "action": IdPAction.TOU.value,
                 "target": url_for("tou.tou", _external=True),
-                "authn_options": _get_authn_options(ticket, sso_session, required_user.eppn),
+                "authn_options": _get_authn_options(ticket=ticket, sso_session=sso_session, eppn=required_user.eppn),
             },
         )
 
@@ -186,7 +188,8 @@ def next_view(ticket: LoginContext, sso_session: SSOSession | None) -> FluxData:
 
         if isinstance(ticket, LoginContextSAML):
             saml_params = sso.get_response_params(_next.authn_info, ticket, user)
-            return create_saml_sp_response(saml_params=saml_params)
+            authn_options = _get_authn_options(ticket=ticket, sso_session=sso_session, eppn=required_user.eppn)
+            return create_saml_sp_response(saml_params=saml_params, authn_options=authn_options)
         elif isinstance(ticket, LoginContextOtherDevice):
             if not ticket.is_other_device_2:
                 # We shouldn't be able to get here, but this clearly shows where this code runs
