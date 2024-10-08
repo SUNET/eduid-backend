@@ -66,8 +66,12 @@ class VCCSYHSMHasher(VCCSHasher):
         self._yhsm.unlock(unhexlify(password))
 
     def info(self) -> str:
+        # pyhsm.base.YHSM.info() returns bytes(?)
         ret: bytes = self._yhsm.info()
-        return ret.decode()
+        if isinstance(ret, bytes):
+            return ret.decode()
+        else:
+            return ret
 
     async def hmac_sha1(self, key_handle: int | None, data: bytes) -> bytes:
         """
