@@ -9,6 +9,7 @@ from uuid import UUID
 
 from bson import ObjectId
 
+from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.db import TUserDbDocument
 
 __author__ = "lundberg"
@@ -66,7 +67,7 @@ class Invite(_InviteRequired):
     preferred_language: str = field(default="sv")
     finish_url: str | None = field(default=None)
     completed_ts: datetime | None = field(default=None)
-    created_ts: datetime = field(default_factory=datetime.utcnow)
+    created_ts: datetime = field(default_factory=utc_now)
     modified_ts: datetime | None = field(default=None)
 
     def get_primary_mail_address(self) -> str | None:

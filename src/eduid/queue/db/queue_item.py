@@ -5,6 +5,7 @@ from typing import Any
 
 from bson import ObjectId
 
+from eduid.common.misc.timeutil import utc_now
 from eduid.queue.db.payload import Payload, RawPayload
 from eduid.userdb.db import TUserDbDocument
 
@@ -38,7 +39,7 @@ class QueueItem:
     payload_type: str
     payload: Payload
     item_id: ObjectId = field(default_factory=ObjectId)
-    created_ts: datetime = field(default_factory=datetime.utcnow)
+    created_ts: datetime = field(default_factory=utc_now)
     processed_by: str | None = None
     processed_ts: datetime | None = None
     retries: int = 0
