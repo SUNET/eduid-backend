@@ -1,10 +1,10 @@
 from collections.abc import Callable
-from datetime import datetime
 from inspect import isclass
 from typing import Any
 
 from pymongo.collection import Collection
 
+from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.db import MongoDB
 from eduid.userdb.db.base import TUserDbDocument
 
@@ -26,7 +26,7 @@ class TransactionAudit:
         def audit(*args: Any, **kwargs: Any) -> Any:  # noqa: ANN401
             ret = f(*args, **kwargs)
             if not isclass(ret):  # we can't save class objects in mongodb
-                date = datetime.utcnow()
+                date = utc_now()
                 doc = TUserDbDocument(
                     {
                         "function": f.__name__,

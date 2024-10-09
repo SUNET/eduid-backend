@@ -9,6 +9,7 @@ from flask import current_app as flask_current_app
 from flask.wrappers import Response
 
 from eduid.common.config.base import EduIDBaseAppConfig
+from eduid.common.misc.timeutil import utc_now
 from eduid.webapp.common.api.checks import CheckResult
 from eduid.webapp.common.api.utils import get_from_current_app
 
@@ -43,7 +44,7 @@ def cached_json_response(key: str, data: Literal[None]) -> Response | None: ...
 
 def cached_json_response(key: str, data: dict[str, Any] | None = None) -> Response | None:
     cache_for_seconds = get_from_current_app("conf", EduIDBaseAppConfig).status_cache_seconds
-    now = datetime.utcnow()
+    now = utc_now()
     if SIMPLE_CACHE.get(key) is not None:
         if now < SIMPLE_CACHE[key].expire_time:
             if get_from_current_app("debug", bool):

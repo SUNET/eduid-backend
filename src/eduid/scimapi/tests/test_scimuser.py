@@ -13,6 +13,7 @@ import bson
 from bson import ObjectId
 from httpx import AsyncClient, Response
 
+from eduid.common.misc.timeutil import utc_now
 from eduid.common.models.scim_base import Email, LanguageTag, Meta, Name, PhoneNumber, SCIMResourceType, SCIMSchema
 from eduid.common.models.scim_user import LinkedAccount, NutidUserExtensionV1, Profile, UserResponse
 from eduid.common.testing_base import normalised_data
@@ -630,7 +631,7 @@ class TestUserResource(ScimApiTestUserResourceBase):
             self.add_user(identifier=str(uuid4()), external_id=f"test-id-{i}", profiles={"test": self.test_profile})
         assert self.userdb
         self.assertEqual(9, self.userdb.db_count())
-        last_modified = datetime.utcnow() - timedelta(hours=1)
+        last_modified = utc_now() - timedelta(hours=1)
         self._perform_search(
             search_filter=f'meta.lastmodified gt "{last_modified.isoformat()}"',
             start=5,
@@ -644,7 +645,7 @@ class TestUserResource(ScimApiTestUserResourceBase):
             self.add_user(identifier=str(uuid4()), external_id=f"test-id-{i}", profiles={"test": self.test_profile})
         assert self.userdb
         self.assertEqual(9, self.userdb.db_count())
-        last_modified = datetime.utcnow() - timedelta(hours=1)
+        last_modified = utc_now() - timedelta(hours=1)
         self._perform_search(
             search_filter=f'meta.lastmodified gt "{last_modified.isoformat()}"',
             count=5,
@@ -658,7 +659,7 @@ class TestUserResource(ScimApiTestUserResourceBase):
             self.add_user(identifier=str(uuid4()), external_id=f"test-id-{i}", profiles={"test": self.test_profile})
         assert self.userdb
         self.assertEqual(9, self.userdb.db_count())
-        last_modified = datetime.utcnow() - timedelta(hours=1)
+        last_modified = utc_now() - timedelta(hours=1)
         self._perform_search(
             search_filter=f'meta.lastmodified gt "{last_modified.isoformat()}"',
             start=7,

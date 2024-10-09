@@ -10,6 +10,7 @@ from typing import Any
 
 from bson import ObjectId
 
+from eduid.common.misc.timeutil import utc_now
 from eduid.userdb import User, UserDB
 from eduid.userdb.db import TUserDbDocument
 from eduid.userdb.exceptions import DocumentOutOfSync
@@ -108,7 +109,7 @@ class ScimApiUserDB(ScimApiBaseDB):
         }
         # update the version number and last_modified timestamp
         user_dict["version"] = ObjectId()
-        user_dict["last_modified"] = datetime.utcnow()
+        user_dict["last_modified"] = utc_now()
         # Save existing user
         result = self._coll.replace_one(test_doc, user_dict, upsert=False)
         if result.modified_count == 0:

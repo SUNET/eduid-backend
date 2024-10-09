@@ -1,7 +1,8 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
 from unittest import TestCase
 from uuid import uuid4
 
+from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.signup import Invite, InviteMailAddress, InvitePhoneNumber, InviteType, SCIMReference
 
 
@@ -20,7 +21,7 @@ class TestSignupInvite(TestCase):
             send_email=True,
             finish_url="https://example.com/finish",
             completed_ts=None,
-            expires_at=datetime.utcnow() + timedelta(days=180),
+            expires_at=utc_now() + timedelta(days=180),
         )
         invite_dict = invite.to_dict()
         assert invite == Invite.from_dict(invite_dict)

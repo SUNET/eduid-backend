@@ -7,6 +7,7 @@ from typing import Any
 from bson import ObjectId
 from pymongo.results import UpdateResult
 
+from eduid.common.misc.timeutil import utc_now
 from eduid.queue.db import Payload, QueueItem
 from eduid.queue.db.client import QueuePayloadMixin
 from eduid.queue.exceptions import PayloadNotRegistered
@@ -102,11 +103,11 @@ class AsyncQueueDB(AsyncBaseDB, QueuePayloadMixin):
             spec["processed_ts"] = None
 
         if min_age_in_seconds is not None:
-            latest_created = datetime.utcnow() + timedelta(seconds=min_age_in_seconds)
+            latest_created = utc_now() + timedelta(seconds=min_age_in_seconds)
             spec["created_ts"] = {"$lt": latest_created}
 
         if expired is not None:
-            now = datetime.utcnow()
+            now = utc_now()
             if expired:
                 spec["expires_at"] = {"$lt": now}
             else:

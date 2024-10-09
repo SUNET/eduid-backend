@@ -1,11 +1,11 @@
 import unittest
 from collections import OrderedDict
-from datetime import datetime
 from io import BytesIO, StringIO
 from typing import Any
 
 from pypdf import PdfReader
 
+from eduid.common.misc.timeutil import utc_now
 from eduid.common.rpc.msg_relay import FullPostalAddress
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.letter_proofing import pdf
@@ -184,7 +184,7 @@ class CreatePDFTest(EduidAPITestCase):
                 pdf_document = pdf.create_pdf(
                     recipient,
                     verification_code="bogus code",
-                    created_timestamp=datetime.utcnow(),
+                    created_timestamp=utc_now(),
                     primary_mail_address="test@example.org",
                     letter_wait_time_hours=336,
                 )

@@ -70,7 +70,7 @@ class ProofingState:
         res["_id"] = res.pop("id")
         res["eduPersonPrincipalName"] = res.pop("eppn")
         if res["modified_ts"] is True:
-            res["modified_ts"] = datetime.datetime.utcnow()
+            res["modified_ts"] = utc_now()
         return TUserDbDocument(res)
 
     def __str__(self) -> str:

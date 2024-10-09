@@ -2,7 +2,6 @@ __author__ = "lundberg"
 
 import logging
 from collections.abc import Mapping
-from datetime import datetime
 from typing import Any
 from uuid import UUID, uuid4
 
@@ -10,6 +9,7 @@ from bson import ObjectId
 from httpx import Response
 
 from eduid.common.config.base import DataOwnerName
+from eduid.common.misc.timeutil import utc_now
 from eduid.common.models.scim_base import Meta, SCIMResourceType, SCIMSchema, WeakVersion
 from eduid.common.testing_base import normalised_data
 from eduid.common.utils import make_etag
@@ -29,8 +29,8 @@ class TestSCIMGroup(TestScimBase):
         self.meta = Meta(
             location="http://example.org/Groups/some-id",
             resource_type=SCIMResourceType.GROUP,
-            created=datetime.utcnow(),
-            last_modified=datetime.utcnow(),
+            created=utc_now(),
+            last_modified=utc_now(),
             version=WeakVersion(),
         )
 

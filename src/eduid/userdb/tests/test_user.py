@@ -443,11 +443,11 @@ class TestNewUser(unittest.TestCase):
         _time1 = self.user1.modified_ts
         assert _time1 is None
         # update to current time
-        self.user1.modified_ts = datetime.utcnow()
+        self.user1.modified_ts = utc_now()
         _time2 = self.user1.modified_ts
         self.assertNotEqual(_time1, _time2)
         # set to a datetime instance
-        self.user1.modified_ts = datetime.utcnow()
+        self.user1.modified_ts = utc_now()
         self.assertNotEqual(_time2, self.user1.modified_ts)
 
     def test_two_unverified_non_primary_phones(self) -> None:

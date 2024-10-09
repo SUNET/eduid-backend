@@ -11,6 +11,7 @@ from uuid import UUID
 
 from bson import ObjectId
 
+from eduid.common.misc.timeutil import utc_now
 from eduid.scimapi.utils import filter_none
 from eduid.userdb.db import TUserDbDocument
 from eduid.userdb.scimapi.basedb import ScimApiBaseDB
@@ -88,7 +89,7 @@ class ScimApiInviteDB(ScimApiBaseDB):
         }
         # update the version number and last_modified timestamp
         invite_dict["version"] = ObjectId()
-        invite_dict["last_modified"] = datetime.utcnow()
+        invite_dict["last_modified"] = utc_now()
         result = self._coll.replace_one(test_doc, invite_dict, upsert=False)
         if result.modified_count == 0:
             db_invite = self._coll.find_one({"_id": invite.invite_id})

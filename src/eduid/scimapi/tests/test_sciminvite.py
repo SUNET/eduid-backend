@@ -238,7 +238,7 @@ class TestInviteResource(ScimApiTestCase):
             mail_addresses=mails_addresses,
             phone_numbers=phone_numbers,
             finish_url=invite_data.get("finish_url"),
-            expires_at=datetime.utcnow() + timedelta(seconds=self.context.config.invite_expire),
+            expires_at=utc_now() + timedelta(seconds=self.context.config.invite_expire),
         )
         self.signup_invitedb.save(signup_invite, is_in_database=False)
         return db_invite

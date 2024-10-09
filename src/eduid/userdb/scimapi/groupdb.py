@@ -12,6 +12,7 @@ from uuid import UUID
 
 from bson import ObjectId
 
+from eduid.common.misc.timeutil import utc_now
 from eduid.graphdb.groupdb import Group as GraphGroup
 from eduid.graphdb.groupdb import GroupDB
 from eduid.graphdb.groupdb import User as GraphUser
@@ -137,7 +138,7 @@ class ScimApiGroupDB(ScimApiBaseDB):
         }
         # update the version number and last_modified timestamp
         group_dict["version"] = ObjectId()
-        group_dict["last_modified"] = datetime.utcnow()
+        group_dict["last_modified"] = utc_now()
         result = self._coll.replace_one(test_doc, group_dict, upsert=False)
         if result.modified_count == 0:
             db_group = self._coll.find_one({"_id": group.group_id})
