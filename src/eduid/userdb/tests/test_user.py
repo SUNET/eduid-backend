@@ -6,6 +6,7 @@ import pytest
 from bson import ObjectId
 from pydantic import ValidationError
 
+from eduid.common.misc.timeutil import utc_now
 from eduid.userdb import NinIdentity, OidcAuthorization, OidcIdToken, Orcid
 from eduid.userdb.credentials import U2F, CredentialList, CredentialProofingMethod, Password
 from eduid.userdb.db.base import TUserDbDocument
@@ -18,7 +19,6 @@ from eduid.userdb.phone import PhoneNumber, PhoneNumberList
 from eduid.userdb.profile import Profile, ProfileList
 from eduid.userdb.tou import ToUList
 from eduid.userdb.user import SubjectType, User
-from eduid.userdb.util import utc_now
 
 __author__ = "ft"
 

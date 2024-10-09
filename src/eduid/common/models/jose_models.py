@@ -4,9 +4,9 @@ from typing import Any
 
 from pydantic import AnyUrl, BaseModel, Field
 
-__author__ = "lundberg"
+from eduid.common.misc.timeutil import utc_now
 
-from eduid.userdb.util import utc_now
+__author__ = "lundberg"
 
 
 class KeyType(str, Enum):

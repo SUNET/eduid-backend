@@ -2,8 +2,8 @@ from typing import Any
 
 from pymongo.results import DeleteResult
 
+from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.db import BaseDB, TUserDbDocument
-from eduid.userdb.util import utc_now
 
 
 class CacheMDB(BaseDB):

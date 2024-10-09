@@ -11,7 +11,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from typing import Any
 
-from eduid.userdb.util import utc_now
+from eduid.common.misc.timeutil import utc_now
 
 logger = logging.getLogger(__name__)
 

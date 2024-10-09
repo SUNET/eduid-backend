@@ -9,11 +9,11 @@ from datetime import datetime, timedelta
 from typing import Any
 
 from eduid.common.config.parsers import load_config
+from eduid.common.misc.timeutil import utc_now
 from eduid.queue.config import QueueWorkerConfig
 from eduid.queue.db import QueueItem, SenderInfo
 from eduid.queue.db.message.payload import EduidTestPayload, EduidTestResultPayload
 from eduid.queue.workers.base import QueueWorker
-from eduid.userdb.util import utc_now
 
 logger = logging.getLogger(__name__)
 

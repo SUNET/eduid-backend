@@ -16,7 +16,7 @@ from eduid.userdb.scimapi import EventLevel, EventStatus, ScimApiEvent, ScimApiE
 if TYPE_CHECKING:
     from eduid.scimapi.context import Context
 
-from eduid.userdb.util import utc_now
+from eduid.common.misc.timeutil import utc_now
 
 __author__ = "lundberg"
 

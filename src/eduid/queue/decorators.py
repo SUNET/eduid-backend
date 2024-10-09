@@ -4,11 +4,11 @@ from typing import Any
 
 from pymongo.synchronous.collection import Collection
 
+from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.db import MongoDB
 
 # TODO: Refactor but keep transaction audit document structure
 from eduid.userdb.db.base import TUserDbDocument
-from eduid.userdb.util import utc_now
 
 
 class TransactionAudit:

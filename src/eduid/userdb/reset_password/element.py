@@ -4,8 +4,8 @@ from collections.abc import Mapping
 from datetime import datetime, timedelta
 from typing import Any
 
+from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.element import Element, ElementKey
-from eduid.userdb.util import utc_now
 
 
 class CodeElement(Element):

@@ -6,6 +6,7 @@ from uuid import uuid4
 import bson
 from pydantic import ValidationError
 
+from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.actions.tou import ToUUser
 from eduid.userdb.credentials import CredentialList
 from eduid.userdb.db.base import TUserDbDocument
@@ -14,7 +15,6 @@ from eduid.userdb.exceptions import UserMissingData
 from eduid.userdb.fixtures.users import UserFixtures
 from eduid.userdb.tou import ToUEvent, ToUList
 from eduid.userdb.user import User
-from eduid.userdb.util import utc_now
 
 __author__ = "ft"
 

@@ -60,7 +60,7 @@ from eduid.userdb.exceptions import EduIDUserDBError, UserDBValueError
 
 __author__ = "ft"
 
-from eduid.userdb.util import utc_now
+from eduid.common.misc.timeutil import utc_now
 
 
 class ElementError(EduIDUserDBError):
