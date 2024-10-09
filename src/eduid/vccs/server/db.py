@@ -3,7 +3,7 @@ from __future__ import annotations
 import builtins
 from collections.abc import Mapping
 from dataclasses import asdict, field
-from enum import Enum, unique
+from enum import Enum, StrEnum, unique
 from typing import Any, cast
 
 from bson import ObjectId
@@ -15,22 +15,22 @@ from eduid.userdb.db import BaseDB, TUserDbDocument
 
 
 @unique
-class Status(str, Enum):
+class Status(StrEnum):
     ACTIVE: str = "active"
     DISABLED: str = "disabled"
 
 
 @unique
-class Version(str, Enum):
+class Version(StrEnum):
     NDNv1: str = "NDNv1"
 
 
 @unique
-class KDF(str, Enum):
+class KDF(StrEnum):
     PBKDF2_HMAC_SHA512: str = "PBKDF2-HMAC-SHA512"
 
 
-class CredType(str, Enum):
+class CredType(StrEnum):
     PASSWORD: str = "password"
     REVOKED: str = "revoked"
 

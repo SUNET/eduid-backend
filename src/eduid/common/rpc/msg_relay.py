@@ -1,5 +1,5 @@
 import logging
-from enum import Enum
+from enum import StrEnum
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
@@ -70,7 +70,7 @@ class RelationId(NavetModelConfig):
     birth_time_number: str | None = Field(default=None, alias="BirthTimeNumber")
 
 
-class RelationType(str, Enum):
+class RelationType(StrEnum):
     CHILD = "B"
     MOTHER = "MO"
     FATHER = "FA"
@@ -94,7 +94,7 @@ class PostalAddresses(NavetModelConfig):
     official_address: OfficialAddress = Field(alias="OfficialAddress")
 
 
-class DeregisteredCauseCode(str, Enum):
+class DeregisteredCauseCode(StrEnum):
     DECEASED = "AV"
     EMIGRATED = "UV"
     OLD_NIN = "GN"

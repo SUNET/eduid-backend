@@ -4,7 +4,7 @@ User and user database module.
 
 import logging
 from dataclasses import dataclass
-from enum import Enum, unique
+from enum import StrEnum, unique
 from typing import Any
 
 from eduid.common.models.saml2 import EduidAuthnContextClass
@@ -52,7 +52,7 @@ class SAMLAttributeSettings:
 
 
 @unique
-class SubjectIDRequest(str, Enum):
+class SubjectIDRequest(StrEnum):
     ANY = "any"
     NONE = "none"
     PAIRWISE_ID = "pairwise-id"

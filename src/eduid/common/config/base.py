@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping, Sequence
 from datetime import timedelta
-from enum import Enum, unique
+from enum import Enum, StrEnum, unique
 from pathlib import Path
 from re import Pattern
 from typing import IO, Annotated, Any, TypeVar
@@ -69,7 +69,7 @@ class CookieConfig(BaseModel):
 TRootConfigSubclass = TypeVar("TRootConfigSubclass", bound="RootConfig")
 
 
-class EduidEnvironment(str, Enum):
+class EduidEnvironment(StrEnum):
     dev = "dev"
     staging = "staging"
     production = "production"
@@ -89,7 +89,7 @@ class RootConfig(BaseModel):
 TEduIDBaseAppConfigSubclass = TypeVar("TEduIDBaseAppConfigSubclass", bound="EduIDBaseAppConfig")
 
 
-class LoggingFilters(str, Enum):
+class LoggingFilters(StrEnum):
     """Identifiers to coherently map elements in LocalContext.filters to filter classes in logging dictConfig."""
 
     DEBUG_TRUE: str = "require_debug_true"

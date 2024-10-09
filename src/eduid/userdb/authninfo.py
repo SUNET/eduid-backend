@@ -2,7 +2,7 @@ import logging
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 
 from eduid.userdb import User
 from eduid.userdb.credentials import U2F, Password, Webauthn
@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 __author__ = "eperez"
 
 
-class AuthnCredType(str, Enum):
+class AuthnCredType(StrEnum):
     password = "security.password_credential_type"
     u2f = "security.u2f_credential_type"
     unknown = "security.unknown_credential_type"

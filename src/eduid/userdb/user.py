@@ -3,7 +3,7 @@ from __future__ import annotations
 import copy
 import logging
 from datetime import datetime
-from enum import Enum, unique
+from enum import StrEnum, unique
 from operator import itemgetter
 from typing import Any, Self, TypeVar, cast
 
@@ -31,7 +31,7 @@ TUserSubclass = TypeVar("TUserSubclass", bound="User")
 
 
 @unique
-class SubjectType(str, Enum):
+class SubjectType(StrEnum):
     PERSON = "physical person"
 
 

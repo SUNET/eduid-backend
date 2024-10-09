@@ -2,7 +2,7 @@ import os
 import struct
 from dataclasses import replace
 from datetime import datetime
-from enum import Enum, unique
+from enum import StrEnum, unique
 
 import proquint
 from flask import abort
@@ -89,7 +89,7 @@ class SignupMsg(TranslatableMsg):
 
 
 @unique
-class EmailStatus(str, Enum):
+class EmailStatus(StrEnum):
     ADDRESS_USED = "address_used"
     RESEND_CODE = "resend_code"
     NEW = "new"

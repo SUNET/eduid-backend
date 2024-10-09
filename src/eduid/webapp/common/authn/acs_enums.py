@@ -1,10 +1,10 @@
 # Solve circular imports of these by having them in a 'leaf' file :/
 
-from enum import Enum, unique
+from enum import StrEnum, unique
 
 
 @unique
-class AuthnAcsAction(str, Enum):
+class AuthnAcsAction(StrEnum):
     login = "login-action"
     change_password = "change-password-action"
     terminate_account = "terminate-account-action"
@@ -12,14 +12,14 @@ class AuthnAcsAction(str, Enum):
 
 
 @unique
-class EidasAcsAction(str, Enum):
+class EidasAcsAction(StrEnum):
     verify_identity = "verify-identity-action"
     verify_credential = "verify-credential-action"
     mfa_authenticate = "mfa-authenticate-action"
 
 
 @unique
-class BankIDAcsAction(str, Enum):
+class BankIDAcsAction(StrEnum):
     verify_identity = "verify-identity-action"
     verify_credential = "verify-credential-action"
     mfa_authenticate = "mfa-authenticate-action"

@@ -2,11 +2,11 @@
 Some data structures that causes import loops if they are defined in db.py.
 """
 
-from enum import Enum
+from enum import StrEnum
 from typing import NewType
 
 
-class OtherDeviceState(str, Enum):
+class OtherDeviceState(StrEnum):
     NEW = "NEW"  # only used device #1 so far
     IN_PROGRESS = "IN_PROGRESS"  # device #2 has 'grabbed' the request
     AUTHENTICATED = "AUTHENTICATED"  # device #2 is finished with the request (successfully)

@@ -1,5 +1,5 @@
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 
 from pydantic import BaseModel, Field
 
@@ -10,7 +10,7 @@ from eduid.userdb.meta import CleanerType, Meta
 __author__ = "masv"
 
 
-class Reason(str, Enum):
+class Reason(StrEnum):
     USER_DECEASED = "user_deceased"
     USER_DEREGISTERED = "user_deregistered"
     NAME_CHANGED = "name_changed"
@@ -19,7 +19,7 @@ class Reason(str, Enum):
     TEST = "test"
 
 
-class Source(str, Enum):
+class Source(StrEnum):
     SKV_NAVET_V2 = "swedish_tax_agency_navet_v2"
     NO_SOURCE = "no_source"
     TEST = "test"

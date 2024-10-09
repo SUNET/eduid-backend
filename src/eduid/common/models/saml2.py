@@ -1,10 +1,10 @@
-from enum import Enum, unique
+from enum import StrEnum, unique
 
 __author__ = "lundberg"
 
 
 @unique
-class EduidAuthnContextClass(str, Enum):
+class EduidAuthnContextClass(StrEnum):
     DIGG_LOA2 = "http://id.elegnamnden.se/loa/1.0/loa2"
     REFEDS_MFA = "https://refeds.org/profile/mfa"
     REFEDS_SFA = "https://refeds.org/profile/sfa"

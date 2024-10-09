@@ -1,4 +1,4 @@
-from enum import Enum, unique
+from enum import StrEnum, unique
 
 from fastapi import APIRouter, Request
 from pydantic.main import BaseModel
@@ -7,7 +7,7 @@ misc_router = APIRouter()
 
 
 @unique
-class Status(str, Enum):
+class Status(StrEnum):
     # STATUS_x_ is less ambiguous when pattern matching than just 'x'
     OK: str = "STATUS_OK_"
     FAIL: str = "STATUS_FAIL_"
