@@ -248,11 +248,11 @@ class EidasProofingFunctions(SwedenConnectProofingFunctions[ForeignEidSessionInf
         existing_identity = user.identities.eidas
         locked_identity = user.locked_identity.eidas
 
-        loa = EIDASLoa(
-            authn_context_class_to_loa(
-                session_info=self.session_info, authentication_context_map=current_app.conf.authentication_context_map
-            )
+        acc_loa = authn_context_class_to_loa(
+            session_info=self.session_info, authentication_context_map=current_app.conf.authentication_context_map
         )
+        assert acc_loa is not None  # please mypy
+        loa = EIDASLoa(acc_loa)
         date_of_birth = self.session_info.attributes.date_of_birth
         new_identity = EIDASIdentity(
             created_by=current_app.conf.app_name,
