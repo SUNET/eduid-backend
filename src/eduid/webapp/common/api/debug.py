@@ -5,11 +5,9 @@ from collections.abc import Callable, Iterable
 from dataclasses import asdict
 from typing import Any
 from urllib import parse
+from wsgiref.types import StartResponse, WSGIEnvironment
 
 from flask import Flask, url_for
-
-# TODO: in python >= 3.11 import from wsgiref.types
-from eduid.webapp.common.wsgi import StartResponse, WSGIEnvironment
 
 __author__ = "lundberg"
 
