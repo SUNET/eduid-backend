@@ -5,7 +5,7 @@ import logging.config
 import os
 import uuid
 from collections.abc import Iterable
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from enum import Enum
 from typing import Any, TypeVar
 
@@ -50,7 +50,7 @@ def normalised_data(
                 else:
                     logger.warning(f"No timezone found for datetime: {o}")
                 # Make sure all datetimes has the same type of tzinfo object
-                o = o.replace(tzinfo=timezone.utc)
+                o = o.replace(tzinfo=UTC)
                 o = o.replace(microsecond=0)
                 return o.isoformat()
 

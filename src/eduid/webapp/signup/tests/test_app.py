@@ -2,7 +2,7 @@ import json
 import logging
 from collections.abc import Mapping
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from enum import Enum
 from typing import Any
 from unittest.mock import MagicMock, patch
@@ -626,7 +626,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
             surname="Invitesson",
             nin="190102031234",
             finish_url="https://example.com/finish",
-            expires_at=datetime(1970, 1, 1, 0, 0, 0, 0, timezone.utc),
+            expires_at=datetime(1970, 1, 1, 0, 0, 0, 0, UTC),
         )
         self.app.invite_db.save(invite=invite, is_in_database=False)
         return invite

@@ -29,7 +29,7 @@ class UTC(datetime.tzinfo):
 # TODO: check this as it is in eduid.common.misc.timeutil
 def utc_now() -> datetime.datetime:
     """Return current time with tz=UTC"""
-    return datetime.datetime.now(tz=datetime.timezone.utc)
+    return datetime.datetime.now(tz=datetime.UTC)
 
 
 def objectid_str() -> str:

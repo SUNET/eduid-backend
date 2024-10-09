@@ -1,7 +1,7 @@
 import logging
 from collections.abc import Mapping
 from dataclasses import replace
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from bson import ObjectId
@@ -74,7 +74,7 @@ class AsyncQueueDB(AsyncBaseDB, QueuePayloadMixin):
         # Update item with current worker name and ts
         mutable_doc = dict(doc)
         mutable_doc["processed_by"] = worker_name
-        mutable_doc["processed_ts"] = datetime.now(tz=timezone.utc)
+        mutable_doc["processed_ts"] = datetime.now(tz=UTC)
 
         try:
             # Try to parse the queue item to only grab items that are registered with the current db

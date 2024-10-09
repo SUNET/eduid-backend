@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from bson import ObjectId
 
@@ -57,9 +57,9 @@ class test_SSOSession(IdPAPITests):
         assert session2.to_dict() == self.data
 
     def test_only_store_newest_credential_use(self) -> None:
-        pw = AuthnData(cred_id=ElementKey("password"), timestamp=datetime.fromtimestamp(10, tz=timezone.utc))
-        older = AuthnData(cred_id=ElementKey("token"), timestamp=datetime.fromtimestamp(20, tz=timezone.utc))
-        newer = AuthnData(cred_id=ElementKey("token"), timestamp=datetime.fromtimestamp(30, tz=timezone.utc))
+        pw = AuthnData(cred_id=ElementKey("password"), timestamp=datetime.fromtimestamp(10, tz=UTC))
+        older = AuthnData(cred_id=ElementKey("token"), timestamp=datetime.fromtimestamp(20, tz=UTC))
+        newer = AuthnData(cred_id=ElementKey("token"), timestamp=datetime.fromtimestamp(30, tz=UTC))
 
         _data = dict(self.data)
         _data["authn_credentials"] = []
