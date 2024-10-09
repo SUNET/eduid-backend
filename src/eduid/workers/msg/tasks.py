@@ -12,7 +12,6 @@ from smscom import SMSClient
 
 from eduid.common.config.base import EduidEnvironment
 from eduid.common.decorators import deprecated
-from eduid.common.utils import removeprefix
 from eduid.userdb.exceptions import ConnectionError
 from eduid.workers.msg.cache import CacheMDB
 from eduid.workers.msg.common import MsgCelerySingleton
@@ -373,7 +372,7 @@ class MessageSender(Task):
         #  0701740605-0701740699 is a unused range from PTS
         #  https://www.pts.se/sv/bransch/telefoni/nummer-och-adressering/
         #  telefonnummer-for-anvandning-i-bocker-och-filmer-etc/
-        if recipient.startswith("+467017406") and 5 <= int(removeprefix(recipient, "+467017406")) <= 99:
+        if recipient.startswith("+467017406") and 5 <= int(recipient.removeprefix("+467017406")) <= 99:
             logger.debug("sendsms task:")
             logger.debug(f"\nType: sms\nReference: {reference}\nRecipient: {recipient}\nMessage:\n{message}")
             return "no_op_number"
