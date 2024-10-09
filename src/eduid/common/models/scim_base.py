@@ -1,6 +1,6 @@
 from datetime import datetime
 from enum import Enum
-from typing import Annotated, Any, TypeVar
+from typing import Annotated, Any, Self
 from uuid import UUID
 
 from bson import ObjectId
@@ -98,9 +98,6 @@ class EduidBaseModel(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True, populate_by_name=True)
 
 
-TSubResource = TypeVar("TSubResource", bound="SubResource")
-
-
 class SubResource(EduidBaseModel):
     value: UUID
     ref: str = Field(alias="$ref")
@@ -115,7 +112,7 @@ class SubResource(EduidBaseModel):
         return self.ref is not None and "/Groups/" in self.ref
 
     @classmethod
-    def from_mapping(cls: type[TSubResource], data: object) -> TSubResource:
+    def from_mapping(cls, data: object) -> Self:
         return cls.model_validate(data)
 
 
