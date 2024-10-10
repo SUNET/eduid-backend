@@ -3,7 +3,6 @@ import logging
 from pydantic import BaseModel, Field, field_validator
 
 from eduid.common.config.base import AuthnBearerTokenConfig, LoggingConfigMixin
-from eduid.common.utils import removesuffix
 
 logger = logging.getLogger(__name__)
 
@@ -36,5 +35,5 @@ class ScimApiConfig(AuthnBearerTokenConfig, LoggingConfigMixin, AWSMixin):
     def application_root_must_not_end_with_slash(cls, v: str) -> str:
         if v.endswith("/"):
             logger.warning(f"application_root should not end with slash ({v})")
-            v = removesuffix(v, "/")
+            v = v.removesuffix("/")
         return v

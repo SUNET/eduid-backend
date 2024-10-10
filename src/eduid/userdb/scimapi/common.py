@@ -9,8 +9,8 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
+from eduid.common.misc.timeutil import utc_now
 from eduid.common.models.scim_base import EmailType, PhoneNumberType, WeakVersion
-from eduid.userdb.util import utc_now
 
 __author__ = "lundberg"
 

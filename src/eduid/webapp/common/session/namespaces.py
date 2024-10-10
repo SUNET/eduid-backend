@@ -5,7 +5,7 @@ from abc import ABC
 from collections.abc import Mapping
 from copy import deepcopy
 from datetime import datetime
-from enum import Enum, unique
+from enum import StrEnum, unique
 from typing import Any, NewType, TypeVar, cast
 from uuid import uuid4
 
@@ -64,7 +64,7 @@ TSessionNSSubclass = TypeVar("TSessionNSSubclass", bound=SessionNSBase)
 
 
 @unique
-class LoginApplication(str, Enum):
+class LoginApplication(StrEnum):
     idp = "idp"
     authn = "authn"
     signup = "signup"
@@ -184,7 +184,7 @@ class Phone(SessionNSBase):
 RequestRef = NewType("RequestRef", str)
 
 
-class OnetimeCredType(str, Enum):
+class OnetimeCredType(StrEnum):
     external_mfa = "ext_mfa"
 
 

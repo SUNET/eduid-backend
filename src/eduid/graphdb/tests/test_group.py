@@ -1,7 +1,5 @@
-from typing import TypedDict
+from typing import NotRequired, TypedDict
 from unittest import TestCase
-
-from typing_extensions import NotRequired
 
 from eduid.graphdb.groupdb import Group, User
 

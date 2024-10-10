@@ -6,12 +6,12 @@ __author__ = "lundberg"
 #
 
 from collections.abc import Callable
-from datetime import datetime
 from inspect import isclass
 from typing import Any
 
 from pymongo.collection import Collection
 
+from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.db import MongoDB
 from eduid.userdb.db.base import TUserDbDocument
 
@@ -42,7 +42,7 @@ class TransactionAudit:
                     db = MongoDB(db_uri=self.db_uri, db_name=self.db_name)
                     self.collection = db.get_collection(self.collection_name)
                 if not isclass(ret):  # we can't save class objects in mongodb
-                    date = datetime.utcnow()
+                    date = utc_now()
                     doc = TUserDbDocument(
                         {
                             "function": f.__name__,

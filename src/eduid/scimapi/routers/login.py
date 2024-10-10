@@ -26,7 +26,7 @@ async def get_token(req: ContextRequest, resp: Response, token_req: TokenRequest
     req.app.context.logger.info("Logging in")
     if token_req.data_owner not in req.app.context.config.data_owners:
         raise Unauthorized()
-    now = datetime.datetime.now(tz=datetime.timezone.utc)
+    now = datetime.datetime.now(tz=datetime.UTC)
     expire = now + datetime.timedelta(seconds=req.app.context.config.authorization_token_expire)
     signing_key = req.app.context.jwks.get_key(req.app.context.config.signing_key_id)
     claims = {

@@ -1,6 +1,6 @@
 from datetime import datetime
-from enum import Enum
-from typing import Annotated, Any, TypeVar
+from enum import StrEnum
+from typing import Annotated, Any, Self
 from uuid import UUID
 
 from bson import ObjectId
@@ -57,7 +57,7 @@ LanguageTag = Annotated[
 ScimDatetime = Annotated[datetime, PlainSerializer(serialize_xml_datetime)]
 
 
-class SCIMSchema(str, Enum):
+class SCIMSchema(StrEnum):
     CORE_20_USER = "urn:ietf:params:scim:schemas:core:2.0:User"
     CORE_20_GROUP = "urn:ietf:params:scim:schemas:core:2.0:Group"
     API_MESSAGES_20_SEARCH_REQUEST = "urn:ietf:params:scim:api:messages:2.0:SearchRequest"
@@ -72,20 +72,20 @@ class SCIMSchema(str, Enum):
     DEBUG_V1 = "https://scim.eduid.se/schema/nutid-DEBUG/v1"
 
 
-class SCIMResourceType(str, Enum):
+class SCIMResourceType(StrEnum):
     USER = "User"
     GROUP = "Group"
     INVITE = "Invite"
     EVENT = "Event"
 
 
-class EmailType(str, Enum):
+class EmailType(StrEnum):
     HOME = "home"
     WORK = "work"
     OTHER = "other"
 
 
-class PhoneNumberType(str, Enum):
+class PhoneNumberType(StrEnum):
     HOME = "home"
     WORK = "work"
     OTHER = "other"
@@ -96,9 +96,6 @@ class PhoneNumberType(str, Enum):
 
 class EduidBaseModel(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True, populate_by_name=True)
-
-
-TSubResource = TypeVar("TSubResource", bound="SubResource")
 
 
 class SubResource(EduidBaseModel):
@@ -115,7 +112,7 @@ class SubResource(EduidBaseModel):
         return self.ref is not None and "/Groups/" in self.ref
 
     @classmethod
-    def from_mapping(cls: type[TSubResource], data: object) -> TSubResource:
+    def from_mapping(cls, data: object) -> Self:
         return cls.model_validate(data)
 
 

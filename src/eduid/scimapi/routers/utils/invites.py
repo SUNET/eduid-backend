@@ -8,6 +8,7 @@ from fastapi import Request, Response
 from pymongo.errors import DuplicateKeyError
 
 from eduid.common.fastapi.context_request import ContextRequest
+from eduid.common.misc.timeutil import utc_now
 from eduid.common.models.scim_base import Email, Meta, Name, PhoneNumber, SCIMResourceType, SCIMSchema, SearchRequest
 from eduid.common.models.scim_invite import InviteCreateRequest, InviteResponse, NutidInviteExtensionV1
 from eduid.common.models.scim_user import NutidUserExtensionV1, Profile
@@ -62,7 +63,7 @@ def create_signup_invite(
         mail_addresses=mails_addresses,
         phone_numbers=phone_numbers,
         finish_url=create_request.nutid_invite_v1.finish_url,
-        expires_at=datetime.utcnow() + timedelta(seconds=req.app.context.config.invite_expire),
+        expires_at=utc_now() + timedelta(seconds=req.app.context.config.invite_expire),
     )
     return signup_invite
 
@@ -142,7 +143,7 @@ def send_invite_mail(req: ContextRequest, signup_invite: SignupInvite) -> bool:
     system_hostname = environ.get("SYSTEM_HOSTNAME", "")  # Underlying hosts name for containers
     hostname = environ.get("HOSTNAME", "")  # Actual hostname or container id
     sender_info = SenderInfo(hostname=hostname, node_id=f"{app_name}@{system_hostname}")
-    expires_at = datetime.utcnow() + timedelta(seconds=req.app.context.config.invite_expire)
+    expires_at = utc_now() + timedelta(seconds=req.app.context.config.invite_expire)
     discard_at = expires_at + timedelta(days=7)
     message = QueueItem(
         version=1,

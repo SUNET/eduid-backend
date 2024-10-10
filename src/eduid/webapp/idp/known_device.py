@@ -15,8 +15,8 @@ from bson import ObjectId
 from nacl.secret import SecretBox
 from pydantic import BaseModel, ConfigDict, Field
 
+from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.db import BaseDB
-from eduid.userdb.util import utc_now
 
 logger = logging.getLogger(__name__)
 

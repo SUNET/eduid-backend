@@ -1,13 +1,13 @@
 import unittest
-from datetime import datetime
 
+from eduid.common.misc.timeutil import utc_now
 from eduid.scimapi.exceptions import BadRequest
 from eduid.scimapi.search import parse_search_filter
 
 
 class TestSearchFilter(unittest.TestCase):
     def test_lastmodified(self) -> None:
-        now = datetime.utcnow()
+        now = utc_now()
         filter = f'meta.lastModified gt "{now.isoformat()}"'
         sf = parse_search_filter(filter)
         self.assertEqual(sf.attr, "meta.lastmodified")

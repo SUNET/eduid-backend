@@ -18,7 +18,7 @@ __author__ = "lundberg"
 #    'id': password_id,                         # noqa: ERA001
 #    'salt': salt,                              # noqa: ERA001
 #    'source': 'signup',                        # noqa: ERA001
-#    'created_ts': datetime.datetime.utcnow(),  # noqa: ERA001
+#    'created_ts': utc_now(),                   # noqa: ERA001
 # }}                                            # noqa: ERA001
 from eduid.userdb.credentials.password import Password
 

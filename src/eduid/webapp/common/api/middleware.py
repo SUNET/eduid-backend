@@ -2,9 +2,7 @@ __author__ = "lundberg"
 
 from collections.abc import Callable, Iterable
 from typing import Any
-
-# TODO: in python >= 3.11 import from wsgiref.types
-from eduid.webapp.common.wsgi import StartResponse, WSGIEnvironment
+from wsgiref.types import StartResponse, WSGIEnvironment
 
 
 # Copied from https://stackoverflow.com/questions/18967441/add-a-prefix-to-all-flask-routes/36033627#36033627

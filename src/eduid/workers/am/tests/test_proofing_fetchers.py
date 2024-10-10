@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import UUID
 
 import bson
@@ -62,8 +62,8 @@ class AttributeFetcherNINProofingTests(ProofingTestCase):
                         "identity_type": IdentityType.NIN.value,
                         "number": "123456781235",
                         "verified": True,
-                        "created_ts": datetime(2022, 5, 18, 16, 36, 16, tzinfo=timezone.utc),
-                        "modified_ts": datetime(2022, 5, 18, 16, 36, 16, tzinfo=timezone.utc),
+                        "created_ts": datetime(2022, 5, 18, 16, 36, 16, tzinfo=UTC),
+                        "modified_ts": datetime(2022, 5, 18, 16, 36, 16, tzinfo=UTC),
                     }
                 ],
                 "letter_proofing_data": [
@@ -142,8 +142,8 @@ class AttributeFetcherNINProofingTests(ProofingTestCase):
                         "identity_type": IdentityType.NIN.value,
                         "number": "123456781235",
                         "verified": True,
-                        "created_ts": datetime(2022, 5, 18, 16, 36, 16, tzinfo=timezone.utc),
-                        "modified_ts": datetime(2022, 5, 18, 16, 36, 16, tzinfo=timezone.utc),
+                        "created_ts": datetime(2022, 5, 18, 16, 36, 16, tzinfo=UTC),
+                        "modified_ts": datetime(2022, 5, 18, 16, 36, 16, tzinfo=UTC),
                     }
                 ],
                 "letter_proofing_data": [
@@ -240,8 +240,8 @@ class AttributeFetcherEmailProofingTests(ProofingTestCase):
                         "identity_type": IdentityType.NIN.value,
                         "number": "123456781235",
                         "verified": True,
-                        "created_ts": datetime(2022, 5, 18, 16, 36, 16, tzinfo=timezone.utc),
-                        "modified_ts": datetime(2022, 5, 18, 16, 36, 16, tzinfo=timezone.utc),
+                        "created_ts": datetime(2022, 5, 18, 16, 36, 16, tzinfo=UTC),
+                        "modified_ts": datetime(2022, 5, 18, 16, 36, 16, tzinfo=UTC),
                     }
                 ],
             }
@@ -357,8 +357,8 @@ class AttributeFetcherSecurityTests(ProofingTestCase):
                         "identity_type": IdentityType.NIN.value,
                         "number": "123456781235",
                         "verified": True,
-                        "created_ts": datetime(2022, 5, 18, 16, 36, 16, tzinfo=timezone.utc),
-                        "modified_ts": datetime(2022, 5, 18, 16, 36, 16, tzinfo=timezone.utc),
+                        "created_ts": datetime(2022, 5, 18, 16, 36, 16, tzinfo=UTC),
+                        "modified_ts": datetime(2022, 5, 18, 16, 36, 16, tzinfo=UTC),
                     }
                 ],
                 "phone": [{"number": "+46700011336", "primary": True, "verified": True}],
@@ -397,8 +397,8 @@ class AttributeFetcherSecurityTests(ProofingTestCase):
                         "identity_type": IdentityType.NIN.value,
                         "number": "123456781235",
                         "verified": True,
-                        "created_ts": datetime(2022, 5, 18, 16, 36, 16, tzinfo=timezone.utc),
-                        "modified_ts": datetime(2022, 5, 18, 16, 36, 16, tzinfo=timezone.utc),
+                        "created_ts": datetime(2022, 5, 18, 16, 36, 16, tzinfo=UTC),
+                        "modified_ts": datetime(2022, 5, 18, 16, 36, 16, tzinfo=UTC),
                     }
                 ],
                 "phone": [{"number": "+46700011336", "primary": True, "verified": True}],
@@ -435,8 +435,8 @@ class AttributeFetcherResetPasswordTests(ProofingTestCase):
                         "identity_type": IdentityType.NIN.value,
                         "number": "123456781235",
                         "verified": True,
-                        "created_ts": datetime(2022, 5, 18, 16, 36, 16, tzinfo=timezone.utc),
-                        "modified_ts": datetime(2022, 5, 18, 16, 36, 16, tzinfo=timezone.utc),
+                        "created_ts": datetime(2022, 5, 18, 16, 36, 16, tzinfo=UTC),
+                        "modified_ts": datetime(2022, 5, 18, 16, 36, 16, tzinfo=UTC),
                     }
                 ],
                 "phone": [{"number": "+46700011336", "primary": True, "verified": True}],
@@ -471,8 +471,8 @@ class AttributeFetcherResetPasswordTests(ProofingTestCase):
                         "identity_type": IdentityType.NIN.value,
                         "number": "123456781235",
                         "verified": True,
-                        "created_ts": datetime(2022, 5, 18, 16, 36, 16, tzinfo=timezone.utc),
-                        "modified_ts": datetime(2022, 5, 18, 16, 36, 16, tzinfo=timezone.utc),
+                        "created_ts": datetime(2022, 5, 18, 16, 36, 16, tzinfo=UTC),
+                        "modified_ts": datetime(2022, 5, 18, 16, 36, 16, tzinfo=UTC),
                     }
                 ],
                 "phone": [{"number": "+46700011336", "primary": True, "verified": True}],
@@ -553,13 +553,13 @@ class AttributeFetcherLadokTests(ProofingTestCase):
         expected = {
             "$set": {
                 "ladok": {
-                    "created_ts": datetime(2022, 2, 23, 17, 39, 32, tzinfo=timezone.utc),
-                    "modified_ts": datetime(2022, 2, 23, 17, 39, 32, tzinfo=timezone.utc),
+                    "created_ts": datetime(2022, 2, 23, 17, 39, 32, tzinfo=UTC),
+                    "modified_ts": datetime(2022, 2, 23, 17, 39, 32, tzinfo=UTC),
                     "verified_by": "eduid-ladok",
                     "external_id": UUID("9555f3de-dd32-4bed-8e36-72ef00fb4df2"),
                     "university": {
-                        "created_ts": datetime(2022, 2, 23, 17, 39, 32, tzinfo=timezone.utc),
-                        "modified_ts": datetime(2022, 2, 23, 17, 39, 32, tzinfo=timezone.utc),
+                        "created_ts": datetime(2022, 2, 23, 17, 39, 32, tzinfo=UTC),
+                        "modified_ts": datetime(2022, 2, 23, 17, 39, 32, tzinfo=UTC),
                         "ladok_name": "ab",
                         "name": {"sv": "Lärosätesnamn", "en": "University Name"},
                     },

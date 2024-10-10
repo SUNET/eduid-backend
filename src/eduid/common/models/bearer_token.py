@@ -1,7 +1,7 @@
 import logging
 from collections.abc import Mapping
 from copy import copy
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 from pydantic import BaseModel, Field, StrictInt, field_validator, model_validator
@@ -11,7 +11,7 @@ from eduid.common.config.base import AuthnBearerTokenConfig, DataOwnerName, Scop
 from eduid.userdb.scimapi.groupdb import ScimApiGroupDB
 
 
-class AuthSource(str, Enum):
+class AuthSource(StrEnum):
     INTERACTION = "interaction"
     CONFIG = "config"
     MDQ = "mdq"

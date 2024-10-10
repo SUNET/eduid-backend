@@ -3,6 +3,7 @@ from datetime import timedelta
 from fastapi import Response
 
 from eduid.common.fastapi.context_request import ContextRequest
+from eduid.common.misc.timeutil import utc_now
 from eduid.common.models.scim_base import SCIMResourceType
 from eduid.scimapi.api_router import APIRouter
 from eduid.scimapi.context_request import ScimApiContext, ScimApiRoute
@@ -10,7 +11,6 @@ from eduid.scimapi.exceptions import BadRequest, ErrorDetail, NotFound
 from eduid.scimapi.models.event import EventCreateRequest, EventResponse
 from eduid.scimapi.routers.utils.events import db_event_to_response, get_scim_referenced
 from eduid.userdb.scimapi import ScimApiEvent, ScimApiEventResource
-from eduid.userdb.util import utc_now
 
 __author__ = "lundberg"
 

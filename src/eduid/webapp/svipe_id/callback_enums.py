@@ -1,8 +1,8 @@
-from enum import Enum, unique
+from enum import StrEnum, unique
 
 __author__ = "lundberg"
 
 
 @unique
-class SvipeIDAction(str, Enum):
+class SvipeIDAction(StrEnum):
     verify_identity = "verify-identity-action"

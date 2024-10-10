@@ -8,7 +8,7 @@ import nacl.utils
 from bson import ObjectId
 from nacl.secret import SecretBox
 
-from eduid.userdb.util import utc_now
+from eduid.common.misc.timeutil import utc_now
 from eduid.webapp.idp.app import IdPApp
 from eduid.webapp.idp.known_device import BrowserDeviceInfo, KnownDevice, KnownDeviceData, KnownDeviceId
 from eduid.webapp.idp.tests.test_api import IdPAPITests

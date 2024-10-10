@@ -3,7 +3,7 @@ Some data structures that causes import loops if they are defined in assurance.p
 """
 
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 from pydantic import BaseModel
@@ -12,7 +12,7 @@ from eduid.common.models.saml2 import EduidAuthnContextClass
 from eduid.userdb.element import ElementKey
 
 
-class SwamidAssurance(str, Enum):
+class SwamidAssurance(StrEnum):
     SWAMID_AL1 = "http://www.swamid.se/policy/assurance/al1"
     SWAMID_AL2 = "http://www.swamid.se/policy/assurance/al2"
     SWAMID_AL3 = "http://www.swamid.se/policy/assurance/al3"
@@ -26,7 +26,7 @@ class SwamidAssurance(str, Enum):
     REFEDS_PROFILE_ESPRESSO = "https://refeds.org/assurance/profile/espresso"
 
 
-class SwedenConnectAssurance(str, Enum):
+class SwedenConnectAssurance(StrEnum):
     LOA2 = "http://id.elegnamnden.se/loa/1.0/loa2"
     LOA3 = "http://id.elegnamnden.se/loa/1.0/loa3"
     UNCERTIFIED_LOA3 = "http://id.swedenconnect.se/loa/1.0/uncertified-loa3"
@@ -46,7 +46,7 @@ class AuthnInfo(BaseModel):
         )
 
 
-class UsedWhere(str, Enum):
+class UsedWhere(StrEnum):
     REQUEST = "request"
     SSO = "SSO session"
 

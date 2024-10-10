@@ -12,10 +12,11 @@ from bson import ObjectId
 from pymongo.database import Database
 from pymongo.errors import PyMongoError
 
+from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.db.base import BaseMongoDB, TUserDbDocument
 from eduid.userdb.exceptions import DocumentOutOfSync, EduIDUserDBError, MongoConnectionError, MultipleDocumentsReturned
 from eduid.userdb.meta import Meta
-from eduid.userdb.util import format_dict_for_debug, utc_now
+from eduid.userdb.util import format_dict_for_debug
 
 logger = logging.getLogger(__name__)
 extra_logger = logger.getChild("extra_debug")

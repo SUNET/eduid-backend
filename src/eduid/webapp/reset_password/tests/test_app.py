@@ -574,9 +574,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         state1 = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
         assert state1
         # Set created time 5 minutes before email_code_timeout
-        state1.email_code.created_ts = datetime.datetime.utcnow() - (
-            self.app.conf.email_code_timeout + datetime.timedelta(minutes=5)
-        )
+        state1.email_code.created_ts = utc_now() - (self.app.conf.email_code_timeout + datetime.timedelta(minutes=5))
         self.app.password_reset_state_db.save(state1)
 
         response2 = self._post_email_address()

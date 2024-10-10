@@ -6,7 +6,6 @@ from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
 from eduid.common.clients.gnap_client.base import GNAPClientAuthData
 from eduid.common.config.base import AmConfigMixin, LoggingConfigMixin, MsgConfigMixin, RootConfig, StatsConfigMixin
-from eduid.common.utils import removesuffix
 
 logger = logging.getLogger(__name__)
 
@@ -63,5 +62,5 @@ class JobRunnerConfig(RootConfig, LoggingConfigMixin, StatsConfigMixin, MsgConfi
     def application_root_must_not_end_with_slash(cls, v: str) -> str:
         if v.endswith("/"):
             logger.warning(f"application_root should not end with slash ({v})")
-            v = removesuffix(v, "/")
+            v = v.removesuffix("/")
         return v

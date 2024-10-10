@@ -19,7 +19,6 @@ from eduid.common.models.bearer_token import (
     AuthSource,
     RequestedAccessDenied,
 )
-from eduid.common.utils import removeprefix
 from eduid.scimapi.context import Context
 from eduid.scimapi.context_request import ScimApiContext
 from eduid.scimapi.exceptions import Unauthorized, http_error_detail_handler
@@ -70,7 +69,7 @@ class AuthenticationMiddleware(BaseMiddleware):
     def _is_no_auth_path(self, url: URL) -> bool:
         path = url.path
         # Remove application root from path matching
-        path = removeprefix(path, self.context.config.application_root)
+        path = path.removeprefix(self.context.config.application_root)
         for regex in self.no_authn_urls:
             m = re.match(regex, path)
             if m is not None:

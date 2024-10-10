@@ -1,4 +1,4 @@
-from enum import Enum, unique
+from enum import StrEnum, unique
 from typing import Any
 
 from saml2 import BINDING_HTTP_POST
@@ -46,7 +46,7 @@ class IdPMsg(str, TranslatableMsg):
 
 
 @unique
-class IdPAction(str, Enum):
+class IdPAction(StrEnum):
     NEW_DEVICE = "NEW_DEVICE"
     OTHER_DEVICE = "OTHER_DEVICE"
     PWAUTH = "USERNAMEPASSWORD"

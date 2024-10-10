@@ -8,12 +8,12 @@ from unittest.mock import MagicMock, patch
 from aiosmtplib import SMTPResponse
 
 from eduid.common.config.parsers import load_config
+from eduid.common.misc.timeutil import utc_now
 from eduid.queue.config import QueueWorkerConfig
 from eduid.queue.db.message import EduidSignupEmail
 from eduid.queue.db.message.payload import EduidResetPasswordEmail, EduidTerminationEmail, EduidVerificationEmail
 from eduid.queue.testing import IsolatedWorkerDBMixin, QueueAsyncioTest, SMPTDFixTemporaryInstance
 from eduid.queue.workers.mail import MailQueueWorker
-from eduid.userdb.util import utc_now
 
 __author__ = "lundberg"
 

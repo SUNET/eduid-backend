@@ -3,7 +3,7 @@
 import base64
 import ipaddress
 import logging
-from enum import Enum
+from enum import StrEnum
 
 from eduid.userdb.idp import IdPUser
 
@@ -47,7 +47,7 @@ def maybe_xml_to_string(message: str | bytes) -> str:
         return message
 
 
-class IPProximity(str, Enum):
+class IPProximity(StrEnum):
     SAME = "SAME"
     NEAR = "NEAR"
     FAR = "FAR"

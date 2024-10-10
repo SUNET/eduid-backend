@@ -24,8 +24,8 @@ class MsgRelayTests(unittest.TestCase):
         self.message_sender = MessageSender()
 
     @staticmethod
-    def _fix_relations_to(relative_nin: str, relations: Mapping[str, Any]) -> list[dict[str, Any]]:
-        result: list[dict[str, Any]] = []
+    def _fix_relations_to(relative_nin: str, relations: Mapping[str, Any]) -> list[str]:
+        result: list[str] = []
         for d in relations["Relations"]["Relation"]:
             if d.get("RelationId", {}).get("NationalIdentityNumber") == relative_nin:
                 if "RelationType" in d:

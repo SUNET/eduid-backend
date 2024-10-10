@@ -6,7 +6,7 @@ __author__ = "leifj"
 
 import logging
 from copy import deepcopy
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
@@ -51,8 +51,8 @@ USER_DATA = TUserDbDocument(
                 "identity_type": IdentityType.NIN.value,
                 "number": "123456781235",
                 "verified": True,
-                "created_ts": datetime(2022, 5, 18, 16, 36, 16, tzinfo=timezone.utc),
-                "modified_ts": datetime(2022, 5, 18, 16, 36, 16, tzinfo=timezone.utc),
+                "created_ts": datetime(2022, 5, 18, 16, 36, 16, tzinfo=UTC),
+                "modified_ts": datetime(2022, 5, 18, 16, 36, 16, tzinfo=UTC),
             }
         ],
         "orcid": {
@@ -81,13 +81,13 @@ USER_DATA = TUserDbDocument(
             "created_by": "orcid",
         },
         "ladok": {
-            "created_ts": datetime(2022, 2, 23, 17, 39, 32, 303000, tzinfo=timezone.utc),
-            "modified_ts": datetime(2022, 2, 23, 17, 39, 32, 303000, tzinfo=timezone.utc),
+            "created_ts": datetime(2022, 2, 23, 17, 39, 32, 303000, tzinfo=UTC),
+            "modified_ts": datetime(2022, 2, 23, 17, 39, 32, 303000, tzinfo=UTC),
             "verified_by": "eduid-ladok",
             "external_id": UUID("9555f3de-dd32-4bed-8e36-72ef00fb4df2"),
             "university": {
-                "created_ts": datetime(2022, 2, 23, 17, 39, 32, 303000, tzinfo=timezone.utc),
-                "modified_ts": datetime(2022, 2, 23, 17, 39, 32, 303000, tzinfo=timezone.utc),
+                "created_ts": datetime(2022, 2, 23, 17, 39, 32, 303000, tzinfo=UTC),
+                "modified_ts": datetime(2022, 2, 23, 17, 39, 32, 303000, tzinfo=UTC),
                 "ladok_name": "ab",
                 "name": {"sv": "Lärosätesnamn", "en": "University Name"},
             },

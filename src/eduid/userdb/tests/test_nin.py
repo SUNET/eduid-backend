@@ -7,6 +7,7 @@ import pytest
 from pydantic import ValidationError
 
 import eduid.userdb.exceptions
+from eduid.common.misc.timeutil import utc_now
 from eduid.common.testing_base import normalised_data
 from eduid.userdb import PhoneNumber
 from eduid.userdb.element import ElementKey
@@ -250,7 +251,7 @@ class TestNin(TestCase):
     def test_modify_verified_ts(self) -> None:
         this = self.three.find("197803033456")
         assert this
-        now = datetime.datetime.utcnow()
+        now = utc_now()
         this.verified_ts = now
         self.assertEqual(this.verified_ts, now)
 

@@ -1,10 +1,10 @@
 import base64
 import json
-from datetime import datetime
 from io import BytesIO
 
 from hammock import Hammock
 
+from eduid.common.misc.timeutil import utc_now
 from eduid.webapp.letter_proofing.settings.common import LetterProofingConfig
 
 __author__ = "john"
@@ -35,7 +35,7 @@ class Ekopost:
 
         # Output date is set it to current time since
         # we want to send the letter as soon as possible.
-        output_date = str(datetime.utcnow())
+        output_date = str(utc_now())
 
         # An easily identifiable name for the campaign and envelope
         letter_id = eppn + "+" + output_date

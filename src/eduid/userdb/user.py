@@ -3,13 +3,12 @@ from __future__ import annotations
 import copy
 import logging
 from datetime import datetime
-from enum import Enum, unique
+from enum import StrEnum, unique
 from operator import itemgetter
-from typing import Any, TypeVar, cast
+from typing import Any, Self, TypeVar, cast
 
 import bson
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
-from typing_extensions import Self
 
 from eduid.userdb.credentials import CredentialList
 from eduid.userdb.db import BaseDB, TUserDbDocument
@@ -32,7 +31,7 @@ TUserSubclass = TypeVar("TUserSubclass", bound="User")
 
 
 @unique
-class SubjectType(str, Enum):
+class SubjectType(StrEnum):
     PERSON = "physical person"
 
 
