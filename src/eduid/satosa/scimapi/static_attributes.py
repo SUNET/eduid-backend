@@ -38,7 +38,7 @@ class AddStaticAttributesForVirtualIdp(ResponseMicroService):
         static_appended_attributes_for_virtual_idp:
             default:
                 virtual_idp_1:
-                    eduPersonAssurance:
+                    edupersonassurance:
                         - https://refeds.org/assurance/ATP/ePA-1m
                         - https://refeds.org/assurance/IAP/local-enterprise
     ```
