@@ -2453,7 +2453,7 @@ websockets==13.1 \
     --hash=sha256:f48c749857f8fb598fb890a75f540e3221d0976ed0bf879cf3c7eef34151acee \
     --hash=sha256:f779498eeec470295a2b1a5d97aa1bc9814ecd25e1eb637bd9d1c73a327387f6
     # via uvicorn
-werkzeug==3.0.4 \
+werkzeug==3.0.6 \
     --hash=sha256:02c9eb92b7d6c06f31a782811505d2157837cea66aaede3e217c7c27c039476c \
     --hash=sha256:34f2371506b250df4d4f84bfe7b0921e4762525762bbd936614909fe25cd7306
     # via
