@@ -38,7 +38,7 @@ class AddStaticAttributesForVirtualIdp(ResponseMicroService):
         static_appended_attributes_for_virtual_idp:
             default:
                 virtual_idp_1:
-                    eduPersonAssurance:
+                    edupersonassurance:
                         - https://refeds.org/assurance/ATP/ePA-1m
                         - https://refeds.org/assurance/IAP/local-enterprise
     ```
@@ -75,6 +75,9 @@ class AddStaticAttributesForVirtualIdp(ResponseMicroService):
                         if value not in fmt:
                             static_attributes[attr_name].append(value)
                     static_attributes[attr_name].sort()
+                else:
+                    static_attributes[attr_name] = fmt
+
 
                 logger.debug(f"Appending static attribute {attr_name}: {fmt} for requester {requester} or {vidp}")
 
