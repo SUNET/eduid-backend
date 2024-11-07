@@ -309,7 +309,7 @@ class IdPTestLoginAPI(IdPAPITests):
 
         self._check_login_result(
             result=device_2_result2,
-            visit_order=[IdPAction.PWAUTH, IdPAction.MFA, IdPAction.FINISHED],
+            visit_order=[IdPAction.PWAUTH, IdPAction.FINISHED],
         )
 
         # after login with device 2, retrieve the response code
