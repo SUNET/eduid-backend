@@ -250,7 +250,7 @@ class LoginContextOtherDevice(LoginContext):
 
     @property
     def authn_contexts(self) -> list[str]:
-        if not self.other_device_req.device1.authn_context:
+        if self.other_device_req.device1.authn_context is None:
             return []
         return [str(self.other_device_req.device1.authn_context)]
 
