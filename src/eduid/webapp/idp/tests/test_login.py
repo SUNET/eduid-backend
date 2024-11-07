@@ -1,7 +1,7 @@
 import logging
 import os
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
 from bson import ObjectId
@@ -17,8 +17,10 @@ from eduid.userdb.credentials import Password
 from eduid.userdb.maccapi.userdb import ManagedAccount
 from eduid.userdb.mail import MailAddressList
 from eduid.vccs.client import VCCSClient
+from eduid.webapp.common.api.testing import CSRFTestClient
 from eduid.webapp.common.authn.utils import get_saml2_config
 from eduid.webapp.idp.helpers import IdPAction, IdPMsg
+from eduid.webapp.idp.other_device.data import OtherDeviceState
 from eduid.webapp.idp.tests.test_api import FinishedResultAPI, IdPAPITests, PwAuthResult, TestUser
 from eduid.workers.am import AmCelerySingleton
 
@@ -273,6 +275,125 @@ class IdPTestLoginAPI(IdPAPITests):
                 authn_response2 = self.parse_saml_authn_response(result2.finished_result)
                 # Make sure the second response isn't referring to the first login request
                 assert authn_response.in_response_to != authn_response2.in_response_to
+
+    def test_login_other_device(self) -> None:
+        # pre-accept ToU for this test
+        self.add_test_user_tou()
+
+        # initiate other device login flow
+        device_1_result1 = self._try_login(other_device=True)
+        assert device_1_result1.ref is not None
+        assert device_1_result1.other_device1_result is not None
+
+        # "read" qr code and start device 2 flow
+        state_id = device_1_result1.other_device1_result.payload.get("state_id")
+        assert state_id is not None
+        qr_url = device_1_result1.other_device1_result.payload.get("qr_url")
+        assert qr_url is not None
+        assert qr_url.endswith(state_id) is True
+
+        device2 = cast(CSRFTestClient, self.app.test_client())
+        device_2_result1 = self._call_other_device2(
+            device=device2, target="http://test.localhost/use_other_2", state_id=state_id
+        )
+
+        assert device_2_result1.payload.get("state") == OtherDeviceState.IN_PROGRESS
+        login_ref = device_2_result1.payload.get("login_ref")
+        assert login_ref is not None
+
+        # login in with device 2
+        # Patch the VCCSClient, so we do not need a vccs server
+        with patch.object(VCCSClient, "authenticate") as mock_vccs:
+            mock_vccs.return_value = True
+            device_2_result2 = self._try_login(device=device2, login_ref=login_ref)
+
+        self._check_login_result(
+            result=device_2_result2,
+            visit_order=[IdPAction.PWAUTH, IdPAction.MFA, IdPAction.FINISHED],
+        )
+
+        # after login with device 2, retrieve the response code
+        device_2_result3 = self._call_other_device2(
+            device=device2,
+            target="http://test.localhost/use_other_2",
+            state_id=state_id,
+        )
+        assert device_2_result3.payload.get("state") == OtherDeviceState.AUTHENTICATED.value
+        response_code = device_2_result3.payload.get("response_code")
+        assert response_code is not None
+
+        # input the response code with device 1
+        device_1_result2 = self._call_other_device1(
+            device=self.browser,
+            target="http://test.localhost/use_other_1",
+            ref=device_1_result1.ref,
+            response_code=response_code,
+        )
+        assert device_1_result2.payload.get("state") == OtherDeviceState.FINISHED.value
+
+    def test_login_other_device_with_accr(self) -> None:
+        # pre-accept ToU for this test
+        self.add_test_user_tou()
+
+        # add security key to user
+        self.add_test_user_security_key()
+
+        # initiate other device login flow
+        device_1_result1 = self._try_login(
+            other_device=True,
+            authn_context={
+                "authn_context_class_ref": [EduidAuthnContextClass.REFEDS_MFA.value],
+                "comparison": "exact",
+            },
+        )
+        assert device_1_result1.ref is not None
+        assert device_1_result1.other_device1_result is not None
+
+        # "read" qr code and start device 2 flow
+        state_id = device_1_result1.other_device1_result.payload.get("state_id")
+        assert state_id is not None
+        qr_url = device_1_result1.other_device1_result.payload.get("qr_url")
+        assert qr_url is not None
+        assert qr_url.endswith(state_id) is True
+
+        device2 = cast(CSRFTestClient, self.app.test_client())
+        device_2_result1 = self._call_other_device2(
+            device=device2, target="http://test.localhost/use_other_2", state_id=state_id
+        )
+
+        assert device_2_result1.payload.get("state") == OtherDeviceState.IN_PROGRESS
+        login_ref = device_2_result1.payload.get("login_ref")
+        assert login_ref is not None
+
+        # login in with device 2
+        # Patch the VCCSClient, so we do not need a vccs server
+        with patch.object(VCCSClient, "authenticate") as mock_vccs:
+            mock_vccs.return_value = True
+            device_2_result2 = self._try_login(device=device2, login_ref=login_ref)
+
+        self._check_login_result(
+            result=device_2_result2,
+            visit_order=[IdPAction.PWAUTH, IdPAction.MFA, IdPAction.FINISHED],
+        )
+
+        # after login with device 2, retrieve the response code
+        device_2_result3 = self._call_other_device2(
+            device=device2,
+            target="http://test.localhost/use_other_2",
+            state_id=state_id,
+        )
+        assert device_2_result3.payload.get("state") == OtherDeviceState.AUTHENTICATED.value
+        response_code = device_2_result3.payload.get("response_code")
+        assert response_code is not None
+
+        # input the response code with device 1
+        device_1_result2 = self._call_other_device1(
+            device=self.browser,
+            target="http://test.localhost/use_other_1",
+            ref=device_1_result1.ref,
+            response_code=response_code,
+        )
+        assert device_1_result2.payload.get("state") == OtherDeviceState.FINISHED.value
 
     def test_terminated_user(self) -> None:
         user = self.amdb.get_user_by_eppn(self.test_user.eppn)
