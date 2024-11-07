@@ -32,6 +32,7 @@ class NextResponseSchema(FluxStandardAction):
             username = fields.Bool(required=False)
             usernamepassword = fields.Bool(required=False)
             webauthn = fields.Bool(required=True)
+            verified_phone_number = fields.Bool(required=True)
 
         class ServiceInfoResponsePayload(EduidSchema):
             display_name = fields.Dict(keys=fields.Str(), values=fields.Str(), required=False)
@@ -77,7 +78,7 @@ class MfaAuthResponseSchema(FluxStandardAction):
 class ToUVersions(fields.Field):
     """Handle list of ToU versions available in the frontend both as comma-separated string (bug) and as list"""
 
-    def _deserialize(self, value: Any, attr: str | None, data: Any, **kwargs) -> list[str] | None:
+    def _deserialize(self, value: object, attr: str | None, data: object, **kwargs: Any) -> list[str] | None:
         if value is None:
             return None
         if isinstance(value, str):

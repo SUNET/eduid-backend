@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 
 import httpx
 
@@ -11,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 class GNAPClient(httpx.Client, GNAPBearerTokenMixin):
-    def __init__(self, auth_data: GNAPClientAuthData, **kwargs):
+    def __init__(self, auth_data: GNAPClientAuthData, **kwargs: Any) -> None:
         if "event_hooks" not in kwargs:
             kwargs["event_hooks"] = {"response": [self.raise_on_4xx_5xx], "request": [self._add_authz_header]}
 

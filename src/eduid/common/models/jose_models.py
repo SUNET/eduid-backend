@@ -1,25 +1,26 @@
 import datetime
-from enum import Enum
+from enum import StrEnum
+from typing import Any
 
 from pydantic import AnyUrl, BaseModel, Field
 
+from eduid.common.misc.timeutil import utc_now
+
 __author__ = "lundberg"
 
-from eduid.userdb.util import utc_now
 
-
-class KeyType(str, Enum):
+class KeyType(StrEnum):
     EC = "EC"
     RSA = "RSA"
     OCT = "oct"
 
 
-class KeyUse(str, Enum):
+class KeyUse(StrEnum):
     SIGN = "sig"
     ENCRYPT = "enc"
 
 
-class KeyOptions(str, Enum):
+class KeyOptions(StrEnum):
     SIGN = "sign"
     VERIFY = "verify"
     ENCRYPT = "encrypt"
@@ -30,13 +31,13 @@ class KeyOptions(str, Enum):
     DERIVE_BITS = "deriveBits"
 
 
-class SupportedAlgorithms(str, Enum):
+class SupportedAlgorithms(StrEnum):
     RS256 = "RS256"
     ES256 = "ES256"
     ES384 = "ES384"
 
 
-class SupportedHTTPMethods(str, Enum):
+class SupportedHTTPMethods(StrEnum):
     POST = "POST"
 
 
@@ -83,7 +84,7 @@ class JWKS(BaseModel):
     keys: list[ECJWK | RSAJWK | SymmetricJWK]
 
 
-class SupportedJWSType(str, Enum):
+class SupportedJWSType(StrEnum):
     JWS = "gnap-binding+jws"
     JWSD = "gnap-binding+jwsd"
 
@@ -115,7 +116,7 @@ class RegisteredClaims(BaseModel):
     iat: datetime.datetime = Field(default_factory=utc_now)  # Issued At
     jti: str | None = None  # JWT ID
 
-    def to_rfc7519(self):
+    def to_rfc7519(self) -> dict[str, Any]:
         d = self.dict(exclude_none=True)
         if self.exp:
             d["exp"] = int((self.iat + self.exp).timestamp())

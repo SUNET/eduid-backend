@@ -39,7 +39,7 @@ class Neo4jTemporaryInstance(EduidTemporaryInstance):
     DEFAULT_USERNAME = "neo4j"
     DEFAULT_PASSWORD = "testingtesting"
 
-    def __init__(self, max_retry_seconds: int = 60, neo4j_version: str = NEO4J_VERSION):
+    def __init__(self, max_retry_seconds: int = 60, neo4j_version: str = NEO4J_VERSION) -> None:
         self._http_port = random.randint(40000, 43000)
         self._https_port = random.randint(44000, 46000)
         self._bolt_port = random.randint(47000, 50000)
@@ -89,22 +89,22 @@ class Neo4jTemporaryInstance(EduidTemporaryInstance):
         return self._conn
 
     @property
-    def host(self):
+    def host(self) -> str:
         return self._host
 
     @property
-    def http_port(self):
+    def http_port(self) -> int:
         return self._http_port
 
     @property
-    def https_port(self):
+    def https_port(self) -> int:
         return self._https_port
 
     @property
-    def bolt_port(self):
+    def bolt_port(self) -> int:
         return self._bolt_port
 
-    def purge_db(self):
+    def purge_db(self) -> None:
         q = """
             MATCH (n)
             DETACH DELETE n
@@ -135,5 +135,5 @@ class Neo4jTestCase(unittest.TestCase):
         cls.neo4j_instance = Neo4jTemporaryInstance.get_instance(max_retry_seconds=60)
         cls.neo4jdb = cls.neo4j_instance.conn
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         self.neo4j_instance.purge_db()

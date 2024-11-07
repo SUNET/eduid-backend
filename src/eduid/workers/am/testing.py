@@ -6,7 +6,7 @@ __author__ = "leifj"
 
 import logging
 from copy import deepcopy
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
@@ -22,7 +22,7 @@ from eduid.userdb.db import TUserDbDocument
 from eduid.userdb.exceptions import UserDoesNotExist
 from eduid.userdb.identity import IdentityType
 from eduid.userdb.proofing import ProofingUser
-from eduid.userdb.testing import MongoTemporaryInstance
+from eduid.userdb.testing import MongoTemporaryInstance, SetupConfig
 from eduid.userdb.userdb import UserDB
 from eduid.workers.am.ams import AttributeFetcher
 from eduid.workers.am.common import AmCelerySingleton
@@ -51,8 +51,8 @@ USER_DATA = TUserDbDocument(
                 "identity_type": IdentityType.NIN.value,
                 "number": "123456781235",
                 "verified": True,
-                "created_ts": datetime(2022, 5, 18, 16, 36, 16, tzinfo=timezone.utc),
-                "modified_ts": datetime(2022, 5, 18, 16, 36, 16, tzinfo=timezone.utc),
+                "created_ts": datetime(2022, 5, 18, 16, 36, 16, tzinfo=UTC),
+                "modified_ts": datetime(2022, 5, 18, 16, 36, 16, tzinfo=UTC),
             }
         ],
         "orcid": {
@@ -81,13 +81,13 @@ USER_DATA = TUserDbDocument(
             "created_by": "orcid",
         },
         "ladok": {
-            "created_ts": datetime(2022, 2, 23, 17, 39, 32, 303000, tzinfo=timezone.utc),
-            "modified_ts": datetime(2022, 2, 23, 17, 39, 32, 303000, tzinfo=timezone.utc),
+            "created_ts": datetime(2022, 2, 23, 17, 39, 32, 303000, tzinfo=UTC),
+            "modified_ts": datetime(2022, 2, 23, 17, 39, 32, 303000, tzinfo=UTC),
             "verified_by": "eduid-ladok",
             "external_id": UUID("9555f3de-dd32-4bed-8e36-72ef00fb4df2"),
             "university": {
-                "created_ts": datetime(2022, 2, 23, 17, 39, 32, 303000, tzinfo=timezone.utc),
-                "modified_ts": datetime(2022, 2, 23, 17, 39, 32, 303000, tzinfo=timezone.utc),
+                "created_ts": datetime(2022, 2, 23, 17, 39, 32, 303000, tzinfo=UTC),
+                "modified_ts": datetime(2022, 2, 23, 17, 39, 32, 303000, tzinfo=UTC),
                 "ladok_name": "ab",
                 "name": {"sv": "Lärosätesnamn", "en": "University Name"},
             },
@@ -106,13 +106,11 @@ class WorkerTestCase(CommonTestCase):
     Base Test case for eduID celery workers
     """
 
-    def setUp(  # type: ignore[override]
-        self, *args: Any, am_settings: dict[str, Any] | None = None, want_mongo_uri: bool = True, **kwargs: Any
-    ):
+    def setUp(self, config: SetupConfig | None = None) -> None:
         """
         set up tests
         """
-        super().setUp(*args, **kwargs)
+        super().setUp(config=config)
 
         settings: dict[str, Any] = {
             "app_name": "testing",
@@ -127,12 +125,13 @@ class WorkerTestCase(CommonTestCase):
             # Be sure to NOT tell AttributeManager about the temporary mongodb instance.
             # If we do, one or more plugins may open DB connections that never gets closed.
             "mongo_uri": None,
-            "authn_service_url": "foo",
         }
 
-        if am_settings:
-            settings.update(am_settings)
-        if want_mongo_uri:
+        if config is None:
+            config = SetupConfig()
+        if config.am_settings:
+            settings.update(config.am_settings)
+        if config.want_mongo_uri:
             assert isinstance(self.tmp_db, MongoTemporaryInstance)  # please mypy
             settings["mongo_uri"] = self.tmp_db.uri
 
@@ -145,7 +144,7 @@ class WorkerTestCase(CommonTestCase):
 class AMTestCase(WorkerTestCase):
     """TestCase with an embedded Attribute Manager."""
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         for fetcher in AmCelerySingleton.af_registry.all_fetchers():
             if fetcher.private_db:
                 fetcher.private_db._drop_whole_collection()
@@ -156,8 +155,8 @@ class ProofingTestCase(AMTestCase):
     fetcher_name: str | None = None
     fetcher: AttributeFetcher | None = None
 
-    def setUp(self, *args: Any, **kwargs: Any):
-        super().setUp(*args, **kwargs)
+    def setUp(self, config: SetupConfig | None = None) -> None:
+        super().setUp(config=config)
 
         if self.fetcher_name:
             self.fetcher = AmCelerySingleton.af_registry.get_fetcher(self.fetcher_name)
@@ -172,7 +171,7 @@ class ProofingTestCase(AMTestCase):
                 assert fetcher.private_db
                 fetcher.private_db.save(proofing_user)
 
-    def test_invalid_user(self):
+    def test_invalid_user(self) -> None:
         if self.fetcher is None:
             pytest.skip("Fetcher not initialised")
         assert self.fetcher  # mypy doesn't understand pytest.skip it seems
@@ -180,7 +179,7 @@ class ProofingTestCase(AMTestCase):
         with self.assertRaises(UserDoesNotExist):
             self.fetcher.fetch_attrs(bson.ObjectId("0" * 24))
 
-    def test_malicious_attributes(self):
+    def test_malicious_attributes(self) -> None:
         if self.fetcher is None:
             pytest.skip("Fetcher not initialised")
         assert self.fetcher  # mypy doesn't understand pytest.skip it seems

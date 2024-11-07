@@ -4,7 +4,7 @@ import copy
 import datetime
 from collections.abc import Mapping
 from dataclasses import asdict, dataclass, field, fields
-from enum import Enum, unique
+from enum import StrEnum, unique
 from typing import Any
 
 import bson
@@ -16,7 +16,7 @@ __author__ = "lundberg"
 
 
 @unique
-class GroupRole(str, Enum):
+class GroupRole(StrEnum):
     OWNER = "owner"
     MEMBER = "member"
 

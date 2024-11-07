@@ -16,7 +16,7 @@ class OidcIdToken(Element):
     iss: str
     # Subject identifier
     sub: str
-    # Audience(s)
+    # Audience(s)  # noqa: ERA001
     aud: list[str]
     # Expiration time
     exp: int

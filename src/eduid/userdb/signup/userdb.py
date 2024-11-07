@@ -14,7 +14,7 @@ class SignupUserDB(UserDB[SignupUser]):
         db_name: str = "eduid_signup",
         collection: str = "registered",
         auto_expire: timedelta | None = None,
-    ):
+    ) -> None:
         super().__init__(db_uri, db_name, collection=collection)
 
         if auto_expire is not None:

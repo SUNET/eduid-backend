@@ -42,7 +42,7 @@ class AsyncMongoDB(BaseMongoDB):
         db_uri: str,
         db_name: str | None = None,
         **kwargs: Any,
-    ):
+    ) -> None:
         super().__init__(db_uri=db_uri, db_name=db_name, **kwargs)
         try:
             self._client = AsyncClientCache().get_client(self)
@@ -80,7 +80,7 @@ class AsyncMongoDB(BaseMongoDB):
         _db = self.get_database(database_name)
         return _db[collection]
 
-    async def is_healthy(self):
+    async def is_healthy(self) -> bool:
         """
         From mongo_client.py:
         Starting with version 3.0 the :class:`MongoClient`
@@ -111,7 +111,7 @@ class AsyncMongoDB(BaseMongoDB):
             logger.error(f"{self} not healthy: {e}")
             return False
 
-    async def close(self):
+    async def close(self) -> None:
         self._client.close()
 
 
@@ -124,7 +124,7 @@ class AsyncBaseDB:
         db_name: str,
         collection: str,
         safe_writes: bool = False,
-    ):
+    ) -> None:
         self._db_uri = db_uri
         self._coll_name = collection
         self._db = AsyncMongoDB(db_uri, db_name=db_name)
@@ -132,7 +132,7 @@ class AsyncBaseDB:
         if safe_writes:
             self._coll = self._coll.with_options(write_concern=pymongo.WriteConcern(w="majority"))
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<eduID {self.__class__.__name__!s}: {self._db.sanitized_uri!s} {self._coll_name!r}>"
 
     __str__ = __repr__
@@ -149,7 +149,7 @@ class AsyncBaseDB:
     def connection(self) -> AsyncIOMotorClient:
         return self._db.get_connection()
 
-    async def _drop_whole_collection(self):
+    async def _drop_whole_collection(self) -> None:
         """
         Drop the whole collection. Should ONLY be used in testing, obviously.
         :return:
@@ -157,7 +157,7 @@ class AsyncBaseDB:
         logger.warning(f"{self!s} Dropping collection {self._coll_name!r}")
         return await self._coll.drop()
 
-    async def _get_document_by_attr(self, attr: str, value: Any) -> Mapping[str, Any] | None:
+    async def _get_document_by_attr(self, attr: str, value: object) -> Mapping[str, Any] | None:
         """
         Return the document in the MongoDB matching field=value
 
@@ -277,7 +277,7 @@ class AsyncBaseDB:
         """
         To update an index add a new item in indexes and remove the previous version.
         """
-        # indexes={'index-name': {'key': [('key', 1)], 'param1': True, 'param2': False}, }
+        # indexes={'index-name': {'key': [('key', 1)], 'param1': True, 'param2': False}, }  # noqa: ERA001
         # http://docs.mongodb.org/manual/reference/method/db.collection.ensureIndex/
         default_indexes = ["_id_"]  # _id_ index can not be deleted from a mongo collection
         current_indexes = await self._coll.index_information()

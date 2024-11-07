@@ -2,6 +2,7 @@ import logging
 import logging.config
 from dataclasses import dataclass, field
 from datetime import datetime
+from typing import Any
 from uuid import UUID
 
 from eduid.common.config.base import DataOwnerConfig, DataOwnerName
@@ -31,7 +32,7 @@ class DataOwnerDatabases:
 
 
 class Context:
-    def __init__(self, config: ScimApiConfig):
+    def __init__(self, config: ScimApiConfig) -> None:
         self.name = config.app_name
         self.config = config
 
@@ -106,7 +107,7 @@ class Context:
     def get_eventdb(self, data_owner: DataOwnerName) -> ScimApiEventDB | None:
         return self._get_data_owner_dbs(data_owner=data_owner).eventdb
 
-    def url_for(self, *args) -> str:
+    def url_for(self, *args: Any) -> str:
         url = self.base_url
         for arg in args:
             url = urlappend(url, f"{arg}")

@@ -9,5 +9,5 @@ from eduid.common.config.base import CeleryConfig
 from eduid.workers.lookup_mobile.common import MobCelerySingleton
 
 
-def init_app(config: CeleryConfig):
+def init_app(config: CeleryConfig) -> None:
     MobCelerySingleton.update_celery_config(config)

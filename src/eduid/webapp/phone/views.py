@@ -42,7 +42,7 @@ def get_all_phones(user: User) -> FluxData:
 @UnmarshalWith(PhoneSchema)
 @MarshalWith(PhoneResponseSchema)
 @require_user
-def post_phone(user: User, number: str, verified=None, primary=None) -> FluxData:
+def post_phone(user: User, number: str, verified: bool | None = None, primary: bool | None = None) -> FluxData:
     """
     view to add a new phone to the user data of the currently
     logged in user.

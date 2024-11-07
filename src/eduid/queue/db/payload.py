@@ -4,6 +4,8 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from typing import Any, TypeVar
 
+from eduid.common.misc.timeutil import utc_now
+
 __author__ = "lundberg"
 
 TPayload = TypeVar("TPayload", bound="Payload")
@@ -31,7 +33,7 @@ class RawPayload(Payload):
         return self.data
 
     @classmethod
-    def from_dict(cls, data: Mapping[str, Any]):
+    def from_dict(cls, data: Mapping[str, Any]) -> "RawPayload":
         data = dict(data)  # Do not change caller data
         return cls(data=data)
 
@@ -39,10 +41,10 @@ class RawPayload(Payload):
 @dataclass
 class TestPayload(Payload):
     message: str
-    created_ts: datetime = field(default_factory=datetime.utcnow)
+    created_ts: datetime = field(default_factory=utc_now)
     version: int = 1
 
     @classmethod
-    def from_dict(cls, data: Mapping[str, Any]):
+    def from_dict(cls, data: Mapping[str, Any]) -> "TestPayload":
         data = dict(data)  # Do not change caller data
         return cls(**data)

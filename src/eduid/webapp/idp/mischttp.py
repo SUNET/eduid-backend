@@ -65,13 +65,12 @@ import logging
 import pprint
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Self
 
 import user_agents
 from bleach import clean
 from flask import make_response, redirect, request
 from saml2 import BINDING_HTTP_REDIRECT
-from typing_extensions import Self
 from user_agents.parsers import UserAgent
 from werkzeug.exceptions import BadRequest, InternalServerError
 from werkzeug.wrappers import Response as WerkzeugResponse

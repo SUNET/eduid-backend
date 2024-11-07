@@ -51,7 +51,6 @@ class BaseDBTestCase(unittest.TestCase):
             "data_owners": {"eduid.se": {"db_name": "eduid_se"}},
             "logging_config": {
                 "loggers": {
-                    #'eduid_groupdb': {'handlers': ['console'], 'level': 'DEBUG'},
                     "neo4j": {"handlers": ["console"], "level": "WARNING"},
                     "root": {"handlers": ["console"], "level": "DEBUG"},
                 },
@@ -173,7 +172,7 @@ class ScimApiTestCase(MongoNeoTestCase):
         self.groupdb.save(group)
         return self.groupdb.get_group_by_scim_id(scim_id=group_identifier)
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         super().tearDown()
         if self.userdb:
             self.userdb._drop_whole_collection()
@@ -195,9 +194,9 @@ class ScimApiTestCase(MongoNeoTestCase):
         schemas: list[str] | None = None,
         status: int = 400,
         scim_type: str | None = None,
-        detail: Any | None = None,
+        detail: object | None = None,
         exclude_keys: list[str] | None = None,
-    ):
+    ) -> None:
         if schemas is None:
             schemas = [SCIMSchema.ERROR.value]
         self.assertEqual(schemas, json.get("schemas"))
@@ -214,7 +213,7 @@ class ScimApiTestCase(MongoNeoTestCase):
         response: Response,
         resource: ScimApiGroup | ScimApiUser | ScimApiInvite | ScimApiEvent,
         expected_schemas: list[str],
-    ):
+    ) -> None:
         if SCIMSchema.NUTID_USER_V1.value in response.json():
             # The API can always add this extension to the parsed_response, even if it was not in the request
             expected_schemas += [SCIMSchema.NUTID_USER_V1.value]
@@ -271,7 +270,7 @@ class ScimApiTestCase(MongoNeoTestCase):
         )
 
     @staticmethod
-    def _assertName(db_name: ScimApiName, response_name: dict[str, str]):
+    def _assertName(db_name: ScimApiName, response_name: dict[str, str]) -> None:
         name_map = [
             ("family_name", "familyName"),
             ("given_name", "givenName"),
@@ -287,7 +286,7 @@ class ScimApiTestCase(MongoNeoTestCase):
             ), f"{first}:{db_name_dict.get(first)} != {second}:{response_name.get(second)}"
 
     @staticmethod
-    def _assertResponse(response: Response, status_code: int = 200):
+    def _assertResponse(response: Response, status_code: int = 200) -> None:
         _detail = None
         try:
             if response.json():

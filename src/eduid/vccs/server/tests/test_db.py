@@ -6,7 +6,7 @@ from eduid.vccs.server.db import PasswordCredential
 
 
 class TestCredential(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.data = {
             "_id": ObjectId("54042b7a9b3f2299bb9d5546"),
             "credential": {
@@ -24,11 +24,11 @@ class TestCredential(unittest.TestCase):
             "revision": 1,
         }
 
-    def test_from_dict(self):
+    def test_from_dict(self) -> None:
         cred = PasswordCredential.from_dict(self.data)
         assert cred.key_handle == 8192
 
-    def test_to_dict_from_dict(self):
+    def test_to_dict_from_dict(self) -> None:
         cred1 = PasswordCredential.from_dict(self.data)
         cred2 = PasswordCredential.from_dict(cred1.to_dict())
         assert cred1.to_dict() == cred2.to_dict()

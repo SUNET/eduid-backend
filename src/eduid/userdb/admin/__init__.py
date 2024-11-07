@@ -9,7 +9,6 @@ import sys
 import time
 from collections.abc import Generator
 from copy import deepcopy
-from typing import Any
 
 import bson
 import bson.json_util
@@ -44,14 +43,14 @@ class RawDb:
     log detailing all the changes.
     """
 
-    def __init__(self, myname: str | None = None, backupbase: str = "/root/raw_db_changes"):
+    def __init__(self, myname: str | None = None, backupbase: str = "/root/raw_db_changes") -> None:
         self._client = get_client()
         self._start_time: str = datetime.datetime.fromtimestamp(int(time.time())).isoformat(sep="_").replace(":", "")
         self._myname: str | None = myname
         self._backupbase: str = backupbase
         self._file_num: int = 0
 
-    def find(self, db: str, collection: str, search_filter: Any) -> Generator[RawData, None, None]:
+    def find(self, db: str, collection: str, search_filter: object) -> Generator[RawData, None, None]:
         """
         Look for documents matching search_filter in the specified database and collection.
 
@@ -72,7 +71,7 @@ class RawDb:
             )
             sys.exit(1)
 
-    def save_with_backup(self, raw: RawData, dry_run: bool = True) -> Any:
+    def save_with_backup(self, raw: RawData, dry_run: bool = True) -> str | None:
         """
         Save a mongodb document while trying to carefully make a backup of the document before, after and what changed.
 
@@ -113,7 +112,7 @@ class RawDb:
 
         if raw.before == raw.doc:
             sys.stderr.write(f"Document in {db_coll} with id {_id} not changed, aborting save_with_backup\n")
-            return
+            return None
 
         self._file_num = 0
         backup_dir = self._make_backupdir(db_coll, _id)
@@ -132,13 +131,13 @@ class RawDb:
         # Write changes.txt after saving, so it will also indicate a successful save
         return self._write_changes(raw, backup_dir, res)
 
-    def _write_changes(self, raw: RawData, backup_dir: str, res: Any) -> Any:
+    def _write_changes(self, raw: RawData, backup_dir: str, res: str) -> str:
         """
         Write a file with one line per change between the before-doc and current doc.
         The format is intended to be easy to grep through.
         """
 
-        def safe_encode(k2: Any, v2: Any) -> str:
+        def safe_encode(k2: object, v2: object) -> str:
             try:
                 return bson.json_util.dumps({k2: v2}, json_options=PYTHON_UUID_LEGACY_JSON_OPTIONS)
             except:
@@ -160,7 +159,7 @@ class RawDb:
             fd.write(f"DB_RESULT: {res}\n")
         return res
 
-    def _write_before_and_after(self, raw: RawData, backup_dir: str):
+    def _write_before_and_after(self, raw: RawData, backup_dir: str) -> None:
         """
         Write before- and after backup files of the document being saved, in JSON format.
         """
@@ -180,7 +179,7 @@ class RawDb:
                 + "\n"
             )
 
-    def _get_backup_filename(self, dirname: str, filename: str, ext: str):
+    def _get_backup_filename(self, dirname: str, filename: str, ext: str) -> str:
         """
         Look for a backup filename that hasn't been used. The use of self._file_num
         should mean we get matching before- after- and changes sets.
@@ -237,7 +236,7 @@ class RawData:
     :param collection: Name of collection
     """
 
-    def __init__(self, doc: TUserDbDocument, db: str, collection: str):
+    def __init__(self, doc: TUserDbDocument, db: str, collection: str) -> None:
         self._before = deepcopy(doc)
         self._db = db
         self._collection = collection

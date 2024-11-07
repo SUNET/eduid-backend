@@ -6,11 +6,11 @@ from eduid.workers.amapi.middleware import AuthenticationMiddleware
 
 
 class TestMiddleware(unittest.TestCase):
-    def setUp(self, *args, **kwargs):
+    def setUp(self) -> None:
         super().setUp()
         self.middleware = AuthenticationMiddleware
 
-    def test_glob_match_true(self):
+    def test_glob_match_true(self) -> None:
         glob_endpoints = [
             EndpointRestriction(
                 endpoint="/users/*/email",
@@ -26,7 +26,7 @@ class TestMiddleware(unittest.TestCase):
         assert fnmatch.fnmatch(path, glob_endpoints[1].uri) is True
         assert self.middleware.glob_match(endpoints=glob_endpoints, method_path=path) is True
 
-    def test_glob_long_url(self):
+    def test_glob_long_url(self) -> None:
         glob_endpoints = [
             EndpointRestriction(
                 endpoint="/users/*/meta/cleaned",
@@ -37,7 +37,7 @@ class TestMiddleware(unittest.TestCase):
         assert fnmatch.fnmatch(path, glob_endpoints[0].uri) is True
         assert self.middleware.glob_match(endpoints=glob_endpoints, method_path=path) is True
 
-    def test_glob_match_false(self):
+    def test_glob_match_false(self) -> None:
         glob_endpoints = [
             EndpointRestriction(
                 endpoint="/users/*/email",

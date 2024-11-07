@@ -1,14 +1,15 @@
 import unittest
 from collections import OrderedDict
-from datetime import datetime
 from io import BytesIO, StringIO
+from typing import Any
 
 from pypdf import PdfReader
 
+from eduid.common.misc.timeutil import utc_now
 from eduid.common.rpc.msg_relay import FullPostalAddress
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.letter_proofing import pdf
-from eduid.webapp.letter_proofing.app import init_letter_proofing_app
+from eduid.webapp.letter_proofing.app import LetterProofingApp, init_letter_proofing_app
 
 # We need to add Navet responses that we fail to handle
 
@@ -16,7 +17,7 @@ __author__ = "lundberg"
 
 
 class FormatAddressTest(unittest.TestCase):
-    def test_successful_format(self):
+    def test_successful_format(self) -> None:
         navet_responses = [
             OrderedDict(
                 [
@@ -71,7 +72,7 @@ class FormatAddressTest(unittest.TestCase):
             self.assertIsNotNone(postal_code)
             self.assertIsNotNone(city)
 
-    def test_failing_format(self):
+    def test_failing_format(self) -> None:
         failing_navet_responses = [
             OrderedDict(
                 [
@@ -131,14 +132,14 @@ class FormatAddressTest(unittest.TestCase):
 
 
 class CreatePDFTest(EduidAPITestCase):
-    def load_app(self, config):
+    def load_app(self, config: dict[str, Any]) -> LetterProofingApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
         return init_letter_proofing_app("testing", config)
 
-    def update_config(self, app_config):
+    def update_config(self, app_config: dict[str, Any]) -> dict[str, Any]:
         app_config.update(
             {
                 "letter_wait_time_hours": 336,
@@ -146,7 +147,7 @@ class CreatePDFTest(EduidAPITestCase):
         )
         return app_config
 
-    def test_create_pdf(self):
+    def test_create_pdf(self) -> None:
         recipient = FullPostalAddress.model_validate(
             OrderedDict(
                 [
@@ -183,7 +184,7 @@ class CreatePDFTest(EduidAPITestCase):
                 pdf_document = pdf.create_pdf(
                     recipient,
                     verification_code="bogus code",
-                    created_timestamp=datetime.utcnow(),
+                    created_timestamp=utc_now(),
                     primary_mail_address="test@example.org",
                     letter_wait_time_hours=336,
                 )

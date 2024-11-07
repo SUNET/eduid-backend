@@ -21,7 +21,7 @@ class CleanerQueueUser(User):
 
 
 class CleanerQueueDB(UserDB[CleanerQueueUser]):
-    def __init__(self, db_uri: str, db_name: str = "eduid_user_cleaner", collection: str = "cleaner_queue"):
+    def __init__(self, db_uri: str, db_name: str = "eduid_user_cleaner", collection: str = "cleaner_queue") -> None:
         super().__init__(db_uri, db_name, collection)
 
         indexes = {

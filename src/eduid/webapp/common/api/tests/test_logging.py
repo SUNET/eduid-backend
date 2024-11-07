@@ -29,10 +29,10 @@ class LoggingTest(EduidAPITestCase):
     def update_config(self, config: dict[str, Any]) -> dict[str, Any]:
         return config
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         pass
 
-    def test_merge_config(self):
+    def test_merge_config(self) -> None:
         base_config = {
             "version": 1,
             "disable_existing_loggers": False,
@@ -68,6 +68,10 @@ class LoggingTest(EduidAPITestCase):
             "formatters": {"test": {"format": "%(levelname)s: Module: %(name)s Msg: %(message)s"}},
             "handlers": {"console": {"formatter": "test", "filters": ["test_filter"]}},
         }
+        assert isinstance(base_config["formatters"], dict)
+        assert isinstance(settings_config["formatters"], dict)
+        assert isinstance(base_config["handlers"], dict)
+        assert isinstance(settings_config["handlers"], dict)
         self.assertIsNone(base_config["formatters"].get("test", None))
         self.assertEqual(len(base_config["formatters"]), 1)
         self.assertIsNotNone(settings_config["formatters"].get("test", None))

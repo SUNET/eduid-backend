@@ -9,6 +9,7 @@ from eduid.common.utils import urlappend
 __author__ = "masv"
 
 from eduid.common.models.amapi_user import (
+    UserBaseRequest,
     UserUpdateEmailRequest,
     UserUpdateLanguageRequest,
     UserUpdateMetaCleanedRequest,
@@ -20,14 +21,14 @@ from eduid.common.models.amapi_user import (
 
 
 class AMAPIClient(GNAPClient):
-    def __init__(self, amapi_url: str, auth_data=GNAPClientAuthData, verify_tls: bool = True, **kwargs):
+    def __init__(self, amapi_url: str, auth_data: GNAPClientAuthData, verify_tls: bool = True, **kwargs: Any) -> None:
         super().__init__(auth_data=auth_data, verify=verify_tls, **kwargs)
         self.amapi_url = amapi_url
 
     def _users_base_url(self) -> str:
         return urlappend(self.amapi_url, "users")
 
-    def _put(self, base_path: str, user: str, endpoint: str, body: Any) -> httpx.Response:
+    def _put(self, base_path: str, user: str, endpoint: str, body: UserBaseRequest) -> httpx.Response:
         return self.put(url=urlappend(base_path, f"{user}/{endpoint}"), content=body.json())
 
     def update_user_email(self, user: str, body: UserUpdateEmailRequest) -> UserUpdateResponse:

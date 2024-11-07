@@ -2,7 +2,7 @@ from fastapi import APIRouter, Response, status
 
 from eduid.common.fastapi.context_request import ContextRequest
 from eduid.common.utils import generate_password
-from eduid.maccapi.context_request import MaccAPIRoute
+from eduid.maccapi.context_request import MaccAPIContext, MaccAPIRoute
 from eduid.maccapi.helpers import (
     UnableToAddPassword,
     add_api_event,
@@ -35,9 +35,11 @@ async def get_users(request: ContextRequest) -> UserListResponse:
     return all users that the calling user has access to in current context
     """
 
-    manages_accounts = list_users(context=request.app.context, data_owner=request.context.data_owner)
+    assert isinstance(request.context, MaccAPIContext)  # please mypy
+    assert request.context.data_owner is not None  # please mypy
+    managed_accounts = list_users(context=request.app.context, data_owner=request.context.data_owner)
 
-    users = [ApiUser(eppn=user.eppn, given_name=user.given_name, surname=user.surname) for user in manages_accounts]
+    users = [ApiUser(eppn=user.eppn, given_name=user.given_name, surname=user.surname) for user in managed_accounts]
 
     response = UserListResponse(status="success", scope=request.app.context.config.default_eppn_scope, users=users)
 
@@ -56,6 +58,9 @@ async def add_user(
     password = generate_password()
     presentable_password = make_presentable_password(password)
 
+    assert isinstance(request.context, MaccAPIContext)  # please mypy
+    assert request.context.data_owner is not None  # please mypy
+    assert request.context.manager_eppn is not None  # please mypy
     managed_account: ManagedAccount = create_and_sync_user(
         context=request.app.context,
         data_owner=request.context.data_owner,
@@ -101,6 +106,9 @@ async def remove_user(
     request.app.context.logger.debug(f"remove_user: {remove_request}")
 
     try:
+        assert isinstance(request.context, MaccAPIContext)  # please mypy
+        assert request.context.data_owner is not None  # please mypy
+        assert request.context.manager_eppn is not None  # please mypy
         managed_account: ManagedAccount = deactivate_user(
             context=request.app.context, eppn=remove_request.eppn, data_owner=request.context.data_owner
         )
@@ -145,6 +153,9 @@ async def reset_password(
     new_password = generate_password()
     presentable_password = make_presentable_password(new_password)
     try:
+        assert isinstance(request.context, MaccAPIContext)  # please mypy
+        assert request.context.data_owner is not None  # please mypy
+        assert request.context.manager_eppn is not None  # please mypy
         managed_account = get_user(context=request.app.context, eppn=eppn, data_owner=request.context.data_owner)
         replace_password(context=request.app.context, eppn=eppn, new_password=new_password)
 

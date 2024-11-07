@@ -8,12 +8,14 @@ from fastapi import Request, Response
 from pymongo.errors import DuplicateKeyError
 
 from eduid.common.fastapi.context_request import ContextRequest
+from eduid.common.misc.timeutil import utc_now
 from eduid.common.models.scim_base import Email, Meta, Name, PhoneNumber, SCIMResourceType, SCIMSchema, SearchRequest
 from eduid.common.models.scim_invite import InviteCreateRequest, InviteResponse, NutidInviteExtensionV1
 from eduid.common.models.scim_user import NutidUserExtensionV1, Profile
 from eduid.common.utils import get_short_hash, make_etag
 from eduid.queue.db import QueueItem, SenderInfo
 from eduid.queue.db.message import EduidInviteEmail
+from eduid.scimapi.context_request import ScimApiContext
 from eduid.scimapi.exceptions import BadRequest
 from eduid.scimapi.search import SearchFilter
 from eduid.scimapi.utils import get_unique_hash
@@ -27,6 +29,8 @@ __author__ = "lundberg"
 def create_signup_invite(
     req: ContextRequest, create_request: InviteCreateRequest, db_invite: ScimApiInvite
 ) -> SignupInvite:
+    assert isinstance(req.context, ScimApiContext)  # please mypy
+    assert req.context.data_owner is not None  # please mypy
     invite_reference = SCIMReference(data_owner=req.context.data_owner, scim_id=db_invite.scim_id)
 
     if create_request.nutid_invite_v1.send_email is False:
@@ -59,12 +63,14 @@ def create_signup_invite(
         mail_addresses=mails_addresses,
         phone_numbers=phone_numbers,
         finish_url=create_request.nutid_invite_v1.finish_url,
-        expires_at=datetime.utcnow() + timedelta(seconds=req.app.context.config.invite_expire),
+        expires_at=utc_now() + timedelta(seconds=req.app.context.config.invite_expire),
     )
     return signup_invite
 
 
-def db_invite_to_response(req: Request, resp: Response, db_invite: ScimApiInvite, signup_invite: SignupInvite):
+def db_invite_to_response(
+    req: Request, resp: Response, db_invite: ScimApiInvite, signup_invite: SignupInvite
+) -> InviteResponse:
     location = req.app.context.url_for("Invites", db_invite.scim_id)
     meta = Meta(
         location=location,
@@ -112,11 +118,13 @@ def db_invite_to_response(req: Request, resp: Response, db_invite: ScimApiInvite
     return scim_invite
 
 
-def create_signup_ref(req: ContextRequest, db_invite: ScimApiInvite):
+def create_signup_ref(req: ContextRequest, db_invite: ScimApiInvite) -> SCIMReference:
+    assert isinstance(req.context, ScimApiContext)  # please mypy
+    assert req.context.data_owner is not None  # please mypy
     return SCIMReference(data_owner=req.context.data_owner, scim_id=db_invite.scim_id)
 
 
-def send_invite_mail(req: ContextRequest, signup_invite: SignupInvite):
+def send_invite_mail(req: ContextRequest, signup_invite: SignupInvite) -> bool:
     try:
         email = [email.email for email in signup_invite.mail_addresses if email.primary][0]
     except IndexError:
@@ -135,7 +143,7 @@ def send_invite_mail(req: ContextRequest, signup_invite: SignupInvite):
     system_hostname = environ.get("SYSTEM_HOSTNAME", "")  # Underlying hosts name for containers
     hostname = environ.get("HOSTNAME", "")  # Actual hostname or container id
     sender_info = SenderInfo(hostname=hostname, node_id=f"{app_name}@{system_hostname}")
-    expires_at = datetime.utcnow() + timedelta(seconds=req.app.context.config.invite_expire)
+    expires_at = utc_now() + timedelta(seconds=req.app.context.config.invite_expire)
     discard_at = expires_at + timedelta(days=7)
     message = QueueItem(
         version=1,
@@ -164,6 +172,8 @@ def save_invite(
     signup_invite_is_in_database: bool,
 ) -> None:
     try:
+        assert isinstance(req.context, ScimApiContext)  # please mypy
+        assert req.context.invitedb is not None  # please mypy
         req.context.invitedb.save(db_invite)
     except DuplicateKeyError as e:
         assert e.details is not None  # please mypy
@@ -187,6 +197,8 @@ def filter_lastmodified(
         raise BadRequest(scim_type="invalidFilter", detail="Unsupported operator")
     if not isinstance(filter.val, str):
         raise BadRequest(scim_type="invalidFilter", detail="Invalid datetime")
+    assert isinstance(req.context, ScimApiContext)  # please mypy
+    assert req.context.invitedb is not None  # please mypy
     return req.context.invitedb.get_invites_by_last_modified(
         operator=filter.op, value=datetime.fromisoformat(filter.val), skip=skip, limit=limit
     )

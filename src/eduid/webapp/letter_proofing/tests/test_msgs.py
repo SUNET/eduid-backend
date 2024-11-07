@@ -4,7 +4,7 @@ from eduid.webapp.letter_proofing.helpers import LetterMsg
 
 
 class MessagesTests(unittest.TestCase):
-    def test_messages(self):
+    def test_messages(self) -> None:
         """"""
         self.assertEqual(LetterMsg.no_state.value, "letter.no_state_found")
         self.assertEqual(LetterMsg.already_sent.value, "letter.already-sent")

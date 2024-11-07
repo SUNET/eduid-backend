@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping, Sequence
 from datetime import timedelta
-from enum import Enum, unique
+from enum import Enum, StrEnum, unique
 from pathlib import Path
 from re import Pattern
 from typing import IO, Annotated, Any, TypeVar
@@ -69,7 +69,7 @@ class CookieConfig(BaseModel):
 TRootConfigSubclass = TypeVar("TRootConfigSubclass", bound="RootConfig")
 
 
-class EduidEnvironment(str, Enum):
+class EduidEnvironment(StrEnum):
     dev = "dev"
     staging = "staging"
     production = "production"
@@ -89,7 +89,7 @@ class RootConfig(BaseModel):
 TEduIDBaseAppConfigSubclass = TypeVar("TEduIDBaseAppConfigSubclass", bound="EduIDBaseAppConfig")
 
 
-class LoggingFilters(str, Enum):
+class LoggingFilters(StrEnum):
     """Identifiers to coherently map elements in LocalContext.filters to filter classes in logging dictConfig."""
 
     DEBUG_TRUE: str = "require_debug_true"
@@ -197,12 +197,12 @@ class FlaskConfig(CORSMixin):
     # per-file basis using the get_send_file_max_age() hook on Flask or Blueprint,
     # respectively. Defaults to 43200 (12 hours).
     send_file_max_age_default: int = 43200  # 12 hours
-    # the name and port number of the server. Required for subdomain support (e.g.: 'myapp.dev:5000') Note that localhost
-    # does not support subdomains so setting this to “localhost” does not help. Setting a SERVER_NAME also by default
-    # enables URL generation without a request context but with an application context.
+    # the name and port number of the server. Required for subdomain support (e.g.: 'myapp.dev:5000') Note that
+    # localhost does not support subdomains so setting this to “localhost” does not help. Setting a SERVER_NAME also by
+    # default enables URL generation without a request context but with an application context.
     server_name: str | None = None
-    # If the application does not occupy a whole domain or subdomain this can be set to the path where the application is
-    # configured to live. This is for session cookie as path value. If domains are used, this should be None.
+    # If the application does not occupy a whole domain or subdomain this can be set to the path where the application
+    # is configured to live. This is for session cookie as path value. If domains are used, this should be None.
     application_root: str = "/"
     # The URL scheme that should be used for URL generation if no URL scheme is
     # available. This defaults to http
@@ -356,7 +356,6 @@ class FrontendAction(Enum):
     CHANGE_SECURITY_PREFERENCES_AUTHN = "changeSecurityPreferencesAuthn"
     LOGIN = "login"
     LOGIN_MFA_AUTHN = "loginMfaAuthn"
-    OLD_LOGIN = "oldLogin"
     REMOVE_IDENTITY = "removeIdentity"
     REMOVE_SECURITY_KEY_AUTHN = "removeSecurityKeyAuthn"
     RESET_PW_MFA_AUTHN = "resetpwMfaAuthn"
@@ -409,10 +408,6 @@ class FrontendActionMixin(BaseModel):
                 force_authn=True,
                 allow_login_auth=True,
                 finish_url="https://eduid.se/login/ext-return/{app_name}/{authn_id}",
-            ),
-            FrontendAction.OLD_LOGIN: AuthnParameters(
-                same_user=False,
-                finish_url="https://eduid.se/profile/",
             ),
             FrontendAction.REMOVE_SECURITY_KEY_AUTHN: AuthnParameters(
                 force_authn=True,
@@ -496,11 +491,7 @@ class EduIDBaseAppConfig(RootConfig, LoggingConfigMixin, StatsConfigMixin, Redis
     # The list is a list of regex that are matched against the path of the
     # requested URL ex. ^/test$.
     no_authn_urls: list[str] = Field(default=["^/status/healthy$", "^/status/sanity-check$"])
-    # Feature opt-in for new-style authn responses, requires new frontend code.
-    enable_authn_json_response: bool = False
     status_cache_seconds: int = 10
-    # All AuthnBaseApps need this to redirect not-logged-in requests to the authn service
-    authn_service_url: str
 
 
 ReasonableDomainName = Annotated[str, Field(min_length=len("x.se")), AfterValidator(lambda v: v.lower())]

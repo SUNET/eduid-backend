@@ -1,5 +1,5 @@
 import logging
-from enum import Enum
+from enum import StrEnum
 from pathlib import Path
 from typing import NewType
 
@@ -10,7 +10,7 @@ from eduid.common.config.base import LoggingConfigMixin, RootConfig
 logger = logging.getLogger(__name__)
 
 
-class SupportedMethod(str, Enum):
+class SupportedMethod(StrEnum):
     DELETE = "delete"
     PUT = "put"
     GET = "get"

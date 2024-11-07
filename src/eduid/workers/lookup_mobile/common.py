@@ -20,12 +20,12 @@ class MobCelerySingleton:
     worker_config = MobConfig(app_name="app_name_NOT_SET")
 
     @classmethod
-    def update_worker_config(cls, config: MobConfig):
+    def update_worker_config(cls, config: MobConfig) -> None:
         cls.worker_config = config
         cls.update_celery_config(config.celery)
         return None
 
     @classmethod
-    def update_celery_config(cls, config: CeleryConfig):
+    def update_celery_config(cls, config: CeleryConfig) -> None:
         cls.celery.config_from_object(config.dict())
         return None

@@ -11,7 +11,7 @@ from saml2.saml import NameID
 class EduidJSONEncoder(json.JSONEncoder):
     # TODO: This enables us to serialise NameIDs into the stored sessions,
     #       but we don't seem to de-serialise them on load
-    def default(self, o: Any) -> str | Any:
+    def default(self, o: Any) -> str | Any:  # noqa: ANN401
         if isinstance(o, datetime):
             return o.isoformat()
         if isinstance(o, timedelta):

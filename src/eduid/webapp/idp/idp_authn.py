@@ -81,7 +81,7 @@ class IdPAuthn:
         config: IdPConfig,
         userdb: IdPUserDb,
         managed_account_db: ManagedAccountDB,
-    ):
+    ) -> None:
         self.config = config
         self.userdb = userdb
         self.managed_account_db = managed_account_db
@@ -129,7 +129,8 @@ class IdPAuthn:
                 authn_info = self.authn_store.get_user_authn_info(user)
                 if authn_info.failures_this_month > self.config.max_authn_failures_per_month:
                     logger.info(
-                        f"User {user!r} AuthN failures this month {authn_info.failures_this_month!r} > {self.config.max_authn_failures_per_month!r}"
+                        f"User {user!r} AuthN failures this month "
+                        f"{authn_info.failures_this_month!r} > {self.config.max_authn_failures_per_month!r}"
                     )
                     raise exceptions.EduidTooManyRequests("Too Many Requests")
 
@@ -251,7 +252,7 @@ class AuthnInfoStore:
         }
     """
 
-    def __init__(self, uri: str, db_name: str = "eduid_idp_authninfo", collection_name: str = "authn_info"):
+    def __init__(self, uri: str, db_name: str = "eduid_idp_authninfo", collection_name: str = "authn_info") -> None:
         logger.debug("Setting up AuthnInfoStore")
         self._db = MongoDB(db_uri=uri, db_name=db_name)
         self.collection = self._db.get_collection(collection_name)

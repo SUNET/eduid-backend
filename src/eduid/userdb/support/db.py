@@ -20,7 +20,7 @@ way we can minimize the risk of accidentally sharing any secret user data.
 
 
 class SupportUserDB(UserDB[SupportUser]):
-    def __init__(self, db_uri: str, db_name: str = "eduid_am", collection: str = "attributes"):
+    def __init__(self, db_uri: str, db_name: str = "eduid_am", collection: str = "attributes") -> None:
         super().__init__(db_uri, db_name, collection=collection)
 
     @classmethod
@@ -53,7 +53,7 @@ class SupportSignupUserDB(SignupUserDB):
 class SupportAuthnInfoDB(BaseDB):
     model = models.UserAuthnInfo
 
-    def __init__(self, db_uri: str):
+    def __init__(self, db_uri: str) -> None:
         db_name = "eduid_idp_authninfo"
         collection = "authn_info"
         super().__init__(db_uri, db_name, collection)
@@ -86,7 +86,7 @@ class SupportAuthnInfoDB(BaseDB):
 class SupportProofingDB(BaseDB):
     model: type[GenericFilterDict] = GenericFilterDict
 
-    def __init__(self, db_uri: str, db_name: str, collection: str):
+    def __init__(self, db_uri: str, db_name: str, collection: str) -> None:
         super().__init__(db_uri, db_name, collection)
 
     def get_proofing_state(self, eppn: str) -> dict[str, Any]:
@@ -111,7 +111,7 @@ class SupportProofingDB(BaseDB):
 class SupportLetterProofingDB(SupportProofingDB):
     model = models.UserLetterProofing
 
-    def __init__(self, db_uri: str):
+    def __init__(self, db_uri: str) -> None:
         db_name = "eduid_idproofing_letter"
         collection = "proofing_data"
         super().__init__(db_uri, db_name, collection)
@@ -131,7 +131,7 @@ class SupportLetterProofingDB(SupportProofingDB):
 class SupportOidcProofingDB(SupportProofingDB):
     model = models.UserOidcProofing
 
-    def __init__(self, db_uri: str):
+    def __init__(self, db_uri: str) -> None:
         db_name = "eduid_oidc_proofing"
         collection = "proofing_data"
         super().__init__(db_uri, db_name, collection)
@@ -140,7 +140,7 @@ class SupportOidcProofingDB(SupportProofingDB):
 class SupportEmailProofingDB(SupportProofingDB):
     model = models.UserEmailProofing
 
-    def __init__(self, db_uri: str):
+    def __init__(self, db_uri: str) -> None:
         db_name = "eduid_email"
         collection = "proofing_data"
         super().__init__(db_uri, db_name, collection)
@@ -149,7 +149,7 @@ class SupportEmailProofingDB(SupportProofingDB):
 class SupportPhoneProofingDB(SupportProofingDB):
     model = models.UserPhoneProofing
 
-    def __init__(self, db_uri: str):
+    def __init__(self, db_uri: str) -> None:
         db_name = "eduid_phone"
         collection = "proofing_data"
         super().__init__(db_uri, db_name, collection)
@@ -158,7 +158,7 @@ class SupportPhoneProofingDB(SupportProofingDB):
 class SupportProofingLogDB(BaseDB):
     model = models.ProofingLogEntry
 
-    def __init__(self, db_uri: str):
+    def __init__(self, db_uri: str) -> None:
         db_name = "eduid_logs"
         collection = "proofing_log"
         super().__init__(db_uri, db_name, collection)

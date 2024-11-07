@@ -4,7 +4,7 @@ from eduid.webapp.phone.helpers import PhoneMsg
 
 
 class MessagesTests(unittest.TestCase):
-    def test_messages(self):
+    def test_messages(self) -> None:
         """"""
         self.assertEqual(PhoneMsg.e164_error.value, "phone.e164_format")
         self.assertEqual(PhoneMsg.phone_invalid.value, "phone.phone_format")

@@ -4,8 +4,10 @@ from datetime import datetime, timedelta
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+from werkzeug.test import TestResponse
+
 from eduid.common.config.base import FrontendAction
-from eduid.common.rpc.msg_relay import DeregisteredCauseCode, DeregistrationInformation, OfficialAddress
+from eduid.common.rpc.msg_relay import DeregisteredCauseCode, DeregistrationInformation, NavetData, OfficialAddress
 from eduid.userdb import User
 from eduid.userdb.element import ElementKey
 from eduid.userdb.identity import IdentityType
@@ -16,7 +18,7 @@ from eduid.webapp.security.helpers import SecurityMsg
 
 
 class SecurityTests(EduidAPITestCase[SecurityApp]):
-    def setUp(self, *args: Any, **kwargs: Any):
+    def setUp(self, *args: Any, **kwargs: Any) -> None:
         super().setUp(*args, **kwargs)
 
         self.test_user_eppn = "hubba-bubba"
@@ -52,10 +54,10 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
     @patch("eduid.webapp.security.views.security.revoke_all_credentials")
     def _delete_account(
         self,
-        mock_revoke: Any,
-        mock_sync: Any,
+        mock_revoke: MagicMock,
+        mock_sync: MagicMock,
         data1: dict[str, Any] | None = None,
-    ):
+    ) -> TestResponse:
         """
         Send a GET request to the endpoint to actually terminate the account,
         mocking re-authentication by setting a timestamp in the session.
@@ -75,7 +77,9 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
             return client.post("/terminate-account", json=data)
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def _remove_nin(self, mock_request_user_sync: Any, data1: dict[str, Any] | None = None, unverify: bool = False):
+    def _remove_nin(
+        self, mock_request_user_sync: MagicMock, data1: dict[str, Any] | None = None, unverify: bool = False
+    ) -> TestResponse:
         """
         Send a POST request to remove a NIN from the test user, possibly
         unverifying his verified NIN.
@@ -104,7 +108,7 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
                 return client.post("/remove-nin", data=json.dumps(data), content_type=self.content_type_json)
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def _remove_identity(self, mock_request_user_sync: Any, data1: dict[str, Any] | None = None):
+    def _remove_identity(self, mock_request_user_sync: MagicMock, data1: dict[str, Any] | None = None) -> TestResponse:
         """
         Send a POST request to remove all identities from the test user
 
@@ -128,11 +132,11 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def _add_nin(
         self,
-        mock_request_user_sync: Any,
+        mock_request_user_sync: MagicMock,
         data1: dict[str, Any] | None = None,
         remove: bool = True,
         unverify: bool = False,
-    ):
+    ) -> TestResponse:
         """
         Send a POST request to add a NIN to the test user, possibly removing it's primary, verified NIN.
 
@@ -168,11 +172,11 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def _refresh_user_data(
         self,
-        mock_request_user_sync: Any,
-        mock_get_all_navet_data: Any,
+        mock_request_user_sync: MagicMock,
+        mock_get_all_navet_data: MagicMock,
         user: User,
-        navet_return_value: Any | None = None,
-    ):
+        navet_return_value: NavetData | None = None,
+    ) -> TestResponse:
         mock_request_user_sync.side_effect = self.request_user_sync
         if navet_return_value is None:
             mock_get_all_navet_data.return_value = self._get_all_navet_data()
@@ -186,15 +190,15 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
                 "/refresh-official-user-data", data=json.dumps(data), content_type=self.content_type_json
             )
 
-    def _get_credentials(self):
+    def _get_credentials(self) -> TestResponse:
         response = self.browser.get("/credentials")
-        self.assertEqual(response.status_code, 302)  # Redirect to token service
+        self.assertEqual(response.status_code, 401)
 
         eppn = self.test_user_data["eduPersonPrincipalName"]
         with self.session_cookie(self.browser, eppn) as client:
             return client.get("/credentials")
 
-    def _get_authn_status(self, frontend_action: FrontendAction, credential_id: str | None = None):
+    def _get_authn_status(self, frontend_action: FrontendAction, credential_id: str | None = None) -> TestResponse:
         data = {"frontend_action": frontend_action.value}
         if credential_id is not None:
             data["credential_id"] = credential_id
@@ -206,7 +210,7 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
 
     # actual tests
 
-    def test_delete_account_no_csrf(self):
+    def test_delete_account_no_csrf(self) -> None:
         data1 = {"csrf_token": ""}
         response = self._delete_account(data1=data1)
         self._check_error_response(
@@ -215,7 +219,7 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
             error={"csrf_token": ["CSRF failed to validate"]},
         )
 
-    def test_delete_account_wrong_csrf(self):
+    def test_delete_account_wrong_csrf(self) -> None:
         data1 = {"csrf_token": "wrong-token"}
         response = self._delete_account(data1=data1)
         self._check_error_response(
@@ -224,11 +228,11 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
             error={"csrf_token": ["CSRF failed to validate"]},
         )
 
-    def test_account_terminated_no_authn(self):
+    def test_account_terminated_no_authn(self) -> None:
         response = self.browser.get("/terminate-account")
-        self.assertEqual(response.status_code, 302)  # Redirect to token service
+        self.assertEqual(response.status_code, 401)
 
-    def test_account_terminated_no_reauthn(self):
+    def test_account_terminated_no_reauthn(self) -> None:
         response = self._delete_account()
         self._check_must_authenticate_response(
             response=response,
@@ -237,7 +241,7 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
             authn_status=AuthnActionStatus.NOT_FOUND,
         )
 
-    def test_account_terminated_stale(self):
+    def test_account_terminated_stale(self) -> None:
         self.set_authn_action(
             eppn=self.test_user_eppn,
             frontend_action=FrontendAction.TERMINATE_ACCOUNT_AUTHN,
@@ -251,7 +255,7 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
             authn_status=AuthnActionStatus.STALE,
         )
 
-    def test_account_terminated(self):
+    def test_account_terminated(self) -> None:
         self.set_authn_action(
             eppn=self.test_user_eppn, frontend_action=FrontendAction.TERMINATE_ACCOUNT_AUTHN, age=timedelta(seconds=22)
         )
@@ -264,7 +268,7 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         assert isinstance(user.terminated, datetime) is True
 
-    def test_remove_nin(self):
+    def test_remove_nin(self) -> None:
         response = self._remove_nin(unverify=True)
         self._check_success_response(
             response,
@@ -282,7 +286,7 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         assert user.identities.nin is None
 
-    def test_remove_not_existing_nin(self):
+    def test_remove_not_existing_nin(self) -> None:
         response = self._remove_nin(data1={"nin": "202202031234"})
         assert self.test_user.identities.nin is not None
         self._check_success_response(
@@ -303,7 +307,7 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
         assert user.identities.nin.is_verified is True
 
     @patch("eduid.webapp.security.views.security.remove_nin_from_user")
-    def test_remove_nin_am_fail(self, mock_remove: Any):
+    def test_remove_nin_am_fail(self, mock_remove: MagicMock) -> None:
         from eduid.common.rpc.exceptions import AmTaskFailed
 
         mock_remove.side_effect = AmTaskFailed()
@@ -311,7 +315,7 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
 
         self.assertTrue(self.get_response_payload(response)["message"], "Temporary technical problems")
 
-    def test_remove_nin_no_csrf(self):
+    def test_remove_nin_no_csrf(self) -> None:
         data1 = {"csrf_token": ""}
         response = self._remove_nin(data1=data1)
 
@@ -321,7 +325,7 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
         assert user.identities.nin is not None
         assert user.identities.nin.is_verified is True
 
-    def test_remove_verified_nin(self):
+    def test_remove_verified_nin(self) -> None:
         response = self._remove_nin()
         self._check_error_response(response, type_="POST_SECURITY_REMOVE_NIN_FAIL", msg=SecurityMsg.rm_verified)
 
@@ -329,7 +333,7 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
         assert user.identities.nin is not None
         assert user.identities.nin.is_verified is True
 
-    def test_add_nin(self):
+    def test_add_nin(self) -> None:
         response = self._add_nin()
 
         self._check_success_response(
@@ -350,7 +354,7 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
         assert user.identities.nin is not None
         assert user.identities.nin.is_verified is False
 
-    def test_add_existing_nin(self):
+    def test_add_existing_nin(self) -> None:
         response = self._add_nin(remove=False)
 
         self.assertEqual(self.get_response_payload(response)["message"], "nins.already_exists")
@@ -359,7 +363,7 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
         assert user.identities.nin is not None
         assert user.identities.nin.is_verified is True
 
-    def test_add_other_existing_unverified_nin(self):
+    def test_add_other_existing_unverified_nin(self) -> None:
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         assert user.identities.nin is not None
         number_before = user.identities.nin.number
@@ -374,7 +378,7 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
         assert user.identities.nin.number == number_before
 
     @patch("eduid.webapp.security.views.security.add_nin_to_user")
-    def test_add_nin_task_failed(self, mock_add: MagicMock):
+    def test_add_nin_task_failed(self, mock_add: MagicMock) -> None:
         from eduid.common.rpc.exceptions import AmTaskFailed
 
         mock_add.side_effect = AmTaskFailed()
@@ -382,7 +386,7 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
 
         self.assertEqual(self.get_response_payload(response)["message"], "Temporary technical problems")
 
-    def test_add_nin_bad_csrf(self):
+    def test_add_nin_bad_csrf(self) -> None:
         data1 = {"csrf_token": "bad-token"}
         response = self._add_nin(data1=data1, remove=False)
 
@@ -392,7 +396,7 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
         assert user.identities.nin is not None
         assert user.identities.nin.is_verified is True
 
-    def test_add_invalid_nin(self):
+    def test_add_invalid_nin(self) -> None:
         data1 = {"nin": "123456789"}
         response = self._add_nin(data1=data1, remove=False)
         self.assertIsNotNone(self.get_response_payload(response)["error"]["nin"])
@@ -406,7 +410,7 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
         assert user.identities.nin is not None
         assert user.identities.nin.is_verified is True
 
-    def test_remove_identity(self):
+    def test_remove_identity(self) -> None:
         self.set_authn_action(
             eppn=self.test_user_eppn, frontend_action=FrontendAction.REMOVE_IDENTITY, age=timedelta(seconds=22)
         )
@@ -427,7 +431,7 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
         assert user.identities.nin is None
 
     @patch("eduid.webapp.security.views.security.remove_identity_from_user")
-    def test_remove_identity_am_fail(self, mock_remove: Any):
+    def test_remove_identity_am_fail(self, mock_remove: MagicMock) -> None:
         from eduid.common.rpc.exceptions import AmTaskFailed
 
         mock_remove.side_effect = AmTaskFailed()
@@ -435,7 +439,7 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
 
         self.assertTrue(self.get_response_payload(response)["message"], "Temporary technical problems")
 
-    def test_remove_identity_no_csrf(self):
+    def test_remove_identity_no_csrf(self) -> None:
         data1 = {"csrf_token": ""}
         response = self._remove_identity(data1=data1)
 
@@ -445,7 +449,7 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
         assert user.identities.nin is not None
         assert user.identities.nin.is_verified is True
 
-    def test_refresh_user_official_name(self):
+    def test_refresh_user_official_name(self) -> None:
         """
         Refresh a verified users given name and surname from Navet data.
         Make sure the users display name do not change.
@@ -468,7 +472,7 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
             msg=SecurityMsg.user_updated,
         )
 
-    def test_refresh_user_official_name_no_chosen_given_name(self):
+    def test_refresh_user_official_name_no_chosen_given_name(self) -> None:
         """
         Refresh a verified users given name and surname from Navet data.
         Make sure the users display name is set, using given name marking, from first name and surname if
@@ -489,7 +493,7 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
             msg=SecurityMsg.user_updated,
         )
 
-    def test_refresh_user_official_name_throttle(self):
+    def test_refresh_user_official_name_throttle(self) -> None:
         """
         Make two refreshes in succession before throttle_update_user_period has expired, make sure an error is returned.
         """
@@ -501,7 +505,7 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
             response, type_="POST_SECURITY_REFRESH_OFFICIAL_USER_DATA_FAIL", msg=SecurityMsg.user_update_throttled
         )
 
-    def test_refresh_user_official_name_user_not_verified(self):
+    def test_refresh_user_official_name_user_not_verified(self) -> None:
         """
         Refresh an unverified users, make sure an error is returned.
         """
@@ -514,7 +518,7 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
             response, type_="POST_SECURITY_REFRESH_OFFICIAL_USER_DATA_FAIL", msg=SecurityMsg.user_not_verified
         )
 
-    def test_refresh_user_official_name_user_no_names_set(self):
+    def test_refresh_user_official_name_user_no_names_set(self) -> None:
         """
         Refresh a verified user with no names set (this can be true for old user objects).
         """
@@ -536,7 +540,7 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
             response, type_="POST_SECURITY_REFRESH_OFFICIAL_USER_DATA_SUCCESS", msg=SecurityMsg.user_updated
         )
 
-    def test_refresh_user_official_name_deregistered(self):
+    def test_refresh_user_official_name_deregistered(self) -> None:
         mock_get_all_navet_data = self._get_all_navet_data()
         # add empty official address and deregistration information as for a user that has emigrated
         mock_get_all_navet_data.person.postal_addresses.official_address = OfficialAddress()
@@ -562,7 +566,7 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
             msg=SecurityMsg.user_updated,
         )
 
-    def test_get_credentials(self):
+    def test_get_credentials(self) -> None:
         response = self._get_credentials()
         expected_payload = {
             "credentials": [
@@ -579,7 +583,7 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
         }
         self._check_success_response(response, type_="GET_SECURITY_CREDENTIALS_SUCCESS", payload=expected_payload)
 
-    def test_authn_status_ok(self):
+    def test_authn_status_ok(self) -> None:
         frontend_action = FrontendAction.CHANGE_PW_AUTHN
         self.set_authn_action(
             eppn=self.test_user_eppn,
@@ -592,7 +596,7 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
             payload={"authn_status": AuthnActionStatus.OK.value},
         )
 
-    def test_authn_status_stale(self):
+    def test_authn_status_stale(self) -> None:
         frontend_action = FrontendAction.CHANGE_PW_AUTHN
         self.set_authn_action(eppn=self.test_user_eppn, frontend_action=frontend_action, age=timedelta(minutes=10))
         response = self._get_authn_status(frontend_action=frontend_action)
@@ -602,7 +606,7 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
             payload={"authn_status": AuthnActionStatus.STALE.value},
         )
 
-    def test_authn_status_no_mfa(self):
+    def test_authn_status_no_mfa(self) -> None:
         frontend_action = FrontendAction.REMOVE_SECURITY_KEY_AUTHN
         self.set_authn_action(eppn=self.test_user_eppn, frontend_action=frontend_action)
         response = self._get_authn_status(frontend_action=frontend_action)
@@ -612,7 +616,7 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
             payload={"authn_status": AuthnActionStatus.NO_MFA.value},
         )
 
-    def test_authn_status_credential_not_existing(self):
+    def test_authn_status_credential_not_existing(self) -> None:
         frontend_action = FrontendAction.VERIFY_CREDENTIAL
         self.set_authn_action(eppn=self.test_user_eppn, frontend_action=frontend_action, mock_mfa=True)
         response = self._get_authn_status(frontend_action=frontend_action, credential_id="none_existing_credential_id")
@@ -622,7 +626,7 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
             msg=SecurityMsg.credential_not_found,
         )
 
-    def test_authn_status_credential_not_used(self):
+    def test_authn_status_credential_not_used(self) -> None:
         frontend_action = FrontendAction.VERIFY_CREDENTIAL
         credential = self.add_security_key_to_user(self.test_user_eppn, keyhandle="keyhandle_1")
         self.set_authn_action(eppn=self.test_user_eppn, frontend_action=frontend_action, mock_mfa=True)

@@ -48,7 +48,7 @@ class UserGroup:
     members: set[GraphUser | GraphGroup]
 
     @classmethod
-    def from_scimapigroup(cls, group: ScimApiGroup, is_owner: bool = False, is_member: bool = False):
+    def from_scimapigroup(cls, group: ScimApiGroup, is_owner: bool = False, is_member: bool = False) -> "UserGroup":
         return cls(
             identifier=group.scim_id,
             display_name=group.display_name,
@@ -169,7 +169,8 @@ def remove_user_from_group(scim_user: ScimApiUser, scim_group: ScimApiGroup, rol
         if not current_app.scimapi_groupdb.save(scim_group):
             raise EduIDDBError(f"Failed to save group with scim_id {scim_group.scim_id}")
         current_app.logger.info(
-            f"Removed user as with scim_id {scim_user.scim_id} as {role.value} from group with scim_id {scim_group.scim_id}"
+            f"Removed user as with scim_id {scim_user.scim_id} as {role.value} "
+            f"from group with scim_id {scim_group.scim_id}"
         )
     return None
 
@@ -234,7 +235,7 @@ def get_incoming_invites(user: User) -> list[dict[str, Any]]:
     return invites
 
 
-def send_invite_email(invite_state: GroupInviteState):
+def send_invite_email(invite_state: GroupInviteState) -> None:
     text_template = current_app.conf.group_invite_template_txt
     html_template = current_app.conf.group_invite_template_txt
 
@@ -263,7 +264,7 @@ def send_invite_email(invite_state: GroupInviteState):
     current_app.logger.info(f"Sent group {invite_state.group_scim_id} invite email to {invite_state.email_address}")
 
 
-def send_delete_invite_email(invite_state: GroupInviteState):
+def send_delete_invite_email(invite_state: GroupInviteState) -> None:
     text_template = current_app.conf.group_delete_invite_template_txt
     html_template = current_app.conf.group_delete_invite_template_html
 
@@ -285,7 +286,8 @@ def send_delete_invite_email(invite_state: GroupInviteState):
         )
     except MailTaskFailed as e:
         current_app.logger.error(
-            f"Sending group {invite_state.group_scim_id} cancel invite email to {invite_state.email_address} failed: {e}"
+            f"Sending group {invite_state.group_scim_id} cancel invite email to "
+            f"{invite_state.email_address} failed: {e}"
         )
         raise e
 

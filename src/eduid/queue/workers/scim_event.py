@@ -19,7 +19,7 @@ __author__ = "ft"
 
 
 class ScimEventQueueWorker(QueueWorker):
-    def __init__(self, config: QueueWorkerConfig):
+    def __init__(self, config: QueueWorkerConfig) -> None:
         # Register which queue items this worker should try to grab
         payloads = [EduidSCIMAPINotification]
         super().__init__(config=config, handle_payloads=payloads)
@@ -62,7 +62,7 @@ def init_scim_event_worker(
     return ScimEventQueueWorker(config=config)
 
 
-def start_worker():
+def start_worker() -> None:
     worker = init_scim_event_worker()
     exit(asyncio.run(worker.run()))
 

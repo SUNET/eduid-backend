@@ -13,13 +13,14 @@ import bson
 from bson import ObjectId
 from httpx import AsyncClient, Response
 
+from eduid.common.misc.timeutil import utc_now
 from eduid.common.models.scim_base import Email, LanguageTag, Meta, Name, PhoneNumber, SCIMResourceType, SCIMSchema
 from eduid.common.models.scim_user import LinkedAccount, NutidUserExtensionV1, Profile, UserResponse
 from eduid.common.testing_base import normalised_data
 from eduid.common.utils import make_etag
 from eduid.scimapi.testing import ScimApiTestCase
 from eduid.scimapi.utils import filter_none
-from eduid.userdb.scimapi import EventStatus, ScimApiLinkedAccount
+from eduid.userdb.scimapi import EventStatus, ScimApiGroup, ScimApiLinkedAccount
 from eduid.userdb.scimapi.userdb import ScimApiProfile, ScimApiUser
 
 logger = logging.getLogger(__name__)
@@ -49,7 +50,7 @@ class TestScimUser(unittest.TestCase):
             "profiles": {"student": {"attributes": {"displayName": "Test"}}},
         }
 
-    def test_load_old_user(self):
+    def test_load_old_user(self) -> None:
         user = ScimApiUser.from_dict(self.user_doc1)
         self.assertEqual(user.profiles["student"].attributes["displayName"], "Test")
 
@@ -57,7 +58,7 @@ class TestScimUser(unittest.TestCase):
         user2 = ScimApiUser.from_dict(user.to_dict())
         self.assertEqual(asdict(user), asdict(user2))
 
-    def test_to_scimuser_doc(self):
+    def test_to_scimuser_doc(self) -> None:
         db_user = ScimApiUser.from_dict(self.user_doc1)
         meta = Meta(
             location=f"http://example.org/Users/{db_user.scim_id}",
@@ -114,7 +115,7 @@ class TestScimUser(unittest.TestCase):
         loaded_user_response = json.loads(user_response_json)
         assert loaded_user_response == expected
 
-    def test_to_scimuser_no_external_id(self):
+    def test_to_scimuser_no_external_id(self) -> None:
         user_doc2 = {
             "_id": ObjectId("5e81c5f849ac2cd87580e500"),
             "scim_id": "a7851d21-eab9-4caa-ba5d-49653d65c452",
@@ -167,7 +168,7 @@ class TestScimUser(unittest.TestCase):
         loaded_user_response = json.loads(user_response_json)
         assert loaded_user_response == expected
 
-    def test_bson_serialization(self):
+    def test_bson_serialization(self) -> None:
         user = ScimApiUser.from_dict(self.user_doc1)
         x = bson.encode(user.to_dict())
         self.assertTrue(x)
@@ -189,11 +190,11 @@ class ScimApiTestUserResourceBase(ScimApiTestCase):
             attributes={"displayName": "Test User 2"}, data={"another_test_key": "another_test_value"}
         )
 
-    def _assertUserUpdateSuccess(self, req: Mapping, response, user: ScimApiUser):
+    def _assertUserUpdateSuccess(self, req: Mapping, response: Response, user: ScimApiUser) -> None:
         """Function to validate successful responses to SCIM calls that update a user according to a request."""
 
         if response.json().get("schemas") == [SCIMSchema.ERROR.value]:
-            self.fail(f"Got SCIM error parsed_response ({response.status}):\n{response.json}")
+            self.fail(f"Got SCIM error parsed_response ({response.status_code}):\n{response.json}")
 
         expected_schemas = req.get("schemas", [SCIMSchema.CORE_20_USER.value])
         if SCIMSchema.NUTID_USER_V1.value in response.json() and SCIMSchema.NUTID_USER_V1.value not in expected_schemas:
@@ -226,7 +227,7 @@ class ScimApiTestUserResourceBase(ScimApiTestCase):
                 resp_nutid,
                 "Unexpected NUTID user data in parsed_response",
             )
-        elif SCIMSchema.NUTID_USER_V1.value in response.json:
+        elif SCIMSchema.NUTID_USER_V1.value in response.json():
             self.fail(f"Unexpected {SCIMSchema.NUTID_USER_V1.value} in the parsed_response")
 
     def _create_user(self, req: dict[str, Any], expect_success: bool = True) -> UserApiResult:
@@ -278,7 +279,7 @@ class ScimApiTestUserResourceBase(ScimApiTestCase):
 
 
 class TestUserResource(ScimApiTestUserResourceBase):
-    def test_get_user(self):
+    def test_get_user(self) -> None:
         db_user = self.add_user(identifier=str(uuid4()), external_id="test-id-1", profiles={"test": self.test_profile})
         response = self.client.get(url=f"/Users/{db_user.scim_id}", headers=self.headers)
 
@@ -287,11 +288,11 @@ class TestUserResource(ScimApiTestUserResourceBase):
         }
         self._assertUserUpdateSuccess(_req, response, db_user)
 
-    def test_create_users_with_no_external_id(self):
+    def test_create_users_with_no_external_id(self) -> None:
         self.add_user(identifier=str(uuid4()), profiles={"test": self.test_profile})
         self.add_user(identifier=str(uuid4()), profiles={"test": self.test_profile})
 
-    def test_create_user(self):
+    def test_create_user(self) -> None:
         req = {
             "externalId": "test-id-1",
             "name": {"familyName": "Testsson", "givenName": "Test", "middleName": "Testaren"},
@@ -308,19 +309,23 @@ class TestUserResource(ScimApiTestUserResourceBase):
         result = self._create_user(req)
 
         # Load the created user from the database, ensuring it was in fact created
+        assert self.userdb
+        assert isinstance(req["externalId"], str)
         db_user = self.userdb.get_user_by_external_id(req["externalId"])
+        assert db_user
         self.assertIsNotNone(db_user, "Created user not found in the database")
 
         self._assertUserUpdateSuccess(result.request, result.response, db_user)
 
         # check that the action resulted in an event in the database
+        assert self.eventdb
         events = self.eventdb.get_events_by_resource(SCIMResourceType.USER, db_user.scim_id)
         assert len(events) == 1
         event = events[0]
         assert event.resource.external_id == req["externalId"]
         assert event.data["status"] == EventStatus.CREATED.value
 
-    def test_create_and_update_user(self):
+    def test_create_and_update_user(self) -> None:
         """Test that creating a user and then updating it without changes only results in one event"""
         req = {
             "externalId": "test-id-1",
@@ -335,8 +340,10 @@ class TestUserResource(ScimApiTestUserResourceBase):
             },
         }
         result1 = self._create_user(req)
+        assert result1.parsed_response
 
         # check that the action resulted in an event in the database
+        assert self.eventdb
         events1 = self.eventdb.get_events_by_resource(SCIMResourceType.USER, result1.parsed_response.id)
         assert len(events1) == 1
         event = events1[0]
@@ -345,6 +352,7 @@ class TestUserResource(ScimApiTestUserResourceBase):
 
         # Update the user without making any changes
         result2 = self._update_user(req, result1.parsed_response.id, result1.parsed_response.meta.version)
+        assert result2.parsed_response
         # Make sure the version wasn't updated
         assert result1.parsed_response.meta.version == result2.parsed_response.meta.version
         # Make sure no additional event was created
@@ -352,7 +360,7 @@ class TestUserResource(ScimApiTestUserResourceBase):
         assert len(events2) == 1
         assert events1 == events2
 
-    def test_create_user_no_external_id(self):
+    def test_create_user_no_external_id(self) -> None:
         req = {
             "schemas": [SCIMSchema.CORE_20_USER.value, SCIMSchema.NUTID_USER_V1.value],
             SCIMSchema.NUTID_USER_V1.value: {
@@ -366,12 +374,14 @@ class TestUserResource(ScimApiTestUserResourceBase):
         self._assertResponse(response, status_code=201)
 
         # Load the created user from the database, ensuring it was in fact created
+        assert self.userdb
         db_user = self.userdb.get_user_by_scim_id(response.json()["id"])
+        assert db_user
         self.assertIsNotNone(db_user, "Created user not found in the database")
 
         self._assertUserUpdateSuccess(req, response, db_user)
 
-    def test_create_user_duplicated_external_id(self):
+    def test_create_user_duplicated_external_id(self) -> None:
         external_id = "test-id-1"
         # Create an existing user in the db
         self.add_user(identifier=str(uuid4()), external_id=external_id, profiles={"test": self.test_profile})
@@ -388,8 +398,11 @@ class TestUserResource(ScimApiTestUserResourceBase):
             response.json(), schemas=["urn:ietf:params:scim:api:messages:2.0:Error"], detail="externalID must be unique"
         )
 
-    def test_update_user(self):
-        db_user = self.add_user(identifier=str(uuid4()), external_id="test-id-1", profiles={"test": self.test_profile})
+    def test_update_user(self) -> None:
+        db_user: ScimApiUser | None = self.add_user(
+            identifier=str(uuid4()), external_id="test-id-1", profiles={"test": self.test_profile}
+        )
+        assert db_user
         req = {
             "schemas": [SCIMSchema.CORE_20_USER.value, SCIMSchema.NUTID_USER_V1.value],
             "id": str(db_user.scim_id),
@@ -408,17 +421,20 @@ class TestUserResource(ScimApiTestUserResourceBase):
         self.headers["IF-MATCH"] = make_etag(db_user.version)
         response = self.client.put(url=f"/Users/{db_user.scim_id}", json=req, headers=self.headers)
         self._assertResponse(response)
+        assert self.userdb
         db_user = self.userdb.get_user_by_scim_id(response.json()["id"])
+        assert db_user
         self._assertUserUpdateSuccess(req, response, db_user)
 
         # check that the action resulted in an event in the database
+        assert self.eventdb
         events = self.eventdb.get_events_by_resource(SCIMResourceType.USER, db_user.scim_id)
         assert len(events) == 1
         event = events[0]
         assert event.resource.external_id == req["externalId"]
         assert event.data["status"] == EventStatus.UPDATED.value
 
-    def test_update_user_change_properties(self):
+    def test_update_user_change_properties(self) -> None:
         # Create the user
         req = {
             "schemas": [SCIMSchema.CORE_20_USER.value, SCIMSchema.NUTID_USER_V1.value],
@@ -460,11 +476,14 @@ class TestUserResource(ScimApiTestUserResourceBase):
         response = self.client.put(url=f'/Users/{create_response.json()["id"]}', json=req, headers=self.headers)
         self._assertResponse(response)
 
+        assert self.userdb
         db_user = self.userdb.get_user_by_scim_id(response.json()["id"])
+        assert db_user
         self._assertUserUpdateSuccess(req, response, db_user)
 
-    def test_update_user_set_external_id(self):
-        db_user = self.add_user(identifier=str(uuid4()), profiles={"test": self.test_profile})
+    def test_update_user_set_external_id(self) -> None:
+        db_user: ScimApiUser | None = self.add_user(identifier=str(uuid4()), profiles={"test": self.test_profile})
+        assert db_user
         req = {
             "schemas": [SCIMSchema.CORE_20_USER.value, SCIMSchema.NUTID_USER_V1.value],
             "id": str(db_user.scim_id),
@@ -479,10 +498,12 @@ class TestUserResource(ScimApiTestUserResourceBase):
         self.headers["IF-MATCH"] = make_etag(db_user.version)
         response = self.client.put(url=f"/Users/{db_user.scim_id}", json=req, headers=self.headers)
         self._assertResponse(response)
+        assert self.userdb
         db_user = self.userdb.get_user_by_scim_id(response.json()["id"])
+        assert db_user
         self._assertUserUpdateSuccess(req, response, db_user)
 
-    def test_update_user_duplicated_external_id(self):
+    def test_update_user_duplicated_external_id(self) -> None:
         external_id = "test-id-1"
         # Create two existing users with different external_id
         self.add_user(identifier=str(uuid4()), external_id=external_id, profiles={"test": self.test_profile})
@@ -504,40 +525,52 @@ class TestUserResource(ScimApiTestUserResourceBase):
             response.json(), schemas=["urn:ietf:params:scim:api:messages:2.0:Error"], detail="externalID must be unique"
         )
 
-    def test_delete_user(self):
+    def test_delete_user(self) -> None:
         external_id = "test-id-1"
-        db_user = self.add_user(identifier=str(uuid4()), external_id=external_id, profiles={"test": self.test_profile})
+        db_user: ScimApiUser | None = self.add_user(
+            identifier=str(uuid4()), external_id=external_id, profiles={"test": self.test_profile}
+        )
+        assert db_user
         user_scim_id = db_user.scim_id
 
         self.headers["IF-MATCH"] = make_etag(db_user.version)
         response = self.client.delete(url=f"/Users/{db_user.scim_id}", headers=self.headers)
         self._assertResponse(response, status_code=204)  # No content
 
-        db_user = self.userdb.get_user_by_scim_id(user_scim_id)
+        assert self.userdb
+        db_user = self.userdb.get_user_by_scim_id(str(user_scim_id))
         assert db_user is None
 
         # check that the action resulted in an event in the database
+        assert self.eventdb
         events = self.eventdb.get_events_by_resource(SCIMResourceType.USER, user_scim_id)
         assert len(events) == 1
         event = events[0]
         assert event.resource.external_id == external_id
         assert event.data["status"] == EventStatus.DELETED.value
 
-    def test_delete_user_with_groups(self):
+    def test_delete_user_with_groups(self) -> None:
         external_id = "test-id-1"
-        db_user = self.add_user(identifier=str(uuid4()), external_id=external_id, profiles={"test": self.test_profile})
+        db_user: ScimApiUser | None = self.add_user(
+            identifier=str(uuid4()), external_id=external_id, profiles={"test": self.test_profile}
+        )
+        assert db_user
         user_scim_id = db_user.scim_id
-        group1 = self.add_group_with_member(
+        group1: ScimApiGroup | None = self.add_group_with_member(
             group_identifier=str(uuid4()), display_name="Group 1", user_identifier=str(user_scim_id)
         )
+        assert group1
         group1 = self.add_owner_to_group(group_identifier=str(group1.scim_id), user_identifier=str(user_scim_id))
+        assert group1
         extra_user = self.add_user(
             identifier=str(uuid4()), external_id="other external id", profiles={"test": self.test_profile}
         )
-        group2 = self.add_group_with_member(
+        group2: ScimApiGroup | None = self.add_group_with_member(
             group_identifier=str(uuid4()), display_name="Group 2", user_identifier=str(user_scim_id)
         )
+        assert group2
         group2 = self.add_member_to_group(group_identifier=str(group2.scim_id), user_identifier=str(extra_user.scim_id))
+        assert group2
 
         assert len(group1.members) == 1
         assert len(group1.owners) == 1
@@ -547,28 +580,33 @@ class TestUserResource(ScimApiTestUserResourceBase):
         response = self.client.delete(url=f"/Users/{db_user.scim_id}", headers=self.headers)
         self._assertResponse(response, status_code=204)  # No content
 
-        db_user = self.userdb.get_user_by_scim_id(user_scim_id)
+        assert self.userdb
+        db_user = self.userdb.get_user_by_scim_id(str(user_scim_id))
         assert db_user is None
 
+        assert self.groupdb
         group1 = self.groupdb.get_group_by_scim_id(str(group1.scim_id))
+        assert group1
         assert len(group1.graph.members) == 0
         assert len(group1.graph.owners) == 0
         group2 = self.groupdb.get_group_by_scim_id(str(group2.scim_id))
+        assert group2
         assert len(group2.graph.members) == 1
 
         # check that the action resulted in an event in the database
+        assert self.eventdb
         events = self.eventdb.get_events_by_resource(SCIMResourceType.USER, user_scim_id)
         assert len(events) == 1
         event = events[0]
         assert event.resource.external_id == external_id
         assert event.data["status"] == EventStatus.DELETED.value
 
-    def test_search_user_external_id(self):
+    def test_search_user_external_id(self) -> None:
         db_user = self.add_user(identifier=str(uuid4()), external_id="test-id-1", profiles={"test": self.test_profile})
         self.add_user(identifier=str(uuid4()), external_id="test-id-2", profiles={"test": self.test_profile})
         self._perform_search(search_filter=f'externalId eq "{db_user.external_id}"', expected_user=db_user)
 
-    def test_search_user_last_modified(self):
+    def test_search_user_last_modified(self) -> None:
         db_user1 = self.add_user(identifier=str(uuid4()), external_id="test-id-1", profiles={"test": self.test_profile})
         db_user2 = self.add_user(identifier=str(uuid4()), external_id="test-id-2", profiles={"test": self.test_profile})
         self.assertGreater(db_user2.last_modified, db_user1.last_modified)
@@ -583,16 +621,17 @@ class TestUserResource(ScimApiTestUserResourceBase):
             search_filter=f'meta.lastModified gt "{db_user1.last_modified.isoformat()}"', expected_user=db_user2
         )
 
-    def test_search_user_profile_data(self):
+    def test_search_user_profile_data(self) -> None:
         db_user = self.add_user(identifier=str(uuid4()), external_id="test-id-1", profiles={"test": self.test_profile})
         self.add_user(identifier=str(uuid4()), external_id="test-id-2", profiles={"test": self.test_profile2})
         self._perform_search(search_filter='profiles.test.data.test_key eq "test_value"', expected_user=db_user)
 
-    def test_search_user_start_index(self):
+    def test_search_user_start_index(self) -> None:
         for i in range(9):
             self.add_user(identifier=str(uuid4()), external_id=f"test-id-{i}", profiles={"test": self.test_profile})
+        assert self.userdb
         self.assertEqual(9, self.userdb.db_count())
-        last_modified = datetime.utcnow() - timedelta(hours=1)
+        last_modified = utc_now() - timedelta(hours=1)
         self._perform_search(
             search_filter=f'meta.lastmodified gt "{last_modified.isoformat()}"',
             start=5,
@@ -601,11 +640,12 @@ class TestUserResource(ScimApiTestUserResourceBase):
             expected_total_results=9,
         )
 
-    def test_search_user_count(self):
+    def test_search_user_count(self) -> None:
         for i in range(9):
             self.add_user(identifier=str(uuid4()), external_id=f"test-id-{i}", profiles={"test": self.test_profile})
+        assert self.userdb
         self.assertEqual(9, self.userdb.db_count())
-        last_modified = datetime.utcnow() - timedelta(hours=1)
+        last_modified = utc_now() - timedelta(hours=1)
         self._perform_search(
             search_filter=f'meta.lastmodified gt "{last_modified.isoformat()}"',
             count=5,
@@ -614,11 +654,12 @@ class TestUserResource(ScimApiTestUserResourceBase):
             expected_total_results=9,
         )
 
-    def test_search_user_start_index_and_count(self):
+    def test_search_user_start_index_and_count(self) -> None:
         for i in range(9):
             self.add_user(identifier=str(uuid4()), external_id=f"test-id-{i}", profiles={"test": self.test_profile})
+        assert self.userdb
         self.assertEqual(9, self.userdb.db_count())
-        last_modified = datetime.utcnow() - timedelta(hours=1)
+        last_modified = utc_now() - timedelta(hours=1)
         self._perform_search(
             search_filter=f'meta.lastmodified gt "{last_modified.isoformat()}"',
             start=7,
@@ -628,7 +669,7 @@ class TestUserResource(ScimApiTestUserResourceBase):
             expected_total_results=9,
         )
 
-    def test_create_and_update_user_with_linked_accounts(self):
+    def test_create_and_update_user_with_linked_accounts(self) -> None:
         """Test that creating a user and then updating it without changes only results in one event"""
         account = LinkedAccount(issuer="eduid.se", value="test@dev.eduid.se")
         _db_account = ScimApiLinkedAccount(issuer=account.issuer, value=account.value, parameters=account.parameters)
@@ -636,6 +677,9 @@ class TestUserResource(ScimApiTestUserResourceBase):
             SCIMSchema.NUTID_USER_V1.value: {"profiles": {}, "linked_accounts": [account.to_dict()]},
         }
         result1 = self._create_user(req)
+        assert result1.parsed_response
+
+        assert self.userdb
 
         self._assertResponse(result1.response, status_code=201)
         db_user = self.userdb.get_user_by_scim_id(str(result1.parsed_response.id))
@@ -652,6 +696,7 @@ class TestUserResource(ScimApiTestUserResourceBase):
 
         # Update the user
         result2 = self._update_user(req, result1.parsed_response.id, result1.parsed_response.meta.version)
+        assert result2.parsed_response
         self._assertResponse(result2.response, status_code=200)
         db_user = self.userdb.get_user_by_scim_id(str(result2.parsed_response.id))
         assert db_user
@@ -663,7 +708,7 @@ class TestUserResource(ScimApiTestUserResourceBase):
         # Verify the updated account made it into the database
         assert db_user.linked_accounts == [_db_account]
 
-    def test_create_user_with_invalid_linked_accounts_issuer(self):
+    def test_create_user_with_invalid_linked_accounts_issuer(self) -> None:
         """Test that creating a user with an invalid issuer and valid value fails"""
         account = LinkedAccount(issuer="NOT-eduid.se", value="test@dev.eduid.se")
         req = {
@@ -674,7 +719,7 @@ class TestUserResource(ScimApiTestUserResourceBase):
         result1 = self._create_user(req, expect_success=False)
         self._assertScimError(json=result1.response.json(), detail="Invalid nutid linked_accounts")
 
-    def test_create_user_with_invalid_linked_accounts_value(self):
+    def test_create_user_with_invalid_linked_accounts_value(self) -> None:
         """Test that creating a user with valid issuer and invalid value fails"""
         account = LinkedAccount(issuer="eduid.se", value="test@eduid.com")
         req = {
@@ -685,7 +730,7 @@ class TestUserResource(ScimApiTestUserResourceBase):
         result1 = self._create_user(req, expect_success=False)
         self._assertScimError(json=result1.response.json(), detail="Invalid nutid linked_accounts")
 
-    def test_update_user_set_linked_accounts(self):
+    def test_update_user_set_linked_accounts(self) -> None:
         db_account1 = ScimApiLinkedAccount(issuer="eduid.se", value="test1@dev.eduid.se")
         account2 = LinkedAccount(issuer="eduid.se", value="test2@eduid.se", parameters={"mfa_stepup": True})
         db_user = self.add_user(identifier=str(uuid4()), linked_accounts=[db_account1])
@@ -698,12 +743,13 @@ class TestUserResource(ScimApiTestUserResourceBase):
         self._assertResponse(result.response)
         self._assertUserUpdateSuccess(req, result.response, db_user)
 
-    def test_update_user_set_linked_accounts2(self):
+    def test_update_user_set_linked_accounts2(self) -> None:
         """Test updating linked accounts sorted 'wrong'"""
         db_account1 = ScimApiLinkedAccount(issuer="eduid.se", value="test1@dev.eduid.se")
         account1 = LinkedAccount(issuer=db_account1.issuer, value=db_account1.value)
         account2 = LinkedAccount(issuer="eduid.se", value="test2@eduid.se", parameters={"mfa_stepup": True})
-        db_user = self.add_user(identifier=str(uuid4()), linked_accounts=[db_account1])
+        db_user: ScimApiUser | None = self.add_user(identifier=str(uuid4()), linked_accounts=[db_account1])
+        assert db_user
         req = {
             "schemas": [SCIMSchema.CORE_20_USER.value, SCIMSchema.NUTID_USER_V1.value],
             "id": str(db_user.scim_id),
@@ -715,6 +761,7 @@ class TestUserResource(ScimApiTestUserResourceBase):
         result = self._update_user(req, db_user.scim_id, version=db_user.version)
         self._assertResponse(result.response)
         self._assertUserUpdateSuccess(req, result.response, db_user)
+        assert self.userdb
         db_user = self.userdb.get_user_by_scim_id(str(db_user.scim_id))
         assert db_user
         db_account2 = ScimApiLinkedAccount(issuer=account2.issuer, value=account2.value, parameters=account2.parameters)
@@ -729,7 +776,7 @@ class TestUserResource(ScimApiTestUserResourceBase):
         expected_user: ScimApiUser | None = None,
         expected_num_resources: int | None = None,
         expected_total_results: int | None = None,
-    ):
+    ) -> dict:
         logger.info(f"Searching for user(s) using filter {repr(search_filter)}")
         req = {
             "schemas": [SCIMSchema.API_MESSAGES_20_SEARCH_REQUEST.value],
@@ -787,7 +834,6 @@ class TestUserResource(ScimApiTestUserResourceBase):
 class TestAsyncUserResource(IsolatedAsyncioTestCase, ScimApiTestCase):
     def setUp(self) -> None:
         super().setUp()
-        # ScimApiTestCase.setUp(self)
         self.async_client = AsyncClient(app=self.api, base_url="http://testserver")
         # create users
         self.user_count = 10
@@ -802,7 +848,8 @@ class TestAsyncUserResource(IsolatedAsyncioTestCase, ScimApiTestCase):
         for user in self.users[1:]:
             self.add_member_to_group(group_identifier=str(self.group.scim_id), user_identifier=str(user.scim_id))
 
-    async def test_delete_user_with_groups(self):
+    async def test_delete_user_with_groups(self) -> None:
+        assert self.groupdb
         group = self.groupdb.get_group_by_scim_id(str(self.group.scim_id))
         assert group is not None  # please mypy
         assert len(group.members) == self.user_count
@@ -821,8 +868,10 @@ class TestAsyncUserResource(IsolatedAsyncioTestCase, ScimApiTestCase):
         for task in tasks:
             self._assertResponse(task.result(), status_code=204)  # No content
 
+        assert self.userdb
         for user in self.users[: self.user_count // 2]:
-            assert self.userdb.get_user_by_scim_id(user.scim_id) is None
+            assert self.userdb.get_user_by_scim_id(str(user.scim_id)) is None
 
         group = self.groupdb.get_group_by_scim_id(str(group.scim_id))
+        assert group
         assert len(group.graph.members) == self.user_count // 2

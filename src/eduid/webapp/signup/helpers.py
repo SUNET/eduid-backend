@@ -2,7 +2,7 @@ import os
 import struct
 from dataclasses import replace
 from datetime import datetime
-from enum import Enum, unique
+from enum import StrEnum, unique
 
 import proquint
 from flask import abort
@@ -89,7 +89,7 @@ class SignupMsg(TranslatableMsg):
 
 
 @unique
-class EmailStatus(str, Enum):
+class EmailStatus(StrEnum):
     ADDRESS_USED = "address_used"
     RESEND_CODE = "resend_code"
     NEW = "new"
@@ -260,7 +260,8 @@ def record_tou(signup_user: SignupUser, tou_version: str) -> None:
     """
     event = ToUEvent(version=tou_version, created_by=current_app.conf.app_name)
     current_app.logger.info(
-        f"Recording ToU acceptance {event.event_id} (version {event.version}) for user {signup_user} (source: {current_app.conf.app_name})"
+        f"Recording ToU acceptance {event.event_id} (version {event.version}) for user {signup_user} "
+        f"(source: {current_app.conf.app_name})"
     )
     signup_user.tou.add(event)
 
@@ -301,7 +302,7 @@ def record_email_address(signup_user: SignupUser, email: str) -> None:
     current_app.stats.count(name="mail_verified")
 
 
-def complete_and_update_invite(user: User, invite_code: str):
+def complete_and_update_invite(user: User, invite_code: str) -> None:
     signup_user = SignupUser.from_user(user, current_app.private_userdb)
     invite = current_app.invite_db.get_invite_by_invite_code(invite_code)
     if invite is None:

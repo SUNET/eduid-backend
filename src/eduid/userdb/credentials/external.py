@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from enum import Enum
+from enum import StrEnum
 from typing import Any, Literal
 
 from bson import ObjectId
@@ -12,7 +12,7 @@ from eduid.userdb.element import ElementKey
 from eduid.userdb.util import objectid_str
 
 
-class TrustFramework(str, Enum):
+class TrustFramework(StrEnum):
     SWECONN = "SWECONN"
     EIDAS = "EIDAS"
     SVIPE = "SVIPE"
@@ -26,7 +26,7 @@ class ExternalCredential(Credential):
 
     @field_validator("credential_id", mode="before")
     @classmethod
-    def credential_id_objectid(cls, v):
+    def credential_id_objectid(cls, v: object) -> str:
         """Turn ObjectId into string"""
         if isinstance(v, ObjectId):
             v = str(v)

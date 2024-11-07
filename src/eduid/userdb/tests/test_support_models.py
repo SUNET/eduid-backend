@@ -5,24 +5,24 @@ from eduid.userdb.support import models
 
 
 class TestSupportUsers(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.users = UserFixtures()
 
-    def test_support_user(self):
+    def test_support_user(self) -> None:
         user = models.SupportUserFilter(self.users.new_user_example.to_dict())
         self.assertNotIn("_id", user)
         self.assertNotIn("letter_proofing_data", user)
         for password in user["passwords"]:
             self.assertNotIn("salt", password)
 
-    def test_support_signup_user(self):
+    def test_support_signup_user(self) -> None:
         user = models.SupportSignupUserFilter(self.users.new_signup_user_example.to_dict())
         self.assertNotIn("_id", user)
         self.assertNotIn("letter_proofing_data", user)
         for password in user["passwords"]:
             self.assertNotIn("salt", password)
 
-    def test_support_completed_signup_user(self):
+    def test_support_completed_signup_user(self) -> None:
         user = models.SupportSignupUserFilter(self.users.new_completed_signup_user_example.to_dict())
         self.assertNotIn("_id", user)
         self.assertNotIn("letter_proofing_data", user)
@@ -32,12 +32,14 @@ class TestSupportUsers(TestCase):
         The assertion is here only for good measure to make sure that the
         right example data is being used.
         """
-        self.assertTrue(len(user.get("pending_mail_address")) == 0)
+        pending = user.get("pending_mail_address")
+        assert pending is not None
+        self.assertTrue(len(pending) == 0)
 
         for password in user["passwords"]:
             self.assertNotIn("salt", password)
 
-    def test_support_user_authn_info(self):
+    def test_support_user_authn_info(self) -> None:
         raw_data = {
             "_id": "5c5b027c20d6b6000db13187",
             "fail_count": {"201902": 1, "201903": 0},

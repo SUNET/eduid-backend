@@ -10,6 +10,7 @@ from typing import Any
 
 from bson import ObjectId
 
+from eduid.common.misc.timeutil import utc_now
 from eduid.userdb import User, UserDB
 from eduid.userdb.db import TUserDbDocument
 from eduid.userdb.exceptions import DocumentOutOfSync
@@ -40,7 +41,7 @@ class ScimApiUser(ScimApiResourceBase):
     linked_accounts: list[ScimApiLinkedAccount] = field(default_factory=list)
 
     @property
-    def etag(self):
+    def etag(self) -> str:
         return f'W/"{self.version}"'
 
     def to_dict(self) -> TUserDbDocument:
@@ -72,7 +73,9 @@ class ScimApiUser(ScimApiResourceBase):
 
 
 class ScimApiUserDB(ScimApiBaseDB):
-    def __init__(self, db_uri: str, collection: str, db_name="eduid_scimapi", setup_indexes: bool = True):
+    def __init__(
+        self, db_uri: str, collection: str, db_name: str = "eduid_scimapi", setup_indexes: bool = True
+    ) -> None:
         super().__init__(db_uri, db_name, collection=collection)
         if setup_indexes:
             # Create an index so that scim_id and external_id is unique per data owner
@@ -106,7 +109,7 @@ class ScimApiUserDB(ScimApiBaseDB):
         }
         # update the version number and last_modified timestamp
         user_dict["version"] = ObjectId()
-        user_dict["last_modified"] = datetime.utcnow()
+        user_dict["last_modified"] = utc_now()
         # Save existing user
         result = self._coll.replace_one(test_doc, user_dict, upsert=False)
         if result.modified_count == 0:
@@ -128,7 +131,7 @@ class ScimApiUserDB(ScimApiBaseDB):
 
         return None
 
-    def remove(self, user: ScimApiUser):
+    def remove(self, user: ScimApiUser) -> bool:
         return self.remove_document(user.user_id)
 
     def get_user_by_scim_id(self, scim_id: str) -> ScimApiUser | None:
@@ -157,7 +160,7 @@ class ScimApiUserDB(ScimApiBaseDB):
         profile: str,
         key: str,
         operator: str,
-        value: datetime,
+        value: str | int,
         limit: int | None = None,
         skip: int | None = None,
     ) -> tuple[list[ScimApiUser], int]:
@@ -174,7 +177,7 @@ class ScimApiUserDB(ScimApiBaseDB):
 class ScimEduidUserDB(UserDB[User]):
     """EduID userdb"""
 
-    def __init__(self, db_uri: str, db_name: str = "eduid_scimapi"):
+    def __init__(self, db_uri: str, db_name: str = "eduid_scimapi") -> None:
         super().__init__(db_uri, db_name)
 
     @classmethod

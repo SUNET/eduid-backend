@@ -20,7 +20,6 @@ here = os.path.dirname(__file__)
 key_path = os.path.join(here, "idp-public-snakeoil.key")
 cert_path = os.path.join(here, "idp-public-snakeoil.pem")
 
-# attrmaps_path = os.path.join(here, '../../../attributemaps')
 idp_metadata_path = os.path.join(here, "idp_metadata.xml")
 swamid_sp_metadata_path = os.path.join(here, "swamid_sp_metadata.xml")
 coco_sp_metadata_path = os.path.join(here, "coco_sp_metadata.xml")
@@ -89,7 +88,6 @@ CONFIG = {
     },
     "debug": True,
     "metadata": {"local": [swamid_sp_metadata_path, coco_sp_metadata_path, esi_coco_sp_metadata_path]},
-    # "attribute_map_dir": attrmaps_path,
     "key_file": key_path,
     "cert_file": cert_path,
     "xmlsec_binary": xmlsec_path,

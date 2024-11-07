@@ -17,7 +17,7 @@ __author__ = "eperez"
 
 
 class ResetPasswordApp(EduIDBaseApp):
-    def __init__(self, config: ResetPasswordConfig, **kwargs):
+    def __init__(self, config: ResetPasswordConfig, **kwargs: Any) -> None:
         super().__init__(config, **kwargs)
 
         self.conf = config

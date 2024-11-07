@@ -18,7 +18,7 @@ __author__ = "lundberg"
 
 
 class OIDCProofingApp(AuthnBaseApp):
-    def __init__(self, config: OIDCProofingConfig, **kwargs):
+    def __init__(self, config: OIDCProofingConfig, **kwargs: Any) -> None:
         super().__init__(config, **kwargs)
 
         self.conf = config

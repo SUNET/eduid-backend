@@ -6,15 +6,19 @@ from typing import Any, cast
 
 from eduid.common.config.parsers import load_config
 from eduid.common.testing_base import normalised_data
+from eduid.userdb.testing import SetupConfig
 from eduid.webapp.common.api.testing import CSRFTestClient, EduidAPITestCase
 from eduid.webapp.jsconfig.app import JSConfigApp, jsconfig_init_app
 from eduid.webapp.jsconfig.settings.common import JSConfigConfig
 
 
 class JSConfigTests(EduidAPITestCase[JSConfigApp]):
-    def setUp(self):
+    def setUp(self, config: SetupConfig | None = None) -> None:
         self.data_dir = str(PurePath(__file__).with_name("data"))
-        super().setUp(copy_user_to_private=False)
+        if config is None:
+            config = SetupConfig()
+        config.copy_user_to_private = False
+        super().setUp(config=config)
 
     def load_app(self, config: Mapping[str, Any]) -> JSConfigApp:
         """
@@ -73,14 +77,14 @@ class JSConfigTests(EduidAPITestCase[JSConfigApp]):
         config_data["payload"]["csrf_token"] = None  # csrf_token is None when config is first loaded
         assert normalised_data(self.app.conf.jsapps.dict()) == normalised_data(config_data["payload"])
 
-    def test_get_config(self):
+    def test_get_config(self) -> None:
         eppn = self.test_user_data["eduPersonPrincipalName"]
         with self.session_cookie(self.browser, eppn) as client:
             response = client.get("http://example.com/config")
             self.assertEqual(response.status_code, 200)
             self._validate_jsconfig(json.loads(response.data))
 
-    def test_get_dashboard_config(self):
+    def test_get_dashboard_config(self) -> None:
         eppn = self.test_user_data["eduPersonPrincipalName"]
         with self.session_cookie(self.browser, eppn, subdomain="dashboard") as client:
             response = client.get("http://dashboard.example.com/dashboard/config")
@@ -88,7 +92,7 @@ class JSConfigTests(EduidAPITestCase[JSConfigApp]):
             self.assertEqual(response.status_code, 200)
             self._validate_jsconfig(json.loads(response.data))
 
-    def test_get_signup_config(self):
+    def test_get_signup_config(self) -> None:
         eppn = self.test_user_data["eduPersonPrincipalName"]
         with self.session_cookie(self.browser, eppn, subdomain="signup") as client:
             response = client.get("http://signup.example.com/signup/config")
@@ -96,7 +100,7 @@ class JSConfigTests(EduidAPITestCase[JSConfigApp]):
             self.assertEqual(response.status_code, 200)
             self._validate_jsconfig(json.loads(response.data))
 
-    def test_get_login_config(self):
+    def test_get_login_config(self) -> None:
         eppn = self.test_user_data["eduPersonPrincipalName"]
         with self.session_cookie(self.browser, eppn, subdomain="login") as client:
             response = client.get("http://login.example.com/login/config")
@@ -104,7 +108,7 @@ class JSConfigTests(EduidAPITestCase[JSConfigApp]):
             self.assertEqual(response.status_code, 200)
             self._validate_jsconfig(json.loads(response.data))
 
-    def test_get_errors_config(self):
+    def test_get_errors_config(self) -> None:
         eppn = self.test_user_data["eduPersonPrincipalName"]
         with self.session_cookie(self.browser, eppn) as client:
             response = client.get("http://example.com/errors/config")
@@ -112,7 +116,7 @@ class JSConfigTests(EduidAPITestCase[JSConfigApp]):
             self.assertEqual(response.status_code, 200)
             self._validate_jsconfig(json.loads(response.data))
 
-    def test_jsapps_config_from_yaml(self):
+    def test_jsapps_config_from_yaml(self) -> None:
         os.environ["EDUID_CONFIG_YAML"] = f"{self.data_dir}/config.yaml"
 
         config = load_config(typ=JSConfigConfig, app_name="jsconfig", ns="webapp")

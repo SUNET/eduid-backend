@@ -5,20 +5,24 @@ from typing import Any
 
 from bson import ObjectId
 from fastapi import status
-from httpx import Headers
+from httpx import Headers, Response
 from jwcrypto import jwt
-from requests import Response
 
 from eduid.common.clients.gnap_client.base import GNAPBearerTokenMixin
 from eduid.userdb.fixtures.users import UserFixtures
 from eduid.userdb.meta import CleanerType
+from eduid.userdb.testing import SetupConfig
 from eduid.workers.amapi.testing import TestAMBase
 from eduid.workers.amapi.utils import AuthnBearerToken
 
 
 class TestUsers(TestAMBase, GNAPBearerTokenMixin):
-    def setUp(self, *args, **kwargs):
-        super().setUp(am_users=[UserFixtures().new_user_example])
+    def setUp(self, config: SetupConfig | None = None) -> None:
+        _am_users = [UserFixtures().new_user_example]
+        if config is None:
+            config = SetupConfig()
+        config.am_users = _am_users
+        super().setUp(config=config)
 
     def _make_url(self, endpoint: str | None = None) -> str:
         if endpoint is None:
@@ -56,7 +60,7 @@ class TestUsers(TestAMBase, GNAPBearerTokenMixin):
         bearer_token = f"Bearer {token.serialize()}"
         return Headers({"Authorization": bearer_token})
 
-    def test_update_name_allowed(self):
+    def test_update_name_allowed(self) -> None:
         req = {
             "reason": self.reason,
             "source": self.source,
@@ -88,7 +92,7 @@ class TestUsers(TestAMBase, GNAPBearerTokenMixin):
 
         self._check_audit_log(diff=expected_audit_diff)
 
-    def test_update_name_not_allowed(self):
+    def test_update_name_not_allowed(self) -> None:
         req = {
             "reason": self.reason,
             "source": self.source,
@@ -103,7 +107,7 @@ class TestUsers(TestAMBase, GNAPBearerTokenMixin):
         )
         assert got.status_code == status.HTTP_401_UNAUTHORIZED
 
-    def test_update_email_allowed(self):
+    def test_update_email_allowed(self) -> None:
         req = {
             "reason": self.reason,
             "source": self.source,
@@ -169,7 +173,7 @@ class TestUsers(TestAMBase, GNAPBearerTokenMixin):
 
         self._check_audit_log(diff=expected_audit_diff)
 
-    def test_update_email_not_allowed(self):
+    def test_update_email_not_allowed(self) -> None:
         req = {
             "reason": self.reason,
             "source": self.source,
@@ -193,7 +197,7 @@ class TestUsers(TestAMBase, GNAPBearerTokenMixin):
         )
         assert got.status_code == status.HTTP_401_UNAUTHORIZED
 
-    def test_update_language_allowed(self):
+    def test_update_language_allowed(self) -> None:
         req = {
             "reason": self.reason,
             "source": self.source,
@@ -220,7 +224,7 @@ class TestUsers(TestAMBase, GNAPBearerTokenMixin):
 
         self._check_audit_log(diff=expected_audit_diff)
 
-    def test_update_language_not_allowed(self):
+    def test_update_language_not_allowed(self) -> None:
         req = {
             "reason": self.reason,
             "source": self.source,
@@ -233,7 +237,7 @@ class TestUsers(TestAMBase, GNAPBearerTokenMixin):
         )
         assert got.status_code == status.HTTP_401_UNAUTHORIZED
 
-    def test_update_phone_allowed(self):
+    def test_update_phone_allowed(self) -> None:
         req = {
             "reason": self.reason,
             "source": self.source,
@@ -297,7 +301,7 @@ class TestUsers(TestAMBase, GNAPBearerTokenMixin):
 
         self._check_audit_log(diff=expected_audit_diff)
 
-    def test_update_phone_not_allowed(self):
+    def test_update_phone_not_allowed(self) -> None:
         req = {
             "reason": self.reason,
             "source": self.source,
@@ -322,7 +326,7 @@ class TestUsers(TestAMBase, GNAPBearerTokenMixin):
 
         assert got.status_code == status.HTTP_401_UNAUTHORIZED
 
-    def test_update_meta_cleaned_custom_ts(self):
+    def test_update_meta_cleaned_custom_ts(self) -> None:
         req = {
             "source": self.source,
             "reason": self.reason,
@@ -338,6 +342,8 @@ class TestUsers(TestAMBase, GNAPBearerTokenMixin):
         )
         assert got.status_code == status.HTTP_200_OK
         user_after = self.amdb.get_user_by_eppn(self.eppn)
+        assert user_before.meta.cleaned
+        assert user_after.meta.cleaned
         assert user_after.meta.cleaned[CleanerType.SKV] != user_before.meta.cleaned[CleanerType.SKV]
         expected_audit_diff = {
             "values_changed": {
@@ -350,7 +356,7 @@ class TestUsers(TestAMBase, GNAPBearerTokenMixin):
 
         self._check_audit_log(diff=expected_audit_diff)
 
-    def test_update_meta_cleaned_auto_ts(self):
+    def test_update_meta_cleaned_auto_ts(self) -> None:
         req = {
             "source": self.source,
             "reason": self.reason,
@@ -365,9 +371,11 @@ class TestUsers(TestAMBase, GNAPBearerTokenMixin):
         )
         assert got.status_code == status.HTTP_200_OK
         user_after = self.amdb.get_user_by_eppn(self.eppn)
-        assert user_after.meta.cleaned["skatteverket"] != user_before.meta.cleaned["skatteverket"]
+        assert user_before.meta.cleaned
+        assert user_after.meta.cleaned
+        assert user_after.meta.cleaned[CleanerType.SKV] != user_before.meta.cleaned[CleanerType.SKV]
 
-    def test_update_meta_cleaned_not_allowed(self):
+    def test_update_meta_cleaned_not_allowed(self) -> None:
         req = {
             "source": self.source,
             "reason": self.reason,
@@ -381,7 +389,7 @@ class TestUsers(TestAMBase, GNAPBearerTokenMixin):
         )
         assert got.status_code == status.HTTP_401_UNAUTHORIZED
 
-    def test_update_terminate_allowed(self):
+    def test_update_terminate_allowed(self) -> None:
         req = {
             "source": self.source,
             "reason": self.reason,
@@ -402,7 +410,7 @@ class TestUsers(TestAMBase, GNAPBearerTokenMixin):
 
         self._check_audit_log(diff=expected_audit_diff)
 
-    def test_update_terminate_not_allowed(self):
+    def test_update_terminate_not_allowed(self) -> None:
         req = {
             "source": self.source,
             "reason": self.reason,

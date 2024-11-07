@@ -165,7 +165,7 @@ def generate_suggested_password() -> str:
     return password
 
 
-def send_termination_mail(user):
+def send_termination_mail(user: User) -> None:
     """
     :param user: User object
     :type user: User
@@ -262,7 +262,6 @@ def get_approved_security_keys() -> dict[str, Any]:
             user_verification_methods=user_verification_methods,
             key_protection=metadata_entry.metadata_statement.key_protection,
             description=metadata_entry.metadata_statement.description,
-            # icon=metadata_entry.metadata_statement.icon,
         )
         parsed_entries.append(authenticator_info)
 

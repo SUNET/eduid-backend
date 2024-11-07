@@ -16,7 +16,7 @@ class AmRelay:
     This is the interface to the RPC task to save users to the central userdb.
     """
 
-    def __init__(self, config: AmConfigMixin):
+    def __init__(self, config: AmConfigMixin) -> None:
         """
         :param config: celery config
         :param relay_for: Name of application to relay for

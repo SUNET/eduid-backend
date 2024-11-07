@@ -1,12 +1,11 @@
 import logging
 from pathlib import PurePath
-from typing import Any
 
 from eduid.common.config.base import EduIDBaseAppConfig, MailConfigMixin, MsgConfigMixin
 from eduid.common.config.workers import MsgConfig
 from eduid.common.rpc.mail_relay import MailRelay
 from eduid.common.rpc.msg_relay import MsgRelay
-from eduid.userdb.testing import MongoTestCase
+from eduid.userdb.testing import MongoTestCase, SetupConfig
 from eduid.workers.msg.common import MsgCelerySingleton
 
 logger = logging.getLogger(__name__)
@@ -21,10 +20,12 @@ class MailTestConfig(EduIDBaseAppConfig, MailConfigMixin):
 
 
 class MsgMongoTestCase(MongoTestCase):
-    def setUp(self, init_msg=True) -> Any:  # type: ignore[override]
-        super().setUp()
+    def setUp(self, config: SetupConfig | None = None) -> None:
+        super().setUp(config=config)
         data_path = PurePath(__file__).with_name("tests") / "data"
-        if init_msg:
+        if config is None:
+            config = SetupConfig()
+        if config.init_msg:
             settings = {
                 "app_name": "testing",
                 "celery": {
@@ -49,4 +50,4 @@ class MsgMongoTestCase(MongoTestCase):
             logger.debug(f"Initialised message_relay with config:\n{self.msg_settings}")
 
             self.msg_relay = MsgRelay(self.msg_settings)
-            self.mail_relay = MailRelay(MailTestConfig(**settings, authn_service_url="foo"))
+            self.mail_relay = MailRelay(MailTestConfig(**settings))

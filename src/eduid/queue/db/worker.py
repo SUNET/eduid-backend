@@ -1,12 +1,13 @@
 import logging
 from collections.abc import Mapping
 from dataclasses import replace
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from bson import ObjectId
 from pymongo.results import UpdateResult
 
+from eduid.common.misc.timeutil import utc_now
 from eduid.queue.db import Payload, QueueItem
 from eduid.queue.db.client import QueuePayloadMixin
 from eduid.queue.exceptions import PayloadNotRegistered
@@ -18,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 
 class AsyncQueueDB(AsyncBaseDB, QueuePayloadMixin):
-    def __init__(self, db_uri: str, collection: str, db_name: str = "eduid_queue"):
+    def __init__(self, db_uri: str, collection: str, db_name: str = "eduid_queue") -> None:
         super().__init__(db_uri, collection=collection, db_name=db_name)
 
         self.handlers: dict[str, type[Payload]] = dict()
@@ -33,14 +34,14 @@ class AsyncQueueDB(AsyncBaseDB, QueuePayloadMixin):
         await instance.setup_indexes(indexes)
         return instance
 
-    def parse_queue_item(self, doc: Mapping, parse_payload: bool = True):
+    def parse_queue_item(self, doc: Mapping, parse_payload: bool = True) -> QueueItem:
         item = QueueItem.from_dict(doc)
         if parse_payload is False:
             # Return the item with the generic RawPayload
             return item
         return replace(item, payload=self._load_payload(item))
 
-    async def grab_item(self, item_id: str | ObjectId, worker_name: str, regrab=False) -> QueueItem | None:
+    async def grab_item(self, item_id: str | ObjectId, worker_name: str, regrab: bool = False) -> QueueItem | None:
         """
         :param item_id: document id
         :param worker_name: current workers name
@@ -74,7 +75,7 @@ class AsyncQueueDB(AsyncBaseDB, QueuePayloadMixin):
         # Update item with current worker name and ts
         mutable_doc = dict(doc)
         mutable_doc["processed_by"] = worker_name
-        mutable_doc["processed_ts"] = datetime.now(tz=timezone.utc)
+        mutable_doc["processed_ts"] = datetime.now(tz=UTC)
 
         try:
             # Try to parse the queue item to only grab items that are registered with the current db
@@ -102,11 +103,11 @@ class AsyncQueueDB(AsyncBaseDB, QueuePayloadMixin):
             spec["processed_ts"] = None
 
         if min_age_in_seconds is not None:
-            latest_created = datetime.utcnow() + timedelta(seconds=min_age_in_seconds)
+            latest_created = utc_now() + timedelta(seconds=min_age_in_seconds)
             spec["created_ts"] = {"$lt": latest_created}
 
         if expired is not None:
-            now = datetime.utcnow()
+            now = utc_now()
             if expired:
                 spec["expires_at"] = {"$lt": now}
             else:

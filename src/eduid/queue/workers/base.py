@@ -6,10 +6,10 @@ from abc import ABC
 from asyncio import CancelledError, Task
 from collections.abc import Sequence
 from dataclasses import replace
-from datetime import datetime
 from os import environ
 
 from eduid.common.logging import init_logging
+from eduid.common.misc.timeutil import utc_now
 from eduid.queue.config import QueueWorkerConfig
 from eduid.queue.db import QueueItem
 from eduid.queue.db.change_event import ChangeEvent, OperationType
@@ -21,13 +21,13 @@ __author__ = "lundberg"
 logger = logging.getLogger(__name__)
 
 
-def cancel_task(signame, task):
+def cancel_task(signame: str, task: Task) -> None:
     logger.info(f"got signal {signame}: exit")
     task.cancel()
 
 
 class QueueWorker(ABC):
-    def __init__(self, config: QueueWorkerConfig, handle_payloads: Sequence[type[Payload]]):
+    def __init__(self, config: QueueWorkerConfig, handle_payloads: Sequence[type[Payload]]) -> None:
         worker_name = environ.get("WORKER_NAME", None)
         if worker_name is None:
             raise RuntimeError("Environment variable WORKER_NAME needs to be set")
@@ -47,7 +47,7 @@ class QueueWorker(ABC):
         tasks.add(task)
         return tasks
 
-    async def run(self):
+    async def run(self) -> None:
         # Init db in the correct loop
         self.db = await AsyncQueueDB.create(db_uri=self.config.mongo_uri, collection=self.config.mongo_collection)
         # Register payloads to handle
@@ -64,7 +64,7 @@ class QueueWorker(ABC):
         logger.info(f"Running: {main_task.get_name()}")
         await main_task
 
-    async def run_subtasks(self):
+    async def run_subtasks(self) -> None:
         logger.info(f"Initiating event stream for: {self.db}")
         watch_collection_task = asyncio.create_task(
             self.watch_collection(), name=f"Watch collection {self.config.mongo_collection}"
@@ -82,7 +82,7 @@ class QueueWorker(ABC):
         """
         Removes the queue item from the database
         """
-        timeit = datetime.utcnow() - queue_item.created_ts
+        timeit = utc_now() - queue_item.created_ts
         await self.db.remove_item(queue_item.item_id)
         logger.info(f"QueueItem with id: {queue_item.item_id} successfully processed after {timeit.seconds}s.")
 

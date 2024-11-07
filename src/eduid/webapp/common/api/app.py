@@ -40,6 +40,7 @@ from eduid.webapp.common.session.eduid_session import SessionFactory
 
 if TYPE_CHECKING:
     from _typeshed.wsgi import WSGIApplication
+    from werkzeug.middleware.profiler import ProfilerMiddleware
 
 DEBUG = os.environ.get("EDUID_APP_DEBUG", False)
 if DEBUG:
@@ -61,7 +62,7 @@ class EduIDBaseApp(Flask, metaclass=ABCMeta):
         init_central_userdb: bool = True,
         handle_exceptions: bool = True,
         **kwargs: Any,
-    ):
+    ) -> None:
         """
         :param config: EduID Flask app configuration subclass
         :param init_central_userdb: Whether the app requires access to the central user db.
@@ -192,7 +193,7 @@ def init_status_views(app: EduIDBaseApp, config: EduIDBaseAppConfig) -> None:
     return None
 
 
-def init_app_profiling(app: WSGIApplication, config: EduIDBaseAppConfig):
+def init_app_profiling(app: WSGIApplication, config: EduIDBaseAppConfig) -> ProfilerMiddleware:
     """
     Setup profiling middleware for any app.
     """

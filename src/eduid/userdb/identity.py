@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from abc import ABC
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 from typing import Any, Literal
 
 from pydantic import Field
@@ -15,14 +15,14 @@ __author__ = "lundberg"
 logger = logging.getLogger(__name__)
 
 
-class IdentityType(str, Enum):
+class IdentityType(StrEnum):
     NIN = "nin"
     EIDAS = "eidas"
     SVIPE = "svipe"
     FREJA = "freja"
 
 
-class IdentityProofingMethod(str, Enum):
+class IdentityProofingMethod(StrEnum):
     # difference in capitalization/underscore/hyphen is intentional as to follow existing proofing log entries
     SVIPE_ID = "svipe_id"
     LETTER = "letter"
@@ -124,13 +124,13 @@ class ForeignIdentityElement(IdentityElement, ABC):
     date_of_birth: datetime
 
 
-class PridPersistence(str, Enum):
+class PridPersistence(StrEnum):
     A = "A"  # Persistence over time is expected to be comparable or better than a Swedish nin
     B = "B"  # Persistence over time is expected to be relatively stable, but lower than a Swedish nin
     C = "C"  # No expectations regarding persistence over time
 
 
-class EIDASLoa(str, Enum):
+class EIDASLoa(StrEnum):
     NF_LOW = "eidas-nf-low"
     NF_SUBSTANTIAL = "eidas-nf-sub"
     NF_HIGH = "eidas-nf-high"
@@ -188,7 +188,7 @@ class SvipeIdentity(ForeignIdentityElement):
         return self.svipe_id
 
 
-class FrejaRegistrationLevel(str, Enum):
+class FrejaRegistrationLevel(StrEnum):
     EXTENDED = "EXTENDED"
     PLUS = "PLUS"
 

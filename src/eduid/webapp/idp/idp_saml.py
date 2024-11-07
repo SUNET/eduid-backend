@@ -80,7 +80,7 @@ class IdP_SAMLRequest:
         binding: str,
         idp: saml2.server.Server,
         debug: bool = False,
-    ):
+    ) -> None:
         self._request = request
         self._binding = binding
         self._idp = idp
@@ -329,7 +329,7 @@ class IdP_SAMLRequest:
         info = (samlp.STATUS_AUTHN_FAILED, "Authentication context class not supported")
         return self.make_error_response(info, resp_args)
 
-    def make_error_response(self, info: tuple[str, str], resp_args: ResponseArgs):
+    def make_error_response(self, info: tuple[str, str], resp_args: ResponseArgs) -> SamlResponse:
         saml_response = self._idp.create_error_response(info=info, sign=True, **resp_args)
         logger.debug(f"Cancel SAML response:\n{saml_response}")
         if not isinstance(saml_response, str):
@@ -352,10 +352,10 @@ class IdP_SAMLRequest:
         )
         # _args is one of these pysaml2 dicts with HTML data, e.g.:
         #  {'headers': [('Content-type', 'text/html')],
-        #   'data': '...<body onload="document.forms[0].submit()">,
-        #   'url': 'https://sp.example.edu/saml2/acs/',
+        #   'data': '...<body onload="document.forms[0].submit()">, # noqa: ERA001
+        #   'url': 'https://sp.example.edu/saml2/acs/',             # noqa: ERA001
         #   'method': 'POST'
-        #  }
+        #  }                                                        # noqa: ERA001
         return HttpArgs.from_pysaml2_dict(_args)
 
 

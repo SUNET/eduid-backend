@@ -6,6 +6,7 @@ from typing import Any
 
 from fastapi import Response
 
+from eduid.common.misc.timeutil import utc_now
 from eduid.workers.amapi.context_request import ContextRequest
 
 __author__ = "masv"
@@ -25,7 +26,7 @@ class FailCountItem:
     exit_at: datetime | None = None
     count: int = 0
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"(first_failure: {self.first_failure.isoformat()}, fail count: {self.count})"
 
 
@@ -35,7 +36,7 @@ FAILURE_INFO: dict[str, FailCountItem] = dict()
 
 def log_failure_info(ctx: ContextRequest, key: str, msg: str, exc: Exception | None = None) -> None:
     if key not in FAILURE_INFO:
-        FAILURE_INFO[key] = FailCountItem(first_failure=datetime.utcnow())
+        FAILURE_INFO[key] = FailCountItem(first_failure=utc_now())
     FAILURE_INFO[key].count += 1
     ctx.app.context.logger.warning(f"{msg} {FAILURE_INFO[key]}: {exc}")
 
@@ -47,7 +48,7 @@ def reset_failure_info(ctx: ContextRequest, key: str) -> None:
     ctx.app.context.logger.info(f"Check {key} back to normal. Resetting info {info}")
 
 
-def check_restart(key, restart: int, terminate: int) -> bool:
+def check_restart(key: str, restart: int, terminate: int) -> bool:
     res = False  # default to no restart
     info = FAILURE_INFO.get(key)
     if not info:
@@ -56,11 +57,11 @@ def check_restart(key, restart: int, terminate: int) -> bool:
         info = replace(info, restart_at=info.first_failure + timedelta(seconds=restart))
     if terminate and not info.exit_at:
         info = replace(info, exit_at=info.first_failure + timedelta(seconds=terminate))
-    if info.exit_at and datetime.utcnow() >= info.exit_at:
+    if info.exit_at and utc_now() >= info.exit_at:
         # Exit application and rely on something else restarting it
         sys.exit(1)
-    if info.restart_at and datetime.utcnow() >= info.restart_at:
-        info = replace(info, restart_at=datetime.utcnow() + timedelta(seconds=restart))
+    if info.restart_at and utc_now() >= info.restart_at:
+        info = replace(info, restart_at=utc_now() + timedelta(seconds=restart))
         # Try to restart/reinitialize the failing functionality
         res = True
     FAILURE_INFO[key] = info
@@ -71,12 +72,12 @@ def get_cached_response(ctx: ContextRequest, resp: Response, key: str) -> Mappin
     cache_for_seconds = ctx.app.config.status_cache_seconds
     resp.headers["Cache-Control"] = f"public,max-age={cache_for_seconds}"
 
-    now = datetime.utcnow()
+    now = utc_now()
     if SIMPLE_CACHE.get(key) is not None:
         if now < SIMPLE_CACHE[key].expire_time:
             if ctx.app.context.config.debug:
                 ctx.app.context.logger.debug(
-                    f"Returned cached response for {key}" f" {now} < {SIMPLE_CACHE[key].expire_time}"
+                    f"Returned cached response for {key} {now} < {SIMPLE_CACHE[key].expire_time}"
                 )
             resp.headers["Expires"] = SIMPLE_CACHE[key].expire_time.strftime("%a, %d %b %Y %H:%M:%S UTC")
             return SIMPLE_CACHE[key].data
@@ -85,7 +86,7 @@ def get_cached_response(ctx: ContextRequest, resp: Response, key: str) -> Mappin
 
 def set_cached_response(ctx: ContextRequest, resp: Response, key: str, data: Mapping) -> None:
     cache_for_seconds = ctx.app.config.status_cache_seconds
-    now = datetime.utcnow()
+    now = utc_now()
     expires = now + timedelta(seconds=cache_for_seconds)
     resp.headers["Expires"] = expires.strftime("%a, %d %b %Y %H:%M:%S UTC")
     SIMPLE_CACHE[key] = SimpleCacheItem(expire_time=expires, data=data)
@@ -93,7 +94,7 @@ def set_cached_response(ctx: ContextRequest, resp: Response, key: str, data: Map
         ctx.app.context.logger.debug(f"Cached response for {key} until {expires}")
 
 
-def check_mongo(ctx: ContextRequest):
+def check_mongo(ctx: ContextRequest) -> bool | None:
     try:
         ctx.app.context.db.is_healthy()
         reset_failure_info(ctx, "_check_mongo")

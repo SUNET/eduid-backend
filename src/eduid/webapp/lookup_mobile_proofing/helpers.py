@@ -1,13 +1,13 @@
 from datetime import datetime
 from enum import unique
 
+from eduid.common.misc.timeutil import utc_now
 from eduid.common.rpc.exceptions import LookupMobileTaskFailed
 from eduid.common.rpc.msg_relay import FullPostalAddress
 from eduid.userdb import User
 from eduid.userdb.logs import TeleAdressProofing
 from eduid.userdb.proofing.element import NinProofingElement
 from eduid.userdb.proofing.state import NinProofingState
-from eduid.userdb.util import utc_now
 from eduid.webapp.common.api.helpers import check_magic_cookie, get_proofing_log_navet_data
 from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.lookup_mobile_proofing.app import current_mobilep_app as current_app

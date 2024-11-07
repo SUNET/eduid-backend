@@ -4,7 +4,7 @@ from pymongo.errors import DuplicateKeyError
 
 from eduid.userdb.fixtures.users import UserFixtures
 from eduid.userdb.group_management import GroupInviteState, GroupManagementInviteStateDB, GroupRole
-from eduid.userdb.testing import MongoTestCase
+from eduid.userdb.testing import MongoTestCase, SetupConfig
 from eduid.userdb.user import User
 
 __author__ = "lundberg"
@@ -13,12 +13,12 @@ __author__ = "lundberg"
 class TestResetGroupInviteStateDB(MongoTestCase):
     user: User
 
-    def setUp(self, **kwargs):
-        super().setUp()
+    def setUp(self, config: SetupConfig | None = None) -> None:
+        super().setUp(config=config)
         self.user = UserFixtures().mocked_user_standard
         self.invite_state_db = GroupManagementInviteStateDB(self.tmp_db.uri)
 
-    def test_invite_state(self):
+    def test_invite_state(self) -> None:
         # Member
         group_scim_id = str(uuid4())
         invite_state = GroupInviteState(
@@ -31,6 +31,7 @@ class TestResetGroupInviteStateDB(MongoTestCase):
         invite = self.invite_state_db.get_state(
             group_scim_id=group_scim_id, email_address="johnsmith@example.com", role=GroupRole.MEMBER
         )
+        assert invite
         self.assertEqual(group_scim_id, invite.group_scim_id)
         self.assertEqual("johnsmith@example.com", invite.email_address)
         self.assertEqual(GroupRole.MEMBER, invite.role)
@@ -47,11 +48,12 @@ class TestResetGroupInviteStateDB(MongoTestCase):
         invite = self.invite_state_db.get_state(
             group_scim_id=group_scim_id, email_address="johnsmith@example.com", role=GroupRole.OWNER
         )
+        assert invite
         self.assertEqual(group_scim_id, invite.group_scim_id)
         self.assertEqual("johnsmith@example.com", invite.email_address)
         self.assertEqual(GroupRole.OWNER, invite.role)
 
-    def test_save_duplicate(self):
+    def test_save_duplicate(self) -> None:
         group_scim_id = str(uuid4())
         invite_state1 = GroupInviteState(
             group_scim_id=group_scim_id,

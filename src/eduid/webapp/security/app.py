@@ -11,13 +11,13 @@ from eduid.queue.db.message import MessageDB
 from eduid.userdb.authninfo import AuthnInfoDB
 from eduid.userdb.logs import ProofingLog
 from eduid.userdb.logs.db import FidoMetadataLog
-from eduid.userdb.security import PasswordResetStateDB, SecurityUserDB
+from eduid.userdb.security import SecurityUserDB
 from eduid.webapp.common.authn.middleware import AuthnBaseApp
 from eduid.webapp.security.settings.common import SecurityConfig
 
 
 class SecurityApp(AuthnBaseApp):
-    def __init__(self, config: SecurityConfig, **kwargs):
+    def __init__(self, config: SecurityConfig, **kwargs: Any) -> None:
         super().__init__(config, **kwargs)
 
         self.conf = config
@@ -29,7 +29,6 @@ class SecurityApp(AuthnBaseApp):
 
         self.private_userdb = SecurityUserDB(config.mongo_uri)
         self.authninfo_db = AuthnInfoDB(config.mongo_uri)
-        self.password_reset_state_db = PasswordResetStateDB(config.mongo_uri)
         self.proofing_log = ProofingLog(config.mongo_uri)
         self.fido_metadata_log = FidoMetadataLog(config.mongo_uri)
         self.messagedb = MessageDB(config.mongo_uri)

@@ -32,7 +32,7 @@ class TestMAccApi(MAccApiTestCase):
     def _is_presentable_format(self, password: str) -> bool:
         return len(password) == 14 and password[4] == " " and password[9] == " "
 
-    def test_create_user(self):
+    def test_create_user(self) -> None:
         domain = "eduid.se"
         claims = {
             "saml_eppn": "test@eduid.se",
@@ -60,7 +60,7 @@ class TestMAccApi(MAccApiTestCase):
         assert payload["user"]["eppn"] is not None
         assert payload["user"]["password"] is not None
 
-    def test_create_multiple_users(self):
+    def test_create_multiple_users(self) -> None:
         claims = {
             "saml_eppn": "test@eduid.se",
             "version": 1,
@@ -95,7 +95,7 @@ class TestMAccApi(MAccApiTestCase):
         assert payload["status"] == "success"
         assert len(payload["users"]) == 2
 
-    def test_remove_user(self):
+    def test_remove_user(self) -> None:
         token = self._make_bearer_token(claims=self.claims)
 
         headers = self.headers
@@ -117,7 +117,7 @@ class TestMAccApi(MAccApiTestCase):
         assert payload["user"]["given_name"] == self.user1["given_name"]
         assert payload["user"]["surname"] == self.user1["surname"]
 
-    def test_reset_password(self):
+    def test_reset_password(self) -> None:
         token = self._make_bearer_token(claims=self.claims)
 
         headers = self.headers
@@ -145,7 +145,7 @@ class TestMAccApi(MAccApiTestCase):
         new_password = payload["user"]["password"]
         assert self._is_presentable_format(new_password)
 
-    def test_remove_error(self):
+    def test_remove_error(self) -> None:
         token = self._make_bearer_token(claims=self.claims)
 
         headers = self.headers
@@ -154,7 +154,7 @@ class TestMAccApi(MAccApiTestCase):
         response = self.client.post(url="/Users/remove", json={"eppn": "made_up"}, headers=headers)
         assert response.status_code == 422
 
-    def test_reset_error(self):
+    def test_reset_error(self) -> None:
         token = self._make_bearer_token(claims=self.claims)
 
         headers = self.headers

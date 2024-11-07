@@ -1,26 +1,31 @@
+from collections.abc import Callable
 from inspect import isclass
+from typing import Any
 
+from pymongo.synchronous.collection import Collection
+
+from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.db import MongoDB
 
 # TODO: Refactor but keep transaction audit document structure
-from eduid.userdb.util import utc_now
+from eduid.userdb.db.base import TUserDbDocument
 
 
 class TransactionAudit:
     enabled = False
 
-    def __init__(self, db_uri, db_name="eduid_queue", collection_name="transaction_audit"):
-        self._conn = None
-        self.db_uri = db_uri
-        self.db_name = db_name
-        self.collection_name = collection_name
-        self.collection = None
+    def __init__(self, db_uri: str, db_name: str = "eduid_queue", collection_name: str = "transaction_audit") -> None:
+        self._conn: MongoDB | None = None
+        self.db_uri: str = db_uri
+        self.db_name: str = db_name
+        self.collection_name: str = collection_name
+        self.collection: Collection[TUserDbDocument] | None = None
 
-    def __call__(self, f):
+    def __call__(self, f: Callable[..., Any]) -> Callable[..., Any]:
         if not self.enabled:
             return f
 
-        def audit(*args, **kwargs):
+        def audit(*args: Any, **kwargs: Any) -> Any:  # noqa: ANN401
             ret = f(*args, **kwargs)
             if not isclass(ret) and self.collection:  # we can't save class objects in mongodb
                 date = utc_now()
@@ -39,15 +44,15 @@ class TransactionAudit:
         return audit
 
     @classmethod
-    def enable(cls):
+    def enable(cls) -> None:
         cls.enabled = True
 
     @classmethod
-    def disable(cls):
+    def disable(cls) -> None:
         cls.enabled = False
 
     @staticmethod
-    def _filter(func, data, *args, **kwargs):
+    def _filter(func: str, data: object, *args: Any, **kwargs: Any) -> Any:  # noqa: ANN401
         if data is False:
             return data
         if func == "_get_navet_data":

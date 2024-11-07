@@ -23,7 +23,7 @@ class BaseDBTestCase(unittest.TestCase):
     mongo_uri: str
 
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         cls.mongodb_instance = MongoTemporaryInstance.get_instance()
         cls.mongo_uri = cls.mongodb_instance.uri
 

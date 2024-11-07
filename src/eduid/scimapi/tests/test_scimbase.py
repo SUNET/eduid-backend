@@ -1,7 +1,7 @@
-from datetime import datetime
 from unittest import TestCase
 from uuid import uuid4
 
+from eduid.common.misc.timeutil import utc_now
 from eduid.common.models.scim_base import BaseResponse, Meta, SCIMResourceType, SCIMSchema, SubResource, WeakVersion
 from eduid.common.testing_base import normalised_data
 
@@ -13,8 +13,8 @@ class TestScimBase(TestCase):
         meta = Meta(
             location="http://example.org/group/some-id",
             resource_type=SCIMResourceType.GROUP,
-            created=datetime.utcnow(),
-            last_modified=datetime.utcnow(),
+            created=utc_now(),
+            last_modified=utc_now(),
             version=WeakVersion(),
         )
         meta_dump = meta.json()
@@ -25,8 +25,8 @@ class TestScimBase(TestCase):
         meta = Meta(
             location="http://example.org/group/some-id",
             resource_type=SCIMResourceType.GROUP,
-            created=datetime.utcnow(),
-            last_modified=datetime.utcnow(),
+            created=utc_now(),
+            last_modified=utc_now(),
             version=WeakVersion(),
         )
         base = BaseResponse(id=uuid4(), schemas=[SCIMSchema.CORE_20_USER, SCIMSchema.CORE_20_GROUP], meta=meta)
@@ -34,7 +34,7 @@ class TestScimBase(TestCase):
         loaded_base = BaseResponse.parse_raw(base_dump)
         assert normalised_data(base.dict()) == normalised_data(loaded_base.dict())
 
-    def test_hashable_subresources(self):
+    def test_hashable_subresources(self) -> None:
         a = {
             "$ref": "http://localhost:8000/Users/78130160-b63d-4303-99cd-73767e2a999f",
             "display": "Test User 1 (updated)",

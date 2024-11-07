@@ -1,5 +1,5 @@
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 
 from flask import redirect
 from werkzeug.wrappers import Response as WerkzeugResponse
@@ -7,7 +7,7 @@ from werkzeug.wrappers import Response as WerkzeugResponse
 from eduid.common.misc.timeutil import utc_now
 
 
-class EduidErrorsContext(str, Enum):
+class EduidErrorsContext(StrEnum):
     SAML_RESPONSE_FAIL = "saml_response_fail"
     SAML_REQUEST_MISSING_IDP = "saml_request_missing_idp"
     SAML_MISSING_ATTRIBUTE = "saml_missing_attribute"

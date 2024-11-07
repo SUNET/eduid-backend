@@ -8,7 +8,7 @@ class CleanerUser(User):
 
 
 class CleanerUserDB(UserDB[CleanerUser]):
-    def __init__(self, db_uri: str, db_name: str = "eduid_user_cleaner", collection: str = "profiles"):
+    def __init__(self, db_uri: str, db_name: str = "eduid_user_cleaner", collection: str = "profiles") -> None:
         super().__init__(db_uri, db_name, collection)
 
     @classmethod

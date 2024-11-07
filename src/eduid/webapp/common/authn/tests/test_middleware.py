@@ -10,7 +10,7 @@ from eduid.webapp.common.authn.middleware import AuthnBaseApp
 
 
 class AuthnTestApp(AuthnBaseApp):
-    def __init__(self, name: str, test_config: Mapping[str, Any], **kwargs):
+    def __init__(self, name: str, test_config: Mapping[str, Any], **kwargs: Any) -> None:
         # This should be an AuthnConfig instance, but an EduIDBaseAppConfig instance suffices for these
         # tests and we don't want eduid.webapp.common to depend on eduid.webapp.
         self.conf = load_config(typ=EduIDBaseAppConfig, app_name=name, ns="webapp", test_config=test_config)
@@ -18,14 +18,14 @@ class AuthnTestApp(AuthnBaseApp):
 
 
 class AuthnTests(EduidAPITestCase):
-    def load_app(self, config):
+    def load_app(self, config: dict[str, Any]) -> AuthnTestApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
         return AuthnTestApp("testing", config)
 
-    def update_config(self, config):
+    def update_config(self, config: dict[str, Any]) -> dict[str, Any]:
         config.update(
             {
                 "available_languages": {"en": "English", "sv": "Svenska"},
@@ -37,9 +37,9 @@ class AuthnTests(EduidAPITestCase):
         )
         return config
 
-    def test_get_view(self):
+    def test_get_view(self) -> None:
         response = self.browser.get("/some/path")
-        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.status_code, 401)
 
         with self.session_cookie(self.browser, "hubba-bubba") as client:
             with self.assertRaises(NotFound):
@@ -47,14 +47,14 @@ class AuthnTests(EduidAPITestCase):
 
 
 class UnAuthnTests(EduidAPITestCase):
-    def load_app(self, config):
+    def load_app(self, config: dict[str, Any]) -> AuthnTestApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
         return AuthnTestApp("testing", config)
 
-    def update_config(self, config):
+    def update_config(self, config: dict[str, Any]) -> dict[str, Any]:
         config.update(
             {
                 "available_languages": {"en": "English", "sv": "Svenska"},
@@ -65,6 +65,6 @@ class UnAuthnTests(EduidAPITestCase):
         )
         return config
 
-    def test_get_view(self):
+    def test_get_view(self) -> None:
         response = self.browser.get("/status/healthy")
         self.assertEqual(response.status_code, 200)

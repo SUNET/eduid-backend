@@ -8,6 +8,8 @@ See the file LICENSE.txt for full license statement.
 __author__ = "eperez"
 
 
+from typing import Any
+
 from bson import ObjectId
 from celery.utils.log import get_task_logger
 
@@ -54,7 +56,7 @@ class eduid_signup(AttributeFetcher):
     ]
     whitelist_unset_attrs: list[str] = []
 
-    def fetch_attrs(self, user_id: ObjectId):
+    def fetch_attrs(self, user_id: ObjectId) -> dict[str, Any]:
         attributes = AttributeFetcher.fetch_attrs(self, user_id)
         if "$set" not in attributes or "passwords" not in attributes["$set"]:
             logger.info(f"Not syncing signup user with attrs: {attributes}")

@@ -1,13 +1,14 @@
 import json
 import logging
 import unittest
-from collections.abc import Mapping
+from collections.abc import Mapping, MutableMapping
 from copy import copy
 from dataclasses import asdict
 from datetime import datetime, timedelta
 from typing import Any
 
 from bson import ObjectId
+from httpx import Response
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.models.scim_base import Email, Meta, Name, PhoneNumber, SCIMResourceType, SCIMSchema
@@ -55,7 +56,7 @@ class TestScimInvite(unittest.TestCase):
             "profiles": {"student": {"attributes": {"displayName": "Test"}}},
         }
 
-    def test_load_invite(self):
+    def test_load_invite(self) -> None:
         invite = ScimApiInvite.from_dict(self.invite_doc1)
         # test to-dict+from-dict consistency
         invite2 = ScimApiInvite.from_dict(invite.to_dict())
@@ -63,8 +64,9 @@ class TestScimInvite(unittest.TestCase):
         assert asdict(invite) == asdict(invite2)
         assert invite.to_dict() == invite2.to_dict()
 
-    def test_to_sciminvite_response(self):
+    def test_to_sciminvite_response(self) -> None:
         db_invite = ScimApiInvite.from_dict(self.invite_doc1)
+        assert db_invite
         meta = Meta(
             location=f"http://example.org/Invites/{db_invite.scim_id}",
             resource_type=SCIMResourceType.INVITE,
@@ -73,6 +75,8 @@ class TestScimInvite(unittest.TestCase):
             version=db_invite.version,
         )
 
+        assert db_invite.emails[0].primary is not None
+        assert db_invite.emails[1].primary is not None
         signup_invite = SignupInvite(
             invite_type=InviteType.SCIM,
             invite_reference=SCIMReference(data_owner="test_data_owner", scim_id=db_invite.scim_id),
@@ -234,15 +238,17 @@ class TestInviteResource(ScimApiTestCase):
             mail_addresses=mails_addresses,
             phone_numbers=phone_numbers,
             finish_url=invite_data.get("finish_url"),
-            expires_at=datetime.utcnow() + timedelta(seconds=self.context.config.invite_expire),
+            expires_at=utc_now() + timedelta(seconds=self.context.config.invite_expire),
         )
         self.signup_invitedb.save(signup_invite, is_in_database=False)
         return db_invite
 
-    def _assertUpdateSuccess(self, req: Mapping, response, invite: ScimApiInvite, signup_invite: SignupInvite):
+    def _assertUpdateSuccess(
+        self, req: Mapping, response: Response, invite: ScimApiInvite, signup_invite: SignupInvite
+    ) -> None:
         """Function to validate successful responses to SCIM calls that update an invite according to a request."""
         if response.json().get("schemas") == [SCIMSchema.ERROR.value]:
-            self.fail(f"Got SCIM error parsed_response ({response.status}):\n{response.json}")
+            self.fail(f"Got SCIM error parsed_response ({response.status_code}):\n{response.json}")
 
         expected_schemas = req.get("schemas", [SCIMSchema.NUTID_INVITE_V1.value, SCIMSchema.NUTID_USER_V1.value])
 
@@ -288,7 +294,7 @@ class TestInviteResource(ScimApiTestCase):
         expected_invite: ScimApiInvite | None = None,
         expected_num_resources: int | None = None,
         expected_total_results: int | None = None,
-    ):
+    ) -> dict:
         logger.info(f"Searching for group(s) using filter {repr(filter)}")
         req = {
             "schemas": [SCIMSchema.API_MESSAGES_20_SEARCH_REQUEST.value],
@@ -341,15 +347,7 @@ class TestInviteResource(ScimApiTestCase):
         resources = response.json().get("Resources")
         return resources
 
-    # def test_get_invites(self):
-    #    for i in range(9):
-    #        self.add_user(identifier=str(uuid4()), external_id=f'test-id-{i}', profiles={'test': self.test_profile})
-    #    parsed_response = self.client.get(url=f'/Users', headers=self.headers)
-    #    self.assertEqual([SCIMSchema.API_MESSAGES_20_LIST_RESPONSE.value], parsed_response.json().get('schemas'))
-    #    resources = parsed_response.json().get('Resources')
-    #    self.assertEqual(self.userdb.db_count(), len(resources))
-
-    def test_create_invite(self):
+    def test_create_invite(self) -> None:
         req = {
             "schemas": [
                 SCIMSchema.NUTID_INVITE_CORE_V1.value,
@@ -387,20 +385,24 @@ class TestInviteResource(ScimApiTestCase):
 
         response = self.client.post(url="/Invites/", json=req, headers=self.headers)
         self._assertResponse(response, status_code=201)
+        assert self.invitedb
         db_invite = self.invitedb.get_invite_by_scim_id(response.json().get("id"))
+        assert db_invite
         reference = SCIMReference(data_owner=self.data_owner, scim_id=db_invite.scim_id)
         signup_invite = self.signup_invitedb.get_invite_by_reference(reference)
+        assert signup_invite
         self._assertUpdateSuccess(req, response, db_invite, signup_invite)
         self.assertEqual(1, self.messagedb.db_count())
 
         # check that the action resulted in an event in the database
+        assert self.eventdb
         events = self.eventdb.get_events_by_resource(SCIMResourceType.INVITE, db_invite.scim_id)
         assert len(events) == 1
         event = events[0]
         assert event.resource.external_id == req["externalId"]
         assert event.data["status"] == EventStatus.CREATED.value
 
-    def test_create_invite_missing_mandatory_attributes(self):
+    def test_create_invite_missing_mandatory_attributes(self) -> None:
         req = {
             "schemas": [
                 SCIMSchema.NUTID_INVITE_CORE_V1.value,
@@ -413,7 +415,7 @@ class TestInviteResource(ScimApiTestCase):
             },
         }
 
-        req1 = copy(req)
+        req1: MutableMapping[str, Any] = copy(req)
         del req1[SCIMSchema.NUTID_INVITE_V1.value]["inviterName"]
         response = self.client.post(url="/Invites/", json=req1, headers=self.headers)
         self._assertScimError(
@@ -430,7 +432,7 @@ class TestInviteResource(ScimApiTestCase):
             exclude_keys=["input", "url"],
         )
 
-        req2 = copy(req)
+        req2: MutableMapping[str, Any] = copy(req)
         del req2[SCIMSchema.NUTID_INVITE_V1.value]["sendEmail"]
         response = self.client.post(url="/Invites/", json=req2, headers=self.headers)
         self._assertScimError(
@@ -447,7 +449,7 @@ class TestInviteResource(ScimApiTestCase):
             exclude_keys=["input", "url"],
         )
 
-    def test_create_invite_do_not_send_email(self):
+    def test_create_invite_do_not_send_email(self) -> None:
         req = {
             "schemas": [
                 SCIMSchema.NUTID_INVITE_CORE_V1.value,
@@ -484,13 +486,16 @@ class TestInviteResource(ScimApiTestCase):
 
         response = self.client.post(url="/Invites/", json=req, headers=self.headers)
         self._assertResponse(response, status_code=201)
+        assert self.invitedb
         db_invite = self.invitedb.get_invite_by_scim_id(response.json().get("id"))
+        assert db_invite
         reference = SCIMReference(data_owner=self.data_owner, scim_id=db_invite.scim_id)
         signup_invite = self.signup_invitedb.get_invite_by_reference(reference)
+        assert signup_invite
         self._assertUpdateSuccess(req, response, db_invite, signup_invite)
         self.assertEqual(0, self.messagedb.db_count())
 
-    def test_get_invite(self):
+    def test_get_invite(self) -> None:
         db_invite = self.add_invite()
         response = self.client.get(url=f"/Invites/{db_invite.scim_id}", headers=self.headers)
         expected_schemas = [
@@ -500,7 +505,7 @@ class TestInviteResource(ScimApiTestCase):
         ]
         self._assertScimResponseProperties(response, resource=db_invite, expected_schemas=expected_schemas)
 
-    def test_update_invite(self):
+    def test_update_invite(self) -> None:
         # TODO: For now we only support updating completed
         db_invite = self.add_invite()
         invite = self.client.get(url=f"/Invites/{db_invite.scim_id}", headers=self.headers)
@@ -513,7 +518,9 @@ class TestInviteResource(ScimApiTestCase):
         response = self.client.put(url=f"/Invites/{db_invite.scim_id}", json=update_req, headers=self.headers)
         assert response.status_code == 200
 
+        assert self.invitedb
         updated_invite = self.invitedb.get_invite_by_scim_id(str(db_invite.scim_id))
+        assert updated_invite
         assert updated_invite.completed is not None
 
         expected_schemas = [
@@ -523,21 +530,23 @@ class TestInviteResource(ScimApiTestCase):
         ]
         self._assertScimResponseProperties(response, resource=db_invite, expected_schemas=expected_schemas)
 
-    def test_delete_invite(self):
+    def test_delete_invite(self) -> None:
         db_invite = self.add_invite()
         self.headers["IF-MATCH"] = make_etag(db_invite.version)
         self.client.delete(url=f"/Invites/{db_invite.scim_id}", headers=self.headers)
         reference = SCIMReference(data_owner=self.data_owner, scim_id=db_invite.scim_id)
+        assert self.invitedb
         self.assertIsNone(self.invitedb.get_invite_by_scim_id(str(db_invite.scim_id)))
         self.assertIsNone(self.signup_invitedb.get_invite_by_reference(reference))
 
         # check that the action resulted in an event in the database
+        assert self.eventdb
         events = self.eventdb.get_events_by_resource(SCIMResourceType.INVITE, db_invite.scim_id)
         assert len(events) == 1
         event = events[0]
         assert event.data["status"] == EventStatus.DELETED.value
 
-    def test_search_user_last_modified(self):
+    def test_search_user_last_modified(self) -> None:
         db_invite1 = self.add_invite()
         db_invite2 = self.add_invite(data={"invite_code": "another_invite_code"}, update=True)
         self.assertGreater(db_invite2.last_modified, db_invite1.last_modified)

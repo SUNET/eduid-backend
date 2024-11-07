@@ -26,7 +26,7 @@ from eduid.userdb.element import ElementKey
 from eduid.userdb.fixtures.users import UserFixtures
 from eduid.userdb.logs.db import ProofingLog
 from eduid.userdb.proofing.state import NinProofingState
-from eduid.userdb.testing import MongoTemporaryInstance
+from eduid.userdb.testing import MongoTemporaryInstance, SetupConfig
 from eduid.userdb.userdb import UserDB
 from eduid.webapp.common.api.app import EduIDBaseApp
 from eduid.webapp.common.api.messages import AuthnStatusMsg, TranslatableMsg
@@ -59,7 +59,6 @@ TEST_CONFIG = {
     "json_sort_keys": True,
     "jsonify_prettyprint_regular": True,
     "mongo_uri": "mongodb://localhost",
-    "authn_service_url": "http://test.localhost/",
     "eduid_site_name": "eduID TESTING",
     "celery": {
         "broker_transport": "memory",
@@ -98,16 +97,12 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
     app: TTestAppVar
     browser: CSRFTestClient
 
-    def setUp(  # type: ignore[override]
-        self,
-        *args: list[Any],
-        users: list[str] | None = None,
-        copy_user_to_private: bool = False,
-        **kwargs: dict[str, Any],
-    ) -> None:
+    def setUp(self, config: SetupConfig | None = None) -> None:
+        if config is None:
+            config = SetupConfig()
         # test users
-        if users is None:
-            users = ["hubba-bubba"]
+        if config.users is None:
+            config.users = ["hubba-bubba"]
 
         _users = UserFixtures()
         _standard_test_users = {
@@ -117,14 +112,15 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
         }
 
         # Make a list of User object to be saved to the new temporary mongodb instance
-        am_users = [_standard_test_users[x] for x in users]
+        am_users = [_standard_test_users[x] for x in config.users]
 
-        super().setUp(am_users=am_users, *args, **kwargs)
+        config.am_users = am_users
+        super().setUp(config=config)
 
         self.user: User | None = None
 
         # Load the user from the database so that it can be saved there again in tests
-        _test_user = self.amdb.get_user_by_eppn(users[0])
+        _test_user = self.amdb.get_user_by_eppn(config.users[0])
         # Initialize some convenience variables on self based on the first user in `users'
         self.test_user = _test_user
         self.test_user_data = self.test_user.to_dict()
@@ -133,8 +129,8 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
         # Set up Redis for shared sessions
         self.redis_instance = RedisTemporaryInstance.get_instance()
         # settings
-        config = deepcopy(TEST_CONFIG)
-        self.settings = self.update_config(config)
+        test_config = deepcopy(TEST_CONFIG)
+        self.settings: dict[str, Any] = self.update_config(test_config)
         self.settings["redis_config"] = RedisConfig(host="localhost", port=self.redis_instance.port)
         assert isinstance(self.tmp_db, MongoTemporaryInstance)  # please mypy
         self.settings["mongo_uri"] = self.tmp_db.uri
@@ -148,14 +144,14 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
         self.content_type_json = "application/json"
         self.test_domain = "test.localhost"
 
-        if copy_user_to_private:
+        if config.copy_user_to_private:
             data = self.test_user.to_dict()
             _private_userdb = getattr(self.app, "private_userdb")
             assert isinstance(_private_userdb, UserDB)
             logging.info(f"Copying test-user {self.test_user} to private_userdb {_private_userdb}")
             _private_userdb.save(_private_userdb.user_from_dict(data=data))
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         try:
             # Reset anything that looks like a BaseDB, for the next test class.
             for this in vars(self.app).values():
@@ -164,7 +160,6 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
         except Exception as exc:
             sys.stderr.write(f"Exception in tearDown: {exc!s}\n{exc!r}\n")
             traceback.print_exc()
-            # time.sleep(5)
         super(CommonTestCase, self).tearDown()
         # XXX reset redis
 
@@ -313,9 +308,6 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
         user.meta.version = central_user.meta.version
         user.meta.is_in_database = True
 
-        # Make the new version in AM match the one in the private userdb
-        # user.meta.new_version = lambda: private_user.new_version
-
         self.app.central_userdb.save(user)
         return True
 
@@ -328,7 +320,7 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
         finish_url: str | None = None,
         mock_mfa: bool = False,
         credentials_used: list[ElementKey] | None = None,
-    ):
+    ) -> None:
         if not finish_url:
             finish_url = "https://example.com/ext-return/{app_name}/{authn_id}"
 
@@ -383,11 +375,11 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
         return mfa_token
 
     @staticmethod
-    def _get_all_navet_data():
+    def _get_all_navet_data() -> NavetData:
         return NavetData.model_validate(MessageSender.get_devel_all_navet_data())
 
     @staticmethod
-    def _get_full_postal_address():
+    def _get_full_postal_address() -> FullPostalAddress:
         return FullPostalAddress.model_validate(MessageSender.get_devel_postal_address())
 
     def _check_must_authenticate_response(
@@ -396,7 +388,7 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
         type_: str | None,
         frontend_action: FrontendAction,
         authn_status: AuthnActionStatus,
-    ):
+    ) -> None:
         """Check that a call to the API failed in the authentication stage."""
         meta = {
             "frontend_action": frontend_action.value,
@@ -405,7 +397,7 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
         payload = {
             "message": AuthnStatusMsg.must_authenticate.value,
         }
-        return self._check_api_response(response, status=200, type_=type_, payload=payload, meta=meta)
+        self._check_api_response(response, status=200, type_=type_, payload=payload, meta=meta)
 
     def _check_error_response(
         self,
@@ -414,9 +406,9 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
         msg: TranslatableMsg | None = None,
         error: Mapping[str, Any] | None = None,
         payload: Mapping[str, Any] | None = None,
-    ):
+    ) -> None:
         """Check that a call to the API failed in the data validation stage."""
-        return self._check_api_response(response, 200, type_=type_, message=msg, error=error, payload=payload)
+        self._check_api_response(response, 200, type_=type_, message=msg, error=error, payload=payload)
 
     def _check_success_response(
         self,
@@ -424,13 +416,13 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
         type_: str | None,
         msg: TranslatableMsg | None = None,
         payload: Mapping[str, Any] | None = None,
-    ):
+    ) -> None:
         """
         Check the message returned from an eduID webapp endpoint.
         """
         if response.json and response.json.get("error") is True:
             assert False is True, f"FluxResponse has error set to True: {response.json}"
-        return self._check_api_response(response, 200, type_=type_, message=msg, payload=payload)
+        self._check_api_response(response, 200, type_=type_, message=msg, payload=payload)
 
     @staticmethod
     def get_response_payload(response: TestResponse) -> dict[str, Any]:
@@ -456,7 +448,7 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
         payload: Mapping[str, Any] | None = None,
         assure_not_in_payload: Iterable[str] | None = None,
         meta: Mapping[str, Any] | None = None,
-    ):
+    ) -> None:
         """
         Check data returned from an eduID webapp endpoint.
 
@@ -486,7 +478,7 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
         :param payload: Data expected to be found in the 'payload' of the response
         """
 
-        def _assure_not_in_dict(d: Mapping[str, Any], unwanted_key: str):
+        def _assure_not_in_dict(d: Mapping[str, Any], unwanted_key: str) -> None:
             assert unwanted_key not in d, f"Key {unwanted_key} should not be in payload, but it is: {payload}"
             v2: Mapping[str, Any]
             for v2 in d.values():
@@ -516,9 +508,10 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
                     assert (
                         k in _json["payload"]
                     ), f"The Flux response payload {_json['payload']} does not contain {repr(k)}"
-                    assert (
-                        v == _json["payload"][k]
-                    ), f"The Flux response payload item {repr(k)} should be {repr(v)} but is {repr(_json['payload'][k])}"
+                    assert v == _json["payload"][k], (
+                        f"The Flux response payload item {repr(k)} should be {repr(v)} "
+                        f"but is {repr(_json['payload'][k])}"
+                    )
             if assure_not_in_payload is not None:
                 for key in assure_not_in_payload:
                     _assure_not_in_dict(_json["payload"], key)
@@ -544,7 +537,7 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
         proofing_state: NinProofingState,
         number: str | None = None,
         created_by: str | None = None,
-    ):
+    ) -> None:
         if number is None and (self.test_user is not None and self.test_user.identities.nin):
             number = self.test_user.identities.nin.number
 
@@ -562,7 +555,7 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
         assert isinstance(_log, ProofingLog)
         assert _log.db_count() == 1
 
-    def _check_nin_not_verified(self, user: User, number: str | None = None, created_by: str | None = None):
+    def _check_nin_not_verified(self, user: User, number: str | None = None, created_by: str | None = None) -> None:
         if number is None and (self.test_user is not None and self.test_user.identities.nin):
             number = self.test_user.identities.nin.number
 

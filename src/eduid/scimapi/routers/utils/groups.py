@@ -7,6 +7,7 @@ from fastapi import Request, Response
 from eduid.common.fastapi.context_request import ContextRequest
 from eduid.common.models.scim_base import Meta, SCIMResourceType, SCIMSchema
 from eduid.common.utils import make_etag
+from eduid.scimapi.context_request import ScimApiContext
 from eduid.scimapi.exceptions import BadRequest
 from eduid.scimapi.models.group import GroupMember, GroupResponse, NutidGroupExtensionV1
 from eduid.scimapi.search import SearchFilter
@@ -53,10 +54,6 @@ def db_group_to_response(req: ContextRequest, resp: Response, db_group: ScimApiG
 
     resp.headers["Location"] = location
     resp.headers["ETag"] = make_etag(db_group.version)
-    # TODO: Needed?
-    # if SCIMSchema.NUTID_GROUP_V1 not in group.schemas and SCIMSchema.NUTID_GROUP_V1.value in dumped_group:
-    #    # Serialization will always put the NUTID_GROUP_V1 in the dumped_group, even if there was no data
-    #    del dumped_group[SCIMSchema.NUTID_GROUP_V1.value]
     req.app.context.logger.debug(f"Extra debug: Response:\n{group.model_dump_json(exclude_none=True, indent=2)}")
     return group
 
@@ -73,6 +70,10 @@ def filter_display_name(
         raise BadRequest(scim_type="invalidFilter", detail="Invalid displayName")
 
     req.app.context.logger.debug(f"Searching for group with display name {repr(filter.val)}")
+    assert isinstance(req.context, ScimApiContext)  # please mypy
+    assert req.context.groupdb is not None  # please mypy
+    assert skip is not None  # please mypy
+    assert limit is not None  # please mypy
     groups, count = req.context.groupdb.get_groups_by_property(
         key="display_name", value=filter.val, skip=skip, limit=limit
     )
@@ -94,6 +95,8 @@ def filter_lastmodified(
         _parsed = datetime.fromisoformat(filter.val)
     except Exception:
         raise BadRequest(scim_type="invalidFilter", detail="Invalid datetime")
+    assert isinstance(req.context, ScimApiContext)  # please mypy
+    assert req.context.groupdb is not None  # please mypy
     return req.context.groupdb.get_groups_by_last_modified(operator=filter.op, value=_parsed, skip=skip, limit=limit)
 
 
@@ -111,6 +114,10 @@ def filter_extensions_data(
         raise BadRequest(scim_type="invalidFilter", detail="Unsupported extension search key")
 
     req.app.context.logger.debug(f"Searching for groups with {filter.attr} {filter.op} {repr(filter.val)}")
+    assert isinstance(req.context, ScimApiContext)  # please mypy
+    assert req.context.groupdb is not None  # please mypy
+    assert skip is not None  # please mypy
+    assert limit is not None  # please mypy
     groups, count = req.context.groupdb.get_groups_by_property(
         key=filter.attr, value=filter.val, skip=skip, limit=limit
     )

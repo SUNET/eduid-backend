@@ -2,11 +2,11 @@ import logging
 from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
+from typing import Self
 
 import babel
 from babel.support import Translations
 from jinja2 import Environment, FileSystemLoader, select_autoescape
-from typing_extensions import Self
 
 __author__ = "lundberg"
 
@@ -18,7 +18,7 @@ class Jinja2Env:
     Initiates Jinja2 environment with Babel translations
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         templates_dir = Path(__file__).with_name("templates")
         translations_dir = Path(__file__).with_name("translations")
         # Templates

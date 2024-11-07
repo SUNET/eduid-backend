@@ -2,7 +2,7 @@ import logging
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 
 from eduid.userdb import User
 from eduid.userdb.credentials import U2F, Password, Webauthn
@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 __author__ = "eperez"
 
 
-class AuthnCredType(str, Enum):
+class AuthnCredType(StrEnum):
     password = "security.password_credential_type"
     u2f = "security.u2f_credential_type"
     unknown = "security.unknown_credential_type"
@@ -33,7 +33,7 @@ class AuthnInfoDB(BaseDB):
     TODO: We already have a database class to access this collection, in the IdP. Consolidate the two.
     """
 
-    def __init__(self, db_uri, db_name="eduid_idp_authninfo", collection="authn_info"):
+    def __init__(self, db_uri: str, db_name: str = "eduid_idp_authninfo", collection: str = "authn_info") -> None:
         super().__init__(db_uri, db_name, collection)
 
     def get_authn_info(self, user: User) -> Mapping[ElementKey, AuthnInfoElement]:

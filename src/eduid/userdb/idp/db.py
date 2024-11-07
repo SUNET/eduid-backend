@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 class IdPUserDb(UserDB[IdPUser]):
-    def __init__(self, db_uri: str, db_name: str = "eduid_am", collection: str = "attributes"):
+    def __init__(self, db_uri: str, db_name: str = "eduid_am", collection: str = "attributes") -> None:
         super().__init__(db_uri, db_name, collection=collection)
 
     @classmethod

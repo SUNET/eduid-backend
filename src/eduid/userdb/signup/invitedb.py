@@ -1,8 +1,8 @@
-import datetime
 import logging
 from dataclasses import replace
 from typing import Any
 
+from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.db import SaveResult
 from eduid.userdb.exceptions import MultipleDocumentsReturned
 from eduid.userdb.signup import Invite, SCIMReference
@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 class SignupInviteDB(BaseDB):
-    def __init__(self, db_uri: str, db_name: str = "eduid_signup", collection: str = "invites"):
+    def __init__(self, db_uri: str, db_name: str = "eduid_signup", collection: str = "invites") -> None:
         BaseDB.__init__(self, db_uri, db_name, collection)
         # Create an index so that invite_code is unique and invites are removed at the expires_at time
         indexes = {
@@ -53,6 +53,6 @@ class SignupInviteDB(BaseDB):
         spec: dict[str, Any] = {"_id": invite.invite_id}
 
         result = self._save(invite.to_dict(), spec, is_in_database=is_in_database)
-        invite = replace(invite, modified_ts=datetime.datetime.utcnow())  # update to current time
+        invite = replace(invite, modified_ts=utc_now())  # update to current time
 
         return result

@@ -15,7 +15,7 @@ class MobWorker(Task):
 
     abstract = True  # This means Celery won't register this as another task
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._lookup_client: MobileLookupClient | None = None
 
     @property
@@ -27,7 +27,7 @@ class MobWorker(Task):
 
 @app.task(bind=True, base=MobWorker)
 @deprecated("This task seems unused")
-def find_mobiles_by_NIN(self: MobWorker, national_identity_number: str, number_region=None) -> list[str]:
+def find_mobiles_by_NIN(self: MobWorker, national_identity_number: str, number_region: str | None = None) -> list[str]:
     """
     Searches mobile numbers registered to the given nin
     :param national_identity_number:
@@ -46,7 +46,7 @@ def find_NIN_by_mobile(self: MobWorker, mobile_number: str) -> str | None:
 
 
 @app.task(bind=True, base=MobWorker, name="eduid_lookup_mobile.tasks.pong")
-def pong(self: MobWorker, app_name: str):
+def pong(self: MobWorker, app_name: str) -> str:
     """
     eduID webapps periodically ping workers as a part of their health assessment.
     """

@@ -340,7 +340,7 @@ def revoke_passwords(
 
 @deprecated
 def revoke_all_credentials(
-    user, source="dashboard", vccs_url: str | None = None, vccs: VCCSClient | None = None
+    user: User, source: str = "dashboard", vccs_url: str | None = None, vccs: VCCSClient | None = None
 ) -> None:
     if vccs is None:
         vccs = get_vccs_client(vccs_url)

@@ -1,7 +1,6 @@
 import logging
 from datetime import date
 from enum import Enum, unique
-from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -36,13 +35,14 @@ class FrejaEIDMsg(TranslatableMsg):
 
 
 class SessionOAuthCache:
+    # Used to store json-encoded data (OAuth->BaseOAuth->FrameworkIntegration)
     @staticmethod
-    def get(key: str) -> Any:
+    def get(key: str) -> str | None:
         logger.debug(f"Getting {key} from session.freja_eid.oauth_cache")
         return session.freja_eid.rp.authlib_cache.get(key)
 
     @staticmethod
-    def set(key: str, value: Any, expires: int | None = None) -> None:
+    def set(key: str, value: str, expires: int | None = None) -> None:
         session.freja_eid.rp.authlib_cache[key] = value
         logger.debug(f"Set {key}={value} (expires={expires}) in session.freja_eid.oauth_cache")
 

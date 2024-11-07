@@ -3,7 +3,7 @@ from asyncio import Lock
 from collections.abc import Mapping
 from typing import Any
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from ndnkdf import ndnkdf
 from starlette.responses import JSONResponse
@@ -51,7 +51,7 @@ app.include_router(authenticate_router)
 
 
 @app.on_event("startup")
-async def startup_event():
+async def startup_event() -> None:
     """
     Uvicorn mucks with the logging config on startup, particularly the access log. Rein it in.
     """
@@ -70,12 +70,12 @@ async def startup_event():
         if _name == "uvicorn.access":
             _logger.propagate = False
         app.logger.info(
-            f"Updated logger {_name} handlers {_old_handlers} -> {_logger.handlers} " f"(prop: {_logger.propagate})"
+            f"Updated logger {_name} handlers {_old_handlers} -> {_logger.handlers} (prop: {_logger.propagate})"
         )
 
 
 @app.exception_handler(RequestValidationError)
-async def validation_exception_handler(request, exc):
+async def validation_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
     request.app.logger.warning(f"Failed parsing request: {exc}")
     return JSONResponse({"errors": exc.errors()}, status_code=HTTP_422_UNPROCESSABLE_ENTITY)
 

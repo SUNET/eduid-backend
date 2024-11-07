@@ -123,9 +123,7 @@
                 <dl>
                     <dt>Type</dt><dd>{{ credential.get('type') }}</dd>
                     <dt>Last used successfully</dt><dd>{{ credential.get('success_ts')|datetimeformat }}</dd>
-                    {% if credential.get('verified') %}
-                        <dt>Verified</dt><dd>{{ credential.get('verified') }}</dd>
-                    {% endif %}
+                    <dt>Verified</dt><dd>{{ credential.get('verified', False) }}</dd>
                     {% if credential.get('type') == 'Webauthn' %}
                         <dt>Authenticator</dt><dd>{{ credential.get('authenticator') }}</dd>
                         <dt>Authenticator ID</dt><dd>{{ credential.get('authenticator_id') }}</dd>

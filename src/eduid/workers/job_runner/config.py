@@ -6,7 +6,6 @@ from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
 from eduid.common.clients.gnap_client.base import GNAPClientAuthData
 from eduid.common.config.base import AmConfigMixin, LoggingConfigMixin, MsgConfigMixin, RootConfig, StatsConfigMixin
-from eduid.common.utils import removesuffix
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +33,7 @@ class JobCronConfig(BaseModel):
 
     @model_validator(mode="before")
     @classmethod
-    def at_least_one_datetime_value(cls, data: Any) -> Any:
+    def at_least_one_datetime_value(cls, data: dict[str, Any]) -> dict[str, Any]:
         if isinstance(data, dict):
             need_one_of = ["year", "month", "day", "week", "day_of_week", "hour", "minute", "second"]
             assert len(data.keys() & need_one_of), f"At least one of {need_one_of} must be set"
@@ -60,8 +59,8 @@ class JobRunnerConfig(RootConfig, LoggingConfigMixin, StatsConfigMixin, MsgConfi
 
     @field_validator("application_root")
     @classmethod
-    def application_root_must_not_end_with_slash(cls, v: str):
+    def application_root_must_not_end_with_slash(cls, v: str) -> str:
         if v.endswith("/"):
             logger.warning(f"application_root should not end with slash ({v})")
-            v = removesuffix(v, "/")
+            v = v.removesuffix("/")
         return v

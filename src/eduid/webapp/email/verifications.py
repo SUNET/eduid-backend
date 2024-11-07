@@ -6,12 +6,13 @@ from eduid.userdb import User
 from eduid.userdb.logs import MailAddressProofing
 from eduid.userdb.mail import MailAddress
 from eduid.userdb.proofing import EmailProofingElement, EmailProofingState
+from eduid.userdb.proofing.user import ProofingUser
 from eduid.webapp.common.api.translation import get_user_locale
 from eduid.webapp.common.api.utils import save_and_sync_user
 from eduid.webapp.email.app import current_email_app as current_app
 
 
-def new_proofing_state(email: str, user: User):
+def new_proofing_state(email: str, user: User) -> EmailProofingState | None:
     old_state = current_app.proofing_statedb.get_state_by_eppn_and_email(user.eppn, email)
     current_app.logger.debug(f"Old proofing state in db: {old_state}")
 
@@ -39,6 +40,7 @@ def send_verification_code(email: str, user: User) -> bool:
     if state is None:
         return False
 
+    assert state.verification.verification_code  # please mypy
     payload = EduidVerificationEmail(
         email=email,
         verification_code=state.verification.verification_code,
@@ -59,11 +61,11 @@ def send_verification_code(email: str, user: User) -> bool:
         # Debug-log the code and message in development environment
         current_app.logger.debug(f"code: {state.verification.verification_code}")
         current_app.logger.debug(f"Generating verification e-mail with context:\n{payload}")
-    current_app.logger.info(f"Sent email address verification mail to user {user}" f" about address {email!s}.")
+    current_app.logger.info(f"Sent email address verification mail to user {user} about address {email!s}.")
     return True
 
 
-def verify_mail_address(state, proofing_user):
+def verify_mail_address(state: EmailProofingState, proofing_user: ProofingUser) -> None:
     """
     :param proofing_user: ProofingUser
     :param state: E-mail proofing state
@@ -80,6 +82,9 @@ def verify_mail_address(state, proofing_user):
         proofing_user.mail_addresses.add(email)
         # Adding the phone to the list creates a copy of the element, so we have to 'find' it again
         email = proofing_user.mail_addresses.find(state.verification.email)
+
+    # please mypy, email should be set now
+    assert email
 
     email.is_verified = True
     if not proofing_user.mail_addresses.primary:

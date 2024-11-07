@@ -10,6 +10,7 @@ import redis
 from flask import current_app as flask_current_app
 
 from eduid.common.config.base import EduIDBaseAppConfig, RedisConfigMixin, VCCSConfigMixin
+from eduid.common.misc.timeutil import utc_now
 from eduid.common.rpc.am_relay import AmRelay
 from eduid.common.rpc.lookup_mobile_relay import LookupMobileRelay
 from eduid.common.rpc.mail_relay import MailRelay
@@ -47,7 +48,7 @@ class FailCountItem:
     exit_at: datetime | None = None
     count: int = 0
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"(first_failure: {self.first_failure.isoformat()}, fail count: {self.count})"
 
 
@@ -55,7 +56,7 @@ def log_failure_info(key: str, msg: str, exc: Exception | None = None) -> None:
     current_app = get_current_app()
 
     if key not in current_app.failure_info:
-        current_app.failure_info[key] = FailCountItem(first_failure=datetime.utcnow())
+        current_app.failure_info[key] = FailCountItem(first_failure=utc_now())
     current_app.failure_info[key].count += 1
     current_app.logger.warning(f"{msg} {current_app.failure_info[key]}: {exc}")
 
@@ -80,12 +81,12 @@ def check_restart(key: str, restart: int, terminate: int) -> bool:
         info = replace(info, restart_at=info.first_failure + timedelta(seconds=restart))
     if terminate and not info.exit_at:
         info = replace(info, exit_at=info.first_failure + timedelta(seconds=terminate))
-    if info.exit_at and datetime.utcnow() >= info.exit_at:
+    if info.exit_at and utc_now() >= info.exit_at:
         # Exit application and rely on something else restarting it
         current_app.logger.warning(f"Max failure time reached, terminating {current_app.name}")
         sys.exit(1)
-    if info.restart_at and datetime.utcnow() >= info.restart_at:
-        info = replace(info, restart_at=datetime.utcnow() + timedelta(seconds=restart))
+    if info.restart_at and utc_now() >= info.restart_at:
+        info = replace(info, restart_at=utc_now() + timedelta(seconds=restart))
         # Try to restart/reinitialize the failing functionality
         res = True
     current_app.failure_info[key] = info

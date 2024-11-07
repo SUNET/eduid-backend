@@ -60,7 +60,6 @@ Common code for SSO login/logout requests.
 """
 
 from abc import ABC
-from typing import Any
 
 from flask import request
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -80,7 +79,7 @@ class SAMLQueryParams(BaseModel):
 
     @field_validator("SAMLRequest", "RelayState")
     @classmethod
-    def validate_query_params(cls, v: Any):
+    def validate_query_params(cls, v: object) -> str:
         if not isinstance(v, str) or not v:
             raise ValueError("must be a non-empty string")
         # TODO: perform extra sanitation?
@@ -88,7 +87,7 @@ class SAMLQueryParams(BaseModel):
 
     @field_validator("request_ref")
     @classmethod
-    def validate_request_ref(cls, v: Any):
+    def validate_request_ref(cls, v: object) -> str | None:
         if v is None:
             return None
         if not isinstance(v, str):
@@ -104,7 +103,7 @@ class Service(ABC):
     :param session: SSO session
     """
 
-    def __init__(self, sso_session: SSOSession | None):
+    def __init__(self, sso_session: SSOSession | None) -> None:
         self.sso_session = sso_session
 
     def unpack_redirect(self) -> SAMLQueryParams:

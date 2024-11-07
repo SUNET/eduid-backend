@@ -2,8 +2,6 @@
 Exceptions thrown by the eduid.userdb database lookup functions.
 """
 
-from typing import Any
-
 
 class EduIDDBError(Exception):
     """
@@ -13,11 +11,11 @@ class EduIDDBError(Exception):
     :type reason: object
     """
 
-    def __init__(self, reason: Any):
+    def __init__(self, reason: object) -> None:
         Exception.__init__(self)
         self.reason = reason
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"<{self.__class__.__name__} instance at {hex(id(self))}: {self.reason!r}>"
 
 

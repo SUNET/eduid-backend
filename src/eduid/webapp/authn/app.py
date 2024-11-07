@@ -10,7 +10,7 @@ from eduid.webapp.common.authn.utils import get_saml2_config
 
 
 class AuthnApp(EduIDBaseApp):
-    def __init__(self, config: AuthnConfig, **kwargs):
+    def __init__(self, config: AuthnConfig, **kwargs: Any) -> None:
         super().__init__(config, **kwargs)
 
         self.conf = config

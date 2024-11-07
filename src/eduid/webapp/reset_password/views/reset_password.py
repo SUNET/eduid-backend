@@ -456,7 +456,7 @@ def set_new_pw_extra_security_token(
 def set_new_pw_extra_security_external_mfa(
     email_code: str,
     password: str,
-):
+) -> FluxData:
     try:
         context = get_context(email_code=email_code)
     except StateException as e:

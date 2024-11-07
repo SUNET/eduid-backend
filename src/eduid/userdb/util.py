@@ -14,20 +14,14 @@ logger = logging.getLogger(__name__)
 class UTC(datetime.tzinfo):
     """UTC"""
 
-    def utcoffset(self, dt):
+    def utcoffset(self, dt: datetime.datetime | None) -> datetime.timedelta:
         return datetime.timedelta(0)
 
-    def tzname(self, dt):
+    def tzname(self, dt: datetime.datetime | None) -> str:
         return "UTC"
 
-    def dst(self, dt):
+    def dst(self, dt: datetime.datetime | None) -> datetime.timedelta:
         return datetime.timedelta(0)
-
-
-# NOTE: This function is copied from eduid.webapp.common.misc.timeutil because eduid-userdb can't import eduid.webapp.common
-def utc_now() -> datetime.datetime:
-    """Return current time with tz=UTC"""
-    return datetime.datetime.now(tz=datetime.timezone.utc)
 
 
 def objectid_str() -> str:
@@ -48,9 +42,8 @@ def format_dict_for_debug(data: Mapping[str, Any] | None) -> str | None:
 
         return json.dumps(data, indent=4, cls=EduidJSONEncoder)
     except Exception as e:
-        # Don't need the full exception logged here, just the summary (e.g.
+        # Don't need the full exception logged here, just the summary, e.g.:
         #   TypeError: Object of type UUID is not JSON serializable
-        # )
         # TODO: upgrade this debug to error once we've ridded userdb of all UUIDs
         logger.debug(f"Failed formatting document for debugging using JSON encoder: {repr(e)}")
         # We fail on encoding UUIDs used in some places. We want to turn the UUIDs into strings.

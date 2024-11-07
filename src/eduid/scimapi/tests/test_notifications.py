@@ -7,14 +7,11 @@ from eduid.queue.db.queue_item import QueueItem
 from eduid.scimapi.testing import ScimApiTestCase
 from eduid.userdb.scimapi import EventLevel
 
-# from moto import mock_sns
-
-
 __author__ = "lundberg"
 
 
 class TestNotifications(ScimApiTestCase):
-    def _get_notifications(self):
+    def _get_notifications(self) -> list[QueueItem]:
         return [QueueItem.from_dict(x) for x in self.messagedb._get_all_docs()]
 
     def _get_config(self) -> dict[str, Any]:
@@ -22,7 +19,7 @@ class TestNotifications(ScimApiTestCase):
         config["data_owners"]["eduid.se"]["notify"] = ["https://example.org/notify"]
         return config
 
-    def test_create_user_notification(self):
+    def test_create_user_notification(self) -> None:
         assert len(self._get_notifications()) == 0
 
         req = {"schemas": [SCIMSchema.CORE_20_USER.value], "externalId": "test-id-1"}
@@ -31,7 +28,7 @@ class TestNotifications(ScimApiTestCase):
 
         assert len(self._get_notifications()) == 1
 
-    def test_create_group_notification(self):
+    def test_create_group_notification(self) -> None:
         assert len(self._get_notifications()) == 0
 
         req = {"schemas": [SCIMSchema.CORE_20_GROUP.value], "externalId": "test-id-1", "displayName": "Test Group"}
@@ -40,7 +37,7 @@ class TestNotifications(ScimApiTestCase):
 
         assert len(self._get_notifications()) == 1
 
-    def test_create_event_notification(self):
+    def test_create_event_notification(self) -> None:
         assert len(self._get_notifications()) == 0
 
         user = self.add_user(identifier=str(uuid4()), external_id="test@example.org")

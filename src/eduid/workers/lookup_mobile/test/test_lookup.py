@@ -3,7 +3,7 @@ from eduid.workers.lookup_mobile.testing import LookupMobileMongoTestCase
 
 
 class TestVerifiers(LookupMobileMongoTestCase):
-    def test_find_NIN_by_mobile(self):
+    def test_find_NIN_by_mobile(self) -> None:
         # TODO: Actually connects to teleadress?
         from eduid.workers.lookup_mobile.tasks import logger
 
@@ -14,7 +14,7 @@ class TestVerifiers(LookupMobileMongoTestCase):
         assert mobile_verifier.find_NIN_by_mobile("+46701740609") == "197512126371"
         assert mobile_verifier.find_NIN_by_mobile("+46701740699") is None
 
-    def test_find_mobiles_by_NIN(self):
+    def test_find_mobiles_by_NIN(self) -> None:
         # TODO: Actually connects to teleadress?
         from eduid.workers.lookup_mobile.tasks import logger
 

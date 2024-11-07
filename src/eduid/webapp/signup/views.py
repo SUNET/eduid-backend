@@ -1,3 +1,4 @@
+from typing import Any
 from uuid import uuid4
 
 from flask import Blueprint, abort, request
@@ -43,7 +44,7 @@ signup_views = Blueprint("signup", __name__, url_prefix="", template_folder="tem
 
 @signup_views.route("/state", methods=["GET"])
 @MarshalWith(SignupStatusResponse)
-def get_state():
+def get_state() -> FluxData:
     """
     Get the current signup state.
     """
@@ -56,7 +57,7 @@ def get_state():
 @UnmarshalWith(NameAndEmailSchema)
 @MarshalWith(SignupStatusResponse)
 @require_not_logged_in
-def register_email(given_name: str, surname: str, email: str):
+def register_email(given_name: str, surname: str, email: str) -> FluxData:
     """
     Register a with new email address.
     """
@@ -118,7 +119,7 @@ def register_email(given_name: str, surname: str, email: str):
 @UnmarshalWith(VerifyEmailRequest)
 @MarshalWith(SignupStatusResponse)
 @require_not_logged_in
-def verify_email(verification_code: str):
+def verify_email(verification_code: str) -> FluxData:
     """
     Verify the email address.
     """
@@ -162,7 +163,7 @@ def verify_email(verification_code: str):
 @UnmarshalWith(AcceptTouRequest)
 @MarshalWith(SignupStatusResponse)
 @require_not_logged_in
-def accept_tou(tou_accepted: bool, tou_version: str):
+def accept_tou(tou_accepted: bool, tou_version: str) -> FluxData:
     """
     Accept the Terms of Use.
     """
@@ -340,7 +341,7 @@ def create_user(use_suggested_password: bool, use_webauthn: bool, custom_passwor
 @signup_views.route("/invite-data", methods=["POST"])
 @UnmarshalWith(InviteCodeRequest)
 @MarshalWith(InviteDataResponse)
-def get_invite(invite_code: str):
+def get_invite(invite_code: str) -> dict[str, Any] | FluxData:
     invite = current_app.invite_db.get_invite_by_invite_code(code=invite_code)
     if invite is None:
         current_app.logger.error("Invite not found")
@@ -458,7 +459,7 @@ def complete_invite_existing_user(user: User) -> FluxData:
 
 # BACKDOOR for testing
 @signup_views.route("/get-code", methods=["GET"])
-def get_email_code():
+def get_email_code() -> str:
     """
     Backdoor to get the email verification code in the staging or dev environments
     """
@@ -471,7 +472,8 @@ def get_email_code():
                 abort(400)
             current_app.logger.debug(f"BACKDOOR: email in session: {session.signup.email.address}")
             if session.signup.email.address == email:
-                return session.signup.email.verification_code
+                code = session.signup.email.verification_code
+                return code if code else ""
     except Exception:
         current_app.logger.exception("Someone tried to use the backdoor to get the email verification code for signup")
 

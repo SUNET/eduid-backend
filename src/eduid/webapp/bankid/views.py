@@ -180,15 +180,6 @@ def _authn(
     assert isinstance(proofing_method, ProofingMethodSAML)  # please mypy
 
     idp = proofing_method.idp
-    # TODO: We don't have any IdP that works for our automated tests
-    # if check_magic_cookie(current_app.conf):
-    #    # set a test IdP with minimal interaction for the integration tests
-    #    if current_app.conf.magic_cookie_idp:
-    #        idp = current_app.conf.magic_cookie_idp
-    #        current_app.logger.debug(f"Changed requested IdP due to magic cookie: {idp}")
-    #    else:
-    #        current_app.logger.error(f"Magic cookie is not supported for method {method}")
-    #        return AuthnResult(error=BankIDMsg.method_not_available)
 
     authn_req = SP_AuthnRequest(
         frontend_action=_frontend_action,

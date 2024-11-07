@@ -4,6 +4,7 @@ import smtplib
 from collections import OrderedDict
 from typing import Any
 
+from billiard.einfo import ExceptionInfo
 from celery import Task
 from celery.utils.log import get_task_logger
 from hammock import Hammock
@@ -11,7 +12,6 @@ from smscom import SMSClient
 
 from eduid.common.config.base import EduidEnvironment
 from eduid.common.decorators import deprecated
-from eduid.common.utils import removeprefix
 from eduid.userdb.exceptions import ConnectionError
 from eduid.workers.msg.cache import CacheMDB
 from eduid.workers.msg.common import MsgCelerySingleton
@@ -83,12 +83,12 @@ class MessageSender(Task):
         return _CACHE[cache_name]
 
     @staticmethod
-    def reload_db():
+    def reload_db() -> None:
         global _CACHE
         # Remove initiated cache dbs
         _CACHE = {}
 
-    def on_failure(self, exc, task_id, args, kwargs, einfo):
+    def on_failure(self, exc: Exception, task_id: str, args: tuple, kwargs: dict, einfo: ExceptionInfo) -> None:
         # Try to reload the db on connection failures (mongodb has probably switched master)
         if isinstance(exc, ConnectionError):
             logger.error("Task failed with db exception ConnectionError. Reloading db.")
@@ -372,7 +372,7 @@ class MessageSender(Task):
         #  0701740605-0701740699 is a unused range from PTS
         #  https://www.pts.se/sv/bransch/telefoni/nummer-och-adressering/
         #  telefonnummer-for-anvandning-i-bocker-och-filmer-etc/
-        if recipient.startswith("+467017406") and 5 <= int(removeprefix(recipient, "+467017406")) <= 99:
+        if recipient.startswith("+467017406") and 5 <= int(recipient.removeprefix("+467017406")) <= 99:
             logger.debug("sendsms task:")
             logger.debug(f"\nType: sms\nReference: {reference}\nRecipient: {recipient}\nMessage:\n{message}")
             return "no_op_number"
@@ -491,11 +491,11 @@ def get_relations_to(self: MessageSender, identity_number: str, relative_nin: st
         result = []
         # Entrys in relations['Relations']['Relation'] (a list) look like this:
         #
-        #    {
-        #        "RelationId" : {
+        #    {                                                      # noqa: ERA001
+        #        "RelationId" : {                                   # noqa: ERA001
         #                "NationalIdentityNumber" : "200001011234
         #        },
-        #        "RelationType" : "B",
+        #        "RelationType" : "B",                              # noqa: ERA001
         #        "RelationStartDate" : "20000101"
         #    },
         #

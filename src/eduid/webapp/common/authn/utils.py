@@ -32,7 +32,7 @@ else:
 logger = logging.getLogger(__name__)
 
 
-def get_saml2_config(module_path: str, name="SAML_CONFIG") -> SPConfig:
+def get_saml2_config(module_path: str, name: str = "SAML_CONFIG") -> SPConfig:
     """Load SAML2 config file, in the form of a Python module."""
     spec = importlib.util.spec_from_file_location("saml2_settings", module_path)
     if spec is None:
@@ -130,9 +130,6 @@ def get_authn_for_action(
     authn = session.authn.sp.get_authn_for_frontend_action(frontend_action)
     if not authn and authn_params.allow_login_auth:
         authn = session.authn.sp.get_authn_for_frontend_action(FrontendAction.LOGIN)
-        # check for old login actions until we remove them
-        if not authn and authn_params.allow_login_auth:
-            authn = session.authn.sp.get_authn_for_frontend_action(FrontendAction.OLD_LOGIN)
     return authn, authn_params
 
 

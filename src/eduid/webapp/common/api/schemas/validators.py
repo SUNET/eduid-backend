@@ -1,3 +1,5 @@
+from typing import Any
+
 from marshmallow import ValidationError
 
 from eduid.webapp.common.api.validation import is_valid_email, is_valid_nin
@@ -5,7 +7,7 @@ from eduid.webapp.common.api.validation import is_valid_email, is_valid_nin
 __author__ = "lundberg"
 
 
-def validate_nin(nin, **kwargs):
+def validate_nin(nin: str, **kwargs: Any) -> bool:
     """
     :param nin: National Identity Number
     :type nin: string_types
@@ -18,7 +20,7 @@ def validate_nin(nin, **kwargs):
         raise ValidationError("nin needs to be formatted as 18|19|20yymmddxxxx")
 
 
-def validate_email(email, **kwargs):
+def validate_email(email: str, **kwargs: Any) -> bool:
     """
     :param email: E-mail address
     :type email: string_types

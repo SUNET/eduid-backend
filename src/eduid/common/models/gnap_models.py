@@ -1,5 +1,5 @@
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 from pydantic import AnyUrl, BaseModel, ConfigDict, Field, field_validator
@@ -21,7 +21,7 @@ class GnapBaseModel(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
-class ProofMethod(str, Enum):
+class ProofMethod(StrEnum):
     DPOP = "dpop"
     HTTPSIGN = "httpsign"
     JWSD = "jwsd"
@@ -51,7 +51,7 @@ class Key(GnapBaseModel):
         return v
 
 
-class AccessTokenFlags(str, Enum):
+class AccessTokenFlags(StrEnum):
     BEARER = "bearer"
     DURABLE = "durable"
 

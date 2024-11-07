@@ -77,7 +77,7 @@ def auth_response(session_id: str, eppn: str, accr: EduidAuthnContextClass | Non
             </saml:Attribute>
         </saml:AttributeStatement>
     </saml:Assertion>
-</samlp:Response>"""
+</samlp:Response>"""  # noqa: E501
 
     return saml_response_tpl.format(
         **{

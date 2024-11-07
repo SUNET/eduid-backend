@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 class ResetPasswordUserDB(UserDB[ResetPasswordUser]):
-    def __init__(self, db_uri: str, db_name: str = "eduid_reset_password", collection: str = "profiles"):
+    def __init__(self, db_uri: str, db_name: str = "eduid_reset_password", collection: str = "profiles") -> None:
         super().__init__(db_uri, db_name, collection=collection)
 
     @classmethod
@@ -25,7 +25,9 @@ class ResetPasswordUserDB(UserDB[ResetPasswordUser]):
 
 
 class ResetPasswordStateDB(BaseDB):
-    def __init__(self, db_uri: str, db_name: str = "eduid_reset_password", collection: str = "password_reset_data"):
+    def __init__(
+        self, db_uri: str, db_name: str = "eduid_reset_password", collection: str = "password_reset_data"
+    ) -> None:
         super().__init__(db_uri, db_name, collection=collection)
 
     def get_state_by_email_code(

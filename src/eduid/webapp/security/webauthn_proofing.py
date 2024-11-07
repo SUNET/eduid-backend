@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from datetime import date, datetime, time
-from enum import Enum
+from enum import StrEnum
 from uuid import UUID
 
 from fido2.utils import websafe_decode
@@ -16,7 +16,7 @@ from eduid.webapp.security.app import current_security_app as current_app
 __author__ = "lundberg"
 
 
-class OtherAuthenticatorStatus(str, Enum):
+class OtherAuthenticatorStatus(StrEnum):
     APPLE = "APPLE"
     MAGIC_COOKIE = "MAGIC_COOKIE"
 

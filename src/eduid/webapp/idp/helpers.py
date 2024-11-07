@@ -1,9 +1,10 @@
-from enum import Enum, unique
+from enum import StrEnum, unique
+from typing import Any
 
 from saml2 import BINDING_HTTP_POST
 
 from eduid.userdb.idp import IdPUser
-from eduid.webapp.common.api.messages import TranslatableMsg, error_response, success_response
+from eduid.webapp.common.api.messages import FluxData, TranslatableMsg, error_response, success_response
 from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.idp_saml import SAMLResponseParams
 
@@ -45,7 +46,7 @@ class IdPMsg(str, TranslatableMsg):
 
 
 @unique
-class IdPAction(str, Enum):
+class IdPAction(StrEnum):
     NEW_DEVICE = "NEW_DEVICE"
     OTHER_DEVICE = "OTHER_DEVICE"
     PWAUTH = "USERNAMEPASSWORD"
@@ -67,7 +68,7 @@ def lookup_user(username: str, managed_account_allowed: bool = False) -> IdPUser
         return current_app.userdb.lookup_user(username)
 
 
-def create_saml_sp_response(saml_params: SAMLResponseParams):
+def create_saml_sp_response(saml_params: SAMLResponseParams, authn_options: dict[str, Any]) -> FluxData:
     """
     Create a response to frontend that should be posted to the SP
     """
@@ -81,5 +82,6 @@ def create_saml_sp_response(saml_params: SAMLResponseParams):
             "target": saml_params.url,
             "parameters": saml_params.post_params,
             "missing_attributes": saml_params.missing_attributes,
+            "authn_options": authn_options,
         },
     )

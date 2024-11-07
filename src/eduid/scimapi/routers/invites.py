@@ -6,7 +6,7 @@ from eduid.common.fastapi.context_request import ContextRequest
 from eduid.common.models.scim_base import ListResponse, SCIMResourceType, SearchRequest
 from eduid.common.models.scim_invite import InviteCreateRequest, InviteResponse, InviteUpdateRequest
 from eduid.scimapi.api_router import APIRouter
-from eduid.scimapi.context_request import ScimApiRoute
+from eduid.scimapi.context_request import ScimApiContext, ScimApiRoute
 from eduid.scimapi.exceptions import BadRequest, ErrorDetail, NotFound
 from eduid.scimapi.routers.utils.events import add_api_event
 from eduid.scimapi.routers.utils.invites import (
@@ -40,6 +40,8 @@ async def on_get(req: ContextRequest, resp: Response, scim_id: str | None = None
     if scim_id is None:
         raise BadRequest(detail="Not implemented")
     req.app.context.logger.info(f"Fetching invite {scim_id}")
+    assert isinstance(req.context, ScimApiContext)  # please mypy
+    assert req.context.invitedb is not None  # please mypy
     db_invite = req.context.invitedb.get_invite_by_scim_id(scim_id)
     if not db_invite:
         raise NotFound(detail="Invite not found")
@@ -60,6 +62,8 @@ async def on_put(
         raise BadRequest(detail="Id mismatch")
 
     req.app.context.logger.info(f"Updating invite {scim_id}")
+    assert isinstance(req.context, ScimApiContext)  # please mypy
+    assert req.context.invitedb is not None  # please mypy
     db_invite = req.context.invitedb.get_invite_by_scim_id(scim_id)
     if not db_invite:
         raise NotFound(detail="Invite not found")
@@ -72,83 +76,14 @@ async def on_put(
         raise BadRequest(detail="Invite completed and cannot be updated")
 
     invite_changed = False
-    profiles_changed = False
 
     if update_request.nutid_invite_v1.completed is not None:
         signup_invite = replace(signup_invite, completed_ts=update_request.nutid_invite_v1.completed)
         db_invite = replace(db_invite, completed=update_request.nutid_invite_v1.completed)
         invite_changed = True
 
-    # TODO: decide what can be updated
-    # # Update the invite
-    # invite_changed = False
-    # if SCIMSchema.NUTID_INVITE_V1 in update_request.schemas:
-    #     name_in = ScimApiName(**update_request.nutid_invite_v1.name.dict(exclude_none=True))
-    #     emails_in = set(ScimApiEmail(**email.dict()) for email in update_request.nutid_invite_v1.emails)
-    #     phone_numbers_in = set(
-    #         ScimApiPhoneNumber(**number.dict()) for number in update_request.nutid_invite_v1.phone_numbers
-    #     )
-    #     # external_id
-    #     if update_request.external_id != db_invite.external_id:
-    #         db_invite = replace(db_invite, external_id=update_request.external_id)
-    #         invite_changed = True
-    #     # preferred_language
-    #     if update_request.nutid_invite_v1.preferred_language != db_invite.preferred_language:
-    #         db_invite = replace(db_invite, preferred_language=update_request.nutid_invite_v1.preferred_language)
-    #         invite_changed = True
-    #     # name
-    #     if name_in != db_invite.name:
-    #         db_invite = replace(db_invite, name=name_in)
-    #         invite_changed = True
-    #     # emails
-    #     if emails_in != set(db_invite.emails):
-    #         db_invite = replace(db_invite, emails=list(emails_in))
-    #         invite_changed = True
-    #     # phone_numbers
-    #     if phone_numbers_in != set(db_invite.phone_numbers):
-    #         db_invite = replace(db_invite, phone_numbers=list(phone_numbers_in))
-    #         invite_changed = True
-    #     # nin
-    #     if update_request.nutid_invite_v1.national_identity_number != db_invite.national_identity_number:
-    #         db_invite = replace(
-    #             db_invite, national_identity_number=update_request.nutid_invite_v1.national_identity_number
-    #         )
-    #         invite_changed = True
-    #     # finish_url
-    #     if update_request.nutid_invite_v1.finish_url != db_invite.finish_url:
-    #         db_invite = replace(db_invite, finish_url=update_request.nutid_invite_v1.finish_url)
-    #         invite_changed = True
-    #     # completed_ts
-    #     if update_request.nutid_invite_v1.completed != db_invite.completed_ts:
-    #         db_invite = replace(db_invite, completed_ts=update_request.nutid_invite_v1.completed)
-    #         invite_changed = True
-    #
-    # profiles_changed = False
-    # if SCIMSchema.NUTID_USER_V1 in update_request.schemas and update_request.nutid_user_v1 is not None:
-    #
-    #     # Look for changes in profiles
-    #     for this in update_request.nutid_user_v1.profiles.keys():
-    #         if this not in db_invite.profiles:
-    #             req.app.context.logger.info(
-    #                 f"Adding profile {this}/{update_request.nutid_user_v1.profiles[this]} to invite"
-    #             )
-    #             profiles_changed = True
-    #         elif update_request.nutid_user_v1.profiles[this].to_dict() != db_invite.profiles[this].to_dict():
-    #             req.app.context.logger.info(f"Profile {this}/{update_request.nutid_user_v1.profiles[this]} updated")
-    #             profiles_changed = True
-    #         else:
-    #             req.app.context.logger.info(f"Profile {this}/{update_request.nutid_user_v1.profiles[this]} not changed")
-    #     for this in db_invite.profiles.keys():
-    #         if this not in update_request.nutid_user_v1.profiles:
-    #             req.app.context.logger.info(f"Profile {this}/{db_invite.profiles[this]} removed")
-    #             profiles_changed = True
-    #
-    #     if profiles_changed:
-    #         for profile_name, profile in update_request.nutid_user_v1.profiles.items():
-    #             db_profile = ScimApiProfile(attributes=profile.attributes, data=profile.data)
-    #             db_invite.profiles[profile_name] = db_profile
-
-    if invite_changed or profiles_changed:
+    assert req.context.data_owner is not None  # please mypy
+    if invite_changed:
         save_invite(
             req=req,
             db_invite=db_invite,
@@ -243,6 +178,8 @@ async def on_post(req: ContextRequest, resp: Response, create_request: InviteCre
     if signup_invite.send_email:
         send_invite_mail(req, signup_invite)
 
+    assert isinstance(req.context, ScimApiContext)  # please mypy
+    assert req.context.data_owner is not None  # please mypy
     add_api_event(
         context=req.app.context,
         data_owner=req.context.data_owner,
@@ -260,6 +197,8 @@ async def on_post(req: ContextRequest, resp: Response, create_request: InviteCre
 @invites_router.delete("/{scim_id}", status_code=204, responses={204: {"description": "No Content"}})
 async def on_delete(req: ContextRequest, scim_id: str) -> None:
     req.app.context.logger.info(f"Deleting invite {scim_id}")
+    assert isinstance(req.context, ScimApiContext)  # please mypy
+    assert req.context.invitedb is not None  # please mypy
     db_invite = req.context.invitedb.get_invite_by_scim_id(scim_id=scim_id)
     req.app.context.logger.debug(f"Found invite: {db_invite}")
 
@@ -279,6 +218,7 @@ async def on_delete(req: ContextRequest, scim_id: str) -> None:
     # Remove scim invite
     res = req.context.invitedb.remove(db_invite)
 
+    assert req.context.data_owner is not None  # please mypy
     add_api_event(
         context=req.app.context,
         data_owner=req.context.data_owner,

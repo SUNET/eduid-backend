@@ -15,12 +15,12 @@ class TestLoginResource(ScimApiTestCase):
         config["login_enabled"] = True
         return config
 
-    def test_get_token(self):
-        response = self.client.post(url="/login", data=json.dumps({"data_owner": "eduid.se"}), headers=self.headers)
+    def test_get_token(self) -> None:
+        response = self.client.post(url="/login", content=json.dumps({"data_owner": "eduid.se"}), headers=self.headers)
         self._assertResponse(response)
 
-    def test_use_token(self):
-        response = self.client.post(url="/login", data=json.dumps({"data_owner": "eduid.se"}), headers=self.headers)
+    def test_use_token(self) -> None:
+        response = self.client.post(url="/login", content=json.dumps({"data_owner": "eduid.se"}), headers=self.headers)
         token = response.headers.get("Authorization")
         headers = {
             "Content-Type": "application/scim+json",
@@ -36,6 +36,6 @@ class TestLoginResourceNotEnabled(ScimApiTestCase):
     def setUp(self) -> None:
         super().setUp()
 
-    def test_get_token(self):
-        response = self.client.post(url="/login", data=json.dumps({"data_owner": "eduid.se"}), headers=self.headers)
+    def test_get_token(self) -> None:
+        response = self.client.post(url="/login", content=json.dumps({"data_owner": "eduid.se"}), headers=self.headers)
         assert response.status_code == 404

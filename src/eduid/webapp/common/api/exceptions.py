@@ -1,7 +1,8 @@
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
 
-from flask import jsonify
+from flask import Flask, Response, jsonify
+from werkzeug.exceptions import HTTPException
 
 __author__ = "lundberg"
 
@@ -17,7 +18,7 @@ class ApiException(Exception):
         message: str = "ApiException",
         status_code: int | None = None,
         payload: Mapping[str, Any] | None = None,
-    ):
+    ) -> None:
         """
         :param message: Error message
         :param status_code: Http status code
@@ -29,13 +30,13 @@ class ApiException(Exception):
             self.status_code = status_code
         self.payload = payload
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"ApiException (message={self.message!s}, status_code={self.status_code!s}, payload={self.payload!r})"
 
-    def __unicode__(self):
+    def __unicode__(self) -> str:
         return self.__str__()
 
-    def __str__(self):
+    def __str__(self) -> str:
         if self.payload:
             return f"{self.status_code!s} with message {self.message!s} and payload {self.payload!r}"
         return f"{self.status_code!s} with message {self.message!s}"
@@ -67,15 +68,15 @@ class ProofingLogFailure(Exception):
 class ThrottledException(Exception):
     state: "ResetPasswordEmailState"
 
-    def __init__(self, state: "ResetPasswordEmailState"):
+    def __init__(self, state: "ResetPasswordEmailState") -> None:
         Exception.__init__(self)
         self.state = state
 
 
-def init_exception_handlers(app):
+def init_exception_handlers(app: Flask) -> Flask:
     # Init error handler for raised exceptions
     @app.errorhandler(400)
-    def _handle_flask_http_exception(error):
+    def _handle_flask_http_exception(error: HTTPException) -> Response:
         app.logger.error(f"HttpException {error!s}")
         e = ApiException(error.name, error.code)
         if app.config.get("DEBUG"):
@@ -87,7 +88,7 @@ def init_exception_handlers(app):
     return app
 
 
-def init_sentry(app):
+def init_sentry(app: Flask) -> Flask:
     if app.config.get("SENTRY_DSN"):
         try:
             from raven.contrib.flask import Sentry

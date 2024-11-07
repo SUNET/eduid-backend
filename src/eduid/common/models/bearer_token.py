@@ -1,7 +1,7 @@
 import logging
 from collections.abc import Mapping
 from copy import copy
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 from pydantic import BaseModel, Field, StrictInt, field_validator, model_validator
@@ -11,7 +11,7 @@ from eduid.common.config.base import AuthnBearerTokenConfig, DataOwnerName, Scop
 from eduid.userdb.scimapi.groupdb import ScimApiGroupDB
 
 
-class AuthSource(str, Enum):
+class AuthSource(StrEnum):
     INTERACTION = "interaction"
     CONFIG = "config"
     MDQ = "mdq"
@@ -53,7 +53,7 @@ class AuthnBearerToken(BaseModel):
     saml_eppn: str | None = None
     saml_unique_id: str | None = None
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"<{self.__class__.__name__}: scopes={self.scopes}, requested_access={self.requested_access}>"
 
     @field_validator("version")
@@ -65,7 +65,7 @@ class AuthnBearerToken(BaseModel):
 
     @model_validator(mode="before")
     @classmethod
-    def set_scopes_from_saml_data(cls, values: dict[str, Any]):
+    def set_scopes_from_saml_data(cls, values: dict[str, Any]) -> dict[str, Any]:
         # Get scope from saml identifier if the auth source is interaction and set it as scopes
         if values.get("auth_source") == AuthSource.INTERACTION.value:
             values["scopes"] = cls._get_scope_from_saml_data(values=values)

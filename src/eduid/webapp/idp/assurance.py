@@ -55,7 +55,7 @@ class MfaProofingMethodNotAllowed(AssuranceException):
 
 
 class AuthnState:
-    def __init__(self, user: IdPUser, sso_session: SSOSession, ticket: LoginContext):
+    def __init__(self, user: IdPUser, sso_session: SSOSession, ticket: LoginContext) -> None:
         self.password_used = False
         self.is_swamid_al2 = False
         self.is_digg_loa2 = False

@@ -2,11 +2,12 @@ __author__ = "lundberg"
 
 import json
 import logging
-from datetime import datetime, timedelta
+from datetime import timedelta
 from os import environ
 from typing import TYPE_CHECKING, Any, NewType
 
 from eduid.common.config.base import DataOwnerName
+from eduid.common.misc.timeutil import utc_now
 from eduid.queue.db import QueueItem, SenderInfo
 from eduid.queue.db.message.payload import EduidSCIMAPINotification
 from eduid.scimapi.config import ScimApiConfig
@@ -20,7 +21,7 @@ TFormattedMessage = NewType("TFormattedMessage", str)
 
 
 class NotificationRelay:
-    def __init__(self, config: ScimApiConfig):
+    def __init__(self, config: ScimApiConfig) -> None:
         self.config = config
         app_name = config.app_name
         system_hostname = environ.get("SYSTEM_HOSTNAME", "")  # Underlying hosts name for containers
@@ -41,7 +42,7 @@ class NotificationRelay:
         """
         Send a request for 'someone else' to POST information about this event to a URL.
         """
-        expires_at = datetime.utcnow() + timedelta(seconds=self.config.invite_expire)
+        expires_at = utc_now() + timedelta(seconds=self.config.invite_expire)
         discard_at = expires_at + timedelta(days=7)
         _urls = self._urls_for(data_owner)
         if not _urls:

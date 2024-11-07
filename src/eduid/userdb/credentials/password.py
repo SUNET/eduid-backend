@@ -17,7 +17,7 @@ class Password(Credential):
 
     @field_validator("credential_id", mode="before")
     @classmethod
-    def credential_id_objectid(cls, v):
+    def credential_id_objectid(cls, v: object) -> str:
         """Turn ObjectId into string"""
         if isinstance(v, ObjectId):
             v = str(v)

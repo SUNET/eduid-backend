@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 from eduid.userdb.element import TVerifiedElementSubclass, VerifiedElement
@@ -9,7 +9,7 @@ __author__ = "ft"
 
 
 # well-known proofing methods
-class CredentialProofingMethod(str, Enum):
+class CredentialProofingMethod(StrEnum):
     SWAMID_AL2_MFA_HI = "SWAMID_AL2_MFA_HI"  # deprecated and replaced by SWAMID_AL3_MFA
     SWAMID_AL3_MFA = "SWAMID_AL3_MFA"
 
@@ -29,7 +29,7 @@ class Credential(VerifiedElement):
 
     proofing_method: CredentialProofingMethod | None = None
 
-    def __str__(self):
+    def __str__(self) -> str:
         if len(self.key) == 24:
             # probably an object id in string format, don't cut it
             shortkey = str(self.key)

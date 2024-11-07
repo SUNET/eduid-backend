@@ -33,11 +33,11 @@ class Role(enum.Enum):
 
 
 class GroupDB(BaseGraphDB):
-    def __init__(self, db_uri: str, scope: str, config: dict[str, Any] | None = None):
+    def __init__(self, db_uri: str, scope: str, config: dict[str, Any] | None = None) -> None:
         super().__init__(db_uri=db_uri, config=config)
         self._scope = scope
 
-    def db_setup(self):
+    def db_setup(self) -> None:
         with self.db.driver.session(default_access_mode=WRITE_ACCESS) as session:
             # new index creation syntax in neo4j >=5.0
             statements = [
@@ -73,7 +73,7 @@ class GroupDB(BaseGraphDB):
         logger.info(f"{self} setup done.")
 
     @property
-    def scope(self):
+    def scope(self) -> str:
         return self._scope
 
     def _create_or_update_group(self, tx: Transaction, group: Group) -> Group:
@@ -109,16 +109,28 @@ class GroupDB(BaseGraphDB):
 
         for user_member in group.member_users:
             res = self._add_user_to_group(tx, group=group, member=user_member, role=Role.MEMBER)
-            members.add(User.from_mapping(res.data()))
+            if res:
+                members.add(User.from_mapping(res.data()))
+            else:
+                logger.info(f"User {user_member.identifier} not added to group {group.identifier}.")
         for group_member in group.member_groups:
             res = self._add_group_to_group(tx, group=group, member=group_member, role=Role.MEMBER)
-            members.add(self._load_group(res.data()))
+            if res:
+                members.add(self._load_group(res.data()))
+            else:
+                logger.info(f"Group {group_member.identifier} not added to group {group.identifier}.")
         for user_owner in group.owner_users:
             res = self._add_user_to_group(tx, group=group, member=user_owner, role=Role.OWNER)
-            owners.add(User.from_mapping(res.data()))
+            if res:
+                owners.add(User.from_mapping(res.data()))
+            else:
+                logger.info(f"User {user_owner.identifier} not added to group {group.identifier}.")
         for group_owner in group.owner_groups:
             res = self._add_group_to_group(tx, group=group, member=group_owner, role=Role.OWNER)
-            owners.add(self._load_group(res.data()))
+            if res:
+                owners.add(self._load_group(res.data()))
+            else:
+                logger.info(f"Group {group_owner.identifier} not added to group {group.identifier}.")
         return members, owners
 
     def _remove_missing_users_and_groups(self, tx: Transaction, group: Group, role: Role) -> None:
@@ -140,7 +152,7 @@ class GroupDB(BaseGraphDB):
                 elif Label.USER.value in record["labels"]:
                     self._remove_user_from_group(tx, group=group, user_identifier=record["identifier"], role=role)
 
-    def _remove_group_from_group(self, tx: Transaction, group: Group, group_identifier: str, role: Role):
+    def _remove_group_from_group(self, tx: Transaction, group: Group, group_identifier: str, role: Role) -> None:
         q = f"""
             MATCH (:Group {{scope: $scope, identifier: $identifier}})<-[r:{role.value}]-(:Group
                     {{scope: $scope, identifier: $group_identifier}})
@@ -153,7 +165,7 @@ class GroupDB(BaseGraphDB):
             group_identifier=group_identifier,
         )
 
-    def _remove_user_from_group(self, tx: Transaction, group: Group, user_identifier: str, role: Role):
+    def _remove_user_from_group(self, tx: Transaction, group: Group, user_identifier: str, role: Role) -> None:
         q = f"""
             MATCH (:Group {{scope: $scope, identifier: $identifier}})<-[r:{role.value}]-(:User
                     {{identifier: $user_identifier}})
@@ -161,7 +173,7 @@ class GroupDB(BaseGraphDB):
             """
         tx.run(q, scope=self.scope, identifier=group.identifier, user_identifier=user_identifier)
 
-    def _add_group_to_group(self, tx, group: Group, member: Group, role: Role) -> Record:
+    def _add_group_to_group(self, tx: Transaction, group: Group, member: Group, role: Role) -> Record | None:
         q = f"""
             MATCH (g:Group {{scope: $scope, identifier: $group_identifier}})
             MERGE (m:Group {{scope: $scope, identifier: $identifier}})
@@ -187,7 +199,7 @@ class GroupDB(BaseGraphDB):
             display_name=member.display_name,
         ).single()
 
-    def _add_user_to_group(self, tx, group: Group, member: User, role: Role) -> Record:
+    def _add_user_to_group(self, tx: Transaction, group: Group, member: User, role: Role) -> Record | None:
         q = f"""
             MATCH (g:Group {{scope: $scope, identifier: $group_identifier}})
             MERGE (m:User {{identifier: $identifier}})
@@ -276,7 +288,7 @@ class GroupDB(BaseGraphDB):
         with self.db.driver.session(default_access_mode=WRITE_ACCESS) as session:
             session.run(q, scope=self.scope, identifier=identifier)
 
-    def get_groups_by_property(self, key: str, value: str, skip=0, limit=100):
+    def get_groups_by_property(self, key: str, value: str, skip: int = 0, limit: int = 100) -> list[Group]:
         res: list[Group] = []
         q = f"""
             MATCH (g: Group {{scope: $scope}})
@@ -303,7 +315,7 @@ class GroupDB(BaseGraphDB):
             ]
         return res
 
-    def _get_groups_for_role(self, label: Label, identifier: str, role: Role):
+    def _get_groups_for_role(self, label: Label, identifier: str, role: Role) -> list[Group]:
         res: list[Group] = []
         if label == Label.GROUP:
             entity_match = "(e:Group {scope: $scope, identifier: $identifier})"
@@ -365,7 +377,9 @@ class GroupDB(BaseGraphDB):
             RETURN count(*) as exists LIMIT 1
             """
         with self.db.driver.session(default_access_mode=READ_ACCESS) as session:
-            ret = session.run(q, scope=self.scope, identifier=identifier).single()["exists"]
+            single_value = session.run(q, scope=self.scope, identifier=identifier).single()
+            assert single_value is not None  # please mypy
+            ret = single_value["exists"]
         return bool(ret)
 
     def save(self, group: Group) -> Group:

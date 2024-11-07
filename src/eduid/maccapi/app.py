@@ -12,7 +12,9 @@ from eduid.vccs.client import VCCSClient
 
 
 class MAccAPI(FastAPI):
-    def __init__(self, name: str = "maccapi", test_config: dict | None = None, vccs_client: VCCSClient | None = None):
+    def __init__(
+        self, name: str = "maccapi", test_config: dict | None = None, vccs_client: VCCSClient | None = None
+    ) -> None:
         self.config = load_config(typ=MAccApiConfig, app_name=name, ns="api", test_config=test_config)
         super().__init__(root_path=self.config.application_root)
         self.context = Context(config=self.config, vccs_client=vccs_client)

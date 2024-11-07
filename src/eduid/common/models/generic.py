@@ -16,7 +16,7 @@ HttpUrlStr = Annotated[str, HttpUrl]
 # https://docs.pydantic.dev/2.6/concepts/types/#handling-third-party-types
 class ObjectIdPydanticAnnotation:
     @classmethod
-    def __get_pydantic_core_schema__(cls, _source_type: Any, _handler: GetCoreSchemaHandler) -> core_schema.CoreSchema:
+    def __get_pydantic_core_schema__(cls, _source_type: Any, _handler: GetCoreSchemaHandler) -> core_schema.CoreSchema:  # noqa: ANN401
         """
         We return a pydantic_core.CoreSchema that behaves in the following ways:
 
@@ -58,7 +58,7 @@ class ObjectIdPydanticAnnotation:
 
 class JWKPydanticAnnotation:
     @classmethod
-    def __get_pydantic_core_schema__(cls, _source_type: Any, _handler: GetCoreSchemaHandler) -> core_schema.CoreSchema:
+    def __get_pydantic_core_schema__(cls, _source_type: Any, _handler: GetCoreSchemaHandler) -> core_schema.CoreSchema:  # noqa: ANN401
         """
         We return a pydantic_core.CoreSchema that behaves in the following ways:
 

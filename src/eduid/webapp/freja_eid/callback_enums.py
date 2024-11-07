@@ -1,8 +1,8 @@
-from enum import Enum, unique
+from enum import StrEnum, unique
 
 __author__ = "lundberg"
 
 
 @unique
-class FrejaEIDAction(str, Enum):
+class FrejaEIDAction(StrEnum):
     verify_identity = "verify-identity-action"

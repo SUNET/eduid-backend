@@ -14,7 +14,7 @@ class MailRelay:
     This is the interface to the RPC task to send e-mail.
     """
 
-    def __init__(self, config: MailConfigMixin):
+    def __init__(self, config: MailConfigMixin) -> None:
         self.app_name = config.app_name
         self.mail_from = config.mail_default_from
         eduid.workers.msg.init_app(config.celery)

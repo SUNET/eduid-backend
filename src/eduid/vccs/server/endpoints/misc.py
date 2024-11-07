@@ -1,4 +1,4 @@
-from enum import Enum, unique
+from enum import StrEnum, unique
 
 from fastapi import APIRouter, Request
 from pydantic.main import BaseModel
@@ -7,7 +7,7 @@ misc_router = APIRouter()
 
 
 @unique
-class Status(str, Enum):
+class Status(StrEnum):
     # STATUS_x_ is less ambiguous when pattern matching than just 'x'
     OK: str = "STATUS_OK_"
     FAIL: str = "STATUS_FAIL_"
@@ -43,6 +43,6 @@ class HMACResponse(BaseModel):
 
 
 @misc_router.get("/hmac/{keyhandle}/{data}", response_model=HMACResponse)
-async def hmac(request: Request, keyhandle: int, data: bytes):
+async def hmac(request: Request, keyhandle: int, data: bytes) -> HMACResponse:
     hmac = await request.app.state.hasher.hmac_sha1(key_handle=keyhandle, data=data)
     return HMACResponse(keyhandle=keyhandle, hmac=hmac.hex())

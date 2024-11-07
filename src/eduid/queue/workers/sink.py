@@ -9,11 +9,11 @@ from datetime import datetime, timedelta
 from typing import Any
 
 from eduid.common.config.parsers import load_config
+from eduid.common.misc.timeutil import utc_now
 from eduid.queue.config import QueueWorkerConfig
 from eduid.queue.db import QueueItem, SenderInfo
 from eduid.queue.db.message.payload import EduidTestPayload, EduidTestResultPayload
 from eduid.queue.workers.base import QueueWorker
-from eduid.userdb.util import utc_now
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +21,7 @@ __author__ = "lundberg"
 
 
 class SinkQueueWorker(QueueWorker):
-    def __init__(self, config: QueueWorkerConfig):
+    def __init__(self, config: QueueWorkerConfig) -> None:
         # Register which queue items this worker should try to grab
         payloads = [EduidTestPayload]
         super().__init__(config=config, handle_payloads=payloads)
@@ -91,7 +91,7 @@ def init_sink_worker(name: str = "sink_worker", test_config: Mapping[str, Any] |
     return SinkQueueWorker(config=config)
 
 
-def start_worker():
+def start_worker() -> None:
     worker = init_sink_worker()
     exit(asyncio.run(worker.run()))
 

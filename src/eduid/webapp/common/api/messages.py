@@ -146,7 +146,7 @@ def _make_payload(
     return res
 
 
-def make_query_string(msg: TranslatableMsg, error: bool = True):
+def make_query_string(msg: TranslatableMsg, error: bool = True) -> str:
     """
     Make a query string to send a translatable message to the front in the URL of a GET request.
 

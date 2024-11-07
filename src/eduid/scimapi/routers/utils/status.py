@@ -4,7 +4,7 @@ from eduid.common.fastapi.utils import check_restart, log_failure_info, reset_fa
 __author__ = "lundberg"
 
 
-def check_mongo(req: ContextRequest, default_data_owner: str):
+def check_mongo(req: ContextRequest, default_data_owner: str) -> bool | None:
     user_db = req.app.context.get_userdb(default_data_owner)
     group_db = req.app.context.get_groupdb(default_data_owner)
     try:
@@ -18,11 +18,10 @@ def check_mongo(req: ContextRequest, default_data_owner: str):
         return False
 
 
-def check_neo4j(req: ContextRequest, default_data_owner: str):
+def check_neo4j(req: ContextRequest, default_data_owner: str) -> bool | None:
     group_db = req.app.context.get_groupdb(default_data_owner)
     try:
-        # TODO: Implement is_healthy
-        # db.is_healthy()
+        # TODO: Implement is_healthy, check if there is a better way for neo4j
         q = """
             MATCH (n)
             RETURN count(*) as exists LIMIT 1

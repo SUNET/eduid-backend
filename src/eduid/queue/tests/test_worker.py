@@ -5,11 +5,11 @@ from datetime import timedelta
 from os import environ
 
 from eduid.common.config.parsers import load_config
+from eduid.common.misc.timeutil import utc_now
 from eduid.queue.config import QueueWorkerConfig
 from eduid.queue.db import QueueItem, TestPayload
 from eduid.queue.testing import IsolatedWorkerDBMixin, QueueAsyncioTest
 from eduid.queue.workers.base import QueueWorker
-from eduid.userdb.util import utc_now
 
 __author__ = "lundberg"
 
@@ -62,7 +62,7 @@ class TestBaseWorker(QueueAsyncioTest):
     async def asyncTearDown(self) -> None:
         await super().asyncTearDown()
 
-    async def test_worker_item_from_stream(self):
+    async def test_worker_item_from_stream(self) -> None:
         """
         Test that saved queue items are handled by the handle_new_item method
         """
@@ -74,7 +74,7 @@ class TestBaseWorker(QueueAsyncioTest):
         self.client_db.save(queue_item)
         await self._assert_item_gets_processed(queue_item)
 
-    async def test_worker_expired_item(self):
+    async def test_worker_expired_item(self) -> None:
         """
         Test that expired queue items are handled by the handle_expired_item method
         """

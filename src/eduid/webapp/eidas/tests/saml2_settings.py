@@ -35,12 +35,6 @@ SAML_CONFIG = {
             },
             # Do not check for signature during tests
             "want_response_signed": False,
-            # # This is commented to be compatible with simplesamlphp
-            # # attributes that this project need to identify a user
-            # 'required_attributes': ['uid'],
-            #
-            # # attributes that may be useful to have but not required
-            # 'optional_attributes': ['eduPersonAffiliation'],
             # in this section the list of IdPs we talk to are defined
             "idp": {
                 # we do not need a WAYF service since there is

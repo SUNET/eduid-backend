@@ -2,23 +2,26 @@ __author__ = "masv"
 
 from collections.abc import Callable
 from dataclasses import asdict, dataclass
+from typing import Any
 
-from fastapi import Request, Response
 from fastapi.routing import APIRoute
+from starlette.requests import Request, empty_receive, empty_send
+from starlette.responses import Response
+from starlette.types import Receive, Scope, Send
 
 
 @dataclass
 class Context:
-    def to_dict(self):
+    def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 
 
 class ContextRequest(Request):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, scope: Scope, receive: Receive = empty_receive, send: Send = empty_send) -> None:
+        super().__init__(scope=scope, receive=receive, send=send)
 
     @property
-    def context(self):
+    def context(self) -> Context:
         try:
             return self.state.context
         except AttributeError:
@@ -27,7 +30,7 @@ class ContextRequest(Request):
             return self.context
 
     @context.setter
-    def context(self, context: Context):
+    def context(self, context: Context) -> None:
         self.state.context = context
 
 

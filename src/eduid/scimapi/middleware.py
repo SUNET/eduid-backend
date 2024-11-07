@@ -7,8 +7,8 @@ from jwcrypto import jwt
 from jwcrypto.common import JWException
 from pydantic import ValidationError
 from starlette.datastructures import URL
-from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.types import Message
+from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
+from starlette.types import ASGIApp, Message
 
 from eduid.common.config.base import DataOwnerName
 from eduid.common.fastapi.context_request import ContextRequestMixin
@@ -19,7 +19,6 @@ from eduid.common.models.bearer_token import (
     AuthSource,
     RequestedAccessDenied,
 )
-from eduid.common.utils import removeprefix
 from eduid.scimapi.context import Context
 from eduid.scimapi.context_request import ScimApiContext
 from eduid.scimapi.exceptions import Unauthorized, http_error_detail_handler
@@ -29,7 +28,7 @@ logger = logging.getLogger(__name__)
 
 # Hack to be able to get request body both now and later
 # https://github.com/encode/starlette/issues/495#issuecomment-513138055
-async def set_body(request: Request, body: bytes):
+async def set_body(request: Request, body: bytes) -> None:
     async def receive() -> Message:
         return {"type": "http.request", "body": body}
 
@@ -43,50 +42,26 @@ async def get_body(request: Request) -> bytes:
 
 
 class BaseMiddleware(BaseHTTPMiddleware, ContextRequestMixin):
-    def __init__(self, app, context: Context):
+    def __init__(self, app: ASGIApp, context: Context) -> None:
         super().__init__(app)
         self.context = context
 
-    async def dispatch(self, req: Request, call_next) -> Response:
+    async def dispatch(self, req: Request, call_next: RequestResponseEndpoint) -> Response:
         return await call_next(req)
 
 
 class ScimMiddleware(BaseMiddleware):
-    async def dispatch(self, req: Request, call_next) -> Response:
+    async def dispatch(self, req: Request, call_next: RequestResponseEndpoint) -> Response:
         req = self.make_context_request(request=req, context_class=ScimApiContext)
         self.context.logger.debug(f"process_request: {req.method} {req.url.path}")
-        # TODO: fix me? is this needed?
-        # if req.method == 'POST':
-        #     if req.path == '/login':
-        #         if req.content_type != 'application/json':
-        #             raise UnsupportedMediaTypeMalformed(
-        #                 detail=f'{req.content_type} is an unsupported media type for {req.path}'
-        #             )
-        #     elif req.path == '/notifications':
-        #         if req.content_type == 'text/plain; charset=UTF-8':
-        #             # We know the body is json, set the correct content type
-        #             req.content_type = 'application/json'
-        #     elif req.content_type != 'application/scim+json':
-        #         raise UnsupportedMediaTypeMalformed(detail=f'{req.content_type} is an unsupported media type')
         resp = await call_next(req)
 
         self.context.logger.debug(f"process_response: {req.method} {req.url.path}")
-        # Default to 'application/json' if responding with an error message
-        # if req_succeeded and resp.body:
-        #     # candidates should be sorted by increasing desirability
-        #     # preferred = request.client_prefers(('application/json', 'application/scim+json'))
-        #
-        #     preferred = None
-        #     self.context.logger.debug(f'Client prefers content-type {preferred}')
-        #     if preferred is None:
-        #         preferred = 'application/scim+json'
-        #         self.context.logger.debug(f'Default content-type {preferred} used')
-        #     resp.headers.content_type = preferred
         return resp
 
 
 class AuthenticationMiddleware(BaseMiddleware):
-    def __init__(self, app, context: Context):
+    def __init__(self, app: ASGIApp, context: Context) -> None:
         super().__init__(app, context)
         self.no_authn_urls = self.context.config.no_authn_urls
         self.context.logger.debug(f"No auth allow urls: {self.no_authn_urls}")
@@ -94,7 +69,7 @@ class AuthenticationMiddleware(BaseMiddleware):
     def _is_no_auth_path(self, url: URL) -> bool:
         path = url.path
         # Remove application root from path matching
-        path = removeprefix(path, self.context.config.application_root)
+        path = path.removeprefix(self.context.config.application_root)
         for regex in self.no_authn_urls:
             m = re.match(regex, path)
             if m is not None:
@@ -102,8 +77,10 @@ class AuthenticationMiddleware(BaseMiddleware):
                 return True
         return False
 
-    async def dispatch(self, req: Request, call_next) -> Response:
+    async def dispatch(self, req: Request, call_next: RequestResponseEndpoint) -> Response:
         req = self.make_context_request(request=req, context_class=ScimApiContext)
+
+        assert isinstance(req.context, ScimApiContext)  # please mypy
 
         if self._is_no_auth_path(req.url):
             return await call_next(req)

@@ -14,7 +14,7 @@ support_views = Blueprint("support", __name__, url_prefix="", template_folder="t
 
 @support_views.route("/", methods=["GET", "POST"])
 @require_support_personnel
-def index(support_user: User):
+def index(support_user: User) -> str:
     search_query = request.form.get("query")
 
     if request.method != "POST" or not search_query:

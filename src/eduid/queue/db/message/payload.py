@@ -12,7 +12,7 @@ class EduidTestPayload(Payload):
     counter: int
 
     @classmethod
-    def from_dict(cls, data: Mapping):
+    def from_dict(cls, data: Mapping) -> "EduidTestPayload":
         return cls(**data)
 
 
@@ -27,7 +27,7 @@ class EduidTestResultPayload(Payload):
     per_second: int
 
     @classmethod
-    def from_dict(cls, data: Mapping):
+    def from_dict(cls, data: Mapping) -> "EduidTestResultPayload":
         return cls(**data)
 
 
@@ -38,7 +38,7 @@ class EduidSCIMAPINotification(Payload):
     message: str
 
     @classmethod
-    def from_dict(cls, data: Mapping):
+    def from_dict(cls, data: Mapping) -> "EduidSCIMAPINotification":
         data = dict(data)  # Do not change caller data
         return cls(**data)
 
@@ -50,7 +50,7 @@ class EmailPayload(Payload):
     language: str
 
     @classmethod
-    def from_dict(cls, data: Mapping):
+    def from_dict(cls, data: Mapping) -> "EmailPayload":
         data = dict(data)  # Do not change caller data
         return cls(**data)
 

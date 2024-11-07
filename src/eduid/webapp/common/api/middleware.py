@@ -1,9 +1,13 @@
 __author__ = "lundberg"
 
+from collections.abc import Callable, Iterable
+from typing import Any
+from wsgiref.types import StartResponse, WSGIEnvironment
+
 
 # Copied from https://stackoverflow.com/questions/18967441/add-a-prefix-to-all-flask-routes/36033627#36033627
 class PrefixMiddleware:
-    def __init__(self, app, prefix="", server_name=""):
+    def __init__(self, app: Callable[..., Any], prefix: str = "", server_name: str = "") -> None:
         self.app = app
         if prefix is None:
             prefix = ""
@@ -12,7 +16,7 @@ class PrefixMiddleware:
         self.prefix = prefix
         self.server_name = server_name
 
-    def __call__(self, environ, start_response):
+    def __call__(self, environ: WSGIEnvironment, start_response: StartResponse) -> Iterable[bytes]:
         # Handle localhost requests for health checks
         if environ.get("REMOTE_ADDR") == "127.0.0.1":
             environ["HTTP_HOST"] = self.server_name

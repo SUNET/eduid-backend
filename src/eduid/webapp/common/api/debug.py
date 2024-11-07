@@ -1,10 +1,11 @@
 import pprint
 import sys
 import warnings
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from dataclasses import asdict
 from typing import Any
 from urllib import parse
+from wsgiref.types import StartResponse, WSGIEnvironment
 
 from flask import Flask, url_for
 
@@ -12,21 +13,21 @@ __author__ = "lundberg"
 
 
 class LoggingMiddleware:
-    def __init__(self, app: Callable[..., Any]):
+    def __init__(self, app: Callable[..., Any]) -> None:
         self._app = app
 
-    def __call__(self, environ: dict[Any, Any], resp: Callable[..., Any]):
+    def __call__(self, environ: WSGIEnvironment, start_response: StartResponse) -> Iterable[bytes]:
         errorlog = environ["wsgi.errors"]
         pprint.pprint(("REQUEST", environ), stream=errorlog)
 
-        def log_response(status, headers, *args):
+        def log_response(status: str, headers: list[tuple[str, str]], *args: Any) -> Callable[[bytes], object]:
             pprint.pprint(("RESPONSE", status, headers), stream=errorlog)
-            return resp(status, headers, *args)
+            return start_response(status, headers, *args)
 
         return self._app(environ, log_response)
 
 
-def log_endpoints(app: Flask):
+def log_endpoints(app: Flask) -> None:
     output: list[str] = []
     with app.app_context():
         for rule in app.url_map.iter_rules():
@@ -43,7 +44,7 @@ def log_endpoints(app: Flask):
             pprint.pprint(("ENDPOINT", line), stream=sys.stderr)
 
 
-def dump_config(app: Flask):
+def dump_config(app: Flask) -> None:
     pprint.pprint(("CONFIGURATION", "app.config"), stream=sys.stderr)
     try:
         config_items = asdict(app.config).items()  # type: ignore[call-overload]
@@ -54,8 +55,8 @@ def dump_config(app: Flask):
         pprint.pprint((key, value), stream=sys.stderr)
 
 
-def init_app_debug(app: Flask):
-    app.wsgi_app = LoggingMiddleware(app.wsgi_app)  # type: ignore[assignment]
+def init_app_debug(app: Flask) -> Flask:
+    app.wsgi_app = LoggingMiddleware(app.wsgi_app)  # type: ignore[method-assign]
     dump_config(app)
     log_endpoints(app)
     pprint.pprint(("view_functions", app.view_functions), stream=sys.stderr)

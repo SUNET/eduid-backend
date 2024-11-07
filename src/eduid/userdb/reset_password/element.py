@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import Any
 
+from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.element import Element, ElementKey
-from eduid.userdb.util import utc_now
 
 
 class CodeElement(Element):
@@ -72,7 +72,7 @@ class CodeElement(Element):
             return cls(
                 created_by=data.get("created_by", application),
                 code=data["code"],
-                created_ts=data.get("created_ts", datetime.utcnow()),
+                created_ts=data.get("created_ts", utc_now()),
                 is_verified=data.get("verified", False),
             )
         if isinstance(code_or_element, CodeElement):
