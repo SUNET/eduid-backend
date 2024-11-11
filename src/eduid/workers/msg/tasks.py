@@ -153,10 +153,6 @@ class MessageSender(Task):
         :param identity_number: Swedish national identity number
         :return: dict containing name and postal address
         """
-        # Only log the message if devel_mode is enabled
-        if MsgCelerySingleton.worker_config.devel_mode is True:
-            return self.get_devel_postal_address()
-
         data = self._get_navet_data(identity_number)
         # Filter name and address from the Navet lookup results
         return navet_get_name_and_official_address(data)
@@ -187,10 +183,6 @@ class MessageSender(Task):
         :param identity_number: Swedish national identity number
         :return: dict containing name and postal address
         """
-        # Only log the message if devel_mode is enabled
-        if MsgCelerySingleton.worker_config.devel_mode is True:
-            return self.get_devel_relations()
-
         data = self._get_navet_data(identity_number)
         # Filter relations from the Navet lookup results
         return navet_get_relations(data)
@@ -229,10 +221,6 @@ class MessageSender(Task):
         return result
 
     def get_all_navet_data(self, identity_number: str) -> OrderedDict[str, Any] | None:
-        # Only log the message if devel_mode is enabled
-        if MsgCelerySingleton.worker_config.devel_mode is True:
-            return self.get_devel_all_navet_data(identity_number)
-
         data = self._get_navet_data(identity_number)
         return navet_get_all_data(data)
 
