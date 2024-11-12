@@ -11,6 +11,7 @@ from copy import deepcopy
 from datetime import timedelta
 from typing import Any, Generic, TypeVar, cast
 
+from black import datetime
 from fido2.webauthn import AuthenticatorAttachment
 from flask.testing import FlaskClient
 from werkzeug.test import TestResponse
@@ -342,17 +343,25 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
                 )
                 sess.authn.sp.authns[sp_authn_req.authn_id] = sp_authn_req
 
-    def setup_signup_authn(self):
+    def setup_signup_authn(self, eppn: str | None = None, user_created_at: datetime | None = None) -> None:
+        if eppn is None:
+            eppn = self.test_user_eppn
+        if user_created_at is None:
+            user_created_at = utc_now() - timedelta(minutes=3)
         # mock recent account creation from signup
-        with self.session_cookie(self.browser, self.test_user_eppn) as client:
+        with self.session_cookie(self.browser, eppn) as client:
             with client.session_transaction() as sess:
                 sess.signup.user_created = True
+                sess.signup.user_created_at = user_created_at
 
-    def add_security_key_to_user(self, eppn: str, keyhandle: str, token_type: str = "webauthn") -> U2F | Webauthn:
+    def add_security_key_to_user(
+        self, eppn: str, keyhandle: str, token_type: str = "webauthn", created_ts: datetime = utc_now()
+    ) -> U2F | Webauthn:
         user = self.app.central_userdb.get_user_by_eppn(eppn)
         mfa_token: U2F | Webauthn
         if token_type == "u2f":
             mfa_token = U2F(
+                created_ts=created_ts,
                 version="test",
                 keyhandle=keyhandle,
                 public_key="test",
@@ -363,6 +372,7 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
             )
         else:
             mfa_token = Webauthn(
+                created_ts=created_ts,
                 keyhandle=keyhandle,
                 credential_data="test",
                 app_id="test",

@@ -6,11 +6,15 @@ from unittest.mock import MagicMock, patch
 
 from fido2.webauthn import AttestationObject, AuthenticatorAttachment, CollectedClientData, UserVerificationRequirement
 from fido_mds import FidoMetadataStore
+from future.backports.datetime import timedelta
 from werkzeug.http import dump_cookie
+from werkzeug.test import TestResponse
 
 from eduid.common.config.base import EduidEnvironment, FrontendAction
+from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.credentials import U2F, FidoCredential, Webauthn
 from eduid.userdb.testing import SetupConfig
+from eduid.webapp.common.api.schemas.authn_status import AuthnActionStatus
 from eduid.webapp.common.api.testing import CSRFTestClient, EduidAPITestCase
 from eduid.webapp.common.session import EduidSession
 from eduid.webapp.common.session.namespaces import WebauthnRegistration, WebauthnState
@@ -167,6 +171,13 @@ class SecurityWebauthnTests(EduidAPITestCase):
         self.app.central_userdb.save(user)
         return u2f_token
 
+    @staticmethod
+    def _response_json_to_dict(response: TestResponse) -> dict[Any, Any]:
+        data = response.json
+        assert data is not None, "No json data returned"
+        assert isinstance(data, dict) is True, "returned json is not a dict"
+        return data
+
     def _check_session_state(self, client: CSRFTestClient) -> None:
         with client.session_transaction() as sess:
             assert isinstance(sess, EduidSession)
@@ -200,8 +211,8 @@ class SecurityWebauthnTests(EduidAPITestCase):
         existing_legacy_token: bool = False,
         csrf: str | None = None,
         check_session: bool = True,
-        set_authn_action: bool = True,
-    ) -> dict:
+        setup_authn_action: bool = True,
+    ) -> TestResponse:
         """
         Start process to register a webauthn token for the test user,
         possibly adding U2F or webauthn credentials before.
@@ -218,7 +229,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
             # Fake that user used the other security key to authenticate
             force_mfa = True
 
-        if set_authn_action:
+        if setup_authn_action:
             self.set_authn_action(
                 eppn=self.test_user_eppn,
                 frontend_action=FrontendAction.ADD_SECURITY_KEY_AUTHN,
@@ -247,7 +258,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
             if check_session:
                 self._check_session_state(client)
 
-            return json.loads(response2.data)
+            return response2
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def _finish_register_key(
@@ -260,7 +271,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
         existing_legacy_token: bool = False,
         csrf: str | None = None,
         set_authn_action: bool = True,
-    ) -> dict:
+    ) -> TestResponse:
         """
         Finish registering a webauthn token.
 
@@ -310,7 +321,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
             response2 = client.post(
                 "/webauthn/register/complete", data=json.dumps(data), content_type=self.content_type_json
             )
-            return json.loads(response2.data)
+            return response2
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def _remove(
@@ -324,7 +335,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
         state_2: dict,
         existing_legacy_token: bool = False,
         csrf: str | None = None,
-    ) -> tuple[Webauthn, dict]:
+    ) -> tuple[Webauthn, TestResponse]:
         """
         Send a POST request to remove a webauthn credential from the test user.
         Before sending the request, add 2 webauthn credentials (and possibly a legacy u2f credential) to the test user.
@@ -357,7 +368,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
                 "credential_key": user_token.key,
             }
             response2 = client.post("/webauthn/remove", json=data)
-            return user_token, json.loads(response2.data)
+            return user_token, response2
 
     def _apple_special_verify_attestation(
         self: FidoMetadataStore, attestation: Attestation, client_data: bytes
@@ -383,129 +394,141 @@ class SecurityWebauthnTests(EduidAPITestCase):
         self.assertEqual(response.status_code, 401)
 
     def test_begin_register_first_key(self) -> None:
-        data = self._begin_register_key()
-        self._check_registration_begun(data)
+        response = self._begin_register_key()
+        self._check_registration_begun(self._response_json_to_dict(response))
 
     def test_begin_register_first_key_with_legacy_token(self) -> None:
-        data = self._begin_register_key(existing_legacy_token=True)
-        self._check_registration_begun(data)
+        response = self._begin_register_key(existing_legacy_token=True)
+        self._check_registration_begun(self._response_json_to_dict(response))
 
     def test_begin_register_2nd_key_ater_ctap1(self) -> None:
-        data = self._begin_register_key(other="ctap1")
-        self._check_registration_begun(data)
+        response = self._begin_register_key(other="ctap1")
+        self._check_registration_begun(self._response_json_to_dict(response))
 
     def test_begin_register_2nd_key_ater_ctap1_with_legacy_token(self) -> None:
-        data = self._begin_register_key(other="ctap1", existing_legacy_token=True)
-        self._check_registration_begun(data)
+        response = self._begin_register_key(other="ctap1", existing_legacy_token=True)
+        self._check_registration_begun(self._response_json_to_dict(response))
 
     def test_begin_register_2nd_key_ater_ctap2(self) -> None:
-        data = self._begin_register_key(other="ctap2")
-        self._check_registration_begun(data)
+        response = self._begin_register_key(other="ctap2")
+        self._check_registration_begun(self._response_json_to_dict(response))
 
     def test_begin_register_2nd_key_ater_ctap2_with_legacy_token(self) -> None:
-        data = self._begin_register_key(other="ctap2", existing_legacy_token=True)
-        self._check_registration_begun(data)
+        response = self._begin_register_key(other="ctap2", existing_legacy_token=True)
+        self._check_registration_begun(self._response_json_to_dict(response))
 
     def test_begin_register_first_device(self) -> None:
-        data = self._begin_register_key(authenticator="platform")
-        self._check_registration_begun(data)
+        response = self._begin_register_key(authenticator="platform")
+        self._check_registration_begun(self._response_json_to_dict(response))
 
     def test_begin_register_first_device_with_legacy_token(self) -> None:
-        data = self._begin_register_key(authenticator="platform", existing_legacy_token=True)
-        self._check_registration_begun(data)
+        response = self._begin_register_key(authenticator="platform", existing_legacy_token=True)
+        self._check_registration_begun(self._response_json_to_dict(response))
 
     def test_begin_register_2nd_device_ater_ctap1(self) -> None:
-        data = self._begin_register_key(other="ctap1", authenticator="platform")
-        self._check_registration_begun(data)
+        response = self._begin_register_key(other="ctap1", authenticator="platform")
+        self._check_registration_begun(self._response_json_to_dict(response))
 
     def test_begin_register_2nd_device_ater_ctap1_with_legacy_token(self) -> None:
-        data = self._begin_register_key(other="ctap1", authenticator="platform", existing_legacy_token=True)
-        self._check_registration_begun(data)
+        response = self._begin_register_key(other="ctap1", authenticator="platform", existing_legacy_token=True)
+        self._check_registration_begun(self._response_json_to_dict(response))
 
     def test_begin_register_2nd_device_ater_ctap2(self) -> None:
-        data = self._begin_register_key(other="ctap2", authenticator="platform")
-        self._check_registration_begun(data)
+        response = self._begin_register_key(other="ctap2", authenticator="platform")
+        self._check_registration_begun(self._response_json_to_dict(response))
 
     def test_begin_register_2nd_device_ater_ctap2_with_legacy_token(self) -> None:
-        data = self._begin_register_key(other="ctap2", authenticator="platform", existing_legacy_token=True)
-        self._check_registration_begun(data)
+        response = self._begin_register_key(other="ctap2", authenticator="platform", existing_legacy_token=True)
+        self._check_registration_begun(self._response_json_to_dict(response))
 
-    def test_begin_register_first_key_signup_authn(self):
+    def test_begin_register_first_key_signup_authn(self) -> None:
         self.setup_signup_authn()
-        data = self._begin_register_key(set_authn_action=False)
-        self._check_registration_begun(data)
+        response = self._begin_register_key(setup_authn_action=False)
+        self._check_registration_begun(self._response_json_to_dict(response))
 
-    def test_begin_register_2nd_key_ater_ctap2_signup_authn(self):
+    def test_begin_register_first_key_signup_authn_to_old(self) -> None:
+        self.setup_signup_authn(user_created_at=utc_now() - timedelta(minutes=10))
+        response = self._begin_register_key(check_session=False, setup_authn_action=False)
+        self._check_must_authenticate_response(
+            response=response,
+            type_="POST_WEBAUTHN_WEBAUTHN_REGISTER_BEGIN_FAIL",
+            frontend_action=FrontendAction.ADD_SECURITY_KEY_AUTHN,
+            authn_status=AuthnActionStatus.NOT_FOUND,
+        )
+
+    def test_begin_register_2nd_key_ater_ctap2_signup_authn(self) -> None:
         self.setup_signup_authn()
-        data = self._begin_register_key(other="ctap2", set_authn_action=False)
-        self._check_registration_begun(data)
+        response = self._begin_register_key(other="ctap2", setup_authn_action=False)
+        self._check_registration_begun(self._response_json_to_dict(response))
 
     def test_begin_register_wrong_csrf_token(self) -> None:
-        data = self._begin_register_key(csrf="wrong-token", check_session=False)
+        response = self._begin_register_key(csrf="wrong-token", check_session=False)
+        data = self._response_json_to_dict(response)
         self.assertEqual(data["type"], "POST_WEBAUTHN_WEBAUTHN_REGISTER_BEGIN_FAIL")
         self.assertEqual(data["payload"]["error"]["csrf_token"], ["CSRF failed to validate"])
 
     def test_finish_register_ctap1(self) -> None:
-        data = self._finish_register_key(
+        response = self._finish_register_key(
             client_data=CLIENT_DATA_JSON, attestation=ATTESTATION_OBJECT, state=STATE, cred_id=CREDENTIAL_ID
         )
-        self._check_registration_complete(data)
+        self._check_registration_complete(self._response_json_to_dict(response))
         # check that a proofing element was not written as the token is not mfa capable
         assert self.app.proofing_log.db_count() == 0
 
     def test_finish_register_ctap1_with_legacy_token(self) -> None:
-        data = self._finish_register_key(
+        response = self._finish_register_key(
             client_data=CLIENT_DATA_JSON,
             attestation=ATTESTATION_OBJECT,
             state=STATE,
             cred_id=CREDENTIAL_ID,
             existing_legacy_token=True,
         )
-        self._check_registration_complete(data)
+        self._check_registration_complete(self._response_json_to_dict(response))
         # check that a proofing element was not written as the token is not mfa capable
         assert self.app.proofing_log.db_count() == 0
 
     def test_finish_register_ctap2(self) -> None:
-        data = self._finish_register_key(
+        response = self._finish_register_key(
             client_data=CLIENT_DATA_JSON_2, attestation=ATTESTATION_OBJECT_2, state=STATE_2, cred_id=CREDENTIAL_ID_2
         )
-        self._check_registration_complete(data)
+        self._check_registration_complete(self._response_json_to_dict(response))
         # check that a proofing element was written as the token is mfa capable
         assert self.app.proofing_log.db_count() == 1
 
     def test_finish_register_ctap2_with_legacy_token(self) -> None:
-        data = self._finish_register_key(
+        response = self._finish_register_key(
             client_data=CLIENT_DATA_JSON_2,
             attestation=ATTESTATION_OBJECT_2,
             state=STATE_2,
             cred_id=CREDENTIAL_ID_2,
             existing_legacy_token=True,
         )
-        self._check_registration_complete(data)
+        self._check_registration_complete(self._response_json_to_dict(response))
         # check that a proofing element was written as the token is mfa capable
         assert self.app.proofing_log.db_count() == 1
 
-    def test_finish_register_ctap2_signup_authn(self):
+    def test_finish_register_ctap2_signup_authn(self) -> None:
         self.setup_signup_authn()
-        data = self._finish_register_key(
+        response = self._finish_register_key(
             set_authn_action=False,
             client_data=CLIENT_DATA_JSON_2,
             attestation=ATTESTATION_OBJECT_2,
             state=STATE_2,
             cred_id=CREDENTIAL_ID_2,
         )
-        self._check_registration_complete(data)
+        self._check_registration_complete(self._response_json_to_dict(response))
         # check that a proofing element was written as the token is mfa capable
         assert self.app.proofing_log.db_count() == 1
 
     def test_finish_register_wrong_csrf(self) -> None:
-        data = self._finish_register_key(
+        response = self._finish_register_key(
             client_data=CLIENT_DATA_JSON,
             attestation=ATTESTATION_OBJECT,
             state=STATE,
             cred_id=CREDENTIAL_ID,
             csrf="wrong-token",
         )
+        data = self._response_json_to_dict(response)
         self.assertEqual(data["type"], "POST_WEBAUTHN_WEBAUTHN_REGISTER_COMPLETE_FAIL")
         self.assertEqual(data["payload"]["error"]["csrf_token"], ["CSRF failed to validate"])
 
@@ -516,7 +539,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
             mock_mfa=True,
         )
 
-        user_token, data = self._remove(
+        user_token, response = self._remove(
             client_data=CLIENT_DATA_JSON,
             attestation=ATTESTATION_OBJECT,
             state=STATE,
@@ -524,7 +547,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
             attestation_2=ATTESTATION_OBJECT_2,
             state_2=STATE_2,
         )
-        self._check_removal(data, user_token)
+        self._check_removal(self._response_json_to_dict(response), user_token)
 
     def test_remove_ctap1_with_legacy_token(self) -> None:
         self.set_authn_action(
@@ -533,7 +556,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
             mock_mfa=True,
         )
 
-        user_token, data = self._remove(
+        user_token, response = self._remove(
             client_data=CLIENT_DATA_JSON,
             attestation=ATTESTATION_OBJECT,
             state=STATE,
@@ -542,7 +565,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
             state_2=STATE_2,
             existing_legacy_token=True,
         )
-        self._check_removal(data, user_token)
+        self._check_removal(self._response_json_to_dict(response), user_token)
 
     def test_remove_ctap2(self) -> None:
         self.set_authn_action(
@@ -551,7 +574,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
             mock_mfa=True,
         )
 
-        user_token, data = self._remove(
+        user_token, response = self._remove(
             client_data=CLIENT_DATA_JSON_2,
             attestation=ATTESTATION_OBJECT_2,
             state=STATE_2,
@@ -559,7 +582,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
             attestation_2=ATTESTATION_OBJECT,
             state_2=STATE,
         )
-        self._check_removal(data, user_token)
+        self._check_removal(self._response_json_to_dict(response), user_token)
 
     def test_remove_ctap2_legacy_token(self) -> None:
         self.set_authn_action(
@@ -568,7 +591,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
             mock_mfa=True,
         )
 
-        user_token, data = self._remove(
+        user_token, response = self._remove(
             client_data=CLIENT_DATA_JSON_2,
             attestation=ATTESTATION_OBJECT_2,
             state=STATE_2,
@@ -577,7 +600,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
             state_2=STATE,
             existing_legacy_token=True,
         )
-        self._check_removal(data, user_token)
+        self._check_removal(self._response_json_to_dict(response), user_token)
 
     def test_remove_wrong_csrf(self) -> None:
         self.set_authn_action(
@@ -585,7 +608,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
             frontend_action=FrontendAction.REMOVE_SECURITY_KEY_AUTHN,
         )
 
-        _, data = self._remove(
+        _, response = self._remove(
             client_data=CLIENT_DATA_JSON,
             attestation=ATTESTATION_OBJECT,
             state=STATE,
@@ -594,6 +617,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
             state_2=STATE_2,
             csrf="wrong-csrf",
         )
+        data = self._response_json_to_dict(response)
         self.assertEqual(data["type"], "POST_WEBAUTHN_WEBAUTHN_REMOVE_FAIL")
         self.assertEqual(data["payload"]["error"]["csrf_token"], ["CSRF failed to validate"])
 
