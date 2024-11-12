@@ -199,7 +199,7 @@ def validate_authn_for_action(
         return AuthnActionStatus.NO_MFA
 
     if credential_requested and not credential_recently_used(
-        credential=credential_requested, action=authn, max_age=int(authn_params.max_age.total_seconds())
+        user=user, credential=credential_requested, action=authn, max_age=int(authn_params.max_age.total_seconds())
     ):
         logger.info(f"Credential {credential_requested} has not been used recently")
         return AuthnActionStatus.CREDENTIAL_NOT_RECENTLY_USED
@@ -207,7 +207,8 @@ def validate_authn_for_action(
     return AuthnActionStatus.OK
 
 
-def credential_recently_used(credential: Credential, action: SP_AuthnRequest | None, max_age: int) -> bool:
+def credential_recently_used(user: User, credential: Credential, action: SP_AuthnRequest | None, max_age: int) -> bool:
+    # check if the credential was used in an authentication action in the last max_age seconds
     logger.debug(f"Checking if credential {credential} has been used in the last {max_age} seconds")
     if action and credential.key in action.credentials_used:
         if action.authn_instant is not None:
@@ -215,6 +216,15 @@ def credential_recently_used(credential: Credential, action: SP_AuthnRequest | N
             if 0 < age < max_age:
                 logger.debug(f"Credential {credential} has been used recently")
                 return True
+
+    # check if the credential was added to the user in the last max_age seconds
+    logger.debug(f"Checking if credential {credential} has been added in the last {max_age} seconds")
+    if user_cred := user.credentials.find(key=credential.key):
+        age = (utc_now() - user_cred.created_ts).total_seconds()
+        if 0 < age < max_age:
+            logger.debug(f"Credential {credential} has been added recently")
+            return True
+
     return False
 
 
