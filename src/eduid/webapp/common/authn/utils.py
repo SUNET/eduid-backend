@@ -148,8 +148,19 @@ def validate_authn_for_action(
 
     if not authn and authn_params.allow_signup_auth:
         # check if the user is just created in the process of signup
-        session_age = utc_now() - session.signup.ts
-        if session.signup.user_created and session_age < (authn_params.max_age + config.signup_auth_slack):
+        if session.signup.user_created is False or session.signup.user_created_at is None:
+            logger.info("No signup authentication found")
+            logger.debug(f"frontend action: {frontend_action}, allow_signup_auth={authn_params.allow_signup_auth}")
+            return AuthnActionStatus.NOT_FOUND
+
+        if credential_requested and not credential_recently_used(
+            user=user, credential=credential_requested, action=authn, max_age=int(authn_params.max_age.total_seconds())
+        ):
+            logger.info(f"Credential {credential_requested} has not been used recently")
+            return AuthnActionStatus.CREDENTIAL_NOT_RECENTLY_USED
+
+        user_age = utc_now() - session.signup.user_created_at
+        if user_age < (authn_params.max_age + config.signup_auth_slack):
             logger.info("Signup in progress, no authentication required")
             return AuthnActionStatus.OK
 

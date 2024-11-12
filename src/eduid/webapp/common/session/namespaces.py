@@ -169,6 +169,7 @@ class Credentials(SessionNSBase):
 
 class Signup(TimestampedNS):
     user_created: bool = False
+    user_created_at: datetime | None = None
     name: Name = Field(default_factory=Name)
     email: EmailVerification = Field(default_factory=EmailVerification)
     invite: Invite = Field(default_factory=Invite)
