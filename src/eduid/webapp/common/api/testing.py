@@ -8,10 +8,9 @@ import traceback
 from collections.abc import Generator, Iterable, Mapping
 from contextlib import contextmanager
 from copy import deepcopy
-from datetime import timedelta
+from datetime import timedelta, datetime
 from typing import Any, Generic, TypeVar, cast
 
-from black import datetime
 from fido2.webauthn import AuthenticatorAttachment
 from flask.testing import FlaskClient
 from werkzeug.test import TestResponse
