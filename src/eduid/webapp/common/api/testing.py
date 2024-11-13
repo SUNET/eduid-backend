@@ -8,7 +8,7 @@ import traceback
 from collections.abc import Generator, Iterable, Mapping
 from contextlib import contextmanager
 from copy import deepcopy
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any, Generic, TypeVar, cast
 
 from fido2.webauthn import AuthenticatorAttachment
@@ -320,7 +320,7 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
         post_authn_action: AuthnAcsAction = AuthnAcsAction.login,
         age: timedelta = timedelta(seconds=30),
         finish_url: str | None = None,
-        force_mfa: bool = False,
+        mock_mfa: bool = False,
         credentials_used: list[ElementKey] | None = None,
     ) -> None:
         if not finish_url:
@@ -329,7 +329,7 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
         if credentials_used is None:
             credentials_used = []
 
-        if force_mfa:
+        if mock_mfa:
             credentials_used = [ElementKey("mock_credential_one"), ElementKey("mock_credential_two")]
 
         with self.session_cookie(self.browser, eppn) as client:
@@ -344,11 +344,25 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
                 )
                 sess.authn.sp.authns[sp_authn_req.authn_id] = sp_authn_req
 
-    def add_security_key_to_user(self, eppn: str, keyhandle: str, token_type: str = "webauthn") -> U2F | Webauthn:
+    def setup_signup_authn(self, eppn: str | None = None, user_created_at: datetime | None = None) -> None:
+        if eppn is None:
+            eppn = self.test_user_eppn
+        if user_created_at is None:
+            user_created_at = utc_now() - timedelta(minutes=3)
+        # mock recent account creation from signup
+        with self.session_cookie(self.browser, eppn) as client:
+            with client.session_transaction() as sess:
+                sess.signup.user_created = True
+                sess.signup.user_created_at = user_created_at
+
+    def add_security_key_to_user(
+        self, eppn: str, keyhandle: str, token_type: str = "webauthn", created_ts: datetime = utc_now()
+    ) -> U2F | Webauthn:
         user = self.app.central_userdb.get_user_by_eppn(eppn)
         mfa_token: U2F | Webauthn
         if token_type == "u2f":
             mfa_token = U2F(
+                created_ts=created_ts,
                 version="test",
                 keyhandle=keyhandle,
                 public_key="test",
@@ -359,6 +373,7 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
             )
         else:
             mfa_token = Webauthn(
+                created_ts=created_ts,
                 keyhandle=keyhandle,
                 credential_data="test",
                 app_id="test",

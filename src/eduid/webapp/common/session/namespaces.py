@@ -169,6 +169,7 @@ class Credentials(SessionNSBase):
 
 class Signup(TimestampedNS):
     user_created: bool = False
+    user_created_at: datetime | None = None
     name: Name = Field(default_factory=Name)
     email: EmailVerification = Field(default_factory=EmailVerification)
     invite: Invite = Field(default_factory=Invite)
@@ -289,16 +290,9 @@ class SPAuthnData(BaseModel):
             return dict(items[:10])
         return v
 
-    def _remove_get_authn_for_action(
-        self, action: AuthnAcsAction | EidasAcsAction | BankIDAcsAction
-    ) -> SP_AuthnRequest | None:
-        for authn in self.authns.values():
-            if authn.post_authn_action == action:
-                return authn
-        return None
-
     def get_authn_for_frontend_action(self, action: FrontendAction) -> SP_AuthnRequest | None:
-        for authn in self.authns.values():
+        # sort authn actions by created_ts and return the first one (latest) that matches the action
+        for authn in sorted(self.authns.values(), reverse=True, key=lambda item: item.created_ts):
             if authn.frontend_action == action:
                 return authn
         return None

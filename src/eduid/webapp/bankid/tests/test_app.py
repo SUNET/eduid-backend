@@ -4,6 +4,7 @@ import logging
 import os
 import unittest
 from collections.abc import Mapping
+from datetime import timedelta
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -18,12 +19,11 @@ from eduid.webapp.bankid.app import BankIDApp, init_bankid_app
 from eduid.webapp.bankid.helpers import BankIDMsg
 from eduid.webapp.common.api.messages import AuthnStatusMsg, TranslatableMsg
 from eduid.webapp.common.api.testing import CSRFTestClient
-from eduid.webapp.common.authn.acs_enums import AuthnAcsAction
 from eduid.webapp.common.authn.cache import OutstandingQueriesCache
 from eduid.webapp.common.proofing.messages import ProofingMsg
 from eduid.webapp.common.proofing.testing import ProofingTests
 from eduid.webapp.common.session import EduidSession
-from eduid.webapp.common.session.namespaces import AuthnRequestRef, SP_AuthnRequest
+from eduid.webapp.common.session.namespaces import AuthnRequestRef
 
 __author__ = "lundberg"
 
@@ -199,6 +199,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
                         "force_authn": True,
                         "force_mfa": True,
                         "allow_login_auth": True,
+                        "allow_signup_auth": True,
                         "finish_url": "http://test.localhost/testing-verify-credential/{app_name}/{authn_id}",
                     },
                 },
@@ -265,18 +266,6 @@ class BankIDTests(ProofingTests[BankIDApp]):
 
         return resp.encode("utf-8")
 
-    def _setup_faked_login(self, session: EduidSession, credentials_used: list[ElementKey]) -> None:
-        logger.debug(f"Test setting credentials used for login in session {session}: {credentials_used}")
-        authn_req = SP_AuthnRequest(
-            post_authn_action=AuthnAcsAction.login,
-            credentials_used=credentials_used,
-            authn_instant=utc_now(),
-            frontend_action=FrontendAction.LOGIN,
-            finish_url="https://example.com/ext-return/{app_name}/{authn_id}",
-        )
-
-        session.authn.sp.authns = {authn_req.authn_id: authn_req}
-
     @staticmethod
     def _get_request_id_from_session(session: EduidSession) -> tuple[str, AuthnRequestRef]:
         """extract the (probable) SAML request ID from the session"""
@@ -329,6 +318,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
         expect_error: bool = False,
         expect_saml_error: bool = False,
         identity: NinIdentity | None = None,
+        logged_in: bool = True,
         method: str = "bankid",
         response_template: str | None = None,
         verify_credential: ElementKey | None = None,
@@ -344,6 +334,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
             expect_saml_error=expect_saml_error,
             frontend_action=frontend_action,
             identity=identity,
+            logged_in=logged_in,
             method=method,
             response_template=response_template,
             verify_credential=verify_credential,
@@ -355,9 +346,10 @@ class BankIDTests(ProofingTests[BankIDApp]):
         endpoint: str,
         method: str,
         frontend_action: FrontendAction,
+        expect_success: bool = True,
         verify_credential: ElementKey | None = None,
         frontend_state: str | None = None,
-    ) -> str:
+    ) -> str | None:
         with browser.session_transaction() as sess:
             csrf_token = sess.get_csrf_token()
 
@@ -373,10 +365,16 @@ class BankIDTests(ProofingTests[BankIDApp]):
             req["frontend_action"] = frontend_action.value
         assert browser
         response = browser.post(endpoint, json=req)
-        self._check_success_response(response, type_=None, payload={"csrf_token": csrf_token})
-
-        loc = self.get_response_payload(response).get("location")
-        assert loc is not None, "Location in header is missing"
+        if expect_success:
+            self._check_success_response(response, type_=None, payload={"csrf_token": csrf_token})
+            loc = self.get_response_payload(response).get("location")
+            assert loc is not None, "Location in header is missing"
+        else:
+            loc = None
+            payload = {"csrf_token": csrf_token}
+            if verify_credential:
+                payload["credential_description"] = "test"
+            self._check_error_response(response, type_=None, payload=payload, msg=AuthnStatusMsg.must_authenticate)
         return loc
 
     def _call_endpoint_and_saml_acs(
@@ -411,15 +409,17 @@ class BankIDTests(ProofingTests[BankIDApp]):
 
         assert isinstance(browser, CSRFTestClient)
 
-        browser_with_session_cookie = self.session_cookie(browser, eppn)
-        if not logged_in:
+        if logged_in:
+            browser_with_session_cookie = self.session_cookie(browser, eppn)
+            self.set_authn_action(
+                eppn=eppn,
+                frontend_action=FrontendAction.LOGIN,
+                credentials_used=credentials_used,
+            )
+        else:
             browser_with_session_cookie = self.session_cookie_anon(browser)
 
         with browser_with_session_cookie as browser:
-            if credentials_used:
-                with browser.session_transaction() as sess:
-                    self._setup_faked_login(session=sess, credentials_used=credentials_used)
-
             if logged_in is False:
                 with browser.session_transaction() as sess:
                     # the user is at least partially logged in at this stage
@@ -514,6 +514,54 @@ class BankIDTests(ProofingTests[BankIDApp]):
         )
 
         self._verify_user_parameters(eppn, token_verified=True, num_proofings=1)
+
+    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+    def test_webauthn_token_verify_signup_authn(self, mock_request_user_sync: MagicMock) -> None:
+        mock_request_user_sync.side_effect = self.request_user_sync
+
+        eppn = self.test_user.eppn
+
+        credential = self.add_security_key_to_user(eppn, "test", "webauthn")
+
+        self._verify_user_parameters(eppn)
+
+        self.setup_signup_authn(eppn=eppn)
+
+        self.verify_token(
+            endpoint="/verify-credential",
+            frontend_action=FrontendAction.VERIFY_CREDENTIAL,
+            eppn=eppn,
+            expect_msg=BankIDMsg.credential_verify_success,
+            verify_credential=credential.key,
+            logged_in=False,
+        )
+
+        self._verify_user_parameters(eppn, token_verified=True, num_proofings=1)
+
+    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+    def test_webauthn_token_verify_signup_authn_token_to_old(self, mock_request_user_sync: MagicMock) -> None:
+        mock_request_user_sync.side_effect = self.request_user_sync
+
+        eppn = self.test_user.eppn
+        credential = self.add_security_key_to_user(
+            eppn=eppn, keyhandle="test", token_type="webauthn", created_ts=utc_now() + timedelta(minutes=6)
+        )
+        self._verify_user_parameters(eppn)
+
+        self.setup_signup_authn(eppn=eppn)
+
+        with self.session_cookie(self.browser, eppn) as browser:
+            location = self._get_authn_redirect_url(
+                browser=browser,
+                endpoint="/verify-credential",
+                method="bankid",
+                frontend_action=FrontendAction.VERIFY_CREDENTIAL,
+                verify_credential=credential.key,
+                expect_success=False,
+            )
+            assert location is None
+
+        self._verify_user_parameters(eppn, token_verified=False, num_proofings=0)
 
     def test_mfa_token_verify_wrong_verified_nin(self) -> None:
         eppn = self.test_user.eppn
@@ -713,6 +761,40 @@ class BankIDTests(ProofingTests[BankIDApp]):
             locked_identity=user.identities.nin,
             proofing_method=IdentityProofingMethod.BANKID,
             proofing_version=self.app.conf.freja_proofing_version,
+        )
+        # check names
+        assert user.given_name == "Ûlla"
+        assert user.surname == "Älm"
+        # check proofing log
+        doc = self.app.proofing_log._get_documents_by_attr(attr="eduPersonPrincipalName", value=eppn)[0]
+        assert doc["given_name"] == "Ûlla"
+        assert doc["surname"] == "Älm"
+
+    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+    def test_nin_verify_signup_auth(self, mock_request_user_sync: MagicMock) -> None:
+        mock_request_user_sync.side_effect = self.request_user_sync
+
+        eppn = self.test_unverified_user_eppn
+        self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=False)
+
+        self.setup_signup_authn(eppn=eppn)
+
+        self.reauthn(
+            "/verify-identity",
+            frontend_action=FrontendAction.VERIFY_IDENTITY,
+            expect_msg=BankIDMsg.identity_verify_success,
+            eppn=eppn,
+            logged_in=False,
+        )
+        user = self.app.central_userdb.get_user_by_eppn(eppn)
+        self._verify_user_parameters(
+            eppn,
+            num_mfa_tokens=0,
+            identity_verified=True,
+            num_proofings=1,
+            locked_identity=user.identities.nin,
+            proofing_method=IdentityProofingMethod.BANKID,
+            proofing_version=self.app.conf.bankid_proofing_version,
         )
         # check names
         assert user.given_name == "Ûlla"
