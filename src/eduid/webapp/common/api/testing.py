@@ -8,7 +8,7 @@ import traceback
 from collections.abc import Generator, Iterable, Mapping
 from contextlib import contextmanager
 from copy import deepcopy
-from datetime import timedelta, datetime
+from datetime import datetime, timedelta
 from typing import Any, Generic, TypeVar, cast
 
 from fido2.webauthn import AuthenticatorAttachment
