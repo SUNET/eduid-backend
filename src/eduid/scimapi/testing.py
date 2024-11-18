@@ -132,8 +132,15 @@ class ScimApiTestCase(MongoNeoTestCase):
         external_id: str | None = None,
         profiles: dict[str, ScimApiProfile] | None = None,
         linked_accounts: list[ScimApiLinkedAccount] | None = None,
+        name: ScimApiName | None = None,
     ) -> ScimApiUser:
-        user = ScimApiUser(user_id=ObjectId(), scim_id=uuid.UUID(identifier), external_id=external_id)
+        user = ScimApiUser(
+            user_id=ObjectId(),
+            scim_id=uuid.UUID(identifier),
+            external_id=external_id,
+        )
+        if name is not None:
+            user.name = name
         if profiles:
             for key, value in profiles.items():
                 user.profiles[key] = value
