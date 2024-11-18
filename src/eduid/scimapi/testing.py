@@ -138,8 +138,9 @@ class ScimApiTestCase(MongoNeoTestCase):
             user_id=ObjectId(),
             scim_id=uuid.UUID(identifier),
             external_id=external_id,
-            name=name,
         )
+        if name is not None:
+            user.name = name
         if profiles:
             for key, value in profiles.items():
                 user.profiles[key] = value
