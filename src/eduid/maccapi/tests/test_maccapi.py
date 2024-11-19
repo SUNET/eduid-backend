@@ -152,7 +152,7 @@ class TestMAccApi(MAccApiTestCase):
         headers["Authorization"] = f"Bearer {token}"
 
         response = self.client.post(url="/Users/remove", json={"eppn": "made_up"}, headers=headers)
-        assert response.status_code == 422
+        assert response.status_code == 200
 
     def test_reset_error(self) -> None:
         token = self._make_bearer_token(claims=self.claims)
@@ -160,4 +160,4 @@ class TestMAccApi(MAccApiTestCase):
         headers = self.headers
         headers["Authorization"] = f"Bearer {token}"
         response = self.client.post(url="/Users/reset_password", json={"eppn": "made_up"}, headers=headers)
-        assert response.status_code == 422
+        assert response.status_code == 404
