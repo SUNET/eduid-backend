@@ -1,12 +1,13 @@
 from eduid.userdb import User
 from eduid.userdb.credentials.fido import FidoCredential
 from eduid.webapp.bankid.app import current_bankid_app as current_app
-from eduid.webapp.bankid.helpers import BankIDMsg, check_reauthn
+from eduid.webapp.bankid.helpers import BankIDMsg
 from eduid.webapp.bankid.proofing import get_proofing_functions
 from eduid.webapp.common.api.decorators import require_user
 from eduid.webapp.common.api.messages import AuthnStatusMsg
 from eduid.webapp.common.authn.acs_enums import BankIDAcsAction
 from eduid.webapp.common.authn.acs_registry import ACSArgs, ACSResult, acs_action
+from eduid.webapp.common.authn.utils import check_reauthn
 from eduid.webapp.common.proofing.messages import ProofingMsg
 from eduid.webapp.common.proofing.methods import ProofingMethodSAML
 from eduid.webapp.common.proofing.saml_helpers import authn_ctx_to_loa, is_required_loa, is_valid_authn_instant
@@ -105,7 +106,9 @@ def verify_credential_action(user: User, args: ACSArgs) -> ACSResult:
         return ACSResult(message=BankIDMsg.credential_not_found)
 
     # Check (again) if token was used to authenticate this session and that the auth is not stale.
-    _need_reauthn = check_reauthn(frontend_action=args.authn_req.frontend_action, user=user, credential_used=credential)
+    _need_reauthn = check_reauthn(
+        frontend_action=args.authn_req.frontend_action, user=user, credential_requested=credential
+    )
     if _need_reauthn:
         current_app.logger.error(f"User needs to authenticate: {_need_reauthn}")
         return ACSResult(message=AuthnStatusMsg.must_authenticate)

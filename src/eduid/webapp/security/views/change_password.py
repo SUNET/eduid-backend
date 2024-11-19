@@ -9,13 +9,12 @@ from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, requi
 from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response, success_response
 from eduid.webapp.common.api.utils import check_password_hash, get_zxcvbn_terms, hash_password, save_and_sync_user
 from eduid.webapp.common.api.validation import is_valid_password
-from eduid.webapp.common.authn.utils import get_authn_for_action
+from eduid.webapp.common.authn.utils import check_reauthn, get_authn_for_action
 from eduid.webapp.common.authn.vccs import change_password
 from eduid.webapp.common.session import session
 from eduid.webapp.security.app import current_security_app as current_app
 from eduid.webapp.security.helpers import (
     SecurityMsg,
-    check_reauthn,
     compile_credential_list,
     generate_suggested_password,
 )

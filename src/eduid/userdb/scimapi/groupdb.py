@@ -218,7 +218,7 @@ class ScimApiGroupDB(ScimApiBaseDB):
             db_group.external_id = update_request.external_id
             logger.debug(f"Changed external id for group: {db_group.external_id} -> {update_request.external_id}")
 
-        # Check if there where new, changed or removed members
+        # Check if there were new, changed or removed members
         if db_group.graph.members != updated_members:
             changed = True
             db_group.graph = replace(db_group.graph, members=updated_members)

@@ -321,6 +321,7 @@ def create_user(use_suggested_password: bool, use_webauthn: bool, custom_passwor
         return error_response(message=CommonMsg.out_of_sync)
 
     session.signup.user_created = True
+    session.signup.user_created_at = utc_now()
     session.signup.credentials.completed = True
     session.common.eppn = signup_user.eppn
     # create payload before clearing generated password

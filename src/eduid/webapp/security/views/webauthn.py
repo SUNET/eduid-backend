@@ -11,7 +11,6 @@ from fido2.webauthn import (
     AuthenticatorData,
     CollectedClientData,
     PublicKeyCredentialUserEntity,
-    UserVerificationRequirement,
 )
 from fido_mds.exceptions import AttestationVerificationError, MetadataValidationError
 from flask import Blueprint
@@ -27,13 +26,12 @@ from eduid.webapp.common.api.helpers import check_magic_cookie
 from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response, success_response
 from eduid.webapp.common.api.schemas.base import FluxStandardAction
 from eduid.webapp.common.api.utils import save_and_sync_user
-from eduid.webapp.common.authn.utils import get_authn_for_action
+from eduid.webapp.common.authn.utils import check_reauthn, get_authn_for_action
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.namespaces import WebauthnRegistration
 from eduid.webapp.security.app import current_security_app as current_app
 from eduid.webapp.security.helpers import (
     SecurityMsg,
-    check_reauthn,
     compile_credential_list,
     get_approved_security_keys,
 )
@@ -96,6 +94,7 @@ def registration_begin(user: User, authenticator: str) -> FluxData:
         _auth_enum = AuthenticatorAttachment(authenticator)
     except ValueError:
         return error_response(message=SecurityMsg.invalid_authenticator)
+
     user_webauthn_tokens = user.credentials.filter(FidoCredential)
     if len(user_webauthn_tokens) >= current_app.conf.webauthn_max_allowed_tokens:
         current_app.logger.error(
@@ -118,7 +117,7 @@ def registration_begin(user: User, authenticator: str) -> FluxData:
     registration_data, state = server.register_begin(
         user=user_entity,
         credentials=creds,
-        user_verification=UserVerificationRequirement.DISCOURAGED,
+        user_verification=current_app.conf.webauthn_user_verification,
         authenticator_attachment=_auth_enum,
     )
     session.security.webauthn_registration = WebauthnRegistration(webauthn_state=state, authenticator=_auth_enum)
