@@ -129,13 +129,12 @@ async def remove_user(
         )
         request.app.context.stats.count("maccapi_remove_user_success")
     except UserDoesNotExist as e:
-        request.app.context.logger.error(f"remove_user error: {e}")
+        request.app.context.logger.error(f"remove_user error: {e} - user already removed")
         remove_user_response = UserRemovedResponse(
-            status="error",
+            status="success",
             scope=request.app.context.config.default_eppn_scope,
         )
         request.app.context.stats.count("maccapi_remove_user_error")
-        response.status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
 
     return remove_user_response
 
