@@ -233,7 +233,9 @@ class NinHelpersTest(EduidAPITestCase[HelpersTestApp]):
         with pytest.raises(UserDoesNotExist):
             self.app.private_userdb.get_user_by_eppn(user.eppn)
 
-    def test_verify_nin_for_user_navet(self) -> None:
+    @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
+    def test_verify_nin_for_user_navet(self, mock_reference_nin: MagicMock) -> None:
+        mock_reference_nin.return_value = self.test_user_nin
         user = self.insert_no_nins_user()
         nin_element = NinProofingElement.from_dict(
             dict(number=self.test_user_nin, created_by="NinHelpersTest", verified=False)
@@ -244,7 +246,9 @@ class NinHelpersTest(EduidAPITestCase[HelpersTestApp]):
         )
         self._test_verify_nin_for_user(user=user, nin_element=nin_element, proofing_log_entry=proofing_log_entry)
 
-    def test_verify_nin_for_user_eid(self) -> None:
+    @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
+    def test_verify_nin_for_user_eid(self, mock_reference_nin: MagicMock) -> None:
+        mock_reference_nin.return_value = None
         user = self.insert_no_nins_user()
         nin_element = NinProofingElement.from_dict(
             dict(number=self.test_user_nin, created_by="NinHelpersTest", verified=False)
@@ -255,7 +259,9 @@ class NinHelpersTest(EduidAPITestCase[HelpersTestApp]):
         )
         self._test_verify_nin_for_user(user=user, nin_element=nin_element, proofing_log_entry=proofing_log_entry)
 
-    def test_verify_nin_for_proofing_user_navet(self) -> None:
+    @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
+    def test_verify_nin_for_proofing_user_navet(self, mock_reference_nin: MagicMock) -> None:
+        mock_reference_nin.return_value = None
         user = self.insert_no_nins_user()
         nin_element = NinProofingElement.from_dict(
             dict(number=self.test_user_nin, created_by="NinHelpersTest", verified=False)
@@ -268,7 +274,9 @@ class NinHelpersTest(EduidAPITestCase[HelpersTestApp]):
             user=user, nin_element=nin_element, proofing_log_entry=proofing_log_entry
         )
 
-    def test_verify_nin_for_proofing_user_eid(self) -> None:
+    @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
+    def test_verify_nin_for_proofing_user_eid(self, mock_reference_nin: MagicMock) -> None:
+        mock_reference_nin.return_value = None
         user = self.insert_no_nins_user()
         nin_element = NinProofingElement.from_dict(
             dict(number=self.test_user_nin, created_by="NinHelpersTest", verified=False)
@@ -281,7 +289,9 @@ class NinHelpersTest(EduidAPITestCase[HelpersTestApp]):
             user=user, nin_element=nin_element, proofing_log_entry=proofing_log_entry
         )
 
-    def test_verify_nin_for_user_existing_not_verified(self) -> None:
+    @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
+    def test_verify_nin_for_user_existing_not_verified(self, mock_reference_nin: MagicMock) -> None:
+        mock_reference_nin.return_value = None
         user = self.insert_not_verified_user()
         nin_element = NinProofingElement.from_dict(
             dict(number=self.test_user_nin, created_by="NinHelpersTest", verified=False)
@@ -299,7 +309,9 @@ class NinHelpersTest(EduidAPITestCase[HelpersTestApp]):
             user=user, proofing_state=proofing_state, number=self.test_user_nin, created_by="AlreadyAddedNinHelpersTest"
         )
 
-    def test_verify_wrong_nin_for_user_existing_not_verified(self) -> None:
+    @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
+    def test_verify_wrong_nin_for_user_existing_not_verified(self, mock_reference_nin: MagicMock) -> None:
+        mock_reference_nin.return_value = None
         user = self.insert_not_verified_user()
         nin_element = NinProofingElement.from_dict(
             dict(number=self.wrong_test_user_nin, created_by="NinHelpersTest", verified=False)

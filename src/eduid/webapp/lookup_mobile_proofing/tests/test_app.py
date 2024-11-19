@@ -173,15 +173,21 @@ class LookupMobileProofingTests(EduidAPITestCase[MobileProofingApp]):
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
         self._check_nin_not_verified_no_proofing_state(user=user)
 
+    @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
     @patch("eduid.common.rpc.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile")
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_postal_address")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_proofing_flow_no_match_backdoor(
-        self, mock_request_user_sync: MagicMock, mock_get_postal_address: MagicMock, mock_find_nin_by_mobile: MagicMock
+        self,
+        mock_request_user_sync: MagicMock,
+        mock_get_postal_address: MagicMock,
+        mock_find_nin_by_mobile: MagicMock,
+        mock_reference_nin: MagicMock,
     ) -> None:
         mock_find_nin_by_mobile.return_value = None
         mock_get_postal_address.return_value = None
         mock_request_user_sync.side_effect = self.request_user_sync
+        mock_reference_nin.return_value = None
 
         self.app.conf.magic_cookie = "magic-cookie"
         self.app.conf.magic_cookie_name = "magic-cookie"

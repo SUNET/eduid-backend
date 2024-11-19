@@ -243,7 +243,10 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
         expires_string = expires.strftime("%Y-%m-%d")
         self.assertIsInstance(expires_string, str)
 
-    def test_verify_letter_code(self) -> None:
+    @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
+    def test_verify_letter_code(self, mock_reference_nin: MagicMock) -> None:
+        mock_reference_nin.return_value = None
+
         response1 = self.send_letter(self.test_user_nin)
         proofing_state = self.app.proofing_statedb.get_state_by_eppn(self.test_user_eppn)
         # Deliberately test the CSRF token from the send_letter response,
@@ -307,7 +310,10 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
             response, type_="POST_LETTER_PROOFING_VERIFY_CODE_FAIL", msg=LetterMsg.letter_expired
         )
 
-    def test_proofing_flow(self) -> None:
+    @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
+    def test_proofing_flow(self, mock_reference_nin: MagicMock) -> None:
+        mock_reference_nin.return_value = None
+
         self.send_letter(self.test_user_nin)
         self.get_state()
         proofing_state = self.app.proofing_statedb.get_state_by_eppn(self.test_user_eppn)
@@ -319,7 +325,10 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
         self._check_nin_verified_ok(user=user, proofing_state=proofing_state, number=self.test_user_nin)
 
-    def test_proofing_flow_previously_added_nin(self) -> None:
+    @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
+    def test_proofing_flow_previously_added_nin(self, mock_reference_nin: MagicMock) -> None:
+        mock_reference_nin.return_value = None
+
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         not_verified_nin = NinIdentity(number=self.test_user_nin, created_by="test", is_verified=False)
         user.identities.add(not_verified_nin)
@@ -337,7 +346,10 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
             user=user, proofing_state=proofing_state, number=self.test_user_nin, created_by=not_verified_nin.created_by
         )
 
-    def test_proofing_flow_previously_added_wrong_nin(self) -> None:
+    @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
+    def test_proofing_flow_previously_added_wrong_nin(self, mock_reference_nin: MagicMock) -> None:
+        mock_reference_nin.return_value = None
+
         # Send letter to correct nin
         self.send_letter(self.test_user_nin)
 
@@ -420,13 +432,15 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
         with self.session_cookie(self.browser, self.test_user_eppn):
             self.send_letter(self.test_user_nin)
 
+    @patch("eduid.webapp.common.api.decorators.get_reference_nin_from_navet_data")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_postal_address")
     def test_locked_identity_incorrect_nin(
-        self, mock_get_postal_address: MagicMock, mock_request_user_sync: MagicMock
+        self, mock_get_postal_address: MagicMock, mock_request_user_sync: MagicMock, mock_reference_nin: MagicMock
     ) -> None:
         mock_get_postal_address.return_value = self._get_full_postal_address()
         mock_request_user_sync.side_effect = self.request_user_sync
+        mock_reference_nin.return_value = None
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
 
         user.locked_identity.add(NinIdentity(number=self.test_user_nin, created_by="test", is_verified=True))
