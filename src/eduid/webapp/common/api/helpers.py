@@ -28,7 +28,7 @@ from eduid.userdb.proofing.state import NinProofingState, OidcProofingState
 from eduid.userdb.user import TUserSubclass, User
 from eduid.userdb.userdb import UserDB
 from eduid.webapp.common.api.app import EduIDBaseApp
-from eduid.webapp.common.api.utils import get_from_current_app, save_and_sync_user
+from eduid.webapp.common.api.utils import get_from_current_app, get_reference_nin_from_navet_data, save_and_sync_user
 
 __author__ = "lundberg"
 
@@ -235,6 +235,10 @@ def verify_nin_for_user(
         current_app.logger.debug(f"NIN: {proofing_user.identities.nin.number}")
         return True
 
+    reference_nin = get_reference_nin_from_navet_data(proofing_state.nin.number)
+    if reference_nin is not None:
+        current_app.logger.debug(f"verified nin has reference_nin: {reference_nin}")
+
     # check if the users current nin is the same as the one just verified
     # if there is no locked nin identity or the locked nin identity matches we can replace the current nin identity
     # with the one just verified
@@ -244,8 +248,9 @@ def verify_nin_for_user(
         if (
             proofing_user.locked_identity.nin is not None
             and proofing_user.locked_identity.nin.number != proofing_state.nin.number
+            and proofing_user.locked_identity.nin.number != reference_nin
         ):
-            raise LockedIdentityViolation("users locked nin does not match verified nin")
+            raise LockedIdentityViolation("users locked nin does not match verified nin or reference nin")
 
         # user has no locked nin identity or the user has previously verified the nin
         # replace the never verified nin with the one just verified
@@ -267,6 +272,14 @@ def verify_nin_for_user(
     proofing_method = IdentityProofingMethod(proofing_log_entry.proofing_method)
     proofing_user.identities.nin.proofing_method = proofing_method
     proofing_user.identities.nin.proofing_version = proofing_log_entry.proofing_version
+
+    # Replace locked nin with verified nin if it has changed in the population registry
+    if (
+        reference_nin is not None
+        and proofing_user.locked_identity.nin is not None
+        and proofing_user.locked_identity.nin.number == reference_nin
+    ):
+        proofing_user.locked_identity.replace(element=nin_identity)
 
     # Update users name
     proofing_user = set_user_names_from_nin_proofing(user=proofing_user, proofing_log_entry=proofing_log_entry)
