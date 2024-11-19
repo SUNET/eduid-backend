@@ -78,7 +78,6 @@ class AddStaticAttributesForVirtualIdp(ResponseMicroService):
                 else:
                     static_attributes[attr_name] = fmt
 
-
                 logger.debug(f"Appending static attribute {attr_name}: {fmt} for requester {requester} or {vidp}")
 
         return static_attributes
