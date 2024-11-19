@@ -64,6 +64,7 @@ class NinHelpersTest(EduidAPITestCase[HelpersTestApp]):
         super().setUp(config=config)
         self.test_user_nin = "200001023456"
         self.wrong_test_user_nin = "199909096789"
+        self.locked_test_user_nin = "197801011234"
         self.test_userdata = self.test_user.to_dict()
         self.test_proofing_user = ProofingUser.from_dict(data=self.test_userdata)
 
@@ -73,12 +74,14 @@ class NinHelpersTest(EduidAPITestCase[HelpersTestApp]):
             name=navet_data.person.name, official_address=navet_data.person.postal_addresses.official_address
         )
 
-    def insert_verified_user(self) -> User:
+    def insert_verified_user(self, nin: str | None = None) -> User:
         user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
         user.identities = IdentityList()
+        if nin is None:
+            nin = self.test_user_nin
         nin_element = NinIdentity.from_dict(
             dict(
-                number=self.test_user_nin,
+                number=nin,
                 created_by="AlreadyVerifiedNinHelpersTest",
                 verified=True,
             )
@@ -87,12 +90,14 @@ class NinHelpersTest(EduidAPITestCase[HelpersTestApp]):
         self.app.central_userdb.save(user)
         return self.app.central_userdb.get_user_by_eppn(user.eppn)
 
-    def insert_not_verified_user(self) -> User:
+    def insert_not_verified_user(self, nin: str | None = None) -> User:
         user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
         user.identities = IdentityList()
+        if nin is None:
+            nin = self.test_user_nin
         nin_element = NinIdentity.from_dict(
             dict(
-                number=self.test_user_nin,
+                number=nin,
                 created_by="AlreadyAddedNinHelpersTest",
                 verified=False,
             )
@@ -309,6 +314,32 @@ class NinHelpersTest(EduidAPITestCase[HelpersTestApp]):
             with pytest.raises(LockedIdentityViolation):
                 verify_nin_for_user(user, proofing_state, proofing_log_entry)
 
+    @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
+    def test_verify_changed_nin_for_user_existing_not_verified(self, mock_reference_nin: MagicMock) -> None:
+        mock_reference_nin.return_value = self.locked_test_user_nin
+        user = self.insert_not_verified_user(nin=self.locked_test_user_nin)
+        nin_element = NinProofingElement.from_dict(
+            dict(number=self.test_user_nin, created_by="NinHelpersTest", verified=False)
+        )
+        proofing_state = NinProofingState.from_dict({"eduPersonPrincipalName": user.eppn, "nin": nin_element.to_dict()})
+        assert proofing_state.nin.created_by is not None
+        assert nin_element.created_by
+        proofing_log_entry = self._get_nin_eid_proofing_log_entry(
+            user=user, created_by=nin_element.created_by, nin=nin_element.number
+        )
+        with self.app.app_context():
+            assert verify_nin_for_user(user, proofing_state, proofing_log_entry) is True
+        user = self.app.private_userdb.get_user_by_eppn(user.eppn)
+
+        self._check_nin_verified_ok(
+            user=user, proofing_state=proofing_state, number=self.test_user_nin, created_by="NinHelpersTest"
+        )
+        # user should be updated with updated nin as it references old locked nin
+        assert user.identities.nin is not None
+        assert user.identities.nin.number == self.test_user_nin
+        assert user.locked_identity.nin is not None
+        assert user.locked_identity.nin.number == self.test_user_nin
+
     def test_verify_nin_for_user_existing_verified(self) -> None:
         user = self.insert_verified_user()
         nin_element = NinProofingElement.from_dict(
@@ -322,6 +353,27 @@ class NinHelpersTest(EduidAPITestCase[HelpersTestApp]):
         )
         with self.app.app_context():
             assert verify_nin_for_user(user, proofing_state, proofing_log_entry) is True
+
+    @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
+    def test_verify_changed_nin_for_user_existing_verified(self, mock_reference_nin: MagicMock) -> None:
+        mock_reference_nin.return_value = self.locked_test_user_nin
+        user = self.insert_verified_user(nin=self.locked_test_user_nin)
+        nin_element = NinProofingElement.from_dict(
+            dict(number=self.test_user_nin, created_by="NinHelpersTest", verified=False)
+        )
+        proofing_state = NinProofingState.from_dict({"eduPersonPrincipalName": user.eppn, "nin": nin_element.to_dict()})
+        assert proofing_state.nin.created_by is not None
+        assert nin_element.created_by
+        proofing_log_entry = self._get_nin_eid_proofing_log_entry(
+            user=user, created_by=nin_element.created_by, nin=nin_element.number
+        )
+        with self.app.app_context():
+            assert verify_nin_for_user(user, proofing_state, proofing_log_entry) is True
+        # The user should not be updated as the old nin is locked and verified
+        assert user.identities.nin is not None
+        assert user.identities.nin.number == self.locked_test_user_nin
+        assert user.locked_identity.nin is not None
+        assert user.locked_identity.nin.number == self.locked_test_user_nin
 
     def test_verify_nin_with_faulty_proofing_log_element(self) -> None:
         user = self.insert_no_nins_user()
