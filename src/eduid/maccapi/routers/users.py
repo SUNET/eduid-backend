@@ -184,7 +184,7 @@ async def reset_password(
         )
         request.app.context.stats.count("maccapi_reset_password_error")
         if isinstance(e, UserDoesNotExist):
-            response.status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
+            response.status_code = status.HTTP_404_NOT_FOUND
         else:
             response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
 
