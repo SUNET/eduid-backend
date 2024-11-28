@@ -1,6 +1,7 @@
 from bson import ObjectId
 
 import eduid.userdb
+from eduid.common.testing_base import normalised_data
 from eduid.userdb import LockedIdentityList, NinIdentity
 from eduid.userdb.exceptions import EduIDUserDBError, MultipleUsersReturned
 from eduid.userdb.fixtures.users import UserFixtures
@@ -193,14 +194,22 @@ class TestTasks(AMTestCase):
 
     def test_create_locked_identity(self) -> None:
         user_id = ObjectId("901234567890123456789012")  # johnsmith@example.org / babba-labba
-        attributes = {"$set": {"nins": [{"verified": True, "number": "200102031234", "primary": True}]}}
+        attributes = {
+            "$set": {
+                "identities": [{"identity_type": IdentityType.NIN.value, "number": "200102031234", "verified": True}]
+            }
+        }
         new_attributes = check_locked_identity(self.amdb, user_id, attributes, "test")
 
+        # check_locked_identity should create a locked_identity so add it to the expected attributes
         locked_nin = NinIdentity(number="200102031234", created_by="test", is_verified=True)
         locked_identities = LockedIdentityList(elements=[locked_nin])
         attributes["$set"]["locked_identity"] = locked_identities.to_list_of_dicts()
 
-        self.assertDictEqual(attributes, new_attributes)
+        self.assertDictEqual(
+            normalised_data(attributes, exclude_keys=["created_ts", "modified_ts"]),
+            normalised_data(new_attributes, exclude_keys=["created_ts", "modified_ts"]),
+        )
 
     def test_check_locked_identity(self) -> None:
         user_id = ObjectId("012345678901234567890123")  # johnsmith@example.com / hubba-bubba
@@ -212,14 +221,13 @@ class TestTasks(AMTestCase):
         self.amdb.save(user)
         attributes = {
             "$set": {
-                "nins": [{"verified": True, "number": locked_nin.number, "primary": True}],  # hubba-bubba's primary nin
+                "identities": [
+                    {"identity_type": IdentityType.NIN.value, "number": locked_nin.number, "verified": True}
+                ],  # hubba-bubba
             }
         }
         new_attributes = check_locked_identity(self.amdb, user_id, attributes, "test")
-
-        locked_identities = LockedIdentityList(elements=[locked_nin])
-        attributes["$set"]["locked_identity"] = locked_identities.to_list_of_dicts()
-
+        # user has locked_identity that is the same as the verified identity so only identities should be set
         self.assertDictEqual(attributes, new_attributes)
 
     def test_check_locked_identity_wrong_nin(self) -> None:
@@ -235,6 +243,29 @@ class TestTasks(AMTestCase):
         }
         with self.assertRaises(EduIDUserDBError):
             check_locked_identity(self.amdb, user_id, attributes, "test")
+
+    def test_check_locked_identity_replace_lock(self) -> None:
+        user_id = ObjectId("901234567890123456789012")  # johnsmith@example.org / babba-labba
+        user = self.amdb.get_user_by_id(user_id)
+        assert user
+        user.locked_identity.add(NinIdentity(number="200102031234", created_by="test", is_verified=True))
+        self.amdb.save(user)
+        attributes = {
+            "$set": {
+                "identities": [{"identity_type": IdentityType.NIN.value, "verified": True, "number": "200506076789"}]
+            }
+        }
+        new_attributes = check_locked_identity(self.amdb, user_id, attributes, "test", replace_lock=IdentityType.NIN)
+
+        # check_locked_identity should replace locked identity with new identity
+        locked_nin = NinIdentity(number="200506076789", created_by="test", is_verified=True)
+        locked_identities = LockedIdentityList(elements=[locked_nin])
+        attributes["$set"]["locked_identity"] = locked_identities.to_list_of_dicts()
+
+        self.assertDictEqual(
+            normalised_data(attributes, exclude_keys=["created_ts", "modified_ts"]),
+            normalised_data(new_attributes, exclude_keys=["created_ts", "modified_ts"]),
+        )
 
     def test_check_locked_identity_no_verified_nin(self) -> None:
         user_id = ObjectId("012345678901234567890123")  # johnsmith@example.com / hubba-bubba

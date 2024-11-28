@@ -24,6 +24,7 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
     def setUp(self, config: SetupConfig | None = None) -> None:
         self.test_user_eppn = "hubba-baar"
         self.test_user_nin = "200001023456"
+        self.test_old_user_nin = "199909096789"
         self.test_user_wrong_nin = "190001021234"
         if config is None:
             config = SetupConfig()
@@ -370,6 +371,46 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
         # Now check that the (now verified) NIN on the user is back to the one used to request the letter
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         self._check_nin_verified_ok(user=user, proofing_state=proofing_state, number=self.test_user_nin)
+
+    @patch("eduid.webapp.common.api.decorators.get_reference_nin_from_navet_data")
+    @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
+    def test_proofing_flow_with_replacement_nin(
+        self, mock_reference_nin: MagicMock, mock_decorator_nin: MagicMock
+    ) -> None:
+        mock_reference_nin.return_value = self.test_old_user_nin
+        mock_decorator_nin.return_value = self.test_old_user_nin
+
+        # Send letter to old nin and verify
+        self.send_letter(self.test_old_user_nin)
+        proofing_state = self.app.proofing_statedb.get_state_by_eppn(self.test_user_eppn)
+        assert proofing_state is not None
+        assert proofing_state.nin is not None
+        assert proofing_state.nin.verification_code is not None
+        self.verify_code(proofing_state.nin.verification_code, None)
+
+        # Check that old nin is locked in
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        assert user.locked_identity.nin is not None
+        assert user.locked_identity.nin.number == self.test_old_user_nin
+
+        # Replace old nin with new nin
+        user.identities.remove(ElementKey(IdentityType.NIN))
+        not_verified_nin = NinIdentity(number=self.test_user_nin, created_by="test", is_verified=False)
+        user.identities.add(not_verified_nin)
+        self.app.central_userdb.save(user)
+
+        # Send letter to new nin and verify
+        self.send_letter(self.test_user_nin)
+        new_proofing_state = self.app.proofing_statedb.get_state_by_eppn(self.test_user_eppn)
+        assert new_proofing_state is not None
+        assert new_proofing_state.nin is not None
+        assert new_proofing_state.nin.verification_code is not None
+        self.verify_code(new_proofing_state.nin.verification_code, None)
+
+        # Check that new nin is locked in
+        updated_user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        assert updated_user.locked_identity.nin is not None
+        assert updated_user.locked_identity.nin.number == self.test_user_nin
 
     def test_expire_proofing_state(self) -> None:
         self.send_letter(self.test_user_nin)
