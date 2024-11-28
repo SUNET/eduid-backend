@@ -239,18 +239,19 @@ def verify_nin_for_user(
     if reference_nin is not None:
         current_app.logger.debug(f"verified nin has reference_nin: {reference_nin}")
 
+    if (
+        proofing_user.locked_identity.nin is not None
+        and proofing_user.locked_identity.nin.number != proofing_state.nin.number
+        and proofing_user.locked_identity.nin.number != reference_nin
+    ):
+        raise LockedIdentityViolation("users locked nin does not match verified nin or reference nin")
+
     # check if the users current nin is the same as the one just verified
     # if there is no locked nin identity or the locked nin identity matches we can replace the current nin identity
     # with the one just verified
     if proofing_user.identities.nin.number != proofing_state.nin.number:
         current_app.logger.info("users current nin does not match the nin just verified")
         current_app.logger.debug(f"{proofing_user.identities.nin.number} != {proofing_state.nin.number}")
-        if (
-            proofing_user.locked_identity.nin is not None
-            and proofing_user.locked_identity.nin.number != proofing_state.nin.number
-            and proofing_user.locked_identity.nin.number != reference_nin
-        ):
-            raise LockedIdentityViolation("users locked nin does not match verified nin or reference nin")
 
         # user has no locked nin identity or the user has previously verified the nin
         # replace the never verified nin with the one just verified
@@ -279,7 +280,7 @@ def verify_nin_for_user(
         and proofing_user.locked_identity.nin is not None
         and proofing_user.locked_identity.nin.number == reference_nin
     ):
-        proofing_user.locked_identity.replace(element=nin_identity)
+        proofing_user.replace_lock = IdentityType.NIN
 
     # Update users name
     proofing_user = set_user_names_from_nin_proofing(user=proofing_user, proofing_log_entry=proofing_log_entry)

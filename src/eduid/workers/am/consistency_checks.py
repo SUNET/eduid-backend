@@ -1,3 +1,4 @@
+import copy
 from typing import Any
 
 from bson import ObjectId
@@ -5,7 +6,7 @@ from celery.utils.log import get_task_logger
 
 from eduid.userdb import LockedIdentityList
 from eduid.userdb.exceptions import DocumentDoesNotExist, LockedIdentityViolation
-from eduid.userdb.identity import IdentityList
+from eduid.userdb.identity import IdentityList, IdentityType
 from eduid.userdb.userdb import AmDB
 
 __author__ = "lundberg"
@@ -152,7 +153,9 @@ def unverify_identities(userdb: AmDB, user_id: ObjectId, identities: list[dict[s
     return count
 
 
-def check_locked_identity(userdb: AmDB, user_id: ObjectId, attributes: dict, app_name: str) -> dict:
+def check_locked_identity(
+    userdb: AmDB, user_id: ObjectId, attributes: dict, app_name: str, replace_lock: IdentityType | None = None
+) -> dict:
     """
     :param userdb: Central userdb
     :param user_id: User document _id
@@ -184,17 +187,24 @@ def check_locked_identity(userdb: AmDB, user_id: ObjectId, attributes: dict, app
             updated = True
             continue
 
+        if replace_lock is locked_identity.identity_type:
+            # replace the locked identity with the new verified identity
+            if identity.created_by is None:
+                identity.created_by = app_name
+            locked_identities.replace(identity)
+            updated = True
+            continue
+
         # there is already an identity of the verified identity type in locked identities
         # bail if they do not match
         if identity.unique_value != locked_identity.unique_value:
-            # XXX: non-persistent identities should be handled in the app verifying the identity
-            # XXX: by using locked_identities.replace()
             logger.error(f"Verified identity does not match locked identity for user with id {user_id}")
             logger.debug(f"identity: {identity}")
             logger.debug(f"locked_identity: {locked_identity}")
             raise LockedIdentityViolation(f"Verified nin does not match locked identity for user with id {user_id}")
 
+    new_attributes = copy.deepcopy(attributes)
     if updated:
-        attributes["$set"]["locked_identity"] = locked_identities.to_list_of_dicts()
+        new_attributes["$set"]["locked_identity"] = locked_identities.to_list_of_dicts()
 
-    return attributes
+    return new_attributes

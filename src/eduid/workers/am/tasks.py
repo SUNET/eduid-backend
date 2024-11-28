@@ -71,6 +71,7 @@ def update_attributes_keep_result(self: AttributeManager, app_name: str, user_id
 
     try:
         attributes = attribute_fetcher.fetch_attrs(_id)
+        replace_lock = attribute_fetcher.get_replace_lock(_id)
     except UserDoesNotExist as e:
         logger.error(f"The user {_id} does not exist in the database for plugin {app_name}: {e}")
         raise e
@@ -80,7 +81,7 @@ def update_attributes_keep_result(self: AttributeManager, app_name: str, user_id
 
     try:
         logger.debug(f"Checking locked identity during sync attempt from {app_name}")
-        attributes = check_locked_identity(self.userdb, _id, attributes, app_name)
+        attributes = check_locked_identity(self.userdb, _id, attributes, app_name, replace_lock)
     except LockedIdentityViolation as e:
         logger.error(e)
         raise e
