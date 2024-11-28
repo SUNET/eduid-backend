@@ -60,7 +60,6 @@ def post_param_view() -> Response:
 @UnmarshalWith(NonValidatingSchema)
 def post_json_view(test_data: str) -> None:
     """never validates"""
-    pass
 
 
 @test_views.route("/test-cookie")

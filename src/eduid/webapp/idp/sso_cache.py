@@ -92,7 +92,6 @@ class NoOpLock:
         """
         Fake releasing a lock.
         """
-        pass
 
 
 @deprecated("This class seems unused")
