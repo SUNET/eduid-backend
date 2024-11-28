@@ -225,7 +225,7 @@ def generate_suggested_password(password_length: int) -> str:
     The suggested password is hashed and saved in session to avoid form hijacking
     """
     password = generate_password(length=password_length)
-    password = " ".join([password[i * 4 : i * 4 + 4] for i in range(0, math.ceil(len(password) / 4))])
+    password = " ".join([password[i * 4 : i * 4 + 4] for i in range(math.ceil(len(password) / 4))])
 
     return password
 

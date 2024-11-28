@@ -103,7 +103,7 @@ def interpolate_list(config_dict: dict[str, Any], sub_list: list) -> list:
 
     :return: Configuration list
     """
-    for i in range(0, len(sub_list)):
+    for i in range(len(sub_list)):
         item = sub_list[i]
         # Substitute string items
         if isinstance(item, str) and "$" in item:
