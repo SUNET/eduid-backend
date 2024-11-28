@@ -154,7 +154,7 @@ def unverify_identities(userdb: AmDB, user_id: ObjectId, identities: list[dict[s
 
 
 def check_locked_identity(
-    userdb: AmDB, user_id: ObjectId, attributes: dict, app_name: str, replace_lock: IdentityType | None = None
+    userdb: AmDB, user_id: ObjectId, attributes: dict, app_name: str, replace_locked: IdentityType | None = None
 ) -> dict:
     """
     :param userdb: Central userdb
@@ -187,7 +187,7 @@ def check_locked_identity(
             updated = True
             continue
 
-        if replace_lock is locked_identity.identity_type:
+        if replace_locked is locked_identity.identity_type:
             # replace the locked identity with the new verified identity
             if identity.created_by is None:
                 identity.created_by = app_name

@@ -392,7 +392,7 @@ class NinHelpersTest(EduidAPITestCase[HelpersTestApp]):
         assert user.identities.nin is not None
         assert user.identities.nin.number == self.test_user_nin
         # NIN should be updated by am when saving to main DB
-        assert user.replace_lock is IdentityType.NIN
+        assert user.replace_locked is IdentityType.NIN
 
     def test_verify_nin_for_user_existing_verified(self) -> None:
         user = self.insert_verified_user()

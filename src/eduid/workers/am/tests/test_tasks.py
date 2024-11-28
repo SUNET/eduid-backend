@@ -244,7 +244,7 @@ class TestTasks(AMTestCase):
         with self.assertRaises(EduIDUserDBError):
             check_locked_identity(self.amdb, user_id, attributes, "test")
 
-    def test_check_locked_identity_replace_lock(self) -> None:
+    def test_check_locked_identity_replace_locked(self) -> None:
         user_id = ObjectId("901234567890123456789012")  # johnsmith@example.org / babba-labba
         user = self.amdb.get_user_by_id(user_id)
         assert user
@@ -255,7 +255,7 @@ class TestTasks(AMTestCase):
                 "identities": [{"identity_type": IdentityType.NIN.value, "verified": True, "number": "200506076789"}]
             }
         }
-        new_attributes = check_locked_identity(self.amdb, user_id, attributes, "test", replace_lock=IdentityType.NIN)
+        new_attributes = check_locked_identity(self.amdb, user_id, attributes, "test", replace_locked=IdentityType.NIN)
 
         # check_locked_identity should replace locked identity with new identity
         locked_nin = NinIdentity(number="200506076789", created_by="test", is_verified=True)

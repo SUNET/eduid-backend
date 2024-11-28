@@ -5,5 +5,5 @@ __author__ = "lundberg"
 
 
 class ProofingUser(User):
-    replace_lock: IdentityType | None = None
+    replace_locked: IdentityType | None = None
     pass

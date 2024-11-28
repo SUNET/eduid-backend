@@ -280,7 +280,7 @@ def verify_nin_for_user(
         and proofing_user.locked_identity.nin is not None
         and proofing_user.locked_identity.nin.number == reference_nin
     ):
-        proofing_user.replace_lock = IdentityType.NIN
+        proofing_user.replace_locked = IdentityType.NIN
 
     # Update users name
     proofing_user = set_user_names_from_nin_proofing(user=proofing_user, proofing_log_entry=proofing_log_entry)

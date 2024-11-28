@@ -272,14 +272,14 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
 
         central_user = self.app.central_userdb.get_user_by_id(private_user.user_id)
         private_user_dict = private_user.to_dict()
-        replace_lock: IdentityType | None = None
+        replace_locked: IdentityType | None = None
         # fix signup_user data
         if "proofing_reference" in private_user_dict:
             del private_user_dict["proofing_reference"]
 
-        if "replace_lock" in private_user_dict:
-            replace_lock = private_user_dict["replace_lock"]
-            del private_user_dict["replace_lock"]
+        if "replace_locked" in private_user_dict:
+            replace_locked = private_user_dict["replace_locked"]
+            del private_user_dict["replace_locked"]
 
         if central_user is None:
             # This is a new user, create a new user in the central db
@@ -309,7 +309,7 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
                     identity.created_by = "test"
                 user.locked_identity.add(identity)
                 continue
-            if replace_lock is locked_identity.identity_type:
+            if replace_locked is locked_identity.identity_type:
                 # replace the locked identity with the new verified identity
                 if identity.created_by is None:
                     identity.created_by = "test"

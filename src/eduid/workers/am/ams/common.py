@@ -75,7 +75,7 @@ class AttributeFetcher(ABC):
 
         return attributes
 
-    def get_replace_lock(self, user_id: bson.ObjectId) -> IdentityType | None:
+    def get_replace_locked(self, user_id: bson.ObjectId) -> IdentityType | None:
         """
         Get the identity type of the lock to be replaced or None if no lock should be replaced.
         """
@@ -93,4 +93,4 @@ class AttributeFetcher(ABC):
             logger.debug("Not a proofing user, returning None.")
             return None
 
-        return user.replace_lock
+        return user.replace_locked

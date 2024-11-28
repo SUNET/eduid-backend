@@ -113,7 +113,7 @@ class SvipeIDProofingFunctions(ProofingFunctions[SvipeDocumentUserInfo]):
                 return VerifyUserResult(error=CommonMsg.locked_identity_not_matching)
             # replace the locked identity as the users asserted prid has changed,
             # and we are sure enough that it is the same person
-            proofing_user.replace_lock = new_identity.identity_type
+            proofing_user.replace_locked = new_identity.identity_type
 
         # the existing identity is not verified, just remove it
         if existing_identity is not None:
