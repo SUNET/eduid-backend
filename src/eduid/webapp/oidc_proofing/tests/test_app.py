@@ -176,15 +176,21 @@ class OidcProofingTests(EduidAPITestCase):
         self.assertEqual(response_json["type"], "POST_OIDC_PROOFING_FREJA_PROOFING_FAIL")
         self.assertEqual(response_json["payload"]["error"]["csrf_token"], ["CSRF failed to validate"])
 
+    @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
     @patch("eduid.webapp.oidc_proofing.helpers.do_authn_request")
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_postal_address")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_seleg_flow(
-        self, mock_request_user_sync: MagicMock, mock_get_postal_address: MagicMock, mock_oidc_call: MagicMock
+        self,
+        mock_request_user_sync: MagicMock,
+        mock_get_postal_address: MagicMock,
+        mock_oidc_call: MagicMock,
+        mock_reference_nin: MagicMock,
     ) -> None:
         mock_oidc_call.return_value = True
         mock_get_postal_address.return_value = self.mock_address
         mock_request_user_sync.side_effect = self.request_user_sync
+        mock_reference_nin.return_value = None
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
@@ -270,15 +276,21 @@ class OidcProofingTests(EduidAPITestCase):
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
         self._check_nin_not_verified(user=user, number=self.test_user_nin)
 
+    @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
     @patch("eduid.webapp.oidc_proofing.helpers.do_authn_request")
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_postal_address")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_seleg_flow_previously_added_nin(
-        self, mock_request_user_sync: MagicMock, mock_get_postal_address: MagicMock, mock_oidc_call: MagicMock
+        self,
+        mock_request_user_sync: MagicMock,
+        mock_get_postal_address: MagicMock,
+        mock_oidc_call: MagicMock,
+        mock_reference_nin: MagicMock,
     ) -> None:
         mock_oidc_call.return_value = True
         mock_get_postal_address.return_value = self.mock_address
         mock_request_user_sync.side_effect = self.request_user_sync
+        mock_reference_nin.return_value = None
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
 
         not_verified_nin = NinIdentity(number=self.test_user_nin, created_by="test", is_verified=False)
@@ -320,15 +332,21 @@ class OidcProofingTests(EduidAPITestCase):
             user=user, proofing_state=proofing_state, number=self.test_user_nin, created_by=not_verified_nin.created_by
         )
 
+    @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
     @patch("eduid.webapp.oidc_proofing.helpers.do_authn_request")
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_postal_address")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_seleg_flow_previously_added_wrong_nin(
-        self, mock_request_user_sync: MagicMock, mock_get_postal_address: MagicMock, mock_oidc_call: MagicMock
+        self,
+        mock_request_user_sync: MagicMock,
+        mock_get_postal_address: MagicMock,
+        mock_oidc_call: MagicMock,
+        mock_reference_nin: MagicMock,
     ) -> None:
         mock_oidc_call.return_value = True
         mock_get_postal_address.return_value = self.mock_address
         mock_request_user_sync.side_effect = self.request_user_sync
+        mock_reference_nin.return_value = None
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
 
         not_verified_nin = NinIdentity(number=self.test_user_wrong_nin, created_by="test", is_verified=False)
@@ -368,15 +386,21 @@ class OidcProofingTests(EduidAPITestCase):
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
         self._check_nin_verified_ok(user=user, proofing_state=proofing_state, number=self.test_user_nin)
 
+    @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
     @patch("eduid.webapp.oidc_proofing.helpers.do_authn_request")
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_postal_address")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_freja_flow(
-        self, mock_request_user_sync: MagicMock, mock_get_postal_address: MagicMock, mock_oidc_call: MagicMock
+        self,
+        mock_request_user_sync: MagicMock,
+        mock_get_postal_address: MagicMock,
+        mock_oidc_call: MagicMock,
+        mock_reference_nin: MagicMock,
     ) -> None:
         mock_oidc_call.return_value = True
         mock_get_postal_address.return_value = self.mock_address
         mock_request_user_sync.side_effect = self.request_user_sync
+        mock_reference_nin.return_value = None
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             response = json.loads(browser.get("/freja/proofing").data)
@@ -415,15 +439,21 @@ class OidcProofingTests(EduidAPITestCase):
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
         self._check_nin_verified_ok(user=user, proofing_state=proofing_state, number=self.test_user_nin)
 
+    @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
     @patch("eduid.webapp.oidc_proofing.helpers.do_authn_request")
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_postal_address")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_freja_flow_previously_added_nin(
-        self, mock_request_user_sync: MagicMock, mock_get_postal_address: MagicMock, mock_oidc_call: MagicMock
+        self,
+        mock_request_user_sync: MagicMock,
+        mock_get_postal_address: MagicMock,
+        mock_oidc_call: MagicMock,
+        mock_reference_nin: MagicMock,
     ) -> None:
         mock_oidc_call.return_value = True
         mock_get_postal_address.return_value = self.mock_address
         mock_request_user_sync.side_effect = self.request_user_sync
+        mock_reference_nin.return_value = None
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
 
         not_verified_nin = NinIdentity(number=self.test_user_nin, created_by="test", is_verified=False)
@@ -463,15 +493,21 @@ class OidcProofingTests(EduidAPITestCase):
             user=user, proofing_state=proofing_state, number=self.test_user_nin, created_by=not_verified_nin.created_by
         )
 
+    @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
     @patch("eduid.webapp.oidc_proofing.helpers.do_authn_request")
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_postal_address")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_freja_flow_previously_added_wrong_nin(
-        self, mock_request_user_sync: MagicMock, mock_get_postal_address: MagicMock, mock_oidc_call: MagicMock
+        self,
+        mock_request_user_sync: MagicMock,
+        mock_get_postal_address: MagicMock,
+        mock_oidc_call: MagicMock,
+        mock_reference_nin: MagicMock,
     ) -> None:
         mock_oidc_call.return_value = True
         mock_get_postal_address.return_value = self.mock_address
         mock_request_user_sync.side_effect = self.request_user_sync
+        mock_reference_nin.return_value = None
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
 
         not_verified_nin = NinIdentity(number=self.test_user_wrong_nin, created_by="test", is_verified=False)
@@ -541,11 +577,15 @@ class OidcProofingTests(EduidAPITestCase):
         # Check that the expired proofing state was removed
         assert not self.app.proofing_statedb.get_state_by_eppn(self.test_user_eppn)
 
+    @patch("eduid.webapp.common.api.decorators.get_reference_nin_from_navet_data")
     @patch("eduid.webapp.oidc_proofing.helpers.do_authn_request")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_seleg_locked_identity(self, mock_request_user_sync: MagicMock, mock_oidc_call: MagicMock) -> None:
+    def test_seleg_locked_identity(
+        self, mock_request_user_sync: MagicMock, mock_oidc_call: MagicMock, mock_reference_nin: MagicMock
+    ) -> None:
         mock_oidc_call.return_value = True
         mock_request_user_sync.side_effect = self.request_user_sync
+        mock_reference_nin.return_value = None
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
@@ -583,11 +623,15 @@ class OidcProofingTests(EduidAPITestCase):
             response = json.loads(response.data)
         self.assertEqual(response["type"], "POST_OIDC_PROOFING_PROOFING_FAIL")
 
+    @patch("eduid.webapp.common.api.decorators.get_reference_nin_from_navet_data")
     @patch("eduid.webapp.oidc_proofing.helpers.do_authn_request")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_freja_locked_identity(self, mock_request_user_sync: MagicMock, mock_oidc_call: MagicMock) -> None:
+    def test_freja_locked_identity(
+        self, mock_request_user_sync: MagicMock, mock_oidc_call: MagicMock, mock_reference_nin: MagicMock
+    ) -> None:
         mock_oidc_call.return_value = True
         mock_request_user_sync.side_effect = self.request_user_sync
+        mock_reference_nin.return_value = None
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
