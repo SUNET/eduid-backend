@@ -1,5 +1,5 @@
 UV=$(shell which uv)
-PIPCOMPILE=$(UV) pip compile --upgrade --generate-hashes --no-strip-extras --index-url https://pypi.sunet.se/simple
+PIPCOMPILE=$(UV) pip compile --upgrade --generate-hashes --no-strip-extras --index-url https://pypi.sunet.se/simple --emit-index-url
 PIPSYNC=$(UV) pip sync --index-url https://pypi.sunet.se/simple
 
 update_deps: sub_main.txt main.txt $(patsubst %_requirements.in,%_requirements.txt,$(wildcard *_requirements.in))
