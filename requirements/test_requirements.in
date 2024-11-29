@@ -12,6 +12,6 @@ pip-tools
 pytest
 pytest-cov
 respx
-pip-tools
+uv
 motor-types
 ruff
