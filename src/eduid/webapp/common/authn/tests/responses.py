@@ -80,15 +80,13 @@ def auth_response(session_id: str, eppn: str, accr: EduidAuthnContextClass | Non
 </samlp:Response>"""  # noqa: E501
 
     return saml_response_tpl.format(
-        **{
-            "uid": eppn,
-            "session_id": session_id,
-            "timestamp": timestamp.strftime("%Y-%m-%dT%H:%M:%SZ"),
-            "tomorrow": tomorrow.strftime("%Y-%m-%dT%H:%M:%SZ"),
-            "yesterday": yesterday.strftime("%Y-%m-%dT%H:%M:%SZ"),
-            "sp_url": sp_baseurl,
-            "accr": accr.value,
-        }
+        uid=eppn,
+        session_id=session_id,
+        timestamp=timestamp.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        tomorrow=tomorrow.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        yesterday=yesterday.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        sp_url=sp_baseurl,
+        accr=accr.value,
     )
 
 

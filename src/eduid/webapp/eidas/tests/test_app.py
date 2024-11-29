@@ -284,16 +284,14 @@ class EidasTests(ProofingTests[EidasApp]):
 
         resp = " ".join(
             saml_response_tpl.format(
-                **{
-                    "asserted_identity": asserted_identity,
-                    "date_of_birth": date_of_birth.strftime("%Y-%m-%d"),
-                    "session_id": request_id,
-                    "timestamp": timestamp.strftime("%Y-%m-%dT%H:%M:%SZ"),
-                    "tomorrow": tomorrow.strftime("%Y-%m-%dT%H:%M:%SZ"),
-                    "yesterday": yesterday.strftime("%Y-%m-%dT%H:%M:%SZ"),
-                    "sp_url": sp_baseurl,
-                    "extra_attributes": extra_attributes_str,
-                }
+                asserted_identity=asserted_identity,
+                date_of_birth=date_of_birth.strftime("%Y-%m-%d"),
+                session_id=request_id,
+                timestamp=timestamp.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                tomorrow=tomorrow.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                yesterday=yesterday.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                sp_url=sp_baseurl,
+                extra_attributes=extra_attributes_str,
             ).split()
         )
 
