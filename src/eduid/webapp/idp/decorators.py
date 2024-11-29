@@ -50,7 +50,6 @@ def require_ticket(f: Callable) -> Callable:
             except Exception:
                 logger.exception("Couldn't parse the this_device supplied")
                 logger.debug(f"Extra debug: Known device: {this_device}")
-                pass
 
         kwargs["ticket"] = ticket
         return f(*args, **kwargs)

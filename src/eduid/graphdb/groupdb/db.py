@@ -69,7 +69,6 @@ class GroupDB(BaseGraphDB):
                     ):
                         raise e
                     # Constraints already set up
-                    pass
         logger.info(f"{self} setup done.")
 
     @property

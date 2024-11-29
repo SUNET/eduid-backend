@@ -149,10 +149,8 @@ def get_address(user: User, proofing_state: LetterProofingState) -> FullPostalAd
         # return bogus data without Navet interaction for integration test
         current_app.logger.info("Using magic cookie to get address")
         return FullPostalAddress(
-            **{
-                "Name": {"GivenNameMarking": "20", "GivenName": "Magic Cookie", "Surname": "Testsson"},
-                "OfficialAddress": {"Address2": "MAGIC COOKIE", "PostalCode": "12345", "City": "LANDET"},
-            }
+            Name={"GivenNameMarking": "20", "GivenName": "Magic Cookie", "Surname": "Testsson"},
+            OfficialAddress={"Address2": "MAGIC COOKIE", "PostalCode": "12345", "City": "LANDET"},
         )
     # Lookup official address via Navet
     address = current_app.msg_relay.get_postal_address(proofing_state.nin.number)

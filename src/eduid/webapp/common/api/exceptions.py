@@ -97,5 +97,4 @@ def init_sentry(app: Flask) -> Flask:
             sentry.init_app(app)
         except ImportError:
             app.logger.warning("SENTRY_DSN found but Raven not installed.")
-            pass
     return app

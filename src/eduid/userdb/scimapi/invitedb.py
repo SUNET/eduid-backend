@@ -39,7 +39,7 @@ class ScimApiInvite(ScimApiResourceBase):
     nin: str | None = field(default=None)
     preferred_language: str | None = field(default=None)
     completed: datetime | None = field(default=None)
-    profiles: dict[str, ScimApiProfile] = field(default_factory=lambda: {})
+    profiles: dict[str, ScimApiProfile] = field(default_factory=dict)
 
     def to_dict(self) -> TUserDbDocument:
         res = asdict(self)

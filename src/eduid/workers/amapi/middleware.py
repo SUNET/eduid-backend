@@ -18,8 +18,6 @@ logger = logging.getLogger(__name__)
 class AccessDenied(Exception):
     """Break out of get_data_owner when requested access (in the token) is not allowed"""
 
-    pass
-
 
 # middleware needs to return a response
 # some background: https://github.com/tiangolo/fastapi/issues/458

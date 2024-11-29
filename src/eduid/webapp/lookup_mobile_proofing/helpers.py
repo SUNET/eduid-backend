@@ -75,10 +75,8 @@ def match_mobile_to_user(
     if check_magic_cookie(current_app.conf):
         current_app.logger.info("Using the BACKDOOR to verify a NIN through the lookup mobile app")
         user_postal_address = FullPostalAddress(
-            **{
-                "Name": {"GivenName": "Magic Cookie", "GivenNameMarking": "20", "Surname": "Magic Cookie"},
-                "OfficialAddress": {"Address2": "Dummy address", "City": "LANDET", "PostalCode": "12345"},
-            }
+            Name={"GivenName": "Magic Cookie", "GivenNameMarking": "20", "Surname": "Magic Cookie"},
+            OfficialAddress={"Address2": "Dummy address", "City": "LANDET", "PostalCode": "12345"},
         )
         proofing_log_entry = TeleAdressProofing(
             eppn=user.eppn,

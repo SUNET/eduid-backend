@@ -69,8 +69,6 @@ class EventList(ElementList[ListElement], Generic[ListElement], ABC):
     maintaining some governing principles, such as ensuring there no duplicates in the list.
     """
 
-    pass
-
 
 def event_from_dict(data: dict[str, Any]) -> ToUEvent:
     """

@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 
 def make_presentable_password(password: str) -> str:
-    return " ".join([password[i * 4 : i * 4 + 4] for i in range(0, math.ceil(len(password) / 4))])
+    return " ".join([password[i * 4 : i * 4 + 4] for i in range(math.ceil(len(password) / 4))])
 
 
 def load_jwks(config: MAccApiConfig) -> jwk.JWKSet:
