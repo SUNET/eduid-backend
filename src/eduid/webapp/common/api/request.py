@@ -227,6 +227,15 @@ class SanitizedEnvironHeaders(EnvironHeaders, SanitationMixin):
         for key, value in EnvironHeaders.__iter__(self):
             yield key, self.sanitize_input(untrusted_text=value, content_type=self.content_type)
 
+    def get(self, key: str, default: str | None = None, type: Callable[[str], str | None] | None = None) -> str | None:  # type: ignore[override]
+        """
+        Sanitized get
+        """
+        val = super().get(key=key, default=default, type=type)  # type: ignore[arg-type]
+        if val is None:
+            return None
+        return self.sanitize_input(untrusted_text=val, content_type=self.content_type)
+
 
 class Request(FlaskRequest, SanitationMixin):
     """
