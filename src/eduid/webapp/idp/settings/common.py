@@ -4,7 +4,7 @@ Configuration (file) handling for the eduID idp app.
 
 from datetime import timedelta
 
-from pydantic import Field, HttpUrl, field_validator
+from pydantic import Field, field_validator
 from pydantic_core.core_schema import ValidationInfo
 
 from eduid.common.config.base import (
@@ -140,7 +140,7 @@ class IdPConfig(EduIDBaseAppConfig, TouConfigMixin, WebauthnConfigMixin2, AmConf
             SwamidAssurance.REFEDS_IAP_HIGH,
         ]
     )
-    logout_finish_url: dict[str, HttpUrl] = Field(
+    logout_finish_url: dict[str, HttpUrlStr] = Field(
         default={
             "https://dashboard.eduid.docker/services/authn/saml2-metadata": "https://dashboard.eduid.docker/profile/",
             "https://dashboard.dev.eduid.se/services/authn/saml2-metadata": "https://dev.eduid.se/",
