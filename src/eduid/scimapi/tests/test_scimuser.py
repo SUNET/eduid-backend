@@ -11,7 +11,7 @@ from uuid import UUID, uuid4
 
 import bson
 from bson import ObjectId
-from httpx import AsyncClient, Response
+from httpx import ASGITransport, AsyncClient, Response
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.models.scim_base import Email, LanguageTag, Meta, Name, PhoneNumber, SCIMResourceType, SCIMSchema
@@ -873,7 +873,7 @@ class TestUserResource(ScimApiTestUserResourceBase):
 class TestAsyncUserResource(IsolatedAsyncioTestCase, ScimApiTestCase):
     def setUp(self) -> None:
         super().setUp()
-        self.async_client = AsyncClient(app=self.api, base_url="http://testserver")
+        self.async_client = AsyncClient(transport=ASGITransport(app=self.api), base_url="http://testserver")
         # create users
         self.user_count = 10
         self.users = [
