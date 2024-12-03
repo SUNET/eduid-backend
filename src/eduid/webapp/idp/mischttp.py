@@ -63,7 +63,7 @@ from __future__ import annotations
 
 import logging
 import pprint
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any, Self
 
@@ -72,11 +72,11 @@ from bleach import clean
 from flask import make_response, redirect, request
 from saml2 import BINDING_HTTP_REDIRECT
 from user_agents.parsers import UserAgent
-from werkzeug.exceptions import BadRequest, InternalServerError
+from werkzeug.exceptions import InternalServerError
 from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.common.config.base import CookieConfig
-from eduid.webapp.common.api.sanitation import SanitationProblem, Sanitizer
+from eduid.webapp.common.api.sanitation import sanitize_map
 from eduid.webapp.idp.settings.common import IdPConfig
 
 logger = logging.getLogger(__name__)
@@ -168,23 +168,7 @@ def get_post() -> dict[str, Any]:
 
     :return: query string
     """
-    return _sanitise_items(request.form)
-
-
-def _sanitise_items(data: Mapping[str, Any]) -> dict[str, str]:
-    res = dict()
-    san = Sanitizer()
-    for k, v in data.items():
-        try:
-            safe_k = san.sanitize_input(k, content_type="text/plain")
-            if safe_k != k:
-                raise BadRequest()
-            safe_v = san.sanitize_input(v, content_type="text/plain")
-        except SanitationProblem:
-            logger.exception("There was a problem sanitizing inputs")
-            raise BadRequest()
-        res[str(safe_k)] = str(safe_v)
-    return res
+    return sanitize_map(request.form)
 
 
 # ----------------------------------------------------------------------------
@@ -239,7 +223,7 @@ def parse_query_string() -> dict[str, str]:
 
     :return: parsed query string
     """
-    args = _sanitise_items(request.args)
+    args = sanitize_map(request.args)
     res = {}
     for k, v in args.items():
         if isinstance(v, list):
