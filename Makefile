@@ -1,7 +1,6 @@
 TOPDIR:=	$(abspath .)
 SRCDIR=		$(TOPDIR)/src
 SOURCE=		$(SRCDIR)/eduid
-PIPCOMPILE=	pip-compile -v --generate-hashes --index-url https://pypi.sunet.se/simple
 MYPY_ARGS=	--install-types --non-interactive --pretty --ignore-missing-imports \
 			--warn-unused-ignores \
 			# --disallow-untyped-decorators

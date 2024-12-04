@@ -735,19 +735,25 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
 
             logger.info(f"Making request to {endpoint}")
             response = client.post(f"{endpoint}", data=json.dumps(data), content_type=self.content_type_json)
+            assert response is not None, "response unexpected None"
 
             logger.info(f"Request to {endpoint} result: {response}")
 
             if response.status_code != 200:
                 return SignupResult(url=endpoint, reached_state=SignupState.S1_ACCEPT_INVITE, response=response)
 
+            assert response.json is not None, "response.json unexpected None"
             if expect_success:
+                assert (
+                    response.json.get("error", False) is False
+                ), f"expect_success {expect_success} but got error={response.json.get('error')}"
                 if not expected_payload:
-                    assert self.get_response_payload(response)["state"]["tou"]["completed"] is False
-                    assert self.get_response_payload(response)["state"]["captcha"]["completed"] is False
-                    assert self.get_response_payload(response)["state"]["email"]["address"] == email
-                    assert self.get_response_payload(response)["state"]["email"]["completed"] is email_verified
-                    assert self.get_response_payload(response)["state"]["user_created"] is False
+                    payload = self.get_response_payload(response)
+                    assert payload["state"]["tou"]["completed"] is False
+                    assert payload["state"]["captcha"]["completed"] is False
+                    assert payload["state"]["email"]["address"] == email
+                    assert payload["state"]["email"]["completed"] is email_verified
+                    assert payload["state"]["user_created"] is False
                     with client.session_transaction() as sess:
                         assert sess.signup.invite.invite_code == invite_code
 
