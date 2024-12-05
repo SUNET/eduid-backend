@@ -301,7 +301,14 @@ def get_reference_nin_from_navet_data(nin: str) -> str | None:
     """
     Check if the NIN has changed in Navet data.
     """
-    msg_relay = get_from_current_app("msg_relay", MsgRelay)
+    try:
+        msg_relay = get_from_current_app("msg_relay", MsgRelay)
+    except AttributeError:
+        # If for some reason the msg_relay is not in the current app, return None.
+        # This should not happen, but if it does, we don't want to crash the service.
+        # Instead, we log the error and return None.
+        logger.error("Could not get msg_relay from current app")
+        return None
 
     navet_data = msg_relay.get_all_navet_data(nin=nin)
     if navet_data.person.reference_national_identity_number:
