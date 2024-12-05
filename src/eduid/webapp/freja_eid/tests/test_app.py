@@ -335,9 +335,11 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         ], f"{query['scope']} != {[' '.join(self.app.conf.freja_eid_client.scopes)]}"
         assert query["code_challenge_method"] == ["S256"]
 
+    @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_verify_nin_identity(self, mock_request_user_sync: MagicMock) -> None:
+    def test_verify_nin_identity(self, mock_request_user_sync: MagicMock, mock_reference_nin: MagicMock) -> None:
         mock_request_user_sync.side_effect = self.request_user_sync
+        mock_reference_nin.return_value = None
 
         eppn = self.unverified_test_user.eppn
         country = countries.get("Sweden")

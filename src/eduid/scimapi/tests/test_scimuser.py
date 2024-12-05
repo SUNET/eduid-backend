@@ -11,7 +11,7 @@ from uuid import UUID, uuid4
 
 import bson
 from bson import ObjectId
-from httpx import AsyncClient, Response
+from httpx import ASGITransport, AsyncClient, Response
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.models.scim_base import Email, LanguageTag, Meta, Name, PhoneNumber, SCIMResourceType, SCIMSchema
@@ -20,7 +20,7 @@ from eduid.common.testing_base import normalised_data
 from eduid.common.utils import make_etag
 from eduid.scimapi.testing import ScimApiTestCase
 from eduid.scimapi.utils import filter_none
-from eduid.userdb.scimapi import EventStatus, ScimApiGroup, ScimApiLinkedAccount
+from eduid.userdb.scimapi import EventStatus, ScimApiGroup, ScimApiLinkedAccount, ScimApiName
 from eduid.userdb.scimapi.userdb import ScimApiProfile, ScimApiUser
 
 logger = logging.getLogger(__name__)
@@ -606,6 +606,42 @@ class TestUserResource(ScimApiTestUserResourceBase):
         self.add_user(identifier=str(uuid4()), external_id="test-id-2", profiles={"test": self.test_profile})
         self._perform_search(search_filter=f'externalId eq "{db_user.external_id}"', expected_user=db_user)
 
+    def test_search_user_external_id_with_attributes(self) -> None:
+        attributes = ["givenName", "familyName", "formatted", "externalId"]
+        db_user = self.add_user(
+            identifier=str(uuid4()),
+            external_id="test-id-1",
+            profiles={"test": self.test_profile},
+            name=ScimApiName(family_name="Test", given_name="User", formatted="Test User"),
+        )
+        self.add_user(identifier=str(uuid4()), external_id="test-id-2", profiles={"test": self.test_profile})
+        resources = self._perform_search(
+            search_filter=f'externalId eq "{db_user.external_id}"',
+            expected_user=db_user,
+            attributes=attributes,
+        )
+        for resource in resources:
+            for attrib in attributes:
+                assert attrib in resource
+                assert resource[attrib] is not None
+
+    def test_search_user_external_id_with_none_attributes(self) -> None:
+        attributes = ["givenName", "familyName", "formatted", "externalId"]
+        db_user = self.add_user(
+            identifier=str(uuid4()),
+            external_id="test-id-1",
+            profiles={"test": self.test_profile},
+            name=ScimApiName(family_name="Test", given_name="User"),
+        )
+        self.add_user(identifier=str(uuid4()), external_id="test-id-2", profiles={"test": self.test_profile})
+        resources = self._perform_search(
+            search_filter=f'externalId eq "{db_user.external_id}"',
+            expected_user=db_user,
+            attributes=attributes,
+        )
+        for resource in resources:
+            assert resource["formatted"] is None
+
     def test_search_user_last_modified(self) -> None:
         db_user1 = self.add_user(identifier=str(uuid4()), external_id="test-id-1", profiles={"test": self.test_profile})
         db_user2 = self.add_user(identifier=str(uuid4()), external_id="test-id-2", profiles={"test": self.test_profile})
@@ -772,6 +808,7 @@ class TestUserResource(ScimApiTestUserResourceBase):
         search_filter: str,
         start: int = 1,
         count: int = 10,
+        attributes: list[str] | None = None,
         return_json: bool = False,
         expected_user: ScimApiUser | None = None,
         expected_num_resources: int | None = None,
@@ -784,6 +821,8 @@ class TestUserResource(ScimApiTestUserResourceBase):
             "startIndex": start,
             "count": count,
         }
+        if attributes is not None:
+            req["attributes"] = attributes
         response = self.client.post(url="/Users/.search", json=req, headers=self.headers)
         logger.info(f"Search parsed_response:\n{response.json()}")
         if return_json:
@@ -834,7 +873,7 @@ class TestUserResource(ScimApiTestUserResourceBase):
 class TestAsyncUserResource(IsolatedAsyncioTestCase, ScimApiTestCase):
     def setUp(self) -> None:
         super().setUp()
-        self.async_client = AsyncClient(app=self.api, base_url="http://testserver")
+        self.async_client = AsyncClient(transport=ASGITransport(app=self.api), base_url="http://testserver")
         # create users
         self.user_count = 10
         self.users = [

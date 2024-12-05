@@ -69,7 +69,6 @@ class GroupDB(BaseGraphDB):
                     ):
                         raise e
                     # Constraints already set up
-                    pass
         logger.info(f"{self} setup done.")
 
     @property
@@ -388,6 +387,10 @@ class GroupDB(BaseGraphDB):
         with self.db.driver.session(default_access_mode=WRITE_ACCESS) as session:
             try:
                 tx = session.begin_transaction()
+            except ClientError as e:
+                logger.error(e)
+                raise EduIDGroupDBError(e.message)
+            try:
                 self._remove_missing_users_and_groups(tx, group, Role.OWNER)
                 self._remove_missing_users_and_groups(tx, group, Role.MEMBER)
                 saved_group = self._create_or_update_group(tx, group)
@@ -396,9 +399,6 @@ class GroupDB(BaseGraphDB):
             except ConstraintError as e:
                 logger.error(e)
                 raise VersionMismatch("Tried to save a group with wrong version")
-            except ClientError as e:
-                logger.error(e)
-                raise EduIDGroupDBError(e.message)
             finally:
                 if tx.closed():
                     logger.info("Group save successful")

@@ -47,7 +47,7 @@ class SanitationMixin(Sanitizer):
             abort(400)
 
 
-class SanitizedImmutableMultiDict(ImmutableMultiDict, SanitationMixin):
+class SanitizedImmutableMultiDict(ImmutableMultiDict, SanitationMixin):  # type: ignore[misc]
     """
     See `werkzeug.datastructures.ImmutableMultiDict`.
     This class is an extension that overrides all access methods to
@@ -148,7 +148,7 @@ class SanitizedImmutableMultiDict(ImmutableMultiDict, SanitationMixin):
 T = TypeVar("T")
 
 
-class SanitizedTypeConversionDict(ImmutableTypeConversionDict, SanitationMixin):
+class SanitizedTypeConversionDict(ImmutableTypeConversionDict, SanitationMixin):  # type: ignore[misc]
     """
     See `werkzeug.datastructures.TypeConversionDict`.
     This class is an extension that overrides all access methods to
@@ -198,7 +198,7 @@ class SanitizedTypeConversionDict(ImmutableTypeConversionDict, SanitationMixin):
         return [(v[0], self.sanitize_input(v[1])) for v in super(ImmutableTypeConversionDict, self).items()]
 
 
-class SanitizedEnvironHeaders(EnvironHeaders, SanitationMixin):
+class SanitizedEnvironHeaders(EnvironHeaders, SanitationMixin):  # type: ignore[misc]
     """
     Sanitized and read only version of the headers from a WSGI environment.
     """
@@ -220,12 +220,21 @@ class SanitizedEnvironHeaders(EnvironHeaders, SanitationMixin):
         val = super().__getitem__(key)
         return self.sanitize_input(untrusted_text=val, content_type=self.content_type)
 
-    def __iter__(self) -> Iterator[tuple[str, str]]:  # type: ignore[override]
+    def __iter__(self) -> Iterator[tuple[str, str]]:
         """
         Sanitized __iter__
         """
         for key, value in EnvironHeaders.__iter__(self):
             yield key, self.sanitize_input(untrusted_text=value, content_type=self.content_type)
+
+    def get(self, key: str, default: str | None = None, type: Callable[[str], str | None] | None = None) -> str | None:  # type: ignore[override]
+        """
+        Sanitized get
+        """
+        val = super().get(key=key, default=default, type=type)  # type: ignore[arg-type]
+        if val is None:
+            return None
+        return self.sanitize_input(untrusted_text=val, content_type=self.content_type)
 
 
 class Request(FlaskRequest, SanitationMixin):

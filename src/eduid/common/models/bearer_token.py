@@ -34,8 +34,6 @@ class AuthorizationError(Exception):
 class RequestedAccessDenied(Exception):
     """Break out of get_data_owner when requested access (in the token) is not allowed"""
 
-    pass
-
 
 logger = logging.getLogger(__name__)
 

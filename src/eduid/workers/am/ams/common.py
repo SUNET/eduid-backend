@@ -8,6 +8,8 @@ from celery.utils.log import get_task_logger
 
 from eduid.common.config.workers import AmConfig
 from eduid.userdb.exceptions import UserDoesNotExist
+from eduid.userdb.identity import IdentityType
+from eduid.userdb.proofing.user import ProofingUser
 from eduid.userdb.user import User
 from eduid.userdb.userdb import UserDB
 from eduid.userdb.util import format_dict_for_debug
@@ -72,3 +74,23 @@ class AttributeFetcher(ABC):
             attributes["$unset"] = attributes_unset
 
         return attributes
+
+    def get_replace_locked(self, user_id: bson.ObjectId) -> IdentityType | None:
+        """
+        Get the identity type of the lock to be replaced or None if no lock should be replaced.
+        """
+
+        logger.debug(f"Trying to get user with _id: {user_id} from {self.private_db}.")
+        if not self.private_db:
+            raise RuntimeError("No database initialised")
+
+        user: User | None = self.private_db.get_user_by_id(user_id)
+        logger.debug(f"User: {user} found.")
+        if not user:
+            raise UserDoesNotExist(f"No user found with id {user_id}")
+
+        if not isinstance(user, ProofingUser):
+            logger.debug("Not a proofing user, returning None.")
+            return None
+
+        return user.replace_locked

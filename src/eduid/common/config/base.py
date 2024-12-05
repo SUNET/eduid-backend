@@ -11,7 +11,7 @@ from pathlib import Path
 from re import Pattern
 from typing import IO, Annotated, Any, TypeVar
 
-import pkg_resources
+import importlib_resources
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field
 
 from eduid.userdb.credentials import CredentialProofingMethod
@@ -295,9 +295,9 @@ class CaptchaConfigMixin(BaseModel):
     captcha_height: int = 60
     captcha_fonts: list[Path] = Field(
         default=[
-            pkg_resources.resource_filename("eduid", "static/fonts/ProximaNova-Regular.ttf"),
-            pkg_resources.resource_filename("eduid", "static/fonts/ProximaNova-Light.ttf"),
-            pkg_resources.resource_filename("eduid", "static/fonts/ProximaNova-Bold.ttf"),
+            importlib_resources.files("eduid").joinpath("static/fonts/ProximaNova-Regular.ttf"),
+            importlib_resources.files("eduid").joinpath("static/fonts/ProximaNova-Light.ttf"),
+            importlib_resources.files("eduid").joinpath("static/fonts/ProximaNova-Bold.ttf"),
         ]
     )
     captcha_font_size: tuple[int, int, int] = (42, 50, 56)

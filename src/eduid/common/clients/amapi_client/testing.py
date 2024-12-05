@@ -14,4 +14,4 @@ class MockedAMAPIMixin(MockedSyncAuthAPIMixin):
         )
         put_users_name_route.pass_through()
         self.mocked_users.start()
-        self.addCleanup(self.mocked_users.stop)  # type: ignore
+        self.addCleanup(self.mocked_users.stop)

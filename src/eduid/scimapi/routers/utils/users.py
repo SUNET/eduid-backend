@@ -159,9 +159,21 @@ def acceptable_linked_accounts(value: list[LinkedAccount], environment: EduidEnv
 
 
 def users_to_resources_dicts(query: SearchRequest, users: Sequence[ScimApiUser]) -> list[dict[str, Any]]:
-    _attributes = query.attributes
-    # TODO: include the requested attributes, not just id
-    return [{"id": str(user.scim_id)} for user in users]
+    resources = []
+    for user in users:
+        resource: dict[str, Any] = {"id": str(user.scim_id)}
+        if query.attributes:
+            # TODO: this is a hack to get some attributes we need
+            if "givenName" in query.attributes:
+                resource["givenName"] = user.name.given_name
+            if "familyName" in query.attributes:
+                resource["familyName"] = user.name.family_name
+            if "formatted" in query.attributes:
+                resource["formatted"] = user.name.formatted
+            if "externalId" in query.attributes:
+                resource["externalId"] = user.external_id
+        resources.append(resource)
+    return resources
 
 
 def filter_externalid(req: ContextRequest, search_filter: SearchFilter) -> list[ScimApiUser]:

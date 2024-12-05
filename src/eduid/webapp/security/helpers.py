@@ -160,7 +160,7 @@ def generate_suggested_password() -> str:
     password_length = current_app.conf.password_length
 
     password = generate_password(length=password_length)
-    password = " ".join([password[i * 4 : i * 4 + 4] for i in range(0, int(len(password) / 4))])
+    password = " ".join([password[i * 4 : i * 4 + 4] for i in range(int(len(password) / 4))])
 
     return password
 

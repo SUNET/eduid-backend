@@ -309,11 +309,15 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
         assert query["acr_values"] == ["face_present"]
         assert query["claims"] == [json.dumps({"userinfo": self.app.conf.svipe_client.claims_request})]
 
+    @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_verify_nin_identity(self, mock_request_user_sync: MagicMock, mock_get_all_navet_data: MagicMock) -> None:
+    def test_verify_nin_identity(
+        self, mock_request_user_sync: MagicMock, mock_get_all_navet_data: MagicMock, mock_reference_nin: MagicMock
+    ) -> None:
         mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
+        mock_reference_nin.return_value = None
 
         eppn = self.unverified_test_user.eppn
         country = countries.get("Sweden")

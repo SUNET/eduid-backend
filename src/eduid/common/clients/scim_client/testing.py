@@ -10,8 +10,9 @@ from eduid.common.models.scim_user import UserResponse
 
 
 class MockedScimAPIMixin(MockedSyncAuthAPIMixin):
-    # TODO: Maybe find a better way to make the responsen dynamic
+    mocked_scim_api: respx.MockRouter
 
+    # TODO: Maybe find a better way to make the responses dynamic
     get_invite_response = {
         "id": "74d9c09a-55ea-4fa6-9bc1-5f8aa815ee68",
         "meta": {
@@ -82,7 +83,8 @@ class MockedScimAPIMixin(MockedSyncAuthAPIMixin):
     def start_mocked_scim_api(self) -> None:
         self.start_mock_auth_api()
 
-        self.mocked_scim_api = respx.mock(base_url="http://localhost/scim", assert_all_called=False)
+        # set using="httpx" until https://github.com/lundberg/respx/issues/277 is fixed
+        self.mocked_scim_api = respx.mock(base_url="http://localhost/scim", assert_all_called=False, using="httpx")
         get_invite_route = self.mocked_scim_api.get(
             path__regex=r"^/Invites/[a-f0-9]{8}-?[a-f0-9]{4}-?4[a-f0-9]{3}-?[89ab][a-f0-9]{3}-?[a-f0-9]{12}\Z",
             name="get_invite_request",
@@ -101,5 +103,4 @@ class MockedScimAPIMixin(MockedSyncAuthAPIMixin):
         put_user_route.return_value = Response(200, text=UserResponse(**self.put_user_response).json(exclude_none=True))
 
         self.mocked_scim_api.start()
-        assert hasattr(self, "addCleanup")  # please mypy
         self.addCleanup(self.mocked_scim_api.stop)

@@ -51,8 +51,6 @@ class CSRFResponseMixin(Schema):
 class EmptyRequest(EduidSchema, CSRFRequestMixin):
     """This is a common request schema that will just check the CSRF token"""
 
-    pass
-
 
 class EmptyResponse(FluxStandardAction):
     """This is a common response schema for returning an empty response with a fresh CSRF token"""
