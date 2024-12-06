@@ -58,7 +58,7 @@ class QueueWorker(ABC):
         main_task = asyncio.create_task(self.run_subtasks(), name="run subtasks")
         # set up signal handling to be a well behaved service
         loop = asyncio.get_running_loop()
-        for signame in {"SIGINT", "SIGTERM"}:
+        for signame in ("SIGINT", "SIGTERM"):
             loop.add_signal_handler(getattr(signal, signame), functools.partial(cancel_task, signame, main_task))
 
         logger.info(f"Running: {main_task.get_name()}")
