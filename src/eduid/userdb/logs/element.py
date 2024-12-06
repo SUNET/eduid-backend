@@ -65,7 +65,7 @@ class ProofingLogElement(LogElement):
     """ """
 
     # eduPersonPrincipalName
-    eppn: str
+    eppn: str = Field(alias="eduPersonPrincipalName")
     # Proofing method version number
     proofing_version: str
     # Proofing method name
