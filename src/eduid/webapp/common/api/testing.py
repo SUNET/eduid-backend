@@ -24,6 +24,7 @@ from eduid.userdb.credentials import U2F, Webauthn
 from eduid.userdb.db import BaseDB
 from eduid.userdb.element import ElementKey
 from eduid.userdb.fixtures.users import UserFixtures
+from eduid.userdb.identity import IdentityType
 from eduid.userdb.logs.db import ProofingLog
 from eduid.userdb.proofing.state import NinProofingState
 from eduid.userdb.testing import MongoTemporaryInstance, SetupConfig
@@ -271,9 +272,14 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
 
         central_user = self.app.central_userdb.get_user_by_id(private_user.user_id)
         private_user_dict = private_user.to_dict()
+        replace_locked: IdentityType | None = None
         # fix signup_user data
         if "proofing_reference" in private_user_dict:
             del private_user_dict["proofing_reference"]
+
+        if "replace_locked" in private_user_dict:
+            replace_locked = private_user_dict["replace_locked"]
+            del private_user_dict["replace_locked"]
 
         if central_user is None:
             # This is a new user, create a new user in the central db
@@ -303,6 +309,11 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
                     identity.created_by = "test"
                 user.locked_identity.add(identity)
                 continue
+            if replace_locked is locked_identity.identity_type:
+                # replace the locked identity with the new verified identity
+                if identity.created_by is None:
+                    identity.created_by = "test"
+                user.locked_identity.replace(identity)
 
         # Restore metadata that is necessary for the consistency checks in the save() function
         user.modified_ts = central_user.modified_ts

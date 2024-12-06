@@ -13,6 +13,7 @@ from flask.wrappers import Request
 
 from eduid.common.config.base import EduIDBaseAppConfig, Pysaml2SPConfigMixin
 from eduid.common.misc.timeutil import utc_now
+from eduid.common.rpc.msg_relay import MsgRelay
 from eduid.userdb import User, UserDB
 from eduid.userdb.exceptions import MultipleUsersReturned, UserDBValueError, UserDoesNotExist
 from eduid.webapp.common.api.exceptions import ApiException
@@ -294,3 +295,16 @@ def is_throttled(ts: datetime, min_wait: timedelta) -> bool:
 
 def is_expired(ts: datetime, max_age: timedelta) -> bool:
     return utc_now() - ts > max_age
+
+
+def get_reference_nin_from_navet_data(nin: str) -> str | None:
+    """
+    Check if the NIN has changed in Navet data.
+    """
+    msg_relay = get_from_current_app("msg_relay", MsgRelay)
+
+    navet_data = msg_relay.get_all_navet_data(nin=nin)
+    if navet_data.person.reference_national_identity_number:
+        return navet_data.person.reference_national_identity_number
+    else:
+        return None

@@ -68,15 +68,11 @@ class ElementError(EduIDUserDBError):
     Base exception class for PrimaryElement errors.
     """
 
-    pass
-
 
 class PrimaryElementError(ElementError):
     """
     Base exception class for PrimaryElement errors.
     """
-
-    pass
 
 
 class PrimaryElementViolation(PrimaryElementError):
@@ -84,8 +80,6 @@ class PrimaryElementViolation(PrimaryElementError):
     Raised when some operation would result in more or less than one 'primary'
     element in an PrimaryElementList.
     """
-
-    pass
 
 
 TElementSubclass = TypeVar("TElementSubclass", bound="Element")

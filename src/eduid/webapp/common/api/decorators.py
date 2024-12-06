@@ -19,8 +19,11 @@ from eduid.webapp.common.api.schemas.models import (
     FluxResponseStatus,
     FluxSuccessResponse,
 )
-from eduid.webapp.common.api.utils import get_user
+from eduid.webapp.common.api.utils import get_reference_nin_from_navet_data, get_user
 from eduid.webapp.common.session import session
+from eduid.webapp.letter_proofing.app import LetterProofingApp
+from eduid.webapp.lookup_mobile_proofing.app import MobileProofingApp
+from eduid.webapp.oidc_proofing.app import OIDCProofingApp
 
 __author__ = "lundberg"
 
@@ -116,6 +119,16 @@ def can_verify_nin(f: EduidRouteCallable) -> EduidRouteCallable:
         if isinstance(locked_nin, NinIdentity) and locked_nin.number != kwargs["nin"]:
             logger.info("User has a different locked NIN")
             logger.debug(f"Locked NIN: {locked_nin.number}. New NIN: {kwargs['nin']}")
+            if isinstance(session.app, MobileProofingApp | LetterProofingApp | OIDCProofingApp):
+                ref = get_reference_nin_from_navet_data(kwargs["nin"])
+                logger.debug(f"New NIN has reference NIN: {ref}")
+                # If the reference NIN is the same as the locked NIN, we can continue with the verification
+                if locked_nin.number == ref:
+                    logger.info(
+                        "User has a different locked NIN but it is the same as the reference NIN for the new NIN"
+                    )
+                    return f(*args, **kwargs)
+
             return error_response(message=CommonMsg.user_has_other_locked_nin)
 
         return f(*args, **kwargs)
