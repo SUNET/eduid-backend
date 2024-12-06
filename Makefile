@@ -86,8 +86,8 @@ vscode_venv:
 
 vscode_pip: vscode_venv
 	$(info Installing pip packages in devcontainer)
-	.venv/bin/pip install --upgrade pip
-	.venv/bin/pip install -r requirements/test_requirements.txt
+	.venv/bin/pip install uv
+	.venv/bin/uv pip install -r requirements/test_requirements.txt
 	.venv/bin/mypy --install-types
 
 # This target is used by the devcontainer.json to configure the devcontainer
