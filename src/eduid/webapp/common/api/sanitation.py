@@ -1,8 +1,10 @@
 import logging
-from typing import AnyStr
+from collections.abc import Iterable, Mapping, Sequence
+from typing import Any, AnyStr
 from urllib.parse import quote, unquote
 
 from bleach import clean
+from werkzeug.exceptions import BadRequest
 
 logger = logging.getLogger(__name__)
 
@@ -122,7 +124,8 @@ class Sanitizer:
 
         return cleaned_text
 
-    def _safe_clean(self, untrusted_text: str, strip_characters: bool = False) -> str:
+    @staticmethod
+    def _safe_clean(untrusted_text: str, strip_characters: bool = False) -> str:
         """
         Wrapper for the clean function of bleach to be able
         to catch when illegal UTF-8 is processed.
@@ -140,3 +143,37 @@ class Sanitizer:
                 "user input."
             )
             raise SanitationProblem("Illegal UTF-8")
+
+
+def sanitize_map(data: Mapping[str, Any]) -> dict[str, Any]:
+    return {str(sanitize_item(k)): sanitize_item(v) for k, v in data.items()}
+
+
+def sanitize_iter(data: Iterable[str] | Iterable[Sequence[Any]]) -> list[str | dict[str, Any] | list[Any] | None]:
+    return [sanitize_item(item) for item in data]
+
+
+def sanitize_item(
+    data: str | dict[str, Any] | Sequence[Any] | list[Sequence[Any]] | None,
+) -> str | dict[str, Any] | list[Any] | None:
+    match data:
+        case None:
+            return None
+        case dict():
+            return sanitize_map(data)
+        case list():
+            return sanitize_iter(data)
+        case str():
+            san = Sanitizer()
+            try:
+                assert isinstance(data, str)
+                safe_data = san.sanitize_input(data)
+                if safe_data != data:
+                    logger.warning("Sanitized input from unsafe characters")
+                    logger.debug(f"data: {data} -> safe_data: {safe_data}")
+            except SanitationProblem:
+                logger.exception("There was a problem sanitizing inputs")
+                raise BadRequest()
+            return str(safe_data)
+        case _:
+            raise SanitationProblem(f"incompatible type {type(data)}")

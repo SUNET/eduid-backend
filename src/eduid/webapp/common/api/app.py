@@ -34,7 +34,6 @@ from eduid.webapp.common.api.checks import (
 from eduid.webapp.common.api.debug import init_app_debug
 from eduid.webapp.common.api.exceptions import init_exception_handlers, init_sentry
 from eduid.webapp.common.api.middleware import PrefixMiddleware
-from eduid.webapp.common.api.request import Request
 from eduid.webapp.common.authn.utils import no_authn_views
 from eduid.webapp.common.session.eduid_session import SessionFactory
 
@@ -82,7 +81,6 @@ class EduIDBaseApp(Flask, metaclass=ABCMeta):
 
         # App setup
         self.wsgi_app = ProxyFix(self.wsgi_app)  # type: ignore[method-assign]
-        self.request_class = Request
         # autocorrect location header means that redirects defaults to an absolute path
         # werkzeug 2.1.0 changed default value to False
         self.response_class.autocorrect_location_header = True
