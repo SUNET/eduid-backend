@@ -66,6 +66,8 @@ class BankIDCredential(ExternalCredential):
     # and mapping a level to an authnContextClassRef really ought to be dependent on configuration matching
     # the IdP:s expected values at a certain time. Such configuration is better to have in the SP than in
     # the database layer.
+class FrejaCredential(ExternalCredential):
+    framework: Literal[TrustFramework.FREJA] = TrustFramework.FREJA
     level: str  # a value like "loa3", "eidas_sub", ...
 
 

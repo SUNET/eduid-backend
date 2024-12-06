@@ -115,10 +115,12 @@ def verify_credential_action(user: User, args: ACSArgs) -> ACSResult:
         current_app.stats.count(name=f"verify_credential_{args.proofing_method.method}_identity_not_matching")
         return ACSResult(message=FrejaEIDMsg.identity_not_matching)
 
-    # TODO: is this the correct way of doing this?
-    loa = "al2"
+    current_loa = proofing.get_current_loa()
+    if current_loa.result is None:
+        current_app.logger.error(f"No LOA configured for registration level {parsed.info.registration_level}")
+        return ACSResult(message=FrejaEIDMsg.registration_level_not_satisfied)
 
-    verify_result = proofing.verify_credential(user=user, credential=credential, loa=loa)
+    verify_result = proofing.verify_credential(user=user, credential=credential, loa=current_loa.result)
     if verify_result.error is not None:
         return ACSResult(message=verify_result.error)
 

@@ -75,13 +75,17 @@ def verify_identity(user: User, method: str, frontend_action: str, frontend_stat
     return success_response(payload={"location": res.url})
 
 
-@eidas_views.route("/verify-credential", methods=["POST"])
+@freja_eid_views.route("/verify-credential", methods=["POST"])
 @UnmarshalWith(FrejaEIDVerifyCredentialRequestSchema)
 @MarshalWith(FrejaEIDCommonResponseSchema)
 @require_user
 def verify_credential(
     user: User, method: str, credential_id: ElementKey, frontend_action: str, frontend_state: str | None = None
 ) -> FluxData:
+    if current_app.conf.allow_credential_verification is False:
+        current_app.logger.error("Credential verification is not allowed")
+        return error_response(message=FrejaEIDMsg.credential_verification_not_allowed)
+
     current_app.logger.debug(f"verify-credential called with credential_id: {credential_id}")
 
     _frontend_action = FrontendAction.VERIFY_CREDENTIAL
@@ -179,7 +183,7 @@ def _authn(
 @require_user
 def authn_callback(user: User) -> WerkzeugResponse:
     """
-    This is the callback endpoint for the Svipe ID OIDC flow.
+    This is the callback endpoint for the Freja EID OIDC flow.
     """
     current_app.logger.debug("authn_callback called")
     current_app.logger.debug(f"request.args: {request.args}")
