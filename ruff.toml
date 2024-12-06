@@ -5,8 +5,7 @@ target-version = "py311"
 [lint]
 select = ["E", "F", "W", "I", "ASYNC", "UP", "FLY", "PERF", "FURB", "ERA", "ANN", "PIE"]
 
-# ANN101 and ANN102 are depracated
-ignore = ["E501", "ANN1"]
+ignore = ["E501"]
 
 [lint.flake8-annotations]
 allow-star-arg-any = true
