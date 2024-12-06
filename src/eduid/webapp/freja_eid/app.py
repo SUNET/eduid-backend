@@ -6,6 +6,7 @@ from flask import current_app
 
 from eduid.common.config.parsers import load_config
 from eduid.common.rpc.am_relay import AmRelay
+from eduid.common.rpc.msg_relay import MsgRelay
 from eduid.userdb.logs import ProofingLog
 from eduid.userdb.proofing.db import FrejaEIDProofingUserDB
 from eduid.webapp.common.authn.middleware import AuthnBaseApp
@@ -25,6 +26,7 @@ class FrejaEIDApp(AuthnBaseApp):
         self.proofing_log = ProofingLog(config.mongo_uri)
         # Init celery
         self.am_relay = AmRelay(config)
+        self.msg_relay = MsgRelay(config)
 
         # Initialize the oidc_client
         self.oidc_client = OAuth(self, cache=SessionOAuthCache())

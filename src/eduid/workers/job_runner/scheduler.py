@@ -1,7 +1,7 @@
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from eduid.common.config.exceptions import BadConfiguration
-from eduid.workers.job_runner.config import EnvironmentOrWorkerName, JobCronConfig
+from eduid.workers.job_runner.config import EnvironmentOrWorkerName, JobCronConfig, JobName
 from eduid.workers.job_runner.context import Context
 from eduid.workers.job_runner.jobs.skv import check_skv_users, gather_skv_users
 
@@ -22,7 +22,7 @@ class JobScheduler(AsyncIOScheduler):
         jobs_config = context.config.jobs
         context.logger.debug(f"jobs_config: {jobs_config}")
 
-        jobs: dict = {}
+        jobs: dict[JobName, JobCronConfig] = {}
 
         # Gather jobs for current environment and worker in a dictionary
         if environment in jobs_config:
@@ -42,8 +42,7 @@ class JobScheduler(AsyncIOScheduler):
         context.logger.info(f"Setting up jobs {jobs} for {worker_name} running {environment}")
 
         # Add all configured jobs to the scheduler
-        for job in jobs:
-            cron_settings: JobCronConfig = jobs[job]
+        for job, cron_settings in jobs.items():
             params = cron_settings.model_dump()
             context.logger.info(f"Setting up job {job} with parameters {params}")
 
