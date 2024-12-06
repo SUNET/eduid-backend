@@ -17,13 +17,21 @@ from eduid.userdb.identity import (
     IdentityProofingMethod,
     IdentityType,
 )
-from eduid.userdb.logs.element import FrejaEIDForeignProofing, FrejaEIDNINProofing, NinProofingLogElement
+from eduid.userdb.logs.element import (
+    FrejaEIDForeignProofing,
+    FrejaEIDNINProofing,
+    MFATokenFrejaEIDForeignProofing,
+    MFATokenFrejaEIDProofing,
+    NinProofingLogElement,
+)
 from eduid.userdb.proofing import NinProofingElement, ProofingUser
 from eduid.userdb.proofing.state import NinProofingState
 from eduid.webapp.common.api.helpers import set_user_names_from_foreign_id, verify_nin_for_user
 from eduid.webapp.common.api.messages import CommonMsg
 from eduid.webapp.common.proofing.base import (
+    GenericResult,
     MatchResult,
+    MfaData,
     ProofingElementResult,
     ProofingFunctions,
     VerifyCredentialResult,
@@ -48,6 +56,25 @@ class FrejaEIDProofingFunctions(ProofingFunctions[FrejaEIDDocumentUserInfo]):
         if issuing_country == sweden:
             return True
         return False
+
+    def get_current_loa(self) -> GenericResult[str | None]:
+        current_loa = self.config.freja_eid_registration_level_to_loa.get(self.session_info.registration_level)
+        if current_loa is None:
+            return GenericResult(error=FrejaEIDMsg.registration_level_not_satisfied)
+        return GenericResult(result=current_loa)
+
+    def get_mfa_data(self) -> GenericResult[MfaData]:
+        current_loa = self.get_current_loa()
+        if current_loa.error:
+            return GenericResult(error=current_loa.error)
+
+        return GenericResult(
+            result=MfaData(
+                issuer=self.session_info.iss,
+                authn_instant=datetime.fromtimestamp(self.session_info.iat).isoformat(),
+                authn_context=current_loa.result,
+            )
+        )
 
     def get_identity(self, user: User) -> IdentityElement | None:
         if self.is_swedish_document():
@@ -163,6 +190,10 @@ class FrejaEIDProofingFunctions(ProofingFunctions[FrejaEIDDocumentUserInfo]):
         return VerifyUserResult(user=_user)
 
     def _can_replace_identity(self, proofing_user: ProofingUser) -> bool:
+        if self.is_swedish_document():
+            # TODO: Implement support for NIN identites
+            return False
+
         locked_identity = proofing_user.locked_identity.freja
         if locked_identity is None:
             return True
@@ -183,6 +214,15 @@ class FrejaEIDProofingFunctions(ProofingFunctions[FrejaEIDDocumentUserInfo]):
         if self.is_swedish_document():
             return self._nin_identity_proofing_element(user)
         return self._foreign_identity_proofing_element(user)
+
+    def credential_proofing_element(self, user: User, credential: Credential) -> ProofingElementResult:
+        if self.backdoor:
+            # TODO: implement backdoor support?
+            pass
+
+        if self.is_swedish_document():
+            return self._nin_credential_proofing_element(user, credential)
+        return self._foreign_credential_proofing_element(user, credential)
 
     def _nin_identity_proofing_element(self, user: User) -> ProofingElementResult:
         _nin = self.session_info.personal_identity_number
@@ -223,14 +263,47 @@ class FrejaEIDProofingFunctions(ProofingFunctions[FrejaEIDDocumentUserInfo]):
         )
         return ProofingElementResult(data=data)
 
-    def match_identity(self, user: User, proofing_method: ProofingMethod) -> MatchResult:
-        raise NotImplementedError("No support for mfa")
+    def _nin_credential_proofing_element(self, user: User, credential: Credential) -> ProofingElementResult:
+        proofing_element_result = self._nin_identity_proofing_element(user)
+        assert proofing_element_result.data is not None  # please mypy
+        data = MFATokenFrejaEIDProofing(**proofing_element_result.data.to_dict(), key_id=credential.key)
+        return ProofingElementResult(data=data)
 
-    def credential_proofing_element(self, user: User, credential: Credential) -> ProofingElementResult:
-        raise NotImplementedError("No support for credential proofing")
+    def _foreign_credential_proofing_element(self, user: User, credential: Credential) -> ProofingElementResult:
+        proofing_element_result = self._foreign_identity_proofing_element(user)
+        assert proofing_element_result.data is not None  # please mypy
+        data = MFATokenFrejaEIDForeignProofing(**proofing_element_result.data.to_dict(), key_id=credential.key)
+        return ProofingElementResult(data=data)
+
+    def match_identity(self, user: User, proofing_method: ProofingMethod) -> MatchResult:
+        if self.is_swedish_document():
+            identity_type = IdentityType.NIN
+            asserted_unique_value = self.session_info.personal_identity_number
+            assert asserted_unique_value is not None  # please mypy
+        else:
+            identity_type = IdentityType.FREJA
+            asserted_unique_value = self.session_info.user_id
+
+        return self._match_identity_for_mfa(
+            user=user,
+            identity_type=identity_type,
+            asserted_unique_value=asserted_unique_value,
+            proofing_method=proofing_method,
+        )
 
     def mark_credential_as_verified(self, credential: Credential, loa: str | None) -> VerifyCredentialResult:
-        raise NotImplementedError("No support for credential proofing")
+        if loa not in self.config.freja_eid_required_loa:
+            return VerifyCredentialResult(error=FrejaEIDMsg.registration_level_not_satisfied)
+
+        credential.is_verified = True
+        credential.proofing_method = self.config.security_key_proofing_method
+
+        if not self.is_swedish_document():
+            credential.proofing_version = self.config.security_key_freja_eid_proofing_version
+        else:
+            credential.proofing_version = self.config.security_key_foreign_freja_eid_proofing_version
+
+        return VerifyCredentialResult(credential=credential)
 
 
 def get_proofing_functions(

@@ -33,22 +33,6 @@ def is_required_loa(
     return False
 
 
-def authn_ctx_to_loa(session_info: SessionInfo, authentication_context_map: dict[str, str]) -> str | None:
-    """Lookup short name (such as 'loa3') for an authentication context class we've received."""
-    parsed = BaseSessionInfo(**session_info)
-    for k, v in authentication_context_map.items():
-        if v == parsed.authn_context:
-            return k
-    return None
-
-
-def authn_context_class_to_loa(session_info: BaseSessionInfo, authentication_context_map: dict[str, str]) -> str | None:
-    for key, value in authentication_context_map.items():
-        if value == session_info.authn_context:
-            return key
-    return None
-
-
 def is_valid_authn_instant(session_info: SessionInfo, max_age: int = 60) -> bool:
     """
     :param session_info: The SAML2 session_info

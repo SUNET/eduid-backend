@@ -5,8 +5,6 @@ from eduid.common.models.saml_models import BaseSessionInfo
 from eduid.common.rpc.exceptions import AmTaskFailed
 from eduid.userdb import User
 from eduid.userdb.credentials import Credential
-from eduid.userdb.credentials.external import BankIDCredential, ExternalCredential, TrustFramework
-from eduid.userdb.element import ElementKey
 from eduid.userdb.exceptions import LockedIdentityViolation
 from eduid.userdb.identity import IdentityElement, IdentityType
 from eduid.userdb.logs.element import BankIDProofing, MFATokenBankIDProofing, NinProofingLogElement
@@ -18,18 +16,34 @@ from eduid.webapp.bankid.saml_session_info import BankIDSessionInfo
 from eduid.webapp.common.api.helpers import verify_nin_for_user
 from eduid.webapp.common.api.messages import CommonMsg
 from eduid.webapp.common.proofing.base import (
+    GenericResult,
     MatchResult,
+    MfaData,
     ProofingElementResult,
     ProofingFunctions,
     VerifyCredentialResult,
     VerifyUserResult,
 )
-from eduid.webapp.common.proofing.methods import ProofingMethod, ProofingMethodSAML
-from eduid.webapp.common.session import session
+from eduid.webapp.common.proofing.methods import ProofingMethod
 
 
 @dataclass
 class BankIDProofingFunctions(ProofingFunctions[BankIDSessionInfo]):
+    def get_mfa_data(self) -> GenericResult[MfaData]:
+        return GenericResult(
+            result=MfaData(
+                issuer=self.session_info.issuer,
+                authn_instant=self.session_info.authn_instant.isoformat(),
+                authn_context=self.session_info.authn_context,
+            )
+        )
+
+    def get_current_loa(self) -> GenericResult[str | None]:
+        if self.session_info.authn_context is None:
+            return GenericResult(result=None)
+        current_loa = current_app.conf.authn_context_loa_map.get(self.session_info.authn_context)
+        return GenericResult(result=current_loa)
+
     def get_identity(self, user: User) -> IdentityElement | None:
         return user.identities.nin
 
@@ -113,65 +127,6 @@ class BankIDProofingFunctions(ProofingFunctions[BankIDSessionInfo]):
             proofing_method=proofing_method,
         )
 
-    def _match_identity_for_mfa(
-        self, user: User, identity_type: IdentityType, asserted_unique_value: str, proofing_method: ProofingMethod
-    ) -> MatchResult:
-        user_identity = user.identities.find(identity_type)
-        user_locked_identity = user.locked_identity.find(identity_type)
-
-        if user_identity and (user_identity.unique_value == asserted_unique_value and user_identity.is_verified):
-            # asserted identity matched verified identity
-            mfa_success = True
-            current_app.logger.debug(f"Current identity {user_identity} matched asserted identity")
-        elif user_locked_identity and user_locked_identity.unique_value == asserted_unique_value:
-            # previously verified identity that the user just showed possession of
-            mfa_success = True
-            current_app.logger.debug(f"Locked identity {user_locked_identity} matched asserted identity")
-            # and we can verify it again
-            proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
-            res = self.verify_identity(user=proofing_user)
-            if res.error is not None:
-                # If a message was returned, verifying the identity failed, and we abort
-                return MatchResult(error=res.error)
-        elif user_identity is None and user_locked_identity is None:
-            # TODO: we _could_ allow the user to give consent to just adding this identity to the user here,
-            #       with a request parameter passed from frontend to /mfa-authentication for example.
-            mfa_success = False
-            current_app.logger.debug("No identity or locked identity found for user")
-        else:
-            mfa_success = False
-            current_app.logger.debug("No matching identity found for user")
-
-        credential_used = None
-        if mfa_success:
-            assert isinstance(proofing_method, ProofingMethodSAML)  # please mypy
-            credential_used = _find_or_add_credential(user, proofing_method.framework, proofing_method.required_loa)
-            current_app.logger.debug(f"Found or added credential {credential_used}")
-
-        # OLD way - remove as soon as possible
-        # update session
-        session.mfa_action.success = mfa_success
-        if mfa_success is True:
-            # add metadata if the authentication was a success
-            session.mfa_action.issuer = self.session_info.issuer
-            session.mfa_action.authn_instant = self.session_info.authn_instant.isoformat()
-            session.mfa_action.authn_context = self.session_info.authn_context
-            session.mfa_action.credential_used = credential_used
-
-        if not mfa_success:
-            current_app.logger.error("Asserted identity not matching user verified identity")
-            current_identity = self.get_identity(user)
-            current_unique_value = None
-            if current_identity:
-                current_unique_value = current_identity.unique_value
-            current_app.logger.debug(f"Current identity: {current_identity}")
-            current_app.logger.debug(
-                f"Current identity unique value: {current_unique_value}. Asserted unique value: {asserted_unique_value}"
-            )
-            current_app.logger.debug(f"Asserted attributes: {self.session_info.attributes}")
-
-        return MatchResult(matched=mfa_success, credential_used=credential_used)
-
     def mark_credential_as_verified(self, credential: Credential, loa: str | None) -> VerifyCredentialResult:
         if loa != "uncertified-loa3":
             return VerifyCredentialResult(error=BankIDMsg.authn_context_mismatch)
@@ -181,46 +136,6 @@ class BankIDProofingFunctions(ProofingFunctions[BankIDSessionInfo]):
         credential.proofing_version = self.config.security_key_proofing_version
 
         return VerifyCredentialResult(credential=credential)
-
-
-def _find_or_add_credential(user: User, framework: TrustFramework | None, required_loa: list[str]) -> ElementKey | None:
-    if not required_loa:
-        # mainly keep mypy calm
-        current_app.logger.debug("Not recording credential used without required_loa")
-        return None
-
-    cred: ExternalCredential
-    this: ExternalCredential
-    if framework == TrustFramework.BANKID:
-        for this in user.credentials.filter(BankIDCredential):
-            if this.level in required_loa:
-                current_app.logger.debug(f"Found suitable credential on user: {this}")
-                return this.key
-
-        cred = BankIDCredential(level=required_loa[0])
-        cred.created_by = current_app.conf.app_name
-    else:
-        current_app.logger.info(f"Not recording credential used for unknown trust framework: {framework}")
-        return None
-
-    # Reload the user from the central database, to not overwrite any earlier NIN proofings
-    _user = current_app.central_userdb.get_user_by_eppn(user.eppn)
-
-    proofing_user = ProofingUser.from_user(_user, current_app.private_userdb)
-
-    proofing_user.credentials.add(cred)
-
-    current_app.logger.info(f"Adding new credential to proofing_user: {cred}")
-
-    # Save proofing_user to private db
-    current_app.private_userdb.save(proofing_user)
-
-    # Ask AM to sync proofing_user to central db
-    current_app.logger.info(f"Request sync for proofing_user {proofing_user}")
-    result = current_app.am_relay.request_user_sync(proofing_user)
-    current_app.logger.info(f"Sync result for proofing_user {proofing_user}: {result}")
-
-    return cred.key
 
 
 def get_proofing_functions(

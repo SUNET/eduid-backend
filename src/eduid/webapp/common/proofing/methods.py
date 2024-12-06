@@ -128,6 +128,9 @@ class ProofingMethodSvipe(ProofingMethod):
 
 @dataclass(frozen=True)
 class ProofingMethodFrejaEID(ProofingMethod):
+    required_registration_level: list[str]
+    required_loa: list[str]
+
     def parse_session_info(self, session_info: SessionInfo, backdoor: bool) -> SessionInfoParseResult:
         try:
             parsed_session_info = FrejaEIDDocumentUserInfo(**session_info)
@@ -206,6 +209,8 @@ def get_proofing_method(
             method=method,
             framework=TrustFramework.FREJA,
             finish_url=authn_params.finish_url,
+            required_registration_level=config.freja_eid_required_registration_level,
+            required_loa=config.freja_eid_required_loa,
         )
 
     logger.warning(f"Unknown proofing method {method}")

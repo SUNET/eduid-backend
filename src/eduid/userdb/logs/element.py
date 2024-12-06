@@ -65,7 +65,7 @@ class ProofingLogElement(LogElement):
     """ """
 
     # eduPersonPrincipalName
-    eppn: str
+    eppn: str = Field(alias="eduPersonPrincipalName")
     # Proofing method version number
     proofing_version: str
     # Proofing method name
@@ -566,6 +566,48 @@ class MFATokenBankIDProofing(BankIDProofing):
         'given_name': 'name',
         'surname': 'name',
         'transaction_id': 'transaction id',
+        'key_id: 'Key id of token vetted',
+    }
+    """
+
+    # Data used to initialize the vetting process
+    key_id: str
+
+
+class MFATokenFrejaEIDProofing(FrejaEIDNINProofing):
+    """
+    {
+        'eduPersonPrincipalName': eppn,
+        'created_ts': utc_now(),
+        'created_by': 'application',
+        'proofing_method': 'freja_eid',
+        'proofing_version': '2024v1',
+        'user_id': 'unique identifier for the user',
+        'document_type': 'type of document used for identification',
+        'document_number': 'document number',
+        'nin': 'national_identity_number',
+        'given_name': 'name',
+        'surname': 'name',
+        'key_id: 'Key id of token vetted',
+    }
+    """
+
+    # Data used to initialize the vetting process
+    key_id: str
+
+
+class MFATokenFrejaEIDForeignProofing(FrejaEIDForeignProofing):
+    """
+    {
+        'eduPersonPrincipalName': eppn,
+        'created_ts': utc_now(),
+        'created_by': 'application',
+        'proofing_method': 'freja_eid',
+        'proofing_version': '2024v1',
+        'user_id': 'unique identifier for the user',
+        'document_type': 'type of document used for identification',
+        'document_number': 'document number',
+        'issuing_country': 'country of issuance',
         'key_id: 'Key id of token vetted',
     }
     """

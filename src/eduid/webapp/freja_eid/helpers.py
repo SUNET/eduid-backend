@@ -21,16 +21,15 @@ class FrejaEIDMsg(TranslatableMsg):
     attempted operations on the back end.
     """
 
-    # failed to create authn request
     authn_request_failed = "freja_eid.authn_request_failed"
-    # Unavailable vetting method requested
-    method_not_available = "freja_eid.method_not_available"
-    # Identity verification success
-    identity_verify_success = "freja_eid.identity_verify_success"
-    # Authorization error at Freja EID
     authorization_error = "freja_eid.authorization_fail"
+    credential_not_found = "freja_eid.credential_not_found"
+    credential_verification_not_allowed = "freja_eid.credential_verification_not_allowed"
+    credential_verify_success = "freja_eid.credential_verify_success"
     frontend_action_not_supported = "freja_eid.frontend_action_not_supported"
-    # registration level not satisfied
+    identity_not_matching = "freja_eid.identity_not_matching"
+    identity_verify_success = "freja_eid.identity_verify_success"
+    method_not_available = "freja_eid.method_not_available"
     registration_level_not_satisfied = "freja_eid.registration_level_not_satisfied"
 
 
@@ -95,8 +94,8 @@ class FrejaEIDDocumentUserInfo(UserInfoBase):
 
 class FrejaEIDTokenResponse(BaseModel):
     access_token: str
-    expires_at: int
-    expires_in: int
-    id_token: str
     token_type: str
+    id_token: str
+    expires_at: int | None = Field(default=None)
+    expires_in: int | None = Field(default=None)
     userinfo: FrejaEIDDocumentUserInfo

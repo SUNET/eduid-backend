@@ -7,6 +7,8 @@ from werkzeug import Response as WerkzeugResponse
 
 from eduid.common.config.base import FrontendAction
 from eduid.userdb import User
+from eduid.userdb.credentials import FidoCredential
+from eduid.userdb.element import ElementKey
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, require_user
 from eduid.webapp.common.api.errors import EduidErrorsContext, goto_errors_response
 from eduid.webapp.common.api.helpers import check_magic_cookie
@@ -14,13 +16,18 @@ from eduid.webapp.common.api.messages import AuthnStatusMsg, FluxData, Translata
 from eduid.webapp.common.api.schemas.authn_status import StatusRequestSchema, StatusResponseSchema
 from eduid.webapp.common.api.schemas.csrf import EmptyResponse
 from eduid.webapp.common.authn.acs_registry import ACSArgs, get_action
+from eduid.webapp.common.authn.utils import check_reauthn
 from eduid.webapp.common.proofing.methods import get_proofing_method
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.namespaces import OIDCState, RP_AuthnRequest
 from eduid.webapp.freja_eid.app import current_freja_eid_app as current_app
 from eduid.webapp.freja_eid.callback_enums import FrejaEIDAction
 from eduid.webapp.freja_eid.helpers import FrejaEIDMsg
-from eduid.webapp.freja_eid.schemas import FrejaEIDCommonRequestSchema, FrejaEIDCommonResponseSchema
+from eduid.webapp.freja_eid.schemas import (
+    FrejaEIDCommonRequestSchema,
+    FrejaEIDCommonResponseSchema,
+    FrejaEIDVerifyCredentialRequestSchema,
+)
 
 __author__ = "lundberg"
 
@@ -68,6 +75,49 @@ def verify_identity(user: User, method: str, frontend_action: str, frontend_stat
     return success_response(payload={"location": res.url})
 
 
+@freja_eid_views.route("/verify-credential", methods=["POST"])
+@UnmarshalWith(FrejaEIDVerifyCredentialRequestSchema)
+@MarshalWith(FrejaEIDCommonResponseSchema)
+@require_user
+def verify_credential(
+    user: User, method: str, credential_id: ElementKey, frontend_action: str, frontend_state: str | None = None
+) -> FluxData:
+    if current_app.conf.allow_credential_verification is False:
+        current_app.logger.error("Credential verification is not allowed")
+        return error_response(message=FrejaEIDMsg.credential_verification_not_allowed)
+
+    current_app.logger.debug(f"verify-credential called with credential_id: {credential_id}")
+
+    _frontend_action = FrontendAction.VERIFY_CREDENTIAL
+
+    if frontend_action != _frontend_action.value:
+        current_app.logger.error(f"Invalid frontend_action: {frontend_action}")
+        return error_response(message=FrejaEIDMsg.frontend_action_not_supported)
+
+    # verify that the user has the credential and that it was used for login recently
+    credential = user.credentials.find(credential_id)
+    if credential is None or isinstance(credential, FidoCredential) is False:
+        current_app.logger.error(f"Can't find credential with id: {credential_id}")
+        return error_response(message=FrejaEIDMsg.credential_not_found)
+
+    _need_reauthn = check_reauthn(frontend_action=_frontend_action, user=user, credential_requested=credential)
+    if _need_reauthn:
+        return _need_reauthn
+
+    result = _authn(
+        FrejaEIDAction.verify_credential,
+        method=method,
+        frontend_action=_frontend_action.value,
+        frontend_state=frontend_state,
+        proofing_credential_id=credential_id,
+    )
+
+    if result.error:
+        return error_response(message=result.error)
+
+    return success_response(payload={"location": result.url})
+
+
 @dataclass
 class AuthnResult:
     authn_req: RP_AuthnRequest | None = None
@@ -81,6 +131,7 @@ def _authn(
     method: str,
     frontend_action: str,
     frontend_state: str | None = None,
+    proofing_credential_id: ElementKey | None = None,
 ) -> AuthnResult:
     current_app.logger.debug(f"Requested method: {method}, frontend action: {frontend_action}")
 
@@ -118,6 +169,7 @@ def _authn(
         frontend_action=_frontend_action,
         frontend_state=frontend_state,
         post_authn_action=action,
+        proofing_credential_id=proofing_credential_id,
         method=proofing_method.method,
         finish_url=authn_params.finish_url,
     )
@@ -131,7 +183,7 @@ def _authn(
 @require_user
 def authn_callback(user: User) -> WerkzeugResponse:
     """
-    This is the callback endpoint for the Svipe ID OIDC flow.
+    This is the callback endpoint for the Freja EID OIDC flow.
     """
     current_app.logger.debug("authn_callback called")
     current_app.logger.debug(f"request.args: {request.args}")
