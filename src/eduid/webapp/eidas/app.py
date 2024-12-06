@@ -5,6 +5,7 @@ from flask import current_app
 
 from eduid.common.config.parsers import load_config
 from eduid.common.rpc.am_relay import AmRelay
+from eduid.common.rpc.msg_relay import MsgRelay
 from eduid.userdb.logs.db import ProofingLog
 from eduid.userdb.proofing.db import EidasProofingUserDB
 from eduid.webapp.common.authn.middleware import AuthnBaseApp
@@ -28,6 +29,7 @@ class EidasApp(AuthnBaseApp):
 
         # Init celery
         self.am_relay = AmRelay(config)
+        self.msg_relay = MsgRelay(config)
 
 
 current_eidas_app: EidasApp = cast(EidasApp, current_app)

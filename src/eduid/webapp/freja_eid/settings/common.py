@@ -7,6 +7,7 @@ from eduid.common.config.base import (
     ErrorsConfigMixin,
     FrontendActionMixin,
     MagicCookieMixin,
+    MsgConfigMixin,
     ProofingConfigMixin,
 )
 
@@ -37,6 +38,7 @@ class FrejaEIDConfig(
     ErrorsConfigMixin,
     MagicCookieMixin,
     FrontendActionMixin,
+    MsgConfigMixin,
 ):
     """
     Configuration for the svipe_id app
