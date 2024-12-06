@@ -81,6 +81,10 @@ def verify_credential(
 ) -> FluxData:
     current_app.logger.debug(f"verify-credential called with credential_id: {credential_id}")
 
+    if method == "eidas" and current_app.conf.allow_eidas_credential_verification is False:
+        current_app.logger.error("Credential verification is not allowed")
+        return error_response(message=EidasMsg.credential_verification_not_allowed)
+
     _frontend_action = FrontendAction.VERIFY_CREDENTIAL
 
     if frontend_action != _frontend_action.value:

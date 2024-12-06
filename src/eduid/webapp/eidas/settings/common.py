@@ -60,3 +60,4 @@ class EidasConfig(
     # magic cookie IdP is used for integration tests when magic cookie is set
     magic_cookie_idp: str | None = None
     magic_cookie_foreign_id_idp: str | None = None
+    allow_eidas_credential_verification: bool = False
