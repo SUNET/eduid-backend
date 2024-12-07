@@ -1,4 +1,5 @@
 import json
+from typing import Annotated
 
 from fastapi import APIRouter, Form, Request
 from pydantic.main import BaseModel
@@ -30,7 +31,7 @@ class AuthenticateFormResponse(BaseModel):
 
 
 @authenticate_router.post("/authenticate")
-async def authenticate_legacy(req: Request, request: str = Form(...)) -> AuthenticateFormResponse:
+async def authenticate_legacy(req: Request, request: Annotated[str, Form(...)]) -> AuthenticateFormResponse:
     req.app.logger.debug(f"Authenticate (using form): {request}")
 
     class AuthenticateInnerRequest(BaseModel):
