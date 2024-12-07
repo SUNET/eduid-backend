@@ -402,7 +402,7 @@ class VerifiedElementList(ElementList[ListElement], Generic[ListElement], ABC):
         verified_elements = [e for e in self.elements if isinstance(e, VerifiedElement) and e.is_verified]
         # mypy figures out the real type of `verified_elements' since isinstance() is used above and complains
         #    error: Incompatible return value type (got "List[VerifiedElement]", expected "List[ListElement]")
-        return verified_elements  # type: ignore
+        return verified_elements  # type: ignore[return-value]
 
 
 class PrimaryElementList(VerifiedElementList[ListElement], Generic[ListElement], ABC):
@@ -452,7 +452,7 @@ class PrimaryElementList(VerifiedElementList[ListElement], Generic[ListElement],
 
         # mypy figures out the real type of match since isinstance() is used above and complains
         #    error: Incompatible return value type (got "PrimaryElement", expected "Optional[ListElement]")
-        return match  # type: ignore
+        return match  # type: ignore[return-value]
 
     def set_primary(self, key: ElementKey) -> None:
         """
@@ -486,7 +486,7 @@ class PrimaryElementList(VerifiedElementList[ListElement], Generic[ListElement],
         # mypy figures out the real type of `new' since isinstance() is used above and complains
         #    error: Incompatible types in assignment (expression has type "List[PrimaryElement]",
         #           variable has type "List[ListElement]")
-        self.elements = new  # type: ignore
+        self.elements = new  # type: ignore[assignment]
 
     @classmethod
     def _get_primary(cls, elements: list[ListElement]) -> ListElement | None:
@@ -513,8 +513,8 @@ class PrimaryElementList(VerifiedElementList[ListElement], Generic[ListElement],
             raise PrimaryElementViolation("Primary element is not verified")
 
         # mypy figures out the real type of `res[0]' since isinstance() is used above and complains
-        #    error: Incompatible return value type (got "PrimaryElement", expected "Optional[ListElement]")
-        return res[0]  # type: ignore
+        #    error: Incompatible return value type (got "PrimaryElement", expected "ListElement | None")
+        return res[0]  # type: ignore[return-value]
 
     def remove(self, key: ElementKey) -> None:
         """

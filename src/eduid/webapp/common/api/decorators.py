@@ -245,6 +245,6 @@ class UnmarshalWith:
             if isinstance(ret, FluxData):
                 raise TypeError("Wrong order of decorators, UnmarshalWith must be the first decorator")
             # Uh, don't know how to check for Awaitable[FluxData], so for now we just ignore the type error below
-            return ret  # type: ignore
+            return ret  # type: ignore[return-value]
 
         return unmarshal_decorator

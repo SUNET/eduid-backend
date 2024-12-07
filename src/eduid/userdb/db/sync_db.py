@@ -324,7 +324,7 @@ class BaseDB:
         if "_id" in doc:
             self._coll.replace_one({"_id": doc["_id"]}, doc, upsert=True)
             return doc["_id"]
-        res = self._coll.insert_one(doc)  # type: ignore
+        res = self._coll.insert_one(doc)  # type: ignore[arg-type]
         return res.inserted_id
 
     def _save(
