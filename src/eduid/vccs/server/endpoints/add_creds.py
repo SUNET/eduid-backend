@@ -28,7 +28,7 @@ class AddCredsFormResponse(BaseModel):
     add_creds_response: AddCredsResponseV1
 
 
-@add_creds_router.post("/add_creds", response_model=AddCredsFormResponse)
+@add_creds_router.post("/add_creds")
 async def add_creds_legacy(req: Request, request: str = Form(...)) -> AddCredsFormResponse:
     req.app.logger.debug(f"Add credentials (using form): {request}")
 

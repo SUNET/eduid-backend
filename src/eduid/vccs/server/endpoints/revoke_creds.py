@@ -28,7 +28,7 @@ class RevokeCredsFormResponse(BaseModel):
     revoke_creds_response: RevokeCredsResponseV1
 
 
-@revoke_creds_router.post("/revoke_creds", response_model=RevokeCredsFormResponse)
+@revoke_creds_router.post("/revoke_creds")
 async def revoke_creds_legacy(req: Request, request: str = Form(...)) -> RevokeCredsFormResponse:
     req.app.logger.debug(f"Revoke credentials (using form): {request}")
 
