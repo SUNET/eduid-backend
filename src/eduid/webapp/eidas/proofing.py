@@ -116,7 +116,7 @@ class SwedenConnectProofingFunctions(ProofingFunctions[BaseSessionInfoVar], Gene
             current_app.logger.debug(
                 f"Current identity unique value: {current_unique_value}. Asserted unique value: {asserted_unique_value}"
             )
-            current_app.logger.debug(f"Asserted attributes: {self.session_info.attributes}")  # type: ignore
+            current_app.logger.debug(f"Asserted attributes: {self.session_info.attributes}")  # type: ignore[attr-defined]
 
         return MatchResult(matched=mfa_success, credential_used=credential_used)
 

@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, cast
 
 from flask import current_app
 
@@ -20,7 +20,7 @@ class AuthnApp(EduIDBaseApp):
 
 def get_current_app() -> AuthnApp:
     """Teach pycharm about AuthnApp"""
-    return current_app  # type: ignore
+    return cast(AuthnApp, current_app)
 
 
 current_authn_app = get_current_app()

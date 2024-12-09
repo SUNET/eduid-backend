@@ -19,7 +19,7 @@ class StatusResponse(BaseModel):
     version: int = 1
 
 
-@misc_router.get("/status/healthy", response_model=StatusResponse)
+@misc_router.get("/status/healthy")
 async def status(request: Request) -> StatusResponse:
     _test_keyhandle = request.app.state.config.add_creds_password_key_handle
     res = StatusResponse(status=Status.OK)
@@ -42,7 +42,7 @@ class HMACResponse(BaseModel):
     hmac: str
 
 
-@misc_router.get("/hmac/{keyhandle}/{data}", response_model=HMACResponse)
+@misc_router.get("/hmac/{keyhandle}/{data}")
 async def hmac(request: Request, keyhandle: int, data: bytes) -> HMACResponse:
     hmac = await request.app.state.hasher.hmac_sha1(key_handle=keyhandle, data=data)
     return HMACResponse(keyhandle=keyhandle, hmac=hmac.hex())
