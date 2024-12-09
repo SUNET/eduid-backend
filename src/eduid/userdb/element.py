@@ -51,7 +51,7 @@ from abc import ABC
 from collections.abc import Mapping
 from datetime import datetime
 from enum import Enum
-from typing import Any, Generic, NewType, TypeVar
+from typing import Any, Generic, NewType, TypeVar, cast
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -399,10 +399,7 @@ class VerifiedElementList(ElementList[ListElement], Generic[ListElement], ABC):
         Get all the verified elements in the ElementList.
 
         """
-        verified_elements = [e for e in self.elements if isinstance(e, VerifiedElement) and e.is_verified]
-        # mypy figures out the real type of `verified_elements' since isinstance() is used above and complains
-        #    error: Incompatible return value type (got "List[VerifiedElement]", expected "List[ListElement]")
-        return verified_elements  # type: ignore[return-value]
+        return cast(list[ListElement], [e for e in self.elements if isinstance(e, VerifiedElement) and e.is_verified])
 
 
 class PrimaryElementList(VerifiedElementList[ListElement], Generic[ListElement], ABC):
@@ -450,9 +447,7 @@ class PrimaryElementList(VerifiedElementList[ListElement], Generic[ListElement],
         if not isinstance(match, PrimaryElement):
             raise UserDBValueError(f"Primary element {repr(match)} is not of type PrimaryElement")
 
-        # mypy figures out the real type of match since isinstance() is used above and complains
-        #    error: Incompatible return value type (got "PrimaryElement", expected "Optional[ListElement]")
-        return match  # type: ignore[return-value]
+        return cast(ListElement, match)
 
     def set_primary(self, key: ElementKey) -> None:
         """
@@ -483,10 +478,7 @@ class PrimaryElementList(VerifiedElementList[ListElement], Generic[ListElement],
                 raise UserDBValueError(f"Element {repr(this)} is not of type PrimaryElement")
             this.is_primary = bool(this.key == key)
             new += [this]
-        # mypy figures out the real type of `new' since isinstance() is used above and complains
-        #    error: Incompatible types in assignment (expression has type "List[PrimaryElement]",
-        #           variable has type "List[ListElement]")
-        self.elements = new  # type: ignore[assignment]
+        self.elements = cast(list[ListElement], new)
 
     @classmethod
     def _get_primary(cls, elements: list[ListElement]) -> ListElement | None:
@@ -512,9 +504,7 @@ class PrimaryElementList(VerifiedElementList[ListElement], Generic[ListElement],
         if not primary.is_verified:
             raise PrimaryElementViolation("Primary element is not verified")
 
-        # mypy figures out the real type of `res[0]' since isinstance() is used above and complains
-        #    error: Incompatible return value type (got "PrimaryElement", expected "ListElement | None")
-        return res[0]  # type: ignore[return-value]
+        return cast(ListElement, res[0])
 
     def remove(self, key: ElementKey) -> None:
         """
