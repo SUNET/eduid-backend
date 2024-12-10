@@ -504,7 +504,7 @@ class PrimaryElementList(VerifiedElementList[ListElement], Generic[ListElement],
         if not primary.is_verified:
             raise PrimaryElementViolation("Primary element is not verified")
 
-        return cast(ListElement, res[0])
+        return cast(ListElement, primary)
 
     def remove(self, key: ElementKey) -> None:
         """
