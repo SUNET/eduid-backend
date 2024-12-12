@@ -13,6 +13,7 @@ from flask.wrappers import Request
 
 from eduid.common.config.base import EduIDBaseAppConfig, Pysaml2SPConfigMixin
 from eduid.common.misc.timeutil import utc_now
+from eduid.common.rpc.exceptions import MsgTaskFailed, NoNavetData
 from eduid.common.rpc.msg_relay import MsgRelay
 from eduid.userdb import User, UserDB
 from eduid.userdb.exceptions import MultipleUsersReturned, UserDBValueError, UserDoesNotExist
@@ -310,8 +311,15 @@ def get_reference_nin_from_navet_data(nin: str) -> str | None:
         logger.error("Could not get msg_relay from current app")
         return None
 
-    navet_data = msg_relay.get_all_navet_data(nin=nin)
-    if navet_data.person.reference_national_identity_number:
-        return navet_data.person.reference_national_identity_number
-    else:
-        return None
+    try:
+        navet_data = msg_relay.get_all_navet_data(nin=nin)
+        if navet_data.person.reference_national_identity_number:
+            return navet_data.person.reference_national_identity_number
+    except NoNavetData:
+        pass  # all persons with a NIN is not in Navet
+    except MsgTaskFailed:
+        # the verification will probably fail anyway, but we don't want to be
+        # dependent on Navet for verifications any longer
+        logger.exception("No connection to Navet")
+
+    return None

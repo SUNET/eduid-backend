@@ -5,9 +5,10 @@ from unittest.mock import MagicMock, patch
 import pytest
 from pydantic import ValidationError
 
-from eduid.common.config.base import EduIDBaseAppConfig
+from eduid.common.config.base import EduIDBaseAppConfig, MsgConfigMixin
 from eduid.common.config.parsers import load_config
-from eduid.common.rpc.msg_relay import FullPostalAddress
+from eduid.common.rpc.exceptions import NoNavetData
+from eduid.common.rpc.msg_relay import FullPostalAddress, MsgRelay
 from eduid.common.testing_base import normalised_data
 from eduid.userdb import NinIdentity, User
 from eduid.userdb.exceptions import LockedIdentityViolation, UserDoesNotExist
@@ -38,9 +39,13 @@ from eduid.webapp.common.session.eduid_session import SessionFactory
 __author__ = "lundberg"
 
 
+class HelpersTestConfig(EduIDBaseAppConfig, MsgConfigMixin):
+    pass
+
+
 class HelpersTestApp(EduIDBaseApp):
     def __init__(self, name: str, test_config: Mapping[str, Any], **kwargs: Any) -> None:
-        self.conf = load_config(typ=EduIDBaseAppConfig, app_name=name, ns="webapp", test_config=test_config)
+        self.conf = load_config(typ=HelpersTestConfig, app_name=name, ns="webapp", test_config=test_config)
         super().__init__(self.conf, **kwargs)
         self.session_interface = SessionFactory(self.conf)
         # Init databases
@@ -49,6 +54,7 @@ class HelpersTestApp(EduIDBaseApp):
         self.proofing_log = ProofingLog(self.conf.mongo_uri)
         # Init celery
         self.am_relay = MagicMock()
+        self.msg_relay = MsgRelay(self.conf)
 
 
 class NinHelpersTest(EduidAPITestCase[HelpersTestApp]):
@@ -311,6 +317,30 @@ class NinHelpersTest(EduidAPITestCase[HelpersTestApp]):
     @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
     def test_verify_nin_for_user_existing_not_verified(self, mock_reference_nin: MagicMock) -> None:
         mock_reference_nin.return_value = None
+        user = self.insert_not_verified_not_locked_user()
+        nin_element = NinProofingElement.from_dict(
+            dict(number=self.test_user_nin, created_by="NinHelpersTest", verified=False)
+        )
+        proofing_state = NinProofingState.from_dict({"eduPersonPrincipalName": user.eppn, "nin": nin_element.to_dict()})
+        assert nin_element.created_by is not None
+        proofing_log_entry = self._get_nin_eid_proofing_log_entry(
+            user=user, created_by=nin_element.created_by, nin=nin_element.number
+        )
+        with self.app.app_context():
+            assert verify_nin_for_user(user, proofing_state, proofing_log_entry) is True
+        user = self.app.private_userdb.get_user_by_eppn(user.eppn)
+
+        self._check_nin_verified_ok(
+            user=user, proofing_state=proofing_state, number=self.test_user_nin, created_by="AlreadyAddedNinHelpersTest"
+        )
+
+    @patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
+    def test_verify_nin_no_navet_data(self, mock_get_all_navet_data: MagicMock) -> None:
+        """
+        Make sure that a user can be verified without navet data.
+        """
+        mock_get_all_navet_data.side_effect = NoNavetData
+
         user = self.insert_not_verified_not_locked_user()
         nin_element = NinProofingElement.from_dict(
             dict(number=self.test_user_nin, created_by="NinHelpersTest", verified=False)
