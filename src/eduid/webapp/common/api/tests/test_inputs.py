@@ -11,8 +11,10 @@ from eduid.common.config.base import EduIDBaseAppConfig
 from eduid.common.config.parsers import load_config
 from eduid.webapp.common.api.app import EduIDBaseApp
 from eduid.webapp.common.api.decorators import UnmarshalWith
+from eduid.webapp.common.api.sanitation import sanitize_item, sanitize_iter, sanitize_map
 from eduid.webapp.common.api.schemas.base import EduidSchema
 from eduid.webapp.common.api.schemas.csrf import CSRFRequestMixin
+from eduid.webapp.common.api.schemas.sanitize import SanitizedString
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.common.session.eduid_session import SessionFactory
 
@@ -26,10 +28,11 @@ def dont_validate(value: str | bytes) -> NoReturn:
 
 
 class NonValidatingSchema(EduidSchema, CSRFRequestMixin):
-    test_data = fields.String(required=True, validate=dont_validate)
+    test_data = fields.String(required=False, validate=dont_validate)
 
-    class Meta:
-        strict = True
+
+class SanitizingSchema(EduidSchema, CSRFRequestMixin):
+    test_data = SanitizedString(required=False)
 
 
 test_views = Blueprint("test", __name__)
@@ -45,28 +48,37 @@ def _make_response(data: str) -> Response:
 @test_views.route("/test-get-param", methods=["GET"])
 def get_param_view() -> Response:
     param = request.args.get("test-param")
-    assert param
-    return _make_response(param)
+    safe_param = sanitize_item(param)
+    assert safe_param
+    return _make_response(str(safe_param))
 
 
 @test_views.route("/test-post-param", methods=["POST"])
 def post_param_view() -> Response:
-    param = request.form.get("test-param")
-    assert param
-    return _make_response(param)
+    safe_form = sanitize_map(request.form)
+    safe_param = safe_form.get("test-param")
+    assert safe_param
+    return _make_response(safe_param)
 
 
-@test_views.route("/test-post-json", methods=["POST"])  # type: ignore[arg-type]
+@test_views.route("/test-post-json", methods=["POST"])
 @UnmarshalWith(NonValidatingSchema)
-def post_json_view(test_data: str) -> None:
-    """never validates"""
+def post_json_view(test_data: str) -> Response:
+    return _make_response(test_data)
+
+
+@test_views.route("/test-post-json-sanitizing", methods=["POST"])
+@UnmarshalWith(SanitizingSchema)
+def post_json_view_sanitizing(test_data: str) -> Response:
+    return _make_response(test_data)
 
 
 @test_views.route("/test-cookie")
 def cookie_view() -> Response:
     cookie = request.cookies.get("test-cookie")
-    assert cookie
-    return _make_response(cookie)
+    safe_cookie = sanitize_item(cookie)
+    assert safe_cookie
+    return _make_response(str(safe_cookie))
 
 
 @test_views.route("/test-empty-session")
@@ -78,16 +90,18 @@ def empty_session_view() -> Response:
 
 @test_views.route("/test-header")
 def header_view() -> Response:
-    header = request.headers.get("X-TEST")
-    assert header
-    return _make_response(header)
+    safe_headers = sanitize_map(dict(request.headers))
+    safe_header = safe_headers.get("X-Test")
+    assert safe_header
+    return _make_response(safe_header)
 
 
 @test_views.route("/test-values", methods=["GET", "POST"])
 def values_view() -> Response:
-    param = request.values.get("test-param")
-    assert param
-    return _make_response(param)
+    safe_values = sanitize_map(request.values)
+    safe_param = safe_values.get("test-param")
+    assert safe_param
+    return _make_response(safe_param)
 
 
 class InputsTestApp(EduIDBaseApp):
@@ -118,14 +132,12 @@ class InputsTests(EduidAPITestCase):
         return app
 
     def test_get_param(self) -> None:
-        """"""
         url = "/test-get-param?test-param=test-param"
         with self.app.test_request_context(url, method="GET"):
             response = self.app.dispatch_request()
             self.assertIn(b"test-param", response.data)
 
     def test_get_param_script(self) -> None:
-        """"""
         url = '/test-get-param?test-param=<script>alert("ho")</script>'
         with self.app.test_request_context(url, method="GET"):
             response = self.app.dispatch_request()
@@ -161,7 +173,6 @@ class InputsTests(EduidAPITestCase):
             self.assertIn("åäöхэжこんにちわ", response.data.decode("utf8"))
 
     def test_post_param_script(self) -> None:
-        """"""
         url = "/test-post-param"
         with self.app.test_request_context(url, method="POST", data={"test-param": '<script>alert("ho")</script>'}):
             response = self.app.dispatch_request()
@@ -185,25 +196,28 @@ class InputsTests(EduidAPITestCase):
             self.assertNotIn(b"<script>", response.data)
             self.assertNotIn("<script>", unquoted_response)
 
-    def test_post_json_script(self) -> None:
-        """"""
+    def test_post_json_script_sanitized(self) -> None:
+        url = "/test-post-json-sanitizing"
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                data = {"test_data": "<script>alert(42)</script>", "csrf_token": sess.get_csrf_token()}
+            response = client.post(url, json=data)
+            assert response.status_code == 200
+            assert b"<script>" not in response.data
+
+    def test_post_json_script_not_validated(self) -> None:
         url = "/test-post-json"
-        with self.app.test_request_context(
-            url,
-            method="POST",
-            content_type="application/json",
-            headers={
-                "X-Requested-With": "XMLHttpRequest",
-                "Host": "test.localhost",
-                "Origin": "http://test.localhost",
-            },
-            data='{"test_data": "<script>alert(42)</script>", "csrf_token": "failing-token"}',
-        ):
-            response = self.app.dispatch_request()
-            self.assertNotIn(b"<script>", response.data)
+        with self.session_cookie_anon(self.browser) as client:
+            with client.session_transaction() as sess:
+                data = {"test_data": "<script>alert(42)</script>", "csrf_token": sess.get_csrf_token()}
+            response = client.post(url, json=data)
+            self._check_error_response(
+                response=response,
+                type_="POST_TEST_TEST_POST_JSON_FAIL",
+                payload={"error": {"test_data": ["Problem with '<script>alert(42)</script>'"]}},
+            )
 
     def test_cookie_script(self) -> None:
-        """"""
         url = "/test-cookie"
         cookie = dump_cookie("test-cookie", '<script>alert("ho")</script>')
         with self.app.test_request_context(url, method="GET", headers={"Cookie": cookie}):
@@ -211,7 +225,6 @@ class InputsTests(EduidAPITestCase):
             self.assertNotIn(b"<script>", response.data)
 
     def test_header_script(self) -> None:
-        """"""
         url = "/test-header"
         script = '<script>alert("ho")</script>'
         with self.app.test_request_context(url, method="GET", headers={"X-TEST": script}):
@@ -219,14 +232,12 @@ class InputsTests(EduidAPITestCase):
             self.assertNotIn(b"<script>", response.data)
 
     def test_get_values_script(self) -> None:
-        """"""
         url = "/test-values?test-param=test-param"
         with self.app.test_request_context(url, method="GET"):
             response = self.app.dispatch_request()
             self.assertNotIn(b"<script>", response.data)
 
     def test_post_values_script(self) -> None:
-        """"""
         url = "/test-values"
         with self.app.test_request_context(url, method="POST", data={"test-param": '<script>alert("ho")</script>'}):
             response = self.app.dispatch_request()
@@ -243,3 +254,23 @@ class InputsTests(EduidAPITestCase):
             # instead of crashing.
             response = self.app.dispatch_request()
             self.assertEqual(response.data, b"<html><body></body></html>")
+
+    @staticmethod
+    def test_sanitize_mapping() -> None:
+        unsafe_d = {"test": "<script>alert('ho')</script>", "test2": ["test", "<script>alert('ho')</script>"]}
+        safe_d = sanitize_map(unsafe_d)
+        assert safe_d == {
+            "test": "&lt;script&gt;alert('ho')&lt;/script&gt;",
+            "test2": ["test", "&lt;script&gt;alert('ho')&lt;/script&gt;"],
+        }
+
+    @staticmethod
+    def test_sanitize_iterable() -> None:
+        unsafe_l = ["test", "<script>alert('ho')</script>", "test2", ["test", "<script>alert('ho')</script>"]]
+        safe_l = sanitize_iter(unsafe_l)
+        assert safe_l == [
+            "test",
+            "&lt;script&gt;alert('ho')&lt;/script&gt;",
+            "test2",
+            ["test", "&lt;script&gt;alert('ho')&lt;/script&gt;"],
+        ]
