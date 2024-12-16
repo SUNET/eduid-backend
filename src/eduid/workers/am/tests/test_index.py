@@ -24,7 +24,7 @@ class TestIndexes(AMTestCase):
             "mobile-index-v1": {"key": [("mobile.mobile", 1), ("mobile.verified", 1)]},
             "mailAliases-index-v1": {"key": [("mailAliases.email", 1), ("mailAliases.verified", 1)]},
         }
-        db = UserDB(self.settings.mongo_uri)  # type: ignore
+        db = UserDB(self.settings.mongo_uri)  # type: ignore[call-arg,var-annotated,attr-defined]
         print(db._coll.index_information())
         db.setup_indexes(indexes)
         current_indexes = db._coll.index_information()
