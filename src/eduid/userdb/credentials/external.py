@@ -42,38 +42,39 @@ class ExternalCredential(Credential):
         return ElementKey(self.credential_id)
 
 
+# To be technology neutral, we don't want to store e.g. the SAML authnContextClassRef in the database,
+# and mapping a level to an authnContextClassRef really ought to be dependent on configuration matching
+# the IdP:s expected values at a certain time. Such configuration is better to have in the SP than in
+# the database layer.
 class SwedenConnectCredential(ExternalCredential):
     framework: Literal[TrustFramework.SWECONN] = TrustFramework.SWECONN
-    # To be technology neutral, we don't want to store e.g. the SAML authnContextClassRef in the database,
-    # and mapping a level to an authnContextClassRef really ought to be dependent on configuration matching
-    # the IdP:s expected values at a certain time. Such configuration is better to have in the SP than in
-    # the database layer.
     level: str  # a value like "loa3", "eidas_sub", ...
 
 
 class EidasCredential(ExternalCredential):
     framework: Literal[TrustFramework.EIDAS] = TrustFramework.EIDAS
-    # To be technology neutral, we don't want to store e.g. the SAML authnContextClassRef in the database,
-    # and mapping a level to an authnContextClassRef really ought to be dependent on configuration matching
-    # the IdP:s expected values at a certain time. Such configuration is better to have in the SP than in
-    # the database layer.
     level: str  # a value like "loa3", "eidas_sub", ...
 
 
 class BankIDCredential(ExternalCredential):
     framework: Literal[TrustFramework.BANKID] = TrustFramework.BANKID
-    # To be technology neutral, we don't want to store e.g. the SAML authnContextClassRef in the database,
-    # and mapping a level to an authnContextClassRef really ought to be dependent on configuration matching
-    # the IdP:s expected values at a certain time. Such configuration is better to have in the SP than in
-    # the database layer.
+    level: str  # a value like "loa3", "eidas_sub", ...
+
+
+class FrejaCredential(ExternalCredential):
+    framework: Literal[TrustFramework.FREJA] = TrustFramework.FREJA
     level: str  # a value like "loa3", "eidas_sub", ...
 
 
 def external_credential_from_dict(data: Mapping[str, Any]) -> ExternalCredential | None:
-    if data["framework"] == TrustFramework.SWECONN.value:
-        return SwedenConnectCredential.from_dict(data)
-    if data["framework"] == TrustFramework.EIDAS.value:
-        return EidasCredential.from_dict(data)
-    if data["framework"] == TrustFramework.BANKID.value:
-        return BankIDCredential.from_dict(data)
-    return None
+    match data["framework"]:
+        case TrustFramework.SWECONN.value:
+            return SwedenConnectCredential.from_dict(data)
+        case TrustFramework.EIDAS.value:
+            return EidasCredential.from_dict(data)
+        case TrustFramework.BANKID.value:
+            return BankIDCredential.from_dict(data)
+        case TrustFramework.FREJA.value:
+            return FrejaCredential.from_dict(data)
+        case _:
+            return None

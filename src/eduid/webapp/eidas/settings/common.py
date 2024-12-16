@@ -3,6 +3,7 @@ Configuration (file) handling for the eduID eidas app.
 """
 
 from collections.abc import Mapping
+from functools import cached_property
 
 from pydantic import Field
 
@@ -35,7 +36,7 @@ class EidasConfig(
     app_name: str = "eidas"
 
     # Federation config
-    authentication_context_map: dict[str, str] = Field(
+    loa_authn_context_map: dict[str, str] = Field(
         default={
             "loa1": "http://id.elegnamnden.se/loa/1.0/loa1",
             "loa2": "http://id.elegnamnden.se/loa/1.0/loa2",
@@ -51,6 +52,10 @@ class EidasConfig(
         }
     )
 
+    @cached_property
+    def authn_context_loa_map(self) -> dict[str, str]:
+        return {value: key for key, value in self.loa_authn_context_map.items()}
+
     # Staging nin map
     nin_attribute_map: Mapping[str, str] = Field(
         default={
@@ -60,3 +65,5 @@ class EidasConfig(
     # magic cookie IdP is used for integration tests when magic cookie is set
     magic_cookie_idp: str | None = None
     magic_cookie_foreign_id_idp: str | None = None
+
+    allow_eidas_credential_verification: bool = False

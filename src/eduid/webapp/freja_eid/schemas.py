@@ -30,6 +30,10 @@ class FrejaEIDCommonRequestSchema(EduidSchema, CSRFRequestMixin):
     frontend_state = fields.String(required=False)
 
 
+class FrejaEIDVerifyCredentialRequestSchema(FrejaEIDCommonRequestSchema):
+    credential_id = fields.String(required=True)
+
+
 class FrejaEIDCommonResponseSchema(FluxStandardAction):
     class VerifyResponsePayload(EduidSchema, CSRFResponseMixin):
         location = fields.String(required=False)
