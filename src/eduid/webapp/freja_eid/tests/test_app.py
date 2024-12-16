@@ -10,6 +10,7 @@ from werkzeug.test import TestResponse
 
 from eduid.common.config.base import FrontendAction
 from eduid.common.misc.timeutil import utc_now
+from eduid.userdb.element import ElementKey
 from eduid.userdb.identity import FrejaIdentity, FrejaRegistrationLevel, IdentityProofingMethod
 from eduid.userdb.testing import SetupConfig
 from eduid.webapp.common.api.messages import CommonMsg
@@ -38,12 +39,6 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
 
         self.unverified_test_user = self.app.central_userdb.get_user_by_eppn("hubba-baar")
         self._user_setup()
-
-        self.default_frontend_data = {
-            "method": "freja_eid",
-            "frontend_action": "verifyIdentity",
-            "frontend_state": "test_state",
-        }
 
         self.oidc_provider_config = {
             "response_types_supported": ["code"],
@@ -132,7 +127,12 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
                         "force_authn": True,
                         "finish_url": "https://dashboard.example.com/profile/ext-return/{app_name}/{authn_id}",
                     },
+                    FrontendAction.VERIFY_CREDENTIAL.value: {
+                        "force_authn": True,
+                        "finish_url": "https://dashboard.example.com/profile/ext-return/{app_name}/{authn_id}",
+                    },
                 },
+                "allow_credential_verification": True,
             }
         )
         return config
@@ -144,6 +144,14 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
             if user.identities.freja:
                 user.identities.remove(user.identities.freja.key)
                 self.app.central_userdb.save(user)
+
+    @staticmethod
+    def default_frontend_data(frontend_action: str) -> dict[str, str]:
+        return {
+            "method": "freja_eid",
+            "frontend_action": frontend_action,
+            "frontend_state": "test_state",
+        }
 
     @staticmethod
     def get_mock_userinfo(
@@ -322,7 +330,11 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         with self.app.test_request_context():
             endpoint = url_for("freja_eid.verify_identity")
 
-        response = self._start_auth(endpoint=endpoint, data=self.default_frontend_data, eppn=self.test_user.eppn)
+        response = self._start_auth(
+            endpoint=endpoint,
+            data=self.default_frontend_data(frontend_action="verifyIdentity"),
+            eppn=self.test_user.eppn,
+        )
         assert response.status_code == 200
         self._check_success_response(response, type_="POST_FREJA_EID_VERIFY_IDENTITY_SUCCESS")
         assert self.get_response_payload(response)["location"].startswith("https://example.com/op/oidc/authorize")
@@ -347,7 +359,9 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         with self.app.test_request_context():
             endpoint = url_for("freja_eid.verify_identity")
 
-        start_auth_response = self._start_auth(endpoint=endpoint, data=self.default_frontend_data, eppn=eppn)
+        start_auth_response = self._start_auth(
+            endpoint=endpoint, data=self.default_frontend_data(frontend_action="verifyIdentity"), eppn=eppn
+        )
         state, nonce = self._get_state_and_nonce(self.get_response_payload(start_auth_response)["location"])
 
         userinfo = self.get_mock_userinfo(issuing_country=country, registration_level=FrejaRegistrationLevel.PLUS)
@@ -355,9 +369,11 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         assert response.status_code == 302
         self._verify_status(
             finish_url=response.headers["Location"],
-            frontend_action=FrontendAction(self.default_frontend_data["frontend_action"]),
-            frontend_state=self.default_frontend_data["frontend_state"],
-            method=self.default_frontend_data["method"],
+            frontend_action=FrontendAction(
+                self.default_frontend_data(frontend_action="verifyIdentity")["frontend_action"]
+            ),
+            frontend_state=self.default_frontend_data(frontend_action="verifyIdentity")["frontend_state"],
+            method=self.default_frontend_data(frontend_action="verifyIdentity")["method"],
             expect_msg=FrejaEIDMsg.identity_verify_success,
         )
 
@@ -390,16 +406,20 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         with self.app.test_request_context():
             endpoint = url_for("freja_eid.verify_identity")
 
-        start_auth_response = self._start_auth(endpoint=endpoint, data=self.default_frontend_data, eppn=eppn)
+        start_auth_response = self._start_auth(
+            endpoint=endpoint, data=self.default_frontend_data(frontend_action="verifyIdentity"), eppn=eppn
+        )
         state, nonce = self._get_state_and_nonce(self.get_response_payload(start_auth_response)["location"])
         userinfo = self.get_mock_userinfo(issuing_country=country)
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
         assert response.status_code == 302
         self._verify_status(
             finish_url=response.headers["Location"],
-            frontend_action=FrontendAction(self.default_frontend_data["frontend_action"]),
-            frontend_state=self.default_frontend_data["frontend_state"],
-            method=self.default_frontend_data["method"],
+            frontend_action=FrontendAction(
+                self.default_frontend_data(frontend_action="verifyIdentity")["frontend_action"]
+            ),
+            frontend_state=self.default_frontend_data(frontend_action="verifyIdentity")["frontend_state"],
+            method=self.default_frontend_data(frontend_action="verifyIdentity")["method"],
             expect_msg=FrejaEIDMsg.identity_verify_success,
         )
 
@@ -425,16 +445,20 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         with self.app.test_request_context():
             endpoint = url_for("freja_eid.verify_identity")
 
-        start_auth_response = self._start_auth(endpoint=endpoint, data=self.default_frontend_data, eppn=eppn)
+        start_auth_response = self._start_auth(
+            endpoint=endpoint, data=self.default_frontend_data(frontend_action="verifyIdentity"), eppn=eppn
+        )
         state, nonce = self._get_state_and_nonce(self.get_response_payload(start_auth_response)["location"])
         userinfo = self.get_mock_userinfo(issuing_country=country, personal_identity_number=None)
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
         assert response.status_code == 302
         self._verify_status(
             finish_url=response.headers["Location"],
-            frontend_action=FrontendAction(self.default_frontend_data["frontend_action"]),
-            frontend_state=self.default_frontend_data["frontend_state"],
-            method=self.default_frontend_data["method"],
+            frontend_action=FrontendAction(
+                self.default_frontend_data(frontend_action="verifyIdentity")["frontend_action"]
+            ),
+            frontend_state=self.default_frontend_data(frontend_action="verifyIdentity")["frontend_state"],
+            method=self.default_frontend_data(frontend_action="verifyIdentity")["method"],
             expect_msg=FrejaEIDMsg.identity_verify_success,
         )
 
@@ -467,16 +491,20 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         with self.app.test_request_context():
             endpoint = url_for("freja_eid.verify_identity")
 
-        start_auth_response = self._start_auth(endpoint=endpoint, data=self.default_frontend_data, eppn=eppn)
+        start_auth_response = self._start_auth(
+            endpoint=endpoint, data=self.default_frontend_data(frontend_action="verifyIdentity"), eppn=eppn
+        )
         state, nonce = self._get_state_and_nonce(self.get_response_payload(start_auth_response)["location"])
         userinfo = self.get_mock_userinfo(issuing_country=country)
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
         assert response.status_code == 302
         self._verify_status(
             finish_url=response.headers["Location"],
-            frontend_action=FrontendAction(self.default_frontend_data["frontend_action"]),
-            frontend_state=self.default_frontend_data["frontend_state"],
-            method=self.default_frontend_data["method"],
+            frontend_action=FrontendAction(
+                self.default_frontend_data(frontend_action="verifyIdentity")["frontend_action"]
+            ),
+            frontend_state=self.default_frontend_data(frontend_action="verifyIdentity")["frontend_state"],
+            method=self.default_frontend_data(frontend_action="verifyIdentity")["method"],
             expect_error=True,
             expect_msg=ProofingMsg.identity_already_verified,
         )
@@ -507,16 +535,20 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         with self.app.test_request_context():
             endpoint = url_for("freja_eid.verify_identity")
 
-        start_auth_response = self._start_auth(endpoint=endpoint, data=self.default_frontend_data, eppn=eppn)
+        start_auth_response = self._start_auth(
+            endpoint=endpoint, data=self.default_frontend_data(frontend_action="verifyIdentity"), eppn=eppn
+        )
         state, nonce = self._get_state_and_nonce(self.get_response_payload(start_auth_response)["location"])
         userinfo = self.get_mock_userinfo(issuing_country=country)
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
         assert response.status_code == 302
         self._verify_status(
             finish_url=response.headers["Location"],
-            frontend_action=FrontendAction(self.default_frontend_data["frontend_action"]),
-            frontend_state=self.default_frontend_data["frontend_state"],
-            method=self.default_frontend_data["method"],
+            frontend_action=FrontendAction(
+                self.default_frontend_data(frontend_action="verifyIdentity")["frontend_action"]
+            ),
+            frontend_state=self.default_frontend_data(frontend_action="verifyIdentity")["frontend_state"],
+            method=self.default_frontend_data(frontend_action="verifyIdentity")["method"],
             expect_error=True,
             expect_msg=ProofingMsg.identity_already_verified,
         )
@@ -549,15 +581,19 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         with self.app.test_request_context():
             endpoint = url_for("freja_eid.verify_identity")
 
-        start_auth_response = self._start_auth(endpoint=endpoint, data=self.default_frontend_data, eppn=eppn)
+        start_auth_response = self._start_auth(
+            endpoint=endpoint, data=self.default_frontend_data(frontend_action="verifyIdentity"), eppn=eppn
+        )
         state, nonce = self._get_state_and_nonce(self.get_response_payload(start_auth_response)["location"])
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
         assert response.status_code == 302
         self._verify_status(
             finish_url=response.headers["Location"],
-            frontend_action=FrontendAction(self.default_frontend_data["frontend_action"]),
-            frontend_state=self.default_frontend_data["frontend_state"],
-            method=self.default_frontend_data["method"],
+            frontend_action=FrontendAction(
+                self.default_frontend_data(frontend_action="verifyIdentity")["frontend_action"]
+            ),
+            frontend_state=self.default_frontend_data(frontend_action="verifyIdentity")["frontend_state"],
+            method=self.default_frontend_data(frontend_action="verifyIdentity")["method"],
             expect_msg=FrejaEIDMsg.identity_verify_success,
         )
         new_locked_identity = FrejaIdentity(
@@ -597,16 +633,20 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         with self.app.test_request_context():
             endpoint = url_for("freja_eid.verify_identity")
 
-        start_auth_response = self._start_auth(endpoint=endpoint, data=self.default_frontend_data, eppn=eppn)
+        start_auth_response = self._start_auth(
+            endpoint=endpoint, data=self.default_frontend_data(frontend_action="verifyIdentity"), eppn=eppn
+        )
         state, nonce = self._get_state_and_nonce(self.get_response_payload(start_auth_response)["location"])
         userinfo = self.get_mock_userinfo(issuing_country=country)
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
         assert response.status_code == 302
         self._verify_status(
             finish_url=response.headers["Location"],
-            frontend_action=FrontendAction(self.default_frontend_data["frontend_action"]),
-            frontend_state=self.default_frontend_data["frontend_state"],
-            method=self.default_frontend_data["method"],
+            frontend_action=FrontendAction(
+                self.default_frontend_data(frontend_action="verifyIdentity")["frontend_action"]
+            ),
+            frontend_state=self.default_frontend_data(frontend_action="verifyIdentity")["frontend_state"],
+            method=self.default_frontend_data(frontend_action="verifyIdentity")["method"],
             expect_error=True,
             expect_msg=CommonMsg.locked_identity_not_matching,
         )
@@ -644,16 +684,20 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         with self.app.test_request_context():
             endpoint = url_for("freja_eid.verify_identity")
 
-        start_auth_response = self._start_auth(endpoint=endpoint, data=self.default_frontend_data, eppn=eppn)
+        start_auth_response = self._start_auth(
+            endpoint=endpoint, data=self.default_frontend_data(frontend_action="verifyIdentity"), eppn=eppn
+        )
         state, nonce = self._get_state_and_nonce(self.get_response_payload(start_auth_response)["location"])
         userinfo = self.get_mock_userinfo(issuing_country=country)
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
         assert response.status_code == 302
         self._verify_status(
             finish_url=response.headers["Location"],
-            frontend_action=FrontendAction(self.default_frontend_data["frontend_action"]),
-            frontend_state=self.default_frontend_data["frontend_state"],
-            method=self.default_frontend_data["method"],
+            frontend_action=FrontendAction(
+                self.default_frontend_data(frontend_action="verifyIdentity")["frontend_action"]
+            ),
+            frontend_state=self.default_frontend_data(frontend_action="verifyIdentity")["frontend_state"],
+            method=self.default_frontend_data(frontend_action="verifyIdentity")["method"],
             expect_error=True,
             expect_msg=CommonMsg.locked_identity_not_matching,
         )
@@ -675,16 +719,20 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         with self.app.test_request_context():
             endpoint = url_for("freja_eid.verify_identity")
 
-        start_auth_response = self._start_auth(endpoint=endpoint, data=self.default_frontend_data, eppn=eppn)
+        start_auth_response = self._start_auth(
+            endpoint=endpoint, data=self.default_frontend_data(frontend_action="verifyIdentity"), eppn=eppn
+        )
         state, nonce = self._get_state_and_nonce(self.get_response_payload(start_auth_response)["location"])
         userinfo = self.get_mock_userinfo(issuing_country=country)
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
         assert response.status_code == 302
         self._verify_status(
             finish_url=response.headers["Location"],
-            frontend_action=FrontendAction(self.default_frontend_data["frontend_action"]),
-            frontend_state=self.default_frontend_data["frontend_state"],
-            method=self.default_frontend_data["method"],
+            frontend_action=FrontendAction(
+                self.default_frontend_data(frontend_action="verifyIdentity")["frontend_action"]
+            ),
+            frontend_state=self.default_frontend_data(frontend_action="verifyIdentity")["frontend_state"],
+            method=self.default_frontend_data(frontend_action="verifyIdentity")["method"],
             expect_msg=FrejaEIDMsg.identity_verify_success,
         )
         user = self.app.central_userdb.get_user_by_eppn(eppn)
@@ -709,7 +757,9 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         with self.app.test_request_context():
             endpoint = url_for("freja_eid.verify_identity")
 
-        start_auth_response = self._start_auth(endpoint=endpoint, data=self.default_frontend_data, eppn=eppn)
+        start_auth_response = self._start_auth(
+            endpoint=endpoint, data=self.default_frontend_data(frontend_action="verifyIdentity"), eppn=eppn
+        )
         state, nonce = self._get_state_and_nonce(self.get_response_payload(start_auth_response)["location"])
         yesterday = utc_now() - timedelta(days=1)
         userinfo = self.get_mock_userinfo(issuing_country=country, document_expires=yesterday)
@@ -717,10 +767,153 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         assert response.status_code == 302
         self._verify_status(
             finish_url=response.headers["Location"],
-            frontend_action=FrontendAction(self.default_frontend_data["frontend_action"]),
-            frontend_state=self.default_frontend_data["frontend_state"],
-            method=self.default_frontend_data["method"],
+            frontend_action=FrontendAction(
+                self.default_frontend_data(frontend_action="verifyIdentity")["frontend_action"]
+            ),
+            frontend_state=self.default_frontend_data(frontend_action="verifyIdentity")["frontend_state"],
+            method=self.default_frontend_data(frontend_action="verifyIdentity")["method"],
             expect_error=True,
             expect_msg=ProofingMsg.session_info_not_valid,
         )
         self._verify_user_parameters(eppn, identity_verified=False, num_proofings=0, num_mfa_tokens=0)
+
+    @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
+    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+    def test_verify_credential_nin_identity(
+        self, mock_request_user_sync: MagicMock, mock_reference_nin: MagicMock
+    ) -> None:
+        mock_request_user_sync.side_effect = self.request_user_sync
+        mock_reference_nin.return_value = None
+
+        eppn = self.unverified_test_user.eppn
+        country = countries.get("Sweden")
+
+        self._verify_user_parameters(eppn, identity_present=False, num_mfa_tokens=0)
+
+        credential = self.add_security_key_to_user(eppn, keyhandle="test_security_key_1", token_type="webauthn")
+
+        with self.app.test_request_context():
+            endpoint = url_for("freja_eid.verify_credential")
+
+        self.set_authn_action(
+            eppn=eppn,
+            frontend_action=FrontendAction.VERIFY_CREDENTIAL,
+            credentials_used=[credential.key, ElementKey("user_password_cred_id")],
+        )
+
+        data = self.default_frontend_data(frontend_action="verifyCredential")
+        data["credential_id"] = credential.key
+
+        start_auth_response = self._start_auth(
+            endpoint=endpoint,
+            data=data,
+            eppn=eppn,
+        )
+        state, nonce = self._get_state_and_nonce(self.get_response_payload(start_auth_response)["location"])
+
+        userinfo = self.get_mock_userinfo(issuing_country=country, registration_level=FrejaRegistrationLevel.PLUS)
+        response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
+        assert response.status_code == 302
+        self._verify_status(
+            finish_url=response.headers["Location"],
+            frontend_action=FrontendAction(data["frontend_action"]),
+            frontend_state=data["frontend_state"],
+            method=data["method"],
+            expect_msg=FrejaEIDMsg.credential_verify_success,
+        )
+
+        self._verify_user_parameters(eppn, token_verified=True, num_proofings=2, num_mfa_tokens=1)
+
+    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+    def test_verify_credential_foreign_identity(self, mock_request_user_sync: MagicMock) -> None:
+        mock_request_user_sync.side_effect = self.request_user_sync
+
+        # Allow registration level extended to be used
+        self.app.conf.freja_eid_registration_level_to_loa = {
+            "EXTENDED": "freja-loa2",
+            "PLUS": "freja-loa3",
+        }
+        self.app.conf.freja_eid_required_loa = ["freja-loa2", "freja-loa3"]
+
+        eppn = self.unverified_test_user.eppn
+        country = countries.get("Denmark")
+
+        self._verify_user_parameters(eppn, identity_present=False, num_mfa_tokens=0)
+
+        credential = self.add_security_key_to_user(eppn, keyhandle="test_security_key_1", token_type="webauthn")
+
+        with self.app.test_request_context():
+            endpoint = url_for("freja_eid.verify_credential")
+
+        self.set_authn_action(
+            eppn=eppn,
+            frontend_action=FrontendAction.VERIFY_CREDENTIAL,
+            credentials_used=[credential.key, ElementKey("user_password_cred_id")],
+        )
+
+        data = self.default_frontend_data(frontend_action="verifyCredential")
+        data["credential_id"] = credential.key
+
+        start_auth_response = self._start_auth(
+            endpoint=endpoint,
+            data=data,
+            eppn=eppn,
+        )
+        state, nonce = self._get_state_and_nonce(self.get_response_payload(start_auth_response)["location"])
+
+        userinfo = self.get_mock_userinfo(issuing_country=country, registration_level=FrejaRegistrationLevel.EXTENDED)
+        response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
+        assert response.status_code == 302
+        self._verify_status(
+            finish_url=response.headers["Location"],
+            frontend_action=FrontendAction(data["frontend_action"]),
+            frontend_state=data["frontend_state"],
+            method=data["method"],
+            expect_msg=FrejaEIDMsg.credential_verify_success,
+        )
+
+        self._verify_user_parameters(eppn, token_verified=True, num_proofings=2, num_mfa_tokens=1)
+
+    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+    def test_verify_credential_low_registration_level(self, mock_request_user_sync: MagicMock) -> None:
+        mock_request_user_sync.side_effect = self.request_user_sync
+
+        eppn = self.unverified_test_user.eppn
+        country = countries.get("Sweden")
+
+        self._verify_user_parameters(eppn, num_mfa_tokens=0)
+
+        credential = self.add_security_key_to_user(eppn, keyhandle="test_security_key_1", token_type="webauthn")
+
+        with self.app.test_request_context():
+            endpoint = url_for("freja_eid.verify_credential")
+
+        self.set_authn_action(
+            eppn=eppn,
+            frontend_action=FrontendAction.VERIFY_CREDENTIAL,
+            credentials_used=[credential.key, ElementKey("user_password_cred_id")],
+        )
+
+        data = self.default_frontend_data(frontend_action="verifyCredential")
+        data["credential_id"] = credential.key
+
+        start_auth_response = self._start_auth(
+            endpoint=endpoint,
+            data=data,
+            eppn=eppn,
+        )
+        state, nonce = self._get_state_and_nonce(self.get_response_payload(start_auth_response)["location"])
+
+        userinfo = self.get_mock_userinfo(issuing_country=country, registration_level=FrejaRegistrationLevel.EXTENDED)
+        response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
+        assert response.status_code == 302
+        self._verify_status(
+            finish_url=response.headers["Location"],
+            frontend_action=FrontendAction(data["frontend_action"]),
+            frontend_state=data["frontend_state"],
+            method=data["method"],
+            expect_error=True,
+            expect_msg=FrejaEIDMsg.registration_level_not_satisfied,
+        )
+
+        self._verify_user_parameters(eppn, token_verified=False, num_proofings=0, num_mfa_tokens=1)

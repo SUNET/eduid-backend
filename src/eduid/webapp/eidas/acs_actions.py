@@ -7,7 +7,7 @@ from eduid.webapp.common.authn.acs_registry import ACSArgs, ACSResult, acs_actio
 from eduid.webapp.common.authn.utils import check_reauthn
 from eduid.webapp.common.proofing.messages import ProofingMsg
 from eduid.webapp.common.proofing.methods import ProofingMethodSAML
-from eduid.webapp.common.proofing.saml_helpers import authn_ctx_to_loa, is_required_loa, is_valid_authn_instant
+from eduid.webapp.common.proofing.saml_helpers import is_required_loa, is_valid_authn_instant
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.namespaces import SP_AuthnRequest
 from eduid.webapp.eidas.app import current_eidas_app as current_app
@@ -24,7 +24,7 @@ def common_saml_checks(args: ACSArgs) -> ACSResult | None:
     """
     assert isinstance(args.proofing_method, ProofingMethodSAML)  # please mypy
     if not is_required_loa(
-        args.session_info, args.proofing_method.required_loa, current_app.conf.authentication_context_map
+        args.session_info, args.proofing_method.required_loa, current_app.conf.loa_authn_context_map
     ):
         current_app.logger.error("SAML response did not meet required LOA")
         args.authn_req.error = True
@@ -154,7 +154,9 @@ def verify_credential_action(user: User, args: ACSArgs) -> ACSResult:
         current_app.stats.count(name=f"verify_credential_{args.proofing_method.method}_identity_not_matching")
         return ACSResult(message=EidasMsg.identity_not_matching)
 
-    loa = authn_ctx_to_loa(args.session_info, current_app.conf.authentication_context_map)
+    loa = None
+    if parsed.info.authn_context is not None:
+        loa = current_app.conf.authn_context_loa_map.get(parsed.info.authn_context)
 
     verify_result = proofing.verify_credential(user=user, credential=credential, loa=loa)
     if verify_result.error is not None:

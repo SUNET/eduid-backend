@@ -467,6 +467,17 @@ class ProofingConfigMixin(FrontendActionMixin):
     bankid_required_loa: list[str] = Field(default=["uncertified-loa3"])
     bankid_idp: str | None = None
 
+    # freja eid
+    freja_eid_trust_framework: TrustFramework = TrustFramework.FREJA
+    freja_eid_required_loa: list[str] = Field(default=["freja-loa3"])
+    freja_eid_required_registration_level: list[str] = Field(default=["PLUS"])
+    freja_eid_registration_level_to_loa: dict[str, str | None] = Field(
+        default={
+            "EXTENDED": None,
+            "PLUS": "freja-loa3",
+        }
+    )
+
     # identity proofing
     freja_proofing_version: str = Field(default="2023v1")
     foreign_eid_proofing_version: str = Field(default="2022v1")
@@ -478,6 +489,8 @@ class ProofingConfigMixin(FrontendActionMixin):
     security_key_proofing_method: CredentialProofingMethod = Field(default=CredentialProofingMethod.SWAMID_AL3_MFA)
     security_key_proofing_version: str = Field(default="2023v2")
     security_key_foreign_eid_proofing_version: str = Field(default="2022v1")
+    security_key_freja_eid_proofing_version: str = Field(default="2024v1")
+    security_key_foreign_freja_eid_proofing_version: str = Field(default="2024v1")
 
 
 class EduIDBaseAppConfig(RootConfig, LoggingConfigMixin, StatsConfigMixin, RedisConfigMixin):

@@ -1055,6 +1055,8 @@ class EidasTests(ProofingTests[EidasApp]):
     def test_foreign_eid_webauthn_token_verify(self, mock_request_user_sync: MagicMock) -> None:
         mock_request_user_sync.side_effect = self.request_user_sync
 
+        self.app.conf.allow_eidas_credential_verification = True
+
         eppn = self.test_user.eppn
         credential = self.add_security_key_to_user(eppn, "test", "webauthn")
         self.set_eidas_for_user(eppn=eppn, identity=self.test_user_eidas, verified=True)
@@ -1078,6 +1080,8 @@ class EidasTests(ProofingTests[EidasApp]):
         )
 
     def test_foreign_eid_mfa_token_verify_wrong_verified_identity(self) -> None:
+        self.app.conf.allow_eidas_credential_verification = True
+
         eppn = self.test_user.eppn
         identity = self.test_user_other_eidas
         self.set_eidas_for_user(eppn=eppn, identity=identity, verified=True)
@@ -1106,6 +1110,8 @@ class EidasTests(ProofingTests[EidasApp]):
     def test_foreign_eid_mfa_token_verify_no_verified_identity(self, mock_request_user_sync: MagicMock) -> None:
         mock_request_user_sync.side_effect = self.request_user_sync
 
+        self.app.conf.allow_eidas_credential_verification = True
+
         eppn = self.test_unverified_user_eppn
         identity = self.test_user_eidas
         credential = self.add_security_key_to_user(eppn, "test", "webauthn")
@@ -1130,6 +1136,8 @@ class EidasTests(ProofingTests[EidasApp]):
         )
 
     def test_foreign_eid_mfa_token_verify_no_mfa_login(self) -> None:
+        self.app.conf.allow_eidas_credential_verification = True
+
         eppn = self.test_user.eppn
         credential = self.add_security_key_to_user(eppn, "test", "webauthn")
 
@@ -1149,6 +1157,8 @@ class EidasTests(ProofingTests[EidasApp]):
         self._verify_user_parameters(eppn)
 
     def test_foreign_eid_mfa_token_verify_no_mfa_token_in_session(self) -> None:
+        self.app.conf.allow_eidas_credential_verification = True
+
         eppn = self.test_user.eppn
         identity = self.test_user_eidas
         credential = self.add_security_key_to_user(eppn, "test", "webauthn")
