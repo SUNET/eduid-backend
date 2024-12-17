@@ -42,11 +42,11 @@ class SecurityConfig(
 
     # webauthn
     webauthn_proofing_method: str = Field(default="webauthn metadata")
-    webauthn_proofing_version: str = Field(default="2022v1")
+    webauthn_proofing_version: str = Field(default="2024v1")
     webauthn_max_allowed_tokens: int = 10
     webauthn_attestation: AttestationConveyancePreference | None = None
     webauthn_user_verification: UserVerificationRequirement = UserVerificationRequirement.PREFERRED
-    webauthn_allowed_user_verification_methods: list[str] = Field(
+    webauthn_recommended_user_verification_methods: list[str] = Field(
         default=[
             "faceprint_internal",
             "passcode_external",
@@ -59,18 +59,16 @@ class SecurityConfig(
             "apple",
         ]
     )
-    webauthn_allowed_key_protection: list[str] = Field(
+    webauthn_recommended_key_protection: list[str] = Field(
         default=["remote_handle", "hardware", "secure_element", "tee", "apple"]
     )
-    webauthn_allowed_status: list[AuthenticatorStatus] = Field(
+    webauthn_disallowed_status: list[AuthenticatorStatus] = Field(
         default=[
-            AuthenticatorStatus.FIDO_CERTIFIED,
-            AuthenticatorStatus.FIDO_CERTIFIED_L1,
-            AuthenticatorStatus.FIDO_CERTIFIED_L2,
-            AuthenticatorStatus.FIDO_CERTIFIED_L3,
-            AuthenticatorStatus.FIDO_CERTIFIED_L1plus,
-            AuthenticatorStatus.FIDO_CERTIFIED_L2plus,
-            AuthenticatorStatus.FIDO_CERTIFIED_L3plus,
+            AuthenticatorStatus.USER_VERIFICATION_BYPASS,
+            AuthenticatorStatus.ATTESTATION_KEY_COMPROMISE,
+            AuthenticatorStatus.USER_KEY_REMOTE_COMPROMISE,
+            AuthenticatorStatus.USER_KEY_PHYSICAL_COMPROMISE,
+            AuthenticatorStatus.REVOKED,
         ]
     )
 
