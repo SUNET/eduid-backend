@@ -134,54 +134,24 @@ def is_authenticator_mfa_approved(authenticator_info: AuthenticatorInformation) 
     """
     This is our current policy for determine if a FIDO2 authenticator can do multi-factor authentications.
     """
-    # If there is no attestation we can not trust the authenticator info
-    if authenticator_info.attestation_format == AttestationFormat.NONE:
-        return False
+    if authenticator_info.user_verified:
+        current_app.logger.info(
+            f"AttestationFormat {authenticator_info.attestation_format}: user verified - authenticator is mfa capable"
+        )
 
-    # Our current policy is that Apple is capable of mfa
-    if authenticator_info.status is OtherAuthenticatorStatus.APPLE:
-        current_app.logger.debug("apple device is mfa capable")
+        # check status in metadata (if any) and disallow incident statuses
+        if authenticator_info.status and authenticator_info.status in current_app.conf.webauthn_disallowed_status:
+            current_app.logger.debug(f"status {authenticator_info.status} is not mfa capable")
+            return False
+
         return True
-
-    # check status in metadata and disallow uncertified and incident statuses
-    if authenticator_info.status not in current_app.conf.webauthn_allowed_status:
-        current_app.logger.debug(f"status {authenticator_info.status} is not mfa capable")
-        return False
-
-    # true if the authenticator supports any of the user verification methods we allow
-    is_accepted_user_verification = any(
-        [
-            method
-            for method in authenticator_info.user_verification_methods
-            if method in current_app.conf.webauthn_allowed_user_verification_methods
-        ]
+    current_app.logger.info(
+        f"AttestationFormat {authenticator_info.attestation_format}: user NOT verified - authenticator is not mfa capable"
     )
-    # a typical token has key protection ["hardware"] or ["hardware", "tee"] but some also support software, so
-    # we have to check that all key protections supported is in our allow list
-    is_accepted_key_protection = all(
-        [
-            protection
-            for protection in authenticator_info.key_protection
-            if protection in current_app.conf.webauthn_allowed_key_protection
-        ]
-    )
-    current_app.logger.debug(f"is_accepted_user_verification: {is_accepted_user_verification}")
-    current_app.logger.debug(f"is_accepted_key_protection: {is_accepted_key_protection}")
-    if is_accepted_user_verification and is_accepted_key_protection:
-        return True
     return False
 
 
 def save_webauthn_proofing_log(eppn: str, authenticator_info: AuthenticatorInformation) -> bool:
-    user_verification_methods_match = set(authenticator_info.user_verification_methods) & set(
-        current_app.conf.webauthn_allowed_user_verification_methods
-    )
-    current_app.logger.debug(f"user verifications methods that match config: {user_verification_methods_match}")
-    key_protection_match = set(authenticator_info.key_protection) & set(
-        current_app.conf.webauthn_allowed_key_protection
-    )
-    current_app.logger.debug(f"user verifications methods that match config: {user_verification_methods_match}")
-
     proofing_element = WebauthnMfaCapabilityProofingLog(
         created_by=current_app.conf.app_name,
         eppn=eppn,
@@ -189,8 +159,8 @@ def save_webauthn_proofing_log(eppn: str, authenticator_info: AuthenticatorInfor
         proofing_method=current_app.conf.webauthn_proofing_method,
         authenticator_id=authenticator_info.authenticator_id,
         attestation_format=authenticator_info.attestation_format,
-        user_verification_methods=list(user_verification_methods_match),
-        key_protection=list(key_protection_match),
+        user_verification_methods=authenticator_info.user_verification_methods,
+        key_protection=authenticator_info.key_protection,
     )
     current_app.logger.debug(f"webauthn mfa capability proofing element: {proofing_element}")
     return current_app.proofing_log.save(proofing_element)
