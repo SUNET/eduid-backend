@@ -95,7 +95,7 @@ class HttpArgs:
     def from_pysaml2_dict(cls: type[Self], http_args: dict[str, Any]) -> Self:
         # Parse the parts of http_args we know how to parse, and then warn about any remains.
         if "status" in http_args and http_args["status"] != 200:
-            logger.warning(f'Ignoring status in http_args: {http_args["status"]}')
+            logger.warning(f"Ignoring status in http_args: {http_args['status']}")
         method = http_args.pop("method")
         url = http_args.pop("url")
         message = http_args.pop("data")

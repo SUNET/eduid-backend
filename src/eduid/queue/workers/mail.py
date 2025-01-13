@@ -99,8 +99,7 @@ class MailQueueWorker(QueueWorker):
         if self.config.environment == EduidEnvironment.dev:
             logger.info("sendmail task:")
             logger.info(
-                f"\nType: email\nReference: {reference}\nSender: {sender}\nRecipient: {recipient}\n"
-                f"Message:\n{message}"
+                f"\nType: email\nReference: {reference}\nSender: {sender}\nRecipient: {recipient}\nMessage:\n{message}"
             )
             return Status(success=True, message="Devel message printed")
 

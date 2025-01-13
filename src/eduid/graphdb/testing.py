@@ -113,9 +113,9 @@ class Neo4jTemporaryInstance(EduidTemporaryInstance):
             s.run(q)
             # Drop constraints and indices
             for constraint in s.run("CALL db.constraints"):
-                s.run(f'DROP CONSTRAINT {constraint["name"]}')
+                s.run(f"DROP CONSTRAINT {constraint['name']}")
             for index in s.run("CALL db.indexes"):
-                s.run(f'DROP INDEX {index["name"]}')
+                s.run(f"DROP INDEX {index['name']}")
 
     @classmethod
     def get_instance(cls: type[Neo4jTemporaryInstance], max_retry_seconds: int = 60) -> Neo4jTemporaryInstance:
