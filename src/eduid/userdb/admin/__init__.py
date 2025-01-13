@@ -83,8 +83,7 @@ class RawDb:
 
         if not os.path.isdir(self._backupbase):
             sys.stderr.write(
-                f"\n\nBackup basedir {self._backupbase} not found, "
-                "running in a container without the volume mounted?\n"
+                f"\n\nBackup basedir {self._backupbase} not found, running in a container without the volume mounted?\n"
             )
             sys.exit(1)
 
@@ -202,8 +201,7 @@ class RawDb:
 
         if not os.path.isdir(self._backupbase):
             sys.stderr.write(
-                f"\n\nBackup basedir {self._backupbase} not found, running in a container "
-                "without the volume mounted?\n"
+                f"\n\nBackup basedir {self._backupbase} not found, running in a container without the volume mounted?\n"
             )
             sys.exit(1)
 

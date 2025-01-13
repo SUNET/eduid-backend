@@ -288,9 +288,9 @@ class ScimApiTestCase(MongoNeoTestCase):
         ]
         db_name_dict = asdict(db_name)
         for first, second in name_map:
-            assert db_name_dict.get(first) == response_name.get(
-                second
-            ), f"{first}:{db_name_dict.get(first)} != {second}:{response_name.get(second)}"
+            assert db_name_dict.get(first) == response_name.get(second), (
+                f"{first}:{db_name_dict.get(first)} != {second}:{response_name.get(second)}"
+            )
 
     @staticmethod
     def _assertResponse(response: Response, status_code: int = 200) -> None:
@@ -300,6 +300,6 @@ class ScimApiTestCase(MongoNeoTestCase):
                 _detail = response.json().get("detail", "No error detail in parsed_response")
         except JSONDecodeError:
             pass
-        assert (
-            response.status_code == status_code
-        ), f"Response status was not {status_code} ({response.status_code}), {_detail}"
+        assert response.status_code == status_code, (
+            f"Response status was not {status_code} ({response.status_code}), {_detail}"
+        )

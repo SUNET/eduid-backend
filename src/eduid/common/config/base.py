@@ -92,10 +92,10 @@ TEduIDBaseAppConfigSubclass = TypeVar("TEduIDBaseAppConfigSubclass", bound="EduI
 class LoggingFilters(StrEnum):
     """Identifiers to coherently map elements in LocalContext.filters to filter classes in logging dictConfig."""
 
-    DEBUG_TRUE: str = "require_debug_true"
-    DEBUG_FALSE: str = "require_debug_false"
-    NAMES: str = "app_filter"
-    SESSION_USER: str = "user_filter"
+    DEBUG_TRUE = "require_debug_true"
+    DEBUG_FALSE = "require_debug_false"
+    NAMES = "app_filter"
+    SESSION_USER = "user_filter"
 
 
 class WorkerConfig(RootConfig):

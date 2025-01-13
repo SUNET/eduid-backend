@@ -9,8 +9,8 @@ misc_router = APIRouter()
 @unique
 class Status(StrEnum):
     # STATUS_x_ is less ambiguous when pattern matching than just 'x'
-    OK: str = "STATUS_OK_"
-    FAIL: str = "STATUS_FAIL_"
+    OK = "STATUS_OK_"
+    FAIL = "STATUS_FAIL_"
 
 
 class StatusResponse(BaseModel):

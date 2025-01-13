@@ -183,8 +183,7 @@ def authenticate(session_info: SessionInfo, strip_suffix: str | None, userdb: Us
     # eduPersonPrincipalName might be scoped and the scope (e.g. "@example.com")
     # might have to be removed before looking for the user in the database.
     if strip_suffix:
-        if saml_user.endswith(strip_suffix):
-            saml_user = saml_user[: -len(strip_suffix)]
+        saml_user = saml_user.removesuffix(strip_suffix)
 
     logger.debug(f"Looking for user with eduPersonPrincipalName == {repr(saml_user)}")
     try:
