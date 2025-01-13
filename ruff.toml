@@ -3,9 +3,30 @@ line-length = 120
 target-version = "py311"
 
 [lint]
-select = ["E", "F", "W", "I", "ASYNC", "UP", "FLY", "PERF", "FURB", "ERA", "ANN", "PIE", "PL", "PGH", "FAST"]
+select = [
+  "ANN",
+  "ASYNC",
+  "E",
+  "ERA",
+  "F",
+  "FAST",
+  "FLY",
+  "FURB",
+  "I",
+  "PERF",
+  "PGH",
+  "PIE",
+  "PL",
+  "UP",
+  "W",
+]
 
-ignore = ["E501", "PLR", "PLW", "FURB188"]
+ignore = [
+  "E501",
+  "FURB188",
+  "PLR",
+  "PLW",
+]
 
 [lint.flake8-annotations]
 allow-star-arg-any = true
