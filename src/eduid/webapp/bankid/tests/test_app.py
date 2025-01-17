@@ -371,7 +371,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
             loc = None
             payload = {"csrf_token": csrf_token}
             if verify_credential:
-                payload["credential_description"] = "test"
+                payload["credential_description"] = "unit test webauthn token"
             self._check_error_response(response, type_=None, payload=payload, msg=AuthnStatusMsg.must_authenticate)
         return loc
 
@@ -631,7 +631,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
             response=response,
             type_="POST_BANKID_VERIFY_CREDENTIAL_FAIL",
             msg=AuthnStatusMsg.must_authenticate,
-            payload={"credential_description": "test"},
+            payload={"credential_description": "unit test U2F token"},
         )
         self._verify_user_parameters(eppn)
 
