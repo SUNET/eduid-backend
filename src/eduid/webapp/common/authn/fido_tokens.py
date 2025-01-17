@@ -99,7 +99,13 @@ def _get_fido2server(credentials: dict[ElementKey, FidoCred], fido2rp: PublicKey
     return Fido2Server(fido2rp)
 
 
-def start_token_verification(user: User, fido2_rp_id: str, fido2_rp_name: str, state: MfaAction) -> WebauthnChallenge:
+def start_token_verification(
+    user: User,
+    fido2_rp_id: str,
+    fido2_rp_name: str,
+    state: MfaAction,
+    user_verification: UserVerificationRequirement = UserVerificationRequirement.PREFERRED,
+) -> WebauthnChallenge:
     """
     Begin authentication process based on the hardware tokens registered by the user.
     """
