@@ -8,13 +8,13 @@ from pydantic import Field
 
 from eduid.common.config.base import (
     AmConfigMixin,
+    CaptchaConfigMixin,
     EduIDBaseAppConfig,
     MagicCookieMixin,
     MailConfigMixin,
     MsgConfigMixin,
     PasswordConfigMixin,
     WebauthnConfigMixin2,
-    CaptchaConfigMixin,
 )
 
 

@@ -7,7 +7,7 @@ from eduid.common.misc.timeutil import utc_now
 from eduid.common.utils import generate_password
 from eduid.userdb import User
 from eduid.userdb.exceptions import UserOutOfSync
-from eduid.webapp.common.api.captcha import CaptchaResponse, CaptchaCompleteRequest
+from eduid.webapp.common.api.captcha import CaptchaCompleteRequest, CaptchaResponse
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, require_not_logged_in, require_user
 from eduid.webapp.common.api.exceptions import ProofingLogFailure
 from eduid.webapp.common.api.helpers import check_magic_cookie

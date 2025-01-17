@@ -7,8 +7,8 @@ from marshmallow import fields
 
 from eduid.common.config.base import CaptchaConfigMixin
 from eduid.common.config.exceptions import BadConfiguration
-from eduid.webapp.common.api.schemas.base import FluxStandardAction, EduidSchema
-from eduid.webapp.common.api.schemas.csrf import CSRFResponseMixin, CSRFRequestMixin
+from eduid.webapp.common.api.schemas.base import EduidSchema, FluxStandardAction
+from eduid.webapp.common.api.schemas.csrf import CSRFRequestMixin, CSRFResponseMixin
 
 __author__ = "lundberg"
 

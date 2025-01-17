@@ -92,6 +92,8 @@ class ResetPwMsg(TranslatableMsg):
     captcha_not_completed = "resetpw.captcha-not-completed"
     # captcha already completed
     captcha_already_completed = "resetpw.captcha-already-completed"
+    # captcha not requested
+    captcha_not_requested = "resetpw.captcha-not-requested"
 
 
 class StateException(Exception):

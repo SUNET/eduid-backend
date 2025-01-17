@@ -11,7 +11,6 @@ from copy import deepcopy
 from datetime import datetime, timedelta
 from typing import Any, Generic, TypeVar, cast
 
-from fido2.webauthn import AuthenticatorAttachment
 from flask.testing import FlaskClient
 from werkzeug.test import TestResponse
 
@@ -23,7 +22,7 @@ from eduid.userdb import User
 from eduid.userdb.credentials import U2F, Webauthn
 from eduid.userdb.db import BaseDB
 from eduid.userdb.element import ElementKey
-from eduid.userdb.fixtures.fido_credentials import webauthn_credential, u2f_credential
+from eduid.userdb.fixtures.fido_credentials import u2f_credential, webauthn_credential
 from eduid.userdb.fixtures.users import UserFixtures
 from eduid.userdb.identity import IdentityType
 from eduid.userdb.logs.db import ProofingLog
@@ -373,7 +372,7 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
         keyhandle: str,
         token_type: str = "webauthn",
         created_ts: datetime = utc_now(),
-        mfa_approved=False,
+        mfa_approved: bool = False,
     ) -> U2F | Webauthn:
         user = self.app.central_userdb.get_user_by_eppn(eppn)
         mfa_token: U2F | Webauthn

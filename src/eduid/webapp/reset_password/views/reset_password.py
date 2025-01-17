@@ -48,12 +48,12 @@ from flask import Blueprint, abort, request
 from eduid.common.rpc.exceptions import MailTaskFailed, MsgTaskFailed
 from eduid.userdb.exceptions import UserDoesNotExist, UserHasNotCompletedSignup
 from eduid.userdb.reset_password import ResetPasswordEmailAndPhoneState
-from eduid.webapp.common.api.captcha import CaptchaResponse, CaptchaCompleteRequest
-from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, require_not_logged_in
+from eduid.webapp.common.api.captcha import CaptchaCompleteRequest, CaptchaResponse
+from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith
 from eduid.webapp.common.api.exceptions import ThrottledException
 from eduid.webapp.common.api.helpers import check_magic_cookie
 from eduid.webapp.common.api.messages import FluxData, error_response, success_response
-from eduid.webapp.common.api.schemas.csrf import EmptyResponse, EmptyRequest
+from eduid.webapp.common.api.schemas.csrf import EmptyRequest, EmptyResponse
 from eduid.webapp.common.api.utils import get_zxcvbn_terms, hash_password, make_short_code
 from eduid.webapp.common.authn import fido_tokens
 from eduid.webapp.common.session import session
@@ -75,6 +75,7 @@ from eduid.webapp.reset_password.helpers import (
 from eduid.webapp.reset_password.schemas import (
     NewPasswordSecurePhoneRequestSchema,
     NewPasswordSecureTokenRequestSchema,
+    ResetPasswordCaptchaResponseSchema,
     ResetPasswordEmailCodeRequestSchema,
     ResetPasswordEmailRequestSchema,
     ResetPasswordEmailResponseSchema,
@@ -82,7 +83,6 @@ from eduid.webapp.reset_password.schemas import (
     ResetPasswordResponseSchema,
     ResetPasswordVerifyEmailResponseSchema,
     ResetPasswordWithCodeSchema,
-    ResetPasswordCaptchaResponseSchema,
 )
 
 SESSION_PREFIX = "eduid_webapp.reset_password.views"
