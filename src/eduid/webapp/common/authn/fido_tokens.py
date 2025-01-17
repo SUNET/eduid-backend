@@ -8,7 +8,13 @@ from typing import Any
 from fido2 import cbor
 from fido2.server import Fido2Server, U2FFido2Server
 from fido2.utils import websafe_decode
-from fido2.webauthn import AttestedCredentialData, AuthenticatorData, CollectedClientData, PublicKeyCredentialRpEntity
+from fido2.webauthn import (
+    AttestedCredentialData,
+    AuthenticatorData,
+    CollectedClientData,
+    PublicKeyCredentialRpEntity,
+    UserVerificationRequirement,
+)
 from pydantic import BaseModel
 
 from eduid.common.models.webauthn import WebauthnChallenge
@@ -48,12 +54,14 @@ def _get_user_credentials_u2f(user: User) -> dict[ElementKey, FidoCred]:
     return res
 
 
-def _get_user_credentials_webauthn(user: User) -> dict[ElementKey, FidoCred]:
+def _get_user_credentials_webauthn(user: User, mfa_approved: bool | None = None) -> dict[ElementKey, FidoCred]:
     """
     Get the Webauthn credentials for the user
     """
     res: dict[ElementKey, FidoCred] = {}
     for this in user.credentials.filter(Webauthn):
+        if mfa_approved is not None and this.mfa_approved is not mfa_approved:
+            continue
         cred_data = base64.urlsafe_b64decode(this.credential_data.encode("ascii"))
         credential_data, _rest = AttestedCredentialData.unpack_from(cred_data)
         version = "webauthn"
@@ -65,12 +73,15 @@ def _get_user_credentials_webauthn(user: User) -> dict[ElementKey, FidoCred]:
     return res
 
 
-def get_user_credentials(user: User) -> dict[ElementKey, FidoCred]:
+def get_user_credentials(user: User, mfa_approved: bool | None = None) -> dict[ElementKey, FidoCred]:
     """
     Get U2F and Webauthn credentials for the user
     """
-    res = _get_user_credentials_u2f(user)
-    res.update(_get_user_credentials_webauthn(user))
+    res: dict[ElementKey, FidoCred] = {}
+    # If mfa_approved is None or False, get both U2F credentials as they do not support user verification
+    if mfa_approved is None or mfa_approved is False:
+        res = _get_user_credentials_u2f(user)
+    res.update(_get_user_credentials_webauthn(user, mfa_approved=mfa_approved))
     return res
 
 
@@ -102,7 +113,9 @@ def start_token_verification(user: User, fido2_rp_id: str, fido2_rp_name: str, s
     fido2rp = PublicKeyCredentialRpEntity(id=fido2_rp_id, name=fido2_rp_name)
     fido2server = _get_fido2server(credential_data, fido2rp)
     fido2state: WebauthnState
-    raw_fido2data, fido2state = fido2server.authenticate_begin(webauthn_credentials)
+    raw_fido2data, fido2state = fido2server.authenticate_begin(
+        webauthn_credentials, user_verification=user_verification
+    )
 
     logger.debug(f"FIDO2 authentication data:\n{pprint.pformat(raw_fido2data)}")
     fido2data = base64.urlsafe_b64encode(cbor.encode(raw_fido2data)).decode("ascii")
