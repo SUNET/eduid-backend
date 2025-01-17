@@ -3,11 +3,26 @@ from io import BytesIO
 
 from captcha.audio import AudioCaptcha
 from captcha.image import ImageCaptcha
+from marshmallow import fields
 
 from eduid.common.config.base import CaptchaConfigMixin
 from eduid.common.config.exceptions import BadConfiguration
+from eduid.webapp.common.api.schemas.base import FluxStandardAction, EduidSchema
+from eduid.webapp.common.api.schemas.csrf import CSRFResponseMixin, CSRFRequestMixin
 
 __author__ = "lundberg"
+
+
+class CaptchaResponse(FluxStandardAction):
+    class CaptchaResponseSchema(EduidSchema, CSRFResponseMixin):
+        captcha_img = fields.String(required=False)
+        captcha_audio = fields.String(required=False)
+
+    payload = fields.Nested(CaptchaResponseSchema)
+
+
+class CaptchaCompleteRequest(EduidSchema, CSRFRequestMixin):
+    internal_response = fields.String(required=False)
 
 
 class InternalCaptcha:
