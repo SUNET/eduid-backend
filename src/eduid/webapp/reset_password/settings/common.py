@@ -14,6 +14,7 @@ from eduid.common.config.base import (
     MsgConfigMixin,
     PasswordConfigMixin,
     WebauthnConfigMixin2,
+    CaptchaConfigMixin,
 )
 
 
@@ -25,6 +26,7 @@ class ResetPasswordConfig(
     MsgConfigMixin,
     MailConfigMixin,
     PasswordConfigMixin,
+    CaptchaConfigMixin,
 ):
     """
     Configuration for the reset_password app

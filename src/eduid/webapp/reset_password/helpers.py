@@ -83,6 +83,14 @@ class ResetPwMsg(TranslatableMsg):
     resetpw_weak = "resetpw.weak-password"
     # The browser already has a session for another user
     invalid_session = "resetpw.invalid_session"
+    # captcha completed
+    captcha_completed = "resetpw.captcha-completed"
+    # captcha answer failed
+    captcha_failed = "resetpw.captcha-failed"
+    # captcha not completed
+    captcha_not_completed = "resetpw.captcha-not-completed"
+    # captcha already completed
+    captcha_already_completed = "resetpw.captcha-already-completed"
 
 
 class StateException(Exception):
@@ -160,6 +168,7 @@ def send_password_reset_mail(email_address: str) -> ResetPasswordEmailState:
     """
     Put a reset password email message on the queue.
     """
+
     user = current_app.central_userdb.get_user_by_mail(email_address)
     if not user:
         current_app.logger.error(f"Cannot send reset password mail to an unknown email address: {email_address}")

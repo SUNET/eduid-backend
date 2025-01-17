@@ -18,6 +18,7 @@ from eduid.userdb.fixtures.fido_credentials import webauthn_credential as sample
 from eduid.userdb.fixtures.users import UserFixtures
 from eduid.userdb.reset_password import ResetPasswordEmailAndPhoneState, ResetPasswordEmailState
 from eduid.userdb.testing import SetupConfig
+from eduid.webapp.common.api.messages import TranslatableMsg, CommonMsg
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.common.api.utils import get_zxcvbn_terms, hash_password
 from eduid.webapp.common.authn.testing import MockVCCSClient
@@ -71,12 +72,14 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
     def _post_email_address(
         self,
         data1: dict[str, Any] | None = None,
+        captcha_completed: bool | None = True,
     ) -> TestResponse:
         """
         POST an email address to start the reset password process for the corresponding account.
 
         :param data1: to control the data sent with the POST request.
         """
+
         if self.test_user.mail_addresses.primary is None:
             raise RuntimeError(f"user {self.test_user} has no primary email address")
 
@@ -89,6 +92,10 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
             }
             if data1 is not None:
                 data.update(data1)
+
+            if captcha_completed is not None:
+                with c.session_transaction() as sess:
+                    sess.reset_password.captcha.completed = captcha_completed
 
             response = c.post("/", data=json.dumps(data), content_type=self.content_type_json)
             self.assertEqual(200, response.status_code)
@@ -495,6 +502,100 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
 
             return client.get(f"/get-phone-code?eppn={eppn}")
 
+    def _get_captcha(
+        self,
+        expect_success: bool = True,
+        expected_message: TranslatableMsg | None = None,
+    ) -> TestResponse:
+        with self.session_cookie_anon(self.browser) as client:
+            with self.app.test_request_context():
+                endpoint = url_for("reset_password.captcha_request")
+                with client.session_transaction() as sess:
+                    data = {
+                        "csrf_token": sess.get_csrf_token(),
+                    }
+        response = client.post(f"{endpoint}", data=json.dumps(data), content_type=self.content_type_json)
+
+        if expect_success:
+            type_ = "POST_RESET_PASSWORD_GET_CAPTCHA_SUCCESS"
+            assert self.get_response_payload(response)["captcha_img"].startswith("data:image/png;base64,")
+            assert self.get_response_payload(response)["captcha_audio"].startswith("data:audio/wav;base64,")
+        else:
+            type_ = "POST_RESET_PASSWORD_GET_CAPTCHA_FAIL"
+
+        self._check_api_response(
+            response,
+            status=200,
+            type_=type_,
+            message=expected_message,
+        )
+
+        return response
+
+    def _captcha(
+        self,
+        captcha_data: Mapping[str, Any] | None = None,
+        add_magic_cookie: bool = False,
+        magic_cookie_name: str | None = None,
+        expect_success: bool = True,
+        expected_message: TranslatableMsg | None = None,
+        expected_payload: Mapping[str, Any] | None = None,
+    ) -> TestResponse:
+        """
+        :param captcha_data: to control the data POSTed to the /captcha endpoint
+        :param add_magic_cookie: add magic cookie to the captcha request
+        """
+        with self.session_cookie_anon(self.browser) as client:
+            with self.app.test_request_context():
+                endpoint = url_for("reset_password.captcha_response")
+                with client.session_transaction() as sess:
+                    data = {
+                        "csrf_token": sess.get_csrf_token(),
+                        "internal_response": sess.reset_password.captcha.internal_answer,
+                    }
+
+                if add_magic_cookie:
+                    assert self.app.conf.magic_cookie_name is not None
+                    assert self.app.conf.magic_cookie is not None
+                    if magic_cookie_name is None:
+                        magic_cookie_name = self.app.conf.magic_cookie_name
+                    client.set_cookie(domain=self.test_domain, key=magic_cookie_name, value=self.app.conf.magic_cookie)
+                    # set backdoor captcha code
+                    data["internal_response"] = self.app.conf.captcha_backdoor_code
+
+                if captcha_data is not None:
+                    data.update(captcha_data)
+                    # remove any None values
+                    data = {k: v for k, v in data.items() if v is not None}
+
+                response = client.post(f"{endpoint}", data=json.dumps(data), content_type=self.content_type_json)
+                if response.status_code != 200:
+                    return response
+
+                if expect_success:
+                    if not expected_payload:
+                        assert self.get_response_payload(response)["captcha_completed"] is True
+
+                    self._check_api_response(
+                        response,
+                        status=200,
+                        message=expected_message,
+                        type_="POST_RESET_PASSWORD_CAPTCHA_SUCCESS",
+                        payload=expected_payload,
+                        assure_not_in_payload=["verification_code"],
+                    )
+                else:
+                    self._check_api_response(
+                        response,
+                        status=200,
+                        message=expected_message,
+                        type_="POST_RESET_PASSWORD_CAPTCHA_FAIL",
+                        payload=expected_payload,
+                        assure_not_in_payload=["verification_code"],
+                    )
+
+                return response
+
     # actual tests
     def test_correct_user_setup(self) -> None:
         # Check that user has verified data
@@ -525,6 +626,23 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
 
     def test_app_starts(self) -> None:
         self.assertEqual("reset_password", self.app.conf.app_name)
+
+    def test_captcha(self) -> None:
+        self._get_captcha()
+        self._captcha()
+
+    def test_captcha_new_wrong_csrf(self) -> None:
+        data = {"csrf_token": "wrong-token"}
+        res = self._captcha(captcha_data=data, expect_success=False, expected_message=None)
+        assert self.get_response_payload(res)["error"] == {"csrf_token": ["CSRF failed to validate"]}
+
+    def test_captcha_fail(self) -> None:
+        self._get_captcha()
+        self._captcha(
+            captcha_data={"internal_response": "wrong"},
+            expect_success=False,
+            expected_message=ResetPwMsg.captcha_failed,
+        )
 
     def test_post_email_address(self) -> None:
         response = self._post_email_address()
@@ -646,10 +764,10 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         )
 
     def test_post_reset_code_extra_security_alternatives_security_key(self) -> None:
-        user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
         # add security key to user
-        user.credentials.add(webauthn_credential)
-        self.app.central_userdb.save(user)
+        self.add_security_key_to_user(
+            eppn=self.test_user_eppn, keyhandle=webauthn_credential.keyhandle, mfa_approved=True
+        )
         response = self._post_reset_code()
         assert response is not None
         self._check_success_response(
@@ -692,6 +810,9 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
             request_url = url_for("reset_password.start_reset_pw", _external=True)
         with self.session_cookie(self.browser, eppn=self.other_test_user.eppn) as c:
             response = c.get("/", content_type=self.content_type_json)
+            # complete captcha
+            self._get_captcha()
+            self._captcha()
             data = {
                 "email": self.test_user.mail_addresses.primary.email,
                 "csrf_token": self.get_response_payload(response)["csrf_token"],

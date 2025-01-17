@@ -11,6 +11,7 @@ from eduid.userdb.logs import ProofingLog
 from eduid.userdb.reset_password import ResetPasswordStateDB, ResetPasswordUserDB
 from eduid.webapp.common.api import translation
 from eduid.webapp.common.api.app import EduIDBaseApp
+from eduid.webapp.common.api.captcha import init_captcha
 from eduid.webapp.reset_password.settings.common import ResetPasswordConfig
 
 __author__ = "eperez"
@@ -25,6 +26,8 @@ class ResetPasswordApp(EduIDBaseApp):
         # Init celery
         self.msg_relay = MsgRelay(config)
         self.am_relay = AmRelay(config)
+
+        self.captcha = init_captcha(config)
 
         # Init dbs
         self.private_userdb = ResetPasswordUserDB(self.conf.mongo_uri)
