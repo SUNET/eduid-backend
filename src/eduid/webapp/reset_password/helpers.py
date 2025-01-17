@@ -5,6 +5,7 @@ from datetime import timedelta
 from enum import unique
 from typing import Any
 
+from fido2.webauthn import UserVerificationRequirement
 from flask import render_template
 
 from eduid.common.config.base import EduidEnvironment
@@ -360,7 +361,7 @@ def get_extra_security_alternatives(user: User) -> dict:
         ]
         alternatives["phone_numbers"] = verified_phone_numbers
 
-    tokens = fido_tokens.get_user_credentials(user)
+    tokens = fido_tokens.get_user_credentials(user, mfa_approved=True)
 
     if tokens:
         alternatives["tokens"] = fido_tokens.start_token_verification(
@@ -368,7 +369,8 @@ def get_extra_security_alternatives(user: User) -> dict:
             fido2_rp_id=current_app.conf.fido2_rp_id,
             fido2_rp_name=current_app.conf.fido2_rp_name,
             state=session.mfa_action,
-        ).dict()
+            user_verification=UserVerificationRequirement.REQUIRED,
+        ).model_dump()
 
     return alternatives
 
