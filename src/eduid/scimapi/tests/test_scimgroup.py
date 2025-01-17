@@ -428,7 +428,7 @@ class TestGroupResource_PUT(TestGroupResource):
             "displayName": "Another display name",
             "members": [],
         }
-        response = self.client.put(url=f'/Groups/{req["id"]}', json=req, headers=self.headers)
+        response = self.client.put(url=f"/Groups/{req['id']}", json=req, headers=self.headers)
         self._assertScimError(response.json(), status=404, detail="Group not found")
 
     def test_version_mismatch(self) -> None:

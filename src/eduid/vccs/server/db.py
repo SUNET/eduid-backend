@@ -16,23 +16,23 @@ from eduid.userdb.db import BaseDB, TUserDbDocument
 
 @unique
 class Status(StrEnum):
-    ACTIVE: str = "active"
-    DISABLED: str = "disabled"
+    ACTIVE = "active"
+    DISABLED = "disabled"
 
 
 @unique
 class Version(StrEnum):
-    NDNv1: str = "NDNv1"
+    NDNv1 = "NDNv1"
 
 
 @unique
 class KDF(StrEnum):
-    PBKDF2_HMAC_SHA512: str = "PBKDF2-HMAC-SHA512"
+    PBKDF2_HMAC_SHA512 = "PBKDF2-HMAC-SHA512"
 
 
 class CredType(StrEnum):
-    PASSWORD: str = "password"
-    REVOKED: str = "revoked"
+    PASSWORD = "password"
+    REVOKED = "revoked"
 
 
 class CredentialPydanticConfig:
