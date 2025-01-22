@@ -344,6 +344,7 @@ def reset_user_password(
 
     current_app.logger.info(f"Password reset done, removing state for {user}")
     current_app.password_reset_state_db.remove_state(state)
+    session.reset_password.clear()
     return success_response(message=ResetPwMsg.pw_reset_success)
 
 
