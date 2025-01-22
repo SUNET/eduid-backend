@@ -684,8 +684,7 @@ class RewriteAuthnContextClass(ResponseMicroService):
                 _asserted_loa: str | None = data.auth_info.auth_class_ref
                 if _asserted_loa in _loa_settings.requested or _asserted_loa in _loa_settings.extra_accepted:
                     logger.info(
-                        "Rewriting authnContextClassRef in response from "
-                        f"{_asserted_loa} to {_loa_settings.returned}"
+                        f"Rewriting authnContextClassRef in response from {_asserted_loa} to {_loa_settings.returned}"
                     )
                     data.auth_info.auth_class_ref = _loa_settings.returned
                     AuthnContext.save_to_state(context=context, state_key=STATE_KEY_LOA, data=[IDP_SENT_LOA])

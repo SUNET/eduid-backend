@@ -69,7 +69,7 @@ def create_authn_info(
 
     # LOA
     logger.debug(f"Requesting AuthnContext {required_loa}")
-    loa_uris = [current_app.conf.authentication_context_map[loa] for loa in required_loa]
+    loa_uris = [current_app.conf.loa_authn_context_map[loa] for loa in required_loa]
     kwargs["requested_authn_context"] = {"authn_context_class_ref": loa_uris, "comparison": "exact"}
 
     client = Saml2Client(current_app.saml2_config)

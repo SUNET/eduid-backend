@@ -6,6 +6,7 @@ from flask import Blueprint, render_template, request
 from eduid.userdb import User
 from eduid.userdb.exceptions import UserDoesNotExist, UserHasNotCompletedSignup
 from eduid.userdb.support.models import SupportSignupUserFilter, SupportUserFilter
+from eduid.webapp.common.api.sanitation import sanitize_map
 from eduid.webapp.support.app import current_support_app as current_app
 from eduid.webapp.support.helpers import get_credentials_aux_data, require_support_personnel
 
@@ -15,7 +16,8 @@ support_views = Blueprint("support", __name__, url_prefix="", template_folder="t
 @support_views.route("/", methods=["GET", "POST"])
 @require_support_personnel
 def index(support_user: User) -> str:
-    search_query = request.form.get("query")
+    data = sanitize_map(request.form)
+    search_query = data.get("query")
 
     if request.method != "POST" or not search_query:
         return render_template(

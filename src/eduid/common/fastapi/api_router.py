@@ -16,8 +16,7 @@ class APIRouter(FastAPIRouter):
     def api_route(
         self, path: str, *, include_in_schema: bool = True, **kwargs: Any
     ) -> Callable[[DecoratedCallable], DecoratedCallable]:
-        if path.endswith("/"):
-            path = path[:-1]
+        path = path.removesuffix("/")
 
         add_path = super().api_route(path, include_in_schema=include_in_schema, **kwargs)
 

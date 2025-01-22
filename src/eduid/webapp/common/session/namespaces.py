@@ -247,6 +247,8 @@ class BaseAuthnRequest(BaseModel, ABC):
     frontend_state: str | None = None  # opaque data from frontend, returned in /status
     method: str | None = None  # proofing method that frontend is invoking
     post_authn_action: AuthnAcsAction | EidasAcsAction | SvipeIDAction | BankIDAcsAction | FrejaEIDAction | None = None
+    # proofing_credential_id is the credential being person-proofed, when doing that
+    proofing_credential_id: ElementKey | None = None
     created_ts: datetime = Field(default_factory=utc_now)
     authn_instant: datetime | None = None
     status: str | None = None  # populated by the SAML2 ACS/OIDC callback action
@@ -258,8 +260,6 @@ class BaseAuthnRequest(BaseModel, ABC):
 class SP_AuthnRequest(BaseAuthnRequest):
     authn_id: AuthnRequestRef = Field(default_factory=lambda: AuthnRequestRef(uuid4_str()))
     credentials_used: list[ElementKey] = Field(default_factory=list)
-    # proofing_credential_id is the credential being person-proofed, when doing that
-    proofing_credential_id: ElementKey | None = None
     req_authn_ctx: list[str] = Field(
         default_factory=list
     )  # the authentication contexts requested for this authentication

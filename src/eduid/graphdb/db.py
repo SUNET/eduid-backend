@@ -41,7 +41,7 @@ class Neo4jDB:
         self._driver = GraphDatabase.driver(self._db_uri, **_config)
 
     def __repr__(self) -> str:
-        return f'<eduID {self.__class__.__name__}: {getattr(self, "_username", None)}@{getattr(self, "_db_uri", None)}>'
+        return f"<eduID {self.__class__.__name__}: {getattr(self, '_username', None)}@{getattr(self, '_db_uri', None)}>"
 
     def count_nodes(self, label: str | None = None) -> int | None:
         match_statement = "MATCH ()"

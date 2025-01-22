@@ -136,7 +136,7 @@ def device1_state_to_flux_payload(state: OtherDevice, now: datetime) -> Mapping[
         payload.update(
             {
                 "qr_url": qr_url,  # shown in non-production environments
-                "qr_img": f'data:image/png;base64, {qr_b64.decode("ascii")}',
+                "qr_img": f"data:image/png;base64, {qr_b64.decode('ascii')}",
             }
         )
 

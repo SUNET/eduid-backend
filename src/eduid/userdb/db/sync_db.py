@@ -316,17 +316,6 @@ class BaseDB:
                 params["name"] = name
                 self._coll.create_index(key, **params)
 
-    def legacy_save(self, doc: dict[str, Any]) -> str:
-        """
-        Only used in tests and should probably be removed when time allows.
-        pymongo removed the save method in version 4.0.
-        """
-        if "_id" in doc:
-            self._coll.replace_one({"_id": doc["_id"]}, doc, upsert=True)
-            return doc["_id"]
-        res = self._coll.insert_one(doc)  # type: ignore
-        return res.inserted_id
-
     def _save(
         self,
         data: TUserDbDocument,

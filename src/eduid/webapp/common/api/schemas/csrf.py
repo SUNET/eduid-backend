@@ -44,7 +44,7 @@ class CSRFResponseMixin(Schema):
     def get_csrf_token(self, out_data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         # Generate a new csrf token for every response
         out_data["csrf_token"] = session.new_csrf_token()
-        logger.debug(f'Generated new CSRF token in CSRFResponseMixin: {out_data["csrf_token"]}')
+        logger.debug(f"Generated new CSRF token in CSRFResponseMixin: {out_data['csrf_token']}")
         return out_data
 
 
