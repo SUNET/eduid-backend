@@ -133,7 +133,9 @@ def get_authenticator_information(attestation: str, client_data: str) -> Authent
     return AuthenticatorInformation(
         attestation_format=att.fmt,
         authenticator_id=att.aaguid or att.certificate_key_identifier,
-        status=metadata_entry.status_reports[0].status,  # latest status reports status
+        status=max(
+            metadata_entry.status_reports, key=lambda sr: sr.effective_date
+        ).status,  # latest status reports status
         last_status_change=last_status_change,
         user_verification_methods=user_verification_methods,
         key_protection=metadata_entry.metadata_statement.key_protection,
