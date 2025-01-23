@@ -637,9 +637,9 @@ class SecurityWebauthnTests(EduidAPITestCase):
 
             with self.app.test_request_context():
                 res = is_authenticator_mfa_approved(authenticator_info=authenticator_info)
-                if authenticator in [YUBIKEY_4, NONE_ATTESTATION]:
+                if authenticator in [YUBIKEY_4, YUBIKEY_5_NFC]:
                     # Yubikey 4 does not support any user verification we accept
-                    # None attestations cannot be verified to support anything we accept
+                    # The test data for Yubikey 5 do not include user verification
                     assert res is False
                 else:
                     assert res is True
