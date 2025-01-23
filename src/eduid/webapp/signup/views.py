@@ -329,6 +329,7 @@ def create_user(use_suggested_password: bool, use_webauthn: bool, custom_passwor
     if custom_password is not None:
         state["credentials"]["custom_password"] = True
         state["credentials"]["generated_password"] = None
+        current_app.stats.count(name="custom_password")
     # clear passwords from session and namespace
     del custom_password
     session.signup.credentials.generated_password = None
