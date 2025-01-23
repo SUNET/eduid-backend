@@ -167,11 +167,6 @@ def registration_complete(
         current_app.logger.info(f"attestation_object: {attestation_object}")
         current_app.logger.info(f"client_data: {client_data}")
         return error_response(message=SecurityMsg.webauthn_attestation_fail)
-    except MetadataValidationError:
-        current_app.logger.exception("metadata validation failed")
-        current_app.logger.info(f"attestation_object: {attestation_object}")
-        current_app.logger.info(f"client_data: {client_data}")
-        return error_response(message=SecurityMsg.webauthn_metadata_fail)
 
     # Move registration state from session to local variable to let users restart if something fails
     reg_state = session.security.webauthn_registration

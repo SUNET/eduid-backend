@@ -74,11 +74,25 @@ def get_authenticator_information(attestation: str, client_data: str) -> Authent
     # verify attestation
     try:
         current_app.fido_mds.verify_attestation(attestation=att, client_data=websafe_decode(client_data))
-    except (AttestationVerificationError, MetadataValidationError) as e:
+    except AttestationVerificationError as e:
         current_app.logger.debug(f"attestation: {att}")
         current_app.logger.debug(f"client_data: {client_data}")
         current_app.logger.exception("Failed to get authenticator information")
         raise e
+    except MetadataValidationError:
+        current_app.logger.debug(f"attestation: {att}")
+        current_app.logger.debug(f"client_data: {client_data}")
+        current_app.logger.exception(
+            "Failed to get authenticator information from metadata, continuing without metadata"
+        )
+        # Continue even if the security key _should_ be found and validated with metadata as we have seen security keys
+        # in the wild that fails
+        return AuthenticatorInformation(
+            attestation_format=att.fmt,
+            authenticator_id=authenticator_id,
+            user_present=user_present,
+            user_verified=user_verified,
+        )
 
     # There are no metadata entries for Apple devices, just create the authenticator information
     if att.fmt is AttestationFormat.APPLE:
