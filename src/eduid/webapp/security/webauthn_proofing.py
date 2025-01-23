@@ -88,7 +88,7 @@ def get_authenticator_information(attestation: str, client_data: str) -> Authent
         # Continue even if the security key _should_ be found and validated with metadata as we have seen security keys
         # in the wild that fails
         return AuthenticatorInformation(
-            attestation_format=att.fmt,
+            attestation_format=AttestationFormat.NONE,
             authenticator_id=authenticator_id,
             user_present=user_present,
             user_verified=user_verified,
