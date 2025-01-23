@@ -4,8 +4,6 @@ from enum import unique
 from functools import cache
 from typing import Any
 
-from fido_mds.models.webauthn import AttestationFormat
-
 from eduid.common.config.base import EduidEnvironment
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.rpc.msg_relay import FullPostalAddress, NavetData
@@ -21,7 +19,6 @@ from eduid.webapp.common.api.helpers import set_user_names_from_official_address
 from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.common.api.translation import get_user_locale
 from eduid.webapp.security.app import current_security_app as current_app
-from eduid.webapp.security.webauthn_proofing import AuthenticatorInformation, is_authenticator_mfa_approved
 
 __author__ = "lundberg"
 
@@ -240,40 +237,52 @@ def update_user_official_name(security_user: SecurityUser, navet_data: NavetData
 @cache
 def get_approved_security_keys() -> dict[str, Any]:
     # a way to reuse is_authenticator_mfa_approved() from security app
-    parsed_entries: list[AuthenticatorInformation] = []
+    parsed_entries: list[str] = []
     for metadata_entry in current_app.fido_mds.metadata.entries:
         user_verification_methods = [
             detail.user_verification_method
             for detail in metadata_entry.metadata_statement.get_user_verification_details()
         ]
 
-        # simulated to fit AuthenticatorInformation format
-        attestation_format = AttestationFormat.PACKED
-        if not metadata_entry.metadata_statement.attestation_types:
-            attestation_format = AttestationFormat.NONE
+        # check latest status in metadata and disallow incident statuses
+        # TODO: user latest_status_report method on Entry when available in python-fido-mds
+        latest_status_report = max(metadata_entry.status_reports, key=lambda sr: sr.effective_date)
+        if latest_status_report.status in current_app.conf.webauthn_disallowed_status:
+            current_app.logger.debug(f"status {latest_status_report.status} is not mfa capable")
+            continue
 
-        authenticator_info = AuthenticatorInformation(
-            authenticator_id=metadata_entry.aaguid or metadata_entry.aaid,
-            attestation_format=attestation_format,
-            user_present=False,  # simulated to fit AuthenticatorInformation required fields
-            user_verified=False,  # simulated to fit AuthenticatorInformation required fields
-            status=metadata_entry.status_reports[0].status,
-            last_status_change=metadata_entry.time_of_last_status_change,
-            user_verification_methods=user_verification_methods,
-            key_protection=metadata_entry.metadata_statement.key_protection,
-            description=metadata_entry.metadata_statement.description,
+        # true if the authenticator supports any of the user verification methods we allow
+        is_accepted_user_verification = any(
+            [
+                method
+                for method in user_verification_methods
+                if method in current_app.conf.webauthn_recommended_user_verification_methods
+            ]
         )
-        parsed_entries.append(authenticator_info)
-
-    approved_keys_list: list[str] = [
-        entry.description for entry in parsed_entries if entry.description and is_authenticator_mfa_approved(entry)
-    ]
+        # a typical token has key protection ["hardware"] or ["hardware", "tee"] but some also support software, so
+        # we have to check that all key protections supported is in our allow list
+        is_accepted_key_protection = all(
+            [
+                protection
+                for protection in metadata_entry.metadata_statement.key_protection
+                if protection in current_app.conf.webauthn_recommended_key_protection
+            ]
+        )
+        current_app.logger.debug(f"security key description: {metadata_entry.metadata_statement.description}")
+        current_app.logger.debug(f"is_accepted_user_verification: {is_accepted_user_verification}")
+        current_app.logger.debug(f"is_accepted_key_protection: {is_accepted_key_protection}")
+        if (
+            is_accepted_user_verification
+            and is_accepted_key_protection
+            and metadata_entry.metadata_statement.description
+        ):
+            parsed_entries.append(metadata_entry.metadata_statement.description)
 
     # remove case-insensitive duplicates from list, while maintaining the original case
     marker = set()
     unique_approved_keys_list: list[str] = []
 
-    for key in approved_keys_list:
+    for key in parsed_entries:
         lower_case_key = key.lower()
         if lower_case_key not in marker:  # test presence
             marker.add(lower_case_key)

@@ -560,6 +560,6 @@ class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
             ("Sverker Jr", "Jr", True),
         ]
         for param in params:
-            assert is_valid_chosen_given_name(param[0], param[1]) is param[2], (
-                f"{param[0]}, {param[1]} did not return {param[2]}"
-            )
+            assert (
+                is_valid_chosen_given_name(param[0], param[1]) is param[2]
+            ), f"{param[0]}, {param[1]} did not return {param[2]}"

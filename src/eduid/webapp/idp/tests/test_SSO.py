@@ -259,9 +259,9 @@ class TestSSO(SSOIdPTests):
         assert authn_result.message == message, f"Message: {authn_result.message}, Expected: {message}"
         if expect_success:
             assert authn_result.authn_info
-            assert authn_result.authn_info.class_ref == accr, (
-                f"class_ref: {authn_result.authn_info.class_ref}, Expected: {accr}"
-            )
+            assert (
+                authn_result.authn_info.class_ref == accr
+            ), f"class_ref: {authn_result.authn_info.class_ref}, Expected: {accr}"
             if assurance_profile is not None:
                 assert authn_result.authn_info.authn_attributes["eduPersonAssurance"] == [
                     item.value for item in assurance_profile
