@@ -4,8 +4,6 @@ from enum import unique
 from functools import cache
 from typing import Any
 
-from fido_mds.models.webauthn import AttestationFormat
-
 from eduid.common.config.base import EduidEnvironment
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.rpc.msg_relay import FullPostalAddress, NavetData
@@ -21,7 +19,6 @@ from eduid.webapp.common.api.helpers import set_user_names_from_official_address
 from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.common.api.translation import get_user_locale
 from eduid.webapp.security.app import current_security_app as current_app
-from eduid.webapp.security.webauthn_proofing import AuthenticatorInformation, is_authenticator_mfa_approved
 
 __author__ = "lundberg"
 

@@ -77,49 +77,49 @@ class ProofingTests(EduidAPITestCase[TTestAppVar], Generic[TTestAppVar]):
         user_mfa_tokens = user.credentials.filter(FidoCredential)
 
         # Check token status
-        assert len(user_mfa_tokens) == num_mfa_tokens, (
-            f"Unexpected number of FidoCredentials on user. {len(user_mfa_tokens)}, expected {num_mfa_tokens}"
-        )
+        assert (
+            len(user_mfa_tokens) == num_mfa_tokens
+        ), f"Unexpected number of FidoCredentials on user. {len(user_mfa_tokens)}, expected {num_mfa_tokens}"
         if user_mfa_tokens:
-            assert user_mfa_tokens[0].is_verified == token_verified, (
-                f"User token was expected to be verified={token_verified}"
-            )
+            assert (
+                user_mfa_tokens[0].is_verified == token_verified
+            ), f"User token was expected to be verified={token_verified}"
 
         _log = getattr(self.app, "proofing_log")
         assert isinstance(_log, ProofingLog)
-        assert _log.db_count() == num_proofings, (
-            f"Unexpected number of proofings in db. {_log.db_count()}, expected {num_proofings}"
-        )
+        assert (
+            _log.db_count() == num_proofings
+        ), f"Unexpected number of proofings in db. {_log.db_count()}, expected {num_proofings}"
 
         if identity is not None:
             # Check parameters of a specific nin
             user_identity = user.identities.find(identity.identity_type)
             if not identity_present:
-                assert (user_identity is None or user_identity.unique_value != identity.unique_value) is True, (
-                    f"identity {identity} not expected to be present on user"
-                )
+                assert (
+                    user_identity is None or user_identity.unique_value != identity.unique_value
+                ) is True, f"identity {identity} not expected to be present on user"
                 return None
             assert user_identity is not None, f"identity {identity} not present on user"
-            assert user_identity.unique_value == identity.unique_value, (
-                "user_identity.unique_value != identity.unique_value"
-            )
-            assert user_identity.is_verified == identity_verified, (
-                f"{user_identity} was expected to be verified={identity_verified}"
-            )
+            assert (
+                user_identity.unique_value == identity.unique_value
+            ), "user_identity.unique_value != identity.unique_value"
+            assert (
+                user_identity.is_verified == identity_verified
+            ), f"{user_identity} was expected to be verified={identity_verified}"
 
             if proofing_method is not None:
-                assert user_identity.proofing_method == proofing_method, (
-                    f"{user_identity.proofing_method} != {proofing_method}"
-                )
+                assert (
+                    user_identity.proofing_method == proofing_method
+                ), f"{user_identity.proofing_method} != {proofing_method}"
             if proofing_version is not None:
-                assert user_identity.proofing_version == proofing_version, (
-                    f"{user_identity.proofing_version} != {proofing_version}"
-                )
+                assert (
+                    user_identity.proofing_version == proofing_version
+                ), f"{user_identity.proofing_version} != {proofing_version}"
 
         if locked_identity is not None:
             # Check parameters of a specific locked nin
             user_locked_identity = user.locked_identity.find(locked_identity.identity_type)
             assert user_locked_identity is not None, f"locked identity {locked_identity} not present"
-            assert user_locked_identity.unique_value == locked_identity.unique_value, (
-                f"locked identity {user_locked_identity.unique_value} not matching {locked_identity.unique_value}"
-            )
+            assert (
+                user_locked_identity.unique_value == locked_identity.unique_value
+            ), f"locked identity {user_locked_identity.unique_value} not matching {locked_identity.unique_value}"

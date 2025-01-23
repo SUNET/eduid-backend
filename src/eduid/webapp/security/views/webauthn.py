@@ -12,7 +12,7 @@ from fido2.webauthn import (
     CollectedClientData,
     PublicKeyCredentialUserEntity,
 )
-from fido_mds.exceptions import AttestationVerificationError, MetadataValidationError
+from fido_mds.exceptions import AttestationVerificationError
 from flask import Blueprint
 
 from eduid.common.config.base import FrontendAction

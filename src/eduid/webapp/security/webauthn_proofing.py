@@ -162,7 +162,8 @@ def is_authenticator_mfa_approved(authenticator_info: AuthenticatorInformation) 
 
         return True
     current_app.logger.info(
-        f"AttestationFormat {authenticator_info.attestation_format}: user NOT verified - authenticator is not mfa capable"
+        f"AttestationFormat {authenticator_info.attestation_format}: user NOT verified - authenticator is not mfa "
+        f"capable"
     )
     return False
 
