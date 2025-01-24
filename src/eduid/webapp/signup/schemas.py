@@ -113,18 +113,6 @@ class AcceptTouRequest(EduidSchema, CSRFRequestMixin):
     tou_version = fields.String(required=True)
 
 
-class CaptchaResponse(FluxStandardAction):
-    class CaptchaResponseSchema(EduidSchema, CSRFResponseMixin):
-        captcha_img = fields.String(required=False)
-        captcha_audio = fields.String(required=False)
-
-    payload = fields.Nested(CaptchaResponseSchema)
-
-
-class CaptchaCompleteRequest(EduidSchema, CSRFRequestMixin):
-    internal_response = fields.String(required=False)
-
-
 class NameAndEmailSchema(EduidSchema, CSRFRequestMixin):
     given_name = fields.String(required=True)
     surname = fields.String(required=True)

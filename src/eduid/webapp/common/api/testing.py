@@ -11,7 +11,6 @@ from copy import deepcopy
 from datetime import datetime, timedelta
 from typing import Any, Generic, TypeVar, cast
 
-from fido2.webauthn import AuthenticatorAttachment
 from flask.testing import FlaskClient
 from werkzeug.test import TestResponse
 
@@ -23,6 +22,7 @@ from eduid.userdb import User
 from eduid.userdb.credentials import U2F, Webauthn
 from eduid.userdb.db import BaseDB
 from eduid.userdb.element import ElementKey
+from eduid.userdb.fixtures.fido_credentials import u2f_credential, webauthn_credential
 from eduid.userdb.fixtures.users import UserFixtures
 from eduid.userdb.identity import IdentityType
 from eduid.userdb.logs.db import ProofingLog
@@ -367,31 +367,27 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
                 sess.signup.user_created_at = user_created_at
 
     def add_security_key_to_user(
-        self, eppn: str, keyhandle: str, token_type: str = "webauthn", created_ts: datetime = utc_now()
+        self,
+        eppn: str,
+        keyhandle: str,
+        token_type: str = "webauthn",
+        created_ts: datetime = utc_now(),
+        mfa_approved: bool = False,
     ) -> U2F | Webauthn:
         user = self.app.central_userdb.get_user_by_eppn(eppn)
         mfa_token: U2F | Webauthn
-        if token_type == "u2f":
-            mfa_token = U2F(
-                created_ts=created_ts,
-                version="test",
-                keyhandle=keyhandle,
-                public_key="test",
-                app_id="test",
-                attest_cert="test",
-                description="test",
-                created_by="test",
-            )
+
+        if token_type == "webauthn":
+            mfa_token = deepcopy(webauthn_credential)
+            mfa_token.mfa_approved = mfa_approved
         else:
-            mfa_token = Webauthn(
-                created_ts=created_ts,
-                keyhandle=keyhandle,
-                credential_data="test",
-                app_id="test",
-                description="test",
-                created_by="test",
-                authenticator=AuthenticatorAttachment.CROSS_PLATFORM,
-            )
+            mfa_token = deepcopy(u2f_credential)
+
+        mfa_token.created_ts = created_ts
+        mfa_token.modified_ts = created_ts
+        mfa_token.keyhandle = keyhandle
+        mfa_token.no_created_ts_in_db = False
+        mfa_token.no_modified_ts_in_db = False
         user.credentials.add(mfa_token)
         self.request_user_sync(user)
         return mfa_token

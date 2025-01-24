@@ -5,6 +5,7 @@ from datetime import timedelta
 from enum import unique
 from typing import Any
 
+from fido2.webauthn import UserVerificationRequirement
 from flask import render_template
 
 from eduid.common.config.base import EduidEnvironment
@@ -83,6 +84,16 @@ class ResetPwMsg(TranslatableMsg):
     resetpw_weak = "resetpw.weak-password"
     # The browser already has a session for another user
     invalid_session = "resetpw.invalid_session"
+    # captcha completed
+    captcha_completed = "resetpw.captcha-completed"
+    # captcha answer failed
+    captcha_failed = "resetpw.captcha-failed"
+    # captcha not completed
+    captcha_not_completed = "resetpw.captcha-not-completed"
+    # captcha already completed
+    captcha_already_completed = "resetpw.captcha-already-completed"
+    # captcha not requested
+    captcha_not_requested = "resetpw.captcha-not-requested"
 
 
 class StateException(Exception):
@@ -160,6 +171,7 @@ def send_password_reset_mail(email_address: str) -> ResetPasswordEmailState:
     """
     Put a reset password email message on the queue.
     """
+
     user = current_app.central_userdb.get_user_by_mail(email_address)
     if not user:
         current_app.logger.error(f"Cannot send reset password mail to an unknown email address: {email_address}")
@@ -332,6 +344,7 @@ def reset_user_password(
 
     current_app.logger.info(f"Password reset done, removing state for {user}")
     current_app.password_reset_state_db.remove_state(state)
+    session.reset_password.clear()
     return success_response(message=ResetPwMsg.pw_reset_success)
 
 
@@ -351,7 +364,7 @@ def get_extra_security_alternatives(user: User) -> dict:
         ]
         alternatives["phone_numbers"] = verified_phone_numbers
 
-    tokens = fido_tokens.get_user_credentials(user)
+    tokens = fido_tokens.get_user_credentials(user, mfa_approved=True)
 
     if tokens:
         alternatives["tokens"] = fido_tokens.start_token_verification(
@@ -359,7 +372,8 @@ def get_extra_security_alternatives(user: User) -> dict:
             fido2_rp_id=current_app.conf.fido2_rp_id,
             fido2_rp_name=current_app.conf.fido2_rp_name,
             state=session.mfa_action,
-        ).dict()
+            user_verification=UserVerificationRequirement.REQUIRED,
+        ).model_dump()
 
     return alternatives
 
