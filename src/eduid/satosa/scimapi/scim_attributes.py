@@ -111,6 +111,7 @@ class ScimAttributes(ResponseMicroService):
         # This is the easiest way I can come up with without needing duplicated configuration
         # regarding the database for different micro_services or refactor the database connection/calls
         # to a shared class.
+        # Make sure to delete from `data` before handing the request to satosa due to serialization problems.
         if self.config.only_configure_and_expose_scim:
             data.update({"scim_class_from_ScimAttributes": self})
             data.update({"data_owner": data_owner})
