@@ -109,7 +109,7 @@ class ScimAttributes(ResponseMicroService):
         data_owner = self._get_data_owner(data, scopes, frontend_name)
 
         # This is the easiest way I can come up with without needing duplicated configuration
-        # regarding the database for diffrent micro_services or refactor the database connection/calls
+        # regarding the database for different micro_services or refactor the database connection/calls
         # to a shared class.
         if self.config.only_configure_and_expose_scim:
             data.update({"scim_class_from_ScimAttributes": self})
