@@ -114,24 +114,26 @@ class ScimAttributes(ResponseMicroService):
         if self.config.only_configure_and_expose_scim:
             data.update({"scim_class_from_ScimAttributes": self})
             data.update({"data_owner": data_owner})
+
+            return super().process(context, data)
+
+        logger.info(f"entityId {data.auth_info.issuer}, scope(s) {scopes}, data_owner {data_owner}")
+        user = self._get_user(data, data_owner)
+        user_groups = self._get_user_groups(user, data_owner)
+
+        if user:
+            logger.debug(f"Found user: {user}")
+            data = self._process_user(user=user, data=data)
         else:
-            logger.info(f"entityId {data.auth_info.issuer}, scope(s) {scopes}, data_owner {data_owner}")
-            user = self._get_user(data, data_owner)
-            user_groups = self._get_user_groups(user, data_owner)
+            default_allow = self.config.allow_users_not_in_database.get("default", False)
+            allow_users_not_in_database = self.config.allow_users_not_in_database.get(frontend_name, default_allow)
 
-            if user:
-                logger.debug(f"Found user: {user}")
-                data = self._process_user(user=user, data=data)
-            else:
-                default_allow = self.config.allow_users_not_in_database.get("default", False)
-                allow_users_not_in_database = self.config.allow_users_not_in_database.get(frontend_name, default_allow)
+            if not allow_users_not_in_database:
+                raise SATOSAAuthenticationError(context.state, "User not found in database")
 
-                if not allow_users_not_in_database:
-                    raise SATOSAAuthenticationError(context.state, "User not found in database")
-
-            if user_groups:
-                logger.debug(f"Found user groups: {user_groups}")
-                data = self._process_groups(data_owner=data_owner, user_groups=user_groups, data=data)
+        if user_groups:
+            logger.debug(f"Found user groups: {user_groups}")
+            data = self._process_groups(data_owner=data_owner, user_groups=user_groups, data=data)
 
         return super().process(context, data)
 
