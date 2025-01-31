@@ -14,6 +14,7 @@ try:
 except ImportError:
     from eduid.satosa.scimapi.common import fetch_mfa_stepup_accounts, get_internal_attribute_name, get_metadata
 
+
 import satosa.context
 import satosa.internal
 import satosa.response
@@ -236,15 +237,34 @@ class StepUp(ResponseMicroService):
         context: satosa.context.Context,
         data: satosa.internal.InternalData,
     ) -> ProcessReturnType:
+        if not AuthnContext.sp_wants_mfa(context):
+            logger.info("Requesting SP did not ask for MFA")
+            return super().process(context, data)
+
+        if AuthnContext.idp_sent_loa(context):
+            logger.info("IDP already sent a LoA")
+            return super().process(context, data)
+
+        if "scim_class_from_ScimAttributes" in data:
+            scim = data.scim_class_from_ScimAttributes
+        else:
+            raise StepUpError("Configuration error - No scim class provided throught data")
+
+        user = scim._get_user(data, data.data_owner)
+        if user:
+            logger.debug(f"Found user: {user}")
+            data = scim._process_user(user=user, data=data)
+
+        # Prevent future serialization problems
+        if "scim_class_from_ScimAttributes" in data:
+            del data["scim_class_from_ScimAttributes"]
+
         linked_accounts = fetch_mfa_stepup_accounts(data)
         if not linked_accounts:
-            logger.info("No linked accounts for this user")
-            if AuthnContext.sp_wants_mfa(context=context) and not AuthnContext.idp_sent_loa(context=context):
-                logger.info("Requesting SP did ask for MFA but and user has no linked accounts")
-                raise SATOSAAuthenticationError(
-                    context.state, "Requesting SP did ask for MFA but didn't get it and the user has no linked account"
-                )
-            return super().process(context, data)
+            logger.info("Requesting SP did ask for MFA but and user has no linked accounts")
+            raise SATOSAAuthenticationError(
+                context.state, "Requesting SP did ask for MFA but didn't get it and the user has no linked account"
+            )
 
         logger.debug(f"Linked accounts: {linked_accounts}")
         linked_account = linked_accounts[0]
@@ -257,20 +277,12 @@ class StepUp(ResponseMicroService):
             logger.info("No account identifier for this account")
             return super().process(context, data)
 
-        if not AuthnContext.sp_wants_mfa(context):
-            logger.info("Requesting SP did not ask for MFA")
-            return super().process(context, data)
-
         params = self._get_params(context, data)
         logger.debug(f"StepUp params: {params}")
 
         # requester did not ask for a specific LoA
         if not params.requester_loas:
             logger.info(f"Requester {params.requester} did not ask for a specific LoA")
-            return super().process(context, data)
-
-        if AuthnContext.idp_sent_loa(context):
-            logger.info("IDP already sent a LoA")
             return super().process(context, data)
 
         store_params(data, params)

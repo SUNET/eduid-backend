@@ -23,6 +23,7 @@ class Config:
     mongo_uri: str
     neo4j_uri: str | None = None
     neo4j_config: dict = field(default_factory=dict)
+    only_configure_and_expose_scim: Mapping[str, bool] = field(default_factory=lambda: {"default": False})
     allow_users_not_in_database: Mapping[str, bool] = field(default_factory=lambda: {"default": False})
     fallback_data_owner: str | None = None
     idp_to_data_owner: Mapping[str, str] = field(default_factory=dict)
@@ -96,7 +97,6 @@ class ScimAttributes(ResponseMicroService):
         data: satosa.internal.InternalData,
     ) -> satosa.internal.InternalData:
         logger.debug(f"Data as dict:\n{pprint.pformat(data.to_dict())}")
-
         scopes: set[str] = set()
 
         try:
@@ -107,6 +107,17 @@ class ScimAttributes(ResponseMicroService):
 
         frontend_name = context.state.get(ROUTER_STATE_KEY)
         data_owner = self._get_data_owner(data, scopes, frontend_name)
+
+        # This is the easiest way I can come up with without needing duplicated configuration
+        # regarding the database for different micro_services or refactor the database connection/calls
+        # to a shared class.
+        # Make sure to delete from `data` before handing the request to satosa due to serialization problems.
+        if self.config.only_configure_and_expose_scim:
+            data.update({"scim_class_from_ScimAttributes": self})
+            data.update({"data_owner": data_owner})
+
+            return super().process(context, data)
+
         logger.info(f"entityId {data.auth_info.issuer}, scope(s) {scopes}, data_owner {data_owner}")
         user = self._get_user(data, data_owner)
         user_groups = self._get_user_groups(user, data_owner)
