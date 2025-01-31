@@ -255,6 +255,10 @@ class StepUp(ResponseMicroService):
             logger.debug(f"Found user: {user}")
             data = scim._process_user(user=user, data=data)
 
+        # Prevent future serialization problems
+        if "scim_class_from_ScimAttributes" in data:
+            del data["scim_class_from_ScimAttributes"]
+
         linked_accounts = fetch_mfa_stepup_accounts(data)
         if not linked_accounts:
             logger.info("Requesting SP did ask for MFA but and user has no linked accounts")
