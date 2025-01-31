@@ -285,10 +285,6 @@ class StepUp(ResponseMicroService):
             logger.info(f"Requester {params.requester} did not ask for a specific LoA")
             return super().process(context, data)
 
-        if AuthnContext.idp_sent_loa(context):
-            logger.info("IDP already sent a LoA")
-            return super().process(context, data)
-
         store_params(data, params)
 
         name_id = NameID(format=NAMEID_FORMAT_UNSPECIFIED, text=linked_account.identifier)
