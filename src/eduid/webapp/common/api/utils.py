@@ -126,7 +126,7 @@ def has_user_logged_in_with_mfa() -> bool:
     authn = session.authn.sp.get_authn_for_frontend_action(FrontendAction.LOGIN)
     user = get_user()
 
-    if user and len(authn.credentials_used) > 1:
+    if user and authn and len(authn.credentials_used) > 1:
         return True
     return False
 
