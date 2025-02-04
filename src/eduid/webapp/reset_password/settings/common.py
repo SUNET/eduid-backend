@@ -8,6 +8,7 @@ from pydantic import Field
 
 from eduid.common.config.base import (
     AmConfigMixin,
+    CaptchaConfigMixin,
     EduIDBaseAppConfig,
     MagicCookieMixin,
     MailConfigMixin,
@@ -25,6 +26,7 @@ class ResetPasswordConfig(
     MsgConfigMixin,
     MailConfigMixin,
     PasswordConfigMixin,
+    CaptchaConfigMixin,
 ):
     """
     Configuration for the reset_password app

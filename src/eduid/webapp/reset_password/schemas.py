@@ -15,6 +15,13 @@ class ResetPasswordEmailCodeRequestSchema(EduidSchema, CSRFRequestMixin):
     email_code = fields.String(required=True)
 
 
+class ResetPasswordCaptchaResponseSchema(FluxStandardAction):
+    class ResetPasswordCaptchaResponsePayload(EduidSchema, CSRFResponseMixin):
+        captcha_completed = fields.Boolean(required=True, default=False)
+
+    payload = fields.Nested(ResetPasswordCaptchaResponsePayload)
+
+
 class ResetPasswordEmailResponseSchema(FluxStandardAction):
     class ResetPasswordEmailResponsePayload(EduidSchema, CSRFResponseMixin):
         email = LowercaseEmail(required=True)

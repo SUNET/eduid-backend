@@ -430,7 +430,7 @@ class EidasTests(ProofingTests[EidasApp]):
             loc = None
             payload = {"csrf_token": csrf_token}
             if verify_credential:
-                payload["credential_description"] = "test"
+                payload["credential_description"] = "unit test webauthn token"
             self._check_error_response(response, type_=None, payload=payload, msg=AuthnStatusMsg.must_authenticate)
         return loc
 
@@ -709,7 +709,7 @@ class EidasTests(ProofingTests[EidasApp]):
             assert response.status_code == 200
             self._check_error_response(
                 response=response,
-                payload={"credential_description": "test"},
+                payload={"credential_description": "unit test U2F token"},
                 msg=AuthnStatusMsg.must_authenticate,
                 type_="POST_EIDAS_VERIFY_CREDENTIAL_FAIL",
             )

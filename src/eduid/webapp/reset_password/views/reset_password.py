@@ -48,12 +48,13 @@ from flask import Blueprint, abort, request
 from eduid.common.rpc.exceptions import MailTaskFailed, MsgTaskFailed
 from eduid.userdb.exceptions import UserDoesNotExist, UserHasNotCompletedSignup
 from eduid.userdb.reset_password import ResetPasswordEmailAndPhoneState
+from eduid.webapp.common.api.captcha import CaptchaCompleteRequest, CaptchaResponse
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith
 from eduid.webapp.common.api.exceptions import ThrottledException
 from eduid.webapp.common.api.helpers import check_magic_cookie
 from eduid.webapp.common.api.messages import FluxData, error_response, success_response
-from eduid.webapp.common.api.schemas.csrf import EmptyResponse
-from eduid.webapp.common.api.utils import get_zxcvbn_terms, hash_password
+from eduid.webapp.common.api.schemas.csrf import EmptyRequest, EmptyResponse
+from eduid.webapp.common.api.utils import get_zxcvbn_terms, hash_password, make_short_code
 from eduid.webapp.common.authn import fido_tokens
 from eduid.webapp.common.session import session
 from eduid.webapp.reset_password.app import current_reset_password_app as current_app
@@ -74,6 +75,7 @@ from eduid.webapp.reset_password.helpers import (
 from eduid.webapp.reset_password.schemas import (
     NewPasswordSecurePhoneRequestSchema,
     NewPasswordSecureTokenRequestSchema,
+    ResetPasswordCaptchaResponseSchema,
     ResetPasswordEmailCodeRequestSchema,
     ResetPasswordEmailRequestSchema,
     ResetPasswordEmailResponseSchema,
@@ -98,6 +100,65 @@ def init_reset_pw() -> FluxData:
     return success_response()
 
 
+@reset_password_views.route("/get-captcha", methods=["POST"])
+@UnmarshalWith(EmptyRequest)
+@MarshalWith(CaptchaResponse)
+def captcha_request() -> FluxData:
+    if session.reset_password.captcha.completed:
+        return error_response(message=ResetPwMsg.captcha_already_completed)
+
+    session.reset_password.captcha.internal_answer = make_short_code(digits=current_app.conf.captcha_code_length)
+    session.reset_password.captcha.bad_attempts = 0
+    captcha_payload = current_app.captcha.get_request_payload(answer=session.reset_password.captcha.internal_answer)
+    return success_response(payload=captcha_payload)
+
+
+@reset_password_views.route("/captcha", methods=["POST"])
+@UnmarshalWith(CaptchaCompleteRequest)
+@MarshalWith(ResetPasswordCaptchaResponseSchema)
+def captcha_response(internal_response: str | None = None) -> FluxData:
+    """
+    Check for humanness even at level AL1.
+    """
+    current_app.logger.info("Checking captcha")
+
+    if session.reset_password.captcha.completed:
+        current_app.logger.info("Captcha already completed")
+        return error_response(message=ResetPwMsg.captcha_already_completed)
+
+    captcha_verified = False
+
+    if session.reset_password.captcha.bad_attempts >= current_app.conf.captcha_max_bad_attempts:
+        current_app.logger.info("Too many incorrect captcha attempts")
+        # bad attempts is reset when a new captcha is generated
+        return error_response(message=ResetPwMsg.captcha_failed)
+
+    # add a backdoor to bypass captcha checks for humanness,
+    # to be used in testing environments for automated integration tests.
+    if check_magic_cookie(current_app.conf):
+        current_app.logger.info("Using BACKDOOR to verify captcha during signup!")
+        captcha_verified = True
+        if internal_response is not None and internal_response != current_app.conf.captcha_backdoor_code:
+            # used for testing failed captcha attempts
+            current_app.logger.info("Incorrect captcha backdoor code")
+            captcha_verified = False
+
+    # common path with no backdoor
+    if internal_response and not captcha_verified:
+        if session.reset_password.captcha.internal_answer is None:
+            return error_response(message=ResetPwMsg.captcha_not_requested)
+        captcha_verified = internal_response == session.reset_password.captcha.internal_answer
+
+    if not captcha_verified:
+        current_app.logger.info("Captcha failed")
+        session.reset_password.captcha.bad_attempts += 1
+        return error_response(message=ResetPwMsg.captcha_failed)
+
+    current_app.logger.info("Captcha completed")
+    session.reset_password.captcha.completed = True
+    return success_response(message=ResetPwMsg.captcha_completed, payload={"captcha_completed": True})
+
+
 @reset_password_views.route("/", methods=["POST"])
 @UnmarshalWith(ResetPasswordEmailRequestSchema)
 @MarshalWith(ResetPasswordEmailResponseSchema)
@@ -117,6 +178,10 @@ def start_reset_pw(email: str) -> FluxData:
     * The e-mail address is not found
     * There is some problem sending the email.
     """
+    if not session.reset_password.captcha.completed:
+        current_app.logger.error("Captcha not completed")
+        return error_response(message=ResetPwMsg.captcha_not_completed)
+
     current_app.logger.info(f"Trying to send password reset email to {email}")
     try:
         state = send_password_reset_mail(email)

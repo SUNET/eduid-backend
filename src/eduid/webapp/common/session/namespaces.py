@@ -77,6 +77,12 @@ class Common(SessionNSBase):
     preferred_language: str | None = None
 
 
+class Captcha(SessionNSBase):
+    completed: bool = False
+    internal_answer: str | None = None
+    bad_attempts: int = 0
+
+
 WebauthnState = NewType("WebauthnState", dict[str, Any])
 
 
@@ -113,6 +119,7 @@ class ResetPasswordNS(SessionNSBase):
     # situation.
     extrasec_u2f_challenge: str | None = None
     extrasec_webauthn_state: str | None = None
+    captcha: Captcha = Field(default_factory=Captcha)
 
 
 class WebauthnRegistration(SessionNSBase):
@@ -153,12 +160,6 @@ class Invite(SessionNSBase):
 class Tou(SessionNSBase):
     completed: bool = False
     version: str | None = None
-
-
-class Captcha(SessionNSBase):
-    completed: bool = False
-    internal_answer: str | None = None
-    bad_attempts: int = 0
 
 
 class Credentials(SessionNSBase):
