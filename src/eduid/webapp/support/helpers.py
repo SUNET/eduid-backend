@@ -6,7 +6,7 @@ from flask import abort
 
 from eduid.userdb import User
 from eduid.userdb.db import TUserDbDocument
-from eduid.webapp.common.api.utils import get_user
+from eduid.webapp.common.api.utils import get_user, has_user_logged_in_with_mfa
 from eduid.webapp.support.app import current_support_app as current_app
 
 __author__ = "lundberg"
@@ -49,3 +49,14 @@ def require_support_personnel(
         abort(403)
 
     return require_support_decorator
+
+def require_login_with_mfa(
+    f: Callable[..., TRequireSupportPersonnelResult],
+) -> Callable[..., TRequireSupportPersonnelResult]:
+    @wraps(f)
+    def require_login_with_mfa_decorator(*args: Any, **kwargs: Any) -> TRequireSupportPersonnelResult:
+        if has_user_logged_in_with_mfa():
+            return f(*args, **kwargs)
+        abort(403)
+
+    return require_login_with_mfa_decorator

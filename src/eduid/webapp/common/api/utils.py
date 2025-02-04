@@ -11,7 +11,7 @@ import bcrypt
 from flask import current_app as flask_current_app
 from flask.wrappers import Request
 
-from eduid.common.config.base import EduIDBaseAppConfig, Pysaml2SPConfigMixin
+from eduid.common.config.base import EduIDBaseAppConfig, FrontendAction, Pysaml2SPConfigMixin
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.rpc.exceptions import MsgTaskFailed, NoNavetData
 from eduid.common.rpc.msg_relay import MsgRelay
@@ -116,6 +116,20 @@ def get_user() -> User:
     except UserDoesNotExist:
         logger.error(f"Could not find user {session.common.eppn} in central database.")
         raise ApiException("Not authorized", status_code=401)
+
+
+def has_user_logged_in_with_mfa() -> bool:
+    """
+    Check if the user has logged in with MFA.
+    """
+    from eduid.webapp.common.session import session
+
+    authn = session.authn.sp.get_authn_for_frontend_action(FrontendAction.LOGIN)
+    user = get_user()
+
+    if user and len(authn.credentials_used) > 1:
+        return True
+    return False
 
 
 def save_and_sync_user(

@@ -8,13 +8,14 @@ from eduid.userdb.exceptions import UserDoesNotExist, UserHasNotCompletedSignup
 from eduid.userdb.support.models import SupportSignupUserFilter, SupportUserFilter
 from eduid.webapp.common.api.sanitation import sanitize_map
 from eduid.webapp.support.app import current_support_app as current_app
-from eduid.webapp.support.helpers import get_credentials_aux_data, require_support_personnel
+from eduid.webapp.support.helpers import get_credentials_aux_data, require_login_with_mfa, require_support_personnel
 
 support_views = Blueprint("support", __name__, url_prefix="", template_folder="templates")
 
 
 @support_views.route("/", methods=["GET", "POST"])
 @require_support_personnel
+@require_login_with_mfa
 def index(support_user: User) -> str:
     data = sanitize_map(request.form)
     search_query = data.get("query")
