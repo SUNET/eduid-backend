@@ -50,6 +50,7 @@ def require_support_personnel(
 
     return require_support_decorator
 
+
 def require_login_with_mfa(
     f: Callable[..., TRequireSupportPersonnelResult],
 ) -> Callable[..., TRequireSupportPersonnelResult]:

@@ -744,9 +744,9 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
 
             assert response.json is not None, "response.json unexpected None"
             if expect_success:
-                assert (
-                    response.json.get("error", False) is False
-                ), f"expect_success {expect_success} but got error={response.json.get('error')}"
+                assert response.json.get("error", False) is False, (
+                    f"expect_success {expect_success} but got error={response.json.get('error')}"
+                )
                 if not expected_payload:
                     payload = self.get_response_payload(response)
                     assert payload["state"]["tou"]["completed"] is False
