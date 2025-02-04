@@ -18,6 +18,7 @@ from eduid.common.rpc.msg_relay import MsgRelay
 from eduid.userdb import User, UserDB
 from eduid.userdb.exceptions import MultipleUsersReturned, UserDBValueError, UserDoesNotExist
 from eduid.webapp.common.api.exceptions import ApiException
+from eduid.webapp.common.session import session
 
 if TYPE_CHECKING:
     from eduid.webapp.common.api.app import EduIDBaseApp
@@ -101,7 +102,6 @@ def get_user() -> User:
 
     :return: Central userdb user
     """
-    from eduid.webapp.common.session import session
 
     if not session.common.eppn or not session.common.is_logged_in:
         raise ApiException("Not authorized", status_code=401)
@@ -122,7 +122,6 @@ def has_user_logged_in_with_mfa() -> bool:
     """
     Check if the user has logged in with MFA.
     """
-    from eduid.webapp.common.session import session
 
     authn = session.authn.sp.get_authn_for_frontend_action(FrontendAction.LOGIN)
     user = get_user()
