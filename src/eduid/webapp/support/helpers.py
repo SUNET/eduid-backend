@@ -51,11 +51,14 @@ def require_support_personnel(
     return require_support_decorator
 
 
+TRequireLoginWithMFAResult = TypeVar("TRequireLoginWithMFAResult")
+
+
 def require_login_with_mfa(
-    f: Callable[..., TRequireSupportPersonnelResult],
-) -> Callable[..., TRequireSupportPersonnelResult]:
+    f: Callable[..., TRequireLoginWithMFAResult],
+) -> Callable[..., TRequireLoginWithMFAResult]:
     @wraps(f)
-    def require_login_with_mfa_decorator(*args: Any, **kwargs: Any) -> TRequireSupportPersonnelResult:
+    def require_login_with_mfa_decorator(*args: Any, **kwargs: Any) -> TRequireLoginWithMFAResult:
         if has_user_logged_in_with_mfa():
             return f(*args, **kwargs)
         abort(403)
