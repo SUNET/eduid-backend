@@ -342,9 +342,9 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         assert query["response_type"] == ["code"]
         assert query["client_id"] == ["test_client_id"]
         assert query["redirect_uri"] == ["http://test.localhost/authn-callback"]
-        assert query["scope"] == [
-            " ".join(self.app.conf.freja_eid_client.scopes)
-        ], f"{query['scope']} != {[' '.join(self.app.conf.freja_eid_client.scopes)]}"
+        assert query["scope"] == [" ".join(self.app.conf.freja_eid_client.scopes)], (
+            f"{query['scope']} != {[' '.join(self.app.conf.freja_eid_client.scopes)]}"
+        )
         assert query["code_challenge_method"] == ["S256"]
 
     @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")

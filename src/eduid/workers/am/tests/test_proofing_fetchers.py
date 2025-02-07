@@ -94,16 +94,16 @@ class AttributeFetcherNINProofingTests(ProofingTestCase):
             "$unset": {"nins": None},
         }
 
-        assert (
-            normalised_data(fetched) == expected
-        ), f"Fetched letter proofing data has unexpected data: {DeepDiff(fetched, expected)}"
+        assert normalised_data(fetched) == expected, (
+            f"Fetched letter proofing data has unexpected data: {DeepDiff(fetched, expected)}"
+        )
 
         fetched2 = self.fetcher.fetch_attrs(proofing_user.user_id)
 
         # Don't repeat the letter_proofing_data
-        assert (
-            normalised_data(fetched2) == expected
-        ), f"Fetched (2nd time) letter proofing data has unexpected data: {DeepDiff(fetched, expected)}"
+        assert normalised_data(fetched2) == expected, (
+            f"Fetched (2nd time) letter proofing data has unexpected data: {DeepDiff(fetched, expected)}"
+        )
 
         # Adding a new letter_proofing_data
         self.user_data["letter_proofing_data"].append(

@@ -376,9 +376,9 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
                 response = client.post(target, json=data)
 
         payload = self.get_response_payload(response=response)
-        assert (
-            payload.get("webauthn_options") == mock_stv.return_value.webauthn_options
-        ), f"webauthn_options: {payload.get('webauthn_options')}, Expected: {mock_stv.return_value.webauthn_options}"
+        assert payload.get("webauthn_options") == mock_stv.return_value.webauthn_options, (
+            f"webauthn_options: {payload.get('webauthn_options')}, Expected: {mock_stv.return_value.webauthn_options}"
+        )
         assert not payload.get("finished"), "Expected finished=False"
 
         logger.debug(f"MFA endpoint returned (challenge):\n{json.dumps(response.json, indent=4)}")
@@ -599,9 +599,9 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
         if sso_cookie_val is True:
             assert result.sso_cookie_val is not None, "Expected sso_cookie_val but it is None"
         else:
-            assert (
-                result.sso_cookie_val == sso_cookie_val
-            ), f"sso_cookie_val: {result.sso_cookie_val}, expected: {sso_cookie_val}"
+            assert result.sso_cookie_val == sso_cookie_val, (
+                f"sso_cookie_val: {result.sso_cookie_val}, expected: {sso_cookie_val}"
+            )
 
         if finish_result is not None:
             assert result.finished_result is not None, "Expected finished_result but it is None"
