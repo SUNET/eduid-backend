@@ -961,6 +961,31 @@ class TestSSO(SSOIdPTests):
             expect_error=True,
         )
 
+    def test_get_login_eidas_loa_nf_low_not_AL2(self) -> None:
+        """
+        Test login with password and external mfa for verified user, request DIGG_LOA2.
+
+        Expect the response Authn to fail with message for frontend.
+        """
+        user = self.get_user_set_identity(
+            self.test_user.eppn,
+            identity_type=IdentityType.EIDAS,
+            unique_value="eidas_prid",
+            proofing_method=IdentityProofingMethod.SWEDEN_CONNECT,
+            eidas_loa=EIDASLoa.NF_LOW,
+        )
+        out = self._get_login_response_authn(
+            user=user,
+            req_class_ref=EduidAuthnContextClass.REFEDS_MFA,
+            credentials=["pw", "u2f"],
+        )
+        self._check_login_response_authn(
+            authn_result=out,
+            message=IdPMsg.proceed,
+            accr=EduidAuthnContextClass.REFEDS_MFA,
+            assurance_profile=self.app.conf.swamid_assurance_profile_1,
+        )
+
     def test_forceauthn_request(self) -> None:
         """ForceAuthn can apparently be either 'true' or '1'.
 
