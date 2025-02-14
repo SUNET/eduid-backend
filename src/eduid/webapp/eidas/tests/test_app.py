@@ -152,7 +152,7 @@ class EidasTests(ProofingTests[EidasApp]):
     </saml:Conditions>
     <saml:AuthnStatement AuthnInstant="{timestamp}" SessionIndex="{session_id}">
       <saml:AuthnContext>
-        <saml:AuthnContextClassRef>http://id.elegnamnden.se/loa/1.0/eidas-nf-sub</saml:AuthnContextClassRef>
+        <saml:AuthnContextClassRef>{foreign_eid_loa}</saml:AuthnContextClassRef>
         <saml:AuthenticatingAuthority>https://idp.example.com/simplesaml/saml2/idp/metadata.php</saml:AuthenticatingAuthority>
       </saml:AuthnContext>
     </saml:AuthnStatement>
@@ -186,6 +186,18 @@ class EidasTests(ProofingTests[EidasApp]):
   </saml:Assertion>
 </samlp:Response>"""  # noqa: E501
 
+        self.saml_response_foreign_eid_loa_missmatch = """
+<?xml version="1.0" encoding="UTF-8"?>
+<saml2p:Response xmlns:saml2p="urn:oasis:names:tc:SAML:2.0:protocol" Destination="{sp_url}saml2-acs" ID="_ebad01e547857fa54927b020dba1edb1" InResponseTo="{session_id}" IssueInstant="{timestamp}" Version="2.0">
+  <saml2:Issuer xmlns:saml2="urn:oasis:names:tc:SAML:2.0:assertion">https://idp.example.com/simplesaml/saml2/idp/metadata.php</saml2:Issuer>
+  <saml2p:Status>
+    <saml2p:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:Responder">
+      <saml2p:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:AuthnFailed" />
+    </saml2p:StatusCode>
+    <saml2p:StatusMessage>Failure received from foreign service: 202019 - Incorrect Level of Assurance in IdP response</saml2p:StatusMessage>
+  </saml2p:Status>
+</saml2p:Response>
+"""  # noqa: E501
         if config is None:
             config = SetupConfig()
         config.users = ["hubba-bubba", "hubba-baar"]
@@ -208,6 +220,8 @@ class EidasTests(ProofingTests[EidasApp]):
                 "magic_cookie_name": "magic-cookie",
                 "magic_cookie_idp": self.test_idp,
                 "environment": "dev",
+                "errors_url_template": "http://localhost/errors?code={ERRORURL_CODE}&ts={ERRORURL_TS}&rp={ERRORURL_RP}"
+                "&tid={ERRORURL_TID}&ctx={ERRORURL_CTX}",
                 "freja_idp": self.test_idp,
                 "foreign_identity_idp": self.test_idp,
                 "frontend_action_authn_parameters": {
@@ -255,6 +269,7 @@ class EidasTests(ProofingTests[EidasApp]):
         date_of_birth: datetime.datetime | None = None,
         age: int = 10,
         credentials_used: list[ElementKey] | None = None,
+        foreign_eid_loa: str | None = None,
     ) -> bytes:
         """
         Generates a fresh signed authentication response
@@ -282,6 +297,9 @@ class EidasTests(ProofingTests[EidasApp]):
 
         extra_attributes_str = "\n".join(extra_attributes)
 
+        if foreign_eid_loa is None:
+            foreign_eid_loa = "http://id.elegnamnden.se/loa/1.0/eidas-nf-sub"
+
         resp = " ".join(
             saml_response_tpl.format(
                 asserted_identity=asserted_identity,
@@ -291,6 +309,7 @@ class EidasTests(ProofingTests[EidasApp]):
                 tomorrow=tomorrow.strftime("%Y-%m-%dT%H:%M:%SZ"),
                 yesterday=yesterday.strftime("%Y-%m-%dT%H:%M:%SZ"),
                 sp_url=sp_baseurl,
+                foreign_eid_loa=foreign_eid_loa,
                 extra_attributes=extra_attributes_str,
             ).split()
         )
@@ -344,11 +363,12 @@ class EidasTests(ProofingTests[EidasApp]):
         browser: CSRFTestClient | None = None,
         eppn: str | None = None,
         expect_error: bool = False,
+        expect_saml_error: bool = False,
         identity: NinIdentity | EIDASIdentity | None = None,
         logged_in: bool = True,
         method: str = "freja",
-        next_url: str | None = None,
         response_template: str | None = None,
+        foreign_eid_loa: str | None = None,
     ) -> None:
         return self._call_endpoint_and_saml_acs(
             age=age,
@@ -356,12 +376,14 @@ class EidasTests(ProofingTests[EidasApp]):
             endpoint=endpoint,
             eppn=eppn,
             expect_error=expect_error,
+            expect_saml_error=expect_saml_error,
             expect_msg=expect_msg,
             frontend_action=frontend_action,
             identity=identity,
             logged_in=logged_in,
             method=method,
             response_template=response_template,
+            foreign_eid_loa=foreign_eid_loa,
         )
 
     def verify_token(
@@ -449,6 +471,7 @@ class EidasTests(ProofingTests[EidasApp]):
         identity: NinIdentity | EIDASIdentity | None = None,
         logged_in: bool = True,
         response_template: str | None = None,
+        foreign_eid_loa: str | None = None,
         verify_credential: ElementKey | None = None,
         frontend_state: str | None = "This is a unit test",
     ) -> None:
@@ -505,6 +528,7 @@ class EidasTests(ProofingTests[EidasApp]):
                 date_of_birth=identity.date_of_birth,
                 age=age,
                 credentials_used=credentials_used,
+                foreign_eid_loa=foreign_eid_loa,
             )
 
             data = {"SAMLResponse": base64.b64encode(authn_response), "RelayState": ""}
@@ -512,7 +536,8 @@ class EidasTests(ProofingTests[EidasApp]):
             response = browser.post("/saml2-acs", data=data)
 
             if expect_saml_error:
-                assert response.status_code == 400
+                assert response.status_code == 302
+                assert response.location.startswith("http://localhost/errors?code=")
                 return
 
             assert response.status_code == 302
@@ -911,7 +936,6 @@ class EidasTests(ProofingTests[EidasApp]):
             expect_msg=EidasMsg.mfa_authn_success,
             eppn=eppn,
             logged_in=False,
-            next_url="http://idp.test.localhost/mfa-step",
         )
 
         self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=True, num_proofings=0)
@@ -927,7 +951,6 @@ class EidasTests(ProofingTests[EidasApp]):
             expect_error=True,
             eppn=eppn,
             logged_in=False,
-            next_url="http://idp.test.localhost/mfa-step",
         )
 
         self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=False, num_proofings=0)
@@ -957,7 +980,6 @@ class EidasTests(ProofingTests[EidasApp]):
             expect_msg=EidasMsg.mfa_authn_success,
             eppn=eppn,
             logged_in=False,
-            next_url="http://idp.test.localhost/mfa-step",
         )
 
         self._verify_user_parameters(
@@ -1013,7 +1035,6 @@ class EidasTests(ProofingTests[EidasApp]):
             eppn=eppn,
             identity=identity,
             logged_in=False,
-            next_url="http://idp.test.localhost/mfa-step",
             response_template=self.saml_response_foreign_eid_tpl_success,
             method="eidas",
             frontend_action=FrontendAction.LOGIN_MFA_AUTHN,
@@ -1041,7 +1062,6 @@ class EidasTests(ProofingTests[EidasApp]):
             eppn=eppn,
             identity=identity,
             logged_in=False,
-            next_url="http://idp.test.localhost/mfa-step",
             response_template=self.saml_response_foreign_eid_tpl_success,
             method="eidas",
             frontend_action=FrontendAction.LOGIN_MFA_AUTHN,
@@ -1203,7 +1223,6 @@ class EidasTests(ProofingTests[EidasApp]):
                 expect_msg=EidasMsg.mfa_authn_success,
                 eppn=eppn,
                 logged_in=False,
-                next_url="http://idp.test.localhost/mfa-step",
                 browser=browser,
             )
 
@@ -1347,7 +1366,6 @@ class EidasTests(ProofingTests[EidasApp]):
     def test_mfa_authentication_too_old_authn_instant(self) -> None:
         self.reauthn(
             endpoint="/mfa-authenticate",
-            next_url=self.default_redirect_url,
             frontend_action=FrontendAction.LOGIN_MFA_AUTHN,
             age=61,
             expect_msg=EidasMsg.authn_instant_too_old,
@@ -1427,6 +1445,31 @@ class EidasTests(ProofingTests[EidasApp]):
             proofing_method=IdentityProofingMethod.SWEDEN_CONNECT,
             proofing_version=self.app.conf.foreign_eid_proofing_version,
         )
+
+    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+    def test_foreign_identity_verify_eidas_nf_low(self, mock_request_user_sync: MagicMock) -> None:
+        mock_request_user_sync.side_effect = self.request_user_sync
+
+        eppn = self.test_unverified_user_eppn
+        identity = self.test_user_eidas
+        self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_present=False)
+
+        foreign_eid_loa = self.app.conf.loa_authn_context_map[EIDASLoa.NF_LOW]
+
+        self.reauthn(
+            "/verify-identity",
+            expect_msg=EidasMsg.authn_context_mismatch,
+            expect_error=True,
+            expect_saml_error=True,
+            eppn=eppn,
+            identity=identity,
+            response_template=self.saml_response_foreign_eid_loa_missmatch,
+            method="eidas",
+            frontend_action=FrontendAction.VERIFY_IDENTITY,
+            foreign_eid_loa=foreign_eid_loa,
+        )
+
+        self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=False, num_proofings=0)
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_foreign_identity_verify_existing_prid_persistence_A(self, mock_request_user_sync: MagicMock) -> None:
