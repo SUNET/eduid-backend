@@ -513,9 +513,9 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
             if message is not None:
                 assert "message" in _json["payload"], 'JSON payload has no "message" element'
                 _message_value = _json["payload"]["message"]
-                assert (
-                    message.value == _message_value
-                ), f"Wrong message returned. expected: {message.value}, actual: {_message_value}"
+                assert message.value == _message_value, (
+                    f"Wrong message returned. expected: {message.value}, actual: {_message_value}"
+                )
             if error is not None:
                 assert _json["error"] is True, "The Flux response was supposed to have error=True"
                 assert "error" in _json["payload"], 'JSON payload has no "error" element'
@@ -523,9 +523,9 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
                 assert error == _error, f"Wrong error returned. expected: {error}, actual: {_error}"
             if payload is not None:
                 for k, v in payload.items():
-                    assert (
-                        k in _json["payload"]
-                    ), f"The Flux response payload {_json['payload']} does not contain {repr(k)}"
+                    assert k in _json["payload"], (
+                        f"The Flux response payload {_json['payload']} does not contain {repr(k)}"
+                    )
                     assert v == _json["payload"][k], (
                         f"The Flux response payload item {repr(k)} should be {repr(v)} "
                         f"but is {repr(_json['payload'][k])}"
@@ -536,9 +536,9 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
             if meta is not None:
                 for k, v in meta.items():
                     assert k in _json["meta"], f"The Flux response meta does not contain {repr(k)}"
-                    assert (
-                        v == _json["meta"][k]
-                    ), f"The Flux response meta item {repr(k)} should be {repr(v)} but is {repr(_json['meta'][k])}"
+                    assert v == _json["meta"][k], (
+                        f"The Flux response meta item {repr(k)} should be {repr(v)} but is {repr(_json['meta'][k])}"
+                    )
 
         except (AssertionError, KeyError):
             if response.json:

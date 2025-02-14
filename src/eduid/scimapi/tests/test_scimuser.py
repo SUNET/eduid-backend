@@ -204,9 +204,9 @@ class ScimApiTestUserResourceBase(ScimApiTestCase):
         self._assertScimResponseProperties(response, resource=user, expected_schemas=expected_schemas)
 
         # Validate user update specifics
-        assert user.external_id == response.json().get(
-            "externalId"
-        ), 'user.externalId != parsed_response.json().get("externalId")'
+        assert user.external_id == response.json().get("externalId"), (
+            'user.externalId != parsed_response.json().get("externalId")'
+        )
         self._assertName(user.name, response.json().get("name"))
         _expected_emails = filter_none(normalised_data([email.to_dict() for email in user.emails]))
         _obtained_emails = filter_none(normalised_data(response.json().get("emails", [])))
@@ -214,9 +214,9 @@ class ScimApiTestUserResourceBase(ScimApiTestCase):
         _expected_phones = filter_none(normalised_data([number.to_dict() for number in user.phone_numbers]))
         _obtained_phones = filter_none(normalised_data(response.json().get("phoneNumbers", [])))
         assert _obtained_phones == _expected_phones, 'parsed_response.json().get("phoneNumbers") != user.phone_numbers'
-        assert user.preferred_language == response.json().get(
-            "preferredLanguage"
-        ), 'user.preferred_language != parsed_response.json().get("preferredLanguage")'
+        assert user.preferred_language == response.json().get("preferredLanguage"), (
+            'user.preferred_language != parsed_response.json().get("preferredLanguage")'
+        )
 
         # If the request has NUTID profiles, ensure they are present in the parsed_response
         if SCIMSchema.NUTID_USER_V1.value in req:
