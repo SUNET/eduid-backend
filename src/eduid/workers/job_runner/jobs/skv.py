@@ -44,15 +44,18 @@ def check_skv_users(context: Context) -> None:
 
             if navet_data.person.is_deregistered():
                 cause = navet_data.person.deregistration_information.cause_code
+                assert cause is not None  # Please mypy
                 if cause is DeregisteredCauseCode.EMIGRATED:
                     context.logger.debug(f"User with eppn {user.eppn} has emigrated and should not be terminated")
                 else:
-                    context.logger.debug(f"User with eppn {user.eppn} should be terminated")
+                    context.logger.info(
+                        f"User with eppn {user.eppn} should be terminated, cause: {cause.value} ({cause.name})"
+                    )
                     terminate_user(context, user)
             else:
                 context.logger.debug(f"User with eppn {user.eppn} is still registered")
         except MsgTaskFailed:
-            context.logger.error(f"Failed to get Navet data for user with eppn {user.eppn}")
+            context.logger.critical(f"Failed to get Navet data for user with eppn {user.eppn}")
             # The user will be requeued for a new check by the next run of gather_skv_users
     else:
         context.logger.debug("Nothing to do")
@@ -69,3 +72,4 @@ def terminate_user(context: Context, queue_user: CleanerQueueUser) -> None:
     user = context.db.get_user_by_eppn(queue_user.eppn)
     user.terminated = utc_now()
     save_and_sync_user(context, user)
+    context.logger.info(f"User with eppn {queue_user.eppn} marked as terminated.")
