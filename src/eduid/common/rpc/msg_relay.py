@@ -30,7 +30,7 @@ class NavetModelConfig(BaseModel):
 
 
 class CaseInformation(NavetModelConfig):
-    last_changed: str = Field(alias="lastChanged")
+    last_changed: str | None = Field(alias="lastChanged", default=None)
 
 
 class Name(NavetModelConfig):
