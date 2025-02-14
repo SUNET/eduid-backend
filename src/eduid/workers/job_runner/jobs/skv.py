@@ -62,6 +62,10 @@ def terminate_user(context: Context, queue_user: CleanerQueueUser) -> None:
     """
     Terminate a user
     """
+    if context.dry_run:
+        context.logger.info(f"Dry run: Would terminate user with eppn {queue_user.eppn}")
+        context.logger.debug(f"CleanerQueueUser: {repr(queue_user)}")
+        return None
     user = context.db.get_user_by_eppn(queue_user.eppn)
     user.terminated = utc_now()
     save_and_sync_user(context, user)
