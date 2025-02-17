@@ -14,7 +14,7 @@ from eduid.userdb.credentials import CredentialList
 from eduid.userdb.db import BaseDB, TUserDbDocument
 from eduid.userdb.element import UserDBValueError
 from eduid.userdb.exceptions import UserDoesNotExist, UserHasNotCompletedSignup, UserIsRevoked
-from eduid.userdb.identity import IdentityList, IdentityType
+from eduid.userdb.identity import EIDASIdentity, EIDASLoa, IdentityList, IdentityType
 from eduid.userdb.ladok import Ladok
 from eduid.userdb.locked_identity import LockedIdentityList
 from eduid.userdb.mail import MailAddressList
@@ -212,6 +212,12 @@ class User(BaseModel):
         data["credentials"] = CredentialList.from_list_of_dicts(data.pop("passwords", []))
         if data.get("subject") is not None:
             data["subject"] = SubjectType(data["subject"])
+
+        # unverify any EIDAS identity with loa eidas-nf-low
+        # TODO: Remove after next full load-save
+        eidas_identity: EIDASIdentity = data["identities"].eidas
+        if eidas_identity and (eidas_identity.is_verified and eidas_identity.loa is EIDASLoa.NF_LOW):
+            data["identities"].eidas.is_verified = False
 
         return data
 

@@ -459,7 +459,7 @@ class ProofingConfigMixin(FrontendActionMixin):
 
     # eidas
     foreign_trust_framework: TrustFramework = TrustFramework.EIDAS
-    foreign_required_loa: list[str] = Field(default=["eidas-nf-low", "eidas-nf-sub", "eidas-nf-high"])
+    foreign_required_loa: list[str] = Field(default=["eidas-nf-sub", "eidas-nf-high"])
     foreign_identity_idp: str | None = None
 
     # bankid

@@ -1,7 +1,8 @@
 #!/usr/bin/python
 
 import logging
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
+from datetime import datetime
 from uuid import uuid4
 
 import saml2.server
@@ -11,7 +12,17 @@ from saml2 import BINDING_HTTP_POST
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.models.saml2 import EduidAuthnContextClass
 from eduid.userdb.credentials import U2F, Credential, CredentialProofingMethod, Password
-from eduid.userdb.identity import IdentityList, IdentityProofingMethod, NinIdentity
+from eduid.userdb.identity import (
+    EIDASIdentity,
+    EIDASLoa,
+    FrejaIdentity,
+    FrejaRegistrationLevel,
+    IdentityList,
+    IdentityProofingMethod,
+    IdentityType,
+    NinIdentity,
+    PridPersistence,
+)
 from eduid.userdb.idp import IdPUser
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.logindata import ExternalMfaData
@@ -144,34 +155,70 @@ class SSOIdPTests(IdPAPITests):
 
 
 class TestSSO(SSOIdPTests):
-    # ------------------------------------------------------------------------
-    def get_user_set_nins(
+    def get_user_set_identity(
         self,
         eppn: str,
-        nins: Sequence[str],
+        identity_type: IdentityType = IdentityType.NIN,
+        unique_value: str | None = None,
+        eidas_loa: EIDASLoa | None = None,
+        freja_registration_level: FrejaRegistrationLevel | None = None,
         proofing_method: IdentityProofingMethod | None = None,
-        nin_verified_by: str = "unittest",
+        identity_verified_by: str = "unittest",
+        replace_existing_identities: bool = True,
     ) -> IdPUser:
         """
-        Fetch a user from the user database and set it's NINs to those in nins.
-        :param eppn: eduPersonPrincipalName or email address
-        :param nins: List of NINs to configure user with (all verified)
-
-        :return: IdPUser instance
+        Get a user from the userdb, and set an identity on it.
         """
         user = self.app.userdb.lookup_user(eppn)
         assert user is not None
-        user.identities = IdentityList()
-        for number in nins:
-            this_nin = NinIdentity(
-                number=number,
-                created_by="unittest",
-                created_ts=utc_now(),
-                verified_by=nin_verified_by,
-                is_verified=True,
-                proofing_method=proofing_method,
-            )
-            user.identities.add(this_nin)
+        if replace_existing_identities:
+            user.identities = IdentityList()
+        if unique_value:
+            identity: NinIdentity | EIDASIdentity | FrejaIdentity
+            match identity_type:
+                case IdentityType.NIN:
+                    identity = NinIdentity(
+                        number=unique_value,
+                        created_by="unittest",
+                        created_ts=utc_now(),
+                        verified_by=identity_verified_by,
+                        is_verified=True,
+                        proofing_method=proofing_method,
+                    )
+                case IdentityType.EIDAS:
+                    if eidas_loa is None:
+                        raise ValueError("eidas_loa must be set")
+                    identity = EIDASIdentity(
+                        prid=unique_value,
+                        prid_persistence=PridPersistence.B,
+                        loa=eidas_loa,
+                        country_code="DK",
+                        date_of_birth=datetime(year=1980, month=1, day=1),
+                        created_by="unittest",
+                        created_ts=utc_now(),
+                        verified_by="unittest",
+                        is_verified=True,
+                        proofing_method=IdentityProofingMethod.SWEDEN_CONNECT,
+                    )
+                case IdentityType.FREJA:
+                    if freja_registration_level is None:
+                        raise ValueError("freja_registration_level must be set")
+                    identity = FrejaIdentity(
+                        user_id=unique_value,
+                        registration_level=freja_registration_level,
+                        personal_identity_number="test_freja_personal_identity_number",
+                        country_code="DK",
+                        date_of_birth=datetime(year=1980, month=1, day=1),
+                        created_by="unittest",
+                        created_ts=utc_now(),
+                        verified_by="unittest",
+                        is_verified=True,
+                        proofing_method=IdentityProofingMethod.FREJA_EID,
+                    )
+                case _:
+                    raise ValueError(f"Unknown identity type {identity_type}")
+            user.identities.add(identity)
+
         self.request_user_sync(user)
         self.app.userdb.lookup_user(eppn)
         assert user is not None  # please mypy
@@ -188,7 +235,11 @@ class TestSSO(SSOIdPTests):
         add_credentials_to_this_request: bool = True,
     ) -> NextResult:
         if user is None:
-            user = self.get_user_set_nins(self.test_user.eppn, [])
+            # used only to get user
+            user = self.get_user_set_identity(
+                self.test_user.eppn,
+                identity_type=IdentityType.NIN,
+            )
         # load user from central db to not get out of sync
         user = self.app.userdb.lookup_user(user.eppn)
         assert user is not None
@@ -278,7 +329,9 @@ class TestSSO(SSOIdPTests):
 
         Expect the response Authn to be REFEDS MFA, and assurance attribute to include SWAMID AL3.
         """
-        self.get_user_set_nins(self.test_user.eppn, ["190101011234"])
+        user = self.get_user_set_identity(
+            self.test_user.eppn, identity_type=IdentityType.NIN, unique_value="190101011234"
+        )
         self.add_test_user_security_key(credential=_U2F_SWAMID_AL3)
         user = self.app.userdb.get_user_by_eppn(self.test_user.eppn)
         out = self._get_login_response_authn(
@@ -299,7 +352,9 @@ class TestSSO(SSOIdPTests):
 
         Expect the response Authn to be REFEDS MFA.
         """
-        self.get_user_set_nins(self.test_user.eppn, ["190101011234"])
+        user = self.get_user_set_identity(
+            self.test_user.eppn, identity_type=IdentityType.NIN, unique_value="190101011234"
+        )
         self.add_test_user_security_key(credential=_U2F)
         user = self.app.userdb.get_user_by_eppn(self.test_user.eppn)
         out = self._get_login_response_authn(
@@ -320,7 +375,9 @@ class TestSSO(SSOIdPTests):
 
         Expect the response Authn to be REFEDS MFA and assurance attribute to include SWAMID AL3.
         """
-        user = self.get_user_set_nins(self.test_user.eppn, ["190101011234"])
+        user = self.get_user_set_identity(
+            self.test_user.eppn, identity_type=IdentityType.NIN, unique_value="190101011234"
+        )
         external_mfa = ExternalMfaData(
             issuer="issuer.example.com",
             authn_context="http://id.elegnamnden.se/loa/1.0/loa3",
@@ -521,7 +578,9 @@ class TestSSO(SSOIdPTests):
         """
         Make sure eduPersonAssurace is SWAMID AL2 with a verified nin.
         """
-        user = self.get_user_set_nins(self.test_user.eppn, ["190101011234"])
+        user = self.get_user_set_identity(
+            self.test_user.eppn, identity_type=IdentityType.NIN, unique_value="190101011234"
+        )
         out = self._get_login_response_authn(
             req_class_ref=None,
             user=user,
@@ -574,7 +633,9 @@ class TestSSO(SSOIdPTests):
 
         Expect the response Authn to be EDUID_MFA, eduPersonAssurance AL1,Al2
         """
-        user = self.get_user_set_nins(self.test_user.eppn, ["190101011234"])
+        user = self.get_user_set_identity(
+            self.test_user.eppn, identity_type=IdentityType.NIN, unique_value="190101011234"
+        )
         out = self._get_login_response_authn(
             user=user,
             req_class_ref=EduidAuthnContextClass.EDUID_MFA,
@@ -593,7 +654,9 @@ class TestSSO(SSOIdPTests):
 
         Expect the response Authn to be REFEDS_MFA, eduPersonAssurance AL1,Al2
         """
-        user = self.get_user_set_nins(self.test_user.eppn, ["190101011234"])
+        user = self.get_user_set_identity(
+            self.test_user.eppn, identity_type=IdentityType.NIN, unique_value="190101011234"
+        )
         out = self._get_login_response_authn(
             user=user,
             req_class_ref=EduidAuthnContextClass.REFEDS_MFA,
@@ -612,7 +675,7 @@ class TestSSO(SSOIdPTests):
 
         Expect the response Authn to be EDUID_MFA, eduPersonAssurance AL1,Al2
         """
-        self.get_user_set_nins(self.test_user.eppn, ["190101011234"])
+        self.get_user_set_identity(self.test_user.eppn, identity_type=IdentityType.NIN, unique_value="190101011234")
         self.add_test_user_security_key(credential=_U2F_SWAMID_AL3)
         user = self.app.userdb.get_user_by_eppn(self.test_user.eppn)
         out = self._get_login_response_authn(
@@ -633,7 +696,7 @@ class TestSSO(SSOIdPTests):
 
         Expect the response Authn to be REFEDS_MFA, eduPersonAssurance AL1,Al2,Al3
         """
-        self.get_user_set_nins(self.test_user.eppn, ["190101011234"])
+        self.get_user_set_identity(self.test_user.eppn, identity_type=IdentityType.NIN, unique_value="190101011234")
         self.add_test_user_security_key(credential=_U2F_SWAMID_AL3)
         user = self.app.userdb.get_user_by_eppn(self.test_user.eppn)
         out = self._get_login_response_authn(
@@ -654,7 +717,9 @@ class TestSSO(SSOIdPTests):
 
         Expect the response Authn to be EDUID_MFA.
         """
-        user = self.get_user_set_nins(self.test_user.eppn, ["190101011234"])
+        user = self.get_user_set_identity(
+            self.test_user.eppn, identity_type=IdentityType.NIN, unique_value="190101011234"
+        )
         external_mfa = ExternalMfaData(
             issuer="issuer.example.com",
             authn_context="http://id.elegnamnden.se/loa/1.0/loa3",
@@ -678,7 +743,9 @@ class TestSSO(SSOIdPTests):
 
         Expect the response Authn to be REFEDS_MFA.
         """
-        user = self.get_user_set_nins(self.test_user.eppn, ["190101011234"])
+        user = self.get_user_set_identity(
+            self.test_user.eppn, identity_type=IdentityType.NIN, unique_value="190101011234"
+        )
         external_mfa = ExternalMfaData(
             issuer="issuer.example.com",
             authn_context="http://id.elegnamnden.se/loa/1.0/loa3",
@@ -741,7 +808,12 @@ class TestSSO(SSOIdPTests):
 
         Expect the response Authn to be DIGG_LOA2.
         """
-        self.get_user_set_nins(self.test_user.eppn, ["190101011234"], proofing_method=IdentityProofingMethod.BANKID)
+        self.get_user_set_identity(
+            self.test_user.eppn,
+            identity_type=IdentityType.NIN,
+            unique_value="190101011234",
+            proofing_method=IdentityProofingMethod.BANKID,
+        )
         self.add_test_user_security_key(credential=_U2F_SWAMID_AL3)
         user = self.app.userdb.get_user_by_eppn(self.test_user.eppn)
         out = self._get_login_response_authn(
@@ -769,7 +841,12 @@ class TestSSO(SSOIdPTests):
 
         # test with allowed identity proofing methods
         for nin_verified_by in ["bankid", "eidas", "eduid-eidas", "eduid-idproofing-letter"]:
-            user = self.get_user_set_nins(self.test_user.eppn, ["190101011234"], nin_verified_by=nin_verified_by)
+            user = self.get_user_set_identity(
+                self.test_user.eppn,
+                identity_type=IdentityType.NIN,
+                unique_value="190101011234",
+                identity_verified_by=nin_verified_by,
+            )
             out = self._get_login_response_authn(
                 user=user,
                 req_class_ref=EduidAuthnContextClass.DIGG_LOA2,
@@ -784,7 +861,12 @@ class TestSSO(SSOIdPTests):
 
         # test with not allowed identity proofing methods
         for nin_verified_by in ["lookup_mobile_proofing", "oidc_proofing"]:
-            user = self.get_user_set_nins(self.test_user.eppn, ["190101011234"], nin_verified_by=nin_verified_by)
+            user = self.get_user_set_identity(
+                self.test_user.eppn,
+                identity_type=IdentityType.NIN,
+                unique_value="190101011234",
+                identity_verified_by=nin_verified_by,
+            )
             out = self._get_login_response_authn(
                 user=user,
                 req_class_ref=EduidAuthnContextClass.DIGG_LOA2,
@@ -803,8 +885,11 @@ class TestSSO(SSOIdPTests):
 
         Expect the response Authn to be DIGG_LOA2.
         """
-        user = self.get_user_set_nins(
-            self.test_user.eppn, ["190101011234"], proofing_method=IdentityProofingMethod.SWEDEN_CONNECT
+        user = self.get_user_set_identity(
+            self.test_user.eppn,
+            identity_type=IdentityType.NIN,
+            unique_value="190101011234",
+            proofing_method=IdentityProofingMethod.SWEDEN_CONNECT,
         )
         external_mfa = ExternalMfaData(
             issuer="issuer.example.com",
@@ -829,8 +914,11 @@ class TestSSO(SSOIdPTests):
 
         Expect the response Authn to fail with error message for frontend.
         """
-        user = self.get_user_set_nins(
-            self.test_user.eppn, ["190101011234"], proofing_method=IdentityProofingMethod.TELEADRESS
+        user = self.get_user_set_identity(
+            self.test_user.eppn,
+            identity_type=IdentityType.NIN,
+            unique_value="190101011234",
+            proofing_method=IdentityProofingMethod.TELEADRESS,
         )
         external_mfa = ExternalMfaData(
             issuer="issuer.example.com",
@@ -855,8 +943,11 @@ class TestSSO(SSOIdPTests):
 
         Expect the response Authn to fail with message for frontend.
         """
-        user = self.get_user_set_nins(
-            self.test_user.eppn, ["190101011234"], proofing_method=IdentityProofingMethod.SWEDEN_CONNECT
+        user = self.get_user_set_identity(
+            self.test_user.eppn,
+            identity_type=IdentityType.NIN,
+            unique_value="190101011234",
+            proofing_method=IdentityProofingMethod.SWEDEN_CONNECT,
         )
         out = self._get_login_response_authn(
             user=user,
@@ -868,6 +959,31 @@ class TestSSO(SSOIdPTests):
             message=IdPMsg.mfa_proofing_method_not_allowed,
             expect_success=False,
             expect_error=True,
+        )
+
+    def test_get_login_eidas_loa_nf_low_not_AL2(self) -> None:
+        """
+        Test login with password and external mfa for verified user, request DIGG_LOA2.
+
+        Expect the response Authn to fail with message for frontend.
+        """
+        user = self.get_user_set_identity(
+            self.test_user.eppn,
+            identity_type=IdentityType.EIDAS,
+            unique_value="eidas_prid",
+            proofing_method=IdentityProofingMethod.SWEDEN_CONNECT,
+            eidas_loa=EIDASLoa.NF_LOW,
+        )
+        out = self._get_login_response_authn(
+            user=user,
+            req_class_ref=EduidAuthnContextClass.REFEDS_MFA,
+            credentials=["pw", "u2f"],
+        )
+        self._check_login_response_authn(
+            authn_result=out,
+            message=IdPMsg.proceed,
+            accr=EduidAuthnContextClass.REFEDS_MFA,
+            assurance_profile=self.app.conf.swamid_assurance_profile_1,
         )
 
     def test_forceauthn_request(self) -> None:
