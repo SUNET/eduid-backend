@@ -14,6 +14,7 @@ class Context:
     def __init__(self, config: JobRunnerConfig) -> None:
         self.name = config.app_name
         self.config = config
+        self.dry_run = config.dry_run
 
         worker_name = environ.get("WORKER_NAME", None)
         if worker_name is None:

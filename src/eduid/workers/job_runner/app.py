@@ -42,4 +42,5 @@ def init_app(name: str = "job_runner", test_config: dict | None = None) -> JobRu
     app.scheduler.schedule_jobs(app.context)
 
     app.context.logger.info("app running...")
+    app.context.logger.info(f"Dry run: {app.config.dry_run}")
     return app

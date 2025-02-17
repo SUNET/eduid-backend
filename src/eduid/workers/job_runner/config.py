@@ -55,7 +55,8 @@ class JobRunnerConfig(RootConfig, LoggingConfigMixin, StatsConfigMixin, MsgConfi
     mongo_uri: str = ""
     status_cache_seconds: int = 10
     jobs: JobsConfig | None = None
-    gnap_auth_data: GNAPClientAuthData
+    gnap_auth_data: GNAPClientAuthData | None = None
+    dry_run: bool = False
 
     @field_validator("application_root")
     @classmethod
