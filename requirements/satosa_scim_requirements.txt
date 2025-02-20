@@ -1444,7 +1444,7 @@ python-dotenv==1.0.1 \
     # via
     #   -c main.txt
     #   pydantic-settings
-python-jose==3.3.0 \
+python-jose==3.4.0 \
     --hash=sha256:55779b5e6ad599c6336191246e95eb2293a9ddebd555f796a65f838f07e5d78a \
     --hash=sha256:9b1376b023f8b298536eedd47ae1089bcdb848f1535ab30555cd92002d78923a
     # via
