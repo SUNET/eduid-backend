@@ -214,7 +214,7 @@ class AuthnState:
         return self._credentials
 
 
-def response_authn(authn: AuthnState, ticket: LoginContext, user: IdPUser, sso_session: SSOSession) -> AuthnInfo:
+def response_authn(authn: AuthnState, ticket: LoginContext, user: IdPUser) -> AuthnInfo:
     """
     Figure out what AuthnContext to assert in a SAML response,
     given the RequestedAuthnContext from the SAML request.
