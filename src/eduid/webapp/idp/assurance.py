@@ -150,7 +150,8 @@ class AuthnState:
         _used_request = [x for x in _used_credentials.values() if x.source == UsedWhere.REQUEST]
         logger.debug(f"Number of credentials used with this very request: {len(_used_request)}")
 
-        if ticket.reauthn_required:
+        req_authn_ctx = ticket.get_requested_authn_context()
+        if ticket.reauthn_required or req_authn_ctx is EduidAuthnContextClass.DIGG_LOA2:
             logger.debug("Request requires authentication, not even considering credentials from the SSO session")
             return list(_used_credentials.values())
 
