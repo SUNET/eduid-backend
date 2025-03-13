@@ -29,7 +29,7 @@ from eduid.webapp.common.session.logindata import ExternalMfaData
 from eduid.webapp.common.session.namespaces import IdP_SAMLPendingRequest, RequestRef
 from eduid.webapp.idp.assurance_data import SwamidAssurance
 from eduid.webapp.idp.helpers import IdPMsg
-from eduid.webapp.idp.idp_authn import AuthnData
+from eduid.webapp.idp.idp_authn import AuthnData, ExternalAuthnData
 from eduid.webapp.idp.idp_saml import IdP_SAMLRequest, ServiceInfo
 from eduid.webapp.idp.login import NextResult, login_next_step
 from eduid.webapp.idp.login_context import LoginContext, LoginContextSAML
@@ -232,7 +232,7 @@ class TestSSO(SSOIdPTests):
         credentials: list[str | Credential | AuthnData | ExternalMfaData],
         user: IdPUser | None = None,
         add_tou: bool = True,
-        add_credentials_to_this_request: bool = True,
+        add_credentials_to_this_request: bool = True,  # True = full auth flow, False = only SSO
     ) -> NextResult:
         if user is None:
             # used only to get user
@@ -891,15 +891,18 @@ class TestSSO(SSOIdPTests):
             unique_value="190101011234",
             proofing_method=IdentityProofingMethod.SWEDEN_CONNECT,
         )
-        external_mfa = ExternalMfaData(
-            issuer="issuer.example.com",
-            authn_context="http://id.elegnamnden.se/loa/1.0/loa3",
+        cred = self.add_test_user_external_mfa_cred(user)
+        authn = AuthnData(
+            cred_id=cred.key,
             timestamp=utc_now(),
+            external=ExternalAuthnData(
+                issuer="issuer.example.com", authn_context="http://id.elegnamnden.se/loa/1.0/loa3"
+            ),
         )
         out = self._get_login_response_authn(
             user=user,
             req_class_ref=EduidAuthnContextClass.DIGG_LOA2,
-            credentials=["pw", external_mfa],
+            credentials=["pw", authn],
         )
         self._check_login_response_authn(
             authn_result=out,
@@ -920,21 +923,57 @@ class TestSSO(SSOIdPTests):
             unique_value="190101011234",
             proofing_method=IdentityProofingMethod.TELEADRESS,
         )
-        external_mfa = ExternalMfaData(
-            issuer="issuer.example.com",
-            authn_context="http://id.elegnamnden.se/loa/1.0/loa3",
+        cred = self.add_test_user_external_mfa_cred(user)
+        authn = AuthnData(
+            cred_id=cred.key,
             timestamp=utc_now(),
+            external=ExternalAuthnData(
+                issuer="issuer.example.com", authn_context="http://id.elegnamnden.se/loa/1.0/loa3"
+            ),
         )
         out = self._get_login_response_authn(
             user=user,
             req_class_ref=EduidAuthnContextClass.DIGG_LOA2,
-            credentials=["pw", external_mfa],
+            credentials=["pw", authn],
         )
         self._check_login_response_authn(
             authn_result=out,
             message=IdPMsg.identity_proofing_method_not_allowed,
             expect_success=False,
             expect_error=True,
+        )
+
+    def test_get_login_digg_loa2_only_sso_force_reauth(self) -> None:
+        """
+        Test login with password and external mfa for verified user, request DIGG_LOA2.
+
+        Expect reauthenticate if only SSO credentials are available
+        """
+        user = self.get_user_set_identity(
+            self.test_user.eppn,
+            identity_type=IdentityType.NIN,
+            unique_value="190101011234",
+            proofing_method=IdentityProofingMethod.SWEDEN_CONNECT,
+        )
+        cred = self.add_test_user_external_mfa_cred(user)
+        authn = AuthnData(
+            cred_id=cred.key,
+            timestamp=utc_now(),
+            external=ExternalAuthnData(
+                issuer="issuer.example.com", authn_context="http://id.elegnamnden.se/loa/1.0/loa3"
+            ),
+        )
+        out = self._get_login_response_authn(
+            user=user,
+            req_class_ref=EduidAuthnContextClass.DIGG_LOA2,
+            credentials=["pw", authn],
+            add_credentials_to_this_request=False,
+        )
+        self._check_login_response_authn(
+            authn_result=out,
+            message=IdPMsg.must_authenticate,
+            expect_success=False,
+            expect_error=False,
         )
 
     def test_get_login_digg_loa2_mfa_proofing_method_not_allowed(self) -> None:
