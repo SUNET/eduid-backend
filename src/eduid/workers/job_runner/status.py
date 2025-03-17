@@ -24,7 +24,11 @@ class StatusResponse(BaseModel):
 
 
 def check_mongo(request: ContextRequest) -> bool | None:
-    db = request.app.context.db
+    try:
+        db = request.app.context.central_db
+    except RuntimeError:
+        # app does not have a central_userdb
+        return True
     try:
         db.is_healthy()
         reset_failure_info(request, "_check_mongo")

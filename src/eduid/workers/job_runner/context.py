@@ -27,8 +27,8 @@ class Context:
         self.logger.info("Logging initialized")
 
         # Setup databases
-        self.db = AmDB(db_uri=self.config.mongo_uri)
-        self.logger.info(f"Database {self.db} initialized")
+        self.central_db = AmDB(db_uri=self.config.mongo_uri)
+        self.logger.info(f"Database {self.central_db} initialized")
 
         self.cleaner_queue = CleanerQueueDB(db_uri=self.config.mongo_uri)
         self.logger.info(f"Database {self.cleaner_queue} initialized")
