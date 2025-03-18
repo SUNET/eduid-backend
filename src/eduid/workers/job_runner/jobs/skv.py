@@ -14,7 +14,7 @@ def gather_skv_users(context: Context) -> None:
 
     """
     context.logger.debug("gathering users to check")
-    users: list[User] = context.db.get_unterminated_users_with_nin()
+    users: list[User] = context.central_db.get_unterminated_users_with_nin()
     context.logger.debug(f"gathered {len(users)} users to check")
     for user in users:
         if context.cleaner_queue.user_in_queue(cleaner_type=CleanerType.SKV, eppn=user.eppn):
@@ -69,7 +69,7 @@ def terminate_user(context: Context, queue_user: CleanerQueueUser) -> None:
         context.logger.info(f"Dry run: Would terminate user with eppn {queue_user.eppn}")
         context.logger.debug(f"CleanerQueueUser: {repr(queue_user)}")
         return None
-    user = context.db.get_user_by_eppn(queue_user.eppn)
+    user = context.central_db.get_user_by_eppn(queue_user.eppn)
     user.terminated = utc_now()
     save_and_sync_user(context, user)
     context.logger.info(f"User with eppn {queue_user.eppn} marked as terminated.")
