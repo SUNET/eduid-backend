@@ -197,7 +197,7 @@ def login_next_step(ticket: LoginContext, sso_session: SSOSession | None) -> Nex
 
     try:
         authn_state = AuthnState(user, sso_session, ticket)
-        authn_info = assurance.response_authn(authn_state, ticket, user, sso_session)
+        authn_info = assurance.response_authn(authn_state, ticket, user)
         res = NextResult(message=IdPMsg.proceed, authn_info=authn_info, authn_state=authn_state)
     except MissingPasswordFactor:
         res = NextResult(message=IdPMsg.must_authenticate)

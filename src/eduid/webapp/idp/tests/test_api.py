@@ -18,7 +18,7 @@ from eduid.common.misc.timeutil import utc_now
 from eduid.common.models.webauthn import WebauthnChallenge
 from eduid.userdb import ToUEvent
 from eduid.userdb.credentials import Credential, FidoCredential, Webauthn
-from eduid.userdb.credentials.external import TrustFramework, external_credential_from_dict
+from eduid.userdb.credentials.external import ExternalCredential, TrustFramework, external_credential_from_dict
 from eduid.userdb.idp import IdPUser
 from eduid.userdb.mail import MailAddress
 from eduid.userdb.testing import SetupConfig
@@ -550,10 +550,8 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
         self.request_user_sync(user)
 
     def add_test_user_external_mfa_cred(
-        self,
-        user: User | None = None,
-        trust_framework: TrustFramework | None = None,
-    ) -> None:
+        self, user: User | None = None, trust_framework: TrustFramework | None = None, trust_level: str | None = None
+    ) -> ExternalCredential:
         if user is None:
             user = self.test_user
         # load user from central db to not get out of sync
@@ -563,12 +561,16 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
         if trust_framework is None:
             trust_framework = TrustFramework.SWECONN
 
+        if trust_level is None:
+            trust_level = "loa3"
+
         cred = external_credential_from_dict(
-            {"trust_framework": trust_framework, "created_ts": utc_now(), "created_by": "test"}
+            {"framework": trust_framework, "level": trust_level, "created_ts": utc_now(), "created_by": "test"}
         )
         assert cred is not None  # please mypy
         user.credentials.add(cred)
         self.request_user_sync(user)
+        return cred
 
     def get_attributes(self, result: LoginResultAPI, saml2_client: Saml2Client | None = None) -> dict[str, list[Any]]:
         assert result.finished_result is not None
