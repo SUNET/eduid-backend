@@ -34,6 +34,7 @@ def check_skv_users(context: Context) -> None:
     context.logger.debug("checking users")
     user = context.cleaner_queue.get_next_user(CleanerType.SKV)
     if user is not None:
+        context.stats.count("skv_users_checked")
         context.logger.debug(f"Checking if user with eppn {user.eppn} should be terminated")
         assert user.identities.nin is not None  # Please mypy
         try:
@@ -50,7 +51,10 @@ def check_skv_users(context: Context) -> None:
                         f"User with eppn {user.eppn} should be terminated, cause: {cause.value} ({cause.name})"
                     )
                     terminate_user(context, user)
+                    context.stats.count("skv_users_terminated")
+                    context.stats.count(f"skv_users_terminated_cause_code_{cause.value}")
                 else:
+                    context.stats.count(f"skv_users_not_terminated_cause_code_{cause.value}")
                     context.logger.debug(
                         f"User with eppn {user.eppn} with cause {cause.value} ({cause.name}) "
                         f"and should NOT be terminated"

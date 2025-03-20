@@ -4,6 +4,7 @@ from os import environ
 from eduid.common.fastapi.log import init_logging
 from eduid.common.rpc.am_relay import AmRelay
 from eduid.common.rpc.msg_relay import MsgRelay
+from eduid.common.stats import init_app_stats
 from eduid.userdb.user_cleaner.db import CleanerQueueDB
 from eduid.userdb.user_cleaner.userdb import CleanerUserDB
 from eduid.userdb.userdb import AmDB
@@ -14,6 +15,7 @@ class Context:
     def __init__(self, config: JobRunnerConfig) -> None:
         self.name = config.app_name
         self.config = config
+        self.stats = init_app_stats(self.config)
         self.dry_run = config.dry_run
 
         worker_name = environ.get("WORKER_NAME", None)
