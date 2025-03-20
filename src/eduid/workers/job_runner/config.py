@@ -2,10 +2,11 @@ import logging
 from datetime import datetime, tzinfo
 from typing import Any, NewType
 
-from pydantic import BaseModel, ConfigDict, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from eduid.common.clients.gnap_client.base import GNAPClientAuthData
 from eduid.common.config.base import AmConfigMixin, LoggingConfigMixin, MsgConfigMixin, RootConfig, StatsConfigMixin
+from eduid.common.rpc.msg_relay import DeregisteredCauseCode
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +41,14 @@ class JobCronConfig(BaseModel):
         return data
 
 
+class SkvConfig(BaseModel):
+    """
+    Configuration for the SKV service.
+    """
+
+    termination_cause_codes: list[DeregisteredCauseCode] = Field(default_factory=list)
+
+
 EnvironmentOrWorkerName = NewType("EnvironmentOrWorkerName", str)
 JobName = NewType("JobName", str)
 JobsConfig = NewType("JobsConfig", dict[EnvironmentOrWorkerName, dict[JobName, JobCronConfig]])
@@ -55,6 +64,7 @@ class JobRunnerConfig(RootConfig, LoggingConfigMixin, StatsConfigMixin, MsgConfi
     mongo_uri: str = ""
     status_cache_seconds: int = 10
     jobs: JobsConfig | None = None
+    skv: SkvConfig = Field(default_factory=SkvConfig)
     gnap_auth_data: GNAPClientAuthData | None = None
     dry_run: bool = False
 
