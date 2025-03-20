@@ -1,6 +1,6 @@
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.rpc.exceptions import MsgTaskFailed
-from eduid.common.rpc.msg_relay import DeregisteredCauseCode, NavetData
+from eduid.common.rpc.msg_relay import NavetData
 from eduid.userdb.meta import CleanerType
 from eduid.userdb.user import User
 from eduid.userdb.user_cleaner.db import CleanerQueueUser
@@ -45,13 +45,16 @@ def check_skv_users(context: Context) -> None:
             if navet_data.person.is_deregistered():
                 cause = navet_data.person.deregistration_information.cause_code
                 assert cause is not None  # Please mypy
-                if cause is DeregisteredCauseCode.EMIGRATED:
-                    context.logger.debug(f"User with eppn {user.eppn} has emigrated and should not be terminated")
-                else:
+                if cause in context.config.skv.termination_cause_codes:
                     context.logger.info(
                         f"User with eppn {user.eppn} should be terminated, cause: {cause.value} ({cause.name})"
                     )
                     terminate_user(context, user)
+                else:
+                    context.logger.debug(
+                        f"User with eppn {user.eppn} with cause {cause.value} ({cause.name}) "
+                        f"and should NOT be terminated"
+                    )
             else:
                 context.logger.debug(f"User with eppn {user.eppn} is still registered")
         except MsgTaskFailed:
