@@ -6,8 +6,8 @@ from pathlib import Path
 
 from xhtml2pdf import pisa
 
+from eduid.common.proofing_utils import get_marked_given_name
 from eduid.common.rpc.msg_relay import FullPostalAddress
-from eduid.webapp.common.api.helpers import get_marked_given_name
 
 logger = logging.getLogger(__name__)
 
