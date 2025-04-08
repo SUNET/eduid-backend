@@ -5,6 +5,7 @@ from eduid.common.fastapi.log import init_logging
 from eduid.common.rpc.am_relay import AmRelay
 from eduid.common.rpc.msg_relay import MsgRelay
 from eduid.common.stats import init_app_stats
+from eduid.userdb.logs.db import ProofingLog
 from eduid.userdb.user_cleaner.db import CleanerQueueDB
 from eduid.userdb.user_cleaner.userdb import CleanerUserDB
 from eduid.userdb.userdb import AmDB
@@ -37,6 +38,9 @@ class Context:
 
         self.private_db = CleanerUserDB(db_uri=self.config.mongo_uri)
         self.logger.info(f"Database {self.private_db} initialized")
+
+        self.proofing_log = ProofingLog(db_uri=self.config.mongo_uri)
+        self.logger.info(f"Database {self.proofing_log} initialized")
 
         # Setup MsgRelay
         self.msg_relay = MsgRelay(self.config)
