@@ -125,6 +125,8 @@ def check_user_official_name(context: Context, queue_user: CleanerQueueUser, nav
         previous_surname=user.surname or None,  # default to None for empty string
         user_postal_address=user_postal_address,
     )
+    context.logger.debug(f"Created proofing_log_entry: {proofing_log_entry}")
+
     # Update user names
     user = set_user_names_from_official_address(user, proofing_log_entry)
 
