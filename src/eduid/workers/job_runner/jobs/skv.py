@@ -87,13 +87,27 @@ def check_user_official_name(context: Context, queue_user: CleanerQueueUser, nav
     Check if the user's official name in Navet matches the official name in the central database.
     If not, update the official name in the central database.
     """
+    # Make sure Navet returned given name and surname
+    if navet_data.person.name.given_name is None or navet_data.person.name.surname is None:
+        context.logger.warning(
+            f"User with eppn {queue_user.eppn} has no given name or surname in Navet. "
+            f"Cannot update the official name in the central db."
+        )
+        return None
+
     # Update the user from the central db as they might have updated their name since being placed in the queue.
     user = context.central_db.get_user_by_eppn(queue_user.eppn)
 
     # Compare current names with what we got from Navet and update if necessary.
     # If the names are the same, do nothing.
     if user.given_name == navet_data.person.name.given_name and user.surname == navet_data.person.name.surname:
+        context.logger.debug(f"User with eppn {user.eppn} has the same name in Navet and in the central db")
         return None
+
+    context.logger.info(
+        f"User with eppn {user.eppn} has a different name in Navet than in the central db. "
+        f"Updating the official name in the central db."
+    )
 
     user_postal_address = FullPostalAddress(
         name=navet_data.person.name,
@@ -101,7 +115,6 @@ def check_user_official_name(context: Context, queue_user: CleanerQueueUser, nav
     )
 
     assert user.identities.nin is not None  #  please mypy
-
     # Create a proofing log entry
     proofing_log_entry = NameUpdateProofing(
         created_by="job_runner_skv",
