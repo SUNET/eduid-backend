@@ -343,7 +343,15 @@ class eduid_freja_eid(AttributeFetcher):
 
 
 class eduid_job_runner(AttributeFetcher):
-    whitelist_set_attrs = ["terminated"]  # skv cleaner checks status of registered persons
+    # skv cleaner checks status and name of registered persons
+    whitelist_set_attrs = [
+        "givenName",
+        "chosen_given_name",
+        "surname",
+        "legal_name",
+        "terminated",
+    ]
+    whitelist_unset_attrs = []
 
     @classmethod
     def get_user_db(cls, uri: str) -> CleanerUserDB:
