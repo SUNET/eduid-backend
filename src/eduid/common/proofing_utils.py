@@ -17,9 +17,12 @@ def get_marked_given_name(given_name: str, given_name_marking: str | None) -> st
         the second can be 0 for only one mark
         hyphenated names are counted separately (i.e. Jan-Erik are two separate names)
             If they are both marked they should be re-hyphenated
+        ex. given_name: Sven Jan-Erik, given_name_marking: 23 -> Jan-Erik
+            given_name: Lisa Moa, given_name_marking: 20 -> Moa
 
     current version of documentation:
-    https://www.skatteverket.se/download/18.2cf1b5cd163796a5c8bf20e/1530691773712/AllmanBeskrivning.pdf
+    Allmän beskrivning av Navet (version 4.1)
+    https://www.skatteverket.se/download/18.49df84321939117d78ae/1742454508179/Navet-Allman-beskrivning.pdf
 
     :param given_name: Given name
     :param given_name_marking: Given name marking
