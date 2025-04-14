@@ -7,6 +7,7 @@ from pydantic import ValidationError
 
 from eduid.common.config.base import EduIDBaseAppConfig, MsgConfigMixin
 from eduid.common.config.parsers import load_config
+from eduid.common.proofing_utils import get_marked_given_name
 from eduid.common.rpc.exceptions import NoNavetData
 from eduid.common.rpc.msg_relay import FullPostalAddress, MsgRelay
 from eduid.common.testing_base import normalised_data
@@ -28,7 +29,6 @@ from eduid.userdb.testing import SetupConfig
 from eduid.webapp.common.api.app import EduIDBaseApp
 from eduid.webapp.common.api.helpers import (
     add_nin_to_user,
-    get_marked_given_name,
     set_user_names_from_foreign_id,
     set_user_names_from_nin_proofing,
     verify_nin_for_user,

@@ -1,6 +1,8 @@
 from eduid.common.misc.timeutil import utc_now
+from eduid.common.proofing_utils import set_user_names_from_official_address
 from eduid.common.rpc.exceptions import MsgTaskFailed
-from eduid.common.rpc.msg_relay import NavetData
+from eduid.common.rpc.msg_relay import FullPostalAddress, NavetData
+from eduid.userdb.logs.element import NameUpdateProofing
 from eduid.userdb.meta import CleanerType
 from eduid.userdb.user import User
 from eduid.userdb.user_cleaner.db import CleanerQueueUser
@@ -33,39 +35,111 @@ def check_skv_users(context: Context) -> None:
     """
     context.logger.debug("checking users")
     user = context.cleaner_queue.get_next_user(CleanerType.SKV)
-    if user is not None:
-        context.stats.count("skv_users_checked")
-        context.logger.debug(f"Checking if user with eppn {user.eppn} should be terminated")
-        assert user.identities.nin is not None  # Please mypy
-        try:
-            navet_data: NavetData = context.msg_relay.get_all_navet_data(
-                nin=user.identities.nin.number, allow_deregistered=True
-            )
-            context.logger.debug(f"Navet data: {navet_data}")
-
-            if navet_data.person.is_deregistered():
-                cause = navet_data.person.deregistration_information.cause_code
-                assert cause is not None  # Please mypy
-                if cause in context.config.skv.termination_cause_codes:
-                    context.logger.info(
-                        f"User with eppn {user.eppn} should be terminated, cause: {cause.value} ({cause.name})"
-                    )
-                    terminate_user(context, user)
-                    context.stats.count("skv_users_terminated")
-                    context.stats.count(f"skv_users_terminated_cause_code_{cause.value}")
-                else:
-                    context.stats.count(f"skv_users_not_terminated_cause_code_{cause.value}")
-                    context.logger.debug(
-                        f"User with eppn {user.eppn} with cause {cause.value} ({cause.name}) "
-                        f"and should NOT be terminated"
-                    )
-            else:
-                context.logger.debug(f"User with eppn {user.eppn} is still registered")
-        except MsgTaskFailed:
-            context.logger.critical(f"Failed to get Navet data for user with eppn {user.eppn}")
-            # The user will be requeued for a new check by the next run of gather_skv_users
-    else:
+    if user is None:
         context.logger.debug("Nothing to do")
+        return None
+
+    context.stats.count("skv_users_checked")
+    context.logger.debug(f"Checking if user with eppn {user.eppn} should be terminated")
+    assert user.identities.nin is not None  # Please mypy
+    try:
+        navet_data: NavetData = context.msg_relay.get_all_navet_data(
+            nin=user.identities.nin.number, allow_deregistered=True
+        )
+        context.logger.debug(f"Navet data: {navet_data}")
+    except MsgTaskFailed:
+        context.logger.critical(f"Failed to get Navet data for user with eppn {user.eppn}")
+        # The user will be requeued for a new check by the next run of gather_skv_users
+        return None
+
+    # check if user is deregistered
+    user_terminated = check_user_deregistered(context=context, user=user, navet_data=navet_data)
+    if user_terminated:
+        # User terminated, no more checks necessary
+        return None
+    check_user_official_name(context=context, queue_user=user, navet_data=navet_data)
+
+
+def check_user_deregistered(context: Context, user: CleanerQueueUser, navet_data: NavetData) -> bool:
+    if not navet_data.person.is_deregistered():
+        context.logger.debug(f"User with eppn {user.eppn} is still registered")
+        return False
+
+    cause = navet_data.person.deregistration_information.cause_code
+    assert cause is not None  # Please mypy
+
+    if cause in context.config.skv.termination_cause_codes:
+        context.logger.info(f"User with eppn {user.eppn} should be terminated, cause: {cause.value} ({cause.name})")
+        terminate_user(context, user)
+        context.stats.count("skv_users_terminated")
+        context.stats.count(f"skv_users_terminated_cause_code_{cause.value}")
+        return True
+
+    context.stats.count(f"skv_users_not_terminated_cause_code_{cause.value}")
+    context.logger.debug(
+        f"User with eppn {user.eppn} with cause {cause.value} ({cause.name}) and should NOT be terminated"
+    )
+    return False
+
+
+def check_user_official_name(context: Context, queue_user: CleanerQueueUser, navet_data: NavetData) -> None:
+    """
+    Check if the user's official name in Navet matches the official name in the central database.
+    If not, update the official name in the central database.
+    """
+    # Make sure Navet returned given name and surname
+    if navet_data.person.name.given_name is None or navet_data.person.name.surname is None:
+        context.logger.warning(
+            f"User with eppn {queue_user.eppn} has no given name or surname in Navet. "
+            f"Cannot update the official name in the central db."
+        )
+        return None
+
+    # Update the user from the central db as they might have updated their name since being placed in the queue.
+    user = context.central_db.get_user_by_eppn(queue_user.eppn)
+
+    # Compare current names with what we got from Navet and update if necessary.
+    # If the names are the same, do nothing.
+    if user.given_name == navet_data.person.name.given_name and user.surname == navet_data.person.name.surname:
+        context.logger.debug(f"User with eppn {user.eppn} has the same name in Navet and in the central db")
+        return None
+
+    context.logger.info(
+        f"User with eppn {user.eppn} has a different name in Navet than in the central db. "
+        f"Updating the official name in the central db."
+    )
+
+    user_postal_address = FullPostalAddress(
+        name=navet_data.person.name,
+        official_address=navet_data.person.postal_addresses.official_address,
+    )
+
+    assert user.identities.nin is not None  #  please mypy
+    # Create a proofing log entry
+    proofing_log_entry = NameUpdateProofing(
+        created_by="job_runner_skv",
+        eppn=user.eppn,
+        proofing_version="2021v1",
+        nin=user.identities.nin.number,
+        previous_given_name=user.given_name or None,  # default to None for empty string
+        previous_surname=user.surname or None,  # default to None for empty string
+        user_postal_address=user_postal_address,
+    )
+    context.logger.debug(f"Created proofing_log_entry: {proofing_log_entry}")
+
+    # Update user names
+    user = set_user_names_from_official_address(user, proofing_log_entry)
+
+    # Do not save the user if proofing log write fails
+    if not context.proofing_log.save(proofing_log_entry):
+        context.logger.error("Proofing log write failed")
+        context.logger.debug(f"proofing_log_entry: {proofing_log_entry}")
+        return None
+
+    context.logger.info("Recorded verification in the proofing log")
+    save_and_sync_user(context, user)
+    context.stats.count(name="skv_name_updated")
+    return None
 
 
 def terminate_user(context: Context, queue_user: CleanerQueueUser) -> None:
