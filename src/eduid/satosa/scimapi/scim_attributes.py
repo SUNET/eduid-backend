@@ -108,6 +108,10 @@ class ScimAttributes(ResponseMicroService):
         frontend_name = context.state.get(ROUTER_STATE_KEY)
         data_owner = self._get_data_owner(data, scopes, frontend_name)
 
+        # Configure dataowner to "no-scim" for Virtual IdPs that provide their own data/attributes. E.g Microsoft Entra.
+        if data_owner == "no-scim":
+            return super().process(context, data)
+
         # This is the easiest way I can come up with without needing duplicated configuration
         # regarding the database for different micro_services or refactor the database connection/calls
         # to a shared class.
