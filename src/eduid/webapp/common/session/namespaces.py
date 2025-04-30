@@ -186,31 +186,12 @@ class Phone(SessionNSBase):
 RequestRef = NewType("RequestRef", str)
 
 
-class OnetimeCredType(StrEnum):
-    external_mfa = "ext_mfa"
-
-
-class OnetimeCredential(Credential):
-    credential_id: str = Field(default_factory=lambda: str(uuid4()))
-    type: OnetimeCredType
-
-    # External MFA auth parameters
-    issuer: str
-    authn_context: str
-    timestamp: datetime
-
-    @property
-    def key(self) -> ElementKey:
-        return ElementKey(self.credential_id)
-
-
 class IdP_PendingRequest(BaseModel, ABC):
     aborted: bool | None = False
     used: bool | None = False  # set to True after the request has been completed (to handle 'back' button presses)
     template_show_msg: str | None = None  # set when the template version of the idp should show a message to the user
     # Credentials used while authenticating _this SAML request_. Not ones inherited from SSO.
     credentials_used: dict[ElementKey, datetime] = Field(default_factory=dict)
-    onetime_credentials: dict[ElementKey, OnetimeCredential] = Field(default_factory=dict)
 
 
 class IdP_SAMLPendingRequest(IdP_PendingRequest):
@@ -238,8 +219,6 @@ class IdP_Namespace(TimestampedNS):
         self, request_ref: RequestRef, credential: Credential | OnetimeCredential, timestamp: datetime
     ) -> None:
         """Log the credential used in the session, under this particular SAML request"""
-        if isinstance(credential, OnetimeCredential):
-            self.pending_requests[request_ref].onetime_credentials[credential.key] = credential
         self.pending_requests[request_ref].credentials_used[credential.key] = timestamp
 
 

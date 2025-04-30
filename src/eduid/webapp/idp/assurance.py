@@ -8,7 +8,6 @@ from eduid.userdb.credentials import CredentialProofingMethod, FidoCredential, P
 from eduid.userdb.credentials.external import BankIDCredential, SwedenConnectCredential
 from eduid.userdb.element import ElementKey
 from eduid.userdb.idp import IdPUser
-from eduid.webapp.common.session.namespaces import OnetimeCredential, OnetimeCredType
 from eduid.webapp.idp.app import current_idp_app
 from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.assurance_data import AuthnInfo, UsedCredential, UsedWhere
@@ -63,7 +62,6 @@ class AuthnState:
         self.external_mfa_used = False
         self.swamid_al3_used = False
         self.digg_loa2_approved_identity = False
-        self._onetime_credentials: dict[ElementKey, OnetimeCredential] = {}
         self._credentials = self._gather_credentials(sso_session, ticket, user)
 
         for this in self._credentials:
@@ -76,13 +74,6 @@ class AuthnState:
             elif isinstance(cred, FidoCredential):
                 self.fido_used = True
                 if cred.is_verified and cred.proofing_method == CredentialProofingMethod.SWAMID_AL3_MFA:
-                    self.swamid_al3_used = True
-            elif isinstance(cred, OnetimeCredential):
-                # OLD way
-                logger.debug(f"External MFA used for this request: {cred}")
-                self.external_mfa_used = True
-                # TODO: Support more SwedenConnect authn contexts?
-                if cred.authn_context == "http://id.elegnamnden.se/loa/1.0/loa3":
                     self.swamid_al3_used = True
             elif isinstance(cred, SwedenConnectCredential):
                 # NEW way
@@ -161,7 +152,6 @@ class AuthnState:
             if not credential:
                 logger.warning(f"Could not find credential {this.cred_id} on user {user}")
                 continue
-            # TODO: The authn_timestamp in the SSO session is not necessarily right for all credentials there
             cred = UsedCredential(credential_id=credential.key, ts=sso_session.authn_timestamp, source=UsedWhere.SSO)
             _key = cred.credential_id
             if _key in _used_credentials:
@@ -169,25 +159,6 @@ class AuthnState:
                 continue
             logger.debug(f"Adding credential used from the SSO session: {cred}")
             _used_credentials[_key] = cred
-
-        # External mfa check
-        if sso_session.external_mfa is not None:
-            logger.debug(f"External MFA (in SSO session) issuer: {sso_session.external_mfa.issuer}")
-            logger.debug(f"External MFA (in SSO session) credential_id: {sso_session.external_mfa.credential_id}")
-
-            # Check if there is an ExternalCredential on the user (the new way), or if we need to mint
-            # a temporary OnetimeCredential.
-            if not sso_session.external_mfa.credential_id:
-                logger.debug("Creating temporary OnetimeCredential")
-                _otc = OnetimeCredential(
-                    authn_context=sso_session.external_mfa.authn_context,
-                    issuer=sso_session.external_mfa.issuer,
-                    timestamp=sso_session.external_mfa.timestamp,
-                    type=OnetimeCredType.external_mfa,
-                )
-                self._onetime_credentials[_otc.key] = _otc
-                cred = UsedCredential(credential_id=_otc.key, ts=sso_session.authn_timestamp, source=UsedWhere.SSO)
-                _used_credentials[ElementKey("SSO_external_MFA")] = cred
 
         _used_sso = [x for x in _used_credentials.values() if x.source == UsedWhere.SSO]
         logger.debug(f"Number of credentials inherited from the SSO session: {len(_used_sso)}")

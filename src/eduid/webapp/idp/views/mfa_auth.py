@@ -122,42 +122,19 @@ def _check_external_mfa(
         current_app.logger.info(f"User {user} logged in using external MFA service {mfa_action.issuer}")
 
         _utc_now = utc_now()
-
-        # OLD: Use AuthnData.external instead of this - remove once consumers have been updated
-        # External MFA authentication
-        sso_session.external_mfa = ExternalMfaData(
-            issuer=mfa_action.issuer,
-            authn_context=mfa_action.authn_context,
-            timestamp=_utc_now,
-            credential_id=mfa_action.credential_used,
-        )
-
-        if not mfa_action.credential_used:
-            # OLD way of referencing external MFA
-            # Remember the MFA credential used for this particular request
-            otc = OnetimeCredential(
-                type=OnetimeCredType.external_mfa,
-                issuer=sso_session.external_mfa.issuer,
-                authn_context=sso_session.external_mfa.authn_context,
-                timestamp=_utc_now,
-            )
-            session.idp.log_credential_used(ref, otc, _utc_now)
-            return CheckResult(credential=otc)
-
-        # NEW way
         cred = user.credentials.find(mfa_action.credential_used)
         if not cred:
             current_app.logger.info(f"MFA action credential used not found on user: {mfa_action.credential_used}")
             return None
-
-        current_app.logger.debug(f"Logging credential used in session: {cred}")
-        session.idp.log_credential_used(ref, cred, _utc_now)
 
         authn = AuthnData(
             cred_id=cred.key,
             timestamp=_utc_now,
             external=ExternalAuthnData(issuer=mfa_action.issuer, authn_context=mfa_action.authn_context),
         )
+
+        current_app.logger.debug(f"Logging credential used in session: {cred}")
+        session.idp.log_credential_used(request_ref=ref, credential=cred, authn_data=authn)
 
         return CheckResult(credential=cred, authn_data=authn)
 

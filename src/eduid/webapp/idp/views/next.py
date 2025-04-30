@@ -220,7 +220,6 @@ class AuthnOptions:
     # Is this login locked to being performed by a particular user? (Identified by the email/phone/...)
     forced_username: str | None = None
     # Can an unknown user log in using just a swedish eID? Yes, if there is an eduID user with the users (verified) NIN.
-    freja_eidplus: bool = True  # TODO: remove freja_eidplus replaced by swedish_eid
     swedish_eid: bool = True
     # If the user has a session, 'logout' should be shown (to allow switch of users).
     has_session: bool = False
@@ -234,8 +233,6 @@ class AuthnOptions:
     username: bool = True
     # Can an unknown user log in using a webauthn credential? No, not at this time (might be doable).
     webauthn: bool = False
-    # Temporary option for displaying info about removing phone numbers
-    verified_phone_number: bool = False
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -337,17 +334,11 @@ def _set_user_options(res: AuthnOptions, eppn: str) -> None:
             current_app.logger.debug("User has a FIDO/Webauthn credential")
             res.webauthn = True
 
-        if user.phone_numbers.verified:
-            current_app.logger.debug("User has a verified phone number")
-            res.verified_phone_number = True
-
         if user.locked_identity.nin:
             current_app.logger.debug("User has a locked NIN -> swedish eID is possible")
-            res.freja_eidplus = True
             res.swedish_eid = True
         else:
             current_app.logger.debug("No locked NIN for user -> swedish eID NOT possible")
-            res.freja_eidplus = False
             res.swedish_eid = False
 
         res.forced_username = get_login_username(user)
