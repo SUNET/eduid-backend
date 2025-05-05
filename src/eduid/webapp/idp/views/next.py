@@ -51,7 +51,7 @@ def next_view(ticket: LoginContext, sso_session: SSOSession | None) -> FluxData:
         if isinstance(ticket, LoginContextSAML):
             saml_params = cancel_saml_request(ticket, current_app.conf)
             authn_options = _get_authn_options(ticket=ticket, sso_session=sso_session, eppn=None)
-            return create_saml_sp_response(saml_params=saml_params, authn_options=authn_options)
+            return create_saml_sp_response(saml_params=saml_params, authn_options=authn_options.to_dict())
         elif isinstance(ticket, LoginContextOtherDevice):
             state = ticket.other_device_req
             if state.state in [OtherDeviceState.NEW, OtherDeviceState.IN_PROGRESS, OtherDeviceState.AUTHENTICATED]:
@@ -80,7 +80,7 @@ def next_view(ticket: LoginContext, sso_session: SSOSession | None) -> FluxData:
         if isinstance(ticket, LoginContextSAML):
             saml_params = authn_context_class_not_supported(ticket, current_app.conf)
             authn_options = _get_authn_options(ticket=ticket, sso_session=sso_session, eppn=None)
-            return create_saml_sp_response(saml_params=saml_params, authn_options=authn_options)
+            return create_saml_sp_response(saml_params=saml_params, authn_options=authn_options.to_dict())
         current_app.logger.error(f"Don't know how to send error response for request {ticket}")
         return error_response(message=IdPMsg.general_failure)
 
@@ -102,7 +102,9 @@ def next_view(ticket: LoginContext, sso_session: SSOSession | None) -> FluxData:
         _payload = {
             "action": IdPAction.OTHER_DEVICE.value,
             "target": url_for("other_device.use_other_1", _external=True),
-            "authn_options": _get_authn_options(ticket=ticket, sso_session=sso_session, eppn=required_user.eppn),
+            "authn_options": _get_authn_options(
+                ticket=ticket, sso_session=sso_session, eppn=required_user.eppn
+            ).to_dict(),
             "service_info": _get_service_info(ticket),
         }
 
@@ -179,7 +181,9 @@ def next_view(ticket: LoginContext, sso_session: SSOSession | None) -> FluxData:
             payload={
                 "action": IdPAction.TOU.value,
                 "target": url_for("tou.tou", _external=True),
-                "authn_options": _get_authn_options(ticket=ticket, sso_session=sso_session, eppn=required_user.eppn),
+                "authn_options": _get_authn_options(
+                    ticket=ticket, sso_session=sso_session, eppn=required_user.eppn
+                ).to_dict(),
             },
         )
 
@@ -227,7 +231,7 @@ def next_view(ticket: LoginContext, sso_session: SSOSession | None) -> FluxData:
         if isinstance(ticket, LoginContextSAML):
             saml_params = sso.get_response_params(_next.authn_info, ticket, user)
             authn_options = _get_authn_options(ticket=ticket, sso_session=sso_session, eppn=required_user.eppn)
-            return create_saml_sp_response(saml_params=saml_params, authn_options=authn_options)
+            return create_saml_sp_response(saml_params=saml_params, authn_options=authn_options.to_dict())
         elif isinstance(ticket, LoginContextOtherDevice):
             if not ticket.is_other_device_2:
                 # We shouldn't be able to get here, but this clearly shows where this code runs
@@ -281,7 +285,7 @@ class AuthnOptions:
         return [x for x in _data.keys() if _data[x]]
 
 
-def _get_authn_options(ticket: LoginContext, sso_session: SSOSession | None, eppn: str | None) -> dict[str, Any]:
+def _get_authn_options(ticket: LoginContext, sso_session: SSOSession | None, eppn: str | None) -> AuthnOptions:
     res = AuthnOptions(is_reauthn=ticket.reauthn_required)
 
     # Availability of "login using another device" is controlled by configuration for now.
@@ -300,7 +304,7 @@ def _get_authn_options(ticket: LoginContext, sso_session: SSOSession | None, epp
 
     current_app.logger.debug(f"Valid authn options at this time: {res.valid_options}")
 
-    return res.to_dict()
+    return res
 
 
 @dataclass
