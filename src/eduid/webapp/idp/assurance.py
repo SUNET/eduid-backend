@@ -8,9 +8,9 @@ from eduid.userdb.credentials import CredentialProofingMethod, FidoCredential, P
 from eduid.userdb.credentials.external import BankIDCredential, SwedenConnectCredential
 from eduid.userdb.element import ElementKey
 from eduid.userdb.idp import IdPUser
-from eduid.webapp.idp.app import current_idp_app
 from eduid.webapp.idp.app import current_idp_app as current_app
-from eduid.webapp.idp.assurance_data import AuthnInfo, UsedCredential, UsedWhere
+from eduid.webapp.idp.assurance_data import AuthnInfo
+from eduid.webapp.idp.idp_authn import UsedCredential, UsedWhere
 from eduid.webapp.idp.login_context import LoginContext
 from eduid.webapp.idp.sso_session import SSOSession
 
@@ -208,10 +208,12 @@ def response_authn(authn: AuthnState, ticket: LoginContext, user: IdPUser) -> Au
     attributes = {}
     response_accr = None
 
+    # Docs: https://wiki.sunet.se/display/ED/eduID+AuthnContextClass+to+SWAMID%2C+eduGAIN+and+Sweden+Connect
+
     if req_authn_ctx == EduidAuthnContextClass.DIGG_LOA2:
-        current_idp_app.stats.count("req_authn_ctx_digg_loa2")
-        if not authn.password_used:
-            raise MissingPasswordFactor()
+        current_app.stats.count("req_authn_ctx_digg_loa2")
+        if not authn.is_singlefactor:
+            raise MissingSingleFactor()
         if not authn.is_multifactor:
             raise MissingMultiFactor()
         if not authn.digg_loa2_approved_identity:
@@ -223,37 +225,37 @@ def response_authn(authn: AuthnState, ticket: LoginContext, user: IdPUser) -> Au
         response_accr = EduidAuthnContextClass.DIGG_LOA2
 
     elif req_authn_ctx == EduidAuthnContextClass.REFEDS_MFA:
-        current_idp_app.stats.count("req_authn_ctx_refeds_mfa")
-        if not authn.password_used:
-            raise MissingPasswordFactor()
+        current_app.stats.count("req_authn_ctx_refeds_mfa")
+        if not authn.is_singlefactor:
+            raise MissingSingleFactor()
         if not authn.is_multifactor:
             raise MissingMultiFactor()
         response_accr = EduidAuthnContextClass.REFEDS_MFA
 
     elif req_authn_ctx == EduidAuthnContextClass.REFEDS_SFA:
-        current_idp_app.stats.count("req_authn_ctx_refeds_sfa")
+        current_app.stats.count("req_authn_ctx_refeds_sfa")
         if not authn.is_singlefactor:
             raise MissingSingleFactor()
         response_accr = EduidAuthnContextClass.REFEDS_SFA
 
     elif req_authn_ctx == EduidAuthnContextClass.EDUID_MFA:
-        current_idp_app.stats.count("req_authn_ctx_eduid_mfa")
-        if not authn.password_used:
-            raise MissingPasswordFactor()
+        current_app.stats.count("req_authn_ctx_eduid_mfa")
+        if not authn.is_singlefactor:
+            raise MissingSingleFactor()
         if not authn.is_multifactor:
             raise MissingMultiFactor()
         response_accr = EduidAuthnContextClass.EDUID_MFA
 
     elif req_authn_ctx == EduidAuthnContextClass.FIDO_U2F:
-        current_idp_app.stats.count("req_authn_ctx_fido_u2f")
+        current_app.stats.count("req_authn_ctx_fido_u2f")
         if not authn.password_used and authn.fido_used:
             raise MissingMultiFactor()
         response_accr = EduidAuthnContextClass.FIDO_U2F
 
     elif req_authn_ctx == EduidAuthnContextClass.PASSWORD_PT:
-        current_idp_app.stats.count("req_authn_ctx_password_pt")
-        if not authn.password_used:
-            raise MissingPasswordFactor()
+        current_app.stats.count("req_authn_ctx_password_pt")
+        if not authn.is_singlefactor:
+            raise MissingSingleFactor()
         response_accr = EduidAuthnContextClass.PASSWORD_PT
 
     elif req_authn_ctx is None:
@@ -262,6 +264,8 @@ def response_authn(authn: AuthnState, ticket: LoginContext, user: IdPUser) -> Au
             response_accr = EduidAuthnContextClass.REFEDS_MFA
         elif authn.password_used:
             response_accr = EduidAuthnContextClass.PASSWORD_PT
+        elif authn.is_singlefactor:
+            response_accr = EduidAuthnContextClass.REFEDS_SFA
         else:
             raise MissingAuthentication()
 
