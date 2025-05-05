@@ -112,12 +112,24 @@ def next_view(ticket: LoginContext, sso_session: SSOSession | None) -> FluxData:
         )
 
     if _next.message == IdPMsg.must_authenticate:
-        _payload = {
-            "action": IdPAction.PWAUTH.value,
-            "target": url_for("pw_auth.pw_auth", _external=True),
-            "authn_options": _get_authn_options(ticket=ticket, sso_session=sso_session, eppn=required_user.eppn),
-            "service_info": _get_service_info(ticket),
-        }
+        authn_options = _get_authn_options(ticket=ticket, sso_session=sso_session, eppn=required_user.eppn)
+        service_info = _get_service_info(ticket)
+
+        if required_user.eppn is None or authn_options.webauthn is False:
+            # we don't know the users eppn or the user does not have a security key, show username and password input
+            _payload = {
+                "action": IdPAction.PWAUTH.value,
+                "target": url_for("pw_auth.pw_auth", _external=True),
+                "authn_options": authn_options.to_dict(),
+                "service_info": service_info,
+            }
+        else:
+            _payload = {
+                "action": IdPAction.MFA.value,
+                "target": url_for("mfa_auth.mfa_auth", _external=True),
+                "authn_options": authn_options.to_dict(),
+                "service_info": service_info,
+            }
 
         return success_response(
             message=IdPMsg.must_authenticate,
@@ -125,6 +137,30 @@ def next_view(ticket: LoginContext, sso_session: SSOSession | None) -> FluxData:
         )
 
     if _next.message == IdPMsg.mfa_required:
+        authn_options = _get_authn_options(ticket=ticket, sso_session=sso_session, eppn=required_user.eppn)
+        service_info = _get_service_info(ticket)
+
+        if _next.authn_state and _next.authn_state.fido_used:
+            # we know that the user already provided a single factor security key, offer password as second factor
+            _payload = {
+                "action": IdPAction.PWAUTH.value,
+                "target": url_for("pw_auth.pw_auth", _external=True),
+                "authn_options": authn_options.to_dict(),
+                "service_info": service_info,
+            }
+        else:
+            _payload = {
+                "action": IdPAction.MFA.value,
+                "target": url_for("mfa_auth.mfa_auth", _external=True),
+                "authn_options": authn_options.to_dict(),
+                "service_info": service_info,
+            }
+
+        return success_response(
+            message=IdPMsg.mfa_required,
+            payload=_payload,
+        )
+
     if _next.message == IdPMsg.security_key_required:
         return success_response(
             message=IdPMsg.mfa_required,
