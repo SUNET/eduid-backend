@@ -31,6 +31,7 @@ class IdPMsg(str, TranslatableMsg):
     other_device = "login.use_another_device"
     other_device_expired = "login.other_device_expired"
     proceed = "login.proceed"  # Shouldn't actually be returned to the frontend
+    security_key_required = "login.security_key_required"  # used for accounts that forces security key for all logins
     state_not_found = "login.state_not_found"
     state_already_used = "login.state_already_used"
     tou_not_acceptable = "login.tou_not_acceptable"

@@ -125,13 +125,15 @@ def next_view(ticket: LoginContext, sso_session: SSOSession | None) -> FluxData:
         )
 
     if _next.message == IdPMsg.mfa_required:
+    if _next.message == IdPMsg.security_key_required:
         return success_response(
             message=IdPMsg.mfa_required,
             payload={
                 "action": IdPAction.MFA.value,
                 "target": url_for("mfa_auth.mfa_auth", _external=True),
-                "authn_options": _get_authn_options(ticket=ticket, sso_session=sso_session, eppn=required_user.eppn),
-                "service_info": _get_service_info(ticket),
+                "authn_options": _get_authn_options(
+                    ticket=ticket, sso_session=sso_session, eppn=required_user.eppn
+                ).to_dict(),
             },
         )
 

@@ -233,7 +233,7 @@ def login_next_step(ticket: LoginContext, sso_session: SSOSession | None) -> Nex
         return NextResult(message=IdPMsg.tou_required)
 
     if need_security_key(user, ticket):
-        return NextResult(message=IdPMsg.mfa_required)
+        return NextResult(message=IdPMsg.security_key_required, authn_state=authn_state)
 
     return res
 
