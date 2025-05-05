@@ -95,7 +95,9 @@ def mfa_auth(
     current_app.authn.log_authn(user, success=[result.credential.key], failure=[])
 
     # Remember the MFA credential used for this particular request
-    session.idp.log_credential_used(ticket.request_ref, result.credential, result.authn_data.timestamp)
+    session.idp.log_credential_used(
+        request_ref=ticket.request_ref, credential=result.credential, authn_data=result.authn_data
+    )
 
     return success_response(payload={"finished": True})
 
