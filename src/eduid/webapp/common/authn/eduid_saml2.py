@@ -243,12 +243,12 @@ def saml_logout(sp_config: SPConfig, user: User, location: str) -> WerkzeugRespo
 class AssertionData:
     session_info: SessionInfo
     user: User | None
-    authndata: SP_AuthnRequest
+    authn_data: SP_AuthnRequest
     authn_req_ref: AuthnRequestRef
 
     def __str__(self) -> str:
         return (
-            f"<{self.__class__.__name__}: user={self.user}, authndata={self.authndata}, "
+            f"<{self.__class__.__name__}: user={self.user}, authn_data={self.authn_data}, "
             f"session_info={self.session_info}>"
         )
 
@@ -320,4 +320,4 @@ def process_assertion(
                     continue
                 authn_data.credentials_used += [this.key]
 
-    return AssertionData(session_info=session_info, user=user, authndata=authn_data, authn_req_ref=authn_ref)
+    return AssertionData(session_info=session_info, user=user, authn_data=authn_data, authn_req_ref=authn_ref)

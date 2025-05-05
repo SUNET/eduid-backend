@@ -52,8 +52,8 @@ def pw_auth(ticket: LoginContext, username: str, password: str) -> FluxData | We
     current_app.logger.debug(f"User {pwauth.user} authenticated OK ({type(ticket)} request id {ticket.request_id})")
     _sso_session = current_app._lookup_sso_session()
     _authn_credentials: list[AuthnData] = []
-    if pwauth.authndata:
-        _authn_credentials = [pwauth.authndata]
+    if pwauth.authn_data:
+        _authn_credentials = [pwauth.authn_data]
     _sso_session = record_authentication(
         ticket, pwauth.user.eppn, _sso_session, _authn_credentials, current_app.conf.sso_session_lifetime
     )
@@ -72,7 +72,7 @@ def pw_auth(ticket: LoginContext, username: str, password: str) -> FluxData | We
     )
 
     # Remember the password credential used for this particular request
-    session.idp.log_credential_used(ticket.request_ref, pwauth.credential, pwauth.timestamp)
+    session.idp.log_credential_used(ticket.request_ref, pwauth.credential, pwauth.authn_data)
 
     # For debugging purposes, save the IdP SSO cookie value in the common session as well.
     # This is because we think we might have issues overwriting cookies in redirect responses.
