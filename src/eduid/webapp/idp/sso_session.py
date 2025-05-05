@@ -154,15 +154,15 @@ def get_sso_session() -> SSOSession | None:
     sso_session_lifetime = current_app.conf.sso_session_lifetime
     sso_sessions = current_app.sso_sessions
 
-    session = _lookup_sso_session(sso_sessions)
-    if session:
-        logger.debug(f"SSO session found in the database: {session}")
-        _age = session.age
+    sso_session = _lookup_sso_session(sso_sessions)
+    if sso_session:
+        logger.debug(f"SSO session found in the database: {sso_session}")
+        _age = sso_session.age
         if _age > sso_session_lifetime:
             logger.debug(f"SSO session expired (age {_age} > {sso_session_lifetime})")
             return None
         logger.debug(f"SSO session is still valid (age {_age} <= {sso_session_lifetime})")
-    return session
+    return sso_session
 
 
 def _lookup_sso_session(sso_sessions: SSOSessionCache) -> SSOSession | None:
