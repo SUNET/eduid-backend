@@ -59,6 +59,7 @@ class AuthnState:
         self.is_swamid_al2 = False
         self.is_digg_loa2 = False
         self.fido_used = False
+        self.fido_mfa_used = False
         self.external_mfa_used = False
         self.swamid_al3_used = False
         self.digg_loa2_approved_identity = False
@@ -123,16 +124,18 @@ class AuthnState:
         _used_credentials: dict[ElementKey, UsedCredential] = {}
 
         # Add all credentials used while the IdP processed this very request
-        for key, ts in ticket.pending_request.credentials_used.items():
-            if key in ticket.pending_request.onetime_credentials:
-                onetime_cred = ticket.pending_request.onetime_credentials[key]
-                cred = UsedCredential(credential_id=onetime_cred.key, ts=ts, source=UsedWhere.REQUEST)
-            else:
-                credential = user.credentials.find(key)
-                if not credential:
-                    logger.warning(f"Could not find credential {key} on user {user}")
-                    continue
-                cred = UsedCredential(credential_id=credential.key, ts=ts, source=UsedWhere.REQUEST)
+        for key, authn_data in ticket.pending_request.credentials_used.items():
+            credential = user.credentials.find(key)
+            if not credential:
+                logger.warning(f"Could not find credential {key} on user {user}")
+                continue
+            cred = UsedCredential(
+                credential_id=credential.key,
+                ts=authn_data.timestamp,
+                external_authn_data=authn_data.external,
+                fido_authn_data=authn_data.fido,
+                source=UsedWhere.REQUEST,
+            )
             logger.debug(f"Adding credential used with this request: {cred}")
             _used_credentials[cred.credential_id] = cred
 
@@ -150,7 +153,13 @@ class AuthnState:
             if not credential:
                 logger.warning(f"Could not find credential {this.cred_id} on user {user}")
                 continue
-            cred = UsedCredential(credential_id=credential.key, ts=sso_session.authn_timestamp, source=UsedWhere.SSO)
+            cred = UsedCredential(
+                credential_id=credential.key,
+                ts=this.timestamp,
+                external_authn_data=this.external,
+                fido_authn_data=this.fido,
+                source=UsedWhere.SSO,
+            )
             _key = cred.credential_id
             if _key in _used_credentials:
                 # If the credential is in _used_credentials, it is because it was used with this very request.
@@ -166,17 +175,21 @@ class AuthnState:
     def __str__(self) -> str:
         return (
             f"<AuthnState: creds={len(self._credentials)}, pw={self.password_used}, fido={self.fido_used}, "
-            f"external_mfa={self.external_mfa_used}, nin is al2={self.is_swamid_al2}, "
+            f"fido_mfa={self.fido_mfa_used}, external_mfa={self.external_mfa_used}, nin is al2={self.is_swamid_al2}, "
             f"mfa is {self.is_multifactor} (al3={self.swamid_al3_used})>"
         )
 
     @property
     def is_singlefactor(self) -> bool:
-        return self.password_used or self.fido_used
+        return self.password_used or self.fido_used or self.is_multifactor
 
     @property
     def is_multifactor(self) -> bool:
-        return self.password_used and (self.fido_used or self.external_mfa_used)
+        if self.fido_mfa_used or self.external_mfa_used:
+            return True
+        if self.password_used and self.fido_used:
+            return True
+        return False
 
     @property
     def credentials(self) -> list[UsedCredential]:
