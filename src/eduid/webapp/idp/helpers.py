@@ -1,3 +1,4 @@
+import logging
 from enum import StrEnum, unique
 from typing import Any
 
@@ -5,8 +6,9 @@ from saml2 import BINDING_HTTP_POST
 
 from eduid.userdb.idp import IdPUser
 from eduid.webapp.common.api.messages import FluxData, TranslatableMsg, error_response, success_response
-from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.idp_saml import SAMLResponseParams
+
+logger = logging.getLogger(__name__)
 
 
 @unique
@@ -60,6 +62,8 @@ def lookup_user(username: str, managed_account_allowed: bool = False) -> IdPUser
     """
     Lookup a user by username in both central userdb and in managed account db
     """
+    from eduid.webapp.idp.app import current_idp_app as current_app
+
     # check for managed user where username always starts with ma-
     if username.startswith("ma-"):
         if not managed_account_allowed:
@@ -74,7 +78,7 @@ def create_saml_sp_response(saml_params: SAMLResponseParams, authn_options: dict
     Create a response to frontend that should be posted to the SP
     """
     if saml_params.binding != BINDING_HTTP_POST:
-        current_app.logger.error("SAML response does not have binding HTTP_POST")
+        logger.error("SAML response does not have binding HTTP_POST")
         return error_response(message=IdPMsg.general_failure)
     return success_response(
         message=IdPMsg.finished,
