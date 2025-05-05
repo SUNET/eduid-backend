@@ -65,9 +65,7 @@ class PasswordAuthnResponse:
     timestamp: datetime = field(default_factory=utc_now)
 
     @property
-    def authndata(self) -> AuthnData | None:
-        if not self.credential:
-            return None
+    def authn_data(self) -> AuthnData:
         return AuthnData(cred_id=self.credential.key, timestamp=self.timestamp)
 
 
