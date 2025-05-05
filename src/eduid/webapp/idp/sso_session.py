@@ -13,7 +13,6 @@ from pydantic import BaseModel, ConfigDict, Field
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.element import ElementKey
 from eduid.webapp.common.session import session
-from eduid.webapp.common.session.logindata import ExternalMfaData
 from eduid.webapp.idp.idp_authn import AuthnData
 from eduid.webapp.idp.login_context import LoginContext
 
