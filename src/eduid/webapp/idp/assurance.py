@@ -66,35 +66,33 @@ class AuthnState:
 
         for this in self._credentials:
             cred = user.credentials.find(this.credential_id)
-            if not cred:
-                # check if it was a one-time credential
-                cred = self._onetime_credentials.get(this.credential_id)
-            if isinstance(cred, Password):
-                self.password_used = True
-            elif isinstance(cred, FidoCredential):
-                self.fido_used = True
-                if cred.is_verified and cred.proofing_method == CredentialProofingMethod.SWAMID_AL3_MFA:
-                    self.swamid_al3_used = True
-            elif isinstance(cred, SwedenConnectCredential):
-                # NEW way
-                logger.debug(f"SwedenConnect MFA used for this request: {cred}")
-                self.external_mfa_used = True
-                if cred.level == "loa3":
-                    self.swamid_al3_used = True
-            elif isinstance(cred, BankIDCredential):
-                # NEW way
-                logger.debug(f"BankID MFA used for this request: {cred}")
-                self.external_mfa_used = True
-                if cred.level == "uncertified-loa3":
-                    self.swamid_al3_used = True
-            else:
-                # Warn, but do not fail when the credential isn't found on the user. This can't be a hard failure,
-                # because when a user changes password they will get a new credential and the old is removed from
-                # the user but the old one might still be referenced in the SSO session, or the session.
-                logger.warning(f"Credential with id {this.credential_id} not found on user")
-                _creds = user.credentials.to_list()
-                logger.debug(f"User credentials:\n{_creds}")
-                logger.debug(f"Session one-time credentials:\n{ticket.pending_request.onetime_credentials}")
+            match cred:
+                case Password():
+                    self.password_used = True
+                case FidoCredential():
+                    self.fido_used = True
+                    if cred.is_verified and cred.proofing_method == CredentialProofingMethod.SWAMID_AL3_MFA:
+                        self.swamid_al3_used = True
+                    if cred.mfa_approved and this.fido_authn_data and this.fido_authn_data.user_verified:
+                        self.fido_mfa_used = True
+                # TODO: maybe use this.external_authn_data.authn_context instead of cred.level?
+                case SwedenConnectCredential():
+                    logger.debug(f"SwedenConnect MFA used for this request: {cred}")
+                    self.external_mfa_used = True
+                    if cred.level == "loa3":
+                        self.swamid_al3_used = True
+                case BankIDCredential():
+                    logger.debug(f"BankID MFA used for this request: {cred}")
+                    self.external_mfa_used = True
+                    if cred.level == "uncertified-loa3":
+                        self.swamid_al3_used = True
+                case _:
+                    # Warn, but do not fail when the credential isn't found on the user. This can't be a hard failure,
+                    # because when a user changes password they will get a new credential and the old is removed from
+                    # the user but the old one might still be referenced in the SSO session, or the session.
+                    logger.warning(f"Credential with id {this.credential_id} not found on user")
+                    _creds = user.credentials.to_list()
+                    logger.debug(f"User credentials:\n{_creds}")
 
         if user.identities.is_verified:
             self.is_swamid_al2 = True
