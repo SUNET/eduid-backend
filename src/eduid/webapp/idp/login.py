@@ -91,7 +91,7 @@ from eduid.webapp.idp.assurance import (
     MfaProofingMethodNotAllowed,
     MissingAuthentication,
     MissingMultiFactor,
-    MissingPasswordFactor,
+    MissingSingleFactor,
 )
 from eduid.webapp.idp.assurance_data import AuthnInfo
 from eduid.webapp.idp.helpers import IdPMsg, lookup_user
@@ -195,16 +195,16 @@ def login_next_step(ticket: LoginContext, sso_session: SSOSession | None) -> Nex
         current_app.logger.info(f"User {user} is terminated")
         return NextResult(message=IdPMsg.user_terminated, error=True)
 
+    authn_state = AuthnState(user, sso_session, ticket)
     try:
-        authn_state = AuthnState(user, sso_session, ticket)
         authn_info = assurance.response_authn(authn_state, ticket, user)
         res = NextResult(message=IdPMsg.proceed, authn_info=authn_info, authn_state=authn_state)
-    except MissingPasswordFactor:
-        res = NextResult(message=IdPMsg.must_authenticate)
+    except MissingSingleFactor:
+        res = NextResult(message=IdPMsg.must_authenticate, authn_state=authn_state)
     except MissingMultiFactor:
-        res = NextResult(message=IdPMsg.mfa_required)
+        res = NextResult(message=IdPMsg.mfa_required, authn_state=authn_state)
     except MissingAuthentication:
-        res = NextResult(message=IdPMsg.must_authenticate)
+        res = NextResult(message=IdPMsg.must_authenticate, authn_state=authn_state)
     except IdentityProofingMethodNotAllowed:
         res = NextResult(message=IdPMsg.identity_proofing_method_not_allowed, error=True)
     except MfaProofingMethodNotAllowed:
