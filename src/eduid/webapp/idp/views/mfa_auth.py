@@ -3,6 +3,7 @@ from copy import deepcopy
 from dataclasses import dataclass
 from typing import Any
 
+from fido2.webauthn import UserVerificationRequirement
 from flask import Blueprint
 
 from eduid.common.misc.timeutil import utc_now
@@ -11,13 +12,12 @@ from eduid.userdb.credentials import Credential, FidoCredential
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith
 from eduid.webapp.common.api.messages import FluxData, error_response, success_response
 from eduid.webapp.common.authn import fido_tokens
-from eduid.webapp.common.session import EduidSession, session
-from eduid.webapp.common.session.logindata import ExternalMfaData
-from eduid.webapp.common.session.namespaces import MfaAction, OnetimeCredential, OnetimeCredType, RequestRef
+from eduid.webapp.common.session import session
+from eduid.webapp.common.session.namespaces import MfaAction, RequestRef
 from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.decorators import require_ticket, uses_sso_session
 from eduid.webapp.idp.helpers import IdPMsg, lookup_user
-from eduid.webapp.idp.idp_authn import AuthnData, ExternalAuthnData
+from eduid.webapp.idp.idp_authn import AuthnData, ExternalAuthnData, FidoAuthnData
 from eduid.webapp.idp.login_context import LoginContext
 from eduid.webapp.idp.schemas import MfaAuthRequestSchema, MfaAuthResponseSchema
 from eduid.webapp.idp.sso_session import SSOSession
@@ -54,7 +54,7 @@ def mfa_auth(
     saved_mfa_action = deepcopy(session.mfa_action)
     del session.mfa_action
 
-    result = _check_external_mfa(saved_mfa_action, session, user, ticket.request_ref, sso_session)
+    result = _check_external_mfa(saved_mfa_action, user, ticket.request_ref)
     if result and result.response:
         return result.response
 
@@ -77,6 +77,7 @@ def mfa_auth(
                 fido2_rp_id=current_app.conf.fido2_rp_id,
                 fido2_rp_name=current_app.conf.fido2_rp_name,
                 state=session.mfa_action,
+                user_verification=UserVerificationRequirement.PREFERRED,
             )
             payload.update(options)
 
@@ -109,9 +110,7 @@ class CheckResult:
     authn_data: AuthnData | None = None
 
 
-def _check_external_mfa(
-    mfa_action: MfaAction, session: EduidSession, user: User, ref: RequestRef, sso_session: SSOSession
-) -> CheckResult | None:
+def _check_external_mfa(mfa_action: MfaAction, user: User, ref: RequestRef) -> CheckResult | None:
     # Third party service MFA
     if mfa_action.success is True:  # Explicit check that success is the boolean True
         if mfa_action.login_ref:
@@ -181,5 +180,9 @@ def _check_webauthn(
 
     _utc_now = utc_now()
 
-    authn = AuthnData(cred_id=cred.key, timestamp=_utc_now)
+    authn = AuthnData(
+        cred_id=cred.key,
+        timestamp=_utc_now,
+        fido=FidoAuthnData(user_present=result.user_present, user_verified=result.user_verified),
+    )
     return CheckResult(credential=cred, authn_data=authn)
