@@ -4,13 +4,15 @@ from dataclasses import dataclass
 from typing import Any
 
 from fido2.webauthn import UserVerificationRequirement
-from flask import Blueprint
+from flask import Blueprint, jsonify, request
+from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb import User
 from eduid.userdb.credentials import Credential, FidoCredential
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith
 from eduid.webapp.common.api.messages import FluxData, error_response, success_response
+from eduid.webapp.common.api.schemas.models import FluxSuccessResponse
 from eduid.webapp.common.authn import fido_tokens
 from eduid.webapp.common.session import session
 from eduid.webapp.common.session.namespaces import MfaAction, RequestRef
@@ -19,8 +21,9 @@ from eduid.webapp.idp.decorators import require_ticket, uses_sso_session
 from eduid.webapp.idp.helpers import IdPMsg, lookup_user
 from eduid.webapp.idp.idp_authn import AuthnData, ExternalAuthnData, FidoAuthnData
 from eduid.webapp.idp.login_context import LoginContext
+from eduid.webapp.idp.mischttp import set_sso_cookie
 from eduid.webapp.idp.schemas import MfaAuthRequestSchema, MfaAuthResponseSchema
-from eduid.webapp.idp.sso_session import SSOSession
+from eduid.webapp.idp.sso_session import SSOSession, record_authentication
 
 mfa_auth_views = Blueprint("mfa_auth", __name__, url_prefix="")
 
@@ -32,20 +35,27 @@ mfa_auth_views = Blueprint("mfa_auth", __name__, url_prefix="")
 @uses_sso_session
 def mfa_auth(
     ticket: LoginContext, sso_session: SSOSession | None, webauthn_response: Mapping[str, str] | None = None
-) -> FluxData:
+) -> FluxData | WerkzeugResponse:
     current_app.logger.debug("\n\n")
     current_app.logger.debug(f"--- MFA authentication ({ticket.request_ref}) ---")
 
     if not current_app.conf.login_bundle_url:
         return error_response(message=IdPMsg.not_available)
 
-    if not sso_session:
-        current_app.logger.error("MFA auth called without an SSO session")
+    _eppn = None
+    if sso_session:
+        _eppn = sso_session.eppn
+        current_app.logger.debug(f"Found eppn: {_eppn} from SSO session")
+    elif ticket.known_device and ticket.known_device.data.eppn:
+        _eppn = ticket.known_device.data.eppn
+        current_app.logger.debug(f"Found eppn: {_eppn} for known device ---")
+    else:
+        current_app.logger.error("MFA auth called without an SSO session or known device")
         return error_response(message=IdPMsg.no_sso_session)
 
-    user = lookup_user(sso_session.eppn)
+    user = lookup_user(_eppn)
     if not user:
-        current_app.logger.error(f"User with eppn {sso_session.eppn} (from SSO session) not found")
+        current_app.logger.error(f"User with eppn {_eppn} (from SSO session) not found")
         return error_response(message=IdPMsg.general_failure)
 
     # Clear mfa_action from session, so that we know if the user did external MFA
@@ -89,7 +99,13 @@ def mfa_auth(
         return error_response(message=IdPMsg.general_failure)
 
     current_app.logger.debug(f"AuthnData to save: {result.authn_data}")
-    sso_session.add_authn_credential(result.authn_data)
+    sso_session = record_authentication(
+        ticket=ticket,
+        eppn=user.eppn,
+        sso_session=sso_session,
+        credentials=[result.authn_data],
+        sso_session_lifetime=current_app.conf.sso_session_lifetime,
+    )
     current_app.logger.debug(f"Saving SSO session {sso_session}")
     current_app.sso_sessions.save(sso_session)
 
@@ -100,7 +116,14 @@ def mfa_auth(
         request_ref=ticket.request_ref, credential=result.credential, authn_data=result.authn_data
     )
 
-    return success_response(payload={"finished": True})
+    # For debugging purposes, save the IdP SSO cookie value in the common session as well.
+    # This is because we think we might have issues overwriting cookies in redirect responses.
+    session.idp.sso_cookie_val = sso_session.session_id
+
+    _flux_response = FluxSuccessResponse(request, payload={"finished": True})
+    resp = jsonify(MfaAuthResponseSchema().dump(_flux_response.to_dict()))
+
+    return set_sso_cookie(current_app.conf.sso_cookie, sso_session.session_id, resp)
 
 
 @dataclass
