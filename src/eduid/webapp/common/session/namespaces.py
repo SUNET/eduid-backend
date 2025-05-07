@@ -189,7 +189,6 @@ RequestRef = NewType("RequestRef", str)
 class IdP_PendingRequest(BaseModel, ABC):
     aborted: bool | None = False
     used: bool | None = False  # set to True after the request has been completed (to handle 'back' button presses)
-    template_show_msg: str | None = None  # set when the template version of the idp should show a message to the user
     # Credentials used while authenticating _this SAML request_. Not ones inherited from SSO.
     credentials_used: dict[ElementKey, AuthnData] = Field(default_factory=dict)
 
