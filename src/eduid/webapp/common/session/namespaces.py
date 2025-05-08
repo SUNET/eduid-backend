@@ -14,6 +14,7 @@ from pydantic_core.core_schema import ValidationInfo
 
 from eduid.common.config.base import FrontendAction
 from eduid.common.misc.timeutil import utc_now
+from eduid.common.models.saml2 import EduidAuthnContextClass
 from eduid.common.utils import uuid4_str
 from eduid.userdb.credentials import Credential
 from eduid.userdb.credentials.external import TrustFramework
@@ -237,10 +238,10 @@ class BaseAuthnRequest(BaseModel, ABC):
 class SP_AuthnRequest(BaseAuthnRequest):
     authn_id: AuthnRequestRef = Field(default_factory=lambda: AuthnRequestRef(uuid4_str()))
     credentials_used: list[ElementKey] = Field(default_factory=list)
-    req_authn_ctx: list[str] = Field(
-        default_factory=list
-    )  # the authentication contexts requested for this authentication
-    asserted_authn_ctx: str | None = None  # the authentication contexts asserted for this authentication
+    # the authentication contexts requested for this authentication
+    req_authn_ctx: list[str] = Field(default_factory=list)
+    # the authentication contexts asserted for this authentication
+    asserted_authn_ctx: EduidAuthnContextClass | None = None
 
     def formatted_finish_url(self, app_name: str) -> str:
         return self.finish_url.format(app_name=app_name, authn_id=self.authn_id)

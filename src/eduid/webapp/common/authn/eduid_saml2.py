@@ -16,6 +16,7 @@ from saml2.typing import SAMLHttpArgs
 from werkzeug.exceptions import Forbidden
 from werkzeug.wrappers import Response as WerkzeugResponse
 
+from eduid.common.models.saml2 import EduidAuthnContextClass
 from eduid.userdb import UserDB
 from eduid.userdb.exceptions import MultipleUsersReturned, UserDoesNotExist
 from eduid.userdb.user import User
@@ -35,7 +36,7 @@ class BadSAMLResponse(Exception):
     """Bad SAML response"""
 
 
-def get_authn_ctx(session_info: SessionInfo) -> str | None:
+def get_authn_ctx(session_info: SessionInfo) -> EduidAuthnContextClass | None:
     """
     Get the SAML2 AuthnContext of the currently logged in users session.
 
@@ -50,8 +51,15 @@ def get_authn_ctx(session_info: SessionInfo) -> str | None:
     :return: The first AuthnContext
     """
     try:
-        return session_info["authn_info"][0][0]
+        accr = session_info["authn_info"][0][0]
     except KeyError:
+        logger.debug("No authn context class found in session_info")
+        return None
+
+    try:
+        return EduidAuthnContextClass(accr)
+    except ValueError:
+        logger.error(f"Authn context class {accr} not implemented in EduidAuthnContextClass")
         return None
 
 
