@@ -183,10 +183,10 @@ def assertion_consumer_service() -> WerkzeugResponse:
         return assertion
     current_app.logger.debug(f"Auth response:\n{assertion}\n\n")
 
-    action = get_action(default_action=AuthnAcsAction.login, authndata=assertion.authndata)
+    action = get_action(default_action=AuthnAcsAction.login, authndata=assertion.authn_data)
     args = ACSArgs(
         session_info=assertion.session_info,
-        authn_req=assertion.authndata,
+        authn_req=assertion.authn_data,
         user=assertion.user,
     )
     result = action(args)

@@ -64,7 +64,7 @@ class KnownDeviceData(BaseModel):
     login_counter: int | None = 0
 
     def to_json(self) -> str:
-        return self.json(exclude_none=True)
+        return self.model_dump_json(exclude_none=True)
 
 
 class KnownDevice(BaseModel):

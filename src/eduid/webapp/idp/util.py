@@ -88,9 +88,6 @@ def get_login_username(user: IdPUser) -> str:
         # the username field for the user
         _mail = user.mail_addresses.primary.email
         return _mail
-    elif user.phone_numbers.primary:
-        _phone = user.phone_numbers.primary.number
-        return _phone
 
     # TODO: Also support NIN and other 'external identifiers' as username?
     return user.eppn

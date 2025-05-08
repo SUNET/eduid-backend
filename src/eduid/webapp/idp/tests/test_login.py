@@ -234,7 +234,6 @@ class IdPTestLoginAPI(IdPAPITests):
     def test_ForceAuthn_with_existing_SSO_session(self) -> None:
         # add security key to user
         self.add_test_user_security_key()
-
         for accr in [None, EduidAuthnContextClass.PASSWORD_PT, EduidAuthnContextClass.REFEDS_MFA]:
             requested_authn_context = None
             if accr is not None:
@@ -266,8 +265,8 @@ class IdPTestLoginAPI(IdPAPITests):
 
             if accr is EduidAuthnContextClass.REFEDS_MFA:
                 assert result2.visit_order == [
-                    IdPAction.PWAUTH,
                     IdPAction.MFA,
+                    IdPAction.PWAUTH,
                     IdPAction.FINISHED,
                 ], f"Actual visit order: {result2.visit_order}"
             else:

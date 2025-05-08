@@ -229,7 +229,7 @@ class TestSSO(SSOIdPTests):
     def _get_login_response_authn(
         self,
         req_class_ref: EduidAuthnContextClass | str | None,
-        credentials: list[str | Credential | AuthnData | ExternalMfaData],
+        credentials: list[str | Credential | AuthnData],
         user: IdPUser | None = None,
         add_tou: bool = True,
         add_credentials_to_this_request: bool = True,  # True = full auth flow, False = only SSO
@@ -287,10 +287,12 @@ class TestSSO(SSOIdPTests):
             ticket = self._make_login_ticket(req_class_ref)
 
             if add_credentials_to_this_request:
-                for cred in sso_session_1.authn_credentials:
-                    credential = user.credentials.find(cred.cred_id)
+                for authn_data in sso_session_1.authn_credentials:
+                    credential = user.credentials.find(authn_data.cred_id)
                     assert credential
-                    session.idp.log_credential_used(ticket.request_ref, credential, cred.timestamp)
+                    session.idp.log_credential_used(
+                        request_ref=ticket.request_ref, credential=credential, authn_data=authn_data
+                    )
 
             # 'prime' the ticket and session for checking later - accessing request_ref gets the SAML data loaded
             # from the session into the ticket.
@@ -378,15 +380,18 @@ class TestSSO(SSOIdPTests):
         user = self.get_user_set_identity(
             self.test_user.eppn, identity_type=IdentityType.NIN, unique_value="190101011234"
         )
-        external_mfa = ExternalMfaData(
-            issuer="issuer.example.com",
-            authn_context="http://id.elegnamnden.se/loa/1.0/loa3",
+        cred = self.add_test_user_external_mfa_cred(user)
+        authn = AuthnData(
+            cred_id=cred.key,
             timestamp=utc_now(),
+            external=ExternalAuthnData(
+                issuer="issuer.example.com", authn_context="http://id.elegnamnden.se/loa/1.0/loa3"
+            ),
         )
         out = self._get_login_response_authn(
             user=user,
             req_class_ref=EduidAuthnContextClass.REFEDS_MFA,
-            credentials=["pw", external_mfa],
+            credentials=["pw", authn],
         )
         self._check_login_response_authn(
             authn_result=out,
@@ -720,15 +725,20 @@ class TestSSO(SSOIdPTests):
         user = self.get_user_set_identity(
             self.test_user.eppn, identity_type=IdentityType.NIN, unique_value="190101011234"
         )
-        external_mfa = ExternalMfaData(
-            issuer="issuer.example.com",
-            authn_context="http://id.elegnamnden.se/loa/1.0/loa3",
+
+        cred = self.add_test_user_external_mfa_cred(user)
+        authn = AuthnData(
+            cred_id=cred.key,
             timestamp=utc_now(),
+            external=ExternalAuthnData(
+                issuer="issuer.example.com", authn_context="http://id.elegnamnden.se/loa/1.0/loa3"
+            ),
         )
+
         out = self._get_login_response_authn(
             user=user,
             req_class_ref=EduidAuthnContextClass.EDUID_MFA,
-            credentials=["pw", external_mfa],
+            credentials=["pw", authn],
         )
         self._check_login_response_authn(
             authn_result=out,
@@ -746,15 +756,18 @@ class TestSSO(SSOIdPTests):
         user = self.get_user_set_identity(
             self.test_user.eppn, identity_type=IdentityType.NIN, unique_value="190101011234"
         )
-        external_mfa = ExternalMfaData(
-            issuer="issuer.example.com",
-            authn_context="http://id.elegnamnden.se/loa/1.0/loa3",
+        cred = self.add_test_user_external_mfa_cred(user)
+        authn = AuthnData(
+            cred_id=cred.key,
             timestamp=utc_now(),
+            external=ExternalAuthnData(
+                issuer="issuer.example.com", authn_context="http://id.elegnamnden.se/loa/1.0/loa3"
+            ),
         )
         out = self._get_login_response_authn(
             user=user,
             req_class_ref=EduidAuthnContextClass.REFEDS_MFA,
-            credentials=["pw", external_mfa],
+            credentials=["pw", authn],
         )
         self._check_login_response_authn(
             authn_result=out,

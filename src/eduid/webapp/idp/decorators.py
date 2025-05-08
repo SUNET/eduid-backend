@@ -28,7 +28,7 @@ def require_ticket(f: Callable) -> Callable:
             return _flux_error(IdPMsg.bad_ref)
         ref = kwargs.pop("ref")
 
-        _info = SAMLQueryParams(request_ref=ref)
+        _info = SAMLQueryParams(ref=ref)
         ticket = get_ticket(_info, None)
         if not ticket:
             logger.debug(f"Login ref {ref} not found in pending_requests")
