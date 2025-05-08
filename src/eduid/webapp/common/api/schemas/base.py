@@ -12,6 +12,6 @@ class EduidSchema(Schema):
 
 class FluxStandardAction(EduidSchema):
     type = fields.String(required=True)
-    payload = fields.Field(required=False)
+    payload: fields.Field = fields.Field(required=False)
     error = fields.Boolean(required=False)
     meta = fields.Raw(required=False)

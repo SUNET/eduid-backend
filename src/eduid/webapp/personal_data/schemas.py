@@ -17,7 +17,7 @@ class PersonalDataRequestSchema(EduidSchema, CSRFRequestMixin):
     chosen_given_name = fields.String(required=False)
     surname = fields.String(required=True, validate=[validate_nonempty])
     legal_name = fields.String(required=False)
-    language = fields.String(required=True, default="en", validate=validate_language)
+    language = fields.String(load_default="en", validate=validate_language)
 
 
 class PersonalDataSchema(EduidSchema):
@@ -43,7 +43,7 @@ class UserNameSchema(EduidSchema):
 
 
 class UserLanguageRequestSchema(EduidSchema, CSRFRequestMixin):
-    language = fields.String(required=True, default="en", validate=validate_language)
+    language = fields.String(load_default="en", validate=validate_language)
 
 
 class UserLanguageSchema(EduidSchema):
@@ -51,7 +51,7 @@ class UserLanguageSchema(EduidSchema):
 
 
 class UserPreferencesSchema(EduidSchema):
-    always_use_security_key = fields.Boolean(required=True, default=True)
+    always_use_security_key = fields.Boolean(required=True, dump_default=True)
 
 
 class UserPreferencesRequestSchema(UserPreferencesSchema, CSRFRequestMixin):
