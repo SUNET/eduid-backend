@@ -41,7 +41,7 @@ class request(RequestMicroService):
             if data.subject_type not in ALLOWED_NAMEIDS:
                 # Handle unsupported NameIDs as NAMEID_FORMAT_TRANSIENT for compability.
                 logger.info(
-                    f"Requested NameID ({data.subject_type}) not supported, changing to {NAMEID_FORMAT_TRANSIENT}"
+                    f"Requested NameID ({data.subject_type}) is not supported, changing it to {NAMEID_FORMAT_TRANSIENT}"
                 )
                 data.subject_type = NAMEID_FORMAT_TRANSIENT
         else:
