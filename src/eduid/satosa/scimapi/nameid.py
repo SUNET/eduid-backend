@@ -39,7 +39,11 @@ class request(RequestMicroService):
         # even if not requested by the SP or specified in the metadata.
         if data.subject_type:
             if data.subject_type not in ALLOWED_NAMEIDS:
-                raise SATOSAAuthenticationError(context.state, "Unsupported NameID")
+                # Handle unsupported NameIDs as NAMEID_FORMAT_TRANSIENT for compability.
+                logger.info(
+                    f"Requested NameID ({data.subject_type}) not supported, changing to {NAMEID_FORMAT_TRANSIENT}"
+                )
+                data.subject_type = NAMEID_FORMAT_TRANSIENT
         else:
             raise SATOSAAuthenticationError(context.state, "No NameID")
 
