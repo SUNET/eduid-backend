@@ -66,21 +66,22 @@ class response(ResponseMicroService):
 
         if subject_type == NAMEID_FORMAT_TRANSIENT or subject_type == NAMEID_FORMAT_UNSPECIFIED:
             data.subject_id = str(uuid.uuid1())
+            data.subject_type = NAMEID_FORMAT_TRANSIENT
         elif subject_type == NAMEID_FORMAT_PERSISTENT:
             pairwise = data.attributes.get("pairwise-id")[0]
             if not pairwise:
                 raise SATOSAAuthenticationError(context.state, "No pairwise ID to use as persistant NameID")
             data.subject_id = pairwise.split("@")[0]
+            data.subject_type = subject_type
         elif subject_type == NAMEID_FORMAT_EMAILADDRESS:
             mail = data.attributes.get("mail")[0]
             if not mail:
                 raise SATOSAAuthenticationError(context.state, "No mail to use as NameID")
             data.subject_id = mail
+            data.subject_type = subject_type
         else:
             # This should not even be possible
             raise SATOSAAuthenticationError(context.state, "Unknown NameID")
-
-        data.subject_type = subject_type
 
         logger.debug(f"Returning NameID ({subject_type}): {data.subject_id}")
         return super().process(context, data)
