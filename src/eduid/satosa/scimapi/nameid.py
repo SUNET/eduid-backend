@@ -58,6 +58,8 @@ class response(ResponseMicroService):
         super().__init__(*args, **kwargs)
 
     def process(self, context: satosa.context.Context, data: satosa.internal.InternalData) -> ProcessReturnType:
+        # Pysaml or satosa makes sure that we always have a subject_type
+        # even if not requested by the SP or specified in the metadata.
         subject_type = context.state.get("subject_type")
         if not subject_type:
             raise SATOSAAuthenticationError(context.state, "No NameID from saved state")
