@@ -1,0 +1,16 @@
+<div class="pull-right">
+    <form id="logout-form" class="form-inline" method="GET" action="{{ logout_url }}">
+        <div class="form-group">
+            {{ support_user.display_name }}
+            <input type="hidden" name="csrf" value="{{ session.get_csrf_token() }}">
+        </div>
+        <button id="logout-button" class="btn btn-link" type="submit" name="submit">Log out</button>
+    </form>
+</div>
+<h3>Lookup a user using eppn, nin, mail address or phone number</h3>
+<form role="form" hx-post="/search" hx-target="#user-data" hx-swap="afterbegin">
+    <div class="form-group">
+        <p><input type=text name=query class="form-control" placeholder="Enter search term">
+        <p><button type="submit" value="Submit" class="btn btn-primary">Submit</button>
+    </div>
+</form>

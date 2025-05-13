@@ -1,0 +1,233 @@
+{% if error %}
+    <h3>{{ error }}</h3>
+{% endif %}
+
+{% if users %}
+    <hr />
+    <h3>{{users|length}} user{% if users|length > 1 %}s were{% else %} was{% endif %} found using query "{{ search_query }}":</h3>
+    {% import 'common_user_table_data.html' as common_user_table %}
+    {% for item in users %}
+
+        <div class="panel-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <table class="table table-hover table-bordered">
+                        <caption>Central DB</caption>
+                        <tbody>
+                            {% if item.user %}
+                                {{ common_user_table.input(item.user) }}
+                            {% else %}
+                                <tr><td>No data</td></tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="col-md-6">
+                    <table class="table table-hover table-bordered">
+                        <caption>Signup DB</caption>
+                        <tbody>
+                        {% if item.signup_user %}
+                            {{ common_user_table.input(item.signup_user) }}
+                            {% if item.signup_user.pending_mail_address %}
+                                <tr>
+                                    <th>Pending mail address</th>
+                                    <td>
+                                        <dl>
+                                            <dt>Address</dt><dd>{{ item.signup_user.pending_mail_address.get('email') }}</dd>
+                                            <dt>Primary</dt><dd>{{ item.signup_user.pending_mail_address.get('primary') }}</dd>
+                                            <dt>Verified</dt><dd>{{ item.signup_user.pending_mail_address.get('verified') }}</dd>
+                                            {% if item.signup_user.pending_mail_address.get('created_by') %}
+                                                <dt>Added using</dt><dd>{{ item.signup_user.pending_mail_address.get('created_by') }}</dd>
+                                            {% endif %}
+                                            <dt>Added timestamp</dt><dd>{{ item.signup_user.pending_mail_address.get('created_ts')|datetimeformat }}</dd>
+                                            {% if  item.signup_user.pending_mail_address.get('verified_ts') %}
+                                                <dt>Verified timestamp</dt><dd>{{ item.signup_user.pending_mail_address.get('verified_ts')|datetimeformat }}</dd>
+                                            {% endif %}
+                                        </dl>
+                                    </td>
+                                </tr>
+                            {% endif %}
+                            {% if not item.signup_user.passwords %}
+                                <tr>
+                                    <th>Completed signup</th><td>False</td>
+                                </tr>
+                            {% endif %}
+                        {% else %}
+                            <tr><td>No data</td></tr>
+                        {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-12">
+                    <h4 class="block-center">Ongoing proofings</h4>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <table class="table table-hover">
+                        <caption>Letter proofing</caption>
+                        {% if item.letter_proofing %}
+                            <tr>
+                                <th>Letter sent</th><td>{{ item.letter_proofing.proofing_letter.is_sent|default("False") }}</td>
+                            </tr>
+                            {% if item.letter_proofing.proofing_letter.is_sent %}
+                                <tr>
+                                    <th>Letter sent timestamp</th><td>{{ item.letter_proofing.proofing_letter.sent_ts|datetimeformat }}</td>
+                                </tr>
+                            {% endif %}
+                            <tr>
+                                <th>National identity number</th><td>{{ item.letter_proofing.nin.number }}</td>
+                            </tr>
+                            <tr>
+                                <th>Official address</th>
+                                <td>
+                                    {{ item.letter_proofing.proofing_letter.address.name.given_name }} {{ item.letter_proofing.proofing_letter.address.name.middle_name }} {{ item.letter_proofing.proofing_letter.address.name.surname }}<br />
+                                    {% if item.letter_proofing.proofing_letter.address.official_address.care_of %}
+                                        C/O {{ item.letter_proofing.proofing_letter.address.official_address.care_of }}<br />
+                                    {% endif %}
+                                    {{ item.letter_proofing.proofing_letter.address.official_address.address2 }}<br />
+                                    {{ item.letter_proofing.proofing_letter.address.official_address.postal_code }} {{ item.letter_proofing.proofing_letter.address.official_address.city }}
+                                </td>
+                            </tr>
+                        {% else %}
+                            <tr><td>No data</td></tr>
+                        {% endif %}
+                    </table>
+                </div>
+                <div class="col-md-6">
+                    <table class="table table-hover">
+                        <caption>OIDC proofing</caption>
+                        {% if item.oidc_proofing %}
+                            <tr>
+                                <th>Created</th><td>{{ item.oidc_proofing.modified_ts|datetimeformat }}</td>
+                            </tr>
+                            <tr>
+                                <th>State ID</th><td>{{ item.oidc_proofing.state }}</td>
+                            </tr>
+                            <tr>
+                                <th>National identity number</th><td>{{ item.oidc_proofing.nin.number }}</td>
+                            </tr>
+                        {% else %}
+                            <tr><td>No data</td></tr>
+                        {% endif %}
+                    </table>
+                </div>
+                <div class="col-md-6">
+                    <table class="table table-hover">
+                        <caption>Email proofings</caption>
+                        {% if item.email_proofings %}
+                            {% for email_proofing in item.email_proofings %}
+                                <tr>
+                                    <th>Created</th><td>{{ email_proofing.modified_ts|datetimeformat }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Email address</th><td>{{ email_proofing.verification.email }}</td>
+                                </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr><td>No data</td></tr>
+                        {% endif %}
+                    </table>
+                </div>
+                <div class="col-md-6">
+                    <table class="table table-hover">
+                        <caption>Phone proofings</caption>
+                        {% if item.phone_proofings %}
+                            {% for phone_proofing in item.phone_proofings %}
+                                <tr>
+                                    <th>Created</th><td>{{ phone_proofing.modified_ts|datetimeformat }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Phone number</th><td>{{ phone_proofing.verification.number }}</td>
+                                </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr><td>No data</td></tr>
+                        {% endif %}
+                    </table>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-12">
+                    <h4 class="block-center">Completed proofings</h4>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-12">
+                    <table class="table table-hover">
+                        <caption>Proofing log</caption>
+                        {% if item.proofing_log %}
+                        <tr>
+                            <th>Created</th><th>Application</th><th>Data verified</th><th>Proofing method</th><th>Vetting by</th>
+                        </tr>
+                        {% for entry in item.proofing_log|sort(attribute='created_ts', reverse=True) %}
+                            <tr>
+                                <td>{{ entry.created_ts|datetimeformat }}</td>
+                                <td>{{ entry.created_by }}</td>
+                                <td>{{ entry.verified_data }}</td>
+                                <td>{{ entry.proofing_method }}-{{ entry.proofing_version }}</td>
+                                <td>{{ entry.vetting_by }}</td>
+                            </tr>
+                        {% endfor %}
+                        {% else %}
+                            <tr><td>No data</td></tr>
+                        {% endif %}
+                    </table>
+
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-12">
+                    <h4 class="block-center">Other user data</h4>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <table class="table table-hover">
+                        <caption>Authentication information</caption>
+                        {% if item.authn %}
+                            <tr>
+                                <th>Last successful login</th>
+                                <td>{{ item.authn.success_ts|datetimeformat }}</td>
+                            </tr>
+                            <tr>
+                                <th>Failed login attempts:<br />(Last three months)</th>
+                                <td>
+                                    <dl>
+                                    {% if not item.authn.fail_count %}
+                                        <dd>No data</dd>
+                                    {% endif %}
+                                    {% for month,count in item.authn.fail_count|dictsort(reverse=true) %}
+                                        {% if loop.index < 4 %}  {# show the last 3 months #}
+                                            <dt>{{ month }}</dt><dd>{{ count }}</dd>
+                                        {% endif %}
+                                    {% endfor %}
+                                    </dl>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Successful login attempts:<br />(Last three months)</th>
+                                <td>
+                                    <dl>
+                                    {% if not item.authn.success_count %}
+                                        <dd>No data</dd>
+                                    {% endif %}
+                                    {% for month,count in item.authn.success_count|dictsort(reverse=true) %}
+                                        {% if loop.index < 4 %}  {# show the last 3 months #}
+                                            <dt>{{ month }}</dt><dd>{{ count }}</dd>
+                                        {% endif %}
+                                    {% endfor %}
+                                    </dl>
+                                </td>
+                            </tr>
+                        {% else %}
+                            <tr><td>No data</td></tr>
+                        {% endif %}
+                    </table>
+                </div>
+            </div>
+        </div>
+    {% endfor %}
+{% endif %}

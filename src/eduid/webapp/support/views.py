@@ -13,19 +13,29 @@ from eduid.webapp.support.helpers import get_credentials_aux_data, require_login
 support_views = Blueprint("support", __name__, url_prefix="", template_folder="templates")
 
 
-@support_views.route("/", methods=["GET", "POST"])
+@support_views.route("/", methods=["GET"])
+def index() -> str:
+    return render_template(
+        "index.html",
+    )
+
+
+@support_views.route("/search-form", methods=["GET"])
 @require_support_personnel
 @require_login_with_mfa
-def index(support_user: User) -> str:
+def search_form(support_user: User) -> str:
+    return render_template(
+        "search_form.html", support_user=support_user, logout_url=current_app.conf.authn_service_url_logout
+    )
+
+
+@support_views.route("/search", methods=["POST"])
+@require_support_personnel
+@require_login_with_mfa
+def search(support_user: User) -> str:
     data = sanitize_map(request.form)
     search_query = data.get("query")
-
-    if request.method != "POST" or not search_query:
-        return render_template(
-            "index.html", support_user=support_user, logout_url=current_app.conf.authn_service_url_logout
-        )
-
-    lookup_users: Sequence[User] = []
+    lookup_users: list[User] = []
     try:
         lookup_users = current_app.support_user_db.search_users(search_query)
     except UserHasNotCompletedSignup:
@@ -45,10 +55,9 @@ def index(support_user: User) -> str:
                 f"Support personnel {support_user.eppn} searched for {repr(search_query)} with no match found"
             )
             return render_template(
-                "index.html",
-                support_user=support_user,
+                "users.html",
                 logout_url=current_app.conf.authn_service_url_logout,
-                error="No users matched the search query",
+                error=f"No users matched the search query: {search_query}",
             )
 
     current_app.logger.info(f"Support personnel {support_user.eppn} searched for {repr(search_query)}")
@@ -72,14 +81,11 @@ def index(support_user: User) -> str:
         user_data["authn"] = current_app.support_authn_db.get_authn_info(user_id=user.user_id)
         user_data["proofing_log"] = current_app.support_proofing_log_db.get_entries(eppn=user.eppn)
         user_data["letter_proofing"] = current_app.support_letter_proofing_db.get_proofing_state(eppn=user.eppn)
-        user_data["oidc_proofing"] = current_app.support_oidc_proofing_db.get_proofing_state(eppn=user.eppn)
         user_data["email_proofings"] = current_app.support_email_proofing_db.get_proofing_states(eppn=user.eppn)
-        user_data["phone_proofings"] = current_app.support_phone_proofing_db.get_proofing_states(eppn=user.eppn)
         users.append(user_data)
 
     return render_template(
-        "index.html",
-        support_user=support_user,
+        "users.html",
         logout_url=current_app.conf.authn_service_url_logout,
         users=users,
         search_query=search_query,
