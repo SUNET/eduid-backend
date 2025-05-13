@@ -13,7 +13,7 @@ class GenericFilterDict(dict):
 
     def __init__(self, data: dict[str, Any] | None) -> None:
         """
-        Create a filtered dict with white- or blacklisting of keys
+        Create a filtered dict with allow- or denylisting of keys
 
         :param data: Data to filter
         :type data: dict
@@ -139,35 +139,11 @@ class UserLetterProofing(GenericFilterDict):
         self["proofing_letter"] = self.ProofingLetter(self["proofing_letter"])
 
 
-class UserOidcProofing(GenericFilterDict):
-    add_keys = ["nin", "modified_ts", "state"]
-
-    class Nin(GenericFilterDict):
-        add_keys = ["created_ts", "number"]
-
-    def __init__(self, data: TUserDbDocument) -> None:
-        _data = deepcopy(data)
-        super().__init__(_data)
-        self["nin"] = self.Nin(self["nin"])
-
-
 class UserEmailProofing(GenericFilterDict):
     add_keys = ["verification", "modified_ts"]
 
     class Verification(GenericFilterDict):
         add_keys = ["created_ts", "email"]
-
-    def __init__(self, data: TUserDbDocument) -> None:
-        _data = deepcopy(data)
-        super().__init__(_data)
-        self["verification"] = self.Verification(self["verification"])
-
-
-class UserPhoneProofing(GenericFilterDict):
-    add_keys = ["verification", "modified_ts"]
-
-    class Verification(GenericFilterDict):
-        add_keys = ["created_ts", "number"]
 
     def __init__(self, data: TUserDbDocument) -> None:
         _data = deepcopy(data)

@@ -128,29 +128,11 @@ class SupportLetterProofingDB(SupportProofingDB):
         return self.model(dict(LetterProofingState.from_dict(doc).to_dict()))  # Cast to dict to allow mutability
 
 
-class SupportOidcProofingDB(SupportProofingDB):
-    model = models.UserOidcProofing
-
-    def __init__(self, db_uri: str) -> None:
-        db_name = "eduid_oidc_proofing"
-        collection = "proofing_data"
-        super().__init__(db_uri, db_name, collection)
-
-
 class SupportEmailProofingDB(SupportProofingDB):
     model = models.UserEmailProofing
 
     def __init__(self, db_uri: str) -> None:
         db_name = "eduid_email"
-        collection = "proofing_data"
-        super().__init__(db_uri, db_name, collection)
-
-
-class SupportPhoneProofingDB(SupportProofingDB):
-    model = models.UserPhoneProofing
-
-    def __init__(self, db_uri: str) -> None:
-        db_name = "eduid_phone"
         collection = "proofing_data"
         super().__init__(db_uri, db_name, collection)
 

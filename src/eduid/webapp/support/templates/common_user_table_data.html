@@ -101,22 +101,6 @@
         </td>
     </tr>
     <tr>
-        <th>Phone numbers:</th>
-        <td>
-            {% for phone in user_dict.phone|multisort('verified', 'created_ts', reverse=True) %}
-                <dl>
-                    <dt>Number</dt><dd>{{ phone.get('number') }}</dd>
-                    <dt>Primary</dt><dd>{{ phone.get('primary') }}</dd>
-                    <dt>Verified</dt><dd>{{ phone.get('verified') }}</dd>
-                    <dt>Added timestamp</dt><dd>{{ phone.get('created_ts')|datetimeformat }}</dd>
-                    {% if phone.get('verified_ts') %}
-                        <dt>Verified timestamp</dt><dd>{{ phone.get('verified_ts')|datetimeformat }}</dd>
-                    {% endif %}
-                </dl>
-            {% endfor %}
-        </td>
-    </tr>
-    <tr>
         <th>Credentials:</th>
         <td>
             {% for credential in user_dict.passwords|multisort('type', 'created_ts', reverse=True) %}
