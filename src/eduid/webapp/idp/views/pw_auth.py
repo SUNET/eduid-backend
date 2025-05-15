@@ -24,13 +24,21 @@ pw_auth_views = Blueprint("pw_auth", __name__, url_prefix="")
 @require_ticket
 @uses_sso_session
 def pw_auth(
-    ticket: LoginContext, sso_session: SSOSession | None, username: str, password: str
+    ticket: LoginContext, sso_session: SSOSession | None, password: str, username: str | None = None
 ) -> FluxData | WerkzeugResponse:
     current_app.logger.debug("\n\n")
     current_app.logger.debug(f"--- Password authentication ({ticket.request_ref}) ---")
 
     if not current_app.conf.login_bundle_url:
         return error_response(message=IdPMsg.not_available)
+
+    _eppn = None
+    if sso_session:
+        username = sso_session.eppn
+        current_app.logger.debug(f"Found eppn: {_eppn} from SSO session")
+    elif ticket.known_device and ticket.known_device.data.eppn:
+        username = ticket.known_device.data.eppn
+        current_app.logger.debug(f"Found eppn: {_eppn} for known device ---")
 
     if not username or not password:
         current_app.logger.debug("Credentials not supplied")

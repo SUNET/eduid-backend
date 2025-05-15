@@ -52,7 +52,8 @@ class IdPMsg(str, TranslatableMsg):
 class IdPAction(StrEnum):
     NEW_DEVICE = "NEW_DEVICE"
     OTHER_DEVICE = "OTHER_DEVICE"
-    PWAUTH = "USERNAMEPASSWORD"
+    USERNAMEPWAUTH = "USERNAMEPASSWORD"
+    PWAUTH = "PASSWORD"
     MFA = "MFA"
     TOU = "TOU"
     FINISHED = "FINISHED"

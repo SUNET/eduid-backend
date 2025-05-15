@@ -120,7 +120,7 @@ def next_view(ticket: LoginContext, sso_session: SSOSession | None) -> FluxData:
         if required_user.eppn is None or authn_options.webauthn is False:
             # we don't know the users eppn or the user does not have a security key, show username and password input
             _payload = {
-                "action": IdPAction.PWAUTH.value,
+                "action": IdPAction.USERNAMEPWAUTH.value,
                 "target": url_for("pw_auth.pw_auth", _external=True),
                 "authn_options": authn_options.to_dict(),
                 "service_info": service_info,
