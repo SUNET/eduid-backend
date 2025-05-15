@@ -3,25 +3,28 @@ import uuid
 from collections.abc import Mapping
 from typing import Any, TypeAlias
 
-import satosa.internal
-import satosa.response
 from saml2.saml import (
     NAMEID_FORMAT_EMAILADDRESS,
     NAMEID_FORMAT_PERSISTENT,
     NAMEID_FORMAT_TRANSIENT,
     NAMEID_FORMAT_UNSPECIFIED,
 )
+from satosa.context import Context
 from satosa.exception import SATOSAAuthenticationError
+from satosa.internal import InternalData
 from satosa.micro_services.base import RequestMicroService, ResponseMicroService
+from satosa.response import Response
 
-logger = logging.getLogger(__name__)
-ProcessReturnType: TypeAlias = satosa.internal.InternalData | satosa.response.Response
+ProcessReturnType: TypeAlias = InternalData | Response
+
 ALLOWED_NAMEIDS = (
     NAMEID_FORMAT_UNSPECIFIED,
     NAMEID_FORMAT_EMAILADDRESS,
     NAMEID_FORMAT_PERSISTENT,
     NAMEID_FORMAT_TRANSIENT,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class request(RequestMicroService):
@@ -34,7 +37,7 @@ class request(RequestMicroService):
     ) -> None:
         super().__init__(*args, **kwargs)
 
-    def process(self, context: satosa.context.Context, data: satosa.internal.InternalData) -> ProcessReturnType:
+    def process(self, context: Context, data: InternalData) -> ProcessReturnType:
         # Pysaml or satosa makes sure that we always have a subject_typeeven
         # even if not requested by the SP or specified in the metadata.
         if data.subject_type:
@@ -63,7 +66,7 @@ class response(ResponseMicroService):
     ) -> None:
         super().__init__(*args, **kwargs)
 
-    def process(self, context: satosa.context.Context, data: satosa.internal.InternalData) -> ProcessReturnType:
+    def process(self, context: Context, data: InternalData) -> ProcessReturnType:
         subject_type = context.state.get("subject_type")
         if not subject_type:
             raise SATOSAAuthenticationError(context.state, "No NameID from saved state")
@@ -76,7 +79,7 @@ class response(ResponseMicroService):
         elif subject_type == NAMEID_FORMAT_PERSISTENT:
             pairwise = data.attributes.get("pairwise-id")[0]
             if not pairwise:
-                raise SATOSAAuthenticationError(context.state, "No pairwise ID to use as persistant NameID")
+                raise SATOSAAuthenticationError(context.state, "No pairwise ID to use as persistent NameID")
             data.subject_id = pairwise.split("@")[0]
             data.subject_type = subject_type
         elif subject_type == NAMEID_FORMAT_EMAILADDRESS:
