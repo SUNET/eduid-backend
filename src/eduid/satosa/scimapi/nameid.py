@@ -76,7 +76,7 @@ class response(ResponseMicroService):
         elif subject_type == NAMEID_FORMAT_PERSISTENT:
             pairwise = data.attributes.get("pairwise-id")[0]
             if not pairwise:
-                raise SATOSAAuthenticationError(context.state, "No pairwise ID to use as persistant NameID")
+                raise SATOSAAuthenticationError(context.state, "No pairwise ID to use as persistent NameID")
             data.subject_id = pairwise.split("@")[0]
             data.subject_type = subject_type
         elif subject_type == NAMEID_FORMAT_EMAILADDRESS:
