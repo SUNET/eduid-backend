@@ -42,7 +42,7 @@ class TestIdPUserDb(IdPAPITests):
             pwauth = self.app.authn.password_authn(self.test_user.mail_addresses.primary.email, "foo")
             assert pwauth
             assert pwauth.user.eppn == self.test_user.eppn
-            assert pwauth.authndata is not None
+            assert pwauth.authn_data is not None
 
     def test_verify_username_and_incorrect_password(self) -> None:
         assert self.test_user.mail_addresses.primary
@@ -85,8 +85,8 @@ class TestAuthentication(IdPAPITests):
         pwauth = self.app.authn.password_authn(self.test_user.mail_addresses.primary.email, "foo")
         assert pwauth is not None
         assert pwauth.user.eppn == self.test_user.eppn
-        assert pwauth.authndata is not None
-        assert pwauth.authndata.cred_id == factor.credential_id
+        assert pwauth.authn_data is not None
+        assert pwauth.authn_data.cred_id == factor.credential_id
 
     @patch("eduid.vccs.client.VCCSClient.authenticate")
     @patch("eduid.vccs.client.VCCSClient.add_credentials")

@@ -37,7 +37,7 @@ class IdPTestLogoutAPI(IdPAPITests):
             with patch.object(VCCSClient, "authenticate"):
                 VCCSClient.authenticate.return_value = True  # type: ignore[attr-defined]
                 login_result = self._try_login()
-                assert login_result.visit_order == [IdPAction.PWAUTH, IdPAction.FINISHED]
+                assert login_result.visit_order == [IdPAction.USERNAMEPWAUTH, IdPAction.FINISHED]
 
             assert login_result.finished_result
 
@@ -62,7 +62,7 @@ class IdPTestLogoutAPI(IdPAPITests):
         with patch.object(VCCSClient, "authenticate"):
             VCCSClient.authenticate.return_value = True  # type: ignore[attr-defined]
             login_result = self._try_login()
-            assert login_result.visit_order == [IdPAction.PWAUTH, IdPAction.FINISHED]
+            assert login_result.visit_order == [IdPAction.USERNAMEPWAUTH, IdPAction.FINISHED]
 
         assert login_result.finished_result
         assert login_result.sso_cookie_val
@@ -102,7 +102,7 @@ class IdPTestLogoutAPI(IdPAPITests):
             with patch.object(VCCSClient, "authenticate"):
                 VCCSClient.authenticate.return_value = True  # type: ignore[attr-defined]
                 login_result = self._try_login()
-                assert login_result.visit_order == [IdPAction.PWAUTH, IdPAction.FINISHED]
+                assert login_result.visit_order == [IdPAction.USERNAMEPWAUTH, IdPAction.FINISHED]
 
             assert login_result.finished_result
             authn_response = self.parse_saml_authn_response(login_result.finished_result)

@@ -52,7 +52,7 @@ class NextResponseSchema(FluxStandardAction):
 
 
 class PwAuthRequestSchema(IdPRequest):
-    username = fields.Str(required=True)
+    username = fields.Str(required=False)
     password = fields.Str(required=True)
 
 
