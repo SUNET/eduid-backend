@@ -58,6 +58,6 @@ class GeneratePairwiseId(ResponseMicroService):
         ).hexdigest()
 
         logger.debug(f"Pairwise-id for {subject_id} and {relying_party}: {pairwise_hash}@{user_scope}")
-        data.attributes["pairwise-id"] = f"{pairwise_hash}@{user_scope}"
+        data.attributes["pairwise-id"] = [f"{pairwise_hash}@{user_scope}"]
 
         return super().process(context, data)

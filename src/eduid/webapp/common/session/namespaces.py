@@ -268,9 +268,19 @@ class SPAuthnData(BaseModel):
             return dict(items[:10])
         return v
 
+    def _get_sorted_authns(self) -> list[SP_AuthnRequest]:
+        # sort authn actions by created_ts, latest first
+        return [authn for authn in sorted(self.authns.values(), reverse=True, key=lambda item: item.created_ts)]
+
+    def get_latest_authn(self) -> SP_AuthnRequest | None:
+        for authn in self._get_sorted_authns():
+            # return the first one (latest)
+            return authn
+        return None
+
     def get_authn_for_frontend_action(self, action: FrontendAction) -> SP_AuthnRequest | None:
-        # sort authn actions by created_ts and return the first one (latest) that matches the action
-        for authn in sorted(self.authns.values(), reverse=True, key=lambda item: item.created_ts):
+        # return the first one (latest) that matches the action
+        for authn in self._get_sorted_authns():
             if authn.frontend_action == action:
                 return authn
         return None

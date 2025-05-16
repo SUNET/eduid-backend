@@ -33,7 +33,7 @@ pydantic
 email-validator
 pymongo
 pynacl
-pysaml2
+pysaml2==7.5.2+sunet2
 pysmscom
 python-dateutil
 python-jose

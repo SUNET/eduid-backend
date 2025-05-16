@@ -18,6 +18,7 @@ from eduid.userdb.user import User
 from eduid.webapp.common.api.helpers import set_user_names_from_official_address
 from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.common.api.translation import get_user_locale
+from eduid.webapp.common.session import session
 from eduid.webapp.security.app import current_security_app as current_app
 
 __author__ = "lundberg"
@@ -86,6 +87,7 @@ class CredentialInfo:
     success_ts: datetime | None
     verified: bool = False
     description: str | None = None
+    used_for_login: bool = False
 
 
 def compile_credential_list(user: User) -> list[CredentialInfo]:
@@ -94,6 +96,7 @@ def compile_credential_list(user: User) -> list[CredentialInfo]:
     """
     credentials: list[CredentialInfo] = []
     authn_info = current_app.authninfo_db.get_authn_info(user)
+    latest_authn = session.authn.sp.get_latest_authn()
     for cred_key, authn in authn_info.items():
         cred = user.credentials.find(cred_key)
         # pick up attributes not present on all types of credentials
@@ -105,6 +108,9 @@ def compile_credential_list(user: User) -> list[CredentialInfo]:
         _is_v = getattr(cred, "is_verified", None)
         if isinstance(_is_v, bool):
             _is_verified = _is_v
+        _used_for_login = False
+        if latest_authn and cred_key in latest_authn.credentials_used:
+            _used_for_login = True
         info = CredentialInfo(
             key=cred_key,
             credential_type=authn.credential_type.value,
@@ -112,6 +118,7 @@ def compile_credential_list(user: User) -> list[CredentialInfo]:
             description=_description,
             success_ts=authn.success_ts,
             verified=_is_verified,
+            used_for_login=_used_for_login,
         )
         credentials.append(info)
     return credentials

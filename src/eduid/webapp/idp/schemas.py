@@ -64,7 +64,7 @@ class PwAuthResponseSchema(FluxStandardAction):
 
 
 class MfaAuthRequestSchema(IdPRequest):
-    webauthn_response = fields.Dict(keys=fields.Str(), values=fields.Str(), default=None, required=False)
+    webauthn_response = fields.Dict(keys=fields.Str(), values=fields.Str(), load_default=None, required=False)
 
 
 class MfaAuthResponseSchema(FluxStandardAction):
@@ -132,9 +132,11 @@ class UseOther1ResponseSchema(FluxStandardAction):
 
 class UseOther2RequestSchema(EduidSchema, CSRFRequestMixin):
     action = fields.Str(required=False)  # optional action ('ABORT' is the only one on device 2)
-    ref = fields.Str(missing=None, required=False)  # use login_ref on page reloads, when there is a pending_request
+    ref = fields.Str(
+        load_default=None, required=False
+    )  # use login_ref on page reloads, when there is a pending_request
     # use state_id on first load from QR URL, before a pending_request is set up
-    state_id = fields.Str(missing=None, required=False)
+    state_id = fields.Str(load_default=None, required=False)
 
 
 class UseOther2ResponseSchema(FluxStandardAction):
@@ -177,7 +179,7 @@ class AbortResponseSchema(FluxStandardAction):
 
 
 class LogoutRequestSchema(EduidSchema, CSRFRequestMixin):
-    ref = fields.Str(missing=None, required=False)  # frontend tells us this is an ongoing login
+    ref = fields.Str(load_default=None, required=False)  # frontend tells us this is an ongoing login
 
 
 class LogoutResponseSchema(FluxStandardAction):
