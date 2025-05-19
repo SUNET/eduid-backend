@@ -549,7 +549,7 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
         is_verified: bool = False,
         mfa_approved: bool = False,
         credential: FidoCredential | None = None,
-        always_use_security_key_user_preference: bool = True,
+        always_use_security_key: bool = True,
     ) -> None:
         if user is None:
             user = self.test_user
@@ -569,7 +569,7 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
                 mfa_approved=mfa_approved,
             )
         user.credentials.add(credential)
-        user.preferences.always_use_security_key = always_use_security_key_user_preference
+        user.preferences.always_use_security_key = always_use_security_key
         self.request_user_sync(user)
 
     def add_test_user_external_mfa_cred(

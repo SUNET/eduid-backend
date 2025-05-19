@@ -165,6 +165,7 @@ class TestSSO(SSOIdPTests):
         proofing_method: IdentityProofingMethod | None = None,
         identity_verified_by: str = "unittest",
         replace_existing_identities: bool = True,
+        always_use_security_key: bool = True,
     ) -> IdPUser:
         """
         Get a user from the userdb, and set an identity on it.
@@ -218,6 +219,9 @@ class TestSSO(SSOIdPTests):
                 case _:
                     raise ValueError(f"Unknown identity type {identity_type}")
             user.identities.add(identity)
+
+        # ser user preference always use security key
+        user.preferences.always_use_security_key = always_use_security_key
 
         self.request_user_sync(user)
         self.app.userdb.lookup_user(eppn)
