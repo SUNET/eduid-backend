@@ -8,6 +8,7 @@ from flask import Blueprint, jsonify, request
 from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.common.misc.timeutil import utc_now
+from eduid.common.models.saml2 import EduidAuthnContextClass
 from eduid.userdb import User
 from eduid.userdb.credentials import Credential, FidoCredential
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith
@@ -79,6 +80,14 @@ def mfa_auth(
         # response containing a webauthn challenge if applicable.
         payload: dict[str, Any] = {"finished": False}
 
+        # figure out which UserVerification we should ask for
+        # if MFA is requested we should use PREFERRED as to hopefully get two factors directly
+        # if anything else we will use DISCOURAGE as a single factor is enough
+        req_authn_ctx = ticket.get_requested_authn_context()
+        user_verification = UserVerificationRequirement.DISCOURAGED
+        if req_authn_ctx in [EduidAuthnContextClass.DIGG_LOA2, EduidAuthnContextClass.REFEDS_MFA]:
+            user_verification = UserVerificationRequirement.PREFERRED
+
         candidates = user.credentials.filter(FidoCredential)
         if candidates:
             current_app.logger.debug("User has one or more FIDO tokens, adding webauthn challenge to response")
@@ -87,7 +96,7 @@ def mfa_auth(
                 fido2_rp_id=current_app.conf.fido2_rp_id,
                 fido2_rp_name=current_app.conf.fido2_rp_name,
                 state=session.mfa_action,
-                user_verification=UserVerificationRequirement.PREFERRED,
+                user_verification=user_verification,
             )
             payload.update(options)
 
