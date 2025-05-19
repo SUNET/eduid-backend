@@ -79,8 +79,8 @@ TCS_SERVER = [
 ]
 
 # These give you access to information
-RESEARCH_AND_SCHOLARSHIP = "http://refeds.org/category/research-and-scholarship"
-COCOv1 = "http://www.geant.net/uri/dataprotection-code-of-conduct/v1"
+RESEARCH_AND_SCHOLARSHIP = "http://refeds.org/category/research-and-scholarship" # NOSONAR Should be http://
+COCOv1 = "http://www.geant.net/uri/dataprotection-code-of-conduct/v1" # NOSONAR Should be http://
 COCOv2 = "https://refeds.org/category/code-of-conduct/v2"
 ESI = "https://myacademicid.org/entity-categories/esi"
 PERSONALIZED = "https://refeds.org/category/personalized"
