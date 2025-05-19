@@ -1,7 +1,6 @@
 __author__ = "bjorn"
 
-from typing import Any
-from saml2.entity_category.swamid import RELEASE, ONLY_REQUIRED, RESTRICTIONS
+from saml2.entity_category.swamid import ONLY_REQUIRED, RELEASE, RESTRICTIONS
 
 # For Connect only
 TCS_SERVER = [
