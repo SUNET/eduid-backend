@@ -1,7 +1,8 @@
 __author__ = "bjorn"
 
-from typing import Any
+from saml2.entity_category.swamid import ONLY_REQUIRED, RELEASE, RESTRICTIONS
 
+# For Connect only
 TCS_SERVER = [
     "eduPersonPrincipalName",
     "givenName",
@@ -12,35 +13,9 @@ TCS_SERVER = [
     "schacHomeOrganization",
 ]
 
+# For Connect only
 TCSSERVERv1 = "https://sunet.se/category/tcs/v1"
 
-
-RELEASE = {
-    "": [],
-    TCSSERVERv1: TCS_SERVER,
-}
-
-ONLY_REQUIRED = {
-    TCSSERVERv1: True,
-}
-
-# ruff: noqa: ERA001
-# These restrictions are parsed (and validated) into a list of saml2.assertion.EntityCategoryRule instances.
-RESTRICTIONS: list[dict[str, Any]] = [
-    # Example of conversion of some of the rules in RELEASE to this new format:
-    #
-    # {
-    #     "match": {
-    #         "required": [COCOv1],
-    #     },
-    #     "attributes": GEANT_COCO,
-    #     "only_required": True,
-    # },
-    # {
-    #     "match": {
-    #         "required": [ESI, COCOv1],
-    #     },
-    #     "attributes": MYACADEMICID_ESI + GEANT_COCO,
-    #     "only_required": True,
-    # },
-]
+RELEASE[TCSSERVERv1] = TCS_SERVER
+ONLY_REQUIRED[TCSSERVERv1] = True
+RESTRICTIONS = RESTRICTIONS
