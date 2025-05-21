@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 
-class TestIdPNamespace(EduidAPITestCase):
+class TestNameSpaceBase(EduidAPITestCase):
     app: SessionTestApp
 
     def load_app(self, test_config: Mapping[str, Any]) -> SessionTestApp:
@@ -32,12 +32,16 @@ class TestIdPNamespace(EduidAPITestCase):
         app.session_interface = SessionFactory(app.conf)
         return app
 
+    def get_session(self, meta: SessionMeta, new: bool = True) -> EduidSession:
+        assert isinstance(self.app.session_interface, SessionFactory)
+        base_session = self.app.session_interface.manager.get_session(meta=meta, new=new)
+        return EduidSession(app=self.app, meta=meta, base_session=base_session, new=new)
+
+
+class TestNamespace(TestNameSpaceBase):
     def test_to_dict_from_dict(self) -> None:
         _meta = SessionMeta.new(app_secret="secret")
-        assert isinstance(self.app.session_interface, SessionFactory)
-        base_session = self.app.session_interface.manager.get_session(meta=_meta, new=True)
-        session: EduidSession = EduidSession(app=self.app, meta=_meta, base_session=base_session, new=True)
-
+        session = self.get_session(meta=_meta)
         assert session.idp.sso_cookie_val is None
 
         session.idp.sso_cookie_val = "abc"
@@ -63,20 +67,18 @@ class TestIdPNamespace(EduidAPITestCase):
         session.persist()
 
         # Validate that the session can be loaded again
-        loaded_session = self.app.session_interface.manager.get_session(meta=_meta, new=False)
+        loaded_session = self.get_session(meta=_meta, new=False)
         # loaded_session is raw data from the storage backend, it won't have timestamps deserialised into datetimes
         # (done by pydantic when loading the data into the EduidSession), so in order to expect the same serialisation
         # again we need to do that here
-        loaded_session["idp"]["ts"] = datetime.fromisoformat(loaded_session["idp"]["ts"])
-        loaded_session["signup"]["ts"] = datetime.fromisoformat(loaded_session["signup"]["ts"])
+        loaded_session._session["idp"]["ts"] = datetime.fromisoformat(loaded_session._session["idp"]["ts"])
+        loaded_session._session["signup"]["ts"] = datetime.fromisoformat(loaded_session._session["signup"]["ts"])
         # ...and that it serialises to the same data again
-        assert loaded_session.to_dict() == out
+        assert loaded_session._session.to_dict() == out
 
     def test_to_dict_from_dict_with_timestamp(self) -> None:
         _meta = SessionMeta.new(app_secret="secret")
-        assert isinstance(self.app.session_interface, SessionFactory)
-        base_session = self.app.session_interface.manager.get_session(meta=_meta, new=True)
-        first: EduidSession = EduidSession(app=self.app, meta=_meta, base_session=base_session, new=True)
+        first = self.get_session(meta=_meta)
 
         assert first.idp.sso_cookie_val is None
 
@@ -93,8 +95,7 @@ class TestIdPNamespace(EduidAPITestCase):
         first.persist()
 
         # Validate that the session can be loaded again
-        base_session = self.app.session_interface.manager.get_session(meta=_meta, new=False)
-        second: EduidSession = EduidSession(self.app, _meta, base_session, new=False)
+        second = self.get_session(meta=_meta, new=False)
         # loaded_session is raw data from the storage backend, it won't have timestamps deserialised into datetimes
         # (done by pydantic when loading the data into the EduidSession), so in order to expect the same serialisation
         # again we need to do that here
@@ -108,47 +109,27 @@ class TestIdPNamespace(EduidAPITestCase):
 
     def test_clear_namespace(self) -> None:
         _meta = SessionMeta.new(app_secret="secret")
-        assert isinstance(self.app.session_interface, SessionFactory)
-        base_session = self.app.session_interface.manager.get_session(meta=_meta, new=True)
-        first: EduidSession = EduidSession(app=self.app, meta=_meta, base_session=base_session, new=True)
+        first = self.get_session(meta=_meta)
         first.signup.email.address = "test@example.com"
         first.signup.email.verification_code = "123456"
         first.persist()
         # load session again and clear it
-        base_session = self.app.session_interface.manager.get_session(meta=_meta, new=False)
-        second: EduidSession = EduidSession(self.app, _meta, base_session, new=False)
+        second = self.get_session(meta=_meta, new=False)
         assert second.signup.email.address == "test@example.com"
         assert second.signup.email.verification_code == "123456"
         second.signup.clear()
         second.signup.email.address = "test@example.com"
         second.persist()
         # load session one more time and make sure verification_code is empty
-        base_session = self.app.session_interface.manager.get_session(meta=_meta, new=False)
-        third: EduidSession = EduidSession(self.app, _meta, base_session, new=False)
+        third = self.get_session(meta=_meta, new=False)
         assert third.signup.email.address == "test@example.com"
         assert third.signup.email.verification_code is None
 
 
-class TestAuthnNamespace(EduidAPITestCase):
-    app: SessionTestApp
-
-    def load_app(self, test_config: Mapping[str, Any]) -> SessionTestApp:
-        """
-        Called from the parent class, so we can provide the appropriate flask
-        app for this test case.
-        """
-        logger.debug("Starting SessionTestApp")
-        config = load_config(typ=SessionTestConfig, app_name="testing", ns="webapp", test_config=test_config)
-        app = SessionTestApp(config)
-        logger.debug("Started SessionTestApp")
-        app.session_interface = SessionFactory(app.conf)
-        return app
-
+class TestAuthnNamespace(TestNameSpaceBase):
     def test_sp_authns_cleanup(self) -> None:
         _meta = SessionMeta.new(app_secret="secret")
-        assert isinstance(self.app.session_interface, SessionFactory)
-        base_session = self.app.session_interface.manager.get_session(meta=_meta, new=True)
-        sess: EduidSession = EduidSession(app=self.app, meta=_meta, base_session=base_session, new=True)
+        sess = self.get_session(meta=_meta)
         for i in range(15):
             sess.authn.sp.authns[AuthnRequestRef(str(i))] = SP_AuthnRequest(
                 frontend_action=FrontendAction.LOGIN, finish_url="some_url"
@@ -156,6 +137,6 @@ class TestAuthnNamespace(EduidAPITestCase):
         assert len(sess.authn.sp.authns) == 15, f"Expected 15 authns got {len(sess.authn.sp.authns)}"
         sess.persist()
         # load the session again
-        base_session = self.app.session_interface.manager.get_session(meta=_meta, new=False)
-        sess = EduidSession(self.app, _meta, base_session, new=False)
+
+        sess = self.get_session(meta=_meta, new=False)
         assert len(sess.authn.sp.authns) == 10, f"Expected 10 authns got {len(sess.authn.sp.authns)}"
