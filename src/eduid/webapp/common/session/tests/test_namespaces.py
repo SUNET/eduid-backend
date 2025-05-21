@@ -5,12 +5,14 @@ from typing import Any
 
 from eduid.common.config.base import FrontendAction
 from eduid.common.config.parsers import load_config
+from eduid.common.misc.timeutil import utc_now
 from eduid.common.testing_base import normalised_data
+from eduid.userdb.element import ElementKey
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.common.session import EduidSession
 from eduid.webapp.common.session.eduid_session import SessionFactory
 from eduid.webapp.common.session.meta import SessionMeta
-from eduid.webapp.common.session.namespaces import AuthnRequestRef, SP_AuthnRequest
+from eduid.webapp.common.session.namespaces import AuthnRequestRef, IdP_SAMLPendingRequest, RequestRef, SP_AuthnRequest
 from eduid.webapp.common.session.tests.test_eduid_session import SessionTestApp, SessionTestConfig
 
 logger = logging.getLogger(__name__)
@@ -140,3 +142,23 @@ class TestAuthnNamespace(TestNameSpaceBase):
 
         sess = self.get_session(meta=_meta, new=False)
         assert len(sess.authn.sp.authns) == 10, f"Expected 10 authns got {len(sess.authn.sp.authns)}"
+
+
+class TestIdpNamespace(TestNameSpaceBase):
+    def test_migrate_pending_req_creds_used(self) -> None:
+        _meta = SessionMeta.new(app_secret="secret")
+        sess = self.get_session(meta=_meta)
+        now = utc_now()
+        request_ref = RequestRef("test_request_ref")
+        element_key = ElementKey("test_credential_key")
+        # save a pending request in the old format where credentials_used just had a timestamp str value
+        sess.idp.pending_requests[request_ref] = IdP_SAMLPendingRequest(request="test_request", binding="test_binding")
+        # ignore assignment type checking as that is what we want to fix
+        sess.idp.pending_requests[request_ref].credentials_used[element_key] = now.isoformat()  # type: ignore[assignment]
+        sess.persist()
+        # Load the session to make sure the migration went ok
+        sess = self.get_session(meta=_meta, new=False)
+        cred_used = sess.idp.pending_requests[request_ref].credentials_used.get(element_key)
+        assert cred_used is not None
+        assert cred_used.cred_id == "test_credential_key"
+        assert cred_used.timestamp == now
