@@ -15,9 +15,8 @@ from nacl.secret import SecretBox
 from eduid.common.utils import urlappend
 from eduid.webapp.common.api.messages import FluxData, error_response
 from eduid.webapp.idp.app import current_idp_app as current_app
-from eduid.webapp.idp.assurance_data import UsedWhere
 from eduid.webapp.idp.helpers import IdPMsg
-from eduid.webapp.idp.idp_authn import AuthnData
+from eduid.webapp.idp.idp_authn import AuthnData, UsedWhere
 from eduid.webapp.idp.login_context import LoginContext
 from eduid.webapp.idp.other_device.data import OtherDeviceState
 from eduid.webapp.idp.other_device.db import OtherDevice
@@ -98,7 +97,7 @@ def device1_login_user_from_device2(
         authn = AuthnData(cred_id=this.credential_id, timestamp=this.ts)
         _sso_credentials_used += [authn]
         if this.source == UsedWhere.REQUEST:
-            ticket.pending_request.credentials_used[this.credential_id] = this.ts
+            ticket.pending_request.credentials_used[this.credential_id] = authn
             _request_count += 1
     # Create/update SSO session
     sso_session = record_authentication(

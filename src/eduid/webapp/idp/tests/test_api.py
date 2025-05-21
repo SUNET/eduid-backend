@@ -181,6 +181,7 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
         force_authn: bool = False,
         assertion_consumer_service_url: str | None = None,
         test_user: TestUser | None = None,
+        username: str | bool | None = None,
         sso_cookie_val: str | None = None,
         session_cookie_val: str | None = None,
         mfa_credential: Credential | None = None,
@@ -256,45 +257,62 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
                     logger.error(f"Next state {_action} already visited, aborting with result {result}")
                     return result
 
-                if _action == IdPAction.PWAUTH:
-                    if other_device:
-                        result.other_device1_result = self._call_other_device1(
-                            device, target="http://test.localhost/use_other_1", ref=ref
-                        )
-                        return result
-                    if not user.eppn or not user.password:
-                        logger.error(f"Can't login without username and password, aborting with result {result}")
-                        return result
-
-                    result.pwauth_result = self._call_pwauth(
-                        device, _next.payload["target"], ref, user.eppn, user.password
-                    )
-                    result.sso_cookie_val = result.pwauth_result.sso_cookie_val
-                    cookie_jar.update(result.pwauth_result.cookies)
-
-                if _action == IdPAction.MFA:
-                    if mfa_credential is None:
-                        assert user.eppn is not None  # please mypy
-                        _user = self.app.userdb.lookup_user(user.eppn)
-                        assert _user is not None
-                        # default mfa_credential to the first FidoCredential on the user
-                        try:
-                            mfa_credential = _user.credentials.filter(FidoCredential)[0]
-                        except IndexError:
-                            raise AssertionError(
-                                f"No FidoCredential found for user {_user.eppn}, aborting with result {result}"
+                match _action:
+                    case IdPAction.USERNAMEPWAUTH | IdPAction.PWAUTH:
+                        if other_device:
+                            result.other_device1_result = self._call_other_device1(
+                                device, target="http://test.localhost/use_other_1", ref=ref
                             )
+                            return result
 
-                    result.mfa_result = self._call_mfa(device, _next.payload["target"], ref, mfa_credential)
+                        if username is None:
+                            username = user.eppn
 
-                if _action == IdPAction.TOU:
-                    result.tou_result = self._call_tou(
-                        device, _next.payload["target"], ref, user_accepts=self.app.conf.tou_version
-                    )
+                        if username is False and user.password:
+                            # make the call to pwauth without username
+                            result.pwauth_result = self._call_pwauth(
+                                device=device, target=_next.payload["target"], ref=ref, password=user.password
+                            )
+                        elif not username or not user.password:
+                            logger.error(f"Can't login without username and password, aborting with result {result}")
+                            return result
+                        else:
+                            result.pwauth_result = self._call_pwauth(
+                                device=device,
+                                target=_next.payload["target"],
+                                ref=ref,
+                                username=user.eppn,
+                                password=user.password,
+                            )
+                        result.sso_cookie_val = result.pwauth_result.sso_cookie_val
+                        cookie_jar.update(result.pwauth_result.cookies)
 
-                if _action == IdPAction.FINISHED:
-                    result.finished_result = FinishedResultAPI(payload=_next.payload)
-                    return result
+                    case IdPAction.MFA:
+                        if mfa_credential is None:
+                            assert user.eppn is not None  # please mypy
+                            _user = self.app.userdb.lookup_user(user.eppn)
+                            assert _user is not None
+                            # default mfa_credential to the first FidoCredential on the user
+                            try:
+                                mfa_credential = _user.credentials.filter(FidoCredential)[0]
+                            except IndexError:
+                                raise AssertionError(
+                                    f"No FidoCredential found for user {_user.eppn}, aborting with result {result}"
+                                )
+
+                        result.mfa_result = self._call_mfa(device, _next.payload["target"], ref, mfa_credential)
+
+                    case IdPAction.TOU:
+                        result.tou_result = self._call_tou(
+                            device, _next.payload["target"], ref, user_accepts=self.app.conf.tou_version
+                        )
+
+                    case IdPAction.FINISHED:
+                        result.finished_result = FinishedResultAPI(payload=_next.payload)
+                        return result
+
+                    case _ as failed_action:
+                        raise AssertionError(f"Unexpected action: {failed_action} - result {result}")
 
     def _call_next(self, device: CSRFTestClient, ref: str) -> NextResult:
         with self.session_cookie_anon(device) as client:
@@ -321,11 +339,16 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
             return NextResult(payload={}, error=_error)
         return NextResult(payload=self.get_response_payload(response))
 
-    def _call_pwauth(self, device: CSRFTestClient, target: str, ref: str, username: str, password: str) -> PwAuthResult:
+    def _call_pwauth(
+        self, device: CSRFTestClient, target: str, ref: str, username: str | None = None, password: str | None = None
+    ) -> PwAuthResult:
+        assert password is not None, "password is required for _call_pwauth"
         with self.session_cookie_anon(device) as client:
             with self.app.test_request_context():
                 with client.session_transaction() as sess:
-                    data = {"ref": ref, "username": username, "password": password, "csrf_token": sess.get_csrf_token()}
+                    data = {"ref": ref, "password": password, "csrf_token": sess.get_csrf_token()}
+                    if username:
+                        data["username"] = username
                 response = client.post(target, data=json.dumps(data), content_type=self.content_type_json)
         logger.debug(f"PwAuth endpoint returned:\n{json.dumps(response.json, indent=4)}")
         result = PwAuthResult(payload=self.get_response_payload(response))
@@ -526,7 +549,7 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
         is_verified: bool = False,
         mfa_approved: bool = False,
         credential: FidoCredential | None = None,
-        always_use_security_key_user_preference: bool = True,
+        always_use_security_key: bool = True,
     ) -> None:
         if user is None:
             user = self.test_user
@@ -546,7 +569,7 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
                 mfa_approved=mfa_approved,
             )
         user.credentials.add(credential)
-        user.preferences.always_use_security_key = always_use_security_key_user_preference
+        user.preferences.always_use_security_key = always_use_security_key
         self.request_user_sync(user)
 
     def add_test_user_external_mfa_cred(

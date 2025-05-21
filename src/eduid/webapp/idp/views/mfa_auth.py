@@ -3,24 +3,28 @@ from copy import deepcopy
 from dataclasses import dataclass
 from typing import Any
 
-from flask import Blueprint
+from fido2.webauthn import UserVerificationRequirement
+from flask import Blueprint, jsonify, request
+from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.common.misc.timeutil import utc_now
+from eduid.common.models.saml2 import EduidAuthnContextClass
 from eduid.userdb import User
 from eduid.userdb.credentials import Credential, FidoCredential
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith
 from eduid.webapp.common.api.messages import FluxData, error_response, success_response
+from eduid.webapp.common.api.schemas.models import FluxSuccessResponse
 from eduid.webapp.common.authn import fido_tokens
-from eduid.webapp.common.session import EduidSession, session
-from eduid.webapp.common.session.logindata import ExternalMfaData
-from eduid.webapp.common.session.namespaces import MfaAction, OnetimeCredential, OnetimeCredType, RequestRef
+from eduid.webapp.common.session import session
+from eduid.webapp.common.session.namespaces import MfaAction, RequestRef
 from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.decorators import require_ticket, uses_sso_session
 from eduid.webapp.idp.helpers import IdPMsg, lookup_user
-from eduid.webapp.idp.idp_authn import AuthnData, ExternalAuthnData
+from eduid.webapp.idp.idp_authn import AuthnData, ExternalAuthnData, FidoAuthnData
 from eduid.webapp.idp.login_context import LoginContext
+from eduid.webapp.idp.mischttp import set_sso_cookie
 from eduid.webapp.idp.schemas import MfaAuthRequestSchema, MfaAuthResponseSchema
-from eduid.webapp.idp.sso_session import SSOSession
+from eduid.webapp.idp.sso_session import SSOSession, record_authentication
 
 mfa_auth_views = Blueprint("mfa_auth", __name__, url_prefix="")
 
@@ -32,20 +36,27 @@ mfa_auth_views = Blueprint("mfa_auth", __name__, url_prefix="")
 @uses_sso_session
 def mfa_auth(
     ticket: LoginContext, sso_session: SSOSession | None, webauthn_response: Mapping[str, str] | None = None
-) -> FluxData:
+) -> FluxData | WerkzeugResponse:
     current_app.logger.debug("\n\n")
     current_app.logger.debug(f"--- MFA authentication ({ticket.request_ref}) ---")
 
     if not current_app.conf.login_bundle_url:
         return error_response(message=IdPMsg.not_available)
 
-    if not sso_session:
-        current_app.logger.error("MFA auth called without an SSO session")
+    _eppn = None
+    if sso_session:
+        _eppn = sso_session.eppn
+        current_app.logger.debug(f"Found eppn: {_eppn} from SSO session")
+    elif ticket.known_device and ticket.known_device.data.eppn:
+        _eppn = ticket.known_device.data.eppn
+        current_app.logger.debug(f"Found eppn: {_eppn} for known device ---")
+    else:
+        current_app.logger.error("MFA auth called without an SSO session or known device")
         return error_response(message=IdPMsg.no_sso_session)
 
-    user = lookup_user(sso_session.eppn)
+    user = lookup_user(_eppn)
     if not user:
-        current_app.logger.error(f"User with eppn {sso_session.eppn} (from SSO session) not found")
+        current_app.logger.error(f"User with eppn {_eppn} (from SSO session) not found")
         return error_response(message=IdPMsg.general_failure)
 
     # Clear mfa_action from session, so that we know if the user did external MFA
@@ -54,7 +65,7 @@ def mfa_auth(
     saved_mfa_action = deepcopy(session.mfa_action)
     del session.mfa_action
 
-    result = _check_external_mfa(saved_mfa_action, session, user, ticket.request_ref, sso_session)
+    result = _check_external_mfa(saved_mfa_action, user, ticket.request_ref)
     if result and result.response:
         return result.response
 
@@ -69,6 +80,14 @@ def mfa_auth(
         # response containing a webauthn challenge if applicable.
         payload: dict[str, Any] = {"finished": False}
 
+        # figure out which UserVerification we should ask for
+        # if MFA is requested we should use PREFERRED as to hopefully get two factors directly
+        # if anything else we will use DISCOURAGE as a single factor is enough
+        req_authn_ctx = ticket.get_requested_authn_context()
+        user_verification = UserVerificationRequirement.DISCOURAGED
+        if req_authn_ctx in [EduidAuthnContextClass.DIGG_LOA2, EduidAuthnContextClass.REFEDS_MFA]:
+            user_verification = UserVerificationRequirement.PREFERRED
+
         candidates = user.credentials.filter(FidoCredential)
         if candidates:
             current_app.logger.debug("User has one or more FIDO tokens, adding webauthn challenge to response")
@@ -77,6 +96,7 @@ def mfa_auth(
                 fido2_rp_id=current_app.conf.fido2_rp_id,
                 fido2_rp_name=current_app.conf.fido2_rp_name,
                 state=session.mfa_action,
+                user_verification=user_verification,
             )
             payload.update(options)
 
@@ -88,16 +108,31 @@ def mfa_auth(
         return error_response(message=IdPMsg.general_failure)
 
     current_app.logger.debug(f"AuthnData to save: {result.authn_data}")
-    sso_session.add_authn_credential(result.authn_data)
+    sso_session = record_authentication(
+        ticket=ticket,
+        eppn=user.eppn,
+        sso_session=sso_session,
+        credentials=[result.authn_data],
+        sso_session_lifetime=current_app.conf.sso_session_lifetime,
+    )
     current_app.logger.debug(f"Saving SSO session {sso_session}")
     current_app.sso_sessions.save(sso_session)
 
     current_app.authn.log_authn(user, success=[result.credential.key], failure=[])
 
     # Remember the MFA credential used for this particular request
-    session.idp.log_credential_used(ticket.request_ref, result.credential, result.authn_data.timestamp)
+    session.idp.log_credential_used(
+        request_ref=ticket.request_ref, credential=result.credential, authn_data=result.authn_data
+    )
 
-    return success_response(payload={"finished": True})
+    # For debugging purposes, save the IdP SSO cookie value in the common session as well.
+    # This is because we think we might have issues overwriting cookies in redirect responses.
+    session.idp.sso_cookie_val = sso_session.session_id
+
+    _flux_response = FluxSuccessResponse(request, payload={"finished": True})
+    resp = jsonify(MfaAuthResponseSchema().dump(_flux_response.to_dict()))
+
+    return set_sso_cookie(current_app.conf.sso_cookie, sso_session.session_id, resp)
 
 
 @dataclass
@@ -107,9 +142,7 @@ class CheckResult:
     authn_data: AuthnData | None = None
 
 
-def _check_external_mfa(
-    mfa_action: MfaAction, session: EduidSession, user: User, ref: RequestRef, sso_session: SSOSession
-) -> CheckResult | None:
+def _check_external_mfa(mfa_action: MfaAction, user: User, ref: RequestRef) -> CheckResult | None:
     # Third party service MFA
     if mfa_action.success is True:  # Explicit check that success is the boolean True
         if mfa_action.login_ref:
@@ -122,42 +155,19 @@ def _check_external_mfa(
         current_app.logger.info(f"User {user} logged in using external MFA service {mfa_action.issuer}")
 
         _utc_now = utc_now()
-
-        # OLD: Use AuthnData.external instead of this - remove once consumers have been updated
-        # External MFA authentication
-        sso_session.external_mfa = ExternalMfaData(
-            issuer=mfa_action.issuer,
-            authn_context=mfa_action.authn_context,
-            timestamp=_utc_now,
-            credential_id=mfa_action.credential_used,
-        )
-
-        if not mfa_action.credential_used:
-            # OLD way of referencing external MFA
-            # Remember the MFA credential used for this particular request
-            otc = OnetimeCredential(
-                type=OnetimeCredType.external_mfa,
-                issuer=sso_session.external_mfa.issuer,
-                authn_context=sso_session.external_mfa.authn_context,
-                timestamp=_utc_now,
-            )
-            session.idp.log_credential_used(ref, otc, _utc_now)
-            return CheckResult(credential=otc)
-
-        # NEW way
         cred = user.credentials.find(mfa_action.credential_used)
         if not cred:
             current_app.logger.info(f"MFA action credential used not found on user: {mfa_action.credential_used}")
             return None
-
-        current_app.logger.debug(f"Logging credential used in session: {cred}")
-        session.idp.log_credential_used(ref, cred, _utc_now)
 
         authn = AuthnData(
             cred_id=cred.key,
             timestamp=_utc_now,
             external=ExternalAuthnData(issuer=mfa_action.issuer, authn_context=mfa_action.authn_context),
         )
+
+        current_app.logger.debug(f"Logging credential used in session: {cred}")
+        session.idp.log_credential_used(request_ref=ref, credential=cred, authn_data=authn)
 
         return CheckResult(credential=cred, authn_data=authn)
 
@@ -202,5 +212,9 @@ def _check_webauthn(
 
     _utc_now = utc_now()
 
-    authn = AuthnData(cred_id=cred.key, timestamp=_utc_now)
+    authn = AuthnData(
+        cred_id=cred.key,
+        timestamp=_utc_now,
+        fido=FidoAuthnData(user_present=result.user_present, user_verified=result.user_verified),
+    )
     return CheckResult(credential=cred, authn_data=authn)

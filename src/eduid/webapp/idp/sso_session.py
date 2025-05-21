@@ -13,7 +13,6 @@ from pydantic import BaseModel, ConfigDict, Field
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.element import ElementKey
 from eduid.webapp.common.session import session
-from eduid.webapp.common.session.logindata import ExternalMfaData
 from eduid.webapp.idp.idp_authn import AuthnData
 from eduid.webapp.idp.login_context import LoginContext
 
@@ -65,9 +64,6 @@ class SSOSession(BaseModel):
     authn_timestamp: datetime = Field(default_factory=utc_now)  # TODO: probably obsolete
     created_ts: datetime = Field(default_factory=utc_now)
     expires_at: datetime = Field(default_factory=lambda: utc_now() + timedelta(minutes=5))
-    # TODO: should be obsolete now, everything in here should also be available in authn_credentials
-    #       (AuthnData.external), stored per credential instead of once per session.
-    external_mfa: ExternalMfaData | None = None
     obj_id: ObjectId = Field(default_factory=ObjectId, alias="_id")
     session_id: SSOSessionId = Field(default_factory=create_session_id)
     model_config = ConfigDict(populate_by_name=True, arbitrary_types_allowed=True)
@@ -157,15 +153,15 @@ def get_sso_session() -> SSOSession | None:
     sso_session_lifetime = current_app.conf.sso_session_lifetime
     sso_sessions = current_app.sso_sessions
 
-    session = _lookup_sso_session(sso_sessions)
-    if session:
-        logger.debug(f"SSO session found in the database: {session}")
-        _age = session.age
+    sso_session = _lookup_sso_session(sso_sessions)
+    if sso_session:
+        logger.debug(f"SSO session found in the database: {sso_session}")
+        _age = sso_session.age
         if _age > sso_session_lifetime:
             logger.debug(f"SSO session expired (age {_age} > {sso_session_lifetime})")
             return None
         logger.debug(f"SSO session is still valid (age {_age} <= {sso_session_lifetime})")
-    return session
+    return sso_session
 
 
 def _lookup_sso_session(sso_sessions: SSOSessionCache) -> SSOSession | None:

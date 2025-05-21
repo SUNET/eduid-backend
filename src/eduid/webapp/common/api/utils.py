@@ -13,6 +13,7 @@ from flask.wrappers import Request
 
 from eduid.common.config.base import EduIDBaseAppConfig, FrontendAction, Pysaml2SPConfigMixin
 from eduid.common.misc.timeutil import utc_now
+from eduid.common.models.saml2 import EduidAuthnContextClass
 from eduid.common.rpc.exceptions import MsgTaskFailed, NoNavetData
 from eduid.common.rpc.msg_relay import MsgRelay
 from eduid.userdb import User, UserDB
@@ -127,7 +128,7 @@ def has_user_logged_in_with_mfa() -> bool:
     authn = session.authn.sp.get_authn_for_frontend_action(FrontendAction.LOGIN)
     user = get_user()
 
-    if user and authn and len(authn.credentials_used) > 1:
+    if user and authn and authn.asserted_authn_ctx is EduidAuthnContextClass.REFEDS_MFA:
         return True
     return False
 

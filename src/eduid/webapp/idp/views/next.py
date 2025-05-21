@@ -51,7 +51,7 @@ def next_view(ticket: LoginContext, sso_session: SSOSession | None) -> FluxData:
         if isinstance(ticket, LoginContextSAML):
             saml_params = cancel_saml_request(ticket, current_app.conf)
             authn_options = _get_authn_options(ticket=ticket, sso_session=sso_session, eppn=None)
-            return create_saml_sp_response(saml_params=saml_params, authn_options=authn_options)
+            return create_saml_sp_response(saml_params=saml_params, authn_options=authn_options.to_dict())
         elif isinstance(ticket, LoginContextOtherDevice):
             state = ticket.other_device_req
             if state.state in [OtherDeviceState.NEW, OtherDeviceState.IN_PROGRESS, OtherDeviceState.AUTHENTICATED]:
@@ -80,7 +80,7 @@ def next_view(ticket: LoginContext, sso_session: SSOSession | None) -> FluxData:
         if isinstance(ticket, LoginContextSAML):
             saml_params = authn_context_class_not_supported(ticket, current_app.conf)
             authn_options = _get_authn_options(ticket=ticket, sso_session=sso_session, eppn=None)
-            return create_saml_sp_response(saml_params=saml_params, authn_options=authn_options)
+            return create_saml_sp_response(saml_params=saml_params, authn_options=authn_options.to_dict())
         current_app.logger.error(f"Don't know how to send error response for request {ticket}")
         return error_response(message=IdPMsg.general_failure)
 
@@ -102,7 +102,9 @@ def next_view(ticket: LoginContext, sso_session: SSOSession | None) -> FluxData:
         _payload = {
             "action": IdPAction.OTHER_DEVICE.value,
             "target": url_for("other_device.use_other_1", _external=True),
-            "authn_options": _get_authn_options(ticket=ticket, sso_session=sso_session, eppn=required_user.eppn),
+            "authn_options": _get_authn_options(
+                ticket=ticket, sso_session=sso_session, eppn=required_user.eppn
+            ).to_dict(),
             "service_info": _get_service_info(ticket),
         }
 
@@ -112,12 +114,24 @@ def next_view(ticket: LoginContext, sso_session: SSOSession | None) -> FluxData:
         )
 
     if _next.message == IdPMsg.must_authenticate:
-        _payload = {
-            "action": IdPAction.PWAUTH.value,
-            "target": url_for("pw_auth.pw_auth", _external=True),
-            "authn_options": _get_authn_options(ticket=ticket, sso_session=sso_session, eppn=required_user.eppn),
-            "service_info": _get_service_info(ticket),
-        }
+        authn_options = _get_authn_options(ticket=ticket, sso_session=sso_session, eppn=required_user.eppn)
+        service_info = _get_service_info(ticket)
+
+        if required_user.eppn is None or authn_options.webauthn is False:
+            # we don't know the users eppn or the user does not have a security key, show username and password input
+            _payload = {
+                "action": IdPAction.USERNAMEPWAUTH.value,
+                "target": url_for("pw_auth.pw_auth", _external=True),
+                "authn_options": authn_options.to_dict(),
+                "service_info": service_info,
+            }
+        else:
+            _payload = {
+                "action": IdPAction.MFA.value,
+                "target": url_for("mfa_auth.mfa_auth", _external=True),
+                "authn_options": authn_options.to_dict(),
+                "service_info": service_info,
+            }
 
         return success_response(
             message=IdPMsg.must_authenticate,
@@ -125,13 +139,39 @@ def next_view(ticket: LoginContext, sso_session: SSOSession | None) -> FluxData:
         )
 
     if _next.message == IdPMsg.mfa_required:
+        authn_options = _get_authn_options(ticket=ticket, sso_session=sso_session, eppn=required_user.eppn)
+        service_info = _get_service_info(ticket)
+
+        if _next.authn_state and _next.authn_state.fido_used:
+            # we know that the user already provided a single factor security key, offer password as second factor
+            _payload = {
+                "action": IdPAction.PWAUTH.value,
+                "target": url_for("pw_auth.pw_auth", _external=True),
+                "authn_options": authn_options.to_dict(),
+                "service_info": service_info,
+            }
+        else:
+            _payload = {
+                "action": IdPAction.MFA.value,
+                "target": url_for("mfa_auth.mfa_auth", _external=True),
+                "authn_options": authn_options.to_dict(),
+                "service_info": service_info,
+            }
+
+        return success_response(
+            message=IdPMsg.mfa_required,
+            payload=_payload,
+        )
+
+    if _next.message == IdPMsg.security_key_required:
         return success_response(
             message=IdPMsg.mfa_required,
             payload={
                 "action": IdPAction.MFA.value,
                 "target": url_for("mfa_auth.mfa_auth", _external=True),
-                "authn_options": _get_authn_options(ticket=ticket, sso_session=sso_session, eppn=required_user.eppn),
-                "service_info": _get_service_info(ticket),
+                "authn_options": _get_authn_options(
+                    ticket=ticket, sso_session=sso_session, eppn=required_user.eppn
+                ).to_dict(),
             },
         )
 
@@ -141,7 +181,9 @@ def next_view(ticket: LoginContext, sso_session: SSOSession | None) -> FluxData:
             payload={
                 "action": IdPAction.TOU.value,
                 "target": url_for("tou.tou", _external=True),
-                "authn_options": _get_authn_options(ticket=ticket, sso_session=sso_session, eppn=required_user.eppn),
+                "authn_options": _get_authn_options(
+                    ticket=ticket, sso_session=sso_session, eppn=required_user.eppn
+                ).to_dict(),
             },
         )
 
@@ -189,7 +231,7 @@ def next_view(ticket: LoginContext, sso_session: SSOSession | None) -> FluxData:
         if isinstance(ticket, LoginContextSAML):
             saml_params = sso.get_response_params(_next.authn_info, ticket, user)
             authn_options = _get_authn_options(ticket=ticket, sso_session=sso_session, eppn=required_user.eppn)
-            return create_saml_sp_response(saml_params=saml_params, authn_options=authn_options)
+            return create_saml_sp_response(saml_params=saml_params, authn_options=authn_options.to_dict())
         elif isinstance(ticket, LoginContextOtherDevice):
             if not ticket.is_other_device_2:
                 # We shouldn't be able to get here, but this clearly shows where this code runs
@@ -220,7 +262,6 @@ class AuthnOptions:
     # Is this login locked to being performed by a particular user? (Identified by the email/phone/...)
     forced_username: str | None = None
     # Can an unknown user log in using just a swedish eID? Yes, if there is an eduID user with the users (verified) NIN.
-    freja_eidplus: bool = True  # TODO: remove freja_eidplus replaced by swedish_eid
     swedish_eid: bool = True
     # If the user has a session, 'logout' should be shown (to allow switch of users).
     has_session: bool = False
@@ -234,8 +275,6 @@ class AuthnOptions:
     username: bool = True
     # Can an unknown user log in using a webauthn credential? No, not at this time (might be doable).
     webauthn: bool = False
-    # Temporary option for displaying info about removing phone numbers
-    verified_phone_number: bool = False
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -246,7 +285,7 @@ class AuthnOptions:
         return [x for x in _data.keys() if _data[x]]
 
 
-def _get_authn_options(ticket: LoginContext, sso_session: SSOSession | None, eppn: str | None) -> dict[str, Any]:
+def _get_authn_options(ticket: LoginContext, sso_session: SSOSession | None, eppn: str | None) -> AuthnOptions:
     res = AuthnOptions(is_reauthn=ticket.reauthn_required)
 
     # Availability of "login using another device" is controlled by configuration for now.
@@ -265,7 +304,7 @@ def _get_authn_options(ticket: LoginContext, sso_session: SSOSession | None, epp
 
     current_app.logger.debug(f"Valid authn options at this time: {res.valid_options}")
 
-    return res.to_dict()
+    return res
 
 
 @dataclass
@@ -337,17 +376,11 @@ def _set_user_options(res: AuthnOptions, eppn: str) -> None:
             current_app.logger.debug("User has a FIDO/Webauthn credential")
             res.webauthn = True
 
-        if user.phone_numbers.verified:
-            current_app.logger.debug("User has a verified phone number")
-            res.verified_phone_number = True
-
         if user.locked_identity.nin:
             current_app.logger.debug("User has a locked NIN -> swedish eID is possible")
-            res.freja_eidplus = True
             res.swedish_eid = True
         else:
             current_app.logger.debug("No locked NIN for user -> swedish eID NOT possible")
-            res.freja_eidplus = False
             res.swedish_eid = False
 
         res.forced_username = get_login_username(user)

@@ -922,6 +922,7 @@ class TestNewUser(unittest.TestCase):
             "keyhandle": "U2F SWAMID AL3",
             "public_key": "foo",
             "verified": True,
+            "mfa_approved": False,
             "proofing_method": CredentialProofingMethod.SWAMID_AL3_MFA,
             "proofing_version": "testing",
         }

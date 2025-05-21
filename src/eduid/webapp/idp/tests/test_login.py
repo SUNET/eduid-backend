@@ -35,7 +35,7 @@ class IdPTestLoginAPI(IdPAPITests):
 
         self._check_login_result(
             result=result,
-            visit_order=[IdPAction.PWAUTH],
+            visit_order=[IdPAction.USERNAMEPWAUTH],
             sso_cookie_val=None,
         )
 
@@ -44,7 +44,21 @@ class IdPTestLoginAPI(IdPAPITests):
 
         self._check_login_result(
             result=result,
-            visit_order=[IdPAction.PWAUTH, IdPAction.PWAUTH],
+            visit_order=[IdPAction.USERNAMEPWAUTH, IdPAction.USERNAMEPWAUTH],
+            sso_cookie_val=None,
+            pwauth_result=PwAuthResult(
+                payload={
+                    "message": IdPMsg.wrong_credentials.value,
+                }
+            ),
+        )
+
+    def test_login_pwauth_no_username(self) -> None:
+        result = self._try_login(username=False)
+
+        self._check_login_result(
+            result=result,
+            visit_order=[IdPAction.USERNAMEPWAUTH, IdPAction.USERNAMEPWAUTH],
             sso_cookie_val=None,
             pwauth_result=PwAuthResult(
                 payload={
@@ -64,7 +78,7 @@ class IdPTestLoginAPI(IdPAPITests):
 
         self._check_login_result(
             result=result,
-            visit_order=[IdPAction.PWAUTH, IdPAction.FINISHED],
+            visit_order=[IdPAction.USERNAMEPWAUTH, IdPAction.FINISHED],
             finish_result=FinishedResultAPI(
                 payload={
                     "message": IdPMsg.finished.value,
@@ -90,7 +104,7 @@ class IdPTestLoginAPI(IdPAPITests):
 
         self._check_login_result(
             result=result,
-            visit_order=[IdPAction.PWAUTH, IdPAction.TOU, IdPAction.FINISHED],
+            visit_order=[IdPAction.USERNAMEPWAUTH, IdPAction.TOU, IdPAction.FINISHED],
             finish_result=FinishedResultAPI(
                 payload={
                     "message": IdPMsg.finished.value,
@@ -119,7 +133,7 @@ class IdPTestLoginAPI(IdPAPITests):
         self._check_login_result(
             result=result,
             visit_order=[
-                IdPAction.PWAUTH,
+                IdPAction.USERNAMEPWAUTH,
                 IdPAction.MFA,
                 IdPAction.FINISHED,
             ],
@@ -141,7 +155,7 @@ class IdPTestLoginAPI(IdPAPITests):
         self.add_test_user_tou()
 
         # add security key to user
-        self.add_test_user_security_key(always_use_security_key_user_preference=False)
+        self.add_test_user_security_key(always_use_security_key=False)
 
         # Patch the VCCSClient, so we do not need a vccs server
         with patch.object(VCCSClient, "authenticate") as mock_vccs:
@@ -151,7 +165,7 @@ class IdPTestLoginAPI(IdPAPITests):
         self._check_login_result(
             result=result,
             visit_order=[
-                IdPAction.PWAUTH,
+                IdPAction.USERNAMEPWAUTH,
                 IdPAction.FINISHED,
             ],
             finish_result=FinishedResultAPI(
@@ -172,7 +186,7 @@ class IdPTestLoginAPI(IdPAPITests):
         self.add_test_user_tou()
 
         # add security key to user
-        self.add_test_user_security_key(always_use_security_key_user_preference=False)
+        self.add_test_user_security_key(always_use_security_key=False)
 
         # Patch the VCCSClient, so we do not need a vccs server
         with patch.object(VCCSClient, "authenticate") as mock_vccs:
@@ -186,7 +200,7 @@ class IdPTestLoginAPI(IdPAPITests):
         self._check_login_result(
             result=result,
             visit_order=[
-                IdPAction.PWAUTH,
+                IdPAction.USERNAMEPWAUTH,
                 IdPAction.MFA,
                 IdPAction.FINISHED,
             ],
@@ -218,7 +232,7 @@ class IdPTestLoginAPI(IdPAPITests):
 
         self._check_login_result(
             result=result,
-            visit_order=[IdPAction.PWAUTH, IdPAction.FINISHED],
+            visit_order=[IdPAction.USERNAMEPWAUTH, IdPAction.FINISHED],
             finish_result=FinishedResultAPI(
                 payload={
                     "missing_attributes": [
@@ -234,7 +248,6 @@ class IdPTestLoginAPI(IdPAPITests):
     def test_ForceAuthn_with_existing_SSO_session(self) -> None:
         # add security key to user
         self.add_test_user_security_key()
-
         for accr in [None, EduidAuthnContextClass.PASSWORD_PT, EduidAuthnContextClass.REFEDS_MFA]:
             requested_authn_context = None
             if accr is not None:
@@ -266,8 +279,8 @@ class IdPTestLoginAPI(IdPAPITests):
 
             if accr is EduidAuthnContextClass.REFEDS_MFA:
                 assert result2.visit_order == [
-                    IdPAction.PWAUTH,
                     IdPAction.MFA,
+                    IdPAction.PWAUTH,
                     IdPAction.FINISHED,
                 ], f"Actual visit order: {result2.visit_order}"
             else:
@@ -309,7 +322,7 @@ class IdPTestLoginAPI(IdPAPITests):
 
         self._check_login_result(
             result=device_2_result2,
-            visit_order=[IdPAction.PWAUTH, IdPAction.FINISHED],
+            visit_order=[IdPAction.USERNAMEPWAUTH, IdPAction.FINISHED],
         )
 
         # after login with device 2, retrieve the response code
@@ -373,7 +386,7 @@ class IdPTestLoginAPI(IdPAPITests):
 
         self._check_login_result(
             result=device_2_result2,
-            visit_order=[IdPAction.PWAUTH, IdPAction.MFA, IdPAction.FINISHED],
+            visit_order=[IdPAction.USERNAMEPWAUTH, IdPAction.MFA, IdPAction.FINISHED],
         )
 
         # after login with device 2, retrieve the response code
@@ -407,7 +420,7 @@ class IdPTestLoginAPI(IdPAPITests):
 
         self._check_login_result(
             result=result,
-            visit_order=[IdPAction.PWAUTH],
+            visit_order=[IdPAction.USERNAMEPWAUTH],
             error={"payload": {"message": IdPMsg.user_terminated.value}},
         )
 
@@ -425,7 +438,7 @@ class IdPTestLoginAPI(IdPAPITests):
 
         self._check_login_result(
             result=result,
-            visit_order=[IdPAction.PWAUTH],
+            visit_order=[IdPAction.USERNAMEPWAUTH],
             error={"status_code": 400, "status": "400 BAD REQUEST", "message": "SAML error: Unknown Service Provider"},
         )
 
@@ -440,7 +453,7 @@ class IdPTestLoginAPI(IdPAPITests):
 
         self._check_login_result(
             result=result,
-            visit_order=[IdPAction.PWAUTH, IdPAction.FINISHED],
+            visit_order=[IdPAction.USERNAMEPWAUTH, IdPAction.FINISHED],
         )
 
         sp_config = get_saml2_config(self.app.conf.pysaml2_config, name="UNKNOWN_SP_CONFIG")
@@ -470,7 +483,7 @@ class IdPTestLoginAPI(IdPAPITests):
 
         self._check_login_result(
             result=result,
-            visit_order=[IdPAction.PWAUTH, IdPAction.FINISHED],
+            visit_order=[IdPAction.USERNAMEPWAUTH, IdPAction.FINISHED],
             finish_result=FinishedResultAPI(payload={"message": IdPMsg.finished.value}),
         )
 
@@ -492,7 +505,7 @@ class IdPTestLoginAPI(IdPAPITests):
 
         self._check_login_result(
             result=result,
-            visit_order=[IdPAction.PWAUTH, IdPAction.FINISHED],
+            visit_order=[IdPAction.USERNAMEPWAUTH, IdPAction.FINISHED],
             finish_result=FinishedResultAPI(payload={"message": IdPMsg.finished.value}),
         )
 
@@ -521,7 +534,7 @@ class IdPTestLoginAPI(IdPAPITests):
 
         self._check_login_result(
             result=result,
-            visit_order=[IdPAction.PWAUTH, IdPAction.FINISHED],
+            visit_order=[IdPAction.USERNAMEPWAUTH, IdPAction.FINISHED],
             finish_result=FinishedResultAPI(payload={"message": IdPMsg.finished.value}),
         )
 
@@ -545,7 +558,7 @@ class IdPTestLoginAPI(IdPAPITests):
 
         self._check_login_result(
             result=result,
-            visit_order=[IdPAction.PWAUTH, IdPAction.FINISHED],
+            visit_order=[IdPAction.USERNAMEPWAUTH, IdPAction.FINISHED],
             finish_result=FinishedResultAPI(payload={"message": IdPMsg.finished.value}),
         )
 
@@ -569,7 +582,7 @@ class IdPTestLoginAPI(IdPAPITests):
 
         self._check_login_result(
             result=result,
-            visit_order=[IdPAction.PWAUTH, IdPAction.FINISHED],
+            visit_order=[IdPAction.USERNAMEPWAUTH, IdPAction.FINISHED],
             finish_result=FinishedResultAPI(payload={"message": IdPMsg.finished.value}),
         )
 
@@ -588,7 +601,7 @@ class IdPTestLoginAPI(IdPAPITests):
 
         self._check_login_result(
             result=result,
-            visit_order=[IdPAction.PWAUTH, IdPAction.FINISHED],
+            visit_order=[IdPAction.USERNAMEPWAUTH, IdPAction.FINISHED],
             finish_result=FinishedResultAPI(payload={"target": "https://localhost:8080/acs/"}),
         )
 
@@ -627,7 +640,7 @@ class IdPTestLoginAPI(IdPAPITests):
 
         self._check_login_result(
             result=result,
-            visit_order=[IdPAction.PWAUTH, IdPAction.FINISHED],
+            visit_order=[IdPAction.USERNAMEPWAUTH, IdPAction.FINISHED],
             finish_result=FinishedResultAPI(payload={"message": IdPMsg.finished.value}),
         )
 
@@ -649,7 +662,7 @@ class IdPTestLoginAPI(IdPAPITests):
 
         self._check_login_result(
             result=result,
-            visit_order=[IdPAction.PWAUTH, IdPAction.FINISHED],
+            visit_order=[IdPAction.USERNAMEPWAUTH, IdPAction.FINISHED],
             finish_result=FinishedResultAPI(payload={"message": IdPMsg.finished.value}),
         )
 
@@ -681,7 +694,7 @@ class IdPTestLoginAPIManagedAccounts(IdPAPITests):
         result = self._try_login()
         self._check_login_result(
             result=result,
-            visit_order=[IdPAction.PWAUTH, IdPAction.PWAUTH],
+            visit_order=[IdPAction.USERNAMEPWAUTH, IdPAction.USERNAMEPWAUTH],
             sso_cookie_val=None,
             pwauth_result=PwAuthResult(payload={"message": IdPMsg.wrong_credentials.value}),
         )
@@ -694,7 +707,7 @@ class IdPTestLoginAPIManagedAccounts(IdPAPITests):
 
         self._check_login_result(
             result=result,
-            visit_order=[IdPAction.PWAUTH, IdPAction.FINISHED],
+            visit_order=[IdPAction.USERNAMEPWAUTH, IdPAction.FINISHED],
             finish_result=FinishedResultAPI(
                 payload={
                     "message": IdPMsg.finished.value,
@@ -727,7 +740,7 @@ class IdPTestLoginAPIManagedAccounts(IdPAPITests):
         # Patch the VCCSClient, so we do not need a vccs server
         with patch.object(VCCSClient, "authenticate") as mock_vccs:
             mock_vccs.return_value = True
-            result2 = self._try_login(force_authn=True)
+            result2 = self._try_login(force_authn=True, username=False)
 
         assert result2.finished_result is not None
         authn_response2 = self.parse_saml_authn_response(result2.finished_result)
@@ -745,7 +758,9 @@ class IdPTestLoginAPIManagedAccounts(IdPAPITests):
             result = self._try_login()
 
         self._check_login_result(
-            result=result, visit_order=[IdPAction.PWAUTH], error={"payload": {"message": IdPMsg.user_terminated.value}}
+            result=result,
+            visit_order=[IdPAction.USERNAMEPWAUTH],
+            error={"payload": {"message": IdPMsg.user_terminated.value}},
         )
 
     def test_with_unknown_sp(self) -> None:
@@ -759,7 +774,7 @@ class IdPTestLoginAPIManagedAccounts(IdPAPITests):
 
         self._check_login_result(
             result=result,
-            visit_order=[IdPAction.PWAUTH],
+            visit_order=[IdPAction.USERNAMEPWAUTH],
             error={"status_code": 400, "status": "400 BAD REQUEST", "message": "SAML error: Unknown Service Provider"},
         )
 
@@ -769,7 +784,7 @@ class IdPTestLoginAPIManagedAccounts(IdPAPITests):
             mock_vccs.return_value = True
             result = self._try_login()
 
-        assert result.visit_order == [IdPAction.PWAUTH, IdPAction.FINISHED]
+        assert result.visit_order == [IdPAction.USERNAMEPWAUTH, IdPAction.FINISHED]
 
         sp_config = get_saml2_config(self.app.conf.pysaml2_config, name="UNKNOWN_SP_CONFIG")
         saml2_client = Saml2Client(config=sp_config)
@@ -798,7 +813,7 @@ class IdPTestLoginAPIManagedAccounts(IdPAPITests):
 
         self._check_login_result(
             result=result,
-            visit_order=[IdPAction.PWAUTH, IdPAction.FINISHED],
+            visit_order=[IdPAction.USERNAMEPWAUTH, IdPAction.FINISHED],
             finish_result=FinishedResultAPI(payload={"message": IdPMsg.finished.value}),
         )
 
@@ -820,7 +835,7 @@ class IdPTestLoginAPIManagedAccounts(IdPAPITests):
 
         self._check_login_result(
             result=result,
-            visit_order=[IdPAction.PWAUTH, IdPAction.FINISHED],
+            visit_order=[IdPAction.USERNAMEPWAUTH, IdPAction.FINISHED],
             finish_result=FinishedResultAPI(payload={"message": IdPMsg.finished.value}),
         )
 
@@ -843,7 +858,7 @@ class IdPTestLoginAPIManagedAccounts(IdPAPITests):
 
         self._check_login_result(
             result=result,
-            visit_order=[IdPAction.PWAUTH, IdPAction.FINISHED],
+            visit_order=[IdPAction.USERNAMEPWAUTH, IdPAction.FINISHED],
             finish_result=FinishedResultAPI(payload={"message": IdPMsg.finished.value}),
         )
 
@@ -861,7 +876,7 @@ class IdPTestLoginAPIManagedAccounts(IdPAPITests):
 
         self._check_login_result(
             result=result,
-            visit_order=[IdPAction.PWAUTH, IdPAction.FINISHED],
+            visit_order=[IdPAction.USERNAMEPWAUTH, IdPAction.FINISHED],
             finish_result=FinishedResultAPI(payload={"target": "https://localhost:8080/acs/"}),
         )
 
@@ -897,7 +912,7 @@ class IdPTestLoginAPIManagedAccounts(IdPAPITests):
 
         self._check_login_result(
             result=result,
-            visit_order=[IdPAction.PWAUTH, IdPAction.FINISHED],
+            visit_order=[IdPAction.USERNAMEPWAUTH, IdPAction.FINISHED],
             finish_result=FinishedResultAPI(payload={"message": IdPMsg.finished.value}),
         )
 
@@ -916,6 +931,6 @@ class IdPTestLoginAPIManagedAccounts(IdPAPITests):
 
         self._check_login_result(
             result=result,
-            visit_order=[IdPAction.PWAUTH, IdPAction.FINISHED],
+            visit_order=[IdPAction.USERNAMEPWAUTH, IdPAction.FINISHED],
             finish_result=FinishedResultAPI(payload={"message": IdPMsg.finished.value}),
         )
