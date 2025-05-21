@@ -60,6 +60,7 @@ class AuthnState:
         self.is_digg_loa2 = False
         self.fido_used = False
         self.fido_mfa_used = False
+        self.fido_cred_can_do_swamid_al3 = False
         self.external_mfa_used = False
         self.swamid_al3_used = False
         self.digg_loa2_approved_identity = False
@@ -73,7 +74,7 @@ class AuthnState:
                 case FidoCredential():
                     self.fido_used = True
                     if cred.is_verified and cred.proofing_method == CredentialProofingMethod.SWAMID_AL3_MFA:
-                        self.swamid_al3_used = True
+                        self.fido_cred_can_do_swamid_al3 = True
                     if cred.mfa_approved and this.fido_authn_data and this.fido_authn_data.user_verified:
                         self.fido_mfa_used = True
                 # TODO: maybe use this.external_authn_data.authn_context instead of cred.level?
@@ -97,6 +98,10 @@ class AuthnState:
 
         if user.identities.is_verified:
             self.is_swamid_al2 = True
+
+        # check that the security key is not used as a single factor when asserting SWAMID AL3
+        if self.is_multifactor and self.fido_cred_can_do_swamid_al3:
+            self.swamid_al3_used = True
 
         # check if the user can assert DIGG loa2
         if user.identities.nin and user.identities.nin.is_verified:
