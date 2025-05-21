@@ -193,6 +193,21 @@ class IdP_PendingRequest(BaseModel, ABC):
     # Credentials used while authenticating _this SAML request_. Not ones inherited from SSO.
     credentials_used: dict[ElementKey, AuthnData] = Field(default_factory=dict)
 
+    # TODO: should be removed next release
+    @field_validator("credentials_used", mode="before")
+    @classmethod
+    def migrate_credentials_used(
+        cls, v: dict[ElementKey, str | dict[str, str]], info: ValidationInfo
+    ) -> dict[ElementKey, dict[str, str]]:
+        _credentials_used = {}
+        for key, value in v.items():
+            match value:
+                case str():
+                    _credentials_used[key] = {"cred_id": key, "authn_ts": value}
+                case _:
+                    _credentials_used[key] = value
+        return _credentials_used
+
 
 class IdP_SAMLPendingRequest(IdP_PendingRequest):
     request: str
