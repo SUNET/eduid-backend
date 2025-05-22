@@ -1,8 +1,6 @@
 from collections.abc import Mapping
 from typing import Any
 
-from werkzeug.exceptions import Forbidden
-
 from eduid.common.config.base import FrontendAction
 from eduid.userdb.testing import SetupConfig
 from eduid.webapp.common.api.testing import EduidAPITestCase
@@ -33,6 +31,7 @@ class SupportAppTests(EduidAPITestCase):
         config.update(
             {
                 "support_personnel": ["hubba-bubba"],
+                "authn_service_url_login": "https://localhost/login",
                 "authn_service_url_logout": "https://localhost/logout",
                 "eduid_static_url": "https://testing.eduid.se/static/",
             }
@@ -49,8 +48,9 @@ class SupportAppTests(EduidAPITestCase):
         # Authenticated request
         self.set_authn_action(eppn=self.test_user_eppn, frontend_action=FrontendAction.LOGIN, mock_mfa=False)
         with self.session_cookie(self.browser, self.test_user_eppn) as client:
-            with self.assertRaises(Forbidden):
-                client.get("/")
+            resp = client.get("/")
+            assert resp.status_code == 302
+            assert resp.headers.get("Location") == self.app.conf.authn_service_url_login
 
     def test_authentication_mfa(self) -> None:
         # Authenticated request with MFA
