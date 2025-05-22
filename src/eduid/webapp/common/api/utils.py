@@ -11,7 +11,7 @@ import bcrypt
 from flask import current_app as flask_current_app
 from flask.wrappers import Request
 
-from eduid.common.config.base import EduIDBaseAppConfig, FrontendAction, Pysaml2SPConfigMixin
+from eduid.common.config.base import EduIDBaseAppConfig, Pysaml2SPConfigMixin
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.models.saml2 import EduidAuthnContextClass
 from eduid.common.rpc.exceptions import MsgTaskFailed, NoNavetData
@@ -125,7 +125,12 @@ def has_user_logged_in_with_mfa() -> bool:
     """
     from eduid.webapp.common.session import session
 
-    authn = session.authn.sp.get_authn_for_frontend_action(FrontendAction.LOGIN)
+    authn = session.authn.sp.get_latest_authn()
+    if authn is None:
+        return False
+
+    logger.info("Checking if user has logged in with MFA.")
+    logger.debug(f"found {authn} for frontend action {authn.frontend_action}")
     user = get_user()
 
     if user and authn and authn.asserted_authn_ctx is EduidAuthnContextClass.REFEDS_MFA:
