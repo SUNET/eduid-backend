@@ -2,7 +2,8 @@ from collections.abc import Callable
 from functools import wraps
 from typing import Any, TypeVar
 
-from flask import abort
+from flask import abort, redirect
+from werkzeug import Response as WerkzeugResponse
 
 from eduid.userdb import User
 from eduid.userdb.db import TUserDbDocument
@@ -56,11 +57,11 @@ TRequireLoginWithMFAResult = TypeVar("TRequireLoginWithMFAResult")
 
 def require_login_with_mfa(
     f: Callable[..., TRequireLoginWithMFAResult],
-) -> Callable[..., TRequireLoginWithMFAResult]:
+) -> Callable[..., TRequireLoginWithMFAResult | WerkzeugResponse]:
     @wraps(f)
-    def require_login_with_mfa_decorator(*args: Any, **kwargs: Any) -> TRequireLoginWithMFAResult:
+    def require_login_with_mfa_decorator(*args: Any, **kwargs: Any) -> TRequireLoginWithMFAResult | WerkzeugResponse:
         if has_user_logged_in_with_mfa():
             return f(*args, **kwargs)
-        abort(403)
+        return redirect(current_app.conf.authn_service_url_login)
 
     return require_login_with_mfa_decorator

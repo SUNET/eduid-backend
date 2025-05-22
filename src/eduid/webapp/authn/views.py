@@ -9,6 +9,7 @@ from saml2.saml import NAMEID_FORMAT_UNSPECIFIED, NameID, Subject
 from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.common.config.base import AuthnParameters, FrontendAction
+from eduid.common.models.saml2 import EduidAuthnContextClass
 from eduid.userdb.credentials.fido import FidoCredential
 from eduid.userdb.exceptions import UserDoesNotExist
 from eduid.webapp.authn import acs_actions  # acs_action needs to be imported to be loaded
@@ -39,8 +40,6 @@ assert acs_actions  # make sure nothing optimises away the import of this, as it
 
 authn_views = Blueprint("authn", __name__, url_prefix="")
 
-REFEDS_MFA = "https://refeds.org/profile/mfa"
-
 
 # get-status to not get tangled up in /status/healthy and the like
 @authn_views.route("/get-status", methods=["POST"])
@@ -61,6 +60,22 @@ def get_status(authn_id: AuthnRequestRef) -> FluxData:
         payload["status"] = authn.status
 
     return success_response(payload=payload)
+
+
+@authn_views.route("/support/login", methods=["GET"])
+def support_authenticate() -> WerkzeugResponse:
+    current_app.logger.debug("Support login called")
+    action = FrontendAction.SUPPORT_LOGIN
+    authn_params = current_app.conf.frontend_action_authn_parameters[action]
+    sp_authn = SP_AuthnRequest(
+        post_authn_action=AuthnAcsAction.login,
+        frontend_action=action,
+        req_authn_ctx=[EduidAuthnContextClass.REFEDS_MFA.value],
+        finish_url=authn_params.finish_url,
+    )
+    result = _authn(sp_authn=sp_authn, idp=_get_idp(), authn_params=authn_params)
+    assert result.url is not None  # please mypy
+    return redirect(location=result.url, code=302)
 
 
 @authn_views.route("/authenticate", methods=["POST"])
@@ -95,7 +110,7 @@ def authenticate(
         current_app.logger.debug(
             f"Forcing MFA authentication. force_mfa: {authn_params.force_mfa}, request_mfa: {_request_mfa}"
         )
-        req_authn_ctx = [REFEDS_MFA]
+        req_authn_ctx = [EduidAuthnContextClass.REFEDS_MFA.value]
 
     sp_authn = SP_AuthnRequest(
         post_authn_action=AuthnAcsAction.login,
