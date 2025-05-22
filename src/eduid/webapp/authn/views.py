@@ -62,6 +62,22 @@ def get_status(authn_id: AuthnRequestRef) -> FluxData:
     return success_response(payload=payload)
 
 
+@authn_views.route("/support/login", methods=["GET"])
+def support_authenticate() -> WerkzeugResponse:
+    current_app.logger.debug("Support login called")
+    action = FrontendAction.SUPPORT_LOGIN
+    authn_params = current_app.conf.frontend_action_authn_parameters[action]
+    sp_authn = SP_AuthnRequest(
+        post_authn_action=AuthnAcsAction.login,
+        frontend_action=action,
+        req_authn_ctx=[EduidAuthnContextClass.REFEDS_MFA.value],
+        finish_url=authn_params.finish_url,
+    )
+    result = _authn(sp_authn=sp_authn, idp=_get_idp(), authn_params=authn_params)
+    assert result.url is not None  # please mypy
+    return redirect(location=result.url, code=302)
+
+
 @authn_views.route("/authenticate", methods=["POST"])
 @UnmarshalWith(AuthnCommonRequestSchema)
 @MarshalWith(AuthnCommonResponseSchema)

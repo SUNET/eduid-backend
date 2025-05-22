@@ -359,6 +359,7 @@ class FrontendAction(Enum):
     REMOVE_IDENTITY = "removeIdentity"
     REMOVE_SECURITY_KEY_AUTHN = "removeSecurityKeyAuthn"
     RESET_PW_MFA_AUTHN = "resetpwMfaAuthn"
+    SUPPORT_LOGIN = "supportLogin"
     TERMINATE_ACCOUNT_AUTHN = "terminateAccountAuthn"
     VERIFY_CREDENTIAL = "verifyCredential"
     VERIFY_IDENTITY = "verifyIdentity"
@@ -419,6 +420,9 @@ class FrontendActionMixin(BaseModel):
                 force_authn=True,
                 allow_login_auth=True,
                 finish_url="https://eduid.se/login/ext-return/{app_name}/{authn_id}",
+            ),
+            FrontendAction.SUPPORT_LOGIN: AuthnParameters(
+                force_authn=True, force_mfa=True, allow_login_auth=True, finish_url="https://support.eduid.se/"
             ),
             FrontendAction.VERIFY_IDENTITY: AuthnParameters(
                 force_authn=True,
