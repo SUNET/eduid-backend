@@ -9,6 +9,7 @@ from saml2.saml import NAMEID_FORMAT_UNSPECIFIED, NameID, Subject
 from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.common.config.base import AuthnParameters, FrontendAction
+from eduid.common.models.saml2 import EduidAuthnContextClass
 from eduid.userdb.credentials.fido import FidoCredential
 from eduid.userdb.exceptions import UserDoesNotExist
 from eduid.webapp.authn import acs_actions  # acs_action needs to be imported to be loaded
@@ -38,8 +39,6 @@ from eduid.webapp.common.session.namespaces import AuthnRequestRef, SP_AuthnRequ
 assert acs_actions  # make sure nothing optimises away the import of this, as it is needed to execute @acs_actions
 
 authn_views = Blueprint("authn", __name__, url_prefix="")
-
-REFEDS_MFA = "https://refeds.org/profile/mfa"
 
 
 # get-status to not get tangled up in /status/healthy and the like
@@ -95,7 +94,7 @@ def authenticate(
         current_app.logger.debug(
             f"Forcing MFA authentication. force_mfa: {authn_params.force_mfa}, request_mfa: {_request_mfa}"
         )
-        req_authn_ctx = [REFEDS_MFA]
+        req_authn_ctx = [EduidAuthnContextClass.REFEDS_MFA.value]
 
     sp_authn = SP_AuthnRequest(
         post_authn_action=AuthnAcsAction.login,
