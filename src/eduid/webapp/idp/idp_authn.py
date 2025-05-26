@@ -9,6 +9,7 @@ import logging
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
+from enum import StrEnum
 from typing import Any
 
 from bson import ObjectId
@@ -36,6 +37,11 @@ class ExternalAuthnData(BaseModel):
     authn_context: str
 
 
+class FidoAuthnData(BaseModel):
+    user_present: bool = Field(default=False)
+    user_verified: bool = Field(default=False)
+
+
 class AuthnData(BaseModel):
     """
     Data about a successful authentication.
@@ -46,16 +52,40 @@ class AuthnData(BaseModel):
     cred_id: ElementKey
     timestamp: datetime = Field(default_factory=utc_now, alias="authn_ts")  # authn_ts was the old name in the db
     external: ExternalAuthnData | None = None
+    fido: FidoAuthnData | None = None
     model_config = ConfigDict(populate_by_name=True)
 
     def to_dict(self) -> dict[str, Any]:
         """Return the object in dict format (serialized for storing in MongoDB)."""
-        return self.dict()
+        return self.model_dump()
 
     @classmethod
     def from_dict(cls: type[AuthnData], data: Mapping[str, Any]) -> AuthnData:
         """Construct element from a data dict in database format."""
         return cls(**data)
+
+
+class UsedWhere(StrEnum):
+    REQUEST = "request"
+    SSO = "SSO session"
+
+
+# TODO: Maybe merge UsedCredential and AuthnData
+class UsedCredential(BaseModel):
+    credential_id: ElementKey
+    ts: datetime
+    external_authn_data: ExternalAuthnData | None = None
+    fido_authn_data: FidoAuthnData | None = None
+    source: UsedWhere
+
+    def __str__(self) -> str:
+        key = str(self.credential_id)
+        if len(key) > 24:
+            # 24 is length of object-id, webauthn credentials are much longer
+            key = key[:21] + "..."
+        return (
+            f"<{self.__class__.__name__}: credential_id={key}), ts={self.ts.isoformat()}, source={self.source.value}>"
+        )
 
 
 @dataclass
@@ -65,9 +95,7 @@ class PasswordAuthnResponse:
     timestamp: datetime = field(default_factory=utc_now)
 
     @property
-    def authndata(self) -> AuthnData | None:
-        if not self.credential:
-            return None
+    def authn_data(self) -> AuthnData:
         return AuthnData(cred_id=self.credential.key, timestamp=self.timestamp)
 
 

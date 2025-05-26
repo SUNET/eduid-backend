@@ -259,14 +259,14 @@ def assertion_consumer_service() -> WerkzeugResponse:
         )
 
     proofing_method = get_proofing_method(
-        assertion.authndata.method,
-        assertion.authndata.frontend_action,
+        assertion.authn_data.method,
+        assertion.authn_data.frontend_action,
         current_app.conf,
     )
     if not proofing_method:
         # We _really_ shouldn't end up here because this same thing would have been done in the
         # starting views above.
-        current_app.logger.warning(f"No proofing_method for method {assertion.authndata.method}")
+        current_app.logger.warning(f"No proofing_method for method {assertion.authn_data.method}")
         if not current_app.conf.errors_url_template:
             return make_response("Unknown authn method", 400)
         return goto_errors_response(
@@ -281,11 +281,11 @@ def assertion_consumer_service() -> WerkzeugResponse:
     assert formatted_finish_url  # please type checking
 
     # assertion checks out try to do the action
-    action = get_action(default_action=None, authndata=assertion.authndata)
+    action = get_action(default_action=None, authndata=assertion.authn_data)
     backdoor = check_magic_cookie(config=current_app.conf)
     args = ACSArgs(
         session_info=assertion.session_info,
-        authn_req=assertion.authndata,
+        authn_req=assertion.authn_data,
         proofing_method=proofing_method,
         backdoor=backdoor,
     )

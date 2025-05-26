@@ -16,7 +16,6 @@ from eduid.webapp.idp.known_device import KnownDeviceDB
 from eduid.webapp.idp.other_device.db import OtherDeviceDB
 from eduid.webapp.idp.settings.common import IdPConfig
 from eduid.webapp.idp.sso_cache import SSOSessionCache
-from eduid.webapp.idp.sso_session import SSOSession, get_sso_session
 
 __author__ = "ft"
 
@@ -60,15 +59,6 @@ class IdPApp(EduIDBaseApp):
         self.am_relay = AmRelay(config)
 
         self.logger.info("eduid-IdP application started")
-
-    # OLD way, call sso_session.get_sso_session() directly instead, or use the @uses_sso_session decorator
-    def _lookup_sso_session(self) -> SSOSession | None:
-        """
-        Locate any existing SSO session for this request.
-
-        :returns: SSO session if found (and valid)
-        """
-        return get_sso_session()
 
 
 current_idp_app = cast(IdPApp, current_app)

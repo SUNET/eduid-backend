@@ -23,6 +23,7 @@ class FidoCredential(Credential):
     keyhandle: str
     app_id: str
     description: str = ""
+    mfa_approved: bool = False
 
 
 class U2F(FidoCredential):
@@ -53,7 +54,6 @@ class Webauthn(FidoCredential):
     authenticator: AuthenticatorAttachment
     webauthn_proofing_version: str | None = None
     attestation_format: AttestationFormat | None = None
-    mfa_approved: bool = False
 
     @property
     def key(self) -> ElementKey:

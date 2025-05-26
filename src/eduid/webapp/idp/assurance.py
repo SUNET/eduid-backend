@@ -8,10 +8,9 @@ from eduid.userdb.credentials import CredentialProofingMethod, FidoCredential, P
 from eduid.userdb.credentials.external import BankIDCredential, SwedenConnectCredential
 from eduid.userdb.element import ElementKey
 from eduid.userdb.idp import IdPUser
-from eduid.webapp.common.session.namespaces import OnetimeCredential, OnetimeCredType
-from eduid.webapp.idp.app import current_idp_app
 from eduid.webapp.idp.app import current_idp_app as current_app
-from eduid.webapp.idp.assurance_data import AuthnInfo, UsedCredential, UsedWhere
+from eduid.webapp.idp.assurance_data import AuthnInfo
+from eduid.webapp.idp.idp_authn import UsedCredential, UsedWhere
 from eduid.webapp.idp.login_context import LoginContext
 from eduid.webapp.idp.sso_session import SSOSession
 
@@ -60,53 +59,49 @@ class AuthnState:
         self.is_swamid_al2 = False
         self.is_digg_loa2 = False
         self.fido_used = False
+        self.fido_mfa_used = False
+        self.fido_cred_can_do_swamid_al3 = False
         self.external_mfa_used = False
         self.swamid_al3_used = False
         self.digg_loa2_approved_identity = False
-        self._onetime_credentials: dict[ElementKey, OnetimeCredential] = {}
         self._credentials = self._gather_credentials(sso_session, ticket, user)
 
         for this in self._credentials:
             cred = user.credentials.find(this.credential_id)
-            if not cred:
-                # check if it was a one-time credential
-                cred = self._onetime_credentials.get(this.credential_id)
-            if isinstance(cred, Password):
-                self.password_used = True
-            elif isinstance(cred, FidoCredential):
-                self.fido_used = True
-                if cred.is_verified and cred.proofing_method == CredentialProofingMethod.SWAMID_AL3_MFA:
-                    self.swamid_al3_used = True
-            elif isinstance(cred, OnetimeCredential):
-                # OLD way
-                logger.debug(f"External MFA used for this request: {cred}")
-                self.external_mfa_used = True
-                # TODO: Support more SwedenConnect authn contexts?
-                if cred.authn_context == "http://id.elegnamnden.se/loa/1.0/loa3":
-                    self.swamid_al3_used = True
-            elif isinstance(cred, SwedenConnectCredential):
-                # NEW way
-                logger.debug(f"SwedenConnect MFA used for this request: {cred}")
-                self.external_mfa_used = True
-                if cred.level == "loa3":
-                    self.swamid_al3_used = True
-            elif isinstance(cred, BankIDCredential):
-                # NEW way
-                logger.debug(f"BankID MFA used for this request: {cred}")
-                self.external_mfa_used = True
-                if cred.level == "uncertified-loa3":
-                    self.swamid_al3_used = True
-            else:
-                # Warn, but do not fail when the credential isn't found on the user. This can't be a hard failure,
-                # because when a user changes password they will get a new credential and the old is removed from
-                # the user but the old one might still be referenced in the SSO session, or the session.
-                logger.warning(f"Credential with id {this.credential_id} not found on user")
-                _creds = user.credentials.to_list()
-                logger.debug(f"User credentials:\n{_creds}")
-                logger.debug(f"Session one-time credentials:\n{ticket.pending_request.onetime_credentials}")
+            match cred:
+                case Password():
+                    self.password_used = True
+                case FidoCredential():
+                    self.fido_used = True
+                    if cred.is_verified and cred.proofing_method == CredentialProofingMethod.SWAMID_AL3_MFA:
+                        self.fido_cred_can_do_swamid_al3 = True
+                    if cred.mfa_approved and this.fido_authn_data and this.fido_authn_data.user_verified:
+                        self.fido_mfa_used = True
+                # TODO: maybe use this.external_authn_data.authn_context instead of cred.level?
+                case SwedenConnectCredential():
+                    logger.debug(f"SwedenConnect MFA used for this request: {cred}")
+                    self.external_mfa_used = True
+                    if cred.level == "loa3":
+                        self.swamid_al3_used = True
+                case BankIDCredential():
+                    logger.debug(f"BankID MFA used for this request: {cred}")
+                    self.external_mfa_used = True
+                    if cred.level == "uncertified-loa3":
+                        self.swamid_al3_used = True
+                case _:
+                    # Warn, but do not fail when the credential isn't found on the user. This can't be a hard failure,
+                    # because when a user changes password they will get a new credential and the old is removed from
+                    # the user but the old one might still be referenced in the SSO session, or the session.
+                    logger.warning(f"Credential with id {this.credential_id} not found on user")
+                    _creds = user.credentials.to_list()
+                    logger.debug(f"User credentials:\n{_creds}")
 
         if user.identities.is_verified:
             self.is_swamid_al2 = True
+
+        # check that the security key is not used as a single factor when asserting SWAMID AL3
+        if self.is_multifactor and self.fido_cred_can_do_swamid_al3:
+            self.swamid_al3_used = True
 
         # check if the user can assert DIGG loa2
         if user.identities.nin and user.identities.nin.is_verified:
@@ -134,16 +129,18 @@ class AuthnState:
         _used_credentials: dict[ElementKey, UsedCredential] = {}
 
         # Add all credentials used while the IdP processed this very request
-        for key, ts in ticket.pending_request.credentials_used.items():
-            if key in ticket.pending_request.onetime_credentials:
-                onetime_cred = ticket.pending_request.onetime_credentials[key]
-                cred = UsedCredential(credential_id=onetime_cred.key, ts=ts, source=UsedWhere.REQUEST)
-            else:
-                credential = user.credentials.find(key)
-                if not credential:
-                    logger.warning(f"Could not find credential {key} on user {user}")
-                    continue
-                cred = UsedCredential(credential_id=credential.key, ts=ts, source=UsedWhere.REQUEST)
+        for key, authn_data in ticket.pending_request.credentials_used.items():
+            credential = user.credentials.find(key)
+            if not credential:
+                logger.warning(f"Could not find credential {key} on user {user}")
+                continue
+            cred = UsedCredential(
+                credential_id=credential.key,
+                ts=authn_data.timestamp,
+                external_authn_data=authn_data.external,
+                fido_authn_data=authn_data.fido,
+                source=UsedWhere.REQUEST,
+            )
             logger.debug(f"Adding credential used with this request: {cred}")
             _used_credentials[cred.credential_id] = cred
 
@@ -161,33 +158,19 @@ class AuthnState:
             if not credential:
                 logger.warning(f"Could not find credential {this.cred_id} on user {user}")
                 continue
-            # TODO: The authn_timestamp in the SSO session is not necessarily right for all credentials there
-            cred = UsedCredential(credential_id=credential.key, ts=sso_session.authn_timestamp, source=UsedWhere.SSO)
+            cred = UsedCredential(
+                credential_id=credential.key,
+                ts=this.timestamp,
+                external_authn_data=this.external,
+                fido_authn_data=this.fido,
+                source=UsedWhere.SSO,
+            )
             _key = cred.credential_id
             if _key in _used_credentials:
                 # If the credential is in _used_credentials, it is because it was used with this very request.
                 continue
             logger.debug(f"Adding credential used from the SSO session: {cred}")
             _used_credentials[_key] = cred
-
-        # External mfa check
-        if sso_session.external_mfa is not None:
-            logger.debug(f"External MFA (in SSO session) issuer: {sso_session.external_mfa.issuer}")
-            logger.debug(f"External MFA (in SSO session) credential_id: {sso_session.external_mfa.credential_id}")
-
-            # Check if there is an ExternalCredential on the user (the new way), or if we need to mint
-            # a temporary OnetimeCredential.
-            if not sso_session.external_mfa.credential_id:
-                logger.debug("Creating temporary OnetimeCredential")
-                _otc = OnetimeCredential(
-                    authn_context=sso_session.external_mfa.authn_context,
-                    issuer=sso_session.external_mfa.issuer,
-                    timestamp=sso_session.external_mfa.timestamp,
-                    type=OnetimeCredType.external_mfa,
-                )
-                self._onetime_credentials[_otc.key] = _otc
-                cred = UsedCredential(credential_id=_otc.key, ts=sso_session.authn_timestamp, source=UsedWhere.SSO)
-                _used_credentials[ElementKey("SSO_external_MFA")] = cred
 
         _used_sso = [x for x in _used_credentials.values() if x.source == UsedWhere.SSO]
         logger.debug(f"Number of credentials inherited from the SSO session: {len(_used_sso)}")
@@ -197,17 +180,21 @@ class AuthnState:
     def __str__(self) -> str:
         return (
             f"<AuthnState: creds={len(self._credentials)}, pw={self.password_used}, fido={self.fido_used}, "
-            f"external_mfa={self.external_mfa_used}, nin is al2={self.is_swamid_al2}, "
+            f"fido_mfa={self.fido_mfa_used}, external_mfa={self.external_mfa_used}, nin is al2={self.is_swamid_al2}, "
             f"mfa is {self.is_multifactor} (al3={self.swamid_al3_used})>"
         )
 
     @property
     def is_singlefactor(self) -> bool:
-        return self.password_used or self.fido_used
+        return self.password_used or self.fido_used or self.is_multifactor
 
     @property
     def is_multifactor(self) -> bool:
-        return self.password_used and (self.fido_used or self.external_mfa_used)
+        if self.fido_mfa_used or self.external_mfa_used:
+            return True
+        if self.password_used and self.fido_used:
+            return True
+        return False
 
     @property
     def credentials(self) -> list[UsedCredential]:
@@ -226,10 +213,12 @@ def response_authn(authn: AuthnState, ticket: LoginContext, user: IdPUser) -> Au
     attributes = {}
     response_accr = None
 
+    # Docs: https://wiki.sunet.se/display/ED/eduID+AuthnContextClass+to+SWAMID%2C+eduGAIN+and+Sweden+Connect
+
     if req_authn_ctx == EduidAuthnContextClass.DIGG_LOA2:
-        current_idp_app.stats.count("req_authn_ctx_digg_loa2")
-        if not authn.password_used:
-            raise MissingPasswordFactor()
+        current_app.stats.count("req_authn_ctx_digg_loa2")
+        if not authn.is_singlefactor:
+            raise MissingSingleFactor()
         if not authn.is_multifactor:
             raise MissingMultiFactor()
         if not authn.digg_loa2_approved_identity:
@@ -241,37 +230,37 @@ def response_authn(authn: AuthnState, ticket: LoginContext, user: IdPUser) -> Au
         response_accr = EduidAuthnContextClass.DIGG_LOA2
 
     elif req_authn_ctx == EduidAuthnContextClass.REFEDS_MFA:
-        current_idp_app.stats.count("req_authn_ctx_refeds_mfa")
-        if not authn.password_used:
-            raise MissingPasswordFactor()
+        current_app.stats.count("req_authn_ctx_refeds_mfa")
+        if not authn.is_singlefactor:
+            raise MissingSingleFactor()
         if not authn.is_multifactor:
             raise MissingMultiFactor()
         response_accr = EduidAuthnContextClass.REFEDS_MFA
 
     elif req_authn_ctx == EduidAuthnContextClass.REFEDS_SFA:
-        current_idp_app.stats.count("req_authn_ctx_refeds_sfa")
+        current_app.stats.count("req_authn_ctx_refeds_sfa")
         if not authn.is_singlefactor:
             raise MissingSingleFactor()
         response_accr = EduidAuthnContextClass.REFEDS_SFA
 
     elif req_authn_ctx == EduidAuthnContextClass.EDUID_MFA:
-        current_idp_app.stats.count("req_authn_ctx_eduid_mfa")
-        if not authn.password_used:
-            raise MissingPasswordFactor()
+        current_app.stats.count("req_authn_ctx_eduid_mfa")
+        if not authn.is_singlefactor:
+            raise MissingSingleFactor()
         if not authn.is_multifactor:
             raise MissingMultiFactor()
         response_accr = EduidAuthnContextClass.EDUID_MFA
 
     elif req_authn_ctx == EduidAuthnContextClass.FIDO_U2F:
-        current_idp_app.stats.count("req_authn_ctx_fido_u2f")
+        current_app.stats.count("req_authn_ctx_fido_u2f")
         if not authn.password_used and authn.fido_used:
             raise MissingMultiFactor()
         response_accr = EduidAuthnContextClass.FIDO_U2F
 
     elif req_authn_ctx == EduidAuthnContextClass.PASSWORD_PT:
-        current_idp_app.stats.count("req_authn_ctx_password_pt")
-        if not authn.password_used:
-            raise MissingPasswordFactor()
+        current_app.stats.count("req_authn_ctx_password_pt")
+        if not authn.is_singlefactor:
+            raise MissingSingleFactor()
         response_accr = EduidAuthnContextClass.PASSWORD_PT
 
     elif req_authn_ctx is None:
@@ -280,6 +269,8 @@ def response_authn(authn: AuthnState, ticket: LoginContext, user: IdPUser) -> Au
             response_accr = EduidAuthnContextClass.REFEDS_MFA
         elif authn.password_used:
             response_accr = EduidAuthnContextClass.PASSWORD_PT
+        elif authn.is_singlefactor:
+            response_accr = EduidAuthnContextClass.REFEDS_SFA
         else:
             raise MissingAuthentication()
 

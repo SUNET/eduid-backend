@@ -12,7 +12,6 @@ from eduid.webapp.idp.tests.test_api import IdPAPITests
 class test_SSOSession(IdPAPITests):
     def setUp(self, config: SetupConfig | None = None) -> None:
         super().setUp(config=config)
-        # This is real data extracted from MongoDB before a lot of refactoring
         self.data = {
             "_id": ObjectId("5fcde44d56cf512b51f1ac4e"),
             "session_id": "ZjYzOTcwNWItYzUyOS00M2U1LWIxODQtODMxYTJhZjQ0YzA1",
@@ -22,11 +21,11 @@ class test_SSOSession(IdPAPITests):
                 {
                     "cred_id": "5fc8b78cbdaa0bf337490db1",
                     "external": None,
+                    "fido": None,
                     "timestamp": datetime.fromisoformat("2020-09-13T12:26:40+00:00"),
                 }
             ],
             "authn_timestamp": datetime.fromisoformat("2020-09-13T12:26:40+00:00"),
-            "external_mfa": None,
             "created_ts": datetime.fromisoformat("2020-12-07T08:14:05.744+00:00"),
             "expires_at": datetime.fromisoformat("2020-12-08T00:00:00+00:00"),
         }

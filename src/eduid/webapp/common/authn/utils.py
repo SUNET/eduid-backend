@@ -13,6 +13,7 @@ from saml2.typing import SAMLHttpArgs
 from eduid.common.config.base import AuthnParameters, EduIDBaseAppConfig, FrontendAction, FrontendActionMixin
 from eduid.common.config.exceptions import BadConfiguration
 from eduid.common.misc.timeutil import utc_now
+from eduid.common.models.saml2 import EduidAuthnContextClass
 from eduid.common.utils import urlappend
 from eduid.userdb import User
 from eduid.userdb.credentials import Credential, FidoCredential
@@ -186,16 +187,16 @@ def validate_authn_for_action(
             return AuthnActionStatus.WRONG_ACCR
 
     # optimistic check for MFA aka "high security"
-    if authn_params.high_security and len(authn.credentials_used) < 2:
+    if authn_params.high_security and authn.asserted_authn_ctx is not EduidAuthnContextClass.REFEDS_MFA:
         if len(user.credentials.filter(FidoCredential)) >= 1:
             logger.info("Authentication (high_security) requires MFA")
-            logger.info(f"Expected at least 2 credentials got: {len(authn.credentials_used)}")
+            logger.info(f"Expected accr {EduidAuthnContextClass.REFEDS_MFA} got: {authn.asserted_authn_ctx}")
             return AuthnActionStatus.NO_MFA
 
     # specific check for MFA to be able to use login actions
-    if authn_params.force_mfa and len(authn.credentials_used) < 2:
+    if authn_params.force_mfa and authn.asserted_authn_ctx is not EduidAuthnContextClass.REFEDS_MFA:
         logger.info("Authentication (force_mfa) requires MFA")
-        logger.info(f"Expected at least 2 credentials got: {len(authn.credentials_used)}")
+        logger.info(f"Expected accr {EduidAuthnContextClass.REFEDS_MFA} got: {authn.asserted_authn_ctx}")
         return AuthnActionStatus.NO_MFA
 
     if credential_requested and not credential_recently_used(

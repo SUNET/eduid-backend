@@ -7,7 +7,6 @@ from copy import deepcopy
 from datetime import datetime
 from enum import StrEnum, unique
 from typing import Any, NewType, TypeVar, cast
-from uuid import uuid4
 
 from fido2.webauthn import AuthenticatorAttachment
 from pydantic import BaseModel, Field, ValidationError, field_validator
@@ -15,12 +14,14 @@ from pydantic_core.core_schema import ValidationInfo
 
 from eduid.common.config.base import FrontendAction
 from eduid.common.misc.timeutil import utc_now
+from eduid.common.models.saml2 import EduidAuthnContextClass
 from eduid.common.utils import uuid4_str
 from eduid.userdb.credentials import Credential
 from eduid.userdb.credentials.external import TrustFramework
 from eduid.userdb.element import ElementKey
 from eduid.webapp.common.authn.acs_enums import AuthnAcsAction, BankIDAcsAction, EidasAcsAction
 from eduid.webapp.freja_eid.callback_enums import FrejaEIDAction
+from eduid.webapp.idp.idp_authn import AuthnData
 from eduid.webapp.idp.other_device.data import OtherDeviceId
 from eduid.webapp.svipe_id.callback_enums import SvipeIDAction
 
@@ -186,31 +187,26 @@ class Phone(SessionNSBase):
 RequestRef = NewType("RequestRef", str)
 
 
-class OnetimeCredType(StrEnum):
-    external_mfa = "ext_mfa"
-
-
-class OnetimeCredential(Credential):
-    credential_id: str = Field(default_factory=lambda: str(uuid4()))
-    type: OnetimeCredType
-
-    # External MFA auth parameters
-    issuer: str
-    authn_context: str
-    timestamp: datetime
-
-    @property
-    def key(self) -> ElementKey:
-        return ElementKey(self.credential_id)
-
-
 class IdP_PendingRequest(BaseModel, ABC):
     aborted: bool | None = False
     used: bool | None = False  # set to True after the request has been completed (to handle 'back' button presses)
-    template_show_msg: str | None = None  # set when the template version of the idp should show a message to the user
     # Credentials used while authenticating _this SAML request_. Not ones inherited from SSO.
-    credentials_used: dict[ElementKey, datetime] = Field(default_factory=dict)
-    onetime_credentials: dict[ElementKey, OnetimeCredential] = Field(default_factory=dict)
+    credentials_used: dict[ElementKey, AuthnData] = Field(default_factory=dict)
+
+    # TODO: should be removed next release
+    @field_validator("credentials_used", mode="before")
+    @classmethod
+    def migrate_credentials_used(
+        cls, v: dict[ElementKey, str | dict[str, str]], info: ValidationInfo
+    ) -> dict[ElementKey, dict[str, str]]:
+        _credentials_used = {}
+        for key, value in v.items():
+            match value:
+                case str():
+                    _credentials_used[key] = {"cred_id": key, "authn_ts": value}
+                case _:
+                    _credentials_used[key] = value
+        return _credentials_used
 
 
 class IdP_SAMLPendingRequest(IdP_PendingRequest):
@@ -234,13 +230,9 @@ class IdP_Namespace(TimestampedNS):
     sso_cookie_val: str | None = None
     pending_requests: dict[RequestRef, IdP_PendingRequestSubclass] = Field(default={})
 
-    def log_credential_used(
-        self, request_ref: RequestRef, credential: Credential | OnetimeCredential, timestamp: datetime
-    ) -> None:
+    def log_credential_used(self, request_ref: RequestRef, credential: Credential, authn_data: AuthnData) -> None:
         """Log the credential used in the session, under this particular SAML request"""
-        if isinstance(credential, OnetimeCredential):
-            self.pending_requests[request_ref].onetime_credentials[credential.key] = credential
-        self.pending_requests[request_ref].credentials_used[credential.key] = timestamp
+        self.pending_requests[request_ref].credentials_used[credential.key] = authn_data
 
 
 class BaseAuthnRequest(BaseModel, ABC):
@@ -261,10 +253,10 @@ class BaseAuthnRequest(BaseModel, ABC):
 class SP_AuthnRequest(BaseAuthnRequest):
     authn_id: AuthnRequestRef = Field(default_factory=lambda: AuthnRequestRef(uuid4_str()))
     credentials_used: list[ElementKey] = Field(default_factory=list)
-    req_authn_ctx: list[str] = Field(
-        default_factory=list
-    )  # the authentication contexts requested for this authentication
-    asserted_authn_ctx: str | None = None  # the authentication contexts asserted for this authentication
+    # the authentication contexts requested for this authentication
+    req_authn_ctx: list[str] = Field(default_factory=list)
+    # the authentication contexts asserted for this authentication
+    asserted_authn_ctx: EduidAuthnContextClass | None = None
 
     def formatted_finish_url(self, app_name: str) -> str:
         return self.finish_url.format(app_name=app_name, authn_id=self.authn_id)

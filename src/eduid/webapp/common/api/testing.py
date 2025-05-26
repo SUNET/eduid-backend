@@ -16,6 +16,7 @@ from werkzeug.test import TestResponse
 
 from eduid.common.config.base import EduIDBaseAppConfig, FrontendAction, MagicCookieMixin, RedisConfig
 from eduid.common.misc.timeutil import utc_now
+from eduid.common.models.saml2 import EduidAuthnContextClass
 from eduid.common.rpc.msg_relay import FullPostalAddress, NavetData
 from eduid.common.testing_base import CommonTestCase
 from eduid.userdb import User
@@ -343,6 +344,10 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
         if mock_mfa:
             credentials_used = [ElementKey("mock_credential_one"), ElementKey("mock_credential_two")]
 
+        accr = None
+        if len(credentials_used) >= 2:
+            accr = EduidAuthnContextClass.REFEDS_MFA
+
         with self.session_cookie(self.browser, eppn) as client:
             with client.session_transaction() as sess:
                 # Add authn data faking a reauthn event has taken place for this action
@@ -352,6 +357,7 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
                     frontend_action=frontend_action,
                     credentials_used=credentials_used,
                     finish_url=finish_url,
+                    asserted_authn_ctx=accr,
                 )
                 sess.authn.sp.authns[sp_authn_req.authn_id] = sp_authn_req
 
