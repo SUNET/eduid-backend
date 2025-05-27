@@ -22,7 +22,7 @@ from eduid.webapp.common.api.testing import CSRFTestClient
 from eduid.webapp.common.authn.cache import OutstandingQueriesCache
 from eduid.webapp.common.proofing.messages import ProofingMsg
 from eduid.webapp.common.proofing.testing import ProofingTests
-from eduid.webapp.common.session import EduidSession
+from eduid.webapp.common.session import EduidSession, session
 from eduid.webapp.common.session.namespaces import AuthnRequestRef
 
 __author__ = "lundberg"
@@ -373,10 +373,14 @@ class BankIDTests(ProofingTests[BankIDApp]):
             browser_with_session_cookie = self.session_cookie_anon(browser)
 
         with browser_with_session_cookie as browser:
-            if logged_in is False:
-                with browser.session_transaction() as sess:
+            with browser.session_transaction() as sess:
+                if logged_in is False:
                     # the user is at least partially logged in at this stage
                     sess.common.eppn = eppn
+                if frontend_action is FrontendAction.LOGIN_MFA_AUTHN:
+                    # setup session mfa_action
+                    sess.mfa_action.login_ref = "test login ref"
+                    sess.mfa_action.eppn = eppn
 
             _url = self._get_authn_redirect_url(
                 browser=browser,
