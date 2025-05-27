@@ -1,3 +1,4 @@
+from copy import deepcopy
 from dataclasses import dataclass
 
 from flask import Blueprint, make_response, redirect, request
@@ -223,8 +224,11 @@ def _authn(
         #   current login ref. We should make something similar for reset password.
         # 3. Remove session.mfa_action
         #
-        # Clear session keys used for external mfa
+        # Make sure only expected keys are used for external mfa, clear the rest
+        saved_mfa_action = deepcopy(session.mfa_action)
         del session.mfa_action
+        session.mfa_action.login_ref = saved_mfa_action.login_ref
+        session.mfa_action.eppn = saved_mfa_action.eppn
 
         # Ideally, we should be able to support multiple ongoing external MFA requests at the same time,
         # but for now at least remember the SAML request id and the login_ref (when the frontend has been
