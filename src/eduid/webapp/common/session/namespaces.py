@@ -89,6 +89,7 @@ WebauthnState = NewType("WebauthnState", dict[str, Any])
 
 class MfaAction(SessionNSBase):
     success: bool = False
+    eppn: str | None = None
     login_ref: str | None = None
     authn_req_ref: AuthnRequestRef | None = None
     credential_used: ElementKey | None = None
