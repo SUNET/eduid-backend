@@ -64,6 +64,9 @@ def mfa_auth(
     # opt to do external MFA anyway.
     saved_mfa_action = deepcopy(session.mfa_action)
     del session.mfa_action
+    # setup new mfa_action for external mfa
+    session.mfa_action.login_ref = ticket.request_ref
+    session.mfa_action.eppn = user.eppn
 
     result = _check_external_mfa(saved_mfa_action, user, ticket.request_ref)
     if result and result.response:
@@ -101,6 +104,10 @@ def mfa_auth(
             payload.update(options)
 
         current_app.logger.debug("No MFA submitted. Sending not-finished response.")
+        current_app.logger.debug(
+            f"Will accept external MFA for login ref: {session.mfa_action.login_ref} and "
+            f"eppn: {session.mfa_action.eppn}"
+        )
         return success_response(payload=payload)
 
     if not result.authn_data or not result.credential:

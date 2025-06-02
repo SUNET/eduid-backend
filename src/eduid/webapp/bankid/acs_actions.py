@@ -184,7 +184,7 @@ def mfa_authenticate_action(args: ACSArgs) -> ACSResult:
         return ret
 
     # Get user from central database
-    user = current_app.central_userdb.get_user_by_eppn(session.common.eppn)
+    user = current_app.central_userdb.get_user_by_eppn(session.mfa_action.eppn)
 
     parsed = args.proofing_method.parse_session_info(args.session_info, backdoor=args.backdoor)
     if parsed.error:
