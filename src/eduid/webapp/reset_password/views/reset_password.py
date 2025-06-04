@@ -43,6 +43,8 @@ form will also result in resetting her password, but without unverifying any of
 her data.
 """
 
+from copy import deepcopy
+
 from flask import Blueprint, abort, request
 
 from eduid.common.rpc.exceptions import MailTaskFailed, MsgTaskFailed
@@ -84,9 +86,6 @@ from eduid.webapp.reset_password.schemas import (
     ResetPasswordVerifyEmailResponseSchema,
     ResetPasswordWithCodeSchema,
 )
-
-SESSION_PREFIX = "eduid_webapp.reset_password.views"
-
 
 reset_password_views = Blueprint("reset_password", __name__, url_prefix="/", template_folder="templates")
 
@@ -473,6 +472,10 @@ def set_new_pw_extra_security_token(
     except StateException as e:
         return error_response(message=e.msg)
 
+    # reset webauthn_state to avoid challenge reuse
+    saved_mfa_action = deepcopy(session.mfa_action)
+    del session.mfa_action
+
     # Process POSTed data
     success = False
     if authenticator_data:
@@ -484,7 +487,7 @@ def set_new_pw_extra_security_token(
             "signature": signature,
         }
         current_app.stats.count(name="extra_security_security_key_webauthn_data_received")
-        if not session.mfa_action.webauthn_state:
+        if not saved_mfa_action.webauthn_state:
             current_app.logger.error("No webauthn state in session")
             current_app.stats.count(name="extra_security_security_key_webauthn_missing_session_data")
             return error_response(message=ResetPwMsg.missing_data)
@@ -495,16 +498,13 @@ def set_new_pw_extra_security_token(
                 request_dict=request_dict,
                 rp_id=current_app.conf.fido2_rp_id,
                 rp_name=current_app.conf.fido2_rp_name,
-                state=session.mfa_action,
+                state=saved_mfa_action,
             )
             success = result.success
             if success:
                 current_app.stats.count(name="extra_security_security_key_webauthn_success")
         except fido_tokens.VerificationProblem:
             pass
-        finally:
-            # reset webauthn_state to avoid challenge reuse
-            session.mfa_action.webauthn_state = None
     else:
         current_app.logger.error(f"No webauthn data in request for {context.user}")
 
@@ -527,16 +527,18 @@ def set_new_pw_extra_security_external_mfa(
     except StateException as e:
         return error_response(message=e.msg)
 
-    if session.mfa_action.success is not True:  # Explicit check that success is the boolean True
+    # Clear mfa_action from session
+    saved_mfa_action = deepcopy(session.mfa_action)
+    del session.mfa_action
+
+    if saved_mfa_action.success is not True:  # Explicit check that success is the boolean True
         current_app.stats.count(name="extra_security_external_mfa_fail")
         return error_response(message=ResetPwMsg.external_mfa_fail)
 
-    current_app.logger.info(f"User used external MFA service {session.mfa_action.issuer} as extra security")
+    current_app.logger.info(f"User used external MFA service {saved_mfa_action.issuer} as extra security")
     current_app.logger.info(
-        f"Issued: {session.mfa_action.authn_instant}. Authn context: {session.mfa_action.authn_context}"
+        f"Issued: {saved_mfa_action.authn_instant}. Authn context: {saved_mfa_action.authn_context}"
     )
-    # Clear mfa_action from session
-    del session.mfa_action
     current_app.stats.count(name="extra_security_external_mfa_success")
     return reset_user_password(user=context.user, state=context.state, password=password, mfa_used=True)
 

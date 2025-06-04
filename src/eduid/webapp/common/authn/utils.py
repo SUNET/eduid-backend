@@ -146,6 +146,7 @@ def validate_authn_for_action(
 
     logger.debug(f"Validating authentication for frontend action {frontend_action}")
     authn, authn_params = get_authn_for_action(config=config, frontend_action=frontend_action)
+    logger.debug(f"Found authn {authn} with params {authn_params}")
 
     if not authn and authn_params.allow_signup_auth:
         # check if the user is just created in the process of signup
