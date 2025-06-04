@@ -157,7 +157,7 @@ def _check_external_mfa(mfa_action: MfaAction, user: User, ref: RequestRef) -> C
             #       the eidas /mfa-authenticate endpoint
             if mfa_action.login_ref != ref:
                 current_app.logger.info("MFA data in session does not match this request, rejecting")
-                return CheckResult(response=error_response(message=IdPMsg.general_failure))
+                return None
 
         current_app.logger.info(f"User {user} logged in using external MFA service {mfa_action.issuer}")
 
