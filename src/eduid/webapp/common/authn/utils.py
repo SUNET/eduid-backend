@@ -215,6 +215,7 @@ def credential_recently_used(user: User, credential: Credential, action: SP_Auth
     if action and credential.key in action.credentials_used:
         if action.authn_instant is not None:
             age = (utc_now() - action.authn_instant).total_seconds()
+            logger.debug(f"Credential {credential} has been used {age} seconds ago")
             if 0 < age < max_age:
                 logger.debug(f"Credential {credential} has been used recently")
                 return True
@@ -223,6 +224,7 @@ def credential_recently_used(user: User, credential: Credential, action: SP_Auth
     logger.debug(f"Checking if credential {credential} has been added in the last {max_age} seconds")
     if user_cred := user.credentials.find(key=credential.key):
         age = (utc_now() - user_cred.created_ts).total_seconds()
+        logger.debug(f"Credential {credential} has been added {age} seconds ago")
         if 0 < age < max_age:
             logger.debug(f"Credential {credential} has been added recently")
             return True
