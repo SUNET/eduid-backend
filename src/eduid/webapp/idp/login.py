@@ -368,7 +368,7 @@ class SSO(Service):
 
         # Add a list of credentials used in a private attribute that will only be
         # released to the eduID authn component
-        attributes["eduidIdPCredentialsUsed"] = [x.cred_id for x in sso_session.authn_credentials]
+        attributes["eduidIdPCredentialsUsed"] = [x.cred_id for x in ticket.pending_request.credentials_used.values()]
 
         # Add attributes from the authn process
         for k, v in response_authn.authn_attributes.items():
