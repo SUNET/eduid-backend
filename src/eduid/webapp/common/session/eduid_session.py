@@ -6,7 +6,7 @@ import os
 import pprint
 from collections.abc import Iterator, MutableMapping
 from datetime import datetime
-from typing import TYPE_CHECKING, TypeVar, Any
+from typing import TYPE_CHECKING, TypeVar
 
 from flask import Request as FlaskRequest
 from flask import Response as FlaskResponse
