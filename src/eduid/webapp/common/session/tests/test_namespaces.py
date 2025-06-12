@@ -51,10 +51,10 @@ class TestNamespace(TestNameSpaceBase):
 
         session._serialize_namespaces()
         out = session._session.to_dict()
+        normalised_out = normalised_data(out, exclude_keys=["ts"])
 
-        assert normalised_data(out, replace_datetime="now") == {
+        assert normalised_out == {
             "signup": {
-                "ts": "now",
                 "user_created": False,
                 "email": {"completed": False, "verification_code": "test", "bad_attempts": 0},
                 "invite": {"initiated_signup": False, "completed": False},
@@ -63,20 +63,17 @@ class TestNamespace(TestNameSpaceBase):
                 "captcha": {"bad_attempts": 0, "completed": False},
                 "credentials": {"completed": False},
             },
-            "idp": {"ts": "now", "sso_cookie_val": "abc", "pending_requests": {}},
-        }, f"Actual result: {normalised_data(out, replace_datetime='now')}"
+            "idp": {"sso_cookie_val": "abc", "pending_requests": {}},
+        }, f"Actual result: {normalised_out}"
 
         session.persist()
 
         # Validate that the session can be loaded again
         loaded_session = self.get_session(meta=_meta, new=False)
-        # loaded_session is raw data from the storage backend, it won't have timestamps deserialised into datetimes
-        # (done by pydantic when loading the data into the EduidSession), so in order to expect the same serialisation
-        # again we need to do that here
-        loaded_session._session["idp"]["ts"] = datetime.fromisoformat(loaded_session._session["idp"]["ts"])
-        loaded_session._session["signup"]["ts"] = datetime.fromisoformat(loaded_session._session["signup"]["ts"])
         # ...and that it serialises to the same data again
-        assert loaded_session._session.to_dict() == out
+        assert normalised_out == normalised_data(loaded_session._session.to_dict(), exclude_keys=["ts"]), (
+            f"Actual result: {normalised_out}"
+        )
 
     def test_to_dict_from_dict_with_timestamp(self) -> None:
         _meta = SessionMeta.new(app_secret="secret")
@@ -91,20 +88,17 @@ class TestNamespace(TestNameSpaceBase):
         out = first._session.to_dict()
 
         assert out == {
-            "idp": {"sso_cookie_val": "abc", "pending_requests": {}, "ts": first.idp.ts},
+            "idp": {"sso_cookie_val": "abc", "pending_requests": {}, "ts": "2020-09-13T12:26:40Z"},
         }
 
         first.persist()
 
         # Validate that the session can be loaded again
         second = self.get_session(meta=_meta, new=False)
-        # loaded_session is raw data from the storage backend, it won't have timestamps deserialised into datetimes
-        # (done by pydantic when loading the data into the EduidSession), so in order to expect the same serialisation
-        # again we need to do that here
-        assert isinstance(second["idp"], dict)
-        second["idp"]["ts"] = datetime.fromisoformat(second["idp"]["ts"])
         # ...and that it serialises to the same data that was persisted
-        assert second._session.to_dict() == out
+        assert normalised_data(out, exclude_keys=["ts"]) == normalised_data(
+            second._session.to_dict(), exclude_keys=["ts"]
+        )
 
         assert second.idp.sso_cookie_val == first.idp.sso_cookie_val
         assert second.idp.ts == first.idp.ts

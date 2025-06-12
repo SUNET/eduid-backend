@@ -10,6 +10,7 @@ from saml2.response import AuthnResponse, LogoutResponse
 from saml2.typing import SAMLBinding
 from werkzeug.test import TestResponse
 
+from eduid.common.testing_base import normalised_data
 from eduid.vccs.client import VCCSClient
 from eduid.webapp.idp.helpers import IdPAction
 from eduid.webapp.idp.sso_session import SSOSession
@@ -76,7 +77,7 @@ class IdPTestLogoutAPI(IdPAPITests):
 
         # Make sure it is the only SSO session for this user
         user_sso_sessions = self.app.sso_sessions.get_sessions_for_user(self.test_user.eppn)
-        assert user_sso_sessions == [sso_session1]
+        assert normalised_data(user_sso_sessions) == normalised_data([sso_session1])
 
         # Remove all cookies, simulating a SOAP request from an SP rather than from the clients browser
         assert self.browser._cookies
