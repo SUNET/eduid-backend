@@ -2,6 +2,7 @@ from datetime import UTC, datetime
 
 from bson import ObjectId
 
+from eduid.common.testing_base import normalised_data
 from eduid.userdb.element import ElementKey
 from eduid.userdb.testing import SetupConfig
 from eduid.webapp.idp.idp_authn import AuthnData
@@ -52,7 +53,7 @@ class test_SSOSession(IdPAPITests):
     def test_to_dict_from_dict(self) -> None:
         session1 = SSOSession.from_dict(self.data)
         session2 = SSOSession.from_dict(session1.to_dict())
-        assert session1.to_dict() == session2.to_dict()
+        assert normalised_data(session1.to_dict()) == normalised_data(session2.to_dict())
         assert session2.to_dict() == self.data
 
     def test_only_store_newest_credential_use(self) -> None:

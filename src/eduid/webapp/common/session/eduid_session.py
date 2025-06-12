@@ -12,6 +12,7 @@ from flask import Request as FlaskRequest
 from flask import Response as FlaskResponse
 from flask.sessions import SessionInterface, SessionMixin
 from pydantic import BaseModel
+from pydantic_core import to_jsonable_python
 from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.common.config.base import EduIDBaseAppConfig
@@ -31,6 +32,7 @@ from eduid.webapp.common.session.namespaces import (
     Phone,
     ResetPasswordNS,
     SecurityNS,
+    SessionNSBase,
     Signup,
     SvipeIDNamespace,
     TimestampedNS,
@@ -340,13 +342,16 @@ class EduidSession(SessionMixin, MutableMapping[str, VT]):
 
         The __setitem__ function on `self' will essentially write the data into the backend session (self._session).
         """
-        for k, value in self._namespaces.dict(exclude_none=True).items():
+        for k, value in self._namespaces.model_dump(exclude_none=True).items():
             this = getattr(self._namespaces, k)
             if isinstance(this, TimestampedNS):
                 if k in self and self[k] != value:
                     # update timestamp on change
                     this.ts = utc_now()
-                    value = this.dict(exclude_none=True)
+            if isinstance(this, SessionNSBase):
+                # hack to make the new value comparable with the old
+                # this is checked in session __setitem__
+                value = to_jsonable_python(this.to_dict(exclude_none=True))
             self[k] = value
 
     def persist(self) -> None:

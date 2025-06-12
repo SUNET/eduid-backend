@@ -53,7 +53,7 @@ class AuthnData(BaseModel):
     timestamp: datetime = Field(default_factory=utc_now, alias="authn_ts")  # authn_ts was the old name in the db
     external: ExternalAuthnData | None = None
     fido: FidoAuthnData | None = None
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(validate_by_alias=True, validate_by_name=True)
 
     def to_dict(self) -> dict[str, Any]:
         """Return the object in dict format (serialized for storing in MongoDB)."""
