@@ -298,9 +298,7 @@ class SSO(Service):
             current_app.logger.debug(f"Asserting AuthnContext {authn_info} (none requested)")
 
         assert self.sso_session  # please mypy
-        attributes = self.gather_attributes(
-            response_authn=authn_info, resp_args=resp_args, user=user, ticket=ticket, sso_session=self.sso_session
-        )
+        attributes = self.gather_attributes(response_authn=authn_info, resp_args=resp_args, user=user, ticket=ticket)
         missing_attributes = self.get_missing_attributes(ticket=ticket, attributes=attributes)
         saml_response = self._make_saml_response(
             response_authn=authn_info, resp_args=resp_args, user=user, ticket=ticket, attributes=attributes
@@ -340,7 +338,6 @@ class SSO(Service):
         resp_args: ResponseArgs,
         user: IdPUser,
         ticket: LoginContextSAML,
-        sso_session: SSOSession,
     ) -> dict[str, Any]:
         sp_identifier = resp_args.get("sp_entity_id", resp_args["destination"])
         current_app.logger.debug(f"Creating SAML response for SP {sp_identifier}")
