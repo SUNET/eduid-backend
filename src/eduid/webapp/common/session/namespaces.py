@@ -9,8 +9,8 @@ from enum import StrEnum, unique
 from typing import Any, NewType, TypeVar, cast
 
 from fido2.webauthn import AuthenticatorAttachment
-from pydantic import BaseModel, Field, ValidationError, field_validator
-from pydantic_core.core_schema import ValidationInfo
+from pydantic import BaseModel, Field, ValidationError, field_serializer
+from pydantic_core.core_schema import SerializationInfo
 
 from eduid.common.config.base import FrontendAction
 from eduid.common.misc.timeutil import utc_now
@@ -30,14 +30,13 @@ __author__ = "ft"
 
 logger = logging.getLogger(__name__)
 
-
 AuthnRequestRef = NewType("AuthnRequestRef", str)
 OIDCState = NewType("OIDCState", str)
 
 
 class SessionNSBase(BaseModel, ABC):
-    def to_dict(self) -> dict[str, Any]:
-        return self.model_dump()
+    def to_dict(self, **kwargs: Any) -> dict[str, Any]:
+        return self.model_dump(**kwargs)
 
     @classmethod
     def from_dict(cls: type[TSessionNSSubclass], data: Mapping[str, Any]) -> TSessionNSSubclass:
