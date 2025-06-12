@@ -137,6 +137,21 @@ class TestAuthnNamespace(TestNameSpaceBase):
         sess = self.get_session(meta=_meta, new=False)
         assert len(sess.authn.sp.authns) == 10, f"Expected 10 authns got {len(sess.authn.sp.authns)}"
 
+    def test_sp_authns_overwrite(self) -> None:
+        _meta = SessionMeta.new(app_secret="secret")
+        sess1 = self.get_session(meta=_meta)
+        for i in range(5):
+            sess1.authn.sp.authns[AuthnRequestRef(str(i))] = SP_AuthnRequest(
+                frontend_action=FrontendAction.LOGIN, finish_url="some_url"
+            )
+        sess1.persist()
+        # load the session again
+        sess2 = self.get_session(meta=_meta, new=False)
+        # this next read should not change anything in the session
+        sess2.authn.sp.get_latest_authn()
+        sess2.persist()
+        assert sess1._session._raw_data == sess2._session._raw_data
+
 
 class TestIdpNamespace(TestNameSpaceBase):
     def test_migrate_pending_req_creds_used(self) -> None:
