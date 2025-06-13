@@ -38,6 +38,7 @@ def _get_devel_search_result(search_param: Object) -> DevelopResult:
             result.record_list[0].append_record(DevelopResult.Record(nin, one_number))
     elif mobile is not None:
         nin = nin_mobile_db.get_nin(mobile)
+        assert nin is not None  # please mypy
         result.record_list[0].append_record(DevelopResult.Record(nin, mobile))
 
     return result
