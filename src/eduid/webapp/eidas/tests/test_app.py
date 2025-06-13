@@ -429,7 +429,7 @@ class EidasTests(ProofingTests[EidasApp]):
         expect_success: bool = True,
         verify_credential: ElementKey | None = None,
         frontend_state: str | None = None,
-    ) -> str:
+    ) -> str | None:
         with browser.session_transaction() as sess:
             csrf_token = sess.get_csrf_token()
         req = {
@@ -447,13 +447,13 @@ class EidasTests(ProofingTests[EidasApp]):
         if expect_success:
             self._check_success_response(response, type_=None, payload={"csrf_token": csrf_token})
             loc = self.get_response_payload(response).get("location")
+            assert loc is not None
         else:
             loc = None
             payload = {"csrf_token": csrf_token}
             if verify_credential:
                 payload["credential_description"] = "unit test webauthn token"
             self._check_error_response(response, type_=None, payload=payload, msg=AuthnStatusMsg.must_authenticate)
-        assert loc is not None  # please mypy
         return loc
 
     def _call_endpoint_and_saml_acs(
