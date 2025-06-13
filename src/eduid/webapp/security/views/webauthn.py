@@ -8,9 +8,11 @@ from fido2.webauthn import (
     AttestationObject,
     AttestedCredentialData,
     AuthenticatorAttachment,
+    AuthenticatorAttestationResponse,
     AuthenticatorData,
     CollectedClientData,
     PublicKeyCredentialUserEntity,
+    RegistrationResponse,
 )
 from fido_mds.exceptions import AttestationVerificationError
 from flask import Blueprint
@@ -173,7 +175,13 @@ def registration_complete(
     session.security.webauthn_registration = None
 
     try:
-        auth_data: AuthenticatorData = server.register_complete(reg_state.webauthn_state, cdata_obj, att_obj)
+        auth_data: AuthenticatorData = server.register_complete(
+            state=reg_state.webauthn_state,
+            response=RegistrationResponse(
+                raw_id=credential_id.encode("ascii"),
+                response=AuthenticatorAttestationResponse(client_data=cdata_obj, attestation_object=att_obj),
+            ),
+        )
     except ValueError:
         current_app.logger.exception("Webauthn registration failed")
         return error_response(message=SecurityMsg.webauthn_registration_fail)
