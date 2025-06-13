@@ -6,10 +6,12 @@ from collections.abc import Mapping
 from typing import Any
 
 from fido2 import cbor
-from fido2.server import Fido2Server, U2FFido2Server
+from fido2.server import Fido2Server
 from fido2.utils import websafe_decode
 from fido2.webauthn import (
     AttestedCredentialData,
+    AuthenticationResponse,
+    AuthenticatorAssertionResponse,
     AuthenticatorData,
     CollectedClientData,
     PublicKeyCredentialRpEntity,
@@ -85,20 +87,6 @@ def get_user_credentials(user: User, mfa_approved: bool | None = None) -> dict[E
     return res
 
 
-def _get_fido2server(credentials: dict[ElementKey, FidoCred], fido2rp: PublicKeyCredentialRpEntity) -> Fido2Server:
-    # See if any of the credentials is a legacy U2F credential with an app-id
-    # (assume all app-ids are the same - authenticating with a mix of different
-    # app-ids isn't supported in current Webauthn)
-    app_id = None
-    for v in credentials.values():
-        if v.app_id:
-            app_id = v.app_id
-            break
-    if app_id:
-        return U2FFido2Server(app_id, fido2rp)
-    return Fido2Server(fido2rp)
-
-
 def start_token_verification(
     user: User,
     fido2_rp_id: str,
@@ -117,7 +105,7 @@ def start_token_verification(
     webauthn_credentials = [v.webauthn for v in credential_data.values()]
 
     fido2rp = PublicKeyCredentialRpEntity(id=fido2_rp_id, name=fido2_rp_name)
-    fido2server = _get_fido2server(credential_data, fido2rp)
+    fido2server = Fido2Server(fido2rp)
     fido2state: WebauthnState
     raw_fido2data, fido2state = fido2server.authenticate_begin(
         webauthn_credentials, user_verification=user_verification
@@ -188,7 +176,7 @@ def verify_webauthn(
     credentials = get_user_credentials(user)
 
     fido2rp = PublicKeyCredentialRpEntity(id=rp_id, name=rp_name)
-    fido2server = _get_fido2server(credentials, fido2rp)
+    fido2server = Fido2Server(fido2rp)
     # Filter out the FidoCred that has webauthn.credential_id matching the credentialId in the request
     matching_credentials = {k: v for k, v in credentials.items() if v.webauthn.credential_id == req.credentialId}
 
@@ -198,12 +186,14 @@ def verify_webauthn(
 
     try:
         authn_cred = fido2server.authenticate_complete(
-            state.webauthn_state,
-            [this.webauthn for this in matching_credentials.values()],
-            req.credentialId,
-            client_data,
-            auth_data,
-            req.signature,
+            state=state.webauthn_state,
+            credentials=[this.webauthn for this in matching_credentials.values()],
+            response=AuthenticationResponse(
+                raw_id=req.credentialId,
+                response=AuthenticatorAssertionResponse(
+                    client_data=client_data, authenticator_data=auth_data, signature=req.signature
+                ),
+            ),
         )
     except Exception:
         logger.exception("Webauthn authentication failed")
