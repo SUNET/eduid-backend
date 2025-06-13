@@ -7,7 +7,7 @@ from eduid.workers.lookup_mobile.development import nin_mobile_db
 
 class DevelopResult:
     class Record:
-        def __init__(self, nin: str, mobile: str) -> None:
+        def __init__(self, nin: str | None, mobile: str) -> None:
             self.SSNo = nin
             self.Mobiles = mobile
 
@@ -38,7 +38,6 @@ def _get_devel_search_result(search_param: Object) -> DevelopResult:
             result.record_list[0].append_record(DevelopResult.Record(nin, one_number))
     elif mobile is not None:
         nin = nin_mobile_db.get_nin(mobile)
-        assert nin is not None  # please mypy
         result.record_list[0].append_record(DevelopResult.Record(nin, mobile))
 
     return result
