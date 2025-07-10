@@ -1,149 +1,177 @@
 {% macro input(user_dict) -%}
-    <tr>
-        <th>eppn:</th>
-        <td>{{ user_dict.eduPersonPrincipalName }}</td>
-    </tr>
-    <tr>
-        <th>Given name:</th>
-        <td>{{ user_dict.givenName }}</td>
-    </tr>
-    <tr>
-        <th>Surname:</th>
-        <td>{{ user_dict.surname }}</td>
-    </tr>
-    <tr>
-        <th>Display name:</th>
-        <td>{{ user_dict.displayName }}</td>
-    </tr>
-    <tr>
-        <th>Identities:</th>
-        <td>
-            {% for item in user_dict.identities|multisort('verified', 'created_ts', reverse=True) %}
-                <dl>
-                    <dt>Type</dt><dd>{{ item.get('identity_type') }}</dd>
-                    {% if item.get('number') %}
-                        <dt>Number</dt><dd>{{ item.get('number') }}</dd>
-                    {% endif %}
-                    {% if item.get('prid') %}
-                        <dt>Prid</dt><dd>{{ item.get('prid') }}</dd>
-                    {% endif %}
-                    {% if item.get('prid_persistence') %}
-                        <dt>Prid persistence</dt><dd>{{ item.get('prid_persistence') }}</dd>
-                    {% endif %}
-                    {% if item.get('country_code') %}
-                        <dt>Country code</dt><dd>{{ item.get('country_code') }}</dd>
-                    {% endif %}
-                    {% if item.get('date_of_birth') %}
-                        <dt>Date of birth</dt><dd>{{ item.get('date_of_birth')|dateformat }}</dd>
-                    {% endif %}
-                    <dt>Verified</dt><dd>{{ item.get('verified') }}</dd>
-                    <dt>Added timestamp</dt><dd>{{ item.get('created_ts')|datetimeformat }}</dd>
-                    {% if item.get('verified_by') %}
-                        <dt>Verified using</dt><dd>{{ item.get('verified_by') }}</dd>
-                    {% endif %}
-                    {% if  item.get('verified_ts') %}
-                        <dt>Verified timestamp</dt><dd>{{ item.get('verified_ts')|datetimeformat }}</dd>
-                    {% endif %}
-                </dl>
-            {% endfor %}
-        </td>
-    </tr>
 <tr>
-        <th>Locked identity:</th>
-        <td>
-            {% for item in user_dict.locked_identity|multisort('verified', 'created_ts', reverse=True) %}
-                <dl>
-                    <dt>Type</dt><dd>{{ item.get('identity_type') }}</dd>
-                    {% if item.get('number') %}
-                        <dt>Number</dt><dd>{{ item.get('number') }}</dd>
-                    {% endif %}
-                    {% if item.get('prid') %}
-                        <dt>Prid</dt><dd>{{ item.get('prid') }}</dd>
-                    {% endif %}
-                    {% if item.get('prid_persistence') %}
-                        <dt>Prid persistence</dt><dd>{{ item.get('prid_persistence') }}</dd>
-                    {% endif %}
-                    {% if item.get('country_code') %}
-                        <dt>Country code</dt><dd>{{ item.get('country_code') }}</dd>
-                    {% endif %}
-                    {% if item.get('date_of_birth') %}
-                        <dt>Date of birth</dt><dd>{{ item.get('date_of_birth')|dateformat }}</dd>
-                    {% endif %}
-                    <dt>Verified</dt><dd>{{ item.get('verified') }}</dd>
-                    <dt>Added timestamp</dt><dd>{{ item.get('created_ts')|datetimeformat }}</dd>
-                    {% if item.get('verified_by') %}
-                        <dt>Verified using</dt><dd>{{ item.get('verified_by') }}</dd>
-                    {% endif %}
-                    {% if  item.get('verified_ts') %}
-                        <dt>Verified timestamp</dt><dd>{{ item.get('verified_ts')|datetimeformat }}</dd>
-                    {% endif %}
-                </dl>
-            {% endfor %}
-        </td>
-    </tr>
-    <tr>
-        <th>Mail addresses:</th>
-        <td>
-            {% for mail in user_dict.mailAliases|multisort('verified', 'created_ts', reverse=True) %}
-                <dl>
-                    <dt>Address</dt><dd>{{ mail.get('email') }}</dd>
-                    <dt>Primary</dt><dd>{{ mail.get('primary') }}</dd>
-                    <dt>Verified</dt><dd>{{ mail.get('verified') }}</dd>
-                    {% if mail.get('created_by') %}
-                        <dt>Added using</dt><dd>{{ mail.get('created_by') }}</dd>
-                    {% endif %}
-                    <dt>Added timestamp</dt><dd>{{ mail.get('created_ts')|datetimeformat }}</dd>
-                    {% if mail.get('verified_ts') %}
-                        <dt>Verified timestamp</dt><dd>{{ mail.get('verified_ts')|datetimeformat }}</dd>
-                    {% endif %}
-                </dl>
-            {% endfor %}
-        </td>
-    </tr>
-    <tr>
-        <th>Credentials:</th>
-        <td>
-            {% for credential in user_dict.passwords|multisort('type', 'created_ts', reverse=True) %}
-                <dl>
-                    <dt>Type</dt><dd>{{ credential.get('type') }}</dd>
-                    <dt>Last used successfully</dt><dd>{{ credential.get('success_ts')|datetimeformat }}</dd>
-                    <dt>Verified</dt><dd>{{ credential.get('verified', False) }}</dd>
-                    {% if credential.get('type') == 'Webauthn' %}
-                        <dt>Authenticator</dt><dd>{{ credential.get('authenticator') }}</dd>
-                        <dt>Authenticator ID</dt><dd>{{ credential.get('authenticator_id') }}</dd>
-                        <dt>Attestation Format</dt><dd>{{ credential.get('attestation_format') }}</dd>
-                        <dt>Mfa approved</dt><dd>{{ credential.get('mfa_approved') }}</dd>
-                    {% endif %}
-                    {% if credential.get('framework') %}
-                        <dt>Framework</dt><dd>{{ credential.get('framework') }}</dd>
-                    {% endif %}
-                    {% if credential.get('level') %}
-                        <dt>Level</dt><dd>{{ credential.get('level') }}</dd>
-                    {% endif %}
-                    <dt>Added using</dt><dd>{{ credential.get('created_by') }}</dd>
-                    <dt>Added timestamp</dt><dd>{{ credential.get('created_ts')|datetimeformat }}</dd>
-                </dl>
-            {% endfor %}
-        </td>
-    </tr>
-    <tr>
-        <th>Accepted terms of use:</th>
-        <td>
-            {% for tou in user_dict.tou|multisort('version', 'created_ts', reverse=True) %}
-                <dl>
-                    <dt>Version</dt><dd>{{ tou.get('version') }}</dd>
-                    <dt>Added using</dt><dd>{{ tou.get('created_by') }}</dd>
-                    <dt>Added timestamp</dt><dd>{{ tou.get('created_ts')|datetimeformat }}</dd>
-                </dl>
-            {% endfor %}
-        </td>
-    </tr>
-    <tr>
-        <th>Terminated status:</th>
-        <td>{{ user_dict.terminated|default("False") }}</td>
-    </tr>
-    <tr>
-        <th>Language preference:</th>
-        <td>{{ user_dict.preferredLanguage }}</td>
-    </tr>
+  <th>eppn:</th>
+  <td>{{ user_dict.eduPersonPrincipalName }}</td>
+</tr>
+<tr>
+  <th>Given name:</th>
+  <td>{{ user_dict.givenName }}</td>
+</tr>
+<tr>
+  <th>Surname:</th>
+  <td>{{ user_dict.surname }}</td>
+</tr>
+<tr>
+  <th>Display name:</th>
+  <td>{{ user_dict.displayName }}</td>
+</tr>
+<tr>
+  <th>Mail addresses:</th>
+  <td>
+    {% for mail in user_dict.mailAliases|multisort('verified', 'created_ts', reverse=True) %}
+    <dl>
+      <dt>Address</dt>
+      <dd>{{ mail.get('email') }}</dd>
+      <dt>Primary</dt>
+      <dd>{{ mail.get('primary') }}</dd>
+      <dt>Verified</dt>
+      <dd>{{ mail.get('verified') }}</dd>
+      {% if mail.get('created_by') %}
+      <dt>Added using</dt>
+      <dd>{{ mail.get('created_by') }}</dd>
+      {% endif %}
+      <dt>Added timestamp</dt>
+      <dd>{{ mail.get('created_ts')|datetimeformat }}</dd>
+      {% if mail.get('verified_ts') %}
+      <dt>Verified timestamp</dt>
+      <dd>{{ mail.get('verified_ts')|datetimeformat }}</dd>
+      {% endif %}
+    </dl>
+    {% endfor %}
+  </td>
+</tr>
+<tr>
+  <th>Credentials:</th>
+  <td>
+    {% for credential in user_dict.passwords|multisort('type', 'created_ts', reverse=True) %}
+    <dl>
+      <dt>Type</dt>
+      <dd>{{ credential.get('type') }}</dd>
+      <dt>Last used successfully</dt>
+      <dd>{{ credential.get('success_ts')|datetimeformat }}</dd>
+      <dt>Verified</dt>
+      <dd>{{ credential.get('verified', False) }}</dd>
+      {% if credential.get('type') == 'Webauthn' %}
+      <dt>Authenticator</dt>
+      <dd>{{ credential.get('authenticator') }}</dd>
+      <dt>Authenticator ID</dt>
+      <dd>{{ credential.get('authenticator_id') }}</dd>
+      <dt>Attestation Format</dt>
+      <dd>{{ credential.get('attestation_format') }}</dd>
+      <dt>Mfa approved</dt>
+      <dd>{{ credential.get('mfa_approved') }}</dd>
+      {% endif %} {% if credential.get('framework') %}
+      <dt>Framework</dt>
+      <dd>{{ credential.get('framework') }}</dd>
+      {% endif %} {% if credential.get('level') %}
+      <dt>Level</dt>
+      <dd>{{ credential.get('level') }}</dd>
+      {% endif %}
+      <dt>Added using</dt>
+      <dd>{{ credential.get('created_by') }}</dd>
+      <dt>Added timestamp</dt>
+      <dd>{{ credential.get('created_ts')|datetimeformat }}</dd>
+    </dl>
+    {% endfor %}
+  </td>
+</tr>
+<tr>
+  <th>Identities:</th>
+  <td>
+    {% for item in user_dict.identities|multisort('verified', 'created_ts', reverse=True) %}
+    <dl>
+      <dt>Type</dt>
+      <dd>{{ item.get('identity_type') }}</dd>
+      {% if item.get('number') %}
+      <dt>Number</dt>
+      <dd>{{ item.get('number') }}</dd>
+      {% endif %} {% if item.get('prid') %}
+      <dt>Prid</dt>
+      <dd>{{ item.get('prid') }}</dd>
+      {% endif %} {% if item.get('prid_persistence') %}
+      <dt>Prid persistence</dt>
+      <dd>{{ item.get('prid_persistence') }}</dd>
+      {% endif %} {% if item.get('country_code') %}
+      <dt>Country code</dt>
+      <dd>{{ item.get('country_code') }}</dd>
+      {% endif %} {% if item.get('date_of_birth') %}
+      <dt>Date of birth</dt>
+      <dd>{{ item.get('date_of_birth')|dateformat }}</dd>
+      {% endif %}
+      <dt>Verified</dt>
+      <dd>{{ item.get('verified') }}</dd>
+      <dt>Added timestamp</dt>
+      <dd>{{ item.get('created_ts')|datetimeformat }}</dd>
+      {% if item.get('verified_by') %}
+      <dt>Verified using</dt>
+      <dd>{{ item.get('verified_by') }}</dd>
+      {% endif %} {% if item.get('verified_ts') %}
+      <dt>Verified timestamp</dt>
+      <dd>{{ item.get('verified_ts')|datetimeformat }}</dd>
+      {% endif %}
+    </dl>
+    {% endfor %}
+  </td>
+</tr>
+<tr>
+  <th>Locked identity:</th>
+  <td>
+    {% for item in user_dict.locked_identity|multisort('verified', 'created_ts', reverse=True) %}
+    <dl>
+      <dt>Type</dt>
+      <dd>{{ item.get('identity_type') }}</dd>
+      {% if item.get('number') %}
+      <dt>Number</dt>
+      <dd>{{ item.get('number') }}</dd>
+      {% endif %} {% if item.get('prid') %}
+      <dt>Prid</dt>
+      <dd>{{ item.get('prid') }}</dd>
+      {% endif %} {% if item.get('prid_persistence') %}
+      <dt>Prid persistence</dt>
+      <dd>{{ item.get('prid_persistence') }}</dd>
+      {% endif %} {% if item.get('country_code') %}
+      <dt>Country code</dt>
+      <dd>{{ item.get('country_code') }}</dd>
+      {% endif %} {% if item.get('date_of_birth') %}
+      <dt>Date of birth</dt>
+      <dd>{{ item.get('date_of_birth')|dateformat }}</dd>
+      {% endif %}
+      <dt>Verified</dt>
+      <dd>{{ item.get('verified') }}</dd>
+      <dt>Added timestamp</dt>
+      <dd>{{ item.get('created_ts')|datetimeformat }}</dd>
+      {% if item.get('verified_by') %}
+      <dt>Verified using</dt>
+      <dd>{{ item.get('verified_by') }}</dd>
+      {% endif %} {% if item.get('verified_ts') %}
+      <dt>Verified timestamp</dt>
+      <dd>{{ item.get('verified_ts')|datetimeformat }}</dd>
+      {% endif %}
+    </dl>
+    {% endfor %}
+  </td>
+</tr>
+<tr>
+  <th>Accepted terms of use:</th>
+  <td>
+    {% for tou in user_dict.tou|multisort('version', 'created_ts', reverse=True) %}
+    <dl>
+      <dt>Version</dt>
+      <dd>{{ tou.get('version') }}</dd>
+      <dt>Added using</dt>
+      <dd>{{ tou.get('created_by') }}</dd>
+      <dt>Added timestamp</dt>
+      <dd>{{ tou.get('created_ts')|datetimeformat }}</dd>
+    </dl>
+    {% endfor %}
+  </td>
+</tr>
+<tr>
+  <th>Terminated status:</th>
+  <td>{{ user_dict.terminated|default("False") }}</td>
+</tr>
+<tr>
+  <th>Language preference:</th>
+  <td>{{ user_dict.preferredLanguage }}</td>
+</tr>
 {%- endmacro %}
