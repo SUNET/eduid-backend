@@ -4,14 +4,14 @@
     <div class="form-group">
       {{ support_user.display_name }}
       <input type="hidden" name="csrf" value="{{ session.get_csrf_token() }}" />
-      <button id="logout-button" class="btn btn-link" type="submit" name="submit">Log out</button>
+      <button id="logout-button" type="submit" name="submit">Log out</button>
     </div>
   </form>
 </header>
 <div class="horizontal-content-margin">
   <h1>Search User</h1>
   <p>Enter en eppn, national id number or email address to find the user.</p>
-  <form role="form" hx-post="/search" hx-target="#user-data" hx-swap="afterbegin" class="form-group">
+  <form role="form" hx-post="/search" hx-target="#user-data" hx-swap="replace" class="form-group">
     <input type="text" name="query" class="form-control" placeholder="eppn, national id number or email address" />
     <button type="submit" value="Submit" class="btn btn-primary">Submit</button>
   </form>
