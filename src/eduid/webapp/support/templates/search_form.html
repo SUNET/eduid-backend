@@ -10,9 +10,24 @@
 </header>
 <div class="horizontal-content-margin">
   <h1>Search User</h1>
-  <p>Enter en eppn, national id number or email address to find the user.</p>
-  <form role="form" hx-post="/search" hx-target="#user-data" hx-swap="replace" class="form-group">
-    <input type="text" name="query" class="form-control" placeholder="eppn, national id number or email address" />
-    <button type="submit" value="Submit" class="btn btn-primary">Submit</button>
+  <form
+    role="form"
+    hx-post="/search"
+    hx-target="#user-data"
+    hx-swap="replace"
+    hx-on::after-request="this.reset()"
+    class="form-group"
+  >
+    <div class="search-input-wrapper">
+      <label for="query">Enter a user's identifier to search</label>
+      <input
+        id="query"
+        type="text"
+        name="query"
+        class="form-control"
+        placeholder="e.g., email address, national id or eppn"
+      />
+    </div>
+    <button type="submit" value="Submit">Submit</button>
   </form>
 </div>
