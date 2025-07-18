@@ -3,7 +3,7 @@
     <div class="eduid-logo"></div>
     <div class="form-group">
       {{ support_user.display_name }}
-      <input type="hidden" name="csrf" value="{{ session.get_csrf_token() }}" />
+      <input id="search-input" type="hidden" name="csrf" value="{{ session.get_csrf_token() }}" />
       <button id="logout-button" type="submit" name="submit">Log out</button>
     </div>
   </form>
@@ -27,6 +27,6 @@
         placeholder="e.g., email address, national id or eppn"
       />
     </div>
-    <button type="submit" value="Submit">Submit</button>
+    <button id="search-button" type="submit" value="Submit">Submit</button>
   </form>
 </div>
