@@ -4,7 +4,7 @@
     <div class="form-group">
       {{ support_user.display_name }}
       <input id="search-input" type="hidden" name="csrf" value="{{ session.get_csrf_token() }}" />
-      <button id="logout-button" type="submit" name="submit">Log out</button>
+      <button id="logout-button" type="submit" name="submit" class="secondary-button">Log out</button>
     </div>
   </form>
 </header>
