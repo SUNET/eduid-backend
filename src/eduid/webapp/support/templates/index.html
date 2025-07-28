@@ -13,18 +13,7 @@
     <div class="page-wrapper">
       <div hx-ext="response-targets">
         <div id="search-form" hx-get="/search-form" hx-trigger="load" hx-target="this" hx-target-error="#errors"></div>
-        <header>
-          <form id="login-form" class="form-inline" method="GET" action="{{login_url }}">
-            <div class="eduid-logo"></div>
-            <!-- TODO: add correct url to eduid login -->
-            <div class="form-group">
-              <button id="login-button" type="submit" name="submit" class="secondary-button">Log in</button>
-            </div>
-          </form>
-        </header>
-        <div id="errors" class="errors">
-          <p>you are not authorized access the support page.</p>
-        </div>
+        <div id="errors" class="errors"></div>
       </div>
       <!-- user data goes here -->
       <div id="user-data"></div>
