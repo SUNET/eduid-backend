@@ -50,7 +50,7 @@ class RawDb:
         self._backupbase: str = backupbase
         self._file_num: int = 0
 
-    def find(self, db: str, collection: str, search_filter: object) -> Generator[RawData, None, None]:
+    def find(self, db: str, collection: str, search_filter: object) -> Generator[RawData]:
         """
         Look for documents matching search_filter in the specified database and collection.
 
