@@ -6,7 +6,7 @@ import time
 from asyncio import Task
 from collections.abc import Sequence
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any, TypeAlias, cast
+from typing import Any, cast
 from unittest import IsolatedAsyncioTestCase, TestCase
 from unittest.mock import patch
 
@@ -19,12 +19,6 @@ from eduid.queue.db.worker import AsyncQueueDB
 from eduid.queue.workers.base import QueueWorker
 from eduid.userdb.db import TUserDbDocument
 from eduid.userdb.testing import EduidTemporaryInstance, MongoTemporaryInstance
-
-# type checking shenanigans for mypy
-if TYPE_CHECKING:
-    MixinBase: TypeAlias = QueueWorker
-else:
-    MixinBase = object
 
 __author__ = "lundberg"
 
@@ -207,7 +201,7 @@ class QueueAsyncioTest(EduidQueueTestCase, IsolatedAsyncioTestCase):
         assert fetched is None
 
 
-class IsolatedWorkerDBMixin(MixinBase):
+class IsolatedWorkerDBMixin(QueueWorker):
     # override run so we can mock cache of database clients
     async def run(self) -> None:
         # Init db in the correct loop

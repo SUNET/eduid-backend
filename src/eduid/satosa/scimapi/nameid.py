@@ -1,7 +1,7 @@
 import logging
 import uuid
 from collections.abc import Mapping
-from typing import Any, TypeAlias
+from typing import Any
 
 from saml2.saml import (
     NAMEID_FORMAT_EMAILADDRESS,
@@ -15,7 +15,7 @@ from satosa.internal import InternalData
 from satosa.micro_services.base import RequestMicroService, ResponseMicroService
 from satosa.response import Response
 
-ProcessReturnType: TypeAlias = InternalData | Response
+type ProcessReturnType = InternalData | Response
 
 ALLOWED_NAMEIDS = (
     NAMEID_FORMAT_UNSPECIFIED,
