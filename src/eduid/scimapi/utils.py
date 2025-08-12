@@ -3,7 +3,7 @@ import functools
 import logging
 import time
 from collections.abc import Callable
-from typing import Any, AnyStr, TypeVar
+from typing import Any
 from uuid import uuid4
 
 from jwcrypto import jwk
@@ -22,7 +22,7 @@ def b64_encode(b: bytes) -> str:
     return base64.urlsafe_b64encode(b).decode("utf-8").strip("=")
 
 
-def b64_decode(data: AnyStr) -> bytes:
+def b64_decode[AnyStr: (bytes, str)](data: AnyStr) -> bytes:
     if isinstance(data, str):
         _data = data.encode("utf-8")
     elif isinstance(data, bytes):
@@ -33,10 +33,7 @@ def b64_decode(data: AnyStr) -> bytes:
     return base64.urlsafe_b64decode(_data)
 
 
-Filtered = TypeVar("Filtered")
-
-
-def filter_none(x: Filtered) -> Filtered:
+def filter_none[Filtered](x: Filtered) -> Filtered:
     """
     Recursively removes key, value pairs or items that is None.
     """
