@@ -9,7 +9,7 @@ from enum import StrEnum, unique
 from typing import Any, NewType, TypeVar, cast
 
 from fido2.webauthn import AuthenticatorAttachment
-from pydantic import BaseModel, Field, ValidationError, field_serializer
+from pydantic import BaseModel, Field, ValidationError, field_serializer, field_validator
 from pydantic_core.core_schema import SerializationInfo
 
 from eduid.common.config.base import FrontendAction
@@ -193,19 +193,34 @@ class IdP_PendingRequest(BaseModel, ABC):
     # Credentials used while authenticating _this SAML request_. Not ones inherited from SSO.
     credentials_used: dict[ElementKey, AuthnData] = Field(default_factory=dict)
 
-    # TODO: should be removed next release
-    @field_serializer("credentials_used")
-    def migrate_credentials_used(
-        self, credentials_used: dict[ElementKey, AuthnData | dict[ElementKey, str]], info: SerializationInfo
+    # TODO: _migrate_credentials_used, dump_credentials_used and load_credentials_used should be removed next release
+    @staticmethod
+    def _migrate_credentials_used(
+        credentials_used: dict,
     ) -> dict[str, dict[str, str]]:
         _credentials_used: dict[str, dict[str, str]] = {}
         for key, value in credentials_used.items():
             match value:
                 case str():
                     _credentials_used[key] = {"cred_id": key, "authn_ts": value}
+                case dict():
+                    _credentials_used[key] = value
                 case AuthnData():
                     _credentials_used[key] = value.model_dump()
         return _credentials_used
+
+    @field_serializer("credentials_used")
+    def dump_credentials_used(
+        self, credentials_used: dict[ElementKey, AuthnData | dict[ElementKey, str]], info: SerializationInfo
+    ) -> dict[str, dict[str, str]]:
+        return self._migrate_credentials_used(credentials_used)
+
+    @field_validator("credentials_used", mode="before")
+    @classmethod
+    def load_credentials_used(cls, credentials_used: Any) -> dict[str, dict[str, str]]:  # noqa: ANN401
+        if isinstance(credentials_used, dict):
+            return cls._migrate_credentials_used(credentials_used)
+        raise Exception("credentials_used was not a dict")
 
 
 class IdP_SAMLPendingRequest(IdP_PendingRequest):
