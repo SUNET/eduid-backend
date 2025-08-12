@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 from abc import ABC
-from typing import TYPE_CHECKING, Any, Generic, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar
 from uuid import uuid4
 
 from pydantic import Field
 
-from eduid.userdb.element import Element, ElementKey, ElementList, ListElement
+from eduid.userdb.element import Element, ElementKey, ElementList
 from eduid.userdb.exceptions import BadEvent, UserDBValueError
 
 TEventSubclass = TypeVar("TEventSubclass", bound="Event")
@@ -61,7 +61,7 @@ class Event(Element):
         return data
 
 
-class EventList(ElementList[ListElement], Generic[ListElement], ABC):
+class EventList[ListElement: Element](ElementList[ListElement], ABC):
     """
     Hold a list of Event instances.
 

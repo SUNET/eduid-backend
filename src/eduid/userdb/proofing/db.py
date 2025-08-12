@@ -2,7 +2,7 @@ import logging
 from abc import ABC
 from collections.abc import Mapping
 from operator import itemgetter
-from typing import Any, Generic, TypeVar
+from typing import Any, TypeVar
 
 from eduid.userdb.db import BaseDB, SaveResult, TUserDbDocument
 from eduid.userdb.proofing.state import (
@@ -25,7 +25,7 @@ ProofingStateInstance = TypeVar("ProofingStateInstance", bound=ProofingState)
 ProofingStateVar = TypeVar("ProofingStateVar")
 
 
-class ProofingStateDB(BaseDB, Generic[ProofingStateVar], ABC):
+class ProofingStateDB[ProofingStateVar](BaseDB, ABC):
     def __init__(self, db_uri: str, db_name: str, collection: str = "proofing_data") -> None:
         super().__init__(db_uri, db_name, collection)
 
@@ -170,7 +170,7 @@ class PhoneProofingStateDB(ProofingStateDB[PhoneProofingState]):
         self.remove_document({"eduPersonPrincipalName": state.eppn, "verification.number": state.verification.number})
 
 
-class OidcStateDB(ProofingStateDB[ProofingStateVar], Generic[ProofingStateVar], ABC):
+class OidcStateDB[ProofingStateVar](ProofingStateDB[ProofingStateVar], ABC):
     def get_state_by_oidc_state(self, oidc_state: str) -> ProofingStateVar | None:
         """
         Locate a state in the db given the user's OIDC state.
