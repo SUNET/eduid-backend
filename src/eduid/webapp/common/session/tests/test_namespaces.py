@@ -162,9 +162,11 @@ class TestIdpNamespace(TestNameSpaceBase):
         element_key = ElementKey("test_credential_key")
         # save a pending request in the old format where credentials_used just had a timestamp str value
         sess.idp.pending_requests[request_ref] = IdP_SAMLPendingRequest(request="test_request", binding="test_binding")
-        # ignore assignment type checking as that is what we want to fix
-        sess.idp.pending_requests[request_ref].credentials_used[element_key] = now.isoformat()  # type: ignore[assignment]
-        sess.persist()
+        idp_dict = sess.idp.to_dict()
+        idp_dict["pending_requests"][request_ref]["credentials_used"][element_key] = now.isoformat()
+        # need to some fiddling to bypass _serialize_namespaces that will update the above value to the new structure
+        sess["idp"] = idp_dict
+        sess._session.commit()
         # Load the session to make sure the migration went ok
         sess = self.get_session(meta=_meta, new=False)
         cred_used = sess.idp.pending_requests[request_ref].credentials_used.get(element_key)
