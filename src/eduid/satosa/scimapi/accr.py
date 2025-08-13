@@ -1,7 +1,7 @@
 import logging
 from collections.abc import Mapping
 from copy import deepcopy
-from typing import Any, TypeAlias
+from typing import Any
 
 import satosa.internal
 import satosa.response
@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 SupportedACCRsSortedByPrioConfig = list[str]
 LowestAcceptedACCRForVirtualIdpConfig = dict[str, str]
 InternalACCRRewriteMap = Mapping[str, str]
-ProcessReturnType: TypeAlias = satosa.internal.InternalData | satosa.response.Response
+type ProcessReturnType = satosa.internal.InternalData | satosa.response.Response
 
 
 class request(RequestMicroService):

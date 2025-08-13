@@ -110,11 +110,7 @@ class ExpiringCacheMem:
     :param lock: threading.Lock compatible locking instance
     """
 
-    # TODO: fix when python 3.13 is our target environment
-    # use quote annotations on lock for now until python 3.13 is released
-    # threading.Lock is not a class but a factory function, see:
-    # https://github.com/python/cpython/pull/114479
-    def __init__(self, name: str, logger: logging.Logger | None, ttl: int, lock: "Lock | None" = None) -> None:
+    def __init__(self, name: str, logger: logging.Logger | None, ttl: int, lock: Lock | None = None) -> None:
         self.logger = logger
         self.ttl = ttl
         self.name = name

@@ -200,7 +200,7 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
         logged_in: bool = True,
         domain: str | None = None,
         **kwargs: Any,
-    ) -> Generator[CSRFTestClient, None, None]:
+    ) -> Generator[CSRFTestClient]:
         if domain is None:
             domain = self.test_domain
         with client.session_transaction(**kwargs) as sess:
@@ -214,7 +214,7 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
         yield client
 
     @contextmanager
-    def session_cookie_anon(self, client: CSRFTestClient, **kwargs: Any) -> Generator[CSRFTestClient, None, None]:
+    def session_cookie_anon(self, client: CSRFTestClient, **kwargs: Any) -> Generator[CSRFTestClient]:
         with self.session_cookie(client=client, eppn=None, **kwargs) as _client:
             yield _client
 
@@ -228,7 +228,7 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
         magic_cookie_name: str | None = None,
         magic_cookie_value: str | None = None,
         **kwargs: Any,
-    ) -> Generator[CSRFTestClient, None, None]:
+    ) -> Generator[CSRFTestClient]:
         if domain is None:
             domain = self.test_domain
         assert isinstance(self.app, EduIDBaseApp)
@@ -251,7 +251,7 @@ class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
         magic_cookie_name: str | None = None,
         magic_cookie_value: str | None = None,
         **kwargs: Any,
-    ) -> Generator[CSRFTestClient, None, None]:
+    ) -> Generator[CSRFTestClient]:
         with self.session_cookie_and_magic_cookie(
             client=client,
             eppn=None,
@@ -625,7 +625,7 @@ class CSRFTestClient(FlaskClient):
         return super().get(*args, **kwargs)
 
     @contextmanager
-    def session_transaction(self, *args: Any, **kwargs: Any) -> Generator[EduidSession, None, None]:
+    def session_transaction(self, *args: Any, **kwargs: Any) -> Generator[EduidSession]:
         """
         Get typed session in tests
         """
