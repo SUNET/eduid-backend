@@ -4,7 +4,14 @@ from collections.abc import Mapping
 from typing import Any
 from unittest.mock import MagicMock, patch
 
-from fido2.webauthn import AttestationObject, AuthenticatorAttachment, CollectedClientData, UserVerificationRequirement
+from fido2.webauthn import (
+    AttestationObject,
+    AuthenticatorAttachment,
+    AuthenticatorAttestationResponse,
+    CollectedClientData,
+    RegistrationResponse,
+    UserVerificationRequirement,
+)
 from fido_mds import FidoMetadataStore
 from future.backports.datetime import timedelta
 from werkzeug.http import dump_cookie
@@ -131,7 +138,13 @@ class SecurityWebauthnTests(EduidAPITestCase):
         _attestation = attestation + (b"=" * (len(attestation) % 4))
         att_obj = AttestationObject(base64.urlsafe_b64decode(_attestation))
         server = get_webauthn_server(rp_id=self.app.conf.fido2_rp_id, rp_name=self.app.conf.fido2_rp_name)
-        auth_data = server.register_complete(state, client_data_obj, att_obj)
+        auth_data = server.register_complete(
+            state=state,
+            response=RegistrationResponse(
+                raw_id=CREDENTIAL_ID.encode("ascii"),
+                response=AuthenticatorAttestationResponse(client_data=client_data_obj, attestation_object=att_obj),
+            ),
+        )
         cred_data = auth_data.credential_data
         assert cred_data is not None  # please mypy
         cred_id = cred_data.credential_id
