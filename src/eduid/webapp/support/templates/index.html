@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <!-- <link rel="stylesheet" href="{{ static_url_for('css/bootstrap-3.2.0.min.css') }}" /> -->
     <link rel="stylesheet" href="{{ static_url_for('css/support.css') }}" />
+    <link rel="icon" href="{{ static_url_for('favicon.ico') }}" type="image/x-icon" />
     <!-- Only requests to self allowed, no parsing of js and no caching data in localStorage -->
     <meta name="htmx-config" content='{"selfRequestsOnly": true, "allowScriptTags": false, "historyCacheSize": 0}' />
   </head>
@@ -29,8 +30,8 @@
       integrity="sha384-NtTh9TBZ2X/pFpfsVvQOjSsYWmjmqG6h5ioQWVAe2/j3AuTHRmfqvoqp+iOed+I0"
       crossorigin="anonymous"
     ></script>
-    <script src="{{ static_url_for('js/libs/jquery-2.0.3.min.js') }}"></script>
-    <script src="{{ static_url_for('js/libs/bootstrap-3.2.0.min.js') }}"></script>
+    <!-- <script src="{{ static_url_for('js/libs/jquery-2.0.3.min.js') }}"></script>
+    <script src="{{ static_url_for('js/libs/bootstrap-3.2.0.min.js') }}"></script> -->
     <script src="{{ static_url_for('js/support-function.js') }}"></script>
   </body>
 </html>
