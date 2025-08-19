@@ -1,16 +1,32 @@
-<div class="pull-right">
-    <form id="logout-form" class="form-inline" method="GET" action="{{ logout_url }}">
-        <div class="form-group">
-            {{ support_user.display_name }}
-            <input type="hidden" name="csrf" value="{{ session.get_csrf_token() }}">
-        </div>
-        <button id="logout-button" class="btn btn-link" type="submit" name="submit">Log out</button>
-    </form>
-</div>
-<h3>Lookup a user using eppn, nin, mail address or phone number</h3>
-<form role="form" hx-post="/search" hx-target="#user-data" hx-swap="afterbegin">
+<header>
+  <form id="logout-form" class="form-inline" method="GET" action="{{ logout_url }}">
+    <div class="eduid-logo"></div>
     <div class="form-group">
-        <p><input type=text name=query class="form-control" placeholder="Enter search term">
-        <p><button type="submit" value="Submit" class="btn btn-primary">Submit</button>
+      {{ support_user.display_name }}
+      <input id="search-input" type="hidden" name="csrf" value="{{ session.get_csrf_token() }}" />
+      <button id="logout-button" type="submit" name="submit">Log out</button>
     </div>
-</form>
+  </form>
+</header>
+<div class="horizontal-content-margin">
+  <h1>Search User</h1>
+  <form
+    hx-post="/search"
+    hx-target="#user-data"
+    hx-swap="replace"
+    hx-on::after-request="this.reset()"
+    class="form-group"
+  >
+    <div class="search-input-wrapper">
+      <label for="query">Enter a user's identifier to search</label>
+      <input
+        id="query"
+        type="text"
+        name="query"
+        class="form-control"
+        placeholder="e.g., email address, national id or eppn"
+      />
+    </div>
+    <button id="search-button" type="submit" value="Submit">Submit</button>
+  </form>
+</div>

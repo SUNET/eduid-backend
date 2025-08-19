@@ -1,26 +1,47 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
+  <head>
+    <meta charset="UTF-8" />
     <title>eduID support</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" href="{{ static_url_for('css/bootstrap-3.2.0.min.css') }}">
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- <link rel="stylesheet" href="{{ static_url_for('css/bootstrap-3.2.0.min.css') }}" /> -->
+    <link rel="stylesheet" href="{{ static_url_for('css/support.css') }}" />
     <!-- Only requests to self allowed, no parsing of js and no caching data in localStorage -->
-    <meta name="htmx-config" content='{"selfRequestsOnly": true, "allowScriptTags": false, "historyCacheSize": 0}'>
-</head>
-<body hx-headers='{"X-CSRF-TOKEN": "{{ session.get_csrf_token() }}"}'>
-    <div class="container">
-        <div hx-ext="response-targets">
-            <div id="search-form" hx-get="/search-form" hx-trigger="load" hx-target="this" hx-target-error="#errors"></div>
-            <div id="errors"></div>
+    <meta name="htmx-config" content='{"selfRequestsOnly": true, "allowScriptTags": false, "historyCacheSize": 0}' />
+  </head>
+  <body hx-headers='{"X-CSRF-TOKEN": "{{ session.get_csrf_token() }}"}'>
+    <div class="page-wrapper">
+      <div hx-ext="response-targets">
+        <div id="search-form" hx-get="/search-form" hx-trigger="load" hx-target="this" hx-target-error="#errors"></div>
+        <header>
+          <form id="login-form" class="form-inline" method="GET" action="{{login_url }}">
+            <div class="eduid-logo"></div>
+            <!-- TODO: add correct url to eduid login -->
+            <div class="form-group">
+              <button id="login-button" type="submit" name="submit">Log in</button>
+            </div>
+          </form>
+        </header>
+        <div id="errors" class="errors">
+          <p>you are not authorized access the support page.</p>
         </div>
-        <!-- user data goes here -->
-        <div id="user-data" class="panel panel-default"></div>
+      </div>
+      <!-- user data goes here -->
+      <div id="user-data"></div>
     </div>
     <!-- TODO: do not use cdn for scripts -->
-    <script src="https://unpkg.com/htmx.org@2.0.4" integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+" crossorigin="anonymous"></script>
-    <script src="https://unpkg.com/htmx-ext-response-targets@2.0.2" integrity="sha384-NtTh9TBZ2X/pFpfsVvQOjSsYWmjmqG6h5ioQWVAe2/j3AuTHRmfqvoqp+iOed+I0" crossorigin="anonymous"></script>
+    <script
+      src="https://unpkg.com/htmx.org@2.0.4"
+      integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://unpkg.com/htmx-ext-response-targets@2.0.2"
+      integrity="sha384-NtTh9TBZ2X/pFpfsVvQOjSsYWmjmqG6h5ioQWVAe2/j3AuTHRmfqvoqp+iOed+I0"
+      crossorigin="anonymous"
+    ></script>
     <script src="{{ static_url_for('js/libs/jquery-2.0.3.min.js') }}"></script>
     <script src="{{ static_url_for('js/libs/bootstrap-3.2.0.min.js') }}"></script>
-</body>
+    <script src="{{ static_url_for('js/support-function.js') }}"></script>
+  </body>
 </html>
