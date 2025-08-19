@@ -1,11 +1,12 @@
-from collections.abc import Sequence
 from typing import Any
 
 from flask import Blueprint, render_template, request
 
 from eduid.userdb import User
 from eduid.userdb.exceptions import UserDoesNotExist, UserHasNotCompletedSignup
+from eduid.userdb.signup import SignupUser
 from eduid.userdb.support.models import SupportSignupUserFilter, SupportUserFilter
+from eduid.userdb.support.user import SupportUser
 from eduid.webapp.common.api.sanitation import sanitize_map
 from eduid.webapp.support.app import current_support_app as current_app
 from eduid.webapp.support.helpers import get_credentials_aux_data, require_login_with_mfa, require_support_personnel
@@ -35,21 +36,22 @@ def search_form(support_user: User) -> str:
 def search(support_user: User) -> str:
     data = sanitize_map(request.form)
     search_query = data.get("query")
-    lookup_users: list[User] = []
+    lookup_users: list[SupportUser | SignupUser] = []
     try:
-        lookup_users = current_app.support_user_db.search_users(search_query)
+        if search_query:
+            lookup_users.extend(current_app.support_user_db.search_users(search_query))
     except UserHasNotCompletedSignup:
         # Old bug where incomplete signup users where written to central db
         pass
     users: list[dict[str, Any]] = list()
 
-    if len(lookup_users) == 0:
+    if search_query and len(lookup_users) == 0:
         # If no users where found in the central database look in signup database
-        lookup_users = current_app.support_signup_db.get_users_by_mail(search_query, include_unconfirmed=True)
+        lookup_users.extend(current_app.support_signup_db.get_users_by_mail(search_query, include_unconfirmed=True))
         if len(lookup_users) == 0:
             _user = current_app.support_signup_db.get_user_by_pending_mail_address(search_query)
             if _user:
-                lookup_users = [_user]
+                lookup_users.append(_user)
         if len(lookup_users) == 0:
             current_app.logger.warning(
                 f"Support personnel {support_user.eppn} searched for {repr(search_query)} with no match found"

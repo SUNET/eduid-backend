@@ -3,7 +3,7 @@ from collections.abc import Mapping
 from datetime import datetime
 from typing import Any, cast
 
-from flask import current_app, Response, Flask
+from flask import Flask, Response, current_app
 from jinja2.exceptions import UndefinedError
 from werkzeug.exceptions import HTTPException
 
@@ -12,7 +12,6 @@ from eduid.common.utils import urlappend
 from eduid.userdb.support import db
 from eduid.webapp.common.api.app import EduIDBaseApp
 from eduid.webapp.common.api.exceptions import ApiException
-from eduid.webapp.common.authn.middleware import AuthnBaseApp
 from eduid.webapp.support.settings.common import SupportConfig
 
 
@@ -85,11 +84,11 @@ def init_exception_handlers(app: Flask) -> Flask:
         response = Response()
         match error:
             case HTTPException():
-                response.response = error.description
-                response.status_code = error.code
+                response.response = error.description or "Unknown error description"
+                response.status_code = error.code or 500
             case ApiException():
                 response.response = error.message
-                response.status_code = error.status_code
+                response.status_code = error.status_code or 500
         return response
 
     return app
