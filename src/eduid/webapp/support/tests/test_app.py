@@ -41,14 +41,14 @@ class SupportAppTests(EduidAPITestCase):
     # Authentication
     def test_no_authentication(self) -> None:
         # Unauthenticated request
-        response = self.browser.get("/")
+        response = self.browser.get("/search-form")
         self.assertEqual(response.status_code, 401)
 
     def test_authentication_no_mfa(self) -> None:
         # Authenticated request
         self.set_authn_action(eppn=self.test_user_eppn, frontend_action=FrontendAction.LOGIN, mock_mfa=False)
         with self.session_cookie(self.browser, self.test_user_eppn) as client:
-            resp = client.get("/")
+            resp = client.get("/search-form")
             assert resp.status_code == 302
             assert resp.headers.get("Location") == self.app.conf.authn_service_url_login
 
@@ -56,7 +56,7 @@ class SupportAppTests(EduidAPITestCase):
         # Authenticated request with MFA
         self.set_authn_action(eppn=self.test_user_eppn, frontend_action=FrontendAction.LOGIN, mock_mfa=True)
         with self.session_cookie(self.browser, self.test_user_eppn) as client:
-            response = client.get("/")
+            response = client.get("/search-form")
         self.assertEqual(response.status_code, 200)  # Authenticated request
 
     # Search
@@ -64,12 +64,12 @@ class SupportAppTests(EduidAPITestCase):
         existing_mail_address = self.test_user.mail_addresses.to_list()[0]
         self.set_authn_action(eppn=self.test_user_eppn, frontend_action=FrontendAction.LOGIN, mock_mfa=True)
         with self.session_cookie(self.browser, self.test_user_eppn) as client:
-            response = client.post("/", data={"query": f"{existing_mail_address.email}"})
+            response = client.post("/search", data={"query": f"{existing_mail_address.email}"})
         assert b'<h3>1 user was found using query "johnsmith@example.com":</h3>' in response.data
 
     def test_search_non_existing_user(self) -> None:
-        non_existing_mail_address = "not_in_db@example.com}"
+        non_existing_mail_address = "not_in_db@example.com"
         self.set_authn_action(eppn=self.test_user_eppn, frontend_action=FrontendAction.LOGIN, mock_mfa=True)
         with self.session_cookie(self.browser, self.test_user_eppn) as client:
-            response = client.post("/", data={"query": non_existing_mail_address})
-        assert b"<h3>No users matched the search query</h3>" in response.data
+            response = client.post("/search", data={"query": non_existing_mail_address})
+        assert b"<h3>No users matched the search query: not_in_db@example.com</h3>" in response.data
