@@ -274,7 +274,8 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         assert isinstance(state1, ResetPasswordEmailState)
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
-        alternatives = get_extra_security_alternatives(user)
+        with self.app.test_request_context():
+            alternatives = get_extra_security_alternatives(user)
         state1.extra_security = alternatives
         state1.email_code.is_verified = True
         self.app.password_reset_state_db.save(state1)

@@ -14,7 +14,7 @@ pre_build_script:
 environment_variables:
   NEO4J_VERSION: "4.4-enterprise"
 script:
-  - "python3.11 -m venv venv"
+  - "python3.13 -m venv venv"
   - ". venv/bin/activate"
   - "pip install -U pip setuptools wheel mypy"
   - "pip install --index-url https://pypi.sunet.se -r requirements/test_requirements.txt"
@@ -31,7 +31,7 @@ extra_jobs:
       github_push: false
       cron: "@daily"
     script:
-      - "python3.11 -m venv venv"
+      - "python3.13 -m venv venv"
       - ". venv/bin/activate"
       - "pip install -U pip setuptools wheel pip-tools mypy uv"
       - "touch requirements/*in"

@@ -356,6 +356,7 @@ def get_extra_security_alternatives(user: User) -> dict:
     alternatives: dict[str, Any] = {}
 
     if user.identities.nin is not None and user.identities.nin.is_verified:
+        session.mfa_action.eppn = user.eppn
         alternatives["external_mfa"] = True
 
     if user.phone_numbers.verified:

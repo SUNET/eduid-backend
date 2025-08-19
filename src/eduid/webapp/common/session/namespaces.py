@@ -9,8 +9,8 @@ from enum import StrEnum, unique
 from typing import Any, NewType, TypeVar, cast
 
 from fido2.webauthn import AuthenticatorAttachment
-from pydantic import BaseModel, Field, ValidationError, field_validator
-from pydantic_core.core_schema import ValidationInfo
+from pydantic import BaseModel, Field, ValidationError, field_serializer, field_validator
+from pydantic_core.core_schema import SerializationInfo
 
 from eduid.common.config.base import FrontendAction
 from eduid.common.misc.timeutil import utc_now
@@ -30,14 +30,13 @@ __author__ = "ft"
 
 logger = logging.getLogger(__name__)
 
-
 AuthnRequestRef = NewType("AuthnRequestRef", str)
 OIDCState = NewType("OIDCState", str)
 
 
 class SessionNSBase(BaseModel, ABC):
-    def to_dict(self) -> dict[str, Any]:
-        return self.model_dump()
+    def to_dict(self, **kwargs: Any) -> dict[str, Any]:
+        return self.model_dump(**kwargs)
 
     @classmethod
     def from_dict(cls: type[TSessionNSSubclass], data: Mapping[str, Any]) -> TSessionNSSubclass:
@@ -194,20 +193,34 @@ class IdP_PendingRequest(BaseModel, ABC):
     # Credentials used while authenticating _this SAML request_. Not ones inherited from SSO.
     credentials_used: dict[ElementKey, AuthnData] = Field(default_factory=dict)
 
-    # TODO: should be removed next release
-    @field_validator("credentials_used", mode="before")
-    @classmethod
-    def migrate_credentials_used(
-        cls, v: dict[ElementKey, str | dict[str, str]], info: ValidationInfo
-    ) -> dict[ElementKey, dict[str, str]]:
-        _credentials_used = {}
-        for key, value in v.items():
+    # TODO: _migrate_credentials_used, dump_credentials_used and load_credentials_used should be removed next release
+    @staticmethod
+    def _migrate_credentials_used(
+        credentials_used: dict,
+    ) -> dict[str, dict[str, str]]:
+        _credentials_used: dict[str, dict[str, str]] = {}
+        for key, value in credentials_used.items():
             match value:
                 case str():
                     _credentials_used[key] = {"cred_id": key, "authn_ts": value}
-                case _:
+                case dict():
                     _credentials_used[key] = value
+                case AuthnData():
+                    _credentials_used[key] = value.model_dump()
         return _credentials_used
+
+    @field_serializer("credentials_used")
+    def dump_credentials_used(
+        self, credentials_used: dict[ElementKey, AuthnData | dict[ElementKey, str]], info: SerializationInfo
+    ) -> dict[str, dict[str, str]]:
+        return self._migrate_credentials_used(credentials_used)
+
+    @field_validator("credentials_used", mode="before")
+    @classmethod
+    def load_credentials_used(cls, credentials_used: Any) -> dict[str, dict[str, str]]:  # noqa: ANN401
+        if isinstance(credentials_used, dict):
+            return cls._migrate_credentials_used(credentials_used)
+        raise Exception("credentials_used was not a dict")
 
 
 class IdP_SAMLPendingRequest(IdP_PendingRequest):
@@ -270,19 +283,18 @@ class SPAuthnData(BaseModel):
     pysaml2_dicts: PySAML2Dicts = Field(default=cast(PySAML2Dicts, dict()))
     authns: dict[AuthnRequestRef, SP_AuthnRequest] = Field(default_factory=dict)
 
-    @field_validator("authns", mode="after")
-    @classmethod
-    def authns_cleanup(
-        cls, v: dict[AuthnRequestRef, SP_AuthnRequest], info: ValidationInfo
-    ) -> dict[AuthnRequestRef, SP_AuthnRequest]:
+    @field_serializer("authns")
+    def authns_cleanup(self, authns: dict[AuthnRequestRef, SP_AuthnRequest], info: SerializationInfo) -> dict[str, Any]:
         """
         Keep the authns list from growing indefinitely.
         """
         # if authns is larger than 10, sort on created_ts and remove the oldest
-        if len(v) > 10:
-            items = sorted(v.items(), reverse=True, key=lambda item: item[1].created_ts)
-            return dict(items[:10])
-        return v
+        if len(authns) > 10:
+            items = sorted(authns.items(), reverse=True, key=lambda item: item[1].created_ts)
+            authns = dict(items[:10])
+
+        ret = dict([(k, v.model_dump()) for k, v in authns.items()])
+        return ret
 
     def _get_sorted_authns(self) -> list[SP_AuthnRequest]:
         # sort authn actions by created_ts, latest first

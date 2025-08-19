@@ -51,10 +51,10 @@ class TestNamespace(TestNameSpaceBase):
 
         session._serialize_namespaces()
         out = session._session.to_dict()
+        normalised_out = normalised_data(out, exclude_keys=["ts"])
 
-        assert normalised_data(out, replace_datetime="now") == {
+        assert normalised_out == {
             "signup": {
-                "ts": "now",
                 "user_created": False,
                 "email": {"completed": False, "verification_code": "test", "bad_attempts": 0},
                 "invite": {"initiated_signup": False, "completed": False},
@@ -63,20 +63,17 @@ class TestNamespace(TestNameSpaceBase):
                 "captcha": {"bad_attempts": 0, "completed": False},
                 "credentials": {"completed": False},
             },
-            "idp": {"ts": "now", "sso_cookie_val": "abc", "pending_requests": {}},
-        }, f"Actual result: {normalised_data(out, replace_datetime='now')}"
+            "idp": {"sso_cookie_val": "abc", "pending_requests": {}},
+        }, f"Actual result: {normalised_out}"
 
         session.persist()
 
         # Validate that the session can be loaded again
         loaded_session = self.get_session(meta=_meta, new=False)
-        # loaded_session is raw data from the storage backend, it won't have timestamps deserialised into datetimes
-        # (done by pydantic when loading the data into the EduidSession), so in order to expect the same serialisation
-        # again we need to do that here
-        loaded_session._session["idp"]["ts"] = datetime.fromisoformat(loaded_session._session["idp"]["ts"])
-        loaded_session._session["signup"]["ts"] = datetime.fromisoformat(loaded_session._session["signup"]["ts"])
         # ...and that it serialises to the same data again
-        assert loaded_session._session.to_dict() == out
+        assert normalised_out == normalised_data(loaded_session._session.to_dict(), exclude_keys=["ts"]), (
+            f"Actual result: {normalised_out}"
+        )
 
     def test_to_dict_from_dict_with_timestamp(self) -> None:
         _meta = SessionMeta.new(app_secret="secret")
@@ -91,20 +88,17 @@ class TestNamespace(TestNameSpaceBase):
         out = first._session.to_dict()
 
         assert out == {
-            "idp": {"sso_cookie_val": "abc", "pending_requests": {}, "ts": first.idp.ts},
+            "idp": {"sso_cookie_val": "abc", "pending_requests": {}, "ts": "2020-09-13T12:26:40Z"},
         }
 
         first.persist()
 
         # Validate that the session can be loaded again
         second = self.get_session(meta=_meta, new=False)
-        # loaded_session is raw data from the storage backend, it won't have timestamps deserialised into datetimes
-        # (done by pydantic when loading the data into the EduidSession), so in order to expect the same serialisation
-        # again we need to do that here
-        assert isinstance(second["idp"], dict)
-        second["idp"]["ts"] = datetime.fromisoformat(second["idp"]["ts"])
         # ...and that it serialises to the same data that was persisted
-        assert second._session.to_dict() == out
+        assert normalised_data(out, exclude_keys=["ts"]) == normalised_data(
+            second._session.to_dict(), exclude_keys=["ts"]
+        )
 
         assert second.idp.sso_cookie_val == first.idp.sso_cookie_val
         assert second.idp.ts == first.idp.ts
@@ -143,6 +137,21 @@ class TestAuthnNamespace(TestNameSpaceBase):
         sess = self.get_session(meta=_meta, new=False)
         assert len(sess.authn.sp.authns) == 10, f"Expected 10 authns got {len(sess.authn.sp.authns)}"
 
+    def test_sp_authns_overwrite(self) -> None:
+        _meta = SessionMeta.new(app_secret="secret")
+        sess1 = self.get_session(meta=_meta)
+        for i in range(5):
+            sess1.authn.sp.authns[AuthnRequestRef(str(i))] = SP_AuthnRequest(
+                frontend_action=FrontendAction.LOGIN, finish_url="some_url"
+            )
+        sess1.persist()
+        # load the session again
+        sess2 = self.get_session(meta=_meta, new=False)
+        # this next read should not change anything in the session
+        sess2.authn.sp.get_latest_authn()
+        sess2.persist()
+        assert sess1._session._raw_data == sess2._session._raw_data
+
 
 class TestIdpNamespace(TestNameSpaceBase):
     def test_migrate_pending_req_creds_used(self) -> None:
@@ -153,9 +162,11 @@ class TestIdpNamespace(TestNameSpaceBase):
         element_key = ElementKey("test_credential_key")
         # save a pending request in the old format where credentials_used just had a timestamp str value
         sess.idp.pending_requests[request_ref] = IdP_SAMLPendingRequest(request="test_request", binding="test_binding")
-        # ignore assignment type checking as that is what we want to fix
-        sess.idp.pending_requests[request_ref].credentials_used[element_key] = now.isoformat()  # type: ignore[assignment]
-        sess.persist()
+        idp_dict = sess.idp.to_dict()
+        idp_dict["pending_requests"][request_ref]["credentials_used"][element_key] = now.isoformat()
+        # need to some fiddling to bypass _serialize_namespaces that will update the above value to the new structure
+        sess["idp"] = idp_dict
+        sess._session.commit()
         # Load the session to make sure the migration went ok
         sess = self.get_session(meta=_meta, new=False)
         cred_used = sess.idp.pending_requests[request_ref].credentials_used.get(element_key)

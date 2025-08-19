@@ -30,7 +30,7 @@ def fetch_mfa_stepup_accounts(data: satosa.internal.InternalData) -> list[MfaSte
     return [MfaStepupAccount.model_validate(x) for x in data.mfa_stepup_accounts]
 
 
-def get_metadata(context: satosa.context.Context) -> Generator[MetaData, None, None]:
+def get_metadata(context: satosa.context.Context) -> Generator[MetaData]:
     for _md_name, _metadata in context.internal_data[context.KEY_METADATA_STORE].metadata.items():
         if not isinstance(_metadata, MetaData):
             logger.debug(f"Element {_md_name} was not MetaData ({type(_metadata)})")

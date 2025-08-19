@@ -5,6 +5,7 @@ import logging.config
 import os
 import uuid
 from collections.abc import Iterable
+from copy import deepcopy
 from datetime import UTC, datetime, timedelta
 from enum import Enum
 from typing import Any, TypeVar
@@ -110,9 +111,10 @@ def normalised_data(
             for item in obj:
                 _exclude_keys(exclude_key, item)
 
+    _data = deepcopy(data)
     if exclude_keys is not None:
         for _key in exclude_keys:
-            _exclude_keys(exclude_key=_key, obj=data)
-    _dumped = json.dumps(data, sort_keys=True, cls=NormaliseEncoder)
+            _exclude_keys(exclude_key=_key, obj=_data)
+    _dumped = json.dumps(_data, sort_keys=True, cls=NormaliseEncoder)
     _loaded = json.loads(_dumped, cls=NormaliseDecoder)
     return _loaded
