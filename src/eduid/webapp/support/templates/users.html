@@ -20,6 +20,9 @@
 
         <tbody>
           {% if item.user %} {{ common_user_table.input(item.user) }} {% else %}
+          <tr class="display-none">
+            <th scope="col" class="display-none">Central DB user info</td>
+          </tr>
           <tr>
             <td class="no-data">No data</td>
           </tr>
