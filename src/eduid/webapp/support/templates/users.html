@@ -17,6 +17,7 @@
         <caption>
           Central DB
         </caption>
+
         <tbody>
           {% if item.user %} {{ common_user_table.input(item.user) }} {% else %}
           <tr>
@@ -35,7 +36,7 @@
           {% if item.signup_user %} {{ common_user_table.input(item.signup_user) }} {% if
           item.signup_user.pending_mail_address %}
           <tr>
-            <th>Pending mail address</th>
+            <th scope="col">Pending mail address</th>
             <td>
               <dl>
                 <dt>Address</dt>
@@ -59,7 +60,7 @@
           </tr>
           {% endif %} {% if not item.signup_user.passwords %}
           <tr>
-            <th>Completed signup</th>
+            <th scope="col">Completed signup</th>
             <td>False</td>
           </tr>
           {% endif %} {% else %}
@@ -80,21 +81,21 @@
         </caption>
         {% if item.letter_proofing %}
         <tr>
-          <th>Letter sent</th>
+          <th scope="col">Letter sent</th>
           <td>{{ item.letter_proofing.proofing_letter.is_sent|default("False") }}</td>
         </tr>
         {% if item.letter_proofing.proofing_letter.is_sent %}
         <tr>
-          <th>Letter sent timestamp</th>
+          <th scope="col">Letter sent timestamp</th>
           <td>{{ item.letter_proofing.proofing_letter.sent_ts|datetimeformat }}</td>
         </tr>
         {% endif %}
         <tr>
-          <th>National identity number</th>
+          <th scope="col">National identity number</th>
           <td>{{ item.letter_proofing.nin.number }}</td>
         </tr>
         <tr>
-          <th>Official address</th>
+          <th scope="col">Official address</th>
           <td>
             {{ item.letter_proofing.proofing_letter.address.name.given_name }} {{
             item.letter_proofing.proofing_letter.address.name.middle_name }} {{
@@ -120,15 +121,15 @@
         </caption>
         {% if item.oidc_proofing %}
         <tr>
-          <th>Created</th>
+          <th scope="col">Created</th>
           <td>{{ item.oidc_proofing.modified_ts|datetimeformat }}</td>
         </tr>
         <tr>
-          <th>State ID</th>
+          <th scope="col">State ID</th>
           <td>{{ item.oidc_proofing.state }}</td>
         </tr>
         <tr>
-          <th>National identity number</th>
+          <th scope="col">National identity number</th>
           <td>{{ item.oidc_proofing.nin.number }}</td>
         </tr>
         {% else %}
@@ -145,11 +146,11 @@
         </caption>
         {% if item.email_proofings %} {% for email_proofing in item.email_proofings %}
         <tr>
-          <th>Created</th>
+          <th scope="col">Created</th>
           <td>{{ email_proofing.modified_ts|datetimeformat }}</td>
         </tr>
         <tr>
-          <th>Email address</th>
+          <th scope="col">Email address</th>
           <td>{{ email_proofing.verification.email }}</td>
         </tr>
         {% endfor %} {% else %}
@@ -166,11 +167,11 @@
         </caption>
         {% if item.phone_proofings %} {% for phone_proofing in item.phone_proofings %}
         <tr>
-          <th>Created</th>
+          <th scope="col">Created</th>
           <td>{{ phone_proofing.modified_ts|datetimeformat }}</td>
         </tr>
         <tr>
-          <th>Phone number</th>
+          <th scope="col">Phone number</th>
           <td>{{ phone_proofing.verification.number }}</td>
         </tr>
         {% endfor %} {% else %}
@@ -190,11 +191,11 @@
         </caption>
         {% if item.proofing_log %}
         <tr>
-          <th>Created</th>
-          <th>Application</th>
-          <th>Data verified</th>
-          <th>Proofing method</th>
-          <th>Vetting by</th>
+          <th scope="col">Created</th>
+          <th scope="col">Application</th>
+          <th scope="col">Data verified</th>
+          <th scope="col">Proofing method</th>
+          <th scope="col">Vetting by</th>
         </tr>
         {% for entry in item.proofing_log|sort(attribute='created_ts', reverse=True) %}
         <tr>
@@ -221,11 +222,11 @@
         </caption>
         {% if item.authn %}
         <tr>
-          <th>Last successful login</th>
+          <th scope="col">Last successful login</th>
           <td>{{ item.authn.success_ts|datetimeformat }}</td>
         </tr>
         <tr>
-          <th>Failed login attempts:<br />(Last three months)</th>
+          <th scope="col">Failed login attempts:<br />(Last three months)</th>
           <td>
             <dl>
               {% if not item.authn.fail_count %}
@@ -239,7 +240,7 @@
           </td>
         </tr>
         <tr>
-          <th>Successful login attempts:<br />(Last three months)</th>
+          <th scope="col">Successful login attempts:<br />(Last three months)</th>
           <td>
             <dl>
               {% if not item.authn.success_count %}

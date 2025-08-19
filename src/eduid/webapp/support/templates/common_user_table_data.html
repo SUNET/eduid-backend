@@ -41,7 +41,7 @@
   </td>
 </tr>
 <tr>
-  <th>Credentials</th>
+  <th scope="col">Credentials</th>
   <td>
     {% for credential in user_dict.passwords|multisort('type', 'created_ts', reverse=True) %}
     <dl>
@@ -76,7 +76,7 @@
   </td>
 </tr>
 <tr>
-  <th>Identities</th>
+  <th scope="col">Identities</th>
   <td>
     {% for item in user_dict.identities|multisort('verified', 'created_ts', reverse=True) %}
     <dl>
@@ -114,7 +114,7 @@
   </td>
 </tr>
 <tr>
-  <th>Locked identity</th>
+  <th scope="col">Locked identity</th>
   <td>
     {% for item in user_dict.locked_identity|multisort('verified', 'created_ts', reverse=True) %}
     <dl>
@@ -152,7 +152,7 @@
   </td>
 </tr>
 <tr>
-  <th>Accepted terms of use</th>
+  <th scope="col">Accepted terms of use</th>
   <td>
     {% for tou in user_dict.tou|multisort('version', 'created_ts', reverse=True) %}
     <dl>
