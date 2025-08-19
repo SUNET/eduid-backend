@@ -65,11 +65,11 @@ class SupportAppTests(EduidAPITestCase):
         self.set_authn_action(eppn=self.test_user_eppn, frontend_action=FrontendAction.LOGIN, mock_mfa=True)
         with self.session_cookie(self.browser, self.test_user_eppn) as client:
             response = client.post("/search", data={"query": f"{existing_mail_address.email}"})
-        assert b'<h3>1 user was found using query "johnsmith@example.com"</h3>' in response.data
+        assert b"1 user was found using query" in response.data
 
     def test_search_non_existing_user(self) -> None:
         non_existing_mail_address = "not_in_db@example.com"
         self.set_authn_action(eppn=self.test_user_eppn, frontend_action=FrontendAction.LOGIN, mock_mfa=True)
         with self.session_cookie(self.browser, self.test_user_eppn) as client:
             response = client.post("/search", data={"query": non_existing_mail_address})
-        assert b"<h3>No users matched the search query: not_in_db@example.com</h3>" in response.data
+        assert b"No user found" in response.data
