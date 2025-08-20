@@ -22,8 +22,8 @@ def index() -> str:
 
 
 @support_views.route("/search-form", methods=["GET"])
-@require_support_personnel
 @require_login_with_mfa
+@require_support_personnel
 def search_form(support_user: User) -> str:
     return render_template(
         "search_form.html", support_user=support_user, logout_url=current_app.conf.authn_service_url_logout
@@ -31,8 +31,8 @@ def search_form(support_user: User) -> str:
 
 
 @support_views.route("/search", methods=["POST"])
-@require_support_personnel
 @require_login_with_mfa
+@require_support_personnel
 def search(support_user: User) -> str:
     data = sanitize_map(request.form)
     search_query = data.get("query")

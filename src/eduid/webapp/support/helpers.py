@@ -62,6 +62,8 @@ def require_login_with_mfa(
     def require_login_with_mfa_decorator(*args: Any, **kwargs: Any) -> TRequireLoginWithMFAResult | WerkzeugResponse:
         if has_user_logged_in_with_mfa():
             return f(*args, **kwargs)
-        return redirect(current_app.conf.authn_service_url_login)
+        resp = WerkzeugResponse("OK", 200)
+        resp.headers["HX-Redirect"] = current_app.conf.authn_service_url_login
+        return resp
 
     return require_login_with_mfa_decorator
