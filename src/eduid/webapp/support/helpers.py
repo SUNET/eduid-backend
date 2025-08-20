@@ -2,7 +2,7 @@ from collections.abc import Callable
 from functools import wraps
 from typing import Any, TypeVar
 
-from flask import abort, redirect
+from flask import abort
 from werkzeug import Response as WerkzeugResponse
 
 from eduid.userdb import User

@@ -41,16 +41,17 @@ class SupportAppTests(EduidAPITestCase):
     # Authentication
     def test_no_authentication(self) -> None:
         # Unauthenticated request
-        response = self.browser.get("/search-form")
-        self.assertEqual(response.status_code, 401)
+        resp = self.browser.get("/search-form")
+        assert resp.status_code == 200
+        assert resp.headers.get("HX-Redirect") == self.app.conf.authn_service_url_login
 
     def test_authentication_no_mfa(self) -> None:
         # Authenticated request
         self.set_authn_action(eppn=self.test_user_eppn, frontend_action=FrontendAction.LOGIN, mock_mfa=False)
         with self.session_cookie(self.browser, self.test_user_eppn) as client:
             resp = client.get("/search-form")
-            assert resp.status_code == 302
-            assert resp.headers.get("Location") == self.app.conf.authn_service_url_login
+            assert resp.status_code == 200
+            assert resp.headers.get("HX-Redirect") == self.app.conf.authn_service_url_login
 
     def test_authentication_mfa(self) -> None:
         # Authenticated request with MFA
