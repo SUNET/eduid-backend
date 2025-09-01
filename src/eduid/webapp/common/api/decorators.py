@@ -2,7 +2,7 @@ import json
 import logging
 from collections.abc import Awaitable, Callable, Mapping
 from functools import wraps
-from typing import Any, TypeVar, cast
+from typing import Any, cast
 
 from flask import abort, jsonify, request
 from flask.typing import ResponseReturnValue as FlaskResponseReturnValue
@@ -79,10 +79,7 @@ def require_not_logged_in(f: EduidRouteCallable) -> EduidRouteCallable:
     return require_eppn_decorator
 
 
-TRequireUserResult = TypeVar("TRequireUserResult")
-
-
-def require_user(f: Callable[..., TRequireUserResult]) -> Callable[..., TRequireUserResult]:
+def require_user[TRequireUserResult](f: Callable[..., TRequireUserResult]) -> Callable[..., TRequireUserResult]:
     """
     Decorator for functions that require a *logged in* user.
 

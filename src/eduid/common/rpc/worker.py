@@ -1,13 +1,11 @@
-from typing import TypeVar
-
 from eduid.common.config.exceptions import BadConfiguration
 from eduid.common.config.parsers import load_config
 from eduid.common.config.workers import WorkerConfig
 
-TWorkerConfigSubclass = TypeVar("TWorkerConfigSubclass", bound=WorkerConfig)
 
-
-def get_worker_config(name: str, config_class: type[TWorkerConfigSubclass]) -> TWorkerConfigSubclass:
+def get_worker_config[TWorkerConfigSubclass: WorkerConfig](
+    name: str, config_class: type[TWorkerConfigSubclass]
+) -> TWorkerConfigSubclass:
     """
     Load configuration for a worker.
 

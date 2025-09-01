@@ -9,7 +9,7 @@ from collections.abc import Generator, Iterable, Mapping
 from contextlib import contextmanager
 from copy import deepcopy
 from datetime import datetime, timedelta
-from typing import Any, Generic, TypeVar, cast
+from typing import Any, cast
 
 from flask.testing import FlaskClient
 from werkzeug.test import TestResponse
@@ -88,10 +88,7 @@ TEST_CONFIG = {
 }
 
 
-TTestAppVar = TypeVar("TTestAppVar", bound=EduIDBaseApp)
-
-
-class EduidAPITestCase(CommonTestCase, Generic[TTestAppVar]):
+class EduidAPITestCase[TTestAppVar: EduIDBaseApp](CommonTestCase):
     """
     Base Test case for eduID APIs.
 

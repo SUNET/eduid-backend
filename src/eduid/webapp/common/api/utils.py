@@ -2,7 +2,7 @@ import logging
 import os
 import re
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any, TypeVar, cast
+from typing import TYPE_CHECKING, Any, cast
 from unittest.mock import MagicMock
 from urllib.parse import urlparse
 from uuid import uuid4
@@ -30,10 +30,7 @@ else:
 logger = logging.getLogger(__name__)
 
 
-TCurrentAppAttribute = TypeVar("TCurrentAppAttribute")
-
-
-def get_from_current_app(name: str, klass: type[TCurrentAppAttribute]) -> TCurrentAppAttribute:
+def get_from_current_app[TCurrentAppAttribute](name: str, klass: type[TCurrentAppAttribute]) -> TCurrentAppAttribute:
     """Get a correctly typed attribute from an unknown Flask current app"""
     ret = getattr(current_app, name)
     if not isinstance(ret, klass):

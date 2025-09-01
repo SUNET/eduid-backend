@@ -1,6 +1,6 @@
 from collections.abc import Callable
 from functools import wraps
-from typing import Any, TypeVar
+from typing import Any
 
 from flask import abort, redirect
 from werkzeug import Response as WerkzeugResponse
@@ -30,10 +30,7 @@ def get_credentials_aux_data(user: User) -> list[TUserDbDocument]:
     return credentials
 
 
-TRequireSupportPersonnelResult = TypeVar("TRequireSupportPersonnelResult")
-
-
-def require_support_personnel(
+def require_support_personnel[TRequireSupportPersonnelResult](
     f: Callable[..., TRequireSupportPersonnelResult],
 ) -> Callable[..., TRequireSupportPersonnelResult]:
     @wraps(f)
@@ -52,10 +49,7 @@ def require_support_personnel(
     return require_support_decorator
 
 
-TRequireLoginWithMFAResult = TypeVar("TRequireLoginWithMFAResult")
-
-
-def require_login_with_mfa(
+def require_login_with_mfa[TRequireLoginWithMFAResult](
     f: Callable[..., TRequireLoginWithMFAResult],
 ) -> Callable[..., TRequireLoginWithMFAResult | WerkzeugResponse]:
     @wraps(f)

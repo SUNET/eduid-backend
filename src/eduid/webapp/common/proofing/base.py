@@ -1,6 +1,5 @@
 from abc import ABC
 from dataclasses import dataclass
-from typing import Generic, TypeVar
 
 from eduid.common.config.base import ProofingConfigMixin
 from eduid.common.rpc.exceptions import AmTaskFailed
@@ -29,13 +28,9 @@ from eduid.webapp.common.proofing.methods import (
 from eduid.webapp.common.session import session
 from eduid.webapp.eidas.app import current_eidas_app as current_app
 
-SessionInfoVar = TypeVar("SessionInfoVar")
-
-T = TypeVar("T")
-
 
 @dataclass
-class GenericResult(Generic[T]):
+class GenericResult[T]:
     result: T | None = None
     error: TranslatableMsg | None = None
 
@@ -72,7 +67,7 @@ class MfaData:
 
 
 @dataclass()
-class ProofingFunctions(ABC, Generic[SessionInfoVar]):
+class ProofingFunctions[SessionInfoVar](ABC):
     session_info: SessionInfoVar
     app_name: str
     config: ProofingConfigMixin

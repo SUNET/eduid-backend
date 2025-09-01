@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Generic, TypeVar
 
 from eduid.common.config.base import ProofingConfigMixin
 from eduid.common.rpc.exceptions import AmTaskFailed
@@ -35,11 +34,9 @@ from eduid.webapp.eidas.app import current_eidas_app as current_app
 from eduid.webapp.eidas.helpers import EidasMsg
 from eduid.webapp.eidas.saml_session_info import BaseSessionInfo, ForeignEidSessionInfo, NinSessionInfo
 
-BaseSessionInfoVar = TypeVar("BaseSessionInfoVar", bound=BaseSessionInfo)
-
 
 @dataclass
-class SwedenConnectProofingFunctions(ProofingFunctions[BaseSessionInfoVar], Generic[BaseSessionInfoVar]):
+class SwedenConnectProofingFunctions[BaseSessionInfoVar: BaseSessionInfo](ProofingFunctions[BaseSessionInfoVar]):
     def get_mfa_data(self) -> GenericResult[MfaData]:
         return GenericResult(
             result=MfaData(
