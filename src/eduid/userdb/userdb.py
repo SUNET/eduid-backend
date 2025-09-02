@@ -2,7 +2,7 @@ import logging
 from abc import ABC
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any, Generic, TypeVar
+from typing import Any
 
 from bson import ObjectId
 from bson.errors import InvalidId
@@ -26,15 +26,13 @@ from eduid.userdb.user import User
 logger = logging.getLogger(__name__)
 extra_debug_logger = logger.getChild("extra_debug")
 
-UserVar = TypeVar("UserVar")
-
 
 @dataclass
 class UserSaveResult:
     success: bool
 
 
-class UserDB(BaseDB, Generic[UserVar], ABC):
+class UserDB[UserVar](BaseDB, ABC):
     """
     Interface class to the central eduID UserDB.
 

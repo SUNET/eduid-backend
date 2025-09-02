@@ -145,10 +145,8 @@ class RawDb:
 
         filename = self._get_backup_filename(backup_dir, "changes", "txt")
         with open(filename, "w") as fd:
-            for k in sorted(set(raw.doc) - set(raw.before)):
-                fd.write(f"ADD: {safe_encode(k, raw.doc[k])}\n")
-            for k in sorted(set(raw.before) - set(raw.doc)):
-                fd.write(f"DEL: {safe_encode(k, raw.before[k])}\n")
+            fd.writelines(f"ADD: {safe_encode(k, raw.doc[k])}\n" for k in sorted(set(raw.doc) - set(raw.before)))
+            fd.writelines(f"DEL: {safe_encode(k, raw.before[k])}\n" for k in sorted(set(raw.before) - set(raw.doc)))
             for k in sorted(raw.doc.keys()):
                 if k not in raw.before:
                     continue

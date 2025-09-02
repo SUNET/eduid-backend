@@ -25,6 +25,7 @@ ignore = [
   "E501",
   "PLR",
   "PLW",
+  "PLC0415",
 ]
 
 [lint.flake8-annotations]
