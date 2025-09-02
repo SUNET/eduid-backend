@@ -3,7 +3,7 @@ from datetime import date, datetime, time
 from enum import StrEnum
 from uuid import UUID
 
-from fido2.utils import websafe_decode
+from fido2.webauthn import AttestationObject
 from fido_mds import Attestation
 from fido_mds.exceptions import AttestationVerificationError, MetadataValidationError
 from fido_mds.models.fido_mds import AuthenticatorStatus
@@ -35,10 +35,10 @@ class AuthenticatorInformation:
     user_verification_methods: list[str] = field(default_factory=list)
 
 
-def get_authenticator_information(attestation: str, client_data: str) -> AuthenticatorInformation:
+def get_authenticator_information(attestation: AttestationObject, client_data: bytes) -> AuthenticatorInformation:
     # parse attestation object
     try:
-        att = Attestation.from_base64(attestation)
+        att = Attestation.from_attestation_object(attestation)
     except ValueError as e:
         current_app.logger.exception("Failed to parse attestation object")
         raise e
@@ -73,15 +73,15 @@ def get_authenticator_information(attestation: str, client_data: str) -> Authent
 
     # verify attestation
     try:
-        current_app.fido_mds.verify_attestation(attestation=att, client_data=websafe_decode(client_data))
+        current_app.fido_mds.verify_attestation(attestation=att, client_data=client_data)
     except AttestationVerificationError as e:
         current_app.logger.debug(f"attestation: {att}")
-        current_app.logger.debug(f"client_data: {client_data}")
+        current_app.logger.debug(f"client_data: {client_data!r}")
         current_app.logger.exception("Failed to get authenticator information")
         raise e
     except MetadataValidationError:
         current_app.logger.debug(f"attestation: {att}")
-        current_app.logger.debug(f"client_data: {client_data}")
+        current_app.logger.debug(f"client_data: {client_data!r}")
         current_app.logger.exception(
             "Failed to get authenticator information from metadata, continuing without metadata"
         )

@@ -3,7 +3,7 @@ from copy import deepcopy
 from dataclasses import dataclass
 from typing import Any
 
-from fido2.webauthn import UserVerificationRequirement
+from fido2.webauthn import AuthenticationResponse, UserVerificationRequirement
 from flask import Blueprint, jsonify, request
 from werkzeug.wrappers import Response as WerkzeugResponse
 
@@ -197,7 +197,7 @@ def _check_webauthn(
     try:
         result = fido_tokens.verify_webauthn(
             user=user,
-            request_dict=webauthn_response,
+            auth_response=AuthenticationResponse.from_dict(webauthn_response),
             rp_id=current_app.conf.fido2_rp_id,
             rp_name=current_app.conf.fido2_rp_name,
             state=mfa_action,
