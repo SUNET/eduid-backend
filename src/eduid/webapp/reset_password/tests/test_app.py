@@ -1,3 +1,4 @@
+import copy
 import datetime
 import json
 from collections.abc import Callable, Iterable, Mapping
@@ -306,7 +307,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
     @patch("eduid.webapp.common.authn.vccs.get_vccs_client")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     @patch("fido2.cose.ES256.verify")
-    def _post_reset_password_secure_token(
+    def _post_reset_password_security_key(
         self,
         mock_verify: MagicMock,
         mock_request_user_sync: MagicMock,
@@ -336,9 +337,9 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         credential = sample_credential.to_dict()
         if credential_data:
             credential.update(credential_data)
-        webauthn_credential = Webauthn.from_dict(credential)
+        security_key = Webauthn.from_dict(credential)
         user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
-        user.credentials.add(webauthn_credential)
+        user.credentials.add(security_key)
         self.app.central_userdb.save(user)
 
         response = self._post_email_address(data1=data1)
@@ -354,7 +355,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
             fido2state = SAMPLE_WEBAUTHN_FIDO2STATE
 
         with self.app.test_request_context():
-            url = url_for("reset_password.set_new_pw_extra_security_token", _external=True)
+            url = url_for("reset_password.set_new_pw_extra_security_key", _external=True)
 
         with self.session_cookie_anon(self.browser) as c:
             with c.session_transaction() as sess:
@@ -365,8 +366,8 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
                 "email_code": state.email_code.code,
                 "password": custom_password or new_password,
                 "csrf_token": self.get_response_payload(response)["csrf_token"],
+                "webauthn_response": SAMPLE_WEBAUTHN_REQUEST,
             }
-            data.update(SAMPLE_WEBAUTHN_REQUEST)
             if data2 == {}:
                 data = {}
             elif data2 is not None:
@@ -1022,8 +1023,8 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
             response, type_="POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_PHONE_FAIL", msg=ResetPwMsg.resetpw_weak
         )
 
-    def test_post_reset_password_secure_token(self) -> None:
-        response = self._post_reset_password_secure_token()
+    def test_post_reset_password_security_key(self) -> None:
+        response = self._post_reset_password_security_key()
         self._check_success_response(
             response,
             type_="POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_TOKEN_SUCCESS",
@@ -1037,8 +1038,8 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         verified_identities = user.identities.verified
         self.assertEqual(len(verified_identities), 3)
 
-    def test_post_reset_password_secure_token_custom_pw(self) -> None:
-        response = self._post_reset_password_secure_token(custom_password="T%7j 8/tT a0=b")
+    def test_post_reset_password_security_key_custom_pw(self) -> None:
+        response = self._post_reset_password_security_key(custom_password="T%7j 8/tT a0=b")
         self._check_success_response(
             response,
             type_="POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_TOKEN_SUCCESS",
@@ -1048,8 +1049,8 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         for cred in user.credentials.filter(Password):
             self.assertFalse(cred.is_generated)
 
-    def test_post_reset_password_secure_token_no_data(self) -> None:
-        response = self._post_reset_password_secure_token(data2={})
+    def test_post_reset_password_security_key_no_data(self) -> None:
+        response = self._post_reset_password_security_key(data2={})
         self._check_error_response(
             response,
             type_="POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_TOKEN_FAIL",
@@ -1060,43 +1061,48 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
             },
         )
 
-    def test_post_reset_password_secure_token_wrong_credential(self) -> None:
+    def test_post_reset_password_security_key_wrong_credential(self) -> None:
         credential_data = {
             "credential_data": "AAAAAAAAAAAAAAAAAAAAAABAi3KjBT0t5TPm693T0O0f4zyiwvdu9cY8BegCjiVvq_FS-ZmPcvXipFvHv"
             "D5CH6ZVRR3nsVsOla0Cad3fbtUA_aUBAgMmIAEhWCCiwDYGxl1LnRMqooWm0aRR9YbBG2LZ84BMNh_4rHkA9yJYIIujMrUOpGekb"
             "XjgMQ8M13ZsBD_cROSPB79eGz2Nw1ZE"
         }
-        response = self._post_reset_password_secure_token(credential_data=credential_data)
+        response = self._post_reset_password_security_key(credential_data=credential_data)
         self._check_error_response(
             response, type_="POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_TOKEN_FAIL", msg=ResetPwMsg.fido_token_fail
         )
 
-    def test_post_reset_password_secure_token_wrong_request(self) -> None:
-        data2 = {"authenticatorData": "Wrong-authenticatorData----UMmBLDxB7n3apMPQAAAAAAA"}
-        response = self._post_reset_password_secure_token(data2=data2)
+    def test_post_reset_password_security_key_wrong_request(self) -> None:
+        data2 = {"webauthn_response": copy.deepcopy(SAMPLE_WEBAUTHN_REQUEST)}
+        assert isinstance(data2["webauthn_response"], dict)
+        assert isinstance(data2["webauthn_response"]["response"], dict)
+        data2["webauthn_response"]["response"]["authenticatorData"] = (
+            "Wrong-authenticatorData----UMmBLDxB7n3apMPQAAAAAAA"
+        )
+        response = self._post_reset_password_security_key(data2=data2)
         self._check_error_response(
             response, type_="POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_TOKEN_FAIL", msg=ResetPwMsg.fido_token_fail
         )
 
-    def test_post_reset_password_secure_token_wrong_csrf(self) -> None:
+    def test_post_reset_password_security_key_wrong_csrf(self) -> None:
         data2 = {"csrf_token": "wrong-code"}
-        response = self._post_reset_password_secure_token(data2=data2)
+        response = self._post_reset_password_security_key(data2=data2)
         self._check_error_response(
             response,
             type_="POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_TOKEN_FAIL",
             error={"csrf_token": ["CSRF failed to validate"]},
         )
 
-    def test_post_reset_password_secure_token_wrong_code(self) -> None:
+    def test_post_reset_password_security_key_wrong_code(self) -> None:
         data2 = {"email_code": "wrong-code"}
-        response = self._post_reset_password_secure_token(data2=data2)
+        response = self._post_reset_password_security_key(data2=data2)
         self._check_error_response(
             response, type_="POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_TOKEN_FAIL", msg=ResetPwMsg.state_not_found
         )
 
-    def test_post_reset_password_secure_token_weak_password(self) -> None:
+    def test_post_reset_password_security_key_weak_password(self) -> None:
         data2 = {"password": "pw"}
-        response = self._post_reset_password_secure_token(data2=data2)
+        response = self._post_reset_password_security_key(data2=data2)
         self._check_error_response(
             response, type_="POST_RESET_PASSWORD_NEW_PASSWORD_EXTRA_SECURITY_TOKEN_FAIL", msg=ResetPwMsg.resetpw_weak
         )

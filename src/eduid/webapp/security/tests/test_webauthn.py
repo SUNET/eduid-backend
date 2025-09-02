@@ -4,7 +4,12 @@ from collections.abc import Mapping
 from typing import Any
 from unittest.mock import MagicMock, patch
 
-from fido2.webauthn import AttestationObject, AuthenticatorAttachment, CollectedClientData, UserVerificationRequirement
+from fido2.utils import websafe_decode
+from fido2.webauthn import (
+    AuthenticatorAttachment,
+    RegistrationResponse,
+    UserVerificationRequirement,
+)
 from fido_mds import FidoMetadataStore
 from future.backports.datetime import timedelta
 from werkzeug.http import dump_cookie
@@ -126,12 +131,18 @@ class SecurityWebauthnTests(EduidAPITestCase):
         return config
 
     def _add_token_to_user(self, client_data: bytes, attestation: bytes, state: Mapping[str, Any]) -> Webauthn:
-        _client_data = client_data + (b"=" * (len(client_data) % 4))
-        client_data_obj = CollectedClientData(base64.urlsafe_b64decode(_client_data))
-        _attestation = attestation + (b"=" * (len(attestation) % 4))
-        att_obj = AttestationObject(base64.urlsafe_b64decode(_attestation))
+        response = {
+            "credentialId": CREDENTIAL_ID,
+            "rawId": CREDENTIAL_ID,
+            "response": {
+                "attestationObject": attestation.decode("ascii").strip("="),
+                "clientDataJSON": client_data.decode("ascii").strip("="),
+            },
+        }
+        registration = RegistrationResponse.from_dict(response)
+
         server = get_webauthn_server(rp_id=self.app.conf.fido2_rp_id, rp_name=self.app.conf.fido2_rp_name)
-        auth_data = server.register_complete(state, client_data_obj, att_obj)
+        auth_data = server.register_complete(state=state, response=registration)
         cred_data = auth_data.credential_data
         assert cred_data is not None  # please mypy
         cred_id = cred_data.credential_id
@@ -306,9 +317,15 @@ class SecurityWebauthnTests(EduidAPITestCase):
                         csrf_token = sess.get_csrf_token()
                     data = {
                         "csrf_token": csrf_token,
-                        "attestationObject": attestation.decode(),
-                        "clientDataJSON": client_data.decode(),
-                        "credentialId": cred_id,
+                        "response": {
+                            "credentialId": CREDENTIAL_ID,
+                            "rawId": CREDENTIAL_ID,
+                            "response": {
+                                "attestationObject": attestation.decode(),
+                                "clientDataJSON": client_data.decode(),
+                                "credentialId": cred_id,
+                            },
+                        },
                         "description": "dummy description",
                     }
             response2 = client.post(
@@ -618,9 +635,11 @@ class SecurityWebauthnTests(EduidAPITestCase):
     def test_authenticator_information(self) -> None:
         authenticators = [YUBIKEY_4, YUBIKEY_5_NFC, MICROSOFT_SURFACE_1796, NEXUS_5, IPHONE_12, NONE_ATTESTATION]
         for authenticator in authenticators:
+            self.app.logger.debug(f"Testing authenticator: {authenticator}")
             with self.app.test_request_context():
                 authenticator_info = get_authenticator_information(
-                    attestation=authenticator[0], client_data=authenticator[1]
+                    attestation=Attestation.from_base64(authenticator[0]).attestation_obj,
+                    client_data=websafe_decode(authenticator[1]),
                 )
             assert authenticator_info is not None
             assert authenticator_info.authenticator_id is not None
@@ -675,9 +694,11 @@ class SecurityWebauthnTests(EduidAPITestCase):
             "N09EUzVXdzAtNUg0QnQweVR0dzNSYyIsIm9yaWdpbiI6Imh0dHBzOi8vZGFzaGJvYXJkLmRldi5lZHVp"
             "ZC5zZSIsImNyb3NzT3JpZ2luIjpmYWxzZX0"
         )
-
         with self.app.test_request_context(headers={"Cookie": cookie}):
-            authenticator_info = get_authenticator_information(attestation=attestation_object, client_data=client_data)
+            authenticator_info = get_authenticator_information(
+                attestation=Attestation.from_base64(attestation_object).attestation_obj,
+                client_data=websafe_decode(client_data),
+            )
         assert authenticator_info is not None
 
         with self.app.test_request_context():

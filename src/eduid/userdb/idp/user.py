@@ -271,7 +271,7 @@ def make_schac_personal_unique_code(
     attributes: dict[str, Any], user: IdPUser, settings: SAMLAttributeSettings
 ) -> dict[str, Any]:
     """
-    schacPersonalUniqueCode could be something other than ESI, but we have no usecase for anything else
+    schacPersonalUniqueCode could be something other than ESI, but we have no use case for anything else
     at the moment
     """
     if attributes.get("schacPersonalUniqueCode") is not None:

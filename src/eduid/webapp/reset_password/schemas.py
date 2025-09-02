@@ -65,13 +65,6 @@ class ResetPasswordWithPhoneCodeSchema(ResetPasswordWithCodeSchema):
     phone_code = fields.String(required=True)
 
 
-class ResetPasswordWithSecTokenSchema(ResetPasswordWithCodeSchema):
-    authenticator_data = fields.String(required=False, data_key="authenticatorData")
-    client_data_json = fields.String(required=False, data_key="clientDataJSON")
-    credential_id = fields.String(required=False, data_key="credentialId")
-    signature = fields.String(required=True)
-
-
 class SuggestedPasswordResponseSchema(FluxStandardAction):
     class SuggestedPasswordPayload(EduidSchema, CSRFResponseMixin):
         suggested_password = fields.String(required=True)
@@ -85,11 +78,10 @@ class NewPasswordSecurePhoneRequestSchema(EduidSchema, CSRFRequestMixin):
     phone_code = fields.String(required=True)
 
 
-class NewPasswordSecureTokenRequestSchema(EduidSchema, CSRFRequestMixin):
+class NewPasswordRequestSchema(EduidSchema, CSRFRequestMixin):
     email_code = fields.String(required=True)
     password = fields.String(required=True)
-    token_response = fields.String(required=False, data_key="tokenResponse")
-    authenticator_data = fields.String(required=False, data_key="authenticatorData")
-    client_data_json = fields.String(required=False, data_key="clientDataJSON")
-    credential_id = fields.String(required=False, data_key="credentialId")
-    signature = fields.String(required=False)
+
+
+class NewPasswordSecurityKeyRequestSchema(NewPasswordRequestSchema):
+    webauthn_response = fields.Dict(keys=fields.Str(), load_default=None, required=False)

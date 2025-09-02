@@ -1,10 +1,10 @@
-import base64
 import json
 from collections.abc import Mapping
 from copy import deepcopy
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+from fido2.webauthn import AuthenticationResponse
 from flask import Blueprint, current_app, request
 
 from eduid.common.config.base import EduIDBaseAppConfig, WebauthnConfigMixin2
@@ -31,17 +31,18 @@ def start_verification() -> str | dict[str, Any]:
     assert isinstance(current_app, MockFidoApp)
     user = current_app.central_userdb.get_user_by_eppn("hubba-bubba")
     data = json.loads(request.query_string[len("webauthn_request=") :])
+    webauthn_response = AuthenticationResponse.from_dict(data)
     from eduid.webapp.common.session import session
 
     result: str | dict[str, Any]
     try:
         result = verify_webauthn(
             user=user,
-            request_dict=data,
+            auth_response=webauthn_response,
             rp_id=current_app.conf.fido2_rp_id,
             rp_name=current_app.conf.fido2_rp_name,
             state=session.mfa_action,
-        ).json()
+        ).model_dump_json()
     except VerificationProblem as exc:
         current_app.logger.error(f"Webauthn verification failed: {repr(exc)}")
         result = {"success": False, "message": "mfa.verification-problem"}
@@ -61,19 +62,22 @@ class MockFidoApp(EduIDBaseApp):
 # The webauthn configuration in the MockFidoApp's config also has to match what was used
 # when this request/state was generated, otherwise validation will fail.
 #
-SAMPLE_WEBAUTHN_REQUEST = {
+SAMPLE_WEBAUTHN_REQUEST: dict[str, str | dict[str, str]] = {
     "credentialId": "i3KjBT0t5TPm693T9O0f4zyiwvdu9cY8BegCjiVvq_FS-ZmPcvXipFvHvD5CH6ZVRR3nsVsOla0Cad3fbtUA_Q",
-    "authenticatorData": "3PcEcSYqagziJNECYxSBKMR01J4pmySHIPPDM-42YdMBAAAGNw",
-    # {                                                             # noqa: ERA001
-    #   "type":"webauthn.get",                                      # noqa: ERA001
-    #   "challenge":"saoY-78kzDgV6mX5R2ixraC699jEU1cJTu7I9twUfJQ",  # noqa: ERA001
-    #   "origin":"https://idp.eduid.docker",                        # noqa: ERA001
-    #   "crossOrigin":false
-    # }                                                             # noqa: ERA001
-    "clientDataJSON": "eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoic2FvWS03OGt6RGdWNm1YNVIyaXhyYUM2OTlqRVUxY0pU"
-    "dTdJOXR3VWZKUSIsIm9yaWdpbiI6Imh0dHBzOi8vaWRwLmVkdWlkLmRvY2tlciIsImNyb3NzT3JpZ2luIjpmYWxzZX0",
-    # This is a fake signature, we mock its verification below
-    "signature": "MEUCICVPIQ5fO6gXtu3nXD9ff5ILcmWc54m6AxvK9vcS8IjkAiEAoFAKblpl29UHK6AhnOf6r7hezTZeQdK5lB4J3F-cguY",
+    "rawId": "i3KjBT0t5TPm693T9O0f4zyiwvdu9cY8BegCjiVvq_FS-ZmPcvXipFvHvD5CH6ZVRR3nsVsOla0Cad3fbtUA_Q",
+    "response": {
+        "authenticatorData": "3PcEcSYqagziJNECYxSBKMR01J4pmySHIPPDM-42YdMBAAAGNw",
+        # {                                                             # noqa: ERA001
+        #   "type":"webauthn.get",                                      # noqa: ERA001
+        #   "challenge":"saoY-78kzDgV6mX5R2ixraC699jEU1cJTu7I9twUfJQ",  # noqa: ERA001
+        #   "origin":"https://idp.eduid.docker",                        # noqa: ERA001
+        #   "crossOrigin":false
+        # }                                                             # noqa: ERA001
+        "clientDataJSON": "eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoic2FvWS03OGt6RGdWNm1YNVIyaXhyYUM2OTlqRVUxY0pU"
+        "dTdJOXR3VWZKUSIsIm9yaWdpbiI6Imh0dHBzOi8vaWRwLmVkdWlkLmRvY2tlciIsImNyb3NzT3JpZ2luIjpmYWxzZX0",
+        # This is a fake signature, we mock its verification below
+        "signature": "MEUCICVPIQ5fO6gXtu3nXD9ff5ILcmWc54m6AxvK9vcS8IjkAiEAoFAKblpl29UHK6AhnOf6r7hezTZeQdK5lB4J3F-cguY",
+    },
 }
 
 SAMPLE_WEBAUTHN_FIDO2STATE = WebauthnState(
@@ -133,12 +137,8 @@ class FidoTokensTestCase(EduidAPITestCase):
                         fido2_rp_name=self.app.conf.fido2_rp_name,
                         state=sess.mfa_action,
                     )
-                    s = challenge.webauthn_options
-                    _decoded = base64.urlsafe_b64decode(s + "=" * (-len(s) % 4))
-                    # _decoded is still CBOR encoded, so we just check for some known strings
-                    assert b"publicKey" in _decoded
-                    assert bytes(self.app.conf.fido2_rp_id, "ascii") in _decoded
-                    assert b"challenge" in _decoded
+                    assert challenge.webauthn_options["rpId"] == self.app.conf.fido2_rp_id
+                    assert challenge.webauthn_options["challenge"] is not None
                     assert sess.mfa_action.webauthn_state is not None
 
     def test_webauthn_start_verification(self) -> None:
@@ -157,12 +157,8 @@ class FidoTokensTestCase(EduidAPITestCase):
                         fido2_rp_name=self.app.conf.fido2_rp_name,
                         state=sess.mfa_action,
                     )
-                    s = challenge.webauthn_options
-                    _decoded = base64.urlsafe_b64decode(s + "=" * (-len(s) % 4))
-                    # _decoded is still CBOR encoded, so we just check for some known strings
-                    assert b"publicKey" in _decoded
-                    assert bytes(self.app.conf.fido2_rp_id, "ascii") in _decoded
-                    assert b"challenge" in _decoded
+                    assert challenge.webauthn_options["rpId"] == self.app.conf.fido2_rp_id
+                    assert challenge.webauthn_options["challenge"] is not None
                     assert sess.mfa_action.webauthn_state is not None
 
     @patch("fido2.cose.ES256.verify")
@@ -231,6 +227,7 @@ class FidoTokensTestCase(EduidAPITestCase):
     @patch("fido2.cose.ES256.verify")
     def test_webauthn_verify_wrong_credential(self, mock_verify: MagicMock) -> None:
         req = deepcopy(SAMPLE_WEBAUTHN_REQUEST)
+        assert isinstance(req["credentialId"], str)
         req["credentialId"] = req["credentialId"].replace("0", "9")
         mock_verify.return_value = True
         # Add a working Webauthn credential for this test
