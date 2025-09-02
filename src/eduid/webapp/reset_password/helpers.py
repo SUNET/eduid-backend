@@ -374,6 +374,7 @@ def get_extra_security_alternatives(user: User) -> dict:
             fido2_rp_name=current_app.conf.fido2_rp_name,
             state=session.mfa_action,
             user_verification=UserVerificationRequirement.REQUIRED,
+            credential_data=tokens,
         ).model_dump()
 
     return alternatives

@@ -88,11 +88,14 @@ def start_token_verification(
     fido2_rp_name: str,
     state: MfaAction,
     user_verification: UserVerificationRequirement = UserVerificationRequirement.PREFERRED,
+    credential_data: dict[ElementKey, FidoCred] | None = None,
 ) -> WebauthnChallenge:
     """
     Begin authentication process based on the hardware tokens registered by the user.
     """
-    credential_data = get_user_credentials(user)
+    if credential_data is None:
+        # get all credentials for the user if not provided
+        credential_data = get_user_credentials(user)
     logger.debug(f"Extra debug: U2F credentials for user: {[str(x) for x in user.credentials.filter(U2F)]}")
     logger.debug(f"Extra debug: Webauthn credentials for user: {[str(x) for x in user.credentials.filter(Webauthn)]}")
     logger.debug(f"FIDO credentials for user {user}:\n{pprint.pformat(list(credential_data.keys()))}")
