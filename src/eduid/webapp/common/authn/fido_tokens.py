@@ -30,7 +30,6 @@ class VerificationProblem(Exception):
 
 class FidoCred(BaseModel):
     app_id: str
-    u2f: dict[str, Any]  # TODO: This can probably be removed
     # pydantic (1.8.2) bugs out if webauthn is typed as 'AttestedCredentialData' :/
     # (saying Expected bytes, got AttestedCredentialData (type=type_error))
     webauthn: Any = None
@@ -45,7 +44,6 @@ def _get_user_credentials_u2f(user: User) -> dict[ElementKey, FidoCred]:
         acd = AttestedCredentialData.from_ctap1(websafe_decode(this.keyhandle), websafe_decode(this.public_key))
         res[this.key] = FidoCred(
             app_id=this.app_id,
-            u2f={"version": this.version, "keyHandle": this.keyhandle, "publicKey": this.public_key},
             webauthn=acd,
         )
     return res
@@ -56,15 +54,14 @@ def _get_user_credentials_webauthn(user: User, mfa_approved: bool | None = None)
     Get the Webauthn credentials for the user
     """
     res: dict[ElementKey, FidoCred] = {}
+
     for this in user.credentials.filter(Webauthn):
         if mfa_approved is not None and this.mfa_approved is not mfa_approved:
             continue
         cred_data = base64.urlsafe_b64decode(this.credential_data.encode("ascii"))
         credential_data, _rest = AttestedCredentialData.unpack_from(cred_data)
-        version = "webauthn"
         res[this.key] = FidoCred(
             app_id="",
-            u2f={"version": version, "keyHandle": this.keyhandle, "publicKey": credential_data.public_key},
             webauthn=credential_data,
         )
     return res
