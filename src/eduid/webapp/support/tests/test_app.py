@@ -57,8 +57,9 @@ class SupportAppTests(EduidAPITestCase):
         # Authenticated request with MFA
         self.set_authn_action(eppn=self.test_user_eppn, frontend_action=FrontendAction.LOGIN, mock_mfa=True)
         with self.session_cookie(self.browser, self.test_user_eppn) as client:
-            response = client.get("/search-form")
-        self.assertEqual(response.status_code, 200)  # Authenticated request
+            resp = client.get("/search-form")
+        assert resp.status_code == 200
+        assert resp.headers.get("HX-Redirect") is None
 
     # Search
     def test_search_existing_user(self) -> None:
