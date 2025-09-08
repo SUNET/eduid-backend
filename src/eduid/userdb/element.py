@@ -51,7 +51,7 @@ from abc import ABC
 from collections.abc import Mapping
 from datetime import datetime
 from enum import Enum
-from typing import Any, Generic, NewType, TypeVar, cast
+from typing import Any, NewType, TypeVar, cast
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -266,12 +266,11 @@ class PrimaryElement(VerifiedElement, ABC):
         return data
 
 
-ListElement = TypeVar("ListElement", bound=Element)
 MatchingElement = TypeVar("MatchingElement", bound=Element)
 TElementList = TypeVar("TElementList", bound="ElementList")
 
 
-class ElementList(BaseModel, Generic[ListElement], ABC):
+class ElementList[ListElement: Element](BaseModel, ABC):
     """
     Hold a list of Element instances.
 
@@ -386,7 +385,7 @@ class ElementList(BaseModel, Generic[ListElement], ABC):
         return len(self.elements)
 
 
-class VerifiedElementList(ElementList[ListElement], Generic[ListElement], ABC):
+class VerifiedElementList[ListElement: Element](ElementList[ListElement], ABC):
     """
     Hold a list of VerifiedElement instances.
 
@@ -402,7 +401,7 @@ class VerifiedElementList(ElementList[ListElement], Generic[ListElement], ABC):
         return cast(list[ListElement], [e for e in self.elements if isinstance(e, VerifiedElement) and e.is_verified])
 
 
-class PrimaryElementList(VerifiedElementList[ListElement], Generic[ListElement], ABC):
+class PrimaryElementList[ListElement: Element](VerifiedElementList[ListElement], ABC):
     """
     Hold a list of PrimaryElement instances.
 

@@ -1,6 +1,6 @@
 import warnings
 from dataclasses import dataclass
-from typing import Any, TypeVar, cast, overload
+from typing import Any, cast, overload
 
 from flask import current_app, render_template, request
 
@@ -91,7 +91,6 @@ def number_match_proofing(user: User, proofing_state: OidcProofingState, number:
 
 # Explain to mypy that if you call add_nin_to_user without a user_type, the return type will be ProofingUser
 # but if you call it with a user_type the return type will be that type
-TProofingUser = TypeVar("TProofingUser", bound=User)
 
 
 @overload
@@ -99,7 +98,9 @@ def add_nin_to_user(user: User, proofing_state: NinProofingState) -> ProofingUse
 
 
 @overload
-def add_nin_to_user(user: User, proofing_state: NinProofingState, user_type: type[TProofingUser]) -> TProofingUser: ...
+def add_nin_to_user[TProofingUser: User](
+    user: User, proofing_state: NinProofingState, user_type: type[TProofingUser]
+) -> TProofingUser: ...
 
 
 def add_nin_to_user(user, proofing_state, user_type=ProofingUser):

@@ -1,14 +1,14 @@
 from __future__ import annotations
 
 import json
-import logging.config
+import logging
 import os
 import uuid
 from collections.abc import Iterable
 from copy import deepcopy
 from datetime import UTC, datetime, timedelta
 from enum import Enum
-from typing import Any, TypeVar
+from typing import Any
 
 from bson import ObjectId
 
@@ -30,10 +30,7 @@ class CommonTestCase(MongoTestCase):
         super().setUp(config=config)
 
 
-SomeData = TypeVar("SomeData")
-
-
-def normalised_data(
+def normalised_data[SomeData](
     data: SomeData, replace_datetime: str | None = None, exclude_keys: list[str] | None = None
 ) -> SomeData:
     """Utility function for normalising data before comparisons in test cases."""
