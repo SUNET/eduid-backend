@@ -19,19 +19,9 @@
       <!-- user data goes here -->
       <div id="user-data"></div>
     </div>
-    <!-- TODO: do not use cdn for scripts -->
     <script
-      src="https://unpkg.com/htmx.org@2.0.4"
-      integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+"
-      crossorigin="anonymous"
-    ></script>
-    <script
-      src="https://unpkg.com/htmx-ext-response-targets@2.0.2"
-      integrity="sha384-NtTh9TBZ2X/pFpfsVvQOjSsYWmjmqG6h5ioQWVAe2/j3AuTHRmfqvoqp+iOed+I0"
-      crossorigin="anonymous"
-    ></script>
-    <!-- <script src="{{ static_url_for('js/libs/jquery-2.0.3.min.js') }}"></script>
-    <script src="{{ static_url_for('js/libs/bootstrap-3.2.0.min.js') }}"></script> -->
+      src="{{ static_url_for('js/htmx.min@2.0.4.js') }}"></script>
+    <script src="{{ static_url_for('js/htmx-ext-response-targets.min@2.0.2.js') }}"></script>
     <script src="{{ static_url_for('js/support-function.js') }}"></script>
   </body>
 </html>
