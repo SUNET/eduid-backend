@@ -131,11 +131,6 @@ def registration_begin(user: User, authenticator: str) -> FluxData:
     return success_response({"csrf_token": session.new_csrf_token(), "registration_data": dict(registration_data)})
 
 
-def urlsafe_b64decode(data: str) -> bytes:
-    data += "=" * (len(data) % 4)
-    return base64.urlsafe_b64decode(data)
-
-
 @webauthn_views.route("/register/complete", methods=["POST"])
 @UnmarshalWith(WebauthnRegisterRequestSchema)
 @MarshalWith(SecurityResponseSchema)

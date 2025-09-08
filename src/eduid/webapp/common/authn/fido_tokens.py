@@ -129,7 +129,7 @@ def verify_webauthn(
     """
     Verify received Webauthn data against the user's credentials.
 
-    The request_dict looks like this:
+    The auth_response looks like this:
 
     {
         "authenticatorAttachment": "cross-platform",
