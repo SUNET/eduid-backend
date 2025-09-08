@@ -43,8 +43,10 @@ form will also result in resetting her password, but without unverifying any of
 her data.
 """
 
+from collections.abc import Mapping
 from copy import deepcopy
 
+from fido2.webauthn import AuthenticationResponse
 from flask import Blueprint, abort, request
 
 from eduid.common.rpc.exceptions import MailTaskFailed, MsgTaskFailed
@@ -75,8 +77,9 @@ from eduid.webapp.reset_password.helpers import (
     verify_phone_number,
 )
 from eduid.webapp.reset_password.schemas import (
+    NewPasswordRequestSchema,
     NewPasswordSecurePhoneRequestSchema,
-    NewPasswordSecureTokenRequestSchema,
+    NewPasswordSecurityKeyRequestSchema,
     ResetPasswordCaptchaResponseSchema,
     ResetPasswordEmailCodeRequestSchema,
     ResetPasswordEmailRequestSchema,
@@ -433,16 +436,10 @@ def set_new_pw_extra_security_phone(email_code: str, password: str, phone_code: 
 
 
 @reset_password_views.route("/new-password-extra-security-token/", methods=["POST"])
-@UnmarshalWith(NewPasswordSecureTokenRequestSchema)
+@UnmarshalWith(NewPasswordSecurityKeyRequestSchema)
 @MarshalWith(ResetPasswordResponseSchema)
-def set_new_pw_extra_security_token(
-    email_code: str,
-    password: str,
-    token_response: str | None = None,
-    authenticator_data: str | None = None,
-    client_data_json: str | None = None,
-    credential_id: str | None = None,
-    signature: str | None = None,
+def set_new_pw_extra_security_key(
+    email_code: str, password: str, webauthn_response: Mapping[str, str] | None = None
 ) -> FluxData:
     """
     View that receives an emailed reset password code, hw token data,
@@ -478,14 +475,7 @@ def set_new_pw_extra_security_token(
 
     # Process POSTed data
     success = False
-    if authenticator_data:
-        # CTAP2/Webauthn
-        request_dict = {
-            "credentialId": credential_id,
-            "clientDataJSON": client_data_json,
-            "authenticatorData": authenticator_data,
-            "signature": signature,
-        }
+    if webauthn_response:
         current_app.stats.count(name="extra_security_security_key_webauthn_data_received")
         if not saved_mfa_action.webauthn_state:
             current_app.logger.error("No webauthn state in session")
@@ -495,7 +485,7 @@ def set_new_pw_extra_security_token(
         try:
             result = fido_tokens.verify_webauthn(
                 user=context.user,
-                request_dict=request_dict,
+                auth_response=AuthenticationResponse.from_dict(webauthn_response),
                 rp_id=current_app.conf.fido2_rp_id,
                 rp_name=current_app.conf.fido2_rp_name,
                 state=saved_mfa_action,
@@ -516,7 +506,7 @@ def set_new_pw_extra_security_token(
 
 
 @reset_password_views.route("/new-password-extra-security-external-mfa/", methods=["POST"])
-@UnmarshalWith(NewPasswordSecureTokenRequestSchema)
+@UnmarshalWith(NewPasswordRequestSchema)
 @MarshalWith(ResetPasswordResponseSchema)
 def set_new_pw_extra_security_external_mfa(
     email_code: str,

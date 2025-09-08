@@ -64,13 +64,13 @@ class PwAuthResponseSchema(FluxStandardAction):
 
 
 class MfaAuthRequestSchema(IdPRequest):
-    webauthn_response = fields.Dict(keys=fields.Str(), values=fields.Str(), load_default=None, required=False)
+    webauthn_response = fields.Dict(keys=fields.Str(), load_default=None, required=False)
 
 
 class MfaAuthResponseSchema(FluxStandardAction):
     class MfaAuthResponsePayload(EduidSchema, CSRFResponseMixin):
         finished = fields.Bool(required=True)
-        webauthn_options = fields.Str(required=False)
+        webauthn_options = fields.Dict(required=False)
 
     payload = fields.Nested(MfaAuthResponsePayload)
 

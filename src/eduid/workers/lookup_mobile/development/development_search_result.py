@@ -7,7 +7,7 @@ from eduid.workers.lookup_mobile.development import nin_mobile_db
 
 class DevelopResult:
     class Record:
-        def __init__(self, nin: str, mobile: str) -> None:
+        def __init__(self, nin: str | None, mobile: str) -> None:
             self.SSNo = nin
             self.Mobiles = mobile
 

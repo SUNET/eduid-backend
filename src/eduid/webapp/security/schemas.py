@@ -86,10 +86,9 @@ class WebauthnRegisterBeginSchema(EduidSchema, CSRFRequestMixin):
 
 
 class WebauthnRegisterRequestSchema(EduidSchema, CSRFRequestMixin):
-    credential_id = fields.String(required=True, data_key="credentialId")
-    attestation_object = fields.String(required=True, data_key="attestationObject")
-    client_data = fields.String(required=True, data_key="clientDataJSON")
+    response = fields.Dict(required=True)
     description = fields.String(required=True)
+    client_extension_results = fields.Dict(required=False, data_key="clientExtensionResults")
 
 
 class RemoveWebauthnTokenRequestSchema(EduidSchema, CSRFRequestMixin):

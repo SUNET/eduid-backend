@@ -7,7 +7,12 @@ from typing import Any, TypeVar
 from uuid import UUID
 
 import bson
-from fido_mds.models.fido_mds import Entry as FidoMetadataEntry
+
+try:  # backwards compatability
+    from fido_mds.models.fido_mds import Entry as FidoMetadataEntry
+except ImportError:
+    from fido_mds.models.fido_mds import MetadataEntry as FidoMetadataEntry
+
 from pydantic import ConfigDict, Field
 
 from eduid.common.models.amapi_user import Reason, Source

@@ -389,7 +389,7 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
         mock_stv: MagicMock,
         mock_cw: MagicMock,
     ) -> MfaResult:
-        mock_stv.return_value = WebauthnChallenge(webauthn_options="{'mock_webautn_options': 'mock_webauthn_options'}")
+        mock_stv.return_value = WebauthnChallenge(webauthn_options={"mock_webautn_options": "mock_webauthn_options"})
         mock_cw.return_value = None
         # first call to mfa endpoint returns a challenge
         with self.session_cookie_anon(device) as client:

@@ -429,7 +429,7 @@ class EidasTests(ProofingTests[EidasApp]):
         expect_success: bool = True,
         verify_credential: ElementKey | None = None,
         frontend_state: str | None = None,
-    ) -> str:
+    ) -> str | None:
         with browser.session_transaction() as sess:
             csrf_token = sess.get_csrf_token()
         req = {
