@@ -151,3 +151,18 @@ class AuthnStatusResponseSchema(FluxStandardAction):
         authn_status = fields.String(required=True)
 
     payload = fields.Nested(AuthnStatusPayload)
+
+
+class AuthnResponseSchema(FluxStandardAction):
+    class AuthnPayload(EduidSchema, CSRFRequestMixin):
+        asserted_authn_ctx = fields.String(required=True)
+        authn_instant = fields.DateTime(required=True)
+        consumed = fields.Boolean(required=True)
+        created = fields.DateTime(required=True)
+        credential_id = fields.String(required=True)
+        error = fields.Boolean(required=True)
+        frontend_action = fields.String(required=True)
+        method = fields.String(required=True)
+        req_authn_ctx = fields.List(fields.String, required=True)
+
+    payload = fields.Nested(AuthnPayload)

@@ -199,11 +199,19 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
         with self.session_cookie(self.browser, eppn) as client:
             return client.get("/credentials")
 
-    def _get_authn_status(self, frontend_action: FrontendAction, credential_id: str | None = None) -> TestResponse:
+    def _get_authn_status(
+        self, frontend_action: FrontendAction | None = None, credential_id: str | None = None
+    ) -> TestResponse:
+        eppn = self.test_user_data["eduPersonPrincipalName"]
+
+        # get latest frontend action authn status
+        if frontend_action is None:
+            with self.session_cookie(self.browser, eppn) as client:
+                return client.get("/authn-status")
+
         data = {"frontend_action": frontend_action.value}
         if credential_id is not None:
             data["credential_id"] = credential_id
-        eppn = self.test_user_data["eduPersonPrincipalName"]
         with self.session_cookie(self.browser, eppn) as client:
             with client.session_transaction() as sess:
                 data["csrf_token"] = sess.get_csrf_token()
@@ -638,4 +646,30 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
             response=response,
             type_="POST_SECURITY_AUTHN_STATUS_SUCCESS",
             payload={"authn_status": AuthnActionStatus.CREDENTIAL_NOT_RECENTLY_USED.value},
+        )
+
+    def test_get_latest_authn(self) -> None:
+        frontend_action = FrontendAction.REMOVE_SECURITY_KEY_AUTHN
+        self.set_authn_action(eppn=self.test_user_eppn, frontend_action=frontend_action)
+        response = self._get_authn_status()
+        self._check_success_response(
+            response=response,
+            type_="GET_SECURITY_AUTHN_STATUS_SUCCESS",
+            payload={
+                "asserted_authn_ctx": None,
+                "consumed": False,
+                "credential_id": None,
+                "error": None,
+                "frontend_action": "removeSecurityKeyAuthn",
+                "method": None,
+                "req_authn_ctx": [],
+            },
+        )
+
+    def test_get_latest_authn_not_found(self) -> None:
+        response = self._get_authn_status()
+        self._check_error_response(
+            response=response,
+            type_="GET_SECURITY_AUTHN_STATUS_FAIL",
+            msg=SecurityMsg.not_found,
         )
