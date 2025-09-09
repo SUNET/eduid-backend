@@ -31,6 +31,7 @@ from eduid.webapp.security.helpers import (
 )
 from eduid.webapp.security.schemas import (
     AccountTerminatedSchema,
+    AuthnResponseSchema,
     AuthnStatusRequestSchema,
     AuthnStatusResponseSchema,
     IdentitiesResponseSchema,
@@ -249,6 +250,35 @@ def refresh_user_data(user: User) -> FluxData:
         return error_response(message=CommonMsg.temp_problem)
 
     return success_response(message=SecurityMsg.user_updated)
+
+
+@security_views.route("/authn-status", methods=["GET"])
+@MarshalWith(AuthnResponseSchema)
+@require_user
+def get_latest_authn(user: User) -> FluxData:
+    """
+    Get the latest frontend action authentication status of the user.
+    """
+
+    authn = session.authn.sp.get_latest_authn()
+    if authn is None:
+        return error_response(message=SecurityMsg.not_found)
+
+    current_app.logger.debug(f"Returning last frontend action: {authn.frontend_action}: {authn}")
+    return success_response(
+        payload={
+            "created": authn.created_ts,
+            "authn_status": authn.status,
+            "frontend_action": authn.frontend_action.value,
+            "method": authn.method,
+            "credential_id": authn.proofing_credential_id,
+            "authn_instant": authn.authn_instant,
+            "req_authn_ctx": authn.req_authn_ctx,
+            "asserted_authn_ctx": authn.asserted_authn_ctx,
+            "consumed": authn.consumed,
+            "error": authn.error,
+        }
+    )
 
 
 @security_views.route("/authn-status", methods=["POST"])
