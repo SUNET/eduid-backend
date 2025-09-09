@@ -48,16 +48,16 @@ class TestMongoDB(TestCase):
     def test_uri_with_replicaset(self) -> None:
         uri = "mongodb://john:s3cr3t@db.example.com,db2.example.com:27017,db3.example.com:1234/?replicaSet=rs9"
         mdb = db.MongoDB(uri, db_name="testdb")
-        self.assertEqual(mdb.sanitized_uri, "mongodb://john:secret@db.example.com/testdb?replicaset=rs9")
+        self.assertEqual(mdb.sanitized_uri, "mongodb://john:secret@db.example.com/testdb?replicaSet=rs9")
         self.assertEqual(
             mdb._db_uri,
-            "mongodb://john:s3cr3t@db.example.com,db2.example.com,db3.example.com:1234/testdb?replicaset=rs9",
+            "mongodb://john:s3cr3t@db.example.com,db2.example.com,db3.example.com:1234/testdb?replicaSet=rs9",
         )
 
     def test_uri_with_options(self) -> None:
         uri = "mongodb://john:s3cr3t@db.example.com:27017/?ssl=true&replicaSet=rs9"
         mdb = db.MongoDB(uri, db_name="testdb")
-        self.assertEqual(mdb.sanitized_uri, "mongodb://john:secret@db.example.com/testdb?replicaset=rs9&tls=true")
+        self.assertEqual(mdb.sanitized_uri, "mongodb://john:secret@db.example.com/testdb?replicaSet=rs9&tls=true")
 
 
 class TestDB(MongoTestCase):
