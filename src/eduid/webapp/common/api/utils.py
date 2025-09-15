@@ -329,7 +329,7 @@ def get_reference_nin_from_navet_data(nin: str) -> str | None:
         return None
 
     try:
-        navet_data = msg_relay.get_all_navet_data(nin=nin)
+        navet_data = msg_relay.get_all_navet_data(nin=nin, timeout=10)  # lower timeout to not block the service
         if navet_data.person.reference_national_identity_number:
             return navet_data.person.reference_national_identity_number
     except NoNavetData:
