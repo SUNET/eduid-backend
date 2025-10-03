@@ -4,4 +4,5 @@ app = init_samleid_app()
 
 
 if __name__ == "__main__":
+    app.logger.info(f"Starting {app}...")
     app.run()
