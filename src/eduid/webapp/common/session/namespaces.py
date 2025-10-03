@@ -344,5 +344,9 @@ class BankIDNamespace(SessionNSBase):
     sp: SPAuthnData = Field(default=SPAuthnData())
 
 
+class SamleidNamespace(SessionNSBase):
+    sp: SPAuthnData = Field(default=SPAuthnData())
+
+
 class FrejaEIDNamespace(SessionNSBase):
     rp: RPAuthnData = Field(default=RPAuthnData())
