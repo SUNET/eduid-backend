@@ -280,7 +280,7 @@ class IdPTestLoginAPI(IdPAPITests):
             if accr is EduidAuthnContextClass.REFEDS_MFA:
                 assert result2.visit_order == [
                     IdPAction.MFA,
-                    IdPAction.PWAUTH,
+                    IdPAction.USERNAMEPWAUTH,
                     IdPAction.FINISHED,
                 ], f"Actual visit order: {result2.visit_order}"
             else:
