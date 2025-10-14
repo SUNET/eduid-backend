@@ -49,6 +49,7 @@ from copy import deepcopy
 from fido2.webauthn import AuthenticationResponse
 from flask import Blueprint, abort, request
 
+from eduid.common.misc.timeutil import utc_now
 from eduid.common.rpc.exceptions import MailTaskFailed, MsgTaskFailed
 from eduid.userdb.exceptions import UserDoesNotExist, UserHasNotCompletedSignup
 from eduid.userdb.reset_password import ResetPasswordEmailAndPhoneState
@@ -57,7 +58,7 @@ from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith
 from eduid.webapp.common.api.exceptions import ThrottledException
 from eduid.webapp.common.api.helpers import check_magic_cookie
 from eduid.webapp.common.api.messages import FluxData, error_response, success_response
-from eduid.webapp.common.api.schemas.csrf import EmptyRequest, EmptyResponse
+from eduid.webapp.common.api.schemas.csrf import EmptyRequest
 from eduid.webapp.common.api.utils import get_zxcvbn_terms, hash_password, make_short_code
 from eduid.webapp.common.authn import fido_tokens
 from eduid.webapp.common.session import session
@@ -86,6 +87,7 @@ from eduid.webapp.reset_password.schemas import (
     ResetPasswordEmailResponseSchema,
     ResetPasswordExtraSecPhoneSchema,
     ResetPasswordResponseSchema,
+    ResetPasswordStatusResponse,
     ResetPasswordVerifyEmailResponseSchema,
     ResetPasswordWithCodeSchema,
 )
@@ -94,12 +96,13 @@ reset_password_views = Blueprint("reset_password", __name__, url_prefix="/", tem
 
 
 @reset_password_views.route("/", methods=["GET"])
-@MarshalWith(EmptyResponse)
+@MarshalWith(ResetPasswordStatusResponse)
 def init_reset_pw() -> FluxData:
     """
     Used only to get a csrf token, this can move to jsconfig if any other config is needed
     """
-    return success_response()
+    current_app.logger.debug("Get reset password state")
+    return success_response(payload={"state": session.reset_password.to_dict()})
 
 
 @reset_password_views.route("/get-captcha", methods=["POST"])
@@ -203,6 +206,8 @@ def start_reset_pw(email: str) -> FluxData:
         current_app.logger.exception("Sending password reset email failed")
         return error_response(message=ResetPwMsg.email_send_failure)
 
+    session.reset_password.email.address = state.email_address
+    session.reset_password.email.sent_at = utc_now()
     current_app.stats.count(name="email_sent", value=1)
 
     return success_response(message=ResetPwMsg.reset_pw_initialized, payload=email_state_to_response_payload(state))
@@ -262,6 +267,7 @@ def verify_email(email_code: str) -> FluxData:
 
     new_password = generate_suggested_password(password_length=current_app.conf.password_length)
     session.reset_password.generated_password_hash = hash_password(new_password)
+    session.reset_password.email.completed = context.state.email_code.is_verified
 
     alternatives = get_extra_security_alternatives(context.user)
     context.state.extra_security = alternatives

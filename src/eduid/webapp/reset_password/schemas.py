@@ -1,10 +1,59 @@
-from marshmallow import fields
+from typing import Any
+
+from marshmallow import fields, pre_dump
 
 from eduid.webapp.common.api.schemas.base import EduidSchema, FluxStandardAction
 from eduid.webapp.common.api.schemas.csrf import CSRFRequestMixin, CSRFResponseMixin
 from eduid.webapp.common.api.schemas.email import LowercaseEmail
+from eduid.webapp.common.api.utils import time_left
+from eduid.webapp.reset_password.app import current_reset_password_app as current_app
 
-__author__ = "eperez"
+
+class ResetPasswordStatusResponse(FluxStandardAction):
+    class StatusSchema(EduidSchema, CSRFResponseMixin):
+        class State(EduidSchema):
+            class EmailVerification(EduidSchema):
+                address = fields.String(required=False)
+                completed = fields.Boolean(required=True)
+                sent_at = fields.DateTime(required=False)
+                throttle_time_left = fields.Integer(required=False)
+                throttle_time_max = fields.Integer(required=False)
+                expires_time_left = fields.Integer(required=False)
+                expires_time_max = fields.Integer(required=False)
+
+            class Captcha(EduidSchema):
+                completed = fields.Boolean(required=True)
+
+            email = fields.Nested(EmailVerification, required=True)
+            captcha = fields.Nested(Captcha, required=True)
+
+        state = fields.Nested(State, required=True)
+
+    payload = fields.Nested(StatusSchema)
+
+    @pre_dump
+    def throttle_delta_to_seconds(self, out_data: dict, **kwargs: Any) -> dict:
+        if out_data["payload"].get("state", {}).get("email", {}).get("sent_at"):
+            sent_at = out_data["payload"]["state"]["email"]["sent_at"]
+            throttle_time_left = time_left(sent_at, current_app.conf.throttle_resend).total_seconds()
+            if throttle_time_left > 0:
+                out_data["payload"]["state"]["email"]["throttle_time_left"] = throttle_time_left
+                out_data["payload"]["state"]["email"]["throttle_time_max"] = (
+                    current_app.conf.throttle_resend.total_seconds()
+                )
+        return out_data
+
+    @pre_dump
+    def email_verification_timeout_delta_to_seconds(self, out_data: dict, **kwargs: Any) -> dict:
+        if out_data["payload"].get("state", {}).get("email", {}).get("sent_at"):
+            sent_at = out_data["payload"]["state"]["email"]["sent_at"]
+            verification_time_left = time_left(sent_at, current_app.conf.email_code_timeout).total_seconds()
+            if verification_time_left > 0:
+                out_data["payload"]["state"]["email"]["expires_time_left"] = verification_time_left
+                out_data["payload"]["state"]["email"]["expires_time_max"] = (
+                    current_app.conf.email_code_timeout.total_seconds()
+                )
+        return out_data
 
 
 class ResetPasswordEmailRequestSchema(EduidSchema, CSRFRequestMixin):
