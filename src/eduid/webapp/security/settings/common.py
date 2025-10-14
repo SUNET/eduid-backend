@@ -1,6 +1,6 @@
 from datetime import timedelta
 
-from fido2.webauthn import AttestationConveyancePreference, UserVerificationRequirement
+from fido2.webauthn import AttestationConveyancePreference, ResidentKeyRequirement, UserVerificationRequirement
 from fido_mds.models.fido_mds import AuthenticatorStatus
 from pydantic import Field
 
@@ -46,6 +46,7 @@ class SecurityConfig(
     webauthn_max_allowed_tokens: int = 10
     webauthn_attestation: AttestationConveyancePreference | None = None
     webauthn_user_verification: UserVerificationRequirement = UserVerificationRequirement.PREFERRED
+    webauthn_resident_key_requirement: ResidentKeyRequirement = ResidentKeyRequirement.PREFERRED
     webauthn_recommended_user_verification_methods: list[str] = Field(
         default=[
             "faceprint_internal",

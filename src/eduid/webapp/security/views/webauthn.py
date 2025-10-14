@@ -118,6 +118,7 @@ def registration_begin(user: User, authenticator: str) -> FluxData:
         user=user_entity,
         credentials=creds,
         user_verification=current_app.conf.webauthn_user_verification,
+        resident_key_requirement=current_app.conf.webauthn_resident_key_requirement,
         authenticator_attachment=_auth_enum,
     )
     session.security.webauthn_registration = WebauthnRegistration(webauthn_state=state, authenticator=_auth_enum)
