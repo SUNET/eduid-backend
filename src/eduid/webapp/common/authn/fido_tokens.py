@@ -80,7 +80,7 @@ def get_user_credentials(user: User, mfa_approved: bool | None = None) -> dict[E
 
 
 def start_token_verification(
-    user: User,
+    user: User | None,
     fido2_rp_id: str,
     fido2_rp_name: str,
     state: MfaAction,
@@ -88,16 +88,22 @@ def start_token_verification(
     credential_data: dict[ElementKey, FidoCred] | None = None,
 ) -> WebauthnChallenge:
     """
-    Begin authentication process based on the hardware tokens registered by the user.
+    Begin authentication process based on the tokens registered by the user if applicable.
     """
-    if credential_data is None:
-        # get all credentials for the user if not provided
-        credential_data = get_user_credentials(user)
-    logger.debug(f"Extra debug: U2F credentials for user: {[str(x) for x in user.credentials.filter(U2F)]}")
-    logger.debug(f"Extra debug: Webauthn credentials for user: {[str(x) for x in user.credentials.filter(Webauthn)]}")
-    logger.debug(f"FIDO credentials for user {user}:\n{pprint.pformat(list(credential_data.keys()))}")
+    if user is None:
+        logger.debug("No user, creating new challenge for anonymous user")
+        webauthn_credentials = None
+    else:
+        if credential_data is None:
+            # get all credentials for the user if not provided
+            credential_data = get_user_credentials(user)
+        logger.debug(f"Extra debug: U2F credentials for user: {[str(x) for x in user.credentials.filter(U2F)]}")
+        logger.debug(
+            f"Extra debug: Webauthn credentials for user: {[str(x) for x in user.credentials.filter(Webauthn)]}"
+        )
+        logger.debug(f"FIDO credentials for user {user}:\n{pprint.pformat(list(credential_data.keys()))}")
 
-    webauthn_credentials = [v.webauthn for v in credential_data.values()]
+        webauthn_credentials = [v.webauthn for v in credential_data.values()]
 
     fido2rp = PublicKeyCredentialRpEntity(id=fido2_rp_id, name=fido2_rp_name)
     fido2server = Fido2Server(fido2rp)
