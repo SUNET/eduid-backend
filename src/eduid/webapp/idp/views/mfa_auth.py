@@ -81,33 +81,8 @@ def mfa_auth(
     if not result:
         # If no external MFA was used, and no webauthn credential either, we respond with a not-finished
         # response containing a webauthn challenge if applicable.
-        payload: dict[str, Any] = {"finished": False}
+        payload: dict[str, Any] = _create_challenge(user, ticket)
 
-        # figure out which UserVerification we should ask for
-        # if MFA is requested we should use PREFERRED as to hopefully get two factors directly
-        # if anything else we will use DISCOURAGE as a single factor is enough
-        req_authn_ctx = ticket.get_requested_authn_context()
-        user_verification = UserVerificationRequirement.DISCOURAGED
-        if req_authn_ctx in [EduidAuthnContextClass.DIGG_LOA2, EduidAuthnContextClass.REFEDS_MFA]:
-            user_verification = UserVerificationRequirement.PREFERRED
-
-        candidates = user.credentials.filter(FidoCredential)
-        if candidates:
-            current_app.logger.debug("User has one or more FIDO tokens, adding webauthn challenge to response")
-            options = fido_tokens.start_token_verification(
-                user=user,
-                fido2_rp_id=current_app.conf.fido2_rp_id,
-                fido2_rp_name=current_app.conf.fido2_rp_name,
-                state=session.mfa_action,
-                user_verification=user_verification,
-            )
-            payload.update(options)
-
-        current_app.logger.debug("No MFA submitted. Sending not-finished response.")
-        current_app.logger.debug(
-            f"Will accept external MFA for login ref: {session.mfa_action.login_ref} and "
-            f"eppn: {session.mfa_action.eppn}"
-        )
         return success_response(payload=payload)
 
     if not result.authn_data or not result.credential:
@@ -225,3 +200,35 @@ def _check_webauthn(
         fido=FidoAuthnData(user_present=result.user_present, user_verified=result.user_verified),
     )
     return CheckResult(credential=cred, authn_data=authn)
+
+
+def _create_challenge(user: User, ticket: LoginContext) -> dict[str, Any]:
+    # If no external MFA was used, and no webauthn credential either, we respond with a not-finished
+    # response containing a webauthn challenge if applicable.
+    payload: dict[str, Any] = {"finished": False}
+
+    # figure out which UserVerification we should ask for
+    # if MFA is requested we should use PREFERRED as to hopefully get two factors directly
+    # if anything else we will use DISCOURAGE as a single factor is enough
+    req_authn_ctx = ticket.get_requested_authn_context()
+    user_verification = UserVerificationRequirement.DISCOURAGED
+    if req_authn_ctx in [EduidAuthnContextClass.DIGG_LOA2, EduidAuthnContextClass.REFEDS_MFA]:
+        user_verification = UserVerificationRequirement.PREFERRED
+
+    candidates = user.credentials.filter(FidoCredential)
+    if candidates:
+        current_app.logger.debug("User has one or more FIDO tokens, adding webauthn challenge to response")
+        options = fido_tokens.start_token_verification(
+            user=user,
+            fido2_rp_id=current_app.conf.fido2_rp_id,
+            fido2_rp_name=current_app.conf.fido2_rp_name,
+            state=session.mfa_action,
+            user_verification=user_verification,
+        )
+        payload.update(options)
+
+    current_app.logger.debug("No MFA submitted. Sending not-finished response.")
+    current_app.logger.debug(
+        f"Will accept external MFA for login ref: {session.mfa_action.login_ref} and eppn: {session.mfa_action.eppn}"
+    )
+    return payload
