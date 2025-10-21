@@ -47,14 +47,22 @@ def mfa_auth(
     if sso_session:
         _eppn = sso_session.eppn
         current_app.logger.debug(f"Found eppn: {_eppn} from SSO session")
+        user = lookup_user(_eppn)
     elif ticket.known_device and ticket.known_device.data.eppn:
         _eppn = ticket.known_device.data.eppn
         current_app.logger.debug(f"Found eppn: {_eppn} for known device ---")
+        user = lookup_user(_eppn)
+    elif webauthn_response:
+        current_app.logger.debug(f"Received WebAuthn response ({webauthn_response})")
+        credential_id = webauthn_response.get("rawId")
+        if isinstance(credential_id, str):
+            user = current_app.userdb.get_user_by_credential(credential=credential_id)
+            current_app.logger.debug(f"Found user: {user} for WebAuthn response")
     else:
-        current_app.logger.error("MFA auth called without an SSO session or known device")
-        return error_response(message=IdPMsg.no_sso_session)
+        current_app.logger.debug("MFA auth called without an SSO session or known device")
+        current_app.logger.debug("Creating open challenge for passkeys")
+        return success_response(payload=_create_challenge(None, ticket))
 
-    user = lookup_user(_eppn)
     if not user:
         current_app.logger.error(f"User with eppn {_eppn} (from SSO session) not found")
         return error_response(message=IdPMsg.general_failure)
@@ -202,7 +210,7 @@ def _check_webauthn(
     return CheckResult(credential=cred, authn_data=authn)
 
 
-def _create_challenge(user: User, ticket: LoginContext) -> dict[str, Any]:
+def _create_challenge(user: User | None, ticket: LoginContext) -> dict[str, Any]:
     # If no external MFA was used, and no webauthn credential either, we respond with a not-finished
     # response containing a webauthn challenge if applicable.
     payload: dict[str, Any] = {"finished": False}
@@ -215,17 +223,15 @@ def _create_challenge(user: User, ticket: LoginContext) -> dict[str, Any]:
     if req_authn_ctx in [EduidAuthnContextClass.DIGG_LOA2, EduidAuthnContextClass.REFEDS_MFA]:
         user_verification = UserVerificationRequirement.PREFERRED
 
-    candidates = user.credentials.filter(FidoCredential)
-    if candidates:
-        current_app.logger.debug("User has one or more FIDO tokens, adding webauthn challenge to response")
-        options = fido_tokens.start_token_verification(
-            user=user,
-            fido2_rp_id=current_app.conf.fido2_rp_id,
-            fido2_rp_name=current_app.conf.fido2_rp_name,
-            state=session.mfa_action,
-            user_verification=user_verification,
-        )
-        payload.update(options)
+    current_app.logger.debug("User has one or more FIDO tokens, adding webauthn challenge to response")
+    options = fido_tokens.start_token_verification(
+        user=user,
+        fido2_rp_id=current_app.conf.fido2_rp_id,
+        fido2_rp_name=current_app.conf.fido2_rp_name,
+        state=session.mfa_action,
+        user_verification=user_verification,
+    )
+    payload.update(options)
 
     current_app.logger.debug("No MFA submitted. Sending not-finished response.")
     current_app.logger.debug(
