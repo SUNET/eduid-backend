@@ -10,7 +10,7 @@ from werkzeug.wrappers import Response as WerkzeugResponse
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.models.saml2 import EduidAuthnContextClass
 from eduid.userdb import User
-from eduid.userdb.credentials import Credential, FidoCredential
+from eduid.userdb.credentials import Credential
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith
 from eduid.webapp.common.api.messages import FluxData, error_response, success_response
 from eduid.webapp.common.api.schemas.models import FluxSuccessResponse
