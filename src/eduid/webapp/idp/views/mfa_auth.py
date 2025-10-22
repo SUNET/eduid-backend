@@ -222,6 +222,10 @@ def _create_challenge(user: User | None, ticket: LoginContext) -> dict[str, Any]
     user_verification = UserVerificationRequirement.DISCOURAGED
     if req_authn_ctx in [EduidAuthnContextClass.DIGG_LOA2, EduidAuthnContextClass.REFEDS_MFA]:
         user_verification = UserVerificationRequirement.PREFERRED
+    if user is None:
+        # If we have no user, we prefer user verification
+        # This triggers unlocking of hardware keys in Firefox
+        user_verification = UserVerificationRequirement.PREFERRED
 
     current_app.logger.debug("User has one or more FIDO tokens, adding webauthn challenge to response")
     options = fido_tokens.start_token_verification(
