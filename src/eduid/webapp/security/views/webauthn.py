@@ -161,8 +161,7 @@ def registration_complete(
         )
     except (AttestationVerificationError, NotImplementedError, ValueError):
         current_app.logger.exception("attestation verification failed")
-        current_app.logger.info(f"attestation_object: {registration.response.attestation_object}")
-        current_app.logger.info(f"client_data: {registration.response.client_data}")
+        current_app.logger.info(f"registration response: {response}")
         return error_response(message=SecurityMsg.webauthn_attestation_fail)
 
     # Move registration state from session to local variable to let users restart if something fails
