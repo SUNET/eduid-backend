@@ -1,6 +1,10 @@
 from datetime import timedelta
 
-from fido2.webauthn import AttestationConveyancePreference, ResidentKeyRequirement, UserVerificationRequirement
+from fido2.webauthn import (
+    AttestationConveyancePreference,
+    ResidentKeyRequirement,
+    UserVerificationRequirement,
+)
 from fido_mds.models.fido_mds import AuthenticatorStatus
 from pydantic import Field
 
