@@ -11,4 +11,5 @@ class EduidAuthnContextClass(StrEnum):
     FIDO_U2F = "https://www.swamid.se/specs/id-fido-u2f-ce-transports"
     EDUID_MFA = "https://eduid.se/specs/mfa"
     PASSWORD_PT = "urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport"
+    UNSPECIFIED = "urn:oasis:names:tc:SAML:2.0:ac:classes:unspecified"
     NOT_IMPLEMENTED = "not implemented"

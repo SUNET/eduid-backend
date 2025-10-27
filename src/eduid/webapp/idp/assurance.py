@@ -263,6 +263,12 @@ def response_authn(authn: AuthnState, ticket: LoginContext, user: IdPUser) -> Au
             raise MissingSingleFactor()
         response_accr = EduidAuthnContextClass.PASSWORD_PT
 
+    elif req_authn_ctx == EduidAuthnContextClass.UNSPECIFIED:
+        current_app.stats.count("req_authn_ctx_unspecified")
+        if not authn.is_singlefactor:
+            raise MissingSingleFactor()
+        response_accr = EduidAuthnContextClass.UNSPECIFIED
+
     elif req_authn_ctx is None:
         # Handle empty req_authn_ctx
         if authn.is_multifactor:

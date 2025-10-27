@@ -568,6 +568,40 @@ class TestSSO(SSOIdPTests):
             assurance_profile=self.app.conf.swamid_assurance_profile_1,
         )
 
+    def test_get_login_response_12(self) -> None:
+        """
+        Test login with sfa, request authn context class unspecified.
+
+        Expect the response Authn to be unspecified.
+        """
+        out = self._get_login_response_authn(
+            req_class_ref=EduidAuthnContextClass.UNSPECIFIED,
+            credentials=["pw"],
+        )
+        self._check_login_response_authn(
+            authn_result=out,
+            message=IdPMsg.proceed,
+            accr=EduidAuthnContextClass.UNSPECIFIED,
+            assurance_profile=self.app.conf.swamid_assurance_profile_1,
+        )
+
+    def test_get_login_response_13(self) -> None:
+        """
+        Test login with mfa, request authn context class unspecified.
+
+        Expect the response Authn to be unspecified.
+        """
+        out = self._get_login_response_authn(
+            req_class_ref=EduidAuthnContextClass.UNSPECIFIED,
+            credentials=["pw", "u2f"],
+        )
+        self._check_login_response_authn(
+            authn_result=out,
+            message=IdPMsg.proceed,
+            accr=EduidAuthnContextClass.UNSPECIFIED,
+            assurance_profile=self.app.conf.swamid_assurance_profile_1,
+        )
+
     def test_get_login_response_assurance_AL1(self) -> None:
         """
         Make sure eduPersonAssurace is SWAMID AL1 with no verified nin.
