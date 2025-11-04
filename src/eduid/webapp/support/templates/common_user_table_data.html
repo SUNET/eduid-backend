@@ -51,6 +51,10 @@
       <dd>{{ credential.get('success_ts')|datetimeformat }}</dd>
       <dt>Verified</dt>
       <dd>{{ credential.get('verified', False) }}</dd>
+      {% if credential.get('description') %}
+      <dt>Description</dt>
+      <dd>{{ credential.get('description') }}</dd>
+      {% endif %}
       {% if credential.get('type') == 'Webauthn' %}
       <dt>Authenticator</dt>
       <dd>{{ credential.get('authenticator') }}</dd>

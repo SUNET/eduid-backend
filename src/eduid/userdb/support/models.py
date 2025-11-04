@@ -82,6 +82,7 @@ class Credential(GenericFilterDict):
         "verified",
         "framework",
         "level",
+        "description",
     ]
 
 
