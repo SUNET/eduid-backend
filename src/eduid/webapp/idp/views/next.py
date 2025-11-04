@@ -273,8 +273,8 @@ class AuthnOptions:
     usernamepassword: bool = True
     # Can the frontend start with just asking for a username? Sure.
     username: bool = True
-    # Can an unknown user log in using a webauthn credential? No, not at this time (might be doable).
-    webauthn: bool = False
+    # Can an unknown user log in using a webauthn credential? Yes.
+    webauthn: bool = True
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -372,9 +372,9 @@ def _set_user_options(res: AuthnOptions, eppn: str) -> None:
             current_app.logger.debug("User has a Password credential")
             res.password = True
 
-        if user.credentials.filter(FidoCredential):
-            current_app.logger.debug("User has a FIDO/Webauthn credential")
-            res.webauthn = True
+        if not user.credentials.filter(FidoCredential):
+            current_app.logger.debug("User does NOT have a FIDO/Webauthn credential")
+            res.webauthn = False
 
         if user.locked_identity.nin:
             current_app.logger.debug("User has a locked NIN -> swedish eID is possible")

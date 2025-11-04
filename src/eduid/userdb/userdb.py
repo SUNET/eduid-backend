@@ -187,6 +187,29 @@ class UserDB[UserVar](BaseDB, ABC):
         _filter = {"identities": {"$elemMatch": match}}
         return self._get_user_by_filter(_filter)
 
+    def get_user_by_credential(self, credential: str) -> UserVar | None:
+        """
+        Locate a user with a (confirmed) credential
+        """
+        res = self.get_users_by_credential(credential=credential)
+        if not res:
+            return None
+        if len(res) > 1:
+            raise MultipleUsersReturned(f"Multiple matching users for credential {repr(credential)}")
+        return res[0]
+
+    def get_users_by_credential(self, credential: str) -> list[UserVar]:
+        """
+        Return the user object in the central eduID UserDB having
+        a credential matching 'credential'.
+
+        :param credential: The credential to look for
+
+        :return: List of User instances
+        """
+        _filter = {"passwords": {"$elemMatch": {"keyhandle": credential}}}
+        return self._get_user_by_filter(_filter)
+
     def get_user_by_phone(self, phone: str) -> UserVar | None:
         """Locate a user with a (confirmed) phone number"""
         res = self.get_users_by_phone(phone=phone)
