@@ -13,6 +13,7 @@ Example usage in some view:
 
 __author__ = "ft"
 
+import re
 from abc import ABC, abstractmethod
 from logging import Logger
 
@@ -26,6 +27,25 @@ class AppStats(ABC):
 
     def gauge(self, name: str, value: int, rate: int = 1, delta: bool = False) -> None:
         pass
+
+    @staticmethod
+    def clean_name(name: str) -> str:
+        """
+        Remove any char that are not allowed in statsd parsing.
+        Sanitize a name string by:
+         - Replacing whitespace with '_'
+         - Replacing '/' with '-'
+         - Removing characters not matching 'a-zA-Z_\\-0-9\\.;='
+        """
+        # Replace whitespace with underscore
+        result = "_".join(name.split())
+
+        # Replace '/' with '-'
+        result = result.replace("/", "-")
+
+        # Remove characters not matching the allowed pattern
+        result = re.sub(r"[^a-zA-Z_\-0-9.;=]", "", result)
+        return result
 
 
 class NoOpStats(AppStats):
@@ -41,12 +61,14 @@ class NoOpStats(AppStats):
         self.prefix = prefix
 
     def count(self, name: str, value: int = 1) -> None:
+        name = self.clean_name(name)
         if self.logger:
             if self.prefix:
                 name = f"{self.prefix!s}.{name!s}"
             self.logger.info(f"No-op stats count: {name!r} {value!r}")
 
     def gauge(self, name: str, value: int, rate: int = 1, delta: bool = False) -> None:
+        name = self.clean_name(name)
         if self.logger:
             if self.prefix:
                 name = f"{self.prefix!s}.{name!s}"
@@ -60,12 +82,14 @@ class Statsd(AppStats):
         self.client = statsd.StatsClient(host, port, prefix=prefix)
 
     def count(self, name: str, value: int = 1) -> None:
+        name = self.clean_name(name)
         self.client.incr(f"{name}.average", count=value)
         # You need to set up a storage aggregation that uses sum instead of the default average
         # for .count
         self.client.incr(f"{name}.count", count=value)
 
     def gauge(self, name: str, value: int, rate: int = 1, delta: bool = False) -> None:
+        name = self.clean_name(name)
         self.client.gauge(f"{name}.gauge", value=value, rate=rate, delta=delta)
 
 
