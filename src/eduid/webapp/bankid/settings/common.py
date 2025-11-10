@@ -41,7 +41,6 @@ class BankIDConfig(
         }
     )
 
-    #
     @cached_property
     def authn_context_loa_map(self) -> dict[str, str]:
         return {value: key for key, value in self.loa_authn_context_map.items()}
