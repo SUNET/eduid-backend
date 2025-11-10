@@ -2,7 +2,7 @@ from unittest import TestCase
 
 from bson import ObjectId
 
-import eduid.userdb.db as db
+from eduid.userdb import db
 from eduid.userdb.fixtures.users import UserFixtures
 from eduid.userdb.identity import IdentityType
 from eduid.userdb.testing import MongoTestCase, SetupConfig
