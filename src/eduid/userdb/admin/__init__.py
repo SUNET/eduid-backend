@@ -97,15 +97,14 @@ class RawDb:
 
         if raw.doc.get("DELETE_DOCUMENT") is True:
             raw.doc = TUserDbDocument({})
-        else:
-            if "eduPersonPrincipalName" in raw.doc or "eduPersonPrincipalName" in raw.before:
-                if raw.doc.get("eduPersonPrincipalName") != raw.before.get("eduPersonPrincipalName"):
-                    sys.stderr.write(
-                        "REFUSING to update eduPersonPrincipalName ({} -> {})".format(
-                            raw.before.get("eduPersonPrincipalName"), raw.doc.get("eduPersonPrincipalName")
-                        )
+        elif "eduPersonPrincipalName" in raw.doc or "eduPersonPrincipalName" in raw.before:
+            if raw.doc.get("eduPersonPrincipalName") != raw.before.get("eduPersonPrincipalName"):
+                sys.stderr.write(
+                    "REFUSING to update eduPersonPrincipalName ({} -> {})".format(
+                        raw.before.get("eduPersonPrincipalName"), raw.doc.get("eduPersonPrincipalName")
                     )
-                    sys.exit(1)
+                )
+                sys.exit(1)
 
         db_coll = f"{raw.db}.{raw.collection}"
 
@@ -119,13 +118,12 @@ class RawDb:
 
         if dry_run:
             res = "DRY_RUN"
+        elif len(raw.doc):
+            replace_res = self._client[raw.db][raw.collection].replace_one({"_id": raw.doc["_id"]}, raw.doc)
+            res = f"UPDATE {replace_res}"
         else:
-            if len(raw.doc):
-                replace_res = self._client[raw.db][raw.collection].replace_one({"_id": raw.doc["_id"]}, raw.doc)
-                res = f"UPDATE {replace_res}"
-            else:
-                delete_res = self._client[raw.db][raw.collection].delete_one({"_id": raw.before["_id"]})
-                res = f"REMOVE {delete_res}"
+            delete_res = self._client[raw.db][raw.collection].delete_one({"_id": raw.before["_id"]})
+            res = f"REMOVE {delete_res}"
 
         # Write changes.txt after saving, so it will also indicate a successful save
         return self._write_changes(raw, backup_dir, res)

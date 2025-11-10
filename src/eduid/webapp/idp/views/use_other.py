@@ -231,16 +231,15 @@ def use_other_2(
         pending = IdP_OtherDevicePendingRequest(state_id=state.state_id)
         session.idp.pending_requests[request_ref] = pending
         current_app.logger.debug(f"Created new pending request with ref {request_ref}: {pending}")
-    else:
+    elif state.device2.ref not in session.idp.pending_requests:
         # Could be a reload of the page on device #2, or it could be an attacker opening the QR code on one
         # device, and wanting the user to open it again on their device and log them (the attacker) in.
         # If it is a reload, the state.ref should be present in the session as a pending_request.
-        if state.device2.ref not in session.idp.pending_requests:
-            current_app.logger.warning(
-                f"Tried to use OtherDevice state that is already in use: {state.device2.ref} (not found in session)"
-            )
-            current_app.logger.debug(f"Extra debug: Full other device state:\n{state.to_json()}")
-            return error_response(message=IdPMsg.state_already_used)
+        current_app.logger.warning(
+            f"Tried to use OtherDevice state that is already in use: {state.device2.ref} (not found in session)"
+        )
+        current_app.logger.debug(f"Extra debug: Full other device state:\n{state.to_json()}")
+        return error_response(message=IdPMsg.state_already_used)
 
     if action == "ABORT":
         if state.state in [OtherDeviceState.NEW, OtherDeviceState.IN_PROGRESS, OtherDeviceState.AUTHENTICATED]:

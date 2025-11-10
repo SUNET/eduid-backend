@@ -172,14 +172,13 @@ class User(BaseModel):
             nin_list = NinList.from_list_of_dicts(_nins)
             if nin_list.count == 1:
                 _nin = nin_list.to_list_of_dicts()[0]
+            # somehow the user has more than one nin
+            elif nin_list.primary is not None:
+                # use primary if any
+                _nin = nin_list.primary.to_dict()
             else:
-                # somehow the user has more than one nin
-                if nin_list.primary is not None:
-                    # use primary if any
-                    _nin = nin_list.primary.to_dict()
-                else:
-                    # else use the nin added first
-                    _nin = sorted(nin_list.to_list_of_dicts(), key=itemgetter("created_ts"))[0]
+                # else use the nin added first
+                _nin = sorted(nin_list.to_list_of_dicts(), key=itemgetter("created_ts"))[0]
             _identities = data.pop("identities", [])
             existing_nin = [item for item in _identities if item.get("identity_type") == IdentityType.NIN.value]
             if not existing_nin:  # workaround for users that did not get their nins list removed due to a bug in am
