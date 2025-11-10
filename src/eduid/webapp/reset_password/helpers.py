@@ -486,8 +486,7 @@ def verify_phone_number(state: ResetPasswordEmailAndPhoneState) -> bool:
 
 def email_state_to_response_payload(state: ResetPasswordEmailState) -> dict[str, Any]:
     _throttled = int(state.throttle_time_left(current_app.conf.throttle_resend).total_seconds())
-    if _throttled < 0:
-        _throttled = 0
+    _throttled = max(_throttled, 0)
     return {
         "email": state.email_address,
         "email_code_timeout": int(current_app.conf.email_code_timeout.total_seconds()),
