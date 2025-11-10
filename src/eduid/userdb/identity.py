@@ -246,7 +246,6 @@ class IdentityList(VerifiedElementList[IdentityElement]):
     def replace(self, element: IdentityElement) -> None:
         self.remove(key=element.key)
         self.add(element=element)
-        return None
 
     @property
     def is_verified(self) -> bool:

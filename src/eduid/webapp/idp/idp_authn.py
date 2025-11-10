@@ -306,7 +306,6 @@ class AuthnInfoStore:
             self.collection.update_one(
                 filter={"_id": this}, update={"$set": {"_id": this, "success_ts": ts}}, upsert=True
             )
-        return None
 
     def update_user(
         self, user_id: ObjectId, success: Sequence[str], failure: Sequence[str], ts: datetime | None = None
@@ -343,7 +342,6 @@ class AuthnInfoStore:
             upsert=True,
             return_document=ReturnDocument.AFTER,
         )
-        return None
 
     def unlock_user(self, user_id: ObjectId, fail_count: int = 0, ts: datetime | None = None) -> None:
         """
@@ -364,7 +362,6 @@ class AuthnInfoStore:
             upsert=True,
             return_document=ReturnDocument.AFTER,
         )
-        return None
 
     def get_user_authn_info(self, user: IdPUser) -> UserAuthnInfo:
         """Load stored Authn information for user."""

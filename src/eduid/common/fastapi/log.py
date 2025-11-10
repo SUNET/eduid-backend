@@ -52,4 +52,3 @@ def init_logging(app_name: str, config: LoggingConfigMixin) -> None:
     dictConfig(logging_config)
     logger = logging.getLogger(__name__)
     logger.debug(f"Logging config:\n{pprint.pformat(logging_config, width=120)}")
-    return None

@@ -33,7 +33,6 @@ class LockedIdentityList(IdentityList):
     def replace(self, element: IdentityElement) -> None:
         self.elements = [this for this in self.elements if this.key != element.key]
         self.add(element=element)
-        return None
 
     def remove(self, key: ElementKey) -> NoReturn:
         """

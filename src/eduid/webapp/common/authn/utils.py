@@ -98,7 +98,6 @@ def no_authn_views(config: EduIDBaseAppConfig, paths: Sequence[str]) -> None:
         no_auth_regex = f"^{urlappend(app_root, path)!s}$"
         if no_auth_regex not in config.no_authn_urls:
             config.no_authn_urls.append(no_auth_regex)
-    return None
 
 
 def init_pysaml2(cfgfile: str) -> server.Server:

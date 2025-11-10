@@ -455,7 +455,6 @@ class SSO(Service):
             if not printed:
                 # Fall back to logging the whole response
                 current_app.logger.info(f"{ticket.request_ref}: authn response: {saml_response}")
-        return None
 
     @staticmethod
     def _fticks_log(relying_party: str, authn_method: str, user_id: str) -> None:

@@ -112,5 +112,3 @@ def add_api_event(
     event_location = urlappend(context.base_url, f"Events/{_event.scim_id}")
     message = context.notification_relay.format_message(version=1, data={"location": event_location})
     context.notification_relay.notify(data_owner=data_owner, message=message, context=context)
-
-    return None

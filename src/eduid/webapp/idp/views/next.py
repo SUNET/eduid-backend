@@ -394,8 +394,6 @@ def _set_user_options(res: AuthnOptions, eppn: str) -> None:
 
         res.display_name = user.friendly_identifier or res.forced_username
 
-    return None
-
 
 def _geo_statistics(ticket: LoginContext, sso_session: SSOSession | None) -> None:
     """Log user statistics from login event"""

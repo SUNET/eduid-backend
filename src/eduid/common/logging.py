@@ -172,7 +172,6 @@ def init_logging(config: LoggingConfigMixin) -> None:
     if config.debug:
         logging.debug(f"Logging config:\n{pformat(logging_config)}")
     logging.info("Logging configured")
-    return None
 
 
 @dataclass

@@ -25,9 +25,7 @@ class AmCelerySingleton:
     def update_worker_config(cls, config: AmConfig) -> None:
         cls.worker_config = config
         cls.update_celery_config(config.celery)
-        return None
 
     @classmethod
     def update_celery_config(cls, config: CeleryConfig) -> None:
         cls.celery.config_from_object(config.dict())
-        return None

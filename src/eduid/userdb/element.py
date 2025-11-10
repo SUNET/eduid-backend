@@ -351,7 +351,6 @@ class ElementList[ListElement: Element](BaseModel, ABC):
         :return: None
         """
         self.elements += [element]
-        return None
 
     def remove(self, key: ElementKey) -> None:
         """
@@ -365,8 +364,6 @@ class ElementList[ListElement: Element](BaseModel, ABC):
             raise UserDBValueError("Element not found in list")
 
         self.elements = [this for this in self.elements if this != match]
-
-        return None
 
     def filter(self, cls: type[MatchingElement]) -> list[MatchingElement]:
         """
@@ -519,8 +516,6 @@ class PrimaryElementList[ListElement: Element](VerifiedElementList[ListElement],
             raise PrimaryElementViolation("Removing the primary element is not allowed")
 
         self.elements = [this for this in self.elements if this != match]
-
-        return None
 
     def remove_handling_primary(self, key: ElementKey) -> None:
         """Remove an element from the list. If the element is primary, first promote

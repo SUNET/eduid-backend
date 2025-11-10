@@ -129,8 +129,6 @@ class ScimApiUserDB(ScimApiBaseDB):
         extra_debug = pprint.pformat(user_dict, width=120)
         logger.debug(f"Extra debug:\n{extra_debug}")
 
-        return None
-
     def remove(self, user: ScimApiUser) -> bool:
         return self.remove_document(user.user_id)
 

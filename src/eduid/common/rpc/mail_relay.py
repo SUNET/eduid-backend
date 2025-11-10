@@ -61,7 +61,6 @@ class MailRelay:
             raise MailTaskFailed(f"sendmail task failed: {repr(e)}")
 
         logger.info(f"Sent email {rtask} to {recipients} with subject {subject}")
-        return None
 
     def ping(self, timeout: int = 1) -> str:
         """
