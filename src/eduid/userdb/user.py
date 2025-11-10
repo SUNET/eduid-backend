@@ -125,11 +125,6 @@ class User(BaseModel):
             return f"<eduID {self.__class__.__name__}: {self.eppn}/v{self.meta.version}>"
         return f"<eduID {self.__class__.__name__}: {self.eppn}/not in db>"
 
-    def __eq__(self, other: Any) -> bool:  # noqa: ANN401
-        if self.__class__ is not other.__class__:
-            raise TypeError(f"Trying to compare objects of different class {other.__class__} != {self.__class__}")
-        return self.to_dict() == other.to_dict()
-
     @classmethod
     def from_dict(cls: type[TUserSubclass], data: TUserDbDocument) -> TUserSubclass:
         """
