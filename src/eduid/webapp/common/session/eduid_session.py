@@ -351,8 +351,10 @@ class EduidSession(SessionMixin, MutableMapping[str, VT]):
             if isinstance(this, SessionNSBase):
                 # hack to make the new value comparable with the old
                 # this is checked in session __setitem__
-                value = to_jsonable_python(this.to_dict(exclude_none=True))
-            self[k] = value
+                store_value = to_jsonable_python(this.to_dict(exclude_none=True))
+            else:
+                store_value = value
+            self[k] = store_value
 
     def persist(self) -> None:
         """

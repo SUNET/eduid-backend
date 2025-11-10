@@ -40,8 +40,8 @@ class ServeStatic(RequestMicroService):
 
     def register_endpoints(self) -> list:
         url_map = []
-        for endpoint, path in self.locations.items():
-            endpoint = endpoint.strip("/")
+        for endpoint_raw, path in self.locations.items():
+            endpoint = endpoint_raw.strip("/")
             logger.info(f"{self.logprefix} registering {endpoint} - {path}")
             url_map.append([f"^{endpoint}/", self._handle])
         return url_map

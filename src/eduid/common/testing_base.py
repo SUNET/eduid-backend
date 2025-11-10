@@ -81,9 +81,10 @@ def normalised_data[SomeData](
                     except ValueError:
                         # The timestamp is sometimes normalised to a string that is not a timestamp (e.g. 'ts')
                         pass
+                store_value = value
                 if isinstance(value, list):
                     try:
-                        value = sorted(value)
+                        store_value = sorted(value)
                     except TypeError:
                         # Not every list can be sorted, e.g. list of dicts.
                         #   TypeError: '<' not supported between instances of 'dict' and 'dict'
@@ -91,8 +92,8 @@ def normalised_data[SomeData](
                         # We really do need stable sorting of lists of dicts though, so we crudely turn anything into
                         # strings here, and sort those.
                         _str_values = [json.dumps(x, sort_keys=True, cls=NormaliseEncoder) for x in value]
-                        value = sorted(_str_values)
-                ret[key] = value
+                        store_value = sorted(_str_values)
+                ret[key] = store_value
             return ret
 
     def _exclude_keys(exclude_key: str, obj: SomeData) -> None:

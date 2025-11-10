@@ -1,9 +1,23 @@
-from typing import cast
+from typing import Any, cast
 
 from eduid.vccs.client import VCCSClient
 
 TESTING = False
-_test_client = None
+
+
+class _VCCSClientCache:
+    """Singleton cache for VCCS clients."""
+
+    _instance: Any = None
+
+    @classmethod
+    def get_test_client(cls) -> VCCSClient:
+        if cls._instance is None:
+            # Avoid circular imports
+            from eduid.webapp.common.authn.testing import MockVCCSClient
+
+            cls._instance = MockVCCSClient()
+        return cast(VCCSClient, cls._instance)
 
 
 def get_vccs_client(vccs_url: str) -> VCCSClient:
@@ -13,13 +27,7 @@ def get_vccs_client(vccs_url: str) -> VCCSClient:
     :return: vccs client
     """
     if TESTING and vccs_url == "dummy":
-        global _test_client
-        if not _test_client:
-            # Avoid circular imports
-            from eduid.webapp.common.authn.testing import MockVCCSClient
-
-            _test_client = MockVCCSClient()
-        return cast(VCCSClient, _test_client)
+        return _VCCSClientCache.get_test_client()
     return VCCSClient(
         base_url=vccs_url,
     )
