@@ -23,10 +23,7 @@ select = [
 
 ignore = [
   "E501",
-  "PLR0911",
-  "PLR0912",
-  "PLR0913",
-  "PLR0915",
+  "PLR09",
   "PLR2004",
   "PLW",
   "PLC0415",
