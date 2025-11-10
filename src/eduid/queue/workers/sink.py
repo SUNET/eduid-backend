@@ -3,6 +3,7 @@
 import asyncio
 import logging
 import os
+import sys
 from asyncio import Task
 from collections.abc import Mapping
 from datetime import datetime, timedelta
@@ -93,7 +94,7 @@ def init_sink_worker(name: str = "sink_worker", test_config: Mapping[str, Any] |
 
 def start_worker() -> None:
     worker = init_sink_worker()
-    exit(asyncio.run(worker.run()))
+    sys.exit(asyncio.run(worker.run()))
 
 
 if __name__ == "__main__":

@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import sys
 from collections.abc import Mapping, Sequence
 from dataclasses import asdict
 from email.message import EmailMessage
@@ -297,7 +298,7 @@ def start_worker() -> None:
     if worker.smtp is None:
         # fail fast if we can't connect to the SMTP server
         raise RuntimeError("SMTP client not configured correctly")
-    exit(asyncio.run(worker.run()))
+    sys.exit(asyncio.run(worker.run()))
 
 
 if __name__ == "__main__":
