@@ -167,10 +167,9 @@ def verify_nin_for_user(
     if reference_nin is not None:
         current_app.logger.debug(f"verified nin has reference_nin: {reference_nin}")
 
-    if (
-        proofing_user.locked_identity.nin is not None
-        and proofing_user.locked_identity.nin.number != proofing_state.nin.number
-        and proofing_user.locked_identity.nin.number != reference_nin
+    if proofing_user.locked_identity.nin is not None and proofing_user.locked_identity.nin.number not in (
+        proofing_state.nin.number,
+        reference_nin,
     ):
         raise LockedIdentityViolation("users locked nin does not match verified nin or reference nin")
 

@@ -325,7 +325,7 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
             assert response.json is not None
             if response.json.get("error"):
                 return NextResult(payload=self.get_response_payload(response), error=response.json)
-        if response._status_code != 200 and response._status_code != 302:
+        if response._status_code not in {200, 302}:
             _page_text = response.data.decode("UTF-8")
             _re = r"<p>(.*?error:.*?)</p>"
             _re_match = re.search(_re, _page_text)
