@@ -481,11 +481,11 @@ class SessionFactory(SessionInterface):
                             )
                             diff_c += 1
                     else:
-                        logger.error(f"Session key {k} disappeared, mine {sess[k]}")
+                        logger.error(f"Session key {k} disappeared, mine {v}")
                         diff_c += 1
                 for k, v in session_now.items():
                     if k not in sess:
-                        logger.error(f"Session key {k} added in db: {session_now[k]}")
+                        logger.error(f"Session key {k} added in db: {v}")
                         diff_c += 1
             except KeyError:
                 logger.error("Failed loading session from backend for comparison")
