@@ -203,9 +203,9 @@ def send_password_reset_mail(email_address: str) -> ResetPasswordEmailState:
 
     # send the reset password email to all verified email addresses
     to_addresses = [address.email for address in user.mail_addresses.verified]
-    for email_address in to_addresses:
+    for to_email_address in to_addresses:
         payload = EduidResetPasswordEmail(
-            email=email_address,
+            email=to_email_address,
             verification_code=state.email_code.code,
             password_reset_timeout=current_app.conf.email_code_timeout // timedelta(hours=1),
             site_name=current_app.conf.eduid_site_name,
@@ -220,7 +220,7 @@ def send_password_reset_mail(email_address: str) -> ResetPasswordEmailState:
         current_app.logger.info(
             f"Saved rest password email queue item in queue collection {current_app.messagedb._coll_name}"
         )
-        current_app.logger.debug(f"email: {email_address}")
+        current_app.logger.debug(f"email: {to_email_address}")
         if current_app.conf.environment == EduidEnvironment.dev:
             # Debug-log the code and message in development environment
             current_app.logger.debug(f"code: {state.email_code.code}")
