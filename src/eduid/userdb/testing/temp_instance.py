@@ -54,7 +54,7 @@ class EduidTemporaryInstance(ABC):
                 logger.error(f"{self} instance output:\n{self.output}")
                 self.shutdown()
                 raise RuntimeError(f"{self} instance on port {self.port} failed to start after {age} seconds")
-            if count <= 3:
+            if count <= 3:  # noqa: PLR2004
                 # back off slightly
                 interval += interval
 
