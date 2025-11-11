@@ -100,20 +100,23 @@ def _format_mongodb_uri(parsed_uri: Mapping[str, Any]) -> str:
 
     _nodes: list[str] = []
     for host, port in parsed_uri.get("nodelist", []):
+        formatted_host = host
         if ":" in host and not host.endswith("]"):
             # IPv6 address without brackets
-            host = f"[{host!s}]"
+            formatted_host = f"[{host!s}]"
         if port == MONGODB_DEFAULT_PORT:
-            _nodes.append(host)
+            _nodes.append(formatted_host)
         else:
-            _nodes.append(f"{host!s}:{port!s}")
+            _nodes.append(f"{formatted_host!s}:{port!s}")
     nodelist = ",".join(_nodes)
 
     _opt_list: list[str] = []
     for key, value in parsed_uri.get("options", {}).items():
         if isinstance(value, bool):
-            value = str(value).lower()
-        _opt_list.append(f"{key!s}={value!s}")
+            str_value = str(value).lower()
+        else:
+            str_value = value
+        _opt_list.append(f"{key!s}={str_value!s}")
 
     options = ""
     if _opt_list:

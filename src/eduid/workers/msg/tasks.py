@@ -30,7 +30,6 @@ TRANSACTION_AUDIT_COLLECTION = "transaction_audit"
 
 
 logger: logging.Logger = get_task_logger(__name__)
-_CACHE: dict[str, CacheMDB] = {}
 
 app = MsgCelerySingleton.celery
 
@@ -44,6 +43,7 @@ class MessageSender(Task):
 
     _sms: SMSClient | None = None
     _navet_api: Hammock | None = None
+    _cache_store: dict[str, CacheMDB] = {}
 
     @property
     def sms(self) -> SMSClient:
@@ -71,23 +71,21 @@ class MessageSender(Task):
             self._navet_api = Hammock(config.navet_api_uri, auth=auth, verify=config.navet_api_verify_ssl)
         return self._navet_api
 
-    @staticmethod
-    def cache(cache_name: str, ttl: int = 7200) -> CacheMDB:
+    @classmethod
+    def cache(cls, cache_name: str, ttl: int = 7200) -> CacheMDB:
         db_uri = MsgCelerySingleton.worker_config.mongo_uri
         db_name = MsgCelerySingleton.worker_config.mongo_dbname
         if db_uri is None:
             raise ValueError("db_uri not supplied")
 
-        global _CACHE
-        if cache_name not in _CACHE:
-            _CACHE[cache_name] = CacheMDB(db_uri=db_uri, db_name=db_name, collection=cache_name, ttl=ttl)
-        return _CACHE[cache_name]
+        if cache_name not in cls._cache_store:
+            cls._cache_store[cache_name] = CacheMDB(db_uri=db_uri, db_name=db_name, collection=cache_name, ttl=ttl)
+        return cls._cache_store[cache_name]
 
-    @staticmethod
-    def reload_db() -> None:
-        global _CACHE
+    @classmethod
+    def reload_db(cls) -> None:
         # Remove initiated cache dbs
-        _CACHE = {}
+        cls._cache_store = {}
 
     def on_failure(self, exc: Exception, task_id: str, args: tuple, kwargs: dict, einfo: ExceptionInfo) -> None:
         # Try to reload the db on connection failures (mongodb has probably switched master)
