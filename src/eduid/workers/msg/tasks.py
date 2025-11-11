@@ -231,10 +231,11 @@ class MessageSender(Task):
         Return a dict with devel data
         Birthdates preceding 1900 are shown as deceased for testing purposes
         """
+        DEVEL_BREAKOFF_YEAR = 1900
 
         deregistration_information = {}
         birth_year = int(identity_number[0:4])
-        if birth_year < 1900:
+        if birth_year < DEVEL_BREAKOFF_YEAR:
             deregistration_information = {"date": "20220315", "causeCode": "AV"}
 
         result = OrderedDict(
@@ -361,7 +362,12 @@ class MessageSender(Task):
         #  0701740605-0701740699 is a unused range from PTS
         #  https://www.pts.se/sv/bransch/telefoni/nummer-och-adressering/
         #  telefonnummer-for-anvandning-i-bocker-och-filmer-etc/
-        if recipient.startswith("+467017406") and 5 <= int(recipient.removeprefix("+467017406")) <= 99:
+        UNUSED_RANGE_LOWER_END = 5
+        UNUSED_RANGE_UPPER_END = 99
+        if (
+            recipient.startswith("+467017406")
+            and UNUSED_RANGE_LOWER_END <= int(recipient.removeprefix("+467017406")) <= UNUSED_RANGE_UPPER_END
+        ):
             logger.debug("sendsms task:")
             logger.debug(f"\nType: sms\nReference: {reference}\nRecipient: {recipient}\nMessage:\n{message}")
             return "no_op_number"

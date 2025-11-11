@@ -157,7 +157,8 @@ def handle_seleg_userinfo(user: ProofingUser, proofing_state: OidcProofingState,
     current_app.logger.info(f"Verifying NIN from seleg for user {user}")
     number = userinfo["identity"]
     metadata = userinfo.get("metadata", {})
-    if metadata.get("score", 0) == 100:
+    ACCEPTED_SCORE = 100
+    if metadata.get("score", 0) == ACCEPTED_SCORE:
         if not number_match_proofing(user, proofing_state, number):
             current_app.logger.warning(
                 "Proofing state number did not match number in userinfo. Using number from userinfo."

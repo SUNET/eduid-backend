@@ -30,6 +30,8 @@ from eduid.webapp.idp.settings.common import IdPConfig
 
 logger = logging.getLogger(__name__)
 
+OBJECT_ID_STRING_LENGTH = 24
+
 
 class ExternalAuthnData(BaseModel):
     """Per-authentication remembered data about a used ExternalCredential"""
@@ -81,7 +83,7 @@ class UsedCredential(BaseModel):
 
     def __str__(self) -> str:
         key = str(self.credential_id)
-        if len(key) > 24:
+        if len(key) > OBJECT_ID_STRING_LENGTH:
             # 24 is length of object-id, webauthn credentials are much longer
             key = key[:21] + "..."
         return (

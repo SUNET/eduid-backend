@@ -68,7 +68,8 @@ class TransactionAudit:
             return data
         if func == "find_mobiles_by_NIN":
             number_region = None
-            if len(args) == 3:
+            ARGS_INCLUDE_REGION = 3
+            if len(args) == ARGS_INCLUDE_REGION:
                 number_region = args[2]
             return {"national_identity_number": args[1], "number_region": number_region, "data_returned": bool(data)}
         elif func == "find_NIN_by_mobile":

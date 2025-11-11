@@ -29,6 +29,8 @@ logger = logging.getLogger(__name__)
 
 TUserSubclass = TypeVar("TUserSubclass", bound="User")
 
+EPPN_LENGTH = 11
+
 
 @unique
 class SubjectType(StrEnum):
@@ -88,7 +90,7 @@ class User(BaseModel):
     @field_validator("eppn", mode="before")
     @classmethod
     def check_eppn(cls, v: str) -> str:
-        if len(v) != 11 or "-" not in v:
+        if len(v) != EPPN_LENGTH or "-" not in v:
             # the exception to the rule - an old proquint implementation once generated a short eppn
             if v != "holih":
                 # have to provide an exception for test cases for now ;)

@@ -7,6 +7,8 @@ from eduid.userdb.element import TVerifiedElementSubclass, VerifiedElement
 
 __author__ = "ft"
 
+OBJECT_ID_STRING_LENGTH = 24
+
 
 # well-known proofing methods
 class CredentialProofingMethod(StrEnum):
@@ -30,7 +32,7 @@ class Credential(VerifiedElement):
     proofing_method: CredentialProofingMethod | None = None
 
     def __str__(self) -> str:
-        if len(self.key) == 24:
+        if len(self.key) == OBJECT_ID_STRING_LENGTH:
             # probably an object id in string format, don't cut it
             shortkey = str(self.key)
         else:

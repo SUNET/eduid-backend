@@ -278,6 +278,8 @@ class SP_AuthnRequest(BaseAuthnRequest):
 
 PySAML2Dicts = NewType("PySAML2Dicts", dict[str, dict[str, Any]])
 
+MAX_AUTHNS_TO_KEEP = 10
+
 
 class SPAuthnData(BaseModel):
     pysaml2_dicts: PySAML2Dicts = Field(default=cast(PySAML2Dicts, dict()))
@@ -289,7 +291,7 @@ class SPAuthnData(BaseModel):
         Keep the authns list from growing indefinitely.
         """
         # if authns is larger than 10, sort on created_ts and remove the oldest
-        if len(authns) > 10:
+        if len(authns) > MAX_AUTHNS_TO_KEEP:
             items = sorted(authns.items(), reverse=True, key=lambda item: item[1].created_ts)
             authns = dict(items[:10])
 

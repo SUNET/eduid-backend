@@ -12,6 +12,8 @@ from eduid.userdb.userdb import UserDB
 
 logger = logging.getLogger(__name__)
 
+EPPN_LENGTH = 11
+
 
 class ManagedAccount(User):
     """
@@ -24,7 +26,7 @@ class ManagedAccount(User):
     @field_validator("eppn", mode="before")
     @classmethod
     def check_eppn(cls, v: str) -> str:
-        if len(v) != 11 or not v.startswith("ma-"):
+        if len(v) != EPPN_LENGTH or not v.startswith("ma-"):
             raise UserDBValueError(f"Invalid eppn: {v}")
         return v
 

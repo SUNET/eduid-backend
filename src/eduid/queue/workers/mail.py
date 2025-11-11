@@ -30,6 +30,10 @@ logger = logging.getLogger(__name__)
 
 __author__ = "lundberg"
 
+# SMTP status code classes (first digit of the status code)
+SMTP_STATUS_PERMANENT_ERROR = 5  # 5xx status codes indicate permanent failure
+SMTP_STATUS_TEMPORARY_ERROR = 4  # 4xx status codes indicate temporary failure
+
 
 class MailQueueWorker(QueueWorker):
     def __init__(self, config: QueueWorkerConfig) -> None:
@@ -121,11 +125,11 @@ class MailQueueWorker(QueueWorker):
         logger.error(f"Error sending mail to {recipient}: {smtp_response.code} {smtp_response.message}")
 
         return_code = smtp_response.code // 100
-        if return_code == 5:
-            # 500, permanent error condition
+        if return_code == SMTP_STATUS_PERMANENT_ERROR:
+            # 5xx, permanent error condition
             return Status(success=False, retry=False, message=smtp_response.message)
-        elif return_code == 4:
-            # 400, error condition is temporary, and the action may be requested again
+        elif return_code == SMTP_STATUS_TEMPORARY_ERROR:
+            # 4xx, error condition is temporary, and the action may be requested again
             return Status(success=False, retry=True, message=smtp_response.message)
         else:
             # unknown error

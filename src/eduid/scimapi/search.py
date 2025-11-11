@@ -14,10 +14,13 @@ class SearchFilter:
     val: str | int
 
 
+MAX_FILTER_LENGTH = 1024
+
+
 def parse_search_filter(filter: str) -> SearchFilter:
     # Bandaid for GitHub CodeQL: Polynomial regular expression used on uncontrolled data
     # TODO: Maybe use a proper parser instead of regex, maybe https://pypi.org/project/scim2-filter-parser/
-    if len(filter) > 1024:
+    if len(filter) > MAX_FILTER_LENGTH:
         raise BadRequest(scim_type="invalidFilter", detail="Filter too long")
     match = re.match("(.+?) (..) (.+)", filter)
     if not match:
