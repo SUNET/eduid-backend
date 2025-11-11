@@ -22,10 +22,10 @@ select = [
 ]
 
 ignore = [
-  "E501",
-  "PLR09",
+  "E501",     # length of lines, fixed during formatting
+  "PLR09",    # rule set for complexity checks
   "PLW",
-  "PLC0415",
+  "PLC0415",  # non top level imports
 ]
 
 [lint.flake8-annotations]
