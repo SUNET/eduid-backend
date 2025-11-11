@@ -10,6 +10,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import StrEnum
+from http import HTTPStatus
 from typing import Any
 
 from bson import ObjectId
@@ -204,7 +205,7 @@ class IdPAuthn:
                     self.log_authn(user, success=[cred.credential_id], failure=[])
                     return cred
             except VCCSClientHTTPError as exc:
-                if exc.http_code == 500:
+                if exc.http_code == HTTPStatus.INTERNAL_SERVER_ERROR:
                     logger.debug(f"VCCS credential {cred.credential_id} might be revoked")
                     continue
         logger.debug(f"VCCS username-password authentication FAILED for user {user}")

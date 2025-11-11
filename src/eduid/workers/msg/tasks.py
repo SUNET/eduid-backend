@@ -2,6 +2,7 @@ import json
 import logging
 import smtplib
 from collections import OrderedDict
+from http import HTTPStatus
 from typing import Any
 
 from billiard.einfo import ExceptionInfo
@@ -281,7 +282,7 @@ class MessageSender(Task):
         if json_data is None:
             post_data = json.dumps({"identity_number": identity_number})
             response = self.navet_api.personpost.navetnotification.POST(data=post_data)
-            if response.status_code != 200:
+            if response.status_code != HTTPStatus.OK:
                 raise NavetAPIException(repr(response))
             json_data = response.json()
             if not json_data.get("PopulationItems", False):

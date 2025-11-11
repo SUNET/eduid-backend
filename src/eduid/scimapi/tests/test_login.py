@@ -1,6 +1,7 @@
 __author__ = "lundberg"
 
 import json
+from http import HTTPStatus
 from uuid import uuid4
 
 from eduid.scimapi.testing import ScimApiTestCase
@@ -38,4 +39,4 @@ class TestLoginResourceNotEnabled(ScimApiTestCase):
 
     def test_get_token(self) -> None:
         response = self.client.post(url="/login", content=json.dumps({"data_owner": "eduid.se"}), headers=self.headers)
-        assert response.status_code == 404
+        assert response.status_code == HTTPStatus.NOT_FOUND

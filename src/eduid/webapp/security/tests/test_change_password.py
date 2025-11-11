@@ -1,5 +1,6 @@
 import json
 from collections.abc import Mapping
+from http import HTTPStatus
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -143,10 +144,10 @@ class ChangePasswordTests(EduidAPITestCase[SecurityApp]):
     def test_app_starts(self) -> None:
         self.assertEqual(self.app.conf.app_name, "testing")
         response1 = self.browser.get("/change-password/suggested-password")
-        assert response1.status_code == 401
+        assert response1.status_code == HTTPStatus.UNAUTHORIZED
         with self.session_cookie(self.browser, self.test_user_eppn) as client:
             response2 = client.get("/change-password/suggested-password")
-            assert response2.status_code == 200  # authenticated response
+            assert response2.status_code == HTTPStatus.OK  # authenticated response
 
     def test_get_suggested_not_logged_in(self) -> None:
         response = self.browser.get("/change-password/suggested-password")

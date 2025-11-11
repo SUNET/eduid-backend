@@ -1,5 +1,6 @@
 import json
 from datetime import date, datetime, timedelta
+from http import HTTPStatus
 from typing import Any
 from unittest.mock import MagicMock, patch
 from urllib.parse import parse_qs, urlparse
@@ -335,7 +336,7 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
             data=self.default_frontend_data(frontend_action="verifyIdentity"),
             eppn=self.test_user.eppn,
         )
-        assert response.status_code == 200
+        assert response.status_code == HTTPStatus.OK
         self._check_success_response(response, type_="POST_FREJA_EID_VERIFY_IDENTITY_SUCCESS")
         assert self.get_response_payload(response)["location"].startswith("https://example.com/op/oidc/authorize")
         query: dict[str, list[str]] = parse_qs(urlparse(self.get_response_payload(response)["location"]).query)
@@ -366,7 +367,7 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
 
         userinfo = self.get_mock_userinfo(issuing_country=country, registration_level=FrejaRegistrationLevel.PLUS)
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
-        assert response.status_code == 302
+        assert response.status_code == HTTPStatus.FOUND
         self._verify_status(
             finish_url=response.headers["Location"],
             frontend_action=FrontendAction(
@@ -412,7 +413,7 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         state, nonce = self._get_state_and_nonce(self.get_response_payload(start_auth_response)["location"])
         userinfo = self.get_mock_userinfo(issuing_country=country)
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
-        assert response.status_code == 302
+        assert response.status_code == HTTPStatus.FOUND
         self._verify_status(
             finish_url=response.headers["Location"],
             frontend_action=FrontendAction(
@@ -451,7 +452,7 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         state, nonce = self._get_state_and_nonce(self.get_response_payload(start_auth_response)["location"])
         userinfo = self.get_mock_userinfo(issuing_country=country, personal_identity_number=None)
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
-        assert response.status_code == 302
+        assert response.status_code == HTTPStatus.FOUND
         self._verify_status(
             finish_url=response.headers["Location"],
             frontend_action=FrontendAction(
@@ -497,7 +498,7 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         state, nonce = self._get_state_and_nonce(self.get_response_payload(start_auth_response)["location"])
         userinfo = self.get_mock_userinfo(issuing_country=country)
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
-        assert response.status_code == 302
+        assert response.status_code == HTTPStatus.FOUND
         self._verify_status(
             finish_url=response.headers["Location"],
             frontend_action=FrontendAction(
@@ -541,7 +542,7 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         state, nonce = self._get_state_and_nonce(self.get_response_payload(start_auth_response)["location"])
         userinfo = self.get_mock_userinfo(issuing_country=country)
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
-        assert response.status_code == 302
+        assert response.status_code == HTTPStatus.FOUND
         self._verify_status(
             finish_url=response.headers["Location"],
             frontend_action=FrontendAction(
@@ -586,7 +587,7 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         )
         state, nonce = self._get_state_and_nonce(self.get_response_payload(start_auth_response)["location"])
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
-        assert response.status_code == 302
+        assert response.status_code == HTTPStatus.FOUND
         self._verify_status(
             finish_url=response.headers["Location"],
             frontend_action=FrontendAction(
@@ -639,7 +640,7 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         state, nonce = self._get_state_and_nonce(self.get_response_payload(start_auth_response)["location"])
         userinfo = self.get_mock_userinfo(issuing_country=country)
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
-        assert response.status_code == 302
+        assert response.status_code == HTTPStatus.FOUND
         self._verify_status(
             finish_url=response.headers["Location"],
             frontend_action=FrontendAction(
@@ -690,7 +691,7 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         state, nonce = self._get_state_and_nonce(self.get_response_payload(start_auth_response)["location"])
         userinfo = self.get_mock_userinfo(issuing_country=country)
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
-        assert response.status_code == 302
+        assert response.status_code == HTTPStatus.FOUND
         self._verify_status(
             finish_url=response.headers["Location"],
             frontend_action=FrontendAction(
@@ -725,7 +726,7 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         state, nonce = self._get_state_and_nonce(self.get_response_payload(start_auth_response)["location"])
         userinfo = self.get_mock_userinfo(issuing_country=country)
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
-        assert response.status_code == 302
+        assert response.status_code == HTTPStatus.FOUND
         self._verify_status(
             finish_url=response.headers["Location"],
             frontend_action=FrontendAction(
@@ -764,7 +765,7 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         yesterday = utc_now() - timedelta(days=1)
         userinfo = self.get_mock_userinfo(issuing_country=country, document_expires=yesterday)
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
-        assert response.status_code == 302
+        assert response.status_code == HTTPStatus.FOUND
         self._verify_status(
             finish_url=response.headers["Location"],
             frontend_action=FrontendAction(
@@ -813,7 +814,7 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
 
         userinfo = self.get_mock_userinfo(issuing_country=country, registration_level=FrejaRegistrationLevel.PLUS)
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
-        assert response.status_code == 302
+        assert response.status_code == HTTPStatus.FOUND
         self._verify_status(
             finish_url=response.headers["Location"],
             frontend_action=FrontendAction(data["frontend_action"]),
@@ -863,7 +864,7 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
 
         userinfo = self.get_mock_userinfo(issuing_country=country, registration_level=FrejaRegistrationLevel.EXTENDED)
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
-        assert response.status_code == 302
+        assert response.status_code == HTTPStatus.FOUND
         self._verify_status(
             finish_url=response.headers["Location"],
             frontend_action=FrontendAction(data["frontend_action"]),
@@ -906,7 +907,7 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
 
         userinfo = self.get_mock_userinfo(issuing_country=country, registration_level=FrejaRegistrationLevel.EXTENDED)
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
-        assert response.status_code == 302
+        assert response.status_code == HTTPStatus.FOUND
         self._verify_status(
             finish_url=response.headers["Location"],
             frontend_action=FrontendAction(data["frontend_action"]),

@@ -3,6 +3,7 @@ import logging
 import re
 from collections.abc import Mapping
 from dataclasses import dataclass, field
+from http import HTTPStatus
 from pathlib import PurePath
 from typing import Any
 from unittest.mock import MagicMock, patch
@@ -221,7 +222,7 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
                 # Send SAML request to SAML endpoint, expect a redirect to the login bundle back
                 path = self._extract_path_from_info(info)
                 resp = browser.get(path)
-                if resp.status_code != 302:
+                if resp.status_code != HTTPStatus.FOUND:
                     return LoginResultAPI(response=resp)
 
                 redirect_loc = self._extract_path_from_response(resp)

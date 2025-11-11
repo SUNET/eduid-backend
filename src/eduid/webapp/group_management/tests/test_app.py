@@ -1,5 +1,6 @@
 import json
 from collections.abc import Mapping
+from http import HTTPStatus
 from typing import Any
 from unittest.mock import MagicMock, patch
 from uuid import UUID
@@ -229,7 +230,7 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
         self.app.scimapi_groupdb.save(self.scim_group1)
 
         response = self.browser.get("/groups")
-        assert response.status_code == 401
+        assert response.status_code == HTTPStatus.UNAUTHORIZED
         with self.session_cookie(self.browser, self.test_user.eppn) as client:
             response = client.get("/groups")
         self._check_success_response(response, type_="GET_GROUP_MANAGEMENT_GROUPS_SUCCESS")
@@ -945,7 +946,7 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
 
     def test_all_invites(self) -> None:
         response = self.browser.get("/invites/all")
-        assert 401 == response.status_code
+        assert HTTPStatus.UNAUTHORIZED == response.status_code
 
         self._invite_setup()
 
@@ -1001,7 +1002,7 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
 
     def test_outgoing_invites(self) -> None:
         response = self.browser.get("/invites/outgoing")
-        assert 401 == response.status_code
+        assert HTTPStatus.UNAUTHORIZED == response.status_code
 
         self._invite_setup()
 
@@ -1025,7 +1026,7 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
 
     def test_incoming_invites(self) -> None:
         response = self.browser.get("/invites/incoming")
-        assert 401 == response.status_code
+        assert HTTPStatus.UNAUTHORIZED == response.status_code
 
         self._invite_setup()
 
@@ -1063,7 +1064,7 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
 
     def test_get_all_data(self) -> None:
         response = self.browser.get("/all-data")
-        assert 401 == response.status_code
+        assert HTTPStatus.UNAUTHORIZED == response.status_code
 
         self._invite_setup()
 

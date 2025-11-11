@@ -1,6 +1,7 @@
 import logging
 from collections.abc import Mapping
 from datetime import datetime
+from http import HTTPStatus
 
 import requests
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
@@ -105,7 +106,7 @@ class LadokClient:
         endpoint = urlappend(self.base_endpoint, "schoolinfo")
 
         response = requests.get(endpoint)
-        if response.status_code != 200:
+        if response.status_code != HTTPStatus.OK:
             logger.error(f"endpoint {endpoint} returned status code: {response.status_code}")
             raise LadokClientException("could not load universities")
 
@@ -143,7 +144,7 @@ class LadokClient:
         endpoint = urlappend(self.base_endpoint, service_path)
 
         response = requests.post(endpoint, json={"data": {"nin": nin}})
-        if response.status_code != 200:
+        if response.status_code != HTTPStatus.OK:
             logger.error(f"endpoint {endpoint} returned status code: {response.status_code}")
             return None
 

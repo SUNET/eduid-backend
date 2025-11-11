@@ -1,5 +1,6 @@
 import json
 from collections.abc import Mapping
+from http import HTTPStatus
 from typing import Any
 
 from jwcrypto import jwt
@@ -47,7 +48,7 @@ class TestMAccApi(MAccApiTestCase):
         headers["Authorization"] = f"Bearer {token}"
 
         response = self.client.post(url="/Users/create", json=self.user1, headers=headers)
-        assert response.status_code == 201
+        assert response.status_code == HTTPStatus.CREATED
 
         content = response.content.decode("utf-8")
         payload = json.loads(content)
@@ -74,7 +75,7 @@ class TestMAccApi(MAccApiTestCase):
         headers["Authorization"] = f"Bearer {token}"
 
         response = self.client.post(url="/Users/create", json=self.user1, headers=headers)
-        assert response.status_code == 201
+        assert response.status_code == HTTPStatus.CREATED
 
         # Create two users in another scope
         token = self._make_bearer_token(claims=self.claims)
@@ -83,11 +84,11 @@ class TestMAccApi(MAccApiTestCase):
         headers["Authorization"] = f"Bearer {token}"
 
         response = self.client.post(url="/Users/create", json=self.user2, headers=headers)
-        assert response.status_code == 201
+        assert response.status_code == HTTPStatus.CREATED
         response = self.client.post(url="/Users/create", json=self.user3, headers=headers)
-        assert response.status_code == 201
+        assert response.status_code == HTTPStatus.CREATED
         response = self.client.get(url="/Users", headers=headers)
-        assert response.status_code == 200
+        assert response.status_code == HTTPStatus.OK
 
         content = response.content.decode("utf-8")
         payload = json.loads(content)
@@ -102,7 +103,7 @@ class TestMAccApi(MAccApiTestCase):
         headers["Authorization"] = f"Bearer {token}"
 
         response = self.client.post(url="/Users/create", json=self.user1, headers=headers)
-        assert response.status_code == 201
+        assert response.status_code == HTTPStatus.CREATED
 
         content = response.content.decode("utf-8")
         payload = json.loads(content)
@@ -124,7 +125,7 @@ class TestMAccApi(MAccApiTestCase):
         headers["Authorization"] = f"Bearer {token}"
 
         response = self.client.post(url="/Users/create", json=self.user1, headers=headers)
-        assert response.status_code == 201
+        assert response.status_code == HTTPStatus.CREATED
 
         content = response.content.decode("utf-8")
         payload = json.loads(content)
@@ -133,7 +134,7 @@ class TestMAccApi(MAccApiTestCase):
         assert self._is_presentable_format(password)
 
         response = self.client.post(url="/Users/reset_password", json={"eppn": eppn}, headers=headers)
-        assert response.status_code == 200
+        assert response.status_code == HTTPStatus.OK
 
         content = response.content.decode("utf-8")
         payload = json.loads(content)
@@ -152,7 +153,7 @@ class TestMAccApi(MAccApiTestCase):
         headers["Authorization"] = f"Bearer {token}"
 
         response = self.client.post(url="/Users/remove", json={"eppn": "made_up"}, headers=headers)
-        assert response.status_code == 200
+        assert response.status_code == HTTPStatus.OK
 
     def test_reset_error(self) -> None:
         token = self._make_bearer_token(claims=self.claims)
@@ -160,4 +161,4 @@ class TestMAccApi(MAccApiTestCase):
         headers = self.headers
         headers["Authorization"] = f"Bearer {token}"
         response = self.client.post(url="/Users/reset_password", json={"eppn": "made_up"}, headers=headers)
-        assert response.status_code == 404
+        assert response.status_code == HTTPStatus.NOT_FOUND

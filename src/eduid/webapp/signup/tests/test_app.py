@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from enum import Enum
+from http import HTTPStatus
 from typing import Any
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
@@ -188,7 +189,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
 
                 logger.info(f"Request to {endpoint} result: {response}")
 
-                if response.status_code != 200:
+                if response.status_code != HTTPStatus.OK:
                     return SignupResult(url=endpoint, reached_state=SignupState.S3_COMPLETE_CAPTCHA, response=response)
 
                 if expect_success:
@@ -256,7 +257,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
 
             logger.info(f"Request to {endpoint} result: {response}")
 
-            if response.status_code != 200:
+            if response.status_code != HTTPStatus.OK:
                 return SignupResult(url=endpoint, reached_state=SignupState.S4_REGISTER_EMAIL, response=response)
 
             if expect_success:
@@ -324,7 +325,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
 
             logger.info(f"Request to {endpoint} result: {response}")
 
-            if response.status_code != 200:
+            if response.status_code != HTTPStatus.OK:
                 return SignupResult(url=endpoint, reached_state=SignupState.S5_VERIFY_EMAIL, response=response)
 
             if expect_success:
@@ -399,7 +400,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
 
             logger.info(f"Request to {endpoint} result: {response}")
 
-            if response.status_code != 200:
+            if response.status_code != HTTPStatus.OK:
                 return SignupResult(url=endpoint, reached_state=SignupState.S2_ACCEPT_TOU, response=response)
 
             if expect_success:
@@ -461,7 +462,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
 
             logger.info(f"Request to {endpoint} result: {response}")
 
-            if response.status_code != 200:
+            if response.status_code != HTTPStatus.OK:
                 return SignupResult(url=endpoint, reached_state=SignupState.S8_GENERATE_PASSWORD, response=response)
 
             if expect_success:
@@ -559,7 +560,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
 
             logger.info(f"Request to {endpoint} result: {response}")
 
-            if response.status_code != 200:
+            if response.status_code != HTTPStatus.OK:
                 return SignupResult(url=endpoint, reached_state=SignupState.S6_CREATE_USER, response=response)
 
             if expect_success:
@@ -665,7 +666,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
 
         logger.info(f"Request to {endpoint} result: {response}")
 
-        if response.status_code != 200:
+        if response.status_code != HTTPStatus.OK:
             return SignupResult(url=endpoint, reached_state=SignupState.S0_GET_INVITE_DATA, response=response)
 
         if expect_success:
@@ -739,7 +740,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
 
             logger.info(f"Request to {endpoint} result: {response}")
 
-            if response.status_code != 200:
+            if response.status_code != HTTPStatus.OK:
                 return SignupResult(url=endpoint, reached_state=SignupState.S1_ACCEPT_INVITE, response=response)
 
             assert response.json is not None, "response.json unexpected None"
@@ -809,7 +810,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
 
         logger.info(f"Request to {endpoint} result: {response}")
 
-        if response.status_code != 200:
+        if response.status_code != HTTPStatus.OK:
             return SignupResult(url=endpoint, reached_state=SignupState.S7_COMPLETE_INVITE, response=response)
 
         if expect_success:

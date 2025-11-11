@@ -5,6 +5,7 @@ import os
 import unittest
 from collections.abc import Mapping
 from datetime import timedelta
+from http import HTTPStatus
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -409,10 +410,10 @@ class BankIDTests(ProofingTests[BankIDApp]):
             response = browser.post("/saml2-acs", data=data)
 
             if expect_saml_error:
-                assert response.status_code == 400
+                assert response.status_code == HTTPStatus.BAD_REQUEST
                 return
 
-            assert response.status_code == 302
+            assert response.status_code == HTTPStatus.FOUND
 
             self._verify_status(
                 browser=browser,

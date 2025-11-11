@@ -2,6 +2,7 @@ import json
 from collections.abc import Mapping
 from datetime import datetime, timedelta
 from enum import unique
+from http import HTTPStatus
 from typing import Any
 
 import requests
@@ -111,7 +112,7 @@ def do_authn_request(proofing_state: OidcProofingState, claims_request: ClaimsRe
         raise RuntimeError("No OIDC client authorization endpoint")
 
     response = requests.post(current_app.oidc_client.authorization_endpoint, data=oidc_args)
-    if response.status_code == 200:
+    if response.status_code == HTTPStatus.OK:
         current_app.logger.debug(
             "Authentication request delivered to provider {!s}".format(
                 current_app.conf.provider_configuration_info["issuer"]
