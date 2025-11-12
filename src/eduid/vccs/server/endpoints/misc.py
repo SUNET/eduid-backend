@@ -5,6 +5,8 @@ from pydantic.main import BaseModel
 
 misc_router = APIRouter()
 
+HMAC_SHA1_LENGTH = 20
+
 
 @unique
 class Status(StrEnum):
@@ -25,7 +27,7 @@ async def status(request: Request) -> StatusResponse:
     res = StatusResponse(status=Status.OK)
     try:
         hmac = await request.app.state.hasher.hmac_sha1(key_handle=_test_keyhandle, data=b"\0")
-        if len(hmac) >= 20:  # length of HMAC-SHA-1
+        if len(hmac) >= HMAC_SHA1_LENGTH:  # length of HMAC-SHA-1
             res.add_creds_hmac = Status.OK
         else:
             res.add_creds_hmac = Status.FAIL

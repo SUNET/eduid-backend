@@ -147,7 +147,6 @@ def accept_group_invitation(scim_user: ScimApiUser, scim_group: ScimApiGroup, in
             current_app.logger.error(f"Failed to save group with scim_id: {invite.group_scim_id}")
             raise EduIDDBError("Failed to save group")
         current_app.logger.info(f"Added user as {invite.role.value} to group with scim_id: {invite.group_scim_id}")
-    return None
 
 
 def remove_user_from_group(scim_user: ScimApiUser, scim_group: ScimApiGroup, role: GroupRole) -> None:
@@ -172,7 +171,6 @@ def remove_user_from_group(scim_user: ScimApiUser, scim_group: ScimApiGroup, rol
             f"Removed user as with scim_id {scim_user.scim_id} as {role.value} "
             f"from group with scim_id {scim_group.scim_id}"
         )
-    return None
 
 
 def get_outgoing_invites(user: User) -> list[dict[str, Any]]:

@@ -22,10 +22,13 @@ select = [
 ]
 
 ignore = [
-  "E501",
-  "PLR",
-  "PLC0415",
+  "E501",     # length of lines, fixed during formatting
+  "PLR09",    # rule set for complexity checks
+  "PLC0415",  # non top level imports
 ]
 
 [lint.flake8-annotations]
 allow-star-arg-any = true
+
+[lint.per-file-ignores]
+"**/test_*.py" = ["PLR2004"]

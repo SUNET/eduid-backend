@@ -65,6 +65,7 @@ import logging
 import pprint
 from collections.abc import Sequence
 from dataclasses import dataclass
+from http import HTTPStatus
 from typing import Any, Self
 
 import user_agents
@@ -94,7 +95,7 @@ class HttpArgs:
     @classmethod
     def from_pysaml2_dict(cls: type[Self], http_args: dict[str, Any]) -> Self:
         # Parse the parts of http_args we know how to parse, and then warn about any remains.
-        if "status" in http_args and http_args["status"] != 200:
+        if "status" in http_args and http_args["status"] != HTTPStatus.OK:
             logger.warning(f"Ignoring status in http_args: {http_args['status']}")
         method = http_args.pop("method")
         url = http_args.pop("url")

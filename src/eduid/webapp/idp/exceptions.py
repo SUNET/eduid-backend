@@ -1,3 +1,4 @@
+from http import HTTPStatus
 from typing import TYPE_CHECKING
 
 from flask import render_template, request
@@ -65,7 +66,7 @@ def _get_error_template(status_code: int | None, message: str | None) -> str:
     res = None
     if status_code is not None:
         res = pages.get(status_code)
-    if status_code == 403 and message is not None:
+    if status_code == HTTPStatus.FORBIDDEN and message is not None:
         if "CREDENTIAL_EXPIRED" in message:
             res = "credential_expired.jinja2"
         elif "SWAMID_MFA_REQUIRED" in message:

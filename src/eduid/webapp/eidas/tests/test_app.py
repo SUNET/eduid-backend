@@ -4,6 +4,7 @@ import logging
 import os
 from collections.abc import Mapping
 from datetime import timedelta
+from http import HTTPStatus
 from typing import Any
 from unittest import TestCase
 from unittest.mock import MagicMock, patch
@@ -540,11 +541,11 @@ class EidasTests(ProofingTests[EidasApp]):
             response = browser.post("/saml2-acs", data=data)
 
             if expect_saml_error:
-                assert response.status_code == 302
+                assert response.status_code == HTTPStatus.FOUND
                 assert response.location.startswith("http://localhost/errors?code=")
                 return
 
-            assert response.status_code == 302
+            assert response.status_code == HTTPStatus.FOUND
 
             self._verify_finish_url(
                 expected_finish_url=expected_finish_url,
@@ -735,7 +736,7 @@ class EidasTests(ProofingTests[EidasApp]):
                 "frontend_action": FrontendAction.VERIFY_CREDENTIAL.value,
             }
             response = browser.post("/verify-credential", json=data)
-            assert response.status_code == 200
+            assert response.status_code == HTTPStatus.OK
             self._check_error_response(
                 response=response,
                 payload={"credential_description": "unit test U2F token"},

@@ -15,6 +15,9 @@ __author__ = "lundberg"
 logger = logging.getLogger(__name__)
 
 
+COORDINATION_NUMBER_OFFSET = 60
+
+
 class IdentityType(StrEnum):
     NIN = "nin"
     EIDAS = "eidas"
@@ -246,7 +249,6 @@ class IdentityList(VerifiedElementList[IdentityElement]):
     def replace(self, element: IdentityElement) -> None:
         self.remove(key=element.key)
         self.add(element=element)
-        return None
 
     @property
     def is_verified(self) -> bool:
@@ -297,8 +299,8 @@ class IdentityList(VerifiedElementList[IdentityElement]):
                 except ValueError:
                     # the nin might be a coordination number
                     day = int(self.nin.number[6:8])
-                    if day >= 61:  # coordination number day is 61-91
-                        day = day - 60
+                    if day > COORDINATION_NUMBER_OFFSET:  # coordination number day is 61-91
+                        day = day - COORDINATION_NUMBER_OFFSET
                     return datetime.strptime(self.nin.number[:6] + str(day).zfill(2), "%Y%m%d")
             except ValueError:
                 logger.exception("Unable to parse user nin to date of birth")

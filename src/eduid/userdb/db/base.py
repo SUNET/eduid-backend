@@ -92,6 +92,8 @@ def _format_mongodb_uri(parsed_uri: Mapping[str, Any]) -> str:
 
     :return: New URI
     """
+    MONGODB_DEFAULT_PORT = 27017
+
     user_pass = ""
     if parsed_uri.get("username") and parsed_uri.get("password"):
         user_pass = "{username!s}:{password!s}@".format(**parsed_uri)
@@ -102,7 +104,7 @@ def _format_mongodb_uri(parsed_uri: Mapping[str, Any]) -> str:
         if ":" in host and not host.endswith("]"):
             # IPv6 address without brackets
             formatted_host = f"[{host!s}]"
-        if port == 27017:
+        if port == MONGODB_DEFAULT_PORT:
             _nodes.append(formatted_host)
         else:
             _nodes.append(f"{formatted_host!s}:{port!s}")

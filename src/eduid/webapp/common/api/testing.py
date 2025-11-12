@@ -342,7 +342,7 @@ class EduidAPITestCase[TTestAppVar: EduIDBaseApp](CommonTestCase):
             credentials_used = [ElementKey("mock_credential_one"), ElementKey("mock_credential_two")]
 
         accr = None
-        if len(credentials_used) >= 2:
+        if len(credentials_used) >= 2:  # noqa: PLR2004
             accr = EduidAuthnContextClass.REFEDS_MFA
 
         with self.session_cookie(self.browser, eppn) as client:
@@ -442,7 +442,7 @@ class EduidAPITestCase[TTestAppVar: EduIDBaseApp](CommonTestCase):
         Check the message returned from an eduID webapp endpoint.
         """
         if response.json and response.json.get("error") is True:
-            assert False is True, f"FluxResponse has error set to True: {response.json}"
+            assert False, f"FluxResponse has error set to True: {response.json}"
         self._check_api_response(response, 200, type_=type_, message=msg, payload=payload)
 
     @staticmethod

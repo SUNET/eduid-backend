@@ -245,7 +245,6 @@ class SSOSessionCache(BaseDB):
             f"Saved SSO session {session} in the db: "
             f"matched={result.matched_count}, modified={result.modified_count}, upserted_id={result.upserted_id}"
         )
-        return None
 
     def get_session(self, sid: SSOSessionId) -> SSOSession | None:
         """

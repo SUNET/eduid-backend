@@ -3,6 +3,7 @@ import datetime
 import json
 from collections.abc import Callable, Iterable, Mapping
 from datetime import timedelta
+from http import HTTPStatus
 from typing import Any
 from unittest.mock import MagicMock, Mock, patch
 from urllib.parse import quote_plus
@@ -571,7 +572,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
                     data = {k: v for k, v in data.items() if v is not None}
 
                 response = client.post(f"{endpoint}", data=json.dumps(data), content_type=self.content_type_json)
-                if response.status_code != 200:
+                if response.status_code != HTTPStatus.OK:
                     return response
 
                 if expect_success:

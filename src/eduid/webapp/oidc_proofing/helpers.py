@@ -2,6 +2,7 @@ import json
 from collections.abc import Mapping
 from datetime import datetime, timedelta
 from enum import unique
+from http import HTTPStatus
 from typing import Any
 
 import requests
@@ -111,7 +112,7 @@ def do_authn_request(proofing_state: OidcProofingState, claims_request: ClaimsRe
         raise RuntimeError("No OIDC client authorization endpoint")
 
     response = requests.post(current_app.oidc_client.authorization_endpoint, data=oidc_args)
-    if response.status_code == 200:
+    if response.status_code == HTTPStatus.OK:
         current_app.logger.debug(
             "Authentication request delivered to provider {!s}".format(
                 current_app.conf.provider_configuration_info["issuer"]
@@ -156,7 +157,8 @@ def handle_seleg_userinfo(user: ProofingUser, proofing_state: OidcProofingState,
     current_app.logger.info(f"Verifying NIN from seleg for user {user}")
     number = userinfo["identity"]
     metadata = userinfo.get("metadata", {})
-    if metadata.get("score", 0) == 100:
+    ACCEPTED_SCORE = 100
+    if metadata.get("score", 0) == ACCEPTED_SCORE:
         if not number_match_proofing(user, proofing_state, number):
             current_app.logger.warning(
                 "Proofing state number did not match number in userinfo. Using number from userinfo."

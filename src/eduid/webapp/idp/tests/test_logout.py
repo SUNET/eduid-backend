@@ -1,6 +1,7 @@
 import logging
 import os
 from enum import Enum
+from http import HTTPStatus
 from unittest.mock import patch
 from urllib.parse import unquote
 
@@ -163,12 +164,12 @@ class IdPTestLogoutAPI(IdPAPITests):
 
         if http_info["method"] == "POST":
             resp = self.browser.post(path, headers=headers, data=http_info["data"])
-            if resp.status_code != 200:
+            if resp.status_code != HTTPStatus.OK:
                 return LogoutState.S0_REQUEST_FAILED, resp
         elif http_info["method"] == "GET":
             path = self._extract_path_from_info(http_info)
             resp = self.browser.get(path)
-            if resp.status_code != 302:
+            if resp.status_code != HTTPStatus.FOUND:
                 return LogoutState.S0_REQUEST_FAILED, resp
         else:
             raise RuntimeError("Unknown HTTP method")

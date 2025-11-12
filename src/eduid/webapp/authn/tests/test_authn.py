@@ -4,6 +4,7 @@ import logging
 import os
 from collections.abc import Mapping
 from dataclasses import dataclass
+from http import HTTPStatus
 from typing import Any
 
 from flask import Blueprint, Response
@@ -148,7 +149,7 @@ class AuthnAPITestBase(EduidAPITestCase):
                 # save the authn_data for further checking below
                 authn = sess.authn.sp.authns[authn_ref]
 
-        assert resp.status_code == 200
+        assert resp.status_code == HTTPStatus.OK
         payload = self.get_response_payload(resp)
         assert payload["location"].startswith(self.idp_url)
         logger.debug(f"Test got the expected redirect to the IdP {self.idp_url}")
@@ -210,7 +211,7 @@ class AuthnAPITestBase(EduidAPITestCase):
 
             resp = browser.post("/saml2-acs", data=data)
 
-            assert resp.status_code == 302
+            assert resp.status_code == HTTPStatus.FOUND
             assert resp.location == self.app.conf.frontend_action_authn_parameters[frontend_action].finish_url.format(
                 app_name="authn", authn_id=authn_ref
             )

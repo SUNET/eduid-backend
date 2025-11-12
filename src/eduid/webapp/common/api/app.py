@@ -188,7 +188,6 @@ def init_status_views(app: EduIDBaseApp, config: EduIDBaseAppConfig) -> None:
     # Register status paths for unauthorized requests
     status_paths = ["/status/healthy", "/status/sanity-check"]
     no_authn_views(config, status_paths)
-    return None
 
 
 def init_app_profiling(app: WSGIApplication, config: EduIDBaseAppConfig) -> ProfilerMiddleware:

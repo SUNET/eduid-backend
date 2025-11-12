@@ -10,6 +10,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import StrEnum
+from http import HTTPStatus
 from typing import Any
 
 from bson import ObjectId
@@ -28,6 +29,8 @@ from eduid.webapp.common.authn import get_vccs_client
 from eduid.webapp.idp.settings.common import IdPConfig
 
 logger = logging.getLogger(__name__)
+
+OBJECT_ID_STRING_LENGTH = 24
 
 
 class ExternalAuthnData(BaseModel):
@@ -80,7 +83,7 @@ class UsedCredential(BaseModel):
 
     def __str__(self) -> str:
         key = str(self.credential_id)
-        if len(key) > 24:
+        if len(key) > OBJECT_ID_STRING_LENGTH:
             # 24 is length of object-id, webauthn credentials are much longer
             key = key[:21] + "..."
         return (
@@ -204,7 +207,7 @@ class IdPAuthn:
                     self.log_authn(user, success=[cred.credential_id], failure=[])
                     return cred
             except VCCSClientHTTPError as exc:
-                if exc.http_code == 500:
+                if exc.http_code == HTTPStatus.INTERNAL_SERVER_ERROR:
                     logger.debug(f"VCCS credential {cred.credential_id} might be revoked")
                     continue
         logger.debug(f"VCCS username-password authentication FAILED for user {user}")
@@ -306,7 +309,6 @@ class AuthnInfoStore:
             self.collection.update_one(
                 filter={"_id": this}, update={"$set": {"_id": this, "success_ts": ts}}, upsert=True
             )
-        return None
 
     def update_user(
         self, user_id: ObjectId, success: Sequence[str], failure: Sequence[str], ts: datetime | None = None
@@ -343,7 +345,6 @@ class AuthnInfoStore:
             upsert=True,
             return_document=ReturnDocument.AFTER,
         )
-        return None
 
     def unlock_user(self, user_id: ObjectId, fail_count: int = 0, ts: datetime | None = None) -> None:
         """
@@ -364,7 +365,6 @@ class AuthnInfoStore:
             upsert=True,
             return_document=ReturnDocument.AFTER,
         )
-        return None
 
     def get_user_authn_info(self, user: IdPUser) -> UserAuthnInfo:
         """Load stored Authn information for user."""

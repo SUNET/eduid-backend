@@ -1,5 +1,6 @@
 import logging
 from collections.abc import Mapping
+from http import HTTPStatus
 from typing import Any, NoReturn
 from urllib.parse import unquote
 
@@ -202,7 +203,7 @@ class InputsTests(EduidAPITestCase):
             with client.session_transaction() as sess:
                 data = {"test_data": "<script>alert(42)</script>", "csrf_token": sess.get_csrf_token()}
             response = client.post(url, json=data)
-            assert response.status_code == 200
+            assert response.status_code == HTTPStatus.OK
             assert b"<script>" not in response.data
 
     def test_post_json_script_not_validated(self) -> None:

@@ -18,12 +18,12 @@ except ImportError:
 import satosa.context
 import satosa.internal
 import satosa.response
-import satosa.util as util
 from saml2.client import Saml2Client
 from saml2.config import SPConfig
 from saml2.mdstore import MetaData
 from saml2.metadata import create_metadata_string
 from saml2.saml import NAMEID_FORMAT_UNSPECIFIED, NameID, Subject
+from satosa import util
 from satosa.attribute_mapping import AttributeMapper
 from satosa.backends.saml2 import SAMLBackend
 from satosa.context import Context

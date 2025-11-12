@@ -24,6 +24,8 @@ __author__ = "lundberg"
 
 logger = logging.getLogger(__name__)
 
+MAX_INIT_TRIES = 10
+
 
 class MongoTemporaryInstanceReplicaSet(MongoTemporaryInstance):
     rs_initialized = False
@@ -141,7 +143,7 @@ class EduidQueueTestCase(TestCase):
             except pymongo.errors.NotPrimaryError as e:
                 db_init_try += 1
                 time.sleep(db_init_try)
-                if db_init_try >= 10:
+                if db_init_try >= MAX_INIT_TRIES:
                     raise e
                 continue
 
@@ -169,7 +171,7 @@ class QueueAsyncioTest(EduidQueueTestCase, IsolatedAsyncioTestCase):
             except pymongo.errors.NotPrimaryError as e:
                 db_init_try += 1
                 await asyncio.sleep(db_init_try)
-                if db_init_try >= 10:
+                if db_init_try >= MAX_INIT_TRIES:
                     raise e
                 continue
 

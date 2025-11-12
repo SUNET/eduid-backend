@@ -73,7 +73,7 @@ class response(ResponseMicroService):
 
         logger.info(f"Requested (by SP) NameID type from state: {subject_type}")
 
-        if subject_type == NAMEID_FORMAT_TRANSIENT or subject_type == NAMEID_FORMAT_UNSPECIFIED:
+        if subject_type in (NAMEID_FORMAT_TRANSIENT, NAMEID_FORMAT_UNSPECIFIED):
             data.subject_id = str(uuid.uuid1())
             data.subject_type = NAMEID_FORMAT_TRANSIENT
         elif subject_type == NAMEID_FORMAT_PERSISTENT:

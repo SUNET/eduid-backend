@@ -125,10 +125,9 @@ class SessionManager:
 
         if new:
             logger.debug(f"Created new session {res}")
-        else:
-            if not res.load_session():
-                logger.warning(f"No existing session found for {res}")
-                raise KeyError("Session not found using provided cookie")
+        elif not res.load_session():
+            logger.warning(f"No existing session found for {res}")
+            raise KeyError("Session not found using provided cookie")
 
         return res
 

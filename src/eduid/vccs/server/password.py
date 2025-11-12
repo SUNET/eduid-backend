@@ -7,6 +7,8 @@ from eduid.vccs.server.factors import RequestFactor
 from eduid.vccs.server.hasher import VCCSYHSMHasher
 from eduid.vccs.server.log import audit_log
 
+MAX_T1_LENGTH = 255
+
 
 async def authenticate_password(
     cred: PasswordCredential, factor: RequestFactor, user_id: str, hasher: VCCSYHSMHasher, kdf: NDNKDF
@@ -52,7 +54,7 @@ async def calculate_cred_hash(
             _bthis = bytes(this, "ascii")
         else:
             _bthis = this
-        if len(this) > 255:
+        if len(this) > MAX_T1_LENGTH:
             raise RuntimeError(f"Too long T1 component ({repr(this[:10])}... length {len(this)})")
         # length-encode each part, to avoid having a designated delimiter that
         # could potentially be misused

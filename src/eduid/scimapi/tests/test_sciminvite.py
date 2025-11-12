@@ -5,6 +5,7 @@ from collections.abc import Mapping, MutableMapping
 from copy import copy
 from dataclasses import asdict
 from datetime import datetime, timedelta
+from http import HTTPStatus
 from typing import Any
 
 from bson import ObjectId
@@ -516,7 +517,7 @@ class TestInviteResource(ScimApiTestCase):
         self.headers["IF-MATCH"] = make_etag(db_invite.version)
 
         response = self.client.put(url=f"/Invites/{db_invite.scim_id}", json=update_req, headers=self.headers)
-        assert response.status_code == 200
+        assert response.status_code == HTTPStatus.OK
 
         assert self.invitedb
         updated_invite = self.invitedb.get_invite_by_scim_id(str(db_invite.scim_id))

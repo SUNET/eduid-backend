@@ -93,9 +93,8 @@ def device2_state_to_flux_payload(state: OtherDevice, now: datetime) -> Mapping[
     if state.state == OtherDeviceState.AUTHENTICATED:
         # Be very explicit about when response_code is returned.
         payload["response_code"] = state.device2.response_code
-    else:
+    elif "response_code" in payload:
         # This really shouldn't happen, but better ensure it like this.
-        if "response_code" in payload:
-            logger.error(f"Response code found in use other device state {state.state} payload - removing")
-            del payload["response_code"]
+        logger.error(f"Response code found in use other device state {state.state} payload - removing")
+        del payload["response_code"]
     return payload

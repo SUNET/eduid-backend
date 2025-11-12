@@ -72,8 +72,6 @@ def register_template_funcs(app: SupportApp) -> None:
             static_url = urlappend(static_url, version)
         return urlappend(static_url, f)
 
-    return None
-
 
 def init_exception_handlers(app: Flask) -> Flask:
     # Init error handler for raised exceptions

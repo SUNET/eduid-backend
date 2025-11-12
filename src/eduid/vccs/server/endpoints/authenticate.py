@@ -83,13 +83,12 @@ async def authenticate(req: Request, request: AuthenticateRequestV1) -> Authenti
                 audit_log(
                     f"result=FAIL, factor=password, credential_id={cred.credential_id}, status={cred.status.value}"
                 )
+            elif cred.type == CredType.PASSWORD:
+                this_result = await authenticate_password(
+                    cred, factor, request.user_id, req.app.state.hasher, req.app.state.kdf
+                )
             else:
-                if cred.type == CredType.PASSWORD:
-                    this_result = await authenticate_password(
-                        cred, factor, request.user_id, req.app.state.hasher, req.app.state.kdf
-                    )
-                else:
-                    req.app.logger.warning(f"Unsupported credential type: {repr(cred)}")
+                req.app.logger.warning(f"Unsupported credential type: {repr(cred)}")
         else:
             req.app.logger.warning(f"Credential not found: {factor.credential_id}")
 

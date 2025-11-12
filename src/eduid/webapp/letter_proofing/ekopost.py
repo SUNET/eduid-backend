@@ -1,5 +1,6 @@
 import base64
 import json
+from http import HTTPStatus
 from io import BytesIO
 
 from hammock import Hammock
@@ -77,7 +78,7 @@ class Ekopost:
 
         response = self.ekopost_api.campaigns.POST(data=campaign_data, headers={"Content-Type": "application/json"})
 
-        if response.status_code == 200:
+        if response.status_code == HTTPStatus.OK:
             return response.json()
 
         raise EkopostException(f"Ekopost exception: {response.status_code!s} {response.text!s}")
@@ -103,7 +104,7 @@ class Ekopost:
             data=envelope_data, headers={"Content-Type": "application/json"}
         )
 
-        if response.status_code == 200:
+        if response.status_code == HTTPStatus.OK:
             return response.json()
 
         raise EkopostException(f"Ekopost exception: {response.status_code!s} {response.text!s}")
@@ -142,7 +143,7 @@ class Ekopost:
             .content.POST(data=content_data, headers={"Content-Type": "application/json"})
         )
 
-        if response.status_code == 200:
+        if response.status_code == HTTPStatus.OK:
             return response.json()
 
         raise EkopostException(f"Ekopost exception: {response.status_code!s} {response.text!s}")
@@ -159,7 +160,7 @@ class Ekopost:
             .close.POST(headers={"Content-Type": "application/json"})
         )
 
-        if response.status_code == 200:
+        if response.status_code == HTTPStatus.OK:
             return response.json()
 
         raise EkopostException(f"Ekopost exception: {response.status_code!s} {response.text!s}")
@@ -173,7 +174,7 @@ class Ekopost:
         """
         response = self.ekopost_api.campaigns(campaign_id).close.POST(headers={"Content-Type": "application/json"})
 
-        if response.status_code == 200:
+        if response.status_code == HTTPStatus.OK:
             return response.json()
 
         raise EkopostException(f"Ekopost exception: {response.status_code!s} {response.text!s}")

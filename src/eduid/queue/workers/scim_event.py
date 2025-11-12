@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import sys
 from collections.abc import Mapping
 from typing import Any, cast
 
@@ -64,7 +65,7 @@ def init_scim_event_worker(
 
 def start_worker() -> None:
     worker = init_scim_event_worker()
-    exit(asyncio.run(worker.run()))
+    sys.exit(asyncio.run(worker.run()))
 
 
 if __name__ == "__main__":

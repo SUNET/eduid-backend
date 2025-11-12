@@ -1,4 +1,5 @@
 from collections.abc import Mapping
+from http import HTTPStatus
 from typing import Any
 
 from eduid.common.config.base import FrontendAction
@@ -42,7 +43,7 @@ class SupportAppTests(EduidAPITestCase):
     def test_no_authentication(self) -> None:
         # Unauthenticated request
         resp = self.browser.get("/search-form")
-        assert resp.status_code == 200
+        assert resp.status_code == HTTPStatus.OK
         assert resp.headers.get("HX-Redirect") == self.app.conf.authn_service_url_login
 
     def test_authentication_no_mfa(self) -> None:
@@ -50,7 +51,7 @@ class SupportAppTests(EduidAPITestCase):
         self.set_authn_action(eppn=self.test_user_eppn, frontend_action=FrontendAction.LOGIN, mock_mfa=False)
         with self.session_cookie(self.browser, self.test_user_eppn) as client:
             resp = client.get("/search-form")
-            assert resp.status_code == 200
+            assert resp.status_code == HTTPStatus.OK
             assert resp.headers.get("HX-Redirect") == self.app.conf.authn_service_url_login
 
     def test_authentication_mfa(self) -> None:
@@ -58,7 +59,7 @@ class SupportAppTests(EduidAPITestCase):
         self.set_authn_action(eppn=self.test_user_eppn, frontend_action=FrontendAction.LOGIN, mock_mfa=True)
         with self.session_cookie(self.browser, self.test_user_eppn) as client:
             resp = client.get("/search-form")
-        assert resp.status_code == 200
+        assert resp.status_code == HTTPStatus.OK
         assert resp.headers.get("HX-Redirect") is None
 
     # Search
