@@ -83,6 +83,15 @@ class Captcha(SessionNSBase):
     bad_attempts: int = 0
 
 
+class EmailVerification(SessionNSBase):
+    completed: bool = False
+    address: str | None = None
+    verification_code: str | None = None
+    bad_attempts: int = 0
+    sent_at: datetime | None = None
+    reference: str | None = None
+
+
 WebauthnState = NewType("WebauthnState", dict[str, Any])
 
 
@@ -113,13 +122,7 @@ class TimestampedNS(SessionNSBase):
 
 class ResetPasswordNS(SessionNSBase):
     generated_password_hash: str | None = None
-    # XXX the keys below are not in use yet. They are set in eduid.webapp.common,
-    # in a way that the security app understands. Once the (reset|change)
-    # password views are removed from the security app, we will be able to
-    # start using them. The session key reauthn-for-chpass is in the same
-    # situation.
-    extrasec_u2f_challenge: str | None = None
-    extrasec_webauthn_state: str | None = None
+    email: EmailVerification = Field(default_factory=EmailVerification)
     captcha: Captcha = Field(default_factory=Captcha)
 
 
@@ -140,15 +143,6 @@ class SecurityNS(SessionNSBase):
 class Name(SessionNSBase):
     given_name: str | None = None
     surname: str | None = None
-
-
-class EmailVerification(SessionNSBase):
-    completed: bool = False
-    address: str | None = None
-    verification_code: str | None = None
-    bad_attempts: int = 0
-    sent_at: datetime | None = None
-    reference: str | None = None
 
 
 class Invite(SessionNSBase):
