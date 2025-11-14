@@ -109,8 +109,29 @@ class EduidTemporaryInstance(ABC):
     def shutdown(self) -> None:
         logger.debug(f"{self} output at shutdown:\n{self.output}")
         if self._process:
-            self._process.terminate()
-            self._process.wait()
-        self._logfile.close()
+            # Get container name from command
+            container_name = None
+            for arg in self.command:
+                if arg.startswith("test_"):
+                    container_name = arg
+                    break
+
+            if container_name:
+                # Stop the container - docker stop handles graceful shutdown with SIGTERM
+                subprocess.run(["docker", "stop", container_name], check=False, capture_output=True)
+
+                # Wait for the docker run process to exit (it should exit when container stops)
+                try:
+                    self._process.wait(timeout=10)
+                except subprocess.TimeoutExpired:
+                    logger.warning("Docker run process didn't exit, terminating it")
+                    self._process.terminate()
+                    self._process.wait()
+
+        # Flush the logfile but don't close it - closing it causes "ValueError: I/O operation on closed file"
+        # errors when logging handlers try to write after shutdown is called
+        if hasattr(self, "_logfile") and self._logfile and not self._logfile.closed:
+            self._logfile.flush()
+
         if "tmp" in self._tmpdir:
             shutil.rmtree(self._tmpdir, ignore_errors=True)

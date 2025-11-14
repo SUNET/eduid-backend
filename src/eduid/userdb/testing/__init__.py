@@ -63,7 +63,7 @@ class MongoTemporaryInstance(EduidTemporaryInstance):
 
     def shutdown(self) -> None:
         if self._conn:
-            logger.info(f"Closing connection {self._conn}")
+            # close connection without logging as logging handlers may have been closed
             self._conn.close()
             self._conn = None
         super().shutdown()
@@ -131,6 +131,10 @@ class MongoTestCase(unittest.TestCase):
                 self.amdb.save(user)
 
     def _init_logging(self) -> None:
+        # Only initialize logging once to avoid creating multiple handlers
+        # that reference pytest's captured streams which get closed during test execution
+        if logging.getLogger().handlers:
+            return
         local_context = LocalContext(
             app_debug=True,
             app_name="testing",
@@ -198,6 +202,10 @@ class AsyncMongoTestCase(unittest.IsolatedAsyncioTestCase):
             self.settings.update(mongo_settings)
 
     def _init_logging(self) -> None:
+        # Only initialize logging once to avoid creating multiple handlers
+        # that reference pytest's captured streams which get closed during test execution
+        if logging.getLogger().handlers:
+            return
         local_context = LocalContext(
             app_debug=True,
             app_name="testing",
