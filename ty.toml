@@ -1,7 +1,6 @@
 # Trying out new typechecker 'ty' via 'uvx ty check' i.e. not installing
 [rules]
 call-non-callable = "ignore"
-deprecated = "ignore"
 invalid-argument-type = "ignore"
 invalid-assignment = "ignore"
 invalid-key = "ignore"
