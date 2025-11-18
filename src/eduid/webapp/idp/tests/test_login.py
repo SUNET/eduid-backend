@@ -5,7 +5,7 @@ from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
 from bson import ObjectId
-from pydantic import parse_obj_as
+from pydantic import TypeAdapter
 from requests import RequestException
 from saml2.client import Saml2Client
 
@@ -27,6 +27,8 @@ from eduid.workers.am import AmCelerySingleton
 logger = logging.getLogger(__name__)
 
 HERE = os.path.abspath(os.path.dirname(__file__))
+
+http_url_string_adapter = TypeAdapter(HttpUrlStr)
 
 
 class IdPTestLoginAPI(IdPAPITests):
@@ -611,7 +613,7 @@ class IdPTestLoginAPI(IdPAPITests):
 
         # enable geo statistics
         self.app.conf.geo_statistics_feature_enabled = True
-        self.app.conf.geo_statistics_url = parse_obj_as(HttpUrlStr, "http://eduid.docker")
+        self.app.conf.geo_statistics_url = http_url_string_adapter.validate_python("http://eduid.docker")
 
         # Patch the VCCSClient, so we do not need a vccs server
         with patch.object(VCCSClient, "authenticate") as mock_vccs:
@@ -650,7 +652,7 @@ class IdPTestLoginAPI(IdPAPITests):
 
         # enable geo statistics
         self.app.conf.geo_statistics_feature_enabled = True
-        self.app.conf.geo_statistics_url = parse_obj_as(HttpUrlStr, "http://eduid.docker")
+        self.app.conf.geo_statistics_url = http_url_string_adapter.validate_python("http://eduid.docker")
 
         # Patch the VCCSClient, so we do not need a vccs server
         with patch.object(VCCSClient, "authenticate") as mock_vccs:
@@ -883,7 +885,7 @@ class IdPTestLoginAPIManagedAccounts(IdPAPITests):
     def test_geo_statistics_success(self) -> None:
         # enable geo statistics
         self.app.conf.geo_statistics_feature_enabled = True
-        self.app.conf.geo_statistics_url = parse_obj_as(HttpUrlStr, "http://eduid.docker")
+        self.app.conf.geo_statistics_url = http_url_string_adapter.validate_python("http://eduid.docker")
 
         # Patch the VCCSClient, so we do not need a vccs server
         with patch.object(VCCSClient, "authenticate") as mock_vccs:
@@ -919,7 +921,7 @@ class IdPTestLoginAPIManagedAccounts(IdPAPITests):
     def test_geo_statistics_fail(self) -> None:
         # enable geo statistics
         self.app.conf.geo_statistics_feature_enabled = True
-        self.app.conf.geo_statistics_url = parse_obj_as(HttpUrlStr, "http://eduid.docker")
+        self.app.conf.geo_statistics_url = http_url_string_adapter.validate_python("http://eduid.docker")
 
         # Patch the VCCSClient, so we do not need a vccs server
         with patch.object(VCCSClient, "authenticate") as mock_vccs:
