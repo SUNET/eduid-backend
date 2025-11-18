@@ -216,7 +216,7 @@ def saml_logout(sp_config: SPConfig, user: User, location: str) -> WerkzeugRespo
         logger.info(f"Redirection user to {location} for logout")
         return redirect(location)
 
-    # Since we have a subject_id, call the IdP using SOAP to do a global logout
+    # Since we have a subject_id, call the IdP to do a global logout
 
     state = StateCache(session.authn.sp.pysaml2_dicts)  # _saml2_state in the session
     identity = IdentityCache(session.authn.sp.pysaml2_dicts)  # _saml2_identities in the session
