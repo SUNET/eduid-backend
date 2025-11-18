@@ -8,6 +8,7 @@ from typing import Any, cast
 
 from bson import ObjectId
 from loguru import logger
+from pydantic import ConfigDict
 from pydantic.dataclasses import dataclass
 from pymongo.errors import DuplicateKeyError
 
@@ -35,12 +36,7 @@ class CredType(StrEnum):
     REVOKED = "revoked"
 
 
-class CredentialPydanticConfig:
-    # only check that obj_id is an instance of ObjectId
-    arbitrary_types_allowed = True
-
-
-@dataclass(config=CredentialPydanticConfig)
+@dataclass(config=ConfigDict(arbitrary_types_allowed=True))
 class Credential:
     credential_id: str
     status: Status
@@ -102,7 +98,7 @@ class Credential:
         )
 
 
-@dataclass(config=CredentialPydanticConfig)
+@dataclass(config=ConfigDict(arbitrary_types_allowed=True))
 class _PasswordCredentialRequired:
     derived_key: str
     iterations: int
@@ -112,7 +108,7 @@ class _PasswordCredentialRequired:
     version: Version
 
 
-@dataclass(config=CredentialPydanticConfig)
+@dataclass(config=ConfigDict(arbitrary_types_allowed=True))
 class PasswordCredential(Credential, _PasswordCredentialRequired):
     @classmethod
     def from_dict(cls: type[PasswordCredential], data: Mapping[str, Any]) -> PasswordCredential:
@@ -126,7 +122,7 @@ class _RevokedCredentialRequired:
     reference: str
 
 
-@dataclass(config=CredentialPydanticConfig)
+@dataclass(config=ConfigDict(arbitrary_types_allowed=True))
 class RevokedCredential(Credential, _RevokedCredentialRequired):
     @classmethod
     def from_dict(cls: type[RevokedCredential], data: Mapping[str, Any]) -> RevokedCredential:
