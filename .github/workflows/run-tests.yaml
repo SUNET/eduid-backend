@@ -57,6 +57,14 @@ jobs:
         with:
           python-version: "3.13"
 
+      - name: Install packages
+        run: |
+          sudo apt update
+          # pysaml2 needs to find an xmlsec1 binary
+          # PIL/EpsImagePlugin.py needs to find a ghostscript binary
+          # xhtml2pdf needs libcairo-dev
+          sudo apt install xmlsec1 ghostscript libcairo2-dev
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
