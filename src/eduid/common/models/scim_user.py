@@ -23,7 +23,7 @@ class Profile(EduidBaseModel):
     data: dict[str, Any] = Field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        return self.dict()
+        return self.model_dump()
 
 
 class LinkedAccount(EduidBaseModel):
@@ -32,7 +32,7 @@ class LinkedAccount(EduidBaseModel):
     parameters: dict[str, Any] = Field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
-        return self.dict()
+        return self.model_dump()
 
 
 class NutidUserExtensionV1(EduidBaseModel):

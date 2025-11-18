@@ -717,7 +717,7 @@ def is_loa_requirements_satisfied(settings: LoaSettings | None, loa: str | None)
 def store_params(data: satosa.internal.InternalData, params: StepupParams) -> None:
     """Store the LoA settings in the internal data"""
     # `data` needs to be JSON serialisable
-    data.stepup_params = params.dict()
+    data.stepup_params = params.model_dump()
 
 
 def fetch_params(data: satosa.internal.InternalData) -> StepupParams | None:

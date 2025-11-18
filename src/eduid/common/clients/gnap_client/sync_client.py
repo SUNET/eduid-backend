@@ -38,7 +38,7 @@ class GNAPClient(httpx.Client, GNAPBearerTokenMixin):
             verify=self.verify,
         )
         resp.raise_for_status()
-        return GrantResponse.parse_raw(resp.text)
+        return GrantResponse.model_validate_json(resp.text)
 
     def _add_authz_header(self, request: httpx.Request) -> None:
         if not self._has_bearer_token():

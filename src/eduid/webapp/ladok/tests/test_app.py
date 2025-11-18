@@ -115,7 +115,7 @@ class LadokTests(EduidAPITestCase[LadokApp]):
             is_student=None,
         )
         mock_response.return_value = MockResponse(
-            status_code=200, data=LadokUserInfoResponse(error=None, data=user_info).dict(by_alias=True)
+            status_code=200, data=LadokUserInfoResponse(error=None, data=user_info).model_dump(by_alias=True)
         )
 
         user = self.app.central_userdb.get_user_by_eppn(eppn=self.test_user_eppn)
@@ -140,7 +140,7 @@ class LadokTests(EduidAPITestCase[LadokApp]):
     def test_link_user_error_response_from_worker(self, mock_response: MagicMock) -> None:
         error = Error(id="internal_server_error", details="some longer error message")
         mock_response.return_value = MockResponse(
-            status_code=200, data=LadokUserInfoResponse(error=error, data=None).dict(by_alias=True)
+            status_code=200, data=LadokUserInfoResponse(error=error, data=None).model_dump(by_alias=True)
         )
 
         ladok_name = "ab"

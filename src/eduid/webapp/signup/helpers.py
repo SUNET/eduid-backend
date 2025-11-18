@@ -371,7 +371,7 @@ def update_or_create_scim_user(invite: Invite, signup_user: SignupUser) -> UserR
             scim_user = client.create_user(scim_user_create_req)
 
         # update scim users missing attributes
-        update_user = UserUpdateRequest(**scim_user.dict(exclude={"meta"}))
+        update_user = UserUpdateRequest(**scim_user.model_dump(exclude={"meta"}))
         # names
         name_updates = {}
         if update_user.name.given_name is None:
@@ -379,13 +379,15 @@ def update_or_create_scim_user(invite: Invite, signup_user: SignupUser) -> UserR
         if update_user.name.family_name is None:
             name_updates["family_name"] = invite.surname
         if name_updates:
-            update_user = update_user.copy(update={"name": update_user.name.copy(update=name_updates).dict()})
+            update_user = update_user.model_copy(
+                update={"name": update_user.name.model_copy(update=name_updates).model_dump()}
+            )
         # preferred language
         if update_user.preferred_language is None:
-            update_user = update_user.copy(update={"preferred_language": invite.preferred_language})
+            update_user = update_user.model_copy(update={"preferred_language": invite.preferred_language})
         # emails
         if not update_user.emails:
-            update_user = update_user.copy(
+            update_user = update_user.model_copy(
                 update={
                     "emails": [
                         {"value": address.email, "primary": address.primary} for address in invite.mail_addresses
@@ -394,7 +396,7 @@ def update_or_create_scim_user(invite: Invite, signup_user: SignupUser) -> UserR
             )
         # phone numbers
         if not update_user.phone_numbers:
-            update_user = update_user.copy(
+            update_user = update_user.model_copy(
                 update={
                     "phone_numbers": [
                         {"value": number.number, "primary": number.primary} for number in invite.phone_numbers
@@ -412,10 +414,14 @@ def update_or_create_scim_user(invite: Invite, signup_user: SignupUser) -> UserR
             parameters=parameters,
         )
         assert update_user.nutid_user_v1 is not None  # please mypy
-        linked_accounts = update_user.nutid_user_v1.dict().get("linked_accounts", [])
+        linked_accounts = update_user.nutid_user_v1.model_dump().get("linked_accounts", [])
         linked_accounts.append(eduid_linked_account)
-        update_user = update_user.copy(
-            update={"nutid_user_v1": update_user.nutid_user_v1.copy(update={"linked_accounts": linked_accounts}).dict()}
+        update_user = update_user.model_copy(
+            update={
+                "nutid_user_v1": update_user.nutid_user_v1.model_copy(
+                    update={"linked_accounts": linked_accounts}
+                ).model_dump()
+            }
         )
         return client.update_user(user=update_user, version=scim_user.meta.version)
 

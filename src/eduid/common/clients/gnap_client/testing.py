@@ -18,6 +18,6 @@ class MockedSyncAuthAPIMixin(TestCase):
         self.mocked_auth_api = respx.mock(base_url="http://localhost/auth", assert_all_called=False, using="httpx")
         transaction_route = self.mocked_auth_api.post("/transaction", name="transaction_request")
         grant_response = GrantResponse(access_token=AccessTokenResponse(value=access_token_value))
-        transaction_route.return_value = Response(200, text=grant_response.json(exclude_none=True))
+        transaction_route.return_value = Response(200, text=grant_response.model_dump_json(exclude_none=True))
         self.mocked_auth_api.start()
         self.addCleanup(self.mocked_auth_api.stop)

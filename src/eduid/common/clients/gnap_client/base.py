@@ -67,10 +67,10 @@ class GNAPBearerTokenMixin(ABC):
             uri=self.transaction_uri,
             created=utc_now(),
         )
-        _jws = JWS(payload=req.json(exclude_unset=True))
+        _jws = JWS(payload=req.model_dump_json(exclude_unset=True))
         _jws.add_signature(
             key=self._auth_data.client_jwk,
-            protected=jws_header.json(exclude_none=True),
+            protected=jws_header.model_dump_json(exclude_none=True),
         )
         return _jws.serialize(compact=True)
 

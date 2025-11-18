@@ -342,7 +342,7 @@ class BaseDB:
             # Update meta
             meta.new_version()
             meta.modified_ts = now
-            data["meta"] = meta.dict()
+            data["meta"] = meta.model_dump()
 
             logger.debug(f"{self} Saving document (version {previous_version} -> {meta.version})")
         else:

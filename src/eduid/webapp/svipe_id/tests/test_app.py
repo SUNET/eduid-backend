@@ -241,8 +241,8 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
             "id_token": id_token,
         }
 
-        mock_parse_id_token.return_value = userinfo.dict()
-        mock_userinfo.return_value = userinfo.dict()
+        mock_parse_id_token.return_value = userinfo.model_dump()
+        mock_userinfo.return_value = userinfo.model_dump()
         return self.browser.get(f"{endpoint}?id_token=id_token&state={state}&code=mock_code")
 
     @patch("authlib.integrations.base_client.sync_app.OAuth2Mixin.load_server_metadata")

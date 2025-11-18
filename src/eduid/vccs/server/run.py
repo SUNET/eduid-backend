@@ -1,6 +1,7 @@
 import sys
 from asyncio import Lock
-from collections.abc import Mapping
+from collections.abc import AsyncIterator, Callable, Mapping
+from contextlib import asynccontextmanager
 from typing import Any
 
 from fastapi import FastAPI, Request
@@ -20,9 +21,9 @@ from eduid.vccs.server.log import InterceptHandler, init_logging
 
 
 class VCCS_API(FastAPI):
-    def __init__(self, test_config: Mapping[str, Any] | None = None) -> None:
+    def __init__(self, test_config: Mapping[str, Any] | None = None, lifespan: Callable | None = None) -> None:
         print("vccs_api is starting", file=sys.stderr)
-        super().__init__()
+        super().__init__(lifespan=lifespan)
 
         self.state.config = init_config(ns="api", app_name="vccs", test_config=test_config)
 
@@ -43,15 +44,8 @@ class VCCS_API(FastAPI):
         self.logger.info(f"hasher info: {self.state.hasher.info()}")
 
 
-app = VCCS_API()
-app.include_router(misc_router)  # , prefix='/v1')
-app.include_router(add_creds_router)
-app.include_router(revoke_creds_router)
-app.include_router(authenticate_router)
-
-
-@app.on_event("startup")
-async def startup_event() -> None:
+@asynccontextmanager
+async def lifespan(app: VCCS_API) -> AsyncIterator[None]:
     """
     Uvicorn mucks with the logging config on startup, particularly the access log. Rein it in.
     """
@@ -72,6 +66,15 @@ async def startup_event() -> None:
         app.logger.info(
             f"Updated logger {_name} handlers {_old_handlers} -> {_logger.handlers} (prop: {_logger.propagate})"
         )
+    yield
+    # shutdown
+
+
+app = VCCS_API(lifespan=lifespan)
+app.include_router(misc_router)  # , prefix='/v1')
+app.include_router(add_creds_router)
+app.include_router(revoke_creds_router)
+app.include_router(authenticate_router)
 
 
 @app.exception_handler(RequestValidationError)

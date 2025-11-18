@@ -159,9 +159,11 @@ async def on_post(req: ContextRequest, resp: Response, create_request: InviteCre
 
     db_invite = ScimApiInvite(
         external_id=create_request.external_id,
-        name=ScimApiName(**create_request.nutid_invite_v1.name.dict()),
-        emails=[ScimApiEmail(**email.dict()) for email in create_request.nutid_invite_v1.emails],
-        phone_numbers=[ScimApiPhoneNumber(**number.dict()) for number in create_request.nutid_invite_v1.phone_numbers],
+        name=ScimApiName(**create_request.nutid_invite_v1.name.model_dump()),
+        emails=[ScimApiEmail(**email.model_dump()) for email in create_request.nutid_invite_v1.emails],
+        phone_numbers=[
+            ScimApiPhoneNumber(**number.model_dump()) for number in create_request.nutid_invite_v1.phone_numbers
+        ],
         nin=create_request.nutid_invite_v1.national_identity_number,
         preferred_language=create_request.nutid_invite_v1.preferred_language,
         groups=create_request.nutid_invite_v1.groups,

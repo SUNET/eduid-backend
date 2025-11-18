@@ -50,13 +50,13 @@ async def validation_exception_handler(req: Request, exc: RequestValidationError
         status=status_code,
     )
     logger.error(f"validation exception: {req.method} {req.url.path} - {exc} - {detail}")
-    return SCIMErrorResponse(content=detail.dict(exclude_none=True), status_code=status_code)
+    return SCIMErrorResponse(content=detail.model_dump(exclude_none=True), status_code=status_code)
 
 
 async def http_error_detail_handler(req: Request, exc: HTTPErrorDetail) -> SCIMErrorResponse:
     logger.error(f"error detail: {req.method} {req.url.path} - {exc} - {exc.error_detail}")
     return SCIMErrorResponse(
-        content=exc.error_detail.dict(exclude_none=True),
+        content=exc.error_detail.model_dump(exclude_none=True),
         headers=exc.extra_headers,
         # default to status code 400 as error_detail status should be optional
         status_code=exc.error_detail.status or 400,

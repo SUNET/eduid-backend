@@ -17,9 +17,9 @@ class TestScimBase(TestCase):
             last_modified=utc_now(),
             version=WeakVersion(),
         )
-        meta_dump = meta.json()
-        loaded_meta = Meta.parse_raw(meta_dump)
-        assert normalised_data(meta.dict()) == normalised_data(loaded_meta.dict())
+        meta_dump = meta.model_dump_json()
+        loaded_meta = Meta.model_validate_json(meta_dump)
+        assert normalised_data(meta.model_dump()) == normalised_data(loaded_meta.model_dump())
 
     def test_base_response(self) -> None:
         meta = Meta(
@@ -30,9 +30,9 @@ class TestScimBase(TestCase):
             version=WeakVersion(),
         )
         base = BaseResponse(id=uuid4(), schemas=[SCIMSchema.CORE_20_USER, SCIMSchema.CORE_20_GROUP], meta=meta)
-        base_dump = base.json()
-        loaded_base = BaseResponse.parse_raw(base_dump)
-        assert normalised_data(base.dict()) == normalised_data(loaded_base.dict())
+        base_dump = base.model_dump_json()
+        loaded_base = BaseResponse.model_validate_json(base_dump)
+        assert normalised_data(base.model_dump()) == normalised_data(loaded_base.model_dump())
 
     def test_hashable_subresources(self) -> None:
         a = {

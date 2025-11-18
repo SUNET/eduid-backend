@@ -104,7 +104,7 @@ class OtherDevice(BaseModel):
         )
 
     def to_dict(self) -> dict[str, Any]:
-        return self.dict()
+        return self.model_dump()
 
     def to_json(self) -> str:
         """For debug logging ONLY. Redacts the response code if set."""

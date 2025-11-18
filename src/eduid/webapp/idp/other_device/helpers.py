@@ -26,7 +26,7 @@ def _get_other_device_state_using_ref(ref: RequestRef, device: int) -> OtherDevi
     ticket = get_ticket(_info, None)
     if not ticket:
         return OtherDeviceRefResult(response=error_response(message=IdPMsg.bad_ref))
-    current_app.logger.debug(f"Extra debug: LoginContext: {ticket.dict()}")
+    current_app.logger.debug(f"Extra debug: LoginContext: {ticket.model_dump()}")
     current_app.logger.debug(f"Extra debug: Pending request: {ticket.pending_request}")
 
     # Check both callers opinion of what device this is, and the states. Belts and bracers.

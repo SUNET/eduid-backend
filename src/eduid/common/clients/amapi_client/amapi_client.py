@@ -29,28 +29,28 @@ class AMAPIClient(GNAPClient):
         return urlappend(self.amapi_url, "users")
 
     def _put(self, base_path: str, user: str, endpoint: str, body: UserBaseRequest) -> httpx.Response:
-        return self.put(url=urlappend(base_path, f"{user}/{endpoint}"), content=body.json())
+        return self.put(url=urlappend(base_path, f"{user}/{endpoint}"), content=body.model_dump_json())
 
     def update_user_email(self, user: str, body: UserUpdateEmailRequest) -> UserUpdateResponse:
         ret = self._put(base_path=self._users_base_url(), user=user, endpoint="email", body=body)
-        return UserUpdateResponse.parse_raw(ret.text)
+        return UserUpdateResponse.model_validate_json(ret.text)
 
     def update_user_name(self, user: str, body: UserUpdateNameRequest) -> UserUpdateResponse:
         ret = self._put(base_path=self._users_base_url(), user=user, endpoint="name", body=body)
-        return UserUpdateResponse.parse_raw(ret.text)
+        return UserUpdateResponse.model_validate_json(ret.text)
 
     def update_user_language(self, user: str, body: UserUpdateLanguageRequest) -> UserUpdateResponse:
         ret = self._put(base_path=self._users_base_url(), user=user, endpoint="language", body=body)
-        return UserUpdateResponse.parse_raw(ret.text)
+        return UserUpdateResponse.model_validate_json(ret.text)
 
     def update_user_phone(self, user: str, body: UserUpdatePhoneRequest) -> UserUpdateResponse:
         ret = self._put(base_path=self._users_base_url(), user=user, endpoint="phone", body=body)
-        return UserUpdateResponse.parse_raw(ret.text)
+        return UserUpdateResponse.model_validate_json(ret.text)
 
     def update_user_meta_cleaned(self, user: str, body: UserUpdateMetaCleanedRequest) -> UserUpdateResponse:
         ret = self._put(base_path=self._users_base_url(), user=user, endpoint="meta/cleaned", body=body)
-        return UserUpdateResponse.parse_raw(ret.text)
+        return UserUpdateResponse.model_validate_json(ret.text)
 
     def update_user_terminate(self, user: str, body: UserUpdateTerminateRequest) -> UserUpdateResponse:
         ret = self._put(base_path=self._users_base_url(), user=user, endpoint="terminate", body=body)
-        return UserUpdateResponse.parse_raw(ret.text)
+        return UserUpdateResponse.model_validate_json(ret.text)

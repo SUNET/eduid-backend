@@ -46,9 +46,11 @@ class TestSCIMGroup(TestScimBase):
                 ),
             ]
         )
-        group_dump = group.json(exclude_none=True)
-        loaded_group = GroupResponse.parse_raw(group_dump)
-        assert normalised_data(group.dict(exclude_none=True)) == normalised_data(loaded_group.dict(exclude_none=True))
+        group_dump = group.model_dump_json(exclude_none=True)
+        loaded_group = GroupResponse.model_validate_json(group_dump)
+        assert normalised_data(group.model_dump(exclude_none=True)) == normalised_data(
+            loaded_group.model_dump(exclude_none=True)
+        )
 
 
 class TestGroupResource(ScimApiTestCase):
