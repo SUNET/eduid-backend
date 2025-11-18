@@ -110,7 +110,7 @@ class Element(BaseModel):
     )
 
     def __str__(self) -> str:
-        return f"<eduID {self.__class__.__name__}: {self.dict()}>"
+        return f"<eduID {self.__class__.__name__}: {self.model_dump()}>"
 
     @classmethod
     def from_dict(cls: type[TElementSubclass], data: Mapping[str, Any]) -> TElementSubclass:
@@ -131,7 +131,7 @@ class Element(BaseModel):
         Convert Element to a dict in eduid format, that can be used to reconstruct the
         Element later.
         """
-        data = self.dict(exclude_none=True)
+        data = self.model_dump(exclude_none=True)
 
         data = self._to_dict_transform(data)
 

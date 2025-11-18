@@ -26,4 +26,4 @@ class MobCelerySingleton:
 
     @classmethod
     def update_celery_config(cls, config: CeleryConfig) -> None:
-        cls.celery.config_from_object(config.dict())
+        cls.celery.config_from_object(config.model_dump())

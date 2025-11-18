@@ -76,7 +76,7 @@ class KnownDevice(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     def to_dict(self, from_browser: BrowserDeviceInfo) -> dict[str, Any]:
-        res = self.dict()
+        res = self.model_dump()
         res["_id"] = res.pop("obj_id")
         res["data"] = from_browser.secret_box.encrypt(self.data.to_json().encode(), encoder=nacl.encoding.Base64Encoder)
         return res

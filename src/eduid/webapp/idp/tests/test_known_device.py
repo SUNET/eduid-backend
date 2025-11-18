@@ -109,7 +109,7 @@ class TestKnownDevice(unittest.TestCase):
         first_dict["data"] = encrypted_data
 
         second = KnownDevice.from_dict(first_dict, from_browser=browser_info)
-        assert first.dict() == second.dict()
+        assert first.model_dump() == second.model_dump()
 
         # verify the random nonce will produce different output for each encryption
         assert first_dict != first.to_dict(from_browser=browser_info)

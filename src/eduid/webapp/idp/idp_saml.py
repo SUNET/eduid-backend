@@ -70,7 +70,7 @@ class ServiceInfo(BaseModel):
     display_name: dict[str, str]  # locale ('sv', 'en', ...) to display_name
 
     def to_dict(self) -> dict[str, Any]:
-        return self.dict()
+        return self.model_dump()
 
 
 class IdP_SAMLRequest:

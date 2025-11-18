@@ -223,7 +223,7 @@ class FlaskConfig(CORSMixin):
     sentry_dsn: str = ""
 
     def to_mapping(self) -> Mapping[str, Any]:
-        return self.dict()
+        return self.model_dump()
 
 
 class ProfilingConfig(BaseModel):

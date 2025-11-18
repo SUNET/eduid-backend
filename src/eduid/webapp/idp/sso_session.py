@@ -79,7 +79,7 @@ class SSOSession(BaseModel):
 
     def to_dict(self) -> dict[str, Any]:
         """Return the object in dict format (serialized for storing in MongoDB)."""
-        res = self.dict()
+        res = self.model_dump()
         res["_id"] = res.pop("obj_id")
         return res
 

@@ -73,7 +73,7 @@ def create_pdf(
 
     try:
         name, care_of, address, misc_address, postal_code, city = format_address(
-            recipient.dict(exclude_none=True, by_alias=True)
+            recipient.model_dump(exclude_none=True, by_alias=True)
         )
     except AddressFormatException as e:
         logger.error(f"Postal address formatting failed: {e!r}")

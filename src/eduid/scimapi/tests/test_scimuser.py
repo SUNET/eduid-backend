@@ -111,7 +111,7 @@ class TestScimUser(unittest.TestCase):
             "preferredLanguage": "en",
             "schemas": [SCIMSchema.CORE_20_USER.value, SCIMSchema.NUTID_USER_V1.value],
         }
-        user_response_json = user_response.json(exclude_none=True, by_alias=True)
+        user_response_json = user_response.model_dump_json(exclude_none=True, by_alias=True)
         loaded_user_response = json.loads(user_response_json)
         assert loaded_user_response == expected
 
@@ -164,7 +164,7 @@ class TestScimUser(unittest.TestCase):
             "groups": [],
             "emails": [],
         }
-        user_response_json = user_response.json(exclude_none=True, by_alias=True)
+        user_response_json = user_response.model_dump_json(exclude_none=True, by_alias=True)
         loaded_user_response = json.loads(user_response_json)
         assert loaded_user_response == expected
 
@@ -240,7 +240,7 @@ class ScimApiTestUserResourceBase(ScimApiTestCase):
         if expect_success:
             self._assertResponse(response, status_code=201)
         try:
-            user_response = UserResponse.parse_raw(response.text)
+            user_response = UserResponse.model_validate_json(response.text)
             nutid_user = user_response.nutid_user_v1
         except Exception:
             if not expect_success:
@@ -267,7 +267,7 @@ class ScimApiTestUserResourceBase(ScimApiTestCase):
         if expect_success:
             self._assertResponse(response)
         try:
-            user_response = UserResponse.parse_raw(response.text)
+            user_response = UserResponse.model_validate_json(response.text)
             nutid_user = user_response.nutid_user_v1
         except Exception:
             if not expect_success:
@@ -750,7 +750,10 @@ class TestUserResource(ScimApiTestUserResourceBase):
         req = {
             "externalId": "test-id-9",
             "name": {"familyName": "Testsson", "givenName": "Test", "middleName": "Testaren"},
-            SCIMSchema.NUTID_USER_V1.value: {"profiles": {}, "linked_accounts": [account.dict(exclude_none=True)]},
+            SCIMSchema.NUTID_USER_V1.value: {
+                "profiles": {},
+                "linked_accounts": [account.model_dump(exclude_none=True)],
+            },
         }
         result1 = self._create_user(req, expect_success=False)
         self._assertScimError(json=result1.response.json(), detail="Invalid nutid linked_accounts")
@@ -761,7 +764,10 @@ class TestUserResource(ScimApiTestUserResourceBase):
         req = {
             "externalId": "test-id-9",
             "name": {"familyName": "Testsson", "givenName": "Test", "middleName": "Testaren"},
-            SCIMSchema.NUTID_USER_V1.value: {"profiles": {}, "linked_accounts": [account.dict(exclude_none=True)]},
+            SCIMSchema.NUTID_USER_V1.value: {
+                "profiles": {},
+                "linked_accounts": [account.model_dump(exclude_none=True)],
+            },
         }
         result1 = self._create_user(req, expect_success=False)
         self._assertScimError(json=result1.response.json(), detail="Invalid nutid linked_accounts")

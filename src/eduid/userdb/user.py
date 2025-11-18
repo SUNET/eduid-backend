@@ -144,7 +144,7 @@ class User(BaseModel):
 
         :return: User as dict
         """
-        res = self.dict(by_alias=True, exclude_none=True)
+        res = self.model_dump(by_alias=True, exclude_none=True)
         res = self._to_dict_transform(res)
         return TUserDbDocument(res)
 

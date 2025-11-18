@@ -39,7 +39,7 @@ class TestEventResource(ScimApiTestCase):
         response = self.client.post(url="/Events/", json=req, headers=self.headers)
         if expect_success:
             self._assertResponse(response)
-        parsed_response = EventResponse.parse_raw(response.text)
+        parsed_response = EventResponse.model_validate_json(response.text)
         return EventApiResult(
             request=req, event=parsed_response.nutid_event_v1, response=response, parsed_response=parsed_response
         )
@@ -47,7 +47,7 @@ class TestEventResource(ScimApiTestCase):
     def _fetch_event(self, event_id: UUID) -> EventApiResult:
         response = self.client.get(url=f"/Events/{str(event_id)}", headers=self.headers)
         self._assertResponse(response)
-        parsed_response = EventResponse.parse_raw(response.text)
+        parsed_response = EventResponse.model_validate_json(response.text)
         return EventApiResult(event=parsed_response.nutid_event_v1, response=response, parsed_response=parsed_response)
 
     def _assertEventUpdateSuccess(self, req: Mapping, response: Response, event: ScimApiEvent) -> None:
@@ -123,8 +123,8 @@ class TestEventResource(ScimApiTestCase):
 
         # Verify that create and fetch returned the same data.
         # Compare as dict first because the output is easier to read.
-        assert normalised_data(created.event.dict(exclude_none=True)) == normalised_data(
-            fetched.event.dict(exclude_none=True)
+        assert normalised_data(created.event.model_dump(exclude_none=True)) == normalised_data(
+            fetched.event.model_dump(exclude_none=True)
         )
 
         # For once, verify the actual SCIM message format too

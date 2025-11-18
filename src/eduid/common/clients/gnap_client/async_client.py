@@ -38,7 +38,7 @@ class AsyncGNAPClient(httpx.AsyncClient, GNAPBearerTokenMixin):
                 headers={"Content-Type": "application/jose+json"},
             )
             resp.raise_for_status()
-            return GrantResponse.parse_raw(resp.text)
+            return GrantResponse.model_validate_json(resp.text)
 
     async def _add_authz_header(self, request: httpx.Request) -> None:
         if not self._has_bearer_token():

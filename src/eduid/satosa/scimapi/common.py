@@ -20,7 +20,7 @@ class MfaStepupAccount(BaseModel):
 def store_mfa_stepup_accounts(data: satosa.internal.InternalData, accounts: list[MfaStepupAccount]) -> None:
     """Store the MFA stepup accounts in the internal data"""
     # `data` needs to be JSON serialisable
-    data.mfa_stepup_accounts = [x.dict() for x in accounts]
+    data.mfa_stepup_accounts = [x.model_dump() for x in accounts]
 
 
 def fetch_mfa_stepup_accounts(data: satosa.internal.InternalData) -> list[MfaStepupAccount]:

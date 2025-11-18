@@ -90,17 +90,19 @@ class MockedScimAPIMixin(MockedSyncAuthAPIMixin):
             name="get_invite_request",
         )
         get_invite_route.return_value = Response(
-            200, text=InviteResponse(**self.get_invite_response).json(exclude_none=True)
+            200, text=InviteResponse(**self.get_invite_response).model_dump_json(exclude_none=True)
         )
         post_user_route = self.mocked_scim_api.post("/Users", name="post_user_request")
         post_user_route.return_value = Response(
-            201, text=UserResponse(**self.post_user_response).json(exclude_none=True)
+            201, text=UserResponse(**self.post_user_response).model_dump_json(exclude_none=True)
         )
         put_user_route = self.mocked_scim_api.put(
             path__regex=r"^/Users/[a-f0-9]{8}-?[a-f0-9]{4}-?4[a-f0-9]{3}-?[89ab][a-f0-9]{3}-?[a-f0-9]{12}\Z",
             name="put_user_request",
         )
-        put_user_route.return_value = Response(200, text=UserResponse(**self.put_user_response).json(exclude_none=True))
+        put_user_route.return_value = Response(
+            200, text=UserResponse(**self.put_user_response).model_dump_json(exclude_none=True)
+        )
 
         self.mocked_scim_api.start()
         self.addCleanup(self.mocked_scim_api.stop)

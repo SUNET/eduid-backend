@@ -82,9 +82,9 @@ async def on_put(req: ContextRequest, resp: Response, update_request: UserUpdate
 
     core_changed = False
     if SCIMSchema.CORE_20_USER in update_request.schemas:
-        name_in = ScimApiName(**update_request.name.dict(exclude_none=True))
-        emails_in = {ScimApiEmail(**email.dict()) for email in update_request.emails}
-        phone_numbers_in = {ScimApiPhoneNumber(**number.dict()) for number in update_request.phone_numbers}
+        name_in = ScimApiName(**update_request.name.model_dump(exclude_none=True))
+        emails_in = {ScimApiEmail(**email.model_dump()) for email in update_request.emails}
+        phone_numbers_in = {ScimApiPhoneNumber(**number.model_dump()) for number in update_request.phone_numbers}
         # external_id
         if update_request.external_id != db_user.external_id:
             db_user = replace(db_user, external_id=update_request.external_id)
@@ -234,9 +234,9 @@ async def on_post(req: ContextRequest, resp: Response, create_request: UserCreat
 
     db_user = ScimApiUser(
         external_id=create_request.external_id,
-        name=ScimApiName(**create_request.name.dict()),
-        emails=[ScimApiEmail(**email.dict()) for email in create_request.emails],
-        phone_numbers=[ScimApiPhoneNumber(**number.dict()) for number in create_request.phone_numbers],
+        name=ScimApiName(**create_request.name.model_dump()),
+        emails=[ScimApiEmail(**email.model_dump()) for email in create_request.emails],
+        phone_numbers=[ScimApiPhoneNumber(**number.model_dump()) for number in create_request.phone_numbers],
         preferred_language=create_request.preferred_language,
         profiles=profiles,
         linked_accounts=linked_accounts,

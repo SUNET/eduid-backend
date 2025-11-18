@@ -62,29 +62,31 @@ class SCIMClient(GNAPClient):
         return self.get(urlappend(endpoint, obj_id))
 
     def _create(self, endpoint: str, create_request: BaseCreateRequest) -> httpx.Response:
-        return self.post(endpoint, content=create_request.json())
+        return self.post(endpoint, content=create_request.model_dump_json())
 
     def _update(self, endpoint: str, update_request: BaseUpdateRequest, version: WeakVersion) -> httpx.Response:
         headers = self._set_version_header(httpx.Headers(), version)
-        return self.put(urlappend(endpoint, str(update_request.id)), content=update_request.json(), headers=headers)
+        return self.put(
+            urlappend(endpoint, str(update_request.id)), content=update_request.model_dump_json(), headers=headers
+        )
 
     def _search(self, endpoint: str, _filter: str, start_index: int = 1, count: int = 100) -> ListResponse:
         search_endpoint = urlappend(endpoint, ".search")
         search_req = SearchRequest(filter=_filter, start_index=start_index, count=count)
-        ret = self.post(search_endpoint, content=search_req.json())
-        return ListResponse.parse_raw(ret.text)
+        ret = self.post(search_endpoint, content=search_req.model_dump_json())
+        return ListResponse.model_validate_json(ret.text)
 
     def get_user(self, user_id: UUID | str) -> UserResponse:
         ret = self._get(self.users_endpoint, obj_id=user_id)
-        return UserResponse.parse_raw(ret.text)
+        return UserResponse.model_validate_json(ret.text)
 
     def create_user(self, user: UserCreateRequest) -> UserResponse:
         ret = self._create(self.users_endpoint, create_request=user)
-        return UserResponse.parse_raw(ret.text)
+        return UserResponse.model_validate_json(ret.text)
 
     def update_user(self, user: UserUpdateRequest, version: WeakVersion) -> UserResponse:
         ret = self._update(self.users_endpoint, update_request=user, version=version)
-        return UserResponse.parse_raw(ret.text)
+        return UserResponse.model_validate_json(ret.text)
 
     def get_user_by_external_id(self, external_id: str | None) -> UserResponse | None:
         if external_id is None:
@@ -100,12 +102,12 @@ class SCIMClient(GNAPClient):
 
     def get_invite(self, invite_id: UUID | str) -> InviteResponse:
         ret = self._get(self.invites_endpoint, obj_id=invite_id)
-        return InviteResponse.parse_raw(ret.text)
+        return InviteResponse.model_validate_json(ret.text)
 
     def create_invite(self, invite: InviteCreateRequest) -> InviteResponse:
         ret = self._create(self.invites_endpoint, create_request=invite)
-        return InviteResponse.parse_raw(ret.text)
+        return InviteResponse.model_validate_json(ret.text)
 
     def update_invite(self, invite: InviteUpdateRequest, version: WeakVersion) -> InviteResponse:
         ret = self._update(self.invites_endpoint, update_request=invite, version=version)
-        return InviteResponse.parse_raw(ret.text)
+        return InviteResponse.model_validate_json(ret.text)
