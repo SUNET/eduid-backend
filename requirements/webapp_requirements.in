@@ -5,6 +5,6 @@ Flask
 flask-babel
 flask-cors
 captcha
-raven[flask]
+sentry-sdk[flask]
 user-agents
 authlib

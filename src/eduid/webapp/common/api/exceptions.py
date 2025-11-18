@@ -91,10 +91,12 @@ def init_exception_handlers(app: Flask) -> Flask:
 def init_sentry(app: Flask) -> Flask:
     if app.config.get("SENTRY_DSN"):
         try:
-            from raven.contrib.flask import Sentry
+            import sentry_sdk
 
-            sentry = Sentry(dsn=app.config.get("SENTRY_DSN"))
-            sentry.init_app(app)
+            sentry_sdk.init(
+                dsn=app.config.get("SENTRY_DSN"), send_default_pii=app.config.get("SENTRY_SEND_DEFAULT_PII")
+            )
+
         except ImportError:
-            app.logger.warning("SENTRY_DSN found but Raven not installed.")
+            app.logger.warning("SENTRY_DSN found but sentry_sdk not installed.")
     return app

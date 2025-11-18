@@ -221,9 +221,10 @@ class FlaskConfig(CORSMixin):
     logger_name: str = ""
     internal_signup_url: str = ""
     sentry_dsn: str = ""
+    sentry_send_default_pii: bool = False
 
     def to_mapping(self) -> Mapping[str, Any]:
-        return self.dict()
+        return self.model_dump()
 
 
 class ProfilingConfig(BaseModel):
