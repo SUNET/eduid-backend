@@ -44,7 +44,7 @@ class ResetPasswordState:
         if res.get("extra_security"):
             _tokens = res["extra_security"].get("tokens")
             if isinstance(_tokens, WebauthnChallenge):
-                res["extra_security"]["tokens"] = _tokens.dict()
+                res["extra_security"]["tokens"] = _tokens.model_dump()
         return TUserDbDocument(res)
 
     @classmethod
