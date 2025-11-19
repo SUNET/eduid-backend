@@ -435,7 +435,7 @@ def _geo_statistics(ticket: LoginContext, sso_session: SSOSession | None) -> Non
     data["user_agent"]["sophisticated"]["is_touch_capable"] = ua.parsed.is_touch_capable
 
     try:
-        resp = requests.post(current_app.conf.geo_statistics_url, json=d, timeout=1)
+        resp = requests.post(str(current_app.conf.geo_statistics_url), json=d, timeout=1)
         current_app.logger.debug(f"response from geo-statistics app: {resp.json}")
     except requests.RequestException:
         current_app.logger.exception("Failed to contact geo-statistics app")

@@ -127,7 +127,7 @@ def device1_state_to_flux_payload(state: OtherDevice, now: datetime) -> Mapping[
     if state.state in [OtherDeviceState.NEW, OtherDeviceState.IN_PROGRESS, OtherDeviceState.AUTHENTICATED]:
         # Only add QR code when it will actually be displayed
         buf = BytesIO()
-        qr_url = urlappend(current_app.conf.other_device_url, encrypted_state_id)
+        qr_url = urlappend(str(current_app.conf.other_device_url), encrypted_state_id)
         qrcode.make(qr_url).save(buf)
         qr_b64 = base64.b64encode(buf.getvalue())
 

@@ -1,6 +1,6 @@
 from datetime import timedelta
 
-from pydantic import Field
+from pydantic import AnyUrl, Field
 
 from eduid.common.clients.gnap_client.base import GNAPClientAuthData
 from eduid.common.config.base import (
@@ -12,7 +12,6 @@ from eduid.common.config.base import (
     PasswordConfigMixin,
     TouConfigMixin,
 )
-from eduid.common.models.generic import AnyUrlStr
 
 
 class SignupConfig(
@@ -43,7 +42,7 @@ class SignupConfig(
     default_finish_url: str = "https://www.eduid.se/"
     eduid_site_url: str = "https://www.eduid.se"  # TODO: Backwards compatibility, remove when no longer used
     eduid_site_name: str = "eduID"
-    scim_api_url: AnyUrlStr | None = None
+    scim_api_url: AnyUrl | None = None
     gnap_auth_data: GNAPClientAuthData | None = None
     eduid_scope: str = "eduid.se"
     private_userdb_auto_expire: timedelta | None = Field(default=timedelta(days=7))

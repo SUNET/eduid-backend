@@ -9,6 +9,7 @@ from requests import RequestException
 from saml2.client import Saml2Client
 
 from eduid.common.misc.timeutil import utc_now
+from eduid.common.models.generic import HttpUrlAdapter
 from eduid.common.models.saml2 import EduidAuthnContextClass
 from eduid.userdb import MailAddress
 from eduid.userdb.credentials import Password
@@ -609,7 +610,7 @@ class IdPTestLoginAPI(IdPAPITests):
 
         # enable geo statistics
         self.app.conf.geo_statistics_feature_enabled = True
-        self.app.conf.geo_statistics_url = "http://eduid.docker"
+        self.app.conf.geo_statistics_url = HttpUrlAdapter.validate_python("http://eduid.docker")
 
         # Patch the VCCSClient, so we do not need a vccs server
         with patch.object(VCCSClient, "authenticate") as mock_vccs:
@@ -648,7 +649,7 @@ class IdPTestLoginAPI(IdPAPITests):
 
         # enable geo statistics
         self.app.conf.geo_statistics_feature_enabled = True
-        self.app.conf.geo_statistics_url = "http://eduid.docker"
+        self.app.conf.geo_statistics_url = HttpUrlAdapter.validate_python("http://eduid.docker")
 
         # Patch the VCCSClient, so we do not need a vccs server
         with patch.object(VCCSClient, "authenticate") as mock_vccs:
@@ -881,7 +882,7 @@ class IdPTestLoginAPIManagedAccounts(IdPAPITests):
     def test_geo_statistics_success(self) -> None:
         # enable geo statistics
         self.app.conf.geo_statistics_feature_enabled = True
-        self.app.conf.geo_statistics_url = "http://eduid.docker"
+        self.app.conf.geo_statistics_url = HttpUrlAdapter.validate_python("http://eduid.docker")
 
         # Patch the VCCSClient, so we do not need a vccs server
         with patch.object(VCCSClient, "authenticate") as mock_vccs:
@@ -917,7 +918,7 @@ class IdPTestLoginAPIManagedAccounts(IdPAPITests):
     def test_geo_statistics_fail(self) -> None:
         # enable geo statistics
         self.app.conf.geo_statistics_feature_enabled = True
-        self.app.conf.geo_statistics_url = "http://eduid.docker"
+        self.app.conf.geo_statistics_url = HttpUrlAdapter.validate_python("http://eduid.docker")
 
         # Patch the VCCSClient, so we do not need a vccs server
         with patch.object(VCCSClient, "authenticate") as mock_vccs:

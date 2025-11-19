@@ -282,7 +282,7 @@ class SSO(Service):
 
         if info.SAMLRequest:
             # redirect user to the Login javascript bundle
-            loc = urlappend(current_app.conf.login_bundle_url, ticket.request_ref)
+            loc = urlappend(str(current_app.conf.login_bundle_url), ticket.request_ref)
             current_app.logger.info(f"Redirecting user to login bundle {loc}")
             return redirect(loc)
         else:

@@ -1,8 +1,7 @@
 from enum import unique
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, HttpUrl
 
-from eduid.common.models.generic import HttpUrlStr
 from eduid.webapp.common.api.messages import TranslatableMsg
 
 
@@ -28,7 +27,7 @@ class OrcidMsg(TranslatableMsg):
 
 
 class OrcidUserinfo(BaseModel):
-    orcid: HttpUrlStr = Field(alias="id")
+    orcid: HttpUrl = Field(alias="id")
     sub: str
     name: str | None = None
     family_name: str

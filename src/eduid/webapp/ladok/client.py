@@ -4,12 +4,11 @@ from datetime import datetime
 from http import HTTPStatus
 
 import requests
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, HttpUrl, ValidationError
 
 __author__ = "lundberg"
 
 from eduid.common.config.base import EduidEnvironment
-from eduid.common.models.generic import HttpUrlStr
 from eduid.common.utils import urlappend
 
 logger = logging.getLogger(__name__)
@@ -55,7 +54,7 @@ class LadokUserInfoResponse(LadokBaseModel):
 
 
 class LadokClientConfig(LadokBaseModel):
-    url: HttpUrlStr
+    url: HttpUrl
     version: str = "v1"
     dev_universities: dict[str, UniversityName] | None = None  # used for local development
 
@@ -69,7 +68,7 @@ class LadokClient:
     def __init__(self, config: LadokClientConfig, env: EduidEnvironment) -> None:
         self.config = config
         self.env = env
-        self.base_endpoint = urlappend(self.config.url, f"/api/{self.config.version}")
+        self.base_endpoint = urlappend(str(self.config.url), f"/api/{self.config.version}")
         self.universities = self.load_universities()
 
     def load_universities(self) -> Mapping[str, University]:

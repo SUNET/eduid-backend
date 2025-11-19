@@ -1,16 +1,15 @@
-from typing import Annotated, Any
+from typing import Any
 
 from bson import ObjectId
 from jwcrypto.common import JWException
 from jwcrypto.jwk import JWK
-from pydantic import AnyUrl, GetCoreSchemaHandler, GetJsonSchemaHandler, HttpUrl
+from pydantic import GetCoreSchemaHandler, GetJsonSchemaHandler, HttpUrl, TypeAdapter
 from pydantic.json_schema import JsonSchemaValue
 from pydantic_core import core_schema
 
 __author__ = "lundberg"
 
-AnyUrlStr = Annotated[str, AnyUrl]
-HttpUrlStr = Annotated[str, HttpUrl]
+HttpUrlAdapter = TypeAdapter(HttpUrl)
 
 
 # https://docs.pydantic.dev/2.6/concepts/types/#handling-third-party-types

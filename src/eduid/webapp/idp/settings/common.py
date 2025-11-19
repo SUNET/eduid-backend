@@ -4,7 +4,7 @@ Configuration (file) handling for the eduID idp app.
 
 from datetime import timedelta
 
-from pydantic import Field, field_validator
+from pydantic import Field, HttpUrl, field_validator
 from pydantic_core.core_schema import ValidationInfo
 
 from eduid.common.config.base import (
@@ -14,7 +14,7 @@ from eduid.common.config.base import (
     TouConfigMixin,
     WebauthnConfigMixin2,
 )
-from eduid.common.models.generic import HttpUrlStr
+from eduid.common.models.generic import HttpUrlAdapter
 from eduid.userdb.identity import IdentityProofingMethod
 from eduid.webapp.idp.assurance_data import SwamidAssurance
 
@@ -87,8 +87,8 @@ class IdPConfig(EduIDBaseAppConfig, TouConfigMixin, WebauthnConfigMixin2, AmConf
     eduperson_targeted_id_secret_key: str = ""
     pairwise_id_secret_key: str = ""
     eduid_site_url: str
-    login_bundle_url: HttpUrlStr | None = None
-    other_device_url: HttpUrlStr | None = None
+    login_bundle_url: HttpUrl | None = None
+    other_device_url: HttpUrl | None = None
     esi_ladok_prefix: str = Field(default="urn:schac:personalUniqueCode:int:esi:ladok.se:externtstudentuid-")
     allow_other_device_logins: bool = False
     other_device_logins_ttl: timedelta = Field(default=timedelta(minutes=2))
@@ -103,7 +103,7 @@ class IdPConfig(EduIDBaseAppConfig, TouConfigMixin, WebauthnConfigMixin2, AmConf
     # secret key for encrypting personal information for geo-location service
     geo_statistics_secret_key: str | None = None
     geo_statistics_feature_enabled: bool = False
-    geo_statistics_url: HttpUrlStr | None = None
+    geo_statistics_url: HttpUrl | None = None
     swamid_assurance_profile_1: list[SwamidAssurance] = Field(
         default=[
             SwamidAssurance.SWAMID_AL1,
@@ -140,11 +140,17 @@ class IdPConfig(EduIDBaseAppConfig, TouConfigMixin, WebauthnConfigMixin2, AmConf
             SwamidAssurance.REFEDS_IAP_HIGH,
         ]
     )
-    logout_finish_url: dict[str, HttpUrlStr] = Field(
+    logout_finish_url: dict[str, HttpUrl] = Field(
         default={
-            "https://dashboard.eduid.docker/services/authn/saml2-metadata": "https://dashboard.eduid.docker/profile/",
-            "https://dashboard.dev.eduid.se/services/authn/saml2-metadata": "https://dev.eduid.se/",
-            "https://dashboard.eduid.se/services/authn/saml2-metadata": "https://eduid.se/",
+            "https://dashboard.eduid.docker/services/authn/saml2-metadata": HttpUrlAdapter.validate_python(
+                "https://dashboard.eduid.docker/profile/"
+            ),
+            "https://dashboard.dev.eduid.se/services/authn/saml2-metadata": HttpUrlAdapter.validate_python(
+                "https://dev.eduid.se/"
+            ),
+            "https://dashboard.eduid.se/services/authn/saml2-metadata": HttpUrlAdapter.validate_python(
+                "https://eduid.se/"
+            ),
         }
     )
     digg_loa2_allowed_identity_proofing_methods: list[IdentityProofingMethod] = Field(
