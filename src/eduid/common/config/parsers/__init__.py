@@ -59,7 +59,7 @@ def load_config(
     with open(fd_int, "w") as fd:
         fd.write("---\n")
         # have to take the detour over json to get things like enums serialised to strings
-        yaml.safe_dump(json.loads(res.json()), fd)
+        yaml.safe_dump(json.loads(res.model_dump_json()), fd)
 
     return res
 

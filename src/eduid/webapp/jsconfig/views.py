@@ -16,7 +16,7 @@ def get_config() -> FluxData:
     Configuration for the dashboard front app
     """
 
-    config_dict = current_app.conf.jsapps.dict()
+    config_dict = current_app.conf.jsapps.model_dump()
     config_dict["csrf_token"] = session.get_csrf_token()
 
     return success_response(payload=config_dict)

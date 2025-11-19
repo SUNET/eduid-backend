@@ -103,7 +103,7 @@ class UserMissingMeta(MongoTestCase):
     def test_update_user_new(self) -> None:
         db_user = self.amdb.get_user_by_id(self.user.user_id)
         assert db_user is not None
-        logger.debug(f"Loaded user.meta from database:\n{format_dict_for_debug(db_user.meta.dict())}")
+        logger.debug(f"Loaded user.meta from database:\n{format_dict_for_debug(db_user.meta.model_dump())}")
         assert db_user is not None
         db_user.given_name = "test"
         self.amdb.save(user=db_user)

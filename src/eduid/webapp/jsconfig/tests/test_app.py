@@ -75,7 +75,7 @@ class JSConfigTests(EduidAPITestCase[JSConfigApp]):
         assert config_data["payload"]["csrf_token"] is not None
 
         config_data["payload"]["csrf_token"] = None  # csrf_token is None when config is first loaded
-        assert normalised_data(self.app.conf.jsapps.dict()) == normalised_data(config_data["payload"])
+        assert normalised_data(self.app.conf.jsapps.model_dump()) == normalised_data(config_data["payload"])
 
     def test_get_config(self) -> None:
         eppn = self.test_user_data["eduPersonPrincipalName"]
@@ -120,4 +120,4 @@ class JSConfigTests(EduidAPITestCase[JSConfigApp]):
         os.environ["EDUID_CONFIG_YAML"] = f"{self.data_dir}/config.yaml"
 
         config = load_config(typ=JSConfigConfig, app_name="jsconfig", ns="webapp")
-        assert self.app.conf.jsapps.dict() == config.jsapps.dict()
+        assert self.app.conf.jsapps.model_dump() == config.jsapps.model_dump()
