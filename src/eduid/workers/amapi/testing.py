@@ -1,7 +1,7 @@
 import json
+from pathlib import Path
 from typing import Any
 
-import pkg_resources
 from fastapi.testclient import TestClient
 
 from eduid.common.models.amapi_user import Reason, Source
@@ -15,7 +15,7 @@ class TestAMBase(CommonTestCase):
     def setUp(self, config: SetupConfig | None = None) -> None:
         super().setUp(config=config)
 
-        self.path = pkg_resources.resource_filename(__name__, "tests/data")
+        self.path = str(Path(__file__).parent / "tests/data")
         self.test_config = self._get_config()
         self.test_singing_key = "testing-amapi-2106210000"
 

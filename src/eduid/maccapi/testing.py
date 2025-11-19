@@ -1,8 +1,8 @@
 import os
 import unittest
+from pathlib import Path
 from typing import Any, cast
 
-import pkg_resources
 from starlette.testclient import TestClient
 
 from eduid.common.config.parsers import load_config
@@ -59,7 +59,7 @@ class MAccApiTestCase(BaseDBTestCase):
         if "EDUID_CONFIG_YAML" not in os.environ:
             os.environ["EDUID_CONFIG_YAML"] = "YAML_CONFIG_NOT_USED"
 
-        self.datadir = pkg_resources.resource_filename(__name__, "tests/data")
+        self.datadir = str(Path(__file__).parent / "tests/data")
         self.test_config = self._get_config()
         config = load_config(typ=MAccApiConfig, app_name="maccapi", ns="api", test_config=self.test_config)
         self.context = Context(config=config)
