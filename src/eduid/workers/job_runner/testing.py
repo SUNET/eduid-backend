@@ -1,7 +1,6 @@
 import os
 import unittest
-
-import pkg_resources
+from pathlib import Path
 
 from eduid.userdb.testing import MongoTemporaryInstance
 from eduid.userdb.user_cleaner.db import CleanerQueueDB
@@ -34,7 +33,7 @@ class CleanerQueueTestCase(BaseDBTestCase):
         if "EDUID_CONFIG_YAML" not in os.environ:
             os.environ["EDUID_CONFIG_YAML"] = "YAML_CONFIG_NOT_USED"
 
-        self.datadir = pkg_resources.resource_filename(__name__, "tests/data")
+        self.datadir = str(Path(__file__).parent / "tests/data")
 
         self.cleaner_queue_db = CleanerQueueDB(db_uri=self.mongo_uri)
 
