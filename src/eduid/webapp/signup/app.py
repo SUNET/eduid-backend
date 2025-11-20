@@ -40,7 +40,7 @@ class SignupApp(EduIDBaseApp):
 
         if data_owner not in self.scim_clients:
             access_request = [{"type": "scim-api", "scope": data_owner}]
-            client_auth_data = self.conf.gnap_auth_data.copy(update={"access": access_request})
+            client_auth_data = self.conf.gnap_auth_data.model_copy(update={"access": access_request})
             self.scim_clients[data_owner] = SCIMClient(scim_api_url=self.conf.scim_api_url, auth_data=client_auth_data)
         return self.scim_clients[data_owner]
 
