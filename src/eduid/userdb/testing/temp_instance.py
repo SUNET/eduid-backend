@@ -107,8 +107,7 @@ class EduidTemporaryInstance(ABC):
         return _output
 
     def shutdown(self) -> None:
-        if logger.handlers:
-            logger.debug(f"{self} output at shutdown:\n{self.output}")
+        logger.debug(f"{self} output at shutdown:\n{self.output}")
         if self._process:
             # Get container name from command
             container_name = None
