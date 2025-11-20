@@ -151,3 +151,25 @@ class TestAuthnNamespace(TestNameSpaceBase):
         sess2.authn.sp.get_latest_authn()
         sess2.persist()
         assert sess1._session._raw_data == sess2._session._raw_data
+
+
+class TestIdpNamespace(TestNameSpaceBase):
+    def test_migrate_pending_req_creds_used(self) -> None:
+        _meta = SessionMeta.new(app_secret="secret")
+        sess = self.get_session(meta=_meta)
+        now = utc_now()
+        request_ref = RequestRef("test_request_ref")
+        element_key = ElementKey("test_credential_key")
+        # save a pending request in the old format where credentials_used just had a timestamp str value
+        sess.idp.pending_requests[request_ref] = IdP_SAMLPendingRequest(request="test_request", binding="test_binding")
+        idp_dict = sess.idp.to_dict()
+        idp_dict["pending_requests"][request_ref]["credentials_used"][element_key] = now.isoformat()
+        # need to some fiddling to bypass _serialize_namespaces that will update the above value to the new structure
+        sess["idp"] = idp_dict
+        sess._session.commit()
+        # Load the session to make sure the migration went ok
+        sess = self.get_session(meta=_meta, new=False)
+        cred_used = sess.idp.pending_requests[request_ref].credentials_used.get(element_key)
+        assert cred_used is not None
+        assert cred_used.cred_id == "test_credential_key"
+        assert cred_used.timestamp == now
