@@ -613,7 +613,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         self, email: str = "dummy@example.com", invite_code: str = "test_code", send_email: bool = True
     ) -> Invite:
         mail_address = InviteMailAddress(email=email, primary=True)
-        phone_number = InvitePhoneNumber(number="+46700000000", primary=True)
+        phone_number = InvitePhoneNumber(number="tel:+46700000000", primary=True)
         invite_ref = SCIMReference(data_owner="test_owner", scim_id=uuid4())
         invite = Invite(
             invite_type=InviteType.SCIM,
