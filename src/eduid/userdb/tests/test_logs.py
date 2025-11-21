@@ -305,6 +305,8 @@ class TestProofingLog(TestCase):
             }
         ], f"Wrong error message: {normalised_data(exc_info.value.errors(), exclude_keys=['url'])}"
 
+    # ignore serializer warnings as they are expected during this test
+    @pytest.mark.filterwarnings("ignore:Pydantic serializer warnings:UserWarning")
     def test_boolean_false_proofing_data(self) -> None:
         data = {
             "eppn": self.user.eppn,
