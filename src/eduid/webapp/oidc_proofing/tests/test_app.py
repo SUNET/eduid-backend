@@ -10,6 +10,7 @@ from werkzeug.test import TestResponse
 
 from eduid.userdb import NinIdentity
 from eduid.userdb.proofing.state import OidcProofingState
+from eduid.userdb.proofing.user import ProofingUser
 from eduid.userdb.testing import SetupConfig
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.oidc_proofing.app import OIDCProofingApp, init_oidc_proofing_app
@@ -434,6 +435,7 @@ class OidcProofingTests(EduidAPITestCase):
         }
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        user = ProofingUser.from_user(user, self.app.private_userdb)
         with self.app.app_context():
             handle_freja_eid_userinfo(user, proofing_state, userinfo)
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
@@ -473,6 +475,7 @@ class OidcProofingTests(EduidAPITestCase):
         self.assertEqual(response["type"], "POST_OIDC_PROOFING_FREJA_PROOFING_SUCCESS")
 
         # No actual oidc flow tested here
+        user = ProofingUser.from_user(user, self.app.private_userdb)
         proofing_state = self.app.proofing_statedb.get_state_by_eppn(self.test_user_eppn)
         assert proofing_state is not None
         userinfo = {
@@ -527,6 +530,7 @@ class OidcProofingTests(EduidAPITestCase):
         self.assertEqual(response["type"], "POST_OIDC_PROOFING_FREJA_PROOFING_SUCCESS")
 
         # No actual oidc flow tested here
+        user = ProofingUser.from_user(user, self.app.private_userdb)
         proofing_state = self.app.proofing_statedb.get_state_by_eppn(self.test_user_eppn)
         assert proofing_state is not None
         userinfo = {
