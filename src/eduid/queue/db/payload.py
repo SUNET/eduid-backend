@@ -2,7 +2,7 @@ from abc import ABC
 from collections.abc import Mapping
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from typing import Any, TypeVar
+from typing import Any, ClassVar, TypeVar
 
 from eduid.common.misc.timeutil import utc_now
 
@@ -40,6 +40,7 @@ class RawPayload(Payload):
 
 @dataclass
 class TestPayload(Payload):
+    __test__: ClassVar[bool] = False
     message: str
     created_ts: datetime = field(default_factory=utc_now)
     version: int = 1

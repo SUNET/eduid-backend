@@ -3,6 +3,7 @@ import logging
 import os
 from datetime import timedelta
 from os import environ
+from typing import ClassVar
 from unittest.mock import MagicMock, patch
 
 from aiosmtplib import SMTPResponse
@@ -21,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 
 class TestMailQueueWorker(IsolatedWorkerDBMixin, MailQueueWorker):
-    pass
+    __test__: ClassVar[bool] = False
 
 
 class TestMailWorker(QueueAsyncioTest):

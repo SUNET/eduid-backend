@@ -1,4 +1,5 @@
 from enum import unique
+from typing import ClassVar
 from unittest import TestCase
 
 from eduid.webapp.common.api.messages import (
@@ -14,6 +15,7 @@ from eduid.webapp.common.api.schemas.models import FluxResponseStatus
 
 @unique
 class TestsMsg(TranslatableMsg):
+    __test__: ClassVar[bool] = False
     fst_test_msg = "test.first_msg"
     snd_test_msg = "test.second_msg"
 
