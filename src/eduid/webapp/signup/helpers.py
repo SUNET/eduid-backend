@@ -9,9 +9,10 @@ from flask import abort
 
 from eduid.common.config.base import EduidEnvironment
 from eduid.common.misc.timeutil import utc_now
-from eduid.common.models.scim_base import SCIMSchema
+from eduid.common.models.scim_base import Email, SCIMSchema
+from eduid.common.models.scim_base import PhoneNumber as ScimPhoneNumber
 from eduid.common.models.scim_user import LinkedAccount as SCIMLinkedAccount
-from eduid.common.models.scim_user import UserCreateRequest, UserResponse, UserUpdateRequest
+from eduid.common.models.scim_user import NutidUserExtensionV1, UserCreateRequest, UserResponse, UserUpdateRequest
 from eduid.queue.client import init_queue_item
 from eduid.queue.db.message import EduidSignupEmail
 from eduid.userdb import MailAddress, NinIdentity, PhoneNumber, Profile, User
@@ -389,9 +390,7 @@ def update_or_create_scim_user(invite: Invite, signup_user: SignupUser) -> UserR
         if not update_user.emails:
             update_user = update_user.model_copy(
                 update={
-                    "emails": [
-                        {"value": address.email, "primary": address.primary} for address in invite.mail_addresses
-                    ]
+                    "emails": [Email(value=address.email, primary=address.primary) for address in invite.mail_addresses]
                 }
             )
         # phone numbers
@@ -399,7 +398,7 @@ def update_or_create_scim_user(invite: Invite, signup_user: SignupUser) -> UserR
             update_user = update_user.model_copy(
                 update={
                     "phone_numbers": [
-                        {"value": number.number, "primary": number.primary} for number in invite.phone_numbers
+                        ScimPhoneNumber(value=number.number, primary=number.primary) for number in invite.phone_numbers
                     ]
                 }
             )
@@ -418,9 +417,9 @@ def update_or_create_scim_user(invite: Invite, signup_user: SignupUser) -> UserR
         linked_accounts.append(eduid_linked_account)
         update_user = update_user.model_copy(
             update={
-                "nutid_user_v1": update_user.nutid_user_v1.model_copy(
-                    update={"linked_accounts": linked_accounts}
-                ).model_dump()
+                "nutid_user_v1": NutidUserExtensionV1(
+                    profiles=update_user.nutid_user_v1.profiles, linked_accounts=linked_accounts
+                )
             }
         )
         return client.update_user(user=update_user, version=scim_user.meta.version)

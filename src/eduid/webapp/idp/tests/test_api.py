@@ -5,7 +5,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 from http import HTTPStatus
 from pathlib import PurePath
-from typing import Any
+from typing import Any, ClassVar
 from unittest.mock import MagicMock, patch
 
 from bson import ObjectId
@@ -82,6 +82,7 @@ class FinishedResultAPI(GenericResult):
 
 @dataclass
 class TestUser:
+    __test__: ClassVar[bool] = False
     eppn: str | None
     password: str | None
 

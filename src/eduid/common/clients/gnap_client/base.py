@@ -62,7 +62,7 @@ class GNAPBearerTokenMixin(ABC):
         jws_header = GNAPJOSEHeader(
             typ=SupportedJWSType.JWS,
             alg=SupportedAlgorithms.ES256,
-            kid=self._auth_data.client_jwk.key_id,
+            kid=self._auth_data.client_jwk.get("kid"),
             htm=SupportedHTTPMethods.POST,
             uri=self.transaction_uri,
             created=utc_now(),

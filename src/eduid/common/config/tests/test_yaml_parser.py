@@ -1,6 +1,7 @@
 import os
 import unittest
 from pathlib import PurePath
+from typing import ClassVar
 
 import pytest
 from pydantic import ValidationError
@@ -13,6 +14,7 @@ __author__ = "ft"
 
 
 class TestConfig(RootConfig):
+    __test__: ClassVar[bool] = False
     foo: str
     number: int
     only_default: int = 19
