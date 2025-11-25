@@ -18,4 +18,5 @@ def init_client(client_registration_info: Mapping[str, Any], provider_configurat
     oidc_client = Client(client_authn_method=CLIENT_AUTHN_METHOD)
     oidc_client.store_registration_info(RegistrationRequest(**client_registration_info))
     provider = provider_configuration_info["issuer"]
-    return oidc_client.provider_config(provider)
+    oidc_client.provider_config(provider)
+    return oidc_client
