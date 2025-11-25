@@ -4,7 +4,7 @@ from typing import Any, cast
 from flask import current_app
 
 from eduid.common.config.parsers import load_config
-from eduid.common.rpc.mail_relay import MailRelay
+from eduid.queue.db.message import MessageDB
 from eduid.userdb.group_management import GroupManagementInviteStateDB
 from eduid.userdb.scimapi import ScimApiGroupDB
 from eduid.userdb.scimapi.userdb import ScimApiUserDB
@@ -37,8 +37,8 @@ class GroupManagementApp(AuthnBaseApp):
             setup_indexes=False,
         )
 
-        # Init celery
-        self.mail_relay = MailRelay(config)
+        # Init message db
+        self.messagedb = MessageDB(config.mongo_uri)
 
 
 current_group_management_app = cast(GroupManagementApp, current_app)
