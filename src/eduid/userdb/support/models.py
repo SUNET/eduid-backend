@@ -71,6 +71,7 @@ class PendingMailAddress(MailAlias):
 class Credential(GenericFilterDict):
     add_keys = [
         "_id",
+        "credential_id",
         "created_by",
         "created_ts",
         "type",
