@@ -13,7 +13,6 @@ from eduid.common.config.base import EduIDBaseAppConfig, RedisConfigMixin, VCCSC
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.rpc.am_relay import AmRelay
 from eduid.common.rpc.lookup_mobile_relay import LookupMobileRelay
-from eduid.common.rpc.mail_relay import MailRelay
 from eduid.common.rpc.msg_relay import MsgRelay
 from eduid.webapp.common.authn.vccs import check_password
 from eduid.webapp.common.session.redis_session import get_redis_pool
@@ -162,24 +161,6 @@ def check_msg() -> bool:
     except Exception as exc:
         log_failure_info("check_msg", msg="msg health check failed", exc=exc)
         check_restart("check_msg", restart=0, terminate=120)
-    return False
-
-
-def check_mail() -> bool:
-    current_app = get_current_app()
-
-    mail_relay: MailRelay | None = getattr(current_app, "mail_relay", None)
-    if not mail_relay:
-        return True
-    try:
-        res = mail_relay.ping()
-        # TODO: remove the backwards-compat startswith when all clients and workers are deployed
-        if res == f"pong for {mail_relay.app_name}" or res.startswith("pong"):
-            reset_failure_info("check_mail")
-            return True
-    except Exception as exc:
-        log_failure_info("check_mail", msg="mail health check failed", exc=exc)
-        check_restart("check_mail", restart=0, terminate=120)
     return False
 
 
