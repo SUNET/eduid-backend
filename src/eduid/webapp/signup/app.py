@@ -7,7 +7,6 @@ from eduid.common.clients import SCIMClient
 from eduid.common.config.exceptions import BadConfiguration
 from eduid.common.config.parsers import load_config
 from eduid.common.rpc.am_relay import AmRelay
-from eduid.common.rpc.mail_relay import MailRelay
 from eduid.queue.db.message import MessageDB
 from eduid.userdb.logs import ProofingLog
 from eduid.userdb.signup import SignupInviteDB, SignupUserDB
@@ -23,7 +22,6 @@ class SignupApp(EduIDBaseApp):
         self.conf = config
 
         self.am_relay = AmRelay(config)
-        self.mail_relay = MailRelay(config)
 
         self.captcha = init_captcha(config)
 
