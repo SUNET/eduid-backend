@@ -109,7 +109,9 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
         group.graph = self.app.scimapi_groupdb.graphdb.save(group.graph)
         return group
 
-    def _invite(self, group_scim_id: str, inviter: User, invite_address: str, role: str) -> TestResponse:
+    def _invite(
+        self, group_scim_id: str, inviter: User, invite_address: str, role: str, expect_mail: bool = True
+    ) -> TestResponse:
         # Clear messagedb before test
         self.app.messagedb._drop_whole_collection()
         with self.session_cookie(self.browser, inviter.eppn) as client:
@@ -123,8 +125,11 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
                     }
                 response = client.post("/invites/create", data=json.dumps(data), content_type=self.content_type_json)
         self._check_success_response(response, type_="POST_GROUP_INVITE_INVITES_CREATE_SUCCESS")
-        # Verify that invite email was queued
-        assert self.app.messagedb.db_count() == 1
+        # Verify that invite email was queued (unless self-invite)
+        if expect_mail:
+            assert self.app.messagedb.db_count() == 1
+        else:
+            assert self.app.messagedb.db_count() == 0
         return response
 
     def _accept_invite(self, group_scim_id: str, invitee: User, invite_address: str, role: str) -> TestResponse:
@@ -608,6 +613,7 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
             inviter=self.test_user,
             invite_address=self.test_user.mail_addresses.primary.email,
             role="member",
+            expect_mail=False,
         )
         payload = self.get_response_payload(response)
         outgoing = payload["outgoing"]
@@ -799,6 +805,7 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
             inviter=self.test_user,
             invite_address=self.test_user.mail_addresses.primary.email,
             role="owner",
+            expect_mail=False,
         )
         payload = self.get_response_payload(response)
         outgoing = payload["outgoing"]
