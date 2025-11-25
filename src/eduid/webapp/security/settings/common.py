@@ -13,7 +13,6 @@ from eduid.common.config.base import (
     EduIDBaseAppConfig,
     FrontendActionMixin,
     MagicCookieMixin,
-    MailConfigMixin,
     MsgConfigMixin,
     PasswordConfigMixin,
     WebauthnConfigMixin2,
@@ -26,7 +25,6 @@ class SecurityConfig(
     MagicCookieMixin,
     AmConfigMixin,
     MsgConfigMixin,
-    MailConfigMixin,
     PasswordConfigMixin,
     FrontendActionMixin,
 ):

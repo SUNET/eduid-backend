@@ -9,11 +9,10 @@ from eduid.common.config.base import (
     EduIDBaseAppConfig,
     ErrorsConfigMixin,
     MagicCookieMixin,
-    MailConfigMixin,
 )
 
 
-class EmailConfig(EduIDBaseAppConfig, MagicCookieMixin, AmConfigMixin, MailConfigMixin, ErrorsConfigMixin):
+class EmailConfig(EduIDBaseAppConfig, MagicCookieMixin, AmConfigMixin, ErrorsConfigMixin):
     """
     Configuration for the email app
     """
