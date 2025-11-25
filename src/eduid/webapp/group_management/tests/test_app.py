@@ -2,7 +2,6 @@ import json
 from collections.abc import Mapping
 from http import HTTPStatus
 from typing import Any
-from unittest.mock import MagicMock, patch
 from uuid import UUID
 
 from werkzeug.test import TestResponse
@@ -110,11 +109,9 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
         group.graph = self.app.scimapi_groupdb.graphdb.save(group.graph)
         return group
 
-    @patch("eduid.common.rpc.mail_relay.MailRelay.sendmail")
-    def _invite(
-        self, mock_sendmail: MagicMock, group_scim_id: str, inviter: User, invite_address: str, role: str
-    ) -> TestResponse:
-        mock_sendmail.return_value = True
+    def _invite(self, group_scim_id: str, inviter: User, invite_address: str, role: str) -> TestResponse:
+        # Clear messagedb before test
+        self.app.messagedb._drop_whole_collection()
         with self.session_cookie(self.browser, inviter.eppn) as client:
             with self.app.test_request_context():
                 with client.session_transaction() as sess:
@@ -126,6 +123,8 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
                     }
                 response = client.post("/invites/create", data=json.dumps(data), content_type=self.content_type_json)
         self._check_success_response(response, type_="POST_GROUP_INVITE_INVITES_CREATE_SUCCESS")
+        # Verify that invite email was queued
+        assert self.app.messagedb.db_count() == 1
         return response
 
     def _accept_invite(self, group_scim_id: str, invitee: User, invite_address: str, role: str) -> TestResponse:
@@ -156,11 +155,9 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
         self._check_success_response(response, type_="POST_GROUP_INVITE_INVITES_DECLINE_SUCCESS")
         return response
 
-    @patch("eduid.common.rpc.mail_relay.MailRelay.sendmail")
-    def _delete_invite(
-        self, mock_sendmail: MagicMock, group_scim_id: str, inviter: User, invite_address: str, role: str
-    ) -> TestResponse:
-        mock_sendmail.return_value = True
+    def _delete_invite(self, group_scim_id: str, inviter: User, invite_address: str, role: str) -> TestResponse:
+        # Clear messagedb before test
+        self.app.messagedb._drop_whole_collection()
         with self.session_cookie(self.browser, inviter.eppn) as client:
             with self.app.test_request_context():
                 with client.session_transaction() as sess:
@@ -172,6 +169,8 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
                     }
                 response = client.post("/invites/delete", data=json.dumps(data), content_type=self.content_type_json)
         self._check_success_response(response, type_="POST_GROUP_INVITE_INVITES_DELETE_SUCCESS")
+        # Verify that cancel email was queued
+        assert self.app.messagedb.db_count() == 1
         return response
 
     def _invite_setup(self) -> None:
