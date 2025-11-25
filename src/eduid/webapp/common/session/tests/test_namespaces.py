@@ -5,14 +5,12 @@ from typing import Any
 
 from eduid.common.config.base import FrontendAction
 from eduid.common.config.parsers import load_config
-from eduid.common.misc.timeutil import utc_now
 from eduid.common.testing_base import normalised_data
-from eduid.userdb.element import ElementKey
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.common.session import EduidSession
 from eduid.webapp.common.session.eduid_session import SessionFactory
 from eduid.webapp.common.session.meta import SessionMeta
-from eduid.webapp.common.session.namespaces import AuthnRequestRef, IdP_SAMLPendingRequest, RequestRef, SP_AuthnRequest
+from eduid.webapp.common.session.namespaces import AuthnRequestRef, SP_AuthnRequest
 from eduid.webapp.common.session.tests.test_eduid_session import SessionTestApp, SessionTestConfig
 
 logger = logging.getLogger(__name__)
