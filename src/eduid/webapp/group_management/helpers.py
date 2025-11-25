@@ -1,4 +1,5 @@
 from dataclasses import asdict, dataclass
+from datetime import timedelta
 from enum import unique
 from typing import Any
 from uuid import UUID
@@ -249,7 +250,7 @@ def send_invite_email(invite_state: GroupInviteState) -> None:
 
     message = init_queue_item(
         app_name=current_app.conf.app_name,
-        expires_in=current_app.conf.invite_expire,
+        expires_in=timedelta(hours=24),
         payload=payload,
     )
     current_app.messagedb.save(message)
@@ -270,10 +271,10 @@ def send_delete_invite_email(invite_state: GroupInviteState) -> None:
 
     message = init_queue_item(
         app_name=current_app.conf.app_name,
-        expires_in=current_app.conf.invite_expire,
+        expires_in=timedelta(hours=24),
         payload=payload,
     )
     current_app.messagedb.save(message)
     current_app.logger.info(
-        f"Queued group {invite_state.group_scim_id} cancel invite email to {invite_state.email_address}"
+        f"Queued group {invite_state.group_scim_id} invite cancellation email to {invite_state.email_address}"
     )
