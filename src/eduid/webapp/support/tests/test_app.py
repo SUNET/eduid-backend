@@ -20,6 +20,7 @@ class SupportAppTests(EduidAPITestCase):
 
         self.test_user_eppn = "hubba-bubba"
         self.client = self.app.test_client()
+        self.update_test_user()
 
     def load_app(self, config: Mapping[str, Any]) -> SupportApp:
         """
@@ -38,6 +39,10 @@ class SupportAppTests(EduidAPITestCase):
             }
         )
         return config
+
+    def update_test_user(self) -> None:
+        # add webauthn credential
+        self.add_security_key_to_user(self.test_user_eppn, keyhandle="test_keyhandle")
 
     # Authentication
     def test_no_authentication(self) -> None:
@@ -69,6 +74,8 @@ class SupportAppTests(EduidAPITestCase):
         with self.session_cookie(self.browser, self.test_user_eppn) as client:
             response = client.post("/search", data={"query": f"{existing_mail_address.email}"})
         assert b"1 user was found using query" in response.data
+        # look for the generated credential id for a webauthn security key
+        assert b"sha256:4e8d75214d48bc726323fea84f7ac0e3af0e59a3853e251d30652c95af387e75" in response.data
 
     def test_search_non_existing_user(self) -> None:
         non_existing_mail_address = "not_in_db@example.com"

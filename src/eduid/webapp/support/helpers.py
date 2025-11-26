@@ -21,6 +21,7 @@ def get_credentials_aux_data(user: User) -> list[TUserDbDocument]:
     credentials: list[TUserDbDocument] = []
     for credential in user.credentials.to_list():
         credential_dict = credential.to_dict()
+        credential_dict["credential_id"] = credential.key
         credential_dict["type"] = credential.__class__.__name__
         credential_info = current_app.support_authn_db.get_credential_info(credential.key)
         if credential_info:
