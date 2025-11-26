@@ -40,10 +40,10 @@ class VCCSHasher(ABC):
     async def hmac_sha1(self, key_handle: int | None, data: bytes) -> bytes:
         raise NotImplementedError("Subclass should implement safe_hmac_sha1")
 
-    def unsafe_hmac_sha1(self, key_handle: int | None, _data: bytes) -> bytes:
+    def unsafe_hmac_sha1(self, key_handle: int | None, data: bytes) -> bytes:
         raise NotImplementedError("Subclass should implement hmac_sha1")
 
-    def load_temp_key(self, nonce: str, _key_handle: int, _aead: bytes) -> bool:
+    def load_temp_key(self, nonce: str, key_handle: int, aead: bytes) -> bool:
         raise NotImplementedError("Subclass should implement load_temp_key")
 
     async def safe_random(self, byte_count: int) -> bytes:

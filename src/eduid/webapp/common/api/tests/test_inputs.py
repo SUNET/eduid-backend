@@ -122,13 +122,13 @@ class InputsTests(EduidAPITestCase):
         """
         return config
 
-    def load_app(self, test_config: Mapping[str, Any]) -> InputsTestApp:
+    def load_app(self, config: Mapping[str, Any]) -> InputsTestApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
-        config = load_config(typ=EduIDBaseAppConfig, app_name="testing", ns="webapp", test_config=test_config)
-        app = InputsTestApp(config)
+        input_config = load_config(typ=EduIDBaseAppConfig, app_name="testing", ns="webapp", test_config=config)
+        app = InputsTestApp(input_config)
         app.register_blueprint(test_views)
         return app
 

@@ -87,12 +87,12 @@ class AuthnAPITestBase(EduidAPITestCase):
         )
         return config
 
-    def load_app(self, test_config: Mapping[str, Any]) -> AuthnApp:
+    def load_app(self, config: Mapping[str, Any]) -> AuthnApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
-        return authn_init_app(test_config=test_config)
+        return authn_init_app(test_config=config)
 
     def add_outstanding_query(self, authn_id: AuthnRequestRef) -> str:
         """
@@ -337,13 +337,13 @@ class UnAuthnAPITestCase(EduidAPITestCase):
         )
         return config
 
-    def load_app(self, test_config: Mapping[str, Any]) -> AuthnTestApp:
+    def load_app(self, config: Mapping[str, Any]) -> AuthnTestApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
-        config = load_config(typ=AuthnConfig, app_name="testing", ns="webapp", test_config=test_config)
-        return AuthnTestApp(config)
+        loaded_config = load_config(typ=AuthnConfig, app_name="testing", ns="webapp", test_config=config)
+        return AuthnTestApp(config=loaded_config)
 
     def test_no_cookie(self) -> None:
         with self.app.test_client() as c:
@@ -398,13 +398,13 @@ class NoAuthnAPITestCase(EduidAPITestCase):
         )
         return config
 
-    def load_app(self, test_config: Mapping[str, Any]) -> AuthnTestApp:
+    def load_app(self, config: Mapping[str, Any]) -> AuthnTestApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
-        config = load_config(typ=AuthnConfig, app_name="testing", ns="webapp", test_config=test_config)
-        return AuthnTestApp(config)
+        loaded_config = load_config(typ=AuthnConfig, app_name="testing", ns="webapp", test_config=config)
+        return AuthnTestApp(config=loaded_config)
 
     def test_no_authn(self) -> None:
         with self.app.test_client() as c:

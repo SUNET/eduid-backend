@@ -85,12 +85,12 @@ class VCCSFactor:
     def __init__(self) -> None:
         pass
 
-    def to_dict(self, _action: str) -> dict[str, Any]:
+    def to_dict(self, action: str) -> dict[str, Any]:
         """
         Return factor as a dict that can be serialized for sending to the
         authentication backend.
 
-        :param _action: 'auth', 'add_creds' or 'revoke_creds'
+        :param action: 'auth', 'add_creds' or 'revoke_creds'
         :returns: dict
         """
         raise NotImplementedError("Sub-class must implement to_dict")
@@ -176,10 +176,10 @@ class VCCSPasswordFactor(VCCSFactor):
         """
         return os.urandom(num_bytes)
 
-    def to_dict(self, _action: str) -> dict[str, Any]:
+    def to_dict(self, action: str) -> dict[str, Any]:
         """
         Return factor as dictionary, transmittable to authentiation backends.
-        :param _action: 'auth', 'add_creds' or 'revoke_creds'
+        :param action: 'auth', 'add_creds' or 'revoke_creds'
         """
         res = {
             "type": "password",
@@ -291,10 +291,10 @@ class VCCSRevokeFactor(VCCSFactor):
         self.reference = reference
         VCCSFactor.__init__(self)
 
-    def to_dict(self, _action: str) -> dict[str, Any]:
+    def to_dict(self, action: str) -> dict[str, Any]:
         """
         Return factor as dictionary, transmittable to authentication backends.
-        :param _action: string, 'auth' or 'add_creds'
+        :param action: string, 'auth' or 'add_creds'
         """
         res = {
             "credential_id": self.credential_id,
