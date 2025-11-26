@@ -1,9 +1,9 @@
 from pydantic import Field
 
-from eduid.common.config.base import AmConfigMixin, EduIDBaseAppConfig, MailConfigMixin, MsgConfigMixin
+from eduid.common.config.base import AmConfigMixin, EduIDBaseAppConfig, MsgConfigMixin
 
 
-class OIDCProofingConfig(EduIDBaseAppConfig, MsgConfigMixin, AmConfigMixin, MailConfigMixin):
+class OIDCProofingConfig(EduIDBaseAppConfig, MsgConfigMixin, AmConfigMixin):
     """
     Configuration for the oidc proofing app
     """

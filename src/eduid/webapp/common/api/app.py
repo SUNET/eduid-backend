@@ -25,7 +25,6 @@ from eduid.webapp.common.api.checks import (
     FailCountItem,
     check_am,
     check_lookup_mobile,
-    check_mail,
     check_mongo,
     check_msg,
     check_redis,
@@ -132,7 +131,6 @@ class EduIDBaseApp(Flask, metaclass=ABCMeta):
         redis: bool = True,
         am: bool = True,
         msg: bool = True,
-        mail: bool = True,
         lookup_mobile: bool = True,
         vccs: bool = True,
     ) -> CheckResult:
@@ -160,11 +158,6 @@ class EduIDBaseApp(Flask, metaclass=ABCMeta):
             res.healthy = False
             res.reason = "msg check failed"
             self.logger.warning("msg check failed")
-        # Mail Relay
-        elif mail and not check_mail():
-            res.healthy = False
-            res.reason = "mail check failed"
-            self.logger.warning("mail check failed")
         # Lookup Mobile Relay
         elif lookup_mobile and not check_lookup_mobile():
             res.healthy = False

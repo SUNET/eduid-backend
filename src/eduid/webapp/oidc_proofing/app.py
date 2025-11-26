@@ -5,8 +5,8 @@ from flask import current_app
 
 from eduid.common.config.parsers import load_config
 from eduid.common.rpc.am_relay import AmRelay
-from eduid.common.rpc.mail_relay import MailRelay
 from eduid.common.rpc.msg_relay import MsgRelay
+from eduid.queue.db.message import MessageDB
 from eduid.userdb.logs import ProofingLog
 from eduid.userdb.proofing import OidcProofingStateDB, OidcProofingUserDB
 from eduid.webapp.common.api import oidc, translation
@@ -29,7 +29,9 @@ class OIDCProofingApp(AuthnBaseApp):
         # Init celery
         self.msg_relay = MsgRelay(config)
         self.am_relay = AmRelay(config)
-        self.mail_relay = MailRelay(config)
+
+        # Init message db
+        self.messagedb = MessageDB(config.mongo_uri)
 
         # Init babel
         self.babel = translation.init_babel(self)

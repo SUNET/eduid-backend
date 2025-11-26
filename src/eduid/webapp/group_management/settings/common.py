@@ -4,22 +4,20 @@ Configuration (file) handling for the eduID group_management app.
 
 from typing import Any
 
-from eduid.common.config.base import EduIDBaseAppConfig, MailConfigMixin
+from eduid.common.config.base import EduIDBaseAppConfig
 
 
-class GroupManagementConfig(EduIDBaseAppConfig, MailConfigMixin):
+class GroupManagementConfig(EduIDBaseAppConfig):
     """
     Configuration for the group_management app
     """
 
     app_name: str = "group_management"
 
-    group_invite_template_html: str = "group_invite_email.html.jinja2"
-    group_invite_template_txt: str = "group_invite_email.txt.jinja2"
-    group_delete_invite_template_html: str = "group_delete_invite_email.html.jinja2"
-    group_delete_invite_template_txt: str = "group_delete_invite_email.txt.jinja2"
+    # Email settings (no longer using MailRelay/Celery)
+    eduid_site_name: str = "eduID"
+    eduid_site_url: str = "https://eduid.se"
     group_invite_url: str = "https://dashboard.eduid.se"
-    mail_default_from: str = "no-reply@eduid.se"
     neo4j_config: dict[str, Any] | None = None
     neo4j_uri: str = ""
     scim_data_owner: str = "eduid.se"

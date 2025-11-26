@@ -1,6 +1,5 @@
 import json
 import logging
-import smtplib
 from collections import OrderedDict
 from http import HTTPStatus
 from typing import Any
@@ -50,16 +49,6 @@ class MessageSender(Task):
         if self._sms is None:
             self._sms = SMSClient(MsgCelerySingleton.worker_config.sms_acc, MsgCelerySingleton.worker_config.sms_key)
         return self._sms
-
-    @property
-    def smtp(self) -> smtplib.SMTP:
-        config = MsgCelerySingleton.worker_config
-        _smtp = smtplib.SMTP(config.mail_host, config.mail_port)
-        if config.mail_starttls:
-            _smtp.starttls()
-        if config.mail_username and config.mail_password:
-            _smtp.login(config.mail_username, config.mail_password)
-        return _smtp
 
     @property
     def navet_api(self) -> Hammock:
@@ -308,35 +297,6 @@ class MessageSender(Task):
         return False
 
     @TransactionAudit()
-    def sendmail(self, sender: str, recipients: list, message: str, reference: str) -> dict:
-        """
-        Send mail
-
-        :param sender: the From of the email
-        :param recipients: the recipients of the email
-        :param message: email.mime.multipart.MIMEMultipart message as a string
-        :param reference: Audit reference to help cross reference audit log and events
-
-        :return Dict of errors
-        """
-
-        # Just log the mail if in development mode
-        # TODO: remove self.conf.devel_mode, use environment instead
-        if (
-            MsgCelerySingleton.worker_config.devel_mode is True
-            or MsgCelerySingleton.worker_config.testing
-            or MsgCelerySingleton.worker_config.environment == EduidEnvironment.dev
-        ):
-            logger.debug("sendmail task:")
-            logger.debug(
-                f"\nType: email\nReference: {reference}\nSender: {sender}\nRecipients: {recipients}\n"
-                f"Message:\n{message}"
-            )
-            return {"devel_mode": True}
-
-        return self.smtp.sendmail(sender, recipients, message)
-
-    @TransactionAudit()
     def sendsms(self, recipient: str, message: str, reference: str) -> str:
         """
         Send sms
@@ -380,30 +340,6 @@ class MessageSender(Task):
             # Old clients don't send app_name, and text-match the response to be exactly 'pong' in the health checks
             return "pong"
         raise ConnectionError("Database not healthy")
-
-
-@app.task(bind=True, base=MessageSender, name="eduid_msg.tasks.sendmail")
-def sendmail(
-    self: MessageSender,
-    sender: str,
-    recipients: list,
-    message: str,
-    reference: str,
-) -> dict:
-    """
-    :param self: base class
-    :param sender: the From of the email
-    :param recipients: the recipients of the email
-    :param message: email.mime.multipart.MIMEMultipart message as a string
-    :param reference: Audit reference to help cross reference audit log and events
-    """
-    try:
-        return self.sendmail(sender, recipients, message, reference)
-    except Exception as e:
-        logger.error(f"sendmail task error: {e}", exc_info=True)
-        # self.retry raises Retry exception, assert False will not be reached
-        self.retry(default_retry_delay=1, max_retries=3, exc=e)
-    assert False  # make mypy happy
 
 
 @app.task(bind=True, base=MessageSender, name="eduid_msg.tasks.sendsms")

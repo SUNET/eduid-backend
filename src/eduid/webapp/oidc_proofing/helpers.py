@@ -6,10 +6,10 @@ from http import HTTPStatus
 from typing import Any
 
 import requests
-from flask import render_template
-from flask_babel import gettext as _
 from oic.oic.message import ClaimsRequest
 
+from eduid.queue.client import init_queue_item
+from eduid.queue.db.message.payload import EduidRedoVerificationEmail
 from eduid.userdb import User
 from eduid.userdb.logs import SeLegProofing, SeLegProofingFrejaEid
 from eduid.userdb.proofing import OidcProofingState
@@ -17,6 +17,7 @@ from eduid.userdb.proofing.element import NinProofingElement
 from eduid.userdb.proofing.user import ProofingUser
 from eduid.webapp.common.api.helpers import number_match_proofing, verify_nin_for_user
 from eduid.webapp.common.api.messages import TranslatableMsg
+from eduid.webapp.common.api.translation import get_user_locale
 from eduid.webapp.common.api.utils import get_unique_hash
 from eduid.webapp.oidc_proofing.app import current_oidcp_app as current_app
 
@@ -124,26 +125,27 @@ def do_authn_request(proofing_state: OidcProofingState, claims_request: ClaimsRe
 
 
 def send_new_verification_method_mail(user: User) -> None:
-    site_name = current_app.conf.eduid_site_name
-    site_url = current_app.conf.eduid_site_url
-    subject = _("%(site_name)s account verification", site_name=site_name)
-
     if not user.mail_addresses.primary:
         current_app.logger.info("User has no primary e-mail address, can't send email requesting other vetting method")
         return None
 
     email_address = user.mail_addresses.primary.email
 
-    context = {
-        "site_url": site_url,
-        "site_name": site_name,
-    }
+    payload = EduidRedoVerificationEmail(
+        email=email_address,
+        site_name=current_app.conf.eduid_site_name,
+        site_url=current_app.conf.eduid_site_url,
+        language=get_user_locale() or current_app.conf.default_language,
+        reference=user.eppn,
+    )
 
-    text = render_template("redo_verification.txt.jinja2", **context)
-    html = render_template("redo_verification.html.jinja2", **context)
-
-    current_app.mail_relay.sendmail(subject, [email_address], text, html)
-    current_app.logger.info(f"Sent email to user {user} requesting another vetting method")
+    message = init_queue_item(
+        app_name=current_app.conf.app_name,
+        expires_in=timedelta(hours=24),
+        payload=payload,
+    )
+    current_app.messagedb.save(message)
+    current_app.logger.info(f"Queued email to user {user} requesting another vetting method")
 
 
 def handle_seleg_userinfo(user: ProofingUser, proofing_state: OidcProofingState, userinfo: Mapping[str, Any]) -> None:

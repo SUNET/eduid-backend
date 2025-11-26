@@ -11,7 +11,6 @@ from eduid.common.config.base import (
     CaptchaConfigMixin,
     EduIDBaseAppConfig,
     MagicCookieMixin,
-    MailConfigMixin,
     MsgConfigMixin,
     PasswordConfigMixin,
     WebauthnConfigMixin2,
@@ -24,7 +23,6 @@ class ResetPasswordConfig(
     MagicCookieMixin,
     AmConfigMixin,
     MsgConfigMixin,
-    MailConfigMixin,
     PasswordConfigMixin,
     CaptchaConfigMixin,
 ):

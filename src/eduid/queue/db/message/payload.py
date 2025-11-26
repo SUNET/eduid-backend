@@ -89,3 +89,25 @@ class EduidVerificationEmail(EmailPayload):
 class EduidTerminationEmail(EmailPayload):
     site_name: str
     version: int = 1
+
+
+@dataclass
+class EduidGroupInviteEmail(EmailPayload):
+    group_display_name: str
+    group_invite_url: str
+    site_name: str
+    site_url: str
+    version: int = 1
+
+
+@dataclass
+class EduidGroupInviteCancelEmail(EmailPayload):
+    group_display_name: str
+    version: int = 1
+
+
+@dataclass
+class EduidRedoVerificationEmail(EmailPayload):
+    site_name: str
+    site_url: str
+    version: int = 1

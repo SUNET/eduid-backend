@@ -227,7 +227,6 @@ class OidcProofingTests(EduidAPITestCase):
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
         self._check_nin_verified_ok(user=user, proofing_state=proofing_state, number=self.test_user_nin)
 
-    @patch("eduid.common.rpc.mail_relay.MailRelay.sendmail")
     @patch("eduid.webapp.oidc_proofing.helpers.do_authn_request")
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_postal_address")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
@@ -236,9 +235,7 @@ class OidcProofingTests(EduidAPITestCase):
         mock_request_user_sync: MagicMock,
         mock_get_postal_address: MagicMock,
         mock_oidc_call: MagicMock,
-        mock_sendmail: MagicMock,
     ) -> None:
-        mock_sendmail.return_value = True
         mock_oidc_call.return_value = True
         mock_get_postal_address.return_value = self.mock_address
         mock_request_user_sync.side_effect = self.request_user_sync
@@ -276,6 +273,8 @@ class OidcProofingTests(EduidAPITestCase):
 
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
         self._check_nin_not_verified(user=user, number=self.test_user_nin)
+        # Verify that redo verification email was queued
+        assert self.app.messagedb.db_count() == 1
 
     @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
     @patch("eduid.webapp.oidc_proofing.helpers.do_authn_request")
