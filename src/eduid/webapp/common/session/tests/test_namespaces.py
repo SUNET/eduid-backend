@@ -26,8 +26,8 @@ class TestNameSpaceBase(EduidAPITestCase):
         app for this test case.
         """
         logger.debug("Starting SessionTestApp")
-        config = load_config(typ=SessionTestConfig, app_name="testing", ns="webapp", test_config=config)
-        app = SessionTestApp(config)
+        session_config = load_config(typ=SessionTestConfig, app_name="testing", ns="webapp", test_config=config)
+        app = SessionTestApp(session_config)
         logger.debug("Started SessionTestApp")
         app.session_interface = SessionFactory(app.conf)
         return app

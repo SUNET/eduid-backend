@@ -127,8 +127,8 @@ class InputsTests(EduidAPITestCase):
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
-        config = load_config(typ=EduIDBaseAppConfig, app_name="testing", ns="webapp", test_config=config)
-        app = InputsTestApp(config)
+        input_config = load_config(typ=EduIDBaseAppConfig, app_name="testing", ns="webapp", test_config=config)
+        app = InputsTestApp(input_config)
         app.register_blueprint(test_views)
         return app
 

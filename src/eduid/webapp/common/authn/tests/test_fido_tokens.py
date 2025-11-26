@@ -106,8 +106,8 @@ class FidoTokensTestCase(EduidAPITestCase):
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
-        config = load_config(typ=MockFidoConfig, app_name="testing", ns="webapp", test_config=config)
-        app = MockFidoApp(config)
+        fido_config = load_config(typ=MockFidoConfig, app_name="testing", ns="webapp", test_config=config)
+        app = MockFidoApp(fido_config)
         app.register_blueprint(views)
         return app
 

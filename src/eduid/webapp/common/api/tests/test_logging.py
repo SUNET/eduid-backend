@@ -23,8 +23,8 @@ class LoggingTest(EduidAPITestCase):
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
-        config = load_config(typ=EduIDBaseAppConfig, app_name="test_app", ns="webapp", test_config=config)
-        return LoggingTestApp(config)
+        logging_config = load_config(typ=EduIDBaseAppConfig, app_name="test_app", ns="webapp", test_config=config)
+        return LoggingTestApp(logging_config)
 
     def update_config(self, config: dict[str, Any]) -> dict[str, Any]:
         return config
