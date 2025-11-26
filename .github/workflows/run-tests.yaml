@@ -86,6 +86,9 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v6
+
+      - name: Lint using ruff
       - uses: astral-sh/ruff-action@v3
         with:
           version: "<0.13.0"
