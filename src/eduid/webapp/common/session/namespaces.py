@@ -9,7 +9,7 @@ from enum import StrEnum, unique
 from typing import Any, NewType, TypeVar, cast
 
 from fido2.webauthn import AuthenticatorAttachment
-from pydantic import BaseModel, Field, ValidationError, field_serializer, field_validator
+from pydantic import BaseModel, Field, ValidationError, field_serializer
 from pydantic_core.core_schema import SerializationInfo
 
 from eduid.common.config.base import FrontendAction
