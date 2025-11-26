@@ -196,6 +196,17 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
         self.assertEqual(response.status_code, 401)
 
         eppn = self.test_user_data["eduPersonPrincipalName"]
+        self.add_security_key_to_user(
+            eppn=eppn,
+            keyhandle="test_keyhandle_1",
+            created_ts=datetime(year=2025, month=11, day=25, hour=13, minute=59, second=59),
+        )
+        self.add_security_key_to_user(
+            eppn=eppn,
+            keyhandle="test_keyhandle_2",
+            mfa_approved=True,
+            created_ts=datetime(year=2025, month=11, day=25, hour=14, minute=1, second=1),
+        )
         with self.session_cookie(self.browser, eppn) as client:
             return client.get("/credentials")
 
@@ -580,14 +591,38 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
         expected_payload = {
             "credentials": [
                 {
+                    "authenticator": None,
                     "created_ts": "2013-09-02 10:23:25+00:00",
                     "credential_type": "security.password_credential_type",
                     "description": None,
                     "key": "112345678901234567890123",
+                    "mfa_approved": None,
                     "success_ts": None,
                     "used_for_login": False,
                     "verified": False,
-                }
+                },
+                {
+                    "authenticator": "cross-platform",
+                    "created_ts": "2025-11-25 13:59:59+00:00",
+                    "credential_type": "security.webauthn_credential_type",
+                    "description": "unit test webauthn token",
+                    "key": "sha256:e1b0b2bc302de9df5cbb170900824ee1322a53b88c3ff4c6cf7a3119a3571613",
+                    "mfa_approved": False,
+                    "success_ts": None,
+                    "used_for_login": False,
+                    "verified": False,
+                },
+                {
+                    "authenticator": "cross-platform",
+                    "created_ts": "2025-11-25 14:01:01+00:00",
+                    "credential_type": "security.webauthn_credential_type",
+                    "description": "unit test webauthn token",
+                    "key": "sha256:18d65d1095045f39c3764ee3093d0f6efba14b69c18a5d6304a3aada4478d670",
+                    "mfa_approved": True,
+                    "success_ts": None,
+                    "used_for_login": False,
+                    "verified": False,
+                },
             ],
         }
         self._check_success_response(response, type_="GET_SECURITY_CREDENTIALS_SUCCESS", payload=expected_payload)
