@@ -355,9 +355,11 @@ class MailQueueWorker(QueueWorker):
 
     async def send_eduid_redo_verification_mail(self, data: EduidRedoVerificationEmail) -> Status:
         with self._jinja2.select_language(data.language) as env:
+            subject_template = env.gettext("%(site_name)s account verification")
+            subject = subject_template % {"site_name": data.site_name}
             msg = self._build_mail(
                 translation_env=env.jinja2_env,
-                subject=env.gettext("%(site_name)s account verification", site_name=data.site_name),
+                subject=subject,
                 txt_template="redo_verification_email.txt.jinja2",
                 html_template="redo_verification_email.html.jinja2",
                 data=data,
