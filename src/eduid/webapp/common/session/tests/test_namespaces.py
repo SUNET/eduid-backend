@@ -20,13 +20,13 @@ logger.setLevel(logging.DEBUG)
 class TestNameSpaceBase(EduidAPITestCase):
     app: SessionTestApp
 
-    def load_app(self, test_config: Mapping[str, Any]) -> SessionTestApp:
+    def load_app(self, config: Mapping[str, Any]) -> SessionTestApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
         logger.debug("Starting SessionTestApp")
-        config = load_config(typ=SessionTestConfig, app_name="testing", ns="webapp", test_config=test_config)
+        config = load_config(typ=SessionTestConfig, app_name="testing", ns="webapp", test_config=config)
         app = SessionTestApp(config)
         logger.debug("Started SessionTestApp")
         app.session_interface = SessionFactory(app.conf)

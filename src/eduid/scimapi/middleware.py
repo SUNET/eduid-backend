@@ -46,13 +46,13 @@ class BaseMiddleware(BaseHTTPMiddleware, ContextRequestMixin):
         super().__init__(app)
         self.context = context
 
-    async def dispatch(self, req: Request, call_next: RequestResponseEndpoint) -> Response:
-        return await call_next(req)
+    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
+        return await call_next(request)
 
 
 class ScimMiddleware(BaseMiddleware):
-    async def dispatch(self, req: Request, call_next: RequestResponseEndpoint) -> Response:
-        req = self.make_context_request(request=req, context_class=ScimApiContext)
+    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
+        req = self.make_context_request(request=request, context_class=ScimApiContext)
         self.context.logger.debug(f"process_request: {req.method} {req.url.path}")
         resp = await call_next(req)
 
@@ -77,8 +77,8 @@ class AuthenticationMiddleware(BaseMiddleware):
                 return True
         return False
 
-    async def dispatch(self, req: Request, call_next: RequestResponseEndpoint) -> Response:
-        req = self.make_context_request(request=req, context_class=ScimApiContext)
+    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
+        req = self.make_context_request(request=request, context_class=ScimApiContext)
 
         assert isinstance(req.context, ScimApiContext)  # please mypy
 

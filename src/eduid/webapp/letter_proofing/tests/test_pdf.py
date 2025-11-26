@@ -139,13 +139,13 @@ class CreatePDFTest(EduidAPITestCase):
         """
         return init_letter_proofing_app("testing", config)
 
-    def update_config(self, app_config: dict[str, Any]) -> dict[str, Any]:
-        app_config.update(
+    def update_config(self, config: dict[str, Any]) -> dict[str, Any]:
+        config.update(
             {
                 "letter_wait_time_hours": 336,
             }
         )
-        return app_config
+        return config
 
     def test_create_pdf(self) -> None:
         recipient = FullPostalAddress.model_validate(

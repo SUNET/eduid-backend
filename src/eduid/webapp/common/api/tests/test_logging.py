@@ -18,12 +18,12 @@ class LoggingTestApp(EduIDBaseApp):
 class LoggingTest(EduidAPITestCase):
     app: LoggingTestApp
 
-    def load_app(self, test_config: Mapping[str, Any]) -> LoggingTestApp:
+    def load_app(self, config: Mapping[str, Any]) -> LoggingTestApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
-        config = load_config(typ=EduIDBaseAppConfig, app_name="test_app", ns="webapp", test_config=test_config)
+        config = load_config(typ=EduIDBaseAppConfig, app_name="test_app", ns="webapp", test_config=config)
         return LoggingTestApp(config)
 
     def update_config(self, config: dict[str, Any]) -> dict[str, Any]:
