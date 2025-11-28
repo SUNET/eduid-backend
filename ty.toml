@@ -3,7 +3,7 @@
 call-non-callable = "ignore"
 invalid-argument-type = "ignore"
 invalid-assignment = "ignore"
-invalid-key = "ignore"
+#invalid-key = "ignore"
 invalid-return-type = "ignore"
 missing-argument = "ignore"
 no-matching-overload = "ignore"
