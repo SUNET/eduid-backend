@@ -506,7 +506,11 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
 
         xmlstr = result.payload["parameters"]["SAMLResponse"]
         outstanding_queries = self.pysaml2_oq.outstanding_queries()
-        return _saml2_client.parse_authn_request_response(xmlstr, BINDING_HTTP_POST, outstanding_queries)
+        response = _saml2_client.parse_authn_request_response(xmlstr, BINDING_HTTP_POST, outstanding_queries)
+
+        if response is None or not isinstance(response, AuthnResponse):
+            raise ValueError("Could not parse SAML response")
+        return response
 
     def get_sso_session(self, sso_cookie_val: str) -> SSOSession | None:
         if sso_cookie_val is None:
