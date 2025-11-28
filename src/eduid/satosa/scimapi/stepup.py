@@ -383,6 +383,9 @@ class StepUp(ResponseMicroService):
 
         logger.debug(f"Stepup parameters: {params}")
 
+        if context.request is None:
+            raise StepUpError("No request data in context")
+
         try:
             _response: str = context.request["SAMLResponse"]
             authn_response = self.sp.parse_authn_request_response(
