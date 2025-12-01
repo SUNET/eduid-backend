@@ -26,8 +26,8 @@ def return_error_response(status_code: int, detail: str) -> PlainTextResponse:
 
 
 class AuthenticationMiddleware(BaseHTTPMiddleware, ContextRequestMixin):
-    async def dispatch(self, req: Request, call_next: RequestResponseEndpoint) -> Response:
-        req = self.make_context_request(request=req)
+    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
+        req = self.make_context_request(request=request)
         path = req.url.path.lstrip(req.app.config.application_root)
         method_path = f"{req.method.lower()}:{path}"
 
