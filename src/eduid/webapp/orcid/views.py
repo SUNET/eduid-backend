@@ -10,10 +10,17 @@ from eduid.userdb.orcid import OidcAuthorization, OidcIdToken, Orcid
 from eduid.userdb.proofing import OrcidProofingState, ProofingUser
 from eduid.userdb.user import User
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, require_user
-from eduid.webapp.common.api.messages import CommonMsg, FluxData, TranslatableMsg, redirect_with_msg, success_response
+from eduid.webapp.common.api.messages import (
+    CommonMsg,
+    FluxData,
+    TranslatableMsg,
+    redirect_with_msg,
+    success_response,
+)
+from eduid.webapp.common.api.oidc import OidcServiceUnavailableError
 from eduid.webapp.common.api.schemas.csrf import EmptyRequest
 from eduid.webapp.common.api.utils import get_unique_hash, save_and_sync_user
-from eduid.webapp.orcid.app import OrcidServiceUnavailableError, current_orcid_app as current_app
+from eduid.webapp.orcid.app import current_orcid_app as current_app
 from eduid.webapp.orcid.helpers import OrcidMsg, OrcidUserinfo
 from eduid.webapp.orcid.schemas import OrcidResponseSchema
 
@@ -49,7 +56,7 @@ def authorize(user: User) -> WerkzeugResponse:
             current_app.logger.debug(f"Authorization url: {authorization_url!s}")
             current_app.stats.count(name="authn_request")
             return redirect(authorization_url)
-        except OrcidServiceUnavailableError as e:
+        except OidcServiceUnavailableError as e:
             current_app.logger.warning(f"ORCID service unavailable during authorization: {e}")
             redirect_url = current_app.conf.orcid_verify_redirect_url
             return redirect_with_msg(redirect_url, CommonMsg.temp_problem, error=True)
@@ -71,9 +78,11 @@ def authorization_response(user: User) -> WerkzeugResponse:
     current_app.logger.debug(f"query_string: {query_string!s}")
 
     try:
-        authn_resp = current_app.oidc_client.parse_response(AuthorizationResponse, info=query_string, sformat="urlencoded")
+        authn_resp = current_app.oidc_client.parse_response(
+            AuthorizationResponse, info=query_string, sformat="urlencoded"
+        )
         current_app.logger.debug(f"Authorization response received: {authn_resp!s}")
-    except OrcidServiceUnavailableError as e:
+    except OidcServiceUnavailableError as e:
         current_app.logger.warning(f"ORCID service unavailable during authorization response: {e}")
         return redirect_with_msg(redirect_url, CommonMsg.temp_problem, error=True)
 
@@ -115,7 +124,7 @@ def authorization_response(user: User) -> WerkzeugResponse:
             method=current_app.conf.userinfo_endpoint_method, state=authn_resp["state"]
         )
         current_app.logger.debug(f"userinfo received: {userinfo_result}")
-    except OrcidServiceUnavailableError as e:
+    except OidcServiceUnavailableError as e:
         current_app.logger.warning(f"ORCID service unavailable during token/userinfo request: {e}")
         return redirect_with_msg(redirect_url, CommonMsg.temp_problem, error=True)
 
