@@ -215,6 +215,7 @@ class RawDb:
         if not self._myname:
             sys.stderr.write("Can't save with backup unless RawDb is initialized with myname\n")
             sys.exit(1)
+        assert self._myname is not None  # typecheckers cannot figure out the above sys.exit
         return os.path.join(self._backupbase, self._myname, self._start_time)
 
 
