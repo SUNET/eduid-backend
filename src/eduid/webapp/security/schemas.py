@@ -17,6 +17,8 @@ class CredentialSchema(EduidSchema):
     used_for_login = fields.Boolean(required=True)
     verified = fields.Boolean(required=True)
     description = fields.String(required=False)
+    authenticator = fields.String(required=False)
+    mfa_approved = fields.Boolean(required=False)
 
 
 class CredentialList(EduidSchema, CSRFResponseMixin):
