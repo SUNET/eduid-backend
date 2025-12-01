@@ -7,6 +7,7 @@ from typing import Any
 
 import satosa.context
 import satosa.internal
+from satosa.exception import SATOSAAuthenticationError
 from satosa.micro_services.base import ResponseMicroService
 
 logger = logging.getLogger(__name__)
@@ -49,7 +50,7 @@ class GeneratePairwiseId(ResponseMicroService):
         relying_party: str = data.requester
         subject_id_list = data.attributes.get("subject-id")
         if not subject_id_list:
-            raise satosa.exception.SATOSAAuthenticationError(context.state, "No subject-id attribute found")
+            raise SATOSAAuthenticationError(context.state, "No subject-id attribute found")
         subject_id: str = subject_id_list[0]
         user_scope: str = subject_id.split("@")[-1]
 
