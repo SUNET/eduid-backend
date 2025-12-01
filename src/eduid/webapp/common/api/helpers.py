@@ -1,14 +1,12 @@
 import warnings
 from dataclasses import dataclass
-from typing import Any, cast, overload
+from typing import cast, overload
 
-from flask import current_app, render_template, request
+from flask import current_app, request
 
-from eduid.common.config.base import EduidEnvironment, MagicCookieMixin, MailConfigMixin
-from eduid.common.decorators import deprecated
+from eduid.common.config.base import EduidEnvironment, MagicCookieMixin
 from eduid.common.proofing_utils import set_user_names_from_official_address
 from eduid.common.rpc.exceptions import NoNavetData
-from eduid.common.rpc.mail_relay import MailRelay
 from eduid.common.rpc.msg_relay import DeregisteredCauseCode, DeregistrationInformation, FullPostalAddress, MsgRelay
 from eduid.userdb import NinIdentity
 from eduid.userdb.element import ElementKey
@@ -27,7 +25,6 @@ from eduid.userdb.proofing import ProofingUser
 from eduid.userdb.proofing.state import NinProofingState, OidcProofingState
 from eduid.userdb.user import TUserSubclass, User
 from eduid.userdb.userdb import UserDB
-from eduid.webapp.common.api.app import EduIDBaseApp
 from eduid.webapp.common.api.utils import get_from_current_app, get_reference_nin_from_navet_data, save_and_sync_user
 
 __author__ = "lundberg"
@@ -221,49 +218,6 @@ def verify_nin_for_user(
     save_and_sync_user(proofing_user)
 
     return True
-
-
-@deprecated("queue should be used instead")
-def send_mail(
-    subject: str,
-    to_addresses: list[str],
-    text_template: str,
-    html_template: str,
-    app: EduIDBaseApp,
-    context: dict[str, Any] | None = None,
-    reference: str | None = None,
-) -> None:
-    """
-    :param subject: subject text
-    :param to_addresses: email addresses for the to field
-    :param text_template: text message as a jinja template
-    :param html_template: html message as a jinja template
-    :param app: Flask current app
-    :param context: template context
-    :param reference: Audit reference to help cross-reference audit log and events
-    """
-
-    mail_relay = get_from_current_app("mail_relay", MailRelay)
-    conf = get_from_current_app("conf", MailConfigMixin)
-
-    site_name = conf.eduid_site_name
-    site_url = conf.eduid_site_url
-
-    default_context: dict[str, str] = {
-        "site_url": site_url,
-        "site_name": site_name,
-    }
-    if not context:
-        context = {}
-    context.update(default_context)
-
-    app.logger.debug(f"subject: {subject}")
-    app.logger.debug(f"to addresses: {to_addresses}")
-    text = render_template(text_template, **context)
-    app.logger.debug(f"rendered text: {text}")
-    html = render_template(html_template, **context)
-    app.logger.debug(f"rendered html: {html}")
-    mail_relay.sendmail(subject, to_addresses, text, html, reference)
 
 
 def check_magic_cookie(config: MagicCookieMixin) -> bool:

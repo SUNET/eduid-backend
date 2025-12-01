@@ -1,20 +1,20 @@
 from dataclasses import asdict, dataclass
+from datetime import timedelta
 from enum import unique
 from typing import Any
 from uuid import UUID
 
-from flask_babel import gettext as _
-
-from eduid.common.rpc.exceptions import MailTaskFailed
 from eduid.graphdb.groupdb import Group as GraphGroup
 from eduid.graphdb.groupdb import User as GraphUser
+from eduid.queue.client import init_queue_item
+from eduid.queue.db.message.payload import EduidGroupInviteCancelEmail, EduidGroupInviteEmail
 from eduid.userdb import User
 from eduid.userdb.exceptions import EduIDDBError
 from eduid.userdb.group_management import GroupInviteState
 from eduid.userdb.scimapi import ScimApiGroup
 from eduid.userdb.scimapi.userdb import ScimApiUser
-from eduid.webapp.common.api.helpers import send_mail
 from eduid.webapp.common.api.messages import TranslatableMsg
+from eduid.webapp.common.api.translation import get_user_locale
 from eduid.webapp.group_management.app import current_group_management_app as current_app
 from eduid.webapp.group_management.schemas import GroupRole
 
@@ -234,61 +234,47 @@ def get_incoming_invites(user: User) -> list[dict[str, Any]]:
 
 
 def send_invite_email(invite_state: GroupInviteState) -> None:
-    text_template = current_app.conf.group_invite_template_txt
-    html_template = current_app.conf.group_invite_template_txt
-
-    to_addresses = [invite_state.email_address]
     group = current_app.scimapi_groupdb.get_group_by_scim_id(invite_state.group_scim_id)
     if not group:
         raise ValueError(f"Group {invite_state.group_scim_id} not found")
-    context = {"group_display_name": group.display_name, "group_invite_url": current_app.conf.group_invite_url}
-    subject = _("Group invitation")
-    try:
-        send_mail(
-            subject,
-            to_addresses,
-            text_template,
-            html_template,
-            current_app,
-            context,
-            reference=invite_state.group_scim_id,
-        )
-    except MailTaskFailed as e:
-        current_app.logger.error(
-            f"Sending group {invite_state.group_scim_id} invite email to {invite_state.email_address} failed: {e}"
-        )
-        raise e
 
-    current_app.logger.info(f"Sent group {invite_state.group_scim_id} invite email to {invite_state.email_address}")
+    payload = EduidGroupInviteEmail(
+        email=invite_state.email_address,
+        group_display_name=group.display_name,
+        group_invite_url=current_app.conf.group_invite_url,
+        site_name=current_app.conf.eduid_site_name,
+        site_url=current_app.conf.eduid_site_url,
+        language=get_user_locale() or current_app.conf.default_language,
+        reference=str(invite_state.group_scim_id),
+    )
+
+    message = init_queue_item(
+        app_name=current_app.conf.app_name,
+        expires_in=timedelta(hours=24),
+        payload=payload,
+    )
+    current_app.messagedb.save(message)
+    current_app.logger.info(f"Queued group {invite_state.group_scim_id} invite email to {invite_state.email_address}")
 
 
 def send_delete_invite_email(invite_state: GroupInviteState) -> None:
-    text_template = current_app.conf.group_delete_invite_template_txt
-    html_template = current_app.conf.group_delete_invite_template_html
-
-    to_addresses = [invite_state.email_address]
     group = current_app.scimapi_groupdb.get_group_by_scim_id(invite_state.group_scim_id)
     if not group:
         raise ValueError(f"Group {invite_state.group_scim_id} not found")
-    context = {"group_display_name": group.display_name}
-    subject = _("Group invitation cancelled")
-    try:
-        send_mail(
-            subject,
-            to_addresses,
-            text_template,
-            html_template,
-            current_app,
-            context,
-            reference=invite_state.group_scim_id,
-        )
-    except MailTaskFailed as e:
-        current_app.logger.error(
-            f"Sending group {invite_state.group_scim_id} cancel invite email to "
-            f"{invite_state.email_address} failed: {e}"
-        )
-        raise e
 
+    payload = EduidGroupInviteCancelEmail(
+        email=invite_state.email_address,
+        group_display_name=group.display_name,
+        language=get_user_locale() or current_app.conf.default_language,
+        reference=str(invite_state.group_scim_id),
+    )
+
+    message = init_queue_item(
+        app_name=current_app.conf.app_name,
+        expires_in=timedelta(hours=24),
+        payload=payload,
+    )
+    current_app.messagedb.save(message)
     current_app.logger.info(
-        f"Sent group {invite_state.group_scim_id} cancel invite email to {invite_state.email_address}"
+        f"Queued group {invite_state.group_scim_id} invite cancellation email to {invite_state.email_address}"
     )

@@ -8,7 +8,6 @@ from eduid.common.config.base import (
     CaptchaConfigMixin,
     EduIDBaseAppConfig,
     MagicCookieMixin,
-    MailConfigMixin,
     PasswordConfigMixin,
     TouConfigMixin,
 )
@@ -19,7 +18,6 @@ class SignupConfig(
     EduIDBaseAppConfig,
     MagicCookieMixin,
     AmConfigMixin,
-    MailConfigMixin,
     TouConfigMixin,
     CaptchaConfigMixin,
     PasswordConfigMixin,

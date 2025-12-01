@@ -16,6 +16,9 @@ from eduid.queue.config import QueueWorkerConfig
 from eduid.queue.db import QueueItem
 from eduid.queue.db.message import EduidInviteEmail, EduidSignupEmail
 from eduid.queue.db.message.payload import (
+    EduidGroupInviteCancelEmail,
+    EduidGroupInviteEmail,
+    EduidRedoVerificationEmail,
     EduidResetPasswordEmail,
     EduidTerminationEmail,
     EduidVerificationEmail,
@@ -44,6 +47,9 @@ class MailQueueWorker(QueueWorker):
             EduidResetPasswordEmail,
             EduidVerificationEmail,
             EduidTerminationEmail,
+            EduidGroupInviteEmail,
+            EduidGroupInviteCancelEmail,
+            EduidRedoVerificationEmail,
         ]
         super().__init__(config=config, handle_payloads=payloads)
 
@@ -177,6 +183,30 @@ class MailQueueWorker(QueueWorker):
                 )
             )
             logger.debug(f"send_eduid_verification_mail returned status: {status}")
+        elif queue_item.payload_type == EduidGroupInviteEmail.get_type():
+            status = await self.send_eduid_group_invite_mail(
+                cast(
+                    EduidGroupInviteEmail,
+                    queue_item.payload,
+                )
+            )
+            logger.debug(f"send_eduid_group_invite_mail returned status: {status}")
+        elif queue_item.payload_type == EduidGroupInviteCancelEmail.get_type():
+            status = await self.send_eduid_group_invite_cancel_mail(
+                cast(
+                    EduidGroupInviteCancelEmail,
+                    queue_item.payload,
+                )
+            )
+            logger.debug(f"send_eduid_group_invite_cancel_mail returned status: {status}")
+        elif queue_item.payload_type == EduidRedoVerificationEmail.get_type():
+            status = await self.send_eduid_redo_verification_mail(
+                cast(
+                    EduidRedoVerificationEmail,
+                    queue_item.payload,
+                )
+            )
+            logger.debug(f"send_eduid_redo_verification_mail returned status: {status}")
 
         if status and status.retry:
             logger.info(f"Retrying queue item: {queue_item.item_id}")
@@ -282,6 +312,56 @@ class MailQueueWorker(QueueWorker):
                 subject=env.gettext("eduID account termination"),
                 txt_template="termination_email.txt.jinja2",
                 html_template="termination_email.html.jinja2",
+                data=data,
+            )
+        return await self.sendmail(
+            sender=self.config.mail_default_from,
+            recipient=data.email,
+            message=msg.as_string(),
+            reference=data.reference,
+        )
+
+    async def send_eduid_group_invite_mail(self, data: EduidGroupInviteEmail) -> Status:
+        with self._jinja2.select_language(data.language) as env:
+            msg = self._build_mail(
+                translation_env=env.jinja2_env,
+                subject=env.gettext("Group invitation"),
+                txt_template="group_invite_email.txt.jinja2",
+                html_template="group_invite_email.html.jinja2",
+                data=data,
+            )
+        return await self.sendmail(
+            sender=self.config.mail_default_from,
+            recipient=data.email,
+            message=msg.as_string(),
+            reference=data.reference,
+        )
+
+    async def send_eduid_group_invite_cancel_mail(self, data: EduidGroupInviteCancelEmail) -> Status:
+        with self._jinja2.select_language(data.language) as env:
+            msg = self._build_mail(
+                translation_env=env.jinja2_env,
+                subject=env.gettext("Group invitation cancelled"),
+                txt_template="group_invite_cancel_email.txt.jinja2",
+                html_template="group_invite_cancel_email.html.jinja2",
+                data=data,
+            )
+        return await self.sendmail(
+            sender=self.config.mail_default_from,
+            recipient=data.email,
+            message=msg.as_string(),
+            reference=data.reference,
+        )
+
+    async def send_eduid_redo_verification_mail(self, data: EduidRedoVerificationEmail) -> Status:
+        with self._jinja2.select_language(data.language) as env:
+            subject_template = env.gettext("%(site_name)s account verification")
+            subject = subject_template % {"site_name": data.site_name}
+            msg = self._build_mail(
+                translation_env=env.jinja2_env,
+                subject=subject,
+                txt_template="redo_verification_email.txt.jinja2",
+                html_template="redo_verification_email.html.jinja2",
                 data=data,
             )
         return await self.sendmail(

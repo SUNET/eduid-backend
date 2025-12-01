@@ -312,15 +312,6 @@ class AmConfigMixin(CeleryConfigMixin):
     am_relay_for_override: str | None = None  # only set this if f'eduid_{app_name}' is not right
 
 
-class MailConfigMixin(CeleryConfigMixin):
-    """Config used by MailRelay"""
-
-    eduid_site_name: str = "eduID"
-    eduid_site_url: str = "https://eduid.se"
-
-    mail_default_from: str = "no-reply@eduid.se"
-
-
 class MsgConfigMixin(CeleryConfigMixin):
     """Config used by MsgRelay"""
 

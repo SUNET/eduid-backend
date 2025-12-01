@@ -3,7 +3,6 @@ from uuid import UUID
 from flask import Blueprint
 from pymongo.errors import DuplicateKeyError
 
-from eduid.common.rpc.exceptions import MailTaskFailed
 from eduid.userdb import User
 from eduid.userdb.exceptions import EduIDDBError
 from eduid.userdb.group_management import GroupInviteState, GroupRole
@@ -97,10 +96,7 @@ def create_invite(user: User, group_identifier: UUID, email_address: str, role: 
             f"as role {invite_state.role.value} already exists."
         )
     # Always send an e-mail even it the invite already existed
-    try:
-        send_invite_email(invite_state)
-    except MailTaskFailed:
-        return error_response(message=CommonMsg.temp_problem)
+    send_invite_email(invite_state)
     current_app.stats.count(name="invite_created")
     return outgoing_invites()
 
@@ -134,10 +130,7 @@ def delete_invite(user: User, group_identifier: UUID, email_address: str, role: 
         return error_response(message=CommonMsg.temp_problem)
     current_app.stats.count(name="invite_deleted")
 
-    try:
-        send_delete_invite_email(invite_state)
-    except MailTaskFailed:
-        return error_response(message=CommonMsg.temp_problem)
+    send_delete_invite_email(invite_state)
 
     return outgoing_invites()
 
