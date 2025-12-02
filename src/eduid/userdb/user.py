@@ -126,7 +126,7 @@ class User(BaseModel):
         return f"<eduID {self.__class__.__name__}: {self.eppn}/not in db>"
 
     @classmethod
-    def from_dict[TUserSubclass: User](cls: type[TUserSubclass], data: TUserDbDocument) -> TUserSubclass:
+    def from_dict(cls: type[Self], data: TUserDbDocument) -> Self:
         """
         Construct user from a data dict.
         """
