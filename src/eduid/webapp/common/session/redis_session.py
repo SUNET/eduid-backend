@@ -49,7 +49,7 @@ import json
 import logging
 import typing
 from collections.abc import Iterator, Mapping
-from typing import Any, TypeVar
+from typing import Any
 
 import nacl.encoding
 import nacl.secret
@@ -154,10 +154,7 @@ class SessionOutOfSync(Exception):
     pass
 
 
-VT = TypeVar("VT")
-
-
-class RedisEncryptedSession(typing.MutableMapping[str, VT]):
+class RedisEncryptedSession[VT](typing.MutableMapping[str, VT]):
     """
     Session objects that keep their data in a redis db.
     """
