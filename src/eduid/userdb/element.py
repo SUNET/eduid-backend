@@ -226,9 +226,6 @@ class VerifiedElement(Element, ABC):
         return data
 
 
-TPrimaryElementSubclass = TypeVar("TPrimaryElementSubclass", bound="PrimaryElement")
-
-
 class PrimaryElement(VerifiedElement, ABC):
     """
     Elements that can be either primary or not.
