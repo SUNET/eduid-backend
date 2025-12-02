@@ -23,8 +23,6 @@ __author__ = "lundberg"
 
 logger = logging.getLogger(__name__)
 
-TProofingState = TypeVar("TProofingState", bound="ProofingState")
-
 
 @dataclass()
 class ProofingState:
@@ -40,7 +38,9 @@ class ProofingState:
             self.id = bson.ObjectId()
 
     @classmethod
-    def _default_from_dict(cls: type[TProofingState], data: Mapping[str, Any], fields: set[str]) -> TProofingState:
+    def _default_from_dict[TProofingState: ProofingState](
+        cls: type[TProofingState], data: Mapping[str, Any], fields: set[str]
+    ) -> TProofingState:
         _data = copy.deepcopy(dict(data))  # to not modify callers data
         if "eduPersonPrincipalName" in _data:
             _data["eppn"] = _data.pop("eduPersonPrincipalName")
