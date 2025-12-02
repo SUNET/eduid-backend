@@ -20,7 +20,6 @@ logger = logging.getLogger(__name__)
 
 __author__ = "lundberg"
 
-ProofingStateInstance = TypeVar("ProofingStateInstance", bound=ProofingState)
 
 ProofingStateVar = TypeVar("ProofingStateVar")
 
