@@ -51,7 +51,7 @@ from abc import ABC
 from collections.abc import Mapping
 from datetime import datetime
 from enum import Enum
-from typing import Any, NewType, cast
+from typing import Any, NewType, Self, cast
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -112,7 +112,7 @@ class Element(BaseModel):
         return f"<eduID {self.__class__.__name__}: {self.model_dump()}>"
 
     @classmethod
-    def from_dict[TElementSubclass: Element](cls: type[TElementSubclass], data: Mapping[str, Any]) -> TElementSubclass:
+    def from_dict(cls: type[Self], data: Mapping[str, Any]) -> Self:
         """
         Construct element from a data dict in eduid format.
         """

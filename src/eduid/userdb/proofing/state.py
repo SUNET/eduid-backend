@@ -5,7 +5,7 @@ import datetime
 import logging
 from collections.abc import Mapping
 from dataclasses import asdict, dataclass
-from typing import Any
+from typing import Any, Self
 
 import bson
 
@@ -38,9 +38,7 @@ class ProofingState:
             self.id = bson.ObjectId()
 
     @classmethod
-    def _default_from_dict[TProofingState: ProofingState](
-        cls: type[TProofingState], data: Mapping[str, Any], fields: set[str]
-    ) -> TProofingState:
+    def _default_from_dict(cls: type[Self], data: Mapping[str, Any], fields: set[str]) -> Self:
         _data = copy.deepcopy(dict(data))  # to not modify callers data
         if "eduPersonPrincipalName" in _data:
             _data["eppn"] = _data.pop("eduPersonPrincipalName")

@@ -2,7 +2,7 @@ from abc import ABC
 from collections.abc import Mapping
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from typing import Any, ClassVar
+from typing import Any, ClassVar, Self
 
 from eduid.common.misc.timeutil import utc_now
 
@@ -15,7 +15,7 @@ class Payload(ABC):
         return asdict(self)
 
     @classmethod
-    def from_dict[TPayload: Payload](cls: type[TPayload], data: Mapping[str, Any]) -> TPayload:
+    def from_dict(cls: type[Self], data: Mapping[str, Any]) -> Self:
         raise NotImplementedError()
 
     @classmethod

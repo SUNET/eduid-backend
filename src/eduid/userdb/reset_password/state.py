@@ -3,7 +3,7 @@ from __future__ import annotations
 import datetime
 import logging
 from dataclasses import asdict, dataclass, field
-from typing import Any
+from typing import Any, Self
 from uuid import uuid4
 
 import bson
@@ -46,9 +46,7 @@ class ResetPasswordState:
         return TUserDbDocument(res)
 
     @classmethod
-    def from_dict[TResetPasswordStateSubclass: ResetPasswordState](
-        cls: type[TResetPasswordStateSubclass], data: dict[str, Any]
-    ) -> TResetPasswordStateSubclass:
+    def from_dict(cls: type[Self], data: dict[str, Any]) -> Self:
         data["eppn"] = data.pop("eduPersonPrincipalName")
         data["id"] = data.pop("_id")
         if "reference" in data:
