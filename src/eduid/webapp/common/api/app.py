@@ -45,10 +45,6 @@ if DEBUG:
     stderr.writelines("----- WARNING! EDUID_APP_DEBUG is enabled -----\n")
 
 
-TFlaskConfigSubclass = TypeVar("TFlaskConfigSubclass", bound=FlaskConfig)
-TEduIDBaseAppSubclass = TypeVar("TEduIDBaseAppSubclass", bound="EduIDBaseApp")
-
-
 class EduIDBaseApp(Flask, metaclass=ABCMeta):
     """
     Base class for eduID apps, initializing common features and facilities.
