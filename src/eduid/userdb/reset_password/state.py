@@ -3,7 +3,7 @@ from __future__ import annotations
 import datetime
 import logging
 from dataclasses import asdict, dataclass, field
-from typing import Any, TypeVar
+from typing import Any
 from uuid import uuid4
 
 import bson
@@ -12,8 +12,6 @@ from eduid.common.misc.timeutil import utc_now
 from eduid.common.models.webauthn import WebauthnChallenge
 from eduid.userdb.db import TUserDbDocument
 from eduid.userdb.reset_password.element import CodeElement
-
-TResetPasswordStateSubclass = TypeVar("TResetPasswordStateSubclass", bound="ResetPasswordState")
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +46,9 @@ class ResetPasswordState:
         return TUserDbDocument(res)
 
     @classmethod
-    def from_dict(cls: type[TResetPasswordStateSubclass], data: dict[str, Any]) -> TResetPasswordStateSubclass:
+    def from_dict[TResetPasswordStateSubclass: ResetPasswordState](
+        cls: type[TResetPasswordStateSubclass], data: dict[str, Any]
+    ) -> TResetPasswordStateSubclass:
         data["eppn"] = data.pop("eduPersonPrincipalName")
         data["id"] = data.pop("_id")
         if "reference" in data:
