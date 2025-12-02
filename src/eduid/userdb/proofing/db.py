@@ -82,7 +82,7 @@ class ProofingStateDB[ProofingStateVar: ProofingState](BaseDB, ABC):
 
         return result
 
-    def remove_state(self, state: ProofingStateVar) -> None:
+    def remove_state(self, state: ProofingState) -> None:
         """
         :param state: ProofingStateClass object
         """
@@ -101,7 +101,7 @@ class LetterProofingStateDB(ProofingStateDB[LetterProofingState]):
         return LetterProofingState.from_dict(data)
 
 
-class EmailProofingStateDB[ProofingStateVar: ProofingState](ProofingStateDB[EmailProofingState]):
+class EmailProofingStateDB(ProofingStateDB[EmailProofingState]):
     def __init__(self, db_uri: str, db_name: str = "eduid_email") -> None:
         super().__init__(db_uri, db_name)
 
@@ -119,7 +119,7 @@ class EmailProofingStateDB[ProofingStateVar: ProofingState](ProofingStateDB[Emai
         spec = {"eduPersonPrincipalName": eppn, "verification.email": email}
         return self.get_latest_state_by_spec(spec)
 
-    def remove_state(self, state: ProofingStateVar) -> None:
+    def remove_state(self, state: ProofingState) -> None:
         """
         :param state: ProofingStateClass object
 
@@ -131,7 +131,7 @@ class EmailProofingStateDB[ProofingStateVar: ProofingState](ProofingStateDB[Emai
         self.remove_document({"eduPersonPrincipalName": state.eppn, "verification.email": state.verification.email})
 
 
-class PhoneProofingStateDB[ProofingStateVar: ProofingState](ProofingStateDB[PhoneProofingState]):
+class PhoneProofingStateDB(ProofingStateDB[PhoneProofingState]):
     def __init__(self, db_uri: str, db_name: str = "eduid_phone") -> None:
         super().__init__(db_uri, db_name)
 
@@ -154,7 +154,7 @@ class PhoneProofingStateDB[ProofingStateVar: ProofingState](ProofingStateDB[Phon
         spec = {"eduPersonPrincipalName": eppn, "verification.number": number}
         return self.get_latest_state_by_spec(spec)
 
-    def remove_state(self, state: ProofingStateVar) -> None:
+    def remove_state(self, state: ProofingState) -> None:
         """
         :param state: ProofingStateClass object
 
