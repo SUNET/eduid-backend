@@ -82,10 +82,6 @@ class RootConfig(BaseModel):
     model_config = ConfigDict(validate_assignment=True)
 
 
-# EduIDBaseApp is currently Flask apps
-TEduIDBaseAppConfigSubclass = TypeVar("TEduIDBaseAppConfigSubclass", bound="EduIDBaseAppConfig")
-
-
 class LoggingFilters(StrEnum):
     """Identifiers to coherently map elements in LocalContext.filters to filter classes in logging dictConfig."""
 
