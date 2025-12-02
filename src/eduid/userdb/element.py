@@ -185,9 +185,6 @@ class Element(BaseModel):
         raise NotImplementedError("'key' not implemented for Element subclass")
 
 
-TVerifiedElementSubclass = TypeVar("TVerifiedElementSubclass", bound="VerifiedElement")
-
-
 class VerifiedElement(Element, ABC):
     """
     Elements that can be verified or not.
@@ -203,7 +200,7 @@ class VerifiedElement(Element, ABC):
         return f"<eduID {self.__class__.__name__}(key={repr(self.key)}): verified={self.is_verified}>"
 
     @classmethod
-    def _from_dict_transform(cls: type[TVerifiedElementSubclass], data: dict[str, Any]) -> dict[str, Any]:
+    def _from_dict_transform(cls: type[VerifiedElement], data: dict[str, Any]) -> dict[str, Any]:
         """
         Transform data from eduid database format into pythonic format.
         """
