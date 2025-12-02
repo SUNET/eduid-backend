@@ -8,8 +8,6 @@ from eduid.common.misc.timeutil import utc_now
 
 __author__ = "lundberg"
 
-TPayload = TypeVar("TPayload", bound="Payload")
-
 
 @dataclass
 class Payload(ABC):
@@ -17,7 +15,7 @@ class Payload(ABC):
         return asdict(self)
 
     @classmethod
-    def from_dict(cls: type[TPayload], data: Mapping[str, Any]) -> TPayload:
+    def from_dict[TPayload: Payload](cls: type[TPayload], data: Mapping[str, Any]) -> TPayload:
         raise NotImplementedError()
 
     @classmethod
