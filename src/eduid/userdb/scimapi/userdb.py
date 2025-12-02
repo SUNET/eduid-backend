@@ -6,7 +6,7 @@ import uuid
 from collections.abc import Mapping
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from typing import Any
+from typing import Any, Self
 
 from bson import ObjectId
 
@@ -54,7 +54,7 @@ class ScimApiUser(ScimApiResourceBase):
         return TUserDbDocument(res)
 
     @classmethod
-    def from_dict(cls: type[ScimApiUser], data: Mapping[str, Any]) -> ScimApiUser:
+    def from_dict(cls: type[Self], data: Mapping[str, Any]) -> Self:
         this = dict(copy.copy(data))  # to not modify callers data
         this["scim_id"] = uuid.UUID(this["scim_id"])
         this["user_id"] = this.pop("_id")

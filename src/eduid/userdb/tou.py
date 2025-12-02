@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, Self
 
 from bson import ObjectId
 from pydantic import field_validator
@@ -65,7 +65,7 @@ class ToUList(EventList[ToUEvent]):
     """
 
     @classmethod
-    def from_list_of_dicts(cls: type[ToUList], items: list[dict[str, Any]]) -> ToUList:
+    def from_list_of_dicts(cls: type[Self], items: list[dict[str, Any]]) -> Self:
         return cls(elements=[ToUEvent.from_dict(this) for this in items])
 
     def has_accepted(self, version: str, reaccept_interval: int) -> bool:
