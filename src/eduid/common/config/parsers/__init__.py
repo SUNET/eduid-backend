@@ -7,7 +7,7 @@ from typing import Any
 
 import yaml
 
-from eduid.common.config.base import FlaskConfig, TRootConfigSubclass
+from eduid.common.config.base import FlaskConfig, RootConfig
 
 __author__ = "ft"
 
@@ -15,7 +15,7 @@ from eduid.common.config.parsers.base import BaseConfigParser
 from eduid.common.config.parsers.exceptions import ParserException
 
 
-def load_config(
+def load_config[TRootConfigSubclass: RootConfig](
     typ: type[TRootConfigSubclass],
     ns: str,
     app_name: str,

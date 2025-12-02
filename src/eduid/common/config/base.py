@@ -66,9 +66,6 @@ class CookieConfig(BaseModel):
     max_age_seconds: int | None = None  # None means this is a session cookie
 
 
-TRootConfigSubclass = TypeVar("TRootConfigSubclass", bound="RootConfig")
-
-
 class EduidEnvironment(StrEnum):
     dev = "dev"
     staging = "staging"
