@@ -51,7 +51,7 @@ from abc import ABC
 from collections.abc import Mapping
 from datetime import datetime
 from enum import Enum
-from typing import Any, NewType, TypeVar, cast
+from typing import Any, NewType, cast
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -82,7 +82,6 @@ class PrimaryElementViolation(PrimaryElementError):
     """
 
 
-TElementSubclass = TypeVar("TElementSubclass", bound="Element")
 ElementKey = NewType("ElementKey", str)
 
 
@@ -113,7 +112,7 @@ class Element(BaseModel):
         return f"<eduID {self.__class__.__name__}: {self.model_dump()}>"
 
     @classmethod
-    def from_dict(cls: type[TElementSubclass], data: Mapping[str, Any]) -> TElementSubclass:
+    def from_dict[TElementSubclass: Element](cls: type[TElementSubclass], data: Mapping[str, Any]) -> TElementSubclass:
         """
         Construct element from a data dict in eduid format.
         """
@@ -138,7 +137,7 @@ class Element(BaseModel):
         return TUserDbDocument(data)
 
     @classmethod
-    def _from_dict_transform(cls: type[TElementSubclass], data: dict[str, Any]) -> dict[str, Any]:
+    def _from_dict_transform(cls: type[Element], data: dict[str, Any]) -> dict[str, Any]:
         """
         Transform data received in eduid format into pythonic format.
         """
@@ -260,10 +259,6 @@ class PrimaryElement(VerifiedElement, ABC):
         return data
 
 
-MatchingElement = TypeVar("MatchingElement", bound=Element)
-TElementList = TypeVar("TElementList", bound="ElementList")
-
-
 class ElementList[ListElement: Element](BaseModel, ABC):
     """
     Hold a list of Element instances.
@@ -300,7 +295,9 @@ class ElementList[ListElement: Element](BaseModel, ABC):
         return values
 
     @classmethod
-    def from_list_of_dicts(cls: type[TElementList], items: list[dict[str, Any]]) -> TElementList:
+    def from_list_of_dicts[TElementList: ElementList](
+        cls: type[TElementList], items: list[dict[str, Any]]
+    ) -> TElementList:
         # must be implemented by subclass to get correct type information
         raise NotImplementedError()
 
@@ -359,7 +356,7 @@ class ElementList[ListElement: Element](BaseModel, ABC):
 
         self.elements = [this for this in self.elements if this != match]
 
-    def filter(self, cls: type[MatchingElement]) -> list[MatchingElement]:
+    def filter[MatchingElement: Element](self, cls: type[MatchingElement]) -> list[MatchingElement]:
         """
         Return a new ElementList with the elements that were instances of cls.
 
