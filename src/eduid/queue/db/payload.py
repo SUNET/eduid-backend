@@ -2,7 +2,7 @@ from abc import ABC
 from collections.abc import Mapping
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from typing import Any, ClassVar, TypeVar
+from typing import Any, ClassVar
 
 from eduid.common.misc.timeutil import utc_now
 
