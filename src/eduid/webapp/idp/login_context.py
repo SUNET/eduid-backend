@@ -117,9 +117,6 @@ class LoginContext(ABC, BaseModel):
         self.known_device_info = None
 
 
-TLoginContextSubclass = TypeVar("TLoginContextSubclass", bound="LoginContext")
-
-
 class LoginContextSAML(LoginContext):
     _saml_req: Optional["IdP_SAMLRequest"] = None
 
