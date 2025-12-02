@@ -21,14 +21,14 @@ from eduid.userdb.logs.element import (
 )
 from eduid.userdb.proofing import ProofingUser
 from eduid.userdb.proofing.state import NinProofingState, OidcProofingState
-from eduid.userdb.user import TUserSubclass, User
+from eduid.userdb.user import User
 from eduid.userdb.userdb import UserDB
 from eduid.webapp.common.api.utils import get_from_current_app, get_reference_nin_from_navet_data, save_and_sync_user
 
 __author__ = "lundberg"
 
 
-def set_user_names_from_nin_proofing(
+def set_user_names_from_nin_proofing[TUserSubclass: User](
     user: TUserSubclass,
     proofing_log_entry: NinProofingLogElement,
 ) -> TUserSubclass:
@@ -41,7 +41,7 @@ def set_user_names_from_nin_proofing(
     return user
 
 
-def set_user_names_from_nin_eid_proofing(
+def set_user_names_from_nin_eid_proofing[TUserSubclass: User](
     user: TUserSubclass, proofing_log_entry: NinEIDProofingLogElement
 ) -> TUserSubclass:
     user.given_name = proofing_log_entry.given_name
@@ -52,7 +52,7 @@ def set_user_names_from_nin_eid_proofing(
     return user
 
 
-def set_user_names_from_foreign_id(
+def set_user_names_from_foreign_id[TUserSubclass: User](
     user: TUserSubclass, proofing_log_entry: ForeignIdProofingLogElement
 ) -> TUserSubclass:
     """

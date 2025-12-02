@@ -5,7 +5,7 @@ import logging
 from datetime import datetime
 from enum import StrEnum, unique
 from operator import itemgetter
-from typing import Any, Self, TypeVar, cast
+from typing import Any, Self, cast
 
 import bson
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -26,8 +26,6 @@ from eduid.userdb.profile import ProfileList
 from eduid.userdb.tou import ToUList
 
 logger = logging.getLogger(__name__)
-
-TUserSubclass = TypeVar("TUserSubclass", bound="User")
 
 EPPN_LENGTH = 11
 
@@ -128,7 +126,7 @@ class User(BaseModel):
         return f"<eduID {self.__class__.__name__}: {self.eppn}/not in db>"
 
     @classmethod
-    def from_dict(cls: type[TUserSubclass], data: TUserDbDocument) -> TUserSubclass:
+    def from_dict[TUserSubclass: User](cls: type[TUserSubclass], data: TUserDbDocument) -> TUserSubclass:
         """
         Construct user from a data dict.
         """
@@ -149,7 +147,7 @@ class User(BaseModel):
         return TUserDbDocument(res)
 
     @classmethod
-    def _from_dict_transform(cls: type[TUserSubclass], data: dict[str, Any]) -> dict[str, Any]:
+    def _from_dict_transform(cls: type[User], data: dict[str, Any]) -> dict[str, Any]:
         # clean up sn
         if "sn" in data:
             _sn = data.pop("sn")
@@ -248,7 +246,7 @@ class User(BaseModel):
         return data
 
     @classmethod
-    def from_user(cls: type[TUserSubclass], user: User, private_userdb: BaseDB) -> TUserSubclass:
+    def from_user[TUserSubclass: User](cls: type[TUserSubclass], user: User, private_userdb: BaseDB) -> TUserSubclass:
         """
         This function is only expected to be used with subclasses of User.
 

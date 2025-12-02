@@ -1,7 +1,7 @@
 import logging
 
 from eduid.userdb.logs.element import NinNavetProofingLogElement
-from eduid.userdb.user import TUserSubclass
+from eduid.userdb.user import User
 
 __author__ = "lundberg"
 
@@ -51,7 +51,7 @@ def get_marked_given_name(given_name: str, given_name_marking: str | None) -> st
         return " ".join(_marked_names)
 
 
-def set_user_names_from_official_address(
+def set_user_names_from_official_address[TUserSubclass: User](
     user: TUserSubclass, proofing_log_entry: NinNavetProofingLogElement
 ) -> TUserSubclass:
     """
