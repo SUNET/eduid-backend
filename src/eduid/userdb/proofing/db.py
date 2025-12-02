@@ -2,7 +2,7 @@ import logging
 from abc import ABC
 from collections.abc import Mapping
 from operator import itemgetter
-from typing import Any, TypeVar
+from typing import Any
 
 from eduid.userdb.db import BaseDB, SaveResult, TUserDbDocument
 from eduid.userdb.proofing.state import (
@@ -21,10 +21,7 @@ logger = logging.getLogger(__name__)
 __author__ = "lundberg"
 
 
-ProofingStateVar = TypeVar("ProofingStateVar")
-
-
-class ProofingStateDB[ProofingStateVar](BaseDB, ABC):
+class ProofingStateDB[ProofingStateVar: ProofingState](BaseDB, ABC):
     def __init__(self, db_uri: str, db_name: str, collection: str = "proofing_data") -> None:
         super().__init__(db_uri, db_name, collection)
 
@@ -104,7 +101,7 @@ class LetterProofingStateDB(ProofingStateDB[LetterProofingState]):
         return LetterProofingState.from_dict(data)
 
 
-class EmailProofingStateDB(ProofingStateDB[EmailProofingState]):
+class EmailProofingStateDB[ProofingStateVar: ProofingState](ProofingStateDB[EmailProofingState]):
     def __init__(self, db_uri: str, db_name: str = "eduid_email") -> None:
         super().__init__(db_uri, db_name)
 
@@ -134,7 +131,7 @@ class EmailProofingStateDB(ProofingStateDB[EmailProofingState]):
         self.remove_document({"eduPersonPrincipalName": state.eppn, "verification.email": state.verification.email})
 
 
-class PhoneProofingStateDB(ProofingStateDB[PhoneProofingState]):
+class PhoneProofingStateDB[ProofingStateVar: ProofingState](ProofingStateDB[PhoneProofingState]):
     def __init__(self, db_uri: str, db_name: str = "eduid_phone") -> None:
         super().__init__(db_uri, db_name)
 
@@ -169,7 +166,7 @@ class PhoneProofingStateDB(ProofingStateDB[PhoneProofingState]):
         self.remove_document({"eduPersonPrincipalName": state.eppn, "verification.number": state.verification.number})
 
 
-class OidcStateDB[ProofingStateVar](ProofingStateDB[ProofingStateVar], ABC):
+class OidcStateDB[ProofingStateVar: ProofingState](ProofingStateDB[ProofingStateVar], ABC):
     def get_state_by_oidc_state(self, oidc_state: str) -> ProofingStateVar | None:
         """
         Locate a state in the db given the user's OIDC state.
