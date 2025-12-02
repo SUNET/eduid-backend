@@ -9,7 +9,7 @@ from datetime import timedelta
 from enum import Enum, StrEnum, unique
 from pathlib import Path
 from re import Pattern
-from typing import IO, Annotated, Any, TypeVar
+from typing import IO, Annotated, Any
 
 import importlib_resources
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field
