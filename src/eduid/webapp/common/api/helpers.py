@@ -14,12 +14,10 @@ from eduid.userdb.exceptions import LockedIdentityViolation
 from eduid.userdb.identity import IdentityProofingMethod, IdentityType
 from eduid.userdb.logs import ProofingLog
 from eduid.userdb.logs.element import (
+    ForeignIdProofingLogElement,
     NinEIDProofingLogElement,
     NinNavetProofingLogElement,
     NinProofingLogElement,
-    TForeignIdProofingLogElementSubclass,
-    TNinEIDProofingLogElementSubclass,
-    TNinProofingLogElementSubclass,
 )
 from eduid.userdb.proofing import ProofingUser
 from eduid.userdb.proofing.state import NinProofingState, OidcProofingState
@@ -32,7 +30,7 @@ __author__ = "lundberg"
 
 def set_user_names_from_nin_proofing(
     user: TUserSubclass,
-    proofing_log_entry: TNinProofingLogElementSubclass,
+    proofing_log_entry: NinProofingLogElement,
 ) -> TUserSubclass:
     if isinstance(proofing_log_entry, NinNavetProofingLogElement):
         user = set_user_names_from_official_address(user, proofing_log_entry)
@@ -44,7 +42,7 @@ def set_user_names_from_nin_proofing(
 
 
 def set_user_names_from_nin_eid_proofing(
-    user: TUserSubclass, proofing_log_entry: TNinEIDProofingLogElementSubclass
+    user: TUserSubclass, proofing_log_entry: NinEIDProofingLogElement
 ) -> TUserSubclass:
     user.given_name = proofing_log_entry.given_name
     user.surname = proofing_log_entry.surname
@@ -55,7 +53,7 @@ def set_user_names_from_nin_eid_proofing(
 
 
 def set_user_names_from_foreign_id(
-    user: TUserSubclass, proofing_log_entry: TForeignIdProofingLogElementSubclass
+    user: TUserSubclass, proofing_log_entry: ForeignIdProofingLogElement
 ) -> TUserSubclass:
     """
     :param user: Proofing app private userdb user

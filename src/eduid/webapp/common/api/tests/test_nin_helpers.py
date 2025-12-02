@@ -21,7 +21,7 @@ from eduid.userdb.logs.element import (
     ForeignIdProofingLogElement,
     NinEIDProofingLogElement,
     NinNavetProofingLogElement,
-    TNinProofingLogElementSubclass,
+    NinProofingLogElement,
 )
 from eduid.userdb.proofing import LetterProofingStateDB, LetterProofingUserDB, NinProofingElement, ProofingUser
 from eduid.userdb.proofing.state import NinProofingState
@@ -184,7 +184,7 @@ class NinHelpersTest(EduidAPITestCase[HelpersTestApp]):
         mock_user_sync: MagicMock,
         user: User,
         nin_element: NinProofingElement,
-        proofing_log_entry: TNinProofingLogElementSubclass,
+        proofing_log_entry: NinProofingLogElement,
     ) -> None:
         """Test happy-case when calling verify_nin_for_user with a User instance (deprecated)"""
         mock_user_sync.return_value = True
@@ -201,7 +201,7 @@ class NinHelpersTest(EduidAPITestCase[HelpersTestApp]):
         self._check_nin_verified_ok(user=user, proofing_state=proofing_state, number=self.test_user_nin)
 
     def _test_verify_nin_for_proofing_user(
-        self, user: User, nin_element: NinProofingElement, proofing_log_entry: TNinProofingLogElementSubclass
+        self, user: User, nin_element: NinProofingElement, proofing_log_entry: NinProofingLogElement
     ) -> None:
         """Test happy-case when calling verify_nin_for_user with a ProofingUser instance"""
         proofing_state = NinProofingState.from_dict({"eduPersonPrincipalName": user.eppn, "nin": nin_element.to_dict()})

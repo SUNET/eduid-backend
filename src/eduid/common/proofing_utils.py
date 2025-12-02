@@ -1,6 +1,6 @@
 import logging
 
-from eduid.userdb.logs.element import TNinNavetProofingLogElementSubclass
+from eduid.userdb.logs.element import NinNavetProofingLogElement
 from eduid.userdb.user import TUserSubclass
 
 __author__ = "lundberg"
@@ -52,7 +52,7 @@ def get_marked_given_name(given_name: str, given_name_marking: str | None) -> st
 
 
 def set_user_names_from_official_address(
-    user: TUserSubclass, proofing_log_entry: TNinNavetProofingLogElementSubclass
+    user: TUserSubclass, proofing_log_entry: NinNavetProofingLogElement
 ) -> TUserSubclass:
     """
     :param user: Proofing app private userdb user
