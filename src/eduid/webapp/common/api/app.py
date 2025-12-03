@@ -8,14 +8,14 @@ from __future__ import annotations
 import os
 from abc import ABCMeta
 from sys import stderr
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any
 
 from cookies_samesite_compat import CookiesSameSiteCompatMiddleware
 from flask import Flask
 from flask_cors import CORS
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-from eduid.common.config.base import EduIDBaseAppConfig, FlaskConfig
+from eduid.common.config.base import EduIDBaseAppConfig
 from eduid.common.config.exceptions import BadConfiguration
 from eduid.common.logging import init_logging
 from eduid.common.stats import init_app_stats
@@ -43,10 +43,6 @@ if TYPE_CHECKING:
 DEBUG = os.environ.get("EDUID_APP_DEBUG", "False").lower() != "false"
 if DEBUG:
     stderr.writelines("----- WARNING! EDUID_APP_DEBUG is enabled -----\n")
-
-
-TFlaskConfigSubclass = TypeVar("TFlaskConfigSubclass", bound=FlaskConfig)
-TEduIDBaseAppSubclass = TypeVar("TEduIDBaseAppSubclass", bound="EduIDBaseApp")
 
 
 class EduIDBaseApp(Flask, metaclass=ABCMeta):

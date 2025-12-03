@@ -1,5 +1,5 @@
 from collections.abc import Iterator, MutableMapping
-from typing import Any, TypeVar
+from typing import Any
 
 from saml2.cache import Cache
 
@@ -7,10 +7,9 @@ from eduid.webapp.common.session.namespaces import AuthnRequestRef, PySAML2Dicts
 
 # VT symbolizes the type of the values in the cache. SessionCacheAdapter is a
 # generic class that contains element of this unknown type.
-VT = TypeVar("VT")
 
 
-class SessionCacheAdapter(MutableMapping[str, VT]):
+class SessionCacheAdapter[VT](MutableMapping[str, VT]):
     key_prefix = "_saml2"
 
     def __init__(self, backend: PySAML2Dicts, key_suffix: str) -> None:

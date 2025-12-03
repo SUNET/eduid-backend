@@ -9,7 +9,7 @@ import tempfile
 import time
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
-from typing import Any
+from typing import Any, Self
 
 from eduid.common.misc.timeutil import utc_now
 
@@ -59,7 +59,7 @@ class EduidTemporaryInstance(ABC):
                 interval += interval
 
     @classmethod
-    def get_instance(cls: type[EduidTemporaryInstance], max_retry_seconds: int = 60) -> EduidTemporaryInstance:
+    def get_instance(cls: type[Self], max_retry_seconds: int = 60) -> Self:
         """
         Start a new temporary instance, or retrieve an already started one.
 

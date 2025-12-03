@@ -1,15 +1,13 @@
 from __future__ import annotations
 
 from abc import ABC
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
 from pydantic import Field
 
 from eduid.userdb.element import Element, ElementKey, ElementList
 from eduid.userdb.exceptions import BadEvent, UserDBValueError
-
-TEventSubclass = TypeVar("TEventSubclass", bound="Event")
 
 if TYPE_CHECKING:
     from eduid.userdb.tou import ToUEvent
@@ -31,7 +29,7 @@ class Event(Element):
         return ElementKey(self.event_id)
 
     @classmethod
-    def _from_dict_transform(cls: type[TEventSubclass], data: dict[str, Any]) -> dict[str, Any]:
+    def _from_dict_transform(cls: type[Event], data: dict[str, Any]) -> dict[str, Any]:
         """
         Transform data received in eduid format into pythonic format.
         """

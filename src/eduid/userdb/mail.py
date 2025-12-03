@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Self
 
 from pydantic import field_validator
 
@@ -49,7 +49,7 @@ class MailAddressList(PrimaryElementList[MailAddress]):
     """
 
     @classmethod
-    def from_list_of_dicts(cls: type[MailAddressList], items: list[dict[str, Any]]) -> MailAddressList:
+    def from_list_of_dicts(cls: type[Self], items: list[dict[str, Any]]) -> Self:
         return cls(elements=[MailAddress.from_dict(this) for this in items])
 
 

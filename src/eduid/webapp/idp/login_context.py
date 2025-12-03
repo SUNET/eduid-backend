@@ -1,7 +1,7 @@
 import logging
 from abc import ABC
 from collections.abc import Sequence
-from typing import Optional, TypeVar
+from typing import Optional
 from urllib.parse import urlencode
 
 from pydantic import BaseModel, ConfigDict
@@ -115,9 +115,6 @@ class LoginContext(ABC, BaseModel):
         """User has requested to not be remembered on this device"""
         self._known_device = None
         self.known_device_info = None
-
-
-TLoginContextSubclass = TypeVar("TLoginContextSubclass", bound="LoginContext")
 
 
 class LoginContextSAML(LoginContext):

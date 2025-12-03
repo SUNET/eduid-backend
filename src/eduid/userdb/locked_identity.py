@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, NoReturn
+from typing import Any, NoReturn, Self
 
 from pydantic import field_validator
 
@@ -26,7 +26,7 @@ class LockedIdentityList(IdentityList):
         return v
 
     @classmethod
-    def from_list_of_dicts(cls: type[LockedIdentityList], items: list[dict[str, Any]]) -> LockedIdentityList:
+    def from_list_of_dicts(cls: type[Self], items: list[dict[str, Any]]) -> Self:
         obj = super().from_list_of_dicts(items=items)
         return cls(elements=obj.elements)
 

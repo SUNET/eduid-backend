@@ -6,7 +6,7 @@ import time
 from asyncio import Task
 from collections.abc import Sequence
 from datetime import datetime, timedelta
-from typing import Any, cast
+from typing import Any, Self, cast
 from unittest import IsolatedAsyncioTestCase, TestCase
 from unittest.mock import patch
 
@@ -77,10 +77,8 @@ class MongoTemporaryInstanceReplicaSet(MongoTemporaryInstance):
         return True
 
     @classmethod
-    def get_instance(
-        cls: type[MongoTemporaryInstanceReplicaSet], max_retry_seconds: int = 60
-    ) -> MongoTemporaryInstanceReplicaSet:
-        return cast(MongoTemporaryInstanceReplicaSet, super().get_instance(max_retry_seconds=max_retry_seconds))
+    def get_instance(cls: type[Self], max_retry_seconds: int = 60) -> Self:
+        return cast(Self, super().get_instance(max_retry_seconds=max_retry_seconds))
 
     @property
     def uri(self) -> str:
@@ -112,8 +110,8 @@ class SMPTDFixTemporaryInstance(EduidTemporaryInstance):
         return None
 
     @classmethod
-    def get_instance(cls: type[SMPTDFixTemporaryInstance], max_retry_seconds: int = 60) -> SMPTDFixTemporaryInstance:
-        return cast(SMPTDFixTemporaryInstance, super().get_instance(max_retry_seconds=max_retry_seconds))
+    def get_instance(cls: type[Self], max_retry_seconds: int = 60) -> Self:
+        return cast(Self, super().get_instance(max_retry_seconds=max_retry_seconds))
 
 
 class EduidQueueTestCase(TestCase):

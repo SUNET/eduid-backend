@@ -6,7 +6,7 @@ from collections.abc import Mapping
 from copy import deepcopy
 from datetime import datetime
 from enum import StrEnum, unique
-from typing import Any, NewType, TypeVar, cast
+from typing import Any, NewType, Self, cast
 
 from fido2.webauthn import AuthenticatorAttachment
 from pydantic import BaseModel, Field, ValidationError, field_serializer
@@ -39,7 +39,7 @@ class SessionNSBase(BaseModel, ABC):
         return self.model_dump(**kwargs)
 
     @classmethod
-    def from_dict(cls: type[TSessionNSSubclass], data: Mapping[str, Any]) -> TSessionNSSubclass:
+    def from_dict(cls: type[Self], data: Mapping[str, Any]) -> Self:
         _data = cls._from_dict_transform(data)
 
         try:
@@ -58,9 +58,6 @@ class SessionNSBase(BaseModel, ABC):
         Clears all session namespace data.
         """
         self.__dict__ = self.model_construct(_cls=self.__class__, field_set={}).__dict__
-
-
-TSessionNSSubclass = TypeVar("TSessionNSSubclass", bound=SessionNSBase)
 
 
 @unique

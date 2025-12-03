@@ -6,7 +6,7 @@ import os
 import pprint
 from collections.abc import Iterator, MutableMapping
 from datetime import datetime
-from typing import TYPE_CHECKING, TypeVar
+from typing import TYPE_CHECKING
 
 from flask import Request as FlaskRequest
 from flask import Response as FlaskResponse
@@ -66,10 +66,7 @@ class EduidNamespaces(BaseModel):
     freja_eid: FrejaEIDNamespace | None = None
 
 
-VT = TypeVar("VT")
-
-
-class EduidSession(SessionMixin, MutableMapping[str, VT]):
+class EduidSession[VT](SessionMixin, MutableMapping[str, VT]):
     """
     Session implementing the flask.sessions.SessionMixin interface.
 
