@@ -28,10 +28,10 @@ from eduid.webapp.common.api.utils import get_from_current_app, get_reference_ni
 __author__ = "lundberg"
 
 
-def set_user_names_from_nin_proofing[TUserSubclass: User](
-    user: TUserSubclass,
+def set_user_names_from_nin_proofing[T: User](
+    user: T,
     proofing_log_entry: NinProofingLogElement,
-) -> TUserSubclass:
+) -> T:
     if isinstance(proofing_log_entry, NinNavetProofingLogElement):
         user = set_user_names_from_official_address(user, proofing_log_entry)
     elif isinstance(proofing_log_entry, NinEIDProofingLogElement):
@@ -41,9 +41,7 @@ def set_user_names_from_nin_proofing[TUserSubclass: User](
     return user
 
 
-def set_user_names_from_nin_eid_proofing[TUserSubclass: User](
-    user: TUserSubclass, proofing_log_entry: NinEIDProofingLogElement
-) -> TUserSubclass:
+def set_user_names_from_nin_eid_proofing[T: User](user: T, proofing_log_entry: NinEIDProofingLogElement) -> T:
     user.given_name = proofing_log_entry.given_name
     user.surname = proofing_log_entry.surname
     user.legal_name = f"{proofing_log_entry.given_name} {proofing_log_entry.surname}"
@@ -52,9 +50,7 @@ def set_user_names_from_nin_eid_proofing[TUserSubclass: User](
     return user
 
 
-def set_user_names_from_foreign_id[TUserSubclass: User](
-    user: TUserSubclass, proofing_log_entry: ForeignIdProofingLogElement
-) -> TUserSubclass:
+def set_user_names_from_foreign_id[T: User](user: T, proofing_log_entry: ForeignIdProofingLogElement) -> T:
     """
     :param user: Proofing app private userdb user
     :param proofing_log_entry: Proofing log entry element
@@ -93,9 +89,7 @@ def add_nin_to_user(user: User, proofing_state: NinProofingState) -> ProofingUse
 
 
 @overload
-def add_nin_to_user[TProofingUser: User](
-    user: User, proofing_state: NinProofingState, user_type: type[TProofingUser]
-) -> TProofingUser: ...
+def add_nin_to_user[T: User](user: User, proofing_state: NinProofingState, user_type: type[T]) -> T: ...
 
 
 def add_nin_to_user(user, proofing_state, user_type=ProofingUser):

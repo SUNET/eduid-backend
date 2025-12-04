@@ -246,7 +246,7 @@ class User(BaseModel):
         return data
 
     @classmethod
-    def from_user[TUserSubclass: User](cls: type[TUserSubclass], user: User, private_userdb: BaseDB) -> TUserSubclass:
+    def from_user[T: User](cls: type[T], user: User, private_userdb: BaseDB) -> T:
         """
         This function is only expected to be used with subclasses of User.
 
@@ -258,7 +258,7 @@ class User(BaseModel):
         # We cast here to avoid importing UserDB at the module level thus creating a circular import
         from eduid.userdb import UserDB
 
-        private_userdb = cast(UserDB[TUserSubclass], private_userdb)
+        private_userdb = cast(UserDB[T], private_userdb)
 
         try:
             private_user = private_userdb.get_user_by_eppn(user.eppn)

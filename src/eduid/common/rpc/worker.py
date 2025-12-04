@@ -3,9 +3,7 @@ from eduid.common.config.parsers import load_config
 from eduid.common.config.workers import WorkerConfig
 
 
-def get_worker_config[TWorkerConfigSubclass: WorkerConfig](
-    name: str, config_class: type[TWorkerConfigSubclass]
-) -> TWorkerConfigSubclass:
+def get_worker_config[T: WorkerConfig](name: str, config_class: type[T]) -> T:
     """
     Load configuration for a worker.
 

@@ -11,7 +11,7 @@ from eduid.webapp.common.api.testing import CSRFTestClient, EduidAPITestCase, lo
 __author__ = "lundberg"
 
 
-class ProofingTests[TTestAppVar: EduIDBaseApp](EduidAPITestCase[TTestAppVar]):
+class ProofingTests[T: EduIDBaseApp](EduidAPITestCase[T]):
     def _verify_status(
         self,
         finish_url: str,

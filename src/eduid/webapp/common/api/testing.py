@@ -88,14 +88,14 @@ TEST_CONFIG = {
 }
 
 
-class EduidAPITestCase[TTestAppVar: EduIDBaseApp](CommonTestCase):
+class EduidAPITestCase[T: EduIDBaseApp](CommonTestCase):
     """
     Base Test case for eduID APIs.
 
     See the `load_app` and `update_config` methods below before subclassing.
     """
 
-    app: TTestAppVar
+    app: T
     browser: CSRFTestClient
 
     def setUp(self, config: SetupConfig | None = None) -> None:
@@ -164,7 +164,7 @@ class EduidAPITestCase[TTestAppVar: EduIDBaseApp](CommonTestCase):
         super(CommonTestCase, self).tearDown()
         # XXX reset redis
 
-    def load_app(self, config: dict[str, Any]) -> TTestAppVar:
+    def load_app(self, config: dict[str, Any]) -> T:
         """
         Method that must be implemented by any subclass, where the
         flask app must be imported and returned.

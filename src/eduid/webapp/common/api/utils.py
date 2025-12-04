@@ -30,7 +30,7 @@ else:
 logger = logging.getLogger(__name__)
 
 
-def get_from_current_app[TCurrentAppAttribute](name: str, klass: type[TCurrentAppAttribute]) -> TCurrentAppAttribute:
+def get_from_current_app[T](name: str, klass: type[T]) -> T:
     """Get a correctly typed attribute from an unknown Flask current app"""
     ret = getattr(current_app, name)
     if not isinstance(ret, klass):
@@ -38,7 +38,7 @@ def get_from_current_app[TCurrentAppAttribute](name: str, klass: type[TCurrentAp
         conf = getattr(current_app, "conf")
         if isinstance(conf, EduIDBaseAppConfig) and conf.testing:
             if isinstance(ret, MagicMock):
-                return cast(TCurrentAppAttribute, ret)
+                return cast(T, ret)
         raise TypeError(f"current_app.{name} is not of type {klass} (is {type(ret)}")
     return ret
 

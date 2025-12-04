@@ -79,7 +79,7 @@ def require_not_logged_in(f: EduidRouteCallable) -> EduidRouteCallable:
     return require_eppn_decorator
 
 
-def require_user[TRequireUserResult](f: Callable[..., TRequireUserResult]) -> Callable[..., TRequireUserResult]:
+def require_user[T](f: Callable[..., T]) -> Callable[..., T]:
     """
     Decorator for functions that require a *logged in* user.
 
@@ -89,7 +89,7 @@ def require_user[TRequireUserResult](f: Callable[..., TRequireUserResult]) -> Ca
     """
 
     @wraps(f)
-    def require_user_decorator(*args: Any, **kwargs: Any) -> TRequireUserResult:
+    def require_user_decorator(*args: Any, **kwargs: Any) -> T:
         user = get_user()
         kwargs["user"] = user
         return f(*args, **kwargs)
