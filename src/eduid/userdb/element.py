@@ -295,9 +295,7 @@ class ElementList[ListElement: Element](BaseModel, ABC):
         return values
 
     @classmethod
-    def from_list_of_dicts[TElementList: ElementList](
-        cls: type[TElementList], items: list[dict[str, Any]]
-    ) -> TElementList:
+    def from_list_of_dicts[T: ElementList](cls: type[T], items: list[dict[str, Any]]) -> T:
         # must be implemented by subclass to get correct type information
         raise NotImplementedError()
 
