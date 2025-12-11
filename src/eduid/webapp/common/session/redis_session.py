@@ -154,7 +154,7 @@ class SessionOutOfSync(Exception):
     pass
 
 
-class RedisEncryptedSession[VT](typing.MutableMapping[str, VT]):
+class RedisEncryptedSession(typing.MutableMapping[str, Any]):
     """
     Session objects that keep their data in a redis db.
     """
@@ -199,18 +199,18 @@ class RedisEncryptedSession[VT](typing.MutableMapping[str, VT]):
 
         self.secret_box = nacl.secret.SecretBox(encryption_key)
 
-        self._data: dict[str, VT] = {}
+        self._data: dict[str, Any] = {}
 
     def __str__(self) -> str:
         # Include hex(id(self)) for now to troubleshoot clobbered sessions
         return f"<{self.__class__.__name__} at {hex(id(self))}: db_key={self.short_id}>"
 
-    def __getitem__(self, key: str) -> VT:
+    def __getitem__(self, key: str) -> object:
         if key in self._data:
             return self._data[key]
         raise KeyError(f"Key {repr(key)} not present in session")
 
-    def __setitem__(self, key: str, value: VT) -> None:
+    def __setitem__(self, key: str, value: object) -> None:
         if self.whitelist and key not in self.whitelist:
             if self.raise_on_unknown:
                 raise ValueError(f"Key {repr(key)} not allowed in session")
