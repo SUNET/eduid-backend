@@ -47,15 +47,15 @@ security_views = Blueprint("security", __name__, url_prefix="", template_folder=
 @security_views.route("/credentials", methods=["GET"])
 @MarshalWith(SecurityResponseSchema)
 @require_user
-def get_credentials(user: User) -> dict[str, list[CredentialInfo]]:
+def get_credentials(user: User) -> FluxData:
     """
     View to get credentials for the logged user.
     """
     current_app.logger.debug(f"Trying to get the credentials for user {user}")
 
-    credentials = {"credentials": compile_credential_list(user)}
+    credentials: dict[str, CredentialInfo] = {"credentials": compile_credential_list(user)}
 
-    return credentials
+    return success_response(payload=credentials)
 
 
 @security_views.route("/terminate-account", methods=["POST"])

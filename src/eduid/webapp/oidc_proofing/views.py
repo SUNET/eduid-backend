@@ -1,8 +1,6 @@
 import base64
 import binascii
-from collections.abc import Mapping
 from io import BytesIO
-from typing import Any
 
 import qrcode
 import qrcode.image.svg
@@ -19,7 +17,7 @@ from eduid.userdb.proofing import ProofingUser
 from eduid.userdb.util import UTC
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith, can_verify_nin, require_user
 from eduid.webapp.common.api.helpers import add_nin_to_user
-from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response
+from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response, success_response
 from eduid.webapp.oidc_proofing import helpers, schemas
 from eduid.webapp.oidc_proofing.app import current_oidcp_app as current_app
 from eduid.webapp.oidc_proofing.helpers import OIDCMsg
@@ -131,16 +129,16 @@ def authorization_response() -> Response:
 @oidc_proofing_views.route("/proofing", methods=["GET"])
 @MarshalWith(schemas.NonceResponseSchema)
 @require_user
-def get_seleg_state(user: User) -> dict[str, Any]:
+def get_seleg_state(user: User) -> FluxData:
     current_app.logger.debug(f"Getting state for user {user}.")
     proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn)
     if not proofing_state:
-        return {}
+        return success_response(payload={})
     expire_time = current_app.conf.seleg_expire_time_hours
     if helpers.is_proofing_state_expired(proofing_state, expire_time):
         current_app.proofing_statedb.remove_state(proofing_state)
         current_app.stats.count(name="seleg.proofing_state_expired")
-        return {}
+        return success_response(payload={})
     # Return nonce and nonce as qr code
     current_app.logger.debug(f"Returning nonce for user {user!s}")
     current_app.stats.count(name="seleg.proofing_state_returned")
@@ -148,10 +146,12 @@ def get_seleg_state(user: User) -> dict[str, Any]:
     qr_code = helpers.create_opaque_data(proofing_state.nonce, proofing_state.token)
     qrcode.make(qr_code).save(buf)
     qr_b64 = base64.b64encode(buf.getvalue())
-    return {
-        "qr_code": qr_code,
-        "qr_img": f"data:image/png;base64, {qr_b64!s}",
-    }
+    return success_response(
+        payload={
+            "qr_code": qr_code,
+            "qr_img": f"data:image/png;base64, {qr_b64!s}",
+        }
+    )
 
 
 @oidc_proofing_views.route("/proofing", methods=["POST"])
@@ -191,16 +191,16 @@ def seleg_proofing(user: User, nin: str) -> FluxData | WerkzeugResponse:
 @oidc_proofing_views.route("/freja/proofing", methods=["GET"])
 @MarshalWith(schemas.FrejaResponseSchema)
 @require_user
-def get_freja_state(user: User) -> Mapping[str, Any]:
+def get_freja_state(user: User) -> FluxData:
     current_app.logger.debug(f"Getting state for user {user!s}.")
     proofing_state = current_app.proofing_statedb.get_state_by_eppn(user.eppn)
     if not proofing_state:
-        return {}
+        return success_response(payload={})
     expire_time = current_app.conf.freja_expire_time_hours
     if helpers.is_proofing_state_expired(proofing_state, expire_time):
         current_app.proofing_statedb.remove_state(proofing_state)
         current_app.stats.count(name="freja.proofing_state_expired")
-        return {}
+        return success_response(payload={})
     # Return request data
     current_app.logger.debug(f"Returning request data for user {user!s}")
     current_app.stats.count(name="freja.proofing_state_returned")
@@ -219,7 +219,7 @@ def get_freja_state(user: User) -> Mapping[str, Any]:
         "kid": current_app.conf.freja_jws_key_id,
     }
     jws = jose.sign(request_data, jwk, headers=jws_header, algorithm=current_app.conf.freja_jws_algorithm)
-    return {"iaRequestData": jws}
+    return success_response(payload={"iaRequestData": jws})
 
 
 @oidc_proofing_views.route("/freja/proofing", methods=["POST"])
