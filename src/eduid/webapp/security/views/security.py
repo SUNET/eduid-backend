@@ -53,7 +53,7 @@ def get_credentials(user: User) -> FluxData:
     """
     current_app.logger.debug(f"Trying to get the credentials for user {user}")
 
-    credentials: dict[str, CredentialInfo] = {"credentials": compile_credential_list(user)}
+    credentials: dict[str, list[CredentialInfo]] = {"credentials": compile_credential_list(user)}
 
     return success_response(payload=credentials)
 
