@@ -3,7 +3,7 @@ import functools
 import logging
 import time
 from collections.abc import Callable
-from typing import Any
+from typing import Any, cast
 from uuid import uuid4
 
 from jwcrypto import jwk
@@ -38,9 +38,9 @@ def filter_none[Filtered](x: Filtered) -> Filtered:
     Recursively removes key, value pairs or items that is None.
     """
     if isinstance(x, dict):
-        return {k: filter_none(v) for k, v in x.items() if v is not None}  # type: ignore[return-value]
+        return cast(Filtered, {k: filter_none(v) for k, v in x.items() if v is not None})
     elif isinstance(x, list):
-        return [filter_none(i) for i in x if x is not None]  # type: ignore[return-value]
+        return cast(Filtered, [filter_none(i) for i in x if x is not None])
 
     return x
 
