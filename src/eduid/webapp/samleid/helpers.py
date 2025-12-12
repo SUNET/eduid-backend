@@ -1,0 +1,119 @@
+import logging
+from dataclasses import dataclass
+from enum import unique
+from typing import Any
+
+from saml2 import BINDING_HTTP_REDIRECT
+from saml2.client import Saml2Client
+from saml2.typing import SAMLHttpArgs
+
+from eduid.userdb.credentials.external import TrustFramework
+from eduid.webapp.common.api.messages import TranslatableMsg
+from eduid.webapp.common.authn.cache import OutstandingQueriesCache
+from eduid.webapp.common.authn.session_info import SessionInfo
+from eduid.webapp.common.session import session
+from eduid.webapp.common.session.namespaces import AuthnRequestRef
+from eduid.webapp.samleid.app import current_samleid_app as current_app
+
+__author__ = "lundberg"
+
+logger = logging.getLogger(__name__)
+
+
+@unique
+class SamleidMsg(TranslatableMsg):
+    """
+    Messages sent to the front end with information on the results of the
+    attempted operations on the back end.
+    """
+
+    # LOA not asserted
+    authn_context_mismatch = "samleid.authn_context_mismatch"
+    # Authentication instant too old
+    authn_instant_too_old = "samleid.authn_instant_too_old"
+    # the frontend action is not supported
+    frontend_action_not_supported = "samleid.frontend_action_not_supported"
+    # the personalIdentityNumber from SAML does not correspond
+    # to a verified nin in the user's account, or prid does not correspond to the verified EIDAS identity
+    identity_not_matching = "samleid.identity_not_matching"
+    # The user already has a verified identity
+    identity_already_verified = "samleid.identity_already_verified"
+    # Successfully verified the identity
+    identity_verify_success = "samleid.identity_verify_success"
+    # missing redirect URL for mfa authn
+    no_redirect_url = "samleid.no_redirect_url"
+    # Credential not found in the user's account
+    credential_not_found = "samleid.credential_not_found"
+    # Attribute missing from IdP
+    attribute_missing = "samleid.attribute_missing"
+    # Unavailable vetting method requested
+    method_not_available = "samleid.method_not_available"
+    # Status requested for unknown authn_id
+    not_found = "samleid.not_found"
+    # Successfully authenticated with external MFA
+    mfa_authn_success = "samleid.mfa_authn_success"
+    # Successfully verified a credential
+    credential_verify_success = "samleid.credential_verify_success"
+    # be able to toggle eidas credential verification allowed
+    credential_verification_not_allowed = "samleid.credential_verification_not_allowed"
+
+
+def create_authn_info(
+    authn_ref: AuthnRequestRef,
+    framework: TrustFramework,
+    selected_idp: str,
+    required_loa: list[str],
+    force_authn: bool = False,
+) -> SAMLHttpArgs:
+    if framework not in [TrustFramework.BANKID, TrustFramework.SWECONN, TrustFramework.EIDAS]:
+        raise ValueError(f"Unrecognised trust framework: {framework}")
+
+    kwargs: dict[str, Any] = {
+        "force_authn": str(force_authn).lower(),
+    }
+
+    # LOA
+    logger.debug(f"Requesting AuthnContext {required_loa}")
+    loa_uris = [current_app.conf.loa_authn_context_map[loa] for loa in required_loa]
+    kwargs["requested_authn_context"] = {"authn_context_class_ref": loa_uris, "comparison": "exact"}
+
+    client = Saml2Client(current_app.saml2_config)
+    try:
+        session_id, info = client.prepare_for_authenticate(
+            entityid=selected_idp,
+            relay_state=authn_ref,
+            binding=BINDING_HTTP_REDIRECT,
+            sigalg=current_app.conf.authn_sign_alg,
+            digest_alg=current_app.conf.authn_digest_alg,
+            **kwargs,
+        )
+    except TypeError:
+        logger.error("Unable to know which IdP to use")
+        raise
+
+    oq_cache = OutstandingQueriesCache(session.samleid.sp.pysaml2_dicts)
+    oq_cache.set(session_id, authn_ref)
+    return info
+
+
+def attribute_remap(session_info: SessionInfo) -> SessionInfo:
+    """
+    Remap from known test attributes to users correct attributes.
+
+    :param session_info: the SAML session info
+    :return: SAML session info with new nin mapped
+    """
+    personal_identity_number = session_info.get("ava", {}).get("personalIdentityNumber")
+    if personal_identity_number:
+        asserted_test_nin = personal_identity_number[0]
+        user_nin = current_app.conf.nin_attribute_map.get(asserted_test_nin, None)
+        if user_nin:
+            session_info["ava"]["personalIdentityNumber"] = [user_nin]
+    return session_info
+
+
+@dataclass()
+class CredentialVerifyResult:
+    verified_ok: bool
+    message: SamleidMsg | None = None
+    credential_description: str | None = None
