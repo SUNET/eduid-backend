@@ -31,8 +31,7 @@ logger = logging.getLogger(__name__)
 flux_logger = logger.getChild("flux")
 
 
-EduidViewBackwardsCompat = Mapping[str, Any]  # TODO: Make our views stop returning dicts and remove this
-EduidViewResult = FluxData | WerkzeugResponse | EduidViewBackwardsCompat
+EduidViewResult = FluxData | WerkzeugResponse
 # The Flask route decorator first in the chain makes us have to accept the full ResponseReturnValue too
 EduidViewReturnType = (
     EduidViewResult | FlaskResponseReturnValue | Awaitable[EduidViewResult] | Awaitable[FlaskResponseReturnValue]
@@ -158,10 +157,6 @@ class MarshalWith:
             if isinstance(ret, WerkzeugResponse | FlaskResponse):
                 # No need to Marshal again, someone else already did that
                 return ret
-
-            if isinstance(ret, dict):
-                # TODO: Backwards compatibility mode - work on removing the need for this
-                ret = FluxData(FluxResponseStatus.OK, payload=ret)
 
             if not isinstance(ret, FluxData):
                 raise TypeError("Data returned from Flask view was not a FluxData (or WerkzeugResponse) instance")

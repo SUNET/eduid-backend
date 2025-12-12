@@ -342,14 +342,14 @@ def create_user(use_suggested_password: bool, use_webauthn: bool, custom_passwor
 @signup_views.route("/invite-data", methods=["POST"])
 @UnmarshalWith(InviteCodeRequest)
 @MarshalWith(InviteDataResponse)
-def get_invite(invite_code: str) -> dict[str, Any] | FluxData:
+def get_invite(invite_code: str) -> FluxData:
     invite = current_app.invite_db.get_invite_by_invite_code(code=invite_code)
     if invite is None:
         current_app.logger.error("Invite not found")
         current_app.logger.debug(f"invite_code: {invite_code}")
         return error_response(message=SignupMsg.invite_not_found)
 
-    invite_data = {
+    invite_data: dict[str, Any] = {
         "is_logged_in": session.common.is_logged_in,
         "invite_type": invite.invite_type.value,
         "inviter_name": invite.inviter_name,
@@ -370,7 +370,7 @@ def get_invite(invite_code: str) -> dict[str, Any] | FluxData:
             "email": user.mail_addresses.primary.email,
         }
 
-    return invite_data
+    return success_response(payload=invite_data)
 
 
 @signup_views.route("/accept-invite", methods=["POST"])
