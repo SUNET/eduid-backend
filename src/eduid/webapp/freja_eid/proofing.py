@@ -58,9 +58,7 @@ class FrejaEIDProofingFunctions(ProofingFunctions[FrejaEIDDocumentUserInfo]):
         return False
 
     def get_current_loa(self) -> GenericResult[str | None]:
-        current_loa = self.config.freja_eid_registration_level_to_loa.get(self.session_info.registration_level)
-        if current_loa is None:
-            return GenericResult(error=FrejaEIDMsg.registration_level_not_satisfied)
+        current_loa = f"freja-{self.session_info.loa_level.lower()}"
         return GenericResult(result=current_loa)
 
     def get_mfa_data(self) -> GenericResult[MfaData]:
@@ -141,6 +139,7 @@ class FrejaEIDProofingFunctions(ProofingFunctions[FrejaEIDDocumentUserInfo]):
             proofing_version=current_app.conf.freja_eid_proofing_version,
             user_id=self.session_info.user_id,
             registration_level=self.session_info.registration_level,
+            loa_level=self.session_info.loa_level,
             verified_by=current_app.conf.app_name,
         )
 

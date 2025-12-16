@@ -22,6 +22,7 @@ from eduid.userdb.identity import (
     IdentityType,
     NinIdentity,
     PridPersistence,
+    FrejaLoaLevel,
 )
 from eduid.userdb.idp import IdPUser
 from eduid.webapp.common.session import session
@@ -162,6 +163,7 @@ class TestSSO(SSOIdPTests):
         unique_value: str | None = None,
         eidas_loa: EIDASLoa | None = None,
         freja_registration_level: FrejaRegistrationLevel | None = None,
+        freja_loa_level: FrejaLoaLevel | None = None,
         proofing_method: IdentityProofingMethod | None = None,
         identity_verified_by: str = "unittest",
         replace_existing_identities: bool = True,
@@ -204,9 +206,12 @@ class TestSSO(SSOIdPTests):
                 case IdentityType.FREJA:
                     if freja_registration_level is None:
                         raise ValueError("freja_registration_level must be set")
+                    if freja_loa_level is None:
+                        raise ValueError("freja_loa_level must be set")
                     identity = FrejaIdentity(
                         user_id=unique_value,
                         registration_level=freja_registration_level,
+                        loa_level=freja_loa_level,
                         personal_identity_number="test_freja_personal_identity_number",
                         country_code="DK",
                         date_of_birth=datetime(year=1980, month=1, day=1),

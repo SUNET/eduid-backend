@@ -88,6 +88,7 @@ class FrejaEIDDocumentUserInfo(UserInfoBase):
     )
     date_of_birth: date = Field(alias="birthdate")
     registration_level: FrejaRegistrationLevel = Field(alias="https://frejaeid.com/oidc/claims/registrationLevel")
+    loa_level: str = Field(alias="https://frejaeid.com/oidc/claims/loaLevel")
     user_id: str = Field(alias="https://frejaeid.com/oidc/claims/relyingPartyUserId")
     transaction_id: str = Field(alias="https://frejaeid.com/oidc/claims/transactionReference")
 

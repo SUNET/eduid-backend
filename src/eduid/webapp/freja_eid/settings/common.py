@@ -23,6 +23,7 @@ class FrejaEIDClientConfig(AuthlibClientConfig):
             "https://frejaeid.com/oidc/scopes/personalIdentityNumber",
             "https://frejaeid.com/oidc/scopes/document",
             "https://frejaeid.com/oidc/scopes/registrationLevel",
+            "https://frejaeid.com/oidc/scopes/loaLevel",
             "https://frejaeid.com/oidc/scopes/relyingPartyUserId",
             "https://frejaeid.com/oidc/scopes/transactionReference",
             "https://frejaeid.com/oidc/scopes/birthdate",
