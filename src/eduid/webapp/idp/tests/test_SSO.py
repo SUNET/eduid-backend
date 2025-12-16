@@ -12,17 +12,18 @@ from saml2 import BINDING_HTTP_POST
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.models.saml2 import EduidAuthnContextClass
 from eduid.userdb.credentials import U2F, Credential, CredentialProofingMethod, Password
+from eduid.userdb.credentials.external import TrustFramework
 from eduid.userdb.identity import (
     EIDASIdentity,
     EIDASLoa,
     FrejaIdentity,
+    FrejaLoaLevel,
     FrejaRegistrationLevel,
     IdentityList,
     IdentityProofingMethod,
     IdentityType,
     NinIdentity,
     PridPersistence,
-    FrejaLoaLevel,
 )
 from eduid.userdb.idp import IdPUser
 from eduid.webapp.common.session import session
@@ -396,6 +397,39 @@ class TestSSO(SSOIdPTests):
             external=ExternalAuthnData(
                 issuer="issuer.example.com", authn_context="http://id.elegnamnden.se/loa/1.0/loa3"
             ),
+        )
+        out = self._get_login_response_authn(
+            user=user,
+            req_class_ref=EduidAuthnContextClass.REFEDS_MFA,
+            credentials=["pw", authn],
+        )
+        self._check_login_response_authn(
+            authn_result=out,
+            message=IdPMsg.proceed,
+            accr=EduidAuthnContextClass.REFEDS_MFA,
+            assurance_profile=self.app.conf.swamid_assurance_profile_3,
+        )
+
+    def test_get_login_response_external_multifactor_2(self) -> None:
+        """
+        Test login with password and external MFA, request REFEDS MFA.
+
+        Expect the response Authn to be REFEDS MFA and assurance attribute to include SWAMID AL3.
+        """
+        user = self.get_user_set_identity(
+            self.test_user.eppn,
+            identity_type=IdentityType.FREJA,
+            freja_registration_level=FrejaRegistrationLevel.EXTENDED,
+            freja_loa_level=FrejaLoaLevel.LOA3_NR,
+            unique_value="abc123",
+        )
+        cred = self.add_test_user_external_mfa_cred(
+            user, trust_framework=TrustFramework.FREJA, trust_level="freja-loa3_nr"
+        )
+        authn = AuthnData(
+            cred_id=cred.key,
+            timestamp=utc_now(),
+            external=ExternalAuthnData(issuer="issuer.example.com", authn_context="LOA3_NR"),
         )
         out = self._get_login_response_authn(
             user=user,
