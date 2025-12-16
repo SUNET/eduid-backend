@@ -30,6 +30,8 @@ class FrejaEIDMsg(TranslatableMsg):
     identity_not_matching = "freja_eid.identity_not_matching"
     identity_verify_success = "freja_eid.identity_verify_success"
     method_not_available = "freja_eid.method_not_available"
+    mfa_authn_success = "freja_eid.mfa_authn_success"
+    mfa_authn_not_allowed = "freja_eid.mfa_authn_not_allowed"
     registration_level_not_satisfied = "freja_eid.registration_level_not_satisfied"
 
 

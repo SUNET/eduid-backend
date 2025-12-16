@@ -125,6 +125,11 @@ class FrejaEIDProofingFunctions(ProofingFunctions[FrejaEIDDocumentUserInfo]):
     def _verify_foreign_identity(self, user: User) -> VerifyUserResult:
         proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
 
+        # user has to be LOA3_NR for an identity
+        # TODO: technically we could allow LOA2_NR but that level seems not to exist
+        if self.get_current_loa().result not in current_app.conf.freja_eid_required_loa:
+            return VerifyUserResult(error=FrejaEIDMsg.registration_level_not_satisfied)
+
         existing_identity = user.identities.freja
         locked_identity = user.locked_identity.freja
 

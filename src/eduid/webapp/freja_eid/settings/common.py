@@ -48,3 +48,4 @@ class FrejaEIDConfig(
     app_name: str = "freja_eid"
     freja_eid_client: FrejaEIDClientConfig
     allow_credential_verification: bool = False
+    allow_mfa_authentication: bool = False
