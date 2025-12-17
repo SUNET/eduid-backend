@@ -285,8 +285,6 @@ class IdP_SAMLRequest:
             logger.info(f"{log_prefix}: Unsupported SAML binding: {excp}")
             raise BadRequest("Don't know how to reply to the SP that referred you here")
         except UnknownSystemEntity as exc:
-            # TODO: Validate refactoring didn't move this exception handling to the wrong place.
-            #       Used to be in an exception handler in _redirect_or_post around perform_login().
             logger.info(f"{log_prefix}: Service provider not known: {exc}")
             raise BadRequest("SAML_UNKNOWN_SP")
 
