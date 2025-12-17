@@ -932,3 +932,134 @@ class IdPTestLoginAPIManagedAccounts(IdPAPITests):
             visit_order=[IdPAction.USERNAMEPWAUTH, IdPAction.FINISHED],
             finish_result=FinishedResultAPI(payload={"message": IdPMsg.finished.value}),
         )
+
+    def test_assurance_failure_unknown_authn_context(self) -> None:
+        """
+        Test that requesting an unknown authn context class returns a SAML error response.
+
+        This tests the code path in next.py that handles IdPMsg.assurance_failure for SAML requests,
+        returning an AuthnContextClassNotSupported SAML error to the SP.
+        """
+        from eduid.vccs.client import VCCSClient
+
+        self.add_test_user_tou()
+
+        # Request an unknown authn context class - this should trigger assurance_failure
+        authn_context = {
+            "authn_context_class_ref": ["urn:no-such-class"],
+            "comparison": "exact",
+        }
+
+        # Patch the VCCSClient so we do not need a vccs server
+        with patch.object(VCCSClient, "authenticate") as mock_vccs:
+            mock_vccs.return_value = True
+            result = self._try_login(authn_context=authn_context)
+
+        # The login should complete with a FINISHED action (containing SAML error response)
+        assert result.finished_result is not None, f"Expected finished_result but got {result}"
+        assert result.finished_result.payload.get("action") == IdPAction.FINISHED.value
+
+        # The SAML response should contain an error - parse it to verify
+        saml_response_b64 = result.finished_result.payload.get("parameters", {}).get("SAMLResponse")
+        assert saml_response_b64 is not None, "Expected SAMLResponse in payload"
+
+        # Decode and check it contains the expected error status and message
+        import base64
+
+        saml_response_xml = base64.b64decode(saml_response_b64).decode("utf-8")
+        # Verify it's an error response with the authn context not supported message
+        assert "status:AuthnFailed" in saml_response_xml, "Expected AuthnFailed status in SAML response"
+        assert "Authentication context class not supported" in saml_response_xml, (
+            "Expected 'Authentication context class not supported' message in SAML response"
+        )
+
+    def test_unsupported_binding(self) -> None:
+        """
+        Test that requesting an unsupported response binding returns an error.
+
+        This tests the code path when pysaml2 cannot find a supported binding for the SP.
+        """
+        import json
+        import zlib
+        from base64 import b64encode
+        from http import HTTPStatus
+        from urllib.parse import urlencode
+
+        import saml2.time_util
+
+        self.add_test_user_tou()
+
+        # Create a SAML AuthnRequest with an unsupported ProtocolBinding
+        xml = f"""<?xml version="1.0" encoding="UTF-8"?>
+<ns0:AuthnRequest xmlns:ns0="urn:oasis:names:tc:SAML:2.0:protocol"
+    xmlns:ns1="urn:oasis:names:tc:SAML:2.0:assertion"
+        AssertionConsumerServiceURL="https://sp.example.edu/saml2/acs/"
+        Destination="https://unittest-idp.example.edu/sso/redirect"
+        ID="id-unsupported-binding-test"
+        IssueInstant="{saml2.time_util.instant()}"
+        ProtocolBinding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST-SimpleSign"
+        Version="2.0">
+  <ns1:Issuer Format="urn:oasis:names:tc:SAML:2.0:nameid-format:entity">https://sp.example.edu/saml2/metadata/</ns1:Issuer>
+  <ns0:NameIDPolicy AllowCreate="false" Format="urn:oasis:names:tc:SAML:2.0:nameid-format:persistent"/>
+</ns0:AuthnRequest>"""
+
+        # Encode for HTTP-Redirect binding (deflate + base64)
+        compressed = zlib.compress(xml.encode("utf-8"))[2:-4]  # Strip zlib header and checksum
+        saml_request = b64encode(compressed).decode("ascii")
+
+        # Send the SAML request to the SSO redirect endpoint
+        query_string = urlencode({"SAMLRequest": saml_request, "RelayState": "test-relay-state"})
+
+        with patch.object(VCCSClient, "authenticate") as mock_vccs:
+            mock_vccs.return_value = True
+
+            with self.session_cookie_anon(self.browser) as client:
+                # First, send the SAML request
+                response = client.get(f"/sso/redirect?{query_string}")
+                assert response.status_code == HTTPStatus.FOUND, f"Expected redirect, got {response.status_code}"
+
+                # Extract the login ref from the redirect URL
+                redirect_loc = response.headers.get("Location", "")
+                ref = redirect_loc.split("/")[-1]
+
+                with client.session_transaction() as sess:
+                    csrf_token = sess.get_csrf_token()
+
+                # Call next to get to the password auth step
+                data = json.dumps({"ref": ref, "csrf_token": csrf_token})
+                next_response = client.post("/next", data=data, content_type=self.content_type_json)
+                assert next_response.status_code == HTTPStatus.OK
+
+                with client.session_transaction() as sess:
+                    csrf_token = sess.get_csrf_token()
+
+                # Now do password auth
+                data = json.dumps(
+                    {
+                        "ref": ref,
+                        "username": self.test_user.eppn,
+                        "password": "bar",
+                        "csrf_token": csrf_token,
+                    }
+                )
+                pw_response = client.post("/pw_auth", data=data, content_type=self.content_type_json)
+                assert pw_response.status_code == HTTPStatus.OK
+
+                with client.session_transaction() as sess:
+                    csrf_token = sess.get_csrf_token()
+
+                # Call next again - this should trigger the unsupported binding error
+                # The SAMLError is now caught and converted to a BadRequest
+                data = json.dumps({"ref": ref, "csrf_token": csrf_token})
+                final_response = client.post("/next", data=data, content_type=self.content_type_json)
+
+        # The response should be a BadRequest error about the unsupported binding
+        assert final_response.status_code == HTTPStatus.BAD_REQUEST, (
+            f"Expected 400 Bad Request, got {final_response.status_code}: {final_response.data}"
+        )
+        response_text = final_response.data.decode("utf-8")
+        # The error is rendered as an HTML error page
+        assert "Bad Request" in response_text, f"Expected 'Bad Request' in response: {response_text}"
+        assert "login request could not be processed" in response_text, (
+            f"Expected error message in response: {response_text}"
+        )
