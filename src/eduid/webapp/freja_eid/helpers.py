@@ -4,7 +4,7 @@ from enum import Enum, unique
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from eduid.userdb.identity import FrejaRegistrationLevel
+from eduid.userdb.identity import FrejaLoaLevel, FrejaRegistrationLevel
 from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.common.session import session
 
@@ -90,7 +90,7 @@ class FrejaEIDDocumentUserInfo(UserInfoBase):
     )
     date_of_birth: date = Field(alias="birthdate")
     registration_level: FrejaRegistrationLevel = Field(alias="https://frejaeid.com/oidc/claims/registrationLevel")
-    loa_level: str = Field(alias="https://frejaeid.com/oidc/claims/loaLevel")
+    loa_level: FrejaLoaLevel = Field(alias="https://frejaeid.com/oidc/claims/loaLevel")
     user_id: str = Field(alias="https://frejaeid.com/oidc/claims/relyingPartyUserId")
     transaction_id: str = Field(alias="https://frejaeid.com/oidc/claims/transactionReference")
 
