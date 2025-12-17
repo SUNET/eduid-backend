@@ -23,6 +23,7 @@ class FrejaEIDClientConfig(AuthlibClientConfig):
             "https://frejaeid.com/oidc/scopes/personalIdentityNumber",
             "https://frejaeid.com/oidc/scopes/document",
             "https://frejaeid.com/oidc/scopes/registrationLevel",
+            "https://frejaeid.com/oidc/scopes/loaLevel",
             "https://frejaeid.com/oidc/scopes/relyingPartyUserId",
             "https://frejaeid.com/oidc/scopes/transactionReference",
             "https://frejaeid.com/oidc/scopes/birthdate",
@@ -47,3 +48,4 @@ class FrejaEIDConfig(
     app_name: str = "freja_eid"
     freja_eid_client: FrejaEIDClientConfig
     allow_credential_verification: bool = False
+    allow_mfa_authentication: bool = False

@@ -118,6 +118,34 @@ def verify_credential(
     return success_response(payload={"location": result.url})
 
 
+@freja_eid_views.route("/mfa-authenticate", methods=["POST"])
+@UnmarshalWith(FrejaEIDCommonRequestSchema)
+@MarshalWith(FrejaEIDCommonResponseSchema)
+def mfa_authentication(method: str, frontend_action: str, frontend_state: str | None = None) -> FluxData:
+    if current_app.conf.allow_mfa_authentication is False:
+        current_app.logger.error("MFA authentication is not allowed")
+        return error_response(message=FrejaEIDMsg.mfa_authn_not_allowed)
+
+    current_app.logger.debug("mfa-authenticate called")
+    _frontend_action = FrontendAction.LOGIN_MFA_AUTHN
+
+    if frontend_action != _frontend_action.value:
+        current_app.logger.error(f"Invalid frontend_action: {frontend_action}")
+        return error_response(message=FrejaEIDMsg.frontend_action_not_supported)
+
+    result = _authn(
+        FrejaEIDAction.mfa_authenticate,
+        method=method,
+        frontend_action=_frontend_action.value,
+        frontend_state=frontend_state,
+    )
+
+    if result.error:
+        return error_response(message=result.error)
+
+    return success_response(payload={"location": result.url})
+
+
 @dataclass
 class AuthnResult:
     authn_req: RP_AuthnRequest | None = None

@@ -10,6 +10,7 @@ from eduid.common.rpc.msg_relay import MsgRelay
 from eduid.userdb.logs import ProofingLog
 from eduid.userdb.proofing.db import FrejaEIDProofingUserDB
 from eduid.webapp.common.authn.middleware import AuthnBaseApp
+from eduid.webapp.common.authn.utils import no_authn_views
 from eduid.webapp.freja_eid.helpers import SessionOAuthCache
 from eduid.webapp.freja_eid.settings.common import FrejaEIDConfig
 
@@ -75,6 +76,15 @@ def freja_eid_init_app(name: str = "freja_eid", test_config: Mapping[str, Any] |
     from eduid.webapp.freja_eid.views import freja_eid_views
 
     app.register_blueprint(freja_eid_views)
+
+    # Register view path that should not be authorized
+    no_authn_views(
+        config,
+        [
+            "/mfa-authenticate",
+            "/get-status",
+        ],
+    )
 
     app.logger.info(f"{name!s} initialized")
     return app

@@ -12,7 +12,13 @@ from werkzeug.test import TestResponse
 from eduid.common.config.base import FrontendAction
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.element import ElementKey
-from eduid.userdb.identity import FrejaIdentity, FrejaRegistrationLevel, IdentityProofingMethod
+from eduid.userdb.identity import (
+    FrejaIdentity,
+    FrejaLoaLevel,
+    FrejaRegistrationLevel,
+    IdentityProofingMethod,
+    NinIdentity,
+)
 from eduid.userdb.testing import SetupConfig
 from eduid.webapp.common.api.messages import CommonMsg
 from eduid.webapp.common.proofing.messages import ProofingMsg
@@ -39,7 +45,10 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         super().setUp(config=config)
 
         self.unverified_test_user = self.app.central_userdb.get_user_by_eppn("hubba-baar")
+        self.test_unverified_user_eppn = "hubba-baar"
         self._user_setup()
+
+        self.test_user_nin = NinIdentity(number="197801011234", date_of_birth=datetime.fromisoformat("1978-01-01"))
 
         self.oidc_provider_config = {
             "response_types_supported": ["code"],
@@ -124,6 +133,10 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
                     "issuer": "https://example.com/op/oidc",
                 },
                 "frontend_action_authn_parameters": {
+                    FrontendAction.LOGIN_MFA_AUTHN.value: {
+                        "force_authn": True,
+                        "finish_url": "https://dashboard.example.com/profile/ext-return/{app_name}/{authn_id}",
+                    },
                     FrontendAction.VERIFY_IDENTITY.value: {
                         "force_authn": True,
                         "finish_url": "https://dashboard.example.com/profile/ext-return/{app_name}/{authn_id}",
@@ -134,6 +147,7 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
                     },
                 },
                 "allow_credential_verification": True,
+                "allow_mfa_authentication": True,
             }
         )
         return config
@@ -159,6 +173,7 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         issuing_country: Country,
         personal_identity_number: str | None = "123456789",
         registration_level: FrejaRegistrationLevel = FrejaRegistrationLevel.EXTENDED,
+        loa_level: FrejaLoaLevel = FrejaLoaLevel.LOA3_NR,
         birthdate: date = date(year=1901, month=2, day=3),
         freja_user_id: str = "unique_freja_eid",
         transaction_id: str = "unique_transaction_id",
@@ -193,6 +208,7 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
             personal_identity_number=personal_identity_number,
             user_id=freja_user_id,
             registration_level=registration_level,
+            loa_level=loa_level,
             transaction_id=transaction_id,
         )
 
@@ -251,12 +267,21 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         return self.browser.get(f"{endpoint}?id_token=id_token&state={state}&code=mock_code")
 
     @patch("authlib.integrations.base_client.sync_app.OAuth2Mixin.load_server_metadata")
-    def _start_auth(self, mock_metadata: MagicMock, endpoint: str, data: dict[str, Any], eppn: str) -> TestResponse:
+    def _start_auth(
+        self, mock_metadata: MagicMock, endpoint: str, data: dict[str, Any], eppn: str, logged_in: bool = True
+    ) -> TestResponse:
         mock_metadata.return_value = self.oidc_provider_config
 
         with self.session_cookie(self.browser, eppn) as client:
             with client.session_transaction() as sess:
                 csrf_token = sess.get_csrf_token()
+                if not logged_in:
+                    # the user is at least partially logged in at this stage
+                    sess.common.eppn = eppn
+                if data["frontend_action"] is FrontendAction.LOGIN_MFA_AUTHN.value:
+                    # setup session mfa_action
+                    sess.mfa_action.login_ref = "test login ref"
+                    sess.mfa_action.eppn = eppn
             _data = {
                 "csrf_token": csrf_token,
             }
@@ -282,6 +307,7 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
                 "kid": "oidc_signing_kid",
                 "iss": "https://eid-provider.example.com/oidc/",
                 "https://frejaeid.com/oidc/claims/registrationLevel": "PLUS",
+                "https://frejaeid.com/oidc/claims/loaLevel": "LOA3",
                 "https://frejaeid.com/oidc/claims/personalIdentityNumber": "198107011481",
                 "given_name": "Sven",
                 "nonce": "some_nonce",
@@ -529,6 +555,7 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
                 is_verified=True,
                 user_id=userinfo.user_id,
                 registration_level=userinfo.registration_level,
+                loa_level=userinfo.loa_level,
             )
         )
         self.request_user_sync(user)
@@ -573,6 +600,7 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
                 is_verified=True,
                 user_id="another_freja_eid",
                 registration_level=userinfo.registration_level,
+                loa_level=userinfo.loa_level,
             )
         )
         user.given_name = userinfo.given_name
@@ -603,6 +631,7 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
             date_of_birth=datetime.combine(userinfo.date_of_birth, datetime.min.time()),
             user_id=userinfo.user_id,
             registration_level=userinfo.registration_level,
+            loa_level=userinfo.loa_level,
         )
         self._verify_user_parameters(
             eppn, identity_verified=True, num_proofings=1, num_mfa_tokens=0, locked_identity=new_locked_identity
@@ -627,6 +656,7 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
                 is_verified=True,
                 user_id="another_freja_eid",
                 registration_level=userinfo.registration_level,
+                loa_level=userinfo.loa_level,
             )
         )
         self.app.central_userdb.save(user)
@@ -678,6 +708,7 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
                 is_verified=True,
                 user_id="another_freja_eid",
                 registration_level=userinfo.registration_level,
+                loa_level=userinfo.loa_level,
             )
         )
         self.app.central_userdb.save(user)
@@ -829,12 +860,7 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
     def test_verify_credential_foreign_identity(self, mock_request_user_sync: MagicMock) -> None:
         mock_request_user_sync.side_effect = self.request_user_sync
 
-        # Allow registration level extended to be used
-        self.app.conf.freja_eid_registration_level_to_loa = {
-            "EXTENDED": "freja-loa2",
-            "PLUS": "freja-loa3",
-        }
-        self.app.conf.freja_eid_required_loa = ["freja-loa2", "freja-loa3"]
+        self.app.conf.freja_eid_required_loa = ["freja-loa3_nr", "freja-loa3"]
 
         eppn = self.unverified_test_user.eppn
         country = countries.get("Denmark")
@@ -862,7 +888,7 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         )
         state, nonce = self._get_state_and_nonce(self.get_response_payload(start_auth_response)["location"])
 
-        userinfo = self.get_mock_userinfo(issuing_country=country, registration_level=FrejaRegistrationLevel.EXTENDED)
+        userinfo = self.get_mock_userinfo(issuing_country=country)
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
         assert response.status_code == HTTPStatus.FOUND
         self._verify_status(
@@ -905,7 +931,7 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         )
         state, nonce = self._get_state_and_nonce(self.get_response_payload(start_auth_response)["location"])
 
-        userinfo = self.get_mock_userinfo(issuing_country=country, registration_level=FrejaRegistrationLevel.EXTENDED)
+        userinfo = self.get_mock_userinfo(issuing_country=country)
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
         assert response.status_code == HTTPStatus.FOUND
         self._verify_status(
@@ -918,3 +944,269 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         )
 
         self._verify_user_parameters(eppn, token_verified=False, num_proofings=0, num_mfa_tokens=1)
+
+    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+    def test_mfa_login(self, mock_request_user_sync: MagicMock) -> None:
+        mock_request_user_sync.side_effect = self.request_user_sync
+
+        eppn = self.test_user.eppn
+        self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=True)
+
+        country = countries.get("Sweden")
+
+        with self.app.test_request_context():
+            endpoint = url_for("freja_eid.mfa_authentication")
+
+        data = self.default_frontend_data(frontend_action=FrontendAction.LOGIN_MFA_AUTHN.value)
+
+        start_auth_response = self._start_auth(
+            endpoint=endpoint,
+            data=data,
+            eppn=eppn,
+        )
+        state, nonce = self._get_state_and_nonce(self.get_response_payload(start_auth_response)["location"])
+
+        assert self.test_user.identities.nin is not None  # please mypy
+        userinfo = self.get_mock_userinfo(
+            issuing_country=country,
+            personal_identity_number=self.test_user.identities.nin.number,
+            registration_level=FrejaRegistrationLevel.PLUS,
+            loa_level=FrejaLoaLevel.LOA3,
+        )
+        response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
+        assert response.status_code == HTTPStatus.FOUND
+        self._verify_status(
+            finish_url=response.headers["Location"],
+            frontend_action=FrontendAction(data["frontend_action"]),
+            frontend_state=data["frontend_state"],
+            method=data["method"],
+            expect_msg=FrejaEIDMsg.mfa_authn_success,
+        )
+
+        self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=True, num_proofings=0)
+
+    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+    def test_mfa_login_foreign(self, mock_request_user_sync: MagicMock) -> None:
+        mock_request_user_sync.side_effect = self.request_user_sync
+
+        eppn = self.test_user.eppn
+        self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=True)
+
+        country = countries.get("Denmark")
+        userinfo = self.get_mock_userinfo(issuing_country=country)
+
+        user = self.app.central_userdb.get_user_by_eppn(eppn)
+        user.identities.add(
+            FrejaIdentity(
+                personal_identity_number=userinfo.personal_identity_number,
+                country_code=userinfo.document.country,
+                date_of_birth=datetime.combine(userinfo.date_of_birth, datetime.min.time()),
+                is_verified=True,
+                user_id=userinfo.user_id,
+                registration_level=userinfo.registration_level,
+                loa_level=userinfo.loa_level,
+            )
+        )
+        self.app.central_userdb.save(user)
+
+        with self.app.test_request_context():
+            endpoint = url_for("freja_eid.mfa_authentication")
+
+        data = self.default_frontend_data(frontend_action=FrontendAction.LOGIN_MFA_AUTHN.value)
+
+        start_auth_response = self._start_auth(
+            endpoint=endpoint,
+            data=data,
+            eppn=eppn,
+        )
+        state, nonce = self._get_state_and_nonce(self.get_response_payload(start_auth_response)["location"])
+
+        userinfo = self.get_mock_userinfo(issuing_country=country)
+        response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
+        assert response.status_code == HTTPStatus.FOUND
+        self._verify_status(
+            finish_url=response.headers["Location"],
+            frontend_action=FrontendAction(data["frontend_action"]),
+            frontend_state=data["frontend_state"],
+            method=data["method"],
+            expect_msg=FrejaEIDMsg.mfa_authn_success,
+        )
+
+        self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=True, num_proofings=0)
+
+    def test_mfa_login_no_identity_nin(self) -> None:
+        eppn = self.test_unverified_user_eppn
+        self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=False, token_verified=False)
+
+        country = countries.get("Sweden")
+
+        with self.app.test_request_context():
+            endpoint = url_for("freja_eid.mfa_authentication")
+
+        data = self.default_frontend_data(frontend_action=FrontendAction.LOGIN_MFA_AUTHN.value)
+
+        start_auth_response = self._start_auth(
+            endpoint=endpoint,
+            data=data,
+            eppn=eppn,
+            logged_in=False,
+        )
+        state, nonce = self._get_state_and_nonce(self.get_response_payload(start_auth_response)["location"])
+
+        userinfo = self.get_mock_userinfo(
+            issuing_country=country,
+            personal_identity_number=self.test_user_nin.number,
+            registration_level=FrejaRegistrationLevel.PLUS,
+            loa_level=FrejaLoaLevel.LOA3,
+        )
+        response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
+        assert response.status_code == HTTPStatus.FOUND
+        self._verify_status(
+            finish_url=response.headers["Location"],
+            frontend_action=FrontendAction(data["frontend_action"]),
+            frontend_state=data["frontend_state"],
+            method=data["method"],
+            expect_error=True,
+            expect_msg=FrejaEIDMsg.identity_not_matching,
+        )
+
+        self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=False, num_proofings=0)
+
+    @patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
+    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+    def test_mfa_login_unverified_identity_nin(
+        self, mock_request_user_sync: MagicMock, mock_get_all_navet_data: MagicMock
+    ) -> None:
+        mock_get_all_navet_data.return_value = self._get_all_navet_data()
+        mock_request_user_sync.side_effect = self.request_user_sync
+        eppn = self.test_unverified_user_eppn
+
+        # Add locked nin to user
+        user = self.app.central_userdb.get_user_by_eppn(eppn)
+        locked_nin = NinIdentity(created_by="test", number=self.test_user_nin.number, is_verified=True)
+        user.locked_identity.add(locked_nin)
+        self.app.central_userdb.save(user)
+
+        self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=False, token_verified=False)
+
+        country = countries.get("Sweden")
+
+        with self.app.test_request_context():
+            endpoint = url_for("freja_eid.mfa_authentication")
+
+        data = self.default_frontend_data(frontend_action=FrontendAction.LOGIN_MFA_AUTHN.value)
+
+        start_auth_response = self._start_auth(
+            endpoint=endpoint,
+            data=data,
+            eppn=eppn,
+            logged_in=False,
+        )
+        state, nonce = self._get_state_and_nonce(self.get_response_payload(start_auth_response)["location"])
+
+        userinfo = self.get_mock_userinfo(
+            issuing_country=country,
+            personal_identity_number=self.test_user_nin.number,
+            registration_level=FrejaRegistrationLevel.PLUS,
+            loa_level=FrejaLoaLevel.LOA3,
+        )
+        response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
+        assert response.status_code == HTTPStatus.FOUND
+        self._verify_status(
+            finish_url=response.headers["Location"],
+            frontend_action=FrontendAction(data["frontend_action"]),
+            frontend_state=data["frontend_state"],
+            method=data["method"],
+            expect_msg=FrejaEIDMsg.mfa_authn_success,
+        )
+
+        self._verify_user_parameters(
+            eppn, num_mfa_tokens=0, identity_verified=True, num_proofings=1, locked_identity=user.identities.nin
+        )
+
+    def test_mfa_login_no_identity_foreign(self) -> None:
+        eppn = self.test_unverified_user_eppn
+        self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=False, token_verified=False)
+
+        country = countries.get("Denmark")
+
+        with self.app.test_request_context():
+            endpoint = url_for("freja_eid.mfa_authentication")
+
+        data = self.default_frontend_data(frontend_action=FrontendAction.LOGIN_MFA_AUTHN.value)
+
+        start_auth_response = self._start_auth(
+            endpoint=endpoint,
+            data=data,
+            eppn=eppn,
+            logged_in=False,
+        )
+        state, nonce = self._get_state_and_nonce(self.get_response_payload(start_auth_response)["location"])
+
+        userinfo = self.get_mock_userinfo(issuing_country=country)
+        response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
+        assert response.status_code == HTTPStatus.FOUND
+        self._verify_status(
+            finish_url=response.headers["Location"],
+            frontend_action=FrontendAction(data["frontend_action"]),
+            frontend_state=data["frontend_state"],
+            method=data["method"],
+            expect_error=True,
+            expect_msg=FrejaEIDMsg.identity_not_matching,
+        )
+
+        self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=False, num_proofings=0)
+
+    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+    def test_mfa_login_unverified_identity_foreign(self, mock_request_user_sync: MagicMock) -> None:
+        mock_request_user_sync.side_effect = self.request_user_sync
+        eppn = self.test_unverified_user_eppn
+
+        country = countries.get("Denmark")
+
+        userinfo = self.get_mock_userinfo(issuing_country=country)
+
+        # Add locked freja identity to user
+        user = self.app.central_userdb.get_user_by_eppn(eppn)
+        locked_freja = FrejaIdentity(
+            created_by="test",
+            personal_identity_number=userinfo.personal_identity_number,
+            country_code=userinfo.document.country,
+            date_of_birth=datetime.combine(userinfo.date_of_birth, datetime.min.time()),
+            is_verified=True,
+            user_id=userinfo.user_id,
+            registration_level=userinfo.registration_level,
+            loa_level=userinfo.loa_level,
+        )
+        user.locked_identity.add(locked_freja)
+        self.app.central_userdb.save(user)
+
+        self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=False, token_verified=False)
+
+        with self.app.test_request_context():
+            endpoint = url_for("freja_eid.mfa_authentication")
+
+        data = self.default_frontend_data(frontend_action=FrontendAction.LOGIN_MFA_AUTHN.value)
+
+        start_auth_response = self._start_auth(
+            endpoint=endpoint,
+            data=data,
+            eppn=eppn,
+            logged_in=False,
+        )
+        state, nonce = self._get_state_and_nonce(self.get_response_payload(start_auth_response)["location"])
+
+        userinfo = self.get_mock_userinfo(issuing_country=country)
+        response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
+        assert response.status_code == HTTPStatus.FOUND
+        self._verify_status(
+            finish_url=response.headers["Location"],
+            frontend_action=FrontendAction(data["frontend_action"]),
+            frontend_state=data["frontend_state"],
+            method=data["method"],
+            expect_msg=FrejaEIDMsg.mfa_authn_success,
+        )
+
+        self._verify_user_parameters(
+            eppn, num_mfa_tokens=0, identity_verified=True, num_proofings=1, locked_identity=user.identities.freja
+        )
