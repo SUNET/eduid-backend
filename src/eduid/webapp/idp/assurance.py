@@ -202,6 +202,16 @@ class AuthnState:
         return self._credentials
 
 
+        case EduidAuthnContextClass.NONE:
+            # Handle empty req_authn_ctx
+            if authn.is_multifactor:
+                return EduidAuthnContextClass.REFEDS_MFA
+            elif authn.password_used:
+                return EduidAuthnContextClass.PASSWORD_PT
+            elif authn.is_singlefactor:
+                return EduidAuthnContextClass.REFEDS_SFA
+            else:
+                raise MissingAuthentication()
 def response_authn(authn: AuthnState, ticket: LoginContext, user: IdPUser) -> AuthnInfo:
     """
     Figure out what AuthnContext to assert in a SAML response,

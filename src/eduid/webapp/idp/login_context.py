@@ -300,6 +300,9 @@ def _pick_authn_context(accrs: Sequence[str], log_tag: str) -> EduidAuthnContext
         logger.warning(f"{log_tag}: More than one authnContextClassRef, using the first recognised: {accrs}")
 
     # first, select the ones recognised by this IdP
+    if not accrs:
+        logger.info(f"{log_tag}: No authnContextClassRef, using {EduidAuthnContextClass.NONE}")
+        return [EduidAuthnContextClass.NONE]
     known = []
     for x in accrs:
         if x in EduidAuthnContextClass:
