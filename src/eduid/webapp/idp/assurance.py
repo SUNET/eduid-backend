@@ -202,6 +202,63 @@ class AuthnState:
         return self._credentials
 
 
+def get_response_accr(authn: AuthnState, request_accr: EduidAuthnContextClass) -> EduidAuthnContextClass:
+    # Docs: https://wiki.sunet.se/display/ED/eduID+AuthnContextClass+to+SWAMID%2C+eduGAIN+and+Sweden+Connect
+    match request_accr:
+        case EduidAuthnContextClass.DIGG_LOA2:
+            current_app.stats.count("req_authn_ctx_digg_loa2")
+            if not authn.is_singlefactor:
+                raise MissingSingleFactor()
+            if not authn.is_multifactor:
+                raise MissingMultiFactor()
+            if not authn.digg_loa2_approved_identity:
+                raise IdentityProofingMethodNotAllowed()
+            if not authn.swamid_al3_used:
+                raise MfaProofingMethodNotAllowed()
+            if not authn.is_digg_loa2:  # this case should be covered by the previous two, but belt and bracers
+                raise AssuranceException()
+            return EduidAuthnContextClass.DIGG_LOA2
+
+        case EduidAuthnContextClass.REFEDS_MFA:
+            current_app.stats.count("req_authn_ctx_refeds_mfa")
+            if not authn.is_singlefactor:
+                raise MissingSingleFactor()
+            if not authn.is_multifactor:
+                raise MissingMultiFactor()
+            return EduidAuthnContextClass.REFEDS_MFA
+
+        case EduidAuthnContextClass.REFEDS_SFA:
+            current_app.stats.count("req_authn_ctx_refeds_sfa")
+            if not authn.is_singlefactor:
+                raise MissingSingleFactor()
+            return EduidAuthnContextClass.REFEDS_SFA
+
+        case EduidAuthnContextClass.EDUID_MFA:
+            current_app.stats.count("req_authn_ctx_eduid_mfa")
+            if not authn.is_singlefactor:
+                raise MissingSingleFactor()
+            if not authn.is_multifactor:
+                raise MissingMultiFactor()
+            return EduidAuthnContextClass.EDUID_MFA
+
+        case EduidAuthnContextClass.FIDO_U2F:
+            current_app.stats.count("req_authn_ctx_fido_u2f")
+            if not authn.password_used and authn.fido_used:
+                raise MissingMultiFactor()
+            return EduidAuthnContextClass.FIDO_U2F
+
+        case EduidAuthnContextClass.PASSWORD_PT:
+            current_app.stats.count("req_authn_ctx_password_pt")
+            if not authn.is_singlefactor:
+                raise MissingSingleFactor()
+            return EduidAuthnContextClass.PASSWORD_PT
+
+        case EduidAuthnContextClass.UNSPECIFIED:
+            current_app.stats.count("req_authn_ctx_unspecified")
+            if not authn.is_singlefactor:
+                raise MissingSingleFactor()
+            return EduidAuthnContextClass.UNSPECIFIED
+
         case EduidAuthnContextClass.NONE:
             # Handle empty req_authn_ctx
             if authn.is_multifactor:
@@ -212,6 +269,12 @@ class AuthnState:
                 return EduidAuthnContextClass.REFEDS_SFA
             else:
                 raise MissingAuthentication()
+
+        case _:
+            # Fail on unknown req_authn_ctx
+            raise AuthnContextNotSupported()
+
+
 def response_authn(authn: AuthnState, ticket: LoginContext, user: IdPUser) -> AuthnInfo:
     """
     Figure out what AuthnContext to assert in a SAML response,
@@ -223,76 +286,6 @@ def response_authn(authn: AuthnState, ticket: LoginContext, user: IdPUser) -> Au
     attributes = {}
     response_accr = None
 
-    # Docs: https://wiki.sunet.se/display/ED/eduID+AuthnContextClass+to+SWAMID%2C+eduGAIN+and+Sweden+Connect
-
-    if req_authn_ctx == EduidAuthnContextClass.DIGG_LOA2:
-        current_app.stats.count("req_authn_ctx_digg_loa2")
-        if not authn.is_singlefactor:
-            raise MissingSingleFactor()
-        if not authn.is_multifactor:
-            raise MissingMultiFactor()
-        if not authn.digg_loa2_approved_identity:
-            raise IdentityProofingMethodNotAllowed()
-        if not authn.swamid_al3_used:
-            raise MfaProofingMethodNotAllowed()
-        if not authn.is_digg_loa2:  # this case should be covered by the previous two, but belt and bracers
-            raise AssuranceException()
-        response_accr = EduidAuthnContextClass.DIGG_LOA2
-
-    elif req_authn_ctx == EduidAuthnContextClass.REFEDS_MFA:
-        current_app.stats.count("req_authn_ctx_refeds_mfa")
-        if not authn.is_singlefactor:
-            raise MissingSingleFactor()
-        if not authn.is_multifactor:
-            raise MissingMultiFactor()
-        response_accr = EduidAuthnContextClass.REFEDS_MFA
-
-    elif req_authn_ctx == EduidAuthnContextClass.REFEDS_SFA:
-        current_app.stats.count("req_authn_ctx_refeds_sfa")
-        if not authn.is_singlefactor:
-            raise MissingSingleFactor()
-        response_accr = EduidAuthnContextClass.REFEDS_SFA
-
-    elif req_authn_ctx == EduidAuthnContextClass.EDUID_MFA:
-        current_app.stats.count("req_authn_ctx_eduid_mfa")
-        if not authn.is_singlefactor:
-            raise MissingSingleFactor()
-        if not authn.is_multifactor:
-            raise MissingMultiFactor()
-        response_accr = EduidAuthnContextClass.EDUID_MFA
-
-    elif req_authn_ctx == EduidAuthnContextClass.FIDO_U2F:
-        current_app.stats.count("req_authn_ctx_fido_u2f")
-        if not authn.password_used and authn.fido_used:
-            raise MissingMultiFactor()
-        response_accr = EduidAuthnContextClass.FIDO_U2F
-
-    elif req_authn_ctx == EduidAuthnContextClass.PASSWORD_PT:
-        current_app.stats.count("req_authn_ctx_password_pt")
-        if not authn.is_singlefactor:
-            raise MissingSingleFactor()
-        response_accr = EduidAuthnContextClass.PASSWORD_PT
-
-    elif req_authn_ctx == EduidAuthnContextClass.UNSPECIFIED:
-        current_app.stats.count("req_authn_ctx_unspecified")
-        if not authn.is_singlefactor:
-            raise MissingSingleFactor()
-        response_accr = EduidAuthnContextClass.UNSPECIFIED
-
-    elif req_authn_ctx is None:
-        # Handle empty req_authn_ctx
-        if authn.is_multifactor:
-            response_accr = EduidAuthnContextClass.REFEDS_MFA
-        elif authn.password_used:
-            response_accr = EduidAuthnContextClass.PASSWORD_PT
-        elif authn.is_singlefactor:
-            response_accr = EduidAuthnContextClass.REFEDS_SFA
-        else:
-            raise MissingAuthentication()
-
-    if response_accr is None:
-        # Fail on unknown req_authn_ctx
-        raise AuthnContextNotSupported()
 
     if authn.is_swamid_al2:
         if authn.swamid_al3_used:
