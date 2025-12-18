@@ -284,8 +284,24 @@ def response_authn(authn: AuthnState, ticket: LoginContext, user: IdPUser) -> Au
     logger.info(f"Authn for {user} will be evaluated for {req_authn_ctx} based on: {authn}")
 
     attributes = {}
+    last_exception: AssuranceException = AuthnContextNotSupported()
     response_accr = None
+    for request_accr in req_authn_ctx:
+        try:
+            response_accr = get_response_accr(authn=authn, request_accr=request_accr)
+            if response_accr:
+                break
+        except (MissingAuthentication, MissingSingleFactor):
+            # send the user to authenticate
+            raise
+        except AssuranceException as e:
+            # See if the user is able to fulfill another accr
+            logger.info(f"Requested {request_accr} ended in {e}")
+            last_exception = e
+            continue
 
+    if not response_accr:
+        raise last_exception
 
     if authn.is_swamid_al2:
         if authn.swamid_al3_used:
