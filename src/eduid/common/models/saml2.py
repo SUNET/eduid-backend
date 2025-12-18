@@ -13,3 +13,4 @@ class EduidAuthnContextClass(StrEnum):
     PASSWORD_PT = "urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport"
     UNSPECIFIED = "urn:oasis:names:tc:SAML:2.0:ac:classes:unspecified"
     NOT_IMPLEMENTED = "not implemented"
+    NONE = "none"
