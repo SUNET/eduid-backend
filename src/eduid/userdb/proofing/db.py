@@ -204,9 +204,11 @@ class OrcidProofingStateDB(OidcStateDB[OrcidProofingState]):
         return OrcidProofingState.from_dict(data)
 
 
-class ProofingUserDB(UserDB[ProofingUser]):
-    def __init__(self, db_uri: str, db_name: str, collection: str = "profiles") -> None:
-        super().__init__(db_uri, db_name, collection=collection)
+class ProofingUserDB(AutoExpiringUserDB[ProofingUser]):
+    def __init__(
+        self, db_uri: str, db_name: str, collection: str = "profiles", auto_expire: timedelta | None = None
+    ) -> None:
+        super().__init__(db_uri, db_name, collection=collection, auto_expire=auto_expire)
 
     def save(self, user: ProofingUser) -> UserSaveResult:
         return super().save(user)
@@ -217,55 +219,59 @@ class ProofingUserDB(UserDB[ProofingUser]):
 
 
 class LetterProofingUserDB(ProofingUserDB):
-    def __init__(self, db_uri: str, db_name: str = "eduid_idproofing_letter") -> None:
-        super().__init__(db_uri, db_name)
+    def __init__(
+        self, db_uri: str, db_name: str = "eduid_idproofing_letter", auto_expire: timedelta | None = None
+    ) -> None:
+        super().__init__(db_uri, db_name, auto_expire=auto_expire)
 
 
 class OidcProofingUserDB(ProofingUserDB):
-    def __init__(self, db_uri: str, db_name: str = "eduid_oidc_proofing") -> None:
-        super().__init__(db_uri, db_name)
+    def __init__(self, db_uri: str, db_name: str = "eduid_oidc_proofing", auto_expire: timedelta | None = None) -> None:
+        super().__init__(db_uri, db_name, auto_expire=auto_expire)
 
 
 class PhoneProofingUserDB(ProofingUserDB):
-    def __init__(self, db_uri: str, db_name: str = "eduid_phone") -> None:
-        super().__init__(db_uri, db_name)
+    def __init__(self, db_uri: str, db_name: str = "eduid_phone", auto_expire: timedelta | None = None) -> None:
+        super().__init__(db_uri, db_name, auto_expire=auto_expire)
 
 
 class EmailProofingUserDB(ProofingUserDB):
-    def __init__(self, db_uri: str, db_name: str = "eduid_email") -> None:
-        super().__init__(db_uri, db_name)
+    def __init__(self, db_uri: str, db_name: str = "eduid_email", auto_expire: timedelta | None = None) -> None:
+        super().__init__(db_uri, db_name, auto_expire=auto_expire)
 
 
 class LookupMobileProofingUserDB(ProofingUserDB):
-    def __init__(self, db_uri: str, db_name: str = "eduid_lookup_mobile_proofing") -> None:
-        super().__init__(db_uri, db_name)
+    def __init__(
+        self, db_uri: str, db_name: str = "eduid_lookup_mobile_proofing", auto_expire: timedelta | None = None
+    ) -> None:
+        super().__init__(db_uri, db_name, auto_expire=auto_expire)
 
 
 class OrcidProofingUserDB(ProofingUserDB):
-    def __init__(self, db_uri: str, db_name: str = "eduid_orcid") -> None:
-        super().__init__(db_uri, db_name)
+    def __init__(self, db_uri: str, db_name: str = "eduid_orcid", auto_expire: timedelta | None = None) -> None:
+        super().__init__(db_uri, db_name, auto_expire=auto_expire)
 
 
 class EidasProofingUserDB(ProofingUserDB):
-    def __init__(self, db_uri: str, db_name: str = "eduid_eidas") -> None:
-        super().__init__(db_uri, db_name)
+    def __init__(self, db_uri: str, db_name: str = "eduid_eidas", auto_expire: timedelta | None = None) -> None:
+        super().__init__(db_uri, db_name, auto_expire=auto_expire)
 
 
 class LadokProofingUserDB(ProofingUserDB):
-    def __init__(self, db_uri: str, db_name: str = "eduid_ladok") -> None:
-        super().__init__(db_uri, db_name)
+    def __init__(self, db_uri: str, db_name: str = "eduid_ladok", auto_expire: timedelta | None = None) -> None:
+        super().__init__(db_uri, db_name, auto_expire=auto_expire)
 
 
 class SvideIDProofingUserDB(ProofingUserDB):
-    def __init__(self, db_uri: str, db_name: str = "eduid_svipe_id") -> None:
-        super().__init__(db_uri, db_name)
+    def __init__(self, db_uri: str, db_name: str = "eduid_svipe_id", auto_expire: timedelta | None = None) -> None:
+        super().__init__(db_uri, db_name, auto_expire=auto_expire)
 
 
 class BankIDProofingUserDB(ProofingUserDB):
-    def __init__(self, db_uri: str, db_name: str = "eduid_bankid") -> None:
-        super().__init__(db_uri, db_name)
+    def __init__(self, db_uri: str, db_name: str = "eduid_bankid", auto_expire: timedelta | None = None) -> None:
+        super().__init__(db_uri, db_name, auto_expire=auto_expire)
 
 
 class FrejaEIDProofingUserDB(ProofingUserDB):
-    def __init__(self, db_uri: str, db_name: str = "eduid_freja_eid") -> None:
-        super().__init__(db_uri, db_name)
+    def __init__(self, db_uri: str, db_name: str = "eduid_freja_eid", auto_expire: timedelta | None = None) -> None:
+        super().__init__(db_uri, db_name, auto_expire=auto_expire)
