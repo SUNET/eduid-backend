@@ -21,7 +21,7 @@ class LadokApp(AuthnBaseApp):
         self.conf = config
 
         # Init dbs
-        self.private_userdb = LadokProofingUserDB(config.mongo_uri)
+        self.private_userdb = LadokProofingUserDB(config.mongo_uri, auto_expire=config.private_userdb_auto_expire)
         self.proofing_log = ProofingLog(config.mongo_uri)
 
         # Init celery

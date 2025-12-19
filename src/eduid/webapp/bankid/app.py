@@ -24,7 +24,7 @@ class BankIDApp(AuthnBaseApp):
         self.saml2_config = get_saml2_config(config.saml2_settings_module)
 
         # Init dbs
-        self.private_userdb = BankIDProofingUserDB(config.mongo_uri)
+        self.private_userdb = BankIDProofingUserDB(config.mongo_uri, auto_expire=config.private_userdb_auto_expire)
         self.proofing_log = ProofingLog(config.mongo_uri)
 
         # Init celery
