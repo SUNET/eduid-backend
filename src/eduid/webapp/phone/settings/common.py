@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from eduid.common.config.base import (
     AmConfigMixin,
     CaptchaConfigMixin,
@@ -19,3 +21,4 @@ class PhoneConfig(EduIDBaseAppConfig, MagicCookieMixin, AmConfigMixin, MsgConfig
     throttle_resend_seconds: int = 300
     # default country code
     default_country_code: str = "46"
+    state_db_auto_expire: timedelta | None = timedelta(days=7)
