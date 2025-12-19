@@ -17,15 +17,6 @@ class SignupUserDB(UserDB[SignupUser]):
     ) -> None:
         super().__init__(db_uri, db_name, collection=collection)
 
-        if auto_expire is not None:
-            # auto expire register data
-            indexes = {
-                "auto-discard-modified-ts": {
-                    "key": [("modified_ts", 1)],
-                    "expireAfterSeconds": int(auto_expire.total_seconds()),
-                },
-            }
-            self.setup_indexes(indexes)
 
     @classmethod
     def user_from_dict(cls, data: TUserDbDocument) -> SignupUser:
