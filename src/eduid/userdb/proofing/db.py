@@ -1,6 +1,7 @@
 import logging
 from abc import ABC
 from collections.abc import Mapping
+from datetime import timedelta
 from operator import itemgetter
 from typing import Any
 
@@ -14,7 +15,7 @@ from eduid.userdb.proofing.state import (
     ProofingState,
 )
 from eduid.userdb.proofing.user import ProofingUser
-from eduid.userdb.userdb import UserDB, UserSaveResult
+from eduid.userdb.userdb import AutoExpiringUserDB, UserSaveResult
 
 logger = logging.getLogger(__name__)
 
@@ -22,8 +23,20 @@ __author__ = "lundberg"
 
 
 class ProofingStateDB[ProofingStateVar: ProofingState](BaseDB, ABC):
-    def __init__(self, db_uri: str, db_name: str, collection: str = "proofing_data") -> None:
+    def __init__(
+        self, db_uri: str, db_name: str, collection: str = "proofing_data", auto_expire: timedelta | None = None
+    ) -> None:
         super().__init__(db_uri, db_name, collection)
+
+        if auto_expire is not None:
+            # auto expire user data
+            indexes = {
+                "auto-discard-modified-ts": {
+                    "key": [("modified_ts", 1)],
+                    "expireAfterSeconds": int(auto_expire.total_seconds()),
+                },
+            }
+            self.setup_indexes(indexes)
 
     @classmethod
     def state_from_dict(cls, data: Mapping[str, Any]) -> ProofingStateVar:
@@ -93,8 +106,10 @@ class ProofingStateDB[ProofingStateVar: ProofingState](BaseDB, ABC):
 
 
 class LetterProofingStateDB(ProofingStateDB[LetterProofingState]):
-    def __init__(self, db_uri: str, db_name: str = "eduid_idproofing_letter") -> None:
-        super().__init__(db_uri, db_name)
+    def __init__(
+        self, db_uri: str, db_name: str = "eduid_idproofing_letter", auto_expire: timedelta | None = None
+    ) -> None:
+        super().__init__(db_uri, db_name, auto_expire=auto_expire)
 
     @classmethod
     def state_from_dict(cls, data: Mapping[str, Any]) -> LetterProofingState:
@@ -102,8 +117,8 @@ class LetterProofingStateDB(ProofingStateDB[LetterProofingState]):
 
 
 class EmailProofingStateDB(ProofingStateDB[EmailProofingState]):
-    def __init__(self, db_uri: str, db_name: str = "eduid_email") -> None:
-        super().__init__(db_uri, db_name)
+    def __init__(self, db_uri: str, db_name: str = "eduid_email", auto_expire: timedelta | None = None) -> None:
+        super().__init__(db_uri, db_name, auto_expire=auto_expire)
 
     @classmethod
     def state_from_dict(cls, data: Mapping[str, Any]) -> EmailProofingState:
@@ -132,8 +147,8 @@ class EmailProofingStateDB(ProofingStateDB[EmailProofingState]):
 
 
 class PhoneProofingStateDB(ProofingStateDB[PhoneProofingState]):
-    def __init__(self, db_uri: str, db_name: str = "eduid_phone") -> None:
-        super().__init__(db_uri, db_name)
+    def __init__(self, db_uri: str, db_name: str = "eduid_phone", auto_expire: timedelta | None = None) -> None:
+        super().__init__(db_uri, db_name, auto_expire=auto_expire)
 
     @classmethod
     def state_from_dict(cls, data: Mapping[str, Any]) -> PhoneProofingState:
@@ -185,8 +200,8 @@ class OidcStateDB[ProofingStateVar: ProofingState](ProofingStateDB[ProofingState
 
 
 class OidcProofingStateDB(OidcStateDB[OidcProofingState]):
-    def __init__(self, db_uri: str, db_name: str = "eduid_oidc_proofing") -> None:
-        super().__init__(db_uri, db_name)
+    def __init__(self, db_uri: str, db_name: str = "eduid_oidc_proofing", auto_expire: timedelta | None = None) -> None:
+        super().__init__(db_uri, db_name, auto_expire=auto_expire)
 
     @classmethod
     def state_from_dict(cls, data: Mapping[str, Any]) -> OidcProofingState:
@@ -196,8 +211,8 @@ class OidcProofingStateDB(OidcStateDB[OidcProofingState]):
 class OrcidProofingStateDB(OidcStateDB[OrcidProofingState]):
     ProofingStateClass = OrcidProofingState
 
-    def __init__(self, db_uri: str, db_name: str = "eduid_orcid") -> None:
-        super().__init__(db_uri, db_name)
+    def __init__(self, db_uri: str, db_name: str = "eduid_orcid", auto_expire: timedelta | None = None) -> None:
+        super().__init__(db_uri, db_name, auto_expire=auto_expire)
 
     @classmethod
     def state_from_dict(cls, data: Mapping[str, Any]) -> OrcidProofingState:
