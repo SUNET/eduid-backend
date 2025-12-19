@@ -29,7 +29,7 @@ class ProofingStateDB[ProofingStateVar: ProofingState](BaseDB, ABC):
         super().__init__(db_uri, db_name, collection)
 
         if auto_expire is not None:
-            # auto expire user data
+            # auto expire state data
             indexes = {
                 "auto-discard-modified-ts": {
                     "key": [("modified_ts", 1)],
