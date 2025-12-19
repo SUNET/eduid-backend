@@ -2,6 +2,7 @@ import logging
 from abc import ABC
 from collections.abc import Mapping
 from dataclasses import dataclass
+from datetime import timedelta
 from typing import Any
 
 from bson import ObjectId
@@ -444,3 +445,29 @@ class AmDB(UserDB[User]):
             except DocumentDoesNotExist:
                 pass
         return count
+
+
+class AutoExpiringUserDB[UserVar](UserDB):
+    """
+    This should be used for all private userdbs as we only need to keep
+    the user around for the sync to am and for any debugging.
+    """
+
+    def __init__(
+        self,
+        db_uri: str,
+        db_name: str,
+        collection: str,
+        auto_expire: timedelta | None = None,
+    ) -> None:
+        super().__init__(db_uri, db_name, collection=collection)
+
+        if auto_expire is not None:
+            # auto expire user data
+            indexes = {
+                "auto-discard-modified-ts": {
+                    "key": [("modified_ts", 1)],
+                    "expireAfterSeconds": int(auto_expire.total_seconds()),
+                },
+            }
+            self.setup_indexes(indexes)

@@ -27,7 +27,7 @@ class SecurityApp(AuthnBaseApp):
 
         self.fido_mds = FidoMetadataStore()
 
-        self.private_userdb = SecurityUserDB(config.mongo_uri)
+        self.private_userdb = SecurityUserDB(config.mongo_uri, auto_expire=config.private_userdb_auto_expire)
         self.authninfo_db = AuthnInfoDB(config.mongo_uri)
         self.proofing_log = ProofingLog(config.mongo_uri)
         self.fido_metadata_log = FidoMetadataLog(config.mongo_uri)

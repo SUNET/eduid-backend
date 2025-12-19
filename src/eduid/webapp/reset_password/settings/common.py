@@ -54,3 +54,4 @@ class ResetPasswordConfig(
     throttle_sms: timedelta = Field(default=timedelta(minutes=5))
     eduid_site_url: str = "https://www.eduid.se"
     eduid_site_name: str = "eduID"
+    state_db_auto_expire: timedelta | None = Field(default=timedelta(days=7))

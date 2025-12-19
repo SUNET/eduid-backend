@@ -44,4 +44,3 @@ class SignupConfig(
     scim_api_url: AnyUrlStr | None = None
     gnap_auth_data: GNAPClientAuthData | None = None
     eduid_scope: str = "eduid.se"
-    private_userdb_auto_expire: timedelta | None = Field(default=timedelta(days=7))

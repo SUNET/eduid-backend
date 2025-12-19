@@ -22,3 +22,4 @@ class EmailConfig(EduIDBaseAppConfig, MagicCookieMixin, AmConfigMixin, ErrorsCon
     eduid_site_name: str = "eduID"
     email_verification_timeout: timedelta = timedelta(days=1)
     throttle_resend_seconds: int = 300
+    state_db_auto_expire: timedelta | None = timedelta(days=7)

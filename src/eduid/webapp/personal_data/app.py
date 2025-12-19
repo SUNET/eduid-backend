@@ -19,7 +19,7 @@ class PersonalDataApp(AuthnBaseApp):
         # Init celery
         self.am_relay = AmRelay(config)
 
-        self.private_userdb = PersonalDataUserDB(config.mongo_uri)
+        self.private_userdb = PersonalDataUserDB(config.mongo_uri, auto_expire=config.private_userdb_auto_expire)
 
 
 current_pdata_app: PersonalDataApp = cast(PersonalDataApp, current_app)

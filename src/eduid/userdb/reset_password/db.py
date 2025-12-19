@@ -1,5 +1,6 @@
 import logging
 from collections.abc import Mapping
+from datetime import timedelta
 from typing import Any
 
 from eduid.userdb.db import BaseDB, SaveResult, TUserDbDocument
@@ -10,14 +11,20 @@ from eduid.userdb.reset_password.state import (
     ResetPasswordState,
 )
 from eduid.userdb.reset_password.user import ResetPasswordUser
-from eduid.userdb.userdb import UserDB
+from eduid.userdb.userdb import AutoExpiringUserDB
 
 logger = logging.getLogger(__name__)
 
 
-class ResetPasswordUserDB(UserDB[ResetPasswordUser]):
-    def __init__(self, db_uri: str, db_name: str = "eduid_reset_password", collection: str = "profiles") -> None:
-        super().__init__(db_uri, db_name, collection=collection)
+class ResetPasswordUserDB(AutoExpiringUserDB[ResetPasswordUser]):
+    def __init__(
+        self,
+        db_uri: str,
+        db_name: str = "eduid_reset_password",
+        collection: str = "profiles",
+        auto_expire: timedelta | None = None,
+    ) -> None:
+        super().__init__(db_uri, db_name, collection=collection, auto_expire=auto_expire)
 
     @classmethod
     def user_from_dict(cls, data: TUserDbDocument) -> ResetPasswordUser:
@@ -26,9 +33,22 @@ class ResetPasswordUserDB(UserDB[ResetPasswordUser]):
 
 class ResetPasswordStateDB(BaseDB):
     def __init__(
-        self, db_uri: str, db_name: str = "eduid_reset_password", collection: str = "password_reset_data"
+        self,
+        db_uri: str,
+        db_name: str = "eduid_reset_password",
+        collection: str = "password_reset_data",
+        auto_expire: timedelta | None = None,
     ) -> None:
         super().__init__(db_uri, db_name, collection=collection)
+        if auto_expire is not None:
+            # auto expire old state data
+            indexes = {
+                "auto-discard-modified-ts": {
+                    "key": [("modified_ts", 1)],
+                    "expireAfterSeconds": int(auto_expire.total_seconds()),
+                },
+            }
+            self.setup_indexes(indexes)
 
     def get_state_by_email_code(
         self, email_code: str

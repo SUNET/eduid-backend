@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from eduid.common.config.base import AmConfigMixin, EduIDBaseAppConfig, MagicCookieMixin, MsgConfigMixin
 
 
@@ -9,6 +11,7 @@ class LetterProofingConfig(EduIDBaseAppConfig, MagicCookieMixin, AmConfigMixin, 
     app_name: str = "letter_proofing"
 
     letter_wait_time_hours: int = 336  # 2 weeks
+    state_db_auto_expire: timedelta | None = timedelta(days=21)  # 3 weeks
 
     ekopost_api_uri: str = "https://api.ekopost.se"
     ekopost_api_verify_ssl: bool = True

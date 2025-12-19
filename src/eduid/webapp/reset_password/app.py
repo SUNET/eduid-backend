@@ -30,8 +30,10 @@ class ResetPasswordApp(EduIDBaseApp):
         self.captcha = init_captcha(config)
 
         # Init dbs
-        self.private_userdb = ResetPasswordUserDB(self.conf.mongo_uri)
-        self.password_reset_state_db = ResetPasswordStateDB(self.conf.mongo_uri)
+        self.private_userdb = ResetPasswordUserDB(self.conf.mongo_uri, auto_expire=config.private_userdb_auto_expire)
+        self.password_reset_state_db = ResetPasswordStateDB(
+            self.conf.mongo_uri, auto_expire=config.state_db_auto_expire
+        )
         self.proofing_log = ProofingLog(self.conf.mongo_uri)
         self.messagedb = MessageDB(config.mongo_uri)
 
