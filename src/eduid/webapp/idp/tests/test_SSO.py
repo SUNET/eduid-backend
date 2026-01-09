@@ -53,6 +53,7 @@ logger = logging.getLogger(__name__)
 
 
 def make_SAML_request(class_refs: list[EduidAuthnContextClass | str]) -> str:
+    authn_context = ""
     authn_context_ref = ""
     for accr in class_refs:
         match accr:
@@ -60,11 +61,12 @@ def make_SAML_request(class_refs: list[EduidAuthnContextClass | str]) -> str:
                 authn_context_ref += f"<ns1:AuthnContextClassRef>{accr.value}</ns1:AuthnContextClassRef>"
             case str():
                 authn_context_ref += f"<ns1:AuthnContextClassRef>{accr}</ns1:AuthnContextClassRef>"
-    authn_context = f"""
-      <ns0:RequestedAuthnContext>
-        {authn_context_ref}
-      </ns0:RequestedAuthnContext>
-        """
+    if authn_context_ref:
+        authn_context = f"""
+          <ns0:RequestedAuthnContext>
+            {authn_context_ref}
+          </ns0:RequestedAuthnContext>
+            """
     xml = f"""
 <?xml version="1.0" encoding="UTF-8"?>
 <ns0:AuthnRequest xmlns:ns0="urn:oasis:names:tc:SAML:2.0:protocol"

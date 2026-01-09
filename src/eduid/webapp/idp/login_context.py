@@ -246,8 +246,6 @@ class LoginContextOtherDevice(LoginContext):
 
     @property
     def authn_contexts(self) -> list[str]:
-        if self.other_device_req.device1.authn_context is None:
-            return []
         return [item.value for item in self.other_device_req.device1.authn_context]
 
     @property

@@ -289,8 +289,7 @@ def response_authn(authn: AuthnState, ticket: LoginContext, user: IdPUser) -> Au
     for request_accr in req_authn_ctx:
         try:
             response_accr = get_response_accr(authn=authn, request_accr=request_accr)
-            if response_accr:
-                break
+            break  # Use the first accr the user can fulfill
         except (MissingAuthentication, MissingSingleFactor):
             # send the user to authenticate
             raise
