@@ -13,7 +13,7 @@
 				"ms-python.python",
 				"ms-python.vscode-pylance",
 				"ms-python.mypy-type-checker",
-				"tabbyml.vscode-tabby",
+				"GitHub.copilot",
 				"GitHub.vscode-pull-request-github",
 				"streetsidesoftware.code-spell-checker",
 				"streetsidesoftware.code-spell-checker-swedish",
@@ -25,10 +25,9 @@
 	"postCreateCommand": "make vscode",
 	"mounts": [
 		"type=bind,source=${localWorkspaceFolder}/../pysaml2,target=/workspaces/pysaml2",
-		"type=bind,source=/var/run/docker.sock,target=/var/run/docker.sock",
-		"type=bind,source=${localEnv:HOME}/.tabby-client,target=/home/vscode/.tabby-client"
+		"type=bind,source=/var/run/docker.sock,target=/var/run/docker.sock"
 	],
 	"remoteUser": "vscode",
-	"runArgs": ["--init", "--add-host=localhost:host-gateway"],
+	"runArgs": ["--init", "--network=host"],
 	"overrideCommand": false
 }
