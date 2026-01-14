@@ -68,6 +68,6 @@ def init_oidc_proofing_app(
     no_authn_views(config, ["/authorization-response"])
 
     # Initialize the oidc_client after views to be able to set correct redirect_uris
-    app.oidc_client = oidc.init_client(config.client_registration_info, config.provider_configuration_info)
+    app.oidc_client = oidc.init_lazy_client(config.client_registration_info, config.provider_configuration_info).client
 
     return app

@@ -111,7 +111,7 @@ class LazyOidcClient:
         return getattr(self.client, name)
 
 
-def init_client(
+def init_lazy_client(
     client_registration_info: Mapping[str, Any],
     provider_configuration_info: Mapping[str, Any],
     max_failures: int = 3,
