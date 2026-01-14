@@ -1,7 +1,7 @@
 import logging
 from collections.abc import Mapping
 from datetime import datetime, timedelta
-from typing import Any, Optional
+from typing import Any
 
 from oic.exception import CommunicationError
 from oic.oic import Client
@@ -106,7 +106,7 @@ class LazyOidcClient:
         self._last_failure_time = None
 
     # Proxy methods to make LazyOidcClient behave like a Client
-    def __getattr__(self, name: Any) -> Any:
+    def __getattr__(self, name: str) -> object:
         """Proxy attribute access to the underlying client"""
         return getattr(self.client, name)
 
