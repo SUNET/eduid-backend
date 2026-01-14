@@ -6,7 +6,7 @@ from unittest.mock import patch
 from urllib.parse import unquote
 
 from saml2 import BINDING_HTTP_REDIRECT, BINDING_SOAP
-from saml2.mdstore import destinations
+from saml2.mdstore import locations
 from saml2.response import AuthnResponse, LogoutResponse
 from saml2.typing import SAMLBinding
 from werkzeug.test import TestResponse
@@ -140,7 +140,8 @@ class IdPTestLogoutAPI(IdPAPITests):
         name_id = session_info["name_id"]
 
         srvs = self.saml2_client.metadata.single_logout_service(self.idp_entity_id, binding, "idpsso")
-        destination = destinations(srvs)[0]
+        _locations = locations(srvs)
+        destination = next(_locations)
         session_indexes = [session_info["session_index"]]
 
         req_id, request = self.saml2_client.create_logout_request(

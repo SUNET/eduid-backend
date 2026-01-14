@@ -44,7 +44,7 @@ class TestAuthnBearerToken(BaseDBTestCase):
 
     def test_scopes_canonicalization(self) -> None:
         """Test input data normalisation of the 'scopes' field."""
-        config: ScimApiConfig = self.config.copy()
+        config: ScimApiConfig = self.config.model_copy()
         domain = "eduid.se"
         config.scope_mapping[ScopeName("example.com")] = DataOwnerName(domain)
         config.scope_mapping[ScopeName("example.org")] = DataOwnerName(domain)
@@ -113,7 +113,7 @@ class TestAuthnBearerToken(BaseDBTestCase):
 
     def test_requested_access_canonicalization(self) -> None:
         """Test input data normalisation of the 'requested_access' field."""
-        config: ScimApiConfig = self.config.copy()
+        config: ScimApiConfig = self.config.model_copy()
         domain = ScopeName("eduid.se")
         config.scope_mapping[ScopeName("example.org")] = DataOwnerName(domain)
         config.scope_mapping[ScopeName("example.com")] = DataOwnerName(domain)
@@ -257,7 +257,7 @@ class TestAuthnBearerToken(BaseDBTestCase):
         """Test the normal case. Login with access granted based on the single scope in the request."""
         domain = "eduid.se"
         domain_alias = "eduid.example.edu"
-        config = self.config.copy()
+        config = self.config.model_copy()
         config.scope_mapping[domain_alias] = domain
         claims = {"version": 1, "scopes": [domain_alias], "auth_source": "config"}
         token = AuthnBearerToken(config=self.config, **claims)
@@ -267,7 +267,7 @@ class TestAuthnBearerToken(BaseDBTestCase):
         """Test the normal case. Login with access granted based on the single scope in the request."""
         domain = DataOwnerName("eduid.se")
         domain_alias = ScopeName("eduid.example.edu")
-        config = self.config.copy()
+        config = self.config.model_copy()
         config.scope_mapping[domain_alias] = domain
         claims = {"version": 1, "auth_source": "interaction", "saml_eppn": f"user@{domain_alias}"}
         token = AuthnBearerToken(config=self.config, **claims)
@@ -312,7 +312,7 @@ class TestAuthnBearerToken(BaseDBTestCase):
         """Test the normal case when sudo:ing."""
         domain = ScopeName("eduid.se")
         sudoer = ScopeName("sudoer.example.org")
-        config: ScimApiConfig = self.config.copy()
+        config: ScimApiConfig = self.config.model_copy()
         config.scope_sudo = {sudoer: {domain}}
         config.requested_access_type = "api-test"
         claims = {
@@ -329,7 +329,7 @@ class TestAuthnBearerToken(BaseDBTestCase):
         allowed scopes for the requester."""
         domain = ScopeName("eduid.se")
         sudoer = ScopeName("sudoer.example.org")
-        config: ScimApiConfig = self.config.copy()
+        config: ScimApiConfig = self.config.model_copy()
         config.scope_sudo = {sudoer: {ScopeName("other-domain.example.org")}}
         config.requested_access_type = "api-test"
         claims = {
@@ -351,7 +351,7 @@ class TestAuthnBearerToken(BaseDBTestCase):
         has no data owner in the configuration."""
         domain = ScopeName("other-domain.example.org")
         sudoer = ScopeName("sudoer.example.org")
-        config: ScimApiConfig = self.config.copy()
+        config: ScimApiConfig = self.config.model_copy()
         config.scope_sudo = {sudoer: {ScopeName("other-domain.example.org")}}
         config.requested_access_type = "api-test"
         claims = {
@@ -373,7 +373,7 @@ class TestAuthnBearerToken(BaseDBTestCase):
         """
         domain = ScopeName("eduid.se")
         sudoer = ScopeName("sudoer.example.org")
-        config: ScimApiConfig = self.config.copy()
+        config: ScimApiConfig = self.config.model_copy()
         config.data_owners[DataOwnerName(sudoer)] = DataOwnerConfig(db_name="sudoer_db")
         config.scope_sudo = {sudoer: {domain}}
         config.requested_access_type = "api-test"
@@ -394,7 +394,7 @@ class TestAuthnBearerToken(BaseDBTestCase):
         domain = DataOwnerName("eduid.se")
         domain_alias = ScopeName("eduid.example.edu")
         sudoer = DataOwnerName("sudoer.example.org")
-        config: ScimApiConfig = self.config.copy()
+        config: ScimApiConfig = self.config.model_copy()
         config.data_owners[sudoer] = DataOwnerConfig(db_name="sudoer_db")
         config.scope_sudo = {ScopeName(sudoer): {ScopeName("eduid.se")}}
         config.scope_mapping[domain_alias] = domain

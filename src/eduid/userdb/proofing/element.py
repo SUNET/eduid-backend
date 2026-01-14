@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, TypeVar
+from typing import Any
 
 from pydantic import field_validator
 
@@ -9,9 +9,6 @@ from eduid.common.rpc.msg_relay import FullPostalAddress
 from eduid.userdb.element import Element, VerifiedElement
 
 __author__ = "lundberg"
-
-
-TProofingElementSubclass = TypeVar("TProofingElementSubclass", bound="ProofingElement")
 
 
 class ProofingElement(VerifiedElement):
@@ -32,7 +29,7 @@ class ProofingElement(VerifiedElement):
     verification_code: str | None = None
 
     @classmethod
-    def _from_dict_transform(cls: type[TProofingElementSubclass], data: dict[str, Any]) -> dict[str, Any]:
+    def _from_dict_transform(cls: type[ProofingElement], data: dict[str, Any]) -> dict[str, Any]:
         """
         Transform data received in eduid format into pythonic format.
         """

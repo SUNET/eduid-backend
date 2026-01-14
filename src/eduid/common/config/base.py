@@ -9,7 +9,7 @@ from datetime import timedelta
 from enum import Enum, StrEnum, unique
 from pathlib import Path
 from re import Pattern
-from typing import IO, Annotated, Any, TypeVar
+from typing import IO, Annotated, Any
 
 import importlib_resources
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field
@@ -66,9 +66,6 @@ class CookieConfig(BaseModel):
     max_age_seconds: int | None = None  # None means this is a session cookie
 
 
-TRootConfigSubclass = TypeVar("TRootConfigSubclass", bound="RootConfig")
-
-
 class EduidEnvironment(StrEnum):
     dev = "dev"
     staging = "staging"
@@ -83,10 +80,6 @@ class RootConfig(BaseModel):
     default_eppn_scope: str = "eduid.se"
     default_language: str = "en"
     model_config = ConfigDict(validate_assignment=True)
-
-
-# EduIDBaseApp is currently Flask apps
-TEduIDBaseAppConfigSubclass = TypeVar("TEduIDBaseAppConfigSubclass", bound="EduIDBaseAppConfig")
 
 
 class LoggingFilters(StrEnum):
@@ -310,15 +303,6 @@ class AmConfigMixin(CeleryConfigMixin):
     """Config used by AmRelay"""
 
     am_relay_for_override: str | None = None  # only set this if f'eduid_{app_name}' is not right
-
-
-class MailConfigMixin(CeleryConfigMixin):
-    """Config used by MailRelay"""
-
-    eduid_site_name: str = "eduID"
-    eduid_site_url: str = "https://eduid.se"
-
-    mail_default_from: str = "no-reply@eduid.se"
 
 
 class MsgConfigMixin(CeleryConfigMixin):

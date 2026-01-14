@@ -25,9 +25,5 @@ class NoNavetData(MsgTaskFailed):
     pass
 
 
-class MailTaskFailed(TaskFailed):
-    pass
-
-
 class LookupMobileTaskFailed(TaskFailed):
     pass

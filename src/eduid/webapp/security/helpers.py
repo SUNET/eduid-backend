@@ -4,6 +4,8 @@ from enum import unique
 from functools import cache
 from typing import Any
 
+from fido2.webauthn import AuthenticatorAttachment
+
 from eduid.common.config.base import EduidEnvironment
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.rpc.msg_relay import FullPostalAddress, NavetData
@@ -87,6 +89,8 @@ class CredentialInfo:
     success_ts: datetime | None
     verified: bool = False
     description: str | None = None
+    authenticator: str | None = None
+    mfa_approved: bool | None = None
     used_for_login: bool = False
 
 
@@ -100,14 +104,13 @@ def compile_credential_list(user: User) -> list[CredentialInfo]:
     for cred_key, authn in authn_info.items():
         cred = user.credentials.find(cred_key)
         # pick up attributes not present on all types of credentials
-        _description: str | None = None
-        _is_verified = False
-        _d = getattr(cred, "description", None)
-        if isinstance(_d, str):
-            _description = _d
-        _is_v = getattr(cred, "is_verified", None)
-        if isinstance(_is_v, bool):
-            _is_verified = _is_v
+        _description = getattr(cred, "description", None)
+        _is_verified = getattr(cred, "is_verified", False)
+        _is_mfa_approved = getattr(cred, "mfa_approved", None)
+        _authenticator_attachment: str | None = None
+        _aa = getattr(cred, "authenticator", None)
+        if isinstance(_aa, AuthenticatorAttachment):
+            _authenticator_attachment = str(_aa.value)
         _used_for_login = False
         if latest_authn and cred_key in latest_authn.credentials_used:
             _used_for_login = True
@@ -118,6 +121,8 @@ def compile_credential_list(user: User) -> list[CredentialInfo]:
             description=_description,
             success_ts=authn.success_ts,
             verified=_is_verified,
+            authenticator=_authenticator_attachment,
+            mfa_approved=_is_mfa_approved,
             used_for_login=_used_for_login,
         )
         credentials.append(info)

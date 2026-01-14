@@ -1,9 +1,11 @@
 #
 # Helper functions to log proofing events.
 #
+from __future__ import annotations
+
 import logging
 from datetime import datetime
-from typing import Any, TypeVar
+from typing import Any
 from uuid import UUID
 
 import bson
@@ -26,14 +28,6 @@ from fido_mds.models.webauthn import AttestationFormat
 
 logger = logging.getLogger(__name__)
 
-TLogElementSubclass = TypeVar("TLogElementSubclass", bound="LogElement")
-TNinProofingLogElementSubclass = TypeVar("TNinProofingLogElementSubclass", bound="NinProofingLogElement")
-TNinEIDProofingLogElementSubclass = TypeVar("TNinEIDProofingLogElementSubclass", bound="NinEIDProofingLogElement")
-TNinNavetProofingLogElementSubclass = TypeVar("TNinNavetProofingLogElementSubclass", bound="NinNavetProofingLogElement")
-TForeignIdProofingLogElementSubclass = TypeVar(
-    "TForeignIdProofingLogElementSubclass", bound="ForeignIdProofingLogElement"
-)
-
 
 class LogElement(Element):
     """ """
@@ -43,7 +37,7 @@ class LogElement(Element):
     model_config = ConfigDict(str_min_length=1)
 
     @classmethod
-    def _from_dict_transform(cls: type[TLogElementSubclass], data: dict[str, Any]) -> dict[str, Any]:
+    def _from_dict_transform(cls: type[LogElement], data: dict[str, Any]) -> dict[str, Any]:
         """
         Transform data received in eduid format into pythonic format.
         """

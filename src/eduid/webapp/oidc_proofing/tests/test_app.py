@@ -10,6 +10,7 @@ from werkzeug.test import TestResponse
 
 from eduid.userdb import NinIdentity
 from eduid.userdb.proofing.state import OidcProofingState
+from eduid.userdb.proofing.user import ProofingUser
 from eduid.userdb.testing import SetupConfig
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.oidc_proofing.app import OIDCProofingApp, init_oidc_proofing_app
@@ -226,7 +227,6 @@ class OidcProofingTests(EduidAPITestCase):
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
         self._check_nin_verified_ok(user=user, proofing_state=proofing_state, number=self.test_user_nin)
 
-    @patch("eduid.common.rpc.mail_relay.MailRelay.sendmail")
     @patch("eduid.webapp.oidc_proofing.helpers.do_authn_request")
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_postal_address")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
@@ -235,9 +235,7 @@ class OidcProofingTests(EduidAPITestCase):
         mock_request_user_sync: MagicMock,
         mock_get_postal_address: MagicMock,
         mock_oidc_call: MagicMock,
-        mock_sendmail: MagicMock,
     ) -> None:
-        mock_sendmail.return_value = True
         mock_oidc_call.return_value = True
         mock_get_postal_address.return_value = self.mock_address
         mock_request_user_sync.side_effect = self.request_user_sync
@@ -275,6 +273,8 @@ class OidcProofingTests(EduidAPITestCase):
 
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
         self._check_nin_not_verified(user=user, number=self.test_user_nin)
+        # Verify that redo verification email was queued
+        assert self.app.messagedb.db_count() == 1
 
     @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
     @patch("eduid.webapp.oidc_proofing.helpers.do_authn_request")
@@ -434,6 +434,7 @@ class OidcProofingTests(EduidAPITestCase):
         }
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
+        user = ProofingUser.from_user(user, self.app.private_userdb)
         with self.app.app_context():
             handle_freja_eid_userinfo(user, proofing_state, userinfo)
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
@@ -473,6 +474,7 @@ class OidcProofingTests(EduidAPITestCase):
         self.assertEqual(response["type"], "POST_OIDC_PROOFING_FREJA_PROOFING_SUCCESS")
 
         # No actual oidc flow tested here
+        user = ProofingUser.from_user(user, self.app.private_userdb)
         proofing_state = self.app.proofing_statedb.get_state_by_eppn(self.test_user_eppn)
         assert proofing_state is not None
         userinfo = {
@@ -527,6 +529,7 @@ class OidcProofingTests(EduidAPITestCase):
         self.assertEqual(response["type"], "POST_OIDC_PROOFING_FREJA_PROOFING_SUCCESS")
 
         # No actual oidc flow tested here
+        user = ProofingUser.from_user(user, self.app.private_userdb)
         proofing_state = self.app.proofing_statedb.get_state_by_eppn(self.test_user_eppn)
         assert proofing_state is not None
         userinfo = {

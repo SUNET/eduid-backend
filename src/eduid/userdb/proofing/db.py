@@ -2,7 +2,7 @@ import logging
 from abc import ABC
 from collections.abc import Mapping
 from operator import itemgetter
-from typing import Any, TypeVar
+from typing import Any
 
 from eduid.userdb.db import BaseDB, SaveResult, TUserDbDocument
 from eduid.userdb.proofing.state import (
@@ -20,12 +20,8 @@ logger = logging.getLogger(__name__)
 
 __author__ = "lundberg"
 
-ProofingStateInstance = TypeVar("ProofingStateInstance", bound=ProofingState)
 
-ProofingStateVar = TypeVar("ProofingStateVar")
-
-
-class ProofingStateDB[ProofingStateVar](BaseDB, ABC):
+class ProofingStateDB[ProofingStateVar: ProofingState](BaseDB, ABC):
     def __init__(self, db_uri: str, db_name: str, collection: str = "proofing_data") -> None:
         super().__init__(db_uri, db_name, collection)
 
@@ -86,7 +82,7 @@ class ProofingStateDB[ProofingStateVar](BaseDB, ABC):
 
         return result
 
-    def remove_state(self, state: ProofingStateVar) -> None:
+    def remove_state(self, state: ProofingState) -> None:
         """
         :param state: ProofingStateClass object
         """
@@ -123,7 +119,7 @@ class EmailProofingStateDB(ProofingStateDB[EmailProofingState]):
         spec = {"eduPersonPrincipalName": eppn, "verification.email": email}
         return self.get_latest_state_by_spec(spec)
 
-    def remove_state(self, state: ProofingStateVar) -> None:
+    def remove_state(self, state: ProofingState) -> None:
         """
         :param state: ProofingStateClass object
 
@@ -158,7 +154,7 @@ class PhoneProofingStateDB(ProofingStateDB[PhoneProofingState]):
         spec = {"eduPersonPrincipalName": eppn, "verification.number": number}
         return self.get_latest_state_by_spec(spec)
 
-    def remove_state(self, state: ProofingStateVar) -> None:
+    def remove_state(self, state: ProofingState) -> None:
         """
         :param state: ProofingStateClass object
 
@@ -170,7 +166,7 @@ class PhoneProofingStateDB(ProofingStateDB[PhoneProofingState]):
         self.remove_document({"eduPersonPrincipalName": state.eppn, "verification.number": state.verification.number})
 
 
-class OidcStateDB[ProofingStateVar](ProofingStateDB[ProofingStateVar], ABC):
+class OidcStateDB[ProofingStateVar: ProofingState](ProofingStateDB[ProofingStateVar], ABC):
     def get_state_by_oidc_state(self, oidc_state: str) -> ProofingStateVar | None:
         """
         Locate a state in the db given the user's OIDC state.

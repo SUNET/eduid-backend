@@ -4,9 +4,9 @@ import json
 import logging
 import os
 import pprint
-from collections.abc import Iterator, MutableMapping
+from collections.abc import Iterator
 from datetime import datetime
-from typing import TYPE_CHECKING, TypeVar
+from typing import TYPE_CHECKING
 
 from flask import Request as FlaskRequest
 from flask import Response as FlaskResponse
@@ -66,10 +66,7 @@ class EduidNamespaces(BaseModel):
     freja_eid: FrejaEIDNamespace | None = None
 
 
-VT = TypeVar("VT")
-
-
-class EduidSession(SessionMixin, MutableMapping[str, VT]):
+class EduidSession(SessionMixin):
     """
     Session implementing the flask.sessions.SessionMixin interface.
 
@@ -134,10 +131,10 @@ class EduidSession(SessionMixin, MutableMapping[str, VT]):
             f"modified={self.modified}, cookie={self.short_id}>"
         )
 
-    def __getitem__(self, key: str) -> VT | str | None:
+    def __getitem__(self, key: str) -> object:
         return self._session.__getitem__(key)
 
-    def __setitem__(self, key: str, value: VT | str | None) -> None:
+    def __setitem__(self, key: str, value: object) -> None:
         if key not in self._session or self._session[key] != value:
             self._session[key] = value
             logger.debug(f"SET {self}[{key}] = {value}")

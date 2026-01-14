@@ -21,6 +21,7 @@ def get_credentials_aux_data(user: User) -> list[TUserDbDocument]:
     credentials: list[TUserDbDocument] = []
     for credential in user.credentials.to_list():
         credential_dict = credential.to_dict()
+        credential_dict["credential_id"] = credential.key
         credential_dict["type"] = credential.__class__.__name__
         credential_info = current_app.support_authn_db.get_credential_info(credential.key)
         if credential_info:
@@ -30,11 +31,9 @@ def get_credentials_aux_data(user: User) -> list[TUserDbDocument]:
     return credentials
 
 
-def require_support_personnel[TRequireSupportPersonnelResult](
-    f: Callable[..., TRequireSupportPersonnelResult],
-) -> Callable[..., TRequireSupportPersonnelResult]:
+def require_support_personnel[T](f: Callable[..., T]) -> Callable[..., T]:
     @wraps(f)
-    def require_support_decorator(*args: Any, **kwargs: Any) -> TRequireSupportPersonnelResult:
+    def require_support_decorator(*args: Any, **kwargs: Any) -> T:
         user = get_user()
         # If the logged in user is whitelisted then we
         # pass on the request to the decorated view
@@ -49,11 +48,9 @@ def require_support_personnel[TRequireSupportPersonnelResult](
     return require_support_decorator
 
 
-def require_login_with_mfa[TRequireLoginWithMFAResult](
-    f: Callable[..., TRequireLoginWithMFAResult],
-) -> Callable[..., TRequireLoginWithMFAResult | WerkzeugResponse]:
+def require_login_with_mfa[T](f: Callable[..., T]) -> Callable[..., T | WerkzeugResponse]:
     @wraps(f)
-    def require_login_with_mfa_decorator(*args: Any, **kwargs: Any) -> TRequireLoginWithMFAResult | WerkzeugResponse:
+    def require_login_with_mfa_decorator(*args: Any, **kwargs: Any) -> T | WerkzeugResponse:
         if has_user_logged_in_with_mfa():
             return f(*args, **kwargs)
         resp = WerkzeugResponse("OK", 200)

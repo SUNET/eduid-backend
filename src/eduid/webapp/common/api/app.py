@@ -8,14 +8,14 @@ from __future__ import annotations
 import os
 from abc import ABCMeta
 from sys import stderr
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any
 
 from cookies_samesite_compat import CookiesSameSiteCompatMiddleware
 from flask import Flask
 from flask_cors import CORS
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-from eduid.common.config.base import EduIDBaseAppConfig, FlaskConfig
+from eduid.common.config.base import EduIDBaseAppConfig
 from eduid.common.config.exceptions import BadConfiguration
 from eduid.common.logging import init_logging
 from eduid.common.stats import init_app_stats
@@ -25,7 +25,6 @@ from eduid.webapp.common.api.checks import (
     FailCountItem,
     check_am,
     check_lookup_mobile,
-    check_mail,
     check_mongo,
     check_msg,
     check_redis,
@@ -44,10 +43,6 @@ if TYPE_CHECKING:
 DEBUG = os.environ.get("EDUID_APP_DEBUG", "False").lower() != "false"
 if DEBUG:
     stderr.writelines("----- WARNING! EDUID_APP_DEBUG is enabled -----\n")
-
-
-TFlaskConfigSubclass = TypeVar("TFlaskConfigSubclass", bound=FlaskConfig)
-TEduIDBaseAppSubclass = TypeVar("TEduIDBaseAppSubclass", bound="EduIDBaseApp")
 
 
 class EduIDBaseApp(Flask, metaclass=ABCMeta):
@@ -132,7 +127,6 @@ class EduIDBaseApp(Flask, metaclass=ABCMeta):
         redis: bool = True,
         am: bool = True,
         msg: bool = True,
-        mail: bool = True,
         lookup_mobile: bool = True,
         vccs: bool = True,
     ) -> CheckResult:
@@ -160,11 +154,6 @@ class EduIDBaseApp(Flask, metaclass=ABCMeta):
             res.healthy = False
             res.reason = "msg check failed"
             self.logger.warning("msg check failed")
-        # Mail Relay
-        elif mail and not check_mail():
-            res.healthy = False
-            res.reason = "mail check failed"
-            self.logger.warning("mail check failed")
         # Lookup Mobile Relay
         elif lookup_mobile and not check_lookup_mobile():
             res.healthy = False

@@ -1,9 +1,8 @@
 import logging
 from pathlib import PurePath
 
-from eduid.common.config.base import EduIDBaseAppConfig, MailConfigMixin, MsgConfigMixin
+from eduid.common.config.base import MsgConfigMixin
 from eduid.common.config.workers import MsgConfig
-from eduid.common.rpc.mail_relay import MailRelay
 from eduid.common.rpc.msg_relay import MsgRelay
 from eduid.userdb.testing import MongoTestCase, SetupConfig
 from eduid.workers.msg.common import MsgCelerySingleton
@@ -12,10 +11,6 @@ logger = logging.getLogger(__name__)
 
 
 class MsgTestConfig(MsgConfig, MsgConfigMixin):
-    pass
-
-
-class MailTestConfig(EduIDBaseAppConfig, MailConfigMixin):
     pass
 
 
@@ -50,4 +45,3 @@ class MsgMongoTestCase(MongoTestCase):
             logger.debug(f"Initialised message_relay with config:\n{self.msg_settings}")
 
             self.msg_relay = MsgRelay(self.msg_settings)
-            self.mail_relay = MailRelay(MailTestConfig(**settings))

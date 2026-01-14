@@ -2,13 +2,11 @@ from abc import ABC
 from collections.abc import Mapping
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from typing import Any, TypeVar
+from typing import Any, ClassVar, Self
 
 from eduid.common.misc.timeutil import utc_now
 
 __author__ = "lundberg"
-
-TPayload = TypeVar("TPayload", bound="Payload")
 
 
 @dataclass
@@ -17,7 +15,7 @@ class Payload(ABC):
         return asdict(self)
 
     @classmethod
-    def from_dict(cls: type[TPayload], data: Mapping[str, Any]) -> TPayload:
+    def from_dict(cls: type[Self], data: Mapping[str, Any]) -> Self:
         raise NotImplementedError()
 
     @classmethod
@@ -40,6 +38,7 @@ class RawPayload(Payload):
 
 @dataclass
 class TestPayload(Payload):
+    __test__: ClassVar[bool] = False
     message: str
     created_ts: datetime = field(default_factory=utc_now)
     version: int = 1

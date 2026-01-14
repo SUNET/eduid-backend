@@ -8,7 +8,7 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from ndnkdf import ndnkdf
 from starlette.responses import JSONResponse
-from starlette.status import HTTP_422_UNPROCESSABLE_ENTITY
+from starlette.status import HTTP_422_UNPROCESSABLE_CONTENT
 
 from eduid.vccs.server.config import init_config
 from eduid.vccs.server.db import CredentialDB
@@ -80,7 +80,7 @@ app.include_router(authenticate_router)
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
     request.app.logger.warning(f"Failed parsing request: {exc}")
-    return JSONResponse({"errors": exc.errors()}, status_code=HTTP_422_UNPROCESSABLE_ENTITY)
+    return JSONResponse({"errors": exc.errors()}, status_code=HTTP_422_UNPROCESSABLE_CONTENT)
 
 
 if __name__ == "__main__":

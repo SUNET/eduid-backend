@@ -4,9 +4,9 @@ import uuid
 from collections.abc import Mapping
 from dataclasses import asdict
 from json import JSONDecodeError
+from pathlib import Path
 from typing import Any
 
-import pkg_resources
 from bson import ObjectId
 from httpx import Response
 from starlette.testclient import TestClient
@@ -98,7 +98,7 @@ class ScimApiTestCase(MongoNeoTestCase):
         if "EDUID_CONFIG_YAML" not in os.environ:
             os.environ["EDUID_CONFIG_YAML"] = "YAML_CONFIG_NOT_USED"
 
-        self.datadir = pkg_resources.resource_filename(__name__, "tests/data")
+        self.datadir = str(Path(__file__).parent / "tests/data")
         self.test_config = self._get_config()
         config = load_config(typ=ScimApiConfig, app_name="scimapi", ns="api", test_config=self.test_config)
         self.context = Context(config=config)

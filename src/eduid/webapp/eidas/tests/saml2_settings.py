@@ -3,6 +3,9 @@ from os import path
 import saml2
 from saml2 import attributemaps
 
+if attributemaps.__file__ is None:
+    raise RuntimeError("Cannot determine attributemaps directory")
+
 DEFAULT_ATTRIBUTEMAPS = path.dirname(attributemaps.__file__)
 
 BASE_URL = "http://test.localhost:6544/"

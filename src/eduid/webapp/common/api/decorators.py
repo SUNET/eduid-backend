@@ -1,15 +1,14 @@
 import json
 import logging
-from collections.abc import Awaitable, Callable, Mapping
+from collections.abc import Callable, Mapping
 from functools import wraps
 from typing import Any, cast
 
 from flask import abort, jsonify, request
-from flask.typing import ResponseReturnValue as FlaskResponseReturnValue
-from flask.wrappers import Response as FlaskResponse
+from flask.typing import ResponseReturnValue
 from marshmallow import Schema
 from marshmallow.exceptions import ValidationError
-from werkzeug.wrappers import Response as WerkzeugResponse
+from werkzeug.wrappers import Response
 
 from eduid.userdb import NinIdentity
 from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response
@@ -31,12 +30,8 @@ logger = logging.getLogger(__name__)
 flux_logger = logger.getChild("flux")
 
 
-EduidViewBackwardsCompat = Mapping[str, Any]  # TODO: Make our views stop returning dicts and remove this
-EduidViewResult = FluxData | WerkzeugResponse | EduidViewBackwardsCompat
 # The Flask route decorator first in the chain makes us have to accept the full ResponseReturnValue too
-EduidViewReturnType = (
-    EduidViewResult | FlaskResponseReturnValue | Awaitable[EduidViewResult] | Awaitable[FlaskResponseReturnValue]
-)
+EduidViewReturnType = FluxData | ResponseReturnValue
 EduidRouteCallable = Callable[..., EduidViewReturnType]
 
 
@@ -79,7 +74,7 @@ def require_not_logged_in(f: EduidRouteCallable) -> EduidRouteCallable:
     return require_eppn_decorator
 
 
-def require_user[TRequireUserResult](f: Callable[..., TRequireUserResult]) -> Callable[..., TRequireUserResult]:
+def require_user[T](f: Callable[..., T]) -> Callable[..., T]:
     """
     Decorator for functions that require a *logged in* user.
 
@@ -89,7 +84,7 @@ def require_user[TRequireUserResult](f: Callable[..., TRequireUserResult]) -> Ca
     """
 
     @wraps(f)
-    def require_user_decorator(*args: Any, **kwargs: Any) -> TRequireUserResult:
+    def require_user_decorator(*args: Any, **kwargs: Any) -> T:
         user = get_user()
         kwargs["user"] = user
         return f(*args, **kwargs)
@@ -150,21 +145,17 @@ class MarshalWith:
 
     def __call__(self, f: EduidRouteCallable) -> Callable:
         @wraps(f)
-        def marshal_decorator(*args: Any, **kwargs: Any) -> WerkzeugResponse:
+        def marshal_decorator(*args: Any, **kwargs: Any) -> Response:
             # Call the Flask view, which is expected to return a FluxData instance,
-            # or in special cases an WerkzeugResponse (e.g. when a redirect is performed).
+            # or in special cases a Response (e.g. when a redirect is performed).
             ret = f(*args, **kwargs)
 
-            if isinstance(ret, WerkzeugResponse | FlaskResponse):
+            if isinstance(ret, Response):
                 # No need to Marshal again, someone else already did that
                 return ret
 
-            if isinstance(ret, dict):
-                # TODO: Backwards compatibility mode - work on removing the need for this
-                ret = FluxData(FluxResponseStatus.OK, payload=ret)
-
             if not isinstance(ret, FluxData):
-                raise TypeError("Data returned from Flask view was not a FluxData (or WerkzeugResponse) instance")
+                raise TypeError("Data returned from Flask view was not a FluxData (or Response) instance")
 
             _flux_response: FluxResponse
             if ret.status != FluxResponseStatus.OK:
@@ -190,7 +181,7 @@ class UnmarshalWith:
 
     Basically transforms the request data into a dict that is passed to the Flask view as keyword arguments.
 
-    This should be the first decorator after Flask's route decorator, and must return a FlaskResponseReturnValue,
+    This should be the first decorator after Flask's route decorator, and must return a ResponseReturnValue,
     not a FluxData instance.
     """
 
@@ -199,9 +190,7 @@ class UnmarshalWith:
 
     def __call__(self, f: EduidRouteCallable) -> Callable:
         @wraps(f)
-        def unmarshal_decorator(
-            *args: Any, **kwargs: Any
-        ) -> FlaskResponseReturnValue:  # DO NOT change to EduidViewReturnType, this is our outmost decorator
+        def unmarshal_decorator(*args: Any, **kwargs: Any) -> ResponseReturnValue:
             flux_logger.debug("")
             flux_logger.debug(f"--- New request ({request.path})")
             # silent=True lets get_json return None even if mime-type is not application/json
@@ -228,8 +217,7 @@ class UnmarshalWith:
                     logger.debug("Failing request has a password in it, not logging JSON data")
                 else:
                     logger.debug(f"Failing request JSON data:\n{json.dumps(json_data, indent=4, sort_keys=True)}")
-                error_response: FlaskResponse = jsonify(response_data.to_dict())
-                return error_response
+                return jsonify(response_data.to_dict())
             if "password" in unmarshal_result:
                 # A simple safeguard for if debug logging is ever activated in production
                 _without_pw = dict(unmarshal_result)
@@ -241,7 +229,6 @@ class UnmarshalWith:
             ret = f(*args, **kwargs)
             if isinstance(ret, FluxData):
                 raise TypeError("Wrong order of decorators, UnmarshalWith must be the first decorator")
-            # Uh, don't know how to check for Awaitable[FluxData], so for now we just ignore the type error below
-            return ret  # type: ignore[return-value]
+            return ret
 
         return unmarshal_decorator

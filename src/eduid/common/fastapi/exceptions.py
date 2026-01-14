@@ -33,7 +33,7 @@ async def unexpected_error_handler(req: Request, exc: Exception) -> Response | J
 
 
 async def validation_exception_handler(req: Request, exc: RequestValidationError) -> ErrorResponse:
-    status_code = status.HTTP_422_UNPROCESSABLE_ENTITY
+    status_code = status.HTTP_422_UNPROCESSABLE_CONTENT
     detail = ErrorDetail(
         detail=list(exc.errors()),
         status=status_code,
@@ -105,6 +105,6 @@ class MethodNotAllowedMalformed(HTTPErrorDetail):
 
 class UnsupportedMediaTypeMalformed(HTTPErrorDetail):
     def __init__(self, **kwargs: Any) -> None:
-        super().__init__(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, **kwargs)
+        super().__init__(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, **kwargs)
         if not self.error_detail.detail:
             self.error_detail.detail = "Request was made with an unsupported media type"

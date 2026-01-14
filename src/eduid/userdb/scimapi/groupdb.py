@@ -7,7 +7,7 @@ import uuid
 from collections.abc import Iterable, Mapping
 from dataclasses import asdict, dataclass, field, replace
 from datetime import datetime
-from typing import Any
+from typing import Any, Self
 from uuid import UUID
 
 from bson import ObjectId
@@ -35,7 +35,7 @@ class GroupExtensions:
         return asdict(self)
 
     @classmethod
-    def from_mapping(cls: type[GroupExtensions], data: Mapping) -> GroupExtensions:
+    def from_mapping(cls: type[Self], data: Mapping) -> Self:
         return cls(
             data=data.get("data", {}),
         )
@@ -93,7 +93,7 @@ class ScimApiGroup(ScimApiResourceBase, _ScimApiGroupRequired):
         return TUserDbDocument(res)
 
     @classmethod
-    def from_dict(cls: type[ScimApiGroup], data: Mapping[str, Any]) -> ScimApiGroup:
+    def from_dict(cls: type[Self], data: Mapping[str, Any]) -> Self:
         this = dict(copy.copy(data))  # to not modify callers data
         this["scim_id"] = uuid.UUID(this["scim_id"])
         this["group_id"] = this.pop("_id")

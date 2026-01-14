@@ -3,7 +3,7 @@ from __future__ import annotations
 from enum import StrEnum
 from typing import Any
 
-from eduid.userdb.element import TVerifiedElementSubclass, VerifiedElement
+from eduid.userdb.element import VerifiedElement
 
 __author__ = "ft"
 
@@ -60,7 +60,7 @@ class Credential(VerifiedElement):
         return data
 
     @classmethod
-    def _from_dict_transform(cls: type[TVerifiedElementSubclass], data: dict[str, Any]) -> dict[str, Any]:
+    def _from_dict_transform(cls: type[Credential], data: dict[str, Any]) -> dict[str, Any]:
         data = super()._from_dict_transform(data)
         # replace proofing_method SWAMID_AL2_MFA_HI with SWAMID_AL3_MFA
         if data.get("proofing_method") == CredentialProofingMethod.SWAMID_AL2_MFA_HI.value:
