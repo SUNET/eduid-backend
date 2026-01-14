@@ -37,8 +37,8 @@ class LazyOidcClient:
         self.retry_delay = timedelta(minutes=retry_delay_minutes)
 
         # Internal state
-        self._client: Client | None
-        self._failure_count = 0
+        self._client: Client | None = None
+        self._failure_count: int = 0
         self._last_failure_time: datetime | None = None
         self._client_init_failed = False
 
@@ -80,6 +80,9 @@ class LazyOidcClient:
             return False
 
         if self._failure_count < self.max_failures:
+            return False
+
+        if self._last_failure_time is None:
             return False
 
         # Allow retry after delay
