@@ -7,7 +7,7 @@ from eduid.common.config.parsers import load_config
 from eduid.common.rpc.am_relay import AmRelay
 from eduid.userdb.logs import ProofingLog
 from eduid.userdb.proofing import OrcidProofingStateDB, OrcidProofingUserDB
-from eduid.webapp.common.api.oidc import init_lazy_client
+from eduid.webapp.common.api.oidc import init_client
 from eduid.webapp.common.authn.middleware import AuthnBaseApp
 from eduid.webapp.orcid.settings.common import OrcidConfig
 
@@ -29,7 +29,7 @@ class OrcidApp(AuthnBaseApp):
         self.am_relay = AmRelay(config)
 
         # Init lazy OIDC client with circuit breaker pattern
-        self.oidc_client = init_lazy_client(
+        self.oidc_client = init_client(
             client_registration_info=self.conf.client_registration_info,
             provider_configuration_info=self.conf.provider_configuration_info,
         )

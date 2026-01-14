@@ -37,9 +37,9 @@ class LazyOidcClient:
         self.retry_delay = timedelta(minutes=retry_delay_minutes)
 
         # Internal state
-        self._client: Optional[Client] = None
+        self._client: Client | None
         self._failure_count = 0
-        self._last_failure_time: Optional[datetime] = None
+        self._last_failure_time: datetime | None = None
         self._client_init_failed = False
 
         logger.info("LazyOidcClient initialized with circuit breaker pattern")
@@ -106,12 +106,12 @@ class LazyOidcClient:
         self._last_failure_time = None
 
     # Proxy methods to make LazyOidcClient behave like a Client
-    def __getattr__(self, name):
+    def __getattr__(self, name: Any) -> Any:
         """Proxy attribute access to the underlying client"""
         return getattr(self.client, name)
 
 
-def init_lazy_client(
+def init_client(
     client_registration_info: Mapping[str, Any],
     provider_configuration_info: Mapping[str, Any],
     max_failures: int = 3,
