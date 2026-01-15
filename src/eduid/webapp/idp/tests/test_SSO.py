@@ -439,7 +439,7 @@ class TestSSO(SSOIdPTests):
         )
         out = self._get_login_response_authn(
             user=user,
-            req_class_ref=EduidAuthnContextClass.REFEDS_MFA,
+            req_class_ref=[EduidAuthnContextClass.REFEDS_MFA],
             credentials=["pw", authn],
         )
         self._check_login_response_authn(
