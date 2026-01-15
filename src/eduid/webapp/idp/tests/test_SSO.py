@@ -54,17 +54,21 @@ _U2F_SWAMID_AL3 = U2F(
 logger = logging.getLogger(__name__)
 
 
-def make_SAML_request(class_ref: EduidAuthnContextClass | str | None = None) -> str:
-    if isinstance(class_ref, EduidAuthnContextClass):
-        class_ref = class_ref.value
-    if class_ref is not None:
+def make_SAML_request(class_refs: list[EduidAuthnContextClass | str]) -> str:
+    authn_context = ""
+    authn_context_ref = ""
+    for accr in class_refs:
+        match accr:
+            case EduidAuthnContextClass():
+                authn_context_ref += f"<ns1:AuthnContextClassRef>{accr.value}</ns1:AuthnContextClassRef>"
+            case str():
+                authn_context_ref += f"<ns1:AuthnContextClassRef>{accr}</ns1:AuthnContextClassRef>"
+    if authn_context_ref:
         authn_context = f"""
-  <ns0:RequestedAuthnContext>
-    <ns1:AuthnContextClassRef>{class_ref}</ns1:AuthnContextClassRef>
-  </ns0:RequestedAuthnContext>
-    """
-    else:
-        authn_context = ""
+          <ns0:RequestedAuthnContext>
+            {authn_context_ref}
+          </ns0:RequestedAuthnContext>
+            """
     xml = f"""
 <?xml version="1.0" encoding="UTF-8"?>
 <ns0:AuthnRequest xmlns:ns0="urn:oasis:names:tc:SAML:2.0:protocol"
@@ -95,10 +99,12 @@ class SAMLError(BaseException):
 class SSOIdPTests(IdPAPITests):
     def _make_login_ticket(
         self,
-        req_class_ref: EduidAuthnContextClass | str | None = None,
+        req_class_ref: list[EduidAuthnContextClass | str] | None = None,
         request_ref: RequestRef | None = None,
     ) -> LoginContext:
-        xmlstr = make_SAML_request(class_ref=req_class_ref)
+        if req_class_ref is None:
+            req_class_ref = []
+        xmlstr = make_SAML_request(class_refs=req_class_ref)
         binding = "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST"
         if request_ref is None:
             request_ref = RequestRef(str(uuid4()))
@@ -238,7 +244,7 @@ class TestSSO(SSOIdPTests):
 
     def _get_login_response_authn(
         self,
-        req_class_ref: EduidAuthnContextClass | str | None,
+        req_class_ref: list[EduidAuthnContextClass | str],
         credentials: list[str | Credential | AuthnData],
         user: IdPUser | None = None,
         add_tou: bool = True,
@@ -348,7 +354,7 @@ class TestSSO(SSOIdPTests):
         user = self.app.userdb.get_user_by_eppn(self.test_user.eppn)
         out = self._get_login_response_authn(
             user=user,
-            req_class_ref=EduidAuthnContextClass.REFEDS_MFA,
+            req_class_ref=[EduidAuthnContextClass.REFEDS_MFA],
             credentials=["pw", _U2F_SWAMID_AL3],
         )
         self._check_login_response_authn(
@@ -371,7 +377,7 @@ class TestSSO(SSOIdPTests):
         user = self.app.userdb.get_user_by_eppn(self.test_user.eppn)
         out = self._get_login_response_authn(
             user=user,
-            req_class_ref=EduidAuthnContextClass.REFEDS_MFA,
+            req_class_ref=[EduidAuthnContextClass.REFEDS_MFA],
             credentials=["pw", _U2F],
         )
         self._check_login_response_authn(
@@ -400,7 +406,7 @@ class TestSSO(SSOIdPTests):
         )
         out = self._get_login_response_authn(
             user=user,
-            req_class_ref=EduidAuthnContextClass.REFEDS_MFA,
+            req_class_ref=[EduidAuthnContextClass.REFEDS_MFA],
             credentials=["pw", authn],
         )
         self._check_login_response_authn(
@@ -450,7 +456,7 @@ class TestSSO(SSOIdPTests):
         Expect the response Authn to be REFEDS SFA.
         """
         out = self._get_login_response_authn(
-            req_class_ref=EduidAuthnContextClass.REFEDS_SFA,
+            req_class_ref=[EduidAuthnContextClass.REFEDS_SFA],
             credentials=["pw", "u2f"],
         )
         self._check_login_response_authn(
@@ -467,7 +473,7 @@ class TestSSO(SSOIdPTests):
         Expect the response Authn to be REFEDS SFA.
         """
         out = self._get_login_response_authn(
-            req_class_ref=EduidAuthnContextClass.REFEDS_SFA,
+            req_class_ref=[EduidAuthnContextClass.REFEDS_SFA],
             credentials=["pw"],
         )
         self._check_login_response_authn(
@@ -484,7 +490,7 @@ class TestSSO(SSOIdPTests):
         Expect the response Authn to be REFEDS SFA.
         """
         out = self._get_login_response_authn(
-            req_class_ref=EduidAuthnContextClass.REFEDS_SFA,
+            req_class_ref=[EduidAuthnContextClass.REFEDS_SFA],
             credentials=["u2f"],
         )
         self._check_login_response_authn(
@@ -501,7 +507,7 @@ class TestSSO(SSOIdPTests):
         Expect the response Authn to be FIDO U2F.
         """
         out = self._get_login_response_authn(
-            req_class_ref=EduidAuthnContextClass.FIDO_U2F,
+            req_class_ref=[EduidAuthnContextClass.FIDO_U2F],
             credentials=["pw", "u2f"],
         )
         self._check_login_response_authn(
@@ -518,7 +524,7 @@ class TestSSO(SSOIdPTests):
         Expect the response Authn to be password-protected-transport.
         """
         out = self._get_login_response_authn(
-            req_class_ref=EduidAuthnContextClass.PASSWORD_PT,
+            req_class_ref=[EduidAuthnContextClass.PASSWORD_PT],
             credentials=["pw", "u2f"],
         )
         self._check_login_response_authn(
@@ -535,7 +541,7 @@ class TestSSO(SSOIdPTests):
         Expect the response Authn to be password-protected-transport.
         """
         out = self._get_login_response_authn(
-            req_class_ref=EduidAuthnContextClass.PASSWORD_PT,
+            req_class_ref=[EduidAuthnContextClass.PASSWORD_PT],
             credentials=["pw"],
         )
         self._check_login_response_authn(
@@ -552,7 +558,7 @@ class TestSSO(SSOIdPTests):
         Expect an error response.
         """
         out = self._get_login_response_authn(
-            req_class_ref="urn:no-such-class",
+            req_class_ref=["urn:no-such-class"],
             credentials=["pw", "u2f"],
         )
         self._check_login_response_authn(
@@ -566,7 +572,7 @@ class TestSSO(SSOIdPTests):
         Expect the response Authn to be SAML error response.
         """
         out = self._get_login_response_authn(
-            req_class_ref="urn:no-such-class",
+            req_class_ref=["urn:no-such-class"],
             credentials=["pw"],
         )
         self._check_login_response_authn(
@@ -580,7 +586,7 @@ class TestSSO(SSOIdPTests):
         Expect the response Authn to be password-protected-transport.
         """
         out = self._get_login_response_authn(
-            req_class_ref=None,
+            req_class_ref=[],
             credentials=["pw"],
         )
         self._check_login_response_authn(
@@ -597,7 +603,7 @@ class TestSSO(SSOIdPTests):
         Expect the response Authn to be REFEDS_MFA.
         """
         out = self._get_login_response_authn(
-            req_class_ref=None,
+            req_class_ref=[],
             credentials=["pw", "u2f"],
         )
         self._check_login_response_authn(
@@ -614,7 +620,7 @@ class TestSSO(SSOIdPTests):
         Expect the response Authn to be unspecified.
         """
         out = self._get_login_response_authn(
-            req_class_ref=EduidAuthnContextClass.UNSPECIFIED,
+            req_class_ref=[EduidAuthnContextClass.UNSPECIFIED],
             credentials=["pw"],
         )
         self._check_login_response_authn(
@@ -631,7 +637,7 @@ class TestSSO(SSOIdPTests):
         Expect the response Authn to be unspecified.
         """
         out = self._get_login_response_authn(
-            req_class_ref=EduidAuthnContextClass.UNSPECIFIED,
+            req_class_ref=[EduidAuthnContextClass.UNSPECIFIED],
             credentials=["pw", "u2f"],
         )
         self._check_login_response_authn(
@@ -646,7 +652,7 @@ class TestSSO(SSOIdPTests):
         Make sure eduPersonAssurace is SWAMID AL1 with no verified nin.
         """
         out = self._get_login_response_authn(
-            req_class_ref=None,
+            req_class_ref=[],
             credentials=["pw"],
         )
         self._check_login_response_authn(
@@ -664,7 +670,7 @@ class TestSSO(SSOIdPTests):
             self.test_user.eppn, identity_type=IdentityType.NIN, unique_value="190101011234"
         )
         out = self._get_login_response_authn(
-            req_class_ref=None,
+            req_class_ref=[],
             user=user,
             credentials=["pw"],
         )
@@ -682,7 +688,7 @@ class TestSSO(SSOIdPTests):
         Expect the response Authn to be EDUID_MFA, eduPersonAssurance AL1
         """
         out = self._get_login_response_authn(
-            req_class_ref=EduidAuthnContextClass.EDUID_MFA,
+            req_class_ref=[EduidAuthnContextClass.EDUID_MFA],
             credentials=["pw", "u2f"],
         )
         self._check_login_response_authn(
@@ -699,7 +705,7 @@ class TestSSO(SSOIdPTests):
         Expect the response Authn to be REFEDS_MFA, eduPersonAssurance AL1
         """
         out = self._get_login_response_authn(
-            req_class_ref=EduidAuthnContextClass.REFEDS_MFA,
+            req_class_ref=[EduidAuthnContextClass.REFEDS_MFA],
             credentials=["pw", "u2f"],
         )
         self._check_login_response_authn(
@@ -720,7 +726,7 @@ class TestSSO(SSOIdPTests):
         )
         out = self._get_login_response_authn(
             user=user,
-            req_class_ref=EduidAuthnContextClass.EDUID_MFA,
+            req_class_ref=[EduidAuthnContextClass.EDUID_MFA],
             credentials=["pw", "u2f"],
         )
         self._check_login_response_authn(
@@ -741,7 +747,7 @@ class TestSSO(SSOIdPTests):
         )
         out = self._get_login_response_authn(
             user=user,
-            req_class_ref=EduidAuthnContextClass.REFEDS_MFA,
+            req_class_ref=[EduidAuthnContextClass.REFEDS_MFA],
             credentials=["pw", "u2f"],
         )
         self._check_login_response_authn(
@@ -762,7 +768,7 @@ class TestSSO(SSOIdPTests):
         user = self.app.userdb.get_user_by_eppn(self.test_user.eppn)
         out = self._get_login_response_authn(
             user=user,
-            req_class_ref=EduidAuthnContextClass.EDUID_MFA,
+            req_class_ref=[EduidAuthnContextClass.EDUID_MFA],
             credentials=["pw", _U2F_SWAMID_AL3],
         )
         self._check_login_response_authn(
@@ -783,7 +789,7 @@ class TestSSO(SSOIdPTests):
         user = self.app.userdb.get_user_by_eppn(self.test_user.eppn)
         out = self._get_login_response_authn(
             user=user,
-            req_class_ref=EduidAuthnContextClass.REFEDS_MFA,
+            req_class_ref=[EduidAuthnContextClass.REFEDS_MFA],
             credentials=["pw", _U2F_SWAMID_AL3],
         )
         self._check_login_response_authn(
@@ -814,7 +820,7 @@ class TestSSO(SSOIdPTests):
 
         out = self._get_login_response_authn(
             user=user,
-            req_class_ref=EduidAuthnContextClass.EDUID_MFA,
+            req_class_ref=[EduidAuthnContextClass.EDUID_MFA],
             credentials=["pw", authn],
         )
         self._check_login_response_authn(
@@ -843,7 +849,7 @@ class TestSSO(SSOIdPTests):
         )
         out = self._get_login_response_authn(
             user=user,
-            req_class_ref=EduidAuthnContextClass.REFEDS_MFA,
+            req_class_ref=[EduidAuthnContextClass.REFEDS_MFA],
             credentials=["pw", authn],
         )
         self._check_login_response_authn(
@@ -864,7 +870,7 @@ class TestSSO(SSOIdPTests):
         user.credentials.add(_U2F_SWAMID_AL3)
         self.app.central_userdb.save(user)
         out = self._get_login_response_authn(
-            req_class_ref=EduidAuthnContextClass.REFEDS_MFA,
+            req_class_ref=[EduidAuthnContextClass.REFEDS_MFA],
             credentials=["pw", _U2F_SWAMID_AL3],
         )
         self._check_login_response_authn(
@@ -880,7 +886,7 @@ class TestSSO(SSOIdPTests):
 
         This is not a failure, the user just needs to do MFA too.
         """
-        out = self._get_login_response_authn(req_class_ref=EduidAuthnContextClass.EDUID_MFA, credentials=["pw"])
+        out = self._get_login_response_authn(req_class_ref=[EduidAuthnContextClass.EDUID_MFA], credentials=["pw"])
         self._check_login_response_authn(authn_result=out, message=IdPMsg.mfa_required, expect_success=False)
 
     def test_get_login_response_refeds_mfa_no_multifactor(self) -> None:
@@ -889,7 +895,7 @@ class TestSSO(SSOIdPTests):
 
         This is not a failure, the user just needs to do MFA too.
         """
-        out = self._get_login_response_authn(req_class_ref=EduidAuthnContextClass.REFEDS_MFA, credentials=["pw"])
+        out = self._get_login_response_authn(req_class_ref=[EduidAuthnContextClass.REFEDS_MFA], credentials=["pw"])
         self._check_login_response_authn(authn_result=out, message=IdPMsg.mfa_required, expect_success=False)
 
     def test_get_login_digg_loa2_fido_mfa(self) -> None:
@@ -908,7 +914,7 @@ class TestSSO(SSOIdPTests):
         user = self.app.userdb.get_user_by_eppn(self.test_user.eppn)
         out = self._get_login_response_authn(
             user=user,
-            req_class_ref=EduidAuthnContextClass.DIGG_LOA2,
+            req_class_ref=[EduidAuthnContextClass.DIGG_LOA2],
             credentials=["pw", _U2F_SWAMID_AL3],
         )
         self._check_login_response_authn(
@@ -939,7 +945,7 @@ class TestSSO(SSOIdPTests):
             )
             out = self._get_login_response_authn(
                 user=user,
-                req_class_ref=EduidAuthnContextClass.DIGG_LOA2,
+                req_class_ref=[EduidAuthnContextClass.DIGG_LOA2],
                 credentials=["pw", _U2F_SWAMID_AL3],
             )
             self._check_login_response_authn(
@@ -959,7 +965,7 @@ class TestSSO(SSOIdPTests):
             )
             out = self._get_login_response_authn(
                 user=user,
-                req_class_ref=EduidAuthnContextClass.DIGG_LOA2,
+                req_class_ref=[EduidAuthnContextClass.DIGG_LOA2],
                 credentials=["pw", _U2F_SWAMID_AL3],
             )
             self._check_login_response_authn(
@@ -991,7 +997,7 @@ class TestSSO(SSOIdPTests):
         )
         out = self._get_login_response_authn(
             user=user,
-            req_class_ref=EduidAuthnContextClass.DIGG_LOA2,
+            req_class_ref=[EduidAuthnContextClass.DIGG_LOA2],
             credentials=["pw", authn],
         )
         self._check_login_response_authn(
@@ -1023,7 +1029,7 @@ class TestSSO(SSOIdPTests):
         )
         out = self._get_login_response_authn(
             user=user,
-            req_class_ref=EduidAuthnContextClass.DIGG_LOA2,
+            req_class_ref=[EduidAuthnContextClass.DIGG_LOA2],
             credentials=["pw", authn],
         )
         self._check_login_response_authn(
@@ -1055,7 +1061,7 @@ class TestSSO(SSOIdPTests):
         )
         out = self._get_login_response_authn(
             user=user,
-            req_class_ref=EduidAuthnContextClass.DIGG_LOA2,
+            req_class_ref=[EduidAuthnContextClass.DIGG_LOA2],
             credentials=["pw", authn],
             add_credentials_to_this_request=False,
         )
@@ -1080,7 +1086,7 @@ class TestSSO(SSOIdPTests):
         )
         out = self._get_login_response_authn(
             user=user,
-            req_class_ref=EduidAuthnContextClass.DIGG_LOA2,
+            req_class_ref=[EduidAuthnContextClass.DIGG_LOA2],
             credentials=["pw", "u2f"],
         )
         self._check_login_response_authn(
@@ -1092,9 +1098,9 @@ class TestSSO(SSOIdPTests):
 
     def test_get_login_eidas_loa_nf_low_not_AL2(self) -> None:
         """
-        Test login with password and external mfa for verified user, request DIGG_LOA2.
+        Test login with password and external mfa for verified user with EIDASLoa.NF_LOW, request REFEDS_MFA.
 
-        Expect the response Authn to fail with message for frontend.
+        Expect the response Authn to be REFEDS_MFA.
         """
         user = self.get_user_set_identity(
             self.test_user.eppn,
@@ -1105,7 +1111,7 @@ class TestSSO(SSOIdPTests):
         )
         out = self._get_login_response_authn(
             user=user,
-            req_class_ref=EduidAuthnContextClass.REFEDS_MFA,
+            req_class_ref=[EduidAuthnContextClass.REFEDS_MFA],
             credentials=["pw", "u2f"],
         )
         self._check_login_response_authn(
@@ -1113,6 +1119,83 @@ class TestSSO(SSOIdPTests):
             message=IdPMsg.proceed,
             accr=EduidAuthnContextClass.REFEDS_MFA,
             assurance_profile=self.app.conf.swamid_assurance_profile_1,
+        )
+
+    def test_get_multiple_accrs(self) -> None:
+        """
+        Test login with password and external mfa for verified user, request DIGG_LOA2 and REFEDS_MFA.
+
+        Expect the response Authn to be REFEDS_MFA.
+        """
+        user = self.get_user_set_identity(
+            self.test_user.eppn,
+            identity_type=IdentityType.EIDAS,
+            unique_value="eidas_prid",
+            proofing_method=IdentityProofingMethod.SWEDEN_CONNECT,
+            eidas_loa=EIDASLoa.NF_LOW,
+        )
+        out = self._get_login_response_authn(
+            user=user,
+            req_class_ref=[EduidAuthnContextClass.DIGG_LOA2, EduidAuthnContextClass.REFEDS_MFA],
+            credentials=["pw", "u2f"],
+        )
+        self._check_login_response_authn(
+            authn_result=out,
+            message=IdPMsg.proceed,
+            accr=EduidAuthnContextClass.REFEDS_MFA,
+            assurance_profile=self.app.conf.swamid_assurance_profile_1,
+        )
+
+    def test_get_multiple_accrs_2(self) -> None:
+        """
+        Test login with password and fido mfa for verified user, request PASSWORD_PT and DIGG_LOA2.
+
+        Expect the response Authn to be PASSWORD_PT.
+        """
+        self.get_user_set_identity(
+            self.test_user.eppn,
+            identity_type=IdentityType.NIN,
+            unique_value="190101011234",
+            proofing_method=IdentityProofingMethod.BANKID,
+        )
+        self.add_test_user_security_key(credential=_U2F_SWAMID_AL3)
+        user = self.app.userdb.get_user_by_eppn(self.test_user.eppn)
+        out = self._get_login_response_authn(
+            user=user,
+            req_class_ref=[EduidAuthnContextClass.PASSWORD_PT, EduidAuthnContextClass.DIGG_LOA2],
+            credentials=["pw", _U2F_SWAMID_AL3],
+        )
+        self._check_login_response_authn(
+            authn_result=out,
+            message=IdPMsg.proceed,
+            accr=EduidAuthnContextClass.PASSWORD_PT,
+            assurance_profile=self.app.conf.swamid_assurance_profile_3,
+        )
+
+    def test_get_multiple_accrs_3(self) -> None:
+        """
+        Test login with password for verified user, request DIGG_LOA2 and PASSWORD_PT.
+
+        Expect the response Authn to be PASSWORD_PT.
+        """
+        self.get_user_set_identity(
+            self.test_user.eppn,
+            identity_type=IdentityType.NIN,
+            unique_value="190101011234",
+            proofing_method=IdentityProofingMethod.BANKID,
+        )
+        self.add_test_user_security_key(credential=_U2F_SWAMID_AL3, always_use_security_key=False)
+        user = self.app.userdb.get_user_by_eppn(self.test_user.eppn)
+        out = self._get_login_response_authn(
+            user=user,
+            req_class_ref=[EduidAuthnContextClass.DIGG_LOA2, EduidAuthnContextClass.PASSWORD_PT],
+            credentials=["pw"],
+        )
+        self._check_login_response_authn(
+            authn_result=out,
+            message=IdPMsg.proceed,
+            accr=EduidAuthnContextClass.PASSWORD_PT,
+            assurance_profile=self.app.conf.swamid_assurance_profile_2,
         )
 
     def test_forceauthn_request(self) -> None:
@@ -1157,7 +1240,7 @@ class TestSSO(SSOIdPTests):
 
     def test_service_info(self) -> None:
         with self.app.test_request_context():
-            ticket = self._make_login_ticket(EduidAuthnContextClass.PASSWORD_PT)
+            ticket = self._make_login_ticket(req_class_ref=[EduidAuthnContextClass.PASSWORD_PT])
 
             assert ticket.service_info == ServiceInfo(
                 display_name={"sv": "eduID Sverige (Utveckling)", "en": "eduID Sweden (Developer)"}

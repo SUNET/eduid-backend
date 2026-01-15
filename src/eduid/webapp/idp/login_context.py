@@ -99,7 +99,7 @@ class LoginContext(ABC, BaseModel):
         else:
             raise TypeError(f"Can't set other_device on pending request of type {type(self.pending_request)}")
 
-    def get_requested_authn_context(self) -> EduidAuthnContextClass | None:
+    def get_requested_authn_context(self) -> list[EduidAuthnContextClass]:
         raise NotImplementedError("Subclass must implement get_requested_authn_context")
 
     @property
@@ -229,11 +229,10 @@ class LoginContextSAML(LoginContext):
         """Check if this is a request to log in on another device (specifically device #2)."""
         return False
 
-    def get_requested_authn_context(self) -> EduidAuthnContextClass | None:
+    def get_requested_authn_context(self) -> list[EduidAuthnContextClass]:
         """
         Return the authn context (if any) that was originally requested.
 
-        TODO: Don't just return the first one, but the most relevant somehow.
         """
         return _pick_authn_context(self.authn_contexts, self.request_ref)
 
@@ -247,9 +246,7 @@ class LoginContextOtherDevice(LoginContext):
 
     @property
     def authn_contexts(self) -> list[str]:
-        if self.other_device_req.device1.authn_context is None:
-            return []
-        return [str(self.other_device_req.device1.authn_context)]
+        return [item.value for item in self.other_device_req.device1.authn_context]
 
     @property
     def reauthn_required(self) -> bool:
@@ -277,11 +274,10 @@ class LoginContextOtherDevice(LoginContext):
         has used a camera to scan the QR code shown on the OTHER device (first, initiating)."""
         return self.other_device_state_id is not None
 
-    def get_requested_authn_context(self) -> EduidAuthnContextClass | None:
+    def get_requested_authn_context(self) -> list[EduidAuthnContextClass]:
         """
         Return the authn context (if any) that was originally requested on the first device.
 
-        TODO: Don't just return the first one, but the most relevant somehow.
         """
         return _pick_authn_context(self.authn_contexts, self.request_ref)
 
@@ -295,19 +291,17 @@ class LoginContextOtherDevice(LoginContext):
         return None
 
 
-def _pick_authn_context(accrs: Sequence[str], log_tag: str) -> EduidAuthnContextClass | None:
-    if len(accrs) > 1:
-        logger.warning(f"{log_tag}: More than one authnContextClassRef, using the first recognised: {accrs}")
-
-    # first, select the ones recognised by this IdP
+def _pick_authn_context(accrs: Sequence[str], log_tag: str) -> list[EduidAuthnContextClass]:
+    if not accrs:
+        logger.info(f"{log_tag}: No authnContextClassRef, using {EduidAuthnContextClass.NONE}")
+        return [EduidAuthnContextClass.NONE]
     known = []
     for x in accrs:
         if x in EduidAuthnContextClass:
             known += [EduidAuthnContextClass(x)]
         else:
-            logger.info(f"Unknown authnContextClassRef: {x}")
-            known += [EduidAuthnContextClass.NOT_IMPLEMENTED]
-    if not known:
-        return None
-    # TODO: Pick the most applicable somehow, not just the first one in the list
-    return known[0]
+            logger.info(f"{log_tag}: Unknown authnContextClassRef: {x}")
+            if EduidAuthnContextClass.NOT_IMPLEMENTED not in known:
+                # only add one not implemented error to the list
+                known += [EduidAuthnContextClass.NOT_IMPLEMENTED]
+    return known

@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 class Device1Data(BaseModel):
     ref: str  # the login 'ref' on device 1 (where login using another device was initiated)
-    authn_context: EduidAuthnContextClass | None = None  # the level of authentication required on device 1
+    authn_context: list[EduidAuthnContextClass]  # the level of authentication required on device 1
     request_id: str | None = None  # the request ID on device 1 (SAML authnRequest request id for example)
     reauthn_required: bool  # if reauthn is required for the login on device 1
     ip_address: str  # the IP address of device 1, to be used by the user on device 2 to assess the request
@@ -69,7 +69,7 @@ class OtherDevice(BaseModel):
         cls: type[OtherDevice],
         ticket: LoginContext,
         eppn: str | None,
-        authn_context: EduidAuthnContextClass | None,
+        authn_context: list[EduidAuthnContextClass],
         ip_address: str,
         user_agent: str | None,
         ttl: timedelta,
