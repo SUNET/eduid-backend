@@ -7,7 +7,7 @@ from eduid.common.config.parsers import load_config
 from eduid.common.rpc.am_relay import AmRelay
 from eduid.userdb.logs import ProofingLog
 from eduid.userdb.proofing import OrcidProofingStateDB, OrcidProofingUserDB
-from eduid.webapp.common.api import oidc
+from eduid.webapp.common.api.oidc import init_lazy_client
 from eduid.webapp.common.authn.middleware import AuthnBaseApp
 from eduid.webapp.orcid.settings.common import OrcidConfig
 
@@ -28,8 +28,13 @@ class OrcidApp(AuthnBaseApp):
         # Init celery
         self.am_relay = AmRelay(config)
 
-        # Initialize the oidc_client
-        self.oidc_client = oidc.init_client(config.client_registration_info, config.provider_configuration_info)
+        # Init lazy OIDC client with circuit breaker pattern
+        self.oidc_client = init_lazy_client(
+            client_registration_info=self.conf.client_registration_info,
+            provider_configuration_info=self.conf.provider_configuration_info,
+        ).client
+
+        self.logger.info("ORCID app initialized with lazy OIDC client loading")
 
 
 current_orcid_app: OrcidApp = cast(OrcidApp, current_app)
