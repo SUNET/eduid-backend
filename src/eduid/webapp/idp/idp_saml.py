@@ -8,7 +8,7 @@ from typing import Any, NewType
 
 import saml2.server
 from pydantic import BaseModel
-from saml2 import samlp
+from saml2 import SAMLError, samlp
 from saml2.s_utils import UnknownPrincipal, UnknownSystemEntity, UnravelError, UnsupportedBinding
 from saml2.saml import Issuer
 from saml2.samlp import RequestedAuthnContext
@@ -285,10 +285,11 @@ class IdP_SAMLRequest:
             logger.info(f"{log_prefix}: Unsupported SAML binding: {excp}")
             raise BadRequest("Don't know how to reply to the SP that referred you here")
         except UnknownSystemEntity as exc:
-            # TODO: Validate refactoring didn't move this exception handling to the wrong place.
-            #       Used to be in an exception handler in _redirect_or_post around perform_login().
             logger.info(f"{log_prefix}: Service provider not known: {exc}")
             raise BadRequest("SAML_UNKNOWN_SP")
+        except SAMLError as e:
+            logger.exception(f"{log_prefix}: SAMLError: {e}")
+            raise BadRequest("Misconfigured SAML request")
 
         # Set digest_alg and sign_alg to a good default value
         if conf.supported_digest_algorithms:
