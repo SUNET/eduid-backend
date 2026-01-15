@@ -4,7 +4,7 @@ from enum import Enum, unique
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from eduid.userdb.identity import FrejaRegistrationLevel
+from eduid.userdb.identity import FrejaLoaLevel, FrejaRegistrationLevel
 from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.common.session import session
 
@@ -30,6 +30,8 @@ class FrejaEIDMsg(TranslatableMsg):
     identity_not_matching = "freja_eid.identity_not_matching"
     identity_verify_success = "freja_eid.identity_verify_success"
     method_not_available = "freja_eid.method_not_available"
+    mfa_authn_success = "freja_eid.mfa_authn_success"
+    mfa_authn_not_allowed = "freja_eid.mfa_authn_not_allowed"
     registration_level_not_satisfied = "freja_eid.registration_level_not_satisfied"
 
 
@@ -88,6 +90,7 @@ class FrejaEIDDocumentUserInfo(UserInfoBase):
     )
     date_of_birth: date = Field(alias="birthdate")
     registration_level: FrejaRegistrationLevel = Field(alias="https://frejaeid.com/oidc/claims/registrationLevel")
+    loa_level: FrejaLoaLevel = Field(alias="https://frejaeid.com/oidc/claims/loaLevel")
     user_id: str = Field(alias="https://frejaeid.com/oidc/claims/relyingPartyUserId")
     transaction_id: str = Field(alias="https://frejaeid.com/oidc/claims/transactionReference")
 

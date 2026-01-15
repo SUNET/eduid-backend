@@ -7,3 +7,4 @@ __author__ = "lundberg"
 class FrejaEIDAction(StrEnum):
     verify_identity = "verify-identity-action"
     verify_credential = "verify-credential-action"
+    mfa_authenticate = "mfa-authenticate-action"

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import logging
 from abc import ABC
 from datetime import datetime
@@ -192,8 +193,16 @@ class SvipeIdentity(ForeignIdentityElement):
 
 
 class FrejaRegistrationLevel(StrEnum):
+    BASIC = "BASIC"
     EXTENDED = "EXTENDED"
     PLUS = "PLUS"
+
+
+class FrejaLoaLevel(StrEnum):
+    LOA1 = "LOA1"
+    LOA2 = "LOA2"
+    LOA3 = "LOA3"
+    LOA3_NR = "LOA3_NR"  # non-resident
 
 
 class FrejaIdentity(ForeignIdentityElement):
@@ -214,6 +223,25 @@ class FrejaIdentity(ForeignIdentityElement):
     user_id: str
     personal_identity_number: str | None = None
     registration_level: FrejaRegistrationLevel
+    loa_level: FrejaLoaLevel
+
+    @classmethod
+    def _from_dict_transform(cls: type[FrejaIdentity], data: dict[str, Any]) -> dict[str, Any]:
+        _data = copy.deepcopy(data)  # to not modify callers data
+        _data = super()._from_dict_transform(_data)
+        # Fix missing loa_level
+        if _data.get("loa_level") is None:
+            registration_level = _data.get("registration_level")
+            if registration_level == FrejaRegistrationLevel.PLUS.value:
+                # PLUS is always LOA3
+                _data["loa_level"] = FrejaLoaLevel.LOA3.value
+            elif registration_level == FrejaRegistrationLevel.EXTENDED.value:
+                # The only existing LOA level for non-residents during the time this data was missing
+                _data["loa_level"] = FrejaLoaLevel.LOA3_NR.value
+            else:
+                # should never get here as the only two registration levels we allowed has been covered
+                raise RuntimeError(f"Unknown registration level: {registration_level}")
+        return _data
 
     @property
     def unique_key_name(self) -> str:
