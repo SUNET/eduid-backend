@@ -482,6 +482,7 @@ class EduIDBaseAppConfig(RootConfig, LoggingConfigMixin, StatsConfigMixin, Redis
     # settings for optional profiling of the application
     profiling: ProfilingConfig | None = None
     mongo_uri: str
+    private_userdb_auto_expire: timedelta | None = Field(default=timedelta(days=7))
     # Allow list of URLs that do not need authentication. Unauthenticated requests
     # for these URLs will be served, rather than redirected to the authn service.
     # The list is a list of regex that are matched against the path of the

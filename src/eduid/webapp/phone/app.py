@@ -24,8 +24,8 @@ class PhoneApp(AuthnBaseApp):
         self.am_relay = AmRelay(config)
         self.msg_relay = MsgRelay(config)
 
-        self.private_userdb = PhoneProofingUserDB(config.mongo_uri)
-        self.proofing_statedb = PhoneProofingStateDB(config.mongo_uri)
+        self.private_userdb = PhoneProofingUserDB(config.mongo_uri, auto_expire=config.private_userdb_auto_expire)
+        self.proofing_statedb = PhoneProofingStateDB(config.mongo_uri, auto_expire=config.state_db_auto_expire)
         self.proofing_log = ProofingLog(config.mongo_uri)
 
         self.babel = translation.init_babel(self)

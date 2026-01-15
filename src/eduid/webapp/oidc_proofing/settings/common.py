@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from pydantic import Field
 
 from eduid.common.config.base import AmConfigMixin, EduIDBaseAppConfig, MsgConfigMixin
@@ -37,3 +39,5 @@ class OIDCProofingConfig(EduIDBaseAppConfig, MsgConfigMixin, AmConfigMixin):
     freja_response_protocol: str = "1.0"  # Version
     # SE-LEG config
     seleg_expire_time_hours: int = 336  # Needs to be the same as FREJA_EXPIRE_TIME_HOURS as state is shared
+
+    state_db_auto_expire: timedelta | None = timedelta(days=21)  # 3 weeks

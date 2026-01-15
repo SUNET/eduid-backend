@@ -21,8 +21,8 @@ class EmailApp(AuthnBaseApp):
         # Init celery
         self.am_relay = AmRelay(config)
 
-        self.private_userdb = EmailProofingUserDB(config.mongo_uri)
-        self.proofing_statedb = EmailProofingStateDB(config.mongo_uri)
+        self.private_userdb = EmailProofingUserDB(config.mongo_uri, auto_expire=config.private_userdb_auto_expire)
+        self.proofing_statedb = EmailProofingStateDB(config.mongo_uri, auto_expire=config.state_db_auto_expire)
         self.proofing_log = ProofingLog(config.mongo_uri)
         self.messagedb = MessageDB(config.mongo_uri)
 

@@ -2,12 +2,12 @@ from datetime import timedelta
 
 from eduid.userdb.db import TUserDbDocument
 from eduid.userdb.signup import SignupUser
-from eduid.userdb.userdb import UserDB
+from eduid.userdb.userdb import AutoExpiringUserDB
 
 __author__ = "ft"
 
 
-class SignupUserDB(UserDB[SignupUser]):
+class SignupUserDB(AutoExpiringUserDB[SignupUser]):
     def __init__(
         self,
         db_uri: str,
@@ -15,17 +15,7 @@ class SignupUserDB(UserDB[SignupUser]):
         collection: str = "registered",
         auto_expire: timedelta | None = None,
     ) -> None:
-        super().__init__(db_uri, db_name, collection=collection)
-
-        if auto_expire is not None:
-            # auto expire register data
-            indexes = {
-                "auto-discard-modified-ts": {
-                    "key": [("modified_ts", 1)],
-                    "expireAfterSeconds": int(auto_expire.total_seconds()),
-                },
-            }
-            self.setup_indexes(indexes)
+        super().__init__(db_uri, db_name, collection=collection, auto_expire=auto_expire)
 
     @classmethod
     def user_from_dict(cls, data: TUserDbDocument) -> SignupUser:
