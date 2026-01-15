@@ -144,6 +144,8 @@ def next_view(ticket: LoginContext, sso_session: SSOSession | None) -> FluxData:
 
         if _next.authn_state and _next.authn_state.fido_used:
             # we know that the user already provided a single factor security key, offer password as second factor
+            # Here we turn off webauthn as an option since we don't want the user to use security key twice
+            authn_options.webauthn = False
             _payload = {
                 "action": IdPAction.USERNAMEPWAUTH.value,
                 "target": url_for("pw_auth.pw_auth", _external=True),
