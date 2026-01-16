@@ -48,6 +48,8 @@ class ServeStatic(RequestMicroService):
 
     def _handle(self, context: Context) -> Response:
         path = context._path
+        if path is None:  # satisfy ty
+            return Response(b"Not found", content="text/html", status="404 Not Found")
         endpoint = path.split("/")[0]
         target = path[len(endpoint) + 1 :]
         status = "200 OK"
