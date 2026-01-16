@@ -68,10 +68,6 @@ class MongoTemporaryInstance(EduidTemporaryInstance):
             self._conn = None
         super().shutdown()
 
-    @classmethod
-    def get_instance(cls: type[Self], max_retry_seconds: int = 20) -> Self:
-        return cast(Self, super().get_instance(max_retry_seconds=max_retry_seconds))
-
 
 @dataclass
 class SetupConfig:

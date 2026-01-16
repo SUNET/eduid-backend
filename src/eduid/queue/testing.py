@@ -76,10 +76,6 @@ class MongoTemporaryInstanceReplicaSet(MongoTemporaryInstance):
             return False
         return True
 
-    @classmethod
-    def get_instance(cls: type[Self], max_retry_seconds: int = 60) -> Self:
-        return cast(Self, super().get_instance(max_retry_seconds=max_retry_seconds))
-
     @property
     def uri(self) -> str:
         return f"mongodb://localhost:{self.port}"
@@ -108,10 +104,6 @@ class SMPTDFixTemporaryInstance(EduidTemporaryInstance):
     @property
     def conn(self) -> None:
         return None
-
-    @classmethod
-    def get_instance(cls: type[Self], max_retry_seconds: int = 60) -> Self:
-        return cast(Self, super().get_instance(max_retry_seconds=max_retry_seconds))
 
 
 class EduidQueueTestCase(TestCase):
