@@ -5,7 +5,6 @@ import random
 import unittest
 from collections.abc import Sequence
 from os import environ
-from typing import Self, cast
 
 from neo4j.exceptions import ServiceUnavailable
 

@@ -9,7 +9,7 @@ import logging.config
 import unittest
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Any, Self, cast
+from typing import Any
 
 import pymongo
 import pymongo.errors

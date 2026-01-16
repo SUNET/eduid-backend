@@ -6,7 +6,7 @@ import time
 from asyncio import Task
 from collections.abc import Sequence
 from datetime import datetime, timedelta
-from typing import Any, Self, cast
+from typing import Any
 from unittest import IsolatedAsyncioTestCase, TestCase
 from unittest.mock import patch
 
