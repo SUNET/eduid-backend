@@ -30,7 +30,7 @@ class CommonTestCase(MongoTestCase):
         super().setUp(config=config)
 
 
-def normalised_data[SomeData](
+def normalised_data[SomeData: dict[str, Any] | list[Any]](
     data: SomeData, replace_datetime: str | None = None, exclude_keys: list[str] | None = None
 ) -> SomeData:
     """Utility function for normalising data before comparisons in test cases."""
