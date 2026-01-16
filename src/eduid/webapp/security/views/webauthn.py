@@ -6,7 +6,6 @@ from fido2.server import Fido2Server, PublicKeyCredentialRpEntity
 from fido2.webauthn import (
     AttestationConveyancePreference,
     AttestedCredentialData,
-    AuthenticationExtensionsClientOutputs,
     AuthenticatorAttachment,
     AuthenticatorData,
     PublicKeyCredentialUserEntity,
@@ -147,9 +146,9 @@ def registration_complete(
 
     security_user = SecurityUser.from_user(user, current_app.private_userdb)
     server = get_webauthn_server(rp_id=current_app.conf.fido2_rp_id, rp_name=current_app.conf.fido2_rp_name)
-    registration = RegistrationResponse.from_dict(response)
     if client_extension_results:
-        registration.client_extension_results = AuthenticationExtensionsClientOutputs(client_extension_results)
+        response["client_extension_results"] = client_extension_results
+    registration = RegistrationResponse.from_dict(response)
     if not session.security.webauthn_registration:
         current_app.logger.info("Found no webauthn registration state in the session")
         return error_response(message=SecurityMsg.missing_registration_state)
