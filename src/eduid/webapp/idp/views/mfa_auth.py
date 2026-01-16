@@ -220,7 +220,7 @@ def _create_challenge(user: User | None, ticket: LoginContext) -> dict[str, Any]
     # if anything else we will use DISCOURAGE as a single factor is enough
     req_authn_ctx = ticket.get_requested_authn_context()
     user_verification = UserVerificationRequirement.DISCOURAGED
-    if req_authn_ctx in [EduidAuthnContextClass.DIGG_LOA2, EduidAuthnContextClass.REFEDS_MFA]:
+    if any(ctx in {EduidAuthnContextClass.DIGG_LOA2, EduidAuthnContextClass.REFEDS_MFA} for ctx in req_authn_ctx):
         user_verification = UserVerificationRequirement.PREFERRED
     if user is None:
         # If we have no user, we prefer user verification
