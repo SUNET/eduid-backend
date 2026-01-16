@@ -147,7 +147,7 @@ def registration_complete(
     security_user = SecurityUser.from_user(user, current_app.private_userdb)
     server = get_webauthn_server(rp_id=current_app.conf.fido2_rp_id, rp_name=current_app.conf.fido2_rp_name)
     if client_extension_results:
-        response.client_extension_results = client_extension_results
+        response["client_extension_results"] = client_extension_results
     registration = RegistrationResponse.from_dict(response)
     if not session.security.webauthn_registration:
         current_app.logger.info("Found no webauthn registration state in the session")
