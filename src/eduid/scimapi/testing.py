@@ -201,7 +201,7 @@ class ScimApiTestCase(MongoNeoTestCase):
         schemas: list[str] | None = None,
         status: int = 400,
         scim_type: str | None = None,
-        detail: object | None = None,
+        detail: str | list[dict[str, Any]] | None = None,
         exclude_keys: list[str] | None = None,
     ) -> None:
         if schemas is None:
@@ -211,9 +211,14 @@ class ScimApiTestCase(MongoNeoTestCase):
         if scim_type is not None:
             self.assertEqual(scim_type, json.get("scimType"))
         if detail is not None:
-            expected = normalised_data(detail)
-            generated = normalised_data(json.get("detail"), exclude_keys=exclude_keys)
-            assert expected == generated, f"Wrong error message: {generated}"
+            if isinstance(detail, str):
+                assert detail == json.get("detail"), f"Wrong error message: {json.get('detail')}"
+            else:
+                expected = normalised_data(detail)
+                response_detail = json.get("detail")
+                assert isinstance(response_detail, list), f"Expected list detail, got {type(response_detail)}"
+                generated = normalised_data(response_detail, exclude_keys=exclude_keys)
+                assert expected == generated, f"Wrong error message: {generated}"
 
     def _assertScimResponseProperties(
         self,

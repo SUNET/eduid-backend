@@ -6,7 +6,7 @@ import time
 from asyncio import Task
 from collections.abc import Sequence
 from datetime import datetime, timedelta
-from typing import Any, Self, cast
+from typing import Any
 from unittest import IsolatedAsyncioTestCase, TestCase
 from unittest.mock import patch
 
@@ -76,10 +76,6 @@ class MongoTemporaryInstanceReplicaSet(MongoTemporaryInstance):
             return False
         return True
 
-    @classmethod
-    def get_instance(cls: type[Self], max_retry_seconds: int = 60) -> Self:
-        return cast(Self, super().get_instance(max_retry_seconds=max_retry_seconds))
-
     @property
     def uri(self) -> str:
         return f"mongodb://localhost:{self.port}"
@@ -108,10 +104,6 @@ class SMPTDFixTemporaryInstance(EduidTemporaryInstance):
     @property
     def conn(self) -> None:
         return None
-
-    @classmethod
-    def get_instance(cls: type[Self], max_retry_seconds: int = 60) -> Self:
-        return cast(Self, super().get_instance(max_retry_seconds=max_retry_seconds))
 
 
 class EduidQueueTestCase(TestCase):

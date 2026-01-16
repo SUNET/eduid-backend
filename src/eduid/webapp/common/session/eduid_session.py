@@ -8,12 +8,10 @@ from collections.abc import Iterator
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from flask import Request as FlaskRequest
-from flask import Response as FlaskResponse
+from flask import Flask, Request, Response
 from flask.sessions import SessionInterface, SessionMixin
 from pydantic import BaseModel
 from pydantic_core import to_jsonable_python
-from werkzeug.wrappers import Response as WerkzeugResponse
 
 from eduid.common.config.base import EduIDBaseAppConfig
 from eduid.common.config.exceptions import BadConfiguration
@@ -44,9 +42,6 @@ if TYPE_CHECKING:
     # The TYPE_CHECKING constant is always False at runtime, so the import won't be evaluated, but mypy
     # (and other type-checking tools) will evaluate the contents of this block.
     from eduid.webapp.common.api.app import EduIDBaseApp
-
-    # keep pycharm from optimising away the above import
-    assert EduIDBaseApp is not None
 
 logger = logging.getLogger(__name__)
 
@@ -297,7 +292,7 @@ class EduidSession(SessionMixin):
         self._invalidated = True
         self._session.clear()
 
-    def set_cookie(self, response: WerkzeugResponse) -> None:
+    def set_cookie(self, response: Response) -> None:
         """
         Set the session cookie.
 
@@ -394,14 +389,18 @@ class SessionFactory(SessionInterface):
         ttl = 2 * config.flask.permanent_session_lifetime
         self.manager = SessionManager(config.redis_config, ttl=ttl, app_secret=config.flask.secret_key)
 
-    def open_session(  # type: ignore[override]
+    def open_session(
         self,
-        app: EduIDBaseApp,
-        request: FlaskRequest,
+        app: Flask,
+        request: Request,
     ) -> EduidSession:
         """
         See flask.session.SessionInterface
         """
+        # avoid circular import
+        from eduid.webapp.common.api.app import EduIDBaseApp
+
+        assert isinstance(app, EduIDBaseApp), "app is not an EduIDBaseApp"
         # Load token from cookie
         _conf = get_from_current_app("conf", EduIDBaseAppConfig)
         cookie_name = _conf.flask.session_cookie_name
@@ -445,31 +444,36 @@ class SessionFactory(SessionInterface):
             logger.debug(f"Loaded session {sess}:\n{_loaded_data}")
         return sess
 
-    def save_session(  # type: ignore[override]
+    def save_session(
         self,
-        app: EduIDBaseApp,
-        sess: EduidSession,
-        response: FlaskResponse,
+        app: Flask,
+        session: SessionMixin,
+        response: Response,
     ) -> None:
         """
         See flask.session.SessionInterface
         """
-        if sess is None:
+        # avoid circular import
+        from eduid.webapp.common.api.app import EduIDBaseApp
+
+        assert isinstance(app, EduIDBaseApp), "app is not an EduIDBaseApp"
+        assert isinstance(session, EduidSession), "session is not an EduidSession"
+        if session is None:
             # Do not try to save the session and set the cookie if the session is not initialized
             # We have seen this happen...
-            logger.warning(f"Session was not initialized when reaching save_session: sess={sess}")
+            logger.warning(f"Session was not initialized when reaching save_session: sess={session}")
             return None
         try:
-            sess.persist()
+            session.persist()
         except SessionOutOfSync:
             app.stats.count("session_out_of_sync_error")
-            logger.error(f"Commit of session {sess} failed because it has been changed by someone else")
+            logger.error(f"Commit of session {session} failed because it has been changed by someone else")
             diff_c = 0
             # For debugging purposes, load the session from the backend anew and show what was changed
             # by someone else
             try:
-                session_now = self.manager.get_session(meta=sess.meta, new=False)
-                for k, v in sess.items():
+                session_now = self.manager.get_session(meta=session.meta, new=False)
+                for k, v in session.items():
                     if k in session_now:
                         # Serialise my data so it can be compared to the serialised data in session_now
                         my_v = json.loads(json.dumps(v, cls=EduidJSONEncoder))
@@ -483,11 +487,11 @@ class SessionFactory(SessionInterface):
                         logger.error(f"Session key {k} disappeared, mine {v}")
                         diff_c += 1
                 for k, v in session_now.items():
-                    if k not in sess:
+                    if k not in session:
                         logger.error(f"Session key {k} added in db: {v}")
                         diff_c += 1
             except KeyError:
                 logger.error("Failed loading session from backend for comparison")
             logger.error(f"Number of differences: {diff_c}")
             raise
-        sess.set_cookie(response)
+        session.set_cookie(response)
