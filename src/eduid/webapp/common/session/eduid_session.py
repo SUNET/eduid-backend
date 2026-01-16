@@ -6,6 +6,7 @@ import os
 import pprint
 from collections.abc import Iterator
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from flask import Flask, Request, Response
 from flask.sessions import SessionInterface, SessionMixin
@@ -35,6 +36,12 @@ from eduid.webapp.common.session.namespaces import (
     TimestampedNS,
 )
 from eduid.webapp.common.session.redis_session import RedisEncryptedSession, SessionManager, SessionOutOfSync
+
+if TYPE_CHECKING:
+    # From https://stackoverflow.com/a/39757388
+    # The TYPE_CHECKING constant is always False at runtime, so the import won't be evaluated, but mypy
+    # (and other type-checking tools) will evaluate the contents of this block.
+    from eduid.webapp.common.api.app import EduIDBaseApp
 
 logger = logging.getLogger(__name__)
 
