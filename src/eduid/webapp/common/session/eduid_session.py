@@ -6,7 +6,6 @@ import os
 import pprint
 from collections.abc import Iterator
 from datetime import datetime
-from typing import TYPE_CHECKING
 
 from flask import Flask, Request, Response
 from flask.sessions import SessionInterface, SessionMixin
@@ -36,15 +35,6 @@ from eduid.webapp.common.session.namespaces import (
     TimestampedNS,
 )
 from eduid.webapp.common.session.redis_session import RedisEncryptedSession, SessionManager, SessionOutOfSync
-
-if TYPE_CHECKING:
-    # From https://stackoverflow.com/a/39757388
-    # The TYPE_CHECKING constant is always False at runtime, so the import won't be evaluated, but mypy
-    # (and other type-checking tools) will evaluate the contents of this block.
-    from eduid.webapp.common.api.app import EduIDBaseApp
-
-    # keep pycharm from optimising away the above import
-    assert EduIDBaseApp is not None
 
 logger = logging.getLogger(__name__)
 
@@ -400,6 +390,9 @@ class SessionFactory(SessionInterface):
         """
         See flask.session.SessionInterface
         """
+        # avoid circular import
+        from eduid.webapp.common.api.app import EduIDBaseApp
+
         assert isinstance(app, EduIDBaseApp), "app is not an EduIDBaseApp"
         # Load token from cookie
         _conf = get_from_current_app("conf", EduIDBaseAppConfig)
@@ -453,6 +446,9 @@ class SessionFactory(SessionInterface):
         """
         See flask.session.SessionInterface
         """
+        # avoid circular import
+        from eduid.webapp.common.api.app import EduIDBaseApp
+
         assert isinstance(app, EduIDBaseApp), "app is not an EduIDBaseApp"
         assert isinstance(session, EduidSession), "session is not an EduidSession"
         if session is None:
