@@ -9,7 +9,7 @@ import logging.config
 import unittest
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Any, Self, cast
+from typing import Any
 
 import pymongo
 import pymongo.errors
@@ -67,10 +67,6 @@ class MongoTemporaryInstance(EduidTemporaryInstance):
             self._conn.close()
             self._conn = None
         super().shutdown()
-
-    @classmethod
-    def get_instance(cls: type[Self], max_retry_seconds: int = 20) -> Self:
-        return cast(Self, super().get_instance(max_retry_seconds=max_retry_seconds))
 
 
 @dataclass
