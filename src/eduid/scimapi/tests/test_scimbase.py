@@ -4,7 +4,7 @@ from uuid import uuid4
 from bson import ObjectId
 
 from eduid.common.misc.timeutil import utc_now
-from eduid.common.models.scim_base import BaseResponse, Meta, SCIMResourceType, SCIMSchema, SubResource, WeakVersion
+from eduid.common.models.scim_base import BaseResponse, Meta, SCIMResourceType, SCIMSchema, SubResource
 from eduid.common.testing_base import normalised_data
 
 __author__ = "lundberg"

@@ -1,7 +1,6 @@
 import logging
 from uuid import UUID, uuid4
 
-from eduid.common.config.base import DataOwnerName
 from eduid.common.config.parsers import load_config
 from eduid.graphdb.groupdb import Group as GraphGroup
 from eduid.scimapi.config import ScimApiConfig

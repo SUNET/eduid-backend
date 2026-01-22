@@ -14,7 +14,7 @@ from bson import ObjectId
 from httpx import ASGITransport, AsyncClient, Response
 
 from eduid.common.misc.timeutil import utc_now
-from eduid.common.models.scim_base import Email, LanguageTag, Meta, Name, PhoneNumber, SCIMResourceType, SCIMSchema
+from eduid.common.models.scim_base import Email, Meta, Name, PhoneNumber, SCIMResourceType, SCIMSchema
 from eduid.common.models.scim_user import LinkedAccount, NutidUserExtensionV1, Profile, UserResponse
 from eduid.common.testing_base import normalised_data
 from eduid.common.utils import make_etag

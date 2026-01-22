@@ -1,4 +1,3 @@
-from eduid.common.config.base import DataOwnerName
 from eduid.common.config.parsers import load_config
 from eduid.scimapi.config import ScimApiConfig
 from eduid.scimapi.context import Context

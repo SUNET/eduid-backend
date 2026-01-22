@@ -6,7 +6,7 @@ from fastapi import Response
 
 from eduid.common.config.base import DataOwnerName
 from eduid.common.fastapi.context_request import ContextRequest
-from eduid.common.models.scim_base import Meta, SCIMResourceType, SCIMSchema, WeakVersion
+from eduid.common.models.scim_base import Meta, SCIMResourceType, SCIMSchema
 from eduid.common.utils import make_etag, urlappend
 from eduid.scimapi.context_request import ScimApiContext
 from eduid.scimapi.exceptions import BadRequest

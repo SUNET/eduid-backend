@@ -10,7 +10,6 @@ from starlette.datastructures import URL
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.types import ASGIApp, Message
 
-from eduid.common.config.base import DataOwnerName
 from eduid.common.fastapi.context_request import ContextRequestMixin
 from eduid.common.models.bearer_token import (
     AuthenticationError,
