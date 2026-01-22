@@ -15,7 +15,7 @@ class JsAppsConfig(PasswordConfigMixin):
     csrf_token: str | None = None
     dashboard_link: HttpUrlStr
     debug: bool = False
-    eduid_site_link: HttpUrlStr = Field(default=HttpUrlStr("https://eduid.se"))
+    eduid_site_link: HttpUrlStr = Field(default="https://eduid.se")
     eduid_site_name: str = "eduID"
     environment: EduidEnvironment = EduidEnvironment.production
     faq_link: HttpUrlStr

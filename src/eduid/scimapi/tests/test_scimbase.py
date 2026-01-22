@@ -1,6 +1,8 @@
 from unittest import TestCase
 from uuid import uuid4
 
+from bson import ObjectId
+
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.models.scim_base import BaseResponse, Meta, SCIMResourceType, SCIMSchema, SubResource, WeakVersion
 from eduid.common.testing_base import normalised_data
@@ -15,7 +17,7 @@ class TestScimBase(TestCase):
             resource_type=SCIMResourceType.GROUP,
             created=utc_now(),
             last_modified=utc_now(),
-            version=WeakVersion(),
+            version=ObjectId(),
         )
         meta_dump = meta.model_dump_json()
         loaded_meta = Meta.model_validate_json(meta_dump)
@@ -27,7 +29,7 @@ class TestScimBase(TestCase):
             resource_type=SCIMResourceType.GROUP,
             created=utc_now(),
             last_modified=utc_now(),
-            version=WeakVersion(),
+            version=ObjectId(),
         )
         base = BaseResponse(id=uuid4(), schemas=[SCIMSchema.CORE_20_USER, SCIMSchema.CORE_20_GROUP], meta=meta)
         base_dump = base.model_dump_json()

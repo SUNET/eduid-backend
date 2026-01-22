@@ -31,7 +31,7 @@ class TestSCIMGroup(TestScimBase):
             resource_type=SCIMResourceType.GROUP,
             created=utc_now(),
             last_modified=utc_now(),
-            version=WeakVersion(),
+            version=ObjectId(),
         )
 
     def test_group(self) -> None:
@@ -56,7 +56,7 @@ class TestSCIMGroup(TestScimBase):
 class TestGroupResource(ScimApiTestCase):
     def setUp(self) -> None:
         super().setUp()
-        self.groupdb = self.context.get_groupdb(DataOwnerName("eduid.se"))
+        self.groupdb = self.context.get_groupdb("eduid.se")
 
     def tearDown(self) -> None:
         super().tearDown()

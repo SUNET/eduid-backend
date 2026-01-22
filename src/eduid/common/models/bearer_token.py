@@ -102,7 +102,7 @@ class AuthnBearerToken(BaseModel):
         if not saml_identifier:
             return []
         try:
-            scope = ScopeName(saml_identifier.split("@")[1])
+            scope: ScopeName = saml_identifier.split("@")[1]
         except IndexError:
             return []
         logger.info(f"Scope from saml data: {scope}")
@@ -189,7 +189,7 @@ class AuthnBearerToken(BaseModel):
                 # scope is Optional
                 continue
             _allowed = this.scope in allowed_scopes
-            _found = self.config.data_owners.get(DataOwnerName(this.scope))
+            _found = self.config.data_owners.get(this.scope)
             logger.debug(f"Requested access to scope {this.scope}, allowed {_allowed}, found: {_found}")
             if not _allowed:
                 _sorted = ", ".join(sorted(list(allowed_scopes)))
@@ -197,7 +197,7 @@ class AuthnBearerToken(BaseModel):
             if not _found:
                 raise RequestedAccessDenied(f"Requested access to scope {this.scope} but no data owner found")
             if _allowed and _found:
-                return DataOwnerName(this.scope)
+                return this.scope
 
         # sort to be deterministic
         for scope in sorted(list(self.scopes)):
@@ -207,10 +207,10 @@ class AuthnBearerToken(BaseModel):
             # TODO: the above comment is not true but it would be nice if it was
             #   allowed_scopes comes from config and will never be the requested_access scope
             _allowed = scope in allowed_scopes
-            _found = self.config.data_owners.get(DataOwnerName(scope))
+            _found = self.config.data_owners.get(scope)
             logger.debug(f"Trying scope {scope}, allowed {_allowed}, found: {_found}")
             if _allowed and _found:
-                return DataOwnerName(scope)
+                return scope
 
         return None
 

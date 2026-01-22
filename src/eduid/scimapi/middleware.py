@@ -90,7 +90,7 @@ class AuthenticationMiddleware(BaseMiddleware):
         if not req.app.context.config.authorization_mandatory and (not auth or not auth.startswith("Bearer ")):
             # Authorization is optional
             self.context.logger.info("No authorization header provided - proceeding anyway")
-            req.context.data_owner = DataOwnerName("eduid.se")
+            req.context.data_owner = "eduid.se"
             req.context.userdb = self.context.get_userdb(req.context.data_owner)
             req.context.groupdb = self.context.get_groupdb(req.context.data_owner)
             req.context.invitedb = self.context.get_invitedb(req.context.data_owner)

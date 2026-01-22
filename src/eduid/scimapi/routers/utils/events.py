@@ -44,7 +44,7 @@ def db_event_to_response(req: ContextRequest, resp: Response, db_event: ScimApiE
             timestamp=db_event.timestamp,
             resource=NutidEventResource(
                 resource_type=db_event.resource.resource_type,
-                version=WeakVersion(db_event.resource.version),
+                version=db_event.resource.version,
                 last_modified=db_event.resource.last_modified,
                 scim_id=db_event.resource.scim_id,
                 external_id=db_event.resource.external_id,

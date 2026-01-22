@@ -75,7 +75,7 @@ class TestScimUser(unittest.TestCase):
             name=Name(**asdict(db_user.name)),
             emails=[Email(**asdict(email)) for email in db_user.emails],
             phone_numbers=[PhoneNumber(**asdict(number)) for number in db_user.phone_numbers],
-            preferred_language=LanguageTag("en"),
+            preferred_language="en",
             schemas=[SCIMSchema.CORE_20_USER, SCIMSchema.NUTID_USER_V1],
             groups=[],
             nutid_user_v1=NutidUserExtensionV1(

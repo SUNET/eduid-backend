@@ -18,7 +18,7 @@ class TestGroupDB(ScimApiTestCase):
         self.test_config = self._get_config()
         config = load_config(typ=ScimApiConfig, app_name="scimapi", ns="api", test_config=self.test_config)
         self.context = Context(config=config)
-        self.groupdb = self.context.get_groupdb(DataOwnerName("eduid.se"))
+        self.groupdb = self.context.get_groupdb("eduid.se")
 
         for i in range(9):
             self.add_group(uuid4(), f"Test Group-{i}")
