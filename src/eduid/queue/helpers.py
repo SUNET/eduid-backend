@@ -51,7 +51,8 @@ class Jinja2Env:
         else:
             translation = self.translations["en"]
         # install_gettext_translations is available when instantiating env with extension jinja2.ext.i18n
-        assert hasattr(self.jinja2_env, "install_gettext_translations")  # please mypy
-        self.jinja2_env.install_gettext_translations(translation, newstyle=True)  # install gettext _ for templates
+        # The i18n extension dynamically adds this method, so we need to use getattr
+        install_gettext_translations = getattr(self.jinja2_env, "install_gettext_translations")
+        install_gettext_translations(translation, newstyle=True)  # install gettext _ for templates
         self.gettext = translation.gettext
         yield self

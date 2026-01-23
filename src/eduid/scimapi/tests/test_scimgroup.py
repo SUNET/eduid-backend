@@ -8,9 +8,8 @@ from uuid import UUID, uuid4
 from bson import ObjectId
 from httpx import Response
 
-from eduid.common.config.base import DataOwnerName
 from eduid.common.misc.timeutil import utc_now
-from eduid.common.models.scim_base import Meta, SCIMResourceType, SCIMSchema, WeakVersion
+from eduid.common.models.scim_base import Meta, SCIMResourceType, SCIMSchema
 from eduid.common.testing_base import normalised_data
 from eduid.common.utils import make_etag
 from eduid.graphdb.groupdb import Group as GraphGroup
@@ -31,7 +30,7 @@ class TestSCIMGroup(TestScimBase):
             resource_type=SCIMResourceType.GROUP,
             created=utc_now(),
             last_modified=utc_now(),
-            version=WeakVersion(),
+            version=ObjectId(),
         )
 
     def test_group(self) -> None:
@@ -56,7 +55,7 @@ class TestSCIMGroup(TestScimBase):
 class TestGroupResource(ScimApiTestCase):
     def setUp(self) -> None:
         super().setUp()
-        self.groupdb = self.context.get_groupdb(DataOwnerName("eduid.se"))
+        self.groupdb = self.context.get_groupdb("eduid.se")
 
     def tearDown(self) -> None:
         super().tearDown()

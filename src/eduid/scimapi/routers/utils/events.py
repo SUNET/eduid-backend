@@ -6,7 +6,7 @@ from fastapi import Response
 
 from eduid.common.config.base import DataOwnerName
 from eduid.common.fastapi.context_request import ContextRequest
-from eduid.common.models.scim_base import Meta, SCIMResourceType, SCIMSchema, WeakVersion
+from eduid.common.models.scim_base import Meta, SCIMResourceType, SCIMSchema
 from eduid.common.utils import make_etag, urlappend
 from eduid.scimapi.context_request import ScimApiContext
 from eduid.scimapi.exceptions import BadRequest
@@ -44,7 +44,7 @@ def db_event_to_response(req: ContextRequest, resp: Response, db_event: ScimApiE
             timestamp=db_event.timestamp,
             resource=NutidEventResource(
                 resource_type=db_event.resource.resource_type,
-                version=WeakVersion(db_event.resource.version),
+                version=db_event.resource.version,
                 last_modified=db_event.resource.last_modified,
                 scim_id=db_event.resource.scim_id,
                 external_id=db_event.resource.external_id,

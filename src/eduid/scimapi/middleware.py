@@ -10,7 +10,6 @@ from starlette.datastructures import URL
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.types import ASGIApp, Message
 
-from eduid.common.config.base import DataOwnerName
 from eduid.common.fastapi.context_request import ContextRequestMixin
 from eduid.common.models.bearer_token import (
     AuthenticationError,
@@ -90,7 +89,7 @@ class AuthenticationMiddleware(BaseMiddleware):
         if not req.app.context.config.authorization_mandatory and (not auth or not auth.startswith("Bearer ")):
             # Authorization is optional
             self.context.logger.info("No authorization header provided - proceeding anyway")
-            req.context.data_owner = DataOwnerName("eduid.se")
+            req.context.data_owner = "eduid.se"
             req.context.userdb = self.context.get_userdb(req.context.data_owner)
             req.context.groupdb = self.context.get_groupdb(req.context.data_owner)
             req.context.invitedb = self.context.get_invitedb(req.context.data_owner)
