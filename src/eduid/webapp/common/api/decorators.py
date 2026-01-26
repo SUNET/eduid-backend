@@ -167,7 +167,7 @@ class MarshalWith:
                 _encoded = cast(Mapping[str, Any], self.schema().dump(_flux_response.to_dict()))
                 res = jsonify(_encoded)
                 flux_logger.debug(f"Encoded response: {_encoded}")
-            except:
+            except Exception:
                 logger.exception(f"Could not serialise Flux payload:\n{_flux_response.to_dict()}")
                 raise
             return res

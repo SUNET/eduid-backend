@@ -137,7 +137,7 @@ class RawDb:
         def safe_encode(k2: object, v2: object) -> str:
             try:
                 return bson.json_util.dumps({k2: v2}, json_options=PYTHON_UUID_LEGACY_JSON_OPTIONS)
-            except:
+            except Exception:
                 sys.stderr.write(f"Failed encoding key {k2!r}: {v2!r}\n\n")
                 raise
 
