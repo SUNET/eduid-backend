@@ -40,8 +40,24 @@ Tests require Docker services (MongoDB, Redis, Neo4j, SMTP). Tests auto-start co
 ```bash
 make lint       # Run ruff linter
 make reformat   # Fix imports + format code + extended checks
-make typecheck  # Run mypy type checking
 ```
+
+### Type Checking
+
+**Run both type checkers before submitting changes:**
+
+```bash
+# mypy (required)
+make typecheck
+
+# ty - experimental type checker (required, run with venv activated)
+uvx ty check
+```
+
+- **mypy**: Uses plugins `pydantic.mypy`, `marshmallow_dataclass.mypy`
+- **ty** (experimental): New type checker being evaluated in beta
+  - Configuration in [ty.toml](ty.toml)
+  - Requires virtual environment to be activated first
 
 ## Code Style Guidelines
 
