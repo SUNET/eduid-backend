@@ -23,6 +23,7 @@ select = [
 ]
 
 ignore = [
+  "B009",     # will require type generics for conf in EduIDBaseApp (refactor)
   "E501",     # length of lines, fixed during formatting
   "PLR09",    # rule set for complexity checks
   "PLC0415",  # non top level imports
