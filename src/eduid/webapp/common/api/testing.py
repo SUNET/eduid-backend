@@ -374,9 +374,11 @@ class EduidAPITestCase[T: EduIDBaseApp](CommonTestCase):
         eppn: str,
         keyhandle: str,
         token_type: str = "webauthn",
-        created_ts: datetime = utc_now(),
+        created_ts: datetime | None = None,
         mfa_approved: bool = False,
     ) -> U2F | Webauthn:
+        if created_ts is None:
+            created_ts = utc_now()
         user = self.app.central_userdb.get_user_by_eppn(eppn)
         mfa_token: U2F | Webauthn
 
