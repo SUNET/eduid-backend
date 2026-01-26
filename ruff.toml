@@ -6,8 +6,7 @@ target-version = "py313"
 select = [
   "ANN",
   "ASYNC",
-  "B00",
-  "B02",
+  "B0",
   "E",
   "ERA",
   "F",
