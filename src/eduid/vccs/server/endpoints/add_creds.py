@@ -77,7 +77,7 @@ async def _add_password_credential(
         derived_key="",
         iterations=_config.add_creds_password_kdf_iterations,
         kdf=KDF.PBKDF2_HMAC_SHA512,
-        key_handle=_config.add_creds_password_key_handle,
+        key_handle=_config.hasher.add_creds_password_key_handle,
         salt=_salt,
         status=Status.ACTIVE,
         type=CredType.PASSWORD,

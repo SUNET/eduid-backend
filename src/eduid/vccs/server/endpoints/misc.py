@@ -23,7 +23,7 @@ class StatusResponse(BaseModel):
 
 @misc_router.get("/status/healthy")
 async def status(request: Request) -> StatusResponse:
-    _test_keyhandle = request.app.state.config.add_creds_password_key_handle
+    _test_keyhandle = request.app.state.config.hasher.add_creds_password_key_handle
     res = StatusResponse(status=Status.OK)
     try:
         hmac = await request.app.state.hasher.hmac_sha1(key_handle=_test_keyhandle, data=b"\0")
