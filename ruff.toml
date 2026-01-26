@@ -6,7 +6,7 @@ target-version = "py313"
 select = [
   "ANN",
   "ASYNC",
-  "B0",
+  "B",
   "E",
   "ERA",
   "F",
@@ -24,6 +24,7 @@ select = [
 
 ignore = [
   "B009",     # will require type generics for conf in EduIDBaseApp (refactor)
+  "B904",     # properly chain exceptions when raising inside except block (refactor)
   "E501",     # length of lines, fixed during formatting
   "PLR09",    # rule set for complexity checks
   "PLC0415",  # non top level imports
