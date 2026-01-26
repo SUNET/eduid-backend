@@ -11,6 +11,7 @@ from copy import deepcopy
 from datetime import datetime, timedelta
 from typing import Any, cast
 
+import pytest
 from flask.testing import FlaskClient
 from werkzeug.test import TestResponse
 
@@ -444,7 +445,7 @@ class EduidAPITestCase[T: EduIDBaseApp](CommonTestCase):
         Check the message returned from an eduID webapp endpoint.
         """
         if response.json and response.json.get("error") is True:
-            assert False, f"FluxResponse has error set to True: {response.json}"
+            pytest.fail(f"FluxResponse has error set to True: {response.json}")
         self._check_api_response(response, 200, type_=type_, message=msg, payload=payload)
 
     @staticmethod
