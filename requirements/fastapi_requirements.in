@@ -4,6 +4,7 @@ fastapi
 loguru
 https://github.com/SUNET/python-pyhsm/archive/3b867ec8e0aa2c4444e9c84444228e95fc6aaabf.zip
 ndnkdf
+hsmkey
 uvicorn[standard]
 python-multipart  # needed to parse form data
 deepdiff6
