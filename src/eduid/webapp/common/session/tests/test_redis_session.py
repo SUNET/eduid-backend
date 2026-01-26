@@ -81,7 +81,7 @@ class TestSession(TestCase):
 
     def test_usable_token_encoding(self) -> None:
         """Pysaml uses the token as an XML NCName so it can't contain some characters."""
-        for i in range(1024):
+        for _i in range(1024):
             _meta = SessionMeta.new(app_secret=self.manager.secret)
             self.assertRegex(_meta.cookie_val, "^[a-z][a-zA-Z0-9.]+$")
 
