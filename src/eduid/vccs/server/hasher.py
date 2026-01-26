@@ -109,7 +109,7 @@ class VCCSYHSMHasher(VCCSHasher):
         await self.lock_acquire()
         try:
             from_hsm = self._yhsm.random(byte_count)
-            xored = bytes([a ^ b for (a, b) in zip(from_hsm, from_os)])
+            xored = bytes([a ^ b for (a, b) in zip(from_hsm, from_os, strict=True)])
             return xored
         finally:
             self.lock_release()
