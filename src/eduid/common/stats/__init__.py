@@ -25,6 +25,7 @@ class AppStats(ABC):
     def count(self, name: str, value: int = 1) -> None:
         pass
 
+    @abstractmethod
     def gauge(self, name: str, value: int, rate: int = 1, delta: bool = False) -> None:
         pass
 
