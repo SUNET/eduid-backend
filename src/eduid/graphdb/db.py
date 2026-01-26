@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from abc import ABC
+from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from typing import Any
 from urllib.parse import urlparse
@@ -88,6 +88,7 @@ class BaseGraphDB(ABC):
     def db(self) -> Neo4jDB:
         return self._db
 
+    @abstractmethod
     def db_setup(self) -> None:
         """Use this for setting up indices or constraints"""
         raise NotImplementedError()

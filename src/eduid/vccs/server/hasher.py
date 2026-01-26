@@ -1,7 +1,7 @@
 import hmac
 import os
 import stat
-from abc import ABC
+from abc import ABC, abstractmethod
 from asyncio.locks import Lock
 from binascii import unhexlify
 from collections.abc import Mapping
@@ -31,21 +31,27 @@ class VCCSHasher(ABC):
     def __init__(self, lock: Lock | NoOpLock) -> None:
         self.lock = lock
 
+    @abstractmethod
     def unlock(self, password: str) -> None:
         raise NotImplementedError("Subclass should implement unlock")
 
+    @abstractmethod
     def info(self) -> str | bytes | None:
         raise NotImplementedError("Subclass should implement info")
 
+    @abstractmethod
     async def hmac_sha1(self, key_handle: int | None, data: bytes) -> bytes:
         raise NotImplementedError("Subclass should implement safe_hmac_sha1")
 
+    @abstractmethod
     def unsafe_hmac_sha1(self, key_handle: int | None, data: bytes) -> bytes:
         raise NotImplementedError("Subclass should implement hmac_sha1")
 
+    @abstractmethod
     def load_temp_key(self, nonce: str, key_handle: int, aead: bytes) -> bool:
         raise NotImplementedError("Subclass should implement load_temp_key")
 
+    @abstractmethod
     async def safe_random(self, byte_count: int) -> bytes:
         raise NotImplementedError("Subclass should implement safe_random")
 

@@ -59,7 +59,7 @@
 Common code for SSO login/logout requests.
 """
 
-from abc import ABC
+from abc import ABC, abstractmethod
 
 from flask import request
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -140,10 +140,12 @@ class Service(ABC):
         current_app.logger.debug(f"Unpacked {request.method}, _data: {_data}")
         return _data
 
+    @abstractmethod
     def redirect(self) -> WerkzeugResponse:
         """Expects a HTTP-redirect request"""
         raise NotImplementedError('Subclass should implement function "redirect"')
 
+    @abstractmethod
     def post(self) -> WerkzeugResponse:
         """Expects a HTTP-POST request"""
         raise NotImplementedError('Subclass should implement function "post"')
