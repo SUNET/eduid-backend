@@ -1,7 +1,6 @@
 import logging
 from abc import ABC
 from collections.abc import Sequence
-from typing import Optional
 from urllib.parse import urlencode
 
 from pydantic import BaseModel, ConfigDict
@@ -118,7 +117,7 @@ class LoginContext(ABC, BaseModel):
 
 
 class LoginContextSAML(LoginContext):
-    _saml_req: Optional["IdP_SAMLRequest"] = None
+    _saml_req: IdP_SAMLRequest | None = None
 
     @property
     def SAMLRequest(self) -> str:
