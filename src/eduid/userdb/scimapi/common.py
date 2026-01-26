@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import builtins
 import uuid
-from abc import ABC
 from collections.abc import Mapping
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
@@ -18,7 +17,7 @@ __author__ = "lundberg"
 
 
 @dataclass
-class ScimApiResourceBase(ABC):
+class ScimApiResourceBase:
     """The elements common to all SCIM resource database objects"""
 
     scim_id: UUID = field(default_factory=lambda: uuid.uuid4())

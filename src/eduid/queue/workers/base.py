@@ -2,7 +2,6 @@ import asyncio
 import functools
 import logging
 import signal
-from abc import ABC
 from asyncio import CancelledError, Task
 from collections.abc import Sequence
 from dataclasses import replace
@@ -26,7 +25,7 @@ def cancel_task(signame: str, task: Task) -> None:
     task.cancel()
 
 
-class QueueWorker(ABC):
+class QueueWorker:
     def __init__(self, config: QueueWorkerConfig, handle_payloads: Sequence[type[Payload]]) -> None:
         worker_name = environ.get("WORKER_NAME", None)
         if worker_name is None:
