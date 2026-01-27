@@ -179,10 +179,12 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         transaction_id: str = "unique_transaction_id",
         given_name: str = "Test",
         family_name: str = "Testsson",
-        now: datetime = utc_now(),
+        now: datetime | None = None,
         userinfo_expires: datetime | None = None,
         document_expires: datetime | None = None,
     ) -> FrejaEIDDocumentUserInfo:
+        if now is None:
+            now = utc_now()
         if userinfo_expires is None:
             userinfo_expires = now + timedelta(minutes=5)
         if document_expires is None:

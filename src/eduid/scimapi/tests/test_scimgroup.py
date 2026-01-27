@@ -563,14 +563,14 @@ class TestGroupSearchResource(TestGroupResource):
         self._assertScimError(json, scim_type="invalidFilter", detail="Can't filter on attribute no_such_attribute")
 
     def test_search_group_start_index(self) -> None:
-        for i in range(9):
+        for _i in range(9):
             self.add_group(uuid4(), "Test Group")
         self._perform_search(
             filter='displayName eq "Test Group"', start=5, expected_num_resources=5, expected_total_results=9
         )
 
     def test_search_group_count(self) -> None:
-        for i in range(9):
+        for _i in range(9):
             self.add_group(uuid4(), "Test Group")
 
         assert self.groupdb

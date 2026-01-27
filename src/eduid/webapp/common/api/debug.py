@@ -50,7 +50,7 @@ def dump_config(app: Flask) -> None:
         config_items = asdict(app.config).items()  # type: ignore[call-overload]
     except TypeError:
         config_items = app.config.items()
-        warnings.warn(f"{app.name} is using old dict config", DeprecationWarning)
+        warnings.warn(f"{app.name} is using old dict config", DeprecationWarning, stacklevel=2)
     for key, value in sorted(config_items):
         pprint.pprint((key, value), stream=sys.stderr)
 

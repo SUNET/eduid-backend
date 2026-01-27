@@ -110,7 +110,7 @@ class SessionMeta:
         if len(calculated_sig) != len(signature):
             return None
 
-        for a, b in zip(calculated_sig, signature):
+        for a, b in zip(calculated_sig, signature, strict=True):
             invalid_bits += a != b
 
         return bool(not invalid_bits)

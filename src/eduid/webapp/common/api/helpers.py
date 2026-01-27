@@ -136,7 +136,7 @@ def verify_nin_for_user(
         # If user is not a ProofingUser, we create a new ProofingUser instance.
         # This is deprecated usage, since it won't allow the calling function to get
         # the new NIN element without re-loading the user from the central database.
-        warnings.warn("verify_nin_for_user() called with a User, not a ProofingUser", DeprecationWarning)
+        warnings.warn("verify_nin_for_user() called with a User, not a ProofingUser", DeprecationWarning, stacklevel=2)
         proofing_user = ProofingUser.from_user(user, private_userdb)
 
     # add an unverified nin identity to the user if it does not exist yet

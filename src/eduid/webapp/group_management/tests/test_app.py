@@ -4,6 +4,7 @@ from http import HTTPStatus
 from typing import Any
 from uuid import UUID
 
+import pytest
 from werkzeug.test import TestResponse
 
 from eduid.common.testing_base import normalised_data
@@ -972,7 +973,7 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
                 assert 1 == len(invite["member_invites"])
                 assert 0 == len(invite["owner_invites"])
             else:
-                assert False, "Unknown group scim_id in outgoing invites"
+                pytest.fail("Unknown group scim_id in outgoing invites")
 
         # Check incoming invites as test_user2
         with self.session_cookie(self.browser, self.test_user2.eppn) as client:
@@ -1028,7 +1029,7 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
                 assert 1 == len(invite["member_invites"])
                 assert 0 == len(invite["owner_invites"])
             else:
-                assert False, "Unknown group scim_id in outgoing invites"
+                pytest.fail("Unknown group scim_id in outgoing invites")
 
     def test_incoming_invites(self) -> None:
         response = self.browser.get("/invites/incoming")

@@ -1,8 +1,9 @@
+import gettext
 import logging
 from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Self
+from typing import Protocol, Self, cast
 
 import babel
 from babel.support import Translations
@@ -11,6 +12,14 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 __author__ = "lundberg"
 
 logger = logging.getLogger(__name__)
+
+
+class I18nEnvironment(Protocol):
+    """Protocol for Jinja2 Environment with i18n extension methods."""
+
+    def install_gettext_translations(self, translations: gettext.NullTranslations, newstyle: bool = ...) -> None:
+        """Install gettext translations - added dynamically by jinja2.ext.i18n extension."""
+        ...
 
 
 class Jinja2Env:
@@ -50,9 +59,9 @@ class Jinja2Env:
             translation = self.translations.get(neg_lang, self.translations["en"])
         else:
             translation = self.translations["en"]
-        # install_gettext_translations is available when instantiating env with extension jinja2.ext.i18n
-        # The i18n extension dynamically adds this method, so we need to use getattr
-        install_gettext_translations = getattr(self.jinja2_env, "install_gettext_translations")
-        install_gettext_translations(translation, newstyle=True)  # install gettext _ for templates
+        # The i18n extension dynamically adds install_gettext_translations to the environment.
+        # We use a Protocol to provide type safety for this dynamically added method.
+        i18n_env = cast(I18nEnvironment, self.jinja2_env)
+        i18n_env.install_gettext_translations(translation, newstyle=True)
         self.gettext = translation.gettext
         yield self
