@@ -68,7 +68,8 @@ class VCCSYHSMHasher(VCCSHasher):
 
     def unlock(self) -> None:
         """Unlock YubiHSM on startup. The password is supposed to be hex encoded."""
-        self._yhsm.unlock(unhexlify(self._unlock_password))
+        if self._unlock_password:  # do not try to unlock with None or empty string
+            self._yhsm.unlock(unhexlify(self._unlock_password))
 
     def info(self) -> str:
         # pyhsm.base.YHSM.info() returns bytes(?)
@@ -137,7 +138,7 @@ class VCCSSoftHasher(VCCSHasher):
 
     async def hmac_sha1(self, key_handle: int | None, data: bytes) -> bytes:
         """
-        Perform HMAC-SHA-1 operation using YubiHSM.
+        Perform HMAC-SHA-1 operation using Python stdlib hmac module.
 
         Acquires a lock first if a lock instance was given at creation time.
         """
@@ -197,9 +198,6 @@ class VCCSHSMKeyHasher(VCCSHasher):
         self.debug = debug
         self._config = config
 
-        # Clear any cached library references to ensure fresh state
-        SessionPool._lib_cache.clear()
-
         self._pool = SessionPool(
             module_path=config.module_path,
             token_label=config.token_label,
@@ -236,7 +234,7 @@ class VCCSHSMKeyHasher(VCCSHasher):
         :param session: Open PKCS#11 session
         :param key_handle: Integer key handle (used as CKA_ID)
         :param key_label: String key label (used as CKA_LABEL)
-        :param key_type: PKCS#11 key type (default: SHA_1_HMAC)
+        :param key_type: PKCS#11 key type (default: KeyType.GENERIC_SECRET)
         :returns: PKCS#11 secret key object
         :raises RuntimeError: If no key identifier provided or key not found
         """
@@ -338,7 +336,7 @@ class VCCSHSMKeyHasher(VCCSHasher):
         :returns: False as AEAD unwrapping is not supported
         """
         # PKCS#11 doesn't support YubiHSM's AEAD format directly
-        # Temp keys need to be pre-loaded in the HSM
+        # Temp keys need to be preloaded in the HSM
         return False
 
     def set_temp_key_label(self, label: str) -> None:

@@ -31,6 +31,7 @@ class VCCS_API(FastAPI):
 
         yhsm_lock = Lock()  # brief testing indicates locking is not needed with asyncio, but...
         self.state.hasher = load_hasher(config=self.state.config.hasher, lock=yhsm_lock, debug=self.state.config.debug)
+        self.state.hasher.unlock()
 
         self.state.kdf = ndnkdf.NDNKDF()
 
