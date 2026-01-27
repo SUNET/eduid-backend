@@ -75,6 +75,6 @@ def _choose_parser() -> BaseConfigParser | None:
             from eduid.common.config.parsers.yaml_parser import YamlConfigParser
 
             parser = YamlConfigParser(path=Path(yaml_file))
-        except ImportError:
-            raise ParserException("YamlConfigParser could not be imported")
+        except ImportError as e:
+            raise ParserException("YamlConfigParser could not be imported") from e
     return parser

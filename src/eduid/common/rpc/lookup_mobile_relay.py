@@ -25,7 +25,7 @@ class LookupMobileRelay:
             result = result.get(timeout=10)  # Lower timeout than standard gunicorn worker timeout (25)
             return result
         except Exception as e:
-            raise LookupMobileTaskFailed(f"find_nin_by_mobile task failed: {e}")
+            raise LookupMobileTaskFailed(f"find_nin_by_mobile task failed: {e}") from e
 
     @deprecated("This task seems unused")
     def find_mobiles_by_nin(self, nin: str) -> Any:  # noqa: ANN401
@@ -34,7 +34,7 @@ class LookupMobileRelay:
             result = result.get(timeout=10)  # Lower timeout than standard gunicorn worker timeout (25)
             return result
         except Exception as e:
-            raise LookupMobileTaskFailed(f"find_mobiles_by_nin task failed: {e}")
+            raise LookupMobileTaskFailed(f"find_mobiles_by_nin task failed: {e}") from e
 
     def ping(self, timeout: int = 1) -> str:
         """
@@ -46,4 +46,4 @@ class LookupMobileRelay:
             return rtask.get(timeout=timeout)
         except Exception as e:
             rtask.forget()
-            raise LookupMobileTaskFailed(f"ping task failed: {repr(e)}")
+            raise LookupMobileTaskFailed(f"ping task failed: {repr(e)}") from e

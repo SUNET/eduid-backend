@@ -139,10 +139,10 @@ class SLO(Service):
             req_info = current_app.IDP.parse_logout_request(request, binding)
             assert isinstance(req_info, saml2.request.LogoutRequest)
             current_app.logger.debug(f"Parsed Logout request ({binding}):\n{req_info.message}")
-        except Exception:
+        except Exception as e:
             current_app.logger.exception("Failed parsing logout request")
             current_app.logger.debug(f"_perform_logout {binding}:\n{info}")
-            raise BadRequest("Failed parsing logout request")
+            raise BadRequest("Failed parsing logout request") from e
 
         req_info.binding = binding
         if info.RelayState:
@@ -235,9 +235,9 @@ class SLO(Service):
             # XXX would be useful if remove_authn_statements() returned how many statements it actually removed
             current_app.IDP.session_db.remove_authn_statements(name_id)
             current_app.logger.info(f"{req_key}: logout name_id={name_id!r}")
-        except KeyError:
+        except KeyError as e:
             current_app.logger.exception("Failed removing authn")
-            raise InternalServerError()
+            raise InternalServerError() from e
         return str(STATUS_SUCCESS)  # use str() to ensure external value is the right type
 
     def _logout_response(

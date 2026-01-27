@@ -72,7 +72,7 @@ async def calculate_cred_hash(
         # The difference is likely due to > 48 bytes requiring more USB transactions.
         local_salt = await hasher.hmac_sha1(cred.key_handle, T2)
     except Exception as e:
-        raise RuntimeError(f"Hashing operation failed : {e}")
+        raise RuntimeError(f"Hashing operation failed : {e}") from e
 
     # PBKDF2 again with iter=1 to mix in the local_salt into the final H2.
     H2 = kdf.pbkdf2_hmac_sha512(T2, 1, local_salt)

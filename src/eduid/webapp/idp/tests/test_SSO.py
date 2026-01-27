@@ -142,8 +142,8 @@ class SSOIdPTests(IdPAPITests):
         """
         try:
             saml_req = IdP_SAMLRequest(info["SAMLRequest"], binding, idp, debug=debug)
-        except Exception:
-            raise SAMLError("No valid SAMLRequest found")
+        except Exception as e:
+            raise SAMLError("No valid SAMLRequest found") from e
 
         if "SigAlg" in info and "Signature" in info:  # Signed request
             if verify_request_signatures:

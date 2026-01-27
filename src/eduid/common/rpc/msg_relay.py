@@ -171,16 +171,16 @@ class MsgRelay:
             ret = rtask.get(timeout=timeout)
         except Exception as e:
             rtask.forget()
-            raise MsgTaskFailed(f"get_all_navet_data task failed: {e}")
+            raise MsgTaskFailed(f"get_all_navet_data task failed: {e}") from e
 
         if ret is None:
             raise NoNavetData("No data returned from Navet")
 
         try:
             data = NavetData.model_validate(ret)
-        except ValidationError:
+        except ValidationError as e:
             logger.exception("Insufficient data returned from Navet")
-            raise NoNavetData("Insufficient data returned from Navet")
+            raise NoNavetData("Insufficient data returned from Navet") from e
 
         if not data.person.is_deregistered() or allow_deregistered:
             return data
@@ -212,7 +212,7 @@ class MsgRelay:
             ret = rtask.get(timeout=timeout)
         except Exception as e:
             rtask.forget()
-            raise MsgTaskFailed(f"get_postal_address task failed: {e}")
+            raise MsgTaskFailed(f"get_postal_address task failed: {e}") from e
 
         if ret is None:
             raise NoAddressFound("No postal address returned from Navet")
@@ -220,9 +220,9 @@ class MsgRelay:
         try:
             data = FullPostalAddress.model_validate(ret)
             return data
-        except ValidationError:
+        except ValidationError as e:
             logger.exception("Missing data in postal address returned from Navet")
-            raise NoAddressFound("Missing data in postal address returned from Navet")
+            raise NoAddressFound("Missing data in postal address returned from Navet") from e
 
     def get_relations_to(self, nin: str, relative_nin: str, timeout: int = 25) -> list[RelationType]:
         """
@@ -245,7 +245,7 @@ class MsgRelay:
             ret = rtask.get(timeout=timeout)
         except Exception as e:
             rtask.forget()
-            raise MsgTaskFailed(f"get_relations_to task failed: {e}")
+            raise MsgTaskFailed(f"get_relations_to task failed: {e}") from e
 
         if ret is not None:
             return [RelationType(item) for item in ret]
@@ -267,7 +267,7 @@ class MsgRelay:
             logger.info(f"SMS with reference {reference} sent. Task result: {res}")
         except Exception as e:
             rtask.forget()
-            raise MsgTaskFailed(f"sendsms task failed: {repr(e)}")
+            raise MsgTaskFailed(f"sendsms task failed: {repr(e)}") from e
 
     def ping(self, timeout: int = 1) -> str:
         """
@@ -279,4 +279,4 @@ class MsgRelay:
             return rtask.get(timeout=timeout)
         except Exception as e:
             rtask.forget()
-            raise MsgTaskFailed(f"ping task failed: {repr(e)}")
+            raise MsgTaskFailed(f"ping task failed: {repr(e)}") from e

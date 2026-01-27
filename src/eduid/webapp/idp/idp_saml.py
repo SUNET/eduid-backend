@@ -92,7 +92,7 @@ class IdP_SAMLRequest:
         except UnravelError as exc:
             logger.info(f"Failed parsing SAML request ({len(request)} bytes)")
             logger.debug(f"Failed parsing SAML request:\n{request}\nException {exc}")
-            raise SAMLParseError("Failed parsing SAML request")
+            raise SAMLParseError("Failed parsing SAML request") from exc
 
         if not self._req_info:
             # Either there was no request, or pysaml2 found it to be unacceptable.
@@ -280,16 +280,16 @@ class IdP_SAMLRequest:
             resp_args = self._idp.response_args(self._req_info.message)
         except UnknownPrincipal as excp:
             logger.info(f"{log_prefix}: Unknown service provider: {excp}")
-            raise BadRequest("Don't know the SP that referred you here")
+            raise BadRequest("Don't know the SP that referred you here") from excp
         except UnsupportedBinding as excp:
             logger.info(f"{log_prefix}: Unsupported SAML binding: {excp}")
-            raise BadRequest("Don't know how to reply to the SP that referred you here")
+            raise BadRequest("Don't know how to reply to the SP that referred you here") from excp
         except UnknownSystemEntity as exc:
             logger.info(f"{log_prefix}: Service provider not known: {exc}")
-            raise BadRequest("SAML_UNKNOWN_SP")
+            raise BadRequest("SAML_UNKNOWN_SP") from exc
         except SAMLError as e:
             logger.exception(f"{log_prefix}: SAMLError: {e}")
-            raise BadRequest("Misconfigured SAML request")
+            raise BadRequest("Misconfigured SAML request") from e
 
         # Set digest_alg and sign_alg to a good default value
         if conf.supported_digest_algorithms:

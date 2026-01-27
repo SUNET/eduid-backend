@@ -55,16 +55,16 @@ def update_attributes_keep_result(self: AttributeManager, app_name: str, user_id
 
     try:
         _id = bson.ObjectId(user_id)
-    except bson.errors.InvalidId:
+    except bson.errors.InvalidId as e:
         logger.error(f"Invalid user_id {user_id} from app {app_name}")
-        raise ValueError("Invalid user_id")
+        raise ValueError("Invalid user_id") from e
 
     try:
         attribute_fetcher = AmCelerySingleton.af_registry.get_fetcher(app_name)
         logger.debug(f"Attribute fetcher for {app_name}: {repr(attribute_fetcher)}")
     except KeyError as e:
         logger.error(f"Attribute fetcher for {app_name} is not installed")
-        raise RuntimeError(f"Missing attribute fetcher, {e}")
+        raise RuntimeError(f"Missing attribute fetcher, {e}") from e
 
     if not self.userdb:
         raise RuntimeError("Task has no userdb")

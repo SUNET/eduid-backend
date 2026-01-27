@@ -297,10 +297,10 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
                             # default mfa_credential to the first FidoCredential on the user
                             try:
                                 mfa_credential = _user.credentials.filter(FidoCredential)[0]
-                            except IndexError:
+                            except IndexError as e:
                                 raise AssertionError(
                                     f"No FidoCredential found for user {_user.eppn}, aborting with result {result}"
-                                )
+                                ) from e
 
                         result.mfa_result = self._call_mfa(device, _next.payload["target"], ref, mfa_credential)
 

@@ -93,8 +93,8 @@ def filter_lastmodified(
         raise BadRequest(scim_type="invalidFilter", detail="Invalid datetime")
     try:
         _parsed = datetime.fromisoformat(filter.val)
-    except Exception:
-        raise BadRequest(scim_type="invalidFilter", detail="Invalid datetime")
+    except Exception as e:
+        raise BadRequest(scim_type="invalidFilter", detail="Invalid datetime") from e
     assert isinstance(req.context, ScimApiContext)  # please mypy
     assert req.context.groupdb is not None  # please mypy
     return req.context.groupdb.get_groups_by_last_modified(operator=filter.op, value=_parsed, skip=skip, limit=limit)

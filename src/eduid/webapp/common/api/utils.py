@@ -107,13 +107,13 @@ def get_user() -> User:
         # Get user from central database
         return current_app.central_userdb.get_user_by_eppn(session.common.eppn)
 
-    except MultipleUsersReturned:
+    except MultipleUsersReturned as e:
         logger.exception(f"Found multiple users in central database for eppn {session.common.eppn}.")
-        raise ApiException("Not authorized", status_code=401)
+        raise ApiException("Not authorized", status_code=401) from e
 
-    except UserDoesNotExist:
+    except UserDoesNotExist as e:
         logger.error(f"Could not find user {session.common.eppn} in central database.")
-        raise ApiException("Not authorized", status_code=401)
+        raise ApiException("Not authorized", status_code=401) from e
 
 
 def has_user_logged_in_with_mfa() -> bool:

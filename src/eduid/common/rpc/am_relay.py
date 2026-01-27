@@ -48,7 +48,7 @@ class AmRelay:
             user_id = str(user.user_id)
         except (AttributeError, ValueError) as e:
             logger.error(f"Bad user_id in sync request: {e}")
-            raise ValueError("Missing user_id. Can only propagate changes for eduid.userdb.User users.")
+            raise ValueError("Missing user_id. Can only propagate changes for eduid.userdb.User users.") from e
 
         _app_name = self.app_name
         if app_name_override:
@@ -65,7 +65,7 @@ class AmRelay:
         except Exception as e:
             rtask.forget()
             logger.exception(f"Failed Attribute Manager sync request for user {user}")
-            raise AmTaskFailed(f"request_user_sync task failed: {e}")
+            raise AmTaskFailed(f"request_user_sync task failed: {e}") from e
 
     def ping(self, timeout: int = 1) -> str:
         """
@@ -77,4 +77,4 @@ class AmRelay:
             return rtask.get(timeout=timeout)
         except Exception as e:
             rtask.forget()
-            raise AmTaskFailed(f"ping task failed: {repr(e)}")
+            raise AmTaskFailed(f"ping task failed: {repr(e)}") from e

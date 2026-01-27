@@ -35,5 +35,5 @@ class PasswordSchema(Schema):
                 min_score=self.Meta.min_score,
             ):
                 raise ValidationError("The password complexity is too weak.")
-        except ValueError:
-            raise ValidationError("The password complexity is too weak.")
+        except ValueError as e:
+            raise ValidationError("The password complexity is too weak.") from e

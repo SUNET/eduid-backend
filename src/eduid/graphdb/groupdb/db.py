@@ -389,7 +389,7 @@ class GroupDB(BaseGraphDB):
                 tx = session.begin_transaction()
             except ClientError as e:
                 logger.error(e)
-                raise EduIDGroupDBError(e.message)
+                raise EduIDGroupDBError(e.message) from e
             try:
                 self._remove_missing_users_and_groups(tx, group, Role.OWNER)
                 self._remove_missing_users_and_groups(tx, group, Role.MEMBER)
@@ -398,7 +398,7 @@ class GroupDB(BaseGraphDB):
                 tx.commit()
             except ConstraintError as e:
                 logger.error(e)
-                raise VersionMismatch("Tried to save a group with wrong version")
+                raise VersionMismatch("Tried to save a group with wrong version") from e
             finally:
                 if tx.closed():
                     logger.info("Group save successful")
