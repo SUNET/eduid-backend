@@ -195,5 +195,5 @@ def hasher_from_string(
         if stat.S_ISCHR(mode):
             return VCCSYHSMHasher(name, lock, debug)
         raise ValueError(f"Not a character device : {name}")
-    except OSError:
-        raise ValueError(f"Unknown hasher {repr(name)}")
+    except OSError as e:
+        raise ValueError(f"Unknown hasher {repr(name)}") from e

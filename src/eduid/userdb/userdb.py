@@ -119,9 +119,9 @@ class UserDB[UserVar](BaseDB, ABC):
         """
         try:
             users: list[TUserDbDocument] = list(self._get_documents_by_filter(filter))
-        except DocumentDoesNotExist:
+        except DocumentDoesNotExist as e:
             logger.debug(f"{self!s} No user found with filter {filter!r} in {self._coll_name!r}")
-            raise UserDoesNotExist(f"No user matching filter {filter!r}")
+            raise UserDoesNotExist(f"No user matching filter {filter!r}") from e
 
         return self._users_from_documents(users)
 
@@ -279,10 +279,10 @@ class UserDB[UserVar](BaseDB, ABC):
             return user
         except DocumentDoesNotExist as e:
             logger.debug(f"UserDoesNotExist, {attr!r} = {value!r}")
-            raise UserDoesNotExist(e.reason)
+            raise UserDoesNotExist(e.reason) from e
         except MultipleDocumentsReturned as e:
             logger.error(f"MultipleUsersReturned, {attr!r} = {value!r}")
-            raise MultipleUsersReturned(e.reason)
+            raise MultipleUsersReturned(e.reason) from e
 
     def save(self, user: UserVar) -> UserSaveResult:
         """
@@ -294,8 +294,8 @@ class UserDB[UserVar](BaseDB, ABC):
         spec: dict[str, Any] = {"_id": user.user_id}
         try:
             result = self._save(user.to_dict(), spec, is_in_database=user.meta.is_in_database, meta=user.meta)
-        except DocumentOutOfSync:
-            raise UserOutOfSync("User out of sync")
+        except DocumentOutOfSync as e:
+            raise UserOutOfSync("User out of sync") from e
 
         user.modified_ts = result.ts
 
@@ -365,8 +365,8 @@ class AmDB(UserDB[User]):
 
         try:
             result = self._save(user.to_dict(), spec, is_in_database=user.meta.is_in_database, meta=user.meta)
-        except DocumentOutOfSync:
-            raise UserOutOfSync("User out of sync")
+        except DocumentOutOfSync as e:
+            raise UserOutOfSync("User out of sync") from e
 
         user.modified_ts = result.ts
 

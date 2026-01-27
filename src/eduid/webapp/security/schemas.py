@@ -67,8 +67,8 @@ class ChangePasswordSchema(PasswordSchema):
         # Set a new error message
         try:
             self.validate_password(value)
-        except ValidationError:
-            raise ValidationError("chpass.weak-pass")
+        except ValidationError as e:
+            raise ValidationError("chpass.weak-pass") from e
 
 
 class AccountTerminatedSchema(FluxStandardAction):

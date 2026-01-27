@@ -178,16 +178,16 @@ def save_invite(
     except DuplicateKeyError as e:
         assert e.details is not None  # please mypy
         if "external-id" in e.details["errmsg"]:
-            raise BadRequest(detail="externalID must be unique")
-        raise BadRequest(detail="Duplicated key error")
+            raise BadRequest(detail="externalID must be unique") from e
+        raise BadRequest(detail="Duplicated key error") from e
 
     try:
         req.app.context.signup_invitedb.save(signup_invite, is_in_database=signup_invite_is_in_database)
     except DuplicateKeyError as e:
         assert e.details is not None  # please mypy
         if "invite_code" in e.details["errmsg"]:
-            raise BadRequest(detail="invite_code must be unique")
-        raise BadRequest(detail="Duplicated key error")
+            raise BadRequest(detail="invite_code must be unique") from e
+        raise BadRequest(detail="Duplicated key error") from e
 
 
 def filter_lastmodified(

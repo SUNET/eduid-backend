@@ -170,9 +170,9 @@ def verify_webauthn(
             credentials=[this.webauthn for this in matching_credentials.values()],
             response=auth_response,
         )
-    except Exception:
+    except Exception as e:
         logger.exception("Webauthn authentication failed")
-        raise VerificationProblem("mfa.failed-verification")
+        raise VerificationProblem("mfa.failed-verification") from e
 
     logger.debug(f"Authenticated Webauthn credential: {authn_cred}")
 

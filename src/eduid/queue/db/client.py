@@ -29,8 +29,8 @@ class QueuePayloadMixin:
     def _load_payload(self, item: QueueItem) -> Payload:
         try:
             payload_cls = self.handlers[item.payload_type]
-        except KeyError:
-            raise PayloadNotRegistered(f"Payload type '{item.payload_type}' not registered with {self}")
+        except KeyError as e:
+            raise PayloadNotRegistered(f"Payload type '{item.payload_type}' not registered with {self}") from e
         return payload_cls.from_dict(item.payload.to_dict())
 
 

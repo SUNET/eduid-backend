@@ -84,10 +84,10 @@ def get_action(default_action: Enum | None, authndata: SP_AuthnRequest | RP_Auth
         if action_value is None:
             raise KeyError
         action = _actions[action_value.value]
-    except KeyError:
+    except KeyError as e:
         error_msg = f'"{action_value}" not found in ACS registry'
         current_app.logger.error(error_msg)
         current_app.logger.debug(f"Registered ACS actions: {_actions.keys()}")
-        raise UnregisteredAction(error_msg)
+        raise UnregisteredAction(error_msg) from e
 
     return action

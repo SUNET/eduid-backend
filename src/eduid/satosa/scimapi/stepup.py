@@ -200,7 +200,7 @@ class StepUp(ResponseMicroService):
         try:
             parsed_config = StepupPluginConfig.model_validate(config)
         except ValidationError as e:
-            raise StepUpError(f"The configuration for this plugin is not valid: {e}")
+            raise StepUpError(f"The configuration for this plugin is not valid: {e}") from e
 
         self.mfa = parsed_config.mfa
 
@@ -532,7 +532,7 @@ class AuthnContext(RequestMicroService):
         try:
             parsed_config = MFA.model_validate(config)
         except ValidationError as e:
-            raise StepUpError(f"The configuration for this plugin is not valid: {e}")
+            raise StepUpError(f"The configuration for this plugin is not valid: {e}") from e
 
         self.mfa = parsed_config.mfa
 
@@ -641,7 +641,7 @@ class StepupSAMLBackend(SAMLBackend):
         try:
             parsed_config = StepupPluginConfig.model_validate(self.config)
         except ValidationError as e:
-            raise StepUpError(f"The configuration for this plugin is not valid: {e}")
+            raise StepUpError(f"The configuration for this plugin is not valid: {e}") from e
         self.mfa = parsed_config.mfa
 
     def authn_request(self, context: satosa.context.Context, entity_id: str) -> SeeOther | Response:
@@ -675,7 +675,7 @@ class RewriteAuthnContextClass(ResponseMicroService):
         try:
             parsed_config = MFA.model_validate(config)
         except ValidationError as e:
-            raise StepUpError(f"The configuration for this plugin is not valid: {e}")
+            raise StepUpError(f"The configuration for this plugin is not valid: {e}") from e
         self.mfa = parsed_config.mfa
 
     def process(

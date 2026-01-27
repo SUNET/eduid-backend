@@ -354,7 +354,7 @@ def sendsms(self: MessageSender, recipient: str, message: str, reference: str) -
         return self.sendsms(recipient, message, reference)
     except Exception as e:
         logger.error(f"sendsms task error: {e}", exc_info=True)
-        raise self.retry(default_retry_delay=1, max_retries=3, exc=e)
+        raise self.retry(default_retry_delay=1, max_retries=3, exc=e) from e
 
 
 @app.task(bind=True, base=MessageSender, name="eduid_msg.tasks.get_all_navet_data")
@@ -371,7 +371,7 @@ def get_all_navet_data(self: MessageSender, identity_number: str) -> OrderedDict
         return self.get_all_navet_data(identity_number)
     except Exception as e:
         logger.error(f"get_all_navet_data task error: {e}", exc_info=True)
-        raise self.retry(default_retry_delay=1, max_retries=3, exc=e)
+        raise self.retry(default_retry_delay=1, max_retries=3, exc=e) from e
 
 
 @app.task(bind=True, base=MessageSender, name="eduid_msg.tasks.get_postal_address")
@@ -388,7 +388,7 @@ def get_postal_address(self: MessageSender, identity_number: str) -> OrderedDict
         return self.get_postal_address(identity_number)
     except Exception as e:
         logger.error(f"get_postal_address task error: {e}", exc_info=True)
-        raise self.retry(default_retry_delay=1, max_retries=3, exc=e)
+        raise self.retry(default_retry_delay=1, max_retries=3, exc=e) from e
 
 
 @app.task(bind=True, base=MessageSender, name="eduid_msg.tasks.get_relations_to")
@@ -435,7 +435,7 @@ def get_relations_to(self: MessageSender, identity_number: str, relative_nin: st
         return result
     except Exception as e:
         logger.error(f"get_relations_to task error: {e}", exc_info=True)
-        raise self.retry(default_retry_delay=1, max_retries=3, exc=e)
+        raise self.retry(default_retry_delay=1, max_retries=3, exc=e) from e
 
 
 @app.task(bind=True, base=MessageSender)
