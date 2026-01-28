@@ -281,7 +281,7 @@ def process_users(api: Api, ops: Mapping[str, Any]) -> None:
          'search': ['numol-fojar@eduid.se']
          }
     """
-    for op in ops.keys():
+    for op in ops:
         if op == "search":
             for what in ops[op]:
                 if what == "externalId":
@@ -308,7 +308,7 @@ def process_users(api: Api, ops: Mapping[str, Any]) -> None:
 
 
 def process_groups(api: Api, ops: Mapping[str, Any]) -> None:
-    for op in ops.keys():
+    for op in ops:
         if op == "search":
             for what in ops[op]:
                 if what == "displayName":
@@ -335,7 +335,7 @@ def process_groups(api: Api, ops: Mapping[str, Any]) -> None:
 
 
 def process_events(api: Api, ops: Mapping[str, Any]) -> None:
-    for op in ops.keys():
+    for op in ops:
         if op == "post":
             for item in ops[op]:
                 params = ops[op][item]
@@ -347,7 +347,7 @@ def main(args: Args) -> bool:
 
     logger.debug(f"Loaded command data: {pformat(data)}")
 
-    for url in data.keys():
+    for url in data:
         api = Api(url=url, verify=not args.insecure)
         if "login" in data[url]:
             api.token = data[url]["login"]["token"]

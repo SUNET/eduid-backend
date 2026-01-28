@@ -83,7 +83,7 @@ class Credential:
         """
         data = asdict(self)
         # Convert Enums to their values
-        for k in data.keys():
+        for k in data:
             if isinstance(data[k], Enum):
                 data[k] = data[k].value
         # Extract the _id and revision

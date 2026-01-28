@@ -31,7 +31,6 @@ ignore = [
   "SIM102",   # collapsible-if
   "SIM108",   # if-else-block-instead-of-if-exp
   "SIM117",   # multiple-with-statements
-  "SIM118",   # in-dict-keys
   "SIM3",
 ]
 

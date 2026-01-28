@@ -53,7 +53,7 @@ class ProofingState:
             _data["modified_ts"] = None
 
         fields.update({"id", "eppn", "modified_ts"})
-        _leftovers = [x for x in _data.keys() if x not in fields]
+        _leftovers = [x for x in _data if x not in fields]
         if _leftovers:
             raise UserDBValueError(f"{cls}.from_dict() unknown data: {_leftovers}")
 
