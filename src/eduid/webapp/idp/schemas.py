@@ -23,8 +23,9 @@ class NextResponseSchema(FluxStandardAction):
         class AuthnOptionsResponsePayload(EduidSchema):
             display_name = fields.Str(required=False)
             forced_username = fields.Str(required=False)
-            freja_eidplus = fields.Bool(required=True)
             swedish_eid = fields.Bool(required=True)
+            eidas = fields.Bool(required=True)
+            freja_eid = fields.Bool(required=True)
             has_session = fields.Bool(required=True)
             is_reauthn = fields.Bool(required=True)
             other_device = fields.Bool(required=True)

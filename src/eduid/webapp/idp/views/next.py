@@ -265,6 +265,10 @@ class AuthnOptions:
     forced_username: str | None = None
     # Can an unknown user log in using just a swedish eID? Yes, if there is an eduID user with the users (verified) NIN.
     swedish_eid: bool = True
+    # Can a user use EIDAS authentication as second factor
+    eidas: bool = True
+    # Can a user use Freja eID authentication as second factor
+    freja_eid: bool = True
     # If the user has a session, 'logout' should be shown (to allow switch of users).
     has_session: bool = False
     # Can the user log (an unknown user) log in using another device? Sure.
@@ -384,6 +388,20 @@ def _set_user_options(res: AuthnOptions, eppn: str) -> None:
         else:
             current_app.logger.debug("No locked NIN for user -> swedish eID NOT possible")
             res.swedish_eid = False
+
+        if user.locked_identity.eidas:
+            current_app.logger.debug("User has a locked EIDAS identity -> EIDAS is possible")
+            res.eidas = True
+        else:
+            current_app.logger.debug("No locked EIDAS identity for user -> EIDAS NOT possible")
+            res.eidas = False
+
+        if user.locked_identity.freja:
+            current_app.logger.debug("User has a locked Freja identity -> Freja eID is possible")
+            res.freja_eid = True
+        else:
+            current_app.logger.debug("No locked Freja identity for user -> Freja eID NOT possible")
+            res.freja_eid = False
 
         res.forced_username = get_login_username(user)
         current_app.logger.debug(f"User forced_username: {res.forced_username}")

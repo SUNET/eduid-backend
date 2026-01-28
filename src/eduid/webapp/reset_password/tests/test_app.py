@@ -734,7 +734,11 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
             type_="POST_RESET_PASSWORD_VERIFY_EMAIL_SUCCESS",
             payload={
                 "email_address": "johnsmith@example.com",
-                "extra_security": {"external_mfa": True, "phone_numbers": [{"index": 0, "number": "XXXXXXXXXX09"}]},
+                "extra_security": {
+                    "swedish_eid": True,
+                    "eidas": True,
+                    "phone_numbers": [{"index": 0, "number": "XXXXXXXXXX09"}],
+                },
                 "success": True,
                 "zxcvbn_terms": ["John", "Smith", "johnsmith", "johnsmith2"],
             },

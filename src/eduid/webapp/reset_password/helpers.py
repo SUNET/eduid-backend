@@ -356,8 +356,13 @@ def get_extra_security_alternatives(user: User) -> dict:
     alternatives: dict[str, Any] = {}
 
     if user.identities.nin is not None and user.identities.nin.is_verified:
+        alternatives["swedish_eid"] = True
+    if user.identities.eidas is not None and user.identities.eidas.is_verified:
+        alternatives["eidas"] = True
+    if user.identities.freja is not None and user.identities.freja.is_verified:
+        alternatives["freja_eid"] = True
+    if any([alternatives.get("swedish_eid"), alternatives.get("eidas"), alternatives.get("freja_eid")]):
         session.mfa_action.eppn = user.eppn
-        alternatives["external_mfa"] = True
 
     if user.phone_numbers.verified:
         verified_phone_numbers = [
