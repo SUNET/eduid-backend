@@ -325,22 +325,22 @@ def get_required_user(ticket: LoginContext, sso_session: SSOSession | None) -> R
 
     if isinstance(ticket, LoginContextSAML) and ticket.service_requested_eppn:
         _eppn = ticket.service_requested_eppn
-        current_app.logger.info(f"SP requests login as {_eppn}")  # TODO: change to debug logging later
+        current_app.logger.debug(f"SP requests login as {_eppn}")
         eppn_set.add(_eppn)
 
     if isinstance(ticket, LoginContextOtherDevice) and ticket.is_other_device_2 and ticket.service_requested_eppn:
         _eppn = ticket.service_requested_eppn
-        current_app.logger.info(f"Other device requests login as {_eppn}")  # TODO: change to debug logging later
+        current_app.logger.debug(f"Other device requests login as {_eppn}")
         eppn_set.add(_eppn)
 
     if ticket.known_device and ticket.known_device.data.eppn:
         _eppn = ticket.known_device.data.eppn
-        current_app.logger.info(f"Device belongs to {_eppn}")  # TODO: change to debug logging later
+        current_app.logger.debug(f"Device belongs to {_eppn}")
         eppn_set.add(_eppn)
 
     if sso_session and sso_session.eppn:
         _eppn = sso_session.eppn
-        current_app.logger.info(f"SSO session belongs to {_eppn}")  # TODO: change to debug logging later
+        current_app.logger.debug(f"SSO session belongs to {_eppn}")
         eppn_set.add(_eppn)
 
     if len(eppn_set) > 1:
@@ -448,8 +448,7 @@ def _log_user_agent() -> None:
     ua = get_user_agent()
 
     if ua:
-        # TODO: change to debug logging later
-        current_app.logger.info(f"Logging in user with User-Agent {repr(ua.safe_str)}")
+        current_app.logger.debug(f"Logging in user with User-Agent {repr(ua.safe_str)}")
 
     if not ua:
         current_app.stats.count("login_finished_ua_is_none")
@@ -506,7 +505,7 @@ def _update_known_device_data(ticket: LoginContext, user: IdPUser, authn_info: A
         return
 
     if not ticket.known_device.data.eppn:
-        current_app.logger.info("Known device: Recording new eppn")  # TODO: change to debug after burn-in
+        current_app.logger.debug("Known device: Recording new eppn")
         ticket.known_device.data.eppn = user.eppn
         current_app.stats.count("login_new_device_first_login_finished")
     elif ticket.known_device.data.eppn != user.eppn:
@@ -515,13 +514,13 @@ def _update_known_device_data(ticket: LoginContext, user: IdPUser, authn_info: A
         ticket.known_device.data.eppn = user.eppn
         current_app.stats.count("login_known_device_changed_eppn")
     else:
-        current_app.logger.info("Known device: Same user logging in")  # TODO: change to debug after burn-in
+        current_app.logger.debug("Known device: Same user logging in")
         current_app.stats.count("login_known_device_login_finished")
 
     if ticket.known_device.data.ip_address != request.remote_addr:
         if ticket.known_device.data.ip_address:
             current_app.stats.count("login_known_device_ip_changed")
-        current_app.logger.info("Known device: Recording new IP address")  # TODO: change to debug after burn-in
+        current_app.logger.debug("Known device: Recording new IP address")
         current_app.logger.debug(f"Known device:   old {ticket.known_device.data.ip_address}")
         current_app.logger.debug(f"Known device:   new {request.remote_addr}")
         ticket.known_device.data.ip_address = request.remote_addr
@@ -533,15 +532,14 @@ def _update_known_device_data(ticket: LoginContext, user: IdPUser, authn_info: A
     if ticket.known_device.data.user_agent != _ua_str:
         if ticket.known_device.data.user_agent:
             current_app.stats.count("login_known_device_ua_changed")
-        current_app.logger.info("Known device: Recording new User-Agent")  # TODO: change to debug after burn-in
+        current_app.logger.debug("Known device: Recording new User-Agent")
         current_app.logger.debug(f"Known device:   old {ticket.known_device.data.user_agent}")
         current_app.logger.debug(f"Known device:   new {_ua_str}")
         ticket.known_device.data.user_agent = _ua_str
 
     if ticket.known_device.data.last_login:
         age = authn_info.instant - ticket.known_device.data.last_login
-        # TODO: change to debug after burn-in
-        current_app.logger.info(f"Known device: Last login from this device was {age} before this one")
+        current_app.logger.debug(f"Known device: Last login from this device was {age} before this one")
         current_app.logger.debug(f"Known device:   old {ticket.known_device.data.last_login.isoformat()}")
         current_app.logger.debug(f"Known device:   new {authn_info.instant.isoformat()}")
     ticket.known_device.data.last_login = authn_info.instant
