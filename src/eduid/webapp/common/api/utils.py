@@ -130,9 +130,7 @@ def has_user_logged_in_with_mfa() -> bool:
     logger.debug(f"found {authn} for frontend action {authn.frontend_action}")
     user = get_user()
 
-    if user and authn and authn.asserted_authn_ctx is EduidAuthnContextClass.REFEDS_MFA:
-        return True
-    return False
+    return bool(user and authn and authn.asserted_authn_ctx is EduidAuthnContextClass.REFEDS_MFA)
 
 
 def save_and_sync_user(

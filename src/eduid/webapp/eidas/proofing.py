@@ -318,9 +318,7 @@ class EidasProofingFunctions(SwedenConnectProofingFunctions[ForeignEidSessionInf
         date_of_birth_matches = locked_identity.date_of_birth.date() == self.session_info.attributes.date_of_birth
         given_name_matches = proofing_user.given_name == self.session_info.attributes.given_name
         surname_matches = proofing_user.surname == self.session_info.attributes.surname
-        if date_of_birth_matches and given_name_matches and surname_matches:
-            return True
-        return False
+        return date_of_birth_matches and given_name_matches and surname_matches
 
     def mark_credential_as_verified(self, credential: Credential, loa: str | None) -> VerifyCredentialResult:
         if loa not in ["eidas-nf-low", "eidas-nf-sub", "eidas-nf-high"]:
