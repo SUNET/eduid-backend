@@ -284,7 +284,7 @@ class AuthnOptions:
     @property
     def valid_options(self) -> list[str]:
         _data = self.to_dict()
-        return [x for x in _data.keys() if _data[x]]
+        return [x for x in _data if _data[x]]
 
 
 def _get_authn_options(ticket: LoginContext, sso_session: SSOSession | None, eppn: str | None) -> AuthnOptions:

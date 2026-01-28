@@ -140,12 +140,9 @@ class GroupDB(BaseGraphDB):
             """
         members_in_db = tx.run(q, scope=self.scope, identifier=group.identifier)
         for record in members_in_db:
-            remove = False
-            if role is Role.MEMBER and group.has_member(record["identifier"]) is False:
-                remove = True
-            elif role is Role.OWNER and group.has_owner(record["identifier"]) is False:
-                remove = True
-            if remove:
+            if (role is Role.MEMBER and group.has_member(record["identifier"]) is False) or (
+                role is Role.OWNER and group.has_owner(record["identifier"]) is False
+            ):
                 if Label.GROUP.value in record["labels"]:
                     self._remove_group_from_group(tx, group=group, group_identifier=record["identifier"], role=role)
                 elif Label.USER.value in record["labels"]:

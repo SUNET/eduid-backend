@@ -58,7 +58,7 @@ class CodeElement(Element):
             return cls(created_by=application, code=code_or_element, is_verified=False)
         if isinstance(code_or_element, dict):
             data = code_or_element
-            for this in data.keys():
+            for this in data:
                 if this not in [
                     "application",
                     "code",

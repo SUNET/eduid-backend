@@ -112,7 +112,7 @@ async def on_put(req: ContextRequest, resp: Response, update_request: UserUpdate
             raise BadRequest(detail="Invalid nutid linked_accounts")
 
         # Look for changes in profiles
-        for this in update_request.nutid_user_v1.profiles.keys():
+        for this in update_request.nutid_user_v1.profiles:
             if this not in db_user.profiles:
                 req.app.context.logger.info(
                     f"Adding profile {this}/{update_request.nutid_user_v1.profiles[this]} to user"
@@ -123,7 +123,7 @@ async def on_put(req: ContextRequest, resp: Response, update_request: UserUpdate
                 nutid_changed = True
             else:
                 req.app.context.logger.info(f"Profile {this}/{update_request.nutid_user_v1.profiles[this]} not changed")
-        for this in db_user.profiles.keys():
+        for this in db_user.profiles:
             if this not in update_request.nutid_user_v1.profiles:
                 req.app.context.logger.info(f"Profile {this}/{db_user.profiles[this]} removed")
                 nutid_changed = True

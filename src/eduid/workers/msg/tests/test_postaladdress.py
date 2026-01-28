@@ -1,7 +1,7 @@
 __author__ = "lundberg"
 
 import json
-from pathlib import PurePath
+from pathlib import Path, PurePath
 from unittest import TestCase
 
 from eduid.workers.msg import utils
@@ -9,8 +9,10 @@ from eduid.workers.msg import utils
 
 class TestPostalAddress(TestCase):
     def setUp(self) -> None:
-        self.navet_data = json.load(open(PurePath(__file__).with_name("data") / "navet.json"))
-        self.navet_data_unregistered = json.load(open(PurePath(__file__).with_name("data") / "navet_unregistered.json"))
+        self.navet_data = json.loads(Path(PurePath(__file__).with_name("data") / "navet.json").read_text())
+        self.navet_data_unregistered = json.loads(
+            Path(PurePath(__file__).with_name("data") / "navet_unregistered.json").read_text()
+        )
 
     def test_get_all_data_dict(self) -> None:
         result = utils.navet_get_all_data(self.navet_data)

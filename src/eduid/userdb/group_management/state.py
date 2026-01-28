@@ -48,7 +48,7 @@ class GroupInviteState:
             _data["modified_ts"] = None
 
         field_names = {f.name for f in fields(cls)}
-        _leftovers = [x for x in _data.keys() if x not in field_names]
+        _leftovers = [x for x in _data if x not in field_names]
         if _leftovers:
             raise UserDBValueError(f"{cls}.from_dict() unknown data: {_leftovers}")
 

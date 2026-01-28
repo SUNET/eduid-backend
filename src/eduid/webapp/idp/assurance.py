@@ -195,11 +195,7 @@ class AuthnState:
 
     @property
     def is_multifactor(self) -> bool:
-        if self.fido_mfa_used or self.external_mfa_used:
-            return True
-        if self.password_used and self.fido_used:
-            return True
-        return False
+        return self.fido_mfa_used or self.external_mfa_used or (self.password_used and self.fido_used)
 
     @property
     def credentials(self) -> list[UsedCredential]:
