@@ -28,7 +28,14 @@ ignore = [
   "E501",     # length of lines, fixed during formatting
   "PLR09",    # rule set for complexity checks
   "PLC0415",  # non top level imports
-  "SIM1",
+  "SIM102",   # collapsible-if
+  "SIM103",   # needless-bool
+  "SIM108",   # if-else-block-instead-of-if-exp
+  "SIM110",   # reimplemented-builtin
+  "SIM114",   # if-with-same-arms
+  "SIM115",   # open-file-with-context-handler
+  "SIM117",   # multiple-with-statements
+  "SIM118",   # in-dict-keys
   "SIM3",
 ]
 
