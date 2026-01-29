@@ -400,7 +400,7 @@ def load_hasher(
                         device=config.device, unlock_password=config.unlock_password, lock=lock, debug=debug
                     )
                 raise ValueError(f"Not a character device: {config.device}")
-            except OSError:
-                raise ValueError(f"Unknown hasher {repr(config.device)}")
+            except OSError as e:
+                raise ValueError(f"Unknown hasher {repr(config.device)}") from e
         case _:
             raise ValueError(f"Unknown hasher {repr(config)}")
