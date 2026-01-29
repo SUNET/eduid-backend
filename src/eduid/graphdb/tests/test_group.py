@@ -42,11 +42,11 @@ class TestGroup(TestCase):
         group = Group(**self.group1)
         assert user in group.members
         assert user in group.member_users
-        assert 0 == len(group.member_groups)
+        assert len(group.member_groups) == 0
         group.members.add(Group(**self.group2))
-        assert 1 == len(group.member_groups)
+        assert len(group.member_groups) == 1
         group.members.add(User(**self.user2))
-        assert 3 == len(group.members)
+        assert len(group.members) == 3
 
     def test_init_group_with_owner_and_member(self) -> None:
         user = User(**self.user1)

@@ -29,7 +29,7 @@ def get_marked_given_name(given_name: str, given_name_marking: str | None) -> st
 
     :return: Marked given name (Tilltalsnamn)
     """
-    if not given_name_marking or "00" == given_name_marking:
+    if not given_name_marking or given_name_marking == "00":
         return given_name
 
     # cheating with indexing

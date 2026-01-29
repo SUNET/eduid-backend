@@ -32,7 +32,6 @@ ignore = [
   "SIM103",   # return-bool-condition-directly (keeping explicit if/else for clarity)
   "SIM108",   # if-else-block-instead-of-if-exp
   "SIM117",   # multiple-with-statements
-  "SIM3",
 ]
 
 [lint.flake8-annotations]
