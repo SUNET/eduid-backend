@@ -225,8 +225,8 @@ class VCCSHSMKeyHasher(VCCSHasher):
         """Return information about the HSM connection."""
         return f"hsmkey PKCS#11: module={self._config.module_path}, token={self._config.token_label}"
 
+    @staticmethod
     def _get_hmac_key(
-        self,
         session: pkcs11.Session,
         key_handle: int | None = None,
         key_label: str | None = None,
