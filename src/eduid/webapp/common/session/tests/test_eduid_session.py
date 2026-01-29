@@ -220,22 +220,20 @@ class EduidSessionTests(EduidAPITestCase):
         self._test_bad_session_cookie("-1839%2Bor%2B1=2")
 
     def test_timestamp_update(self) -> None:
-        with self.browser as browser:
-            with browser.session_transaction() as sess:
-                assert isinstance(sess, EduidSession)
-                sess.idp.sso_cookie_val = "first"
-                sess._serialize_namespaces()
-                ts1 = sess.idp.ts
-                # change something (anything) in the timestamped namespace
-                sess.idp.sso_cookie_val = "second"
-                sess._serialize_namespaces()
-                ts2 = sess.idp.ts
-                # verify the timestamp was updated when the content changed
-                assert ts1 != ts2
+        with self.browser as browser, browser.session_transaction() as sess:
+            assert isinstance(sess, EduidSession)
+            sess.idp.sso_cookie_val = "first"
+            sess._serialize_namespaces()
+            ts1 = sess.idp.ts
+            # change something (anything) in the timestamped namespace
+            sess.idp.sso_cookie_val = "second"
+            sess._serialize_namespaces()
+            ts2 = sess.idp.ts
+            # verify the timestamp was updated when the content changed
+            assert ts1 != ts2
 
     def test_timestamp_dynamic_default(self) -> None:
         """Verify that not all timestamped namespaces get the same timestamp as default"""
-        with self.browser as browser:
-            with browser.session_transaction() as sess:
-                assert isinstance(sess, EduidSession)
-                assert sess.idp.ts != sess.signup.ts
+        with self.browser as browser, browser.session_transaction() as sess:
+            assert isinstance(sess, EduidSession)
+            assert sess.idp.ts != sess.signup.ts

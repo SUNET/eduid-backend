@@ -115,16 +115,15 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
     ) -> TestResponse:
         # Clear messagedb before test
         self.app.messagedb._drop_whole_collection()
-        with self.session_cookie(self.browser, inviter.eppn) as client:
-            with self.app.test_request_context():
-                with client.session_transaction() as sess:
-                    data = {
-                        "group_identifier": group_scim_id,
-                        "email_address": invite_address,
-                        "role": role,
-                        "csrf_token": sess.get_csrf_token(),
-                    }
-                response = client.post("/invites/create", data=json.dumps(data), content_type=self.content_type_json)
+        with self.session_cookie(self.browser, inviter.eppn) as client, self.app.test_request_context():
+            with client.session_transaction() as sess:
+                data = {
+                    "group_identifier": group_scim_id,
+                    "email_address": invite_address,
+                    "role": role,
+                    "csrf_token": sess.get_csrf_token(),
+                }
+            response = client.post("/invites/create", data=json.dumps(data), content_type=self.content_type_json)
         self._check_success_response(response, type_="POST_GROUP_INVITE_INVITES_CREATE_SUCCESS")
         # Verify that invite email was queued (unless self-invite)
         if expect_mail:
@@ -134,46 +133,43 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
         return response
 
     def _accept_invite(self, group_scim_id: str, invitee: User, invite_address: str, role: str) -> TestResponse:
-        with self.session_cookie(self.browser, invitee.eppn) as client:
-            with self.app.test_request_context():
-                with client.session_transaction() as sess:
-                    data = {
-                        "group_identifier": group_scim_id,
-                        "email_address": invite_address,
-                        "role": role,
-                        "csrf_token": sess.get_csrf_token(),
-                    }
-                response = client.post("/invites/accept", data=json.dumps(data), content_type=self.content_type_json)
+        with self.session_cookie(self.browser, invitee.eppn) as client, self.app.test_request_context():
+            with client.session_transaction() as sess:
+                data = {
+                    "group_identifier": group_scim_id,
+                    "email_address": invite_address,
+                    "role": role,
+                    "csrf_token": sess.get_csrf_token(),
+                }
+            response = client.post("/invites/accept", data=json.dumps(data), content_type=self.content_type_json)
         self._check_success_response(response, type_="POST_GROUP_INVITE_INVITES_ACCEPT_SUCCESS")
         return response
 
     def _decline_invite(self, group_scim_id: str, invitee: User, invite_address: str, role: str) -> TestResponse:
-        with self.session_cookie(self.browser, invitee.eppn) as client:
-            with self.app.test_request_context():
-                with client.session_transaction() as sess:
-                    data = {
-                        "group_identifier": group_scim_id,
-                        "email_address": invite_address,
-                        "role": role,
-                        "csrf_token": sess.get_csrf_token(),
-                    }
-                response = client.post("/invites/decline", data=json.dumps(data), content_type=self.content_type_json)
+        with self.session_cookie(self.browser, invitee.eppn) as client, self.app.test_request_context():
+            with client.session_transaction() as sess:
+                data = {
+                    "group_identifier": group_scim_id,
+                    "email_address": invite_address,
+                    "role": role,
+                    "csrf_token": sess.get_csrf_token(),
+                }
+            response = client.post("/invites/decline", data=json.dumps(data), content_type=self.content_type_json)
         self._check_success_response(response, type_="POST_GROUP_INVITE_INVITES_DECLINE_SUCCESS")
         return response
 
     def _delete_invite(self, group_scim_id: str, inviter: User, invite_address: str, role: str) -> TestResponse:
         # Clear messagedb before test
         self.app.messagedb._drop_whole_collection()
-        with self.session_cookie(self.browser, inviter.eppn) as client:
-            with self.app.test_request_context():
-                with client.session_transaction() as sess:
-                    data = {
-                        "group_identifier": group_scim_id,
-                        "email_address": invite_address,
-                        "role": role,
-                        "csrf_token": sess.get_csrf_token(),
-                    }
-                response = client.post("/invites/delete", data=json.dumps(data), content_type=self.content_type_json)
+        with self.session_cookie(self.browser, inviter.eppn) as client, self.app.test_request_context():
+            with client.session_transaction() as sess:
+                data = {
+                    "group_identifier": group_scim_id,
+                    "email_address": invite_address,
+                    "role": role,
+                    "csrf_token": sess.get_csrf_token(),
+                }
+            response = client.post("/invites/delete", data=json.dumps(data), content_type=self.content_type_json)
         self._check_success_response(response, type_="POST_GROUP_INVITE_INVITES_DELETE_SUCCESS")
         # Verify that cancel email was queued
         assert self.app.messagedb.db_count() == 1
@@ -259,11 +255,10 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
         assert 0 == len(payload["groups"])
 
     def test_create_group(self) -> None:
-        with self.session_cookie(self.browser, self.test_user.eppn) as client:
-            with self.app.test_request_context():
-                with client.session_transaction() as sess:
-                    data = {"display_name": "Test Group 2", "csrf_token": sess.get_csrf_token()}
-                response = client.post("/create", data=json.dumps(data), content_type=self.content_type_json)
+        with self.session_cookie(self.browser, self.test_user.eppn) as client, self.app.test_request_context():
+            with client.session_transaction() as sess:
+                data = {"display_name": "Test Group 2", "csrf_token": sess.get_csrf_token()}
+            response = client.post("/create", data=json.dumps(data), content_type=self.content_type_json)
         self._check_success_response(response, type_="POST_GROUP_MANAGEMENT_CREATE_SUCCESS")
         payload = self.get_response_payload(response)
         assert 1 == len(payload["groups"])
@@ -277,11 +272,10 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
         self.app.scimapi_userdb.remove(self.scim_user1)
         assert self.app.scimapi_userdb.get_user_by_scim_id(str(self.scim_user1.scim_id)) is None
 
-        with self.session_cookie(self.browser, self.test_user.eppn) as client:
-            with self.app.test_request_context():
-                with client.session_transaction() as sess:
-                    data = {"display_name": "Test Group 2", "csrf_token": sess.get_csrf_token()}
-                response = client.post("/create", data=json.dumps(data), content_type=self.content_type_json)
+        with self.session_cookie(self.browser, self.test_user.eppn) as client, self.app.test_request_context():
+            with client.session_transaction() as sess:
+                data = {"display_name": "Test Group 2", "csrf_token": sess.get_csrf_token()}
+            response = client.post("/create", data=json.dumps(data), content_type=self.content_type_json)
         self._check_success_response(response, type_="POST_GROUP_MANAGEMENT_CREATE_SUCCESS")
         payload = self.get_response_payload(response)
         assert 1 == len(payload["groups"])
@@ -301,11 +295,10 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
         self.scim_group2.owners = set([graph_user])
         self.app.scimapi_groupdb.save(self.scim_group2)
 
-        with self.session_cookie(self.browser, self.test_user.eppn) as client:
-            with self.app.test_request_context():
-                with client.session_transaction() as sess:
-                    data = {"group_identifier": str(self.scim_group1.scim_id), "csrf_token": sess.get_csrf_token()}
-                response = client.post("/delete", data=json.dumps(data), content_type=self.content_type_json)
+        with self.session_cookie(self.browser, self.test_user.eppn) as client, self.app.test_request_context():
+            with client.session_transaction() as sess:
+                data = {"group_identifier": str(self.scim_group1.scim_id), "csrf_token": sess.get_csrf_token()}
+            response = client.post("/delete", data=json.dumps(data), content_type=self.content_type_json)
         self._check_success_response(response, type_="POST_GROUP_MANAGEMENT_DELETE_SUCCESS")
         payload = self.get_response_payload(response)
         assert 1 == len(payload["groups"])
@@ -318,11 +311,10 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
         self.app.scimapi_userdb.remove(self.scim_user1)
         assert self.app.scimapi_userdb.get_user_by_scim_id(str(self.scim_user1.scim_id)) is None
 
-        with self.session_cookie(self.browser, self.test_user.eppn) as client:
-            with self.app.test_request_context():
-                with client.session_transaction() as sess:
-                    data = {"group_identifier": str(self.scim_group1.scim_id), "csrf_token": sess.get_csrf_token()}
-                response = client.post("/delete", data=json.dumps(data), content_type=self.content_type_json)
+        with self.session_cookie(self.browser, self.test_user.eppn) as client, self.app.test_request_context():
+            with client.session_transaction() as sess:
+                data = {"group_identifier": str(self.scim_group1.scim_id), "csrf_token": sess.get_csrf_token()}
+            response = client.post("/delete", data=json.dumps(data), content_type=self.content_type_json)
         self._check_error_response(
             response, type_="POST_GROUP_MANAGEMENT_DELETE_FAIL", msg=GroupManagementMsg.user_does_not_exist
         )
@@ -337,11 +329,10 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
         self.scim_group1.members = set([graph_user])
         self.app.scimapi_groupdb.save(self.scim_group1)
 
-        with self.session_cookie(self.browser, self.test_user.eppn) as client:
-            with self.app.test_request_context():
-                with client.session_transaction() as sess:
-                    data = {"group_identifier": str(self.scim_group1.scim_id), "csrf_token": sess.get_csrf_token()}
-                response = client.post("/delete", data=json.dumps(data), content_type=self.content_type_json)
+        with self.session_cookie(self.browser, self.test_user.eppn) as client, self.app.test_request_context():
+            with client.session_transaction() as sess:
+                data = {"group_identifier": str(self.scim_group1.scim_id), "csrf_token": sess.get_csrf_token()}
+            response = client.post("/delete", data=json.dumps(data), content_type=self.content_type_json)
         self._check_error_response(
             response, type_="POST_GROUP_MANAGEMENT_DELETE_FAIL", msg=GroupManagementMsg.user_not_owner
         )
@@ -359,11 +350,10 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
         self._invite_setup()
         assert 3 == len(self.app.invite_state_db.get_states_by_group_scim_id(str(self.scim_group1.scim_id)))
 
-        with self.session_cookie(self.browser, self.test_user.eppn) as client:
-            with self.app.test_request_context():
-                with client.session_transaction() as sess:
-                    data = {"group_identifier": str(self.scim_group1.scim_id), "csrf_token": sess.get_csrf_token()}
-                response = client.post("/delete", data=json.dumps(data), content_type=self.content_type_json)
+        with self.session_cookie(self.browser, self.test_user.eppn) as client, self.app.test_request_context():
+            with client.session_transaction() as sess:
+                data = {"group_identifier": str(self.scim_group1.scim_id), "csrf_token": sess.get_csrf_token()}
+            response = client.post("/delete", data=json.dumps(data), content_type=self.content_type_json)
         self._check_success_response(response, type_="POST_GROUP_MANAGEMENT_DELETE_SUCCESS")
 
         assert self.app.scimapi_groupdb.group_exists(str(self.scim_group1.scim_id)) is False
@@ -385,16 +375,15 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
         found_members = [member for member in group.graph.members if member.identifier == str(self.scim_user2.scim_id)]
         assert 1 == len(found_members)
 
-        with self.session_cookie(self.browser, self.test_user.eppn) as client:
-            with self.app.test_request_context():
-                with client.session_transaction() as sess:
-                    data = {
-                        "group_identifier": str(self.scim_group1.scim_id),
-                        "user_identifier": str(self.scim_user2.scim_id),
-                        "role": "member",
-                        "csrf_token": sess.get_csrf_token(),
-                    }
-                response = client.post("/remove-user", data=json.dumps(data), content_type=self.content_type_json)
+        with self.session_cookie(self.browser, self.test_user.eppn) as client, self.app.test_request_context():
+            with client.session_transaction() as sess:
+                data = {
+                    "group_identifier": str(self.scim_group1.scim_id),
+                    "user_identifier": str(self.scim_user2.scim_id),
+                    "role": "member",
+                    "csrf_token": sess.get_csrf_token(),
+                }
+            response = client.post("/remove-user", data=json.dumps(data), content_type=self.content_type_json)
         self._check_success_response(response, type_="POST_GROUP_MANAGEMENT_REMOVE_USER_SUCCESS")
         payload = self.get_response_payload(response)
         assert 1 == len(payload["groups"])
@@ -418,16 +407,15 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
         found_members = [member for member in group.graph.members if member.identifier == str(self.scim_user2.scim_id)]
         assert 1 == len(found_members)
 
-        with self.session_cookie(self.browser, self.test_user.eppn) as client:
-            with self.app.test_request_context():
-                with client.session_transaction() as sess:
-                    data = {
-                        "group_identifier": str(self.scim_group1.scim_id),
-                        "user_identifier": str(self.scim_user2.scim_id),
-                        "role": "member",
-                        "csrf_token": sess.get_csrf_token(),
-                    }
-                response = client.post("/remove-user", data=json.dumps(data), content_type=self.content_type_json)
+        with self.session_cookie(self.browser, self.test_user.eppn) as client, self.app.test_request_context():
+            with client.session_transaction() as sess:
+                data = {
+                    "group_identifier": str(self.scim_group1.scim_id),
+                    "user_identifier": str(self.scim_user2.scim_id),
+                    "role": "member",
+                    "csrf_token": sess.get_csrf_token(),
+                }
+            response = client.post("/remove-user", data=json.dumps(data), content_type=self.content_type_json)
         self._check_error_response(
             response, type_="POST_GROUP_MANAGEMENT_REMOVE_USER_FAIL", msg=GroupManagementMsg.user_not_owner
         )
@@ -450,16 +438,15 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
         assert group is not None
         assert group.has_owner(self.scim_user2.scim_id) is True
 
-        with self.session_cookie(self.browser, self.test_user.eppn) as client:
-            with self.app.test_request_context():
-                with client.session_transaction() as sess:
-                    data = {
-                        "group_identifier": str(self.scim_group1.scim_id),
-                        "user_identifier": str(self.scim_user2.scim_id),
-                        "role": "owner",
-                        "csrf_token": sess.get_csrf_token(),
-                    }
-                response = client.post("/remove-user", data=json.dumps(data), content_type=self.content_type_json)
+        with self.session_cookie(self.browser, self.test_user.eppn) as client, self.app.test_request_context():
+            with client.session_transaction() as sess:
+                data = {
+                    "group_identifier": str(self.scim_group1.scim_id),
+                    "user_identifier": str(self.scim_user2.scim_id),
+                    "role": "owner",
+                    "csrf_token": sess.get_csrf_token(),
+                }
+            response = client.post("/remove-user", data=json.dumps(data), content_type=self.content_type_json)
         self._check_success_response(response, type_="POST_GROUP_MANAGEMENT_REMOVE_USER_SUCCESS")
         payload = self.get_response_payload(response)
         assert 1 == len(payload["groups"])
@@ -483,16 +470,15 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
         found_owners = [owner for owner in group.graph.owners if owner.identifier == str(self.scim_user1.scim_id)]
         assert 1 == len(found_owners)
 
-        with self.session_cookie(self.browser, self.test_user.eppn) as client:
-            with self.app.test_request_context():
-                with client.session_transaction() as sess:
-                    data = {
-                        "group_identifier": str(self.scim_group1.scim_id),
-                        "user_identifier": str(self.scim_user1.scim_id),
-                        "role": "owner",
-                        "csrf_token": sess.get_csrf_token(),
-                    }
-                response = client.post("/remove-user", data=json.dumps(data), content_type=self.content_type_json)
+        with self.session_cookie(self.browser, self.test_user.eppn) as client, self.app.test_request_context():
+            with client.session_transaction() as sess:
+                data = {
+                    "group_identifier": str(self.scim_group1.scim_id),
+                    "user_identifier": str(self.scim_user1.scim_id),
+                    "role": "owner",
+                    "csrf_token": sess.get_csrf_token(),
+                }
+            response = client.post("/remove-user", data=json.dumps(data), content_type=self.content_type_json)
         self._check_error_response(response, type_="POST_GROUP_MANAGEMENT_REMOVE_USER_FAIL")
 
         # Check that test_user1 is still owner of scim_group1
@@ -513,16 +499,15 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
         assert group is not None
         assert group.has_member(self.scim_user1.scim_id) is True
 
-        with self.session_cookie(self.browser, self.test_user.eppn) as client:
-            with self.app.test_request_context():
-                with client.session_transaction() as sess:
-                    data = {
-                        "group_identifier": str(self.scim_group1.scim_id),
-                        "user_identifier": str(self.scim_user1.scim_id),
-                        "role": "member",
-                        "csrf_token": sess.get_csrf_token(),
-                    }
-                response = client.post("/remove-user", data=json.dumps(data), content_type=self.content_type_json)
+        with self.session_cookie(self.browser, self.test_user.eppn) as client, self.app.test_request_context():
+            with client.session_transaction() as sess:
+                data = {
+                    "group_identifier": str(self.scim_group1.scim_id),
+                    "user_identifier": str(self.scim_user1.scim_id),
+                    "role": "member",
+                    "csrf_token": sess.get_csrf_token(),
+                }
+            response = client.post("/remove-user", data=json.dumps(data), content_type=self.content_type_json)
         self._check_success_response(response, type_="POST_GROUP_MANAGEMENT_REMOVE_USER_SUCCESS")
         payload = self.get_response_payload(response)
         assert 0 == len(payload["groups"])
@@ -545,16 +530,15 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
         found_members = [member for member in group.graph.members if member.identifier == str(self.scim_user2.scim_id)]
         assert 0 == len(found_members)
 
-        with self.session_cookie(self.browser, self.test_user.eppn) as client:
-            with self.app.test_request_context():
-                with client.session_transaction() as sess:
-                    data = {
-                        "group_identifier": str(self.scim_group1.scim_id),
-                        "user_identifier": str(self.scim_user2.scim_id),
-                        "role": "member",
-                        "csrf_token": sess.get_csrf_token(),
-                    }
-                response = client.post("/remove-user", data=json.dumps(data), content_type=self.content_type_json)
+        with self.session_cookie(self.browser, self.test_user.eppn) as client, self.app.test_request_context():
+            with client.session_transaction() as sess:
+                data = {
+                    "group_identifier": str(self.scim_group1.scim_id),
+                    "user_identifier": str(self.scim_user2.scim_id),
+                    "role": "member",
+                    "csrf_token": sess.get_csrf_token(),
+                }
+            response = client.post("/remove-user", data=json.dumps(data), content_type=self.content_type_json)
         self._check_success_response(response, type_="POST_GROUP_MANAGEMENT_REMOVE_USER_SUCCESS")
         payload = self.get_response_payload(response)
         assert 1 == len(payload["groups"])

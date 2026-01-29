@@ -297,17 +297,16 @@ class AuthnAPITestCase(AuthnAPITestBase):
     def _signup_authn_user(self, eppn: str) -> ResponseReturnValue:
         timestamp = utc_now()
 
-        with self.app.test_client() as c:
-            with self.app.test_request_context("/signup-authn"):
-                c.set_cookie(
-                    domain="test.localhost",
-                    key=self.app.conf.flask.session_cookie_name,
-                    value=session.meta.cookie_val[16:],
-                )
-                session.common.eppn = eppn
-                session.signup.ts = timestamp
+        with self.app.test_client() as c, self.app.test_request_context("/signup-authn"):
+            c.set_cookie(
+                domain="test.localhost",
+                key=self.app.conf.flask.session_cookie_name,
+                value=session.meta.cookie_val[16:],
+            )
+            session.common.eppn = eppn
+            session.signup.ts = timestamp
 
-                return self.app.dispatch_request()
+            return self.app.dispatch_request()
 
 
 class AuthnTestApp(AuthnBaseApp):

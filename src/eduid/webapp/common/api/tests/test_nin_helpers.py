@@ -402,9 +402,8 @@ class NinHelpersTest(EduidAPITestCase[HelpersTestApp]):
         proofing_log_entry = self._get_nin_navet_proofing_log_entry(
             user=user, created_by=nin_element.created_by, nin=nin_element.number
         )
-        with self.app.app_context():
-            with pytest.raises(LockedIdentityViolation):
-                verify_nin_for_user(user, proofing_state, proofing_log_entry)
+        with self.app.app_context(), pytest.raises(LockedIdentityViolation):
+            verify_nin_for_user(user, proofing_state, proofing_log_entry)
 
     @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
     def test_verify_changed_nin_for_user_existing_not_verified(self, mock_reference_nin: MagicMock) -> None:

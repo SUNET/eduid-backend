@@ -98,22 +98,21 @@ class EmailTests(EduidAPITestCase[EmailApp]):
         mock_request_user_sync.side_effect = self.request_user_sync
         eppn = self.test_user_data["eduPersonPrincipalName"]
 
-        with self.session_cookie(self.browser, eppn) as client:
-            with self.app.test_request_context():
-                with client.session_transaction() as sess:
-                    data = {
-                        "email": "johnsmith3@example.com",
-                        "verified": False,
-                        "primary": False,
-                        "csrf_token": sess.get_csrf_token(),
-                    }
-                if data1 is not None:
-                    data.update(data1)
+        with self.session_cookie(self.browser, eppn) as client, self.app.test_request_context():
+            with client.session_transaction() as sess:
+                data = {
+                    "email": "johnsmith3@example.com",
+                    "verified": False,
+                    "primary": False,
+                    "csrf_token": sess.get_csrf_token(),
+                }
+            if data1 is not None:
+                data.update(data1)
 
-                if send_data:
-                    return client.post("/new", data=json.dumps(data), content_type=self.content_type_json)
+            if send_data:
+                return client.post("/new", data=json.dumps(data), content_type=self.content_type_json)
 
-                return client.post("/new")
+            return client.post("/new")
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def _post_primary(self, mock_request_user_sync: MagicMock, data1: dict[str, Any] | None = None) -> TestResponse:
@@ -129,16 +128,15 @@ class EmailTests(EduidAPITestCase[EmailApp]):
 
         eppn = self.test_user_data["eduPersonPrincipalName"]
 
-        with self.session_cookie(self.browser, eppn) as client:
-            with self.app.test_request_context():
-                with client.session_transaction() as sess:
-                    data = {
-                        "csrf_token": sess.get_csrf_token(),
-                    }
-                    if data1 is not None:
-                        data.update(data1)
+        with self.session_cookie(self.browser, eppn) as client, self.app.test_request_context():
+            with client.session_transaction() as sess:
+                data = {
+                    "csrf_token": sess.get_csrf_token(),
+                }
+                if data1 is not None:
+                    data.update(data1)
 
-                return client.post("/primary", data=json.dumps(data), content_type=self.content_type_json)
+            return client.post("/primary", data=json.dumps(data), content_type=self.content_type_json)
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def _remove(self, mock_request_user_sync: MagicMock, data1: dict[str, Any] | None = None) -> TestResponse:

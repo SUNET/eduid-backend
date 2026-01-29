@@ -510,13 +510,12 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         expect_success: bool = True,
         expected_message: TranslatableMsg | None = None,
     ) -> TestResponse:
-        with self.session_cookie_anon(self.browser) as client:
-            with self.app.test_request_context():
-                endpoint = url_for("reset_password.captcha_request")
-                with client.session_transaction() as sess:
-                    data = {
-                        "csrf_token": sess.get_csrf_token(),
-                    }
+        with self.session_cookie_anon(self.browser) as client, self.app.test_request_context():
+            endpoint = url_for("reset_password.captcha_request")
+            with client.session_transaction() as sess:
+                data = {
+                    "csrf_token": sess.get_csrf_token(),
+                }
         response = client.post(f"{endpoint}", data=json.dumps(data), content_type=self.content_type_json)
 
         if expect_success:
@@ -548,56 +547,55 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         :param captcha_data: to control the data POSTed to the /captcha endpoint
         :param add_magic_cookie: add magic cookie to the captcha request
         """
-        with self.session_cookie_anon(self.browser) as client:
-            with self.app.test_request_context():
-                endpoint = url_for("reset_password.captcha_response")
-                with client.session_transaction() as sess:
-                    data = {
-                        "csrf_token": sess.get_csrf_token(),
-                        "internal_response": sess.reset_password.captcha.internal_answer,
-                    }
+        with self.session_cookie_anon(self.browser) as client, self.app.test_request_context():
+            endpoint = url_for("reset_password.captcha_response")
+            with client.session_transaction() as sess:
+                data = {
+                    "csrf_token": sess.get_csrf_token(),
+                    "internal_response": sess.reset_password.captcha.internal_answer,
+                }
 
-                if add_magic_cookie:
-                    assert self.app.conf.magic_cookie_name is not None
-                    assert self.app.conf.magic_cookie is not None
-                    if magic_cookie_name is None:
-                        magic_cookie_name = self.app.conf.magic_cookie_name
-                    client.set_cookie(domain=self.test_domain, key=magic_cookie_name, value=self.app.conf.magic_cookie)
-                    # set backdoor captcha code
-                    data["internal_response"] = self.app.conf.captcha_backdoor_code
+            if add_magic_cookie:
+                assert self.app.conf.magic_cookie_name is not None
+                assert self.app.conf.magic_cookie is not None
+                if magic_cookie_name is None:
+                    magic_cookie_name = self.app.conf.magic_cookie_name
+                client.set_cookie(domain=self.test_domain, key=magic_cookie_name, value=self.app.conf.magic_cookie)
+                # set backdoor captcha code
+                data["internal_response"] = self.app.conf.captcha_backdoor_code
 
-                if captcha_data is not None:
-                    data.update(captcha_data)
-                    # remove any None values
-                    data = {k: v for k, v in data.items() if v is not None}
+            if captcha_data is not None:
+                data.update(captcha_data)
+                # remove any None values
+                data = {k: v for k, v in data.items() if v is not None}
 
-                response = client.post(f"{endpoint}", data=json.dumps(data), content_type=self.content_type_json)
-                if response.status_code != HTTPStatus.OK:
-                    return response
-
-                if expect_success:
-                    if not expected_payload:
-                        assert self.get_response_payload(response)["captcha_completed"] is True
-
-                    self._check_api_response(
-                        response,
-                        status=200,
-                        message=expected_message,
-                        type_="POST_RESET_PASSWORD_CAPTCHA_SUCCESS",
-                        payload=expected_payload,
-                        assure_not_in_payload=["verification_code"],
-                    )
-                else:
-                    self._check_api_response(
-                        response,
-                        status=200,
-                        message=expected_message,
-                        type_="POST_RESET_PASSWORD_CAPTCHA_FAIL",
-                        payload=expected_payload,
-                        assure_not_in_payload=["verification_code"],
-                    )
-
+            response = client.post(f"{endpoint}", data=json.dumps(data), content_type=self.content_type_json)
+            if response.status_code != HTTPStatus.OK:
                 return response
+
+            if expect_success:
+                if not expected_payload:
+                    assert self.get_response_payload(response)["captcha_completed"] is True
+
+                self._check_api_response(
+                    response,
+                    status=200,
+                    message=expected_message,
+                    type_="POST_RESET_PASSWORD_CAPTCHA_SUCCESS",
+                    payload=expected_payload,
+                    assure_not_in_payload=["verification_code"],
+                )
+            else:
+                self._check_api_response(
+                    response,
+                    status=200,
+                    message=expected_message,
+                    type_="POST_RESET_PASSWORD_CAPTCHA_FAIL",
+                    payload=expected_payload,
+                    assure_not_in_payload=["verification_code"],
+                )
+
+            return response
 
     # actual tests
     def test_correct_user_setup(self) -> None:

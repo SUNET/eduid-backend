@@ -179,15 +179,14 @@ class CreatePDFTest(EduidAPITestCase):
             )
         )
 
-        with self.app.app_context():
-            with self.app.test_request_context():
-                pdf_document = pdf.create_pdf(
-                    recipient,
-                    verification_code="bogus code",
-                    created_timestamp=utc_now(),
-                    primary_mail_address="test@example.org",
-                    letter_wait_time_hours=336,
-                )
+        with self.app.app_context(), self.app.test_request_context():
+            pdf_document = pdf.create_pdf(
+                recipient,
+                verification_code="bogus code",
+                created_timestamp=utc_now(),
+                primary_mail_address="test@example.org",
+                letter_wait_time_hours=336,
+            )
         self.assertIsInstance(pdf_document, (StringIO, BytesIO))
 
         pdf_text = PdfReader(pdf_document).pages[0].extract_text()

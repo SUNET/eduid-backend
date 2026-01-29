@@ -1074,11 +1074,10 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         )
         assert res.reached_state == SignupState.S4_REGISTER_EMAIL
         assert self.app.messagedb.db_count() == 1
-        with self.session_cookie(self.browser, eppn=None) as client:
-            with client.session_transaction() as sess:
-                assert sess.signup.email.address == email
-                assert sess.signup.name.given_name == given_name
-                assert sess.signup.name.surname == surname
+        with self.session_cookie(self.browser, eppn=None) as client, client.session_transaction() as sess:
+            assert sess.signup.email.address == email
+            assert sess.signup.name.given_name == given_name
+            assert sess.signup.name.surname == surname
 
     def test_register_new_user_logged_in(self) -> None:
         given_name = "John"
@@ -1102,9 +1101,8 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         res = self._register_email(email=mixed_case_email)
         assert res.reached_state == SignupState.S4_REGISTER_EMAIL
 
-        with self.session_cookie_anon(self.browser) as client:
-            with client.session_transaction() as sess:
-                assert sess.signup.email.address == mixed_case_email.lower()
+        with self.session_cookie_anon(self.browser) as client, client.session_transaction() as sess:
+            assert sess.signup.email.address == mixed_case_email.lower()
 
     def test_register_existing_user(self) -> None:
         self._get_captcha()
@@ -1145,14 +1143,12 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         self._get_captcha()
         self._captcha()
         self._register_email(expect_success=True, expected_message=None)
-        with self.session_cookie_anon(self.browser) as client:
-            with client.session_transaction() as sess:
-                sess.signup.email.sent_at = utc_now() - timedelta(minutes=6)
-                verification_code = sess.signup.email.verification_code
+        with self.session_cookie_anon(self.browser) as client, client.session_transaction() as sess:
+            sess.signup.email.sent_at = utc_now() - timedelta(minutes=6)
+            verification_code = sess.signup.email.verification_code
         res = self._register_email(expect_success=True, expected_payload=None)
-        with self.session_cookie_anon(self.browser) as client:
-            with client.session_transaction() as sess:
-                assert verification_code == sess.signup.email.verification_code
+        with self.session_cookie_anon(self.browser) as client, client.session_transaction() as sess:
+            assert verification_code == sess.signup.email.verification_code
         assert res.reached_state == SignupState.S4_REGISTER_EMAIL
         assert self.app.messagedb.db_count() == 2
 
@@ -1168,14 +1164,12 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         self._get_captcha()
         self._captcha()
         self._register_email(expect_success=True, expected_message=None)
-        with self.session_cookie_anon(self.browser) as client:
-            with client.session_transaction() as sess:
-                sess.signup.email.sent_at = utc_now() - timedelta(hours=25)
-                verification_code = sess.signup.email.verification_code
+        with self.session_cookie_anon(self.browser) as client, client.session_transaction() as sess:
+            sess.signup.email.sent_at = utc_now() - timedelta(hours=25)
+            verification_code = sess.signup.email.verification_code
         res = self._register_email(expect_success=True, expected_payload=None)
-        with self.session_cookie_anon(self.browser) as client:
-            with client.session_transaction() as sess:
-                assert verification_code != sess.signup.email.verification_code
+        with self.session_cookie_anon(self.browser) as client, client.session_transaction() as sess:
+            assert verification_code != sess.signup.email.verification_code
         assert res.reached_state == SignupState.S4_REGISTER_EMAIL
         assert self.app.messagedb.db_count() == 2
 
@@ -1224,9 +1218,8 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         response = self._verify_email()
         assert response.reached_state == SignupState.S5_VERIFY_EMAIL
 
-        with self.session_cookie_anon(self.browser) as client:
-            with client.session_transaction() as sess:
-                assert sess.signup.email.address == mixed_case_email.lower()
+        with self.session_cookie_anon(self.browser) as client, client.session_transaction() as sess:
+            assert sess.signup.email.address == mixed_case_email.lower()
 
     def test_create_user(self) -> None:
         given_name = "Testaren Test"
@@ -1236,11 +1229,10 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         response = self._create_user(expect_success=True)
         assert response.reached_state == SignupState.S6_CREATE_USER
 
-        with self.session_cookie_anon(self.browser) as client:
-            with client.session_transaction() as sess:
-                eppn = sess.common.eppn
-                assert eppn is not None
-                assert sess.signup.credentials.generated_password is None
+        with self.session_cookie_anon(self.browser) as client, client.session_transaction() as sess:
+            eppn = sess.common.eppn
+            assert eppn is not None
+            assert sess.signup.credentials.generated_password is None
         user = self.app.central_userdb.get_user_by_eppn(eppn)
         assert user.given_name == given_name
         assert user.surname == surname
@@ -1266,10 +1258,9 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         response = self._create_user(data=data, custom_password="9MbKxTHhCDK3Y9hhn6", expect_success=True)
         assert response.reached_state == SignupState.S6_CREATE_USER
 
-        with self.session_cookie_anon(self.browser) as client:
-            with client.session_transaction() as sess:
-                eppn = sess.common.eppn
-                assert eppn is not None
+        with self.session_cookie_anon(self.browser) as client, client.session_transaction() as sess:
+            eppn = sess.common.eppn
+            assert eppn is not None
 
         user = self.app.central_userdb.get_user_by_eppn(eppn)
         passwords = user.credentials.filter(Password)
@@ -1437,10 +1428,9 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         res = self._complete_invite()
         assert res.reached_state == SignupState.S7_COMPLETE_INVITE
 
-        with self.session_cookie_anon(self.browser) as client:
-            with client.session_transaction() as sess:
-                eppn = sess.common.eppn
-                assert eppn is not None
+        with self.session_cookie_anon(self.browser) as client, client.session_transaction() as sess:
+            eppn = sess.common.eppn
+            assert eppn is not None
 
         user = self.app.central_userdb.get_user_by_eppn(eppn)
         assert user.given_name == invite.given_name
@@ -1461,10 +1451,9 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         res = self._complete_invite(eppn=user.eppn)
         assert res.reached_state == SignupState.S7_COMPLETE_INVITE
 
-        with self.session_cookie(self.browser, eppn=user.eppn) as client:
-            with client.session_transaction() as sess:
-                eppn = sess.common.eppn
-                assert eppn is not None
+        with self.session_cookie(self.browser, eppn=user.eppn) as client, client.session_transaction() as sess:
+            eppn = sess.common.eppn
+            assert eppn is not None
 
         user = self.app.central_userdb.get_user_by_eppn(eppn)
         assert user.given_name == previous_given_name
@@ -1492,9 +1481,8 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         self._register_email(email=email)
         response = self._get_code_backdoor(email=email)
 
-        with self.session_cookie(self.browser, eppn=None) as client:
-            with client.session_transaction() as sess:
-                assert response.text == sess.signup.email.verification_code
+        with self.session_cookie(self.browser, eppn=None) as client, client.session_transaction() as sess:
+            assert response.text == sess.signup.email.verification_code
 
     def test_get_code_no_backdoor_in_pro(self) -> None:
         self.app.conf.magic_cookie = "magic-cookie"

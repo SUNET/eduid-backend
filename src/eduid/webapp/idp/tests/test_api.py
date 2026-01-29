@@ -317,11 +317,10 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
                         raise AssertionError(f"Unexpected action: {failed_action} - result {result}")
 
     def _call_next(self, device: CSRFTestClient, ref: str) -> NextResult:
-        with self.session_cookie_anon(device) as client:
-            with self.app.test_request_context():
-                with client.session_transaction() as sess:
-                    data = {"ref": ref, "csrf_token": sess.get_csrf_token()}
-                response = client.post("/next", data=json.dumps(data), content_type=self.content_type_json)
+        with self.session_cookie_anon(device) as client, self.app.test_request_context():
+            with client.session_transaction() as sess:
+                data = {"ref": ref, "csrf_token": sess.get_csrf_token()}
+            response = client.post("/next", data=json.dumps(data), content_type=self.content_type_json)
         logger.debug(f"Next endpoint returned:\n{json.dumps(response.json, indent=4)}")
         if response.is_json:
             assert response.json is not None
@@ -345,13 +344,12 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
         self, device: CSRFTestClient, target: str, ref: str, username: str | None = None, password: str | None = None
     ) -> PwAuthResult:
         assert password is not None, "password is required for _call_pwauth"
-        with self.session_cookie_anon(device) as client:
-            with self.app.test_request_context():
-                with client.session_transaction() as sess:
-                    data = {"ref": ref, "password": password, "csrf_token": sess.get_csrf_token()}
-                    if username:
-                        data["username"] = username
-                response = client.post(target, data=json.dumps(data), content_type=self.content_type_json)
+        with self.session_cookie_anon(device) as client, self.app.test_request_context():
+            with client.session_transaction() as sess:
+                data = {"ref": ref, "password": password, "csrf_token": sess.get_csrf_token()}
+                if username:
+                    data["username"] = username
+            response = client.post(target, data=json.dumps(data), content_type=self.content_type_json)
         logger.debug(f"PwAuth endpoint returned:\n{json.dumps(response.json, indent=4)}")
         result = PwAuthResult(payload=self.get_response_payload(response))
         cookies = response.headers.get("Set-Cookie")
@@ -369,13 +367,12 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
         return result
 
     def _call_tou(self, device: CSRFTestClient, target: str, ref: str, user_accepts: str | None) -> TouResult:
-        with self.session_cookie_anon(device) as client:
-            with self.app.test_request_context():
-                with client.session_transaction() as sess:
-                    data = {"ref": ref, "csrf_token": sess.get_csrf_token()}
-                    if user_accepts:
-                        data["user_accepts"] = user_accepts
-                response = client.post(target, data=json.dumps(data), content_type=self.content_type_json)
+        with self.session_cookie_anon(device) as client, self.app.test_request_context():
+            with client.session_transaction() as sess:
+                data = {"ref": ref, "csrf_token": sess.get_csrf_token()}
+                if user_accepts:
+                    data["user_accepts"] = user_accepts
+            response = client.post(target, data=json.dumps(data), content_type=self.content_type_json)
         logger.debug(f"ToU endpoint returned:\n{json.dumps(response.json, indent=4)}")
         result = TouResult(payload=self.get_response_payload(response))
         return result
@@ -394,11 +391,10 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
         mock_stv.return_value = WebauthnChallenge(webauthn_options={"mock_webautn_options": "mock_webauthn_options"})
         mock_cw.return_value = None
         # first call to mfa endpoint returns a challenge
-        with self.session_cookie_anon(device) as client:
-            with self.app.test_request_context():
-                with client.session_transaction() as sess:
-                    data = {"ref": ref, "csrf_token": sess.get_csrf_token()}
-                response = client.post(target, json=data)
+        with self.session_cookie_anon(device) as client, self.app.test_request_context():
+            with client.session_transaction() as sess:
+                data = {"ref": ref, "csrf_token": sess.get_csrf_token()}
+            response = client.post(target, json=data)
 
         payload = self.get_response_payload(response=response)
         assert payload.get("webauthn_options") == mock_stv.return_value.webauthn_options, (
@@ -413,11 +409,10 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
             credential=mfa_credential, authn_data=AuthnData(cred_id=mfa_credential.key, timestamp=utc_now())
         )
         # second call to mfa endpoint returns a result
-        with self.session_cookie_anon(device) as client:
-            with self.app.test_request_context():
-                with client.session_transaction() as sess:
-                    data = {"ref": ref, "csrf_token": sess.get_csrf_token()}
-                response = client.post(target, json=data)
+        with self.session_cookie_anon(device) as client, self.app.test_request_context():
+            with client.session_transaction() as sess:
+                data = {"ref": ref, "csrf_token": sess.get_csrf_token()}
+            response = client.post(target, json=data)
 
         result = MfaResult(payload=self.get_response_payload(response))
         return result
@@ -425,14 +420,13 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
     def _call_other_device1(
         self, device: CSRFTestClient, target: str, ref: str, response_code: str | None = None
     ) -> OtherDevice1Result:
-        with self.session_cookie_anon(device) as client:
-            with self.app.test_request_context():
-                with client.session_transaction() as sess:
-                    data = {"ref": ref, "csrf_token": sess.get_csrf_token()}
-                    if response_code is not None:
-                        data["action"] = "SUBMIT_CODE"
-                        data["response_code"] = response_code
-                response = client.post(target, data=json.dumps(data), content_type=self.content_type_json)
+        with self.session_cookie_anon(device) as client, self.app.test_request_context():
+            with client.session_transaction() as sess:
+                data = {"ref": ref, "csrf_token": sess.get_csrf_token()}
+                if response_code is not None:
+                    data["action"] = "SUBMIT_CODE"
+                    data["response_code"] = response_code
+            response = client.post(target, data=json.dumps(data), content_type=self.content_type_json)
         logger.debug(f"Other device1 endpoint returned:\n{json.dumps(response.json, indent=4)}")
         result = OtherDevice1Result(payload=self.get_response_payload(response))
         session_cookie_val = self.get_cookie_val(
@@ -460,11 +454,10 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
         target: str,
         state_id: str,
     ) -> OtherDevice2Result:
-        with self.session_cookie_anon(device) as client:
-            with self.app.test_request_context():
-                with client.session_transaction() as sess:
-                    data = {"state_id": state_id, "csrf_token": sess.get_csrf_token()}
-                response = client.post(target, data=json.dumps(data), content_type=self.content_type_json)
+        with self.session_cookie_anon(device) as client, self.app.test_request_context():
+            with client.session_transaction() as sess:
+                data = {"state_id": state_id, "csrf_token": sess.get_csrf_token()}
+            response = client.post(target, data=json.dumps(data), content_type=self.content_type_json)
         logger.debug(f"Other device2 endpoint returned:\n{json.dumps(response.json, indent=4)}")
         result = OtherDevice2Result(payload=self.get_response_payload(response))
         session_cookie_val = self.get_cookie_val(

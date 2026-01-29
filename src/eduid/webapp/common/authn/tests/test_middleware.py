@@ -41,9 +41,8 @@ class AuthnTests(EduidAPITestCase):
         response = self.browser.get("/some/path")
         self.assertEqual(response.status_code, 401)
 
-        with self.session_cookie(self.browser, "hubba-bubba") as client:
-            with self.assertRaises(NotFound):
-                client.get("/some/path")
+        with self.session_cookie(self.browser, "hubba-bubba") as client, self.assertRaises(NotFound):
+            client.get("/some/path")
 
 
 class UnAuthnTests(EduidAPITestCase):

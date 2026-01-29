@@ -346,18 +346,17 @@ class EduidAPITestCase[T: EduIDBaseApp](CommonTestCase):
         if len(credentials_used) >= 2:  # noqa: PLR2004
             accr = EduidAuthnContextClass.REFEDS_MFA
 
-        with self.session_cookie(self.browser, eppn) as client:
-            with client.session_transaction() as sess:
-                # Add authn data faking a reauthn event has taken place for this action
-                sp_authn_req = SP_AuthnRequest(
-                    post_authn_action=post_authn_action,
-                    authn_instant=utc_now() - age,
-                    frontend_action=frontend_action,
-                    credentials_used=credentials_used,
-                    finish_url=finish_url,
-                    asserted_authn_ctx=accr,
-                )
-                sess.authn.sp.authns[sp_authn_req.authn_id] = sp_authn_req
+        with self.session_cookie(self.browser, eppn) as client, client.session_transaction() as sess:
+            # Add authn data faking a reauthn event has taken place for this action
+            sp_authn_req = SP_AuthnRequest(
+                post_authn_action=post_authn_action,
+                authn_instant=utc_now() - age,
+                frontend_action=frontend_action,
+                credentials_used=credentials_used,
+                finish_url=finish_url,
+                asserted_authn_ctx=accr,
+            )
+            sess.authn.sp.authns[sp_authn_req.authn_id] = sp_authn_req
 
     def setup_signup_authn(self, eppn: str | None = None, user_created_at: datetime | None = None) -> None:
         if eppn is None:
@@ -365,10 +364,9 @@ class EduidAPITestCase[T: EduIDBaseApp](CommonTestCase):
         if user_created_at is None:
             user_created_at = utc_now() - timedelta(minutes=3)
         # mock recent account creation from signup
-        with self.session_cookie(self.browser, eppn) as client:
-            with client.session_transaction() as sess:
-                sess.signup.user_created = True
-                sess.signup.user_created_at = user_created_at
+        with self.session_cookie(self.browser, eppn) as client, client.session_transaction() as sess:
+            sess.signup.user_created = True
+            sess.signup.user_created_at = user_created_at
 
     def add_security_key_to_user(
         self,

@@ -249,13 +249,12 @@ class SecurityWebauthnTests(EduidAPITestCase):
             self._add_token_to_user(client_data=CLIENT_DATA_JSON_2, attestation=ATTESTATION_OBJECT_2, state=STATE_2)
 
         with self.session_cookie(self.browser, self.test_user_eppn) as client:
-            with client.session_transaction() as sess:
-                with self.app.test_request_context():
-                    if csrf is not None:
-                        csrf_token = csrf
-                    else:
-                        csrf_token = sess.get_csrf_token()
-                    data = {"csrf_token": csrf_token, "authenticator": authenticator}
+            with client.session_transaction() as sess, self.app.test_request_context():
+                if csrf is not None:
+                    csrf_token = csrf
+                else:
+                    csrf_token = sess.get_csrf_token()
+                data = {"csrf_token": csrf_token, "authenticator": authenticator}
             response2 = client.post(
                 "/webauthn/register/begin", data=json.dumps(data), content_type=self.content_type_json
             )
@@ -305,29 +304,28 @@ class SecurityWebauthnTests(EduidAPITestCase):
 
         webauthn_state = WebauthnState(state)
         with self.session_cookie(self.browser, self.test_user_eppn) as client:
-            with self.app.test_request_context():
-                with client.session_transaction() as sess:
-                    assert isinstance(sess, EduidSession)
-                    sess.security.webauthn_registration = WebauthnRegistration(
-                        webauthn_state=webauthn_state, authenticator=AuthenticatorAttachment.CROSS_PLATFORM
-                    )
-                    if csrf is not None:
-                        csrf_token = csrf
-                    else:
-                        csrf_token = sess.get_csrf_token()
-                    data = {
-                        "csrf_token": csrf_token,
+            with self.app.test_request_context(), client.session_transaction() as sess:
+                assert isinstance(sess, EduidSession)
+                sess.security.webauthn_registration = WebauthnRegistration(
+                    webauthn_state=webauthn_state, authenticator=AuthenticatorAttachment.CROSS_PLATFORM
+                )
+                if csrf is not None:
+                    csrf_token = csrf
+                else:
+                    csrf_token = sess.get_csrf_token()
+                data = {
+                    "csrf_token": csrf_token,
+                    "response": {
+                        "credentialId": CREDENTIAL_ID,
+                        "rawId": CREDENTIAL_ID,
                         "response": {
-                            "credentialId": CREDENTIAL_ID,
-                            "rawId": CREDENTIAL_ID,
-                            "response": {
-                                "attestationObject": attestation.decode(),
-                                "clientDataJSON": client_data.decode(),
-                                "credentialId": cred_id,
-                            },
+                            "attestationObject": attestation.decode(),
+                            "clientDataJSON": client_data.decode(),
+                            "credentialId": cred_id,
                         },
-                        "description": "dummy description",
-                    }
+                    },
+                    "description": "dummy description",
+                }
             response2 = client.post(
                 "/webauthn/register/complete", data=json.dumps(data), content_type=self.content_type_json
             )

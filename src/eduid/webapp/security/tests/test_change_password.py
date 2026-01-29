@@ -75,16 +75,15 @@ class ChangePasswordTests(EduidAPITestCase[SecurityApp]):
         """
         mock_request_user_sync.side_effect = self.request_user_sync
         eppn = self.test_user_data["eduPersonPrincipalName"]
-        with self.app.test_request_context():
-            with self.session_cookie(self.browser, eppn) as client:
-                with client.session_transaction() as sess:
-                    data = {"new_password": "0ieT/(.edW76", "old_password": "5678", "csrf_token": sess.get_csrf_token()}
-                    if data1 == {}:
-                        data = {"csrf_token": sess.get_csrf_token()}
-                    elif data1 is not None:
-                        data.update(data1)
+        with self.app.test_request_context(), self.session_cookie(self.browser, eppn) as client:
+            with client.session_transaction() as sess:
+                data = {"new_password": "0ieT/(.edW76", "old_password": "5678", "csrf_token": sess.get_csrf_token()}
+                if data1 == {}:
+                    data = {"csrf_token": sess.get_csrf_token()}
+                elif data1 is not None:
+                    data.update(data1)
 
-                return client.post("/change-password/set-password", json=data)
+            return client.post("/change-password/set-password", json=data)
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def _get_suggested_and_change(
@@ -103,36 +102,35 @@ class ChangePasswordTests(EduidAPITestCase[SecurityApp]):
         """
         mock_request_user_sync.side_effect = self.request_user_sync
         eppn = self.test_user_data["eduPersonPrincipalName"]
-        with self.app.test_request_context():
-            with self.session_cookie(self.browser, eppn) as client:
-                with patch("eduid.webapp.common.authn.vccs.VCCSClient.add_credentials", return_value=True):
-                    with patch("eduid.webapp.common.authn.vccs.VCCSClient.revoke_credentials", return_value=True):
-                        with patch(
-                            "eduid.webapp.common.authn.vccs.VCCSClient.authenticate", return_value=correct_old_password
-                        ):
-                            response2 = client.get("/change-password/suggested-password")
-                            passwd = json.loads(response2.data)
-                            self.assertEqual(
-                                passwd["type"], "GET_CHANGE_PASSWORD_CHANGE_PASSWORD_SUGGESTED_PASSWORD_SUCCESS"
-                            )
-                            password = passwd["payload"]["suggested_password"]
+        with self.app.test_request_context(), self.session_cookie(self.browser, eppn) as client:
+            with patch("eduid.webapp.common.authn.vccs.VCCSClient.add_credentials", return_value=True):
+                with patch("eduid.webapp.common.authn.vccs.VCCSClient.revoke_credentials", return_value=True):
+                    with patch(
+                        "eduid.webapp.common.authn.vccs.VCCSClient.authenticate", return_value=correct_old_password
+                    ):
+                        response2 = client.get("/change-password/suggested-password")
+                        passwd = json.loads(response2.data)
+                        self.assertEqual(
+                            passwd["type"], "GET_CHANGE_PASSWORD_CHANGE_PASSWORD_SUGGESTED_PASSWORD_SUCCESS"
+                        )
+                        password = passwd["payload"]["suggested_password"]
 
-                            with client.session_transaction() as sess:
-                                sess.security.generated_password_hash = hash_password(password)
-                                data = {
-                                    "csrf_token": sess.get_csrf_token(),
-                                    "new_password": password,
-                                    "old_password": "5678",
-                                }
-                            if data1 is not None:
-                                data.update(data1)
-                            if data["old_password"] is None:
-                                del data["old_password"]
-                            return client.post(
-                                "/change-password/set-password",
-                                data=json.dumps(data),
-                                content_type=self.content_type_json,
-                            )
+                        with client.session_transaction() as sess:
+                            sess.security.generated_password_hash = hash_password(password)
+                            data = {
+                                "csrf_token": sess.get_csrf_token(),
+                                "new_password": password,
+                                "old_password": "5678",
+                            }
+                        if data1 is not None:
+                            data.update(data1)
+                        if data["old_password"] is None:
+                            del data["old_password"]
+                        return client.post(
+                            "/change-password/set-password",
+                            data=json.dumps(data),
+                            content_type=self.content_type_json,
+                        )
 
     # actual tests
     def test_user_setup(self) -> None:
@@ -406,15 +404,14 @@ class ChangePasswordTests(EduidAPITestCase[SecurityApp]):
         )
         # try to do another one while the previous one could be valid if not explicitly consumed
         eppn = self.test_user_data["eduPersonPrincipalName"]
-        with self.app.test_request_context():
-            with self.session_cookie(self.browser, eppn) as client:
-                with client.session_transaction() as sess:
-                    data = {"csrf_token": sess.get_csrf_token(), "new_password": "new_password"}
-                response2 = client.post(
-                    "/change-password/set-password",
-                    data=json.dumps(data),
-                    content_type=self.content_type_json,
-                )
+        with self.app.test_request_context(), self.session_cookie(self.browser, eppn) as client:
+            with client.session_transaction() as sess:
+                data = {"csrf_token": sess.get_csrf_token(), "new_password": "new_password"}
+            response2 = client.post(
+                "/change-password/set-password",
+                data=json.dumps(data),
+                content_type=self.content_type_json,
+            )
         self._check_must_authenticate_response(
             response=response2,
             type_="POST_CHANGE_PASSWORD_CHANGE_PASSWORD_SET_PASSWORD_FAIL",

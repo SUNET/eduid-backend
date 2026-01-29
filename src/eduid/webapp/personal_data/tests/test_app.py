@@ -177,10 +177,9 @@ class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
             data = mod_data
 
         with self.session_cookie(self.browser, eppn) as client:
-            with self.app.test_request_context():
-                with client.session_transaction() as sess:
-                    if "csrf_token" not in data:
-                        data["csrf_token"] = sess.get_csrf_token()
+            with self.app.test_request_context(), client.session_transaction() as sess:
+                if "csrf_token" not in data:
+                    data["csrf_token"] = sess.get_csrf_token()
             return client.post("/preferences", json=data)
 
     def _get_user_identities(self, eppn: str | None = None) -> TestResponse:

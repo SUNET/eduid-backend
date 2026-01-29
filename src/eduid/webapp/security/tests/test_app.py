@@ -99,14 +99,13 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
             self.app.central_userdb.save(user)
             assert user.identities.nin.is_verified is False
 
-        with self.session_cookie(self.browser, self.test_user_eppn) as client:
-            with self.app.test_request_context():
-                with client.session_transaction() as sess:
-                    data = {"nin": user.identities.nin.number, "csrf_token": sess.get_csrf_token()}
-                if data1 is not None:
-                    data.update(data1)
+        with self.session_cookie(self.browser, self.test_user_eppn) as client, self.app.test_request_context():
+            with client.session_transaction() as sess:
+                data = {"nin": user.identities.nin.number, "csrf_token": sess.get_csrf_token()}
+            if data1 is not None:
+                data.update(data1)
 
-                return client.post("/remove-nin", data=json.dumps(data), content_type=self.content_type_json)
+            return client.post("/remove-nin", data=json.dumps(data), content_type=self.content_type_json)
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def _remove_identity(self, mock_request_user_sync: MagicMock, data1: dict[str, Any] | None = None) -> TestResponse:
@@ -121,14 +120,13 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
         assert user.identities is not None
         assert user.identities.nin is not None
 
-        with self.session_cookie(self.browser, self.test_user_eppn) as client:
-            with self.app.test_request_context():
-                with client.session_transaction() as sess:
-                    data = {"identity_type": user.identities.nin.identity_type, "csrf_token": sess.get_csrf_token()}
-                if data1 is not None:
-                    data.update(data1)
+        with self.session_cookie(self.browser, self.test_user_eppn) as client, self.app.test_request_context():
+            with client.session_transaction() as sess:
+                data = {"identity_type": user.identities.nin.identity_type, "csrf_token": sess.get_csrf_token()}
+            if data1 is not None:
+                data.update(data1)
 
-                return client.post("/remove-identity", json=data)
+            return client.post("/remove-identity", json=data)
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def _add_nin(
@@ -160,14 +158,13 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
             self.app.central_userdb.save(user)
             assert user.identities.nin is None
 
-        with self.session_cookie(self.browser, self.test_user_eppn) as client:
-            with self.app.test_request_context():
-                with client.session_transaction() as sess:
-                    data = {"nin": self.test_user_nin, "csrf_token": sess.get_csrf_token()}
-                if data1:
-                    data.update(data1)
+        with self.session_cookie(self.browser, self.test_user_eppn) as client, self.app.test_request_context():
+            with client.session_transaction() as sess:
+                data = {"nin": self.test_user_nin, "csrf_token": sess.get_csrf_token()}
+            if data1:
+                data.update(data1)
 
-                return client.post("/add-nin", data=json.dumps(data), content_type=self.content_type_json)
+            return client.post("/add-nin", data=json.dumps(data), content_type=self.content_type_json)
 
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
