@@ -5,7 +5,7 @@ from abc import ABC
 from asyncio.locks import Lock
 from binascii import unhexlify
 from collections.abc import Mapping
-from hashlib import sha1
+from hashlib import sha1, sha256
 from typing import Literal
 
 import pkcs11
@@ -42,10 +42,16 @@ class VCCSHasher(ABC):
         raise NotImplementedError("Subclass should implement info")
 
     async def hmac_sha1(self, key_handle: int, data: bytes) -> bytes:
-        raise NotImplementedError("Subclass should implement safe_hmac_sha1")
+        raise NotImplementedError("Subclass should implement hmac_sha1")
 
     def unsafe_hmac_sha1(self, key_handle: int, data: bytes) -> bytes:
-        raise NotImplementedError("Subclass should implement hmac_sha1")
+        raise NotImplementedError("Subclass should implement unsafe_hmac_sha1")
+
+    async def hmac_sha256(self, key_label: str, data: bytes) -> bytes:
+        raise NotImplementedError("Subclass should implement hmac_sha256")
+
+    def unsafe_hmac_sha256(self, key_label: str, data: bytes) -> bytes:
+        raise NotImplementedError("Subclass should implement unsafe_hmac_sha256")
 
     async def safe_random(self, byte_count: int) -> bytes:
         raise NotImplementedError("Subclass should implement safe_random")
@@ -119,7 +125,7 @@ class VCCSSoftHasher(VCCSHasher):
         super().__init__(lock)
         self.debug = debug
         # Covert keys from strings to bytes when loading
-        self.keys: dict[int, bytes] = {}
+        self.keys: dict[int | str, bytes] = {}
         for k, v in keys.items():
             self.keys[k] = unhexlify(v)
 
@@ -144,6 +150,22 @@ class VCCSSoftHasher(VCCSHasher):
     def unsafe_hmac_sha1(self, key_handle: int, data: bytes) -> bytes:
         hmac_key = self.keys[key_handle]
         return hmac.new(hmac_key, msg=data, digestmod=sha1).digest()
+
+    async def hmac_sha256(self, key_label: str, data: bytes) -> bytes:
+        """
+        Perform HMAC-SHA-1 operation using Python stdlib hmac module.
+
+        Acquires a lock first if a lock instance was given at creation time.
+        """
+        await self.lock_acquire()
+        try:
+            return self.unsafe_hmac_sha256(key_label, data)
+        finally:
+            self.lock_release()
+
+    def unsafe_hmac_sha256(self, key_label: str, data: bytes) -> bytes:
+        hmac_key = self.keys[key_label]
+        return hmac.new(hmac_key, msg=data, digestmod=sha256).digest()
 
     async def safe_random(self, byte_count: int) -> bytes:
         """
