@@ -41,14 +41,11 @@ class VCCSHasher(ABC):
     def info(self) -> str | bytes | None:
         raise NotImplementedError("Subclass should implement info")
 
-    async def hmac_sha1(self, key_handle: int | None, data: bytes) -> bytes:
+    async def hmac_sha1(self, key_handle: int, data: bytes) -> bytes:
         raise NotImplementedError("Subclass should implement safe_hmac_sha1")
 
-    def unsafe_hmac_sha1(self, key_handle: int | None, data: bytes) -> bytes:
+    def unsafe_hmac_sha1(self, key_handle: int, data: bytes) -> bytes:
         raise NotImplementedError("Subclass should implement hmac_sha1")
-
-    def load_temp_key(self, nonce: str, key_handle: int, aead: bytes) -> bool:
-        raise NotImplementedError("Subclass should implement load_temp_key")
 
     async def safe_random(self, byte_count: int) -> bytes:
         raise NotImplementedError("Subclass should implement safe_random")
@@ -96,9 +93,6 @@ class VCCSYHSMHasher(VCCSHasher):
             key_handle = pyhsm.defines.YSM_TEMP_KEY_HANDLE
         return self._yhsm.hmac_sha1(key_handle, data).get_hash()
 
-    def load_temp_key(self, nonce: str, key_handle: int, aead: bytes) -> bool:
-        return self._yhsm.load_temp_key(nonce, key_handle, aead)
-
     async def safe_random(self, byte_count: int) -> bytes:
         """
         Generate random bytes using both YubiHSM random function and host OS.
@@ -126,7 +120,6 @@ class VCCSSoftHasher(VCCSHasher):
         self.debug = debug
         # Covert keys from strings to bytes when loading
         self.keys: dict[int, bytes] = {}
-        self._temp_key: bytes | None = None
         for k, v in keys.items():
             self.keys[k] = unhexlify(v)
 
@@ -136,7 +129,7 @@ class VCCSSoftHasher(VCCSHasher):
     def info(self) -> str:
         return f"key handles loaded: {list(self.keys.keys())}"
 
-    async def hmac_sha1(self, key_handle: int | None, data: bytes) -> bytes:
+    async def hmac_sha1(self, key_handle: int, data: bytes) -> bytes:
         """
         Perform HMAC-SHA-1 operation using Python stdlib hmac module.
 
@@ -148,19 +141,9 @@ class VCCSSoftHasher(VCCSHasher):
         finally:
             self.lock_release()
 
-    def unsafe_hmac_sha1(self, key_handle: int | None, data: bytes) -> bytes:
-        if key_handle is None:
-            if not self._temp_key:
-                raise RuntimeError("No key handle provided, and no temp key loaded")
-            hmac_key = self._temp_key
-        else:
-            hmac_key = self.keys[key_handle]
+    def unsafe_hmac_sha1(self, key_handle: int, data: bytes) -> bytes:
+        hmac_key = self.keys[key_handle]
         return hmac.new(hmac_key, msg=data, digestmod=sha1).digest()
-
-    def load_temp_key(self, nonce: str, key_handle: int, aead: bytes) -> bool:
-        pt = pyhsm.soft_hsm.aesCCM(self.keys[key_handle], key_handle, nonce, aead, decrypt=True)
-        self._temp_key = pt[:-4]  # skip the last four bytes which are permission bits
-        return True
 
     async def safe_random(self, byte_count: int) -> bytes:
         """
@@ -204,7 +187,6 @@ class VCCSHSMKeyHasher(VCCSHasher):
             user_pin=config.user_pin,
             so_pin=config.so_pin,
         )
-        self._temp_key_label: str | None = None
 
     def unlock(self) -> None:
         """
@@ -224,10 +206,10 @@ class VCCSHSMKeyHasher(VCCSHasher):
     def _get_hmac_key(
         self,
         session: pkcs11.Session,
-        key_handle: int | None,
+        key_handle: int | None = None,
         key_label: str | None = None,
         key_type: KeyType = KeyType.GENERIC_SECRET,
-    ) -> pkcs11.SecretKey:
+    ) -> pkcs11.Key:
         """
         Get an HMAC key from the HSM.
 
@@ -239,11 +221,7 @@ class VCCSHSMKeyHasher(VCCSHasher):
         :raises RuntimeError: If no key identifier provided or key not found
         """
         if key_handle is None and key_label is None:
-            # Use temp key if set
-            if self._temp_key_label:
-                key_label = self._temp_key_label
-            else:
-                raise RuntimeError("No key handle or label provided, and no temp key loaded")
+            raise RuntimeError("No key handle or label provided, and no temp key loaded")
 
         try:
             # Build search attributes
@@ -261,7 +239,7 @@ class VCCSHSMKeyHasher(VCCSHasher):
         except pkcs11.NoSuchKey as e:
             raise RuntimeError(f"HMAC key not found: handle={key_handle}, label={key_label}") from e
 
-    async def hmac_sha1(self, key_handle: int | None, data: bytes) -> bytes:
+    async def hmac_sha1(self, key_handle: int, data: bytes) -> bytes:
         """
         Perform HMAC-SHA-1 operation using PKCS#11 HSM.
 
@@ -277,7 +255,7 @@ class VCCSHSMKeyHasher(VCCSHasher):
         finally:
             self.lock_release()
 
-    def unsafe_hmac_sha1(self, key_handle: int | None, data: bytes) -> bytes:
+    def unsafe_hmac_sha1(self, key_handle: int, data: bytes) -> bytes:
         """
         Perform HMAC-SHA-1 without acquiring lock.
 
@@ -290,65 +268,34 @@ class VCCSHSMKeyHasher(VCCSHasher):
             # Use the key's sign method with SHA_1_HMAC mechanism
             return key.sign(data, mechanism=Mechanism.SHA_1_HMAC)
 
-    async def hmac_sha256(self, key_handle: int | None, data: bytes) -> bytes:
+    async def hmac_sha256(self, key_label: str, data: bytes) -> bytes:
         """
         Perform HMAC-SHA-256 operation using PKCS#11 HSM.
 
         Acquires a lock first if a lock instance was given at creation time.
 
-        :param key_handle: Integer key handle (CKA_ID) or None to use temp key
+        :param key_label: String key label (CKA_LABEL)
         :param data: Data to HMAC
         :returns: 32-byte HMAC-SHA-256 digest
         """
         await self.lock_acquire()
         try:
-            return self.unsafe_hmac_sha256(key_handle, data)
+            return self.unsafe_hmac_sha256(key_label, data)
         finally:
             self.lock_release()
 
-    def unsafe_hmac_sha256(self, key_handle: int | None, data: bytes) -> bytes:
+    def unsafe_hmac_sha256(self, key_label: str, data: bytes) -> bytes:
         """
         Perform HMAC-SHA-256 without acquiring lock.
 
-        :param key_handle: Integer key handle (CKA_ID) or None to use temp key
+        :param key_label: String key label (CKA_LABEL)
         :param data: Data to HMAC
         :returns: 32-byte HMAC-SHA-256 digest
         """
         with self._pool.session() as session:
-            key = self._get_hmac_key(session, key_handle, key_type=KeyType.GENERIC_SECRET)
+            key = self._get_hmac_key(session, key_label=key_label, key_type=KeyType.GENERIC_SECRET)
             # Use the key's sign method with SHA256_HMAC mechanism
             return key.sign(data, mechanism=Mechanism.SHA256_HMAC)
-
-    def load_temp_key(self, nonce: str, key_handle: int, aead: bytes) -> bool:
-        """
-        Load a temporary key from AEAD.
-
-        Note: PKCS#11 doesn't directly support the YubiHSM AEAD format.
-        This method is provided for API compatibility but requires the
-        temp key to be preloaded in the HSM with a known label.
-
-        For PKCS#11, temporary keys should be imported into the HSM
-        and referenced by label instead of using AEAD unwrapping.
-
-        :param nonce: Nonce (unused in PKCS#11 implementation)
-        :param key_handle: Key handle of the wrapping key (unused)
-        :param aead: AEAD blob (unused)
-        :returns: False as AEAD unwrapping is not supported
-        """
-        # PKCS#11 doesn't support YubiHSM's AEAD format directly
-        # Temp keys need to be preloaded in the HSM
-        return False
-
-    def set_temp_key_label(self, label: str) -> None:
-        """
-        Set the label of a preloaded temporary key.
-
-        This is the PKCS#11 alternative to load_temp_key() - the key
-        should already exist in the HSM with the specified label.
-
-        :param label: CKA_LABEL of the temporary key in the HSM
-        """
-        self._temp_key_label = label
 
     async def safe_random(self, byte_count: int) -> bytes:
         """
