@@ -208,8 +208,7 @@ def _authn(
 
 
 @freja_eid_views.route("/authn-callback", methods=["GET"])
-@require_user
-def authn_callback(user: User) -> WerkzeugResponse:
+def authn_callback() -> WerkzeugResponse:
     """
     This is the callback endpoint for the Freja EID OIDC flow.
     """

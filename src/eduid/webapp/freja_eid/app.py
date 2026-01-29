@@ -80,10 +80,7 @@ def freja_eid_init_app(name: str = "freja_eid", test_config: Mapping[str, Any] |
     # Register view path that should not be authorized
     no_authn_views(
         config,
-        [
-            "/mfa-authenticate",
-            "/get-status",
-        ],
+        ["/mfa-authenticate", "/get-status", "/authn-callback"],
     )
 
     app.logger.info(f"{name!s} initialized")
