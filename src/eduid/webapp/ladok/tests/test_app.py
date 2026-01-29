@@ -134,7 +134,7 @@ class LadokTests(EduidAPITestCase[LadokApp]):
         assert user.ladok.university.name.en == self.app.ladok_client.universities[ladok_name].name.en
 
         log_docs = self.app.proofing_log._get_documents_by_attr("eduPersonPrincipalName", self.test_user_eppn)
-        assert 1 == len(log_docs)
+        assert len(log_docs) == 1
 
     @patch("requests.post")
     def test_link_user_error_response_from_worker(self, mock_response: MagicMock) -> None:
@@ -151,7 +151,7 @@ class LadokTests(EduidAPITestCase[LadokApp]):
         assert user.ladok is None
 
         log_docs = self.app.proofing_log._get_documents_by_attr("eduPersonPrincipalName", self.test_user_eppn)
-        assert 0 == len(log_docs)
+        assert len(log_docs) == 0
 
     def test_link_user_no_nin(self) -> None:
         user = self.app.central_userdb.get_user_by_eppn(eppn=self.test_unverified_user_eppn)
@@ -167,7 +167,7 @@ class LadokTests(EduidAPITestCase[LadokApp]):
         log_docs = self.app.proofing_log._get_documents_by_attr(
             "eduPersonPrincipalName", self.test_unverified_user_eppn
         )
-        assert 0 == len(log_docs)
+        assert len(log_docs) == 0
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_unlink_user(self, mock_request_user_sync: MagicMock) -> None:
@@ -251,4 +251,4 @@ class LadokDevTests(EduidAPITestCase[LadokApp]):
         assert user.ladok.university.name.en == self.app.ladok_client.universities[ladok_name].name.en
 
         log_docs = self.app.proofing_log._get_documents_by_attr("eduPersonPrincipalName", self.test_user_eppn)
-        assert 1 == len(log_docs)
+        assert len(log_docs) == 1
