@@ -106,6 +106,12 @@ class VCCSYHSMHasher(VCCSHasher):
             key_handle = pyhsm.defines.YSM_TEMP_KEY_HANDLE
         return self._yhsm.hmac_sha1(key_handle, data).get_hash()
 
+    async def hmac_sha256(self, key_label: str, data: bytes) -> bytes:
+        raise NotImplementedError("hmac sha256 not supported by YubiHSM")
+
+    def unsafe_hmac_sha256(self, key_label: str, data: bytes) -> bytes:
+        raise NotImplementedError("hmac sha256 not supported by YubiHSM")
+
     async def safe_random(self, byte_count: int) -> bytes:
         """
         Generate random bytes using both YubiHSM random function and host OS.
