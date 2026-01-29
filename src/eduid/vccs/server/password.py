@@ -22,7 +22,7 @@ async def authenticate_password(
     # can be blocked based on that
     # Avoid logging the full hashes to make the audit logs less sensitive.
     # 16 chars (8 bytes) should still be unique enough for 'all' purposes.
-    if H2 == cred.derived_key:
+    if cred.derived_key == H2:
         audit_log(f"result=OK, factor=password, credential_id={cred.credential_id}, H2[16]={H2[:16]}")
         res = True
     else:

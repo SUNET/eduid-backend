@@ -274,7 +274,7 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
         # TODO: When LogElements have working from_dict/to_dict, implement a proofing_log.get_proofings_by_eppn()
         #       and work on the returned LetterProofing instance instead of with a mongo document
         log_docs = self.app.proofing_log._get_documents_by_attr("eduPersonPrincipalName", self.test_user_eppn)
-        assert 1 == len(log_docs)
+        assert len(log_docs) == 1
 
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
         self._check_nin_verified_ok(user=user, proofing_state=proofing_state, number=self.test_user_nin)
