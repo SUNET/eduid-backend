@@ -53,7 +53,9 @@ class FrejaEIDProofingFunctions(ProofingFunctions[FrejaEIDDocumentUserInfo]):
             raise RuntimeError('Could not find country "SE" in iso3166')
         if not issuing_country:
             raise RuntimeError(f'Could not find country "{self.session_info.document.country}" in iso3166')
-        return issuing_country == sweden
+        if issuing_country == sweden:
+            return True
+        return False
 
     def get_current_loa(self) -> GenericResult[str | None]:
         current_loa = f"freja-{self.session_info.loa_level.lower()}"
@@ -204,7 +206,9 @@ class FrejaEIDProofingFunctions(ProofingFunctions[FrejaEIDDocumentUserInfo]):
         date_of_birth_matches = locked_identity.date_of_birth.date() == self.session_info.date_of_birth
         given_name_matches = proofing_user.given_name == self.session_info.given_name
         surname_matches = proofing_user.surname == self.session_info.family_name
-        return date_of_birth_matches and given_name_matches and surname_matches
+        if date_of_birth_matches and given_name_matches and surname_matches:
+            return True
+        return False
 
     def identity_proofing_element(self, user: User) -> ProofingElementResult:
         if self.backdoor:

@@ -12,7 +12,10 @@ def is_deregistered(person: dict[str, Any] | None) -> bool:
     if person is None:
         return False
     deregistration_information = person["DeregistrationInformation"]
-    return bool(deregistration_information.get("date") or deregistration_information.get("causeCode"))
+    if deregistration_information.get("date") or deregistration_information.get("causeCode"):
+        return True
+
+    return False
 
 
 def load_template(template_dir: str, filename: str, message_dict: Mapping[str, str], lang: str) -> str:

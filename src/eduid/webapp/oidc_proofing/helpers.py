@@ -84,7 +84,9 @@ def is_proofing_state_expired(proofing_state: OidcProofingState, expire_time_hou
     """
     valid_until = get_proofing_state_valid_until(proofing_state, expire_time_hours)
     # Use tzinfo from timezone aware mongodb datetime
-    return datetime.now(valid_until.tzinfo) > valid_until
+    if datetime.now(valid_until.tzinfo) > valid_until:
+        return True
+    return False
 
 
 def do_authn_request(proofing_state: OidcProofingState, claims_request: ClaimsRequest, redirect_url: str) -> bool:

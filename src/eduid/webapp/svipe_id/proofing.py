@@ -39,7 +39,9 @@ class SvipeIDProofingFunctions(ProofingFunctions[SvipeDocumentUserInfo]):
             raise RuntimeError('Could not find country "SE" in iso3166')
         if not issuing_country:
             raise RuntimeError(f'Could not find country "{self.session_info.document_issuing_country}" in iso3166')
-        return issuing_country == sweden
+        if issuing_country == sweden:
+            return True
+        return False
 
     def get_identity(self, user: User) -> IdentityElement | None:
         if self.is_swedish_document():
@@ -158,7 +160,9 @@ class SvipeIDProofingFunctions(ProofingFunctions[SvipeDocumentUserInfo]):
         date_of_birth_matches = locked_identity.date_of_birth.date() == self.session_info.birthdate
         given_name_matches = proofing_user.given_name == self.session_info.given_name
         surname_matches = proofing_user.surname == self.session_info.family_name
-        return date_of_birth_matches and given_name_matches and surname_matches
+        if date_of_birth_matches and given_name_matches and surname_matches:
+            return True
+        return False
 
     def identity_proofing_element(self, user: User) -> ProofingElementResult:
         if self.backdoor:
