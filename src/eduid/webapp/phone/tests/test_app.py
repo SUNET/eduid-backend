@@ -203,9 +203,12 @@ class PhoneTests(EduidAPITestCase[PhoneApp]):
 
         eppn = self.test_user_data["eduPersonPrincipalName"]
 
-        with self.session_cookie_and_magic_cookie(
-            self.browser, eppn=eppn, magic_cookie_name=magic_cookie_name
-        ) as client, self.app.test_request_context():
+        with (
+            self.session_cookie_and_magic_cookie(
+                self.browser, eppn=eppn, magic_cookie_name=magic_cookie_name
+            ) as client,
+            self.app.test_request_context(),
+        ):
             with client.session_transaction() as sess:
                 data: dict[str, Any] = {
                     "number": phone,

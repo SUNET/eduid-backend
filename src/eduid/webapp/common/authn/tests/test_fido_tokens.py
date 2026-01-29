@@ -128,17 +128,20 @@ class FidoTokensTestCase(EduidAPITestCase):
 
         eppn = self.test_user.eppn
 
-        with self.session_cookie(self.browser, eppn) as client, client.session_transaction() as sess:
-            with self.app.test_request_context():
-                challenge = start_token_verification(
-                    user=self.test_user,
-                    fido2_rp_id=self.app.conf.fido2_rp_id,
-                    fido2_rp_name=self.app.conf.fido2_rp_name,
-                    state=sess.mfa_action,
-                )
-                assert challenge.webauthn_options["rpId"] == self.app.conf.fido2_rp_id
-                assert challenge.webauthn_options["challenge"] is not None
-                assert sess.mfa_action.webauthn_state is not None
+        with (
+            self.session_cookie(self.browser, eppn) as client,
+            client.session_transaction() as sess,
+            self.app.test_request_context(),
+        ):
+            challenge = start_token_verification(
+                user=self.test_user,
+                fido2_rp_id=self.app.conf.fido2_rp_id,
+                fido2_rp_name=self.app.conf.fido2_rp_name,
+                state=sess.mfa_action,
+            )
+            assert challenge.webauthn_options["rpId"] == self.app.conf.fido2_rp_id
+            assert challenge.webauthn_options["challenge"] is not None
+            assert sess.mfa_action.webauthn_state is not None
 
     def test_webauthn_start_verification(self) -> None:
         # Add a working Webauthn credential for this test
@@ -147,17 +150,20 @@ class FidoTokensTestCase(EduidAPITestCase):
 
         eppn = self.test_user.eppn
 
-        with self.session_cookie(self.browser, eppn) as client, client.session_transaction() as sess:
-            with self.app.test_request_context():
-                challenge = start_token_verification(
-                    user=self.test_user,
-                    fido2_rp_id=self.app.conf.fido2_rp_id,
-                    fido2_rp_name=self.app.conf.fido2_rp_name,
-                    state=sess.mfa_action,
-                )
-                assert challenge.webauthn_options["rpId"] == self.app.conf.fido2_rp_id
-                assert challenge.webauthn_options["challenge"] is not None
-                assert sess.mfa_action.webauthn_state is not None
+        with (
+            self.session_cookie(self.browser, eppn) as client,
+            client.session_transaction() as sess,
+            self.app.test_request_context(),
+        ):
+            challenge = start_token_verification(
+                user=self.test_user,
+                fido2_rp_id=self.app.conf.fido2_rp_id,
+                fido2_rp_name=self.app.conf.fido2_rp_name,
+                state=sess.mfa_action,
+            )
+            assert challenge.webauthn_options["rpId"] == self.app.conf.fido2_rp_id
+            assert challenge.webauthn_options["challenge"] is not None
+            assert sess.mfa_action.webauthn_state is not None
 
     @patch("fido2.cose.ES256.verify")
     def test_webauthn_verify(self, mock_verify: MagicMock) -> None:
@@ -166,13 +172,16 @@ class FidoTokensTestCase(EduidAPITestCase):
         self.test_user.credentials.add(self.webauthn_credential)
         self.amdb.save(self.test_user)
 
-        with self.app.test_request_context(), self.session_cookie(self.browser, self.test_user.eppn) as client:
-            with client.session_transaction() as sess:
-                sess.mfa_action.webauthn_state = SAMPLE_WEBAUTHN_FIDO2STATE
-                sess.persist()
-                resp = client.get("/start?webauthn_request=" + json.dumps(SAMPLE_WEBAUTHN_REQUEST))
-                resp_data = json.loads(resp.data)
-                self.assertEqual(resp_data["success"], True)
+        with (
+            self.app.test_request_context(),
+            self.session_cookie(self.browser, self.test_user.eppn) as client,
+            client.session_transaction() as sess,
+        ):
+            sess.mfa_action.webauthn_state = SAMPLE_WEBAUTHN_FIDO2STATE
+            sess.persist()
+            resp = client.get("/start?webauthn_request=" + json.dumps(SAMPLE_WEBAUTHN_REQUEST))
+            resp_data = json.loads(resp.data)
+            self.assertEqual(resp_data["success"], True)
 
     @patch("fido2.cose.ES256.verify")
     def test_webauthn_verify_wrong_origin(self, mock_verify: MagicMock) -> None:
@@ -184,19 +193,22 @@ class FidoTokensTestCase(EduidAPITestCase):
 
         eppn = self.test_user.eppn
 
-        with self.app.test_request_context(), self.session_cookie(self.browser, eppn) as client:
-            with client.session_transaction() as sess:
-                fido2state = WebauthnState(
-                    {
-                        "challenge": "3h_EAZpY25xDdSJCOMx1ABZEA5Odz3yejUI3AUNTQWc",
-                        "user_verification": "preferred",
-                    }
-                )
-                sess.mfa_action.webauthn_state = fido2state
-                sess.persist()
-                resp = client.get("/start?webauthn_request=" + json.dumps(SAMPLE_WEBAUTHN_REQUEST))
-                resp_data = json.loads(resp.data)
-                self.assertEqual(resp_data["success"], False)
+        with (
+            self.app.test_request_context(),
+            self.session_cookie(self.browser, eppn) as client,
+            client.session_transaction() as sess,
+        ):
+            fido2state = WebauthnState(
+                {
+                    "challenge": "3h_EAZpY25xDdSJCOMx1ABZEA5Odz3yejUI3AUNTQWc",
+                    "user_verification": "preferred",
+                }
+            )
+            sess.mfa_action.webauthn_state = fido2state
+            sess.persist()
+            resp = client.get("/start?webauthn_request=" + json.dumps(SAMPLE_WEBAUTHN_REQUEST))
+            resp_data = json.loads(resp.data)
+            self.assertEqual(resp_data["success"], False)
 
     @patch("fido2.cose.ES256.verify")
     def test_webauthn_verify_wrong_challenge(self, mock_verify: MagicMock) -> None:
@@ -207,17 +219,20 @@ class FidoTokensTestCase(EduidAPITestCase):
 
         eppn = self.test_user.eppn
 
-        with self.app.test_request_context(), self.session_cookie(self.browser, eppn) as client:
-            with client.session_transaction() as sess:
-                fido2state = {
-                    "challenge": "WRONG_CHALLENGE_COx1ABZEA5Odz3yejUI3AUNTQWc",
-                    "user_verification": "preferred",
-                }
-                sess["testing.webauthn.state"] = json.dumps(fido2state)
-                sess.persist()
-                resp = client.get("/start?webauthn_request=" + json.dumps(SAMPLE_WEBAUTHN_REQUEST))
-                resp_data = json.loads(resp.data)
-                self.assertEqual(resp_data["success"], False)
+        with (
+            self.app.test_request_context(),
+            self.session_cookie(self.browser, eppn) as client,
+            client.session_transaction() as sess,
+        ):
+            fido2state = {
+                "challenge": "WRONG_CHALLENGE_COx1ABZEA5Odz3yejUI3AUNTQWc",
+                "user_verification": "preferred",
+            }
+            sess["testing.webauthn.state"] = json.dumps(fido2state)
+            sess.persist()
+            resp = client.get("/start?webauthn_request=" + json.dumps(SAMPLE_WEBAUTHN_REQUEST))
+            resp_data = json.loads(resp.data)
+            self.assertEqual(resp_data["success"], False)
 
     @patch("fido2.cose.ES256.verify")
     def test_webauthn_verify_wrong_credential(self, mock_verify: MagicMock) -> None:
@@ -231,14 +246,17 @@ class FidoTokensTestCase(EduidAPITestCase):
 
         eppn = self.test_user.eppn
 
-        with self.app.test_request_context(), self.session_cookie(self.browser, eppn) as client:
-            with client.session_transaction() as sess:
-                fido2state = {
-                    "challenge": "3h_EAZpY25xDdSJCOMx1ABZEA5Odz3yejUI3AUNTQWc",
-                    "user_verification": "preferred",
-                }
-                sess["testing.webauthn.state"] = json.dumps(fido2state)
-                sess.persist()
-                resp = client.get("/start?webauthn_request=" + json.dumps(req))
-                resp_data = json.loads(resp.data)
-                self.assertEqual(resp_data["success"], False)
+        with (
+            self.app.test_request_context(),
+            self.session_cookie(self.browser, eppn) as client,
+            client.session_transaction() as sess,
+        ):
+            fido2state = {
+                "challenge": "3h_EAZpY25xDdSJCOMx1ABZEA5Odz3yejUI3AUNTQWc",
+                "user_verification": "preferred",
+            }
+            sess["testing.webauthn.state"] = json.dumps(fido2state)
+            sess.persist()
+            resp = client.get("/start?webauthn_request=" + json.dumps(req))
+            resp_data = json.loads(resp.data)
+            self.assertEqual(resp_data["success"], False)
