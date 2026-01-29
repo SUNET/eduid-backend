@@ -29,7 +29,7 @@ ignore = [
   "PLR09",    # rule set for complexity checks
   "PLC0415",  # non top level imports
   "SIM102",   # collapsible-if
-  "SIM103",   # needless-bool
+  "SIM103",   # return-bool-condition-directly (keeping explicit if/else for clarity)
   "SIM108",   # if-else-block-instead-of-if-exp
   "SIM117",   # multiple-with-statements
   "SIM3",
