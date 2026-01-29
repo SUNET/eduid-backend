@@ -75,7 +75,7 @@ class SessionMeta:
         try:
             _decoded = base64.b32decode(val)
         except binascii.Error as e:
-            raise ValueError(f"Token string b32decode failed: {e}")
+            raise ValueError(f"Token string b32decode failed: {e}") from e
         _bin_session_id, _bin_sig = _decoded[:HMAC_DIGEST_SIZE], _decoded[HMAC_DIGEST_SIZE:-1]
         return _bin_session_id, _bin_sig
 
@@ -110,7 +110,7 @@ class SessionMeta:
         if len(calculated_sig) != len(signature):
             return None
 
-        for a, b in zip(calculated_sig, signature):
+        for a, b in zip(calculated_sig, signature, strict=True):
             invalid_bits += a != b
 
         return bool(not invalid_bits)

@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import builtins
 import uuid
-from abc import ABC
 from collections.abc import Mapping
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from typing import Any, Self
 from uuid import UUID
+
+from bson import ObjectId
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.models.scim_base import EmailType, PhoneNumberType, WeakVersion
@@ -16,12 +17,12 @@ __author__ = "lundberg"
 
 
 @dataclass
-class ScimApiResourceBase(ABC):
+class ScimApiResourceBase:
     """The elements common to all SCIM resource database objects"""
 
     scim_id: UUID = field(default_factory=lambda: uuid.uuid4())
     external_id: str | None = None
-    version: WeakVersion = field(default_factory=lambda: WeakVersion())
+    version: WeakVersion = field(default_factory=ObjectId)
     created: datetime = field(default_factory=lambda: utc_now())
     last_modified: datetime = field(default_factory=lambda: utc_now())
 

@@ -121,7 +121,7 @@ class ExpiringCacheMem:
             self.lock = cast(Lock, NoOpLock())  # intentionally lie to mypy
 
         if self.logger is not None:
-            warnings.warn("Object logger deprecated, using module_logger", DeprecationWarning)
+            warnings.warn("Object logger deprecated, using module_logger", DeprecationWarning, stacklevel=2)
 
     def add(self, key: SSOSessionId, info: object, now: int | None = None) -> None:
         """

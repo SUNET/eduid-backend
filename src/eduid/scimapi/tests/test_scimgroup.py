@@ -8,9 +8,8 @@ from uuid import UUID, uuid4
 from bson import ObjectId
 from httpx import Response
 
-from eduid.common.config.base import DataOwnerName
 from eduid.common.misc.timeutil import utc_now
-from eduid.common.models.scim_base import Meta, SCIMResourceType, SCIMSchema, WeakVersion
+from eduid.common.models.scim_base import Meta, SCIMResourceType, SCIMSchema
 from eduid.common.testing_base import normalised_data
 from eduid.common.utils import make_etag
 from eduid.graphdb.groupdb import Group as GraphGroup
@@ -31,7 +30,7 @@ class TestSCIMGroup(TestScimBase):
             resource_type=SCIMResourceType.GROUP,
             created=utc_now(),
             last_modified=utc_now(),
-            version=WeakVersion(),
+            version=ObjectId(),
         )
 
     def test_group(self) -> None:
@@ -56,7 +55,7 @@ class TestSCIMGroup(TestScimBase):
 class TestGroupResource(ScimApiTestCase):
     def setUp(self) -> None:
         super().setUp()
-        self.groupdb = self.context.get_groupdb(DataOwnerName("eduid.se"))
+        self.groupdb = self.context.get_groupdb("eduid.se")
 
     def tearDown(self) -> None:
         super().tearDown()
@@ -564,14 +563,14 @@ class TestGroupSearchResource(TestGroupResource):
         self._assertScimError(json, scim_type="invalidFilter", detail="Can't filter on attribute no_such_attribute")
 
     def test_search_group_start_index(self) -> None:
-        for i in range(9):
+        for _i in range(9):
             self.add_group(uuid4(), "Test Group")
         self._perform_search(
             filter='displayName eq "Test Group"', start=5, expected_num_resources=5, expected_total_results=9
         )
 
     def test_search_group_count(self) -> None:
-        for i in range(9):
+        for _i in range(9):
             self.add_group(uuid4(), "Test Group")
 
         assert self.groupdb

@@ -135,22 +135,22 @@ def get_authn_response(
     try:
         # process the authentication response
         response = client.parse_authn_request_response(raw_response, BINDING_HTTP_POST, outstanding_queries)
-    except AssertionError:
+    except AssertionError as e:
         logger.error("SAML response is not verified")
-        raise BadSAMLResponse(EduidErrorsContext.SAML_RESPONSE_FAIL)
+        raise BadSAMLResponse(EduidErrorsContext.SAML_RESPONSE_FAIL) from e
     except ParseError as e:
         logger.error(f"SAML response is not correctly formatted: {repr(e)}")
-        raise BadSAMLResponse(EduidErrorsContext.SAML_RESPONSE_FAIL)
-    except UnsolicitedResponse:
+        raise BadSAMLResponse(EduidErrorsContext.SAML_RESPONSE_FAIL) from e
+    except UnsolicitedResponse as e:
         logger.error("Unsolicited SAML response")
         # Extra debug to try and find the cause for some of these that seem to be incorrect
         logger.debug(f"Session: {session}")
         logger.debug(f"Outstanding queries cache: {oq_cache}")
         logger.debug(f"Outstanding queries: {outstanding_queries}")
-        raise BadSAMLResponse(EduidErrorsContext.SAML_RESPONSE_UNSOLICITED)
+        raise BadSAMLResponse(EduidErrorsContext.SAML_RESPONSE_UNSOLICITED) from e
     except StatusError as e:
         logger.error(f"SAML response was a failure: {repr(e)}")
-        raise BadSAMLResponse(EduidErrorsContext.SAML_RESPONSE_FAIL)
+        raise BadSAMLResponse(EduidErrorsContext.SAML_RESPONSE_FAIL) from e
 
     if response is None:
         logger.error("SAML response is None")

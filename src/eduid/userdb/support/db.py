@@ -1,3 +1,4 @@
+from contextlib import suppress
 from typing import Any
 
 from bson import ObjectId
@@ -35,10 +36,8 @@ class SupportUserDB(UserDB[SupportUser]):
         results: list[SupportUser | None] = list()
         # We could do this with a custom filter (and one db call) but it is better to lean on existing methods
         # if the way we find users change in the future
-        try:
+        with suppress(UserDoesNotExist):
             results.append(self.get_user_by_eppn(query))
-        except UserDoesNotExist:
-            pass
         results.append(self.get_user_by_nin(query))
         results.extend(self.get_users_by_mail(query))
         results.extend(self.get_users_by_phone(query))

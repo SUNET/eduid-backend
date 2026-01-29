@@ -45,7 +45,7 @@ def format_address(recipient: Mapping) -> tuple:
         city = recipient.get("OfficialAddress", {})["City"]  # Mandatory
         return name, care_of, address, misc_address, postal_code, city
     except (KeyError, TypeError, AttributeError) as e:
-        raise AddressFormatException(e)
+        raise AddressFormatException(e) from e
 
 
 def create_pdf(

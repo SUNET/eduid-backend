@@ -1,7 +1,7 @@
 import hmac
 import os
 import stat
-from abc import ABC
+from abc import ABC, abstractmethod
 from asyncio.locks import Lock
 from binascii import unhexlify
 from collections.abc import Mapping
@@ -35,24 +35,31 @@ class VCCSHasher(ABC):
     def __init__(self, lock: Lock | NoOpLock) -> None:
         self.lock = lock
 
+    @abstractmethod
     def unlock(self) -> None:
         raise NotImplementedError("Subclass should implement unlock")
 
+    @abstractmethod
     def info(self) -> str | bytes | None:
         raise NotImplementedError("Subclass should implement info")
 
+    @abstractmethod
     async def hmac_sha1(self, key_handle: int, data: bytes) -> bytes:
         raise NotImplementedError("Subclass should implement hmac_sha1")
 
+    @abstractmethod
     def unsafe_hmac_sha1(self, key_handle: int, data: bytes) -> bytes:
         raise NotImplementedError("Subclass should implement unsafe_hmac_sha1")
 
+    @abstractmethod
     async def hmac_sha256(self, key_label: str, data: bytes) -> bytes:
         raise NotImplementedError("Subclass should implement hmac_sha256")
 
+    @abstractmethod
     def unsafe_hmac_sha256(self, key_label: str, data: bytes) -> bytes:
         raise NotImplementedError("Subclass should implement unsafe_hmac_sha256")
 
+    @abstractmethod
     async def safe_random(self, byte_count: int) -> bytes:
         raise NotImplementedError("Subclass should implement safe_random")
 
@@ -109,7 +116,7 @@ class VCCSYHSMHasher(VCCSHasher):
         await self.lock_acquire()
         try:
             from_hsm = self._yhsm.random(byte_count)
-            xored = bytes([a ^ b for (a, b) in zip(from_hsm, from_os)])
+            xored = bytes([a ^ b for (a, b) in zip(from_hsm, from_os, strict=True)])
             return xored
         finally:
             self.lock_release()

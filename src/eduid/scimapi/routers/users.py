@@ -112,7 +112,7 @@ async def on_put(req: ContextRequest, resp: Response, update_request: UserUpdate
             raise BadRequest(detail="Invalid nutid linked_accounts")
 
         # Look for changes in profiles
-        for this in update_request.nutid_user_v1.profiles.keys():
+        for this in update_request.nutid_user_v1.profiles:
             if this not in db_user.profiles:
                 req.app.context.logger.info(
                     f"Adding profile {this}/{update_request.nutid_user_v1.profiles[this]} to user"
@@ -123,7 +123,7 @@ async def on_put(req: ContextRequest, resp: Response, update_request: UserUpdate
                 nutid_changed = True
             else:
                 req.app.context.logger.info(f"Profile {this}/{update_request.nutid_user_v1.profiles[this]} not changed")
-        for this in db_user.profiles.keys():
+        for this in db_user.profiles:
             if this not in update_request.nutid_user_v1.profiles:
                 req.app.context.logger.info(f"Profile {this}/{db_user.profiles[this]} removed")
                 nutid_changed = True
@@ -280,11 +280,11 @@ async def on_delete(req: ContextRequest, scim_id: str) -> None:
 
     try:
         remove_user_from_all_groups(req, db_user)
-    except MaxRetriesReached:
+    except MaxRetriesReached as e:
         # this can be a problem when deleting many users that are all part of the same group as it can
         # lead to a race condition where the group is updated before the user is removed from it
         req.app.context.logger.exception("Max retries reached when removing user from groups")
-        raise Conflict(detail="Database object out of sync, please retry")
+        raise Conflict(detail="Database object out of sync, please retry") from e
 
     res = req.context.userdb.remove(db_user)
 

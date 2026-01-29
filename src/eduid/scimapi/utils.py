@@ -69,7 +69,7 @@ def retryable_db_write(func: Callable) -> Callable:
             except (EduIDDBError, EduIDGroupDBError, Neo4jError) as e:  # noqa: PERF203
                 retry += 1
                 if retry >= max_retries:
-                    raise MaxRetriesReached(f"Max retries reached for {func.__name__}")
+                    raise MaxRetriesReached(f"Max retries reached for {func.__name__}") from e
                 time.sleep(0.1)
                 logger.warning(f"Retrying {func.__name__}, retry {retry} of {max_retries}: {e}")
 

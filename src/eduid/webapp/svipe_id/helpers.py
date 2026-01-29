@@ -87,8 +87,8 @@ class SvipeDocumentUserInfo(UserInfoBase):
         # translate ISO 3166-1 alpha-3 to alpha-2 to match the format used §in eduid-userdb
         try:
             country = countries.get(v)
-        except KeyError:
-            raise ValueError(f"country code {v} not found in iso3166")
+        except KeyError as e:
+            raise ValueError(f"country code {v} not found in iso3166") from e
         return country.alpha2
 
 

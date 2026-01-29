@@ -52,11 +52,11 @@ class Sanitizer:
                 percent_encoded=use_percent_encoding,
             )
 
-        except UnicodeDecodeError:
+        except UnicodeDecodeError as e:
             logger.warning(
                 "A malicious user tried to crash the application by sending non-unicode input in a GET request"
             )
-            raise SanitationProblem("Non-unicode input")
+            raise SanitationProblem("Non-unicode input") from e
 
     def _sanitize_input(
         self,
@@ -136,13 +136,13 @@ class Sanitizer:
         """
         try:
             return clean(untrusted_text, strip=strip_characters)
-        except KeyError:
+        except KeyError as e:
             logger.warning(
                 "A malicious user tried to crash the application by "
                 "sending illegal UTF-8 in an URI or other untrusted "
                 "user input."
             )
-            raise SanitationProblem("Illegal UTF-8")
+            raise SanitationProblem("Illegal UTF-8") from e
 
 
 def sanitize_map(data: Mapping[str, Any]) -> dict[str, Any]:
@@ -171,9 +171,9 @@ def sanitize_item(
                 if safe_data != data:
                     logger.warning("Sanitized input from unsafe characters")
                     logger.debug(f"data: {data} -> safe_data: {safe_data}")
-            except SanitationProblem:
+            except SanitationProblem as e:
                 logger.exception("There was a problem sanitizing inputs")
-                raise BadRequest()
+                raise BadRequest() from e
             return str(safe_data)
         case _:
             raise SanitationProblem(f"incompatible type {type(data)}")

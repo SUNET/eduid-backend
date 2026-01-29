@@ -16,8 +16,8 @@ def validate_nin(nin: str, **kwargs: Any) -> bool:
     """
     try:
         return is_valid_nin(nin)
-    except ValueError:
-        raise ValidationError("nin needs to be formatted as 18|19|20yymmddxxxx")
+    except ValueError as e:
+        raise ValidationError("nin needs to be formatted as 18|19|20yymmddxxxx") from e
 
 
 def validate_email(email: str, **kwargs: Any) -> bool:
@@ -29,5 +29,5 @@ def validate_email(email: str, **kwargs: Any) -> bool:
     """
     try:
         return is_valid_email(email)
-    except ValueError:
-        raise ValidationError("email needs to be formatted according to RFC2822")
+    except ValueError as e:
+        raise ValidationError("email needs to be formatted according to RFC2822") from e

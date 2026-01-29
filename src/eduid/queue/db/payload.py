@@ -1,4 +1,4 @@
-from abc import ABC
+from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
@@ -15,6 +15,7 @@ class Payload(ABC):
         return asdict(self)
 
     @classmethod
+    @abstractmethod
     def from_dict(cls: type[Self], data: Mapping[str, Any]) -> Self:
         raise NotImplementedError()
 

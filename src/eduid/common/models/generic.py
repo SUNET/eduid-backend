@@ -72,7 +72,7 @@ class JWKPydanticAnnotation:
             try:
                 return JWK(**value)
             except (KeyError, JWException) as e:
-                raise ValueError(str(e))
+                raise ValueError(str(e)) from e
 
         def serialize_to_dict(instance: JWK) -> dict[str, str]:
             # JWK inherits from dict, so we can just return it

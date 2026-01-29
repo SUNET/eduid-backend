@@ -1,4 +1,3 @@
-from eduid.common.config.base import DataOwnerName
 from eduid.common.config.parsers import load_config
 from eduid.scimapi.config import ScimApiConfig
 from eduid.scimapi.context import Context
@@ -30,8 +29,8 @@ class TestContext(ScimApiTestCase):
 
         # simulate a request to load the databases
         for i in range(99):
-            ctx.get_userdb(DataOwnerName(f"owner{i}"))
-            ctx.get_groupdb(DataOwnerName(f"owner{i}"))
-            ctx.get_invitedb(DataOwnerName(f"owner{i}"))
-            ctx.get_eventdb(DataOwnerName(f"owner{i}"))
+            ctx.get_userdb(f"owner{i}")
+            ctx.get_groupdb(f"owner{i}")
+            ctx.get_invitedb(f"owner{i}")
+            ctx.get_eventdb(f"owner{i}")
         assert len(ctx._dbs) == 100

@@ -41,7 +41,7 @@ def make_local_context(app_name: str, config: LoggingConfigMixin) -> LocalContex
             relative_time=relative_time,
         )
     except (KeyError, AttributeError) as e:
-        raise BadConfiguration(message=f"Could not initialize logging local_context. {type(e).__name__}: {e}")
+        raise BadConfiguration(message=f"Could not initialize logging local_context. {type(e).__name__}: {e}") from e
     return local_context
 
 

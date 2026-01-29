@@ -104,7 +104,7 @@ class TestMessageDB(EduidQueueTestCase):
         payload = TestPayload(message="this is a test payload")
         item = self._create_queue_item(payload)
         self.messagedb.save(item)
-        assert 1 == self.messagedb.db_count()
+        assert self.messagedb.db_count() == 1
 
         loaded_item = self.messagedb.get_item_by_id(item.item_id)
         assert loaded_item
@@ -116,7 +116,7 @@ class TestMessageDB(EduidQueueTestCase):
         payload = TestPayload(message="this is a test payload")
         item = self._create_queue_item(payload)
         self.messagedb.save(item)
-        assert 1 == self.messagedb.db_count()
+        assert self.messagedb.db_count() == 1
 
         loaded_item = self.messagedb.get_item_by_id(item.item_id)
         assert loaded_item
@@ -140,7 +140,7 @@ class TestMessageDB(EduidQueueTestCase):
         )
         item = self._create_queue_item(payload)
         self.messagedb.save(item)
-        assert 1 == self.messagedb.db_count()
+        assert self.messagedb.db_count() == 1
 
         loaded_item = self.messagedb.get_item_by_id(item.item_id)
         assert loaded_item
@@ -157,7 +157,7 @@ class TestMessageDB(EduidQueueTestCase):
         )
         item = self._create_queue_item(payload)
         self.messagedb.save(item)
-        assert 1 == self.messagedb.db_count()
+        assert self.messagedb.db_count() == 1
 
         loaded_item = self.messagedb.get_item_by_id(item.item_id)
         assert loaded_item
@@ -171,5 +171,5 @@ class TestMessageDB(EduidQueueTestCase):
         payload = TestPayload(message="this is a test payload")
         item = self._create_queue_item(payload)
         self.messagedb.save(item)
-        assert 0 == self.messagedb.db_count()
+        assert self.messagedb.db_count() == 0
         assert not self.messagedb.get_item_by_id(item.item_id)

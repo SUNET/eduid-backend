@@ -4,6 +4,7 @@ from http import HTTPStatus
 from typing import Any
 from uuid import UUID
 
+import pytest
 from werkzeug.test import TestResponse
 
 from eduid.common.testing_base import normalised_data
@@ -240,8 +241,8 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
         self._check_success_response(response, type_="GET_GROUP_MANAGEMENT_GROUPS_SUCCESS")
         payload = self.get_response_payload(response)
         assert str(self.scim_user1.scim_id) == payload["user_identifier"]
-        assert 1 == len(payload["groups"])
-        assert "Test Group 1" == payload["groups"][0]["display_name"]
+        assert len(payload["groups"]) == 1
+        assert payload["groups"][0]["display_name"] == "Test Group 1"
         assert payload["groups"][0]["is_owner"] is True
         assert payload["groups"][0]["is_member"] is True
 
@@ -255,7 +256,7 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
         self._check_success_response(response, type_="GET_GROUP_MANAGEMENT_GROUPS_SUCCESS")
         payload = self.get_response_payload(response)
         assert payload["user_identifier"] is None
-        assert 0 == len(payload["groups"])
+        assert len(payload["groups"]) == 0
 
     def test_create_group(self) -> None:
         with self.session_cookie(self.browser, self.test_user.eppn) as client:
@@ -265,8 +266,8 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
                 response = client.post("/create", data=json.dumps(data), content_type=self.content_type_json)
         self._check_success_response(response, type_="POST_GROUP_MANAGEMENT_CREATE_SUCCESS")
         payload = self.get_response_payload(response)
-        assert 1 == len(payload["groups"])
-        assert "Test Group 2" == payload["groups"][0]["display_name"]
+        assert len(payload["groups"]) == 1
+        assert payload["groups"][0]["display_name"] == "Test Group 2"
         assert payload["groups"][0]["is_owner"] is True
         assert payload["groups"][0]["is_member"] is False
         assert self.app.scimapi_groupdb.group_exists(payload["groups"][0]["identifier"]) is True
@@ -283,8 +284,8 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
                 response = client.post("/create", data=json.dumps(data), content_type=self.content_type_json)
         self._check_success_response(response, type_="POST_GROUP_MANAGEMENT_CREATE_SUCCESS")
         payload = self.get_response_payload(response)
-        assert 1 == len(payload["groups"])
-        assert "Test Group 2" == payload["groups"][0]["display_name"]
+        assert len(payload["groups"]) == 1
+        assert payload["groups"][0]["display_name"] == "Test Group 2"
         assert payload["groups"][0]["is_owner"] is True
         assert payload["groups"][0]["is_member"] is False
         assert self.app.scimapi_groupdb.group_exists(payload["groups"][0]["identifier"]) is True
@@ -307,7 +308,7 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
                 response = client.post("/delete", data=json.dumps(data), content_type=self.content_type_json)
         self._check_success_response(response, type_="POST_GROUP_MANAGEMENT_DELETE_SUCCESS")
         payload = self.get_response_payload(response)
-        assert 1 == len(payload["groups"])
+        assert len(payload["groups"]) == 1
 
         assert self.app.scimapi_groupdb.group_exists(str(self.scim_group2.scim_id)) is True
         assert self.app.scimapi_groupdb.group_exists(str(self.scim_group1.scim_id)) is False
@@ -356,7 +357,7 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
         self.app.scimapi_groupdb.save(self.scim_group1)
 
         self._invite_setup()
-        assert 3 == len(self.app.invite_state_db.get_states_by_group_scim_id(str(self.scim_group1.scim_id)))
+        assert len(self.app.invite_state_db.get_states_by_group_scim_id(str(self.scim_group1.scim_id))) == 3
 
         with self.session_cookie(self.browser, self.test_user.eppn) as client:
             with self.app.test_request_context():
@@ -382,7 +383,7 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
         group = self.app.scimapi_groupdb.get_group_by_scim_id(str(self.scim_group1.scim_id))
         assert group is not None
         found_members = [member for member in group.graph.members if member.identifier == str(self.scim_user2.scim_id)]
-        assert 1 == len(found_members)
+        assert len(found_members) == 1
 
         with self.session_cookie(self.browser, self.test_user.eppn) as client:
             with self.app.test_request_context():
@@ -396,13 +397,13 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
                 response = client.post("/remove-user", data=json.dumps(data), content_type=self.content_type_json)
         self._check_success_response(response, type_="POST_GROUP_MANAGEMENT_REMOVE_USER_SUCCESS")
         payload = self.get_response_payload(response)
-        assert 1 == len(payload["groups"])
+        assert len(payload["groups"]) == 1
 
         # Check that test_user2 is no longer a member of scim_group1
         group = self.app.scimapi_groupdb.get_group_by_scim_id(str(self.scim_group1.scim_id))
         assert group is not None
         found_members = [member for member in group.graph.members if member.identifier == str(self.scim_user2.scim_id)]
-        assert 0 == len(found_members)
+        assert len(found_members) == 0
 
     def test_remove_member_not_owner(self) -> None:
         # Add test_user2 as group member
@@ -415,7 +416,7 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
         group = self.app.scimapi_groupdb.get_group_by_scim_id(str(self.scim_group1.scim_id))
         assert group is not None
         found_members = [member for member in group.graph.members if member.identifier == str(self.scim_user2.scim_id)]
-        assert 1 == len(found_members)
+        assert len(found_members) == 1
 
         with self.session_cookie(self.browser, self.test_user.eppn) as client:
             with self.app.test_request_context():
@@ -435,7 +436,7 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
         group = self.app.scimapi_groupdb.get_group_by_scim_id(str(self.scim_group1.scim_id))
         assert group is not None
         found_members = [member for member in group.graph.members if member.identifier == str(self.scim_user2.scim_id)]
-        assert 1 == len(found_members)
+        assert len(found_members) == 1
 
     def test_remove_owner(self) -> None:
         # Add test_user1 and test_user2 as group owner
@@ -461,7 +462,7 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
                 response = client.post("/remove-user", data=json.dumps(data), content_type=self.content_type_json)
         self._check_success_response(response, type_="POST_GROUP_MANAGEMENT_REMOVE_USER_SUCCESS")
         payload = self.get_response_payload(response)
-        assert 1 == len(payload["groups"])
+        assert len(payload["groups"]) == 1
         assert payload["groups"][0]["is_owner"] is True
         assert payload["groups"][0]["is_member"] is False
 
@@ -480,7 +481,7 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
         group = self.app.scimapi_groupdb.get_group_by_scim_id(str(self.scim_group1.scim_id))
         assert group is not None
         found_owners = [owner for owner in group.graph.owners if owner.identifier == str(self.scim_user1.scim_id)]
-        assert 1 == len(found_owners)
+        assert len(found_owners) == 1
 
         with self.session_cookie(self.browser, self.test_user.eppn) as client:
             with self.app.test_request_context():
@@ -498,7 +499,7 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
         group = self.app.scimapi_groupdb.get_group_by_scim_id(str(self.scim_group1.scim_id))
         assert group is not None
         found_owners = [owner for owner in group.graph.owners if owner.identifier == str(self.scim_user1.scim_id)]
-        assert 1 == len(found_owners)
+        assert len(found_owners) == 1
 
     def test_remove_self_member(self) -> None:
         # Add test_user1 as group member
@@ -524,7 +525,7 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
                 response = client.post("/remove-user", data=json.dumps(data), content_type=self.content_type_json)
         self._check_success_response(response, type_="POST_GROUP_MANAGEMENT_REMOVE_USER_SUCCESS")
         payload = self.get_response_payload(response)
-        assert 0 == len(payload["groups"])
+        assert len(payload["groups"]) == 0
 
         # Check that test_user1 is no longer a member of scim_group1
         group = self.app.scimapi_groupdb.get_group_by_scim_id(str(self.scim_group1.scim_id))
@@ -542,7 +543,7 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
         group = self.app.scimapi_groupdb.get_group_by_scim_id(str(self.scim_group1.scim_id))
         assert group is not None
         found_members = [member for member in group.graph.members if member.identifier == str(self.scim_user2.scim_id)]
-        assert 0 == len(found_members)
+        assert len(found_members) == 0
 
         with self.session_cookie(self.browser, self.test_user.eppn) as client:
             with self.app.test_request_context():
@@ -556,13 +557,13 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
                 response = client.post("/remove-user", data=json.dumps(data), content_type=self.content_type_json)
         self._check_success_response(response, type_="POST_GROUP_MANAGEMENT_REMOVE_USER_SUCCESS")
         payload = self.get_response_payload(response)
-        assert 1 == len(payload["groups"])
+        assert len(payload["groups"]) == 1
 
         # Check that test_user2 is still not a member of scim_group1
         group = self.app.scimapi_groupdb.get_group_by_scim_id(str(self.scim_group1.scim_id))
         assert group is not None
         found_members = [member for member in group.graph.members if member.identifier == str(self.scim_user2.scim_id)]
-        assert 0 == len(found_members)
+        assert len(found_members) == 0
 
     def test_invite_member(self) -> None:
         # Add test user as group owner
@@ -583,11 +584,11 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
         )
         payload = self.get_response_payload(response)
         outgoing = payload["outgoing"]
-        assert 1 == len(outgoing)
+        assert len(outgoing) == 1
         for invite in outgoing:
             assert str(self.scim_group1.scim_id) == invite["group_identifier"]
-            assert 1 == len(invite["member_invites"])
-            assert 0 == len(invite["owner_invites"])
+            assert len(invite["member_invites"]) == 1
+            assert len(invite["owner_invites"]) == 0
 
         assert (
             self.app.invite_state_db.get_state(
@@ -617,7 +618,7 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
         )
         payload = self.get_response_payload(response)
         outgoing = payload["outgoing"]
-        assert 0 == len(outgoing)
+        assert len(outgoing) == 0
 
         assert not self.app.invite_state_db.get_state(
             group_scim_id=str(self.scim_group1.scim_id),
@@ -629,8 +630,8 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
         self._check_success_response(response, type_="GET_GROUP_MANAGEMENT_GROUPS_SUCCESS")
         payload = self.get_response_payload(response)
         assert str(self.scim_user1.scim_id) == payload["user_identifier"]
-        assert 1 == len(payload["groups"])
-        assert "Test Group 1" == payload["groups"][0]["display_name"]
+        assert len(payload["groups"]) == 1
+        assert payload["groups"][0]["display_name"] == "Test Group 1"
         assert payload["groups"][0]["is_owner"] is True
         assert payload["groups"][0]["is_member"] is True
 
@@ -660,7 +661,7 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
         )
         payload = self.get_response_payload(response)
         incoming = payload["incoming"]
-        assert 0 == len(incoming)
+        assert len(incoming) == 0
 
         assert not self.app.invite_state_db.get_state(
             group_scim_id=str(self.scim_group1.scim_id),
@@ -701,7 +702,7 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
         )
         payload = self.get_response_payload(response)
         incoming = payload["incoming"]
-        assert 0 == len(incoming)
+        assert len(incoming) == 0
 
         assert not self.app.invite_state_db.get_state(
             group_scim_id=str(self.scim_group1.scim_id),
@@ -742,7 +743,7 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
         )
         payload = self.get_response_payload(response)
         outgoing = payload["outgoing"]
-        assert 0 == len(outgoing)
+        assert len(outgoing) == 0
 
         assert not self.app.invite_state_db.get_state(
             group_scim_id=str(self.scim_group1.scim_id),
@@ -776,11 +777,11 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
         )
         payload = self.get_response_payload(response)
         outgoing = payload["outgoing"]
-        assert 1 == len(outgoing)
+        assert len(outgoing) == 1
         for invite in outgoing:
             assert str(self.scim_group1.scim_id) == invite["group_identifier"]
-            assert 0 == len(invite["member_invites"])
-            assert 1 == len(invite["owner_invites"])
+            assert len(invite["member_invites"]) == 0
+            assert len(invite["owner_invites"]) == 1
         assert (
             self.app.invite_state_db.get_state(
                 group_scim_id=str(self.scim_group1.scim_id),
@@ -809,7 +810,7 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
         )
         payload = self.get_response_payload(response)
         outgoing = payload["outgoing"]
-        assert 0 == len(outgoing)
+        assert len(outgoing) == 0
 
         assert not self.app.invite_state_db.get_state(
             group_scim_id=str(self.scim_group1.scim_id),
@@ -821,8 +822,8 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
         self._check_success_response(response, type_="GET_GROUP_MANAGEMENT_GROUPS_SUCCESS")
         payload = self.get_response_payload(response)
         assert str(self.scim_user1.scim_id) == payload["user_identifier"]
-        assert 1 == len(payload["groups"])
-        assert "Test Group 1" == payload["groups"][0]["display_name"]
+        assert len(payload["groups"]) == 1
+        assert payload["groups"][0]["display_name"] == "Test Group 1"
         assert payload["groups"][0]["is_owner"] is True
         assert payload["groups"][0]["is_member"] is False
 
@@ -852,7 +853,7 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
         )
         payload = self.get_response_payload(response)
         incoming = payload["incoming"]
-        assert 0 == len(incoming)
+        assert len(incoming) == 0
 
         assert not self.app.invite_state_db.get_state(
             group_scim_id=str(self.scim_group1.scim_id),
@@ -893,7 +894,7 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
         )
         payload = self.get_response_payload(response)
         incoming = payload["incoming"]
-        assert 0 == len(incoming)
+        assert len(incoming) == 0
 
         assert not self.app.invite_state_db.get_state(
             group_scim_id=str(self.scim_group1.scim_id),
@@ -935,7 +936,7 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
         )
         payload = self.get_response_payload(response)
         outgoing = payload["outgoing"]
-        assert 0 == len(outgoing)
+        assert len(outgoing) == 0
 
         assert not self.app.invite_state_db.get_state(
             group_scim_id=str(self.scim_group1.scim_id),
@@ -952,7 +953,7 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
 
     def test_all_invites(self) -> None:
         response = self.browser.get("/invites/all")
-        assert HTTPStatus.UNAUTHORIZED == response.status_code
+        assert response.status_code == HTTPStatus.UNAUTHORIZED
 
         self._invite_setup()
 
@@ -961,33 +962,33 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
             response = client.get("/invites/all", content_type=self.content_type_json)
         self._check_success_response(response, type_="GET_GROUP_INVITE_INVITES_ALL_SUCCESS")
         payload = self.get_response_payload(response)
-        assert [] == payload["incoming"]
+        assert payload["incoming"] == []
         outgoing = payload["outgoing"]
-        assert 2 == len(outgoing)
+        assert len(outgoing) == 2
         for invite in outgoing:
             if invite["group_identifier"] == str(self.scim_group1.scim_id):
-                assert 2 == len(invite["member_invites"])
-                assert 1 == len(invite["owner_invites"])
+                assert len(invite["member_invites"]) == 2
+                assert len(invite["owner_invites"]) == 1
             elif invite["group_identifier"] == str(self.scim_group2.scim_id):
-                assert 1 == len(invite["member_invites"])
-                assert 0 == len(invite["owner_invites"])
+                assert len(invite["member_invites"]) == 1
+                assert len(invite["owner_invites"]) == 0
             else:
-                assert False, "Unknown group scim_id in outgoing invites"
+                pytest.fail("Unknown group scim_id in outgoing invites")
 
         # Check incoming invites as test_user2
         with self.session_cookie(self.browser, self.test_user2.eppn) as client:
             response = client.get("/invites/all", content_type=self.content_type_json)
         self._check_success_response(response, type_="GET_GROUP_INVITE_INVITES_ALL_SUCCESS")
         payload = self.get_response_payload(response)
-        assert [] == payload["outgoing"]
+        assert payload["outgoing"] == []
         incoming = payload["incoming"]
-        assert 2 == len(incoming)
+        assert len(incoming) == 2
         assert self.test_user2.mail_addresses.primary is not None
         for invite in incoming:
             assert str(self.scim_group1.scim_id) == invite["group_identifier"]
             assert self.scim_group1.display_name == invite["display_name"]
             assert self.test_user2.mail_addresses.primary.email == invite["email_address"]
-            assert 1 == len(invite["owners"])
+            assert len(invite["owners"]) == 1
             assert invite["role"] is not None
 
         # Check incoming invites as test_user3
@@ -995,20 +996,20 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
             response = client.get("/invites/all", content_type=self.content_type_json)
         self._check_success_response(response, type_="GET_GROUP_INVITE_INVITES_ALL_SUCCESS")
         payload = self.get_response_payload(response)
-        assert [] == payload["outgoing"]
+        assert payload["outgoing"] == []
         incoming = payload["incoming"]
-        assert 2 == len(incoming)
+        assert len(incoming) == 2
         assert self.test_user3.mail_addresses.primary is not None
         for invite in incoming:
             assert invite["group_identifier"] is not None
             assert invite["display_name"] is not None
             assert self.test_user3.mail_addresses.primary.email == invite["email_address"]
-            assert 1 == len(invite["owners"])
+            assert len(invite["owners"]) == 1
             assert GroupRole.MEMBER.value == invite["role"]
 
     def test_outgoing_invites(self) -> None:
         response = self.browser.get("/invites/outgoing")
-        assert HTTPStatus.UNAUTHORIZED == response.status_code
+        assert response.status_code == HTTPStatus.UNAUTHORIZED
 
         self._invite_setup()
 
@@ -1019,20 +1020,20 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
         payload = self.get_response_payload(response)
         assert payload.get("incoming") is None
         outgoing = payload["outgoing"]
-        assert 2 == len(outgoing)
+        assert len(outgoing) == 2
         for invite in outgoing:
             if invite["group_identifier"] == str(self.scim_group1.scim_id):
-                assert 2 == len(invite["member_invites"])
-                assert 1 == len(invite["owner_invites"])
+                assert len(invite["member_invites"]) == 2
+                assert len(invite["owner_invites"]) == 1
             elif invite["group_identifier"] == str(self.scim_group2.scim_id):
-                assert 1 == len(invite["member_invites"])
-                assert 0 == len(invite["owner_invites"])
+                assert len(invite["member_invites"]) == 1
+                assert len(invite["owner_invites"]) == 0
             else:
-                assert False, "Unknown group scim_id in outgoing invites"
+                pytest.fail("Unknown group scim_id in outgoing invites")
 
     def test_incoming_invites(self) -> None:
         response = self.browser.get("/invites/incoming")
-        assert HTTPStatus.UNAUTHORIZED == response.status_code
+        assert response.status_code == HTTPStatus.UNAUTHORIZED
 
         self._invite_setup()
 
@@ -1043,13 +1044,13 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
         payload = self.get_response_payload(response)
         assert payload.get("outgoing") is None
         incoming = payload["incoming"]
-        assert 2 == len(incoming)
+        assert len(incoming) == 2
         assert self.test_user2.mail_addresses.primary is not None
         for invite in incoming:
             assert str(self.scim_group1.scim_id) == invite["group_identifier"]
             assert self.scim_group1.display_name == invite["display_name"]
             assert self.test_user2.mail_addresses.primary.email == invite["email_address"]
-            assert 1 == len(invite["owners"])
+            assert len(invite["owners"]) == 1
             assert invite["role"] is not None
 
         # Check incoming invites as test_user3
@@ -1059,18 +1060,18 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
         payload = self.get_response_payload(response)
         assert payload.get("outgoing") is None
         incoming = payload["incoming"]
-        assert 2 == len(incoming)
+        assert len(incoming) == 2
         assert self.test_user3.mail_addresses.primary is not None
         for invite in incoming:
             assert invite["group_identifier"] is not None
             assert invite["display_name"] is not None
             assert self.test_user3.mail_addresses.primary.email == invite["email_address"]
-            assert 1 == len(invite["owners"])
+            assert len(invite["owners"]) == 1
             assert GroupRole.MEMBER.value == invite["role"]
 
     def test_get_all_data(self) -> None:
         response = self.browser.get("/all-data")
-        assert HTTPStatus.UNAUTHORIZED == response.status_code
+        assert response.status_code == HTTPStatus.UNAUTHORIZED
 
         self._invite_setup()
 
@@ -1080,8 +1081,8 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
         self._check_success_response(response, type_="GET_GROUP_MANAGEMENT_ALL_DATA_SUCCESS")
         payload = self.get_response_payload(response)
         assert str(self.scim_user1.scim_id) == payload["user_identifier"]
-        assert 2 == len(payload["outgoing"])
-        assert 2 == len(payload["groups"])
+        assert len(payload["outgoing"]) == 2
+        assert len(payload["groups"]) == 2
 
         # Accept member invite as test user 2
         assert self.test_user2.mail_addresses.primary is not None
@@ -1098,8 +1099,8 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
         self._check_success_response(response, type_="GET_GROUP_MANAGEMENT_ALL_DATA_SUCCESS")
         payload = self.get_response_payload(response)
         assert str(self.scim_user2.scim_id) == payload["user_identifier"]
-        assert 1 == len(payload["incoming"])
-        assert 1 == len(payload["groups"])
+        assert len(payload["incoming"]) == 1
+        assert len(payload["groups"]) == 1
 
         # Test with only invites
         with self.session_cookie(self.browser, self.test_user3.eppn) as client:
@@ -1107,8 +1108,8 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
         self._check_success_response(response, type_="GET_GROUP_MANAGEMENT_ALL_DATA_SUCCESS")
         payload = self.get_response_payload(response)
         assert payload["user_identifier"] is None
-        assert 2 == len(payload["incoming"])
-        assert 0 == len(payload["groups"])
+        assert len(payload["incoming"]) == 2
+        assert len(payload["groups"]) == 0
 
     def test_get_all_data_privacy(self) -> None:
         # Add test user as group member and owner, add test user 2 as member
@@ -1169,7 +1170,7 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
             ]
         ) == normalised_data(payload["outgoing"])
         # test user 1 does not have any incoming invites
-        assert [] == normalised_data(payload["incoming"])
+        assert normalised_data(payload["incoming"]) == []
 
         # Get all data as test user 2
         with self.session_cookie(self.browser, self.test_user2.eppn) as client:
@@ -1194,7 +1195,7 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
             ]
         ) == normalised_data(payload["groups"])
         # test user 2 does not have any outgoing invites
-        assert [] == payload["outgoing"]
+        assert payload["outgoing"] == []
         # as an invitee the user see incoming invites
         assert normalised_data(
             [

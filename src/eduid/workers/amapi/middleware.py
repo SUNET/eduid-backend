@@ -88,8 +88,4 @@ class AuthenticationMiddleware(BaseHTTPMiddleware, ContextRequestMixin):
         fnmatch matches method_path (get:/users/hubba-bubba/name) with glob expression:
         (get:/users/*/name OR get:/users/hubba-hubba/name).
         """
-
-        for endpoint in endpoints:
-            if fnmatch.fnmatch(method_path, endpoint.uri):
-                return True
-        return False
+        return any(fnmatch.fnmatch(method_path, endpoint.uri) for endpoint in endpoints)

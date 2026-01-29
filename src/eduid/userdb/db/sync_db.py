@@ -54,7 +54,7 @@ class MongoDB(BaseMongoDB):
             self._client = MongoClientCache().get_client(db=self)
 
         except PyMongoError as e:
-            raise MongoConnectionError(f"Error connecting to mongodb {self!r}: {e}")
+            raise MongoConnectionError(f"Error connecting to mongodb {self!r}: {e}") from e
 
     def get_connection(self) -> pymongo.MongoClient[TUserDbDocument]:
         """
