@@ -31,11 +31,11 @@ ignore = [
   "SIM102",   # collapsible-if
   "SIM103",   # return-bool-condition-directly (keeping explicit if/else for clarity)
   "SIM108",   # if-else-block-instead-of-if-exp
-  "SIM117",   # multiple-with-statements
 ]
 
 [lint.flake8-annotations]
 allow-star-arg-any = true
 
 [lint.per-file-ignores]
-"**/test_*.py" = ["PLR2004"]
+"**/test_*.py" = ["PLR2004"]  # magic-value-comparison - allow magic numbers in tests
+"**/test*.py" = ["SIM117"]    # multiple-with-statements - combined session_transaction() calls break tests
