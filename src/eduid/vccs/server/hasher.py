@@ -89,7 +89,7 @@ class VCCSYHSMHasher(VCCSHasher):
         else:
             return ret
 
-    async def hmac_sha1(self, key_handle: int | None, data: bytes) -> bytes:
+    async def hmac_sha1(self, key_handle: int, data: bytes) -> bytes:
         """
         Perform HMAC-SHA-1 operation using YubiHSM.
 
@@ -101,9 +101,7 @@ class VCCSYHSMHasher(VCCSHasher):
         finally:
             self.lock_release()
 
-    def unsafe_hmac_sha1(self, key_handle: int | None, data: bytes) -> bytes:
-        if key_handle is None:
-            key_handle = pyhsm.defines.YSM_TEMP_KEY_HANDLE
+    def unsafe_hmac_sha1(self, key_handle: int, data: bytes) -> bytes:
         return self._yhsm.hmac_sha1(key_handle, data).get_hash()
 
     async def hmac_sha256(self, key_label: str, data: bytes) -> bytes:
