@@ -16,7 +16,7 @@ from eduid.vccs.server.endpoints.add_creds import add_creds_router
 from eduid.vccs.server.endpoints.authenticate import authenticate_router
 from eduid.vccs.server.endpoints.misc import misc_router
 from eduid.vccs.server.endpoints.revoke_creds import revoke_creds_router
-from eduid.vccs.server.hasher import hasher_from_string
+from eduid.vccs.server.hasher import load_hasher
 from eduid.vccs.server.log import InterceptHandler, init_logging
 
 
@@ -30,11 +30,8 @@ class VCCS_API(FastAPI):
         self.logger = init_logging()
 
         yhsm_lock = Lock()  # brief testing indicates locking is not needed with asyncio, but...
-        self.state.hasher = hasher_from_string(
-            name=self.state.config.yhsm_device, lock=yhsm_lock, debug=self.state.config.yhsm_debug
-        )
-        if self.state.config.yhsm_unlock_password:
-            self.state.hasher.unlock(self.state.config.yhsm_unlock_password)
+        self.state.hasher = load_hasher(config=self.state.config.hasher, lock=yhsm_lock, debug=self.state.config.debug)
+        self.state.hasher.unlock()
 
         self.state.kdf = ndnkdf.NDNKDF()
 

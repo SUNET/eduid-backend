@@ -1,22 +1,41 @@
 from collections.abc import Mapping
 from typing import Any
 
+from pydantic import BaseModel
+
 from eduid.common.config.base import RootConfig
 from eduid.common.config.parsers import load_config
 
 
-class VCCSConfig(RootConfig):
+class HasherConfig(BaseModel):
     add_creds_password_key_handle: int
+    add_creds_password_key_label: str | None = None
+
+
+class YHSMConfig(HasherConfig):
+    device: str = "/dev/ttyACM0"
+    unlock_password: str
+
+
+class HSMKeyConfig(HasherConfig):
+    module_path: str
+    token_label: str
+    user_pin: str | None = None
+    so_pin: str | None = None
+
+
+class SoftHasherConfig(HasherConfig):
+    key_handles: dict[int, str]
+
+
+class VCCSConfig(RootConfig):
     mongo_uri: str
+    hasher: YHSMConfig | HSMKeyConfig | SoftHasherConfig
     # Optional arguments below
     add_creds_password_kdf_iterations: int = 50000
     add_creds_password_salt_bytes: int = 128 // 8
-    debug: bool = False
     kdf_max_iterations: int = 500000
     kdf_min_iterations: int = 20000
-    yhsm_debug: bool = False
-    yhsm_device: str = "/dev/ttyACM0"
-    yhsm_unlock_password: str | None = None
 
 
 def init_config(ns: str, app_name: str, test_config: Mapping[str, Any] | None = None) -> VCCSConfig:
