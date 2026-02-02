@@ -13,6 +13,7 @@ class HasherConfig(BaseModel):
 
 
 class YHSMConfig(HasherConfig):
+    debug: bool = False
     device: str = "/dev/ttyACM0"
     unlock_password: str
 

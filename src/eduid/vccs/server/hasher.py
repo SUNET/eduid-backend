@@ -70,7 +70,7 @@ class VCCSHasher(ABC):
 
 
 class VCCSYHSMHasher(VCCSHasher):
-    def __init__(self, config: YHSMConfig, lock: Lock | NoOpLock, debug: bool = False) -> None:
+    def __init__(self, config: YHSMConfig, lock: Lock | NoOpLock) -> None:
         try:
             mode = os.stat(config.device).st_mode
             if not stat.S_ISCHR(mode):
@@ -79,7 +79,7 @@ class VCCSYHSMHasher(VCCSHasher):
             raise ValueError(f"Unknown hasher {repr(config.device)}") from e
 
         super().__init__(lock)
-        self._yhsm = pyhsm.base.YHSM(config.device, debug)
+        self._yhsm = pyhsm.base.YHSM(config.device, config.debug)
         self._unlock_password = config.unlock_password
 
     def unlock(self) -> None:
@@ -395,6 +395,6 @@ def load_hasher(
         case HSMKeyConfig():
             return VCCSHSMKeyHasher(config=config, lock=lock, debug=debug)
         case YHSMConfig():
-            return VCCSYHSMHasher(config=config, lock=lock, debug=debug)
+            return VCCSYHSMHasher(config=config, lock=lock)
         case _:
             raise ValueError(f"Unknown hasher {repr(config)}")
