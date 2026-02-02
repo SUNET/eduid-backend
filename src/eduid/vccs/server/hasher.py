@@ -4,7 +4,6 @@ import stat
 from abc import ABC, abstractmethod
 from asyncio.locks import Lock
 from binascii import unhexlify
-from collections.abc import Mapping
 from hashlib import sha1, sha256
 from typing import Literal
 
