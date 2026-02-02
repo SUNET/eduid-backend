@@ -71,10 +71,17 @@ class VCCSHasher(ABC):
 
 
 class VCCSYHSMHasher(VCCSHasher):
-    def __init__(self, device: str, unlock_password: str, lock: Lock | NoOpLock, debug: bool = False) -> None:
-        VCCSHasher.__init__(self, lock)
-        self._yhsm = pyhsm.base.YHSM(device, debug)
-        self._unlock_password = unlock_password
+    def __init__(self, config: YHSMConfig, lock: Lock | NoOpLock, debug: bool = False) -> None:
+        try:
+            mode = os.stat(config.device).st_mode
+            if not stat.S_ISCHR(mode):
+                raise ValueError(f"Not a character device: {config.device}")
+        except OSError as e:
+            raise ValueError(f"Unknown hasher {repr(config.device)}") from e
+
+        super().__init__(lock)
+        self._yhsm = pyhsm.base.YHSM(config.device, debug)
+        self._unlock_password = config.unlock_password
 
     def unlock(self) -> None:
         """Unlock YubiHSM on startup. The password is supposed to be hex encoded."""
@@ -132,12 +139,12 @@ class VCCSSoftHasher(VCCSHasher):
     (except perhaps separating HMAC keys from credential store).
     """
 
-    def __init__(self, keys: Mapping[int, str], lock: Lock | NoOpLock, debug: bool = False) -> None:
+    def __init__(self, config: SoftHasherConfig, lock: Lock | NoOpLock, debug: bool = False) -> None:
         super().__init__(lock)
         self.debug = debug
         # Covert keys from strings to bytes when loading
         self.keys: dict[int | str, bytes] = {}
-        for k, v in keys.items():
+        for k, v in config.key_handles.items():
             self.keys[k] = unhexlify(v)
 
     def unlock(self) -> None:
@@ -199,7 +206,7 @@ class VCCSHSMKeyHasher(VCCSHasher):
 
     def __init__(
         self,
-        config: HSMConfig,
+        config: HSMKeyConfig,
         lock: Lock | NoOpLock,
         debug: bool = False,
     ) -> None:
@@ -212,7 +219,13 @@ class VCCSHSMKeyHasher(VCCSHasher):
         """
         super().__init__(lock)
         self.debug = debug
-        self._config = config
+        hsm_config = HSMConfig(
+            module_path=config.module_path,
+            token_label=config.token_label,
+            user_pin=config.user_pin,
+            so_pin=config.so_pin,
+        )
+        self._config = hsm_config
 
         self._pool = SessionPool(
             module_path=config.module_path,
@@ -381,24 +394,10 @@ def load_hasher(
 
     match config:
         case SoftHasherConfig():
-            return VCCSSoftHasher(keys=config.key_handles, lock=lock, debug=debug)
+            return VCCSSoftHasher(config=config, lock=lock, debug=debug)
         case HSMKeyConfig():
-            hsm_config = HSMConfig(
-                module_path=config.module_path,
-                token_label=config.token_label,
-                user_pin=config.user_pin,
-                so_pin=config.so_pin,
-            )
-            return VCCSHSMKeyHasher(config=hsm_config, lock=lock, debug=debug)
+            return VCCSHSMKeyHasher(config=config, lock=lock, debug=debug)
         case YHSMConfig():
-            try:
-                mode = os.stat(config.device).st_mode
-                if stat.S_ISCHR(mode):
-                    return VCCSYHSMHasher(
-                        device=config.device, unlock_password=config.unlock_password, lock=lock, debug=debug
-                    )
-                raise ValueError(f"Not a character device: {config.device}")
-            except OSError as e:
-                raise ValueError(f"Unknown hasher {repr(config.device)}") from e
+            return VCCSYHSMHasher(config=config, lock=lock, debug=debug)
         case _:
             raise ValueError(f"Unknown hasher {repr(config)}")
