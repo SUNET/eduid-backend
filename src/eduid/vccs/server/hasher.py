@@ -382,8 +382,6 @@ def load_hasher(
     is given, it will be lock.acquire()'d and lock.release()'d when
     hashers hash.
 
-    The lock must be reentrant to support OATH.
-
     :param config: Hasher config
     :param lock: Optional lock for thread-safe access
     :param debug: Enable debug mode
