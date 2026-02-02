@@ -171,7 +171,7 @@ class VCCSSoftHasher(VCCSHasher):
 
     async def hmac_sha256(self, key_label: str, data: bytes) -> bytes:
         """
-        Perform HMAC-SHA-1 operation using Python stdlib hmac module.
+        Perform HMAC-SHA-256 operation using Python stdlib hmac module.
 
         Acquires a lock first if a lock instance was given at creation time.
         """
