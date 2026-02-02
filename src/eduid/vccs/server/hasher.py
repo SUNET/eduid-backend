@@ -339,7 +339,7 @@ class VCCSHSMKeyHasher(VCCSHasher):
         :returns: 32-byte HMAC-SHA-256 digest
         """
         with self._pool.session() as session:
-            key = self._get_hmac_key(session, key_label=key_label, key_type=KeyType.GENERIC_SECRET)
+            key = self._get_hmac_key(session, key_label=key_label)
             # Use the key's sign method with SHA256_HMAC mechanism
             return key.sign(data, mechanism=Mechanism.SHA256_HMAC)
 
