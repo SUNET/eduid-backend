@@ -127,16 +127,11 @@ def mfa_authentication(method: str, frontend_action: str, frontend_state: str | 
         return error_response(message=FrejaEIDMsg.mfa_authn_not_allowed)
 
     current_app.logger.debug("mfa-authenticate called")
-    _frontend_action = FrontendAction.LOGIN_MFA_AUTHN
-
-    if frontend_action != _frontend_action.value:
-        current_app.logger.error(f"Invalid frontend_action: {frontend_action}")
-        return error_response(message=FrejaEIDMsg.frontend_action_not_supported)
 
     result = _authn(
         FrejaEIDAction.mfa_authenticate,
         method=method,
-        frontend_action=_frontend_action.value,
+        frontend_action=frontend_action,
         frontend_state=frontend_state,
     )
 
@@ -208,8 +203,7 @@ def _authn(
 
 
 @freja_eid_views.route("/authn-callback", methods=["GET"])
-@require_user
-def authn_callback(user: User) -> WerkzeugResponse:
+def authn_callback() -> WerkzeugResponse:
     """
     This is the callback endpoint for the Freja EID OIDC flow.
     """

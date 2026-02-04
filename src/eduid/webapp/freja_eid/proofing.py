@@ -185,7 +185,7 @@ class FrejaEIDProofingFunctions(ProofingFunctions[FrejaEIDDocumentUserInfo]):
             result = current_app.am_relay.request_user_sync(proofing_user)
             current_app.logger.info(f"Sync result for user: {result}")
         except AmTaskFailed:
-            current_app.logger.exception("Verifying Svipe identity for user failed")
+            current_app.logger.exception("Verifying identity for user failed")
             return VerifyUserResult(error=CommonMsg.temp_problem)
 
         current_app.stats.count(name="foreign_identity_verified")

@@ -1,7 +1,12 @@
 import logging
 
 from eduid.userdb.credentials import FidoCredential
-from eduid.userdb.credentials.external import BankIDCredential, FrejaCredential, SwedenConnectCredential
+from eduid.userdb.credentials.external import (
+    BankIDCredential,
+    EidasCredential,
+    FrejaCredential,
+    SwedenConnectCredential,
+)
 from eduid.userdb.idp.user import IdPUser
 from eduid.webapp.idp.login_context import LoginContext
 
@@ -29,6 +34,10 @@ def need_security_key(user: IdPUser, ticket: LoginContext) -> bool:
                 return False
             case SwedenConnectCredential():
                 if credential.level == "loa3":
+                    logger.debug(f"User has authenticated using external MFA for this request: {credential}")
+                    return False
+            case EidasCredential():
+                if credential.level in ["eidas-nf-sub", "eidas-nf-high"]:
                     logger.debug(f"User has authenticated using external MFA for this request: {credential}")
                     return False
             case BankIDCredential():
