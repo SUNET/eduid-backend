@@ -5,7 +5,12 @@ import logging
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.models.saml2 import EduidAuthnContextClass
 from eduid.userdb.credentials import CredentialProofingMethod, FidoCredential, Password
-from eduid.userdb.credentials.external import BankIDCredential, FrejaCredential, SwedenConnectCredential
+from eduid.userdb.credentials.external import (
+    BankIDCredential,
+    EidasCredential,
+    FrejaCredential,
+    SwedenConnectCredential,
+)
 from eduid.userdb.element import ElementKey
 from eduid.userdb.idp import IdPUser
 from eduid.webapp.idp.app import current_idp_app as current_app
@@ -87,6 +92,11 @@ class AuthnState:
                     logger.debug(f"BankID MFA used for this request: {cred}")
                     self.external_mfa_used = True
                     if cred.level == "uncertified-loa3":
+                        self.swamid_al3_used = True
+                case EidasCredential():
+                    logger.debug(f"EIDAS MFA used for this request: {cred}")
+                    self.external_mfa_used = True
+                    if cred.level in ["eidas-nf-sub", "eidas-nf-high"]:
                         self.swamid_al3_used = True
                 case FrejaCredential():
                     logger.debug(f"Freja MFA used for this request: {cred}")
