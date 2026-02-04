@@ -8,12 +8,11 @@ from pydantic import ValidationError
 from eduid.common.config.base import FrontendAction, ProofingConfigMixin
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.credentials.external import TrustFramework
-from eduid.webapp.bankid.saml_session_info import BankIDSessionInfo
 from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.common.authn.session_info import SessionInfo
 from eduid.webapp.common.proofing.messages import ProofingMsg
-from eduid.webapp.eidas.saml_session_info import ForeignEidSessionInfo, NinSessionInfo
 from eduid.webapp.freja_eid.helpers import FrejaEIDDocumentUserInfo
+from eduid.webapp.samleid.saml_session_info import ForeignEidSessionInfo, NinSessionInfo
 from eduid.webapp.svipe_id.helpers import SvipeDocumentUserInfo
 
 logger = logging.getLogger(__name__)
@@ -22,14 +21,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class SessionInfoParseResult:
     error: TranslatableMsg | None = None
-    info: (
-        NinSessionInfo
-        | ForeignEidSessionInfo
-        | SvipeDocumentUserInfo
-        | BankIDSessionInfo
-        | FrejaEIDDocumentUserInfo
-        | None
-    ) = None
+    info: NinSessionInfo | ForeignEidSessionInfo | SvipeDocumentUserInfo | FrejaEIDDocumentUserInfo | None = None
 
 
 @dataclass(frozen=True)
@@ -98,7 +90,7 @@ class ProofingMethodEidas(ProofingMethodSAML):
 class ProofingMethodBankID(ProofingMethodSAML):
     def parse_session_info(self, session_info: SessionInfo, backdoor: bool) -> SessionInfoParseResult:
         try:
-            parsed_session_info = BankIDSessionInfo(**session_info)
+            parsed_session_info = NinSessionInfo(**session_info)
             logger.debug(f"session info: {parsed_session_info}")
         except ValidationError:
             logger.exception("missing attribute in SAML response")

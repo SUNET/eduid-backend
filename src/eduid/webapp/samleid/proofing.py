@@ -438,19 +438,39 @@ class EidasProofingFunctions(SamleidProofingFunctions[ForeignEidSessionInfo]):
 
 def get_proofing_functions(
     session_info: BaseSessionInfo,
+    method: str | None,
     app_name: str,
     config: ProofingConfigMixin,
     backdoor: bool,
 ) -> ProofingFunctions:
-    if isinstance(session_info, NinSessionInfo):
-        # Check if it's BankID or Freja based on session_info attributes
-        if hasattr(session_info.attributes, "transaction_id") and session_info.attributes.transaction_id:
-            return BankIDProofingFunctions(
+    # Dispatch based on method parameter for explicit proofing method selection
+    if method == "bankid":
+        if not isinstance(session_info, NinSessionInfo):
+            raise ValueError(f"Expected NinSessionInfo for bankid method, got {type(session_info)}")
+        return BankIDProofingFunctions(session_info=session_info, app_name=app_name, config=config, backdoor=backdoor)
+    elif method == "freja":
+        if not isinstance(session_info, NinSessionInfo):
+            raise ValueError(f"Expected NinSessionInfo for freja method, got {type(session_info)}")
+        return FrejaProofingFunctions(session_info=session_info, app_name=app_name, config=config, backdoor=backdoor)
+    elif method == "eidas":
+        if not isinstance(session_info, ForeignEidSessionInfo):
+            raise ValueError(f"Expected ForeignEidSessionInfo for eidas method, got {type(session_info)}")
+        return EidasProofingFunctions(session_info=session_info, app_name=app_name, config=config, backdoor=backdoor)
+    else:
+        # Fallback to type-based dispatch for backwards compatibility
+        if isinstance(session_info, NinSessionInfo):
+            # Check if it's BankID or Freja based on session_info attributes
+            if hasattr(session_info.attributes, "transaction_id") and session_info.attributes.transaction_id:
+                return BankIDProofingFunctions(
+                    session_info=session_info, app_name=app_name, config=config, backdoor=backdoor
+                )
+            else:
+                return FrejaProofingFunctions(
+                    session_info=session_info, app_name=app_name, config=config, backdoor=backdoor
+                )
+        elif isinstance(session_info, ForeignEidSessionInfo):
+            return EidasProofingFunctions(
                 session_info=session_info, app_name=app_name, config=config, backdoor=backdoor
             )
         else:
-            return FrejaProofingFunctions(session_info=session_info, app_name=app_name, config=config, backdoor=backdoor)
-    elif isinstance(session_info, ForeignEidSessionInfo):
-        return EidasProofingFunctions(session_info=session_info, app_name=app_name, config=config, backdoor=backdoor)
-    else:
-        raise NotImplementedError(f"Proofing functions for {type(session_info)} not implemented")
+            raise NotImplementedError(f"Proofing functions for {type(session_info)} not implemented")

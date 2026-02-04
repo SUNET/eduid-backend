@@ -13,7 +13,7 @@ from eduid.webapp.common.session.namespaces import SP_AuthnRequest
 from eduid.webapp.samleid.app import current_samleid_app as current_app
 from eduid.webapp.samleid.helpers import SamleidMsg
 from eduid.webapp.samleid.proofing import get_proofing_functions
-from eduid.webapp.samleid.saml_session_info import NinSessionInfo, ForeignEidSessionInfo
+from eduid.webapp.samleid.saml_session_info import ForeignEidSessionInfo, NinSessionInfo
 
 __author__ = "lundberg"
 
@@ -64,7 +64,11 @@ def verify_identity_action(user: User, args: ACSArgs) -> ACSResult:
     assert isinstance(parsed.info, (NinSessionInfo, ForeignEidSessionInfo))
 
     proofing = get_proofing_functions(
-        session_info=parsed.info, app_name=current_app.conf.app_name, config=current_app.conf, backdoor=args.backdoor
+        session_info=parsed.info,
+        method=args.authn_req.method,
+        app_name=current_app.conf.app_name,
+        config=current_app.conf,
+        backdoor=args.backdoor,
     )
 
     current = proofing.get_identity(user)
@@ -120,7 +124,11 @@ def verify_credential_action(user: User, args: ACSArgs) -> ACSResult:
     assert isinstance(parsed.info, (NinSessionInfo, ForeignEidSessionInfo))
 
     proofing = get_proofing_functions(
-        session_info=parsed.info, app_name=current_app.conf.app_name, config=current_app.conf, backdoor=args.backdoor
+        session_info=parsed.info,
+        method=args.authn_req.method,
+        app_name=current_app.conf.app_name,
+        config=current_app.conf,
+        backdoor=args.backdoor,
     )
 
     _identity = proofing.get_identity(user=user)
@@ -193,7 +201,11 @@ def mfa_authenticate_action(args: ACSArgs) -> ACSResult:
     assert isinstance(parsed.info, (NinSessionInfo, ForeignEidSessionInfo))
 
     proofing = get_proofing_functions(
-        session_info=parsed.info, app_name=current_app.conf.app_name, config=current_app.conf, backdoor=args.backdoor
+        session_info=parsed.info,
+        method=args.authn_req.method,
+        app_name=current_app.conf.app_name,
+        config=current_app.conf,
+        backdoor=args.backdoor,
     )
 
     # Check that a verified NIN is equal to the asserted attribute personalIdentityNumber

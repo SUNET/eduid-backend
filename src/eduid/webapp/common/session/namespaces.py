@@ -19,7 +19,7 @@ from eduid.common.utils import uuid4_str
 from eduid.userdb.credentials import Credential
 from eduid.userdb.credentials.external import TrustFramework
 from eduid.userdb.element import ElementKey
-from eduid.webapp.common.authn.acs_enums import AuthnAcsAction, BankIDAcsAction, EidasAcsAction
+from eduid.webapp.common.authn.acs_enums import AuthnAcsAction, BankIDAcsAction, EidasAcsAction, SamleidAcsAction
 from eduid.webapp.freja_eid.callback_enums import FrejaEIDAction
 from eduid.webapp.idp.idp_authn import AuthnData
 from eduid.webapp.idp.other_device.data import OtherDeviceId
@@ -253,7 +253,9 @@ class BaseAuthnRequest(BaseModel, ABC):
     frontend_action: FrontendAction  # what action frontend is performing
     frontend_state: str | None = None  # opaque data from frontend, returned in /status
     method: str | None = None  # proofing method that frontend is invoking
-    post_authn_action: AuthnAcsAction | EidasAcsAction | SvipeIDAction | BankIDAcsAction | FrejaEIDAction | None = None
+    post_authn_action: (
+        AuthnAcsAction | EidasAcsAction | SvipeIDAction | BankIDAcsAction | FrejaEIDAction | SamleidAcsAction | None
+    ) = None
     # proofing_credential_id is the credential being person-proofed, when doing that
     proofing_credential_id: ElementKey | None = None
     created_ts: datetime = Field(default_factory=utc_now)

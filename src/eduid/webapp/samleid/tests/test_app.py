@@ -722,8 +722,8 @@ class SamleidTests(ProofingTests[SamleidApp]):
             identity_verified=True,
             num_proofings=1,
             locked_identity=user.identities.nin,
-            proofing_method=IdentityProofingMethod.SAMLEID,
-            proofing_version=self.app.conf.freja_proofing_version,
+            proofing_method=IdentityProofingMethod.BANKID,
+            proofing_version=self.app.conf.bankid_proofing_version,
         )
         # check names
         assert user.given_name == "Ûlla"
@@ -758,8 +758,8 @@ class SamleidTests(ProofingTests[SamleidApp]):
             identity_verified=True,
             num_proofings=1,
             locked_identity=user.identities.nin,
-            proofing_method=IdentityProofingMethod.SAMLEID,
-            proofing_version=self.app.conf.samleid_proofing_version,
+            proofing_method=IdentityProofingMethod.BANKID,
+            proofing_version=self.app.conf.bankid_proofing_version,
         )
         # check names
         assert user.given_name == "Ûlla"
@@ -975,10 +975,10 @@ class SamleidTests(ProofingTests[SamleidApp]):
         user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
         assert len(user.credentials.to_list()) == len(credentials_before) + 1
 
-        _creds = user.credentials.filter(SamleidCredential)
+        _creds = user.credentials.filter(BankIDCredential)
         assert len(_creds) == 1
         cred = _creds[0]
-        assert cred.level in self.app.conf.samleid_required_loa
+        assert cred.level in self.app.conf.bankid_required_loa
 
     def test_mfa_authentication_too_old_authn_instant(self) -> None:
         self.reauthn(
