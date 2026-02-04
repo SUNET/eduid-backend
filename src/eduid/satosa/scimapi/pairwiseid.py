@@ -52,7 +52,7 @@ class GeneratePairwiseId(ResponseMicroService):
         if not subject_id_list:
             raise SATOSAAuthenticationError(context.state, "No subject-id attribute found")
         subject_id: str = subject_id_list[0]
-        user_scope: str = subject_id.split("@")[-1]
+        user_scope: str = subject_id.rsplit("@", maxsplit=1)[-1]
 
         sp_user_id: str = f"{relying_party}-{subject_id}"
         pairwise_hash: str = hmac.new(
