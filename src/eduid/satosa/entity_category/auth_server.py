@@ -23,7 +23,7 @@ ONLY_REQUIRED = {
     SUNETAUTHSERVERv1: True,
 }
 
-# ruff: noqa: ERA001
+# ruff: disable[ERA001]
 # These restrictions are parsed (and validated) into a list of saml2.assertion.EntityCategoryRule instances.
 RESTRICTIONS: list[dict[str, Any]] = [
     # Example of conversion of some of the rules in RELEASE to this new format:
@@ -43,3 +43,4 @@ RESTRICTIONS: list[dict[str, Any]] = [
     #     "only_required": True,
     # },
 ]
+# ruff: enable[ERA001]

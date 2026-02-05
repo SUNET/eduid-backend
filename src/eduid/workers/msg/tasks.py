@@ -412,17 +412,19 @@ def get_relations_to(self: MessageSender, identity_number: str, relative_nin: st
         if not relations:
             return []
         result = []
+        # ruff: disable[ERA001]
         # Entrys in relations['Relations']['Relation'] (a list) look like this:
         #
-        #    {                                                      # noqa: ERA001
-        #        "RelationId" : {                                   # noqa: ERA001
+        #    {
+        #        "RelationId" : {
         #                "NationalIdentityNumber" : "200001011234
         #        },
-        #        "RelationType" : "B",                              # noqa: ERA001
+        #        "RelationType" : "B",
         #        "RelationStartDate" : "20000101"
         #    },
         #
         # (I wonder what other types of Relations than Relation that NAVET can come up with...)
+        # ruff: enable[ERA001]
         import pprint
 
         logger.debug(
