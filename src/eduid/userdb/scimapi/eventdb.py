@@ -65,7 +65,7 @@ class _ScimApiEventRequired:
 
 @dataclass
 class ScimApiEvent(ScimApiResourceBase, _ScimApiEventRequired):
-    db_id: ObjectId = field(default_factory=lambda: ObjectId())  # mongodb document _id
+    db_id: ObjectId = field(default_factory=ObjectId)  # mongodb document _id
 
     def to_dict(self) -> TUserDbDocument:
         data = asdict(self)

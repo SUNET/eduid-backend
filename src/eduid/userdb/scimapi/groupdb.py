@@ -48,8 +48,8 @@ class _ScimApiGroupRequired:
 
 @dataclass
 class ScimApiGroup(ScimApiResourceBase, _ScimApiGroupRequired):
-    group_id: ObjectId = field(default_factory=lambda: ObjectId())
-    extensions: GroupExtensions = field(default_factory=lambda: GroupExtensions())
+    group_id: ObjectId = field(default_factory=ObjectId)
+    extensions: GroupExtensions = field(default_factory=GroupExtensions)
     graph: GraphGroup = field(init=False)
 
     def __post_init__(self) -> None:

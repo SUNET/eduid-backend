@@ -32,8 +32,8 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class ScimApiUser(ScimApiResourceBase):
-    user_id: ObjectId = field(default_factory=lambda: ObjectId())
-    name: ScimApiName = field(default_factory=lambda: ScimApiName())
+    user_id: ObjectId = field(default_factory=ObjectId)
+    name: ScimApiName = field(default_factory=ScimApiName)
     emails: list[ScimApiEmail] = field(default_factory=list)
     phone_numbers: list[ScimApiPhoneNumber] = field(default_factory=list)
     preferred_language: str | None = None

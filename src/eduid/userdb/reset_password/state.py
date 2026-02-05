@@ -21,7 +21,7 @@ class ResetPasswordState:
     """ """
 
     eppn: str
-    id: bson.ObjectId = field(default_factory=lambda: bson.ObjectId())
+    id: bson.ObjectId = field(default_factory=bson.ObjectId)
     reference: str = field(init=False)
     method: str | None = None
     created_ts: datetime.datetime = field(default_factory=utc_now)
