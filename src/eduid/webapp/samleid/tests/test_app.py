@@ -12,11 +12,16 @@ from unittest.mock import MagicMock, patch
 from eduid.common.config.base import EduidEnvironment, FrontendAction
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb import NinIdentity
-from eduid.userdb.credentials.external import BankIDCredential, SwedenConnectCredential
+from eduid.userdb.credentials.external import (
+    BankIDCredential,
+    EidasCredential,
+    ExternalCredential,
+    SwedenConnectCredential,
+)
 from eduid.userdb.element import ElementKey
 from eduid.userdb.identity import EIDASIdentity, EIDASLoa, IdentityProofingMethod, PridPersistence
 from eduid.userdb.testing import SetupConfig
-from eduid.webapp.common.api.messages import AuthnStatusMsg, TranslatableMsg
+from eduid.webapp.common.api.messages import AuthnStatusMsg, CommonMsg, TranslatableMsg
 from eduid.webapp.common.api.testing import CSRFTestClient
 from eduid.webapp.common.authn.acs_enums import AuthnAcsAction
 from eduid.webapp.common.authn.cache import OutstandingQueriesCache
@@ -1880,4 +1885,346 @@ class FrejaMethodTests(SamlEidTests):
 
         self._verify_user_parameters(
             eppn, num_mfa_tokens=0, identity=remapped_nin, identity_verified=True, num_proofings=1
+        )
+
+
+class EidasMethodTests(SamlEidTests):
+    """Tests for eidas method (foreign eID) - adapted from eidas/tests/test_app.py"""
+
+    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+    def test_foreign_eid_mfa_login(self, mock_request_user_sync: MagicMock) -> None:
+        mock_request_user_sync.side_effect = self.request_user_sync
+
+        eppn = self.test_user.eppn
+        self.set_eidas_for_user(eppn=eppn, identity=self.test_user_eidas, verified=True)
+        self._verify_user_parameters(eppn, num_mfa_tokens=0, identity=self.test_user_eidas, identity_verified=True)
+
+        user = self.app.central_userdb.get_user_by_eppn(eppn)
+
+        assert user.credentials.filter(ExternalCredential) == []
+        credentials_before = user.credentials.to_list()
+
+        self.reauthn(
+            "/mfa-authenticate",
+            expect_msg=SamlEidMsg.mfa_authn_success,
+            eppn=eppn,
+            frontend_action=FrontendAction.LOGIN_MFA_AUTHN,
+            identity=self.test_user_eidas,
+            logged_in=False,
+            response_template=self.saml_response_foreign_eid_tpl_success,
+            method="eidas",
+        )
+
+        self._verify_user_parameters(
+            eppn, num_mfa_tokens=0, identity=self.test_user_eidas, identity_verified=True, num_proofings=0
+        )
+
+        # Verify that an EidasCredential was added
+        user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
+        assert len(user.credentials.to_list()) == len(credentials_before) + 1
+
+        eidas_creds = user.credentials.filter(EidasCredential)
+        assert len(eidas_creds) == 1
+        cred = eidas_creds[0]
+        assert cred.level in self.app.conf.foreign_required_loa
+
+    def test_foreign_eid_mfa_login_no_identity(self) -> None:
+        eppn = self.test_unverified_user_eppn
+        identity = self.test_user_eidas
+        self._verify_user_parameters(eppn, num_mfa_tokens=0, identity=identity, identity_present=False)
+
+        self.reauthn(
+            "/mfa-authenticate",
+            expect_msg=SamlEidMsg.identity_not_matching,
+            expect_error=True,
+            eppn=eppn,
+            identity=identity,
+            logged_in=False,
+            response_template=self.saml_response_foreign_eid_tpl_success,
+            method="eidas",
+            frontend_action=FrontendAction.LOGIN_MFA_AUTHN,
+        )
+
+        self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=False, num_proofings=0)
+
+    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+    def test_foreign_eid_mfa_login_unverified_identity(self, mock_request_user_sync: MagicMock) -> None:
+        mock_request_user_sync.side_effect = self.request_user_sync
+        eppn = self.test_unverified_user_eppn
+        identity = self.test_user_eidas
+
+        # Add locked identity to user
+        user = self.app.central_userdb.get_user_by_eppn(eppn)
+        identity.is_verified = True
+        user.locked_identity.add(identity)
+        self.app.central_userdb.save(user)
+
+        self._verify_user_parameters(eppn, num_mfa_tokens=0, identity=identity, identity_present=False)
+
+        self.reauthn(
+            "/mfa-authenticate",
+            expect_msg=SamlEidMsg.mfa_authn_success,
+            eppn=eppn,
+            identity=identity,
+            logged_in=False,
+            response_template=self.saml_response_foreign_eid_tpl_success,
+            method="eidas",
+            frontend_action=FrontendAction.LOGIN_MFA_AUTHN,
+        )
+
+        self._verify_user_parameters(
+            eppn, num_mfa_tokens=0, identity=identity, identity_present=True, identity_verified=True, num_proofings=1
+        )
+
+    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+    def test_foreign_eid_webauthn_token_verify(self, mock_request_user_sync: MagicMock) -> None:
+        mock_request_user_sync.side_effect = self.request_user_sync
+
+        self.app.conf.allow_eidas_credential_verification = True
+
+        eppn = self.test_user.eppn
+        credential = self.add_security_key_to_user(eppn, "test", "webauthn")
+        self.set_eidas_for_user(eppn=eppn, identity=self.test_user_eidas, verified=True)
+
+        self._verify_user_parameters(eppn, identity=self.test_user_eidas, identity_verified=True)
+
+        self.verify_token(
+            endpoint="/verify-credential",
+            eppn=eppn,
+            identity=self.test_user_eidas,
+            expect_msg=SamlEidMsg.credential_verify_success,
+            credentials_used=[credential.key, ElementKey("other_id")],
+            verify_credential=credential.key,
+            response_template=self.saml_response_foreign_eid_tpl_success,
+            method="eidas",
+            frontend_action=FrontendAction.VERIFY_CREDENTIAL,
+        )
+
+        self._verify_user_parameters(
+            eppn, identity=self.test_user_eidas, identity_verified=True, token_verified=True, num_proofings=1
+        )
+
+    def test_foreign_eid_mfa_token_verify_wrong_verified_identity(self) -> None:
+        self.app.conf.allow_eidas_credential_verification = True
+
+        eppn = self.test_user.eppn
+        identity = self.test_user_other_eidas
+        self.set_eidas_for_user(eppn=eppn, identity=identity, verified=True)
+        credential = self.add_security_key_to_user(eppn, "test", "webauthn")
+
+        self._verify_user_parameters(eppn, identity=identity, identity_present=True, identity_verified=True)
+
+        self.verify_token(
+            endpoint="/verify-credential",
+            eppn=eppn,
+            identity=self.test_user_eidas,
+            expect_msg=SamlEidMsg.identity_not_matching,
+            expect_error=True,
+            credentials_used=[credential.key, ElementKey("other_id")],
+            verify_credential=credential.key,
+            response_template=self.saml_response_foreign_eid_tpl_success,
+            method="eidas",
+            frontend_action=FrontendAction.VERIFY_CREDENTIAL,
+        )
+
+        self._verify_user_parameters(
+            eppn, identity=identity, identity_present=True, identity_verified=True, num_proofings=0
+        )
+
+    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+    def test_foreign_eid_mfa_token_verify_no_verified_identity(self, mock_request_user_sync: MagicMock) -> None:
+        mock_request_user_sync.side_effect = self.request_user_sync
+
+        self.app.conf.allow_eidas_credential_verification = True
+
+        eppn = self.test_unverified_user_eppn
+        identity = self.test_user_eidas
+        credential = self.add_security_key_to_user(eppn, "test", "webauthn")
+
+        self._verify_user_parameters(eppn, identity_verified=False, identity_present=False)
+
+        self.verify_token(
+            endpoint="/verify-credential",
+            eppn=eppn,
+            identity=identity,
+            expect_msg=SamlEidMsg.credential_verify_success,
+            credentials_used=[credential.key, ElementKey("other_id")],
+            verify_credential=credential.key,
+            response_template=self.saml_response_foreign_eid_tpl_success,
+            method="eidas",
+            frontend_action=FrontendAction.VERIFY_CREDENTIAL,
+        )
+
+        # Verify the user now has a verified eidas identity
+        self._verify_user_parameters(
+            eppn, token_verified=True, num_proofings=2, identity_present=True, identity=identity, identity_verified=True
+        )
+
+    def test_foreign_eid_mfa_token_verify_no_mfa_login(self) -> None:
+        self.app.conf.allow_eidas_credential_verification = True
+
+        eppn = self.test_user.eppn
+        credential = self.add_security_key_to_user(eppn, "test", "webauthn")
+
+        self._verify_user_parameters(eppn)
+
+        with self.session_cookie(self.browser, eppn) as browser:
+            location = self._get_authn_redirect_url(
+                browser=browser,
+                endpoint="/verify-credential",
+                method="eidas",
+                frontend_action=FrontendAction.VERIFY_CREDENTIAL,
+                verify_credential=credential.key,
+                expect_success=False,
+            )
+            assert location is None
+
+        self._verify_user_parameters(eppn)
+
+    def test_foreign_eid_mfa_token_verify_no_mfa_token_in_session(self) -> None:
+        self.app.conf.allow_eidas_credential_verification = True
+
+        eppn = self.test_user.eppn
+        identity = self.test_user_eidas
+        credential = self.add_security_key_to_user(eppn, "test", "webauthn")
+
+        self._verify_user_parameters(eppn)
+
+        self.verify_token(
+            endpoint="/verify-credential",
+            eppn=eppn,
+            identity=identity,
+            expect_msg=SamlEidMsg.credential_not_found,
+            credentials_used=[credential.key, ElementKey("other_id")],
+            verify_credential=credential.key,
+            response_template=self.saml_response_tpl_fail,
+            expect_saml_error=True,
+            method="eidas",
+            frontend_action=FrontendAction.VERIFY_CREDENTIAL,
+        )
+
+        self._verify_user_parameters(eppn)
+
+    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+    def test_foreign_identity_verify(self, mock_request_user_sync: MagicMock) -> None:
+        mock_request_user_sync.side_effect = self.request_user_sync
+
+        eppn = self.test_unverified_user_eppn
+        identity = self.test_user_eidas
+        self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_present=False)
+
+        self.reauthn(
+            "/verify-identity",
+            expect_msg=SamlEidMsg.identity_verify_success,
+            eppn=eppn,
+            identity=identity,
+            response_template=self.saml_response_foreign_eid_tpl_success,
+            method="eidas",
+            frontend_action=FrontendAction.VERIFY_IDENTITY,
+        )
+
+        user = self.app.central_userdb.get_user_by_eppn(eppn=eppn)
+        self._verify_user_parameters(
+            eppn,
+            num_mfa_tokens=0,
+            identity=identity,
+            identity_verified=True,
+            num_proofings=1,
+            locked_identity=user.identities.eidas,
+            proofing_method=IdentityProofingMethod.SWEDEN_CONNECT,
+            proofing_version=self.app.conf.foreign_eid_proofing_version,
+        )
+
+    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+    def test_foreign_identity_verify_eidas_nf_low(self, mock_request_user_sync: MagicMock) -> None:
+        mock_request_user_sync.side_effect = self.request_user_sync
+
+        eppn = self.test_unverified_user_eppn
+        identity = self.test_user_eidas
+        self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_present=False)
+
+        foreign_eid_loa = self.app.conf.loa_authn_context_map[EIDASLoa.NF_LOW]
+
+        self.reauthn(
+            "/verify-identity",
+            expect_msg=SamlEidMsg.authn_context_mismatch,
+            expect_error=True,
+            expect_saml_error=True,
+            eppn=eppn,
+            identity=identity,
+            response_template=self.saml_response_foreign_eid_loa_missmatch,
+            method="eidas",
+            frontend_action=FrontendAction.VERIFY_IDENTITY,
+            foreign_eid_loa=foreign_eid_loa,
+        )
+
+        self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=False, num_proofings=0)
+
+    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+    def test_foreign_identity_verify_existing_prid_persistence_A(self, mock_request_user_sync: MagicMock) -> None:
+        mock_request_user_sync.side_effect = self.request_user_sync
+
+        eppn = self.test_unverified_user_eppn
+        identity = self.test_user_other_eidas
+        # Add locked identity with prid persistence A to user
+        locked_identity = self.test_user_eidas
+        locked_identity.prid_persistence = PridPersistence.A
+        locked_identity.is_verified = True
+        user = self.app.central_userdb.get_user_by_eppn(eppn)
+        user.locked_identity.add(locked_identity)
+        self.app.central_userdb.save(user)
+
+        self._verify_user_parameters(eppn, num_mfa_tokens=0, locked_identity=locked_identity, identity_present=False)
+
+        self.reauthn(
+            "/verify-identity",
+            expect_msg=CommonMsg.locked_identity_not_matching,
+            expect_error=True,
+            eppn=eppn,
+            identity=identity,
+            response_template=self.saml_response_foreign_eid_tpl_success,
+            method="eidas",
+            frontend_action=FrontendAction.VERIFY_IDENTITY,
+        )
+
+        self._verify_user_parameters(
+            eppn, num_mfa_tokens=0, locked_identity=locked_identity, identity_verified=False, num_proofings=0
+        )
+
+    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+    def test_foreign_identity_verify_existing_prid_persistence_B(self, mock_request_user_sync: MagicMock) -> None:
+        mock_request_user_sync.side_effect = self.request_user_sync
+
+        eppn = self.test_unverified_user_eppn
+        identity = self.test_user_other_eidas
+        user = self.app.central_userdb.get_user_by_eppn(eppn)
+        # Add locked identity with prid persistence B and same date of birth to user
+        locked_identity = EIDASIdentity(
+            prid="XA:some_other_other_prid",
+            prid_persistence=PridPersistence.B,
+            loa=EIDASLoa.NF_SUBSTANTIAL,
+            date_of_birth=datetime.datetime.fromisoformat("1920-11-18"),
+            country_code="XX",
+            is_verified=True,
+        )
+        # add same names as assertion to the user
+        user.given_name = "Javier"
+        user.surname = "Garcia"
+        user.locked_identity.add(locked_identity)
+        self.app.central_userdb.save(user)
+
+        self._verify_user_parameters(eppn, num_mfa_tokens=0, locked_identity=locked_identity, identity_present=False)
+
+        self.reauthn(
+            "/verify-identity",
+            expect_msg=SamlEidMsg.identity_verify_success,
+            eppn=eppn,
+            identity=identity,
+            response_template=self.saml_response_foreign_eid_tpl_success,
+            method="eidas",
+            frontend_action=FrontendAction.VERIFY_CREDENTIAL,
+        )
+
+        self._verify_user_parameters(
+            eppn, num_mfa_tokens=0, locked_identity=identity, identity=identity, identity_verified=True, num_proofings=1
         )
