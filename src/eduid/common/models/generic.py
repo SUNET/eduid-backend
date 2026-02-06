@@ -45,7 +45,7 @@ class ObjectIdPydanticAnnotation:
                     from_str_schema,
                 ]
             ),
-            serialization=core_schema.plain_serializer_function_ser_schema(lambda instance: str(instance)),
+            serialization=core_schema.plain_serializer_function_ser_schema(str),
         )
 
     @classmethod

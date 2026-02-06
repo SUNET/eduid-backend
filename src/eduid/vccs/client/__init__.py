@@ -313,7 +313,7 @@ class VCCSClient:
     """
 
     def __init__(self, base_url: str | None = None) -> None:
-        self.base_url = base_url if base_url else "http://localhost:8550/"
+        self.base_url = base_url or "http://localhost:8550/"
 
     def authenticate(self, user_id: str, factors: Sequence[VCCSFactor]) -> bool:
         """

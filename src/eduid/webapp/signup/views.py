@@ -474,7 +474,7 @@ def get_email_code() -> str:
             current_app.logger.debug(f"BACKDOOR: email in session: {session.signup.email.address}")
             if session.signup.email.address == email:
                 code = session.signup.email.verification_code
-                return code if code else ""
+                return code or ""
     except Exception:
         current_app.logger.exception("Someone tried to use the backdoor to get the email verification code for signup")
 

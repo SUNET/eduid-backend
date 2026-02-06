@@ -351,12 +351,14 @@ class IdP_SAMLRequest:
             relay_state=relay_state,
             response=True,
         )
+        # ruff: disable[ERA001]
         # _args is one of these pysaml2 dicts with HTML data, e.g.:
         #  {'headers': [('Content-type', 'text/html')],
-        #   'data': '...<body onload="document.forms[0].submit()">, # noqa: ERA001
-        #   'url': 'https://sp.example.edu/saml2/acs/',             # noqa: ERA001
+        #   'data': '...<body onload="document.forms[0].submit()">,
+        #   'url': 'https://sp.example.edu/saml2/acs/',
         #   'method': 'POST'
-        #  }                                                        # noqa: ERA001
+        #  }
+        # ruff enable[ERA001]
         return HttpArgs.from_pysaml2_dict(_args)
 
 

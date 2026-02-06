@@ -20,11 +20,11 @@ __author__ = "lundberg"
 class ScimApiResourceBase:
     """The elements common to all SCIM resource database objects"""
 
-    scim_id: UUID = field(default_factory=lambda: uuid.uuid4())
+    scim_id: UUID = field(default_factory=uuid.uuid4)
     external_id: str | None = None
     version: WeakVersion = field(default_factory=ObjectId)
-    created: datetime = field(default_factory=lambda: utc_now())
-    last_modified: datetime = field(default_factory=lambda: utc_now())
+    created: datetime = field(default_factory=utc_now)
+    last_modified: datetime = field(default_factory=utc_now)
 
 
 @dataclass(frozen=True)

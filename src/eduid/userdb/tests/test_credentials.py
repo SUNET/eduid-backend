@@ -14,12 +14,14 @@ from eduid.userdb.element import ElementKey
 
 __author__ = "lundberg"
 
+# ruff: disable[ERA001]
 # {'passwords': {
-#    'id': password_id,                         # noqa: ERA001
-#    'salt': salt,                              # noqa: ERA001
-#    'source': 'signup',                        # noqa: ERA001
-#    'created_ts': utc_now(),                   # noqa: ERA001
-# }}                                            # noqa: ERA001
+#    'id': password_id,
+#    'salt': salt,
+#    'source': 'signup',
+#    'created_ts': utc_now(),
+# }}
+# ruff: enable[ERA001]
 from eduid.userdb.credentials.password import Password
 
 _one_dict = {

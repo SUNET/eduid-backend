@@ -31,8 +31,8 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class ScimApiInvite(ScimApiResourceBase):
-    invite_id: ObjectId = field(default_factory=lambda: ObjectId())
-    name: ScimApiName = field(default_factory=lambda: ScimApiName())
+    invite_id: ObjectId = field(default_factory=ObjectId)
+    name: ScimApiName = field(default_factory=ScimApiName)
     emails: list[ScimApiEmail] = field(default_factory=list)
     phone_numbers: list[ScimApiPhoneNumber] = field(default_factory=list)
     groups: list[UUID] = field(default_factory=list)

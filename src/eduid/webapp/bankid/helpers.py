@@ -60,7 +60,7 @@ def create_authn_info(
     required_loa: list[str],
     force_authn: bool = False,
 ) -> SAMLHttpArgs:
-    if framework not in [TrustFramework.BANKID]:
+    if framework != TrustFramework.BANKID:
         raise ValueError(f"Unrecognised trust framework: {framework}")
 
     kwargs: dict[str, Any] = {

@@ -151,7 +151,7 @@ def acceptable_linked_accounts(value: list[LinkedAccount], environment: EduidEnv
         if not this.value.endswith("eduid.se"):
             return False
         for param in this.parameters:
-            if param not in ["mfa_stepup"]:
+            if param != "mfa_stepup":
                 return False
             if not isinstance(this.parameters[param], bool):
                 return False

@@ -11,12 +11,14 @@ from eduid.userdb.credentials import U2F, CredentialList, CredentialProofingMeth
 
 __author__ = "lundberg"
 
+# ruff: disable[ERA001]
 # {'passwords': {
-#    'id': password_id,                         # noqa: ERA001
-#    'salt': salt,                              # noqa: ERA001
-#    'source': 'signup',                        # noqa: ERA001
-#    'created_ts': utc_now(),                   # noqa: ERA001
-# }}                                            # noqa: ERA001
+#    'id': password_id,
+#    'salt': salt,
+#    'source': 'signup',
+#    'created_ts': utc_now(),
+# }}
+# ruff: enable[ERA001]
 
 _one_dict = {
     "version": "U2F_V2",
