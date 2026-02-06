@@ -412,7 +412,7 @@ class VCCSClient:
             response = urlopen(req)
         except HTTPError as exc:
             # don't want the vccs_client user to have to know what http client we use.
-            http_code = exc.getcode() or 500
+            http_code = exc.status or 500
             raise VCCSClientHTTPError(reason="Authentication backend error", http_code=http_code) from exc
         except URLError as exc:
             raise VCCSClientHTTPError(reason="Authentication backend unavailable", http_code=503) from exc
