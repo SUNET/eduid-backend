@@ -1,0 +1,605 @@
+import base64
+import datetime
+import logging
+import os
+from collections.abc import Mapping
+from http import HTTPStatus
+from typing import Any
+
+from eduid.common.config.base import FrontendAction
+from eduid.common.misc.timeutil import utc_now
+from eduid.userdb import NinIdentity
+from eduid.userdb.element import ElementKey
+from eduid.userdb.identity import EIDASIdentity, EIDASLoa, PridPersistence
+from eduid.userdb.testing import SetupConfig
+from eduid.webapp.common.api.messages import AuthnStatusMsg, TranslatableMsg
+from eduid.webapp.common.api.testing import CSRFTestClient
+from eduid.webapp.common.authn.acs_enums import AuthnAcsAction
+from eduid.webapp.common.authn.cache import OutstandingQueriesCache
+from eduid.webapp.common.proofing.testing import ProofingTests
+from eduid.webapp.common.session import EduidSession
+from eduid.webapp.common.session.namespaces import AuthnRequestRef, SP_AuthnRequest
+from eduid.webapp.samleid.app import SamlEidApp, init_samleid_app
+
+__author__ = "lundberg"
+
+logger = logging.getLogger(__name__)
+
+HERE = os.path.abspath(os.path.dirname(__file__))
+
+
+class SamlEidTests(ProofingTests[SamlEidApp]):
+    """Base TestCase for those tests that need a full environment setup"""
+
+    def setUp(self, config: SetupConfig | None = None) -> None:
+        self.test_user_eppn = "hubba-bubba"
+        self.test_unverified_user_eppn = "hubba-baar"
+        self.test_user_nin = NinIdentity(
+            number="197801011234", date_of_birth=datetime.datetime.fromisoformat("1978-01-01")
+        )
+        self.test_user_eidas = EIDASIdentity(
+            prid="XB:1bjrk7depnmhu7xn56kon3mlc9q1s0",
+            prid_persistence=PridPersistence.B,
+            loa=EIDASLoa.NF_SUBSTANTIAL,
+            date_of_birth=datetime.datetime.fromisoformat("1964-12-31"),
+            country_code="XB",
+        )
+        self.test_user_wrong_nin = NinIdentity(
+            number="190001021234", date_of_birth=datetime.datetime.fromisoformat("1900-01-02")
+        )
+        self.test_user_other_eidas = EIDASIdentity(
+            prid="XA:some_other_prid",
+            prid_persistence=PridPersistence.B,
+            loa=EIDASLoa.NF_SUBSTANTIAL,
+            date_of_birth=datetime.datetime.fromisoformat("1920-11-18"),
+            country_code="XA",
+        )
+        self.test_backdoor_nin = NinIdentity(
+            number="190102031234", date_of_birth=datetime.datetime.fromisoformat("1901-02-03")
+        )
+        self.test_idp = "https://idp.example.com/simplesaml/saml2/idp/metadata.php"
+        self.default_redirect_url = "http://redirect.localhost/redirect"
+
+        self.saml_response_tpl_success = """<?xml version='1.0' encoding='UTF-8'?>
+<samlp:Response xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Destination="{sp_url}saml2-acs" ID="id-88b9f586a2a3a639f9327485cc37c40a" InResponseTo="{session_id}" IssueInstant="{timestamp}" Version="2.0">
+  <saml:Issuer Format="urn:oasis:names:tc:SAML:2.0:nameid-format:entity">https://idp.example.com/simplesaml/saml2/idp/metadata.php</saml:Issuer>
+  <samlp:Status>
+    <samlp:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:Success" />
+  </samlp:Status>
+  <saml:Assertion ID="id-093952102ceb73436e49cb91c58b0578" IssueInstant="{timestamp}" Version="2.0">
+    <saml:Issuer Format="urn:oasis:names:tc:SAML:2.0:nameid-format:entity">https://idp.example.com/simplesaml/saml2/idp/metadata.php</saml:Issuer>
+    <saml:Subject>
+      <saml:NameID Format="urn:oasis:names:tc:SAML:2.0:nameid-format:transient" NameQualifier="" SPNameQualifier="{sp_url}saml2-metadata">1f87035b4c1325b296a53d92097e6b3fa36d7e30ee82e3fcb0680d60243c1f03</saml:NameID>
+      <saml:SubjectConfirmation Method="urn:oasis:names:tc:SAML:2.0:cm:bearer">
+        <saml:SubjectConfirmationData InResponseTo="{session_id}" NotOnOrAfter="{tomorrow}" Recipient="{sp_url}saml2-acs" />
+      </saml:SubjectConfirmation>
+    </saml:Subject>
+    <saml:Conditions NotBefore="{yesterday}" NotOnOrAfter="{tomorrow}">
+      <saml:AudienceRestriction>
+        <saml:Audience>{sp_url}saml2-metadata</saml:Audience>
+      </saml:AudienceRestriction>
+    </saml:Conditions>
+    <saml:AuthnStatement AuthnInstant="{timestamp}" SessionIndex="{session_id}">
+      <saml:AuthnContext>
+        <saml:AuthnContextClassRef>http://id.elegnamnden.se/loa/1.0/loa3</saml:AuthnContextClassRef>
+      </saml:AuthnContext>
+    </saml:AuthnStatement>
+    <saml:AttributeStatement>
+      <saml:Attribute FriendlyName="personalIdentityNumber" Name="urn:oid:1.2.752.29.4.13" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri">
+        <saml:AttributeValue xsi:type="xs:string">{asserted_identity}</saml:AttributeValue>
+      </saml:Attribute>
+      <saml:Attribute FriendlyName="displayName" Name="urn:oid:2.16.840.1.113730.3.1.241" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri">
+        <saml:AttributeValue xsi:type="xs:string">Ülla Älm</saml:AttributeValue>
+      </saml:Attribute>
+      <saml:Attribute FriendlyName="givenName" Name="urn:oid:2.5.4.42" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri">
+        <saml:AttributeValue xsi:type="xs:string">Ûlla</saml:AttributeValue>
+      </saml:Attribute>
+      <saml:Attribute FriendlyName="dateOfBirth" Name="urn:oid:1.3.6.1.5.5.7.9.1" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri">
+        <saml:AttributeValue xsi:type="xs:string">{date_of_birth}</saml:AttributeValue>
+      </saml:Attribute>
+      <saml:Attribute FriendlyName="sn" Name="urn:oid:2.5.4.4" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri">
+        <saml:AttributeValue xsi:type="xs:string">Älm</saml:AttributeValue>
+      </saml:Attribute>
+      {extra_attributes}
+    </saml:AttributeStatement>
+  </saml:Assertion>
+</samlp:Response>"""  # noqa: E501
+        self.saml_response_tpl_success_bankid = """<?xml version="1.0"?>
+<samlp:Response xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Destination="{sp_url}saml2-acs" ID="id-88b9f586a2a3a639f9327485cc37c40a" InResponseTo="{session_id}" IssueInstant="{timestamp}" Version="2.0">
+    <saml:Issuer Format="urn:oasis:names:tc:SAML:2.0:nameid-format:entity">https://idp.example.com/simplesaml/saml2/idp/metadata.php</saml:Issuer>
+    <samlp:Status>
+        <samlp:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:Success" />
+    </samlp:Status>
+    <saml2:Assertion xmlns:saml2="urn:oasis:names:tc:SAML:2.0:assertion" ID="_33e79bbdbd76a8498a9a93f5ddb7bf0b" IssueInstant="{timestamp}" Version="2.0">
+      <saml2:Issuer>https://idp.example.com/simplesaml/saml2/idp/metadata.php</saml2:Issuer>
+      <saml2:Subject>
+        <saml2:NameID Format="urn:oasis:names:tc:SAML:2.0:nameid-format:persistent" NameQualifier="" SPNameQualifier="{sp_url}saml2-metadata">q7ghJ2fIxobbFJ8+5ZUGAOvIhW1wJEEam2nl8lu87EQ=</saml2:NameID>
+        <saml2:SubjectConfirmation Method="urn:oasis:names:tc:SAML:2.0:cm:bearer">
+          <saml2:SubjectConfirmationData InResponseTo="{session_id}" NotOnOrAfter="{tomorrow}" Recipient="{sp_url}saml2-acs"/>
+        </saml2:SubjectConfirmation>
+      </saml2:Subject>
+      <saml2:Conditions NotBefore="{yesterday}" NotOnOrAfter="{tomorrow}">
+        <saml2:AudienceRestriction>
+          <saml2:Audience>{sp_url}saml2-metadata</saml2:Audience>
+        </saml2:AudienceRestriction>
+      </saml2:Conditions>
+      <saml2:AuthnStatement AuthnInstant="{timestamp}" SessionIndex="{session_id}">
+        <saml2:AuthnContext>
+          <saml2:AuthnContextClassRef>http://id.swedenconnect.se/loa/1.0/uncertified-loa3</saml2:AuthnContextClassRef>
+        </saml2:AuthnContext>
+      </saml2:AuthnStatement>
+      <saml2:AttributeStatement>
+        <saml2:Attribute FriendlyName="personalIdentityNumber" Name="urn:oid:1.2.752.29.4.13" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri">
+          <saml2:AttributeValue xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="xsd:string">{asserted_identity}</saml2:AttributeValue>
+        </saml2:Attribute>
+        <saml2:Attribute FriendlyName="displayName" Name="urn:oid:2.16.840.1.113730.3.1.241" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri">
+          <saml2:AttributeValue xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="xsd:string">Ûlla Älm</saml2:AttributeValue>
+        </saml2:Attribute>
+        <saml2:Attribute FriendlyName="givenName" Name="urn:oid:2.5.4.42" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri">
+          <saml2:AttributeValue xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="xsd:string">Ûlla</saml2:AttributeValue>
+        </saml2:Attribute>
+        <saml2:Attribute FriendlyName="sn" Name="urn:oid:2.5.4.4" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri">
+          <saml2:AttributeValue xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="xsd:string">Älm</saml2:AttributeValue>
+        </saml2:Attribute>
+        <saml2:Attribute FriendlyName="authContextParams" Name="urn:oid:1.2.752.201.3.3" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri">
+          <saml2:AttributeValue xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="xsd:string">bankidNotBefore=2023-10-11Z;bankidUserAgentAddress=109.228.137.82;bankUniqueHardwareIdentifier=Nlybi6hjHkLa438wWUwFQHZOdfE=</saml2:AttributeValue>
+        </saml2:Attribute>
+        <saml2:Attribute FriendlyName="transactionIdentifier" Name="urn:oid:1.2.752.201.3.2" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri">
+          <saml2:AttributeValue xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="xsd:string">bf5d125b-ecee-4531-95ba-fac7c4e49441</saml2:AttributeValue>
+        </saml2:Attribute>
+      </saml2:AttributeStatement>
+    </saml2:Assertion>
+</samlp:Response>"""  # noqa: E501
+        self.saml_response_tpl_fail = """<?xml version="1.0" encoding="UTF-8"?>
+<saml2p:Response xmlns:saml2p="urn:oasis:names:tc:SAML:2.0:protocol" Destination="{sp_url}saml2-acs" ID="_ebad01e547857fa54927b020dba1edb1" InResponseTo="{session_id}" IssueInstant="{timestamp}" Version="2.0">
+  <saml2:Issuer xmlns:saml2="urn:oasis:names:tc:SAML:2.0:assertion">https://idp.example.com/simplesaml/saml2/idp/metadata.php</saml2:Issuer>
+  <saml2p:Status>
+    <saml2p:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:Requester">
+      <saml2p:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:AuthnFailed" />
+    </saml2p:StatusCode>
+    <saml2p:StatusMessage>User login was not successful or could not meet the requirements of the requesting application.</saml2p:StatusMessage>
+  </saml2p:Status>
+</saml2p:Response>"""  # noqa: E501
+        self.saml_response_tpl_cancel = """
+        <?xml version="1.0" encoding="UTF-8"?>
+<saml2p:Response xmlns:saml2p="urn:oasis:names:tc:SAML:2.0:protocol" Destination="{sp_url}saml2-acs" ID="_ebad01e547857fa54927b020dba1edb1" InResponseTo="{session_id}" IssueInstant="{timestamp}" Version="2.0">
+  <saml2:Issuer xmlns:saml2="urn:oasis:names:tc:SAML:2.0:assertion">https://idp.example.com/simplesaml/saml2/idp/metadata.php</saml2:Issuer>
+  <saml2p:Status>
+    <saml2p:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:Requester">
+      <saml2p:StatusCode Value="http://id.elegnamnden.se/status/1.0/cancel" />
+    </saml2p:StatusCode>
+    <saml2p:StatusMessage>The login attempt was cancelled</saml2p:StatusMessage>
+  </saml2p:Status>
+</saml2p:Response>"""  # noqa: E501
+        self.saml_response_foreign_eid_tpl_success = """
+        <?xml version='1.0' encoding='UTF-8'?>
+<samlp:Response xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Destination="{sp_url}saml2-acs" ID="id-88b9f586a2a3a639f9327485cc37c40a" InResponseTo="{session_id}" IssueInstant="{timestamp}" Version="2.0">
+  <saml:Issuer Format="urn:oasis:names:tc:SAML:2.0:nameid-format:entity">https://idp.example.com/simplesaml/saml2/idp/metadata.php</saml:Issuer>
+  <samlp:Status>
+    <samlp:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:Success" />
+  </samlp:Status>
+  <saml:Assertion ID="id-093952102ceb73436e49cb91c58b0578" IssueInstant="{timestamp}" Version="2.0">
+    <saml:Issuer Format="urn:oasis:names:tc:SAML:2.0:nameid-format:entity">https://idp.example.com/simplesaml/saml2/idp/metadata.php</saml:Issuer>
+    <saml:Subject>
+      <saml:NameID Format="urn:oasis:names:tc:SAML:2.0:nameid-format:transient" NameQualifier="" SPNameQualifier="{sp_url}saml2-metadata">1f87035b4c1325b296a53d92097e6b3fa36d7e30ee82e3fcb0680d60243c1f03</saml:NameID>
+      <saml:SubjectConfirmation Method="urn:oasis:names:tc:SAML:2.0:cm:bearer">
+        <saml:SubjectConfirmationData InResponseTo="{session_id}" NotOnOrAfter="{tomorrow}" Recipient="{sp_url}saml2-acs" />
+      </saml:SubjectConfirmation>
+    </saml:Subject>
+    <saml:Conditions NotBefore="{yesterday}" NotOnOrAfter="{tomorrow}">
+      <saml:AudienceRestriction>
+        <saml:Audience>{sp_url}saml2-metadata</saml:Audience>
+      </saml:AudienceRestriction>
+    </saml:Conditions>
+    <saml:AuthnStatement AuthnInstant="{timestamp}" SessionIndex="{session_id}">
+      <saml:AuthnContext>
+        <saml:AuthnContextClassRef>{foreign_eid_loa}</saml:AuthnContextClassRef>
+        <saml:AuthenticatingAuthority>https://idp.example.com/simplesaml/saml2/idp/metadata.php</saml:AuthenticatingAuthority>
+      </saml:AuthnContext>
+    </saml:AuthnStatement>
+    <saml:AttributeStatement>
+      <saml:Attribute FriendlyName="c" Name="urn:oid:2.5.4.6" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri">
+        <saml:AttributeValue xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="xsd:string">XB</saml:AttributeValue>
+      </saml:Attribute>
+      <saml:Attribute FriendlyName="pridPersistence" Name="urn:oid:1.2.752.201.3.5" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri">
+        <saml:AttributeValue xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="xsd:string">B</saml:AttributeValue>
+      </saml:Attribute>
+      <saml:Attribute FriendlyName="givenName" Name="urn:oid:2.5.4.42" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri">
+        <saml:AttributeValue xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="xsd:string">Javier</saml:AttributeValue>
+      </saml:Attribute>
+      <saml:Attribute FriendlyName="transactionIdentifier" Name="urn:oid:1.2.752.201.3.2" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri">
+        <saml:AttributeValue xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="xsd:string">_AbZv3Bk5c4d5n0LhvlXqaoTAQCJywBbOBx8Vf58gHL9uroDL7Jfez2tLxqIegCT</saml:AttributeValue>
+      </saml:Attribute>
+      <saml:Attribute FriendlyName="prid" Name="urn:oid:1.2.752.201.3.4" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri">
+        <saml:AttributeValue xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="xsd:string">{asserted_identity}</saml:AttributeValue>
+      </saml:Attribute>
+      <saml:Attribute FriendlyName="eidasPersonIdentifier" Name="urn:oid:1.2.752.201.3.7" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri">
+        <saml:AttributeValue xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="xsd:string">XB/SE/ZWRlbiBSb290IENlcnRpZmljYXRpb24g</saml:AttributeValue>
+      </saml:Attribute>
+      <saml:Attribute FriendlyName="dateOfBirth" Name="urn:oid:1.3.6.1.5.5.7.9.1" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri">
+        <saml:AttributeValue xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="xsd:string">{date_of_birth}</saml:AttributeValue>
+      </saml:Attribute>
+      <saml:Attribute FriendlyName="sn" Name="urn:oid:2.5.4.4" NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri">
+        <saml:AttributeValue xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="xsd:string">Garcia</saml:AttributeValue>
+      </saml:Attribute>
+      {extra_attributes}
+    </saml:AttributeStatement>
+  </saml:Assertion>
+</samlp:Response>"""  # noqa: E501
+
+        self.saml_response_foreign_eid_loa_missmatch = """
+<?xml version="1.0" encoding="UTF-8"?>
+<saml2p:Response xmlns:saml2p="urn:oasis:names:tc:SAML:2.0:protocol" Destination="{sp_url}saml2-acs" ID="_ebad01e547857fa54927b020dba1edb1" InResponseTo="{session_id}" IssueInstant="{timestamp}" Version="2.0">
+  <saml2:Issuer xmlns:saml2="urn:oasis:names:tc:SAML:2.0:assertion">https://idp.example.com/simplesaml/saml2/idp/metadata.php</saml2:Issuer>
+  <saml2p:Status>
+    <saml2p:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:Responder">
+      <saml2p:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:AuthnFailed" />
+    </saml2p:StatusCode>
+    <saml2p:StatusMessage>Failure received from foreign service: 202019 - Incorrect Level of Assurance in IdP response</saml2p:StatusMessage>
+  </saml2p:Status>
+</saml2p:Response>
+"""  # noqa: E501
+        if config is None:
+            config = SetupConfig()
+        config.users = ["hubba-bubba", "hubba-baar"]
+        super().setUp(config=config)
+
+    def load_app(self, config: Mapping[str, Any]) -> SamlEidApp:
+        """
+        Called from the parent class, so we can provide the appropriate flask
+        app for this test case.
+        """
+        return init_samleid_app("testing", config)
+
+    def update_config(self, config: dict[str, Any]) -> dict[str, Any]:
+        saml_config = os.path.join(HERE, "saml2_settings.py")
+        config.update(
+            {
+                "saml2_settings_module": saml_config,
+                "safe_relay_domain": "localhost",
+                "magic_cookie": "",
+                "magic_cookie_name": "magic-cookie",
+                "magic_cookie_idp": self.test_idp,
+                "magic_cookie_foreign_id_idp": self.test_idp,
+                "environment": "dev",
+                "freja_idp": self.test_idp,
+                "bankid_idp": self.test_idp,
+                "foreign_identity_idp": self.test_idp,
+                "errors_url_template": "http://localhost/errors?code={ERRORURL_CODE}&ts={ERRORURL_TS}&rp={ERRORURL_RP}"
+                "&tid={ERRORURL_TID}&ctx={ERRORURL_CTX}",
+                "frontend_action_authn_parameters": {
+                    FrontendAction.LOGIN_MFA_AUTHN.value: {
+                        "force_authn": True,
+                        "force_mfa": True,
+                        "finish_url": "http://test.localhost/testing-mfa-authenticate/{app_name}/{authn_id}",
+                    },
+                    FrontendAction.VERIFY_IDENTITY.value: {
+                        "force_authn": True,
+                        "finish_url": "http://test.localhost/testing-verify-identity/{app_name}/{authn_id}",
+                    },
+                    FrontendAction.VERIFY_CREDENTIAL.value: {
+                        "force_authn": True,
+                        "force_mfa": True,
+                        "allow_login_auth": True,
+                        "allow_signup_auth": True,
+                        "finish_url": "http://test.localhost/testing-verify-credential/{app_name}/{authn_id}",
+                    },
+                },
+            }
+        )
+        return config
+
+    def add_nin_to_user(self, eppn: str, nin: str, verified: bool) -> NinIdentity:
+        user = self.app.central_userdb.get_user_by_eppn(eppn)
+        nin_element = NinIdentity(number=nin, created_by="test", is_verified=verified)
+        user.identities.add(nin_element)
+        self.request_user_sync(user)
+        return nin_element
+
+    def set_eidas_for_user(self, eppn: str, identity: EIDASIdentity, verified: bool) -> None:
+        user = self.app.central_userdb.get_user_by_eppn(eppn)
+        identity.is_verified = verified
+        user.identities.replace(element=identity)
+        if verified is True:
+            user.locked_identity.replace(element=identity)
+        self.request_user_sync(user)
+
+    @staticmethod
+    def generate_auth_response(
+        request_id: str,
+        saml_response_tpl: str,
+        asserted_identity: str,
+        date_of_birth: datetime.datetime | None = None,
+        age: int = 10,
+        credentials_used: list[ElementKey] | None = None,
+        foreign_eid_loa: str | None = None,
+    ) -> bytes:
+        """
+        Generates a fresh signed authentication response
+        """
+
+        timestamp = utc_now() - datetime.timedelta(seconds=age)
+        tomorrow = utc_now() + datetime.timedelta(days=1)
+        yesterday = utc_now() - datetime.timedelta(days=1)
+        if date_of_birth is None:
+            date_of_birth = datetime.datetime.strptime(asserted_identity[:8], "%Y%m%d")
+
+        sp_baseurl = "http://test.localhost:6545/"
+
+        extra_attributes: list[str] = []
+
+        if credentials_used:
+            for cred in credentials_used:
+                this = f"""
+                       <saml:Attribute Name="eduidIdPCredentialsUsed"
+                                       NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri">
+                           <saml:AttributeValue xsi:type="xs:string">{cred}</saml:AttributeValue>
+                       </saml:Attribute>
+                       """
+                extra_attributes += [this]
+
+        extra_attributes_str = "\n".join(extra_attributes)
+
+        if foreign_eid_loa is None:
+            foreign_eid_loa = "http://id.elegnamnden.se/loa/1.0/eidas-nf-sub"
+
+        resp = " ".join(
+            saml_response_tpl.format(
+                asserted_identity=asserted_identity,
+                date_of_birth=date_of_birth.strftime("%Y-%m-%d"),
+                session_id=request_id,
+                timestamp=timestamp.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                tomorrow=tomorrow.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                yesterday=yesterday.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                sp_url=sp_baseurl,
+                foreign_eid_loa=foreign_eid_loa,
+                extra_attributes=extra_attributes_str,
+            ).split()
+        )
+
+        return resp.encode("utf-8")
+
+    @staticmethod
+    def _setup_faked_login(session: EduidSession, credentials_used: list[ElementKey]) -> None:
+        logger.debug(f"Test setting credentials used for login in session {session}: {credentials_used}")
+        authn_req = SP_AuthnRequest(
+            post_authn_action=AuthnAcsAction.login,
+            credentials_used=credentials_used,
+            authn_instant=utc_now(),
+            frontend_action=FrontendAction.LOGIN,
+            finish_url="http://test.localhost/testing-mfa-authenticate/{app_name}/{authn_id}",
+        )
+        session.authn.sp.authns = {authn_req.authn_id: authn_req}
+
+    @staticmethod
+    def _get_request_id_from_session(session: EduidSession) -> tuple[str, AuthnRequestRef]:
+        """extract the (probable) SAML request ID from the session"""
+        oq_cache = OutstandingQueriesCache(session.samleid.sp.pysaml2_dicts)
+        ids = oq_cache.outstanding_queries().keys()
+        logger.debug(f"Outstanding queries for samleid in session {session}: {ids}")
+        if len(ids) != 1:
+            raise RuntimeError("More or less than one authn request in the session")
+        saml_req_id = list(ids)[0]
+        req_ref = AuthnRequestRef(oq_cache.outstanding_queries()[saml_req_id])
+        return saml_req_id, req_ref
+
+    @staticmethod
+    def _verify_finish_url(
+        finish_url: str,
+        expected_finish_url: str,
+    ) -> None:
+        logger.debug(f"Verifying returned location {finish_url}")
+
+        # Remove the /{app_name}/{authn_id} part from the finish URL
+        finish_url = "/".join(finish_url.split("/")[:-2])
+        logger.debug(f"Removed the /app_name/authn_id from the location before checking it: {finish_url}")
+        expected_finish_url = "/".join(expected_finish_url.split("/")[:-2])
+
+        assert finish_url == expected_finish_url, f"expected finish url {expected_finish_url} but got {finish_url}"
+
+    def reauthn(
+        self,
+        endpoint: str,
+        expect_msg: TranslatableMsg,
+        frontend_action: FrontendAction,
+        age: int = 10,
+        browser: CSRFTestClient | None = None,
+        eppn: str | None = None,
+        expect_error: bool = False,
+        expect_saml_error: bool = False,
+        identity: NinIdentity | EIDASIdentity | None = None,
+        logged_in: bool = True,
+        method: str = "freja",
+        response_template: str | None = None,
+        foreign_eid_loa: str | None = None,
+    ) -> None:
+        return self._call_endpoint_and_saml_acs(
+            age=age,
+            browser=browser,
+            endpoint=endpoint,
+            eppn=eppn,
+            expect_error=expect_error,
+            expect_saml_error=expect_saml_error,
+            expect_msg=expect_msg,
+            frontend_action=frontend_action,
+            identity=identity,
+            logged_in=logged_in,
+            method=method,
+            response_template=response_template,
+            foreign_eid_loa=foreign_eid_loa,
+        )
+
+    def verify_token(
+        self,
+        endpoint: str,
+        expect_msg: TranslatableMsg,
+        frontend_action: FrontendAction,
+        age: int = 10,
+        browser: CSRFTestClient | None = None,
+        credentials_used: list[ElementKey] | None = None,
+        eppn: str | None = None,
+        expect_error: bool = False,
+        expect_saml_error: bool = False,
+        identity: NinIdentity | EIDASIdentity | None = None,
+        logged_in: bool = True,
+        method: str = "freja",
+        response_template: str | None = None,
+        verify_credential: ElementKey | None = None,
+    ) -> None:
+        return self._call_endpoint_and_saml_acs(
+            age=age,
+            browser=browser,
+            credentials_used=credentials_used,
+            endpoint=endpoint,
+            eppn=eppn,
+            expect_error=expect_error,
+            expect_msg=expect_msg,
+            expect_saml_error=expect_saml_error,
+            frontend_action=frontend_action,
+            identity=identity,
+            logged_in=logged_in,
+            method=method,
+            response_template=response_template,
+            verify_credential=verify_credential,
+        )
+
+    def _get_authn_redirect_url(
+        self,
+        browser: CSRFTestClient,
+        endpoint: str,
+        method: str,
+        frontend_action: FrontendAction,
+        expect_success: bool = True,
+        verify_credential: ElementKey | None = None,
+        frontend_state: str | None = None,
+    ) -> str | None:
+        with browser.session_transaction() as sess:
+            csrf_token = sess.get_csrf_token()
+        req = {
+            "csrf_token": csrf_token,
+            "method": method,
+        }
+        if frontend_state:
+            req["frontend_state"] = frontend_state
+        if endpoint == "/verify-credential" and verify_credential:
+            req["credential_id"] = verify_credential
+        if frontend_action is not None:
+            req["frontend_action"] = frontend_action.value
+        assert browser
+        response = browser.post(endpoint, json=req)
+        if expect_success:
+            self._check_success_response(response, type_=None, payload={"csrf_token": csrf_token})
+            loc = self.get_response_payload(response).get("location")
+            assert loc is not None
+        else:
+            loc = None
+            payload = {"csrf_token": csrf_token}
+            if verify_credential:
+                payload["credential_description"] = "unit test webauthn token"
+            self._check_error_response(response, type_=None, payload=payload, msg=AuthnStatusMsg.must_authenticate)
+        return loc
+
+    def _call_endpoint_and_saml_acs(
+        self,
+        endpoint: str,
+        method: str,
+        eppn: str | None,
+        expect_msg: TranslatableMsg,
+        frontend_action: FrontendAction,
+        age: int = 10,
+        browser: CSRFTestClient | None = None,
+        credentials_used: list[ElementKey] | None = None,
+        expect_error: bool = False,
+        expect_saml_error: bool = False,
+        identity: NinIdentity | EIDASIdentity | None = None,
+        logged_in: bool = True,
+        response_template: str | None = None,
+        foreign_eid_loa: str | None = None,
+        verify_credential: ElementKey | None = None,
+        frontend_state: str | None = "This is a unit test",
+    ) -> None:
+        if eppn is None:
+            eppn = self.test_user_eppn
+
+        if identity is None:
+            identity = self.test_user_nin
+
+        if response_template is None:
+            response_template = self.saml_response_tpl_success
+
+        if browser is None:
+            browser = self.browser
+
+        expected_finish_url = self.app.conf.frontend_action_authn_parameters[frontend_action].finish_url
+
+        assert isinstance(browser, CSRFTestClient)
+
+        if logged_in:
+            browser_with_session_cookie = self.session_cookie(browser, eppn)
+            self.set_authn_action(
+                eppn=eppn,
+                frontend_action=FrontendAction.LOGIN,
+                credentials_used=credentials_used,
+            )
+        else:
+            browser_with_session_cookie = self.session_cookie_anon(browser)
+
+        with browser_with_session_cookie as browser:
+            with browser.session_transaction() as sess:
+                if logged_in is False:
+                    # the user is at least partially logged in at this stage
+                    sess.common.eppn = eppn
+                if frontend_action is FrontendAction.LOGIN_MFA_AUTHN:
+                    # setup session mfa_action
+                    sess.mfa_action.login_ref = "test login ref"
+                    sess.mfa_action.eppn = eppn
+
+            _url = self._get_authn_redirect_url(
+                browser=browser,
+                endpoint=endpoint,
+                method=method,
+                frontend_action=frontend_action,
+                verify_credential=verify_credential,
+                frontend_state=frontend_state,
+            )
+
+            logger.debug(f"Backend told us to proceed with URL {_url}")
+
+            with browser.session_transaction() as sess:
+                request_id, authn_ref = self._get_request_id_from_session(sess)
+
+            authn_response = self.generate_auth_response(
+                request_id,
+                response_template,
+                asserted_identity=identity.unique_value,
+                date_of_birth=identity.date_of_birth,
+                age=age,
+                credentials_used=credentials_used,
+                foreign_eid_loa=foreign_eid_loa,
+            )
+
+            data = {"SAMLResponse": base64.b64encode(authn_response), "RelayState": ""}
+            logger.debug(f"Posting a fake SAML assertion in response to request {request_id} (ref {authn_ref})")
+            response = browser.post("/saml2-acs", data=data)
+
+            if expect_saml_error:
+                assert response.status_code == HTTPStatus.FOUND
+                assert response.location.startswith("http://localhost/errors?code=")
+                return
+
+            assert response.status_code == HTTPStatus.FOUND
+
+            self._verify_finish_url(
+                expected_finish_url=expected_finish_url,
+                finish_url=response.location,
+            )
+
+            self._verify_status(
+                browser=browser,
+                expect_msg=expect_msg,
+                expect_error=expect_error,
+                finish_url=response.location,
+                frontend_action=frontend_action,
+                frontend_state=frontend_state,
+                method=method,
+            )
