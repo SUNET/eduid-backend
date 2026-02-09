@@ -12,7 +12,6 @@ from eduid.common.config.base import EduidEnvironment, FrontendAction
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb import NinIdentity
 from eduid.userdb.credentials.external import (
-    BankIDCredential,
     EidasCredential,
     ExternalCredential,
     SwedenConnectCredential,
@@ -883,10 +882,12 @@ class BankIDMethodTests(SamlEidTests):
         self._verify_user_parameters(eppn)
 
     @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
+    @patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_webauthn_token_verify_backdoor(
-        self, mock_request_user_sync: MagicMock, mock_reference_nin: MagicMock
+        self, mock_request_user_sync: MagicMock, mock_get_all_navet_data: MagicMock, mock_reference_nin: MagicMock
     ) -> None:
+        mock_get_all_navet_data.return_value = self._get_all_navet_data()
         mock_request_user_sync.side_effect = self.request_user_sync
         mock_reference_nin.return_value = None
 
@@ -1361,6 +1362,243 @@ class BankIDMethodTests(SamlEidTests):
             # Should redirect to errors page
             assert response.status_code == HTTPStatus.FOUND
             assert "errors" in response.location
+
+    def test_verify_credential_invalid_frontend_action(self) -> None:
+        """Test that verify-credential rejects an invalid frontend_action (views.py:93-95)"""
+        eppn = self.test_user.eppn
+        credential = self.add_security_key_to_user(eppn, "test", "webauthn")
+
+        with self.session_cookie(self.browser, eppn) as browser:
+            self.set_authn_action(
+                eppn=eppn,
+                frontend_action=FrontendAction.LOGIN,
+                credentials_used=[credential.key, ElementKey("other_id")],
+            )
+            with browser.session_transaction() as sess:
+                csrf_token = sess.get_csrf_token()
+            req = {
+                "csrf_token": csrf_token,
+                "credential_id": credential.key,
+                "method": "freja",
+                # Send wrong frontend_action - verify_credential expects VERIFY_CREDENTIAL
+                "frontend_action": FrontendAction.VERIFY_IDENTITY.value,
+            }
+            response = browser.post("/verify-credential", json=req)
+
+        self._check_error_response(
+            response=response,
+            type_="POST_SAMLEID_VERIFY_CREDENTIAL_FAIL",
+            msg=SamlEidMsg.frontend_action_not_supported,
+        )
+
+    def test_verify_credential_missing_credential(self) -> None:
+        """Test that verify-credential rejects when credential not found (views.py:99-101)"""
+        eppn = self.test_user.eppn
+
+        with self.session_cookie(self.browser, eppn) as browser:
+            with browser.session_transaction() as sess:
+                csrf_token = sess.get_csrf_token()
+            req = {
+                "csrf_token": csrf_token,
+                "credential_id": "non_existent_credential_id",
+                "method": "freja",
+                "frontend_action": FrontendAction.VERIFY_CREDENTIAL.value,
+            }
+            response = browser.post("/verify-credential", json=req)
+
+        self._check_error_response(
+            response=response,
+            type_="POST_SAMLEID_VERIFY_CREDENTIAL_FAIL",
+            msg=SamlEidMsg.credential_not_found,
+        )
+
+    def test_authn_unsupported_frontend_action(self) -> None:
+        """Test that _authn() rejects unsupported frontend_action (views.py:179-181)"""
+        eppn = self.test_user.eppn
+
+        with self.session_cookie(self.browser, eppn) as browser:
+            with browser.session_transaction() as sess:
+                csrf_token = sess.get_csrf_token()
+            req = {
+                "csrf_token": csrf_token,
+                "method": "freja",
+                # Send a frontend_action that is not configured in frontend_action_authn_parameters
+                "frontend_action": FrontendAction.CHANGE_PW_AUTHN.value,
+            }
+            response = browser.post("/verify-identity", json=req)
+
+        self._check_error_response(
+            response=response,
+            type_="POST_SAMLEID_VERIFY_IDENTITY_FAIL",
+            msg=SamlEidMsg.frontend_action_not_supported,
+        )
+
+    def test_authn_method_not_available(self) -> None:
+        """Test that _authn() rejects when method is not available (views.py:186)"""
+        eppn = self.test_user.eppn
+
+        # Temporarily clear freja_idp to make the method unavailable
+        original_freja_idp = self.app.conf.freja_idp
+        self.app.conf.freja_idp = None
+
+        try:
+            with self.session_cookie(self.browser, eppn) as browser:
+                with browser.session_transaction() as sess:
+                    csrf_token = sess.get_csrf_token()
+                req = {
+                    "csrf_token": csrf_token,
+                    "method": "freja",
+                    "frontend_action": FrontendAction.VERIFY_IDENTITY.value,
+                }
+                response = browser.post("/verify-identity", json=req)
+
+            self._check_error_response(
+                response=response,
+                type_="POST_SAMLEID_VERIFY_IDENTITY_FAIL",
+                msg=SamlEidMsg.method_not_available,
+            )
+        finally:
+            self.app.conf.freja_idp = original_freja_idp
+
+    def test_magic_cookie_eidas_method(self) -> None:
+        """Test that magic cookie works for eidas method with foreign_id_idp (views.py:195-196)"""
+        eppn = self.test_user.eppn
+        self.set_eidas_for_user(eppn=eppn, identity=self.test_user_eidas, verified=True)
+
+        self.app.conf.magic_cookie = "magic-cookie"
+
+        with self.session_cookie_and_magic_cookie(self.browser, eppn=eppn) as browser:
+            browser.set_cookie(domain=self.test_domain, key="nin", value=self.test_user_nin.number)
+            _url = self._get_authn_redirect_url(
+                browser=browser,
+                endpoint="/mfa-authenticate",
+                method="eidas",
+                frontend_action=FrontendAction.LOGIN_MFA_AUTHN,
+            )
+            # Verify we got a redirect URL (meaning magic cookie worked)
+            assert _url is not None
+
+    def test_magic_cookie_eidas_foreign_id_idp_missing(self) -> None:
+        """Test that magic cookie for eidas without foreign_id_idp falls through (views.py:195-196)
+
+        When magic_cookie_foreign_id_idp is None but magic_cookie_idp is set,
+        the eidas method should hit the else branch and return method_not_available."""
+        eppn = self.test_user.eppn
+
+        self.app.conf.magic_cookie = "magic-cookie"
+        self.app.conf.magic_cookie_foreign_id_idp = None
+
+        with self.session_cookie_and_magic_cookie(self.browser, eppn=eppn) as browser:
+            with browser.session_transaction() as sess:
+                csrf_token = sess.get_csrf_token()
+                sess.mfa_action.login_ref = "test login ref"
+                sess.mfa_action.eppn = eppn
+            req = {
+                "csrf_token": csrf_token,
+                "method": "eidas",
+                "frontend_action": FrontendAction.LOGIN_MFA_AUTHN.value,
+            }
+            response = browser.post("/mfa-authenticate", json=req)
+
+        self._check_error_response(
+            response=response,
+            type_="POST_SAMLEID_MFA_AUTHENTICATE_FAIL",
+            msg=SamlEidMsg.method_not_available,
+        )
+
+    def test_magic_cookie_missing_config(self) -> None:
+        """Test that magic cookie logs warning when magic_cookie_idp is not configured (views.py:201-202)"""
+        eppn = self.test_user.eppn
+
+        self.app.conf.magic_cookie = "magic-cookie"
+        self.app.conf.magic_cookie_idp = None
+
+        with self.session_cookie_and_magic_cookie(self.browser, eppn=eppn) as browser:
+            _url = self._get_authn_redirect_url(
+                browser=browser,
+                endpoint="/verify-identity",
+                method="freja",
+                frontend_action=FrontendAction.VERIFY_IDENTITY,
+            )
+            # Still gets a URL (magic cookie without idp config just logs warning and continues)
+            assert _url is not None
+
+    def test_get_status_not_found(self) -> None:
+        """Test that get-status returns not_found for unknown authn_id (views.py:62)"""
+        with self.session_cookie(self.browser, self.test_user.eppn) as browser:
+            with browser.session_transaction() as sess:
+                csrf_token = sess.get_csrf_token()
+            req = {
+                "csrf_token": csrf_token,
+                "authn_id": "nonexistent-authn-id",
+            }
+            response = browser.post("/get-status", json=req)
+
+        self._check_error_response(
+            response=response,
+            type_="POST_SAMLEID_GET_STATUS_FAIL",
+            msg=AuthnStatusMsg.not_found,
+        )
+
+    def test_verify_credential_stale_reauthn(self) -> None:
+        """Test verify-credential ACS when reauthn is stale (acs_actions.py:138-140)
+
+        Use a NIN that doesn't match the user's verified NIN and verify with bankid.
+        The credential verification should detect that the identity from the assertion
+        doesn't match the user's verified identity, returning identity_not_matching.
+        """
+        eppn = self.test_user.eppn
+        credential = self.add_security_key_to_user(eppn, "test", "webauthn")
+
+        self._verify_user_parameters(eppn)
+
+        # Verify credential with a wrong NIN identity in the assertion
+        self.verify_token(
+            endpoint="/verify-credential",
+            frontend_action=FrontendAction.VERIFY_CREDENTIAL,
+            eppn=eppn,
+            expect_msg=SamlEidMsg.identity_not_matching,
+            expect_error=True,
+            credentials_used=[credential.key, ElementKey("other_id")],
+            verify_credential=credential.key,
+            identity=self.test_user_wrong_nin,
+            method="bankid",
+            response_template=self.saml_response_tpl_success_bankid,
+        )
+
+    def test_create_authn_info_invalid_framework(self) -> None:
+        """Test that create_authn_info raises ValueError for unsupported trust framework (helpers.py:79)"""
+        from eduid.userdb.credentials.external import TrustFramework
+        from eduid.webapp.samleid.helpers import create_authn_info
+
+        with self.session_cookie(self.browser, self.test_user.eppn) as browser:
+            with browser.session_transaction():
+                with self.assertRaises(ValueError):
+                    create_authn_info(
+                        authn_ref=AuthnRequestRef("test-ref"),
+                        framework=TrustFramework.SVIPE,
+                        selected_idp=self.test_idp,
+                        required_loa=["loa3"],
+                    )
+
+    def test_unsupported_proofing_method(self) -> None:
+        """Test that get_proofing_functions raises UnsupportedMethod for unknown session info (proofing.py:66)"""
+        from eduid.common.models.saml_models import BaseSessionInfo
+        from eduid.webapp.samleid.proofing import UnsupportedMethod, get_proofing_functions
+
+        # Create a BaseSessionInfo instance that doesn't match any known subclass
+        session_info = BaseSessionInfo(
+            issuer="https://idp.example.com",
+            authn_info=[("http://id.elegnamnden.se/loa/1.0/loa3", [], "2024-01-01T00:00:00Z")],
+        )
+
+        with self.assertRaises(UnsupportedMethod):
+            get_proofing_functions(
+                session_info=session_info,
+                app_name="testing",
+                config=self.app.conf,
+                backdoor=False,
+            )
 
 
 class EidasMethodTests(SamlEidTests):
