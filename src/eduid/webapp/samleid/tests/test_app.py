@@ -2,7 +2,6 @@ import base64
 import datetime
 import logging
 import os
-import unittest
 from collections.abc import Mapping
 from datetime import timedelta
 from http import HTTPStatus
@@ -883,625 +882,6 @@ class BankIDMethodTests(SamlEidTests):
 
         self._verify_user_parameters(eppn)
 
-    @unittest.skip("No support for magic cookie yet")
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_webauthn_token_verify_backdoor(self, mock_request_user_sync: MagicMock) -> None:
-        mock_request_user_sync.side_effect = self.request_user_sync
-
-        eppn = self.test_unverified_user_eppn
-        nin = self.test_backdoor_nin
-        credential = self.add_security_key_to_user(eppn, "test", "webauthn")
-
-        self._verify_user_parameters(eppn)
-
-        self.app.conf.magic_cookie = "magic-cookie"
-        with self.session_cookie_and_magic_cookie(self.browser, eppn=eppn) as browser:
-            browser.set_cookie(domain=self.test_domain, key="nin", value=nin.number)
-            self.verify_token(
-                endpoint="/verify-credential",
-                frontend_action=FrontendAction.VERIFY_CREDENTIAL,
-                eppn=eppn,
-                expect_msg=SamlEidMsg.credential_verify_success,
-                credentials_used=[credential.key, ElementKey("other_id")],
-                verify_credential=credential.key,
-                browser=browser,
-                method="bankid",
-                response_template=self.saml_response_tpl_success_bankid,
-            )
-
-        self._verify_user_parameters(eppn, identity=nin, identity_verified=True, token_verified=True, num_proofings=2)
-
-    @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_nin_verify(self, mock_request_user_sync: MagicMock, mock_reference_nin: MagicMock) -> None:
-        mock_request_user_sync.side_effect = self.request_user_sync
-        mock_reference_nin.return_value = None
-
-        eppn = self.test_unverified_user_eppn
-        self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=False)
-
-        self.reauthn(
-            "/verify-identity",
-            frontend_action=FrontendAction.VERIFY_IDENTITY,
-            expect_msg=SamlEidMsg.identity_verify_success,
-            eppn=eppn,
-            method="bankid",
-            response_template=self.saml_response_tpl_success_bankid,
-        )
-        user = self.app.central_userdb.get_user_by_eppn(eppn)
-        self._verify_user_parameters(
-            eppn,
-            num_mfa_tokens=0,
-            identity_verified=True,
-            num_proofings=1,
-            locked_identity=user.identities.nin,
-            proofing_method=IdentityProofingMethod.BANKID,
-            proofing_version=self.app.conf.freja_proofing_version,
-        )
-        # check names
-        assert user.given_name == "Ûlla"
-        assert user.surname == "Älm"
-        # check proofing log
-        doc = self.app.proofing_log._get_documents_by_attr(attr="eduPersonPrincipalName", value=eppn)[0]
-        assert doc["given_name"] == "Ûlla"
-        assert doc["surname"] == "Älm"
-
-    @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_nin_verify_signup_auth(self, mock_request_user_sync: MagicMock, mock_reference_nin: MagicMock) -> None:
-        mock_request_user_sync.side_effect = self.request_user_sync
-        mock_reference_nin.return_value = None
-
-        eppn = self.test_unverified_user_eppn
-        self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=False)
-
-        self.setup_signup_authn(eppn=eppn)
-
-        self.reauthn(
-            "/verify-identity",
-            frontend_action=FrontendAction.VERIFY_IDENTITY,
-            expect_msg=SamlEidMsg.identity_verify_success,
-            eppn=eppn,
-            logged_in=False,
-            method="bankid",
-            response_template=self.saml_response_tpl_success_bankid,
-        )
-        user = self.app.central_userdb.get_user_by_eppn(eppn)
-        self._verify_user_parameters(
-            eppn,
-            num_mfa_tokens=0,
-            identity_verified=True,
-            num_proofings=1,
-            locked_identity=user.identities.nin,
-            proofing_method=IdentityProofingMethod.BANKID,
-            proofing_version=self.app.conf.bankid_proofing_version,
-        )
-        # check names
-        assert user.given_name == "Ûlla"
-        assert user.surname == "Älm"
-        # check proofing log
-        doc = self.app.proofing_log._get_documents_by_attr(attr="eduPersonPrincipalName", value=eppn)[0]
-        assert doc["given_name"] == "Ûlla"
-        assert doc["surname"] == "Älm"
-
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_mfa_login(self, mock_request_user_sync: MagicMock) -> None:
-        mock_request_user_sync.side_effect = self.request_user_sync
-
-        eppn = self.test_user.eppn
-        self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=True)
-
-        self.reauthn(
-            "/mfa-authenticate",
-            frontend_action=FrontendAction.LOGIN_MFA_AUTHN,
-            expect_msg=SamlEidMsg.mfa_authn_success,
-            eppn=eppn,
-            logged_in=False,
-            method="bankid",
-            response_template=self.saml_response_tpl_success_bankid,
-        )
-
-        self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=True, num_proofings=0)
-
-    def test_mfa_login_no_nin(self) -> None:
-        eppn = self.test_unverified_user_eppn
-        self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=False, token_verified=False)
-
-        self.reauthn(
-            "/mfa-authenticate",
-            frontend_action=FrontendAction.LOGIN_MFA_AUTHN,
-            expect_msg=SamlEidMsg.identity_not_matching,
-            expect_error=True,
-            eppn=eppn,
-            logged_in=False,
-            method="bankid",
-            response_template=self.saml_response_tpl_success_bankid,
-        )
-
-        self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=False, num_proofings=0)
-
-    @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_mfa_login_unverified_nin(self, mock_request_user_sync: MagicMock, mock_reference_nin: MagicMock) -> None:
-        mock_request_user_sync.side_effect = self.request_user_sync
-        mock_reference_nin.return_value = None
-        eppn = self.test_unverified_user_eppn
-
-        # Add locked nin to user
-        user = self.app.central_userdb.get_user_by_eppn(eppn)
-        locked_nin = NinIdentity(created_by="test", number=self.test_user_nin.number, is_verified=True)
-        user.locked_identity.add(locked_nin)
-        self.app.central_userdb.save(user)
-
-        self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=False, token_verified=False)
-
-        self.reauthn(
-            "/mfa-authenticate",
-            frontend_action=FrontendAction.LOGIN_MFA_AUTHN,
-            expect_msg=SamlEidMsg.mfa_authn_success,
-            eppn=eppn,
-            logged_in=False,
-            method="bankid",
-            response_template=self.saml_response_tpl_success_bankid,
-        )
-
-        self._verify_user_parameters(
-            eppn, num_mfa_tokens=0, identity_verified=True, num_proofings=1, locked_identity=user.identities.nin
-        )
-
-    @unittest.skip("No support for magic cookie yet")
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_mfa_login_backdoor(self, mock_request_user_sync: MagicMock) -> None:
-        mock_request_user_sync.side_effect = self.request_user_sync
-
-        eppn = self.test_unverified_user_eppn
-        nin = self.test_backdoor_nin
-
-        # add verified magic cookie nin to user
-        self.add_nin_to_user(eppn=eppn, nin=nin.number, verified=True)
-
-        self._verify_user_parameters(eppn, num_mfa_tokens=0, identity=nin, identity_verified=True)
-
-        self.app.conf.magic_cookie = "magic-cookie"
-        with self.session_cookie(self.browser, eppn) as browser:
-            browser.set_cookie(domain="test.localhost", key="magic-cookie", value=self.app.conf.magic_cookie)
-            browser.set_cookie(domain="test.localhost", key="nin", value=nin.number)
-            self.reauthn(
-                "/mfa-authenticate",
-                frontend_action=FrontendAction.LOGIN_MFA_AUTHN,
-                expect_msg=SamlEidMsg.mfa_authn_success,
-                eppn=eppn,
-                logged_in=False,
-                browser=browser,
-                method="bankid",
-                response_template=self.saml_response_tpl_success_bankid,
-            )
-
-        self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=True, num_proofings=0)
-
-    @unittest.skip("No support for magic cookie yet")
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_nin_verify_backdoor(self, mock_request_user_sync: MagicMock) -> None:
-        mock_request_user_sync.side_effect = self.request_user_sync
-
-        eppn = self.test_unverified_user_eppn
-        nin = self.test_backdoor_nin
-        self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=False)
-
-        self.app.conf.magic_cookie = "magic-cookie"
-
-        with self.session_cookie_and_magic_cookie(self.browser, eppn) as browser:
-            browser.set_cookie(domain="test.localhost", key="nin", value=nin.number)
-            self.reauthn(
-                "/verify-identity",
-                frontend_action=FrontendAction.VERIFY_IDENTITY,
-                expect_msg=SamlEidMsg.identity_verify_success,
-                eppn=eppn,
-                browser=browser,
-                method="bankid",
-                response_template=self.saml_response_tpl_success_bankid,
-            )
-
-        self._verify_user_parameters(eppn, num_mfa_tokens=0, identity=nin, identity_verified=True, num_proofings=1)
-
-    @unittest.skip("No support for magic cookie yet")
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_nin_verify_no_backdoor_in_pro(self, mock_request_user_sync: MagicMock) -> None:
-        mock_request_user_sync.side_effect = self.request_user_sync
-
-        eppn = self.test_unverified_user_eppn
-        nin = self.test_backdoor_nin
-
-        self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=False)
-
-        self.app.conf.magic_cookie = "magic-cookie"
-        self.app.conf.environment = EduidEnvironment.production
-
-        with self.session_cookie_and_magic_cookie(self.browser, eppn=eppn) as browser:
-            browser.set_cookie(domain=self.test_domain, key="nin", value=nin.number)
-            self.reauthn(
-                "/verify-identity",
-                frontend_action=FrontendAction.VERIFY_IDENTITY,
-                expect_msg=SamlEidMsg.identity_verify_success,
-                eppn=eppn,
-                browser=browser,
-                method="bankid",
-                response_template=self.saml_response_tpl_success_bankid,
-            )
-
-        # the tests checks that the default nin was verified and not the nin set in the test cookie
-        self._verify_user_parameters(
-            eppn, identity=self.test_user_nin, num_mfa_tokens=0, num_proofings=1, identity_verified=True
-        )
-
-    @unittest.skip("No support for magic cookie yet")
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_nin_verify_no_backdoor_misconfigured(self, mock_request_user_sync: MagicMock) -> None:
-        mock_request_user_sync.side_effect = self.request_user_sync
-
-        eppn = self.test_unverified_user_eppn
-        nin = self.test_backdoor_nin
-
-        self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=False)
-
-        self.app.conf.magic_cookie = "magic-cookie"
-
-        with self.session_cookie_and_magic_cookie(
-            self.browser, eppn=eppn, magic_cookie_value="NOT-the-magic-cookie"
-        ) as browser:
-            browser.set_cookie(domain="test.localhost", key="nin", value=nin.number)
-            self.reauthn(
-                "/verify-identity",
-                frontend_action=FrontendAction.VERIFY_IDENTITY,
-                expect_msg=SamlEidMsg.identity_verify_success,
-                eppn=eppn,
-                browser=browser,
-                method="bankid",
-                response_template=self.saml_response_tpl_success_bankid,
-            )
-
-        # the tests checks that the default nin was verified and not the nin set in the test cookie
-        self._verify_user_parameters(
-            eppn, identity=self.test_user_nin, num_mfa_tokens=0, num_proofings=1, identity_verified=True
-        )
-
-    def test_nin_verify_already_verified(self) -> None:
-        # Verify that the test user has a verified NIN in the database already
-        eppn = self.test_user.eppn
-        nin = self.test_user_nin
-        self._verify_user_parameters(eppn, num_mfa_tokens=0, identity=nin, identity_verified=True)
-
-        user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
-        assert user.identities.nin is not None
-        assert user.identities.nin.is_verified is True
-
-        self.reauthn(
-            "/verify-identity",
-            frontend_action=FrontendAction.VERIFY_IDENTITY,
-            expect_msg=ProofingMsg.identity_already_verified,
-            expect_error=True,
-            identity=nin,
-            method="bankid",
-            response_template=self.saml_response_tpl_success_bankid,
-        )
-
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_mfa_authentication_verified_user(self, mock_request_user_sync: MagicMock) -> None:
-        mock_request_user_sync.side_effect = self.request_user_sync
-
-        user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
-        assert user.identities.nin is not None
-        assert user.identities.nin.is_verified is True, "User was expected to have a verified NIN"
-
-        assert user.credentials.filter(SwedenConnectCredential) == []
-        credentials_before = user.credentials.to_list()
-
-        self.reauthn(
-            endpoint="/mfa-authenticate",
-            frontend_action=FrontendAction.LOGIN_MFA_AUTHN,
-            expect_msg=SamlEidMsg.mfa_authn_success,
-            method="bankid",
-            response_template=self.saml_response_tpl_success_bankid,
-        )
-
-        # Verify that an ExternalCredential was added
-        user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
-        assert len(user.credentials.to_list()) == len(credentials_before) + 1
-
-        _creds = user.credentials.filter(BankIDCredential)
-        assert len(_creds) == 1
-        cred = _creds[0]
-        assert cred.level in self.app.conf.bankid_required_loa
-
-    def test_mfa_authentication_too_old_authn_instant(self) -> None:
-        self.reauthn(
-            endpoint="/mfa-authenticate",
-            frontend_action=FrontendAction.LOGIN_MFA_AUTHN,
-            age=61,
-            expect_msg=SamlEidMsg.authn_instant_too_old,
-            expect_error=True,
-            method="bankid",
-            response_template=self.saml_response_tpl_success_bankid,
-        )
-
-    def test_mfa_authentication_wrong_nin(self) -> None:
-        user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
-        assert user.identities.nin is not None
-        assert user.identities.nin.is_verified is True, "User was expected to have a verified NIN"
-
-        self.reauthn(
-            endpoint="/mfa-authenticate",
-            frontend_action=FrontendAction.LOGIN_MFA_AUTHN,
-            expect_msg=SamlEidMsg.identity_not_matching,
-            expect_error=True,
-            identity=self.test_user_wrong_nin,
-            method="bankid",
-            response_template=self.saml_response_tpl_success_bankid,
-        )
-
-
-class FrejaMethodTests(SamlEidTests):
-    """Tests for freja method - adapted from eidas/tests/test_app.py"""
-
-    def test_authenticate(self) -> None:
-        response = self.browser.get("/")
-        self.assertEqual(response.status_code, 401)
-        with self.session_cookie(self.browser, self.test_user.eppn) as browser:
-            response = browser.get("/")
-        self._check_success_response(response, type_="GET_SAMLEID_SUCCESS")
-
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_verify_credential(self, mock_request_user_sync: MagicMock) -> None:
-        mock_request_user_sync.side_effect = self.request_user_sync
-
-        eppn = self.test_user.eppn
-        self._verify_user_parameters(eppn, num_mfa_tokens=0)
-
-        for security_key_type in ["u2f", "webauthn"]:
-            credential = self.add_security_key_to_user(
-                eppn, keyhandle=f"test_{security_key_type}", token_type=security_key_type
-            )
-            self.verify_token(
-                endpoint="/verify-credential",
-                eppn=eppn,
-                identity=self.test_user.identities.nin,
-                expect_msg=SamlEidMsg.credential_verify_success,
-                credentials_used=[credential.key, ElementKey("other_id")],
-                verify_credential=credential.key,
-                response_template=self.saml_response_tpl_success,
-                method="freja",
-                frontend_action=FrontendAction.VERIFY_CREDENTIAL,
-            )
-
-        self._verify_user_parameters(eppn, token_verified=True, num_proofings=2, num_mfa_tokens=2)
-
-    @patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_webauthn_token_verify(self, mock_request_user_sync: MagicMock, mock_get_all_navet_data: MagicMock) -> None:
-        mock_get_all_navet_data.return_value = self._get_all_navet_data()
-        mock_request_user_sync.side_effect = self.request_user_sync
-
-        eppn = self.test_user.eppn
-        credential = self.add_security_key_to_user(eppn, "test", "webauthn")
-        self._verify_user_parameters(eppn)
-
-        self.verify_token(
-            endpoint="/verify-credential",
-            eppn=eppn,
-            identity=self.test_user.identities.nin,
-            expect_msg=SamlEidMsg.credential_verify_success,
-            credentials_used=[credential.key, ElementKey("other_id")],
-            verify_credential=credential.key,
-            response_template=self.saml_response_tpl_success,
-            method="freja",
-            frontend_action=FrontendAction.VERIFY_CREDENTIAL,
-        )
-
-        self._verify_user_parameters(eppn, token_verified=True, num_proofings=1)
-
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_webauthn_token_verify_signup_authn(self, mock_request_user_sync: MagicMock) -> None:
-        mock_request_user_sync.side_effect = self.request_user_sync
-
-        eppn = self.test_user.eppn
-        credential = self.add_security_key_to_user(eppn, "test", "webauthn")
-        self._verify_user_parameters(eppn)
-
-        self.setup_signup_authn()
-
-        self.verify_token(
-            endpoint="/verify-credential",
-            frontend_action=FrontendAction.VERIFY_CREDENTIAL,
-            eppn=eppn,
-            expect_msg=SamlEidMsg.credential_verify_success,
-            credentials_used=[credential.key, ElementKey("other_id")],
-            verify_credential=credential.key,
-            logged_in=False,
-        )
-
-        self._verify_user_parameters(eppn, token_verified=True, num_proofings=1)
-
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_webauthn_token_verify_signup_authn_token_to_old(self, mock_request_user_sync: MagicMock) -> None:
-        mock_request_user_sync.side_effect = self.request_user_sync
-
-        eppn = self.test_user.eppn
-        credential = self.add_security_key_to_user(
-            eppn=eppn, keyhandle="test", token_type="webauthn", created_ts=utc_now() + timedelta(minutes=6)
-        )
-        self._verify_user_parameters(eppn)
-
-        self.setup_signup_authn(eppn=eppn)
-
-        with self.session_cookie(self.browser, eppn) as browser:
-            location = self._get_authn_redirect_url(
-                browser=browser,
-                endpoint="/verify-credential",
-                method="bankid",
-                frontend_action=FrontendAction.VERIFY_CREDENTIAL,
-                verify_credential=credential.key,
-                expect_success=False,
-            )
-            assert location is None
-
-        self._verify_user_parameters(eppn, token_verified=False, num_proofings=0)
-
-    def test_mfa_token_verify_wrong_verified_nin(self) -> None:
-        eppn = self.test_user.eppn
-        nin = self.test_user_wrong_nin
-        credential = self.add_security_key_to_user(eppn, "test", "u2f")
-
-        self._verify_user_parameters(eppn, identity=nin, identity_present=False)
-
-        self.verify_token(
-            endpoint="/verify-credential",
-            eppn=eppn,
-            frontend_action=FrontendAction.VERIFY_CREDENTIAL,
-            expect_msg=SamlEidMsg.identity_not_matching,
-            expect_error=True,
-            credentials_used=[credential.key, ElementKey("other_id")],
-            verify_credential=credential.key,
-            identity=nin,
-        )
-
-        self._verify_user_parameters(eppn, identity=nin, identity_present=False)
-
-    @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
-    @patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
-    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_mfa_token_verify_no_verified_nin(
-        self, mock_request_user_sync: MagicMock, mock_get_all_navet_data: MagicMock, mock_reference_nin: MagicMock
-    ) -> None:
-        mock_get_all_navet_data.return_value = self._get_all_navet_data()
-        mock_request_user_sync.side_effect = self.request_user_sync
-        mock_reference_nin.return_value = None
-
-        eppn = self.test_unverified_user_eppn
-        nin = self.test_user_nin
-        credential = self.add_security_key_to_user(eppn, "test", "webauthn")
-
-        self._verify_user_parameters(eppn, identity_verified=False)
-
-        self.verify_token(
-            endpoint="/verify-credential",
-            eppn=eppn,
-            frontend_action=FrontendAction.VERIFY_CREDENTIAL,
-            expect_msg=SamlEidMsg.credential_verify_success,
-            credentials_used=[credential.key, ElementKey("other_id")],
-            verify_credential=credential.key,
-            identity=nin,
-        )
-
-        # Verify the user now has a verified NIN
-        self._verify_user_parameters(
-            eppn, token_verified=True, num_proofings=2, identity_present=True, identity=nin, identity_verified=True
-        )
-
-    def test_mfa_token_verify_no_mfa_login(self) -> None:
-        eppn = self.test_user.eppn
-        cred = self.add_security_key_to_user(eppn, "test", "u2f")
-
-        self._verify_user_parameters(eppn)
-
-        with self.session_cookie(self.browser, eppn) as browser:
-            with browser.session_transaction() as sess:
-                csrf_token = sess.get_csrf_token()
-            data = {
-                "csrf_token": csrf_token,
-                "credential_id": cred.key,
-                "method": "freja",
-                "frontend_action": FrontendAction.VERIFY_CREDENTIAL.value,
-            }
-            response = browser.post("/verify-credential", json=data)
-            assert response.status_code == HTTPStatus.OK
-            self._check_error_response(
-                response=response,
-                payload={"credential_description": "unit test U2F token"},
-                msg=AuthnStatusMsg.must_authenticate,
-                type_="POST_SAMLEID_VERIFY_CREDENTIAL_FAIL",
-            )
-
-        self._verify_user_parameters(eppn)
-
-    def test_mfa_token_verify_no_mfa_token_in_session(self) -> None:
-        eppn = self.test_user.eppn
-        credential = self.add_security_key_to_user(eppn, "test", "webauthn")
-
-        self._verify_user_parameters(eppn)
-
-        self.verify_token(
-            endpoint="/verify-credential",
-            eppn=eppn,
-            frontend_action=FrontendAction.VERIFY_CREDENTIAL,
-            expect_msg=SamlEidMsg.credential_not_found,
-            credentials_used=[credential.key, ElementKey("other_id")],
-            verify_credential=credential.key,
-            response_template=self.saml_response_tpl_fail,
-            expect_saml_error=True,
-        )
-
-        self._verify_user_parameters(eppn)
-
-    def test_mfa_token_verify_aborted_auth(self) -> None:
-        eppn = self.test_user.eppn
-        credential = self.add_security_key_to_user(eppn, "test", "u2f")
-
-        self._verify_user_parameters(eppn)
-
-        self.verify_token(
-            endpoint="/verify-credential",
-            eppn=eppn,
-            frontend_action=FrontendAction.VERIFY_CREDENTIAL,
-            expect_msg=SamlEidMsg.credential_verify_success,
-            credentials_used=[credential.key, ElementKey("other_id")],
-            verify_credential=credential.key,
-            response_template=self.saml_response_tpl_fail,
-            expect_saml_error=True,
-        )
-
-        self._verify_user_parameters(eppn)
-
-    def test_mfa_token_verify_cancel_auth(self) -> None:
-        eppn = self.test_user.eppn
-        credential = self.add_security_key_to_user(eppn, "test", "webauthn")
-
-        self._verify_user_parameters(eppn)
-
-        self.verify_token(
-            endpoint="/verify-credential",
-            eppn=eppn,
-            frontend_action=FrontendAction.VERIFY_CREDENTIAL,
-            expect_msg=SamlEidMsg.credential_verify_success,
-            credentials_used=[credential.key, ElementKey("other_id")],
-            verify_credential=credential.key,
-            identity=self.test_user_wrong_nin,
-            response_template=self.saml_response_tpl_cancel,
-            expect_saml_error=True,
-        )
-
-        self._verify_user_parameters(eppn)
-
-    def test_mfa_token_verify_auth_fail(self) -> None:
-        eppn = self.test_user.eppn
-        credential = self.add_security_key_to_user(eppn, "test", "u2f")
-
-        self._verify_user_parameters(eppn)
-
-        self.verify_token(
-            endpoint="/verify-credential",
-            eppn=eppn,
-            frontend_action=FrontendAction.VERIFY_CREDENTIAL,
-            expect_msg=SamlEidMsg.credential_verify_success,
-            credentials_used=[credential.key, ElementKey("other_id")],
-            verify_credential=credential.key,
-            identity=self.test_user_wrong_nin,
-            response_template=self.saml_response_tpl_fail,
-            expect_saml_error=True,
-        )
-
-        self._verify_user_parameters(eppn)
-
-    @unittest.skip("No support for magic cookie yet")
     @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_webauthn_token_verify_backdoor(
@@ -1667,7 +1047,6 @@ class FrejaMethodTests(SamlEidTests):
             eppn, num_mfa_tokens=0, identity_verified=True, num_proofings=1, locked_identity=user.identities.nin
         )
 
-    @unittest.skip("No support for magic cookie yet")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_mfa_login_backdoor(self, mock_request_user_sync: MagicMock) -> None:
         mock_request_user_sync.side_effect = self.request_user_sync
@@ -1696,7 +1075,6 @@ class FrejaMethodTests(SamlEidTests):
 
         self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=True, num_proofings=0)
 
-    @unittest.skip("No support for magic cookie yet")
     @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_nin_verify_backdoor(self, mock_request_user_sync: MagicMock, mock_reference_nin: MagicMock) -> None:
@@ -1721,7 +1099,6 @@ class FrejaMethodTests(SamlEidTests):
 
         self._verify_user_parameters(eppn, num_mfa_tokens=0, identity=nin, identity_verified=True, num_proofings=1)
 
-    @unittest.skip("No support for magic cookie yet")
     @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
@@ -1755,7 +1132,6 @@ class FrejaMethodTests(SamlEidTests):
             eppn, identity=self.test_user_nin, num_mfa_tokens=0, num_proofings=1, identity_verified=True
         )
 
-    @unittest.skip("No support for magic cookie yet")
     @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
@@ -1886,6 +1262,105 @@ class FrejaMethodTests(SamlEidTests):
         self._verify_user_parameters(
             eppn, num_mfa_tokens=0, identity=remapped_nin, identity_verified=True, num_proofings=1
         )
+
+    def test_verify_credential_eidas_not_allowed(self) -> None:
+        """Test that verify-credential with method=eidas is rejected when allow_eidas_credential_verification=False"""
+        eppn = self.test_user.eppn
+        credential = self.add_security_key_to_user(eppn, "test", "webauthn")
+
+        self._verify_user_parameters(eppn)
+
+        # Default is allow_eidas_credential_verification=False
+        assert self.app.conf.allow_eidas_credential_verification is False
+
+        with self.session_cookie(self.browser, eppn) as browser:
+            with browser.session_transaction() as sess:
+                csrf_token = sess.get_csrf_token()
+            req = {
+                "csrf_token": csrf_token,
+                "credential_id": credential.key,
+                "method": "eidas",
+                "frontend_action": FrontendAction.VERIFY_CREDENTIAL.value,
+            }
+            response = browser.post("/verify-credential", json=req)
+
+        self._check_error_response(
+            response=response,
+            type_="POST_SAMLEID_VERIFY_CREDENTIAL_FAIL",
+            msg=SamlEidMsg.credential_verification_not_allowed,
+        )
+        self._verify_user_parameters(eppn)
+
+    def test_saml2_metadata(self) -> None:
+        """Test the /saml2-metadata endpoint returns valid XML metadata"""
+        response = self.browser.get("/saml2-metadata")
+        assert response.status_code == HTTPStatus.OK
+        assert response.content_type is not None
+        assert response.content_type.startswith("text/xml")
+        assert response.data is not None
+        # Verify it's valid SAML metadata XML (pysaml2 uses ns0: prefix)
+        assert b"EntityDescriptor" in response.data
+        assert b"http://test.localhost:6545/saml2-metadata" in response.data
+
+    @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
+    @patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
+    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+    def test_nin_verify_loa_mismatch(
+        self, mock_request_user_sync: MagicMock, mock_get_all_navet_data: MagicMock, mock_reference_nin: MagicMock
+    ) -> None:
+        """Test that identity verification fails when the SAML response has a wrong LOA (loa1 instead of loa3)"""
+        mock_get_all_navet_data.return_value = self._get_all_navet_data()
+        mock_request_user_sync.side_effect = self.request_user_sync
+        mock_reference_nin.return_value = None
+
+        # Create a response template with loa1 instead of loa3
+        saml_response_tpl_wrong_loa = self.saml_response_tpl_success.replace(
+            "http://id.elegnamnden.se/loa/1.0/loa3",
+            "http://id.elegnamnden.se/loa/1.0/loa1",
+        )
+
+        eppn = self.test_unverified_user_eppn
+        self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=False)
+
+        self.reauthn(
+            "/verify-identity",
+            frontend_action=FrontendAction.VERIFY_IDENTITY,
+            expect_msg=SamlEidMsg.authn_context_mismatch,
+            expect_error=True,
+            eppn=eppn,
+            response_template=saml_response_tpl_wrong_loa,
+        )
+
+    def test_unsolicited_saml_response(self) -> None:
+        """Test that an ACS POST with an unknown authn_req_ref is handled gracefully"""
+        eppn = self.test_user.eppn
+
+        with self.session_cookie(self.browser, eppn) as browser:
+            # First, initiate a SAML authn to set up the session
+            _url = self._get_authn_redirect_url(
+                browser=browser,
+                endpoint="/verify-identity",
+                method="freja",
+                frontend_action=FrontendAction.VERIFY_IDENTITY,
+            )
+
+            with browser.session_transaction() as sess:
+                request_id, _authn_ref = self._get_request_id_from_session(sess)
+
+            # Generate a valid SAML response but with a different request_id (simulating unsolicited)
+            authn_response = self.generate_auth_response(
+                "id-not-in-session",
+                self.saml_response_tpl_success,
+                asserted_identity=self.test_user_nin.unique_value,
+                date_of_birth=self.test_user_nin.date_of_birth,
+            )
+
+            data = {"SAMLResponse": base64.b64encode(authn_response), "RelayState": ""}
+            response = browser.post("/saml2-acs", data=data)
+
+            # Should redirect to errors page
+            assert response.status_code == HTTPStatus.FOUND
+            assert "errors" in response.location
 
 
 class EidasMethodTests(SamlEidTests):
