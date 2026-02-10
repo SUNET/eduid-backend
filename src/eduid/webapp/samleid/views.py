@@ -189,17 +189,16 @@ def _authn(
     idp = proofing_method.idp
     if check_magic_cookie(current_app.conf):
         # set a test IdP with minimal interaction for the integration tests
-        if current_app.conf.magic_cookie_idp:
-            if proofing_method.method == "freja" and current_app.conf.magic_cookie_idp:
-                idp = current_app.conf.magic_cookie_idp
-            elif proofing_method.method == "eidas" and current_app.conf.magic_cookie_foreign_id_idp:
-                idp = current_app.conf.magic_cookie_foreign_id_idp
-            else:
-                current_app.logger.error(f"Magic cookie is not supported for method {method}")
-                return AuthnResult(error=SamlEidMsg.method_not_available)
-            current_app.logger.debug(f"Changed requested IdP due to magic cookie: {idp}")
+        if proofing_method.method == "freja" and current_app.conf.magic_cookie_idp:
+            idp = current_app.conf.magic_cookie_idp
+        elif proofing_method.method == "bankid" and current_app.conf.magic_cookie_bankid_idp:
+            idp = current_app.conf.magic_cookie_bankid_idp
+        elif proofing_method.method == "eidas" and current_app.conf.magic_cookie_foreign_id_idp:
+            idp = current_app.conf.magic_cookie_foreign_id_idp
         else:
-            current_app.logger.warning("Missing configuration magic_cookie_idp")
+            current_app.logger.error(f"Magic cookie is not supported for method {method}")
+            return AuthnResult(error=SamlEidMsg.method_not_available)
+        current_app.logger.debug(f"Changed requested IdP due to magic cookie: {idp}")
 
     authn_req = SP_AuthnRequest(
         frontend_action=_frontend_action,

@@ -296,6 +296,7 @@ class SamlEidTests(ProofingTests[SamlEidApp]):
                 "magic_cookie": "",
                 "magic_cookie_name": "magic-cookie",
                 "magic_cookie_idp": self.test_idp,
+                "magic_cookie_bankid_idp": self.test_idp,
                 "magic_cookie_foreign_id_idp": self.test_idp,
                 "environment": "dev",
                 "freja_idp": self.test_idp,
@@ -993,9 +994,7 @@ class NINMethodTests(SamlEidTests):
         mock_get_all_navet_data: MagicMock,
         mock_reference_nin: MagicMock,
     ) -> None:
-        # Backdoor NIN override only works for freja (ProofingMethodBankID.parse_session_info
-        # does not read the magic cookie NIN)
-        for mc in [FREJA]:
+        for mc in [FREJA, BANKID]:
             with self.subTest(mc=mc):
                 self.setUp()
                 mock_get_all_navet_data.return_value = self._get_all_navet_data()
@@ -1020,6 +1019,7 @@ class NINMethodTests(SamlEidTests):
                         credentials_used=[credential.key, ElementKey("other_id")],
                         verify_credential=credential.key,
                         browser=browser,
+                        response_template=self.success_response_template(mc),
                     )
 
                 self._verify_user_parameters(
@@ -1199,9 +1199,7 @@ class NINMethodTests(SamlEidTests):
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_mfa_login_backdoor(self, mock_request_user_sync: MagicMock) -> None:
-        # Backdoor NIN override only works for freja (ProofingMethodBankID.parse_session_info
-        # does not read the magic cookie NIN)
-        for mc in [FREJA]:
+        for mc in [FREJA, BANKID]:
             with self.subTest(mc=mc):
                 self.setUp()
                 mock_request_user_sync.side_effect = self.request_user_sync
@@ -1227,6 +1225,7 @@ class NINMethodTests(SamlEidTests):
                         eppn=eppn,
                         logged_in=False,
                         browser=browser,
+                        response_template=self.success_response_template(mc),
                     )
 
                 self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=True, num_proofings=0)
@@ -1234,9 +1233,7 @@ class NINMethodTests(SamlEidTests):
     @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_nin_verify_backdoor(self, mock_request_user_sync: MagicMock, mock_reference_nin: MagicMock) -> None:
-        # Backdoor NIN override only works for freja (ProofingMethodBankID.parse_session_info
-        # does not read the magic cookie NIN)
-        for mc in [FREJA]:
+        for mc in [FREJA, BANKID]:
             with self.subTest(mc=mc):
                 self.setUp()
                 mock_request_user_sync.side_effect = self.request_user_sync
@@ -1257,6 +1254,7 @@ class NINMethodTests(SamlEidTests):
                         expect_msg=SamlEidMsg.identity_verify_success,
                         eppn=eppn,
                         browser=browser,
+                        response_template=self.success_response_template(mc),
                     )
 
                 self._verify_user_parameters(
@@ -1712,21 +1710,28 @@ class NINMethodTests(SamlEidTests):
         )
 
     def test_magic_cookie_missing_config(self) -> None:
-        """Test that magic cookie logs warning when magic_cookie_idp is not configured (views.py:201-202)"""
+        """Test that magic cookie returns error when magic_cookie_idp is not configured for freja"""
         eppn = self.test_user.eppn
 
         self.app.conf.magic_cookie = "magic-cookie"
         self.app.conf.magic_cookie_idp = None
 
         with self.session_cookie_and_magic_cookie(self.browser, eppn=eppn) as browser:
-            _url = self._get_authn_redirect_url(
-                browser=browser,
-                endpoint="/verify-identity",
-                method="freja",
-                frontend_action=FrontendAction.VERIFY_IDENTITY,
+            with browser.session_transaction() as sess:
+                csrf_token = sess.get_csrf_token()
+            response = browser.post(
+                "/verify-identity",
+                json={
+                    "csrf_token": csrf_token,
+                    "method": "freja",
+                    "frontend_action": FrontendAction.VERIFY_IDENTITY.value,
+                },
             )
-            # Still gets a URL (magic cookie without idp config just logs warning and continues)
-            assert _url is not None
+            self._check_error_response(
+                response=response,
+                type_=None,
+                msg=SamlEidMsg.method_not_available,
+            )
 
     def test_get_status_not_found(self) -> None:
         """Test that get-status returns not_found for unknown authn_id (views.py:62)"""
