@@ -1396,7 +1396,7 @@ class BankIDMethodTests(SamlEidTests):
                 creds = user.credentials.filter(mc.credential_type)
                 assert len(creds) == 1
                 cred = creds[0]
-                assert isinstance(cred, (SwedenConnectCredential, BankIDCredential))
+                assert isinstance(cred, SwedenConnectCredential | BankIDCredential)
                 assert cred.level in self.required_loa(mc)
 
     def test_mfa_authentication_too_old_authn_instant(self) -> None:
