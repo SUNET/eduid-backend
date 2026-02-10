@@ -95,7 +95,8 @@ class SamlEidTests(ProofingTests[SamlEidApp]):
         self.test_idp = "https://idp.example.com/simplesaml/saml2/idp/metadata.php"
         self.default_redirect_url = "http://redirect.localhost/redirect"
 
-        self.saml_response_tpl_success = """<?xml version='1.0' encoding='UTF-8'?>
+        # ruff: disable[E501]
+        self.saml_response_tpl_freja_success = """<?xml version='1.0' encoding='UTF-8'?>
 <samlp:Response xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Destination="{sp_url}saml2-acs" ID="id-88b9f586a2a3a639f9327485cc37c40a" InResponseTo="{session_id}" IssueInstant="{timestamp}" Version="2.0">
   <saml:Issuer Format="urn:oasis:names:tc:SAML:2.0:nameid-format:entity">https://idp.example.com/simplesaml/saml2/idp/metadata.php</saml:Issuer>
   <samlp:Status>
@@ -138,8 +139,8 @@ class SamlEidTests(ProofingTests[SamlEidApp]):
       {extra_attributes}
     </saml:AttributeStatement>
   </saml:Assertion>
-</samlp:Response>"""  # noqa: E501
-        self.saml_response_tpl_success_bankid = """<?xml version="1.0"?>
+</samlp:Response>"""
+        self.saml_response_tpl_bankid_success = """<?xml version="1.0"?>
 <samlp:Response xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Destination="{sp_url}saml2-acs" ID="id-88b9f586a2a3a639f9327485cc37c40a" InResponseTo="{session_id}" IssueInstant="{timestamp}" Version="2.0">
     <saml:Issuer Format="urn:oasis:names:tc:SAML:2.0:nameid-format:entity">https://idp.example.com/simplesaml/saml2/idp/metadata.php</saml:Issuer>
     <samlp:Status>
@@ -184,7 +185,7 @@ class SamlEidTests(ProofingTests[SamlEidApp]):
         </saml2:Attribute>
       </saml2:AttributeStatement>
     </saml2:Assertion>
-</samlp:Response>"""  # noqa: E501
+</samlp:Response>"""
         self.saml_response_tpl_fail = """<?xml version="1.0" encoding="UTF-8"?>
 <saml2p:Response xmlns:saml2p="urn:oasis:names:tc:SAML:2.0:protocol" Destination="{sp_url}saml2-acs" ID="_ebad01e547857fa54927b020dba1edb1" InResponseTo="{session_id}" IssueInstant="{timestamp}" Version="2.0">
   <saml2:Issuer xmlns:saml2="urn:oasis:names:tc:SAML:2.0:assertion">https://idp.example.com/simplesaml/saml2/idp/metadata.php</saml2:Issuer>
@@ -194,7 +195,7 @@ class SamlEidTests(ProofingTests[SamlEidApp]):
     </saml2p:StatusCode>
     <saml2p:StatusMessage>User login was not successful or could not meet the requirements of the requesting application.</saml2p:StatusMessage>
   </saml2p:Status>
-</saml2p:Response>"""  # noqa: E501
+</saml2p:Response>"""
         self.saml_response_tpl_cancel = """
         <?xml version="1.0" encoding="UTF-8"?>
 <saml2p:Response xmlns:saml2p="urn:oasis:names:tc:SAML:2.0:protocol" Destination="{sp_url}saml2-acs" ID="_ebad01e547857fa54927b020dba1edb1" InResponseTo="{session_id}" IssueInstant="{timestamp}" Version="2.0">
@@ -205,7 +206,7 @@ class SamlEidTests(ProofingTests[SamlEidApp]):
     </saml2p:StatusCode>
     <saml2p:StatusMessage>The login attempt was cancelled</saml2p:StatusMessage>
   </saml2p:Status>
-</saml2p:Response>"""  # noqa: E501
+</saml2p:Response>"""
         self.saml_response_foreign_eid_tpl_success = """
         <?xml version='1.0' encoding='UTF-8'?>
 <samlp:Response xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Destination="{sp_url}saml2-acs" ID="id-88b9f586a2a3a639f9327485cc37c40a" InResponseTo="{session_id}" IssueInstant="{timestamp}" Version="2.0">
@@ -260,8 +261,7 @@ class SamlEidTests(ProofingTests[SamlEidApp]):
       {extra_attributes}
     </saml:AttributeStatement>
   </saml:Assertion>
-</samlp:Response>"""  # noqa: E501
-
+</samlp:Response>"""
         self.saml_response_foreign_eid_loa_missmatch = """
 <?xml version="1.0" encoding="UTF-8"?>
 <saml2p:Response xmlns:saml2p="urn:oasis:names:tc:SAML:2.0:protocol" Destination="{sp_url}saml2-acs" ID="_ebad01e547857fa54927b020dba1edb1" InResponseTo="{session_id}" IssueInstant="{timestamp}" Version="2.0">
@@ -273,7 +273,8 @@ class SamlEidTests(ProofingTests[SamlEidApp]):
     <saml2p:StatusMessage>Failure received from foreign service: 202019 - Incorrect Level of Assurance in IdP response</saml2p:StatusMessage>
   </saml2p:Status>
 </saml2p:Response>
-"""  # noqa: E501
+"""
+        # ruff: enable[E501]
         if config is None:
             config = SetupConfig()
         config.users = ["hubba-bubba", "hubba-baar"]
@@ -327,9 +328,9 @@ class SamlEidTests(ProofingTests[SamlEidApp]):
     def success_response_template(self, method_config: MethodConfig) -> str:
         """Get the success SAML response template for a given method."""
         if method_config is FREJA:
-            return self.saml_response_tpl_success
+            return self.saml_response_tpl_freja_success
         elif method_config is BANKID:
-            return self.saml_response_tpl_success_bankid
+            return self.saml_response_tpl_bankid_success
         raise ValueError(f"Unknown method config: {method_config}")
 
     def proofing_version(self, method_config: MethodConfig) -> str:
@@ -351,12 +352,12 @@ class SamlEidTests(ProofingTests[SamlEidApp]):
     def wrong_loa_response_template(self, method_config: MethodConfig) -> str:
         """Get a SAML response template with wrong LOA for testing LOA mismatch."""
         if method_config is FREJA:
-            return self.saml_response_tpl_success.replace(
+            return self.saml_response_tpl_freja_success.replace(
                 "http://id.elegnamnden.se/loa/1.0/loa3",
                 "http://id.elegnamnden.se/loa/1.0/loa1",
             )
         elif method_config is BANKID:
-            return self.saml_response_tpl_success_bankid.replace(
+            return self.saml_response_tpl_bankid_success.replace(
                 "http://id.swedenconnect.se/loa/1.0/uncertified-loa3",
                 "http://id.swedenconnect.se/loa/1.0/uncertified-loa1",
             )
@@ -598,7 +599,7 @@ class SamlEidTests(ProofingTests[SamlEidApp]):
             identity = self.test_user_nin
 
         if response_template is None:
-            response_template = self.saml_response_tpl_success
+            response_template = self.saml_response_tpl_freja_success
 
         if browser is None:
             browser = self.browser
@@ -1555,7 +1556,7 @@ class NINMethodTests(SamlEidTests):
             # Generate a valid SAML response but with a different request_id (simulating unsolicited)
             authn_response = self.generate_auth_response(
                 "id-not-in-session",
-                self.saml_response_tpl_success,
+                self.saml_response_tpl_freja_success,
                 asserted_identity=self.test_user_nin.unique_value,
                 date_of_birth=self.test_user_nin.date_of_birth,
             )
