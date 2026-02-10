@@ -22,7 +22,6 @@ from eduid.webapp.common.api.utils import get_reference_nin_from_navet_data, get
 from eduid.webapp.common.session import session
 from eduid.webapp.letter_proofing.app import LetterProofingApp
 from eduid.webapp.lookup_mobile_proofing.app import MobileProofingApp
-from eduid.webapp.oidc_proofing.app import OIDCProofingApp
 
 __author__ = "lundberg"
 
@@ -111,7 +110,7 @@ def can_verify_nin(f: EduidRouteCallable) -> EduidRouteCallable:
         if isinstance(locked_nin, NinIdentity) and locked_nin.number != kwargs["nin"]:
             logger.info("User has a different locked NIN")
             logger.debug(f"Locked NIN: {locked_nin.number}. New NIN: {kwargs['nin']}")
-            if isinstance(session.app, MobileProofingApp | LetterProofingApp | OIDCProofingApp):
+            if isinstance(session.app, MobileProofingApp | LetterProofingApp):
                 ref = get_reference_nin_from_navet_data(kwargs["nin"])
                 logger.debug(f"New NIN has reference NIN: {ref}")
                 # If the reference NIN is the same as the locked NIN, we can continue with the verification

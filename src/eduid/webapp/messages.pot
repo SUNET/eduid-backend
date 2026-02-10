@@ -58,34 +58,6 @@ msgid ""
 "\n"
 msgstr ""
 
-#: oidc_proofing/helpers.py:128
-#, python-format
-msgid "%(site_name)s account verification"
-msgstr ""
-
-#: oidc_proofing/templates/redo_verification.html.jinja2:5
-#, python-format
-msgid ""
-"\n"
-"    <p>You have tried to verify your account at <a "
-"href=\"%(site_url)s\">%(site_name)s</a>.</p>\n"
-"    <p>We encountered a problem and kindly ask you to verify you account "
-"again using a different verification method.</p>\n"
-"    <p>We apologize for any inconvenience.</p>\n"
-msgstr ""
-
-#: oidc_proofing/templates/redo_verification.txt.jinja2:2
-#, python-format
-msgid ""
-"\n"
-"    You have tried to verify your account at %(site_name)s\n"
-"\n"
-"    We encountered a problem and kindly ask you to verify you account "
-"again using a different verification method.\n"
-"\n"
-"    We apologize for any inconvenience.\n"
-msgstr ""
-
 #: security/helpers.py:152
 msgid "Terminate account"
 msgstr ""
