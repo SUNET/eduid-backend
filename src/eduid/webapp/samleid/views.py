@@ -141,7 +141,7 @@ def verify_identity(user: User, method: str, frontend_action: str, frontend_stat
 @samleid_views.route("/mfa-authenticate", methods=["POST"])
 @UnmarshalWith(SamlEidCommonRequestSchema)
 @MarshalWith(SamlEidCommonResponseSchema)
-def mfa_authentication(method: str, frontend_action: str, frontend_state: str | None = None) -> FluxData:
+def mfa_authenticate(method: str, frontend_action: str, frontend_state: str | None = None) -> FluxData:
     current_app.logger.debug("mfa-authenticate called")
 
     result = _authn(
@@ -234,7 +234,7 @@ def _authn(
 
         # Ideally, we should be able to support multiple ongoing external MFA requests at the same time,
         # but for now at least remember the SAML request id and the login_ref (when the frontend has been
-        # updated to supply it to /mfa-authentication) so that the IdP can verify the login_ref matches
+        # updated to supply it to /mfa-authenticate) so that the IdP can verify the login_ref matches
         # when processing a successful response in session.mfa_action.
         session.mfa_action.authn_req_ref = authn_req.authn_id
 
