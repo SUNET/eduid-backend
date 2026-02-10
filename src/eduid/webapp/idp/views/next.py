@@ -441,18 +441,19 @@ def _geo_statistics(ticket: LoginContext, sso_session: SSOSession | None) -> Non
             "user_id": user_hash.finalize().hex(),
             "client_ip": request.remote_addr,
             "known_device": bool(ticket.known_device),
-            "user_agent": {"browser": {}, "os": {}, "device": {}, "sophisticated": {}},
+            "user_agent": {
+                "browser": {"family": ua.parsed.browser.family},
+                "os": {"family": ua.parsed.os.family},
+                "device": {"family": ua.parsed.device.family},
+                "sophisticated": {
+                    "is_mobile": ua.parsed.is_mobile,
+                    "is_pc": ua.parsed.is_pc,
+                    "is_tablet": ua.parsed.is_tablet,
+                    "is_touch_capable": ua.parsed.is_touch_capable,
+                },
+            },
         }
     }
-
-    data = d["data"]
-    data["user_agent"]["browser"]["family"] = ua.parsed.browser.family
-    data["user_agent"]["os"]["family"] = ua.parsed.os.family
-    data["user_agent"]["device"]["family"] = ua.parsed.device.family
-    data["user_agent"]["sophisticated"]["is_mobile"] = ua.parsed.is_mobile
-    data["user_agent"]["sophisticated"]["is_pc"] = ua.parsed.is_pc
-    data["user_agent"]["sophisticated"]["is_tablet"] = ua.parsed.is_tablet
-    data["user_agent"]["sophisticated"]["is_touch_capable"] = ua.parsed.is_touch_capable
 
     try:
         resp = requests.post(current_app.conf.geo_statistics_url, json=d, timeout=1)

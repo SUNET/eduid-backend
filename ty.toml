@@ -1,4 +1,6 @@
 # Trying out new typechecker 'ty' via 'uvx ty check' i.e. not installing
+[environment]
+python-version = "3.13"
 [analysis]
 respect-type-ignore-comments = false
 [rules]
