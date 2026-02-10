@@ -69,13 +69,13 @@ def create_authn_info(
     Create SAML authentication info for initiating authentication.
 
     :param authn_ref: Reference for the authentication request
-    :param framework: Trust framework being used (SWECONN, EIDAS, BANKID, FREJA)
+    :param framework: Trust framework being used (SWECONN, EIDAS, BANKID)
     :param selected_idp: Entity ID of the IdP to authenticate with
     :param required_loa: List of required Level of Assurance values
     :param force_authn: Whether to force re-authentication
     :returns: SAML HTTP arguments for the authentication request
     """
-    if framework not in [TrustFramework.SWECONN, TrustFramework.EIDAS, TrustFramework.BANKID, TrustFramework.FREJA]:
+    if framework not in [TrustFramework.SWECONN, TrustFramework.EIDAS, TrustFramework.BANKID]:
         raise ValueError(f"Unrecognised trust framework: {framework}")
 
     kwargs: dict[str, Any] = {
