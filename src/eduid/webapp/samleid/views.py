@@ -190,7 +190,7 @@ def _authn(
     if check_magic_cookie(current_app.conf):
         # set a test IdP with minimal interaction for the integration tests
         if current_app.conf.magic_cookie_idp:
-            if proofing_method.method in ["freja", "bankid"] and current_app.conf.magic_cookie_idp:
+            if proofing_method.method == "freja" and current_app.conf.magic_cookie_idp:
                 idp = current_app.conf.magic_cookie_idp
             elif proofing_method.method == "eidas" and current_app.conf.magic_cookie_foreign_id_idp:
                 idp = current_app.conf.magic_cookie_foreign_id_idp
