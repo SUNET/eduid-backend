@@ -32,6 +32,12 @@ from eduid.webapp.common.session.namespaces import AuthnRequestRef, SP_AuthnRequ
 from eduid.webapp.samleid.app import SamlEidApp, init_samleid_app
 from eduid.webapp.samleid.helpers import SamlEidMsg
 
+__author__ = "lundberg"
+
+logger = logging.getLogger(__name__)
+
+HERE = os.path.abspath(os.path.dirname(__file__))
+
 
 @dataclass(frozen=True)
 class MethodConfig:
@@ -55,12 +61,6 @@ BANKID = MethodConfig(
     proofing_method=IdentityProofingMethod.BANKID,
     credential_type=BankIDCredential,
 )
-
-__author__ = "lundberg"
-
-logger = logging.getLogger(__name__)
-
-HERE = os.path.abspath(os.path.dirname(__file__))
 
 
 class SamlEidTests(ProofingTests[SamlEidApp]):
