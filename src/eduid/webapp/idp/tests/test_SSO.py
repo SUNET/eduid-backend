@@ -956,7 +956,7 @@ class TestSSO(SSOIdPTests):
             )
 
         # test with not allowed identity proofing methods
-        for nin_verified_by in ["lookup_mobile_proofing", "oidc_proofing"]:
+        for nin_verified_by in ["lookup_mobile_proofing"]:
             user = self.get_user_set_identity(
                 self.test_user.eppn,
                 identity_type=IdentityType.NIN,

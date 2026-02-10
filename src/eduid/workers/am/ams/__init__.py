@@ -20,7 +20,6 @@ from eduid.userdb.proofing import (
     EmailProofingUserDB,
     LetterProofingUserDB,
     LookupMobileProofingUserDB,
-    OidcProofingUserDB,
     OrcidProofingUserDB,
     PhoneProofingUserDB,
 )
@@ -66,28 +65,6 @@ class eduid_signup(AttributeFetcher):
     @classmethod
     def get_user_db(cls, uri: str) -> SignupUserDB:
         return SignupUserDB(uri)
-
-
-class eduid_oidc_proofing(AttributeFetcher):
-    whitelist_set_attrs = [
-        # TODO: Arrays must use put or pop, not set, but need more deep refacts
-        "nins",  # Old format
-        "identities",  # New format
-        "givenName",
-        "chosen_given_name",
-        "surname",
-        "legal_name",
-    ]
-    whitelist_unset_attrs = [
-        "identities",
-        "chosen_given_name",
-        "nins",  # Old format
-        "displayName",  # deprecated
-    ]
-
-    @classmethod
-    def get_user_db(cls, uri: str) -> OidcProofingUserDB:
-        return OidcProofingUserDB(uri)
 
 
 class eduid_letter_proofing(AttributeFetcher):

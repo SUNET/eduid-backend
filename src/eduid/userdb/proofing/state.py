@@ -153,19 +153,6 @@ class OrcidProofingState(ProofingState):
 
 
 @dataclass()
-class OidcProofingState(NinProofingState):
-    state: str
-    nonce: str
-    token: str
-
-    @classmethod
-    def from_dict(cls, data: Mapping[str, Any]) -> OidcProofingState:
-        _data = copy.deepcopy(dict(data))  # to not modify callers data
-        _data["nin"] = NinProofingElement.from_dict(_data["nin"])
-        return cls._default_from_dict(_data, {"nin", "state", "nonce", "token"})
-
-
-@dataclass()
 class EmailProofingState(ProofingState):
     verification: EmailProofingElement
 
