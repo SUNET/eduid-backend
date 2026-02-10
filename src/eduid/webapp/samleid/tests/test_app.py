@@ -678,8 +678,8 @@ class SamlEidTests(ProofingTests[SamlEidApp]):
             )
 
 
-class BankIDMethodTests(SamlEidTests):
-    """Tests for bankid method - copied from bankid/tests/test_app.py"""
+class NINMethodTests(SamlEidTests):
+    """Tests for methods used for NIN verification"""
 
     def test_authenticate(self) -> None:
         response = self.browser.get("/")
