@@ -110,7 +110,7 @@ def init_pysaml2(cfgfile: str) -> server.Server:
     cfgdir = os.path.dirname(cfgfile)
     if cfgdir:
         # add directory part to sys.path, since pysaml2 'import's it's config
-        sys.path = [cfgdir] + sys.path
+        sys.path = [cfgdir, *sys.path]
         cfgfile = os.path.basename(cfgfile)
 
     try:
