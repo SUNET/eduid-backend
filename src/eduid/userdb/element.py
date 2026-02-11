@@ -170,8 +170,7 @@ class Element(BaseModel):
                 del data["modified_ts"]
 
         if self.no_created_ts_in_db is True:
-            if "created_ts" in data:
-                del data["created_ts"]
+            data.pop("created_ts", None)
 
         return data
 
