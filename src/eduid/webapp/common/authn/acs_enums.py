@@ -23,3 +23,10 @@ class BankIDAcsAction(StrEnum):
     verify_identity = "verify-identity-action"
     verify_credential = "verify-credential-action"
     mfa_authenticate = "mfa-authenticate-action"
+
+
+@unique
+class SamlEidAcsAction(StrEnum):
+    verify_identity = "verify-identity-action"
+    verify_credential = "verify-credential-action"
+    mfa_authenticate = "mfa-authenticate-action"

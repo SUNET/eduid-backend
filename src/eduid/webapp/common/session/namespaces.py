@@ -310,3 +310,7 @@ class BankIDNamespace(SessionNSBase):
 
 class FrejaEIDNamespace(SessionNSBase):
     rp: RPAuthnData = Field(default=RPAuthnData())
+
+
+class SamlEidNamespace(SessionNSBase):
+    sp: SPAuthnData = Field(default=SPAuthnData())
