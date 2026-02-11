@@ -17,7 +17,7 @@ from eduid.webapp.common.api.messages import CommonMsg, FluxData, error_response
 from eduid.webapp.common.api.schemas.csrf import EmptyRequest
 from eduid.webapp.common.api.utils import save_and_sync_user
 from eduid.webapp.common.authn.utils import check_reauthn, get_authn_for_action, validate_authn_for_action
-from eduid.webapp.common.authn.vccs import revoke_all_credentials
+from eduid.webapp.common.authn.vccs import revoke_passwords
 from eduid.webapp.common.session import session
 from eduid.webapp.security.app import current_security_app as current_app
 from eduid.webapp.security.helpers import (
@@ -84,7 +84,9 @@ def terminate_account(user: User) -> FluxData:
     security_user = SecurityUser.from_user(user, current_app.private_userdb)
 
     # revoke all user passwords
-    revoke_all_credentials(security_user, vccs_url=current_app.conf.vccs_url)
+    revoke_passwords(
+        security_user, reason="account termination", application="security", vccs_url=current_app.conf.vccs_url
+    )
 
     # flag account as terminated
     security_user.terminated = utc_now()

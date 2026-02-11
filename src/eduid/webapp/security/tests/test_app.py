@@ -52,7 +52,7 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
     # parameterized test methods
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    @patch("eduid.webapp.security.views.security.revoke_all_credentials")
+    @patch("eduid.webapp.security.views.security.revoke_passwords")
     def _delete_account(
         self,
         mock_revoke: MagicMock,
