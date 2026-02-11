@@ -12,22 +12,6 @@ from eduid.webapp.phone.schemas import PhoneSchema
 __author__ = "eperez"
 
 
-class PersonalDataRequestSchema(EduidSchema, CSRFRequestMixin):
-    given_name = fields.String(required=True, validate=[validate_nonempty])
-    chosen_given_name = fields.String(required=False)
-    surname = fields.String(required=True, validate=[validate_nonempty])
-    legal_name = fields.String(required=False)
-    language = fields.String(load_default="en", validate=validate_language)
-
-
-class PersonalDataSchema(EduidSchema):
-    given_name = fields.String(required=True, attribute="givenName")
-    chosen_given_name = fields.String(required=False)
-    surname = fields.String(required=True)
-    legal_name = fields.String(required=False)
-    language = fields.String(required=True, attribute="preferredLanguage")
-
-
 class UserNameRequestSchema(EduidSchema, CSRFRequestMixin):
     given_name = fields.String(required=True, validate=[validate_nonempty])
     chosen_given_name = fields.String(required=False)
@@ -65,13 +49,6 @@ class UserPreferencesResponseSchema(FluxStandardAction):
     payload = fields.Nested(UserPreferencesResponsePayload)
 
 
-class PersonalDataResponseSchema(FluxStandardAction):
-    class PersonalDataResponsePayload(PersonalDataSchema, CSRFResponseMixin):
-        pass
-
-    payload = fields.Nested(PersonalDataResponsePayload)
-
-
 class UserNameResponseSchema(FluxStandardAction):
     class UserNameResponsePayload(UserNameSchema, CSRFResponseMixin):
         pass
@@ -84,13 +61,6 @@ class UserLanguageResponseSchema(FluxStandardAction):
         pass
 
     payload = fields.Nested(UserLanguageResponsePayload)
-
-
-class IdentitiesResponseSchema(FluxStandardAction):
-    class IdentitiesResponsePayload(EmailSchema, CSRFResponseMixin):
-        identities = fields.Nested(IdentitiesSchema)
-
-    payload = fields.Nested(IdentitiesResponsePayload)
 
 
 class AllDataSchema(EduidSchema):
