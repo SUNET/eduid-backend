@@ -358,7 +358,7 @@ class IdP_SAMLRequest:
         #   'url': 'https://sp.example.edu/saml2/acs/',
         #   'method': 'POST'
         #  }
-        # ruff enable[ERA001]
+        # ruff: enable[ERA001]
         return HttpArgs.from_pysaml2_dict(_args)
 
 

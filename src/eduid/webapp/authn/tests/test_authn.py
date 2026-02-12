@@ -420,7 +420,7 @@ class NoAuthnAPITestCase(EduidAPITestCase):
         no_authn_urls_before = [path for path in self.app.conf.no_authn_urls]
         no_authn_path = "/test3"
         no_authn_views(self.app.conf, [no_authn_path])
-        self.assertEqual(no_authn_urls_before + [f"^{no_authn_path!s}$"], self.app.conf.no_authn_urls)
+        self.assertEqual([*no_authn_urls_before, f"^{no_authn_path!s}$"], self.app.conf.no_authn_urls)
 
         with self.app.test_client() as c:
             resp = c.get("/test3")

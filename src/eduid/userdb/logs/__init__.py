@@ -13,12 +13,12 @@ from eduid.userdb.logs.element import (
 )
 
 __all__ = [
-    "ProofingLog",
     "LetterProofing",
-    "MailAddressProofing",
     "MFATokenProofing",
+    "MailAddressProofing",
     "OrcidProofing",
     "PhoneNumberProofing",
+    "ProofingLog",
     "SeLegProofing",
     "SeLegProofingFrejaEid",
     "SwedenConnectProofing",
