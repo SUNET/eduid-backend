@@ -95,7 +95,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
         </saml2:Attribute>
       </saml2:AttributeStatement>
     </saml2:Assertion>
-</samlp:Response>"""  # noqa: E501
+</samlp:Response>"""
         self.saml_response_tpl_fail = """<?xml version="1.0" encoding="UTF-8"?>
 <saml2p:Response xmlns:saml2p="urn:oasis:names:tc:SAML:2.0:protocol" Destination="{sp_url}saml2-acs" ID="_ebad01e547857fa54927b020dba1edb1" InResponseTo="{session_id}" IssueInstant="{timestamp}" Version="2.0">
   <saml2:Issuer xmlns:saml2="urn:oasis:names:tc:SAML:2.0:assertion">https://idp.example.com/simplesaml/saml2/idp/metadata.php</saml2:Issuer>
@@ -105,7 +105,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
     </saml2p:StatusCode>
     <saml2p:StatusMessage>User login was not successful or could not meet the requirements of the requesting application.</saml2p:StatusMessage>
   </saml2p:Status>
-</saml2p:Response>"""  # noqa: E501
+</saml2p:Response>"""
         self.saml_response_tpl_cancel = """
         <?xml version="1.0" encoding="UTF-8"?>
 <saml2p:Response xmlns:saml2p="urn:oasis:names:tc:SAML:2.0:protocol" Destination="{sp_url}saml2-acs" ID="_ebad01e547857fa54927b020dba1edb1" InResponseTo="{session_id}" IssueInstant="{timestamp}" Version="2.0">
@@ -116,7 +116,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
     </saml2p:StatusCode>
     <saml2p:StatusMessage>The login attempt was cancelled</saml2p:StatusMessage>
   </saml2p:Status>
-</saml2p:Response>"""  # noqa: E501
+</saml2p:Response>"""
 
         if config is None:
             config = SetupConfig()
