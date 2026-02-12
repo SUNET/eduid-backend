@@ -529,12 +529,9 @@ class EduidAPITestCase[T: EduIDBaseApp](CommonTestCase):
                 assert error == _error, f"Wrong error returned. expected: {error}, actual: {_error}"
             if payload is not None:
                 for k, v in payload.items():
-                    assert k in _json["payload"], (
-                        f"The Flux response payload {_json['payload']} does not contain {k!r}"
-                    )
+                    assert k in _json["payload"], f"The Flux response payload {_json['payload']} does not contain {k!r}"
                     assert v == _json["payload"][k], (
-                        f"The Flux response payload item {k!r} should be {v!r} "
-                        f"but is {_json['payload'][k]!r}"
+                        f"The Flux response payload item {k!r} should be {v!r} but is {_json['payload'][k]!r}"
                     )
             if assure_not_in_payload is not None:
                 for key in assure_not_in_payload:

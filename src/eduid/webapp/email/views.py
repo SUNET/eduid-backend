@@ -92,9 +92,7 @@ def post_primary(user: User, email: str) -> FluxData:
     try:
         save_and_sync_user(proofing_user)
     except UserOutOfSync:
-        current_app.logger.debug(
-            f"Couldn't save email {email!r} as primary for user {proofing_user}, data out of sync"
-        )
+        current_app.logger.debug(f"Couldn't save email {email!r} as primary for user {proofing_user}, data out of sync")
         return error_response(message=CommonMsg.out_of_sync)
     current_app.logger.info(f"Email address {email!r} made primary for user {proofing_user}")
     current_app.stats.count(name="email_set_primary", value=1)
