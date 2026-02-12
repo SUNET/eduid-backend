@@ -148,7 +148,7 @@ def terminate_user(context: Context, queue_user: CleanerQueueUser) -> None:
     """
     if context.dry_run:
         context.logger.info(f"Dry run: Would terminate user with eppn {queue_user.eppn}")
-        context.logger.debug(f"CleanerQueueUser: {repr(queue_user)}")
+        context.logger.debug(f"CleanerQueueUser: {queue_user!r}")
         return None
     user = context.central_db.get_user_by_eppn(queue_user.eppn)
     user.terminated = utc_now()

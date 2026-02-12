@@ -201,7 +201,7 @@ class UnmarshalWith:
             if "password" in _data_str:
                 flux_logger.debug(f"Decoding request with a password in it using schema {self.schema()}")
             else:
-                flux_logger.debug(f"Decoding request: {repr(json_data)} using schema {self.schema()}")
+                flux_logger.debug(f"Decoding request: {json_data!r} using schema {self.schema()}")
             try:
                 unmarshal_result = cast(dict[str, Any], self.schema().load(json_data))
             except ValidationError as e:

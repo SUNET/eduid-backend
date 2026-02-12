@@ -23,7 +23,7 @@ class CredentialList(ElementList[Credential]):
         elements = []
         for this in items:
             if not isinstance(this, dict):
-                raise UserHasUnknownData(f"Unknown credential data (type {type(this)}): {repr(this)}")
+                raise UserHasUnknownData(f"Unknown credential data (type {type(this)}): {this!r}")
 
             credential: Credential | None = None
 

@@ -76,7 +76,7 @@ class VCCSYHSMHasher(VCCSHasher):
             if not stat.S_ISCHR(mode):
                 raise ValueError(f"Not a character device: {config.device}")
         except OSError as e:
-            raise ValueError(f"Unknown hasher {repr(config.device)}") from e
+            raise ValueError(f"Unknown hasher {config.device!r}") from e
 
         super().__init__(lock)
         self._yhsm = pyhsm.base.YHSM(config.device, config.debug)
@@ -397,4 +397,4 @@ def load_hasher(
         case YHSMConfig():
             return VCCSYHSMHasher(config=config, lock=lock)
         case _:
-            raise ValueError(f"Unknown hasher {repr(config)}")
+            raise ValueError(f"Unknown hasher {config!r}")

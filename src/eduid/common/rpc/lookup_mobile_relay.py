@@ -46,4 +46,4 @@ class LookupMobileRelay:
             return rtask.get(timeout=timeout)
         except Exception as e:
             rtask.forget()
-            raise LookupMobileTaskFailed(f"ping task failed: {repr(e)}") from e
+            raise LookupMobileTaskFailed(f"ping task failed: {e!r}") from e

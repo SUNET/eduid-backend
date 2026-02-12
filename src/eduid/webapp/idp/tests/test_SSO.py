@@ -289,7 +289,7 @@ class TestSSO(SSOIdPTests):
             elif isinstance(this, Credential):
                 _cred = this
             else:
-                raise ValueError(f"Unhandled test data: {repr(this)}")
+                raise ValueError(f"Unhandled test data: {this!r}")
 
             data = AuthnData(cred_id=_cred.key)
             sso_session_1.add_authn_credential(data)

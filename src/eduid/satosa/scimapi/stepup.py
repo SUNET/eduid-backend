@@ -645,7 +645,7 @@ class StepupSAMLBackend(SAMLBackend):
         self.mfa = parsed_config.mfa
 
     def authn_request(self, context: satosa.context.Context, entity_id: str) -> SeeOther | Response:
-        logger.debug(f"Processing AuthnRequest with entity id {repr(entity_id)}")
+        logger.debug(f"Processing AuthnRequest with entity id {entity_id!r}")
 
         if self.mfa and AuthnContext.sp_wants_mfa(context=context):
             loa_settings = get_loa_settings_for_entity_id(EntityId(entity_id), [self.sp.metadata], self.mfa)

@@ -187,7 +187,7 @@ def _check_webauthn(
         )
     except fido_tokens.VerificationProblem:
         current_app.logger.exception("Webauthn verification failed")
-        current_app.logger.debug(f"webauthn_response: {repr(webauthn_response)}")
+        current_app.logger.debug(f"webauthn_response: {webauthn_response!r}")
         return CheckResult(response=error_response(message=IdPMsg.mfa_auth_failed))
 
     current_app.logger.debug(f"verify_webauthn result: {result}")

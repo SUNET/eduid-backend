@@ -195,7 +195,7 @@ class VerifiedElement(Element, ABC):
     proofing_version: str | None = None
 
     def __str__(self) -> str:
-        return f"<eduID {self.__class__.__name__}(key={repr(self.key)}): verified={self.is_verified}>"
+        return f"<eduID {self.__class__.__name__}(key={self.key!r}): verified={self.is_verified}>"
 
     @classmethod
     def _from_dict_transform(cls: type[VerifiedElement], data: dict[str, Any]) -> dict[str, Any]:
@@ -242,7 +242,7 @@ class PrimaryElement(VerifiedElement, ABC):
 
     def __str__(self) -> str:
         return (
-            f"<eduID {self.__class__.__name__}(key={repr(self.key)}): "
+            f"<eduID {self.__class__.__name__}(key={self.key!r}): "
             f"primary={self.is_primary}, verified={self.is_verified}>"
         )
 
@@ -290,7 +290,7 @@ class ElementList[ListElement: Element](BaseModel, ABC):
                 raise ValueError(f"Value is of type {type(this)} which is not an Element subclass")
             same_key = [x for x in values if x.key == this.key]
             if len(same_key) != 1:
-                raise ValueError(f"Duplicate element key: {repr(this.key)}")
+                raise ValueError(f"Duplicate element key: {this.key!r}")
         return values
 
     @classmethod
@@ -429,7 +429,7 @@ class PrimaryElementList[ListElement: Element](VerifiedElementList[ListElement],
         match = _primary[0]
 
         if not isinstance(match, PrimaryElement):
-            raise UserDBValueError(f"Primary element {repr(match)} is not of type PrimaryElement")
+            raise UserDBValueError(f"Primary element {match!r} is not of type PrimaryElement")
 
         return cast(ListElement, match)
 
@@ -449,7 +449,7 @@ class PrimaryElementList[ListElement: Element](VerifiedElementList[ListElement],
             raise UserDBValueError("Element not found in list, can't set as primary")
 
         if not isinstance(match, PrimaryElement):
-            raise UserDBValueError(f"Primary element {repr(match)} is not of type PrimaryElement")
+            raise UserDBValueError(f"Primary element {match!r} is not of type PrimaryElement")
 
         if not match.is_verified:
             raise PrimaryElementViolation("Primary element must be verified")
@@ -459,7 +459,7 @@ class PrimaryElementList[ListElement: Element](VerifiedElementList[ListElement],
         new = []
         for this in self.elements:
             if not isinstance(this, PrimaryElement):
-                raise UserDBValueError(f"Element {repr(this)} is not of type PrimaryElement")
+                raise UserDBValueError(f"Element {this!r} is not of type PrimaryElement")
             this.is_primary = bool(this.key == key)
             new += [this]
         self.elements = cast(list[ListElement], new)

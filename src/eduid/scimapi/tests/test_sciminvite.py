@@ -296,7 +296,7 @@ class TestInviteResource(ScimApiTestCase):
         expected_num_resources: int | None = None,
         expected_total_results: int | None = None,
     ) -> dict:
-        logger.info(f"Searching for group(s) using filter {repr(filter)}")
+        logger.info(f"Searching for group(s) using filter {filter!r}")
         req = {
             "schemas": [SCIMSchema.API_MESSAGES_20_SEARCH_REQUEST.value],
             "filter": filter,
@@ -341,7 +341,7 @@ class TestInviteResource(ScimApiTestCase):
             self.assertEqual(
                 str(expected_invite.scim_id),
                 resources[0].get("id"),
-                f"Search parsed_response user does not have the expected id: {str(expected_invite.scim_id)}",
+                f"Search parsed_response user does not have the expected id: {expected_invite.scim_id!s}",
             )
 
         self.assertEqual([SCIMSchema.API_MESSAGES_20_LIST_RESPONSE.value], response.json().get("schemas"))

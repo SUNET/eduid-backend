@@ -41,10 +41,10 @@ async def revoke_creds_legacy(req: Request, request: Annotated[str, Form(...)]) 
     data = json.loads(request)
     inner = RevokeCredsInnerRequest(**data)
 
-    req.app.logger.debug(f"Inner request: {repr(inner)}")
+    req.app.logger.debug(f"Inner request: {inner!r}")
     inner_response = await revoke_creds(req, inner.revoke_creds)
     response = RevokeCredsFormResponse(revoke_creds_response=inner_response)
-    req.app.logger.debug(f"Revoke creds (form) response: {repr(response)}")
+    req.app.logger.debug(f"Revoke creds (form) response: {response!r}")
     return response
 
 
@@ -75,7 +75,7 @@ async def revoke_creds(req: Request, request: RevokeCredsRequestV1) -> RevokeCre
             # Overwrite the previous credential with this object
             res = req.app.state.credstore.save(revoked_cred)
             audit_log(
-                f"operation=revoke, reason={repr(factor.reason)}, reference={repr(factor.reference)}, "
+                f"operation=revoke, reason={factor.reason!r}, reference={factor.reference!r}, "
                 f"credential_id={cred.credential_id}, result={res}"
             )
             if res:
@@ -87,5 +87,5 @@ async def revoke_creds(req: Request, request: RevokeCredsRequestV1) -> RevokeCre
 
     response = RevokeCredsResponseV1(version=1, success=all(results))
 
-    req.app.logger.debug(f"Revoke creds response: {repr(response)}")
+    req.app.logger.debug(f"Revoke creds response: {response!r}")
     return response

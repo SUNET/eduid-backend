@@ -31,7 +31,7 @@ class BrowserDeviceInfo(BaseModel):
 
     def __str__(self) -> str:
         # Ensure no more than necessary of the public (really 'shared with browser') and state_id end up in logs etc.
-        return f"<{self.__class__.__name__}: public[8]={repr(self.shared[:8])}, state_id[8]={repr(self.state_id[:8])}>"
+        return f"<{self.__class__.__name__}: public[8]={self.shared[:8]!r}, state_id[8]={self.state_id[:8]!r}>"
 
     @classmethod
     def from_public(cls: type[BrowserDeviceInfo], shared: str, app_secret_box: SecretBox) -> BrowserDeviceInfo:

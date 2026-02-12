@@ -155,7 +155,7 @@ class ScimAttributes(ResponseMicroService):
             for _name, _new in update.items():
                 _old = data.attributes.get(_name)
                 if _old != _new:
-                    logger.debug(f"Changing attribute {_name} from {repr(_old)} to {repr(_new)}")
+                    logger.debug(f"Changing attribute {_name} from {_old!r} to {_new!r}")
                     data.attributes[_name] = _new
 
         # Look for a linked account suitable for use for MFA stepup (in the stepup plugin that runs after this one)

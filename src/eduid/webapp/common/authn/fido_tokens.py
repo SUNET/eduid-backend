@@ -161,7 +161,7 @@ def verify_webauthn(
     matching_credentials = {k: v for k, v in credentials.items() if v.webauthn.credential_id == auth_response.raw_id}
 
     if not matching_credentials:
-        logger.error(f"Could not find webauthn credential {repr(auth_response.raw_id)} on user {user}")
+        logger.error(f"Could not find webauthn credential {auth_response.raw_id!r} on user {user}")
         raise VerificationProblem("mfa.unknown-token")
 
     try:

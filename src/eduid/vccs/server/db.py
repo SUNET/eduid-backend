@@ -223,7 +223,7 @@ class CredentialDB(BaseDB):
         try:
             res = self._coll.find_one({"credential.credential_id": credential_id})
         except KeyError:
-            logger.debug(f"Failed looking up credential with credential_id={repr(credential_id)}")
+            logger.debug(f"Failed looking up credential with credential_id={credential_id!r}")
             raise
         if not res:
             return None

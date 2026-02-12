@@ -218,7 +218,7 @@ def filter_profile_data(
         raise BadRequest(scim_type="invalidFilter", detail="Unsupported operator")
 
     req.app.context.logger.debug(
-        f"Searching for users with {search_filter.attr} {search_filter.op} {repr(search_filter.val)}"
+        f"Searching for users with {search_filter.attr} {search_filter.op} {search_filter.val!r}"
     )
     assert isinstance(req.context, ScimApiContext)
     assert req.context.userdb is not None

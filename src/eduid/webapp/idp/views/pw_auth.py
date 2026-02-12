@@ -75,7 +75,7 @@ def pw_auth(
 
     # INFO-Log the request id and the sso_session
     authn_ref = ticket.get_requested_authn_context()
-    current_app.logger.debug(f"Authenticating with {repr(authn_ref)}")
+    current_app.logger.debug(f"Authenticating with {authn_ref!r}")
 
     current_app.logger.info(
         f"{ticket.request_ref}: login sso_session={sso_session.public_id}, authn={authn_ref}, user={pwauth.user}"

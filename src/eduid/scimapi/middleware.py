@@ -138,7 +138,7 @@ class AuthenticationMiddleware(BaseMiddleware):
         self.context.logger.info(f"Bearer token {token}, data owner: {data_owner}")
 
         if not data_owner or data_owner not in self.context.config.data_owners:
-            self.context.logger.error(f"Data owner {repr(data_owner)} not configured")
+            self.context.logger.error(f"Data owner {data_owner!r} not configured")
             return await http_error_detail_handler(req=req, exc=Unauthorized(detail="Unknown data_owner"))
 
         req.context.data_owner = data_owner

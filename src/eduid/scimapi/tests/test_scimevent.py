@@ -45,7 +45,7 @@ class TestEventResource(ScimApiTestCase):
         )
 
     def _fetch_event(self, event_id: UUID) -> EventApiResult:
-        response = self.client.get(url=f"/Events/{str(event_id)}", headers=self.headers)
+        response = self.client.get(url=f"/Events/{event_id!s}", headers=self.headers)
         self._assertResponse(response)
         parsed_response = EventResponse.model_validate_json(response.text)
         return EventApiResult(event=parsed_response.nutid_event_v1, response=response, parsed_response=parsed_response)

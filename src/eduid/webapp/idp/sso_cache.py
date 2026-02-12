@@ -112,7 +112,7 @@ class SSOSessionCache(BaseDB):
         """
         res = self._coll.find_one({"session_id": sid})
         if not res:
-            logger.debug(f"No SSO session found with session_id={repr(sid)}")
+            logger.debug(f"No SSO session found with session_id={sid!r}")
             return None
         session = SSOSession.from_dict(res)
         return session

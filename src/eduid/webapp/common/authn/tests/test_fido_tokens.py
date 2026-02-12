@@ -44,7 +44,7 @@ def start_verification() -> str | dict[str, Any]:
             state=session.mfa_action,
         ).model_dump_json()
     except VerificationProblem as exc:
-        current_app.logger.error(f"Webauthn verification failed: {repr(exc)}")
+        current_app.logger.error(f"Webauthn verification failed: {exc!r}")
         result = {"success": False, "message": "mfa.verification-problem"}
     current_app.logger.info(f"Endpoint start_verification result: {result}")
     return result

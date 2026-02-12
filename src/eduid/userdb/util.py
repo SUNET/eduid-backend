@@ -45,7 +45,7 @@ def format_dict_for_debug(data: Mapping[str, Any] | None) -> str | None:
         # Don't need the full exception logged here, just the summary, e.g.:
         #   TypeError: Object of type UUID is not JSON serializable
         # TODO: upgrade this debug to error once we've ridded userdb of all UUIDs
-        logger.debug(f"Failed formatting document for debugging using JSON encoder: {repr(e)}")
+        logger.debug(f"Failed formatting document for debugging using JSON encoder: {e!r}")
         # We fail on encoding UUIDs used in some places. We want to turn the UUIDs into strings.
         import pprint
 
