@@ -3,8 +3,8 @@ from eduid.graphdb.groupdb.group import Group
 from eduid.graphdb.groupdb.user import User
 
 __all__ = [
-    "GroupDB",
     "Group",
+    "GroupDB",
     "User",
 ]
 

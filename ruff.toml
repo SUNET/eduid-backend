@@ -35,7 +35,6 @@ ignore = [
   "RUF010",
   "RUF012",
   "RUF015",
-  "RUF022",
 
   # Since we use ruff as a formatter, the following rules should be ignored
   # See: https://docs.astral.sh/ruff/formatter/#conflicting-lint-rules
