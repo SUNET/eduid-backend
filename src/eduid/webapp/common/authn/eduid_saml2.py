@@ -231,7 +231,7 @@ def saml_logout(sp_config: SPConfig, user: User, location: str) -> WerkzeugRespo
     session.invalidate()
     logger.info(f"Invalidated session for {user}")
 
-    loresponse = list(logouts.values())[0]
+    loresponse = next(iter(logouts.values()))
     # loresponse is a dict for REDIRECT binding, and LogoutResponse for SOAP binding
     if isinstance(loresponse, LogoutResponse):
         if loresponse.status_ok():

@@ -228,7 +228,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
         logger.debug(f"Outstanding queries for bankid in session {session}: {ids}")
         if len(ids) != 1:
             raise RuntimeError("More or less than one authn request in the session")
-        saml_req_id = list(ids)[0]
+        saml_req_id = next(iter(ids))
         req_ref = AuthnRequestRef(oq_cache.outstanding_queries()[saml_req_id])
         return saml_req_id, req_ref
 

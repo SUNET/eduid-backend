@@ -186,7 +186,7 @@ def verify_webauthn(
         logger.debug(f"Authn credentials: {authn_credentials}")
         raise RuntimeError("Unable to find exactly the webauthn credential that was used for authentication")
 
-    cred_key = list(authn_credentials.keys())[0]
+    cred_key = next(iter(authn_credentials.keys()))
 
     touch = auth_response.response.authenticator_data.flags
     counter = auth_response.response.authenticator_data.counter

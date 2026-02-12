@@ -138,7 +138,7 @@ def _get_idp() -> str:
         # TODO: use goto_errors_response()
         raise RuntimeError("Unknown SAML2 idp config")
     # For now, we will only ever use the single configured IdP
-    idp = list(_configured_idps.keys())[0]
+    idp = next(iter(_configured_idps.keys()))
     assert isinstance(idp, str)
     return idp
 

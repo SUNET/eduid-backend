@@ -788,7 +788,7 @@ class TestNewUser(unittest.TestCase):
         self.assertEqual(keys, [_keyid("U2F SWAMID AL3" + "foo")])
 
     def test_user_unverified_credential(self) -> None:
-        cred = [x for x in self.user2.credentials.to_list() if x.is_verified][0]
+        cred = next(x for x in self.user2.credentials.to_list() if x.is_verified)
         self.assertEqual(cred.proofing_method, CredentialProofingMethod.SWAMID_AL3_MFA)
         _dict1 = cred.to_dict()
         self.assertEqual(_dict1["verified"], True)

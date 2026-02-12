@@ -33,7 +33,6 @@ ignore = [
   "SIM103",   # return-bool-condition-directly (keeping explicit if/else for clarity)
   "SIM108",   # if-else-block-instead-of-if-exp
   "RUF012",   # mutable class attributes
-  "RUF015",   # single element slices
 
   # Since we use ruff as a formatter, the following rules should be ignored
   # See: https://docs.astral.sh/ruff/formatter/#conflicting-lint-rules

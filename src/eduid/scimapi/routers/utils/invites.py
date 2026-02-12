@@ -126,7 +126,7 @@ def create_signup_ref(req: ContextRequest, db_invite: ScimApiInvite) -> SCIMRefe
 
 def send_invite_mail(req: ContextRequest, signup_invite: SignupInvite) -> bool:
     try:
-        email = [email.email for email in signup_invite.mail_addresses if email.primary][0]
+        email = next(email.email for email in signup_invite.mail_addresses if email.primary)
     except IndexError:
         # Primary not set
         email = signup_invite.mail_addresses[0].email

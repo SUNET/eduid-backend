@@ -40,4 +40,4 @@ def get_metadata(context: satosa.context.Context) -> Generator[MetaData]:
 
 def get_internal_attribute_name(converter: AttributeMapper, attr_name: str) -> str:
     _int = converter.to_internal("saml", {attr_name: ["something"]})
-    return list(_int.keys())[0]
+    return next(iter(_int.keys()))

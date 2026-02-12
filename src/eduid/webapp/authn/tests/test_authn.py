@@ -161,7 +161,7 @@ class AuthnAPITestBase(EduidAPITestCase):
         ids = oq_cache.outstanding_queries().keys()
         if len(ids) != 1:
             raise RuntimeError(f"More or less than one ({len(ids)}) authn request in the session")
-        saml_req_id = list(ids)[0]
+        saml_req_id = next(iter(ids))
         req_ref = AuthnRequestRef(oq_cache.outstanding_queries()[saml_req_id])
         return saml_req_id, req_ref
 
