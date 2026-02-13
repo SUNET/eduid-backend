@@ -529,21 +529,18 @@ class EduidAPITestCase[T: EduIDBaseApp](CommonTestCase):
                 assert error == _error, f"Wrong error returned. expected: {error}, actual: {_error}"
             if payload is not None:
                 for k, v in payload.items():
-                    assert k in _json["payload"], (
-                        f"The Flux response payload {_json['payload']} does not contain {repr(k)}"
-                    )
+                    assert k in _json["payload"], f"The Flux response payload {_json['payload']} does not contain {k!r}"
                     assert v == _json["payload"][k], (
-                        f"The Flux response payload item {repr(k)} should be {repr(v)} "
-                        f"but is {repr(_json['payload'][k])}"
+                        f"The Flux response payload item {k!r} should be {v!r} but is {_json['payload'][k]!r}"
                     )
             if assure_not_in_payload is not None:
                 for key in assure_not_in_payload:
                     _assure_not_in_dict(_json["payload"], key)
             if meta is not None:
                 for k, v in meta.items():
-                    assert k in _json["meta"], f"The Flux response meta does not contain {repr(k)}"
+                    assert k in _json["meta"], f"The Flux response meta does not contain {k!r}"
                     assert v == _json["meta"][k], (
-                        f"The Flux response meta item {repr(k)} should be {repr(v)} but is {repr(_json['meta'][k])}"
+                        f"The Flux response meta item {k!r} should be {v!r} but is {_json['meta'][k]!r}"
                     )
 
         except (AssertionError, KeyError):

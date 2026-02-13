@@ -41,7 +41,7 @@ def get_all_emails(user: User) -> FluxData:
 @require_user
 def post_email(user: User, email: str, verified: bool, primary: bool) -> FluxData:
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
-    current_app.logger.debug(f"Trying to save unconfirmed email {repr(email)} for user {proofing_user}")
+    current_app.logger.debug(f"Trying to save unconfirmed email {email!r} for user {proofing_user}")
 
     new_mail = MailAddress(email=email, created_by="email", is_verified=False, is_primary=False)
 
@@ -56,7 +56,7 @@ def post_email(user: User, email: str, verified: bool, primary: bool) -> FluxDat
     except UserOutOfSync:
         current_app.logger.debug(f"Couldn't save email {email} for user {proofing_user}, data out of sync")
         return error_response(message=CommonMsg.out_of_sync)
-    current_app.logger.info(f"Saved unconfirmed email {repr(email)} for user {proofing_user}")
+    current_app.logger.info(f"Saved unconfirmed email {email!r} for user {proofing_user}")
     current_app.stats.count(name="email_save_unconfirmed_email", value=1)
 
     sent = send_verification_code(email, proofing_user)
@@ -92,11 +92,9 @@ def post_primary(user: User, email: str) -> FluxData:
     try:
         save_and_sync_user(proofing_user)
     except UserOutOfSync:
-        current_app.logger.debug(
-            f"Couldn't save email {repr(email)} as primary for user {proofing_user}, data out of sync"
-        )
+        current_app.logger.debug(f"Couldn't save email {email!r} as primary for user {proofing_user}, data out of sync")
         return error_response(message=CommonMsg.out_of_sync)
-    current_app.logger.info(f"Email address {repr(email)} made primary for user {proofing_user}")
+    current_app.logger.info(f"Email address {email!r} made primary for user {proofing_user}")
     current_app.stats.count(name="email_set_primary", value=1)
 
     emails = {"emails": proofing_user.mail_addresses.to_list_of_dicts()}

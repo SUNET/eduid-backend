@@ -159,7 +159,7 @@ def login_next_step(ticket: LoginContext, sso_session: SSOSession | None) -> Nex
             ua = get_user_agent()
             if ua and (ua.parsed.is_bot or ua.parsed.browser.family in ["Python Requests", "PingdomBot"]):
                 # Except monitoring and bots from the known device requirement (for now at least)
-                current_app.logger.debug(f"Not requiring known_device from UA {str(ua)}")
+                current_app.logger.debug(f"Not requiring known_device from UA {ua!s}")
 
             if ticket.remember_me is False:
                 current_app.logger.info("User asks to not be remembered")
@@ -212,7 +212,7 @@ def login_next_step(ticket: LoginContext, sso_session: SSOSession | None) -> Nex
     except AuthnContextNotSupported:
         res = NextResult(message=IdPMsg.assurance_failure, error=True)
     except AssuranceException as exc:
-        current_app.logger.info(f"Assurance not possible: {repr(exc)}")
+        current_app.logger.info(f"Assurance not possible: {exc!r}")
         res = NextResult(message=IdPMsg.assurance_not_possible, error=True)
 
     if res.message == IdPMsg.must_authenticate:
@@ -414,7 +414,7 @@ class SSO(Service):
             # Only perform expensive parse/pretty-print if debugging
             pp = pprint.PrettyPrinter()
             current_app.logger.debug(
-                f"Creating an AuthnResponse to SAML request {repr(ticket.saml_req.request_id)}:\nUser {user}\n\n"
+                f"Creating an AuthnResponse to SAML request {ticket.saml_req.request_id!r}:\nUser {user}\n\n"
                 f"Attributes:\n{pp.pformat(attributes)},\n\n"
                 f"Response args:\n{pp.pformat(resp_args)},\n\n"
                 f"Authn:\n{pp.pformat(response_authn)}\n"

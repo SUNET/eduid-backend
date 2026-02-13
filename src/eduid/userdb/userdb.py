@@ -53,7 +53,7 @@ class UserDB[UserVar](BaseDB, ABC):
         logger.debug(f"{self} connected to database")
 
     def __repr__(self) -> str:
-        return f"<eduID {self.__class__.__name__}: {self._db.sanitized_uri} {repr(self._coll_name)})>"
+        return f"<eduID {self.__class__.__name__}: {self._db.sanitized_uri} {self._coll_name!r})>"
 
     __str__ = __repr__
 
@@ -131,7 +131,7 @@ class UserDB[UserVar](BaseDB, ABC):
         if not res:
             return None
         if len(res) > 1:
-            raise MultipleUsersReturned(f"Multiple matching users for email {repr(email)}")
+            raise MultipleUsersReturned(f"Multiple matching users for email {email!r}")
         return res[0]
 
     def get_users_by_mail(self, email: str, include_unconfirmed: bool = False) -> list[UserVar]:
@@ -158,7 +158,7 @@ class UserDB[UserVar](BaseDB, ABC):
         if not res:
             return None
         if len(res) > 1:
-            raise MultipleUsersReturned(f"Multiple matching users for NIN {repr(nin)}")
+            raise MultipleUsersReturned(f"Multiple matching users for NIN {nin!r}")
         return res[0]
 
     def get_users_by_nin(self, nin: str, include_unconfirmed: bool = False) -> list[UserVar]:
@@ -196,7 +196,7 @@ class UserDB[UserVar](BaseDB, ABC):
         if not res:
             return None
         if len(res) > 1:
-            raise MultipleUsersReturned(f"Multiple matching users for credential {repr(credential)}")
+            raise MultipleUsersReturned(f"Multiple matching users for credential {credential!r}")
         return res[0]
 
     def get_users_by_credential(self, credential: str) -> list[UserVar]:
@@ -217,7 +217,7 @@ class UserDB[UserVar](BaseDB, ABC):
         if not res:
             return None
         if len(res) > 1:
-            raise MultipleUsersReturned(f"Multiple matching users for phone {repr(phone)}")
+            raise MultipleUsersReturned(f"Multiple matching users for phone {phone!r}")
         return res[0]
 
     def get_users_by_phone(self, phone: str, include_unconfirmed: bool = False) -> list[UserVar]:
@@ -253,7 +253,7 @@ class UserDB[UserVar](BaseDB, ABC):
             raise ValueError("eppn must not be None")
         res = self._get_user_by_attr("eduPersonPrincipalName", eppn)
         if not res:
-            raise UserDoesNotExist(f"No user with eppn {repr(eppn)}")
+            raise UserDoesNotExist(f"No user with eppn {eppn!r}")
         return res
 
     def _get_user_by_attr(self, attr: str, value: Any) -> UserVar | None:  # noqa: ANN401
@@ -328,7 +328,7 @@ class UserDB[UserVar](BaseDB, ABC):
         This update method should only be used in the eduid Attribute Manager when
         merging updates from applications into the central eduID userdb.
         """
-        logger.debug(f"{self} updating user {obj_id} in {repr(self._coll_name)} with operations:\n{operations}")
+        logger.debug(f"{self} updating user {obj_id} in {self._coll_name!r} with operations:\n{operations}")
 
         query_filter = {"_id": obj_id}
 

@@ -199,7 +199,7 @@ class BaseDB:
         if doc_count == 0:
             return None
         elif doc_count > 1:
-            raise MultipleDocumentsReturned(f"Multiple matching documents for {attr}={repr(value)}")
+            raise MultipleDocumentsReturned(f"Multiple matching documents for {attr}={value!r}")
         return docs[0]
 
     def _get_documents_by_attr(self, attr: str, value: str) -> list[TUserDbDocument]:

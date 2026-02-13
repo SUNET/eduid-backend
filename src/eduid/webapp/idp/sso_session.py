@@ -176,7 +176,7 @@ def _lookup_sso_session(sso_sessions: SSOSessionCache) -> SSOSession | None:
     _session_id = get_sso_session_id()
     if _session_id:
         _sso = sso_sessions.get_session(_session_id)
-        logger.debug(f"Looked up SSO session using session ID {repr(_session_id)}: {_sso}")
+        logger.debug(f"Looked up SSO session using session ID {_session_id!r}: {_sso}")
 
     if not _sso:
         logger.debug("SSO session not found using IdP SSO cookie")
@@ -212,5 +212,5 @@ def get_sso_session_id() -> SSOSessionId | None:
     _session_id = read_cookie(current_app.conf.sso_cookie.key)
     if not _session_id:
         return None
-    logger.debug(f"Got SSO session ID from IdP SSO cookie {repr(_session_id)}")
+    logger.debug(f"Got SSO session ID from IdP SSO cookie {_session_id!r}")
     return SSOSessionId(_session_id)

@@ -41,10 +41,10 @@ async def add_creds_legacy(req: Request, request: Annotated[str, Form(...)]) -> 
     data = json.loads(request)
     inner = AddCredsInnerRequest(**data)
 
-    req.app.logger.debug(f"Inner request: {repr(inner)}")
+    req.app.logger.debug(f"Inner request: {inner!r}")
     inner_response = await add_creds(req, inner.add_creds)
     response = AddCredsFormResponse(add_creds_response=inner_response)
-    req.app.logger.debug(f"Add creds (form) response: {repr(response)}")
+    req.app.logger.debug(f"Add creds (form) response: {response!r}")
     return response
 
 
@@ -64,7 +64,7 @@ async def add_creds(req: Request, request: AddCredsRequestV1) -> AddCredsRespons
 
     response = AddCredsResponseV1(version=1, success=all(results))
 
-    req.app.logger.debug(f"Add creds response: {repr(response)}")
+    req.app.logger.debug(f"Add creds response: {response!r}")
     return response
 
 
@@ -87,5 +87,5 @@ async def _add_password_credential(
         user_id=request.user_id, H1=factor.H1, cred=cred, hasher=req.app.state.hasher, kdf=req.app.state.kdf
     )
     _res = req.app.state.credstore.add(cred)
-    req.app.logger.info(f"AUDIT: Add credential credential_id={cred.credential_id}, H2[16]={H2[:8]}, res={repr(_res)}")
+    req.app.logger.info(f"AUDIT: Add credential credential_id={cred.credential_id}, H2[16]={H2[:8]}, res={_res!r}")
     return _res

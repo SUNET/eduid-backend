@@ -55,7 +55,7 @@ async def calculate_cred_hash(
         else:
             _bthis = this
         if len(this) > MAX_T1_LENGTH:
-            raise RuntimeError(f"Too long T1 component ({repr(this[:10])}... length {len(this)})")
+            raise RuntimeError(f"Too long T1 component ({this[:10]!r}... length {len(this)})")
         # length-encode each part, to avoid having a designated delimiter that
         # could potentially be misused
         T1 += bytes([len(_bthis)])

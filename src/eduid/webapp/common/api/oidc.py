@@ -64,7 +64,7 @@ class LazyOidcClient:
 
         except (CommunicationError, ConnectionError) as e:
             self._handle_initialization_failure(e)
-            raise OidcServiceUnavailableError(f"OIDC service unavailable: {str(e)}") from e
+            raise OidcServiceUnavailableError(f"OIDC service unavailable: {e!s}") from e
 
     def _create_client(self) -> Client:
         """Create and configure the OIDC client"""

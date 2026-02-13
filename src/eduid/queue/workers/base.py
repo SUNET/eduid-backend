@@ -109,7 +109,7 @@ class QueueWorker:
             try:
                 await self.handle_new_item(queue_item)
             except Exception as e:
-                logger.exception(f"QueueItem processing failed with: {repr(e)}")
+                logger.exception(f"QueueItem processing failed with: {e!r}")
 
     async def handle_change(self, change: ChangeEvent) -> None:
         """

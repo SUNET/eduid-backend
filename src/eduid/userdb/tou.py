@@ -80,7 +80,7 @@ class ToUList(EventList[ToUEvent]):
             return True
         for this in self.elements:
             if not isinstance(this, ToUEvent):
-                raise UserDBValueError(f"Event {repr(this)} is not of type ToUEvent")
+                raise UserDBValueError(f"Event {this!r} is not of type ToUEvent")
 
             if this.version == version and not this.is_expired(interval_seconds=reaccept_interval):
                 return True

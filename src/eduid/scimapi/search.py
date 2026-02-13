@@ -33,7 +33,7 @@ def parse_search_filter(filter: str) -> SearchFilter:
     if len(val) and val[0] == '"' and val[-1] == '"':
         val = val[1:-1]
         if not val.isprintable():
-            logger.debug(f"Unrecognised string value in filter: {repr(val)}")
+            logger.debug(f"Unrecognised string value in filter: {val!r}")
             raise BadRequest(scim_type="invalidFilter", detail="Unrecognised string value in filter")
     elif val.isdecimal():
         val = int(val)

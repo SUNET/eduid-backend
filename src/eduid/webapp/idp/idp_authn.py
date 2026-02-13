@@ -384,7 +384,7 @@ class AuthnInfoStore:
             return None
         _success_ts = docs[0]["success_ts"]
         if not isinstance(_success_ts, datetime):
-            raise ValueError(f"success_ts is not a datetime ({repr(_success_ts)})")
+            raise ValueError(f"success_ts is not a datetime ({_success_ts!r})")
         return _success_ts
 
 

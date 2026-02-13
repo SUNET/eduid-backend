@@ -40,7 +40,7 @@ class SignupInviteDB(BaseDB):
             raise NotImplementedError(f"Reference of type {type(reference)} not implemented.")
         docs = self._get_documents_by_filter(spec=spec)
         if len(docs) > 1:
-            raise MultipleDocumentsReturned(f"Multiple matching documents for {repr(spec)}")
+            raise MultipleDocumentsReturned(f"Multiple matching documents for {spec!r}")
         elif len(docs) == 1:
             return Invite.from_dict(docs[0])
         return None

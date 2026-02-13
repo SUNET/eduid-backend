@@ -420,7 +420,7 @@ class TestAuthnUserResource(ScimApiTestUserResourceBase):
 
     def _make_bearer_token(self, claims: Mapping[str, Any]) -> str:
         token = jwt.JWT(header={"alg": "ES256"}, claims=claims)
-        jwk = list(self.context.jwks)[0]
+        jwk = next(iter(self.context.jwks))
         token.make_signed_token(jwk)
         return token.serialize()
 

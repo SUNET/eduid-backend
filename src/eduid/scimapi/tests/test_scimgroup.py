@@ -92,7 +92,7 @@ class TestGroupResource(ScimApiTestCase):
         expected_num_resources: int | None = None,
         expected_total_results: int | None = None,
     ) -> dict:
-        logger.info(f"Searching for group(s) using filter {repr(filter)}")
+        logger.info(f"Searching for group(s) using filter {filter!r}")
         req = {
             "schemas": [SCIMSchema.API_MESSAGES_20_SEARCH_REQUEST.value],
             "filter": filter,
@@ -137,13 +137,12 @@ class TestGroupResource(ScimApiTestCase):
             self.assertEqual(
                 str(expected_group.scim_id),
                 resources[0].get("id"),
-                f"Search parsed_response group does not have the expected id: {str(expected_group.scim_id)}",
+                f"Search parsed_response group does not have the expected id: {expected_group.scim_id!s}",
             )
             self.assertEqual(
                 expected_group.display_name,
                 resources[0].get("displayName"),
-                "Search parsed_response group does not have the expected displayName: "
-                f"{str(expected_group.display_name)}",
+                f"Search parsed_response group does not have the expected displayName: {expected_group.display_name!s}",
             )
 
         return resources
