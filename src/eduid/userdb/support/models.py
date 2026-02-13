@@ -1,5 +1,5 @@
 from copy import deepcopy
-from typing import Any
+from typing import Any, ClassVar
 
 from eduid.userdb.db.base import TUserDbDocument
 
@@ -8,8 +8,8 @@ __author__ = "lundberg"
 
 # Models for filtering out unneeded or unwanted data from eduID database objects
 class GenericFilterDict(dict):
-    add_keys: list[str] | None = None
-    remove_keys: list[str] | None = None
+    add_keys: ClassVar[list[str] | None] = None
+    remove_keys: ClassVar[list[str] | None] = None
 
     def __init__(self, data: dict[str, Any] | None) -> None:
         """
@@ -36,7 +36,7 @@ class GenericFilterDict(dict):
 
 
 class SupportUserFilter(GenericFilterDict):
-    remove_keys = ["_id", "letter_proofing_data"]
+    remove_keys: ClassVar[list[str]] = ["_id", "letter_proofing_data"]
 
     def __init__(self, data: TUserDbDocument) -> None:
         _data = deepcopy(data)
@@ -48,7 +48,7 @@ class SupportUserFilter(GenericFilterDict):
 
 
 class SupportSignupUserFilter(GenericFilterDict):
-    remove_keys = ["_id", "letter_proofing_data"]
+    remove_keys: ClassVar[list[str]] = ["_id", "letter_proofing_data"]
 
     def __init__(self, data: TUserDbDocument) -> None:
         _data = deepcopy(data)
@@ -61,7 +61,7 @@ class SupportSignupUserFilter(GenericFilterDict):
 
 
 class MailAlias(GenericFilterDict):
-    remove_keys = ["verification_code"]
+    remove_keys: ClassVar[list[str]] = ["verification_code"]
 
 
 class PendingMailAddress(MailAlias):
@@ -69,7 +69,7 @@ class PendingMailAddress(MailAlias):
 
 
 class Credential(GenericFilterDict):
-    add_keys = [
+    add_keys: ClassVar[list[str]] = [
         "_id",
         "credential_id",
         "created_by",
@@ -88,11 +88,11 @@ class Credential(GenericFilterDict):
 
 
 class ToU(GenericFilterDict):
-    remove_keys = ["id"]
+    remove_keys: ClassVar[list[str]] = ["id"]
 
 
 class UserAuthnInfo(GenericFilterDict):
-    add_keys = ["success_ts", "fail_count", "success_count"]
+    add_keys: ClassVar[list[str]] = ["success_ts", "fail_count", "success_count"]
 
     def __init__(self, data: dict[str, Any]) -> None:
         _data = deepcopy(data)
@@ -105,15 +105,22 @@ class UserAuthnInfo(GenericFilterDict):
 
 
 class UserVerifications(GenericFilterDict):
-    add_keys = ["verified", "obj_id", "timestamp", "model_name", "verified_timestamp"]
+    add_keys: ClassVar[list[str]] = ["verified", "obj_id", "timestamp", "model_name", "verified_timestamp"]
 
 
 class UserActions(GenericFilterDict):
-    add_keys = ["action", "params"]
+    add_keys: ClassVar[list[str]] = ["action", "params"]
 
 
 class ProofingLogEntry(GenericFilterDict):
-    add_keys = ["verified_data", "created_ts", "proofing_method", "proofing_version", "created_by", "vetting_by"]
+    add_keys: ClassVar[list[str]] = [
+        "verified_data",
+        "created_ts",
+        "proofing_method",
+        "proofing_version",
+        "created_by",
+        "vetting_by",
+    ]
 
     def __init__(self, data: TUserDbDocument) -> None:
         _data = deepcopy(data)
@@ -126,13 +133,13 @@ class ProofingLogEntry(GenericFilterDict):
 
 
 class UserLetterProofing(GenericFilterDict):
-    add_keys = ["nin", "proofing_letter"]
+    add_keys: ClassVar[list[str]] = ["nin", "proofing_letter"]
 
     class Nin(GenericFilterDict):
-        add_keys = ["created_ts", "number"]
+        add_keys: ClassVar[list[str]] = ["created_ts", "number"]
 
     class ProofingLetter(GenericFilterDict):
-        add_keys = ["sent_ts", "is_sent", "address"]
+        add_keys: ClassVar[list[str]] = ["sent_ts", "is_sent", "address"]
 
     def __init__(self, data: dict[str, Any]) -> None:
         _data = deepcopy(data)
@@ -142,10 +149,10 @@ class UserLetterProofing(GenericFilterDict):
 
 
 class UserEmailProofing(GenericFilterDict):
-    add_keys = ["verification", "modified_ts"]
+    add_keys: ClassVar[list[str]] = ["verification", "modified_ts"]
 
     class Verification(GenericFilterDict):
-        add_keys = ["created_ts", "email"]
+        add_keys: ClassVar[list[str]] = ["created_ts", "email"]
 
     def __init__(self, data: TUserDbDocument) -> None:
         _data = deepcopy(data)

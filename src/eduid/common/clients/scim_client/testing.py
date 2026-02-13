@@ -1,3 +1,5 @@
+from typing import Any, ClassVar
+
 import respx
 from httpx import Response
 
@@ -13,7 +15,7 @@ class MockedScimAPIMixin(MockedSyncAuthAPIMixin):
     mocked_scim_api: respx.MockRouter
 
     # TODO: Maybe find a better way to make the responses dynamic
-    get_invite_response = {
+    get_invite_response: ClassVar[dict[str, Any]] = {
         "id": "74d9c09a-55ea-4fa6-9bc1-5f8aa815ee68",
         "meta": {
             "location": "http://localhost/scim/Invites/74d9c09a-55ea-4fa6-9bc1-5f8aa815ee68",
@@ -43,7 +45,7 @@ class MockedScimAPIMixin(MockedSyncAuthAPIMixin):
         "nutid_user_v1": {"profiles": {}, "linked_accounts": []},
     }
 
-    post_user_response = {
+    post_user_response: ClassVar[dict[str, Any]] = {
         "id": "232fd0df-3223-4117-8783-5706038bc6c0",
         "meta": {
             "location": "https://scimapi.eduid.docker/scim/Users/232fd0df-3223-4117-8783-5706038bc6c0",
