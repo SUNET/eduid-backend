@@ -2,7 +2,7 @@ import logging
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any
+from typing import Any, ClassVar
 
 import pymongo
 import pymongo.collection
@@ -27,7 +27,7 @@ class MongoClientCache:
     A cache for pymongo.MongoClient instances.
     """
 
-    _clients: dict[str, pymongo.MongoClient] = {}
+    _clients: ClassVar[dict[str, pymongo.MongoClient]] = {}
 
     def get_client(self, db: BaseMongoDB) -> pymongo.MongoClient:
         db_args = db.db_args

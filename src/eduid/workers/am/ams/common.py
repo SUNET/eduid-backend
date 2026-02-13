@@ -1,7 +1,7 @@
 __author__ = "eperez"
 
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, ClassVar
 
 import bson
 from celery.utils.log import get_task_logger
@@ -18,8 +18,8 @@ logger = get_task_logger(__name__)
 
 
 class AttributeFetcher(ABC):
-    whitelist_set_attrs: list[str]
-    whitelist_unset_attrs: list[str]
+    whitelist_set_attrs: ClassVar[list[str]]
+    whitelist_unset_attrs: ClassVar[list[str]]
 
     def __init__(self, worker_config: AmConfig) -> None:
         if not isinstance(worker_config, AmConfig):

@@ -2,7 +2,7 @@ import json
 import logging
 from collections import OrderedDict
 from http import HTTPStatus
-from typing import Any
+from typing import Any, ClassVar
 
 from billiard.einfo import ExceptionInfo
 from celery import Task
@@ -42,7 +42,7 @@ class MessageSender(Task):
 
     _sms: SMSClient | None = None
     _navet_api: Hammock | None = None
-    _cache_store: dict[str, CacheMDB] = {}
+    _cache_store: ClassVar[dict[str, CacheMDB]] = {}
 
     @property
     def sms(self) -> SMSClient:
