@@ -10,7 +10,6 @@ from typing import Any, NewType, Self, cast
 
 from fido2.webauthn import AuthenticatorAttachment
 from pydantic import BaseModel, Field, ValidationError, field_serializer
-from pydantic_core.core_schema import SerializationInfo
 
 from eduid.common.config.base import FrontendAction
 from eduid.common.misc.timeutil import utc_now
@@ -248,17 +247,15 @@ class SPAuthnData(BaseModel):
     authns: dict[AuthnRequestRef, SP_AuthnRequest] = Field(default_factory=dict)
 
     @field_serializer("authns")
-    def authns_cleanup(self, authns: dict[AuthnRequestRef, SP_AuthnRequest], info: SerializationInfo) -> dict[str, Any]:
+    def authns_cleanup(self, authns: dict[AuthnRequestRef, SP_AuthnRequest]) -> dict[AuthnRequestRef, Any]:
         """
         Keep the authns list from growing indefinitely.
         """
         # if authns is larger than 10, sort on created_ts and remove the oldest
         if len(authns) > MAX_AUTHNS_TO_KEEP:
             items = sorted(authns.items(), reverse=True, key=lambda item: item[1].created_ts)
-            authns = dict(items[:10])
-
-        ret = dict([(k, v.model_dump()) for k, v in authns.items()])
-        return ret
+            authns = dict(items[:MAX_AUTHNS_TO_KEEP])
+        return {k: v.model_dump() for k, v in authns.items()}
 
     def _get_sorted_authns(self) -> list[SP_AuthnRequest]:
         # sort authn actions by created_ts, latest first
