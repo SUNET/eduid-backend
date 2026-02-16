@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 from unittest import TestCase
 
@@ -158,7 +158,7 @@ class TestEventList(TestCase):
             "event_type": "tou_event",
             "version": "1",
             "created_by": "test",
-            "created_ts": datetime(2015, 9, 24, 1, 1, 1, 111111),
+            "created_ts": datetime(2015, 9, 24, 1, 1, 1, 111111, tzinfo=UTC),
         }
         self.assertNotIn("modified_ts", _event_no_modified_ts)
         el = SomeEventList.from_list_of_dicts([_event_no_modified_ts])
@@ -181,8 +181,8 @@ class TestEventList(TestCase):
             "event_type": "tou_event",
             "version": "1",
             "created_by": "test",
-            "created_ts": datetime(2015, 9, 24, 1, 1, 1, 111111),
-            "modified_ts": datetime(2015, 9, 24, 1, 1, 1, 111111),
+            "created_ts": datetime(2015, 9, 24, 1, 1, 1, 111111, tzinfo=UTC),
+            "modified_ts": datetime(2015, 9, 24, 1, 1, 1, 111111, tzinfo=UTC),
         }
         self.assertIn("modified_ts", _event_modified_ts)
         el = SomeEventList.from_list_of_dicts([_event_modified_ts])
@@ -191,7 +191,7 @@ class TestEventList(TestCase):
         self.assertIsInstance(event.modified_ts, datetime)
         self.assertEqual(event.modified_ts, event.created_ts)
 
-        event.modified_ts = datetime(2018, 9, 24, 1, 1, 1, 111111)
+        event.modified_ts = datetime(2018, 9, 24, 1, 1, 1, 111111, tzinfo=UTC)
         self.assertIsInstance(event.modified_ts, datetime)
-        self.assertEqual(event.modified_ts, datetime(2018, 9, 24, 1, 1, 1, 111111))
+        self.assertEqual(event.modified_ts, datetime(2018, 9, 24, 1, 1, 1, 111111, tzinfo=UTC))
         self.assertNotEqual(event.modified_ts, event.created_ts)
