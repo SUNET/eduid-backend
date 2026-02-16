@@ -654,7 +654,7 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
             FrejaIdentity(
                 personal_identity_number=userinfo.personal_identity_number,
                 country_code=userinfo.document.country,
-                date_of_birth=datetime.today(),  # not matching the new identity
+                date_of_birth=utc_now(),  # not matching the new identity
                 is_verified=True,
                 user_id="another_freja_eid",
                 registration_level=userinfo.registration_level,
