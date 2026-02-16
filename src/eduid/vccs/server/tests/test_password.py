@@ -72,3 +72,17 @@ class TestCalculateCredHash(unittest.IsolatedAsyncioTestCase):
         h2_v2 = await calculate_cred_hash(user_id="test_user", H1="aa" * 16, cred=cred_v2, hasher=hasher, kdf=kdf)
 
         assert h2_v1 != h2_v2
+
+
+class TestAddCredsVersion(unittest.TestCase):
+    def test_request_factor_accepts_version(self) -> None:
+        from eduid.vccs.server.factors import RequestFactor
+
+        factor = RequestFactor(H1="aabb", credential_id="test", type="password", version="NDNv2")
+        assert factor.version == "NDNv2"
+
+    def test_request_factor_defaults_to_v1(self) -> None:
+        from eduid.vccs.server.factors import RequestFactor
+
+        factor = RequestFactor(H1="aabb", credential_id="test", type="password")
+        assert factor.version == "NDNv1"
