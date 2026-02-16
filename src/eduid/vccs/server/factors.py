@@ -9,6 +9,7 @@ class RequestFactor(BaseModel):
     H1: str
     credential_id: str
     type: CredType
+    version: str = "NDNv1"
 
 
 class RevokeFactor(BaseModel):
