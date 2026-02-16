@@ -2,6 +2,7 @@ from collections import OrderedDict
 from datetime import datetime
 from unittest import TestCase
 
+from eduid.common.misc.timeutil import utc_now
 from eduid.common.rpc.msg_relay import FullPostalAddress
 from eduid.userdb.proofing.element import NinProofingElement, SentLetterElement
 from eduid.userdb.proofing.state import LetterProofingState, OidcProofingState, ProofingState
@@ -184,8 +185,8 @@ class ProofingStateTest(TestCase):
         )
 
     def test_proofing_state_expiration(self) -> None:
-        state = ProofingState(id=None, eppn=EPPN, modified_ts=datetime.now(tz=None))
+        state = ProofingState(id=None, eppn=EPPN, modified_ts=utc_now())
         self.assertFalse(state.is_expired(1))
 
-        expired_state = ProofingState(id=None, eppn=EPPN, modified_ts=datetime.now(tz=None))
+        expired_state = ProofingState(id=None, eppn=EPPN, modified_ts=utc_now())
         self.assertTrue(expired_state.is_expired(-1))

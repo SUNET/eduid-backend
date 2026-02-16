@@ -873,7 +873,7 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
             eppn,
             keyhandle="test_security_key_1",
             token_type="webauthn",
-            created_ts=datetime.now() - timedelta(minutes=10),  # the security key was added more than 5 minutes ago
+            created_ts=utc_now() - timedelta(minutes=10),  # the security key was added more than 5 minutes ago
         )
 
         with self.app.test_request_context():
