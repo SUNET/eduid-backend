@@ -2,16 +2,16 @@ from binascii import unhexlify
 
 from ndnkdf import NDNKDF
 
-from eduid.vccs.server.db import PasswordCredential
+from eduid.vccs.server.db import PasswordCredential, Version
 from eduid.vccs.server.factors import RequestFactor
-from eduid.vccs.server.hasher import VCCSYHSMHasher
+from eduid.vccs.server.hasher import VCCSHasher
 from eduid.vccs.server.log import audit_log
 
 MAX_T1_LENGTH = 255
 
 
 async def authenticate_password(
-    cred: PasswordCredential, factor: RequestFactor, user_id: str, hasher: VCCSYHSMHasher, kdf: NDNKDF
+    cred: PasswordCredential, factor: RequestFactor, user_id: str, hasher: VCCSHasher, kdf: NDNKDF
 ) -> bool:
     res = False
     H2 = await calculate_cred_hash(user_id=user_id, H1=factor.H1, cred=cred, hasher=hasher, kdf=kdf)
@@ -33,17 +33,22 @@ async def authenticate_password(
     return res
 
 
-async def calculate_cred_hash(
-    user_id: str, H1: str, cred: PasswordCredential, hasher: VCCSYHSMHasher, kdf: NDNKDF
-) -> str:
+async def calculate_cred_hash(user_id: str, H1: str, cred: PasswordCredential, hasher: VCCSHasher, kdf: NDNKDF) -> str:
     """
     Calculate the expected password hash value for a credential, along this
     pseudo code :
 
-    T1 = 'A' | user_id | credential_id | H1
-    T2 = PBKDF2-HMAC-SHA512(T1, iterations=many, salt)
-    local_salt = yhsm_hmac_sha1(T2)
-    H2 = PBKDF2-HMAC-SHA512(T2, iterations=1, local_salt)
+    NDNv1 (HMAC-SHA-1):
+        T1 = 'A' | user_id | credential_id | H1
+        T2 = PBKDF2-HMAC-SHA512(T1, iterations=many, salt)
+        local_salt = yhsm_hmac_sha1(key_handle, T2)
+        H2 = PBKDF2-HMAC-SHA512(T2, iterations=1, local_salt)
+
+    NDNv2 (HMAC-SHA-256):
+        T1 = 'A' | user_id | credential_id | H1
+        T2 = PBKDF2-HMAC-SHA512(T1, iterations=many, salt)
+        local_salt = hmac_sha256(key_label, T2)
+        H2 = PBKDF2-HMAC-SHA512(T2, iterations=1, local_salt)
     """
     # Lock down key usage & credential to auth
     T1 = b""
@@ -65,12 +70,14 @@ async def calculate_cred_hash(
     T2 = kdf.pbkdf2_hmac_sha512(T1, cred.iterations, unhexlify(cred.salt))
 
     try:
-        # If speed becomes an issue, truncating T2 to 48 bytes would decrease the
-        # time it takes the YubiHSM to compute the HMAC-SHA-1 from around 1.9 ms
-        # to around 1.2 ms.
-        #
-        # The difference is likely due to > 48 bytes requiring more USB transactions.
-        local_salt = await hasher.hmac_sha1(cred.key_handle, T2)
+        if cred.version == Version.NDNv2:
+            if cred.key_label is None:
+                raise ValueError("NDNv2 credential requires key_label for HMAC-SHA-256")
+            local_salt = await hasher.hmac_sha256(cred.key_label, T2)
+        else:
+            local_salt = await hasher.hmac_sha1(cred.key_handle, T2)
+    except ValueError:
+        raise  # Don't wrap ValueError in RuntimeError
     except Exception as e:
         raise RuntimeError(f"Hashing operation failed : {e}") from e
 
