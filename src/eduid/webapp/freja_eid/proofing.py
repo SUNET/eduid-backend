@@ -102,7 +102,9 @@ class FrejaEIDProofingFunctions(ProofingFunctions[FrejaEIDDocumentUserInfo]):
         try:
             nin_element = NinProofingElement(
                 number=self.session_info.personal_identity_number,
-                date_of_birth=datetime(year=date_of_birth.year, month=date_of_birth.month, day=date_of_birth.day),
+                date_of_birth=datetime(
+                    year=date_of_birth.year, month=date_of_birth.month, day=date_of_birth.day, tzinfo=UTC
+                ),
                 created_by=current_app.conf.app_name,
                 is_verified=False,
             )
@@ -138,7 +140,9 @@ class FrejaEIDProofingFunctions(ProofingFunctions[FrejaEIDDocumentUserInfo]):
             personal_identity_number=self.session_info.personal_identity_number,
             country_code=self.session_info.document.country,
             created_by=current_app.conf.app_name,
-            date_of_birth=datetime(year=date_of_birth.year, month=date_of_birth.month, day=date_of_birth.day),
+            date_of_birth=datetime(
+                year=date_of_birth.year, month=date_of_birth.month, day=date_of_birth.day, tzinfo=UTC
+            ),
             is_verified=True,
             proofing_method=IdentityProofingMethod.FREJA_EID,
             proofing_version=current_app.conf.freja_eid_proofing_version,
