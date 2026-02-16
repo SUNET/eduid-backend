@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 
 from iso3166 import countries
 from pymongo.errors import PyMongoError
@@ -69,7 +69,7 @@ class FrejaEIDProofingFunctions(ProofingFunctions[FrejaEIDDocumentUserInfo]):
         return GenericResult(
             result=MfaData(
                 issuer=self.session_info.iss,
-                authn_instant=datetime.fromtimestamp(self.session_info.iat).isoformat(),
+                authn_instant=datetime.fromtimestamp(self.session_info.iat, tz=UTC).isoformat(),
                 authn_context=current_loa.result,
             )
         )
