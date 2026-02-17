@@ -45,8 +45,8 @@ class RawDb:
 
     def __init__(self, myname: str | None = None, backupbase: str = "/root/raw_db_changes") -> None:
         self._client = get_client()
-        self._start_time: str = (
-            datetime.datetime.fromtimestamp(int(time.time()), tz=datetime.UTC).isoformat(sep="_").replace(":", "")
+        self._start_time: str = datetime.datetime.fromtimestamp(int(time.time()), tz=datetime.UTC).strftime(
+            "%Y-%m-%d_%H%M%S"
         )
         self._myname: str | None = myname
         self._backupbase: str = backupbase
