@@ -14,6 +14,7 @@ class Password(Credential):
     credential_id: str = Field(alias="id")
     salt: str
     is_generated: bool = False
+    version: int = 1
 
     @field_validator("credential_id", mode="before")
     @classmethod
