@@ -113,15 +113,15 @@ class ScimApiEventDB(ScimApiBaseDB):
     def get_events_by_resource(
         self, resource_type: SCIMResourceType, scim_id: UUID | None = None, external_id: str | None = None
     ) -> list[ScimApiEvent]:
-        filter = {
+        spec = {
             "resource.resource_type": resource_type.value,
         }
         if scim_id is not None:
-            filter["resource.scim_id"] = str(scim_id)
+            spec["resource.scim_id"] = str(scim_id)
         if external_id is not None:
-            filter["resource.external_id"] = external_id
+            spec["resource.external_id"] = external_id
 
-        docs = self._get_documents_by_filter(filter)
+        docs = self._get_documents_by_filter(spec)
         if docs:
             return [ScimApiEvent.from_dict(this) for this in docs]
         return []
