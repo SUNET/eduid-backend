@@ -293,3 +293,63 @@ class VCCSTestCase(MongoTestCase):
         result = vccs_module.check_password("abcd", self.user, vccs=self.vccs_client)
         assert result is not None
         assert result.version == 2
+
+    def test_grace_period_revocation(self) -> None:
+        """Test that v1 is revoked after grace period when v2 exists."""
+        from datetime import timedelta
+
+        from eduid.common.misc.timeutil import utc_now
+
+        # Create a v2 credential
+        vccs_module.check_password(
+            "abcd",
+            self.user,
+            vccs=self.vccs_client,
+            upgrade_v2=True,
+            application="test",
+        )
+
+        # Simulate v1 being old by adjusting its created_ts
+        v1_passwords = [p for p in self.user.credentials.filter(Password) if p.version == 1]
+        assert len(v1_passwords) == 1
+        v1_passwords[0].created_ts = utc_now() - timedelta(days=100)
+
+        # Authenticate again with grace_period=90 days - v1 should be revoked
+        result = vccs_module.check_password(
+            "abcd",
+            self.user,
+            vccs=self.vccs_client,
+            upgrade_v2=True,
+            application="test",
+            grace_period_days=90,
+        )
+        assert result is not None
+        assert result.version == 2
+
+        # v1 should be revoked
+        v1_after = [p for p in self.user.credentials.filter(Password) if p.version == 1]
+        assert len(v1_after) == 0
+
+    def test_grace_period_no_revocation_within_period(self) -> None:
+        """Test that v1 is NOT revoked within grace period."""
+        # Create a v2 credential
+        vccs_module.check_password(
+            "abcd",
+            self.user,
+            vccs=self.vccs_client,
+            upgrade_v2=True,
+            application="test",
+        )
+
+        # v1 is recent (just created), grace_period=90 days
+        result = vccs_module.check_password(
+            "abcd",
+            self.user,
+            vccs=self.vccs_client,
+            grace_period_days=90,
+        )
+        assert result is not None
+
+        # v1 should still exist
+        v1_after = [p for p in self.user.credentials.filter(Password) if p.version == 1]
+        assert len(v1_after) == 1

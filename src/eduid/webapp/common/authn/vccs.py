@@ -1,9 +1,11 @@
 import logging
+from datetime import timedelta
 from typing import cast
 
 from bson import ObjectId
 
 from eduid.common.decorators import deprecated
+from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.credentials import Password
 from eduid.userdb.element import ElementKey
 from eduid.userdb.user import User
@@ -29,6 +31,7 @@ def check_password(
     vccs: VCCSClient | None = None,
     upgrade_v2: bool = False,
     application: str = "",
+    grace_period_days: int = 0,
 ) -> Password | None:
     """
     Try to validate a user provided password.
@@ -42,6 +45,7 @@ def check_password(
     :param vccs: Optional already instantiated vccs client
     :param upgrade_v2: If True, transparently upgrade a successful v1 auth to v2
     :param application: Application name, required when upgrade_v2 is True
+    :param grace_period_days: If > 0, revoke v1 passwords older than this many days after successful v2 auth
 
     :return: Password credential on success
     """
@@ -65,10 +69,31 @@ def check_password(
                             vccs=vccs,
                         ):
                             logger.warning(f"Password v2 upgrade failed for user {user}")
+
+                # Grace period: revoke old v1 passwords if v2 auth succeeded and v1 is past cutoff
+                if grace_period_days > 0 and user_password.version == 2:
+                    _revoke_expired_v1_passwords(user, grace_period_days, vccs)
+
                 return user_password
         except Exception:
             logger.exception(f"VCCS authentication for user {user} factor {factor} failed")
     return None
+
+
+def _revoke_expired_v1_passwords(user: User, grace_period_days: int, vccs: VCCSClient) -> None:
+    """Revoke v1 passwords whose created_ts is older than the grace period cutoff."""
+    cutoff = utc_now() - timedelta(days=grace_period_days)
+    for pw in list(user.credentials.filter(Password)):
+        if pw.version == 1 and pw.created_ts is not None and pw.created_ts < cutoff:
+            try:
+                factor = VCCSRevokeFactor(
+                    str(pw.credential_id), "v2 upgrade grace period expired", reference="vccs_upgrade"
+                )
+                vccs.revoke_credentials(str(user.user_id), [factor])
+                user.credentials.remove(pw.key)
+                logger.info(f"Revoked v1 password {pw.credential_id} (grace period expired)")
+            except Exception:
+                logger.exception(f"Failed to revoke v1 password {pw.credential_id}")
 
 
 def upgrade_password_to_v2(
