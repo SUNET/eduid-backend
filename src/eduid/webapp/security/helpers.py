@@ -265,9 +265,8 @@ def get_approved_security_keys() -> dict[str, Any]:
 
         # true if the authenticator supports any of the user verification methods we allow
         is_accepted_user_verification = any(
-            method
+            method in current_app.conf.webauthn_recommended_user_verification_methods
             for method in user_verification_methods
-            if method in current_app.conf.webauthn_recommended_user_verification_methods
         )
         # a typical token has key protection ["hardware"] or ["hardware", "tee"] but some also support software, so
         # we have to check that all key protections supported is in our allow list
