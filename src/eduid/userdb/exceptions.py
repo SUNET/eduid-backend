@@ -19,13 +19,13 @@ class EduIDDBError(Exception):
         return f"<{self.__class__.__name__} instance at {hex(id(self))}: {self.reason!r}>"
 
 
-class ConnectionError(EduIDDBError):
+class DBConnectionError(EduIDDBError):
     """
     Error connecting to the database.
     """
 
 
-class MongoConnectionError(ConnectionError):
+class MongoConnectionError(DBConnectionError):
     """
     Error connecting to MongoDB.
     """

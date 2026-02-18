@@ -4,7 +4,7 @@ from celery import Task
 from celery.utils.log import get_task_logger
 
 from eduid.userdb import AmDB
-from eduid.userdb.exceptions import ConnectionError, LockedIdentityViolation, UserDoesNotExist
+from eduid.userdb.exceptions import DBConnectionError, LockedIdentityViolation, UserDoesNotExist
 from eduid.workers.am.common import AmCelerySingleton
 from eduid.workers.am.consistency_checks import check_locked_identity, unverify_duplicates
 
@@ -94,7 +94,7 @@ def update_attributes_keep_result(self: AttributeManager, app_name: str, user_id
     logger.debug(f"Attributes fetched from app {app_name} for user {_id}: {attributes}")
     try:
         self.userdb.update_user(_id, attributes)
-    except ConnectionError as e:
+    except DBConnectionError as e:
         logger.error(f"update_attributes_keep_result connection error: {e}", exc_info=True)
         self.retry(default_retry_delay=1, max_retries=3, exc=e)
     return True
@@ -108,4 +108,4 @@ def pong(self: AttributeManager, app_name: str) -> str:
     _userdb = self.userdb
     if _userdb and _userdb.is_healthy():
         return f"pong for {app_name}"
-    raise ConnectionError("Database not healthy")
+    raise DBConnectionError("Database not healthy")
