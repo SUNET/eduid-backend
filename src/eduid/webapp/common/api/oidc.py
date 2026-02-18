@@ -7,7 +7,7 @@ from oic.exception import CommunicationError
 from oic.oic import Client
 from oic.oic.message import RegistrationRequest
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
-from requests.exceptions import ConnectionError
+from requests.exceptions import ConnectionError as RequestsConnectionError
 
 __author__ = "lundberg"
 
@@ -62,7 +62,7 @@ class LazyOidcClient:
             logger.info("OIDC client initialized successfully")
             return self._client
 
-        except (CommunicationError, ConnectionError) as e:
+        except (CommunicationError, RequestsConnectionError) as e:
             self._handle_initialization_failure(e)
             raise OidcServiceUnavailableError(f"OIDC service unavailable: {e!s}") from e
 
