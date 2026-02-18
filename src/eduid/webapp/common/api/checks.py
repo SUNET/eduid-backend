@@ -188,13 +188,13 @@ def check_vccs() -> bool:
     if not isinstance(_conf, VCCSConfigMixin):
         return True
     # Do not force this check if not configured
-    if not _conf.vccs_check_eppn:
+    eppn = _conf.vccs_check_eppn
+    password = _conf.vccs_check_password
+    if not eppn or not password:
         return True
     try:
-        user = current_app.central_userdb.get_user_by_eppn(eppn=_conf.vccs_check_eppn)
-        vccs_url = _conf.vccs_url
-        password = _conf.vccs_check_password
-        if user and check_password(password=password, user=user, vccs_url=vccs_url):
+        user = current_app.central_userdb.get_user_by_eppn(eppn=eppn)
+        if user and check_password(password=password, user=user, vccs_url=_conf.vccs_url):
             return True
     except Exception as exc:
         log_failure_info("check_vccs", msg="vccs health check failed", exc=exc)

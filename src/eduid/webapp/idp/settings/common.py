@@ -12,6 +12,7 @@ from eduid.common.config.base import (
     CookieConfig,
     EduIDBaseAppConfig,
     TouConfigMixin,
+    VCCSConfigMixin,
     WebauthnConfigMixin2,
 )
 from eduid.common.models.generic import HttpUrlStr
@@ -19,7 +20,7 @@ from eduid.userdb.identity import IdentityProofingMethod
 from eduid.webapp.idp.assurance_data import SwamidAssurance
 
 
-class IdPConfig(EduIDBaseAppConfig, TouConfigMixin, WebauthnConfigMixin2, AmConfigMixin):
+class IdPConfig(EduIDBaseAppConfig, TouConfigMixin, WebauthnConfigMixin2, AmConfigMixin, VCCSConfigMixin):
     """
     Configuration for the idp app
     """
@@ -68,9 +69,7 @@ class IdPConfig(EduIDBaseAppConfig, TouConfigMixin, WebauthnConfigMixin2, AmConf
     # Kantara 30-day bad authn limit is 100
     max_auhtn_failures_per_month: int = 50
     max_authn_failures_per_month: int = 50
-    # URL to use with VCCS client. BCP is to have an nginx or similar on
-    # localhost that will proxy requests to a currently available backend
-    # using TLS.
+    # Override VCCSConfigMixin default (no default) with IdP-specific default
     vccs_url: str = "http://localhost:8550/"
     # The interval which a user needs to re-accept an already accepted ToU (in seconds)
     tou_reaccept_interval: timedelta = Field(default=timedelta(days=3 * 365))
