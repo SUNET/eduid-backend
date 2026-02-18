@@ -116,7 +116,7 @@ class AsyncQueueDB(AsyncBaseDB, QueuePayloadMixin):
         # to_list needs length, 100 seems like a good start
         # TODO: Investigate if this can be a generator?
         logger.debug(f"spec: {spec}")
-        return [doc for doc in await self.collection.find(spec).to_list(length=100)]
+        return await self.collection.find(spec).to_list(length=100)
 
     async def remove_item(self, item_id: str | ObjectId) -> bool:
         """

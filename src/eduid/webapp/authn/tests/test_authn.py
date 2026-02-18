@@ -417,7 +417,7 @@ class NoAuthnAPITestCase(EduidAPITestCase):
             self.assertEqual(resp.status_code, 401)
 
     def test_no_authn_util(self) -> None:
-        no_authn_urls_before = [path for path in self.app.conf.no_authn_urls]
+        no_authn_urls_before = list(self.app.conf.no_authn_urls)
         no_authn_path = "/test3"
         no_authn_views(self.app.conf, [no_authn_path])
         self.assertEqual([*no_authn_urls_before, f"^{no_authn_path!s}$"], self.app.conf.no_authn_urls)

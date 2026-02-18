@@ -259,7 +259,7 @@ class SPAuthnData(BaseModel):
 
     def _get_sorted_authns(self) -> list[SP_AuthnRequest]:
         # sort authn actions by created_ts, latest first
-        return [authn for authn in sorted(self.authns.values(), reverse=True, key=lambda item: item.created_ts)]
+        return sorted(self.authns.values(), reverse=True, key=lambda item: item.created_ts)
 
     def get_latest_authn(self) -> SP_AuthnRequest | None:
         for authn in self._get_sorted_authns():
