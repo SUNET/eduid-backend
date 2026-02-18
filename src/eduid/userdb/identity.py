@@ -282,7 +282,7 @@ class IdentityList(VerifiedElementList[IdentityElement]):
     def is_verified(self) -> bool:
         # TODO: the isinstance check should not be needed I think, but how to explain that to mypy?
         #   error: "ListElement" has no attribute "is_verified"
-        return any([element.is_verified for element in self.elements if isinstance(element, IdentityElement)])
+        return any(element.is_verified for element in self.elements if isinstance(element, IdentityElement))
 
     @property
     def nin(self) -> NinIdentity | None:
