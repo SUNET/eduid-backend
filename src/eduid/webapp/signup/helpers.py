@@ -403,7 +403,7 @@ def update_or_create_scim_user(invite: Invite, signup_user: SignupUser) -> UserR
                 }
             )
         # linked account
-        parameters = dict()
+        parameters = {}
         # mfa stepup
         if scim_invite.nutid_invite_v1.enable_mfa_stepup:
             parameters = {"mfa_stepup": True}

@@ -900,7 +900,7 @@ class TestAsyncUserResource(IsolatedAsyncioTestCase, ScimApiTestCase):
         assert len(group.members) == self.user_count
 
         # delete half of the users in parallel
-        tasks = list()
+        tasks = []
         for user in self.users[: self.user_count // 2]:
             headers = {
                 "Content-Type": "application/scim+json",

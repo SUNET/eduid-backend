@@ -70,7 +70,7 @@ class TestToUEvent(TestCase):
             assert new_list.to_list_of_dicts() == this.to_list_of_dicts()
 
     def test_created_by(self) -> None:
-        this = Event.from_dict(dict(created_by=None, event_type="test_event"))
+        this = Event.from_dict({"created_by": None, "event_type": "test_event"})
         this.created_by = "unit test"
         self.assertEqual(this.created_by, "unit test")
 

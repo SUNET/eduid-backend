@@ -31,7 +31,7 @@ class SimpleCacheItem:
     data: Mapping[str, Any]
 
 
-SIMPLE_CACHE: dict[str, SimpleCacheItem] = dict()
+SIMPLE_CACHE: dict[str, SimpleCacheItem] = {}
 
 
 @overload

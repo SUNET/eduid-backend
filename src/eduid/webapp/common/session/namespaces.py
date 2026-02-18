@@ -243,7 +243,7 @@ MAX_AUTHNS_TO_KEEP = 10
 
 
 class SPAuthnData(BaseModel):
-    pysaml2_dicts: PySAML2Dicts = Field(default=cast(PySAML2Dicts, dict()))
+    pysaml2_dicts: PySAML2Dicts = Field(default=cast(PySAML2Dicts, {}))
     authns: dict[AuthnRequestRef, SP_AuthnRequest] = Field(default_factory=dict)
 
     @field_serializer("authns")

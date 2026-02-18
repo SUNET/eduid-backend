@@ -166,7 +166,7 @@ class ProofingStateTest(TestCase):
         """
 
         nin_pe = NinProofingElement.from_dict(
-            dict(number="200102034567", application="eduid_oidc_proofing", verified=False)
+            {"number": "200102034567", "application": "eduid_oidc_proofing", "verified": False}
         )
         state = OidcProofingState(
             eppn=EPPN,

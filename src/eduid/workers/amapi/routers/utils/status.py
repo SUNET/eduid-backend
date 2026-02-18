@@ -30,8 +30,8 @@ class FailCountItem:
         return f"(first_failure: {self.first_failure.isoformat()}, fail count: {self.count})"
 
 
-SIMPLE_CACHE: dict[str, SimpleCacheItem] = dict()
-FAILURE_INFO: dict[str, FailCountItem] = dict()
+SIMPLE_CACHE: dict[str, SimpleCacheItem] = {}
+FAILURE_INFO: dict[str, FailCountItem] = {}
 
 
 def log_failure_info(ctx: ContextRequest, key: str, msg: str, exc: Exception | None = None) -> None:
