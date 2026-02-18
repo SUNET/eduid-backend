@@ -81,10 +81,23 @@ def check_password(
 
 
 def _revoke_expired_v1_passwords(user: User, grace_period_days: int, vccs: VCCSClient) -> None:
-    """Revoke v1 passwords whose created_ts is older than the grace period cutoff."""
-    cutoff = utc_now() - timedelta(days=grace_period_days)
+    """Revoke v1 passwords if the v2 credential was created more than grace_period_days ago."""
+    # Find the v2 password to determine when the upgrade happened
+    v2_passwords = [p for p in user.credentials.filter(Password) if p.version == 2]
+    if not v2_passwords:
+        return
+
+    v2_created = v2_passwords[0].created_ts
+    if v2_created is None:
+        return
+
+    cutoff = v2_created + timedelta(days=grace_period_days)
+    now = utc_now()
+    if now < cutoff:
+        return  # still within grace period
+
     for pw in list(user.credentials.filter(Password)):
-        if pw.version == 1 and pw.created_ts is not None and pw.created_ts < cutoff:
+        if pw.version == 1:
             try:
                 factor = VCCSRevokeFactor(
                     str(pw.credential_id), "v2 upgrade grace period expired", reference="vccs_upgrade"

@@ -295,7 +295,7 @@ class VCCSTestCase(MongoTestCase):
         assert result.version == 2
 
     def test_grace_period_revocation(self) -> None:
-        """Test that v1 is revoked after grace period when v2 exists."""
+        """Test that v1 is revoked after grace period (counted from v2 creation) when v2 exists."""
         from datetime import timedelta
 
         from eduid.common.misc.timeutil import utc_now
@@ -309,12 +309,13 @@ class VCCSTestCase(MongoTestCase):
             application="test",
         )
 
-        # Simulate v1 being old by adjusting its created_ts
-        v1_passwords = [p for p in self.user.credentials.filter(Password) if p.version == 1]
-        assert len(v1_passwords) == 1
-        v1_passwords[0].created_ts = utc_now() - timedelta(days=100)
+        # Simulate v2 being created long ago (grace period is measured from v2 creation)
+        v2_passwords = [p for p in self.user.credentials.filter(Password) if p.version == 2]
+        assert len(v2_passwords) == 1
+        v2_passwords[0].created_ts = utc_now() - timedelta(days=100)
 
         # Authenticate again with grace_period=90 days - v1 should be revoked
+        # because v2 was created 100 days ago, exceeding the 90-day grace period
         result = vccs_module.check_password(
             "abcd",
             self.user,
