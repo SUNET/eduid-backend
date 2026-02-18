@@ -23,29 +23,92 @@ def get_vccs_client(vccs_url: str | None) -> VCCSClient:
 
 
 def check_password(
-    password: str, user: User, vccs_url: str | None = None, vccs: VCCSClient | None = None
+    password: str,
+    user: User,
+    vccs_url: str | None = None,
+    vccs: VCCSClient | None = None,
+    upgrade_v2: bool = False,
+    application: str = "",
 ) -> Password | None:
     """
     Try to validate a user provided password.
+
+    Credentials are tried in version-descending order so that v2 is preferred over v1
+    when both exist.
 
     :param password: plaintext password
     :param user: User object
     :param vccs_url: URL to VCCS authentication backend
     :param vccs: Optional already instantiated vccs client
+    :param upgrade_v2: If True, transparently upgrade a successful v1 auth to v2
+    :param application: Application name, required when upgrade_v2 is True
 
     :return: Password credential on success
     """
     if vccs is None:
         vccs = get_vccs_client(vccs_url)
 
-    for user_password in user.credentials.filter(Password):
+    # Sort by version descending so v2 credentials are tried first
+    for user_password in sorted(user.credentials.filter(Password), key=lambda p: p.version, reverse=True):
         factor = VCCSPasswordFactor(password, credential_id=user_password.key, salt=user_password.salt)
         try:
             if vccs.authenticate(str(user.user_id), [factor]):
+                # If v1 matched and upgrade is requested, create a v2 credential alongside it
+                if user_password.version == 1 and upgrade_v2:
+                    _has_v2 = any(p.version == 2 for p in user.credentials.filter(Password))
+                    if not _has_v2:
+                        if not upgrade_password_to_v2(
+                            user=user,
+                            password=password,
+                            old_credential=user_password,
+                            application=application,
+                            vccs=vccs,
+                        ):
+                            logger.warning(f"Password v2 upgrade failed for user {user}")
                 return user_password
         except Exception:
             logger.exception(f"VCCS authentication for user {user} factor {factor} failed")
     return None
+
+
+def upgrade_password_to_v2(
+    user: User,
+    password: str,
+    old_credential: Password,
+    application: str,
+    vccs: VCCSClient,
+) -> bool:
+    """
+    Create a new v2 (NDNv2) password credential alongside the existing v1 credential.
+
+    :param user: User object
+    :param password: plaintext password (available during authentication)
+    :param old_credential: The existing v1 Password credential
+    :param application: Application requesting the upgrade
+    :param vccs: Already instantiated VCCS client
+
+    :return: True on success, False on failure
+    """
+    new_credential_id = str(ObjectId())
+    new_factor = VCCSPasswordFactor(password, credential_id=new_credential_id, version="NDNv2")
+
+    if not vccs.add_credentials(str(user.user_id), [new_factor]):
+        logger.error(f"Failed adding v2 password credential {new_credential_id} for user {user}")
+        return False
+
+    logger.info(
+        f"Added v2 password credential {new_credential_id} for user {user} (upgraded from {old_credential.key})"
+    )
+
+    v2_password = Password(
+        credential_id=new_factor.credential_id,
+        salt=new_factor.salt,
+        is_generated=old_credential.is_generated,
+        created_by=application,
+        version=2,
+    )
+    user.credentials.add(v2_password)
+    return True
 
 
 def add_password(

@@ -168,3 +168,128 @@ class VCCSTestCase(MongoTestCase):
             self.assertFalse(result2)
             result3 = self._check_credentials("wxyz")
             self.assertTrue(result3)
+
+    def test_upgrade_password_to_v2(self) -> None:
+        """Test that upgrade_password_to_v2 creates a v2 credential alongside the existing v1."""
+        # Get the current v1 password
+        v1_passwords = list(self.user.credentials.filter(Password))
+        assert len(v1_passwords) == 1
+        v1_password = v1_passwords[0]
+        assert v1_password.version == 1
+
+        # Upgrade to v2
+        result = vccs_module.upgrade_password_to_v2(
+            user=self.user,
+            password="abcd",
+            old_credential=v1_password,
+            application="test",
+            vccs=self.vccs_client,
+        )
+        self.assertTrue(result)
+
+        # Should now have both v1 and v2 credentials
+        all_passwords = list(self.user.credentials.filter(Password))
+        assert len(all_passwords) == 2
+
+        versions = {p.version for p in all_passwords}
+        assert versions == {1, 2}
+
+        # Credential IDs should be different
+        credential_ids = {p.credential_id for p in all_passwords}
+        assert len(credential_ids) == 2
+
+    def test_check_password_triggers_upgrade(self) -> None:
+        """Test that check_password triggers v1->v2 upgrade when upgrade_v2=True."""
+        # Verify we start with only v1
+        passwords = list(self.user.credentials.filter(Password))
+        assert len(passwords) == 1
+        assert passwords[0].version == 1
+
+        # Check password with upgrade enabled
+        result = vccs_module.check_password(
+            "abcd", self.user, vccs=self.vccs_client, upgrade_v2=True, application="test"
+        )
+        assert result is not None
+
+        # Should now have both v1 and v2
+        all_passwords = list(self.user.credentials.filter(Password))
+        assert len(all_passwords) == 2
+        versions = {p.version for p in all_passwords}
+        assert versions == {1, 2}
+
+    def test_check_password_no_upgrade_when_disabled(self) -> None:
+        """Test that no upgrade happens when upgrade_v2=False (default)."""
+        passwords_before = list(self.user.credentials.filter(Password))
+        assert len(passwords_before) == 1
+
+        result = vccs_module.check_password("abcd", self.user, vccs=self.vccs_client)
+        assert result is not None
+
+        # Should still have only v1
+        passwords_after = list(self.user.credentials.filter(Password))
+        assert len(passwords_after) == 1
+        assert passwords_after[0].version == 1
+
+    def test_check_password_no_double_upgrade(self) -> None:
+        """Test that a second auth with upgrade_v2=True doesn't create a duplicate v2."""
+        # First auth triggers upgrade
+        result1 = vccs_module.check_password(
+            "abcd", self.user, vccs=self.vccs_client, upgrade_v2=True, application="test"
+        )
+        assert result1 is not None
+        passwords_after_first = list(self.user.credentials.filter(Password))
+        assert len(passwords_after_first) == 2
+
+        # Second auth should NOT create another v2
+        result2 = vccs_module.check_password(
+            "abcd", self.user, vccs=self.vccs_client, upgrade_v2=True, application="test"
+        )
+        assert result2 is not None
+        passwords_after_second = list(self.user.credentials.filter(Password))
+        assert len(passwords_after_second) == 2
+
+    def test_check_password_upgrade_failure(self) -> None:
+        """Test that auth still succeeds when v2 upgrade fails."""
+        from eduid.webapp.common.authn.testing import MockVCCSClient
+
+        # Verify we start with only v1
+        passwords_before = list(self.user.credentials.filter(Password))
+        assert len(passwords_before) == 1
+        assert passwords_before[0].version == 1
+
+        with patch.object(MockVCCSClient, "add_credentials"):
+            assert isinstance(MockVCCSClient.add_credentials, MagicMock)
+            MockVCCSClient.add_credentials.return_value = False
+
+            result = vccs_module.check_password(
+                "abcd", self.user, vccs=self.vccs_client, upgrade_v2=True, application="test"
+            )
+
+            # Auth should still succeed with v1
+            assert result is not None
+            assert result.version == 1
+
+        # No v2 should have been added
+        passwords_after = list(self.user.credentials.filter(Password))
+        assert len(passwords_after) == 1
+        assert passwords_after[0].version == 1
+
+    def test_check_password_v2_preferred(self) -> None:
+        """Test that v2 credential is returned when both v1 and v2 exist."""
+        # Add a v1 password and upgrade it
+        v1_passwords = list(self.user.credentials.filter(Password))
+        assert len(v1_passwords) == 1
+        v1_password = v1_passwords[0]
+
+        vccs_module.upgrade_password_to_v2(
+            user=self.user,
+            password="abcd",
+            old_credential=v1_password,
+            application="test",
+            vccs=self.vccs_client,
+        )
+
+        # Now check_password should return the v2 credential
+        result = vccs_module.check_password("abcd", self.user, vccs=self.vccs_client)
+        assert result is not None
+        assert result.version == 2
