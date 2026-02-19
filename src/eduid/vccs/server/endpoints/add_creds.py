@@ -71,24 +71,32 @@ async def add_creds(req: Request, request: AddCredsRequestV1) -> AddCredsRespons
 async def _add_password_credential(
     _config: VCCSConfig, factor: RequestFactor, req: Request, request: AddCredsRequestV1
 ) -> bool:
-    _salt = (await req.app.state.hasher.safe_random(_config.add_creds_password_salt_bytes)).hex()
-
     version = Version(factor.version)
 
-    # For NDNv2, require key_label in config
+    # For NDNv2, require new_hasher to be configured
     key_label: str | None = None
     if version == Version.NDNv2:
-        key_label = _config.hasher.add_creds_password_key_label
-        if key_label is None:
-            req.app.logger.error("NDNv2 credential requested but add_creds_password_key_label not configured")
+        if req.app.state.new_hasher is None:
+            req.app.logger.error("NDNv2 credential requested but new_hasher is not configured")
             return False
+        key_label = _config.new_hasher.add_creds_password_key_label if _config.new_hasher else None
+        if key_label is None:
+            req.app.logger.error(
+                "NDNv2 credential requested but add_creds_password_key_label not configured on new_hasher"
+            )
+            return False
+        _salt = (await req.app.state.new_hasher.safe_random(_config.add_creds_password_salt_bytes)).hex()
+        _key_handle = _config.new_hasher.add_creds_password_key_handle
+    else:
+        _salt = (await req.app.state.hasher.safe_random(_config.add_creds_password_salt_bytes)).hex()
+        _key_handle = _config.hasher.add_creds_password_key_handle
 
     cred = PasswordCredential(
         credential_id=factor.credential_id,
         derived_key="",
         iterations=_config.add_creds_password_kdf_iterations,
         kdf=KDF.PBKDF2_HMAC_SHA512,
-        key_handle=_config.hasher.add_creds_password_key_handle,
+        key_handle=_key_handle,
         key_label=key_label,
         salt=_salt,
         status=Status.ACTIVE,
@@ -96,7 +104,12 @@ async def _add_password_credential(
         version=version,
     )
     cred.derived_key = H2 = await calculate_cred_hash(
-        user_id=request.user_id, H1=factor.H1, cred=cred, hasher=req.app.state.hasher, kdf=req.app.state.kdf
+        user_id=request.user_id,
+        H1=factor.H1,
+        cred=cred,
+        hasher=req.app.state.hasher,
+        kdf=req.app.state.kdf,
+        new_hasher=req.app.state.new_hasher,
     )
     _res = req.app.state.credstore.add(cred)
     req.app.logger.info(
