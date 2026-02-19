@@ -269,12 +269,12 @@ async def search(req: ContextRequest, query: SearchRequest) -> ListResponse:
     req.app.context.logger.info("Searching for invite(s)")
     req.app.context.logger.debug(f"Parsed invite search query: {query}")
 
-    filter = parse_search_filter(query.filter)
+    search_filter = parse_search_filter(query.filter)
 
-    if filter.attr == "meta.lastmodified":
+    if search_filter.attr == "meta.lastmodified":
         # SCIM start_index 1 equals item 0
-        users, total_count = filter_lastmodified(req, filter, skip=query.start_index - 1, limit=query.count)
+        users, total_count = filter_lastmodified(req, search_filter, skip=query.start_index - 1, limit=query.count)
     else:
-        raise BadRequest(scim_type="invalidFilter", detail=f"Can't filter on attribute {filter.attr}")
+        raise BadRequest(scim_type="invalidFilter", detail=f"Can't filter on attribute {search_filter.attr}")
 
     return ListResponse(resources=invites_to_resources_dicts(query, users), total_results=total_count)
