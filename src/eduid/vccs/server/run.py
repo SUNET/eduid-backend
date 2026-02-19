@@ -33,6 +33,16 @@ class VCCS_API(FastAPI):
         self.state.hasher = load_hasher(config=self.state.config.hasher, lock=yhsm_lock, debug=self.state.config.debug)
         self.state.hasher.unlock()
 
+        self.state.new_hasher = None
+        if self.state.config.new_hasher is not None:
+            new_hasher_lock = Lock()
+            self.state.new_hasher = load_hasher(
+                config=self.state.config.new_hasher, lock=new_hasher_lock, debug=self.state.config.debug
+            )
+            self.state.new_hasher.unlock()
+            self.logger.info(f"Starting new_hasher: {self.state.new_hasher}")
+            self.logger.info(f"new_hasher info: {self.state.new_hasher.info()}")
+
         self.state.kdf = ndnkdf.NDNKDF()
 
         self.state.credstore = CredentialDB(db_uri=self.state.config.mongo_uri)
