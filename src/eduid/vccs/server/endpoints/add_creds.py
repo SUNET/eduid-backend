@@ -76,10 +76,10 @@ async def _add_password_credential(
     # For NDNv2, require new_hasher to be configured
     key_label: str | None = None
     if version == Version.NDNv2:
-        if req.app.state.new_hasher is None:
+        if req.app.state.new_hasher is None or _config.new_hasher is None:
             req.app.logger.error("NDNv2 credential requested but new_hasher is not configured")
             return False
-        key_label = _config.new_hasher.add_creds_password_key_label if _config.new_hasher else None
+        key_label = _config.new_hasher.add_creds_password_key_label
         if key_label is None:
             req.app.logger.error(
                 "NDNv2 credential requested but add_creds_password_key_label not configured on new_hasher"
