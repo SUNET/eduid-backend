@@ -11,10 +11,17 @@ MAX_T1_LENGTH = 255
 
 
 async def authenticate_password(
-    cred: PasswordCredential, factor: RequestFactor, user_id: str, hasher: VCCSHasher, kdf: NDNKDF
+    cred: PasswordCredential,
+    factor: RequestFactor,
+    user_id: str,
+    hasher: VCCSHasher,
+    kdf: NDNKDF,
+    new_hasher: VCCSHasher | None = None,
 ) -> bool:
     res = False
-    H2 = await calculate_cred_hash(user_id=user_id, H1=factor.H1, cred=cred, hasher=hasher, kdf=kdf)
+    H2 = await calculate_cred_hash(
+        user_id=user_id, H1=factor.H1, cred=cred, hasher=hasher, kdf=kdf, new_hasher=new_hasher
+    )
     # XXX need to log successful login in credential_store to be able to ban
     # accounts after a certain time of inactivity (Kantara AL2_CM_CSM#050)
     # XXX can as well log counter of invalid attempts per credential too -
@@ -33,7 +40,14 @@ async def authenticate_password(
     return res
 
 
-async def calculate_cred_hash(user_id: str, H1: str, cred: PasswordCredential, hasher: VCCSHasher, kdf: NDNKDF) -> str:
+async def calculate_cred_hash(
+    user_id: str,
+    H1: str,
+    cred: PasswordCredential,
+    hasher: VCCSHasher,
+    kdf: NDNKDF,
+    new_hasher: VCCSHasher | None = None,
+) -> str:
     """
     Calculate the expected password hash value for a credential, along this
     pseudo code :
@@ -73,11 +87,13 @@ async def calculate_cred_hash(user_id: str, H1: str, cred: PasswordCredential, h
         if cred.version == Version.NDNv2:
             if cred.key_label is None:
                 raise ValueError("NDNv2 credential requires key_label for HMAC-SHA-256")
-            local_salt = await hasher.hmac_sha256(cred.key_label, T2)
+            if new_hasher is None:
+                raise RuntimeError("NDNv2 credential requires new_hasher, but new_hasher is not configured")
+            local_salt = await new_hasher.hmac_sha256(cred.key_label, T2)
         else:
             local_salt = await hasher.hmac_sha1(cred.key_handle, T2)
-    except ValueError:
-        raise  # Don't wrap ValueError in RuntimeError
+    except (ValueError, RuntimeError):
+        raise  # Don't wrap ValueError/RuntimeError in another RuntimeError
     except Exception as e:
         raise RuntimeError(f"Hashing operation failed : {e}") from e
 
