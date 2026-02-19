@@ -34,7 +34,7 @@ def parse_search_filter(search_filter: str) -> SearchFilter:
 
     if op.lower() not in VALID_OPERATORS:
         logger.debug(f"Unsupported operator in filter: {op}")
-        raise BadRequest(scim_type="invalidFilter", detail=f"Unsupported operator: {op}")
+        raise BadRequest(scim_type="invalidFilter", detail="Unsupported operator")
 
     if len(val) and val[0] == '"' and val[-1] == '"':
         val = val[1:-1]
