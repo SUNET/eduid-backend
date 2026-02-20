@@ -212,7 +212,7 @@ class IdPAuthn:
                     self.log_authn(user, success=[cred.credential_id], failure=[])
                     # Transparently upgrade v1 password to v2 (NDNv2) if enabled
                     if self.config.password_v2_upgrade_enabled and cred.version == 1:
-                        _has_v2 = any(p.version == 2 for p in user.credentials.filter(Password))
+                        _has_v2 = any(p.version == 2 for p in user.credentials.filter(Password))  # noqa: PLR2004
                         if not _has_v2:
                             if not upgrade_password_to_v2(
                                 user=user,

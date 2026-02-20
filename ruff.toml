@@ -59,3 +59,4 @@ allow-star-arg-any = true
 [lint.per-file-ignores]
 "**/test_*.py" = ["PLR2004"]  # magic-value-comparison - allow magic numbers in tests
 "**/test*.py" = ["SIM117"]    # multiple-with-statements - combined session_transaction() calls break tests
+"src/eduid/webapp/common/authn/vccs.py" = ["PLR2004"]  # magic-value-comparison - allow magic numbers for password version
