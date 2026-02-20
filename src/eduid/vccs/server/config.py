@@ -32,6 +32,7 @@ class SoftHasherConfig(HasherConfig):
 class VCCSConfig(RootConfig):
     mongo_uri: str
     hasher: YHSMConfig | HSMKeyConfig | SoftHasherConfig
+    new_hasher: HSMKeyConfig | SoftHasherConfig | None = None
     # Optional arguments below
     add_creds_password_kdf_iterations: int = 50000
     add_creds_password_salt_bytes: int = 128 // 8

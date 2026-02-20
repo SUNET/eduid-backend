@@ -3,6 +3,7 @@
 
 import datetime
 import logging
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 from bson import ObjectId
@@ -111,3 +112,86 @@ class TestAuthentication(IdPAPITests):
         with self.assertRaises(exceptions.EduidForbidden):
             assert isinstance(self.test_user.mail_addresses.primary, MailAddress)
             self.app.authn.password_authn(self.test_user.mail_addresses.primary.email, "foo")
+
+
+class TestPasswordV2Upgrade(IdPAPITests):
+    def update_config(self, config: dict[str, Any]) -> dict[str, Any]:
+        config = super().update_config(config)
+        config["password_v2_upgrade_enabled"] = True
+        return config
+
+    @patch("eduid.vccs.client.VCCSClient.authenticate")
+    @patch("eduid.vccs.client.VCCSClient.add_credentials")
+    def test_v2_upgrade_on_v1_authn(self, mock_add_credentials: MagicMock, mock_authenticate: MagicMock) -> None:
+        """Verify that authenticating with a v1 password triggers a v2 upgrade."""
+        mock_add_credentials.return_value = True
+        mock_authenticate.return_value = True
+        assert isinstance(self.app.authn, IdPAuthn)
+
+        # Verify test user has only v1 password credentials
+        user = self.app.userdb.lookup_user(self.test_user.eppn)
+        assert user is not None
+        pw_creds = user.credentials.filter(Password)
+        assert len(pw_creds) > 0
+        assert all(p.version == 1 for p in pw_creds)
+
+        # Authenticate with the v1 password
+        assert self.test_user.mail_addresses.primary
+        pwauth = self.app.authn.password_authn(self.test_user.mail_addresses.primary.email, "foo")
+        assert pwauth is not None
+        assert pwauth.user.eppn == self.test_user.eppn
+
+        # Verify that a v2 credential was created on the user object
+        v2_creds = [p for p in pwauth.user.credentials.filter(Password) if p.version == 2]
+        assert len(v2_creds) == 1, f"Expected 1 v2 credential, got {len(v2_creds)}"
+        assert v2_creds[0].created_by == "idp"
+
+        # Verify add_credentials was called (once for the v2 upgrade)
+        mock_add_credentials.assert_called_once()
+
+    @patch("eduid.vccs.client.VCCSClient.authenticate")
+    @patch("eduid.vccs.client.VCCSClient.add_credentials")
+    def test_v2_upgrade_skipped_when_v2_exists(
+        self, mock_add_credentials: MagicMock, mock_authenticate: MagicMock
+    ) -> None:
+        """Verify that no upgrade happens if user already has a v2 password."""
+        mock_add_credentials.return_value = True
+        mock_authenticate.return_value = True
+        assert isinstance(self.app.authn, IdPAuthn)
+
+        # Add an existing v2 credential to the user
+        user = self.app.userdb.lookup_user(self.test_user.eppn)
+        assert user is not None
+        v2_password = Password(
+            credential_id=str(ObjectId()),
+            salt="$NDNv1H1$aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa$32$32$",
+            is_generated=False,
+            created_by="test",
+            version=2,
+        )
+        user.credentials.add(v2_password)
+        self.app.userdb.save(user)
+
+        # Authenticate with the v1 password
+        assert self.test_user.mail_addresses.primary
+        pwauth = self.app.authn.password_authn(self.test_user.mail_addresses.primary.email, "foo")
+        assert pwauth is not None
+
+        # add_credentials should NOT have been called (no upgrade needed)
+        mock_add_credentials.assert_not_called()
+
+    @patch("eduid.vccs.client.VCCSClient.authenticate")
+    def test_v2_upgrade_not_triggered_when_disabled(self, mock_authenticate: MagicMock) -> None:
+        """Verify upgrade does not happen when feature flag is disabled."""
+        mock_authenticate.return_value = True
+        assert isinstance(self.app.authn, IdPAuthn)
+
+        # Disable the feature flag
+        self.app.conf.password_v2_upgrade_enabled = False
+
+        assert self.test_user.mail_addresses.primary
+        with patch.object(VCCSClient, "add_credentials") as mock_add:
+            pwauth = self.app.authn.password_authn(self.test_user.mail_addresses.primary.email, "foo")
+            assert pwauth is not None
+            # add_credentials should NOT have been called
+            mock_add.assert_not_called()

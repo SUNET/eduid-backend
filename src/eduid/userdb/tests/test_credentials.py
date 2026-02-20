@@ -71,7 +71,7 @@ class TestCredentialList(unittest.TestCase):
     def test_to_list_of_dicts(self) -> None:
         self.assertEqual([], self.empty.to_list_of_dicts(), list)
 
-        expected = [_one_dict]
+        expected = [{**_one_dict, "version": 1}]
         obtained = self.one.to_list_of_dicts()
 
         assert obtained == expected, "Credential list with one password not as expected"

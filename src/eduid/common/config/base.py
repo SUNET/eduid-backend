@@ -279,8 +279,11 @@ class VCCSConfigMixin(BaseModel):
     # using TLS.
     vccs_url: str
     # vccs health check credentials
-    vccs_check_eppn: str
-    vccs_check_password: str
+    vccs_check_eppn: str | None = None
+    vccs_check_password: str | None = None
+    # Password v2 upgrade settings
+    password_v2_upgrade_enabled: bool = False
+    password_v2_grace_period_days: int = 90
 
 
 class CaptchaConfigMixin(BaseModel):

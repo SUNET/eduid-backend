@@ -26,6 +26,7 @@ from eduid.userdb.maccapi import ManagedAccountDB
 from eduid.vccs.client import VCCSClientHTTPError, VCCSPasswordFactor
 from eduid.webapp.common.api import exceptions
 from eduid.webapp.common.authn import get_vccs_client
+from eduid.webapp.common.authn.vccs import upgrade_password_to_v2
 from eduid.webapp.idp.settings.common import IdPConfig
 
 logger = logging.getLogger(__name__)
@@ -168,8 +169,12 @@ class IdPAuthn:
                 # Optimize list of credentials to try based on which credentials the
                 # user used in the last successful authentication. This optimization
                 # is based on plain assumption, no measurements whatsoever.
+                # Secondary sort: prefer v2 credentials over v1 (higher version first).
                 last_creds = authn_info.last_used_credentials
-                sorted_creds = sorted(pw_credentials, key=lambda x: x.credential_id not in last_creds)
+                sorted_creds = sorted(
+                    pw_credentials,
+                    key=lambda x: (x.credential_id not in last_creds, -x.version),
+                )
                 if sorted_creds != pw_credentials:
                     logger.debug(
                         f"Re-sorted list of credentials into\n{sorted_creds}\nbased on last-used {last_creds!r}"
@@ -205,6 +210,18 @@ class IdPAuthn:
                         logger.info(f"User {user} credential {cred.key} has expired")
                         raise exceptions.EduidForbidden("CREDENTIAL_EXPIRED")
                     self.log_authn(user, success=[cred.credential_id], failure=[])
+                    # Transparently upgrade v1 password to v2 (NDNv2) if enabled
+                    if self.config.password_v2_upgrade_enabled and cred.version == 1:
+                        _has_v2 = any(p.version == 2 for p in user.credentials.filter(Password))  # noqa: PLR2004
+                        if not _has_v2:
+                            if not upgrade_password_to_v2(
+                                user=user,
+                                password=password,
+                                old_credential=cred,
+                                application="idp",
+                                vccs=self.auth_client,
+                            ):
+                                logger.warning(f"Password v2 upgrade failed for user {user}")
                     return cred
             except VCCSClientHTTPError as exc:
                 if exc.http_code == HTTPStatus.INTERNAL_SERVER_ERROR:

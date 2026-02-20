@@ -196,7 +196,14 @@ class TestVCCSClient(unittest.TestCase):
             "add_creds": {
                 "version": 1,
                 "user_id": userid,
-                "factors": [{"credential_id": credential_id, "H1": "6520c816376fd8ee6299ff31", "type": "password"}],
+                "factors": [
+                    {
+                        "credential_id": credential_id,
+                        "H1": "6520c816376fd8ee6299ff31",
+                        "type": "password",
+                        "version": "NDNv1",
+                    }
+                ],
             }
         }
         self.assertEqual(expected, values)
@@ -224,7 +231,14 @@ class TestVCCSClient(unittest.TestCase):
             "add_creds": {
                 "version": 1,
                 "user_id": userid,
-                "factors": [{"credential_id": credential_id, "H1": "80e6759a26bb9d439bc77d52", "type": "password"}],
+                "factors": [
+                    {
+                        "credential_id": credential_id,
+                        "H1": "80e6759a26bb9d439bc77d52",
+                        "type": "password",
+                        "version": "NDNv1",
+                    }
+                ],
             }
         }
         self.assertEqual(expected, values)
@@ -307,3 +321,34 @@ class TestVCCSClient(unittest.TestCase):
         self.assertEqual(rounds, 32)
         self.assertEqual(len(random), length)
         self.assertEqual(f.salt, "$NDNv1H1$0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a0a$32$32$")
+
+    def test_password_factor_v2_same_hash(self) -> None:
+        """V2 factor should produce identical H1 hash as V1 (client-side is unchanged)."""
+        f_v1 = VCCSPasswordFactor("plaintext", "4711", "$NDNv1H1$aaaaaaaaaaaaaaaa$12$32$")
+        f_v2 = VCCSPasswordFactor("plaintext", "4711", "$NDNv1H1$aaaaaaaaaaaaaaaa$12$32$", version="NDNv2")
+        self.assertEqual(f_v1.hash, f_v2.hash)
+
+    def test_password_factor_v2_to_dict_add_creds(self) -> None:
+        """V2 factor should include version in add_creds serialization."""
+        f = VCCSPasswordFactor("plaintext", "4711", "$NDNv1H1$aaaaaaaaaaaaaaaa$12$32$", version="NDNv2")
+        d = f.to_dict("add_creds")
+        self.assertEqual(d["version"], "NDNv2")
+        self.assertEqual(d["type"], "password")
+        self.assertIn("H1", d)
+
+    def test_password_factor_v1_to_dict_add_creds(self) -> None:
+        """V1 factor should include version in add_creds serialization."""
+        f = VCCSPasswordFactor("plaintext", "4711", "$NDNv1H1$aaaaaaaaaaaaaaaa$12$32$")
+        d = f.to_dict("add_creds")
+        self.assertEqual(d["version"], "NDNv1")
+
+    def test_password_factor_to_dict_auth_no_version(self) -> None:
+        """Auth serialization should not include version (server determines from stored credential)."""
+        f = VCCSPasswordFactor("plaintext", "4711", "$NDNv1H1$aaaaaaaaaaaaaaaa$12$32$", version="NDNv2")
+        d = f.to_dict("auth")
+        self.assertNotIn("version", d)
+
+    def test_password_factor_default_version(self) -> None:
+        """Default version should be NDNv1."""
+        f = VCCSPasswordFactor("plaintext", "4711", "$NDNv1H1$aaaaaaaaaaaaaaaa$12$32$")
+        self.assertEqual(f.version, "NDNv1")

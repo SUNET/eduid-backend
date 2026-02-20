@@ -2,7 +2,7 @@ import unittest
 
 from bson import ObjectId
 
-from eduid.vccs.server.db import PasswordCredential
+from eduid.vccs.server.db import PasswordCredential, Version
 
 
 class TestCredential(unittest.TestCase):
@@ -33,3 +33,46 @@ class TestCredential(unittest.TestCase):
         cred2 = PasswordCredential.from_dict(cred1.to_dict())
         assert cred1.to_dict() == cred2.to_dict()
         assert cred2.to_dict() == self.data
+
+    def test_from_dict_v2(self) -> None:
+        data = {
+            "_id": ObjectId("65042b7a9b3f2299bb9d5546"),
+            "credential": {
+                "status": "active",
+                "derived_key": "aabbcc",
+                "version": "NDNv2",
+                "iterations": 50000,
+                "key_handle": 8192,
+                "key_label": "vccs-v2-hmac-key",
+                "salt": "d393c00d56d3c6f0fcf32421395427d2",
+                "kdf": "PBKDF2-HMAC-SHA512",
+                "type": "password",
+                "credential_id": "65042b7aafce77049473096a",
+            },
+            "revision": 1,
+        }
+        cred = PasswordCredential.from_dict(data)
+        assert cred.version == Version.NDNv2
+        assert cred.key_label == "vccs-v2-hmac-key"
+
+    def test_to_dict_from_dict_v2(self) -> None:
+        data = {
+            "_id": ObjectId("65042b7a9b3f2299bb9d5546"),
+            "credential": {
+                "status": "active",
+                "derived_key": "aabbcc",
+                "version": "NDNv2",
+                "iterations": 50000,
+                "key_handle": 8192,
+                "key_label": "vccs-v2-hmac-key",
+                "salt": "d393c00d56d3c6f0fcf32421395427d2",
+                "kdf": "PBKDF2-HMAC-SHA512",
+                "type": "password",
+                "credential_id": "65042b7aafce77049473096a",
+            },
+            "revision": 1,
+        }
+        cred1 = PasswordCredential.from_dict(data)
+        cred2 = PasswordCredential.from_dict(cred1.to_dict())
+        assert cred1.to_dict() == cred2.to_dict()
+        assert cred2.to_dict() == data
