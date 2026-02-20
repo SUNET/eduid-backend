@@ -25,7 +25,7 @@ def parse_search_filter(search_filter: str) -> SearchFilter:
         raise BadRequest(scim_type="invalidFilter", detail="Filter too long")
 
     parts = search_filter.split(" ", 2)
-    if len(parts) != FILTER_PARTS_COUNT:
+    if len(parts) != FILTER_PARTS_COUNT or not parts[0] or not parts[2]:
         logger.debug(f"Unrecognised filter: {search_filter}")
         raise BadRequest(scim_type="invalidFilter", detail="Unrecognised filter")
 
