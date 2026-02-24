@@ -91,6 +91,8 @@ async def calculate_cred_hash(
                 raise RuntimeError("NDNv2 credential requires new_hasher, but new_hasher is not configured")
             local_salt = await new_hasher.hmac_sha256(cred.key_label, T2)
         else:
+            if cred.key_handle is None:
+                raise ValueError("NDNv1 credential requires key_handle for HMAC-SHA-1")
             local_salt = await hasher.hmac_sha1(cred.key_handle, T2)
     except (ValueError, RuntimeError):
         raise  # Don't wrap ValueError/RuntimeError in another RuntimeError

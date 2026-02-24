@@ -106,13 +106,13 @@ class _PasswordCredentialRequired:
     derived_key: str
     iterations: int
     kdf: KDF
-    key_handle: int
     salt: str
     version: Version
 
 
 @dataclass(config=ConfigDict(arbitrary_types_allowed=True))
 class PasswordCredential(Credential, _PasswordCredentialRequired):
+    key_handle: int | None = None
     key_label: str | None = None
 
     @classmethod
