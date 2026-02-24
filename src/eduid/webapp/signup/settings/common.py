@@ -10,6 +10,7 @@ from eduid.common.config.base import (
     MagicCookieMixin,
     PasswordConfigMixin,
     TouConfigMixin,
+    VCCSConfigMixin,
 )
 from eduid.common.models.generic import AnyUrlStr
 
@@ -21,6 +22,7 @@ class SignupConfig(
     TouConfigMixin,
     CaptchaConfigMixin,
     PasswordConfigMixin,
+    VCCSConfigMixin,
 ):
     """
     Configuration for the signup app
@@ -28,7 +30,6 @@ class SignupConfig(
 
     app_name: str = "signup"
 
-    vccs_url: str
     signup_url: str
     dashboard_url: str
 

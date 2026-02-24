@@ -13,6 +13,7 @@ from eduid.common.config.base import (
     MagicCookieMixin,
     MsgConfigMixin,
     PasswordConfigMixin,
+    VCCSConfigMixin,
     WebauthnConfigMixin2,
 )
 
@@ -25,6 +26,7 @@ class ResetPasswordConfig(
     MsgConfigMixin,
     PasswordConfigMixin,
     CaptchaConfigMixin,
+    VCCSConfigMixin,
 ):
     """
     Configuration for the reset_password app
@@ -33,7 +35,6 @@ class ResetPasswordConfig(
     app_name: str = "reset_password"
 
     # VCCS URL
-    vccs_url: str
     dashboard_url: str
 
     email_code_timeout: timedelta = Field(default=timedelta(hours=2))
