@@ -283,7 +283,7 @@ class VCCSConfigMixin(BaseModel):
     vccs_check_password: str | None = None
     # Password v2 upgrade settings
     password_v2_upgrade_enabled: bool = False
-    password_v2_grace_period_days: int = 90
+    password_v2_grace_period_days: int = 180
 
 
 class CaptchaConfigMixin(BaseModel):
