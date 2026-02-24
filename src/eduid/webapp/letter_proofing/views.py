@@ -191,7 +191,7 @@ def verify_code(user: User, code: str) -> FluxData:
     current_app.stats.count(name="nin_verified")
 
     return success_response(
-        payload=dict(identities=proofing_user.identities.to_frontend_format()),
+        payload={"identities": proofing_user.identities.to_frontend_format()},
         message=LetterMsg.verify_success,
     )
 

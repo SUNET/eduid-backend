@@ -17,11 +17,23 @@ ADDRESS = FullPostalAddress.model_validate(
         [
             (
                 "Name",
-                OrderedDict([("GivenNameMarking", "20"), ("GivenName", "Testaren Test"), ("Surname", "Testsson")]),
+                OrderedDict(
+                    [
+                        ("GivenNameMarking", "20"),
+                        ("GivenName", "Testaren Test"),
+                        ("Surname", "Testsson"),
+                    ]
+                ),
             ),
             (
                 "OfficialAddress",
-                OrderedDict([("Address2", "\xd6RGATAN 79 LGH 10"), ("PostalCode", "12345"), ("City", "LANDET")]),
+                OrderedDict(
+                    [
+                        ("Address2", "\xd6RGATAN 79 LGH 10"),
+                        ("PostalCode", "12345"),
+                        ("City", "LANDET"),
+                    ]
+                ),
             ),
         ]
     )
@@ -29,7 +41,9 @@ ADDRESS = FullPostalAddress.model_validate(
 
 
 class ProofingStateTest(TestCase):
-    def _test_create_letterproofingstate(self, state: LetterProofingState, nin_expected_keys: list[str]) -> None:
+    def _test_create_letterproofingstate(
+        self, state: LetterProofingState, nin_expected_keys: list[str]
+    ) -> None:
         """
         {
              'eppn': 'foob-arra',
@@ -61,16 +75,29 @@ class ProofingStateTest(TestCase):
         """
         state.proofing_letter.address = ADDRESS
         state_dict = state.to_dict()
-        _state_expected_keys = ["_id", "eduPersonPrincipalName", "nin", "modified_ts", "proofing_letter"]
+        _state_expected_keys = [
+            "_id",
+            "eduPersonPrincipalName",
+            "nin",
+            "modified_ts",
+            "proofing_letter",
+        ]
         assert sorted(state_dict.keys()) == sorted(_state_expected_keys)
 
         self.assertEqual(
             sorted([k for k, v in state_dict["nin"].items() if v is not None]),
             sorted(nin_expected_keys),
         )
-        _proofing_letter_expected_keys = ["address", "created_ts", "is_sent", "modified_ts"]
+        _proofing_letter_expected_keys = [
+            "address",
+            "created_ts",
+            "is_sent",
+            "modified_ts",
+        ]
         self.assertEqual(
-            sorted([k for k, v in state_dict["proofing_letter"].items() if v is not None]),
+            sorted(
+                [k for k, v in state_dict["proofing_letter"].items() if v is not None]
+            ),
             sorted(_proofing_letter_expected_keys),
         )
 
@@ -103,7 +130,9 @@ class ProofingStateTest(TestCase):
 
         self._test_create_letterproofingstate(state, _nin_expected_keys)
 
-    def test_create_letterproofingstate_with_ninproofingelement_from_dict_with_created_ts(self) -> None:
+    def test_create_letterproofingstate_with_ninproofingelement_from_dict_with_created_ts(
+        self,
+    ) -> None:
         """ """
         state = LetterProofingState(
             eppn=EPPN,
@@ -123,7 +152,13 @@ class ProofingStateTest(TestCase):
             proofing_letter=SentLetterElement(),
         )
 
-        _nin_expected_keys = ["created_by", "created_ts", "number", "verification_code", "verified"]
+        _nin_expected_keys = [
+            "created_by",
+            "created_ts",
+            "number",
+            "verification_code",
+            "verified",
+        ]
         if not state.nin.no_modified_ts_in_db:
             # When _no_modified_ts_in_db is removed from Element,
             # 'modified_ts' should be added to _nin_expected_keys above
@@ -148,7 +183,13 @@ class ProofingStateTest(TestCase):
             proofing_letter=SentLetterElement(),
         )
 
-        _nin_expected_keys = ["created_by", "created_ts", "number", "verification_code", "verified"]
+        _nin_expected_keys = [
+            "created_by",
+            "created_ts",
+            "number",
+            "verification_code",
+            "verified",
+        ]
         if not state.nin.no_modified_ts_in_db:
             # When _no_modified_ts_in_db is removed from Element,
             # 'modified_ts' should be added to _nin_expected_keys above

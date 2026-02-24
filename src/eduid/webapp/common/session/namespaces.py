@@ -243,7 +243,7 @@ MAX_AUTHNS_TO_KEEP = 10
 
 
 class SPAuthnData(BaseModel):
-    pysaml2_dicts: PySAML2Dicts = Field(default=cast(PySAML2Dicts, dict()))
+    pysaml2_dicts: PySAML2Dicts = Field(default=cast(PySAML2Dicts, {}))
     authns: dict[AuthnRequestRef, SP_AuthnRequest] = Field(default_factory=dict)
 
     @field_serializer("authns")
@@ -259,7 +259,7 @@ class SPAuthnData(BaseModel):
 
     def _get_sorted_authns(self) -> list[SP_AuthnRequest]:
         # sort authn actions by created_ts, latest first
-        return [authn for authn in sorted(self.authns.values(), reverse=True, key=lambda item: item.created_ts)]
+        return sorted(self.authns.values(), reverse=True, key=lambda item: item.created_ts)
 
     def get_latest_authn(self) -> SP_AuthnRequest | None:
         for authn in self._get_sorted_authns():

@@ -753,7 +753,7 @@ class TestNewUser(unittest.TestCase):
         oidc_data["created_by"] = "test"
         oidc_data["id_token"] = oidc_id_token
         oidc_authz = OidcAuthorization.from_dict(oidc_data)
-        orcid_element = Orcid.from_dict(dict(id=orcid, oidc_authz=oidc_authz, created_by="test"))
+        orcid_element = Orcid.from_dict({"id": orcid, "oidc_authz": oidc_authz, "created_by": "test"})
 
         user = User.from_dict(self.data1)
         user.orcid = orcid_element

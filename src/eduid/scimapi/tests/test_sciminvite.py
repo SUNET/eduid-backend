@@ -204,7 +204,7 @@ class TestInviteResource(ScimApiTestCase):
                 invite_data.update(data)
 
         profiles = {}
-        for profile_name, profile in invite_data.get("profiles", dict()).items():
+        for profile_name, profile in invite_data.get("profiles", {}).items():
             profiles[profile_name] = ScimApiProfile(**profile)
 
         db_invite = ScimApiInvite(

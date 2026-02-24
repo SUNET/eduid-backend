@@ -57,7 +57,7 @@ class AddStaticAttributesForVirtualIdp(ResponseMicroService):
         )
 
     def _build_static(self, requester: str, vidp: str, existing_attributes: dict) -> dict[str, list[str]]:
-        static_attributes: dict[str, list[str]] = dict()
+        static_attributes: dict[str, list[str]] = {}
 
         if self.static_attributes:
             recipes: Mapping[str, list] = get_dict_defaults(self.static_attributes, requester, vidp)

@@ -22,7 +22,7 @@ class AsyncQueueDB(AsyncBaseDB, QueuePayloadMixin):
     def __init__(self, db_uri: str, collection: str, db_name: str = "eduid_queue") -> None:
         super().__init__(db_uri, collection=collection, db_name=db_name)
 
-        self.handlers: dict[str, type[Payload]] = dict()
+        self.handlers: dict[str, type[Payload]] = {}
 
     @classmethod
     async def create(cls, db_uri: str, collection: str, db_name: str = "eduid_queue") -> "AsyncQueueDB":
@@ -116,7 +116,7 @@ class AsyncQueueDB(AsyncBaseDB, QueuePayloadMixin):
         # to_list needs length, 100 seems like a good start
         # TODO: Investigate if this can be a generator?
         logger.debug(f"spec: {spec}")
-        return [doc for doc in await self.collection.find(spec).to_list(length=100)]
+        return await self.collection.find(spec).to_list(length=100)
 
     async def remove_item(self, item_id: str | ObjectId) -> bool:
         """
