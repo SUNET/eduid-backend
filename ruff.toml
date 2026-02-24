@@ -8,6 +8,7 @@ select = [
   "ASYNC",
   "B",
   "C4",
+  "DTZ",
   "E",
   "ERA",
   "F",

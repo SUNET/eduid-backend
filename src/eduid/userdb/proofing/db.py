@@ -9,7 +9,6 @@ from eduid.userdb.db import BaseDB, SaveResult, TUserDbDocument
 from eduid.userdb.proofing.state import (
     EmailProofingState,
     LetterProofingState,
-    OidcProofingState,
     OrcidProofingState,
     PhoneProofingState,
     ProofingState,
@@ -199,15 +198,6 @@ class OidcStateDB[ProofingStateVar: ProofingState](ProofingStateDB[ProofingState
         return self.state_from_dict(state)
 
 
-class OidcProofingStateDB(OidcStateDB[OidcProofingState]):
-    def __init__(self, db_uri: str, db_name: str = "eduid_oidc_proofing", auto_expire: timedelta | None = None) -> None:
-        super().__init__(db_uri, db_name, auto_expire=auto_expire)
-
-    @classmethod
-    def state_from_dict(cls, data: Mapping[str, Any]) -> OidcProofingState:
-        return OidcProofingState.from_dict(data)
-
-
 class OrcidProofingStateDB(OidcStateDB[OrcidProofingState]):
     ProofingStateClass = OrcidProofingState
 
@@ -237,11 +227,6 @@ class LetterProofingUserDB(ProofingUserDB):
     def __init__(
         self, db_uri: str, db_name: str = "eduid_idproofing_letter", auto_expire: timedelta | None = None
     ) -> None:
-        super().__init__(db_uri, db_name, auto_expire=auto_expire)
-
-
-class OidcProofingUserDB(ProofingUserDB):
-    def __init__(self, db_uri: str, db_name: str = "eduid_oidc_proofing", auto_expire: timedelta | None = None) -> None:
         super().__init__(db_uri, db_name, auto_expire=auto_expire)
 
 

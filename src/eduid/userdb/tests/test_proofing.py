@@ -2,9 +2,10 @@ from collections import OrderedDict
 from datetime import datetime
 from unittest import TestCase
 
+from eduid.common.misc.timeutil import utc_now
 from eduid.common.rpc.msg_relay import FullPostalAddress
 from eduid.userdb.proofing.element import NinProofingElement, SentLetterElement
-from eduid.userdb.proofing.state import LetterProofingState, OidcProofingState, ProofingState
+from eduid.userdb.proofing.state import LetterProofingState, ProofingState
 
 __author__ = "lundberg"
 
@@ -16,11 +17,23 @@ ADDRESS = FullPostalAddress.model_validate(
         [
             (
                 "Name",
-                OrderedDict([("GivenNameMarking", "20"), ("GivenName", "Testaren Test"), ("Surname", "Testsson")]),
+                OrderedDict(
+                    [
+                        ("GivenNameMarking", "20"),
+                        ("GivenName", "Testaren Test"),
+                        ("Surname", "Testsson"),
+                    ]
+                ),
             ),
             (
                 "OfficialAddress",
-                OrderedDict([("Address2", "\xd6RGATAN 79 LGH 10"), ("PostalCode", "12345"), ("City", "LANDET")]),
+                OrderedDict(
+                    [
+                        ("Address2", "\xd6RGATAN 79 LGH 10"),
+                        ("PostalCode", "12345"),
+                        ("City", "LANDET"),
+                    ]
+                ),
             ),
         ]
     )
@@ -28,7 +41,9 @@ ADDRESS = FullPostalAddress.model_validate(
 
 
 class ProofingStateTest(TestCase):
-    def _test_create_letterproofingstate(self, state: LetterProofingState, nin_expected_keys: list[str]) -> None:
+    def _test_create_letterproofingstate(
+        self, state: LetterProofingState, nin_expected_keys: list[str]
+    ) -> None:
         """
         {
              'eppn': 'foob-arra',
@@ -60,16 +75,29 @@ class ProofingStateTest(TestCase):
         """
         state.proofing_letter.address = ADDRESS
         state_dict = state.to_dict()
-        _state_expected_keys = ["_id", "eduPersonPrincipalName", "nin", "modified_ts", "proofing_letter"]
+        _state_expected_keys = [
+            "_id",
+            "eduPersonPrincipalName",
+            "nin",
+            "modified_ts",
+            "proofing_letter",
+        ]
         assert sorted(state_dict.keys()) == sorted(_state_expected_keys)
 
         self.assertEqual(
             sorted([k for k, v in state_dict["nin"].items() if v is not None]),
             sorted(nin_expected_keys),
         )
-        _proofing_letter_expected_keys = ["address", "created_ts", "is_sent", "modified_ts"]
+        _proofing_letter_expected_keys = [
+            "address",
+            "created_ts",
+            "is_sent",
+            "modified_ts",
+        ]
         self.assertEqual(
-            sorted([k for k, v in state_dict["proofing_letter"].items() if v is not None]),
+            sorted(
+                [k for k, v in state_dict["proofing_letter"].items() if v is not None]
+            ),
             sorted(_proofing_letter_expected_keys),
         )
 
@@ -102,7 +130,9 @@ class ProofingStateTest(TestCase):
 
         self._test_create_letterproofingstate(state, _nin_expected_keys)
 
-    def test_create_letterproofingstate_with_ninproofingelement_from_dict_with_created_ts(self) -> None:
+    def test_create_letterproofingstate_with_ninproofingelement_from_dict_with_created_ts(
+        self,
+    ) -> None:
         """ """
         state = LetterProofingState(
             eppn=EPPN,
@@ -122,7 +152,13 @@ class ProofingStateTest(TestCase):
             proofing_letter=SentLetterElement(),
         )
 
-        _nin_expected_keys = ["created_by", "created_ts", "number", "verification_code", "verified"]
+        _nin_expected_keys = [
+            "created_by",
+            "created_ts",
+            "number",
+            "verification_code",
+            "verified",
+        ]
         if not state.nin.no_modified_ts_in_db:
             # When _no_modified_ts_in_db is removed from Element,
             # 'modified_ts' should be added to _nin_expected_keys above
@@ -147,7 +183,13 @@ class ProofingStateTest(TestCase):
             proofing_letter=SentLetterElement(),
         )
 
-        _nin_expected_keys = ["created_by", "created_ts", "number", "verification_code", "verified"]
+        _nin_expected_keys = [
+            "created_by",
+            "created_ts",
+            "number",
+            "verification_code",
+            "verified",
+        ]
         if not state.nin.no_modified_ts_in_db:
             # When _no_modified_ts_in_db is removed from Element,
             # 'modified_ts' should be added to _nin_expected_keys above
@@ -155,37 +197,9 @@ class ProofingStateTest(TestCase):
 
         self._test_create_letterproofingstate(state, _nin_expected_keys)
 
-    def test_create_oidcproofingstate(self) -> None:
-        """
-        {
-            'eduPersonPrincipalName': 'foob-arra',
-            'state': '2c84fedd-a694-46f0-b235-7c4dd7982852'
-            'nonce': 'bbca50f6-5213-4784-b6e6-289bd1debda5',
-            'token': 'de5b3f2a-14e9-49b8-9c78-a15fcf60d119',
-        }
-        """
-
-        nin_pe = NinProofingElement.from_dict(
-            {"number": "200102034567", "application": "eduid_oidc_proofing", "verified": False}
-        )
-        state = OidcProofingState(
-            eppn=EPPN,
-            state="2c84fedd-a694-46f0-b235-7c4dd7982852",
-            nonce="bbca50f6-5213-4784-b6e6-289bd1debda5",
-            token="de5b3f2a-14e9-49b8-9c78-a15fcf60d119",
-            nin=nin_pe,
-            id=None,
-            modified_ts=None,
-        )
-        state_dict = state.to_dict()
-        self.assertEqual(
-            sorted(state_dict.keys()),
-            ["_id", "eduPersonPrincipalName", "modified_ts", "nin", "nonce", "state", "token"],
-        )
-
     def test_proofing_state_expiration(self) -> None:
-        state = ProofingState(id=None, eppn=EPPN, modified_ts=datetime.now(tz=None))
+        state = ProofingState(id=None, eppn=EPPN, modified_ts=utc_now())
         self.assertFalse(state.is_expired(1))
 
-        expired_state = ProofingState(id=None, eppn=EPPN, modified_ts=datetime.now(tz=None))
+        expired_state = ProofingState(id=None, eppn=EPPN, modified_ts=utc_now())
         self.assertTrue(expired_state.is_expired(-1))

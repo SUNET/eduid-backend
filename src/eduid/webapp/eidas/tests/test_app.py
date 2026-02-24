@@ -280,7 +280,7 @@ class EidasTests(ProofingTests[EidasApp]):
         tomorrow = utc_now() + datetime.timedelta(days=1)
         yesterday = utc_now() - datetime.timedelta(days=1)
         if date_of_birth is None:
-            date_of_birth = datetime.datetime.strptime(asserted_identity[:8], "%Y%m%d")
+            date_of_birth = datetime.datetime.strptime(asserted_identity[:8], "%Y%m%d").replace(tzinfo=datetime.UTC)
 
         sp_baseurl = "http://test.localhost:6544/"
 

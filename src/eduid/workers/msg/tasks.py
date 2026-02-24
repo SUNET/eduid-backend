@@ -11,7 +11,6 @@ from hammock import Hammock
 from smscom import SMSClient
 
 from eduid.common.config.base import EduidEnvironment
-from eduid.common.decorators import deprecated
 from eduid.userdb.exceptions import ConnectionError
 from eduid.workers.msg.cache import CacheMDB
 from eduid.workers.msg.common import MsgCelerySingleton
@@ -280,22 +279,6 @@ class MessageSender(Task):
             self.cache("navet_cache").add_cache_item(identity_number, json_data)
         return json_data
 
-    @deprecated("This function seems unused")
-    def set_audit_log_postal_address(self, audit_reference: str) -> bool:
-        from eduid.userdb import MongoDB
-
-        conn = MongoDB(self.MONGODB_URI)
-        db = conn.get_database(TRANSACTION_AUDIT_DB)
-        log_entry = db[TRANSACTION_AUDIT_COLLECTION].find_one({"data.audit_reference": audit_reference})
-        if log_entry and log_entry.get("data", {}).get("recipient", None):
-            result = get_postal_address(log_entry["data"]["recipient"])
-            if result:
-                address_dict = dict(result)
-                log_entry["data"]["navet_response"] = address_dict
-                db[TRANSACTION_AUDIT_COLLECTION].update({"_id": log_entry["_id"]}, log_entry)
-                return True
-        return False
-
     @TransactionAudit()
     def sendsms(self, recipient: str, message: str, reference: str) -> str:
         """
@@ -438,20 +421,6 @@ def get_relations_to(self: MessageSender, identity_number: str, relative_nin: st
     except Exception as e:
         logger.error(f"get_relations_to task error: {e}", exc_info=True)
         raise self.retry(default_retry_delay=1, max_retries=3, exc=e) from e
-
-
-@app.task(bind=True, base=MessageSender)
-@deprecated("This task seems unused")
-def set_audit_log_postal_address(self: MessageSender, audit_reference: str) -> bool:
-    """
-    Looks in the transaction audit collection for the audit reference and make a postal address lookup and adds the
-    result to the transaction audit document.
-    """
-    try:
-        return self.set_audit_log_postal_address(audit_reference)
-    except Exception as e:
-        logger.error(f"set_audit_log_postal_address task error: {e}", exc_info=True)
-        raise e
 
 
 @app.task(bind=True, base=MessageSender, name="eduid_msg.tasks.pong")

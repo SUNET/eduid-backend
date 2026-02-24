@@ -564,7 +564,7 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
             SvipeIdentity(
                 administrative_number=userinfo.document_administrative_number,
                 country_code=userinfo.document_nationality,
-                date_of_birth=datetime.today(),  # not matching the new identity
+                date_of_birth=utc_now(),  # not matching the new identity
                 is_verified=True,
                 svipe_id="another_svipe_id",
             )
