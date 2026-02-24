@@ -120,31 +120,6 @@
     <div class="col-md-6">
       <table class="table table-hover table-hover">
         <caption>
-          OIDC proofing
-        </caption>
-        {% if item.oidc_proofing %}
-        <tr>
-          <th scope="col">Created</th>
-          <td>{{ item.oidc_proofing.modified_ts|datetimeformat }}</td>
-        </tr>
-        <tr>
-          <th scope="col">State ID</th>
-          <td>{{ item.oidc_proofing.state }}</td>
-        </tr>
-        <tr>
-          <th scope="col">National identity number</th>
-          <td>{{ item.oidc_proofing.nin.number }}</td>
-        </tr>
-        {% else %}
-        <tr>
-          <td class="no-data">No data</td>
-        </tr>
-        {% endif %}
-      </table>
-    </div>
-    <div class="col-md-6">
-      <table class="table table-hover table-hover">
-        <caption>
           Email proofings
         </caption>
         {% if item.email_proofings %} {% for email_proofing in item.email_proofings %}
