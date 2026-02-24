@@ -1,5 +1,5 @@
 from flask import Blueprint, abort
-from requests.exceptions import ConnectionError
+from requests.exceptions import ConnectionError as RequestsConnectionError
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.rpc.exceptions import AmTaskFailed, MsgTaskFailed, NoAddressFound
@@ -109,7 +109,7 @@ def proofing(user: User, nin: str) -> FluxData:
         current_app.stats.count("ekopost_error")
         current_app.proofing_statedb.remove_state(proofing_state)
         return error_response(message=CommonMsg.temp_problem)
-    except ConnectionError as e:
+    except RequestsConnectionError as e:
         current_app.logger.error(f"Error connecting to Ekopost: {e}")
         current_app.proofing_statedb.remove_state(proofing_state)
         return error_response(message=CommonMsg.temp_problem)

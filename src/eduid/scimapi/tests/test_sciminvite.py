@@ -288,7 +288,7 @@ class TestInviteResource(ScimApiTestCase):
 
     def _perform_search(
         self,
-        filter: str,
+        search_filter: str,
         start: int = 1,
         count: int = 10,
         return_json: bool = False,
@@ -296,10 +296,10 @@ class TestInviteResource(ScimApiTestCase):
         expected_num_resources: int | None = None,
         expected_total_results: int | None = None,
     ) -> dict:
-        logger.info(f"Searching for group(s) using filter {filter!r}")
+        logger.info(f"Searching for group(s) using filter {search_filter!r}")
         req = {
             "schemas": [SCIMSchema.API_MESSAGES_20_SEARCH_REQUEST.value],
-            "filter": filter,
+            "filter": search_filter,
             "startIndex": start,
             "count": count,
         }
@@ -553,11 +553,11 @@ class TestInviteResource(ScimApiTestCase):
         self.assertGreater(db_invite2.last_modified, db_invite1.last_modified)
 
         self._perform_search(
-            filter=f'meta.lastModified ge "{db_invite1.last_modified.isoformat()}"',
+            search_filter=f'meta.lastModified ge "{db_invite1.last_modified.isoformat()}"',
             expected_num_resources=2,
             expected_total_results=2,
         )
 
         self._perform_search(
-            filter=f'meta.lastModified gt "{db_invite1.last_modified.isoformat()}"', expected_invite=db_invite2
+            search_filter=f'meta.lastModified gt "{db_invite1.last_modified.isoformat()}"', expected_invite=db_invite2
         )

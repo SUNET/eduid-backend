@@ -60,22 +60,22 @@ def db_group_to_response(req: ContextRequest, resp: Response, db_group: ScimApiG
 
 def filter_display_name(
     req: ContextRequest,
-    filter: SearchFilter,
+    search_filter: SearchFilter,
     skip: int | None = None,
     limit: int | None = None,
 ) -> tuple[list[ScimApiGroup], int]:
-    if filter.op != "eq":
+    if search_filter.op != "eq":
         raise BadRequest(scim_type="invalidFilter", detail="Unsupported operator")
-    if not isinstance(filter.val, str):
+    if not isinstance(search_filter.val, str):
         raise BadRequest(scim_type="invalidFilter", detail="Invalid displayName")
 
-    req.app.context.logger.debug(f"Searching for group with display name {filter.val!r}")
+    req.app.context.logger.debug(f"Searching for group with display name {search_filter.val!r}")
     assert isinstance(req.context, ScimApiContext)  # please mypy
     assert req.context.groupdb is not None  # please mypy
     assert skip is not None  # please mypy
     assert limit is not None  # please mypy
     groups, count = req.context.groupdb.get_groups_by_property(
-        key="display_name", value=filter.val, skip=skip, limit=limit
+        key="display_name", value=search_filter.val, skip=skip, limit=limit
     )
 
     if not groups:
@@ -85,40 +85,44 @@ def filter_display_name(
 
 
 def filter_lastmodified(
-    req: ContextRequest, filter: SearchFilter, skip: int | None = None, limit: int | None = None
+    req: ContextRequest, search_filter: SearchFilter, skip: int | None = None, limit: int | None = None
 ) -> tuple[list[ScimApiGroup], int]:
-    if filter.op not in ["gt", "ge"]:
+    if search_filter.op not in ["gt", "ge"]:
         raise BadRequest(scim_type="invalidFilter", detail="Unsupported operator")
-    if not isinstance(filter.val, str):
+    if not isinstance(search_filter.val, str):
         raise BadRequest(scim_type="invalidFilter", detail="Invalid datetime")
     try:
-        _parsed = datetime.fromisoformat(filter.val)
+        _parsed = datetime.fromisoformat(search_filter.val)
     except Exception as e:
         raise BadRequest(scim_type="invalidFilter", detail="Invalid datetime") from e
     assert isinstance(req.context, ScimApiContext)  # please mypy
     assert req.context.groupdb is not None  # please mypy
-    return req.context.groupdb.get_groups_by_last_modified(operator=filter.op, value=_parsed, skip=skip, limit=limit)
+    return req.context.groupdb.get_groups_by_last_modified(
+        operator=search_filter.op, value=_parsed, skip=skip, limit=limit
+    )
 
 
 def filter_extensions_data(
     req: ContextRequest,
-    filter: SearchFilter,
+    search_filter: SearchFilter,
     skip: int | None = None,
     limit: int | None = None,
 ) -> tuple[list[ScimApiGroup], int]:
-    if filter.op != "eq":
+    if search_filter.op != "eq":
         raise BadRequest(scim_type="invalidFilter", detail="Unsupported operator")
 
-    match = re.match(r"^extensions\.data\.([a-z_]+)$", filter.attr)
+    match = re.match(r"^extensions\.data\.([a-z_]+)$", search_filter.attr)
     if not match:
         raise BadRequest(scim_type="invalidFilter", detail="Unsupported extension search key")
 
-    req.app.context.logger.debug(f"Searching for groups with {filter.attr} {filter.op} {filter.val!r}")
+    req.app.context.logger.debug(
+        f"Searching for groups with {search_filter.attr} {search_filter.op} {search_filter.val!r}"
+    )
     assert isinstance(req.context, ScimApiContext)  # please mypy
     assert req.context.groupdb is not None  # please mypy
     assert skip is not None  # please mypy
     assert limit is not None  # please mypy
     groups, count = req.context.groupdb.get_groups_by_property(
-        key=filter.attr, value=filter.val, skip=skip, limit=limit
+        key=search_filter.attr, value=search_filter.val, skip=skip, limit=limit
     )
     return groups, count

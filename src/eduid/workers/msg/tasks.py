@@ -11,7 +11,7 @@ from hammock import Hammock
 from smscom import SMSClient
 
 from eduid.common.config.base import EduidEnvironment
-from eduid.userdb.exceptions import ConnectionError
+from eduid.userdb.exceptions import DBConnectionError
 from eduid.workers.msg.cache import CacheMDB
 from eduid.workers.msg.common import MsgCelerySingleton
 from eduid.workers.msg.decorators import TransactionAudit
@@ -77,7 +77,7 @@ class MessageSender(Task):
 
     def on_failure(self, exc: Exception, task_id: str, args: tuple, kwargs: dict, einfo: ExceptionInfo) -> None:
         # Try to reload the db on connection failures (mongodb has probably switched master)
-        if isinstance(exc, ConnectionError):
+        if isinstance(exc, DBConnectionError):
             logger.error("Task failed with db exception ConnectionError. Reloading db.")
             self.reload_db()
 
@@ -322,7 +322,7 @@ class MessageSender(Task):
                 return f"pong for {app_name}"
             # Old clients don't send app_name, and text-match the response to be exactly 'pong' in the health checks
             return "pong"
-        raise ConnectionError("Database not healthy")
+        raise DBConnectionError("Database not healthy")
 
 
 @app.task(bind=True, base=MessageSender, name="eduid_msg.tasks.sendsms")

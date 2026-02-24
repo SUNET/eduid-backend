@@ -84,7 +84,7 @@ class TestGroupResource(ScimApiTestCase):
 
     def _perform_search(
         self,
-        filter: str,
+        search_filter: str,
         start: int = 1,
         count: int = 10,
         return_json: bool = False,
@@ -92,10 +92,10 @@ class TestGroupResource(ScimApiTestCase):
         expected_num_resources: int | None = None,
         expected_total_results: int | None = None,
     ) -> dict:
-        logger.info(f"Searching for group(s) using filter {filter!r}")
+        logger.info(f"Searching for group(s) using filter {search_filter!r}")
         req = {
             "schemas": [SCIMSchema.API_MESSAGES_20_SEARCH_REQUEST.value],
-            "filter": filter,
+            "filter": search_filter,
             "startIndex": start,
             "count": count,
         }
@@ -544,28 +544,28 @@ class TestGroupSearchResource(TestGroupResource):
     def test_search_group_display_name(self) -> None:
         db_group = self.add_group(uuid4(), "Test Group 1")
         self.add_group(uuid4(), "Test Group 2")
-        self._perform_search(filter='displayName eq "Test Group 1"', expected_group=db_group)
+        self._perform_search(search_filter='displayName eq "Test Group 1"', expected_group=db_group)
 
     def test_search_group_display_name_not_found(self) -> None:
-        self._perform_search(filter='displayName eq "Test No Such Group"', expected_total_results=0)
+        self._perform_search(search_filter='displayName eq "Test No Such Group"', expected_total_results=0)
 
     def test_search_group_display_name_bad_operator(self) -> None:
-        json = self._perform_search(filter="displayName lt 1", return_json=True)
+        json = self._perform_search(search_filter="displayName lt 1", return_json=True)
         self._assertScimError(json, scim_type="invalidFilter", detail="Unsupported operator")
 
     def test_search_group_display_name_not_string(self) -> None:
-        json = self._perform_search(filter="displayName eq 1", return_json=True)
+        json = self._perform_search(search_filter="displayName eq 1", return_json=True)
         self._assertScimError(json, scim_type="invalidFilter", detail="Invalid displayName")
 
     def test_search_group_unknown_attribute(self) -> None:
-        json = self._perform_search(filter="no_such_attribute lt 1", return_json=True)
+        json = self._perform_search(search_filter="no_such_attribute lt 1", return_json=True)
         self._assertScimError(json, scim_type="invalidFilter", detail="Can't filter on attribute no_such_attribute")
 
     def test_search_group_start_index(self) -> None:
         for _i in range(9):
             self.add_group(uuid4(), "Test Group")
         self._perform_search(
-            filter='displayName eq "Test Group"', start=5, expected_num_resources=5, expected_total_results=9
+            search_filter='displayName eq "Test Group"', start=5, expected_num_resources=5, expected_total_results=9
         )
 
     def test_search_group_count(self) -> None:
@@ -577,25 +577,29 @@ class TestGroupSearchResource(TestGroupResource):
         self.assertEqual(len(groups), 9)
 
         self._perform_search(
-            filter='displayName eq "Test Group"', start=1, count=5, expected_num_resources=5, expected_total_results=9
+            search_filter='displayName eq "Test Group"',
+            start=1,
+            count=5,
+            expected_num_resources=5,
+            expected_total_results=9,
         )
 
     def test_search_group_extension_data_attribute_str(self) -> None:
         ext = GroupExtensions(data={"some_key": "20072009"})
         db_group = self.add_group(uuid4(), "Test Group with extension", extensions=ext)
 
-        self._perform_search(filter='extensions.data.some_key eq "20072009"', expected_group=db_group)
+        self._perform_search(search_filter='extensions.data.some_key eq "20072009"', expected_group=db_group)
 
     def test_search_group_extension_data_bad_op(self) -> None:
-        json = self._perform_search(filter='extensions.data.some_key XY "20072009"', return_json=True)
+        json = self._perform_search(search_filter='extensions.data.some_key XY "20072009"', return_json=True)
         self._assertScimError(json, detail="Unsupported operator")
 
     def test_search_group_extension_data_invalid_key(self) -> None:
-        json = self._perform_search(filter='extensions.data.some.key eq "20072009"', return_json=True)
+        json = self._perform_search(search_filter='extensions.data.some.key eq "20072009"', return_json=True)
         self._assertScimError(json, detail="Unsupported extension search key")
 
     def test_search_group_extension_data_not_found(self) -> None:
-        self._perform_search(filter='extensions.data.some_key eq "20072009"', expected_num_resources=0)
+        self._perform_search(search_filter='extensions.data.some_key eq "20072009"', expected_num_resources=0)
 
     def test_search_group_extension_data_attribute_int(self) -> None:
         ext1 = GroupExtensions(data={"some_key": 20072009})
@@ -605,7 +609,7 @@ class TestGroupSearchResource(TestGroupResource):
         ext2 = GroupExtensions(data={"some_key": 123})
         self.add_group(uuid4(), "Test Group with extension", extensions=ext2)
 
-        self._perform_search(filter="extensions.data.some_key eq 20072009", expected_group=group)
+        self._perform_search(search_filter="extensions.data.some_key eq 20072009", expected_group=group)
 
     def test_search_group_last_modified(self) -> None:
         group1 = self.add_group(uuid4(), "Test Group 1")
@@ -613,17 +617,19 @@ class TestGroupSearchResource(TestGroupResource):
         self.assertGreater(group2.last_modified, group1.last_modified)
 
         self._perform_search(
-            filter=f'meta.lastModified ge "{group1.last_modified.isoformat()}"', expected_num_resources=2
+            search_filter=f'meta.lastModified ge "{group1.last_modified.isoformat()}"', expected_num_resources=2
         )
 
-        self._perform_search(filter=f'meta.lastModified gt "{group1.last_modified.isoformat()}"', expected_group=group2)
+        self._perform_search(
+            search_filter=f'meta.lastModified gt "{group1.last_modified.isoformat()}"', expected_group=group2
+        )
 
     def test_search_group_last_modified_invalid_datetime_1(self) -> None:
-        json = self._perform_search(filter="meta.lastModified ge 1", return_json=True)
+        json = self._perform_search(search_filter="meta.lastModified ge 1", return_json=True)
         self._assertScimError(json, detail="Invalid datetime")
 
     def test_search_group_last_modified_invalid_datetime_2(self) -> None:
-        json = self._perform_search(filter='meta.lastModified ge "2020-05-12_15:36:99+00:00"', return_json=True)
+        json = self._perform_search(search_filter='meta.lastModified ge "2020-05-12_15:36:99+00:00"', return_json=True)
         self._assertScimError(json, detail="Invalid datetime")
 
     def test_schema_violation(self) -> None:
