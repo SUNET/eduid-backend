@@ -2,7 +2,7 @@
 
 import logging
 from collections.abc import Mapping
-from datetime import datetime
+from datetime import UTC, datetime
 from uuid import uuid4
 
 import saml2.server
@@ -203,7 +203,7 @@ class TestSSO(SSOIdPTests):
                         prid_persistence=PridPersistence.B,
                         loa=eidas_loa,
                         country_code="DK",
-                        date_of_birth=datetime(year=1980, month=1, day=1),
+                        date_of_birth=datetime(year=1980, month=1, day=1, tzinfo=UTC),
                         created_by="unittest",
                         created_ts=utc_now(),
                         verified_by="unittest",
@@ -221,7 +221,7 @@ class TestSSO(SSOIdPTests):
                         loa_level=freja_loa_level,
                         personal_identity_number="test_freja_personal_identity_number",
                         country_code="DK",
-                        date_of_birth=datetime(year=1980, month=1, day=1),
+                        date_of_birth=datetime(year=1980, month=1, day=1, tzinfo=UTC),
                         created_by="unittest",
                         created_ts=utc_now(),
                         verified_by="unittest",
@@ -289,7 +289,7 @@ class TestSSO(SSOIdPTests):
             elif isinstance(this, Credential):
                 _cred = this
             else:
-                raise ValueError(f"Unhandled test data: {repr(this)}")
+                raise ValueError(f"Unhandled test data: {this!r}")
 
             data = AuthnData(cred_id=_cred.key)
             sso_session_1.add_authn_credential(data)

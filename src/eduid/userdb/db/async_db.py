@@ -1,6 +1,6 @@
 import logging
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, ClassVar
 
 import pymongo
 from bson import ObjectId
@@ -21,7 +21,7 @@ class AsyncClientCache:
     A cache for AsyncIOMotorClient instances.
     """
 
-    _clients: dict[str, AsyncIOMotorClient] = {}
+    _clients: ClassVar[dict[str, AsyncIOMotorClient]] = {}
 
     def get_client(self, db: BaseMongoDB) -> AsyncIOMotorClient:
         db_args = db.db_args
@@ -173,7 +173,7 @@ class AsyncBaseDB:
         if doc_count == 0:
             return None
         elif doc_count > 1:
-            raise MultipleDocumentsReturned(f"Multiple matching documents for {attr}={repr(value)}")
+            raise MultipleDocumentsReturned(f"Multiple matching documents for {attr}={value!r}")
         return docs[0]
 
     async def _get_documents_by_attr(self, attr: str, value: str) -> list[Mapping[str, Any]]:

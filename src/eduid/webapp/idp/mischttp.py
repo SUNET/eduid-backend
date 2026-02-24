@@ -108,7 +108,7 @@ class HttpArgs:
             headers.append(("Content-Type", _content_type))
 
         if http_args != {}:
-            logger.debug(f"Unknown HTTP args when creating {repr(status)} response :\n{pprint.pformat(http_args)}")
+            logger.debug(f"Unknown HTTP args when creating {status!r} response :\n{pprint.pformat(http_args)}")
 
         return cls(method=method, url=url, headers=headers, body=message)
 
@@ -138,7 +138,7 @@ def create_html_response(binding: str, http_args: HttpArgs) -> WerkzeugResponse:
         if http_args.method != "GET":
             logger.warning(f"BINDING_HTTP_REDIRECT method is not GET ({http_args.method})")
         location = http_args.redirect_url
-        logger.debug(f"Binding {binding} redirecting to {repr(location)}")
+        logger.debug(f"Binding {binding} redirecting to {location!r}")
         if not location:
             raise InternalServerError("No redirect destination")
         if http_args.url:
@@ -156,7 +156,7 @@ def create_html_response(binding: str, http_args: HttpArgs) -> WerkzeugResponse:
     for k, v in http_args.headers:
         _old_v = response.headers.get(k)
         if v != _old_v:
-            logger.debug(f"Changing response header {repr(k)} from {repr(_old_v)} -> {repr(v)}")
+            logger.debug(f"Changing response header {k!r} from {_old_v!r} -> {v!r}")
             response.headers[k] = v
     return response
 

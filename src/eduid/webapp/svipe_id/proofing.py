@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 
 from iso3166 import countries
 from pymongo.errors import PyMongoError
@@ -67,7 +67,9 @@ class SvipeIDProofingFunctions(ProofingFunctions[SvipeDocumentUserInfo]):
         try:
             nin_element = NinProofingElement(
                 number=self.session_info.document_administrative_number,
-                date_of_birth=datetime(year=date_of_birth.year, month=date_of_birth.month, day=date_of_birth.day),
+                date_of_birth=datetime(
+                    year=date_of_birth.year, month=date_of_birth.month, day=date_of_birth.day, tzinfo=UTC
+                ),
                 created_by=current_app.conf.app_name,
                 is_verified=False,
             )
@@ -98,7 +100,9 @@ class SvipeIDProofingFunctions(ProofingFunctions[SvipeDocumentUserInfo]):
             administrative_number=self.session_info.document_administrative_number,
             country_code=self.session_info.document_nationality,
             created_by=current_app.conf.app_name,
-            date_of_birth=datetime(year=date_of_birth.year, month=date_of_birth.month, day=date_of_birth.day),
+            date_of_birth=datetime(
+                year=date_of_birth.year, month=date_of_birth.month, day=date_of_birth.day, tzinfo=UTC
+            ),
             is_verified=True,
             proofing_method=IdentityProofingMethod.SVIPE_ID,
             proofing_version=current_app.conf.svipe_id_proofing_version,

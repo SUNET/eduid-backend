@@ -54,10 +54,14 @@ def mfa_auth(
         user = lookup_user(_eppn)
     elif webauthn_response:
         current_app.logger.debug(f"Received WebAuthn response ({webauthn_response})")
+        user = None
         credential_id = webauthn_response.get("rawId")
         if isinstance(credential_id, str):
             user = current_app.userdb.get_user_by_credential(credential=credential_id)
             current_app.logger.debug(f"Found user: {user} for WebAuthn response")
+        if not user:
+            current_app.logger.info(f"No user found for WebAuthn credential ID: {credential_id}")
+            return error_response(message=IdPMsg.credential_not_found)
     else:
         current_app.logger.debug("MFA auth called without an SSO session or known device")
         current_app.logger.debug("Creating open challenge for passkeys")
@@ -187,7 +191,7 @@ def _check_webauthn(
         )
     except fido_tokens.VerificationProblem:
         current_app.logger.exception("Webauthn verification failed")
-        current_app.logger.debug(f"webauthn_response: {repr(webauthn_response)}")
+        current_app.logger.debug(f"webauthn_response: {webauthn_response!r}")
         return CheckResult(response=error_response(message=IdPMsg.mfa_auth_failed))
 
     current_app.logger.debug(f"verify_webauthn result: {result}")

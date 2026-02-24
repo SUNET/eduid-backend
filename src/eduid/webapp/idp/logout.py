@@ -170,12 +170,12 @@ class SLO(Service):
             # the user based on NameID and then destroy *all* the users SSO sessions
             # unfortunately.
             _username = current_app.IDP.ident.find_local_id(_name_id)
-            current_app.logger.debug(f"Logout message name_id: {repr(_name_id)} found username {repr(_username)}")
+            current_app.logger.debug(f"Logout message name_id: {_name_id!r} found username {_username!r}")
             sessions += current_app.sso_sessions.get_sessions_for_user(_username)
 
         _session_ids = [x.session_id for x in sessions]
         current_app.logger.debug(
-            f"Logout resources: name_id {repr(_name_id)} username {repr(_username)}, session_ids {_session_ids}"
+            f"Logout resources: name_id {_name_id!r} username {_username!r}, session_ids {_session_ids}"
         )
 
         if sessions:
@@ -198,14 +198,14 @@ class SLO(Service):
         """
         fail = 0
         for this in sessions:
-            current_app.logger.debug(f"Logging out SSO session: {repr(this.session_id)}")
+            current_app.logger.debug(f"Logging out SSO session: {this.session_id!r}")
             try:
                 res = current_app.sso_sessions.remove_session(this)
                 current_app.logger.info(
-                    f"{req_key}: logout sso_session={repr(this.public_id)}, age={this.age}, result={bool(res)}"
+                    f"{req_key}: logout sso_session={this.public_id!r}, age={this.age}, result={bool(res)}"
                 )
             except KeyError:
-                current_app.logger.info(f"{req_key}: logout sso_key={repr(this)}, result=not_found")
+                current_app.logger.info(f"{req_key}: logout sso_key={this!r}, result=not_found")
                 res = False
             if not res:
                 fail += 1

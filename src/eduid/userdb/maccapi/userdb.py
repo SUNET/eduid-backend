@@ -77,12 +77,12 @@ class ManagedAccountDB(UserDB[ManagedAccount]):
                 username = username.split("@")[0]
             managed_account = self.get_user_by_eppn(username)
         except EduIDDBError:
-            logger.exception(f"Managed account lookup using {repr(username)} did not return a valid account")
+            logger.exception(f"Managed account lookup using {username!r} did not return a valid account")
             return None
 
         if managed_account is None:
-            logger.info(f"Unknown managed account: {repr(username)}")
+            logger.info(f"Unknown managed account: {username!r}")
             return None
 
-        logger.debug(f"Found managed account  {managed_account} using {repr(username)}")
+        logger.debug(f"Found managed account  {managed_account} using {username!r}")
         return managed_account.to_idp_user()

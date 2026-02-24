@@ -37,5 +37,6 @@ class FrejaEIDVerifyCredentialRequestSchema(FrejaEIDCommonRequestSchema):
 class FrejaEIDCommonResponseSchema(FluxStandardAction):
     class VerifyResponsePayload(EduidSchema, CSRFResponseMixin):
         location = fields.String(required=False)
+        credential_description = fields.String(required=False)
 
     payload = fields.Nested(VerifyResponsePayload)

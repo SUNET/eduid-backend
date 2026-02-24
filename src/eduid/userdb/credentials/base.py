@@ -39,11 +39,11 @@ class Credential(VerifiedElement):
             shortkey = str(self.key[:12]) + "..."
         if self.is_verified:
             return (
-                f"<eduID {self.__class__.__name__}(key={repr(shortkey)}): verified=True, "
-                f"proofing=({repr(self.proofing_method)} v={repr(self.proofing_version)})>"
+                f"<eduID {self.__class__.__name__}(key={shortkey!r}): verified=True, "
+                f"proofing=({self.proofing_method!r} v={self.proofing_version!r})>"
             )
         else:
-            return f"<eduID {self.__class__.__name__}(key={repr(shortkey)}): verified=False>"
+            return f"<eduID {self.__class__.__name__}(key={shortkey!r}): verified=False>"
 
     def _to_dict_transform(self, data: dict[str, Any]) -> dict[str, Any]:
         """

@@ -1,6 +1,6 @@
 import json
 from collections.abc import Mapping
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -52,7 +52,7 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
     # parameterized test methods
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    @patch("eduid.webapp.security.views.security.revoke_all_credentials")
+    @patch("eduid.webapp.security.views.security.revoke_passwords")
     def _delete_account(
         self,
         mock_revoke: MagicMock,
@@ -199,13 +199,13 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
         self.add_security_key_to_user(
             eppn=eppn,
             keyhandle="test_keyhandle_1",
-            created_ts=datetime(year=2025, month=11, day=25, hour=13, minute=59, second=59),
+            created_ts=datetime(year=2025, month=11, day=25, hour=13, minute=59, second=59, tzinfo=UTC),
         )
         self.add_security_key_to_user(
             eppn=eppn,
             keyhandle="test_keyhandle_2",
             mfa_approved=True,
-            created_ts=datetime(year=2025, month=11, day=25, hour=14, minute=1, second=1),
+            created_ts=datetime(year=2025, month=11, day=25, hour=14, minute=1, second=1, tzinfo=UTC),
         )
         with self.session_cookie(self.browser, eppn) as client:
             return client.get("/credentials")

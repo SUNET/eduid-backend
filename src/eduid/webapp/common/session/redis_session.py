@@ -208,12 +208,12 @@ class RedisEncryptedSession(typing.MutableMapping[str, Any]):
     def __getitem__(self, key: str) -> object:
         if key in self._data:
             return self._data[key]
-        raise KeyError(f"Key {repr(key)} not present in session")
+        raise KeyError(f"Key {key!r} not present in session")
 
     def __setitem__(self, key: str, value: object) -> None:
         if self.whitelist and key not in self.whitelist:
             if self.raise_on_unknown:
-                raise ValueError(f"Key {repr(key)} not allowed in session")
+                raise ValueError(f"Key {key!r} not allowed in session")
             return
         self._data[key] = value
 
@@ -247,7 +247,7 @@ class RedisEncryptedSession(typing.MutableMapping[str, Any]):
 
         self._data = self.decrypt_data(self._raw_data)
 
-        logger.debug(f"Loaded data from Redis[{self.short_id}]:\n{repr(self._data)}")
+        logger.debug(f"Loaded data from Redis[{self.short_id}]:\n{self._data!r}")
         return True
 
     def commit(self) -> None:
@@ -307,7 +307,7 @@ class RedisEncryptedSession(typing.MutableMapping[str, Any]):
             decrypted = json.loads(_data)
             return decrypted
 
-        logger.error(f"Unknown data retrieved from Redis[{self.short_id}]: {repr(data_str)}")
+        logger.error(f"Unknown data retrieved from Redis[{self.short_id}]: {data_str!r}")
         raise ValueError("Unknown data retrieved from Redis")
 
     def clear(self) -> None:

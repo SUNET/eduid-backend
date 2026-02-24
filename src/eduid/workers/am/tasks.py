@@ -61,7 +61,7 @@ def update_attributes_keep_result(self: AttributeManager, app_name: str, user_id
 
     try:
         attribute_fetcher = AmCelerySingleton.af_registry.get_fetcher(app_name)
-        logger.debug(f"Attribute fetcher for {app_name}: {repr(attribute_fetcher)}")
+        logger.debug(f"Attribute fetcher for {app_name}: {attribute_fetcher!r}")
     except KeyError as e:
         logger.error(f"Attribute fetcher for {app_name} is not installed")
         raise RuntimeError(f"Missing attribute fetcher, {e}") from e

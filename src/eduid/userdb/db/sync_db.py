@@ -2,7 +2,7 @@ import logging
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any
+from typing import Any, ClassVar
 
 import pymongo
 import pymongo.collection
@@ -27,7 +27,7 @@ class MongoClientCache:
     A cache for pymongo.MongoClient instances.
     """
 
-    _clients: dict[str, pymongo.MongoClient] = {}
+    _clients: ClassVar[dict[str, pymongo.MongoClient]] = {}
 
     def get_client(self, db: BaseMongoDB) -> pymongo.MongoClient:
         db_args = db.db_args
@@ -199,7 +199,7 @@ class BaseDB:
         if doc_count == 0:
             return None
         elif doc_count > 1:
-            raise MultipleDocumentsReturned(f"Multiple matching documents for {attr}={repr(value)}")
+            raise MultipleDocumentsReturned(f"Multiple matching documents for {attr}={value!r}")
         return docs[0]
 
     def _get_documents_by_attr(self, attr: str, value: str) -> list[TUserDbDocument]:

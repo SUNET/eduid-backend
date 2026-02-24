@@ -267,7 +267,7 @@ class MsgRelay:
             logger.info(f"SMS with reference {reference} sent. Task result: {res}")
         except Exception as e:
             rtask.forget()
-            raise MsgTaskFailed(f"sendsms task failed: {repr(e)}") from e
+            raise MsgTaskFailed(f"sendsms task failed: {e!r}") from e
 
     def ping(self, timeout: int = 1) -> str:
         """
@@ -279,4 +279,4 @@ class MsgRelay:
             return rtask.get(timeout=timeout)
         except Exception as e:
             rtask.forget()
-            raise MsgTaskFailed(f"ping task failed: {repr(e)}") from e
+            raise MsgTaskFailed(f"ping task failed: {e!r}") from e

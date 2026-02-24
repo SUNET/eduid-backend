@@ -467,7 +467,7 @@ def _log_user_agent() -> None:
     ua = get_user_agent()
 
     if ua:
-        current_app.logger.debug(f"Logging in user with User-Agent {repr(ua.safe_str)}")
+        current_app.logger.debug(f"Logging in user with User-Agent {ua.safe_str!r}")
 
     if not ua:
         current_app.stats.count("login_finished_ua_is_none")

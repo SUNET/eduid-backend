@@ -1,5 +1,5 @@
 import unittest
-from datetime import datetime
+from datetime import UTC, datetime
 from hashlib import sha256
 
 import pytest
@@ -788,7 +788,7 @@ class TestNewUser(unittest.TestCase):
         self.assertEqual(keys, [_keyid("U2F SWAMID AL3" + "foo")])
 
     def test_user_unverified_credential(self) -> None:
-        cred = [x for x in self.user2.credentials.to_list() if x.is_verified][0]
+        cred = next(x for x in self.user2.credentials.to_list() if x.is_verified)
         self.assertEqual(cred.proofing_method, CredentialProofingMethod.SWAMID_AL3_MFA)
         _dict1 = cred.to_dict()
         self.assertEqual(_dict1["verified"], True)
@@ -994,7 +994,7 @@ class TestNewUser(unittest.TestCase):
     def test_letter_proofing_data_to_list(self) -> None:
         letter_proofing = {
             "created_by": "eduid-idproofing-letter",
-            "created_ts": datetime(2015, 12, 18, 12, 0, 46),
+            "created_ts": datetime(2015, 12, 18, 12, 0, 46, tzinfo=UTC),
             "number": "198311220134",
             "official_address": {
                 "Name": {
@@ -1013,7 +1013,7 @@ class TestNewUser(unittest.TestCase):
             "verification_code": "xxxxxxxxxx",
             "verified": True,
             "verified_by": "eduid-idproofing-letter",
-            "verified_ts": datetime(2015, 12, 18, 12, 3, 20),
+            "verified_ts": datetime(2015, 12, 18, 12, 3, 20, tzinfo=UTC),
         }
         user_dict = UserFixtures().mocked_user_standard.to_dict()
         user_dict["letter_proofing_data"] = letter_proofing

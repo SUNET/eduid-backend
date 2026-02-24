@@ -139,7 +139,7 @@ def get_authn_response(
         logger.error("SAML response is not verified")
         raise BadSAMLResponse(EduidErrorsContext.SAML_RESPONSE_FAIL) from e
     except ParseError as e:
-        logger.error(f"SAML response is not correctly formatted: {repr(e)}")
+        logger.error(f"SAML response is not correctly formatted: {e!r}")
         raise BadSAMLResponse(EduidErrorsContext.SAML_RESPONSE_FAIL) from e
     except UnsolicitedResponse as e:
         logger.error("Unsolicited SAML response")
@@ -149,7 +149,7 @@ def get_authn_response(
         logger.debug(f"Outstanding queries: {outstanding_queries}")
         raise BadSAMLResponse(EduidErrorsContext.SAML_RESPONSE_UNSOLICITED) from e
     except StatusError as e:
-        logger.error(f"SAML response was a failure: {repr(e)}")
+        logger.error(f"SAML response was a failure: {e!r}")
         raise BadSAMLResponse(EduidErrorsContext.SAML_RESPONSE_FAIL) from e
 
     if response is None:
@@ -193,13 +193,13 @@ def authenticate(session_info: SessionInfo, strip_suffix: str | None, userdb: Us
     if strip_suffix:
         saml_user = saml_user.removesuffix(strip_suffix)
 
-    logger.debug(f"Looking for user with eduPersonPrincipalName == {repr(saml_user)}")
+    logger.debug(f"Looking for user with eduPersonPrincipalName == {saml_user!r}")
     try:
         return userdb.get_user_by_eppn(saml_user)
     except UserDoesNotExist:
-        logger.error(f"No user with eduPersonPrincipalName = {repr(saml_user)} found")
+        logger.error(f"No user with eduPersonPrincipalName = {saml_user!r} found")
     except MultipleUsersReturned:
-        logger.error(f"There are more than one user with eduPersonPrincipalName == {repr(saml_user)}")
+        logger.error(f"There are more than one user with eduPersonPrincipalName == {saml_user!r}")
     return None
 
 
@@ -231,7 +231,7 @@ def saml_logout(sp_config: SPConfig, user: User, location: str) -> WerkzeugRespo
     session.invalidate()
     logger.info(f"Invalidated session for {user}")
 
-    loresponse = list(logouts.values())[0]
+    loresponse = next(iter(logouts.values()))
     # loresponse is a dict for REDIRECT binding, and LogoutResponse for SOAP binding
     if isinstance(loresponse, LogoutResponse):
         if loresponse.status_ok():

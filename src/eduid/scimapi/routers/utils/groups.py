@@ -69,7 +69,7 @@ def filter_display_name(
     if not isinstance(filter.val, str):
         raise BadRequest(scim_type="invalidFilter", detail="Invalid displayName")
 
-    req.app.context.logger.debug(f"Searching for group with display name {repr(filter.val)}")
+    req.app.context.logger.debug(f"Searching for group with display name {filter.val!r}")
     assert isinstance(req.context, ScimApiContext)  # please mypy
     assert req.context.groupdb is not None  # please mypy
     assert skip is not None  # please mypy
@@ -113,7 +113,7 @@ def filter_extensions_data(
     if not match:
         raise BadRequest(scim_type="invalidFilter", detail="Unsupported extension search key")
 
-    req.app.context.logger.debug(f"Searching for groups with {filter.attr} {filter.op} {repr(filter.val)}")
+    req.app.context.logger.debug(f"Searching for groups with {filter.attr} {filter.op} {filter.val!r}")
     assert isinstance(req.context, ScimApiContext)  # please mypy
     assert req.context.groupdb is not None  # please mypy
     assert skip is not None  # please mypy

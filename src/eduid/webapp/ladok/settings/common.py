@@ -1,3 +1,5 @@
+from pydantic import Field
+
 from eduid.common.config.base import AmConfigMixin, EduIDBaseAppConfig, MagicCookieMixin
 from eduid.webapp.ladok.client import LadokClientConfig
 
@@ -11,4 +13,4 @@ class LadokConfig(EduIDBaseAppConfig, MagicCookieMixin, AmConfigMixin):
 
     app_name: str = "eduid_ladok"
     ladok_client: LadokClientConfig
-    dev_fake_users_in: list[str] = []  # list of 'ladok_name's that allow linking in dev
+    dev_fake_users_in: list[str] = Field(default_factory=list)  # list of 'ladok_name's that allow linking in dev

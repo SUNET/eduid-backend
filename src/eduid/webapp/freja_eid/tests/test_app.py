@@ -20,7 +20,7 @@ from eduid.userdb.identity import (
     NinIdentity,
 )
 from eduid.userdb.testing import SetupConfig
-from eduid.webapp.common.api.messages import CommonMsg
+from eduid.webapp.common.api.messages import AuthnStatusMsg, CommonMsg
 from eduid.webapp.common.proofing.messages import ProofingMsg
 from eduid.webapp.common.proofing.testing import ProofingTests
 from eduid.webapp.freja_eid.app import FrejaEIDApp, freja_eid_init_app
@@ -654,7 +654,7 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
             FrejaIdentity(
                 personal_identity_number=userinfo.personal_identity_number,
                 country_code=userinfo.document.country,
-                date_of_birth=datetime.today(),  # not matching the new identity
+                date_of_birth=utc_now(),  # not matching the new identity
                 is_verified=True,
                 user_id="another_freja_eid",
                 registration_level=userinfo.registration_level,
@@ -857,6 +857,49 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         )
 
         self._verify_user_parameters(eppn, token_verified=True, num_proofings=2, num_mfa_tokens=1)
+
+    @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
+    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+    def test_verify_credential_credential_not_used_recently(
+        self, mock_request_user_sync: MagicMock, mock_reference_nin: MagicMock
+    ) -> None:
+        mock_request_user_sync.side_effect = self.request_user_sync
+        mock_reference_nin.return_value = None
+
+        eppn = self.unverified_test_user.eppn
+        self._verify_user_parameters(eppn, identity_present=False, num_mfa_tokens=0, token_verified=False)
+
+        credential = self.add_security_key_to_user(
+            eppn,
+            keyhandle="test_security_key_1",
+            token_type="webauthn",
+            created_ts=utc_now() - timedelta(minutes=10),  # the security key was added more than 5 minutes ago
+        )
+
+        with self.app.test_request_context():
+            endpoint = url_for("freja_eid.verify_credential")
+
+        self.set_authn_action(
+            eppn=eppn,
+            frontend_action=FrontendAction.VERIFY_CREDENTIAL,
+            credentials_used=[ElementKey("user_password_cred_id")],
+        )
+
+        data = self.default_frontend_data(frontend_action="verifyCredential")
+        data["credential_id"] = credential.key
+
+        start_auth_response = self._start_auth(
+            endpoint=endpoint,
+            data=data,
+            eppn=eppn,
+        )
+        self._check_error_response(
+            response=start_auth_response,
+            payload={"credential_description": "unit test webauthn token"},
+            msg=AuthnStatusMsg.must_authenticate,
+            type_="POST_FREJA_EID_VERIFY_CREDENTIAL_FAIL",
+        )
+        self._verify_user_parameters(eppn, identity_present=False, num_mfa_tokens=1, token_verified=False)
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_verify_credential_foreign_identity(self, mock_request_user_sync: MagicMock) -> None:

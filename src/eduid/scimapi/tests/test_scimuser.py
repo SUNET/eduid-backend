@@ -820,7 +820,7 @@ class TestUserResource(ScimApiTestUserResourceBase):
         expected_num_resources: int | None = None,
         expected_total_results: int | None = None,
     ) -> dict:
-        logger.info(f"Searching for user(s) using filter {repr(search_filter)}")
+        logger.info(f"Searching for user(s) using filter {search_filter!r}")
         req = {
             "schemas": [SCIMSchema.API_MESSAGES_20_SEARCH_REQUEST.value],
             "filter": search_filter,
@@ -868,7 +868,7 @@ class TestUserResource(ScimApiTestUserResourceBase):
             self.assertEqual(
                 str(expected_user.scim_id),
                 resources[0].get("id"),
-                f"Search parsed_response user does not have the expected id: {str(expected_user.scim_id)}",
+                f"Search parsed_response user does not have the expected id: {expected_user.scim_id!s}",
             )
 
         self.assertEqual([SCIMSchema.API_MESSAGES_20_LIST_RESPONSE.value], response.json().get("schemas"))

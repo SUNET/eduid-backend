@@ -178,7 +178,7 @@ class ScimApiGroupDB(ScimApiBaseDB):
     def update_group(self, update_request: GroupUpdateRequest, db_group: ScimApiGroup) -> tuple[ScimApiGroup, bool]:
         changed = False
         updated_members = set()
-        logger.info(f"Updating group {str(db_group.scim_id)}")
+        logger.info(f"Updating group {db_group.scim_id!s}")
         # please mypy
         _member: GraphUser | GraphGroup | None
         _new_member: GraphUser | GraphGroup | None
@@ -236,9 +236,9 @@ class ScimApiGroupDB(ScimApiBaseDB):
             logger.debug(f"New extensions: {_sg_ext}")
 
         if changed:
-            logger.info(f"Group {str(db_group.scim_id)} changed. Saving.")
+            logger.info(f"Group {db_group.scim_id!s} changed. Saving.")
             if self.save(db_group):
-                logger.info(f"Group {str(db_group.scim_id)} saved.")
+                logger.info(f"Group {db_group.scim_id!s} saved.")
             else:
                 logger.warning(f"Update of group {db_group} probably failed")
 

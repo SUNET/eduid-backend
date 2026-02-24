@@ -59,7 +59,7 @@ class ScimAttributes(ResponseMicroService):
         # Get the internal attribute name for the eduPersonPrincipalName that will be
         # used to find users in the SCIM database
         _int = self.converter.to_internal("saml", {"eduPersonPrincipalName": "something"})
-        self.ext_id_attr = list(_int.keys())[0]
+        self.ext_id_attr = next(iter(_int.keys()))
         logger.debug(f"SCIM externalId internal attribute name: {self.ext_id_attr}")
 
     def get_userdb_for_data_owner(self, data_owner: str) -> ScimApiUserDB:
@@ -155,7 +155,7 @@ class ScimAttributes(ResponseMicroService):
             for _name, _new in update.items():
                 _old = data.attributes.get(_name)
                 if _old != _new:
-                    logger.debug(f"Changing attribute {_name} from {repr(_old)} to {repr(_new)}")
+                    logger.debug(f"Changing attribute {_name} from {_old!r} to {_new!r}")
                     data.attributes[_name] = _new
 
         # Look for a linked account suitable for use for MFA stepup (in the stepup plugin that runs after this one)

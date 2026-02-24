@@ -56,7 +56,7 @@ class GroupDB(BaseGraphDB):
             for statement in statements:
                 try:
                     session.run(statement)
-                except ClientError as e:  # noqa: PERF203
+                except ClientError as e:
                     assert e.message is not None  # please mypy
                     acceptable_error_codes = [
                         "Neo.ClientError.Schema.ConstraintAlreadyExists",
@@ -246,12 +246,12 @@ class GroupDB(BaseGraphDB):
         group_data: Node | None  # please mypy
         if len(group_graph.relationships) == 0:
             # Just a group with no owners or members
-            group_data = [node_data for node_data in group_graph.nodes][0]
+            group_data = next(iter(group_graph.nodes))
             assert group_data is not None
             return self._load_group(group_data)
         else:
             # Grab the first relationships end node and create the group from that
-            group_data = [node_data.end_node for node_data in group_graph.relationships][0]
+            group_data = next(iter(group_graph.relationships)).end_node
             assert group_data is not None
             group = self._load_group(group_data)
 

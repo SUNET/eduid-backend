@@ -88,7 +88,7 @@ class AuthenticationMiddleware(BaseHTTPMiddleware, ContextRequestMixin):
             )
 
         if not data_owner or data_owner not in self.context.config.data_owners:
-            self.context.logger.error(f"Data owner {repr(data_owner)} not configured")
+            self.context.logger.error(f"Data owner {data_owner!r} not configured")
             return return_error_response(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unknown data_owner")
 
         assert isinstance(request.context, MaccAPIContext)  # please mypy

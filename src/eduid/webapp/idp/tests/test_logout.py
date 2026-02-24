@@ -144,7 +144,7 @@ class IdPTestLogoutAPI(IdPAPITests):
         destination = next(_locations)
         session_indexes = [session_info["session_index"]]
 
-        req_id, request = self.saml2_client.create_logout_request(
+        _req_id, request = self.saml2_client.create_logout_request(
             destination,
             self.idp_entity_id,
             name_id=name_id,

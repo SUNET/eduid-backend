@@ -88,7 +88,7 @@ class ProofingState:
         if not isinstance(self.modified_ts, datetime.datetime):
             if self.modified_ts is True or self.modified_ts is None:
                 return False
-            raise UserDBValueError(f"Malformed modified_ts: {repr(self.modified_ts)}")
+            raise UserDBValueError(f"Malformed modified_ts: {self.modified_ts!r}")
         delta = datetime.timedelta(seconds=timeout_seconds)
         expiry_date = self.modified_ts + delta
         now = datetime.datetime.now(tz=self.modified_ts.tzinfo)
@@ -98,7 +98,7 @@ class ProofingState:
         if not isinstance(self.modified_ts, datetime.datetime):
             if self.modified_ts is True or self.modified_ts is None:
                 return False
-            raise UserDBValueError(f"Malformed modified_ts: {repr(self.modified_ts)}")
+            raise UserDBValueError(f"Malformed modified_ts: {self.modified_ts!r}")
         time_since_last_resend = utc_now() - self.modified_ts
         throttle_seconds = datetime.timedelta(seconds=min_wait_seconds)
         if time_since_last_resend < throttle_seconds:

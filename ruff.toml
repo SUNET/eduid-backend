@@ -7,6 +7,7 @@ select = [
   "ANN",
   "ASYNC",
   "B",
+  "DTZ",
   "E",
   "ERA",
   "F",
@@ -14,10 +15,12 @@ select = [
   "FLY",
   "FURB",
   "I",
+  "ISC",
   "PERF",
   "PGH",
   "PIE",
   "PL",
+  "RUF",
   "SIM",
   "UP",
   "W",
@@ -25,13 +28,31 @@ select = [
 
 ignore = [
   "B009",     # will require type generics for conf in EduIDBaseApp (refactor)
-  "E501",     # length of lines, fixed during formatting
   "PLR09",    # rule set for complexity checks
   "PLC0415",  # non top level imports
   "SIM102",   # collapsible-if
   "SIM103",   # return-bool-condition-directly (keeping explicit if/else for clarity)
   "SIM108",   # if-else-block-instead-of-if-exp
+
+  # Since we use ruff as a formatter, the following rules should be ignored
+  # See: https://docs.astral.sh/ruff/formatter/#conflicting-lint-rules
+  "W191",
+  "E111",
+  "E114",
+  "E117",
+  "E501",
+  "D206",
+  "D300",
+  "Q000",
+  "Q001",
+  "Q002",
+  "Q003",
+  "COM812",
+  "COM819",
+  "ISC002",
 ]
+
+allowed-confusables = ["’", "х"]
 
 [lint.flake8-annotations]
 allow-star-arg-any = true

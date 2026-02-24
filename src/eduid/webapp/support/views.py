@@ -54,7 +54,7 @@ def search(support_user: User) -> str:
                 lookup_users.append(_user)
         if len(lookup_users) == 0:
             current_app.logger.warning(
-                f"Support personnel {support_user.eppn} searched for {repr(search_query)} with no match found"
+                f"Support personnel {support_user.eppn} searched for {search_query!r} with no match found"
             )
             return render_template(
                 "users.html",
@@ -62,7 +62,7 @@ def search(support_user: User) -> str:
                 error=f"No users matched the search query: {search_query}",
             )
 
-    current_app.logger.info(f"Support personnel {support_user.eppn} searched for {repr(search_query)}")
+    current_app.logger.info(f"Support personnel {support_user.eppn} searched for {search_query!r}")
     for user in lookup_users:
         user_data: dict[str, Any] = dict()
         user_dict = user.to_dict()

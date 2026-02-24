@@ -122,7 +122,7 @@ def check_redis() -> bool:
         if pong:
             reset_failure_info("check_redis")
             return True
-        log_failure_info("check_redis", msg=f"Redis health check failed: response == {repr(pong)}")
+        log_failure_info("check_redis", msg=f"Redis health check failed: response == {pong!r}")
     except Exception as exc:
         log_failure_info("check_redis", msg="Redis health check failed", exc=exc)
         check_restart("check_redis", restart=0, terminate=120)

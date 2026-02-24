@@ -20,7 +20,7 @@ status_router = APIRouter(route_class=ScimApiRoute, prefix="/status")
 async def healthy(req: ContextRequest, resp: Response) -> Mapping:
     res = get_cached_response(req=req, resp=resp, key="health_check")
     if not res:
-        default_data_owner = list(req.app.context.config.data_owners.keys())[0]
+        default_data_owner = next(iter(req.app.context.config.data_owners.keys()))
         res = {
             # Value of status crafted for grepabilty, trailing underscore intentional
             "status": f"STATUS_FAIL_{req.app.context.name}_",

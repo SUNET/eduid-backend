@@ -18,10 +18,10 @@ def need_tou_acceptance(user: IdPUser) -> bool:
     interval = current_app.conf.tou_reaccept_interval
 
     if user.tou.has_accepted(version, int(interval.total_seconds())):
-        logger.debug(f"User has already accepted ToU version {repr(version)}")
+        logger.debug(f"User has already accepted ToU version {version!r}")
         return False
 
     tous = [x.version for x in user.tou.to_list()]
-    logger.info(f"User needs to accepted ToU version {repr(version)} (has accepted: {tous})")
+    logger.info(f"User needs to accepted ToU version {version!r} (has accepted: {tous})")
 
     return True

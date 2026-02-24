@@ -8,7 +8,7 @@ See the file LICENSE.txt for full license statement.
 __author__ = "eperez"
 
 
-from typing import Any
+from typing import Any, ClassVar
 
 from bson import ObjectId
 from celery.utils.log import get_task_logger
@@ -39,7 +39,7 @@ logger = get_task_logger(__name__)
 
 
 class eduid_signup(AttributeFetcher):
-    whitelist_set_attrs = [
+    whitelist_set_attrs: ClassVar[list[str]] = [
         "givenName",
         "surname",
         "mail",
@@ -53,7 +53,7 @@ class eduid_signup(AttributeFetcher):
         "phone",
         "identities",
     ]
-    whitelist_unset_attrs: list[str] = []
+    whitelist_unset_attrs: ClassVar[list[str]] = []
 
     def fetch_attrs(self, user_id: ObjectId) -> dict[str, Any]:
         attributes = AttributeFetcher.fetch_attrs(self, user_id)
@@ -68,7 +68,7 @@ class eduid_signup(AttributeFetcher):
 
 
 class eduid_letter_proofing(AttributeFetcher):
-    whitelist_set_attrs = [
+    whitelist_set_attrs: ClassVar[list[str]] = [
         "nins",  # Old format
         "identities",  # New format
         "letter_proofing_data",
@@ -77,7 +77,7 @@ class eduid_letter_proofing(AttributeFetcher):
         "surname",
         "legal_name",
     ]
-    whitelist_unset_attrs = [
+    whitelist_unset_attrs: ClassVar[list[str]] = [
         "identities",
         "chosen_given_name",
         "nins",  # Old format
@@ -90,7 +90,7 @@ class eduid_letter_proofing(AttributeFetcher):
 
 
 class eduid_lookup_mobile_proofing(AttributeFetcher):
-    whitelist_set_attrs = [
+    whitelist_set_attrs: ClassVar[list[str]] = [
         "nins",  # Old format
         "identities",  # New format
         "givenName",
@@ -98,7 +98,7 @@ class eduid_lookup_mobile_proofing(AttributeFetcher):
         "surname",
         "legal_name",
     ]
-    whitelist_unset_attrs = [
+    whitelist_unset_attrs: ClassVar[list[str]] = [
         "identities",
         "chosen_given_name",
         "nins",  # Old format
@@ -111,8 +111,8 @@ class eduid_lookup_mobile_proofing(AttributeFetcher):
 
 
 class eduid_email(AttributeFetcher):
-    whitelist_set_attrs = ["mailAliases"]
-    whitelist_unset_attrs = [
+    whitelist_set_attrs: ClassVar[list[str]] = ["mailAliases"]
+    whitelist_unset_attrs: ClassVar[list[str]] = [
         "mailAliases",
     ]
 
@@ -122,8 +122,8 @@ class eduid_email(AttributeFetcher):
 
 
 class eduid_phone(AttributeFetcher):
-    whitelist_set_attrs = ["phone"]
-    whitelist_unset_attrs = [
+    whitelist_set_attrs: ClassVar[list[str]] = ["phone"]
+    whitelist_unset_attrs: ClassVar[list[str]] = [
         "phone",
     ]
 
@@ -133,7 +133,7 @@ class eduid_phone(AttributeFetcher):
 
 
 class eduid_personal_data(AttributeFetcher):
-    whitelist_set_attrs = [
+    whitelist_set_attrs: ClassVar[list[str]] = [
         "givenName",
         "chosen_given_name",
         "surname",
@@ -141,7 +141,7 @@ class eduid_personal_data(AttributeFetcher):
         "preferences",
     ]
 
-    whitelist_unset_attrs = [
+    whitelist_unset_attrs: ClassVar[list[str]] = [
         "chosen_given_name",
         "displayName",  # deprecated
     ]
@@ -152,7 +152,7 @@ class eduid_personal_data(AttributeFetcher):
 
 
 class eduid_security(AttributeFetcher):
-    whitelist_set_attrs = [
+    whitelist_set_attrs: ClassVar[list[str]] = [
         "passwords",
         "terminated",
         "nins",  # Old format for AL1 downgrade on password reset
@@ -163,7 +163,7 @@ class eduid_security(AttributeFetcher):
         "surname",  # For updating user from official source (Navet)
         "legal_name",  # For updating user from official source (Navet)
     ]
-    whitelist_unset_attrs = [
+    whitelist_unset_attrs: ClassVar[list[str]] = [
         "passwords",
         "terminated",
         "nins",  # Old format for AL1 downgrade on password reset
@@ -178,14 +178,14 @@ class eduid_security(AttributeFetcher):
 
 
 class eduid_reset_password(AttributeFetcher):
-    whitelist_set_attrs = [
+    whitelist_set_attrs: ClassVar[list[str]] = [
         "passwords",
         "terminated",  # For revoking termination status
         "nins",  # Old format for AL1 downgrade on password reset
         "identities",  # For AL1 downgrade on password reset
         "phone",  # For AL1 downgrade on password reset
     ]
-    whitelist_unset_attrs = [
+    whitelist_unset_attrs: ClassVar[list[str]] = [
         "passwords",
         "terminated",  # For revoking termination status
         "nins",  # Old format for AL1 downgrade on password reset
@@ -199,10 +199,10 @@ class eduid_reset_password(AttributeFetcher):
 
 
 class eduid_orcid(AttributeFetcher):
-    whitelist_set_attrs = [
+    whitelist_set_attrs: ClassVar[list[str]] = [
         "orcid",
     ]
-    whitelist_unset_attrs = [
+    whitelist_unset_attrs: ClassVar[list[str]] = [
         "orcid",
     ]
 
@@ -212,7 +212,7 @@ class eduid_orcid(AttributeFetcher):
 
 
 class eduid_eidas(AttributeFetcher):
-    whitelist_set_attrs = [
+    whitelist_set_attrs: ClassVar[list[str]] = [
         "passwords",
         "nins",  # Old format
         "identities",
@@ -221,7 +221,7 @@ class eduid_eidas(AttributeFetcher):
         "surname",
         "legal_name",
     ]
-    whitelist_unset_attrs: list[str] = [
+    whitelist_unset_attrs: ClassVar[list[str]] = [
         "identities",
         "chosen_given_name",
         "nins",  # Old format
@@ -234,8 +234,8 @@ class eduid_eidas(AttributeFetcher):
 
 
 class eduid_tou(AttributeFetcher):
-    whitelist_set_attrs = ["tou"]
-    whitelist_unset_attrs: list[str] = []
+    whitelist_set_attrs: ClassVar[list[str]] = ["tou"]
+    whitelist_unset_attrs: ClassVar[list[str]] = []
 
     @classmethod
     def get_user_db(cls, uri: str) -> ToUUserDB:
@@ -243,10 +243,10 @@ class eduid_tou(AttributeFetcher):
 
 
 class eduid_ladok(AttributeFetcher):
-    whitelist_set_attrs = [
+    whitelist_set_attrs: ClassVar[list[str]] = [
         "ladok",
     ]
-    whitelist_unset_attrs = [
+    whitelist_unset_attrs: ClassVar[list[str]] = [
         "ladok",
     ]
 
@@ -256,7 +256,7 @@ class eduid_ladok(AttributeFetcher):
 
 
 class eduid_svipe_id(AttributeFetcher):
-    whitelist_set_attrs = [
+    whitelist_set_attrs: ClassVar[list[str]] = [
         "passwords",
         "identities",
         "givenName",
@@ -264,7 +264,7 @@ class eduid_svipe_id(AttributeFetcher):
         "surname",
         "legal_name",
     ]
-    whitelist_unset_attrs: list[str] = [
+    whitelist_unset_attrs: ClassVar[list[str]] = [
         "identities",
         "chosen_given_name",
         "nins",  # Old format
@@ -277,7 +277,7 @@ class eduid_svipe_id(AttributeFetcher):
 
 
 class eduid_bankid(AttributeFetcher):
-    whitelist_set_attrs = [
+    whitelist_set_attrs: ClassVar[list[str]] = [
         "passwords",
         "nins",  # Old format
         "identities",
@@ -286,7 +286,7 @@ class eduid_bankid(AttributeFetcher):
         "surname",
         "legal_name",
     ]
-    whitelist_unset_attrs: list[str] = [
+    whitelist_unset_attrs: ClassVar[list[str]] = [
         "identities",
         "chosen_given_name",
         "nins",  # Old format
@@ -299,7 +299,7 @@ class eduid_bankid(AttributeFetcher):
 
 
 class eduid_freja_eid(AttributeFetcher):
-    whitelist_set_attrs = [
+    whitelist_set_attrs: ClassVar[list[str]] = [
         "passwords",
         "identities",
         "givenName",
@@ -307,7 +307,7 @@ class eduid_freja_eid(AttributeFetcher):
         "surname",
         "legal_name",
     ]
-    whitelist_unset_attrs: list[str] = [
+    whitelist_unset_attrs: ClassVar[list[str]] = [
         "identities",
         "chosen_given_name",
         "nins",  # Old format
@@ -321,14 +321,14 @@ class eduid_freja_eid(AttributeFetcher):
 
 class eduid_job_runner(AttributeFetcher):
     # skv cleaner checks status and name of registered persons
-    whitelist_set_attrs = [
+    whitelist_set_attrs: ClassVar[list[str]] = [
         "givenName",
         "chosen_given_name",
         "surname",
         "legal_name",
         "terminated",
     ]
-    whitelist_unset_attrs = []
+    whitelist_unset_attrs: ClassVar[list[str]] = []
 
     @classmethod
     def get_user_db(cls, uri: str) -> CleanerUserDB:

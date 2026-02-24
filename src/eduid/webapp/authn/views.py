@@ -134,11 +134,11 @@ def _get_idp() -> str:
     # the only supported configuration is one (1) IdP.
     _configured_idps = current_app.saml2_config.getattr("idp")
     if len(_configured_idps) != 1:
-        current_app.logger.error(f"Unknown SAML2 idp config: {repr(_configured_idps)}")
+        current_app.logger.error(f"Unknown SAML2 idp config: {_configured_idps!r}")
         # TODO: use goto_errors_response()
         raise RuntimeError("Unknown SAML2 idp config")
     # For now, we will only ever use the single configured IdP
-    idp = list(_configured_idps.keys())[0]
+    idp = next(iter(_configured_idps.keys()))
     assert isinstance(idp, str)
     return idp
 
@@ -250,7 +250,7 @@ def logout() -> WerkzeugResponse:
     """
     eppn = session.common.eppn
 
-    location = request.args.get("next", current_app.conf.saml2_logout_redirect_url)
+    location = sanitise_redirect_url(request.args.get("next"), current_app.conf.saml2_logout_redirect_url)
 
     if eppn is None:
         current_app.logger.info("Session cookie has expired, no logout action needed")

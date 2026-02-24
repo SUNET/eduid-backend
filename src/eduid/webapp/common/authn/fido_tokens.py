@@ -161,7 +161,7 @@ def verify_webauthn(
     matching_credentials = {k: v for k, v in credentials.items() if v.webauthn.credential_id == auth_response.raw_id}
 
     if not matching_credentials:
-        logger.error(f"Could not find webauthn credential {repr(auth_response.raw_id)} on user {user}")
+        logger.error(f"Could not find webauthn credential {auth_response.raw_id!r} on user {user}")
         raise VerificationProblem("mfa.unknown-token")
 
     try:
@@ -186,7 +186,7 @@ def verify_webauthn(
         logger.debug(f"Authn credentials: {authn_credentials}")
         raise RuntimeError("Unable to find exactly the webauthn credential that was used for authentication")
 
-    cred_key = list(authn_credentials.keys())[0]
+    cred_key = next(iter(authn_credentials.keys()))
 
     touch = auth_response.response.authenticator_data.flags
     counter = auth_response.response.authenticator_data.counter

@@ -106,7 +106,7 @@ class IdP_SAMLRequest:
             from eduid.webapp.idp.util import maybe_xml_to_string
 
             xmlstr = maybe_xml_to_string(self._req_info.xmlstr)
-            logger.debug(f"Decoded SAMLRequest into AuthnRequest {repr(self._req_info.message)}:\n\n{xmlstr}\n\n")
+            logger.debug(f"Decoded SAMLRequest into AuthnRequest {self._req_info.message!r}:\n\n{xmlstr}\n\n")
 
     @property
     def binding(self) -> str:
@@ -145,7 +145,7 @@ class IdP_SAMLRequest:
             res = [x.text for x in self.raw_requested_authn_context.authn_context_class_ref]
             for this in res:
                 if not isinstance(this, str):
-                    raise ValueError(f"Invalid authnContextClassRef value ({repr(this)})")
+                    raise ValueError(f"Invalid authnContextClassRef value ({this!r})")
             return res
         return []
 
@@ -358,7 +358,7 @@ class IdP_SAMLRequest:
         #   'url': 'https://sp.example.edu/saml2/acs/',
         #   'method': 'POST'
         #  }
-        # ruff enable[ERA001]
+        # ruff: enable[ERA001]
         return HttpArgs.from_pysaml2_dict(_args)
 
 

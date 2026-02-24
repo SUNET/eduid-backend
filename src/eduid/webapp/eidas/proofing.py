@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, datetime
 
 from eduid.common.config.base import ProofingConfigMixin
 from eduid.common.rpc.exceptions import AmTaskFailed
@@ -86,7 +86,9 @@ class FrejaProofingFunctions(SwedenConnectProofingFunctions[NinSessionInfo]):
         date_of_birth = self.session_info.attributes.date_of_birth
         nin_element = NinProofingElement(
             number=self.session_info.attributes.nin,
-            date_of_birth=datetime(year=date_of_birth.year, month=date_of_birth.month, day=date_of_birth.day),
+            date_of_birth=datetime(
+                year=date_of_birth.year, month=date_of_birth.month, day=date_of_birth.day, tzinfo=UTC
+            ),
             created_by=current_app.conf.app_name,
             is_verified=False,
         )
@@ -206,7 +208,9 @@ class EidasProofingFunctions(SwedenConnectProofingFunctions[ForeignEidSessionInf
             prid=self.session_info.attributes.prid,
             prid_persistence=self.session_info.attributes.prid_persistence,
             loa=loa,
-            date_of_birth=datetime(year=date_of_birth.year, month=date_of_birth.month, day=date_of_birth.day),
+            date_of_birth=datetime(
+                year=date_of_birth.year, month=date_of_birth.month, day=date_of_birth.day, tzinfo=UTC
+            ),
             country_code=self.session_info.attributes.country_code,
             verified_by=current_app.conf.app_name,
             is_verified=True,

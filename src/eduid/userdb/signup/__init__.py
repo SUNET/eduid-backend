@@ -4,12 +4,12 @@ from eduid.userdb.signup.user import SignupUser
 from eduid.userdb.signup.userdb import SignupUserDB
 
 __all__ = [
-    "SignupUser",
-    "SignupUserDB",
     "Invite",
     "InviteMailAddress",
     "InvitePhoneNumber",
     "InviteType",
     "SCIMReference",
     "SignupInviteDB",
+    "SignupUser",
+    "SignupUserDB",
 ]

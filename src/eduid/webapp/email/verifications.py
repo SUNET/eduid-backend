@@ -99,7 +99,7 @@ def verify_mail_address(state: EmailProofingState, proofing_user: ProofingUser) 
     )
     if current_app.proofing_log.save(mail_address_proofing):
         save_and_sync_user(proofing_user)
-        current_app.logger.info(f"Email address {repr(state.verification.email)} confirmed for user {proofing_user}")
+        current_app.logger.info(f"Email address {state.verification.email!r} confirmed for user {proofing_user}")
         current_app.stats.count(name="email_verify_success", value=1)
         current_app.proofing_statedb.remove_state(state)
         current_app.logger.debug(f"Removed proofing state: {state}")
