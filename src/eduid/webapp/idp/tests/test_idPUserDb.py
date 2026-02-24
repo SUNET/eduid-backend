@@ -9,6 +9,7 @@ from bson import ObjectId
 
 import eduid.userdb
 import eduid.webapp.common.authn
+from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.credentials.password import Password
 from eduid.userdb.mail import MailAddress
 from eduid.vccs.client import VCCSClient, VCCSPasswordFactor
@@ -100,7 +101,7 @@ class TestAuthentication(IdPAPITests):
         factor = VCCSPasswordFactor("foo", str(passwords[0].key), salt=passwords[0].salt)
         self.app.authn.auth_client.add_credentials(str(self.test_user.user_id), [factor])
         # Store a successful authentication using this credential three year ago
-        three_years_ago = datetime.datetime.now() - datetime.timedelta(days=3 * 365)
+        three_years_ago = utc_now() - datetime.timedelta(days=3 * 365)
         self.app.authn.authn_store.credential_success([passwords[0].key], three_years_ago)
         with self.assertRaises(exceptions.EduidForbidden):
             assert isinstance(self.test_user.mail_addresses.primary, MailAddress)

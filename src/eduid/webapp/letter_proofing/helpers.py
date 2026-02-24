@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from enum import unique
 
 from eduid.common.misc.timeutil import utc_now
@@ -87,7 +87,7 @@ def check_state(state: LetterProofingState) -> StateExpireInfo:
         current_app.logger.info(f"Unfinished state for user with eppn {state.eppn!s}")
         current_app.logger.debug(f"Proofing state: {state.to_dict()}")
         # need a datetime for typing, but sent/expires/is_expired are not included in error responses
-        _fake_dt = datetime.fromtimestamp(0)
+        _fake_dt = datetime.fromtimestamp(0, tz=UTC)
         return StateExpireInfo(sent=_fake_dt, expires=_fake_dt, is_expired=True, error=True, message=LetterMsg.not_sent)
 
     current_app.logger.info(f"Letter is sent for user with eppn {state.eppn!s}")

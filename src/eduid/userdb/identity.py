@@ -3,7 +3,7 @@ from __future__ import annotations
 import copy
 import logging
 from abc import ABC
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any, Literal
 
@@ -323,13 +323,13 @@ class IdentityList(VerifiedElementList[IdentityElement]):
             # Fall back to parsing NIN
             try:
                 try:
-                    return datetime.strptime(self.nin.number[:8], "%Y%m%d")
+                    return datetime.strptime(self.nin.number[:8], "%Y%m%d").replace(tzinfo=UTC)
                 except ValueError:
                     # the nin might be a coordination number
                     day = int(self.nin.number[6:8])
                     if day > COORDINATION_NUMBER_OFFSET:  # coordination number day is 61-91
                         day = day - COORDINATION_NUMBER_OFFSET
-                    return datetime.strptime(self.nin.number[:6] + str(day).zfill(2), "%Y%m%d")
+                    return datetime.strptime(self.nin.number[:6] + str(day).zfill(2), "%Y%m%d").replace(tzinfo=UTC)
             except ValueError:
                 logger.exception("Unable to parse user nin to date of birth")
                 logger.debug(f"User nins: {self.nin}")
