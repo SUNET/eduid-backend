@@ -2,9 +2,10 @@ from collections import OrderedDict
 from datetime import datetime
 from unittest import TestCase
 
+from eduid.common.misc.timeutil import utc_now
 from eduid.common.rpc.msg_relay import FullPostalAddress
 from eduid.userdb.proofing.element import NinProofingElement, SentLetterElement
-from eduid.userdb.proofing.state import LetterProofingState, OidcProofingState, ProofingState
+from eduid.userdb.proofing.state import LetterProofingState, ProofingState
 
 __author__ = "lundberg"
 
@@ -155,37 +156,9 @@ class ProofingStateTest(TestCase):
 
         self._test_create_letterproofingstate(state, _nin_expected_keys)
 
-    def test_create_oidcproofingstate(self) -> None:
-        """
-        {
-            'eduPersonPrincipalName': 'foob-arra',
-            'state': '2c84fedd-a694-46f0-b235-7c4dd7982852'
-            'nonce': 'bbca50f6-5213-4784-b6e6-289bd1debda5',
-            'token': 'de5b3f2a-14e9-49b8-9c78-a15fcf60d119',
-        }
-        """
-
-        nin_pe = NinProofingElement.from_dict(
-            dict(number="200102034567", application="eduid_oidc_proofing", verified=False)
-        )
-        state = OidcProofingState(
-            eppn=EPPN,
-            state="2c84fedd-a694-46f0-b235-7c4dd7982852",
-            nonce="bbca50f6-5213-4784-b6e6-289bd1debda5",
-            token="de5b3f2a-14e9-49b8-9c78-a15fcf60d119",
-            nin=nin_pe,
-            id=None,
-            modified_ts=None,
-        )
-        state_dict = state.to_dict()
-        self.assertEqual(
-            sorted(state_dict.keys()),
-            ["_id", "eduPersonPrincipalName", "modified_ts", "nin", "nonce", "state", "token"],
-        )
-
     def test_proofing_state_expiration(self) -> None:
-        state = ProofingState(id=None, eppn=EPPN, modified_ts=datetime.now(tz=None))
+        state = ProofingState(id=None, eppn=EPPN, modified_ts=utc_now())
         self.assertFalse(state.is_expired(1))
 
-        expired_state = ProofingState(id=None, eppn=EPPN, modified_ts=datetime.now(tz=None))
+        expired_state = ProofingState(id=None, eppn=EPPN, modified_ts=utc_now())
         self.assertTrue(expired_state.is_expired(-1))

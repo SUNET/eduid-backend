@@ -20,7 +20,7 @@ from eduid.userdb.logs.element import (
     NinProofingLogElement,
 )
 from eduid.userdb.proofing import ProofingUser
-from eduid.userdb.proofing.state import NinProofingState, OidcProofingState
+from eduid.userdb.proofing.state import NinProofingState
 from eduid.userdb.user import User
 from eduid.userdb.userdb import UserDB
 from eduid.webapp.common.api.utils import get_from_current_app, get_reference_nin_from_navet_data, save_and_sync_user
@@ -63,21 +63,6 @@ def set_user_names_from_foreign_id[T: User](user: T, proofing_log_entry: Foreign
     # unset chosen given name, if there was a name change it might no longer be correct
     user.chosen_given_name = None
     return user
-
-
-def number_match_proofing(user: User, proofing_state: OidcProofingState, number: str) -> bool:
-    """
-    :param user: Central userdb user
-    :param proofing_state: Proofing state for user
-    :param number: National identity number
-
-    :return: True|False
-    """
-    if proofing_state.nin.number == number:
-        return True
-    current_app.logger.error(f"Self asserted NIN does not match for user {user}")
-    current_app.logger.debug(f"Self asserted NIN: {proofing_state.nin.number}. NIN from vetting provider {number}")
-    return False
 
 
 # Explain to mypy that if you call add_nin_to_user without a user_type, the return type will be ProofingUser
