@@ -5,7 +5,7 @@ from bson import ObjectId
 import eduid.userdb
 from eduid.common.config.workers import AmConfig
 from eduid.userdb.db import TUserDbDocument
-from eduid.userdb.exceptions import UserDoesNotExist
+from eduid.userdb.exceptions import EduIDDBError, UserDoesNotExist
 from eduid.userdb.testing import SetupConfig
 from eduid.userdb.user import User
 from eduid.workers.am.ams.common import AttributeFetcher
@@ -204,5 +204,5 @@ class MessageTest(AMTestCase):
         assert am_user
         self.assertNotEqual(am_user.eppn, "teste-teste")
 
-        with self.assertRaises(eduid.userdb.exceptions.EduIDDBError):
+        with self.assertRaises(EduIDDBError):
             self.am_relay.request_user_sync(test_user, app_name_override="bad")

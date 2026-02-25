@@ -7,7 +7,6 @@ respect-type-ignore-comments = false
 invalid-argument-type = "ignore"
 invalid-assignment = "ignore"
 missing-argument = "ignore"
-possibly-missing-attribute = "ignore"
 unknown-argument = "ignore"
 unresolved-attribute = "ignore"
 unresolved-import = "ignore"

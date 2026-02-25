@@ -3,6 +3,7 @@ from collections.abc import Mapping
 from typing import Any, ClassVar
 
 import pymongo
+import pymongo.errors
 from bson import ObjectId
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorCollection, AsyncIOMotorDatabase
 from pymongo.errors import PyMongoError

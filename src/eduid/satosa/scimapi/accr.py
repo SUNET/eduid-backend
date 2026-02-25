@@ -3,6 +3,7 @@ from collections.abc import Mapping
 from copy import deepcopy
 from typing import Any
 
+import satosa.context
 import satosa.internal
 import satosa.response
 from satosa.context import Context
@@ -88,7 +89,7 @@ class request(RequestMicroService):
 
         virtual_idp = context.target_frontend
         minimum_accr = ""
-        if self.lowest_accepted_accr_for_virtual_idp:
+        if self.lowest_accepted_accr_for_virtual_idp and virtual_idp:
             minimum_accr = self.lowest_accepted_accr_for_virtual_idp.get(virtual_idp, "")
         if minimum_accr:
             logger.info(f"Minimum accepted ACCR for {virtual_idp} is: {minimum_accr}.")

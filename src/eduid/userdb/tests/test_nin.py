@@ -6,6 +6,7 @@ from unittest import TestCase
 import pytest
 from pydantic import ValidationError
 
+import eduid.userdb.element
 import eduid.userdb.exceptions
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.testing_base import normalised_data
