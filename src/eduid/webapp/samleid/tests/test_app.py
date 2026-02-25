@@ -397,7 +397,7 @@ class SamlEidTests(ProofingTests[SamlEidApp]):
         tomorrow = utc_now() + datetime.timedelta(days=1)
         yesterday = utc_now() - datetime.timedelta(days=1)
         if date_of_birth is None:
-            date_of_birth = datetime.datetime.strptime(asserted_identity[:8], "%Y%m%d")
+            date_of_birth = datetime.datetime.strptime(asserted_identity[:8], "%Y%m%d").replace(tzinfo=datetime.UTC)
 
         sp_baseurl = "http://test.localhost:6545/"
 
@@ -454,7 +454,7 @@ class SamlEidTests(ProofingTests[SamlEidApp]):
         logger.debug(f"Outstanding queries for samleid in session {session}: {ids}")
         if len(ids) != 1:
             raise RuntimeError("More or less than one authn request in the session")
-        saml_req_id = list(ids)[0]
+        saml_req_id = next(iter(ids))
         req_ref = AuthnRequestRef(oq_cache.outstanding_queries()[saml_req_id])
         return saml_req_id, req_ref
 
@@ -1549,7 +1549,7 @@ class NINMethodTests(SamlEidTests):
             )
 
             with browser.session_transaction() as sess:
-                request_id, _authn_ref = self._get_request_id_from_session(sess)
+                _request_id, _authn_ref = self._get_request_id_from_session(sess)
 
             # Generate a valid SAML response but with a different request_id (simulating unsolicited)
             authn_response = self.generate_auth_response(

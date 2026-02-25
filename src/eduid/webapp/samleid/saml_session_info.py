@@ -7,12 +7,12 @@ from eduid.webapp.eidas.saml_session_info import NinAttributes as EidasNinAttrib
 __author__ = "lundberg"
 
 __all__ = [
-    "BaseSessionInfo",
-    "SAMLAttributes",
-    "BankIDSessionInfo",
     "BankIDNinAttributes",
-    "ForeignEidSessionInfo",
-    "ForeignEidAttributes",
-    "NinSessionInfo",
+    "BankIDSessionInfo",
+    "BaseSessionInfo",
     "EidasNinAttributes",
+    "ForeignEidAttributes",
+    "ForeignEidSessionInfo",
+    "NinSessionInfo",
+    "SAMLAttributes",
 ]
