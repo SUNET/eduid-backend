@@ -194,7 +194,8 @@ def check_vccs() -> bool:
         return True
     try:
         user = current_app.central_userdb.get_user_by_eppn(eppn=eppn)
-        if user and check_password(password=password, user=user, vccs_url=_conf.vccs_url):
+        result = check_password(password=password, user=user, vccs_url=_conf.vccs_url)
+        if user and result is not None and result.success:
             return True
     except Exception as exc:
         log_failure_info("check_vccs", msg="vccs health check failed", exc=exc)

@@ -1,10 +1,10 @@
 import logging
+from dataclasses import dataclass
 from datetime import timedelta
 from typing import cast
 
 from bson import ObjectId
 
-from eduid.common.decorators import deprecated
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.credentials import Password
 from eduid.userdb.element import ElementKey
@@ -12,6 +12,20 @@ from eduid.userdb.user import User
 from eduid.vccs.client import VCCSClient, VCCSClientHTTPError, VCCSPasswordFactor, VCCSRevokeFactor
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class CheckPasswordResult:
+    """Result of a password check.
+
+    :param success: True if authentication succeeded
+    :param password: The Password credential that matched
+    :param credentials_changed: True if credentials were modified (v2 upgrade or v1 revocation)
+    """
+
+    password: Password
+    success: bool = False
+    credentials_changed: bool = False
 
 
 def get_vccs_client(vccs_url: str | None) -> VCCSClient:
@@ -32,12 +46,16 @@ def check_password(
     upgrade_v2: bool = False,
     application: str = "",
     grace_period_days: int = 0,
-) -> Password | None:
+) -> CheckPasswordResult | None:
     """
     Try to validate a user provided password.
 
     Credentials are tried in version-descending order so that v2 is preferred over v1
     when both exist.
+
+    Returns a CheckPasswordResult on success, with credentials_changed=True if the
+    user's credentials were modified (v2 upgrade or v1 revocation). The caller is
+    responsible for persisting those changes via save_and_sync_user.
 
     :param password: plaintext password
     :param user: User object
@@ -47,7 +65,7 @@ def check_password(
     :param application: Application name, required when upgrade_v2 is True
     :param grace_period_days: If > 0, revoke v1 passwords older than this many days after successful v2 auth
 
-    :return: Password credential on success
+    :return: CheckPasswordResult on success, None on failure
     """
     if vccs is None:
         vccs = get_vccs_client(vccs_url)
@@ -57,45 +75,56 @@ def check_password(
         factor = VCCSPasswordFactor(password, credential_id=user_password.key, salt=user_password.salt)
         try:
             if vccs.authenticate(str(user.user_id), [factor]):
+                credentials_changed = False
+
                 # If v1 matched and upgrade is requested, create a v2 credential alongside it
                 if user_password.version == 1 and upgrade_v2:
                     _has_v2 = any(p.version == 2 for p in user.credentials.filter(Password))
                     if not _has_v2:
-                        if not upgrade_password_to_v2(
+                        if upgrade_password_to_v2(
                             user=user,
                             password=password,
                             old_credential=user_password,
                             application=application,
                             vccs=vccs,
                         ):
+                            credentials_changed = True
+                        else:
                             logger.warning(f"Password v2 upgrade failed for user {user}")
 
                 # Grace period: revoke old v1 passwords if v2 auth succeeded and v1 is past cutoff
                 if grace_period_days > 0 and user_password.version == 2:
-                    _revoke_expired_v1_passwords(user, grace_period_days, vccs)
+                    if _revoke_expired_v1_passwords(user, grace_period_days, vccs):
+                        credentials_changed = True
 
-                return user_password
+                return CheckPasswordResult(
+                    password=user_password, success=True, credentials_changed=credentials_changed
+                )
         except Exception:
             logger.exception(f"VCCS authentication for user {user} factor {factor} failed")
     return None
 
 
-def _revoke_expired_v1_passwords(user: User, grace_period_days: int, vccs: VCCSClient) -> None:
-    """Revoke v1 passwords if the v2 credential was created more than grace_period_days ago."""
+def _revoke_expired_v1_passwords(user: User, grace_period_days: int, vccs: VCCSClient) -> bool:
+    """Revoke v1 passwords if the v2 credential was created more than grace_period_days ago.
+
+    :return: True if any credentials were revoked (user was modified)
+    """
     # Find the v2 password to determine when the upgrade happened
     v2_passwords = [p for p in user.credentials.filter(Password) if p.version == 2]
     if not v2_passwords:
-        return
+        return False
 
     v2_created = v2_passwords[0].created_ts
     if v2_created is None:
-        return
+        return False
 
     cutoff = v2_created + timedelta(days=grace_period_days)
     now = utc_now()
     if now < cutoff:
-        return  # still within grace period
+        return False  # still within grace period
 
+    revoked_any = False
     for pw in list(user.credentials.filter(Password)):
         if pw.version == 1:
             try:
@@ -105,8 +134,10 @@ def _revoke_expired_v1_passwords(user: User, grace_period_days: int, vccs: VCCSC
                 vccs.revoke_credentials(str(user.user_id), [factor])
                 user.credentials.remove(pw.key)
                 logger.info(f"Revoked v1 password {pw.credential_id} (grace period expired)")
+                revoked_any = True
             except Exception:
                 logger.exception(f"Failed to revoke v1 password {pw.credential_id}")
+    return revoked_any
 
 
 def upgrade_password_to_v2(
@@ -276,11 +307,12 @@ def change_password(
     # Check that the old password is correct, if supplied
     checked_password = None
     if old_password is not None:
-        checked_password = check_password(old_password, user, vccs_url=vccs_url, vccs=vccs)
+        check_result = check_password(old_password, user, vccs_url=vccs_url, vccs=vccs)
         del old_password  # don't need it anymore, try to forget it
-        if not checked_password:
+        if check_result is None or not check_result.success:
             logger.error("Old password did not match for user")
             return False
+        checked_password = check_result.password
 
     # Revoke the old password or all current passwords as a fallback if old password or old password id is missing.
     if checked_password is not None or old_password_id is not None:
@@ -312,77 +344,6 @@ def change_password(
         version=version,
     )
     user.credentials.add(_password)
-    return True
-
-
-@deprecated
-def add_credentials(
-    old_password: str | None,
-    new_password: str,
-    user: User,
-    source: str,
-    vccs_url: str | None = None,
-    vccs: VCCSClient | None = None,
-) -> bool:
-    """
-    Add a new password to a user. Revokes the old one, if one is given.
-    Revokes all old passwords if no old one is given - password reset.
-
-    :param user: User object
-    :param new_password: plaintext new password
-    :param source: Application requesting credential change
-    :param old_password: Plaintext current password
-    :param vccs_url: URL to VCCS authentication backend
-    :param vccs: Optional already instantiated vccs client
-
-    :return: Success status
-    """
-    if vccs is None:
-        vccs = get_vccs_client(vccs_url)
-
-    new_factor = VCCSPasswordFactor(new_password, credential_id=str(ObjectId()))
-
-    checked_password = None
-    # remember if an old password was supplied or not, without keeping it in
-    # memory longer than we have to
-    old_password_supplied = bool(old_password)
-    if len(user.credentials.filter(Password)) > 0 and old_password_supplied:
-        assert old_password is not None  # mypy doesn't get that old_password can't be None here
-        # Find the old credential to revoke
-        checked_password = check_password(old_password, user, vccs_url=vccs_url, vccs=vccs)
-        del old_password  # don't need it anymore, try to forget it
-        if not checked_password:
-            return False
-
-    if not vccs.add_credentials(str(user.user_id), [new_factor]):
-        logger.warning(f"Failed adding password credential {new_factor.credential_id!r} for user {user!r}")
-        return False  # something failed
-    logger.debug(f"Added password credential {new_factor.credential_id!s} for user {user!s}")
-
-    if checked_password:
-        old_factor = VCCSRevokeFactor(str(checked_password.credential_id), "changing password", reference=source)
-        vccs.revoke_credentials(str(user.user_id), [old_factor])
-        user.credentials.remove(checked_password.key)
-        logger.debug(f"Revoked old credential {old_factor.credential_id!s} (user {user!s})")
-
-    if not old_password_supplied:
-        # XXX: Revoke all current credentials on password reset for now
-        revoked = []
-        for password in user.credentials.filter(Password):
-            revoked.append(VCCSRevokeFactor(str(password.credential_id), "reset password", reference=source))
-            logger.debug(f"Revoking old credential (password reset) {password.credential_id} (user {user})")
-            user.credentials.remove(password.key)
-        if revoked:
-            try:
-                vccs.revoke_credentials(str(user.user_id), revoked)
-            except VCCSClientHTTPError:
-                # Password already revoked
-                # TODO: vccs backend should be changed to return something more informative than
-                # TODO: VCCSClientHTTPError when the credential is already revoked or just return success.
-                logger.warning(f"VCCS failed to revoke all passwords for user {user}")
-
-    _new_cred = Password(credential_id=new_factor.credential_id, salt=new_factor.salt, created_by=source)
-    user.credentials.add(_new_cred)
     return True
 
 
@@ -455,19 +416,3 @@ def revoke_passwords(
         logger.warning(f"VCCS failed to revoke all passwords for user {user}")
         return False
     return True
-
-
-@deprecated
-def revoke_all_credentials(
-    user: User, source: str = "dashboard", vccs_url: str | None = None, vccs: VCCSClient | None = None
-) -> None:
-    if vccs is None:
-        vccs = get_vccs_client(vccs_url)
-    to_revoke = []
-    for password in user.credentials.filter(Password):
-        credential_id = password.credential_id
-        factor = VCCSRevokeFactor(credential_id, "subscriber requested termination", reference=source)
-        logger.debug(f"Revoked old credential (account termination) {credential_id!s} (user {user!s})")
-        to_revoke.append(factor)
-    userid = str(user.user_id)
-    vccs.revoke_credentials(userid, to_revoke)

@@ -350,6 +350,7 @@ class AttributeFetcherSecurityTests(ProofingTestCase):
                         "credential_id": "112345678901234567890123",
                         "is_generated": False,
                         "salt": "$NDNv1H1$9c810d852430b62a9a7c6159d5d64c41c3831846f81b6799b54e1e8922f11545$32$32$",
+                        "version": 1,
                     }
                 ],
                 "identities": [
@@ -390,6 +391,7 @@ class AttributeFetcherSecurityTests(ProofingTestCase):
                         "credential_id": "112345678901234567890123",
                         "is_generated": False,
                         "salt": "$NDNv1H1$9c810d852430b62a9a7c6159d5d64c41c3831846f81b6799b54e1e8922f11545$32$32$",
+                        "version": 1,
                     }
                 ],
                 "identities": [
@@ -428,6 +430,7 @@ class AttributeFetcherResetPasswordTests(ProofingTestCase):
                         "credential_id": "112345678901234567890123",
                         "is_generated": False,
                         "salt": "$NDNv1H1$9c810d852430b62a9a7c6159d5d64c41c3831846f81b6799b54e1e8922f11545$32$32$",
+                        "version": 1,
                     }
                 ],
                 "identities": [
@@ -464,6 +467,7 @@ class AttributeFetcherResetPasswordTests(ProofingTestCase):
                         "credential_id": "112345678901234567890123",
                         "is_generated": False,
                         "salt": "$NDNv1H1$9c810d852430b62a9a7c6159d5d64c41c3831846f81b6799b54e1e8922f11545$32$32$",
+                        "version": 1,
                     }
                 ],
                 "identities": [
