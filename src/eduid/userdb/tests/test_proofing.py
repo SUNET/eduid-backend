@@ -41,9 +41,7 @@ ADDRESS = FullPostalAddress.model_validate(
 
 
 class ProofingStateTest(TestCase):
-    def _test_create_letterproofingstate(
-        self, state: LetterProofingState, nin_expected_keys: list[str]
-    ) -> None:
+    def _test_create_letterproofingstate(self, state: LetterProofingState, nin_expected_keys: list[str]) -> None:
         """
         {
              'eppn': 'foob-arra',
@@ -95,9 +93,7 @@ class ProofingStateTest(TestCase):
             "modified_ts",
         ]
         self.assertEqual(
-            sorted(
-                [k for k, v in state_dict["proofing_letter"].items() if v is not None]
-            ),
+            sorted([k for k, v in state_dict["proofing_letter"].items() if v is not None]),
             sorted(_proofing_letter_expected_keys),
         )
 
