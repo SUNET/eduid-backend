@@ -27,6 +27,7 @@ from eduid.userdb.proofing.db import (
     BankIDProofingUserDB,
     FrejaEIDProofingUserDB,
     LadokProofingUserDB,
+    SamlEidProofingUserDB,
     SvideIDProofingUserDB,
 )
 from eduid.userdb.reset_password import ResetPasswordUserDB
@@ -333,3 +334,25 @@ class eduid_job_runner(AttributeFetcher):
     @classmethod
     def get_user_db(cls, uri: str) -> CleanerUserDB:
         return CleanerUserDB(uri)
+
+
+class eduid_samleid(AttributeFetcher):
+    whitelist_set_attrs = [
+        "passwords",
+        "nins",  # Old format
+        "identities",
+        "givenName",
+        "chosen_given_name",
+        "surname",
+        "legal_name",
+    ]
+    whitelist_unset_attrs: list[str] = [
+        "identities",
+        "chosen_given_name",
+        "nins",  # Old format
+        "displayName",  # deprecated
+    ]
+
+    @classmethod
+    def get_user_db(cls, uri: str) -> SamlEidProofingUserDB:
+        return SamlEidProofingUserDB(uri)
