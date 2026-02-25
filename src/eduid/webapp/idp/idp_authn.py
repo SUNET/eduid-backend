@@ -96,6 +96,7 @@ class UsedCredential(BaseModel):
 class PasswordAuthnResponse:
     user: IdPUser
     credential: Password
+    credentials_changed: bool = False
     timestamp: datetime = field(default_factory=utc_now)
 
     @property
@@ -137,11 +138,17 @@ class IdPAuthn:
         if not user:
             return None
 
+        # Snapshot credential keys before authentication to detect changes (e.g. v2 upgrade, v1 revocation)
+        _cred_keys_before = {p.key for p in user.credentials.filter(Password)}
+
         cred = self._verify_username_and_password2(user, password)
         if not cred:
             return None
 
-        return PasswordAuthnResponse(user=user, credential=cred)
+        _cred_keys_after = {p.key for p in user.credentials.filter(Password)}
+        _credentials_changed = _cred_keys_after != _cred_keys_before
+
+        return PasswordAuthnResponse(user=user, credential=cred, credentials_changed=_credentials_changed)
 
     def _verify_username_and_password2(self, user: IdPUser, password: str) -> Password | None:
         """

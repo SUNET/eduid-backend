@@ -1,10 +1,13 @@
 from flask import Blueprint, jsonify, request
 from werkzeug.wrappers import Response as WerkzeugResponse
 
+from eduid.userdb.exceptions import UserOutOfSync
+from eduid.userdb.idp.credential_user import CredentialUser
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith
 from eduid.webapp.common.api.exceptions import EduidForbidden, EduidTooManyRequests
 from eduid.webapp.common.api.messages import FluxData, error_response
 from eduid.webapp.common.api.schemas.models import FluxSuccessResponse
+from eduid.webapp.common.api.utils import save_and_sync_user
 from eduid.webapp.common.session import session
 from eduid.webapp.idp.app import current_idp_app as current_app
 from eduid.webapp.idp.decorators import require_ticket, uses_sso_session
@@ -57,6 +60,20 @@ def pw_auth(
     if not pwauth:
         current_app.logger.info(f"{ticket.request_ref}: Password authentication failed")
         return error_response(message=IdPMsg.wrong_credentials)
+
+    # Persist credential changes (e.g. v2 password upgrade) to the database
+    if pwauth.credentials_changed:
+        credential_user = CredentialUser.from_user(pwauth.user, current_app.credential_db)
+        try:
+            save_and_sync_user(
+                credential_user,
+                private_userdb=current_app.credential_db,
+                app_name_override="eduid_idp",
+            )
+            current_app.logger.info(f"Saved credential changes for user {pwauth.user}")
+        except UserOutOfSync:
+            # Don't fail the login -- the upgrade will be retried on next authentication
+            current_app.logger.warning(f"Failed to save credential changes for user {pwauth.user} (out of sync)")
 
     # Create/update SSO session
     current_app.logger.debug(f"User {pwauth.user} authenticated OK ({type(ticket)} request id {ticket.request_id})")

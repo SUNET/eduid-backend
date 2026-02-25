@@ -14,6 +14,7 @@ from bson import ObjectId
 from celery.utils.log import get_task_logger
 
 from eduid.userdb.actions.tou import ToUUserDB
+from eduid.userdb.idp import CredentialUserDB
 from eduid.userdb.personal_data import PersonalDataUserDB
 from eduid.userdb.proofing import (
     EidasProofingUserDB,
@@ -254,6 +255,15 @@ class eduid_eidas(AttributeFetcher):
     @classmethod
     def get_user_db(cls, uri: str) -> EidasProofingUserDB:
         return EidasProofingUserDB(uri)
+
+
+class eduid_idp(AttributeFetcher):
+    whitelist_set_attrs: ClassVar[list[str]] = ["passwords"]
+    whitelist_unset_attrs: ClassVar[list[str]] = ["passwords"]
+
+    @classmethod
+    def get_user_db(cls, uri: str) -> CredentialUserDB:
+        return CredentialUserDB(uri)
 
 
 class eduid_tou(AttributeFetcher):

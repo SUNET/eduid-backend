@@ -11,9 +11,11 @@ from bson import ObjectId
 import eduid.userdb
 import eduid.webapp.common.authn
 from eduid.userdb.credentials.password import Password
+from eduid.userdb.idp.credential_user import CredentialUser
 from eduid.userdb.mail import MailAddress
 from eduid.vccs.client import VCCSClient, VCCSPasswordFactor
 from eduid.webapp.common.api import exceptions
+from eduid.webapp.common.api.utils import save_and_sync_user
 from eduid.webapp.idp.idp_authn import IdPAuthn
 from eduid.webapp.idp.tests.test_api import IdPAPITests
 
@@ -141,6 +143,9 @@ class TestPasswordV2Upgrade(IdPAPITests):
         assert pwauth is not None
         assert pwauth.user.eppn == self.test_user.eppn
 
+        # Verify that credentials_changed is set
+        assert pwauth.credentials_changed is True
+
         # Verify that a v2 credential was created on the user object
         v2_creds = [p for p in pwauth.user.credentials.filter(Password) if p.version == 2]
         assert len(v2_creds) == 1, f"Expected 1 v2 credential, got {len(v2_creds)}"
@@ -177,6 +182,9 @@ class TestPasswordV2Upgrade(IdPAPITests):
         pwauth = self.app.authn.password_authn(self.test_user.mail_addresses.primary.email, "foo")
         assert pwauth is not None
 
+        # No credentials should have changed
+        assert pwauth.credentials_changed is False
+
         # add_credentials should NOT have been called (no upgrade needed)
         mock_add_credentials.assert_not_called()
 
@@ -193,5 +201,48 @@ class TestPasswordV2Upgrade(IdPAPITests):
         with patch.object(VCCSClient, "add_credentials") as mock_add:
             pwauth = self.app.authn.password_authn(self.test_user.mail_addresses.primary.email, "foo")
             assert pwauth is not None
+            assert pwauth.credentials_changed is False
             # add_credentials should NOT have been called
             mock_add.assert_not_called()
+
+    @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
+    @patch("eduid.vccs.client.VCCSClient.authenticate")
+    @patch("eduid.vccs.client.VCCSClient.add_credentials")
+    def test_v2_upgrade_persisted_to_db(
+        self,
+        mock_add_credentials: MagicMock,
+        mock_authenticate: MagicMock,
+        mock_request_user_sync: MagicMock,
+    ) -> None:
+        """Verify that a v2 upgrade is persisted to the database via save_and_sync_user."""
+        mock_add_credentials.return_value = True
+        mock_authenticate.return_value = True
+        mock_request_user_sync.side_effect = self.request_user_sync
+        assert isinstance(self.app.authn, IdPAuthn)
+
+        with self.app.app_context():
+            # Authenticate with the v1 password -- triggers v2 upgrade
+            assert self.test_user.mail_addresses.primary
+            pwauth = self.app.authn.password_authn(self.test_user.mail_addresses.primary.email, "foo")
+            assert pwauth is not None
+            assert pwauth.credentials_changed is True
+
+            # Simulate the save logic from the pw_auth view
+            credential_user = CredentialUser.from_user(pwauth.user, self.app.credential_db)
+            save_and_sync_user(
+                credential_user,
+                private_userdb=self.app.credential_db,
+                app_name_override="eduid_idp",
+            )
+
+            # Verify the v2 credential was saved to the credential_db
+            saved_user = self.app.credential_db.get_user_by_eppn(self.test_user.eppn)
+            assert saved_user is not None
+            v2_creds = [p for p in saved_user.credentials.filter(Password) if p.version == 2]
+            assert len(v2_creds) == 1, f"Expected 1 v2 credential in credential_db, got {len(v2_creds)}"
+
+            # Verify the v2 credential was synced to the central userdb
+            central_user = self.app.userdb.lookup_user(self.test_user.eppn)
+            assert central_user is not None
+            central_v2 = [p for p in central_user.credentials.filter(Password) if p.version == 2]
+            assert len(central_v2) == 1, f"Expected 1 v2 credential in central userdb, got {len(central_v2)}"
