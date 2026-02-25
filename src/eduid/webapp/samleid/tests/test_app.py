@@ -95,7 +95,6 @@ class SamlEidTests(ProofingTests[SamlEidApp]):
         self.test_idp = "https://idp.example.com/simplesaml/saml2/idp/metadata.php"
         self.default_redirect_url = "http://redirect.localhost/redirect"
 
-        # ruff: disable[E501]
         self.saml_response_tpl_freja_success = """<?xml version='1.0' encoding='UTF-8'?>
 <samlp:Response xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Destination="{sp_url}saml2-acs" ID="id-88b9f586a2a3a639f9327485cc37c40a" InResponseTo="{session_id}" IssueInstant="{timestamp}" Version="2.0">
   <saml:Issuer Format="urn:oasis:names:tc:SAML:2.0:nameid-format:entity">https://idp.example.com/simplesaml/saml2/idp/metadata.php</saml:Issuer>
@@ -274,7 +273,6 @@ class SamlEidTests(ProofingTests[SamlEidApp]):
   </saml2p:Status>
 </saml2p:Response>
 """
-        # ruff: enable[E501]
         if config is None:
             config = SetupConfig()
         config.users = ["hubba-bubba", "hubba-baar"]
