@@ -3,11 +3,11 @@ from collections.abc import Mapping
 from copy import deepcopy
 from typing import Any
 
-import satosa.internal
-import satosa.response
 from satosa.context import Context
 from satosa.exception import SATOSAAuthenticationError, SATOSAConfigurationError
+from satosa.internal import InternalData
 from satosa.micro_services.base import RequestMicroService, ResponseMicroService
+from satosa.response import Response
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 SupportedACCRsSortedByPrioConfig = list[str]
 LowestAcceptedACCRForVirtualIdpConfig = dict[str, str]
 InternalACCRRewriteMap = Mapping[str, str]
-type ProcessReturnType = satosa.internal.InternalData | satosa.response.Response
+type ProcessReturnType = InternalData | Response
 
 
 class request(RequestMicroService):
@@ -55,7 +55,7 @@ class request(RequestMicroService):
 
         super().__init__(*args, **kwargs)
 
-    def process(self, context: satosa.context.Context, data: satosa.internal.InternalData) -> ProcessReturnType:
+    def process(self, context: Context, data: InternalData) -> ProcessReturnType:
         requested_accr: list[str] = context.get_decoration(Context.KEY_AUTHN_CONTEXT_CLASS_REF)
 
         logger.debug(f"Incoming ACCR: {requested_accr}")
@@ -88,7 +88,7 @@ class request(RequestMicroService):
 
         virtual_idp = context.target_frontend
         minimum_accr = ""
-        if self.lowest_accepted_accr_for_virtual_idp:
+        if self.lowest_accepted_accr_for_virtual_idp and virtual_idp:
             minimum_accr = self.lowest_accepted_accr_for_virtual_idp.get(virtual_idp, "")
         if minimum_accr:
             logger.info(f"Minimum accepted ACCR for {virtual_idp} is: {minimum_accr}.")
@@ -118,7 +118,7 @@ class response(ResponseMicroService):
     ) -> None:
         super().__init__(*args, **kwargs)
 
-    def process(self, context: satosa.context.Context, data: satosa.internal.InternalData) -> ProcessReturnType:
+    def process(self, context: Context, data: InternalData) -> ProcessReturnType:
         received_accr = data.auth_info.auth_class_ref
         requested_accr = context.state.get("requested_accr")
         internal_accr_rewrite_map = context.state.get("internal_accr_rewrite_map")
