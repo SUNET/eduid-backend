@@ -2,11 +2,10 @@ import logging
 from collections.abc import Mapping
 from typing import Any, ClassVar
 
-import pymongo
-import pymongo.errors
 from bson import ObjectId
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorCollection, AsyncIOMotorDatabase
-from pymongo.errors import PyMongoError
+from pymongo import WriteConcern
+from pymongo.errors import ConnectionFailure, PyMongoError
 
 from eduid.userdb.db.base import BaseMongoDB
 from eduid.userdb.exceptions import EduIDUserDBError, MongoConnectionError, MultipleDocumentsReturned
@@ -108,7 +107,7 @@ class AsyncMongoDB(BaseMongoDB):
         try:
             await self.get_connection().admin.command("ismaster")
             return True
-        except pymongo.errors.ConnectionFailure as e:
+        except ConnectionFailure as e:
             logger.error(f"{self} not healthy: {e}")
             return False
 
@@ -131,7 +130,7 @@ class AsyncBaseDB:
         self._db = AsyncMongoDB(db_uri, db_name=db_name)
         self._coll = self._db.get_collection(collection)
         if safe_writes:
-            self._coll = self._coll.with_options(write_concern=pymongo.WriteConcern(w="majority"))
+            self._coll = self._coll.with_options(write_concern=WriteConcern(w="majority"))
 
     def __repr__(self) -> str:
         return f"<eduID {self.__class__.__name__!s}: {self._db.sanitized_uri!s} {self._coll_name!r}>"
