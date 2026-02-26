@@ -95,7 +95,6 @@ class SamlEidTests(ProofingTests[SamlEidApp]):
         self.test_idp = "https://idp.example.com/simplesaml/saml2/idp/metadata.php"
         self.default_redirect_url = "http://redirect.localhost/redirect"
 
-        # ruff: disable[E501]
         self.saml_response_tpl_freja_success = """<?xml version='1.0' encoding='UTF-8'?>
 <samlp:Response xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Destination="{sp_url}saml2-acs" ID="id-88b9f586a2a3a639f9327485cc37c40a" InResponseTo="{session_id}" IssueInstant="{timestamp}" Version="2.0">
   <saml:Issuer Format="urn:oasis:names:tc:SAML:2.0:nameid-format:entity">https://idp.example.com/simplesaml/saml2/idp/metadata.php</saml:Issuer>
@@ -274,7 +273,6 @@ class SamlEidTests(ProofingTests[SamlEidApp]):
   </saml2p:Status>
 </saml2p:Response>
 """
-        # ruff: enable[E501]
         if config is None:
             config = SetupConfig()
         config.users = ["hubba-bubba", "hubba-baar"]
@@ -397,7 +395,7 @@ class SamlEidTests(ProofingTests[SamlEidApp]):
         tomorrow = utc_now() + datetime.timedelta(days=1)
         yesterday = utc_now() - datetime.timedelta(days=1)
         if date_of_birth is None:
-            date_of_birth = datetime.datetime.strptime(asserted_identity[:8], "%Y%m%d")
+            date_of_birth = datetime.datetime.strptime(asserted_identity[:8], "%Y%m%d").replace(tzinfo=datetime.UTC)
 
         sp_baseurl = "http://test.localhost:6545/"
 
@@ -454,7 +452,7 @@ class SamlEidTests(ProofingTests[SamlEidApp]):
         logger.debug(f"Outstanding queries for samleid in session {session}: {ids}")
         if len(ids) != 1:
             raise RuntimeError("More or less than one authn request in the session")
-        saml_req_id = list(ids)[0]
+        saml_req_id = next(iter(ids))
         req_ref = AuthnRequestRef(oq_cache.outstanding_queries()[saml_req_id])
         return saml_req_id, req_ref
 
@@ -1549,7 +1547,7 @@ class NINMethodTests(SamlEidTests):
             )
 
             with browser.session_transaction() as sess:
-                request_id, _authn_ref = self._get_request_id_from_session(sess)
+                _request_id, _authn_ref = self._get_request_id_from_session(sess)
 
             # Generate a valid SAML response but with a different request_id (simulating unsolicited)
             authn_response = self.generate_auth_response(

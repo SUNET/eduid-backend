@@ -337,7 +337,7 @@ class eduid_job_runner(AttributeFetcher):
 
 
 class eduid_samleid(AttributeFetcher):
-    whitelist_set_attrs = [
+    whitelist_set_attrs: ClassVar[list[str]] = [
         "passwords",
         "nins",  # Old format
         "identities",
@@ -346,7 +346,7 @@ class eduid_samleid(AttributeFetcher):
         "surname",
         "legal_name",
     ]
-    whitelist_unset_attrs: list[str] = [
+    whitelist_unset_attrs: ClassVar[list[str]] = [
         "identities",
         "chosen_given_name",
         "nins",  # Old format
