@@ -202,7 +202,9 @@ class IdPAuthn:
         """
         for cred in pw_credentials:
             try:
-                factor = VCCSPasswordFactor(password, str(cred.credential_id), str(cred.salt))
+                factor = VCCSPasswordFactor(
+                    password, str(cred.credential_id), str(cred.salt), version=f"NDNv{cred.version}"
+                )
             except ValueError as exc:
                 logger.info(f"User {user} password factor {cred.credential_id} unusable: {exc}")
                 continue

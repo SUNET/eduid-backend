@@ -48,6 +48,7 @@ class TestVCCSClient(unittest.TestCase):
                 "type": "password",
                 "credential_id": "4711",
                 "H1": "0b9ba6497c08106032a3337b",
+                "version": "NDNv1",
             },
         )
 
@@ -63,6 +64,7 @@ class TestVCCSClient(unittest.TestCase):
                 "type": "password",
                 "credential_id": "4711",
                 "H1": "bbcebc158aa37039e0fa3294",
+                "version": "NDNv1",
             },
         )
 
@@ -342,11 +344,11 @@ class TestVCCSClient(unittest.TestCase):
         d = f.to_dict("add_creds")
         self.assertEqual(d["version"], "NDNv1")
 
-    def test_password_factor_to_dict_auth_no_version(self) -> None:
-        """Auth serialization should not include version (server determines from stored credential)."""
+    def test_password_factor_to_dict_auth_includes_version(self) -> None:
+        """Auth serialization should include version for server-side logging and validation."""
         f = VCCSPasswordFactor("plaintext", "4711", "$NDNv1H1$aaaaaaaaaaaaaaaa$12$32$", version="NDNv2")
         d = f.to_dict("auth")
-        self.assertNotIn("version", d)
+        self.assertEqual(d["version"], "NDNv2")
 
     def test_password_factor_default_version(self) -> None:
         """Default version should be NDNv1."""

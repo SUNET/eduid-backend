@@ -72,7 +72,9 @@ def check_password(
 
     # Sort by version descending so v2 credentials are tried first
     for user_password in sorted(user.credentials.filter(Password), key=lambda p: p.version, reverse=True):
-        factor = VCCSPasswordFactor(password, credential_id=user_password.key, salt=user_password.salt)
+        factor = VCCSPasswordFactor(
+            password, credential_id=user_password.key, salt=user_password.salt, version=f"NDNv{user_password.version}"
+        )
         try:
             if vccs.authenticate(str(user.user_id), [factor]):
                 credentials_changed = False

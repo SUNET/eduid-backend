@@ -146,6 +146,9 @@ class VCCSPasswordFactor(VCCSFactor):
         self.version = version
         VCCSFactor.__init__(self)
 
+    def __str__(self) -> str:
+        return f"<VCCSPasswordFactor credential_id={self.credential_id} version={self.version}>"
+
     def generate_salt(self, salt_length: int = 32, desired_key_length: int = 32, rounds: int = 2**5) -> str:
         """
         Generate a NDNv1H1 salt.
@@ -191,9 +194,8 @@ class VCCSPasswordFactor(VCCSFactor):
             "type": "password",
             "H1": self.hash,
             "credential_id": self.credential_id,
+            "version": self.version,
         }
-        if action == "add_creds":
-            res["version"] = self.version
         return res
 
 
