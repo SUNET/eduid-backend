@@ -75,7 +75,7 @@ class ResetPwMsg(TranslatableMsg):
     # The email address has not been verified. Should not happen.
     email_not_validated = "resetpw.email-not-validated"
     # User has not completed signup
-    invalid_user = "resetpw.invalid-user"
+    invalid_user = "resetpw.invalid_user"
     # extra security with fido tokens failed - wrong token
     fido_token_fail = "resetpw.fido-token-fail"
     # extra security with external MFA service failed
