@@ -61,6 +61,9 @@ def pw_auth(
         current_app.logger.info(f"{ticket.request_ref}: Password authentication failed")
         return error_response(message=IdPMsg.wrong_credentials)
 
+    # Track password auth version for v1->v2 migration monitoring
+    current_app.stats.count(name=f"password_auth_v{pwauth.credential.version}")
+
     # Persist credential changes (e.g. v2 password upgrade) to the database
     if pwauth.credentials_changed:
         credential_user = CredentialUser.from_user(pwauth.user, current_app.credential_db)
