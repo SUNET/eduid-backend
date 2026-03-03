@@ -2,9 +2,9 @@ from eduid.common.misc.timeutil import utc_now
 from eduid.common.proofing_utils import set_user_names_from_official_address
 from eduid.common.rpc.exceptions import MsgTaskFailed
 from eduid.common.rpc.msg_relay import FullPostalAddress, NavetData
+from eduid.userdb.identity import IdentityList
 from eduid.userdb.logs.element import NameUpdateProofing
 from eduid.userdb.meta import CleanerType
-from eduid.userdb.user import User
 from eduid.userdb.user_cleaner.db import CleanerQueueUser
 from eduid.workers.job_runner.context import Context
 from eduid.workers.job_runner.helpers import save_and_sync_user
@@ -16,17 +16,21 @@ def gather_skv_users(context: Context) -> None:
 
     """
     context.logger.debug("gathering users to check")
-    users: list[User] = context.central_db.get_unterminated_users_with_nin()
-    context.logger.debug(f"gathered {len(users)} users to check")
-    for user in users:
-        if context.cleaner_queue.user_in_queue(cleaner_type=CleanerType.SKV, eppn=user.eppn):
-            context.cleaner_queue.get_user_by_eppn(user.eppn)
-            context.logger.debug(f"{user.eppn} already in queue")
+    queued_count = 0
+    skipped_count = 0
+    # Only project the fields needed to create CleanerQueueUser entries
+    projection = {"eduPersonPrincipalName": 1, "identities": 1}
+    for doc in context.central_db.get_unterminated_users_with_nin(projection=projection):
+        eppn = doc["eduPersonPrincipalName"]
+        if context.cleaner_queue.user_in_queue(cleaner_type=CleanerType.SKV, eppn=eppn):
+            context.logger.debug(f"{eppn} already in queue")
+            skipped_count += 1
         else:
-            queue_user: CleanerQueueUser = CleanerQueueUser(
-                eppn=user.eppn, cleaner_type=CleanerType.SKV, identities=user.identities
-            )
+            identities = IdentityList.from_list_of_dicts(doc.get("identities", []))
+            queue_user = CleanerQueueUser(eppn=eppn, cleaner_type=CleanerType.SKV, identities=identities)
             context.cleaner_queue.save(queue_user)
+            queued_count += 1
+    context.logger.info(f"gather_skv_users done: queued {queued_count}, skipped {skipped_count} already in queue")
 
 
 def check_skv_users(context: Context) -> None:
