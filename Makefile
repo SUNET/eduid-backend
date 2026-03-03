@@ -9,7 +9,7 @@ MYPY_STRICT= --strict \
 			 --allow-untyped-calls
 
 test:
-	PYTHONPATH=$(SRCDIR) pytest -vvv -ra --log-cli-level DEBUG --ignore=.worktrees
+	PYTHONPATH=$(SRCDIR) pytest -vvv -ra --log-cli-level DEBUG
 
 reformat:
 	# sort imports and remove unused imports
