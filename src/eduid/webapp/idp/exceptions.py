@@ -8,7 +8,7 @@ from werkzeug.wrappers import Response as WerkzeugResponse
 from eduid.webapp.idp.mischttp import get_default_template_arguments
 
 if TYPE_CHECKING:
-    from app import IdPApp
+    from eduid.webapp.idp.app import IdPApp
 
 
 def init_exception_handlers(app: "IdPApp") -> "IdPApp":
