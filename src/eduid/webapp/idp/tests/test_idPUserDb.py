@@ -3,6 +3,7 @@
 
 import datetime
 import logging
+from datetime import timedelta
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -139,7 +140,8 @@ class TestPasswordV2Upgrade(IdPAPITests):
 
         # Authenticate with the v1 password
         assert self.test_user.mail_addresses.primary
-        pwauth = self.app.authn.password_authn(self.test_user.mail_addresses.primary.email, "foo")
+        with self.app.app_context():
+            pwauth = self.app.authn.password_authn(self.test_user.mail_addresses.primary.email, "foo")
         assert pwauth is not None
         assert pwauth.user.eppn == self.test_user.eppn
 
@@ -246,3 +248,99 @@ class TestPasswordV2Upgrade(IdPAPITests):
             assert central_user is not None
             central_v2 = [p for p in central_user.credentials.filter(Password) if p.version == 2]
             assert len(central_v2) == 1, f"Expected 1 v2 credential in central userdb, got {len(central_v2)}"
+
+    @patch("eduid.vccs.client.VCCSClient.authenticate")
+    @patch("eduid.vccs.client.VCCSClient.revoke_credentials")
+    def test_v1_revoked_after_grace_period(
+        self, mock_revoke_credentials: MagicMock, mock_authenticate: MagicMock
+    ) -> None:
+        """Verify that v1 passwords are revoked when authenticating with v2 after the grace period has expired."""
+        mock_authenticate.return_value = True
+        mock_revoke_credentials.return_value = True
+        assert isinstance(self.app.authn, IdPAuthn)
+
+        # Set up user with both v1 and v2 passwords, v2 created well past the grace period
+        user = self.app.userdb.lookup_user(self.test_user.eppn)
+        assert user is not None
+
+        # Remember the v1 credential
+        v1_creds = [p for p in user.credentials.filter(Password) if p.version == 1]
+        assert len(v1_creds) == 1, "Test user should have exactly one v1 password"
+        v1_cred = v1_creds[0]
+
+        # Add a v2 credential created 200 days ago (past default 180-day grace period)
+        v2_password = Password(
+            credential_id=str(ObjectId()),
+            salt="$NDNv1H1$aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa$32$32$",
+            is_generated=False,
+            created_by="idp",
+            version=2,
+            created_ts=datetime.datetime.now(tz=datetime.UTC) - timedelta(days=200),
+        )
+        user.credentials.add(v2_password)
+        self.app.userdb.save(user)
+
+        # Authenticate - v2 is preferred, so _upgrade_password gets cred.version==2
+        assert self.test_user.mail_addresses.primary
+        with self.app.app_context():
+            pwauth = self.app.authn.password_authn(self.test_user.mail_addresses.primary.email, "foo")
+        assert pwauth is not None
+        assert pwauth.user.eppn == self.test_user.eppn
+
+        # Verify that credentials_changed is True (v1 was revoked)
+        assert pwauth.credentials_changed is True, "credentials_changed should be True after v1 revocation"
+
+        # Verify that the v1 credential was removed from the user object
+        remaining_v1 = [p for p in pwauth.user.credentials.filter(Password) if p.version == 1]
+        assert len(remaining_v1) == 0, f"Expected 0 v1 credentials after revocation, got {len(remaining_v1)}"
+
+        # Verify that the v2 credential still exists
+        remaining_v2 = [p for p in pwauth.user.credentials.filter(Password) if p.version == 2]
+        assert len(remaining_v2) == 1, f"Expected 1 v2 credential, got {len(remaining_v2)}"
+
+        # Verify revoke_credentials was called for the v1 password
+        mock_revoke_credentials.assert_called_once()
+        call_args = mock_revoke_credentials.call_args
+        assert str(user.user_id) == call_args[0][0]
+
+    @patch("eduid.vccs.client.VCCSClient.authenticate")
+    @patch("eduid.vccs.client.VCCSClient.revoke_credentials")
+    def test_v1_not_revoked_within_grace_period(
+        self, mock_revoke_credentials: MagicMock, mock_authenticate: MagicMock
+    ) -> None:
+        """Verify that v1 passwords are NOT revoked when the grace period has not yet expired."""
+        mock_authenticate.return_value = True
+        mock_revoke_credentials.return_value = True
+        assert isinstance(self.app.authn, IdPAuthn)
+
+        # Set up user with both v1 and v2 passwords, v2 created recently (within grace period)
+        user = self.app.userdb.lookup_user(self.test_user.eppn)
+        assert user is not None
+
+        # Add a v2 credential created just 10 days ago (well within 180-day grace period)
+        v2_password = Password(
+            credential_id=str(ObjectId()),
+            salt="$NDNv1H1$aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa$32$32$",
+            is_generated=False,
+            created_by="idp",
+            version=2,
+            created_ts=datetime.datetime.now(tz=datetime.UTC) - timedelta(days=10),
+        )
+        user.credentials.add(v2_password)
+        self.app.userdb.save(user)
+
+        # Authenticate with v2
+        assert self.test_user.mail_addresses.primary
+        with self.app.app_context():
+            pwauth = self.app.authn.password_authn(self.test_user.mail_addresses.primary.email, "foo")
+        assert pwauth is not None
+
+        # Credentials should NOT have changed (still within grace period)
+        assert pwauth.credentials_changed is False, "credentials_changed should be False within grace period"
+
+        # v1 credential should still exist
+        remaining_v1 = [p for p in pwauth.user.credentials.filter(Password) if p.version == 1]
+        assert len(remaining_v1) == 1, f"Expected 1 v1 credential (not revoked yet), got {len(remaining_v1)}"
+
+        # revoke_credentials should NOT have been called
+        mock_revoke_credentials.assert_not_called()
