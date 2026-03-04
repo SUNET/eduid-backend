@@ -45,7 +45,7 @@ def check_password(
     vccs: VCCSClient | None = None,
     upgrade_v2: bool = False,
     application: str = "",
-    grace_period_days: int = 0,
+    revoke_v1_grace_period: timedelta | None = None,
 ) -> CheckPasswordResult | None:
     """
     Try to validate a user provided password.
@@ -63,7 +63,7 @@ def check_password(
     :param vccs: Optional already instantiated vccs client
     :param upgrade_v2: If True, transparently upgrade a successful v1 auth to v2
     :param application: Application name, required when upgrade_v2 is True
-    :param grace_period_days: If > 0, revoke v1 passwords older than this many days after successful v2 auth
+    :param revoke_v1_grace_period: Revoke v1 passwords older than this after successful v2 auth
 
     :return: CheckPasswordResult on success, None on failure
     """
@@ -95,8 +95,8 @@ def check_password(
                             logger.warning(f"Password v2 upgrade failed for user {user}")
 
                 # Grace period: revoke old v1 passwords if v2 auth succeeded and v1 is past cutoff
-                if grace_period_days > 0 and user_password.version == 2:
-                    if _revoke_expired_v1_passwords(user, grace_period_days, vccs):
+                elif user_password.version == 2 and revoke_v1_grace_period:
+                    if revoke_expired_v1_passwords(user=user, grace_period=revoke_v1_grace_period, vccs=vccs):
                         credentials_changed = True
 
                 return CheckPasswordResult(
@@ -107,8 +107,8 @@ def check_password(
     return None
 
 
-def _revoke_expired_v1_passwords(user: User, grace_period_days: int, vccs: VCCSClient) -> bool:
-    """Revoke v1 passwords if the v2 credential was created more than grace_period_days ago.
+def revoke_expired_v1_passwords(user: User, grace_period: timedelta, vccs: VCCSClient) -> bool:
+    """Revoke v1 passwords if the v2 credential was created more than grace_period ago.
 
     :return: True if any credentials were revoked (user was modified)
     """
@@ -121,7 +121,7 @@ def _revoke_expired_v1_passwords(user: User, grace_period_days: int, vccs: VCCSC
     if v2_created is None:
         return False
 
-    cutoff = v2_created + timedelta(days=grace_period_days)
+    cutoff = v2_created + grace_period
     now = utc_now()
     if now < cutoff:
         return False  # still within grace period

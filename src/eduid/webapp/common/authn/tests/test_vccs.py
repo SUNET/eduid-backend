@@ -1,3 +1,4 @@
+from datetime import timedelta
 from typing import Any, NoReturn, cast
 from unittest.mock import MagicMock, patch
 
@@ -338,7 +339,7 @@ class VCCSTestCase(MongoTestCase):
             vccs=self.vccs_client,
             upgrade_v2=True,
             application="test",
-            grace_period_days=90,
+            revoke_v1_grace_period=timedelta(days=90),
         )
         assert result is not None
         assert result.success
@@ -365,7 +366,7 @@ class VCCSTestCase(MongoTestCase):
             "abcd",
             self.user,
             vccs=self.vccs_client,
-            grace_period_days=90,
+            revoke_v1_grace_period=timedelta(days=90),
         )
         assert result is not None
         assert result.success
