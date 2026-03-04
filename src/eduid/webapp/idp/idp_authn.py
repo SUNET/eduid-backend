@@ -26,7 +26,7 @@ from eduid.userdb.maccapi import ManagedAccountDB
 from eduid.vccs.client import VCCSClientHTTPError, VCCSPasswordFactor
 from eduid.webapp.common.api import exceptions
 from eduid.webapp.common.authn import get_vccs_client
-from eduid.webapp.common.authn.vccs import upgrade_password_to_v2
+from eduid.webapp.common.authn.vccs import revoke_expired_v1_passwords, upgrade_password_to_v2
 from eduid.webapp.idp.settings.common import IdPConfig
 
 logger = logging.getLogger(__name__)
@@ -190,6 +190,30 @@ class IdPAuthn:
 
         return self._authn_passwords(user, password, pw_credentials)
 
+    def _upgrade_password(self, user: IdPUser, password: str, cred: Password) -> None:
+        from eduid.webapp.idp.app import current_idp_app as current_app
+
+        if cred.version == 1:
+            _has_v2 = any(p.version == 2 for p in user.credentials.filter(Password))  # noqa: PLR2004
+            if not _has_v2:
+                if not upgrade_password_to_v2(
+                    user=user,
+                    password=password,
+                    old_credential=cred,
+                    application="idp",
+                    vccs=self.auth_client,
+                ):
+                    logger.warning(f"Password v2 upgrade failed for user {user}")
+                else:
+                    current_app.stats.count("password_v1_upgraded")
+        # revoke v1 password if grace period expired
+        elif cred.version == 2:
+            if revoke_expired_v1_passwords(
+                user=user, grace_period=self.config.password_v2_grace_period, vccs=self.auth_client
+            ):
+                logger.info(f"Revoked v1 password for user {user}")
+                current_app.stats.count("password_v1_revoked")
+
     def _authn_passwords(self, user: IdPUser, password: str, pw_credentials: Sequence[Password]) -> Password | None:
         """
         Perform the final actual authentication of a user based on a list of (password) credentials.
@@ -219,18 +243,9 @@ class IdPAuthn:
                         logger.info(f"User {user} credential {cred.key} has expired")
                         raise exceptions.EduidForbidden("CREDENTIAL_EXPIRED")
                     self.log_authn(user, success=[cred.credential_id], failure=[])
-                    # Transparently upgrade v1 password to v2 (NDNv2) if enabled
-                    if self.config.password_v2_upgrade_enabled and cred.version == 1:
-                        _has_v2 = any(p.version == 2 for p in user.credentials.filter(Password))  # noqa: PLR2004
-                        if not _has_v2:
-                            if not upgrade_password_to_v2(
-                                user=user,
-                                password=password,
-                                old_credential=cred,
-                                application="idp",
-                                vccs=self.auth_client,
-                            ):
-                                logger.warning(f"Password v2 upgrade failed for user {user}")
+                    # Transparently upgrade v1 password to v2 if enabled
+                    if self.config.password_v2_upgrade_enabled:
+                        self._upgrade_password(user=user, password=password, cred=cred)
                     return cred
             except VCCSClientHTTPError as exc:
                 if exc.http_code == HTTPStatus.INTERNAL_SERVER_ERROR:
