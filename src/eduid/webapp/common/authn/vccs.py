@@ -112,9 +112,11 @@ def revoke_expired_v1_passwords(user: User, grace_period: timedelta, vccs: VCCSC
 
     :return: True if any credentials were revoked (user was modified)
     """
+    # Find the v1 passwords to determine if any needs to be revoked
+    v1_passwords = [p for p in user.credentials.filter(Password) if p.version == 1]
     # Find the v2 password to determine when the upgrade happened
     v2_passwords = [p for p in user.credentials.filter(Password) if p.version == 2]
-    if not v2_passwords:
+    if not v1_passwords or not v2_passwords:
         return False
 
     v2_created = v2_passwords[0].created_ts
@@ -127,18 +129,17 @@ def revoke_expired_v1_passwords(user: User, grace_period: timedelta, vccs: VCCSC
         return False  # still within grace period
 
     revoked_any = False
-    for pw in list(user.credentials.filter(Password)):
-        if pw.version == 1:
-            try:
-                factor = VCCSRevokeFactor(
-                    str(pw.credential_id), "v2 upgrade grace period expired", reference="vccs_upgrade"
-                )
-                vccs.revoke_credentials(str(user.user_id), [factor])
-                user.credentials.remove(pw.key)
-                logger.info(f"Revoked v1 password {pw.credential_id} (grace period expired)")
-                revoked_any = True
-            except Exception:
-                logger.exception(f"Failed to revoke v1 password {pw.credential_id}")
+    for pw in v1_passwords:
+        try:
+            factor = VCCSRevokeFactor(
+                str(pw.credential_id), "v2 upgrade grace period expired", reference="vccs_upgrade"
+            )
+            vccs.revoke_credentials(str(user.user_id), [factor])
+            user.credentials.remove(pw.key)
+            logger.info(f"Revoked v1 password {pw.credential_id} (grace period expired)")
+            revoked_any = True
+        except Exception:
+            logger.exception(f"Failed to revoke v1 password {pw.credential_id}")
     return revoked_any
 
 
