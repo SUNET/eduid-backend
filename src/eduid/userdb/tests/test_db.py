@@ -109,3 +109,40 @@ class TestDB(MongoTestCase):
         }
         docs = self.amdb._get_documents_by_aggregate(match=match)
         assert docs[0]["eduPersonPrincipalName"] == "hubba-bubba"
+
+    def test_iter_documents_by_aggregate(self) -> None:
+        match = {
+            "eduPersonPrincipalName": "hubba-bubba",
+        }
+        docs = list(self.amdb._iter_documents_by_aggregate(match=match))
+        assert len(docs) == 1
+        assert docs[0]["eduPersonPrincipalName"] == "hubba-bubba"
+
+    def test_iter_documents_by_aggregate_no_match(self) -> None:
+        match = {
+            "eduPersonPrincipalName": "no-such-user",
+        }
+        docs = list(self.amdb._iter_documents_by_aggregate(match=match))
+        assert len(docs) == 0
+
+    def test_iter_documents_by_aggregate_with_projection(self) -> None:
+        match = {
+            "eduPersonPrincipalName": "hubba-bubba",
+        }
+        projection = {"eduPersonPrincipalName": 1, "_id": 0}
+        docs = list(self.amdb._iter_documents_by_aggregate(match=match, projection=projection))
+        assert len(docs) == 1
+        assert docs[0]["eduPersonPrincipalName"] == "hubba-bubba"
+        assert "_id" not in docs[0]
+
+    def test_iter_documents_by_aggregate_with_limit(self) -> None:
+        match: dict[str, object] = {}
+        docs = list(self.amdb._iter_documents_by_aggregate(match=match, limit=1))
+        assert len(docs) == 1
+
+    def test_iter_documents_by_aggregate_with_sort(self) -> None:
+        match: dict[str, object] = {}
+        sort = {"eduPersonPrincipalName": 1}
+        docs = list(self.amdb._iter_documents_by_aggregate(match=match, sort=sort))
+        eppns = [doc["eduPersonPrincipalName"] for doc in docs]
+        assert eppns == sorted(eppns)

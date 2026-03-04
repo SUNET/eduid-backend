@@ -1,6 +1,6 @@
 import logging
 from abc import ABC
-from collections.abc import Mapping
+from collections.abc import Generator, Mapping
 from dataclasses import dataclass
 from datetime import timedelta
 from typing import Any
@@ -372,7 +372,17 @@ class AmDB(UserDB[User]):
 
         return UserSaveResult(success=bool(result))
 
-    def get_unterminated_users_with_nin(self) -> list[User]:
+    def get_unterminated_users_with_nin(
+        self, projection: Mapping[str, Any] | None = None
+    ) -> Generator[TUserDbDocument]:
+        """
+        Iterate over all unterminated users with a verified NIN.
+
+        Uses a streaming cursor to avoid loading all users into memory at once.
+
+        :param projection: Optional MongoDB projection to limit returned fields
+        :returns: Generator of user documents
+        """
         match = {
             "identities": {
                 "$elemMatch": {
@@ -383,8 +393,7 @@ class AmDB(UserDB[User]):
             "terminated": {"$exists": False},
         }
 
-        users = self._get_documents_by_aggregate(match=match)
-        return self._users_from_documents(users)
+        yield from self._iter_documents_by_aggregate(match=match, projection=projection)
 
     def unverify_mail_aliases(self, user_id: ObjectId, mail_aliases: list[dict[str, Any]] | None) -> int:
         count = 0
