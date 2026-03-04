@@ -1,12 +1,13 @@
 import json
 from collections.abc import Mapping
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import Any
 from unittest.mock import MagicMock, patch
 
 from werkzeug.test import TestResponse
 
 from eduid.common.config.base import EduidEnvironment
+from eduid.common.misc.timeutil import utc_now
 from eduid.userdb import User
 from eduid.userdb.mail import MailAddress
 from eduid.userdb.proofing import EmailProofingElement, EmailProofingState
@@ -322,7 +323,7 @@ class EmailTests(EduidAPITestCase[EmailApp]):
         eppn = self.test_user_data["eduPersonPrincipalName"]
         email = "johnsmith3@example.com"
         verification1 = EmailProofingElement(email=email, verification_code="test_code_1")
-        modified_ts = datetime.now(tz=None)
+        modified_ts = utc_now()
         old_state = EmailProofingState(id=None, eppn=eppn, modified_ts=modified_ts, verification=verification1)
         self.app.proofing_statedb.save(old_state, is_in_database=False)
 
@@ -337,7 +338,7 @@ class EmailTests(EduidAPITestCase[EmailApp]):
     def test_post_email_throttle(self) -> None:
         eppn = self.test_user_data["eduPersonPrincipalName"]
         email = "johnsmith3@example.com"
-        modified_ts = datetime.now(tz=None)
+        modified_ts = utc_now()
         verification1 = EmailProofingElement(email=email, verification_code="test_code_1")
         old_state = EmailProofingState(id=None, eppn=eppn, modified_ts=modified_ts, verification=verification1)
         self.app.proofing_statedb.save(old_state, is_in_database=False)
@@ -622,7 +623,7 @@ class EmailTests(EduidAPITestCase[EmailApp]):
         email = "example@example.com"
         verification1 = EmailProofingElement(email=email, verification_code="test_code_1")
         verification2 = EmailProofingElement(email=email, verification_code="test_code_2")
-        modified_ts = datetime.now(tz=None) - timedelta(seconds=1)
+        modified_ts = utc_now() - timedelta(seconds=1)
         state1 = EmailProofingState(id=None, eppn=eppn, modified_ts=modified_ts, verification=verification1)
         state2 = EmailProofingState(id=None, eppn=eppn, modified_ts=None, verification=verification2)
         self.app.proofing_statedb.save(state1, is_in_database=False)

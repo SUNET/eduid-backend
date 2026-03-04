@@ -428,38 +428,6 @@ msgstr ""
 "    </div>\n"
 "</div>\n"
 
-#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/oidc_proofing/helpers.py:127
-#, python-format
-msgid "%(site_name)s account verification"
-msgstr "%(site_name)skontobekräftning"
-
-#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/oidc_proofing/templates/redo_verification.html.jinja2:5
-#, python-format
-msgid ""
-"\n"
-"    <p>You have tried to verify your account at <a href=\"%(site_url)s\">%(site_name)s</a>.</p>\n"
-"    <p>We encountered a problem and kindly ask you to verify you account again using a different verification method.</p>\n"
-"    <p>We apologize for any inconvenience.</p>\n"
-msgstr ""
-"\n"
-"<p>Du har försökt bekräfta ditt konto hos<a href=\"%(site_url)s\">%(site_name)s</a>.</p>\n"
-"<p>Tyvärr uppstod ett problem så vi måste be dig att bekräfta ditt konto igen med något av de andra sätten att verifiera din identitet.</p>\n"
-
-#: /home/lundberg/projects/eduid-backend/src/eduid/webapp/oidc_proofing/templates/redo_verification.txt.jinja2:2
-#, python-format
-msgid ""
-"\n"
-"    You have tried to verify your account at %(site_name)s\n"
-"\n"
-"    We encountered a problem and kindly ask you to verify you account again using a different verification method.\n"
-"\n"
-"    We apologize for any inconvenience.\n"
-msgstr ""
-"\n"
-"Du har försökt bekräfta ditt konto hos%(site_name)s.\n"
-"\n"
-"Tyvärr uppstod ett problem så vi måste be dig att bekräfta ditt konto igen med något av de andra sätten att verifiera din identitet.\n"
-
 #: /home/lundberg/projects/eduid-backend/src/eduid/webapp/phone/templates/phone_verification_sms.jinja2:1
 #: /home/lundberg/projects/eduid-backend/src/eduid/webapp/reset_password/views/templates/reset_password_sms.txt.jinja2:1
 #, python-format

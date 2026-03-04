@@ -21,7 +21,6 @@ from eduid.userdb.proofing import (
     EmailProofingUserDB,
     LetterProofingUserDB,
     LookupMobileProofingUserDB,
-    OidcProofingUserDB,
     OrcidProofingUserDB,
     PhoneProofingUserDB,
 )
@@ -29,6 +28,7 @@ from eduid.userdb.proofing.db import (
     BankIDProofingUserDB,
     FrejaEIDProofingUserDB,
     LadokProofingUserDB,
+    SamlEidProofingUserDB,
     SvideIDProofingUserDB,
 )
 from eduid.userdb.reset_password import ResetPasswordUserDB
@@ -67,28 +67,6 @@ class eduid_signup(AttributeFetcher):
     @classmethod
     def get_user_db(cls, uri: str) -> SignupUserDB:
         return SignupUserDB(uri)
-
-
-class eduid_oidc_proofing(AttributeFetcher):
-    whitelist_set_attrs: ClassVar[list[str]] = [
-        # TODO: Arrays must use put or pop, not set, but need more deep refacts
-        "nins",  # Old format
-        "identities",  # New format
-        "givenName",
-        "chosen_given_name",
-        "surname",
-        "legal_name",
-    ]
-    whitelist_unset_attrs: ClassVar[list[str]] = [
-        "identities",
-        "chosen_given_name",
-        "nins",  # Old format
-        "displayName",  # deprecated
-    ]
-
-    @classmethod
-    def get_user_db(cls, uri: str) -> OidcProofingUserDB:
-        return OidcProofingUserDB(uri)
 
 
 class eduid_letter_proofing(AttributeFetcher):
@@ -366,3 +344,25 @@ class eduid_job_runner(AttributeFetcher):
     @classmethod
     def get_user_db(cls, uri: str) -> CleanerUserDB:
         return CleanerUserDB(uri)
+
+
+class eduid_samleid(AttributeFetcher):
+    whitelist_set_attrs: ClassVar[list[str]] = [
+        "passwords",
+        "nins",  # Old format
+        "identities",
+        "givenName",
+        "chosen_given_name",
+        "surname",
+        "legal_name",
+    ]
+    whitelist_unset_attrs: ClassVar[list[str]] = [
+        "identities",
+        "chosen_given_name",
+        "nins",  # Old format
+        "displayName",  # deprecated
+    ]
+
+    @classmethod
+    def get_user_db(cls, uri: str) -> SamlEidProofingUserDB:
+        return SamlEidProofingUserDB(uri)

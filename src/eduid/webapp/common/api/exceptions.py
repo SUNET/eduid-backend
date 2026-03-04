@@ -42,7 +42,7 @@ class ApiException(Exception):
         return f"{self.status_code!s} with message {self.message!s}"
 
     def to_dict(self) -> dict[str, Any]:
-        rv: dict[str, Any] = dict()
+        rv: dict[str, Any] = {}
         rv["message"] = self.message
         if self.payload:
             rv["payload"] = self.payload

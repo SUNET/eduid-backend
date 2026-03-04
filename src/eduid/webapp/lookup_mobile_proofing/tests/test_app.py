@@ -1,10 +1,11 @@
 import json
 from collections.abc import Mapping
-from datetime import datetime, timedelta
+from datetime import timedelta
 from typing import Any
 from unittest.mock import MagicMock, patch
 
 from eduid.common.config.base import EduidEnvironment
+from eduid.common.misc.timeutil import utc_now
 from eduid.common.rpc.exceptions import LookupMobileTaskFailed
 from eduid.userdb import User
 from eduid.userdb.testing import SetupConfig
@@ -21,7 +22,7 @@ class LookupMobileProofingTests(EduidAPITestCase[MobileProofingApp]):
     def setUp(self, config: SetupConfig | None = None) -> None:
         self.test_user_eppn = "hubba-baar"
         self.test_user_nin = "199001023456"
-        fifteen_years_ago = datetime.now() - timedelta(days=15 * 365)
+        fifteen_years_ago = utc_now() - timedelta(days=15 * 365)
         self.test_user_nin_underage = f"{fifteen_years_ago.year}01023456"
 
         if config is None:

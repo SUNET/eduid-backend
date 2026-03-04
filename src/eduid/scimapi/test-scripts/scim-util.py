@@ -85,11 +85,11 @@ def _make_request(
     return r
 
 
-def search_user(api: Api, filter: str) -> dict[str, Any] | None:
-    logger.info(f"Searching for user with filter {filter}")
+def search_user(api: Api, search_filter: str) -> dict[str, Any] | None:
+    logger.info(f"Searching for user with filter {search_filter}")
     query = {
         "schemas": ["urn:ietf:params:scim:api:messages:2.0:SearchRequest"],
-        "filter": filter,
+        "filter": search_filter,
         "startIndex": 1,
         "count": 1,
     }
@@ -100,11 +100,11 @@ def search_user(api: Api, filter: str) -> dict[str, Any] | None:
     return res
 
 
-def search_group(api: Api, filter: str) -> dict[str, Any] | None:
-    logger.info(f"Searching for group with filter {filter}")
+def search_group(api: Api, search_filter: str) -> dict[str, Any] | None:
+    logger.info(f"Searching for group with filter {search_filter}")
     query = {
         "schemas": ["urn:ietf:params:scim:api:messages:2.0:SearchRequest"],
-        "filter": filter,
+        "filter": search_filter,
         "startIndex": 1,
         "count": 10,
     }

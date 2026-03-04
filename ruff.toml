@@ -4,9 +4,12 @@ target-version = "py313"
 
 [lint]
 select = [
+  "A",
   "ANN",
   "ASYNC",
   "B",
+  "C4",
+  "DTZ",
   "E",
   "ERA",
   "F",
@@ -59,4 +62,5 @@ allow-star-arg-any = true
 [lint.per-file-ignores]
 "**/test_*.py" = ["PLR2004"]  # magic-value-comparison - allow magic numbers in tests
 "**/test*.py" = ["SIM117"]    # multiple-with-statements - combined session_transaction() calls break tests
+#"src/eduid/scimapi/**" = ["A001", "A002"] # builtin shadowing - filter is core concept of scim and builtin is not used
 "src/eduid/webapp/common/authn/vccs.py" = ["PLR2004"]  # magic-value-comparison - allow magic numbers for password version

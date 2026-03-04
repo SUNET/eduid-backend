@@ -1,6 +1,6 @@
 import logging
 from abc import ABC
-from collections.abc import Mapping
+from collections.abc import Generator, Mapping
 from dataclasses import dataclass
 from datetime import timedelta
 from typing import Any
@@ -109,19 +109,19 @@ class UserDB[UserVar](BaseDB, ABC):
             spec["identities"]["$elemMatch"]["identity_type"] = identity_type.value
         return self.db_count(spec=spec)
 
-    def _get_user_by_filter(self, filter: Mapping[str, Any]) -> list[UserVar]:
+    def _get_user_by_filter(self, spec: Mapping[str, Any]) -> list[UserVar]:
         """
         return the user matching the provided filter.
 
-        :param filter: The filter to match the user
+        :param spec: The filter to match the user
 
         :return: List of User instances
         """
         try:
-            users: list[TUserDbDocument] = list(self._get_documents_by_filter(filter))
+            users: list[TUserDbDocument] = list(self._get_documents_by_filter(spec))
         except DocumentDoesNotExist as e:
-            logger.debug(f"{self!s} No user found with filter {filter!r} in {self._coll_name!r}")
-            raise UserDoesNotExist(f"No user matching filter {filter!r}") from e
+            logger.debug(f"{self!s} No user found with filter {spec!r} in {self._coll_name!r}")
+            raise UserDoesNotExist(f"No user matching filter {spec!r}") from e
 
         return self._users_from_documents(users)
 
@@ -149,8 +149,8 @@ class UserDB[UserVar](BaseDB, ABC):
         elemmatch = {"email": email, "verified": True}
         if include_unconfirmed:
             elemmatch = {"email": email}
-        filter = {"$or": [{"mail": email}, {"mailAliases": {"$elemMatch": elemmatch}}]}
-        return self._get_user_by_filter(filter)
+        spec = {"$or": [{"mail": email}, {"mailAliases": {"$elemMatch": elemmatch}}]}
+        return self._get_user_by_filter(spec)
 
     def get_user_by_nin(self, nin: str) -> UserVar | None:
         """Locate a user with a (confirmed) NIN"""
@@ -239,8 +239,8 @@ class UserDB[UserVar](BaseDB, ABC):
         if include_unconfirmed:
             newmatch = {"number": phone}
         new_filter = {"phone": {"$elemMatch": newmatch}}
-        filter = {"$or": [old_filter, new_filter]}
-        return self._get_user_by_filter(filter)
+        spec = {"$or": [old_filter, new_filter]}
+        return self._get_user_by_filter(spec)
 
     def get_user_by_eppn(self, eppn: str | None) -> UserVar:
         """
@@ -372,7 +372,17 @@ class AmDB(UserDB[User]):
 
         return UserSaveResult(success=bool(result))
 
-    def get_unterminated_users_with_nin(self) -> list[User]:
+    def get_unterminated_users_with_nin(
+        self, projection: Mapping[str, Any] | None = None
+    ) -> Generator[TUserDbDocument]:
+        """
+        Iterate over all unterminated users with a verified NIN.
+
+        Uses a streaming cursor to avoid loading all users into memory at once.
+
+        :param projection: Optional MongoDB projection to limit returned fields
+        :returns: Generator of user documents
+        """
         match = {
             "identities": {
                 "$elemMatch": {
@@ -383,8 +393,7 @@ class AmDB(UserDB[User]):
             "terminated": {"$exists": False},
         }
 
-        users = self._get_documents_by_aggregate(match=match)
-        return self._users_from_documents(users)
+        yield from self._iter_documents_by_aggregate(match=match, projection=projection)
 
     def unverify_mail_aliases(self, user_id: ObjectId, mail_aliases: list[dict[str, Any]] | None) -> int:
         count = 0

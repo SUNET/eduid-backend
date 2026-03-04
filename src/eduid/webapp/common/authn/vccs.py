@@ -207,6 +207,7 @@ def add_password(
         vccs = get_vccs_client(vccs_url)
 
     _vccs_version = "NDNv2" if version == 2 else "NDNv1"
+    # TODO: Init VCCSPasswordFactor with password hash instead of plain text password
     new_factor = VCCSPasswordFactor(new_password, credential_id=str(ObjectId()), version=_vccs_version)
 
     # Add the new password
@@ -304,6 +305,7 @@ def change_password(
         vccs = get_vccs_client(vccs_url)
 
     _vccs_version = "NDNv2" if version == 2 else "NDNv1"
+    # TODO: Init VCCSPasswordFactor with password hash instead of plain text password
     new_factor = VCCSPasswordFactor(new_password, credential_id=str(ObjectId()), version=_vccs_version)
     del new_password  # don't need it anymore, try to forget it
 

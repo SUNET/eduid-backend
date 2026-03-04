@@ -43,7 +43,7 @@ def search(support_user: User) -> str:
     except UserHasNotCompletedSignup:
         # Old bug where incomplete signup users where written to central db
         pass
-    users: list[dict[str, Any]] = list()
+    users: list[dict[str, Any]] = []
 
     if search_query and len(lookup_users) == 0:
         # If no users where found in the central database look in signup database
@@ -64,7 +64,7 @@ def search(support_user: User) -> str:
 
     current_app.logger.info(f"Support personnel {support_user.eppn} searched for {search_query!r}")
     for user in lookup_users:
-        user_data: dict[str, Any] = dict()
+        user_data: dict[str, Any] = {}
         user_dict = user.to_dict()
         # Extend credentials with last used timestamp
         user_dict["passwords"] = get_credentials_aux_data(user)

@@ -38,7 +38,7 @@ class TestGroup(TestCase):
 
     def test_init_group_with_members(self) -> None:
         user = User(**self.user1)
-        self.group1["members"] = set([user])
+        self.group1["members"] = {user}
         group = Group(**self.group1)
         assert user in group.members
         assert user in group.member_users
@@ -51,8 +51,8 @@ class TestGroup(TestCase):
     def test_init_group_with_owner_and_member(self) -> None:
         user = User(**self.user1)
         owner = User(**self.user2)
-        self.group1["members"] = set([user])
-        self.group1["owners"] = set([owner])
+        self.group1["members"] = {user}
+        self.group1["owners"] = {owner}
         group = Group(**self.group1)
         assert user in group.members
         assert user in group.member_users
@@ -66,8 +66,8 @@ class TestGroup(TestCase):
         owner2 = User(**self.user2)
         owner3 = Group(**self.group2)
 
-        self.group1["members"] = set([member1, member2, member3])
-        self.group1["owners"] = set([owner1, owner2, owner3])
+        self.group1["members"] = {member1, member2, member3}
+        self.group1["owners"] = {owner1, owner2, owner3}
         group = Group(**self.group1)
 
         assert owner2 == group.get_owner_user(identifier=owner2.identifier)

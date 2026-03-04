@@ -33,7 +33,7 @@ class SupportUserDB(UserDB[SupportUser]):
         :param query: search query, can be a user eppn, nin, mail address or phone number
         :return: A list of user docs
         """
-        results: list[SupportUser | None] = list()
+        results: list[SupportUser | None] = []
         # We could do this with a custom filter (and one db call) but it is better to lean on existing methods
         # if the way we find users change in the future
         with suppress(UserDoesNotExist):
@@ -68,7 +68,7 @@ class SupportAuthnInfoDB(BaseDB):
             user_id = ObjectId(user_id)
         docs = self._get_documents_by_filter({"_id": user_id})
         if not docs:
-            return dict()
+            return {}
         return self.model(dict(docs[0]))  # Cast to dict to allow mutability
 
     def get_credential_info(self, credential_id: str) -> dict[str, Any]:
@@ -78,7 +78,7 @@ class SupportAuthnInfoDB(BaseDB):
         """
         doc = self._get_document_by_attr("_id", credential_id)
         if not doc:
-            return dict()
+            return {}
         return self.model(dict(doc))  # Cast to dict to allow mutability
 
 
@@ -95,7 +95,7 @@ class SupportProofingDB(BaseDB):
         """
         doc = self._get_document_by_attr("eduPersonPrincipalName", eppn)
         if not doc:
-            return dict()
+            return {}
         return self.model(dict(doc))  # Cast to dict to allow mutability
 
     def get_proofing_states(self, eppn: str) -> list[dict[str, Any]]:
@@ -122,7 +122,7 @@ class SupportLetterProofingDB(SupportProofingDB):
         """
         doc = self._get_document_by_attr("eduPersonPrincipalName", eppn)
         if not doc:
-            return dict()
+            return {}
         # hack to support old official address format
         return self.model(dict(LetterProofingState.from_dict(doc).to_dict()))  # Cast to dict to allow mutability
 

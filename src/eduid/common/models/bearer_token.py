@@ -192,7 +192,7 @@ class AuthnBearerToken(BaseModel):
             _found = self.config.data_owners.get(this.scope)
             logger.debug(f"Requested access to scope {this.scope}, allowed {_allowed}, found: {_found}")
             if not _allowed:
-                _sorted = ", ".join(sorted(list(allowed_scopes)))
+                _sorted = ", ".join(sorted(allowed_scopes))
                 raise RequestedAccessDenied(f"Requested access to scope {this.scope} not in allow-list: {_sorted}")
             if not _found:
                 raise RequestedAccessDenied(f"Requested access to scope {this.scope} but no data owner found")
@@ -200,7 +200,7 @@ class AuthnBearerToken(BaseModel):
                 return this.scope
 
         # sort to be deterministic
-        for scope in sorted(list(self.scopes)):
+        for scope in sorted(self.scopes):
             # checking allowed_scopes here might seem superfluous, but some client with multiple
             # scopes can request a specific one using the requested_access, and then only that one
             # scope is in allowed_scopes

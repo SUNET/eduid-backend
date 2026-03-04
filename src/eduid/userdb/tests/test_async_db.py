@@ -95,3 +95,40 @@ class TestAsyncDB(AsyncMongoTestCase):
         }
         docs = await self.db._get_documents_by_aggregate(match=match)
         assert docs[0]["x"] == 3
+
+    async def test_iter_documents_by_aggregate(self) -> None:
+        match = {
+            "x": 3,
+        }
+        docs = [doc async for doc in self.db._iter_documents_by_aggregate(match=match)]
+        assert len(docs) == 1
+        assert docs[0]["x"] == 3
+
+    async def test_iter_documents_by_aggregate_no_match(self) -> None:
+        match = {
+            "x": 999,
+        }
+        docs = [doc async for doc in self.db._iter_documents_by_aggregate(match=match)]
+        assert len(docs) == 0
+
+    async def test_iter_documents_by_aggregate_with_projection(self) -> None:
+        match = {
+            "x": 3,
+        }
+        projection = {"x": 1, "_id": 0}
+        docs = [doc async for doc in self.db._iter_documents_by_aggregate(match=match, projection=projection)]
+        assert len(docs) == 1
+        assert docs[0]["x"] == 3
+        assert "_id" not in docs[0]
+
+    async def test_iter_documents_by_aggregate_with_limit(self) -> None:
+        match: dict[str, object] = {}
+        docs = [doc async for doc in self.db._iter_documents_by_aggregate(match=match, limit=3)]
+        assert len(docs) == 3
+
+    async def test_iter_documents_by_aggregate_with_sort(self) -> None:
+        match: dict[str, object] = {}
+        sort = {"x": -1}
+        docs = [doc async for doc in self.db._iter_documents_by_aggregate(match=match, sort=sort)]
+        values = [doc["x"] for doc in docs]
+        assert values == list(range(9, -1, -1))

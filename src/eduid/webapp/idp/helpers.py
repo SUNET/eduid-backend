@@ -24,6 +24,7 @@ class IdPMsg(str, TranslatableMsg):
     general_failure = "login.general_failure"
     mfa_required = "login.mfa_required"
     mfa_auth_failed = "login.mfa_auth_failed"
+    credential_not_found = "login.credential_not_found"
     mfa_proofing_method_not_allowed = "login.mfa_proofing_method_not_allowed"
     must_authenticate = "login.must_authenticate"
     no_sso_session = "login.no_sso_session"

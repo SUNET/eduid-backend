@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import unique
 
 from eduid.common.misc.timeutil import utc_now
@@ -41,7 +41,7 @@ def nin_to_age(nin: str, now: datetime | None = None) -> int:
     if now is None:
         now = utc_now()
 
-    born = datetime.strptime(nin[: len("yyyymmdd")], "%Y%m%d")
+    born = datetime.strptime(nin[: len("yyyymmdd")], "%Y%m%d").replace(tzinfo=UTC)
 
     age = now.year - born.year - ((now.month, now.day) < (born.month, born.day))
 

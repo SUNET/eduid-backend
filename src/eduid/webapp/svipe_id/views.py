@@ -183,9 +183,9 @@ def authn_callback(user: User) -> WerkzeugResponse:
         user_response = current_app.oidc_client.svipe.userinfo()
         current_app.logger.debug(f"Got user response: {user_response}")
         # TODO: look in to why we are not getting a full userinfo in token response anymore
-        if token_response.get("userinfo", dict()).get("sub") != user_response.get("sub"):  # sub must match
+        if token_response.get("userinfo", {}).get("sub") != user_response.get("sub"):  # sub must match
             raise OAuthError("sub mismatch")
-        user_response.update(token_response.get("userinfo", dict()))
+        user_response.update(token_response.get("userinfo", {}))
         current_app.logger.debug(f"merged user response and token respose userinfo: {user_response}")
     except (OAuthError, KeyError):
         # catch any exception from the oidc client and also exceptions about missing request arguments

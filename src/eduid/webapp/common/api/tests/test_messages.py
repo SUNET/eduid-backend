@@ -24,24 +24,24 @@ class MessageTests(TestCase):
     def test_success_message(self) -> None:
         message = success_response(message=TestsMsg.fst_test_msg)
         assert message.status == FluxResponseStatus.OK
-        assert message.payload == dict(message=TestsMsg.fst_test_msg.value, success=True)
+        assert message.payload == {"message": TestsMsg.fst_test_msg.value, "success": True}
 
     def test_success_message_with_data(self) -> None:
         data = {"email": "test@example.com"}
         message = success_response(payload=data, message=TestsMsg.fst_test_msg)
         assert message.status == FluxResponseStatus.OK
-        assert message.payload == dict(message=TestsMsg.fst_test_msg.value, success=True, email="test@example.com")
+        assert message.payload == {"message": TestsMsg.fst_test_msg.value, "success": True, "email": "test@example.com"}
 
     def test_success_message_from_str(self) -> None:
         message = success_response(message="test.str_msg")
         assert message.status == FluxResponseStatus.OK
-        assert message.payload == dict(message="test.str_msg", success=True)
+        assert message.payload == {"message": "test.str_msg", "success": True}
 
     def test_success_message_from_str_with_data(self) -> None:
         data = {"email": "test@example.com"}
         message = success_response(payload=data, message="test.str_msg")
         assert message.status == FluxResponseStatus.OK
-        assert message.payload == dict(message="test.str_msg", success=True, email="test@example.com")
+        assert message.payload == {"message": "test.str_msg", "success": True, "email": "test@example.com"}
 
     def test_success_message_unknown(self) -> None:
         with self.assertRaises(AttributeError):
@@ -55,48 +55,48 @@ class MessageTests(TestCase):
     def test_error_message(self) -> None:
         message = error_response(message=TestsMsg.fst_test_msg)
         assert message.status == FluxResponseStatus.ERROR
-        assert message.payload == dict(message=TestsMsg.fst_test_msg.value, success=False)
+        assert message.payload == {"message": TestsMsg.fst_test_msg.value, "success": False}
 
     def test_error_message_with_errors(self) -> None:
         data = {"errors": {"email": "required"}}
         message = error_response(payload=data, message=TestsMsg.fst_test_msg)
         assert message.status == FluxResponseStatus.ERROR
-        assert message.payload == dict(message=TestsMsg.fst_test_msg.value, success=False, errors=data["errors"])
+        assert message.payload == {"message": TestsMsg.fst_test_msg.value, "success": False, "errors": data["errors"]}
 
     def test_error_message_with_status(self) -> None:
         data = {"status": "stale"}
         message = error_response(payload=data, message=TestsMsg.fst_test_msg)
         assert message.status == FluxResponseStatus.ERROR
-        assert message.payload == dict(message=TestsMsg.fst_test_msg.value, success=False, status=data["status"])
+        assert message.payload == {"message": TestsMsg.fst_test_msg.value, "success": False, "status": data["status"]}
 
     def test_error_message_with_next(self) -> None:
         data = {"next": "/next"}
         message = error_response(payload=data, message=TestsMsg.fst_test_msg)
         assert message.status == FluxResponseStatus.ERROR
-        assert message.payload == dict(message=TestsMsg.fst_test_msg.value, success=False, next=data["next"])
+        assert message.payload == {"message": TestsMsg.fst_test_msg.value, "success": False, "next": data["next"]}
 
     def test_error_message_from_str(self) -> None:
         message = error_response(message="test.str_msg")
         assert message.status == FluxResponseStatus.ERROR
-        assert message.payload == dict(message="test.str_msg", success=False)
+        assert message.payload == {"message": "test.str_msg", "success": False}
 
     def test_error_message_from_str_with_errors(self) -> None:
         data = {"errors": {"email": "required"}}
         message = error_response(payload=data, message="str_msg")
         assert message.status == FluxResponseStatus.ERROR
-        assert message.payload == dict(message="str_msg", success=False, errors=data["errors"])
+        assert message.payload == {"message": "str_msg", "success": False, "errors": data["errors"]}
 
     def test_error_message_from_str_with_status(self) -> None:
         data = {"status": "stale"}
         message = error_response(payload=data, message="str_msg")
         assert message.status == FluxResponseStatus.ERROR
-        assert message.payload == dict(message="str_msg", success=False, status=data["status"])
+        assert message.payload == {"message": "str_msg", "success": False, "status": data["status"]}
 
     def test_error_message_from_str_with_next(self) -> None:
         data = {"next": "/next"}
         message = error_response(payload=data, message="str_msg")
         assert message.status == FluxResponseStatus.ERROR
-        assert message.payload == dict(message="str_msg", success=False, next=data["next"])
+        assert message.payload == {"message": "str_msg", "success": False, "next": data["next"]}
 
     def test_error_message_unknown(self) -> None:
         with self.assertRaises(AttributeError):

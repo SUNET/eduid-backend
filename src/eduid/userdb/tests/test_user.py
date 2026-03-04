@@ -1,5 +1,5 @@
 import unittest
-from datetime import datetime
+from datetime import UTC, datetime
 from hashlib import sha256
 
 import pytest
@@ -759,7 +759,7 @@ class TestNewUser(unittest.TestCase):
         oidc_data["created_by"] = "test"
         oidc_data["id_token"] = oidc_id_token
         oidc_authz = OidcAuthorization.from_dict(oidc_data)
-        orcid_element = Orcid.from_dict(dict(id=orcid, oidc_authz=oidc_authz, created_by="test"))
+        orcid_element = Orcid.from_dict({"id": orcid, "oidc_authz": oidc_authz, "created_by": "test"})
 
         user = User.from_dict(self.data1)
         user.orcid = orcid_element
@@ -1001,7 +1001,7 @@ class TestNewUser(unittest.TestCase):
     def test_letter_proofing_data_to_list(self) -> None:
         letter_proofing = {
             "created_by": "eduid-idproofing-letter",
-            "created_ts": datetime(2015, 12, 18, 12, 0, 46),
+            "created_ts": datetime(2015, 12, 18, 12, 0, 46, tzinfo=UTC),
             "number": "198311220134",
             "official_address": {
                 "Name": {
@@ -1020,7 +1020,7 @@ class TestNewUser(unittest.TestCase):
             "verification_code": "xxxxxxxxxx",
             "verified": True,
             "verified_by": "eduid-idproofing-letter",
-            "verified_ts": datetime(2015, 12, 18, 12, 3, 20),
+            "verified_ts": datetime(2015, 12, 18, 12, 3, 20, tzinfo=UTC),
         }
         user_dict = UserFixtures().mocked_user_standard.to_dict()
         user_dict["letter_proofing_data"] = letter_proofing

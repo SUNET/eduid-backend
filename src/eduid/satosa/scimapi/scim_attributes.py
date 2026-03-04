@@ -225,7 +225,7 @@ class ScimAttributes(ResponseMicroService):
                 data_owner = fallback_data_owner
                 logger.debug(f"Using fallback data owner {data_owner} for {issuer}")
             else:
-                _sorted_scopes = sorted(list(scopes))
+                _sorted_scopes = sorted(scopes)
                 # Look for a scope in the list 'scopes' that has explicit mapping information in config
                 for _scope in _sorted_scopes:
                     if _scope in self.config.scope_to_data_owner:

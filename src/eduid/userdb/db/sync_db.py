@@ -1,5 +1,5 @@
 import logging
-from collections.abc import Mapping
+from collections.abc import Generator, Mapping
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, ClassVar
@@ -217,9 +217,24 @@ class BaseDB:
             return []
         return docs
 
-    def _get_documents_by_aggregate(
-        self, match: Mapping[str, Any], sort: Mapping[str, Any] | None = None, limit: int | None = None
-    ) -> list[TUserDbDocument]:
+    def _iter_documents_by_aggregate(
+        self,
+        match: Mapping[str, Any],
+        sort: Mapping[str, Any] | None = None,
+        limit: int | None = None,
+        projection: Mapping[str, Any] | None = None,
+    ) -> Generator[TUserDbDocument]:
+        """
+        Iterate over documents matching a filter using an aggregation pipeline.
+
+        Unlike _get_documents_by_aggregate, this method yields documents one at a time
+        from the cursor instead of materializing the entire result set in memory.
+
+        :param match: MongoDB match expression
+        :param sort: Optional sort expression
+        :param limit: Optional limit on number of documents
+        :param projection: Optional projection to limit returned fields
+        """
         pipeline: list[dict[str, Any]] = [{"$match": match}]
 
         if sort is not None:
@@ -228,7 +243,20 @@ class BaseDB:
         if limit is not None:
             pipeline.append({"$limit": limit})
 
-        return list(self._coll.aggregate(pipeline=pipeline))
+        if projection is not None:
+            pipeline.append({"$project": projection})
+
+        with self._coll.aggregate(pipeline=pipeline) as aggregation:
+            yield from aggregation
+
+    def _get_documents_by_aggregate(
+        self,
+        match: Mapping[str, Any],
+        sort: Mapping[str, Any] | None = None,
+        limit: int | None = None,
+        projection: Mapping[str, Any] | None = None,
+    ) -> list[TUserDbDocument]:
+        return list(self._iter_documents_by_aggregate(match=match, sort=sort, limit=limit, projection=projection))
 
     def _get_documents_by_filter(
         self,

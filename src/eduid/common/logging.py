@@ -101,7 +101,7 @@ class UserFilter(logging.Filter):
         try:
             if session and session.common.eppn:
                 eppn = session.common.eppn
-        except AttributeError:  # no session
+        except (AttributeError, AssertionError):  # no session (or session not yet opened)
             pass
 
         record.__setattr__("eppn", eppn)  # use setattr to prevent mypy unhappiness

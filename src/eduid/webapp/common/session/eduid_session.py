@@ -29,6 +29,7 @@ from eduid.webapp.common.session.namespaces import (
     MfaAction,
     Phone,
     ResetPasswordNS,
+    SamlEidNamespace,
     SecurityNS,
     SessionNSBase,
     Signup,
@@ -59,6 +60,7 @@ class EduidNamespaces(BaseModel):
     svipe_id: SvipeIDNamespace | None = None
     bankid: BankIDNamespace | None = None
     freja_eid: FrejaEIDNamespace | None = None
+    samleid: SamlEidNamespace | None = None
 
 
 class EduidSession(SessionMixin):
@@ -252,6 +254,12 @@ class EduidSession(SessionMixin):
         if not self._namespaces.freja_eid:
             self._namespaces.freja_eid = FrejaEIDNamespace.from_dict(self._session.get("freja_eid", {}))
         return self._namespaces.freja_eid
+
+    @property
+    def samleid(self) -> SamlEidNamespace:
+        if not self._namespaces.samleid:
+            self._namespaces.samleid = SamlEidNamespace.from_dict(self._session.get("samleid", {}))
+        return self._namespaces.samleid
 
     @property
     def created(self) -> datetime:

@@ -7,7 +7,9 @@ from oic.exception import CommunicationError
 from oic.oic import Client
 from oic.oic.message import RegistrationRequest
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
-from requests.exceptions import ConnectionError
+from requests.exceptions import ConnectionError as RequestsConnectionError
+
+from eduid.common.misc.timeutil import utc_now
 
 __author__ = "lundberg"
 
@@ -62,7 +64,7 @@ class LazyOidcClient:
             logger.info("OIDC client initialized successfully")
             return self._client
 
-        except (CommunicationError, ConnectionError) as e:
+        except (CommunicationError, RequestsConnectionError) as e:
             self._handle_initialization_failure(e)
             raise OidcServiceUnavailableError(f"OIDC service unavailable: {e!s}") from e
 
@@ -86,13 +88,13 @@ class LazyOidcClient:
             return False
 
         # Allow retry after delay
-        return datetime.now() - self._last_failure_time < self.retry_delay
+        return utc_now() - self._last_failure_time < self.retry_delay
 
     def _handle_initialization_failure(self, error: Exception) -> None:
         """Track failures for circuit breaker pattern"""
         self._client_init_failed = True
         self._failure_count += 1
-        self._last_failure_time = datetime.now()
+        self._last_failure_time = utc_now()
 
         logger.warning(f"OIDC client initialization failed (attempt {self._failure_count}): {error}")
 

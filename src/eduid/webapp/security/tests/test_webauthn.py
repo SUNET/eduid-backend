@@ -726,5 +726,5 @@ class SecurityWebauthnTests(EduidAPITestCase):
         assert len(payload["entries"]) > 0
 
         # test no doubles
-        unique_lowecase_entries = list(set(e.lower() for e in payload["entries"]))
+        unique_lowecase_entries = list({e.lower() for e in payload["entries"]})
         assert len(unique_lowecase_entries) == len(payload["entries"])

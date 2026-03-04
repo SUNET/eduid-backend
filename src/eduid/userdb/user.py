@@ -311,7 +311,7 @@ class User(BaseModel):
                         _mail_addresses[idx]["verified"] = True
                     # If a user does not already have a primary mail address promote "mail" to primary if
                     # it is verified
-                    _has_primary = any([item.get("primary", False) for item in _mail_addresses])
+                    _has_primary = any(item.get("primary", False) for item in _mail_addresses)
                     if _mail_addresses[idx].get("verified", False) and not _has_primary:
                         _mail_addresses[idx]["primary"] = True
             data.pop("mail")

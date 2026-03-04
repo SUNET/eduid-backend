@@ -314,7 +314,7 @@ class IdP_SAMLRequest:
         self, attributes: Mapping[str, Any], userid: str, response_authn: AuthnInfo, resp_args: ResponseArgs
     ) -> SamlResponse:
         # Create pysaml2 dict with the authn information
-        authn = dict(class_ref=response_authn.class_ref, authn_instant=int(response_authn.instant.timestamp()))
+        authn = {"class_ref": response_authn.class_ref, "authn_instant": int(response_authn.instant.timestamp())}
         saml_response = self._idp.create_authn_response(
             identity=attributes, userid=userid, authn=authn, sign_response=True, **resp_args
         )

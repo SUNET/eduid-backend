@@ -18,7 +18,7 @@ class Neo4jDB:
             raise ValueError("db_uri not supplied")
 
         if not config:
-            config = dict()
+            config = {}
 
         # Parse db_uri to allow user:password@ in uri
         parse_result = urlparse(db_uri)

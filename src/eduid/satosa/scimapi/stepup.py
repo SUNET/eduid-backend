@@ -7,17 +7,10 @@ from collections.abc import Callable, Iterable, Mapping
 from typing import Any, NewType
 from urllib.parse import urlparse
 
-from pydantic import BaseModel, Field, ValidationError
-
-try:
-    from common import fetch_mfa_stepup_accounts, get_internal_attribute_name, get_metadata
-except ImportError:
-    from eduid.satosa.scimapi.common import fetch_mfa_stepup_accounts, get_internal_attribute_name, get_metadata
-
-
 import satosa.context
 import satosa.internal
 import satosa.response
+from pydantic import BaseModel, Field, ValidationError
 from saml2.client import Saml2Client
 from saml2.config import SPConfig
 from saml2.mdstore import MetaData
@@ -39,6 +32,8 @@ from satosa.micro_services.base import (
 )
 from satosa.response import Response, SeeOther
 from satosa.saml_util import make_saml_response
+
+from eduid.satosa.scimapi.common import fetch_mfa_stepup_accounts, get_internal_attribute_name, get_metadata
 
 try:
     # Available in a future version of pysaml2

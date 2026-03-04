@@ -61,7 +61,6 @@ Code handling Single Log Out requests.
 
 from collections.abc import Sequence
 
-import saml2
 from flask import request
 from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT, BINDING_SOAP
 from saml2.request import LogoutRequest
@@ -137,7 +136,7 @@ class SLO(Service):
 
         try:
             req_info = current_app.IDP.parse_logout_request(request, binding)
-            assert isinstance(req_info, saml2.request.LogoutRequest)
+            assert isinstance(req_info, LogoutRequest)
             current_app.logger.debug(f"Parsed Logout request ({binding}):\n{req_info.message}")
         except Exception as e:
             current_app.logger.exception("Failed parsing logout request")
@@ -272,7 +271,7 @@ class SLO(Service):
             destination = ""
 
         status = None  # None == success in create_logout_response()
-        if status_code != saml2.samlp.STATUS_SUCCESS:
+        if status_code != STATUS_SUCCESS:
             status = error_status_factory((status_code, "Logout failed"))
             current_app.logger.debug(f"Created 'logout failed' status based on {status_code!r} : {status!r}")
 

@@ -219,7 +219,7 @@ def registration_complete(
 
     current_app.logger.info("User has completed registration of a webauthn token")
     credentials = compile_credential_list(security_user)
-    return success_response(payload=dict(credentials=credentials), message=SecurityMsg.webauthn_success)
+    return success_response(payload={"credentials": credentials}, message=SecurityMsg.webauthn_success)
 
 
 @webauthn_views.route("/remove", methods=["POST"])

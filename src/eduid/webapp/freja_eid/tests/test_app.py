@@ -654,7 +654,7 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
             FrejaIdentity(
                 personal_identity_number=userinfo.personal_identity_number,
                 country_code=userinfo.document.country,
-                date_of_birth=datetime.today(),  # not matching the new identity
+                date_of_birth=utc_now(),  # not matching the new identity
                 is_verified=True,
                 user_id="another_freja_eid",
                 registration_level=userinfo.registration_level,
@@ -873,7 +873,7 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
             eppn,
             keyhandle="test_security_key_1",
             token_type="webauthn",
-            created_ts=datetime.now() - timedelta(minutes=10),  # the security key was added more than 5 minutes ago
+            created_ts=utc_now() - timedelta(minutes=10),  # the security key was added more than 5 minutes ago
         )
 
         with self.app.test_request_context():

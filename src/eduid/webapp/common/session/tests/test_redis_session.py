@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-import nacl
+import nacl.secret
 import pytest
 
 from eduid.common.config.base import RedisConfig

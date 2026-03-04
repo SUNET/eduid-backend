@@ -191,14 +191,14 @@ def save_invite(
 
 
 def filter_lastmodified(
-    req: ContextRequest, filter: SearchFilter, skip: int | None = None, limit: int | None = None
+    req: ContextRequest, search_filter: SearchFilter, skip: int | None = None, limit: int | None = None
 ) -> tuple[list[ScimApiInvite], int]:
-    if filter.op not in ["gt", "ge"]:
+    if search_filter.op not in ["gt", "ge"]:
         raise BadRequest(scim_type="invalidFilter", detail="Unsupported operator")
-    if not isinstance(filter.val, str):
+    if not isinstance(search_filter.val, str):
         raise BadRequest(scim_type="invalidFilter", detail="Invalid datetime")
     assert isinstance(req.context, ScimApiContext)  # please mypy
     assert req.context.invitedb is not None  # please mypy
     return req.context.invitedb.get_invites_by_last_modified(
-        operator=filter.op, value=datetime.fromisoformat(filter.val), skip=skip, limit=limit
+        operator=search_filter.op, value=datetime.fromisoformat(search_filter.val), skip=skip, limit=limit
     )

@@ -105,7 +105,7 @@ class EduIDBaseApp(Flask, metaclass=ABCMeta):
             self._central_userdb = AmDB(config.mongo_uri)
 
         # Set up generic health check views
-        self.failure_info: dict[str, FailCountItem] = dict()
+        self.failure_info: dict[str, FailCountItem] = {}
         init_status_views(self, config)
 
         # Profiling setup

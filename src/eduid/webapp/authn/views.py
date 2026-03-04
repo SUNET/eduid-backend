@@ -250,7 +250,7 @@ def logout() -> WerkzeugResponse:
     """
     eppn = session.common.eppn
 
-    location = request.args.get("next", current_app.conf.saml2_logout_redirect_url)
+    location = sanitise_redirect_url(request.args.get("next"), current_app.conf.saml2_logout_redirect_url)
 
     if eppn is None:
         current_app.logger.info("Session cookie has expired, no logout action needed")

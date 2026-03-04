@@ -38,7 +38,7 @@ def init_babel(app: EduIDBaseApp) -> Babel:
     # Add pkg_resource path to translation directory as the default location does not work
     pkg_translations_dir = str(files("eduid.webapp") / "translations")
     translations_directories = f"{conf_translations_dirs};{pkg_translations_dir}"
-    app.logger.info(f"Translation directories: {[path for path in translations_directories.split(';')]}")
+    app.logger.info(f"Translation directories: {translations_directories.split(';')}")
     app.config["BABEL_TRANSLATION_DIRECTORIES"] = translations_directories
 
     babel = Babel()
