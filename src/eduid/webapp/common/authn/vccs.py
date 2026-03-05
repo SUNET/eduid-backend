@@ -107,25 +107,36 @@ def check_password(
     return None
 
 
+def _is_within_v2_grace_period(user: User, grace_period: timedelta) -> bool:
+    """Check if we are within the v2 grace period by looking at the v2 credential creation time.
+
+    :param user: User object
+    :param grace_period: Grace period duration
+    :return: True if within grace period (v2 was created recently enough or doesn't exist yet)
+    """
+    v2_passwords = [p for p in user.credentials.filter(Password) if p.version == 2]
+    if not v2_passwords:
+        # No v2 credential exists yet — treat as within grace period (v2 is being created now)
+        return True
+
+    v2_created = v2_passwords[0].created_ts
+    if v2_created is None:
+        return True
+
+    cutoff = v2_created + grace_period
+    return utc_now() < cutoff
+
+
 def revoke_expired_v1_passwords(user: User, grace_period: timedelta, vccs: VCCSClient) -> bool:
     """Revoke v1 passwords if the v2 credential was created more than grace_period ago.
 
     :return: True if any credentials were revoked (user was modified)
     """
-    # Find the v1 passwords to determine if any needs to be revoked
     v1_passwords = [p for p in user.credentials.filter(Password) if p.version == 1]
-    # Find the v2 password to determine when the upgrade happened
-    v2_passwords = [p for p in user.credentials.filter(Password) if p.version == 2]
-    if not v1_passwords or not v2_passwords:
+    if not v1_passwords:
         return False
 
-    v2_created = v2_passwords[0].created_ts
-    if v2_created is None:
-        return False
-
-    cutoff = v2_created + grace_period
-    now = utc_now()
-    if now < cutoff:
+    if _is_within_v2_grace_period(user, grace_period):
         return False  # still within grace period
 
     revoked_any = False
