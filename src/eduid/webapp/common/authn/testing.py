@@ -15,10 +15,10 @@ class MockVCCSClient:
     before the real functions (check_password, add_credentials) use it.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, allow_v2: bool = True) -> None:
         self.factors: dict[str, list[VCCSPasswordFactor]] = {}
+        self.allow_v2: bool = allow_v2
 
-    # TODO: check for removal, seems to be unused
     def authenticate(self, user_id: str, factors: Sequence[VCCSPasswordFactor]) -> bool:
         found = False
         if user_id not in self.factors:
@@ -39,7 +39,10 @@ class MockVCCSClient:
                     found = True
                     break
                 else:
-                    # H1 hash comparision for password factors
+                    # H1 hash and version comparison for password factors
+                    if not self.allow_v2 and sdict["version"] == "NDNv2":
+                        # ignore version 2 passwords
+                        continue
                     if fdict["H1"] == sdict["H1"]:
                         found = True
                         break
