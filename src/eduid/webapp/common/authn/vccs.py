@@ -298,6 +298,7 @@ def change_password(
     vccs_url: str | None = None,
     vccs: VCCSClient | None = None,
     version: int = 1,
+    password_v2_grace_period: timedelta | None = None,
 ) -> bool:
     """
     :param user: User object
@@ -309,6 +310,7 @@ def change_password(
     :param vccs_url: URL to VCCS authentication backend
     :param vccs: Optional already instantiated vccs client
     :param version: Password version (1 for NDNv1, 2 for NDNv2)
+    :param password_v2_grace_period: When version=2, also add a v1 companion if within this grace period
 
     :return: Success or not
     """
@@ -318,7 +320,6 @@ def change_password(
     _vccs_version = "NDNv2" if version == 2 else "NDNv1"
     # TODO: Init VCCSPasswordFactor with password hash instead of plain text password
     new_factor = VCCSPasswordFactor(new_password, credential_id=str(ObjectId()), version=_vccs_version)
-    del new_password  # don't need it anymore, try to forget it
 
     # Check that the old password is correct, if supplied
     checked_password = None
@@ -330,8 +331,16 @@ def change_password(
             return False
         checked_password = check_result.password
 
-    # Revoke the old password or all current passwords as a fallback if old password or old password id is missing.
-    if checked_password is not None or old_password_id is not None:
+    # When version=2, determine if we should also add a v1 companion for backward compatibility
+    _add_v1_companion = False
+    if version == 2 and password_v2_grace_period is not None:
+        _add_v1_companion = _is_within_v2_grace_period(user, password_v2_grace_period)
+
+    # When changing to version=2, revoke ALL existing passwords (both v1 and v2)
+    # to ensure the old password no longer works on any version.
+    if version == 2:
+        revoke_passwords(user=user, reason="changing password", application=application, vccs_url=vccs_url, vccs=vccs)
+    elif checked_password is not None or old_password_id is not None:
         revoke_password(
             user=user,
             reason="changing password",
@@ -360,6 +369,20 @@ def change_password(
         version=version,
     )
     user.credentials.add(_password)
+
+    # When version=2 and within grace period, also add a v1 companion for backward compatibility
+    if _add_v1_companion:
+        if not add_password(
+            user=user,
+            new_password=new_password,
+            application=application,
+            is_generated=is_generated,
+            vccs=vccs,
+            version=1,
+        ):
+            logger.warning(f"Failed adding v1 companion password for user {user}")
+
+    del new_password  # don't need it anymore, try to forget it
     return True
 
 

@@ -103,6 +103,9 @@ def change_password_view(user: User, new_password: str, old_password: str | None
         is_generated=is_generated,
         vccs_url=current_app.conf.vccs_url,
         version=2 if current_app.conf.password_v2_upgrade_enabled else 1,
+        password_v2_grace_period=current_app.conf.password_v2_grace_period
+        if current_app.conf.password_v2_upgrade_enabled
+        else None,
     )
 
     if not added:
