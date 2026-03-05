@@ -207,7 +207,7 @@ class IdPAuthn:
                 else:
                     current_app.stats.count("password_v1_upgraded")
         # revoke v1 password if grace period expired
-        elif cred.version == 2:
+        elif cred.version == 2:  # noqa: PLR2004
             if revoke_expired_v1_passwords(
                 user=user, grace_period=self.config.password_v2_grace_period, vccs=self.auth_client
             ):

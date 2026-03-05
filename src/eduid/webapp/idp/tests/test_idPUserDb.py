@@ -267,7 +267,6 @@ class TestPasswordV2Upgrade(IdPAPITests):
         # Remember the v1 credential
         v1_creds = [p for p in user.credentials.filter(Password) if p.version == 1]
         assert len(v1_creds) == 1, "Test user should have exactly one v1 password"
-        v1_cred = v1_creds[0]
 
         # Add a v2 credential created 200 days ago (past default 180-day grace period)
         v2_password = Password(
