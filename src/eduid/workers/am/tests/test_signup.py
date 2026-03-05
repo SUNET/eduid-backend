@@ -131,10 +131,6 @@ class AttributeFetcherTests(AMTestCase):
             }
         }
 
-        # XXX: Why did this change? Investigate.
-        # normalise expected too since otherwise enum values and other types won't match normalised fetched data
-        expected = normalised_data(expected)
-
         assert normalised_data(fetched) == expected, "Wrong data fetched by signup fetcher"
 
     def test_malicious_attributes(self) -> None:
