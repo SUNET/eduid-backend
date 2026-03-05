@@ -364,7 +364,7 @@ class VCCSTestCase(MongoTestCase):
             application="test",
         )
 
-        # v1 is recent (just created), grace_period=90 days
+        # v2 is recent (just created), grace_period=90 days
         result = vccs_module.check_password(
             "abcd",
             self.user,
