@@ -2,6 +2,7 @@ from datetime import timedelta
 from typing import Any, NoReturn, cast
 from unittest.mock import MagicMock, patch
 
+from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.credentials.password import Password
 from eduid.userdb.fixtures.users import UserFixtures
 from eduid.userdb.testing import MongoTestCase, SetupConfig
@@ -34,8 +35,10 @@ class VCCSTestCase(MongoTestCase):
         vccs_module.revoke_passwords(self.user, reason="testing", application="test", vccs=self.vccs_client)
         super().tearDown()
 
-    def _check_credentials(self, creds: str) -> CheckPasswordResult | None:
-        return vccs_module.check_password(creds, self.user, vccs=self.vccs_client)
+    def _check_credentials(self, creds: str, upgrade_v2: bool = False) -> CheckPasswordResult | None:
+        return vccs_module.check_password(
+            creds, self.user, vccs=self.vccs_client, upgrade_v2=upgrade_v2, application="test"
+        )
 
     def test_check_good_credentials(self) -> None:
         result = self._check_credentials("abcd")
@@ -292,7 +295,7 @@ class VCCSTestCase(MongoTestCase):
         assert passwords_after[0].version == 1
 
     def test_check_password_v2_preferred(self) -> None:
-        """Test that v2 credential is returned when both v1 and v2 exist."""
+        """Test that v2 credential is returned when both v1 and v2 exist and upgrade_v2 is True."""
         # Add a v1 password and upgrade it
         v1_passwords = list(self.user.credentials.filter(Password))
         assert len(v1_passwords) == 1
@@ -306,8 +309,8 @@ class VCCSTestCase(MongoTestCase):
             vccs=self.vccs_client,
         )
 
-        # Now check_password should return the v2 credential
-        result = vccs_module.check_password("abcd", self.user, vccs=self.vccs_client)
+        # Now check_password should return the v2 credential when upgrade_v2=True
+        result = vccs_module.check_password("abcd", self.user, vccs=self.vccs_client, upgrade_v2=True)
         assert result is not None
         assert result.password.version == 2
 
@@ -375,3 +378,129 @@ class VCCSTestCase(MongoTestCase):
         # v1 should still exist
         v1_after = [p for p in self.user.credentials.filter(Password) if p.version == 1]
         assert len(v1_after) == 1
+
+    def test_change_password_after_v2_upgrade(self) -> None:
+        """Test password change after v1->v2 upgrade.
+
+        After upgrade, both v1 and v2 exist. change_password authenticates with v2 (preferred)
+        and only revokes the matched credential. This leaves the v1 credential behind, so the
+        old password still works via v1.
+        """
+        # Start with v1 password "abcd"
+        passwords = list(self.user.credentials.filter(Password))
+        assert len(passwords) == 1
+        assert passwords[0].version == 1
+
+        # Upgrade to v2 (both v1 and v2 now exist for "abcd")
+        result = self._check_credentials("abcd", upgrade_v2=True)
+        assert result is not None
+        assert result.success
+        assert result.credentials_changed
+        passwords = list(self.user.credentials.filter(Password))
+        assert len(passwords) == 2
+        assert {p.version for p in passwords} == {1, 2}
+
+        # Change password from "abcd" to "wxyz" with version=2
+        # and if we are within the grace period a v1 version will also be added
+        changed = vccs_module.change_password(
+            self.user,
+            new_password="wxyz",
+            old_password="abcd",
+            application="test",
+            vccs=self.vccs_client,
+            version=2,
+            password_v2_grace_period=timedelta(days=180),
+        )
+        assert changed is True
+
+        # change_password revokes both v1 and v2 version of the old password
+        # if we are within the grace period both versions should be there
+        passwords_after = list(self.user.credentials.filter(Password))
+        assert len(passwords_after) == 2
+        versions_after = {p.version for p in passwords_after}
+        assert versions_after == {1, 2}
+
+        # New password "wxyz" works and is v1
+        # mock v2 ignorance
+        self.vccs_client.allow_v2 = False  # type: ignore[attr-defined]
+        result_new = self._check_credentials("wxyz")
+        assert result_new is not None
+        assert result_new.success
+        assert result_new.password.version == 1
+        # reset v2
+        self.vccs_client.allow_v2 = True  # type: ignore[attr-defined]
+
+        # New password "wxyz" works and is v2
+        result_new = self._check_credentials("wxyz", upgrade_v2=True)
+        assert result_new is not None
+        assert result_new.success
+        assert result_new.password.version == 2
+
+        # Old password "abcd" does no longer work
+        result_old = self._check_credentials("abcd")
+        assert result_old is None
+        result_old = self._check_credentials("abcd", upgrade_v2=True)
+        assert result_old is None
+
+    def test_change_password_after_v2_upgrade_outside_grace_period(self) -> None:
+        """Test password change after v1->v2 upgrade.
+
+        After upgrade, both v1 and v2 exist. change_password authenticates with v2 (preferred)
+        and only revokes the matched credential. This leaves the v1 credential behind, so the
+        old password still works via v1.
+        """
+        # Start with v1 password "abcd"
+        passwords = list(self.user.credentials.filter(Password))
+        assert len(passwords) == 1
+        assert passwords[0].version == 1
+
+        # Upgrade to v2 (both v1 and v2 now exist for "abcd")
+        result = self._check_credentials("abcd", upgrade_v2=True)
+        assert result is not None
+        assert result.success
+        assert result.credentials_changed
+        passwords = list(self.user.credentials.filter(Password))
+        assert len(passwords) == 2
+        assert {p.version for p in passwords} == {1, 2}
+
+        # Simulate v2 being created long ago (outside grace period)
+        v2_passwords = [p for p in self.user.credentials.filter(Password) if p.version == 2]
+        assert len(v2_passwords) == 1
+        v2_passwords[0].created_ts = utc_now() - timedelta(days=200)
+
+        # Change password from "abcd" to "wxyz" with version=2
+        # no version=1 password will be added outside grace period
+        changed = vccs_module.change_password(
+            self.user,
+            new_password="wxyz",
+            old_password="abcd",
+            application="test",
+            vccs=self.vccs_client,
+            version=2,
+            password_v2_grace_period=timedelta(days=180),
+        )
+        assert changed is True
+
+        # change_password revokes both v1 and v2 version of the old password
+        passwords_after = list(self.user.credentials.filter(Password))
+        assert len(passwords_after) == 1
+        versions_after = {p.version for p in passwords_after}
+        assert versions_after == {2}
+
+        # New password "wxyz" works and is v2
+        result_new = self._check_credentials("wxyz", upgrade_v2=True)
+        assert result_new is not None
+        assert result_new.success
+        assert result_new.password.version == 2
+
+        # New password "wxyz" v1 does not work
+        # mock v2 ignorance
+        self.vccs_client.allow_v2 = False  # type: ignore[attr-defined]
+        result_new = self._check_credentials("wxyz")
+        assert result_new is None
+        # reset v2
+        self.vccs_client.allow_v2 = True  # type: ignore[attr-defined]
+
+        # Old password "abcd" does no longer work
+        result_old = self._check_credentials("abcd")
+        assert result_old is None
