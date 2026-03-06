@@ -29,15 +29,21 @@ def list_users(context: Context, data_owner: str) -> list[ManagedAccount]:
 def add_password(context: Context, managed_account: ManagedAccount, password: str) -> bool:
     vccs = context.vccs_client
 
-    new_factor = VCCSPasswordFactor(password=password, credential_id=str(ObjectId()))
+    _vccs_version = "NDNv2" if context.config.password_v2_upgrade_enabled else "NDNv1"
+    new_factor = VCCSPasswordFactor(password=password, credential_id=str(ObjectId()), version=_vccs_version)
 
     if not vccs.add_credentials(str(managed_account.user_id), [new_factor]):
         context.logger.error(f"Failed adding password credential {new_factor.credential_id} for user {managed_account}")
         return False
     context.logger.info(f"Added password credential {new_factor.credential_id} for user {managed_account}")
 
+    _version = 2 if context.config.password_v2_upgrade_enabled else 1
     _password = Password(
-        credential_id=new_factor.credential_id, salt=new_factor.salt, is_generated=True, created_by="maccapi"
+        credential_id=new_factor.credential_id,
+        salt=new_factor.salt,
+        is_generated=True,
+        created_by="maccapi",
+        version=_version,
     )
     managed_account.credentials.add(_password)
 

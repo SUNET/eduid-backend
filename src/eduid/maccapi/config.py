@@ -2,12 +2,12 @@ import logging
 
 from pydantic import field_validator
 
-from eduid.common.config.base import AuthnBearerTokenConfig, LoggingConfigMixin, StatsConfigMixin
+from eduid.common.config.base import AuthnBearerTokenConfig, LoggingConfigMixin, StatsConfigMixin, VCCSConfigMixin
 
 logger = logging.getLogger(__name__)
 
 
-class MAccApiConfig(AuthnBearerTokenConfig, LoggingConfigMixin, StatsConfigMixin):
+class MAccApiConfig(AuthnBearerTokenConfig, LoggingConfigMixin, StatsConfigMixin, VCCSConfigMixin):
     """
     Configuration for the Managed Accounts API app
     """

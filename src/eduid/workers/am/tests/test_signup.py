@@ -110,6 +110,7 @@ class AttributeFetcherTests(AMTestCase):
                 "credential_id": "123",
                 "is_generated": False,
                 "salt": "456",
+                "version": 1,
             }
         ]
 

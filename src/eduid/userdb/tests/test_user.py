@@ -264,6 +264,9 @@ class TestNewUser(unittest.TestCase):
         now = utc_now()
         assert (now - modified_ts).total_seconds() < 2
 
+        # version is added with default value 1 when not present in source data
+        expected[0]["version"] = 1
+
         assert obtained == expected
 
     def test_unknown_attributes(self) -> None:
@@ -309,6 +312,9 @@ class TestNewUser(unittest.TestCase):
 
         expected = data["passwords"]
         obtained = user.credentials.to_list_of_dicts()
+
+        # version is added with default value 1 when not present in source data
+        expected[0]["version"] = 1
 
         assert obtained == expected
 
@@ -935,6 +941,7 @@ class TestNewUser(unittest.TestCase):
         # adjust for expected changes
         first["created_by"] = first.pop("source")
         first["credential_id"] = str(first.pop("id"))
+        first["version"] = 1  # version is added with default value 1 when not present in source data
         second["description"] = ""
 
         expected = [first, second]

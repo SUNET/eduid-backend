@@ -15,6 +15,7 @@ from eduid.common.config.base import (
     MagicCookieMixin,
     MsgConfigMixin,
     PasswordConfigMixin,
+    VCCSConfigMixin,
     WebauthnConfigMixin2,
 )
 
@@ -27,6 +28,7 @@ class SecurityConfig(
     MsgConfigMixin,
     PasswordConfigMixin,
     FrontendActionMixin,
+    VCCSConfigMixin,
 ):
     """
     Configuration for the security app
@@ -34,7 +36,6 @@ class SecurityConfig(
 
     app_name: str = "security"
 
-    vccs_url: str
     dashboard_url: str
     throttle_update_user_period: timedelta = Field(default=timedelta(seconds=600))
 

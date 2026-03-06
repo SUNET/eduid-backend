@@ -85,7 +85,10 @@ def terminate_account(user: User) -> FluxData:
 
     # revoke all user passwords
     revoke_passwords(
-        security_user, reason="account termination", application="security", vccs_url=current_app.conf.vccs_url
+        security_user,
+        vccs_url=current_app.conf.vccs_url,
+        application=current_app.conf.app_name,
+        reason="subscriber requested termination",
     )
 
     # flag account as terminated

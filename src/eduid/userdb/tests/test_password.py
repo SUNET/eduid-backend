@@ -50,3 +50,24 @@ class TestPassword(TestCase):
         this = self.three.find(str(ObjectId("55002741d00690878ae9b600")))
         assert this
         self.assertIsInstance(this.created_ts, datetime.datetime)
+
+    def test_version_default(self) -> None:
+        """Password without version field defaults to 1."""
+        p = Password(credential_id="test123", salt="$NDNv1H1$aabb$32$32$", created_by="test")
+        assert p.version == 1
+
+    def test_version_v2(self) -> None:
+        """Password with version=2."""
+        p = Password(credential_id="test123", salt="$NDNv1H1$aabb$32$32$", created_by="test", version=2)
+        assert p.version == 2
+
+    def test_from_dict_no_version(self) -> None:
+        """Existing MongoDB documents without version field should default to 1."""
+        data = {
+            "id": "54db60128a7d2a26e8690cda",
+            "salt": "$NDNv1H1$db011fc$32$32$",
+            "is_generated": False,
+            "source": "dashboard",
+        }
+        p = Password(**data)
+        assert p.version == 1

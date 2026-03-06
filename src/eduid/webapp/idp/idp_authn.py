@@ -26,6 +26,7 @@ from eduid.userdb.maccapi import ManagedAccountDB
 from eduid.vccs.client import VCCSClientHTTPError, VCCSPasswordFactor
 from eduid.webapp.common.api import exceptions
 from eduid.webapp.common.authn import get_vccs_client
+from eduid.webapp.common.authn.vccs import revoke_expired_v1_passwords, upgrade_password_to_v2
 from eduid.webapp.idp.settings.common import IdPConfig
 
 logger = logging.getLogger(__name__)
@@ -95,6 +96,7 @@ class UsedCredential(BaseModel):
 class PasswordAuthnResponse:
     user: IdPUser
     credential: Password
+    credentials_changed: bool = False
     timestamp: datetime = field(default_factory=utc_now)
 
     @property
@@ -136,11 +138,17 @@ class IdPAuthn:
         if not user:
             return None
 
+        # Snapshot credential keys before authentication to detect changes (e.g. v2 upgrade, v1 revocation)
+        _cred_keys_before = {p.key for p in user.credentials.filter(Password)}
+
         cred = self._verify_username_and_password2(user, password)
         if not cred:
             return None
 
-        return PasswordAuthnResponse(user=user, credential=cred)
+        _cred_keys_after = {p.key for p in user.credentials.filter(Password)}
+        _credentials_changed = _cred_keys_after != _cred_keys_before
+
+        return PasswordAuthnResponse(user=user, credential=cred, credentials_changed=_credentials_changed)
 
     def _verify_username_and_password2(self, user: IdPUser, password: str) -> Password | None:
         """
@@ -168,8 +176,12 @@ class IdPAuthn:
                 # Optimize list of credentials to try based on which credentials the
                 # user used in the last successful authentication. This optimization
                 # is based on plain assumption, no measurements whatsoever.
+                # Secondary sort: prefer v2 credentials over v1 (higher version first).
                 last_creds = authn_info.last_used_credentials
-                sorted_creds = sorted(pw_credentials, key=lambda x: x.credential_id not in last_creds)
+                sorted_creds = sorted(
+                    pw_credentials,
+                    key=lambda x: (x.credential_id not in last_creds, -x.version),
+                )
                 if sorted_creds != pw_credentials:
                     logger.debug(
                         f"Re-sorted list of credentials into\n{sorted_creds}\nbased on last-used {last_creds!r}"
@@ -177,6 +189,30 @@ class IdPAuthn:
                     pw_credentials = sorted_creds
 
         return self._authn_passwords(user, password, pw_credentials)
+
+    def _upgrade_password(self, user: IdPUser, password: str, cred: Password) -> None:
+        from eduid.webapp.idp.app import current_idp_app as current_app
+
+        if cred.version == 1:
+            _has_v2 = any(p.version == 2 for p in user.credentials.filter(Password))  # noqa: PLR2004
+            if not _has_v2:
+                if not upgrade_password_to_v2(
+                    user=user,
+                    password=password,
+                    old_credential=cred,
+                    application="idp",
+                    vccs=self.auth_client,
+                ):
+                    logger.warning(f"Password v2 upgrade failed for user {user}")
+                else:
+                    current_app.stats.count("password_v1_upgraded")
+        # revoke v1 password if grace period expired
+        elif cred.version == 2:  # noqa: PLR2004
+            if revoke_expired_v1_passwords(
+                user=user, grace_period=self.config.password_v2_grace_period, vccs=self.auth_client
+            ):
+                logger.info(f"Revoked v1 password for user {user}")
+                current_app.stats.count("password_v1_revoked")
 
     def _authn_passwords(self, user: IdPUser, password: str, pw_credentials: Sequence[Password]) -> Password | None:
         """
@@ -190,7 +226,9 @@ class IdPAuthn:
         """
         for cred in pw_credentials:
             try:
-                factor = VCCSPasswordFactor(password, str(cred.credential_id), str(cred.salt))
+                factor = VCCSPasswordFactor(
+                    password, str(cred.credential_id), str(cred.salt), version=f"NDNv{cred.version}"
+                )
             except ValueError as exc:
                 logger.info(f"User {user} password factor {cred.credential_id} unusable: {exc}")
                 continue
@@ -205,6 +243,9 @@ class IdPAuthn:
                         logger.info(f"User {user} credential {cred.key} has expired")
                         raise exceptions.EduidForbidden("CREDENTIAL_EXPIRED")
                     self.log_authn(user, success=[cred.credential_id], failure=[])
+                    # Transparently upgrade v1 password to v2 if enabled
+                    if self.config.password_v2_upgrade_enabled:
+                        self._upgrade_password(user=user, password=password, cred=cred)
                     return cred
             except VCCSClientHTTPError as exc:
                 if exc.http_code == HTTPStatus.INTERNAL_SERVER_ERROR:

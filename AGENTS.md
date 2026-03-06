@@ -274,6 +274,7 @@ After completing test changes, always run:
 
 ```bash
 make reformat   # Fix imports and formatting
+make lint       # Verify code standard
 make typecheck  # Verify type correctness
 ```
 

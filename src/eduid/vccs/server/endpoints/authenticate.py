@@ -85,7 +85,12 @@ async def authenticate(req: Request, request: AuthenticateRequestV1) -> Authenti
                 )
             elif cred.type == CredType.PASSWORD:
                 this_result = await authenticate_password(
-                    cred, factor, request.user_id, req.app.state.hasher, req.app.state.kdf
+                    cred,
+                    factor,
+                    request.user_id,
+                    req.app.state.hasher,
+                    req.app.state.kdf,
+                    new_hasher=req.app.state.new_hasher,
                 )
             else:
                 req.app.logger.warning(f"Unsupported credential type: {cred!r}")

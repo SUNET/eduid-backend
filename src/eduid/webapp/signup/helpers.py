@@ -237,6 +237,7 @@ def create_and_sync_user(
             is_generated=is_generated,
             application=current_app.conf.app_name,
             vccs_url=current_app.conf.vccs_url,
+            version=2 if current_app.conf.password_v2_upgrade_enabled else 1,
         ):
             current_app.logger.error("Failed to add a credential to user")
             current_app.logger.debug(f"signup_user: {signup_user}")

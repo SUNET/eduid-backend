@@ -24,6 +24,7 @@ class Status(StrEnum):
 @unique
 class Version(StrEnum):
     NDNv1 = "NDNv1"
+    NDNv2 = "NDNv2"
 
 
 @unique
@@ -82,6 +83,8 @@ class Credential:
         }
         """
         data = asdict(self)
+        # Filter out None values (e.g. key_label for v1 credentials)
+        data = {k: v for k, v in data.items() if v is not None}
         # Convert Enums to their values
         for k in data:
             if isinstance(data[k], Enum):
@@ -103,13 +106,15 @@ class _PasswordCredentialRequired:
     derived_key: str
     iterations: int
     kdf: KDF
-    key_handle: int
     salt: str
     version: Version
 
 
 @dataclass(config=ConfigDict(arbitrary_types_allowed=True))
 class PasswordCredential(Credential, _PasswordCredentialRequired):
+    key_handle: int | None = None
+    key_label: str | None = None
+
     @classmethod
     def from_dict(cls: type[PasswordCredential], data: Mapping[str, Any]) -> PasswordCredential:
         # This indirection provides the correct return type for this subclass

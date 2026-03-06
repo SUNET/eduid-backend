@@ -7,6 +7,7 @@ from eduid.common.config.parsers import load_config
 from eduid.common.rpc.am_relay import AmRelay
 from eduid.userdb.actions.tou.userdb import ToUUserDB
 from eduid.userdb.idp import IdPUserDb
+from eduid.userdb.idp.credential_db import CredentialUserDB
 from eduid.userdb.maccapi import ManagedAccountDB
 from eduid.webapp.common.api import translation
 from eduid.webapp.common.api.app import EduIDBaseApp
@@ -47,6 +48,7 @@ class IdPApp(EduIDBaseApp):
         self.managed_account_db = ManagedAccountDB(config.mongo_uri)
         self.authn = idp_authn.IdPAuthn(config=config, userdb=self.userdb, managed_account_db=self.managed_account_db)
         self.tou_db = ToUUserDB(config.mongo_uri)
+        self.credential_db = CredentialUserDB(config.mongo_uri, auto_expire=config.private_userdb_auto_expire)
         self.other_device_db = OtherDeviceDB(config.mongo_uri)
         self.known_device_db = KnownDeviceDB(
             config.mongo_uri,

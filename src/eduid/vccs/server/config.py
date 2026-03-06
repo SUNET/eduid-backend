@@ -8,7 +8,7 @@ from eduid.common.config.parsers import load_config
 
 
 class HasherConfig(BaseModel):
-    add_creds_password_key_handle: int
+    add_creds_password_key_handle: int | None = None
     add_creds_password_key_label: str | None = None
 
 
@@ -32,6 +32,7 @@ class SoftHasherConfig(HasherConfig):
 class VCCSConfig(RootConfig):
     mongo_uri: str
     hasher: YHSMConfig | HSMKeyConfig | SoftHasherConfig
+    new_hasher: HSMKeyConfig | SoftHasherConfig | None = None
     # Optional arguments below
     add_creds_password_kdf_iterations: int = 50000
     add_creds_password_salt_bytes: int = 128 // 8

@@ -6,6 +6,7 @@ from pydantic.main import BaseModel
 misc_router = APIRouter()
 
 HMAC_SHA1_LENGTH = 20
+HMAC_SHA256_LENGTH = 32
 
 
 @unique
@@ -18,6 +19,7 @@ class Status(StrEnum):
 class StatusResponse(BaseModel):
     status: Status
     add_creds_hmac: Status | None = None
+    new_hasher_hmac: Status | None = None
     version: int = 1
 
 
@@ -35,6 +37,26 @@ async def status(request: Request) -> StatusResponse:
         request.app.logger.exception(f"Failed hashing test data with key handle {_test_keyhandle}")
         res.add_creds_hmac = Status.FAIL
         res.status = Status.FAIL
+
+    # Check new_hasher if configured
+    if request.app.state.new_hasher is not None:
+        _new_hasher_config = request.app.state.config.new_hasher
+        _test_key_label = _new_hasher_config.add_creds_password_key_label if _new_hasher_config else None
+        if _test_key_label is not None:
+            try:
+                hmac256 = await request.app.state.new_hasher.hmac_sha256(key_label=_test_key_label, data=b"\0")
+                if len(hmac256) >= HMAC_SHA256_LENGTH:
+                    res.new_hasher_hmac = Status.OK
+                else:
+                    res.new_hasher_hmac = Status.FAIL
+            except Exception:
+                request.app.logger.exception(f"Failed hashing test data with new_hasher key label {_test_key_label}")
+                res.new_hasher_hmac = Status.FAIL
+                res.status = Status.FAIL
+        else:
+            request.app.logger.warning("new_hasher configured but no add_creds_password_key_label set")
+            res.new_hasher_hmac = Status.FAIL
+            res.status = Status.FAIL
 
     return res
 

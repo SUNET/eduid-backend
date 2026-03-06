@@ -102,7 +102,12 @@ class VCCSPasswordFactor(VCCSFactor):
     """
 
     def __init__(
-        self, password: str, credential_id: str, salt: str | None = None, strip_whitespace: bool = True
+        self,
+        password: str,
+        credential_id: str,
+        salt: str | None = None,
+        strip_whitespace: bool = True,
+        version: str = "NDNv1",
     ) -> None:
         """
         :param password: string, password as plaintext
@@ -138,7 +143,11 @@ class VCCSPasswordFactor(VCCSFactor):
         res = bcrypt.kdf(T1_bytes, salt_bytes, key_length, rounds)
         res = res.hex()
         self.hash = res
+        self.version = version
         VCCSFactor.__init__(self)
+
+    def __str__(self) -> str:
+        return f"<VCCSPasswordFactor credential_id={self.credential_id} version={self.version}>"
 
     def generate_salt(self, salt_length: int = 32, desired_key_length: int = 32, rounds: int = 2**5) -> str:
         """
@@ -185,6 +194,7 @@ class VCCSPasswordFactor(VCCSFactor):
             "type": "password",
             "H1": self.hash,
             "credential_id": self.credential_id,
+            "version": self.version,
         }
         return res
 
