@@ -263,8 +263,6 @@ def change_password(
     if vccs is None:
         vccs = get_vccs_client(vccs_url)
 
-    _vccs_version = "NDNv2" if version == 2 else "NDNv1"
-
     # Check that the old password is correct, if supplied
     checked_password = None
     if old_password is not None:
@@ -305,7 +303,7 @@ def change_password(
         is_generated=is_generated,
         application=application,
         vccs=vccs,
-        version=2,
+        version=version,
     ):
         logger.error(f"Failed adding password credential for user {user}")
         return False
@@ -332,6 +330,7 @@ def reset_password(
     vccs_url: str | None = None,
     vccs: VCCSClient | None = None,
     version: int = 1,
+    password_v2_grace_period: timedelta | None = None,
 ) -> bool:
     """
     :param user: User object
@@ -341,6 +340,7 @@ def reset_password(
     :param vccs_url: URL to VCCS authentication backend
     :param vccs: Optional already instantiated vccs client
     :param version: Password version (1 for NDNv1, 2 for NDNv2)
+    :param password_v2_grace_period: When version=2, also add a v1 companion if within this grace period
 
     :return: Success or not
     """
@@ -354,6 +354,7 @@ def reset_password(
         version=version,
         is_generated=is_generated,
         reason="password reset",
+        password_v2_grace_period=password_v2_grace_period,
         application=application,
         vccs=vccs,
     ):
