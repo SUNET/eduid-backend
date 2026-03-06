@@ -205,6 +205,7 @@ class IdPAuthn:
                 ):
                     logger.warning(f"Password v2 upgrade failed for user {user}")
                 else:
+                    logger.info(f"Password v1 upgrade upgraded user {user}")
                     current_app.stats.count("password_v1_upgraded")
         # revoke v1 password if grace period expired
         elif cred.version == 2:  # noqa: PLR2004

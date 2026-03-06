@@ -7,6 +7,10 @@ from eduid.common.config.base import RootConfig
 from eduid.common.config.parsers import load_config
 
 
+class NewHasherNotConfigured(Exception):
+    pass
+
+
 class HasherConfig(BaseModel):
     add_creds_password_key_handle: int | None = None
     add_creds_password_key_label: str | None = None

@@ -3,6 +3,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
+from eduid.vccs.server.config import NewHasherNotConfigured
 from eduid.vccs.server.db import KDF, CredType, PasswordCredential, Status, Version
 from eduid.vccs.server.password import calculate_cred_hash
 
@@ -108,7 +109,7 @@ class TestCalculateCredHash(unittest.IsolatedAsyncioTestCase):
         kdf = MagicMock()
         kdf.pbkdf2_hmac_sha512 = MagicMock(return_value=b"\xab" * 64)
 
-        with pytest.raises(RuntimeError, match="new_hasher"):
+        with pytest.raises(NewHasherNotConfigured, match="new_hasher"):
             await calculate_cred_hash(user_id="test_user", H1="aa" * 16, cred=cred, hasher=hasher, kdf=kdf)
 
     async def test_v1_ignores_new_hasher(self) -> None:

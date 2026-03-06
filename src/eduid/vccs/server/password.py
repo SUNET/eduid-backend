@@ -2,6 +2,7 @@ from binascii import unhexlify
 
 from ndnkdf import NDNKDF
 
+from eduid.vccs.server.config import NewHasherNotConfigured
 from eduid.vccs.server.db import PasswordCredential, Version
 from eduid.vccs.server.factors import RequestFactor
 from eduid.vccs.server.hasher import VCCSHasher
@@ -19,9 +20,12 @@ async def authenticate_password(
     new_hasher: VCCSHasher | None = None,
 ) -> bool:
     res = False
-    H2 = await calculate_cred_hash(
-        user_id=user_id, H1=factor.H1, cred=cred, hasher=hasher, kdf=kdf, new_hasher=new_hasher
-    )
+    try:
+        H2 = await calculate_cred_hash(
+            user_id=user_id, H1=factor.H1, cred=cred, hasher=hasher, kdf=kdf, new_hasher=new_hasher
+        )
+    except NewHasherNotConfigured:
+        return res
     # XXX need to log successful login in credential_store to be able to ban
     # accounts after a certain time of inactivity (Kantara AL2_CM_CSM#050)
     # XXX can as well log counter of invalid attempts per credential too -
@@ -88,13 +92,13 @@ async def calculate_cred_hash(
             if cred.key_label is None:
                 raise ValueError("NDNv2 credential requires key_label for HMAC-SHA-256")
             if new_hasher is None:
-                raise RuntimeError("NDNv2 credential requires new_hasher, but new_hasher is not configured")
+                raise NewHasherNotConfigured("NDNv2 credential requires new_hasher, but new_hasher is not configured")
             local_salt = await new_hasher.hmac_sha256(cred.key_label, T2)
         else:
             if cred.key_handle is None:
                 raise ValueError("NDNv1 credential requires key_handle for HMAC-SHA-1")
             local_salt = await hasher.hmac_sha1(cred.key_handle, T2)
-    except (ValueError, RuntimeError):
+    except (ValueError, RuntimeError, NewHasherNotConfigured):
         raise  # Don't wrap ValueError/RuntimeError in another RuntimeError
     except Exception as e:
         raise RuntimeError(f"Hashing operation failed : {e}") from e
