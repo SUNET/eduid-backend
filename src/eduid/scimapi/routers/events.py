@@ -26,7 +26,7 @@ events_router = APIRouter(
 )
 
 
-@events_router.get("/{scim_id}", response_model=EventResponse, response_model_exclude_none=True)
+@events_router.get("/{scim_id}", response_model_exclude_none=True)
 async def on_get(req: ContextRequest, resp: Response, scim_id: str | None = None) -> EventResponse:
     if scim_id is None:
         raise BadRequest(detail="Not implemented")
@@ -39,7 +39,7 @@ async def on_get(req: ContextRequest, resp: Response, scim_id: str | None = None
     return db_event_to_response(req, resp, db_event)
 
 
-@events_router.post("/", response_model=EventResponse, response_model_exclude_none=True)
+@events_router.post("/", response_model_exclude_none=True)
 async def on_post(req: ContextRequest, resp: Response, create_request: EventCreateRequest) -> EventResponse:
     """
     POST /Events  HTTP/1.1

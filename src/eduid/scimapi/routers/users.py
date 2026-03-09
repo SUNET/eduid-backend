@@ -43,7 +43,7 @@ users_router = APIRouter(
 )
 
 
-@users_router.get("/{scim_id}", response_model=UserResponse, response_model_exclude_none=True)
+@users_router.get("/{scim_id}", response_model_exclude_none=True)
 async def on_get(req: ContextRequest, resp: Response, scim_id: str | None = None) -> UserResponse:
     if scim_id is None:
         raise BadRequest(detail="Not implemented")
@@ -57,7 +57,7 @@ async def on_get(req: ContextRequest, resp: Response, scim_id: str | None = None
     return db_user_to_response(req=req, resp=resp, db_user=db_user)
 
 
-@users_router.put("/{scim_id}", response_model=UserResponse, response_model_exclude_none=True)
+@users_router.put("/{scim_id}", response_model_exclude_none=True)
 async def on_put(req: ContextRequest, resp: Response, update_request: UserUpdateRequest, scim_id: str) -> UserResponse:
     req.app.context.logger.info(f"Updating user {scim_id}")
     req.app.context.logger.debug(update_request)
@@ -164,7 +164,7 @@ async def on_put(req: ContextRequest, resp: Response, update_request: UserUpdate
     return db_user_to_response(req=req, resp=resp, db_user=db_user)
 
 
-@users_router.post("/", response_model=UserResponse, response_model_exclude_none=True)
+@users_router.post("/", response_model_exclude_none=True)
 async def on_post(req: ContextRequest, resp: Response, create_request: UserCreateRequest) -> UserResponse:
     """
     POST /Users  HTTP/1.1
@@ -302,7 +302,7 @@ async def on_delete(req: ContextRequest, scim_id: str) -> None:
     req.app.context.logger.debug(f"Remove user result: {res}")
 
 
-@users_router.post("/.search", response_model=ListResponse, response_model_exclude_none=True)
+@users_router.post("/.search", response_model_exclude_none=True)
 async def search(req: ContextRequest, query: SearchRequest) -> ListResponse:
     """
     POST /Users/.search

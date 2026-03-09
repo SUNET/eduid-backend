@@ -27,7 +27,7 @@ groups_router = APIRouter(
 )
 
 
-@groups_router.get("/", response_model=ListResponse)
+@groups_router.get("/")
 async def on_get_all(req: ContextRequest) -> ListResponse:
     assert isinstance(req.context, ScimApiContext)  # please mypy
     assert req.context.groupdb is not None  # please mypy
@@ -36,7 +36,7 @@ async def on_get_all(req: ContextRequest) -> ListResponse:
     return ListResponse(total_results=len(db_groups), resources=resources)
 
 
-@groups_router.get("/{scim_id}", response_model=GroupResponse, response_model_exclude_none=True)
+@groups_router.get("/{scim_id}", response_model_exclude_none=True)
 async def on_get_one(req: ContextRequest, resp: Response, scim_id: str) -> GroupResponse:
     """
     GET /Groups/c3819cbe-c893-4070-824c-fe3d0db8f955  HTTP/1.1
@@ -78,7 +78,7 @@ async def on_get_one(req: ContextRequest, resp: Response, scim_id: str) -> Group
     return db_group_to_response(req, resp, db_group)
 
 
-@groups_router.put("/{scim_id}", response_model=GroupResponse, response_model_exclude_none=True)
+@groups_router.put("/{scim_id}", response_model_exclude_none=True)
 async def on_put(
     req: ContextRequest, resp: Response, scim_id: str, update_request: GroupUpdateRequest
 ) -> GroupResponse:
@@ -184,7 +184,7 @@ async def on_put(
     return db_group_to_response(req, resp, db_group)
 
 
-@groups_router.post("/", response_model=GroupResponse, response_model_exclude_none=True)
+@groups_router.post("/", response_model_exclude_none=True)
 async def on_post(req: ContextRequest, resp: Response, create_request: GroupCreateRequest) -> GroupResponse:
     """
     POST /Groups  HTTP/1.1
@@ -275,7 +275,7 @@ async def on_delete(req: ContextRequest, scim_id: str) -> None:
     req.app.context.logger.debug(f"Remove group result: {res}")
 
 
-@groups_router.post("/.search", response_model=ListResponse, response_model_exclude_none=True)
+@groups_router.post("/.search", response_model_exclude_none=True)
 async def search(req: ContextRequest, query: SearchRequest) -> ListResponse:
     """
     POST /Groups/.search

@@ -35,7 +35,7 @@ invites_router = APIRouter(
 )
 
 
-@invites_router.get("/{scim_id}", response_model=InviteResponse, response_model_exclude_none=True)
+@invites_router.get("/{scim_id}", response_model_exclude_none=True)
 async def on_get(req: ContextRequest, resp: Response, scim_id: str | None = None) -> InviteResponse:
     if scim_id is None:
         raise BadRequest(detail="Not implemented")
@@ -52,7 +52,7 @@ async def on_get(req: ContextRequest, resp: Response, scim_id: str | None = None
     return db_invite_to_response(req, resp, db_invite, signup_invite)
 
 
-@invites_router.put("/{scim_id}", response_model=InviteResponse, response_model_exclude_none=True)
+@invites_router.put("/{scim_id}", response_model_exclude_none=True)
 async def on_put(
     req: ContextRequest, resp: Response, update_request: InviteUpdateRequest, scim_id: str
 ) -> InviteResponse:
@@ -106,7 +106,7 @@ async def on_put(
     return db_invite_to_response(req, resp, db_invite, signup_invite)
 
 
-@invites_router.post("/", response_model=InviteResponse, response_model_exclude_none=True)
+@invites_router.post("/", response_model_exclude_none=True)
 async def on_post(req: ContextRequest, resp: Response, create_request: InviteCreateRequest) -> InviteResponse:
     """
     POST /Invites  HTTP/1.1
@@ -234,7 +234,7 @@ async def on_delete(req: ContextRequest, scim_id: str) -> None:
     req.app.context.logger.debug(f"Remove invite result: {res}")
 
 
-@invites_router.post("/.search", response_model=ListResponse, response_model_exclude_none=True)
+@invites_router.post("/.search", response_model_exclude_none=True)
 async def search(req: ContextRequest, query: SearchRequest) -> ListResponse:
     """
     POST /Invites/.search
