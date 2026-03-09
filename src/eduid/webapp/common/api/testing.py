@@ -259,13 +259,12 @@ class EduidAPITestCase[T: EduIDBaseApp](CommonTestCase):
         ) as _client:
             yield _client
 
-    def request_user_sync(self, private_user: User, app_name_override: str | None = None) -> bool:
+    def request_user_sync(self, private_user: User, app_name_override: str | None = None) -> None:
         """
         Updates the central db user with data from the private db user.
 
         :param private_user: User to save in central db
         :type private_user: Private subclass of eduid_db.user.User
-        :return: True
         """
         logger.info(f"Saving user {private_user} to central userdb using test-request_user_sync() method")
 
@@ -283,7 +282,7 @@ class EduidAPITestCase[T: EduIDBaseApp](CommonTestCase):
         if central_user is None:
             # This is a new user, create a new user in the central db
             self.app.central_userdb.save(User.from_dict(private_user_dict))
-            return True
+            return
 
         central_user_dict = central_user.to_dict()
         central_user_dict.update(private_user_dict)
@@ -321,7 +320,7 @@ class EduidAPITestCase[T: EduIDBaseApp](CommonTestCase):
         user.meta.is_in_database = True
 
         self.app.central_userdb.save(user)
-        return True
+        return
 
     def set_authn_action(
         self,
