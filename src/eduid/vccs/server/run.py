@@ -88,9 +88,3 @@ app.include_router(authenticate_router)
 async def validation_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
     request.app.logger.warning(f"Failed parsing request: {exc}")
     return JSONResponse({"errors": exc.errors()}, status_code=HTTP_422_UNPROCESSABLE_CONTENT)
-
-
-if __name__ == "__main__":
-    import uvicorn
-
-    uvicorn.run(app, host="0.0.0.0", port=8000)  # , log_config=None)
