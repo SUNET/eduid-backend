@@ -320,7 +320,6 @@ class EduidAPITestCase[T: EduIDBaseApp](CommonTestCase):
         user.meta.is_in_database = True
 
         self.app.central_userdb.save(user)
-        return
 
     def set_authn_action(
         self,
