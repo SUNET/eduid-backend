@@ -335,7 +335,7 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
         assert response.status_code == HTTPStatus.FOUND
         self._verify_status(
-            finish_url=response.headers["Location"],
+            finish_url=response.headers.get("Location", ""),
             frontend_action=FrontendAction(self.default_frontend_data["frontend_action"]),
             frontend_state=self.default_frontend_data["frontend_state"],
             method=self.default_frontend_data["method"],
@@ -377,7 +377,7 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
         assert response.status_code == HTTPStatus.FOUND
         self._verify_status(
-            finish_url=response.headers["Location"],
+            finish_url=response.headers.get("Location", ""),
             frontend_action=FrontendAction(self.default_frontend_data["frontend_action"]),
             frontend_state=self.default_frontend_data["frontend_state"],
             method=self.default_frontend_data["method"],
@@ -412,7 +412,7 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
         assert response.status_code == HTTPStatus.FOUND
         self._verify_status(
-            finish_url=response.headers["Location"],
+            finish_url=response.headers.get("Location", ""),
             frontend_action=FrontendAction(self.default_frontend_data["frontend_action"]),
             frontend_state=self.default_frontend_data["frontend_state"],
             method=self.default_frontend_data["method"],
@@ -454,7 +454,7 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
         assert response.status_code == HTTPStatus.FOUND
         self._verify_status(
-            finish_url=response.headers["Location"],
+            finish_url=response.headers.get("Location", ""),
             frontend_action=FrontendAction(self.default_frontend_data["frontend_action"]),
             frontend_state=self.default_frontend_data["frontend_state"],
             method=self.default_frontend_data["method"],
@@ -493,7 +493,7 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
         assert response.status_code == HTTPStatus.FOUND
         self._verify_status(
-            finish_url=response.headers["Location"],
+            finish_url=response.headers.get("Location", ""),
             frontend_action=FrontendAction(self.default_frontend_data["frontend_action"]),
             frontend_state=self.default_frontend_data["frontend_state"],
             method=self.default_frontend_data["method"],
@@ -533,7 +533,7 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
         assert response.status_code == HTTPStatus.FOUND
         self._verify_status(
-            finish_url=response.headers["Location"],
+            finish_url=response.headers.get("Location", ""),
             frontend_action=FrontendAction(self.default_frontend_data["frontend_action"]),
             frontend_state=self.default_frontend_data["frontend_state"],
             method=self.default_frontend_data["method"],
@@ -580,7 +580,7 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
         assert response.status_code == HTTPStatus.FOUND
         self._verify_status(
-            finish_url=response.headers["Location"],
+            finish_url=response.headers.get("Location", ""),
             frontend_action=FrontendAction(self.default_frontend_data["frontend_action"]),
             frontend_state=self.default_frontend_data["frontend_state"],
             method=self.default_frontend_data["method"],
@@ -628,7 +628,7 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
         assert response.status_code == HTTPStatus.FOUND
         self._verify_status(
-            finish_url=response.headers["Location"],
+            finish_url=response.headers.get("Location", ""),
             frontend_action=FrontendAction(self.default_frontend_data["frontend_action"]),
             frontend_state=self.default_frontend_data["frontend_state"],
             method=self.default_frontend_data["method"],
@@ -659,7 +659,7 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
         assert response.status_code == HTTPStatus.FOUND
         self._verify_status(
-            finish_url=response.headers["Location"],
+            finish_url=response.headers.get("Location", ""),
             frontend_action=FrontendAction(self.default_frontend_data["frontend_action"]),
             frontend_state=self.default_frontend_data["frontend_state"],
             method=self.default_frontend_data["method"],
@@ -694,7 +694,7 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
         assert response.status_code == HTTPStatus.FOUND
         self._verify_status(
-            finish_url=response.headers["Location"],
+            finish_url=response.headers.get("Location", ""),
             frontend_action=FrontendAction(self.default_frontend_data["frontend_action"]),
             frontend_state=self.default_frontend_data["frontend_state"],
             method=self.default_frontend_data["method"],

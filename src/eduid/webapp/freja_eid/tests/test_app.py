@@ -397,7 +397,7 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
         assert response.status_code == HTTPStatus.FOUND
         self._verify_status(
-            finish_url=response.headers["Location"],
+            finish_url=response.headers.get("Location", ""),
             frontend_action=FrontendAction(
                 self.default_frontend_data(frontend_action="verifyIdentity")["frontend_action"]
             ),
@@ -443,7 +443,7 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
         assert response.status_code == HTTPStatus.FOUND
         self._verify_status(
-            finish_url=response.headers["Location"],
+            finish_url=response.headers.get("Location", ""),
             frontend_action=FrontendAction(
                 self.default_frontend_data(frontend_action="verifyIdentity")["frontend_action"]
             ),
@@ -482,7 +482,7 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
         assert response.status_code == HTTPStatus.FOUND
         self._verify_status(
-            finish_url=response.headers["Location"],
+            finish_url=response.headers.get("Location", ""),
             frontend_action=FrontendAction(
                 self.default_frontend_data(frontend_action="verifyIdentity")["frontend_action"]
             ),
@@ -528,7 +528,7 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
         assert response.status_code == HTTPStatus.FOUND
         self._verify_status(
-            finish_url=response.headers["Location"],
+            finish_url=response.headers.get("Location", ""),
             frontend_action=FrontendAction(
                 self.default_frontend_data(frontend_action="verifyIdentity")["frontend_action"]
             ),
@@ -573,7 +573,7 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
         assert response.status_code == HTTPStatus.FOUND
         self._verify_status(
-            finish_url=response.headers["Location"],
+            finish_url=response.headers.get("Location", ""),
             frontend_action=FrontendAction(
                 self.default_frontend_data(frontend_action="verifyIdentity")["frontend_action"]
             ),
@@ -619,7 +619,7 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
         assert response.status_code == HTTPStatus.FOUND
         self._verify_status(
-            finish_url=response.headers["Location"],
+            finish_url=response.headers.get("Location", ""),
             frontend_action=FrontendAction(
                 self.default_frontend_data(frontend_action="verifyIdentity")["frontend_action"]
             ),
@@ -674,7 +674,7 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
         assert response.status_code == HTTPStatus.FOUND
         self._verify_status(
-            finish_url=response.headers["Location"],
+            finish_url=response.headers.get("Location", ""),
             frontend_action=FrontendAction(
                 self.default_frontend_data(frontend_action="verifyIdentity")["frontend_action"]
             ),
@@ -726,7 +726,7 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
         assert response.status_code == HTTPStatus.FOUND
         self._verify_status(
-            finish_url=response.headers["Location"],
+            finish_url=response.headers.get("Location", ""),
             frontend_action=FrontendAction(
                 self.default_frontend_data(frontend_action="verifyIdentity")["frontend_action"]
             ),
@@ -761,7 +761,7 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
         assert response.status_code == HTTPStatus.FOUND
         self._verify_status(
-            finish_url=response.headers["Location"],
+            finish_url=response.headers.get("Location", ""),
             frontend_action=FrontendAction(
                 self.default_frontend_data(frontend_action="verifyIdentity")["frontend_action"]
             ),
@@ -800,7 +800,7 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
         assert response.status_code == HTTPStatus.FOUND
         self._verify_status(
-            finish_url=response.headers["Location"],
+            finish_url=response.headers.get("Location", ""),
             frontend_action=FrontendAction(
                 self.default_frontend_data(frontend_action="verifyIdentity")["frontend_action"]
             ),
@@ -849,7 +849,7 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
         assert response.status_code == HTTPStatus.FOUND
         self._verify_status(
-            finish_url=response.headers["Location"],
+            finish_url=response.headers.get("Location", ""),
             frontend_action=FrontendAction(data["frontend_action"]),
             frontend_state=data["frontend_state"],
             method=data["method"],
@@ -937,7 +937,7 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
         assert response.status_code == HTTPStatus.FOUND
         self._verify_status(
-            finish_url=response.headers["Location"],
+            finish_url=response.headers.get("Location", ""),
             frontend_action=FrontendAction(data["frontend_action"]),
             frontend_state=data["frontend_state"],
             method=data["method"],
@@ -980,7 +980,7 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
         assert response.status_code == HTTPStatus.FOUND
         self._verify_status(
-            finish_url=response.headers["Location"],
+            finish_url=response.headers.get("Location", ""),
             frontend_action=FrontendAction(data["frontend_action"]),
             frontend_state=data["frontend_state"],
             method=data["method"],
@@ -1021,7 +1021,7 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
         assert response.status_code == HTTPStatus.FOUND
         self._verify_status(
-            finish_url=response.headers["Location"],
+            finish_url=response.headers.get("Location", ""),
             frontend_action=FrontendAction(data["frontend_action"]),
             frontend_state=data["frontend_state"],
             method=data["method"],
@@ -1070,7 +1070,7 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
         assert response.status_code == HTTPStatus.FOUND
         self._verify_status(
-            finish_url=response.headers["Location"],
+            finish_url=response.headers.get("Location", ""),
             frontend_action=FrontendAction(data["frontend_action"]),
             frontend_state=data["frontend_state"],
             method=data["method"],
@@ -1107,7 +1107,7 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
         assert response.status_code == HTTPStatus.FOUND
         self._verify_status(
-            finish_url=response.headers["Location"],
+            finish_url=response.headers.get("Location", ""),
             frontend_action=FrontendAction(data["frontend_action"]),
             frontend_state=data["frontend_state"],
             method=data["method"],
@@ -1158,7 +1158,7 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
         assert response.status_code == HTTPStatus.FOUND
         self._verify_status(
-            finish_url=response.headers["Location"],
+            finish_url=response.headers.get("Location", ""),
             frontend_action=FrontendAction(data["frontend_action"]),
             frontend_state=data["frontend_state"],
             method=data["method"],
@@ -1192,7 +1192,7 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
         assert response.status_code == HTTPStatus.FOUND
         self._verify_status(
-            finish_url=response.headers["Location"],
+            finish_url=response.headers.get("Location", ""),
             frontend_action=FrontendAction(data["frontend_action"]),
             frontend_state=data["frontend_state"],
             method=data["method"],
@@ -1245,7 +1245,7 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
         response = self.mock_authorization_callback(state=state, nonce=nonce, userinfo=userinfo)
         assert response.status_code == HTTPStatus.FOUND
         self._verify_status(
-            finish_url=response.headers["Location"],
+            finish_url=response.headers.get("Location", ""),
             frontend_action=FrontendAction(data["frontend_action"]),
             frontend_state=data["frontend_state"],
             method=data["method"],
