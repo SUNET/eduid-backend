@@ -51,7 +51,7 @@ from flask import Blueprint, abort, request
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.rpc.exceptions import MsgTaskFailed
-from eduid.userdb.exceptions import UserDoesNotExist, UserHasNotCompletedSignup
+from eduid.userdb.exceptions import UserDoesNotExist
 from eduid.userdb.reset_password import ResetPasswordEmailAndPhoneState
 from eduid.webapp.common.api.captcha import CaptchaCompleteRequest, CaptchaResponse
 from eduid.webapp.common.api.decorators import MarshalWith, UnmarshalWith
@@ -198,10 +198,6 @@ def start_reset_pw(email: str) -> FluxData:
         return success_response(
             message=ResetPwMsg.email_send_throttled, payload=email_state_to_response_payload(e.state)
         )
-    except UserHasNotCompletedSignup:
-        # Old bug where incomplete signup users where written to the central db
-        current_app.logger.exception(f"User with email {email} has to complete signup")
-        return error_response(message=ResetPwMsg.invalid_user)
 
     session.reset_password.email.address = state.email_address
     session.reset_password.email.sent_at = utc_now()
