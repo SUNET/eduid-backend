@@ -21,13 +21,13 @@ class NoOpLock:
     """
 
     def __init__(self) -> None:
-        pass
+        """No-op: this lock intentionally does nothing."""
 
     async def acquire(self) -> None:
-        pass
+        """No-op: this lock intentionally does nothing."""
 
     async def release(self) -> None:
-        pass
+        """No-op: this lock intentionally does nothing."""
 
 
 class VCCSHasher(ABC):

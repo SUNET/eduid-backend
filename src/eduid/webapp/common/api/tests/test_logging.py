@@ -30,7 +30,7 @@ class LoggingTest(EduidAPITestCase):
         return config
 
     def tearDown(self) -> None:
-        pass
+        """Override parent tearDown to prevent default cleanup."""
 
     def test_merge_config(self) -> None:
         base_config = {

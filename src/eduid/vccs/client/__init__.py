@@ -83,7 +83,7 @@ class VCCSFactor:
     """
 
     def __init__(self) -> None:
-        pass
+        """Base class constructor; subclasses define their own __init__."""
 
     def to_dict(self, action: str) -> dict[str, Any]:
         """
