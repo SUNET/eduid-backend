@@ -1,5 +1,4 @@
 import unittest
-from typing import Any
 
 import pytest
 from pydantic import ValidationError
@@ -66,9 +65,8 @@ class TestOrcid(unittest.TestCase):
 
         assert dict_1 == dict_2
 
-        invalid_input: Any = None
         with self.assertRaises(eduid.userdb.exceptions.UserDBValueError):
-            OidcIdToken.from_dict(invalid_input)
+            OidcIdToken.from_dict(None)  # type: ignore[arg-type]  # noqa: python:S5655
 
     def test_oidc_authz(self) -> None:
         assert isinstance(token_response["id_token"], dict)
@@ -99,9 +97,8 @@ class TestOrcid(unittest.TestCase):
 
         assert dict_1 == dict_2
 
-        invalid_input: Any = None
         with self.assertRaises(eduid.userdb.exceptions.UserDBValueError):
-            OidcAuthorization.from_dict(invalid_input)
+            OidcAuthorization.from_dict(None)  # type: ignore[arg-type]  # noqa: python:S5655
 
     def test_orcid(self) -> None:
         assert isinstance(token_response["id_token"], dict)
@@ -140,6 +137,5 @@ class TestOrcid(unittest.TestCase):
             }
         ], f"Wrong error message: {normalised_data(exc_info.value.errors(), exclude_keys=['url'])}"
 
-        invalid_input: Any = None
         with pytest.raises(eduid.userdb.exceptions.UserDBValueError):
-            Orcid.from_dict(invalid_input)
+            Orcid.from_dict(None)  # type: ignore[arg-type]  # noqa: python:S5655
