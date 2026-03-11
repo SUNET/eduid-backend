@@ -331,7 +331,7 @@ class TestAuthnBearerToken(BaseDBTestCase):
         token = AuthnBearerToken(config=config, **claims)
 
         with pytest.raises(RequestedAccessDenied) as exc_info:
-            assert token.get_data_owner() is None
+            token.get_data_owner()
         assert str(exc_info.value) == (
             "Requested access to scope eduid.se not in allow-list: other-domain.example.org, sudoer.example.org"
         )
@@ -353,7 +353,7 @@ class TestAuthnBearerToken(BaseDBTestCase):
         token = AuthnBearerToken(config=config, **claims)
 
         with pytest.raises(RequestedAccessDenied) as exc_info:
-            assert token.get_data_owner() is None
+            token.get_data_owner()
         assert str(exc_info.value) == "Requested access to scope other-domain.example.org but no data owner found"
 
     def test_sudo_takes_precedence(self) -> None:
