@@ -16,7 +16,7 @@ from eduid.common.models.scim_user import NutidUserExtensionV1, UserCreateReques
 from eduid.queue.client import init_queue_item
 from eduid.queue.db.message import EduidSignupEmail
 from eduid.userdb import MailAddress, NinIdentity, PhoneNumber, Profile, User
-from eduid.userdb.exceptions import UserDoesNotExist, UserHasNotCompletedSignup, UserOutOfSync
+from eduid.userdb.exceptions import UserDoesNotExist, UserOutOfSync
 from eduid.userdb.logs import MailAddressProofing
 from eduid.userdb.signup import Invite, InviteType, SCIMReference, SignupUser
 from eduid.userdb.tou import ToUEvent
@@ -133,15 +133,11 @@ def check_email_status(email: str) -> EmailStatus:
 
     :return: status
     """
-    try:
-        am_user = current_app.central_userdb.get_user_by_mail(email)
-        if am_user:
-            current_app.logger.debug(f"Found user {am_user} with email {email}")
-            return EmailStatus.ADDRESS_USED
-        current_app.logger.debug(f"No user found with email {email} in central userdb")
-    except UserHasNotCompletedSignup:
-        # TODO: What is the implication of getting here? Should we just let the user signup again?
-        current_app.logger.warning(f"Incomplete user found with email {email} in central userdb")
+    am_user = current_app.central_userdb.get_user_by_mail(email)
+    if am_user:
+        current_app.logger.debug(f"Found user {am_user} with email {email}")
+        return EmailStatus.ADDRESS_USED
+    current_app.logger.debug(f"No user found with email {email} in central userdb")
 
     # new signup
     if session.signup.email.address is None:

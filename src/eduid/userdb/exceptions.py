@@ -102,14 +102,6 @@ class UserIsRevoked(EduIDUserDBError):
     """
 
 
-class UserHasNotCompletedSignup(EduIDUserDBError):
-    """
-    The user has not completed the Signup process.
-
-    Signup has created lots of users in the database with only eppn, mail and mailAliases.
-    """
-
-
 class ActionDBError(EduIDUserDBError):
     """
     There was an actions-database related error

@@ -10,7 +10,7 @@ from eduid.common.misc.timeutil import utc_now
 from eduid.userdb import NinIdentity, OidcAuthorization, OidcIdToken, Orcid
 from eduid.userdb.credentials import U2F, CredentialList, CredentialProofingMethod, Password
 from eduid.userdb.db.base import TUserDbDocument
-from eduid.userdb.exceptions import EduIDUserDBError, UserHasNotCompletedSignup, UserIsRevoked
+from eduid.userdb.exceptions import EduIDUserDBError, UserIsRevoked
 from eduid.userdb.fixtures.identity import verified_nin_identity
 from eduid.userdb.fixtures.users import UserFixtures
 from eduid.userdb.identity import IdentityList, IdentityType
@@ -281,7 +281,8 @@ class TestNewUser(unittest.TestCase):
 
     def test_incomplete_signup_user(self) -> None:
         """
-        Test parsing the incomplete documents left in the central userdb by older Signup application.
+        Test parsing incomplete documents (no passwords) left in the central userdb by older Signup application.
+        These should now parse successfully with an empty credentials list.
         """
         data = TUserDbDocument(
             {
@@ -291,11 +292,13 @@ class TestNewUser(unittest.TestCase):
                 "mailAliases": [{"email": "olle@example.org", "verified": False}],
             }
         )
-        with self.assertRaises(UserHasNotCompletedSignup):
-            User.from_dict(data)
-        data["subject"] = "physical person"  # later signup added this attribute
-        with self.assertRaises(UserHasNotCompletedSignup):
-            User.from_dict(data)
+        user = User.from_dict(data)
+        assert len(user.credentials.to_list()) == 0
+
+        data["subject"] = "physical person"
+        user = User.from_dict(data)
+        assert len(user.credentials.to_list()) == 0
+
         data["mailAliases"][0]["verified"] = True
         data["surname"] = "not signup-incomplete anymore"
         data["passwords"] = [
@@ -308,7 +311,7 @@ class TestNewUser(unittest.TestCase):
             }
         ]
         user = User.from_dict(data)
-        self.assertEqual(user.surname, data["surname"])
+        assert user.surname == data["surname"]
 
         expected = data["passwords"]
         obtained = user.credentials.to_list_of_dicts()

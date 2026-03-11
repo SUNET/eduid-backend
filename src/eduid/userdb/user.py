@@ -13,7 +13,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 from eduid.userdb.credentials import CredentialList
 from eduid.userdb.db import BaseDB, TUserDbDocument
 from eduid.userdb.element import UserDBValueError
-from eduid.userdb.exceptions import UserDoesNotExist, UserHasNotCompletedSignup, UserIsRevoked
+from eduid.userdb.exceptions import UserDoesNotExist, UserIsRevoked
 from eduid.userdb.identity import EIDASIdentity, EIDASLoa, IdentityList, IdentityType
 from eduid.userdb.ladok import Ladok
 from eduid.userdb.locked_identity import LockedIdentityList
@@ -233,10 +233,6 @@ class User(BaseModel):
         # remove empty strings and empty lists
         for key in list(data.keys()):
             if data[key] in ["", []]:
-                if key in ["passwords", "credentials"]:
-                    # Empty lists are acceptable for these. When the UserHasNotCompletedSignup
-                    # exception is removed, this exception to the rule can be removed too.
-                    continue
                 del data[key]
 
         # make sure letter_proofing_data is a list as some old users has a dict instead
@@ -284,12 +280,6 @@ class User(BaseModel):
 
         In case of problems they should raise whatever Exception is appropriate.
         """
-        if "passwords" not in data:
-            # When this exception is removed, _to_dict_transform (above) should be updated to no longer
-            # allow empty lists in 'password' or 'credential'
-            raise UserHasNotCompletedSignup(
-                "User {!s}/{!s} is incomplete".format(data.get("_id"), data.get("eduPersonPrincipalName"))
-            )
         return data
 
     @classmethod

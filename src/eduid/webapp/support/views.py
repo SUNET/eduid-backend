@@ -3,7 +3,7 @@ from typing import Any
 from flask import Blueprint, render_template, request
 
 from eduid.userdb import User
-from eduid.userdb.exceptions import UserDoesNotExist, UserHasNotCompletedSignup
+from eduid.userdb.exceptions import UserDoesNotExist
 from eduid.userdb.signup import SignupUser
 from eduid.userdb.support.models import SupportSignupUserFilter, SupportUserFilter
 from eduid.userdb.support.user import SupportUser
@@ -37,12 +37,8 @@ def search(support_user: User) -> str:
     data = sanitize_map(request.form)
     search_query = data.get("query")
     lookup_users: list[SupportUser | SignupUser] = []
-    try:
-        if search_query:
-            lookup_users.extend(current_app.support_user_db.search_users(search_query))
-    except UserHasNotCompletedSignup:
-        # Old bug where incomplete signup users where written to central db
-        pass
+    if search_query:
+        lookup_users.extend(current_app.support_user_db.search_users(search_query))
     users: list[dict[str, Any]] = []
 
     if search_query and len(lookup_users) == 0:

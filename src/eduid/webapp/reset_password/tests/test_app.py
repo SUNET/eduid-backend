@@ -5,7 +5,7 @@ from collections.abc import Callable, Iterable, Mapping
 from datetime import timedelta
 from http import HTTPStatus
 from typing import Any
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import MagicMock, patch
 from urllib.parse import quote_plus
 
 from flask import url_for
@@ -14,7 +14,6 @@ from werkzeug.test import TestResponse
 from eduid.common.config.base import EduidEnvironment
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.credentials import Password, Webauthn
-from eduid.userdb.exceptions import UserHasNotCompletedSignup
 from eduid.userdb.fixtures.fido_credentials import webauthn_credential
 from eduid.userdb.fixtures.fido_credentials import webauthn_credential as sample_credential
 from eduid.userdb.fixtures.users import UserFixtures
@@ -705,12 +704,6 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         state2 = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
         assert state2
         self.assertNotEqual(state1.email_code.code, state2.email_code.code)
-
-    @patch("eduid.userdb.userdb.UserDB.get_user_by_mail")
-    def test_post_email_uncomplete_signup(self, mock_get_user: Mock) -> None:
-        mock_get_user.side_effect = UserHasNotCompletedSignup("incomplete signup")
-        response = self._post_email_address()
-        self._check_error_response(response, msg=ResetPwMsg.invalid_user, type_="POST_RESET_PASSWORD_FAIL")
 
     def test_post_unknown_email_address(self) -> None:
         data = {"email": "unknown@unplaced.un"}
