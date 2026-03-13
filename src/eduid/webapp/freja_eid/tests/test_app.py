@@ -330,7 +330,6 @@ class FrejaEIDTests(ProofingTests[FrejaEIDApp]):
             },
         }
         parsed_token_response = FrejaEIDTokenResponse(**token_response_swedish)
-        assert parsed_token_response is not None
         assert parsed_token_response.userinfo is not None
         assert parsed_token_response.userinfo.iss == "https://eid-provider.example.com/oidc/"
         assert parsed_token_response.userinfo.aud == "test"

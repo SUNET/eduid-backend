@@ -92,7 +92,7 @@ def _transport_encode(data: str) -> str:
     return b64encode("".join(data.split("\n")))
 
 
-class SAMLError(BaseException):
+class SAMLError(Exception):
     pass
 
 
