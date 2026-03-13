@@ -401,7 +401,7 @@ class SvipeIDForeignProofing(ForeignIdProofingLogElement):
     # transaction id
     transaction_id: str
     # document administrative number
-    administrative_number: str | None
+    administrative_number: str | None = None
     # document type (standardized english)
     document_type: str
     # document number
@@ -488,7 +488,7 @@ class FrejaEIDForeignProofing(ForeignIdProofingLogElement):
     # transaction id
     transaction_id: str
     # document administrative number
-    administrative_number: str | None
+    administrative_number: str | None = None
     # document type (standardized english)
     document_type: str
     # document number
@@ -628,9 +628,9 @@ class NameUpdateProofing(NinNavetProofingLogElement):
     """
 
     # Previous given name
-    previous_given_name: str | None
+    previous_given_name: str | None = None
     # Previous surname
-    previous_surname: str | None
+    previous_surname: str | None = None
     # Proofing method name
     proofing_method: str = "Navet name update"
 

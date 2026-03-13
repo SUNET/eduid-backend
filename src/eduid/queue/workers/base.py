@@ -61,7 +61,10 @@ class QueueWorker:
             loop.add_signal_handler(getattr(signal, signame), functools.partial(cancel_task, signame, main_task))
 
         logger.info(f"Running: {main_task.get_name()}")
-        await main_task
+        try:
+            await main_task
+        except CancelledError:
+            logger.info("Main task cancelled, shutting down")
 
     async def run_subtasks(self) -> None:
         logger.info(f"Initiating event stream for: {self.db}")
@@ -76,6 +79,7 @@ class QueueWorker:
             await asyncio.gather(watch_collection_task, periodic_task)
         except CancelledError:
             logger.info("run_tasks task was cancelled")
+            raise
 
     async def item_successfully_handled(self, queue_item: QueueItem) -> None:
         """
@@ -136,6 +140,7 @@ class QueueWorker:
                     logger.info(f"watch_collection: {len(tasks)} running tasks")
         except CancelledError:
             logger.info("watch_collection task was cancelled")
+            raise
         finally:
             if change_stream is not None:
                 logger.info("Closing watch stream...")
@@ -158,6 +163,7 @@ class QueueWorker:
                 await asyncio.sleep(self.config.periodic_interval)
         except CancelledError:
             logger.info("periodic_collection_check task was cancelled")
+            raise
         finally:
             # Wait for tasks to finish before exiting
             logger.info("Cleaning up periodic_collection_check task...")

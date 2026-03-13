@@ -359,6 +359,7 @@ def reset_password(
         vccs=vccs,
     ):
         logger.error(f"Failed changing password during password reset for user {user}")
+        return False
     logger.info(f"Password reset for user {user}")
     return True
 
