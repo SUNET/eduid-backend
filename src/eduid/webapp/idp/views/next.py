@@ -16,7 +16,7 @@ from eduid.webapp.idp.assurance_data import AuthnInfo
 from eduid.webapp.idp.decorators import require_ticket, uses_sso_session
 from eduid.webapp.idp.helpers import IdPAction, IdPMsg, create_saml_sp_response, lookup_user
 from eduid.webapp.idp.idp_saml import authn_context_class_not_supported, cancel_saml_request
-from eduid.webapp.idp.login import SSO, login_next_step
+from eduid.webapp.idp.login import SSO, NextResult, login_next_step
 from eduid.webapp.idp.login_context import LoginContext, LoginContextOtherDevice, LoginContextSAML
 from eduid.webapp.idp.mischttp import get_user_agent
 from eduid.webapp.idp.other_device.data import OtherDeviceState
@@ -44,47 +44,17 @@ def next_view(ticket: LoginContext, sso_session: SSOSession | None) -> FluxData:
     _next = login_next_step(ticket, sso_session)
     current_app.logger.debug(f"Login Next: {_next}")
 
+    # --- Handlers that do NOT need a resolved user ---
+
     if _next.message == IdPMsg.unknown_device:
-        return success_response(payload={"action": IdPAction.NEW_DEVICE.value})
+        return _handle_unknown_device()
 
     if _next.message == IdPMsg.aborted:
-        if isinstance(ticket, LoginContextSAML):
-            saml_params = cancel_saml_request(ticket, current_app.conf)
-            authn_options = _get_authn_options(ticket=ticket, sso_session=sso_session, eppn=None)
-            return create_saml_sp_response(saml_params=saml_params, authn_options=authn_options.to_dict())
-        elif isinstance(ticket, LoginContextOtherDevice):
-            state = ticket.other_device_req
-            if state.state in [OtherDeviceState.NEW, OtherDeviceState.IN_PROGRESS, OtherDeviceState.AUTHENTICATED]:
-                current_app.logger.info("Aborting login using another device")
+        return _handle_aborted(ticket, sso_session)
 
-                _abort_res = current_app.other_device_db.abort(state)
-                if not _abort_res:
-                    current_app.logger.warning(f"Login using other device: Failed aborting state {state}")
-                    return error_response(message=IdPMsg.general_failure)
-                current_app.stats.count("login_using_other_device_abort_device2")
-
-                return success_response(
-                    message=IdPMsg.finished,
-                    payload={
-                        "action": IdPAction.FINISHED.value,
-                        "target": url_for("other_device.use_other_2", _external=True),
-                    },
-                )
-            else:
-                current_app.logger.info(f"Not aborting use other device in state {state.state}")
-        current_app.logger.error(f"Don't know how to abort login request {ticket}")
-        return error_response(message=IdPMsg.general_failure)
-
-    # catch assurance problems that we should tell the SP about
     if _next.message == IdPMsg.assurance_failure:
-        if isinstance(ticket, LoginContextSAML):
-            saml_params = authn_context_class_not_supported(ticket, current_app.conf)
-            authn_options = _get_authn_options(ticket=ticket, sso_session=sso_session, eppn=None)
-            return create_saml_sp_response(saml_params=saml_params, authn_options=authn_options.to_dict())
-        current_app.logger.error(f"Don't know how to send error response for request {ticket}")
-        return error_response(message=IdPMsg.general_failure)
+        return _handle_assurance_failure(ticket, sso_session)
 
-    # catch assurance problems that we should tell the USER about
     if _next.message in [
         IdPMsg.identity_proofing_method_not_allowed,
         IdPMsg.mfa_proofing_method_not_allowed,
@@ -93,159 +63,257 @@ def next_view(ticket: LoginContext, sso_session: SSOSession | None) -> FluxData:
         current_app.logger.error(f"Can not continue with request due to assurance problem: {_next.message}")
         return error_response(message=_next.message)
 
+    # --- Resolve the required user (needed by all remaining handlers) ---
+
     required_user = get_required_user(ticket, sso_session)
     if required_user.response:
         return required_user.response
     current_app.logger.debug(f"Required user: {required_user.eppn}")
 
+    # --- Handlers that need a resolved user ---
+
     if _next.message == IdPMsg.other_device:
-        _payload = {
+        return _handle_other_device(ticket, sso_session, required_user)
+
+    if _next.message == IdPMsg.must_authenticate:
+        return _handle_must_authenticate(ticket, sso_session, required_user)
+
+    if _next.message == IdPMsg.mfa_required:
+        return _handle_mfa_required(ticket, sso_session, _next, required_user)
+
+    if _next.message == IdPMsg.security_key_required:
+        return _handle_security_key_required(ticket, sso_session, required_user)
+
+    if _next.message == IdPMsg.tou_required:
+        return _handle_tou_required(ticket, sso_session, required_user)
+
+    if _next.message == IdPMsg.user_terminated:
+        return error_response(message=IdPMsg.user_terminated)
+
+    if _next.message == IdPMsg.proceed:
+        return _handle_proceed(ticket, sso_session, _next, required_user)
+
+    current_app.logger.error(f"Do not know how to log in the user. Fell through with next: {_next}")
+    return error_response(message=IdPMsg.not_implemented)
+
+
+@dataclass
+class RequiredUserResult:
+    response: FluxData | None = None
+    eppn: str | None = None
+
+
+# ---------------------------------------------------------------------------
+# Individual message handlers extracted from next_view()
+# ---------------------------------------------------------------------------
+
+
+def _handle_unknown_device() -> FluxData:
+    return success_response(payload={"action": IdPAction.NEW_DEVICE.value})
+
+
+def _handle_aborted(ticket: LoginContext, sso_session: SSOSession | None) -> FluxData:
+    if isinstance(ticket, LoginContextSAML):
+        saml_params = cancel_saml_request(ticket, current_app.conf)
+        authn_options = _get_authn_options(ticket=ticket, sso_session=sso_session, eppn=None)
+        return create_saml_sp_response(saml_params=saml_params, authn_options=authn_options.to_dict())
+    elif isinstance(ticket, LoginContextOtherDevice):
+        state = ticket.other_device_req
+        if state.state in [OtherDeviceState.NEW, OtherDeviceState.IN_PROGRESS, OtherDeviceState.AUTHENTICATED]:
+            current_app.logger.info("Aborting login using another device")
+
+            _abort_res = current_app.other_device_db.abort(state)
+            if not _abort_res:
+                current_app.logger.warning(f"Login using other device: Failed aborting state {state}")
+                return error_response(message=IdPMsg.general_failure)
+            current_app.stats.count("login_using_other_device_abort_device2")
+
+            return success_response(
+                message=IdPMsg.finished,
+                payload={
+                    "action": IdPAction.FINISHED.value,
+                    "target": url_for("other_device.use_other_2", _external=True),
+                },
+            )
+        else:
+            current_app.logger.info(f"Not aborting use other device in state {state.state}")
+    current_app.logger.error(f"Don't know how to abort login request {ticket}")
+    return error_response(message=IdPMsg.general_failure)
+
+
+def _handle_assurance_failure(ticket: LoginContext, sso_session: SSOSession | None) -> FluxData:
+    """Assurance problems that we should tell the SP about."""
+    if isinstance(ticket, LoginContextSAML):
+        saml_params = authn_context_class_not_supported(ticket, current_app.conf)
+        authn_options = _get_authn_options(ticket=ticket, sso_session=sso_session, eppn=None)
+        return create_saml_sp_response(saml_params=saml_params, authn_options=authn_options.to_dict())
+    current_app.logger.error(f"Don't know how to send error response for request {ticket}")
+    return error_response(message=IdPMsg.general_failure)
+
+
+def _handle_other_device(
+    ticket: LoginContext, sso_session: SSOSession | None, required_user: RequiredUserResult
+) -> FluxData:
+    return success_response(
+        message=IdPMsg.must_authenticate,
+        payload={
             "action": IdPAction.OTHER_DEVICE.value,
             "target": url_for("other_device.use_other_1", _external=True),
             "authn_options": _get_authn_options(
                 ticket=ticket, sso_session=sso_session, eppn=required_user.eppn
             ).to_dict(),
             "service_info": _get_service_info(ticket),
+        },
+    )
+
+
+def _handle_must_authenticate(
+    ticket: LoginContext, sso_session: SSOSession | None, required_user: RequiredUserResult
+) -> FluxData:
+    authn_options = _get_authn_options(ticket=ticket, sso_session=sso_session, eppn=required_user.eppn)
+    service_info = _get_service_info(ticket)
+
+    if required_user.eppn is None or authn_options.webauthn is False:
+        # we don't know the users eppn or the user does not have a security key, show username and password input
+        _payload: dict[str, Any] = {
+            "action": IdPAction.USERNAMEPWAUTH.value,
+            "target": url_for("pw_auth.pw_auth", _external=True),
+            "authn_options": authn_options.to_dict(),
+            "service_info": service_info,
+        }
+    else:
+        _payload = {
+            "action": IdPAction.MFA.value,
+            "target": url_for("mfa_auth.mfa_auth", _external=True),
+            "authn_options": authn_options.to_dict(),
+            "service_info": service_info,
         }
 
-        return success_response(
-            message=IdPMsg.must_authenticate,
-            payload=_payload,
-        )
+    return success_response(
+        message=IdPMsg.must_authenticate,
+        payload=_payload,
+    )
 
-    if _next.message == IdPMsg.must_authenticate:
-        authn_options = _get_authn_options(ticket=ticket, sso_session=sso_session, eppn=required_user.eppn)
-        service_info = _get_service_info(ticket)
 
-        if required_user.eppn is None or authn_options.webauthn is False:
-            # we don't know the users eppn or the user does not have a security key, show username and password input
-            _payload = {
-                "action": IdPAction.USERNAMEPWAUTH.value,
-                "target": url_for("pw_auth.pw_auth", _external=True),
-                "authn_options": authn_options.to_dict(),
-                "service_info": service_info,
-            }
-        else:
-            _payload = {
-                "action": IdPAction.MFA.value,
-                "target": url_for("mfa_auth.mfa_auth", _external=True),
-                "authn_options": authn_options.to_dict(),
-                "service_info": service_info,
-            }
+def _handle_mfa_required(
+    ticket: LoginContext,
+    sso_session: SSOSession | None,
+    _next: NextResult,
+    required_user: RequiredUserResult,
+) -> FluxData:
+    authn_options = _get_authn_options(ticket=ticket, sso_session=sso_session, eppn=required_user.eppn)
+    service_info = _get_service_info(ticket)
 
-        return success_response(
-            message=IdPMsg.must_authenticate,
-            payload=_payload,
-        )
+    if _next.authn_state and _next.authn_state.fido_used:
+        # we know that the user already provided a single factor security key, offer password as second factor
+        # Here we turn off webauthn as an option since we don't want the user to use security key twice
+        authn_options.webauthn = False
+        _payload: dict[str, Any] = {
+            "action": IdPAction.USERNAMEPWAUTH.value,
+            "target": url_for("pw_auth.pw_auth", _external=True),
+            "authn_options": authn_options.to_dict(),
+            "service_info": service_info,
+        }
+    else:
+        _payload = {
+            "action": IdPAction.MFA.value,
+            "target": url_for("mfa_auth.mfa_auth", _external=True),
+            "authn_options": authn_options.to_dict(),
+            "service_info": service_info,
+        }
 
-    if _next.message == IdPMsg.mfa_required:
-        authn_options = _get_authn_options(ticket=ticket, sso_session=sso_session, eppn=required_user.eppn)
-        service_info = _get_service_info(ticket)
+    return success_response(
+        message=IdPMsg.mfa_required,
+        payload=_payload,
+    )
 
-        if _next.authn_state and _next.authn_state.fido_used:
-            # we know that the user already provided a single factor security key, offer password as second factor
-            # Here we turn off webauthn as an option since we don't want the user to use security key twice
-            authn_options.webauthn = False
-            _payload = {
-                "action": IdPAction.USERNAMEPWAUTH.value,
-                "target": url_for("pw_auth.pw_auth", _external=True),
-                "authn_options": authn_options.to_dict(),
-                "service_info": service_info,
-            }
-        else:
-            _payload = {
-                "action": IdPAction.MFA.value,
-                "target": url_for("mfa_auth.mfa_auth", _external=True),
-                "authn_options": authn_options.to_dict(),
-                "service_info": service_info,
-            }
 
-        return success_response(
-            message=IdPMsg.mfa_required,
-            payload=_payload,
-        )
+def _handle_security_key_required(
+    ticket: LoginContext, sso_session: SSOSession | None, required_user: RequiredUserResult
+) -> FluxData:
+    return success_response(
+        message=IdPMsg.mfa_required,
+        payload={
+            "action": IdPAction.MFA.value,
+            "target": url_for("mfa_auth.mfa_auth", _external=True),
+            "authn_options": _get_authn_options(
+                ticket=ticket, sso_session=sso_session, eppn=required_user.eppn
+            ).to_dict(),
+        },
+    )
 
-    if _next.message == IdPMsg.security_key_required:
-        return success_response(
-            message=IdPMsg.mfa_required,
-            payload={
-                "action": IdPAction.MFA.value,
-                "target": url_for("mfa_auth.mfa_auth", _external=True),
-                "authn_options": _get_authn_options(
-                    ticket=ticket, sso_session=sso_session, eppn=required_user.eppn
-                ).to_dict(),
-            },
-        )
 
-    if _next.message == IdPMsg.tou_required:
-        return success_response(
-            message=IdPMsg.tou_required,
-            payload={
-                "action": IdPAction.TOU.value,
-                "target": url_for("tou.tou", _external=True),
-                "authn_options": _get_authn_options(
-                    ticket=ticket, sso_session=sso_session, eppn=required_user.eppn
-                ).to_dict(),
-            },
-        )
+def _handle_tou_required(
+    ticket: LoginContext, sso_session: SSOSession | None, required_user: RequiredUserResult
+) -> FluxData:
+    return success_response(
+        message=IdPMsg.tou_required,
+        payload={
+            "action": IdPAction.TOU.value,
+            "target": url_for("tou.tou", _external=True),
+            "authn_options": _get_authn_options(
+                ticket=ticket, sso_session=sso_session, eppn=required_user.eppn
+            ).to_dict(),
+        },
+    )
 
-    if _next.message == IdPMsg.user_terminated:
-        return error_response(message=IdPMsg.user_terminated)
 
-    if _next.message == IdPMsg.proceed:
-        if not sso_session:
-            return error_response(message=IdPMsg.no_sso_session)
+def _handle_proceed(
+    ticket: LoginContext,
+    sso_session: SSOSession | None,
+    _next: NextResult,
+    required_user: RequiredUserResult,
+) -> FluxData:
+    if not sso_session:
+        return error_response(message=IdPMsg.no_sso_session)
 
-        user = lookup_user(sso_session.eppn, managed_account_allowed=True)
-        if not user:
-            current_app.logger.error(f"User with eppn {sso_session.eppn} (from SSO session) not found")
-            return error_response(message=IdPMsg.general_failure)
-
-        sso = SSO(sso_session=sso_session)
-        # please mypy
-        if not _next.authn_info or not _next.authn_state:
-            raise RuntimeError(f"Missing expected data in next result: {_next}")
-
-        try:
-            # Logging stats is optional, make sure we never fail a login because of it
-            _log_user_agent()
-        except Exception:
-            current_app.logger.exception("Producing User-Agent stats failed")
-
-        if current_app.conf.known_devices_feature_enabled:
-            if ticket.known_device and ticket.known_device_info:
-                if ticket.known_device.data.login_counter is None:
-                    ticket.known_device.data.login_counter = 0  # for mypy
-                ticket.known_device.data.login_counter += 1
-                current_app.stats.gauge("login_known_device_login_counter", ticket.known_device.data.login_counter)
-                _update_known_device_data(ticket, user, _next.authn_info)
-                current_app.known_device_db.save(
-                    ticket.known_device, from_browser=ticket.known_device_info, ttl=current_app.conf.known_devices_ttl
-                )
-
-        if current_app.conf.geo_statistics_feature_enabled:
-            try:
-                # Logging stats is optional, make sure we never fail a login because of it
-                _geo_statistics(ticket=ticket, sso_session=sso_session)
-            except Exception:
-                current_app.logger.exception("Producing Geo stats failed")
-
-        if isinstance(ticket, LoginContextSAML):
-            saml_params = sso.get_response_params(_next.authn_info, ticket, user)
-            authn_options = _get_authn_options(ticket=ticket, sso_session=sso_session, eppn=required_user.eppn)
-            return create_saml_sp_response(saml_params=saml_params, authn_options=authn_options.to_dict())
-        elif isinstance(ticket, LoginContextOtherDevice):
-            if not ticket.is_other_device_2:
-                # We shouldn't be able to get here, but this clearly shows where this code runs
-                current_app.logger.warning("Ticket is LoginContextOtherDevice, but this is not device #2")
-                return error_response(message=IdPMsg.general_failure)
-
-            return device2_finish(ticket, sso_session, _next.authn_state)
-        current_app.logger.error(f"Don't know how to finish login request {ticket}")
+    user = lookup_user(sso_session.eppn, managed_account_allowed=True)
+    if not user:
+        current_app.logger.error(f"User with eppn {sso_session.eppn} (from SSO session) not found")
         return error_response(message=IdPMsg.general_failure)
 
-    current_app.logger.error(f"Do not know how to log in the user. Fell through with next: {_next}")
-    return error_response(message=IdPMsg.not_implemented)
+    sso = SSO(sso_session=sso_session)
+    # please mypy
+    if not _next.authn_info or not _next.authn_state:
+        raise RuntimeError(f"Missing expected data in next result: {_next}")
+
+    try:
+        # Logging stats is optional, make sure we never fail a login because of it
+        _log_user_agent()
+    except Exception:
+        current_app.logger.exception("Producing User-Agent stats failed")
+
+    if current_app.conf.known_devices_feature_enabled:
+        if ticket.known_device and ticket.known_device_info:
+            if ticket.known_device.data.login_counter is None:
+                ticket.known_device.data.login_counter = 0  # for mypy
+            ticket.known_device.data.login_counter += 1
+            current_app.stats.gauge("login_known_device_login_counter", ticket.known_device.data.login_counter)
+            _update_known_device_data(ticket, user, _next.authn_info)
+            current_app.known_device_db.save(
+                ticket.known_device, from_browser=ticket.known_device_info, ttl=current_app.conf.known_devices_ttl
+            )
+
+    if current_app.conf.geo_statistics_feature_enabled:
+        try:
+            # Logging stats is optional, make sure we never fail a login because of it
+            _geo_statistics(ticket=ticket, sso_session=sso_session)
+        except Exception:
+            current_app.logger.exception("Producing Geo stats failed")
+
+    if isinstance(ticket, LoginContextSAML):
+        saml_params = sso.get_response_params(_next.authn_info, ticket, user)
+        authn_options = _get_authn_options(ticket=ticket, sso_session=sso_session, eppn=required_user.eppn)
+        return create_saml_sp_response(saml_params=saml_params, authn_options=authn_options.to_dict())
+    elif isinstance(ticket, LoginContextOtherDevice):
+        if not ticket.is_other_device_2:
+            # We shouldn't be able to get here, but this clearly shows where this code runs
+            current_app.logger.warning("Ticket is LoginContextOtherDevice, but this is not device #2")
+            return error_response(message=IdPMsg.general_failure)
+
+        return device2_finish(ticket, sso_session, _next.authn_state)
+    current_app.logger.error(f"Don't know how to finish login request {ticket}")
+    return error_response(message=IdPMsg.general_failure)
 
 
 @dataclass
@@ -311,12 +379,6 @@ def _get_authn_options(ticket: LoginContext, sso_session: SSOSession | None, epp
     current_app.logger.debug(f"Valid authn options at this time: {res.valid_options}")
 
     return res
-
-
-@dataclass
-class RequiredUserResult:
-    response: FluxData | None = None
-    eppn: str | None = None
 
 
 def get_required_user(ticket: LoginContext, sso_session: SSOSession | None) -> RequiredUserResult:
