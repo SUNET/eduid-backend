@@ -38,7 +38,10 @@ class IdPTestLoginAPI(IdPAPITests):
         )
 
     def test_login_pwauth_wrong_password(self) -> None:
-        result = self._try_login()
+        # Patch the VCCSClient, so we do not need a vccs server
+        with patch.object(VCCSClient, "authenticate") as mock_vccs:
+            mock_vccs.return_value = False
+            result = self._try_login()
 
         self._check_login_result(
             result=result,
@@ -689,7 +692,10 @@ class IdPTestLoginAPIManagedAccounts(IdPAPITests):
         return managed_account
 
     def test_login_pwauth_wrong_password(self) -> None:
-        result = self._try_login()
+        # Patch the VCCSClient, so we do not need a vccs server
+        with patch.object(VCCSClient, "authenticate") as mock_vccs:
+            mock_vccs.return_value = False
+            result = self._try_login()
         self._check_login_result(
             result=result,
             visit_order=[IdPAction.USERNAMEPWAUTH, IdPAction.USERNAMEPWAUTH],
