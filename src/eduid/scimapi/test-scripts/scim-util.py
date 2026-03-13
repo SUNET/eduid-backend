@@ -269,6 +269,56 @@ def process_login(api: Api, params: Mapping[str, Any]) -> str | None:
     return r.headers["Authorization"]
 
 
+def _search_by_external_id(api: Api, external_ids: list[str]) -> None:
+    for external_id in external_ids:
+        res = search_user(api, f'externalId eq "{external_id}"')
+        if res is not None and res["totalResults"] == 0:
+            logger.info(f"Found no user with externalId: {external_id}. Creating it.")
+            create_user(api, external_id)
+
+
+def _search_by_display_name(api: Api, display_names: list[str]) -> None:
+    for display_name in display_names:
+        res = search_group(api, f'displayName eq "{display_name}"')
+        if res is not None and res["totalResults"] == 0:
+            logger.info(f"Found no group with displayName: {display_name}. Creating it.")
+            create_group(api, display_name)
+
+
+def _search_last_modified(
+    api: Api, search_func: Callable[[Api, str], Any], last_modified_ops: Mapping[str, Any], resource: str
+) -> None:
+    for _op in last_modified_ops:
+        if _op in ["gt", "ge"]:
+            for _ts in last_modified_ops[_op]:
+                search_func(api, f'meta.lastModified {_op} "{_ts}"')
+        else:
+            logger.error(f'Unknown "{resource}" lastModified operation {_op}')
+
+
+def _handle_user_search(api: Api, search_ops: Mapping[str, Any]) -> None:
+    for what in search_ops:
+        if what == "externalId":
+            _search_by_external_id(api, search_ops[what])
+        elif what == "lastModified":
+            _search_last_modified(api, search_user, search_ops[what], "user")
+        else:
+            logger.error(f'Unknown "user" search attribute {what}')
+
+
+def _handle_group_search(api: Api, search_ops: Mapping[str, Any]) -> None:
+    for what in search_ops:
+        if what == "displayName":
+            _search_by_display_name(api, search_ops[what])
+        elif what == "lastModified":
+            _search_last_modified(api, search_group, search_ops[what], "group")
+        elif what.startswith("extensions.data"):
+            for value in search_ops[what]:
+                search_group(api, f'{what} eq "{value}"')
+        else:
+            logger.error(f'Unknown "group" search attribute {what}')
+
+
 def process_users(api: Api, ops: Mapping[str, Any]) -> None:
     """
     Process users.
@@ -283,23 +333,7 @@ def process_users(api: Api, ops: Mapping[str, Any]) -> None:
     """
     for op in ops:
         if op == "search":
-            for what in ops[op]:
-                if what == "externalId":
-                    for external_id in ops[op][what]:
-                        res = search_user(api, f'externalId eq "{external_id}"')
-                        if res is not None and res["totalResults"] == 0:
-                            logger.info(f"Found no user with externalId: {external_id}. Creating it.")
-                            create_user(api, external_id)
-
-                elif what == "lastModified":
-                    for _op in ops[op][what]:
-                        if _op in ["gt", "ge"]:
-                            for _ts in ops[op][what][_op]:
-                                search_user(api, f'meta.lastModified {_op} "{_ts}"')
-                        else:
-                            logger.error(f'Unknown "user" lastModified operation {_op}')
-                else:
-                    logger.error(f'Unknown "user" search attribute {what}')
+            _handle_user_search(api, ops[op])
         elif op == "put":
             for scim_id in ops[op]:
                 put_user(api, scim_id, ops[op][scim_id])
@@ -310,25 +344,7 @@ def process_users(api: Api, ops: Mapping[str, Any]) -> None:
 def process_groups(api: Api, ops: Mapping[str, Any]) -> None:
     for op in ops:
         if op == "search":
-            for what in ops[op]:
-                if what == "displayName":
-                    for display_name in ops[op][what]:
-                        res = search_group(api, f'displayName eq "{display_name}"')
-                        if res is not None and res["totalResults"] == 0:
-                            logger.info(f"Found no group with displayName: {display_name}. Creating it.")
-                            create_group(api, display_name)
-                elif what == "lastModified":
-                    for _op in ops[op][what]:
-                        if _op in ["gt", "ge"]:
-                            for _ts in ops[op][what][_op]:
-                                search_group(api, f'meta.lastModified {_op} "{_ts}"')
-                        else:
-                            logger.error(f'Unknown "group" lastModified operation {_op}')
-                elif what.startswith("extensions.data"):
-                    for value in ops[op][what]:
-                        search_group(api, f'{what} eq "{value}"')
-                else:
-                    logger.error(f'Unknown "group" search attribute {what}')
+            _handle_group_search(api, ops[op])
         elif op == "put":
             for scim_id in ops[op]:
                 put_group(api, scim_id, data=ops[op][scim_id])
