@@ -50,9 +50,12 @@ class TestIdPUserDb(IdPAPITests):
             assert pwauth.authn_data is not None
 
     def test_verify_username_and_incorrect_password(self) -> None:
-        assert self.test_user.mail_addresses.primary
-        pwauth = self.app.authn.password_authn(self.test_user.mail_addresses.primary.email, "foo")
-        assert pwauth is None
+        # Patch the VCCSClient, so we do not need a vccs server
+        with patch.object(VCCSClient, "authenticate") as mock_vccs:
+            mock_vccs.return_value = False
+            assert self.test_user.mail_addresses.primary
+            pwauth = self.app.authn.password_authn(self.test_user.mail_addresses.primary.email, "foo")
+            assert pwauth is None
 
 
 class TestAuthentication(IdPAPITests):
@@ -61,9 +64,13 @@ class TestAuthentication(IdPAPITests):
         pwauth = self.app.authn.password_authn("foo", "bar")
         assert pwauth is None
 
+    @patch("eduid.vccs.client.VCCSClient.authenticate")
     @patch("eduid.vccs.client.VCCSClient.add_credentials")
-    def test_authn_known_user_wrong_password(self, mock_add_credentials: MagicMock) -> None:
+    def test_authn_known_user_wrong_password(
+        self, mock_add_credentials: MagicMock, mock_authenticate: MagicMock
+    ) -> None:
         mock_add_credentials.return_value = False
+        mock_authenticate.return_value = False
         assert isinstance(self.test_user, eduid.userdb.User)
         assert isinstance(self.app.authn, IdPAuthn)  # help pycharm
         cred_id = ObjectId()
