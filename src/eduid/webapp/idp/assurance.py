@@ -221,74 +221,97 @@ class AuthnState:
         return self._credentials
 
 
+def _check_digg_loa2(authn: AuthnState) -> EduidAuthnContextClass:
+    current_app.stats.count("req_authn_ctx_digg_loa2")
+    if not authn.is_singlefactor:
+        raise MissingSingleFactor()
+    if not authn.is_multifactor:
+        raise MissingMultiFactor()
+    if not authn.digg_loa2_approved_identity:
+        raise IdentityProofingMethodNotAllowed()
+    if not authn.swamid_al3_used:
+        raise MfaProofingMethodNotAllowed()
+    if not authn.is_digg_loa2:  # this case should be covered by the previous two, but belt and bracers
+        raise AssuranceException()
+    return EduidAuthnContextClass.DIGG_LOA2
+
+
+def _check_refeds_mfa(authn: AuthnState) -> EduidAuthnContextClass:
+    current_app.stats.count("req_authn_ctx_refeds_mfa")
+    if not authn.is_singlefactor:
+        raise MissingSingleFactor()
+    if not authn.is_multifactor:
+        raise MissingMultiFactor()
+    return EduidAuthnContextClass.REFEDS_MFA
+
+
+def _check_refeds_sfa(authn: AuthnState) -> EduidAuthnContextClass:
+    current_app.stats.count("req_authn_ctx_refeds_sfa")
+    if not authn.is_singlefactor:
+        raise MissingSingleFactor()
+    return EduidAuthnContextClass.REFEDS_SFA
+
+
+def _check_eduid_mfa(authn: AuthnState) -> EduidAuthnContextClass:
+    current_app.stats.count("req_authn_ctx_eduid_mfa")
+    if not authn.is_singlefactor:
+        raise MissingSingleFactor()
+    if not authn.is_multifactor:
+        raise MissingMultiFactor()
+    return EduidAuthnContextClass.EDUID_MFA
+
+
+def _check_fido_u2f(authn: AuthnState) -> EduidAuthnContextClass:
+    current_app.stats.count("req_authn_ctx_fido_u2f")
+    if not authn.password_used and authn.fido_used:
+        raise MissingMultiFactor()
+    return EduidAuthnContextClass.FIDO_U2F
+
+
+def _check_password_pt(authn: AuthnState) -> EduidAuthnContextClass:
+    current_app.stats.count("req_authn_ctx_password_pt")
+    if not authn.is_singlefactor:
+        raise MissingSingleFactor()
+    return EduidAuthnContextClass.PASSWORD_PT
+
+
+def _check_unspecified(authn: AuthnState) -> EduidAuthnContextClass:
+    current_app.stats.count("req_authn_ctx_unspecified")
+    if not authn.is_singlefactor:
+        raise MissingSingleFactor()
+    return EduidAuthnContextClass.UNSPECIFIED
+
+
+def _check_none(authn: AuthnState) -> EduidAuthnContextClass:
+    # Handle empty req_authn_ctx — infer the best accr from what was used
+    if authn.is_multifactor:
+        return EduidAuthnContextClass.REFEDS_MFA
+    if authn.password_used:
+        return EduidAuthnContextClass.PASSWORD_PT
+    if authn.is_singlefactor:
+        return EduidAuthnContextClass.REFEDS_SFA
+    raise MissingAuthentication()
+
+
 def get_response_accr(authn: AuthnState, request_accr: EduidAuthnContextClass) -> EduidAuthnContextClass:
     # Docs: https://wiki.sunet.se/display/ED/eduID+AuthnContextClass+to+SWAMID%2C+eduGAIN+and+Sweden+Connect
     match request_accr:
         case EduidAuthnContextClass.DIGG_LOA2:
-            current_app.stats.count("req_authn_ctx_digg_loa2")
-            if not authn.is_singlefactor:
-                raise MissingSingleFactor()
-            if not authn.is_multifactor:
-                raise MissingMultiFactor()
-            if not authn.digg_loa2_approved_identity:
-                raise IdentityProofingMethodNotAllowed()
-            if not authn.swamid_al3_used:
-                raise MfaProofingMethodNotAllowed()
-            if not authn.is_digg_loa2:  # this case should be covered by the previous two, but belt and bracers
-                raise AssuranceException()
-            return EduidAuthnContextClass.DIGG_LOA2
-
+            return _check_digg_loa2(authn)
         case EduidAuthnContextClass.REFEDS_MFA:
-            current_app.stats.count("req_authn_ctx_refeds_mfa")
-            if not authn.is_singlefactor:
-                raise MissingSingleFactor()
-            if not authn.is_multifactor:
-                raise MissingMultiFactor()
-            return EduidAuthnContextClass.REFEDS_MFA
-
+            return _check_refeds_mfa(authn)
         case EduidAuthnContextClass.REFEDS_SFA:
-            current_app.stats.count("req_authn_ctx_refeds_sfa")
-            if not authn.is_singlefactor:
-                raise MissingSingleFactor()
-            return EduidAuthnContextClass.REFEDS_SFA
-
+            return _check_refeds_sfa(authn)
         case EduidAuthnContextClass.EDUID_MFA:
-            current_app.stats.count("req_authn_ctx_eduid_mfa")
-            if not authn.is_singlefactor:
-                raise MissingSingleFactor()
-            if not authn.is_multifactor:
-                raise MissingMultiFactor()
-            return EduidAuthnContextClass.EDUID_MFA
-
+            return _check_eduid_mfa(authn)
         case EduidAuthnContextClass.FIDO_U2F:
-            current_app.stats.count("req_authn_ctx_fido_u2f")
-            if not authn.password_used and authn.fido_used:
-                raise MissingMultiFactor()
-            return EduidAuthnContextClass.FIDO_U2F
-
+            return _check_fido_u2f(authn)
         case EduidAuthnContextClass.PASSWORD_PT:
-            current_app.stats.count("req_authn_ctx_password_pt")
-            if not authn.is_singlefactor:
-                raise MissingSingleFactor()
-            return EduidAuthnContextClass.PASSWORD_PT
-
+            return _check_password_pt(authn)
         case EduidAuthnContextClass.UNSPECIFIED:
-            current_app.stats.count("req_authn_ctx_unspecified")
-            if not authn.is_singlefactor:
-                raise MissingSingleFactor()
-            return EduidAuthnContextClass.UNSPECIFIED
-
+            return _check_unspecified(authn)
         case EduidAuthnContextClass.NONE:
-            # Handle empty req_authn_ctx
-            if authn.is_multifactor:
-                return EduidAuthnContextClass.REFEDS_MFA
-            elif authn.password_used:
-                return EduidAuthnContextClass.PASSWORD_PT
-            elif authn.is_singlefactor:
-                return EduidAuthnContextClass.REFEDS_SFA
-            else:
-                raise MissingAuthentication()
-
+            return _check_none(authn)
         case _:
             # Fail on unknown req_authn_ctx
             raise AuthnContextNotSupported()
