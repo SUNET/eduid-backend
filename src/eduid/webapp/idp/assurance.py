@@ -4,7 +4,7 @@ import logging
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.models.saml2 import EduidAuthnContextClass
-from eduid.userdb.credentials import CredentialProofingMethod, FidoCredential, Password
+from eduid.userdb.credentials import Credential, CredentialProofingMethod, FidoCredential, Password
 from eduid.userdb.credentials.external import (
     BankIDCredential,
     EidasCredential,
@@ -73,43 +73,7 @@ class AuthnState:
 
         for this in self._credentials:
             cred = user.credentials.find(this.credential_id)
-            match cred:
-                case Password():
-                    self.password_used = True
-                case FidoCredential():
-                    self.fido_used = True
-                    if cred.is_verified and cred.proofing_method == CredentialProofingMethod.SWAMID_AL3_MFA:
-                        self.fido_cred_can_do_swamid_al3 = True
-                    if cred.mfa_approved and this.fido_authn_data and this.fido_authn_data.user_verified:
-                        self.fido_mfa_used = True
-                # TODO: maybe use this.external_authn_data.authn_context instead of cred.level?
-                case SwedenConnectCredential():
-                    logger.debug(f"SwedenConnect MFA used for this request: {cred}")
-                    self.external_mfa_used = True
-                    if cred.level == "loa3":
-                        self.swamid_al3_used = True
-                case BankIDCredential():
-                    logger.debug(f"BankID MFA used for this request: {cred}")
-                    self.external_mfa_used = True
-                    if cred.level == "uncertified-loa3":
-                        self.swamid_al3_used = True
-                case EidasCredential():
-                    logger.debug(f"EIDAS MFA used for this request: {cred}")
-                    self.external_mfa_used = True
-                    if cred.level in ["eidas-nf-sub", "eidas-nf-high"]:
-                        self.swamid_al3_used = True
-                case FrejaCredential():
-                    logger.debug(f"Freja MFA used for this request: {cred}")
-                    self.external_mfa_used = True
-                    if cred.level in ["freja-loa3", "freja-loa3_nr"]:
-                        self.swamid_al3_used = True
-                case _:
-                    # Warn, but do not fail when the credential isn't found on the user. This can't be a hard failure,
-                    # because when a user changes password they will get a new credential and the old is removed from
-                    # the user but the old one might still be referenced in the SSO session, or the session.
-                    logger.warning(f"Credential with id {this.credential_id} not found on user")
-                    _creds = user.credentials.to_list()
-                    logger.debug(f"User credentials:\n{_creds}")
+            self._classify_credential(cred, this, user)
 
         if user.identities.is_verified:
             self.is_swamid_al2 = True
@@ -133,6 +97,46 @@ class AuthnState:
             if self.digg_loa2_approved_identity and self.swamid_al3_used:
                 logger.info("User can assert DIGG loa2")
                 self.is_digg_loa2 = True
+
+    def _classify_credential(self, cred: Credential | None, this: UsedCredential, user: IdPUser) -> None:
+        """Classify a single credential and update assurance state flags."""
+        match cred:
+            case Password():
+                self.password_used = True
+            case FidoCredential():
+                self.fido_used = True
+                if cred.is_verified and cred.proofing_method == CredentialProofingMethod.SWAMID_AL3_MFA:
+                    self.fido_cred_can_do_swamid_al3 = True
+                if cred.mfa_approved and this.fido_authn_data and this.fido_authn_data.user_verified:
+                    self.fido_mfa_used = True
+            # TODO: maybe use this.external_authn_data.authn_context instead of cred.level?
+            case SwedenConnectCredential():
+                logger.debug(f"SwedenConnect MFA used for this request: {cred}")
+                self.external_mfa_used = True
+                if cred.level == "loa3":
+                    self.swamid_al3_used = True
+            case BankIDCredential():
+                logger.debug(f"BankID MFA used for this request: {cred}")
+                self.external_mfa_used = True
+                if cred.level == "uncertified-loa3":
+                    self.swamid_al3_used = True
+            case EidasCredential():
+                logger.debug(f"EIDAS MFA used for this request: {cred}")
+                self.external_mfa_used = True
+                if cred.level in ["eidas-nf-sub", "eidas-nf-high"]:
+                    self.swamid_al3_used = True
+            case FrejaCredential():
+                logger.debug(f"Freja MFA used for this request: {cred}")
+                self.external_mfa_used = True
+                if cred.level in ["freja-loa3", "freja-loa3_nr"]:
+                    self.swamid_al3_used = True
+            case _:
+                # Warn, but do not fail when the credential isn't found on the user. This can't be a hard failure,
+                # because when a user changes password they will get a new credential and the old is removed from
+                # the user but the old one might still be referenced in the SSO session, or the session.
+                logger.warning(f"Credential with id {this.credential_id} not found on user")
+                _creds = user.credentials.to_list()
+                logger.debug(f"User credentials:\n{_creds}")
 
     def _gather_credentials(self, sso_session: SSOSession, ticket: LoginContext, user: IdPUser) -> list[UsedCredential]:
         """
