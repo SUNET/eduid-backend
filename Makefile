@@ -21,15 +21,11 @@ lint:
 	ruff check
 
 typecheck:
-	MYPYPATH=$(SRCDIR) mypy $(MYPY_ARGS) --namespace-packages -p eduid
-	MYPYPATH=$(SRCDIR) mypy $(MYPY_ARGS) --namespace-packages -p eduid --check-untyped-defs --exclude '/test_.*\.py$$'
+	MYPYPATH=$(SRCDIR) mypy $(MYPY_ARGS) --namespace-packages -p eduid --check-untyped-defs
 
 typecheck_strict:
 	$(info Running mypy in semi-strict mode (not enforced in the build pipeline yet))
-	MYPYPATH=$(SRCDIR) mypy $(MYPY_ARGS) $(MYPY_STRICT) --namespace-packages -p eduid \
-		 				--allow-untyped-defs
-        # a second pass with --strict (minus some things we're not ready for yet), excluding test files
-	MYPYPATH=$(SRCDIR) mypy $(MYPY_ARGS) $(MYPY_STRICT) --namespace-packages -p eduid --check-untyped-defs --exclude '/test_.*\.py$$'
+	MYPYPATH=$(SRCDIR) mypy $(MYPY_ARGS) $(MYPY_STRICT) --namespace-packages -p eduid --check-untyped-defs
 
 update_webapp_translations:
 	pybabel extract -k _ -k gettext -k ngettext --mapping=babel.cfg --width=120 --output=$(SOURCE)/webapp/translations/messages.pot $(SOURCE)/webapp/
