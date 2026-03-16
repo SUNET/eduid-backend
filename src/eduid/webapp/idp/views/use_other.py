@@ -23,7 +23,7 @@ from eduid.webapp.idp.mischttp import set_sso_cookie
 from eduid.webapp.idp.other_device.data import OtherDeviceId, OtherDeviceState
 from eduid.webapp.idp.other_device.device1 import device1_check_response_code, device1_state_to_flux_payload
 from eduid.webapp.idp.other_device.device2 import device2_state_to_flux_payload
-from eduid.webapp.idp.other_device.helpers import _get_other_device_state_using_ref
+from eduid.webapp.idp.other_device.helpers import OtherDeviceRefResult, _get_other_device_state_using_ref
 from eduid.webapp.idp.schemas import (
     UseOther1RequestSchema,
     UseOther1ResponseSchema,
@@ -34,6 +34,66 @@ from eduid.webapp.idp.sso_session import SSOSession
 from eduid.webapp.idp.views.next import get_required_user
 
 other_device_views = Blueprint("other_device", __name__, url_prefix="")
+
+
+def _init_or_fetch_device1_state(
+    ticket: LoginContext,
+    sso_session: SSOSession | None,
+    username: str | None,
+) -> FluxData:
+    """
+    Create a new OtherDevice state for device #1 and return a success response, or an error response.
+
+    If the user is using a known device, or has an SSO session, or the SP requests a certain user,
+    that requirement is passed into the OtherDevice state (by setting state.eppn).
+    """
+    now = utc_now()
+    required_user = get_required_user(ticket, sso_session)
+    if required_user.response:
+        return required_user.response
+
+    user = None
+    if required_user.eppn:
+        try:
+            user = current_app.userdb.get_user_by_eppn(required_user.eppn)
+        except UserDoesNotExist:
+            current_app.logger.info(f"Login using other device: User {required_user.eppn} does not exist in central db")
+            return error_response(message=IdPMsg.wrong_user)
+    elif username:
+        user = lookup_user(username)
+
+    current_app.logger.debug(f"Adding new use other device state (user: {user})")
+    state = current_app.other_device_db.add_new_state(ticket, user, ttl=current_app.conf.other_device_logins_ttl)
+    ticket.set_other_device_state(state.state_id)
+    if state.eppn:
+        current_app.stats.count("login_using_other_device_start_with_eppn")
+    else:
+        current_app.stats.count("login_using_other_device_start_anonymous")
+    current_app.logger.info(f"Added new use other device state: {state.state_id}")
+
+    payload = device1_state_to_flux_payload(state, now)
+    return success_response(payload=payload)
+
+
+def _load_device2_state(ref: RequestRef | None, state_id: OtherDeviceId | None) -> OtherDeviceRefResult:
+    """Load OtherDevice state for device #2 from either a request ref or a QR code state_id."""
+    if ref:
+        return _get_other_device_state_using_ref(ref, device=2)
+    if state_id:
+        secret_box = SecretBox(
+            nacl.encoding.URLSafeBase64Encoder.decode(current_app.conf.other_device_secret_key.encode())
+        )
+        decrypted = secret_box.decrypt(state_id.encode(), encoder=nacl.encoding.URLSafeBase64Encoder).decode()
+        current_app.logger.debug(f"Other device: Loading state using state_id: {decrypted} (from QR code)")
+        state = current_app.other_device_db.get_state_by_id(OtherDeviceId(decrypted))
+        if not state:
+            current_app.logger.debug(f"Other device: State with state_id {decrypted} (from QR code) not found")
+        else:
+            current_app.logger.info(f"Loaded other device state: {state.state_id}")
+            current_app.logger.debug(f"Extra debug: Full other device state:\n{state.to_json()}")
+        return OtherDeviceRefResult(state=state)
+    # Neither ref nor state_id provided — caller will handle the missing state
+    return OtherDeviceRefResult(response=error_response(message=IdPMsg.state_not_found))
 
 
 @other_device_views.route("/use_other_1", methods=["POST"])
@@ -74,35 +134,7 @@ def use_other_1(
     now = utc_now()  # ensure coherent results of 'is this expired?' checks
 
     if not state or action in [None, "FETCH"]:
-        # If the user is using a known device, or has an SSO session, or the SP requests a certain user,
-        # that requirement is passed into the OtherDevice state (by setting state.eppn).
-        required_user = get_required_user(ticket, sso_session)
-        if required_user.response:
-            return required_user.response
-
-        user = None
-        if required_user.eppn:
-            try:
-                user = current_app.userdb.get_user_by_eppn(required_user.eppn)
-            except UserDoesNotExist:
-                current_app.logger.info(
-                    f"Login using other device: User {required_user.eppn} does not exist in central db"
-                )
-                return error_response(message=IdPMsg.wrong_user)
-        elif username:
-            user = lookup_user(username)
-
-        current_app.logger.debug(f"Adding new use other device state (user: {user})")
-        state = current_app.other_device_db.add_new_state(ticket, user, ttl=current_app.conf.other_device_logins_ttl)
-        ticket.set_other_device_state(state.state_id)
-        if state.eppn:
-            current_app.stats.count("login_using_other_device_start_with_eppn")
-        else:
-            current_app.stats.count("login_using_other_device_start_anonymous")
-        current_app.logger.info(f"Added new use other device state: {state.state_id}")
-
-        payload = device1_state_to_flux_payload(state, now)
-        return success_response(payload=payload)
+        return _init_or_fetch_device1_state(ticket, sso_session, username)
 
     if not state:
         current_app.logger.info("Login using other device: State not found")
@@ -174,28 +206,10 @@ def use_other_2(
     if not current_app.conf.allow_other_device_logins:
         return error_response(message=IdPMsg.not_available)
 
-    state = None
-
-    if ref:
-        _lookup_result = _get_other_device_state_using_ref(ref, device=2)
-        if _lookup_result.response:
-            return _lookup_result.response
-
-        state = _lookup_result.state
-    elif state_id:
-        secret_box = SecretBox(
-            nacl.encoding.URLSafeBase64Encoder.decode(current_app.conf.other_device_secret_key.encode())
-        )
-        decrypted = secret_box.decrypt(state_id.encode(), encoder=nacl.encoding.URLSafeBase64Encoder).decode()
-
-        # Load state using state_id from QR URL
-        current_app.logger.debug(f"Other device: Loading state using state_id: {decrypted} (from QR code)")
-        state = current_app.other_device_db.get_state_by_id(OtherDeviceId(decrypted))
-        if not state:
-            current_app.logger.debug(f"Other device: State with state_id {decrypted} (from QR code) not found")
-        else:
-            current_app.logger.info(f"Loaded other device state: {state.state_id}")
-            current_app.logger.debug(f"Extra debug: Full other device state:\n{state.to_json()}")
+    _load_result = _load_device2_state(ref, state_id)
+    if _load_result.response:
+        return _load_result.response
+    state = _load_result.state
 
     if not state:
         current_app.logger.debug("Other device: No state found, bailing out")
