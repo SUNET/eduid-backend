@@ -176,6 +176,91 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
             return _sso_cookie_re.groups()[0]
         return None
 
+    def _get_login_ref(
+        self,
+        device: CSRFTestClient,
+        saml2_client: Saml2Client,
+        authn_context: Mapping[str, Any] | None,
+        force_authn: bool,
+        assertion_consumer_service_url: str | None,
+    ) -> tuple[str, TestResponse] | LoginResultAPI:
+        """Create a SAML request and return the (ref, response) tuple, or LoginResultAPI on redirect failure."""
+        session_id: str
+        info: Mapping[str, Any]
+        (session_id, info) = saml2_client.prepare_for_authenticate(
+            entityid=self.idp_entity_id,
+            relay_state=self.relay_state,
+            binding=BINDING_HTTP_REDIRECT,
+            requested_authn_context=authn_context,
+            force_authn=force_authn,
+            assertion_consumer_service_url=assertion_consumer_service_url,
+        )
+        self.pysaml2_oq.set(session_id, self.relay_state)
+
+        # Send SAML request to SAML endpoint, expect a redirect to the login bundle back
+        path = self._extract_path_from_info(info)
+        with self.session_cookie_anon(device) as browser:
+            resp = browser.get(path)
+        if resp.status_code != HTTPStatus.FOUND:
+            return LoginResultAPI(response=resp)
+
+        redirect_loc = self._extract_path_from_response(resp)
+        ref = redirect_loc.split("/")[-1]
+        return (ref, resp)
+
+    def _handle_pwauth_action(
+        self,
+        device: CSRFTestClient,
+        result: LoginResultAPI,
+        target: str,
+        ref: str,
+        user: TestUser,
+        username: str | bool | None,
+        other_device: bool,
+        cookie_jar: dict[str, Any],
+    ) -> LoginResultAPI | None:
+        """Handle USERNAMEPWAUTH/PWAUTH action. Returns result for early exit, or None to continue."""
+        if other_device:
+            result.other_device1_result = self._call_other_device1(
+                device, target="http://test.localhost/use_other_1", ref=ref
+            )
+            return result
+
+        if username is None:
+            username = user.eppn
+
+        if username is False and user.password:
+            # make the call to pwauth without username
+            result.pwauth_result = self._call_pwauth(device=device, target=target, ref=ref, password=user.password)
+        elif not username or not user.password:
+            logger.error(f"Can't login without username and password, aborting with result {result}")
+            return result
+        else:
+            result.pwauth_result = self._call_pwauth(
+                device=device, target=target, ref=ref, username=user.eppn, password=user.password
+            )
+        result.sso_cookie_val = result.pwauth_result.sso_cookie_val
+        cookie_jar.update(result.pwauth_result.cookies)
+        return None
+
+    def _resolve_mfa_credential(
+        self,
+        user: TestUser,
+        result: LoginResultAPI,
+        mfa_credential: Credential | None,
+    ) -> Credential:
+        """Return the MFA credential to use, defaulting to the first FidoCredential on the user."""
+        if mfa_credential is not None:
+            return mfa_credential
+        assert user.eppn is not None  # please mypy
+        _user = self.app.userdb.lookup_user(user.eppn)
+        assert _user is not None
+        # default mfa_credential to the first FidoCredential on the user
+        try:
+            return _user.credentials.filter(FidoCredential)[0]
+        except IndexError as e:
+            raise AssertionError(f"No FidoCredential found for user {_user.eppn}, aborting with result {result}") from e
+
     def _try_login(
         self,
         saml2_client: Saml2Client | None = None,
@@ -197,124 +282,74 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
         :return: Information about how far we got (reached LoginState) and the last response instance.
         """
         user: TestUser = test_user if test_user is not None else self.default_user
-
         _saml2_client = saml2_client if saml2_client is not None else self.saml2_client
 
         if device is None:
             device = self.browser
 
-        with self.session_cookie_anon(device) as browser:
-            ref = login_ref
-            resp = None
-            if login_ref is None:
-                # create SAML request
-                session_id: str
-                info: Mapping[str, Any]
-                (session_id, info) = _saml2_client.prepare_for_authenticate(
-                    entityid=self.idp_entity_id,
-                    relay_state=self.relay_state,
-                    binding=BINDING_HTTP_REDIRECT,
-                    requested_authn_context=authn_context,
-                    force_authn=force_authn,
-                    assertion_consumer_service_url=assertion_consumer_service_url,
-                )
-                self.pysaml2_oq.set(session_id, self.relay_state)
+        ref = login_ref
+        resp = None
+        if login_ref is None:
+            _ref_result = self._get_login_ref(
+                device, _saml2_client, authn_context, force_authn, assertion_consumer_service_url
+            )
+            if isinstance(_ref_result, LoginResultAPI):
+                return _ref_result
+            ref, resp = _ref_result
 
-                # Send SAML request to SAML endpoint, expect a redirect to the login bundle back
-                path = self._extract_path_from_info(info)
-                resp = browser.get(path)
-                if resp.status_code != HTTPStatus.FOUND:
-                    return LoginResultAPI(response=resp)
+        result = LoginResultAPI(ref=ref, response=resp)
+        cookie_jar: dict[str, Any] = {}
+        if sso_cookie_val is not None:
+            cookie_jar["idpauthn"] = sso_cookie_val
+        if session_cookie_val is not None:
+            cookie_jar["sessid"] = session_cookie_val
 
-                redirect_loc = self._extract_path_from_response(resp)
-                ref = redirect_loc.split("/")[-1]
+        assert ref is not None, "Login ref needs to be set by this point"
 
-            result = LoginResultAPI(ref=ref, response=resp)
-            cookie_jar = {}
-            if sso_cookie_val is not None:
-                cookie_jar["idpauthn"] = sso_cookie_val
-            if session_cookie_val is not None:
-                cookie_jar["sessid"] = session_cookie_val
+        while True:
+            logger.info(f"Main API test loop, current state: {result}")
 
-            assert ref is not None, "Login ref needs to be set by this point"
+            # Call the 'next' endpoint
+            _next = self._call_next(device, ref)
 
-            while True:
-                logger.info(f"Main API test loop, current state: {result}")
+            if _next.error:
+                result.error = _next.error
+                return result
 
-                # Call the 'next' endpoint
-                _next = self._call_next(device, ref)
+            _action = IdPAction(_next.payload["action"])
+            if _action not in result.visit_count:
+                result.visit_count[_action] = 0
+            result.visit_count[_action] += 1
+            result.visit_order += [_action]
 
-                if _next.error:
-                    result.error = _next.error
+            if result.visit_count[_action] > 1:
+                # break on re-visiting a previous state
+                logger.error(f"Next state {_action} already visited, aborting with result {result}")
+                return result
+
+            match _action:
+                case IdPAction.USERNAMEPWAUTH | IdPAction.PWAUTH:
+                    _pwauth_result = self._handle_pwauth_action(
+                        device, result, _next.payload["target"], ref, user, username, other_device, cookie_jar
+                    )
+                    if _pwauth_result is not None:
+                        return _pwauth_result
+
+                case IdPAction.MFA:
+                    mfa_credential = self._resolve_mfa_credential(user, result, mfa_credential)
+                    result.mfa_result = self._call_mfa(device, _next.payload["target"], ref, mfa_credential)
+
+                case IdPAction.TOU:
+                    result.tou_result = self._call_tou(
+                        device, _next.payload["target"], ref, user_accepts=self.app.conf.tou_version
+                    )
+
+                case IdPAction.FINISHED:
+                    result.finished_result = FinishedResultAPI(payload=_next.payload)
                     return result
 
-                _action = IdPAction(_next.payload["action"])
-                if _action not in result.visit_count:
-                    result.visit_count[_action] = 0
-                result.visit_count[_action] += 1
-                result.visit_order += [_action]
-
-                if result.visit_count[_action] > 1:
-                    # break on re-visiting a previous state
-                    logger.error(f"Next state {_action} already visited, aborting with result {result}")
-                    return result
-
-                match _action:
-                    case IdPAction.USERNAMEPWAUTH | IdPAction.PWAUTH:
-                        if other_device:
-                            result.other_device1_result = self._call_other_device1(
-                                device, target="http://test.localhost/use_other_1", ref=ref
-                            )
-                            return result
-
-                        if username is None:
-                            username = user.eppn
-
-                        if username is False and user.password:
-                            # make the call to pwauth without username
-                            result.pwauth_result = self._call_pwauth(
-                                device=device, target=_next.payload["target"], ref=ref, password=user.password
-                            )
-                        elif not username or not user.password:
-                            logger.error(f"Can't login without username and password, aborting with result {result}")
-                            return result
-                        else:
-                            result.pwauth_result = self._call_pwauth(
-                                device=device,
-                                target=_next.payload["target"],
-                                ref=ref,
-                                username=user.eppn,
-                                password=user.password,
-                            )
-                        result.sso_cookie_val = result.pwauth_result.sso_cookie_val
-                        cookie_jar.update(result.pwauth_result.cookies)
-
-                    case IdPAction.MFA:
-                        if mfa_credential is None:
-                            assert user.eppn is not None  # please mypy
-                            _user = self.app.userdb.lookup_user(user.eppn)
-                            assert _user is not None
-                            # default mfa_credential to the first FidoCredential on the user
-                            try:
-                                mfa_credential = _user.credentials.filter(FidoCredential)[0]
-                            except IndexError as e:
-                                raise AssertionError(
-                                    f"No FidoCredential found for user {_user.eppn}, aborting with result {result}"
-                                ) from e
-
-                        result.mfa_result = self._call_mfa(device, _next.payload["target"], ref, mfa_credential)
-
-                    case IdPAction.TOU:
-                        result.tou_result = self._call_tou(
-                            device, _next.payload["target"], ref, user_accepts=self.app.conf.tou_version
-                        )
-
-                    case IdPAction.FINISHED:
-                        result.finished_result = FinishedResultAPI(payload=_next.payload)
-                        return result
-
-                    case _ as failed_action:
-                        raise AssertionError(f"Unexpected action: {failed_action} - result {result}")
+                case _ as failed_action:
+                    raise AssertionError(f"Unexpected action: {failed_action} - result {result}")
 
     def _call_next(self, device: CSRFTestClient, ref: str) -> NextResult:
         with self.session_cookie_anon(device) as client:
