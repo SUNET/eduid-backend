@@ -1,3 +1,4 @@
+import logging
 import pprint
 import re
 from dataclasses import replace
@@ -57,6 +58,66 @@ async def on_get(req: ContextRequest, resp: Response, scim_id: str | None = None
     return db_user_to_response(req=req, resp=resp, db_user=db_user)
 
 
+def _apply_core_updates(db_user: ScimApiUser, update_request: UserUpdateRequest) -> tuple[ScimApiUser, bool]:
+    changed = False
+    name_in = ScimApiName(**update_request.name.model_dump(exclude_none=True))
+    emails_in = {ScimApiEmail(**email.model_dump()) for email in update_request.emails}
+    phone_numbers_in = {ScimApiPhoneNumber(**number.model_dump()) for number in update_request.phone_numbers}
+    if update_request.external_id != db_user.external_id:
+        db_user = replace(db_user, external_id=update_request.external_id)
+        changed = True
+    if update_request.preferred_language != db_user.preferred_language:
+        db_user = replace(db_user, preferred_language=update_request.preferred_language)
+        changed = True
+    if name_in != db_user.name:
+        db_user = replace(db_user, name=name_in)
+        changed = True
+    if emails_in != set(db_user.emails):
+        db_user = replace(db_user, emails=list(emails_in))
+        changed = True
+    if phone_numbers_in != set(db_user.phone_numbers):
+        db_user = replace(db_user, phone_numbers=list(phone_numbers_in))
+        changed = True
+    return db_user, changed
+
+
+def _apply_nutid_updates(
+    db_user: ScimApiUser, update_request: UserUpdateRequest, logger: logging.Logger
+) -> tuple[ScimApiUser, bool]:
+    assert update_request.nutid_user_v1 is not None
+    changed = False
+
+    profile_changed = False
+    for this in update_request.nutid_user_v1.profiles:
+        if this not in db_user.profiles:
+            logger.info(f"Adding profile {this}/{update_request.nutid_user_v1.profiles[this]} to user")
+            profile_changed = True
+        elif update_request.nutid_user_v1.profiles[this].to_dict() != db_user.profiles[this].to_dict():
+            logger.info(f"Profile {this}/{update_request.nutid_user_v1.profiles[this]} updated")
+            profile_changed = True
+        else:
+            logger.info(f"Profile {this}/{update_request.nutid_user_v1.profiles[this]} not changed")
+    for this in db_user.profiles:
+        if this not in update_request.nutid_user_v1.profiles:
+            logger.info(f"Profile {this}/{db_user.profiles[this]} removed")
+            profile_changed = True
+    if profile_changed:
+        changed = True
+        for profile_name, profile in update_request.nutid_user_v1.profiles.items():
+            db_user.profiles[profile_name] = ScimApiProfile(attributes=profile.attributes, data=profile.data)
+
+    _db_linked_accounts = [
+        ScimApiLinkedAccount(issuer=x.issuer, value=x.value, parameters=x.parameters)
+        for x in update_request.nutid_user_v1.linked_accounts
+    ]
+    if sorted(_db_linked_accounts, key=lambda x: x.value) != sorted(db_user.linked_accounts, key=lambda x: x.value):
+        db_user.linked_accounts = _db_linked_accounts
+        logger.info(f"Updated linked_accounts: {db_user.linked_accounts}")
+        changed = True
+
+    return db_user, changed
+
+
 @users_router.put("/{scim_id}", response_model_exclude_none=True)
 async def on_put(req: ContextRequest, resp: Response, update_request: UserUpdateRequest, scim_id: str) -> UserResponse:
     req.app.context.logger.info(f"Updating user {scim_id}")
@@ -82,68 +143,13 @@ async def on_put(req: ContextRequest, resp: Response, update_request: UserUpdate
 
     core_changed = False
     if SCIMSchema.CORE_20_USER in update_request.schemas:
-        name_in = ScimApiName(**update_request.name.model_dump(exclude_none=True))
-        emails_in = {ScimApiEmail(**email.model_dump()) for email in update_request.emails}
-        phone_numbers_in = {ScimApiPhoneNumber(**number.model_dump()) for number in update_request.phone_numbers}
-        # external_id
-        if update_request.external_id != db_user.external_id:
-            db_user = replace(db_user, external_id=update_request.external_id)
-            core_changed = True
-        # preferred_language
-        if update_request.preferred_language != db_user.preferred_language:
-            db_user = replace(db_user, preferred_language=update_request.preferred_language)
-            core_changed = True
-        # name
-        if name_in != db_user.name:
-            db_user = replace(db_user, name=name_in)
-            core_changed = True
-        # emails
-        if emails_in != set(db_user.emails):
-            db_user = replace(db_user, emails=list(emails_in))
-            core_changed = True
-        # phone_numbers
-        if phone_numbers_in != set(db_user.phone_numbers):
-            db_user = replace(db_user, phone_numbers=list(phone_numbers_in))
-            core_changed = True
+        db_user, core_changed = _apply_core_updates(db_user, update_request)
 
     nutid_changed = False
     if SCIMSchema.NUTID_USER_V1 in update_request.schemas and update_request.nutid_user_v1 is not None:
         if not acceptable_linked_accounts(update_request.nutid_user_v1.linked_accounts, req.app.config.environment):
             raise BadRequest(detail="Invalid nutid linked_accounts")
-
-        # Look for changes in profiles
-        for this in update_request.nutid_user_v1.profiles:
-            if this not in db_user.profiles:
-                req.app.context.logger.info(
-                    f"Adding profile {this}/{update_request.nutid_user_v1.profiles[this]} to user"
-                )
-                nutid_changed = True
-            elif update_request.nutid_user_v1.profiles[this].to_dict() != db_user.profiles[this].to_dict():
-                req.app.context.logger.info(f"Profile {this}/{update_request.nutid_user_v1.profiles[this]} updated")
-                nutid_changed = True
-            else:
-                req.app.context.logger.info(f"Profile {this}/{update_request.nutid_user_v1.profiles[this]} not changed")
-        for this in db_user.profiles:
-            if this not in update_request.nutid_user_v1.profiles:
-                req.app.context.logger.info(f"Profile {this}/{db_user.profiles[this]} removed")
-                nutid_changed = True
-
-        if nutid_changed:
-            for profile_name, profile in update_request.nutid_user_v1.profiles.items():
-                db_profile = ScimApiProfile(attributes=profile.attributes, data=profile.data)
-                db_user.profiles[profile_name] = db_profile
-
-        # convert from one type of linked accounts to another
-        _db_linked_accounts = [
-            ScimApiLinkedAccount(issuer=x.issuer, value=x.value, parameters=x.parameters)
-            for x in update_request.nutid_user_v1.linked_accounts
-        ]
-
-        # Look for changes in linked_accounts
-        if sorted(_db_linked_accounts, key=lambda x: x.value) != sorted(db_user.linked_accounts, key=lambda x: x.value):
-            db_user.linked_accounts = _db_linked_accounts
-            req.app.context.logger.info(f"Updated linked_accounts: {db_user.linked_accounts}")
-            nutid_changed = True
+        db_user, nutid_changed = _apply_nutid_updates(db_user, update_request, req.app.context.logger)
 
     req.app.context.logger.debug(f"Core changed: {core_changed}, nutid_changed: {nutid_changed}")
     if core_changed or nutid_changed:
