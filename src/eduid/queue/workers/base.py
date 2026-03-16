@@ -65,6 +65,7 @@ class QueueWorker:
             await main_task
         except CancelledError:
             logger.info("Main task cancelled, shutting down")
+            raise
 
     async def run_subtasks(self) -> None:
         logger.info(f"Initiating event stream for: {self.db}")
