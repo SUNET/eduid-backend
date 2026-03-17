@@ -349,7 +349,7 @@ def assertion_consumer_service() -> WerkzeugResponse:
     return redirect(formatted_finish_url)
 
 
-@samleid_views.route("/saml2-metadata")
+@samleid_views.route("/saml2-metadata", methods=["GET"])
 def metadata() -> WerkzeugResponse:
     """
     Returns an XML with the SAML 2.0 metadata for this SP as configured in the saml2_settings.py file.

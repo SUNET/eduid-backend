@@ -367,15 +367,15 @@ class NoAuthnAPITestCase(EduidAPITestCase):
         super().setUp(config=config)
         test_views = Blueprint("testing", __name__)
 
-        @test_views.route("/test")
+        @test_views.route("/test", methods=["GET"])
         def test() -> str:
             return "OK"
 
-        @test_views.route("/test2")
+        @test_views.route("/test2", methods=["GET"])
         def test2() -> str:
             return "OK"
 
-        @test_views.route("/test3")
+        @test_views.route("/test3", methods=["GET"])
         def test3() -> str:
             return "OK"
 
