@@ -579,6 +579,34 @@ class AuthnContext(RequestMicroService):
         return res
 
 
+def _find_loa_in_metadata(entity_id: EntityId, metadata_entry: MetaData, mfa: MfaConfig) -> LoaSettings | None:
+    """Search a single metadata entry for LoA settings matching entity_id via entity categories or assurance certs."""
+    _ecs: list[EntityCategory]
+    try:
+        _ecs = metadata_entry.entity_categories(entity_id)
+    except KeyError:
+        _ecs = []
+    logger.debug(f"Entity categories for {entity_id}: {_ecs}")
+    if mfa.by_entity_category:
+        for _ec in _ecs:
+            if _ec in mfa.by_entity_category:
+                logger.debug(f"Loaded LoA settings based on entity category {_ec}")
+                return mfa.by_entity_category[_ec]
+
+    try:
+        _assurances = list(metadata_entry.assurance_certifications(entity_id))
+    except Exception:
+        _assurances = []
+    logger.debug(f"Assurance certifications for {entity_id}: {_assurances}")
+    if mfa.by_assurance_certification:
+        for _ac in _assurances:
+            if _ac in mfa.by_assurance_certification:
+                logger.debug(f"Loaded LoA settings based on assurance certification {_ac}")
+                return mfa.by_assurance_certification[_ac]
+
+    return None
+
+
 def get_loa_settings_for_entity_id(
     entity_id: EntityId | None, metadata: Iterable[MetaData], mfa: MfaConfig | None
 ) -> LoaSettings | None:
@@ -599,27 +627,9 @@ def get_loa_settings_for_entity_id(
     for _this_md in metadata:
         if not _this_md:
             continue
-        _ecs: list[EntityCategory]
-        try:
-            _ecs = _this_md.entity_categories(entity_id)
-        except KeyError:
-            _ecs = []
-        logger.debug(f"Entity categories for {entity_id}: {_ecs}")
-        for _ec in _ecs:
-            if mfa.by_entity_category:
-                if _ec in mfa.by_entity_category:
-                    logger.debug(f"Loaded LoA settings based on entity category {_ec}")
-                    return mfa.by_entity_category[_ec]
-        try:
-            _assurances = list(_this_md.assurance_certifications(entity_id))
-        except Exception:
-            _assurances = []
-        logger.debug(f"Assurance certifications for {entity_id}: {_assurances}")
-        for _ac in _assurances:
-            if mfa.by_assurance_certification:
-                if _ac in mfa.by_assurance_certification:
-                    logger.debug(f"Loaded LoA settings based on assurance certification {_ac}")
-                    return mfa.by_assurance_certification[_ac]
+        result = _find_loa_in_metadata(entity_id, _this_md, mfa)
+        if result is not None:
+            return result
 
     return None
 
