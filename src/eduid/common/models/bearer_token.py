@@ -70,6 +70,7 @@ class AuthnBearerToken(BaseModel):
         return values
 
     @field_validator("scopes")
+    @classmethod
     def validate_scopes(cls, v: set[ScopeName], values: ValidationInfo) -> set[ScopeName]:
         config = values.data.get("config")
         if not config:
@@ -78,6 +79,7 @@ class AuthnBearerToken(BaseModel):
         return canonical_scopes
 
     @field_validator("requested_access")
+    @classmethod
     def validate_requested_access(cls, v: list[RequestedAccess], values: ValidationInfo) -> list[RequestedAccess]:
         config = values.data.get("config")
         if not config:
