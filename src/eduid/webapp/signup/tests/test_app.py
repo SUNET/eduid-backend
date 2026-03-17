@@ -1292,8 +1292,12 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
 
     def test_create_user_out_of_sync(self) -> None:
         self._prepare_for_create_user()
-        with patch("eduid.webapp.signup.helpers.save_and_sync_user") as mock_save:
+        with (
+            patch("eduid.webapp.signup.helpers.save_and_sync_user") as mock_save,
+            patch("eduid.vccs.client.VCCSClient.revoke_credentials") as mock_revoke,
+        ):
             mock_save.side_effect = UserOutOfSync("unsync")
+            mock_revoke.return_value = True
             response = self._create_user(expect_success=False, expected_message=CommonMsg.out_of_sync)
             assert response.reached_state == SignupState.S6_CREATE_USER
 
