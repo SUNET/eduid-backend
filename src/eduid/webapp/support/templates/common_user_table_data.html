@@ -1,22 +1,22 @@
 {% macro input(user_dict) -%}
 <tr>
-  <th>eppn</th>
+  <th scope="row">eppn</th>
   <td>{{ user_dict.eduPersonPrincipalName }}</td>
 </tr>
 <tr>
-  <th>Given name</th>
+  <th scope="row">Given name</th>
   <td>{{ user_dict.givenName }}</td>
 </tr>
 <tr>
-  <th>Surname</th>
+  <th scope="row">Surname</th>
   <td>{{ user_dict.surname }}</td>
 </tr>
 <tr>
-  <th>Display name</th>
+  <th scope="row">Display name</th>
   <td>{{ user_dict.displayName }}</td>
 </tr>
 <tr>
-  <th>Mail addresses</th>
+  <th scope="row">Mail addresses</th>
   <td>
     {% for mail in user_dict.mailAliases|multisort('verified', 'created_ts', reverse=True) %}
     <dl>
@@ -41,7 +41,7 @@
   </td>
 </tr>
 <tr>
-  <th scope="col">Credentials</th>
+  <th scope="row">Credentials</th>
   <td>
     {% for credential in user_dict.passwords|multisort('type', 'created_ts', reverse=True) %}
     <dl>
@@ -82,7 +82,7 @@
   </td>
 </tr>
 <tr>
-  <th scope="col">Identities</th>
+  <th scope="row">Identities</th>
   <td>
     {% for item in user_dict.identities|multisort('verified', 'created_ts', reverse=True) %}
     <dl>
@@ -120,7 +120,7 @@
   </td>
 </tr>
 <tr>
-  <th scope="col">Locked identity</th>
+  <th scope="row">Locked identity</th>
   <td>
     {% for item in user_dict.locked_identity|multisort('verified', 'created_ts', reverse=True) %}
     <dl>
@@ -158,7 +158,7 @@
   </td>
 </tr>
 <tr>
-  <th scope="col">Accepted terms of use</th>
+  <th scope="row">Accepted terms of use</th>
   <td>
     {% for tou in user_dict.tou|multisort('version', 'created_ts', reverse=True) %}
     <dl>
@@ -173,11 +173,11 @@
   </td>
 </tr>
 <tr>
-  <th scope="col">Terminated status</th>
+  <th scope="row">Terminated status</th>
   <td>{{ user_dict.terminated|default("False") }}</td>
 </tr>
 <tr>
-  <th scope="col">Language preference</th>
+  <th scope="row">Language preference</th>
   <td>{{ user_dict.preferredLanguage }}</td>
 </tr>
 {%- endmacro %}
