@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 # Hack to be able to get request body both now and later
 # https://github.com/encode/starlette/issues/495#issuecomment-513138055
-async def set_body(request: Request, body: bytes) -> None:
+def set_body(request: Request, body: bytes) -> None:
     async def receive() -> Message:
         return {"type": "http.request", "body": body}
 
@@ -36,7 +36,7 @@ async def set_body(request: Request, body: bytes) -> None:
 
 async def get_body(request: Request) -> bytes:
     body = await request.body()
-    await set_body(request, body)
+    set_body(request, body)
     return body
 
 
@@ -97,7 +97,7 @@ class AuthenticationMiddleware(BaseMiddleware):
             return await call_next(req)
 
         if not auth:
-            return await http_error_detail_handler(req=req, exc=Unauthorized(detail="No authentication header found"))
+            return http_error_detail_handler(req=req, exc=Unauthorized(detail="No authentication header found"))
 
         _token = auth[len("Bearer ") :]
         _jwt = jwt.JWT()
@@ -106,11 +106,11 @@ class AuthenticationMiddleware(BaseMiddleware):
             claims = json.loads(_jwt.claims)
         except (JWException, KeyError, ValueError) as e:
             self.context.logger.info(f"Bearer token error: {e}")
-            return await http_error_detail_handler(req=req, exc=Unauthorized(detail="Bearer token error"))
+            return http_error_detail_handler(req=req, exc=Unauthorized(detail="Bearer token error"))
 
         if "config" in claims:
             self.context.logger.warning(f"JWT has config: {claims}")
-            return await http_error_detail_handler(req=req, exc=Unauthorized(detail="Bearer token error"))
+            return http_error_detail_handler(req=req, exc=Unauthorized(detail="Bearer token error"))
 
         try:
             self.context.logger.debug(f"Parsing claims: {claims}")
@@ -118,13 +118,13 @@ class AuthenticationMiddleware(BaseMiddleware):
             self.context.logger.debug(f"Bearer token: {token}")
         except ValidationError:
             self.context.logger.exception("Authorization Bearer Token error")
-            return await http_error_detail_handler(req=req, exc=Unauthorized(detail="Bearer token error"))
+            return http_error_detail_handler(req=req, exc=Unauthorized(detail="Bearer token error"))
 
         try:
             token.validate_auth_source()
         except AuthenticationError as exc:
             self.context.logger.error(f"Access denied: {exc}")
-            return await http_error_detail_handler(
+            return http_error_detail_handler(
                 req=req, exc=Unauthorized(detail="Authentication source or assurance level invalid")
             )
 
@@ -132,14 +132,14 @@ class AuthenticationMiddleware(BaseMiddleware):
             data_owner = token.get_data_owner()
         except RequestedAccessDenied as exc:
             self.context.logger.error(f"Access denied: {exc}")
-            return await http_error_detail_handler(
+            return http_error_detail_handler(
                 req=req, exc=Unauthorized(detail="Data owner requested in access token denied")
             )
         self.context.logger.info(f"Bearer token {token}, data owner: {data_owner}")
 
         if not data_owner or data_owner not in self.context.config.data_owners:
             self.context.logger.error(f"Data owner {data_owner!r} not configured")
-            return await http_error_detail_handler(req=req, exc=Unauthorized(detail="Unknown data_owner"))
+            return http_error_detail_handler(req=req, exc=Unauthorized(detail="Unknown data_owner"))
 
         req.context.data_owner = data_owner
         req.context.userdb = self.context.get_userdb(data_owner)
@@ -153,7 +153,7 @@ class AuthenticationMiddleware(BaseMiddleware):
                 token.validate_saml_entitlements(data_owner=data_owner, groupdb=req.context.groupdb)
         except AuthorizationError as exc:
             self.context.logger.error(f"Access denied: {exc}")
-            return await http_error_detail_handler(
+            return http_error_detail_handler(
                 req=req, exc=Unauthorized(detail="Missing correct entitlement in saml data")
             )
 

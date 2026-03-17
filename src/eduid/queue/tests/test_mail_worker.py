@@ -119,7 +119,7 @@ class TestMailWorker(QueueAsyncioTest):
         self.client_db.save(queue_item)
         await self._assert_item_gets_processed(queue_item, retry=True)
 
-    async def test_register_mail_translations(self) -> None:
+    def test_register_mail_translations(self) -> None:
         for lang in ["en", "sv"]:
             payload = EduidSignupEmail(
                 email="noone@example.com",
@@ -144,7 +144,7 @@ class TestMailWorker(QueueAsyncioTest):
                 assert "Subject: eduID-registrering" in msg_string
                 assert "Du har registrerat noone@example.com som e-postadress" in msg_string
 
-    async def test_reset_password_mail_translations(self) -> None:
+    def test_reset_password_mail_translations(self) -> None:
         for lang in ["en", "sv"]:
             payload = EduidResetPasswordEmail(
                 email="noone@example.com",
@@ -172,7 +172,7 @@ class TestMailWorker(QueueAsyncioTest):
                 assert "Du har bett om att byta" in msg_string
                 assert "giltig i 2 timmar." in msg_string
 
-    async def test_verification_mail_translations(self) -> None:
+    def test_verification_mail_translations(self) -> None:
         for lang in ["en", "sv"]:
             payload = EduidVerificationEmail(
                 email="noone@example.com",
@@ -198,7 +198,7 @@ class TestMailWorker(QueueAsyncioTest):
                 assert "Du har nyligen lagt till den" in msg_string
                 assert "Skriv in koden nedan" in msg_string
 
-    async def test_termination_mail_translations(self) -> None:
+    def test_termination_mail_translations(self) -> None:
         for lang in ["en", "sv"]:
             payload = EduidTerminationEmail(
                 email="noone@example.com",

@@ -111,7 +111,7 @@ class AsyncMongoDB(BaseMongoDB):
             logger.error(f"{self} not healthy: {e}")
             return False
 
-    async def close(self) -> None:
+    def close(self) -> None:
         self._client.close()
 
 
@@ -323,5 +323,5 @@ class AsyncBaseDB:
                 params["name"] = name
                 await self._coll.create_index(key, **params)
 
-    async def close(self) -> None:
-        await self._db.close()
+    def close(self) -> None:
+        self._db.close()
