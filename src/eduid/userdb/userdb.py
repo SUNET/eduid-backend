@@ -395,6 +395,38 @@ class AmDB(UserDB[User]):
 
         yield from self._iter_documents_by_aggregate(match=match, projection=projection)
 
+    def _demote_duplicate_mail_address(self, user: User, email: str) -> None:
+        """Demote a duplicate verified email address on another user."""
+        logger.debug(f"Removing mail address {email} from user {user}")
+        logger.debug(f"Old user mail aliases BEFORE: {user.mail_addresses.to_list()}")
+        if user.mail_addresses.primary and user.mail_addresses.primary.email == email:
+            # Promote some other verified e-mail address to primary
+            for address in user.mail_addresses.to_list():
+                if address.is_verified and address.email != email:
+                    user.mail_addresses.set_primary(address.key)
+                    break
+        old_user_mail_address = user.mail_addresses.find(email)
+        if old_user_mail_address is not None:
+            old_user_mail_address.is_primary = False
+            old_user_mail_address.is_verified = False
+        logger.debug(f"Old user mail aliases AFTER: {user.mail_addresses.to_list()}")
+
+    def _demote_duplicate_phone(self, user: User, number: str) -> None:
+        """Demote a duplicate verified phone number on another user."""
+        logger.debug(f"Removing phone number {number} from user {user}")
+        logger.debug(f"Old user phone numbers BEFORE: {user.phone_numbers.to_list()}.")
+        if user.phone_numbers.primary and user.phone_numbers.primary.number == number:
+            # Promote some other verified phone number to primary
+            for phone in user.phone_numbers.verified:
+                if phone.number != number:
+                    user.phone_numbers.set_primary(phone.key)
+                    break
+        old_user_phone_number = user.phone_numbers.find(number)
+        if old_user_phone_number is not None:
+            old_user_phone_number.is_primary = False
+            old_user_phone_number.is_verified = False
+        logger.debug(f"Old user phone numbers AFTER: {user.phone_numbers.to_list()}.")
+
     def unverify_mail_aliases(self, user_id: ObjectId, mail_aliases: list[dict[str, Any]] | None) -> int:
         count = 0
         if mail_aliases is None:
@@ -406,20 +438,8 @@ class AmDB(UserDB[User]):
             try:
                 for user in self.get_users_by_mail(email):
                     if user.user_id != user_id:
-                        logger.debug(f"Removing mail address {email} from user {user}")
-                        logger.debug(f"Old user mail aliases BEFORE: {user.mail_addresses.to_list()}")
-                        if user.mail_addresses.primary and user.mail_addresses.primary.email == email:
-                            # Promote some other verified e-mail address to primary
-                            for address in user.mail_addresses.to_list():
-                                if address.is_verified and address.email != email:
-                                    user.mail_addresses.set_primary(address.key)
-                                    break
-                        old_user_mail_address = user.mail_addresses.find(email)
-                        if old_user_mail_address is not None:
-                            old_user_mail_address.is_primary = False
-                            old_user_mail_address.is_verified = False
+                        self._demote_duplicate_mail_address(user, email)
                         count += 1
-                        logger.debug(f"Old user mail aliases AFTER: {user.mail_addresses.to_list()}")
                         self.save(user)
             except DocumentDoesNotExist:
                 pass
@@ -436,20 +456,8 @@ class AmDB(UserDB[User]):
             try:
                 for user in self.get_users_by_phone(number):
                     if user.user_id != user_id:
-                        logger.debug(f"Removing phone number {number} from user {user}")
-                        logger.debug(f"Old user phone numbers BEFORE: {user.phone_numbers.to_list()}.")
-                        if user.phone_numbers.primary and user.phone_numbers.primary.number == number:
-                            # Promote some other verified phone number to primary
-                            for phone in user.phone_numbers.verified:
-                                if phone.number != number:
-                                    user.phone_numbers.set_primary(phone.key)
-                                    break
-                        old_user_phone_number = user.phone_numbers.find(number)
-                        if old_user_phone_number is not None:
-                            old_user_phone_number.is_primary = False
-                            old_user_phone_number.is_verified = False
+                        self._demote_duplicate_phone(user, number)
                         count += 1
-                        logger.debug(f"Old user phone numbers AFTER: {user.phone_numbers.to_list()}.")
                         self.save(user)
             except DocumentDoesNotExist:
                 pass
