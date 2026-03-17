@@ -83,6 +83,41 @@ def add_password(
     return True
 
 
+def _handle_authn_success(
+    user_password: Password,
+    user: User,
+    password: str,
+    upgrade_v2: bool,
+    application: str,
+    revoke_v1_grace_period: timedelta | None,
+    vccs: VCCSClient,
+) -> bool:
+    """Handle post-authentication credential management after a successful password check.
+
+    :return: True if any credentials were modified (upgrade or revocation)
+    """
+    # If v1 matched and upgrade is requested, create a v2 credential alongside it
+    if user_password.version == 1 and upgrade_v2:
+        _has_v2 = any(p.version == 2 for p in user.credentials.filter(Password))
+        if not _has_v2:
+            if upgrade_password_to_v2(
+                user=user,
+                password=password,
+                old_credential=user_password,
+                application=application,
+                vccs=vccs,
+            ):
+                return True
+            logger.warning(f"Password v2 upgrade failed for user {user}")
+
+    # Grace period: revoke old v1 passwords if v2 auth succeeded and v1 is past cutoff
+    elif user_password.version == 2 and revoke_v1_grace_period:
+        if revoke_expired_v1_passwords(user=user, grace_period=revoke_v1_grace_period, vccs=vccs):
+            return True
+
+    return False
+
+
 def check_password(
     password: str,
     user: User,
@@ -122,28 +157,15 @@ def check_password(
         )
         try:
             if vccs.authenticate(str(user.user_id), [factor]):
-                credentials_changed = False
-
-                # If v1 matched and upgrade is requested, create a v2 credential alongside it
-                if user_password.version == 1 and upgrade_v2:
-                    _has_v2 = any(p.version == 2 for p in user.credentials.filter(Password))
-                    if not _has_v2:
-                        if upgrade_password_to_v2(
-                            user=user,
-                            password=password,
-                            old_credential=user_password,
-                            application=application,
-                            vccs=vccs,
-                        ):
-                            credentials_changed = True
-                        else:
-                            logger.warning(f"Password v2 upgrade failed for user {user}")
-
-                # Grace period: revoke old v1 passwords if v2 auth succeeded and v1 is past cutoff
-                elif user_password.version == 2 and revoke_v1_grace_period:
-                    if revoke_expired_v1_passwords(user=user, grace_period=revoke_v1_grace_period, vccs=vccs):
-                        credentials_changed = True
-
+                credentials_changed = _handle_authn_success(
+                    user_password=user_password,
+                    user=user,
+                    password=password,
+                    upgrade_v2=upgrade_v2,
+                    application=application,
+                    revoke_v1_grace_period=revoke_v1_grace_period,
+                    vccs=vccs,
+                )
                 return CheckPasswordResult(
                     password=user_password, success=True, credentials_changed=credentials_changed
                 )
