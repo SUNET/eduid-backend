@@ -32,7 +32,7 @@ async def unexpected_error_handler(req: Request, exc: Exception) -> Response | J
     return await http_exception_handler(req, http_exception)
 
 
-async def validation_exception_handler(req: Request, exc: RequestValidationError) -> ErrorResponse:
+def validation_exception_handler(req: Request, exc: RequestValidationError) -> ErrorResponse:
     status_code = status.HTTP_422_UNPROCESSABLE_CONTENT
     detail = ErrorDetail(
         detail=list(exc.errors()),
@@ -42,7 +42,7 @@ async def validation_exception_handler(req: Request, exc: RequestValidationError
     return ErrorResponse(content=detail.model_dump(exclude_none=True), status_code=status_code)
 
 
-async def http_error_detail_handler(req: Request, exc: HTTPErrorDetail) -> ErrorResponse:
+def http_error_detail_handler(req: Request, exc: HTTPErrorDetail) -> ErrorResponse:
     logger.error(f"error detail: {req.method} {req.url.path} - {exc} - {exc.error_detail}")
     return ErrorResponse(
         content=exc.error_detail.model_dump(exclude_none=True),

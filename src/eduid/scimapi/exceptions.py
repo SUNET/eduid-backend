@@ -41,7 +41,7 @@ async def unexpected_error_handler(req: Request, exc: Exception) -> Response:
     return await http_exception_handler(req, http_exception)
 
 
-async def validation_exception_handler(req: Request, exc: RequestValidationError) -> SCIMErrorResponse:
+def validation_exception_handler(req: Request, exc: RequestValidationError) -> SCIMErrorResponse:
     status_code = status.HTTP_422_UNPROCESSABLE_CONTENT
     detail = ErrorDetail(
         schemas=[SCIMSchema.ERROR.value],
@@ -53,7 +53,7 @@ async def validation_exception_handler(req: Request, exc: RequestValidationError
     return SCIMErrorResponse(content=detail.model_dump(exclude_none=True), status_code=status_code)
 
 
-async def http_error_detail_handler(req: Request, exc: HTTPErrorDetail) -> SCIMErrorResponse:
+def http_error_detail_handler(req: Request, exc: HTTPErrorDetail) -> SCIMErrorResponse:
     logger.error(f"error detail: {req.method} {req.url.path} - {exc} - {exc.error_detail}")
     return SCIMErrorResponse(
         content=exc.error_detail.model_dump(exclude_none=True),
