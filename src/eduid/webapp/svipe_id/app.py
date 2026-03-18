@@ -59,11 +59,7 @@ def svipe_id_init_app(name: str = "svipe_id", test_config: Mapping[str, Any] | N
     config = load_config(typ=SvipeIdConfig, app_name=name, ns="webapp", test_config=test_config)
 
     # Load acs actions on app init
-    from . import callback_actions
-
-    # Make sure pycharm doesn't think the import above is unused and removes it
-    if callback_actions.__author__:
-        pass
+    from . import callback_actions  # noqa: F401
 
     app = SvipeIdApp(config)
 

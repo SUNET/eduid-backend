@@ -45,11 +45,7 @@ def init_eidas_app(name: str = "eidas", test_config: Mapping[str, Any] | None = 
     config = load_config(typ=EidasConfig, app_name=name, ns="webapp", test_config=test_config)
 
     # Load acs actions on app init
-    from . import acs_actions
-
-    # Make sure pycharm doesn't think the import above is unused and removes it
-    if acs_actions.__author__:
-        pass
+    from . import acs_actions  # noqa: F401
 
     app = EidasApp(config)
 
