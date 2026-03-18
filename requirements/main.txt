@@ -879,7 +879,7 @@ pwgen==0.8.2.post0 \
 py-bcrypt==0.4 \
     --hash=sha256:5fa13bce551468350d66c4883694850570f3da28d6866bb638ba44fe5eabda78
     # via -r main.in
-pyasn1==0.6.2 \
+pyasn1==0.6.3 \
     --hash=sha256:1eb26d860996a18e9b6ed05e7aae0e9fc21619fcee6af91cca9bad4fbea224bf \
     --hash=sha256:9b59a2b25ba7e4f8197db7686c09fb33e658b98339fadb826e9512629017833b
     # via
@@ -1227,7 +1227,7 @@ pynacl==1.6.2 \
     --hash=sha256:d29bfe37e20e015a7d8b23cfc8bd6aa7909c92a1b8f41ee416bbb3e79ef182b2 \
     --hash=sha256:fe9847ca47d287af41e82be1dd5e23023d3c31a951da134121ab02e42ac218c9
     # via -r main.in
-pyopenssl==25.3.0 \
+pyopenssl==26.0.0 \
     --hash=sha256:1fda6fc034d5e3d179d39e59c1895c9faeaf40a79de5fc4cbbfbe0d36f4a77b6 \
     --hash=sha256:c981cb0a3fd84e8602d7afc209522773b94c1c2446a3c710a75b06fe1beae329
     # via
