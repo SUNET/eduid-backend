@@ -16,7 +16,7 @@ from eduid.webapp.ladok.app import current_ladok_app as current_app
 __author__ = "lundberg"
 
 from eduid.webapp.ladok.client import LadokClientException
-from eduid.webapp.ladok.helpers import LadokMsg, link_user_BACKDOOR
+from eduid.webapp.ladok.helpers import LadokMsg, link_user_backdoor
 from eduid.webapp.ladok.schemas import LinkUserRequest, LinkUserResponse, UniversityInfoResponseSchema
 
 ladok_views = Blueprint("ladok", __name__, url_prefix="")
@@ -47,7 +47,7 @@ def link_user(user: User, ladok_name: str) -> FluxData:
 
     # Backdoor for the selenium integration tests or local dev environment
     if current_app.conf.environment is EduidEnvironment.dev or check_magic_cookie(current_app.conf):
-        return link_user_BACKDOOR(user=user, ladok_name=ladok_name)
+        return link_user_backdoor(user=user, ladok_name=ladok_name)
 
     assert user.identities.nin is not None  # please mypy
     try:

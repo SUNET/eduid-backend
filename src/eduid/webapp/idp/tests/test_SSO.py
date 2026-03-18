@@ -54,7 +54,7 @@ _U2F_SWAMID_AL3 = U2F(
 logger = logging.getLogger(__name__)
 
 
-def make_SAML_request(class_refs: list[EduidAuthnContextClass | str]) -> str:
+def make_saml_request(class_refs: list[EduidAuthnContextClass | str]) -> str:
     authn_context = ""
     authn_context_ref = ""
     for accr in class_refs:
@@ -104,7 +104,7 @@ class SSOIdPTests(IdPAPITests):
     ) -> LoginContext:
         if req_class_ref is None:
             req_class_ref = []
-        xmlstr = make_SAML_request(class_refs=req_class_ref)
+        xmlstr = make_saml_request(class_refs=req_class_ref)
         binding = "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST"
         if request_ref is None:
             request_ref = RequestRef(str(uuid4()))

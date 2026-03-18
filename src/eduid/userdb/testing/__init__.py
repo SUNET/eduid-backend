@@ -14,7 +14,7 @@ from typing import Any
 import pymongo
 import pymongo.errors
 
-from eduid.common.logging import LocalContext, make_dictConfig
+from eduid.common.logging import LocalContext, make_dict_config
 from eduid.userdb import User
 from eduid.userdb.db import TUserDbDocument
 from eduid.userdb.testing.temp_instance import EduidTemporaryInstance
@@ -138,7 +138,7 @@ class MongoTestCase(unittest.TestCase):
             level="DEBUG",
             relative_time=True,
         )
-        logging_config = make_dictConfig(local_context)
+        logging_config = make_dict_config(local_context)
         logging.config.dictConfig(logging_config)
 
     def _reset_databases(self) -> None:
@@ -209,7 +209,7 @@ class AsyncMongoTestCase(unittest.IsolatedAsyncioTestCase):
             level="DEBUG",
             relative_time=True,
         )
-        logging_config = make_dictConfig(local_context)
+        logging_config = make_dict_config(local_context)
         logging.config.dictConfig(logging_config)
 
     def _reset_databases(self) -> None:

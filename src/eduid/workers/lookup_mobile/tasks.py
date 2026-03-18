@@ -25,24 +25,24 @@ class MobWorker(Task):
         return self._lookup_client
 
 
-@app.task(bind=True, base=MobWorker)
+@app.task(bind=True, base=MobWorker, name="eduid_lookup_mobile.tasks.find_mobiles_by_NIN")
 @deprecated("This task seems unused")
-def find_mobiles_by_NIN(self: MobWorker, national_identity_number: str, number_region: str | None = None) -> list[str]:
+def find_mobiles_by_nin(self: MobWorker, national_identity_number: str, number_region: str | None = None) -> list[str]:
     """
     Searches mobile numbers registered to the given nin
     :param national_identity_number:
     :return: a list of formatted mobile numbers. Empty list if no numbers was registered to the nin
     """
-    return self.lookup_client.find_mobiles_by_NIN(national_identity_number, number_region)
+    return self.lookup_client.find_mobiles_by_nin(national_identity_number, number_region)
 
 
 @app.task(bind=True, base=MobWorker, name="eduid_lookup_mobile.tasks.find_NIN_by_mobile")
-def find_NIN_by_mobile(self: MobWorker, mobile_number: str) -> str | None:
+def find_nin_by_mobile(self: MobWorker, mobile_number: str) -> str | None:
     """
     Searches nin with the registered mobile number
     :return: the nin with the registered mobile number
     """
-    return self.lookup_client.find_NIN_by_mobile(mobile_number)
+    return self.lookup_client.find_nin_by_mobile(mobile_number)
 
 
 @app.task(bind=True, base=MobWorker, name="eduid_lookup_mobile.tasks.pong")
