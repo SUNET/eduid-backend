@@ -324,7 +324,7 @@ def logout_service() -> WerkzeugResponse:
     abort(400)
 
 
-@authn_views.route("/saml2-metadata")
+@authn_views.route("/saml2-metadata", methods=["GET"])
 def metadata() -> WerkzeugResponse:
     """
     Returns an XML with the SAML 2.0 metadata for this

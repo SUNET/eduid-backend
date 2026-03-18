@@ -74,7 +74,7 @@ def post_json_view_sanitizing(test_data: str) -> Response:
     return _make_response(test_data)
 
 
-@test_views.route("/test-cookie")
+@test_views.route("/test-cookie", methods=["GET"])
 def cookie_view() -> Response:
     cookie = request.cookies.get("test-cookie")
     safe_cookie = sanitize_item(cookie)
@@ -82,14 +82,14 @@ def cookie_view() -> Response:
     return _make_response(str(safe_cookie))
 
 
-@test_views.route("/test-empty-session")
+@test_views.route("/test-empty-session", methods=["GET"])
 def empty_session_view() -> Response:
     cookie = request.cookies.get("sessid")
     assert cookie is not None
     return _make_response(cookie)
 
 
-@test_views.route("/test-header")
+@test_views.route("/test-header", methods=["GET"])
 def header_view() -> Response:
     safe_headers = sanitize_map(dict(request.headers))
     safe_header = safe_headers.get("X-Test")

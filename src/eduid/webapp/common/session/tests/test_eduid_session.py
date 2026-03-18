@@ -30,30 +30,30 @@ def session_init_app(name: str, test_config: Mapping[str, Any]) -> SessionTestAp
     app = SessionTestApp(config, init_central_userdb=False)
     no_authn_views(config, ["/unauthenticated"])
 
-    @app.route("/authenticated")
+    @app.route("/authenticated", methods=["GET"])
     def authenticated() -> str:
         session["authenticated_request"] = True
         return "Hello, World!"
 
-    @app.route("/unauthenticated")
+    @app.route("/unauthenticated", methods=["GET"])
     def unauthenticated() -> str:
         session["unauthenticated_request"] = True
         return "Hello, World!"
 
-    @app.route("/return-session-key-test")
+    @app.route("/return-session-key-test", methods=["GET"])
     def return_session_key_test() -> str:
         ret = session["test"]
         assert isinstance(ret, str)
         return ret
 
-    @app.route("/common")
+    @app.route("/common", methods=["GET"])
     def common() -> str:
         session.common.eppn = "hubba-bubba"
         session.common.is_logged_in = True
         session.common.login_source = LoginApplication["authn"]
         return "Hello, World!"
 
-    @app.route("/mfa-action")
+    @app.route("/mfa-action", methods=["GET"])
     def mfa_action() -> str:
         session.mfa_action.success = True
         session.mfa_action.issuer = "https://issuer-entity-id.example.com"
@@ -61,17 +61,17 @@ def session_init_app(name: str, test_config: Mapping[str, Any]) -> SessionTestAp
         session.mfa_action.authn_context = "http://id.elegnamnden.se/loa/1.0/loa3"
         return "Hello, World!"
 
-    @app.route("/reset-password")
+    @app.route("/reset-password", methods=["GET"])
     def reset_password() -> str:
         session.reset_password.generated_password_hash = "password-hash"
         return "Hello, World!"
 
-    @app.route("/signup")
+    @app.route("/signup", methods=["GET"])
     def signup() -> str:
         session.signup.email.verification_code = "email-verification-code"
         return "Hello, World!"
 
-    @app.route("/logout")
+    @app.route("/logout", methods=["GET"])
     def logout() -> str:
         session.invalidate()
         return "Goodbye"
