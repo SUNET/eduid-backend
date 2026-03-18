@@ -332,14 +332,15 @@ def change_password(
 
     # When version=2 and within grace period, also add a v1 companion for backward compatibility
     if _add_v1_companion:
-        if not add_password(
+        v1_added = add_password(
             user=user,
             new_password=new_password,
             application=application,
             is_generated=is_generated,
             vccs=vccs,
             version=1,
-        ):
+        )
+        if not v1_added:
             logger.warning(f"Failed adding v1 companion password for user {user}")
     return True
 

@@ -28,9 +28,8 @@ class SignupUser(User):
         _social_network_id = data.pop("social_network_id", None)
         _pending_mail_address = data.pop("pending_mail_address", None)
         _proofing_reference = data.pop("proofing_reference", None)
-        if _pending_mail_address:
-            if isinstance(_pending_mail_address, dict):
-                _pending_mail_address = EmailProofingElement.from_dict(_pending_mail_address)
+        if _pending_mail_address and isinstance(_pending_mail_address, dict):
+            _pending_mail_address = EmailProofingElement.from_dict(_pending_mail_address)
 
         data["social_network"] = _social_network
         data["social_network_id"] = _social_network_id
