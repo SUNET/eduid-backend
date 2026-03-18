@@ -66,7 +66,7 @@ class TestOrcid(unittest.TestCase):
         assert dict_1 == dict_2
 
         with self.assertRaises(eduid.userdb.exceptions.UserDBValueError):
-            OidcIdToken.from_dict(None)  # type: ignore[arg-type]  # NOSONAR
+            OidcIdToken.from_dict(None)  # type: ignore[arg-type]  # NOSONAR(S5655)
 
     def test_oidc_authz(self) -> None:
         assert isinstance(token_response["id_token"], dict)
@@ -98,7 +98,7 @@ class TestOrcid(unittest.TestCase):
         assert dict_1 == dict_2
 
         with self.assertRaises(eduid.userdb.exceptions.UserDBValueError):
-            OidcAuthorization.from_dict(None)  # type: ignore[arg-type]  # NOSONAR
+            OidcAuthorization.from_dict(None)  # type: ignore[arg-type]  # NOSONAR(S5655)
 
     def test_orcid(self) -> None:
         assert isinstance(token_response["id_token"], dict)
@@ -138,4 +138,4 @@ class TestOrcid(unittest.TestCase):
         ], f"Wrong error message: {normalised_data(exc_info.value.errors(), exclude_keys=['url'])}"
 
         with pytest.raises(eduid.userdb.exceptions.UserDBValueError):
-            Orcid.from_dict(None)  # type: ignore[arg-type]  # NOSONAR
+            Orcid.from_dict(None)  # type: ignore[arg-type]  # NOSONAR(S5655)
