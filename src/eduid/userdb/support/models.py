@@ -22,8 +22,8 @@ class GenericFilterDict(dict):
         super().__init__()
 
         if _data is None:
-            pass
-        elif self.add_keys:
+            return
+        if self.add_keys:
             for key in self.add_keys:
                 if key in _data:
                     self[key] = _data[key]
