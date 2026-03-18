@@ -27,7 +27,7 @@ class LadokMsg(TranslatableMsg):
     user_unlinked = "ladok.user-unlinked-successfully"
 
 
-def link_user_BACKDOOR(user: User, ladok_name: str) -> FluxData:
+def link_user_backdoor(user: User, ladok_name: str) -> FluxData:
     proofing_user = ProofingUser.from_user(user, current_app.private_userdb)
     university = current_app.ladok_client.universities.get(ladok_name)
     if not university:

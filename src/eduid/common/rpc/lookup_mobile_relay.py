@@ -13,15 +13,15 @@ class LookupMobileRelay:
         self.app_name = config.app_name
         eduid.workers.lookup_mobile.init_app(config.celery)
         # these have to be imported _after_ eduid.workers.lookup_mobile.init_app()
-        from eduid.workers.lookup_mobile.tasks import find_mobiles_by_NIN, find_NIN_by_mobile, pong
+        from eduid.workers.lookup_mobile.tasks import find_mobiles_by_nin, find_nin_by_mobile, pong
 
-        self._find_mobiles_by_NIN = find_mobiles_by_NIN
-        self._find_NIN_by_mobile = find_NIN_by_mobile
+        self._find_mobiles_by_nin = find_mobiles_by_nin
+        self._find_nin_by_mobile = find_nin_by_mobile
         self._pong = pong
 
     def find_nin_by_mobile(self, mobile_number: str) -> str | None:
         try:
-            result = self._find_NIN_by_mobile.delay(mobile_number)
+            result = self._find_nin_by_mobile.delay(mobile_number)
             result = result.get(timeout=10)  # Lower timeout than standard gunicorn worker timeout (25)
             return result
         except Exception as e:
@@ -30,7 +30,7 @@ class LookupMobileRelay:
     @deprecated("This task seems unused")
     def find_mobiles_by_nin(self, nin: str) -> Any:  # noqa: ANN401
         try:
-            result = self._find_mobiles_by_NIN.delay(nin)
+            result = self._find_mobiles_by_nin.delay(nin)
             result = result.get(timeout=10)  # Lower timeout than standard gunicorn worker timeout (25)
             return result
         except Exception as e:

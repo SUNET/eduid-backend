@@ -18,12 +18,12 @@ class TestTransactionAudit(LookupMobileMongoTestCase):
 
     def test_successfull_transaction_audit(self) -> None:
         @TransactionAudit()
-        def find_mobiles_by_NIN(
+        def find_mobiles_by_nin(
             self: TestTransactionAudit, national_identity_number: str, number_region: str | None = None
         ) -> list[str]:
             return ["list", "of", "mobile_numbers"]
 
-        find_mobiles_by_NIN(self, "200202025678")
+        find_mobiles_by_nin(self, "200202025678")
         c = self.db["transaction_audit"]
         result = c.find()
         self.assertEqual(c.count_documents({}), 1)
@@ -33,10 +33,10 @@ class TestTransactionAudit(LookupMobileMongoTestCase):
         c.delete_many({})  # Clear database
 
         @TransactionAudit()
-        def find_NIN_by_mobile(self: TestTransactionAudit, mobile_number: str) -> str:
+        def find_nin_by_mobile(self: TestTransactionAudit, mobile_number: str) -> str:
             return "200202025678"
 
-        find_NIN_by_mobile(self, "+46701740699")
+        find_nin_by_mobile(self, "+46701740699")
         c = self.db["transaction_audit"]
         result = c.find()
         self.assertEqual(c.count_documents({}), 1)
@@ -47,12 +47,12 @@ class TestTransactionAudit(LookupMobileMongoTestCase):
 
     def test_failed_transaction_audit(self) -> None:
         @TransactionAudit()
-        def find_mobiles_by_NIN(
+        def find_mobiles_by_nin(
             self: TestTransactionAudit, national_identity_number: str, number_region: str | None = None
         ) -> list:
             return []
 
-        find_mobiles_by_NIN(self, "200202025678")
+        find_mobiles_by_nin(self, "200202025678")
         c = self.db["transaction_audit"]
         result = c.find()
         self.assertEqual(c.count_documents({}), 1)
@@ -60,10 +60,10 @@ class TestTransactionAudit(LookupMobileMongoTestCase):
         c.delete_many({})  # Clear database
 
         @TransactionAudit()
-        def find_NIN_by_mobile(self: TestTransactionAudit, mobile_number: str) -> None:
+        def find_nin_by_mobile(self: TestTransactionAudit, mobile_number: str) -> None:
             return
 
-        find_NIN_by_mobile(self, "+46701740699")
+        find_nin_by_mobile(self, "+46701740699")
         c = self.db["transaction_audit"]
         result = c.find()
         self.assertEqual(c.count_documents({}), 1)

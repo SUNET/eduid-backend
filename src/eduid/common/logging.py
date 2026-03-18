@@ -164,7 +164,7 @@ def init_logging(config: LoggingConfigMixin) -> None:
     Merges optional dictConfig from settings before initializing (config key 'logging_config').
     """
     local_context = make_local_context(config)
-    logging_config = make_dictConfig(local_context)
+    logging_config = make_dict_config(local_context)
 
     logging_config = merge_config(logging_config, config.logging_config)
 
@@ -223,7 +223,7 @@ def make_local_context(config: LoggingConfigMixin) -> LocalContext:
     return local_context
 
 
-def make_dictConfig(local_context: LocalContext) -> dict[str, Any]:
+def make_dict_config(local_context: LocalContext) -> dict[str, Any]:
     """
     Create configuration for logging.dictConfig.
 

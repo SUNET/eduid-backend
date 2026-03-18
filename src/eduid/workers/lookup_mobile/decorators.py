@@ -66,12 +66,12 @@ class TransactionAudit:
     def _filter(self, func: str, data: Any, *args: Any, **kwargs: Any) -> Any:  # noqa: ANN401
         if data is False:
             return data
-        if func == "find_mobiles_by_NIN":
+        if func == "find_mobiles_by_nin":
             number_region = None
             ARGS_INCLUDE_REGION = 3
             if len(args) == ARGS_INCLUDE_REGION:
                 number_region = args[2]
             return {"national_identity_number": args[1], "number_region": number_region, "data_returned": bool(data)}
-        elif func == "find_NIN_by_mobile":
+        elif func == "find_nin_by_mobile":
             return {"mobile_number": args[1], "data_returned": bool(data)}
         return data

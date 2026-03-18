@@ -11,7 +11,7 @@ from eduid.userdb.proofing.state import NinProofingState
 from eduid.webapp.common.api.helpers import check_magic_cookie, get_proofing_log_navet_data
 from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.lookup_mobile_proofing.app import current_mobilep_app as current_app
-from eduid.workers.lookup_mobile.utilities import format_NIN
+from eduid.workers.lookup_mobile.utilities import format_nin
 
 __author__ = "lundberg"
 
@@ -94,7 +94,7 @@ def match_mobile_to_user(
     for mobile_number in verified_mobile_numbers:
         try:
             registered_to_nin = current_app.lookup_mobile_relay.find_nin_by_mobile(mobile_number)
-            registered_to_nin = format_NIN(registered_to_nin)
+            registered_to_nin = format_nin(registered_to_nin)
             current_app.logger.debug(f"Mobile {mobile_number} registered to NIN: {registered_to_nin}")
         except LookupMobileTaskFailed:
             current_app.logger.error("Lookup mobile task failed for user")

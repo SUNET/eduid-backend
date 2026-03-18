@@ -6,7 +6,7 @@ from collections.abc import Sequence
 import phonenumbers
 
 
-def format_NIN(nin: str | None) -> str | None:
+def format_nin(nin: str | None) -> str | None:
     if nin is None:
         return None
 

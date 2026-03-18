@@ -8,7 +8,7 @@ from eduid.common.config.workers import MobConfig
 from eduid.common.decorators import deprecated
 from eduid.workers.lookup_mobile.decorators import TransactionAudit
 from eduid.workers.lookup_mobile.development.development_search_result import _get_devel_search_result
-from eduid.workers.lookup_mobile.utilities import format_mobile_number, format_NIN
+from eduid.workers.lookup_mobile.utilities import format_mobile_number, format_nin
 
 
 class MobileLookupClient:
@@ -35,8 +35,8 @@ class MobileLookupClient:
 
     @TransactionAudit()
     @deprecated("This task seems unused")
-    def find_mobiles_by_NIN(self, national_identity_number: str, number_region: str | None = None) -> list[str]:
-        formatted_nin = format_NIN(national_identity_number)
+    def find_mobiles_by_nin(self, national_identity_number: str, number_region: str | None = None) -> list[str]:
+        formatted_nin = format_nin(national_identity_number)
         if not formatted_nin:
             self.logger.error(f"Invalid NIN input: {national_identity_number}")
             return []
@@ -50,13 +50,13 @@ class MobileLookupClient:
         return format_mobile_number(mobiles, number_region)
 
     @TransactionAudit()
-    def find_NIN_by_mobile(self, mobile_number: str) -> str | None:
+    def find_nin_by_mobile(self, mobile_number: str) -> str | None:
         nin = self._search_by_mobile(mobile_number)
         if not nin:
             self.logger.debug(f"Did not get search result from mobile number: {mobile_number}")
             return None
 
-        return format_NIN(nin)
+        return format_nin(nin)
 
     def _search(self, param: Object) -> list | None:
         # Start the search

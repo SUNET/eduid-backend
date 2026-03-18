@@ -4,7 +4,7 @@ from logging.config import dictConfig
 
 from eduid.common.config.base import LoggingConfigMixin
 from eduid.common.config.exceptions import BadConfiguration
-from eduid.common.logging import LocalContext, LoggingFilters, make_dictConfig, merge_config
+from eduid.common.logging import LocalContext, LoggingFilters, make_dict_config, merge_config
 
 __author__ = "lundberg"
 
@@ -47,7 +47,7 @@ def make_local_context(app_name: str, config: LoggingConfigMixin) -> LocalContex
 
 def init_logging(app_name: str, config: LoggingConfigMixin) -> None:
     local_context = make_local_context(app_name, config)
-    logging_config = make_dictConfig(local_context)
+    logging_config = make_dict_config(local_context)
     logging_config = merge_config(logging_config, config.logging_config)
     dictConfig(logging_config)
     logger = logging.getLogger(__name__)
