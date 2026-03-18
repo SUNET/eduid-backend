@@ -1472,7 +1472,7 @@ class NINMethodTests(SamlEidTests):
 
         self._verify_user_parameters(eppn)
 
-        # Default is allow_eidas_credential_verification=False
+        # Note: allow_eidas_credential_verification defaults to False
         assert self.app.conf.allow_eidas_credential_verification is False
 
         with self.session_cookie(self.browser, eppn) as browser:

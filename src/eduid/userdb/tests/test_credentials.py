@@ -14,7 +14,7 @@ from eduid.userdb.element import ElementKey
 
 __author__ = "lundberg"
 
-# ruff: disable[ERA001]
+# ruff: disable[ERA001] # NOSONAR(S125)
 # {'passwords': {
 #    'id': password_id,
 #    'salt': salt,
