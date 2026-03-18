@@ -45,11 +45,7 @@ def init_samleid_app(name: str = "samleid", test_config: Mapping[str, Any] | Non
     config = load_config(typ=SamlEidConfig, app_name=name, ns="webapp", test_config=test_config)
 
     # Load acs actions on app init
-    from . import acs_actions
-
-    # Make sure pycharm doesn't think the import above is unused and removes it
-    if acs_actions.__author__:
-        pass
+    from . import acs_actions  # noqa: F401
 
     app = SamlEidApp(config)
 

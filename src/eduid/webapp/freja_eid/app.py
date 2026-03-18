@@ -62,11 +62,7 @@ def freja_eid_init_app(name: str = "freja_eid", test_config: Mapping[str, Any] |
     config = load_config(typ=FrejaEIDConfig, app_name=name, ns="webapp", test_config=test_config)
 
     # Load acs actions on app init
-    from . import callback_actions
-
-    # Make sure pycharm doesn't think the import above is unused and removes it
-    if callback_actions.__author__:
-        pass
+    from . import callback_actions  # noqa: F401
 
     app = FrejaEIDApp(config)
 
