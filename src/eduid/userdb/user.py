@@ -310,10 +310,10 @@ class User(BaseModel):
             isinstance(_mail_addresses, list)
             and len(_mail_addresses) == 1
             and _mail_addresses[0].get("verified", False)
+            and not _mail_addresses[0].get("primary", False)
         ):
-            if not _mail_addresses[0].get("primary", False):
-                # A single mail address was not set as Primary until it was verified
-                _mail_addresses[0]["primary"] = True
+            # A single mail address was not set as Primary until it was verified
+            _mail_addresses[0]["primary"] = True
 
         return MailAddressList.from_list_of_dicts(_mail_addresses)
 

@@ -169,18 +169,17 @@ def login_next_step(ticket: LoginContext, sso_session: SSOSession | None) -> Nex
                 current_app.logger.debug("Login request from unknown device")
                 return NextResult(message=IdPMsg.unknown_device)
 
-    if current_app.conf.allow_other_device_logins:
-        if ticket.is_other_device_1:
-            state = None
-            if ticket.other_device_state_id:
-                state = current_app.other_device_db.get_state_by_id(ticket.other_device_state_id)
-            if (
-                state
-                and state.expires_at > utc_now()
-                and state.state in [OtherDeviceState.NEW, OtherDeviceState.IN_PROGRESS]
-            ):
-                current_app.logger.debug(f"Logging in using another device, {ticket.other_device_state_id}")
-                return NextResult(message=IdPMsg.other_device)
+    if current_app.conf.allow_other_device_logins and ticket.is_other_device_1:
+        state = None
+        if ticket.other_device_state_id:
+            state = current_app.other_device_db.get_state_by_id(ticket.other_device_state_id)
+        if (
+            state
+            and state.expires_at > utc_now()
+            and state.state in [OtherDeviceState.NEW, OtherDeviceState.IN_PROGRESS]
+        ):
+            current_app.logger.debug(f"Logging in using another device, {ticket.other_device_state_id}")
+            return NextResult(message=IdPMsg.other_device)
 
     if not isinstance(sso_session, SSOSession):
         current_app.logger.debug("No SSO session found - initiating authentication")

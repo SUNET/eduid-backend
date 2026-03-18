@@ -103,11 +103,10 @@ class LoginContext(ABC, BaseModel):
 
     @property
     def known_device(self) -> KnownDevice | None:
-        if not self._known_device:
-            if self.known_device_info:
-                from eduid.webapp.idp.app import current_idp_app as current_app
+        if not self._known_device and self.known_device_info:
+            from eduid.webapp.idp.app import current_idp_app as current_app
 
-                self._known_device = current_app.known_device_db.get_state_by_browser_info(self.known_device_info)
+            self._known_device = current_app.known_device_db.get_state_by_browser_info(self.known_device_info)
         return self._known_device
 
     def forget_known_device(self) -> None:

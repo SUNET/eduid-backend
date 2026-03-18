@@ -38,10 +38,9 @@ class TransactionAudit:
                     self.collection.insert_one(doc)
             return ret
 
-        if self._conn is None or not self._conn.is_healthy():
-            if self.db_uri:
-                self._conn = MongoDB(self.db_uri)
-                self.collection = self._conn.get_collection(self.collection_name, database_name=self.db_name)
+        if (self._conn is None or not self._conn.is_healthy()) and self.db_uri:
+            self._conn = MongoDB(self.db_uri)
+            self.collection = self._conn.get_collection(self.collection_name, database_name=self.db_name)
         return audit
 
     @classmethod

@@ -228,13 +228,12 @@ def use_other_2(
         # use it and log in and then use the QR code to retrieve the response code.
         request_ref = RequestRef(str(uuid4()))
 
-        if sso_session:
-            if sso_session.eppn != state.eppn:
-                current_app.logger.warning(
-                    f"Can't login as eppn {state.eppn} on this device, "
-                    "SSO session has another eppn: {sso_session.eppn}"
-                )
-                return error_response(message=IdPMsg.wrong_user)
+        if sso_session and sso_session.eppn != state.eppn:
+            current_app.logger.warning(
+                f"Can't login as eppn {state.eppn} on this device, "
+                "SSO session has another eppn: {sso_session.eppn}"
+            )
+            return error_response(message=IdPMsg.wrong_user)
 
         _state = current_app.other_device_db.grab(state, request_ref)
         if not _state:

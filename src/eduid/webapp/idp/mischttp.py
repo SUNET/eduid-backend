@@ -141,9 +141,8 @@ def create_html_response(binding: str, http_args: HttpArgs) -> WerkzeugResponse:
         logger.debug(f"Binding {binding} redirecting to {location!r}")
         if not location:
             raise InternalServerError("No redirect destination")
-        if http_args.url:
-            if not location.startswith(http_args.url):
-                logger.warning(f'There is another "url" in args: {http_args.url} (location: {location})')
+        if http_args.url and not location.startswith(http_args.url):
+            logger.warning(f'There is another "url" in args: {http_args.url} (location: {location})')
         return redirect(location)
 
     message = b""
