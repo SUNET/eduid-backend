@@ -556,24 +556,6 @@ class AttributeFetcherLadokTests(ProofingTestCase):
 
         expected = {
             "$set": {
-                "ladok": {
-                    "created_ts": datetime(2022, 2, 23, 17, 39, 32, tzinfo=UTC),
-                    "modified_ts": datetime(2022, 2, 23, 17, 39, 32, tzinfo=UTC),
-                    "verified_by": "eduid-ladok",
-                    "external_id": UUID("9555f3de-dd32-4bed-8e36-72ef00fb4df2"),
-                    "university": {
-                        "created_ts": datetime(2022, 2, 23, 17, 39, 32, tzinfo=UTC),
-                        "modified_ts": datetime(2022, 2, 23, 17, 39, 32, tzinfo=UTC),
-                        "ladok_name": "ab",
-                        "name": {"sv": "Lärosätesnamn", "en": "University Name"},
-                    },
-                    "verified": True,
-                }
-            }
-        }
-
-        expected = {
-            "$set": {
                 "ladok": self.user_data["ladok"],
             }
         }
