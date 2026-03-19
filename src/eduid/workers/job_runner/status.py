@@ -54,7 +54,11 @@ def check_msg(request: ContextRequest) -> bool:
 
 def check_scheduler(request: ContextRequest) -> bool:
     scheduler: JobScheduler = request.app.scheduler
-    return scheduler.running
+    if scheduler.running:
+        reset_failure_info(request, key="_check_scheduler")
+        return True
+    log_failure_info(request, key="_check_scheduler", msg="APScheduler health check failed")
+    return False
 
 
 status_router = create_status_router(
