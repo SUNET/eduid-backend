@@ -19,13 +19,13 @@ logger = logging.getLogger(__name__)
 class QueueTestWorker(IsolatedWorkerDBMixin, QueueWorker):
     async def handle_expired_item(self, queue_item: QueueItem) -> None:
         if not isinstance(queue_item.payload, TestPayload):
-            raise Exception(f"queue_item.payload type {type(queue_item.payload)} not TestPayload")
+            raise TypeError(f"queue_item.payload type {type(queue_item.payload)} not TestPayload")
         assert queue_item.payload.message == "Expired item"
         await self.item_successfully_handled(queue_item)
 
     async def handle_new_item(self, queue_item: QueueItem) -> None:
         if not isinstance(queue_item.payload, TestPayload):
-            raise Exception(f"queue_item.payload type {type(queue_item.payload)} not TestPayload")
+            raise TypeError(f"queue_item.payload type {type(queue_item.payload)} not TestPayload")
         assert queue_item.payload.message == "New item"
         await self.item_successfully_handled(queue_item)
 
