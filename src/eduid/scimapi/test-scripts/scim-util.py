@@ -124,7 +124,7 @@ def create_user(api: Api, external_id: str) -> dict[str, Any] | None:
     return res
 
 
-def create_group(api: Api, display_name: str, token: str | None = None) -> dict[str, Any] | None:
+def create_group(api: Api, display_name: str) -> dict[str, Any] | None:
     logger.info(f"Creating group with displayName {display_name}")
     query = {"schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"], "displayName": display_name, "members": []}
     logger.debug(f"Sending group create query:\n{pformat(json.dumps(query, sort_keys=True, indent=4))}")
@@ -183,7 +183,7 @@ def put_user(api: Api, scim_id: str, nutid_data: Mapping[str, Any]) -> None:
     return None
 
 
-def put_group(api: Api, scim_id: str, data: dict[str, Any], token: str | None = None) -> None:
+def put_group(api: Api, scim_id: str, data: dict[str, Any]) -> None:
     scim = get_group_resource(api, scim_id)
     if not scim:
         return

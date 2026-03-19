@@ -88,7 +88,6 @@ async def on_put(
             req=req,
             db_invite=db_invite,
             signup_invite=signup_invite,
-            db_invite_is_in_database=True,
             signup_invite_is_in_database=True,
         )
         add_api_event(
@@ -174,7 +173,6 @@ async def on_post(req: ContextRequest, resp: Response, create_request: InviteCre
         req=req,
         db_invite=db_invite,
         signup_invite=signup_invite,
-        db_invite_is_in_database=False,
         signup_invite_is_in_database=False,
     )
     if signup_invite.send_email:
