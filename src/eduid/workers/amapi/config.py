@@ -46,7 +46,7 @@ class AMApiConfig(RootConfig, LoggingConfigMixin):
     mongo_uri: str = ""
     application_root: str = ""
     keystore_path: Path
-    no_authn_urls: list[str] = Field(default=["/status/healthy", "/openapi.json"])
+    no_authn_urls: list[str] = Field(default=["/status/healthy", "/status/ping", "/openapi.json"])
     status_cache_seconds: int = 10
     requested_access_type: str | None = "am_api"
     user_restriction: dict[ServiceName, list[EndpointRestriction]]

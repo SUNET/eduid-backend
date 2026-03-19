@@ -509,7 +509,7 @@ class AuthnBearerTokenConfig(RootConfig):
     server_name: str = "localhost:8000"
     application_root: str = ""
     log_format: str = "{asctime} | {levelname:7} | {hostname} | {name:35} | {module:10} | {message}"
-    no_authn_urls: list[str] = Field(default=["^/status/healthy$", "^/docs/?$", "^/openapi.json"])
+    no_authn_urls: list[str] = Field(default=["^/status/healthy$", "^/status/ping$", "^/docs/?$", "^/openapi.json"])
     mongo_uri: str = ""
     authorization_mandatory: bool = True
     authorization_token_expire: int = 5 * 60
