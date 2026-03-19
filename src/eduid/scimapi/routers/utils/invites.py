@@ -168,13 +168,11 @@ def save_invite(
     req: ContextRequest,
     db_invite: ScimApiInvite,
     signup_invite: SignupInvite,
-    db_invite_is_in_database: bool,
     signup_invite_is_in_database: bool,
 ) -> None:
     try:
         assert isinstance(req.context, ScimApiContext)  # please mypy
         assert req.context.invitedb is not None  # please mypy
-        # TODO: pass is_in_database=db_invite_is_in_database once ScimApiInviteDB.save() supports it
         req.context.invitedb.save(db_invite)
     except DuplicateKeyError as e:
         assert e.details is not None  # please mypy
