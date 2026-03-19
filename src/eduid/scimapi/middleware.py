@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 # Hack to be able to get request body both now and later
 # https://github.com/encode/starlette/issues/495#issuecomment-513138055
 def set_body(request: Request, body: bytes) -> None:
-    async def receive() -> Message:
+    async def receive() -> Message:  # NOSONAR(S7503) must be async
         return {"type": "http.request", "body": body}
 
     request._receive = receive
