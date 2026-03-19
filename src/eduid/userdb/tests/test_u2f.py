@@ -11,7 +11,7 @@ from eduid.userdb.credentials import U2F, CredentialList, CredentialProofingMeth
 
 __author__ = "lundberg"
 
-# ruff: disable[ERA001] # NOSONAR(S125)
+# ruff: disable[ERA001]
 # {'passwords': {
 #    'id': password_id,
 #    'salt': salt,
