@@ -68,6 +68,11 @@ def cached_json_response(key: str, data: dict[str, Any] | None = None) -> Respon
     return response
 
 
+@status_views.route("/ping", methods=["GET"])
+def ping() -> Response:
+    return Response(status=200)
+
+
 @status_views.route("/healthy", methods=["GET"])
 def health_check() -> Response:
     response = cached_json_response("health_check", None)
