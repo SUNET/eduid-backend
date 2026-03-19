@@ -5,6 +5,9 @@ __author__ = "lundberg"
 
 
 def check_mongo(req: ContextRequest) -> bool:
+    if not req.app.context.config.data_owners:
+        log_failure_info(req, "_check_mongo", msg="Mongodb health check failed: no data_owners configured")
+        return False
     default_data_owner = next(iter(req.app.context.config.data_owners.keys()))
     user_db = req.app.context.get_userdb(default_data_owner)
     group_db = req.app.context.get_groupdb(default_data_owner)
@@ -20,6 +23,9 @@ def check_mongo(req: ContextRequest) -> bool:
 
 
 def check_neo4j(req: ContextRequest) -> bool:
+    if not req.app.context.config.data_owners:
+        log_failure_info(req, "_check_neo4j", msg="Neo4j health check failed: no data_owners configured")
+        return False
     default_data_owner = next(iter(req.app.context.config.data_owners.keys()))
     group_db = req.app.context.get_groupdb(default_data_owner)
     try:
