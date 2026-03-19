@@ -61,7 +61,7 @@ class QueueDB(BaseDB, QueuePayloadMixin):
             # Return the item with the generic RawPayload
             return item
         item = replace(item, payload=self._load_payload(item))
-        return item  # NOSONAR(S5886)
+        return item
 
     def save(self, item: QueueItem) -> bool:
         test_doc = {"_id": item.item_id}
