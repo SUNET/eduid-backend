@@ -304,7 +304,7 @@ class AttributeFetcherPersonalDataTests(ProofingTestCase):
             },
         )
 
-    def test_fillup_attributes(self) -> None:
+    def test_fillup_attributes(self) -> None:  # NOSONAR(S4144) - remove when TODO below is resolved
         # TODO: This test is IDENTICAL to the one above - need to actually add _more_ attributes in this one
         personal_data_user = PersonalDataUser.from_dict(self.user_data)
 
@@ -448,7 +448,7 @@ class AttributeFetcherResetPasswordTests(ProofingTestCase):
 
         assert normalised_data(fetched) == expected, "Wrong data fetched by reset password fetcher"
 
-    def test_fillup_attributes(self) -> None:
+    def test_fillup_attributes(self) -> None:  # NOSONAR(S4144) - remove when TODO below is resolved
         # TODO: This test is IDENTICAL to the one above - need to actually add _more_ attributes in this one
         reset_password_user = ResetPasswordUser.from_dict(self.user_data)
 
