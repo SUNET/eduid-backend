@@ -168,7 +168,6 @@ def save_invite(
     req: ContextRequest,
     db_invite: ScimApiInvite,
     signup_invite: SignupInvite,
-    db_invite_is_in_database: bool,
     signup_invite_is_in_database: bool,
 ) -> None:
     try:

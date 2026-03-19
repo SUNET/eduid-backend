@@ -1,5 +1,4 @@
 from datetime import UTC, datetime
-from uuid import UUID
 
 import bson
 from deepdiff import DeepDiff
@@ -553,24 +552,6 @@ class AttributeFetcherLadokTests(ProofingTestCase):
 
         self.fetcher.private_db.save(proofing_user)
         fetched = self.fetcher.fetch_attrs(proofing_user.user_id)
-
-        expected = {
-            "$set": {
-                "ladok": {
-                    "created_ts": datetime(2022, 2, 23, 17, 39, 32, tzinfo=UTC),
-                    "modified_ts": datetime(2022, 2, 23, 17, 39, 32, tzinfo=UTC),
-                    "verified_by": "eduid-ladok",
-                    "external_id": UUID("9555f3de-dd32-4bed-8e36-72ef00fb4df2"),
-                    "university": {
-                        "created_ts": datetime(2022, 2, 23, 17, 39, 32, tzinfo=UTC),
-                        "modified_ts": datetime(2022, 2, 23, 17, 39, 32, tzinfo=UTC),
-                        "ladok_name": "ab",
-                        "name": {"sv": "Lärosätesnamn", "en": "University Name"},
-                    },
-                    "verified": True,
-                }
-            }
-        }
 
         expected = {
             "$set": {
