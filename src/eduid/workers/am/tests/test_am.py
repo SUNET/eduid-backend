@@ -54,9 +54,9 @@ class FakeAttributeFetcher(AttributeFetcher):
     def fetch_attrs(self, user_id: ObjectId) -> dict[str, Any]:
         assert self.private_db
         user: User | None = self.private_db.get_user_by_id(user_id)
-        assert isinstance(user, AmTestUser)
         if user is None:
             raise UserDoesNotExist(f"No user matching _id={user_id!r}")
+        assert isinstance(user, AmTestUser)
 
         # Transfer all attributes except `uid' from the test plugins database.
         # Transform eduPersonPrincipalName on the way to make it clear that the
