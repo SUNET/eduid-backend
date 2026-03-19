@@ -1,31 +1,12 @@
-from collections.abc import Mapping
-from os import environ
-
-from fastapi import APIRouter, Response
-from pydantic import BaseModel
-
 from eduid.common.fastapi.context_request import ContextRequest, ContextRequestRoute
-from eduid.common.fastapi.utils import (
-    check_restart,
-    get_cached_response,
-    log_failure_info,
-    reset_failure_info,
-    set_cached_response,
-)
+from eduid.common.fastapi.routers.status import create_status_router
+from eduid.common.fastapi.utils import check_restart, log_failure_info, reset_failure_info
 from eduid.common.rpc.am_relay import AmRelay
 from eduid.common.rpc.msg_relay import MsgRelay
 from eduid.workers.job_runner.scheduler import JobScheduler
 
-status_router = APIRouter(route_class=ContextRequestRoute, prefix="/status")
 
-
-class StatusResponse(BaseModel):
-    status: str
-    hostname: str
-    reason: str
-
-
-def check_mongo(request: ContextRequest) -> bool | None:
+def check_mongo(request: ContextRequest) -> bool:
     try:
         db = request.app.context.central_db
     except RuntimeError:
@@ -76,30 +57,7 @@ def check_scheduler(request: ContextRequest) -> bool:
     return scheduler.running
 
 
-@status_router.get("/healthy", response_model=StatusResponse)
-async def healthy(request: ContextRequest, response: Response) -> Mapping:
-    status = get_cached_response(request, response, key="health_check")
-    if not status:
-        status = {
-            "status": f"STATUS_FAIL_{request.app.context.name}_",
-            "hostname": environ.get("HOSTNAME", "UNKNOWN"),
-        }
-        reasons = []
-        if not check_mongo(request):
-            reasons.append("mongodb check failed")
-            request.app.context.logger.warning("MongoDB health check failed")
-        if not check_am(request):
-            reasons.append("am check failed")
-            request.app.context.logger.warning("am health check failed")
-        if not check_msg(request):
-            reasons.append("msg check failed")
-            request.app.context.logger.warning("msg health check failed")
-        elif not check_scheduler(request):
-            reasons.append("scheduler check failed")
-            request.app.context.logger.warning("APScheduler health check failed")
-        else:
-            status["status"] = f"STATUS_OK_{request.app.context.name}_"
-            reasons.append("mongodb check succeeded")
-        status["reason"] = ", ".join(reasons)
-        set_cached_response(request, response, key="health_check", data=status)
-    return status
+status_router = create_status_router(
+    checks=[check_mongo, check_am, check_msg, check_scheduler],
+    route_class=ContextRequestRoute,
+)
