@@ -32,7 +32,8 @@ def create_status_router(
 
     @router.get("/healthy", response_model=StatusResponse, response_model_exclude_none=True)
     async def healthy(request: ContextRequest, response: Response) -> Mapping[str, Any]:
-        res = get_cached_response(request, response, key="health_check")
+        cache_key = f"health_check_{request.app.context.name}"
+        res = get_cached_response(request, response, key=cache_key)
         if not res:
             res = {
                 # Value of status crafted for grepability, trailing underscore intentional
@@ -45,7 +46,7 @@ def create_status_router(
             else:
                 res["status"] = f"STATUS_OK_{request.app.context.name}_"
                 res["reason"] = "all checks OK"
-            set_cached_response(request, response, key="health_check", data=res)
+            set_cached_response(request, response, key=cache_key, data=res)
         return res
 
     return router
