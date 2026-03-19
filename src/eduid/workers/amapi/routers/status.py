@@ -18,4 +18,4 @@ def check_mongo(request: ContextRequest) -> bool:
         return False
 
 
-status_router = create_status_router(checks=[check_mongo], route_class=ContextRequestRoute)  # type: ignore[arg-type]
+status_router = create_status_router(checks=[check_mongo], route_class=ContextRequestRoute)
