@@ -260,7 +260,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
             response_template=response_template,
         )
 
-    def verify_token(
+    def verify_token(  # NOSONAR(S107)
         self,
         endpoint: str,
         frontend_action: FrontendAction,

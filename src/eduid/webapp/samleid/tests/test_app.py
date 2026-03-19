@@ -502,7 +502,7 @@ class SamlEidTests(ProofingTests[SamlEidApp]):
             foreign_eid_loa=foreign_eid_loa,
         )
 
-    def verify_token(
+    def verify_token(  # NOSONAR(S107)
         self,
         endpoint: str,
         expect_msg: TranslatableMsg,
@@ -572,7 +572,7 @@ class SamlEidTests(ProofingTests[SamlEidApp]):
             self._check_error_response(response, type_=None, payload=payload, msg=AuthnStatusMsg.must_authenticate)
         return loc
 
-    def _call_endpoint_and_saml_acs(
+    def _call_endpoint_and_saml_acs(  # NOSONAR(S107)
         self,
         endpoint: str,
         method: str,
