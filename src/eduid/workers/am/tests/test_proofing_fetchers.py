@@ -1,5 +1,4 @@
 from datetime import UTC, datetime
-from uuid import UUID
 
 import bson
 from deepdiff import DeepDiff

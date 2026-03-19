@@ -230,8 +230,7 @@ def use_other_2(
 
         if sso_session and sso_session.eppn != state.eppn:
             current_app.logger.warning(
-                f"Can't login as eppn {state.eppn} on this device, "
-                "SSO session has another eppn: {sso_session.eppn}"
+                f"Can't login as eppn {state.eppn} on this device, SSO session has another eppn: {{sso_session.eppn}}"
             )
             return error_response(message=IdPMsg.wrong_user)
 

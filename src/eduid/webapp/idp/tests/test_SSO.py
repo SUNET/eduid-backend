@@ -347,9 +347,7 @@ class TestSSO(SSOIdPTests):
 
         Expect the response Authn to be REFEDS MFA, and assurance attribute to include SWAMID AL3.
         """
-        self.get_user_set_identity(
-            self.test_user.eppn, identity_type=IdentityType.NIN, unique_value="190101011234"
-        )
+        self.get_user_set_identity(self.test_user.eppn, identity_type=IdentityType.NIN, unique_value="190101011234")
         self.add_test_user_security_key(credential=_U2F_SWAMID_AL3)
         user = self.app.userdb.get_user_by_eppn(self.test_user.eppn)
         out = self._get_login_response_authn(
@@ -370,9 +368,7 @@ class TestSSO(SSOIdPTests):
 
         Expect the response Authn to be REFEDS MFA.
         """
-        self.get_user_set_identity(
-            self.test_user.eppn, identity_type=IdentityType.NIN, unique_value="190101011234"
-        )
+        self.get_user_set_identity(self.test_user.eppn, identity_type=IdentityType.NIN, unique_value="190101011234")
         self.add_test_user_security_key(credential=_U2F)
         user = self.app.userdb.get_user_by_eppn(self.test_user.eppn)
         out = self._get_login_response_authn(
