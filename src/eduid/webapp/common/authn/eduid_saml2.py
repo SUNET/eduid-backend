@@ -235,7 +235,7 @@ def saml_logout(sp_config: SPConfig, user: User, location: str) -> WerkzeugRespo
     # loresponse is a dict for REDIRECT binding, and LogoutResponse for SOAP binding
     if isinstance(loresponse, LogoutResponse):
         if loresponse.status_ok():
-            location = sanitise_redirect_url(request.form.get("RelayState", location), location)
+            location = sanitise_redirect_url(request.form.get("RelayState", location), "/")
             return redirect(location)
         else:
             logger.error(f"The logout response was not OK: {loresponse}")
