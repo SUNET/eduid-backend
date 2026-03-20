@@ -287,10 +287,10 @@ class EduidAPITestCase[T: EduIDBaseApp](CommonTestCase):
         central_user_dict = central_user.to_dict()
         central_user_dict.update(private_user_dict)
 
-        # Iterate over all top level keys and remove those missing
-        for key in list(central_user_dict.keys()):
-            if key not in private_user_dict:
-                central_user_dict.pop(key, None)
+        # Remove top-level keys not present in private_user_dict.
+        # keys() - keys() produces a new set, so no mutation-during-iteration issue.
+        for key in central_user_dict.keys() - private_user_dict.keys():
+            del central_user_dict[key]
 
         # create updated user
         user = User.from_dict(data=central_user_dict)

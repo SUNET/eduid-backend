@@ -284,8 +284,8 @@ class EduidSession(SessionMixin):
         """Used when logging out"""
         csrf = None if not keep_csrf else self.get_csrf_token()
         self._namespaces = EduidNamespaces()
-        for key in list(self._session.keys()):
-            del self._session[key]
+        # clear all session keys at once to avoid mutating the dict during iteration
+        self._session.clear()
         if keep_csrf:
             self["_csrft_"] = csrf
         self.modified = True
