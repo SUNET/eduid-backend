@@ -484,6 +484,15 @@ class LogoutRequestTests(AuthnAPITestBase):
             self.assertEqual(response.status, "302 FOUND")
             self.assertIn("/logged-out", response.headers["Location"])
 
+    def test_logout_safe_next_full_url(self) -> None:
+        eppn = "hubba-bubba"
+        with self.app.test_request_context("/logout?next=http://app.eduid.se/profile", method="GET"):
+            session.common.eppn = eppn
+            response = self.app.dispatch_request()
+            assert isinstance(response, Response)
+            self.assertEqual(response.status, "302 FOUND")
+            self.assertIn("app.eduid.se", response.headers["Location"])
+
     def test_logout_unsafe_next_param(self) -> None:
         eppn = "hubba-bubba"
         with self.app.test_request_context("/logout?next=https://evil.com/steal", method="GET"):
