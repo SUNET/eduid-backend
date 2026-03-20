@@ -203,7 +203,7 @@ def get_flux_type(req: Request, suffix: str) -> str:
     # replace slashes and hyphens with spaces
     url_rule = url_rule.replace("/", " ").replace("-", " ")
     # remove any variables (enclosed in <>) from the path
-    url_rule = re.sub(r"<.+?>", "", url_rule)
+    url_rule = re.sub(r"<[^>]+>", "", url_rule)
     # Clean up the url_rule removing what was once trailing spaces, redundant slashes between
     # variables etc. using split() and then join()
     url_rule = "_".join(url_rule.split())

@@ -114,8 +114,7 @@ class SSOSession(BaseModel):
             _creds[authn.cred_id] = authn
 
         # sort on cred_id to have deterministic order in tests
-        _list = list(_creds.values())
-        self.authn_credentials = sorted(_list, key=lambda x: x.cred_id)
+        self.authn_credentials = sorted(_creds.values(), key=lambda x: x.cred_id)
 
 
 def record_authentication(
