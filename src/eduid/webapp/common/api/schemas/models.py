@@ -66,7 +66,7 @@ class FluxResponse:
         return f"{self.__class__.__name__!s} ({self.to_dict()!r})"
 
     def to_dict(self) -> dict[str, Any]:
-        rv = dict[str, Any]()
+        rv: dict[str, Any] = {}
         # A Flux Standard Action MUST have a type
         rv["type"] = self.flux_type
         # ... and MAY have payload, error, meta (and MUST NOT have anything else)
