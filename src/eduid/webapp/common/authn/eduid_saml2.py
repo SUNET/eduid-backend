@@ -22,7 +22,7 @@ from eduid.userdb.exceptions import MultipleUsersReturned, UserDoesNotExist
 from eduid.userdb.user import User
 from eduid.webapp.authn.app import current_authn_app as current_app
 from eduid.webapp.common.api.errors import EduidErrorsContext, goto_errors_response
-from eduid.webapp.common.api.utils import sanitise_redirect_url
+from eduid.webapp.common.api.utils import sanitise_redirect_url, sanitize_for_log
 from eduid.webapp.common.authn.cache import IdentityCache, OutstandingQueriesCache, StateCache
 from eduid.webapp.common.authn.session_info import SessionInfo
 from eduid.webapp.common.authn.utils import SPConfig, get_saml_attribute
@@ -213,7 +213,7 @@ def saml_logout(sp_config: SPConfig, user: User, location: str) -> WerkzeugRespo
         logger.warning(f"The session does not contain the subject id for user {user}")
         session.invalidate()
         logger.info(f"Invalidated session for {user}")
-        logger.info(f"Redirection user to {location} for logout")
+        logger.info(f"Redirection user to {sanitize_for_log(location)} for logout")
         return redirect(location)
 
     # Since we have a subject_id, call the IdP to do a global logout
