@@ -475,6 +475,45 @@ class LogoutRequestTests(AuthnAPITestBase):
             self.assertEqual(response.status, "302 FOUND")
             self.assertIn("testing-relay-state", response.location)
 
+    def test_logout_safe_next_param(self) -> None:
+        eppn = "hubba-bubba"
+        with self.app.test_request_context("/logout?next=/logged-out", method="GET"):
+            session.common.eppn = eppn
+            response = self.app.dispatch_request()
+            assert isinstance(response, Response)
+            self.assertEqual(response.status, "302 FOUND")
+            self.assertIn("/logged-out", response.headers["Location"])
+
+    def test_logout_unsafe_next_param(self) -> None:
+        eppn = "hubba-bubba"
+        with self.app.test_request_context("/logout?next=https://evil.com/steal", method="GET"):
+            session.common.eppn = eppn
+            response = self.app.dispatch_request()
+            assert isinstance(response, Response)
+            self.assertEqual(response.status, "302 FOUND")
+            self.assertNotIn("evil.com", response.headers["Location"])
+            self.assertIn(self.app.conf.saml2_logout_redirect_url, response.headers["Location"])
+
+    def test_logout_service_startingSP_unsafe_relay_state(self) -> None:
+        session_id = self.start_authenticate(eppn=self.test_user.eppn, frontend_action=FrontendAction.LOGIN)
+        cookie = self.dump_session_cookie(session_id)
+
+        with self.app.test_request_context(
+            "/saml2-ls",
+            method="POST",
+            headers={"Cookie": cookie},
+            data={
+                "SAMLResponse": deflate_and_base64_encode(logout_response(session_id)),
+                "RelayState": "https://evil.com/steal",
+            },
+        ):
+            response = self.app.dispatch_request()
+            assert isinstance(response, Response)
+
+            self.assertEqual(response.status, "302 FOUND")
+            self.assertNotIn("evil.com", response.location)
+            self.assertIn(self.app.conf.saml2_logout_redirect_url, response.location)
+
     def test_logout_service_startingSP_already_logout(self) -> None:
         session_id = self.start_authenticate(eppn=self.test_user.eppn, frontend_action=FrontendAction.LOGIN)
 
