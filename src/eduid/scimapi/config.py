@@ -22,7 +22,9 @@ class ScimApiConfig(AuthnBearerTokenConfig, LoggingConfigMixin, AWSMixin):
     neo4j_config: dict = Field(default_factory=dict)
     signing_key_id: str
     login_enabled: bool = False
-    no_authn_urls: list[str] = Field(default=["^/login/?$", "^/status/healthy$", "^/docs/?$", "^/openapi.json"])
+    no_authn_urls: list[str] = Field(
+        default=["^/login/?$", "^/status/healthy$", "^/status/ping$", "^/docs/?$", "^/openapi.json"]
+    )
     status_cache_seconds: int = 10
     # The expected value of the authn JWT claims['requested_access']['type']
     requested_access_type: str | None = "scim-api"

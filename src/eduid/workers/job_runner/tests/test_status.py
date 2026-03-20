@@ -1,0 +1,43 @@
+import os
+import unittest
+from http import HTTPStatus
+from typing import Any
+
+from fastapi.testclient import TestClient
+
+from eduid.userdb.testing import MongoTemporaryInstance
+from eduid.workers.job_runner.app import init_app
+
+
+class JobRunnerStatusTestCase(unittest.TestCase):
+    mongodb_instance: MongoTemporaryInstance
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.mongodb_instance = MongoTemporaryInstance.get_instance()
+
+    def _get_config(self) -> dict[str, Any]:
+        return {
+            "mongo_uri": self.mongodb_instance.uri,
+            "testing": True,
+            "environment": "dev",
+            "celery": {},
+        }
+
+    def setUp(self) -> None:
+        if "EDUID_CONFIG_YAML" not in os.environ:
+            os.environ["EDUID_CONFIG_YAML"] = "YAML_CONFIG_NOT_USED"
+        os.environ["WORKER_NAME"] = "test_worker"
+        self.app = init_app(name="test_job_runner", test_config=self._get_config())
+        self.client = TestClient(self.app)
+
+
+class TestStatus(JobRunnerStatusTestCase):
+    def test_status_ping(self) -> None:
+        response = self.client.get("/status/ping")
+        assert response.status_code == HTTPStatus.OK
+        assert response.content == b""
+
+    def test_status_healthy_ok(self) -> None:
+        response = self.client.get("/status/healthy")
+        assert response.status_code == HTTPStatus.OK

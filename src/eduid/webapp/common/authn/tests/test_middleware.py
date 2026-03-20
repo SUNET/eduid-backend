@@ -68,3 +68,8 @@ class UnAuthnTests(EduidAPITestCase):
     def test_get_view(self) -> None:
         response = self.browser.get("/status/healthy")
         self.assertEqual(response.status_code, 200)
+
+    def test_ping(self) -> None:
+        response = self.browser.get("/status/ping")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data, b"")

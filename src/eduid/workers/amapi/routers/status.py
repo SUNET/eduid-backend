@@ -1,32 +1,21 @@
-from collections.abc import Mapping
-from os import environ
-
-from fastapi import Response
-
-from eduid.common.fastapi.api_router import APIRouter
-from eduid.workers.amapi.context_request import ContextRequest, ContextRequestRoute
-from eduid.workers.amapi.models.status import StatusResponse
-from eduid.workers.amapi.routers.utils.status import check_mongo, get_cached_response, set_cached_response
+from eduid.common.fastapi.context_request import ContextRequest
+from eduid.common.fastapi.routers.status import create_status_router
+from eduid.common.fastapi.utils import check_restart, log_failure_info, reset_failure_info
+from eduid.workers.amapi.context_request import ContextRequestRoute
 
 __author__ = "masv"
 
-status_router = APIRouter(route_class=ContextRequestRoute, prefix="/status")
+
+def check_mongo(request: ContextRequest) -> bool:
+    db = request.app.context.db
+    try:
+        db.is_healthy()
+        reset_failure_info(request, "_check_mongo")
+        return True
+    except Exception as exc:
+        log_failure_info(request, "_check_mongo", msg="Mongodb health check failed", exc=exc)
+        check_restart("_check_mongo", restart=0, terminate=120)
+        return False
 
 
-@status_router.get("/healthy", response_model=StatusResponse, response_model_exclude_none=True)
-async def healthy(req: ContextRequest, resp: Response) -> Mapping:
-    res = get_cached_response(ctx=req, resp=resp, key="health_check")
-    if not res:
-        res = {
-            # Value of status crafted for grepabilty, trailing underscore intentional
-            "status": f"STATUS_FAIL_{req.app.context.name}_",
-            "hostname": environ.get("HOSTNAME", "UNKNOWN"),
-        }
-        if not check_mongo(req):
-            res["reason"] = "mongodb check failed"
-            req.app.context.logger.warning("mongodb check failed")
-        else:
-            res["status"] = f"STATUS_OK_{req.app.context.name}_"
-            res["reason"] = "Databases tested OK"
-        set_cached_response(ctx=req, resp=resp, key="health_check", data=res)
-    return res
+status_router = create_status_router(checks=[check_mongo], route_class=ContextRequestRoute)

@@ -175,7 +175,7 @@ def init_status_views(app: EduIDBaseApp, config: EduIDBaseAppConfig) -> None:
 
     app.register_blueprint(status_views)
     # Register status paths for unauthorized requests
-    status_paths = ["/status/healthy", "/status/sanity-check"]
+    status_paths = ["/status/healthy", "/status/sanity-check", "/status/ping"]
     no_authn_views(config, status_paths)
 
 
