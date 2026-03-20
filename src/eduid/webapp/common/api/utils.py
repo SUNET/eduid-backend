@@ -213,6 +213,14 @@ def get_flux_type(req: Request, suffix: str) -> str:
     return flux_type
 
 
+def sanitize_for_log(value: str, max_length: int = 200) -> str:
+    """Sanitize a user-controlled string before including it in log output to prevent log injection."""
+    sanitized = value.replace("\n", "\\n").replace("\r", "\\r")
+    if len(sanitized) > max_length:
+        return sanitized[:max_length] + "...[truncated]"
+    return sanitized
+
+
 def sanitise_redirect_url(redirect_url: str | None, safe_default: str = "/") -> str:
     """
     Make sure the URL provided in relay_state is safe and does
@@ -244,7 +252,7 @@ def sanitise_redirect_url(redirect_url: str | None, safe_default: str = "/") -> 
             return redirect_url
 
     # Unsafe redirect_url found
-    logger.warning(f"Caught unsafe redirect_url: {redirect_url}. Using safe default: {safe_default}.")
+    logger.warning(f"Caught unsafe redirect_url: {sanitize_for_log(redirect_url)}. Using safe default: {safe_default}.")
     return safe_default
 
 
