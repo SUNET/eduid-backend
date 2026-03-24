@@ -1,5 +1,6 @@
 import unittest
 from collections import OrderedDict
+from collections.abc import Mapping
 from io import BytesIO, StringIO
 from typing import Any
 
@@ -74,7 +75,7 @@ class FormatAddressTest(unittest.TestCase):
             assert city is not None
 
     def test_failing_format(self) -> None:
-        failing_navet_responses = [
+        failing_navet_responses: list[Mapping[str, Any]] = [
             OrderedDict(
                 [
                     (
