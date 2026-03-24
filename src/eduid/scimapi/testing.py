@@ -263,7 +263,9 @@ class ScimApiTestCase(MongoNeoTestCase):
 
         assert str(resource.scim_id) == response.json().get("id"), "Unexpected id in parsed_response"
 
-        assert expected_location == response.headers.get("location"), "Unexpected group resource location in parsed_response headers"
+        assert expected_location == response.headers.get("location"), (
+            "Unexpected group resource location in parsed_response headers"
+        )
 
         meta = response.json().get("meta")
         assert meta is not None, "No meta in parsed_response"

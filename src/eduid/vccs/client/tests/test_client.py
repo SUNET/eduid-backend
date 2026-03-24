@@ -42,7 +42,12 @@ class TestVCCSClient(unittest.TestCase):
         """
         # XXX need to find test vectors created with another implementation!
         f = VCCSPasswordFactor("plaintext", "4711", "$NDNv1H1$aaaaaaaaaaaaaaaa$12$32$")
-        assert f.to_dict("auth") == {"type": "password", "credential_id": "4711", "H1": "0b9ba6497c08106032a3337b", "version": "NDNv1"}
+        assert f.to_dict("auth") == {
+            "type": "password",
+            "credential_id": "4711",
+            "H1": "0b9ba6497c08106032a3337b",
+            "version": "NDNv1",
+        }
 
     def test_utf8_password_factor(self) -> None:
         """
@@ -50,7 +55,12 @@ class TestVCCSClient(unittest.TestCase):
         """
         # XXX need to find test vectors created with another implementation!
         f = VCCSPasswordFactor("plaintextåäöхэж", "4711", "$NDNv1H1$aaaaaaaaaaaaaaaa$12$32$")
-        assert f.to_dict("auth") == {"type": "password", "credential_id": "4711", "H1": "bbcebc158aa37039e0fa3294", "version": "NDNv1"}
+        assert f.to_dict("auth") == {
+            "type": "password",
+            "credential_id": "4711",
+            "H1": "bbcebc158aa37039e0fa3294",
+            "version": "NDNv1",
+        }
 
     def test_OATH_factor_auth(self) -> None:
         """
@@ -66,7 +76,15 @@ class TestVCCSClient(unittest.TestCase):
         """
         aead = "aa" * 20
         o = VCCSOathFactor("oath-hotp", 4712, nonce="010203040506", aead=aead, key_handle=0x1234)
-        assert o.to_dict("add_creds") == {"aead": aead, "credential_id": 4712, "digits": 6, "nonce": "010203040506", "oath_counter": 0, "type": "oath-hotp", "key_handle": 4660}
+        assert o.to_dict("add_creds") == {
+            "aead": aead,
+            "credential_id": 4712,
+            "digits": 6,
+            "nonce": "010203040506",
+            "oath_counter": 0,
+            "type": "oath-hotp",
+            "key_handle": 4660,
+        }
 
     def test_missing_parts_of_OATH_factor(self) -> None:
         """

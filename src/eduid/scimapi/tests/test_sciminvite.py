@@ -261,7 +261,9 @@ class TestInviteResource(ScimApiTestCase):
         assert invite_extension is not None
         self._assertName(invite.name, invite_extension.get("name"))
         assert [filter_none(email.to_dict()) for email in invite.emails] == invite_extension.get("emails")
-        assert [filter_none(number.to_dict()) for number in invite.phone_numbers] == invite_extension.get("phoneNumbers")
+        assert [filter_none(number.to_dict()) for number in invite.phone_numbers] == invite_extension.get(
+            "phoneNumbers"
+        )
         assert invite.nin == invite_extension.get("nationalIdentityNumber")
         assert invite.preferred_language == invite_extension.get("preferredLanguage")
         if invite.completed:
@@ -276,7 +278,9 @@ class TestInviteResource(ScimApiTestCase):
 
         # If the request has NUTID profiles, ensure they are present in the parsed_response
         if SCIMSchema.NUTID_USER_V1.value in req:
-            assert req[SCIMSchema.NUTID_USER_V1.value] == response.json().get(SCIMSchema.NUTID_USER_V1.value), "Unexpected NUTID user data in parsed_response"
+            assert req[SCIMSchema.NUTID_USER_V1.value] == response.json().get(SCIMSchema.NUTID_USER_V1.value), (
+                "Unexpected NUTID user data in parsed_response"
+            )
         elif SCIMSchema.NUTID_USER_V1.value in response.json():
             self.fail(f"Unexpected {SCIMSchema.NUTID_USER_V1.value} in the parsed_response")
 
@@ -304,7 +308,9 @@ class TestInviteResource(ScimApiTestCase):
         expected_schemas = [SCIMSchema.API_MESSAGES_20_LIST_RESPONSE.value]
         response_schemas = response.json().get("schemas")
         assert isinstance(response_schemas, list), "Response schemas not present, or not a list"
-        assert sorted(set(expected_schemas)) == sorted(set(response_schemas)), "Unexpected schema(s) in search parsed_response"
+        assert sorted(set(expected_schemas)) == sorted(set(response_schemas)), (
+            "Unexpected schema(s) in search parsed_response"
+        )
 
         resources = response.json().get("Resources")
 
@@ -313,14 +319,20 @@ class TestInviteResource(ScimApiTestCase):
             expected_total_results = 1
 
         if expected_num_resources is not None:
-            assert expected_num_resources == len(resources), f"Number of resources returned expected to be {expected_num_resources}"
+            assert expected_num_resources == len(resources), (
+                f"Number of resources returned expected to be {expected_num_resources}"
+            )
             if expected_total_results is None:
                 expected_total_results = expected_num_resources
         if expected_total_results is not None:
-            assert expected_total_results == response.json().get("totalResults"), f"Response totalResults expected to be {expected_total_results}"
+            assert expected_total_results == response.json().get("totalResults"), (
+                f"Response totalResults expected to be {expected_total_results}"
+            )
 
         if expected_invite is not None:
-            assert str(expected_invite.scim_id) == resources[0].get("id"), f"Search parsed_response user does not have the expected id: {expected_invite.scim_id!s}"
+            assert str(expected_invite.scim_id) == resources[0].get("id"), (
+                f"Search parsed_response user does not have the expected id: {expected_invite.scim_id!s}"
+            )
 
         assert [SCIMSchema.API_MESSAGES_20_LIST_RESPONSE.value] == response.json().get("schemas")
         resources = response.json().get("Resources")

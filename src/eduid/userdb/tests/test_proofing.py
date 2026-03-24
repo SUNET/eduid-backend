@@ -89,7 +89,9 @@ class ProofingStateTest(TestCase):
             "is_sent",
             "modified_ts",
         ]
-        assert sorted([k for k, v in state_dict["proofing_letter"].items() if v is not None]) == sorted(_proofing_letter_expected_keys)
+        assert sorted([k for k, v in state_dict["proofing_letter"].items() if v is not None]) == sorted(
+            _proofing_letter_expected_keys
+        )
 
     def test_create_letterproofingstate_with_ninproofingelement_from_dict(self) -> None:
         """ """

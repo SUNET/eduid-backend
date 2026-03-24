@@ -452,7 +452,9 @@ class LogoutRequestTests(AuthnAPITestBase):
             assert isinstance(response, Response)
             logger.debug(f"Test called /logout, response {response}")
             assert response.status == "302 FOUND"
-            assert "https://idp.example.com/simplesaml/saml2/idp/SingleLogoutService.php" in response.headers["location"]
+            assert (
+                "https://idp.example.com/simplesaml/saml2/idp/SingleLogoutService.php" in response.headers["location"]
+            )
 
     def test_logout_service_startingSP(self) -> None:
         session_id = self.start_authenticate(eppn=self.test_user.eppn, frontend_action=FrontendAction.LOGIN)

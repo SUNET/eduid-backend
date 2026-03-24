@@ -107,7 +107,9 @@ class TestGroupResource(ScimApiTestCase):
         expected_schemas = [SCIMSchema.API_MESSAGES_20_LIST_RESPONSE.value]
         response_schemas = response.json().get("schemas")
         assert isinstance(response_schemas, list), "Response schemas not present, or not a list"
-        assert sorted(set(expected_schemas)) == sorted(set(response_schemas)), "Unexpected schema(s) in search parsed_response"
+        assert sorted(set(expected_schemas)) == sorted(set(response_schemas)), (
+            "Unexpected schema(s) in search parsed_response"
+        )
 
         resources = response.json().get("Resources")
         if expected_group is not None:
@@ -115,15 +117,23 @@ class TestGroupResource(ScimApiTestCase):
             expected_total_results = 1
 
         if expected_num_resources is not None:
-            assert expected_num_resources == len(resources), f"Number of resources returned expected to be {expected_num_resources}"
+            assert expected_num_resources == len(resources), (
+                f"Number of resources returned expected to be {expected_num_resources}"
+            )
             if expected_total_results is None:
                 expected_total_results = expected_num_resources
         if expected_total_results is not None:
-            assert expected_total_results == response.json().get("totalResults"), f"Response totalResults expected to be {expected_total_results}"
+            assert expected_total_results == response.json().get("totalResults"), (
+                f"Response totalResults expected to be {expected_total_results}"
+            )
 
         if expected_group is not None:
-            assert str(expected_group.scim_id) == resources[0].get("id"), f"Search parsed_response group does not have the expected id: {expected_group.scim_id!s}"
-            assert expected_group.display_name == resources[0].get("displayName"), f"Search parsed_response group does not have the expected displayName: {expected_group.display_name!s}"
+            assert str(expected_group.scim_id) == resources[0].get("id"), (
+                f"Search parsed_response group does not have the expected id: {expected_group.scim_id!s}"
+            )
+            assert expected_group.display_name == resources[0].get("displayName"), (
+                f"Search parsed_response group does not have the expected displayName: {expected_group.display_name!s}"
+            )
 
         return resources
 
@@ -146,10 +156,14 @@ class TestGroupResource(ScimApiTestCase):
         assert group.display_name == response.json().get("displayName"), "Incorrect displayName in parsed_response"
         assert group.external_id == response.json().get("externalId"), "Incorrect externalId in parsed_response"
         request_members = _members_to_set(req["members"])
-        assert request_members == _members_to_set(response.json().get("members")), "Incorrect members in parsed_response"
+        assert request_members == _members_to_set(response.json().get("members")), (
+            "Incorrect members in parsed_response"
+        )
 
         if SCIMSchema.NUTID_GROUP_V1.value in req:
-            assert req[SCIMSchema.NUTID_GROUP_V1.value] == response.json().get(SCIMSchema.NUTID_GROUP_V1.value), "Unexpected NUTID group data in parsed_response"
+            assert req[SCIMSchema.NUTID_GROUP_V1.value] == response.json().get(SCIMSchema.NUTID_GROUP_V1.value), (
+                "Unexpected NUTID group data in parsed_response"
+            )
 
 
 class TestGroupResource_GET(TestGroupResource):
@@ -161,8 +175,12 @@ class TestGroupResource_GET(TestGroupResource):
         resources = response.json().get("Resources")
         assert self.groupdb
         expected_num_resources = self.groupdb.graphdb.db.count_nodes()
-        assert expected_num_resources == len(resources), f"Number of groups returned does not match number of groups in the database: {expected_num_resources}"
-        assert expected_num_resources == response.json().get("totalResults"), f"Response totalResults does not match number of groups in the database: {expected_num_resources}"
+        assert expected_num_resources == len(resources), (
+            f"Number of groups returned does not match number of groups in the database: {expected_num_resources}"
+        )
+        assert expected_num_resources == response.json().get("totalResults"), (
+            f"Response totalResults does not match number of groups in the database: {expected_num_resources}"
+        )
 
     def test_get_group(self) -> None:
         db_group = self.add_group(uuid4(), "Test Group 1")
@@ -637,12 +655,16 @@ class TestGroupExtensionData(TestGroupResource):
         assert post_resp.json().get("members") == [], "Group was not expected to have members"
 
         # Verify NUTID data is part of the PUT parsed_response
-        assert nutid_data == post_resp.json().get(SCIMSchema.NUTID_GROUP_V1.value), "Unexpected Nutid extension data in parsed_response"
+        assert nutid_data == post_resp.json().get(SCIMSchema.NUTID_GROUP_V1.value), (
+            "Unexpected Nutid extension data in parsed_response"
+        )
 
         # Now fetch the group and validate the data
         get_resp = self.client.get(url=f"/Groups/{scim_id}", headers=self.headers)
         self._assertScimResponseProperties(get_resp, db_group, expected_schemas=expected_schemas)
-        assert post_resp.json() == get_resp.json(), "Group creation parsed_response should equal subsequent fetch parsed_response"
+        assert post_resp.json() == get_resp.json(), (
+            "Group creation parsed_response should equal subsequent fetch parsed_response"
+        )
 
         # And now, update the NUTID extension data
         nutid_data2 = {"data": {"testing": "yes", "other_key": 2}}

@@ -833,7 +833,9 @@ class TestUserResource(ScimApiTestUserResourceBase):
         expected_schemas = [SCIMSchema.API_MESSAGES_20_LIST_RESPONSE.value]
         response_schemas = response.json().get("schemas")
         assert isinstance(response_schemas, list), "Response schemas not present, or not a list"
-        assert sorted(set(expected_schemas)) == sorted(set(response_schemas)), "Unexpected schema(s) in search parsed_response"
+        assert sorted(set(expected_schemas)) == sorted(set(response_schemas)), (
+            "Unexpected schema(s) in search parsed_response"
+        )
 
         resources = response.json().get("Resources")
 
@@ -842,14 +844,20 @@ class TestUserResource(ScimApiTestUserResourceBase):
             expected_total_results = 1
 
         if expected_num_resources is not None:
-            assert expected_num_resources == len(resources), f"Number of resources returned expected to be {expected_num_resources}"
+            assert expected_num_resources == len(resources), (
+                f"Number of resources returned expected to be {expected_num_resources}"
+            )
             if expected_total_results is None:
                 expected_total_results = expected_num_resources
         if expected_total_results is not None:
-            assert expected_total_results == response.json().get("totalResults"), f"Response totalResults expected to be {expected_total_results}"
+            assert expected_total_results == response.json().get("totalResults"), (
+                f"Response totalResults expected to be {expected_total_results}"
+            )
 
         if expected_user is not None:
-            assert str(expected_user.scim_id) == resources[0].get("id"), f"Search parsed_response user does not have the expected id: {expected_user.scim_id!s}"
+            assert str(expected_user.scim_id) == resources[0].get("id"), (
+                f"Search parsed_response user does not have the expected id: {expected_user.scim_id!s}"
+            )
 
         assert [SCIMSchema.API_MESSAGES_20_LIST_RESPONSE.value] == response.json().get("schemas")
         resources = response.json().get("Resources")
