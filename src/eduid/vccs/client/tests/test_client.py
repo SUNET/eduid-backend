@@ -80,7 +80,7 @@ class TestVCCSClient(unittest.TestCase):
 
         o = VCCSOathFactor("oath-hotp", 4712, nonce="010203040506", aead=aead, key_handle=0x1234, user_code=123456)
         # with AEAD o should be OK
-        assert type(o.to_dict("add_creds")) == dict
+        assert isinstance(o.to_dict("add_creds"), dict)
         # unknown to_dict 'action' should raise
         with self.assertRaises(ValueError):
             o.to_dict("bad_action")
