@@ -262,13 +262,6 @@ class TestNin(TestCase):
         this.created_by = "unit test"
         assert this.created_by == "unit test"
 
-    def test_modify_created_by(self) -> None:
-        this = self.three.find("197803033456")
-        assert this
-        this.created_by = "unit test"
-
-        assert this.created_by == "unit test"
-
     def test_created_ts(self) -> None:
         this = self.three.find("197803033456")
         assert this
