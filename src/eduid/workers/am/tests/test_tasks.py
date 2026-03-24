@@ -206,9 +206,8 @@ class TestTasks(AMTestCase):
         locked_identities = LockedIdentityList(elements=[locked_nin])
         attributes["$set"]["locked_identity"] = locked_identities.to_list_of_dicts()
 
-        self.assertDictEqual(
-            normalised_data(attributes, exclude_keys=["created_ts", "modified_ts"]),
-            normalised_data(new_attributes, exclude_keys=["created_ts", "modified_ts"]),
+        assert normalised_data(attributes, exclude_keys=["created_ts", "modified_ts"]) == normalised_data(
+            new_attributes, exclude_keys=["created_ts", "modified_ts"]
         )
 
     def test_check_locked_identity(self) -> None:
@@ -228,7 +227,7 @@ class TestTasks(AMTestCase):
         }
         new_attributes = check_locked_identity(self.amdb, user_id, attributes, "test")
         # user has locked_identity that is the same as the verified identity so only identities should be set
-        self.assertDictEqual(attributes, new_attributes)
+        assert attributes == new_attributes
 
     def test_check_locked_identity_wrong_nin(self) -> None:
         user_id = ObjectId("901234567890123456789012")  # johnsmith@example.org / babba-labba
@@ -262,16 +261,15 @@ class TestTasks(AMTestCase):
         locked_identities = LockedIdentityList(elements=[locked_nin])
         attributes["$set"]["locked_identity"] = locked_identities.to_list_of_dicts()
 
-        self.assertDictEqual(
-            normalised_data(attributes, exclude_keys=["created_ts", "modified_ts"]),
-            normalised_data(new_attributes, exclude_keys=["created_ts", "modified_ts"]),
+        assert normalised_data(attributes, exclude_keys=["created_ts", "modified_ts"]) == normalised_data(
+            new_attributes, exclude_keys=["created_ts", "modified_ts"]
         )
 
     def test_check_locked_identity_no_verified_nin(self) -> None:
         user_id = ObjectId("012345678901234567890123")  # johnsmith@example.com / hubba-bubba
         attributes = {"$set": {"phone": [{"verified": True, "number": "+34609609609", "primary": True}]}}
         new_attributes = check_locked_identity(self.amdb, user_id, attributes, "test")
-        self.assertDictEqual(attributes, new_attributes)
+        assert attributes == new_attributes
 
         attributes = {
             "$set": {
@@ -279,4 +277,4 @@ class TestTasks(AMTestCase):
             }
         }
         new_attributes = check_locked_identity(self.amdb, user_id, attributes, "test")
-        self.assertDictEqual(attributes, new_attributes)
+        assert attributes == new_attributes

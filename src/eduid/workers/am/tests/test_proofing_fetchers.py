@@ -291,18 +291,15 @@ class AttributeFetcherPersonalDataTests(ProofingTestCase):
 
         self.fetcher.private_db.save(personal_data_user)
 
-        self.assertDictEqual(
-            self.fetcher.fetch_attrs(personal_data_user.user_id),
-            {
-                "$set": {
-                    "givenName": "Testaren",
-                    "chosen_given_name": "Testaren",
-                    "surname": "Testsson",
-                    "preferredLanguage": "sv",
-                    "preferences": {"always_use_security_key": True},
-                },
+        assert self.fetcher.fetch_attrs(personal_data_user.user_id) == {
+            "$set": {
+                "givenName": "Testaren",
+                "chosen_given_name": "Testaren",
+                "surname": "Testsson",
+                "preferredLanguage": "sv",
+                "preferences": {"always_use_security_key": True},
             },
-        )
+        }
 
     def test_fillup_attributes(self) -> None:
         # TODO: This test is IDENTICAL to the one above - need to actually add _more_ attributes in this one
@@ -313,18 +310,15 @@ class AttributeFetcherPersonalDataTests(ProofingTestCase):
 
         self.fetcher.private_db.save(personal_data_user)
 
-        self.assertDictEqual(
-            self.fetcher.fetch_attrs(personal_data_user.user_id),
-            {
-                "$set": {
-                    "givenName": "Testaren",
-                    "chosen_given_name": "Testaren",
-                    "surname": "Testsson",
-                    "preferredLanguage": "sv",
-                    "preferences": {"always_use_security_key": True},
-                },
+        assert self.fetcher.fetch_attrs(personal_data_user.user_id) == {
+            "$set": {
+                "givenName": "Testaren",
+                "chosen_given_name": "Testaren",
+                "surname": "Testsson",
+                "preferredLanguage": "sv",
+                "preferences": {"always_use_security_key": True},
             },
-        )
+        }
 
 
 class AttributeFetcherSecurityTests(ProofingTestCase):
@@ -538,7 +532,7 @@ class AttributeFetcherOrcidTests(ProofingTestCase):
 
         self.fetcher.private_db.save(proofing_user)
 
-        self.assertDictEqual(self.fetcher.fetch_attrs(proofing_user.user_id), {"$unset": {"orcid": None}})
+        assert self.fetcher.fetch_attrs(proofing_user.user_id) == {"$unset": {"orcid": None}}
 
 
 class AttributeFetcherLadokTests(ProofingTestCase):
@@ -570,4 +564,4 @@ class AttributeFetcherLadokTests(ProofingTestCase):
 
         self.fetcher.private_db.save(proofing_user)
 
-        self.assertDictEqual(self.fetcher.fetch_attrs(proofing_user.user_id), {"$unset": {"ladok": None}})
+        assert self.fetcher.fetch_attrs(proofing_user.user_id) == {"$unset": {"ladok": None}}
