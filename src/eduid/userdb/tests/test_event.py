@@ -69,28 +69,28 @@ class TestEventList(TestCase):
             SomeEventList(elements=["bad input data"])
 
     def test_to_list(self) -> None:
-        self.assertEqual([], self.empty.to_list(), list)
-        self.assertIsInstance(self.one.to_list(), list)
+        assert self.empty.to_list() == [], list
+        assert isinstance(self.one.to_list(), list)
 
-        self.assertEqual(1, len(self.one.to_list()))
+        assert len(self.one.to_list()) == 1
 
     def test_to_list_of_dicts(self) -> None:
-        self.assertEqual([], self.empty.to_list_of_dicts(), list)
+        assert self.empty.to_list_of_dicts() == [], list
 
         _one_dict_copy = deepcopy(_one_dict)  # Update id to event_id before comparing dicts
         _one_dict_copy["event_id"] = _one_dict_copy.pop("id")
-        self.assertEqual([_one_dict_copy], self.one.to_list_of_dicts())
+        assert [_one_dict_copy] == self.one.to_list_of_dicts()
 
     def test_find(self) -> None:
         match = self.one.find(self.one.to_list()[0].key)
         assert match
-        self.assertIsInstance(match, ToUEvent)
-        self.assertEqual(match.version, _one_dict["version"])
+        assert isinstance(match, ToUEvent)
+        assert match.version == _one_dict["version"]
 
     def test_add(self) -> None:
         second = self.two.to_list()[-1]
         self.one.add(second)
-        self.assertEqual(self.one.to_list_of_dicts(), self.two.to_list_of_dicts())
+        assert self.one.to_list_of_dicts() == self.two.to_list_of_dicts()
 
     def test_add_duplicate_key(self) -> None:
         data = deepcopy(_two_dict)
@@ -113,7 +113,7 @@ class TestEventList(TestCase):
     def test_add_event(self) -> None:
         third = self.three.to_list_of_dicts()[-1]
         this = SomeEventList.from_list_of_dicts([_one_dict, _two_dict, third])
-        self.assertEqual(this.to_list_of_dicts(), self.three.to_list_of_dicts())
+        assert this.to_list_of_dicts() == self.three.to_list_of_dicts()
 
     def test_add_wrong_type(self) -> None:
         new = PhoneNumber(number="+4612345678")
@@ -123,7 +123,7 @@ class TestEventList(TestCase):
     def test_remove(self) -> None:
         self.three.remove(self.three.to_list()[-1].key)
         now_two = self.three
-        self.assertEqual(self.two.to_list_of_dicts(), now_two.to_list_of_dicts())
+        assert self.two.to_list_of_dicts() == now_two.to_list_of_dicts()
 
     def test_remove_unknown(self) -> None:
         with self.assertRaises(eduid.userdb.exceptions.UserDBValueError):
@@ -160,7 +160,7 @@ class TestEventList(TestCase):
             "created_by": "test",
             "created_ts": datetime(2015, 9, 24, 1, 1, 1, 111111, tzinfo=UTC),
         }
-        self.assertNotIn("modified_ts", _event_no_modified_ts)
+        assert "modified_ts" not in _event_no_modified_ts
         el = SomeEventList.from_list_of_dicts([_event_no_modified_ts])
         assert el.count == 1
         for event in el.to_list_of_dicts():
@@ -171,10 +171,10 @@ class TestEventList(TestCase):
             if el.to_list()[0].no_modified_ts_in_db:
                 assert "modified_ts" not in event
             else:
-                self.assertIsInstance(event["modified_ts"], datetime)
+                assert isinstance(event["modified_ts"], datetime)
                 assert event["modified_ts"] == event["created_ts"]
         for event2 in el.to_list():
-            self.assertIsInstance(event2.modified_ts, datetime)
+            assert isinstance(event2.modified_ts, datetime)
 
     def test_update_modified_ts(self) -> None:
         _event_modified_ts = {
@@ -184,14 +184,14 @@ class TestEventList(TestCase):
             "created_ts": datetime(2015, 9, 24, 1, 1, 1, 111111, tzinfo=UTC),
             "modified_ts": datetime(2015, 9, 24, 1, 1, 1, 111111, tzinfo=UTC),
         }
-        self.assertIn("modified_ts", _event_modified_ts)
+        assert "modified_ts" in _event_modified_ts
         el = SomeEventList.from_list_of_dicts([_event_modified_ts])
         event = el.to_list()[0]
 
-        self.assertIsInstance(event.modified_ts, datetime)
-        self.assertEqual(event.modified_ts, event.created_ts)
+        assert isinstance(event.modified_ts, datetime)
+        assert event.modified_ts == event.created_ts
 
         event.modified_ts = datetime(2018, 9, 24, 1, 1, 1, 111111, tzinfo=UTC)
-        self.assertIsInstance(event.modified_ts, datetime)
-        self.assertEqual(event.modified_ts, datetime(2018, 9, 24, 1, 1, 1, 111111, tzinfo=UTC))
-        self.assertNotEqual(event.modified_ts, event.created_ts)
+        assert isinstance(event.modified_ts, datetime)
+        assert event.modified_ts == datetime(2018, 9, 24, 1, 1, 1, 111111, tzinfo=UTC)
+        assert event.modified_ts != event.created_ts

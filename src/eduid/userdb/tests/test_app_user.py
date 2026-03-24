@@ -19,17 +19,17 @@ class TestAppUser(TestCase):
 
     def test_proper_user(self) -> None:
         user = User.from_dict(data=self.user_data)
-        self.assertEqual(user.user_id, self.user_data["_id"])
-        self.assertEqual(user.eppn, self.user_data["eduPersonPrincipalName"])
+        assert user.user_id == self.user_data["_id"]
+        assert user.eppn == self.user_data["eduPersonPrincipalName"]
 
     def test_proper_new_user(self) -> None:
         user = User(user_id=self.user.user_id, eppn=self.user.eppn, credentials=self.user.credentials)
-        self.assertEqual(user.user_id, self.user.user_id)
-        self.assertEqual(user.eppn, self.user.eppn)
+        assert user.user_id == self.user.user_id
+        assert user.eppn == self.user.eppn
 
     def test_missing_id(self) -> None:
         user = User(eppn=self.user.eppn, credentials=self.user.credentials)
-        self.assertNotEqual(user.user_id, self.user.user_id)
+        assert user.user_id != self.user.user_id
 
     def test_missing_eppn(self) -> None:
         _data = self.user.to_dict()

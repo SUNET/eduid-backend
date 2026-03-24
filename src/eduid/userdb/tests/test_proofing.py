@@ -82,20 +82,14 @@ class ProofingStateTest(TestCase):
         ]
         assert sorted(state_dict.keys()) == sorted(_state_expected_keys)
 
-        self.assertEqual(
-            sorted([k for k, v in state_dict["nin"].items() if v is not None]),
-            sorted(nin_expected_keys),
-        )
+        assert sorted([k for k, v in state_dict["nin"].items() if v is not None]) == sorted(nin_expected_keys)
         _proofing_letter_expected_keys = [
             "address",
             "created_ts",
             "is_sent",
             "modified_ts",
         ]
-        self.assertEqual(
-            sorted([k for k, v in state_dict["proofing_letter"].items() if v is not None]),
-            sorted(_proofing_letter_expected_keys),
-        )
+        assert sorted([k for k, v in state_dict["proofing_letter"].items() if v is not None]) == sorted(_proofing_letter_expected_keys)
 
     def test_create_letterproofingstate_with_ninproofingelement_from_dict(self) -> None:
         """ """
@@ -195,7 +189,7 @@ class ProofingStateTest(TestCase):
 
     def test_proofing_state_expiration(self) -> None:
         state = ProofingState(id=None, eppn=EPPN, modified_ts=utc_now())
-        self.assertFalse(state.is_expired(1))
+        assert not state.is_expired(1)
 
         expired_state = ProofingState(id=None, eppn=EPPN, modified_ts=utc_now())
-        self.assertTrue(expired_state.is_expired(-1))
+        assert expired_state.is_expired(-1)

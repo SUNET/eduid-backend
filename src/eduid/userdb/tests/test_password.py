@@ -30,7 +30,7 @@ class TestPassword(TestCase):
         password = self.one.find(str(ObjectId("55002741d00690878ae9b600")))
         assert password
         assert isinstance(password, Password)
-        self.assertEqual(password.key, password.credential_id)
+        assert password.key == password.credential_id
 
     def test_parse_cycle(self) -> None:
         """
@@ -38,18 +38,18 @@ class TestPassword(TestCase):
         """
         for this in [self.one, self.two, self.three]:
             this_dict = this.to_list_of_dicts()
-            self.assertEqual(CredentialList.from_list_of_dicts(this_dict).to_list_of_dicts(), this.to_list_of_dicts())
+            assert CredentialList.from_list_of_dicts(this_dict).to_list_of_dicts() == this.to_list_of_dicts()
 
     def test_created_by(self) -> None:
         this = self.three.find(str(ObjectId("55002741d00690878ae9b600")))
         assert this
         this.created_by = "unit test"
-        self.assertEqual(this.created_by, "unit test")
+        assert this.created_by == "unit test"
 
     def test_created_ts(self) -> None:
         this = self.three.find(str(ObjectId("55002741d00690878ae9b600")))
         assert this
-        self.assertIsInstance(this.created_ts, datetime.datetime)
+        assert isinstance(this.created_ts, datetime.datetime)
 
     def test_version_default(self) -> None:
         """Password without version field defaults to 1."""

@@ -50,21 +50,21 @@ class TestNinList(unittest.TestCase):
             NinList(elements=["bad input data"])
 
     def test_to_list(self) -> None:
-        self.assertEqual([], self.empty.to_list(), list)
-        self.assertIsInstance(self.one.to_list(), list)
+        assert self.empty.to_list() == [], list
+        assert isinstance(self.one.to_list(), list)
 
-        self.assertEqual(1, len(self.one.to_list()))
+        assert len(self.one.to_list()) == 1
 
     def test_to_list_of_dicts(self) -> None:
-        self.assertEqual([], self.empty.to_list_of_dicts(), list)
+        assert self.empty.to_list_of_dicts() == [], list
 
     def test_find(self) -> None:
         match = self.one.find("197801011234")
         assert match
-        self.assertIsInstance(match, Nin)
-        self.assertEqual(match.number, "197801011234")
-        self.assertEqual(match.is_verified, True)
-        self.assertEqual(match.verified_ts, None)
+        assert isinstance(match, Nin)
+        assert match.number == "197801011234"
+        assert match.is_verified
+        assert match.verified_ts is None
 
     def test_add(self) -> None:
         second = self.two.find("197802022345")
@@ -150,15 +150,15 @@ class TestNinList(unittest.TestCase):
         assert self.one.primary
         self.one.remove(self.one.primary.key)
         now_empty = self.one
-        self.assertEqual([], now_empty.to_list())
+        assert now_empty.to_list() == []
 
     def test_primary(self) -> None:
         match = self.one.primary
         assert match
-        self.assertEqual(match.number, "197801011234")
+        assert match.number == "197801011234"
 
     def test_empty_primary(self) -> None:
-        self.assertEqual(None, self.empty.primary)
+        assert None is self.empty.primary
 
     def test_set_primary_to_same(self) -> None:
         match = self.one.primary
@@ -180,11 +180,11 @@ class TestNinList(unittest.TestCase):
     def test_change_primary(self) -> None:
         match = self.two.primary
         assert match
-        self.assertEqual(match.number, "197801011234")
+        assert match.number == "197801011234"
         self.two.set_primary(ElementKey("197802022345"))
         updated = self.two.primary
         assert updated
-        self.assertEqual(updated.number, "197802022345")
+        assert updated.number == "197802022345"
 
     def test_bad_input_two_primary(self) -> None:
         one = copy.deepcopy(_one_dict)
@@ -214,7 +214,7 @@ class TestNin(TestCase):
         """
         address = self.two.primary
         assert address
-        self.assertEqual(address.key, address.number)
+        assert address.key == address.number
 
     def test_parse_cycle(self) -> None:
         """
@@ -222,7 +222,7 @@ class TestNin(TestCase):
         """
         for this in [self.one, self.two, self.three]:
             this_dict = this.to_list_of_dicts()
-            self.assertEqual(NinList.from_list_of_dicts(this_dict).to_list_of_dicts(), this.to_list_of_dicts())
+            assert NinList.from_list_of_dicts(this_dict).to_list_of_dicts() == this.to_list_of_dicts()
 
     def test_changing_is_verified_on_primary(self) -> None:
         this = self.one.primary
@@ -240,27 +240,27 @@ class TestNin(TestCase):
         this = self.three.find("197803033456")
         assert this
         this.verified_by = "unit test"
-        self.assertEqual(this.verified_by, "unit test")
+        assert this.verified_by == "unit test"
 
     def test_modify_verified_by(self) -> None:
         this = self.three.find("197803033456")
         assert this
         this.verified_by = "unit test"
         this.verified_by = "test unit"
-        self.assertEqual(this.verified_by, "test unit")
+        assert this.verified_by == "test unit"
 
     def test_modify_verified_ts(self) -> None:
         this = self.three.find("197803033456")
         assert this
         now = utc_now()
         this.verified_ts = now
-        self.assertEqual(this.verified_ts, now)
+        assert this.verified_ts == now
 
     def test_created_by(self) -> None:
         this = self.three.find("197803033456")
         assert this
         this.created_by = "unit test"
-        self.assertEqual(this.created_by, "unit test")
+        assert this.created_by == "unit test"
 
     def test_modify_created_by(self) -> None:
         this = self.three.find("197803033456")
@@ -272,4 +272,4 @@ class TestNin(TestCase):
     def test_created_ts(self) -> None:
         this = self.three.find("197803033456")
         assert this
-        self.assertIsInstance(this.created_ts, datetime.datetime)
+        assert isinstance(this.created_ts, datetime.datetime)

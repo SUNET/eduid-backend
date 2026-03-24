@@ -65,12 +65,12 @@ class FormatAddressTest(unittest.TestCase):
         ]
         for response in navet_responses:
             name, care_of, address, misc_address, postal_code, city = pdf.format_address(response)
-            self.assertIsNotNone(name)
-            self.assertIsNotNone(care_of)
-            self.assertIsNotNone(address)
-            self.assertIsNotNone(misc_address)
-            self.assertIsNotNone(postal_code)
-            self.assertIsNotNone(city)
+            assert name is not None
+            assert care_of is not None
+            assert address is not None
+            assert misc_address is not None
+            assert postal_code is not None
+            assert city is not None
 
     def test_failing_format(self) -> None:
         failing_navet_responses = [
@@ -188,7 +188,7 @@ class CreatePDFTest(EduidAPITestCase):
                     primary_mail_address="test@example.org",
                     letter_wait_time_hours=336,
                 )
-        self.assertIsInstance(pdf_document, (StringIO, BytesIO))
+        assert isinstance(pdf_document, (StringIO, BytesIO))
 
         pdf_text = PdfReader(pdf_document).pages[0].extract_text()
         assert (

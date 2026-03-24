@@ -20,13 +20,13 @@ class ProfileTest(TestCase):
             profile_data=OPAQUE_DATA,
             created_by="test created_by",
         )
-        self.assertEqual(profile.owner, "test owner")
-        self.assertEqual(profile.profile_schema, "test schema")
-        self.assertEqual(profile.created_by, "test created_by")
-        self.assertIsNotNone(profile.created_ts)
+        assert profile.owner == "test owner"
+        assert profile.profile_schema == "test schema"
+        assert profile.created_by == "test created_by"
+        assert profile.created_ts is not None
         for key, value in OPAQUE_DATA.items():
-            self.assertIn(key, profile.profile_data)
-            self.assertEqual(value, profile.profile_data[key])
+            assert key in profile.profile_data
+            assert value == profile.profile_data[key]
 
     def test_profile_list(self) -> None:
         profile = Profile(
@@ -43,15 +43,15 @@ class ProfileTest(TestCase):
         )
 
         profile_list = ProfileList(elements=[profile, profile2])
-        self.assertIsNotNone(profile_list)
-        self.assertEqual(profile_list.count, 2)
-        self.assertIsNotNone(profile_list.find("test owner 1"))
-        self.assertIsNotNone(profile_list.find("test owner 2"))
+        assert profile_list is not None
+        assert profile_list.count == 2
+        assert profile_list.find("test owner 1") is not None
+        assert profile_list.find("test owner 2") is not None
 
     def test_empty_profile_list(self) -> None:
         profile_list = ProfileList()
-        self.assertIsNotNone(profile_list)
-        self.assertEqual(profile_list.count, 0)
+        assert profile_list is not None
+        assert profile_list.count == 0
 
     def test_profile_list_owner_conflict(self) -> None:
         profile = Profile(

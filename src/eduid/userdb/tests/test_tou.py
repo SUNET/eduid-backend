@@ -58,7 +58,7 @@ class TestToUEvent(TestCase):
         Test that the 'key' property (used by ElementList) works for the ToUEvent.
         """
         event = self.two.to_list()[0]
-        self.assertEqual(event.key, event.event_id)
+        assert event.key == event.event_id
 
     def test_parse_cycle(self) -> None:
         """
@@ -72,11 +72,11 @@ class TestToUEvent(TestCase):
     def test_created_by(self) -> None:
         this = Event.from_dict({"created_by": None, "event_type": "test_event"})
         this.created_by = "unit test"
-        self.assertEqual(this.created_by, "unit test")
+        assert this.created_by == "unit test"
 
     def test_event_type(self) -> None:
         this = self.one.to_list()[0]
-        self.assertEqual(this.event_type, "tou_event")
+        assert this.event_type == "tou_event"
 
     def test_reaccept_tou(self) -> None:
         three_years = timedelta(days=3 * 365)
@@ -91,8 +91,8 @@ class TestToUEvent(TestCase):
 
         # check if the TOU needs to be accepted with an interval of three years
         tl = ToUList.from_list_of_dicts([_two_dict, _three_dict])
-        self.assertTrue(tl.has_accepted(version="2", reaccept_interval=int(three_years.total_seconds())))
-        self.assertFalse(tl.has_accepted(version="3", reaccept_interval=int(three_years.total_seconds())))
+        assert tl.has_accepted(version="2", reaccept_interval=int(three_years.total_seconds()))
+        assert not tl.has_accepted(version="3", reaccept_interval=int(three_years.total_seconds()))
 
 
 class TestTouUser(TestCase):
@@ -105,7 +105,7 @@ class TestTouUser(TestCase):
         userdata = self.user.to_dict()
         userdata["tou"] = [copy.deepcopy(_one_dict)]
         user = ToUUser.from_dict(data=userdata)
-        self.assertEqual(user.tou.to_list_of_dicts()[0]["version"], "1")
+        assert user.tou.to_list_of_dicts()[0]["version"] == "1"
 
     def test_proper_new_user(self) -> None:
         one = copy.deepcopy(_one_dict)
@@ -115,7 +115,7 @@ class TestTouUser(TestCase):
         eppn = userdata.pop("eduPersonPrincipalName")
         passwords = CredentialList.from_list_of_dicts(userdata["passwords"])
         user = ToUUser(user_id=userid, eppn=eppn, tou=tou, credentials=passwords)
-        self.assertEqual(user.tou.to_list_of_dicts()[0]["version"], "1")
+        assert user.tou.to_list_of_dicts()[0]["version"] == "1"
 
     def test_proper_new_user_no_id(self) -> None:
         one = copy.deepcopy(_one_dict)

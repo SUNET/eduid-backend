@@ -13,53 +13,48 @@ class TestAsyncMongoDB(IsolatedAsyncioTestCase):
         conn = mdb.get_connection()
         database = mdb.get_database()
         assert database is not None
-        self.assertIsNotNone(conn)
-        self.assertEqual(mdb._db_uri, uri)
-        self.assertEqual(mdb._database_name, "testdb")
+        assert conn is not None
+        assert mdb._db_uri == uri
+        assert mdb._database_name == "testdb"
 
     def test_uri_without_path_component(self) -> None:
         uri = "mongodb://db.example.com:1111"
         mdb = AsyncMongoDB(uri, db_name="testdb")
         database = mdb.get_database()
         assert database is not None
-        self.assertEqual(mdb._db_uri, uri + "/testdb")
-        self.assertEqual(mdb._database_name, "testdb")
+        assert mdb._db_uri == uri + "/testdb"
+        assert mdb._database_name == "testdb"
 
     def test_uri_without_port(self) -> None:
         uri = "mongodb://db.example.com/"
         mdb = AsyncMongoDB(uri)
-        self.assertEqual(mdb._db_uri, uri)
+        assert mdb._db_uri == uri
         database = mdb.get_database("testdb")
         assert database is not None
-        self.assertEqual(mdb.sanitized_uri, "mongodb://db.example.com/")
+        assert mdb.sanitized_uri == "mongodb://db.example.com/"
 
     def test_uri_with_username_and_password(self) -> None:
         uri = "mongodb://john:s3cr3t@db.example.com:1111/testdb"
         mdb = AsyncMongoDB(uri, db_name="testdb")
         conn = mdb.get_connection()
-        self.assertIsNotNone(conn)
+        assert conn is not None
         database = mdb.get_database()
         assert database is not None
-        self.assertEqual(mdb._db_uri, uri)
-        self.assertEqual(mdb._database_name, "testdb")
-        self.assertEqual(mdb.sanitized_uri, "mongodb://john:secret@db.example.com:1111/testdb")
-        self.assertEqual(
-            mdb.__repr__(), "<eduID AsyncMongoDB: mongodb://john:secret@db.example.com:1111/testdb testdb>"
-        )
+        assert mdb._db_uri == uri
+        assert mdb._database_name == "testdb"
+        assert mdb.sanitized_uri == "mongodb://john:secret@db.example.com:1111/testdb"
+        assert mdb.__repr__() == "<eduID AsyncMongoDB: mongodb://john:secret@db.example.com:1111/testdb testdb>"
 
     def test_uri_with_replicaset(self) -> None:
         uri = "mongodb://john:s3cr3t@db.example.com,db2.example.com:27017,db3.example.com:1234/?replicaSet=rs9"
         mdb = AsyncMongoDB(uri, db_name="testdb")
-        self.assertEqual(mdb.sanitized_uri, "mongodb://john:secret@db.example.com/testdb?replicaSet=rs9")
-        self.assertEqual(
-            mdb._db_uri,
-            "mongodb://john:s3cr3t@db.example.com,db2.example.com,db3.example.com:1234/testdb?replicaSet=rs9",
-        )
+        assert mdb.sanitized_uri == "mongodb://john:secret@db.example.com/testdb?replicaSet=rs9"
+        assert mdb._db_uri == "mongodb://john:s3cr3t@db.example.com,db2.example.com,db3.example.com:1234/testdb?replicaSet=rs9"
 
     def test_uri_with_options(self) -> None:
         uri = "mongodb://john:s3cr3t@db.example.com:27017/?ssl=true&replicaSet=rs9"
         mdb = AsyncMongoDB(uri, db_name="testdb")
-        self.assertEqual(mdb.sanitized_uri, "mongodb://john:secret@db.example.com/testdb?replicaSet=rs9&tls=true")
+        assert mdb.sanitized_uri == "mongodb://john:secret@db.example.com/testdb?replicaSet=rs9&tls=true"
 
 
 class TestAsyncDB(AsyncMongoTestCase):
@@ -72,22 +67,22 @@ class TestAsyncDB(AsyncMongoTestCase):
         await self.db.collection.insert_many([{"x": i} for i in range(self.num_objs)])
 
     async def test_db_count(self) -> None:
-        self.assertEqual(self.num_objs, await self.db.db_count())
+        assert self.num_objs == await self.db.db_count()
 
     async def test_db_count_limit(self) -> None:
-        self.assertEqual(1, await self.db.db_count(limit=1))
-        self.assertEqual(2, await self.db.db_count(limit=2))
+        assert await self.db.db_count(limit=1) == 1
+        assert await self.db.db_count(limit=2) == 2
 
     async def test_db_count_spec(self) -> None:
-        self.assertEqual(1, await self.db.db_count(spec={"x": 3}))
+        assert await self.db.db_count(spec={"x": 3}) == 1
 
     async def test_get_documents_by_filter_skip(self) -> None:
         docs = await self.db._get_documents_by_filter(spec={}, skip=2)
-        self.assertEqual(8, len(docs))
+        assert len(docs) == 8
 
     async def test_get_documents_by_filter_limit(self) -> None:
         docs = await self.db._get_documents_by_filter(spec={}, limit=1)
-        self.assertEqual(1, len(docs))
+        assert len(docs) == 1
 
     async def test_get_documents_by_aggregate(self) -> None:
         match = {

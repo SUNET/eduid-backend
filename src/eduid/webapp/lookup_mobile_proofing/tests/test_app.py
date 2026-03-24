@@ -66,10 +66,10 @@ class LookupMobileProofingTests(EduidAPITestCase[MobileProofingApp]):
 
     def test_authenticate(self) -> None:
         response = self.browser.get("/proofing")
-        self.assertEqual(response.status_code, 401)
+        assert response.status_code == 401
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             response = browser.get("/proofing")
-        self.assertEqual(response.status_code, 200)  # Authenticated request
+        assert response.status_code == 200  # Authenticated request
 
     @patch("eduid.common.rpc.lookup_mobile_relay.LookupMobileRelay.find_nin_by_mobile")
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_all_navet_data")
@@ -83,7 +83,7 @@ class LookupMobileProofingTests(EduidAPITestCase[MobileProofingApp]):
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             response = json.loads(browser.get("/proofing").data)
-        self.assertEqual(response["type"], "GET_LOOKUP_MOBILE_PROOFING_PROOFING_SUCCESS")
+        assert response["type"] == "GET_LOOKUP_MOBILE_PROOFING_PROOFING_SUCCESS"
 
         csrf_token = response["payload"]["csrf_token"]
 
@@ -91,8 +91,8 @@ class LookupMobileProofingTests(EduidAPITestCase[MobileProofingApp]):
             data = {"nin": self.test_user_nin, "csrf_token": csrf_token}
             response = browser.post("/proofing", data=json.dumps(data), content_type=self.content_type_json)
             response = json.loads(response.data)
-        self.assertEqual(response["type"], "POST_LOOKUP_MOBILE_PROOFING_PROOFING_SUCCESS")
-        self.assertEqual(response["payload"]["success"], True)
+        assert response["type"] == "POST_LOOKUP_MOBILE_PROOFING_PROOFING_SUCCESS"
+        assert response["payload"]["success"]
 
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
         self._check_nin_verified_ok_no_proofing_state(user=user)
@@ -109,7 +109,7 @@ class LookupMobileProofingTests(EduidAPITestCase[MobileProofingApp]):
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             response = json.loads(browser.get("/proofing").data)
-        self.assertEqual(response["type"], "GET_LOOKUP_MOBILE_PROOFING_PROOFING_SUCCESS")
+        assert response["type"] == "GET_LOOKUP_MOBILE_PROOFING_PROOFING_SUCCESS"
 
         csrf_token = response["payload"]["csrf_token"]
 
@@ -117,8 +117,8 @@ class LookupMobileProofingTests(EduidAPITestCase[MobileProofingApp]):
             data = {"nin": self.test_user_nin_underage, "csrf_token": csrf_token}
             response = browser.post("/proofing", data=json.dumps(data), content_type=self.content_type_json)
             response = json.loads(response.data)
-        self.assertEqual(response["type"], "POST_LOOKUP_MOBILE_PROOFING_PROOFING_SUCCESS")
-        self.assertEqual(response["payload"]["success"], True)
+        assert response["type"] == "POST_LOOKUP_MOBILE_PROOFING_PROOFING_SUCCESS"
+        assert response["payload"]["success"]
 
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
         self._check_nin_verified_ok_no_proofing_state(user=user, number=self.test_user_nin_underage)
@@ -135,7 +135,7 @@ class LookupMobileProofingTests(EduidAPITestCase[MobileProofingApp]):
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             response = json.loads(browser.get("/proofing").data)
-        self.assertEqual(response["type"], "GET_LOOKUP_MOBILE_PROOFING_PROOFING_SUCCESS")
+        assert response["type"] == "GET_LOOKUP_MOBILE_PROOFING_PROOFING_SUCCESS"
 
         csrf_token = response["payload"]["csrf_token"]
 
@@ -143,7 +143,7 @@ class LookupMobileProofingTests(EduidAPITestCase[MobileProofingApp]):
             data = {"nin": self.test_user_nin, "csrf_token": csrf_token}
             response = browser.post("/proofing", data=json.dumps(data), content_type=self.content_type_json)
             response = json.loads(response.data)
-        self.assertEqual(response["type"], "POST_LOOKUP_MOBILE_PROOFING_PROOFING_FAIL")
+        assert response["type"] == "POST_LOOKUP_MOBILE_PROOFING_PROOFING_FAIL"
 
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
         self._check_nin_not_verified_no_proofing_state(user=user)
@@ -160,7 +160,7 @@ class LookupMobileProofingTests(EduidAPITestCase[MobileProofingApp]):
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             response = json.loads(browser.get("/proofing").data)
-        self.assertEqual(response["type"], "GET_LOOKUP_MOBILE_PROOFING_PROOFING_SUCCESS")
+        assert response["type"] == "GET_LOOKUP_MOBILE_PROOFING_PROOFING_SUCCESS"
 
         csrf_token = response["payload"]["csrf_token"]
 
@@ -168,8 +168,8 @@ class LookupMobileProofingTests(EduidAPITestCase[MobileProofingApp]):
             data = {"nin": self.test_user_nin, "csrf_token": csrf_token}
             response = browser.post("/proofing", data=json.dumps(data), content_type=self.content_type_json)
             response = json.loads(response.data)
-        self.assertEqual("POST_LOOKUP_MOBILE_PROOFING_PROOFING_FAIL", response["type"])
-        self.assertEqual(MobileMsg.lookup_error.value, response["payload"]["message"])
+        assert response["type"] == "POST_LOOKUP_MOBILE_PROOFING_PROOFING_FAIL"
+        assert MobileMsg.lookup_error.value == response["payload"]["message"]
 
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
         self._check_nin_not_verified_no_proofing_state(user=user)
@@ -195,7 +195,7 @@ class LookupMobileProofingTests(EduidAPITestCase[MobileProofingApp]):
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             response = json.loads(browser.get("/proofing").data)
-        self.assertEqual(response["type"], "GET_LOOKUP_MOBILE_PROOFING_PROOFING_SUCCESS")
+        assert response["type"] == "GET_LOOKUP_MOBILE_PROOFING_PROOFING_SUCCESS"
 
         csrf_token = response["payload"]["csrf_token"]
 
@@ -203,8 +203,8 @@ class LookupMobileProofingTests(EduidAPITestCase[MobileProofingApp]):
             data = {"nin": self.test_user_nin_underage, "csrf_token": csrf_token}
             response = browser.post("/proofing", data=json.dumps(data), content_type=self.content_type_json)
             response = json.loads(response.data)
-        self.assertEqual(response["type"], "POST_LOOKUP_MOBILE_PROOFING_PROOFING_SUCCESS")
-        self.assertEqual(response["payload"]["success"], True)
+        assert response["type"] == "POST_LOOKUP_MOBILE_PROOFING_PROOFING_SUCCESS"
+        assert response["payload"]["success"]
 
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
         self._check_nin_verified_ok_no_proofing_state(user=user, number=self.test_user_nin_underage)
@@ -225,7 +225,7 @@ class LookupMobileProofingTests(EduidAPITestCase[MobileProofingApp]):
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             response = json.loads(browser.get("/proofing").data)
-        self.assertEqual(response["type"], "GET_LOOKUP_MOBILE_PROOFING_PROOFING_SUCCESS")
+        assert response["type"] == "GET_LOOKUP_MOBILE_PROOFING_PROOFING_SUCCESS"
 
         csrf_token = response["payload"]["csrf_token"]
 
@@ -233,7 +233,7 @@ class LookupMobileProofingTests(EduidAPITestCase[MobileProofingApp]):
             data = {"nin": self.test_user_nin, "csrf_token": csrf_token}
             response = browser.post("/proofing", data=json.dumps(data), content_type=self.content_type_json)
             response = json.loads(response.data)
-        self.assertEqual(response["type"], "POST_LOOKUP_MOBILE_PROOFING_PROOFING_FAIL")
+        assert response["type"] == "POST_LOOKUP_MOBILE_PROOFING_PROOFING_FAIL"
 
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
         self._check_nin_not_verified_no_proofing_state(user=user)
@@ -253,7 +253,7 @@ class LookupMobileProofingTests(EduidAPITestCase[MobileProofingApp]):
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             response = json.loads(browser.get("/proofing").data)
-        self.assertEqual(response["type"], "GET_LOOKUP_MOBILE_PROOFING_PROOFING_SUCCESS")
+        assert response["type"] == "GET_LOOKUP_MOBILE_PROOFING_PROOFING_SUCCESS"
 
         csrf_token = response["payload"]["csrf_token"]
 
@@ -261,7 +261,7 @@ class LookupMobileProofingTests(EduidAPITestCase[MobileProofingApp]):
             data = {"nin": self.test_user_nin, "csrf_token": csrf_token}
             response = browser.post("/proofing", data=json.dumps(data), content_type=self.content_type_json)
             response = json.loads(response.data)
-        self.assertEqual(response["type"], "POST_LOOKUP_MOBILE_PROOFING_PROOFING_FAIL")
+        assert response["type"] == "POST_LOOKUP_MOBILE_PROOFING_PROOFING_FAIL"
 
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
         self._check_nin_not_verified_no_proofing_state(user=user)
@@ -284,7 +284,7 @@ class LookupMobileProofingTests(EduidAPITestCase[MobileProofingApp]):
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             response = json.loads(browser.get("/proofing").data)
-        self.assertEqual(response["type"], "GET_LOOKUP_MOBILE_PROOFING_PROOFING_SUCCESS")
+        assert response["type"] == "GET_LOOKUP_MOBILE_PROOFING_PROOFING_SUCCESS"
 
         csrf_token = response["payload"]["csrf_token"]
 
@@ -316,7 +316,7 @@ class LookupMobileProofingTests(EduidAPITestCase[MobileProofingApp]):
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             response = json.loads(browser.get("/proofing").data)
-        self.assertEqual(response["type"], "GET_LOOKUP_MOBILE_PROOFING_PROOFING_SUCCESS")
+        assert response["type"] == "GET_LOOKUP_MOBILE_PROOFING_PROOFING_SUCCESS"
 
         csrf_token = response["payload"]["csrf_token"]
 
@@ -324,7 +324,7 @@ class LookupMobileProofingTests(EduidAPITestCase[MobileProofingApp]):
             data = {"nin": self.test_user_nin_underage, "csrf_token": csrf_token}
             response = browser.post("/proofing", data=json.dumps(data), content_type=self.content_type_json)
             response = json.loads(response.data)
-        self.assertEqual(response["type"], "POST_LOOKUP_MOBILE_PROOFING_PROOFING_FAIL")
+        assert response["type"] == "POST_LOOKUP_MOBILE_PROOFING_PROOFING_FAIL"
 
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
         self._check_nin_not_verified_no_proofing_state(user=user, number=self.test_user_nin_underage)

@@ -52,11 +52,11 @@ class TestScimUser(unittest.TestCase):
 
     def test_load_old_user(self) -> None:
         user = ScimApiUser.from_dict(self.user_doc1)
-        self.assertEqual(user.profiles["student"].attributes["displayName"], "Test")
+        assert user.profiles["student"].attributes["displayName"] == "Test"
 
         # test to-dict+from-dict consistency
         user2 = ScimApiUser.from_dict(user.to_dict())
-        self.assertEqual(asdict(user), asdict(user2))
+        assert asdict(user) == asdict(user2)
 
     def test_to_scimuser_doc(self) -> None:
         db_user = ScimApiUser.from_dict(self.user_doc1)
@@ -171,7 +171,7 @@ class TestScimUser(unittest.TestCase):
     def test_bson_serialization(self) -> None:
         user = ScimApiUser.from_dict(self.user_doc1)
         x = bson.encode(user.to_dict())
-        self.assertTrue(x)
+        assert x
 
 
 @dataclass
@@ -222,11 +222,7 @@ class ScimApiTestUserResourceBase(ScimApiTestCase):
         if SCIMSchema.NUTID_USER_V1.value in req:
             req_nutid = req[SCIMSchema.NUTID_USER_V1.value]
             resp_nutid = response.json().get(SCIMSchema.NUTID_USER_V1.value)
-            self.assertEqual(
-                req_nutid,
-                resp_nutid,
-                "Unexpected NUTID user data in parsed_response",
-            )
+            assert req_nutid == resp_nutid, "Unexpected NUTID user data in parsed_response"
         elif SCIMSchema.NUTID_USER_V1.value in response.json():
             self.fail(f"Unexpected {SCIMSchema.NUTID_USER_V1.value} in the parsed_response")
 
@@ -313,7 +309,7 @@ class TestUserResource(ScimApiTestUserResourceBase):
         assert isinstance(req["externalId"], str)
         db_user = self.userdb.get_user_by_external_id(req["externalId"])
         assert db_user
-        self.assertIsNotNone(db_user, "Created user not found in the database")
+        assert db_user is not None, "Created user not found in the database"
 
         self._assertUserUpdateSuccess(result.request, result.response, db_user)
 
@@ -377,7 +373,7 @@ class TestUserResource(ScimApiTestUserResourceBase):
         assert self.userdb
         db_user = self.userdb.get_user_by_scim_id(response.json()["id"])
         assert db_user
-        self.assertIsNotNone(db_user, "Created user not found in the database")
+        assert db_user is not None, "Created user not found in the database"
 
         self._assertUserUpdateSuccess(req, response, db_user)
 
@@ -645,7 +641,7 @@ class TestUserResource(ScimApiTestUserResourceBase):
     def test_search_user_last_modified(self) -> None:
         db_user1 = self.add_user(identifier=str(uuid4()), external_id="test-id-1", profiles={"test": self.test_profile})
         db_user2 = self.add_user(identifier=str(uuid4()), external_id="test-id-2", profiles={"test": self.test_profile})
-        self.assertGreater(db_user2.last_modified, db_user1.last_modified)
+        assert db_user2.last_modified > db_user1.last_modified
 
         self._perform_search(
             search_filter=f'meta.lastModified ge "{db_user1.last_modified.isoformat()}"',
@@ -666,7 +662,7 @@ class TestUserResource(ScimApiTestUserResourceBase):
         for i in range(9):
             self.add_user(identifier=str(uuid4()), external_id=f"test-id-{i}", profiles={"test": self.test_profile})
         assert self.userdb
-        self.assertEqual(9, self.userdb.db_count())
+        assert self.userdb.db_count() == 9
         last_modified = utc_now() - timedelta(hours=1)
         self._perform_search(
             search_filter=f'meta.lastmodified gt "{last_modified.isoformat()}"',
@@ -680,7 +676,7 @@ class TestUserResource(ScimApiTestUserResourceBase):
         for i in range(9):
             self.add_user(identifier=str(uuid4()), external_id=f"test-id-{i}", profiles={"test": self.test_profile})
         assert self.userdb
-        self.assertEqual(9, self.userdb.db_count())
+        assert self.userdb.db_count() == 9
         last_modified = utc_now() - timedelta(hours=1)
         self._perform_search(
             search_filter=f'meta.lastmodified gt "{last_modified.isoformat()}"',
@@ -694,7 +690,7 @@ class TestUserResource(ScimApiTestUserResourceBase):
         for i in range(9):
             self.add_user(identifier=str(uuid4()), external_id=f"test-id-{i}", profiles={"test": self.test_profile})
         assert self.userdb
-        self.assertEqual(9, self.userdb.db_count())
+        assert self.userdb.db_count() == 9
         last_modified = utc_now() - timedelta(hours=1)
         self._perform_search(
             search_filter=f'meta.lastmodified gt "{last_modified.isoformat()}"',
@@ -836,12 +832,8 @@ class TestUserResource(ScimApiTestUserResourceBase):
         self._assertResponse(response)
         expected_schemas = [SCIMSchema.API_MESSAGES_20_LIST_RESPONSE.value]
         response_schemas = response.json().get("schemas")
-        self.assertIsInstance(response_schemas, list, "Response schemas not present, or not a list")
-        self.assertEqual(
-            sorted(set(expected_schemas)),
-            sorted(set(response_schemas)),
-            "Unexpected schema(s) in search parsed_response",
-        )
+        assert isinstance(response_schemas, list), "Response schemas not present, or not a list"
+        assert sorted(set(expected_schemas)) == sorted(set(response_schemas)), "Unexpected schema(s) in search parsed_response"
 
         resources = response.json().get("Resources")
 
@@ -850,28 +842,16 @@ class TestUserResource(ScimApiTestUserResourceBase):
             expected_total_results = 1
 
         if expected_num_resources is not None:
-            self.assertEqual(
-                expected_num_resources,
-                len(resources),
-                f"Number of resources returned expected to be {expected_num_resources}",
-            )
+            assert expected_num_resources == len(resources), f"Number of resources returned expected to be {expected_num_resources}"
             if expected_total_results is None:
                 expected_total_results = expected_num_resources
         if expected_total_results is not None:
-            self.assertEqual(
-                expected_total_results,
-                response.json().get("totalResults"),
-                f"Response totalResults expected to be {expected_total_results}",
-            )
+            assert expected_total_results == response.json().get("totalResults"), f"Response totalResults expected to be {expected_total_results}"
 
         if expected_user is not None:
-            self.assertEqual(
-                str(expected_user.scim_id),
-                resources[0].get("id"),
-                f"Search parsed_response user does not have the expected id: {expected_user.scim_id!s}",
-            )
+            assert str(expected_user.scim_id) == resources[0].get("id"), f"Search parsed_response user does not have the expected id: {expected_user.scim_id!s}"
 
-        self.assertEqual([SCIMSchema.API_MESSAGES_20_LIST_RESPONSE.value], response.json().get("schemas"))
+        assert [SCIMSchema.API_MESSAGES_20_LIST_RESPONSE.value] == response.json().get("schemas")
         resources = response.json().get("Resources")
         return resources
 

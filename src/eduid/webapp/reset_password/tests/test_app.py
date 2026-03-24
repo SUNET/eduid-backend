@@ -99,7 +99,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
                     sess.reset_password.captcha.completed = captcha_completed
 
             response = c.post("/", data=json.dumps(data), content_type=self.content_type_json)
-            self.assertEqual(200, response.status_code)
+            assert response.status_code == 200
             return response
 
     def _post_reset_code(
@@ -152,7 +152,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         # check that the user has verified data
         user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
         verified_phone_numbers = user.phone_numbers.verified
-        self.assertEqual(len(verified_phone_numbers), 1)
+        assert len(verified_phone_numbers) == 1
         assert user.identities.nin is not None
         assert user.identities.nin.is_verified is True
 
@@ -229,7 +229,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
             if data2 is not None:
                 data.update(data2)
             response = c.post(conf_url, data=json.dumps(data), content_type=self.content_type_json)
-            self.assertEqual(200, response.status_code)
+            assert response.status_code == 200
 
         with self.session_cookie_anon(self.browser) as c:
             data = {
@@ -489,7 +489,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
                 "csrf_token": self.get_response_payload(response)["csrf_token"],
             }
             response = client.post(config_url, data=json.dumps(data), content_type=self.content_type_json)
-            self.assertEqual(200, response.status_code)
+            assert response.status_code == 200
 
         with self.session_cookie_and_magic_cookie_anon(self.browser, magic_cookie_name=magic_cookie_name) as client:
             data = {
@@ -498,7 +498,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
                 "phone_index": "0",
             }
             response = client.post(extra_security_phone_url, data=json.dumps(data), content_type=self.content_type_json)
-            self.assertEqual(200, response.status_code)
+            assert response.status_code == 200
 
             eppn = quote_plus(self.test_user.eppn)
 
@@ -603,31 +603,31 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         # Check that user has verified data
         user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
         verified_phone_numbers = user.phone_numbers.verified
-        self.assertEqual(1, len(verified_phone_numbers))
+        assert len(verified_phone_numbers) == 1
         verified_identities = user.identities.verified
-        self.assertEqual(3, len(verified_identities))
+        assert len(verified_identities) == 3
 
     def test_get_zxcvbn_terms(self) -> None:
         with self.app.test_request_context():
             terms = get_zxcvbn_terms(self.test_user)
-            self.assertEqual(["John", "Smith", "johnsmith", "johnsmith2"], terms)
+            assert terms == ["John", "Smith", "johnsmith", "johnsmith2"]
 
     def test_get_zxcvbn_terms_no_given_name(self) -> None:
         with self.app.test_request_context():
             self.test_user.given_name = ""
             self.app.central_userdb.save(self.test_user)
             terms = get_zxcvbn_terms(self.test_user)
-            self.assertEqual(["Smith", "johnsmith", "johnsmith2"], terms)
+            assert terms == ["Smith", "johnsmith", "johnsmith2"]
 
     def test_get_zxcvbn_terms_no_surname(self) -> None:
         with self.app.test_request_context():
             self.test_user.surname = ""
             self.app.central_userdb.save(self.test_user)
             terms = get_zxcvbn_terms(self.test_user)
-            self.assertEqual(["John", "johnsmith", "johnsmith2"], terms)
+            assert terms == ["John", "johnsmith", "johnsmith2"]
 
     def test_app_starts(self) -> None:
-        self.assertEqual("reset_password", self.app.conf.app_name)
+        assert self.app.conf.app_name == "reset_password"
 
     def test_captcha(self) -> None:
         self._get_captcha()
@@ -651,7 +651,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         self._check_success_response(response, msg=ResetPwMsg.reset_pw_initialized, type_="POST_RESET_PASSWORD_SUCCESS")
         state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
         assert state
-        self.assertEqual(state.email_address, "johnsmith@example.com")
+        assert state.email_address == "johnsmith@example.com"
 
     def test_post_email_address_throttled(self) -> None:
         response1 = self._post_email_address()
@@ -675,8 +675,8 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         )
         state1 = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
         assert state1
-        self.assertEqual(state1.email_address, "johnsmith@example.com")
-        self.assertIsNotNone(state1.email_code.code)
+        assert state1.email_address == "johnsmith@example.com"
+        assert state1.email_code.code is not None
 
         response2 = self._post_email_address()
         self._check_success_response(
@@ -684,7 +684,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         )
         state2 = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
         assert state2
-        self.assertEqual(state1.email_code.code, state2.email_code.code)
+        assert state1.email_code.code == state2.email_code.code
 
     def test_overwrite_expired_email_state(self) -> None:
         response1 = self._post_email_address()
@@ -703,7 +703,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         )
         state2 = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
         assert state2
-        self.assertNotEqual(state1.email_code.code, state2.email_code.code)
+        assert state1.email_code.code != state2.email_code.code
 
     def test_post_unknown_email_address(self) -> None:
         data = {"email": "unknown@unplaced.un"}
@@ -844,14 +844,14 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         # check that the user no longer has verified data
         user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
         verified_phone_numbers = user.phone_numbers.verified
-        self.assertEqual(len(verified_phone_numbers), 0)
+        assert len(verified_phone_numbers) == 0
         verified_identities = user.identities.verified
-        self.assertEqual(len(verified_identities), 0)
+        assert len(verified_identities) == 0
 
         # check that the password is marked as generated
         password = user.credentials.to_list()[0]
         assert isinstance(password, Password)
-        self.assertTrue(password.is_generated)
+        assert password.is_generated
 
     def test_post_reset_password_no_data(self) -> None:
         response = self._post_reset_password(data2={})
@@ -891,9 +891,9 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         # check that the user still has verified data
         user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
         verified_phone_numbers = user.phone_numbers.verified
-        self.assertEqual(len(verified_phone_numbers), 1)
+        assert len(verified_phone_numbers) == 1
         verified_identities = user.identities.verified
-        self.assertEqual(len(verified_identities), 3)
+        assert len(verified_identities) == 3
 
     def test_post_reset_password_custom(self) -> None:
         data2 = {"password": "cust0m-p4ssw0rd"}
@@ -905,7 +905,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         user = self.app.private_userdb.get_user_by_eppn(self.test_user.eppn)
         password = user.credentials.to_list()[0]
         assert isinstance(password, Password)
-        self.assertFalse(password.is_generated)
+        assert not password.is_generated
 
     def test_post_choose_extra_sec(self) -> None:
         response = self._post_choose_extra_sec()
@@ -977,9 +977,9 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         # check that the user still has verified data
         user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
         verified_phone_numbers = user.phone_numbers.verified
-        self.assertEqual(1, len(verified_phone_numbers))
+        assert len(verified_phone_numbers) == 1
         verified_identities = user.identities.verified
-        self.assertEqual(len(verified_identities), 3)
+        assert len(verified_identities) == 3
 
     @patch("eduid.webapp.reset_password.views.reset_password.verify_phone_number")
     def test_post_reset_password_secure_phone_verify_fail(self, mock_verify: MagicMock) -> None:
@@ -1032,9 +1032,9 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         # check that the user still has verified data
         user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
         verified_phone_numbers = user.phone_numbers.verified
-        self.assertEqual(1, len(verified_phone_numbers))
+        assert len(verified_phone_numbers) == 1
         verified_identities = user.identities.verified
-        self.assertEqual(len(verified_identities), 3)
+        assert len(verified_identities) == 3
 
     def test_post_reset_password_security_key_custom_pw(self) -> None:
         response = self._post_reset_password_security_key(custom_password="T%7j 8/tT a0=b")
@@ -1045,7 +1045,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         )
         user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
         for cred in user.credentials.filter(Password):
-            self.assertFalse(cred.is_generated)
+            assert not cred.is_generated
 
     def test_post_reset_password_security_key_no_data(self) -> None:
         response = self._post_reset_password_security_key(data2={})
@@ -1116,9 +1116,9 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         # check that the user still has verified data
         user = self.app.central_userdb.get_user_by_eppn(self.test_user.eppn)
         verified_phone_numbers = user.phone_numbers.verified
-        self.assertEqual(1, len(verified_phone_numbers))
+        assert len(verified_phone_numbers) == 1
         verified_identities = user.identities.verified
-        self.assertEqual(len(verified_identities), 3)
+        assert len(verified_identities) == 3
 
     def test_post_reset_password_secure_external_mfa_no_mfa_auth(self) -> None:
         external_mfa_state = {"success": False, "issuer": None}
@@ -1160,7 +1160,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         user = self.app.private_userdb.get_user_by_eppn(self.test_user.eppn)
         password = user.credentials.to_list()[0]
         assert isinstance(password, Password)
-        self.assertFalse(password.is_generated)
+        assert not password.is_generated
 
     def test_revoke_termination_on_password_reset(self) -> None:
         # mark user as terminated
@@ -1187,8 +1187,8 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
         assert state
 
-        self.assertEqual(resp.status_code, 200)
-        self.assertEqual(resp.data, state.email_code.code.encode("ascii"))
+        assert resp.status_code == 200
+        assert resp.data == state.email_code.code.encode("ascii")
 
     def test_get_code_no_backdoor_in_pro(self) -> None:
         self.app.conf.magic_cookie = "magic-cookie"
@@ -1197,7 +1197,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
 
         resp = self._get_email_code_backdoor()
 
-        self.assertEqual(resp.status_code, 400)
+        assert resp.status_code == 400
 
     def test_get_code_no_backdoor_misconfigured1(self) -> None:
         self.app.conf.magic_cookie = "magic-cookie"
@@ -1206,7 +1206,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
 
         resp = self._get_email_code_backdoor(magic_cookie_name="wrong_name")
 
-        self.assertEqual(resp.status_code, 400)
+        assert resp.status_code == 400
 
     def test_get_code_no_backdoor_misconfigured2(self) -> None:
         self.app.conf.magic_cookie = ""
@@ -1215,7 +1215,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
 
         resp = self._get_email_code_backdoor()
 
-        self.assertEqual(resp.status_code, 400)
+        assert resp.status_code == 400
 
     def test_get_phone_code_backdoor(self) -> None:
         self.app.conf.magic_cookie = "magic-cookie"
@@ -1227,8 +1227,8 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
         state = self.app.password_reset_state_db.get_state_by_eppn(self.test_user.eppn)
         assert isinstance(state, ResetPasswordEmailAndPhoneState)
 
-        self.assertEqual(resp.status_code, 200)
-        self.assertEqual(resp.data, state.phone_code.code.encode("ascii"))
+        assert resp.status_code == 200
+        assert resp.data == state.phone_code.code.encode("ascii")
 
     def test_get_phone_code_no_backdoor_in_pro(self) -> None:
         self.app.conf.magic_cookie = "magic-cookie"
@@ -1237,7 +1237,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
 
         resp = self._get_phone_code_backdoor()
 
-        self.assertEqual(resp.status_code, 400)
+        assert resp.status_code == 400
 
     def test_get_phone_code_no_backdoor_misconfigured1(self) -> None:
         self.app.conf.magic_cookie = "magic-cookie"
@@ -1246,7 +1246,7 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
 
         resp = self._get_phone_code_backdoor(magic_cookie_name="wrong_name")
 
-        self.assertEqual(resp.status_code, 400)
+        assert resp.status_code == 400
 
     def test_get_phone_code_no_backdoor_misconfigured2(self) -> None:
         self.app.conf.magic_cookie = ""
@@ -1255,4 +1255,4 @@ class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
 
         resp = self._get_phone_code_backdoor()
 
-        self.assertEqual(resp.status_code, 400)
+        assert resp.status_code == 400

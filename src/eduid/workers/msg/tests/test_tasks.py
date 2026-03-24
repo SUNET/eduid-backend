@@ -47,4 +47,4 @@ class TestTasks(MsgMongoTestCase):
 
     def test_ping(self) -> None:
         ret = self.msg_relay.ping()
-        self.assertEqual(ret, "pong for testing")
+        assert ret == "pong for testing"

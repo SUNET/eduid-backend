@@ -27,7 +27,7 @@ class TestSession(TestCase):
 
         # read back session
         session2 = self.manager.get_session(meta=_meta, new=False)
-        self.assertEqual(session2["foo"], session1["foo"])
+        assert session2["foo"] == session1["foo"]
 
     def test_clear_session(self) -> None:
         """Test creating a session, clearing it and verifying it is gone"""
@@ -39,7 +39,7 @@ class TestSession(TestCase):
 
         # check the session is there now
         session2 = self.manager.get_session(meta=_meta, new=False)
-        self.assertEqual(session2["foo"], session1["foo"])
+        assert session2["foo"] == session1["foo"]
 
         # clear session
         session1.clear()
@@ -83,7 +83,7 @@ class TestSession(TestCase):
         """Pysaml uses the token as an XML NCName so it can't contain some characters."""
         for _i in range(1024):
             _meta = SessionMeta.new(app_secret=self.manager.secret)
-            self.assertRegex(_meta.cookie_val, "^[a-z][a-zA-Z0-9.]+$")
+            assert re.search("^[a-z][a-zA-Z0-9.]+$", _meta.cookie_val)
 
     def test_clobbered_session(self) -> None:
         """Test what would happen if two requests are processed simultaneously"""

@@ -50,21 +50,21 @@ class TestMailAddressList(unittest.TestCase):
             MailAddressList(elements=["bad input data"])
 
     def test_to_list(self) -> None:
-        self.assertEqual([], self.empty.to_list(), list)
-        self.assertIsInstance(self.one.to_list(), list)
+        assert self.empty.to_list() == [], list
+        assert isinstance(self.one.to_list(), list)
 
-        self.assertEqual(1, len(self.one.to_list()))
+        assert len(self.one.to_list()) == 1
 
     def test_empty_to_list_of_dicts(self) -> None:
-        self.assertEqual([], self.empty.to_list_of_dicts(), list)
+        assert self.empty.to_list_of_dicts() == [], list
 
     def test_find(self) -> None:
         match = self.one.find("ft@one.example.org")
         assert match
-        self.assertIsInstance(match, MailAddress)
-        self.assertEqual(match.email, "ft@one.example.org")
-        self.assertEqual(match.is_verified, True)
-        self.assertEqual(match.verified_ts, None)
+        assert isinstance(match, MailAddress)
+        assert match.email == "ft@one.example.org"
+        assert match.is_verified
+        assert match.verified_ts is None
 
     def test_add(self) -> None:
         second = self.two.find("ft@two.example.org")
@@ -140,15 +140,15 @@ class TestMailAddressList(unittest.TestCase):
         assert self.one.primary
         self.one.remove(ElementKey(self.one.primary.email))
         now_empty = self.one
-        self.assertEqual([], now_empty.to_list())
+        assert now_empty.to_list() == []
 
     def test_primary(self) -> None:
         match = self.one.primary
         assert match
-        self.assertEqual(match.email, "ft@one.example.org")
+        assert match.email == "ft@one.example.org"
 
     def test_empty_primary(self) -> None:
-        self.assertEqual(None, self.empty.primary)
+        assert None is self.empty.primary
 
     def test_set_primary_to_same(self) -> None:
         match = self.one.primary
@@ -170,11 +170,11 @@ class TestMailAddressList(unittest.TestCase):
     def test_change_primary(self) -> None:
         match = self.two.primary
         assert match
-        self.assertEqual(match.email, "ft@one.example.org")
+        assert match.email == "ft@one.example.org"
         self.two.set_primary(ElementKey("ft@two.example.org"))
         updated = self.two.primary
         assert updated
-        self.assertEqual(updated.email, "ft@two.example.org")
+        assert updated.email == "ft@two.example.org"
 
     def test_bad_input_two_primary(self) -> None:
         one = copy.deepcopy(_one_dict)
@@ -204,7 +204,7 @@ class TestMailAddress(TestCase):
         """
         address = self.two.primary
         assert address
-        self.assertEqual(address.key, address.email)
+        assert address.key == address.email
 
     def test_parse_cycle(self) -> None:
         """
@@ -267,20 +267,20 @@ class TestMailAddress(TestCase):
         this = self.three.find("ft@three.example.org")
         assert this
         this.verified_by = "unit test"
-        self.assertEqual(this.verified_by, "unit test")
+        assert this.verified_by == "unit test"
 
     def test_modify_verified_by(self) -> None:
         this = self.three.find("ft@three.example.org")
         assert this
         this.verified_by = "unit test"
         this.verified_by = "test unit"
-        self.assertEqual(this.verified_by, "test unit")
+        assert this.verified_by == "test unit"
 
     def test_verified_ts(self) -> None:
         this = self.three.find("ft@three.example.org")
         assert this
         this.verified_ts = utc_now()
-        self.assertIsInstance(this.verified_ts, datetime.datetime)
+        assert isinstance(this.verified_ts, datetime.datetime)
 
     def test_modify_verified_ts(self) -> None:
         this = self.three.find("ft@three.example.org")
@@ -291,14 +291,14 @@ class TestMailAddress(TestCase):
         this = self.three.find("ft@three.example.org")
         assert this
         this.created_by = "unit test"
-        self.assertEqual(this.created_by, "unit test")
+        assert this.created_by == "unit test"
 
     def test_created_ts(self) -> None:
         this = self.three.find("ft@three.example.org")
         assert this
-        self.assertIsInstance(this.created_ts, datetime.datetime)
+        assert isinstance(this.created_ts, datetime.datetime)
 
     def test_uppercase_email_address(self) -> None:
         address = "UPPERCASE@example.com"
         mail_address = MailAddress(email=address)
-        self.assertEqual(address.lower(), mail_address.email)
+        assert address.lower() == mail_address.email

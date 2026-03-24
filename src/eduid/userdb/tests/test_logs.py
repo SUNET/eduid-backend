@@ -45,12 +45,12 @@ class TestProofingLog(TestCase):
         self.proofing_log_db.save(proofing_element)
 
         result = list(self.proofing_log_db._coll.find({}))
-        self.assertEqual(len(result), 1)
+        assert len(result) == 1
         hit = result[0]
-        self.assertEqual(hit["eduPersonPrincipalName"], self.user.eppn)
-        self.assertEqual(hit["created_by"], "test")
-        self.assertIsNotNone(hit["created_ts"])
-        self.assertEqual(hit["proofing_method"], "test")
+        assert hit["eduPersonPrincipalName"] == self.user.eppn
+        assert hit["created_by"] == "test"
+        assert hit["created_ts"] is not None
+        assert hit["proofing_method"] == "test"
 
     def test_teleadress_proofing(self) -> None:
         data = {
@@ -66,19 +66,19 @@ class TestProofingLog(TestCase):
         for key, value in data.items():
             if key == "eppn":
                 continue
-            self.assertIn(key, proofing_element.to_dict())
-            self.assertEqual(value, proofing_element.to_dict().get(key))
+            assert key in proofing_element.to_dict()
+            assert value == proofing_element.to_dict().get(key)
 
         self.proofing_log_db.save(proofing_element)
         result = list(self.proofing_log_db._coll.find({}))
-        self.assertEqual(len(result), 1)
+        assert len(result) == 1
         hit = result[0]
-        self.assertEqual(hit["eduPersonPrincipalName"], self.user.eppn)
-        self.assertEqual(hit["created_by"], "test")
-        self.assertIsNotNone(hit["created_ts"])
-        self.assertEqual(hit["reason"], "matched")
-        self.assertEqual(hit["proofing_method"], "TeleAdress")
-        self.assertEqual(hit["proofing_version"], "test")
+        assert hit["eduPersonPrincipalName"] == self.user.eppn
+        assert hit["created_by"] == "test"
+        assert hit["created_ts"] is not None
+        assert hit["reason"] == "matched"
+        assert hit["proofing_method"] == "TeleAdress"
+        assert hit["proofing_version"] == "test"
 
     def test_teleadress_proofing_relation(self) -> None:
         data = {
@@ -97,19 +97,19 @@ class TestProofingLog(TestCase):
         for key, value in data.items():
             if key == "eppn":
                 continue
-            self.assertIn(key, proofing_element.to_dict())
-            self.assertEqual(value, proofing_element.to_dict().get(key))
+            assert key in proofing_element.to_dict()
+            assert value == proofing_element.to_dict().get(key)
 
         self.proofing_log_db.save(proofing_element)
         result = list(self.proofing_log_db._coll.find({}))
-        self.assertEqual(len(result), 1)
+        assert len(result) == 1
         hit = result[0]
-        self.assertEqual(hit["eduPersonPrincipalName"], self.user.eppn)
-        self.assertEqual(hit["created_by"], "test")
-        self.assertIsNotNone(hit["created_ts"])
-        self.assertEqual(hit["reason"], "matched_by_navet")
-        self.assertEqual(hit["proofing_method"], "TeleAdress")
-        self.assertEqual(hit["proofing_version"], "test")
+        assert hit["eduPersonPrincipalName"] == self.user.eppn
+        assert hit["created_by"] == "test"
+        assert hit["created_ts"] is not None
+        assert hit["reason"] == "matched_by_navet"
+        assert hit["proofing_method"] == "TeleAdress"
+        assert hit["proofing_version"] == "test"
 
     def test_letter_proofing(self) -> None:
         data = {
@@ -125,20 +125,20 @@ class TestProofingLog(TestCase):
         for key, value in data.items():
             if key == "eppn":
                 continue
-            self.assertIn(key, proofing_element.to_dict())
-            self.assertEqual(value, proofing_element.to_dict().get(key))
+            assert key in proofing_element.to_dict()
+            assert value == proofing_element.to_dict().get(key)
 
         self.proofing_log_db.save(proofing_element)
         result = list(self.proofing_log_db._coll.find({}))
-        self.assertEqual(len(result), 1)
+        assert len(result) == 1
         hit = result[0]
-        self.assertEqual(hit["eduPersonPrincipalName"], self.user.eppn)
-        self.assertEqual(hit["created_by"], "test")
-        self.assertIsNotNone(hit["created_ts"])
-        self.assertIsNotNone(hit["letter_sent_to"])
-        self.assertIsNotNone(hit["transaction_id"])
-        self.assertEqual(hit["proofing_method"], "letter")
-        self.assertEqual(hit["proofing_version"], "test")
+        assert hit["eduPersonPrincipalName"] == self.user.eppn
+        assert hit["created_by"] == "test"
+        assert hit["created_ts"] is not None
+        assert hit["letter_sent_to"] is not None
+        assert hit["transaction_id"] is not None
+        assert hit["proofing_method"] == "letter"
+        assert hit["proofing_version"] == "test"
 
     def test_mail_address_proofing(self) -> None:
         data = {
@@ -152,18 +152,18 @@ class TestProofingLog(TestCase):
         for key, value in data.items():
             if key == "eppn":
                 continue
-            self.assertIn(key, proofing_element.to_dict())
-            self.assertEqual(value, proofing_element.to_dict().get(key))
+            assert key in proofing_element.to_dict()
+            assert value == proofing_element.to_dict().get(key)
 
         self.proofing_log_db.save(proofing_element)
         result = list(self.proofing_log_db._coll.find({}))
-        self.assertEqual(len(result), 1)
+        assert len(result) == 1
         hit = result[0]
-        self.assertEqual(hit["eduPersonPrincipalName"], self.user.eppn)
-        self.assertEqual(hit["created_by"], "test")
-        self.assertIsNotNone(hit["created_ts"])
-        self.assertEqual(hit["proofing_method"], "e-mail")
-        self.assertEqual(hit["mail_address"], "some_mail_address")
+        assert hit["eduPersonPrincipalName"] == self.user.eppn
+        assert hit["created_by"] == "test"
+        assert hit["created_ts"] is not None
+        assert hit["proofing_method"] == "e-mail"
+        assert hit["mail_address"] == "some_mail_address"
 
     def test_phone_number_proofing(self) -> None:
         data = {
@@ -177,19 +177,19 @@ class TestProofingLog(TestCase):
         for key, value in data.items():
             if key == "eppn":
                 continue
-            self.assertIn(key, proofing_element.to_dict())
-            self.assertEqual(value, proofing_element.to_dict().get(key))
+            assert key in proofing_element.to_dict()
+            assert value == proofing_element.to_dict().get(key)
 
         self.proofing_log_db.save(proofing_element)
         result = list(self.proofing_log_db._coll.find({}))
-        self.assertEqual(len(result), 1)
+        assert len(result) == 1
         hit = result[0]
-        self.assertEqual(hit["eduPersonPrincipalName"], self.user.eppn)
-        self.assertEqual(hit["created_by"], "test")
-        self.assertIsNotNone(hit["created_ts"])
-        self.assertEqual(hit["proofing_method"], "sms")
-        self.assertEqual(hit["phone_number"], "some_phone_number")
-        self.assertEqual(hit["proofing_version"], "test")
+        assert hit["eduPersonPrincipalName"] == self.user.eppn
+        assert hit["created_by"] == "test"
+        assert hit["created_ts"] is not None
+        assert hit["proofing_method"] == "sms"
+        assert hit["phone_number"] == "some_phone_number"
+        assert hit["proofing_version"] == "test"
 
     def test_se_leg_proofing(self) -> None:
         data = {
@@ -205,22 +205,22 @@ class TestProofingLog(TestCase):
         for key, value in data.items():
             if key == "eppn":
                 continue
-            self.assertIn(key, proofing_element.to_dict())
-            self.assertEqual(value, proofing_element.to_dict().get(key))
+            assert key in proofing_element.to_dict()
+            assert value == proofing_element.to_dict().get(key)
 
         self.proofing_log_db.save(proofing_element)
         result = list(self.proofing_log_db._coll.find({}))
-        self.assertEqual(len(result), 1)
+        assert len(result) == 1
         hit = result[0]
-        self.assertEqual(hit["eduPersonPrincipalName"], self.user.eppn)
-        self.assertEqual(hit["created_by"], "test")
-        self.assertIsNotNone(hit["created_ts"])
-        self.assertIsNotNone(hit["nin"])
-        self.assertIsNotNone(hit["user_postal_address"])
-        self.assertEqual(hit["vetting_by"], "provider")
-        self.assertEqual(hit["transaction_id"], "transaction_id")
-        self.assertEqual(hit["proofing_method"], "se-leg")
-        self.assertEqual(hit["proofing_version"], "test")
+        assert hit["eduPersonPrincipalName"] == self.user.eppn
+        assert hit["created_by"] == "test"
+        assert hit["created_ts"] is not None
+        assert hit["nin"] is not None
+        assert hit["user_postal_address"] is not None
+        assert hit["vetting_by"] == "provider"
+        assert hit["transaction_id"] == "transaction_id"
+        assert hit["proofing_method"] == "se-leg"
+        assert hit["proofing_version"] == "test"
 
     def test_se_leg_proofing_freja(self) -> None:
         data = {
@@ -236,23 +236,23 @@ class TestProofingLog(TestCase):
         for key, value in data.items():
             if key == "eppn":
                 continue
-            self.assertIn(key, proofing_element.to_dict())
-            self.assertEqual(value, proofing_element.to_dict().get(key))
+            assert key in proofing_element.to_dict()
+            assert value == proofing_element.to_dict().get(key)
 
         self.proofing_log_db.save(proofing_element)
         result = list(self.proofing_log_db._coll.find({}))
-        self.assertEqual(len(result), 1)
+        assert len(result) == 1
         hit = result[0]
-        self.assertEqual(hit["eduPersonPrincipalName"], self.user.eppn)
-        self.assertEqual(hit["created_by"], "test")
-        self.assertIsNotNone(hit["created_ts"])
-        self.assertIsNotNone(hit["nin"])
-        self.assertIsNotNone(hit["user_postal_address"])
-        self.assertEqual(hit["vetting_by"], "Freja eID")
-        self.assertEqual(hit["transaction_id"], "transaction_id")
-        self.assertEqual(hit["opaque_data"], "some data")
-        self.assertEqual(hit["proofing_method"], "se-leg")
-        self.assertEqual(hit["proofing_version"], "test")
+        assert hit["eduPersonPrincipalName"] == self.user.eppn
+        assert hit["created_by"] == "test"
+        assert hit["created_ts"] is not None
+        assert hit["nin"] is not None
+        assert hit["user_postal_address"] is not None
+        assert hit["vetting_by"] == "Freja eID"
+        assert hit["transaction_id"] == "transaction_id"
+        assert hit["opaque_data"] == "some data"
+        assert hit["proofing_method"] == "se-leg"
+        assert hit["proofing_version"] == "test"
 
     def test_ladok_proofing(self) -> None:
         data = {
@@ -267,21 +267,21 @@ class TestProofingLog(TestCase):
         for key, value in data.items():
             if key == "eppn":
                 continue
-            self.assertIn(key, proofing_element.to_dict())
-            self.assertEqual(value, proofing_element.to_dict().get(key))
+            assert key in proofing_element.to_dict()
+            assert value == proofing_element.to_dict().get(key)
 
         self.proofing_log_db.save(proofing_element)
         result = list(self.proofing_log_db._coll.find({}))
-        self.assertEqual(len(result), 1)
+        assert len(result) == 1
         hit = result[0]
-        self.assertEqual(hit["eduPersonPrincipalName"], self.user.eppn)
-        self.assertEqual(hit["created_by"], "test")
-        self.assertIsNotNone(hit["created_ts"])
-        self.assertEqual(hit["proofing_method"], "eduid_ladok")
-        self.assertEqual(hit["nin"], "190102031234")
-        self.assertEqual(hit["external_id"], "acf31a30-991a-438b-96ec-a5a4f57bb8c9")
-        self.assertEqual(hit["ladok_name"], "AB")
-        self.assertEqual(hit["proofing_version"], "test")
+        assert hit["eduPersonPrincipalName"] == self.user.eppn
+        assert hit["created_by"] == "test"
+        assert hit["created_ts"] is not None
+        assert hit["proofing_method"] == "eduid_ladok"
+        assert hit["nin"] == "190102031234"
+        assert hit["external_id"] == "acf31a30-991a-438b-96ec-a5a4f57bb8c9"
+        assert hit["ladok_name"] == "AB"
+        assert hit["proofing_version"] == "test"
 
     def test_blank_string_proofing_data(self) -> None:
         data = {
@@ -315,10 +315,10 @@ class TestProofingLog(TestCase):
             "reference": "reference id",
         }
         proofing_element = PhoneNumberProofing.model_construct(**data, phone_number=0)  # type: ignore[arg-type]
-        self.assertTrue(self.proofing_log_db.save(proofing_element))
+        assert self.proofing_log_db.save(proofing_element)
 
         proofing_element = PhoneNumberProofing.model_construct(**data, phone_number=False)  # type: ignore[arg-type]
-        self.assertTrue(self.proofing_log_db.save(proofing_element))
+        assert self.proofing_log_db.save(proofing_element)
 
     def test_deregistered_proofing_data(self) -> None:
         proofing_element = NinNavetProofingLogElement(
@@ -335,7 +335,7 @@ class TestProofingLog(TestCase):
         self.proofing_log_db.save(proofing_element)
 
         result = list(self.proofing_log_db._coll.find({}))
-        self.assertEqual(len(result), 1)
+        assert len(result) == 1
         hit = result[0]
         assert hit["deregistration_information"] == {"cause_code": "UV", "date": "20220505"}
         assert hit["user_postal_address"] == {

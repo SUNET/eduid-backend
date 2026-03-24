@@ -16,12 +16,12 @@ class LadokTest(TestCase):
         )
         ladok = Ladok(external_id=self.external_uuid, university=university, created_by="test created_by")
 
-        self.assertEqual(ladok.external_id, self.external_uuid)
-        self.assertEqual(ladok.created_by, "test created_by")
-        self.assertIsNotNone(ladok.created_ts)
+        assert ladok.external_id == self.external_uuid
+        assert ladok.created_by == "test created_by"
+        assert ladok.created_ts is not None
 
-        self.assertEqual(ladok.university.ladok_name, "AB")
-        self.assertEqual(ladok.university.name.sv, "Lärosätesnamn")
-        self.assertEqual(ladok.university.name.en, "University Name")
-        self.assertEqual(ladok.university.created_by, "test created_by")
-        self.assertIsNotNone(ladok.university.created_ts)
+        assert ladok.university.ladok_name == "AB"
+        assert ladok.university.name.sv == "Lärosätesnamn"
+        assert ladok.university.name.en == "University Name"
+        assert ladok.university.created_by == "test created_by"
+        assert ladok.university.created_ts is not None

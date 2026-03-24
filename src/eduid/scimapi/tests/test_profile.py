@@ -8,4 +8,4 @@ class TestProfile(TestCase):
         displayname = "Musse Pigg"
         data = {"profiles": {"student": {"attributes": {"displayName": displayname}}}}
         extension = NutidUserExtensionV1.model_validate(data)
-        self.assertEqual(extension.profiles["student"].attributes["displayName"], displayname)
+        assert extension.profiles["student"].attributes["displayName"] == displayname

@@ -106,84 +106,84 @@ class EduidSessionTests(EduidAPITestCase):
     def test_session_authenticated(self) -> None:
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             response = browser.get("/authenticated")
-            self.assertEqual(response.status_code, 200)
+            assert response.status_code == 200
             with browser.session_transaction() as sess:
-                self.assertTrue(sess["authenticated_request"])
+                assert sess["authenticated_request"]
 
     def test_session_unauthenticated(self) -> None:
         with self.browser as browser:
             response = browser.get("/authenticated")
-            self.assertEqual(response.status_code, 401)
+            assert response.status_code == 401
 
             response = browser.get("/unauthenticated")
-            self.assertEqual(response.status_code, 200)
+            assert response.status_code == 200
             with browser.session_transaction() as sess:
-                self.assertTrue(sess["unauthenticated_request"])
+                assert sess["unauthenticated_request"]
 
     def test_session_transaction(self) -> None:
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             with browser.session_transaction() as sess:
                 sess["test"] = "my session value"
             response = browser.get("/return-session-key-test")
-            self.assertEqual(response.status_code, 200)
-            self.assertEqual(response.data.decode("utf-8"), "my session value")
+            assert response.status_code == 200
+            assert response.data.decode("utf-8") == "my session value"
 
     def test_request_context_session(self) -> None:
         with self.app.test_request_context("/return-session-key-test", method="GET"):
             session["test"] = "another session value"
             session.persist()  # Explicit session.persist is needed when working within a test_request_context
             response = self.app.dispatch_request()
-            self.assertEqual(response, "another session value")
+            assert response == "another session value"
 
     def test_session_common(self) -> None:
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             response = browser.get("/common")
-            self.assertEqual(response.status_code, 200)
+            assert response.status_code == 200
             with browser.session_transaction() as sess:
-                self.assertTrue(sess.common.is_logged_in)
-                self.assertEqual(sess.common.login_source, LoginApplication("authn"))
-                self.assertEqual(sess.common.eppn, self.test_user_eppn)
+                assert sess.common.is_logged_in
+                assert sess.common.login_source == LoginApplication("authn")
+                assert sess.common.eppn == self.test_user_eppn
 
     def test_session_mfa_action(self) -> None:
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             response = browser.get("/mfa-action")
-            self.assertEqual(response.status_code, 200)
+            assert response.status_code == 200
             with browser.session_transaction() as sess:
-                self.assertTrue(sess.mfa_action.success)
-                self.assertEqual(sess.mfa_action.issuer, "https://issuer-entity-id.example.com")
-                self.assertEqual(sess.mfa_action.authn_instant, "2019-03-21T16:26:17Z")
-                self.assertEqual(sess.mfa_action.authn_context, "http://id.elegnamnden.se/loa/1.0/loa3")
+                assert sess.mfa_action.success
+                assert sess.mfa_action.issuer == "https://issuer-entity-id.example.com"
+                assert sess.mfa_action.authn_instant == "2019-03-21T16:26:17Z"
+                assert sess.mfa_action.authn_context == "http://id.elegnamnden.se/loa/1.0/loa3"
 
     def test_session_reset_password(self) -> None:
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             response = browser.get("/reset-password")
-            self.assertEqual(response.status_code, 200)
+            assert response.status_code == 200
             with browser.session_transaction() as sess:
-                self.assertEqual(sess.reset_password.generated_password_hash, "password-hash")
+                assert sess.reset_password.generated_password_hash == "password-hash"
 
     def test_session_signup(self) -> None:
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             response = browser.get("/signup")
-            self.assertEqual(response.status_code, 200)
+            assert response.status_code == 200
             with browser.session_transaction() as sess:
-                self.assertEqual(sess.signup.email.verification_code, "email-verification-code")
+                assert sess.signup.email.verification_code == "email-verification-code"
 
     def test_clear_session_mfa_action(self) -> None:
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             response = browser.get("/mfa-action")
-            self.assertEqual(response.status_code, 200)
+            assert response.status_code == 200
             with browser.session_transaction() as sess:
-                self.assertTrue(sess.mfa_action.success)
-                self.assertEqual(sess.mfa_action.issuer, "https://issuer-entity-id.example.com")
-                self.assertEqual(sess.mfa_action.authn_instant, "2019-03-21T16:26:17Z")
-                self.assertEqual(sess.mfa_action.authn_context, "http://id.elegnamnden.se/loa/1.0/loa3")
+                assert sess.mfa_action.success
+                assert sess.mfa_action.issuer == "https://issuer-entity-id.example.com"
+                assert sess.mfa_action.authn_instant == "2019-03-21T16:26:17Z"
+                assert sess.mfa_action.authn_context == "http://id.elegnamnden.se/loa/1.0/loa3"
                 del sess.mfa_action
 
             with browser.session_transaction() as sess:
-                self.assertFalse(sess.mfa_action.success)
-                self.assertIsNone(sess.mfa_action.issuer)
-                self.assertIsNone(sess.mfa_action.authn_instant)
-                self.assertIsNone(sess.mfa_action.authn_context)
+                assert not sess.mfa_action.success
+                assert sess.mfa_action.issuer is None
+                assert sess.mfa_action.authn_instant is None
+                assert sess.mfa_action.authn_context is None
 
     def test_remove_cookie_on_invalidated_session_save(self) -> None:
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
@@ -195,18 +195,18 @@ class EduidSessionTests(EduidAPITestCase):
             for keyvalue in keyvalues:
                 value = keyvalue.split("=")
                 if value == self.app.conf.flask.session_cookie_name:
-                    self.assertEqual("", value)
+                    assert value == ""
                 elif value == "expires":
-                    self.assertEqual("Thu, 01-Jan-1970 00:00:00 GMT", value)
+                    assert value == "Thu, 01-Jan-1970 00:00:00 GMT"
 
     def _test_bad_session_cookie(self, bad_cookie_value: str) -> None:
         with self.browser as browser:
             browser.set_cookie(domain=".test.localhost", key="sessid", value=bad_cookie_value)
             response = browser.get("/unauthenticated")
             # Make sure the request completes correctly even with a bad cookie value
-            self.assertEqual(response.status_code, 200)
+            assert response.status_code == 200
             with browser.session_transaction() as sess:
-                self.assertTrue(sess["unauthenticated_request"])
+                assert sess["unauthenticated_request"]
 
     def test_bad_session_cookie(self) -> None:
         self._test_bad_session_cookie(

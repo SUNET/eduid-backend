@@ -32,7 +32,7 @@ class TestTransactionAudit(MsgMongoTestCase):
         _get_navet_data("dummy", "1111")
         result = c.find_one({"data": {"identity_number": "1111"}})
         assert result
-        self.assertEqual(result["data"]["identity_number"], "1111")
+        assert result["data"]["identity_number"] == "1111"
 
         @TransactionAudit()
         def send_message(
@@ -50,16 +50,16 @@ class TestTransactionAudit(MsgMongoTestCase):
         send_message("dummy", "mm", "reference", "dummy", "2222", "template", "lang")
         result = c.find_one({"data.transaction_id": "kaka"})
         assert result
-        self.assertEqual(result["data"]["recipient"], "2222")
-        self.assertEqual(result["data"]["audit_reference"], "reference")
-        self.assertEqual(result["data"]["template"], "template")
+        assert result["data"]["recipient"] == "2222"
+        assert result["data"]["audit_reference"] == "reference"
+        assert result["data"]["template"] == "template"
 
         send_message("dummy", "sms", "reference", "dummy", "3333", "template", "lang")
         result = c.find_one({"data.recipient": "3333"})
         assert result
-        self.assertEqual(result["data"]["recipient"], "3333")
-        self.assertEqual(result["data"]["audit_reference"], "reference")
-        self.assertEqual(result["data"]["template"], "template")
+        assert result["data"]["recipient"] == "3333"
+        assert result["data"]["audit_reference"] == "reference"
+        assert result["data"]["template"] == "template"
 
     def test_transaction_audit_toggle(self) -> None:
         db = self.tmp_db.conn["test"]
@@ -74,7 +74,7 @@ class TestTransactionAudit(MsgMongoTestCase):
         no_name()
 
         c.find({})
-        self.assertEqual(c.count_documents({}), 0)
+        assert c.count_documents({}) == 0
 
         assert self.msg_settings.mongo_uri
         TransactionAudit.enable(self.msg_settings.mongo_uri)
@@ -85,4 +85,4 @@ class TestTransactionAudit(MsgMongoTestCase):
 
         no_name2()
         c.find({})
-        self.assertEqual(c.count_documents({}), 1)
+        assert c.count_documents({}) == 1

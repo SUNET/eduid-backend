@@ -39,7 +39,7 @@ class AuthnTests(EduidAPITestCase):
 
     def test_get_view(self) -> None:
         response = self.browser.get("/some/path")
-        self.assertEqual(response.status_code, 401)
+        assert response.status_code == 401
 
         with self.session_cookie(self.browser, "hubba-bubba") as client:
             with self.assertRaises(NotFound):
@@ -67,9 +67,9 @@ class UnAuthnTests(EduidAPITestCase):
 
     def test_get_view(self) -> None:
         response = self.browser.get("/status/healthy")
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
 
     def test_ping(self) -> None:
         response = self.browser.get("/status/ping")
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data, b"")
+        assert response.status_code == 200
+        assert response.data == b""

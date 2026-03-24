@@ -43,53 +43,53 @@ class VCCSTestCase(MongoTestCase):
     def test_check_good_credentials(self) -> None:
         result = self._check_credentials("abcd")
         assert result is not None
-        self.assertTrue(result.success)
+        assert result.success
 
     def test_check_bad_credentials(self) -> None:
         result = self._check_credentials("fghi")
-        self.assertIsNone(result)
+        assert result is None
 
     def test_add_password(self) -> None:
         added = vccs_module.add_password(self.user, new_password="wxyz", application="test", vccs=self.vccs_client)
-        self.assertTrue(added)
+        assert added
         result1 = self._check_credentials("abcd")
         assert result1 is not None
-        self.assertTrue(result1.success)
+        assert result1.success
         result2 = self._check_credentials("fghi")
-        self.assertIsNone(result2)
+        assert result2 is None
         result3 = self._check_credentials("wxyz")
         assert result3 is not None
-        self.assertTrue(result3.success)
-        self.assertFalse(result3.password.is_generated)
+        assert result3.success
+        assert not result3.password.is_generated
 
     def test_add_password_generated(self) -> None:
         added = vccs_module.add_password(
             self.user, new_password="wxyz", is_generated=True, application="test", vccs=self.vccs_client
         )
-        self.assertTrue(added)
+        assert added
         result1 = self._check_credentials("abcd")
         assert result1 is not None
-        self.assertTrue(result1.success)
+        assert result1.success
         result2 = self._check_credentials("fghi")
-        self.assertIsNone(result2)
+        assert result2 is None
         result3 = self._check_credentials("wxyz")
         assert result3 is not None
-        self.assertTrue(result3.success)
-        self.assertTrue(result3.password.is_generated)
+        assert result3.success
+        assert result3.password.is_generated
 
     def test_change_password(self) -> None:
         added = vccs_module.change_password(
             self.user, new_password="wxyz", old_password="abcd", application="test", vccs=self.vccs_client
         )
-        self.assertTrue(added)
+        assert added
         result1 = self._check_credentials("abcd")
-        self.assertIsNone(result1)
+        assert result1 is None
         result2 = self._check_credentials("fghi")
-        self.assertIsNone(result2)
+        assert result2 is None
         result3 = self._check_credentials("wxyz")
         assert result3 is not None
-        self.assertTrue(result3.success)
-        self.assertFalse(result3.password.is_generated)
+        assert result3.success
+        assert not result3.password.is_generated
 
     def test_change_password_generated(self) -> None:
         added = vccs_module.change_password(
@@ -100,54 +100,54 @@ class VCCSTestCase(MongoTestCase):
             is_generated=True,
             vccs=self.vccs_client,
         )
-        self.assertTrue(added)
+        assert added
         result1 = self._check_credentials("abcd")
-        self.assertIsNone(result1)
+        assert result1 is None
         result2 = self._check_credentials("fghi")
-        self.assertIsNone(result2)
+        assert result2 is None
         result3 = self._check_credentials("wxyz")
         assert result3 is not None
-        self.assertTrue(result3.success)
-        self.assertTrue(result3.password.is_generated)
+        assert result3.success
+        assert result3.password.is_generated
 
     def test_change_password_bad_old_password(self) -> None:
         added = vccs_module.change_password(
             self.user, new_password="wxyz", old_password="fghi", application="test", vccs=self.vccs_client
         )
-        self.assertFalse(added)
+        assert not added
         result1 = self._check_credentials("abcd")
         assert result1 is not None
-        self.assertTrue(result1.success)
+        assert result1.success
         result2 = self._check_credentials("fghi")
-        self.assertIsNone(result2)
+        assert result2 is None
         result3 = self._check_credentials("wxyz")
-        self.assertIsNone(result3)
+        assert result3 is None
 
     def test_reset_password(self) -> None:
         added = vccs_module.reset_password(self.user, new_password="wxyz", application="test", vccs=self.vccs_client)
-        self.assertTrue(added)
+        assert added
         result1 = self._check_credentials("abcd")
-        self.assertIsNone(result1)
+        assert result1 is None
         result2 = self._check_credentials("fghi")
-        self.assertIsNone(result2)
+        assert result2 is None
         result3 = self._check_credentials("wxyz")
         assert result3 is not None
-        self.assertTrue(result3.success)
-        self.assertFalse(result3.password.is_generated)
+        assert result3.success
+        assert not result3.password.is_generated
 
     def test_reset_password_generated(self) -> None:
         added = vccs_module.reset_password(
             self.user, new_password="wxyz", application="test", is_generated=True, vccs=self.vccs_client
         )
-        self.assertTrue(added)
+        assert added
         result1 = self._check_credentials("abcd")
-        self.assertIsNone(result1)
+        assert result1 is None
         result2 = self._check_credentials("fghi")
-        self.assertIsNone(result2)
+        assert result2 is None
         result3 = self._check_credentials("wxyz")
         assert result3 is not None
-        self.assertTrue(result3.success)
-        self.assertTrue(result3.password.is_generated)
+        assert result3.success
+        assert result3.password.is_generated
 
     def test_change_password_error_adding(self) -> None:
         from eduid.webapp.common.authn.testing import MockVCCSClient
@@ -158,13 +158,13 @@ class VCCSTestCase(MongoTestCase):
             added = vccs_module.change_password(
                 self.user, new_password="wxyz", old_password="abcd", application="test", vccs=self.vccs_client
             )
-            self.assertFalse(added)
+            assert not added
             result1 = self._check_credentials("abcd")
-            self.assertIsNone(result1)
+            assert result1 is None
             result2 = self._check_credentials("fghi")
-            self.assertIsNone(result2)
+            assert result2 is None
             result3 = self._check_credentials("wxyz")
-            self.assertIsNone(result3)
+            assert result3 is None
 
     def test_reset_password_error_revoking(self) -> None:
         from eduid.webapp.common.authn.testing import MockVCCSClient
@@ -176,14 +176,14 @@ class VCCSTestCase(MongoTestCase):
             added = vccs_module.reset_password(
                 self.user, new_password="wxyz", application="test", vccs=self.vccs_client
             )
-            self.assertTrue(added)
+            assert added
             result1 = self._check_credentials("abcd")
-            self.assertIsNone(result1)
+            assert result1 is None
             result2 = self._check_credentials("fghi")
-            self.assertIsNone(result2)
+            assert result2 is None
             result3 = self._check_credentials("wxyz")
             assert result3 is not None
-            self.assertTrue(result3.success)
+            assert result3.success
 
     def test_upgrade_password_to_v2(self) -> None:
         """Test that upgrade_password_to_v2 creates a v2 credential alongside the existing v1."""
@@ -201,7 +201,7 @@ class VCCSTestCase(MongoTestCase):
             application="test",
             vccs=self.vccs_client,
         )
-        self.assertTrue(result)
+        assert result
 
         # Should now have both v1 and v2 credentials
         all_passwords = list(self.user.credentials.filter(Password))

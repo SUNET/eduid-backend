@@ -348,7 +348,7 @@ class UnAuthnAPITestCase(EduidAPITestCase):
     def test_no_cookie(self) -> None:
         with self.app.test_client() as c:
             resp = c.get("/")
-            self.assertEqual(resp.status_code, 401)
+            assert resp.status_code == 401
 
     def test_cookie(self) -> None:
         sessid = "fb1f42420b0109020203325d750185673df252de388932a3957f522a6c43aa47"
@@ -409,29 +409,29 @@ class NoAuthnAPITestCase(EduidAPITestCase):
     def test_no_authn(self) -> None:
         with self.app.test_client() as c:
             resp = c.get("/test")
-            self.assertEqual(resp.status_code, 200)
+            assert resp.status_code == 200
 
     def test_authn(self) -> None:
         with self.app.test_client() as c:
             resp = c.get("/test2")
-            self.assertEqual(resp.status_code, 401)
+            assert resp.status_code == 401
 
     def test_no_authn_util(self) -> None:
         no_authn_urls_before = list(self.app.conf.no_authn_urls)
         no_authn_path = "/test3"
         no_authn_views(self.app.conf, [no_authn_path])
-        self.assertEqual([*no_authn_urls_before, f"^{no_authn_path!s}$"], self.app.conf.no_authn_urls)
+        assert [*no_authn_urls_before, f"^{no_authn_path!s}$"] == self.app.conf.no_authn_urls
 
         with self.app.test_client() as c:
             resp = c.get("/test3")
-            self.assertEqual(resp.status_code, 200)
+            assert resp.status_code == 200
 
 
 class LogoutRequestTests(AuthnAPITestBase):
     def test_metadataview(self) -> None:
         with self.app.test_client() as c:
             response = c.get("/saml2-metadata")
-            self.assertEqual(response.status, "200 OK")
+            assert response.status == "200 OK"
 
     def test_logout_nologgedin(self) -> None:
         eppn = "hubba-bubba"
@@ -440,8 +440,8 @@ class LogoutRequestTests(AuthnAPITestBase):
             session.common.eppn = eppn
             response = self.app.dispatch_request()
             assert isinstance(response, Response)
-            self.assertEqual(response.status, "302 FOUND")
-            self.assertIn(self.app.conf.saml2_logout_redirect_url, response.headers["Location"])
+            assert response.status == "302 FOUND"
+            assert self.app.conf.saml2_logout_redirect_url in response.headers["Location"]
 
     def test_logout_loggedin(self) -> None:
         res = self.acs(url="/authenticate", eppn=self.test_user.eppn, frontend_action=FrontendAction.LOGIN)
@@ -451,10 +451,8 @@ class LogoutRequestTests(AuthnAPITestBase):
             response = self.app.dispatch_request()
             assert isinstance(response, Response)
             logger.debug(f"Test called /logout, response {response}")
-            self.assertEqual(response.status, "302 FOUND")
-            self.assertIn(
-                "https://idp.example.com/simplesaml/saml2/idp/SingleLogoutService.php", response.headers["location"]
-            )
+            assert response.status == "302 FOUND"
+            assert "https://idp.example.com/simplesaml/saml2/idp/SingleLogoutService.php" in response.headers["location"]
 
     def test_logout_service_startingSP(self) -> None:
         session_id = self.start_authenticate(eppn=self.test_user.eppn, frontend_action=FrontendAction.LOGIN)
@@ -472,8 +470,8 @@ class LogoutRequestTests(AuthnAPITestBase):
             response = self.app.dispatch_request()
             assert isinstance(response, Response)
 
-            self.assertEqual(response.status, "302 FOUND")
-            self.assertIn("testing-relay-state", response.location)
+            assert response.status == "302 FOUND"
+            assert "testing-relay-state" in response.location
 
     def test_logout_safe_next_param(self) -> None:
         eppn = "hubba-bubba"
@@ -481,8 +479,8 @@ class LogoutRequestTests(AuthnAPITestBase):
             session.common.eppn = eppn
             response = self.app.dispatch_request()
             assert isinstance(response, Response)
-            self.assertEqual(response.status, "302 FOUND")
-            self.assertIn("/logged-out", response.headers["Location"])
+            assert response.status == "302 FOUND"
+            assert "/logged-out" in response.headers["Location"]
 
     def test_logout_safe_next_full_url(self) -> None:
         eppn = "hubba-bubba"
@@ -490,8 +488,8 @@ class LogoutRequestTests(AuthnAPITestBase):
             session.common.eppn = eppn
             response = self.app.dispatch_request()
             assert isinstance(response, Response)
-            self.assertEqual(response.status, "302 FOUND")
-            self.assertIn("app.eduid.se", response.headers["Location"])
+            assert response.status == "302 FOUND"
+            assert "app.eduid.se" in response.headers["Location"]
 
     def test_logout_unsafe_next_param(self) -> None:
         eppn = "hubba-bubba"
@@ -499,9 +497,9 @@ class LogoutRequestTests(AuthnAPITestBase):
             session.common.eppn = eppn
             response = self.app.dispatch_request()
             assert isinstance(response, Response)
-            self.assertEqual(response.status, "302 FOUND")
-            self.assertNotIn("evil.com", response.headers["Location"])
-            self.assertIn(self.app.conf.saml2_logout_redirect_url, response.headers["Location"])
+            assert response.status == "302 FOUND"
+            assert "evil.com" not in response.headers["Location"]
+            assert self.app.conf.saml2_logout_redirect_url in response.headers["Location"]
 
     def test_logout_service_startingSP_unsafe_relay_state(self) -> None:
         session_id = self.start_authenticate(eppn=self.test_user.eppn, frontend_action=FrontendAction.LOGIN)
@@ -519,9 +517,9 @@ class LogoutRequestTests(AuthnAPITestBase):
             response = self.app.dispatch_request()
             assert isinstance(response, Response)
 
-            self.assertEqual(response.status, "302 FOUND")
-            self.assertNotIn("evil.com", response.location)
-            self.assertIn(self.app.conf.saml2_logout_redirect_url, response.location)
+            assert response.status == "302 FOUND"
+            assert "evil.com" not in response.location
+            assert self.app.conf.saml2_logout_redirect_url in response.location
 
     def test_logout_service_startingSP_already_logout(self) -> None:
         session_id = self.start_authenticate(eppn=self.test_user.eppn, frontend_action=FrontendAction.LOGIN)
@@ -537,8 +535,8 @@ class LogoutRequestTests(AuthnAPITestBase):
             response = self.app.dispatch_request()
             assert isinstance(response, Response)
 
-            self.assertEqual(response.status, "302 FOUND")
-            self.assertIn("testing-relay-state", response.location)
+            assert response.status == "302 FOUND"
+            assert "testing-relay-state" in response.location
 
     def test_logout_service_startingIDP(self) -> None:
         res = self.acs("/authenticate", eppn=self.test_user.eppn, frontend_action=FrontendAction.LOGIN)
@@ -556,7 +554,7 @@ class LogoutRequestTests(AuthnAPITestBase):
             response = self.app.dispatch_request()
             assert isinstance(response, Response)
 
-            self.assertEqual(response.status, "302 FOUND")
+            assert response.status == "302 FOUND"
             assert (
                 "https://idp.example.com/simplesaml/saml2/idp/SingleLogoutService.php?SAMLResponse="
                 in response.location
@@ -597,5 +595,5 @@ class LogoutRequestTests(AuthnAPITestBase):
             response = self.app.dispatch_request()
             assert isinstance(response, Response)
 
-            self.assertEqual(response.status, "302 FOUND")
-            self.assertIn("testing-relay-state", response.location)
+            assert response.status == "302 FOUND"
+            assert "testing-relay-state" in response.location

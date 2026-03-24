@@ -53,9 +53,9 @@ class TestOrcid(unittest.TestCase):
             created_by="test",
         )
 
-        self.assertIsInstance(id_token_1, OidcIdToken)
-        self.assertIsInstance(id_token_1.to_dict(), dict)
-        self.assertEqual(id_token_1.key, id_token_2.key)
+        assert isinstance(id_token_1, OidcIdToken)
+        assert isinstance(id_token_1.to_dict(), dict)
+        assert id_token_1.key == id_token_2.key
 
         dict_1 = id_token_1.to_dict()
         dict_2 = id_token_2.to_dict()
@@ -85,9 +85,9 @@ class TestOrcid(unittest.TestCase):
             created_by="test",
         )
 
-        self.assertIsInstance(oidc_authz_1, OidcAuthorization)
-        self.assertIsInstance(oidc_authz_1.to_dict(), dict)
-        self.assertEqual(oidc_authz_1.key, oidc_authz_2.key)
+        assert isinstance(oidc_authz_1, OidcAuthorization)
+        assert isinstance(oidc_authz_1.to_dict(), dict)
+        assert oidc_authz_1.key == oidc_authz_2.key
 
         dict_1 = oidc_authz_1.to_dict()
         dict_2 = oidc_authz_2.to_dict()
@@ -110,13 +110,13 @@ class TestOrcid(unittest.TestCase):
         )
         orcid_2 = Orcid.from_dict(data=orcid_1.to_dict())
 
-        self.assertIsInstance(orcid_1, Orcid)
-        self.assertIsInstance(orcid_1.to_dict(), dict)
-        self.assertEqual(orcid_1.key, orcid_2.key)
-        self.assertEqual(orcid_1.id, orcid_2.id)
-        self.assertEqual(orcid_1.id, orcid_2.key)
-        self.assertEqual(orcid_1.oidc_authz.key, orcid_2.oidc_authz.key)
-        self.assertEqual(orcid_1.oidc_authz.id_token.key, orcid_2.oidc_authz.id_token.key)
+        assert isinstance(orcid_1, Orcid)
+        assert isinstance(orcid_1.to_dict(), dict)
+        assert orcid_1.key == orcid_2.key
+        assert orcid_1.id == orcid_2.id
+        assert orcid_1.id == orcid_2.key
+        assert orcid_1.oidc_authz.key == orcid_2.oidc_authz.key
+        assert orcid_1.oidc_authz.id_token.key == orcid_2.oidc_authz.id_token.key
 
         dict_1 = orcid_1.to_dict()
         dict_2 = orcid_2.to_dict()

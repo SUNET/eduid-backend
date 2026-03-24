@@ -40,24 +40,24 @@ class TestGroupDB(ScimApiTestCase):
     def test_full_search(self) -> None:
         assert self.groupdb is not None
         groups = self.groupdb.get_groups()
-        self.assertEqual(len(groups), 9)
+        assert len(groups) == 9
 
     def test_documents_and_count_first_page(self) -> None:
         assert self.groupdb is not None
         groups, count = self.groupdb._get_documents_and_count_by_filter(spec={}, limit=3)
         for x in groups:
             logger.info(f"Group {x}")
-        self.assertEqual(len(groups), 3)
-        self.assertEqual(count, 9)
+        assert len(groups) == 3
+        assert count == 9
 
     def test_documents_and_count_last_page(self) -> None:
         assert self.groupdb is not None
         groups, count = self.groupdb._get_documents_and_count_by_filter(spec={}, skip=6, limit=3)
-        self.assertEqual(len(groups), 3)
-        self.assertEqual(count, 9)
+        assert len(groups) == 3
+        assert count == 9
 
     def test_documents_and_count_partial_last_page(self) -> None:
         assert self.groupdb is not None
         groups, count = self.groupdb._get_documents_and_count_by_filter(spec={}, skip=8, limit=3)
-        self.assertEqual(len(groups), 1)
-        self.assertEqual(count, 9)
+        assert len(groups) == 1
+        assert count == 9

@@ -62,19 +62,19 @@ class TestIdentityList(unittest.TestCase):
             IdentityList(elements=["bad input data"])
 
     def test_to_list(self) -> None:
-        self.assertEqual([], self.empty.to_list(), list)
-        self.assertIsInstance(self.one.to_list(), list)
+        assert self.empty.to_list() == [], list
+        assert isinstance(self.one.to_list(), list)
 
-        self.assertEqual(1, len(self.one.to_list()))
+        assert len(self.one.to_list()) == 1
 
     def test_to_list_of_dicts(self) -> None:
-        self.assertEqual([], self.empty.to_list_of_dicts(), list)
+        assert self.empty.to_list_of_dicts() == [], list
 
     def test_find(self) -> None:
         match = self.one.find("nin")
         assert match
         assert isinstance(match, NinIdentity)
-        self.assertEqual(match.number, "197801011234")
+        assert match.number == "197801011234"
         assert match.is_verified is True
         assert match.verified_ts is None
 
@@ -163,7 +163,7 @@ class TestIdentity(TestCase):
         """
         nin = self.two.nin
         assert nin
-        self.assertEqual(IdentityType.NIN.value, nin.key)
+        assert IdentityType.NIN.value == nin.key
 
     def test_parse_cycle(self) -> None:
         """
@@ -171,7 +171,7 @@ class TestIdentity(TestCase):
         """
         for this in [self.one, self.two, self.three]:
             this_dict = this.to_list_of_dicts()
-            self.assertEqual(IdentityList.from_list_of_dicts(this_dict).to_list_of_dicts(), this.to_list_of_dicts())
+            assert IdentityList.from_list_of_dicts(this_dict).to_list_of_dicts() == this.to_list_of_dicts()
 
     def test_changing_is_verified(self) -> None:
         this = self.three.find("nin")
@@ -183,27 +183,27 @@ class TestIdentity(TestCase):
         this = self.three.find("svipe")
         assert this
         this.verified_by = "unit test"
-        self.assertEqual(this.verified_by, "unit test")
+        assert this.verified_by == "unit test"
 
     def test_modify_verified_by(self) -> None:
         this = self.three.find("eidas")
         assert this
         this.verified_by = "unit test"
         this.verified_by = "test unit"
-        self.assertEqual(this.verified_by, "test unit")
+        assert this.verified_by == "test unit"
 
     def test_modify_verified_ts(self) -> None:
         this = self.three.find("nin")
         assert this
         now = utc_now()
         this.verified_ts = now
-        self.assertEqual(this.verified_ts, now)
+        assert this.verified_ts == now
 
     def test_created_by(self) -> None:
         this = self.three.find("svipe")
         assert this
         this.created_by = "unit test"
-        self.assertEqual(this.created_by, "unit test")
+        assert this.created_by == "unit test"
 
     def test_modify_created_by(self) -> None:
         this = self.three.find("eidas")
@@ -215,7 +215,7 @@ class TestIdentity(TestCase):
     def test_created_ts(self) -> None:
         this = self.three.find("nin")
         assert this
-        self.assertIsInstance(this.created_ts, datetime.datetime)
+        assert isinstance(this.created_ts, datetime.datetime)
 
     def test_ts_bool(self) -> None:
         # check that we can't set created_ts or modified_ts to a bool but that we

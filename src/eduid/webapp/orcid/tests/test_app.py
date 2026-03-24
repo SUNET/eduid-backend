@@ -128,11 +128,11 @@ class OrcidTests(EduidAPITestCase[OrcidApp]):
 
     def test_authenticate(self) -> None:
         response = self.browser.get("/authorize")
-        self.assertEqual(response.status_code, 401)
+        assert response.status_code == 401
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             response = browser.get("/authorize")
-        self.assertEqual(response.status_code, 302)  # Authenticated request redirected to OP
-        self.assertTrue(response.location.startswith(self.app.conf.provider_configuration_info["issuer"]))
+        assert response.status_code == 302  # Authenticated request redirected to OP
+        assert response.location.startswith(self.app.conf.provider_configuration_info["issuer"])
 
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_oidc_flow(self, mock_request_user_sync: MagicMock) -> None:
@@ -140,7 +140,7 @@ class OrcidTests(EduidAPITestCase[OrcidApp]):
 
         with self.session_cookie(self.browser, self.test_user_eppn) as browser:
             response = browser.get("/authorize")
-        self.assertEqual(response.status_code, 302)  # Authenticated request redirected to OP
+        assert response.status_code == 302  # Authenticated request redirected to OP
 
         # Fake callback from OP
         proofing_state = self.app.proofing_statedb.get_state_by_eppn(self.test_user_eppn)
@@ -155,11 +155,11 @@ class OrcidTests(EduidAPITestCase[OrcidApp]):
 
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
         assert user.orcid is not None
-        self.assertEqual(user.orcid.id, userinfo["id"])
-        self.assertEqual(user.orcid.name, userinfo["name"])
-        self.assertEqual(user.orcid.given_name, userinfo["given_name"])
-        self.assertEqual(user.orcid.family_name, userinfo["family_name"])
-        self.assertEqual(self.app.proofing_log.db_count(), 1)
+        assert user.orcid.id == userinfo["id"]
+        assert user.orcid.name == userinfo["name"]
+        assert user.orcid.given_name == userinfo["given_name"]
+        assert user.orcid.family_name == userinfo["family_name"]
+        assert self.app.proofing_log.db_count() == 1
 
     def test_get_orcid(self) -> None:
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
@@ -199,4 +199,4 @@ class OrcidTests(EduidAPITestCase[OrcidApp]):
         self._check_success_response(response, type_="POST_ORCID_REMOVE_SUCCESS")
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
-        self.assertEqual(user.orcid, None)
+        assert user.orcid is None

@@ -30,14 +30,14 @@ class TestTasks(AMTestCase):
         assert user
         assert user.mail_addresses.primary
         assert self.user.mail_addresses.primary
-        self.assertEqual(user.mail_addresses.primary.email, self.user.mail_addresses.primary.email)
+        assert user.mail_addresses.primary.email == self.user.mail_addresses.primary.email
         assert not self.amdb.get_user_by_id("123456789012")
 
     def test_get_user_by_mail(self) -> None:
         assert self.user.mail_addresses.primary
         user = self.amdb.get_user_by_mail(self.user.mail_addresses.primary.email)
         assert user
-        self.assertEqual(user.user_id, self.user.user_id)
+        assert user.user_id == self.user.user_id
 
         _unverified = [x for x in self.user.mail_addresses.to_list() if not x.is_verified]
 
@@ -73,12 +73,12 @@ class TestTasks(AMTestCase):
         user = self.amdb.get_user_by_eppn("hubba-bubba")
         assert user
         assert user.mail_addresses.primary
-        self.assertNotEqual(user.mail_addresses.primary.email, "johnsmith@example.com")
+        assert user.mail_addresses.primary.email != "johnsmith@example.com"
         primary_mail = user.mail_addresses.find("johnsmith@example.com")
         assert primary_mail
-        self.assertFalse(primary_mail.is_verified)
-        self.assertTrue(user.mail_addresses.primary)
-        self.assertEqual(stats["mail_count"], 1)
+        assert not primary_mail.is_verified
+        assert user.mail_addresses.primary
+        assert stats["mail_count"] == 1
 
     def test_unverify_duplicate_phone(self) -> None:
         user_id = ObjectId("901234567890123456789012")  # johnsmith@example.org / babba-labba
@@ -91,12 +91,12 @@ class TestTasks(AMTestCase):
         user = self.amdb.get_user_by_eppn("hubba-bubba")
         assert user
         assert user.phone_numbers.primary
-        self.assertNotEqual(user.phone_numbers.primary.number, "+34609609609")
+        assert user.phone_numbers.primary.number != "+34609609609"
         primary_phone = user.phone_numbers.find("+34609609609")
         assert primary_phone
-        self.assertFalse(primary_phone.is_verified)
-        self.assertTrue(user.phone_numbers.primary)
-        self.assertEqual(stats["phone_count"], 1)
+        assert not primary_phone.is_verified
+        assert user.phone_numbers.primary
+        assert stats["phone_count"] == 1
 
     def test_unverify_duplicate_nins(self) -> None:
         user_id = ObjectId("901234567890123456789012")  # johnsmith@example.org / babba-labba
@@ -116,7 +116,7 @@ class TestTasks(AMTestCase):
         assert user.identities.nin is not None
         assert user.identities.nin.number == "197801011234"
         assert user.identities.nin.is_verified is False
-        self.assertEqual(stats["nin_count"], 1)
+        assert stats["nin_count"] == 1
 
     def test_unverify_duplicate_all(self) -> None:
         user_id = ObjectId("901234567890123456789012")  # johnsmith@example.org / babba-labba
@@ -145,26 +145,26 @@ class TestTasks(AMTestCase):
         assert user
         assert user.mail_addresses.primary
 
-        self.assertNotEqual(user.mail_addresses.primary.email, "johnsmith@example.com")
+        assert user.mail_addresses.primary.email != "johnsmith@example.com"
         primary_mail = user.mail_addresses.find("johnsmith@example.com")
         assert primary_mail
-        self.assertFalse(primary_mail.is_verified)
-        self.assertTrue(user.mail_addresses.primary)
+        assert not primary_mail.is_verified
+        assert user.mail_addresses.primary
 
         assert user.phone_numbers.primary
-        self.assertNotEqual(user.phone_numbers.primary.number, "+34609609609")
+        assert user.phone_numbers.primary.number != "+34609609609"
         primary_phone = user.phone_numbers.find("+34609609609")
         assert primary_phone
-        self.assertFalse(primary_phone.is_verified)
-        self.assertTrue(user.phone_numbers.primary)
+        assert not primary_phone.is_verified
+        assert user.phone_numbers.primary
 
         assert user.identities.nin is not None
         assert user.identities.nin.number == "197801011234"
         assert user.identities.nin.is_verified is False
 
-        self.assertEqual(stats["mail_count"], 1)
-        self.assertEqual(stats["phone_count"], 1)
-        self.assertEqual(stats["nin_count"], 1)
+        assert stats["mail_count"] == 1
+        assert stats["phone_count"] == 1
+        assert stats["nin_count"] == 1
 
     def test_unverify_duplicate_multiple_attribute_values(self) -> None:
         user_id = ObjectId("901234567890123456789012")  # johnsmith@example.org / babba-labba
@@ -185,12 +185,12 @@ class TestTasks(AMTestCase):
         user = self.amdb.get_user_by_eppn("hubba-bubba")
         assert user
         assert user.mail_addresses.primary
-        self.assertNotEqual(user.mail_addresses.primary.email, "johnsmith@example.com")
+        assert user.mail_addresses.primary.email != "johnsmith@example.com"
         primary_mail = user.mail_addresses.find("johnsmith@example.com")
         assert primary_mail
-        self.assertFalse(primary_mail.is_verified)
-        self.assertTrue(user.mail_addresses.primary)
-        self.assertEqual(stats["mail_count"], 1)
+        assert not primary_mail.is_verified
+        assert user.mail_addresses.primary
+        assert stats["mail_count"] == 1
 
     def test_create_locked_identity(self) -> None:
         user_id = ObjectId("901234567890123456789012")  # johnsmith@example.org / babba-labba

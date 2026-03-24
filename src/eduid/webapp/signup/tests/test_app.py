@@ -1053,11 +1053,11 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
     def test_captcha_no_data_fail(self) -> None:
         with self.session_cookie(self.browser, eppn=None) as client:
             response = client.post("/captcha")
-            self.assertEqual(response.status_code, 200)
+            assert response.status_code == 200
             data = json.loads(response.data)
-            self.assertTrue(data["error"])
-            self.assertEqual(data["type"], "POST_SIGNUP_CAPTCHA_FAIL")
-            self.assertIn("csrf_token", data["payload"]["error"])
+            assert data["error"]
+            assert data["type"] == "POST_SIGNUP_CAPTCHA_FAIL"
+            assert "csrf_token" in data["payload"]["error"]
 
     def test_register_new_user(self) -> None:
         given_name = "John"
@@ -1508,7 +1508,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         email = "johnsmith4@example.com"
         resp = self._get_code_backdoor(email=email)
 
-        self.assertEqual(resp.status_code, 400)
+        assert resp.status_code == 400
 
     def test_get_code_no_backdoor_misconfigured1(self) -> None:
         self.app.conf.magic_cookie = "magic-cookie"
@@ -1518,7 +1518,7 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         email = "johnsmith4@example.com"
         resp = self._get_code_backdoor(email=email, magic_cookie_name="wrong_name")
 
-        self.assertEqual(resp.status_code, 400)
+        assert resp.status_code == 400
 
     def test_get_code_no_backdoor_misconfigured2(self) -> None:
         self.app.conf.magic_cookie = ""
@@ -1528,4 +1528,4 @@ class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
         email = "johnsmith4@example.com"
         resp = self._get_code_backdoor(email=email)
 
-        self.assertEqual(resp.status_code, 400)
+        assert resp.status_code == 400

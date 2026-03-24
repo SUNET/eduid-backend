@@ -87,19 +87,19 @@ class BackdoorTests(EduidAPITestCase[BackdoorTestApp]):
 
         with self.session_cookie_and_magic_cookie_anon(self.browser) as client:
             response = client.get(self.test_get_url)
-            self.assertEqual(response.status_code, 400)
+            assert response.status_code == 400
 
     def test_no_backdoor_without_cookie(self) -> None:
         """"""
         with self.session_cookie_anon(self.browser) as client:
             response = client.get(self.test_get_url)
-            self.assertEqual(response.status_code, 400)
+            assert response.status_code == 400
 
     def test_wrong_cookie_no_backdoor(self) -> None:
         """"""
         with self.session_cookie_and_magic_cookie_anon(self.browser, magic_cookie_value="no-magic") as client:
             response = client.get(self.test_get_url)
-            self.assertEqual(response.status_code, 400)
+            assert response.status_code == 400
 
     def test_no_magic_cookie_no_backdoor(self) -> None:
         """"""
@@ -107,7 +107,7 @@ class BackdoorTests(EduidAPITestCase[BackdoorTestApp]):
 
         with self.session_cookie_and_magic_cookie_anon(self.browser) as client:
             response = client.get(self.test_get_url)
-            self.assertEqual(response.status_code, 400)
+            assert response.status_code == 400
 
     def test_no_magic_cookie_name_no_backdoor(self) -> None:
         """"""
@@ -115,4 +115,4 @@ class BackdoorTests(EduidAPITestCase[BackdoorTestApp]):
 
         with self.session_cookie_and_magic_cookie_anon(self.browser, magic_cookie_name="wrong_name") as client:
             response = client.get(self.test_get_url)
-            self.assertEqual(response.status_code, 400)
+            assert response.status_code == 400

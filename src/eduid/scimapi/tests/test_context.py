@@ -8,7 +8,7 @@ class TestContext(ScimApiTestCase):
     def test_init(self) -> None:
         config = load_config(typ=ScimApiConfig, app_name="scimapi", ns="api", test_config=self.test_config)
         ctx = Context(config=config)
-        self.assertEqual(ctx.base_url, "http://localhost:8000")
+        assert ctx.base_url == "http://localhost:8000"
 
     def test_load_many_data_owners(self) -> None:
         # Add 99 more data owners to the config

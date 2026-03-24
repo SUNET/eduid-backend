@@ -47,7 +47,7 @@ class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
         :param eppn: the eppn of the user
         """
         response = self.browser.get("/all-user-data")
-        self.assertEqual(response.status_code, 401)
+        assert response.status_code == 401
 
         with self.session_cookie(self.browser, eppn) as client:
             return client.get("/all-user-data")
