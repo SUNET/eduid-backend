@@ -1,6 +1,8 @@
 from datetime import datetime
 from unittest import TestCase
 
+import pytest
+
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.element import Element, PrimaryElement, PrimaryElementViolation, VerifiedElement
 
@@ -160,5 +162,5 @@ class TestPrimaryElements(TestCase):
             verified_ts=now,
             is_primary=True,
         )
-        with self.assertRaises(PrimaryElementViolation):
+        with pytest.raises(PrimaryElementViolation):
             elem.is_verified = False

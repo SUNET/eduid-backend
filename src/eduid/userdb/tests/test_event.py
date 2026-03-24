@@ -126,7 +126,7 @@ class TestEventList(TestCase):
         assert self.two.to_list_of_dicts() == now_two.to_list_of_dicts()
 
     def test_remove_unknown(self) -> None:
-        with self.assertRaises(eduid.userdb.exceptions.UserDBValueError):
+        with pytest.raises(eduid.userdb.exceptions.UserDBValueError):
             self.one.remove(ElementKey("+46709999999"))
 
     def test_unknown_event_type(self) -> None:

@@ -1,5 +1,6 @@
 from unittest import TestCase
 
+import pytest
 from pydantic import ValidationError
 
 from eduid.userdb.fixtures.users import UserFixtures
@@ -25,5 +26,5 @@ class TestSignupUser(TestCase):
         assert user.user_id != self.user.user_id
 
     def test_missing_eppn(self) -> None:
-        with self.assertRaises(ValidationError):
+        with pytest.raises(ValidationError):
             SignupUser(user_id=self.user.user_id)  # type: ignore[call-arg]

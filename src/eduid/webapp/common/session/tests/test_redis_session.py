@@ -46,7 +46,7 @@ class TestSession(TestCase):
         session1.clear()
 
         # check that it is no longer there
-        with self.assertRaises(KeyError):
+        with pytest.raises(KeyError):
             self.manager.get_session(meta=_meta, new=False)
 
     def test_decrypt_session(self) -> None:

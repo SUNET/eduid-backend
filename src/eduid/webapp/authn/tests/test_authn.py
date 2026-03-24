@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from http import HTTPStatus
 from typing import Any
 
+import pytest
 from flask import Blueprint, Response
 from flask.typing import ResponseReturnValue
 from saml2.s_utils import deflate_and_base64_encode
@@ -355,7 +356,8 @@ class UnAuthnAPITestCase(EduidAPITestCase):
         self.redis_instance.conn.set(sessid, json.dumps({"v1": {"id": "0"}}))
 
         with self.session_cookie(self.browser, self.test_user.eppn) as c:
-            self.assertRaises(NotFound, c.get, "/")
+            with pytest.raises(NotFound):
+                c.get("/")
 
 
 class NoAuthnAPITestCase(EduidAPITestCase):

@@ -4,6 +4,7 @@ from datetime import timedelta
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+import pytest
 from werkzeug.test import TestResponse
 
 from eduid.common.config.base import FrontendAction
@@ -163,7 +164,7 @@ class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
         assert user_data["payload"].get("passwords") is None
 
     def test_get_unknown_user_all_data(self) -> None:
-        with self.assertRaises(ApiException):
+        with pytest.raises(ApiException):
             self._get_user_all_data(eppn="fooo-fooo")
 
     def test_post_user_name(self) -> None:

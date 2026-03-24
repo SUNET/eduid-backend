@@ -1,5 +1,7 @@
 import unittest
 
+import pytest
+
 from eduid.common.misc.timeutil import utc_now
 from eduid.scimapi.exceptions import BadRequest
 from eduid.scimapi.search import parse_search_filter
@@ -38,5 +40,5 @@ class TestSearchFilter(unittest.TestCase):
 
     def test_not_printable(self) -> None:
         search_filter = "foo eq 12\u00093"
-        with self.assertRaises(BadRequest):
+        with pytest.raises(BadRequest):
             parse_search_filter(search_filter)

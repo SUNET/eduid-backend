@@ -65,7 +65,7 @@ class TestOrcid(unittest.TestCase):
 
         assert dict_1 == dict_2
 
-        with self.assertRaises(eduid.userdb.exceptions.UserDBValueError):
+        with pytest.raises(eduid.userdb.exceptions.UserDBValueError):
             OidcIdToken.from_dict(None)  # type: ignore[arg-type]
 
     def test_oidc_authz(self) -> None:
@@ -97,7 +97,7 @@ class TestOrcid(unittest.TestCase):
 
         assert dict_1 == dict_2
 
-        with self.assertRaises(eduid.userdb.exceptions.UserDBValueError):
+        with pytest.raises(eduid.userdb.exceptions.UserDBValueError):
             OidcAuthorization.from_dict(None)  # type: ignore[arg-type]
 
     def test_orcid(self) -> None:

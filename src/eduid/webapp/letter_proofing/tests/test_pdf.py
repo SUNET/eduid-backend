@@ -3,6 +3,7 @@ from collections import OrderedDict
 from io import BytesIO, StringIO
 from typing import Any
 
+import pytest
 from pypdf import PdfReader
 
 from eduid.common.misc.timeutil import utc_now
@@ -128,7 +129,8 @@ class FormatAddressTest(unittest.TestCase):
         ]
 
         for response in failing_navet_responses:
-            self.assertRaises(pdf.AddressFormatException, pdf.format_address, response)
+            with pytest.raises(pdf.AddressFormatException):
+                pdf.format_address(response)
 
 
 class CreatePDFTest(EduidAPITestCase):

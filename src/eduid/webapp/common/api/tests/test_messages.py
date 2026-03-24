@@ -2,6 +2,8 @@ from enum import unique
 from typing import ClassVar
 from unittest import TestCase
 
+import pytest
+
 from eduid.webapp.common.api.messages import (
     CommonMsg,
     TranslatableMsg,
@@ -44,12 +46,12 @@ class MessageTests(TestCase):
         assert message.payload == {"message": "test.str_msg", "success": True, "email": "test@example.com"}
 
     def test_success_message_unknown(self) -> None:
-        with self.assertRaises(AttributeError):
+        with pytest.raises(AttributeError):
             success_response(TestsMsg.unknown_msg)  # type: ignore[attr-defined]
 
     def test_success_message_unknown_with_data(self) -> None:
         data = {"email": "test@example.com"}
-        with self.assertRaises(AttributeError):
+        with pytest.raises(AttributeError):
             success_response(payload=data, message=TestsMsg.unknown_msg)  # type: ignore[attr-defined]
 
     def test_error_message(self) -> None:
@@ -99,7 +101,7 @@ class MessageTests(TestCase):
         assert message.payload == {"message": "str_msg", "success": False, "next": data["next"]}
 
     def test_error_message_unknown(self) -> None:
-        with self.assertRaises(AttributeError):
+        with pytest.raises(AttributeError):
             error_response(TestsMsg.unknown_msg)  # type: ignore[attr-defined]
 
     def test_make_query_string_error(self) -> None:
@@ -111,11 +113,11 @@ class MessageTests(TestCase):
         assert qs == "msg=test.first_msg"
 
     def test_make_query_string_error_unknown(self) -> None:
-        with self.assertRaises(AttributeError):
+        with pytest.raises(AttributeError):
             make_query_string(TestsMsg.unknown_msg)  # type: ignore[attr-defined]
 
     def test_make_query_string_success_unknown(self) -> None:
-        with self.assertRaises(AttributeError):
+        with pytest.raises(AttributeError):
             make_query_string(TestsMsg.unknown_msg, error=False)  # type: ignore[attr-defined]
 
     def test_make_redirect_error(self) -> None:

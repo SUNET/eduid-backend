@@ -135,7 +135,7 @@ class TestCredentialList(unittest.TestCase):
         assert obtained == expected, "List of credentials with removed credential different than expected"
 
     def test_remove_unknown(self) -> None:
-        with self.assertRaises(eduid.userdb.exceptions.UserDBValueError):
+        with pytest.raises(eduid.userdb.exceptions.UserDBValueError):
             self.one.remove(ElementKey(str(ObjectId("55002741d00690878ae9b603"))))
 
     def test_generated(self) -> None:

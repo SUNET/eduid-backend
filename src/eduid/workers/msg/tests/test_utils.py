@@ -1,6 +1,8 @@
 from pathlib import PurePath
 from unittest import TestCase
 
+import pytest
+
 from eduid.workers.msg.utils import load_template
 
 
@@ -10,7 +12,7 @@ class TestUtils(TestCase):
         self.msg_dict = {"name": "Godiskungen", "admin": "Testadmin"}
 
     def test_load_template_missing(self) -> None:
-        with self.assertRaises(RuntimeError):
+        with pytest.raises(RuntimeError):
             load_template(self.template_dir, "apa.tmpl", self.msg_dict, "sv_SE")
 
     def test_load_and_render_template(self) -> None:

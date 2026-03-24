@@ -1,6 +1,7 @@
 from datetime import datetime
 from unittest import TestCase
 
+import pytest
 from pydantic import ValidationError
 
 from eduid.userdb import User
@@ -34,7 +35,7 @@ class TestAppUser(TestCase):
     def test_missing_eppn(self) -> None:
         _data = self.user.to_dict()
         _data.pop("eduPersonPrincipalName")
-        with self.assertRaises(ValidationError):
+        with pytest.raises(ValidationError):
             User.from_dict(_data)
 
     def test_identities_created_ts_true(self) -> None:
