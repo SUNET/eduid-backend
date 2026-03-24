@@ -112,9 +112,7 @@ class ChangePasswordTests(EduidAPITestCase[SecurityApp]):
                         ):
                             response2 = client.get("/change-password/suggested-password")
                             passwd = json.loads(response2.data)
-                            self.assertEqual(
-                                passwd["type"], "GET_CHANGE_PASSWORD_CHANGE_PASSWORD_SUGGESTED_PASSWORD_SUCCESS"
-                            )
+                            assert passwd["type"] == "GET_CHANGE_PASSWORD_CHANGE_PASSWORD_SUGGESTED_PASSWORD_SUCCESS"
                             password = passwd["payload"]["suggested_password"]
 
                             with client.session_transaction() as sess:
@@ -139,10 +137,10 @@ class ChangePasswordTests(EduidAPITestCase[SecurityApp]):
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
         password = user.credentials.to_list()[-1]
         assert isinstance(password, Password)
-        self.assertFalse(password.is_generated)
+        assert not password.is_generated
 
     def test_app_starts(self) -> None:
-        self.assertEqual(self.app.conf.app_name, "testing")
+        assert self.app.conf.app_name == "testing"
         response1 = self.browser.get("/change-password/suggested-password")
         assert response1.status_code == HTTPStatus.UNAUTHORIZED
         with self.session_cookie(self.browser, self.test_user_eppn) as client:
@@ -151,7 +149,7 @@ class ChangePasswordTests(EduidAPITestCase[SecurityApp]):
 
     def test_get_suggested_not_logged_in(self) -> None:
         response = self.browser.get("/change-password/suggested-password")
-        self.assertEqual(response.status_code, 401)
+        assert response.status_code == 401
 
     @patch("eduid.webapp.security.views.change_password.generate_suggested_password")
     def test_get_suggested(self, mock_generate_password: MagicMock) -> None:
@@ -286,7 +284,7 @@ class ChangePasswordTests(EduidAPITestCase[SecurityApp]):
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
         password = user.credentials.to_list()[-1]
         assert isinstance(password, Password)
-        self.assertTrue(password.is_generated)
+        assert password.is_generated
 
     def test_get_suggested_and_change_custom(self) -> None:
         self.set_authn_action(
@@ -304,7 +302,7 @@ class ChangePasswordTests(EduidAPITestCase[SecurityApp]):
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
         password = user.credentials.to_list()[-1]
         assert isinstance(password, Password)
-        self.assertFalse(password.is_generated)
+        assert not password.is_generated
 
     def test_get_suggested_and_change_wrong_csrf(self) -> None:
         self.set_authn_action(
@@ -325,7 +323,7 @@ class ChangePasswordTests(EduidAPITestCase[SecurityApp]):
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
         password = user.credentials.to_list()[-1]
         assert isinstance(password, Password)
-        self.assertFalse(password.is_generated)
+        assert not password.is_generated
 
     def test_get_suggested_and_change_wrong_old_pw(self) -> None:
         self.set_authn_action(
@@ -344,7 +342,7 @@ class ChangePasswordTests(EduidAPITestCase[SecurityApp]):
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
         password = user.credentials.to_list()[-1]
         assert isinstance(password, Password)
-        self.assertFalse(password.is_generated)
+        assert not password.is_generated
 
     def test_get_suggested_and_change_weak_new_pw(self) -> None:
         self.set_authn_action(
@@ -364,7 +362,7 @@ class ChangePasswordTests(EduidAPITestCase[SecurityApp]):
         user = self.app.private_userdb.get_user_by_eppn(self.test_user_eppn)
         password = user.credentials.to_list()[-1]
         assert isinstance(password, Password)
-        self.assertFalse(password.is_generated)
+        assert not password.is_generated
 
     def test_get_suggested_and_change_no_old_password(self) -> None:
         self.set_authn_action(

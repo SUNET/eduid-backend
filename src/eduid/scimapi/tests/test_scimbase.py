@@ -49,7 +49,7 @@ class TestScimBase(TestCase):
         }
         res_a = SubResource.from_mapping(a)
         res_b = SubResource.from_mapping(b)
-        self.assertNotEqual(res_a, res_b)
+        assert res_a != res_b
 
         res_set = {res_a, res_b}
-        self.assertIsInstance(res_set, set)
+        assert isinstance(res_set, set)

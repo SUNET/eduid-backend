@@ -193,7 +193,7 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
 
     def _get_credentials(self) -> TestResponse:
         response = self.browser.get("/credentials")
-        self.assertEqual(response.status_code, 401)
+        assert response.status_code == 401
 
         eppn = self.test_user_data["eduPersonPrincipalName"]
         self.add_security_key_to_user(
@@ -250,7 +250,7 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
 
     def test_account_terminated_no_authn(self) -> None:
         response = self.browser.get("/terminate-account")
-        self.assertEqual(response.status_code, 401)
+        assert response.status_code == 401
 
     def test_account_terminated_no_reauthn(self) -> None:
         response = self._delete_account()
@@ -333,13 +333,13 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
         mock_remove.side_effect = AmTaskFailed()
         response = self._remove_nin()
 
-        self.assertTrue(self.get_response_payload(response)["message"], "Temporary technical problems")
+        assert self.get_response_payload(response)["message"], "Temporary technical problems"
 
     def test_remove_nin_no_csrf(self) -> None:
         data1 = {"csrf_token": ""}
         response = self._remove_nin(data1=data1)
 
-        self.assertTrue(self.get_response_payload(response)["error"])
+        assert self.get_response_payload(response)["error"]
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         assert user.identities.nin is not None
@@ -377,7 +377,7 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
     def test_add_existing_nin(self) -> None:
         response = self._add_nin(remove=False)
 
-        self.assertEqual(self.get_response_payload(response)["message"], "nins.already_exists")
+        assert self.get_response_payload(response)["message"] == "nins.already_exists"
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         assert user.identities.nin is not None
@@ -390,7 +390,7 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
         data1 = {"nin": "202201023456"}
         response = self._add_nin(data1=data1, remove=False, unverify=True)
 
-        self.assertEqual(self.get_response_payload(response)["message"], "nins.already_exists")
+        assert self.get_response_payload(response)["message"] == "nins.already_exists"
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         assert user.identities.nin is not None
@@ -404,13 +404,13 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
         mock_add.side_effect = AmTaskFailed()
         response = self._add_nin()
 
-        self.assertEqual(self.get_response_payload(response)["message"], "Temporary technical problems")
+        assert self.get_response_payload(response)["message"] == "Temporary technical problems"
 
     def test_add_nin_bad_csrf(self) -> None:
         data1 = {"csrf_token": "bad-token"}
         response = self._add_nin(data1=data1, remove=False)
 
-        self.assertTrue(self.get_response_payload(response)["error"])
+        assert self.get_response_payload(response)["error"]
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         assert user.identities.nin is not None
@@ -419,7 +419,7 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
     def test_add_invalid_nin(self) -> None:
         data1 = {"nin": "123456789"}
         response = self._add_nin(data1=data1, remove=False)
-        self.assertIsNotNone(self.get_response_payload(response)["error"]["nin"])
+        assert self.get_response_payload(response)["error"]["nin"] is not None
 
         self._check_error_response(
             response,
@@ -457,13 +457,13 @@ class SecurityTests(EduidAPITestCase[SecurityApp]):
         mock_remove.side_effect = AmTaskFailed()
         response = self._remove_identity()
 
-        self.assertTrue(self.get_response_payload(response)["message"], "Temporary technical problems")
+        assert self.get_response_payload(response)["message"], "Temporary technical problems"
 
     def test_remove_identity_no_csrf(self) -> None:
         data1 = {"csrf_token": ""}
         response = self._remove_identity(data1=data1)
 
-        self.assertTrue(self.get_response_payload(response)["error"])
+        assert self.get_response_payload(response)["error"]
 
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         assert user.identities.nin is not None

@@ -206,10 +206,10 @@ class ScimApiTestCase(MongoNeoTestCase):
     ) -> None:
         if schemas is None:
             schemas = [SCIMSchema.ERROR.value]
-        self.assertEqual(schemas, json.get("schemas"))
-        self.assertEqual(status, json.get("status"))
+        assert schemas == json.get("schemas")
+        assert status == json.get("status")
         if scim_type is not None:
-            self.assertEqual(scim_type, json.get("scimType"))
+            assert scim_type == json.get("scimType")
         if detail is not None:
             if isinstance(detail, str):
                 assert detail == json.get("detail"), f"Wrong error message: {json.get('detail')}"
@@ -243,10 +243,8 @@ class ScimApiTestCase(MongoNeoTestCase):
             expected_schemas += [SCIMSchema.NUTID_EVENT_V1.value]
 
         response_schemas = response.json().get("schemas")
-        self.assertIsInstance(response_schemas, list, "Response schemas not present, or not a list")
-        self.assertEqual(
-            sorted(set(expected_schemas)), sorted(set(response_schemas)), "Unexpected schema(s) in parsed_response"
-        )
+        assert isinstance(response_schemas, list), "Response schemas not present, or not a list"
+        assert sorted(set(expected_schemas)) == sorted(set(response_schemas)), "Unexpected schema(s) in parsed_response"
 
         if isinstance(resource, ScimApiUser):
             expected_location = f"http://localhost:8000/Users/{resource.scim_id}"
@@ -263,23 +261,19 @@ class ScimApiTestCase(MongoNeoTestCase):
         else:
             raise ValueError("Resource is neither ScimApiUser, ScimApiGroup, ScimApiInvite or ScimApiEvent")
 
-        self.assertEqual(str(resource.scim_id), response.json().get("id"), "Unexpected id in parsed_response")
+        assert str(resource.scim_id) == response.json().get("id"), "Unexpected id in parsed_response"
 
-        self.assertEqual(
-            expected_location,
-            response.headers.get("location"),
-            "Unexpected group resource location in parsed_response headers",
+        assert expected_location == response.headers.get("location"), (
+            "Unexpected group resource location in parsed_response headers"
         )
 
         meta = response.json().get("meta")
-        self.assertIsNotNone(meta, "No meta in parsed_response")
-        self.assertIsNotNone(meta.get("created"), "No meta.created")
-        self.assertIsNotNone(meta.get("lastModified"), "No meta.lastModified")
-        self.assertIsNotNone(meta.get("version"), "No meta.version")
-        self.assertEqual(expected_location, meta.get("location"), "Unexpected group resource location")
-        self.assertEqual(
-            expected_resource_type, meta.get("resourceType"), f"meta.resourceType is not {expected_resource_type}"
-        )
+        assert meta is not None, "No meta in parsed_response"
+        assert meta.get("created") is not None, "No meta.created"
+        assert meta.get("lastModified") is not None, "No meta.lastModified"
+        assert meta.get("version") is not None, "No meta.version"
+        assert expected_location == meta.get("location"), "Unexpected group resource location"
+        assert expected_resource_type == meta.get("resourceType"), f"meta.resourceType is not {expected_resource_type}"
 
     @staticmethod
     def _assertName(db_name: ScimApiName, response_name: dict[str, str]) -> None:

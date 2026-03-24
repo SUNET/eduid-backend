@@ -26,10 +26,10 @@ class TestTransactionAudit(LookupMobileMongoTestCase):
         find_mobiles_by_nin(self, "200202025678")
         c = self.db["transaction_audit"]
         result = c.find()
-        self.assertEqual(c.count_documents({}), 1)
+        assert c.count_documents({}) == 1
         hit = result.next()
-        self.assertEqual(hit["data"]["national_identity_number"], "200202025678")
-        self.assertTrue(hit["data"]["data_returned"])
+        assert hit["data"]["national_identity_number"] == "200202025678"
+        assert hit["data"]["data_returned"]
         c.delete_many({})  # Clear database
 
         @TransactionAudit()
@@ -39,10 +39,10 @@ class TestTransactionAudit(LookupMobileMongoTestCase):
         find_nin_by_mobile(self, "+46701740699")
         c = self.db["transaction_audit"]
         result = c.find()
-        self.assertEqual(c.count_documents({}), 1)
+        assert c.count_documents({}) == 1
         hit = result.next()
-        self.assertEqual(hit["data"]["mobile_number"], "+46701740699")
-        self.assertTrue(hit["data"]["data_returned"])
+        assert hit["data"]["mobile_number"] == "+46701740699"
+        assert hit["data"]["data_returned"]
         c.delete_many({})  # Clear database
 
     def test_failed_transaction_audit(self) -> None:
@@ -55,8 +55,8 @@ class TestTransactionAudit(LookupMobileMongoTestCase):
         find_mobiles_by_nin(self, "200202025678")
         c = self.db["transaction_audit"]
         result = c.find()
-        self.assertEqual(c.count_documents({}), 1)
-        self.assertFalse(result.next()["data"]["data_returned"])
+        assert c.count_documents({}) == 1
+        assert not result.next()["data"]["data_returned"]
         c.delete_many({})  # Clear database
 
         @TransactionAudit()
@@ -66,8 +66,8 @@ class TestTransactionAudit(LookupMobileMongoTestCase):
         find_nin_by_mobile(self, "+46701740699")
         c = self.db["transaction_audit"]
         result = c.find()
-        self.assertEqual(c.count_documents({}), 1)
-        self.assertFalse(result.next()["data"]["data_returned"])
+        assert c.count_documents({}) == 1
+        assert not result.next()["data"]["data_returned"]
         c.delete_many({})  # Clear database
 
     def test_transaction_audit_toggle(self) -> None:
@@ -82,7 +82,7 @@ class TestTransactionAudit(LookupMobileMongoTestCase):
         no_name(self)
 
         c.find()
-        self.assertEqual(c.count_documents({}), 0)
+        assert c.count_documents({}) == 0
 
         TransactionAudit.enable()
 
@@ -92,4 +92,4 @@ class TestTransactionAudit(LookupMobileMongoTestCase):
 
         no_name2(self)
         c.find()
-        self.assertEqual(c.count_documents({}), 1)
+        assert c.count_documents({}) == 1

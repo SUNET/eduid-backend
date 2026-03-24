@@ -15,4 +15,4 @@ class TestInitConfig(unittest.TestCase):
         os.environ["EDUID_CONFIG_NS"] = "/test/ns/"
         os.environ["EDUID_CONFIG_YAML"] = "/config.yaml"
         parser = _choose_parser()
-        self.assertIsInstance(parser, YamlConfigParser)
+        assert isinstance(parser, YamlConfigParser)

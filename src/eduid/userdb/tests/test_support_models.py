@@ -10,22 +10,22 @@ class TestSupportUsers(TestCase):
 
     def test_support_user(self) -> None:
         user = models.SupportUserFilter(self.users.new_user_example.to_dict())
-        self.assertNotIn("_id", user)
-        self.assertNotIn("letter_proofing_data", user)
+        assert "_id" not in user
+        assert "letter_proofing_data" not in user
         for password in user["passwords"]:
-            self.assertNotIn("salt", password)
+            assert "salt" not in password
 
     def test_support_signup_user(self) -> None:
         user = models.SupportSignupUserFilter(self.users.new_signup_user_example.to_dict())
-        self.assertNotIn("_id", user)
-        self.assertNotIn("letter_proofing_data", user)
+        assert "_id" not in user
+        assert "letter_proofing_data" not in user
         for password in user["passwords"]:
-            self.assertNotIn("salt", password)
+            assert "salt" not in password
 
     def test_support_completed_signup_user(self) -> None:
         user = models.SupportSignupUserFilter(self.users.new_completed_signup_user_example.to_dict())
-        self.assertNotIn("_id", user)
-        self.assertNotIn("letter_proofing_data", user)
+        assert "_id" not in user
+        assert "letter_proofing_data" not in user
 
         """
         This should pass without an exception being thrown in GenericFilterDict.
@@ -34,10 +34,10 @@ class TestSupportUsers(TestCase):
         """
         pending = user.get("pending_mail_address")
         assert pending is not None
-        self.assertTrue(len(pending) == 0)
+        assert len(pending) == 0
 
         for password in user["passwords"]:
-            self.assertNotIn("salt", password)
+            assert "salt" not in password
 
     def test_support_user_authn_info(self) -> None:
         raw_data = {
@@ -49,6 +49,6 @@ class TestSupportUsers(TestCase):
         }
 
         user_authn_info = models.UserAuthnInfo(raw_data)
-        self.assertNotIn("_id", user_authn_info)
-        self.assertNotIn("last_credential_ids", user_authn_info)
-        self.assertEqual(len(user_authn_info["fail_count"].keys()), 1)
+        assert "_id" not in user_authn_info
+        assert "last_credential_ids" not in user_authn_info
+        assert len(user_authn_info["fail_count"].keys()) == 1

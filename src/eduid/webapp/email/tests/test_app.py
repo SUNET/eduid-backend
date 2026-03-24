@@ -69,7 +69,7 @@ class EmailTests(EduidAPITestCase[EmailApp]):
         GET a list with all the email addresses of the test user
         """
         response = self.browser.get("/all")
-        self.assertEqual(response.status_code, 401)
+        assert response.status_code == 401
 
         eppn = self.test_user_data["eduPersonPrincipalName"]
         with self.session_cookie(self.browser, eppn) as client:
@@ -93,7 +93,7 @@ class EmailTests(EduidAPITestCase[EmailApp]):
         :param send_data: whether to actually send data in the POST
         """
         response = self.browser.post("/new")
-        self.assertEqual(response.status_code, 401)
+        assert response.status_code == 401
 
         mock_code_verification.return_value = "123456"
         mock_request_user_sync.side_effect = self.request_user_sync
@@ -126,7 +126,7 @@ class EmailTests(EduidAPITestCase[EmailApp]):
         mock_request_user_sync.side_effect = self.request_user_sync
 
         response = self.browser.post("/primary")
-        self.assertEqual(response.status_code, 401)
+        assert response.status_code == 401
 
         eppn = self.test_user_data["eduPersonPrincipalName"]
 
@@ -151,7 +151,7 @@ class EmailTests(EduidAPITestCase[EmailApp]):
         mock_request_user_sync.side_effect = self.request_user_sync
 
         response = self.browser.post("/remove")
-        self.assertEqual(response.status_code, 401)
+        assert response.status_code == 401
 
         eppn = self.test_user_data["eduPersonPrincipalName"]
 
@@ -203,7 +203,7 @@ class EmailTests(EduidAPITestCase[EmailApp]):
         mock_code_verification.return_value = "432123425"
 
         response = self.browser.post("/verify")
-        self.assertEqual(response.status_code, 401)
+        assert response.status_code == 401
 
         eppn = self.test_user_data["eduPersonPrincipalName"]
 
@@ -278,44 +278,44 @@ class EmailTests(EduidAPITestCase[EmailApp]):
     def test_get_all_emails(self) -> None:
         email_data = self._get_all_emails()
 
-        self.assertEqual(email_data["type"], "GET_EMAIL_ALL_SUCCESS")
-        self.assertEqual(email_data["payload"]["emails"][0].get("email"), "johnsmith@example.com")
-        self.assertEqual(email_data["payload"]["emails"][0].get("verified"), True)
-        self.assertEqual(email_data["payload"]["emails"][1].get("email"), "johnsmith2@example.com")
-        self.assertEqual(email_data["payload"]["emails"][1].get("verified"), False)
+        assert email_data["type"] == "GET_EMAIL_ALL_SUCCESS"
+        assert email_data["payload"]["emails"][0].get("email") == "johnsmith@example.com"
+        assert email_data["payload"]["emails"][0].get("verified")
+        assert email_data["payload"]["emails"][1].get("email") == "johnsmith2@example.com"
+        assert not email_data["payload"]["emails"][1].get("verified")
 
     def test_post_email(self) -> None:
         response = self._post_email()
 
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
         new_email_data = json.loads(response.data)
 
-        self.assertEqual(new_email_data["type"], "POST_EMAIL_NEW_SUCCESS")
-        self.assertEqual(new_email_data["payload"]["emails"][2].get("email"), "johnsmith3@example.com")
-        self.assertEqual(new_email_data["payload"]["emails"][2].get("verified"), False)
+        assert new_email_data["type"] == "POST_EMAIL_NEW_SUCCESS"
+        assert new_email_data["payload"]["emails"][2].get("email") == "johnsmith3@example.com"
+        assert not new_email_data["payload"]["emails"][2].get("verified")
 
     def test_post_email_try_verify(self) -> None:
         data1 = {"verified": True}
         response = self._post_email(data1=data1)
 
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
         new_email_data = json.loads(response.data)
 
-        self.assertEqual(new_email_data["type"], "POST_EMAIL_NEW_SUCCESS")
-        self.assertEqual(new_email_data["payload"]["emails"][2].get("email"), "johnsmith3@example.com")
-        self.assertEqual(new_email_data["payload"]["emails"][2].get("verified"), False)
+        assert new_email_data["type"] == "POST_EMAIL_NEW_SUCCESS"
+        assert new_email_data["payload"]["emails"][2].get("email") == "johnsmith3@example.com"
+        assert not new_email_data["payload"]["emails"][2].get("verified")
 
     def test_post_email_try_primary(self) -> None:
         data1 = {"verified": True, "primary": True}
         response = self._post_email(data1=data1)
 
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
         new_email_data = json.loads(response.data)
 
-        self.assertEqual(new_email_data["type"], "POST_EMAIL_NEW_SUCCESS")
-        self.assertEqual(new_email_data["payload"]["emails"][2].get("email"), "johnsmith3@example.com")
-        self.assertEqual(new_email_data["payload"]["emails"][2].get("verified"), False)
-        self.assertEqual(new_email_data["payload"]["emails"][2].get("primary"), False)
+        assert new_email_data["type"] == "POST_EMAIL_NEW_SUCCESS"
+        assert new_email_data["payload"]["emails"][2].get("email") == "johnsmith3@example.com"
+        assert not new_email_data["payload"]["emails"][2].get("verified")
+        assert not new_email_data["payload"]["emails"][2].get("primary")
 
     def test_post_email_with_stale_state(self) -> None:
         # set negative throttling timeout to simulate a stale state
@@ -328,12 +328,12 @@ class EmailTests(EduidAPITestCase[EmailApp]):
         self.app.proofing_statedb.save(old_state, is_in_database=False)
 
         response = self._post_email()
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
         new_email_data = json.loads(response.data)
 
-        self.assertEqual(new_email_data["type"], "POST_EMAIL_NEW_SUCCESS")
-        self.assertEqual(new_email_data["payload"]["emails"][2].get("email"), email)
-        self.assertEqual(new_email_data["payload"]["emails"][2].get("verified"), False)
+        assert new_email_data["type"] == "POST_EMAIL_NEW_SUCCESS"
+        assert new_email_data["payload"]["emails"][2].get("email") == email
+        assert not new_email_data["payload"]["emails"][2].get("verified")
 
     def test_post_email_throttle(self) -> None:
         eppn = self.test_user_data["eduPersonPrincipalName"]
@@ -344,17 +344,17 @@ class EmailTests(EduidAPITestCase[EmailApp]):
         self.app.proofing_statedb.save(old_state, is_in_database=False)
 
         response = self._post_email()
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
         new_email_data = json.loads(response.data)
 
-        self.assertEqual(new_email_data["type"], "POST_EMAIL_NEW_SUCCESS")
-        self.assertEqual(new_email_data["payload"]["message"], "emails.added-and-throttled")
+        assert new_email_data["type"] == "POST_EMAIL_NEW_SUCCESS"
+        assert new_email_data["payload"]["message"] == "emails.added-and-throttled"
 
     def test_post_email_error_no_data(self) -> None:
         response = self._post_email(send_data=False)
 
         new_email_data = json.loads(response.data)
-        self.assertEqual(new_email_data["type"], "POST_EMAIL_NEW_FAIL")
+        assert new_email_data["type"] == "POST_EMAIL_NEW_FAIL"
 
     def test_post_email_duplicate(self) -> None:
         eppn = self.test_user_data["eduPersonPrincipalName"]
@@ -367,74 +367,74 @@ class EmailTests(EduidAPITestCase[EmailApp]):
         self.app.central_userdb.save(user)
 
         response = self._post_email()
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
         new_email_data = json.loads(response.data)
 
-        self.assertEqual(new_email_data["type"], "POST_EMAIL_NEW_FAIL")
-        self.assertEqual(new_email_data["payload"]["error"]["email"][0], "emails.duplicated")
+        assert new_email_data["type"] == "POST_EMAIL_NEW_FAIL"
+        assert new_email_data["payload"]["error"]["email"][0] == "emails.duplicated"
 
     def test_post_email_bad_csrf(self) -> None:
         response = self._post_email(data1={"csrf_token": "bad-token"})
 
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
 
         new_email_data = json.loads(response.data)
 
-        self.assertEqual(new_email_data["type"], "POST_EMAIL_NEW_FAIL")
-        self.assertEqual(new_email_data["payload"]["error"]["csrf_token"], ["CSRF failed to validate"])
+        assert new_email_data["type"] == "POST_EMAIL_NEW_FAIL"
+        assert new_email_data["payload"]["error"]["csrf_token"] == ["CSRF failed to validate"]
 
     def test_post_primary(self) -> None:
         data1 = {"email": "johnsmith@example.com"}
         response = self._post_primary(data1=data1)
 
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
 
         new_email_data = json.loads(response.data)
 
-        self.assertEqual(new_email_data["type"], "POST_EMAIL_PRIMARY_SUCCESS")
+        assert new_email_data["type"] == "POST_EMAIL_PRIMARY_SUCCESS"
 
     def test_post_unknown_primary(self) -> None:
         data1 = {"email": "susansmith@example.com"}
         response = self._post_primary(data1=data1)
 
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
 
         new_email_data = json.loads(response.data)
 
-        self.assertEqual(new_email_data["type"], "POST_EMAIL_PRIMARY_FAIL")
+        assert new_email_data["type"] == "POST_EMAIL_PRIMARY_FAIL"
 
     def test_post_primary_missing(self) -> None:
         data1 = {"email": "johnsmith3@example.com"}
         response = self._post_primary(data1=data1)
 
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
 
         new_email_data = json.loads(response.data)
 
-        self.assertEqual(new_email_data["type"], "POST_EMAIL_PRIMARY_FAIL")
-        self.assertEqual(new_email_data["payload"]["error"]["email"][0], "emails.missing")
+        assert new_email_data["type"] == "POST_EMAIL_PRIMARY_FAIL"
+        assert new_email_data["payload"]["error"]["email"][0] == "emails.missing"
 
     def test_post_primary_unconfirmed_fail(self) -> None:
         data1 = {"email": "johnsmith2@example.com"}
         response = self._post_primary(data1=data1)
 
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
 
         new_email_data = json.loads(response.data)
 
-        self.assertEqual(new_email_data["type"], "POST_EMAIL_PRIMARY_FAIL")
-        self.assertEqual(new_email_data["payload"]["message"], "emails.unconfirmed_address_not_primary")
+        assert new_email_data["type"] == "POST_EMAIL_PRIMARY_FAIL"
+        assert new_email_data["payload"]["message"] == "emails.unconfirmed_address_not_primary"
 
     def test_remove(self) -> None:
         data1 = {"email": "johnsmith2@example.com"}
         response = self._remove(data1=data1)
 
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
 
         delete_email_data = json.loads(response.data)
 
-        self.assertEqual(delete_email_data["type"], "POST_EMAIL_REMOVE_SUCCESS")
-        self.assertEqual(delete_email_data["payload"]["emails"][0].get("email"), "johnsmith@example.com")
+        assert delete_email_data["type"] == "POST_EMAIL_REMOVE_SUCCESS"
+        assert delete_email_data["payload"]["emails"][0].get("email") == "johnsmith@example.com"
 
     def test_remove_primary(self) -> None:
         eppn = self.test_user_data["eduPersonPrincipalName"]
@@ -451,17 +451,17 @@ class EmailTests(EduidAPITestCase[EmailApp]):
         data1 = {"email": "verified@example.com"}
         response = self._remove(data1=data1)
 
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
         delete_email_data = json.loads(response.data)
-        self.assertEqual(delete_email_data["type"], "POST_EMAIL_REMOVE_SUCCESS")
-        self.assertEqual(delete_email_data["payload"]["emails"][0].get("email"), "verified2@example.com")
+        assert delete_email_data["type"] == "POST_EMAIL_REMOVE_SUCCESS"
+        assert delete_email_data["payload"]["emails"][0].get("email") == "verified2@example.com"
 
         user = self.app.central_userdb.get_user_by_eppn(eppn)
         assert user.mail_addresses.primary is not None
 
-        self.assertEqual(user.mail_addresses.count, 1)
-        self.assertEqual(len(user.mail_addresses.verified), 1)
-        self.assertEqual(user.mail_addresses.primary.email, "verified2@example.com")
+        assert user.mail_addresses.count == 1
+        assert len(user.mail_addresses.verified) == 1
+        assert user.mail_addresses.primary.email == "verified2@example.com"
 
     def test_remove_last_verified(self) -> None:
         eppn = self.test_user_data["eduPersonPrincipalName"]
@@ -478,79 +478,79 @@ class EmailTests(EduidAPITestCase[EmailApp]):
         data1 = {"email": "verified@example.com"}
         response = self._remove(data1=data1)
 
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
         delete_email_data = json.loads(response.data)
-        self.assertEqual(delete_email_data["type"], "POST_EMAIL_REMOVE_FAIL")
+        assert delete_email_data["type"] == "POST_EMAIL_REMOVE_FAIL"
 
         user = self.app.central_userdb.get_user_by_eppn(eppn)
         assert user.mail_addresses.primary is not None
 
-        self.assertEqual(user.mail_addresses.count, 2)
-        self.assertEqual(len(user.mail_addresses.verified), 1)
-        self.assertEqual(user.mail_addresses.primary.email, "verified@example.com")
+        assert user.mail_addresses.count == 2
+        assert len(user.mail_addresses.verified) == 1
+        assert user.mail_addresses.primary.email == "verified@example.com"
 
     def test_remove_fail(self) -> None:
         data1 = {"email": "johnsmith3@example.com"}
         response = self._remove(data1=data1)
 
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
         delete_email_data = json.loads(response.data)
 
-        self.assertEqual(delete_email_data["type"], "POST_EMAIL_REMOVE_FAIL")
-        self.assertEqual(delete_email_data["payload"]["error"]["email"][0], "emails.missing")
+        assert delete_email_data["type"] == "POST_EMAIL_REMOVE_FAIL"
+        assert delete_email_data["payload"]["error"]["email"][0] == "emails.missing"
 
     def test_resend_code(self) -> None:
         response = self.browser.post("/resend-code")
-        self.assertEqual(response.status_code, 401)
+        assert response.status_code == 401
 
         data1 = {"email": "johnsmith@example.com"}
         response = self._resend_code(data1=data1)
 
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
         resend_code_email_data = json.loads(response.data)
 
-        self.assertEqual(resend_code_email_data["type"], "POST_EMAIL_RESEND_CODE_SUCCESS")
-        self.assertEqual(resend_code_email_data["payload"]["emails"][0].get("email"), "johnsmith@example.com")
-        self.assertEqual(resend_code_email_data["payload"]["emails"][1].get("email"), "johnsmith2@example.com")
+        assert resend_code_email_data["type"] == "POST_EMAIL_RESEND_CODE_SUCCESS"
+        assert resend_code_email_data["payload"]["emails"][0].get("email") == "johnsmith@example.com"
+        assert resend_code_email_data["payload"]["emails"][1].get("email") == "johnsmith2@example.com"
 
     def test_throttle_resend_code(self) -> None:
         data1 = {"email": "johnsmith@example.com"}
         response = self._resend_code(data1=data1)
 
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
 
         response2 = self._resend_code(data1=data1)
 
-        self.assertEqual(response2.status_code, 200)
+        assert response2.status_code == 200
 
         resend_code_email_data = json.loads(response2.data)
 
-        self.assertEqual(resend_code_email_data["type"], "POST_EMAIL_RESEND_CODE_FAIL")
-        self.assertEqual(resend_code_email_data["error"], True)
-        self.assertEqual(resend_code_email_data["payload"]["message"], "still-valid-code")
-        self.assertIsNotNone(resend_code_email_data["payload"]["csrf_token"])
+        assert resend_code_email_data["type"] == "POST_EMAIL_RESEND_CODE_FAIL"
+        assert resend_code_email_data["error"]
+        assert resend_code_email_data["payload"]["message"] == "still-valid-code"
+        assert resend_code_email_data["payload"]["csrf_token"] is not None
 
     def test_resend_code_fails(self) -> None:
         data1 = {"email": "johnsmith3@example.com"}
         response = self._resend_code(data1=data1)
 
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
         resend_code_email_data = json.loads(response.data)
 
-        self.assertEqual(resend_code_email_data["type"], "POST_EMAIL_RESEND_CODE_FAIL")
+        assert resend_code_email_data["type"] == "POST_EMAIL_RESEND_CODE_FAIL"
 
-        self.assertEqual(resend_code_email_data["payload"]["error"]["email"][0], "emails.missing")
+        assert resend_code_email_data["payload"]["error"]["email"][0] == "emails.missing"
 
     def test_verify(self) -> None:
         email = "john-smith3@example.com"
         response = self._verify()
 
         verify_email_data = json.loads(response.data)
-        self.assertEqual(verify_email_data["type"], "POST_EMAIL_VERIFY_SUCCESS")
-        self.assertEqual(verify_email_data["payload"]["emails"][2]["email"], email)
-        self.assertEqual(verify_email_data["payload"]["emails"][2]["verified"], True)
-        self.assertEqual(verify_email_data["payload"]["emails"][2]["primary"], False)
-        self.assertEqual(self.app.proofing_log.db_count(), 1)
+        assert verify_email_data["type"] == "POST_EMAIL_VERIFY_SUCCESS"
+        assert verify_email_data["payload"]["emails"][2]["email"] == email
+        assert verify_email_data["payload"]["emails"][2]["verified"]
+        assert not verify_email_data["payload"]["emails"][2]["primary"]
+        assert self.app.proofing_log.db_count() == 1
 
         eppn = self.test_user_data["eduPersonPrincipalName"]
         user = self.app.private_userdb.get_user_by_eppn(eppn)
@@ -567,7 +567,7 @@ class EmailTests(EduidAPITestCase[EmailApp]):
         response = self._verify(data2=data2)
 
         verify_email_data = json.loads(response.data)
-        self.assertEqual(verify_email_data["type"], "POST_EMAIL_VERIFY_FAIL")
+        assert verify_email_data["type"] == "POST_EMAIL_VERIFY_FAIL"
 
     def test_verify_no_primary(self) -> None:
         # Remove all mail addresses to start with no primary address
@@ -579,35 +579,35 @@ class EmailTests(EduidAPITestCase[EmailApp]):
         response = self._verify()
 
         verify_email_data = json.loads(response.data)
-        self.assertEqual(verify_email_data["type"], "POST_EMAIL_VERIFY_SUCCESS")
-        self.assertEqual(len(verify_email_data["payload"]["emails"]), 1)
-        self.assertEqual(verify_email_data["payload"]["emails"][0]["email"], "john-smith3@example.com")
-        self.assertEqual(verify_email_data["payload"]["emails"][0]["verified"], True)
-        self.assertEqual(verify_email_data["payload"]["emails"][0]["primary"], True)
-        self.assertEqual(self.app.proofing_log.db_count(), 1)
+        assert verify_email_data["type"] == "POST_EMAIL_VERIFY_SUCCESS"
+        assert len(verify_email_data["payload"]["emails"]) == 1
+        assert verify_email_data["payload"]["emails"][0]["email"] == "john-smith3@example.com"
+        assert verify_email_data["payload"]["emails"][0]["verified"]
+        assert verify_email_data["payload"]["emails"][0]["primary"]
+        assert self.app.proofing_log.db_count() == 1
 
     def test_verify_code_timeout(self) -> None:
         self.app.conf.email_verification_timeout = timedelta(0)
         response = self._verify()
 
         verify_email_data = json.loads(response.data)
-        self.assertEqual(verify_email_data["type"], "POST_EMAIL_VERIFY_FAIL")
-        self.assertEqual(verify_email_data["payload"]["message"], "emails.code_invalid_or_expired")
+        assert verify_email_data["type"] == "POST_EMAIL_VERIFY_FAIL"
+        assert verify_email_data["payload"]["message"] == "emails.code_invalid_or_expired"
 
     def test_verify_fail(self) -> None:
         response = self._verify(data2={"code": "wrong-code"})
 
         verify_email_data = json.loads(response.data)
-        self.assertEqual(verify_email_data["type"], "POST_EMAIL_VERIFY_FAIL")
-        self.assertEqual(verify_email_data["payload"]["message"], "emails.code_invalid_or_expired")
-        self.assertEqual(self.app.proofing_log.db_count(), 0)
+        assert verify_email_data["type"] == "POST_EMAIL_VERIFY_FAIL"
+        assert verify_email_data["payload"]["message"] == "emails.code_invalid_or_expired"
+        assert self.app.proofing_log.db_count() == 0
 
     def test_verify_email_uppercase(self) -> None:
         email = "JOHN-SMITH3@EXAMPLE.COM"
         response = self._verify(data1={"email": email})
         eppn = self.test_user_data["eduPersonPrincipalName"]
 
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
 
         user = self.app.private_userdb.get_user_by_eppn(eppn)
         mail_address_element = user.mail_addresses.find(email.lower())
@@ -630,7 +630,7 @@ class EmailTests(EduidAPITestCase[EmailApp]):
         self.app.proofing_statedb.save(state2, is_in_database=False)
         state = self.app.proofing_statedb.get_state_by_eppn_and_email(eppn=eppn, email=email)
         assert state is not None
-        self.assertEqual(state.verification.verification_code, "test_code_2")
+        assert state.verification.verification_code == "test_code_2"
 
     def test_get_code_backdoor(self) -> None:
         self.app.conf.magic_cookie = "magic-cookie"
@@ -640,8 +640,8 @@ class EmailTests(EduidAPITestCase[EmailApp]):
         code = "0123456"
         resp = self._get_code_backdoor(code=code)
 
-        self.assertEqual(resp.status_code, 200)
-        self.assertEqual(resp.data, code.encode("ascii"))
+        assert resp.status_code == 200
+        assert resp.data == code.encode("ascii")
 
     def test_get_code_no_backdoor_in_pro(self) -> None:
         self.app.conf.magic_cookie = "magic-cookie"
@@ -651,7 +651,7 @@ class EmailTests(EduidAPITestCase[EmailApp]):
         code = "0123456"
         resp = self._get_code_backdoor(code=code)
 
-        self.assertEqual(resp.status_code, 400)
+        assert resp.status_code == 400
 
     def test_get_code_no_backdoor_misconfigured1(self) -> None:
         self.app.conf.magic_cookie = "magic-cookie"
@@ -661,7 +661,7 @@ class EmailTests(EduidAPITestCase[EmailApp]):
         code = "0123456"
         resp = self._get_code_backdoor(code=code, magic_cookie_name="wrong_name")
 
-        self.assertEqual(resp.status_code, 400)
+        assert resp.status_code == 400
 
     def test_get_code_no_backdoor_misconfigured2(self) -> None:
         self.app.conf.magic_cookie = ""
@@ -671,4 +671,4 @@ class EmailTests(EduidAPITestCase[EmailApp]):
         code = "0123456"
         resp = self._get_code_backdoor(code=code)
 
-        self.assertEqual(resp.status_code, 400)
+        assert resp.status_code == 400

@@ -35,7 +35,7 @@ class TestIdpUser(TestCase):
                 subject_id = attributes.get("subject-id")
                 if any([pairwise_id, subject_id]):
                     continue
-            self.assertIsNotNone(attributes.get(key), f"{key} is unexpectedly None")
+            assert attributes.get(key) is not None, f"{key} is unexpectedly None"
 
         assert idp_user.ladok
         expected = {

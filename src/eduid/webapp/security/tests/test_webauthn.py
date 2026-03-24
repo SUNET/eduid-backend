@@ -191,21 +191,21 @@ class SecurityWebauthnTests(EduidAPITestCase):
         assert "challenge" in webauthn_state
 
     def _check_registration_begun(self, data: dict) -> None:
-        self.assertEqual(data["type"], "POST_WEBAUTHN_WEBAUTHN_REGISTER_BEGIN_SUCCESS")
-        self.assertIn("registration_data", data["payload"])
-        self.assertIn("csrf_token", data["payload"])
+        assert data["type"] == "POST_WEBAUTHN_WEBAUTHN_REGISTER_BEGIN_SUCCESS"
+        assert "registration_data" in data["payload"]
+        assert "csrf_token" in data["payload"]
 
     def _check_registration_complete(self, data: dict) -> None:
-        self.assertEqual(data["type"], "POST_WEBAUTHN_WEBAUTHN_REGISTER_COMPLETE_SUCCESS")
-        self.assertTrue(len(data["payload"]["credentials"]) > 0)
-        self.assertEqual(data["payload"]["message"], "security.webauthn_register_success")
+        assert data["type"] == "POST_WEBAUTHN_WEBAUTHN_REGISTER_COMPLETE_SUCCESS"
+        assert len(data["payload"]["credentials"]) > 0
+        assert data["payload"]["message"] == "security.webauthn_register_success"
 
     def _check_removal(self, data: dict, user_token: Webauthn) -> None:
-        self.assertEqual(data["type"], "POST_WEBAUTHN_WEBAUTHN_REMOVE_SUCCESS")
-        self.assertIsNotNone(data["payload"]["credentials"])
+        assert data["type"] == "POST_WEBAUTHN_WEBAUTHN_REMOVE_SUCCESS"
+        assert data["payload"]["credentials"] is not None
         for credential in data["payload"]["credentials"]:
-            self.assertIsNotNone(credential)
-            self.assertNotEqual(credential["key"], user_token.key)
+            assert credential is not None
+            assert credential["key"] != user_token.key
 
     # parameterized test methods
     def _begin_register_key(
@@ -401,7 +401,7 @@ class SecurityWebauthnTests(EduidAPITestCase):
 
     def test_begin_no_login(self) -> None:
         response = self.browser.get("/webauthn/register/begin")
-        self.assertEqual(response.status_code, 401)
+        assert response.status_code == 401
 
     def test_begin_register_first_key(self) -> None:
         response = self._begin_register_key()
@@ -474,8 +474,8 @@ class SecurityWebauthnTests(EduidAPITestCase):
     def test_begin_register_wrong_csrf_token(self) -> None:
         response = self._begin_register_key(csrf="wrong-token", check_session=False)
         data = self._response_json_to_dict(response)
-        self.assertEqual(data["type"], "POST_WEBAUTHN_WEBAUTHN_REGISTER_BEGIN_FAIL")
-        self.assertEqual(data["payload"]["error"]["csrf_token"], ["CSRF failed to validate"])
+        assert data["type"] == "POST_WEBAUTHN_WEBAUTHN_REGISTER_BEGIN_FAIL"
+        assert data["payload"]["error"]["csrf_token"] == ["CSRF failed to validate"]
 
     def test_finish_register_ctap1(self) -> None:
         response = self._finish_register_key(
@@ -539,8 +539,8 @@ class SecurityWebauthnTests(EduidAPITestCase):
             csrf="wrong-token",
         )
         data = self._response_json_to_dict(response)
-        self.assertEqual(data["type"], "POST_WEBAUTHN_WEBAUTHN_REGISTER_COMPLETE_FAIL")
-        self.assertEqual(data["payload"]["error"]["csrf_token"], ["CSRF failed to validate"])
+        assert data["type"] == "POST_WEBAUTHN_WEBAUTHN_REGISTER_COMPLETE_FAIL"
+        assert data["payload"]["error"]["csrf_token"] == ["CSRF failed to validate"]
 
     def test_remove_ctap1(self) -> None:
         self.set_authn_action(
@@ -628,8 +628,8 @@ class SecurityWebauthnTests(EduidAPITestCase):
             csrf="wrong-csrf",
         )
         data = self._response_json_to_dict(response)
-        self.assertEqual(data["type"], "POST_WEBAUTHN_WEBAUTHN_REMOVE_FAIL")
-        self.assertEqual(data["payload"]["error"]["csrf_token"], ["CSRF failed to validate"])
+        assert data["type"] == "POST_WEBAUTHN_WEBAUTHN_REMOVE_FAIL"
+        assert data["payload"]["error"]["csrf_token"] == ["CSRF failed to validate"]
 
     @patch("fido_mds.FidoMetadataStore.verify_attestation", _apple_special_verify_attestation)
     def test_authenticator_information(self) -> None:

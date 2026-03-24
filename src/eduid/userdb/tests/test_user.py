@@ -231,26 +231,26 @@ class TestNewUser(unittest.TestCase):
         )
 
     def test_user_id(self) -> None:
-        self.assertEqual(self.user1.user_id, self.data1["_id"])
+        assert self.user1.user_id == self.data1["_id"]
 
     def test_eppn(self) -> None:
-        self.assertEqual(self.user1.eppn, self.data1["eduPersonPrincipalName"])
+        assert self.user1.eppn == self.data1["eduPersonPrincipalName"]
 
     def test_given_name(self) -> None:
-        self.assertEqual(self.user2.given_name, self.data2["givenName"])
+        assert self.user2.given_name == self.data2["givenName"]
 
     def test_chosen_given_name(self) -> None:
-        self.assertEqual(self.user1.chosen_given_name, self.data1["chosen_given_name"])
+        assert self.user1.chosen_given_name == self.data1["chosen_given_name"]
 
     def test_surname(self) -> None:
-        self.assertEqual(self.user2.surname, self.data2["surname"])
+        assert self.user2.surname == self.data2["surname"]
 
     def test_legal_name(self) -> None:
-        self.assertEqual(self.user1.legal_name, self.data1["legal_name"])
+        assert self.user1.legal_name == self.data1["legal_name"]
 
     def test_mail_addresses(self) -> None:
         assert self.user1.mail_addresses.primary is not None
-        self.assertEqual(self.user1.mail_addresses.primary.email, self.data1["mailAliases"][0]["email"])
+        assert self.user1.mail_addresses.primary.email == self.data1["mailAliases"][0]["email"]
 
     def test_passwords(self) -> None:
         """
@@ -355,7 +355,7 @@ class TestNewUser(unittest.TestCase):
         )
         user = User.from_dict(data)
         assert user.mail_addresses.primary
-        self.assertEqual(mail, user.mail_addresses.primary.email)
+        assert mail == user.mail_addresses.primary.email
 
     def test_user_with_indirectly_verified_primary_mail(self) -> None:
         """
@@ -380,7 +380,7 @@ class TestNewUser(unittest.TestCase):
         )
         user = User.from_dict(data)
         assert user.mail_addresses.primary
-        self.assertEqual(mail, user.mail_addresses.primary.email)
+        assert mail == user.mail_addresses.primary.email
 
     def test_user_with_indirectly_verified_primary_mail_and_explicit_primary_mail(self) -> None:
         """
@@ -410,7 +410,7 @@ class TestNewUser(unittest.TestCase):
         )
         user = User.from_dict(data)
         assert user.mail_addresses.primary
-        self.assertEqual(new_mail, user.mail_addresses.primary.email)
+        assert new_mail == user.mail_addresses.primary.email
 
     def test_user_with_csrf_junk_in_mail_address(self) -> None:
         """
@@ -434,7 +434,7 @@ class TestNewUser(unittest.TestCase):
         )
         user = User.from_dict(data)
         assert user.mail_addresses.primary
-        self.assertEqual(mail, user.mail_addresses.primary.email)
+        assert mail == user.mail_addresses.primary.email
 
     def test_to_dict(self) -> None:
         """
@@ -443,7 +443,7 @@ class TestNewUser(unittest.TestCase):
         d1 = self.user1.to_dict()
         u2 = User.from_dict(d1)
         d2 = u2.to_dict()
-        self.assertEqual(d1, d2)
+        assert d1 == d2
 
     def test_modified_ts(self) -> None:
         """
@@ -454,10 +454,10 @@ class TestNewUser(unittest.TestCase):
         # update to current time
         self.user1.modified_ts = utc_now()
         _time2 = self.user1.modified_ts
-        self.assertNotEqual(_time1, _time2)
+        assert _time1 != _time2
         # set to a datetime instance
         self.user1.modified_ts = utc_now()
-        self.assertNotEqual(_time2, self.user1.modified_ts)
+        assert _time2 != self.user1.modified_ts
 
     def test_two_unverified_non_primary_phones(self) -> None:
         """
@@ -500,7 +500,7 @@ class TestNewUser(unittest.TestCase):
             }
         )
         user = User.from_dict(data)
-        self.assertEqual(user.phone_numbers.primary, None)
+        assert user.phone_numbers.primary is None
 
     def test_two_non_primary_phones(self) -> None:
         """
@@ -544,7 +544,7 @@ class TestNewUser(unittest.TestCase):
         )
         user = User.from_dict(data)
         assert user.phone_numbers.primary
-        self.assertEqual(user.phone_numbers.primary.number, number2)
+        assert user.phone_numbers.primary.number == number2
 
     def test_primary_non_verified_phone(self) -> None:
         """
@@ -580,7 +580,7 @@ class TestNewUser(unittest.TestCase):
         )
         user = User.from_dict(data)
         for number in user.phone_numbers.to_list():
-            self.assertEqual(number.is_primary, False)
+            assert not number.is_primary
 
     def test_primary_non_verified_phone2(self) -> None:
         """
@@ -608,7 +608,7 @@ class TestNewUser(unittest.TestCase):
         )
         user = User.from_dict(data)
         assert user.phone_numbers.primary
-        self.assertEqual(user.phone_numbers.primary.number, "+22222222222")
+        assert user.phone_numbers.primary.number == "+22222222222"
 
     def test_user_tou_no_created_ts(self) -> None:
         """
@@ -626,7 +626,7 @@ class TestNewUser(unittest.TestCase):
         user = User.from_dict(data)
         # If we create the ToU from a dict w/o created_ts key, the created object will carry a _no_created_ts_in_db
         # attr set to True, and therefore the to_dict method will wipe out the created_ts key
-        self.assertFalse(user.tou.has_accepted("1", reaccept_interval=94608000))  # reaccept_interval seconds (3 years)
+        assert not user.tou.has_accepted("1", reaccept_interval=94608000)  # reaccept_interval seconds (3 years)
 
     def test_user_tou(self) -> None:
         """
@@ -643,8 +643,8 @@ class TestNewUser(unittest.TestCase):
         data = self.data1
         data.update({"tou": tou_events.to_list_of_dicts()})
         user = User.from_dict(data)
-        self.assertTrue(user.tou.has_accepted("1", reaccept_interval=94608000))  # reaccept_interval seconds (3 years)
-        self.assertFalse(user.tou.has_accepted("2", reaccept_interval=94608000))  # reaccept_interval seconds (3 years)
+        assert user.tou.has_accepted("1", reaccept_interval=94608000)  # reaccept_interval seconds (3 years)
+        assert not user.tou.has_accepted("2", reaccept_interval=94608000)  # reaccept_interval seconds (3 years)
 
     def test_locked_identity_load(self) -> None:
         created_ts = datetime.fromisoformat("2013-09-02T10:23:25")
@@ -691,7 +691,7 @@ class TestNewUser(unittest.TestCase):
             is_verified=True,
         )
         user.locked_identity.add(locked_nin)
-        self.assertEqual(user.locked_identity.count, 1)
+        assert user.locked_identity.count == 1
 
         assert user.locked_identity.nin is not None
         assert user.locked_identity.nin.identity_type == IdentityType.NIN.value
@@ -770,44 +770,44 @@ class TestNewUser(unittest.TestCase):
         old_user = User.from_dict(user.to_dict())
         assert old_user
         assert old_user.orcid
-        self.assertIsInstance(old_user.orcid.created_by, str)
-        self.assertIsInstance(old_user.orcid.created_ts, datetime)
-        self.assertIsInstance(old_user.orcid.id, str)
-        self.assertIsInstance(old_user.orcid.oidc_authz, OidcAuthorization)
-        self.assertIsInstance(old_user.orcid.oidc_authz.id_token, OidcIdToken)
+        assert isinstance(old_user.orcid.created_by, str)
+        assert isinstance(old_user.orcid.created_ts, datetime)
+        assert isinstance(old_user.orcid.id, str)
+        assert isinstance(old_user.orcid.oidc_authz, OidcAuthorization)
+        assert isinstance(old_user.orcid.oidc_authz.id_token, OidcIdToken)
 
         new_user = User.from_dict(user.to_dict())
         assert new_user
         assert new_user.orcid
-        self.assertIsInstance(new_user.orcid.created_by, str)
-        self.assertIsInstance(new_user.orcid.created_ts, datetime)
-        self.assertIsInstance(new_user.orcid.id, str)
-        self.assertIsInstance(new_user.orcid.oidc_authz, OidcAuthorization)
-        self.assertIsInstance(new_user.orcid.oidc_authz.id_token, OidcIdToken)
+        assert isinstance(new_user.orcid.created_by, str)
+        assert isinstance(new_user.orcid.created_ts, datetime)
+        assert isinstance(new_user.orcid.id, str)
+        assert isinstance(new_user.orcid.oidc_authz, OidcAuthorization)
+        assert isinstance(new_user.orcid.oidc_authz.id_token, OidcIdToken)
 
     def test_profiles(self) -> None:
-        self.assertIsNotNone(self.user1.profiles)
-        self.assertEqual(self.user1.profiles.count, 0)
-        self.assertIsNotNone(self.user2.profiles)
-        self.assertEqual(self.user2.profiles.count, 1)
+        assert self.user1.profiles is not None
+        assert self.user1.profiles.count == 0
+        assert self.user2.profiles is not None
+        assert self.user2.profiles.count == 1
 
     def test_user_verified_credentials(self) -> None:
         ver = [x for x in self.user2.credentials.to_list() if x.is_verified]
         keys = [x.key for x in ver]
-        self.assertEqual(keys, [_keyid("U2F SWAMID AL3" + "foo")])
+        assert keys == [_keyid("U2F SWAMID AL3" + "foo")]
 
     def test_user_unverified_credential(self) -> None:
         cred = next(x for x in self.user2.credentials.to_list() if x.is_verified)
-        self.assertEqual(cred.proofing_method, CredentialProofingMethod.SWAMID_AL3_MFA)
+        assert cred.proofing_method == CredentialProofingMethod.SWAMID_AL3_MFA
         _dict1 = cred.to_dict()
-        self.assertEqual(_dict1["verified"], True)
-        self.assertEqual(_dict1["proofing_method"], CredentialProofingMethod.SWAMID_AL3_MFA)
-        self.assertEqual(_dict1["proofing_version"], "testing")
+        assert _dict1["verified"]
+        assert _dict1["proofing_method"] == CredentialProofingMethod.SWAMID_AL3_MFA
+        assert _dict1["proofing_version"] == "testing"
         cred.is_verified = False
         _dict2 = cred.to_dict()
-        self.assertFalse("verified" in _dict2)
-        self.assertFalse("proofing_method" in _dict2)
-        self.assertFalse("proofing_version" in _dict2)
+        assert "verified" not in _dict2
+        assert "proofing_method" not in _dict2
+        assert "proofing_version" not in _dict2
 
     def test_both_mobile_and_phone(self) -> None:
         """Test user that has both 'mobile' and 'phone'"""
@@ -843,7 +843,7 @@ class TestNewUser(unittest.TestCase):
                 }
             )
         )
-        self.assertEqual("Right", user.to_dict()["surname"])
+        assert user.to_dict()["surname"] == "Right"
 
     def test_terminated_user(self) -> None:
         data = self.user1.to_dict()
@@ -862,12 +862,12 @@ class TestNewUser(unittest.TestCase):
     def test_rebuild_user1(self) -> None:
         data = self.user1.to_dict()
         new_user1 = User.from_dict(data)
-        self.assertEqual(new_user1.eppn, "guvat-nalif")
+        assert new_user1.eppn == "guvat-nalif"
 
     def test_rebuild_user2(self) -> None:
         data = self.user2.to_dict()
         new_user2 = User.from_dict(data)
-        self.assertEqual(new_user2.eppn, "birub-gagoz")
+        assert new_user2.eppn == "birub-gagoz"
 
     def test_mail_addresses_from_dict(self) -> None:
         """

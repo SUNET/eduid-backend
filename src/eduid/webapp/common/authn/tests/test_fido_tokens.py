@@ -177,7 +177,7 @@ class FidoTokensTestCase(EduidAPITestCase):
                     sess.persist()
                     resp = client.get("/start?webauthn_request=" + json.dumps(SAMPLE_WEBAUTHN_REQUEST))
                     resp_data = json.loads(resp.data)
-                    self.assertEqual(resp_data["success"], True)
+                    assert resp_data["success"]
 
     @patch("fido2.cose.ES256.verify")
     def test_webauthn_verify_wrong_origin(self, mock_verify: MagicMock) -> None:
@@ -202,7 +202,7 @@ class FidoTokensTestCase(EduidAPITestCase):
                     sess.persist()
                     resp = client.get("/start?webauthn_request=" + json.dumps(SAMPLE_WEBAUTHN_REQUEST))
                     resp_data = json.loads(resp.data)
-                    self.assertEqual(resp_data["success"], False)
+                    assert not resp_data["success"]
 
     @patch("fido2.cose.ES256.verify")
     def test_webauthn_verify_wrong_challenge(self, mock_verify: MagicMock) -> None:
@@ -224,7 +224,7 @@ class FidoTokensTestCase(EduidAPITestCase):
                     sess.persist()
                     resp = client.get("/start?webauthn_request=" + json.dumps(SAMPLE_WEBAUTHN_REQUEST))
                     resp_data = json.loads(resp.data)
-                    self.assertEqual(resp_data["success"], False)
+                    assert not resp_data["success"]
 
     @patch("fido2.cose.ES256.verify")
     def test_webauthn_verify_wrong_credential(self, mock_verify: MagicMock) -> None:
@@ -249,4 +249,4 @@ class FidoTokensTestCase(EduidAPITestCase):
                     sess.persist()
                     resp = client.get("/start?webauthn_request=" + json.dumps(req))
                     resp_data = json.loads(resp.data)
-                    self.assertEqual(resp_data["success"], False)
+                    assert not resp_data["success"]

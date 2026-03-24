@@ -8,4 +8,4 @@ __author__ = "ft"
 class TestEduIDUserDBError(TestCase):
     def test_repr(self) -> None:
         ex = eduid.userdb.exceptions.EduIDUserDBError("test")
-        self.assertIsInstance(str(ex), str)
+        assert isinstance(str(ex), str)

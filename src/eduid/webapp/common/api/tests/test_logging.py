@@ -72,18 +72,18 @@ class LoggingTest(EduidAPITestCase):
         assert isinstance(settings_config["formatters"], dict)
         assert isinstance(base_config["handlers"], dict)
         assert isinstance(settings_config["handlers"], dict)
-        self.assertIsNone(base_config["formatters"].get("test", None))
-        self.assertEqual(len(base_config["formatters"]), 1)
-        self.assertIsNotNone(settings_config["formatters"].get("test", None))
-        self.assertEqual(base_config["handlers"]["console"]["formatter"], "default")
-        self.assertEqual(base_config["handlers"]["console"]["filters"], ["app_filter", "user_filter"])
-        self.assertEqual(settings_config["handlers"]["console"]["formatter"], "test")
-        self.assertEqual(settings_config["handlers"]["console"]["filters"], ["test_filter"])
+        assert base_config["formatters"].get("test", None) is None
+        assert len(base_config["formatters"]) == 1
+        assert settings_config["formatters"].get("test", None) is not None
+        assert base_config["handlers"]["console"]["formatter"] == "default"
+        assert base_config["handlers"]["console"]["filters"] == ["app_filter", "user_filter"]
+        assert settings_config["handlers"]["console"]["formatter"] == "test"
+        assert settings_config["handlers"]["console"]["filters"] == ["test_filter"]
 
         res = merge_config(base_config, settings_config)
 
-        self.assertIsNotNone(res["formatters"].get("test", None))
-        self.assertEqual(len(res["formatters"]), 2)
-        self.assertEqual(res["formatters"]["test"]["format"], "%(levelname)s: Module: %(name)s Msg: %(message)s")
-        self.assertEqual(res["handlers"]["console"]["formatter"], "test")
-        self.assertEqual(res["handlers"]["console"]["filters"], ["test_filter"])
+        assert res["formatters"].get("test", None) is not None
+        assert len(res["formatters"]) == 2
+        assert res["formatters"]["test"]["format"] == "%(levelname)s: Module: %(name)s Msg: %(message)s"
+        assert res["handlers"]["console"]["formatter"] == "test"
+        assert res["handlers"]["console"]["filters"] == ["test_filter"]

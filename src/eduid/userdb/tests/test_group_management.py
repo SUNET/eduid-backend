@@ -32,9 +32,9 @@ class TestResetGroupInviteStateDB(MongoTestCase):
             group_scim_id=group_scim_id, email_address="johnsmith@example.com", role=GroupRole.MEMBER
         )
         assert invite
-        self.assertEqual(group_scim_id, invite.group_scim_id)
-        self.assertEqual("johnsmith@example.com", invite.email_address)
-        self.assertEqual(GroupRole.MEMBER, invite.role)
+        assert group_scim_id == invite.group_scim_id
+        assert invite.email_address == "johnsmith@example.com"
+        assert invite.role == GroupRole.MEMBER
 
         # Owner
         group_scim_id = str(uuid4())
@@ -49,9 +49,9 @@ class TestResetGroupInviteStateDB(MongoTestCase):
             group_scim_id=group_scim_id, email_address="johnsmith@example.com", role=GroupRole.OWNER
         )
         assert invite
-        self.assertEqual(group_scim_id, invite.group_scim_id)
-        self.assertEqual("johnsmith@example.com", invite.email_address)
-        self.assertEqual(GroupRole.OWNER, invite.role)
+        assert group_scim_id == invite.group_scim_id
+        assert invite.email_address == "johnsmith@example.com"
+        assert invite.role == GroupRole.OWNER
 
     def test_save_duplicate(self) -> None:
         group_scim_id = str(uuid4())

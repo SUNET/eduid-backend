@@ -49,7 +49,7 @@ class OutstandingQueriesCacheTests(unittest.TestCase):
         )
         oqc = OutstandingQueriesCache(fake_session_dict)
 
-        self.assertIsInstance(oqc._db, SessionCacheAdapter)
+        assert isinstance(oqc._db, SessionCacheAdapter)
 
     def test_outstanding_queries(self) -> None:
         oqc = OutstandingQueriesCache(PySAML2Dicts({}))

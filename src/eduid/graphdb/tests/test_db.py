@@ -16,7 +16,7 @@ class TestNeo4jDB(Neo4jTestCase):
             result = session.run("MATCH (n {name: $name})RETURN n.testing", name="test node")
             single = result.single()
             assert single is not None
-            self.assertTrue(single.value())
+            assert single.value()
 
 
 class TestBaseGraphDB(Neo4jTestCase):
@@ -40,4 +40,4 @@ class TestBaseGraphDB(Neo4jTestCase):
             result = session.run("MATCH (n {name: $name})RETURN n.testing", name="test node")
             single = result.single()
             assert single is not None
-            self.assertTrue(single.value())
+            assert single.value()

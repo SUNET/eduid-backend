@@ -104,11 +104,11 @@ class MessageTests(TestCase):
 
     def test_make_query_string_error(self) -> None:
         qs = make_query_string(TestsMsg.fst_test_msg)
-        self.assertEqual(qs, "msg=%3AERROR%3Atest.first_msg")
+        assert qs == "msg=%3AERROR%3Atest.first_msg"
 
     def test_make_query_string_success(self) -> None:
         qs = make_query_string(TestsMsg.fst_test_msg, error=False)
-        self.assertEqual(qs, "msg=test.first_msg")
+        assert qs == "msg=test.first_msg"
 
     def test_make_query_string_error_unknown(self) -> None:
         with self.assertRaises(AttributeError):
@@ -121,36 +121,36 @@ class MessageTests(TestCase):
     def test_make_redirect_error(self) -> None:
         url = "https://example.com"
         response = redirect_with_msg(url, TestsMsg.fst_test_msg)
-        self.assertEqual(response.status_code, 302)
-        self.assertEqual(response.location, "https://example.com?msg=%3AERROR%3Atest.first_msg")
+        assert response.status_code == 302
+        assert response.location == "https://example.com?msg=%3AERROR%3Atest.first_msg"
 
     def test_make_redirect_error_with_str(self) -> None:
         url = "https://example.com"
         response = redirect_with_msg(url, "test.str_msg")
-        self.assertEqual(response.status_code, 302)
-        self.assertEqual(response.location, "https://example.com?msg=%3AERROR%3Atest.str_msg")
+        assert response.status_code == 302
+        assert response.location == "https://example.com?msg=%3AERROR%3Atest.str_msg"
 
     def test_make_redirect_success(self) -> None:
         url = "https://example.com"
         response = redirect_with_msg(url, TestsMsg.fst_test_msg, error=False)
-        self.assertEqual(response.status_code, 302)
-        self.assertEqual(response.location, "https://example.com?msg=test.first_msg")
+        assert response.status_code == 302
+        assert response.location == "https://example.com?msg=test.first_msg"
 
     def test_make_redirect_success_with_str(self) -> None:
         url = "https://example.com"
         response = redirect_with_msg(url, "test.str_msg", error=False)
-        self.assertEqual(response.status_code, 302)
-        self.assertEqual(response.location, "https://example.com?msg=test.str_msg")
+        assert response.status_code == 302
+        assert response.location == "https://example.com?msg=test.str_msg"
 
 
 class MessagesTests(TestCase):
     def test_messages(self) -> None:
         """"""
-        self.assertEqual(CommonMsg.temp_problem.value, "Temporary technical problems")
-        self.assertEqual(CommonMsg.form_errors.value, "form-errors")
-        self.assertEqual(CommonMsg.out_of_sync.value, "user-out-of-sync")
-        self.assertEqual(CommonMsg.navet_error.value, "error_navet_task")
-        self.assertEqual(CommonMsg.nin_invalid.value, "nin needs to be formatted as 18|19|20yymmddxxxx")
-        self.assertEqual(CommonMsg.email_invalid.value, "email needs to be formatted according to RFC2822")
-        self.assertEqual(CommonMsg.csrf_try_again.value, "csrf.try_again")
-        self.assertEqual(CommonMsg.csrf_missing.value, "csrf.missing")
+        assert CommonMsg.temp_problem.value == "Temporary technical problems"
+        assert CommonMsg.form_errors.value == "form-errors"
+        assert CommonMsg.out_of_sync.value == "user-out-of-sync"
+        assert CommonMsg.navet_error.value == "error_navet_task"
+        assert CommonMsg.nin_invalid.value == "nin needs to be formatted as 18|19|20yymmddxxxx"
+        assert CommonMsg.email_invalid.value == "email needs to be formatted according to RFC2822"
+        assert CommonMsg.csrf_try_again.value == "csrf.try_again"
+        assert CommonMsg.csrf_missing.value == "csrf.missing"

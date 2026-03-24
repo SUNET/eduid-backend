@@ -7,7 +7,7 @@ from eduid.webapp.common.api.validation import is_valid_password
 class TestIsValidPassword(unittest.TestCase):
     def test_is_valid_password(self) -> None:
         res = is_valid_password("abc123", [], min_entropy=1, min_score=0)
-        self.assertEqual(True, res)
+        assert res
 
     def test_is_valid_password_empty(self) -> None:
         """Verify we get the right exception from empty passwords - zxcvbn crashes on them"""
@@ -20,7 +20,7 @@ class TestIsValidPassword(unittest.TestCase):
 
     def test_is_valid_password_with_user_info(self) -> None:
         """Test that a password that is valid in itself becomes invalid if it is related to something in userinfo"""
-        self.assertTrue(is_valid_password("BubbaHubba", [], min_entropy=20, min_score=0))
+        assert is_valid_password("BubbaHubba", [], min_entropy=20, min_score=0)
         with self.assertRaises(ValueError):
             is_valid_password("BubbaHubba", ["Hubba", "Bubba"], min_entropy=20, min_score=0)
 

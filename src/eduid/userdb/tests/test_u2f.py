@@ -58,15 +58,7 @@ class TestU2F(TestCase):
         this = self.one.find(_keyid(_one_dict))
         assert this
         assert isinstance(this, U2F)
-        self.assertEqual(
-            this.key,
-            _keyid(
-                {
-                    "keyhandle": this.keyhandle,
-                    "public_key": this.public_key,
-                }
-            ),
-        )
+        assert this.key == _keyid({"keyhandle": this.keyhandle, "public_key": this.public_key})
 
     def test_parse_cycle(self) -> None:
         """
@@ -74,7 +66,7 @@ class TestU2F(TestCase):
         """
         for this in [self.one, self.two, self.three]:
             this_dict = this.to_list_of_dicts()
-            self.assertEqual(CredentialList.from_list_of_dicts(this_dict).to_list_of_dicts(), this.to_list_of_dicts())
+            assert CredentialList.from_list_of_dicts(this_dict).to_list_of_dicts() == this.to_list_of_dicts()
 
     def test_unknown_input_data(self) -> None:
         one = copy.deepcopy(_one_dict)
@@ -94,32 +86,32 @@ class TestU2F(TestCase):
         this = self.three.find(_keyid(_three_dict))
         assert this
         this.created_by = "unit test"
-        self.assertEqual(this.created_by, "unit test")
+        assert this.created_by == "unit test"
 
     def test_created_ts(self) -> None:
         this = self.three.find(_keyid(_three_dict))
         assert this
-        self.assertIsInstance(this.created_ts, datetime.datetime)
+        assert isinstance(this.created_ts, datetime.datetime)
 
     def test_proofing_method(self) -> None:
         this = self.three.find(_keyid(_three_dict))
         assert this
         this.proofing_method = CredentialProofingMethod.SWAMID_AL2_MFA_HI
-        self.assertEqual(this.proofing_method, CredentialProofingMethod.SWAMID_AL2_MFA_HI)
+        assert this.proofing_method == CredentialProofingMethod.SWAMID_AL2_MFA_HI
         this.proofing_method = CredentialProofingMethod.SWAMID_AL3_MFA
-        self.assertEqual(this.proofing_method, CredentialProofingMethod.SWAMID_AL3_MFA)
+        assert this.proofing_method == CredentialProofingMethod.SWAMID_AL3_MFA
         this.proofing_method = None
-        self.assertEqual(this.proofing_method, None)
+        assert this.proofing_method is None
 
     def test_proofing_version(self) -> None:
         this = self.three.find(_keyid(_three_dict))
         assert this
         this.proofing_version = "TEST"
-        self.assertEqual(this.proofing_version, "TEST")
+        assert this.proofing_version == "TEST"
         this.proofing_version = "TEST2"
-        self.assertEqual(this.proofing_version, "TEST2")
+        assert this.proofing_version == "TEST2"
         this.proofing_version = None
-        self.assertEqual(this.proofing_version, None)
+        assert this.proofing_version is None
 
     def test_swamid_al2_hi_to_swamid_al3_migration(self) -> None:
         this = self.three.find(_keyid(_three_dict))
@@ -129,4 +121,4 @@ class TestU2F(TestCase):
         load_save_cred_list = CredentialList.from_list_of_dicts([this.to_dict()])
         load_save_cred = load_save_cred_list.find(_keyid(_three_dict))
         assert load_save_cred
-        self.assertEqual(load_save_cred.proofing_method, CredentialProofingMethod.SWAMID_AL3_MFA)
+        assert load_save_cred.proofing_method == CredentialProofingMethod.SWAMID_AL3_MFA

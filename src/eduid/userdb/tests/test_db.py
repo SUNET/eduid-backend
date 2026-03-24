@@ -15,49 +15,49 @@ class TestMongoDB(TestCase):
         mdb = db.MongoDB(uri, db_name="testdb")
         conn = mdb.get_connection()
         mdb.get_database()
-        self.assertIsNotNone(conn)
-        self.assertEqual(mdb._db_uri, uri)
-        self.assertEqual(mdb._database_name, "testdb")
+        assert conn is not None
+        assert mdb._db_uri == uri
+        assert mdb._database_name == "testdb"
 
     def test_uri_without_path_component(self) -> None:
         uri = "mongodb://db.example.com:1111"
         mdb = db.MongoDB(uri, db_name="testdb")
         mdb.get_database()
-        self.assertEqual(mdb._db_uri, uri + "/testdb")
-        self.assertEqual(mdb._database_name, "testdb")
+        assert mdb._db_uri == uri + "/testdb"
+        assert mdb._database_name == "testdb"
 
     def test_uri_without_port(self) -> None:
         uri = "mongodb://db.example.com/"
         mdb = db.MongoDB(uri)
-        self.assertEqual(mdb._db_uri, uri)
+        assert mdb._db_uri == uri
         mdb.get_database("testdb")
-        self.assertEqual(mdb.sanitized_uri, "mongodb://db.example.com/")
+        assert mdb.sanitized_uri == "mongodb://db.example.com/"
 
     def test_uri_with_username_and_password(self) -> None:
         uri = "mongodb://john:s3cr3t@db.example.com:1111/testdb"
         mdb = db.MongoDB(uri, db_name="testdb")
         conn = mdb.get_connection()
-        self.assertIsNotNone(conn)
+        assert conn is not None
         database = mdb.get_database()
         assert database is not None
-        self.assertEqual(mdb._db_uri, uri)
-        self.assertEqual(mdb._database_name, "testdb")
-        self.assertEqual(mdb.sanitized_uri, "mongodb://john:secret@db.example.com:1111/testdb")
-        self.assertEqual(mdb.__repr__(), "<eduID MongoDB: mongodb://john:secret@db.example.com:1111/testdb testdb>")
+        assert mdb._db_uri == uri
+        assert mdb._database_name == "testdb"
+        assert mdb.sanitized_uri == "mongodb://john:secret@db.example.com:1111/testdb"
+        assert mdb.__repr__() == "<eduID MongoDB: mongodb://john:secret@db.example.com:1111/testdb testdb>"
 
     def test_uri_with_replicaset(self) -> None:
         uri = "mongodb://john:s3cr3t@db.example.com,db2.example.com:27017,db3.example.com:1234/?replicaSet=rs9"
         mdb = db.MongoDB(uri, db_name="testdb")
-        self.assertEqual(mdb.sanitized_uri, "mongodb://john:secret@db.example.com/testdb?replicaSet=rs9")
-        self.assertEqual(
-            mdb._db_uri,
-            "mongodb://john:s3cr3t@db.example.com,db2.example.com,db3.example.com:1234/testdb?replicaSet=rs9",
+        assert mdb.sanitized_uri == "mongodb://john:secret@db.example.com/testdb?replicaSet=rs9"
+        assert (
+            mdb._db_uri
+            == "mongodb://john:s3cr3t@db.example.com,db2.example.com,db3.example.com:1234/testdb?replicaSet=rs9"
         )
 
     def test_uri_with_options(self) -> None:
         uri = "mongodb://john:s3cr3t@db.example.com:27017/?ssl=true&replicaSet=rs9"
         mdb = db.MongoDB(uri, db_name="testdb")
-        self.assertEqual(mdb.sanitized_uri, "mongodb://john:secret@db.example.com/testdb?replicaSet=rs9&tls=true")
+        assert mdb.sanitized_uri == "mongodb://john:secret@db.example.com/testdb?replicaSet=rs9&tls=true"
 
 
 class TestDB(MongoTestCase):
@@ -70,22 +70,22 @@ class TestDB(MongoTestCase):
         super().setUp(config=config)
 
     def test_db_count(self) -> None:
-        self.assertEqual(len(self._am_users), self.amdb.db_count())
+        assert len(self._am_users) == self.amdb.db_count()
 
     def test_db_count_limit(self) -> None:
-        self.assertEqual(1, self.amdb.db_count(limit=1))
-        self.assertEqual(2, self.amdb.db_count(limit=2))
+        assert self.amdb.db_count(limit=1) == 1
+        assert self.amdb.db_count(limit=2) == 2
 
     def test_db_count_spec(self) -> None:
-        self.assertEqual(1, self.amdb.db_count(spec={"_id": ObjectId("012345678901234567890123")}))
+        assert self.amdb.db_count(spec={"_id": ObjectId("012345678901234567890123")}) == 1
 
     def test_get_documents_by_filter_skip(self) -> None:
         docs = self.amdb._get_documents_by_filter(spec={}, skip=2)
-        self.assertEqual(1, len(docs))
+        assert len(docs) == 1
 
     def test_get_documents_by_filter_limit(self) -> None:
         docs = self.amdb._get_documents_by_filter(spec={}, limit=1)
-        self.assertEqual(1, len(docs))
+        assert len(docs) == 1
 
     def test_get_verified_users_count_NIN(self) -> None:
         count = self.amdb.get_verified_users_count(identity_type=IdentityType.NIN)

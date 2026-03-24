@@ -10,31 +10,31 @@ class TestSearchFilter(unittest.TestCase):
         now = utc_now()
         search_filter = f'meta.lastModified gt "{now.isoformat()}"'
         sf = parse_search_filter(search_filter)
-        self.assertEqual(sf.attr, "meta.lastmodified")
-        self.assertEqual(sf.op, "gt")
-        self.assertEqual(sf.val, now.isoformat())
+        assert sf.attr == "meta.lastmodified"
+        assert sf.op == "gt"
+        assert sf.val == now.isoformat()
 
     def test_lastmodified_with_tz(self) -> None:
         nowstr = "2020-05-05T09:13:43.916000+00:00"
         search_filter = f'meta.lastModified gt "{nowstr}"'
         sf = parse_search_filter(search_filter)
-        self.assertEqual(sf.attr, "meta.lastmodified")
-        self.assertEqual(sf.op, "gt")
-        self.assertEqual(sf.val, nowstr)
+        assert sf.attr == "meta.lastmodified"
+        assert sf.op == "gt"
+        assert sf.val == nowstr
 
     def test_str(self) -> None:
         search_filter = 'foo eq "123"'
         sf = parse_search_filter(search_filter)
-        self.assertEqual(sf.attr, "foo")
-        self.assertEqual(sf.op, "eq")
-        self.assertEqual(sf.val, "123")
+        assert sf.attr == "foo"
+        assert sf.op == "eq"
+        assert sf.val == "123"
 
     def test_int(self) -> None:
         search_filter = "foo eq 123"
         sf = parse_search_filter(search_filter)
-        self.assertEqual(sf.attr, "foo")
-        self.assertEqual(sf.op, "eq")
-        self.assertEqual(sf.val, 123)
+        assert sf.attr == "foo"
+        assert sf.op == "eq"
+        assert sf.val == 123
 
     def test_not_printable(self) -> None:
         search_filter = "foo eq 12\u00093"

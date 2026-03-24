@@ -62,14 +62,14 @@ class TestCredentialList(unittest.TestCase):
         self.four = CredentialList.from_list_of_dicts([_one_dict, _two_dict, _three_dict, _four_dict])
 
     def test_to_list(self) -> None:
-        self.assertEqual([], self.empty.to_list(), list)
-        self.assertIsInstance(self.one.to_list(), list)
+        assert self.empty.to_list() == [], list
+        assert isinstance(self.one.to_list(), list)
 
-        self.assertEqual(1, len(self.one.to_list()))
-        self.assertEqual(4, len(self.four.to_list()))
+        assert len(self.one.to_list()) == 1
+        assert len(self.four.to_list()) == 4
 
     def test_to_list_of_dicts(self) -> None:
-        self.assertEqual([], self.empty.to_list_of_dicts(), list)
+        assert self.empty.to_list_of_dicts() == [], list
 
         expected = [{**_one_dict, "version": 1}]
         obtained = self.one.to_list_of_dicts()
@@ -79,9 +79,9 @@ class TestCredentialList(unittest.TestCase):
     def test_find(self) -> None:
         match = self.two.find("222222222222222222222222")
         assert isinstance(match, Password)
-        self.assertEqual(match.credential_id, "222222222222222222222222")
-        self.assertEqual(match.salt, "secondPasswordElement")
-        self.assertEqual(match.created_by, "test")
+        assert match.credential_id == "222222222222222222222222"
+        assert match.salt == "secondPasswordElement"
+        assert match.created_by == "test"
 
     def test_filter(self) -> None:
         match = self.four.filter(U2F)

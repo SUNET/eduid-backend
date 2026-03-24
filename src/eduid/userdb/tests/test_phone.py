@@ -71,10 +71,10 @@ class TestPhoneNumberList(unittest.TestCase):
     def test_find(self) -> None:
         match = self.one.find("+46700000001")
         assert match
-        self.assertIsInstance(match, PhoneNumber)
-        self.assertEqual(match.number, "+46700000001")
-        self.assertEqual(match.is_verified, True)
-        self.assertEqual(match.verified_ts, None)
+        assert isinstance(match, PhoneNumber)
+        assert match.number == "+46700000001"
+        assert match.is_verified
+        assert match.verified_ts is None
 
     def test_add(self) -> None:
         second = self.two.find("+46700000002")
@@ -178,7 +178,7 @@ class TestPhoneNumberList(unittest.TestCase):
             self.four.remove(ElementKey(self.four.primary.number))
         for mobile in self.four.to_list():
             self.four.remove(ElementKey(mobile.number))
-        self.assertEqual([], self.four.to_list())
+        assert self.four.to_list() == []
 
     def test_unverify_all(self) -> None:
         verified = self.three.verified
@@ -193,10 +193,10 @@ class TestPhoneNumberList(unittest.TestCase):
     def test_primary(self) -> None:
         match = self.one.primary
         assert match
-        self.assertEqual(match.number, "+46700000001")
+        assert match.number == "+46700000001"
 
     def test_empty_primary(self) -> None:
-        self.assertEqual(None, self.empty.primary)
+        assert None is self.empty.primary
 
     def test_set_primary_to_same(self) -> None:
         match = self.one.primary
@@ -218,11 +218,11 @@ class TestPhoneNumberList(unittest.TestCase):
     def test_change_primary(self) -> None:
         match = self.two.primary
         assert match
-        self.assertEqual(match.number, "+46700000001")
+        assert match.number == "+46700000001"
         self.two.set_primary(ElementKey("+46700000002"))
         updated = self.two.primary
         assert updated
-        self.assertEqual(updated.number, "+46700000002")
+        assert updated.number == "+46700000002"
 
     def test_bad_input_two_primary(self) -> None:
         one = copy.deepcopy(_one_dict)
@@ -252,7 +252,7 @@ class TestPhoneNumber(unittest.TestCase):
         """
         address = self.two.primary
         assert address
-        self.assertEqual(address.key, address.number)
+        assert address.key == address.number
 
     def test_create_phone_number(self) -> None:
         one_copy = copy.deepcopy(_one_dict)
@@ -270,7 +270,7 @@ class TestPhoneNumber(unittest.TestCase):
         """
         for this in [self.one, self.two, self.three]:
             this_dict = this.to_list_of_dicts()
-            self.assertEqual(PhoneNumberList.from_list_of_dicts(this_dict).to_list_of_dicts(), this.to_list_of_dicts())
+            assert PhoneNumberList.from_list_of_dicts(this_dict).to_list_of_dicts() == this.to_list_of_dicts()
 
     def test_unknown_input_data(self) -> None:
         one = copy.deepcopy(_one_dict)
@@ -303,30 +303,30 @@ class TestPhoneNumber(unittest.TestCase):
         this = self.three.find("+46700000003")
         assert this
         this.verified_by = "unit test"
-        self.assertEqual(this.verified_by, "unit test")
+        assert this.verified_by == "unit test"
 
     def test_modify_verified_by(self) -> None:
         this = self.three.find("+46700000003")
         assert this
         this.verified_by = "unit test"
-        self.assertEqual(this.verified_by, "unit test")
+        assert this.verified_by == "unit test"
         this.verified_by = "test unit"
-        self.assertEqual(this.verified_by, "test unit")
+        assert this.verified_by == "test unit"
 
     def test_modify_verified_ts(self) -> None:
         this = self.three.find("+46700000003")
         assert this
         now = utc_now()
         this.verified_ts = now
-        self.assertEqual(this.verified_ts, now)
+        assert this.verified_ts == now
 
     def test_created_by(self) -> None:
         this = self.three.find("+46700000003")
         assert this
         this.created_by = "unit test"
-        self.assertEqual(this.created_by, "unit test")
+        assert this.created_by == "unit test"
 
     def test_created_ts(self) -> None:
         this = self.three.find("+46700000003")
         assert this
-        self.assertIsInstance(this.created_ts, datetime.datetime)
+        assert isinstance(this.created_ts, datetime.datetime)

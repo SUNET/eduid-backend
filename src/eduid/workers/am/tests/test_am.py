@@ -132,7 +132,7 @@ class MessageTest(AMTestCase):
         # verify the user has been propagated to the amdb
         am_user = self.amdb.get_user_by_id(_id)
         assert am_user
-        self.assertEqual(am_user.eppn, "teste-teste")
+        assert am_user.eppn == "teste-teste"
 
     def test_update(self) -> None:
         """
@@ -166,14 +166,14 @@ class MessageTest(AMTestCase):
 
         am_user = self.amdb.get_user_by_id(_id)
         assert am_user
-        self.assertNotEqual(am_user.eppn, "teste-teste")
+        assert am_user.eppn != "teste-teste"
 
         self.am_relay.request_user_sync(test_user, app_name_override="test")
 
         # verify the user has been propagated to the amdb
         am_user = self.amdb.get_user_by_id(_id)
         assert am_user
-        self.assertEqual(am_user.eppn, "teste-teste")
+        assert am_user.eppn == "teste-teste"
 
     def test_bad_operator(self) -> None:
         _id = ObjectId()
@@ -202,7 +202,7 @@ class MessageTest(AMTestCase):
 
         am_user = self.amdb.get_user_by_id(_id)
         assert am_user
-        self.assertNotEqual(am_user.eppn, "teste-teste")
+        assert am_user.eppn != "teste-teste"
 
         with self.assertRaises(EduIDDBError):
             self.am_relay.request_user_sync(test_user, app_name_override="bad")

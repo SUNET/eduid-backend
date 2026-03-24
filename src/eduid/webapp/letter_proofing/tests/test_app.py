@@ -85,7 +85,7 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
     def get_state(self) -> dict[str, Any]:
         with self.session_cookie(self.browser, self.test_user_eppn) as client:
             response = client.get("/proofing")
-        self.assertEqual(response.status_code, 200)
+        assert response.status_code == 200
         return json.loads(response.data)
 
     def send_letter(self, nin: str, csrf_token: str | None = None, validate_response: bool = True) -> TestResponse:
@@ -179,24 +179,24 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
         if add_cookie is False:
             with self.session_cookie(self.browser, self.test_user_eppn) as client:
                 response = client.post("/proofing", data=json.dumps(data), content_type=self.content_type_json)
-                self.assertEqual(response.status_code, 200)
+                assert response.status_code == 200
                 return client.get("/get-code")
 
         with self.session_cookie_and_magic_cookie(
             self.browser, self.test_user_eppn, magic_cookie_name=cookie_name, magic_cookie_value=cookie_value
         ) as client:
             response = client.post("/proofing", data=json.dumps(data), content_type=self.content_type_json)
-            self.assertEqual(response.status_code, 200)
+            assert response.status_code == 200
             return client.get("/get-code")
 
     # End helper methods
 
     def test_authenticate(self) -> None:
         response = self.browser.get("/proofing")
-        self.assertEqual(response.status_code, 401)
+        assert response.status_code == 401
         with self.session_cookie(self.browser, self.test_user_eppn) as client:
             response = client.get("/proofing")
-        self.assertEqual(response.status_code, 200)  # Authenticated request
+        assert response.status_code == 200  # Authenticated request
 
     def test_letter_not_sent_status(self) -> None:
         json_data = self.get_state()
@@ -206,7 +206,7 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
         response = self.send_letter(self.test_user_nin)
         expires = self.get_response_payload(response)["letter_expires"]
         expires = datetime.fromisoformat(expires)
-        self.assertIsInstance(expires, datetime)
+        assert isinstance(expires, datetime)
         # Check that the user was given until midnight the day the code expires
         assert expires.hour == 23
         assert expires.minute == 59
@@ -225,9 +225,9 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
 
         expires = self.get_response_payload(response2)["letter_expires"]
         expires = datetime.fromisoformat(expires)
-        self.assertIsInstance(expires, datetime)
+        assert isinstance(expires, datetime)
         expires = expires.strftime("%Y-%m-%d")
-        self.assertIsInstance(expires, str)
+        assert isinstance(expires, str)
 
     def test_send_letter_bad_csrf(self) -> None:
         response = self.send_letter(self.test_user_nin, "bad_csrf", validate_response=False)
@@ -238,11 +238,11 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
     def test_letter_sent_status(self) -> None:
         self.send_letter(self.test_user_nin)
         json_data = self.get_state()
-        self.assertIn("letter_sent", json_data["payload"])
+        assert "letter_sent" in json_data["payload"]
         expires = datetime.fromisoformat(json_data["payload"]["letter_expires"])
-        self.assertIsInstance(expires, datetime)
+        assert isinstance(expires, datetime)
         expires_string = expires.strftime("%Y-%m-%d")
-        self.assertIsInstance(expires_string, str)
+        assert isinstance(expires_string, str)
 
     @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
     def test_verify_letter_code(self, mock_reference_nin: MagicMock) -> None:
@@ -415,22 +415,22 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
     def test_expire_proofing_state(self) -> None:
         self.send_letter(self.test_user_nin)
         json_data = self.get_state()
-        self.assertIn("letter_sent", json_data["payload"])
+        assert "letter_sent" in json_data["payload"]
         self.app.conf.letter_wait_time_hours = -24
         json_data = self.get_state()
-        self.assertTrue(json_data["payload"]["letter_expired"])
-        self.assertIn("letter_sent", json_data["payload"])
-        self.assertIsNotNone(json_data["payload"]["letter_sent"])
+        assert json_data["payload"]["letter_expired"]
+        assert "letter_sent" in json_data["payload"]
+        assert json_data["payload"]["letter_sent"] is not None
 
     def test_send_new_letter_with_expired_proofing_state(self) -> None:
         self.send_letter(self.test_user_nin)
         json_data = self.get_state()
-        self.assertIn("letter_sent", json_data["payload"])
+        assert "letter_sent" in json_data["payload"]
         self.app.conf.letter_wait_time_hours = -24
         self.send_letter(self.test_user_nin)
-        self.assertFalse(json_data["payload"]["letter_expired"])
-        self.assertIn("letter_sent", json_data["payload"])
-        self.assertIsNotNone(json_data["payload"]["letter_sent"])
+        assert not json_data["payload"]["letter_expired"]
+        assert "letter_sent" in json_data["payload"]
+        assert json_data["payload"]["letter_sent"] is not None
 
     @patch("eduid.common.rpc.msg_relay.MsgRelay.get_postal_address")
     def test_unmarshal_error(self, mock_get_postal_address: MagicMock) -> None:
@@ -452,7 +452,7 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
         mock_get_postal_address.return_value = self._get_full_postal_address()
         mock_request_user_sync.side_effect = self.request_user_sync
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
-        self.assertEqual(user.locked_identity.count, 0)
+        assert user.locked_identity.count == 0
 
         # User with no locked_identity
         with self.session_cookie(self.browser, self.test_user_eppn):
@@ -522,7 +522,7 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
         response = self.get_code_backdoor()
         state = self.app.proofing_statedb.get_state_by_eppn(self.test_user_eppn)
         assert state is not None
-        self.assertEqual(response.data.decode("ascii"), state.nin.verification_code)
+        assert response.data.decode("ascii") == state.nin.verification_code
 
     def test_get_code_no_backdoor_in_pro(self) -> None:
         self.app.conf.magic_cookie = "magic-cookie"
@@ -531,7 +531,7 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
 
         response = self.get_code_backdoor()
 
-        self.assertEqual(response.status_code, 400)
+        assert response.status_code == 400
 
     def test_get_code_no_backdoor_without_cookie(self) -> None:
         self.app.conf.magic_cookie = "magic-cookie"
@@ -540,7 +540,7 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
 
         response = self.get_code_backdoor(add_cookie=False)
 
-        self.assertEqual(response.status_code, 400)
+        assert response.status_code == 400
 
     def test_get_code_no_backdoor_misconfigured1(self) -> None:
         self.app.conf.magic_cookie = "magic-cookie"
@@ -549,7 +549,7 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
 
         response = self.get_code_backdoor(cookie_name="wrong_name")
 
-        self.assertEqual(response.status_code, 400)
+        assert response.status_code == 400
 
     def test_get_code_no_backdoor_misconfigured2(self) -> None:
         self.app.conf.magic_cookie = ""
@@ -558,7 +558,7 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
 
         response = self.get_code_backdoor()
 
-        self.assertEqual(response.status_code, 400)
+        assert response.status_code == 400
 
     def test_get_code_no_backdoor_wrong_value(self) -> None:
         self.app.conf.magic_cookie = "magic-cookie"
@@ -567,7 +567,7 @@ class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
 
         response = self.get_code_backdoor(cookie_value="wrong-cookie")
 
-        self.assertEqual(response.status_code, 400)
+        assert response.status_code == 400
 
     def test_state_days_info(self) -> None:
         """Validate calculation of days information in state retrieval"""

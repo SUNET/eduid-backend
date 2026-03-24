@@ -564,7 +564,7 @@ class EidasTests(ProofingTests[EidasApp]):
 
     def test_authenticate(self) -> None:
         response = self.browser.get("/")
-        self.assertEqual(response.status_code, 401)
+        assert response.status_code == 401
         with self.session_cookie(self.browser, self.test_user.eppn) as browser:
             response = browser.get("/")
         self._check_success_response(response, type_="GET_EIDAS_SUCCESS")
@@ -1550,7 +1550,7 @@ class RedirectWithMsgTests(TestCase):
     def test_redirect_with_message(self) -> None:
         url = "https://www.exaple.com/services/eidas/?next=/authn"
         response = redirect_with_msg(url, EidasMsg.authn_context_mismatch)
-        self.assertEqual(
-            response.location,
-            "https://www.exaple.com/services/eidas/?next=%2Fauthn&msg=%3AERROR%3Aeidas.authn_context_mismatch",
+        assert (
+            response.location
+            == "https://www.exaple.com/services/eidas/?next=%2Fauthn&msg=%3AERROR%3Aeidas.authn_context_mismatch"
         )
