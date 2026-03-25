@@ -115,7 +115,7 @@ class TestPhoneNumberList(unittest.TestCase):
 
     def test_add_another_primary(self) -> None:
         new = PhoneNumber(number="+46700000009", is_verified=True, is_primary=True)
-        with self.assertRaises(eduid.userdb.element.PrimaryElementViolation):
+        with pytest.raises(eduid.userdb.element.PrimaryElementViolation):
             self.one.add(new)
 
     def test_add_wrong_type(self) -> None:
@@ -143,12 +143,12 @@ class TestPhoneNumberList(unittest.TestCase):
         assert got == expected, "Phone list has wrong data after removing phone"
 
     def test_remove_unknown(self) -> None:
-        with self.assertRaises(eduid.userdb.exceptions.UserDBValueError):
+        with pytest.raises(eduid.userdb.exceptions.UserDBValueError):
             self.one.remove(ElementKey("+46709999999"))
 
     def test_remove_primary(self) -> None:
         assert self.two.primary
-        with self.assertRaises(eduid.userdb.element.PrimaryElementViolation):
+        with pytest.raises(eduid.userdb.element.PrimaryElementViolation):
             self.two.remove(ElementKey(self.two.primary.number))
 
     def test_remove_primary_single(self) -> None:
@@ -208,11 +208,11 @@ class TestPhoneNumberList(unittest.TestCase):
         self.two.set_primary(ElementKey(match.number))
 
     def test_set_unknown_as_primary(self) -> None:
-        with self.assertRaises(eduid.userdb.exceptions.UserDBValueError):
+        with pytest.raises(eduid.userdb.exceptions.UserDBValueError):
             self.one.set_primary(ElementKey("+46709999999"))
 
     def test_set_unverified_as_primary(self) -> None:
-        with self.assertRaises(eduid.userdb.element.PrimaryElementViolation):
+        with pytest.raises(eduid.userdb.element.PrimaryElementViolation):
             self.three.set_primary(ElementKey("+46700000003"))
 
     def test_change_primary(self) -> None:
@@ -229,13 +229,13 @@ class TestPhoneNumberList(unittest.TestCase):
         two = copy.deepcopy(_two_dict)
         one["primary"] = True
         two["primary"] = True
-        with self.assertRaises(eduid.userdb.element.PrimaryElementViolation):
+        with pytest.raises(eduid.userdb.element.PrimaryElementViolation):
             PhoneNumberList.from_list_of_dicts([one, two])
 
     def test_unverified_primary(self) -> None:
         one = copy.deepcopy(_one_dict)
         one["verified"] = False
-        with self.assertRaises(eduid.userdb.element.PrimaryElementViolation):
+        with pytest.raises(eduid.userdb.element.PrimaryElementViolation):
             PhoneNumberList.from_list_of_dicts([one])
 
 
@@ -290,7 +290,7 @@ class TestPhoneNumber(unittest.TestCase):
     def test_changing_is_verified_on_primary(self) -> None:
         this = self.one.primary
         assert this
-        with self.assertRaises(eduid.userdb.element.PrimaryElementViolation):
+        with pytest.raises(eduid.userdb.element.PrimaryElementViolation):
             this.is_verified = False
 
     def test_changing_is_verified(self) -> None:

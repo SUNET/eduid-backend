@@ -1,5 +1,6 @@
 from uuid import uuid4
 
+import pytest
 from pymongo.errors import DuplicateKeyError
 
 from eduid.userdb.fixtures.users import UserFixtures
@@ -69,5 +70,5 @@ class TestResetGroupInviteStateDB(MongoTestCase):
         )
 
         self.invite_state_db.save(invite_state1, is_in_database=False)
-        with self.assertRaises(DuplicateKeyError):
+        with pytest.raises(DuplicateKeyError):
             self.invite_state_db.save(invite_state2, is_in_database=False)

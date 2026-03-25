@@ -4,6 +4,7 @@ from unittest import TestCase
 from uuid import uuid4
 
 import bson
+import pytest
 from pydantic import ValidationError
 
 from eduid.common.misc.timeutil import utc_now
@@ -122,7 +123,7 @@ class TestTouUser(TestCase):
         tou = ToUList(elements=[ToUEvent.from_dict(one)])
         userdata = self.user.to_dict()
         passwords = CredentialList.from_list_of_dicts(userdata["passwords"])
-        with self.assertRaises(ValidationError):
+        with pytest.raises(ValidationError):
             ToUUser(tou=tou, credentials=passwords)  # type: ignore[call-arg]
 
     def test_proper_new_user_no_eppn(self) -> None:
@@ -131,17 +132,17 @@ class TestTouUser(TestCase):
         userdata = self.user.to_dict()
         userid = userdata.pop("_id")
         passwords = CredentialList.from_list_of_dicts(userdata["passwords"])
-        with self.assertRaises(ValidationError):
+        with pytest.raises(ValidationError):
             ToUUser(user_id=userid, tou=tou, credentials=passwords)  # type: ignore[call-arg]
 
     def test_missing_eppn(self) -> None:
         one = copy.deepcopy(_one_dict)
         tou = ToUList.from_list_of_dicts([one])
-        with self.assertRaises(UserMissingData):
+        with pytest.raises(UserMissingData):
             ToUUser.from_dict(data=TUserDbDocument({"tou": tou, "userid": self.user.user_id}))
 
     def test_missing_userid(self) -> None:
         one = copy.deepcopy(_one_dict)
         tou = ToUEvent.from_dict(one)
-        with self.assertRaises(UserMissingData):
+        with pytest.raises(UserMissingData):
             ToUUser.from_dict(data=TUserDbDocument({"tou": [tou], "eppn": self.user.eppn}))

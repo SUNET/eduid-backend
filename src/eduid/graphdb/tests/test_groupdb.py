@@ -1,5 +1,6 @@
 from dataclasses import replace
 
+import pytest
 from bson import ObjectId
 from neo4j import basic_auth
 
@@ -97,7 +98,7 @@ class TestGroupDB(Neo4jTestCase):
         self.group_db.save(group)
         group = replace(group, display_name="Another display name")
         group = replace(group, version=ObjectId())
-        with self.assertRaises(VersionMismatch):
+        with pytest.raises(VersionMismatch):
             self.group_db.save(group)
         assert self.group_db.db.count_nodes(label="Group") == 1
 

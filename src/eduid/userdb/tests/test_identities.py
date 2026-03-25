@@ -146,7 +146,7 @@ class TestIdentityList(unittest.TestCase):
         assert normalised_data(obtained) == normalised_data(expected), "List with removed NIN has unexpected data"
 
     def test_remove_unknown(self) -> None:
-        with self.assertRaises(eduid.userdb.exceptions.UserDBValueError):
+        with pytest.raises(eduid.userdb.exceptions.UserDBValueError):
             self.one.remove(ElementKey("+46709999999"))
 
 
@@ -222,9 +222,9 @@ class TestIdentity(TestCase):
         # can read those from db to fix them
         this = self.three.find("nin")
         assert this
-        with self.assertRaises(ValidationError):
+        with pytest.raises(ValidationError):
             this.created_ts = True  # type: ignore[assignment]
-        with self.assertRaises(ValidationError):
+        with pytest.raises(ValidationError):
             this.modified_ts = True  # type: ignore[assignment]
         this_dict = this.to_dict()
         this_dict["created_ts"] = True

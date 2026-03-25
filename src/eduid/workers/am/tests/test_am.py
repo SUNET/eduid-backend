@@ -1,5 +1,6 @@
 from typing import Any
 
+import pytest
 from bson import ObjectId
 
 import eduid.userdb
@@ -204,5 +205,5 @@ class MessageTest(AMTestCase):
         assert am_user
         assert am_user.eppn != "teste-teste"
 
-        with self.assertRaises(EduIDDBError):
+        with pytest.raises(EduIDDBError):
             self.am_relay.request_user_sync(test_user, app_name_override="bad")

@@ -276,7 +276,7 @@ class TestNewUser(unittest.TestCase):
         data = self.data1
         data["unknown_attribute"] = "something"
 
-        with self.assertRaises(ValidationError):
+        with pytest.raises(ValidationError):
             User.from_dict(data)
 
     def test_incomplete_signup_user(self) -> None:
@@ -333,7 +333,7 @@ class TestNewUser(unittest.TestCase):
                 "passwords": [],
             }
         )
-        with self.assertRaises(UserIsRevoked):
+        with pytest.raises(UserIsRevoked):
             User.from_dict(data)
 
     def test_user_with_no_primary_mail(self) -> None:
@@ -737,7 +737,7 @@ class TestNewUser(unittest.TestCase):
             is_verified=True,
         )
         user.locked_identity.add(locked_nin)
-        with self.assertRaises(EduIDUserDBError):
+        with pytest.raises(EduIDUserDBError):
             user.locked_identity.remove(locked_nin.key)
 
     def test_orcid(self) -> None:

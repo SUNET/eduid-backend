@@ -176,7 +176,7 @@ class ProofingTestCase(AMTestCase):
             pytest.skip("Fetcher not initialised")
         assert self.fetcher  # mypy doesn't understand pytest.skip it seems
 
-        with self.assertRaises(UserDoesNotExist):
+        with pytest.raises(UserDoesNotExist):
             self.fetcher.fetch_attrs(bson.ObjectId("0" * 24))
 
     def test_malicious_attributes(self) -> None:
@@ -191,5 +191,5 @@ class ProofingTestCase(AMTestCase):
         result = self.fetcher.private_db._coll.insert_one(TUserDbDocument(self.user_data))
         user_id = result.inserted_id
 
-        with self.assertRaises(ValidationError):
+        with pytest.raises(ValidationError):
             self.fetcher.fetch_attrs(user_id)

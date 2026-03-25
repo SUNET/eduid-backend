@@ -2,6 +2,8 @@ import logging
 from typing import cast
 from unittest.mock import MagicMock
 
+import pytest
+
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.models.saml2 import EduidAuthnContextClass
 from eduid.webapp.common.api.schemas.models import FluxResponseStatus
@@ -173,7 +175,7 @@ class TestNextHandlers(IdPAPITests):
         # authn_info and authn_state are both None by default
         _next = LoginNextResult(message=IdPMsg.proceed, authn_info=None, authn_state=None)
         with self.app.test_request_context():
-            with self.assertRaises(RuntimeError):
+            with pytest.raises(RuntimeError):
                 _handle_proceed(ticket, cast(SSOSession, sso_session), _next, required_user)
 
     def test_handle_proceed_unknown_ticket_type(self) -> None:

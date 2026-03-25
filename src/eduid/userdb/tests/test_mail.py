@@ -108,7 +108,7 @@ class TestMailAddressList(unittest.TestCase):
         new = eduid.userdb.mail.address_from_dict(
             {"email": "ft@primary.example.org", "verified": True, "primary": True}
         )
-        with self.assertRaises(eduid.userdb.element.PrimaryElementViolation):
+        with pytest.raises(eduid.userdb.element.PrimaryElementViolation):
             self.one.add(new)
 
     def test_add_wrong_type(self) -> None:
@@ -126,7 +126,7 @@ class TestMailAddressList(unittest.TestCase):
         assert obtained == expected, "Wrong data after removing email from list"
 
     def test_remove_unknown(self) -> None:
-        with self.assertRaises(eduid.userdb.exceptions.UserDBValueError):
+        with pytest.raises(eduid.userdb.exceptions.UserDBValueError):
             self.one.remove(ElementKey("foo@no-such-address.example.org"))
 
     def test_remove_primary(self) -> None:
@@ -160,11 +160,11 @@ class TestMailAddressList(unittest.TestCase):
         self.two.set_primary(ElementKey(match.email))
 
     def test_set_unknown_as_primary(self) -> None:
-        with self.assertRaises(eduid.userdb.exceptions.UserDBValueError):
+        with pytest.raises(eduid.userdb.exceptions.UserDBValueError):
             self.one.set_primary(ElementKey("foo@no-such-address.example.org"))
 
     def test_set_unverified_as_primary(self) -> None:
-        with self.assertRaises(eduid.userdb.element.PrimaryElementViolation):
+        with pytest.raises(eduid.userdb.element.PrimaryElementViolation):
             self.three.set_primary(ElementKey("ft@three.example.org"))
 
     def test_change_primary(self) -> None:
@@ -181,13 +181,13 @@ class TestMailAddressList(unittest.TestCase):
         two = copy.deepcopy(_two_dict)
         one["primary"] = True
         two["primary"] = True
-        with self.assertRaises(eduid.userdb.element.PrimaryElementViolation):
+        with pytest.raises(eduid.userdb.element.PrimaryElementViolation):
             MailAddressList.from_list_of_dicts([one, two])
 
     def test_bad_input_unverified_primary(self) -> None:
         one = copy.deepcopy(_one_dict)
         one["verified"] = False
-        with self.assertRaises(eduid.userdb.element.PrimaryElementViolation):
+        with pytest.raises(eduid.userdb.element.PrimaryElementViolation):
             MailAddressList.from_list_of_dicts([one])
 
 
@@ -254,7 +254,7 @@ class TestMailAddress(TestCase):
     def test_changing_is_verified_on_primary(self) -> None:
         this = self.one.primary
         assert this
-        with self.assertRaises(eduid.userdb.element.PrimaryElementViolation):
+        with pytest.raises(eduid.userdb.element.PrimaryElementViolation):
             this.is_verified = False
 
     def test_changing_is_verified(self) -> None:

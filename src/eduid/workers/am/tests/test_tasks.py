@@ -1,3 +1,4 @@
+import pytest
 from bson import ObjectId
 
 import eduid.userdb
@@ -52,7 +53,7 @@ class TestTasks(AMTestCase):
         user2_doc["_id"] = ObjectId()  # make up a new unique identifier
         del user2_doc["modified_ts"]  # defeat sync-check mechanism
         self.amdb.save(eduid.userdb.User.from_dict(user2_doc))
-        with self.assertRaises(MultipleUsersReturned):
+        with pytest.raises(MultipleUsersReturned):
             self.amdb.get_user_by_mail(self.user.mail_addresses.primary.email)
 
     def test_unverify_duplicate_mail(self) -> None:
@@ -240,7 +241,7 @@ class TestTasks(AMTestCase):
                 "identities": [{"identity_type": IdentityType.NIN.value, "verified": True, "number": "200506076789"}]
             }
         }
-        with self.assertRaises(EduIDUserDBError):
+        with pytest.raises(EduIDUserDBError):
             check_locked_identity(self.amdb, user_id, attributes, "test")
 
     def test_check_locked_identity_replace_locked(self) -> None:

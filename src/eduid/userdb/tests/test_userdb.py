@@ -129,7 +129,7 @@ class UpdateUser(MongoTestCase):
         test_user.given_name = "new_given_name"
         test_user.meta.new_version()
 
-        with self.assertRaises(UserOutOfSync):
+        with pytest.raises(UserOutOfSync):
             self.amdb.save(test_user)
 
     def test_ok(self) -> None:

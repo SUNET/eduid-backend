@@ -1,8 +1,10 @@
 import unittest
 from collections import OrderedDict
+from collections.abc import Mapping
 from io import BytesIO, StringIO
 from typing import Any
 
+import pytest
 from pypdf import PdfReader
 
 from eduid.common.misc.timeutil import utc_now
@@ -73,7 +75,7 @@ class FormatAddressTest(unittest.TestCase):
             assert city is not None
 
     def test_failing_format(self) -> None:
-        failing_navet_responses = [
+        failing_navet_responses: list[Mapping[str, Any]] = [
             OrderedDict(
                 [
                     (
@@ -128,7 +130,8 @@ class FormatAddressTest(unittest.TestCase):
         ]
 
         for response in failing_navet_responses:
-            self.assertRaises(pdf.AddressFormatException, pdf.format_address, response)
+            with pytest.raises(pdf.AddressFormatException):
+                pdf.format_address(response)
 
 
 class CreatePDFTest(EduidAPITestCase):

@@ -1,6 +1,7 @@
 import unittest
 from typing import Any
 
+import pytest
 import simplejson as json
 
 from eduid.vccs.client import VCCSClient, VCCSOathFactor, VCCSPasswordFactor, VCCSRevokeFactor
@@ -93,14 +94,14 @@ class TestVCCSClient(unittest.TestCase):
         aead = "aa" * 20
         o = VCCSOathFactor("oath-hotp", 4712, user_code=123456)
         # missing AEAD
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             o.to_dict("add_creds")
 
         o = VCCSOathFactor("oath-hotp", 4712, nonce="010203040506", aead=aead, key_handle=0x1234, user_code=123456)
         # with AEAD o should be OK
         assert isinstance(o.to_dict("add_creds"), dict)
         # unknown to_dict 'action' should raise
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             o.to_dict("bad_action")
 
     def test_authenticate1(self) -> None:
@@ -142,7 +143,7 @@ class TestVCCSClient(unittest.TestCase):
         }
         c = FakeVCCSClient(json.dumps(resp))
         f = VCCSPasswordFactor("password", "4711", "$NDNv1H1$aaaaaaaaaaaaaaaa$12$32$")
-        with self.assertRaises(AssertionError):
+        with pytest.raises(AssertionError):
             c.authenticate("ft@example.net", [f])
 
     def test_authenticate2_utf8(self) -> None:
@@ -156,7 +157,7 @@ class TestVCCSClient(unittest.TestCase):
         }
         c = FakeVCCSClient(json.dumps(resp))
         f = VCCSPasswordFactor("passwordåäöхэж", "4711", "$NDNv1H1$aaaaaaaaaaaaaaaa$12$32$")
-        with self.assertRaises(AssertionError):
+        with pytest.raises(AssertionError):
             c.authenticate("ft@example.net", [f])
 
     def test_add_creds1(self) -> None:
@@ -277,15 +278,15 @@ class TestVCCSClient(unittest.TestCase):
         """
         FakeVCCSClient("Fake response not used in test")
 
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             VCCSRevokeFactor(4712, 1234, "foobar")  # type: ignore[arg-type]
 
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             VCCSRevokeFactor(4712, "foobar", 2345)  # type: ignore[arg-type]
 
     def test_unknown_salt_version(self) -> None:
         """Test unknown salt version"""
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             VCCSPasswordFactor("anything", "4711", "$NDNvFOO$aaaaaaaaaaaaaaaa$12$32$")
 
     def test_generate_salt1(self) -> None:

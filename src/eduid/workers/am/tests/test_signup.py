@@ -1,6 +1,7 @@
 from copy import deepcopy
 
 import bson
+import pytest
 from pydantic import ValidationError
 
 from eduid.common.testing_base import normalised_data
@@ -34,7 +35,7 @@ class AttributeFetcherTests(AMTestCase):
             self.fetcher.private_db.save(signup_user)
 
     def test_invalid_user(self) -> None:
-        with self.assertRaises(UserDoesNotExist):
+        with pytest.raises(UserDoesNotExist):
             self.fetcher.fetch_attrs(bson.ObjectId("000000000000000000000000"))
 
     def test_existing_user_from_db(self) -> None:
@@ -71,7 +72,7 @@ class AttributeFetcherTests(AMTestCase):
         user = SignupUser.from_dict(user_data)
         assert self.fetcher.private_db
         self.fetcher.private_db.save(user)
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             self.fetcher.fetch_attrs(bson.ObjectId(user.user_id))
 
     def test_user_without_aliases(self) -> None:
@@ -81,7 +82,7 @@ class AttributeFetcherTests(AMTestCase):
         user = SignupUser.from_dict(user_data)
         assert self.fetcher.private_db
         self.fetcher.private_db.save(user)
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             self.fetcher.fetch_attrs(bson.ObjectId(user.user_id))
 
     def test_user_finished_and_removed(self) -> None:
@@ -149,5 +150,5 @@ class AttributeFetcherTests(AMTestCase):
                 "salt": "456",
             }
         ]
-        with self.assertRaises(ValidationError):
+        with pytest.raises(ValidationError):
             SignupUser.from_dict(user_data)

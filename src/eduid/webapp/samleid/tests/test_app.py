@@ -9,6 +9,8 @@ from http import HTTPStatus
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from eduid.common.config.base import EduidEnvironment, FrontendAction
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb import NinIdentity
@@ -1784,7 +1786,7 @@ class NINMethodTests(SamlEidTests):
 
         with self.session_cookie(self.browser, self.test_user.eppn) as browser:
             with browser.session_transaction():
-                with self.assertRaises(ValueError):
+                with pytest.raises(ValueError):
                     create_authn_info(
                         authn_ref=AuthnRequestRef("test-ref"),
                         framework=TrustFramework.SVIPE,
@@ -1803,7 +1805,7 @@ class NINMethodTests(SamlEidTests):
             authn_info=[("http://id.elegnamnden.se/loa/1.0/loa3", [], "2024-01-01T00:00:00Z")],
         )
 
-        with self.assertRaises(UnsupportedMethod):
+        with pytest.raises(UnsupportedMethod):
             get_proofing_functions(
                 session_info=session_info,
                 app_name="testing",

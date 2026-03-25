@@ -1,6 +1,7 @@
 from collections.abc import Mapping
 from typing import Any
 
+import pytest
 from werkzeug.exceptions import NotFound
 
 from eduid.common.config.base import EduIDBaseAppConfig
@@ -42,7 +43,7 @@ class AuthnTests(EduidAPITestCase):
         assert response.status_code == 401
 
         with self.session_cookie(self.browser, "hubba-bubba") as client:
-            with self.assertRaises(NotFound):
+            with pytest.raises(NotFound):
                 client.get("/some/path")
 
 
