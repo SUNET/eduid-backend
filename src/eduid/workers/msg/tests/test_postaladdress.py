@@ -2,13 +2,15 @@ __author__ = "lundberg"
 
 import json
 from pathlib import Path, PurePath
-from unittest import TestCase
+
+import pytest
 
 from eduid.workers.msg import utils
 
 
-class TestPostalAddress(TestCase):
-    def setUp(self) -> None:
+class TestPostalAddress:
+    @pytest.fixture(autouse=True)
+    def setup(self) -> None:
         self.navet_data = json.loads(Path(PurePath(__file__).with_name("data") / "navet.json").read_text())
         self.navet_data_unregistered = json.loads(
             Path(PurePath(__file__).with_name("data") / "navet_unregistered.json").read_text()

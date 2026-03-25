@@ -1,12 +1,11 @@
 from datetime import timedelta
-from unittest import TestCase
 from uuid import uuid4
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.signup import Invite, InviteMailAddress, InvitePhoneNumber, InviteType, SCIMReference
 
 
-class TestSignupInvite(TestCase):
+class TestSignupInvite:
     def test_scim_invite(self) -> None:
         invite = Invite(
             invite_type=InviteType.SCIM,

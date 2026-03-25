@@ -1,11 +1,10 @@
-from unittest import IsolatedAsyncioTestCase
 from unittest.mock import patch
 
 from eduid.userdb.db.async_db import AsyncBaseDB, AsyncMongoDB
 from eduid.userdb.testing import AsyncMongoTestCase
 
 
-class TestAsyncMongoDB(IsolatedAsyncioTestCase):
+class TestAsyncMongoDB:
     def test_full_uri(self) -> None:
         # full specified uri
         uri = "mongodb://db.example.com:1111/testdb"

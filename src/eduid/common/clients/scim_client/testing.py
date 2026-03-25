@@ -1,5 +1,7 @@
+from collections.abc import Iterator
 from typing import Any, ClassVar
 
+import pytest
 import respx
 from httpx import Response
 
@@ -82,6 +84,12 @@ class MockedScimAPIMixin(MockedSyncAuthAPIMixin):
 
     put_user_response = post_user_response
 
+    @pytest.fixture(autouse=True)
+    def _stop_mock_scim_api(self) -> Iterator[None]:
+        yield
+        if hasattr(self, "mocked_scim_api"):
+            self.mocked_scim_api.stop()
+
     def start_mocked_scim_api(self) -> None:
         self.start_mock_auth_api()
 
@@ -107,4 +115,3 @@ class MockedScimAPIMixin(MockedSyncAuthAPIMixin):
         )
 
         self.mocked_scim_api.start()
-        self.addCleanup(self.mocked_scim_api.stop)

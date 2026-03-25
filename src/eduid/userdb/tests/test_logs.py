@@ -1,4 +1,4 @@
-from unittest import TestCase
+from collections.abc import Iterator
 
 import pytest
 from pydantic import ValidationError
@@ -27,15 +27,15 @@ from eduid.userdb.user import User
 __author__ = "lundberg"
 
 
-class TestProofingLog(TestCase):
+class TestProofingLog:
     user: User
 
-    def setUp(self) -> None:
+    @pytest.fixture(autouse=True)
+    def setup(self) -> Iterator[None]:
         self.tmp_db = MongoTemporaryInstance.get_instance()
         self.proofing_log_db = ProofingLog(db_uri=self.tmp_db.uri)
         self.user = UserFixtures().mocked_user_standard
-
-    def tearDown(self) -> None:
+        yield
         self.proofing_log_db._drop_whole_collection()
 
     def test_id_proofing_data(self) -> None:
@@ -344,12 +344,12 @@ class TestProofingLog(TestCase):
         }
 
 
-class TestUserChangeLog(TestCase):
-    def setUp(self) -> None:
+class TestUserChangeLog:
+    @pytest.fixture(autouse=True)
+    def setup(self) -> Iterator[None]:
         self.tmp_db = MongoTemporaryInstance.get_instance()
         self.user_log_db = UserChangeLog(db_uri=self.tmp_db.uri)
-
-    def tearDown(self) -> None:
+        yield
         self.user_log_db._drop_whole_collection()
 
     def _insert_log_fixtures(self) -> None:

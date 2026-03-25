@@ -1,6 +1,5 @@
 import copy
 from datetime import datetime, timedelta
-from unittest import TestCase
 from uuid import uuid4
 
 import bson
@@ -47,8 +46,9 @@ _three_dict = {
 }
 
 
-class TestToUEvent(TestCase):
-    def setUp(self) -> None:
+class TestToUEvent:
+    @pytest.fixture(autouse=True)
+    def setup(self) -> None:
         self.empty: EventList = EventList()
         self.one = ToUList.from_list_of_dicts([_one_dict])
         self.two = ToUList.from_list_of_dicts([_one_dict, _two_dict])
@@ -96,10 +96,11 @@ class TestToUEvent(TestCase):
         assert not tl.has_accepted(version="3", reaccept_interval=int(three_years.total_seconds()))
 
 
-class TestTouUser(TestCase):
+class TestTouUser:
     user: User
 
-    def setUp(self) -> None:
+    @pytest.fixture(autouse=True)
+    def setup(self) -> None:
         self.user = UserFixtures().new_user_example
 
     def test_proper_user(self) -> None:

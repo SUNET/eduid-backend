@@ -1,13 +1,13 @@
 from pathlib import PurePath
-from unittest import TestCase
 
 import pytest
 
 from eduid.workers.msg.utils import load_template
 
 
-class TestUtils(TestCase):
-    def setUp(self) -> None:
+class TestUtils:
+    @pytest.fixture(autouse=True)
+    def setup(self) -> None:
         self.template_dir = str(PurePath(__file__).with_name("data"))
         self.msg_dict = {"name": "Godiskungen", "admin": "Testadmin"}
 

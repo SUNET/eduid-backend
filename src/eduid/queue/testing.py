@@ -4,14 +4,15 @@ import asyncio
 import logging
 import time
 from asyncio import Task
-from collections.abc import Sequence
+from collections.abc import Iterator, Sequence
 from datetime import datetime, timedelta
 from typing import Any
-from unittest import IsolatedAsyncioTestCase, TestCase
+from unittest import IsolatedAsyncioTestCase
 from unittest.mock import patch
 
 import pymongo
 import pymongo.errors
+import pytest
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.queue.db import Payload, QueueDB, QueueItem, SenderInfo
@@ -106,22 +107,17 @@ class SMPTDFixTemporaryInstance(EduidTemporaryInstance):
         return None
 
 
-class EduidQueueTestCase(TestCase):
-    mongo_instance: MongoTemporaryInstanceReplicaSet
-    mongo_uri: str
+class EduidQueueTestCase:
     mongo_collection: str
     client_db: QueueDB
 
-    @classmethod
-    def setUpClass(cls) -> None:
-        cls.mongo_instance = MongoTemporaryInstanceReplicaSet.get_instance()
-
-    def setUp(self) -> None:
-        self.mongo_uri = self.mongo_instance.uri
+    @pytest.fixture(autouse=True)
+    def setup_queue(self) -> Iterator[None]:
+        mongo_instance = MongoTemporaryInstanceReplicaSet.get_instance()
+        self.mongo_uri = mongo_instance.uri
         self.mongo_collection = "test"
         self._init_db()
-
-    def tearDown(self) -> None:
+        yield
         self.client_db._drop_whole_collection()
 
     def _init_db(self) -> None:

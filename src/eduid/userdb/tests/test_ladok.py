@@ -1,13 +1,15 @@
-from unittest import TestCase
 from uuid import uuid4
+
+import pytest
 
 from eduid.userdb.ladok import Ladok, University, UniversityName
 
 __author__ = "lundberg"
 
 
-class LadokTest(TestCase):
-    def setUp(self) -> None:
+class LadokTest:
+    @pytest.fixture(autouse=True)
+    def setup(self) -> None:
         self.external_uuid = uuid4()
 
     def test_create_ladok(self) -> None:

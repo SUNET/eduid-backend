@@ -1,6 +1,5 @@
 from enum import unique
 from typing import ClassVar
-from unittest import TestCase
 
 import pytest
 
@@ -22,7 +21,7 @@ class TestsMsg(TranslatableMsg):
     snd_test_msg = "test.second_msg"
 
 
-class MessageTests(TestCase):
+class MessageTests:
     def test_success_message(self) -> None:
         message = success_response(message=TestsMsg.fst_test_msg)
         assert message.status == FluxResponseStatus.OK
@@ -145,7 +144,7 @@ class MessageTests(TestCase):
         assert response.location == "https://example.com?msg=test.str_msg"
 
 
-class MessagesTests(TestCase):
+class MessagesTests:
     def test_messages(self) -> None:
         """"""
         assert CommonMsg.temp_problem.value == "Temporary technical problems"

@@ -1,5 +1,6 @@
 from typing import NotRequired, TypedDict
-from unittest import TestCase
+
+import pytest
 
 from eduid.graphdb.groupdb import Group, User
 
@@ -18,8 +19,9 @@ class UserData(TypedDict):
     display_name: str
 
 
-class TestGroup(TestCase):
-    def setUp(self) -> None:
+class TestGroup:
+    @pytest.fixture(autouse=True)
+    def setup(self) -> None:
         self.group1: GroupData = {
             "identifier": "test1",
             "display_name": "Test Group 1",

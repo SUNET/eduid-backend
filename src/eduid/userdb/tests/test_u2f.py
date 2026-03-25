@@ -1,7 +1,6 @@
 import copy
 import datetime
 from hashlib import sha256
-from unittest import TestCase
 
 import pytest
 from pydantic import ValidationError
@@ -44,8 +43,9 @@ def _keyid(key: dict[str, str]) -> str:
     return "sha256:" + sha256(key["keyhandle"].encode("utf-8") + key["public_key"].encode("utf-8")).hexdigest()
 
 
-class TestU2F(TestCase):
-    def setUp(self) -> None:
+class TestU2F:
+    @pytest.fixture(autouse=True)
+    def setup(self) -> None:
         self.empty = CredentialList()
         self.one = CredentialList.from_list_of_dicts([_one_dict])
         self.two = CredentialList.from_list_of_dicts([_one_dict, _two_dict])

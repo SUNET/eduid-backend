@@ -1,11 +1,12 @@
-from unittest import TestCase
+import pytest
 
 from eduid.userdb.fixtures.users import UserFixtures
 from eduid.userdb.support import models
 
 
-class TestSupportUsers(TestCase):
-    def setUp(self) -> None:
+class TestSupportUsers:
+    @pytest.fixture(autouse=True)
+    def setup(self) -> None:
         self.users = UserFixtures()
 
     def test_support_user(self) -> None:

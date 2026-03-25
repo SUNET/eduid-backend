@@ -33,11 +33,9 @@ class QueueTestWorker(IsolatedWorkerDBMixin, QueueWorker):
 class TestBaseWorker(QueueAsyncioTest):
     @classmethod
     def setUpClass(cls) -> None:
-        super().setUpClass()
         environ["WORKER_NAME"] = "Test Worker 1"
 
     def setUp(self) -> None:
-        super().setUp()
         self.test_config = {
             "testing": True,
             "mongo_uri": self.mongo_uri,

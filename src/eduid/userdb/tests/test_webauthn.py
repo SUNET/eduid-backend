@@ -1,6 +1,7 @@
 import datetime
 from hashlib import sha256
-from unittest import TestCase
+
+import pytest
 
 from eduid.userdb.credentials import CredentialList, CredentialProofingMethod, Webauthn
 
@@ -27,8 +28,9 @@ def _keyid(key: dict[str, str]) -> str:
     return "sha256:" + sha256(key["keyhandle"].encode("utf-8") + key["credential_data"].encode("utf-8")).hexdigest()
 
 
-class TestWebauthn(TestCase):
-    def setUp(self) -> None:
+class TestWebauthn:
+    @pytest.fixture(autouse=True)
+    def setup(self) -> None:
         self.empty = CredentialList()
         self.one = CredentialList.from_list_of_dicts([_one_dict])
         self.two = CredentialList.from_list_of_dicts([_one_dict, _two_dict])
