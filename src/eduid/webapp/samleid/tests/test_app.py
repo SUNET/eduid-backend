@@ -1786,7 +1786,7 @@ class NINMethodTests(SamlEidTests):
 
         with self.session_cookie(self.browser, self.test_user.eppn) as browser:
             with browser.session_transaction():
-                with pytest.raises(ValueError):
+                with pytest.raises(ValueError, match="Unrecognised trust framework"):
                     create_authn_info(
                         authn_ref=AuthnRequestRef("test-ref"),
                         framework=TrustFramework.SVIPE,

@@ -115,14 +115,13 @@ class TestAuthentication(IdPAPITests):
         # Store a successful authentication using this credential three year ago
         three_years_ago = utc_now() - datetime.timedelta(days=3 * 365)
         self.app.authn.authn_store.credential_success([passwords[0].key], three_years_ago)
+        assert self.test_user.mail_addresses.primary is not None
         with pytest.raises(exceptions.EduidForbidden):
-            assert isinstance(self.test_user.mail_addresses.primary, MailAddress)
             self.app.authn.password_authn(self.test_user.mail_addresses.primary.email, "foo")
         # Do the same thing again to make sure we didn't accidentally update the
         # 'last successful login' timestamp when it was a successful login with an
         # expired credential.
         with pytest.raises(exceptions.EduidForbidden):
-            assert isinstance(self.test_user.mail_addresses.primary, MailAddress)
             self.app.authn.password_authn(self.test_user.mail_addresses.primary.email, "foo")
 
 

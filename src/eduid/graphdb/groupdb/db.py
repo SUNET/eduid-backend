@@ -57,7 +57,8 @@ class GroupDB(BaseGraphDB):
                 try:
                     session.run(statement)
                 except ClientError as e:
-                    assert e.message is not None  # please mypy
+                    if e.message is None:
+                        raise
                     acceptable_error_codes = [
                         "Neo.ClientError.Schema.ConstraintAlreadyExists",
                         "Neo.ClientError.Schema.EquivalentSchemaRuleAlreadyExists",
