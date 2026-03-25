@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import logging
 import random
-import unittest
-from collections.abc import Sequence
+from collections.abc import Iterator, Sequence
 from os import environ
 
+import pytest
 from neo4j.exceptions import ServiceUnavailable
 
 from eduid.graphdb.db import Neo4jDB
@@ -117,7 +117,7 @@ class Neo4jTemporaryInstance(EduidTemporaryInstance):
                 s.run(f"DROP INDEX {index['name']}")
 
 
-class Neo4jTestCase(unittest.TestCase):
+class Neo4jTestCase:
     """
     Base test case that sets up a temporary Neo4j instance
     """
@@ -125,10 +125,12 @@ class Neo4jTestCase(unittest.TestCase):
     neo4j_instance: Neo4jTemporaryInstance
     neo4jdb: Neo4jDB
 
-    @classmethod
-    def setUpClass(cls) -> None:
-        cls.neo4j_instance = Neo4jTemporaryInstance.get_instance(max_retry_seconds=60)
-        cls.neo4jdb = cls.neo4j_instance.conn
+    @pytest.fixture(scope="class", autouse=True)
+    def setup_neo4j(self) -> None:
+        type(self).neo4j_instance = Neo4jTemporaryInstance.get_instance(max_retry_seconds=60)
+        type(self).neo4jdb = type(self).neo4j_instance.conn
 
-    def tearDown(self) -> None:
+    @pytest.fixture(autouse=True)
+    def purge_db(self) -> Iterator[None]:
+        yield
         self.neo4j_instance.purge_db()
