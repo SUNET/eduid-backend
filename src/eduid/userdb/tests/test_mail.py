@@ -1,7 +1,5 @@
 import copy
 import datetime
-import unittest
-from unittest import TestCase
 
 import pytest
 from pydantic import ValidationError
@@ -35,9 +33,9 @@ _three_dict = {
 }
 
 
-class TestMailAddressList(unittest.TestCase):
-    def setUp(self) -> None:
-        self.maxDiff = None
+class TestMailAddressList:
+    @pytest.fixture(autouse=True)
+    def setup(self) -> None:
         self.empty = MailAddressList()
         self.one = MailAddressList.from_list_of_dicts([_one_dict])
         self.two = MailAddressList.from_list_of_dicts([_one_dict, _two_dict])
@@ -191,8 +189,9 @@ class TestMailAddressList(unittest.TestCase):
             MailAddressList.from_list_of_dicts([one])
 
 
-class TestMailAddress(TestCase):
-    def setUp(self) -> None:
+class TestMailAddress:
+    @pytest.fixture(autouse=True)
+    def setup(self) -> None:
         self.empty = MailAddressList()
         self.one = MailAddressList.from_list_of_dicts([_one_dict])
         self.two = MailAddressList.from_list_of_dicts([_one_dict, _two_dict])

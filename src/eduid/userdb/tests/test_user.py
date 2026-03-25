@@ -1,4 +1,3 @@
-import unittest
 from datetime import UTC, datetime
 from hashlib import sha256
 
@@ -27,8 +26,9 @@ def _keyid(kh: str) -> str:
     return "sha256:" + sha256(kh.encode("utf-8")).hexdigest()
 
 
-class TestNewUser(unittest.TestCase):
-    def setUp(self) -> None:
+class TestNewUser:
+    @pytest.fixture(autouse=True)
+    def setup(self) -> None:
         self.data1 = TUserDbDocument(
             {
                 "_id": ObjectId("547357c3d00690878ae9b620"),

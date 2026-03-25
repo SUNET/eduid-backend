@@ -1,12 +1,12 @@
-import unittest
-
+import pytest
 from bson import ObjectId
 
 from eduid.vccs.server.db import PasswordCredential, Version
 
 
-class TestCredential(unittest.TestCase):
-    def setUp(self) -> None:
+class TestCredential:
+    @pytest.fixture(autouse=True)
+    def setup(self) -> None:
         self.data = {
             "_id": ObjectId("54042b7a9b3f2299bb9d5546"),
             "credential": {

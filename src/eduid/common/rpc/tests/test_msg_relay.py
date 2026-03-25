@@ -1,4 +1,3 @@
-import unittest
 from collections.abc import Mapping
 from typing import Any
 from unittest.mock import MagicMock, Mock, patch
@@ -15,8 +14,9 @@ from eduid.workers.msg.tasks import MessageSender
 __author__ = "lundberg"
 
 
-class MsgRelayTests(unittest.TestCase):
-    def setUp(self) -> None:
+class MsgRelayTests:
+    @pytest.fixture(autouse=True)
+    def setup(self) -> None:
         msg_config = MsgConfig(app_name="test", devel_mode=True)
         msg_relay_config = MsgConfigMixin(app_name="test", celery=CeleryConfig())
         MsgCelerySingleton.update_worker_config(config=msg_config)

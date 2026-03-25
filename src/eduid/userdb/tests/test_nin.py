@@ -1,7 +1,5 @@
 import copy
 import datetime
-import unittest
-from unittest import TestCase
 
 import pytest
 from pydantic import ValidationError
@@ -35,9 +33,9 @@ _three_dict = {
 }
 
 
-class TestNinList(unittest.TestCase):
-    def setUp(self) -> None:
-        self.maxDiff = None  # Make pytest show full diffs
+class TestNinList:
+    @pytest.fixture(autouse=True)
+    def setup(self) -> None:
         self.empty = NinList()
         self.one = NinList.from_list_of_dicts([_one_dict])
         self.two = NinList.from_list_of_dicts([_one_dict, _two_dict])
@@ -201,8 +199,9 @@ class TestNinList(unittest.TestCase):
             NinList.from_list_of_dicts([one])
 
 
-class TestNin(TestCase):
-    def setUp(self) -> None:
+class TestNin:
+    @pytest.fixture(autouse=True)
+    def setup(self) -> None:
         self.empty = NinList()
         self.one = NinList.from_list_of_dicts([_one_dict])
         self.two = NinList.from_list_of_dicts([_one_dict, _two_dict])

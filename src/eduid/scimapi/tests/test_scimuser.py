@@ -1,7 +1,6 @@
 import asyncio
 import json
 import logging
-import unittest
 from collections.abc import Mapping
 from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta
@@ -10,6 +9,7 @@ from unittest import IsolatedAsyncioTestCase
 from uuid import UUID, uuid4
 
 import bson
+import pytest
 from bson import ObjectId
 from httpx import ASGITransport, AsyncClient, Response
 
@@ -26,9 +26,9 @@ from eduid.userdb.scimapi.userdb import ScimApiProfile, ScimApiUser
 logger = logging.getLogger(__name__)
 
 
-class TestScimUser(unittest.TestCase):
-    def setUp(self) -> None:
-        self.maxDiff = None
+class TestScimUser:
+    @pytest.fixture(autouse=True)
+    def setup(self) -> None:
         self.user_doc1 = {
             "_id": ObjectId("5e5542db34a4cf8015e62ac8"),
             "scim_id": "9784e1bf-231b-4eb8-b315-52eb46dd7c4b",

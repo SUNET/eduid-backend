@@ -1,4 +1,4 @@
-import unittest
+import pytest
 
 from eduid.common.config.base import StatsConfigMixin
 from eduid.common.stats import init_app_stats
@@ -6,8 +6,9 @@ from eduid.common.stats import init_app_stats
 __author__ = "lundberg"
 
 
-class StatsTests(unittest.TestCase):
-    def setUp(self) -> None:
+class StatsTests:
+    @pytest.fixture(autouse=True)
+    def setup(self) -> None:
         stats_config = StatsConfigMixin(app_name="test")
         self.stats = init_app_stats(stats_config)
 

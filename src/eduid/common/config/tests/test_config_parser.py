@@ -1,5 +1,7 @@
 import os
-import unittest
+from collections.abc import Iterator
+
+import pytest
 
 from eduid.common.config.parsers import _choose_parser
 from eduid.common.config.parsers.yaml_parser import YamlConfigParser
@@ -7,8 +9,10 @@ from eduid.common.config.parsers.yaml_parser import YamlConfigParser
 __author__ = "lundberg"
 
 
-class TestInitConfig(unittest.TestCase):
-    def tearDown(self) -> None:
+class TestInitConfig:
+    @pytest.fixture(autouse=True)
+    def cleanup(self) -> Iterator[None]:
+        yield
         os.environ.clear()
 
     def test_YamlConfigParser(self) -> None:

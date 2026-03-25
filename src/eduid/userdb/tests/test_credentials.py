@@ -1,4 +1,3 @@
-import unittest
 from hashlib import sha256
 
 import pytest
@@ -52,9 +51,9 @@ def _keyid(key: dict[str, str]) -> str:
     return "sha256:" + sha256(key["keyhandle"].encode("utf-8") + key["public_key"].encode("utf-8")).hexdigest()
 
 
-class TestCredentialList(unittest.TestCase):
-    def setUp(self) -> None:
-        self.maxDiff = None  # make pytest always show full diffs
+class TestCredentialList:
+    @pytest.fixture(autouse=True)
+    def setup(self) -> None:
         self.empty = CredentialList()
         self.one = CredentialList.from_list_of_dicts([_one_dict])
         self.two = CredentialList.from_list_of_dicts([_one_dict, _two_dict])
