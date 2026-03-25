@@ -26,9 +26,11 @@ class TestConfig(RootConfig):
 class TestInitConfig:
     @pytest.fixture(autouse=True)
     def setup(self) -> Iterator[None]:
+        saved = os.environ.copy()
         self.data_dir = PurePath(__file__).with_name("data")
         yield
         os.environ.clear()
+        os.environ.update(saved)
 
     def test_YamlConfig(self) -> None:
         os.environ["EDUID_CONFIG_NS"] = "/eduid/test/app_one"

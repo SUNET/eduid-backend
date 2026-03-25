@@ -11,9 +11,11 @@ __author__ = "lundberg"
 
 class TestInitConfig:
     @pytest.fixture(autouse=True)
-    def cleanup(self) -> Iterator[None]:
+    def restore_env(self) -> Iterator[None]:
+        saved = os.environ.copy()
         yield
         os.environ.clear()
+        os.environ.update(saved)
 
     def test_YamlConfigParser(self) -> None:
         os.environ["EDUID_CONFIG_NS"] = "/test/ns/"
