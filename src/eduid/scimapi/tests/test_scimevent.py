@@ -1,9 +1,10 @@
-from collections.abc import Mapping
+from collections.abc import Iterator, Mapping
 from dataclasses import dataclass
 from datetime import timedelta
 from typing import Any
 from uuid import UUID, uuid4
 
+import pytest
 from httpx import Response
 
 from eduid.common.models.scim_base import SCIMResourceType, SCIMSchema
@@ -23,11 +24,9 @@ class EventApiResult:
 
 
 class TestEventResource(ScimApiTestCase):
-    def setUp(self) -> None:
-        super().setUp()
-
-    def tearDown(self) -> None:
-        super().tearDown()
+    @pytest.fixture(autouse=True)
+    def setup(self) -> Iterator[None]:
+        yield
         assert self.eventdb
         self.eventdb._drop_whole_collection()
 
@@ -54,7 +53,7 @@ class TestEventResource(ScimApiTestCase):
         """Function to validate successful responses to SCIM calls that update a event according to a request."""
 
         if response.json().get("schemas") == [SCIMSchema.ERROR.value]:
-            self.fail(f"Got SCIM error parsed_response ({response.status_code}):\n{response.json()}")
+            pytest.fail(f"Got SCIM error parsed_response ({response.status_code}):\n{response.json()}")
 
         expected_schemas = req.get("schemas", [SCIMSchema.NUTID_EVENT_CORE_V1.value])
         if (

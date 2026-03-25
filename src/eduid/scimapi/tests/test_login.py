@@ -8,9 +8,6 @@ from eduid.scimapi.testing import ScimApiTestCase
 
 
 class TestLoginResource(ScimApiTestCase):
-    def setUp(self) -> None:
-        super().setUp()
-
     def _get_config(self) -> dict:
         config = super()._get_config()
         config["login_enabled"] = True
@@ -34,9 +31,6 @@ class TestLoginResource(ScimApiTestCase):
 
 
 class TestLoginResourceNotEnabled(ScimApiTestCase):
-    def setUp(self) -> None:
-        super().setUp()
-
     def test_get_token(self) -> None:
         response = self.client.post(url="/login", content=json.dumps({"data_owner": "eduid.se"}), headers=self.headers)
         assert response.status_code == HTTPStatus.NOT_FOUND

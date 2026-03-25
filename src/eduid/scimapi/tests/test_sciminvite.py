@@ -168,8 +168,8 @@ class TestScimInvite:
 
 
 class TestInviteResource(ScimApiTestCase):
-    def setUp(self) -> None:
-        super().setUp()
+    @pytest.fixture(autouse=True)
+    def setup(self) -> None:
         self.invite_data: dict[str, Any] = {
             "invite_code": "test_invite_code",
             "name": {

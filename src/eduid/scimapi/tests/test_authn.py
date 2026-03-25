@@ -26,7 +26,8 @@ logger = logging.getLogger(__name__)
 
 
 class TestAuthnBearerToken(BaseDBTestCase):
-    def setUp(self) -> None:
+    @pytest.fixture(autouse=True)
+    def setup(self) -> None:
         if "EDUID_CONFIG_YAML" not in os.environ:
             os.environ["EDUID_CONFIG_YAML"] = "YAML_CONFIG_NOT_USED"
 
@@ -398,8 +399,8 @@ class TestAuthnBearerToken(BaseDBTestCase):
 
 
 class TestAuthnUserResource(ScimApiTestUserResourceBase):
-    def setUp(self) -> None:
-        super().setUp()
+    @pytest.fixture(autouse=True)
+    def setup(self) -> None:
         self.test_profile = ScimApiProfile(attributes={"displayName": "Test User 1"}, data={"test_key": "test_value"})
 
     def _get_config(self) -> dict:

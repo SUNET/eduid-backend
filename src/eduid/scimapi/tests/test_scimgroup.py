@@ -1,10 +1,11 @@
 __author__ = "lundberg"
 
 import logging
-from collections.abc import Mapping
+from collections.abc import Iterator, Mapping
 from typing import Any
 from uuid import UUID, uuid4
 
+import pytest
 from bson import ObjectId
 from httpx import Response
 
@@ -24,7 +25,8 @@ logger = logging.getLogger(__name__)
 
 
 class TestSCIMGroup(TestScimBase):
-    def setUp(self) -> None:
+    @pytest.fixture(autouse=True)
+    def setup(self) -> None:
         self.meta = Meta(
             location="http://example.org/Groups/some-id",
             resource_type=SCIMResourceType.GROUP,
@@ -53,12 +55,10 @@ class TestSCIMGroup(TestScimBase):
 
 
 class TestGroupResource(ScimApiTestCase):
-    def setUp(self) -> None:
-        super().setUp()
+    @pytest.fixture(autouse=True)
+    def setup(self) -> Iterator[None]:
         self.groupdb = self.context.get_groupdb("eduid.se")
-
-    def tearDown(self) -> None:
-        super().tearDown()
+        yield
         assert self.groupdb
         self.groupdb._drop_whole_collection()
 
@@ -140,7 +140,7 @@ class TestGroupResource(ScimApiTestCase):
     def _assertGroupUpdateSuccess(self, req: Mapping, response: Response, group: ScimApiGroup) -> None:
         """Function to validate successful responses to SCIM calls that update a group according to a request."""
         if response.json().get("schemas") == [SCIMSchema.ERROR.value]:
-            self.fail(f"Got SCIM error parsed_response ({response.status_code}):\n{response.json}")
+            pytest.fail(f"Got SCIM error parsed_response ({response.status_code}):\n{response.json}")
 
         expected_schemas = req.get("schemas", [SCIMSchema.CORE_20_GROUP.value])
         if (
