@@ -72,7 +72,7 @@ class AttributeFetcherTests(AMTestCase):
         user = SignupUser.from_dict(user_data)
         assert self.fetcher.private_db
         self.fetcher.private_db.save(user)
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="Not syncing user"):
             self.fetcher.fetch_attrs(bson.ObjectId(user.user_id))
 
     def test_user_without_aliases(self) -> None:
@@ -82,7 +82,7 @@ class AttributeFetcherTests(AMTestCase):
         user = SignupUser.from_dict(user_data)
         assert self.fetcher.private_db
         self.fetcher.private_db.save(user)
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="Not syncing user"):
             self.fetcher.fetch_attrs(bson.ObjectId(user.user_id))
 
     def test_user_finished_and_removed(self) -> None:

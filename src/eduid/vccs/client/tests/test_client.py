@@ -94,14 +94,14 @@ class TestVCCSClient(unittest.TestCase):
         aead = "aa" * 20
         o = VCCSOathFactor("oath-hotp", 4712, user_code=123456)
         # missing AEAD
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match=r"property .* not provided"):
             o.to_dict("add_creds")
 
         o = VCCSOathFactor("oath-hotp", 4712, nonce="010203040506", aead=aead, key_handle=0x1234, user_code=123456)
         # with AEAD o should be OK
         assert isinstance(o.to_dict("add_creds"), dict)
         # unknown to_dict 'action' should raise
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="Unknown 'action' value"):
             o.to_dict("bad_action")
 
     def test_authenticate1(self) -> None:
@@ -286,7 +286,7 @@ class TestVCCSClient(unittest.TestCase):
 
     def test_unknown_salt_version(self) -> None:
         """Test unknown salt version"""
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="Invalid salt"):
             VCCSPasswordFactor("anything", "4711", "$NDNvFOO$aaaaaaaaaaaaaaaa$12$32$")
 
     def test_generate_salt1(self) -> None:
