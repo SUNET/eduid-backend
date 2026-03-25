@@ -5,11 +5,11 @@ import logging.config
 import pprint
 import sys
 import traceback
-from collections.abc import Generator, Iterable, Mapping
+from collections.abc import Generator, Iterable, Iterator, Mapping
 from contextlib import contextmanager
 from copy import deepcopy
 from datetime import datetime, timedelta
-from typing import Any, cast
+from typing import Any, ClassVar, cast
 
 import pytest
 from flask.testing import FlaskClient
@@ -29,7 +29,7 @@ from eduid.userdb.fixtures.users import UserFixtures
 from eduid.userdb.identity import IdentityType
 from eduid.userdb.logs.db import ProofingLog
 from eduid.userdb.proofing.state import NinProofingState
-from eduid.userdb.testing import MongoTemporaryInstance, SetupConfig
+from eduid.userdb.testing import MongoTemporaryInstance
 from eduid.userdb.userdb import UserDB
 from eduid.webapp.common.api.app import EduIDBaseApp
 from eduid.webapp.common.api.messages import AuthnStatusMsg, TranslatableMsg
@@ -98,14 +98,11 @@ class EduidAPITestCase[T: EduIDBaseApp](CommonTestCase):
 
     app: T
     browser: CSRFTestClient
+    api_users: ClassVar[list[str]] = ["hubba-bubba"]
+    copy_user_to_private: ClassVar[bool] = False
 
-    def setUp(self, config: SetupConfig | None = None) -> None:
-        if config is None:
-            config = SetupConfig()
-        # test users
-        if config.users is None:
-            config.users = ["hubba-bubba"]
-
+    @pytest.fixture(autouse=True)
+    def setup_api(self, setup_common: None) -> Iterator[None]:
         _users = UserFixtures()
         _standard_test_users = {
             "hubba-bubba": _users.new_user_example,
@@ -113,26 +110,19 @@ class EduidAPITestCase[T: EduIDBaseApp](CommonTestCase):
             "hubba-fooo": _users.new_completed_signup_user_example,
         }
 
-        # Make a list of User object to be saved to the new temporary mongodb instance
-        am_users = [_standard_test_users[x] for x in config.users]
-
-        config.am_users = am_users
-        super().setUp(config=config)
+        for user in [_standard_test_users[x] for x in self.api_users]:
+            self.amdb.save(user)
 
         self.user: User | None = None
 
-        # Load the user from the database so that it can be saved there again in tests
-        _test_user = self.amdb.get_user_by_eppn(config.users[0])
-        # Initialize some convenience variables on self based on the first user in `users'
+        _test_user = self.amdb.get_user_by_eppn(self.api_users[0])
         self.test_user = _test_user
         self.test_user_data = self.test_user.to_dict()
         self.test_user_eppn = self.test_user_data["eduPersonPrincipalName"]
 
-        # Set up Redis for shared sessions
         self.redis_instance = RedisTemporaryInstance.get_instance()
-        # settings
         test_config = deepcopy(TEST_CONFIG)
-        self.settings: dict[str, Any] = self.update_config(test_config)
+        self.settings = self.update_config(test_config)
         self.settings["redis_config"] = RedisConfig(host="localhost", port=self.redis_instance.port)
         assert isinstance(self.tmp_db, MongoTemporaryInstance)  # please mypy
         self.settings["mongo_uri"] = self.tmp_db.uri
@@ -142,28 +132,25 @@ class EduidAPITestCase[T: EduIDBaseApp](CommonTestCase):
             self.app.test_client_class = CSRFTestClient
             self.browser = cast(CSRFTestClient, self.app.test_client())
 
-        # Helper constants
         self.content_type_json = "application/json"
         self.test_domain = "test.localhost"
 
-        if config.copy_user_to_private:
+        if self.copy_user_to_private:
             data = self.test_user.to_dict()
             _private_userdb = getattr(self.app, "private_userdb")
             assert isinstance(_private_userdb, UserDB)
             logging.info(f"Copying test-user {self.test_user} to private_userdb {_private_userdb}")
             _private_userdb.save(_private_userdb.user_from_dict(data=data))
 
-    def tearDown(self) -> None:
+        yield
+
         try:
-            # Reset anything that looks like a BaseDB, for the next test class.
             for this in vars(self.app).values():
                 if isinstance(this, BaseDB):
                     this._drop_whole_collection()
         except Exception as exc:
-            sys.stderr.write(f"Exception in tearDown: {exc!s}\n{exc!r}\n")
+            sys.stderr.write(f"Exception in teardown: {exc!s}\n{exc!r}\n")
             traceback.print_exc()
-        super(CommonTestCase, self).tearDown()
-        # XXX reset redis
 
     def load_app(self, config: dict[str, Any]) -> T:
         """

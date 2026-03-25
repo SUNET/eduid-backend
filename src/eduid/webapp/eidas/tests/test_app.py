@@ -5,9 +5,10 @@ import os
 from collections.abc import Mapping
 from datetime import timedelta
 from http import HTTPStatus
-from typing import Any
-from unittest import TestCase
+from typing import Any, ClassVar
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 from eduid.common.config.base import EduidEnvironment, FrontendAction
 from eduid.common.misc.timeutil import utc_now
@@ -15,7 +16,6 @@ from eduid.userdb import NinIdentity
 from eduid.userdb.credentials.external import EidasCredential, ExternalCredential, SwedenConnectCredential
 from eduid.userdb.element import ElementKey
 from eduid.userdb.identity import EIDASIdentity, EIDASLoa, IdentityProofingMethod, PridPersistence
-from eduid.userdb.testing import SetupConfig
 from eduid.webapp.common.api.messages import AuthnStatusMsg, CommonMsg, TranslatableMsg, redirect_with_msg
 from eduid.webapp.common.api.testing import CSRFTestClient
 from eduid.webapp.common.authn.acs_enums import AuthnAcsAction
@@ -37,7 +37,11 @@ HERE = os.path.abspath(os.path.dirname(__file__))
 class EidasTests(ProofingTests[EidasApp]):
     """Base TestCase for those tests that need a full environment setup"""
 
-    def setUp(self, config: SetupConfig | None = None) -> None:
+    api_users: ClassVar[list[str]] = ["hubba-bubba", "hubba-baar"]
+    test_idp: ClassVar[str] = "https://idp.example.com/simplesaml/saml2/idp/metadata.php"
+
+    @pytest.fixture(autouse=True)
+    def setup(self, setup_api: None) -> None:
         self.test_user_eppn = "hubba-bubba"
         self.test_unverified_user_eppn = "hubba-baar"
         self.test_user_nin = NinIdentity(
@@ -63,7 +67,6 @@ class EidasTests(ProofingTests[EidasApp]):
         self.test_backdoor_nin = NinIdentity(
             number="190102031234", date_of_birth=datetime.datetime.fromisoformat("1901-02-03")
         )
-        self.test_idp = "https://idp.example.com/simplesaml/saml2/idp/metadata.php"
         self.default_redirect_url = "http://redirect.localhost/redirect"
 
         self.saml_response_tpl_success = """<?xml version='1.0' encoding='UTF-8'?>
@@ -199,10 +202,6 @@ class EidasTests(ProofingTests[EidasApp]):
   </saml2p:Status>
 </saml2p:Response>
 """
-        if config is None:
-            config = SetupConfig()
-        config.users = ["hubba-bubba", "hubba-baar"]
-        super().setUp(config=config)
 
     def load_app(self, config: Mapping[str, Any]) -> EidasApp:
         """
@@ -1546,7 +1545,7 @@ class EidasTests(ProofingTests[EidasApp]):
         )
 
 
-class RedirectWithMsgTests(TestCase):
+class RedirectWithMsgTests:
     def test_redirect_with_message(self) -> None:
         url = "https://www.exaple.com/services/eidas/?next=/authn"
         response = redirect_with_msg(url, EidasMsg.authn_context_mismatch)

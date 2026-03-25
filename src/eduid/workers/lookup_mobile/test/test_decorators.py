@@ -1,15 +1,16 @@
 __author__ = "lundberg"
 
 
+import pytest
+
 from eduid.common.config.workers import MsgConfig
-from eduid.userdb.testing import SetupConfig
 from eduid.workers.lookup_mobile.decorators import TransactionAudit
 from eduid.workers.lookup_mobile.testing import LookupMobileMongoTestCase
 
 
 class TestTransactionAudit(LookupMobileMongoTestCase):
-    def setUp(self, config: SetupConfig | None = None) -> None:
-        super().setUp(config=config)
+    @pytest.fixture(autouse=True)
+    def setup(self, setup_lookup_mobile: None) -> None:
         # need to set self.mongo_uri and db for the TransactionAudit decorator
         self.conf = MsgConfig(app_name="testing", mongo_uri=self.tmp_db.uri)
         self.db = self.tmp_db.conn["eduid_lookup_mobile"]

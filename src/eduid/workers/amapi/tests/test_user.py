@@ -3,6 +3,7 @@ __author__ = "masv"
 import datetime
 from typing import Any
 
+import pytest
 from bson import ObjectId
 from fastapi import status
 from httpx import Headers, Response
@@ -11,18 +12,14 @@ from jwcrypto import jwt
 from eduid.common.clients.gnap_client.base import GNAPBearerTokenMixin
 from eduid.userdb.fixtures.users import UserFixtures
 from eduid.userdb.meta import CleanerType
-from eduid.userdb.testing import SetupConfig
 from eduid.workers.amapi.testing import TestAMBase
 from eduid.workers.amapi.utils import AuthnBearerToken
 
 
 class TestUsers(TestAMBase, GNAPBearerTokenMixin):
-    def setUp(self, config: SetupConfig | None = None) -> None:
-        _am_users = [UserFixtures().new_user_example]
-        if config is None:
-            config = SetupConfig()
-        config.am_users = _am_users
-        super().setUp(config=config)
+    @pytest.fixture(autouse=True)
+    def setup(self, setup_ambase: None) -> None:
+        self.amdb.save(UserFixtures().new_user_example)
 
     def _make_url(self, endpoint: str | None = None) -> str:
         if endpoint is None:

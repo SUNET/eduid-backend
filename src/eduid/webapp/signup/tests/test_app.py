@@ -21,7 +21,6 @@ from eduid.userdb.credentials import Password
 from eduid.userdb.exceptions import UserOutOfSync
 from eduid.userdb.signup import Invite, InviteMailAddress, InviteType
 from eduid.userdb.signup.invite import InvitePhoneNumber, SCIMReference
-from eduid.userdb.testing import SetupConfig
 from eduid.webapp.common.api.exceptions import ProofingLogFailure
 from eduid.webapp.common.api.messages import CommonMsg, TranslatableMsg
 from eduid.webapp.common.api.testing import EduidAPITestCase
@@ -53,11 +52,7 @@ class SignupResult:
 
 
 class SignupTests(EduidAPITestCase[SignupApp], MockedScimAPIMixin):
-    def setUp(self, config: SetupConfig | None = None) -> None:
-        if config is None:
-            config = SetupConfig()
-        config.copy_user_to_private = True
-        super().setUp(config=config)
+    copy_user_to_private = True
 
     def load_app(self, config: Mapping[str, Any]) -> SignupApp:
         """

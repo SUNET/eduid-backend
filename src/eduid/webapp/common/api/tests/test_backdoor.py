@@ -1,11 +1,11 @@
 from collections.abc import Mapping
 from typing import Any
 
+import pytest
 from flask import Blueprint, abort, current_app, request
 
 from eduid.common.config.base import EduIDBaseAppConfig, EduidEnvironment, MagicCookieMixin
 from eduid.common.config.parsers import load_config
-from eduid.userdb.testing import SetupConfig
 from eduid.webapp.common.api.app import EduIDBaseApp
 from eduid.webapp.common.api.helpers import check_magic_cookie
 from eduid.webapp.common.api.testing import EduidAPITestCase
@@ -43,9 +43,8 @@ class BackdoorTestApp(EduIDBaseApp):
 
 
 class BackdoorTests(EduidAPITestCase[BackdoorTestApp]):
-    def setUp(self, config: SetupConfig | None = None) -> None:
-        super().setUp(config=config)
-
+    @pytest.fixture(autouse=True)
+    def setup(self, setup_api: None) -> None:
         self.test_get_url = "/get-code?eppn=pepin-pepon"
         self.test_app_domain = "test.localhost"
 

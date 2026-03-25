@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+import pytest
 from fido2.utils import websafe_decode
 from fido2.webauthn import (
     AuthenticatorAttachment,
@@ -18,7 +19,6 @@ from werkzeug.test import TestResponse
 from eduid.common.config.base import EduidEnvironment, FrontendAction
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.credentials import U2F, FidoCredential, Webauthn
-from eduid.userdb.testing import SetupConfig
 from eduid.webapp.common.api.schemas.authn_status import AuthnActionStatus
 from eduid.webapp.common.api.testing import CSRFTestClient, EduidAPITestCase
 from eduid.webapp.common.session import EduidSession
@@ -101,8 +101,8 @@ CREDENTIAL_ID_2 = (
 class SecurityWebauthnTests(EduidAPITestCase):
     app: SecurityApp
 
-    def setUp(self, config: SetupConfig | None = None) -> None:
-        super().setUp(config=config)
+    @pytest.fixture(autouse=True)
+    def setup(self, setup_api: None) -> None:
         # remove all FidoCredentials from the test user
         user = self.app.central_userdb.get_user_by_eppn(self.test_user_eppn)
         assert user is not None

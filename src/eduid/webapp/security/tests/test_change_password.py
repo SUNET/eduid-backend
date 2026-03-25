@@ -4,11 +4,11 @@ from http import HTTPStatus
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+import pytest
 from werkzeug.test import TestResponse
 
 from eduid.common.config.base import FrontendAction
 from eduid.userdb.credentials import Password
-from eduid.userdb.testing import SetupConfig
 from eduid.webapp.common.api.schemas.authn_status import AuthnActionStatus
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.common.api.utils import hash_password
@@ -19,14 +19,13 @@ from eduid.webapp.security.helpers import SecurityMsg
 class ChangePasswordTests(EduidAPITestCase[SecurityApp]):
     """Base TestCase for those tests that need a full environment setup"""
 
-    def setUp(self, config: SetupConfig | None = None) -> None:
+    copy_user_to_private = True
+
+    @pytest.fixture(autouse=True)
+    def setup(self, setup_api: None) -> None:
         self.test_user_eppn = "hubba-bubba"
         self.test_user_email = "johnsmith@example.com"
         self.test_user_nin = "197801011235"
-        if config is None:
-            config = SetupConfig()
-        config.copy_user_to_private = True
-        super().setUp(config=config)
 
     def load_app(self, config: Mapping[str, Any]) -> SecurityApp:
         """

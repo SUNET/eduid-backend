@@ -7,12 +7,13 @@ from __future__ import annotations
 import logging
 import logging.config
 import unittest
-from collections.abc import Sequence
+from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
 from typing import Any
 
 import pymongo
 import pymongo.errors
+import pytest
 
 from eduid.common.logging import LocalContext, make_dict_config
 from eduid.userdb import User
@@ -80,7 +81,7 @@ class SetupConfig:
     init_lookup_mobile: bool = True
 
 
-class MongoTestCase(unittest.TestCase):
+class MongoTestCase:
     """TestCase with an embedded MongoDB temporary instance.
 
     Each test runs on a temporary instance of MongoDB. The instance will
@@ -90,15 +91,8 @@ class MongoTestCase(unittest.TestCase):
     A test can access the port using the attribute `port`
     """
 
-    def setUp(self, config: SetupConfig | None = None) -> None:
-        """
-        Test case initialization.
-        :return:
-        """
-        super().setUp()
-        self.maxDiff = None
-
-        # Set up provisional logging to capture logs from test setup too
+    @pytest.fixture(autouse=True)
+    def setup_mongo(self) -> Iterator[None]:
         self._init_logging()
 
         self.tmp_db = MongoTemporaryInstance.get_instance()
@@ -108,23 +102,16 @@ class MongoTestCase(unittest.TestCase):
         logger.info("Resetting all databases for new tests")
         self._reset_databases()
 
-        mongo_settings = {
+        self.settings: dict[str, Any] = {
             "mongo_replicaset": None,
             "mongo_uri": self.tmp_db.uri,
         }
 
-        if getattr(self, "settings", None) is None:
-            self.settings = mongo_settings
-        else:
-            self.settings.update(mongo_settings)
+        yield
 
-        if config is None:
-            config = SetupConfig()
-        if config.am_users:
-            # Set up test users in the MongoDB.
-            for user in config.am_users:
-                logger.debug(f"Adding test user {user} to the database")
-                self.amdb.save(user)
+        for userdoc in self.amdb._get_all_docs():
+            assert User.from_dict(data=userdoc)
+        self._reset_databases()
 
     def _init_logging(self) -> None:
         # Only initialize logging once to avoid creating multiple handlers
@@ -152,13 +139,6 @@ class MongoTestCase(unittest.TestCase):
             if db_name not in ["local", "admin", "config"]:  # Do not drop mongo internal dbs
                 self.tmp_db.conn.drop_database(db_name)
         self.amdb._drop_whole_collection()
-
-    def tearDown(self) -> None:
-        for userdoc in self.amdb._get_all_docs():
-            assert User.from_dict(data=userdoc)
-        self._reset_databases()
-        super().tearDown()
-
 
 class AsyncMongoTestCase(unittest.IsolatedAsyncioTestCase):
     """TestCase with an embedded MongoDB temporary instance.

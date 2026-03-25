@@ -5,7 +5,7 @@ import os
 from collections.abc import Mapping
 from dataclasses import dataclass
 from http import HTTPStatus
-from typing import Any
+from typing import Any, ClassVar
 
 import pytest
 from flask import Blueprint, Response
@@ -18,7 +18,6 @@ from eduid.common.config.base import FrontendAction
 from eduid.common.config.parsers import load_config
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.models.saml2 import EduidAuthnContextClass
-from eduid.userdb.testing import SetupConfig
 from eduid.webapp.authn.app import AuthnApp, authn_init_app
 from eduid.webapp.authn.settings.common import AuthnConfig
 from eduid.webapp.common.api.testing import EduidAPITestCase
@@ -45,8 +44,8 @@ class AuthnAPITestBase(EduidAPITestCase):
 
     app: AuthnApp
 
-    def setUp(self, config: SetupConfig | None = None) -> None:
-        super().setUp(config=config)
+    @pytest.fixture(autouse=True)
+    def setup(self, setup_api: None) -> None:
         self.idp_url = "https://idp.example.com/simplesaml/saml2/idp/SSOService.php"
 
     def update_config(self, config: dict[str, Any]) -> dict[str, Any]:
@@ -248,12 +247,7 @@ class AuthnAPITestCase(AuthnAPITestBase):
     """
 
     app: AuthnApp
-
-    def setUp(self, config: SetupConfig | None = None) -> None:
-        if config is None:
-            config = SetupConfig()
-        config.users = ["hubba-bubba", "hubba-fooo"]
-        super().setUp(config=config)
+    api_users: ClassVar[list[str]] = ["hubba-bubba", "hubba-fooo"]
 
     def test_login_authn(self) -> None:
         self.authn("/authenticate", FrontendAction.LOGIN)
@@ -365,8 +359,8 @@ class NoAuthnAPITestCase(EduidAPITestCase):
 
     app: AuthnTestApp
 
-    def setUp(self, config: SetupConfig | None = None) -> None:
-        super().setUp(config=config)
+    @pytest.fixture(autouse=True)
+    def setup(self, setup_api: None) -> None:
         test_views = Blueprint("testing", __name__)
 
         @test_views.route("/test", methods=["GET"])

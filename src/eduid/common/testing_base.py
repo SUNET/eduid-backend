@@ -10,9 +10,10 @@ from datetime import UTC, datetime, timedelta
 from enum import Enum
 from typing import Any
 
+import pytest
 from bson import ObjectId
 
-from eduid.userdb.testing import MongoTestCase, SetupConfig
+from eduid.userdb.testing import MongoTestCase
 
 logger = logging.getLogger(__name__)
 
@@ -20,14 +21,11 @@ logger = logging.getLogger(__name__)
 class CommonTestCase(MongoTestCase):
     """Base Test case for eduID webapps and workers"""
 
-    def setUp(self, config: SetupConfig | None = None) -> None:
-        """
-        set up tests
-        """
+    @pytest.fixture(autouse=True)
+    def setup_common(self, setup_mongo: None) -> None:
         if "EDUID_CONFIG_YAML" not in os.environ:
             os.environ["EDUID_CONFIG_YAML"] = "YAML_CONFIG_NOT_USED"
 
-        super().setUp(config=config)
 
 
 def normalised_data[SomeData: dict[str, Any] | list[Any]](

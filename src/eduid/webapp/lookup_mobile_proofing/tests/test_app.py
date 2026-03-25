@@ -1,14 +1,15 @@
 import json
 from collections.abc import Mapping
 from datetime import timedelta
-from typing import Any
+from typing import Any, ClassVar
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 from eduid.common.config.base import EduidEnvironment
 from eduid.common.misc.timeutil import utc_now
 from eduid.common.rpc.exceptions import LookupMobileTaskFailed
 from eduid.userdb import User
-from eduid.userdb.testing import SetupConfig
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.lookup_mobile_proofing.app import MobileProofingApp, init_lookup_mobile_proofing_app
 from eduid.webapp.lookup_mobile_proofing.helpers import MobileMsg
@@ -19,16 +20,14 @@ __author__ = "lundberg"
 class LookupMobileProofingTests(EduidAPITestCase[MobileProofingApp]):
     """Base TestCase for those tests that need a full environment setup"""
 
-    def setUp(self, config: SetupConfig | None = None) -> None:
+    api_users: ClassVar[list[str]] = ["hubba-baar"]
+
+    @pytest.fixture(autouse=True)
+    def setup(self, setup_api: None) -> None:
         self.test_user_eppn = "hubba-baar"
         self.test_user_nin = "199001023456"
         fifteen_years_ago = utc_now() - timedelta(days=15 * 365)
         self.test_user_nin_underage = f"{fifteen_years_ago.year}01023456"
-
-        if config is None:
-            config = SetupConfig()
-        config.users = ["hubba-baar"]
-        super().setUp(config=config)
 
     def load_app(self, config: Mapping[str, Any]) -> MobileProofingApp:
         """

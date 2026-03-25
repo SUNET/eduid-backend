@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
+import pytest
 from bson import ObjectId
 from requests import RequestException
 from saml2.client import Saml2Client
@@ -669,8 +670,8 @@ class IdPTestLoginAPI(IdPAPITests):
 
 
 class IdPTestLoginAPIManagedAccounts(IdPAPITests):
-    def setUp(self, *args: Any, **kwargs: Any) -> None:
-        super().setUp(*args, **kwargs)
+    @pytest.fixture(autouse=True)
+    def setup_managed_accounts(self, setup_api: None) -> None:
         self.test_eppn = "ma-12345678"
         managed_account = self._create_managed_account_user(eppn=self.test_eppn)
         self.default_user = TestUser(eppn=managed_account.eppn, password="secret")

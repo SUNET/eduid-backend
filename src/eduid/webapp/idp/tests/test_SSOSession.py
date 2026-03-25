@@ -1,18 +1,18 @@
 from datetime import UTC, datetime
 
+import pytest
 from bson import ObjectId
 
 from eduid.common.testing_base import normalised_data
 from eduid.userdb.element import ElementKey
-from eduid.userdb.testing import SetupConfig
 from eduid.webapp.idp.idp_authn import AuthnData
 from eduid.webapp.idp.sso_session import SSOSession
 from eduid.webapp.idp.tests.test_api import IdPAPITests
 
 
 class test_SSOSession(IdPAPITests):
-    def setUp(self, config: SetupConfig | None = None) -> None:
-        super().setUp(config=config)
+    @pytest.fixture(autouse=True)
+    def setup(self, setup_api: None) -> None:
         self.data = {
             "_id": ObjectId("5fcde44d56cf512b51f1ac4e"),
             "session_id": "ZjYzOTcwNWItYzUyOS00M2U1LWIxODQtODMxYTJhZjQ0YzA1",

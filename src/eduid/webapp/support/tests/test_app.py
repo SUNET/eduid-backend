@@ -2,8 +2,9 @@ from collections.abc import Mapping
 from http import HTTPStatus
 from typing import Any
 
+import pytest
+
 from eduid.common.config.base import FrontendAction
-from eduid.userdb.testing import SetupConfig
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.support.app import SupportApp, support_init_app
 
@@ -15,9 +16,8 @@ class SupportAppTests(EduidAPITestCase):
 
     app: SupportApp
 
-    def setUp(self, config: SetupConfig | None = None) -> None:
-        super().setUp(config=config)
-
+    @pytest.fixture(autouse=True)
+    def setup(self, setup_api: None) -> None:
         self.test_user_eppn = "hubba-bubba"
         self.client = self.app.test_client()
         self.update_test_user()

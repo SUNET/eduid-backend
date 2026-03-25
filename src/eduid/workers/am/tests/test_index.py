@@ -1,19 +1,15 @@
 __author__ = "lundberg"
 
-import unittest
+import pytest
 
 from eduid.userdb import UserDB
-from eduid.userdb.testing import SetupConfig
 from eduid.workers.am.testing import AMTestCase
 
 # TODO: tbd: fix or remove as it is not working yet
 
 
-@unittest.skip("Not working yet")
+@pytest.mark.skip("Not working yet")
 class TestIndexes(AMTestCase):
-    def setUp(self, config: SetupConfig | None = None) -> None:
-        super().setUp(config=config)
-
     def test_index_setup(self) -> None:
         indexes = {
             # 'index-name': {'key': [('key', 1)], 'param1': True, 'param2': False}

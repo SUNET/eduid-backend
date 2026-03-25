@@ -1,11 +1,14 @@
+from collections.abc import Iterator
 from datetime import timedelta
 from typing import Any, NoReturn, cast
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb.credentials.password import Password
 from eduid.userdb.fixtures.users import UserFixtures
-from eduid.userdb.testing import MongoTestCase, SetupConfig
+from eduid.userdb.testing import MongoTestCase
 from eduid.userdb.user import User
 from eduid.vccs.client import VCCSClient, VCCSClientHTTPError
 from eduid.webapp.common.authn import vccs as vccs_module
@@ -16,11 +19,9 @@ from eduid.webapp.common.authn.vccs import CheckPasswordResult
 class VCCSTestCase(MongoTestCase):
     user: User
 
-    def setUp(self, config: SetupConfig | None = None) -> None:
-        if config is None:
-            config = SetupConfig()
-        config.am_users = [UserFixtures().new_user_example]
-        super().setUp(config=config)
+    @pytest.fixture(autouse=True)
+    def setup(self, setup_mongo: None) -> Iterator[None]:
+        self.amdb.save(UserFixtures().new_user_example)
         self.vccs_client = cast(VCCSClient, MockVCCSClient())
         _user = self.amdb.get_user_by_mail("johnsmith@example.com")
         assert _user is not None
@@ -31,9 +32,9 @@ class VCCSTestCase(MongoTestCase):
             self.user.credentials.remove(credential.key)
         vccs_module.add_password(self.user, new_password="abcd", application="test", vccs=self.vccs_client)
 
-    def tearDown(self) -> None:
+        yield
+
         vccs_module.revoke_passwords(self.user, reason="testing", application="test", vccs=self.vccs_client)
-        super().tearDown()
 
     def _check_credentials(self, creds: str, upgrade_v2: bool = False) -> CheckPasswordResult | None:
         return vccs_module.check_password(

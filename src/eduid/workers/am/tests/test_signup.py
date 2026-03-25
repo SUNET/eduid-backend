@@ -1,4 +1,5 @@
 from copy import deepcopy
+from typing import Any, ClassVar
 
 import bson
 import pytest
@@ -8,7 +9,6 @@ from eduid.common.testing_base import normalised_data
 from eduid.userdb.exceptions import UserDoesNotExist
 from eduid.userdb.fixtures.users import UserFixtures
 from eduid.userdb.signup import SignupUser
-from eduid.userdb.testing import SetupConfig
 from eduid.userdb.user import User
 from eduid.workers.am.common import AmCelerySingleton
 from eduid.workers.am.testing import USER_DATA, AMTestCase
@@ -16,15 +16,12 @@ from eduid.workers.am.testing import USER_DATA, AMTestCase
 
 class AttributeFetcherTests(AMTestCase):
     user: User
+    am_extra_settings: ClassVar[dict[str, Any]] = {"new_user_date": "2001-01-01"}
 
-    def setUp(self, config: SetupConfig | None = None) -> None:
-        am_settings = {"new_user_date": "2001-01-01"}
+    @pytest.fixture(autouse=True)
+    def setup(self, setup_am: None) -> None:
         self.user = UserFixtures().mocked_user_standard
-        if config is None:
-            config = SetupConfig()
-        config.am_users = [self.user]
-        config.am_settings = am_settings
-        super().setUp(config=config)
+        self.amdb.save(self.user)
 
         self.fetcher = AmCelerySingleton.af_registry.get_fetcher("eduid_signup")
 

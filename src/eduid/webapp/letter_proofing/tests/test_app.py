@@ -1,16 +1,16 @@
 import json
 from collections.abc import Mapping
 from datetime import datetime, timedelta
-from typing import Any, AnyStr
+from typing import Any, AnyStr, ClassVar
 from unittest.mock import MagicMock, Mock, patch
 
+import pytest
 from werkzeug.test import TestResponse
 
 from eduid.common.config.base import EduidEnvironment
 from eduid.userdb import NinIdentity
 from eduid.userdb.element import ElementKey
 from eduid.userdb.identity import IdentityType
-from eduid.userdb.testing import SetupConfig
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.letter_proofing.app import LetterProofingApp, init_letter_proofing_app
 from eduid.webapp.letter_proofing.helpers import LetterMsg
@@ -21,15 +21,14 @@ __author__ = "lundberg"
 class LetterProofingTests(EduidAPITestCase[LetterProofingApp]):
     """Base TestCase for those tests that need a full environment setup"""
 
-    def setUp(self, config: SetupConfig | None = None) -> None:
+    api_users: ClassVar[list[str]] = ["hubba-baar"]
+
+    @pytest.fixture(autouse=True)
+    def setup(self, setup_api: None) -> None:
         self.test_user_eppn = "hubba-baar"
         self.test_user_nin = "200001023456"
         self.test_old_user_nin = "199909096789"
         self.test_user_wrong_nin = "190001021234"
-        if config is None:
-            config = SetupConfig()
-        config.users = ["hubba-baar"]
-        super().setUp(config=config)
 
     @staticmethod
     def mock_response(

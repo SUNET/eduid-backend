@@ -4,6 +4,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+import pytest
 from werkzeug.test import TestResponse
 
 from eduid.common.config.base import FrontendAction
@@ -19,9 +20,8 @@ from eduid.webapp.security.helpers import SecurityMsg
 
 
 class SecurityTests(EduidAPITestCase[SecurityApp]):
-    def setUp(self, *args: Any, **kwargs: Any) -> None:
-        super().setUp(*args, **kwargs)
-
+    @pytest.fixture(autouse=True)
+    def setup(self, setup_api: None) -> None:
         self.test_user_eppn = "hubba-bubba"
         self.test_user_nin = "197801011235"
 

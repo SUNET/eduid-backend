@@ -1,11 +1,12 @@
-from eduid.userdb.testing import SetupConfig
+import pytest
+
 from eduid.workers.msg.decorators import TransactionAudit
 from eduid.workers.msg.testing import MsgMongoTestCase
 
 
 class TestTransactionAudit(MsgMongoTestCase):
-    def setUp(self, config: SetupConfig | None = None) -> None:
-        super().setUp(config=config)
+    @pytest.fixture(autouse=True)
+    def setup(self, setup_msg: None) -> None:
         assert self.msg_settings.mongo_uri
         TransactionAudit.enable(self.msg_settings.mongo_uri, db_name="test")
 

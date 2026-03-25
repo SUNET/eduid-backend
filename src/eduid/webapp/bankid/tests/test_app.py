@@ -2,12 +2,13 @@ import base64
 import datetime
 import logging
 import os
-import unittest
 from collections.abc import Mapping
 from datetime import timedelta
 from http import HTTPStatus
-from typing import Any
+from typing import Any, ClassVar
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 from eduid.common.config.base import EduidEnvironment, FrontendAction
 from eduid.common.misc.timeutil import utc_now
@@ -15,7 +16,6 @@ from eduid.userdb import NinIdentity
 from eduid.userdb.credentials.external import BankIDCredential, SwedenConnectCredential
 from eduid.userdb.element import ElementKey
 from eduid.userdb.identity import IdentityProofingMethod
-from eduid.userdb.testing import SetupConfig
 from eduid.webapp.bankid.app import BankIDApp, init_bankid_app
 from eduid.webapp.bankid.helpers import BankIDMsg
 from eduid.webapp.common.api.messages import AuthnStatusMsg, TranslatableMsg
@@ -36,7 +36,11 @@ HERE = os.path.abspath(os.path.dirname(__file__))
 class BankIDTests(ProofingTests[BankIDApp]):
     """Base TestCase for those tests that need a full environment setup"""
 
-    def setUp(self, config: SetupConfig | None = None) -> None:
+    api_users: ClassVar[list[str]] = ["hubba-bubba", "hubba-baar"]
+    test_idp: ClassVar[str] = "https://idp.example.com/simplesaml/saml2/idp/metadata.php"
+
+    @pytest.fixture(autouse=True)
+    def setup(self, setup_api: None) -> None:
         self.test_user_eppn = "hubba-bubba"
         self.test_unverified_user_eppn = "hubba-baar"
         self.test_user_nin = NinIdentity(
@@ -48,7 +52,6 @@ class BankIDTests(ProofingTests[BankIDApp]):
         self.test_backdoor_nin = NinIdentity(
             number="190102031234", date_of_birth=datetime.datetime.fromisoformat("1901-02-03")
         )
-        self.test_idp = "https://idp.example.com/simplesaml/saml2/idp/metadata.php"
         self.default_redirect_url = "http://redirect.localhost/redirect"
         self.saml_response_tpl_success = """<?xml version="1.0"?>
 <samlp:Response xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion" xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" Destination="{sp_url}saml2-acs" ID="id-88b9f586a2a3a639f9327485cc37c40a" InResponseTo="{session_id}" IssueInstant="{timestamp}" Version="2.0">
@@ -117,11 +120,6 @@ class BankIDTests(ProofingTests[BankIDApp]):
     <saml2p:StatusMessage>The login attempt was cancelled</saml2p:StatusMessage>
   </saml2p:Status>
 </saml2p:Response>"""
-
-        if config is None:
-            config = SetupConfig()
-        config.users = ["hubba-bubba", "hubba-baar"]
-        super().setUp(config=config)
 
     def load_app(self, config: Mapping[str, Any]) -> BankIDApp:
         """
@@ -675,7 +673,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
 
         self._verify_user_parameters(eppn)
 
-    @unittest.skip("No support for magic cookie yet")
+    @pytest.mark.skip(reason="No support for magic cookie yet")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_webauthn_token_verify_backdoor(self, mock_request_user_sync: MagicMock) -> None:
         mock_request_user_sync.side_effect = self.request_user_sync
@@ -829,7 +827,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
             eppn, num_mfa_tokens=0, identity_verified=True, num_proofings=1, locked_identity=user.identities.nin
         )
 
-    @unittest.skip("No support for magic cookie yet")
+    @pytest.mark.skip(reason="No support for magic cookie yet")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_mfa_login_backdoor(self, mock_request_user_sync: MagicMock) -> None:
         mock_request_user_sync.side_effect = self.request_user_sync
@@ -857,7 +855,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
 
         self._verify_user_parameters(eppn, num_mfa_tokens=0, identity_verified=True, num_proofings=0)
 
-    @unittest.skip("No support for magic cookie yet")
+    @pytest.mark.skip(reason="No support for magic cookie yet")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_nin_verify_backdoor(self, mock_request_user_sync: MagicMock) -> None:
         mock_request_user_sync.side_effect = self.request_user_sync
@@ -880,7 +878,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
 
         self._verify_user_parameters(eppn, num_mfa_tokens=0, identity=nin, identity_verified=True, num_proofings=1)
 
-    @unittest.skip("No support for magic cookie yet")
+    @pytest.mark.skip(reason="No support for magic cookie yet")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_nin_verify_no_backdoor_in_pro(self, mock_request_user_sync: MagicMock) -> None:
         mock_request_user_sync.side_effect = self.request_user_sync
@@ -908,7 +906,7 @@ class BankIDTests(ProofingTests[BankIDApp]):
             eppn, identity=self.test_user_nin, num_mfa_tokens=0, num_proofings=1, identity_verified=True
         )
 
-    @unittest.skip("No support for magic cookie yet")
+    @pytest.mark.skip(reason="No support for magic cookie yet")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
     def test_nin_verify_no_backdoor_misconfigured(self, mock_request_user_sync: MagicMock) -> None:
         mock_request_user_sync.side_effect = self.request_user_sync

@@ -4,21 +4,19 @@ from collections.abc import Mapping
 from pathlib import PurePath
 from typing import Any, cast
 
+import pytest
+
 from eduid.common.config.parsers import load_config
 from eduid.common.testing_base import normalised_data
-from eduid.userdb.testing import SetupConfig
 from eduid.webapp.common.api.testing import CSRFTestClient, EduidAPITestCase
 from eduid.webapp.jsconfig.app import JSConfigApp, jsconfig_init_app
 from eduid.webapp.jsconfig.settings.common import JSConfigConfig
 
 
 class JSConfigTests(EduidAPITestCase[JSConfigApp]):
-    def setUp(self, config: SetupConfig | None = None) -> None:
+    @pytest.fixture(autouse=True)
+    def setup(self, setup_api: None) -> None:
         self.data_dir = str(PurePath(__file__).with_name("data"))
-        if config is None:
-            config = SetupConfig()
-        config.copy_user_to_private = False
-        super().setUp(config=config)
 
     def load_app(self, config: Mapping[str, Any]) -> JSConfigApp:
         """

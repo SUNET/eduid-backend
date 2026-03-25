@@ -11,17 +11,12 @@ from eduid.common.misc.timeutil import utc_now
 from eduid.userdb import User
 from eduid.userdb.mail import MailAddress
 from eduid.userdb.proofing import EmailProofingElement, EmailProofingState
-from eduid.userdb.testing import SetupConfig
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.email.app import EmailApp, email_init_app
 
 
 class EmailTests(EduidAPITestCase[EmailApp]):
-    def setUp(self, config: SetupConfig | None = None) -> None:
-        if config is None:
-            config = SetupConfig()
-        config.copy_user_to_private = True
-        super().setUp(config=config)
+    copy_user_to_private = True
 
     def load_app(self, config: Mapping[str, Any]) -> EmailApp:
         """
