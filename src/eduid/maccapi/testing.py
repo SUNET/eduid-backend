@@ -1,8 +1,9 @@
 import os
-import unittest
+from collections.abc import Iterator
 from pathlib import Path
 from typing import Any, cast
 
+import pytest
 from starlette.testclient import TestClient
 
 from eduid.common.config.parsers import load_config
@@ -14,18 +15,15 @@ from eduid.vccs.client import VCCSClient
 from eduid.webapp.common.authn.testing import MockVCCSClient
 
 
-class BaseDBTestCase(unittest.TestCase):
+class BaseDBTestCase:
     """
     Base test case that sets up a temporary database for testing.
     """
 
-    mongodb_instance: MongoTemporaryInstance
-    mongo_uri: str
-
-    @classmethod
-    def setUpClass(cls) -> None:
-        cls.mongodb_instance = MongoTemporaryInstance.get_instance()
-        cls.mongo_uri = cls.mongodb_instance.uri
+    @pytest.fixture(autouse=True)
+    def setup_db(self) -> None:
+        self.mongodb_instance = MongoTemporaryInstance.get_instance()
+        self.mongo_uri = self.mongodb_instance.uri
 
     def _get_config(self) -> dict[str, Any]:
         config = {
@@ -51,11 +49,8 @@ class MAccApiTestCase(BaseDBTestCase):
     Base class for tests of the MAcc API.
     """
 
-    @classmethod
-    def setUpClass(cls) -> None:
-        return super().setUpClass()
-
-    def setUp(self) -> None:
+    @pytest.fixture(autouse=True)
+    def setup_maccapi(self, setup_db: None) -> Iterator[None]:
         if "EDUID_CONFIG_YAML" not in os.environ:
             os.environ["EDUID_CONFIG_YAML"] = "YAML_CONFIG_NOT_USED"
 
@@ -74,14 +69,14 @@ class MAccApiTestCase(BaseDBTestCase):
             "Accept": "application/json",
         }
 
-    def _get_config(self) -> dict:
+        yield
+
+        if self.db:
+            self.db._drop_whole_collection()
+
+    def _get_config(self) -> dict[str, Any]:
         config = super()._get_config()
         config["keystore_path"] = f"{self.datadir}/testing_jwks.json"
         config["signing_key_id"] = "testing-maccapi-2106210000"
         config["authorization_mandatory"] = False
         return config
-
-    def tearDown(self) -> None:
-        super().tearDown()
-        if self.db:
-            self.db._drop_whole_collection()
