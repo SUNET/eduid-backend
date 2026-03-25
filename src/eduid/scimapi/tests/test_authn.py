@@ -142,7 +142,7 @@ class TestAuthnBearerToken(BaseDBTestCase):
 
     def test_invalid_requested_access_scope(self) -> None:
         # test too short domain name
-        with pytest.raises(ValueError) as exc_info:
+        with pytest.raises(ValidationError) as exc_info:
             AuthnBearerToken(
                 config=self.config,
                 version=1,
@@ -150,7 +150,6 @@ class TestAuthnBearerToken(BaseDBTestCase):
                 requested_access=[RequestedAccess(type=self.config.requested_access_type, scope=".se")],
                 auth_source=AuthSource.CONFIG,
             )
-        assert isinstance(exc_info.value, ValidationError)
         assert normalised_data(exc_info.value.errors(), exclude_keys=["url"]) == normalised_data(
             [
                 {
@@ -167,7 +166,7 @@ class TestAuthnBearerToken(BaseDBTestCase):
         """Test with a 'requested_access' field with the wrong 'type' value."""
         domain = "eduid.se"
         # test no canonization
-        with pytest.raises(ValueError) as exc_info:
+        with pytest.raises(ValidationError) as exc_info:
             AuthnBearerToken(
                 config=self.config,
                 version=1,
@@ -175,7 +174,6 @@ class TestAuthnBearerToken(BaseDBTestCase):
                 requested_access=[RequestedAccess(type="someone else", scope=domain)],
                 auth_source=AuthSource.CONFIG,
             )
-        assert isinstance(exc_info.value, ValidationError)
         assert normalised_data(exc_info.value.errors(), exclude_keys=["url"]) == normalised_data(
             [
                 {
