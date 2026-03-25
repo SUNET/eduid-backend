@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 class TestGroupDB(ScimApiTestCase):
     @pytest.fixture(autouse=True)
-    def setup(self) -> Iterator[None]:
+    def setup(self, scimapi_setup: None) -> Iterator[None]:
         self.test_config = self._get_config()
         config = load_config(typ=ScimApiConfig, app_name="scimapi", ns="api", test_config=self.test_config)
         self.context = Context(config=config)

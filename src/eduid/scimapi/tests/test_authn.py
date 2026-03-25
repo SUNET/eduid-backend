@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 class TestAuthnBearerToken(BaseDBTestCase):
     @pytest.fixture(autouse=True)
-    def setup(self) -> None:
+    def setup(self, setup_mongo: None) -> None:
         if "EDUID_CONFIG_YAML" not in os.environ:
             os.environ["EDUID_CONFIG_YAML"] = "YAML_CONFIG_NOT_USED"
 

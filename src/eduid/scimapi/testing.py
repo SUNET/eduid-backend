@@ -90,7 +90,7 @@ class ScimApiTestCase(MongoNeoTestCase):
     """Base test case providing the real API"""
 
     @pytest.fixture(autouse=True)
-    def scimapi_setup(self) -> Iterator[None]:
+    def scimapi_setup(self, setup_mongo: None, setup_neo4j: None) -> Iterator[None]:
         if "EDUID_CONFIG_YAML" not in os.environ:
             os.environ["EDUID_CONFIG_YAML"] = "YAML_CONFIG_NOT_USED"
 

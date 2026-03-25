@@ -25,7 +25,7 @@ class EventApiResult:
 
 class TestEventResource(ScimApiTestCase):
     @pytest.fixture(autouse=True)
-    def setup(self) -> Iterator[None]:
+    def setup(self, scimapi_setup: None) -> Iterator[None]:
         yield
         assert self.eventdb
         self.eventdb._drop_whole_collection()

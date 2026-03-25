@@ -25,7 +25,7 @@ class JobRunnerStatusTestCase:
         }
 
     @pytest.fixture(autouse=True)
-    def setup(self) -> None:
+    def setup(self, setup_mongodb: None) -> None:
         if "EDUID_CONFIG_YAML" not in os.environ:
             os.environ["EDUID_CONFIG_YAML"] = "YAML_CONFIG_NOT_USED"
         os.environ["WORKER_NAME"] = "test_worker"

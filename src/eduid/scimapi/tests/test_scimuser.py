@@ -183,7 +183,7 @@ class UserApiResult:
 
 class ScimApiTestUserResourceBase(ScimApiTestCase):
     @pytest.fixture(autouse=True)
-    def setup(self) -> None:
+    def setup(self, scimapi_setup: None) -> None:
         self.test_profile = ScimApiProfile(attributes={"displayName": "Test User 1"}, data={"test_key": "test_value"})
         self.test_profile2 = ScimApiProfile(
             attributes={"displayName": "Test User 2"}, data={"another_test_key": "another_test_value"}
@@ -865,7 +865,7 @@ class TestUserResource(ScimApiTestUserResourceBase):
 
 class TestAsyncUserResource(ScimApiTestCase):
     @pytest.fixture(autouse=True)
-    def setup(self) -> None:
+    def setup(self, scimapi_setup: None) -> None:
         self.async_client = AsyncClient(transport=ASGITransport(app=self.api), base_url="http://testserver")
         # create users
         self.user_count = 10

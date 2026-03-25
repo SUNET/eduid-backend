@@ -56,7 +56,7 @@ class TestSCIMGroup(TestScimBase):
 
 class TestGroupResource(ScimApiTestCase):
     @pytest.fixture(autouse=True)
-    def setup(self) -> Iterator[None]:
+    def setup(self, scimapi_setup: None) -> Iterator[None]:
         self.groupdb = self.context.get_groupdb("eduid.se")
         yield
         assert self.groupdb
