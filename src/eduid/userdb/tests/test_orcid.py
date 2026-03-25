@@ -1,5 +1,3 @@
-import unittest
-
 import pytest
 from pydantic import ValidationError
 
@@ -34,8 +32,7 @@ token_response = {
 }
 
 
-class TestOrcid(unittest.TestCase):
-    maxDiff = None
+class TestOrcid:
 
     def test_id_token(self) -> None:
         assert isinstance(token_response["id_token"], dict)

@@ -1,4 +1,3 @@
-import unittest
 from collections import OrderedDict
 from collections.abc import Mapping
 from io import BytesIO, StringIO
@@ -18,7 +17,7 @@ from eduid.webapp.letter_proofing.app import LetterProofingApp, init_letter_proo
 __author__ = "lundberg"
 
 
-class FormatAddressTest(unittest.TestCase):
+class FormatAddressTest:
     def test_successful_format(self) -> None:
         navet_responses = [
             OrderedDict(

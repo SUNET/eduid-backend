@@ -1,9 +1,7 @@
-import unittest
-
 from eduid.webapp.orcid.helpers import OrcidMsg
 
 
-class MessagesTests(unittest.TestCase):
+class MessagesTests:
     def test_messages(self) -> None:
         """"""
         assert OrcidMsg.already_connected.value == "orc.already_connected"

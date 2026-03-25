@@ -1,10 +1,8 @@
-import unittest
-
 from eduid.webapp.common.authn.cache import IdentityCache, OutstandingQueriesCache, SessionCacheAdapter
 from eduid.webapp.common.session.namespaces import AuthnRequestRef, PySAML2Dicts
 
 
-class SessionCacheAdapterTests(unittest.TestCase):
+class SessionCacheAdapterTests:
     def test_init(self) -> None:
         backend = PySAML2Dicts({"unrelated": {"foo": "bar"}})
         psca = SessionCacheAdapter[str](backend, "saml2")
@@ -38,7 +36,7 @@ class SessionCacheAdapterTests(unittest.TestCase):
         assert psca["onekey"] == "onevalue"
 
 
-class OutstandingQueriesCacheTests(unittest.TestCase):
+class OutstandingQueriesCacheTests:
     def test_init(self) -> None:
         fake_session_dict = PySAML2Dicts(
             {
@@ -73,7 +71,7 @@ class OutstandingQueriesCacheTests(unittest.TestCase):
         assert oqc.outstanding_queries() == {}
 
 
-class IdentityCacheTests(unittest.TestCase):
+class IdentityCacheTests:
     def test_init(self) -> None:
         ic = IdentityCache(PySAML2Dicts({}))
 

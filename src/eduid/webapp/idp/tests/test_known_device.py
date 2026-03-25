@@ -1,4 +1,3 @@
-import unittest
 from datetime import timedelta
 from uuid import UUID
 
@@ -14,7 +13,7 @@ from eduid.webapp.idp.known_device import BrowserDeviceInfo, KnownDevice, KnownD
 from eduid.webapp.idp.tests.test_api import IdPAPITests
 
 
-class TestBrowserDeviceInfo(unittest.TestCase):
+class TestBrowserDeviceInfo:
     app_secret_box = SecretBox(
         nacl.encoding.URLSafeBase64Encoder.decode(b"TfRW-RFFk-8MFAXkOpBEfa1p9aObAavTiEGGX1P96og=")
     )
@@ -76,7 +75,7 @@ class TestBrowserDeviceInfo(unittest.TestCase):
         assert str(first) == "<BrowserDeviceInfo: public[8]='8MOF0Zln', state_id[8]='bac35b64'>"
 
 
-class TestKnownDevice(unittest.TestCase):
+class TestKnownDevice:
     app_secret_box = SecretBox(
         nacl.encoding.URLSafeBase64Encoder.decode(b"TfRW-RFFk-8MFAXkOpBEfa1p9aObAavTiEGGX1P96og=")
     )

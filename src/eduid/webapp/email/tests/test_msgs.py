@@ -1,9 +1,7 @@
-import unittest
-
 from eduid.webapp.email.helpers import EmailMsg
 
 
-class MessagesTests(unittest.TestCase):
+class MessagesTests:
     def test_messages(self) -> None:
         """"""
         assert EmailMsg.missing.value == "emails.missing"
