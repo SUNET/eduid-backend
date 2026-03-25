@@ -12,9 +12,9 @@ from eduid.workers.job_runner.app import init_app
 class JobRunnerStatusTestCase:
     mongodb_instance: MongoTemporaryInstance
 
-    @pytest.fixture(scope="class", autouse=True)
+    @pytest.fixture(autouse=True)
     def setup_mongodb(self) -> None:
-        type(self).mongodb_instance = MongoTemporaryInstance.get_instance()
+        self.mongodb_instance = MongoTemporaryInstance.get_instance()
 
     def _get_config(self) -> dict[str, Any]:
         return {

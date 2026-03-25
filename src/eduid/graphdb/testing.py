@@ -125,10 +125,10 @@ class Neo4jTestCase:
     neo4j_instance: Neo4jTemporaryInstance
     neo4jdb: Neo4jDB
 
-    @pytest.fixture(scope="class", autouse=True)
+    @pytest.fixture(autouse=True)
     def setup_neo4j(self) -> None:
-        type(self).neo4j_instance = Neo4jTemporaryInstance.get_instance(max_retry_seconds=60)
-        type(self).neo4jdb = type(self).neo4j_instance.conn
+        self.neo4j_instance = Neo4jTemporaryInstance.get_instance(max_retry_seconds=60)
+        self.neo4jdb = self.neo4j_instance.conn
 
     @pytest.fixture(autouse=True)
     def purge_db(self) -> Iterator[None]:

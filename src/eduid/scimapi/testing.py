@@ -38,10 +38,10 @@ class BaseDBTestCase:
     mongodb_instance: MongoTemporaryInstance
     mongo_uri: str
 
-    @pytest.fixture(scope="class", autouse=True)
+    @pytest.fixture(autouse=True)
     def setup_mongo(self) -> None:
-        type(self).mongodb_instance = MongoTemporaryInstance.get_instance()
-        type(self).mongo_uri = type(self).mongodb_instance.uri
+        self.mongodb_instance = MongoTemporaryInstance.get_instance()
+        self.mongo_uri = self.mongodb_instance.uri
 
     def _get_config(self) -> dict[str, Any]:
         config = {
@@ -77,12 +77,12 @@ class MongoNeoTestCase(BaseDBTestCase):
         )
         return config
 
-    @pytest.fixture(scope="class", autouse=True)
+    @pytest.fixture(autouse=True)
     def setup_neo4j(self) -> None:
-        type(self).neo4j_instance = Neo4jTemporaryInstance.get_instance()
-        type(self).neo4j_uri = (
-            f"bolt://{type(self).neo4j_instance.DEFAULT_USERNAME}:{type(self).neo4j_instance.DEFAULT_PASSWORD}"
-            f"@localhost:{type(self).neo4j_instance.bolt_port}"
+        self.neo4j_instance = Neo4jTemporaryInstance.get_instance()
+        self.neo4j_uri = (
+            f"bolt://{self.neo4j_instance.DEFAULT_USERNAME}:{self.neo4j_instance.DEFAULT_PASSWORD}"
+            f"@localhost:{self.neo4j_instance.bolt_port}"
         )
 
 
