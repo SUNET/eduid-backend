@@ -277,6 +277,7 @@ class SamlEidTests(ProofingTests[SamlEidApp]):
   </saml2p:Status>
 </saml2p:Response>
 """
+
     def load_app(self, config: Mapping[str, Any]) -> SamlEidApp:
         """
         Called from the parent class, so we can provide the appropriate flask
@@ -762,7 +763,9 @@ class NINMethodTests(SamlEidTests):
 
     @pytest.mark.parametrize("mc", [FREJA, BANKID])
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_webauthn_token_verify_signup_authn_token_to_old(self, mock_request_user_sync: MagicMock, mc: MethodConfig) -> None:
+    def test_webauthn_token_verify_signup_authn_token_to_old(
+        self, mock_request_user_sync: MagicMock, mc: MethodConfig
+    ) -> None:
         mock_request_user_sync.side_effect = self.request_user_sync
 
         eppn = self.test_user.eppn
@@ -996,9 +999,7 @@ class NINMethodTests(SamlEidTests):
                 response_template=self.success_response_template(mc),
             )
 
-        self._verify_user_parameters(
-            eppn, identity=nin, identity_verified=True, token_verified=True, num_proofings=2
-        )
+        self._verify_user_parameters(eppn, identity=nin, identity_verified=True, token_verified=True, num_proofings=2)
 
     @pytest.mark.parametrize("mc", [FREJA, BANKID])
     @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
@@ -1047,7 +1048,9 @@ class NINMethodTests(SamlEidTests):
     @pytest.mark.parametrize("mc", [FREJA, BANKID])
     @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_nin_verify_signup_auth(self, mock_request_user_sync: MagicMock, mock_reference_nin: MagicMock, mc: MethodConfig) -> None:
+    def test_nin_verify_signup_auth(
+        self, mock_request_user_sync: MagicMock, mock_reference_nin: MagicMock, mc: MethodConfig
+    ) -> None:
         mock_request_user_sync.side_effect = self.request_user_sync
         mock_reference_nin.return_value = None
 
@@ -1197,7 +1200,9 @@ class NINMethodTests(SamlEidTests):
     @pytest.mark.parametrize("mc", [FREJA, BANKID])
     @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")
     @patch("eduid.common.rpc.am_relay.AmRelay.request_user_sync")
-    def test_nin_verify_backdoor(self, mock_request_user_sync: MagicMock, mock_reference_nin: MagicMock, mc: MethodConfig) -> None:
+    def test_nin_verify_backdoor(
+        self, mock_request_user_sync: MagicMock, mock_reference_nin: MagicMock, mc: MethodConfig
+    ) -> None:
         mock_request_user_sync.side_effect = self.request_user_sync
         mock_reference_nin.return_value = None
 
@@ -1219,9 +1224,7 @@ class NINMethodTests(SamlEidTests):
                 response_template=self.success_response_template(mc),
             )
 
-        self._verify_user_parameters(
-            eppn, num_mfa_tokens=0, identity=nin, identity_verified=True, num_proofings=1
-        )
+        self._verify_user_parameters(eppn, num_mfa_tokens=0, identity=nin, identity_verified=True, num_proofings=1)
 
     @pytest.mark.parametrize("mc", [FREJA, BANKID])
     @patch("eduid.webapp.common.api.helpers.get_reference_nin_from_navet_data")

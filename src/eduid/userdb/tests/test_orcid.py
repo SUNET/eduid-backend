@@ -33,7 +33,6 @@ token_response = {
 
 
 class TestOrcid:
-
     def test_id_token(self) -> None:
         assert isinstance(token_response["id_token"], dict)
         id_token_data = token_response["id_token"]
