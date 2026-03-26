@@ -110,8 +110,7 @@ class EduidTemporaryInstance(ABC):
         if getattr(self, "_shutdown_done", False):
             return  # atexit and fixture teardown both call shutdown(); only run once
         self._shutdown_done = True
-        if logger.handlers:
-            logger.debug(f"{self} output at shutdown:\n{self.output}")
+        logger.debug(f"{self} shutting down (log at {self._logfile.name})")
         if self._process:
             # Get container name from command
             container_name = None
@@ -124,12 +123,15 @@ class EduidTemporaryInstance(ABC):
                 # Stop the container - docker stop handles graceful shutdown with SIGTERM
                 subprocess.run(["docker", "stop", "-t", "1", container_name], check=False, capture_output=True)
 
-                # Wait for the docker run process to exit (it should exit when container stops)
+                # The container is now dead. Terminate the docker run process directly —
+                # it should exit on its own with --rm but sometimes lingers, causing a
+                # 10s stall if we rely solely on process.wait(timeout=10).
+                self._process.terminate()
                 try:
-                    self._process.wait(timeout=10)
+                    self._process.wait(timeout=3)
                 except subprocess.TimeoutExpired:
-                    logger.warning("Docker run process didn't exit, terminating it")
-                    self._process.terminate()
+                    logger.warning(f"{self} docker run process didn't exit after terminate, killing it")
+                    self._process.kill()
                     self._process.wait()
 
         # Flush the logfile but don't close it - closing it causes "ValueError: I/O operation on closed file"
