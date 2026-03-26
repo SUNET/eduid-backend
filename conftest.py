@@ -28,8 +28,11 @@ def redis_instance() -> Iterator[RedisTemporaryInstance]:
 
 @pytest.fixture(scope="session")
 def neo4j_instance() -> Iterator[Neo4jTemporaryInstance]:
-    """One Neo4j container per test session (i.e. per pytest-xdist worker)."""
-    # 240s: Neo4j is heavy and slow to start, especially under parallel load
+    """One Neo4j container per test session.
+
+    Neo4j test files are marked with xdist_group('neo4j') so all Neo4j tests
+    run on a single worker — only one container ever starts.
+    """
     instance = Neo4jTemporaryInstance(max_retry_seconds=240)
     yield instance
     instance.shutdown()

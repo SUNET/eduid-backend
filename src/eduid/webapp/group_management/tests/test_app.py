@@ -21,6 +21,8 @@ from eduid.webapp.group_management.schemas import GroupRole
 
 __author__ = "lundberg"
 
+pytestmark = pytest.mark.xdist_group("neo4j")
+
 
 class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
     """Base TestCase for those tests that need a full environment setup"""

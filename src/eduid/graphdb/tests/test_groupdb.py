@@ -11,6 +11,8 @@ from eduid.graphdb.testing import Neo4jTestCase
 
 __author__ = "lundberg"
 
+pytestmark = pytest.mark.xdist_group("neo4j")
+
 
 class TestGroupDB(Neo4jTestCase):
     @pytest.fixture(autouse=True)
