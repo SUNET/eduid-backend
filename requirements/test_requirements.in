@@ -8,7 +8,9 @@ mock
 mypy
 pip-tools
 pytest
+pytest-asyncio
 pytest-cov
+pytest-xdist
 respx
 uv
 motor-types
