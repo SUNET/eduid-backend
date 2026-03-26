@@ -35,7 +35,7 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
         self, setup_common: None, redis_instance: RedisTemporaryInstance, neo4j_instance: Neo4jTemporaryInstance
     ) -> Iterator[None]:
         self.neo4j_instance = neo4j_instance
-        yield from EduidAPITestCase.setup_api(self, setup_common, redis_instance)
+        yield from self._do_setup_api(redis_instance)
 
     @pytest.fixture(autouse=True)
     def setup(self, setup_api: None) -> Iterator[None]:
