@@ -1,10 +1,11 @@
 import json
 from datetime import date, datetime, timedelta
 from http import HTTPStatus
-from typing import Any
+from typing import Any, ClassVar
 from unittest.mock import MagicMock, patch
 from urllib.parse import parse_qs, urlparse
 
+import pytest
 from flask import url_for
 from iso3166 import Country, countries
 from werkzeug.test import TestResponse
@@ -13,7 +14,6 @@ from eduid.common.config.base import FrontendAction
 from eduid.common.misc.timeutil import utc_now
 from eduid.userdb import SvipeIdentity
 from eduid.userdb.identity import IdentityProofingMethod
-from eduid.userdb.testing import SetupConfig
 from eduid.webapp.common.api.messages import CommonMsg
 from eduid.webapp.common.proofing.messages import ProofingMsg
 from eduid.webapp.common.proofing.testing import ProofingTests
@@ -27,12 +27,10 @@ __author__ = "lundberg"
 class SvipeIdTests(ProofingTests[SvipeIdApp]):
     """Base TestCase for those tests that need a full environment setup"""
 
-    def setUp(self, config: SetupConfig | None = None) -> None:
-        if config is None:
-            config = SetupConfig()
-        config.users = ["hubba-bubba", "hubba-baar"]
-        super().setUp(config=config)
+    api_users: ClassVar[list[str]] = ["hubba-bubba", "hubba-baar"]
 
+    @pytest.fixture(autouse=True)
+    def setup(self, setup_api: None) -> None:
         self.unverified_test_user = self.app.central_userdb.get_user_by_eppn("hubba-baar")
         self._user_setup()
 

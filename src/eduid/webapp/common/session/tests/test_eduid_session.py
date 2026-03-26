@@ -1,9 +1,10 @@
 from collections.abc import Mapping
 from typing import Any
 
+import pytest
+
 from eduid.common.config.base import EduIDBaseAppConfig
 from eduid.common.config.parsers import load_config
-from eduid.userdb.testing import SetupConfig
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.common.authn.middleware import AuthnBaseApp
 from eduid.webapp.common.authn.utils import no_authn_views
@@ -82,9 +83,9 @@ def session_init_app(name: str, test_config: Mapping[str, Any]) -> SessionTestAp
 class EduidSessionTests(EduidAPITestCase):
     app: SessionTestApp
 
-    def setUp(self, config: SetupConfig | None = None) -> None:
+    @pytest.fixture(autouse=True)
+    def setup(self, setup_api: None) -> None:
         self.test_user_eppn = "hubba-bubba"
-        super().setUp(config=config)
 
     def load_app(self, config: Mapping[str, Any]) -> SessionTestApp:
         """

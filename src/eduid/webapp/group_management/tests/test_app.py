@@ -1,7 +1,7 @@
 import json
-from collections.abc import Mapping
+from collections.abc import Iterator, Mapping
 from http import HTTPStatus
-from typing import Any
+from typing import Any, ClassVar
 from uuid import UUID
 
 import pytest
@@ -14,7 +14,6 @@ from eduid.userdb import User
 from eduid.userdb.element import ElementKey
 from eduid.userdb.scimapi import GroupExtensions, ScimApiGroup
 from eduid.userdb.scimapi.userdb import ScimApiUser
-from eduid.userdb.testing import SetupConfig
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.group_management.app import GroupManagementApp, init_group_management_app
 from eduid.webapp.group_management.helpers import GroupManagementMsg
@@ -26,24 +25,10 @@ __author__ = "lundberg"
 class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
     """Base TestCase for those tests that need a full environment setup"""
 
-    neo4j_instance: Neo4jTemporaryInstance
-    neo4j_uri: str
+    api_users: ClassVar[list[str]] = ["hubba-bubba", "hubba-baar", "hubba-fooo"]
 
-    @classmethod
-    def setUpClass(cls) -> None:
-        cls.neo4j_instance = Neo4jTemporaryInstance.get_instance(max_retry_seconds=60)
-        cls.neo4j_uri = (
-            f"bolt://{cls.neo4j_instance.DEFAULT_USERNAME}:{cls.neo4j_instance.DEFAULT_PASSWORD}"
-            f"@localhost:{cls.neo4j_instance.bolt_port}"
-        )
-        super().setUpClass()
-
-    def setUp(self, config: SetupConfig | None = None) -> None:
-        users = ["hubba-bubba", "hubba-baar", "hubba-fooo"]
-        if config is None:
-            config = SetupConfig()
-        config.users = users
-        super().setUp(config=config)
+    @pytest.fixture(autouse=True)
+    def setup(self, setup_api: None) -> Iterator[None]:
         self.test_user2 = self.app.central_userdb.get_user_by_eppn("hubba-baar")
         self.test_user3 = self.app.central_userdb.get_user_by_eppn("hubba-fooo")
         # Temporarily fix email address locally until test user fixtures are merged
@@ -60,6 +45,11 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
         self.scim_group2 = self._add_scim_group(
             scim_id=UUID("00000000-0000-0000-0000-000000000003"), display_name="Test Group 2"
         )
+
+        yield
+
+        with self.app.app_context():
+            Neo4jTemporaryInstance.get_instance().purge_db()
 
     def _fix_mail_addresses(self) -> None:
         # Due to mixup in base user data
@@ -78,19 +68,19 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
         return init_group_management_app(test_config=config)
 
     def update_config(self, config: dict[str, Any]) -> dict[str, Any]:
+        neo4j_instance = Neo4jTemporaryInstance.get_instance(max_retry_seconds=60)
+        neo4j_uri = (
+            f"bolt://{neo4j_instance.DEFAULT_USERNAME}:{neo4j_instance.DEFAULT_PASSWORD}"
+            f"@localhost:{neo4j_instance.bolt_port}"
+        )
         config.update(
             {
                 "eduid_site_url": "https://test.eduid.se/",
                 "neo4j_config": {"encrypted": False},
-                "neo4j_uri": self.neo4j_uri,
+                "neo4j_uri": neo4j_uri,
             }
         )
         return config
-
-    def tearDown(self) -> None:
-        super().tearDown()
-        with self.app.app_context():
-            self.neo4j_instance.purge_db()
 
     def _add_scim_user(self, scim_id: UUID, eppn: str) -> ScimApiUser:
         scim_user = ScimApiUser(scim_id=scim_id, external_id=f"{eppn}@eduid.se")

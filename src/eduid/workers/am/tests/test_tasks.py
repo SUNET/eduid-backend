@@ -7,7 +7,6 @@ from eduid.userdb import LockedIdentityList, NinIdentity
 from eduid.userdb.exceptions import EduIDUserDBError, MultipleUsersReturned
 from eduid.userdb.fixtures.users import UserFixtures
 from eduid.userdb.identity import IdentityType
-from eduid.userdb.testing import SetupConfig
 from eduid.userdb.user import User
 from eduid.workers.am.consistency_checks import check_locked_identity, unverify_duplicates
 from eduid.workers.am.testing import AMTestCase
@@ -16,15 +15,12 @@ from eduid.workers.am.testing import AMTestCase
 class TestTasks(AMTestCase):
     user: User
 
-    def setUp(self, config: SetupConfig | None = None) -> None:
+    @pytest.fixture(autouse=True)
+    def setup(self, setup_am: None) -> None:
         _users = UserFixtures()
         self.user = _users.mocked_user_standard
-        _am_users = [self.user, _users.mocked_user_standard_2]
-        if config is None:
-            config = SetupConfig()
-        config.want_mongo_uri = True
-        config.am_users = _am_users
-        super().setUp(config=config)
+        self.amdb.save(self.user)
+        self.amdb.save(_users.mocked_user_standard_2)
 
     def test_get_user_by_id(self) -> None:
         user = self.amdb.get_user_by_id(self.user.user_id)

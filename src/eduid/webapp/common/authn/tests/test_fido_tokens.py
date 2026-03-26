@@ -4,13 +4,13 @@ from copy import deepcopy
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+import pytest
 from fido2.webauthn import AuthenticationResponse
 from flask import Blueprint, current_app, request
 
 from eduid.common.config.base import EduIDBaseAppConfig, WebauthnConfigMixin2
 from eduid.common.config.parsers import load_config
 from eduid.userdb.fixtures.fido_credentials import u2f_credential, webauthn_credential
-from eduid.userdb.testing import SetupConfig
 from eduid.webapp.common.api.app import EduIDBaseApp
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.common.authn.fido_tokens import VerificationProblem, start_token_verification, verify_webauthn
@@ -98,8 +98,8 @@ SAMPLE_WEBAUTHN_APP_CONFIG = {
 class FidoTokensTestCase(EduidAPITestCase):
     app: MockFidoApp
 
-    def setUp(self, config: SetupConfig | None = None) -> None:
-        super().setUp(config=config)
+    @pytest.fixture(autouse=True)
+    def setup(self, setup_api: None) -> None:
         self.webauthn_credential = webauthn_credential
         self.u2f_credential = u2f_credential
 

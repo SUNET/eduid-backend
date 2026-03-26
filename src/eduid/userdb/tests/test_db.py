@@ -1,11 +1,12 @@
 from unittest import TestCase
 
+import pytest
 from bson import ObjectId
 
 from eduid.userdb import db
 from eduid.userdb.fixtures.users import UserFixtures
 from eduid.userdb.identity import IdentityType
-from eduid.userdb.testing import MongoTestCase, SetupConfig
+from eduid.userdb.testing import MongoTestCase
 
 
 class TestMongoDB(TestCase):
@@ -61,13 +62,12 @@ class TestMongoDB(TestCase):
 
 
 class TestDB(MongoTestCase):
-    def setUp(self, config: SetupConfig | None = None) -> None:
+    @pytest.fixture(autouse=True)
+    def setup(self, setup_mongo: None) -> None:
         _users = UserFixtures()
         self._am_users = [_users.new_unverified_user_example, _users.mocked_user_standard_2, _users.new_user_example]
-        if config is None:
-            config = SetupConfig()
-        config.am_users = self._am_users
-        super().setUp(config=config)
+        for user in self._am_users:
+            self.amdb.save(user)
 
     def test_db_count(self) -> None:
         assert len(self._am_users) == self.amdb.db_count()

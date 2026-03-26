@@ -8,6 +8,7 @@ from pathlib import PurePath
 from typing import Any, ClassVar
 from unittest.mock import MagicMock, patch
 
+import pytest
 from bson import ObjectId
 from fido2.webauthn import AuthenticatorAttachment
 from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT
@@ -22,7 +23,6 @@ from eduid.userdb.credentials import Credential, FidoCredential, Webauthn
 from eduid.userdb.credentials.external import ExternalCredential, TrustFramework, external_credential_from_dict
 from eduid.userdb.idp import IdPUser
 from eduid.userdb.mail import MailAddress
-from eduid.userdb.testing import SetupConfig
 from eduid.userdb.user import User
 from eduid.webapp.common.api.testing import CSRFTestClient, EduidAPITestCase
 from eduid.webapp.common.authn.cache import IdentityCache, OutstandingQueriesCache, StateCache
@@ -107,8 +107,8 @@ class IdPAPITests(EduidAPITestCase[IdPApp]):
 
     default_user: TestUser
 
-    def setUp(self, config: SetupConfig | None = None) -> None:
-        super().setUp(config=config)
+    @pytest.fixture(autouse=True)
+    def setup(self, setup_api: None) -> None:
         self.idp_entity_id = "https://unittest-idp.example.edu/idp.xml"
         self.relay_state = AuthnRequestRef("test-fest")
         self.sp_config = get_saml2_config(self.app.conf.pysaml2_config, name="SP_CONFIG")

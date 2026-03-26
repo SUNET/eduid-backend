@@ -8,6 +8,7 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 from urllib.parse import quote_plus
 
+import pytest
 from flask import url_for
 from werkzeug.test import TestResponse
 
@@ -18,7 +19,6 @@ from eduid.userdb.fixtures.fido_credentials import webauthn_credential
 from eduid.userdb.fixtures.fido_credentials import webauthn_credential as sample_credential
 from eduid.userdb.fixtures.users import UserFixtures
 from eduid.userdb.reset_password import ResetPasswordEmailAndPhoneState, ResetPasswordEmailState
-from eduid.userdb.testing import SetupConfig
 from eduid.webapp.common.api.messages import TranslatableMsg
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.common.api.utils import get_zxcvbn_terms, hash_password
@@ -43,8 +43,8 @@ __author__ = "eperez"
 class ResetPasswordTests(EduidAPITestCase[ResetPasswordApp]):
     """Base TestCase for those tests that need a full environment setup"""
 
-    def setUp(self, config: SetupConfig | None = None) -> None:
-        super().setUp(config=config)
+    @pytest.fixture(autouse=True)
+    def setup(self, setup_api: None) -> None:
         self.other_test_user = UserFixtures().mocked_user_standard_2
 
     def load_app(self, config: Mapping[str, Any] | None) -> ResetPasswordApp:

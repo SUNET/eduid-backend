@@ -1,14 +1,14 @@
 import json
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, ClassVar
 from unittest.mock import MagicMock, patch
 from uuid import UUID, uuid4
 
+import pytest
 from werkzeug.test import TestResponse
 
 from eduid.common.config.base import EduidEnvironment
 from eduid.userdb.ladok import Ladok, University, UniversityName
-from eduid.userdb.testing import SetupConfig
 from eduid.webapp.common.api.testing import EduidAPITestCase
 
 __author__ = "lundberg"
@@ -29,7 +29,10 @@ class MockResponse:
 
 
 class LadokTests(EduidAPITestCase[LadokApp]):
-    def setUp(self, config: SetupConfig | None = None) -> None:
+    api_users: ClassVar[list[str]] = ["hubba-bubba", "hubba-baar"]
+
+    @pytest.fixture(autouse=True)
+    def setup(self, setup_api: None) -> None:
         self.test_user_eppn = "hubba-bubba"
         self.test_unverified_user_eppn = "hubba-baar"
         self.ladok_user_external_id = uuid4()
@@ -44,13 +47,6 @@ class LadokTests(EduidAPITestCase[LadokApp]):
             "error": None,
         }
 
-        self.universities_response = MockResponse(200, self.university_data)
-
-        if config is None:
-            config = SetupConfig()
-        config.users = ["hubba-bubba", "hubba-baar"]
-        super().setUp(config=config)
-
         # remove Ladok data from test user
         user = self.app.central_userdb.get_user_by_eppn(eppn=self.test_user_eppn)
         user.ladok = None
@@ -61,8 +57,17 @@ class LadokTests(EduidAPITestCase[LadokApp]):
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
+        university_data = {
+            "data": {
+                "school_names": {
+                    "ab": {"long_name_sv": "Lärosätesnamn", "long_name_en": "University Name"},
+                    "cd": {"long_name_sv": "Annat Lärosätesnamn", "long_name_en": "Another University Name"},
+                }
+            },
+            "error": None,
+        }
         with patch("requests.get") as mock_response:
-            mock_response.return_value = self.universities_response
+            mock_response.return_value = MockResponse(200, university_data)
             return init_ladok_app("testing", config)
 
     def update_config(self, config: dict[str, Any]) -> dict[str, Any]:
@@ -203,15 +208,13 @@ class LadokTests(EduidAPITestCase[LadokApp]):
 
 
 class LadokDevTests(EduidAPITestCase[LadokApp]):
-    def setUp(self, config: SetupConfig | None = None) -> None:
+    api_users: ClassVar[list[str]] = ["hubba-bubba", "hubba-baar"]
+
+    @pytest.fixture(autouse=True)
+    def setup(self, setup_api: None) -> None:
         self.test_user_eppn = "hubba-bubba"
         self.test_unverified_user_eppn = "hubba-baar"
         self.ladok_user_external_id = uuid4()
-
-        if config is None:
-            config = SetupConfig()
-        config.users = ["hubba-bubba", "hubba-baar"]
-        super().setUp(config=config)
 
     def load_app(self, config: Mapping[str, Any]) -> LadokApp:
         """

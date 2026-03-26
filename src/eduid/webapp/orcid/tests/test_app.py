@@ -3,12 +3,12 @@ from collections.abc import Mapping
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+import pytest
 from werkzeug.test import TestResponse
 
 from eduid.userdb.orcid import OidcAuthorization, OidcIdToken, Orcid
 from eduid.userdb.proofing import ProofingUser
 from eduid.userdb.proofing.state import OrcidProofingState
-from eduid.userdb.testing import SetupConfig
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.orcid.app import OrcidApp, init_orcid_app
 
@@ -18,30 +18,9 @@ __author__ = "lundberg"
 class OrcidTests(EduidAPITestCase[OrcidApp]):
     """Base TestCase for those tests that need a full environment setup"""
 
-    def setUp(self, config: SetupConfig | None = None) -> None:
+    @pytest.fixture(autouse=True)
+    def setup(self, setup_api: None) -> None:
         self.test_user_eppn = "hubba-bubba"
-        self.oidc_provider_config = {
-            "token_endpoint_auth_signing_alg_values_supported": ["RS256"],
-            "id_token_signing_alg_values_supported": ["RS256"],
-            "userinfo_endpoint": "https://https://example.com/op/oauth/userinfo",
-            "authorization_endpoint": "https://example.com/op/oauth/authorize",
-            "token_endpoint": "https://example.com/op/oauth/token",
-            "jwks_uri": "https://example.com/op/oauth/jwks",
-            "claims_supported": ["family_name", "given_name", "name", "auth_time", "iss", "sub"],
-            "scopes_supported": ["openid"],
-            "subject_types_supported": ["public"],
-            "response_types_supported": ["code"],
-            "claims_parameter_supported": False,
-            "token_endpoint_auth_methods_supported": ["client_secret_basic"],
-            "issuer": "https://example.com/op/",
-        }
-
-        class MockResponse:
-            def __init__(self, status_code: int, text: str) -> None:
-                self.status_code = status_code
-                self.text = text
-
-        self.oidc_provider_config_response = MockResponse(200, json.dumps(self.oidc_provider_config))
 
         self.oidc_id_token = OidcIdToken(
             iss="iss", sub="sub", aud=["aud"], exp=0, iat=0, nonce="nonce", auth_time=0, created_by="orcid"
@@ -65,15 +44,34 @@ class OrcidTests(EduidAPITestCase[OrcidApp]):
             created_by="orcid",
         )
 
-        super().setUp(config=config)
-
     def load_app(self, config: Mapping[str, Any]) -> OrcidApp:
         """
         Called from the parent class, so we can provide the appropriate flask
         app for this test case.
         """
+        oidc_provider_config = {
+            "token_endpoint_auth_signing_alg_values_supported": ["RS256"],
+            "id_token_signing_alg_values_supported": ["RS256"],
+            "userinfo_endpoint": "https://https://example.com/op/oauth/userinfo",
+            "authorization_endpoint": "https://example.com/op/oauth/authorize",
+            "token_endpoint": "https://example.com/op/oauth/token",
+            "jwks_uri": "https://example.com/op/oauth/jwks",
+            "claims_supported": ["family_name", "given_name", "name", "auth_time", "iss", "sub"],
+            "scopes_supported": ["openid"],
+            "subject_types_supported": ["public"],
+            "response_types_supported": ["code"],
+            "claims_parameter_supported": False,
+            "token_endpoint_auth_methods_supported": ["client_secret_basic"],
+            "issuer": "https://example.com/op/",
+        }
+
+        class MockResponse:
+            def __init__(self, status_code: int, text: str) -> None:
+                self.status_code = status_code
+                self.text = text
+
         with patch("oic.oic.Client.http_request") as mock_response:
-            mock_response.return_value = self.oidc_provider_config_response
+            mock_response.return_value = MockResponse(200, json.dumps(oidc_provider_config))
             return init_orcid_app("testing", config)
 
     def update_config(self, config: dict[str, Any]) -> dict[str, Any]:

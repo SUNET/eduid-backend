@@ -5,22 +5,20 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 from urllib.parse import quote_plus
 
+import pytest
 from werkzeug.test import TestResponse
 
 from eduid.common.config.base import EduidEnvironment
-from eduid.userdb.testing import SetupConfig
 from eduid.webapp.common.api.testing import EduidAPITestCase
 from eduid.webapp.phone.app import PhoneApp, phone_init_app
 from eduid.webapp.phone.helpers import PhoneMsg
 
 
 class PhoneTests(EduidAPITestCase[PhoneApp]):
-    def setUp(self, config: SetupConfig | None = None) -> None:
-        if config is None:
-            config = SetupConfig()
-        config.copy_user_to_private = True
-        super().setUp(config=config)
+    copy_user_to_private = True
 
+    @pytest.fixture(autouse=True)
+    def setup(self, setup_api: None) -> None:
         self.test_number = "+34609609609"
 
     def load_app(self, config: Mapping[str, Any]) -> PhoneApp:

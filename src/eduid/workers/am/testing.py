@@ -5,9 +5,10 @@ Code used in unit tests of various eduID applications.
 __author__ = "leifj"
 
 import logging
+from collections.abc import Iterator
 from copy import deepcopy
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, ClassVar
 from uuid import UUID
 
 import bson
@@ -22,7 +23,6 @@ from eduid.userdb.db import TUserDbDocument
 from eduid.userdb.exceptions import UserDoesNotExist
 from eduid.userdb.identity import IdentityType
 from eduid.userdb.proofing import ProofingUser
-from eduid.userdb.testing import MongoTemporaryInstance, SetupConfig
 from eduid.userdb.userdb import UserDB
 from eduid.workers.am.ams import AttributeFetcher
 from eduid.workers.am.common import AmCelerySingleton
@@ -106,12 +106,10 @@ class WorkerTestCase(CommonTestCase):
     Base Test case for eduID celery workers
     """
 
-    def setUp(self, config: SetupConfig | None = None) -> None:
-        """
-        set up tests
-        """
-        super().setUp(config=config)
+    am_extra_settings: ClassVar[dict[str, Any] | None] = None
 
+    @pytest.fixture(autouse=True)
+    def setup_worker(self, setup_common: None) -> None:
         settings: dict[str, Any] = {
             "app_name": "testing",
             "celery": {
@@ -122,18 +120,11 @@ class WorkerTestCase(CommonTestCase):
                 "result_backend": "cache",
                 "cache_backend": "memory",
             },
-            # Be sure to NOT tell AttributeManager about the temporary mongodb instance.
-            # If we do, one or more plugins may open DB connections that never gets closed.
-            "mongo_uri": None,
+            "mongo_uri": self.tmp_db.uri,
         }
 
-        if config is None:
-            config = SetupConfig()
-        if config.am_settings:
-            settings.update(config.am_settings)
-        if config.want_mongo_uri:
-            assert isinstance(self.tmp_db, MongoTemporaryInstance)  # please mypy
-            settings["mongo_uri"] = self.tmp_db.uri
+        if self.am_extra_settings:
+            settings.update(self.am_extra_settings)
 
         am_config = AmTestConfig(**settings)
         AmCelerySingleton.update_worker_config(AmConfig(**settings))
@@ -144,27 +135,25 @@ class WorkerTestCase(CommonTestCase):
 class AMTestCase(WorkerTestCase):
     """TestCase with an embedded Attribute Manager."""
 
-    def tearDown(self) -> None:
+    @pytest.fixture(autouse=True)
+    def setup_am(self, setup_worker: None) -> Iterator[None]:
+        yield
         for fetcher in AmCelerySingleton.af_registry.all_fetchers():
             if fetcher.private_db:
                 fetcher.private_db._drop_whole_collection()
-        super().tearDown()
 
 
 class ProofingTestCase(AMTestCase):
     fetcher_name: str | None = None
     fetcher: AttributeFetcher | None = None
 
-    def setUp(self, config: SetupConfig | None = None) -> None:
-        super().setUp(config=config)
-
+    @pytest.fixture(autouse=True)
+    def setup_proofing(self, setup_am: None) -> None:
         if self.fetcher_name:
             self.fetcher = AmCelerySingleton.af_registry.get_fetcher(self.fetcher_name)
 
         self.user_data = deepcopy(USER_DATA)
 
-        # Copy all user documents from the AM database into the private database used
-        # by _all_ the fetchers available through self.af_registry.
         for userdoc in self.amdb._get_all_docs():
             proofing_user = ProofingUser.from_dict(userdoc)
             for fetcher in AmCelerySingleton.af_registry.all_fetchers():

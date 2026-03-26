@@ -9,19 +9,17 @@ from eduid.userdb.db.base import TUserDbDocument
 from eduid.userdb.exceptions import UserDoesNotExist, UserOutOfSync
 from eduid.userdb.fixtures.passwords import signup_password
 from eduid.userdb.fixtures.users import UserFixtures
-from eduid.userdb.testing import MongoTestCase, SetupConfig
+from eduid.userdb.testing import MongoTestCase
 from eduid.userdb.util import format_dict_for_debug
 
 logger = logging.getLogger(__name__)
 
 
 class TestUserDB(MongoTestCase):
-    def setUp(self, config: SetupConfig | None = None) -> None:
+    @pytest.fixture(autouse=True)
+    def setup(self, setup_mongo: None) -> None:
         self.user = UserFixtures().mocked_user_standard
-        if config is None:
-            config = SetupConfig()
-        config.am_users = [self.user]
-        super().setUp(config=config)
+        self.amdb.save(self.user)
 
     def test_get_user_by_id(self) -> None:
         """Test get_user_by_id"""
@@ -80,13 +78,10 @@ class TestUserDB(MongoTestCase):
 class UserMissingMeta(MongoTestCase):
     user: User
 
-    def setUp(self, config: SetupConfig | None = None) -> None:
+    @pytest.fixture(autouse=True)
+    def setup(self, setup_mongo: None) -> None:
         self.user = UserFixtures().mocked_user_standard
-        if config is None:
-            config = SetupConfig()
-        config.am_users = [self.user]
-        super().setUp(config=config)
-
+        self.amdb.save(self.user)
         self._remove_meta_from_user_in_db(self.user)
 
     def _remove_meta_from_user_in_db(self, user: User) -> None:
@@ -116,13 +111,12 @@ class UserMissingMeta(MongoTestCase):
 
 
 class UpdateUser(MongoTestCase):
-    def setUp(self, config: SetupConfig | None = None) -> None:
+    @pytest.fixture(autouse=True)
+    def setup(self, setup_mongo: None) -> None:
         _users = UserFixtures()
         self.user = _users.mocked_user_standard
-        if config is None:
-            config = SetupConfig()
-        config.am_users = [self.user, _users.mocked_user_standard_2]
-        super().setUp(config=config)
+        self.amdb.save(self.user)
+        self.amdb.save(_users.mocked_user_standard_2)
 
     def test_stale_user_meta_version(self) -> None:
         test_user = self.amdb.get_user_by_eppn(self.user.eppn)
@@ -151,8 +145,8 @@ class UpdateUser(MongoTestCase):
 
 
 class TestUserDB_mail(MongoTestCase):
-    def setUp(self, config: SetupConfig | None = None) -> None:
-        super().setUp(config=config)
+    @pytest.fixture(autouse=True)
+    def setup(self, setup_mongo: None) -> None:
         data1: TUserDbDocument = TUserDbDocument(
             {
                 "_id": bson.ObjectId(),
@@ -204,8 +198,8 @@ class TestUserDB_mail(MongoTestCase):
 
 
 class TestUserDB_phone(MongoTestCase):
-    def setUp(self, config: SetupConfig | None = None) -> None:
-        super().setUp(config=config)
+    @pytest.fixture(autouse=True)
+    def setup(self, setup_mongo: None) -> None:
         data1: TUserDbDocument = TUserDbDocument(
             {
                 "_id": bson.ObjectId(),
@@ -270,8 +264,8 @@ class TestUserDB_phone(MongoTestCase):
 
 class TestUserDB_nin(MongoTestCase):
     # TODO: Keep for a while to make sure the conversion to identities work as expected
-    def setUp(self, config: SetupConfig | None = None) -> None:
-        super().setUp(config=config)
+    @pytest.fixture(autouse=True)
+    def setup(self, setup_mongo: None) -> None:
         data1: TUserDbDocument = TUserDbDocument(
             {
                 "_id": bson.ObjectId(),

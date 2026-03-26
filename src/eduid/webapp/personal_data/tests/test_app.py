@@ -9,7 +9,6 @@ from werkzeug.test import TestResponse
 
 from eduid.common.config.base import FrontendAction
 from eduid.userdb.element import ElementKey
-from eduid.userdb.testing import SetupConfig
 from eduid.webapp.common.api.exceptions import ApiException
 from eduid.webapp.common.api.schemas.authn_status import AuthnActionStatus
 from eduid.webapp.common.api.testing import EduidAPITestCase
@@ -18,11 +17,7 @@ from eduid.webapp.personal_data.helpers import PDataMsg, is_valid_chosen_given_n
 
 
 class PersonalDataTests(EduidAPITestCase[PersonalDataApp]):
-    def setUp(self, config: SetupConfig | None = None) -> None:
-        if config is None:
-            config = SetupConfig()
-        config.copy_user_to_private = True
-        super().setUp(config=config)
+    copy_user_to_private = True
 
     def load_app(self, config: Mapping[str, Any]) -> PersonalDataApp:
         """

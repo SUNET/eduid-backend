@@ -2,19 +2,18 @@ import json
 from pathlib import Path
 from typing import Any
 
+import pytest
 from fastapi.testclient import TestClient
 
 from eduid.common.models.amapi_user import Reason, Source
 from eduid.common.testing_base import CommonTestCase
-from eduid.userdb.testing import SetupConfig
 from eduid.workers.amapi.app import init_api
 from eduid.workers.amapi.config import EndpointRestriction
 
 
 class TestAMBase(CommonTestCase):
-    def setUp(self, config: SetupConfig | None = None) -> None:
-        super().setUp(config=config)
-
+    @pytest.fixture(autouse=True)
+    def setup_ambase(self, setup_common: None) -> None:
         self.path = str(Path(__file__).parent / "tests/data")
         self.test_config = self._get_config()
         self.test_singing_key = "testing-amapi-2106210000"
