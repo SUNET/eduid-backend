@@ -34,7 +34,9 @@ class ChangePasswordTests(EduidAPITestCase[SecurityApp]):
         """
         return security_init_app("testing", config)
 
-    def update_config(self, config: dict[str, Any]) -> dict[str, Any]:
+    @pytest.fixture
+    def update_config(self) -> dict[str, Any]:
+        config = self._get_base_config()
         config.update(
             {
                 "available_languages": {"en": "English", "sv": "Svenska"},

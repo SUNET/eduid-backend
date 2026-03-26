@@ -15,7 +15,6 @@ from eduid.userdb.element import ElementKey
 from eduid.userdb.scimapi import GroupExtensions, ScimApiGroup
 from eduid.userdb.scimapi.userdb import ScimApiUser
 from eduid.webapp.common.api.testing import EduidAPITestCase
-from eduid.webapp.common.session.testing import RedisTemporaryInstance
 from eduid.webapp.group_management.app import GroupManagementApp, init_group_management_app
 from eduid.webapp.group_management.helpers import GroupManagementMsg
 from eduid.webapp.group_management.schemas import GroupRole
@@ -31,14 +30,7 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
     api_users: ClassVar[list[str]] = ["hubba-bubba", "hubba-baar", "hubba-fooo"]
 
     @pytest.fixture(autouse=True)
-    def setup_api(
-        self, setup_common: None, redis_instance: RedisTemporaryInstance, neo4j_instance: Neo4jTemporaryInstance
-    ) -> Iterator[None]:
-        self.neo4j_instance = neo4j_instance
-        yield from self._do_setup_api(redis_instance)
-
-    @pytest.fixture(autouse=True)
-    def setup(self, setup_api: None) -> Iterator[None]:
+    def setup(self, setup_api: None, neo4j_instance: Neo4jTemporaryInstance) -> Iterator[None]:
         self.test_user2 = self.app.central_userdb.get_user_by_eppn("hubba-baar")
         self.test_user3 = self.app.central_userdb.get_user_by_eppn("hubba-fooo")
         # Temporarily fix email address locally until test user fixtures are merged
@@ -59,7 +51,7 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
         yield
 
         with self.app.app_context():
-            self.neo4j_instance.purge_db()
+            neo4j_instance.purge_db()
 
     def _fix_mail_addresses(self) -> None:
         # Due to mixup in base user data
@@ -77,11 +69,13 @@ class GroupManagementTests(EduidAPITestCase[GroupManagementApp]):
         """
         return init_group_management_app(test_config=config)
 
-    def update_config(self, config: dict[str, Any]) -> dict[str, Any]:
+    @pytest.fixture
+    def update_config(self, neo4j_instance: Neo4jTemporaryInstance) -> dict[str, Any]:
         neo4j_uri = (
-            f"bolt://{self.neo4j_instance.DEFAULT_USERNAME}:{self.neo4j_instance.DEFAULT_PASSWORD}"
-            f"@localhost:{self.neo4j_instance.bolt_port}"
+            f"bolt://{neo4j_instance.DEFAULT_USERNAME}:{neo4j_instance.DEFAULT_PASSWORD}"
+            f"@localhost:{neo4j_instance.bolt_port}"
         )
+        config = self._get_base_config()
         config.update(
             {
                 "eduid_site_url": "https://test.eduid.se/",

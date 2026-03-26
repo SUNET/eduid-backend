@@ -48,11 +48,9 @@ class BackdoorTests(EduidAPITestCase[BackdoorTestApp]):
         self.test_get_url = "/get-code?eppn=pepin-pepon"
         self.test_app_domain = "test.localhost"
 
-    def update_config(self, config: dict[str, Any]) -> dict[str, Any]:
-        """
-        Called from the parent class, so that we can update the configuration
-        according to the needs of this test case.
-        """
+    @pytest.fixture
+    def update_config(self) -> dict[str, Any]:
+        config = self._get_base_config()
         config.update(
             {
                 "available_languages": {"en": "English", "sv": "Svenska"},

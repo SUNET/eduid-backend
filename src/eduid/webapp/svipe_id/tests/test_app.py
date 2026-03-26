@@ -120,7 +120,9 @@ class SvipeIdTests(ProofingTests[SvipeIdApp]):
         """
         return svipe_id_init_app("testing", config)
 
-    def update_config(self, config: dict[str, Any]) -> dict[str, Any]:
+    @pytest.fixture
+    def update_config(self) -> dict[str, Any]:
+        config = self._get_base_config()
         config.update(
             {
                 "svipe_client": {
