@@ -21,8 +21,8 @@ class BaseDBTestCase:
     """
 
     @pytest.fixture(autouse=True)
-    def setup_db(self) -> None:
-        self.mongodb_instance = MongoTemporaryInstance.get_instance()
+    def setup_db(self, mongo_instance: MongoTemporaryInstance) -> None:
+        self.mongodb_instance = mongo_instance
         self.mongo_uri = self.mongodb_instance.uri
 
     def _get_config(self) -> dict[str, Any]:

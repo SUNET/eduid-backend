@@ -12,15 +12,8 @@ from eduid.webapp.common.session.testing import RedisTemporaryInstance
 
 @pytest.fixture(scope="session")
 def mongo_instance() -> Iterator[MongoTemporaryInstance]:
-    """One MongoDB container per test session (i.e. per pytest-xdist worker).
-
-    Uses get_instance() so that legacy code still calling MongoTemporaryInstance.get_instance()
-    directly (outside of fixture injection) receives the same container this fixture started.
-
-    TODO: Migrate all remaining get_instance() callers to accept this fixture as a parameter,
-          then switch back to direct instantiation: MongoTemporaryInstance(max_retry_seconds=60)
-    """
-    instance = MongoTemporaryInstance.get_instance(max_retry_seconds=60)
+    """One MongoDB container per test session (i.e. per pytest-xdist worker)."""
+    instance = MongoTemporaryInstance(max_retry_seconds=60)
     yield instance
     instance.shutdown()
 
