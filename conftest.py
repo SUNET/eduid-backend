@@ -31,22 +31,27 @@ def redis_instance() -> Iterator[RedisTemporaryInstance]:
     Uses get_instance() so that legacy code still calling RedisTemporaryInstance.get_instance()
     directly (outside of fixture injection) receives the same container this fixture started.
 
-    # 120s: multiple workers start Redis containers simultaneously, 60s is too tight
-
     TODO: Migrate all remaining get_instance() callers to accept this fixture as a parameter,
-          then switch back to direct instantiation: RedisTemporaryInstance(max_retry_seconds=120)
+          then switch back to direct instantiation: RedisTemporaryInstance(max_retry_seconds=60)
     """
-    instance = RedisTemporaryInstance.get_instance(max_retry_seconds=120)
+    instance = RedisTemporaryInstance.get_instance(max_retry_seconds=60)
     yield instance
     instance.shutdown()
 
 
 @pytest.fixture(scope="session")
-def neo4j_instance() -> Iterator[Neo4jTemporaryInstance]:
+def neo4j_instance(
+    mongo_instance: MongoTemporaryInstance,
+    redis_instance: RedisTemporaryInstance,
+) -> Iterator[Neo4jTemporaryInstance]:
     """One Neo4j container per test session.
 
     Neo4j test files are marked with xdist_group('neo4j') so all Neo4j tests
     run on a single worker — only one container ever starts.
+
+    Depends on mongo_instance and redis_instance so that those lightweight containers
+    start first. Without this, the neo4j worker would start Neo4j first (slow, up to 240s)
+    and then Redis/MongoDB would have no time budget left.
 
     Uses get_instance() so that legacy code still calling Neo4jTemporaryInstance.get_instance()
     directly (outside of fixture injection, e.g. from update_config() in test_app.py) receives
