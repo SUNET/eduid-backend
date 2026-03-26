@@ -53,15 +53,8 @@ def neo4j_instance(
     Depends on mongo_instance and redis_instance so that those lightweight containers
     start first. Without this, the neo4j worker would start Neo4j first (slow, up to 240s)
     and then Redis/MongoDB would have no time budget left.
-
-    Uses get_instance() so that legacy code still calling Neo4jTemporaryInstance.get_instance()
-    directly (outside of fixture injection, e.g. from update_config() in test_app.py) receives
-    the same container this fixture started.
-
-    TODO: Migrate all remaining get_instance() callers to accept this fixture as a parameter,
-          then switch back to direct instantiation: Neo4jTemporaryInstance(max_retry_seconds=240)
     """
-    instance = Neo4jTemporaryInstance.get_instance(max_retry_seconds=240)
+    instance = Neo4jTemporaryInstance(max_retry_seconds=240)
     yield instance
     instance.shutdown()
 
