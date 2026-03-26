@@ -1,12 +1,12 @@
 import os
-import unittest
 import uuid
-from collections.abc import Mapping
+from collections.abc import Iterator, Mapping
 from dataclasses import asdict
 from json import JSONDecodeError
 from pathlib import Path
 from typing import Any
 
+import pytest
 from bson import ObjectId
 from httpx import Response
 from starlette.testclient import TestClient
@@ -30,7 +30,7 @@ from eduid.userdb.testing import MongoTemporaryInstance
 __author__ = "lundberg"
 
 
-class BaseDBTestCase(unittest.TestCase):
+class BaseDBTestCase:
     """
     Base test case that sets up a temporary mongodb instance
     """
@@ -38,10 +38,10 @@ class BaseDBTestCase(unittest.TestCase):
     mongodb_instance: MongoTemporaryInstance
     mongo_uri: str
 
-    @classmethod
-    def setUpClass(cls) -> None:
-        cls.mongodb_instance = MongoTemporaryInstance.get_instance()
-        cls.mongo_uri = cls.mongodb_instance.uri
+    @pytest.fixture(autouse=True)
+    def setup_mongo(self) -> None:
+        self.mongodb_instance = MongoTemporaryInstance.get_instance()
+        self.mongo_uri = self.mongodb_instance.uri
 
     def _get_config(self) -> dict[str, Any]:
         config = {
@@ -77,24 +77,20 @@ class MongoNeoTestCase(BaseDBTestCase):
         )
         return config
 
-    @classmethod
-    def setUpClass(cls) -> None:
-        cls.neo4j_instance = Neo4jTemporaryInstance.get_instance()
-        cls.neo4j_uri = (
-            f"bolt://{cls.neo4j_instance.DEFAULT_USERNAME}:{cls.neo4j_instance.DEFAULT_PASSWORD}"
-            f"@localhost:{cls.neo4j_instance.bolt_port}"
+    @pytest.fixture(autouse=True)
+    def setup_neo4j(self) -> None:
+        self.neo4j_instance = Neo4jTemporaryInstance.get_instance()
+        self.neo4j_uri = (
+            f"bolt://{self.neo4j_instance.DEFAULT_USERNAME}:{self.neo4j_instance.DEFAULT_PASSWORD}"
+            f"@localhost:{self.neo4j_instance.bolt_port}"
         )
-        super().setUpClass()
 
 
 class ScimApiTestCase(MongoNeoTestCase):
     """Base test case providing the real API"""
 
-    @classmethod
-    def setUpClass(cls) -> None:
-        super().setUpClass()
-
-    def setUp(self) -> None:
+    @pytest.fixture(autouse=True)
+    def scimapi_setup(self, setup_mongo: None, setup_neo4j: None) -> Iterator[None]:
         if "EDUID_CONFIG_YAML" not in os.environ:
             os.environ["EDUID_CONFIG_YAML"] = "YAML_CONFIG_NOT_USED"
 
@@ -118,6 +114,22 @@ class ScimApiTestCase(MongoNeoTestCase):
             "Content-Type": "application/scim+json",
             "Accept": "application/scim+json",
         }
+
+        yield
+
+        if self.userdb:
+            self.userdb._drop_whole_collection()
+        if self.eventdb:
+            self.eventdb._drop_whole_collection()
+        if self.invitedb:
+            self.invitedb._drop_whole_collection()
+        if self.signup_invitedb:
+            self.signup_invitedb._drop_whole_collection()
+        if self.messagedb:
+            self.messagedb._drop_whole_collection()
+        if self.groupdb:
+            self.groupdb._drop_whole_collection()
+            self.neo4j_instance.purge_db()
 
     def _get_config(self) -> dict:
         config = super()._get_config()
@@ -178,22 +190,6 @@ class ScimApiTestCase(MongoNeoTestCase):
         group.add_owner(GraphUser(identifier=user_identifier, display_name=f"Test Owner {num_owners + 1}"))
         self.groupdb.save(group)
         return self.groupdb.get_group_by_scim_id(scim_id=group_identifier)
-
-    def tearDown(self) -> None:
-        super().tearDown()
-        if self.userdb:
-            self.userdb._drop_whole_collection()
-        if self.eventdb:
-            self.eventdb._drop_whole_collection()
-        if self.invitedb:
-            self.invitedb._drop_whole_collection()
-        if self.signup_invitedb:
-            self.signup_invitedb._drop_whole_collection()
-        if self.messagedb:
-            self.messagedb._drop_whole_collection()
-        if self.groupdb:
-            self.groupdb._drop_whole_collection()
-            self.neo4j_instance.purge_db()
 
     def _assertScimError(
         self,

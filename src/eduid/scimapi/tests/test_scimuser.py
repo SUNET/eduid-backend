@@ -5,7 +5,6 @@ from collections.abc import Mapping
 from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta
 from typing import Any
-from unittest import IsolatedAsyncioTestCase
 from uuid import UUID, uuid4
 
 import bson
@@ -183,8 +182,8 @@ class UserApiResult:
 
 
 class ScimApiTestUserResourceBase(ScimApiTestCase):
-    def setUp(self) -> None:
-        super().setUp()
+    @pytest.fixture(autouse=True)
+    def setup(self, scimapi_setup: None) -> None:
         self.test_profile = ScimApiProfile(attributes={"displayName": "Test User 1"}, data={"test_key": "test_value"})
         self.test_profile2 = ScimApiProfile(
             attributes={"displayName": "Test User 2"}, data={"another_test_key": "another_test_value"}
@@ -194,7 +193,7 @@ class ScimApiTestUserResourceBase(ScimApiTestCase):
         """Function to validate successful responses to SCIM calls that update a user according to a request."""
 
         if response.json().get("schemas") == [SCIMSchema.ERROR.value]:
-            self.fail(f"Got SCIM error parsed_response ({response.status_code}):\n{response.json}")
+            pytest.fail(f"Got SCIM error parsed_response ({response.status_code}):\n{response.json}")
 
         expected_schemas = req.get("schemas", [SCIMSchema.CORE_20_USER.value])
         if SCIMSchema.NUTID_USER_V1.value in response.json() and SCIMSchema.NUTID_USER_V1.value not in expected_schemas:
@@ -224,7 +223,7 @@ class ScimApiTestUserResourceBase(ScimApiTestCase):
             resp_nutid = response.json().get(SCIMSchema.NUTID_USER_V1.value)
             assert req_nutid == resp_nutid, "Unexpected NUTID user data in parsed_response"
         elif SCIMSchema.NUTID_USER_V1.value in response.json():
-            self.fail(f"Unexpected {SCIMSchema.NUTID_USER_V1.value} in the parsed_response")
+            pytest.fail(f"Unexpected {SCIMSchema.NUTID_USER_V1.value} in the parsed_response")
 
     def _create_user(self, req: dict[str, Any], expect_success: bool = True) -> UserApiResult:
         if "schemas" not in req:
@@ -864,9 +863,9 @@ class TestUserResource(ScimApiTestUserResourceBase):
         return resources
 
 
-class TestAsyncUserResource(IsolatedAsyncioTestCase, ScimApiTestCase):
-    def setUp(self) -> None:
-        super().setUp()
+class TestAsyncUserResource(ScimApiTestCase):
+    @pytest.fixture(autouse=True)
+    def setup(self, scimapi_setup: None) -> None:
         self.async_client = AsyncClient(transport=ASGITransport(app=self.api), base_url="http://testserver")
         # create users
         self.user_count = 10
@@ -881,7 +880,10 @@ class TestAsyncUserResource(IsolatedAsyncioTestCase, ScimApiTestCase):
         for user in self.users[1:]:
             self.add_member_to_group(group_identifier=str(self.group.scim_id), user_identifier=str(user.scim_id))
 
-    async def test_delete_user_with_groups(self) -> None:
+    def test_delete_user_with_groups(self) -> None:
+        asyncio.run(self._test_delete_user_with_groups())
+
+    async def _test_delete_user_with_groups(self) -> None:
         assert self.groupdb
         group = self.groupdb.get_group_by_scim_id(str(self.group.scim_id))
         assert group is not None  # please mypy

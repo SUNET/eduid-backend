@@ -1,4 +1,3 @@
-from unittest import TestCase
 from uuid import uuid4
 
 from bson import ObjectId
@@ -10,7 +9,7 @@ from eduid.common.testing_base import normalised_data
 __author__ = "lundberg"
 
 
-class TestScimBase(TestCase):
+class TestScimBase:
     def test_meta(self) -> None:
         meta = Meta(
             location="http://example.org/group/some-id",

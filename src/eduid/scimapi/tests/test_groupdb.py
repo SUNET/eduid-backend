@@ -1,5 +1,8 @@
 import logging
+from collections.abc import Iterator
 from uuid import UUID, uuid4
+
+import pytest
 
 from eduid.common.config.parsers import load_config
 from eduid.graphdb.groupdb import Group as GraphGroup
@@ -12,8 +15,8 @@ logger = logging.getLogger(__name__)
 
 
 class TestGroupDB(ScimApiTestCase):
-    def setUp(self) -> None:
-        super().setUp()
+    @pytest.fixture(autouse=True)
+    def setup(self, scimapi_setup: None) -> Iterator[None]:
         self.test_config = self._get_config()
         config = load_config(typ=ScimApiConfig, app_name="scimapi", ns="api", test_config=self.test_config)
         self.context = Context(config=config)
@@ -22,8 +25,8 @@ class TestGroupDB(ScimApiTestCase):
         for i in range(9):
             self.add_group(uuid4(), f"Test Group-{i}")
 
-    def tearDown(self) -> None:
-        super().tearDown()
+        yield
+
         assert self.groupdb is not None
         self.groupdb._drop_whole_collection()
 
