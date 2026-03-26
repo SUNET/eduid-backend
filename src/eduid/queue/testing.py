@@ -4,15 +4,15 @@ import asyncio
 import logging
 import time
 from asyncio import Task
-from collections.abc import Iterator, Sequence
+from collections.abc import AsyncIterator, Iterator, Sequence
 from datetime import datetime, timedelta
 from typing import Any
-from unittest import IsolatedAsyncioTestCase
 from unittest.mock import patch
 
 import pymongo
 import pymongo.errors
 import pytest
+import pytest_asyncio
 
 from eduid.common.misc.timeutil import utc_now
 from eduid.queue.db import Payload, QueueDB, QueueItem, SenderInfo
@@ -134,14 +134,14 @@ class EduidQueueTestCase:
                 continue
 
 
-class QueueAsyncioTest(EduidQueueTestCase, IsolatedAsyncioTestCase):
+class QueueAsyncioTest(EduidQueueTestCase):
     worker_db: AsyncQueueDB
 
-    async def asyncSetUp(self) -> None:
+    @pytest_asyncio.fixture(autouse=True)
+    async def setup_asyncio_queue(self, setup_queue: None) -> AsyncIterator[None]:
         self.tasks: list[Task] = []
         await self._init_async_db()
-
-    async def asyncTearDown(self) -> None:
+        yield
         for task in self.tasks:
             if not task.done():
                 task.cancel()

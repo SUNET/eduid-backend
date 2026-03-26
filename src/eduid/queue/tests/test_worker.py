@@ -1,8 +1,11 @@
 import asyncio
 import logging
 import os
+from collections.abc import AsyncIterator
 from datetime import timedelta
 from os import environ
+
+import pytest_asyncio
 
 from eduid.common.config.parsers import load_config
 from eduid.common.misc.timeutil import utc_now
@@ -31,12 +34,11 @@ class QueueTestWorker(IsolatedWorkerDBMixin, QueueWorker):
 
 
 class TestBaseWorker(QueueAsyncioTest):
-    @classmethod
-    def setUpClass(cls) -> None:
+    @pytest_asyncio.fixture(autouse=True)
+    async def setup_test_worker(self, setup_asyncio_queue: None) -> AsyncIterator[None]:
         environ["WORKER_NAME"] = "Test Worker 1"
 
-    def setUp(self) -> None:
-        self.test_config = {
+        test_config = {
             "testing": True,
             "mongo_uri": self.mongo_uri,
             "mongo_collection": self.mongo_collection,
@@ -46,19 +48,14 @@ class TestBaseWorker(QueueAsyncioTest):
         if "EDUID_CONFIG_YAML" not in os.environ:
             os.environ["EDUID_CONFIG_YAML"] = "YAML_CONFIG_NOT_USED"
 
-        self.config = load_config(typ=QueueWorkerConfig, app_name="test", ns="queue", test_config=self.test_config)
+        self.config = load_config(typ=QueueWorkerConfig, app_name="test", ns="queue", test_config=test_config)
         self.client_db.register_handler(TestPayload)
-
-    async def asyncSetUp(self) -> None:
-        await super().asyncSetUp()
         self.worker_db.register_handler(TestPayload)
         await asyncio.sleep(0.5)  # wait for db
         self.worker = QueueTestWorker(config=self.config, handle_payloads=[TestPayload])
         self.tasks = [asyncio.create_task(self.worker.run())]
         await asyncio.sleep(0.5)  # wait for worker to initialize
-
-    async def asyncTearDown(self) -> None:
-        await super().asyncTearDown()
+        yield
 
     async def test_worker_item_from_stream(self) -> None:
         """
