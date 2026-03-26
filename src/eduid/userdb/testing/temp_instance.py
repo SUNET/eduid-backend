@@ -107,6 +107,9 @@ class EduidTemporaryInstance(ABC):
         return _output
 
     def shutdown(self) -> None:
+        if getattr(self, "_shutdown_done", False):
+            return  # atexit and fixture teardown both call shutdown(); only run once
+        self._shutdown_done = True
         if logger.handlers:
             logger.debug(f"{self} output at shutdown:\n{self.output}")
         if self._process:
