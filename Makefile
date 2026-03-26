@@ -9,9 +9,11 @@ MYPY_STRICT= --strict \
 			 --allow-untyped-calls
 
 PYTEST_WORKERS ?= 2  # override with e.g. make test PYTEST_WORKERS=4; use 1 for serial fallback; avoid 'auto' (OOMs on large machines)
+# --dist=loadgroup: tests with xdist_group("neo4j") all go to one worker; ungrouped tests are load-balanced.
+# Do NOT use --dist=loadfile: xdist_group is only respected with loadgroup, not loadfile.
 
 test:
-	PYTHONPATH=$(SRCDIR) pytest -vvv -ra --log-cli-level DEBUG -n $(PYTEST_WORKERS) --dist=loadfile
+	PYTHONPATH=$(SRCDIR) pytest -vvv -ra --log-cli-level DEBUG -n $(PYTEST_WORKERS) --dist=loadgroup
 
 reformat:
 	# sort imports and remove unused imports
